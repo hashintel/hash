@@ -1,16 +1,13 @@
 import { BaseEdge, type EdgeProps, useStoreApi } from "@xyflow/react";
-import { type CSSProperties, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
 import { useTransitionFrame } from "../../../canvas-frame-store";
 import { useFiringDelta } from "../../../hooks/use-firing-delta";
-import {
-  ARC_HALO_OVERHANG,
-  ARC_WHITE_OVERHANG,
-  arcHaloColor,
-} from "../../../styles/focus";
+import { arcHaloColor } from "../../../styles/focus";
 import { arcFiringIsVisible } from "./firing-animation-visibility";
+import { EdgeUnderlay } from "./shared/edge-underlay";
 import { fixedEndpoint, getOutlineArcPath } from "./shared/outline-arcs";
 
 import type { ArcData, ArcEdgeType } from "./react-flow-types";
@@ -135,11 +132,6 @@ function useFiringAnimation(
     };
   }, []);
 }
-
-const selectionIndicatorStyle: CSSProperties = {
-  stroke: "rgba(249, 115, 22, 0.4)",
-  strokeWidth: 8,
-};
 
 const symbolTextStyle = css({
   fontSize: "[13px]",
@@ -343,40 +335,15 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
         which stays readable.
       */}
       <g className="arc-strokes">
-        {/* Selection indicator: thick orange background stroke */}
-        {selected && (
-          <BaseEdge
-            id={`${id}-selection`}
-            path={arcPath}
-            style={selectionIndicatorStyle}
-          />
-        )}
-
-        {/* Focus casing: white around the arc's own stroke, the role's colour
-            around that, both drawn beneath it so the arc keeps its token type's
-            colour. Matches the bands a highlighted node wears. */}
-        {haloColor !== undefined && (
-          <>
-            <path
-              d={arcPath}
-              fill="none"
-              stroke={haloColor}
-              strokeWidth={BASE_STROKE_WIDTH + ARC_HALO_OVERHANG * 2}
-              strokeDasharray={strokeDasharray}
-              strokeLinecap={arcType === "read" ? "round" : "butt"}
-              style={{ pointerEvents: "none" }}
-            />
-            <path
-              d={arcPath}
-              fill="none"
-              stroke="white"
-              strokeWidth={BASE_STROKE_WIDTH + ARC_WHITE_OVERHANG * 2}
-              strokeDasharray={strokeDasharray}
-              strokeLinecap={arcType === "read" ? "round" : "butt"}
-              style={{ pointerEvents: "none" }}
-            />
-          </>
-        )}
+        <EdgeUnderlay
+          id={id}
+          path={arcPath}
+          selected={selected}
+          haloColor={haloColor}
+          strokeWidth={BASE_STROKE_WIDTH}
+          strokeDasharray={strokeDasharray}
+          strokeLinecap={arcType === "read" ? "round" : "butt"}
+        />
 
         {/* Animated overlay path for firing visualization (no marker). */}
         <path

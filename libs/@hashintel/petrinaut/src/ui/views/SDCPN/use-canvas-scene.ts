@@ -11,6 +11,7 @@ import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
 import { buildNetAdjacency, resolveCanvasFocus } from "./canvas-focus";
 import { buildCanvasScene, type CanvasScene } from "./canvas-scene";
+import { fusionStatuses } from "./fusion-links";
 import { usePointerAtRest } from "./hooks/util/use-pointer-at-rest";
 
 /**
@@ -57,14 +58,19 @@ export const useCanvasScene = (
     setSettledHoverId(nextHoverId);
   }
 
-  // Indexed on the net alone, so the compiler holds it across the renders a
-  // hover causes and only rebuilds it when the net itself changes.
+  // Indexed and checked on the net alone, so the compiler holds both across
+  // the renders a hover causes and only redoes them when the net changes.
   const adjacency = buildNetAdjacency(activeNet);
+  const statuses = fusionStatuses(
+    petriNetDefinition,
+    activeNet,
+    activeSubnetId,
+  );
 
   return buildCanvasScene({
     net: activeNet,
-    activeSubnetId,
     sdcpn: petriNetDefinition,
+    fusionStatuses: statuses,
     extensions,
     dimensions: compactNodes ? compactNodeDimensions : classicNodeDimensions,
     draggingStateByNodeId,

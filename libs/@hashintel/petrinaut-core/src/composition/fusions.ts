@@ -37,7 +37,7 @@ export const fusionHolds = (
 
 /** The fusion of `net` that holds `member`, if any. */
 export const findFusionWithMember = (
-  net: FusionNet,
+  net: Pick<FusionNet, "fusions">,
   member: FusionMember,
 ): Fusion | undefined =>
   (net.fusions ?? []).find((fusion) => fusionHolds(fusion, member));

@@ -7,8 +7,8 @@
 import { use } from "react";
 
 import {
+  arcEndpointsEqual,
   DEFAULT_TRANSITION_KERNEL_CODE,
-  findFusionWithMember,
   generateDefaultLambdaCode,
   generatePetrinautId,
 } from "@hashintel/petrinaut-core";
@@ -22,18 +22,22 @@ import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
 import { snapPositionToGrid } from "../../lib/snap-position-to-grid";
+import { planFusion } from "./fusion-links";
 
 import type { DraggedNodeKind } from "../shared/canvas-node-drag";
-import type { CanvasNode, CanvasPoint, CanvasScene } from "./canvas-scene";
+import type {
+  CanvasLinkEnds,
+  CanvasNode,
+  CanvasPoint,
+  CanvasScene,
+} from "./canvas-scene";
 import type { FusionMember, SelectionMap } from "@hashintel/petrinaut-core";
 
-export type CanvasConnection = {
-  sourceId: string;
-  targetId: string;
-  /** The port place at either end when that end is a component instance. */
-  sourcePortId: string | null;
-  targetPortId: string | null;
-};
+/** A connection being drawn or just drawn, from its source to its target. */
+export type CanvasConnection = CanvasLinkEnds;
+
+/** A line on the canvas that is selected and hovered as one item: an arc, or a fusion through any of its links. */
+export type CanvasLinkItem = { type: "arc" | "fusion"; id: string };
 
 export type CanvasNodeMove = { id: string; position: CanvasPoint };
 
@@ -54,13 +58,10 @@ export type CanvasInteractions = {
   isSelectMode: boolean;
   paneCursor: CanvasPaneCursor;
   hoverNode: (node: Pick<CanvasNode, "id" | "kind">) => void;
-  hoverArc: (id: string) => void;
+  hoverLink: (item: CanvasLinkItem) => void;
   clearHover: () => void;
-  /** Arcs are selected only by a direct click, never by box selection. */
-  selectArc: (id: string) => void;
-  /** A fusion is selected by clicking any of its links. */
-  selectFusion: (fusionId: string) => void;
-  hoverFusion: (fusionId: string) => void;
+  /** Arcs and fusions are selected only by a direct click, never by box selection. */
+  selectLink: (item: CanvasLinkItem) => void;
   /** Node selection changes from clicks and box selection. */
   applySelectionChanges: (changes: CanvasSelectionChange[]) => void;
   beginSelectionGesture: () => void;
@@ -193,18 +194,13 @@ export const useCanvasInteractions = (
     sourcePortId,
     targetPortId,
   }: CanvasConnection): boolean => {
-    const source = kindOf(sourceId);
-    const target = kindOf(targetId);
-    const touchesPort =
-      (source === "componentInstance" && sourcePortId !== null) ||
-      (target === "componentInstance" && targetPortId !== null);
-    const placeOrPort = (kind: string | undefined, portId: string | null) =>
-      kind === "place" || (kind === "componentInstance" && portId !== null);
+    const first = memberOf(sourceId, sourcePortId);
+    const second = memberOf(targetId, targetPortId);
     return (
-      touchesPort &&
-      placeOrPort(source, sourcePortId) &&
-      placeOrPort(target, targetPortId) &&
-      !(sourceId === targetId && sourcePortId === targetPortId)
+      first !== null &&
+      second !== null &&
+      (first.kind === "componentPort" || second.kind === "componentPort") &&
+      !arcEndpointsEqual(first, second)
     );
   };
 
@@ -231,17 +227,8 @@ export const useCanvasInteractions = (
   };
 
   const fuse = (first: FusionMember, second: FusionMember) => {
-    // The fused place is one place of this net at most: a connection that
-    // would give the fusion a second anchor is refused with a notice.
-    const anchors = new Set(
-      [
-        first,
-        second,
-        ...(findFusionWithMember(activeNet, first)?.members ?? []),
-        ...(findFusionWithMember(activeNet, second)?.members ?? []),
-      ].flatMap((member) => (member.kind === "place" ? [member.placeId] : [])),
-    );
-    if (anchors.size > 1) {
+    const plan = planFusion(activeNet, first, second);
+    if (plan.kind === "refused") {
       addNotification({
         id: "fusion:second-anchor",
         message:
@@ -251,19 +238,12 @@ export const useCanvasInteractions = (
       });
       return;
     }
-    const existing =
-      findFusionWithMember(activeNet, first) ??
-      findFusionWithMember(activeNet, second);
-    if (existing) {
-      // One of the two already belongs to a fusion: the other joins it, and
-      // a fusion the other belonged to merges in.
-      const member = findFusionWithMember(activeNet, first) ? second : first;
-      addFusionMember({ fusionId: existing.id, member });
-      selectItem({ type: "fusion", id: existing.id });
-      return;
+    const id = plan.kind === "join" ? plan.fusionId : generatePetrinautId();
+    if (plan.kind === "join") {
+      addFusionMember({ fusionId: id, member: plan.member });
+    } else {
+      addFusion({ id, members: plan.members });
     }
-    const id = generatePetrinautId();
-    addFusion({ id, members: [first, second] });
     selectItem({ type: "fusion", id });
   };
 
@@ -400,6 +380,9 @@ export const useCanvasInteractions = (
   // A functional update, so that node and arc changes a renderer reports in
   // the same tick do not clobber each other through stale closures.
   const applySelectionChanges = (changes: CanvasSelectionChange[]) => {
+    const fusionIdByLinkId = new Map(
+      scene.fusions.map((link) => [link.id, link.fusionId]),
+    );
     setSelection(
       (prevSelection) => {
         const hasNonCanvasItems = Array.from(prevSelection.values()).some(
@@ -411,14 +394,16 @@ export const useCanvasInteractions = (
         let changed = hasNonCanvasItems && prevSelection.size > 0;
 
         for (const change of changes) {
-          if (change.selected && !base.has(change.id)) {
-            const itemType = getItemType(change.id);
-            if (itemType && itemType !== "arc") {
-              base.set(change.id, { type: itemType, id: change.id });
+          // A change to a fusion's link is a change to the fusion.
+          const id = fusionIdByLinkId.get(change.id) ?? change.id;
+          if (change.selected && !base.has(id)) {
+            const itemType = getItemType(id);
+            if (itemType && itemType !== "arc" && itemType !== "fusion") {
+              base.set(id, { type: itemType, id });
               changed = true;
             }
-          } else if (!change.selected && base.has(change.id)) {
-            base.delete(change.id);
+          } else if (!change.selected && base.has(id)) {
+            base.delete(id);
             changed = true;
           }
         }
@@ -478,11 +463,9 @@ export const useCanvasInteractions = (
     isSelectMode,
     paneCursor: isAddMode ? "copy" : isPanMode ? "grab" : "default",
     hoverNode: (node) => setHoveredItem({ type: node.kind, id: node.id }),
-    hoverArc: (id) => setHoveredItem({ type: "arc", id }),
+    hoverLink: setHoveredItem,
     clearHover: clearHoveredItem,
-    selectArc: (id) => setSelection(new Map([[id, { type: "arc", id }]])),
-    selectFusion: (id) => setSelection(new Map([[id, { type: "fusion", id }]])),
-    hoverFusion: (id) => setHoveredItem({ type: "fusion", id }),
+    selectLink: (item) => setSelection(new Map([[item.id, item]])),
     applySelectionChanges,
     beginSelectionGesture,
     endSelectionGesture,

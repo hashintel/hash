@@ -8,6 +8,7 @@ import { getOutlineNode } from "./shared/outline-arcs";
 import type {
   CanvasArc,
   CanvasFusionLink,
+  CanvasLinkEnds,
   CanvasNode,
   CanvasScene,
 } from "../../../canvas-scene";
@@ -45,6 +46,22 @@ const toReactFlowNode = (node: CanvasNode): NodeType => {
   }
 };
 
+/** What every edge takes from the line it draws: its ends, and its focus class. */
+const edgeBase = (link: CanvasLinkEnds & Pick<CanvasArc, "id" | "focus">) => ({
+  id: link.id,
+  source: link.sourceId,
+  target: link.targetId,
+  sourceHandle: link.sourcePortId
+    ? portOutHandleId(link.sourcePortId)
+    : undefined,
+  targetHandle: link.targetPortId
+    ? portInHandleId(link.targetPortId)
+    : undefined,
+  // Only an edge carrying a role is marked, so the pane can mute the rest
+  // without touching them.
+  className: link.focus === "none" ? undefined : "canvas-focus-role",
+});
+
 const toReactFlowEdge = (
   arc: CanvasArc,
   attachments: Pick<
@@ -58,17 +75,8 @@ const toReactFlowEdge = (
   // stopping at a grey one.
   const headColor = arcHaloColor(arc.focus) ?? color;
   return {
-    id: arc.id,
-    source: arc.sourceId,
-    target: arc.targetId,
-    sourceHandle: arc.sourcePortId
-      ? portOutHandleId(arc.sourcePortId)
-      : undefined,
-    targetHandle: arc.targetPortId
-      ? portInHandleId(arc.targetPortId)
-      : undefined,
+    ...edgeBase(arc),
     type: "default",
-    className: arc.focus === "none" ? undefined : "canvas-focus-role",
     selected: arc.selected,
     markerEnd: {
       type: MarkerType.ArrowClosed,
@@ -91,17 +99,8 @@ const toReactFlowEdge = (
 };
 
 const toFusionEdge = (link: CanvasFusionLink): FusionEdgeType => ({
-  id: link.id,
-  source: link.sourceId,
-  target: link.targetId,
-  sourceHandle: link.sourcePortId
-    ? portOutHandleId(link.sourcePortId)
-    : undefined,
-  targetHandle: link.targetPortId
-    ? portInHandleId(link.targetPortId)
-    : undefined,
+  ...edgeBase(link),
   type: "fusion",
-  className: link.focus === "none" ? undefined : "canvas-focus-role",
   selected: link.selected,
   data: {
     fusionId: link.fusionId,
