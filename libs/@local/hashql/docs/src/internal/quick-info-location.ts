@@ -3,6 +3,7 @@ import {
   ModifierFlags,
   NodeFlags,
   SyntaxKind,
+  isBreakOrContinueStatement,
   isCallOrNewExpression,
   isClassDeclaration,
   isEnumDeclaration,
@@ -12,8 +13,11 @@ import {
   isImportEqualsDeclaration,
   isImportTypeNode,
   isInterfaceDeclaration,
+  isJsxNamespacedName,
+  isLabeledStatement,
   isModuleBlock,
   isModuleDeclaration,
+  isNamedTupleMember,
   isParameterDeclaration,
   isPropertyAccessExpression,
   isQualifiedName,
@@ -221,6 +225,32 @@ export const meaningOf = (name: Identifier): Meaning => {
   }
 
   return isNamespaceReference(name) ? "namespace" : "value";
+};
+
+/** Whether `name` is the label of a statement, where the statement declares it or a `break` or `continue` names it. */
+const isStatementLabel = (name: Identifier): boolean => {
+  const { parent } = name;
+
+  return (
+    (isLabeledStatement(parent) || isBreakOrContinueStatement(parent)) &&
+    parent.label === name
+  );
+};
+
+/**
+ * The node whose type an editor shows for `name` where the compiler resolves the name to no symbol. An editor shows nothing on the label of a statement and on either name of a JSX tag such as `svg:rect`, and those have none.
+ *
+ * The label that starts a member of a tuple reads as the member.
+ */
+export const typedAt = (name: Identifier): Option.Option<Node.Node> => {
+  const { parent } = name;
+  if (isStatementLabel(name) || isJsxNamespacedName(parent)) {
+    return Option.none();
+  }
+
+  const starts = isNamedTupleMember(parent) && parent.pos === name.pos;
+
+  return Option.some(starts ? parent : name);
 };
 
 const containers = HashSet.make(
