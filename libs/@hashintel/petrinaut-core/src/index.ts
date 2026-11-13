@@ -716,7 +716,6 @@ export {
   type DangerousSdcpnKey,
 } from "./validation/record-keys";
 export { validateVariableName } from "./validation/variable-name";
-export { runSandboxed, SHADOWED_GLOBALS } from "./simulation/authoring/sandbox";
 
 // --- File, clipboard, and editor protocol helpers ---
 export {

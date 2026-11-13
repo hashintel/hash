@@ -17,7 +17,11 @@
  * net ever runs there either.
  */
 import { range } from "../simulation/authoring/scenario/helpers";
-import { createUserKeyedRecord, getOwn } from "../validation/record-keys";
+import {
+  createUserKeyedRecord,
+  defineOwn,
+  getOwn,
+} from "../validation/record-keys";
 
 import type { HirExpr, HirFunction, Span } from "./hir";
 
@@ -311,17 +315,7 @@ function evalExpr(expr: HirExpr, env: Env, evaluation: Evaluation): HirValue {
     case "recordLit": {
       const record = createUserKeyedRecord<HirValue>();
       for (const entry of expr.entries) {
-        // `defineProperty` rather than assignment: the record has no
-        // prototype (see `createUserKeyedRecord`), so assignment would
-        // behave identically for any key, `__proto__` included, and
-        // `defineProperty` is the form scanners recognise as safe for
-        // user-controlled keys.
-        Object.defineProperty(record, entry.key, {
-          value: evalExpr(entry.value, env, evaluation),
-          enumerable: true,
-          writable: true,
-          configurable: true,
-        });
+        defineOwn(record, entry.key, evalExpr(entry.value, env, evaluation));
       }
       return record;
     }
