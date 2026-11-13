@@ -60,7 +60,7 @@ const releaseLine = async (summary, commit) =>
   getReleaseLine({ summary, commit, releases: [] }, "patch", options);
 
 describe("getReleaseLine", () => {
-  it("links the pull request without crediting its assignee or author", async () => {
+  it("links the pull request", async () => {
     fetchMock.mockImplementation(
       respondWith({
         commits: {
