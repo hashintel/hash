@@ -148,7 +148,7 @@
 
 - Add Monte Carlo experiment metric specs, accumulators, runtime streaming, and worker support. ([#8751](https://github.com/hashintel/hash/pull/8751))
 
-- improve and expand instance action schemas ([#8750](https://github.com/hashintel/hash/pull/8750))
+- Improve and expand instance action schemas ([#8750](https://github.com/hashintel/hash/pull/8750))
 
 ## 0.0.1
 

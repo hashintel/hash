@@ -13,17 +13,17 @@
 
 ### Patch Changes
 
-- update detection of link types to account for inheritance ([#2937](https://github.com/hashintel/hash/pull/2937))
+- Update detection of link types to account for inheritance ([#2937](https://github.com/hashintel/hash/pull/2937))
 
-- take data type options as prop, not fixed list ([#3784](https://github.com/hashintel/hash/pull/3784))
+- Take data type options as prop, not fixed list ([#3784](https://github.com/hashintel/hash/pull/3784))
 
-- add 'extends' section and handle inherited properties and links ([#2909](https://github.com/hashintel/hash/pull/2909))
+- Add 'extends' section and handle inherited properties and links ([#2909](https://github.com/hashintel/hash/pull/2909))
 
-- show / edit label property in type editor ([#3984](https://github.com/hashintel/hash/pull/3984))
+- Show / edit label property in type editor ([#3984](https://github.com/hashintel/hash/pull/3984))
 
-- validate type parents ([#2966](https://github.com/hashintel/hash/pull/2966))
+- Validate type parents ([#2966](https://github.com/hashintel/hash/pull/2966))
 
-- add icons to type selectors ([#2972](https://github.com/hashintel/hash/pull/2972))
+- Add icons to type selectors ([#2972](https://github.com/hashintel/hash/pull/2972))
 
 - Updated dependencies:
   - @hashintel/design-system@0.0.8
@@ -32,7 +32,7 @@
 
 ### Patch Changes
 
-- add 'open' link button to link destination entity types ([#2616](https://github.com/hashintel/hash/pull/2616))
+- Add 'open' link button to link destination entity types ([#2616](https://github.com/hashintel/hash/pull/2616))
 
 ## 0.0.23
 
@@ -72,7 +72,7 @@
 
 ### Patch Changes
 
-- fix option <> selection comparison in type selectors ([#2196](https://github.com/hashintel/hash/pull/2196))
+- Fix option <> selection comparison in type selectors ([#2196](https://github.com/hashintel/hash/pull/2196))
 
 - Updated dependencies:
   - @hashintel/design-system@0.0.5

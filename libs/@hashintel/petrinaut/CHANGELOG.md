@@ -238,7 +238,7 @@
 
 - Add experiment metric creation controls, validation, and scalar/distribution visualizations. ([#8751](https://github.com/hashintel/hash/pull/8751))
 
-- add AI assistant ([#8750](https://github.com/hashintel/hash/pull/8750))
+- Add AI assistant ([#8750](https://github.com/hashintel/hash/pull/8750))
 
 - Updated dependencies:
   - @hashintel/petrinaut-core@0.0.2
@@ -276,7 +276,7 @@
 
 - Let minZoom be dynamically based on the size of the net ([#8611](https://github.com/hashintel/hash/pull/8611))
 
-- recenter offscreen selected items when drawer is opened ([#8637](https://github.com/hashintel/hash/pull/8637))
+- Recenter offscreen selected items when drawer is opened ([#8637](https://github.com/hashintel/hash/pull/8637))
 
 - Improve text wrapping for long text in nodes ([#8623](https://github.com/hashintel/hash/pull/8623))
 
@@ -286,7 +286,7 @@
 
 ### Patch Changes
 
-- better scoping of styles, font loading ([#8590](https://github.com/hashintel/hash/pull/8590))
+- Better scoping of styles, font loading ([#8590](https://github.com/hashintel/hash/pull/8590))
 
 ## 0.0.11
 
@@ -315,7 +315,7 @@
 
 - Add copy/paste, select all, and escape-to-deselect keyboard shortcuts ([#8533](https://github.com/hashintel/hash/pull/8533))
 
-- add TikZ export format ([#8439](https://github.com/hashintel/hash/pull/8439))
+- Add TikZ export format ([#8439](https://github.com/hashintel/hash/pull/8439))
 
 - Fix read-only tooltips to always show during simulation mode ([#8285](https://github.com/hashintel/hash/pull/8285))
 
@@ -364,7 +364,7 @@
 
 - Better animation of Transitions and flow inside Arcs ([#8262](https://github.com/hashintel/hash/pull/8262))
 
-- implement SDCPN features, update UI ([#8083](https://github.com/hashintel/hash/pull/8083))
+- Implement SDCPN features, update UI ([#8083](https://github.com/hashintel/hash/pull/8083))
 
 - Quick Simulation in Edit mode, and disable Simulate tab for now. ([#8195](https://github.com/hashintel/hash/pull/8195))
 

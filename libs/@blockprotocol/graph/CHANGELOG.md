@@ -24,7 +24,7 @@
 
 ### Patch Changes
 
-- update dependencies ([#8568](https://github.com/hashintel/hash/pull/8568))
+- Update dependencies ([#8568](https://github.com/hashintel/hash/pull/8568))
 
 ## 0.4.1
 
@@ -37,7 +37,7 @@
 
 ### Minor Changes
 
-- major overhaul that removes temporal/non-temporal split (all now temporal) and implements latest type system ([#8083](https://github.com/hashintel/hash/pull/8083))
+- Major overhaul that removes temporal/non-temporal split (all now temporal) and implements latest type system ([#8083](https://github.com/hashintel/hash/pull/8083))
 
 ### Patch Changes
 
@@ -48,13 +48,13 @@
 
 ### Patch Changes
 
-- remove node-fetch dependency ([#1310](https://github.com/blockprotocol/blockprotocol/pull/1310))
+- Remove node-fetch dependency ([#1310](https://github.com/blockprotocol/blockprotocol/pull/1310))
 
 ## 0.3.2
 
 ### Patch Changes
 
-- add 'icon' and 'labelProperty' to entity type metadata ([#1360](https://github.com/blockprotocol/blockprotocol/pull/1360))
+- Add 'icon' and 'labelProperty' to entity type metadata ([#1360](https://github.com/blockprotocol/blockprotocol/pull/1360))
 
 ## 0.3.1
 
@@ -64,7 +64,7 @@
 
 - Adds a `requestLinkedQuery` method to the BP graph module ([#1353](https://github.com/blockprotocol/blockprotocol/pull/1353))
 
-- add suffix to auto-generated data types, to avoid name clashes ([#1311](https://github.com/blockprotocol/blockprotocol/pull/1311))
+- Add suffix to auto-generated data types, to avoid name clashes ([#1311](https://github.com/blockprotocol/blockprotocol/pull/1311))
 
 ## 0.3.0
 
@@ -91,7 +91,7 @@
 
 ### Patch Changes
 
-- codegen: fix nested output folder creation ([#1182](https://github.com/blockprotocol/blockprotocol/pull/1182))
+- Codegen: fix nested output folder creation ([#1182](https://github.com/blockprotocol/blockprotocol/pull/1182))
 
 - Updated dependencies:
   - @blockprotocol/type-system@0.1.1
@@ -111,9 +111,9 @@
 
 ### Minor Changes
 
-- rename Block Protocol 'Services' to 'Modules' ([#985](https://github.com/blockprotocol/blockprotocol/pull/985))
+- Rename Block Protocol 'Services' to 'Modules' ([#985](https://github.com/blockprotocol/blockprotocol/pull/985))
 
-- multiple breaking changes for updated Graph Module specification and type system ([#879](https://github.com/blockprotocol/blockprotocol/pull/879))
+- Multiple breaking changes for updated Graph Module specification and type system ([#879](https://github.com/blockprotocol/blockprotocol/pull/879))
 
 ### Patch Changes
 
@@ -145,7 +145,7 @@
 
 ### Patch Changes
 
-- change entity & type updates to be by overwrite, not merge ([#631](https://github.com/blockprotocol/blockprotocol/pull/631))
+- Change entity & type updates to be by overwrite, not merge ([#631](https://github.com/blockprotocol/blockprotocol/pull/631))
 
 ## 0.0.17
 
@@ -158,17 +158,17 @@
 
 ### Patch Changes
 
-- add missing type to block callback list ([#593](https://github.com/blockprotocol/blockprotocol/pull/593))
+- Add missing type to block callback list ([#593](https://github.com/blockprotocol/blockprotocol/pull/593))
 
 - Add `labelProperty` to `EntityType` ([#589](https://github.com/blockprotocol/blockprotocol/pull/589))
 
-- simplify custom element base class ([#598](https://github.com/blockprotocol/blockprotocol/pull/598))
+- Simplify custom element base class ([#598](https://github.com/blockprotocol/blockprotocol/pull/598))
 
 ## 0.0.15
 
 ### Patch Changes
 
-- expose registerCallbacks to users for bulk callback updating ([#576](https://github.com/blockprotocol/blockprotocol/pull/576))
+- Expose registerCallbacks to users for bulk callback updating ([#576](https://github.com/blockprotocol/blockprotocol/pull/576))
 
 - Change TypeScript config and rebuild ([#577](https://github.com/blockprotocol/blockprotocol/pull/577))
 

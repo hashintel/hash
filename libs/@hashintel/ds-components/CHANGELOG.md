@@ -121,7 +121,7 @@
 
 ### Patch Changes
 
-- add arrow-right-arrow-left icon ([#8750](https://github.com/hashintel/hash/pull/8750))
+- Add arrow-right-arrow-left icon ([#8750](https://github.com/hashintel/hash/pull/8750))
 
 - Adds a Dialog component ([#8802](https://github.com/hashintel/hash/pull/8802))
 

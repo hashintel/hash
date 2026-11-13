@@ -10,7 +10,7 @@
 
 ### Patch Changes
 
-- update uuid dependency ([#8818](https://github.com/hashintel/hash/pull/8818))
+- Update uuid dependency ([#8818](https://github.com/hashintel/hash/pull/8818))
 
 ## 0.2.1
 
@@ -22,23 +22,23 @@
 
 ### Minor Changes
 
-- major overhaul including new metadata, data type inheritance ([#7714](https://github.com/hashintel/hash/pull/7714))
+- Major overhaul including new metadata, data type inheritance ([#7714](https://github.com/hashintel/hash/pull/7714))
 
 ## 0.1.1
 
 ### Patch Changes
 
-- add inheritsFromEntityTypes to getReferencedIdsFromEntityType return ([#1182](https://github.com/blockprotocol/blockprotocol/pull/1182))
+- Add inheritsFromEntityTypes to getReferencedIdsFromEntityType return ([#1182](https://github.com/blockprotocol/blockprotocol/pull/1182))
 
 ## 0.1.0
 
 ### Minor Changes
 
-- rename Block Protocol 'Services' to 'Modules' ([#985](https://github.com/blockprotocol/blockprotocol/pull/985))
+- Rename Block Protocol 'Services' to 'Modules' ([#985](https://github.com/blockprotocol/blockprotocol/pull/985))
 
 ### Patch Changes
 
-- update schema representations of ontology types to remove redundant fields, and add further validation ([#879](https://github.com/blockprotocol/blockprotocol/pull/879))
+- Update schema representations of ontology types to remove redundant fields, and add further validation ([#879](https://github.com/blockprotocol/blockprotocol/pull/879))
 
 ## 0.0.4
 

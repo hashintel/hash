@@ -13,7 +13,7 @@
 
 ### Patch Changes
 
-- remove CheckIcon ([#3659](https://github.com/hashintel/hash/pull/3659))
+- Remove CheckIcon ([#3659](https://github.com/hashintel/hash/pull/3659))
 
 - Updated dependencies:
   - @hashintel/design-system@0.0.8

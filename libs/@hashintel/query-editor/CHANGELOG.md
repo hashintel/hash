@@ -13,7 +13,7 @@
 
 ### Patch Changes
 
-- update react-hook-form ([#2966](https://github.com/hashintel/hash/pull/2966))
+- Update react-hook-form ([#2966](https://github.com/hashintel/hash/pull/2966))
 
 - Updated dependencies:
   - @hashintel/design-system@0.0.8

@@ -22,7 +22,7 @@
 
 ### Patch Changes
 
-- fix publishing process ([#8581](https://github.com/hashintel/hash/pull/8581))
+- Fix publishing process ([#8581](https://github.com/hashintel/hash/pull/8581))
 
 ## 0.1.1
 

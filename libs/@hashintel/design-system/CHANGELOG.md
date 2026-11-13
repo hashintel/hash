@@ -4,9 +4,9 @@
 
 ### Patch Changes
 
-- add data type selector, more icons ([#7714](https://github.com/hashintel/hash/pull/7714))
+- Add data type selector, more icons ([#7714](https://github.com/hashintel/hash/pull/7714))
 
-- remove @blockprotocol/graph dependency ([#7714](https://github.com/hashintel/hash/pull/7714))
+- Remove @blockprotocol/graph dependency ([#7714](https://github.com/hashintel/hash/pull/7714))
 
 - Updated dependencies:
   - @blockprotocol/type-system@0.2.0
@@ -15,25 +15,25 @@
 
 ### Patch Changes
 
-- support image previews in selector-autocomplete ([#3104](https://github.com/hashintel/hash/pull/3104))
+- Support image previews in selector-autocomplete ([#3104](https://github.com/hashintel/hash/pull/3104))
 
-- add callout component, improve typing of type ids ([#2966](https://github.com/hashintel/hash/pull/2966))
+- Add callout component, improve typing of type ids ([#2966](https://github.com/hashintel/hash/pull/2966))
 
-- split component exports from non-component exports ([#3203](https://github.com/hashintel/hash/pull/3203))
+- Split component exports from non-component exports ([#3203](https://github.com/hashintel/hash/pull/3203))
 
 - Rename colors (green->lime, mint->green, turquoise->aqua) ([#2982](https://github.com/hashintel/hash/pull/2982))
 
-- add icons ([#3659](https://github.com/hashintel/hash/pull/3659))
+- Add icons ([#3659](https://github.com/hashintel/hash/pull/3659))
 
-- add ontology icons, link icon ([#2972](https://github.com/hashintel/hash/pull/2972))
+- Add ontology icons, link icon ([#2972](https://github.com/hashintel/hash/pull/2972))
 
-- add secondary_quiet button and TypeCard component ([#2909](https://github.com/hashintel/hash/pull/2909))
+- Add secondary_quiet button and TypeCard component ([#2909](https://github.com/hashintel/hash/pull/2909))
 
 ## 0.0.7
 
 ### Patch Changes
 
-- fix circular imports ([#2417](https://github.com/hashintel/hash/pull/2417))
+- Fix circular imports ([#2417](https://github.com/hashintel/hash/pull/2417))
 
 - Added the block-design-system ([#2362](https://github.com/hashintel/hash/pull/2362))
 
@@ -55,4 +55,4 @@
 
 ### Patch Changes
 
-- update autocomplete option render data ([#2196](https://github.com/hashintel/hash/pull/2196))
+- Update autocomplete option render data ([#2196](https://github.com/hashintel/hash/pull/2196))

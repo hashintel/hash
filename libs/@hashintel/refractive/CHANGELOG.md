@@ -16,7 +16,7 @@
 
 ### Patch Changes
 
-- change equation export casing, e.g. LIP -> lip ([#8581](https://github.com/hashintel/hash/pull/8581))
+- Change equation export casing, e.g. LIP -> lip ([#8581](https://github.com/hashintel/hash/pull/8581))
 
 ## 0.0.2
 
