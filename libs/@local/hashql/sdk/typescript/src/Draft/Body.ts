@@ -7,6 +7,7 @@
  */
 import type * as Expression from "../Program/Expression.js";
 import type * as Input from "../Program/Inputs.js";
+import type { Entity, Graph, QueryTemporalAxes } from "../Program/Query.js";
 import type * as Scope from "../Program/Scope.js";
 import type * as Structural from "../Program/Structural.js";
 import type * as Type from "../Type.js";
@@ -105,14 +106,46 @@ export type Check<S, I> = [I] extends [never]
 /** Checks the inputs the expression `E` requires against the schema record `I`, as {@link Check} does. */
 type Accept<I, E> = Check<I, Expression.Value.Inputs<E>>;
 
+/** A graph query in a program callback, whose predicates must fit the program's schema `I`. Otherwise it is {@link Construction.Query | Context.Query}. */
+export interface Query<
+  S extends Scope.Scope.Any,
+  I,
+  V extends Type.Any,
+  R,
+> extends Expression.Expression.Handle<Graph<V>, R> {
+  /** Keeps the vertices `predicate` accepts. The predicate receives a fresh restricted context and returns a Boolean whose input requirements fit the schema. The result requires the whole schema, because the filter closure emits the predicate's declarations and no type records their inputs. Otherwise this is the `filter` of {@link Construction.Query | Context.Query}. */
+  readonly filter: <const P extends Expression.Value<Type.PrimitiveBoolean>>(
+    name: string,
+    predicate: (
+      $: Context<S, I>,
+      vertex: Expression.Expression<V, Input.Empty>,
+    ) => P & Accept<I, P>,
+  ) => Query<S, I, V, I>;
+
+  /** Ends the query as a list of its vertices. This is {@link @local/hashql!Program.Query.collect | Query.collect}. */
+  readonly collect: () => Expression.Expression<Type.List<V>, R>;
+}
+
+/** `$.query` in a program callback, whose graph or axes must fit the schema `I` and whose queries take restricted predicates. Otherwise it is {@link Construction.Queries | Context.Queries}. */
+export interface Queries<S extends Scope.Scope.Any, I> {
+  <const G extends Expression.Expression.Any>(
+    graph: G & Graph.Check<G> & Accept<I, G>,
+  ): Query<S, I, Graph.Vertex<G>, Expression.Value.Inputs<G>>;
+
+  /** Starts a query from every entity at the temporal axes `axis`, whose input requirements fit the schema. This is {@link @local/hashql!Program.Query.entities | Query.entities}. */
+  readonly entities: <const A extends Expression.Value<QueryTemporalAxes>>(
+    axis: A & Accept<I, A>,
+  ) => Query<S, I, Entity, Expression.Value.Inputs<A>>;
+}
+
 /**
  * The `$` argument of a program callback, which restricts the construction context to the program's input schema.
  *
- * `let` and `if` accept only values whose input requirements fit the schema, and `if`'s branch callbacks receive the same restricted view. The other members are the unrestricted Draft `Context.Context` operations. The unrestricted constructor implements this view, but the view is not assignable to `Context.Context`, so a helper typed with the unrestricted context cannot receive a program's `$`.
+ * `let`, `if` and `query` accept only values whose input requirements fit the schema, and branch and filter callbacks receive the same restricted view. The other members are the unrestricted Draft {@link Construction.Context | Context.Context} operations. The unrestricted constructor implements this view, but the view is not assignable to {@link Construction.Context | Context.Context}, so a helper typed with the unrestricted context cannot receive a program's `$`.
  */
 export interface Context<S extends Scope.Scope.Any, I> extends Omit<
   Construction.Context<S>,
-  "let" | "if"
+  "let" | "if" | "query"
 > {
   /**
    * Binds a value to a HashQL name and returns a reference to the binding.
@@ -145,7 +178,7 @@ export interface Context<S extends Scope.Scope.Any, I> extends Omit<
   /**
    * Constructs a HashQL conditional from a Boolean condition and a record of branch callbacks.
    *
-   * The condition and every branch must fit the schema. The result requires the whole schema, because the conditional emits each branch's declarations and no branch's type records their inputs. HashQL decides the condition when the query runs, so construction always builds every branch. The callbacks run immediately, `then` first, whatever the condition's value. Each receives a fresh restricted context, and the `if` of `Context.Context` describes where its declarations belong. An exception thrown by a callback becomes a `CallbackException` failure on the returned expression and does not interrupt the enclosing callback.
+   * The condition and every branch must fit the schema. The result requires the whole schema, because the conditional emits each branch's declarations and no branch's type records their inputs. HashQL decides the condition when the query runs, so construction always builds every branch. The callbacks run immediately, `then` first, whatever the condition's value. Each receives a fresh restricted context, and the `if` of {@link Construction.Context | Context.Context} describes where its declarations belong. An exception thrown by a callback becomes a `CallbackException` failure on the returned expression and does not interrupt the enclosing callback.
    *
    * @example <caption>Construct both branches, one with a branch-local binding.</caption>
    * ```ts
@@ -214,6 +247,9 @@ export interface Context<S extends Scope.Scope.Any, I> extends Omit<
       branches: { readonly then: ($: Context<S, I>) => T & Accept<I, T> },
     ): Expression.Expression<Construction.Option<Expression.Value.Type<T>>, I>;
   };
+
+  /** Starts a graph query from a graph expression, or from every entity with `$.query.entities(axis)`, whose input requirements fit the schema. */
+  readonly query: Queries<S, I>;
 }
 
 /**

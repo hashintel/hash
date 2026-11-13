@@ -11,6 +11,13 @@ const ident = Result.getOrThrow(JExpr.Ident.decodeResult("x"));
 const path = Result.getOrThrow(JExpr.Path.decodeResult("x"));
 
 const depth = 20_000;
+const inferred = new TAST.Syntax(JExpr.Type.infer());
+/** A reference to the type `name`, keeping `id` when the program binds it. */
+const typeReference = (
+  name: string,
+  id?: Referential.ReferenceId<"type">,
+): TAST.Reference =>
+  new TAST.Reference(Result.getOrThrow(JExpr.Path.decodeResult(name)), [], id);
 
 const emit = (node: AST.Node.Any): string =>
   node.pipe(AST.compile, JExpr.compile);
@@ -64,6 +71,55 @@ describe("compile", () => {
         ),
       ),
     ).toBe('["::kernel::special_form::let","x","Integer",{"#literal":1},"x"]');
+  });
+
+  test("closure", () => {
+    expect.hasAssertions();
+    const produce = Referential.referenceProducer(Symbol("closure"));
+    const bounded = produce(
+      "type",
+      Result.getOrThrow(JExpr.Ident.decodeResult("T")),
+    );
+    const unbounded = produce(
+      "type",
+      Result.getOrThrow(JExpr.Ident.decodeResult("U")),
+    );
+    const typed = produce("value", ident);
+    const untyped = produce(
+      "value",
+      Result.getOrThrow(JExpr.Ident.decodeResult("y")),
+    );
+
+    expect(
+      emit(
+        new AST.Closure(
+          {
+            generics: [
+              { id: bounded, bound: typeReference("Integer") },
+              { id: unbounded, bound: inferred },
+            ],
+            parameters: [
+              { id: typed, type: typeReference("T", bounded) },
+              { id: untyped, type: inferred },
+            ],
+            returns: typeReference("U", unbounded),
+          },
+          new AST.Path(path, typed),
+        ),
+      ),
+    ).toBe(
+      '["::kernel::special_form::fn",{"#struct":{"T":"Integer","U":"_"}},{"#struct":{"x":"T","y":"_"}},"U","x"]',
+    );
+    expect(
+      emit(
+        new AST.Closure(
+          { generics: [], parameters: [], returns: inferred },
+          new AST.Path(path),
+        ),
+      ),
+    ).toBe(
+      '["::kernel::special_form::fn",{"#tuple":[]},{"#struct":{}},"_","x"]',
+    );
   });
 
   test("deep_nesting", () => {
@@ -158,6 +214,122 @@ describe("resolve_references", () => {
       _tag: "StaleReference",
       name: "T",
     });
+  });
+
+  test("closure_parameter", () => {
+    expect.hasAssertions();
+    const produce = Referential.referenceProducer(Symbol("closure_parameter"));
+    const outer = produce("value", ident);
+    const parameter = produce("value", ident);
+
+    // `let x = 0 in f(fn(x) -> <inside>, <outside>)`
+    const program = (
+      inside: AST.Node.Any,
+      outside: AST.Node.Any,
+    ): AST.Node.Any =>
+      new AST.Let(
+        AST.make(outer, new AST.Expr(JExpr.literal(0n))),
+        new AST.Call(new AST.Expr("f"), [
+          new AST.Closure(
+            {
+              generics: [],
+              parameters: [{ id: parameter, type: inferred }],
+              returns: inferred,
+            },
+            inside,
+          ),
+          outside,
+        ]),
+      );
+
+    expect(
+      Result.isSuccess(
+        AST.resolveReferences(
+          program(new AST.Path(path, parameter), new AST.Path(path, outer)),
+        ),
+      ),
+    ).toBe(true);
+
+    for (const stale of [
+      program(new AST.Path(path, outer), new AST.Path(path, outer)),
+      program(new AST.Path(path, parameter), new AST.Path(path, parameter)),
+    ]) {
+      const result = AST.resolveReferences(stale);
+      assert(Result.isFailure(result));
+      expect(result.failure.reason).toStrictEqual({
+        _tag: "StaleReference",
+        name: "x",
+      });
+    }
+  });
+
+  test("closure_generics", () => {
+    expect.hasAssertions();
+    const produce = Referential.referenceProducer(Symbol("closure_generics"));
+    const name = Result.getOrThrow(JExpr.Ident.decodeResult("T"));
+    const outer = produce("type", name);
+    const generic = produce("type", name);
+    const other = produce(
+      "type",
+      Result.getOrThrow(JExpr.Ident.decodeResult("U")),
+    );
+    const parameter = produce("value", ident);
+
+    interface Placement {
+      readonly bound: TAST.TypeNode.Any;
+      readonly parameter: TAST.TypeNode.Any;
+      readonly returns: TAST.TypeNode.Any;
+      readonly outside: TAST.TypeNode.Any;
+    }
+
+    const inScope: Placement = {
+      bound: typeReference("U", other),
+      parameter: typeReference("T", generic),
+      returns: typeReference("T", generic),
+      outside: typeReference("T", outer),
+    };
+
+    // `type T = Integer in f(fn<T: <bound>, U>(x: <parameter>): <returns> -> x, (1,): (<outside>,))`
+    const program = (placement: Placement): AST.Node.Any =>
+      new AST.Type(
+        AST.make(outer, typeReference("Integer")),
+        new AST.Call(new AST.Expr("f"), [
+          new AST.Closure(
+            {
+              generics: [
+                { id: generic, bound: placement.bound },
+                { id: other, bound: inferred },
+              ],
+              parameters: [{ id: parameter, type: placement.parameter }],
+              returns: placement.returns,
+            },
+            new AST.Path(path, parameter),
+          ),
+          new AST.Tuple(
+            [new AST.Expr(JExpr.literal(1n))],
+            new TAST.Tuple([placement.outside]),
+          ),
+        ]),
+      );
+
+    expect(Result.isSuccess(AST.resolveReferences(program(inScope)))).toBe(
+      true,
+    );
+
+    for (const [stale, placement] of [
+      ["T", { ...inScope, bound: typeReference("T", outer) }],
+      ["T", { ...inScope, parameter: typeReference("T", outer) }],
+      ["T", { ...inScope, returns: typeReference("T", outer) }],
+      ["T", { ...inScope, outside: typeReference("T", generic) }],
+      ["U", { ...inScope, outside: typeReference("U", other) }],
+    ] as const) {
+      const result = AST.resolveReferences(program(placement));
+      assert(Result.isFailure(result));
+      expect(result.failure.reason).toStrictEqual({
+        _tag: "StaleReference",
+        name: stale,
+      });
+    }
   });
 
   test("deep_nesting", () => {
