@@ -1,0 +1,1185 @@
+// Run with:
+// cd /Users/pauletscheit/Documents/hash && VERIFY_OUT=<dir> PATH="$HOME/.cargo/bin:$PATH" \
+//   ~/.cargo/bin/cargo test --package hash-integrations-engine --test zz_verify_specs -- \
+//   --nocapture --test-threads=1
+#![expect(missing_docs, reason = "temporary verification tests")]
+#![allow(clippy::all, clippy::pedantic, clippy::nursery, clippy::restriction, unused)]
+
+extern crate alloc;
+
+use alloc::sync::Arc;
+use std::{
+    collections::BTreeMap,
+    fs::File,
+    path::{Path, PathBuf},
+    time::Instant,
+};
+
+use arrow_array::{ArrayRef, BooleanArray, RecordBatch, StringArray, UInt64Array};
+use duckdb::types::Value;
+use hash_integrations_definition::{Definition, PrimaryKey};
+use hash_integrations_engine::{
+    SourceCapture, TableAssertions, Workspace, WorkspaceConfig, derive_entity_id,
+};
+use parquet::{
+    arrow::ArrowWriter,
+    basic::Compression,
+    file::{
+        properties::WriterProperties,
+        reader::{FileReader as _, SerializedFileReader},
+    },
+};
+use tempfile::TempDir;
+use type_system::{ontology::id::VersionedUrl, principal::actor_group::WebId};
+use uuid::Uuid;
+
+async fn open(directory: &TempDir) -> Workspace {
+    Workspace::open(
+        directory.path().join("workspace.duckdb"),
+        WorkspaceConfig::default(),
+    )
+    .await
+    .expect("the workspace should open")
+}
+
+fn out_dir() -> PathBuf {
+    let dir = std::env::var("VERIFY_OUT")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| std::env::temp_dir().join("verify_specs"));
+    std::fs::create_dir_all(&dir).expect("out dir");
+    dir
+}
+
+fn cell(value: &Value) -> String {
+    match value {
+        Value::Text(text) => text.clone(),
+        Value::Boolean(flag) => flag.to_string(),
+        Value::Null => "null".to_owned(),
+        Value::BigInt(n) => n.to_string(),
+        Value::UBigInt(n) => n.to_string(),
+        Value::Int(n) => n.to_string(),
+        other => format!("{other:?}"),
+    }
+}
+
+async fn lines(workspace: &Workspace, sql: &str) -> Vec<String> {
+    let rows = workspace
+        .query(sql.into())
+        .await
+        .unwrap_or_else(|report| panic!("query failed: {sql}\n{report:?}"));
+    rows.iter()
+        .map(|row| row.iter().map(cell).collect::<Vec<_>>().join("|"))
+        .collect()
+}
+
+async fn variants(workspace: &Workspace, sql: &str) -> Vec<String> {
+    let rows = workspace.query(sql.into()).await.expect("query");
+    rows.iter()
+        .next()
+        .map(|row| row.iter().map(|value| format!("{value:?}")).collect())
+        .unwrap_or_default()
+}
+
+async fn create(workspace: &Workspace, table: &str, sql: &str) {
+    workspace
+        .create_table(table.into(), sql.into())
+        .await
+        .unwrap_or_else(|report| panic!("create_table {table} failed: {sql}\n{report:?}"));
+}
+
+// ---------------------------------------------------------------- A1
+
+#[tokio::test]
+async fn a1_rowid() {
+    let directory = TempDir::new().expect("dir");
+    let workspace = open(&directory).await;
+    create(
+        &workspace,
+        "_step/t",
+        "SELECT i AS id, 'v' || i AS col FROM range(0, 300000) AS r(i)",
+    )
+    .await;
+    let stats = lines(
+        &workspace,
+        "SELECT count(*), count(DISTINCT rowid), min(rowid), max(rowid) FROM \"_step/t\"",
+    )
+    .await;
+    println!("A1 count, distinct rowid, min, max: {stats:?}");
+    let keys = variants(
+        &workspace,
+        r#"SELECT count(*) AS "rows", min(rowid) AS "first", max(rowid) AS "last" FROM "_step/t""#,
+    )
+    .await;
+    println!("A1 row_keys variants: {keys:?}");
+
+    let first = lines(&workspace, "SELECT rowid, id FROM \"_step/t\" ORDER BY rowid").await;
+    create(&workspace, "other", "SELECT 1 AS x").await;
+    let _ = lines(&workspace, "SELECT count(*) FROM \"_step/t\" WHERE id % 7 = 0").await;
+    let second = lines(&workspace, "SELECT rowid, id FROM \"_step/t\" ORDER BY rowid").await;
+    println!(
+        "A1 rowid->id mapping equal across queries: {}",
+        first == second
+    );
+    assert_eq!(first, second);
+
+    let mut total = 0_usize;
+    let mut start = 0_u64;
+    while start < 300_000 {
+        let end = start + 65_536;
+        let rows = lines(
+            &workspace,
+            &format!(
+                "SELECT rowid, col FROM \"_step/t\" WHERE rowid >= {start} AND rowid < {end} ORDER BY rowid"
+            ),
+        )
+        .await;
+        total += rows.len();
+        start = end;
+    }
+    println!("A1 range reads total rows: {total}");
+    assert_eq!(total, 300_000);
+    let range_variant = variants(
+        &workspace,
+        "SELECT rowid AS \"_row\", col AS \"id\" FROM \"_step/t\" WHERE rowid >= 0 AND rowid < 2",
+    )
+    .await;
+    println!("A1 read_range variants: {range_variant:?}");
+
+    // A table whose source has a column named rowid.
+    let created = workspace
+        .create_table(
+            "_step/r".into(),
+            "SELECT * FROM (VALUES (7, 'x'), (9, 'y')) AS v(rowid, col)".into(),
+        )
+        .await;
+    println!("A1 create_table with column rowid: {created:?}");
+    if created.is_ok() {
+        println!(
+            "A1 SELECT rowid FROM table with rowid column: {:?}",
+            lines(&workspace, "SELECT rowid, col FROM \"_step/r\" ORDER BY col").await
+        );
+        println!(
+            "A1 SELECT * of it: {:?}",
+            lines(&workspace, "SELECT * FROM \"_step/r\" ORDER BY col").await
+        );
+        println!(
+            "A1 range query on it rowid >= 0 AND rowid < 2: {:?}",
+            lines(
+                &workspace,
+                "SELECT rowid, col FROM \"_step/r\" WHERE rowid >= 0 AND rowid < 2"
+            )
+            .await
+        );
+        let hashed = workspace
+            .create_table(
+                "_step/r2".into(),
+                "SELECT source.*, md5('') AS _content_hash FROM \"_step/r\" AS source".into(),
+            )
+            .await;
+        println!("A1 SELECT source.* over a rowid column: {hashed:?}");
+    }
+    println!(
+        "A1 SELECT * of table without rowid column returns columns: {:?}",
+        workspace
+            .query("SELECT * FROM \"_step/t\" LIMIT 1".into())
+            .await
+            .expect("query")
+            .columns()
+    );
+}
+
+// ---------------------------------------------------------------- A2
+
+#[tokio::test]
+async fn a2_union_all() {
+    let directory = TempDir::new().expect("dir");
+    let workspace = open(&directory).await;
+    let query = workspace
+        .query("SELECT 1 AS a UNION ALL SELECT 2 AS a".into())
+        .await;
+    println!("A2 query UNION ALL: {:?}", query.as_ref().map(|rows| rows.iter().count()));
+    let table = workspace
+        .create_table(
+            "u".into(),
+            "SELECT 1 AS a UNION ALL SELECT 2 AS a UNION ALL SELECT 3".into(),
+        )
+        .await;
+    println!("A2 create_table UNION ALL: {table:?}");
+    println!("A2 rows: {:?}", lines(&workspace, "SELECT a FROM u ORDER BY a").await);
+    assert!(query.is_ok() && table.is_ok());
+}
+
+// ---------------------------------------------------------------- A3
+
+const EMPTY_HASH: &str = r#"SELECT CAST(NULL AS VARCHAR) AS "entity_id", CAST(NULL AS VARCHAR) AS "kind", CAST(NULL AS VARCHAR) AS "target", CAST(NULL AS VARCHAR) AS "source_id", CAST(NULL AS VARCHAR) AS "content_hash", CAST(NULL AS BOOLEAN) AS "live" WHERE FALSE"#;
+const EMPTY_ROW: &str = r#"SELECT CAST(NULL AS VARCHAR) AS "entity_id", CAST(NULL AS VARCHAR) AS "kind", CAST(NULL AS VARCHAR) AS "target", CAST(NULL AS VARCHAR) AS "source_id", CAST(NULL AS VARCHAR) AS "content_hash" WHERE FALSE"#;
+const EMPTY_ID: &str = r#"SELECT CAST(NULL AS VARCHAR) AS "entity_id" WHERE FALSE"#;
+
+const ROWS_F: &str = "SELECT * FROM (VALUES
+ ('e01','entity','open','s01','h1'),
+ ('e02','entity','open','s02','h1'),
+ ('e03','entity','open','s03','h2'),
+ ('e04','entity','open','s04','h1'),
+ ('e05','entity','open','s05','h1'),
+ ('e06','entity','open','s06','h1'),
+ ('e07','entity','renamed','s07','h1')
+) AS t(entity_id, kind, target, source_id, content_hash)";
+
+const BASE_F: &str = "SELECT * FROM (VALUES
+ ('e02','entity','open','s02','h1',false),
+ ('e03','entity','open','s03','h1',true),
+ ('e04','entity','open','s04','h1',true),
+ ('e05','entity','open','s05','h1',true),
+ ('e07','entity','old','s07','h1',true),
+ ('e08','entity','open','s08','h1',true),
+ ('e09','entity','guarded','s09','h1',true),
+ ('e10','entity','guarded','s10','h1',true),
+ ('e11','entity','open','s11','h1',false),
+ ('e12','entity','open','s12','h1',false),
+ ('e14','link','old-link','s14','h1',true)
+) AS t(entity_id, kind, target, source_id, content_hash, live)";
+
+const CARRIED_F: &str = "SELECT * FROM (VALUES
+ ('e06','entity','open','s06','h9'),
+ ('e13','link','lost','s13','h9')
+) AS t(entity_id, kind, target, source_id, content_hash)";
+
+const RESEND_F: &str =
+    "SELECT * FROM (VALUES ('e05'), ('e06'), ('e10'), ('e12'), ('e13')) AS t(entity_id)";
+
+const PROTECTED_F: &str = "coalesce((p.kind || '/' || p.target) IN ('entity/guarded') OR (p.kind || '/' || p.target) NOT IN ('entity/guarded', 'entity/open', 'entity/renamed'), FALSE)";
+
+const LABEL_SQL: &str = r#"WITH prior AS (
+    SELECT entity_id, kind, target, source_id, content_hash, live, TRUE AS in_base
+    FROM "_diff/base"
+    UNION ALL
+    SELECT entity_id, kind, target, source_id, content_hash, FALSE AS live, FALSE AS in_base
+    FROM "_diff/carried"
+),
+joined AS (
+    SELECT
+        coalesce(r.entity_id, p.entity_id) AS entity_id,
+        coalesce(r.kind, p.kind) AS kind,
+        coalesce(r.target, p.target) AS target,
+        coalesce(r.source_id, p.source_id) AS source_id,
+        coalesce(r.content_hash, p.content_hash) AS content_hash,
+        r.entity_id IS NOT NULL AS present,
+        coalesce(p.in_base, FALSE) AS in_base,
+        coalesce(p.live, FALSE) AS was_live,
+        coalesce(r.content_hash = p.content_hash, FALSE) AS same_hash,
+        s.entity_id IS NOT NULL AS resend,
+        {protected} AS protected
+    FROM "_diff/rows" AS r
+    FULL OUTER JOIN prior AS p ON p.entity_id = r.entity_id
+    LEFT JOIN "_diff/resend" AS s ON s.entity_id = coalesce(r.entity_id, p.entity_id)
+)
+SELECT
+    entity_id,
+    kind,
+    target,
+    source_id,
+    content_hash,
+    present OR (was_live AND protected AND NOT resend) AS live,
+    CASE
+        WHEN present AND NOT in_base THEN 'insert'
+        WHEN present AND NOT was_live THEN 'update'
+        WHEN present AND NOT same_hash THEN 'update'
+        WHEN present AND (resend OR {resend_all}) THEN 'resend'
+        WHEN present THEN NULL
+        WHEN NOT in_base THEN 'archive'
+        WHEN was_live AND resend THEN 'archive'
+        WHEN was_live AND protected THEN NULL
+        WHEN was_live THEN 'archive'
+        WHEN resend OR {resend_all} THEN 'archive'
+        ELSE NULL
+    END AS change,
+    present,
+    was_live,
+    resend
+FROM joined"#;
+
+const TOTALS_SQL: &str = r#"SELECT
+    kind,
+    target,
+    CAST(count(*) FILTER (WHERE change = 'insert') AS UBIGINT) AS inserted,
+    CAST(count(*) FILTER (WHERE change = 'update') AS UBIGINT) AS updated,
+    CAST(count(*) FILTER (WHERE change = 'resend') AS UBIGINT) AS resent,
+    CAST(count(*) FILTER (WHERE change IS NULL AND present) AS UBIGINT) AS unchanged,
+    CAST(count(*) FILTER (WHERE change = 'archive') AS UBIGINT) AS archived,
+    CAST(count(*) FILTER (WHERE change = 'archive' AND was_live AND NOT resend) AS UBIGINT) AS limited,
+    CAST(count(*) FILTER (WHERE was_live) AS UBIGINT) AS was_live
+FROM "_diff/result"
+GROUP BY kind, target
+ORDER BY kind, target"#;
+
+const DUPLICATES_SQL: &str = r#"SELECT
+    entity_id,
+    CAST(count(*) AS UBIGINT) AS row_count,
+    min(kind || '/' || target) AS first_target,
+    max(kind || '/' || target) AS last_target,
+    CAST(count(*) OVER () AS UBIGINT) AS duplicates
+FROM "_diff/rows"
+GROUP BY entity_id
+HAVING count(*) > 1
+ORDER BY entity_id
+LIMIT 5"#;
+
+const HASHES_SQL: &str = r#"SELECT entity_id, kind, target, source_id, content_hash, live
+FROM "_diff/result"
+ORDER BY entity_id"#;
+
+const ARCHIVES_SQL: &str = r#"SELECT entity_id, kind, target, source_id
+FROM "_diff/result"
+WHERE change = 'archive'
+ORDER BY kind, entity_id"#;
+
+const RESULT_QUERY: &str = r#"SELECT entity_id, kind, target, source_id, content_hash, live, change, present, was_live, resend FROM "_diff/result" ORDER BY entity_id"#;
+
+const EXPECTED_EVERY_LINE: [&str; 14] = [
+    "e01|entity|open|s01|h1|true|insert|true|false|false",
+    "e02|entity|open|s02|h1|true|update|true|false|false",
+    "e03|entity|open|s03|h2|true|update|true|true|false",
+    "e04|entity|open|s04|h1|true|null|true|true|false",
+    "e05|entity|open|s05|h1|true|resend|true|true|true",
+    "e06|entity|open|s06|h1|true|insert|true|false|true",
+    "e07|entity|renamed|s07|h1|true|null|true|true|false",
+    "e08|entity|open|s08|h1|false|archive|false|true|false",
+    "e09|entity|guarded|s09|h1|true|null|false|true|false",
+    "e10|entity|guarded|s10|h1|false|archive|false|true|true",
+    "e11|entity|open|s11|h1|false|null|false|false|false",
+    "e12|entity|open|s12|h1|false|archive|false|false|true",
+    "e13|link|lost|s13|h9|false|archive|false|false|true",
+    "e14|link|old-link|s14|h1|true|null|false|true|false",
+];
+
+fn label_sql(protected: &str, resend_all: bool) -> String {
+    LABEL_SQL
+        .replace("{protected}", protected)
+        .replace("{resend_all}", if resend_all { "TRUE" } else { "FALSE" })
+}
+
+async fn fixture_f(workspace: &Workspace, rows: bool, prior: bool) {
+    create(workspace, "_diff/rows", if rows { ROWS_F } else { EMPTY_ROW }).await;
+    create(workspace, "_diff/base", if prior { BASE_F } else { EMPTY_HASH }).await;
+    create(workspace, "_diff/carried", if prior { CARRIED_F } else { EMPTY_ROW }).await;
+    create(workspace, "_diff/resend", if prior { RESEND_F } else { EMPTY_ID }).await;
+}
+
+fn compare(name: &str, actual: &[String], expected: &[String]) -> bool {
+    let equal = actual == expected;
+    println!("A3 {name}: {}", if equal { "MATCH" } else { "MISMATCH" });
+    if !equal {
+        for (index, line) in actual.iter().enumerate() {
+            let want = expected.get(index).map(String::as_str).unwrap_or("<none>");
+            if line != want {
+                println!("   got  {line}\n   want {want}");
+            }
+        }
+        if expected.len() != actual.len() {
+            println!("   lengths {} vs {}", actual.len(), expected.len());
+        }
+    }
+    equal
+}
+
+fn patch(expected: &[&str], changes: &[(&str, &str)]) -> Vec<String> {
+    expected
+        .iter()
+        .map(|line| {
+            let id = &line[..3];
+            changes
+                .iter()
+                .find(|(key, _)| *key == id)
+                .map_or_else(|| (*line).to_owned(), |(_, new)| (*new).to_owned())
+        })
+        .collect()
+}
+
+#[tokio::test]
+async fn a3_label_rows_fixture_f() {
+    let directory = TempDir::new().expect("dir");
+    let workspace = open(&directory).await;
+    let mut all = true;
+
+    fixture_f(&workspace, true, true).await;
+    create(&workspace, "_diff/result", &label_sql(PROTECTED_F, false)).await;
+    let actual = lines(&workspace, RESULT_QUERY).await;
+    let expected: Vec<String> = EXPECTED_EVERY_LINE.iter().map(|s| (*s).to_owned()).collect();
+    all &= compare("labels_every_line", &actual, &expected);
+    println!(
+        "A3 result variants: {:?}",
+        variants(&workspace, RESULT_QUERY).await
+    );
+
+    // Totals.
+    let totals = lines(&workspace, TOTALS_SQL).await;
+    let expected_totals: Vec<String> = [
+        "entity|guarded|0|0|0|0|1|0|2",
+        "entity|open|2|2|1|1|2|1|4",
+        "entity|renamed|0|0|0|1|0|0|1",
+        "link|lost|0|0|0|0|1|0|0",
+        "link|old-link|0|0|0|0|0|0|1",
+    ]
+    .iter()
+    .map(|s| (*s).to_owned())
+    .collect();
+    all &= compare("totals_of_fixture", &totals, &expected_totals);
+    println!("A3 totals variants: {:?}", variants(&workspace, TOTALS_SQL).await);
+
+    // Store queries through Workspace::capture.
+    let out = directory.path().join("files");
+    std::fs::create_dir_all(&out).expect("dir");
+    let hashes = workspace
+        .capture(HASHES_SQL.into(), out.join("hashes.parquet"))
+        .await;
+    println!("A3 store hashes: {:?}", hashes.as_ref().map(SourceCapture::rows));
+    let archives = workspace
+        .capture(ARCHIVES_SQL.into(), out.join("archives.parquet"))
+        .await;
+    println!("A3 store archives: {:?}", archives.as_ref().map(SourceCapture::rows));
+    if let Ok(archives) = archives {
+        workspace
+            .load_capture(archives, "back/archives".into())
+            .await
+            .expect("load");
+        println!(
+            "A3 archives rows: {:?}",
+            lines(&workspace, "SELECT * FROM \"back/archives\"").await
+        );
+    }
+    if let Ok(hashes) = hashes {
+        workspace
+            .load_capture(hashes, "back/hashes".into())
+            .await
+            .expect("load");
+        let back = lines(&workspace, "SELECT * FROM \"back/hashes\"").await;
+        let expected_hashes: Vec<String> = EXPECTED_EVERY_LINE
+            .iter()
+            .map(|line| line.split('|').take(6).collect::<Vec<_>>().join("|"))
+            .collect();
+        all &= compare("new hash table (hashes file)", &back, &expected_hashes);
+    }
+
+    // resend_all = true
+    create(&workspace, "_diff/result", &label_sql(PROTECTED_F, true)).await;
+    let actual = lines(&workspace, RESULT_QUERY).await;
+    let expected = patch(&EXPECTED_EVERY_LINE, &[
+        ("e04", "e04|entity|open|s04|h1|true|resend|true|true|false"),
+        ("e07", "e07|entity|renamed|s07|h1|true|resend|true|true|false"),
+        ("e11", "e11|entity|open|s11|h1|false|archive|false|false|false"),
+    ]);
+    all &= compare("labels_when_resending_everything", &actual, &expected);
+
+    // empty protection
+    create(&workspace, "_diff/result", &label_sql("FALSE", false)).await;
+    let actual = lines(&workspace, RESULT_QUERY).await;
+    let expected = patch(&EXPECTED_EVERY_LINE, &[
+        ("e09", "e09|entity|guarded|s09|h1|false|archive|false|true|false"),
+        ("e14", "e14|link|old-link|s14|h1|false|archive|false|true|false"),
+    ]);
+    all &= compare("labels_without_protection", &actual, &expected);
+
+    // without base
+    fixture_f(&workspace, true, false).await;
+    create(&workspace, "_diff/result", &label_sql(PROTECTED_F, false)).await;
+    let actual = lines(&workspace, RESULT_QUERY).await;
+    let expected: Vec<String> = [
+        "e01|entity|open|s01|h1", "e02|entity|open|s02|h1", "e03|entity|open|s03|h2",
+        "e04|entity|open|s04|h1", "e05|entity|open|s05|h1", "e06|entity|open|s06|h1",
+        "e07|entity|renamed|s07|h1",
+    ]
+    .iter()
+    .map(|prefix| format!("{prefix}|true|insert|true|false|false"))
+    .collect();
+    all &= compare("labels_without_base", &actual, &expected);
+
+    // without rows, empty protection
+    fixture_f(&workspace, false, true).await;
+    create(&workspace, "_diff/result", &label_sql("FALSE", false)).await;
+    let actual = lines(&workspace, RESULT_QUERY).await;
+    let expected: Vec<String> = [
+        "e02|entity|open|s02|h1|false|null|false|false|false",
+        "e03|entity|open|s03|h1|false|archive|false|true|false",
+        "e04|entity|open|s04|h1|false|archive|false|true|false",
+        "e05|entity|open|s05|h1|false|archive|false|true|true",
+        "e06|entity|open|s06|h9|false|archive|false|false|true",
+        "e07|entity|old|s07|h1|false|archive|false|true|false",
+        "e08|entity|open|s08|h1|false|archive|false|true|false",
+        "e09|entity|guarded|s09|h1|false|archive|false|true|false",
+        "e10|entity|guarded|s10|h1|false|archive|false|true|true",
+        "e11|entity|open|s11|h1|false|null|false|false|false",
+        "e12|entity|open|s12|h1|false|archive|false|false|true",
+        "e13|link|lost|s13|h9|false|archive|false|false|true",
+        "e14|link|old-link|s14|h1|false|archive|false|true|false",
+    ]
+    .iter()
+    .map(|s| (*s).to_owned())
+    .collect();
+    all &= compare("labels_without_rows", &actual, &expected);
+
+    assert!(all, "a label case did not match");
+}
+
+#[tokio::test]
+async fn a3_resend_carried_union_duplicates_changes() {
+    let directory = TempDir::new().expect("dir");
+    let workspace = open(&directory).await;
+
+    // empty_sql forms
+    for (name, sql) in [("empty hash", EMPTY_HASH), ("empty row", EMPTY_ROW), ("empty id", EMPTY_ID)] {
+        let result = workspace.create_table(format!("_e/{name}").into(), sql.into()).await;
+        println!("A3 {name}: {result:?}");
+        assert!(result.is_ok());
+    }
+
+    // resend_sql and carried_sql for two listed runs and a rejected file
+    create(&workspace, "_diff/sending/0/writes", "SELECT * FROM (VALUES ('a'), ('b'), ('c')) AS t(entity_id)").await;
+    create(&workspace, "_diff/sending/1/writes", "SELECT * FROM (VALUES ('b'), ('d')) AS t(entity_id)").await;
+    create(&workspace, "_diff/rejected", "SELECT * FROM (VALUES ('x'), ('a')) AS t(entity_id)").await;
+    create(&workspace, "_diff/sending/0/hashes", "SELECT * FROM (VALUES ('a','entity','t','sa','h0a',true), ('b','entity','t','sb','h0b',true), ('c','entity','t','sc','h0c',true), ('z','entity','t','sz','h0z',true)) AS t(entity_id, kind, target, source_id, content_hash, live)").await;
+    create(&workspace, "_diff/sending/1/hashes", "SELECT * FROM (VALUES ('b','entity','t','sb','h1b',true), ('d','link','l','sd','h1d',true)) AS t(entity_id, kind, target, source_id, content_hash, live)").await;
+    create(&workspace, "_diff/base", "SELECT * FROM (VALUES ('c','entity','t','sc','h0c',true)) AS t(entity_id, kind, target, source_id, content_hash, live)").await;
+
+    let resend_sql = r#"SELECT DISTINCT entity_id
+FROM (
+    SELECT entity_id FROM "_diff/sending/0/writes"
+    UNION ALL
+    SELECT entity_id FROM "_diff/sending/1/writes"
+    UNION ALL
+    SELECT entity_id FROM "_diff/rejected"
+) AS listed"#;
+    create(&workspace, "_diff/resend", resend_sql).await;
+    let resend = lines(&workspace, "SELECT entity_id FROM \"_diff/resend\" ORDER BY entity_id").await;
+    println!("A3 resend_sql: {resend:?}");
+    assert_eq!(resend, ["a", "b", "c", "d", "x"]);
+
+    let carried_sql = r#"SELECT entity_id, kind, target, source_id, content_hash
+FROM (
+    SELECT h.entity_id, h.kind, h.target, h.source_id, h.content_hash, 0 AS ordinal
+    FROM "_diff/sending/0/hashes" AS h
+    WHERE EXISTS (SELECT 1 FROM "_diff/sending/0/writes" AS w WHERE w.entity_id = h.entity_id)
+    UNION ALL
+    SELECT h.entity_id, h.kind, h.target, h.source_id, h.content_hash, 1 AS ordinal
+    FROM "_diff/sending/1/hashes" AS h
+    WHERE EXISTS (SELECT 1 FROM "_diff/sending/1/writes" AS w WHERE w.entity_id = h.entity_id)
+) AS failed
+WHERE NOT EXISTS (SELECT 1 FROM "_diff/base" AS b WHERE b.entity_id = failed.entity_id)
+QUALIFY row_number() OVER (PARTITION BY entity_id ORDER BY ordinal DESC) = 1"#;
+    create(&workspace, "_diff/carried", carried_sql).await;
+    let carried = lines(&workspace, "SELECT * FROM \"_diff/carried\" ORDER BY entity_id").await;
+    println!("A3 carried_sql: {carried:?}");
+    println!(
+        "A3 carried columns: {:?}",
+        workspace.query("SELECT * FROM \"_diff/carried\"".into()).await.expect("q").columns()
+    );
+    assert_eq!(carried, ["a|entity|t|sa|h0a", "b|entity|t|sb|h1b", "d|link|l|sd|h1d"]);
+
+    // union_sql over the D0 tables
+    create(&workspace, "_target/entity/sink-airfields", "SELECT * FROM (VALUES ('k1','f1','ea1','sa1','ha1'), ('k2','f2','ea2','sa2','ha2')) AS t(_key, \"FIELD_NAME\", _entity_id, _source_id, _content_hash)").await;
+    create(&workspace, "_target/entity/sink-aircraft", "SELECT * FROM (VALUES ('k3','m1','ec1','sc1','hc1')) AS t(_key, \"MODEL\", _entity_id, _source_id, _content_hash)").await;
+    create(&workspace, "_target/link/aircraft-based-at", "SELECT * FROM (VALUES ('k3','TAIL1','AF1','md5x','el1','sl1','ec1','ea1')) AS t(_key, \"TAIL\", \"HOME_BASE\", _content_hash, _entity_id, _source_id, _left_entity_id, _right_entity_id)").await;
+    let union_sql = r#"SELECT "_entity_id" AS entity_id, 'entity' AS kind, 'sink-airfields' AS target, "_source_id" AS source_id, "_content_hash" AS content_hash FROM "_target/entity/sink-airfields"
+UNION ALL
+SELECT "_entity_id" AS entity_id, 'entity' AS kind, 'sink-aircraft' AS target, "_source_id" AS source_id, "_content_hash" AS content_hash FROM "_target/entity/sink-aircraft"
+UNION ALL
+SELECT "_entity_id" AS entity_id, 'link' AS kind, 'aircraft-based-at' AS target, "_source_id" AS source_id, "_content_hash" AS content_hash FROM "_target/link/aircraft-based-at""#;
+    create(&workspace, "_diff/rows", union_sql).await;
+    let rows = lines(&workspace, "SELECT * FROM \"_diff/rows\" ORDER BY entity_id").await;
+    println!("A3 union_sql: {rows:?}");
+    assert_eq!(rows.len(), 4);
+
+    let duplicates = lines(&workspace, DUPLICATES_SQL).await;
+    println!("A3 duplicates on D0 union (expect none): {duplicates:?}");
+    assert!(duplicates.is_empty());
+
+    // labels over the union with empty prior, then changes_sql.
+    create(&workspace, "_diff/base", EMPTY_HASH).await;
+    create(&workspace, "_diff/carried", EMPTY_ROW).await;
+    create(&workspace, "_diff/resend", EMPTY_ID).await;
+    create(&workspace, "_diff/result", &label_sql("FALSE", false)).await;
+
+    let key_sql = "SELECT CAST(count(*) AS UBIGINT) AS key_columns FROM information_schema.columns WHERE table_name = '_target/entity/sink-airfields' AND lower(column_name) = '_key'";
+    println!("A3 key_column: {:?}", variants(&workspace, key_sql).await);
+
+    let changes_entity = r#"SELECT
+    CAST(row_number() OVER (ORDER BY d.entity_id) - 1 AS UBIGINT) AS "_row",
+    d.entity_id AS "_entity_id",
+    d.change AS "_change",
+    d.source_id AS "_source_id",
+    CAST(t."_key" AS VARCHAR) AS "_key",
+    t."FIELD_NAME" AS "FIELD_NAME"
+FROM "_target/entity/sink-airfields" AS t
+JOIN "_diff/result" AS d ON d.entity_id = t."_entity_id"
+WHERE d.kind = 'entity' AND d.target = 'sink-airfields' AND d.change IN ('insert', 'update', 'resend')
+ORDER BY d.entity_id"#;
+    let changes_link = r#"SELECT
+    CAST(row_number() OVER (ORDER BY d.entity_id) - 1 AS UBIGINT) AS "_row",
+    d.entity_id AS "_entity_id",
+    d.change AS "_change",
+    d.source_id AS "_source_id",
+    CAST(t."_key" AS VARCHAR) AS "_key",
+    t."_left_entity_id" AS "_left_entity_id",
+    t."_right_entity_id" AS "_right_entity_id"
+FROM "_target/link/aircraft-based-at" AS t
+JOIN "_diff/result" AS d ON d.entity_id = t."_entity_id"
+WHERE d.kind = 'link' AND d.target = 'aircraft-based-at' AND d.change IN ('insert', 'update', 'resend')
+ORDER BY d.entity_id"#;
+    println!("A3 changes_sql entity: {:?}", lines(&workspace, changes_entity).await);
+    println!("A3 changes_sql link: {:?}", lines(&workspace, changes_link).await);
+    let out = directory.path().join("files");
+    std::fs::create_dir_all(&out).expect("dir");
+    for (name, sql) in [("changes-entity", changes_entity), ("changes-link", changes_link)] {
+        let stored = workspace
+            .capture(sql.into(), out.join(format!("{name}.parquet")))
+            .await
+            .expect("changes stored");
+        workspace.load_capture(stored, format!("changes/{name}").into()).await.expect("load");
+        let rows = workspace
+            .query(format!("SELECT * FROM \"changes/{name}\" ORDER BY \"_row\"").into())
+            .await
+            .expect("q");
+        println!(
+            "A3 {name} via capture+load: columns {:?} first row {:?}",
+            rows.columns(),
+            rows.iter().next()
+        );
+    }
+    let counts = r#"SELECT count(*) AS "rows", count(*) FILTER (WHERE "_change" = 'insert') AS "creates"
+   FROM "changes/changes-entity""#;
+    println!("A3 stage-3 open count variants: {:?}", variants(&workspace, counts).await);
+
+    // duplicates_across_targets
+    create(&workspace, "_diff/rows", "SELECT * FROM (VALUES ('e1','entity','a','s','h'), ('e1','entity','b','s','h'), ('e2','entity','a','s','h'), ('e2','entity','a','s','h'), ('e2','entity','a','s','h'), ('e3','entity','a','s','h')) AS t(entity_id, kind, target, source_id, content_hash)").await;
+    let duplicates = lines(&workspace, DUPLICATES_SQL).await;
+    println!("A3 duplicates_across_targets: {duplicates:?}");
+    println!("A3 duplicates variants: {:?}", variants(&workspace, DUPLICATES_SQL).await);
+    assert_eq!(duplicates, ["e1|2|entity/a|entity/b|2", "e2|3|entity/a|entity/a|2"]);
+    // capped at five
+    create(&workspace, "_diff/rows", "SELECT 'd' || i AS entity_id, 'entity' AS kind, 'a' AS target, 's' AS source_id, 'h' AS content_hash FROM range(1, 8) AS r(i), range(0, 2) AS c(j)").await;
+    let duplicates = lines(&workspace, DUPLICATES_SQL).await;
+    println!("A3 duplicates_are_capped_at_five: {duplicates:?}");
+    assert_eq!(duplicates.len(), 5);
+    assert!(duplicates.iter().all(|line| line.ends_with("|7")));
+}
+
+// ---------------------------------------------------------------- A4
+
+fn write_ids(path: &Path, rows: &[(u64, Option<String>, Option<String>)]) {
+    let file = File::create(path).expect("file");
+    let properties = WriterProperties::builder()
+        .set_compression(Compression::SNAPPY)
+        .set_max_row_group_row_count(Some(64 * 1024))
+        .build();
+    let batch = |chunk: &[(u64, Option<String>, Option<String>)]| {
+        RecordBatch::try_from_iter_with_nullable(vec![
+            (
+                "_row",
+                Arc::new(UInt64Array::from(chunk.iter().map(|r| r.0).collect::<Vec<_>>())) as ArrayRef,
+                false,
+            ),
+            (
+                "_entity_id",
+                Arc::new(StringArray::from(chunk.iter().map(|r| r.1.clone()).collect::<Vec<_>>())) as ArrayRef,
+                true,
+            ),
+            (
+                "_source_id",
+                Arc::new(StringArray::from(chunk.iter().map(|r| r.2.clone()).collect::<Vec<_>>())) as ArrayRef,
+                true,
+            ),
+        ])
+        .expect("batch")
+    };
+    let schema = batch(&[]).schema();
+    let mut writer = ArrowWriter::try_new(file, schema, Some(properties)).expect("writer");
+    for chunk in rows.chunks(1024) {
+        writer.write(&batch(chunk)).expect("write");
+    }
+    writer.close().expect("close");
+}
+
+#[tokio::test]
+async fn a4_assign_ids_and_issues() {
+    let directory = TempDir::new().expect("dir");
+    let workspace = open(&directory).await;
+    let hashed = "_step/00000000-hashed";
+    create(
+        &workspace,
+        hashed,
+        "SELECT source.*, md5('') AS _content_hash FROM (SELECT '{\"k\":' || i || '}' AS _key, CASE WHEN i % 1000 = 0 THEN NULL ELSE 'T' || i END AS \"TAIL\" FROM range(0, 150000) AS r(i)) AS source",
+    )
+    .await;
+    let row_keys = format!(
+        r#"SELECT count(*) AS "rows", min(rowid) AS "first", max(rowid) AS "last" FROM "{hashed}""#
+    );
+    println!("A4 row_keys: {:?}", variants(&workspace, &row_keys).await);
+    let mut ids = Vec::new();
+    let mut start = 0_u64;
+    while start <= 149_999 {
+        let end = start + 65_536;
+        let sql = format!(
+            r#"SELECT rowid AS "_row", "TAIL" AS "id" FROM "{hashed}" WHERE rowid >= {start} AND rowid < {end}"#
+        );
+        let rows = workspace.query(sql.into()).await.expect("range");
+        for row in rows.iter() {
+            let [Value::BigInt(key), id] = row else { panic!("shape {row:?}") };
+            let id = match id {
+                Value::Text(text) => Some(text.clone()),
+                _ => None,
+            };
+            ids.push((u64::try_from(*key).expect("u64"), id.as_ref().map(|t| format!("e-{t}")), id));
+        }
+        start = end;
+    }
+    println!("A4 rows read through ranges: {}", ids.len());
+    assert_eq!(ids.len(), 150_000);
+    let path = directory.path().join("ids.parquet");
+    write_ids(&path, &ids);
+    workspace
+        .load_capture(SourceCapture::open(path).expect("open"), "_ids/entity/sink-aircraft".into())
+        .await
+        .expect("load ids");
+    println!(
+        "A4 ids table types: {:?}",
+        lines(&workspace, "SELECT column_name || ':' || data_type FROM information_schema.columns WHERE table_name = '_ids/entity/sink-aircraft' ORDER BY ordinal_position").await
+    );
+    let final_select = format!(
+        r#"SELECT source.*, ids."_entity_id", ids."_source_id"
+FROM "{hashed}" AS source
+JOIN "_ids/entity/sink-aircraft" AS ids ON source.rowid = CAST(ids."_row" AS BIGINT)
+WHERE ids."_entity_id" IS NOT NULL"#
+    );
+    create(&workspace, "_target/entity/sink-aircraft", &final_select).await;
+    println!(
+        "A4 final table: {:?}",
+        lines(&workspace, "SELECT count(*), count(*) FILTER (WHERE \"TAIL\" <> \"_source_id\"), count(*) FILTER (WHERE \"_entity_id\" <> 'e-' || \"TAIL\") FROM \"_target/entity/sink-aircraft\"").await
+    );
+    println!(
+        "A4 final table columns: {:?}",
+        lines(&workspace, "SELECT column_name FROM information_schema.columns WHERE table_name = '_target/entity/sink-aircraft' ORDER BY ordinal_position").await
+    );
+    let missing_with_key = format!(
+        r#"SELECT 'entity' AS "kind", 'sink-aircraft' AS "target", CAST(NULL AS VARCHAR) AS "entity_id",
+       CAST(source."_key" AS VARCHAR) AS "key", 'missing_id' AS "issue",
+       CAST(NULL AS VARCHAR) AS "property", CAST(NULL AS VARCHAR) AS "reason"
+FROM "_ids/entity/sink-aircraft" AS ids
+JOIN "{hashed}" AS source ON source.rowid = CAST(ids."_row" AS BIGINT)
+WHERE ids."_entity_id" IS NULL"#
+    );
+    create(&workspace, "_ids/link/joined", "SELECT * FROM (VALUES (CAST(0 AS UBIGINT), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR)), (CAST(1 AS UBIGINT), 'l', 's', 'a', 'b')) AS t(_row, _entity_id, _source_id, _left_entity_id, _right_entity_id)").await;
+    let missing_without_key = r#"SELECT 'link' AS "kind", 'joined' AS "target", CAST(NULL AS VARCHAR) AS "entity_id",
+       CAST(NULL AS VARCHAR) AS "key", 'missing_endpoint' AS "issue",
+       CAST(NULL AS VARCHAR) AS "property", CAST(NULL AS VARCHAR) AS "reason"
+FROM "_ids/link/joined" AS ids
+WHERE ids."_entity_id" IS NULL"#;
+    let empty = r#"SELECT * FROM (
+  SELECT CAST(NULL AS VARCHAR) AS "kind", CAST(NULL AS VARCHAR) AS "target", CAST(NULL AS VARCHAR) AS "entity_id",
+         CAST(NULL AS VARCHAR) AS "key", CAST(NULL AS VARCHAR) AS "issue",
+         CAST(NULL AS VARCHAR) AS "property", CAST(NULL AS VARCHAR) AS "reason"
+) AS empty WHERE false"#;
+    create(&workspace, "_issues", empty).await;
+    println!(
+        "A4 issues_table empty: rows {:?}, types {:?}",
+        lines(&workspace, "SELECT count(*) FROM \"_issues\"").await,
+        lines(&workspace, "SELECT data_type FROM information_schema.columns WHERE table_name = '_issues' ORDER BY ordinal_position").await
+    );
+    let full = format!("{empty}\nUNION ALL {missing_with_key}\nUNION ALL {missing_without_key}");
+    create(&workspace, "_issues", &full).await;
+    println!(
+        "A4 issues_table with two selects: {:?}",
+        lines(&workspace, "SELECT kind, target, issue, count(*), min(key) FROM \"_issues\" GROUP BY ALL ORDER BY ALL").await
+    );
+    let issues_sql = r#"SELECT kind, target, entity_id, key, issue, property, reason
+FROM "_issues"
+ORDER BY kind, target, key, entity_id, issue, property"#;
+    let stored = workspace
+        .capture(issues_sql.into(), directory.path().join("issues.parquet"))
+        .await;
+    println!("A3 store issues: {:?}", stored.as_ref().map(SourceCapture::rows));
+    assert!(stored.is_ok());
+}
+
+// ---------------------------------------------------------------- A5
+
+#[tokio::test]
+async fn a5_content_hash() {
+    let directory = TempDir::new().expect("dir");
+    let workspace = open(&directory).await;
+    println!(
+        "A5 DuckDB version: {:?}",
+        lines(&workspace, "SELECT version()").await
+    );
+    let staged = workspace
+        .stage_table(
+            "source".into(),
+            "SELECT MATNR AS ID, MAKTX, BRGEW::DOUBLE AS BRGEW, ERSDA::DATE AS ERSDA FROM (VALUES
+  ('M1', '  padded  ', 1.5, '2026-01-02'),
+  ('M2', '', NULL, NULL),
+  ('M3', NULL, 2, '1999-12-31'),
+  ('M4', 'NULL', 0.1, '2026-01-02'),
+  ('M5', 'Grüße, ''仓库''::x', -3.25, NULL)
+) t(MATNR, MAKTX, BRGEW, ERSDA)"
+                .into(),
+            PrimaryKey::new(["ID".parse().expect("name")]).expect("key"),
+            TableAssertions::default(),
+        )
+        .await;
+    println!("A5 staged: {staged:?}");
+    let definition = Definition::from_yaml(
+        "connector: demo\nsources:\n  source:\n    primaryKey: [ID]\n    sql: SELECT 1 AS ID\npipelines:\n  entities:\n    - source: source\n      steps:\n        - id: sink\n          sink:\n            entityType: https://x/@t/types/entity-type/material/v/1\n            entityId: ID\n            properties:\n              https://x/@t/types/property-type/created/v/1: ERSDA\n              https://x/@t/types/property-type/name/v/1: MAKTX\n              https://x/@t/types/property-type/weight/v/1: BRGEW\n",
+    )
+    .expect("definition");
+    let pipeline = definition.entity_pipelines().first().expect("pipeline").clone();
+    let prepared = workspace
+        .prepare_pipeline(pipeline, "source".into(), BTreeMap::new())
+        .await
+        .expect("prepared");
+    let table = &prepared.sinks.first().expect("sink").table;
+    let engine = lines(
+        &workspace,
+        &format!("SELECT ID, _content_hash FROM \"{table}\" ORDER BY ID"),
+    )
+    .await;
+    let texts = lines(
+        &workspace,
+        "SELECT ID, struct_pack(p0 := \"ERSDA\", p1 := nullif(trim(\"MAKTX\"), ''), p2 := \"BRGEW\")::VARCHAR FROM source ORDER BY ID",
+    )
+    .await;
+    let expected = [
+        "M1|9527f1d39d6dcf3f63f0a369a91027a6",
+        "M2|e8bca8a3b3d677138e2b9bc17933dfa3",
+        "M3|b9bf8f6715b46c4b4bf382975a743190",
+        "M4|0a5f9546b1dc7159d4f60e1cf0428271",
+        "M5|f3594de37157d7c71e5e450c5ae09119",
+    ];
+    println!("A5 engine hashes: {engine:?}");
+    println!("A5 struct texts: {texts:?}");
+    for (got, want) in engine.iter().zip(expected) {
+        println!("A5 {} {}", if got == want { "MATCH" } else { "DIFF " }, got);
+    }
+    // Raw SQL over the labs DDL table, as a cross check.
+    create(&workspace, "fallback_fixture", "SELECT * FROM (VALUES ('M1', '  padded  ', 1.5::DOUBLE, DATE '2026-01-02'), ('M2', '', NULL, NULL), ('M3', NULL, 2::DOUBLE, DATE '1999-12-31'), ('M4', 'NULL', 0.1::DOUBLE, DATE '2026-01-02'), ('M5', 'Grüße, ''仓库''::x', -3.25::DOUBLE, NULL)) AS t(\"MATNR\", \"MAKTX\", \"BRGEW\", \"ERSDA\")").await;
+    let raw = lines(&workspace, "SELECT \"MATNR\", md5(struct_pack(p0 := \"ERSDA\", p1 := NULLIF(TRIM(\"MAKTX\"), ''), p2 := \"BRGEW\")::VARCHAR) FROM fallback_fixture ORDER BY 1").await;
+    println!("A5 raw canonicalSql hashes: {raw:?}");
+    assert_eq!(engine, expected);
+}
+
+// ---------------------------------------------------------------- A6
+
+fn sha256(path: &Path) -> String {
+    let output = std::process::Command::new("shasum")
+        .args(["-a", "256"])
+        .arg(path)
+        .output()
+        .expect("shasum");
+    String::from_utf8_lossy(&output.stdout)
+        .split_whitespace()
+        .next()
+        .unwrap_or_default()
+        .to_owned()
+}
+
+fn describe(path: &Path) {
+    let reader = SerializedFileReader::new(File::open(path).expect("file")).expect("reader");
+    let metadata = reader.metadata().file_metadata();
+    println!(
+        "A6   {}: created_by {:?}, key_value keys {:?}, row groups {}",
+        path.file_name().unwrap().to_string_lossy(),
+        metadata.created_by(),
+        metadata
+            .key_value_metadata()
+            .map(|kv| kv.iter().map(|entry| entry.key.clone()).collect::<Vec<_>>()),
+        reader.metadata().num_row_groups()
+    );
+}
+
+fn write_rowfile(path: &Path, count: u64) {
+    let file = File::create(path).expect("file");
+    let properties = WriterProperties::builder()
+        .set_compression(Compression::SNAPPY)
+        .set_max_row_group_row_count(Some(65_536))
+        .build();
+    let rows: Vec<u64> = (0..count).collect();
+    let batch = |chunk: &[u64]| {
+        RecordBatch::try_from_iter_with_nullable(vec![
+            (
+                "entity_id",
+                Arc::new(StringArray::from(
+                    chunk.iter().map(|i| if i % 13 == 0 { None } else { Some(format!("web~{i:08}")) }).collect::<Vec<_>>(),
+                )) as ArrayRef,
+                true,
+            ),
+            ("n", Arc::new(UInt64Array::from(chunk.to_vec())) as ArrayRef, false),
+            (
+                "flag",
+                Arc::new(BooleanArray::from(chunk.iter().map(|i| i % 2 == 0).collect::<Vec<_>>())) as ArrayRef,
+                false,
+            ),
+        ])
+        .expect("batch")
+    };
+    let schema = batch(&[]).schema();
+    let mut writer = ArrowWriter::try_new(file, schema, Some(properties)).expect("writer");
+    for chunk in rows.chunks(1024) {
+        writer.write(&batch(chunk)).expect("write");
+        if writer.in_progress_size() >= 8 * 1024 * 1024 {
+            writer.flush().expect("flush");
+        }
+    }
+    writer.close().expect("close");
+}
+
+#[tokio::test]
+async fn a6_parquet_determinism() {
+    let directory = TempDir::new().expect("dir");
+    let workspace = open(&directory).await;
+    let out = out_dir().join("a6");
+    let _ = std::fs::remove_dir_all(&out);
+    std::fs::create_dir_all(&out).expect("dir");
+    create(&workspace, "src", "SELECT i AS n, 'text ' || i AS t, i % 2 = 0 AS b, (i / 7)::DOUBLE AS d, DATE '2026-01-01' + CAST(i % 300 AS INTEGER) AS day FROM range(0, 200000) AS r(i)").await;
+    let sql = "SELECT * FROM src ORDER BY n";
+    let first = workspace.capture(sql.into(), out.join("capture-1.parquet")).await.expect("c1");
+    std::thread::sleep(std::time::Duration::from_millis(1500));
+    let second = workspace.capture(sql.into(), out.join("capture-2.parquet")).await.expect("c2");
+    let (a, b) = (sha256(first.path()), sha256(second.path()));
+    println!("A6 Workspace::capture sha256 1 {a}\nA6 Workspace::capture sha256 2 {b}\nA6 capture identical: {}", a == b);
+    describe(first.path());
+    // A second workspace (new database) with the same rows.
+    let other_dir = TempDir::new().expect("dir");
+    let other = open(&other_dir).await;
+    create(&other, "src", "SELECT i AS n, 'text ' || i AS t, i % 2 = 0 AS b, (i / 7)::DOUBLE AS d, DATE '2026-01-01' + CAST(i % 300 AS INTEGER) AS day FROM range(0, 200000) AS r(i)").await;
+    let third = other.capture(sql.into(), out.join("capture-3.parquet")).await.expect("c3");
+    let c = sha256(third.path());
+    println!("A6 capture in another workspace sha256 {c}, identical: {}", c == a);
+
+    write_rowfile(&out.join("rowfile-1.parquet"), 140_000);
+    std::thread::sleep(std::time::Duration::from_millis(1500));
+    write_rowfile(&out.join("rowfile-2.parquet"), 140_000);
+    let (x, y) = (sha256(&out.join("rowfile-1.parquet")), sha256(&out.join("rowfile-2.parquet")));
+    println!("A6 RowFile-style sha256 1 {x}\nA6 RowFile-style sha256 2 {y}\nA6 RowFile identical: {}", x == y);
+    describe(&out.join("rowfile-1.parquet"));
+    write_rowfile(&out.join("rowfile-empty-1.parquet"), 0);
+    write_rowfile(&out.join("rowfile-empty-2.parquet"), 0);
+    println!(
+        "A6 empty RowFile identical: {}",
+        sha256(&out.join("rowfile-empty-1.parquet")) == sha256(&out.join("rowfile-empty-2.parquet"))
+    );
+    describe(&out.join("rowfile-empty-1.parquet"));
+    workspace
+        .load_capture(SourceCapture::open(out.join("rowfile-1.parquet")).expect("open"), "rf".into())
+        .await
+        .expect("load");
+    println!(
+        "A6 RowFile columns loaded: {:?}",
+        lines(&workspace, "SELECT column_name || ':' || data_type FROM information_schema.columns WHERE table_name = 'rf' ORDER BY ordinal_position").await
+    );
+    assert!(a == b && x == y);
+}
+
+// ---------------------------------------------------------------- A7
+
+#[tokio::test]
+async fn a7_hugeint_max_round_trip() {
+    let directory = TempDir::new().expect("dir");
+    let workspace = open(&directory).await;
+    for value in [
+        "170141183460469231731687303715884105727",
+        "99999999999999999999999999999999999999",
+        "-170141183460469231731687303715884105728",
+    ] {
+        create(&workspace, "h", &format!("SELECT CAST({value} AS HUGEINT) AS c")).await;
+        let path = directory.path().join(format!("h{}.parquet", value.len()));
+        let capture = workspace.capture("SELECT c FROM h".into(), path).await;
+        let loaded = match capture {
+            Ok(capture) => workspace
+                .load_capture(capture, "h_back".into())
+                .await
+                .map_err(|report| format!("load failed: {report:?}")),
+            Err(report) => Err(format!("capture failed: {report:?}")),
+        };
+        println!("A7 HUGEINT {value}: {loaded:?}");
+        if loaded.is_ok() {
+            println!("A7   loaded value: {:?}", lines(&workspace, "SELECT c::VARCHAR, typeof(c) FROM h_back").await);
+        }
+    }
+}
+
+#[tokio::test]
+async fn a7_type_round_trip() {
+    let directory = TempDir::new().expect("dir");
+    let workspace = open(&directory).await;
+    let columns = [
+        ("c_varchar", "VARCHAR", "'text'"),
+        ("c_bigint", "BIGINT", "-9007199254740993"),
+        ("c_hugeint", "HUGEINT", "12345678901234567890123456789"),
+        ("c_decimal", "DECIMAL(18,2)", "12345.67"),
+        ("c_double", "DOUBLE", "0.1"),
+        ("c_boolean", "BOOLEAN", "true"),
+        ("c_date", "DATE", "DATE '2026-01-02'"),
+        ("c_timestamp", "TIMESTAMP", "TIMESTAMP '2026-01-02 03:04:05.123456'"),
+        ("c_timestamptz", "TIMESTAMPTZ", "TIMESTAMPTZ '2026-01-02 03:04:05.123456+00'"),
+    ];
+    let row = |null: bool| {
+        columns
+            .iter()
+            .map(|(name, ty, value)| {
+                format!("CAST({} AS {ty}) AS {name}", if null { "NULL" } else { value })
+            })
+            .collect::<Vec<_>>()
+            .join(", ")
+    };
+    create(&workspace, "types_src", &format!("SELECT 0 AS k, {} UNION ALL SELECT 1 AS k, {}", row(false), row(true))).await;
+    let types = |table: &str| {
+        format!("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '{table}' ORDER BY ordinal_position")
+    };
+    let before = lines(&workspace, &types("types_src")).await;
+    let capture = workspace
+        .capture("SELECT * FROM types_src ORDER BY k".into(), directory.path().join("types.parquet"))
+        .await
+        .expect("capture");
+    let reader = SerializedFileReader::new(File::open(capture.path()).expect("f")).expect("r");
+    let arrow_schema = parquet::arrow::parquet_to_arrow_schema(
+        reader.metadata().file_metadata().schema_descr(),
+        reader.metadata().file_metadata().key_value_metadata(),
+    )
+    .expect("schema");
+    workspace.load_capture(capture, "types_back".into()).await.expect("load");
+    let after = lines(&workspace, &types("types_back")).await;
+    for index in 0..before.len() {
+        let field = arrow_schema
+            .fields()
+            .get(index)
+            .map(|f| format!("{:?}", f.data_type()))
+            .unwrap_or_default();
+        println!(
+            "A7 {:<26} -> {:<32} arrow {}",
+            before[index],
+            after.get(index).cloned().unwrap_or_default(),
+            field
+        );
+    }
+    for (name, _, _) in columns {
+        for (label, table) in [("source", "types_src"), ("loaded", "types_back")] {
+            let result = workspace
+                .query(format!("SELECT {name} FROM {table} ORDER BY k").into())
+                .await;
+            match result {
+                Ok(rows) => println!(
+                    "A7 query {name} ({label}): {:?}",
+                    rows.iter().map(|r| format!("{:?}", r[0])).collect::<Vec<_>>()
+                ),
+                Err(report) => println!("A7 query {name} ({label}): ERROR {:?}", report.current_context()),
+            }
+        }
+    }
+    let equal = lines(&workspace, "SELECT count(*) FROM types_src s JOIN types_back b USING (k) WHERE s.c_varchar IS NOT DISTINCT FROM b.c_varchar AND s.c_bigint IS NOT DISTINCT FROM b.c_bigint AND s.c_hugeint IS NOT DISTINCT FROM b.c_hugeint AND s.c_decimal IS NOT DISTINCT FROM b.c_decimal AND s.c_double IS NOT DISTINCT FROM b.c_double AND s.c_boolean IS NOT DISTINCT FROM b.c_boolean AND s.c_date IS NOT DISTINCT FROM b.c_date AND s.c_timestamp IS NOT DISTINCT FROM b.c_timestamp AND s.c_timestamptz IS NOT DISTINCT FROM b.c_timestamptz").await;
+    println!("A7 rows whose values compare equal after round trip (of 2): {equal:?}");
+}
+
+// ---------------------------------------------------------------- A8
+
+const NAMESPACE_HEX: &str = "d6e2c7a1f84b4e3a9c0d5b7f1e3a2d4c";
+
+fn uuid_sql(name: &str) -> String {
+    // `h` is the 40-digit hex text of the SHA-1.
+    let h = format!("sha1(from_hex('{NAMESPACE_HEX}') || encode({name}))");
+    format!(
+        "substr({h}, 1, 8) || '-' || substr({h}, 9, 4) || '-5' || substr({h}, 14, 3) || '-' || substr('89ab89ab89ab89ab', position(substr({h}, 17, 1) IN '0123456789abcdef'), 1) || substr({h}, 18, 3) || '-' || substr({h}, 21, 12)"
+    )
+}
+
+#[tokio::test]
+async fn a8_entity_id_in_sql() {
+    let directory = TempDir::new().expect("dir");
+    let workspace = open(&directory).await;
+    for probe in [
+        "SELECT sha1(from_hex('00ff'))",
+        "SELECT typeof(from_hex('00ff') || encode('a'))",
+        "SELECT sha1('abc')",
+        "SELECT sha1(encode('abc'))",
+    ] {
+        let result = workspace.query(probe.into()).await;
+        println!(
+            "A8 probe {probe}: {:?}",
+            result
+                .map(|rows| rows.iter().map(|r| format!("{:?}", r[0])).collect::<Vec<_>>())
+                .map_err(|report| format!("{:?}", report.current_context()))
+        );
+    }
+    #[derive(serde::Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct Case {
+        ns: String,
+        entity_type: String,
+        entity_id: String,
+        uuid: String,
+    }
+    let cases: Vec<Case> =
+        serde_json::from_str(include_str!("fixtures/entity-ids-typescript.json")).expect("json");
+    let web_id = WebId::new(Uuid::from_u128(0xA2C8_E6C7_485D_4B54_A248_53C9_B9B0_14A2));
+    let mut names: Vec<(String, String, String, String)> = cases
+        .iter()
+        .map(|case| {
+            (case.ns.clone(), case.entity_type.clone(), case.entity_id.clone(), case.uuid.clone())
+        })
+        .collect();
+    for (ns, ty, id) in [
+        ("conn-ü", "https://x/@t/types/entity-type/material/v/1", "Ünïcödé ✓ 𝄞"),
+        ("conn-a", "https://x/@t/types/entity-type/material/v/1", "::"),
+        ("a::b", "https://x/@t/types/entity-type/material/v/2", "x::y::z"),
+        ("conn-a", "https://x/@t/types/entity-type/material/v/1", "trailing space "),
+        ("日本", "https://x/@t/types/entity-type/plant/v/1", "工場-01"),
+    ] {
+        let url: VersionedUrl = ty.parse().expect("url");
+        let derived = derive_entity_id(web_id, ns, &url, id);
+        names.push((ns.into(), ty.into(), id.into(), derived.entity_uuid.to_string()));
+    }
+    // Check the fixture UUIDs agree with derive_entity_id too.
+    for (ns, ty, id, uuid) in &names {
+        let url: VersionedUrl = ty.parse().expect("url");
+        assert_eq!(&derive_entity_id(web_id, ns, &url, id).entity_uuid.to_string(), uuid);
+    }
+    let literal = |text: &str| format!("'{}'", text.replace('\'', "''"));
+    let values = names
+        .iter()
+        .enumerate()
+        .map(|(index, (ns, ty, id, _))| {
+            format!("({index}, {}, {}, {})", literal(ns), literal(ty), literal(id))
+        })
+        .collect::<Vec<_>>()
+        .join(", ");
+    create(&workspace, "names", &format!("SELECT * FROM (VALUES {values}) AS t(i, ns, ty, source_id)")).await;
+    let expression = uuid_sql("ns || '::' || ty || '::' || source_id");
+    println!("A8 expression: {expression}");
+    let sql = format!("SELECT i, {expression} AS uuid FROM names ORDER BY i");
+    match workspace.query(sql.into()).await {
+        Ok(rows) => {
+            let mut matched = 0;
+            for (row, (ns, ty, id, want)) in rows.iter().zip(&names) {
+                let got = cell(&row[1]);
+                let ok = &got == want;
+                matched += usize::from(ok);
+                println!("A8 {} ns={ns} type={ty} id={id:?} sql={got} rust={want}", if ok { "MATCH" } else { "DIFF " });
+            }
+            println!("A8 matched {matched} of {}", names.len());
+        }
+        Err(report) => println!("A8 query failed: {report:?}"),
+    }
+    // One million rows.
+    let million = format!(
+        "SELECT i, {} AS uuid FROM range(0, 1000000) AS r(i)",
+        uuid_sql("'conn-a::https://x/@t/types/entity-type/material/v/1::' || i")
+    );
+    let start = Instant::now();
+    let result = workspace.create_table("million".into(), million.into()).await;
+    println!("A8 one million rows: {:?} in {:?}", result.map(|()| "ok"), start.elapsed());
+    let rust_start = Instant::now();
+    let url: VersionedUrl = "https://x/@t/types/entity-type/material/v/1".parse().expect("url");
+    let mut last = String::new();
+    for i in 0..1_000_000_u32 {
+        last = derive_entity_id(web_id, "conn-a", &url, &i.to_string()).entity_uuid.to_string();
+    }
+    println!("A8 Rust derive_entity_id one million (debug build): {:?}", rust_start.elapsed());
+    let check = lines(&workspace, "SELECT uuid FROM million WHERE i = 999999").await;
+    println!("A8 row 999999 sql {check:?} rust {last}");
+}

@@ -1,0 +1,482 @@
+// Run with:
+// cd /Users/pauletscheit/Documents/hash && HASH_GRAPH_PG_DATABASE=graph_test HASH_GRAPH_PG_USER=postgres \
+//   HASH_GRAPH_PG_PASSWORD=postgres PATH="$HOME/.cargo/bin:$PATH" ~/.cargo/bin/cargo-nextest nextest run \
+//   --package hash-graph-integration --all-features --no-capture zz_verify_resend
+// (temporarily needs `mod zz_verify_resend;` in tests/graph/integration/postgres/lib.rs)
+#![allow(clippy::all, clippy::pedantic, clippy::nursery, clippy::restriction, unused)]
+
+use core::iter::empty;
+use std::collections::{HashMap, HashSet};
+
+use error_stack::Report;
+use hash_graph_store::{
+    data_type::{CreateDataTypeParams, DataTypeStore as _},
+    entity::{CreateEntityParams, EntityStore as _, PatchEntityParams},
+    query::ConflictBehavior,
+};
+use hash_graph_test_data::{data_type, entity_type, property_type};
+use hash_status::StatusCode;
+use type_system::{
+    knowledge::{
+        entity::{
+            Entity, EntityId,
+            id::EntityUuid,
+            provenance::ProvidedEntityEditionProvenance,
+        },
+        property::{
+            PropertyObject, PropertyObjectWithMetadata, PropertyPatchOperation,
+            PropertyWithMetadata,
+        },
+    },
+    ontology::{
+        BaseUrl, VersionedUrl,
+        data_type::Conversions,
+        provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
+    },
+    principal::{actor::ActorType, actor_group::WebId},
+    provenance::{OriginProvenance, OriginType},
+};
+use uuid::Uuid;
+
+use crate::{DatabaseApi, DatabaseTestWrapper};
+
+const TEXT: &str = "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1";
+const NUMBER: &str = "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1";
+const CENTIMETER: &str = "https://hash.ai/@h/types/data-type/centimeter/v/1";
+const METER: &str = "https://hash.ai/@h/types/data-type/meter/v/1";
+const NAME: &str = "https://blockprotocol.org/@alice/types/property-type/name/";
+const BLURB: &str = "https://blockprotocol.org/@alice/types/property-type/blurb/";
+const PUBLISHED: &str = "https://blockprotocol.org/@alice/types/property-type/published-on/";
+const AGE: &str = "https://blockprotocol.org/@alice/types/property-type/age/";
+const LENGTH: &str = "http://localhost:3000/@alice/types/property-type/length/";
+
+fn url(text: &str) -> VersionedUrl {
+    text.parse().expect("url")
+}
+
+fn provenance() -> ProvidedEntityEditionProvenance {
+    ProvidedEntityEditionProvenance {
+        actor_type: ActorType::Machine,
+        origin: OriginProvenance::from_empty_type(OriginType::Api),
+        sources: Vec::new(),
+    }
+}
+
+fn check_database() {
+    let database = std::env::var("HASH_GRAPH_PG_DATABASE").unwrap_or_default();
+    assert_eq!(database, "graph_test", "refusing to run against another database");
+}
+
+async fn seed(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
+    check_database();
+    let mut api = database
+        .seed(
+            [
+                data_type::VALUE_V1,
+                data_type::TEXT_V1,
+                data_type::NUMBER_V1,
+                data_type::LENGTH_V1,
+                data_type::METER_V1,
+            ],
+            [
+                property_type::NAME_V1,
+                property_type::AGE_V1,
+                property_type::FAVORITE_SONG_V1,
+                property_type::FAVORITE_FILM_V1,
+                property_type::HOBBY_V1,
+                property_type::INTERESTS_V1,
+                property_type::BLURB_V1,
+                property_type::PUBLISHED_ON_V1,
+                property_type::LENGTH_V1,
+            ],
+            [
+                entity_type::LINK_V1,
+                entity_type::link::FRIEND_OF_V1,
+                entity_type::link::ACQUAINTANCE_OF_V1,
+                entity_type::link::WRITTEN_BY_V1,
+                entity_type::PERSON_V1,
+                entity_type::BOOK_V1,
+                entity_type::LINE_V1,
+            ],
+        )
+        .await
+        .expect("could not seed database");
+    let actor_id = api.account_id;
+    api.create_data_type(
+        actor_id,
+        CreateDataTypeParams {
+            schema: serde_json::from_str(data_type::CENTIMETER_V1).expect("parse"),
+            ownership: OntologyOwnership::Local {
+                web_id: WebId::new(actor_id),
+            },
+            conflict_behavior: ConflictBehavior::Fail,
+            provenance: ProvidedOntologyEditionProvenance {
+                actor_type: ActorType::User,
+                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                sources: Vec::new(),
+            },
+            conversions: HashMap::from([(
+                BaseUrl::new("https://hash.ai/@h/types/data-type/meter/".to_owned()).expect("url"),
+                Conversions {
+                    from: serde_json::from_value(serde_json::json!({
+                        "expression": ["*", "self", { "const": 100, "type": "number" }]
+                    }))
+                    .expect("conversion"),
+                    to: serde_json::from_value(serde_json::json!({
+                        "expression": ["/", "self", { "const": 100, "type": "number" }]
+                    }))
+                    .expect("conversion"),
+                },
+            )]),
+        },
+    )
+    .await
+    .expect("centimeter");
+    api
+}
+
+/// A property object whose values carry metadata with only a data type ID.
+fn object(values: &[(&str, serde_json::Value, &str)]) -> PropertyObjectWithMetadata {
+    let mut map = serde_json::Map::new();
+    for (key, value, data_type) in values {
+        let entry = match value {
+            serde_json::Value::Array(items) => serde_json::json!({ "value": items
+                .iter()
+                .map(|item| serde_json::json!({ "value": item, "metadata": { "dataTypeId": data_type } }))
+                .collect::<Vec<_>>() }),
+            _ => serde_json::json!({ "value": value, "metadata": { "dataTypeId": data_type } }),
+        };
+        map.insert((*key).to_owned(), entry);
+    }
+    serde_json::from_value(serde_json::json!({ "value": map })).expect("property object")
+}
+
+/// The same property object with no explicit metadata.
+fn bare(values: &[(&str, serde_json::Value, &str)]) -> PropertyObjectWithMetadata {
+    let mut map = serde_json::Map::new();
+    for (key, value, _) in values {
+        map.insert((*key).to_owned(), value.clone());
+    }
+    let object: PropertyObject =
+        serde_json::from_value(serde_json::Value::Object(map)).expect("property object");
+    PropertyObjectWithMetadata::from_parts(object, None).expect("from parts")
+}
+
+async fn create(
+    api: &mut DatabaseApi<'_>,
+    entity_uuid: Uuid,
+    entity_type: &str,
+    properties: PropertyObjectWithMetadata,
+) -> Result<Entity, String> {
+    api.create_entity(
+        api.account_id,
+        CreateEntityParams {
+            web_id: WebId::new(api.account_id),
+            entity_uuid: Some(EntityUuid::new(entity_uuid)),
+            decision_time: None,
+            entity_type_ids: HashSet::from([url(entity_type)]),
+            properties,
+            confidence: None,
+            link_data: None,
+            draft: false,
+            policies: Vec::new(),
+            provenance: provenance(),
+            read_only: false,
+        },
+    )
+    .await
+    .map_err(|report| describe(&report))
+}
+
+fn describe<C>(report: &Report<C>) -> String {
+    let statuses: Vec<String> = report
+        .frames()
+        .filter_map(|frame| frame.downcast_ref::<StatusCode>())
+        .map(|status| format!("{status:?}"))
+        .collect();
+    let full = format!("{report:?}");
+    let interesting: Vec<&str> = full.lines().filter(|line| line.contains("─▶") || line.contains("duplicate") || line.contains("unique") || line.contains("exists") || line.contains("SqlState") || line.contains("db error")).collect();
+    format!("statuses {statuses:?}; report: {}; contexts: {interesting:#?}", full.lines().next().unwrap_or_default())
+}
+
+fn replace_params(entity_id: EntityId, properties: PropertyObjectWithMetadata) -> PatchEntityParams {
+    PatchEntityParams {
+        entity_id,
+        decision_time: None,
+        entity_type_ids: HashSet::new(),
+        properties: vec![PropertyPatchOperation::Replace {
+            path: empty().collect(),
+            property: PropertyWithMetadata::Object(properties),
+        }],
+        draft: None,
+        archived: None,
+        confidence: None,
+        provenance: ProvidedEntityEditionProvenance {
+            actor_type: ActorType::Machine,
+            origin: OriginProvenance::from_empty_type(OriginType::Api),
+            // A provenance different from the create: the edition provenance is not compared.
+            sources: Vec::new(),
+        },
+    }
+}
+
+async fn patch(api: &mut DatabaseApi<'_>, params: PatchEntityParams) -> Result<Entity, String> {
+    api.patch_entity(api.account_id, params)
+        .await
+        .map_err(|report| describe(&report))
+}
+
+fn same(label: &str, before: &Entity, after: &Entity) -> bool {
+    let same = before.metadata.record_id.edition_id == after.metadata.record_id.edition_id;
+    println!(
+        "{label}: {} (edition {:?} -> {:?}, archived {})",
+        if same { "SAME EDITION" } else { "NEW EDITION" },
+        before.metadata.record_id.edition_id,
+        after.metadata.record_id.edition_id,
+        after.metadata.archived
+    );
+    same
+}
+
+#[tokio::test]
+async fn zz_verify_resend_b1_b2() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed(&mut database).await;
+    let book = "https://blockprotocol.org/@alice/types/entity-type/book/v/1";
+    let values = [
+        (NAME, serde_json::json!(["Dune"]), TEXT),
+        (BLURB, serde_json::json!("A desert planet."), TEXT),
+        (PUBLISHED, serde_json::json!("1965"), TEXT),
+    ];
+    let entity = create(&mut api, Uuid::new_v4(), book, object(&values)).await.expect("create");
+    let entity_id = entity.metadata.record_id.entity_id;
+    println!("B1 created metadata: {}", serde_json::to_string(&entity.metadata.properties).unwrap_or_default());
+
+    let resent = patch(&mut api, replace_params(entity_id, object(&values))).await.expect("patch");
+    let b1a = same("B1 resend, metadata with data type ID only", &entity, &resent);
+    let resent_bare = patch(&mut api, replace_params(entity_id, bare(&values))).await;
+    let b1b = match &resent_bare {
+        Ok(after) => same("B1 resend, no explicit metadata", &entity, after),
+        Err(error) => {
+            println!("B1 resend, no explicit metadata: ERROR {error}");
+            false
+        }
+    };
+
+    let changed = [
+        (NAME, serde_json::json!(["Dune"]), TEXT),
+        (BLURB, serde_json::json!("A different blurb."), TEXT),
+        (PUBLISHED, serde_json::json!("1965"), TEXT),
+    ];
+    let after_change = patch(&mut api, replace_params(entity_id, object(&changed))).await.expect("patch");
+    let b2a = !same("B2 one value changed", &entity, &after_change);
+    let fewer = [
+        (NAME, serde_json::json!(["Dune"]), TEXT),
+        (BLURB, serde_json::json!("A different blurb."), TEXT),
+    ];
+    let after_remove = patch(&mut api, replace_params(entity_id, object(&fewer))).await.expect("patch");
+    let removed = !after_remove
+        .properties
+        .properties()
+        .contains_key(&BaseUrl::new(PUBLISHED.to_owned()).expect("url"));
+    let b2b = !same("B2 one property left out", &after_change, &after_remove) && removed;
+    println!("B2 published-on removed: {removed}; properties now {:?}", after_remove.properties.properties().keys().collect::<Vec<_>>());
+    println!("RESULT B1a={b1a} B1b={b1b} B2a={b2a} B2b={b2b}");
+}
+
+#[tokio::test]
+async fn zz_verify_resend_b3_numbers() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed(&mut database).await;
+    let person = "https://blockprotocol.org/@alice/types/entity-type/person/v/1";
+    for (label, value) in [
+        ("12.5", serde_json::json!(12.5)),
+        ("8030", serde_json::json!(8030)),
+        ("9007199254740993", serde_json::json!(9_007_199_254_740_993_u64)),
+    ] {
+        let values = [(AGE, value.clone(), NUMBER)];
+        let entity = match create(&mut api, Uuid::new_v4(), person, object(&values)).await {
+            Ok(entity) => entity,
+            Err(error) => {
+                println!("B3 {label}: create ERROR {error}");
+                continue;
+            }
+        };
+        println!(
+            "B3 {label}: stored value {}",
+            serde_json::to_string(&entity.properties).unwrap_or_default()
+        );
+        let resent = patch(&mut api, replace_params(entity.metadata.record_id.entity_id, object(&values))).await;
+        match resent {
+            Ok(after) => {
+                same(&format!("B3 {label} resend"), &entity, &after);
+                println!("B3 {label}: value after resend {}", serde_json::to_string(&after.properties).unwrap_or_default());
+            }
+            Err(error) => println!("B3 {label}: resend ERROR {error}"),
+        }
+    }
+}
+
+#[tokio::test]
+async fn zz_verify_resend_b4_conversion() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed(&mut database).await;
+    let line = "http://localhost:3000/@alice/types/entity-type/line/v/1";
+    for data_type in [CENTIMETER, METER] {
+        let values = [(LENGTH, serde_json::json!(250), data_type)];
+        let entity = match create(&mut api, Uuid::new_v4(), line, object(&values)).await {
+            Ok(entity) => entity,
+            Err(error) => {
+                println!("B4 {data_type}: create ERROR {error}");
+                continue;
+            }
+        };
+        println!(
+            "B4 {data_type}: stored metadata {}",
+            serde_json::to_string(&entity.metadata.properties).unwrap_or_default()
+        );
+        match patch(&mut api, replace_params(entity.metadata.record_id.entity_id, object(&values))).await {
+            Ok(after) => {
+                same(&format!("B4 {data_type} resend"), &entity, &after);
+                println!(
+                    "B4 {data_type}: metadata after resend {}",
+                    serde_json::to_string(&after.metadata.properties).unwrap_or_default()
+                );
+            }
+            Err(error) => println!("B4 {data_type}: resend ERROR {error}"),
+        }
+    }
+}
+
+#[tokio::test]
+async fn zz_verify_resend_b5_b6_archive() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed(&mut database).await;
+    let book = "https://blockprotocol.org/@alice/types/entity-type/book/v/1";
+    let values = [(NAME, serde_json::json!(["Emma"]), TEXT)];
+    let entity = create(&mut api, Uuid::new_v4(), book, object(&values)).await.expect("create");
+    let entity_id = entity.metadata.record_id.entity_id;
+
+    let mut live = replace_params(entity_id, object(&values));
+    live.properties = Vec::new();
+    live.archived = Some(false);
+    let after = patch(&mut api, live).await.expect("patch");
+    let b5b = same("B5 archived:false on a live entity", &entity, &after);
+
+    let mut archive = replace_params(entity_id, object(&values));
+    archive.properties = Vec::new();
+    archive.archived = Some(true);
+    let archived = patch(&mut api, archive).await.expect("archive");
+    println!("B5 archiving edition: archived={} new edition={}", archived.metadata.archived, archived.metadata.record_id.edition_id != entity.metadata.record_id.edition_id);
+
+    let mut again = replace_params(entity_id, object(&values));
+    again.properties = Vec::new();
+    again.archived = Some(true);
+    let b5a = match patch(&mut api, again).await {
+        Ok(after) => same("B5 archived:true on an archived entity", &archived, &after),
+        Err(error) => {
+            println!("B5 archived:true on an archived entity: ERROR {error}");
+            false
+        }
+    };
+
+    let mut again_with_props = replace_params(entity_id, object(&values));
+    again_with_props.archived = Some(true);
+    match patch(&mut api, again_with_props).await {
+        Ok(after) => {
+            same("B5 extra: archived:true plus identical replace on an archived entity", &archived, &after);
+        }
+        Err(error) => println!("B5 extra: ERROR {error}"),
+    }
+
+    let mut restore = replace_params(entity_id, object(&values));
+    restore.properties = Vec::new();
+    restore.archived = Some(false);
+    let b6 = match patch(&mut api, restore).await {
+        Ok(after) => {
+            let new = !same("B6 archived:false on an archived entity", &archived, &after);
+            new && !after.metadata.archived
+        }
+        Err(error) => {
+            println!("B6: ERROR {error}");
+            false
+        }
+    };
+    println!("RESULT B5a={b5a} B5b={b5b} B6={b6}");
+}
+
+#[tokio::test]
+async fn zz_verify_resend_b7_link() {
+    use type_system::knowledge::{
+        entity::{Link, LinkEndpoint},
+        property::metadata::PropertyProvenance,
+    };
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed(&mut database).await;
+    let person = "https://blockprotocol.org/@alice/types/entity-type/person/v/1";
+    let alice = create(&mut api, Uuid::new_v4(), person, object(&[(NAME, serde_json::json!("Alice"), TEXT)])).await.expect("alice");
+    let bob = create(&mut api, Uuid::new_v4(), person, object(&[(NAME, serde_json::json!("Bob"), TEXT)])).await.expect("bob");
+    let link = api
+        .create_entity(
+            api.account_id,
+            CreateEntityParams {
+                web_id: WebId::new(api.account_id),
+                entity_uuid: Some(EntityUuid::new(Uuid::new_v4())),
+                decision_time: None,
+                entity_type_ids: HashSet::from([url(
+                    "https://blockprotocol.org/@alice/types/entity-type/friend-of/v/1",
+                )]),
+                properties: PropertyObjectWithMetadata::from_parts(PropertyObject::empty(), None)
+                    .expect("empty"),
+                confidence: None,
+                link_data: Some(Link::Directed {
+                    source: LinkEndpoint {
+                        entity_id: alice.metadata.record_id.entity_id,
+                        confidence: None,
+                        provenance: PropertyProvenance::default(),
+                    },
+                    target: LinkEndpoint {
+                        entity_id: bob.metadata.record_id.entity_id,
+                        confidence: None,
+                        provenance: PropertyProvenance::default(),
+                    },
+                }),
+                draft: false,
+                policies: Vec::new(),
+                provenance: provenance(),
+                read_only: false,
+            },
+        )
+        .await
+        .expect("link");
+    let empty_object: PropertyObjectWithMetadata =
+        serde_json::from_value(serde_json::json!({ "value": {} })).expect("empty object");
+    let b7 = match patch(&mut api, replace_params(link.metadata.record_id.entity_id, empty_object)).await {
+        Ok(after) => same("B7 link, replace with empty object", &link, &after),
+        Err(error) => {
+            println!("B7: ERROR {error}");
+            false
+        }
+    };
+    println!("RESULT B7={b7}");
+}
+
+#[tokio::test]
+async fn zz_verify_resend_b8_status() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed(&mut database).await;
+    let book = "https://blockprotocol.org/@alice/types/entity-type/book/v/1";
+    let values = [(NAME, serde_json::json!(["Persuasion"]), TEXT)];
+    let uuid = Uuid::new_v4();
+    let entity = create(&mut api, uuid, book, object(&values)).await.expect("create");
+    let duplicate = create(&mut api, uuid, book, object(&values)).await;
+    println!("B8 create with existing UUID: {:?}", duplicate.as_ref().map(|_| "created"));
+
+    let missing = EntityId {
+        web_id: entity.metadata.record_id.entity_id.web_id,
+        entity_uuid: EntityUuid::new(Uuid::new_v4()),
+        draft_id: None,
+    };
+    let patched = patch(&mut api, replace_params(missing, object(&values))).await;
+    println!("B8 patch of unknown entity ID: {:?}", patched.as_ref().map(|_| "patched"));
+}

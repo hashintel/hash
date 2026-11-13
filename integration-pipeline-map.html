@@ -1,0 +1,825 @@
+<title>Integration pipeline map</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one wide swimlane figure (lanes = where data lives, columns = stages, top band = durable run steps) with hover explainers, a today-vs-simpler comparison, a storage figure for projection pages, then reference tables and notes in a ~72ch column. */
+:root {
+  --bg: #f5f7f9;
+  --surface: #ffffff;
+  --fg: #18212c;
+  --muted: #586373;
+  --line: #d3dae2;
+  --lane-a: #eaeef3;
+  --lane-b: #f7f9fb;
+  --box: #ffffff;
+  --box-stroke: #93a0b0;
+  --step: #dcebec;
+  --accent: #0d6b70;
+  --main: #1d7a4b;
+  --branch: #2c5cb0;
+  --ticket: #9a5d08;
+  --gone: #b4442f;
+  --shadow: rgba(24, 33, 44, 0.16);
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #10151b; --surface: #161d25; --fg: #e2e7ee; --muted: #98a3b2; --line: #2a3440;
+    --lane-a: #161d26; --lane-b: #11171e; --box: #1b232d; --box-stroke: #4c5968; --step: #17343a;
+    --accent: #52b9be; --main: #5bc28d; --branch: #82a7ee; --ticket: #e1a54b; --gone: #ef8a74;
+    --shadow: rgba(0, 0, 0, 0.5);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #10151b; --surface: #161d25; --fg: #e2e7ee; --muted: #98a3b2; --line: #2a3440;
+  --lane-a: #161d26; --lane-b: #11171e; --box: #1b232d; --box-stroke: #4c5968; --step: #17343a;
+  --accent: #52b9be; --main: #5bc28d; --branch: #82a7ee; --ticket: #e1a54b; --gone: #ef8a74;
+  --shadow: rgba(0, 0, 0, 0.5);
+  color-scheme: dark;
+}
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font: 15px/1.6 var(--font-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 32px 64px;
+}
+main { display: grid; gap: 44px; max-width: 1240px; margin: 0 auto; }
+.prose { max-width: 72ch; }
+h1, h2 { font-weight: 600; text-wrap: balance; letter-spacing: -0.01em; margin: 0; }
+h1 { font-size: 30px; line-height: 1.2; }
+h2 { font-size: 21px; line-height: 1.3; }
+h3 { font-size: 16px; font-weight: 600; margin: 0; }
+p { margin: 0; }
+section { display: grid; gap: 14px; min-width: 0; }
+.lede { color: var(--muted); font-size: 16px; }
+code, .mono { font-family: var(--font-mono); font-size: 0.88em; }
+a { color: var(--accent); }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.dot.main { background: var(--main); } .dot.branch { background: var(--branch); } .dot.ticket { background: var(--ticket); }
+.swatch { width: 14px; height: 9px; border-radius: 2px; display: inline-block; background: var(--step); border: 1px solid var(--accent); }
+figure { margin: 0; display: grid; gap: 10px; min-width: 0; }
+.scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+.scroll svg { display: block; width: 100%; height: auto; color: var(--fg); }
+.scroll svg.wide { min-width: 1240px; }
+.scroll svg.mid { min-width: 860px; }
+figcaption { font-size: 13px; color: var(--muted); max-width: 95ch; }
+.lane-a { fill: var(--lane-a); } .lane-b { fill: var(--lane-b); }
+.lane-name { font: 600 12px var(--font-body); fill: var(--fg); }
+.lane-sub { font: 400 10.5px var(--font-body); fill: var(--muted); }
+.stage { font: 600 11px var(--font-body); fill: var(--fg); text-anchor: middle; }
+.step { fill: var(--step); stroke: var(--accent); stroke-width: 1; }
+.step-name { font: 600 11px var(--font-mono); fill: var(--accent); }
+.step-note { font: 400 10px var(--font-body); fill: var(--fg); }
+.box { fill: var(--box); stroke: var(--box-stroke); stroke-width: 1; }
+.box.alt { stroke-dasharray: 3 2; }
+.node { cursor: help; outline: none; }
+.node:hover .box, .node:focus-visible .box, .node.on .box { stroke: var(--accent); stroke-width: 2; }
+.bt { font: 600 10.5px var(--font-mono); fill: var(--fg); }
+.bl { font: 400 10px var(--font-body); fill: var(--muted); }
+.tag-main { font: 600 9.5px var(--font-body); fill: var(--main); }
+.tag-branch { font: 600 9.5px var(--font-body); fill: var(--branch); }
+.tag-ticket { font: 600 9.5px var(--font-body); fill: var(--ticket); }
+.edge { stroke: currentColor; stroke-width: 1.2; fill: none; }
+.edge.dash { stroke-dasharray: 4 3; }
+.el { font: 400 10px var(--font-body); fill: var(--muted); }
+.seg { fill: var(--lane-a); stroke: var(--box-stroke); stroke-width: 1; }
+.seg.hi { fill: var(--step); stroke: var(--accent); }
+.chip { fill: var(--box); stroke: var(--box-stroke); stroke-width: 1; }
+.chip.gone { fill: none; stroke: var(--gone); stroke-dasharray: 4 3; }
+.chip.new { fill: var(--step); stroke: var(--accent); }
+.ct { font: 500 11px var(--font-body); fill: var(--fg); text-anchor: middle; }
+.ct.gone { fill: var(--gone); text-decoration: line-through; }
+.tip {
+  position: fixed; z-index: 20; max-width: 340px; padding: 12px 14px; display: grid; gap: 6px;
+  background: var(--surface); color: var(--fg); border: 1px solid var(--line); border-radius: 6px;
+  box-shadow: 0 8px 24px var(--shadow); font-size: 13px; line-height: 1.5; pointer-events: none;
+}
+.tip h4 { margin: 0; font: 600 13px var(--font-mono); color: var(--accent); }
+.tip p { margin: 0; }
+.tip b { font-weight: 600; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; display: block; }
+.table-wrap { overflow-x: auto; min-width: 0; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 600; white-space: nowrap; }
+td:first-child { font-weight: 600; }
+.nowrap-first td:first-child { white-space: nowrap; }
+td.tick { font-size: 12.5px; white-space: nowrap; }
+tbody tr { background: var(--surface); }
+.wide-col td:nth-child(2) { min-width: 300px; }
+.jobs td { min-width: 200px; }
+dl.terms { display: grid; grid-template-columns: max-content 1fr; gap: 8px 18px; margin: 0; }
+dl.terms dt { font-family: var(--font-mono); font-size: 14px; font-weight: 600; }
+dl.terms dd { margin: 0; }
+.reasons { display: grid; gap: 12px; padding-left: 20px; margin: 0; }
+.findings { display: grid; gap: 22px; padding: 0; margin: 0; list-style: none; counter-reset: f; }
+.findings li { display: grid; gap: 6px; padding-left: 34px; position: relative; }
+.findings li::before { counter-increment: f; content: counter(f); position: absolute; left: 0; top: 1px; width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--accent); color: var(--accent); font: 600 12px/22px var(--font-body); text-align: center; }
+.callout { border-left: 3px solid var(--accent); padding: 4px 0 4px 14px; }
+.src { font-size: 13px; color: var(--muted); }
+.src ul { margin: 6px 0 0; padding-left: 18px; }
+@media (max-width: 560px) { dl.terms { grid-template-columns: 1fr; gap: 2px 0; } dl.terms dd { margin-bottom: 8px; } }
+</style>
+
+<main>
+  <header class="prose" style="display:grid;gap:12px">
+    <h1>Integration pipeline map</h1>
+    <p class="lede">How one integration run, N, gets from a source read to requests the Graph accepts, as the monorepo will look once the planned tickets land. The design comes from labs at <code>40a8d14</code>. Run N-1 is the last run that was delivered. Hover over or tap any box in the diagram for what it holds and why it exists.</p>
+    <div class="legend" aria-label="Legend">
+      <span><i class="swatch"></i>durable run step</span>
+      <span><i class="dot main"></i>on <code>main</code></span>
+      <span><i class="dot branch"></i>on this branch (BE-933)</span>
+      <span><i class="dot ticket"></i>planned, ticket named</span>
+    </div>
+  </header>
+
+  <figure>
+    <div class="scroll">
+      <svg id="flow" class="wide" viewBox="0 0 1630 744" role="img" aria-label="Swimlane diagram of one integration run in four durable steps. Capture reads the source and stores Parquet in S3. Plan loads it into DuckDB, runs SQL, hashes each entity, diffs against run N-1's hashes from the snapshot, plans every row as request JSON in memory and uploads the workspace as snapshot N. Publish compares the plan with projection N-1, then writes projection N, state version N, the effect index and the work manifest. Deliver sends the effects to the Graph in turns, then makes state version N current, or restores N-1 on failure.">
+        <defs>
+          <marker id="ah" viewBox="0 0 8 8" refX="7.5" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" fill="currentColor"/></marker>
+        </defs>
+
+        <rect class="step" x="104" y="4" width="117" height="40" rx="3"/>
+        <text class="step-name" x="111" y="20">step: capture</text>
+        <text class="step-note" x="111" y="35">keeps capture refs</text>
+        <rect class="step" x="259" y="4" width="737" height="40" rx="3"/>
+        <text class="step-name" x="266" y="20">step: plan</text>
+        <text class="step-note" x="266" y="35">keeps snapshot N in S3. The plan itself stays in memory, so a stop here plans again from the captures.</text>
+        <rect class="step" x="1034" y="4" width="427" height="40" rx="3"/>
+        <text class="step-name" x="1041" y="20">step: publish</text>
+        <text class="step-note" x="1041" y="35">keeps the work manifest. Nothing is planned again after this.</text>
+        <rect class="step" x="1499" y="4" width="117" height="40" rx="3"/>
+        <text class="step-name" x="1506" y="20">steps: deliver</text>
+        <text class="step-note" x="1506" y="35">one per turn, keeps cursor</text>
+
+        <rect class="lane-a" x="0" y="72" width="1630" height="70"/>
+        <rect class="lane-b" x="0" y="148" width="1630" height="220"/>
+        <rect class="lane-a" x="0" y="374" width="1630" height="90"/>
+        <rect class="lane-b" x="0" y="470" width="1630" height="190"/>
+        <rect class="lane-a" x="0" y="666" width="1630" height="72"/>
+
+        <text class="lane-name" x="10" y="102">Source</text><text class="lane-sub" x="10" y="116">external system</text>
+        <text class="lane-name" x="10" y="178">Worker disk</text><text class="lane-sub" x="10" y="192">DuckDB workspace</text>
+        <text class="lane-name" x="10" y="404">Engine</text><text class="lane-sub" x="10" y="418">Rust memory</text>
+        <text class="lane-name" x="10" y="500">S3</text><text class="lane-sub" x="10" y="514">per integration</text>
+        <text class="lane-name" x="10" y="702">Graph</text>
+
+        <text class="stage" x="162" y="62">1 Capture</text>
+        <text class="stage" x="317" y="62">2 Stage + SQL</text>
+        <text class="stage" x="472" y="62">3 Hash</text>
+        <text class="stage" x="627" y="62">4 Diff</text>
+        <text class="stage" x="782" y="62">5 Plan requests</text>
+        <text class="stage" x="937" y="62">6 Save workspace</text>
+        <text class="stage" x="1092" y="62">7 Compare with N-1</text>
+        <text class="stage" x="1247" y="62">8 Write projection</text>
+        <text class="stage" x="1402" y="62">9 Write effects</text>
+        <text class="stage" x="1557" y="62">10 Deliver</text>
+
+        <!-- edges first, so boxes sit on top -->
+        <line class="edge" x1="162" y1="134" x2="162" y2="160" marker-end="url(#ah)"/>
+        <text class="el" x="168" y="151">fetch</text>
+        <line class="edge" x1="162" y1="224" x2="162" y2="482" marker-end="url(#ah)"/>
+        <text class="el" x="168" y="418">upload once,</text>
+        <text class="el" x="168" y="430">reused on retry</text>
+        <line class="edge" x1="221" y1="193" x2="257" y2="193" marker-end="url(#ah)"/>
+        <text class="el" x="239" y="187" text-anchor="middle">load</text>
+        <line class="edge" x1="317" y1="224" x2="317" y2="262" marker-end="url(#ah)"/>
+        <text class="el" x="323" y="247">SQL steps</text>
+        <polyline class="edge" points="376,300 395,300 395,193 412,193" marker-end="url(#ah)"/>
+        <text class="el" x="400" y="248">md5</text>
+        <line class="edge" x1="472" y1="484" x2="472" y2="354" marker-end="url(#ah)"/>
+        <text class="el" x="478" y="418">download</text>
+        <text class="el" x="478" y="430">whole file</text>
+        <line class="edge dash" x1="472" y1="226" x2="472" y2="262" marker-end="url(#ah)"/>
+        <text class="el" x="478" y="248">overwrites</text>
+        <polyline class="edge" points="531,193 550,193 550,233 567,233" marker-end="url(#ah)"/>
+        <polyline class="edge" points="531,308 550,308 550,260 567,260" marker-end="url(#ah)"/>
+        <polyline class="edge" points="686,245 705,245 705,418 722,418" marker-end="url(#ah)"/>
+        <text class="el" x="699" y="334" text-anchor="end">every row</text>
+        <text class="el" x="699" y="346" text-anchor="end">+ its _diff_op</text>
+        <line class="edge" x1="841" y1="418" x2="1032" y2="418" marker-end="url(#ah)"/>
+        <text class="el" x="847" y="412">plan N, held in memory</text>
+        <line class="edge" x1="975" y1="270" x2="975" y2="482" marker-end="url(#ah)"/>
+        <text class="el" x="981" y="330">upload</text>
+        <text class="el" x="981" y="342">whole file</text>
+        <line class="edge" x1="1092" y1="484" x2="1092" y2="456" marker-end="url(#ah)"/>
+        <text class="el" x="1098" y="479">load all of N-1</text>
+        <polyline class="edge" points="1151,440 1170,440 1170,612 1187,612" marker-end="url(#ah)"/>
+        <polyline class="edge" points="1151,398 1325,398 1325,612 1342,612" marker-end="url(#ah)"/>
+        <text class="el" x="1240" y="392" text-anchor="middle">changed objects</text>
+        <line class="edge dash" x1="1247" y1="556" x2="1247" y2="574" marker-end="url(#ah)"/>
+        <text class="el" x="1253" y="569">names</text>
+        <line class="edge dash" x1="1402" y1="556" x2="1402" y2="574" marker-end="url(#ah)"/>
+        <text class="el" x="1408" y="569">names</text>
+        <line class="edge dash" x1="1344" y1="632" x2="1308" y2="632" marker-end="url(#ah)"/>
+        <text class="el" x="1326" y="652" text-anchor="middle">slices</text>
+        <polyline class="edge dash" points="376,612 395,612 395,520 412,520" marker-end="url(#ah)"/>
+        <polyline class="edge" points="1402,648 1402,704 1497,704" marker-end="url(#ah)"/>
+        <text class="el" x="1408" y="698">send in turns</text>
+
+        <!-- boxes -->
+        <g class="node" data-id="src" tabindex="0">
+          <rect class="box" x="104" y="82" width="117" height="52" rx="3"/>
+          <text class="bt" x="111" y="98">source</text>
+          <text class="bl" x="111" y="112">API · Postgres · SQL</text>
+          <text class="bl" x="111" y="125">read in full each run</text>
+        </g>
+        <g class="node" data-id="cap" tabindex="0">
+          <rect class="box" x="104" y="162" width="117" height="62" rx="3"/>
+          <text class="bt" x="111" y="178">capture.parquet</text>
+          <text class="bl" x="111" y="192">rows as fetched</text>
+          <text class="tag-main" x="111" y="216">on main</text>
+        </g>
+        <g class="node" data-id="stage" tabindex="0">
+          <rect class="box" x="259" y="162" width="117" height="62" rx="3"/>
+          <text class="bt" x="266" y="178">{source}</text>
+          <text class="bl" x="266" y="192">columns + _op, _key</text>
+          <text class="tag-main" x="266" y="216">on main</text>
+        </g>
+        <g class="node" data-id="sink" tabindex="0">
+          <rect class="box" x="259" y="264" width="117" height="88" rx="3"/>
+          <text class="bt" x="266" y="280">sink tables</text>
+          <text class="bl" x="266" y="294">one per graph sink</text>
+          <text class="bt" x="266" y="312">_checkpoint/*</text>
+          <text class="bl" x="266" y="326">copies for links</text>
+          <text class="tag-main" x="266" y="344">on main</text>
+        </g>
+        <g class="node" data-id="cur" tabindex="0">
+          <rect class="box" x="414" y="162" width="117" height="62" rx="3"/>
+          <text class="bt" x="421" y="178">_sync/current</text>
+          <text class="bl" x="421" y="192">id, md5(mapped cols)</text>
+          <text class="tag-ticket" x="421" y="216">BE-1108</text>
+        </g>
+        <g class="node" data-id="prev" tabindex="0">
+          <rect class="box" x="414" y="264" width="117" height="88" rx="3"/>
+          <text class="bt" x="421" y="280">_state/sync</text>
+          <text class="bl" x="421" y="294">id, hash</text>
+          <text class="bl" x="421" y="307">as of run N-1</text>
+          <text class="tag-ticket" x="421" y="344">BE-1108</text>
+        </g>
+        <g class="node" data-id="diff" tabindex="0">
+          <rect class="box" x="569" y="208" width="117" height="74" rx="3"/>
+          <text class="bt" x="576" y="224">_diff</text>
+          <text class="bl" x="576" y="238">FULL OUTER JOIN</text>
+          <text class="bl" x="576" y="251">insert · update</text>
+          <text class="bl" x="576" y="264">unchanged · delete</text>
+          <text class="tag-ticket" x="576" y="276">BE-1108</text>
+        </g>
+        <g class="node" data-id="db" tabindex="0">
+          <rect class="box" x="879" y="208" width="117" height="62" rx="3"/>
+          <text class="bt" x="886" y="224">candidate.duckdb</text>
+          <text class="bl" x="886" y="238">the whole workspace</text>
+          <text class="tag-main" x="886" y="262">snapshot on main</text>
+        </g>
+        <g class="node" data-id="plan" tabindex="0">
+          <rect class="box" x="724" y="384" width="117" height="70" rx="3"/>
+          <text class="bt" x="731" y="400">plan of run N</text>
+          <text class="bl" x="731" y="414">every row → JSON:</text>
+          <text class="bl" x="731" y="427">create, patch, archive</text>
+          <text class="tag-main" x="731" y="447">on main · BE-1151</text>
+        </g>
+        <g class="node" data-id="compare" tabindex="0">
+          <rect class="box" x="1034" y="384" width="117" height="70" rx="3"/>
+          <text class="bt" x="1041" y="400">compare</text>
+          <text class="bl" x="1041" y="414">→ every object</text>
+          <text class="bl" x="1041" y="427">→ changed objects</text>
+          <text class="tag-ticket" x="1041" y="447">BE-1116</text>
+        </g>
+        <g class="node" data-id="s3cap" tabindex="0">
+          <rect class="box" x="104" y="484" width="117" height="72" rx="3"/>
+          <text class="bt" x="111" y="500">capture</text>
+          <text class="bl" x="111" y="514">Parquet, sha256 key</text>
+          <text class="bl" x="111" y="527">bound to the run</text>
+          <text class="tag-branch" x="111" y="548">this branch · BE-933</text>
+        </g>
+        <g class="node" data-id="svprev" tabindex="0">
+          <rect class="box" x="259" y="576" width="117" height="72" rx="3"/>
+          <text class="bt" x="266" y="592">state version N-1</text>
+          <text class="bl" x="266" y="606">the current one;</text>
+          <text class="bl" x="266" y="619">names both N-1 files</text>
+          <text class="tag-ticket" x="266" y="640">BE-1137</text>
+        </g>
+        <g class="node" data-id="snapprev" tabindex="0">
+          <rect class="box" x="414" y="484" width="117" height="72" rx="3"/>
+          <text class="bt" x="421" y="500">snapshot N-1</text>
+          <text class="bl" x="421" y="514">.duckdb file</text>
+          <text class="bl" x="421" y="527">hashes + checkpoints</text>
+          <text class="tag-ticket" x="421" y="548">BE-1137</text>
+        </g>
+        <g class="node" data-id="snapnew" tabindex="0">
+          <rect class="box" x="879" y="484" width="117" height="72" rx="3"/>
+          <text class="bt" x="886" y="500">snapshot N</text>
+          <text class="bl" x="886" y="514">.duckdb file,</text>
+          <text class="bl" x="886" y="527">rewritten in full</text>
+          <text class="tag-ticket" x="886" y="548">BE-1137</text>
+        </g>
+        <g class="node" data-id="projprev" tabindex="0">
+          <rect class="box" x="1034" y="484" width="117" height="72" rx="3"/>
+          <text class="bt" x="1041" y="500">projection N-1</text>
+          <text class="bl" x="1041" y="514">index · pages · pack</text>
+          <text class="bl" x="1041" y="527">what the Graph has</text>
+          <text class="tag-ticket" x="1041" y="548">BE-1116</text>
+        </g>
+        <g class="node" data-id="svnew" tabindex="0">
+          <rect class="box" x="1189" y="484" width="117" height="72" rx="3"/>
+          <text class="bt" x="1196" y="500">state version N</text>
+          <text class="bl" x="1196" y="514">a candidate until</text>
+          <text class="bl" x="1196" y="527">delivery finishes</text>
+          <text class="tag-ticket" x="1196" y="548">BE-1137</text>
+        </g>
+        <g class="node" data-id="projnew" tabindex="0">
+          <rect class="box" x="1189" y="576" width="117" height="72" rx="3"/>
+          <text class="bt" x="1196" y="592">projection N</text>
+          <text class="bl" x="1196" y="606">new index, pages and</text>
+          <text class="bl" x="1196" y="619">one pack of all bytes</text>
+          <text class="tag-ticket" x="1196" y="640">BE-1116</text>
+        </g>
+        <g class="node" data-id="manifest" tabindex="0">
+          <rect class="box" x="1344" y="484" width="117" height="72" rx="3"/>
+          <text class="bt" x="1351" y="500">work manifest</text>
+          <text class="bl" x="1351" y="514">apply state N,</text>
+          <text class="bl" x="1351" y="527">effect count</text>
+          <text class="tag-ticket" x="1351" y="548">BE-1137</text>
+        </g>
+        <g class="node" data-id="effects" tabindex="0">
+          <rect class="box" x="1344" y="576" width="117" height="72" rx="3"/>
+          <text class="bt" x="1351" y="592">effect index</text>
+          <text class="bl" x="1351" y="606">changed objects,</text>
+          <text class="bl" x="1351" y="619">in Graph order</text>
+          <text class="tag-ticket" x="1351" y="640">BE-1117</text>
+        </g>
+        <g class="node" data-id="commit" tabindex="0">
+          <rect class="box" x="1499" y="484" width="117" height="72" rx="3"/>
+          <text class="bt" x="1506" y="500">commit</text>
+          <text class="bl" x="1506" y="514">state version N</text>
+          <text class="bl" x="1506" y="527">becomes current</text>
+          <text class="tag-ticket" x="1506" y="548">BE-1153</text>
+        </g>
+        <g class="node" data-id="restore" tabindex="0">
+          <rect class="box alt" x="1499" y="576" width="117" height="72" rx="3"/>
+          <text class="bt" x="1506" y="592">or: restore</text>
+          <text class="bl" x="1506" y="606">resend N-1, archive</text>
+          <text class="bl" x="1506" y="619">what only N added</text>
+          <text class="tag-ticket" x="1506" y="640">BE-1154</text>
+        </g>
+        <g class="node" data-id="graph" tabindex="0">
+          <rect class="box" x="1499" y="676" width="117" height="54" rx="3"/>
+          <text class="bt" x="1506" y="692">Graph API</text>
+          <text class="bl" x="1506" y="706">/entities, /bulk</text>
+          <text class="tag-main" x="1506" y="722">client on main · BE-1113</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption>Columns 1 to 10 are stages; the band above groups them into the durable steps of the run function. Run N-1 left two descriptions of the same state in S3: the hash tables inside snapshot N-1, read at stage 3, and projection N-1 with its request bytes, read at stage 7. Dashed arrows are references or overwrites, not copies. The dashed restore box is the path taken only when delivery fails.</figcaption>
+  </figure>
+  <div class="tip" id="tip" hidden role="tooltip"></div>
+
+  <section class="prose">
+    <h2>Names</h2>
+    <dl class="terms">
+      <dt>projection N-1</dt><dd>Labs' <code>A</code>, "applied". Everything run N-1 wanted in the Graph, with the exact request bytes it sent.</dd>
+      <dt>plan of run N</dt><dd>Labs' <code>G</code>, "generated". One object per sink row of this run, plus an archive for each deleted ID, each with a "changed" hint from the diff. It lives only in memory.</dd>
+      <dt>projection N</dt><dd>The comparison's result: the complete desired state after run N, archived objects included.</dd>
+      <dt>effect</dt><dd>One write to send.</dd>
+      <dt>candidate</dt><dd>State version N between publishing and the end of delivery: in S3, but not current yet.</dd>
+    </dl>
+  </section>
+
+  <section class="prose">
+    <h2>What the compare stage does</h2>
+    <p>It is not a second diff of the data. The stage 4 diff already decides what changed, and that decision rides along as the "changed" hint. The compare stage (<code>finalize_projection_plan</code>) merges the plan with projection N-1, object by object, to produce a complete projection N:</p>
+    <ol class="reasons">
+      <li><strong>No hint:</strong> take N-1's bytes instead of the new ones, and send nothing. The new bytes differ only by <code>loadedAt</code>.</li>
+      <li><strong>Hint:</strong> take the new bytes. Send them only if their sha256 differs from N-1's. Across runs it always differs, because of <code>loadedAt</code>.</li>
+      <li><strong>Only in N-1:</strong> archive it if the plan covered every source, otherwise carry it over. This catches objects of a sink that was removed from the definition.</li>
+      <li><strong>Already archived:</strong> carry it, with its archive request, forever.</li>
+    </ol>
+    <p class="callout">So for the writes themselves, yes: you can plan them straight from the diff. Upsert the inserted and updated rows, and archive the deleted IDs. The compare stage only exists to maintain a stored projection.</p>
+  </section>
+
+  <section>
+    <h2>Could we drop the stored projection?</h2>
+    <div class="prose" style="display:grid;gap:12px">
+      <p>Your proposal: keep the capture and a hash table per run (the snapshot already is one per state version), derive the changes from them, and store no projection. For the monorepo, I think this works. The main reason labs needed the projection does not carry over.</p>
+      <p><strong>Why labs needed exact bytes.</strong> Labs writes <code>loadedAt</code> into every property's provenance (<code>row_to_entity_op</code>). Resending an unchanged row with a new <code>loadedAt</code> would therefore change property metadata and create a new Graph edition. Keeping N-1's bytes avoided that.</p>
+      <p><strong>Why the monorepo doesn't.</strong> The monorepo planner (BE-1123) writes no property provenance; only the edition carries <code>loadedAt</code>. The Graph returns a patch as unchanged when properties, property metadata, types, draft, archived state and confidence all match, and it does not compare edition provenance (<code>postgres-store</code>, <code>knowledge/entity/patch.rs</code>). Resending an unchanged entity costs a request but writes nothing.</p>
+    </div>
+    <div class="table-wrap">
+      <table class="jobs">
+        <thead><tr><th>Job the projection does in labs</th><th>Still needed?</th><th>Without a projection</th></tr></thead>
+        <tbody>
+          <tr><td>Keep stored bytes equal to what the Graph got, so a new <code>loadedAt</code> sends nothing</td><td>No</td><td>Plan only inserted and updated rows. Unchanged rows never become JSON.</td></tr>
+          <tr><td>Freeze the requests delivery sends, so a retry sends the same thing</td><td>Yes, for this run's changed objects only</td><td>Write those requests once, as one file (a Parquet file has row groups, so it needs no pages). Or plan again: a run is pinned to its function version, and the same captures give the same plan.</td></tr>
+          <tr><td>Find objects the plan does not mention</td><td>Yes</td><td>Deleted rows are already diff deletes. A removed sink leaves its <code>_state/sync</code> table in the snapshot, so archive its IDs. That needs the sink's entity type kept beside the hashes; <code>_state/meta</code> holds web and namespace but not the type. Partial sources already copy their state rows in the diff.</td></tr>
+          <tr><td>Restore: put run N-1's state back after a failed delivery</td><td>Depends on what restore must do</td><td>Roll forward: N-1 stays current, and the failed run's effect keys are marked dirty, so the next run sends their current values and archives keys that are gone. Or restore now by planning only those keys again from N-1's captures, which state version N-1 still names. Labs' restore resends every object of N-1, so for a million entities, a million writes.</td></tr>
+          <tr><td>Reconcile: resend everything to repair drift</td><td>Yes</td><td>Run the current captures again with every row marked changed.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <figure>
+      <div class="scroll">
+        <svg class="mid" viewBox="0 0 1180 200" role="img" aria-label="Today's flow has eleven stages; the simpler flow drops loading projection N-1, the compare stage and writing the projection, plans only changed rows, and writes one effect file.">
+          <text class="lane-name" x="10" y="44">Today</text>
+          <text class="lane-name" x="10" y="134">Simpler</text>
+
+          <rect class="chip" x="90" y="24" width="84" height="32" rx="4"/><text class="ct" x="132" y="44">capture</text>
+          <rect class="chip" x="184" y="24" width="84" height="32" rx="4"/><text class="ct" x="226" y="44">stage + SQL</text>
+          <rect class="chip" x="278" y="24" width="84" height="32" rx="4"/><text class="ct" x="320" y="44">hash + diff</text>
+          <rect class="chip" x="372" y="24" width="100" height="32" rx="4"/><text class="ct" x="422" y="44">plan every row</text>
+          <rect class="chip" x="482" y="24" width="96" height="32" rx="4"/><text class="ct" x="530" y="44">save snapshot</text>
+          <rect class="chip gone" x="588" y="24" width="104" height="32" rx="4"/><text class="ct gone" x="640" y="44">load proj. N-1</text>
+          <rect class="chip gone" x="702" y="24" width="84" height="32" rx="4"/><text class="ct gone" x="744" y="44">compare</text>
+          <rect class="chip gone" x="796" y="24" width="112" height="32" rx="4"/><text class="ct gone" x="852" y="44">write projection</text>
+          <rect class="chip" x="918" y="24" width="96" height="32" rx="4"/><text class="ct" x="966" y="44">write effects</text>
+          <rect class="chip" x="1024" y="24" width="68" height="32" rx="4"/><text class="ct" x="1058" y="44">deliver</text>
+          <text class="el" x="90" y="76">S3 per run: capture, snapshot, projection (index, every page, a pack of every object), effect index, state version, manifest</text>
+
+          <rect class="chip" x="90" y="114" width="84" height="32" rx="4"/><text class="ct" x="132" y="134">capture</text>
+          <rect class="chip" x="184" y="114" width="84" height="32" rx="4"/><text class="ct" x="226" y="134">stage + SQL</text>
+          <rect class="chip" x="278" y="114" width="84" height="32" rx="4"/><text class="ct" x="320" y="134">hash + diff</text>
+          <rect class="chip new" x="372" y="114" width="124" height="32" rx="4"/><text class="ct" x="434" y="134">plan changed rows</text>
+          <rect class="chip" x="506" y="114" width="96" height="32" rx="4"/><text class="ct" x="554" y="134">save snapshot</text>
+          <rect class="chip new" x="612" y="114" width="118" height="32" rx="4"/><text class="ct" x="671" y="134">write effect file</text>
+          <rect class="chip" x="740" y="114" width="68" height="32" rx="4"/><text class="ct" x="774" y="134">deliver</text>
+          <text class="el" x="90" y="166">S3 per run: capture, snapshot, one effect file of changed requests, state version, manifest</text>
+          <text class="el" x="90" y="180">Failure: the failed run's effect keys become dirty for the next run, or are planned again from N-1's captures</text>
+        </svg>
+      </div>
+      <figcaption>Struck-through stages exist only to maintain the stored projection. Filled stages change: planning shrinks to changed rows, and the effect file replaces the effect index and its slices into the projection pack.</figcaption>
+    </figure>
+    <div class="prose" style="display:grid;gap:12px">
+      <p><strong>What we give up.</strong></p>
+      <ul class="reasons">
+        <li>A record of the desired Graph state that does not depend on code. If N-1 is planned again by newer code, the bodies take today's shape with N-1's values. For a restore that is arguably what you want.</li>
+        <li>Restore and reconcile cost a pipeline run instead of a file read. Both are rare.</li>
+        <li>With roll-forward, a failed run leaves the Graph holding a mix of N-1 and N values until the next run. It already does that during any delivery that is in flight.</li>
+        <li>Everything that shapes a request has to change the hash or a version: the mapped columns (already hashed), the sink config (already a config hash), the planner and encoding version, and connector-level provenance settings. Labs bumps the hash version to force a full resend; the same mechanism covers these.</li>
+      </ul>
+      <p><strong>What stays the same.</strong> Retries: captures are bound per run, planning is deterministic, the effect file is written once and delivery resumes at its cursor. The state version still names the snapshot, so a state is adopted or abandoned as a unit.</p>
+      <p><strong>What it would change in the tickets.</strong> BE-1116 (the projection, about 1,200 lines) would mostly go. BE-1117 would write one effect file instead of indexes, pages and packs. BE-1154 (restore) would need a decision between roll-forward and replanning N-1. Before deciding, confirm the Graph no-op holds for links and archives, and that nobody needs per-property provenance later; adding it would bring the labs reason back.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Where a run resumes</h2>
+    <p class="prose">The orchestration crate (hashintel/hash#10410, BE-1132) runs an integration as a run function that requests named steps. A finished step's output is recorded. When the run executes again, recorded steps return their output without running, and the run continues at the first unrecorded step. Only <code>capture</code> and <code>plan</code> are named in a ticket (BE-1152); the other step names follow labs and BE-1153.</p>
+    <div class="table-wrap">
+      <table class="wide-col nowrap-first">
+        <thead><tr><th>Step</th><th>What stays after it</th><th>If the run stops inside it</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>capture</td><td>A capture per source in S3, bound to the run and source. The step output holds the refs and the capture time.</td><td>Sources already bound are not read again. A changed source definition gets a new fingerprint and is read again.</td><td class="tick">BE-1152, BE-933</td></tr>
+          <tr><td>plan</td><td>Snapshot N in S3. In labs the plan is handed to the publish step in memory, within the same process.</td><td>Planned again from the same captures. Same captures and the same capture time give the same bytes.</td><td class="tick">BE-1151, BE-1152</td></tr>
+          <tr><td>publish</td><td>Projection N, state version N, the effect index and the work manifest. Labs records this as <code>WorkPlanned</code>.</td><td>Written again. Every file is keyed by its own sha256, so a second write produces the same keys. Once the manifest is recorded, the run never plans again.</td><td class="tick">BE-1153</td></tr>
+          <tr><td>deliver</td><td>A cursor: how many effects the Graph acknowledged, counted from the first one with no gap.</td><td>Delivery resends from the cursor. An effect that was sent but not acknowledged goes again. That is safe: entity IDs are deterministic, and a create that finds the entity patches it.</td><td class="tick">BE-1118, BE-1119</td></tr>
+          <tr><td>commit</td><td>State version N is current. The next run's N-1 is this run.</td><td>The work is complete, so it commits again.</td><td class="tick">BE-1153</td></tr>
+          <tr><td>restore</td><td>Only after a failed run. It is its own work, with its own manifest.</td><td>Resumes from its own cursor, like deliver.</td><td class="tick">BE-1154</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="prose">
+    <h2>Where publishing happens</h2>
+    <p>The end of planning uploads the workspace as snapshot N (<code>RunPlanner::build_candidate</code> in <code>orchestrator/planning.rs</code>). It returns an in-memory candidate: the plan, the snapshot ref and the digests. The worker passes that candidate straight to <code>plan_apply</code> in <code>graph/apply.rs</code>. That function loads projection N-1, compares, and writes projection N, state version N, the effect index and the work manifest, in that order. Only then does it record <code>WorkPlanned</code>. Each file is written before the record that names it.</p>
+    <p>In the monorepo, BE-1152 keeps the plan out of the plan step's output, and BE-1153 publishes it in the apply. Neither ticket yet says how the plan gets from one to the other.</p>
+  </section>
+
+  <section>
+    <h2>How a projection is stored</h2>
+    <figure>
+      <div class="scroll">
+        <svg class="mid" viewBox="0 0 1100 340" role="img" aria-label="A projection is an index that lists page references with the first and last key of each page; each page holds 256 objects with their kind, identity, state, digest and a slice of one pack; the pack is one file of every object's request bytes. The effect index has the same shape, and its pages point into the same pack. Archive effects carry no slice; delivery finds their request through the projection pages by key.">
+          <defs>
+            <marker id="ah2" viewBox="0 0 8 8" refX="7.5" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" fill="currentColor"/></marker>
+          </defs>
+          <text class="stage" x="110" y="20">index</text>
+          <text class="stage" x="400" y="20">pages</text>
+          <text class="stage" x="830" y="20">pack</text>
+
+          <rect class="box" x="20" y="34" width="180" height="128" rx="3"/>
+          <text class="bt" x="28" y="52">projection index</text>
+          <text class="bl" x="28" y="68">at most 4 MiB</text>
+          <text class="bl" x="28" y="86">object count</text>
+          <text class="bl" x="28" y="100">page width: 256</text>
+          <text class="bl" x="28" y="114">page refs</text>
+          <text class="bl" x="28" y="128">first and last key</text>
+          <text class="bl" x="28" y="142">of each page</text>
+
+          <rect class="box" x="300" y="46" width="200" height="120" rx="3"/>
+          <rect class="box" x="294" y="40" width="200" height="120" rx="3"/>
+          <rect class="box" x="288" y="34" width="200" height="120" rx="3"/>
+          <text class="bt" x="296" y="52">projection page</text>
+          <text class="bl" x="296" y="68">at most 32 MiB, 256 objects</text>
+          <text class="bl" x="296" y="86">each object:</text>
+          <text class="bl" x="296" y="100">entity or link, identity,</text>
+          <text class="bl" x="296" y="114">live or archived,</text>
+          <text class="bl" x="296" y="128">sha256 of its payload,</text>
+          <text class="bl" x="296" y="142">slice: pack, offset, length</text>
+
+          <rect class="box" x="600" y="64" width="470" height="56" rx="3"/>
+          <rect class="seg hi" x="608" y="74" width="84" height="36"/>
+          <text class="bl" x="650" y="96" text-anchor="middle">object 1</text>
+          <rect class="seg" x="696" y="74" width="84" height="36"/>
+          <text class="bl" x="738" y="96" text-anchor="middle">object 2</text>
+          <rect class="seg" x="784" y="74" width="84" height="36"/>
+          <text class="bl" x="826" y="96" text-anchor="middle">object 3</text>
+          <rect class="seg" x="872" y="74" width="100" height="36"/>
+          <text class="bl" x="922" y="96" text-anchor="middle">…</text>
+          <rect class="seg" x="976" y="74" width="86" height="36"/>
+          <text class="bl" x="1019" y="96" text-anchor="middle">object n</text>
+          <text class="bl" x="608" y="138">one file, every payload back to back. Object 1's payload is</text>
+          <text class="bl" x="608" y="152">{create, patch, archive} as JSON, up to 4 MiB.</text>
+
+          <line class="edge" x1="200" y1="98" x2="286" y2="98" marker-end="url(#ah2)"/>
+          <text class="el" x="243" y="92" text-anchor="middle">page refs</text>
+          <polyline class="edge" points="488,134 560,134 560,92 606,92" marker-end="url(#ah2)"/>
+          <text class="el" x="566" y="126">slice</text>
+
+          <rect class="box" x="20" y="214" width="180" height="96" rx="3"/>
+          <text class="bt" x="28" y="232">effect index</text>
+          <text class="bl" x="28" y="248">at most 4 MiB</text>
+          <text class="bl" x="28" y="266">effect count</text>
+          <text class="bl" x="28" y="280">page width: 256</text>
+          <text class="bl" x="28" y="294">page refs</text>
+
+          <rect class="box" x="300" y="226" width="200" height="100" rx="3"/>
+          <rect class="box" x="294" y="220" width="200" height="100" rx="3"/>
+          <rect class="box" x="288" y="214" width="200" height="100" rx="3"/>
+          <text class="bt" x="296" y="232">effect page</text>
+          <text class="bl" x="296" y="248">256 effects, in Graph order</text>
+          <text class="bl" x="296" y="266">each effect: operation, identity,</text>
+          <text class="bl" x="296" y="280">upserts: digest and slice</text>
+          <text class="bl" x="296" y="294">archives: no slice</text>
+
+          <line class="edge" x1="200" y1="262" x2="286" y2="262" marker-end="url(#ah2)"/>
+          <text class="el" x="243" y="256" text-anchor="middle">page refs</text>
+          <polyline class="edge" points="488,280 650,280 650,112" marker-end="url(#ah2)"/>
+          <text class="el" x="656" y="230">upserts: slice into</text>
+          <text class="el" x="656" y="242">projection N's pack</text>
+          <polyline class="edge dash" points="420,214 420,190 440,190 440,168" marker-end="url(#ah2)"/>
+          <text class="el" x="448" y="194">archives: find the page by key,</text>
+          <text class="el" x="448" y="206">read its archive request</text>
+        </svg>
+      </div>
+      <figcaption>Each level keeps a single file bounded. Compare, restore and reconcile read everything. Delivery reads its effect pages, downloads the whole pack, and uses the page key ranges only to find archive requests. Pages are never reused between runs, because each points into its own run's pack.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>Stage by stage</h2>
+    <div class="table-wrap">
+      <table class="wide-col nowrap-first">
+        <thead><tr><th>Stage</th><th>What happens</th><th>Step</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>1 Capture</td><td>Read the whole source into a Parquet file, upload it under its sha256, and bind it to <code>captures/{run}/{source}.{fingerprint}.json</code>.</td><td>capture</td><td class="tick">main (BE-1085), this branch (BE-933)</td></tr>
+          <tr><td>2 Stage + SQL</td><td>Load the Parquet with <code>_op = 'snapshot'</code> and <code>_key</code>. SQL steps produce one table per graph sink. Checkpoints copy rows for link pipelines.</td><td>plan</td><td class="tick">main (BE-930, BE-931), BE-1151</td></tr>
+          <tr><td>3 Hash</td><td>Copy snapshot N-1 into the workspace. Build <code>_sync/current/{sink}</code>: the entity ID and an md5 of the mapped columns.</td><td>plan</td><td class="tick">BE-1108</td></tr>
+          <tr><td>4 Diff</td><td>Join current with <code>_state/sync</code> and label each ID. Apply the guards. Replace <code>_state/sync</code> with current. Links do the same.</td><td>plan</td><td class="tick">BE-1108, BE-1112</td></tr>
+          <tr><td>5 Plan requests</td><td>Turn every sink row into one payload with create, patch and archive bodies, and each deleted ID into an archive.</td><td>plan</td><td class="tick">main (BE-1106, BE-1107, BE-1123)</td></tr>
+          <tr><td>6 Save workspace</td><td>Upload the whole DuckDB file as snapshot N.</td><td>plan</td><td class="tick">BE-1137, BE-1152</td></tr>
+          <tr><td>7 Compare with N-1</td><td>Load projection N-1 in full; build projection N and the changed objects.</td><td>publish</td><td class="tick">BE-1116</td></tr>
+          <tr><td>8 Write projection</td><td>Write projection N, then state version N.</td><td>publish</td><td class="tick">BE-1116, BE-1137</td></tr>
+          <tr><td>9 Write effects</td><td>Write the effect pages and index, then the work manifest.</td><td>publish</td><td class="tick">BE-1117, BE-1137</td></tr>
+          <tr><td>10 Deliver</td><td>Send effects in dependency order, in bulk where possible, advancing the cursor. Then commit, or restore on failure.</td><td>deliver</td><td class="tick">main (BE-1109), BE-1113, BE-1118, BE-1119, BE-1153, BE-1154</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="prose">
+    <h2>Where it looks heavier than it needs to</h2>
+    <ol class="findings">
+      <li><h3>The stored projection may not be needed in the monorepo</h3><p>See "Could we drop the stored projection?" above. Without it, planning, the S3 writes and restore all scale with changes instead of the whole dataset.</p></li>
+      <li><h3>Paging bounds file sizes; it doesn't reduce reads</h3><p>Only delivery's archive lookup reads pages selectively. If the projection stays, one pack plus one sorted Parquet table of objects would do the same job.</p></li>
+      <li><h3>The plan's hand-off from plan to publish is not decided</h3><p>Labs passes it in memory. The monorepo tickets put planning and publishing in separate steps.</p></li>
+      <li><h3>Size ceilings</h3><p>The 4 MiB index allows roughly 1.5 to 1.8 million objects. A payload may be 4 MiB, but <code>/entities/bulk</code> uses axum's default 2 MB body limit, and bulk chunks are sized by count.</p></li>
+      <li><h3>The tickets port two delivery designs</h3><p>BE-1111, BE-1115, the <code>diff_and_sync</code> half of BE-1108 and the pending-link staging in BE-1112 port labs' older direct sync, which nothing calls at <code>40a8d14</code>.</p></li>
+    </ol>
+  </section>
+
+  <section class="src prose">
+    <h3>Sources</h3>
+    <ul>
+      <li>Labs <code>pocs/integrations_rs/src</code> at <code>40a8d14</code>: <code>orchestrator/planning.rs</code>, <code>orchestrator/worker_dispatch.rs</code>, <code>engine/candidate.rs</code>, <code>graph/sink.rs</code>, <code>graph/planner.rs</code>, <code>graph/artifacts.rs</code>, <code>graph/apply.rs</code>, <code>graph/executor.rs</code>, <code>graph/state_meta.rs</code>, <code>graph/mod.rs</code>.</li>
+      <li>Monorepo: <code>main</code> (<code>engine/src/graph</code>, <code>postgres-store/.../knowledge/entity/patch.rs</code>); this branch (<code>engine/src/storage</code>); hashintel/hash#10410; hashintel/hash#10453.</li>
+      <li>Linear, project Integrations V1: BE-933, BE-1108, BE-1111, BE-1112, BE-1115 to BE-1119, BE-1123, BE-1132, BE-1137, BE-1151 to BE-1154.</li>
+    </ul>
+  </section>
+</main>
+
+<script>
+(() => {
+  const tips = {
+    src: {
+      title: "source",
+      holds: "The external system: a REST API, a Postgres or Redshift table, or a SQL query.",
+      does: "Read in full on every run. REST follows next links or offsets; Postgres goes through DuckDB's postgres extension in a separate database.",
+      why: "A full read means any row missing from it was deleted. Incremental reads (BE-1033) would change that."
+    },
+    cap: {
+      title: "capture.parquet",
+      holds: "Every fetched row of one source, as a Snappy-compressed Parquet file. REST values become string columns; objects and arrays become JSON text.",
+      does: "Written next to its destination, synced, then published without replacing an existing file.",
+      why: "A frozen copy of what the source said at this moment. Everything after this reads the capture, never the source."
+    },
+    s3cap: {
+      title: "capture in S3",
+      holds: "The same Parquet file under artifacts/sha256/…, plus a binding file captures/{run}/{source}.{fingerprint}.json that points at it.",
+      does: "Uploaded once. The binding is a conditional write, so of two attempts exactly one binds and the other continues from it.",
+      why: "A retry, on any machine, reuses the capture instead of reading the source again. A changed source definition changes the fingerprint and forces a new read."
+    },
+    stage: {
+      title: "{source} table",
+      holds: "The capture's rows plus _op = 'snapshot' and _key, the primary key as JSON.",
+      does: "Parquet batches are streamed into a table in one transaction. Assertions check the row count, non-null and unique columns.",
+      why: "Gives the SQL steps a table to read. _op and _key leave room for sources that send inserts, updates and deletes."
+    },
+    sink: {
+      title: "sink tables and checkpoints",
+      holds: "One table per graph sink, with the columns its properties are read from. Checkpoints are named copies of intermediate tables.",
+      does: "The definition's SQL steps and branches run in order. A branch starts from the same input as its siblings.",
+      why: "Sink tables feed hashing and planning. Link pipelines read checkpoints, and checkpoints stay in the workspace, so they end up in the snapshot."
+    },
+    cur: {
+      title: "_sync/current",
+      holds: "One row per entity: the entity ID and an md5 of the sink's mapped columns.",
+      does: "struct_pack of the mapped columns, text trimmed and blanks turned into null, then md5. Provenance and load time are not part of it.",
+      why: "A compact fingerprint of exactly the values that become properties, so an unchanged row hashes the same on every run."
+    },
+    prev: {
+      title: "_state/sync",
+      holds: "Entity ID and hash as of the last delivered run, from snapshot N-1.",
+      does: "Joined with current, then overwritten by current inside this workspace.",
+      why: "The cheapest memory of what the Graph was last sent. It becomes official only when state version N commits."
+    },
+    snapprev: {
+      title: "snapshot N-1",
+      holds: "Run N-1's whole DuckDB file: _state/meta, _state/sync/*, _state/links/* and _checkpoint/*.",
+      does: "Downloaded and copied into a fresh workspace at the start of planning.",
+      why: "Carries the hash tables and checkpoints between runs. Local disk is only a cache."
+    },
+    svprev: {
+      title: "state version N-1",
+      holds: "A small JSON record: its parent, phase, generation, the snapshot, the captures, the projection and the definition digest.",
+      does: "The current one is where run N starts.",
+      why: "One immutable record that names every file of a state, so a state is adopted or abandoned as a whole."
+    },
+    diff: {
+      title: "_diff",
+      holds: "Each entity ID in either table, labelled insert, update, unchanged or delete.",
+      does: "FULL OUTER JOIN on entity ID. Only in current: insert. Only in state: delete. Same hash: unchanged. Otherwise: update. Refuses duplicate IDs and archiving more than max(1,000, 50%) of the entities. After a version change, every row is an update.",
+      why: "The cheap, columnar answer to what changed. It took about 2 s for 100 million rows in the benchmark."
+    },
+    plan: {
+      title: "plan of run N",
+      holds: "For every sink row, one Graph operation and its payload: the create, patch and archive request bodies as JSON, plus the changed hint.",
+      does: "Rust reads each row, resolves property values and data types, derives the entity UUID from namespace, type and source ID, and encodes with sorted keys.",
+      why: "Labs plans every row, changed or not, so the compare stage can build a complete projection. Unchanged rows cost JSON work and are then thrown away."
+    },
+    db: {
+      title: "candidate.duckdb",
+      holds: "The whole workspace after planning, with run N's hash tables and checkpoints. Source and step tables are dropped first.",
+      does: "Workspace::snapshot checkpoints the database and copies the file.",
+      why: "So the next run can start from these hashes."
+    },
+    snapnew: {
+      title: "snapshot N",
+      holds: "The whole file, uploaded under its sha256.",
+      does: "Named by state version N.",
+      why: "Becomes the next run's snapshot N-1, but only once N commits."
+    },
+    compare: {
+      title: "compare",
+      holds: "In: the plan (in memory) and every object of projection N-1 with its bytes. Out: projection N and the changed objects.",
+      does: "No hint: copy N-1's bytes. Hint: new bytes, sent if the digest differs. Only in N-1: archive (complete plan) or carry (partial). Archived: carry.",
+      why: "Keeps stored bytes equal to what the Graph got despite a new loadedAt, finds objects the plan doesn't mention, and produces a complete projection for restore and reconcile."
+    },
+    projprev: {
+      title: "projection N-1",
+      holds: "An index, pages of 256 objects, and one pack with every object's create, patch and archive JSON.",
+      does: "Loaded in full: every page and the whole pack.",
+      why: "The exact requests behind the current state, so restore and reconcile can resend them without running old pipelines."
+    },
+    svnew: {
+      title: "state version N",
+      holds: "Names snapshot N, projection N, the captures and the definition digest.",
+      does: "Written after the projection and before the effects.",
+      why: "A candidate: it becomes current at commit, or is abandoned when delivery fails."
+    },
+    projnew: {
+      title: "projection N",
+      holds: "A new index, new pages and a new pack with every object's bytes, unchanged ones included.",
+      does: "Written in full on every run.",
+      why: "Read by the next run's compare, by delivery for archive requests, and by restore and reconcile."
+    },
+    manifest: {
+      title: "work manifest",
+      holds: "The kind of work (apply run N to candidate state N), the effect index, the effect count and versions.",
+      does: "Written last. Recording it ends the publish step.",
+      why: "The durable description of the work. Delivery works only from it, and the run never plans again."
+    },
+    effects: {
+      title: "effect index",
+      holds: "Pages of 256 effects in Graph order: entity upserts, link upserts, link archives, entity archives. Upserts point to slices of projection N's pack.",
+      does: "Loaded one window at a time during delivery.",
+      why: "Lets delivery resume at a cursor without loading every effect."
+    },
+    commit: {
+      title: "commit",
+      holds: "The pointer to the current state version.",
+      does: "Moves to state version N once every effect is acknowledged.",
+      why: "Only now do snapshot N and projection N become the next run's starting point."
+    },
+    restore: {
+      title: "restore",
+      holds: "Its own work manifest and effects.",
+      does: "In labs: resends every object of projection N-1 and archives the objects only N has.",
+      why: "Puts the Graph back to the last committed state. For a million entities that is a million writes."
+    },
+    graph: {
+      title: "Graph API",
+      holds: "The entities and links themselves.",
+      does: "POST /entities/bulk with up to 128 creates. On conflict, the saved patch goes to PATCH /entities. An archive is a patch with archived: true.",
+      why: "The Graph skips a patch that changes no properties, property metadata, types, draft or archived state, or confidence."
+    }
+  };
+
+  const tip = document.getElementById("tip");
+  const flow = document.getElementById("flow");
+  let pinned = null;
+
+  const fill = (id) => {
+    const data = tips[id];
+    if (!data) return false;
+    tip.replaceChildren();
+    const heading = document.createElement("h4");
+    heading.textContent = data.title;
+    tip.append(heading);
+    for (const [label, text] of [["Holds", data.holds], ["What happens", data.does], ["Why", data.why]]) {
+      const paragraph = document.createElement("p");
+      const bold = document.createElement("b");
+      bold.textContent = label;
+      paragraph.append(bold, text);
+      tip.append(paragraph);
+    }
+    return true;
+  };
+
+  const place = (x, y) => {
+    tip.hidden = false;
+    const width = tip.offsetWidth;
+    const height = tip.offsetHeight;
+    const margin = 12;
+    let left = x + 16;
+    let top = y + 16;
+    if (left + width + margin > window.innerWidth) left = Math.max(margin, x - width - 16);
+    if (top + height + margin > window.innerHeight) top = Math.max(margin, y - height - 16);
+    tip.style.left = `${left}px`;
+    tip.style.top = `${top}px`;
+  };
+
+  const placeAt = (node) => {
+    const rect = node.getBoundingClientRect();
+    place(rect.right - 8, rect.top);
+  };
+
+  const hide = () => {
+    tip.hidden = true;
+    if (pinned) pinned.classList.remove("on");
+    pinned = null;
+  };
+
+  for (const node of flow.querySelectorAll(".node")) {
+    const id = node.dataset.id;
+    const data = tips[id];
+    if (data) node.setAttribute("aria-label", `${data.title}: ${data.does}`);
+    node.addEventListener("pointermove", (event) => {
+      if (event.pointerType !== "mouse" || pinned) return;
+      if (fill(id)) place(event.clientX, event.clientY);
+    });
+    node.addEventListener("pointerleave", (event) => {
+      if (event.pointerType === "mouse" && !pinned) tip.hidden = true;
+    });
+    node.addEventListener("click", (event) => {
+      event.stopPropagation();
+      if (pinned === node) { hide(); return; }
+      if (pinned) pinned.classList.remove("on");
+      pinned = node;
+      node.classList.add("on");
+      if (fill(id)) placeAt(node);
+    });
+    node.addEventListener("focus", () => { if (fill(id)) placeAt(node); });
+    node.addEventListener("blur", () => { if (!pinned) tip.hidden = true; });
+    node.addEventListener("keydown", (event) => { if (event.key === "Escape") { hide(); node.blur(); } });
+  }
+  document.addEventListener("click", hide);
+  document.addEventListener("scroll", hide, true);
+})();
+</script>
