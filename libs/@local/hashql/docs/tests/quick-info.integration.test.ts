@@ -29,6 +29,7 @@ const inspect = Effect.fnUntraced(function* (code: string) {
       pipe(
         ast.nameOf(name),
         Option.flatMap(({ quickInfo }) => quickInfo),
+        Option.orElse(() => ast.hoverOf(name)),
         Option.map((info) => [name, info] as const),
         Option.toArray,
       ),
@@ -66,7 +67,20 @@ run({ input: fixed });`);
       const names = yield* inspect(`unknownName;
 import { missing } from "missing-package";
 missing;`);
-      expect(names).toStrictEqual([]);
+      expect(names).toStrictEqual([["unknownName", "any"]]);
+    }),
+  );
+
+  it.effect(
+    "example_labels",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const names = yield* inspect(`type Labelled = [first: string];
+outer: for (;;) { break outer; }`);
+      expect(names).toStrictEqual([
+        ["Labelled", "type Labelled = [first: string]"],
+        ["first", "string"],
+      ]);
     }),
   );
 });
