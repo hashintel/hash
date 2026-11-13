@@ -53,6 +53,7 @@ Every dev server binds a port of its own, so any set of them can run at once:
 | 3000  | `@apps/hash-frontend`                                            |
 | 4321  | `@apps/brunch-agent` chat -- `strictPort`, paired with the panel |
 | 4322  | `@apps/petrinaut-docs`                                           |
+| 4323  | `@apps/durable-agents` successor server -- `start`               |
 | 4915  | `@apps/brunch-agent` panel -- `strictPort`                       |
 | 5001  | `@apps/hash-api`                                                 |
 | 5173  | `@apps/petrinaut-website`                                        |

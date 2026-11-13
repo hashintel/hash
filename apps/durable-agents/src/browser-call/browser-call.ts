@@ -11,12 +11,18 @@
  *   rerun after a restart finds the record and waits on the same task.
  * - `BrowserCall` creates a `Doorbell` child that sleeps until the call
  *   expires, and waits on it, holding no invocation.
- * - The host's `finishBrowserCall` commits the result, then rings the
- *   doorbell. Pi Durable 1.4.0 wakes a sleeping or waiting task early only by
- *   an abort, so ringing is `abortTask(doorbell)`; the doorbell's only
- *   meaning is "wake my owner".
- * - `BrowserCall` resumes, reads the record and ends with the result, which
+ * - The host's `finishBrowserCall` (or `failBrowserCall`) commits the outcome,
+ *   then rings the doorbell. Pi Durable 1.4.0 wakes a sleeping or waiting task
+ *   early only by an abort, so ringing is `abortTask(doorbell)`; the
+ *   doorbell's only meaning is "wake my owner".
+ * - `BrowserCall` resumes, reads the record and ends with the outcome, which
  *   the tool returns to the model.
+ *
+ * Claiming has two forms. `claimBrowserCall` is the original single-shot
+ * claim the proofs use. `claimBrowserCallAs` is the owner's claim rule: a
+ * claim names its claimant (one per tab) and the tab's editor binding, is
+ * idempotent per claimant, and moves to another claimant only until the
+ * holder calls `startBrowserCall`, immediately before it executes the call.
  *
  * The tool task itself holds an invocation while it waits: a built-in
  * `pi.tool` task cannot end its phase waiting. It is replay-safe so a restart
@@ -34,14 +40,32 @@ import {
   type Harness,
   type JsonObject,
   type TaskId,
+  type ToolExecutionApi,
+  type ToolRegistration,
+  type ToolTaskInput,
+  type Tx,
 } from "@earendil-works/pi-durable";
 import { obj, str } from "@earendil-works/pi-schema";
 
 import {
+  type BrowserCallClaim,
+  type BrowserCallFailureDisposition,
+  type BrowserContext,
+  type BrowserToolEnvelope,
   browserToolFacts,
   type CANONICAL_PETRINAUT_TOOL_NAMES,
+  canonicalContent,
   type ClientToolResult,
 } from "@hashintel/brunch-agent";
+
+import {
+  netFreshnessAtIssue,
+  staleNetViewRefusal,
+} from "../net-state/net-freshness";
+import { mayShowNet } from "../net-state/net-view";
+import { renderBrowserResult } from "../net-state/visible-net-view";
+
+import type { HostBinding } from "../agent/host-binding";
 
 /** Long enough that walking away is not a failure; the doorbell ends an unanswered call then. */
 export const callTtlMs = 24 * 60 * 60_000;
@@ -50,6 +74,35 @@ export const callTtlMs = 24 * 60 * 60_000;
 export const browserCallUnstartedError =
   "Browser call was not started; no document operation was invoked.";
 
+/** Copied from `apps/brunch-agent/src/shared/conversation/browser-call-rendezvous.ts`. */
+export const browserCallStaleError = staleNetViewRefusal;
+
+/**
+ * The output bound of a tool that may show the net (H10): the largest example
+ * net's read-back and definition exceed Pi's default 50 KiB. A result still
+ * cut is not a view, so the earlier view stays.
+ */
+export const netToolOutputLimits = { maxBytes: 256 * 1024 } as const;
+
+/**
+ * The output bound of a tool whose result is text rendered for the model, the
+ * HASH graph reads (HA-5): the net tools' 256 KiB, with the line limit raised
+ * to match, so a whole page of short lines is cut by bytes, not at Pi's
+ * default 2,000 lines. A safety net only: such a tool never shows the net,
+ * cut or not.
+ */
+export const textToolOutputLimits = {
+  maxBytes: netToolOutputLimits.maxBytes,
+  maxLines: netToolOutputLimits.maxBytes,
+} as const;
+
+/** The output bound a browser tool gets, by its facts; Pi's default for any other. */
+const outputLimitsOf = (toolName: string) => {
+  if (mayShowNet(toolName)) return netToolOutputLimits;
+  if (browserToolFacts(toolName).textResult) return textToolOutputLimits;
+  return undefined;
+};
+
 export type BrowserCallStatus =
   /** Issued; no browser has claimed it. */
   | "pending"
@@ -57,6 +110,8 @@ export type BrowserCallStatus =
   | "claimed"
   /** The browser's result is committed; the doorbell is rung. */
   | "finished"
+  /** The browser reported the call ended without a result; the doorbell is rung. */
+  | "failed"
   /** The task delivered the result to the tool. */
   | "settled"
   /** No result before `expiresAt`. */
@@ -75,9 +130,42 @@ export type BrowserCallRecord = {
   task: number;
   doorbell: number | null;
   capability: string | null;
+  /** Whether a browser has held the capability. */
   claimed: boolean;
   output: JsonValue;
   metadata: JsonValue;
+  /**
+   * The conversation's canonical editor binding when the call was issued
+   * (`BrowserBindingDoc`); `claimBrowserCallAs` requires a claim to match it.
+   * Absent on calls issued before the claim rule, `null` when unbound.
+   */
+  binding?: string | null;
+  /** Who holds the capability, under `claimBrowserCallAs`. */
+  claimant?: string;
+  /**
+   * Whether the holder said it is executing the call (`startBrowserCall`).
+   * Absent under the single-shot `claimBrowserCall`, whose claim counts as a start.
+   */
+  started?: boolean;
+  /**
+   * The document revision the model last saw, which the browser re-checks
+   * before running: net freshness records it on every document change.
+   */
+  expectedRevision?: string;
+  /**
+   * The `pi.assistant` entry whose response issued the call. Absent on calls
+   * issued before it was recorded, and on a nested call, which no entry holds.
+   */
+  issuedEntry?: number;
+  /**
+   * The call's index among `issuedEntry`'s tool calls. A waiting call's
+   * result reaches the model right after `issuedEntry`, at this index (Pi
+   * Durable orders a round's results by call), so the pair is both the
+   * call's issue position and its delivery position.
+   */
+  callIndex?: number;
+  /** Why a `failed` call ended without a result. */
+  failure?: BrowserCallFailureDisposition;
 };
 
 /** Every browser call of a conversation, by tool call ID: what a panel claims from. */
@@ -93,6 +181,32 @@ export const BrowserCallsDoc = defineDoc<{
   initial: () => ({ calls: {} }),
   checkpointWhen: () => false,
 });
+
+/**
+ * The editor binding a conversation's browser calls are issued to, as
+ * `canonicalContent` of Brunch's `BrowserContext["binding"]`. The server
+ * writes it when it creates the conversation (`bindBrowserDocument`).
+ */
+export const BrowserBindingDoc = defineDoc<{ binding: string | null }>({
+  kind: "brunch.browser-binding",
+  version: 1,
+  scope: "conversation",
+  history: "latest",
+  // A fork edits the same document.
+  fork: "current",
+  initial: () => ({ binding: null }),
+  checkpointWhen: () => false,
+});
+
+/** Bind `conversationId`'s browser calls to the editor `binding` names, in the caller's commit. */
+export const bindBrowserDocument = async (
+  tx: Tx,
+  conversationId: ConversationId,
+  binding: BrowserContext["binding"],
+) => {
+  const document = await tx.doc(BrowserBindingDoc, conversationId);
+  document.binding = canonicalContent(binding);
+};
 
 type DoorbellState = { phase: "sleep" } | { phase: "expire" };
 
@@ -125,17 +239,38 @@ const Doorbell = defineTask<{ until: number }, DoorbellState, "expired">({
 
 export type BrowserCallOutcome =
   | { status: "settled"; output: JsonValue; metadata: JsonValue }
-  | { status: "expired"; claimed: boolean };
+  | { status: "expired"; claimed: boolean }
+  | { status: "failed"; disposition: BrowserCallFailureDisposition };
 
 type BrowserCallState = { phase: "arm" } | { phase: "collect" };
 
+/** Whether a browser may have run the call: it started, or held a single-shot claim. */
+const mayHaveStarted = (record: BrowserCallRecord) =>
+  record.started ?? record.claimed;
+
 /** The model-facing error for a call that ended without a result, as Brunch words it. */
 export const unfinishedError = (record: BrowserCallRecord, cause: string) => {
-  if (!record.claimed) return browserCallUnstartedError;
+  if (!mayHaveStarted(record)) return browserCallUnstartedError;
   return browserToolFacts(record.toolName).effectUnknownOnFailure
     ? `Browser call ${cause}; an attempted document effect is unknown.`
     : `Browser call ${cause}; the document is unchanged.`;
 };
+
+/** The model-facing error for a call the browser failed, as Brunch's `outcomeError` words it. */
+const failureError = (
+  toolName: string,
+  disposition: BrowserCallFailureDisposition,
+) => {
+  if (disposition === "stale") return browserCallStaleError;
+  if (disposition === "unstarted") return browserCallUnstartedError;
+  return browserToolFacts(toolName).effectUnknownOnFailure
+    ? "The browser result failed; an attempted document effect is unknown."
+    : "The non-mutating browser call failed; the document is unchanged.";
+};
+
+/** Whether the browser's outcome is committed and the doorbell rung (or due). */
+const answered = (record: BrowserCallRecord) =>
+  record.status === "finished" || record.status === "failed";
 
 const BrowserCall = defineTask<
   { conversationId: ConversationId; toolCallId: string },
@@ -152,8 +287,8 @@ const BrowserCall = defineTask<
           await tx.doc(BrowserCallsDoc, task.input.conversationId)
         ).calls[task.input.toolCallId];
         if (record === undefined) throw new Error("Browser call not issued.");
-        // Claimed and finished before this phase ran: nothing to wait for.
-        if (record.status === "finished")
+        // Answered before this phase ran: nothing to wait for.
+        if (answered(record))
           return { status: "running", checkpoint: { phase: "collect" } };
         const doorbell = await tx.createTask(
           Doorbell,
@@ -189,6 +324,17 @@ const BrowserCall = defineTask<
             },
           };
         }
+        if (record.status === "failed")
+          return {
+            status: "terminal",
+            outcome: {
+              status: "completed",
+              result: {
+                status: "failed",
+                disposition: record.failure ?? "failed",
+              },
+            },
+          };
         record.status = "expired";
         return {
           status: "terminal",
@@ -211,7 +357,294 @@ const BrowserCall = defineTask<
     }, context),
 });
 
-/** A canonical Petrinaut net mutation, so its `documentRevision` is `"change"`. */
+/** The model-facing face of a browser tool: Pi's tool fields without `execute`. */
+export type BrowserToolDefinition<TParameters extends object> = {
+  readonly name: string;
+  readonly description: string;
+  /** JSON Schema of the tool's input, which the Harness validates the model's arguments against. */
+  readonly parameters: TParameters;
+};
+
+/** Where a model-issued call sits: its assistant entry and its index among that entry's tool calls. */
+const issuePosition = async (
+  tx: Tx,
+  taskId: TaskId,
+  callId: string,
+): Promise<{ issuedEntry: number; callIndex: number } | undefined> => {
+  const input = (await tx.task(taskId))?.input as ToolTaskInput | undefined;
+  if (input?.kind !== "model") return undefined;
+  const calls = ((await tx.entry(input.assistant))?.model ?? []).flatMap(
+    (message) =>
+      message.role === "assistant"
+        ? message.content.flatMap((content) =>
+            content.type === "toolCall" ? [content.id] : [],
+          )
+        : [],
+  );
+  const callIndex = calls.indexOf(callId);
+  return callIndex === -1
+    ? undefined
+    : { issuedEntry: input.assistant, callIndex };
+};
+
+/**
+ * Net freshness for a model-issued call: the view in the context that ends at
+ * the call's assistant entry. A nested call has no such entry.
+ */
+const freshnessAtIssue = async (
+  host: HostBinding,
+  api: Pick<
+    ToolExecutionApi,
+    "conversationId" | "taskId" | "callId" | "getTask"
+  >,
+  context: Context,
+  noViewRefusal: string | undefined,
+) => {
+  const input = (await api.getTask(api.taskId, context))?.input as
+    | ToolTaskInput
+    | undefined;
+  if (input?.kind !== "model")
+    throw new Error(
+      `Conversation history does not contain browser call ${api.callId}.`,
+    );
+  return netFreshnessAtIssue(
+    host,
+    api.conversationId,
+    input.assistant,
+    context,
+    noViewRefusal,
+  );
+};
+
+/**
+ * How a catalogue adapts the waiting tool to its own inputs and results. Each
+ * is optional; without them the model's arguments are issued as they are and
+ * the browser's output is what the model sees.
+ */
+export type BrowserToolAdapters<TInput> = {
+  /**
+   * Parses the model's arguments with the tool's own schema, before anything
+   * else; a throw is an error result whose text is its message, with nothing
+   * recorded. The parsed input is what is issued and recorded. Pi checks the
+   * arguments against the JSON Schema only, which can't carry every
+   * refinement, and the browser parses the issued input with the tool's own
+   * schema.
+   */
+  readonly parseInput?: (args: unknown) => TInput;
+  /** Why a parsed input is refused before it is issued, if it is; checked before net freshness. */
+  readonly refuse?: (input: TInput) => string | undefined;
+  /**
+   * What the model and the UI are shown of a settled result, in place of the
+   * browser's output; a throw (an output in an unknown shape) is an error
+   * result whose text is its message. The record keeps the browser's output.
+   */
+  readonly present?: (output: JsonValue, input: TInput) => JsonValue;
+  /**
+   * Appended to every error of a call the browser may have started: a
+   * failure with its effect unknown, an expiry after a start, and a result
+   * `present` could not read. Never to a refusal or a call that never started.
+   */
+  readonly mayHaveRunNote?: string;
+};
+
+export type WaitingBrowserToolOptions<TInput = JsonObject> =
+  BrowserToolAdapters<TInput> &
+    (
+      | {
+          /**
+           * A document change is refused without a current view of the net
+           * (`net-freshness.ts`), and otherwise issued against the revision of that
+           * view, read through `host` from the context the model had at the call.
+           */
+          readonly host: HostBinding;
+          /** The refusal for a change with no view; the website's `noNetViewRefusal` by default. */
+          readonly noViewRefusal?: string;
+        }
+      /**
+       * Only test scaffolding: the proofs and probes call `setNetTitle` alone,
+       * with no net read before it.
+       */
+      | { readonly checksNetView: false }
+    );
+
+const errorResult = (text: string) => ({
+  output: [{ type: "text" as const, text }],
+  isError: true,
+});
+
+const messageOf = (error: unknown) =>
+  error instanceof Error ? error.message : String(error);
+
+/**
+ * A tool the bound browser runs, the tool call waiting for the browser's
+ * result: the call is recorded `pending` in `BrowserCallsDoc` with the
+ * conversation's binding, a `BrowserCall` task waits for its outcome, and the
+ * browser's output becomes the tool's result. Its tasks are registered by
+ * `browserCallExtension`, which must be installed wherever it runs.
+ *
+ * Before the commit that would issue it, a call's input is parsed
+ * (`parseInput`), then checked (`refuse`), and a document change is checked
+ * for a current view of the net: refused at any of them, it records nothing
+ * and returns the refusal as an error result. Each decides the same on a
+ * rerun, and an issued call's record wins, so a rerun keeps its first
+ * decision.
+ *
+ * A settled result reaches the model as `present` shows it: a text-result
+ * tool's string as itself, anything else rendered (`renderBrowserResult`), a
+ * read with its `netRevision`, a change with `netAfterChanges` and
+ * `netRevision`. A tool that may show the net gets `netToolOutputLimits`, a
+ * text-result tool `textToolOutputLimits`.
+ */
+export const defineWaitingBrowserTool = <
+  TParameters extends object,
+  TInput = JsonObject,
+>(
+  definition: BrowserToolDefinition<TParameters>,
+  options: WaitingBrowserToolOptions<TInput>,
+): ToolRegistration<TParameters> => {
+  const facts = browserToolFacts(definition.name);
+  const outputLimits = outputLimitsOf(definition.name);
+  /** An error of a call the browser may have started, with the note when there is one. */
+  const mayHaveRunError = (text: string) =>
+    errorResult(
+      options.mayHaveRunNote === undefined
+        ? text
+        : `${text} ${options.mayHaveRunNote}`,
+    );
+  return defineTool<TParameters>({
+    name: definition.name,
+    description: definition.description,
+    parameters: definition.parameters,
+    replay: "safe",
+    ...(outputLimits === undefined ? {} : { outputLimits }),
+    execute: async (args, api, context) => {
+      const { conversationId, callId } = api;
+      let input: TInput;
+      try {
+        input =
+          options.parseInput === undefined
+            ? (args as TInput)
+            : options.parseInput(args);
+      } catch (error) {
+        return errorResult(messageOf(error));
+      }
+      const refusal = options.refuse?.(input);
+      if (refusal !== undefined) return errorResult(refusal);
+      const freshness =
+        "host" in options &&
+        facts.requiresFreshView &&
+        (await api.snapshot(BrowserCallsDoc, conversationId, context))?.calls[
+          callId
+        ] === undefined
+          ? await freshnessAtIssue(
+              options.host,
+              api,
+              context,
+              options.noViewRefusal,
+            )
+          : undefined;
+      const issued = await api.commit(
+        async (
+          tx,
+        ): Promise<
+          | { readonly task: TaskId<BrowserCallOutcome> }
+          | { readonly refusal: string }
+        > => {
+          const { calls } = await tx.doc(BrowserCallsDoc, conversationId);
+          const existing = calls[callId];
+          if (existing !== undefined)
+            return { task: existing.task as TaskId<BrowserCallOutcome> };
+          if (freshness !== undefined && "refusal" in freshness)
+            return { refusal: freshness.refusal };
+          const expectedRevision = freshness?.revision;
+          const position = await issuePosition(tx, api.taskId, callId);
+          const { binding } = await tx.doc(BrowserBindingDoc, conversationId);
+          const task = await tx.createTask(
+            BrowserCall,
+            { conversationId, toolCallId: callId },
+            { ownership: { kind: "task", taskId: api.taskId } },
+          );
+          const issuedAt = api.now();
+          calls[callId] = {
+            toolCallId: callId,
+            toolName: definition.name,
+            // The parsed input is JSON: it parses the model's JSON arguments.
+            input: copyJson(input as JsonObject) as JsonObject,
+            status: "pending",
+            issuedAt,
+            expiresAt: issuedAt + callTtlMs,
+            task,
+            doorbell: null,
+            capability: null,
+            claimed: false,
+            output: null,
+            metadata: null,
+            binding,
+            ...position,
+            ...(expectedRevision === undefined ? {} : { expectedRevision }),
+          };
+          return { task };
+        },
+        context,
+      );
+      if ("refusal" in issued) return errorResult(issued.refusal);
+      const { state } = await api.waitForTask(issued.task, context);
+      const { outcome } = state;
+      if (outcome.status !== "completed")
+        throw new Error(`Browser call task ended ${outcome.status}.`);
+      const { result } = outcome;
+      if (result.status === "failed") {
+        const text = failureError(definition.name, result.disposition);
+        return result.disposition === "failed"
+          ? mayHaveRunError(text)
+          : errorResult(text);
+      }
+      if (result.status === "expired") {
+        const record = (await api.snapshot(
+          BrowserCallsDoc,
+          conversationId,
+          context,
+        ))!.calls[callId]!;
+        const text = unfinishedError(record, "expired");
+        return mayHaveStarted(record)
+          ? mayHaveRunError(text)
+          : errorResult(text);
+      }
+      let presented: JsonValue;
+      try {
+        presented =
+          options.present === undefined
+            ? result.output
+            : options.present(result.output, input);
+      } catch (error) {
+        return mayHaveRunError(messageOf(error));
+      }
+      // The model sees the presented output: a text result's string as itself, anything else rendered with what it shows of the net. The UI's details carry Brunch's envelope with the presented output and the metadata.
+      return {
+        output: [
+          {
+            type: "text",
+            text:
+              facts.textResult && typeof presented === "string"
+                ? presented
+                : renderBrowserResult(
+                    definition.name,
+                    presented,
+                    result.metadata,
+                  ),
+          },
+        ],
+        details: {
+          brunchBrowserResult: true,
+          output: presented,
+          ...(result.metadata === null ? {} : { metadata: result.metadata }),
+        } satisfies BrowserToolEnvelope,
+      };
+    },
+  });
+};
+
+/** A canonical Petrinaut net mutation, so `browserToolFacts` counts it as a change. */
 export const browserToolName =
   "setNetTitle" satisfies (typeof CANONICAL_PETRINAUT_TOOL_NAMES)[number];
 
@@ -230,70 +663,33 @@ export const setNetTitleDefinition = {
   }),
 };
 
-/** `setNetTitle` as the browser runs it, the tool call waiting for the browser's result. */
-export const setNetTitleTool = defineTool({
-  ...setNetTitleDefinition,
-  replay: "safe",
-  execute: async (args, api, context) => {
-    const { conversationId, callId } = api;
-    const taskId = await api.commit(async (tx) => {
-      const { calls } = await tx.doc(BrowserCallsDoc, conversationId);
-      const issued = calls[callId];
-      if (issued !== undefined)
-        return issued.task as TaskId<BrowserCallOutcome>;
-      const task = await tx.createTask(
-        BrowserCall,
-        { conversationId, toolCallId: callId },
-        { ownership: { kind: "task", taskId: api.taskId } },
-      );
-      const issuedAt = api.now();
-      calls[callId] = {
-        toolCallId: callId,
-        toolName: browserToolName,
-        input: args,
-        status: "pending",
-        issuedAt,
-        expiresAt: issuedAt + callTtlMs,
-        task,
-        doorbell: null,
-        capability: null,
-        claimed: false,
-        output: null,
-        metadata: null,
-      };
-      return task;
-    }, context);
-    const { state } = await api.waitForTask(taskId, context);
-    const { outcome } = state;
-    if (outcome.status !== "completed")
-      throw new Error(`Browser call task ended ${outcome.status}.`);
-    if (outcome.result.status === "expired") {
-      const record = (await api.snapshot(
-        BrowserCallsDoc,
-        conversationId,
-        context,
-      ))!.calls[callId]!;
-      return {
-        output: [{ type: "text", text: unfinishedError(record, "expired") }],
-        isError: true,
-      };
-    }
-    // The model sees the browser's output; its metadata stays on the record.
-    return {
-      output: [{ type: "text", text: JSON.stringify(outcome.result.output) }],
-    };
-  },
+/** `setNetTitle` as the browser runs it, the tool call waiting for the browser's result; scaffolding, so it skips net freshness. */
+export const setNetTitleTool = defineWaitingBrowserTool(setNetTitleDefinition, {
+  checksNetView: false,
 });
 
+/** The browser-call tasks, and `setNetTitle` for the proofs and probes that call it alone. */
 export const browserCallExtension = defineExtension({
   name: "brunch-browser-call",
   tools: [setNetTitleTool],
   tasks: [BrowserCall, Doorbell],
 });
 
+/** The issued record, copied out of a draft as the claim the browser receives. */
+const claimOf = (record: BrowserCallRecord, capability: string) => ({
+  capability,
+  toolName: record.toolName,
+  input: copyJson(record.input),
+  binding: record.binding ?? "",
+  ...(record.expectedRevision === undefined
+    ? {}
+    : { expectedRevision: record.expectedRevision }),
+});
+
 /**
  * Claim an issued, unclaimed call: the browser half of Brunch's
  * `claimBrowserCall`. Returns the one-use capability the result must carry.
+ * Single-shot: a second claim gets nothing, and the claim counts as a start.
  */
 export const claimBrowserCall = (
   harness: Harness,
@@ -317,22 +713,144 @@ export const claimBrowserCall = (
     };
   }, context);
 
+/** Who claims a call: one ID per browser tab, and the tab's canonical editor binding. */
+export type BrowserCallClaimant = {
+  readonly claimant: string;
+  readonly binding: string;
+};
+
+export type BrowserCallClaimOutcome =
+  /** The claimant holds the capability; a retry by it returns the same one. */
+  | { readonly status: "claimed"; readonly claim: BrowserCallClaim }
+  /** No such call (yet): the stream may have delivered it before the issue commit was visible. */
+  | { readonly status: "not-issued" }
+  /** The claim's binding is not the one the call was issued to, or the conversation is unbound. */
+  | { readonly status: "wrong-binding" }
+  /** Another claimant started it, or it was claimed single-shot: never re-claimable. */
+  | { readonly status: "started" }
+  /** It has an outcome, expired or was stopped. */
+  | { readonly status: "ended" };
+
+/**
+ * Claim a call under the owner's claim rule: the claim names its claimant
+ * and proves the tab's editor binding. A retried claim by the same claimant
+ * returns the same capability, so a lost response does not strand the call.
+ * Another claimant takes the call, with a fresh capability, only while it
+ * has not started.
+ */
+export const claimBrowserCallAs = (
+  harness: Harness,
+  conversationId: ConversationId,
+  toolCallId: string,
+  { claimant, binding }: BrowserCallClaimant,
+  context: Context,
+) =>
+  harness.commit(async (tx): Promise<BrowserCallClaimOutcome> => {
+    const record = (await tx.doc(BrowserCallsDoc, conversationId)).calls[
+      toolCallId
+    ];
+    if (record === undefined) return { status: "not-issued" };
+    if (record.binding === undefined || record.binding === null)
+      return { status: "wrong-binding" };
+    if (record.binding !== binding) return { status: "wrong-binding" };
+    if (record.status !== "pending" && record.status !== "claimed")
+      return { status: "ended" };
+    if (record.status === "claimed") {
+      // A single-shot claim (`started` absent) has no start step: it counts as started.
+      if (record.started !== false) return { status: "started" };
+      if (record.claimant === claimant && record.capability !== null)
+        return { status: "claimed", claim: claimOf(record, record.capability) };
+    }
+    record.status = "claimed";
+    record.claimed = true;
+    record.started = false;
+    record.claimant = claimant;
+    record.capability = randomBytes(32).toString("base64url");
+    return { status: "claimed", claim: claimOf(record, record.capability) };
+  }, context);
+
+/** What proves a request comes from the claim's holder: Brunch's lease body. */
+export type BrowserCallProof = {
+  readonly capability: string;
+  readonly binding: string;
+};
+
+/** The claimed call `proof` holds, if it holds one. */
+const heldCall = (
+  record: BrowserCallRecord | undefined,
+  proof: BrowserCallProof,
+): record is BrowserCallRecord =>
+  record?.status === "claimed" &&
+  record.capability === proof.capability &&
+  (record.binding ?? undefined) === proof.binding;
+
+/**
+ * The holder says it is about to execute the call. Idempotent; after it the
+ * call is never re-claimable. Refused unless `proof` holds the claim.
+ */
+export const startBrowserCall = (
+  harness: Harness,
+  conversationId: ConversationId,
+  toolCallId: string,
+  proof: BrowserCallProof,
+  context: Context,
+) =>
+  harness.commit(async (tx): Promise<"started" | "refused"> => {
+    const record = (await tx.doc(BrowserCallsDoc, conversationId)).calls[
+      toolCallId
+    ];
+    if (!heldCall(record, proof)) return "refused";
+    record.started = true;
+    return "started";
+  }, context);
+
+/**
+ * The holder is still working on the call. A call's expiry is the doorbell's
+ * (`callTtlMs`), not a lease, so this only confirms the claim still holds.
+ */
+export const renewBrowserCall = async (
+  harness: Harness,
+  conversationId: ConversationId,
+  toolCallId: string,
+  proof: BrowserCallProof,
+  context: Context,
+) =>
+  heldCall(
+    (await harness.snapshot(BrowserCallsDoc, conversationId, context))?.calls[
+      toolCallId
+    ],
+    proof,
+  );
+
 /** A browser's result for a call it claimed, as Brunch's panel posts it. */
 export type BrowserCallResult = ClientToolResult & {
   readonly conversationId: ConversationId;
   readonly capability: string;
   readonly canonicalInput: JsonObject;
+  /** The claim's binding; checked when given. */
+  readonly binding?: string;
 };
 
 /** Whether `result` carries the capability, tool and input of the claim on `record`. */
 export const carriesClaim = (
   record: BrowserCallRecord | undefined,
-  result: BrowserCallResult,
+  result: Omit<BrowserCallResult, "output">,
 ): record is BrowserCallRecord =>
   record !== undefined &&
   record.capability === result.capability &&
   record.toolName === result.toolName &&
+  (result.binding === undefined ||
+    (record.binding ?? undefined) === result.binding) &&
   JSON.stringify(record.input) === JSON.stringify(result.canonicalInput);
+
+/** Ring a call's doorbell, if `arm` has created one; before then `arm` finds the call answered. */
+const ring = async (
+  harness: Harness,
+  doorbell: number | null,
+  context: Context,
+) => {
+  if (doorbell !== null) await harness.abortTask(doorbell as TaskId, context);
+};
 
 /**
  * Commit a claimed call's result and wake its task: Brunch's
@@ -357,7 +875,42 @@ export const finishBrowserCall = async (
     return record.status === "finished" ? record.doorbell : undefined;
   }, context);
   if (doorbell === undefined) return "not-issued";
-  // Before `arm` ran there is no doorbell yet, and `arm` finds the call finished.
-  if (doorbell !== null) await harness.abortTask(doorbell as TaskId, context);
+  await ring(harness, doorbell, context);
   return "settled";
+};
+
+/** A browser's report that a claimed call ended without a result, as Brunch's panel posts it. */
+export type BrowserCallFailure = Omit<
+  BrowserCallResult,
+  "output" | "metadata"
+> & {
+  readonly disposition: BrowserCallFailureDisposition;
+};
+
+/**
+ * Commit that a claimed call ended without a result and wake its task:
+ * Brunch's `failBrowserCall`. A started call cannot be reported unstarted or
+ * stale; it fails with its effect unknown. A retry rings again.
+ */
+export const failBrowserCall = async (
+  harness: Harness,
+  failure: BrowserCallFailure,
+  context: Context,
+): Promise<"failed" | "not-issued"> => {
+  const doorbell = await harness.commit(async (tx) => {
+    const record = (await tx.doc(BrowserCallsDoc, failure.conversationId))
+      .calls[failure.toolCallId];
+    if (!carriesClaim(record, failure)) return undefined;
+    if (record.status === "claimed") {
+      record.status = "failed";
+      record.failure =
+        record.started === true && failure.disposition !== "failed"
+          ? "failed"
+          : failure.disposition;
+    }
+    return record.status === "failed" ? record.doorbell : undefined;
+  }, context);
+  if (doorbell === undefined) return "not-issued";
+  await ring(harness, doorbell, context);
+  return "failed";
 };
