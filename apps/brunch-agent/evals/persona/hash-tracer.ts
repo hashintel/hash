@@ -15,9 +15,7 @@ import { fileURLToPath } from "node:url";
 import { chromium } from "@playwright/test";
 
 import { brunchEnv } from "../../src/env.ts";
-import { submitPersonaBrowserTurn } from "../petrinaut/persona/browser-turn.ts";
-import { personaEnvironment } from "../petrinaut/persona/launch.ts";
-import { resolvePersonaRoleSettings } from "../petrinaut/persona/launch/role-settings.ts";
+import { submitPersonaBrowserTurn } from "./browser-turn.ts";
 import {
   checkHashStack,
   createHashProcess,
@@ -26,6 +24,8 @@ import {
   openHashProcess,
   signInToHash,
 } from "./hosts/hash.ts";
+import { personaEnvironment } from "./launch.ts";
+import { resolvePersonaRoleSettings } from "./launch/role-settings.ts";
 
 const repoRoot = fileURLToPath(new URL("../../../../", import.meta.url));
 const [

@@ -22,12 +22,12 @@ import { loadEnv } from "vite";
 
 import { parseSDCPNFile, toPetrinautId } from "@hashintel/petrinaut-core";
 
-import { brunchEnv } from "../../../src/env.ts";
+import { brunchEnv } from "../../src/env.ts";
 import {
   DEFAULT_CHAT_MODEL,
   DEFAULT_CHAT_THINKING,
-} from "../../../src/shared/chat-model.ts";
-import { writeRunPacket } from "../run-packet.ts";
+} from "../../src/shared/chat-model.ts";
+import { writeRunPacket } from "../petrinaut/run-packet.ts";
 import { openPersonaBrowserBridge } from "./browser-bridge.ts";
 import {
   PersonaBrowserTurnError,
@@ -81,7 +81,7 @@ import type { AgentSendResult, FlueClient } from "@flue/sdk";
 
 const execute = promisify(execFile);
 const report = (text: string) => process.stdout.write(`${text}\n`);
-const appRoot = fileURLToPath(new URL("../../../", import.meta.url));
+const appRoot = fileURLToPath(new URL("../../", import.meta.url));
 const repoRoot = resolve(appRoot, "../..");
 const casesRoot = join(repoRoot, "apps/brunch-agent/evals/petrinaut/cases");
 
@@ -914,7 +914,7 @@ if (
       `Agent options:\n  --agent ${personaAgentPresets.join("|")}   Start that agent with the persona brief.\n  --agent-command '<shell command with {prompt}>'   Start any other agent; {prompt} becomes the quoted launch prompt.\n  --persona-model <model>   Passed to the --agent preset's own model flag.\n  --persona-thinking <level>   Passed to pi's --thinking (only with --agent pi).\nThe agent runs in a Herdr pane when HERDR_ENV=1, otherwise in this terminal. Without an agent option the launcher prints the launch prompt for you to give any agent. The agent talks to Brunch through <run>/bin/persona (say, transcript, state, end, rpc).`,
     );
     report(
-      `Resume the Brunch conversation: yarn brunch:persona --resume <run-directory> [agent options] [--skip-recording-pause]\nReuses the original profile and database, and starts a fresh persona agent session with a resume notice (the original agent and model unless agent options are given); the earlier agent session is not resumed. Fresh-run options are rejected; --objective is neither retained nor reapplied. Returns to the panel port in run.json and takes a free chat port unless ${brunchEnv.panelPort} or ${brunchEnv.chatPort} is set. Pauses before backend recovery. Old accounting ledgers are preserved but not consulted.\nOperator guide: apps/brunch-agent/evals/petrinaut/persona/README.md`,
+      `Resume the Brunch conversation: yarn brunch:persona --resume <run-directory> [agent options] [--skip-recording-pause]\nReuses the original profile and database, and starts a fresh persona agent session with a resume notice (the original agent and model unless agent options are given); the earlier agent session is not resumed. Fresh-run options are rejected; --objective is neither retained nor reapplied. Returns to the panel port in run.json and takes a free chat port unless ${brunchEnv.panelPort} or ${brunchEnv.chatPort} is set. Pauses before backend recovery. Old accounting ledgers are preserved but not consulted.\nOperator guide: apps/brunch-agent/evals/persona/README.md`,
     );
   } else if (values["list-cases"]) {
     const cases = await listPersonaCases();

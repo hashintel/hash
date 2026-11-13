@@ -32,7 +32,7 @@ The launcher takes free ports unless `BRUNCH_CHAT_PORT` and `BRUNCH_PANEL_PORT` 
 
 Live-provider runs incur cost and require an explicit model and spend authorization. Synthetic tests do not. Keep credentials, private situation packs, browser profiles, and run output out of tracked artifacts.
 
-The detailed operator guide is [`persona/README.md`](./persona/README.md).
+The detailed operator guide is [`../persona/README.md`](../persona/README.md).
 
 ## One-turn probe
 

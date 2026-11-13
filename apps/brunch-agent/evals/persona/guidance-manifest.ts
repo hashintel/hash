@@ -3,7 +3,7 @@ import { readFile, readdir } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const repoRoot = fileURLToPath(new URL("../../../../../", import.meta.url));
+const repoRoot = fileURLToPath(new URL("../../../../", import.meta.url));
 const agent = "apps/brunch-agent/src/agents/petrinaut";
 const library = "libs/@hashintel/brunch-agent";
 const filesWithin = async (directory: string): Promise<string[]> => {

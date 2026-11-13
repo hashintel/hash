@@ -12,7 +12,7 @@ import { toPetrinautId, type SDCPN } from "@hashintel/petrinaut-core";
 import {
   submitPersonaBrowserTurn,
   type PersonaAllowedEdit,
-} from "../../evals/petrinaut/persona/browser-turn.ts";
+} from "../../evals/persona/browser-turn.ts";
 import {
   isAppliedChange,
   netCalls,

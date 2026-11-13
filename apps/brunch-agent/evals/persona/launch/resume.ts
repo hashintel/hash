@@ -10,7 +10,7 @@ import {
   sdcpnInitialDataSchema,
 } from "@hashintel/brunch-agent";
 
-import { flueConversationId } from "../../../../src/shared/conversation/identity.ts";
+import { flueConversationId } from "../../../src/shared/conversation/identity.ts";
 import {
   personaConversationClient,
   type PersonaBrowserSession,
