@@ -17,6 +17,7 @@ const graphOf = (
     problemsByStepId: new Map(),
     forEachLayouts,
     collapsedStepIds,
+    getItemName: () => "item",
   });
 
 const linesOf = (graph: ReturnType<typeof graphOf>) =>

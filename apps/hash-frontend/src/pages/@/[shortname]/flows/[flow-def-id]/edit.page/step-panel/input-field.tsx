@@ -13,6 +13,7 @@ import {
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { getForEachScope, useItemNames } from "../shared/item-name";
 import { getNameLabel } from "../shared/name-label";
 import {
   getKindIcon,
@@ -280,6 +281,7 @@ export const InputField = ({
 }) => {
   /* Set from picking Type a value until the field is left with nothing typed. */
   const [typing, setTyping] = useState(false);
+  const getItemName = useItemNames(flowDefinition);
 
   const label = getNameLabel(input.name);
   const target = getInputTarget({
@@ -359,7 +361,14 @@ export const InputField = ({
   const { flowInputs, earlierSteps } = readOnly
     ? { flowInputs: [], earlierSteps: [] }
     : getSourceOptions({ flowDefinition, stepId, target });
-  const pickedLabel = source && getSourceLabel(flowDefinition, source);
+  const forEachStepId = getForEachScope(flowDefinition.steps, stepId)?.at(-1);
+  const pickedLabel =
+    source &&
+    getSourceLabel(
+      flowDefinition,
+      source,
+      forEachStepId ? getItemName(forEachStepId) : "item",
+    );
   const newFlowInput = getNewFlowInput({
     flowDefinition,
     inputName: input.name,

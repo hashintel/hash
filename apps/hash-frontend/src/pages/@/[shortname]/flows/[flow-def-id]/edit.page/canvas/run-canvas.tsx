@@ -14,6 +14,7 @@ import "@xyflow/react/dist/style.css";
 
 import { css, cx } from "@hashintel/ds-helpers/css";
 
+import { useItemNames } from "../shared/item-name";
 import { notReachedMark, startMark } from "../shared/step-states";
 import { CanvasActionsContext } from "./canvas-actions";
 import { CanvasToolbar } from "./canvas-toolbar";
@@ -149,6 +150,7 @@ const FlowRunCanvas = ({
   useStepFocus(focusRequest, coveredRight);
   useSelectedStepInView(selectedStepIds, coveredRight);
 
+  const getItemName = useItemNames(flowDefinition);
   const graph = useMemo(() => {
     if (!layout) {
       return { nodes: [], edges: [] };
@@ -168,8 +170,9 @@ const FlowRunCanvas = ({
       problemsByStepId: new Map(),
       forEachLayouts: layout.forEachLayouts,
       collapsedStepIds,
+      getItemName,
     });
-  }, [flowDefinition, layout, collapsedStepIds]);
+  }, [flowDefinition, layout, collapsedStepIds, getItemName]);
 
   const featuredStepIds = useMemo(
     () => new Set(flowDefinition.outputs.map(({ stepId }) => stepId)),
