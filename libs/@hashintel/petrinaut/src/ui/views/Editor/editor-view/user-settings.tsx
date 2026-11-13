@@ -31,7 +31,13 @@ export const UserSettings = ({
     id: "petrinaut.settings.open",
     label: "Open user settings",
     category: "Editor",
-    keywords: ["preferences", "viewport", "animations", "experimental"],
+    keywords: [
+      "preferences",
+      "viewport",
+      "animations",
+      "theme",
+      "experimental",
+    ],
     shortcut: "mod+,",
     run: openSettings,
   });
