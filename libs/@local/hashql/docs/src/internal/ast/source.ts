@@ -16,10 +16,13 @@ import {
   isTypeQueryNode,
   isTypeReferenceNode,
   isVariableDeclaration,
+  isVariableStatement,
 } from "typescript/ast";
+import { getNameOfDeclaration } from "typescript/ast/utils";
 
 import type {
   ClassDeclaration,
+  Declaration,
   EnumDeclaration,
   ExpressionWithTypeArguments,
   FunctionDeclaration,
@@ -30,6 +33,7 @@ import type {
   ModuleDeclaration,
   Node,
   PropertyName,
+  SourceFile,
   TypeAliasDeclaration,
   TypeQueryNode,
   TypeReferenceNode,
@@ -90,6 +94,75 @@ export const strayModuleComments = (node: Node): readonly JSDoc[] => {
     modules,
     (comment) => !Option.exists(selected, (own) => own === comment),
   );
+};
+
+/** The node inside `node` whose text, with the space before it, holds `position`, or `node` where none of its children does. */
+const deepestAt = (node: Node, position: number): Node => {
+  const child = Array.findFirst(
+    Array.fromIterable(node.childrenIter()),
+    ({ pos, end }) => pos <= position && position < end,
+  );
+
+  return Option.match(child, {
+    onNone: () => node,
+    onSome: (inner) => deepestAt(inner, position),
+  });
+};
+
+/**
+ * The node whose comment holds `position` in `file`, as `commentOf` reads comments: a variable for a comment on its statement, and the file for its module comment. None where no comment holds the position.
+ *
+ * A comment stands in the space before its node, which is the outermost node that starts there.
+ */
+export const documentedAt: {
+  (position: number): (file: SourceFile) => Option.Option<Node>;
+  (file: SourceFile, position: number): Option.Option<Node>;
+} = Function.dual(
+  2,
+  (file: SourceFile, position: number): Option.Option<Node> => {
+    let host = deepestAt(file, position);
+    while (host.parent !== file && host.parent.pos === host.pos) {
+      host = host.parent;
+    }
+
+    const comment = Array.findFirst(
+      host.jsDoc ?? [],
+      (candidate): candidate is JSDoc =>
+        isJSDoc(candidate) &&
+        candidate.pos <= position &&
+        position < candidate.end,
+    );
+
+    return Option.map(comment, (found): Node => {
+      if (Option.exists(commentOf(file), (own) => own === found)) {
+        return file;
+      }
+
+      if (isVariableStatement(host)) {
+        return host.declarationList.declarations[0] ?? host;
+      }
+
+      return host;
+    });
+  },
+);
+
+/** The names its file declares `node` under, outermost first: those of the declarations around it, then its own. A node without a name, such as a call signature, has those around it alone. */
+export const declaredNames = (node: Node): readonly string[] => {
+  const names: string[] = [];
+  let current = node;
+  while (!isSourceFile(current)) {
+    // SAFETY: the compiler reads the name off any node that has one, and types its argument as a declaration.
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Only a declaration around a comment's node has a name.
+    const name = getNameOfDeclaration(current as Declaration);
+    if (name !== undefined) {
+      names.unshift(name.getText());
+    }
+
+    current = current.parent;
+  }
+
+  return names;
 };
 
 /** A member's name as its declaration spells it, without the quotes of a string-literal name. A computed name reads as written. */

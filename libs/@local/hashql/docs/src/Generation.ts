@@ -94,6 +94,7 @@ export const fromDirectory = Effect.fnUntraced(function* (options: Options) {
 
     return Struct.assign(pages, { catalogue });
   }).pipe(
+    Location.locating,
     Effect.scoped,
     Effect.provideService(
       DocumentationParser.DocumentationParser,

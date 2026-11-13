@@ -172,6 +172,7 @@ const build = Effect.fnUntraced(
 
       return { document, pages, folders: written.folders };
     }).pipe(
+      Location.locating,
       Effect.scoped,
       Effect.provideService(Location.Locations, locations(path)),
       Effect.provideServiceEffect(
