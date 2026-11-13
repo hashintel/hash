@@ -316,21 +316,6 @@ type SourceGroup = {
   }[];
 };
 
-const urlFlag = (name: string) =>
-  new URLSearchParams(globalThis.location.search).get(name);
-
-/**
- * `?sourcegroups=old`: "This item" and "Flow inputs" as groups of their own, as before X was built in full (ledger
- * 1 Nov, Figma 770:33030). URL only, never remembered.
- */
-const oldSourceGroups = urlFlag("sourcegroups") === "old";
-
-/** `?showmore=old`: every row of every group, with no "Show more" (ledger 2 Nov: first 3–4, then Show more). */
-const oldShowMore = urlFlag("showmore") === "old";
-
-/** `?lookuphint=old`: the Find entities row's hover text from before the real-names rule ("Adds a Find entities…"). */
-const oldLookupHint = urlFlag("lookuphint") === "old";
-
 /** How many rows a group shows before its "Show more" row (ledger 2 Nov call: "first 3–4 + Show more + search"). */
 const GROUP_ROWS = 4;
 
@@ -700,15 +685,11 @@ export const SourceMenu = ({
   // X (Figma 770:33030, ledger 2 Nov "Menu rows"): flow inputs are earlier-step rows with "Start · Flow inputs" under
   // them, first, as Start comes first; the current item's rows are one line, in the group named after the item.
   const flowInputs = optionItems("Flow inputs").map((row) =>
-    oldSourceGroups ? row : { ...row, description: "Start · Flow inputs" },
+    ({ ...row, description: "Start · Flow inputs" }),
   );
-  const earlier = oldSourceGroups
-    ? optionItems("Earlier steps")
-    : [...flowInputs, ...optionItems("Earlier steps")];
+  const earlier = [...flowInputs, ...optionItems("Earlier steps")];
   const thisItem = optionItems("This item");
-  const itemRows = oldSourceGroups
-    ? propertyItems
-    : [
+  const itemRows = [
         ...thisItem.map((row) => ({
           ...row,
           description: undefined,
@@ -787,8 +768,7 @@ export const SourceMenu = ({
             },
           ]
         : fromSteps &&
-            !searching &&
-            (!oldSourceGroups || flowInputs.length === 0)
+            !searching
           ? [
               {
                 id: "Earlier steps",
@@ -806,12 +786,6 @@ export const SourceMenu = ({
               },
             ]
           : []),
-    ...(oldSourceGroups && thisItem.length > 0
-      ? [{ id: "This item", label: "This item", items: thisItem }]
-      : []),
-    ...(oldSourceGroups && fromSteps && !listsOnly && flowInputs.length > 0
-      ? [{ id: "Flow inputs", label: "Flow inputs", items: flowInputs }]
-      : []),
     // A search that finds nothing says so; with no search there is always the Start action above.
     ...(nothingFits && (searching || !fromSteps)
       ? [
@@ -842,7 +816,7 @@ export const SourceMenu = ({
                 suffix: <Icon name="chevronRight" size="xs" />,
                 // Real names and › → · only (outputs playground, "Decided"): the new step, then the step it feeds.
                 hint:
-                  oldLookupHint || !found
+                  !found
                     ? "Adds a Find entities step before this one"
                     : `Find entities → ${stepLabel(found.step)}`,
                 onPick: lookUp,
@@ -884,8 +858,7 @@ export const SourceMenu = ({
     const pickedLate = group.items.some(
       (item, index) => item.selected && index >= GROUP_ROWS,
     );
-    return oldShowMore ||
-      searching ||
+    return searching ||
       listsOnly ||
       pickedLate ||
       group.items.length <= GROUP_ROWS ||

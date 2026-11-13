@@ -54,10 +54,6 @@ import {
 import { type EditorDocument, findStep, stepLabel } from "./document";
 import { getCatalogEntry } from "./catalog";
 
-/** `?brokenrun=old`: Run starts even when the flow has something to fix (before missing-broken-run c, 13 Nov). */
-const brokenRunOld =
-  new URLSearchParams(globalThis.location.search).get("brokenrun") === "old";
-
 const rootStyle = css({
   position: "relative",
   display: "flex",
@@ -624,8 +620,8 @@ export const Editor = ({
                     in the flow's Triggers panel (the 14 Oct rule was "Run only when a manual start is allowed").
                   */}
                         {/* missing-broken-run c (13 Nov): with something to fix, Run opens the list of it; a pick
-                            selects the step. `?brokenrun=old` lets Run start anyway. */}
-                        {!brokenRunOld && hasManualStart && toFix.length > 0 ? (
+                            selects the step. */}
+                        {hasManualStart && toFix.length > 0 ? (
                           <Menu
                             position="bottom-end"
                             className={css({ minWidth: "[280px]" })}

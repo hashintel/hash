@@ -516,13 +516,6 @@ const toEdges = (
   return [...wires, ...pills];
 };
 
-/**
- * A step selected in a run is shown by fading everything else (Spotlight; inbox run-selected-state, 12 Nov), as its
- * coloured bar leaves no edge for a selection border. `?runselect=border` keeps the selected card's dark border.
- */
-const runSpotlight =
-  new URLSearchParams(globalThis.location.search).get("runselect") !== "border";
-
 const cardStyle = cva({
   base: {
     position: "relative",
@@ -1741,7 +1734,7 @@ const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
   return (
     <div
       ref={enterRef}
-      className={cardStyle({ selected: selected && !(runView && runSpotlight) })}
+      className={cardStyle({ selected: selected && !runView })}
       data-run-faint={run && !run.ran.has(id) ? true : undefined}
       // `?nodepaths=chips`: the card grows to hold its chips.
       style={
@@ -1884,13 +1877,6 @@ const triggerStyle = css({
   },
 });
 
-/**
- * `?startrename=old`: Start's "Flow inputs" line as plain text on the card, renamed only in the Start panel. URL
- * only, never remembered.
- */
-const oldStartRename =
-  new URLSearchParams(globalThis.location.search).get("startrename") === "old";
-
 /** Start: always on the canvas, holds the flow's inputs and lists what starts the flow; steps follow it. */
 const StartNodeView = ({ selected }: NodeProps<StepNode>) => {
   const { document, ui, setDocument } = useEditor();
@@ -1899,7 +1885,7 @@ const StartNodeView = ({ selected }: NodeProps<StepNode>) => {
   return (
     <div
       className={triggerStyle}
-      data-selected={(selected && !(runView && runSpotlight)) || undefined}
+      data-selected={(selected && !runView) || undefined}
       data-source-hover={ui.hoverSourceId === START_ID || undefined}
     >
       {/* The triggers lead into Start: the ghosts in the editor, the one that fired in a run. */}
@@ -1920,7 +1906,7 @@ const StartNodeView = ({ selected }: NodeProps<StepNode>) => {
             description={startSubtitle(document)}
             label="Start description"
             onDescription={
-              editable && !oldStartRename
+              editable
                 ? (value) =>
                     setDocument((current) => ({
                       ...current,
@@ -2519,7 +2505,7 @@ const FiredText = ({ fired }: { fired: ReturnType<typeof firedTrigger> }) => (
 );
 
 /** J6: in a run, only the trigger that fired shows, highlighted, left of Start. */
-const RunTriggerView = ({ selected }: NodeProps<StepNode>) => {
+const RunTriggerView = (_props: NodeProps<StepNode>) => {
   const runView = useRunView();
   if (!runView?.run) {
     return null;
@@ -2535,7 +2521,6 @@ const RunTriggerView = ({ selected }: NodeProps<StepNode>) => {
           "&[data-selected]": { borderColor: "[var(--flows-sel-border)]" },
         }),
       )}
-      data-selected={(selected && !runSpotlight) || undefined}
     >
       <div className={cardHeadStyle}>
         <CardTile
@@ -2609,7 +2594,7 @@ const GroupNodeView = ({ id, selected }: NodeProps<StepNode>) => {
   return (
     <div
       ref={enterRef}
-      className={groupStyle({ selected: selected && !(runView && runSpotlight) })}
+      className={groupStyle({ selected: selected && !runView })}
       data-run-state={mark?.state}
       data-source-hover={ui.hoverSourceId === id || undefined}
     >
@@ -3778,7 +3763,7 @@ export const FlowCanvas = ({
       }}
       data-quiet-port-add={(ui.quietPortAdd && !showFull) || undefined}
       data-run-spotlight={
-        (runSpotlight && runView && ui.selectedId !== null && ui.selectedId !== undefined) ||
+        (runView && ui.selectedId !== null && ui.selectedId !== undefined) ||
         undefined
       }
       // A click on a port is the + on it (J0.5), not the start of a click-to-connect.
