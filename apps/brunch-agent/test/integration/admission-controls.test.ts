@@ -70,6 +70,16 @@ test("a response stopped at the output limit fails the turn, with or without tex
   for (const limited of result.outputLimits) {
     const { submissionId } = limited.attempt.receipt;
     expect(limited.attempt.error).toContain("model_output_limit");
+    // The exported failure is generic; this note is what names the cause.
+    expect(
+      serverOutput
+        .split("\n")
+        .filter(
+          (line) =>
+            line.includes("[brunch] provider.output-limit") &&
+            line.includes(`"submissionId":"${submissionId}"`),
+        ),
+    ).toHaveLength(1);
     expect(limited.history.settlements).toContainEqual(
       expect.objectContaining({ submissionId, outcome: "failed" }),
     );

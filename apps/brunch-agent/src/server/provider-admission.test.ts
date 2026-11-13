@@ -16,6 +16,7 @@ import {
   modelAdmissionScope,
   modelStreamIdleTimeoutDefaults,
   withBufferedToolAdmission,
+  type ModelOutputLimit,
   type ModelStreamIdleTimeout,
 } from "./provider-admission";
 
@@ -88,31 +89,35 @@ test.each(["stream", "streamSimple"] as const)(
   },
 );
 
-test.each([
-  ["with partial text", [fauxText("The account is partly")]],
-  ["without text", []],
-] as const)(
-  "a response stopped at the output limit fails %s",
-  async (_label, content) => {
-    const { faux, provider, model } = fixture();
-    faux.setResponses([
-      fauxAssistantMessage([...content], { stopReason: "length" }),
-    ]);
-    const events: AssistantMessageEvent[] = [];
-    const stream = provider.streamSimple(model, emptyTranscript);
-    await expect(
-      (async () => {
-        for await (const event of stream) events.push(event);
-      })(),
-    ).rejects.toThrow("model_output_limit");
-    expect(events.some((event) => event.type === "done")).toBe(false);
-    const failure: unknown = await stream
-      .result()
-      .catch((error: unknown) => error);
-    expect(String(failure)).toContain("model_output_limit");
-    expect(String(failure)).not.toContain("retryable_interruption");
-  },
-);
+test("a response stopped at the output limit fails without being marked retryable, and is reported", async () => {
+  const { faux, model } = fixture();
+  const onOutputLimit = vi.fn<(limit: ModelOutputLimit) => void>();
+  const provider = withBufferedToolAdmission(
+    faux.provider,
+    () => true,
+    new Set(["browser"]),
+    {
+      ...modelStreamIdleTimeoutDefaults,
+      claimRetry: () => false,
+      onOutputLimit,
+    },
+  );
+  faux.setResponses([
+    fauxAssistantMessage([fauxText("The account is partly")], {
+      stopReason: "length",
+    }),
+  ]);
+  const failure: unknown = await collect(
+    provider.streamSimple(model, emptyTranscript),
+  ).catch((error: unknown) => error);
+  expect(String(failure)).toContain("model_output_limit");
+  expect(String(failure)).not.toContain("retryable_interruption");
+  expect(onOutputLimit).toHaveBeenCalledOnce();
+  expect(onOutputLimit.mock.calls[0]?.[0]).toMatchObject({
+    provider: model.provider,
+    model: model.id,
+  });
+});
 
 test.each(["stream", "streamSimple"] as const)(
   "%s admits a complete browser-only proposal containing multiple calls",
