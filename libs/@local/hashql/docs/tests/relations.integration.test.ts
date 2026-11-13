@@ -292,6 +292,42 @@ layer(Reference.layer({ source }), { excludeTestServices: true })(
     );
 
     it.effect(
+      "value_apart",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const reference = yield* Reference.success({
+          source: `/** A trait. @trait */ interface Shared {}
+interface Box extends Shared {}
+declare function Box(input: Input): Box;
+interface Input {}
+export { Box, Input };`,
+        });
+        const box = Reference.id(reference, ["Box"]);
+        expect(
+          pipe(
+            reference.document.pages,
+            Array.flatMap((tree) =>
+              tree.type === "module" ? tree.groups : [],
+            ),
+            Array.flatMap(({ exports }) => exports),
+            Array.filter(({ origin }) => origin.id === box),
+            Array.map(({ meaning, hierarchy, related }) => [
+              meaning,
+              Option.isSome(hierarchy),
+              related.traits.length,
+            ]),
+          ),
+        ).toStrictEqual([
+          [Option.some("type"), true, 1],
+          [Option.some("value"), false, 0],
+        ]);
+        expect(
+          targetsOf(exportOf(reference, "Input").related.acceptedBy),
+        ).toStrictEqual([{ _tag: "Value", declaration: box }]);
+      }),
+    );
+
+    it.effect(
       "usage_identity",
       Effect.fnUntraced(function* () {
         expect.hasAssertions();

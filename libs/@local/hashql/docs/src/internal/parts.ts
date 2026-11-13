@@ -1,4 +1,4 @@
-import { Array, Function, Match, Number, Option, pipe } from "effect";
+import { Array, Data, Function, Match, Number, Option, pipe } from "effect";
 
 import type * as AST from "../AST/index.js";
 import type * as Catalogue from "../Catalogue.js";
@@ -24,6 +24,16 @@ export interface Part {
   readonly source: Source;
   readonly calls: readonly AST.CallSignature.CallSignature[];
 }
+
+/** The declarations of an export as the reference documents them: whole as one export, or as two where a type and a value share the name without either declaring the other. */
+export type Documented = Data.TaggedEnum<{
+  Whole: { readonly parts: readonly Part[] };
+  Apart: { readonly type: readonly Part[]; readonly value: readonly Part[] };
+}>;
+
+export const { $match: matchDocumented } = Data.taggedEnum<Documented>();
+
+const { Whole, Apart } = Data.taggedEnum<Documented>();
 
 /** A member and its declarations. Static and instance members with the same name stay two members. */
 export interface Member {
@@ -94,18 +104,18 @@ const valueParts = (
     Match.exhaustive,
   );
 
-const partsOf = (
+const documentedBy = (
   ast: AST.Store["Service"],
   entry: Catalogue.Entry,
-): readonly Part[] => {
+): Documented => {
   const leaf = ast.get(entry.id).leaf.pipe(Option.map(ast.get));
   if (Option.isNone(leaf)) {
-    return [];
+    return Whole({ parts: [] });
   }
   return Match.value(leaf.value).pipe(
-    Match.tag("JointDeclaration", ({ declaration }) => [
-      plain(ast.get(declaration)),
-    ]),
+    Match.tag("JointDeclaration", ({ declaration }) =>
+      Whole({ parts: [plain(ast.get(declaration))] }),
+    ),
     Match.tag("IndependentDeclarations", ({ type, value }) => {
       const types = pipe(
         type,
@@ -115,7 +125,7 @@ const partsOf = (
       );
       // A type-only export can still expose a value's type through `typeof`.
       if (entry.typeOnlyExport && Option.isSome(type)) {
-        return types;
+        return Whole({ parts: types });
       }
       const values = pipe(
         value,
@@ -123,11 +133,23 @@ const partsOf = (
         Option.map((source) => valueParts(ast, source)),
         Option.getOrElse((): readonly Part[] => []),
       );
-      return Array.appendAll(types, values);
+      if (types.length > 0 && values.length > 0) {
+        return Apart({ type: types, value: values });
+      }
+      return Whole({ parts: Array.appendAll(types, values) });
     }),
     Match.exhaustive,
   );
 };
+
+const partsOf = (
+  ast: AST.Store["Service"],
+  entry: Catalogue.Entry,
+): readonly Part[] =>
+  matchDocumented(documentedBy(ast, entry), {
+    Whole: ({ parts }) => parts,
+    Apart: ({ type, value }) => Array.appendAll(type, value),
+  });
 
 const memberParts = (
   ast: AST.Store["Service"],
@@ -163,6 +185,12 @@ export const of: {
   (entry: Catalogue.Entry): (ast: AST.Store["Service"]) => readonly Part[];
   (ast: AST.Store["Service"], entry: Catalogue.Entry): readonly Part[];
 } = Function.dual(2, partsOf);
+
+/** The declarations of an export, apart where its type and its value are declared apart, and whole for any other. A declaration that is only a namespace has none. */
+export const documented: {
+  (entry: Catalogue.Entry): (ast: AST.Store["Service"]) => Documented;
+  (ast: AST.Store["Service"], entry: Catalogue.Entry): Documented;
+} = Function.dual(2, documentedBy);
 
 interface Owner {
   readonly ast: AST.Store["Service"];

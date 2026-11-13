@@ -6,6 +6,8 @@ import * as Entry from "../Entry.js";
 import * as Placement from "../Placement.js";
 import * as Tree from "../Tree/index.js";
 
+import type * as ExternalTarget from "../ExternalTarget.js";
+
 type Row = Tree.Row.Row;
 type Local = AST.Interned.Interned<AST.Target.Local>;
 
@@ -13,7 +15,10 @@ type Local = AST.Interned.Interned<AST.Target.Local>;
 export interface Context {
   readonly catalogue: Catalogue.Catalogue;
   readonly placement: Placement.Placement;
+  /** Each public declaration's export, which is its type's where its type and its value are declared apart. */
   readonly entries: HashMap.HashMap<Catalogue.DeclarationId, Tree.Export.Own>;
+  /** The export of each value whose type is declared apart from it. */
+  readonly values: HashMap.HashMap<Catalogue.DeclarationId, Tree.Export.Own>;
   /** The export each documented member belongs to, by the member's identity. */
   readonly owners: HashMap.HashMap<AST.Node.Interned, Catalogue.DeclarationId>;
   /** The module page the rows are written on, where a label leaves out its module's name. On a page that is no module's, every label carries it. */
@@ -87,20 +92,60 @@ export const entryAt: {
     HashMap.get(context.entries, id).pipe(Option.getOrThrow),
 );
 
-const declarationRow = (id: Catalogue.DeclarationId, context: Context): Row => {
+type Exports = Pick<Context, "entries" | "values">;
+
+/** A catalogued declaration, and what a name that reads it means where the name stands. */
+export interface Reading {
+  readonly id: Catalogue.DeclarationId;
+  readonly meaning: ExternalTarget.Meaning;
+}
+
+/**
+ * The export of a catalogued declaration that a name reads.
+ *
+ * A type and a value declared apart are an export each. A name that means the value reads the value's. A name before a dot reads the namespace, which is the type's, or the value where no namespace shares the name.
+ */
+export const exportAt: {
+  (context: Exports): (reading: Reading) => Tree.Export.Own;
+  (reading: Reading, context: Exports): Tree.Export.Own;
+} = Function.dual(2, ({ id, meaning }: Reading, context: Exports) => {
   const entry = entryAt(id, context);
-  const place = placeOf(id, context);
+  if (
+    meaning === "type" ||
+    (meaning === "namespace" && Option.isSome(entry.namespace))
+  ) {
+    return entry;
+  }
+
+  return Option.getOrElse(HashMap.get(context.values, id), () => entry);
+});
+
+/** What a row for `own` links to: its declaration, or the declaration's value where the export documents that alone. */
+const originOf = (own: Tree.Export.Own): Tree.Row.Target => {
+  if (Option.contains(own.meaning, "value")) {
+    return { _tag: "Value", declaration: own.origin.id };
+  }
+
+  return { _tag: "Reference", target: own.origin.id };
+};
+
+/** A row for an export on any page, under the names of its place. */
+export const exportRow: {
+  (context: Context): (own: Tree.Export.Own) => Row;
+  (own: Tree.Export.Own, context: Context): Row;
+} = Function.dual(2, (own: Tree.Export.Own, context: Context): Row => {
+  const place = placeOf(own.origin.id, context);
 
   return {
     type: "row",
-    kind: entry.kind,
+    kind: own.kind,
     label: labelOf(place, place.names, context),
     depth: 0,
-    summary: summary(Entry.summary(entry)),
-    deprecated: entry.deprecated,
-    origin: { _tag: "Reference", target: id },
+    summary: summary(Entry.summary(own)),
+    deprecated: own.deprecated,
+    origin: originOf(own),
   };
-};
+});
 
 const memberRow = (
   member: Tree.Member.Member,
@@ -120,15 +165,20 @@ const memberRow = (
   };
 };
 
-/** A row for a public declaration or one of its members, or none for a target that names neither. A member's row reads the member's own documentation rather than its owner's. */
-export const row =
-  (context: Context) =>
+/** A row for what a name with `meaning` reads at `target`, or none for a target that names neither a public declaration nor one of its members. */
+const read =
+  (context: Context, meaning: ExternalTarget.Meaning) =>
   (target: Local): Option.Option<Row> => {
     const { ast } = context.catalogue;
     const declaration = ast.narrow(target, AST.Declaration.isDeclaration);
 
     if (Option.isSome(declaration)) {
-      return Option.some(declarationRow(declaration.value, context));
+      return Option.some(
+        exportRow(
+          exportAt({ id: declaration.value, meaning }, context),
+          context,
+        ),
+      );
     }
 
     return HashMap.get(context.owners, target).pipe(
@@ -141,12 +191,41 @@ export const row =
     );
   };
 
+/** A row for a public declaration or one of its members, or none for a target that names neither. A member's row reads the member's own documentation rather than its owner's. */
+export const row = (
+  context: Context,
+): ((target: Local) => Option.Option<Row>) => read(context, "type");
+
+/** A row for a public declaration or member whose calls use another declaration. What makes calls is a value, so a declaration's row is its value's where its type is declared apart. */
+export const user = (
+  context: Context,
+): ((target: Local) => Option.Option<Row>) => read(context, "value");
+
+/** One export a namespace lists: a name the namespace exports, and an export that documents the name's declaration. */
+export interface Listed {
+  readonly exported: Placement.Export;
+  readonly own: Tree.Export.Own;
+}
+
+/** What a namespace lists for the names it exports: each name's export, or its type's and then its value's where the two are declared apart. */
+export const listed =
+  (context: Exports) =>
+  (exports: readonly Placement.Export[]): readonly Listed[] =>
+    Array.flatMap(exports, (exported) =>
+      pipe(
+        Array.prepend(
+          Option.toArray(HashMap.get(context.values, exported.target)),
+          entryAt(exported.target, context),
+        ),
+        Array.map((own): Listed => ({ exported, own })),
+      ),
+    );
+
 /** The index of `exports` at `depth`. A canonical export documented on this page lists its members and its namespace's exports below it. */
 export const listing =
   ({ context, depth }: { readonly context: Context; readonly depth: number }) =>
-  (exports: readonly Placement.Export[]): readonly Row[] =>
-    Array.flatMap(exports, (exported) => {
-      const entry = entryAt(exported.target, context);
+  (exports: readonly Listed[]): readonly Row[] =>
+    Array.flatMap(exports, ({ exported, own: entry }) => {
       const place = placeOf(exported.target, context);
       const own: Row = {
         type: "row",
@@ -155,7 +234,7 @@ export const listing =
         depth,
         summary: summary(Entry.summary(entry)),
         deprecated: entry.deprecated,
-        origin: { _tag: "Reference", target: exported.target },
+        origin: originOf(entry),
       };
       if (
         !exported.canonical ||
@@ -175,7 +254,11 @@ export const listing =
         origin: { _tag: "Reference", target: member.id },
       }));
       const nested = pipe(
-        Placement.exportsOf(context.catalogue, entry.origin),
+        Option.toArray(entry.namespace),
+        Array.flatMap(() =>
+          Placement.exportsOf(context.catalogue, entry.origin),
+        ),
+        listed(context),
         listing({ context, depth: depth + 1 }),
       );
 
