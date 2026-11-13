@@ -564,13 +564,18 @@ export const as = Function.dual<
     expression: E,
     type: TypeExpression.TypeExpression<T>,
   ) => Expression<T, Value.Inputs<E>>
->(2, (expression, type) =>
-  pipe(
-    { value: toNode(expression), type: type.syntax },
-    Result.all,
-    Result.map(({ value, type }) => new AST.As(value, type)),
-    fromResult,
-  ),
+>(
+  2,
+  <E extends Value.Any, T extends Type.Any>(
+    expression: E,
+    type: TypeExpression.TypeExpression<T>,
+  ): Expression<T, Value.Inputs<E>> =>
+    pipe(
+      { value: toNode(expression), type: type[TAST.Node] },
+      Result.all,
+      Result.map(({ value, type }) => new AST.As(value, type)),
+      fromResult<T, Value.Inputs<E>>,
+    ),
 );
 
 /**
