@@ -34,9 +34,9 @@ export const simulatorSamplePeriod = (
 };
 
 /**
- * The spacing an experiment is sampled at when the experiment does not
- * choose it: every step on a clock that counts steps, else the simulator's
- * time step. Null when the experiment names its own.
+ * The sample period an experiment has no say in: one step on a clock that
+ * counts steps, else the simulator's time step. Null when the experiment
+ * chooses it.
  */
 export const experimentSamplePeriod = (
   clock: RunClock,

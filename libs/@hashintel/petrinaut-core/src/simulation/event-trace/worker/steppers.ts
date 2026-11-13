@@ -1,4 +1,4 @@
-import { runClockOf } from "../../../net-timing";
+import { isTimedNet } from "../../../net-timing";
 import {
   ADAPTIVE_SIMULATOR_ID,
   createAdaptiveStepper,
@@ -24,7 +24,7 @@ export type StepperSelection = MonteCarloSimulatorSelection;
  * Builds the stepper of the selected simulator. Throws for a simulator this
  * worker does not host and for a parameter its stepper rejects.
  */
-export function createStepper(
+export function createSimulatorStepper(
   selection: StepperSelection,
   config: RunStepperConfig,
 ): RunStepper {
@@ -58,7 +58,7 @@ export function createRunStepper(
   selection: StepperSelection,
   config: RunStepperConfig,
 ): RunStepper {
-  return runClockOf(config.sdcpn, config.extensions) === "steps"
-    ? createStepStepper(config)
-    : createStepper(selection, config);
+  return isTimedNet(config.sdcpn, config.extensions)
+    ? createSimulatorStepper(selection, config)
+    : createStepStepper(config);
 }

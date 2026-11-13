@@ -19,85 +19,70 @@ const batchScenario = ({
   initialRunout: number;
   tolerance: number;
   maxPasses: number;
-}): Scenario => ({
-  id,
-  name,
-  description,
-  scenarioParameters: [
-    { type: "integer", identifier: "wheels", default: wheels },
-    { type: "real", identifier: "initial_runout", default: initialRunout },
-    { type: "real", identifier: "tolerance", default: tolerance },
-    { type: "integer", identifier: "max_passes", default: maxPasses },
-  ],
-  parameterOverrides: {
-    param__tolerance: "scenario.tolerance",
-    param__max_passes: "scenario.max_passes",
-  },
-  initialState: {
-    type: "adhoc",
-    content: {
-      variables: [
-        {
-          name: "wheels",
-          type: "integer",
-          expression: String(wheels),
+}): Scenario => {
+  const variables = [
+    { name: "wheels", type: "integer", value: wheels },
+    { name: "initial_runout", type: "real", value: initialRunout },
+    { name: "tolerance", type: "real", value: tolerance },
+    { name: "max_passes", type: "integer", value: maxPasses },
+  ] as const;
+
+  return {
+    id,
+    name,
+    description,
+    scenarioParameters: variables.map(({ name: identifier, type, value }) => ({
+      type,
+      identifier,
+      default: value,
+    })),
+    parameterOverrides: {
+      param__tolerance: "scenario.tolerance",
+      param__max_passes: "scenario.max_passes",
+    },
+    initialState: {
+      type: "adhoc",
+      content: {
+        variables: variables.map(({ name: variable, type, value }) => ({
+          name: variable,
+          type,
+          expression: String(value),
           exposed: true,
           optimize: null,
-        },
-        {
-          name: "initial_runout",
-          type: "real",
-          expression: String(initialRunout),
-          exposed: true,
-          optimize: null,
-        },
-        {
-          name: "tolerance",
-          type: "real",
-          expression: String(tolerance),
-          exposed: true,
-          optimize: null,
-        },
-        {
-          name: "max_passes",
-          type: "integer",
-          expression: String(maxPasses),
-          exposed: true,
-          optimize: null,
-        },
-      ],
-      netParameters: [
-        {
-          parameterId: "param__tolerance",
-          expression: "scenario.tolerance",
-          optimize: null,
-        },
-        {
-          parameterId: "param__max_passes",
-          expression: "scenario.max_passes",
-          optimize: null,
-        },
-      ],
-      places: {
-        place__laced: {
-          kind: "coloured",
-          variables: [],
-          rows: [
-            {
-              kind: "template",
-              count: { expression: "scenario.wheels", optimize: null },
-              cells: [
-                { expression: "scenario.initial_runout", optimize: null },
-                { expression: "0", optimize: null },
-              ],
-            },
-          ],
-          sharedColumns: {},
+        })),
+        netParameters: [
+          {
+            parameterId: "param__tolerance",
+            expression: "scenario.tolerance",
+            optimize: null,
+          },
+          {
+            parameterId: "param__max_passes",
+            expression: "scenario.max_passes",
+            optimize: null,
+          },
+        ],
+        places: {
+          place__laced: {
+            kind: "coloured",
+            variables: [],
+            rows: [
+              {
+                kind: "template",
+                count: { expression: "scenario.wheels", optimize: null },
+                cells: [
+                  { expression: "scenario.initial_runout", optimize: null },
+                  { expression: "0", optimize: null },
+                ],
+              },
+            ],
+            sharedColumns: {},
+          },
         },
       },
     },
-  },
-});
+  };
+};
 
 /** The mark behind the wheel at the head of the queue: the stand takes it next. */
 const nextMark = `

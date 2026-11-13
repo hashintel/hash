@@ -5,7 +5,7 @@ import { compileHirArtifacts } from "../../../hir/compile";
 import { createMonteCarloSimulator } from "../../monte-carlo/monte-carlo-simulator";
 import { ADAPTIVE_SIMULATOR_ID } from "./adaptive-stepper";
 import { FIXED_STEP_SIMULATOR_ID } from "./fixed-step-stepper";
-import { createRunStepper, createStepper } from "./steppers";
+import { createRunStepper, createSimulatorStepper } from "./steppers";
 
 import type { RunStepperConfig } from "./run-stepper";
 
@@ -21,16 +21,16 @@ const config: RunStepperConfig = {
   maxTime: 3,
 };
 
-describe("createStepper", () => {
+describe("createSimulatorStepper", () => {
   it("builds the stepper of the selected simulator", () => {
-    const fixed = createStepper(
+    const fixed = createSimulatorStepper(
       { id: FIXED_STEP_SIMULATOR_ID, parameters: { dt: 0.05 } },
       config,
     );
     fixed.advance(0.05);
     expect(fixed.time).toBeCloseTo(0.05, 12);
 
-    const adaptive = createStepper(
+    const adaptive = createSimulatorStepper(
       { id: ADAPTIVE_SIMULATOR_ID, parameters: { tolerance: 1e-6 } },
       config,
     );
@@ -39,17 +39,23 @@ describe("createStepper", () => {
 
   it("names a simulator it does not host and a parameter its stepper rejects", () => {
     expect(() =>
-      createStepper({ id: "webgpu-fixed-step", parameters: {} }, config),
+      createSimulatorStepper(
+        { id: "webgpu-fixed-step", parameters: {} },
+        config,
+      ),
     ).toThrow(
       'Simulator "webgpu-fixed-step" has no stepper in the event simulation worker',
     );
     expect(() =>
-      createStepper({ id: FIXED_STEP_SIMULATOR_ID, parameters: {} }, config),
+      createSimulatorStepper(
+        { id: FIXED_STEP_SIMULATOR_ID, parameters: {} },
+        config,
+      ),
     ).toThrow(
       'Simulator "js-fixed-step" parameter "dt" should be a number above 0, received undefined',
     );
     expect(() =>
-      createStepper(
+      createSimulatorStepper(
         { id: ADAPTIVE_SIMULATOR_ID, parameters: { tolerance: 0 } },
         config,
       ),
@@ -70,7 +76,7 @@ describe("the fixed-step stepper and an experiment", () => {
       runCount,
     });
     const steppers = Array.from({ length: runCount }, (_, runIndex) =>
-      createStepper(
+      createSimulatorStepper(
         { id: FIXED_STEP_SIMULATOR_ID, parameters: { dt } },
         { ...config, runIndex },
       ),

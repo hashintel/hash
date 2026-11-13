@@ -13,10 +13,11 @@ import {
 } from "../../hir";
 import { lowerAndCheck } from "../../hir/compile";
 import { inferMetricShape } from "../../hir/metric-shape";
+import { isSourcePredicate, isTimedNet } from "../../net-timing";
 import { getHirDiagnosticsForItem } from "./check-hir";
 import {
   sourcePredicateDiagnostic,
-  sourcePredicatesOfTimedNet,
+  TS_CATEGORY_ERROR,
 } from "./check-net-timing";
 import { getItemFilePath } from "./file-paths";
 
@@ -60,10 +61,6 @@ export type SDCPNCheckResult = {
    */
   metricShapes: Record<string, MetricShape>;
 };
-
-/** TS `DiagnosticCategory.Error` (kept numeric — `typescript` is imported
- * type-only here). */
-const TS_CATEGORY_ERROR = 1;
 
 /**
  * Collects TS diagnostics for one code file and, when TypeScript found no
@@ -133,9 +130,7 @@ export function checkSDCPN(
     }
   }
 
-  const sourcePredicates = new Set(
-    sourcePredicatesOfTimedNet(sdcpn, extensions),
-  );
+  const timed = isTimedNet(sdcpn, extensions);
 
   // Check all functions in transitions (both lambda and kernel)
   for (const transition of sdcpn.transitions) {
@@ -151,7 +146,7 @@ export function checkSDCPN(
       transitionId: transition.id,
     });
     const lambdaDiagnostics = [
-      ...(sourcePredicates.has(transition)
+      ...(timed && isSourcePredicate(transition, extensions)
         ? [
             sourcePredicateDiagnostic(
               transition,

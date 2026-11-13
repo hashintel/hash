@@ -487,14 +487,10 @@ export {
   placeUsesDifferentialEquation,
 } from "./place-dynamics";
 export {
-  hasRunningDynamics,
   isContinuousNet,
-  isSourcePredicate,
   isTimedNet,
-  isTimedTransition,
   runClockOf,
   runContinuityOf,
-  STEP_SAMPLE_PERIOD,
   type RunClock,
   type RunContinuity,
 } from "./net-timing";
