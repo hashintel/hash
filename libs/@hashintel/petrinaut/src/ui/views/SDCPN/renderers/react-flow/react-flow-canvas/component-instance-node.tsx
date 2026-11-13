@@ -3,17 +3,15 @@ import { use } from "react";
 
 import { Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
-import {
-  COMPONENT_INSTANCE_FOOTER_HEIGHT,
-  COMPONENT_INSTANCE_HEADER_HEIGHT,
-  compactNodeDimensions,
-} from "@hashintel/petrinaut-core";
+import { componentInstanceHeaderHeight } from "@hashintel/petrinaut-core";
 
 import { EditorContext } from "../../../../../../react/state/editor-context";
+import { problemTextStyle } from "../../../../../constants/problem-severity";
 import { nodeFocusStyle } from "../../../styles/focus";
 import { iconContainerBaseStyle } from "./node-card";
+import { pinLayout, pinSides, portOnSide } from "./pin-layout";
 import { portInHandleId, portOutHandleId } from "./port-handles";
-import { pinColorStyle, pinStyle, portOnSide } from "./port-pin";
+import { pinColorStyle, pinStyle } from "./port-pin";
 
 import type { CanvasInstanceBinding, CanvasPort } from "../../../canvas-scene";
 import type { ComponentInstanceNodeType } from "./react-flow-types";
@@ -48,7 +46,7 @@ const headerStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "[8px]",
-  height: `[${COMPONENT_INSTANCE_HEADER_HEIGHT}px]`,
+  height: `[${componentInstanceHeaderHeight}px]`,
   flexShrink: "0",
   padding: "[4px 6px 4px 4px]",
   borderBottom: "1px solid",
@@ -84,10 +82,6 @@ const subtitleStyle = css({
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
-});
-
-const unboundSubtitleStyle = css({
-  color: "[#b45309]",
 });
 
 /**
@@ -151,10 +145,6 @@ const foldedBodyStyle = css({
   transitionProperty: "[opacity]",
 });
 
-const foldedBodyHeight =
-  compactNodeDimensions.componentInstance.height -
-  COMPONENT_INSTANCE_HEADER_HEIGHT;
-
 const portLabelStyle = css({
   position: "absolute",
   fontSize: "[11px]",
@@ -170,27 +160,18 @@ const portLabelStyle = css({
   transitionProperty: "[top, opacity]",
 });
 
-/** A folded card's pins shrink to wire ends: the links still show where they land. */
-const foldedPinStyle = css({
-  width: "[7px]",
-  height: "[7px]",
-  border: "[1px solid white]",
-});
-
 /** A pin slides to its row, and grows to its full size, as the card unfolds. */
 const pinMotionStyle = css({
   transitionProperty: "[top, width, height, border-width]",
 });
 
-// A side the port does not use keeps its handle, so a link can still land
-// there, but hides it: an input port pins the left edge, an output the right.
-const unusedPinStyle = css({
-  opacity: "[0]",
-  pointerEvents: "none",
-});
+/** How far in from the card's edge a port's name starts. */
+const portLabelInset = 12;
 
-/** Where the label sits: beside the pin, or on the left for a two-way port. */
-const PORT_LABEL_INSET = 12;
+const handles = {
+  left: { position: Position.Left, idOf: portInHandleId },
+  right: { position: Position.Right, idOf: portOutHandleId },
+};
 
 const describeBinding = (
   subnetName: string,
@@ -210,67 +191,22 @@ const describeFoldedPorts = (ports: CanvasPort[]): string => {
   return `${inputs} in · ${outputs} out`;
 };
 
-/**
- * The centre of each port's pin, by side, within the body under the header.
- * Unfolded, every port has a row of its own and pins both sides of it, one
- * visible. Folded, the pins of each side spread along that side alone, so
- * the wires that land there stay apart.
- */
-const pinCentres = (
-  ports: CanvasPort[],
-  height: number,
-  expanded: boolean,
-): { left: number[]; right: number[] } => {
-  const bodyTop = COMPONENT_INSTANCE_HEADER_HEIGHT;
-  const bodyHeight =
-    height -
-    COMPONENT_INSTANCE_HEADER_HEIGHT -
-    COMPONENT_INSTANCE_FOOTER_HEIGHT;
-  const spread = (count: number, index: number) =>
-    bodyTop + (bodyHeight * (index + 0.5)) / count;
-  if (expanded) {
-    const rows = ports.map((_port, index) => spread(ports.length, index));
-    return { left: rows, right: rows };
-  }
-  const bySide = (side: "left" | "right") => {
-    const pinned = ports.filter((port) => portOnSide(port.direction, side));
-    return ports.map((port) => {
-      const index = pinned.indexOf(port);
-      // A port that does not pin this side lands at the row of the side it
-      // does pin, so a link arriving from the wrong side still ends level
-      // with its port.
-      const own = index === -1 ? pinned.length : index;
-      return spread(
-        Math.max(pinned.length, 1),
-        Math.min(own, pinned.length - 1),
-      );
-    });
-  };
-  const left = bySide("left");
-  const right = bySide("right");
-  return {
-    left: ports.map((port, index) =>
-      portOnSide(port.direction, "left") ? left[index]! : right[index]!,
-    ),
-    right: ports.map((port, index) =>
-      portOnSide(port.direction, "right") ? right[index]! : left[index]!,
-    ),
-  };
-};
-
 export const ComponentInstanceNode: React.FC<
   NodeProps<ComponentInstanceNodeType>
-> = ({ data, selected }: NodeProps<ComponentInstanceNodeType>) => {
-  const { toggleComponentInstanceExpanded } = use(EditorContext);
+> = ({
+  data,
+  selected,
+  isConnectable,
+}: NodeProps<ComponentInstanceNodeType>) => {
+  const { toggleComponentInstanceFold } = use(EditorContext);
 
   // React Flow marks a node selected as a drag-selection is drawn, before the
   // change reaches the editor's own selection.
   const focus = selected ? "focused" : data.focus;
 
-  const { ports, binding, expanded, foldable } = data;
+  const { ports, binding, unfolded, foldable } = data;
   const isInterface = binding.kind === "interface";
   const unbound = isInterface && binding.implementationName === null;
-  const centres = pinCentres(ports, data.height, expanded);
 
   return (
     <div className={containerStyle}>
@@ -282,10 +218,8 @@ export const ComponentInstanceNode: React.FC<
           <div className={textStyle}>
             <div className={titleStyle}>{data.label}</div>
             <div
-              className={cx(
-                subtitleStyle,
-                unbound ? unboundSubtitleStyle : undefined,
-              )}
+              className={cx(subtitleStyle, problemTextStyle)}
+              data-severity={unbound ? "warning" : undefined}
             >
               {describeBinding(data.subnetName, binding)}
             </div>
@@ -294,18 +228,18 @@ export const ComponentInstanceNode: React.FC<
             <button
               type="button"
               className={cx("nodrag", "nopan", foldToggleStyle)}
-              aria-label={expanded ? "Hide ports" : "Show ports"}
-              aria-expanded={expanded}
+              aria-label={unfolded ? "Hide ports" : "Show ports"}
+              aria-expanded={unfolded}
               onClick={(event) => {
                 event.stopPropagation();
-                toggleComponentInstanceExpanded(data.id);
+                toggleComponentInstanceFold(data.id);
               }}
             >
               <span
                 className={cx(
                   foldChevronStyle,
                   foldMotionStyle,
-                  expanded ? foldChevronTurnedStyle : undefined,
+                  unfolded ? foldChevronTurnedStyle : undefined,
                 )}
               >
                 <Icon name="chevronDown" size="xs" />
@@ -318,71 +252,68 @@ export const ComponentInstanceNode: React.FC<
             className={cx(
               foldedBodyStyle,
               foldMotionStyle,
-              expanded ? fadedOutStyle : undefined,
+              unfolded ? fadedOutStyle : undefined,
             )}
-            style={{ height: foldedBodyHeight }}
-            aria-hidden={expanded}
+            // The body of the card folded, whatever height the card has now.
+            style={{
+              height:
+                data.height -
+                2 * data.anchorOffset -
+                componentInstanceHeaderHeight,
+            }}
+            aria-hidden={unfolded}
           >
             {describeFoldedPorts(ports)}
           </div>
         ) : null}
       </div>
 
-      {ports.map((port, index) => {
-        const pinColor = pinColorStyle(port.typeColor);
-        const leftTop = centres.left[index]!;
-        const rightTop = centres.right[index]!;
-        return (
-          <div key={port.id}>
-            {/* Both pins are source handles: a connection's source is then
-                where the drag began, whichever pin that was. */}
-            <Handle
-              type="source"
-              position={Position.Left}
-              id={portInHandleId(port.id)}
-              className={cx(
-                pinStyle,
-                pinMotionStyle,
-                foldMotionStyle,
-                expanded ? undefined : foldedPinStyle,
-                portOnSide(port.direction, "left") ? undefined : unusedPinStyle,
-              )}
-              style={{ top: leftTop, ...pinColor }}
-            />
-            <Handle
-              type="source"
-              position={Position.Right}
-              id={portOutHandleId(port.id)}
-              className={cx(
-                pinStyle,
-                pinMotionStyle,
-                foldMotionStyle,
-                expanded ? undefined : foldedPinStyle,
-                portOnSide(port.direction, "right")
-                  ? undefined
-                  : unusedPinStyle,
-              )}
-              style={{ top: rightTop, ...pinColor }}
-            />
-            <span
-              className={cx(
-                portLabelStyle,
-                foldMotionStyle,
-                expanded ? undefined : fadedOutStyle,
-              )}
-              style={{
-                top: leftTop,
-                ...(port.direction === "out"
-                  ? { right: PORT_LABEL_INSET }
-                  : { left: PORT_LABEL_INSET }),
-              }}
-              aria-hidden={!expanded}
-            >
-              {port.name}
-            </span>
-          </div>
-        );
-      })}
+      {pinLayout(ports, data.height, unfolded).map(({ port, ...tops }) => (
+        <div key={port.id}>
+          {pinSides.map((side) => {
+            // A side the port does not use keeps its pin, hidden, so a link
+            // that reaches the card from that side has somewhere to end.
+            // Nothing is drawn from it or dropped on it.
+            const shown = portOnSide(port.direction, side);
+            return (
+              <Handle
+                key={side}
+                // Both pins are source handles: a connection's source is then
+                // where the drag began, whichever pin that was.
+                type="source"
+                position={handles[side].position}
+                id={handles[side].idOf(port.id)}
+                isConnectable={isConnectable}
+                isConnectableStart={shown}
+                isConnectableEnd={shown}
+                className={cx(
+                  pinStyle({
+                    size: unfolded ? "full" : "wireEnd",
+                    hidden: !shown,
+                  }),
+                  pinMotionStyle,
+                  foldMotionStyle,
+                )}
+                style={{ top: tops[side], ...pinColorStyle(port.typeColor) }}
+              />
+            );
+          })}
+          <span
+            className={cx(
+              portLabelStyle,
+              foldMotionStyle,
+              unfolded ? undefined : fadedOutStyle,
+            )}
+            style={{
+              top: tops.left,
+              [port.direction === "out" ? "right" : "left"]: portLabelInset,
+            }}
+            aria-hidden={!unfolded}
+          >
+            {port.name}
+          </span>
+        </div>
+      ))}
     </div>
   );
 };

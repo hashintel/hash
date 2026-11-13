@@ -523,15 +523,15 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
             previous.hoveredItem?.id === placeId ? null : previous.hoveredItem,
         };
       }),
-    toggleComponentInstanceExpanded: (instanceId: string) =>
+    toggleComponentInstanceFold: (instanceId: string) =>
       setState((prev) => {
-        const expandedComponentInstanceIds = new Set(
-          prev.expandedComponentInstanceIds,
+        const unfoldedComponentInstanceIds = new Set(
+          prev.unfoldedComponentInstanceIds,
         );
-        if (!expandedComponentInstanceIds.delete(instanceId)) {
-          expandedComponentInstanceIds.add(instanceId);
+        if (!unfoldedComponentInstanceIds.delete(instanceId)) {
+          unfoldedComponentInstanceIds.add(instanceId);
         }
-        return { ...prev, expandedComponentInstanceIds };
+        return { ...prev, unfoldedComponentInstanceIds };
       }),
     setDraggingStateByNodeId: (draggingState: DraggingStateByNodeId) =>
       setState((prev) => ({ ...prev, draggingStateByNodeId: draggingState })),

@@ -24,7 +24,7 @@ const card = (
   binding: { kind: "component" },
   ports: [],
   foldable: true,
-  expanded: false,
+  unfolded: false,
   anchorOffset: 0,
   ...overrides,
 });
@@ -38,7 +38,7 @@ describe("instance anchor", () => {
     const folded = card({});
     // Unfolded by 140: the scene moves the centre down by half of that.
     const unfolded = card({
-      expanded: true,
+      unfolded: true,
       height: 236,
       position: { x: 300, y: 270 },
       anchorOffset: 70,
@@ -50,7 +50,7 @@ describe("instance anchor", () => {
 
   it("returns a moved card to the position the document stores", () => {
     const unfolded = card({
-      expanded: true,
+      unfolded: true,
       height: 236,
       position: { x: 300, y: 270 },
       anchorOffset: 70,
@@ -73,7 +73,7 @@ describe("instance anchor", () => {
       selected: false,
       hovered: false,
       focus: "none",
-      port: null,
+      portDirection: null,
       dynamicsEnabled: false,
       hasColorType: false,
       hasVisualizer: false,
