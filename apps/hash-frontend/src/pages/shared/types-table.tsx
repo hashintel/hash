@@ -135,6 +135,13 @@ const typesTablesToTitle: Record<TypesTableKind, string> = {
   "data-type": "Data Types",
 };
 
+const typeKindLabels: Record<TypesTableTypeKind, string> = {
+  "entity-type": "Entity Type",
+  "link-type": "Link Type",
+  "property-type": "Property Type",
+  "data-type": "Data Type",
+};
+
 const firstColumnLeftPadding = 16;
 
 const defaultTypesTableSort: GridSort<TypesTableColumnId> = {
@@ -589,8 +596,8 @@ export const TypesTable: FunctionComponent<{
               themeOverride,
               readonly: true,
               allowOverlay: false,
-              displayData: String(row.kind),
-              data: row.kind,
+              displayData: typeKindLabels[row.kind],
+              data: typeKindLabels[row.kind],
             };
           case "webShortname": {
             const value = row.webShortname
@@ -775,6 +782,8 @@ export const TypesTable: FunctionComponent<{
       columns: currentlyDisplayedColumns,
       rows: currentlyDisplayedRows,
       title: typesTablesToTitle[kind],
+      resolveCell: (key, row) =>
+        key === "kind" ? typeKindLabels[row.kind] : undefined,
     });
   }, [kind]);
 
