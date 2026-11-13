@@ -49,7 +49,7 @@ const anchorOf = (
   value: Reference.Reference,
   node: AST.Target.Interned,
 ): Option.Option<Anchor.Anchor> =>
-  Destinations.local(destinationsOf(value), node);
+  Destinations.local(destinationsOf(value), { target: node, meaning: "type" });
 
 const anchorAt = (
   value: Reference.Reference,
@@ -307,7 +307,10 @@ layer(Reference.layer({ source }), { excludeTestServices: true })(
         expect(targets).toHaveLength(1);
         expect(
           Array.map(targets, (target) =>
-            Destinations.local(destinationsOf(reference), target),
+            Destinations.local(destinationsOf(reference), {
+              target,
+              meaning: "type",
+            }),
           ),
         ).toStrictEqual([Option.none()]);
       }),
@@ -336,6 +339,41 @@ layer(Reference.layer({ source }), { excludeTestServices: true })(
         expect(anchorAt(result, ["Value"])).toStrictEqual(
           element("pkg/index.html", "Value"),
         );
+      }),
+    );
+
+    it.effect(
+      "value_destinations",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const reference = yield* Reference.success({
+          source: `export interface Box {}
+export declare const Box: number;
+export interface Held {}
+export declare const Held: number;
+export declare namespace Held { type Inner = string; }
+export declare class Joint {}`,
+        });
+        expect(
+          Array.map(["Box", "Held", "Joint"], (name) =>
+            Array.map(["type", "value", "namespace"] as const, (meaning) =>
+              Destinations.local(destinationsOf(reference), {
+                target: Reference.id(reference, [name]),
+                meaning,
+              }).pipe(Option.flatMap(({ id }) => id)),
+            ),
+          ),
+        ).toStrictEqual([
+          // A name before a dot reads a value that has no namespace.
+          [
+            Option.some("Box"),
+            Option.some("Box-value"),
+            Option.some("Box-value"),
+          ],
+          // A namespace is documented with the type.
+          [Option.some("Held"), Option.some("Held-value"), Option.some("Held")],
+          [Option.some("Joint"), Option.some("Joint"), Option.some("Joint")],
+        ]);
       }),
     );
 
