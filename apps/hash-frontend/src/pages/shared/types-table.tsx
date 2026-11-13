@@ -120,6 +120,11 @@ export type TypesTableRow = {
   archived: boolean;
 };
 
+const titleCellText = ({ title, labelPreview }: TypesTableRow): string =>
+  [title, labelPreview?.map(({ text }) => text).join("")]
+    .filter(Boolean)
+    .join(" ");
+
 const typeNamespaceFromTypeId = (typeId: VersionedUrl): string => {
   const url = new URL(typeId);
   const domain = url.hostname;
@@ -521,12 +526,7 @@ export const TypesTable: FunctionComponent<{
                 themeOverride,
                 readonly: true,
                 allowOverlay: false,
-                copyData: [
-                  row.title,
-                  row.labelPreview?.map(({ text }) => text).join(""),
-                ]
-                  .filter(Boolean)
-                  .join(" "),
+                copyData: titleCellText(row),
                 cursor: "pointer",
                 data: {
                   kind: "data-type-tree-cell",
@@ -691,13 +691,7 @@ export const TypesTable: FunctionComponent<{
       rows
         .filter(
           (row, rowIndex) =>
-            Boolean(
-              row.labelPreview
-                ?.map(({ text }) => text)
-                .join("")
-                .toLowerCase()
-                .includes(query),
-            ) ||
+            titleCellText(row).toLowerCase().includes(query) ||
             typesTableColumns.some((_column, colIndex) =>
               getCellSearchableText(getCellContent([colIndex, rowIndex]))
                 ?.toLowerCase()

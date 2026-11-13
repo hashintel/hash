@@ -9,7 +9,7 @@ import type {
 const resolveLabel = (
   schema: DataType,
   dataTypes: Record<VersionedUrl, DataTypeWithMetadata>,
-): ValueLabel | null | undefined => {
+): ValueLabel | undefined => {
   let level = [schema];
   const visited = new Set<VersionedUrl>();
 
@@ -25,7 +25,7 @@ const resolveLabel = (
         (label) => label.left === first.left && label.right === first.right,
       )
         ? first
-        : null;
+        : undefined;
     }
 
     const parents: DataType[] = [];
@@ -37,7 +37,7 @@ const resolveLabel = (
         }
         const parent = dataTypes[$ref];
         if (!parent) {
-          return null;
+          return undefined;
         }
         parents.push(parent.schema);
         visited.add($ref);
@@ -105,9 +105,6 @@ export const getDataTypeLabelPreview = (
   dataTypes: Record<VersionedUrl, DataTypeWithMetadata>,
 ): DataTypeLabelPart[] | undefined => {
   const label = resolveLabel(schema, dataTypes);
-  if (label === null) {
-    return undefined;
-  }
 
   let preview: DataTypeLabelPart[];
   if ("anyOf" in schema) {

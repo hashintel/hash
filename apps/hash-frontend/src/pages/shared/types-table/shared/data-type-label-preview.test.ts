@@ -112,6 +112,16 @@ describe("data type label previews", () => {
     expect(
       getDataTypeLabelPreview(child, lookup(parent, child)),
     ).toBeUndefined();
+    expect(
+      getDataTypeLabelPreview(
+        scalar("list", {
+          type: "array",
+          items: { type: "number", label: { right: "m" } },
+          allOf: [{ $ref: id("parent") }],
+        }),
+        {},
+      ),
+    ).toBe("[value m, value m, …]");
   });
 
   it("distinguishes labels on each list item from labels on the list itself", () => {
