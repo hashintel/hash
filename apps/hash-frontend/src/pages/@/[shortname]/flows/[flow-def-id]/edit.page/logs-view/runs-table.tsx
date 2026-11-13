@@ -8,20 +8,20 @@ import {
   formatDuration,
   formatEndTime,
   formatRunTime,
+  getRunDuration,
 } from "../shared/run-times";
 import {
   countRunsByTab,
   defaultRunSort,
   filterRuns,
-  getRunDuration,
   isInTab,
   sortRuns,
 } from "./run-list";
 import { IdCell, StatusCell } from "./runs-table/run-cells";
 import { AddRunFilter, RunFilterBar } from "./runs-table/run-filters";
 
+import type { RunTab } from "../shared/run-state";
 import type { RunFilters, RunRow, RunSort, RunSortKey } from "./run-list";
-import type { RunTab } from "./run-state";
 import type { RunFilterProperty } from "./runs-table/run-filters";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { SortDirection, Sorter } from "@hashintel/ds-components";

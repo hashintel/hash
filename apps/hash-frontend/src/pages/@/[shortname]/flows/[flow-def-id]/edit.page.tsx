@@ -34,6 +34,7 @@ import { generateRunViewPath, parseRunParam } from "./edit.page/run-path";
 import { RunView } from "./edit.page/run-view";
 import { findStep } from "./edit.page/shared/find-step";
 import { sidePanelWidth } from "./edit.page/shared/side-panel";
+import { useFlowRuns } from "./edit.page/shared/use-flow-runs";
 import { StepPanel } from "./edit.page/step-panel";
 import { TopBar } from "./edit.page/top-bar";
 import {
@@ -278,6 +279,11 @@ const FlowEditor = ({
   const getRunPath = (flowRunEntityId: EntityId) =>
     generateRunViewPath({ shortname, flowDefinitionEntityId, flowRunEntityId });
 
+  /* As a run in Logs opens, so Back returns to the run shown before. */
+  const openRun = (flowRunEntityId: EntityId) => {
+    void router.push(getRunPath(flowRunEntityId), undefined, { shallow: true });
+  };
+
   /* A run starts the flow as saved, so the edits not saved yet are saved first. */
   const runFlow = async (flowInputs: FlowInputValues) => {
     if (!(await flush())) {
@@ -335,6 +341,10 @@ const FlowEditor = ({
     view === "logs"
       ? parseRunParam(router.query.run, flowDefinitionEntityId)
       : null;
+  /* One read of the flow's runs for the Logs table and the run switcher, so they agree. */
+  const { flowRuns, retry: retryFlowRuns } = useFlowRuns(
+    view === "logs" ? flowDefinitionEntityId : null,
+  );
   const showView = (nextView: FlowEditorView) => {
     const editorPath = generateFlowEditorPath({
       shortname,
@@ -364,7 +374,9 @@ const FlowEditor = ({
         flowDefinitionEntityId={flowDefinitionEntityId}
         view={view}
         flowRunEntityId={flowRunEntityId}
+        flowRuns={flowRuns}
         onViewChange={showView}
+        onOpenRun={openRun}
         onRename={editor.setName}
         saveStatus={status}
         saveRefusedReason={saveRefusedReason}
@@ -387,7 +399,8 @@ const FlowEditor = ({
           />
         ) : (
           <LogsView
-            flowDefinitionEntityId={flowDefinitionEntityId}
+            flowRuns={flowRuns}
+            onRetry={retryFlowRuns}
             getRunPath={getRunPath}
           />
         )

@@ -5,10 +5,10 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { useSnackbar } from "../../../../../../../../components/hooks/use-snackbar";
 import { Link } from "../../../../../../../../shared/ui/link";
 import { shortRunIdFont } from "../../shared/run-id";
-import { runStates } from "../run-state";
+import { runStates } from "../../shared/run-state";
 
+import type { RunState } from "../../shared/run-state";
 import type { RunRow } from "../run-list";
-import type { RunState } from "../run-state";
 import type { IconName } from "@hashintel/ds-components";
 
 const idCell = css({ display: "flex", alignItems: "center", gap: "1" });
