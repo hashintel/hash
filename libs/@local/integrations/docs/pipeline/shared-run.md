@@ -626,7 +626,7 @@ pub(crate) async fn finish<T: Serialize + DeserializeOwned>(
 }
 ```
 
-Two attempts that produce equal outputs encode equal bytes, because every map in an output is a `BTreeMap`, and they publish one artifact.
+Two attempts that produce equal outputs encode equal marker bytes, because every map in an output is a `BTreeMap`, and they publish one marker-body artifact. Equivalent Parquet tables can have different artifact references and therefore different marker bodies (CR-3). The binding still selects one complete output: the losing attempt returns the winning marker and all downstream stages read its references.
 
 Errors of both functions: `storage_unavailable`, `storage_mismatch`, `scratch_unavailable`, `stored_json_invalid`.
 
@@ -693,7 +693,7 @@ The contract "Tables as files" fixes the Arrow types and the writer settings. Th
 | `UInt64` | `UInt64` | `UInt64Array` | `UBIGINT` |
 | `Boolean` | `Boolean` | `BooleanArray` | `BOOLEAN` |
 
-How a `RowFile` writes. Every rule depends only on the columns and on the rows pushed, in order, so every attempt that pushes the same rows writes the same bytes:
+How a `RowFile` writes. These settings bound memory and control IO; they do not define file-byte identity. A writer must preserve the schema and push order, while record-batch and row-group boundaries may change between attempts (CR-3):
 
 - **Record batches.** The pushed rows wait in `pending`. `RowFile` writes them as one record batch when `pending` holds 1,024 rows or 8 MiB of cell text, whichever comes first. The cell text of a row is the sum of the byte lengths of its `Cell::Text` values. `close` writes the rows that are left as the last record batch.
 - **Row groups.** A row group ends after 65,536 rows. After each record batch, `RowFile` also ends the row group when `ArrowWriter::in_progress_size` is at least 8 MiB.
@@ -785,7 +785,7 @@ impl RowFile {
 
 - `create`, `push` and `close` do file IO on the calling thread. A stage that pushes more than one batch of rows calls them inside `tokio::task::spawn_blocking`, as the REST reader does for `Spool` (`engine/src/sources/rest.rs:161-166`).
 - For a file without rows, `SourceCapture::rows` is 0, and `load_capture` creates the table with the columns and no rows. The REST reader relies on the same behaviour (test `empty_response_preserves_key_schema`, `engine/src/sources/rest.rs:673`).
-- The stage 3 case "the same `changes` file planned twice" depends on the rule that the same rows give the same bytes.
+- The stage 3 case "the same `changes` file planned twice" compares decoded schemas and ordered rows, including exact request JSON. File bytes, sizes and artifact references need not match. The memory limits and blocking-IO rules above still apply.
 
 Errors: `create` returns `row_invalid` or `scratch_unavailable`. `push` returns `row_invalid` or `scratch_unavailable`. `close` returns `scratch_unavailable`. `store` returns those of `close`, and `storage_unavailable` or `storage_mismatch`.
 
@@ -1384,7 +1384,7 @@ The tests `bound_returns_the_bound_reference` (`:120`) and `bind_keeps_the_first
 
 ### 7.4 `finished` and `finish` (`tests/marker.rs`)
 
-The tests use `#[derive(Serialize, Deserialize, PartialEq, Debug)] struct Output { rows: u64 }` and the key `context.namespace.diff_output(run a1)`.
+The tests use `#[derive(Serialize, Deserialize, PartialEq, Debug)] struct Output { rows: u64 }` and the key `context.namespace.diff_output(run a1)`. `finish_equivalent_tables` instead uses an output with an `ArtifactRef` field so that the marker selects a complete file reference.
 
 | Test | Input | Expected |
 | --- | --- | --- |
@@ -1392,6 +1392,7 @@ The tests use `#[derive(Serialize, Deserialize, PartialEq, Debug)] struct Output
 | `finish_stores_body` | `finish` with `Output { rows: 2 }` | It returns `Output { rows: 2 }`. `bound(key)` returns a reference with the key `{ROOT}/artifacts/sha256/19/19b98918aa59c26ee086d8a818e64fded188be8b6e213ac21eea6ec19fa3bc00.json`, size 10 and format `Json`. The stored file holds `{"rows":2}`. `finished` returns `Some(Output { rows: 2 })`. |
 | `finish_keeps_first` | `finish` with `rows: 2`, then `finish` with `rows: 3` through a second context on the same directory | The second call returns `Output { rows: 2 }`, and `finished` returns the same. |
 | `finish_concurrent` | `tokio::join!` of two `finish` calls with `rows: 2` and `rows: 3` | Both return the same value, and `finished` returns it. |
+| `finish_equivalent_tables` | Two Parquet files with equal schemas and ordered rows but different row-group layouts and artifact references; concurrent `finish` calls whose outputs reference those files | Both calls return the same winning output. `finished` returns that output, and fetching its reference reads the expected rows. The losing file cannot replace the winning reference. |
 | `finish_removes_scratch_file` | `finish` with `rows: 2` | The top level of `scratch` holds no `.json` file. |
 | `finished_invalid_body` | A JSON artifact `{"rows":"two"}` bound at the key | `stored_json_invalid`, `Permanent` |
 | `finished_missing_body` | A marker written with `finish`, then the artifact file deleted from `{directory}/artifacts` and `scratch` emptied | `storage_unavailable`, `Retryable` |
@@ -1406,14 +1407,14 @@ Each test opens workspaces with `context.open_workspace(Variables::default())`.
 | --- | --- | --- |
 | `store_query_round_trip` | `SELECT * FROM (VALUES (1::UBIGINT, 'a'), (2, NULL)) AS t(id, label) ORDER BY id`, stored, then loaded into table `loaded` of a second workspace | The reference has format `Parquet`. `SELECT * FROM loaded ORDER BY id` returns `(1, 'a')` and `(2, NULL)`. The top level of `scratch` holds no `.parquet` file after `store_query`. |
 | `store_query_no_rows` | `SELECT 1::UBIGINT AS id, 'x' AS label WHERE false` | The loaded table has the columns `id` `UBIGINT` and `label` `VARCHAR`, read from `information_schema.columns`, and `count(*)` is 0. |
-| `store_query_same_rows` | The query of `store_query_round_trip`, stored twice from two workspaces | The two references are equal. |
+| `store_query_same_rows` | The query of `store_query_round_trip`, stored twice from two workspaces | The decoded schemas and ordered rows are equal. The artifact references need not be equal. |
 | `store_query_missing_table` | `SELECT * FROM missing` | `query_invalid`, `Permanent`. The top level of `scratch` holds no `.parquet` file. |
 | `load_table_replaces` | Two files loaded into the same table name, the second with other columns | The table has the columns and rows of the second file. |
 | `load_table_missing_artifact` | A stored file whose object is deleted from `{directory}/artifacts` | `storage_unavailable`, `Retryable` |
 | `row_file_types` | Columns `a` `Text`, `b` `Text` nullable, `c` `UInt16` nullable, `d` `UInt32`, `e` `UInt64`, `f` `Boolean`; rows `("x", Null, UInt(65535), UInt(4294967295), UInt(18446744073709551615), true)` and `("", Text("y"), Null, UInt(0), UInt(0), false)`; closed and loaded | The DuckDB types are `VARCHAR`, `VARCHAR`, `USMALLINT`, `UINTEGER`, `UBIGINT`, `BOOLEAN`. The rows read back equal, in push order. `SourceCapture::rows` is 2. |
 | `row_file_no_rows` | The columns of `row_file_types`, closed without a row | `SourceCapture::rows` is 0. The loaded table has the six columns and no rows. |
 | `row_file_batch_boundaries` | One `UInt64` column with 1,023, 1,024, 1,025 and 70,000 rows that hold 0, 1, 2 and so on | `SourceCapture::rows` equals the count, and `sum` of the column equals `n * (n - 1) / 2`. The file with 70,000 rows has two row groups of 65,536 and 4,464 rows. |
-| `row_file_same_rows` | The rows of `row_file_types`, stored twice | The two references are equal. |
+| `row_file_same_rows` | The rows of `row_file_types`, stored twice | The decoded schemas and rows in push order are equal. File bytes, sizes and artifact hashes need not match. |
 | `row_file_invalid_row` | One case each: five cells for six columns; `Null` in `a`; `Text` in `d`; `Boolean` in `a`; `UInt(65536)` in `c`; `UInt(4294967296)` in `d` | `row_invalid`, `Permanent`. A later `close` writes the rows pushed before. |
 | `row_file_invalid_columns` | No column; two columns named `a` | `row_invalid`, `Permanent` |
 | `row_file_dropped` | A `RowFile` with one row, dropped | `scratch` holds no file. |

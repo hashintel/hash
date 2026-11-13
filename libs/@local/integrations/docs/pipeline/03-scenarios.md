@@ -43,13 +43,14 @@ The UUIDs are UUID v5 values under the namespace UUID `d6e2c7a1-f84b-4e3a-9c0d-5
 | `L2-SEXXX-ESSA` | `abe0b07a-580f-5a18-81ec-5886fec9b2ac` | `based-at/v/1` | `aircraft/v/2` `SE-XXX` to `airfield/v/1` `ESSA` |
 | `L2-N100-ESSA` | `f2142c0e-36fb-598e-8f88-8b8079a48daf` | `based-at/v/1` | `aircraft/v/2` `N100` to `airfield/v/1` `ESSA` |
 
-The rows of each group are listed in the order of their UUIDs, which is the order of `entity_id` in every file. The derivation was checked against the labs vector `conn-a`, `material/v/1`, `M-0001`, which gives `fdb92954-9bd5-5558-ae43-40437c693f27`.
+The table above fixes the entity IDs used below. Each checkpoint file follows its own ordering contract: `writes` uses operation, first request, target, then entity ID. For D0, `sink-aircraft` precedes `sink-airfields`, even when an airfield UUID sorts before an aircraft UUID. The derivation was checked against the labs vector `conn-a`, `material/v/1`, `M-0001`, which gives `fdb92954-9bd5-5558-ae43-40437c693f27`.
 
 ### What a test compares
 
 - **Entity IDs** are compared with the UUIDs above.
 - **Content hashes** are compared with each other: a test asserts that a hash equals, or differs from, the hash of the same entity in another run. The literal value of a hash is asserted only in the hash vector test of step 3.
 - **Request bodies** of stage 3 are compared with a snapshot.
+- **Parquet tables** are compared by decoded schema and ordered rows, including exact request JSON. Equivalent files need not have the same bytes, size or sha256. A retry that reuses an existing marker still returns its exact artifact references.
 - **Capture times.** Run 1 of a scenario is captured at `2026-11-06T12:00:00Z`, and each later run one hour after the run before it. A restore to a run and a reconcile use the capture time of the run whose captures they adopt.
 - **Graph state** is read from the fake after each run: for every entity whether it exists, whether it is archived, its property object, and its edition count. The fake raises the edition count only when a patch changes the entity.
 
@@ -74,9 +75,9 @@ Every scenario runs against the fake Graph in the engine's tests. S1, S2, S3 and
 | `seq` | `batch` | `operation` | `change` | Entity |
 | --- | --- | --- | --- | --- |
 | 0 | 0 | `upsert_entity` | `insert` | `AC-SEXXX` |
-| 1 | 0 | `upsert_entity` | `insert` | `AF-ESSB` |
-| 2 | 0 | `upsert_entity` | `insert` | `AF-ESSA` |
-| 3 | 0 | `upsert_entity` | `insert` | `AC-N100` |
+| 1 | 0 | `upsert_entity` | `insert` | `AC-N100` |
+| 2 | 0 | `upsert_entity` | `insert` | `AF-ESSB` |
+| 3 | 0 | `upsert_entity` | `insert` | `AF-ESSA` |
 | 4 | 1 | `upsert_link` | `insert` | `L-N100-ESSA` |
 | 5 | 1 | `upsert_link` | `insert` | `L-SEXXX-ESSA` |
 
@@ -301,7 +302,7 @@ The fake answers the first two requests of run 2 and is unreachable after that.
 - `changes`: `entity/sink-airfields` has `AF-ESSB` with `update`; `entity/sink-aircraft` has `AC-N100` with `update`.
 - `archives`: `AF-ESGG`.
 - `hashes`: seven rows. `AF-ESGG` has `live = false`. The other six have run 1's hashes.
-- `writes`: `upsert_entity` `update` `AF-ESSB` and `AC-N100` in batch 0, then `archive_entity` `AF-ESGG` in batch 1.
+- `writes`: `upsert_entity` `update` `AC-N100` and `AF-ESSB` in batch 0, then `archive_entity` `AF-ESGG` in batch 1.
 - Every request carries run 1's `captured_at` as `loadedAt`.
 - Graph: the six entities of run 1 exist with run 1's values, and `AF-ESGG` is archived.
 
@@ -311,7 +312,7 @@ The fake answers the first two requests of run 2 and is unreachable after that.
 - `archives`: the four live entities and the two live links.
 - `hashes`: seven rows, all `live = false`.
 - `DiffOutput::targets`: `entity/sink-airfields`, `entity/sink-aircraft` and `link/aircraft-based-at`, each with `archived` 2 and no `changes` file. The run has no definition, so all three come from the `archives` file.
-- `writes`: two `archive_link` rows in batch 0, four `archive_entity` rows in batch 1.
+- `writes`: `L-N100-ESSA`, `L-SEXXX-ESSA` as `archive_link` in batch 0, then `AC-SEXXX`, `AC-N100`, `AF-ESSB`, `AF-ESSA` as `archive_entity` in batch 1. Target order comes from the archive records; no definition is needed.
 
 ## S9: a reconcile
 
@@ -329,7 +330,7 @@ After run 1 the test changes the Graph directly: it archives `AC-N100` and sets 
 - `RunInput`: `operation` `Reconcile { target: 1 }`.
 - `changes`: all six rows, each `resend`.
 - `hashes`: equal to run 1's.
-- `writes`: four `upsert_entity` `resend` rows in batch 0, two `upsert_link` `resend` rows in batch 1.
+- `writes`: `AC-SEXXX`, `AC-N100`, `AF-ESSB`, `AF-ESSA` as `upsert_entity` `resend` in batch 0, then `L-N100-ESSA`, `L-SEXXX-ESSA` as `upsert_link` `resend` in batch 1.
 - Requests: two bulk patches.
 - Graph: `AC-N100` is not archived and `AF-ESSA` has the name `Arlanda`; each has one more edition. The other four have no new edition.
 
@@ -382,7 +383,7 @@ These cases need no sequence of runs. Each stage spec lists them with its unit t
 | 2 | A link with a measure property whose unit changes | The link's hash changes |
 | 3 | First-request bodies above 1,500,000 bytes, or more than 128 writes | A new batch starts |
 | 3 | A value that cannot be converted | The write has no such property; one `property_unconverted` issue |
-| 3 | The same `changes` file planned twice | The same `writes` file, byte for byte |
+| 3 | The same planning inputs and engine build, planned twice | Equal schemas and ordered rows in `writes` and `issues`, including exact request JSON; Parquet bytes may differ |
 | 4 | Create answers 409, then patch answers 404 | Rejected with `not_found_after_conflict` |
 | 4 | A single write answers 499 | Sent again; the stage fails as retryable after `max_attempts` |
 | 4 | A single write answers 500 `max_attempts` times | Rejected with `graph_status` |

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Stage 3 reads the changed rows and the archives of checkpoint 2 and writes checkpoint 3: the `writes` file with one row per entity ID in send order, the `issues` file, and the marker `plan/_done.json`. Each upsert row holds the create body and the patch body of its entity, and each archive row holds the archive body. The patch body replaces the whole property object (P7), every body carries the same edition provenance (P14), and entity IDs are read from the `changes` files (A2). The same checkpoint 2 gives the same `writes` file, byte for byte.
+Stage 3 reads the changed rows and the archives of checkpoint 2 and writes checkpoint 3: the `writes` file with one row per entity ID in send order, the `issues` file, and the marker `plan/_done.json`. Each upsert row holds the create body and the patch body of its entity, and each archive row holds the archive body. The patch body replaces the whole property object (P7), every body carries the same edition provenance (P14), and entity IDs are read from the `changes` files (A2). The same planning inputs and engine build give the same schema and ordered rows, including exact request JSON; the Parquet bytes may differ (CR-3).
 
 This spec implements [`01-contracts.md`](01-contracts.md) and refers to its sections by title. [`shared-run.md`](shared-run.md) specifies the code in `engine/src/run/`, and this spec uses its names. Decision IDs are those of [`00-overview.md`](00-overview.md).
 
@@ -26,7 +26,7 @@ Paths are relative to `libs/@local/integrations/` unless they start with `libs/`
 | `provenance.rs` | `run_provenance`, which builds the edition provenance of the run. | `pub(super)` |
 | `target.rs` | `PlanTarget`, `Mapping`, and `plan_targets`, which finds the sink or link pipeline of each target that has a `changes` file. | `pub(super)` |
 | `rows.rs` | `RANGE_ROWS`, the names of the engine columns, `read_range`, `ChangePage`, `ChangeRow`, `ChangeCursor`, `parse_entity_id`. | `pub(super)` |
-| `upsert.rs` | `plan_upserts`, which merges the cursors of one group, and `plan_row`, which plans one row. | `plan_upserts` is `pub(super)`. `plan_row` and `smallest` are private. |
+| `upsert.rs` | `plan_upserts`, which reads one target at a time within a group, and `plan_row`, which plans one row. | `plan_upserts` is `pub(super)`. `plan_row` is private. |
 | `archive.rs` | `number_archives` and `plan_archives`. | `pub(super)` |
 | `buffer.rs` | `BufferedFile`, which pushes rows to a `RowFile` on a blocking thread. | `pub(super)` |
 | `write.rs` | `FirstRequest`, `Group`, `Write`, `Batcher`, `WriteFile`, `StoredWrites`, and the batch limits. | `pub(super)` |
@@ -408,19 +408,21 @@ Every upsert row holds both bodies, because stage 4 sends the other one when the
 
 ### Order
 
-The contracts order `writes` by operation, then first request, then `entity_id`. Stage 3 writes the six groups one after another. Inside a group it obtains the order by `entity_id` like this:
+The contracts order `writes` by operation, then first request, then target, then `entity_id`. Stage 3 writes the six groups one after another. Inside a group it obtains that order like this:
 
 - Each `changes` file is ordered by `_entity_id`, and `_row` follows that order. A cursor reads one target's table in `_row` order and returns only the rows of the group.
-- Several targets feed one group. `plan_upserts` opens one cursor per target of the group's kind and always takes the row with the smallest `_entity_id` among the cursors' next rows. The comparison is the byte order of the text. Within one web that is the order of the UUIDs.
-- An archive group has one source, the numbered archive table of its kind, which `number_archives` orders by `entity_id`.
+- `plan_upserts` visits targets of the group's kind in target-ID byte order, as returned by `plan_targets`, and consumes one cursor completely before opening the next. Entity IDs must increase within each target's group; they need not increase across target boundaries. Stage 2 checks entity-ID uniqueness across targets.
+- An archive group has one source, the numbered archive table of its kind, which `number_archives` orders by `target`, then `entity_id`. This uses the target stored in the archive record, even if it has left the definition. The checkpoint 2 `archives` file keeps its existing order by kind and entity ID.
 
-Stage 3 holds in memory one range per cursor of the current group, one row being planned, and the rows that `BufferedFile` and `RowFile` hold before they write them: at most 1,024 rows or 8 MiB of cell text each. The number of writes of the run does not change that.
+Stage 3 holds in memory one range for the current target, one row being planned, and the bounded buffers of `BufferedFile` and `RowFile`. Each pending-row buffer flushes at 1,024 rows or 8 MiB of cell text; one large row can exceed the byte threshold. The number of targets no longer multiplies the number of ranges held in memory.
 
 ### Batches
 
 `Batcher::assign` applies the contracts' batch rules to the writes in `seq` order. A write joins the open batch when it has the same group, the batch has fewer than 128 writes, and the batch's bytes plus the byte length of the write's first-request body are at most 1,500,000. Otherwise a new batch starts with the next number.
 
 A bulk request is `[`, the bodies joined by `,`, and `]`. A batch of 128 bodies with 1,500,000 bytes gives a request of 1,500,129 bytes, which is below the Graph's limit of 2,097,152 bytes.
+
+A target boundary does not start a new batch. `Batcher` is shared across all targets of the group.
 
 ### Bodies above the limits
 
@@ -429,7 +431,7 @@ A bulk request is `[`, the bodies joined by `,`, and `]`. A batch of 128 bodies 
 
 ### Determinism
 
-The bytes of `writes` and `issues` depend only on checkpoint 2, `RunInput::connector`, `RunInput::definition`, `CaptureOutput::captured_at` and the compiled engine. Each source of difference between two attempts is removed as follows:
+The schemas and ordered rows of `writes` and `issues`, including the text of every request body, depend only on checkpoint 2, `RunInput::connector`, `RunInput::definition`, `CaptureOutput::captured_at` and the compiled engine. Parquet encoding is not part of this guarantee (CR-3). Each source of difference in the rows is handled as follows:
 
 | Source | How it is removed |
 | --- | --- |
@@ -438,15 +440,15 @@ The bytes of `writes` and `issues` depend only on checkpoint 2, `RunInput::conne
 | The text of a number. | `Real` serializes as an `f64` (`libs/@local/codec/rust/src/numeric/real.rs:383-387`), and `serde_json` prints the shortest text that reads back as the same `f64`. |
 | The time. | Stage 3 reads no clock. `loadedAt` is `CaptureOutput::captured_at`. |
 | The order DuckDB returns rows in. | Every range query ends with `ORDER BY "_row"`. |
-| The order targets are visited in. | `DiffOutput::targets` is a `BTreeMap`, and the merge picks rows by `_entity_id`. Two targets never hold the same entity ID, because stage 2 fails on a duplicate. |
+| The order targets are visited in. | `DiffOutput::targets` is a `BTreeMap`; within each kind its target IDs are in byte order. `plan_upserts` consumes each target in that order. Archives are numbered by target and entity ID. Two targets never hold the same entity ID, because stage 2 fails on a duplicate. |
 | The order of the failures of one row. | `Properties` is a `BTreeMap` (`definition/src/step.rs:105`), and `SinkRow::resolve` visits it in key order. |
 | The order of `issues` rows. | An issue row is written when its write is planned, so `issues` follows `seq`. |
 | Iteration of `SinkColumns`, a `HashMap` (`engine/src/graph/property/mod.rs:41`). | It is used for lookups only. |
 | Batch numbers. | They are a function of the order and the body lengths. |
 | Random names: the database file and the Parquet files in the scratch directory. | None of them is written to a stored file. |
-| The Parquet writer. | The contracts' "Tables as files" fix the Arrow types and the writer settings of `RowFile`, and `shared-run.md` section 4.7 fixes its record batches: one per 1,024 rows or 8 MiB of cell text. Two `RowFile` values with the same columns and the same rows in the same order write the same bytes. `BufferedFile` pushes the rows in the order it received them, so its own buffer has no effect on the file. |
+| The Parquet writer. | The schema and row order are preserved. Record-batch boundaries, row-group boundaries and writer metadata may change the file bytes without changing its rows. Tests compare decoded schemas and ordered rows, including the exact JSON strings. |
 
-Two builds with different versions of `serde_json`, `parquet` or the type system can give different bytes for the same checkpoint 2. `finish` then returns the marker of the attempt that finished first, and stage 4 reads that attempt's file.
+Different Parquet encodings may have different sizes and sha256 values. Two engine builds can also produce different request text. In either case `finish` returns the marker of the attempt that finished first, and stage 4 reads that attempt's file and sends its exact stored bodies. File hashes still verify artifact integrity; they are not a comparison of logical table contents across attempts.
 
 ### Property issues
 
@@ -757,44 +759,41 @@ pub(super) async fn plan_upserts(
 ) -> Result<(), Report<StageError>>
 ```
 
-1. Open one cursor for each target of `kind`.
-2. Fill every cursor.
-3. Find the cursor whose next row has the smallest `_entity_id` with `smallest`. Stop when no cursor has a row.
-4. Require that the `_entity_id` is greater than the last one written in this group.
+1. Visit the targets of `kind` in the order returned by `plan_targets`.
+2. Open one cursor for the current target and reset the previous entity ID.
+3. Fill that cursor. When it has no row left, continue with the next target.
+4. Require that the `_entity_id` is greater than the last one written for this target in this group.
 5. Plan the row with `plan_row`, push the write, and push one issue per failure.
-6. Advance that cursor and continue with step 2.
+6. Advance the cursor and continue with step 3.
 
 ```rust
-let mut cursors = Vec::new();
 for target in targets.iter().filter(|target| target.target.kind() == kind) {
-    cursors.push(ChangeCursor::open(workspace, target, first).await?);
-}
-let mut previous = String::new();
-loop {
-    for cursor in &mut cursors {
+    let mut cursor = ChangeCursor::open(workspace, target, first).await?;
+    let mut previous = String::new();
+    loop {
         cursor.fill(workspace).await?;
+        let Some(row) = cursor.row()? else { break };
+        if row.entity_id <= previous.as_str() {
+            return Err(Code::InvalidCheckpoint.report());
+        }
+        let (write, failures) = plan_row(planner, target, &row)?;
+        for failure in &failures {
+            issues.push(target.target, &row, failure).await?;
+        }
+        writes.push(write).await?;
+        previous.clear();
+        previous.push_str(row.entity_id);
+        cursor.advance();
     }
-    let Some((index, target, row)) = smallest(&cursors)? else { break };
-    if row.entity_id <= previous.as_str() {
-        return Err(Code::InvalidCheckpoint.report());
-    }
-    let (write, failures) = plan_row(planner, target, &row)?;
-    for failure in &failures {
-        issues.push(target.target, &row, failure).await?;
-    }
-    writes.push(write).await?;
-    previous.clear();
-    previous.push_str(row.entity_id);
-    cursors[index].advance();
 }
 Ok(())
 ```
 
-`smallest` is a private function with the signature `fn smallest<'cursors>(cursors: &'cursors [ChangeCursor<'_>]) -> Result<Option<(usize, &'cursors PlanTarget<'cursors>, ChangeRow<'cursors>)>, Report<StageError>>`. It calls `ChangeCursor::row` on every cursor and returns the index, the target and the row of the cursor whose next `_entity_id` is the smallest. It is a linear pass, because a definition has few targets.
+Only the current target has an open cursor. There is no merge across targets and no check that entity IDs increase across target boundaries.
 
 | Error | Code |
 | --- | --- |
-| An `_entity_id` is not greater than the one before it in the group. The file is not ordered, or two targets hold the same entity ID. | `invalid_checkpoint` |
+| An `_entity_id` is not greater than the one before it for this target in the group. The target's file is not ordered or repeats an entity ID. | `invalid_checkpoint` |
 
 ### `plan_row`, `stage/plan/upsert.rs`
 
@@ -830,7 +829,7 @@ pub(super) async fn plan_archives(
 The `archives` file has no `_row` column. `number_archives` creates one numbered table per kind with `Workspace::create_table` (`engine/src/workspace/mod.rs:404`), named `archives/link` and `archives/entity`, and maps its error with `error::statement`:
 
 ```sql
-SELECT CAST(row_number() OVER (ORDER BY "entity_id") - 1 AS UBIGINT) AS "_row",
+SELECT CAST(row_number() OVER (ORDER BY "target", "entity_id") - 1 AS UBIGINT) AS "_row",
        "entity_id", "target", "source_id"
 FROM "archives"
 WHERE "kind" = 'link'
@@ -919,6 +918,8 @@ async fn flush(&mut self) -> Result<(), Report<StageError>>
 ```
 
 `RowFile::push` does file IO on the calling thread, and `shared-run.md` section 4.7 has a stage that pushes more than one batch of rows call it inside `tokio::task::spawn_blocking`. `BufferedFile` does that for `writes` and `issues`.
+
+This buffer remains to bound memory and move blocking IO off the async executor. CR-3 removes the requirement to reproduce Parquet bytes, not these responsibilities. Its flush thresholds need not match `RowFile`'s, and changing them must preserve the schema and ordered rows, including exact request JSON.
 
 - `create` calls `RowFile::create`. It runs on the calling thread, because it borrows the `RunContext` and creates one empty file.
 - `push` adds the row to `rows`, adds the byte length of its `Cell::Text` values to `bytes`, and calls `flush` when `rows` holds `BUFFER_ROWS` rows or `bytes` is at least `BUFFER_BYTES`.
@@ -1333,7 +1334,8 @@ Each test stores its files with the fixtures, calls `plan`, and reads the result
 
 | Test | Input | Expected |
 | --- | --- | --- |
-| `order_across_targets` | The two sinks of the aviation definition. Target A is `entity/sink-aircraft` and has the rows `W~…0001` `insert`, `W~…0003` `update`, `W~…0004` `insert`. Target B is `entity/sink-airfields` and has `W~…0002` `insert`, `W~…0005` `resend`. `…000n` stands for `00000000-0000-4000-8000-00000000000n`. | `writes` has, in `seq` order: `…0001` (A, batch 0), `…0002` (B, batch 0), `…0004` (A, batch 0), `…0003` (A, batch 1), `…0005` (B, batch 1). `batches` is 2. |
+| `order_across_targets` | The two sinks of the aviation definition. Target A is `entity/sink-aircraft` and has the rows `W~…0001` `insert`, `W~…0003` `update`, `W~…0004` `insert`. Target B is `entity/sink-airfields` and has `W~…0002` `insert`, `W~…0005` `resend`. `…000n` stands for `00000000-0000-4000-8000-00000000000n`. | `writes` has, in `seq` order: `…0001` (A, batch 0), `…0004` (A, batch 0), `…0002` (B, batch 0), `…0003` (A, batch 1), `…0005` (B, batch 1). `batches` is 2. |
+| `archives_across_targets` | No definition. The `archives` file contains entity `W~…0001` for `sink-airfields` and entity `W~…0002` for `sink-aircraft`, in entity-ID order. | Writes are `…0002` then `…0001`, both `archive_entity` in batch 0. Target order applies even though the targets are absent from the definition. |
 | `ranges` | One aircraft `changes` file of 4,100 rows from `range(4100)`: `_row` is the number, `_entity_id` is `W~00000000-0000-4000-8000-` followed by the number padded to 12 digits, `_change` is `insert` for an even number and `update` for an odd one. | 4,100 rows with `seq` 0 to 4,099. The first 2,050 are the even numbers in ascending order with `change` `insert`, the next 2,050 the odd numbers with `update`. `batches` is 34: 17 for each group. `counts` has `upsert_entity` 4,100. |
 | `batch_cut_at_128_rows` (scenario case) | One `changes` file with 129 `insert` rows. | Rows 0 to 127 have `batch` 0. Row 128 has `batch` 1. |
 | `batch_cut_at_bytes_rows` (scenario case) | Three aircraft `insert` rows whose `MODEL` is `repeat('x', 700000)`. | Each create body is longer than 700,000 bytes. The rows have `batch` 0, 0, 1. |
@@ -1342,8 +1344,8 @@ Each test stores its files with the fixtures, calls `plan`, and reads the result
 | `issue_without_key` | The same row in a file without a `_key` column. | The issue row has a null `key`. |
 | `blank_value` | One aircraft row with `EMPTY_MASS` `''`. | The bodies have no `empty-mass`. `issues` has no row. |
 | `typed_columns` | One aircraft `changes` file whose `EMPTY_MASS` is `DECIMAL(10,2)` with the value `8030.00` and whose `FIRST_FLIGHT` is `DATE`. | The bodies hold `8030.0` with the kilogram data type and `"1946-04-02"`. |
-| `archives_only` | No target, an `archives` file with two entity rows and one link row, and `input.definition` `None`. | Three rows: the link with `archive_link` in batch 0, then the two entities with `archive_entity` in batch 1, ordered by `entity_id`. `create` is null. `patch` equals `ARCHIVE(id)`. `left_entity_id` and `right_entity_id` are null. |
-| `deterministic` (scenario case) | The checkpoint 2 of S5 run 2, planned twice with two run IDs and two `RunContext` values. | Both `PlanOutput::writes` have the same `sha256` and `size`. The same holds for `issues`. |
+| `archives_only` | No target, an `archives` file with two entity rows and one link row, and `input.definition` `None`. | Three rows: the link with `archive_link` in batch 0, then the two entities with `archive_entity` in batch 1, ordered by target, then entity ID. `create` is null. `patch` equals `ARCHIVE(id)`. `left_entity_id` and `right_entity_id` are null. |
+| `deterministic` (scenario case) | The checkpoint 2 of S5 run 2, planned twice with two run IDs and two `RunContext` values. | Decode both `writes` files and compare their schemas and all rows in order, including exact JSON text, `seq` and `batch`. Do the same for `issues`; compare `PlanOutput::counts` and `batches`. Do not require equal Parquet bytes, sizes or sha256 values. |
 | `runs_twice` (scenario case) | `plan` called twice with the same input. Before the second call the `changes` files are deleted from the local storage directory. | The second call returns a `PlanOutput` equal to the first. |
 | `empty_run` | No target has `changes`, and `archives` has no row. | `batches` 0, every count 0, `writes` and `issues` have no row. |
 | `unordered_changes` | A `changes` file whose `_entity_id` values descend while `_row` ascends. | `invalid_checkpoint`. No `plan/_done.json` exists. |
@@ -1379,7 +1381,7 @@ The rows of each run, as `seq`: entity (`change`, batch):
 
 | Run | `loadedAt` hour | Rows of `writes` | Bodies that differ from the base | `batches` | `counts` |
 | --- | --- | --- | --- | --- | --- |
-| S1 run 1, S6 run 1, S7 run 1, S8 run 1, S9 run 1 | 12:00 | 0: `AC-SEXXX` (`insert`, 0). 1: `AF-ESSB` (`insert`, 0). 2: `AF-ESSA` (`insert`, 0). 3: `AC-N100` (`insert`, 0). 4: `L-N100-ESSA` (`insert`, 1). 5: `L-SEXXX-ESSA` (`insert`, 1). | | 2 | 4, 2, 0, 0 |
+| S1 run 1, S6 run 1, S7 run 1, S8 run 1, S9 run 1 | 12:00 | 0: `AC-SEXXX` (`insert`, 0). 1: `AC-N100` (`insert`, 0). 2: `AF-ESSB` (`insert`, 0). 3: `AF-ESSA` (`insert`, 0). 4: `L-N100-ESSA` (`insert`, 1). 5: `L-SEXXX-ESSA` (`insert`, 1). | | 2 | 4, 2, 0, 0 |
 | S2 run 2 | 13:00 | 0: `AC-N100` (`update`, 0). | `model` is `V("L-1049G")`. | 1 | 1, 0, 0, 0 |
 | S2 run 3 | 14:00 | 0: `AC-SEXXX` (`update`, 0). | The property object has `first-flight` and `model` and no `empty-mass`. | 1 | 1, 0, 0, 0 |
 | S3 run 2, S9 run 3 | 13:00 for S3, 14:00 for S9 | 0: `L-N100-ESSA` (`archive`, 0). 1: `AC-N100` (`archive`, 1). | | 2 | 0, 0, 1, 1 |
@@ -1391,9 +1393,9 @@ The rows of each run, as `seq`: entity (`change`, batch):
 | S7 run 2 | 13:00 | 0: `AC-GABCD` (`insert`, 0). 1: `AC-N100` (`update`, 1). 2: `L-GABCD-ESSB` (`insert`, 2). 3: `L-SEXXX-ESSA` (`archive`, 3). 4: `AC-SEXXX` (`archive`, 4). | `model` of `AC-N100` is `V("L-1049G")`. | 5 | 2, 1, 1, 1 |
 | S7 run 3 | 14:00 | 0: `AC-SEXXX` (`resend`, 0). 1: `AC-N100` (`resend`, 0). 2: `L-SEXXX-ESSA` (`resend`, 1). 3: `L-GABCD-ESSB` (`archive`, 2). 4: `AC-GABCD` (`archive`, 3). | | 4 | 2, 1, 1, 1 |
 | S8 run 2 | 13:00 | 0: `AF-ESGG` (`insert`, 0). 1: `AC-N100` (`update`, 1). 2: `AF-ESSB` (`archive`, 2). | `model` of `AC-N100` is `V("L-1049G")`. | 3 | 2, 0, 0, 1 |
-| S8 run 3 | 12:00, the capture time of run 1 | 0: `AF-ESSB` (`update`, 0). 1: `AC-N100` (`update`, 0). 2: `AF-ESGG` (`archive`, 1). | | 2 | 2, 0, 0, 1 |
-| S8 run 4 | 15:00 | 0: `L-N100-ESSA` (`archive`, 0). 1: `L-SEXXX-ESSA` (`archive`, 0). 2: `AC-SEXXX` (`archive`, 1). 3: `AF-ESSB` (`archive`, 1). 4: `AF-ESSA` (`archive`, 1). 5: `AC-N100` (`archive`, 1). | | 2 | 0, 0, 2, 4 |
-| S9 run 2 | 12:00, the capture time of run 1 | 0: `AC-SEXXX` (`resend`, 0). 1: `AF-ESSB` (`resend`, 0). 2: `AF-ESSA` (`resend`, 0). 3: `AC-N100` (`resend`, 0). 4: `L-N100-ESSA` (`resend`, 1). 5: `L-SEXXX-ESSA` (`resend`, 1). | | 2 | 4, 2, 0, 0 |
+| S8 run 3 | 12:00, the capture time of run 1 | 0: `AC-N100` (`update`, 0). 1: `AF-ESSB` (`update`, 0). 2: `AF-ESGG` (`archive`, 1). | | 2 | 2, 0, 0, 1 |
+| S8 run 4 | 15:00 | 0: `L-N100-ESSA` (`archive`, 0). 1: `L-SEXXX-ESSA` (`archive`, 0). 2: `AC-SEXXX` (`archive`, 1). 3: `AC-N100` (`archive`, 1). 4: `AF-ESSB` (`archive`, 1). 5: `AF-ESSA` (`archive`, 1). | | 2 | 0, 0, 2, 4 |
+| S9 run 2 | 12:00, the capture time of run 1 | 0: `AC-SEXXX` (`resend`, 0). 1: `AC-N100` (`resend`, 0). 2: `AF-ESSB` (`resend`, 0). 3: `AF-ESSA` (`resend`, 0). 4: `L-N100-ESSA` (`resend`, 1). 5: `L-SEXXX-ESSA` (`resend`, 1). | | 2 | 4, 2, 0, 0 |
 | S9 run 4 | 14:00, the capture time of run 3 | 0: `AC-SEXXX` (`resend`, 0). 1: `AF-ESSB` (`resend`, 0). 2: `AF-ESSA` (`resend`, 0). 3: `L-SEXXX-ESSA` (`resend`, 1). 4: `L-N100-ESSA` (`archive`, 2). 5: `AC-N100` (`archive`, 3). | | 4 | 3, 1, 1, 1 |
 
 The runs S1 run 2, S3 run 4 and S4 run 2 have no writes. Each gives `batches` 0, every count 0, and a `writes` file without rows, as `empty_run` tests. The `issues` file of stage 3 has no row in every run of every scenario.

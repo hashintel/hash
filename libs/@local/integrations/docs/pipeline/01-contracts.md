@@ -274,7 +274,8 @@ impl RowFile {
 ```
 
 - `Text` is written as Arrow `Utf8`, `UInt16`, `UInt32` and `UInt64` as the Arrow types of the same names, and `Boolean` as `Boolean`.
-- The writer uses Snappy and row groups of 65,536 rows, as the REST reader does, and writes no key-value metadata of its own. The same rows give the same file.
+- The writer uses Snappy and row groups of at most 65,536 rows, as the REST reader does, and writes no key-value metadata of its own. For the same inputs and engine build, a stage produces the same schema and rows in the same order. Parquet bytes, file sizes and artifact hashes need not be equal between attempts (CR-3). Buffer and row-group boundaries are implementation choices subject to memory limits.
+- Each file is still stored and verified by its own sha256. If attempts publish different encodings, `finish` returns the first bound marker, and every later stage reads that marker's files. Request JSON stored in a cell remains deterministic; stage 4 sends that exact text.
 - A file with no rows is a valid Parquet file with the declared columns.
 - A column's type in a stage is the type DuckDB gives it when it reads the Parquet file. Stage 3 reads rows only this way (P9).
 - One type changes on the way through a file: a `HUGEINT` column comes back as `DECIMAL(38,0)`. A value with more than 38 digits fails the load (D17).
@@ -472,9 +473,10 @@ pub struct PlanOutput {
 Rules:
 
 - The file holds one row per entity ID.
-- Rows are ordered by `operation` in the order upsert entity, upsert link, archive link, archive entity, then by first request with creates before patches, then by `entity_id`. `seq` follows that order.
+- Rows are ordered by `operation` in the order upsert entity, upsert link, archive link, archive entity, then by first request with creates before patches, then by `target`, then by `entity_id` (CR-1). Target and entity ID comparisons use byte order of their text. `seq` follows that order. The target order also applies to archives, including targets removed from the definition.
 - The first request of a write is the create when `change` is `insert`, and the patch otherwise.
 - A batch holds writes of one `operation` and one first request. It holds at most 128 writes, and the bodies of its first requests add up to at most 1,500,000 bytes. A body larger than that is alone in its batch.
+- A target boundary does not end a batch; writes from consecutive targets may share one batch under the rules above.
 - `batch` increases with `seq`.
 - A `create` or `patch` value is the exact body of one entity in a request. A bulk request is the JSON array of the bodies of one batch.
 - The next run reads the `entity_id` column of a run that failed while sending.

@@ -1,32 +1,32 @@
 # Integration pipeline: change requests
 
-These are requested changes to the contracts and the six specs. CR-1 to CR-6 are not applied. CR-7 and CR-8 are settled in a reduced form: the contracts and the overview state the limit, and the code change is deferred as D17 and D18 in `00-overview.md`. Each request names what changes, why, which files it touches, and what it needs before it can be applied.
+These are change requests from the review of the contracts and the six specs. CR-1 and CR-3 are approved and applied to the documents below; this does not mean the pipeline is implemented. CR-2, CR-4, CR-5 and CR-6 are deferred. CR-7 and CR-8 are settled in a reduced form: the contracts and the overview state the limits, and the code changes are deferred as D17 and D18 in `00-overview.md`. Query readers still use ranges, UUID generation stays in Rust, and the four-stage pipeline stays intact.
 
-The requests come from a review of the specs against the goal of a small pipeline. The specs describe 209 functions. The requests below remove an estimated 35 to 45 of them.
+The original drafts described 209 functions. The original estimate of 35 to 45 fewer functions covered the full list of requests, not the two approved here. CR-3 retains buffering that bounds memory and keeps blocking IO off the async executor, as agreed in review.
 
-| ID | Request | Needs first | Estimated effect |
+| ID | Request | Status / needs first | Effect |
 | --- | --- | --- | --- |
-| CR-1 | Order `writes` by target inside an operation | Nothing | About 6 functions less in stage 3 |
-| CR-2 | Read query results as a stream | Nothing | About 12 functions and the `_row` column less |
-| CR-3 | Require the same rows, drop byte identity | Nothing | About 6 functions less, simpler `RowFile` |
-| CR-4 | Compute the entity ID in SQL | A decision. Verification A8 holds. | About 12 functions less in stage 2 |
-| CR-5 | Take the rows of a failed run from its `writes` file | Nothing | One download and one table less in stage 2 |
-| CR-6 | Merge error codes that no caller tells apart | Nothing | Fewer variants of `Code` |
+| CR-1 | Order `writes` by target inside an operation | Applied to specs | Removes the cross-target merge and keeps one cursor open |
+| CR-2 | Read query results as a stream | Deferred | About 12 functions and the `_row` column less |
+| CR-3 | Require the same rows, drop byte identity | Applied to specs, retaining memory and IO safeguards | Removes the file-byte equality requirement |
+| CR-4 | Compute the entity ID in SQL | Deferred; UUID generation stays in Rust | About 12 functions less in stage 2 if adopted later |
+| CR-5 | Take the rows of a failed run from its `writes` file | Deferred | One download and one table less in stage 2 |
+| CR-6 | Merge error codes that no caller tells apart | Deferred | Fewer variants of `Code` |
 | CR-7 | State what happens to a `HUGEINT` column | Settled: stated in the contracts, the cast is deferred (D17) | One sentence in the contracts |
 | CR-8 | State what happens to an integer above 2^53 | Settled: recorded as a limit, the check is deferred (D18) | One test case |
 
 ## CR-1: Order `writes` by target inside an operation
 
-**Change.** The contract "`writes`" orders rows by operation, then first request, then `entity_id`. The new order is operation, then first request, then target, then `entity_id`.
+**Applied change.** The contract "`writes`" orders rows by operation, then first request, then target, then `entity_id`. Target and entity ID comparisons use text byte order. This applies to upserts and archives. Operation boundaries and creates-before-patches order stay; changing target alone does not start a new batch.
 
-**Reason.** The Graph needs entities before links and archives last. It does not need an order by entity ID across targets. The current order forces stage 3 to merge one reader per target, because each `changes` file is ordered on its own.
+**Reason.** The Graph needs entities before links and archives last. It does not need an order by entity ID across targets. The former order forced stage 3 to merge one reader per target, because each `changes` file is ordered on its own. Labs at `40a8d14` sorts effects globally (`graph/planner.rs:126-145`) but already executes writes within one operation concurrently (`graph/executor.rs:866-1015`). Its effect-index reader requires global order (`graph/artifacts.rs:924-930`); this change belongs to the replacement `writes` format, not to that existing index.
 
 **Touches.**
 
 - `01-contracts.md`, "`writes`": the order rule.
-- `stage-3-plan.md`: `plan_upserts` handles one target after another. `smallest` and the check that entity IDs rise across targets go.
+- `stage-3-plan.md`: `plan_upserts` handles one target after another. `smallest` and the check that entity IDs rise across targets go. Checks within each target remain. `number_archives` orders by target, then entity ID.
 - `stage-4-send.md`: the expected order of requests in its tests.
-- `03-scenarios.md`: the `writes` tables of S1, S5, S7 and S8, where entities of two sinks share one operation.
+- `03-scenarios.md`: the first-run order used by S1 and the later scenarios, the restore order of S8, and the reconcile order of S9. S5 run 2 and S7 runs 2 and 3 already have at most one target in each group, so their write order stays the same.
 
 **Risk.** None for the Graph. A batch then holds writes of one target more often, which changes nothing in stage 4.
 
@@ -48,18 +48,18 @@ The requests come from a review of the specs against the goal of a small pipelin
 
 ## CR-3: Require the same rows, drop byte identity
 
-**Change.** The contract "Tables as files" says the same rows give the same file. The new rule is that the same input gives the same rows in the same order. Tests compare rows.
+**Applied change.** For the same inputs and engine build, a stage produces the same schema and rows in the same order, including exact request JSON. Tests compare decoded tables. Equal Parquet bytes, sizes and artifact hashes are not required across attempts.
 
-**Reason.** A marker is written only if absent, so the files of the attempt that finishes first are the ones every later stage reads. Two attempts that write different bytes for the same rows cause no error. Byte identity makes `RowFile` flush by row count and by bytes, makes stage 3 buffer around it, and depends on the versions of the `parquet` and `serde_json` crates.
+**Reason.** A marker is written only if absent, so the files of the attempt that finishes first are the ones every later stage reads. Two attempts that write different bytes for the same rows cause no error. Byte identity unnecessarily makes writer settings and library versions part of correctness. Each artifact is still verified against its own sha256, and send retries use the exact bodies of the winning checkpoint.
 
 **Touches.**
 
 - `01-contracts.md`, "Tables as files": the sentence on equal files.
-- `shared-run.md`: `RowFile::write_pending` loses its flush rule. `RowFile` writes batches of a fixed row count.
-- `stage-3-plan.md`: the four functions of `BufferedFile` go. The section "Determinism" keeps the rules for row order and for the key order of JSON, which make the request bodies equal.
+- `shared-run.md`: flush thresholds are memory and IO settings, not byte-identity rules. Table tests compare schemas and ordered rows; marker tests cover equivalent files with different references.
+- `stage-3-plan.md`: "Determinism" keeps row order and exact request JSON. `BufferedFile` and the byte-based flush limits remain for bounded memory and blocking IO; removing them without replacing those responsibilities is not part of this change.
 - `03-scenarios.md`, "Cases tested per stage": "the same `writes` file, byte for byte" becomes "the same rows".
 
-**Risk.** None found. `sorted_json` stays, so a request body is still the same text in every attempt.
+**Tradeoff.** Different encodings of the same table can occupy separate content-addressed objects, reducing deduplication. `sorted_json` stays, so a request body is still the same text for the same planning inputs and engine build.
 
 ## CR-4: Compute the entity ID in SQL
 
@@ -147,7 +147,7 @@ The requests come from a review of the specs against the goal of a small pipelin
 
 Statements that hold and bear on a request above:
 
-- **CR-3.** The same rows give byte-identical Parquet files today, from `Workspace::capture` and from a writer with the settings of `RowFile`. The request stands, because the rule still depends on crate versions and still costs the flush rules.
+- **CR-3.** The verification observed byte-identical Parquet files from equal rows with the tested writer settings. That observation stays recorded; it is no longer a contract requirement. Buffering and IO safeguards remain independent of the encoding.
 - **CR-2 and CR-4.** `rowid` is unique and stable, and a column named `rowid` hides it, so the reserved-name check is needed as long as the Rust pass exists.
 - **The diff.** Every SQL statement of `stage-2-diff.md` passes the workspace's `SELECT` check, and fixture F gives the expected labels, totals and hash table.
 - **The Graph.** A resend of identical values through one replace at the empty path gives the same edition, with and without explicit metadata, for text, for the numbers 12.5 and 8030, for a value with a unit conversion, and for a link without properties.
@@ -166,4 +166,4 @@ Stage 3 could be merged into stage 4: the send stage would plan each changed row
 - **What it removes:** checkpoint 3, the `writes` file with its writer and its reader, and the batch numbers stored in a file. That is about 12 functions and one stored format.
 - **What it costs:** the send stage then needs DuckDB and the planner, a restart of the send stage plans again, and a deploy between two attempts can change the request bodies of a run. Decision P6 kept checkpoint 3 for these reasons.
 
-After CR-1 to CR-3 stage 3 is small, so this option is recorded here and not requested.
+This option remains deferred. CR-1 and CR-3 are applied; CR-2 has not been approved.

@@ -4,6 +4,8 @@ The monorepo tickets plan to port the labs integration pipeline as it is: a stor
 
 Nothing described here is implemented. This file is the entry point for the specs that follow. It records the goal, the architecture, what the review of labs and the monorepo found, which decisions are made, which are open, and how the specs will be written.
 
+Review update: CR-1 and CR-3 from [`05-change-requests.md`](05-change-requests.md) are applied to the contracts and affected specs. Writes are ordered by operation, first request, target and entity ID. Repeated computations preserve schemas and ordered rows, including exact request JSON, without requiring identical Parquet bytes. Memory bounds and blocking-IO safeguards remain. CR-2, CR-4, CR-5 and CR-6 remain deferred; readers still use ranges and UUID generation stays in Rust. CR-7 and CR-8 are recorded as limits with their code changes deferred under D17 and D18.
+
 ## Documents
 
 | File | Content | State |
@@ -356,7 +358,7 @@ The six specs agree with the contracts. These points are left for the pass over 
 - **`TargetRows` and `_key`.** `TargetRows` does not say whether a target's table has a `_key` column, so `stage-2-diff.md` asks the workspace for each `changes` file. A `has_key` field would remove that.
 - **`archives` has no row number.** `stage-3-plan.md` numbers the rows itself to read them in ranges.
 - **Two codes of stage 4.** `stage-4-send.md` keeps `reader_stopped` and `invalid_writes` where `shared-run.md` would give `scratch_unavailable`.
-- **Statements that were written and never run:** the diff SQL against DuckDB and the workspace's `SELECT` check; DuckDB's `rowid` as the row key and `UNION ALL` in a workspace statement; that the same rows give the same Parquet file, byte for byte; that a resent replace patch creates no edition in a real Graph.
+- **Statements originally written without running them:** the diff SQL against DuckDB and the workspace's `SELECT` check; DuckDB's `rowid` as the row key and `UNION ALL` in a workspace statement; that a resent replace patch creates no edition in a real Graph. `verification/results.md` records the subsequent checks. Its observed Parquet byte identity is no longer required under CR-3.
 
 ### Code rules for the specs
 

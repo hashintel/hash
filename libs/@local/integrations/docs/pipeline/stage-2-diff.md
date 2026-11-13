@@ -882,7 +882,7 @@ FROM {issues}
 ORDER BY kind, target, key, entity_id, issue, property
 ```
 
-`archives` and `issues` are stored also when they have no rows. `Workspace::capture` writes the columns of an empty result (`engine/src/workspace/connection/capture.rs:65-67`). The order of `issues` is no contract rule. It makes two attempts with the same rows write the same file.
+`archives` and `issues` are stored also when they have no rows. `Workspace::capture` writes the columns of an empty result (`engine/src/workspace/connection/capture.rs:65-67`). The issue ordering in the store query makes the output rows reproducible; downstream stages do not use that order. Equal schemas and ordered rows need not produce equal Parquet bytes (CR-3).
 
 Errors: those of `store_query`.
 

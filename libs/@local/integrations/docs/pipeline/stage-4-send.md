@@ -1174,7 +1174,7 @@ Each row is one cell of the single-write table or one fallback rule. "Requests" 
 
 | Test | File | Expected |
 | --- | --- | --- |
-| `reads_batches_in_order` | The six rows of S1 run 1 | Two batches of 4 and 2 writes with the fields of the rows. The four writes are `Upsert { first: Create, .. }`. |
+| `reads_batches_in_order` | The six rows of S1 run 1 | Two batches of 4 and 2 writes with the fields of the rows. The entity batch is `AC-SEXXX`, `AC-N100`, `AF-ESSB`, `AF-ESSA` in target order. Those four writes are `Upsert { first: Create, .. }`; the reader preserves `seq` even though entity IDs decrease at a target boundary. |
 | `empty_file` | No rows, expected row count 0 | `None` on the first call |
 | `batch_spans_record_batches` | 300 rows in batches of 100 | Three batches of 100 writes. `READ_ROWS` is 128, so each batch after the first spans two record batches. |
 | `bodies_are_kept_as_text` | One row whose bodies hold spaces and unusual key order | `RawValue::get` equals the stored text. |
@@ -1256,7 +1256,7 @@ Each row is one cell of the single-write table or one fallback rule. "Requests" 
 
 | Run | `base`, `resent` | Requests in order | `SendOutput` | Graph after | `current.json` after |
 | --- | --- | --- | --- | --- | --- |
-| 1 | none, [] | create[`AC-SEXXX`, `AF-ESSB`, `AF-ESSA`, `AC-N100`] applied; create[`L-N100-ESSA`, `L-SEXXX-ESSA`] applied | `created` 6 | Six entities, ed. 1 | `committed` 1, `sending` [] |
+| 1 | none, [] | create[`AC-SEXXX`, `AC-N100`, `AF-ESSB`, `AF-ESSA`] applied; create[`L-N100-ESSA`, `L-SEXXX-ESSA`] applied | `created` 6 | Six entities, ed. 1 | `committed` 1, `sending` [] |
 | 2 | 1, [] | none | all 0 | Unchanged | `committed` 2, `sending` [] |
 
 Run 1 of S2, S3, S4, S5, S7, S8 and S9 is S1 run 1.
@@ -1294,7 +1294,7 @@ Run 1 of S2, S3, S4, S5, S7, S8 and S9 is S1 run 1.
 
 | Run | `base`, `resent` | Requests in order | `SendOutput` | Graph after | `current.json` after |
 | --- | --- | --- | --- | --- | --- |
-| 1 | none, [] | create[`AC-SEXXX`, `AF-ESSB`, `AF-ESSA`, `AC-N100`] 400; create[`AC-SEXXX`] applied; create[`AF-ESSB`] applied; create[`AF-ESSA`] applied; create[`AC-N100`] 400; create[`L-SEXXX-ESSA`] applied | `created` 4, `rejected` 2, `rejected` file present | `AC-SEXXX`, `AF-ESSB`, `AF-ESSA` and `L-SEXXX-ESSA` exist, ed. 1. `AC-N100` and `L-N100-ESSA` do not exist. | `committed` 1, `sending` [] |
+| 1 | none, [] | create[`AC-SEXXX`, `AC-N100`, `AF-ESSB`, `AF-ESSA`] 400; create[`AC-SEXXX`] applied; create[`AC-N100`] 400; create[`AF-ESSB`] applied; create[`AF-ESSA`] applied; create[`L-SEXXX-ESSA`] applied | `created` 4, `rejected` 2, `rejected` file present | `AC-SEXXX`, `AF-ESSB`, `AF-ESSA` and `L-SEXXX-ESSA` exist, ed. 1. `AC-N100` and `L-N100-ESSA` do not exist. | `committed` 1, `sending` [] |
 | 2 | 1, [] | patch[`AC-N100`] 404; create[`AC-N100`] applied; patch[`L-N100-ESSA`] 404; create[`L-N100-ESSA`] applied | `created` 2 | Six entities, ed. 1 | `committed` 2 |
 
 The `rejected` file of run 1, in this order:
@@ -1316,14 +1316,14 @@ The `rejected` file of run 1, in this order:
 | Run | `base`, `resent` | Requests in order | `SendOutput` | Graph after | `current.json` after |
 | --- | --- | --- | --- | --- | --- |
 | 2 | 1, [] | create[`AF-ESGG`] applied; patch[`AC-N100`] applied; patch[`AF-ESSB`] applied, archive body | `created` 1, `patched` 1, `archived` 1 | `AF-ESGG` ed. 1. `AC-N100` has model `L-1049G`, ed. 2. `AF-ESSB` is archived, ed. 2. | `committed` 2 |
-| 3 | 2, [] | patch[`AF-ESSB`, `AC-N100`] applied; patch[`AF-ESGG`] applied, archive body | `patched` 2, `archived` 1 | `AF-ESSB` is not archived, ed. 3. `AC-N100` has model `L-1049`, ed. 3. `AF-ESGG` is archived, ed. 2. | `committed` 3 |
-| 4 | 3, [] | patch[`L-N100-ESSA`, `L-SEXXX-ESSA`] applied; patch[`AC-SEXXX`, `AF-ESSB`, `AF-ESSA`, `AC-N100`] applied. All are archive bodies. | `archived` 6 | All seven are archived. `L-N100-ESSA` ed. 2, `L-SEXXX-ESSA` ed. 2, `AC-SEXXX` ed. 2, `AF-ESSB` ed. 4, `AF-ESSA` ed. 2, `AC-N100` ed. 4, `AF-ESGG` ed. 2. | `committed` 4 |
+| 3 | 2, [] | patch[`AC-N100`, `AF-ESSB`] applied; patch[`AF-ESGG`] applied, archive body | `patched` 2, `archived` 1 | `AF-ESSB` is not archived, ed. 3. `AC-N100` has model `L-1049`, ed. 3. `AF-ESGG` is archived, ed. 2. | `committed` 3 |
+| 4 | 3, [] | patch[`L-N100-ESSA`, `L-SEXXX-ESSA`] applied; patch[`AC-SEXXX`, `AC-N100`, `AF-ESSB`, `AF-ESSA`] applied. All are archive bodies. | `archived` 6 | All seven are archived. `L-N100-ESSA` ed. 2, `L-SEXXX-ESSA` ed. 2, `AC-SEXXX` ed. 2, `AF-ESSB` ed. 4, `AF-ESSA` ed. 2, `AC-N100` ed. 4, `AF-ESGG` ed. 2. | `committed` 4 |
 
 **S9.** After run 1 the test changes the Graph as `03-scenarios.md` says for S9: against the fake it calls the fake's own `patch` with an archive body for `AC-N100` and a patch body for `AF-ESSA` with the name `Stockholm`. Against a real Graph the scenario uses a store call. Both then have ed. 2. The test then calls `requests` to drop the two records.
 
 | Run | `base`, `resent` | Requests in order | `SendOutput` | Graph after | `current.json` after |
 | --- | --- | --- | --- | --- | --- |
-| 2 | 1, [] | patch[`AC-SEXXX`, `AF-ESSB`, `AF-ESSA`, `AC-N100`] applied; patch[`L-N100-ESSA`, `L-SEXXX-ESSA`] applied | `patched` 6 | `AC-N100` is not archived, ed. 3. `AF-ESSA` has the name `Arlanda`, ed. 3. The other four have ed. 1. | `committed` 2 |
+| 2 | 1, [] | patch[`AC-SEXXX`, `AC-N100`, `AF-ESSB`, `AF-ESSA`] applied; patch[`L-N100-ESSA`, `L-SEXXX-ESSA`] applied | `patched` 6 | `AC-N100` is not archived, ed. 3. `AF-ESSA` has the name `Arlanda`, ed. 3. The other four have ed. 1. | `committed` 2 |
 | 3 | 2, [] | patch[`L-N100-ESSA`] applied; patch[`AC-N100`] applied. Both are archive bodies. | `archived` 2 | `L-N100-ESSA` is archived, ed. 2. `AC-N100` is archived, ed. 4. | `committed` 3 |
 | 4 | 3, [] | patch[`AC-SEXXX`, `AF-ESSB`, `AF-ESSA`] applied; patch[`L-SEXXX-ESSA`] applied; patch[`L-N100-ESSA`] applied, archive body; patch[`AC-N100`] applied, archive body | `patched` 4, `archived` 2 | No entity has a new edition. | `committed` 4 |
 
