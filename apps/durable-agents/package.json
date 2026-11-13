@@ -1,0 +1,43 @@
+{
+  "name": "@apps/durable-agents",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "Spike: Brunch agents on Pi Durable.",
+  "license": "AGPL-3.0",
+  "type": "module",
+  "scripts": {
+    "fix:eslint": "oxlint --fix --type-aware --type-check --report-unused-disable-directives-severity=error .",
+    "lint:eslint": "oxlint --type-aware --type-check --report-unused-disable-directives-severity=error .",
+    "lint:tsc": "tsgo --noEmit",
+    "probe:async-browser-call": "tsx test/browser-call/async-probe.ts",
+    "probe:ownership-unit": "tsx test/integration/ownership-unit-probe.ts",
+    "probe:postgres-viewer": "tsx test/integration/viewer-probe.ts",
+    "probe:two-writers": "tsx test/integration/two-writers-probe.ts",
+    "proof:browser-call": "tsx test/browser-call/proof.ts",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:unit": "vitest run"
+  },
+  "dependencies": {
+    "@earendil-works/chord": "1.5.0",
+    "@earendil-works/pi-ai": "1.5.0",
+    "@earendil-works/pi-durable": "1.5.0",
+    "@earendil-works/pi-schema": "1.5.0",
+    "@hashintel/brunch-agent": "workspace:*",
+    "@valibot/to-json-schema": "1.7.1",
+    "ai": "6.0.286",
+    "hono": "4.13.13",
+    "pg": "8.23.0",
+    "valibot": "1.4.2"
+  },
+  "devDependencies": {
+    "@local/tsconfig": "workspace:*",
+    "@tsconfig/bases": "catalog:",
+    "@types/node": "catalog:",
+    "@types/pg": "8.23.1",
+    "@typescript/native-preview": "7.0.0-dev.20260511.1",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "tsx": "catalog:",
+    "vitest": "catalog:"
+  }
+}
