@@ -58,8 +58,8 @@ export const hierarchy =
       }),
     );
 
-/** The traits an entry implements, which follow its declarations. */
-export const traits = ["traits"] as const;
+/** The relations that follow an entry's declarations: the export that shares its name with the other meaning, and the traits it implements. */
+export const own = ["type", "value", "traits"] as const;
 
 /** The relations that close an entry, before a merged namespace. */
 export const uses = ["implementedBy", "acceptedBy", "returnedBy"] as const;

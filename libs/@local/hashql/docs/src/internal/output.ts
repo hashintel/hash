@@ -1,4 +1,4 @@
-import { Array, HashMap, Option, pipe } from "effect";
+import { Array, HashMap, Match, Option, pipe } from "effect";
 
 import * as Anchor from "../Anchor.js";
 import * as AST from "../AST/index.js";
@@ -46,18 +46,18 @@ const urlOf = (
   Option.match(external(output)(target), {
     onSome: (item) => Option.map(item.page(meaning), ({ href: url }) => url),
     onNone: () =>
-      Destinations.local(output.destinations, target).pipe(
+      Destinations.local(output.destinations, { target, meaning }).pipe(
         Option.map((anchor) => Anchor.href(anchor, output.file)),
       ),
   });
 
-/** The URL of what `target` names, relative to the page's file for a node the reference documents. A private declaration, a parameter and an external type no page documents have none, and a name of theirs is not a link. An external type links to the page of its type. */
+/** The URL of what `target` names, relative to the page's file for a node the reference documents. A private declaration, a parameter and an external type no page documents have none, and a name of theirs is not a link. A name that a type and a value share links to the type. */
 export const href =
   (output: Output) =>
   (target: Target): Option.Option<string> =>
     urlOf(output, target, "type");
 
-/** The URL a name links to. An external name links to the page of what it means where it stands, which for a namespace that shares its name with a type is the namespace's page. */
+/** The URL a name links to: what it means where it stands. A namespace that shares its name with a type has a page of its own outside the package, and a value declared apart from its type has a section of its own in the reference. */
 export const link =
   (output: Output) =>
   ({
@@ -77,18 +77,20 @@ export const destination =
     return href(output)(value);
   };
 
-/** The URL a row links to: what its reference names, or a trait's section on the traits page. */
+/** The URL a row links to: what its reference names, or a trait's section on the traits page. A row for a declaration's value links to the value's own section. */
 export const row =
   (output: Output) =>
-  ({ origin }: Tree.Row.Row): Option.Option<string> => {
-    if (origin._tag === "Reference") {
-      return href(output)(origin.target);
-    }
-
-    return Destinations.trait(output.destinations, origin.trait).pipe(
-      Option.map((anchor) => Anchor.href(anchor, output.file)),
+  ({ origin }: Tree.Row.Row): Option.Option<string> =>
+    Match.value(origin).pipe(
+      Match.tagsExhaustive({
+        Reference: ({ target }) => href(output)(target),
+        Value: ({ declaration }) => urlOf(output, declaration, "value"),
+        Trait: ({ trait }) =>
+          Destinations.trait(output.destinations, trait).pipe(
+            Option.map((anchor) => Anchor.href(anchor, output.file)),
+          ),
+      }),
     );
-  };
 
 /** A trait in a hierarchy links to its section on the traits page, and any other type to what its reference names. */
 export const hierarchyNode =
@@ -112,12 +114,15 @@ export interface Place {
   readonly names: readonly string[];
 }
 
-/** The place of an export this page documents. */
+/** The place of an export this page documents. A value declared apart from its type has its type's names and an anchor of its own. */
 export const place =
   (output: Output) =>
   (value: Tree.Export.Export): Place => ({
     id: pipe(
-      HashMap.get(output.destinations.declarations, value.origin.id),
+      Destinations.local(output.destinations, {
+        target: value.origin.id,
+        meaning: Option.getOrElse(value.meaning, () => "type" as const),
+      }),
       Option.map(id),
       Option.getOrElse(() => ""),
     ),
@@ -269,19 +274,6 @@ export const count = (
         (total, { overloads: numbered }) => total + numbered.length,
       ),
   });
-
-/** What a reader calls the things `count` counts. They are overloads where each one is a call. Where one states no call, as a type merged with a constant does, they are declarations. */
-export const counted = (
-  values: Option.Option<Tree.Declaration.Signatures>,
-): "overloads" | "declarations" =>
-  pipe(
-    Option.toArray(values),
-    Array.flatMap(({ children }) => children),
-    Array.flatMap(({ overloads }) => overloads),
-    Array.every(({ origin }) => AST.CallSignature.isCallSignature(origin)),
-  )
-    ? "overloads"
-    : "declarations";
 
 /** The declarations of a member in source order, which for an accessor are its getter's and its setter's. */
 export const declarationsOf = (

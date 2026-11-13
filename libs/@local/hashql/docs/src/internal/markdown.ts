@@ -79,14 +79,7 @@ const signatures =
     Content.declarations(output)(
       Array.flatMap(Option.toArray(values), ({ children }) => children),
     ).pipe(
-      Result.map(
-        Content.section(
-          Titles.signatures({
-            total: Output.count(values),
-            counted: Output.counted(values),
-          }),
-        ),
-      ),
+      Result.map(Content.section(Titles.signatures(Output.count(values)))),
     );
 
 /** Declarations of a member, then what documents them: the descriptions of their comments, their documented calls and the comments' other sections. */
@@ -230,7 +223,7 @@ const exported =
         }),
         ...(yield* each(value.comments, Content.description)),
         ...(yield* signatures(output)(value.signatures)),
-        ...(yield* related(output)(value.related, ["traits"])),
+        ...(yield* related(output)(value.related, ["type", "value", "traits"])),
         ...(yield* Callable.callable(output)(value)),
         ...(yield* each(value.comments, Content.details)),
         ...(yield* each(value.comments, Content.examples)),

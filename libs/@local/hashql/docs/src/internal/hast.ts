@@ -81,10 +81,10 @@ const signatures =
       Array.map(signature(output, declared, total)),
       Result.all,
       Result.map((children) =>
-        Content.element("signatures")(
-          { overloads: total, counted: Output.counted(Option.some(value)) },
-          [...title, ...children],
-        ),
+        Content.element("signatures")({ overloads: total }, [
+          ...title,
+          ...children,
+        ]),
       ),
     );
   };
@@ -254,10 +254,7 @@ const exported =
         [
           ...(yield* each(value.comments, Content.description)),
           ...declarations,
-          ...(yield* Relations.related(output)(
-            value.related,
-            Relations.traits,
-          )),
+          ...(yield* Relations.related(output)(value.related, Relations.own)),
           ...Array.map(
             Option.toArray(
               Option.liftPredicate(members, Array.isReadonlyArrayNonEmpty),
@@ -406,6 +403,8 @@ const trait =
       const name = Output.traitId(output)(value);
       const implementors = yield* Relations.related(output)(
         {
+          type: [],
+          value: [],
           traits: [],
           implementedBy: value.implementors,
           acceptedBy: [],
