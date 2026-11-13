@@ -109,6 +109,127 @@ describe("emitted_package", () => {
   });
 });
 
+describe("emitted_structural_operators", () => {
+  test("structural_operators", () => {
+    expect.hasAssertions();
+    const descriptor = Result.getOrThrow(
+      Program.Structural.type({
+        count: BigInt,
+        selected: Boolean,
+      }),
+    );
+    type Row = Type.Struct<{
+      readonly count: Type.PrimitiveInteger;
+      readonly selected: Type.PrimitiveBoolean;
+    }>;
+    expectTypeOf(descriptor).toEqualTypeOf<
+      Program.TypeExpression.TypeExpression<Row>
+    >();
+    const count = Expression.input(
+      "count",
+      Result.getOrThrow(Program.Structural.type(BigInt)),
+    );
+    const enabled = Expression.input(
+      "enabled",
+      Result.getOrThrow(Program.Structural.type(Boolean)),
+      true,
+    );
+    const zero = 0n;
+    const selected = Program.Operators.eq(count, zero).and(enabled);
+    expectTypeOf<
+      Program.Structural.Requirements<{
+        readonly count: typeof count;
+        readonly selected: typeof selected;
+      }>
+    >().toEqualTypeOf<{
+      readonly count: Type.PrimitiveInteger;
+      readonly enabled?: Type.PrimitiveBoolean;
+    }>();
+    const root = Program.Structural.value<Row>()({ count, selected });
+    const query = Program.program(root);
+    expectTypeOf<Program.Inputs<typeof query>>().toEqualTypeOf<{
+      readonly count: Type.PrimitiveInteger;
+      readonly enabled?: Type.PrimitiveBoolean;
+    }>();
+    expectTypeOf<Program.Expression.TypeOf<typeof root>>().toEqualTypeOf<Row>();
+    const structural: Program.Structural.Value.Any = { count, selected };
+    expect(Program.Structural.toJExpr(structural)).toStrictEqual(
+      Expression.toJExpr(root),
+    );
+    expect(Result.getOrThrow(Program.compile(query))).toBe(
+      '{"#struct":{"count":["::kernel::special_form::input","count","::kernel::type::Integer"],"selected":["::core::bool::and",["::core::cmp::eq",["::kernel::special_form::input","count","::kernel::type::Integer"],{"#literal":0}],["::kernel::special_form::input","enabled","::kernel::type::Boolean",{"#literal":true}]]}}',
+    );
+    expect(selected.pipe(Program.Operators.not)).toSatisfy(
+      Expression.isExpression,
+    );
+    expect(
+      Result.getOrThrow(Expression.toJExpr(selected.$projectUnsafe("field"))),
+    ).toStrictEqual([
+      "::kernel::special_form::access",
+      Result.getOrThrow(Expression.toJExpr(selected)),
+      "field",
+    ]);
+    const indexed = selected.$indexUnsafe(count);
+    expectTypeOf<Program.Expression.Inputs<typeof indexed>>().toEqualTypeOf<{
+      readonly count: Type.PrimitiveInteger;
+      readonly enabled?: Type.PrimitiveBoolean;
+    }>();
+    expect(Result.getOrThrow(Expression.toJExpr(indexed))).toStrictEqual([
+      "::kernel::special_form::index",
+      Result.getOrThrow(Expression.toJExpr(selected)),
+      Result.getOrThrow(Expression.toJExpr(count)),
+    ]);
+  });
+});
+
+describe("emitted_structural_constructors", () => {
+  test("collections", () => {
+    expect.hasAssertions();
+    const one = 1n;
+    const count = Program.Structural.input("count", BigInt);
+    const numbers = Program.Structural.list(BigInt, [count, one]);
+    const named = Program.Structural.dict(String, BigInt, [["count", count]]);
+    const pair = Program.Structural.tuple(["x", count]);
+    const root = Program.Structural.struct({ numbers, named, pair });
+    const query = Program.program(root);
+    expectTypeOf<Program.Inputs<typeof query>>().toEqualTypeOf<{
+      readonly count: Type.PrimitiveInteger;
+    }>();
+    expectTypeOf<Program.Expression.TypeOf<typeof root>>().toEqualTypeOf<
+      Type.Struct<{
+        readonly numbers: Type.List<Type.PrimitiveInteger>;
+        readonly named: Type.Dict<Type.PrimitiveString, Type.PrimitiveInteger>;
+        readonly pair: Type.Tuple<
+          readonly [Type.PrimitiveString, Type.PrimitiveInteger]
+        >;
+      }>
+    >();
+    expect(Result.getOrThrow(Expression.toJExpr(root))).toMatchObject({
+      "#struct": {
+        numbers: { "#type": "::kernel::type::List<::kernel::type::Integer>" },
+        named: {
+          "#type":
+            "::kernel::type::Dict<::kernel::type::String, ::kernel::type::Integer>",
+        },
+      },
+    });
+    expect(Program.compile(query)).toSatisfy(Result.isSuccess);
+  });
+
+  test("structural_default", () => {
+    expect.hasAssertions();
+    const count = Program.Structural.input("count", BigInt);
+    const row = Program.Structural.input("row", { count: BigInt }, { count });
+    expectTypeOf<Program.Expression.Inputs<typeof row>>().toEqualTypeOf<{
+      readonly row?: Type.Struct<{ readonly count: Type.PrimitiveInteger }>;
+      readonly count: Type.PrimitiveInteger;
+    }>();
+    expect(Result.getOrThrow(Program.compile(Program.program(row)))).toBe(
+      '["::kernel::special_form::input","row",{"#struct":{"count":"::kernel::type::Integer"}},{"#struct":{"count":["::kernel::special_form::input","count","::kernel::type::Integer"]}}]',
+    );
+  });
+});
+
 describe("emitted_program", () => {
   test("metadata", () => {
     expect.hasAssertions();
