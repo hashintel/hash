@@ -13,9 +13,6 @@ import { treeTileColor } from "./status-colors";
 import type { StepInputSource } from "./engine";
 import type { RefLook } from "./ref-path";
 
-export const itemSourceOld =
-  new URLSearchParams(globalThis.location.search).get("itemsource") === "old";
-
 /** MOCK: how many items the list held in the flow's last run; only Find active suppliers has runs. */
 export const lastRunCount = (source: StepInputSource | undefined) =>
   source?.kind === "step-output" && source.stepId === "findSuppliers"

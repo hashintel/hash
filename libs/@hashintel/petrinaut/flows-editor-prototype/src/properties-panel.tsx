@@ -38,9 +38,6 @@ import {
   entityTypeOf,
   findStep,
   itemName,
-  multiSelectOld,
-  oldForEachSubtitle,
-  itemRowOn,
   stepLabel,
   findTrigger,
   removeStep,
@@ -71,8 +68,6 @@ import {
   PatchField,
   PropertyField,
   QueryField,
-  RefField,
-  refHover,
   ValueField,
 } from "./fields";
 import { ghostKindOf, TriggersPanel } from "./flow-triggers";
@@ -92,7 +87,7 @@ import {
 } from "./mock-triggers";
 import { OutputRows } from "./outputs";
 import { ToggleableTextInput } from "./ds-parts/toggleable-text-input";
-import { itemSourceOld, lastRunCount, ListSourceBlock } from "./list-source";
+import { lastRunCount, ListSourceBlock } from "./list-source";
 import { RefPath, refLook } from "./ref-path";
 
 import { RunPanel } from "./run-view";
@@ -107,7 +102,6 @@ import { SourceMenu } from "./source-menu";
 import { firstAndMore, TimeField, TypedValue } from "./typed-value";
 import {
   descriptionInputStyle,
-  HeaderTitle,
   HueHeader,
   kindGroupOf,
   keyHoverStyle,
@@ -115,19 +109,13 @@ import {
   kindLabel,
   mutedTextStyle,
   OriginMark,
-  oldLabelColumn,
-  oldPanelRows,
-  oldLabelColumnStyle,
-  oldPanelHeader,
   panelHeaderStyle,
   panelKindTake,
   PropertyRow,
   Section,
   SourceChip,
-  SourceSelectTrigger,
   titleFieldStyle,
   type Tone,
-  typeLineStyle,
 } from "./ui";
 
 import type { IconName } from "@hashintel/ds-components";
@@ -271,9 +259,6 @@ const StepSettings = ({
     </PropertyRow>
   </Section>
 );
-
-/** Send email's Inputs (Figma, 3 Nov): 16 px between To, Subject and Body; 8 px from a label to its box. */
-const sendEmailGridStyle = css({ rowGap: "4" });
 
 /** Short notes that get the expand control (textarea-placement 7). */
 const expandableInputs = new Set(["instructions"]);
@@ -670,15 +655,7 @@ const PanelHeader = ({
   ) : null;
   return (
     <div className={panelHeaderStyle}>
-      {oldPanelHeader ? (
-        <>
-          <HeaderTitle icon={icon}>
-            <span className={typeLineStyle}>{type}</span>
-            {origin}
-          </HeaderTitle>
-          {second}
-        </>
-      ) : panelKindTake !== "k1" ? (
+      {panelKindTake !== "k1" ? (
         <KindTakeHeader
           icon={icon}
           kind={kind ?? type}
@@ -805,25 +782,19 @@ const ActionSections = ({
     const label =
       inputLabels[`${step.actionDefinitionId}.${input.name}`] ?? input.label;
     // Free text for writing is a wide control: its label above, the field across the panel (J3 D1). A short note
-    // (Instructions) sits beside its label in the value column (D-v2, 12 Nov); `?panelrows=old` stacks it again.
-    if (isFreeText(input) && (oldPanelRows || writingInputs.has(input.name))) {
+    // (Instructions) sits beside its label in the value column (D-v2, 12 Nov).
+    if (isFreeText(input) && writingInputs.has(input.name)) {
       return (
         <div
           key={input.name}
           data-row
-          className={cx(
-            css({
-              gridColumn: "1 / -1",
-              display: "flex",
-              flexDirection: "column",
-              // 10 px label to box: figma-ds FieldSet 44333:21444.
-              gap: "2.5",
-            }),
-            oldPanelRows && css({ gap: "1.5" }),
-            oldPanelRows &&
-              step.actionDefinitionId === "sendEmail" &&
-              css({ gap: "2" }),
-          )}
+          className={css({
+            gridColumn: "1 / -1",
+            display: "flex",
+            flexDirection: "column",
+            // 10 px label to box: figma-ds FieldSet 44333:21444.
+            gap: "2.5",
+          })}
         >
           <Tooltip
             content={`${label} · ${inputHover(input, kinds)}`}
@@ -938,14 +909,7 @@ const ActionSections = ({
   return (
     <>
       {visibleInputs.length > 0 ? (
-        <Section
-          title="Inputs"
-          gridClassName={
-            step.actionDefinitionId === "sendEmail" && oldPanelRows
-              ? sendEmailGridStyle
-              : undefined
-          }
-        >
+        <Section title="Inputs">
           {visibleInputs.map(renderInput)}
         </Section>
       ) : null}
@@ -1136,7 +1100,7 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
         description={step.description}
         defaultDescription={
           // With no description, the derived item name reads in its place: "For each supplier".
-          !oldForEachSubtitle && step.over
+          step.over
             ? `For each ${itemName(document, step.stepId)}`
             : undefined
         }
@@ -1158,40 +1122,11 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
               gap: "1.5",
             })}
           >
-            {itemSourceOld ? (
-            <SourceSelectTrigger
-              source={step.over}
-              stepId={step.stepId}
-              placeholder={!(step.over && over)}
-              hover={
-                step.over && over
-                  ? refHover(document, step.over, step.stepId)
-                  : undefined
-              }
-              onClick={() =>
-                setUi((current) => ({
-                  ...current,
-                  openField: {
-                    stepId: step.stepId,
-                    inputName: "over",
-                    mode: "menu",
-                  },
-                }))
-              }
-            >
-              {step.over && over ? (
-                <RefField source={step.over} stepId={step.stepId} />
-              ) : (
-                "Choose a list"
-              )}
-            </SourceSelectTrigger>
-            ) : (
-              <ListSourceBlock
-                look={step.over && over ? refLook(document, step.over, step.stepId) : null}
-                count={lastRunCount(step.over)}
-                onClick={openList}
-              />
-            )}
+            <ListSourceBlock
+              look={step.over && over ? refLook(document, step.over, step.stepId) : null}
+              count={lastRunCount(step.over)}
+              onClick={openList}
+            />
           </div>
           {open ? (
             <SourceMenu
@@ -1216,7 +1151,7 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
             />
           ) : null}
         </PropertyRow>
-        {showFull || (itemRowOn && !itemSourceOld) ? (
+        {showFull ? (
           <PropertyRow
             label="Item"
             hover={
@@ -1225,16 +1160,7 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
                 : "Set the list first"
             }
           >
-            {itemSourceOld ? (
-            <span
-              className={css({
-                textStyle: "sm",
-                color: "neutral.fg.heading",
-              })}
-            >
-              {itemName(document, step.stepId)}
-            </span>
-            ) : step.over && over ? (
+            {step.over && over ? (
               <ToggleableTextInput
                 value={itemName(document, step.stepId)}
                 label="Item name"
@@ -1465,7 +1391,6 @@ const RunFormFields = () => {
           key={input.name}
           className={cx(
             inputBlockStyle,
-            oldLabelColumn && oldLabelColumnStyle,
             index > 0
               ? css({
                   paddingTop: "2",
@@ -1993,18 +1918,9 @@ const StartPanel = () => {
   return (
     <>
       <div className={panelHeaderStyle}>
-        {oldPanelHeader ? (
-          <>
-            <HeaderTitle icon="play">
-              <span className={typeLineStyle}>Start</span>
-            </HeaderTitle>
-            {startDescription}
-          </>
-        ) : (
-          <HueHeader icon="play" title={<span>Start</span>}>
-            {startDescription}
-          </HueHeader>
-        )}
+        <HueHeader icon="play" title={<span>Start</span>}>
+          {startDescription}
+        </HueHeader>
       </div>
       {/* Triggers are read-only here (4 Nov): they show as ghost nodes left of Start, and open their own panel. */}
       <RunFormFields />
@@ -2333,7 +2249,7 @@ export const PropertiesPanel = () => {
         <div className={panelBodyStyle}>
           {ui.run ? (
             <RunPanel />
-          ) : !multiSelectOld && (ui.selectedIds?.length ?? 0) > 1 ? (
+          ) : (ui.selectedIds?.length ?? 0) > 1 ? (
             <MultiSelectPanel ids={ui.selectedIds!} />
           ) : ghost ? (
             <TriggersPanel key={ghost} kind={ghost} />

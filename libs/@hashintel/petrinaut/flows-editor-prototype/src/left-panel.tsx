@@ -45,7 +45,6 @@ import {
   flattenSteps,
   stepLabel,
   stepTitle,
-  multiSelectOld,
 } from "./document";
 import { FLOW_OUTPUTS_ID } from "./flow-outputs";
 import { useFlowOutputTake, useRunStars, useStarCopy } from "./outputs";
@@ -367,9 +366,7 @@ const FlowList = ({
   // missing-multiselect b: every box-selected step's row is filled, not only the panel's.
   const isCurrent = (id: string) =>
     ui.selectedId === id ||
-    (!multiSelectOld &&
-      (ui.selectedIds?.length ?? 0) > 1 &&
-      ui.selectedIds!.includes(id));
+    ((ui.selectedIds?.length ?? 0) > 1 && ui.selectedIds!.includes(id));
   const select = (id: string) =>
     setUi((current) => ({
       ...current,

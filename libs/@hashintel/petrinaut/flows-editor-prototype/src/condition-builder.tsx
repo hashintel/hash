@@ -67,7 +67,6 @@ import { SourceMenu } from "./source-menu";
 import { conditionLayout, joinerTake } from "./switch-flags";
 import { refLook, RefTileOutput } from "./ref-path";
 
-import { oldLabelColumn } from "./ui";
 
 import type { StepInputSource } from "./engine";
 
@@ -351,10 +350,6 @@ export const takeRowsStyle = css({ "&[class]": { gap: "2" } });
 
 /** `b`, `c`: the Add button under the joiner, at the builder's left edge, as the DS Filter's footer. */
 export const takeFooterAtEdge = conditionLayout === "b" || conditionLayout === "c";
-
-const oldLabelColumnWidthStyle = css({
-  "--flows-label-column": "max(88px, min(30cqw, 120px))",
-});
 
 /**
  * The joiner column, so the chips share one left edge: the panel's label column at the top level, 56 px inside a group
@@ -1602,10 +1597,7 @@ export const ConditionBuilder = ({
     // J2.2: with the type left at Any there is nothing to filter on yet; Add filter first asks for a type.
     return (
       <div
-        className={cx(
-          labelColumnStyle,
-          oldLabelColumn && oldLabelColumnWidthStyle,
-        )}
+        className={labelColumnStyle}
       >
         <div className={valueColumnFooterStyle}>
           <Button
@@ -1635,7 +1627,6 @@ export const ConditionBuilder = ({
       className={cx(
         builderStyle,
         labelColumnStyle,
-        oldLabelColumn && oldLabelColumnWidthStyle,
         conditionLayout === "c" && takeColumnStyle,
       )}
       data-condition-builder

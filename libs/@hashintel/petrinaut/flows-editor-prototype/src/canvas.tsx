@@ -46,7 +46,6 @@ import {
   startSubtitle,
   stepTitle,
   updateStep,
-  multiSelectOld,
 } from "./document";
 import { FLOW_OUTPUTS_ID, FlowOutputsCard } from "./flow-outputs";
 import { useFlowOutputTake, useRunStars } from "./outputs";
@@ -3685,7 +3684,7 @@ export const FlowCanvas = ({
   const canvas = (
     <ReactFlow
       className={canvasStyle}
-      data-multiselect={multiSelectOld ? undefined : "cards"}
+      data-multiselect="cards"
       nodes={withHighlight(
         nodes.map((node) =>
           measured[node.id] ? { ...node, measured: measured[node.id] } : node,

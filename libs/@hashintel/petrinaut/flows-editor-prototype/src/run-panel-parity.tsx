@@ -12,10 +12,10 @@ import { useState } from "react";
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { fieldKey, itemRowOn } from "./document";
+import { fieldKey } from "./document";
 import { useEditor } from "./editor-context";
 import { InlineChip } from "./inline-chips";
-import { itemSourceOld, lastRunCount, ListSourceBlock } from "./list-source";
+import { lastRunCount, ListSourceBlock } from "./list-source";
 import { RunOutputRow } from "./outputs";
 import { propertyPathOf } from "./property-path";
 import { RefChipText, RefPath, refLook, RunRefValue } from "./ref-path";
@@ -24,10 +24,8 @@ import {
   type RunFacts,
   type StepRun,
   signOffId,
-  suppliers,
 } from "./run-history";
 import { RunGlyph } from "./run-glyph";
-import { itemState } from "./foreach-switch";
 import { AllItemsOutputsLink, RunOutputBody, type RunOutputs } from "./run-outputs";
 import { approverName, approverPerson } from "./run-step-status";
 import { PropertyRow, Section } from "./ui";
@@ -188,12 +186,6 @@ const NoneYet = () => (
 /** For each's Items addition (Q8 a), drawn by the run panel right under the item list. */
 export { AllItemsOutputsLink };
 
-/** The item For each's run panel names: the first failed one, as its Items list opens on. */
-const forEachItemName = (facts: RunFacts) => {
-  const first = facts.failures[0]?.item ?? 0;
-  return { name: suppliers[first] ?? "", state: itemState(facts, first) };
-};
-
 export const ParitySections = ({
   stepId,
   facts,
@@ -243,38 +235,19 @@ export const ParitySections = ({
   }
 
   if (stepId === forEachId) {
-    const current = forEachItemName(facts);
     const look = document ? refLook(document, step("findSuppliers", "entities"), forEachId) : null;
     const collected = refLook(document, step("markReviewed", "entityId"), forEachId);
     return (
       <>
         <Section title="Inputs">
           <PropertyRow label="List">
-            {itemSourceOld ? (
-              <RunRefValue value={`${n} suppliers`} source={step("findSuppliers", "entities")} stepId={forEachId} />
-            ) : (
-              <ListSourceBlock
-                look={look}
-                count={lastRunCount(step("findSuppliers", "entities")) ?? n}
-                failed={facts.failures.length}
-                readOnly
-              />
-            )}
+            <ListSourceBlock
+              look={look}
+              count={lastRunCount(step("findSuppliers", "entities")) ?? n}
+              failed={facts.failures.length}
+              readOnly
+            />
           </PropertyRow>
-          {itemSourceOld || !itemRowOn ? null : (
-          <PropertyRow label="Item">
-            <span className={css({ display: "flex", alignItems: "center", gap: "1.5", textStyle: "sm" })}>
-              <span className={css({ color: "neutral.fg.heading" })}>supplier</span>
-              {reached && current.name ? (
-                <>
-                  <span className={css({ color: "neutral.fg.subtle" })}>·</span>
-                  <RunGlyph state={current.state} size={12} tooltip={false} />
-                  <span className={css({ color: "neutral.fg.body" })}>{current.name}</span>
-                </>
-              ) : null}
-            </span>
-          </PropertyRow>
-          )}
         </Section>
         <Section title="Settings">
           <span className={emptyStyle}>None</span>

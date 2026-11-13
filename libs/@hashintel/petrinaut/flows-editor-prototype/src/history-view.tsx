@@ -20,7 +20,6 @@ import { getCatalogEntry } from "./catalog";
 import {
   flattenSteps,
   itemName,
-  oldForEachSubtitle,
   START_ID,
   stepLabel,
 } from "./document";
@@ -74,7 +73,6 @@ import {
   HeaderTitle,
   HueHeader,
   kindGroupOf,
-  oldPanelHeader,
   panelKindTake,
   PropertyRow,
   Section,
@@ -945,31 +943,7 @@ export const RunStepPanel = ({
   }
   return (
     <aside className={runPanelStyle} aria-label="Step in this run">
-      {oldPanelHeader ? (
-        <div
-          className={css({
-            display: "flex",
-            flexDirection: "column",
-            gap: "0.5",
-          })}
-        >
-          <HeaderTitle icon={entry?.icon ?? detail.icon}>
-            <span className={strongLineStyle}>
-              {entry?.title ?? detail.type}
-            </span>
-          </HeaderTitle>
-          <span
-            className={css({
-              textStyle: "sm",
-              color: "neutral.fg.muted",
-              paddingLeft: "6",
-            })}
-          >
-            {label}
-          </span>
-        </div>
-      ) : (
-        <RunHeader
+      <RunHeader
           icon={entry?.icon ?? detail.icon}
           neutral={stepId === runTriggerId}
           kind={entry?.title ?? detail.type}
@@ -985,8 +959,7 @@ export const RunStepPanel = ({
                 )?.description ?? "")
               : step?.kind === "for-each" &&
                   !step.description.trim() &&
-                  step.over &&
-                  !oldForEachSubtitle
+                  step.over
                 ? `For each ${itemName(document, step.stepId)}`
                 : (step?.description ?? "")
           }
@@ -996,7 +969,6 @@ export const RunStepPanel = ({
               : label
           }
         />
-      )}
       {question}
       {status ?? (
       <Section title="Status">

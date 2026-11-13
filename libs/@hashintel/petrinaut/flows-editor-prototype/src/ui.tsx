@@ -106,28 +106,6 @@ export const sectionTitleStyle = css({
   color: "neutral.fg.heading",
 });
 
-/**
- * `?labelcol=old`: the label column capped at 120 px, as before ledger 21 Oct's `minmax(88px, 30%)` was built in
- * full. Read from the URL only and never remembered.
- */
-export const oldLabelColumn =
-  new URLSearchParams(globalThis.location.search).get("labelcol") === "old";
-
-export const oldLabelColumnStyle = css({
-  "&[class]": {
-    gridTemplateColumns: "minmax(88px, min(30%, 120px)) minmax(0, 1fr)",
-  },
-});
-
-/**
- * `?panelrows=old`: 8 px between panel rows and every text area on its own line, as before the D-v2 pick (inbox
- * panel-row-spacing, 12 Nov). Read from the URL only.
- */
-export const oldPanelRows =
-  new URLSearchParams(globalThis.location.search).get("panelrows") === "old";
-
-const oldPanelRowsStyle = css({ "&[class]": { rowGap: "2" } });
-
 const sectionGridStyle = css({
   display: "grid",
   // One label column for the whole panel (Aakarsh, 21 Oct; ops/research/panel-label-layout): every value starts at
@@ -177,8 +155,6 @@ export const Section = ({
     <div
       className={cx(
         sectionGridStyle,
-        oldLabelColumn && oldLabelColumnStyle,
-        oldPanelRows && oldPanelRowsStyle,
         gridClassName,
       )}
     >
@@ -534,10 +510,6 @@ export const HeaderTitle = ({
     {children}
   </div>
 );
-
-/** `?panelheader=old`: the two headers from before H4, read from the URL only and never remembered. */
-export const oldPanelHeader =
-  new URLSearchParams(globalThis.location.search).get("panelheader") === "old";
 
 /**
  * `?panelkind=k1..k4` (inbox panel-header-kind, open): what the header's second line says about the step's kind,

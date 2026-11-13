@@ -345,21 +345,6 @@ const singular = (word: string) =>
       ? word.slice(0, -1)
       : word;
 
-/** `?itemrow=on` brings back the Item row with its hover rename (the look before the 13 Nov ledger line). */
-/** `?foreachsub=old`: an empty For each description stays empty ("Flow control · Add a description…"). */
-export const oldForEachSubtitle =
-  new URLSearchParams(globalThis.location.search).get("foreachsub") === "old";
-
-/**
- * `?multiselect=old`: several selected steps show a plain box on the canvas, and the panel and Steps list show one
- * step (before the missing-multiselect pick b, 13 Nov).
- */
-export const multiSelectOld =
-  new URLSearchParams(globalThis.location.search).get("multiselect") === "old";
-
-export const itemRowOn =
-  new URLSearchParams(globalThis.location.search).get("itemrow") === "on";
-
 /** The for-each's own name for one item when nothing is renamed: derived from its list, never typed. */
 const autoItemName = (
   document: EditorDocument,
@@ -410,9 +395,6 @@ export const itemName = (document: EditorDocument, forEachId: string) => {
   const forEach = findStep(document, forEachId)?.step;
   if (forEach?.kind !== "for-each") {
     return "item";
-  }
-  if (itemRowOn && forEach.itemLabel?.trim()) {
-    return forEach.itemLabel.trim();
   }
   return autoItemName(document, forEach);
 };
