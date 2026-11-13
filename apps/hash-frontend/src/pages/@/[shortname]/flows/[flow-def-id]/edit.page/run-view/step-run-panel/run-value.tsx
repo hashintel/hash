@@ -34,6 +34,11 @@ const EntityPeek = ({
       onOpen={(index) => {
         const entity = entities.entities[index];
 
+        /* Until it loads, whether it's a file, and so what it opens, isn't known. */
+        if (!entity && entities.loading) {
+          return;
+        }
+
         onOpen(
           isFileEntity(entity)
             ? { kind: "file", entityIds: list.entityIds, index }

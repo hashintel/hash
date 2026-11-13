@@ -8,6 +8,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 
 import { useGetOwnerForEntity } from "../../../../../../../../../components/hooks/use-get-owner-for-entity";
+import { useSnackbar } from "../../../../../../../../../components/hooks/use-snackbar";
 import { fetchPresignedFileUrl } from "../../../../../../../../shared/fetch-presigned-file-url";
 import { getFileProperties } from "../../../../../../../../shared/get-file-properties";
 import { getFilePreviewKind } from "./files";
@@ -101,7 +102,7 @@ export const FileNav = ({
 
 /**
  * Saves the file. Files are served from another origin, where a link's `download` is ignored and the browser would
- * leave the run to show the file, so it's fetched and saved from here, or failing that opened in a new tab.
+ * leave the run to show the file, so it's fetched and saved from here.
  */
 const downloadFile = (fileUrl: string, fileName: string) =>
   fetchPresignedFileUrl(fileUrl)
@@ -121,8 +122,7 @@ const downloadFile = (fileUrl: string, fileName: string) =>
       link.click();
       // Once the click is handled: some browsers drop a download whose URL is revoked first.
       setTimeout(() => URL.revokeObjectURL(link.href));
-    })
-    .catch(() => window.open(fileUrl, "_blank", "noopener"));
+    });
 
 /** Download, and the file's page in a new tab: `compact` as icons, for a header. */
 export const FileActions = ({
@@ -133,6 +133,7 @@ export const FileActions = ({
   compact: boolean;
 }) => {
   const getOwnerForEntity = useGetOwnerForEntity();
+  const { triggerSnackbar } = useSnackbar();
   const { fileUrl, fileName, displayName } = getFileProperties(file.properties);
   const { entityId } = file.metadata.recordId;
   const { shortname } = getOwnerForEntity({ entityId });
@@ -145,7 +146,11 @@ export const FileActions = ({
           variant="subtle"
           tone="neutral"
           iconName="download"
-          onClick={() => downloadFile(fileUrl, fileName ?? displayName ?? "")}
+          onClick={() =>
+            downloadFile(fileUrl, fileName ?? displayName ?? "").catch(() =>
+              triggerSnackbar.error("Couldn't download the file"),
+            )
+          }
           {...(compact
             ? { "aria-label": "Download", tooltip: "Download" }
             : { children: "Download" })}
