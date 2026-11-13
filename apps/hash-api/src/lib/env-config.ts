@@ -1,3 +1,5 @@
+import { parseClientIpSource } from "./client-ip";
+
 const PORT = process.env.PORT;
 
 // TODO: Switch to https://www.npmjs.com/package/envalid
@@ -20,3 +22,7 @@ export const port = PORT ? parseInt(PORT, 10) : 5001;
 
 /** Whether the StatsD client is enabled */
 export const isStatsDEnabled = process.env.STATSD_ENABLED === "1";
+
+export const clientIpSource = parseClientIpSource(
+  process.env.HASH_API_CLIENT_IP_SOURCE,
+);
