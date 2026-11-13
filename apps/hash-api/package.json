@@ -14,7 +14,6 @@
     "dev:seed-dashboard-demo": "NODE_ENV=development tsx ./src/seed-data/seed-dashboard-demo.ts",
     "fix:eslint": "eslint --fix .",
     "generate-flow-definition-migration": "tsx ./src/graph/ensure-system-graph-is-initialized/migrate-ontology-types/generate-flow-definition-migration.ts",
-    "generate-hash-gpt-schema": "tsx ./src/ai/gpt/generate-hashgpt-schema.ts",
     "generate-ontology-type-ids": "tsx ./src/generate-ontology-type-ids.ts; cd ../../libs/@local/hash-isomorphic-utils && oxfmt --write --ignore-path /dev/null src/ontology-type-ids.ts",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
@@ -100,7 +99,6 @@
     "oembed-providers": "1.0.20250926",
     "openai": "6.6.0",
     "sanitize-html": "2.18.1",
-    "ts-json-schema-generator": "1.5.1",
     "tsx": "catalog:",
     "typescript": "catalog:",
     "ws": "8.21.0"
