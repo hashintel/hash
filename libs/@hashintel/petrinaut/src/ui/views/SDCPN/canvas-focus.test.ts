@@ -47,6 +47,7 @@ const net: ActiveNetDefinition = {
   differentialEquations: [],
   parameters: [],
   componentInstances: [],
+  fusions: [],
 };
 
 const placeKey = (placeId: string) =>
@@ -155,6 +156,88 @@ describe("resolveCanvasFocus", () => {
     expect(focus.active).toBe(false);
     expect(focus.nodeFocus("p1")).toBe("none");
   });
+
+  describe("fusions", () => {
+    const portOf = (instanceId: string) => ({
+      kind: "componentPort" as const,
+      componentInstanceId: instanceId,
+      portPlaceId: "in",
+    });
+    const instance = (id: string) => ({
+      id,
+      name: id,
+      subnetId: "stage",
+      parameterValues: {},
+      x: 0,
+      y: 0,
+    });
+    const fused: ActiveNetDefinition = {
+      ...net,
+      componentInstances: [instance("m1"), instance("m2")],
+      fusions: [
+        {
+          id: "belt",
+          members: [
+            { kind: "place", placeId: "lonely" },
+            portOf("m1"),
+            portOf("m2"),
+          ],
+        },
+      ],
+    };
+    const fusedAdjacency = buildNetAdjacency(fused);
+    const linkIds = fusedAdjacency.fusionParts.get("belt")!.linkIds;
+
+    it("draws one link from the anchor to each other member", () => {
+      expect(linkIds).toHaveLength(2);
+      expect(fusedAdjacency.fusionParts.get("belt")!.nodeIds).toEqual([
+        "lonely",
+        "m1",
+        "m2",
+      ]);
+    });
+
+    it("lights a focused fusion's links and every node they join", () => {
+      const focus = resolveCanvasFocus({
+        adjacency: fusedAdjacency,
+        hoveredId: null,
+        selectedIds: new Set(["belt"]),
+      });
+
+      expect(focus.active).toBe(true);
+      expect(linkIds.map(focus.arcFocus)).toEqual(["focused", "focused"]);
+      expect(["lonely", "m1", "m2"].map(focus.nodeFocus)).toEqual([
+        "bidirectional",
+        "bidirectional",
+        "bidirectional",
+      ]);
+      expect(focus.nodeFocus("p1")).toBe("none");
+    });
+
+    it("keeps a selected fusion's links lit while another node is hovered", () => {
+      const focus = resolveCanvasFocus({
+        adjacency: fusedAdjacency,
+        hoveredId: "p1",
+        selectedIds: new Set(["belt"]),
+      });
+
+      expect(linkIds.map(focus.arcFocus)).toEqual(["focused", "focused"]);
+      expect(focus.nodeFocus("p1")).toBe("focused");
+    });
+
+    it("joins a focused member to the place it is fused with, both ways", () => {
+      const focus = resolveCanvasFocus({
+        adjacency: fusedAdjacency,
+        hoveredId: "m1",
+        selectedIds: new Set(),
+      });
+
+      expect(focus.nodeFocus("lonely")).toBe("bidirectional");
+      expect(focus.arcFocus(linkIds[0]!)).toBe("focused");
+      expect(focus.nodeFocus("m2")).toBe("none");
+    });
+  });
+
   it("indexes a node's neighbours once, for lookup", () => {
     const index = buildNetAdjacency(net);
 

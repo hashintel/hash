@@ -36,6 +36,7 @@ export const TransitionIcon = makeIcon("squareFilled");
 export const ParameterIcon = makeIcon("sliders");
 export const TokenTypeIcon = makeIcon("threeCircles");
 export const DifferentialEquationIcon = makeIcon("function");
+export const FusionIcon = makeIcon("diagramNodes");
 
 /** Filled icons — used in list item rows */
 export const PlaceFilledIcon = makeIcon("circleFilled");

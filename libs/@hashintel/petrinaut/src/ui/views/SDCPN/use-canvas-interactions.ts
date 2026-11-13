@@ -7,6 +7,7 @@
 import { use } from "react";
 
 import {
+  arcEndpointsEqual,
   DEFAULT_TRANSITION_KERNEL_CODE,
   generateDefaultLambdaCode,
   generatePetrinautId,
@@ -14,23 +15,29 @@ import {
 
 import { usePetrinautMutations } from "../../../react/hooks/use-petrinaut-mutations";
 import { useReadOnlyFeedback } from "../../../react/hooks/use-read-only-feedback";
+import { NotificationsContext } from "../../../react/notifications/context";
+import { ActiveNetContext } from "../../../react/state/active-net-context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
 import { snapPositionToGrid } from "../../lib/snap-position-to-grid";
+import { planFusion } from "./fusion-links";
 
 import type { DraggedNodeKind } from "../shared/canvas-node-drag";
-import type { CanvasNode, CanvasPoint, CanvasScene } from "./canvas-scene";
-import type { SelectionMap } from "@hashintel/petrinaut-core";
+import type {
+  CanvasLinkEnds,
+  CanvasNode,
+  CanvasPoint,
+  CanvasScene,
+} from "./canvas-scene";
+import type { FusionMember, SelectionMap } from "@hashintel/petrinaut-core";
 
-export type CanvasConnection = {
-  sourceId: string;
-  targetId: string;
-  /** The port place at either end when that end is a component instance. */
-  sourcePortId: string | null;
-  targetPortId: string | null;
-};
+/** A connection being drawn or just drawn, from its source to its target. */
+export type CanvasConnection = CanvasLinkEnds;
+
+/** A line on the canvas that is selected and hovered as one item: an arc, or a fusion through any of its links. */
+export type CanvasLinkItem = { type: "arc" | "fusion"; id: string };
 
 export type CanvasNodeMove = { id: string; position: CanvasPoint };
 
@@ -51,10 +58,10 @@ export type CanvasInteractions = {
   isSelectMode: boolean;
   paneCursor: CanvasPaneCursor;
   hoverNode: (node: Pick<CanvasNode, "id" | "kind">) => void;
-  hoverArc: (id: string) => void;
+  hoverLink: (item: CanvasLinkItem) => void;
   clearHover: () => void;
-  /** Arcs are selected only by a direct click, never by box selection. */
-  selectArc: (id: string) => void;
+  /** Arcs and fusions are selected only by a direct click, never by box selection. */
+  selectLink: (item: CanvasLinkItem) => void;
   /** Node selection changes from clicks and box selection. */
   applySelectionChanges: (changes: CanvasSelectionChange[]) => void;
   beginSelectionGesture: () => void;
@@ -65,7 +72,11 @@ export type CanvasInteractions = {
   /** Drags that ended; commits the positions and clears the previews. */
   dropNodes: (drops: CanvasNodeDrop[]) => void;
   isValidConnection: (connection: CanvasConnection) => boolean;
-  /** Adds the arc for a valid connection and ignores an invalid one. */
+  /**
+   * Adds the arc for a valid connection and ignores an invalid one. A
+   * connection between a place and an instance port, or two instance ports,
+   * fuses them: into the fusion either already belongs to, else a new one.
+   */
   connect: (connection: CanvasConnection) => void;
   /** A click on empty canvas: clears the selection or places a node, by mode. */
   clickPane: (scenePosition: CanvasPoint) => void;
@@ -109,17 +120,22 @@ const isCanvasItemType = (type: string) =>
   type === "place" ||
   type === "transition" ||
   type === "arc" ||
-  type === "componentInstance";
+  type === "componentInstance" ||
+  type === "fusion";
 
 export const useCanvasInteractions = (
   scene: CanvasScene,
 ): CanvasInteractions => {
   const { petriNetDefinition, getItemType } = use(SDCPNContext);
+  const { activeNet } = use(ActiveNetContext);
+  const { addNotification } = use(NotificationsContext);
   const {
     addPlace,
     addTransition,
     addArc,
     addComponentInstance,
+    addFusion,
+    addFusionMember,
     commitNodePositions,
   } = usePetrinautMutations();
   const {
@@ -153,84 +169,104 @@ export const useCanvasInteractions = (
   const kindOf = (id: string) =>
     scene.nodes.find((node) => node.id === id)?.kind;
 
-  const isValidConnection = ({
+  /** The fusion member an end of a connection names, or `null` for a transition. */
+  const memberOf = (
+    nodeId: string,
+    portId: string | null,
+  ): FusionMember | null => {
+    const kind = kindOf(nodeId);
+    if (kind === "place") {
+      return { kind: "place", placeId: nodeId };
+    }
+    if (kind === "componentInstance" && portId !== null) {
+      return {
+        kind: "componentPort",
+        componentInstanceId: nodeId,
+        portPlaceId: portId,
+      };
+    }
+    return null;
+  };
+
+  /**
+   * What drawing a connection makes: an arc between a transition and a place
+   * or port, a fusion of a port with a place or another port, or nothing.
+   */
+  const classify = ({
     sourceId,
     targetId,
     sourcePortId,
     targetPortId,
-  }: CanvasConnection): boolean => {
-    const source = kindOf(sourceId);
-    const target = kindOf(targetId);
-    if (!source || !target) {
-      return false;
+  }: CanvasConnection):
+    | {
+        kind: "arc";
+        transitionId: string;
+        arcDirection: "input" | "output";
+        endpoint: FusionMember;
+      }
+    | { kind: "fusion"; first: FusionMember; second: FusionMember }
+    | null => {
+    const first = memberOf(sourceId, sourcePortId);
+    const second = memberOf(targetId, targetPortId);
+    if (first && kindOf(targetId) === "transition") {
+      return {
+        kind: "arc",
+        transitionId: targetId,
+        arcDirection: "input",
+        endpoint: first,
+      };
     }
-    if (source === "place" && target === "transition") {
-      return true;
+    if (second && kindOf(sourceId) === "transition") {
+      return {
+        kind: "arc",
+        transitionId: sourceId,
+        arcDirection: "output",
+        endpoint: second,
+      };
     }
-    if (source === "transition" && target === "place") {
-      return true;
+    return first &&
+      second &&
+      (first.kind === "componentPort" || second.kind === "componentPort") &&
+      !arcEndpointsEqual(first, second)
+      ? { kind: "fusion", first, second }
+      : null;
+  };
+
+  const fuse = (first: FusionMember, second: FusionMember) => {
+    const plan = planFusion(activeNet, first, second);
+    if (plan.kind === "refused") {
+      addNotification({
+        id: "fusion:second-anchor",
+        message:
+          "A fusion holds one place of this net. Fuse the port with that place instead.",
+        tone: "neutral",
+        durationMs: 4500,
+      });
+      return;
     }
-    if (source === "transition" && target === "componentInstance") {
-      return targetPortId !== null;
+    const id = plan.kind === "join" ? plan.fusionId : generatePetrinautId();
+    if (plan.kind === "join") {
+      addFusionMember({ fusionId: id, member: plan.member });
+    } else {
+      addFusion({ id, members: plan.members });
     }
-    if (source === "componentInstance" && target === "transition") {
-      return sourcePortId !== null;
-    }
-    return false;
+    selectItem({ type: "fusion", id });
   };
 
   const connect = (connection: CanvasConnection) => {
-    if (!isValidConnection(connection)) {
-      return;
-    }
-    const { sourceId, targetId, sourcePortId, targetPortId } = connection;
-    const source = kindOf(sourceId);
-    const target = kindOf(targetId);
-
-    if (source === "place" && target === "transition") {
+    const made = classify(connection);
+    if (made?.kind === "arc") {
+      const { transitionId, arcDirection, endpoint } = made;
       addArc({
-        transitionId: targetId,
-        arcDirection: "input",
-        placeId: sourceId,
+        transitionId,
+        arcDirection,
+        ...(endpoint.kind === "place"
+          ? { placeId: endpoint.placeId }
+          : { endpoint }),
         weight: 1,
       });
-    } else if (source === "transition" && target === "place") {
-      addArc({
-        transitionId: sourceId,
-        arcDirection: "output",
-        placeId: targetId,
-        weight: 1,
-      });
-    } else if (
-      source === "transition" &&
-      target === "componentInstance" &&
-      targetPortId
-    ) {
-      addArc({
-        transitionId: sourceId,
-        arcDirection: "output",
-        endpoint: {
-          kind: "componentPort",
-          componentInstanceId: targetId,
-          portPlaceId: targetPortId,
-        },
-        weight: 1,
-      });
-    } else if (
-      source === "componentInstance" &&
-      target === "transition" &&
-      sourcePortId
-    ) {
-      addArc({
-        transitionId: targetId,
-        arcDirection: "input",
-        endpoint: {
-          kind: "componentPort",
-          componentInstanceId: sourceId,
-          portPlaceId: sourcePortId,
-        },
-        weight: 1,
-      });
+    } else if (made?.kind === "fusion") {
+      fuse(made.first, made.second);
     }
   };
 
@@ -306,6 +342,9 @@ export const useCanvasInteractions = (
   // A functional update, so that node and arc changes a renderer reports in
   // the same tick do not clobber each other through stale closures.
   const applySelectionChanges = (changes: CanvasSelectionChange[]) => {
+    const fusionIdByLinkId = new Map(
+      scene.fusions.map((link) => [link.id, link.fusionId]),
+    );
     setSelection(
       (prevSelection) => {
         const hasNonCanvasItems = Array.from(prevSelection.values()).some(
@@ -317,14 +356,16 @@ export const useCanvasInteractions = (
         let changed = hasNonCanvasItems && prevSelection.size > 0;
 
         for (const change of changes) {
-          if (change.selected && !base.has(change.id)) {
-            const itemType = getItemType(change.id);
-            if (itemType && itemType !== "arc") {
-              base.set(change.id, { type: itemType, id: change.id });
+          // A change to a fusion's link is a change to the fusion.
+          const id = fusionIdByLinkId.get(change.id) ?? change.id;
+          if (change.selected && !base.has(id)) {
+            const itemType = getItemType(id);
+            if (itemType && itemType !== "arc" && itemType !== "fusion") {
+              base.set(id, { type: itemType, id });
               changed = true;
             }
-          } else if (!change.selected && base.has(change.id)) {
-            base.delete(change.id);
+          } else if (!change.selected && base.has(id)) {
+            base.delete(id);
             changed = true;
           }
         }
@@ -384,16 +425,19 @@ export const useCanvasInteractions = (
     isSelectMode,
     paneCursor: isAddMode ? "copy" : isPanMode ? "grab" : "default",
     hoverNode: (node) => setHoveredItem({ type: node.kind, id: node.id }),
-    hoverArc: (id) => setHoveredItem({ type: "arc", id }),
+    hoverLink: setHoveredItem,
     clearHover: clearHoveredItem,
-    selectArc: (id) => setSelection(new Map([[id, { type: "arc", id }]])),
+    // Queued with the changes React Flow reports for the same click, so a
+    // sibling link it deselects does not land after and undo the selection.
+    selectLink: (item) =>
+      setSelection(() => new Map([[item.id, item]]), { batch: "react-flow" }),
     applySelectionChanges,
     beginSelectionGesture,
     endSelectionGesture,
     clearSelection,
     moveNodes,
     dropNodes,
-    isValidConnection,
+    isValidConnection: (connection) => classify(connection) !== null,
     connect,
     clickPane,
     dropNode: createNodeAt,

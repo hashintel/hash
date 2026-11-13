@@ -16,6 +16,8 @@ import {
   getArcEndpointNodeId,
 } from "@hashintel/petrinaut-core";
 
+import { fusionLinks } from "./fusion-links";
+
 import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
 
 /**
@@ -72,11 +74,13 @@ type NodeAdjacency = {
  * arc in the net.
  */
 export type NetAdjacency = {
-  /** Every id the canvas draws: nodes and arcs. */
+  /** Every id the canvas draws: nodes, arcs, fusions and their links. */
   canvasIds: ReadonlySet<string>;
   byNode: ReadonlyMap<string, NodeAdjacency>;
   /** The nodes an arc joins, for a focus that lands on the arc itself. */
   arcEnds: ReadonlyMap<string, { sourceId: string; targetId: string }>;
+  /** The links and the nodes a fusion draws, for a focus on the fusion. */
+  fusionParts: ReadonlyMap<string, { linkIds: string[]; nodeIds: string[] }>;
 };
 
 /**
@@ -86,6 +90,10 @@ export type NetAdjacency = {
 export const buildNetAdjacency = (net: ActiveNetDefinition): NetAdjacency => {
   const byNode = new Map<string, NodeAdjacency>();
   const arcEnds = new Map<string, { sourceId: string; targetId: string }>();
+  const fusionParts = new Map<
+    string,
+    { linkIds: string[]; nodeIds: string[] }
+  >();
   const canvasIds = new Set<string>();
 
   const entryFor = (id: string): NodeAdjacency => {
@@ -153,7 +161,24 @@ export const buildNetAdjacency = (net: ActiveNetDefinition): NetAdjacency => {
     }
   }
 
-  return { canvasIds, byNode, arcEnds };
+  // A fusion's members are one place, so its links join both ways: focusing
+  // either end lights the link and makes the other end bidirectional.
+  for (const fusion of net.fusions) {
+    canvasIds.add(fusion.id);
+    const links = fusionLinks(fusion);
+    for (const { id, hub, member } of links) {
+      const hubId = getArcEndpointNodeId(hub);
+      const memberId = getArcEndpointNodeId(member);
+      join(id, hubId, memberId);
+      join(id, memberId, hubId);
+    }
+    fusionParts.set(fusion.id, {
+      linkIds: links.map(({ id }) => id),
+      nodeIds: fusion.members.map(getArcEndpointNodeId),
+    });
+  }
+
+  return { canvasIds, byNode, arcEnds, fusionParts };
 };
 
 const NOTHING_FOCUSED: CanvasFocus = {
@@ -218,6 +243,20 @@ export const resolveCanvasFocus = ({
       for (const arc of node.outgoing) outgoing.add(arc);
       continue;
     }
+    // A focused fusion is its links and the nodes they join: the links run
+    // inside the focus, and each node is both sides of it.
+    const fusion = adjacency.fusionParts.get(id);
+    if (fusion) {
+      for (const linkId of fusion.linkIds) {
+        incoming.add(linkId);
+        outgoing.add(linkId);
+      }
+      for (const nodeId of fusion.nodeIds) {
+        upstream.add(nodeId);
+        downstream.add(nodeId);
+      }
+      continue;
+    }
     // A focused arc puts the nodes it joins either side of the focus.
     const ends = adjacency.arcEnds.get(id);
     if (ends) {
@@ -228,6 +267,13 @@ export const resolveCanvasFocus = ({
 
   const isFocused = (id: string) =>
     focusIds.has(id) || selectedCanvasIds.has(id);
+  // A selected fusion is drawn by its links: they stay lit with it while the
+  // pointer is on something else.
+  const selectedLinkIds = new Set(
+    [...selectedCanvasIds].flatMap(
+      (id) => adjacency.fusionParts.get(id)?.linkIds ?? [],
+    ),
+  );
 
   return {
     active: true,
@@ -251,7 +297,7 @@ export const resolveCanvasFocus = ({
     },
 
     arcFocus: (id) => {
-      if (isFocused(id)) {
+      if (isFocused(id) || selectedLinkIds.has(id)) {
         return "focused";
       }
       const intoFocus = incoming.has(id);

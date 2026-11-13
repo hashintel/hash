@@ -208,7 +208,7 @@ const PlaceMainContent: React.FC = () => {
               updatePlace({ placeId: place.id, update: { isPort: checked } })
             }
           />
-          <HelpTooltip content="Expose this place as an arc endpoint when its subnet is used as a component." />
+          <HelpTooltip content="Expose this place as a port when its subnet is used as a component: fuse it with a place of the net that holds the instance, or connect it to a transition there." />
         </div>
         <Collapsible.Root open={capacityEnabled} lazyMount unmountOnExit>
           <div className={optionRowStyle}>

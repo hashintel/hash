@@ -16,6 +16,7 @@ import {
   getTransitionLogicAvailability,
 } from "@hashintel/petrinaut-core";
 
+import { fusionLinks, type FusionStatus } from "./fusion-links";
 import { arcStrokeColor } from "./styles/type-colors";
 
 import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
@@ -27,8 +28,10 @@ import type {
 } from "./canvas-focus";
 import type {
   ArcEndpoint,
+  FusionMember,
   InputArcType,
   PetrinautExtensionSettings,
+  ProblemSeverity,
   RenderNodeDimensions,
   SDCPN,
 } from "@hashintel/petrinaut-core";
@@ -85,15 +88,19 @@ export type CanvasNode =
 
 export type CanvasNodeKind = CanvasNode["kind"];
 
-export type CanvasArc = {
-  id: string;
-  kind: InputArcType;
-  weight: number;
+/** The two nodes a line on the canvas joins. */
+export type CanvasLinkEnds = {
   sourceId: string;
   targetId: string;
   /** The port place at either end when that end is a component instance. */
   sourcePortId: string | null;
   targetPortId: string | null;
+};
+
+export type CanvasArc = CanvasLinkEnds & {
+  id: string;
+  kind: InputArcType;
+  weight: number;
   /** The transition whose firings animate this arc. */
   transitionId: string;
   /** Stroke colour before the focus role recolours it. */
@@ -103,9 +110,29 @@ export type CanvasArc = {
   focus: CanvasArcFocus;
 };
 
+/**
+ * One line of a fusion: from the fusion's hub, its anchor place or first
+ * member, to one of its other members. A fusion with three members draws two
+ * links; every link selects and hovers the fusion as a whole. Its two ends
+ * are ordered left to right on the canvas, so the link runs between the
+ * sides that face each other: a fusion link has no direction.
+ */
+export type CanvasFusionLink = CanvasLinkEnds & {
+  /** Unique per link: the fusion id and the member the link leads to. */
+  id: string;
+  fusionId: string;
+  /** The fused place's name, shown on the link when selected or hovered. */
+  name: string;
+  selected: boolean;
+  /** The worst of the fusion's problems, or `null` when it has none. */
+  severity: ProblemSeverity | null;
+  focus: CanvasArcFocus;
+};
+
 export type CanvasScene = {
   nodes: CanvasNode[];
   arcs: CanvasArc[];
+  fusions: CanvasFusionLink[];
   dimensions: RenderNodeDimensions;
   /**
    * Whether anything is focused. Drives the muting of everything outside the
@@ -118,6 +145,8 @@ export type CanvasSceneInput = {
   net: ActiveNetDefinition;
   /** The whole document, for subnet lookups. */
   sdcpn: SDCPN;
+  /** The name and the worst problem of each of the net's fusions. */
+  fusionStatuses: ReadonlyMap<string, FusionStatus>;
   extensions: PetrinautExtensionSettings;
   dimensions: RenderNodeDimensions;
   draggingStateByNodeId: DraggingStateByNodeId;
@@ -140,9 +169,51 @@ const positionOf = (
     : { position: { x: item.x, y: item.y }, dragging: false };
 };
 
+const portIdOf = (endpoint: ArcEndpoint): string | null =>
+  endpoint.kind === "componentPort" ? endpoint.portPlaceId : null;
+
+const buildFusionLinks = ({
+  fusion,
+  status,
+  nodes,
+  selected,
+  focus,
+}: {
+  fusion: ActiveNetDefinition["fusions"][number];
+  status: FusionStatus | undefined;
+  nodes: readonly CanvasNode[];
+  selected: boolean;
+  focus: CanvasFocus;
+}): CanvasFusionLink[] => {
+  const centreX = (member: FusionMember): number => {
+    const nodeId = getArcEndpointNodeId(member);
+    return nodes.find((node) => node.id === nodeId)?.position.x ?? 0;
+  };
+
+  return fusionLinks(fusion).map(({ id, hub, member }) => {
+    // The left end's right-hand handle to the right end's left-hand handle,
+    // so the curve runs between the nodes rather than back through one.
+    const [source, target] =
+      centreX(member) < centreX(hub) ? [member, hub] : [hub, member];
+    return {
+      id,
+      fusionId: fusion.id,
+      name: status?.name ?? fusion.id,
+      sourceId: getArcEndpointNodeId(source),
+      targetId: getArcEndpointNodeId(target),
+      sourcePortId: portIdOf(source),
+      targetPortId: portIdOf(target),
+      selected,
+      severity: status?.severity ?? null,
+      focus: focus.arcFocus(id),
+    };
+  });
+};
+
 export const buildCanvasScene = ({
   net,
   sdcpn,
+  fusionStatuses,
   extensions,
   dimensions,
   draggingStateByNodeId,
@@ -241,9 +312,6 @@ export const buildCanvasScene = ({
       : undefined;
   };
 
-  const portId = (endpoint: ArcEndpoint): string | null =>
-    endpoint.kind === "componentPort" ? endpoint.portPlaceId : null;
-
   const arcs: CanvasArc[] = [];
 
   for (const transition of net.transitions) {
@@ -259,7 +327,7 @@ export const buildCanvasScene = ({
         weight: inputArc.weight,
         sourceId: getArcEndpointNodeId(endpoint),
         targetId: transition.id,
-        sourcePortId: portId(endpoint),
+        sourcePortId: portIdOf(endpoint),
         targetPortId: null,
         transitionId: transition.id,
         color: arcStrokeColor(endpointColor(endpoint)),
@@ -281,7 +349,7 @@ export const buildCanvasScene = ({
         sourceId: transition.id,
         targetId: getArcEndpointNodeId(endpoint),
         sourcePortId: null,
-        targetPortId: portId(endpoint),
+        targetPortId: portIdOf(endpoint),
         transitionId: transition.id,
         color: arcStrokeColor(endpointColor(endpoint)),
         selected: isSelected(id),
@@ -290,5 +358,15 @@ export const buildCanvasScene = ({
     }
   }
 
-  return { nodes, arcs, dimensions, focusActive: focus.active };
+  const fusions: CanvasFusionLink[] = net.fusions.flatMap((fusion) =>
+    buildFusionLinks({
+      fusion,
+      status: fusionStatuses.get(fusion.id),
+      nodes,
+      selected: isSelected(fusion.id),
+      focus,
+    }),
+  );
+
+  return { nodes, arcs, fusions, dimensions, focusActive: focus.active };
 };

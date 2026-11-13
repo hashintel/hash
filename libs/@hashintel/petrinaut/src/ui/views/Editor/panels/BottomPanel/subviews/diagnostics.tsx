@@ -1,18 +1,25 @@
 import { use, useCallback, useMemo, useState } from "react";
 
 import { Banner, Icon } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { SimulationContext } from "../../../../../../react/simulation/context";
+import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { problemTextStyle } from "../../../../../constants/problem-severity";
 import { useCodeNavigation } from "../../../../../monaco/code-navigation";
 import { parseDocumentUri } from "../../../../../monaco/editor-paths";
+import { useCompositionProblems } from "../../../shared/use-composition-problems";
 import { NetClassSummary } from "./diagnostics/net-class-summary";
 
 import type { SubView } from "../../../../../components/sub-view/types";
-import type { Diagnostic, SelectionItemType } from "@hashintel/petrinaut-core";
+import type {
+  FusionProblem,
+  Diagnostic,
+  SelectionItemType,
+} from "@hashintel/petrinaut-core";
 
 const emptyMessageStyle = css({
   color: "neutral.s100",
@@ -40,9 +47,10 @@ const entityButtonStyle = css({
   },
 });
 
-const errorCountStyle = css({
-  color: "[#dc2626]",
+const countStyle = css({
   fontWeight: "normal",
+  color: "neutral.s100",
+  "&[data-errors]": { color: "[#dc2626]" },
 });
 
 const expandedContentStyle = css({
@@ -88,6 +96,10 @@ const diagnosticButtonStyle = css({
   _hover: {
     backgroundColor: "[rgba(220, 38, 38, 0.08)]",
   },
+  // A warning or a note is not an error: its hover is plain.
+  "&:is([data-severity=warning], [data-severity=info]):hover": {
+    backgroundColor: "neutral.bg.surface.hover",
+  },
 });
 
 const bulletStyle = css({
@@ -130,6 +142,106 @@ const SELECTION_TYPES: Record<EntityType, SelectionItemType> = {
   transition: "transition",
   "differential-equation": "differentialEquation",
   place: "place",
+};
+
+/** A group of diagnostics under a heading that folds it away. */
+const DiagnosticsGroup = ({
+  label,
+  count,
+  hasErrors,
+  expanded,
+  onToggle,
+  children,
+}: {
+  label: string;
+  /** What the group holds, in words: "2 errors". */
+  count: string;
+  hasErrors: boolean;
+  expanded: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) => (
+  <div className={entityGroupStyle}>
+    <button
+      type="button"
+      aria-expanded={expanded}
+      onClick={onToggle}
+      className={entityButtonStyle}
+    >
+      <Icon name={expanded ? "chevronDown" : "chevronRight"} size="xs" />
+      <span>{label}</span>
+      <span className={countStyle} data-errors={hasErrors ? "" : undefined}>
+        ({count})
+      </span>
+    </button>
+    {expanded && <div className={expandedContentStyle}>{children}</div>}
+  </div>
+);
+
+const countOf = (count: number, noun: string): string =>
+  `${count} ${noun}${count === 1 ? "" : "s"}`;
+
+/**
+ * The problems with the net's fusions. Clicking one opens the net the fusion
+ * is in and selects it.
+ */
+const CompositionDiagnostics = ({
+  problems,
+}: {
+  problems: FusionProblem[];
+}) => {
+  const { setActiveSubnetId } = use(ActiveNetContext);
+  const { selectItem } = use(EditorContext);
+  const [isExpanded, setIsExpanded] = useState(true);
+  const countWith = (severity: FusionProblem["severity"]) =>
+    problems.filter((problem) => problem.severity === severity).length;
+  const errorCount = countWith("error");
+  // Each kind the list holds, said apart: "1 error, 2 notes".
+  const counts = [
+    [errorCount, "error"],
+    [countWith("warning"), "warning"],
+    [countWith("info"), "note"],
+  ] as const;
+
+  const reveal = (problem: FusionProblem) => {
+    setActiveSubnetId(problem.subnetId);
+    selectItem({ type: "fusion", id: problem.fusionId });
+  };
+
+  return (
+    <DiagnosticsGroup
+      label="Composition"
+      count={counts
+        .filter(([count]) => count > 0)
+        .map(([count, noun]) => countOf(count, noun))
+        .join(", ")}
+      hasErrors={errorCount > 0}
+      expanded={isExpanded}
+      onToggle={() => setIsExpanded((expanded) => !expanded)}
+    >
+      <ul className={diagnosticsListStyle}>
+        {problems.map((problem, index) => (
+          <li
+            // The list is derived afresh on every render, and one check can
+            // report twice on one fusion.
+            // eslint-disable-next-line react/no-array-index-key
+            key={index}
+            className={diagnosticItemStyle}
+          >
+            <button
+              type="button"
+              onClick={() => reveal(problem)}
+              className={cx(diagnosticButtonStyle, problemTextStyle)}
+              data-severity={problem.severity}
+            >
+              <span className={bulletStyle}>•</span>
+              {problem.message}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </DiagnosticsGroup>
+  );
 };
 
 interface GroupedDiagnostics {
@@ -251,8 +363,13 @@ const DiagnosticsContent: React.FC = () => {
   }, []);
 
   const hasSimulationError = simulationState === "Error" && !!simulationError;
+  const compositionProblems = useCompositionProblems();
 
-  if (totalDiagnosticsCount === 0 && !hasSimulationError) {
+  if (
+    totalDiagnosticsCount === 0 &&
+    !hasSimulationError &&
+    compositionProblems.length === 0
+  ) {
     return (
       <div className={emptyMessageStyle}>No errors detected in your model</div>
     );
@@ -260,6 +377,9 @@ const DiagnosticsContent: React.FC = () => {
 
   return (
     <>
+      {compositionProblems.length > 0 && (
+        <CompositionDiagnostics problems={compositionProblems} />
+      )}
       {/* Simulation runtime error */}
       {hasSimulationError && (
         <Banner tone="error" className={simulationBannerStyle}>
@@ -300,73 +420,57 @@ const DiagnosticsContent: React.FC = () => {
         const entityLabel = `${ENTITY_LABELS[group.entityType]}: ${group.entityName}`;
 
         return (
-          <div key={entityKey} className={entityGroupStyle}>
-            {/* Collapsible entity header */}
-            <button
-              type="button"
-              onClick={() => toggleEntity(entityKey)}
-              className={entityButtonStyle}
-            >
-              {isExpanded ? (
-                <Icon name="chevronDown" size="xs" />
-              ) : (
-                <Icon name="chevronRight" size="xs" />
-              )}
-              <span>{entityLabel}</span>
-              <span className={errorCountStyle}>
-                ({group.errorCount} error
-                {group.errorCount !== 1 ? "s" : ""})
-              </span>
-            </button>
-
-            {/* Expanded diagnostics */}
-            {isExpanded && (
-              <div className={expandedContentStyle}>
-                {group.items.map((itemGroup) => (
-                  <div
-                    key={`${group.entityId}-${itemGroup.subType ?? "de"}`}
-                    className={itemGroupStyle}
-                  >
-                    {/* Show sub-type for transitions and places */}
-                    {itemGroup.subType && (
-                      <div className={subTypeStyle}>
-                        {SUB_TYPE_LABELS[itemGroup.subType]}
-                      </div>
-                    )}
-
-                    {/* Diagnostics list */}
-                    <ul className={diagnosticsListStyle}>
-                      {itemGroup.diagnostics.map((diagnostic) => (
-                        <li
-                          key={`${group.entityId}-${itemGroup.subType}-${diagnostic.range.start.line}:${diagnostic.range.start.character}-${diagnostic.code}`}
-                          className={diagnosticItemStyle}
-                        >
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleSelectEntity(
-                                group.entityId,
-                                group.entityType,
-                                itemGroup.uri,
-                              )
-                            }
-                            className={diagnosticButtonStyle}
-                          >
-                            <span className={bulletStyle}>•</span>
-                            {diagnostic.message}
-                            <span className={positionStyle}>
-                              (Ln {diagnostic.range.start.line + 1}, Col{" "}
-                              {diagnostic.range.start.character + 1})
-                            </span>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
+          <DiagnosticsGroup
+            key={entityKey}
+            label={entityLabel}
+            count={countOf(group.errorCount, "error")}
+            hasErrors
+            expanded={isExpanded}
+            onToggle={() => toggleEntity(entityKey)}
+          >
+            {group.items.map((itemGroup) => (
+              <div
+                key={`${group.entityId}-${itemGroup.subType ?? "de"}`}
+                className={itemGroupStyle}
+              >
+                {/* Show sub-type for transitions and places */}
+                {itemGroup.subType && (
+                  <div className={subTypeStyle}>
+                    {SUB_TYPE_LABELS[itemGroup.subType]}
                   </div>
-                ))}
+                )}
+
+                {/* Diagnostics list */}
+                <ul className={diagnosticsListStyle}>
+                  {itemGroup.diagnostics.map((diagnostic) => (
+                    <li
+                      key={`${group.entityId}-${itemGroup.subType}-${diagnostic.range.start.line}:${diagnostic.range.start.character}-${diagnostic.code}`}
+                      className={diagnosticItemStyle}
+                    >
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleSelectEntity(
+                            group.entityId,
+                            group.entityType,
+                            itemGroup.uri,
+                          )
+                        }
+                        className={diagnosticButtonStyle}
+                      >
+                        <span className={bulletStyle}>•</span>
+                        {diagnostic.message}
+                        <span className={positionStyle}>
+                          (Ln {diagnostic.range.start.line + 1}, Col{" "}
+                          {diagnostic.range.start.character + 1})
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               </div>
-            )}
-          </div>
+            ))}
+          </DiagnosticsGroup>
         );
       })}
     </>
@@ -388,6 +492,6 @@ export const diagnosticsSubView: SubView = {
   id: "diagnostics",
   title: "Diagnostics",
   tooltip:
-    "View the class of your net, and the errors and warnings in its code.",
+    "View the class of your net, and the problems in its code and its composition.",
   component: DiagnosticsPanel,
 };

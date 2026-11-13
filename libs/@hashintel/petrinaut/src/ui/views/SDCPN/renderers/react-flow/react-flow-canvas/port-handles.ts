@@ -16,14 +16,19 @@ export const portInHandleId = (portId: string): string =>
 export const portOutHandleId = (portId: string): string =>
   `${portOutPrefix}${portId}`;
 
-const portIdOf = (handle: string | null | undefined, prefix: string) =>
-  handle?.startsWith(prefix) ? handle.slice(prefix.length) : null;
+/** The port a handle is a pin of, whichever side of its instance the pin is on. */
+const portIdOf = (handle: string | null | undefined): string | null => {
+  const prefix = [portInPrefix, portOutPrefix].find((candidate) =>
+    handle?.startsWith(candidate),
+  );
+  return handle && prefix ? handle.slice(prefix.length) : null;
+};
 
 export const toCanvasConnection = (
   connection: Pick<Edge, "source" | "target" | "sourceHandle" | "targetHandle">,
 ): CanvasConnection => ({
   sourceId: connection.source,
   targetId: connection.target,
-  sourcePortId: portIdOf(connection.sourceHandle, portOutPrefix),
-  targetPortId: portIdOf(connection.targetHandle, portInPrefix),
+  sourcePortId: portIdOf(connection.sourceHandle),
+  targetPortId: portIdOf(connection.targetHandle),
 });

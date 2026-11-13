@@ -9,6 +9,7 @@ import {
   useExperimentalIconMotionAllowed,
   useExperimentalIconPackEnabled,
 } from "../../../../experimental-icons";
+import { useCompositionProblems } from "../../shared/use-composition-problems";
 import { ToolbarButton } from "./toolbar-button";
 
 const iconContainerStyle = cva({
@@ -118,7 +119,8 @@ interface DiagnosticsIndicatorProps {
 }
 
 /**
- * DiagnosticsIndicator shows the current SDCPN validation status.
+ * DiagnosticsIndicator shows the current SDCPN validation status, the code
+ * diagnostics and the composition's errors and warnings together.
  * - Green check icon if no issues
  * - Amber icon with count if only warnings/hints (simulation still allowed)
  * - Red cross icon with count if errors found
@@ -127,9 +129,17 @@ export const DiagnosticsIndicator: React.FC<DiagnosticsIndicatorProps> = ({
   onClick,
   isExpanded,
 }) => {
-  const { totalDiagnosticsCount, errorDiagnosticsCount } = use(
-    LanguageClientContext,
+  const diagnostics = use(LanguageClientContext);
+  // A note on the composition, such as a fused place that only accumulates,
+  // is not an issue to count.
+  const compositionProblems = useCompositionProblems().filter(
+    ({ severity }) => severity !== "info",
   );
+  const totalDiagnosticsCount =
+    diagnostics.totalDiagnosticsCount + compositionProblems.length;
+  const errorDiagnosticsCount =
+    diagnostics.errorDiagnosticsCount +
+    compositionProblems.filter(({ severity }) => severity === "error").length;
 
   const hasErrors = errorDiagnosticsCount > 0;
   const hasIssues = totalDiagnosticsCount > 0;
