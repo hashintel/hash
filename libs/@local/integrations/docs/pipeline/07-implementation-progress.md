@@ -3,6 +3,7 @@
 ## Scope and baseline
 
 - Goal: deliver the replacement ingestion pipeline, required behavioral and seam checks, independent Astra reviews, and an accepted local commit for each milestone. No push, publication, merge, or production caller migration is authorized.
+- User clarification during final integration: Restate integration is outside scope. Deliver the CLI and only the engine-neutral interfaces required by the agreed specs; no Restate dependency, adapter, backend, worker or deployment.
 - Agreed spec baseline: `feb96672c5387ebb7615cf161ae842abbf1a9033`.
 - Implementation branch: `codex/ingestion-pipeline`.
 - Initial worktree: clean. Existing implementation sources are read-only references throughout this work.
@@ -39,10 +40,29 @@ Expected fixtures derive from the reviewed scenario rows, fixed UUID vectors, sc
 | Stage 1: Capture | Accepted: `3ce2b4e220` | 267/267 combined nextest tests passed, zero skipped; clippy/rustdoc/doc tests/format passed; coordinator fixture seam verified; Astra approved with no blocking findings |
 | Stage 2: Hash and diff | Accepted: `c2a36e6342` | Frozen combined suite 360/360 passed, zero skipped; focused gates and actual Capture seam passed; Rust checks passed; Astra approved and independently passed 44 focused tests |
 | Stage 3: Plan writes | Accepted: `bcec9d9629` | Frozen suite 453/453 passed, zero skipped; exact bodies and fresh-scratch seams passed; Rust checks passed; Astra approved and independently passed 30 stage/seam tests and 63 graph tests |
-| Stage 4: Send and commit | Accepted, commit follows | Frozen suite 531/531 passed, zero skipped; S1–S9, real HTTP, takeover, bounded rejection output and Rust checks passed; Astra approved and independently passed 79 sender/scenario/planner and 27 Graph tests |
-| Final integration | Pending | Combined verification, same pipeline from both entry points, unchanged existing sources, deferred-findings reconciliation; commit resulting fixes |
+| Stage 4: Send and commit | Accepted: `922945bc87` | Frozen suite 531/531 passed, zero skipped; S1–S9, real HTTP, takeover, bounded rejection output and Rust checks passed; Astra approved and independently passed 79 sender/scenario/planner and 27 Graph tests |
+| Final integration | Accepted, commit follows | Frozen combined suite 572/572 passed, zero skipped; CLI/workflow behavioral gates and Rust checks passed; legacy sources unchanged; Astra approved with independent 35/35 workflow/service and 6/6 CLI reruns |
 
 ## Active assignment
+
+Final integration assignment, base `922945bc87bfc7cc9a90ed61ab182d3636607711`:
+
+- Builder `entrypoint_builder`: own the new crate's `src/main.rs`, `src/command/` and focused CLI behavioral tests. Implement the exact local runner contract in shared-run section 4.11, adapted only to the replacement binary name `hash-integrations-pipeline`: apply/restore/reconcile, local/S3 storage, secret argument handling, scratch lifecycle, run-ID output, success JSON, exit codes and same-ID replay. Call the accepted public `run`; no copied stage orchestration, production caller migration or edits to old sources. Propose dependencies centrally.
+- Builder `workflow_builder`: own `src/orchestration/` and `src/service/`, with focused workflow/service tests. Adapt only the reference run/service interfaces needed by shared-run section 4.12 inside the replacement crate: `RunFunction`, `StepContext`, typed names/failures/version, `PipelineFunction`, submission and stable run/admission identities. Preserve five named steps, recorded output replay, error kind/code and cancellation propagation, web checks, scratch cleanup, and service submit/status/cancel contracts. No orchestration backend, worker, journal or global rate-limit implementation is required; do not invent a replacement framework or add a second crate.
+- Coordinator: own `lib.rs`, Cargo metadata/lockfile, shared cleanup, README/progress and final acceptance. Remove obsolete foundation-wide dead-code suppression without dropping required shared APIs; reconcile delivered review findings and explicitly retained limits. Check service/entry-point scope against the read-only audit and preserve all accepted stage APIs/fixtures.
+- Independent reviewer `foundation_review` (Astra): after final combined verification, inspect the complete resulting diff against this base, verify both entry points call the same accepted stage functions, rerun targeted checks, and verify every blocking fix. Review deferred-findings reconciliation as part of acceptance.
+- Gate: meaningful entry-point replay/error/cancel behavior and checkpoint output tests, retained regression suite including S1–S9, real Graph HTTP and local/MinIO concurrency; all-feature/all-target clippy, rustdoc/doc tests, formatting/diff checks; old implementation source preservation; independent approval and local commit. Clean up only this task's isolated Graph service/database after final tests and review. No push, publication, merge or caller migration.
+
+### Final integration decisions and evidence
+
+- Read-only scope audit confirmed that shared-run 4.12 requires submission/service behavior as well as `PipelineFunction`. Only its necessary reference-compatible data types and interfaces are adapted from `da9fb175a8` and `b053dd6578`; there is no backend, journal, worker, token bucket or Restate integration. Required step outputs, identity/version/retry policy, redacted payloads and service validation remain fixed.
+- Coordinator approved private clap derive/env support, the existing crypto secret parser and Tokio multithreaded runtime for the binary, plus `derive_more::AsRef` for explicit typed workflow names. No new third-party package or second crate is introduced.
+- Removed the obsolete run-module-wide foundation dead-code expectation. Narrow, explained expectations retain the specified row-file constructor and boolean variants, which independent seam tests exercise; production blocking writers use owned paths and boolean tables use workspace export. CLI reads the retained `Code` error frame after changing report context, matching `Code::of` without widening that shared API.
+- CLI behavioral gate **6/6 passed**, zero skipped (11.534 s; `/tmp/pipeline-cli-nextest-final.log`): actual child processes cover apply and committed replay, permanent request mismatch, five-attempt retryable Graph failure and fresh-process resume, rejected-write success, both restore modes/reconcile, setup failure/generated run ID, local/S3 storage, secret handling and scratch cleanup. The S3 case uses isolated real MinIO.
+- Workflow/service gate **35/35 passed**, with 417 unrelated library tests intentionally filtered (`/tmp/pipeline-workflow-tests-final.log`). It covers five typed steps, repeated unrecorded closures, recorded replay bypassing closures, failed-send recovery, cancellation before and during send with durable pending intent, early web/scratch failures, classified stage failures, stable submission identities and service validation/status/cancel regressions. An initial replay assertion incorrectly treated the fake Graph's draining request log as cumulative; the test was corrected against that existing API, with no production change, and the suite reran successfully.
+- Coordinator's frozen full nextest 0.9.151 suite **572/572 passed, zero skipped**, ten binaries (40.734 s; `/tmp/pipeline-final-nextest.log`), including all S1–S9 runs, six real Graph HTTP cases, local/MinIO concurrency, source/decimal/property regressions and both entry points. All-feature/all-target/no-deps clippy, rustdoc, doc tests (zero examples), formatting and diff checks passed (`/tmp/pipeline-final-{clippy,rustdoc,doctest,fmt}.log`); only the three existing unused root workspace dependencies warn. CLI help was inspected, canonical fixture files are unchanged in this milestone, and old engine/definition/app sources still match `feb96672c5`. Final independent review remains pending; no Restate dependency or code was added.
+- Final independent Astra review approved source SHA-256 `4ae0b644feb01487e8d5bb3a885a7225d33773a402ffc2dbba96169151074dbe`, with no blockers or optional fixes. Reviewer independently passed **35/35** service/orchestration tests (`/tmp/pipeline-final-independent-review.log`); the disjoint CLI reviewer passed **6/6** actual-process tests, including MinIO. Review checked the reference interfaces, five-stage/step composition, replay/cancellation/error behavior, CLI contract, narrow shared allowances and complete findings reconciliation. Coordinator verified the unchanged frozen source hash and all combined evidence and accepts the final milestone.
+- After final tests and review, coordinator removed only container `pipeline-acceptance-graph-01a1d65f` and database `pipeline_acceptance_01a1d65f`. Database query confirmed `graph` and `graph_test` remain; the original development services remain running, including healthy Graph/Postgres/MinIO/Kratos. The isolated service can be recreated from the committed Graph test README. No production data, caller, Restate service or unrelated worktree change was modified.
 
 Stage 4 assignment, base `bcec9d96296a1f1424d788dbb4f67109ced0a8fd`:
 
@@ -130,7 +150,7 @@ Foundation assignment, base `da117f9d4e`:
 - Independent reviewer `foundation_review` (Astra): after build/test evidence, review the actual diff against the baseline, challenge missing behavioral/resource/seam coverage, verify fixes, and report blocking findings separately. No edits or commits.
 - Acceptance: marker winning/reuse including equivalent tables; `start` input stability; current-state authority and bounded CAS; separate-process local create/update races and real MinIO conditional transitions; valid/invalid/unsigned/nested decimal export before publication; bounded RowFile and valid empty schemas; independently executable expected fixtures; nextest, doc tests, all-feature/all-target clippy, rustdoc, formatting and diff checks. No skipped required test satisfies this gate.
 
-The shared foundation and stages 1–4 are accepted. Final entry points and integration verification remain pending.
+The shared foundation, stages 1–4 and final integration are accepted. All required implementation, behavioral/seam checks and independent reviews are complete; the final accepted local commit is the remaining checkpoint action.
 
 ### Foundation acceptance evidence
 
@@ -142,17 +162,29 @@ The shared foundation and stages 1–4 are accepted. Final entry points and inte
 - Docker inspection succeeded with sandbox escalation. Existing local Postgres/MinIO are available. An isolated acceptance Graph is now healthy at `http://127.0.0.1:55031`, container `pipeline-acceptance-graph-01a1d65f`, image `sha256:0916afc039032558037e789cd93cc1c5ced0743f4c44295b452ce5806ef690a2` (revision `94fd0baab9c5057fceb42270c98cd575e3eb22cf`). Its dedicated database `pipeline_acceptance_01a1d65f` was created and migrated successfully on local Postgres (`127.0.0.1:5432`, test user/password `postgres`); its test-only service credential is `pipeline-acceptance-only`. Temporal workflows and external embedding calls are disabled. The required Kratos URL is `http://hash-kratos-1:4433`. Healthcheck passed. This is infrastructure evidence only; planned-body HTTP acceptance remains pending. Clean up this task-owned container/database after final verification; never use the development `graph` database for these tests.
 - Existing engine, definition and application source trees still match the agreed baseline (`git diff --exit-code feb96672c5 -- libs/@local/integrations/engine libs/@local/integrations/definition apps/hash-integrations`).
 
-## Remaining required verification and blockers
+## Verification status and reproduction
 
-- New crate checks: nextest, doc tests, all-feature/all-target clippy, rustdoc, formatting, and `git diff --check` as appropriate.
-- Real MinIO/S3 conditional create/update races and local cross-process conditional updates are foundation requirements. Docker access may require sandbox escalation; no skipped test counts as passing.
-- Real Graph HTTP tests must use actual planned bodies and verify replay editions, property removal, bulk atomicity, conflict/not-found statuses, intended actor/read-only behavior, and the D18 long-number observation. Historical store-level probes are insufficient.
-- The checkout lacks the newer Graph client and orchestration sources; use the named Git references for in-crate adapters. For real Graph acceptance, use a compatible reference server without modifying existing implementation sources. Keep test data isolated from the development database.
-- No unresolved product decision identified during baseline preparation. A missing prerequisite or mandatory failed check keeps its milestone pending.
+- No unresolved implementation, verification or review blocker remains. Every milestone passed its gate before the next began, and final combined verification included every required service test with zero skips.
+- Reproduction commands are in the crate README. Use installed nextest 0.9.151 or a version containing the Apple capture-pipe fix described above; the repository tool pin was not changed. Real MinIO/PostgreSQL tests start isolated containers and need Docker access.
+- The six required Graph HTTP cases need the compatible isolated server/database documented in `src/run/tests/graph_http/README.md`; they fail when it is missing. Recreate that task-specific fixture before rerunning the full suite. Existing development databases are never substitutes.
+- The CLI is executable; the workflow/service interfaces are engine-neutral contracts for a future backend. Restate integration and switching production callers remain outside the user-authorized scope.
 
 ## Deferred follow-ups
 
-Retain the agreed deferrals in `06-review-findings.md` and overview D1–D18. F1/F2 are mandatory implementation work. F3 requires planned-body HTTP evidence. F4/F5 behavior remains the agreed coverage/archive rule; no silent policy change. F6 global pacing remains explicitly deferred. F7's resource obligation and F8's shared API ownership are addressed during implementation, and their actual evidence must be recorded before final acceptance. Other case-inventory tests are candidates; add those justified by defects or remaining risk.
+The accepted specs and historical findings remain unchanged. This implementation reconciliation records what was delivered and what remains intentionally deferred; it does not silently change the numeric, coverage or archive policies.
+
+| Finding | Delivered evidence and retained limit |
+| --- | --- |
+| F1 / D9 | Local cross-process and MinIO conditional state transitions, per-attempt authority, takeover/backoff/fallback/stale commit and lost-response replay are verified. An already authorized Graph call can still finish after takeover; the actual A/B/C test verifies explicit reconcile repair. |
+| F2 / D17 | Reserved property inputs fail while metadata remains usable; signed, oversized, nested and unsupported unsigned decimal export boundaries are verified before publication. |
+| F3 / D18 | Actual planned-body HTTP evidence is recorded above and in the Graph test README. Precision loss is present; the pinned fixture's six replayed writes preserve all six editions. No precision guard or numeric policy change is introduced. Exact long numbers require text mapping. |
+| F4 / D6 / D15 | Partial/complete-or-empty coverage and the resend-set exception retain the agreed behavior, with mixed recovery tests. REST `maxPages` still completes capture; choosing a stricter supported input envelope remains deferred. |
+| F5 / D2 | Type-version replacements create new identities and count their old archives toward the mass-archive guard. Above-threshold version-bump and restore tests preserve this rule; changing it remains deferred. |
+| F6 / D11 | Retry-After and request backoff are implemented. A cross-worker global rate cap and fair scheduling are not implemented and remain explicitly deferred. |
+| F7 | Rejections use bounded row/byte buffers and blocking file tasks. The 2,500-row, greater-than-10-MiB volume case crosses both buffer and Arrow boundaries. |
+| F8 / D16 | Shared artifact/capture/statement classifiers have one owner and preserve InvalidData priority. Coarse PostgreSQL/statement failures remain retryable under the agreed mapping. |
+
+Other overview deferrals remain: D1 has no config hash (mapping-only changes require resend-all); D3/D4 leave production namespace and actor choice to the caller (machine/user HTTP behavior is tested); D5 does not automatically archive links when endpoints archive; D7 adds no per-property provenance; D8 replays all send batches after interruption; D10 adds no retention/deletion policy; D12 allows nondeterministic SQL and recomputes it on restore/reconcile; D13 leaves run/stage/current JSON without a schema version; D14 imposes no rejection limit. Required initial behavioral/seam tests and relevant regressions are retained. Additional case-inventory permutations and production caller migration are outside this acceptance scope.
 
 ## Resume procedure
 

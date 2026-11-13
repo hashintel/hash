@@ -24,6 +24,14 @@ pub(crate) enum ColumnKind {
     UInt16,
     UInt32,
     UInt64,
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "the shared row-file contract includes booleans; current boolean producers \
+                      export workspace queries"
+        )
+    )]
     Boolean,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -37,6 +45,14 @@ pub(crate) enum Cell {
     Null,
     Text(Box<str>),
     UInt(u64),
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "the shared row-file contract includes booleans; current boolean producers \
+                      export workspace queries"
+        )
+    )]
     Boolean(bool),
 }
 
@@ -52,6 +68,14 @@ pub(crate) struct RowFile {
 
 impl RowFile {
     /// Performs blocking file IO; callers writing more than one batch use a blocking task.
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "retains the specified shared constructor; production blocking tasks use \
+                      create_at with an owned path"
+        )
+    )]
     pub(crate) fn create(
         context: &RunContext,
         columns: &[Column],

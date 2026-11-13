@@ -7126,6 +7126,7 @@ dependencies = [
  "axum",
  "backon",
  "bytes",
+ "clap",
  "derive_more",
  "duckdb",
  "error-stack",

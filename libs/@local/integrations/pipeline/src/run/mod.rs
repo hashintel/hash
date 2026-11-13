@@ -1,12 +1,4 @@
 //! Shared run inputs, persisted state, and checkpoint utilities.
-#![cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        reason = "shared foundation APIs are exercised independently before stage implementations \
-                  are added"
-    )
-)]
 mod context;
 pub(crate) mod current;
 pub(crate) mod error;

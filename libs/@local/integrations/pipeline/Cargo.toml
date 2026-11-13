@@ -13,7 +13,7 @@ test-utils = []
 [dependencies]
 # Public workspace dependencies
 error-stack                  = { workspace = true, public = true, features = ["std"] }
-hash-crypto                  = { workspace = true, public = true }
+hash-crypto                  = { workspace = true, public = true, features = ["clap"] }
 hash-integrations-definition = { workspace = true, public = true }
 type-system                  = { workspace = true, public = true }
 
@@ -32,7 +32,8 @@ hash-middleware  = { workspace = true }
 arrow-array    = { workspace = true }
 backon         = { workspace = true, features = ["std", "tokio-sleep"] }
 bytes          = { workspace = true }
-derive_more    = { workspace = true, features = ["display", "error", "from", "into"] }
+clap           = { workspace = true, features = ["derive", "env"] }
+derive_more    = { workspace = true, features = ["as_ref", "display", "error", "from", "into"] }
 futures-util   = { workspace = true }
 hex            = { workspace = true, features = ["alloc", "serde"] }
 object_store   = { workspace = true, features = ["aws", "fs"] }
@@ -41,7 +42,7 @@ parquet        = { workspace = true, features = ["arrow", "snap"] }
 reqwest        = { workspace = true }
 tempfile       = { workspace = true }
 serde_json     = { workspace = true, features = ["raw_value"] }
-tokio          = { workspace = true, features = ["fs", "io-util", "net", "rt", "sync", "time"] }
+tokio          = { workspace = true, features = ["fs", "io-util", "net", "rt-multi-thread", "sync", "time"] }
 tracing        = { workspace = true, features = ["attributes"] }
 url            = { workspace = true }
 zeroize        = { workspace = true }
