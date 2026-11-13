@@ -173,6 +173,44 @@ export const mapInterfaceParameters = (
 };
 
 /**
+ * The subnet an instance declares, the one that runs for it, and the running
+ * subnet's ids for the declared one's ports and parameters: identities for a
+ * component, the name-matched ones of the implementation for an interface.
+ * An id the implementation has no match for maps to itself.
+ */
+export type RunningSubnet = {
+  declared: Subnet;
+  running: Subnet;
+  portId: (declaredPortId: ID) => ID;
+  parameterId: (declaredParameterId: ID) => ID;
+};
+
+export const runningSubnet = (
+  binding: Exclude<ImplementationBinding, { kind: "unbound" }>,
+): RunningSubnet => {
+  if (binding.kind === "component") {
+    const identity = (id: ID): ID => id;
+    return {
+      declared: binding.subnet,
+      running: binding.subnet,
+      portId: identity,
+      parameterId: identity,
+    };
+  }
+  const ports = mapInterfacePorts(binding.interface, binding.implementation);
+  const parameters = mapInterfaceParameters(
+    binding.interface,
+    binding.implementation,
+  );
+  return {
+    declared: binding.interface,
+    running: binding.implementation,
+    portId: (id) => ports.get(id) ?? id,
+    parameterId: (id) => parameters.get(id) ?? id,
+  };
+};
+
+/**
  * The place that runs for a port of `instance`, and the subnet it is in: the
  * declared port itself for a component, and for an instance of an interface
  * the bound implementation's port of the same name. Falls back to the
@@ -187,12 +225,8 @@ export const resolveRunningPort = (
   if (binding?.kind !== "bound") {
     return declared;
   }
-  const runningId = mapInterfacePorts(
-    binding.interface,
-    binding.implementation,
-  ).get(declared.place.id);
-  const place = binding.implementation.places.find(
-    ({ id }) => id === runningId,
-  );
-  return place ? { subnet: binding.implementation, place } : declared;
+  const { running, portId } = runningSubnet(binding);
+  const runningId = portId(declared.place.id);
+  const place = running.places.find(({ id }) => id === runningId);
+  return place ? { subnet: running, place } : declared;
 };
