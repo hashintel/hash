@@ -46,7 +46,7 @@ export class DocumentationError extends Schema.TaggedError<DocumentationError>()
       UnresolvedLink: ({ destination, start }) =>
         `No declaration for the link to ${destination} at ${start}`,
       UnknownParameter: ({ name, start }) =>
-        `The @param ${name} at ${start} names no parameter of what the comment documents`,
+        `The @param ${name} at ${start} names no parameter of a call the reference reads from the declaration it is on. A declaration it reads no call from, such as a type alias, takes no @param`,
       UnknownTypeParameter: ({ name, start }) =>
         `The @typeParam ${name} at ${start} names no type parameter of what the comment documents`,
       UnsupportedReference: ({ destination, start }) =>
