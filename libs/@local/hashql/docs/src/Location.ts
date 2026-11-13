@@ -6,9 +6,14 @@ import {
   Layer,
   MutableHashMap,
   Option,
+  Schema,
 } from "effect";
 import { isSourceFile } from "typescript/ast";
 import { getNameOfDeclaration } from "typescript/ast/utils";
+
+import * as DocumentationError from "./DocumentationError.js";
+import * as Source from "./internal/ast/source.js";
+import * as Program from "./TypeScript/Program.js";
 
 import type { Cause, PlatformError } from "effect";
 import type { Declaration, Node, SourceFile } from "typescript/ast";
@@ -85,6 +90,62 @@ export const make = Effect.fnUntraced(function* () {
   });
   return Locations.of({ locate });
 });
+
+/** `failure` with the declaration its comment is on, where the program holds the comment and a declaration map tells where the package's source declares that declaration. Any other failure stays as it is. */
+const placed = Effect.fnUntraced(function* (
+  failure: DocumentationError.DocumentationError,
+) {
+  const program = yield* Program.Program;
+  const locations = yield* Locations;
+  const file = yield* program.sourceFile(failure.file);
+  const documented = Option.flatMap(
+    Option.all({ file, start: failure.start }),
+    ({ file: source, start }) => Source.documentedAt(source, start),
+  );
+  if (Option.isNone(documented)) {
+    return failure;
+  }
+
+  // SAFETY: a comment's node is a declaration or its file, which is what a declaration map places.
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- The compiler types a node with a comment as any node.
+  const declaration = documented.value as Declaration | SourceFile;
+  const location = yield* locations.locate(declaration);
+
+  return Option.match(location, {
+    onNone: () => failure,
+    onSome: (found) =>
+      DocumentationError.DocumentationError.make({
+        file: failure.file,
+        reason: failure.reason,
+        declaration: {
+          names: Source.declaredNames(declaration),
+          file: found.file,
+          line: found.line,
+        },
+      }),
+  });
+});
+
+/**
+ * Fails `effect` with each comment failure at the declaration its comment is on, as the package's source declares it.
+ *
+ * The parser reads a copy of the package's built declarations, so a failure of its own names that copy. An author edits the source.
+ */
+export const locating = <A, E, R>(
+  effect: Effect.Effect<A, E | DocumentationError.DocumentationError, R>,
+): Effect.Effect<
+  A,
+  | E
+  | DocumentationError.DocumentationError
+  | Cause.UnknownError
+  | PlatformError.PlatformError,
+  R | Locations | Program.Program
+> =>
+  Effect.catchIf(
+    effect,
+    Schema.is(DocumentationError.DocumentationError),
+    (failure) => Effect.flatMap(placed(failure), Effect.fail),
+  );
 
 export const layer: Layer.Layer<Locations, never, FileSystem.FileSystem> =
   Layer.effect(Locations, make());

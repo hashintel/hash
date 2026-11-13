@@ -14,6 +14,7 @@ import { isInterfaceDeclaration } from "typescript/ast";
 
 import * as Location from "../src/Location.js";
 import * as Compiler from "./fixtures/compiler.js";
+import * as Reference from "./fixtures/reference.js";
 
 import type { Scope } from "effect";
 import type { InterfaceDeclaration, SourceFile } from "typescript/ast";
@@ -82,7 +83,76 @@ const locate = Effect.fnUntraced(function* ({
   return yield* locations.locate(declaration);
 });
 
+/** What building the reference for `source` fails with, as its author reads it. */
+const refusal = (source: string): Effect.Effect<string> =>
+  Effect.map(
+    Reference.run({ source }),
+    Result.match({
+      onFailure: (failure) => failure.message,
+      onSuccess: () => "",
+    }),
+  );
+
 describe("location", () => {
+  it.effect.each([
+    [
+      "function",
+      "\n/** Reads {@link Missing}. */ export declare function read(): void;",
+      "read at index.d.ts:2: No declaration for the link to Missing",
+    ],
+    [
+      "member",
+      "export interface Box {\n  /** The {@link Missing}. */ readonly value: string;\n}",
+      "Box.value at index.d.ts:2: No declaration for the link to Missing",
+    ],
+    [
+      "call",
+      "export declare const run: {\n  /** Runs. @param nope - Nothing. */ (): void;\n};",
+      "run at index.d.ts:2: The @param nope names no parameter",
+    ],
+    [
+      "variable",
+      "\n\n/** @stability unknown */ export declare const value: number;",
+      "value at index.d.ts:3: Unknown stability",
+    ],
+    [
+      "repeated_tag",
+      "/** @since 1.0.0\n * @since 2.0.0 */ export type Kind = string;",
+      "Kind at index.d.ts:2: Repeated singleton tag @since",
+    ],
+    [
+      "module",
+      "/** Reads {@link Missing}. @module */\n/** A value. */ export declare const value: number;",
+      "index.d.ts:1: No declaration for the link to Missing",
+    ],
+    [
+      "stray_module",
+      "/** A value. */ export declare const value: number;\n/** Stray. @module */ export declare const other: number;",
+      "other at index.d.ts:2: The @module comment does not lead its file",
+    ],
+    [
+      "constructor",
+      "export declare namespace Deep {\n  export class Box {\n    /** Makes with {@link Missing}. */\n    constructor(value: string);\n  }\n}",
+      "Deep.Box at index.d.ts:4: No declaration for the link to Missing",
+    ],
+    [
+      "reexport",
+      "interface Value {}\n/** Renamed. */\nexport { Value as Other };",
+      "index.d.ts:3: The comment is on a re-export",
+    ],
+  ] as const)(
+    "refusal_%s",
+    Effect.fnUntraced(function* ([, source, expected]: readonly [
+      string,
+      string,
+      string,
+    ]) {
+      expect.hasAssertions();
+      const message = yield* refusal(source);
+      expect(message.slice(0, expected.length)).toBe(expected);
+    }),
+  );
+
   it.effect(
     "positions_and_cache",
     Effect.fnUntraced(function* () {
