@@ -53,6 +53,14 @@ impl RowFile {
         context: &RunContext,
         columns: &[Column],
     ) -> Result<Self, Report<StageError>> {
+        Self::create_at(context.scratch_file(Format::Parquet), columns)
+    }
+
+    /// Starts a writer at a run-local path that can be moved into a blocking task.
+    pub(crate) fn create_at(
+        target: PathBuf,
+        columns: &[Column],
+    ) -> Result<Self, Report<StageError>> {
         if columns.is_empty()
             || columns.iter().enumerate().any(|(index, column)| {
                 columns
@@ -63,7 +71,6 @@ impl RowFile {
         {
             return Err(Code::RowInvalid.report());
         }
-        let target = context.scratch_file(Format::Parquet);
         let partial = SourceCapture::stage(&target).map_err(error::capture)?;
         let schema = batch(columns, &[])?.schema();
         let writer =

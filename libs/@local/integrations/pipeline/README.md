@@ -19,6 +19,12 @@ and adopts stored captures for restore/reconcile. Its completion marker fixes th
 time and source references. Adoption and empty restore stay inline in the stage entry point;
 source failures use one classifier with shared lower-frame helpers.
 
+Stage 2 preserves the `prepare_rows` seam for source staging, property hashes, and typed entity/link
+identities. Bounded ID batches use blocking row-file writers. Diffing reads committed and interrupted
+run checkpoints, applies global identity/coverage/archive guards, and publishes ordered files only
+after the guards pass. Prior loading, row classification, and file publication each have one module;
+private forwarding helpers from the design sketches are folded into those operations.
+
 Expected checkpoint data under `tests/fixtures` is grounded independently in the agreed scenarios,
 not captured from production output. Tests can construct every seam, remove scratch, and resume
 from the published files. Parquet byte identity is deliberately not required. Exact request JSON,

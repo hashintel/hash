@@ -1,8 +1,23 @@
 use alloc::collections::BTreeMap;
 
 use hash_integrations_definition::{
-    CheckpointName, ColumnName, EntityPipeline, EntitySink, LinkPipeline, PrimaryKey, StepId,
+    Accessor, CheckpointName, ColumnName, EntityPipeline, EntitySink, LinkPipeline, PrimaryKey,
+    Properties, StepId,
 };
+
+/// Columns read by property accessors, in property order, paired with plain-column semantics.
+pub(crate) fn accessor_columns(
+    properties: &Properties,
+) -> impl Iterator<Item = (&ColumnName, bool)> {
+    properties
+        .iter()
+        .flat_map(|(_, accessor)| match accessor {
+            Accessor::Column(column) => [Some((column, true)), None],
+            Accessor::Coerce { column, .. } => [Some((column, false)), None],
+            Accessor::Measure { amount, unit, .. } => [Some((amount, false)), Some((unit, false))],
+        })
+        .flatten()
+}
 
 /// Checks applied to a materialized source table.
 #[derive(Debug, Default, Clone)]
@@ -103,6 +118,7 @@ pub(crate) struct StagingRequest {
 /// A link pipeline's output table and the mapping to be consumed by its sink.
 #[derive(Debug)]
 pub struct PreparedLink {
+    /// A table containing the link pipeline's rows and `_content_hash`.
     pub table: Box<str>,
     pub pipeline: LinkPipeline,
 }

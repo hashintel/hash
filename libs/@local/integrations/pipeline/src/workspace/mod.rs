@@ -6,6 +6,7 @@ mod metrics;
 mod reply;
 mod rows;
 mod select;
+pub(crate) mod value;
 
 use alloc::{collections::BTreeMap, sync::Arc};
 use core::{error::Error, num::NonZeroUsize};

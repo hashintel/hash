@@ -21,6 +21,7 @@ time     = { workspace = true, public = true, features = ["std", "formatting", "
 uuid     = { workspace = true, public = true, features = ["v4", "v5", "serde"] }
 
 # Private workspace dependencies
+hash-codec       = { workspace = true }
 hash-graph-store = { workspace = true }
 hash-middleware  = { workspace = true }
 

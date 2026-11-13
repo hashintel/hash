@@ -26,7 +26,7 @@ mod workspace;
 pub use self::{
     byte_size::ByteSize,
     capture::{CaptureError, SourceCapture},
-    entity_id::derive_entity_id,
+    entity_id::{LinkEndpoint, derive_entity_id},
     pipeline::{
         AssertionFailure, PreparationError, PreparedLink, PreparedPipeline, PreparedSink,
         TableAssertions,

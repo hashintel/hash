@@ -1,6 +1,7 @@
 //! Shared behavioral fixtures and foundation acceptance checks.
 mod capture;
 mod current;
+mod diff;
 mod error;
 pub(crate) mod fixtures;
 mod marker;
@@ -15,8 +16,8 @@ use type_system::principal::{actor::ActorEntityUuid, actor_group::WebId};
 use uuid::Uuid;
 
 use crate::{
-    ArtifactStorage, FixedClock, OperationRequest, RunContext, RunId, RunRequest, SendSettings,
-    WorkspaceConfig,
+    ArtifactStorage, CaptureLimits, CaptureStore, FixedClock, OperationRequest, RunContext, RunId,
+    RunRequest, SendSettings, SourceReader, WorkspaceConfig,
 };
 
 pub(crate) fn connector() -> ConnectorId {
@@ -38,6 +39,14 @@ pub(crate) fn context(directory: &Path) -> RunContext {
         WorkspaceConfig::default(),
         SendSettings::default(),
         Box::new(FixedClock(datetime!(2026-11-06 12:00 UTC))),
+    )
+}
+pub(crate) fn reader(context: &RunContext, directory: &Path) -> SourceReader {
+    let local = directory.join("local");
+    fs::create_dir_all(&local).expect("should create the local source root");
+    SourceReader::new(
+        CaptureStore::new(&local, context.storage.clone()).expect("should open the source reader"),
+        CaptureLimits::default(),
     )
 }
 pub(crate) fn apply(run: RunId, definition: &str) -> RunRequest {

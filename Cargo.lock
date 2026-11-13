@@ -7130,6 +7130,7 @@ dependencies = [
  "duckdb",
  "error-stack",
  "futures-util",
+ "hash-codec",
  "hash-crypto",
  "hash-graph-store",
  "hash-graph-temporal-versioning",

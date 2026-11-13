@@ -66,6 +66,10 @@ pub enum Code {
     SourceUnavailable,
     #[display("secret_unavailable")]
     SecretUnavailable,
+    #[display("capture_missing")]
+    CaptureMissing,
+    #[display("row_key")]
+    RowKey,
 }
 
 impl Code {
@@ -95,6 +99,8 @@ impl Code {
         Self::SourceResponse,
         Self::SourceUnavailable,
         Self::SecretUnavailable,
+        Self::CaptureMissing,
+        Self::RowKey,
     ];
 
     /// The persisted diagnostic text.
@@ -125,6 +131,8 @@ impl Code {
             Self::SourceResponse => "source_response",
             Self::SourceUnavailable => "source_unavailable",
             Self::SecretUnavailable => "secret_unavailable",
+            Self::CaptureMissing => "capture_missing",
+            Self::RowKey => "row_key",
         }
     }
 
@@ -155,7 +163,9 @@ impl Code {
             | Self::RowInvalid
             | Self::SourceConfiguration
             | Self::SourceCredentials
-            | Self::SourceResponse => StageError::Permanent,
+            | Self::SourceResponse
+            | Self::CaptureMissing
+            | Self::RowKey => StageError::Permanent,
         }
     }
 

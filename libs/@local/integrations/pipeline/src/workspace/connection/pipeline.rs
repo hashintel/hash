@@ -2,16 +2,35 @@ use alloc::collections::BTreeMap;
 
 use error_stack::{Report, ResultExt as _};
 use hash_integrations_definition::{
-    Accessor, Action, CheckpointName, EntitySink, LinkInput, Properties, StepId, StepKind,
+    Action, CheckpointName, EntitySink, LinkInput, Properties, StepId, StepKind,
 };
 use uuid::Uuid;
 
 use super::Connection;
 use crate::{
     PreparationError, PreparedLink, PreparedPipeline, PreparedSink,
-    pipeline::{LinkRequest, PipelineRequest},
+    pipeline::{LinkRequest, PipelineRequest, accessor_columns},
     sql::Identifier,
 };
+
+const RESERVED: [&str; 10] = [
+    "_op",
+    "_key",
+    "_content_hash",
+    "_entity_id",
+    "_source_id",
+    "_left_entity_id",
+    "_right_entity_id",
+    "_row",
+    "_change",
+    "rowid",
+];
+
+fn reserved(column: &str) -> bool {
+    RESERVED
+        .iter()
+        .any(|name| column.eq_ignore_ascii_case(name))
+}
 
 struct Execution<'connection> {
     connection: &'connection Connection,
@@ -95,9 +114,41 @@ impl Connection {
         }
         check_properties(&request.pipeline.properties, &schema)?;
         Ok(PreparedLink {
-            table,
+            table: self.hashed_table(&table, &request.pipeline.properties, &schema)?,
             pipeline: request.pipeline.clone(),
         })
+    }
+
+    /// Copies a target's rows with a content hash, preserving the input checkpoint.
+    fn hashed_table(
+        &self,
+        input: &str,
+        properties: &Properties,
+        schema: &[(String, String)],
+    ) -> Result<Box<str>, Report<PreparationError>> {
+        for (column, _) in schema {
+            if reserved(column)
+                && !["_op", "_key"]
+                    .iter()
+                    .any(|name| column.eq_ignore_ascii_case(name))
+            {
+                return Err(Report::new(PreparationError::ReservedColumn {
+                    column: column.clone().into_boxed_str(),
+                }));
+            }
+        }
+        let columns = accessor_columns(properties).map(|(column, plain)| (column.as_ref(), plain));
+        let hash = hash_expression(columns, schema)?;
+        let table = table_name();
+        self.create_table(
+            &table,
+            &format!(
+                "SELECT source.*, {hash} AS _content_hash FROM {} AS source",
+                Identifier::new(input)
+            ),
+        )
+        .change_context(PreparationError::Statement)?;
+        Ok(table)
     }
 
     /// Runs SQL, branches, and checkpoints, preparing immutable tables for entity sinks.
@@ -210,29 +261,8 @@ impl Execution<'_> {
             .describe(&format!("SELECT * FROM {}", Identifier::new(input)))?;
         check_column(sink.entity_id.as_ref(), &schema)?;
         check_properties(&sink.properties, &schema)?;
-        let columns = sink
-            .properties
-            .iter()
-            .flat_map(|(_, accessor)| match accessor {
-                Accessor::Column(column) => [Some((column.as_ref(), true)), None],
-                Accessor::Coerce { column, .. } => [Some((column.as_ref(), false)), None],
-                Accessor::Measure { amount, unit, .. } => {
-                    [Some((amount.as_ref(), false)), Some((unit.as_ref(), false))]
-                }
-            })
-            .flatten();
-        let hash = hash_expression(columns, &schema)?;
-        let table = table_name();
         self.connection
-            .create_table(
-                &table,
-                &format!(
-                    "SELECT source.*, {hash} AS _content_hash FROM {} AS source",
-                    Identifier::new(input)
-                ),
-            )
-            .change_context(PreparationError::Statement)?;
-        Ok(table)
+            .hashed_table(input, &sink.properties, &schema)
     }
 }
 
@@ -277,14 +307,16 @@ fn check_properties(
     properties: &Properties,
     schema: &[(String, String)],
 ) -> Result<(), Report<PreparationError>> {
-    let columns = properties
-        .iter()
-        .flat_map(|(_, accessor)| match accessor {
-            Accessor::Column(column) | Accessor::Coerce { column, .. } => [Some(column), None],
-            Accessor::Measure { amount, unit, .. } => [Some(amount), Some(unit)],
-        })
-        .flatten();
-    for column in columns {
+    // Scan every accessor before checking existence: an absent reserved name must not be
+    // obscured by an earlier missing ordinary column, including on an empty table.
+    for (column, _) in accessor_columns(properties) {
+        if reserved(column.as_ref()) {
+            return Err(Report::new(PreparationError::ReservedColumn {
+                column: column.to_string().into_boxed_str(),
+            }));
+        }
+    }
+    for (column, _) in accessor_columns(properties) {
         check_column(column.as_ref(), schema)?;
     }
     Ok(())

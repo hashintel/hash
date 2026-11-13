@@ -6,22 +6,14 @@ use hash_integrations_definition::{SourceName, Variables};
 use similar_asserts::assert_eq;
 use tempfile::TempDir;
 
-use super::{apply, context, fixtures, run_id};
-use crate::{
-    CaptureLimits, CaptureStore, SourceReader, sources::tests::NoSecrets, stage::capture::capture,
-    start,
-};
+use super::{apply, context, fixtures, reader, run_id};
+use crate::{sources::tests::NoSecrets, stage::capture::capture, start};
 
 #[tokio::test]
 async fn capture_matches_independent_checkpoint_on_fresh_scratch() {
     let directory = TempDir::new().expect("should create fixture storage");
     let producer = context(directory.path());
-    let local = directory.path().join("local");
-    fs::create_dir_all(&local).expect("should create the local source root");
-    let sources = SourceReader::new(
-        CaptureStore::new(&local, producer.storage.clone()).expect("should open the source reader"),
-        CaptureLimits::default(),
-    );
+    let sources = reader(&producer, directory.path());
     let input = start(
         &producer,
         apply(
