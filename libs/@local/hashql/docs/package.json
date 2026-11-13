@@ -2,9 +2,31 @@
   "name": "@local/hashql-docs",
   "version": "0.0.0-private",
   "private": true,
-  "description": "HashQL Reference",
+  "description": "HashQL documentation",
+  "type": "module",
   "scripts": {
-    "build": "typst compile --root ../../../.. --features html,bundle --format bundle main.typ dist",
-    "dev": "typst watch --root ../../../.. --features html,bundle --format bundle --no-serve main.typ dist"
+    "build:reference": "cd reference && typst compile --root ../../../../.. --features html,bundle --format bundle main.typ dist",
+    "codegen": "cd preview && next typegen",
+    "dev": "cd preview && next dev --hostname 127.0.0.1 --port ${PORT:-4323}",
+    "dev:reference": "cd reference && typst watch --root ../../../../.. --features html,bundle --format bundle --no-serve main.typ dist",
+    "lint:oxlint": "oxlint --disable-nested-config -c oxlint.config.ts",
+    "lint:tsc": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@fumadocs/base-ui": "16.17.8",
+    "@local/oxlint": "workspace:*",
+    "@local/tsconfig": "workspace:*",
+    "@tsconfig/bases": "catalog:",
+    "@types/mdx": "2.0.13",
+    "@types/node": "catalog:",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "fumadocs-core": "16.17.8",
+    "fumadocs-mdx": "15.4.10",
+    "next": "16.4.1",
+    "oxlint": "catalog:",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "typescript": "catalog:beta"
   }
 }
