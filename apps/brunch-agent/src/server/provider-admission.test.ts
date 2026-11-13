@@ -88,6 +88,32 @@ test.each(["stream", "streamSimple"] as const)(
   },
 );
 
+test.each([
+  ["with partial text", [fauxText("The account is partly")]],
+  ["without text", []],
+] as const)(
+  "a response stopped at the output limit fails %s",
+  async (_label, content) => {
+    const { faux, provider, model } = fixture();
+    faux.setResponses([
+      fauxAssistantMessage([...content], { stopReason: "length" }),
+    ]);
+    const events: AssistantMessageEvent[] = [];
+    const stream = provider.streamSimple(model, emptyTranscript);
+    await expect(
+      (async () => {
+        for await (const event of stream) events.push(event);
+      })(),
+    ).rejects.toThrow("model_output_limit");
+    expect(events.some((event) => event.type === "done")).toBe(false);
+    const failure: unknown = await stream
+      .result()
+      .catch((error: unknown) => error);
+    expect(String(failure)).toContain("model_output_limit");
+    expect(String(failure)).not.toContain("retryable_interruption");
+  },
+);
+
 test.each(["stream", "streamSimple"] as const)(
   "%s admits a complete browser-only proposal containing multiple calls",
   async (method) => {
