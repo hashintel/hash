@@ -103,17 +103,14 @@ export interface Reading {
 /**
  * The export of a catalogued declaration that a name reads.
  *
- * A type and a value declared apart are an export each. A name that means the value reads the value's. A name before a dot reads the namespace, which is the type's, or the value where no namespace shares the name.
+ * A type and a value declared apart are an export each. A name that means the value reads the value's, and any other name reads the type's, which documents the namespace as well.
  */
 export const exportAt: {
   (context: Exports): (reading: Reading) => Tree.Export.Own;
   (reading: Reading, context: Exports): Tree.Export.Own;
 } = Function.dual(2, ({ id, meaning }: Reading, context: Exports) => {
   const entry = entryAt(id, context);
-  if (
-    meaning === "type" ||
-    (meaning === "namespace" && Option.isSome(entry.namespace))
-  ) {
+  if (meaning !== "value") {
     return entry;
   }
 
