@@ -37,7 +37,9 @@ place. Petrinaut's version keeps it small on purpose.
 - Fusions are sets: a member belongs to one fusion, and a connection that
   joins two fusions merges them. `addFusion` and `addFusionMember` absorb a
   fusion that already holds one of the members; a member removed from a
-  fusion of two members removes the fusion.
+  fusion of two members removes the fusion. A document from elsewhere can
+  still list a member in two fusions, which the checks report and flattening
+  refuses: the two would chain into one place.
 - Removing a place, an instance, a subnet, or a port's `isPort` mark takes
   it out of every fusion that named it, the way arcs on it go away.
 
@@ -62,7 +64,8 @@ through for the net outside to use.
   produced into make a place that accumulates. Both are allowed, and the
   dataflow checks say what is missing.
 - Two ports of the same instance may be fused; it closes a loop through the
-  component. Allowed, not reported.
+  component. Allowed, and it flattens unless a transition inside the
+  component touches both ports with arcs of one kind.
 - A port can be fused only with places and ports of the net that holds its
   instance. To reach a port of a nested instance from further out, the
   containing component declares a port of its own and fuses it with the
@@ -74,8 +77,9 @@ through for the net outside to use.
 
 The fused place is one place, so its members must describe one place.
 `checkFusions` reports, as errors, members that no longer resolve, a
-duplicate member, a second anchor, a fusion of fewer than two members, a
-transition that reaches the fused place twice, and the three disagreements:
+duplicate member, a member another fusion of the net holds too, a second
+anchor, a fusion of fewer than two members, a transition that reaches the
+fused place twice, and the three disagreements:
 
 - **Token type**: compared structurally, the same elements in the same
   order under the same names and value types, because a component's type and
@@ -102,6 +106,13 @@ producers and consumers too.
 Flattening throws on each of these errors too, apart from a duplicate member
 and a fusion of fewer than two members, which merge nothing, so a document
 the editor flags as broken does not simulate with a surprise.
+
+The checks read one fusion of one net at a time. Flattening merges across
+nested instances, so it can also refuse what no single fusion shows: a
+capacity or dynamics that disagree along a chain of fusions through a
+nested instance, and a transition inside a component that reaches two of its
+own ports once the net outside fuses them. The run then stops with the
+flattener's message.
 
 ## Flattening
 

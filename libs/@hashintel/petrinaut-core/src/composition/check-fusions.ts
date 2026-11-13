@@ -1,14 +1,20 @@
 /**
  * The checks on a net's fusions: every member names a port or a place that
- * exists, the members agree on what the fused place is, no transition
- * reaches the fused place twice, and a fused flow has somewhere to come from
- * and somewhere to go. Run on a document as the editor shows it, before
- * flattening. Flattening throws on each of the errors too, apart from a
- * member listed twice and a fusion with fewer than two members, which merge
- * nothing.
+ * exists and belongs to this fusion alone, the members agree on what the
+ * fused place is, no transition reaches the fused place twice, and a fused
+ * flow has somewhere to come from and somewhere to go. Run on a document as
+ * the editor shows it, before flattening, one fusion and one net at a time.
+ * Flattening throws on each of the errors too, apart from a member listed
+ * twice and a fusion with fewer than two members, which merge nothing. It
+ * merges across nested instances as well, and can refuse what no single
+ * fusion shows: `place-fusion.mdx` lists those cases.
  */
 
-import { arcMatchesEndpoint, placeArcEndpoint } from "../arc-endpoints";
+import {
+  arcEndpointsEqual,
+  arcMatchesEndpoint,
+  placeArcEndpoint,
+} from "../arc-endpoints";
 import { getPlaceDynamicsEquationIds } from "../place-dynamics";
 import {
   describeFusionMember,
@@ -32,6 +38,7 @@ import type {
 export type FusionProblemCode =
   | "unresolved-member"
   | "duplicate-member"
+  | "shared-member"
   | "multiple-anchors"
   | "too-few-members"
   | "color-mismatch"
@@ -115,7 +122,10 @@ type MemberFacts = TokenFlow & {
   label: string;
   color: Color | undefined;
   capacity: number | null;
-  /** The equations the member runs, in order, keyed so two instances of one subnet agree. */
+  /**
+   * The equations the member runs, in order. The simulator knows an equation
+   * by its id alone, whichever net declares it.
+   */
   dynamicsKey: string | null;
 };
 
@@ -127,7 +137,6 @@ const factsFor = (
 ): MemberFacts => {
   const { place } = resolved;
   const types = resolved.kind === "place" ? net.types : resolved.subnet.types;
-  const scope = resolved.kind === "place" ? "" : `${resolved.subnet.id}::`;
   const equationIds = getPlaceDynamicsEquationIds(place);
   const outside = flowThrough(net.transitions, member);
   // What is on the far side of the member from this net's transitions: the
@@ -147,9 +156,7 @@ const factsFor = (
     capacity: place.capacity ?? null,
     dynamicsKey:
       place.dynamicsEnabled && equationIds.length > 0
-        ? JSON.stringify(
-            equationIds.map((equationId) => `${scope}${equationId}`),
-          )
+        ? JSON.stringify(equationIds)
         : null,
     produced: outside.produced || inside.produced,
     consumed: outside.consumed || inside.consumed,
@@ -180,7 +187,9 @@ export const checkFusion = (
   subnetId: ID | null,
 ): FusionProblem[] => {
   const problems: FusionProblem[] = [];
-  const fusionName = fusionDisplayName(sdcpn, net, fusion);
+  // Unnamed, a fusion goes by its anchor or first member: said as a fusion,
+  // so a message is not read as one about that place.
+  const fusionName = `the fusion ${fusionDisplayName(sdcpn, net, fusion)}`;
   const report = (
     code: FusionProblemCode,
     severity: ProblemSeverity,
@@ -192,7 +201,7 @@ export const checkFusion = (
     report(
       "too-few-members",
       "error",
-      `Fusion ${fusionName} needs at least two members.`,
+      `A fusion needs at least two members: ${fusionName} has fewer.`,
     );
   }
 
@@ -208,14 +217,26 @@ export const checkFusion = (
       );
       continue;
     }
+    const elsewhere = (net.fusions ?? []).some(
+      (other) =>
+        other.id !== fusion.id &&
+        other.members.some((held) => arcEndpointsEqual(held, member)),
+    );
+    if (elsewhere) {
+      report(
+        "shared-member",
+        "error",
+        `${label} is in ${fusionName} and in another fusion of this net: a place or port belongs to one fusion.`,
+      );
+    }
     const resolved = resolveFusionMember(sdcpn, net, member);
     if (resolved === null) {
       report(
         "unresolved-member",
         "error",
         member.kind === "place"
-          ? `${fusionName} names a place that no longer exists.`
-          : `${fusionName} names ${label}, which is not a port of an instance in this net.`,
+          ? `A member of ${fusionName} is a place that no longer exists.`
+          : `${label}, a member of ${fusionName}, is not a port of an instance in this net.`,
       );
       continue;
     }
@@ -225,7 +246,7 @@ export const checkFusion = (
     report(
       "multiple-anchors",
       "error",
-      `${fusionName} holds more than one place of this net; fuse ports into one place instead.`,
+      `More than one place of this net is in ${fusionName}; fuse ports into one place instead.`,
     );
   }
   for (const transition of transitionsReachingTwice(net, fusion)) {
@@ -257,7 +278,7 @@ export const checkFusion = (
     report(
       "capacity-mismatch",
       "error",
-      `${fusionName} fuses places with different token capacities (${[...capacities].join(", ")}).`,
+      `The places in ${fusionName} have different token capacities (${[...capacities].join(", ")}).`,
     );
   }
   const dynamics = new Set(
@@ -269,7 +290,7 @@ export const checkFusion = (
     report(
       "dynamics-conflict",
       "error",
-      `${fusionName} fuses places that run different differential equations; the members with dynamics must compose the same equations.`,
+      `The places in ${fusionName} run different differential equations; the members with dynamics must compose the same equations.`,
     );
   }
   if (!facts.some(({ produced }) => produced)) {

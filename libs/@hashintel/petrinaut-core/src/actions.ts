@@ -376,15 +376,20 @@ const removeComponentInstancesReferencingSubnet = (
   }
 };
 
-const assertArcEndpointReferences = (
+/**
+ * Throws when an endpoint names a place or a port that is not in `net`.
+ * `referrer` is what holds the endpoint, for the message: an arc, a fusion.
+ */
+const assertEndpointReferences = (
   sdcpn: SDCPN,
   net: MutableNet,
   endpoint: ArcEndpoint,
+  referrer: "Arc" | "Fusion",
 ): void => {
   if (endpoint.kind === "place") {
     if (!net.places.some((place) => place.id === endpoint.placeId)) {
       throw new Error(
-        `Arc references place ID \`${endpoint.placeId}\` which does not exist in the target net.`,
+        `${referrer} references place ID \`${endpoint.placeId}\` which does not exist in the target net.`,
       );
     }
     return;
@@ -395,41 +400,38 @@ const assertArcEndpointReferences = (
   );
   if (!instance) {
     throw new Error(
-      `Arc references component instance ID \`${endpoint.componentInstanceId}\` which does not exist in the target net.`,
+      `${referrer} references component instance ID \`${endpoint.componentInstanceId}\` which does not exist in the target net.`,
     );
   }
 
   const subnet = getComponentPortEndpointSubnet(sdcpn, instance);
   if (!subnet) {
     throw new Error(
-      `Arc references component instance \`${instance.name}\`, but its subnet ID \`${instance.subnetId}\` does not exist.`,
+      `${referrer} references component instance \`${instance.name}\`, but its subnet ID \`${instance.subnetId}\` does not exist.`,
     );
   }
 
   const port = subnet.places.find((place) => place.id === endpoint.portPlaceId);
   if (!port) {
     throw new Error(
-      `Arc references subnet port place ID \`${endpoint.portPlaceId}\` which does not exist in subnet \`${subnet.name}\`.`,
+      `${referrer} references subnet port place ID \`${endpoint.portPlaceId}\` which does not exist in subnet \`${subnet.name}\`.`,
     );
   }
   if (!port.isPort) {
     throw new Error(
-      `Arc references subnet place \`${port.name}\`, but only places marked \`isPort\` can be used as component ports.`,
+      `${referrer} references subnet place \`${port.name}\`, but only places marked \`isPort\` can be used as component ports.`,
     );
   }
 };
 
-/**
- * Throws when a fusion names a place or a port that is not in `net`, reusing
- * the arc endpoint checks: a member names a place the way an arc does.
- */
+/** Throws when a fusion names a place or a port that is not in `net`. */
 const assertFusionReferences = (
   sdcpn: SDCPN,
   net: MutableNet,
   fusion: Pick<Fusion, "members">,
 ): void => {
   for (const member of fusion.members) {
-    assertArcEndpointReferences(sdcpn, net, member);
+    assertEndpointReferences(sdcpn, net, member, "Fusion");
   }
 };
 
@@ -727,7 +729,7 @@ export function createPetrinautActions(
       mutateWithExtensionGuards((sdcpn) => {
         const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
         const endpoint = normalizeArcEndpointInput(parsed);
-        assertArcEndpointReferences(sdcpn, net, endpoint);
+        assertEndpointReferences(sdcpn, net, endpoint, "Arc");
         const transition = net.transitions.find(
           (candidate) => candidate.id === parsed.transitionId,
         );
@@ -839,7 +841,7 @@ export function createPetrinautActions(
         const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
         const { oldEndpoint, newEndpoint } =
           normalizeArcEndpointReplacementInput(parsed);
-        assertArcEndpointReferences(sdcpn, net, newEndpoint);
+        assertEndpointReferences(sdcpn, net, newEndpoint, "Arc");
         for (const transition of net.transitions) {
           if (transition.id === parsed.transitionId) {
             const arcs = getTransitionArcsByDirection(
@@ -1358,7 +1360,7 @@ export function createPetrinautActions(
             `Fusion ID \`${parsed.fusionId}\` does not exist in the target net.`,
           );
         }
-        assertArcEndpointReferences(sdcpn, net, parsed.member);
+        assertEndpointReferences(sdcpn, net, parsed.member, "Fusion");
         absorbFusionsSharingMembers(net, fusion, [parsed.member]);
         if (
           !fusion.members.some((member) =>

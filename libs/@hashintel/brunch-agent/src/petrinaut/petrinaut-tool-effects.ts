@@ -44,7 +44,12 @@ const removal = (...targets: readonly NetElementKind[]) =>
 /** Positions are layout, which is not part of what an element means, so no element is credited with a layout change. */
 const layout = mutation();
 
-/** What each canonical Petrinaut tool does to the bound document. */
+/**
+ * What each canonical Petrinaut tool does to the bound document. An effect
+ * is what the tool is asked to do: what a change takes with it, such as the
+ * arcs and fusions on a place that stops being a port, does not make it a
+ * removal.
+ */
 export const petrinautToolEffects = {
   addPlace: mutation("place"),
   updatePlace: mutation("place"),

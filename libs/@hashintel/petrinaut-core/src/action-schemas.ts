@@ -541,7 +541,7 @@ export const mutationActionInputSchemas = {
     .extend({ targetSubnetId: targetSubnetIdSchema })
     .meta({
       description:
-        "Fuse a place of the net with ports of its component instances, or ports with each other, so they are one place in simulation. A member already in another fusion of the same net moves into this one.",
+        "Fuse a place of the net with ports of its component instances, or ports with each other, so they are one place in simulation. A member already in another fusion of the same net brings that fusion's members along, and that fusion is removed.",
     }),
   updateFusion: z
     .strictObject({
