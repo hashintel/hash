@@ -26,6 +26,7 @@ import {
   useState,
 } from "react";
 
+import { selectionContextKey } from "@hashintel/brunch-agent";
 import {
   aiCommandActionInputSchemas,
   createExperimentToolName,
@@ -76,6 +77,7 @@ import { readCurrentDiagnostics } from "./ai-assistant-panel/read-current-diagno
 import {
   type AiToolOutput,
   type AiToolCall,
+  itemLabel,
   summarizeApplyAutoLayout,
   toBlockedOutput,
   toPetrinautAiToolOutput,
@@ -89,6 +91,7 @@ import { VoiceSessionProvider } from "./voice-session/provider";
 import type {
   PetrinautAiComposerControlContext,
   PetrinautAiComposerStatus,
+  PetrinautAiComposerSubmitText,
   PetrinautAiComposerSubmitTextResult,
   PetrinautAiInputMode,
   PetrinautAiVoiceModeContext,
@@ -682,6 +685,7 @@ const ConversationAiAssistantPanel = ({
   // discarding that conversation. Timing stays outside diagnostics so it tags
   // receipt of the response chunks.
   const hostTransportRef = useLatest(aiAssistant.transport);
+  const editorRef = useLatest(api.editor);
   const pendingSubmissionRecoveryRef = useRef<(() => void) | null>(null);
   // The user message added before the host admitted it. The AI SDK keeps that
   // message when the send fails, so a definite refusal must remove it here.
@@ -689,7 +693,16 @@ const ConversationAiAssistantPanel = ({
   const liveHostTransport = useMemo<PetrinautAiTransport>(
     () => ({
       sendMessages: async (options) => {
-        const stream = await hostTransportRef.current.sendMessages(options);
+        // The selection the text is about, so "this" in it names what was
+        // selected: one captured when a spoken turn ended, else the selection
+        // as the user sends.
+        const stream = await hostTransportRef.current.sendMessages({
+          ...options,
+          body: {
+            [selectionContextKey]: editorRef.current.navigation.get().selection,
+            ...options.body,
+          },
+        });
         // The host accepted the message, so a failure of its stream must not
         // offer the message for sending again.
         pendingSubmissionRecoveryRef.current = null;
@@ -699,7 +712,7 @@ const ConversationAiAssistantPanel = ({
       reconnectToStream: (options) =>
         hostTransportRef.current.reconnectToStream(options),
     }),
-    [hostTransportRef],
+    [editorRef, hostTransportRef],
   );
   const diagnosticsTransport = useMemo(
     () =>
@@ -1977,14 +1990,9 @@ const ConversationAiAssistantPanel = ({
       source,
       target = "auto",
       preserveDraft = false,
+      selection,
       text,
-    }: {
-      id?: string;
-      source?: "voice";
-      target?: "auto" | "message";
-      preserveDraft?: boolean;
-      text: string;
-    }): Promise<PetrinautAiComposerSubmitTextResult> => {
+    }: Parameters<PetrinautAiComposerSubmitText>[0]): Promise<PetrinautAiComposerSubmitTextResult> => {
       const submissionText = source === "voice" ? text : text.trim();
       if (!submissionText.trim()) {
         const submissionError = new Error(
@@ -2149,12 +2157,17 @@ const ConversationAiAssistantPanel = ({
       explicitContinuationToolCallIdsRef.current.clear();
       submissionGenerationRef.current += 1;
       unadmittedUserMessageIdRef.current = messageId;
-      await submitMessage({
-        id: messageId,
-        ...(source === "voice" ? { metadata: { source } } : {}),
-        parts: [{ text: submissionText, type: "text" }],
-        role: "user",
-      });
+      await submitMessage(
+        {
+          id: messageId,
+          ...(source === "voice" ? { metadata: { source } } : {}),
+          parts: [{ text: submissionText, type: "text" }],
+          role: "user",
+        },
+        selection === undefined
+          ? undefined
+          : { body: { [selectionContextKey]: selection } },
+      );
       return { kind: "message", messageId };
     },
     [composerSubmissionStateRef, reportOperationalFailure],
@@ -2166,10 +2179,22 @@ const ConversationAiAssistantPanel = ({
     stop,
   });
 
+  const readSelection = useCallback(() => {
+    const items = editorRef.current.navigation.get().selection;
+    const net = document.net.get();
+    return { items, labels: items.map((item) => itemLabel(net, item)) };
+  }, [document.net, editorRef]);
+
   const submitVoiceInput = useCallback<
     PetrinautAiVoiceModeContext["submitVoiceInput"]
   >(
-    (voiceInput) => {
+    (spokenInput) => {
+      // The selection as the person finished speaking, not as a queued turn
+      // is finally sent.
+      const voiceInput = {
+        ...spokenInput,
+        selection: spokenInput.selection ?? readSelection().items,
+      };
       if (queuedVoiceInputRef.current) {
         return Promise.reject(
           new Error("The previous voice input is still being submitted."),
@@ -2211,7 +2236,7 @@ const ConversationAiAssistantPanel = ({
         };
       });
     },
-    [composerSubmissionStateRef, submitText],
+    [composerSubmissionStateRef, readSelection, submitText],
   );
 
   useEffect(() => {
@@ -2488,6 +2513,7 @@ const ConversationAiAssistantPanel = ({
     canAcceptVoiceInput: !voiceInputQueued,
     inputMode: interactionMode,
     isAiAssistantOpen,
+    readSelection,
     registerVoiceModeControls,
     registerVoiceModeSessionControls,
     reportVoiceSessionState,

@@ -109,6 +109,42 @@ test("captures words before waiting for the client and retains them for the same
   ).toEqual([expected, expected]);
 });
 
+test("sends the editor's selection with the message it was sent with, and keeps it on a retry", async () => {
+  const send = vi.fn<FlueClient["send"]>(async () => {
+    throw new FlueApiError(400, "Rejected");
+  });
+  const transport = createBrunchPanelTransport(
+    Promise.resolve({ send } as unknown as FlueClient),
+    new BrunchPanelConversationTracker(),
+  );
+  const options = (selection: unknown) => ({
+    trigger: "submit-message" as const,
+    chatId: "one",
+    messageId: "user-one",
+    messages: [
+      {
+        id: "user-one",
+        role: "user" as const,
+        parts: [{ type: "text" as const, text: "Why is this here?" }],
+      },
+    ],
+    abortSignal: undefined,
+    body: { selection },
+  });
+  await expect(
+    transport.sendMessages(options([{ type: "place", id: "queue" }])),
+  ).rejects.toThrow();
+  await expect(transport.sendMessages(options([]))).rejects.toThrow();
+  const expected = petrinautContextualUserMessageBody({
+    userText: "Why is this here?",
+    diagnosticsContext: "",
+    submissionContext: { selection: [{ type: "place", id: "queue" }] },
+  });
+  expect(
+    send.mock.calls.map(([submission]) => submission.message.body),
+  ).toEqual([expected, expected]);
+});
+
 test("announces a typed or comment submission before Flue admits it, but not an internal continuation", async () => {
   const events: string[] = [];
   const send = vi.fn<FlueClient["send"]>(async ({ message }) => {
@@ -267,6 +303,7 @@ test("sends the host's version load with the user's text", async () => {
   expect(readPetrinautSubmissionContext(body)).toEqual({
     words: [],
     versionLoad,
+    selection: [],
   });
 });
 

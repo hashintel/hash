@@ -1,5 +1,7 @@
 import { getToolName, isToolUIPart } from "ai";
 
+import { mergeSelections } from "@hashintel/brunch-agent";
+
 import {
   maxUtteranceTextLength,
   shouldWithholdUtterance,
@@ -78,6 +80,7 @@ interface CarriedInput {
   readonly inputId: string;
   readonly text: string;
   readonly history: VoiceMediationHistory;
+  readonly selection?: FinalizedInput["selection"];
 }
 
 type Submit = ConstructorParameters<
@@ -368,6 +371,9 @@ export class LiveBrunchBridge {
             inputId: turn.inputId,
             text: turn.inputText,
             history,
+            ...(turn.input.selection === undefined
+              ? {}
+              : { selection: turn.input.selection }),
           });
         withdrew = true;
       }
@@ -686,7 +692,18 @@ export class LiveBrunchBridge {
       mergedInputIds: carried.map((entry) => entry.inputId).join(","),
       reason: "speech-started",
     });
-    return { input: { ...input, text: texts.join(mergeSeparator) }, carried };
+    const selection = mergeSelections([
+      ...carried.map((entry) => entry.selection),
+      input.selection,
+    ]);
+    return {
+      input: {
+        ...input,
+        text: texts.join(mergeSeparator),
+        ...(selection === undefined ? {} : { selection }),
+      },
+      carried,
+    };
   }
 
   /**
@@ -718,9 +735,14 @@ export class LiveBrunchBridge {
           queued.delegationId,
         );
     }
+    // "This" in any of the merged utterances meant what was selected then.
+    const selection = mergeSelections(
+      batch.map((queued) => queued.input.selection),
+    );
     const input: FinalizedInput = {
       ...newest.input,
       text: batch.map((queued) => queued.input.text).join(mergeSeparator),
+      ...(selection === undefined ? {} : { selection }),
     };
     if (batch.length > 1)
       logLiveDiagnostic("input.merged", {
@@ -873,6 +895,9 @@ export class LiveBrunchBridge {
         const result = await this.#dependencies.submit({
           id: input.id,
           text,
+          ...(input.selection === undefined
+            ? {}
+            : { selection: input.selection }),
           admissionTarget: { kind: "user", messageId: input.id },
           signal: this.#abort.signal,
           onAdmission: (submissionId) => {

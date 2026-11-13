@@ -4,7 +4,8 @@ import type {
   PetrinautAiVoiceSessionState,
   VoiceAudioSettingsActions,
 } from "./voice-session/types";
-import type { BrunchInputMode } from "@hashintel/brunch-agent";
+import type { BrunchInputMode, EditorSelection } from "@hashintel/brunch-agent";
+import type { SelectionItem } from "@hashintel/petrinaut-core/selection";
 import type { ReactNode } from "react";
 
 export type { PetrinautAiVoiceSessionPhase, PetrinautAiVoiceSessionState };
@@ -42,6 +43,11 @@ export type PetrinautAiComposerSubmitText = (params: {
   target?: "auto" | "message";
   /** Keep the user's unsent composer text when reporting a background result. */
   preserveDraft?: boolean;
+  /**
+   * The editor's selection the text is about, captured when the person
+   * finished it. Omitted: the selection when the text is sent.
+   */
+  selection?: readonly SelectionItem[];
   text: string;
 }) => Promise<PetrinautAiComposerSubmitTextResult>;
 
@@ -136,6 +142,8 @@ export type PetrinautAiVoiceModeContext = PetrinautAiComposerControlContext & {
   canAcceptVoiceInput: boolean;
   inputMode: PetrinautAiInputMode;
   isAiAssistantOpen: boolean;
+  /** Reads the editor's selection now; call it when the person finishes speaking. */
+  readSelection: () => EditorSelection;
   /**
    * Registers the controls Petrinaut uses to coordinate panel closure and
    * typed-message handoff with the host-owned Voice lifecycle.

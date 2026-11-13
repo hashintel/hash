@@ -164,7 +164,8 @@ const targetName = (
   target: SelectionItem,
 ): string => entityName(definition, target) ?? target.id;
 
-const itemLabel = (
+/** A selected element as the user reads it: its kind and name, or its ID when it has no name. */
+export const itemLabel = (
   definition: SDCPN | undefined,
   item: SelectionItem,
 ): string => {

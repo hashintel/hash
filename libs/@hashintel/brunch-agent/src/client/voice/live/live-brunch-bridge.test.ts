@@ -200,6 +200,45 @@ test("empty speech does not evict a superseded turn that is still preparing", as
   expect(fixture.submit.mock.calls[0]?.[0].id).toBe("old");
 });
 
+test("submits a turn with the selection it finished with", async () => {
+  const fixture = setup();
+  const selection = [{ type: "place" as const, id: "doctors" }];
+  await fixture.bridge.accept({
+    ...speech("one", "Make this two"),
+    selection,
+  });
+  expect(fixture.submit.mock.calls[0]?.[0].selection).toEqual(selection);
+});
+
+test("speech merged behind the composer carries every element its parts had selected", async () => {
+  const fixture = setup();
+  let admitFirst = () => {};
+  fixture.submit.mockImplementationOnce(async (input) => {
+    await new Promise<void>((resolve) => {
+      admitFirst = resolve;
+    });
+    input.onAdmission("first");
+    return { kind: "message", messageId: "one", submissionId: "first" };
+  });
+  const first = fixture.bridge.accept(speech("one", "Compare staffing"));
+  await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledOnce());
+  await fixture.bridge.accept({
+    ...speech("two", "Make this two"),
+    selection: [{ type: "place", id: "doctors" }],
+  });
+  await fixture.bridge.accept({
+    ...speech("three", "and this one faster"),
+    selection: [{ type: "transition", id: "consult" }],
+  });
+  admitFirst();
+  await first;
+  await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledTimes(2));
+  expect(fixture.submit.mock.calls[1]?.[0].selection).toEqual([
+    { type: "place", id: "doctors" },
+    { type: "transition", id: "consult" },
+  ]);
+});
+
 test("prepares a brief before admission and summarizes only a settled rendered answer", async () => {
   const history = new VoiceMediationHistory("test");
   const prepare = vi.fn(async () => ({

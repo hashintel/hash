@@ -32,6 +32,7 @@ describe("getBrunchVoiceMode", () => {
         conversationId: "petrinaut-preview:net-1",
         inputMode: "text",
         isAiAssistantOpen: true,
+        readSelection: () => ({ items: [], labels: [] }),
         messages: [],
         registerVoiceModeControls: vi.fn(() => () => undefined),
         reportVoiceSessionState: vi.fn(),

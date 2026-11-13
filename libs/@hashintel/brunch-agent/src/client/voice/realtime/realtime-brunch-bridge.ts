@@ -55,12 +55,17 @@ type RealtimeBridgeSession = Pick<
 type SubmitVoiceInput = Parameters<
   PetrinautAiVoiceModeContext["submitVoiceInput"]
 >[0];
-type SubmitInterviewAnswerInput = Pick<SubmitVoiceInput, "text"> & {
+type SubmitInterviewAnswerInput = Pick<
+  SubmitVoiceInput,
+  "text" | "selection"
+> & {
   readonly admissionTarget: BrunchPanelAdmissionTarget;
   readonly id: string;
   readonly onAdmission: (submissionId: AgentSendResult["submissionId"]) => void;
   readonly signal: AbortSignal;
 };
+
+type Selection = SubmitInterviewAnswerInput["selection"];
 
 type SubmitInterviewAnswerResult =
   | Extract<PetrinautAiComposerSubmitTextResult, { kind: "interactive-tool" }>
@@ -69,6 +74,8 @@ type SubmitInterviewAnswerResult =
     });
 
 interface RealtimeBrunchBridgeDependencies {
+  /** The editor's selection now; read when the person finishes speaking. */
+  readonly readSelection?: () => Selection;
   readonly reportDiagnostic?: VoiceDiagnosticReporter;
   readonly session: RealtimeBridgeSession;
   readonly submitInterviewAnswer: (
@@ -93,6 +100,8 @@ type TerminalTranscriptEvent =
 
 interface PendingInputItem {
   readonly ordinaryAcceptedWhileReady: boolean;
+  /** Taken when speech stopped: the turn carries it however long it waits. */
+  selection?: Selection;
   stopped: boolean;
 }
 
@@ -241,6 +250,7 @@ export class RealtimeBrunchBridge {
   readonly #pendingSpeechRequestIds = new Set<string>();
   readonly #playbackOverlappingInputItemIds = new Set<string>();
   readonly #processedTranscripts = new Set<string>();
+  readonly #readSelection: (() => Selection) | undefined;
   readonly #reportDiagnostic: VoiceDiagnosticReporter;
   readonly #session: RealtimeBridgeSession;
   readonly #submitInterviewAnswer: (
@@ -256,6 +266,7 @@ export class RealtimeBrunchBridge {
     answer: string;
     deliveryId: string;
     itemId: string;
+    selection: Selection;
   } | null = null;
   #activeEpoch: number | null = null;
   #activeSubmission: ActiveSubmission | null = null;
@@ -268,10 +279,12 @@ export class RealtimeBrunchBridge {
   #outputCancellationPending = false;
 
   public constructor({
+    readSelection,
     reportDiagnostic = reportVoiceDiagnostic,
     session,
     submitInterviewAnswer,
   }: RealtimeBrunchBridgeDependencies) {
+    this.#readSelection = readSelection;
     this.#reportDiagnostic = reportDiagnostic;
     this.#session = session;
     this.#submitInterviewAnswer = submitInterviewAnswer;
@@ -516,6 +529,7 @@ export class RealtimeBrunchBridge {
       const pendingInput = this.#pendingInputItems.get(event.itemId);
       if (this.#acceptedInputItemIds.has(event.itemId) && pendingInput) {
         pendingInput.stopped = true;
+        pendingInput.selection = this.#readSelection?.();
       }
       return;
     }
@@ -595,8 +609,9 @@ export class RealtimeBrunchBridge {
 
   #processCompletedInputEvent(event: TerminalTranscriptEvent): void {
     this.#acceptedInputItemIds.delete(event.key.itemId);
+    const pendingInput = this.#pendingInputItems.get(event.key.itemId);
     const ordinaryInputWasAcceptedWhileReady = Boolean(
-      this.#pendingInputItems.get(event.key.itemId)?.ordinaryAcceptedWhileReady,
+      pendingInput?.ordinaryAcceptedWhileReady,
     );
     this.#pendingInputItems.delete(event.key.itemId);
     const interruptionPlaybackText = this.#interruptionPlaybackText.get(
@@ -661,6 +676,10 @@ export class RealtimeBrunchBridge {
     }
 
     const deliveryId = createRealtimeSubmissionId(event.key);
+    // Read now only if speech-stopped was never reported for this item.
+    const selection = pendingInput?.stopped
+      ? pendingInput.selection
+      : this.#readSelection?.();
     if (this.#pendingInterruption) {
       this.#rejectTranscript(event.key.itemId, "pending");
       return;
@@ -670,11 +689,12 @@ export class RealtimeBrunchBridge {
         answer,
         deliveryId,
         itemId: event.key.itemId,
+        selection,
       };
       this.#emit({ answer, type: "transcript-retained" });
       return;
     }
-    this.#submitAnswer(answer, deliveryId, event.key.itemId);
+    this.#submitAnswer(answer, deliveryId, event.key.itemId, selection);
   }
 
   #ordinaryInputFinishedWhileReady(itemId: string): boolean {
@@ -746,11 +766,21 @@ export class RealtimeBrunchBridge {
       return true;
     }
     this.#pendingInterruption = null;
-    this.#submitAnswer(pending.answer, pending.deliveryId, pending.itemId);
+    this.#submitAnswer(
+      pending.answer,
+      pending.deliveryId,
+      pending.itemId,
+      pending.selection,
+    );
     return true;
   }
 
-  #submitAnswer(answer: string, deliveryId: string, itemId: string): void {
+  #submitAnswer(
+    answer: string,
+    deliveryId: string,
+    itemId: string,
+    selection: Selection,
+  ): void {
     const generation = this.#generation;
     this.#activeSubmission = {
       abortController: new AbortController(),
@@ -766,7 +796,7 @@ export class RealtimeBrunchBridge {
       submissionId: null,
     };
     this.#emit({ answer, deliveryId, itemId, type: "submission-started" });
-    void this.#submit(answer, deliveryId, generation);
+    void this.#submit(answer, deliveryId, generation, selection);
   }
 
   #ownsOutputTurn(): boolean {
@@ -780,6 +810,7 @@ export class RealtimeBrunchBridge {
     answer: string,
     deliveryId: string,
     generation: number,
+    selection: Selection,
   ): Promise<void> {
     try {
       const activeAtSubmission = this.#activeSubmission;
@@ -809,6 +840,7 @@ export class RealtimeBrunchBridge {
             type: "submission-admitted",
           });
         },
+        ...(selection === undefined ? {} : { selection }),
         signal: activeAtSubmission.abortController.signal,
         text: answer,
       });

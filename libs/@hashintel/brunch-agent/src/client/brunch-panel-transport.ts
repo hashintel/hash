@@ -2,7 +2,9 @@ import { generateId } from "ai";
 
 import {
   getInterviewBudget,
+  parseSelection,
   petrinautSubmissionContext,
+  selectionContextKey,
 } from "@hashintel/brunch-agent";
 import { petrinautDiagnosticsContextMessageId } from "@hashintel/petrinaut-core";
 import { FlueChatAdmissionError } from "@local/flue-aisdk-transport";
@@ -26,6 +28,7 @@ import type {
   InterviewBudgetLevel,
   VersionLoad,
 } from "@hashintel/brunch-agent";
+import type { SelectionItem } from "@hashintel/petrinaut-core/selection";
 import type {
   FlueChatResponseMessageCompletedEvent,
   FlueChatResponseMessageStartedEvent,
@@ -64,6 +67,21 @@ export class BrunchPanelConversationTracker {
   ): readonly string[] {
     const captured = this.#wordsByMessage.get(messageId) ?? read?.() ?? [];
     this.#wordsByMessage.set(messageId, captured);
+    return captured;
+  }
+
+  readonly #selectionByMessage = new Map<string, readonly SelectionItem[]>();
+
+  /**
+   * The editor's selection for one user message, read once so that a retry of
+   * the same message sends the selection it was first sent with.
+   */
+  public captureSelection(
+    messageId: string,
+    read: () => readonly SelectionItem[],
+  ): readonly SelectionItem[] {
+    const captured = this.#selectionByMessage.get(messageId) ?? read();
+    this.#selectionByMessage.set(messageId, captured);
     return captured;
   }
 
@@ -391,6 +409,18 @@ export const createBrunchPanelTransport = (
           userMessage === undefined
             ? []
             : tracker.captureWords(userMessage.id, options?.readWords);
+        // The chat sends the editor's selection beside the messages.
+        const { body } = sendOptions;
+        const selection =
+          userMessage === undefined
+            ? []
+            : tracker.captureSelection(userMessage.id, () =>
+                parseSelection(
+                  body !== undefined && selectionContextKey in body
+                    ? Reflect.get(body, selectionContextKey)
+                    : undefined,
+                ),
+              );
         const client = await clientPromise;
         const budget = getInterviewBudget(
           options?.interviewBudgetLevel ?? "off",
@@ -406,6 +436,7 @@ export const createBrunchPanelTransport = (
           ...(options?.versionLoad === undefined
             ? {}
             : { versionLoad: options.versionLoad }),
+          selection,
         });
         const transport = (
           options?.adapter ?? canonicalBrunchFlueAdapter

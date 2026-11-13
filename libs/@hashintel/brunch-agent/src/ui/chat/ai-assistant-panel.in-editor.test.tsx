@@ -12,7 +12,7 @@ import { useEffect, useState } from "react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 
 import { canonicalContent } from "@hashintel/brunch-agent";
-import { createJsonDocHandle } from "@hashintel/petrinaut-core";
+import { createJsonDocHandle, toPetrinautId } from "@hashintel/petrinaut-core";
 import { Petrinaut } from "@hashintel/petrinaut/ui";
 import {
   definePetrinautPlugin,
@@ -216,6 +216,211 @@ test("sends the empty-net prompt once through the chat's composer path in the ed
   expect(
     within(panel).getByRole("button", { name: "Close AI assistant" }),
   ).toBeTruthy();
+});
+
+const SelectionTestPlugin = definePetrinautPlugin({
+  id: "test.selection",
+  name: "Selection test",
+  description: "Hands the test the editor's navigation.",
+  author: "HASH",
+  access: { editor: "write" },
+});
+
+test("shows the editor's selection on the composer and sends it with the message", async () => {
+  const bodies: unknown[] = [];
+  const transport: PetrinautAiTransport = {
+    reconnectToStream: () => Promise.resolve(null),
+    sendMessages: ({ body }) => {
+      bodies.push(structuredClone(body));
+      return Promise.resolve(
+        streamChunks(textReply("reply", "It holds work.")),
+      );
+    },
+  };
+  let editor:
+    | Parameters<PluginHook<typeof SelectionTestPlugin>>[0]["editor"]
+    | undefined;
+  const selectionPlugin = SelectionTestPlugin((api) => {
+    editor = api.editor;
+    return {};
+  });
+  render(
+    <Petrinaut
+      handle={createJsonDocHandle({
+        initial: {
+          places: [
+            {
+              id: "queue",
+              name: "Queue",
+              colorId: null,
+              dynamicsEnabled: false,
+              x: 0,
+              y: 0,
+            },
+          ],
+          transitions: [],
+        },
+      })}
+      plugins={[selectionPlugin, chatPlugin({ transport })]}
+    />,
+  );
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Show AI assistant" }),
+  );
+  expect(screen.queryByText(/Asking about/)).toBeNull();
+
+  act(() =>
+    editor?.navigate((current) => ({
+      ...current,
+      selection: [{ type: "place", id: "queue" }],
+    })),
+  );
+  expect(await screen.findByText("Asking about place: Queue")).toBeTruthy();
+  fireEvent.change(
+    screen.getByRole("textbox", { name: "Message AI assistant" }),
+    { target: { value: "Why is this here?" } },
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+  await screen.findByText("It holds work.", {}, { timeout: 4_000 });
+  // The editor selects the ID the document stores, which Brunch's net reads
+  // also return.
+  expect(bodies).toEqual([
+    { selection: [{ type: "place", id: toPetrinautId("queue") }] },
+  ]);
+
+  // Clearing the chip clears the editor's selection, and the next send
+  // carries none.
+  fireEvent.click(screen.getByRole("button", { name: "Clear selection" }));
+  await waitFor(() => expect(screen.queryByText(/Asking about/)).toBeNull());
+});
+
+test("sends a Voice turn with the selection it finished with, and shows it in the dock", async () => {
+  const bodies: unknown[] = [];
+  let releaseFirst = () => {};
+  const transport: PetrinautAiTransport = {
+    reconnectToStream: () => Promise.resolve(null),
+    sendMessages: ({ body }) => {
+      bodies.push(structuredClone(body));
+      if (bodies.length > 1) {
+        return Promise.resolve(
+          streamChunks(textReply("second", "Second answer.")),
+        );
+      }
+      // The first response stays open, so the next turn waits in the queue.
+      return Promise.resolve(
+        new ReadableStream<UIMessageChunk>({
+          start(controller) {
+            releaseFirst = () => {
+              for (const chunk of textReply("first", "First answer.")) {
+                controller.enqueue(chunk);
+              }
+              controller.close();
+            };
+          },
+        }),
+      );
+    },
+  };
+  let editor:
+    | Parameters<PluginHook<typeof SelectionTestPlugin>>[0]["editor"]
+    | undefined;
+  let voice:
+    | Parameters<NonNullable<PetrinautAiAssistant["renderVoiceMode"]>>[0]
+    | undefined;
+  const VoiceMode = ({
+    context,
+  }: {
+    context: Parameters<
+      NonNullable<PetrinautAiAssistant["renderVoiceMode"]>
+    >[0];
+  }) => {
+    const { reportVoiceSessionState } = context;
+    useEffect(() => {
+      reportVoiceSessionState({
+        canReadFullResponse: false,
+        canRepeatQuestion: false,
+        canTakeTurn: true,
+        errorMessage: null,
+        microphoneLevel: 0,
+        microphoneMuted: false,
+        phase: "listening",
+        speakerMuted: false,
+        speakerVolume: 1,
+      });
+      return () => reportVoiceSessionState(null);
+    }, [reportVoiceSessionState]);
+    return null;
+  };
+  const place = (id: string, name: string) => ({
+    id,
+    name,
+    colorId: null,
+    dynamicsEnabled: false,
+    x: 0,
+    y: 0,
+  });
+  render(
+    <Petrinaut
+      handle={createJsonDocHandle({
+        initial: {
+          places: [place("queue", "Queue"), place("server", "Server")],
+          transitions: [],
+        },
+      })}
+      plugins={[
+        SelectionTestPlugin((api) => {
+          editor = api.editor;
+          return {};
+        }),
+        chatPlugin({
+          transport,
+          renderVoiceMode: (context) => {
+            voice = context;
+            return <VoiceMode context={context} />;
+          },
+        }),
+      ]}
+    />,
+  );
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Show AI assistant" }),
+  );
+  act(() =>
+    editor?.navigate((current) => ({
+      ...current,
+      selection: [{ type: "place", id: "queue" }],
+    })),
+  );
+  const queue = [{ type: "place", id: toPetrinautId("queue") }];
+  // The Voice dock names the selection a spoken turn will carry.
+  expect(await screen.findByText("Asking about place: Queue")).toBeTruthy();
+  expect(voice?.readSelection()).toEqual({
+    items: queue,
+    labels: ["place: Queue"],
+  });
+
+  // A selection captured as the person finished speaking wins over the
+  // editor's selection when the turn is sent.
+  const server = [{ type: "place" as const, id: toPetrinautId("server") }];
+  act(() => {
+    void voice?.submitVoiceInput({ text: "Make this two", selection: server });
+  });
+  await waitFor(() => expect(bodies).toHaveLength(1));
+
+  // A turn spoken while Brunch is busy waits, and keeps the selection it
+  // finished with though the editor's selection changes before it is sent.
+  let queued: Promise<unknown> | undefined;
+  act(() => {
+    queued = voice?.submitVoiceInput({ text: "Why is this here?" });
+  });
+  await waitFor(() => expect(voice?.canAcceptVoiceInput).toBe(false));
+  act(() => editor?.navigate((current) => ({ ...current, selection: [] })));
+  act(() => releaseFirst());
+  await act(async () => {
+    await queued;
+  });
+  await screen.findByText("Second answer.", {}, { timeout: 4_000 });
+  expect(bodies).toEqual([{ selection: server }, { selection: queue }]);
 });
 
 test("runs automatic tools against the editor through refusal-aware plugin edits", async () => {
