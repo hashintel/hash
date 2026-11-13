@@ -369,6 +369,29 @@ describe("token flow through fused ports", () => {
     ]);
   });
 
+  it("does not count a port that is only read as one that empties the fused place", () => {
+    const gauge = subnet("gauge", {
+      places: [place("level", { isPort: true })],
+      transitions: [
+        {
+          ...transition("watch", [], []),
+          inputArcs: [{ placeId: "level", weight: 1, type: "read" as const }],
+        },
+      ],
+    });
+    const sdcpn = net({
+      subnets: [stage, gauge],
+      componentInstances: [instance("s1", "stage"), instance("g1", "gauge")],
+      fusions: [
+        { id: "f1", members: [portOf("s1", "out"), portOf("g1", "level")] },
+      ],
+    });
+
+    expect(checkFusions(sdcpn)).toMatchObject([
+      { fusionId: "f1", code: "no-consumer", severity: "info" },
+    ]);
+  });
+
   it("counts the root net's arcs on the anchor and on instance ports", () => {
     const sdcpn = net({
       places: [place("feed")],

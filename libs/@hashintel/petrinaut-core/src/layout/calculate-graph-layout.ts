@@ -123,9 +123,10 @@ export const calculateGraphLayout = async (
   }
 
   // Fusions join their members, so fused places and instances land near each
-  // other: one edge from the first member to each of the others.
+  // other: one edge from the first member's node to each of the others. Two
+  // ports of one instance are one node, which gets no edge to itself.
   for (const fusion of sdcpn.fusions ?? []) {
-    const [first, ...rest] = fusion.members.map(getArcEndpointNodeId);
+    const [first, ...rest] = new Set(fusion.members.map(getArcEndpointNodeId));
     if (first === undefined) {
       continue;
     }

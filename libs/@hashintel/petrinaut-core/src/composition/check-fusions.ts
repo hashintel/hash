@@ -92,18 +92,27 @@ type TokenFlow = {
 
 const bothWays: TokenFlow = { produced: true, consumed: true };
 
-/** How `transitions` touch the place `endpoint` names. */
+/**
+ * How `transitions` move tokens through the place `endpoint` names, and
+ * whether any of their arcs touches it at all. A read or an inhibitor arc
+ * looks at the place and takes nothing from it.
+ */
 const flowThrough = (
   transitions: readonly Transition[],
   endpoint: ArcEndpoint,
-): TokenFlow => ({
-  consumed: transitions.some(({ inputArcs }) =>
-    inputArcs.some((arc) => arcMatchesEndpoint(arc, endpoint)),
-  ),
-  produced: transitions.some(({ outputArcs }) =>
+): TokenFlow & { touched: boolean } => {
+  const inputs = transitions.flatMap(({ inputArcs }) =>
+    inputArcs.filter((arc) => arcMatchesEndpoint(arc, endpoint)),
+  );
+  const produced = transitions.some(({ outputArcs }) =>
     outputArcs.some((arc) => arcMatchesEndpoint(arc, endpoint)),
-  ),
-});
+  );
+  return {
+    consumed: inputs.some(({ type }) => type === "standard"),
+    produced,
+    touched: produced || inputs.length > 0,
+  };
+};
 
 /**
  * How a net's own transitions touch one of its ports. A port no transition
@@ -114,8 +123,11 @@ const portFlow = (
   subnet: Pick<Subnet, "transitions">,
   placeId: ID,
 ): TokenFlow => {
-  const flow = flowThrough(subnet.transitions, placeArcEndpoint(placeId));
-  return flow.produced || flow.consumed ? flow : bothWays;
+  const { touched, ...flow } = flowThrough(
+    subnet.transitions,
+    placeArcEndpoint(placeId),
+  );
+  return touched ? flow : bothWays;
 };
 
 type MemberFacts = TokenFlow & {
