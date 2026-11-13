@@ -14,6 +14,10 @@ export const styles = sva({
   base: {
     button: {
       cursor: "pointer",
+      // Keeps the label unselectable inside Drawer, whose content forces
+      // user-select: text — a selectable label turns the disabled state's
+      // `cursor: auto` into a text caret instead of the default arrow
+      userSelect: "none",
       display: "inline-block",
       fontWeight: "medium",
       borderWidth: "var(--form-border-width)",

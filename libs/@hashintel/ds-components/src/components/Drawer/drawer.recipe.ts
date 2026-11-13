@@ -40,7 +40,11 @@ export const styles = sva({
       inset: "0",
       width: "[100dvw]",
       height: "[100dvh]",
-      overflow: "hidden",
+      // `clip`, not `hidden`: a hidden positioner is still programmatically
+      // scrollable, so focusing a field while the panel is mid slide-in
+      // scrolls the panel's bleed strip into view and strands the drawer
+      // offset from the viewport edge.
+      overflow: "clip",
       overscrollBehaviorY: "none",
       zIndex: "modal",
     },
@@ -79,6 +83,16 @@ export const styles = sva({
     },
   },
   variants: {
+    variant: {
+      partitionedFooter: {},
+      plain: {
+        content: {
+          padding: "0",
+          backgroundColor: "white",
+          border: "[1px solid {colors.neutral.s50}]",
+        },
+      },
+    },
     size: {
       sm: {
         content: {
@@ -223,6 +237,7 @@ export const styles = sva({
   defaultVariants: {
     size: "md",
     position: "right",
+    variant: "partitionedFooter",
   },
 });
 

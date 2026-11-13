@@ -59,6 +59,17 @@ export const styles = sva({
     },
   },
   variants: {
+    handleAlign: {
+      center: {},
+      start: {
+        handle: {
+          alignItems: "flex-start",
+          // Centres the grip against a standard small-control first row,
+          // for items whose content stacks extra rows beneath it
+          paddingTop: "2.5",
+        },
+      },
+    },
     variant: {
       card: {
         root: {
@@ -66,14 +77,14 @@ export const styles = sva({
         },
         item: {
           gap: "1.5",
-          paddingY: "2",
+          paddingY: "1",
           paddingLeft: "1.5",
           paddingRight: "2.5",
           borderWidth: "[1px]",
           borderStyle: "solid",
           borderColor: "bd.subtle",
           borderRadius: "xl",
-          backgroundColor: "bgSolid.surface",
+          backgroundColor: "white",
           "&[data-dragging]": {
             boxShadow: "elevation.raise.macro",
           },
@@ -97,5 +108,6 @@ export const styles = sva({
   },
   defaultVariants: {
     variant: "card",
+    handleAlign: "center",
   },
 });

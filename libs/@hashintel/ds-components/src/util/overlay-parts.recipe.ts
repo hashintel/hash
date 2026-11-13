@@ -76,10 +76,10 @@ export const overlayPartsStyles = sva({
         borderTopRightRadius: "[0]",
       },
     },
+    // flow-root contains the floated close button, so the header keeps its
+    // height when the custom content is shorter than the button
     hasCustomHeader: {
-      display: "flex",
-      alignItems: "flex-start",
-      gap: "2",
+      display: "flow-root",
       minWidth: "0",
     },
     headerMain: {},
@@ -198,6 +198,11 @@ export const overlayPartsStyles = sva({
         "[calc(var(--panel-top-padding) * -1 + var(--panel-close-button-gap))]",
       marginRight:
         "[calc(var(--panel-horizontal-padding) * -1 + var(--panel-close-button-gap))]",
+      // The gap custom content keeps from the floated button (margin-left:
+      // auto computes to 0 on floats, so this replaces the former flex gap)
+      ".panel__hasCustomHeader &": {
+        marginLeft: "2",
+      },
     },
     loadingOverlay: {
       position: "absolute",
@@ -274,23 +279,27 @@ export const overlayPartsStyles = sva({
           borderBottomRadius: "lg",
         },
       },
+      // The panel frame is a single border on the component's `content` slot,
+      // so the sections carry no external borders of their own — only the
+      // segmenting ones — and their corner radii hug the frame's inner curve.
       plain: {
         header: {
+          borderTop: "none",
+          borderInline: "none",
+          borderTopRadius: "[calc({radii.xl} - 1px)]",
           borderBottomColor: "neutral.s20",
         },
         body: {
+          borderInline: "none",
           borderBottom: "none",
           "&:last-child": {
-            borderBottomRadius: "lg",
-            borderBottom: "[1px solid {colors.neutral.s50}]",
+            borderBottomRadius: "[calc({radii.xl} - 1px)]",
           },
         },
         footer: {
           backgroundColor: "white",
           borderTop: "[1px solid {colors.neutral.s20}]",
-          borderInline: "[1px solid {colors.neutral.s50}]",
-          borderBottom: "[1px solid {colors.neutral.s50}]",
-          borderBottomRadius: "lg",
+          borderBottomRadius: "[calc({radii.xl} - 1px)]",
         },
       },
     },

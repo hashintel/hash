@@ -109,7 +109,7 @@ export const updateDataTypeResolver: ResolverFn<
     {
       dataTypeId: params.dataTypeId,
       schema: params.dataType,
-      conversions: {},
+      conversions: params.conversions ?? {},
     },
   );
 

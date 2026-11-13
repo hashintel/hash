@@ -36,6 +36,7 @@ import {
   useActors,
 } from "../../shared/use-actors";
 import { createRenderChipCell } from "./chip-cell";
+import { DataTypeEditorDrawerById } from "./data-type-editor-drawer-by-id";
 import { useDataTypesContext } from "./data-types-context";
 import { DsComponentsScope } from "./ds-components-scope";
 import {
@@ -429,6 +430,37 @@ export const TypesTable: FunctionComponent<{
 
   const theme = useTheme();
 
+  const [dataTypeIdBeingEdited, setDataTypeIdBeingEdited] =
+    useState<VersionedUrl | null>(null);
+
+  /**
+   * Data types in the user's webs open the editor drawer, which resolves the
+   * user's per-type permissions and stays read-only unless they allow editing;
+   * everything else (external webs, entity types) opens the read-only slide.
+   */
+  const openType = useCallback(
+    (rowKind: TypesTableRow["kind"], typeId: VersionedUrl) => {
+      if (rowKind === "data-type") {
+        const dataType = dataTypes?.[typeId];
+        const typeWebId =
+          dataType && "webId" in dataType.metadata
+            ? dataType.metadata.webId
+            : null;
+
+        if (dataType && internalWebs.some(({ webId }) => webId === typeWebId)) {
+          setDataTypeIdBeingEdited(typeId);
+          return;
+        }
+      }
+
+      pushToSlideStack({
+        kind: rowKind === "data-type" ? "dataType" : "entityType",
+        itemId: typeId,
+      });
+    },
+    [dataTypes, internalWebs, pushToSlideStack],
+  );
+
   const createGetCellContent = useCallback(
     (rows: TypesTableRow[]) =>
       ([colIndex, rowIndex]: Item): TextCell | TextIconCell | ChipCell => {
@@ -470,13 +502,7 @@ export const TypesTable: FunctionComponent<{
                     text: row.title,
                     onClick: isClickable
                       ? () => {
-                          pushToSlideStack({
-                            kind:
-                              row.kind === "data-type"
-                                ? "dataType"
-                                : "entityType",
-                            itemId: row.typeId,
-                          });
+                          openType(row.kind, row.typeId);
                         }
                       : undefined,
                     iconFill: theme.palette.blue[70],
@@ -576,7 +602,7 @@ export const TypesTable: FunctionComponent<{
           }
         }
       },
-    [typesTableColumns, pushToSlideStack, router, theme],
+    [typesTableColumns, openType, router, theme],
   );
 
   const contentTopRef = useRef<HTMLDivElement>(null);
@@ -819,6 +845,12 @@ export const TypesTable: FunctionComponent<{
             types={filteredTypes}
           />
         </Box>
+      )}
+      {dataTypeIdBeingEdited && (
+        <DataTypeEditorDrawerById
+          dataTypeId={dataTypeIdBeingEdited}
+          onClose={() => setDataTypeIdBeingEdited(null)}
+        />
       )}
     </Box>
   );

@@ -1,4 +1,5 @@
 import { Box, Stack, Tooltip, Typography } from "@mui/material";
+import { useRouter } from "next/router";
 import { useRef, useState } from "react";
 
 import {
@@ -9,12 +10,13 @@ import {
 import {
   ArrowUpRightFromSquareRegularIcon,
   ArrowUpRightIcon,
+  PenRegularIcon,
 } from "@hashintel/design-system";
 
 import { generateLinkParameters } from "../../../shared/generate-link-parameters";
-import { Button, Link, Modal } from "../../../shared/ui";
+import { Button, Link } from "../../../shared/ui";
 import { CopyableOntologyChip } from "../copyable-ontology-chip";
-import { CreateDataTypeForm } from "../create-data-type-form";
+import { DataTypeEditorDrawer } from "../data-type-editor-drawer";
 import { useSlideStack } from "../slide-stack";
 import { useTextSize } from "../use-text-size";
 import { DataTypeDescription } from "./data-type-header/data-type-description";
@@ -24,21 +26,26 @@ import type { DataType, OntologyTypeVersion } from "@blockprotocol/type-system";
 interface DataTypeHeaderProps {
   currentVersion: OntologyTypeVersion;
   dataTypeSchema: DataType;
-  isDraft: boolean;
   isInSlide?: boolean;
   isReadOnly: boolean;
   latestVersion?: OntologyTypeVersion | null;
+  onEdit?: () => void;
+  /** The edit button's label — "View" when the editor opens read-only */
+  editButtonLabel?: string;
 }
 
 export const DataTypeHeader = ({
   currentVersion,
   dataTypeSchema,
-  isDraft,
   isInSlide,
   isReadOnly,
   latestVersion,
+  onEdit,
+  editButtonLabel = "Edit",
 }: DataTypeHeaderProps) => {
-  const [showExtendTypeModal, setShowExtendTypeModal] = useState(false);
+  const router = useRouter();
+
+  const [showExtendTypeDrawer, setShowExtendTypeDrawer] = useState(false);
 
   const isLatest =
     !latestVersion || extractVersion(dataTypeSchema.$id) === latestVersion;
@@ -48,7 +55,8 @@ export const DataTypeHeader = ({
     latestVersion ?? currentVersion,
   );
 
-  const { slideContainerRef, pushToSlideStack } = useSlideStack();
+  const { slideContainerRef, pushToSlideStack, closeSlideStack } =
+    useSlideStack();
 
   const dataTypeTitleTextRef = useRef<HTMLHeadingElement | null>(null);
 
@@ -157,47 +165,43 @@ export const DataTypeHeader = ({
               </Box>
             </Stack>
           </Stack>
-          {!isDraft ? (
+          <Stack direction="row" spacing={1.5}>
+            {onEdit ? (
+              <Button onClick={onEdit} variant="secondary" size="small">
+                {editButtonLabel}
+                {editButtonLabel === "Edit" ? (
+                  <PenRegularIcon sx={{ fontSize: 14, ml: 1.5 }} />
+                ) : null}
+              </Button>
+            ) : null}
             <Button
-              onClick={() => setShowExtendTypeModal(true)}
+              onClick={() => setShowExtendTypeDrawer(true)}
               variant="secondary"
               size="small"
             >
               Extend <ArrowUpRightIcon sx={{ fontSize: 16, ml: 1.5 }} />
             </Button>
-          ) : null}
+          </Stack>
         </Stack>
 
         <Box sx={{ mb: 5.25 }}>
           <DataTypeDescription isReadOnly={isReadOnly} />
         </Box>
       </Box>
-      <Modal
-        open={showExtendTypeModal}
-        contentStyle={{ p: { xs: 0, md: 0 }, maxWidth: 500 }}
-      >
-        <>
-          <Typography
-            sx={({ palette }) => ({
-              color: palette.gray[80],
-              fontWeight: 500,
-              px: 2.5,
-              pt: 2,
-              pb: 1.5,
-            })}
-          >
-            Create new data type
-          </Typography>
-          <Box>
-            <CreateDataTypeForm
-              afterSubmit={() => setShowExtendTypeModal(false)}
-              inModal
-              initialData={{ extendsDataTypeId: dataTypeSchema.$id }}
-              onCancel={() => setShowExtendTypeModal(false)}
-            />
-          </Box>
-        </>
-      </Modal>
+      {showExtendTypeDrawer && (
+        <DataTypeEditorDrawer
+          mode="create"
+          initialExtendsDataTypeId={dataTypeSchema.$id}
+          onClose={() => setShowExtendTypeDrawer(false)}
+          onCreated={(createdDataType) => {
+            setShowExtendTypeDrawer(false);
+            void router.push(
+              generateLinkParameters(createdDataType.schema.$id).href,
+            );
+            closeSlideStack();
+          }}
+        />
+      )}
     </>
   );
 };

@@ -130,11 +130,39 @@ export const isGroup = (
   entry: ItemOrGroup<Item>,
 ): entry is Extract<ItemOrGroup<Item>, { items: Item[] }> => "items" in entry;
 
+/**
+ * Whether any item nested under a collapsible item — at any depth, through
+ * groups and nested collapsibles — is enabled. The collapse toggle follows
+ * its subtree, not the row's own `disabled`: the chevron dims when nothing
+ * enabled hides beneath it, while staying clickable either way so the
+ * disabled subtree can still be browsed.
+ */
+export const hasEnabledDescendant = (item: CollapsibleItem): boolean => {
+  const visitEntry = (entry: ItemOrGroup<Item>): boolean => {
+    if (isGroup(entry)) {
+      return entry.items.some(visitEntry);
+    }
+    if (isCustomItem(entry)) {
+      return true;
+    }
+    if (!entry.disabled) {
+      return true;
+    }
+    // A disabled folder's children stay reachable through its own chevron;
+    // a disabled submenu row's don't — its submenu never opens.
+    return isCollapsibleItem(entry) && entry.subItems.some(visitEntry);
+  };
+  return item.subItems.some(visitEntry);
+};
+
 /** Expansion state of a list's `collapsible` items. */
 export type CollapsibleExpansion = {
   /** The ids of the collapsible items whose subItems are currently revealed. */
   expandedIds: ReadonlySet<string>;
-  /** Flips the given collapsible item between expanded and collapsed. */
+  /**
+   * Flips the given collapsible item between expanded and collapsed. Ignored
+   * for an item with no enabled descendant — its chevron renders disabled.
+   */
   onToggle: (id: string) => void;
   /**
    * Marks the given collapsible items expanded — dropdowns reveal the
