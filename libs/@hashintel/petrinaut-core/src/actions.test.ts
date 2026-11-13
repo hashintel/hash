@@ -1405,24 +1405,63 @@ describe("Petrinaut core fusion actions", () => {
     expect(instance.definition.get().fusions).toBeUndefined();
   });
 
-  test("rejects a member that is not a port and a second anchor", () => {
-    const instance = createInstance(composed());
+  test("rejects a port that does not exist, a place that is not a port, a member twice and a second anchor", () => {
+    const definition = composed();
+    definition.places.push({ ...definition.places[0]!, id: "store" });
+    definition.subnets![0]!.places.push({
+      ...portPlace("hidden", "Hidden"),
+      isPort: false,
+    });
+    const instance = createInstance(definition);
+    const buffer = { kind: "place" as const, placeId: "buffer" };
 
     expect(() =>
       instance.mutations.addFusion({
         id: "f1",
-        members: [{ kind: "place", placeId: "buffer" }, port("m1", "missing")],
+        members: [buffer, port("m1", "missing")],
       }),
     ).toThrow(/does not exist/);
     expect(() =>
       instance.mutations.addFusion({
         id: "f1",
-        members: [
-          { kind: "place", placeId: "buffer" },
-          { kind: "place", placeId: "buffer" },
-        ],
+        members: [buffer, port("m1", "hidden")],
       }),
-    ).toThrow();
+    ).toThrow(/isPort/);
+    expect(() =>
+      instance.mutations.addFusion({ id: "f1", members: [buffer, buffer] }),
+    ).toThrow(/names each place or port once/);
+    expect(() =>
+      instance.mutations.addFusion({
+        id: "f1",
+        members: [buffer, { kind: "place", placeId: "store" }],
+      }),
+    ).toThrow(/at most one place of its own net/);
+    expect(instance.definition.get().fusions).toBeUndefined();
+  });
+
+  test("names a fusion, describes it, and clears both", () => {
+    const instance = createInstance(composed());
+    instance.mutations.addFusion({
+      id: "f1",
+      members: [{ kind: "place", placeId: "buffer" }, port("m1", "in")],
+    });
+    const fusion = () => instance.definition.get().fusions?.[0];
+
+    instance.mutations.updateFusion({
+      fusionId: "f1",
+      update: { name: "Belt", description: "Between the two machines" },
+    });
+    expect(fusion()).toMatchObject({
+      name: "Belt",
+      description: "Between the two machines",
+    });
+
+    instance.mutations.updateFusion({
+      fusionId: "f1",
+      update: { name: undefined, description: undefined },
+    });
+    expect(fusion()).not.toHaveProperty("name");
+    expect(fusion()).not.toHaveProperty("description");
   });
 
   test("removing a place, an instance or a port takes it out of its fusions", () => {
@@ -1442,12 +1481,54 @@ describe("Petrinaut core fusion actions", () => {
       port("m2", "in"),
     ]);
 
+    instance.mutations.removeComponentInstance({ instanceId: "m2" });
+    expect(instance.definition.get().fusions).toBeUndefined();
+
+    instance.mutations.addFusion({
+      id: "f2",
+      members: [port("m1", "in"), port("m1", "out")],
+    });
     instance.mutations.updatePlace({
       placeId: "in",
       targetSubnetId: "machine",
       update: { isPort: false },
     });
     expect(instance.definition.get().fusions).toBeUndefined();
+  });
+
+  test("an instance pointed at another subnet leaves the fusions and arcs on its old ports", () => {
+    const definition = composed();
+    definition.subnets!.push({
+      ...definition.subnets![0]!,
+      id: "press",
+      name: "Press",
+      places: [portPlace("press_in", "In")],
+    });
+    definition.transitions.push({
+      id: "feed",
+      name: "Feed",
+      inputArcs: [],
+      outputArcs: [{ endpoint: port("m1", "in"), weight: 1 }],
+      lambdaType: "predicate",
+      lambdaCode: "",
+      transitionKernelCode: "",
+      x: 0,
+      y: 0,
+    });
+    const instance = createInstance(definition);
+    instance.mutations.addFusion({
+      id: "f1",
+      members: [{ kind: "place", placeId: "buffer" }, port("m1", "out")],
+    });
+
+    instance.mutations.updateComponentInstance({
+      instanceId: "m1",
+      update: { subnetId: "press" },
+    });
+
+    const document = instance.definition.get();
+    expect(document.fusions).toBeUndefined();
+    expect(document.transitions[0]?.outputArcs).toEqual([]);
   });
 
   test("deleting items by id removes fusions and their dangling members", () => {
