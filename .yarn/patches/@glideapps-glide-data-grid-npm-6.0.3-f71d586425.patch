@@ -1,8 +1,121 @@
+diff --git a/dist/cjs/data-editor/copy-paste.js b/dist/cjs/data-editor/copy-paste.js
+index 5dbcb6d448ea51d0599ca634fc9b7b7358ecacc5..b19d6db7779cce039fdca831795e3af5290179fd 100644
+--- a/dist/cjs/data-editor/copy-paste.js
++++ b/dist/cjs/data-editor/copy-paste.js
+@@ -131,7 +131,12 @@ function formatHtmlTextContent(text) {
+     // 1. Replacing tabs with four spaces for consistency. Also google sheets disallows any tabs.
+     // 2. Wrapping each space with a span element to prevent them from being collapsed or ignored during the
+     //    paste operation
+-    return text.replace(/\t/g, "    ").replace(/ {2,}/g, match => "<span> </span>".repeat(match.length));
++    return text
++        .replace(/&/g, "&amp;")
++        .replace(/</g, "&lt;")
++        .replace(/>/g, "&gt;")
++        .replace(/\t/g, "    ")
++        .replace(/ {2,}/g, match => "<span> </span>".repeat(match.length));
+ }
+ function formatHtmlAttributeContent(attrText) {
+     // Escape all quotes, lt, gt, and other special characters
 diff --git a/dist/cjs/data-editor/data-editor.js b/dist/cjs/data-editor/data-editor.js
-index 081f3b38d82107204ac3f3620d6724ffad01b43f..9dec0519a1e179ec127022c480f01187ad16c4ee 100644
+index 081f3b38d82107204ac3f3620d6724ffad01b43f..510406205502ce87b59080ccd3d304454c1ead1a 100644
 --- a/dist/cjs/data-editor/data-editor.js
 +++ b/dist/cjs/data-editor/data-editor.js
-@@ -2597,7 +2597,9 @@ const DataEditorImpl = (p, forwardedRef) => {
+@@ -1792,6 +1792,94 @@ const DataEditorImpl = (p, forwardedRef) => {
+     const overlayID = React.useMemo(() => {
+         return `gdg-overlay-${idCounter++}`;
+     }, []);
++    /** Patched to pin an open overlay editor to anchors over its cell (or follow scroll events without CSS anchor positioning), hiding it while the cell is out of view */
++    const overlayCell = overlay?.cell;
++    const overlayAnchorName = `--${overlayID}-anchor`;
++    const overlayColumnAnchorName = `--${overlayID}-column-anchor`;
++    const overlayFreezeColumns = freezeColumns + rowMarkerOffset;
++    const overlayCellIsFrozen = overlayCell !== undefined && overlayCell[0] < overlayFreezeColumns;
++    const [overlayCellHidden, setOverlayCellHidden] = React.useState(false);
++    React.useLayoutEffect(() => {
++        const scroller = scrollRef.current;
++        if (overlayCell === undefined || scroller === null)
++            return;
++        const bounds = gridRef.current?.getBounds(overlayCell[0], overlayCell[1]);
++        if (bounds === undefined)
++            return;
++        const pinAnchor = (parent, name, x, y, width, height) => {
++            const anchor = document.createElement("div");
++            anchor.style.cssText = "position:absolute;left:0;top:0;pointer-events:none";
++            anchor.style.setProperty("anchor-name", name);
++            parent.append(anchor);
++            const origin = anchor.getBoundingClientRect();
++            anchor.style.left = `${x === undefined ? 0 : x - origin.left}px`;
++            anchor.style.top = `${y - origin.top}px`;
++            anchor.style.width = `${width}px`;
++            anchor.style.height = `${height}px`;
++            return anchor;
++        };
++        const anchors = overlayCellIsFrozen
++            ? [
++                pinAnchor(scroller, overlayAnchorName, undefined, bounds.y, scroller.scrollWidth, bounds.height),
++                pinAnchor(scroller.parentElement ?? scroller, overlayColumnAnchorName, bounds.x, bounds.y, bounds.width, bounds.height),
++            ]
++            : [pinAnchor(scroller, overlayAnchorName, bounds.x, bounds.y, bounds.width, bounds.height)];
++        let frozenWidth = 0;
++        if (!overlayCellIsFrozen) {
++            for (let i = 0; i < Math.min(overlayFreezeColumns, mangledCols.length); i++) {
++                frozenWidth += mangledCols[i]?.width ?? 0;
++            }
++        }
++        const supportsAnchoring = typeof CSS !== "undefined" && CSS.supports("anchor-name", "--gdg-anchor");
++        const clipped = { grid: false, page: false };
++        const observeClipping = (key, options) => {
++            const observer = new IntersectionObserver(entries => {
++                const entry = entries[entries.length - 1];
++                if (entry === undefined)
++                    return;
++                clipped[key] = !entry.isIntersecting;
++                setOverlayCellHidden(clipped.grid || clipped.page);
++            }, options);
++            observer.observe(anchors[0]);
++            return observer;
++        };
++        const observers = [
++            observeClipping("grid", { root: scroller, rootMargin: `-${totalHeaderHeight}px 0px 0px -${frozenWidth}px` }),
++        ];
++        let rafHandle;
++        const repositionOverlay = () => {
++            if (rafHandle !== undefined)
++                return;
++            rafHandle = window.requestAnimationFrame(() => {
++                rafHandle = undefined;
++                const rowRect = anchors[0].getBoundingClientRect();
++                const columnRect = (anchors[1] ?? anchors[0]).getBoundingClientRect();
++                const newTarget = { x: columnRect.x, y: rowRect.y, width: columnRect.width, height: rowRect.height };
++                setOverlay(cur => {
++                    if (cur === undefined || cur.cell !== overlayCell)
++                        return cur;
++                    const { x, y, width, height } = cur.target;
++                    if (x === newTarget.x && y === newTarget.y && width === newTarget.width && height === newTarget.height)
++                        return cur;
++                    return { ...cur, target: newTarget };
++                });
++            });
++        };
++        if (!supportsAnchoring) {
++            observers.push(observeClipping("page", {}));
++            window.addEventListener("scroll", repositionOverlay, true);
++        }
++        return () => {
++            for (const observer of observers)
++                observer.disconnect();
++            window.removeEventListener("scroll", repositionOverlay, true);
++            if (rafHandle !== undefined)
++                window.cancelAnimationFrame(rafHandle);
++            for (const anchor of anchors)
++                anchor.remove();
++            setOverlayCellHidden(false);
++        };
++    }, [overlayCell, overlayCellIsFrozen, overlayAnchorName, overlayColumnAnchorName, overlayFreezeColumns, mangledCols, totalHeaderHeight]);
+     const deleteRange = React.useCallback((r) => {
+         focus();
+         const editList = [];
+@@ -2597,7 +2685,9 @@ const DataEditorImpl = (p, forwardedRef) => {
                  void normalSizeColumn(col + rowMarkerOffset);
              }
          },
@@ -13,6 +126,49 @@ index 081f3b38d82107204ac3f3620d6724ffad01b43f..9dec0519a1e179ec127022c480f01187
      const [selCol, selRow] = currentCell ?? [];
      const onCellFocused = React.useCallback((cell) => {
          const [col, row] = cell;
+@@ -2671,7 +2761,7 @@ const DataEditorImpl = (p, forwardedRef) => {
+             React.createElement(data_grid_search_js_1.default, { fillHandle: fillHandle, drawFocusRing: drawFocusRing, experimental: experimental, fixedShadowX: fixedShadowX, fixedShadowY: fixedShadowY, getRowThemeOverride: getRowThemeOverride, headerIcons: headerIcons, imageWindowLoader: imageWindowLoader, initialSize: initialSize, isDraggable: isDraggable, onDragLeave: onDragLeave, onRowMoved: onRowMoved, overscrollX: overscrollX, overscrollY: overscrollY, preventDiagonalScrolling: preventDiagonalScrolling, rightElement: rightElement, rightElementProps: rightElementProps, smoothScrollX: smoothScrollX, smoothScrollY: smoothScrollY, className: className, enableGroups: enableGroups, onCanvasFocused: onCanvasFocused, onCanvasBlur: onFocusOut, canvasRef: canvasRef, onContextMenu: onContextMenu, theme: mergedTheme, cellXOffset: cellXOffset, cellYOffset: cellYOffset, accessibilityHeight: visibleRegion.height, onDragEnd: onDragEnd, columns: mangledCols, nonGrowWidth: nonGrowWidth, drawHeader: drawHeader, onColumnProposeMove: onColumnProposeMove, drawCell: drawCell, disabledRows: disabledRows, freezeColumns: mangledFreezeColumns, lockColumns: rowMarkerOffset, firstColAccessible: rowMarkerOffset === 0, getCellContent: getMangledCellContent, minColumnWidth: minColumnWidth, maxColumnWidth: maxColumnWidth, searchInputRef: searchInputRef, showSearch: showSearch, onSearchClose: onSearchClose, highlightRegions: highlightRegions, getCellsForSelection: getCellsForSelection, getGroupDetails: mangledGetGroupDetails, headerHeight: headerHeight, isFocused: isFocused, groupHeaderHeight: enableGroups ? groupHeaderHeight : 0, freezeTrailingRows: freezeTrailingRows + (showTrailingBlankRow && trailingRowOptions?.sticky === true ? 1 : 0), hasAppendRow: showTrailingBlankRow, onColumnResize: onColumnResize, onColumnResizeEnd: onColumnResizeEnd, onColumnResizeStart: onColumnResizeStart, onCellFocused: onCellFocused, onColumnMoved: onColumnMovedImpl, onDragStart: onDragStartImpl, onHeaderMenuClick: onHeaderMenuClickInner, onItemHovered: onItemHoveredImpl, isFilling: mouseState?.fillHandle === true, onMouseMove: onMouseMoveImpl, onKeyDown: onKeyDown, onKeyUp: onKeyUpIn, onMouseDown: onMouseDown, onMouseUp: onMouseUp, onDragOverCell: onDragOverCell, onDrop: onDrop, onSearchResultsChanged: onSearchResultsChanged, onVisibleRegionChanged: onVisibleRegionChangedImpl, clientSize: clientSize, rowHeight: rowHeight, searchResults: searchResults, searchValue: searchValue, onSearchValueChange: onSearchValueChange, rows: mangledRows, scrollRef: scrollRef, selection: gridSelection, translateX: visibleRegion.tx, translateY: visibleRegion.ty, verticalBorder: mangledVerticalBorder, gridRef: gridRef, getCellRenderer: getCellRenderer }),
+             renameGroupNode,
+             overlay !== undefined && (React.createElement(React.Suspense, { fallback: null },
+-                React.createElement(DataGridOverlayEditor, { ...overlay, validateCell: validateCell, bloom: editorBloom, id: overlayID, getCellRenderer: getCellRenderer, className: experimental?.isSubGrid === true ? "click-outside-ignore" : undefined, provideEditor: provideEditor, imageEditorOverride: imageEditorOverride, onFinishEditing: onFinishEditing, markdownDivCreateNode: markdownDivCreateNode, isOutsideClick: isOutsideClick }))))));
++                React.createElement(DataGridOverlayEditor, { ...overlay, validateCell: validateCell, bloom: editorBloom, id: overlayID, getCellRenderer: getCellRenderer, className: experimental?.isSubGrid === true ? "click-outside-ignore" : undefined, provideEditor: provideEditor, imageEditorOverride: imageEditorOverride, onFinishEditing: onFinishEditing, markdownDivCreateNode: markdownDivCreateNode, isOutsideClick: isOutsideClick, anchorName: overlayAnchorName, columnAnchorName: overlayCellIsFrozen ? overlayColumnAnchorName : undefined, isHidden: overlayCellHidden }))))));
+ };
+ /**
+  * The primary component of Glide Data Grid.
+diff --git a/dist/cjs/internal/data-grid-overlay-editor/data-grid-overlay-editor.js b/dist/cjs/internal/data-grid-overlay-editor/data-grid-overlay-editor.js
+index 0e698e3de90fb95954d8c3018a00811a7d612893..067ebb67ce070e7882c8f4239e8b41ee68dcecb9 100644
+--- a/dist/cjs/internal/data-grid-overlay-editor/data-grid-overlay-editor.js
++++ b/dist/cjs/internal/data-grid-overlay-editor/data-grid-overlay-editor.js
+@@ -34,7 +34,7 @@ const data_grid_types_js_1 = require("../data-grid/data-grid-types.js");
+ const data_grid_overlay_editor_style_js_1 = require("./data-grid-overlay-editor-style.js");
+ const use_stay_on_screen_js_1 = require("./use-stay-on-screen.js");
+ const DataGridOverlayEditor = p => {
+-    const { target, content, onFinishEditing: onFinishEditingIn, forceEditMode, initialValue, imageEditorOverride, markdownDivCreateNode, highlight, className, theme, id, cell, bloom, validateCell, getCellRenderer, provideEditor, isOutsideClick, } = p;
++    const { target, content, onFinishEditing: onFinishEditingIn, forceEditMode, initialValue, imageEditorOverride, markdownDivCreateNode, highlight, className, theme, id, cell, bloom, validateCell, getCellRenderer, provideEditor, isOutsideClick, anchorName, columnAnchorName, isHidden, } = p;
+     const [tempValue, setTempValueRaw] = React.useState(forceEditMode ? content : undefined);
+     const lastValueRef = React.useRef(tempValue ?? content);
+     lastValueRef.current = tempValue ?? content;
+@@ -139,6 +139,20 @@ const DataGridOverlayEditor = p => {
+     }
+     const bloomX = bloom?.[0] ?? 1;
+     const bloomY = bloom?.[1] ?? 1;
++    /** Patched to pin the editor to anchor elements placed over its cell by the data editor */
++    const columnAnchor = columnAnchorName ?? "";
++    const anchorStyle = anchorName !== undefined && typeof CSS !== "undefined" && CSS.supports("anchor-name", "--gdg-anchor")
++        ? {
++            position: "fixed",
++            positionAnchor: anchorName,
++            positionVisibility: "anchors-visible",
++            left: `calc(anchor(${columnAnchor} left, ${target.x}px) - ${bloomX}px)`,
++            top: `calc(anchor(top, ${target.y}px) - ${bloomY}px)`,
++            minWidth: `calc(anchor-size(${columnAnchor} width, ${target.width}px) + ${bloomX * 2}px)`,
++            minHeight: `calc(anchor-size(height, ${target.height}px) + ${bloomY * 2}px)`,
++        }
++        : undefined;
++    styleOverride = { ...styleOverride, ...anchorStyle, ...(isHidden === true ? { visibility: "hidden" } : undefined) };
+     return (0, react_dom_1.createPortal)(React.createElement(styles_js_1.ThemeContext.Provider, { value: theme },
+         React.createElement(click_outside_container_js_1.default, { style: (0, styles_js_1.makeCSSStyle)(theme), className: className, onClickOutside: onClickOutside, isOutsideClick: isOutsideClick },
+             React.createElement(data_grid_overlay_editor_style_js_1.DataGridOverlayEditorStyle, { ref: ref, id: id, className: classWrap, style: styleOverride, as: useLabel === true ? "label" : undefined, targetX: target.x - bloomX, targetY: target.y - bloomY, targetWidth: target.width + bloomX * 2, targetHeight: target.height + bloomY * 2 },
 diff --git a/dist/dts/cells/cell-types.d.ts b/dist/dts/cells/cell-types.d.ts
 index ba1b31716270ec2fe6bfda844a4b931549f015b2..f238812727481c01f482339814fd163a984a1835 100644
 --- a/dist/dts/cells/cell-types.d.ts
@@ -60,11 +216,124 @@ index 4007ec6485ebdf8a5c60c30e3e82fb9468e6eba8..32971904056de270429100b9e34c53b4
  }
  /** @category Columns */
  export interface AutoGridColumn extends BaseGridColumn {
+diff --git a/dist/esm/data-editor/copy-paste.js b/dist/esm/data-editor/copy-paste.js
+index 08281e1b1bbca5ffab87283534db314e6750179b..b59b52d17eb6fbea0d939c5134d75d42a1f8cedf 100644
+--- a/dist/esm/data-editor/copy-paste.js
++++ b/dist/esm/data-editor/copy-paste.js
+@@ -128,7 +128,12 @@ function formatHtmlTextContent(text) {
+     // 1. Replacing tabs with four spaces for consistency. Also google sheets disallows any tabs.
+     // 2. Wrapping each space with a span element to prevent them from being collapsed or ignored during the
+     //    paste operation
+-    return text.replace(/\t/g, "    ").replace(/ {2,}/g, match => "<span> </span>".repeat(match.length));
++    return text
++        .replace(/&/g, "&amp;")
++        .replace(/</g, "&lt;")
++        .replace(/>/g, "&gt;")
++        .replace(/\t/g, "    ")
++        .replace(/ {2,}/g, match => "<span> </span>".repeat(match.length));
+ }
+ function formatHtmlAttributeContent(attrText) {
+     // Escape all quotes, lt, gt, and other special characters
 diff --git a/dist/esm/data-editor/data-editor.js b/dist/esm/data-editor/data-editor.js
-index ec05aa9866c70032fc5509ff557cb8c542e384ed..675685a49e67a2deffa8afb6891be88005286034 100644
+index ec05aa9866c70032fc5509ff557cb8c542e384ed..d89cad344fa189134b9d3ea645d045fcf1addb5d 100644
 --- a/dist/esm/data-editor/data-editor.js
 +++ b/dist/esm/data-editor/data-editor.js
-@@ -2568,7 +2568,9 @@ const DataEditorImpl = (p, forwardedRef) => {
+@@ -1763,6 +1763,94 @@ const DataEditorImpl = (p, forwardedRef) => {
+     const overlayID = React.useMemo(() => {
+         return `gdg-overlay-${idCounter++}`;
+     }, []);
++    /** Patched to pin an open overlay editor to anchors over its cell (or follow scroll events without CSS anchor positioning), hiding it while the cell is out of view */
++    const overlayCell = overlay?.cell;
++    const overlayAnchorName = `--${overlayID}-anchor`;
++    const overlayColumnAnchorName = `--${overlayID}-column-anchor`;
++    const overlayFreezeColumns = freezeColumns + rowMarkerOffset;
++    const overlayCellIsFrozen = overlayCell !== undefined && overlayCell[0] < overlayFreezeColumns;
++    const [overlayCellHidden, setOverlayCellHidden] = React.useState(false);
++    React.useLayoutEffect(() => {
++        const scroller = scrollRef.current;
++        if (overlayCell === undefined || scroller === null)
++            return;
++        const bounds = gridRef.current?.getBounds(overlayCell[0], overlayCell[1]);
++        if (bounds === undefined)
++            return;
++        const pinAnchor = (parent, name, x, y, width, height) => {
++            const anchor = document.createElement("div");
++            anchor.style.cssText = "position:absolute;left:0;top:0;pointer-events:none";
++            anchor.style.setProperty("anchor-name", name);
++            parent.append(anchor);
++            const origin = anchor.getBoundingClientRect();
++            anchor.style.left = `${x === undefined ? 0 : x - origin.left}px`;
++            anchor.style.top = `${y - origin.top}px`;
++            anchor.style.width = `${width}px`;
++            anchor.style.height = `${height}px`;
++            return anchor;
++        };
++        const anchors = overlayCellIsFrozen
++            ? [
++                pinAnchor(scroller, overlayAnchorName, undefined, bounds.y, scroller.scrollWidth, bounds.height),
++                pinAnchor(scroller.parentElement ?? scroller, overlayColumnAnchorName, bounds.x, bounds.y, bounds.width, bounds.height),
++            ]
++            : [pinAnchor(scroller, overlayAnchorName, bounds.x, bounds.y, bounds.width, bounds.height)];
++        let frozenWidth = 0;
++        if (!overlayCellIsFrozen) {
++            for (let i = 0; i < Math.min(overlayFreezeColumns, mangledCols.length); i++) {
++                frozenWidth += mangledCols[i]?.width ?? 0;
++            }
++        }
++        const supportsAnchoring = typeof CSS !== "undefined" && CSS.supports("anchor-name", "--gdg-anchor");
++        const clipped = { grid: false, page: false };
++        const observeClipping = (key, options) => {
++            const observer = new IntersectionObserver(entries => {
++                const entry = entries[entries.length - 1];
++                if (entry === undefined)
++                    return;
++                clipped[key] = !entry.isIntersecting;
++                setOverlayCellHidden(clipped.grid || clipped.page);
++            }, options);
++            observer.observe(anchors[0]);
++            return observer;
++        };
++        const observers = [
++            observeClipping("grid", { root: scroller, rootMargin: `-${totalHeaderHeight}px 0px 0px -${frozenWidth}px` }),
++        ];
++        let rafHandle;
++        const repositionOverlay = () => {
++            if (rafHandle !== undefined)
++                return;
++            rafHandle = window.requestAnimationFrame(() => {
++                rafHandle = undefined;
++                const rowRect = anchors[0].getBoundingClientRect();
++                const columnRect = (anchors[1] ?? anchors[0]).getBoundingClientRect();
++                const newTarget = { x: columnRect.x, y: rowRect.y, width: columnRect.width, height: rowRect.height };
++                setOverlay(cur => {
++                    if (cur === undefined || cur.cell !== overlayCell)
++                        return cur;
++                    const { x, y, width, height } = cur.target;
++                    if (x === newTarget.x && y === newTarget.y && width === newTarget.width && height === newTarget.height)
++                        return cur;
++                    return { ...cur, target: newTarget };
++                });
++            });
++        };
++        if (!supportsAnchoring) {
++            observers.push(observeClipping("page", {}));
++            window.addEventListener("scroll", repositionOverlay, true);
++        }
++        return () => {
++            for (const observer of observers)
++                observer.disconnect();
++            window.removeEventListener("scroll", repositionOverlay, true);
++            if (rafHandle !== undefined)
++                window.cancelAnimationFrame(rafHandle);
++            for (const anchor of anchors)
++                anchor.remove();
++            setOverlayCellHidden(false);
++        };
++    }, [overlayCell, overlayCellIsFrozen, overlayAnchorName, overlayColumnAnchorName, overlayFreezeColumns, mangledCols, totalHeaderHeight]);
+     const deleteRange = React.useCallback((r) => {
+         focus();
+         const editList = [];
+@@ -2568,7 +2656,9 @@ const DataEditorImpl = (p, forwardedRef) => {
                  void normalSizeColumn(col + rowMarkerOffset);
              }
          },
@@ -75,37 +344,46 @@ index ec05aa9866c70032fc5509ff557cb8c542e384ed..675685a49e67a2deffa8afb6891be880
      const [selCol, selRow] = currentCell ?? [];
      const onCellFocused = React.useCallback((cell) => {
          const [col, row] = cell;
-diff --git a/dist/cjs/data-editor/copy-paste.js b/dist/cjs/data-editor/copy-paste.js
---- a/dist/cjs/data-editor/copy-paste.js
-+++ b/dist/cjs/data-editor/copy-paste.js
-@@ -131,7 +131,12 @@
-     // 1. Replacing tabs with four spaces for consistency. Also google sheets disallows any tabs.
-     // 2. Wrapping each space with a span element to prevent them from being collapsed or ignored during the
-     //    paste operation
--    return text.replace(/\t/g, "    ").replace(/ {2,}/g, match => "<span> </span>".repeat(match.length));
-+    return text
-+        .replace(/&/g, "&amp;")
-+        .replace(/</g, "&lt;")
-+        .replace(/>/g, "&gt;")
-+        .replace(/\t/g, "    ")
-+        .replace(/ {2,}/g, match => "<span> </span>".repeat(match.length));
- }
- function formatHtmlAttributeContent(attrText) {
-     // Escape all quotes, lt, gt, and other special characters
-diff --git a/dist/esm/data-editor/copy-paste.js b/dist/esm/data-editor/copy-paste.js
---- a/dist/esm/data-editor/copy-paste.js
-+++ b/dist/esm/data-editor/copy-paste.js
-@@ -128,7 +128,12 @@
-     // 1. Replacing tabs with four spaces for consistency. Also google sheets disallows any tabs.
-     // 2. Wrapping each space with a span element to prevent them from being collapsed or ignored during the
-     //    paste operation
--    return text.replace(/\t/g, "    ").replace(/ {2,}/g, match => "<span> </span>".repeat(match.length));
-+    return text
-+        .replace(/&/g, "&amp;")
-+        .replace(/</g, "&lt;")
-+        .replace(/>/g, "&gt;")
-+        .replace(/\t/g, "    ")
-+        .replace(/ {2,}/g, match => "<span> </span>".repeat(match.length));
- }
- function formatHtmlAttributeContent(attrText) {
-     // Escape all quotes, lt, gt, and other special characters
+@@ -2642,7 +2732,7 @@ const DataEditorImpl = (p, forwardedRef) => {
+             React.createElement(DataGridSearch, { fillHandle: fillHandle, drawFocusRing: drawFocusRing, experimental: experimental, fixedShadowX: fixedShadowX, fixedShadowY: fixedShadowY, getRowThemeOverride: getRowThemeOverride, headerIcons: headerIcons, imageWindowLoader: imageWindowLoader, initialSize: initialSize, isDraggable: isDraggable, onDragLeave: onDragLeave, onRowMoved: onRowMoved, overscrollX: overscrollX, overscrollY: overscrollY, preventDiagonalScrolling: preventDiagonalScrolling, rightElement: rightElement, rightElementProps: rightElementProps, smoothScrollX: smoothScrollX, smoothScrollY: smoothScrollY, className: className, enableGroups: enableGroups, onCanvasFocused: onCanvasFocused, onCanvasBlur: onFocusOut, canvasRef: canvasRef, onContextMenu: onContextMenu, theme: mergedTheme, cellXOffset: cellXOffset, cellYOffset: cellYOffset, accessibilityHeight: visibleRegion.height, onDragEnd: onDragEnd, columns: mangledCols, nonGrowWidth: nonGrowWidth, drawHeader: drawHeader, onColumnProposeMove: onColumnProposeMove, drawCell: drawCell, disabledRows: disabledRows, freezeColumns: mangledFreezeColumns, lockColumns: rowMarkerOffset, firstColAccessible: rowMarkerOffset === 0, getCellContent: getMangledCellContent, minColumnWidth: minColumnWidth, maxColumnWidth: maxColumnWidth, searchInputRef: searchInputRef, showSearch: showSearch, onSearchClose: onSearchClose, highlightRegions: highlightRegions, getCellsForSelection: getCellsForSelection, getGroupDetails: mangledGetGroupDetails, headerHeight: headerHeight, isFocused: isFocused, groupHeaderHeight: enableGroups ? groupHeaderHeight : 0, freezeTrailingRows: freezeTrailingRows + (showTrailingBlankRow && trailingRowOptions?.sticky === true ? 1 : 0), hasAppendRow: showTrailingBlankRow, onColumnResize: onColumnResize, onColumnResizeEnd: onColumnResizeEnd, onColumnResizeStart: onColumnResizeStart, onCellFocused: onCellFocused, onColumnMoved: onColumnMovedImpl, onDragStart: onDragStartImpl, onHeaderMenuClick: onHeaderMenuClickInner, onItemHovered: onItemHoveredImpl, isFilling: mouseState?.fillHandle === true, onMouseMove: onMouseMoveImpl, onKeyDown: onKeyDown, onKeyUp: onKeyUpIn, onMouseDown: onMouseDown, onMouseUp: onMouseUp, onDragOverCell: onDragOverCell, onDrop: onDrop, onSearchResultsChanged: onSearchResultsChanged, onVisibleRegionChanged: onVisibleRegionChangedImpl, clientSize: clientSize, rowHeight: rowHeight, searchResults: searchResults, searchValue: searchValue, onSearchValueChange: onSearchValueChange, rows: mangledRows, scrollRef: scrollRef, selection: gridSelection, translateX: visibleRegion.tx, translateY: visibleRegion.ty, verticalBorder: mangledVerticalBorder, gridRef: gridRef, getCellRenderer: getCellRenderer }),
+             renameGroupNode,
+             overlay !== undefined && (React.createElement(React.Suspense, { fallback: null },
+-                React.createElement(DataGridOverlayEditor, { ...overlay, validateCell: validateCell, bloom: editorBloom, id: overlayID, getCellRenderer: getCellRenderer, className: experimental?.isSubGrid === true ? "click-outside-ignore" : undefined, provideEditor: provideEditor, imageEditorOverride: imageEditorOverride, onFinishEditing: onFinishEditing, markdownDivCreateNode: markdownDivCreateNode, isOutsideClick: isOutsideClick }))))));
++                React.createElement(DataGridOverlayEditor, { ...overlay, validateCell: validateCell, bloom: editorBloom, id: overlayID, getCellRenderer: getCellRenderer, className: experimental?.isSubGrid === true ? "click-outside-ignore" : undefined, provideEditor: provideEditor, imageEditorOverride: imageEditorOverride, onFinishEditing: onFinishEditing, markdownDivCreateNode: markdownDivCreateNode, isOutsideClick: isOutsideClick, anchorName: overlayAnchorName, columnAnchorName: overlayCellIsFrozen ? overlayColumnAnchorName : undefined, isHidden: overlayCellHidden }))))));
+ };
+ /**
+  * The primary component of Glide Data Grid.
+diff --git a/dist/esm/internal/data-grid-overlay-editor/data-grid-overlay-editor.js b/dist/esm/internal/data-grid-overlay-editor/data-grid-overlay-editor.js
+index 259b5fb8c7bf12a1a7e6d551429fce051fac2591..6e22dedd7d7025152a1501c7cd841ca46284b309 100644
+--- a/dist/esm/internal/data-grid-overlay-editor/data-grid-overlay-editor.js
++++ b/dist/esm/internal/data-grid-overlay-editor/data-grid-overlay-editor.js
+@@ -6,7 +6,7 @@ import { isEditableGridCell, isInnerOnlyCell, isObjectEditorCallbackResult, } fr
+ import { DataGridOverlayEditorStyle } from "./data-grid-overlay-editor-style.js";
+ import { useStayOnScreen } from "./use-stay-on-screen.js";
+ const DataGridOverlayEditor = p => {
+-    const { target, content, onFinishEditing: onFinishEditingIn, forceEditMode, initialValue, imageEditorOverride, markdownDivCreateNode, highlight, className, theme, id, cell, bloom, validateCell, getCellRenderer, provideEditor, isOutsideClick, } = p;
++    const { target, content, onFinishEditing: onFinishEditingIn, forceEditMode, initialValue, imageEditorOverride, markdownDivCreateNode, highlight, className, theme, id, cell, bloom, validateCell, getCellRenderer, provideEditor, isOutsideClick, anchorName, columnAnchorName, isHidden, } = p;
+     const [tempValue, setTempValueRaw] = React.useState(forceEditMode ? content : undefined);
+     const lastValueRef = React.useRef(tempValue ?? content);
+     lastValueRef.current = tempValue ?? content;
+@@ -111,6 +111,20 @@ const DataGridOverlayEditor = p => {
+     }
+     const bloomX = bloom?.[0] ?? 1;
+     const bloomY = bloom?.[1] ?? 1;
++    /** Patched to pin the editor to anchor elements placed over its cell by the data editor */
++    const columnAnchor = columnAnchorName ?? "";
++    const anchorStyle = anchorName !== undefined && typeof CSS !== "undefined" && CSS.supports("anchor-name", "--gdg-anchor")
++        ? {
++            position: "fixed",
++            positionAnchor: anchorName,
++            positionVisibility: "anchors-visible",
++            left: `calc(anchor(${columnAnchor} left, ${target.x}px) - ${bloomX}px)`,
++            top: `calc(anchor(top, ${target.y}px) - ${bloomY}px)`,
++            minWidth: `calc(anchor-size(${columnAnchor} width, ${target.width}px) + ${bloomX * 2}px)`,
++            minHeight: `calc(anchor-size(height, ${target.height}px) + ${bloomY * 2}px)`,
++        }
++        : undefined;
++    styleOverride = { ...styleOverride, ...anchorStyle, ...(isHidden === true ? { visibility: "hidden" } : undefined) };
+     return createPortal(React.createElement(ThemeContext.Provider, { value: theme },
+         React.createElement(ClickOutsideContainer, { style: makeCSSStyle(theme), className: className, onClickOutside: onClickOutside, isOutsideClick: isOutsideClick },
+             React.createElement(DataGridOverlayEditorStyle, { ref: ref, id: id, className: classWrap, style: styleOverride, as: useLabel === true ? "label" : undefined, targetX: target.x - bloomX, targetY: target.y - bloomY, targetWidth: target.width + bloomX * 2, targetHeight: target.height + bloomY * 2 },
