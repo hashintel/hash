@@ -214,8 +214,8 @@ export const AddStepMenu = ({
 };
 
 /**
- * The add menu at a point, open while mounted. The DS `Menu` only opens from its own trigger, so this clicks an
- * invisible trigger laid over `anchor`.
+ * The add menu beside `anchor`, the ghost card where the step will land, open while mounted. The DS `Menu` only opens
+ * from its own trigger, so this clicks an invisible trigger laid over `anchor`.
  */
 export const AddStepMenuAt = ({
   anchor,
@@ -240,6 +240,7 @@ export const AddStepMenuAt = ({
 
   return (
     <AddStepMenu
+      position="right-start"
       emptyFlow={emptyFlow}
       onPick={onPick}
       onOpen={(open) => {

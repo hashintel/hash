@@ -20,26 +20,30 @@ export const stepNoun = { singular: "step", plural: "steps" } as const;
 export const countSteps = (count: number) =>
   `${count} ${count === 1 ? stepNoun.singular : stepNoun.plural}`;
 
-export type StepTone = "green" | "orange" | "neutral";
+/** A step's hue: its group's, or neutral for what belongs to no group, such as Start. */
+export type StepTone =
+  | "yellow"
+  | "blue"
+  | "pink"
+  | "orange"
+  | "green"
+  | "purple"
+  | "neutral";
 
-type ActionGroupId =
-  | "people"
-  | "messages"
-  | "documents"
-  | "entities"
-  | "flowControl";
+/** In the order the Add tab and the add menu list them, each in the hue its steps' tiles take. */
+const actionGroups = {
+  people: { label: "People", icon: "user", tone: "yellow" },
+  messages: { label: "Messages", icon: "at", tone: "blue" },
+  ai: { label: "AI", icon: "sparkles", tone: "pink" },
+  documents: { label: "Documents", icon: "download", tone: "orange" },
+  entities: { label: "Entities", icon: "cube", tone: "green" },
+  flowControl: { label: "Flow control", icon: "rotate", tone: "purple" },
+} as const satisfies Record<
+  string,
+  { label: string; icon: IconName; tone: StepTone }
+>;
 
-const actionGroups: {
-  groupId: ActionGroupId;
-  label: string;
-  icon: IconName;
-}[] = [
-  { groupId: "people", label: "People", icon: "user" },
-  { groupId: "messages", label: "Messages", icon: "at" },
-  { groupId: "documents", label: "Documents", icon: "download" },
-  { groupId: "entities", label: "Entities", icon: "cube" },
-  { groupId: "flowControl", label: "Flow control", icon: "rotate" },
-];
+type ActionGroupId = keyof typeof actionGroups;
 
 export type AddableAction = {
   actionDefinitionId: FlowActionDefinitionId;
@@ -48,7 +52,6 @@ export type AddableAction = {
   description: string;
   groupId: ActionGroupId;
   icon: IconName;
-  tone: StepTone;
 };
 
 /**
@@ -60,9 +63,8 @@ const addableActions: AddableAction[] = [
     actionDefinitionId: "draftMessage",
     label: "Draft email",
     description: "Write an email's subject and body",
-    groupId: "messages",
+    groupId: "ai",
     icon: "feather",
-    tone: "orange",
   },
   {
     actionDefinitionId: "getFileFromUrl",
@@ -70,7 +72,6 @@ const addableActions: AddableAction[] = [
     description: "Download a file from a URL into HASH",
     groupId: "documents",
     icon: "download",
-    tone: "neutral",
   },
   {
     actionDefinitionId: "queryEntities",
@@ -78,7 +79,6 @@ const addableActions: AddableAction[] = [
     description: "Search one or more entity types, with conditions",
     groupId: "entities",
     icon: "search",
-    tone: "green",
   },
   {
     actionDefinitionId: "createEntity",
@@ -86,7 +86,6 @@ const addableActions: AddableAction[] = [
     description: "Add a new entity to the graph",
     groupId: "entities",
     icon: "squarePlus",
-    tone: "green",
   },
   {
     actionDefinitionId: "updateEntity",
@@ -94,7 +93,6 @@ const addableActions: AddableAction[] = [
     description: "Change properties on an existing entity",
     groupId: "entities",
     icon: "edit",
-    tone: "green",
   },
   {
     actionDefinitionId: "if",
@@ -102,7 +100,6 @@ const addableActions: AddableAction[] = [
     description: "Send a value to Yes or No by a condition",
     groupId: "flowControl",
     icon: "diagramNodes",
-    tone: "neutral",
   },
   {
     actionDefinitionId: "filterList",
@@ -110,7 +107,6 @@ const addableActions: AddableAction[] = [
     description: "Split a list into matching and other items",
     groupId: "flowControl",
     icon: "filter",
-    tone: "green",
   },
   {
     actionDefinitionId: "find",
@@ -118,7 +114,6 @@ const addableActions: AddableAction[] = [
     description: "Pick the first item of a list that matches a condition",
     groupId: "flowControl",
     icon: "bullseye",
-    tone: "green",
   },
   {
     actionDefinitionId: "orderBy",
@@ -126,7 +121,6 @@ const addableActions: AddableAction[] = [
     description: "Sort a list by its items, one of their fields or a property",
     groupId: "flowControl",
     icon: "sortDown",
-    tone: "green",
   },
   {
     actionDefinitionId: "takeFirst",
@@ -134,7 +128,6 @@ const addableActions: AddableAction[] = [
     description: "Keep the first items of a list, up to a count",
     groupId: "flowControl",
     icon: "circleOne",
-    tone: "green",
   },
   {
     actionDefinitionId: "aggregate",
@@ -143,9 +136,12 @@ const addableActions: AddableAction[] = [
       "Count a list's items, or take their sum, average, minimum or maximum",
     groupId: "flowControl",
     icon: "function",
-    tone: "green",
   },
 ];
+
+/** The hue of an action's tile, which is its group's. */
+export const getActionTone = ({ groupId }: Pick<AddableAction, "groupId">) =>
+  actionGroups[groupId].tone;
 
 /** `undefined` for an action that can't be added. */
 export const findAddableAction = (actionDefinitionId: string) =>
@@ -162,20 +158,22 @@ export const recommendedActions = (
   ] satisfies FlowActionDefinitionId[]
 ).flatMap((actionDefinitionId) => findAddableAction(actionDefinitionId) ?? []);
 
-export type ActionGroup = (typeof actionGroups)[number] & {
+export type ActionGroup = {
+  groupId: ActionGroupId;
+  label: string;
+  icon: IconName;
   actions: AddableAction[];
 };
 
 /** The groups of actions in the Add tab and the add menu, leaving out any with nothing that can be added yet. */
-export const addableActionGroups: ActionGroup[] = actionGroups.flatMap(
-  (group) => {
-    const actions = addableActions.filter(
-      ({ groupId }) => groupId === group.groupId,
-    );
+export const addableActionGroups: ActionGroup[] = (
+  Object.keys(actionGroups) as ActionGroupId[]
+).flatMap((groupId) => {
+  const { label, icon } = actionGroups[groupId];
+  const actions = addableActions.filter((action) => action.groupId === groupId);
 
-    return actions.length > 0 ? [{ ...group, actions }] : [];
-  },
-);
+  return actions.length > 0 ? [{ groupId, label, icon, actions }] : [];
+});
 
 /** The actions whose name contains `query`, ignoring case, in the order their groups list them. */
 export const searchAddableActions = (query: string): AddableAction[] => {
@@ -198,15 +196,23 @@ export const startDisplay = {
   tone: StepTone;
 };
 
+/** `group` is `undefined` for an action that can't be added, which belongs to no group. */
 export const getStepDisplay = (
   step: StepDefinition<string>,
-): { title: string; description: string; icon: IconName; tone: StepTone } => {
+): {
+  title: string;
+  description: string;
+  icon: IconName;
+  tone: StepTone;
+  group: string | undefined;
+} => {
   if (step.kind === "for-each") {
     return {
       title: "For each",
       description: step.description,
       icon: "refresh",
-      tone: "neutral",
+      tone: actionGroups.flowControl.tone,
+      group: actionGroups.flowControl.label,
     };
   }
 
@@ -218,6 +224,7 @@ export const getStepDisplay = (
     title: addable?.label ?? definition?.name ?? step.actionDefinitionId,
     description: step.description,
     icon: addable?.icon ?? "lightning",
-    tone: addable?.tone ?? "neutral",
+    tone: addable ? getActionTone(addable) : "neutral",
+    group: addable ? actionGroups[addable.groupId].label : undefined,
   };
 };

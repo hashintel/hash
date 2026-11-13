@@ -3,7 +3,7 @@ import { canConnect } from "@local/hash-isomorphic-utils/flows/can-connect";
 import { createStepShapeResolver } from "@local/hash-isomorphic-utils/flows/step-shapes";
 
 import { findStep, getStepName } from "../shared/find-step";
-import { getNameLabel } from "../shared/name-label";
+import { getNameLabel, getOutputLabel } from "../shared/name-label";
 import { getActionDefinition } from "../shared/step-display";
 import { getStepsBefore } from "../shared/step-order";
 import { getFlowInputLabel } from "../shared/value-display";
@@ -175,7 +175,10 @@ export const getSourceOptions = ({
                   stepId: step.stepId,
                   outputName,
                 },
-                label: getNameLabel(outputName),
+                label: getOutputLabel(
+                  step.kind === "action" ? step.actionDefinitionId : undefined,
+                  outputName,
+                ),
                 from: getStepName(step),
                 shape,
               },
@@ -205,7 +208,14 @@ export const getSourceLabel = (
     case "step-output": {
       const found = findStep(flowDefinition.steps, source.stepId);
 
-      return `${found ? getStepName(found.step) : source.stepId} › ${getNameLabel(source.outputName)}`;
+      const outputLabel = getOutputLabel(
+        found?.step.kind === "action"
+          ? found.step.actionDefinitionId
+          : undefined,
+        source.outputName,
+      );
+
+      return `${found ? getStepName(found.step) : source.stepId} › ${outputLabel}`;
     }
 
     case "item":

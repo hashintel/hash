@@ -10,17 +10,16 @@ const tile = css({
   alignItems: "center",
   justifyContent: "center",
 });
-const largeTile = css({ width: "6", height: "6", borderRadius: "sm" });
-const smallTile = css({
-  width: "[14px]",
-  height: "[14px]",
-  borderRadius: "[3px]",
-  bg: "bg.shaded.hover",
-});
+const tileSizes = {
+  small: css({ width: "[14px]", height: "[14px]", borderRadius: "[3px]" }),
+  large: css({ width: "6", height: "6", borderRadius: "sm" }),
+  header: css({ width: "10", height: "10", borderRadius: "lg" }),
+};
+const iconSizes = { small: "xxs", large: "xs", header: "sm" } as const;
 
 /**
- * Large on canvas cards, tinted by the step's tone; small in the Steps tab, on a neutral tile. Figma's icons are 14px
- * and 10px, which `Icon` has no sizes for, so the nearest smaller ones are used.
+ * A rounded square in the step's hue: small in the Steps and Add tabs, large on canvas cards, and the panel header's
+ * 40px tile. Figma's icons are 10px, 14px and 20px, which `Icon` has no sizes for, so the nearest smaller ones are used.
  */
 export const StepIconTile = ({
   icon,
@@ -29,16 +28,15 @@ export const StepIconTile = ({
 }: {
   icon: IconName;
   tone: StepTone;
-  size: "small" | "large";
+  size: keyof typeof tileSizes;
 }) => (
   <span
-    className={cx(tile, size === "large" ? largeTile : smallTile)}
+    className={cx(tile, tileSizes[size])}
     style={{
-      background:
-        size === "large" ? `var(--colors-${tone}-bg-subtle)` : undefined,
+      background: `var(--colors-${tone}-bg-subtle)`,
       color: `var(--colors-${tone}-fg-muted)`,
     }}
   >
-    <Icon name={icon} size={size === "large" ? "xs" : "xxs"} />
+    <Icon name={icon} size={iconSizes[size]} />
   </span>
 );

@@ -2,7 +2,7 @@ import { Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 
-import { getNameLabel } from "./name-label";
+import { getNameLabel, getOutputLabel } from "./name-label";
 
 import type { FlowActionDefinitionId } from "@local/hash-isomorphic-utils/flows/types";
 import type { ReactNode } from "react";
@@ -30,7 +30,11 @@ export const ActionIo = ({
       <dt className={ioTerm}>Inputs</dt>
       <dd>{inputs.map(({ name }) => getNameLabel(name)).join(", ")}</dd>
       <dt className={ioTerm}>Outputs</dt>
-      <dd>{outputs.map(({ name }) => getNameLabel(name)).join(", ")}</dd>
+      <dd>
+        {outputs
+          .map(({ name }) => getOutputLabel(actionDefinitionId, name))
+          .join(", ")}
+      </dd>
     </dl>
   );
 };
