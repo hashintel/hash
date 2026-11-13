@@ -257,7 +257,26 @@ describe("buildCanvasScene", () => {
       sourcePortId: "in",
       targetId: "p1",
       targetPortId: null,
+      // A fusion of two can be picked up by either end.
+      movableEnds: "both",
     });
+    // Where three meet, a link moves by its member's end and the hub stays.
+    const three = {
+      id: "three",
+      members: [...fusionWith("left").members, fusionWith("right").members[1]!],
+    };
+    expect(
+      build({ net: { ...composedNet, fusions: [three] } }).fusions.map(
+        ({ sourceId, targetId, movableEnds }) => [
+          sourceId,
+          targetId,
+          movableEnds,
+        ],
+      ),
+    ).toEqual([
+      ["left", "p1", "source"],
+      ["p1", "right", "target"],
+    ]);
     expect(
       fusions.find((link) => link.fusionId === "fusion-right"),
     ).toMatchObject({

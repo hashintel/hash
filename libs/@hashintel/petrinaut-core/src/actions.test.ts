@@ -1406,6 +1406,113 @@ describe("Petrinaut core fusion actions", () => {
     expect(instance.definition.get().fusions).toBeUndefined();
   });
 
+  test("replaces a member in one change, keeping a fusion of two", () => {
+    const instance = createInstance(composed());
+    instance.mutations.addFusion({
+      id: "f1",
+      members: [{ kind: "place", placeId: "buffer" }, port("m1", "in")],
+    });
+
+    instance.mutations.replaceFusionMember({
+      fusionId: "f1",
+      member: port("m1", "in"),
+      replacement: port("m2", "in"),
+    });
+
+    expect(instance.definition.get().fusions).toEqual([
+      {
+        id: idOf("f1"),
+        members: [{ kind: "place", placeId: idOf("buffer") }, port("m2", "in")],
+      },
+    ]);
+    instance.handle.history!.undo();
+    expect(instance.definition.get().fusions?.[0]?.members).toEqual([
+      { kind: "place", placeId: idOf("buffer") },
+      port("m1", "in"),
+    ]);
+  });
+
+  test("replaces a member with one of another fusion, which it absorbs", () => {
+    const instance = createInstance(composed());
+    instance.mutations.addFusion({
+      id: "f1",
+      members: [{ kind: "place", placeId: "buffer" }, port("m1", "in")],
+    });
+    instance.mutations.addFusion({
+      id: "f2",
+      members: [port("m1", "out"), port("m2", "in")],
+    });
+
+    instance.mutations.replaceFusionMember({
+      fusionId: "f1",
+      member: port("m1", "in"),
+      replacement: port("m2", "in"),
+    });
+
+    expect(instance.definition.get().fusions).toEqual([
+      {
+        id: idOf("f1"),
+        members: [
+          { kind: "place", placeId: idOf("buffer") },
+          port("m1", "out"),
+          port("m2", "in"),
+        ],
+      },
+    ]);
+  });
+
+  test("refuses to replace a member the fusion does not hold, or with a second anchor", () => {
+    const definition = composed();
+    definition.places.push({ ...definition.places[0]!, id: "store" });
+    const instance = createInstance(definition);
+    instance.mutations.addFusion({
+      id: "f1",
+      members: [{ kind: "place", placeId: "buffer" }, port("m1", "in")],
+    });
+
+    expect(() =>
+      instance.mutations.replaceFusionMember({
+        fusionId: "f1",
+        member: port("m2", "in"),
+        replacement: port("m2", "out"),
+      }),
+    ).toThrow("does not hold the member to replace");
+    // Replacing a member with one the fusion holds would be a removal.
+    expect(() =>
+      instance.mutations.replaceFusionMember({
+        fusionId: "f1",
+        member: port("m1", "in"),
+        replacement: { kind: "place", placeId: "buffer" },
+      }),
+    ).toThrow("already holds the replacement");
+    expect(instance.definition.get().fusions?.[0]?.members).toHaveLength(2);
+    expect(() =>
+      instance.mutations.replaceFusionMember({
+        fusionId: "f1",
+        member: port("m1", "in"),
+        replacement: { kind: "place", placeId: "store" },
+      }),
+    ).toThrow();
+    expect(() =>
+      instance.mutations.replaceFusionMember({
+        fusionId: "missing",
+        member: port("m1", "in"),
+        replacement: port("m2", "in"),
+      }),
+    ).toThrow("does not exist in the target net");
+
+    // The anchor itself gives way to another place.
+    instance.mutations.replaceFusionMember({
+      fusionId: "f1",
+      member: { kind: "place", placeId: "buffer" },
+      replacement: { kind: "place", placeId: "store" },
+    });
+    expect(instance.definition.get().fusions?.[0]?.members).toEqual([
+      port("m1", "in"),
+      { kind: "place", placeId: idOf("store") },
+    ]);
+  });
+
   test("rejects a port that does not exist, a place that is not a port, a member twice and a second anchor", () => {
     const definition = composed();
     definition.places.push({ ...definition.places[0]!, id: "store" });

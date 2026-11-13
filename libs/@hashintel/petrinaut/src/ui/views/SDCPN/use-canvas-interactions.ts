@@ -22,10 +22,13 @@ import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
 import { snapPositionToGrid } from "../../lib/snap-position-to-grid";
-import { planFusion } from "./fusion-links";
+import { linkEnd } from "./canvas-scene";
+import { planFusion, planRewire, type RewirePlan } from "./fusion-links";
 
 import type { DraggedNodeKind } from "../shared/canvas-node-drag";
 import type {
+  CanvasLinkEnd,
+  CanvasLinkEndName,
   CanvasLinkEnds,
   CanvasNode,
   CanvasPoint,
@@ -38,6 +41,15 @@ export type CanvasConnection = CanvasLinkEnds;
 
 /** A line on the canvas that is selected and hovered as one item: an arc, or a fusion through any of its links. */
 export type CanvasLinkItem = { type: "arc" | "fusion"; id: string };
+
+/** An end of a fusion link picked up and dropped somewhere else. */
+export type CanvasLinkRewire = {
+  /** The link, by its id in the scene. */
+  linkId: string;
+  end: CanvasLinkEndName;
+  /** Where the end was dropped, `null` for the empty canvas. */
+  onto: CanvasLinkEnd | null;
+};
 
 export type CanvasNodeMove = { id: string; position: CanvasPoint };
 
@@ -78,6 +90,14 @@ export type CanvasInteractions = {
    * fuses them: into the fusion either already belongs to, else a new one.
    */
   connect: (connection: CanvasConnection) => void;
+  /** Whether dropping the end of a fusion link there would do anything. */
+  canRewireLink: (rewire: CanvasLinkRewire) => boolean;
+  /**
+   * Moves a fusion from the member at the end of a link to the place or port
+   * the end was dropped on. Dropped on the empty canvas, the member leaves
+   * the fusion.
+   */
+  rewireLink: (rewire: CanvasLinkRewire) => void;
   /** A click on empty canvas: clears the selection or places a node, by mode. */
   clickPane: (scenePosition: CanvasPoint) => void;
   /** A node dragged in from the toolbar. */
@@ -136,6 +156,8 @@ export const useCanvasInteractions = (
     addComponentInstance,
     addFusion,
     addFusionMember,
+    removeFusionMember,
+    replaceFusionMember,
     commitNodePositions,
   } = usePetrinautMutations();
   const {
@@ -169,11 +191,8 @@ export const useCanvasInteractions = (
   const kindOf = (id: string) =>
     scene.nodes.find((node) => node.id === id)?.kind;
 
-  /** The fusion member an end of a connection names, or `null` for a transition. */
-  const memberOf = (
-    nodeId: string,
-    portId: string | null,
-  ): FusionMember | null => {
+  /** The fusion member an end of a line names, or `null` for a transition. */
+  const memberOf = ({ nodeId, portId }: CanvasLinkEnd): FusionMember | null => {
     const kind = kindOf(nodeId);
     if (kind === "place") {
       return { kind: "place", placeId: nodeId };
@@ -192,12 +211,9 @@ export const useCanvasInteractions = (
    * What drawing a connection makes: an arc between a transition and a place
    * or port, a fusion of a port with a place or another port, or nothing.
    */
-  const classify = ({
-    sourceId,
-    targetId,
-    sourcePortId,
-    targetPortId,
-  }: CanvasConnection):
+  const classify = (
+    connection: CanvasConnection,
+  ):
     | {
         kind: "arc";
         transitionId: string;
@@ -206,8 +222,9 @@ export const useCanvasInteractions = (
       }
     | { kind: "fusion"; first: FusionMember; second: FusionMember }
     | null => {
-    const first = memberOf(sourceId, sourcePortId);
-    const second = memberOf(targetId, targetPortId);
+    const { sourceId, targetId } = connection;
+    const first = memberOf(linkEnd(connection, "source"));
+    const second = memberOf(linkEnd(connection, "target"));
     if (first && kindOf(targetId) === "transition") {
       return {
         kind: "arc",
@@ -232,16 +249,19 @@ export const useCanvasInteractions = (
       : null;
   };
 
+  const notifySecondAnchor = () =>
+    addNotification({
+      id: "fusion:second-anchor",
+      message:
+        "A fusion holds one place of this net. Fuse the port with that place instead.",
+      tone: "neutral",
+      durationMs: 4500,
+    });
+
   const fuse = (first: FusionMember, second: FusionMember) => {
     const plan = planFusion(activeNet, first, second);
     if (plan.kind === "refused") {
-      addNotification({
-        id: "fusion:second-anchor",
-        message:
-          "A fusion holds one place of this net. Fuse the port with that place instead.",
-        tone: "neutral",
-        durationMs: 4500,
-      });
+      notifySecondAnchor();
       return;
     }
     const id = plan.kind === "join" ? plan.fusionId : generatePetrinautId();
@@ -267,6 +287,33 @@ export const useCanvasInteractions = (
       });
     } else if (made?.kind === "fusion") {
       fuse(made.first, made.second);
+    }
+  };
+
+  const planLinkRewire = ({
+    linkId,
+    end,
+    onto,
+  }: CanvasLinkRewire): RewirePlan => {
+    const link = scene.fusions.find(({ id }) => id === linkId);
+    const fusion = activeNet.fusions.find(({ id }) => id === link?.fusionId);
+    const member = link && memberOf(linkEnd(link, end));
+    const replacement = onto && memberOf(onto);
+    return fusion && member && (onto === null || replacement)
+      ? planRewire(activeNet, fusion, member, replacement)
+      : { kind: "none" };
+  };
+
+  const rewireLink = (rewire: CanvasLinkRewire) => {
+    const plan = planLinkRewire(rewire);
+    if (plan.kind === "refused") {
+      notifySecondAnchor();
+    } else if (plan.kind === "detach") {
+      removeFusionMember({ fusionId: plan.fusionId, member: plan.member });
+    } else if (plan.kind === "replace") {
+      const { fusionId, member, replacement } = plan;
+      replaceFusionMember({ fusionId, member, replacement });
+      selectItem({ type: "fusion", id: fusionId });
     }
   };
 
@@ -439,6 +486,8 @@ export const useCanvasInteractions = (
     dropNodes,
     isValidConnection: (connection) => classify(connection) !== null,
     connect,
+    canRewireLink: (rewire) => planLinkRewire(rewire).kind !== "none",
+    rewireLink,
     clickPane,
     dropNode: createNodeAt,
   };

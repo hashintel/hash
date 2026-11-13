@@ -139,6 +139,19 @@ export type CanvasLinkEnds = {
   targetPortId: string | null;
 };
 
+export type CanvasLinkEndName = "source" | "target";
+
+/** One end of a line: its node, and the port when the node is a component instance. */
+export type CanvasLinkEnd = { nodeId: string; portId: string | null };
+
+export const linkEnd = (
+  ends: CanvasLinkEnds,
+  end: CanvasLinkEndName,
+): CanvasLinkEnd =>
+  end === "source"
+    ? { nodeId: ends.sourceId, portId: ends.sourcePortId }
+    : { nodeId: ends.targetId, portId: ends.targetPortId };
+
 export type CanvasArc = CanvasLinkEnds & {
   id: string;
   kind: InputArcType;
@@ -169,6 +182,12 @@ export type CanvasFusionLink = CanvasLinkEnds & {
   /** The worst of the fusion's problems, or `null` when it has none. */
   severity: ProblemSeverity | null;
   focus: CanvasArcFocus;
+  /**
+   * The ends that can be picked up and dropped elsewhere. The hub's end
+   * stays put while other links meet there: only the member's end says
+   * which member the link stands for.
+   */
+  movableEnds: CanvasLinkEndName | "both";
 };
 
 export type CanvasScene = {
@@ -237,8 +256,9 @@ const buildFusionLinks = ({
   return fusionLinks(fusion).map(({ id, hub, member }) => {
     // The left end's right-hand handle to the right end's left-hand handle,
     // so the curve runs between the nodes rather than back through one.
+    const memberEnd = centreX(member) < centreX(hub) ? "source" : "target";
     const [source, target] =
-      centreX(member) < centreX(hub) ? [member, hub] : [hub, member];
+      memberEnd === "source" ? [member, hub] : [hub, member];
     return {
       id,
       fusionId: fusion.id,
@@ -250,6 +270,7 @@ const buildFusionLinks = ({
       selected,
       severity: status?.severity ?? null,
       focus: focus.arcFocus(id),
+      movableEnds: fusion.members.length > 2 ? memberEnd : "both",
     };
   });
 };

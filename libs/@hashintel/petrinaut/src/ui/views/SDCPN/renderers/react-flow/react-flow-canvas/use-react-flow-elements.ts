@@ -109,6 +109,7 @@ const toFusionEdge = (link: CanvasFusionLink): FusionEdgeType => ({
   ...edgeBase(link),
   type: "fusion",
   selected: link.selected,
+  reconnectable: link.movableEnds === "both" ? true : link.movableEnds,
   data: {
     fusionId: link.fusionId,
     name: link.name,

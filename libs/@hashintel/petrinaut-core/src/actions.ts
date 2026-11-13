@@ -512,6 +512,34 @@ const removeFromImplementsLists = (sdcpn: SDCPN, subnetId: ID): void => {
   }
 };
 
+/** The fusion of `net` with this id. Throws when there is none. */
+const requireFusion = (net: MutableNet, fusionId: string): Fusion => {
+  const fusion = (net.fusions ?? []).find(({ id }) => id === fusionId);
+  if (!fusion) {
+    throw new Error(
+      `Fusion ID \`${fusionId}\` does not exist in the target net.`,
+    );
+  }
+  return fusion;
+};
+
+/**
+ * Adds `member` to `fusion`, with the members of any other fusion of `net`
+ * that holds it.
+ */
+const joinFusion = (
+  sdcpn: SDCPN,
+  net: MutableNet,
+  fusion: Fusion,
+  member: FusionMember,
+): void => {
+  assertEndpointReferences(sdcpn, net, member, "Fusion");
+  absorbFusionsSharingMembers(net, fusion, [member]);
+  if (!fusion.members.some((held) => arcEndpointsEqual(held, member))) {
+    fusion.members.push(member);
+  }
+};
+
 /** Throws when a fusion names a place or a port that is not in `net`. */
 const assertFusionReferences = (
   sdcpn: SDCPN,
@@ -1526,23 +1554,8 @@ export function createPetrinautActions(
       const parsed = mutationActionInputSchemas.addFusionMember.parse(input);
       mutateWithExtensionGuards((sdcpn) => {
         const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
-        const fusion = (net.fusions ?? []).find(
-          ({ id }) => id === parsed.fusionId,
-        );
-        if (!fusion) {
-          throw new Error(
-            `Fusion ID \`${parsed.fusionId}\` does not exist in the target net.`,
-          );
-        }
-        assertEndpointReferences(sdcpn, net, parsed.member, "Fusion");
-        absorbFusionsSharingMembers(net, fusion, [parsed.member]);
-        if (
-          !fusion.members.some((member) =>
-            arcEndpointsEqual(member, parsed.member),
-          )
-        ) {
-          fusion.members.push(parsed.member);
-        }
+        const fusion = requireFusion(net, parsed.fusionId);
+        joinFusion(sdcpn, net, fusion, parsed.member);
         fusionSchema.parse(fusion);
       });
     },
@@ -1560,6 +1573,31 @@ export function createPetrinautActions(
           arcEndpointsEqual(member, parsed.member),
         );
         pruneFusions(net);
+      });
+    },
+    replaceFusionMember(input) {
+      const parsed =
+        mutationActionInputSchemas.replaceFusionMember.parse(input);
+      mutateWithExtensionGuards((sdcpn) => {
+        const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
+        const fusion = requireFusion(net, parsed.fusionId);
+        const holds = (member: FusionMember) =>
+          fusion.members.some((held) => arcEndpointsEqual(held, member));
+        if (!holds(parsed.member)) {
+          throw new Error(
+            `Fusion ID \`${parsed.fusionId}\` does not hold the member to replace.`,
+          );
+        }
+        if (holds(parsed.replacement)) {
+          throw new Error(
+            `Fusion ID \`${parsed.fusionId}\` already holds the replacement. Remove the member instead.`,
+          );
+        }
+        joinFusion(sdcpn, net, fusion, parsed.replacement);
+        removeWhere(fusion.members, (member) =>
+          arcEndpointsEqual(member, parsed.member),
+        );
+        fusionSchema.parse(fusion);
       });
     },
     deleteItemsByIds(input) {

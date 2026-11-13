@@ -42,6 +42,7 @@ import { ClassicPlaceNode } from "./react-flow-canvas/classic-place-node";
 import { ClassicTransitionNode } from "./react-flow-canvas/classic-transition-node";
 import { ComponentInstanceNode } from "./react-flow-canvas/component-instance-node";
 import { FusionEdge } from "./react-flow-canvas/fusion-edge";
+import { LinkRewiringContext } from "./react-flow-canvas/link-rewiring-context";
 import { MiniMap } from "./react-flow-canvas/mini-map";
 import { OutlineConnectionLine } from "./react-flow-canvas/outline-connection-line";
 import { PlaceNode } from "./react-flow-canvas/place-node";
@@ -55,13 +56,14 @@ import {
 import { TransitionNode } from "./react-flow-canvas/transition-node";
 import { useApplyNodeChanges } from "./react-flow-canvas/use-apply-node-changes";
 import { useEscapeCancelsConnection } from "./react-flow-canvas/use-escape-cancels-connection";
+import { useLinkRewiring } from "./react-flow-canvas/use-link-rewiring";
 import { useMonacoKeyboardIsolation } from "./react-flow-canvas/use-monaco-keyboard-isolation";
 import { useReactFlowController } from "./react-flow-canvas/use-react-flow-controller";
 import { useReactFlowElements } from "./react-flow-canvas/use-react-flow-elements";
 import { useReadOnlyNodeDrag } from "./react-flow-canvas/use-read-only-node-drag";
 
 import type { CanvasNodeKind } from "../../canvas-scene";
-import type { Connection, IsValidConnection } from "@xyflow/react";
+import type { Connection } from "@xyflow/react";
 
 const COMPACT_NODE_TYPES = {
   place: PlaceNode,
@@ -154,8 +156,10 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
   const applyChanges = useApplyNodeChanges(interactions);
   const insets = useCanvasInsets();
 
-  const isValidConnection: IsValidConnection = (connection) =>
-    interactions.isValidConnection(toCanvasConnection(connection));
+  const { isValidConnection, reconnectProps, isRewiring } = useLinkRewiring(
+    interactions,
+    () => flowStore.getState().connection.inProgress,
+  );
 
   const connect = (connection: Connection) => {
     const { connection: gesture, connectionClickStartHandle } =
@@ -247,92 +251,97 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
           "--pane-cursor": interactions.paneCursor,
         }}
       >
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          nodeTypes={nodeTypes}
-          edgeTypes={REACTFLOW_EDGE_TYPES}
-          onNodesChange={applyChanges}
-          onEdgesChange={applyChanges}
-          // A port can be joined from either of its pins to either pin of
-          // another, so a connection may run between two handles of one kind.
-          connectionMode={ConnectionMode.Loose}
-          connectionLineComponent={OutlineConnectionLine}
-          isValidConnection={isValidConnection}
-          onConnect={interactions.readonly ? undefined : connect}
-          onEdgeClick={(_event, edge) =>
-            interactions.selectLink(linkItemOf(edge))
-          }
-          // Node click selection is handled by ReactFlow's internal
-          // handleNodeClick, which fires select changes through
-          // onNodesChange; an onNodeClick handler would conflict with it.
-          onNodeMouseEnter={(_event, node) =>
-            interactions.hoverNode({
-              id: node.id,
-              kind: node.type as CanvasNodeKind,
-            })
-          }
-          onNodeMouseLeave={interactions.clearHover}
-          onNodeDragStart={(_event, node) =>
-            interactions.hoverNode({
-              id: node.id,
-              kind: node.type as CanvasNodeKind,
-            })
-          }
-          onEdgeMouseEnter={(_event, edge) =>
-            interactions.hoverLink(linkItemOf(edge))
-          }
-          onEdgeMouseLeave={interactions.clearHover}
-          onSelectionStart={interactions.beginSelectionGesture}
-          onSelectionEnd={interactions.endSelectionGesture}
-          onPaneClick={(event) =>
-            interactions.clickPane(scenePositionOf(event))
-          }
-          // A gesture takes the camera back from any move under way. Frames
-          // of the camera's own moves are not remembered, only where it stops.
-          onMoveStart={(event) => {
-            if (event) {
-              camera.cancel();
+        <LinkRewiringContext value={isRewiring}>
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            nodeTypes={nodeTypes}
+            edgeTypes={REACTFLOW_EDGE_TYPES}
+            onNodesChange={applyChanges}
+            onEdgesChange={applyChanges}
+            // A port can be joined from either of its pins to either pin of
+            // another, so a connection may run between two handles of one kind.
+            connectionMode={ConnectionMode.Loose}
+            connectionLineComponent={OutlineConnectionLine}
+            isValidConnection={isValidConnection}
+            onConnect={interactions.readonly ? undefined : connect}
+            // Only a fusion link offers its ends to drag: each says so itself.
+            edgesReconnectable={false}
+            {...reconnectProps}
+            onEdgeClick={(_event, edge) =>
+              interactions.selectLink(linkItemOf(edge))
             }
-          }}
-          onMoveEnd={(_event, viewport) => {
-            if (!camera.isAnimating()) {
-              rememberViewport(viewport);
+            // Node click selection is handled by ReactFlow's internal
+            // handleNodeClick, which fires select changes through
+            // onNodesChange; an onNodeClick handler would conflict with it.
+            onNodeMouseEnter={(_event, node) =>
+              interactions.hoverNode({
+                id: node.id,
+                kind: node.type as CanvasNodeKind,
+              })
             }
-          }}
-          onDrop={interactions.readonly ? undefined : onDrop}
-          onDragOver={interactions.readonly ? undefined : onDragOver}
-          defaultViewport={savedViewport ?? initialViewport}
-          proOptions={{ hideAttribution: true }}
-          panOnDrag={
-            interactions.isPanMode
-              ? true
-              : interactions.isAddMode
-                ? false
-                : [1, 2]
-          }
-          selectionOnDrag={interactions.isSelectMode}
-          nodesDraggable={!interactions.readonly}
-          nodesConnectable={!interactions.readonly}
-          elementsSelectable={!interactions.isAddMode}
-          selectionMode={
-            partialSelection ? SelectionMode.Partial : SelectionMode.Full
-          }
-          selectionKeyCode={selectionKeyCode}
-          multiSelectionKeyCode={null}
-          selectNodesOnDrag={false}
-          nodeOrigin={[0.5, 0.5]}
-          deleteKeyCode={null}
-          panOnScroll={false}
-          zoomOnScroll
-          minZoom={minZoom}
-        >
-          <Background gap={SNAP_GRID_SIZE} size={1} />
-          {showMinimap && presentation.showMinimap && (
-            <MiniMap pannable zoomable />
-          )}
-          {!isActualMode && <ViewportControls />}
-        </ReactFlow>
+            onNodeMouseLeave={interactions.clearHover}
+            onNodeDragStart={(_event, node) =>
+              interactions.hoverNode({
+                id: node.id,
+                kind: node.type as CanvasNodeKind,
+              })
+            }
+            onEdgeMouseEnter={(_event, edge) =>
+              interactions.hoverLink(linkItemOf(edge))
+            }
+            onEdgeMouseLeave={interactions.clearHover}
+            onSelectionStart={interactions.beginSelectionGesture}
+            onSelectionEnd={interactions.endSelectionGesture}
+            onPaneClick={(event) =>
+              interactions.clickPane(scenePositionOf(event))
+            }
+            // A gesture takes the camera back from any move under way. Frames
+            // of the camera's own moves are not remembered, only where it stops.
+            onMoveStart={(event) => {
+              if (event) {
+                camera.cancel();
+              }
+            }}
+            onMoveEnd={(_event, viewport) => {
+              if (!camera.isAnimating()) {
+                rememberViewport(viewport);
+              }
+            }}
+            onDrop={interactions.readonly ? undefined : onDrop}
+            onDragOver={interactions.readonly ? undefined : onDragOver}
+            defaultViewport={savedViewport ?? initialViewport}
+            proOptions={{ hideAttribution: true }}
+            panOnDrag={
+              interactions.isPanMode
+                ? true
+                : interactions.isAddMode
+                  ? false
+                  : [1, 2]
+            }
+            selectionOnDrag={interactions.isSelectMode}
+            nodesDraggable={!interactions.readonly}
+            nodesConnectable={!interactions.readonly}
+            elementsSelectable={!interactions.isAddMode}
+            selectionMode={
+              partialSelection ? SelectionMode.Partial : SelectionMode.Full
+            }
+            selectionKeyCode={selectionKeyCode}
+            multiSelectionKeyCode={null}
+            selectNodesOnDrag={false}
+            nodeOrigin={[0.5, 0.5]}
+            deleteKeyCode={null}
+            panOnScroll={false}
+            zoomOnScroll
+            minZoom={minZoom}
+          >
+            <Background gap={SNAP_GRID_SIZE} size={1} />
+            {showMinimap && presentation.showMinimap && (
+              <MiniMap pannable zoomable />
+            )}
+            {!isActualMode && <ViewportControls />}
+          </ReactFlow>
+        </LinkRewiringContext>
       </div>
     </CanvasControllerContext>
   );

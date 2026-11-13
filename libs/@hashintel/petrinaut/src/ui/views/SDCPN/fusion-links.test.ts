@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { fusionLinks, fusionStatuses, planFusion } from "./fusion-links";
+import {
+  fusionLinks,
+  fusionStatuses,
+  planFusion,
+  planRewire,
+} from "./fusion-links";
 
 import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
 import type { Fusion, FusionMember, SDCPN } from "@hashintel/petrinaut-core";
@@ -193,5 +198,58 @@ describe("planFusion", () => {
       kind: "join",
       fusionId: "f",
     });
+  });
+});
+
+describe("planRewire", () => {
+  const belt = fusion("belt", place("buffer"), port("m1"));
+  const net = (...others: Fusion[]) => ({ fusions: [belt, ...others] });
+
+  it("moves the fusion from the member to a free port or place", () => {
+    expect(planRewire(net(), belt, port("m1"), port("m2"))).toEqual({
+      kind: "replace",
+      fusionId: "belt",
+      member: port("m1"),
+      replacement: port("m2"),
+    });
+    // The anchor itself gives way to another place.
+    expect(planRewire(net(), belt, place("buffer"), place("store"))).toEqual({
+      kind: "replace",
+      fusionId: "belt",
+      member: place("buffer"),
+      replacement: place("store"),
+    });
+  });
+
+  it("takes the member out when its end is dropped on the empty canvas", () => {
+    expect(planRewire(net(), belt, port("m1"), null)).toEqual({
+      kind: "detach",
+      fusionId: "belt",
+      member: port("m1"),
+    });
+  });
+
+  it("does nothing when the end lands on the fusion itself", () => {
+    expect(planRewire(net(), belt, port("m1"), place("buffer"))).toEqual({
+      kind: "none",
+    });
+    expect(planRewire(net(), belt, port("m1"), port("m1"))).toEqual({
+      kind: "none",
+    });
+  });
+
+  it("refuses a second place of the net, its own or another fusion's", () => {
+    const stock = fusion("stock", place("store"), port("m2"));
+
+    expect(planRewire(net(), belt, port("m1"), place("store"))).toEqual({
+      kind: "refused",
+    });
+    expect(planRewire(net(stock), belt, port("m1"), port("m2"))).toEqual({
+      kind: "refused",
+    });
+    // With the anchor the end that moves, the other fusion's place takes over.
+    expect(
+      planRewire(net(stock), belt, place("buffer"), port("m2")),
+    ).toMatchObject({ kind: "replace", replacement: port("m2") });
   });
 });

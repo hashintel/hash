@@ -33,6 +33,7 @@ Drag between a place and an instance's port, or between the ports of two instanc
 
 - A fusion joins any number of ports and at most one place of the net itself, which gives the fused place its name, initial marking and visualizer. Dragging a second place onto a fusion is refused with a notice; fuse the ports with the place you already have.
 - Dragging onto a port or place that is already fused adds to that fusion. Fusing two fused things merges their fusions.
+- Drag an end of a fusion's line onto another port or place to move the fusion there, or drop it on the empty canvas to take that end out. Where a fusion joins more than two, its lines meet at one of them, and each line moves by its other end.
 - Remove one member from the fusion's properties, or delete the fusion with its trash button or the Delete key.
 - A port that is fused can still be connected to a transition with an arc; the arc reaches the fused place.
 

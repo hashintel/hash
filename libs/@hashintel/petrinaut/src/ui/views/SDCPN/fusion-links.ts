@@ -1,11 +1,13 @@
 /**
- * How a fusion is drawn and extended: one link from its hub, the anchor place
- * or the first member, to each other member, and what joining two places by
- * a drag does to the net's fusions. Shared by the scene that draws the links,
- * the focus index that looks them up and the interactions that make them.
+ * How a fusion is drawn and edited: one link from its hub, the anchor place
+ * or the first member, to each other member, and what a drag does to the
+ * net's fusions, whether it joins two places or moves the end of a link.
+ * Shared by the scene that draws the links, the focus index that looks them
+ * up and the interactions that make them.
  */
 
 import {
+  arcEndpointsEqual,
   checkFusion,
   findFusionWithMember,
   fusionAnchor,
@@ -83,6 +85,13 @@ export type FusionPlan =
   | { kind: "join"; fusionId: string; member: FusionMember }
   | { kind: "new"; members: [FusionMember, FusionMember] };
 
+/**
+ * The place of the net a member is fused with or is: the member itself, else
+ * the anchor of the fusion that holds it.
+ */
+const anchorOf = (member: FusionMember, fusion: Fusion | undefined) =>
+  member.kind === "place" ? member : fusion && fusionAnchor(fusion);
+
 export const planFusion = (
   net: Pick<ActiveNetDefinition, "fusions">,
   first: FusionMember,
@@ -90,8 +99,6 @@ export const planFusion = (
 ): FusionPlan => {
   const firstFusion = findFusionWithMember(net, first);
   const secondFusion = findFusionWithMember(net, second);
-  const anchorOf = (member: FusionMember, fusion: Fusion | undefined) =>
-    member.kind === "place" ? member : fusion && fusionAnchor(fusion);
   const firstAnchor = anchorOf(first, firstFusion);
   const secondAnchor = anchorOf(second, secondFusion);
   if (
@@ -108,4 +115,42 @@ export const planFusion = (
     return { kind: "join", fusionId: secondFusion.id, member: first };
   }
   return { kind: "new", members: [first, second] };
+};
+
+/** What picking up a member's end of a fusion and dropping it elsewhere does. */
+export type RewirePlan =
+  /** Dropped on a member of the same fusion: there is nothing to move. */
+  | { kind: "none" }
+  /** The fused place would be two places of this net, and it holds one at most. */
+  | { kind: "refused" }
+  /** Dropped on the empty canvas: the member leaves the fusion. */
+  | { kind: "detach"; fusionId: string; member: FusionMember }
+  /** The fusion moves from the member to where it was dropped. */
+  | {
+      kind: "replace";
+      fusionId: string;
+      member: FusionMember;
+      replacement: FusionMember;
+    };
+
+export const planRewire = (
+  net: Pick<ActiveNetDefinition, "fusions">,
+  fusion: Fusion,
+  member: FusionMember,
+  /** The place or port the end was dropped on, `null` for the empty canvas. */
+  replacement: FusionMember | null,
+): RewirePlan => {
+  if (replacement === null) {
+    return { kind: "detach", fusionId: fusion.id, member };
+  }
+  if (fusion.members.some((held) => arcEndpointsEqual(held, replacement))) {
+    return { kind: "none" };
+  }
+  const staying = fusion.members.filter(
+    (held) => !arcEndpointsEqual(held, member),
+  );
+  return fusionAnchor({ members: staying }) &&
+    anchorOf(replacement, findFusionWithMember(net, replacement))
+    ? { kind: "refused" }
+    : { kind: "replace", fusionId: fusion.id, member, replacement };
 };
