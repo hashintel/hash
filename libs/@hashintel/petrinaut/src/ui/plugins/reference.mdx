@@ -159,16 +159,20 @@ resource of another section, is resolved and never refused. `reveal` selects
 type EditResult<Value = undefined> =
   { applied: true; value: Value } | { applied: false; reason: EditRefusal };
 
-type EditRefusal = ReadOnlyReason | { kind: "no-title-setter" };
+type EditRefusal =
+  | ReadOnlyReason
+  | { kind: "no-title-setter" }
+  | { kind: "host-restriction"; message: string };
 ```
 
-| `reason.kind`       | `describeRefusal(reason)` returns                                                          |
-| ------------------- | ------------------------------------------------------------------------------------------ |
-| `host-readonly`     | This document is read-only; mutations are disabled.                                        |
-| `simulate-mode`     | The editor is in simulate mode. Ask the user to switch to edit mode before mutating.       |
-| `actual-mode`       | The editor is in actual mode. Ask the user to switch to edit mode before mutating.         |
-| `simulation-active` | A simulation is currently `<state>`. Ask the user to reset the simulation before mutating. |
-| `no-title-setter`   | The host application does not provide title editing.                                       |
+| `reason.kind`       | `describeRefusal(reason)` returns                                                           |
+| ------------------- | ------------------------------------------------------------------------------------------- |
+| `host-readonly`     | This document is read-only; mutations are disabled.                                         |
+| `simulate-mode`     | The editor is in simulate mode. Ask the user to switch to edit mode before mutating.        |
+| `actual-mode`       | The editor is in actual mode. Ask the user to switch to edit mode before mutating.          |
+| `simulation-active` | A simulation is currently `<state>`. Ask the user to reset the simulation before mutating.  |
+| `no-title-setter`   | The host application does not provide title editing.                                        |
+| `host-restriction`  | `reason.message`: the host's rules refuse the edit, such as one of a component it provides. |
 
 ## Contributions
 

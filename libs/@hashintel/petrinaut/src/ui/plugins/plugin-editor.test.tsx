@@ -3,7 +3,10 @@ import { act, cleanup, screen } from "@testing-library/react";
 import { type ReactNode, use, useLayoutEffect, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createReadableStore } from "@hashintel/petrinaut-core";
+import {
+  createReadableStore,
+  providedComponentSubnetId,
+} from "@hashintel/petrinaut-core";
 
 import { LanguageClientContext } from "../../react/lsp/context";
 import {
@@ -17,6 +20,7 @@ import {
   pluginService,
   type PluginHook,
 } from "./define-petrinaut-plugin";
+import { describeRefusal } from "./plugin-access";
 import { useCanvasRegistration } from "./plugin-editor";
 import { usePluginService } from "./plugins-provider";
 import { renderPlugins } from "./plugins-test-harness";
@@ -26,6 +30,7 @@ import type { PluginDocument, PluginEditor } from "./plugin-access";
 import type {
   Diagnostic,
   DiagnosticsSnapshot,
+  ProvidedComponent,
 } from "@hashintel/petrinaut-core";
 
 const place = {
@@ -134,6 +139,39 @@ describe("plugin editor", () => {
     ).toEqual({ applied: true, value: undefined });
     expect(instance.definition.get().places).toHaveLength(0);
     expect(instance.definition.get().scenarios).toHaveLength(1);
+  });
+
+  it("refuses an edit of a component the host provides, saying why", () => {
+    const packer: ProvidedComponent = {
+      id: "warehouse/packer",
+      name: "Packer",
+      ports: [{ name: "Orders", direction: "in" }],
+    };
+    const { instance } = renderPlugins([documentPlugin], <Probe />, {
+      components: [packer],
+    });
+
+    const refused = documentOf().edit.addPlace({
+      ...place,
+      targetSubnetId: providedComponentSubnetId(packer),
+    });
+
+    expect(refused).toEqual({
+      applied: false,
+      reason: {
+        kind: "host-restriction",
+        message:
+          "Packer is a component the application provides: it cannot be changed.",
+      },
+    });
+    expect(refused.applied ? "" : describeRefusal(refused.reason)).toContain(
+      "cannot be changed",
+    );
+    expect(documentOf().edit.addPlace(place)).toEqual({
+      applied: true,
+      value: undefined,
+    });
+    expect(instance.definition.get().places).toHaveLength(1);
   });
 
   it("refuses a title without a host setter, or while the editor is read-only", () => {

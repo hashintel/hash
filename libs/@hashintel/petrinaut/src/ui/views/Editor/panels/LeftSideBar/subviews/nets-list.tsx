@@ -6,6 +6,7 @@ import { generatePetrinautId, isInterface } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../react";
 import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
+import { CompositionContext } from "../../../../../../react/state/composition-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { ComponentGlyph } from "../../../../../components/component-glyph";
@@ -151,9 +152,13 @@ export const NetNavigationList: React.FC<{
   onSelect?: () => void;
 }> = ({ onSelect }) => {
   const presentation = usePetrinautPresentation();
-  const {
-    petriNetDefinition: { subnets },
-  } = use(SDCPNContext);
+  const { petriNetDefinition } = use(SDCPNContext);
+  const { provided } = use(CompositionContext);
+  // A component the host provides is not a net: it is listed with the
+  // components, and has nothing here to open or edit.
+  const subnets = (petriNetDefinition.subnets ?? []).filter(
+    (subnet) => !provided.has(subnet.id),
+  );
   const { activeSubnetId, setActiveSubnetId } = use(ActiveNetContext);
   const { updateSubnet, removeSubnet } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
@@ -169,12 +174,12 @@ export const NetNavigationList: React.FC<{
     element: Element;
   } | null>(null);
   const optionsSubnet = optionsAnchor
-    ? (subnets ?? []).find(({ id }) => id === optionsAnchor.subnetId)
+    ? subnets.find(({ id }) => id === optionsAnchor.subnetId)
     : undefined;
 
   const stops: FocusStop[] = [
     { id: ROOT_STOP_ID, kind: "row" },
-    ...(subnets ?? []).map((subnet): FocusStop => ({
+    ...subnets.map((subnet): FocusStop => ({
       id: subnet.id,
       kind: "row",
     })),
@@ -308,7 +313,7 @@ export const NetNavigationList: React.FC<{
         </span>
         Root
       </div>
-      {(subnets ?? []).map((subnet) => {
+      {subnets.map((subnet) => {
         const optionsTarget: FocusStopTarget = {
           stopId: subnet.id,
           column: 1,

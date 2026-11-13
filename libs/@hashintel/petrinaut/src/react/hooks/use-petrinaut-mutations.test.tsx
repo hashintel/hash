@@ -9,13 +9,18 @@ import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   createJsonDocHandle,
   createPetrinaut,
+  providedComponentSubnetId,
   toPetrinautId,
   type Petrinaut,
+  type ProvidedComponent,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
 import { PetrinautInstanceContext } from "../instance-context";
-import { NotificationsContext } from "../notifications/context";
+import {
+  NotificationsContext,
+  type AddNotificationInput,
+} from "../notifications/context";
 import {
   SimulationContext,
   type SimulationState,
@@ -98,6 +103,7 @@ const editorContextValue = (
 type WrapperOptions = {
   sdcpn?: SDCPN;
   readonly?: boolean;
+  components?: readonly ProvidedComponent[];
   globalMode?: "edit" | "simulate";
   simulationState?: SimulationState;
 };
@@ -106,12 +112,14 @@ const createWrapper = (options: WrapperOptions = {}) => {
   const {
     sdcpn: initialSdcpn = EMPTY_SDCPN,
     readonly = false,
+    components,
     globalMode = "edit",
     simulationState = "NotRun",
   } = options;
 
   const instance: Petrinaut = createPetrinaut({
     document: createJsonDocHandle({ initial: structuredClone(initialSdcpn) }),
+    components,
   });
 
   const sdcpnContextValue: SDCPNContextValue = {
@@ -298,6 +306,40 @@ describe("usePetrinautMutations", () => {
       });
 
       expect(instance.definition.get().scenarios ?? []).toHaveLength(0);
+    });
+  });
+
+  describe("the host's rules", () => {
+    test("a mutation they refuse shows the reason and does nothing", () => {
+      const packer: ProvidedComponent = {
+        id: "warehouse/packer",
+        name: "Packer",
+        ports: [{ name: "Orders", direction: "in" }],
+      };
+      const addNotification = vi.fn((_notice: AddNotificationInput) => "");
+      const { Wrapper, instance } = createWrapper({ components: [packer] });
+      const { result } = renderHook(usePetrinautMutations, {
+        wrapper: ({ children }: { children: ReactNode }) => (
+          <NotificationsContext
+            value={{ addNotification, dismissNotification: () => {} }}
+          >
+            <Wrapper>{children}</Wrapper>
+          </NotificationsContext>
+        ),
+      });
+
+      act(() => {
+        result.current.updateSubnet({
+          subnetId: providedComponentSubnetId(packer),
+          update: { name: "Hijacked" },
+        });
+      });
+
+      expect(addNotification).toHaveBeenCalledOnce();
+      expect(addNotification.mock.calls[0]?.[0].message).toBe(
+        "Packer is a component the application provides: it cannot be changed.",
+      );
+      expect(instance.definition.get().subnets).toBeUndefined();
     });
   });
 

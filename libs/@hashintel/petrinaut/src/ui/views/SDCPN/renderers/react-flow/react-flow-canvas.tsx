@@ -26,7 +26,10 @@ import { EditorContext } from "../../../../../react/state/editor-context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { SNAP_GRID_SIZE } from "../../../../constants/ui";
 import { useCanvasInsets } from "../../../../hooks/use-canvas-insets";
-import { readDraggedNodeKind } from "../../../shared/canvas-node-drag";
+import {
+  readDraggedComponent,
+  readDraggedNodeKind,
+} from "../../../shared/canvas-node-drag";
 import { usePetrinautPresentation } from "../../../shared/presentation-context";
 import {
   CanvasControllerContext,
@@ -234,8 +237,11 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
   const onDrop = (event: React.DragEvent) => {
     event.preventDefault();
     const kind = readDraggedNodeKind(event.dataTransfer);
+    const subnetId = readDraggedComponent(event.dataTransfer);
     if (kind) {
       interactions.dropNode(kind, scenePositionOf(event));
+    } else if (subnetId) {
+      interactions.dropComponent(subnetId, scenePositionOf(event));
     }
   };
 

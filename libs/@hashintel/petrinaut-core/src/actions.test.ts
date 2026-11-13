@@ -1,5 +1,10 @@
 import { describe, expect, test } from "vitest";
 
+import {
+  providedComponentSubnetId,
+  toInterface,
+  type ProvidedComponent,
+} from "./composition/provided-components";
 import { createJsonDocHandle } from "./handle";
 import { createPetrinaut } from "./instance";
 import { toPetrinautId } from "./petrinaut-id";
@@ -2061,6 +2066,166 @@ describe("Petrinaut core interface actions", () => {
       instance.mutations.updateSubnet({
         subnetId: "fast",
         update: { iconSvg: `<svg>${" ".repeat(maxSubnetIconLength)}</svg>` },
+      }),
+    ).toThrow();
+  });
+});
+
+describe("Petrinaut core provided components", () => {
+  const packer: ProvidedComponent = {
+    id: "warehouse/packer",
+    name: "Packer",
+    ports: [
+      { name: "Orders", direction: "in" },
+      { name: "Parcels", direction: "out" },
+    ],
+  };
+  const packerId = providedComponentSubnetId(packer);
+
+  const createHostedInstance = () =>
+    createPetrinaut({
+      document: createJsonDocHandle({ initial: cloneSDCPN(emptySDCPN) }),
+      components: [packer],
+    });
+
+  const packerInstance = (id: string) => ({
+    id,
+    name: "Packer",
+    subnetId: packerId,
+    parameterValues: {},
+    x: 0,
+    y: 0,
+  });
+
+  test("instantiating a provided component puts its interface into the document, once", () => {
+    const instance = createHostedInstance();
+    expect(instance.definition.get().subnets).toBeUndefined();
+
+    instance.mutations.addComponentInstance(packerInstance("p1"));
+    instance.mutations.addComponentInstance(packerInstance("p2"));
+
+    const document = instance.definition.get();
+    expect(document.subnets).toEqual([toInterface(packer)]);
+    expect(document.componentInstances?.map(({ id }) => id)).toEqual([
+      idOf("p1"),
+      idOf("p2"),
+    ]);
+  });
+
+  test("a port of the copied interface can be fused straight away", () => {
+    const instance = createHostedInstance();
+    const [orders, parcels] = toInterface(packer).places;
+
+    instance.mutations.addComponentInstance(packerInstance("p1"));
+    instance.mutations.addComponentInstance(packerInstance("p2"));
+    instance.mutations.addFusion({
+      id: "belt",
+      members: [
+        {
+          kind: "componentPort",
+          componentInstanceId: "p1",
+          portPlaceId: parcels!.id,
+        },
+        {
+          kind: "componentPort",
+          componentInstanceId: "p2",
+          portPlaceId: orders!.id,
+        },
+      ],
+    });
+
+    expect(instance.definition.get().fusions).toHaveLength(1);
+  });
+
+  test("pointing an instance at a provided component copies its interface too", () => {
+    const definition = cloneSDCPN(emptySDCPN);
+    definition.subnets = [
+      {
+        id: "own",
+        name: "Own",
+        places: [],
+        transitions: [],
+        types: [],
+        differentialEquations: [],
+        parameters: [],
+      },
+    ];
+    const instance = createPetrinaut({
+      document: createJsonDocHandle({ initial: definition }),
+      components: [packer],
+    });
+    instance.mutations.addComponentInstance({
+      ...packerInstance("p1"),
+      subnetId: "own",
+    });
+
+    instance.mutations.updateComponentInstance({
+      instanceId: "p1",
+      update: { subnetId: packerId },
+    });
+
+    expect(instance.definition.get().subnets?.map(({ id }) => id)).toEqual([
+      idOf("own"),
+      packerId,
+    ]);
+  });
+
+  test("no mutation changes the interface of a provided component", () => {
+    const instance = createHostedInstance();
+    instance.mutations.addComponentInstance(packerInstance("p1"));
+    const [orders] = toInterface(packer).places;
+    const refused = "Packer is a component the application provides";
+
+    expect(() =>
+      instance.mutations.updateSubnet({
+        subnetId: packerId,
+        update: { name: "Hijacked" },
+      }),
+    ).toThrow(refused);
+    expect(() =>
+      instance.mutations.removePlace({
+        placeId: orders!.id,
+        targetSubnetId: packerId,
+      }),
+    ).toThrow(refused);
+    expect(() =>
+      instance.mutations.addComponentInstance({
+        ...packerInstance("nested"),
+        targetSubnetId: packerId,
+      }),
+    ).toThrow(refused);
+    expect(
+      instance.mutationRefusal("updateSubnet", { subnetId: packerId }),
+    ).toContain(refused);
+    expect(
+      instance.mutationRefusal("updateSubnet", { subnetId: "own" }),
+    ).toBeNull();
+    expect(instance.definition.get().subnets).toEqual([toInterface(packer)]);
+
+    // The document's copy can still go, with its instances.
+    instance.mutations.removeSubnet({ subnetId: packerId });
+    expect(instance.definition.get().subnets).toEqual([]);
+  });
+
+  test("a subnet neither the document nor the host has is still refused", () => {
+    const instance = createHostedInstance();
+
+    expect(() =>
+      instance.mutations.addComponentInstance({
+        ...packerInstance("p1"),
+        subnetId: "warehouse/unknown",
+      }),
+    ).toThrow(/does not exist/);
+    expect(instance.definition.get().subnets).toBeUndefined();
+  });
+
+  test("a component that gives no valid interface is refused when the instance is created", () => {
+    expect(() =>
+      createPetrinaut({
+        document: createJsonDocHandle({ initial: cloneSDCPN(emptySDCPN) }),
+        components: [
+          { ...packer, ports: [{ name: "orders in", direction: "in" }] },
+        ],
       }),
     ).toThrow();
   });
