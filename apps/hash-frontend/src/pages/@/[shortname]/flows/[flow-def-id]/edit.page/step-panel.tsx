@@ -1,6 +1,6 @@
 import { useMemo, useState, useSyncExternalStore } from "react";
 
-import { Button, Form, Icon, TextInput } from "@hashintel/ds-components";
+import { Button, Form, TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { createStepShapeResolver } from "@local/hash-isomorphic-utils/flows/step-shapes";
 import { getOutputsAvailableToFlow } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
@@ -14,6 +14,7 @@ import {
   getStepDisplay,
   startDisplay,
 } from "./shared/step-display";
+import { StepIconTile } from "./shared/step-icon-tile";
 import { indexValueUses } from "./shared/value-uses";
 import { getFieldProblems } from "./step-panel/field-problems";
 import { FlowInputCard } from "./step-panel/flow-input-card";
@@ -22,6 +23,7 @@ import { getNewFlowInput } from "./step-panel/input-sources";
 import { QueryField } from "./step-panel/query-field";
 import { UsedByField } from "./step-panel/used-by-field";
 
+import type { StepTone } from "./shared/step-display";
 import type { FlowValue } from "./shared/value-uses";
 import type { IconName } from "@hashintel/ds-components";
 import type { ConnectionTarget } from "@local/hash-isomorphic-utils/flows/can-connect";
@@ -45,35 +47,48 @@ const takesEntityQuery = (input: InputDefinition) =>
 /** What the panel shows: the start step, or one step at any depth. */
 export type StepPanelSubject = { start: true } | { stepId: string };
 
-const header = css({ display: "flex", alignItems: "flex-start", gap: "2" });
-const headerIcon = css({ display: "flex", color: "fg.body", pt: "0.5" });
+const header = css({ display: "flex", alignItems: "center", gap: "3" });
 const headerText = css({
   display: "flex",
   flexDirection: "column",
-  gap: "1",
   flex: "1",
   minWidth: "0",
 });
-const fixedDescription = css({ textStyle: "sm", color: "fg.body" });
+const headerSubtitle = css({
+  display: "flex",
+  alignItems: "center",
+  textStyle: "sm",
+  color: "fg.muted",
+});
+const headerGroup = css({ flexShrink: "0", whiteSpace: "pre" });
+const headerDescription = css({ flex: "1", minWidth: "0" });
 const empty = css({ textStyle: "sm", color: "fg.subtle" });
 const addInputButton = css({ alignSelf: "flex-start" });
 
+/** The step's tile in its hue, then its type, then "Group · description" with the description given as `children`. */
 const PanelHeader = ({
   icon,
+  tone,
   title,
+  group,
   children,
 }: {
   icon: IconName;
+  tone: StepTone;
   title: string;
+  group: string | undefined;
   children: ReactNode;
 }) => (
   <div className={header}>
-    <span className={headerIcon}>
-      <Icon name={icon} size="sm" />
-    </span>
+    <StepIconTile icon={icon} tone={tone} size="header" />
     <div className={headerText}>
       <PanelTitle>{title}</PanelTitle>
-      {children}
+      <div className={headerSubtitle}>
+        {group !== undefined && (
+          <span className={headerGroup}>{`${group} · `}</span>
+        )}
+        <span className={headerDescription}>{children}</span>
+      </div>
     </div>
   </div>
 );
@@ -125,8 +140,13 @@ const StartPanel = ({
 
   return (
     <SidePanel label="Start">
-      <PanelHeader icon={startDisplay.icon} title={startDisplay.title}>
-        <span className={fixedDescription}>{startDisplay.description}</span>
+      <PanelHeader
+        icon={startDisplay.icon}
+        tone={startDisplay.tone}
+        title={startDisplay.title}
+        group={undefined}
+      >
+        {startDisplay.description}
       </PanelHeader>
       <PanelSection title="Inputs">
         {inputs.length === 0 && <span className={empty}>No inputs yet</span>}
@@ -171,7 +191,7 @@ const SelectedStepPanel = ({
   inner: boolean;
   onSelectStart: () => void;
 }) => {
-  const { title, icon } = getStepDisplay(step);
+  const { title, icon, tone, group } = getStepDisplay(step);
   const getItemName = useItemNames(flowDefinition);
   const actionDefinition =
     step.kind === "action"
@@ -203,7 +223,7 @@ const SelectedStepPanel = ({
 
   return (
     <SidePanel label={title}>
-      <PanelHeader icon={icon} title={title}>
+      <PanelHeader icon={icon} tone={tone} title={title} group={group}>
         <TextInput
           variant="subtle"
           size="sm"
