@@ -188,42 +188,48 @@ export const useCanvasInteractions = (
     return null;
   };
 
-  const isFusionConnection = ({
+  /**
+   * What drawing a connection makes: an arc between a transition and a place
+   * or port, a fusion of a port with a place or another port, or nothing.
+   */
+  const classify = ({
     sourceId,
     targetId,
     sourcePortId,
     targetPortId,
-  }: CanvasConnection): boolean => {
+  }: CanvasConnection):
+    | {
+        kind: "arc";
+        transitionId: string;
+        arcDirection: "input" | "output";
+        endpoint: FusionMember;
+      }
+    | { kind: "fusion"; first: FusionMember; second: FusionMember }
+    | null => {
     const first = memberOf(sourceId, sourcePortId);
     const second = memberOf(targetId, targetPortId);
-    return (
-      first !== null &&
-      second !== null &&
+    if (first && kindOf(targetId) === "transition") {
+      return {
+        kind: "arc",
+        transitionId: targetId,
+        arcDirection: "input",
+        endpoint: first,
+      };
+    }
+    if (second && kindOf(sourceId) === "transition") {
+      return {
+        kind: "arc",
+        transitionId: sourceId,
+        arcDirection: "output",
+        endpoint: second,
+      };
+    }
+    return first &&
+      second &&
       (first.kind === "componentPort" || second.kind === "componentPort") &&
       !arcEndpointsEqual(first, second)
-    );
-  };
-
-  const isValidConnection = (connection: CanvasConnection): boolean => {
-    const { sourceId, targetId, sourcePortId, targetPortId } = connection;
-    const source = kindOf(sourceId);
-    const target = kindOf(targetId);
-    if (!source || !target) {
-      return false;
-    }
-    if (source === "place" && target === "transition") {
-      return true;
-    }
-    if (source === "transition" && target === "place") {
-      return true;
-    }
-    if (source === "transition" && target === "componentInstance") {
-      return targetPortId !== null;
-    }
-    if (source === "componentInstance" && target === "transition") {
-      return sourcePortId !== null;
-    }
-    return isFusionConnection(connection);
+      ? { kind: "fusion", first, second }
+      : null;
   };
 
   const fuse = (first: FusionMember, second: FusionMember) => {
@@ -248,63 +254,19 @@ export const useCanvasInteractions = (
   };
 
   const connect = (connection: CanvasConnection) => {
-    if (!isValidConnection(connection)) {
-      return;
-    }
-    const { sourceId, targetId, sourcePortId, targetPortId } = connection;
-    const source = kindOf(sourceId);
-    const target = kindOf(targetId);
-
-    if (source === "place" && target === "transition") {
+    const made = classify(connection);
+    if (made?.kind === "arc") {
+      const { transitionId, arcDirection, endpoint } = made;
       addArc({
-        transitionId: targetId,
-        arcDirection: "input",
-        placeId: sourceId,
+        transitionId,
+        arcDirection,
+        ...(endpoint.kind === "place"
+          ? { placeId: endpoint.placeId }
+          : { endpoint }),
         weight: 1,
       });
-    } else if (source === "transition" && target === "place") {
-      addArc({
-        transitionId: sourceId,
-        arcDirection: "output",
-        placeId: targetId,
-        weight: 1,
-      });
-    } else if (
-      source === "transition" &&
-      target === "componentInstance" &&
-      targetPortId
-    ) {
-      addArc({
-        transitionId: sourceId,
-        arcDirection: "output",
-        endpoint: {
-          kind: "componentPort",
-          componentInstanceId: targetId,
-          portPlaceId: targetPortId,
-        },
-        weight: 1,
-      });
-    } else if (
-      source === "componentInstance" &&
-      target === "transition" &&
-      sourcePortId
-    ) {
-      addArc({
-        transitionId: targetId,
-        arcDirection: "input",
-        endpoint: {
-          kind: "componentPort",
-          componentInstanceId: sourceId,
-          portPlaceId: sourcePortId,
-        },
-        weight: 1,
-      });
-    } else {
-      const first = memberOf(sourceId, sourcePortId);
-      const second = memberOf(targetId, targetPortId);
-      if (first && second) {
-        fuse(first, second);
-      }
+    } else if (made?.kind === "fusion") {
+      fuse(made.first, made.second);
     }
   };
 
@@ -465,14 +427,17 @@ export const useCanvasInteractions = (
     hoverNode: (node) => setHoveredItem({ type: node.kind, id: node.id }),
     hoverLink: setHoveredItem,
     clearHover: clearHoveredItem,
-    selectLink: (item) => setSelection(new Map([[item.id, item]])),
+    // Queued with the changes React Flow reports for the same click, so a
+    // sibling link it deselects does not land after and undo the selection.
+    selectLink: (item) =>
+      setSelection(() => new Map([[item.id, item]]), { batch: "react-flow" }),
     applySelectionChanges,
     beginSelectionGesture,
     endSelectionGesture,
     clearSelection,
     moveNodes,
     dropNodes,
-    isValidConnection,
+    isValidConnection: (connection) => classify(connection) !== null,
     connect,
     clickPane,
     dropNode: createNodeAt,

@@ -144,7 +144,7 @@ describe("useCanvasInteractions", () => {
     expect(valid("m2", "in", "m2", "out")).toBe(true);
     expect(valid("m2", "in", "m2", "in")).toBe(false);
     expect(valid("buffer", null, "store", null)).toBe(false);
-    // A place to a transition is an arc, as it always was.
+    // A place to a transition is an arc.
     expect(valid("buffer", null, "t", null)).toBe(true);
   });
 

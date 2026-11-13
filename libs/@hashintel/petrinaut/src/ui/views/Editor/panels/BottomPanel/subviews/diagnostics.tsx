@@ -96,6 +96,10 @@ const diagnosticButtonStyle = css({
   _hover: {
     backgroundColor: "[rgba(220, 38, 38, 0.08)]",
   },
+  // A warning or a note is not an error: its hover is plain.
+  "&:is([data-severity=warning], [data-severity=info]):hover": {
+    backgroundColor: "neutral.bg.surface.hover",
+  },
 });
 
 const bulletStyle = css({
@@ -158,7 +162,12 @@ const DiagnosticsGroup = ({
   children: React.ReactNode;
 }) => (
   <div className={entityGroupStyle}>
-    <button type="button" onClick={onToggle} className={entityButtonStyle}>
+    <button
+      type="button"
+      aria-expanded={expanded}
+      onClick={onToggle}
+      className={entityButtonStyle}
+    >
       <Icon name={expanded ? "chevronDown" : "chevronRight"} size="xs" />
       <span>{label}</span>
       <span className={countStyle} data-errors={hasErrors ? "" : undefined}>
@@ -184,9 +193,15 @@ const CompositionDiagnostics = ({
   const { setActiveSubnetId } = use(ActiveNetContext);
   const { selectItem } = use(EditorContext);
   const [isExpanded, setIsExpanded] = useState(true);
-  const errorCount = problems.filter(
-    ({ severity }) => severity === "error",
-  ).length;
+  const countWith = (severity: FusionProblem["severity"]) =>
+    problems.filter((problem) => problem.severity === severity).length;
+  const errorCount = countWith("error");
+  // Each kind the list holds, said apart: "1 error, 2 notes".
+  const counts = [
+    [errorCount, "error"],
+    [countWith("warning"), "warning"],
+    [countWith("info"), "note"],
+  ] as const;
 
   const reveal = (problem: FusionProblem) => {
     setActiveSubnetId(problem.subnetId);
@@ -196,7 +211,10 @@ const CompositionDiagnostics = ({
   return (
     <DiagnosticsGroup
       label="Composition"
-      count={`${countOf(errorCount, "error")}, ${countOf(problems.length - errorCount, "note")}`}
+      count={counts
+        .filter(([count]) => count > 0)
+        .map(([count, noun]) => countOf(count, noun))
+        .join(", ")}
       hasErrors={errorCount > 0}
       expanded={isExpanded}
       onToggle={() => setIsExpanded((expanded) => !expanded)}
@@ -474,6 +492,6 @@ export const diagnosticsSubView: SubView = {
   id: "diagnostics",
   title: "Diagnostics",
   tooltip:
-    "View the class of your net, and the errors and warnings in its code.",
+    "View the class of your net, and the problems in its code and its composition.",
   component: DiagnosticsPanel,
 };

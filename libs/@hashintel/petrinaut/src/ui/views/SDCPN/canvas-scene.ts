@@ -358,17 +358,15 @@ export const buildCanvasScene = ({
     }
   }
 
-  const fusions: CanvasFusionLink[] = extensions.subnets
-    ? net.fusions.flatMap((fusion) =>
-        buildFusionLinks({
-          fusion,
-          status: fusionStatuses.get(fusion.id),
-          nodes,
-          selected: isSelected(fusion.id),
-          focus,
-        }),
-      )
-    : [];
+  const fusions: CanvasFusionLink[] = net.fusions.flatMap((fusion) =>
+    buildFusionLinks({
+      fusion,
+      status: fusionStatuses.get(fusion.id),
+      nodes,
+      selected: isSelected(fusion.id),
+      focus,
+    }),
+  );
 
   return { nodes, arcs, fusions, dimensions, focusActive: focus.active };
 };

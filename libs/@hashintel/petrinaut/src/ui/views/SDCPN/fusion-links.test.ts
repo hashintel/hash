@@ -106,10 +106,18 @@ describe("fusionStatuses", () => {
         x: 0,
         y: 0,
       },
+      {
+        id: "m3",
+        name: "M3",
+        subnetId: "stage",
+        parameterValues: {},
+        x: 0,
+        y: 0,
+      },
     ],
     fusions: [
       { ...fusion("mismatch", place("buffer"), port("m1")), name: "Belt" },
-      fusion("ports", port("m1"), port("m2")),
+      fusion("ports", port("m2"), port("m3")),
     ],
   };
   const net: ActiveNetDefinition = {
@@ -126,7 +134,7 @@ describe("fusionStatuses", () => {
       severity: "error",
     });
     // Two ports no transition touches: nothing to report.
-    expect(statuses.get("ports")).toEqual({ name: "M1.In", severity: null });
+    expect(statuses.get("ports")).toEqual({ name: "M2.In", severity: null });
   });
 });
 

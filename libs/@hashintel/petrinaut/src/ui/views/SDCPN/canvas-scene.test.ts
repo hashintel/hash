@@ -234,11 +234,6 @@ describe("buildCanvasScene", () => {
       ["Belt", "warning"],
       ["fusion-right", null],
     ]);
-    expect(
-      build({
-        extensions: { ...DEFAULT_PETRINAUT_EXTENSIONS, subnets: false },
-      }).fusions,
-    ).toEqual([]);
     // An instance dragged across the hub swaps the ends of its link.
     expect(
       build({

@@ -1,6 +1,7 @@
 /**
- * React Flow's node and edge types for the canvas: the scene's nodes and arcs,
- * plus the simulation frame state React Flow components animate from.
+ * React Flow's node and edge types for the canvas: the scene's nodes, arcs
+ * and fusion links, plus the simulation frame state React Flow components
+ * animate from.
  */
 
 import type { SimulationFrameReader } from "../../../../../../react/simulation/context";
