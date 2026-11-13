@@ -507,26 +507,53 @@
   margin-top: 0;
 }
 
-/* A member's line of code is its declaration, and the facts about it sit at the line's end. Only a declaration's code leaves the facts their column, and everything else has the member's whole width. */
+/* A member's line of code is its declaration, and the facts about it sit at the line's end. Only a declaration's code leaves the facts their columns, and everything else has the member's whole width. */
 
+/* Each kind of fact has a column: the internal mark, the stability, the version and the source. A member states what every one of its declarations states, and each declaration the rest, so the member's first line holds its facts and its first declaration's, each in its column. The code keeps 1rem from the facts, and the facts 0.75rem from each other. */
 .api-member {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  column-gap: 1rem;
+  grid-template-columns:
+    minmax(0, 1fr) 0.25rem [internal] auto [stability] auto [since] auto
+    [source] auto;
 }
 
 .api-member > * {
   grid-column: 1 / -1;
 }
 
-/* The facts are as tall as one line of the member's code, so they stay on the first line of a declaration that takes more. */
-.api-member > .api-facts,
-.api-member .api-signature > .api-facts {
-  grid-column: 2;
+/* The facts give up their own box, so each fact takes its place in the member's columns. */
+:is(.api-member, .api-member .api-signature) > .api-facts {
+  display: contents;
+}
+
+/* A fact is as tall as one line of the member's code, so it stays on the first line of a declaration that takes more. */
+:is(.api-member, .api-member .api-signature) > .api-facts > * {
   grid-row: 1;
   align-self: start;
   height: 1.3rem;
+  margin-left: 0.75rem;
   line-height: 1.3rem;
+}
+
+:is(.api-member, .api-member .api-signature)
+  > .api-facts
+  > .api-stability[data-stability="internal"] {
+  grid-column: internal;
+}
+
+:is(.api-member, .api-member .api-signature)
+  > .api-facts
+  > .api-stability:not([data-stability="internal"]) {
+  grid-column: stability;
+}
+
+:is(.api-member, .api-member .api-signature) > .api-facts > .api-since {
+  grid-column: since;
+}
+
+:is(.api-member, .api-member .api-signature) > .api-facts > .api-source {
+  grid-column: source;
+  align-items: center;
 }
 
 /* The member's first declaration shares the facts' row. */
@@ -534,7 +561,7 @@
   grid-row: 1;
 }
 
-/* Each box between the member and a declaration's code keeps the member's two columns, so a later declaration's own facts sit under the member's. */
+/* Each box between the member and a declaration's code keeps the member's columns, so a later declaration's own facts sit under the member's. */
 .api-member > :is(.api-part[data-part="declaration"], .api-accessor-half),
 .api-member > .api-part[data-part="declaration"] > .api-section,
 .api-member .api-signatures,
@@ -1279,7 +1306,7 @@
   box-shadow: none;
 }
 
-/* A member's declarations have no panel. Each keeps the member's two columns, with its number in the room its code leaves at the start of its first line, and its facts in the member's column at every width. */
+/* A member's declarations have no panel. Each keeps the member's columns, with its number in the room its code leaves at the start of its first line, and its facts in the member's columns at every width. */
 .api-member .api-signatures > .api-signature {
   position: relative;
   grid-template-columns: subgrid;
@@ -1295,15 +1322,6 @@
 
 .api-member .api-signatures > .api-signature > figure {
   grid-column: 1;
-}
-
-.api-member .api-signatures > .api-signature > .api-facts {
-  grid-column: 2;
-  grid-row: 1;
-  justify-self: stretch;
-  height: 1.3rem;
-  margin: 0;
-  line-height: 1.3rem;
 }
 
 /* A module's import statement sits under its comment, apart from it. */
