@@ -15108,6 +15108,13 @@ export const systemDataTypes = {
     description:
       "National Clinical Trial (NCT) Identifier Number, which is a unique identifier assigned to each clinical trial registered with ClinicalTrials.gov.",
   },
+  negativeNumber: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/negative-number/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/negative-number/" as BaseUrl,
+    title: "Negative Number",
+    description: "A real number strictly less than zero.",
+  },
   newtonMeters: {
     dataTypeId: "https://hash.ai/@h/types/data-type/newton-meters/v/1",
     dataTypeBaseUrl:

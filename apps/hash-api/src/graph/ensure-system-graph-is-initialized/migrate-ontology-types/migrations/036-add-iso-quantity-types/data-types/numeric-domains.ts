@@ -5,6 +5,20 @@ import type { IsoDataType } from "../data-types";
 export const numericDomainsDataTypes: IsoDataType[] = [
   {
     definition: {
+      title: "Negative Number",
+      description: "A real number strictly less than zero.",
+      type: "number",
+      allOf: [
+        {
+          $ref: "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+        },
+      ],
+      exclusiveMaximum: 0,
+    },
+    conversions: {},
+  },
+  {
+    definition: {
       title: "Non-negative Number",
       description: "A real number greater than or equal to zero.",
       type: "number",
