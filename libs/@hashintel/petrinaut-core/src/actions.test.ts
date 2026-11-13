@@ -1706,6 +1706,56 @@ describe("Petrinaut core interface actions", () => {
     ).toThrow(/is not an interface/);
   });
 
+  test("an instance loaded with a choice that cannot run is still edited, and its choice repaired", () => {
+    const loaded = withInterface();
+    const instance = createInstance({
+      ...loaded,
+      componentInstances: loaded.componentInstances?.map((existing) => ({
+        ...existing,
+        implementation: "other",
+      })),
+    });
+
+    instance.mutations.updateComponentInstance({
+      instanceId: "s1",
+      update: { name: "Renamed" },
+    });
+    expect(instance.definition.get().componentInstances?.[0]).toMatchObject({
+      name: "Renamed",
+      implementation: idOf("other"),
+    });
+    // Making the same choice again is held to the rule.
+    expect(() =>
+      instance.mutations.updateComponentInstance({
+        instanceId: "s1",
+        update: { implementation: "other" },
+      }),
+    ).toThrow(/does not implement/);
+    instance.mutations.updateComponentInstance({
+      instanceId: "s1",
+      update: { implementation: "fast" },
+    });
+    expect(
+      instance.definition.get().componentInstances?.[0]?.implementation,
+    ).toBe(idOf("fast"));
+  });
+
+  test("a subnet that stops being an interface is implemented by none", () => {
+    const instance = createInstance(withInterface());
+
+    instance.mutations.updateSubnet({
+      subnetId: "stage",
+      update: { interface: undefined },
+    });
+    for (const id of ["fast", "slow"]) {
+      expect(
+        instance.definition
+          .get()
+          .subnets?.find((subnet) => subnet.id === idOf(id)),
+      ).not.toHaveProperty("implements");
+    }
+  });
+
   test("an instance pointed at another subnet lets go of its implementation", () => {
     const instance = createInstance(withInterface());
     instance.mutations.updateComponentInstance({

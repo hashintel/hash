@@ -410,7 +410,10 @@ const flattenNet = ({
   }
 
   for (const instance of net.componentInstances ?? []) {
-    const { running, parameterId } = resolveRunningSubnet(ctx, instance);
+    const { declared, running, parameterId } = resolveRunningSubnet(
+      ctx,
+      instance,
+    );
     if (activeSubnetIds.includes(running.id)) {
       const nameOf = (subnetId: ID) =>
         ctx.source.subnets?.find(({ id }) => id === subnetId)?.name ?? subnetId;
@@ -420,12 +423,15 @@ const flattenNet = ({
           .join(" -> ")}.`,
       );
     }
-    // The instance's values are keyed by the declared subnet's parameter ids;
-    // the running subnet's parameters of the same variable names take them.
+    // The instance's values are keyed by the declared subnet's parameter
+    // ids, and a parameter it leaves alone has the declared default: what the
+    // instance's properties show. The running subnet's parameters of the same
+    // variable names take them, and its other parameters keep their own.
     const runningParameterValues = Object.fromEntries(
-      Object.entries(instance.parameterValues).map(([id, value]) => [
-        parameterId(id),
-        value,
+      declared.parameters.map((parameter) => [
+        parameterId(parameter.id),
+        getOwn(instance.parameterValues, parameter.id) ??
+          parameter.defaultValue,
       ]),
     );
     flattenNet({

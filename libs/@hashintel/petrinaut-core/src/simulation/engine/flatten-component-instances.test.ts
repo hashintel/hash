@@ -939,6 +939,29 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
       });
     });
 
+    it("runs an instance that sets no value at the interface's default, not the implementation's", () => {
+      const definition = sdcpn({
+        componentInstances: [componentInstance("s1", "stage")],
+        subnets: [
+          {
+            ...stage,
+            parameters: [
+              parameter("stage_rate", {
+                variableName: "rate",
+                defaultValue: "5",
+              }),
+            ],
+          },
+          implementation("fast"),
+        ],
+        implementations: { stage: "fast" },
+      });
+
+      expect(
+        flatten({ definition }).transitionParameterValues.get("s1::fast_work"),
+      ).toEqual({ rate: 5 });
+    });
+
     it("throws when the implementation's port holds another token type than the interface's", () => {
       const colour = (id: string, type: "real" | "integer") => ({
         id,

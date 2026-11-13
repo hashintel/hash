@@ -534,18 +534,6 @@ const assertComponentInstanceReferences = (
     );
   }
 
-  if (instance.implementation !== undefined) {
-    const binding = resolveImplementation(sdcpn, instance);
-    if (binding?.kind === "component") {
-      throw new Error(
-        `Component instance \`${instance.name}\` names an implementation, but \`${subnet.name}\` is not an interface.`,
-      );
-    }
-    if (binding?.kind === "unbound") {
-      throw new Error(describeUnboundInstance(binding, instance.name));
-    }
-  }
-
   const subnetParameterIds = new Set(subnet.parameters.map(({ id }) => id));
 
   for (const parameterId of Object.keys(instance.parameterValues)) {
@@ -554,6 +542,25 @@ const assertComponentInstanceReferences = (
         `Component instance \`${instance.name}\` provides a value for unknown subnet parameter ID \`${parameterId}\`.`,
       );
     }
+  }
+};
+
+/** Throws when the implementation an instance names cannot run for it. */
+const assertImplementationChoice = (
+  sdcpn: SDCPN,
+  instance: ComponentInstance,
+): void => {
+  if (instance.implementation === undefined) {
+    return;
+  }
+  const binding = resolveImplementation(sdcpn, instance);
+  if (binding?.kind === "component") {
+    throw new Error(
+      `Component instance \`${instance.name}\` names an implementation, but \`${binding.subnet.name}\` is not an interface.`,
+    );
+  }
+  if (binding?.kind === "unbound") {
+    throw new Error(describeUnboundInstance(binding, instance.name));
   }
 };
 
@@ -1330,13 +1337,18 @@ export function createPetrinautActions(
       mutateWithExtensionGuards((sdcpn) => {
         for (const subnet of sdcpn.subnets ?? []) {
           if (subnet.id === parsed.subnetId) {
+            const wasInterface = isInterface(subnet);
             assignUpdate(subnet, parsed.update);
             subnetSchema.parse(subnet);
             if (parsed.update.implements !== undefined) {
               assertImplementsReferences(sdcpn, subnet);
             }
-            // A subnet that stops being an interface, or stops implementing
-            // one, leaves the bindings that relied on it.
+            // A subnet that stops being an interface is implemented by none,
+            // and one that stops being an interface or implementing one
+            // leaves the bindings that relied on it.
+            if (wasInterface && !isInterface(subnet)) {
+              removeFromImplementsLists(sdcpn, subnet.id);
+            }
             pruneImplementationBindings(sdcpn, subnet.id);
             break;
           }
@@ -1402,6 +1414,7 @@ export function createPetrinautActions(
       mutateWithExtensionGuards((sdcpn) => {
         const net = resolveTargetNet(sdcpn, targetSubnetId);
         assertComponentInstanceReferences(sdcpn, parsedInstance);
+        assertImplementationChoice(sdcpn, parsedInstance);
         getComponentInstances(net).push(parsedInstance);
       });
     },
@@ -1426,6 +1439,14 @@ export function createPetrinautActions(
             assignUpdate(instance, parsed.update);
             componentInstanceSchema.parse(instance);
             assertComponentInstanceReferences(sdcpn, instance);
+            // A choice the document was loaded with is left for the user to
+            // repair: only an update that makes one is held to the rule.
+            if (
+              parsed.update.subnetId !== undefined ||
+              "implementation" in parsed.update
+            ) {
+              assertImplementationChoice(sdcpn, instance);
+            }
             break;
           }
         }
