@@ -34,7 +34,7 @@ pub use self::{
     run::{
         Change, Clock, Code, FixedClock, InvalidText, Kind, Operation, OperationRequest,
         RunContext, RunId, RunInput, RunRequest, SendSettings, StageError, SystemClock, Target,
-        start,
+        run, start,
     },
     sources::{
         CaptureLimits, CaptureRun, CaptureStore, CapturedSource, GraphVaultConfig,

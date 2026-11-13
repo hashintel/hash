@@ -1,5 +1,8 @@
 //! Graph delivery contracts and operation ordering.
 
+mod client;
+#[cfg(any(test, feature = "test-utils"))]
+mod fake;
 mod plan;
 mod property;
 
@@ -17,7 +20,10 @@ use type_system::{
     provenance::{OriginProvenance, OriginType, SourceProvenance, SourceType},
 };
 
+#[cfg(any(test, feature = "test-utils"))]
+pub use self::fake::{FakeEntity, FakeGraph, Recorded};
 pub use self::{
+    client::{GraphClient, GraphError},
     plan::{PlannedUpsert, Planner, UnencodableRequest},
     property::{
         ConversionFailure, FailureReason, ResolvedProperties, SinkColumns, SinkRow,
@@ -128,4 +134,13 @@ pub trait Graph: Send + Sync {
         actor: ActorEntityUuid,
         bodies: &[&RawValue],
     ) -> impl Future<Output = GraphResponse> + Send;
+}
+
+/// The Graph bulk endpoint operation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RequestKind {
+    /// POST /entities/bulk.
+    Create,
+    /// PATCH /entities/bulk.
+    Patch,
 }

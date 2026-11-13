@@ -31,7 +31,17 @@ pub use self::{
     error::{Code, StageError},
     target::{Change, InvalidText, Kind, Target},
 };
-use crate::ArtifactNamespace;
+use crate::{
+    ArtifactNamespace,
+    graph::Graph,
+    sources::{SecretStore, SourceReader},
+    stage::{
+        capture::capture,
+        diff::diff,
+        plan::plan,
+        send::{SendOutput, send},
+    },
+};
 
 /// Identifies one ingestion run using lowercase hyphenated UUID text.
 #[derive(
@@ -154,6 +164,29 @@ pub async fn start(
         return Err(Code::RequestMismatch.report());
     }
     Ok(input)
+}
+
+/// Runs one request through its persisted checkpoints and commits delivery.
+///
+/// Reusing a run ID resumes completed stages from their winning markers. Each stage owns its
+/// workspace lifecycle; the caller owns the run's scratch directory and external resources.
+///
+/// # Errors
+/// Returns the first classified [`StageError`] from input resolution, capture, diffing, planning,
+/// delivery, or conditional commit. A failed run retains its completed checkpoints for retry.
+#[tracing::instrument(level = "info", skip_all, fields(run = %request.run))]
+pub async fn run(
+    context: &RunContext,
+    request: RunRequest,
+    sources: &SourceReader,
+    secrets: &impl SecretStore,
+    graph: &impl Graph,
+) -> Result<SendOutput, Report<StageError>> {
+    let input = start(context, request).await?;
+    let captured = capture(context, &input, sources, secrets).await?;
+    let diffed = diff(context, &input, &captured).await?;
+    let planned = plan(context, &input, &captured, &diffed).await?;
+    send(context, &input, &diffed, &planned, graph).await
 }
 
 async fn stored_input(context: &RunContext, run: RunId) -> Result<RunInput, Report<StageError>> {

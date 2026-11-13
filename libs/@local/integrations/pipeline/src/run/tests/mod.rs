@@ -4,10 +4,13 @@ mod current;
 mod diff;
 mod error;
 pub(crate) mod fixtures;
+mod graph_http;
 mod marker;
 mod plan;
+mod scenarios;
 mod start;
 mod table;
+mod takeover;
 
 use std::{fs, path::Path};
 

@@ -31,6 +31,12 @@ Sequential bounded ranges replace the private cursor sketch; one writer assigns 
 target boundaries, and bounded blocking buffers publish writes and property issues. Group traversal,
 checkpoint validation, target lookup, and file writing retain distinct responsibilities.
 
+Stage 4 sends the stored JSON without rebuilding it, checks current-state authority before every
+attempt and fallback, and conditionally commits the winning completion marker. One delivery module
+holds the retry and fallback rules; the reader and rejection tally own their bounded IO. Planning
+and rejection publication share one concrete blocking file buffer. The public `run` function composes
+the five specified calls, and the shared S1–S9 suite exercises all four stages and durable replay.
+
 Expected checkpoint data under `tests/fixtures` is grounded independently in the agreed scenarios,
 not captured from production output. Tests can construct every seam, remove scratch, and resume
 from the published files. Parquet byte identity is deliberately not required. Exact request JSON,
@@ -47,6 +53,8 @@ cargo fmt -p hash-integrations-pipeline --check
 ```
 
 The full test suite starts isolated MinIO/PostgreSQL containers and local child processes. Docker must be
-available. `../docs/pipeline/07-implementation-progress.md` records accepted milestones, reviews,
+available. Required real Graph HTTP tests also need the isolated service described in the
+[Graph acceptance setup](src/run/tests/graph_http/README.md); missing prerequisites fail the tests.
+`../docs/pipeline/07-implementation-progress.md` records accepted milestones, reviews,
 required remaining integration checks, and deferred findings. Foundation-only dead-code
 expectations are temporary until the sequential stage milestones provide production callers.

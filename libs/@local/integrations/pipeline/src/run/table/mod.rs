@@ -9,6 +9,9 @@ use error_stack::Report;
 use parquet::arrow::ArrowWriter;
 use tempfile::NamedTempFile;
 
+mod buffer;
+pub(crate) use buffer::BufferedFile;
+
 use super::{Code, RunContext, StageError, error};
 use crate::{ArtifactRef, Format, SourceCapture, Workspace};
 

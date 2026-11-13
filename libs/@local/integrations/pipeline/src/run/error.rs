@@ -76,6 +76,12 @@ pub enum Code {
     UnencodableRequest,
     #[display("plan_too_large")]
     PlanTooLarge,
+    #[display("graph_unavailable")]
+    GraphUnavailable,
+    #[display("invalid_writes")]
+    InvalidWrites,
+    #[display("reader_stopped")]
+    ReaderStopped,
 }
 
 impl Code {
@@ -110,6 +116,9 @@ impl Code {
         Self::InvalidCheckpoint,
         Self::UnencodableRequest,
         Self::PlanTooLarge,
+        Self::GraphUnavailable,
+        Self::InvalidWrites,
+        Self::ReaderStopped,
     ];
 
     /// The persisted diagnostic text.
@@ -145,6 +154,9 @@ impl Code {
             Self::InvalidCheckpoint => "invalid_checkpoint",
             Self::UnencodableRequest => "unencodable_request",
             Self::PlanTooLarge => "plan_too_large",
+            Self::GraphUnavailable => "graph_unavailable",
+            Self::InvalidWrites => "invalid_writes",
+            Self::ReaderStopped => "reader_stopped",
         }
     }
 
@@ -156,7 +168,9 @@ impl Code {
             | Self::ScratchUnavailable
             | Self::WorkspaceUnavailable
             | Self::SourceUnavailable
-            | Self::SecretUnavailable => StageError::Retryable,
+            | Self::SecretUnavailable
+            | Self::GraphUnavailable
+            | Self::ReaderStopped => StageError::Retryable,
             Self::InvalidDefinition
             | Self::TargetMissing
             | Self::NothingCommitted
@@ -180,7 +194,8 @@ impl Code {
             | Self::RowKey
             | Self::InvalidCheckpoint
             | Self::UnencodableRequest
-            | Self::PlanTooLarge => StageError::Permanent,
+            | Self::PlanTooLarge
+            | Self::InvalidWrites => StageError::Permanent,
         }
     }
 
