@@ -15,10 +15,9 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import type { RunRecord } from "./run-history";
 import { runId } from "./run-id";
 import { startedAt, tableIdTake } from "./runs-columns";
-import { statusWord } from "./status-grammar";
 
 /** The tile for runs that are done with failed items: "With warnings" before the status grammar. */
-const withWarningsName = statusWord("With warnings", "Items failed");
+const withWarningsName = "Items failed";
 
 export type StatTilesTake = "t1" | "t2" | "t3" | "t4";
 
@@ -230,7 +229,7 @@ export const StatTiles = ({
       ? `${dayText(at)}, ${clockText(at)}`
       : fact.run.when;
     // "With warnings · 3FA4" is 121 px; "Warnings · 3FA4" fits every ID take.
-    const short = name === withWarningsName ? statusWord("Warnings", withWarningsName) : name;
+    const short = name === withWarningsName ? withWarningsName : name;
     const base = { key, color: fact.color, open: fact.open };
     switch (take) {
       case "t2":

@@ -6,7 +6,6 @@
  * The glyphs follow the local Figma set 1196:88872. DS gap: ds-components has no run-state icons (no filled
  * check-circle, no half-filled ring), so they are drawn here.
  */
-import { statusWord } from "./status-grammar";
 import { Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
@@ -39,14 +38,14 @@ const Tick = () => (
 );
 
 const glyphLabel: Record<StepState, string> = {
-  notReached: statusWord("Not reached", "Waiting"),
+  notReached: "Waiting",
   running: "Running",
   done: "Done",
   failed: "Failed",
   needsReview: "Needs review",
   skipped: "Skipped",
-  abandoned: statusWord("Abandoned", "Skipped"),
-  doneWithFailures: statusWord("Partly done", "Done"),
+  abandoned: "Skipped",
+  doneWithFailures: "Done",
 };
 
 /** The counts behind a mark, for its tooltip: "18 of 20 · 2 failed". */
@@ -81,7 +80,7 @@ export const glyphTooltip = (
   // A stopped run is Cancelled, a stopped step Skipped.
   const word =
     run && state === "abandoned"
-      ? statusWord("Abandoned", "Cancelled")
+      ? "Cancelled"
       : glyphLabel[state];
   return extra ? `${word} · ${extra}` : word;
 };
@@ -113,10 +112,6 @@ const readGlyphSet = (): GlyphSet => {
 };
 
 export const glyphSet: GlyphSet = readGlyphSet();
-
-/** `?waitmark=dots`: a step that hasn't run yet keeps the dotted ring, before the figma-ds backlog ring. */
-const dottedWaitMark =
-  new URLSearchParams(globalThis.location.search).get("waitmark") === "dots";
 
 // The outline set's geometry, from icons/status/src/gen_glyphs.py.
 const R = 6.5;
@@ -325,15 +320,7 @@ const BareGlyph = ({
   const track = <circle cx="8" cy="8" r={bareR} opacity="0.25" />;
   switch (state) {
     case "notReached":
-      return dottedWaitMark ? (
-        <circle
-          cx="8"
-          cy="8"
-          r={bareR}
-          strokeDasharray="0.01 3.13"
-          transform="rotate(-90 8 8)"
-        />
-      ) : (
+      return (
         // figma-ds Progress · Circular, backlog (46563:19632): a dashed ring, 1 px, black 15 % (neutral.a30). Twelve
         // dashes and twelve gaps of 2π·4/24 close evenly round the ring.
         <circle
@@ -450,7 +437,7 @@ const tooltipTriggerStyle = css({
 const bareInkLeft = (state: StepState, progress: GlyphProgress) => {
   switch (state) {
     case "notReached":
-      return dottedWaitMark ? 3.375 : 3.5;
+      return 3.5;
     case "done":
       return 4.5;
     case "failed":
@@ -466,13 +453,6 @@ const bareInkLeft = (state: StepState, progress: GlyphProgress) => {
       return 3.375;
   }
 };
-
-/**
- * `?markalign=center`: marks beside text keep their ink centred in the 16 px box, as before. By default a `flush`
- * mark's ink starts at the box's left edge, the text edge (Aakarsh, 13 Nov ~01:45: "ensure the exclamation mark is
- * fully left aligned").
- */
-const centredMarks = new URLSearchParams(globalThis.location.search).get("markalign") === "center";
 
 /**
  * One state's glyph, 12 px by default, with a hover tooltip naming the state and its detail ("Done · 18 of 18",
@@ -505,7 +485,7 @@ export const RunGlyph = ({
   const markWidth = glyphSet === "bare" ? Math.max(size, bareMinSize) : size;
   // Shift the drawing, not the box, so the text after it stays put and a spinner still turns on its own centre.
   const inkShift =
-    flush && !centredMarks && glyphSet === "bare"
+    flush && glyphSet === "bare"
       ? (bareInkLeft(state, progress ?? sampleProgress) * markWidth) / 16
       : 0;
   const mark =

@@ -25,12 +25,10 @@ import {
   outcomeOf,
   runTriggerId,
   signOffId,
-  warningsText,
   runWhen,
 } from "./run-history";
-import { oldStatusWords } from "./status-grammar";
 import { type LogRow, logRows } from "./run-log";
-import { BusinessRunLog, runLogEdge24, runLogTake } from "./run-log-business";
+import { BusinessRunLog, runLogTake } from "./run-log-business";
 import {
   ErrorDetails,
   ErrorList,
@@ -533,7 +531,7 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
         className={panelStyle}
         aria-label="Run log"
         data-run-log-panel
-        data-run-log-edge={runLogEdge24 || undefined}
+        data-run-log-edge
       >
         <BusinessRunLog
           take={businessTake}
@@ -616,9 +614,7 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
                 setOpenIds((current) => ({ ...current, loop: true }))
               }
             >
-              {outcome === "warnings" && oldStatusWords
-                ? warningsText(failed)
-                : `${failed} failed`}
+              {`${failed} failed`}
             </Button>
           ) : null}
           {logWideTake() ? (

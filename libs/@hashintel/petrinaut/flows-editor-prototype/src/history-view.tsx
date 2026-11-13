@@ -3,7 +3,6 @@
  * step's state; the left panel lists the steps with their counts; the top bar switches runs with arrows and a
  * dropdown, and All runs goes back to the list. Run 17 runs live; Runs 12–16 are past runs (`run-history.ts`).
  */
-import { statusWord } from "./status-grammar";
 import { createContext, use, useEffect, useState } from "react";
 
 import {
@@ -30,13 +29,9 @@ import { STATUS_MARK_SIZE, statusSlotStyle, useStatusSide } from "./status-side"
 import { runOutputs, StepOutputs } from "./run-outputs";
 import {
   approverName,
-  approverPerson,
   ForEachItems,
-  oldStatusLine,
   StepStatusLine,
-  StepStatusLines,
 } from "./run-step-status";
-import type { StepState } from "./run-history";
 import type { StepInputSource } from "./engine";
 import {
   anyTicking,
@@ -561,36 +556,6 @@ const FiredTriggerPanel = ({ run }: { run: RunRecord }) => {
   );
 };
 
-/** The status mark for a chip: the F3 glyph beside the label, in place of a coloured pill. */
-const chipState = (chip: Detail["chips"][number]): StepState => {
-  switch (chip.color) {
-    case "blue":
-      return "running";
-    case "orange":
-      return "needsReview";
-    case "red":
-      return "failed";
-    case "green":
-      return "done";
-    default:
-      return chip.label === "Abandoned"
-        ? "abandoned"
-        : chip.label === "Skipped"
-          ? "skipped"
-          : "notReached";
-  }
-};
-
-const statusMarkStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "1",
-  height: "[24px]",
-  fontSize: "sm",
-  fontWeight: "medium",
-  color: "neutral.fg.body",
-});
-
 const chipsFor = (state: StepRun, done: string): Detail["chips"] => {
   switch (state.state) {
     case "running":
@@ -602,7 +567,7 @@ const chipsFor = (state: StepRun, done: string): Detail["chips"] => {
     case "abandoned":
       return [{ label: "Abandoned", color: "grey" }];
     case "notReached":
-      return [{ label: statusWord("Not reached", "Waiting"), color: "grey" }];
+      return [{ label: "Waiting", color: "grey" }];
     case "skipped":
       return [{ label: "Skipped", color: "grey" }];
     default:
@@ -701,15 +666,10 @@ const detailOf = (
       span: reached
         ? `From ${clockPlus(run.startClock, signOffAt(n))}`
         : undefined,
-      inputs: approverPerson
-        ? [
-            ["People", approverName],
-            ["Instructions", "Sign off this month's supplier review?"],
-          ]
-        : [
-            ["Person", approverName],
-            ["Question", "Sign off this month's supplier review?"],
-          ],
+      inputs: [
+        ["People", approverName],
+        ["Instructions", "Sign off this month's supplier review?"],
+      ],
     };
   }
   const titles: Record<string, [string, IconName, string, [string, React.ReactNode][]]> =
@@ -972,35 +932,6 @@ export const RunStepPanel = ({
       {question}
       {status ?? (
       <Section title="Status">
-        {oldStatusLine ? (
-          <div
-            className={css({
-              gridColumn: "1 / -1",
-              display: "flex",
-              flexDirection: "column",
-              gap: "1.5",
-            })}
-          >
-            <span
-              className={css({ display: "flex", gap: "1", flexWrap: "wrap" })}
-            >
-              {detail.chips.map((chip) => (
-                <span key={chip.label} className={statusMarkStyle}>
-                  <RunGlyph state={chipState(chip)} size={16} />
-                  {chip.label}
-                </span>
-              ))}
-            </span>
-            {/* The step's own facts (Run outputs playground, 5 Nov): "12 s · 5 Nov, 14:02", then attempts or waiting only when they apply. */}
-            <StepStatusLines
-              stepId={stepId}
-              run={run}
-              facts={facts}
-              state={state}
-              now={now}
-            />
-          </div>
-        ) : (
           <StepStatusLine
             stepId={stepId}
             run={run}
@@ -1008,7 +939,6 @@ export const RunStepPanel = ({
             state={state}
             now={now}
           />
-        )}
       </Section>
       )}
       {stepId === forEachId && state.state !== "notReached" ? (

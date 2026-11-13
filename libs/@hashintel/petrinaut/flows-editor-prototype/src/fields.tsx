@@ -76,7 +76,7 @@ import {
 } from "./ui";
 
 import type { StepInputSource } from "./engine";
-import { PersonAvatar, peopleAsRoles, personName } from "./person-avatar";
+import { PersonAvatar, personName } from "./person-avatar";
 
 type FieldProps = {
   step: DraftActionStep;
@@ -1068,7 +1068,6 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
 
   /** A picked person (not a typed address): drawn with their avatar, as HASH's user chip. */
   const personEmail = (item: StepInputSource) =>
-    !peopleAsRoles &&
     mode === "email" &&
     item.kind === "constant" &&
     mockPeopleEmails.some(
@@ -1142,7 +1141,7 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
   const typedChoices =
     mode === "email"
       ? mockPeopleEmails
-          .filter((person) => peopleAsRoles || person.person)
+          .filter((person) => person.person)
           .map((person) => ({
           label: person.label,
           hint: person.email,

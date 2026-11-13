@@ -27,7 +27,7 @@ import {
 } from "./run-history";
 import { RunGlyph } from "./run-glyph";
 import { AllItemsOutputsLink, RunOutputBody, type RunOutputs } from "./run-outputs";
-import { approverName, approverPerson } from "./run-step-status";
+import { approverName } from "./run-step-status";
 import { PropertyRow, Section } from "./ui";
 
 import type { StepInputSource } from "./engine";
@@ -414,10 +414,10 @@ export const ParitySections = ({
     return (
       <>
         <Section title="Inputs">
-          <PropertyRow label={approverPerson ? "People" : "Person"}>
+          <PropertyRow label="People">
             <Value>{approverName}</Value>
           </PropertyRow>
-          <PropertyRow label={approverPerson ? "Instructions" : "Question"}>
+          <PropertyRow label="Instructions">
             <Value>Check this month's certificates and sign off.</Value>
           </PropertyRow>
           <PropertyRow label="Entity">

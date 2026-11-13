@@ -38,7 +38,7 @@ import {
   useWaitingRun,
 } from "./needs-review";
 import { RunGlyph } from "./run-glyph";
-import { approverName, oldStatusLine, StatusLine } from "./run-step-status";
+import { approverName, StatusLine } from "./run-step-status";
 import { STATUS_MARK_SIZE, statusSlotStyle, useStatusSide } from "./status-side";
 import { RunIdText } from "./run-id";
 import {
@@ -702,13 +702,10 @@ const ContextView = ({
   );
 };
 
-/** The request's Status, on one line as every step's (step-status-line, 10 Nov); `?statusline=old` drops it. */
+/** The request's Status, on one line as every step's (step-status-line, 10 Nov). */
 const ReviewStatus = ({ request }: { request: R2Request }) => {
   const { answers } = useReview();
   const answer = answerOf(request, answers);
-  if (oldStatusLine) {
-    return null;
-  }
   return (
     <Section title="Status">
       {answer ? (
@@ -738,22 +735,9 @@ const AnswerForm = ({
   request: R2Request;
   context?: React.ReactNode;
 }) => {
-  const run = useWaitingRun();
   return (
     <div className={css({ display: "flex", flexDirection: "column", gap: "3" })}>
       <RequestForm key={request.id} request={request} context={context} />
-      {run && oldStatusLine ? (
-        <span className={css({ textStyle: "sm", color: "neutral.fg.muted" })}>
-          Asked {request.asked}
-          {repeatsTrim ||
-          (repeatsPicked && request.stepId === "fetchCertificate") ? null : (
-            <>
-              {" · "}
-              <RunIdText run={run} prefix />
-            </>
-          )}
-        </span>
-      ) : null}
     </div>
   );
 };
@@ -818,9 +802,6 @@ const reasonWithout = (request: R2Request, item: RunItem | undefined) => {
   return rest.charAt(0).toUpperCase() + rest.slice(1);
 };
 
-/** `?q2=old`: what the step found shows as a block under the form, and Status keeps its reason (before parity Q2 B2). */
-const q2Old = new URLSearchParams(globalThis.location.search).get("q2") === "old";
-
 /** Parity Q2 B2 (13 Nov): what the step found, as one line under the question: "2 files found on Kestrel Alloys' page". */
 const contextLink = (request: R2Request): string | null => {
   const { context } = request;
@@ -872,11 +853,11 @@ const ParityReviewPanel = ({ request }: { request: R2Request }) => {
   }
   const item = itemOf(request);
   const answer = answerOf(request, answers);
-  const link = q2Old ? null : contextLink(request);
+  const link = contextLink(request);
   // With the link under the question, Status only says where the step is: a reason that repeats what was found goes.
   const reason = (text: string) =>
     link && request.context.kind === "files" ? [] : [text];
-  const status = oldStatusLine ? undefined : (
+  const status = (
     <Section title="Status">
       {answer ? (
         <StatusLine

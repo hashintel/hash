@@ -8,7 +8,6 @@
  * running, so it has ticks instead). Filter opens "Filter by…" and the DS Filter ribbon under the tabs (B, inbox
  * run-filter; ledger 4 Nov: status tabs, plus the DS Filter, plus sorting): `runs-filter.tsx`.
  */
-import { statusWord } from "./status-grammar";
 import { useLayoutEffect, useRef, useState } from "react";
 
 import {
@@ -24,7 +23,6 @@ import {
   factsOf,
   failedAtStep,
   failedItemsText,
-  oldStatusWords,
   outcomeLabel,
   outcomeOf,
   outcomeState,
@@ -34,8 +32,6 @@ import {
   runProgress,
   statusText,
   triggerLabel,
-  warningsOf,
-  warningsText,
 } from "./run-history";
 import { runId, RunIdsIn, RunIdText, runLabel } from "./run-id";
 import { clockText } from "./run-time";
@@ -100,7 +96,7 @@ const tabOf: Record<RunOutcome, Exclude<Tab, "all">> = {
 const tabs: { value: Tab; label: string }[] = [
   { value: "all", label: "All" },
   { value: "running", label: "Running" },
-  { value: "completed", label: statusWord("Completed", "Done") },
+  { value: "completed", label: "Done" },
   { value: "failed", label: "Failed" },
 ];
 
@@ -117,66 +113,8 @@ const timeoutReason = (run: RunRecord) => {
 const statusCellOf = (
   run: RunRecord,
   now: number,
-): React.ComponentProps<typeof StatusCell> => {
-  const outcome = outcomeOf(run, now);
-  const facts = factsOf(run, now);
-  const progress = runProgress(run, now);
-  const state = outcomeState[outcome];
-  if (!oldStatusWords) {
-    return grammarCellOf(run, now, state);
-  }
-  if (facts.find === "failed") {
-    return {
-      state,
-      text: "Timed out",
-      detail: `${timeoutReason(run)} at Find active suppliers`,
-    };
-  }
-  switch (outcome) {
-    case "running":
-      return facts.find === "running"
-        ? {
-            state,
-            text: "at Find active suppliers",
-            detail: "at Find active suppliers",
-          }
-        : {
-            state,
-            progress,
-            text: progress
-              ? `${progress.done} of ${progress.total}`
-              : undefined,
-          };
-    case "needsReview":
-      return { state, text: "Needs review", detail: "Quality sign-off" };
-    case "error":
-      return {
-        state,
-        text: "Timed out",
-        detail: `${timeoutReason(run)} at Quality sign-off`,
-      };
-    case "abandoned":
-      return {
-        state,
-        progress,
-        text: progress
-          ? `Abandoned · ${progress.done} of ${progress.total}`
-          : "Abandoned",
-      };
-    case "warnings": {
-      // Success, so the tick; the warnings are a count beside it, not a partly done mark.
-      const warnings = warningsText(warningsOf(run, now));
-      return {
-        state,
-        warnings: true,
-        text: progress ? `${progress.done} · ${warnings}` : warnings,
-        detail: `${warnings} · ${facts.failures.length} of ${facts.n} certificates not fetched`,
-      };
-    }
-    default:
-      return { state, progress, text: String(facts.n) };
-  }
-};
+): React.ComponentProps<typeof StatusCell> =>
+  grammarCellOf(run, now, outcomeState[outcomeOf(run, now)]);
 
 /** The status grammar in the Status column: word · where · how many; the glyph is the mark. */
 const grammarCellOf = (
@@ -282,7 +220,7 @@ const sortOrders: Record<SortKey, { label: string; orders: [string, string] }> =
       label: "Duration",
       orders: ["Longest first", "Shortest first"],
     },
-    status: { label: "Status", orders: ["Failed first", statusWord("Completed first", "Done first")] },
+    status: { label: "Status", orders: ["Failed first", "Done first"] },
   };
 
 /** Status order for sorting: what needs a look first. */
@@ -296,14 +234,7 @@ const statusRank: Record<RunOutcome, number> = {
 };
 
 /** The Filter menu's status words, finer than the tabs (a run with warnings is one way of Completed). */
-const statusFilterLabel: Record<RunOutcome, string> = oldStatusWords ? {
-  running: "Running",
-  needsReview: "Needs review",
-  completed: "Completed",
-  warnings: "Completed with warnings",
-  error: "Failed",
-  abandoned: "Abandoned",
-} : {
+const statusFilterLabel: Record<RunOutcome, string> = {
   running: "Running",
   needsReview: "Needs review",
   completed: "Done",
@@ -1613,19 +1544,19 @@ const Overview = ({ history }: { history: HistoryValue }) => {
       : [
           onlyWarning
             ? {
-                label: statusWord("With warnings", "Items failed"),
+                label: "Items failed",
                 text: `${runLabel(onlyWarning)} · ${onlyWarning.when}`,
                 color: "var(--flows-warnings-text)",
                 onOpen: () => history.open(onlyWarning.id),
               }
-            : { label: statusWord("With warnings", "Items failed"), text: `${withWarnings.length} runs` },
+            : { label: "Items failed", text: `${withWarnings.length} runs` },
         ]),
     { label: "Next run", text: "1 Dec, 09:00" },
     // MOCK: a fixed median until runs carry real durations.
     {
       label: "Average run time",
       text: "1m 44s",
-      tooltip: statusWord("Median of completed runs", "Median of done runs"),
+      tooltip: "Median of done runs",
     },
   ];
   const failures: { runId: number; title: string; line: string }[] =
@@ -1636,14 +1567,8 @@ const Overview = ({ history }: { history: HistoryValue }) => {
         return [
           {
             runId: run.id,
-            title: statusWord(
-              `Fetch certificate · ${facts.failures.length} of ${facts.n} failed`,
-              `Done · ${failedItemsText(run, now)}`,
-            ),
-            line: statusWord(
-              `${runLabel(run)} · ${run.when} · completed, ${warningsText(facts.failures.length)}`,
-              `${runLabel(run)} · ${run.when}`,
-            ),
+            title: `Done · ${failedItemsText(run, now)}`,
+            line: `${runLabel(run)} · ${run.when}`,
           },
         ];
       }
@@ -1653,12 +1578,9 @@ const Overview = ({ history }: { history: HistoryValue }) => {
             runId: run.id,
             title:
               facts.find === "failed"
-                ? statusWord("Find entities · timed out", `Failed at ${failedAtStep(run, now)}`)
-                : statusWord("Quality sign-off · timed out", `Failed at ${failedAtStep(run, now)}`),
-            line: statusWord(
-              `${runLabel(run)} · ${run.when} · failed`,
-              `${runLabel(run)} · ${run.when}`,
-            ),
+                ? `Failed at ${failedAtStep(run, now)}`
+                : `Failed at ${failedAtStep(run, now)}`,
+            line: `${runLabel(run)} · ${run.when}`,
           },
         ];
       }
@@ -1768,7 +1690,7 @@ const Overview = ({ history }: { history: HistoryValue }) => {
             color: "neutral.fg.heading",
           })}
         >
-          {statusWord("Recent failures and warnings", "Recent failures")}
+          {"Recent failures"}
         </span>
         {failures.map((failure) => (
           <button

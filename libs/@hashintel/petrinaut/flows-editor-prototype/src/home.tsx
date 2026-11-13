@@ -1,5 +1,4 @@
 import { Button, Icon, TextInput } from "@hashintel/ds-components";
-import { statusWord } from "./status-grammar";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { HashShell } from "./hash-shell";
@@ -275,7 +274,7 @@ export const Home = ({
                           <RunIdsIn
                             text={
                               flow.lastRun.label === "Completed"
-                                ? statusWord("Completed", "Done")
+                                ? "Done"
                                 : flow.lastRun.label
                             }
                           />

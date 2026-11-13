@@ -13,7 +13,6 @@ import {
   suppliers,
 } from "./run-history";
 import { runLabel } from "./run-id";
-import { statusWord } from "./status-grammar";
 
 /* ----------------------------------------------------------------------------------------------------------------
  * The log's rows
@@ -310,11 +309,8 @@ export const logRows = (
   const ending =
     outcome === "warnings"
       ? {
-          title: `${runLabel(run)} ${statusWord("completed", "done")}`,
-          note: statusWord(
-            `${facts.failures.length === 1 ? "1 warning" : `${facts.failures.length} warnings`} · ${facts.failures.length} of ${facts.n} suppliers failed at Fetch certificate`,
-            `${facts.failures.length} of ${facts.n} suppliers failed at Fetch certificate`,
-          ),
+          title: `${runLabel(run)} ${"done"}`,
+          note: `${facts.failures.length} of ${facts.n} suppliers failed at Fetch certificate`,
           glyph: "done" as const,
         }
       : outcome === "error"
@@ -325,7 +321,7 @@ export const logRows = (
           }
         : outcome === "abandoned"
           ? {
-              title: `${runLabel(run)} ${statusWord("abandoned", "cancelled")}`,
+              title: `${runLabel(run)} ${"cancelled"}`,
               note:
                 run.kind === "live" && run.stopped
                   ? `stopped by you at ${run.stopped.clock}`
@@ -333,7 +329,7 @@ export const logRows = (
               glyph: "abandoned" as const,
             }
           : {
-              title: `${runLabel(run)} ${statusWord("completed", "done")}`,
+              title: `${runLabel(run)} ${"done"}`,
               note: run.ending ?? "",
               glyph: "done" as const,
             };

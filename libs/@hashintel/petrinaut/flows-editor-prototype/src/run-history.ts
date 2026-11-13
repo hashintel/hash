@@ -5,7 +5,6 @@
  *
  * MOCK: no flow runs in the prototype.
  */
-import { oldStatusWords } from "./status-grammar";
 import { START_ID } from "./document";
 
 /** One step's state in a run (local Figma glyph set 1196:88872). */
@@ -505,25 +504,14 @@ export const outcomeState: Record<RunOutcome, StepState> = {
   abandoned: "abandoned",
 };
 
-export { oldStatusWords } from "./status-grammar";
-
-export const outcomeLabel: Record<RunOutcome, string> = oldStatusWords
-  ? {
-      running: "Running",
-      needsReview: "Needs review",
-      warnings: "Completed",
-      error: "Failed",
-      completed: "Completed",
-      abandoned: "Abandoned",
-    }
-  : {
-      running: "Running",
-      needsReview: "Needs review",
-      warnings: "Done",
-      error: "Failed",
-      completed: "Done",
-      abandoned: "Cancelled",
-    };
+export const outcomeLabel: Record<RunOutcome, string> = {
+  running: "Running",
+  needsReview: "Needs review",
+  warnings: "Done",
+  error: "Failed",
+  completed: "Done",
+  abandoned: "Cancelled",
+};
 
 /** The step a failed run stopped at, for "Failed at <step>". */
 export const failedAtStep = (run: RunRecord, now: number) =>
@@ -622,9 +610,6 @@ export const statusText = (run: RunRecord, now: number) => {
   const warnings = warningsOf(run, now);
   const outcome = outcomeOf(run, now);
   const label = outcomeLabel[outcome];
-  if (oldStatusWords) {
-    return warnings > 0 ? `${label} · ${warningsText(warnings)}` : label;
-  }
   if (outcome === "error") {
     return `${label} at ${failedAtStep(run, now)}`;
   }

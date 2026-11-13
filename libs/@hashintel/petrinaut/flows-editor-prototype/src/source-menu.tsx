@@ -51,7 +51,7 @@ import { kindLabel } from "./ui";
 
 import type { StepInputSource } from "./engine";
 import type { PrdSource } from "./mock-prd-ports";
-import { PersonAvatar, peopleAsRoles } from "./person-avatar";
+import { PersonAvatar } from "./person-avatar";
 
 /**
  * Hand-built row for the "@" popover only, with the values the DS Menu item renders at its default size (measured):
@@ -750,15 +750,13 @@ export const SourceMenu = ({
               id: `typed:${choice.label}`,
               text: choice.label,
               glyph:
-                typedGroupLabel === "People" && !peopleAsRoles ? (
+                typedGroupLabel === "People" ? (
                   <PersonAvatar name={choice.label} row />
                 ) : undefined,
-              avatar: typedGroupLabel === "People" && !peopleAsRoles,
+              avatar: typedGroupLabel === "People",
               icon: iconsEverywhere
                 ? typedGroupLabel === "People"
-                  ? peopleAsRoles
-                    ? ("user" as const)
-                    : undefined
+                  ? undefined
                   : kinds.includes("EntityId")
                     ? ("cube" as const)
                     : ("list" as const)

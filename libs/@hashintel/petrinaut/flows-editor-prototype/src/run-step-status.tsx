@@ -8,12 +8,11 @@
  */
 import { useState } from "react";
 
-import { Button, Drawer, Tooltip } from "@hashintel/ds-components";
+import { Button, Drawer } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { START_ID } from "./document";
 import { ShowAllRow } from "./show-all-row";
-import { statusWord } from "./status-grammar";
 import { RunGlyph } from "./run-glyph";
 import { clockText } from "./run-time";
 import { STATUS_MARK_SIZE, statusSlotStyle, useStatusSide } from "./status-side";
@@ -36,21 +35,10 @@ import {
 
 /**
  * Ask a person waits on the person the editor names (People · Maya Patel) and its run inputs take the editor's labels
- * (People, Instructions). `?approver=role` keeps the old look: the role (Head of quality), Person and Question.
+ * (People, Instructions).
  */
-export const approverPerson =
-  new URLSearchParams(globalThis.location.search).get("approver") !== "role";
+export const approverName = "Maya Patel";
 
-export const approverName = approverPerson ? "Maya Patel" : "Head of quality";
-
-/**
- * In a run that has ended, a step it never reached reads Skipped, not Waiting: nothing waits once the run is over
- * (inbox not-reached-word, 12 Nov). `?notreached=waiting` keeps Waiting.
- */
-export const notReachedSkipped =
-  new URLSearchParams(globalThis.location.search).get("notreached") !== "waiting";
-
-const strongLineStyle = css({ textStyle: "sm", color: "neutral.fg.heading" });
 const quietLineStyle = css({ textStyle: "sm", color: "neutral.fg.subtle" });
 
 const seconds = (duration: string) =>
@@ -91,17 +79,6 @@ const stepTiming = (
   return span ? { from: span.from, to: span.to } : null;
 };
 
-/** `?statusline=old`: the Status block from before the one-line take (mark row, then facts, then notes). */
-export const oldStatusLine =
-  new URLSearchParams(globalThis.location.search).get("statusline") === "old";
-
-/**
- * `?statusline=built`: the one-line Status as first built, with the word in medium and the quiet line flush with the
- * mark. The default draws the word in regular and indents the quiet line to the word (inbox step-status-line,
- * h-regular-word, 12 Nov).
- */
-const builtStatusLine =
-  new URLSearchParams(globalThis.location.search).get("statusline") === "built";
 
 /** When the step started and ended, as text: its duration (when it has ended or is running) and its start. */
 const stepWhen = (
@@ -128,41 +105,6 @@ const stepWhen = (
     started: runWhen(run, clock),
     duration: end === undefined ? undefined : durationText(end - timing.from),
   };
-};
-
-export const StepStatusLines = ({
-  stepId,
-  run,
-  facts,
-  state,
-  now,
-}: {
-  stepId: string;
-  run: RunRecord;
-  facts: RunFacts;
-  state: StepRun;
-  now: number;
-}) => {
-  const when = stepWhen(stepId, run, facts, state, now);
-  if (!when) {
-    return null;
-  }
-  const first = when.duration ? `${when.duration} · ${when.started}` : when.started;
-  const retried = facts.failures.filter((failure) => failure.reason === "timed out");
-  const extra =
-    stepId === "fetchCertificate" && retried.length > 0 && state.state !== "running"
-      ? retried
-          .map((failure) => `${suppliers[failure.item] ?? "An item"}: 3 attempts`)
-          .join(" · ")
-      : stepId === signOffId && facts.signOff === "waiting"
-        ? `Waiting on ${approverName}`
-        : undefined;
-  return (
-    <>
-      <span className={strongLineStyle}>{first}</span>
-      {extra ? <span className={quietLineStyle}>{extra}</span> : null}
-    </>
-  );
 };
 
 /* ----------------------------------------------------------------------------------------------------------------
@@ -197,16 +139,6 @@ const firstLineTextStyle = css({
 
 const wordStyle = css({ color: "neutral.fg.heading" });
 
-const builtWordStyle = css({ fontWeight: "medium", color: "neutral.fg.heading" });
-
-const noteStyle = css({
-  textStyle: "sm",
-  color: "neutral.fg.subtle",
-  overflowWrap: "anywhere",
-  // The mark's 16 px box and the 4 px gap: the quiet line starts under the word.
-  paddingLeft: "5",
-});
-
 const builtNoteStyle = css({
   textStyle: "sm",
   color: "neutral.fg.subtle",
@@ -220,19 +152,10 @@ const builtNoteStyle = css({
 const statusLook = new URLSearchParams(globalThis.location.search).get("statuslook");
 
 /**
- * Where a Status line's reason shows (Aakarsh, 13 Nov ~01:45, "Visible, at x 0"): by default a quiet line 2 px under,
- * starting at the text edge with "Status" and the mark's ink. `?statusreason=hover` shows it only as a tooltip on the
- * line; `?statusreason=line` keeps it indented to the word (x 20), as built in 0045b2d1c.
+ * Where a Status line's reason shows (Aakarsh, 13 Nov ~01:45, "Visible, at x 0"): a quiet line 2 px under, starting at
+ * the text edge with "Status" and the mark's ink.
  */
-const statusReason = new URLSearchParams(globalThis.location.search).get("statusreason");
-const reasonOnLine = statusReason !== "hover";
-const reasonIndented = statusReason === "line" && !builtStatusLine;
-
-const reasonTriggerStyle = css({ display: "flex", minWidth: "[0]" });
-
-const reasonTooltipStyle = css({ display: "flex", flexDirection: "column" });
-
-/** One Status: the mark and its word, then the facts after it; its reasons show on hover or focus. */
+/** One Status: the mark and its word, then the facts after it, then its reasons. */
 export const StatusLine = ({
   state,
   word,
@@ -244,12 +167,11 @@ export const StatusLine = ({
   facts: (string | undefined)[];
   notes?: React.ReactNode[];
 }) => {
-  const reasonTooltip = !reasonOnLine && notes.length > 0;
   const line = (
     <span className={firstLineStyle} data-status-line-row>
-      <RunGlyph state={state} size={16} tooltip={!reasonTooltip} flush />
+      <RunGlyph state={state} size={16} tooltip flush />
       <span className={firstLineTextStyle}>
-        <span className={builtStatusLine ? builtWordStyle : wordStyle}>{word}</span>
+        <span className={wordStyle}>{word}</span>
         {facts
           .filter(Boolean)
           .map((fact) => ` · ${fact}`)
@@ -259,31 +181,12 @@ export const StatusLine = ({
   );
   return (
     <div className={statusLineStyle} data-status-line data-status-look={statusLook ?? undefined}>
-      {reasonTooltip ? (
-        <Tooltip
-          content={
-            <span className={reasonTooltipStyle} data-status-reason>
-              {notes.map((note, index) => (
-                <span key={index}>{note}</span>
-              ))}
-            </span>
-          }
-          position="top-start"
-          openDelay="fast"
-          className={reasonTriggerStyle}
-        >
-          {line}
-        </Tooltip>
-      ) : (
-        line
-      )}
-      {reasonOnLine
-        ? notes.map((note, index) => (
-            <span key={index} className={reasonIndented ? noteStyle : builtNoteStyle}>
-              {note}
-            </span>
-          ))
-        : null}
+      {line}
+      {notes.map((note, index) => (
+        <span key={index} className={builtNoteStyle}>
+          {note}
+        </span>
+      ))}
     </div>
   );
 };
@@ -317,7 +220,7 @@ const statusParts = (
   const items = (count: number) => `${count} of ${n}`;
   switch (state.state) {
     case "notReached":
-      return { word: statusWord("Not reached", "Waiting"), notes: [] };
+      return { word: "Waiting", notes: [] };
     case "skipped":
       return { word: "Skipped", notes: [] };
     case "abandoned":
@@ -330,19 +233,19 @@ const statusParts = (
     default:
   }
   if (stepId === runTriggerId) {
-    return { word: statusWord("Started the run", "Done"), notes: [] };
+    return { word: "Done", notes: [] };
   }
   if (stepId === "findSuppliers") {
     return state.state === "failed"
       ? { word: "Failed", notes: ["Timed out"] }
       : state.state === "running"
         ? { word: "Running", notes: [] }
-        : { word: statusWord(`${n} found`, "Done"), notes: [] };
+        : { word: "Done", notes: [] };
   }
   if (stepId === signOffId) {
     return state.state === "failed"
       ? { word: "Failed", notes: ["Timed out after 48 h"] }
-      : { word: statusWord("Approved", "Done"), notes: [] };
+      : { word: "Done", notes: [] };
   }
   const failed = state.bar?.find((segment) => segment.state === "failed")?.count ?? 0;
   const skipped = state.bar?.find((segment) => segment.state === "skipped")?.count ?? 0;
@@ -394,7 +297,7 @@ export const StepStatusLine = ({
   now: number;
 }) => {
   const ended = run.kind === "past" || run.stopped !== undefined;
-  if (notReachedSkipped && ended && state.state === "notReached") {
+  if (ended && state.state === "notReached") {
     return <StatusLine state="skipped" word="Skipped" facts={[]} />;
   }
   const when = stepWhen(stepId, run, facts, state, now);
@@ -522,10 +425,6 @@ const Branch = ({ facts, item }: { facts: RunFacts; item: number }) => {
   );
 };
 
-/** `?foreachitems=all`: the For each panel lists every item in place, as before the overflow rule. */
-const allItemsInPanel =
-  new URLSearchParams(globalThis.location.search).get("foreachitems") === "all";
-
 /** Rows the panel shows before "Show all N", as the other panel lists (outputs, needs review) show four. */
 const panelItemRows = 4;
 
@@ -535,9 +434,6 @@ const panelItemRows = 4;
  */
 export const ForEachItems = ({ facts }: { facts: RunFacts }) => {
   const [sheetOpen, setSheetOpen] = useState(false);
-  if (allItemsInPanel) {
-    return <ItemList facts={facts} />;
-  }
   const limit = Math.max(panelItemRows, facts.failures.length);
   return (
     <>
