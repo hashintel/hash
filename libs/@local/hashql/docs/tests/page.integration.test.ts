@@ -481,6 +481,46 @@ export declare const value: Option.Option.Value<Option.Option<string>>;`,
   );
 
   it.effect(
+    "unresolved_example_names",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const result = yield* Reference.success({
+        source: `/**
+ * A value.
+ *
+ * @example
+ * \`\`\`ts
+ * type Labelled = [first: string];
+ * missing;
+ * \`\`\`
+ */
+export declare const value: string;`,
+      });
+      expect(
+        pipe(
+          Page.toHast(Reference.page(result, "pkg.html")),
+          Result.getOrThrow,
+          elementsOf,
+          Array.filter(
+            (element) =>
+              element.tagName === "span" &&
+              propertyOf(element, "title") !== undefined,
+          ),
+          Array.map((element) => [
+            textOf(element),
+            propertyOf(element, "title"),
+          ]),
+        ),
+      ).toStrictEqual([
+        ["Labelled", "type Labelled = [first: string]"],
+        // Neither name resolves to anything, and each shows the type an editor shows at it.
+        ["first", "string"],
+        ["missing", "any"],
+      ]);
+    }),
+  );
+
+  it.effect(
     "hierarchy_element",
     Effect.fnUntraced(function* () {
       expect.hasAssertions();
