@@ -1,7 +1,7 @@
 /**
  * Builds HashQL type syntax for J-Expr queries.
  *
- * A {@link Type} describes type syntax. Use {@link reference} for a named type and {@link struct}, {@link tuple}, {@link union} or {@link intersection} to compose types. {@link compile} writes the type's source spelling.
+ * A {@link Type} describes type syntax. Use {@link reference} for a named type and {@link struct}, {@link tuple}, {@link union} or {@link intersection} to compose types. The syntax has two J-Expr spellings. {@link compile} writes annotation text for a `#type` field, and {@link toExpression} writes the constructor syntax that `as`, `input`, `fn`, `type` and `newtype` emit.
  *
  * {@link reference} and {@link struct} return an {@link Option.Option}: an invalid name produces `None`. The other builders accept their members without checks. Name resolution and type checking belong to the HashQL compiler.
  *
@@ -16,6 +16,8 @@ import * as Ident from "../Ident.js";
 import * as Path from "../Path.js";
 import * as Defs from "./schema.js";
 
+import type { Identifier } from "../Identifier.js";
+import type { ExpressionType } from "../schema.js";
 import type { Schema as $Schema, Effect, SchemaIssue } from "effect";
 import type { NonEmptyReadonlyArray } from "effect/Array";
 
@@ -36,7 +38,7 @@ export * as Union from "./Union.js";
 export const Schema: typeof Defs.Type = Defs.Type;
 
 /**
- * Tagged HashQL type syntax.
+ * Tagged HashQL type syntax, as accepted by `JExpr.input`, `JExpr.as`, `JExpr.typed` and the other builders that take a type.
  *
  * The `_tag` discriminant selects the form. `Reference` names a type by path with optional generics. `Struct` lists named members and `Tuple` positional ones. `Union` and `Intersection` combine member types. `Infer` is the `_` placeholder for a type the compiler infers. Paths and member names hold decoded identifier objects. Nothing validates an object written directly until {@link make} checks its names, and the HashQL compiler resolves those names and checks the type.
  */
@@ -45,7 +47,7 @@ export type Type = Defs.Type;
 /**
  * The schema-encoded form of a {@link Type}, which writes each path and member name as source text.
  *
- * A reference's path becomes text such as `"::core::List<Integer>"`, and a struct member name becomes text such as `` "`+`" ``. Path arguments use type syntax, which omits single-member union and intersection wrappers. Other type nodes keep their tagged objects. {@link Schema} encodes and decodes this form. Use {@link compile} for type source text.
+ * A reference's path becomes text such as `"::core::List<Integer>"`, and a struct member name becomes text such as `` "`+`" ``. Path arguments use type syntax, which omits single-member union and intersection wrappers. Other type nodes keep their tagged objects. {@link Schema} encodes and decodes this form, and neither form is J-Expr. Use {@link compile} or {@link toExpression} for J-Expr.
  */
 export type Encoded = Defs.TypeEncoded;
 
@@ -155,7 +157,7 @@ const asReadonlyUnsafe = <T>(input: T): Readonly<T> => input;
 /**
  * Creates a type with named fields.
  *
- * Returns `None` if any field name is not a valid identifier according to `Ident.decodeResult`. Symbol names accept bare (`+`) or backticked (`` `+` ``) spelling. Fields follow the record's own enumerable string-key order. An empty record produces an empty struct, which {@link compile} renders as `(:)`.
+ * Returns `None` if any field name is not a valid identifier according to `Ident.decodeResult`. Symbol names accept bare (`+`) or backticked (`` `+` ``) spelling. Spelling one name both ways, such as `+` and `` `+` ``, also returns `None`. Fields follow the record's own enumerable string-key order. An empty record produces an empty struct, which {@link compile} renders as `(:)`.
  *
  * @example <caption>Build a struct type and reject an invalid field name.</caption>
  * ```ts
@@ -185,6 +187,11 @@ export const struct = (
       ),
     ),
     Option.all,
+    Option.filter(
+      (members) =>
+        Array.dedupe(Array.map(members, Tuple.get(0))).length ===
+        members.length,
+    ),
     Option.map(asReadonlyUnsafe),
     Option.map((members) => ({
       _tag: "Struct",
@@ -387,4 +394,90 @@ export const and: {
  * JExpr.Type.compile(list); // => "List<Integer | String>"
  * ```
  */
-export const compile: (type: Type) => string = compileType;
+export const compile: (type: Type) => Identifier = compileType;
+
+/** A type and the expressions of its members built so far, in member order. */
+interface Frame {
+  readonly type: Type;
+  readonly members: readonly Type[];
+  readonly expressions: ExpressionType[];
+}
+
+const open = (type: Type): Frame => {
+  switch (type._tag) {
+    case "Infer":
+    case "Reference": {
+      return { type, members: [], expressions: [] };
+    }
+    case "Struct": {
+      return {
+        type,
+        members: Array.map(type.members, Tuple.get(1)),
+        expressions: [],
+      };
+    }
+    case "Tuple":
+    case "Union":
+    case "Intersection": {
+      return { type, members: type.members, expressions: [] };
+    }
+  }
+};
+
+const construct = ({ type, expressions }: Frame): ExpressionType => {
+  switch (type._tag) {
+    case "Infer": {
+      return "_";
+    }
+    case "Reference": {
+      return compile(type);
+    }
+    case "Tuple": {
+      return { "#tuple": expressions };
+    }
+    case "Struct": {
+      return {
+        "#struct": Record.fromEntries(
+          Array.zipWith(type.members, expressions, ([name], expression) => [
+            Ident.compile(name),
+            expression,
+          ]),
+        ),
+      };
+    }
+    case "Union": {
+      return ["::kernel::type::Union", ...expressions];
+    }
+    case "Intersection": {
+      return ["::kernel::type::Intersection", ...expressions];
+    }
+  }
+};
+
+/**
+ * Encodes a type in an expression position, such as a type definition or closure parameter.
+ *
+ * Compound types use constructors here. Only annotation positions accept their type-syntax strings.
+ */
+export const toExpression = (type: Type): ExpressionType => {
+  // Types wait here for their members instead of on the call stack, which bounds the nesting depth by memory alone.
+  const parents: Frame[] = [];
+  let current = open(type);
+
+  for (;;) {
+    const member = current.members[current.expressions.length];
+    if (member === undefined) {
+      const expression = construct(current);
+      const parent = parents.pop();
+      if (parent === undefined) {
+        return expression;
+      }
+
+      parent.expressions.push(expression);
+      current = parent;
+    } else {
+      parents.push(current);
+      current = open(member);
+    }
+  }
+};

@@ -6,6 +6,10 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**"]
     },
+    "test:integration": {
+      "dependsOn": ["^build", "hashql-syntax-jexpr#build:parse:debug"],
+      "inputs": ["$TURBO_DEFAULT$"]
+    },
     "test:unit": {
       "dependsOn": ["^build"]
     }
