@@ -200,6 +200,8 @@ Setter.
 
 **namespace Model**
 
+[Source](index.d.ts#L34)
+
 Namespace with [`Value`](#Value).
 
 **Exports**
