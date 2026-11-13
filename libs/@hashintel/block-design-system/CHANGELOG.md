@@ -13,7 +13,7 @@
 
 ### Patch Changes
 
-- remove CheckIcon ([@CiaranMn](https://github.com/CiaranMn), [#3659](https://github.com/hashintel/hash/pull/3659))
+- remove CheckIcon ([#3659](https://github.com/hashintel/hash/pull/3659))
 
 - Updated dependencies:
   - @hashintel/design-system@0.0.8
@@ -22,7 +22,7 @@
 
 ### Patch Changes
 
-- Added the block-design-system ([@luisbettencourt](https://github.com/luisbettencourt), [#2362](https://github.com/hashintel/hash/pull/2362))
+- Added the block-design-system ([#2362](https://github.com/hashintel/hash/pull/2362))
 
 - Updated dependencies:
   - @hashintel/design-system@0.0.7
