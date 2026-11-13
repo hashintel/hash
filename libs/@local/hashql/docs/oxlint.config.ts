@@ -7,6 +7,7 @@ const config: OxlintConfig = defineConfig({
   runtime: "browser",
   rules: {
     "effecttsgo/unstable-api-usage": "allow", // `FileSystem`, `Path` and the Node layer that provides them are unstable in Effect 4.
+    "no-continue": "allow", // A blank ban on them does not make sense
   },
   overrides: [
     {
@@ -15,6 +16,15 @@ const config: OxlintConfig = defineConfig({
         "jsdoc/check-tag-names": [
           "deny", // Effect recognises this annotation for caller-supplied graph stores.
           { definedTags: ["effect-leakable-service"] },
+        ],
+      },
+    },
+    {
+      files: ["src/internal/ast-types.ts", "src/internal/ast-exposure.ts"],
+      rules: {
+        "max-classes-per-file": [
+          "deny", // Keep each public service key and its private state key together.
+          2,
         ],
       },
     },
