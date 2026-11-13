@@ -128,18 +128,25 @@ export const mutationRefusal = (
     : null);
 
 /**
- * Why the host's rules refuse a command, or `null`. The clipboard carries
- * places and transitions, which composing never adds.
+ * Why the host's rules refuse a command, or `null`. An instance that only
+ * composes pastes nothing, since the clipboard carries places and
+ * transitions, and lays out its root net alone.
  */
 export const commandRefusal = (
   rules: HostRules,
   name: CommandName,
   input: unknown,
-): string | null =>
-  providedRefusal(rules, subnetIdAt(input, "targetSubnetId")) ??
-  (rules.compositionOnly && name === "applyClipboardPaste"
-    ? `${composingOnly}: nothing can be pasted into it.`
-    : null);
+): string | null => {
+  const subnetId = subnetIdAt(input, "targetSubnetId");
+  const refusal = providedRefusal(rules, subnetId);
+  if (refusal !== null || !rules.compositionOnly) {
+    return refusal;
+  }
+  if (name === "applyClipboardPaste") {
+    return `${composingOnly}: nothing can be pasted into it.`;
+  }
+  return subnetId === null ? null : `${composingOnly}.`;
+};
 
 /** The same functions, each throwing its refusal where `refusalOf` gives one. */
 const guarded = <Functions extends Record<string, (input: never) => unknown>>(

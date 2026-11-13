@@ -525,8 +525,9 @@ connects the components it is given.", followed by the mutation's name.
 `instance.mutationRefusal(name, input)` gives the sentence without running
 the mutation, the React bindings show it as a notice, and a plugin's `edit`
 returns it as a refusal of kind `host-restriction`. `applyClipboardPaste`
-throws too, and the React bindings turn that into a notice: the clipboard
-carries places and transitions.
+throws too, since the clipboard carries places and transitions, and so does
+`applyAutoLayout` on a subnet; `instance.commandRefusal(name, input)` gives
+either sentence, and the React bindings show it as a notice.
 
 A document that already holds places and transitions shows them. They can be
 moved and fused with ports, and nothing else of them changes. With no
