@@ -2,15 +2,18 @@ import { GridCellKind } from "@glideapps/glide-data-grid";
 
 import { customColors } from "@hashintel/design-system/theme";
 
-import { drawCellFadeOutGradient } from "../../../components/grid/utils/draw-cell-fade-out-gradient";
+import { getYCenter } from "../../../components/grid/utils";
 import { drawChipWithIcon } from "../../../components/grid/utils/draw-chip-with-icon";
 import { InteractableManager } from "../../../components/grid/utils/interactable-manager";
+import { getDataTypeCellLayout } from "./data-type-tree-cell/layout";
 
+import type { DataTypeLabelPart } from "./shared/data-type-label-preview";
 import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
 
 export type DataTypeTreeCell = CustomCell<{
   kind: "data-type-tree-cell";
   title: string;
+  labelPreview?: DataTypeLabelPart[];
   icon?: string;
   depth: number;
   expanded: boolean;
@@ -28,6 +31,7 @@ export const renderDataTypeTreeCell: CustomRenderer<DataTypeTreeCell> = {
     const { ctx, rect, theme, spriteManager } = args;
     const {
       title,
+      labelPreview,
       icon,
       depth,
       expanded,
@@ -74,10 +78,27 @@ export const renderDataTypeTreeCell: CustomRenderer<DataTypeTreeCell> = {
     }
 
     const chipLeft = left + 28;
+    const right = rect.x + rect.width - 16;
+    const previewFont = (kind: DataTypeLabelPart["kind"]) =>
+      `${kind === "placeholder" ? "italic 12px" : "13px"} ${theme.fontFamily}`;
+    ctx.font = theme.baseFontStyle;
+    const layout = getDataTypeCellLayout({
+      title,
+      preview: labelPreview,
+      availableWidth: Math.max(0, right - chipLeft),
+      measure: (text, kind) => {
+        ctx.font = kind ? previewFont(kind) : theme.baseFontStyle;
+        return ctx.measureText(text).width;
+      },
+    });
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(chipLeft, rect.y, layout.chipAreaWidth, rect.height);
+    ctx.clip();
     const { width, height, top } = drawChipWithIcon({
       args,
       left: chipLeft,
-      text: title,
+      text: layout.title,
       icon: icon ? { entityTypeIcon: icon } : { inbuiltIcon: "bpAsterisk" },
       iconFill: muted ? customColors.gray[70] : customColors.blue[70],
       color: muted ? "gray" : "white",
@@ -95,12 +116,13 @@ export const renderDataTypeTreeCell: CustomRenderer<DataTypeTreeCell> = {
         fgIconHeader: muted ? customColors.gray[70] : customColors.blue[70],
       },
     );
+    ctx.restore();
     interactables.push(
       InteractableManager.createCellInteractable(args, {
         id: "open",
         posRelativeToVisibleGridArea: {
           left: chipLeft,
-          right: chipLeft + width + 16,
+          right: Math.min(chipLeft + width + 16, right),
           top,
           bottom: top + height,
         },
@@ -108,7 +130,24 @@ export const renderDataTypeTreeCell: CustomRenderer<DataTypeTreeCell> = {
       }),
     );
 
+    if (layout.preview.length) {
+      ctx.save();
+      ctx.font = previewFont("label");
+      const previewY = getYCenter(args);
+      let previewLeft = right - layout.previewWidth;
+      for (const part of layout.preview) {
+        ctx.font = previewFont(part.kind);
+        ctx.fillStyle = muted
+          ? customColors.gray[60]
+          : part.kind === "label"
+            ? customColors.gray[80]
+            : customColors.gray[70];
+        ctx.fillText(part.text, previewLeft, previewY);
+        previewLeft += ctx.measureText(part.text).width;
+      }
+      ctx.restore();
+    }
+
     InteractableManager.setInteractablesForCell(args, interactables);
-    drawCellFadeOutGradient(args);
   },
 };

@@ -64,6 +64,10 @@ import {
 } from "./types-table/data-type-tree-cell";
 import { TypesFilterRibbon } from "./types-table/filter-ribbon";
 import {
+  getDataTypeLabelPreview,
+  type DataTypeLabelPart,
+} from "./types-table/shared/data-type-label-preview";
+import {
   createTypeFilterPredicate,
   getTypeKind,
   pruneTypeFiltersForKind,
@@ -110,6 +114,7 @@ export type TypesTableRow = {
   parentIds: VersionedUrl[];
   hierarchy?: DataTypeTreePosition;
   title: string;
+  labelPreview?: DataTypeLabelPart[];
   external: boolean;
   webShortname?: string;
   archived: boolean;
@@ -259,7 +264,7 @@ export const TypesTable: FunctionComponent<{
       {
         id: "title",
         title: "Title",
-        width: 252,
+        width: kind === "data-type" ? 480 : 252,
         grow: 2,
       },
       ...(kind === "all"
@@ -408,6 +413,10 @@ export const TypesTable: FunctionComponent<{
           rowId: type.schema.$id,
           typeId: type.schema.$id,
           title: type.schema.title,
+          labelPreview:
+            hierarchical && type.schema.kind === "dataType"
+              ? getDataTypeLabelPreview(type.schema, dataTypes ?? {})
+              : undefined,
           parentIds:
             type.schema.kind === "dataType"
               ? (type.schema.allOf ?? []).map(({ $ref }) => $ref)
@@ -421,7 +430,7 @@ export const TypesTable: FunctionComponent<{
           archived: type.archived,
         } as const;
       }),
-    [actors, filteredTypes],
+    [actors, filteredTypes, hierarchical, dataTypes],
   );
 
   const [sort, setSort] = useState<GridSort<TypesTableColumnId>>(
@@ -512,11 +521,17 @@ export const TypesTable: FunctionComponent<{
                 themeOverride,
                 readonly: true,
                 allowOverlay: false,
-                copyData: row.title,
+                copyData: [
+                  row.title,
+                  row.labelPreview?.map(({ text }) => text).join(""),
+                ]
+                  .filter(Boolean)
+                  .join(" "),
                 cursor: "pointer",
                 data: {
                   kind: "data-type-tree-cell",
                   title: row.title,
+                  labelPreview: row.labelPreview,
                   icon: row.icon,
                   ...row.hierarchy,
                   muted: !row.hierarchy.matchesSearch,
@@ -674,12 +689,20 @@ export const TypesTable: FunctionComponent<{
     const query = treeSearchValue.toLowerCase();
     return new Set(
       rows
-        .filter((_, rowIndex) =>
-          typesTableColumns.some((_column, colIndex) =>
-            getCellSearchableText(getCellContent([colIndex, rowIndex]))
-              ?.toLowerCase()
-              .includes(query),
-          ),
+        .filter(
+          (row, rowIndex) =>
+            Boolean(
+              row.labelPreview
+                ?.map(({ text }) => text)
+                .join("")
+                .toLowerCase()
+                .includes(query),
+            ) ||
+            typesTableColumns.some((_column, colIndex) =>
+              getCellSearchableText(getCellContent([colIndex, rowIndex]))
+                ?.toLowerCase()
+                .includes(query),
+            ),
         )
         .map(({ typeId }) => typeId),
     );
