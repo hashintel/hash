@@ -68,6 +68,14 @@ const compile = Effect.fnUntraced(function* ({ example, file }: Compiled) {
   const symbols = yield* checker.getSymbolAtLocation(names);
 
   for (const [name, found] of Array.zip(names, symbols)) {
+    if (Option.isNone(found)) {
+      // A name the compiler resolves to no symbol refers to nothing, and an editor shows the type at it.
+      const shown = yield* QuickInfo.typeAt(name);
+      if (Option.isSome(shown)) {
+        store.hover(name, shown.value);
+      }
+    }
+
     if (Option.isSome(found)) {
       // A name that resolves to nothing, such as an import the program cannot find, has no meaning to show. The subject is what an editor shows for the name, so a member of an object literal refers to the property the code around the literal expects.
       const subject = yield* Subject.of(name, found.value);
