@@ -21,30 +21,30 @@ import { useLatestEntityTypesOptional } from "../../../../../../../shared/entity
 import { useEntityTypesContextRequired } from "../../../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { usePropertyTypes } from "../../../../../../../shared/property-types-context";
 import { useDataTypesContext } from "../../../../../../shared/data-types-context";
+import {
+  operatorsByKind,
+  readQueryForm,
+  sortOrders,
+  toEntityQuery,
+} from "../shared/query-form";
 import { getPathInSource } from "./field-problems";
 import { InputField } from "./input-field";
 import {
   getConditionProperties,
   getLatestDataTypeIds,
 } from "./query-field/condition-properties";
-import {
-  operatorsByKind,
-  readQueryForm,
-  sortOrders,
-  toEntityQuery,
-} from "./query-field/query-form";
 
-import type {
-  ConditionOntology,
-  ConditionProperty,
-} from "./query-field/condition-properties";
 import type {
   ConditionOperator,
   ConditionValueKind,
   QueryCondition,
   QueryForm,
   SortOrder,
-} from "./query-field/query-form";
+} from "../shared/query-form";
+import type {
+  ConditionOntology,
+  ConditionProperty,
+} from "./query-field/condition-properties";
 import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
 import type {
   FilterChange,

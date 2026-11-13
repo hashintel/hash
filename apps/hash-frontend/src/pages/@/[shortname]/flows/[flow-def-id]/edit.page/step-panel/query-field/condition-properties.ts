@@ -1,7 +1,7 @@
 import { deriveFilterableProperties } from "../../../../../../../shared/entities-visualizer/shared/property-filters/derive-filterable-properties";
 
 import type { FilterMetadataForProperty } from "../../../../../../../shared/entities-visualizer/shared/property-filters/property-filter";
-import type { ConditionValueKind } from "./query-form";
+import type { ConditionValueKind } from "../../shared/query-form";
 import type {
   BaseUrl,
   DataTypeWithMetadata,
