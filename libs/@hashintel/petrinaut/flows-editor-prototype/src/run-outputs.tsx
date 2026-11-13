@@ -34,7 +34,6 @@ import { Mail, Paperclip } from "lucide-react";
  */
 import { createContext, Fragment, use, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useFullScreenHandle } from "react-full-screen";
 
 import {
   Button,
@@ -48,26 +47,17 @@ import {
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { StepTile, useAttrib, useAttribInLogs } from "./attrib";
-import {
-  findStep,
-  flaggedOutputsOf,
-  flattenSteps,
-  outputKey,
-  stepLabel,
-} from "./document";
+import { flaggedOutputsOf, flattenSteps, outputKey } from "./document";
 import { useEditor } from "./editor-context";
 import { MixedFileOutputs, useFileTypes } from "./file-types";
 import { firstLineIconStyle, selectedLabel } from "./menu-rows";
 import { useLocation } from "./router";
 import { HashPdfViewer } from "./hash-file-preview/hash-pdf-viewer";
-import { a4Ratio, PdfPreview, PdfThumb, pdfUrlOf } from "./pdf-preview";
+import { a4Ratio, PdfThumb, pdfUrlOf } from "./pdf-preview";
 import { RunGlyph } from "./run-glyph";
-import { FileRow as DsFileRow } from "./ds-parts/file-row";
 import { Table } from "./ds-parts/table";
 import { RunIdsIn, runLabel } from "./run-id";
 import { ShowAllRow } from "./show-all-row";
-import { repeatsPicked, repeatsTrim } from "./repeats-flag";
 import { TextLink } from "./text-link";
 import {
   clockPlus,
@@ -91,8 +81,7 @@ export const useStepOutputsTake = (): StepOutputsTake => {
 };
 
 /**
- * An email row, by take (inbox `picks/email-rows`): Aakarsh picked 1 on 5 Nov, so 1 is the default; ?emailrow=2..4
- * shows the others.
+ * An email row, by take (inbox `picks/email-rows`): Aakarsh picked 1 on 5 Nov.
  * 1. Recipient first: initials, recipient, subject, sent time; a status mark only when an email bounced.
  * 2. Delivery status first: an F3 mark (sent or bounced) leads, then recipient and subject.
  * 3. A plain mail glyph, recipient, subject and a one-line snippet.
@@ -101,12 +90,7 @@ export const useStepOutputsTake = (): StepOutputsTake => {
  */
 export type EmailRowTake = "1" | "2" | "3" | "4" | null;
 
-export const useEmailRowTake = (): EmailRowTake => {
-  const value = useLocation().query.get("emailrow");
-  return value === "1" || value === "2" || value === "3" || value === "4"
-    ? value
-    : "1";
-};
+export const useEmailRowTake = (): EmailRowTake => "1";
 
 /**
  * ?edgecase=1..6 (inbox `picks/outputs-container`, Aakarsh 5 Nov: "why are you so sure the outputs will be too big
@@ -123,16 +107,13 @@ export const useEdgeCase = (): number | null => {
 /**
  * How a list of more than one type moves between types (inbox `picks/entity-types`). Decided 5 Nov: b, type tabs
  * ("Suppliers 14 · Distributors 6") above the list, in every container (inline column, side sheet, modal); a single
- * type draws no tabs. The two not picked stay behind ?entityswitch=a|c, read from the URL only:
+ * type draws no tabs. The two not picked (removed 13 Nov; see ops flags-archive-1113.md):
  * a. Stacked sections: a heading and count per type, scroll moves between them, each with "Show all N".
  * c. A type filter in the list header: "All types ▾", or one type (the inline column only).
  */
 export type EntitySwitchTake = "a" | "b" | "c";
 
-export const useEntitySwitch = (): EntitySwitchTake => {
-  const value = useLocation().query.get("entityswitch")?.toLowerCase();
-  return value === "a" || value === "c" ? value : "b";
-};
+export const useEntitySwitch = (): EntitySwitchTake => "b";
 
 export type EntityTypesTake = "a" | "b";
 
@@ -144,28 +125,9 @@ export const useEntityTypesTake = (): EntityTypesTake =>
  * MOCK outputs, from the seed suppliers
  * ------------------------------------------------------------------------------------------------------------- */
 
-/** `?docviewer=sheet`: a PDF's expand opens the wide side sheet with its facts and Download (never approved). */
-const docViewerSheet =
-  new URLSearchParams(globalThis.location.search).get("docviewer") ===
-  "sheet";
-
-/** `?pdf=drawn`: certificates show the drawn 3 : 4 page instead of the real PDF (before 13 Nov). */
-const drawnPages =
-  new URLSearchParams(globalThis.location.search).get("pdf") === "drawn";
-
-/** `?pdfviewer=redraw`: the prototype's own redraw of the PDF viewer (13 Nov, ddf8d1e43) instead of HASH's. */
-const pdfViewerRedraw =
-  new URLSearchParams(globalThis.location.search).get("pdfviewer") ===
-  "redraw";
-
 /** `?pdfopen=panel`: a certificate opens in HASH's viewer inside the right panel (9d05ed617), not over the canvas. */
 const pdfOpenPanel =
   new URLSearchParams(globalThis.location.search).get("pdfopen") === "panel";
-
-/** `?outputheading=old`: Fetch file's run Outputs heading reads "Certificates · 18 PDFs" (before 13 Nov). */
-const outputHeadingOld =
-  new URLSearchParams(globalThis.location.search).get("outputheading") ===
-  "old";
 
 const issuers = [
   { name: "Bureau Veritas Certification", short: "Bureau Veritas" },
@@ -527,118 +489,10 @@ const paperStyle = css({
   fontFamily: "body",
 });
 
-const issuerStyle = css({
-  fontSize: "[15px]", // token-guard: allow a drawn print page, scaled as a whole
-});
-
-const standardStyle = css({
-  marginTop: "[10px]",
-  fontSize: "[14px]", // token-guard: allow a drawn print page, scaled as a whole
-});
-
 const subjectStyle = css({
   fontSize: "[18px]", // token-guard: allow a drawn print page, scaled as a whole
   fontWeight: "medium",
 });
-
-const CertificatePage = ({ file }: { file: Certificate }) => (
-  <div
-    className={cx(
-      paperStyle,
-      css({ alignItems: "center", paddingX: "[40px]", paddingTop: "[44px]" }),
-    )}
-  >
-    <div
-      className={css({ display: "flex", alignItems: "center", gap: "[10px]" })}
-    >
-      <span
-        className={css({
-          width: "[26px]",
-          height: "[26px]",
-          borderRadius: "full",
-          backgroundColor: "neutral.fg.body",
-        })}
-      />
-      <span className={issuerStyle}>{file.issuer}</span>
-    </div>
-    <div
-      className={css({
-        marginTop: "[22px]",
-        fontSize: "[30px]", // token-guard: allow a drawn print page, scaled as a whole
-        letterSpacing: "[0.02em]",
-        fontWeight: "medium",
-      })}
-    >
-      CERTIFICATE
-    </div>
-    <div className={standardStyle}>
-      ISO 9001:2015 · Quality management system
-    </div>
-    <div
-      className={css({
-        marginTop: "[24px]",
-        fontSize: "[13px]", // token-guard: allow a drawn print page, scaled as a whole
-        color: "neutral.fg.subtle",
-      })}
-    >
-      This is to certify that the management system of
-    </div>
-    <div
-      className={css({
-        marginTop: "[14px]",
-        fontSize: "[20px]", // token-guard: allow a drawn print page, scaled as a whole
-        fontWeight: "medium",
-      })}
-    >
-      {file.supplier} Ltd
-    </div>
-    <div
-      className={css({
-        marginTop: "[14px]",
-        fontSize: "[13px]", // token-guard: allow a drawn print page, scaled as a whole
-        lineHeight: "[22px]",
-        textAlign: "center",
-        color: "neutral.fg.subtle",
-      })}
-    >
-      has been assessed and found to conform to ISO 9001:2015 for the design,
-      manufacture and supply of {file.scope}.
-    </div>
-    <div
-      className={css({
-        marginTop: "[26px]",
-        width: "[100%]",
-        display: "grid",
-        gridTemplateColumns: "[1fr auto]",
-        rowGap: "[10px]",
-        fontSize: "[13px]", // token-guard: allow a drawn print page, scaled as a whole
-        "& > span:nth-child(odd)": { color: "neutral.fg.subtle" },
-      })}
-    >
-      <span>Certificate no.</span>
-      <span>{file.certNo}</span>
-      <span>Original approval</span>
-      <span>{file.approved}</span>
-      <span>Valid until</span>
-      <span>{file.validUntil}</span>
-    </div>
-    <div
-      className={css({
-        marginTop: "[30px]",
-        width: "[150px]",
-        borderTopWidth: "[1px]",
-        borderTopStyle: "solid",
-        borderTopColor: "neutral.bd.subtle",
-        paddingTop: "[8px]",
-        textAlign: "center",
-        fontSize: "[11px]", // token-guard: allow a drawn print page, scaled as a whole
-        color: "neutral.fg.subtle",
-      })}
-    >
-      Authorised signatory
-    </div>
-  </div>
-);
 
 const EmailPage = ({ file }: { file: Email }) => (
   <div className={cx(paperStyle, css({ padding: "[32px]", gap: "[18px]" }))}>
@@ -709,7 +563,7 @@ export const Page = ({
   framed?: boolean;
 }) => {
   const scale = width / pageWidth;
-  if (file.kind === "certificate" && !drawnPages) {
+  if (file.kind === "certificate") {
     return (
       <span
         aria-hidden
@@ -763,11 +617,7 @@ export const Page = ({
         })}
         style={{ transform: `scale(${scale})` }}
       >
-        {file.kind === "certificate" ? (
-          <CertificatePage file={file} />
-        ) : (
-          <EmailPage file={file} />
-        )}
+        <EmailPage file={file} />
       </span>
     </span>
   );
@@ -868,22 +718,6 @@ const Block = ({
     {children}
   </section>
 );
-
-/**
- * `?linkout=old`: "Open all in Files" and "Open in Mail". HASH has no Files or Mail product, so by default an output
- * list links nowhere outside the run.
- */
-const oldLinkOut =
-  new URLSearchParams(globalThis.location.search).get("linkout") === "old";
-
-const LinkOut = ({ label, tooltip }: { label: string; tooltip: string }) =>
-  oldLinkOut ? (
-    <span className={linkOutStyle}>
-      <TextLink leaves tooltip={tooltip}>
-        {label}
-      </TextLink>
-    </span>
-  ) : null;
 
 const rowButtonStyle = css({
   display: "grid",
@@ -1085,24 +919,6 @@ const PageRow = ({
   tag?: string;
   onOpen: () => void;
 }) => {
-  const dsRow = useLocation().query.get("filerow")?.toLowerCase() === "ds";
-  if (dsRow) {
-    return (
-      <DsFileRow
-        data-output-file={file.kind}
-        preview={<Page file={file} width={28} framed={false} />}
-        name={fileTitle(file)}
-        size={
-          file.kind === "certificate"
-            ? `${file.sizeKb} KB`
-            : `sent ${file.sentAt.slice(0, 5)}`
-        }
-        detail={fileDetail(file)}
-        aside={tag}
-        onClick={onOpen}
-      />
-    );
-  }
   return (
     <button
       type="button"
@@ -1223,7 +1039,7 @@ const failureRowStyle = css({
 
 const Failures = ({ failures }: { failures: Failure[] }) =>
   failures.length > 0 ? (
-    <Block title={repeatsTrim ? "Failed" : `Failed · ${failures.length}`}>
+    <Block title={`Failed · ${failures.length}`}>
       <div
         className={css({ display: "flex", flexDirection: "column", gap: "2" })}
       >
@@ -1651,8 +1467,8 @@ const FileNav = ({
   );
 };
 
-/** Download (and, with `?linkout=old`, Open in Files / Mail). */
-const FileActions = ({ file }: { file: OutputFile }) => (
+/** Download. */
+const FileActions = () => (
   <>
     <Button
       size="sm"
@@ -1662,18 +1478,6 @@ const FileActions = ({ file }: { file: OutputFile }) => (
     >
       Download
     </Button>
-    {oldLinkOut ? (
-      <TextLink
-        leaves
-        tooltip={
-          file.kind === "certificate"
-            ? "Opens the File entity in HASH (not in the prototype)"
-            : "Opens the sent email (not in the prototype)"
-        }
-      >
-        {file.kind === "certificate" ? "Open in Files" : "Open in Mail"}
-      </TextLink>
-    ) : null}
   </>
 );
 
@@ -1766,7 +1570,7 @@ const FileModal = ({
         actions={
           <span className={headerActionsStyle} data-output-modal-actions>
             <FileNav view={view} onChange={onChange} />
-            <FileActions file={file} />
+            <FileActions />
           </span>
         }
       />
@@ -1862,42 +1666,6 @@ const TypeTabs = ({
   </div>
 );
 
-/** ?attrib=b: one tab per step, the type tabs' look ("Fetch certificate 18"); they wrap rather than cut a name. */
-const StepTabs = ({
-  steps,
-  current,
-  onPick,
-  className,
-}: {
-  steps: StepBlock[];
-  current: string;
-  onPick: (stepId: string) => void;
-  className?: string;
-}) => (
-  <div
-    role="tablist"
-    aria-label="Steps"
-    className={cx(typeTabsStyle, css({ flexWrap: "wrap", rowGap: "1" }), className)}
-  >
-    {steps.map((block) => (
-      <button
-        key={block.stepId}
-        type="button"
-        role="tab"
-        aria-selected={block.stepId === current}
-        className={typeTabStyle}
-        data-step-tab={block.stepId}
-        onClick={() => onPick(block.stepId)}
-      >
-        {block.step}
-        <span>
-          {block.groups.reduce((sum, group) => sum + groupSize(group), 0)}
-        </span>
-      </button>
-    ))}
-  </div>
-);
-
 /** ?attrib=a: a step section's heading, "Fetch certificate · 18 certificates". */
 const StepHead = ({
   block,
@@ -1912,11 +1680,6 @@ const StepHead = ({
     <span>{block.count}</span>
   </div>
 );
-
-/** The step a list opens at: the one whose output was clicked. */
-const stepOfFocus = (steps: StepBlock[], focus: string | undefined) =>
-  steps.find((block) => block.groups.some((group) => group.type === focus))
-    ?.stepId;
 
 /**
  * Wide lists (modal, side sheet): the tabs sit over the tables' first column, 12 px in, so a tab's label starts at the
@@ -2226,13 +1989,12 @@ const MixedBody = ({
   const tabbed = useEntitySwitch() === "b" && view.groups.length > 1;
   const [shownAll, setShownAll] = useState<string[]>([]);
   const [picked, setPicked] = useState<string | null>(null);
-  const attrib = useAttrib();
   const current =
     picked ??
     view.groups.find((group) => group.type === view.focus)?.type ??
     view.groups[0]?.type ??
     "";
-  if (attrib && view.steps && view.steps.length > 0) {
+  if (view.steps && view.steps.length > 0) {
     const steps = view.steps;
     const part = (block: StepBlock) => (
       <MixedBody
@@ -2248,23 +2010,6 @@ const MixedBody = ({
         bare
       />
     );
-    if (attrib === "b") {
-      const shownStep =
-        picked ?? stepOfFocus(steps, view.focus) ?? steps[0]!.stepId;
-      const block =
-        steps.find((entry) => entry.stepId === shownStep) ?? steps[0]!;
-      return (
-        <div data-attrib="b">
-          <StepTabs
-            className={wideTabsStyle}
-            steps={steps}
-            current={block.stepId}
-            onPick={setPicked}
-          />
-          {part(block)}
-        </div>
-      );
-    }
     return (
       <div data-attrib="a">
         {steps.map((block) => (
@@ -3020,8 +2765,7 @@ const ColumnList = ({
         ?.scrollIntoView({ block: "start" });
     }
   }, [focus, switchTake]);
-  const attrib = useAttrib();
-  if (attrib && view.kind === "mixed" && view.steps && view.steps.length > 0) {
+  if (view.kind === "mixed" && view.steps && view.steps.length > 0) {
     const steps = view.steps;
     const part = (block: StepBlock) => (
       <ColumnList
@@ -3035,22 +2779,6 @@ const ColumnList = ({
         {...(onShowAll ? { onShowAll } : {})}
       />
     );
-    if (attrib === "b") {
-      const shownStep =
-        picked ?? stepOfFocus(steps, focus) ?? steps[0]!.stepId;
-      const block =
-        steps.find((entry) => entry.stepId === shownStep) ?? steps[0]!;
-      return (
-        <div
-          ref={listRef}
-          className={css({ display: "flex", flexDirection: "column", gap: "6" })}
-          data-attrib="b"
-        >
-          <StepTabs steps={steps} current={block.stepId} onPick={setPicked} />
-          {part(block)}
-        </div>
-      );
-    }
     return (
       <div
         ref={listRef}
@@ -3267,16 +2995,8 @@ const OutputColumn = ({
   onExpand?: () => void;
 }) => {
   const file = view.kind === "files" ? view.files[view.index]! : null;
-  const attrib = useAttrib();
-  const fullScreen = useFullScreenHandle();
-  /** A PDF's expand is HASH's "View in fullscreen"; ?docviewer=sheet keeps the wide sheet with its facts. */
-  const pdfFullScreen =
-    file?.kind === "certificate" &&
-    !docViewerSheet &&
-    !drawnPages &&
-    pdfViewerRedraw;
   /** fh2: HASH's own PDF viewer, full height in the column; its own full screen button is the only way to full screen. */
-  const hashPdf = file?.kind === "certificate" && !drawnPages && !pdfViewerRedraw;
+  const hashPdf = file?.kind === "certificate";
   return (
     <>
       <div className={columnHeadStyle}>
@@ -3296,20 +3016,7 @@ const OutputColumn = ({
           {view.kind === "files" ? (
             <FileNav view={view} onChange={onReplace} variant="ghost" />
           ) : null}
-          {pdfFullScreen ? (
-            <Button
-              size="sm"
-              variant="ghost"
-              tone="neutral"
-              iconName="expand"
-              aria-label="View in fullscreen"
-              tooltip="View in fullscreen"
-              onClick={() => {
-                fullScreen.enter().catch(() => undefined);
-              }}
-              data-outputs-expand
-            />
-          ) : onExpand && !(hashPdf && !docViewerSheet) ? (
+          {onExpand && !hashPdf ? (
             <Button
               size="sm"
               variant="ghost"
@@ -3340,26 +3047,19 @@ const OutputColumn = ({
               <HashPdfViewer url={pdfUrlOf(file.fileName)} />
             ) : (
             <div className={documentStageStyle} data-document-stage>
-              {file.kind === "certificate" && !drawnPages ? (
-                <PdfPreview
-                  url={pdfUrlOf(file.fileName)}
-                  handle={fullScreen}
-                />
-              ) : (
-                <Page file={file} width={width - 48} />
-              )}
+              <Page file={file} width={width - 48} />
             </div>
             )}
             <FileFacts file={file} run={run} />
             <span className={css({ display: "flex", gap: "1.5" })}>
-              <FileActions file={file} />
+              <FileActions />
             </span>
           </>
         ) : view.kind === "files" ? null : (
           <>
             <div className={headBlockStyle}>
               <span className={strongTitleStyle}>
-                {attrib && view.kind === "mixed" && view.steps?.length
+                {view.kind === "mixed" && view.steps?.length
                   ? (view.stepsTitle ?? view.title)
                   : view.title}
               </span>
@@ -3399,8 +3099,7 @@ const OutputSheet = ({
   const { run } = outputs;
   const file = view.kind === "files" ? view.files[view.index]! : null;
   // ?attrib: a list of several steps' outputs is titled by what it is; its line names the run only.
-  const byStep =
-    useAttrib() !== null && view.kind === "mixed" && Boolean(view.steps?.length);
+  const byStep = view.kind === "mixed" && Boolean(view.steps?.length);
   const listTitle =
     view.kind === "mixed" && byStep ? (view.stepsTitle ?? view.title) : view.kind === "files" ? "" : view.title;
   return (
@@ -3440,7 +3139,7 @@ const OutputSheet = ({
             {view.kind === "files" && file ? (
               <>
                 <FileNav view={view} onChange={onReplace} />
-                <FileActions file={file} />
+                <FileActions />
               </>
             ) : (
               <OpenInEntities />
@@ -3477,10 +3176,7 @@ const OutputSheet = ({
 const opensOverCanvas = (next: ViewerState): next is FilesView =>
   next.kind === "files" &&
   next.files[next.index]?.kind === "certificate" &&
-  !pdfOpenPanel &&
-  !pdfViewerRedraw &&
-  !drawnPages &&
-  !docViewerSheet;
+  !pdfOpenPanel;
 
 const canvasLayerStyle = css({
   position: "fixed",
@@ -4181,7 +3877,7 @@ export const StepOutputs = ({
   const edgeCase = edge ? edgeCaseOf(edge, outputs, typesTake) : null;
   const fileTypes = useFileTypes();
   // ?attrib: the heading names the output, "Certificates · 18"; the footer keeps where it was saved, not who uses it.
-  const attrib = useAttrib() !== null && take === "a";
+  const attrib = take === "a";
   if (fileTypes && stepId === "fetchCertificate") {
     return <MixedFileOutputs />;
   }
@@ -4262,11 +3958,7 @@ export const StepOutputs = ({
           <EntityOutput
             label="Entities"
             icon="cubes"
-            count={
-              repeatsTrim
-                ? entityCount(outputs.updated, typesTake)
-                : `${entityCount(outputs.updated, typesTake)} updated`
-            }
+            count={`${entityCount(outputs.updated, typesTake)} updated`}
             names={names(outputs.updated)}
             flagged={flagged("entityId")}
             onOpen={() => open(views.reviewed)}
@@ -4281,34 +3973,13 @@ export const StepOutputs = ({
             files={files}
             title={
               // output-group-heading (13 Nov): the saved entity type and the count, "File entity · 18".
-              !outputHeadingOld && take !== "d"
+              take !== "d"
                 ? `File entity · ${files.length}`
-                : repeatsTrim
-                ? take === "d"
-                  ? "Files"
-                  : "Certificates"
-                : take === "d"
-                ? `Files · ${plural(files.length, "PDF")}`
-                : attrib
-                  ? `Certificates · ${files.length}`
-                  : `Certificates · ${plural(files.length, "PDF")}`
+                : `Files · ${plural(files.length, "PDF")}`
             }
-            linkOut={
-              <LinkOut
-                label={take === "d" ? "Open all" : "Open all in Files"}
-                tooltip="Opens these File entities in HASH (not in the prototype)"
-              />
-            }
+            linkOut={null}
             flagged={flagged("fileEntity")}
-            footer={
-              attrib
-                ? "Saved to @acme"
-                : take === "a"
-                ? repeatsTrim
-                  ? "Saved as File entities in @acme · Used in Send review email"
-                  : `Saved as ${plural(files.length, "File entity", "File entities")} in @acme · Used in Send review email`
-                : undefined
-            }
+            footer={attrib ? "Saved to @acme" : undefined}
             noun="certificates"
             onOpen={openFiles(files, "Fetch certificate")}
             onShowAll={() =>
@@ -4397,19 +4068,12 @@ export const StepOutputs = ({
             <FileList
               take={take}
               files={files}
-              title={repeatsTrim ? "Emails" : `Emails · ${files.length} sent`}
+              title={`Emails · ${files.length} sent`}
               flagged={flagged("messageId")}
-              linkOut={
-                <LinkOut
-                  label="Open in Mail"
-                  tooltip="Opens the sent emails (not in the prototype)"
-                />
-              }
+              linkOut={null}
               footer={
                 skipped > 0
-                  ? repeatsTrim
-                    ? "Skipped: no certificate to send"
-                    : `${plural(skipped, "supplier")} skipped: no certificate to send`
+                  ? `${plural(skipped, "supplier")} skipped: no certificate to send`
                   : undefined
               }
               noun="emails"
@@ -4480,28 +4144,6 @@ const dotStyle = css({ color: "neutral.fg.subtle" });
 /** The Logs cell keeps one line (11 Nov, inbox conv-overflow): up to three counts show; past that, two and "+N". */
 const cellFits = 3;
 const cellParts = 2;
-
-/** ?attrib=b: how many characters of step names the one-line cell holds before "+N". */
-const cellChars = 44;
-
-/** ?attrib=a: the step's 16 px tile, 4 px before the count; the underline stays on the words. */
-const tiledPartStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "1",
-  textDecorationLine: "none",
-  "& > span:last-child": {
-    textDecorationLine: "underline",
-    textDecorationColor: "neutral.a20",
-    textUnderlineOffset: "[3px]",
-  },
-  _hover: { "& > span:last-child": { textDecorationColor: "neutral.fg.muted" } },
-});
-
-/** ?attrib=b: the step's name, its count fainter after it, as on a tab ("Fetch certificate 18"). */
-const namedPartStyle = css({
-  "& > span": { marginLeft: "1", color: "neutral.fg.subtle" },
-});
 
 /** "+N" after a run of counts, as after a run of chips (`fields.tsx`). */
 const cellMoreStyle = css({
@@ -4622,17 +4264,14 @@ export const RunOutputsCell = ({
   now: number;
 }) => {
   const { document } = useEditor();
-  const attrib = useAttribInLogs();
-  // ?attrib: one count per output, never one per entity type ("20 entities", not "14 suppliers · 6 distributors").
-  const typesTake = useEntityTypesTake();
-  const take = attrib ? "b" : typesTake;
+  const take = useEntityTypesTake();
   const outputs = runOutputs(run, now);
   const anchor = useRef<HTMLSpanElement>(null);
   const { open, container, node } = useOutputViewer(outputs, anchor);
   if (outputs.findFailed) {
     return (
       <span className={css({ color: "neutral.fg.subtle" })}>
-        {repeatsPicked ? "Nothing" : "Nothing · stopped at Find active suppliers"}
+        Nothing
       </span>
     );
   }
@@ -4663,108 +4302,15 @@ export const RunOutputsCell = ({
             onOpen: () => open(flaggedView(outputs, flags, take, focus)),
           };
     });
-  const stepOf = (part: CellPart) => part.key.split(".")[0] ?? "";
-  const nameOf = (part: CellPart) => {
-    const step = findStep(document, stepOf(part))?.step;
-    return step ? stepLabel(step) : stepOf(part);
-  };
-  // b: step names, as many as fit one line (about 40 characters), then "+N".
-  const fitting = (() => {
-    let used = 0;
-    let fit = 0;
-    for (const part of parts) {
-      used += nameOf(part).length + String(part.count).length + 4;
-      if (fit > 0 && used > cellChars) {
-        break;
-      }
-      fit += 1;
-    }
-    return fit;
-  })();
   return (
     // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- keeps a part's click off the row
     <span
       ref={anchor}
       className={cellStyle}
       data-run-outputs={run.id}
-      data-attrib={attrib ?? undefined}
       onClick={(event) => event.stopPropagation()}
     >
-      {parts.length > 0 && attrib === "a" ? (
-        <>
-          {parts
-            .slice(0, parts.length > cellFits ? cellParts : cellFits)
-            .map((part) => (
-              // The tiles part the counts, so no "·" between them: with dots the column outgrows the table at 1440.
-              <Fragment key={part.key}>
-                <Tooltip content={nameOf(part)}>
-                  <button
-                    type="button"
-                    className={cx(linkStyle, tiledPartStyle)}
-                    data-run-output={part.key}
-                    onClick={part.onOpen}
-                  >
-                    <StepTile stepId={stepOf(part)} />
-                    <span>{part.text}</span>
-                  </button>
-                </Tooltip>
-              </Fragment>
-            ))}
-          {parts.length > cellFits ? (
-            <Tooltip
-              content={parts
-                .slice(cellParts)
-                .map((part) => `${nameOf(part)} · ${part.text}`)
-                .join(", ")}
-            >
-              <button
-                type="button"
-                className={cellMoreStyle}
-                aria-label={`Show ${parts.length - cellParts} more`}
-                onClick={parts[cellParts]!.onOpen}
-              >
-                +{parts.length - cellParts}
-              </button>
-            </Tooltip>
-          ) : null}
-        </>
-      ) : parts.length > 0 && attrib === "b" ? (
-        <>
-          {parts.slice(0, fitting).map((part, index) => (
-            <Fragment key={part.key}>
-              {index > 0 ? <span className={dotStyle}>·</span> : null}
-              <Tooltip content={part.text}>
-                <button
-                  type="button"
-                  className={cx(linkStyle, namedPartStyle)}
-                  data-run-output={part.key}
-                  onClick={part.onOpen}
-                >
-                  {nameOf(part)}
-                  <span>{part.count}</span>
-                </button>
-              </Tooltip>
-            </Fragment>
-          ))}
-          {parts.length > fitting ? (
-            <Tooltip
-              content={parts
-                .slice(fitting)
-                .map((part) => `${nameOf(part)} ${part.count}`)
-                .join(", ")}
-            >
-              <button
-                type="button"
-                className={cellMoreStyle}
-                aria-label={`Show ${parts.length - fitting} more`}
-                onClick={parts[fitting]!.onOpen}
-              >
-                +{parts.length - fitting}
-              </button>
-            </Tooltip>
-          ) : null}
-        </>
-      ) : parts.length === 0 ? (
+      {parts.length === 0 ? (
         <span className={css({ color: "neutral.fg.subtle" })}>
           {flags.length === 0 ? "No outputs flagged" : "Nothing yet"}
         </span>

@@ -221,16 +221,6 @@ export const openDecisions: OpenSwitch[] = [
       { label: "figma quiet", value: "quiet" },
     ],
   },
-  {
-    card: "repeats-trim",
-    title: "Repeated facts · trim",
-    flag: "repeats",
-    defaultValue: null,
-    options: [
-      { label: "today", value: null },
-      { label: "trim", value: "trim" },
-    ],
-  },
 ];
 
 /** Every flag above, so a page change keeps them and Reset all clears them. */

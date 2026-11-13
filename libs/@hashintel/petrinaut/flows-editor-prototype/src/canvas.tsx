@@ -115,7 +115,6 @@ import {
 } from "./trigger-flags";
 import { ToggleableTextInput } from "./ds-parts/toggleable-text-input";
 import { Toast } from "./ds-parts/toast";
-import { repeatsTrim } from "./repeats-flag";
 
 // The V7 card on ↳ Current: 200 wide, 12 px in, a 24 px tile and two lines (59 px with its border).
 export const STEP_WIDTH = 200;
@@ -2621,13 +2620,7 @@ const RunTriggerView = ({ selected }: NodeProps<StepNode>) => {
         ) : (
           <CardText
             title={label.title}
-            description={
-              repeatsTrim
-                ? runView.run.trigger.kind === "manual"
-                  ? runView.run.trigger.by
-                  : "1st of month at 09:00"
-                : label.line
-            }
+            description={label.line}
           />
         )}
       </div>

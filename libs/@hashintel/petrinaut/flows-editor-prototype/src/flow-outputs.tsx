@@ -19,7 +19,6 @@ import {
   stepLabel,
   toggleOutputFlag,
 } from "./document";
-import { useAttrib } from "./attrib";
 import { useEditor } from "./editor-context";
 import { useFlowOutputTake, useStarCopy } from "./outputs";
 
@@ -102,16 +101,6 @@ const nameInputStyle = css({
   outline: "none",
   _hover: { boxShadow: "[inset 0 0 0 1px var(--colors-neutral-bd-subtle)]" },
   _focus: { boxShadow: "[inset 0 0 0 1px var(--colors-neutral-bd-solid)]" },
-});
-
-const fromStyle = css({
-  flexShrink: 0,
-  maxWidth: "[45%]",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  textStyle: "xs",
-  color: "neutral.fg.subtle",
 });
 
 const stepLeadStyle = css({
@@ -295,8 +284,7 @@ export const FlowOutputsPanel = () => {
   const outputs = flowOutputsOf(document);
   const editable = take === 4;
   const featured = useStarCopy() !== null;
-  // ?attrib: the step leads, "Fetch certificate › File entity", with no "from".
-  const attrib = useAttrib() !== null;
+  // The step leads, "Fetch certificate › File entity", with no "from".
   return (
     <div data-flow-outputs-panel>
       <div className={titleStyle}>{featured ? "Featured outputs" : editable ? "Flow outputs" : "Outputs"}</div>
@@ -311,12 +299,10 @@ export const FlowOutputsPanel = () => {
         ) : null}
         {outputs.map((output) => (
           <div key={output.key} className={rowStyle}>
-            {attrib ? (
-              <span className={stepLeadStyle}>
-                {output.stepName}
-                <span>›</span>
-              </span>
-            ) : null}
+            <span className={stepLeadStyle}>
+              {output.stepName}
+              <span>›</span>
+            </span>
             {editable ? (
               <input
                 className={nameInputStyle}
@@ -333,9 +319,6 @@ export const FlowOutputsPanel = () => {
               <span className={css({ flex: "1", textStyle: "sm" })}>
                 {output.label}
               </span>
-            )}
-            {attrib ? null : (
-              <span className={fromStyle}>from {output.stepName}</span>
             )}
             {editable ? (
               <button

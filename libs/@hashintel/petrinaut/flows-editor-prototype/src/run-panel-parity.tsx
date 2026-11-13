@@ -32,8 +32,6 @@ import { PropertyRow, Section } from "./ui";
 
 import type { StepInputSource } from "./engine";
 
-export const runPanelOld =
-  new URLSearchParams(globalThis.location.search).get("runpanel") === "old";
 
 /** The item a step ran for, when the panel shows one item: the question's, or the one picked on the canvas. */
 export type RunItem = {

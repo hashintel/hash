@@ -104,17 +104,13 @@ const sameOutput =
     source.stepId === stepId &&
     source.outputName === outputName;
 
-/** `?runpanel=old` also keeps Used in's engine labels ("Recipient address"). */
-const namesOld =
-  new URLSearchParams(globalThis.location.search).get("runpanel") === "old";
-
 const inputLabel = (document: EditorDocument, stepId: string, name: string) => {
   const step = findStep(document, stepId)?.step;
   const entry =
     step?.kind === "action" ? getCatalogEntry(step.actionDefinitionId) : undefined;
   // The field's own label, so Used in names Send review email's To as the panel does (panel parity, 13 Nov).
   const own =
-    step?.kind === "action" && !namesOld
+    step?.kind === "action"
       ? inputLabels[`${step.actionDefinitionId}.${name}`]
       : undefined;
   return own ?? entry?.inputs.find((input) => input.name === name)?.label ?? humanize(name);

@@ -56,9 +56,8 @@ import {
   sectionTitleStyle,
 } from "./ui";
 import { useEscapeCloses } from "./use-escape-closes";
-import { repeatsPicked, repeatsTrim } from "./repeats-flag";
 import { RunStepPanel, useRunView } from "./history-view";
-import { type RunItem, runPanelOld, supplierItem } from "./run-panel-parity";
+import { type RunItem, supplierItem } from "./run-panel-parity";
 
 /* ----------------------------------------------------------------------------------------------------------------
  * MOCK requests, each with what the step shows for it
@@ -586,7 +585,7 @@ const ContextView = ({
   if (context.kind === "entity") {
     return (
       <Section
-        title={repeatsPicked ? context.type : `${context.type} · ${context.name}`}
+        title={context.type}
       >
         {context.rows.map((row) => (
           <PropertyRow key={row.label} label={row.label}>
@@ -693,9 +692,7 @@ const ContextView = ({
             color: "neutral.fg.muted",
           })}
         >
-          {repeatsTrim
-            ? `Show all ${context.total}`
-            : `Showing ${context.rows.length} of ${context.total} · Show all`}
+          {`Showing ${context.rows.length} of ${context.total} · Show all`}
         </span>
       </div>
     </Section>
@@ -943,7 +940,7 @@ const ReviewPanel = ({
   withList?: boolean;
 }) => {
   const { open } = useShown();
-  if (!runPanelOld && !withList) {
+  if (!withList) {
     return <ParityReviewPanel request={request} />;
   }
   // No "Answer" label over the question (11 Nov call, outcomes L18).

@@ -61,7 +61,6 @@ import {
   AllItemsOutputsLink,
   ParitySections,
   type RunItem,
-  runPanelOld,
 } from "./run-panel-parity";
 import { triggerFiredTake } from "./trigger-flags";
 import {
@@ -944,10 +943,10 @@ export const RunStepPanel = ({
       {stepId === forEachId && state.state !== "notReached" ? (
         <Section title="Items">
           <ForEachItems facts={facts} />
-          {runPanelOld ? null : <AllItemsOutputsLink outputs={runOutputs(run, now)} />}
+          <AllItemsOutputsLink outputs={runOutputs(run, now)} />
         </Section>
       ) : null}
-      {!runPanelOld && stepId !== runTriggerId && stepId !== START_ID ? (
+      {stepId !== runTriggerId && stepId !== START_ID ? (
         <ParitySections
           stepId={stepId}
           facts={facts}
@@ -956,7 +955,7 @@ export const RunStepPanel = ({
           item={questionItem}
         />
       ) : null}
-      {!runPanelOld && stepId !== runTriggerId && stepId !== START_ID ? null : (
+      {stepId !== runTriggerId && stepId !== START_ID ? null : (
       <>
       {detail.inputs.length > 0 ? (
         <Section title="Inputs">
