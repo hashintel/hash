@@ -3,12 +3,11 @@
  *
  * @internal
  */
-import { Record } from "effect";
+import { Record, Result, Schema, SchemaIssue, SchemaParser } from "effect";
 
 import { isReadonlyArray } from "../internal/array.js";
-import { printer, separated } from "../internal/printer.js";
-
-import type * as Defs from "./schema.js";
+import { separated, tryPrinter } from "../internal/printer.js";
+import * as Defs from "./schema.js";
 
 type Expression = Defs.ExpressionType;
 
@@ -57,12 +56,32 @@ const annotatedSteps = (
   ];
 };
 
-const compileLiteral = (value: Defs.LiteralType["#literal"]): string => {
+type Literal = Defs.LiteralType["#literal"];
+
+/** Writes a literal's text, or fails on a literal it refuses to write. */
+type LiteralWriter = (
+  value: Literal,
+) => Result.Result<string, SchemaIssue.Issue>;
+
+const uncheckedLiteral: LiteralWriter = (value) => {
   if (value !== null && typeof value === "object") {
-    return value.value;
+    return Result.succeed(value.value);
   }
 
-  return JSON.stringify(value);
+  return Result.succeed(JSON.stringify(value));
+};
+
+const numericLiteral = SchemaParser.decodeResult(
+  Schema.toType(Schema.Union([Defs.Integer, Defs.Float])),
+);
+
+// The schema's own spelling checks decide, so the written text is exactly what `JExpr.make` would accept.
+const checkedLiteral: LiteralWriter = (value) => {
+  if (value !== null && typeof value === "object") {
+    return Result.map(numericLiteral(value), (number) => number.value);
+  }
+
+  return uncheckedLiteral(value);
 };
 
 /**
@@ -77,69 +96,102 @@ const isPositional = (
   isReadonlyArray(argument) ||
   !Object.keys(argument).every((key) => key.startsWith(":"));
 
-const print = printer(({ expression }: Node): readonly Step[] => {
-  if (typeof expression === "string") {
-    return [JSON.stringify(expression)];
-  }
+const expand =
+  (literal: LiteralWriter) =>
+  ({ expression }: Node): Result.Result<readonly Step[], SchemaIssue.Issue> => {
+    if (typeof expression === "string") {
+      return Result.succeed([JSON.stringify(expression)]);
+    }
 
-  if (isReadonlyArray(expression)) {
-    return arraySteps(expression, (argument) => {
-      if (isPositional(argument)) {
-        return node(argument);
-      }
+    if (isReadonlyArray(expression)) {
+      return Result.succeed(
+        arraySteps(expression, (argument) => {
+          if (isPositional(argument)) {
+            return node(argument);
+          }
 
-      return objectSteps(Record.toEntries(argument));
-    });
-  }
+          return objectSteps(Record.toEntries(argument));
+        }),
+      );
+    }
 
-  if ("#literal" in expression) {
-    return annotatedSteps(
-      "#literal",
-      [compileLiteral(expression["#literal"])],
-      expression["#type"],
+    if ("#literal" in expression) {
+      return Result.map(literal(expression["#literal"]), (text) =>
+        annotatedSteps("#literal", [text], expression["#type"]),
+      );
+    }
+
+    if ("#struct" in expression) {
+      return Result.succeed(
+        annotatedSteps(
+          "#struct",
+          objectSteps(Record.toEntries(expression["#struct"])),
+          expression["#type"],
+        ),
+      );
+    }
+
+    if ("#tuple" in expression) {
+      return Result.succeed(
+        annotatedSteps(
+          "#tuple",
+          arraySteps(expression["#tuple"], node),
+          expression["#type"],
+        ),
+      );
+    }
+
+    if ("#list" in expression) {
+      return Result.succeed(
+        annotatedSteps(
+          "#list",
+          arraySteps(expression["#list"], node),
+          expression["#type"],
+        ),
+      );
+    }
+
+    if (!("#dict" in expression)) {
+      return Result.fail(
+        new SchemaIssue.InvalidValue(
+          { message: "Expected an object with a constructor key" },
+          expression,
+        ),
+      );
+    }
+
+    const entries = expression["#dict"];
+
+    if (isReadonlyArray(entries)) {
+      return Result.succeed(
+        annotatedSteps(
+          "#dict",
+          arraySteps(entries, ([key, value]) => arraySteps([key, value], node)),
+          expression["#type"],
+        ),
+      );
+    }
+
+    return Result.succeed(
+      annotatedSteps(
+        "#dict",
+        objectSteps(Record.toEntries(entries)),
+        expression["#type"],
+      ),
     );
-  }
+  };
 
-  if ("#struct" in expression) {
-    return annotatedSteps(
-      "#struct",
-      objectSteps(Record.toEntries(expression["#struct"])),
-      expression["#type"],
-    );
-  }
+const printUnchecked = tryPrinter(expand(uncheckedLiteral));
+const printChecked = tryPrinter(expand(checkedLiteral));
 
-  if ("#tuple" in expression) {
-    return annotatedSteps(
-      "#tuple",
-      arraySteps(expression["#tuple"], node),
-      expression["#type"],
-    );
-  }
-
-  if ("#list" in expression) {
-    return annotatedSteps(
-      "#list",
-      arraySteps(expression["#list"], node),
-      expression["#type"],
-    );
-  }
-
-  const entries = expression["#dict"];
-
-  if (isReadonlyArray(entries)) {
-    return annotatedSteps(
-      "#dict",
-      arraySteps(entries, ([key, value]) => arraySteps([key, value], node)),
-      expression["#type"],
-    );
-  }
-
-  return annotatedSteps(
-    "#dict",
-    objectSteps(Record.toEntries(entries)),
-    expression["#type"],
-  );
-});
+/**
+ * Writes an expression tree as compact J-Expr JSON text, checking each numeric literal's spelling as it goes.
+ *
+ * Numeric literal text that `JExpr.make` would reject, such as `NaN` or an Integer holding `1.5`, fails with the schema's issue. An object with no constructor key fails with an `InvalidValue` issue. It checks nothing else and trusts the rest of the tree to match its type.
+ */
+export const compileResult = (
+  expression: Expression,
+): Result.Result<string, SchemaIssue.Issue> => printChecked(node(expression));
 
 /**
  * Writes an expression tree as compact J-Expr JSON text.
@@ -161,4 +213,7 @@ const print = printer(({ expression }: Node): readonly Step[] => {
  * ```
  */
 export const compile = (expression: Expression): string =>
-  print(node(expression));
+  Result.getOrThrowWith(
+    printUnchecked(node(expression)),
+    (issue) => new TypeError(SchemaIssue.makeFormatterDefault()(issue)),
+  );
