@@ -604,6 +604,10 @@ export function createPetrinautActions(
         placeSchema.parse(place),
         extensions,
       );
+      // A direction belongs to a port: a place that is none carries none.
+      if (parsedPlace.isPort !== true) {
+        delete parsedPlace.portDirection;
+      }
       mutateWithExtensionGuards((sdcpn) => {
         const net = resolveTargetNet(sdcpn, targetSubnetId);
         assertPlaceDynamicsReferences(parsedPlace, net.differentialEquations);
@@ -617,7 +621,11 @@ export function createPetrinautActions(
         for (const place of net.places) {
           if (place.id === parsed.placeId) {
             const wasPort = place.isPort === true;
-            Object.assign(place, parsed.update);
+            assignUpdate(place, parsed.update);
+            // A direction belongs to a port: unmarking the port removes it.
+            if (place.isPort !== true) {
+              delete place.portDirection;
+            }
             Object.assign(place, sanitizePlaceForExtensions(place, extensions));
             placeSchema.parse(place);
             assertPlaceDynamicsReferences(place, net.differentialEquations);

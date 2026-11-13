@@ -1531,6 +1531,45 @@ describe("Petrinaut core fusion actions", () => {
     expect(document.transitions[0]?.outputArcs).toEqual([]);
   });
 
+  test("a place that is no port is added without a direction", () => {
+    const instance = createInstance(composed());
+
+    instance.mutations.addPlace({
+      id: "plain",
+      name: "Plain",
+      colorId: null,
+      dynamicsEnabled: false,
+      portDirection: "in",
+      x: 0,
+      y: 0,
+    });
+    const added = instance.definition.get().places.at(-1);
+    expect(added?.name).toBe("Plain");
+    expect(added).not.toHaveProperty("portDirection");
+  });
+
+  test("unmarking a port clears its direction", () => {
+    const instance = createInstance(composed());
+
+    instance.mutations.updatePlace({
+      placeId: "in",
+      targetSubnetId: "machine",
+      update: { portDirection: "in" },
+    });
+    expect(
+      instance.definition.get().subnets?.[0]?.places[0]?.portDirection,
+    ).toBe("in");
+
+    instance.mutations.updatePlace({
+      placeId: "in",
+      targetSubnetId: "machine",
+      update: { isPort: false },
+    });
+    expect(
+      instance.definition.get().subnets?.[0]?.places[0]?.portDirection,
+    ).toBeUndefined();
+  });
+
   test("deleting items by id removes fusions and their dangling members", () => {
     const instance = createInstance(composed());
     instance.mutations.addFusion({

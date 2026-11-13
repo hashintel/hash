@@ -16,7 +16,7 @@ import { NetClassSummary } from "./diagnostics/net-class-summary";
 
 import type { SubView } from "../../../../../components/sub-view/types";
 import type {
-  FusionProblem,
+  CompositionProblem,
   Diagnostic,
   SelectionItemType,
 } from "@hashintel/petrinaut-core";
@@ -182,18 +182,18 @@ const countOf = (count: number, noun: string): string =>
   `${count} ${noun}${count === 1 ? "" : "s"}`;
 
 /**
- * The problems with the net's fusions. Clicking one opens the net the fusion
- * is in and selects it.
+ * The problems with the net's composition, its fusions and its ports.
+ * Clicking one opens the net it is in and selects the fusion or the port.
  */
 const CompositionDiagnostics = ({
   problems,
 }: {
-  problems: FusionProblem[];
+  problems: CompositionProblem[];
 }) => {
   const { setActiveSubnetId } = use(ActiveNetContext);
   const { selectItem } = use(EditorContext);
   const [isExpanded, setIsExpanded] = useState(true);
-  const countWith = (severity: FusionProblem["severity"]) =>
+  const countWith = (severity: CompositionProblem["severity"]) =>
     problems.filter((problem) => problem.severity === severity).length;
   const errorCount = countWith("error");
   // Each kind the list holds, said apart: "1 error, 2 notes".
@@ -203,9 +203,13 @@ const CompositionDiagnostics = ({
     [countWith("info"), "note"],
   ] as const;
 
-  const reveal = (problem: FusionProblem) => {
+  const reveal = (problem: CompositionProblem) => {
     setActiveSubnetId(problem.subnetId);
-    selectItem({ type: "fusion", id: problem.fusionId });
+    selectItem(
+      problem.kind === "fusion"
+        ? { type: "fusion", id: problem.fusionId }
+        : { type: "place", id: problem.placeId },
+    );
   };
 
   return (
