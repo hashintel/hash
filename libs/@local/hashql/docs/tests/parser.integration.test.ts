@@ -409,7 +409,7 @@ export declare const choose: {
       expect.hasAssertions();
       const ast = yield* success({
         source:
-          "export declare class Box { #private; private secret; protected guarded: number; private hidden(): void; private get kept(): string; value: string }",
+          "export declare class Box { #private; private secret; protected guarded: number; private hidden(): void; private get kept(): string; value: string; private constructor() }",
       });
       const box = first(ast, AST.ClassDeclaration.isClassDeclaration);
       expect(
@@ -418,6 +418,24 @@ export declare const choose: {
         { _tag: "Property", name: "guarded" },
         { _tag: "Property", name: "value" },
       ]);
+    }),
+  );
+
+  it.effect(
+    "private_member_reference",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const ast = yield* success({
+        source:
+          "export declare class Box { private static secret; static value: typeof Box.secret }",
+      });
+      const box = first(ast, AST.ClassDeclaration.isClassDeclaration);
+      expect(
+        Array.map(Chunk.toReadonlyArray(box.members), ast.get),
+      ).toMatchObject([{ _tag: "Property", name: "value" }]);
+      expect(
+        Array.fromIterable(ast.nodes()).filter(AST.ExternalItem.isExternalItem),
+      ).toMatchObject([{ name: "secret" }]);
     }),
   );
 
