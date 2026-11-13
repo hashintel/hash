@@ -6,6 +6,9 @@
         "../../../@local/hash-isomorphic-utils/src/*"
       ],
       "@local/advanced-types/*": ["../../../@local/advanced-types/src/*"],
+      "@hash-frontend-shared/*": [
+        "../../../../apps/hash-frontend/src/pages/shared/*"
+      ],
       "@local/status": ["../../../@local/status/typescript/src/main.ts"],
       "@blockprotocol/type-system": [
         "../../../@blockprotocol/type-system/typescript/src/main.ts"

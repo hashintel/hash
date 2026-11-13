@@ -60,6 +60,7 @@ import { useEditor } from "./editor-context";
 import { MixedFileOutputs, useFileTypes } from "./file-types";
 import { firstLineIconStyle, selectedLabel } from "./menu-rows";
 import { useLocation } from "./router";
+import { HashPdfViewer } from "./hash-file-preview/hash-pdf-viewer";
 import { a4Ratio, PdfPreview, PdfThumb, pdfUrlOf } from "./pdf-preview";
 import { RunGlyph } from "./run-glyph";
 import { FileRow as DsFileRow } from "./ds-parts/file-row";
@@ -151,6 +152,11 @@ const docViewerSheet =
 /** `?pdf=drawn`: certificates show the drawn 3 : 4 page instead of the real PDF (before 13 Nov). */
 const drawnPages =
   new URLSearchParams(globalThis.location.search).get("pdf") === "drawn";
+
+/** `?pdfviewer=redraw`: the prototype's own redraw of the PDF viewer (13 Nov, ddf8d1e43) instead of HASH's. */
+const pdfViewerRedraw =
+  new URLSearchParams(globalThis.location.search).get("pdfviewer") ===
+  "redraw";
 
 /** `?outputheading=old`: Fetch file's run Outputs heading reads "Certificates · 18 PDFs" (before 13 Nov). */
 const outputHeadingOld =
@@ -3261,7 +3267,12 @@ const OutputColumn = ({
   const fullScreen = useFullScreenHandle();
   /** A PDF's expand is HASH's "View in fullscreen"; ?docviewer=sheet keeps the wide sheet with its facts. */
   const pdfFullScreen =
-    file?.kind === "certificate" && !docViewerSheet && !drawnPages;
+    file?.kind === "certificate" &&
+    !docViewerSheet &&
+    !drawnPages &&
+    pdfViewerRedraw;
+  /** fh2: HASH's own PDF viewer, full height in the column; its own full screen button is the only way to full screen. */
+  const hashPdf = file?.kind === "certificate" && !drawnPages && !pdfViewerRedraw;
   return (
     <>
       <div className={columnHeadStyle}>
@@ -3294,7 +3305,7 @@ const OutputColumn = ({
               }}
               data-outputs-expand
             />
-          ) : onExpand ? (
+          ) : onExpand && !(hashPdf && !docViewerSheet) ? (
             <Button
               size="sm"
               variant="ghost"
@@ -3321,6 +3332,9 @@ const OutputColumn = ({
                 {fileMeta(file)} · {file.supplier}
               </span>
             </div>
+            {hashPdf ? (
+              <HashPdfViewer url={pdfUrlOf(file.fileName)} />
+            ) : (
             <div className={documentStageStyle} data-document-stage>
               {file.kind === "certificate" && !drawnPages ? (
                 <PdfPreview
@@ -3331,6 +3345,7 @@ const OutputColumn = ({
                 <Page file={file} width={width - 48} />
               )}
             </div>
+            )}
             <FileFacts file={file} run={run} />
             <span className={css({ display: "flex", gap: "1.5" })}>
               <FileActions file={file} />

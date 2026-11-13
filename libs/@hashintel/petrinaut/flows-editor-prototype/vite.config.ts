@@ -1,6 +1,7 @@
 import { fileURLToPath } from "node:url";
 
 import pandacss from "@pandacss/dev/postcss";
+import react from "@vitejs/plugin-react";
 import { defineConfig, type PluginOption } from "vite";
 
 import packageConfig from "../vite.config.ts";
@@ -33,13 +34,51 @@ export default defineConfig((env) => {
         libraryOnly.test(String(plugin.name))
       ),
   ) as PluginOption[];
+  // HASH's file preview and its MUI design system are imported as written for the HASH app, which does not run
+  // React Compiler; the package's React plugin is swapped for one that leaves those folders uncompiled.
+  const withoutReact = plugins.filter(
+    (plugin) =>
+      !(
+        plugin &&
+        typeof plugin === "object" &&
+        "name" in plugin &&
+        String(plugin.name).startsWith("vite:react")
+      ),
+  );
+  withoutReact.push(
+    react({
+      exclude: [
+        /[\\/]node_modules[\\/]/,
+        /[\\/]libs[\\/]@hashintel[\\/][^\\/]+[\\/]dist[\\/]/,
+        /\.d\.[cm]?ts$/,
+        /^0rolldown\/runtime\.js$/,
+        /[\\/]apps[\\/]hash-frontend[\\/]/,
+        /[\\/]libs[\\/]@hashintel[\\/]design-system[\\/]/,
+      ],
+      compiler: {
+        target: "19",
+        compilationMode: "infer",
+        panicThreshold: "all_errors",
+      },
+    }),
+  );
   return {
     ...base,
-    plugins,
+    plugins: withoutReact,
     root: fromHere("."),
     publicDir: fromHere("./public"),
     resolve: {
       alias: [
+        // HASH's own file preview (apps/hash-frontend/src/pages/shared), imported as is. Its presigned-URL fetch
+        // asks the HASH API; the prototype's demo PDFs are served as plain files, so the shim returns the URL.
+        {
+          find: /^@hash-frontend-shared\/(.*)$/,
+          replacement: `${fromHere("../../../../apps/hash-frontend/src/pages/shared")}/$1`,
+        },
+        {
+          find: /^\.\/fetch-presigned-file-url$/,
+          replacement: fromHere("./src/hash-file-preview/fetch-presigned-file-url.ts"),
+        },
         {
           find: /^@local\/hash-isomorphic-utils\/(.*)$/,
           replacement: `${fromHere("../../../@local/hash-isomorphic-utils/src")}/$1`,

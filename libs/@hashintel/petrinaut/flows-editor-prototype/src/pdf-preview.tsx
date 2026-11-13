@@ -1,5 +1,5 @@
 /**
- * A certificate's real PDF, shown the way HASH's file preview shows one (apps/hash-frontend/src/pages/shared/
+ * `?pdfviewer=redraw` only (the default is HASH's own viewer, hash-file-preview/hash-pdf-viewer.tsx). A certificate's real PDF, shown the way HASH's file preview shows one (apps/hash-frontend/src/pages/shared/
  * pdf-preview.tsx): react-pdf draws the page with its text layer, fit to the stage's width, with zoom at the bottom
  * right and browser full screen of just the preview ("View in fullscreen", react-full-screen; Esc leaves). HASH's
  * component needs MUI and the app's file fetch, so the prototype draws the same parts in Panda; the stage is the Flows
