@@ -3320,6 +3320,14 @@ export const systemDataTypes = {
     title: "CDF",
     description: "An amount denominated in Congolese Franc (ISO 4217 CDF).",
   },
+  celsiusDifference: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/celsius-difference/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/celsius-difference/" as BaseUrl,
+    title: "Celsius Difference",
+    description:
+      "A temperature difference expressed in degrees Celsius. One degree Celsius of difference equals one kelvin of difference, with no offset.",
+  },
   centiampereHours: {
     dataTypeId: "https://hash.ai/@h/types/data-type/centiampere-hours/v/1",
     dataTypeBaseUrl:
@@ -5000,6 +5008,14 @@ export const systemDataTypes = {
     title: "Exawebers",
     description: "A unit equal to 10^18 webers.",
   },
+  fahrenheitDifference: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/fahrenheit-difference/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/fahrenheit-difference/" as BaseUrl,
+    title: "Fahrenheit Difference",
+    description:
+      "A temperature difference expressed in degrees Fahrenheit. One degree Fahrenheit of difference equals exactly 5/9 kelvin of difference, with no offset.",
+  },
   farads: {
     dataTypeId: "https://hash.ai/@h/types/data-type/farads/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/farads/" as BaseUrl,
@@ -6400,6 +6416,14 @@ export const systemDataTypes = {
     title: "Katals per Cubic Meter",
     description:
       "The coherent SI unit used to express catalytic activity concentration.",
+  },
+  kelvinDifference: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kelvin-difference/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/kelvin-difference/" as BaseUrl,
+    title: "Kelvin Difference",
+    description:
+      "A temperature difference expressed in kelvins. Negative values represent a decrease; zero represents no change.",
   },
   kelvins: {
     dataTypeId: "https://hash.ai/@h/types/data-type/kelvins/v/1",
@@ -9747,6 +9771,14 @@ export const systemDataTypes = {
     title: "Rads",
     description: "A unit of absorbed radiation dose equal to 0.01 gray.",
   },
+  rankineDifference: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/rankine-difference/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/rankine-difference/" as BaseUrl,
+    title: "Rankine Difference",
+    description:
+      "A temperature difference expressed in degrees Rankine. One degree Rankine of difference equals exactly 5/9 kelvin of difference, with no offset.",
+  },
   reciprocalFeet: {
     dataTypeId: "https://hash.ai/@h/types/data-type/reciprocal-feet/v/1",
     dataTypeBaseUrl:
@@ -10895,6 +10927,32 @@ export const systemDataTypes = {
     title: "Temperature",
     description:
       "A measure of temperature on an absolute or offset temperature scale.",
+  },
+  temperatureDifference: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/temperature-difference/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/temperature-difference/" as BaseUrl,
+    title: "Temperature Difference",
+    description:
+      "A signed difference between two temperatures, converted by scale alone without temperature-reading offsets.",
+  },
+  temperatureDifferenceImperial: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/temperature-difference-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/temperature-difference-imperial/" as BaseUrl,
+    title: "Temperature Difference (Imperial)",
+    description:
+      "Temperature Difference expressed in imperial units, including units shared with US customary measurement.",
+  },
+  temperatureDifferenceMetric: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/temperature-difference-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/temperature-difference-metric/" as BaseUrl,
+    title: "Temperature Difference (Metric)",
+    description:
+      "Temperature Difference expressed in metric units, including SI units and their accepted companions.",
   },
   temperatureImperial: {
     dataTypeId: "https://hash.ai/@h/types/data-type/temperature-imperial/v/1",

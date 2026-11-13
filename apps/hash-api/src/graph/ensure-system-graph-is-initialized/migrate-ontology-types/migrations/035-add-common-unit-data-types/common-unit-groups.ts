@@ -402,6 +402,55 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
 
 const additionalGroups: SiUnitGroup[] = [
   {
+    title: "Temperature Difference",
+    description:
+      "A signed difference between two temperatures, converted by scale alone without temperature-reading offsets.",
+    units: [
+      {
+        title: "Kelvin Difference",
+        symbol: "K",
+        description:
+          "A temperature difference expressed in kelvins. Negative values represent a decrease; zero represents no change.",
+      },
+      {
+        title: "Celsius Difference",
+        symbol: "°C",
+        description:
+          "A temperature difference expressed in degrees Celsius. One degree Celsius of difference equals one kelvin of difference, with no offset.",
+        conversions: {
+          [systemDataTypes.kelvinDifference.dataTypeBaseUrl]:
+            scaledConversion(1),
+        },
+      },
+      {
+        title: "Fahrenheit Difference",
+        systems: ["Imperial"],
+        symbol: "°F",
+        description:
+          "A temperature difference expressed in degrees Fahrenheit. One degree Fahrenheit of difference equals exactly 5/9 kelvin of difference, with no offset.",
+        conversions: {
+          [systemDataTypes.kelvinDifference.dataTypeBaseUrl]: scaledConversion(
+            5,
+            9,
+          ),
+        },
+      },
+      {
+        title: "Rankine Difference",
+        systems: ["Imperial"],
+        symbol: "°R",
+        description:
+          "A temperature difference expressed in degrees Rankine. One degree Rankine of difference equals exactly 5/9 kelvin of difference, with no offset.",
+        conversions: {
+          [systemDataTypes.kelvinDifference.dataTypeBaseUrl]: scaledConversion(
+            5,
+            9,
+          ),
+        },
+      },
+    ],
+  },
+  {
     title: "Kinematic Viscosity",
     description: "A measure of dynamic viscosity divided by mass density.",
     units: [
