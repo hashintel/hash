@@ -67,7 +67,7 @@ export const usePropertyTypesContextValue = (params?: {
       // The error is surfaced during rendering, through the error boundary.
     });
     return () => {
-      requestGeneration.current++;
+      requestGeneration.current += 1;
     };
   }, [fetch, enabled]);
 
