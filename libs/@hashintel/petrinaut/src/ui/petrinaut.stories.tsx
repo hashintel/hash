@@ -980,7 +980,7 @@ const manyPortsNet: SDCPN = {
   componentInstances: [
     {
       id: "cell1",
-      name: "Assembly cell",
+      name: "AssemblyCell",
       subnetId: "cell",
       parameterValues: {},
       x: 600,

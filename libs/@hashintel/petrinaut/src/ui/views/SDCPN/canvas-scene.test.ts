@@ -10,6 +10,7 @@ import {
 
 import { buildNetAdjacency, resolveCanvasFocus } from "./canvas-focus";
 import { buildCanvasScene, type CanvasSceneInput } from "./canvas-scene";
+import { arcStrokeColor } from "./styles/type-colors";
 
 import type {
   Place,
@@ -79,7 +80,7 @@ const input: CanvasSceneInput = {
     selectedIds: new Set(),
   }),
   keptOpenVisualizerIds: new Set(),
-  expandedInstanceIds: new Set(),
+  unfoldedInstanceIds: new Set(),
 };
 
 describe("buildCanvasScene", () => {
@@ -352,7 +353,7 @@ describe("buildCanvasScene", () => {
         binding: { kind: "interface", implementationName: null },
       });
       expect(nodes.find((node) => node.id === "p1")).toMatchObject({
-        port: null,
+        portDirection: null,
       });
     });
 
@@ -385,26 +386,26 @@ describe("buildCanvasScene", () => {
       const foldedBig = folded.nodes.find((node) => node.id === "big");
       expect(foldedBig).toMatchObject({
         foldable: true,
-        expanded: false,
+        unfolded: false,
         height: compactNodeDimensions.componentInstance.height,
         anchorOffset: 0,
       });
       expect(folded.nodes.find((node) => node.id === "small")).toMatchObject({
         foldable: false,
-        expanded: true,
+        unfolded: true,
       });
 
       const unfolded = buildCanvasScene({
         ...input,
         sdcpn: withWide,
         net,
-        expandedInstanceIds: new Set(["big"]),
+        unfoldedInstanceIds: new Set(["big"]),
       });
       const grown =
         getComponentInstanceHeight(compactNodeDimensions, 5) -
         compactNodeDimensions.componentInstance.height;
       expect(unfolded.nodes.find((node) => node.id === "big")).toMatchObject({
-        expanded: true,
+        unfolded: true,
         height: getComponentInstanceHeight(compactNodeDimensions, 5),
         // It unfolds downward, its header where it was: the centre moves by
         // half of what the card grew.
@@ -416,6 +417,43 @@ describe("buildCanvasScene", () => {
       });
     });
 
+    it("colours an arc by the token type of the place or port at its end", () => {
+      const wired: SDCPN = {
+        ...composed,
+        transitions: [
+          {
+            ...transition("t1", ["p1"], []),
+            outputArcs: [
+              {
+                endpoint: {
+                  kind: "componentPort",
+                  componentInstanceId: "plain",
+                  portPlaceId: "in",
+                },
+                weight: 1,
+              },
+            ],
+          },
+        ],
+      };
+      const { arcs } = buildCanvasScene({
+        ...input,
+        sdcpn: wired,
+        net: {
+          ...wired,
+          componentInstances: wired.componentInstances ?? [],
+          fusions: [],
+        },
+      });
+
+      expect(arcs.find((arc) => arc.sourceId === "p1")?.color).toBe(
+        arcStrokeColor(undefined),
+      );
+      expect(arcs.find((arc) => arc.targetPortId === "in")?.color).toBe(
+        arcStrokeColor("#ff0000"),
+      );
+    });
+
     it("flags a port place inside a subnet with its direction", () => {
       const { nodes } = buildCanvasScene({
         ...input,
@@ -425,7 +463,7 @@ describe("buildCanvasScene", () => {
 
       expect(nodes.find((node) => node.id === "in")).toMatchObject({
         kind: "place",
-        port: "in",
+        portDirection: "in",
         typeColor: "#ff0000",
       });
     });

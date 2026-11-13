@@ -34,9 +34,9 @@ export const classicNodeDimensions: RenderNodeDimensions = {
  * name and what it runs. Its ports sit in rows under it, one per port, so
  * the card and the canvas agree on where every pin is.
  */
-export const COMPONENT_INSTANCE_HEADER_HEIGHT = 48;
-export const COMPONENT_INSTANCE_PORT_ROW_HEIGHT = 26;
-export const COMPONENT_INSTANCE_FOOTER_HEIGHT = 6;
+export const componentInstanceHeaderHeight = 48;
+export const componentInstancePortRowHeight = 26;
+export const componentInstanceFooterHeight = 6;
 
 /**
  * Component instances grow vertically with their port count: the header,
@@ -49,9 +49,9 @@ export const getComponentInstanceHeight = (
 ): number =>
   Math.max(
     dimensions.componentInstance.height,
-    COMPONENT_INSTANCE_HEADER_HEIGHT +
-      portCount * COMPONENT_INSTANCE_PORT_ROW_HEIGHT +
-      COMPONENT_INSTANCE_FOOTER_HEIGHT,
+    componentInstanceHeaderHeight +
+      portCount * componentInstancePortRowHeight +
+      componentInstanceFooterHeight,
   );
 
 const maxDimensions = (

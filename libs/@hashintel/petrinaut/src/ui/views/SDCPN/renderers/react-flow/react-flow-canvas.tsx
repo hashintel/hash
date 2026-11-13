@@ -99,9 +99,9 @@ const paneStyle = css({
     transition: "[opacity var(--canvas-focus-duration, 200ms) ease]",
     "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
   },
-  // A component instance's height is its port count, folded or not, so it
-  // grows and shrinks rather than jumping. React Flow reads the pins again
-  // on every frame the node resizes, which keeps the links on them.
+  // A component instance's height animates between folded and unfolded, so
+  // the card grows and shrinks rather than jumping. React Flow reads the pins
+  // again on every frame the node resizes, which keeps the links on them.
   "& .react-flow__node.react-flow__node-componentInstance": {
     transition:
       "[opacity var(--canvas-focus-duration, 200ms) ease, height var(--canvas-fold-duration, 180ms) cubic-bezier(0.22, 1, 0.36, 1)]",

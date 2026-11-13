@@ -32,7 +32,7 @@ export const useCanvasScene = (
     keptOpenVisualizerPlaceIds,
     openVisualizerPlaceId,
     focusedVisualizerPlaceId,
-    expandedComponentInstanceIds,
+    unfoldedComponentInstanceIds,
   } = use(EditorContext);
   const { compactNodes, highlightOnHover } = use(UserSettingsContext);
 
@@ -90,6 +90,6 @@ export const useCanvasScene = (
         (id) => id !== null,
       ),
     ),
-    expandedInstanceIds: expandedComponentInstanceIds,
+    unfoldedInstanceIds: unfoldedComponentInstanceIds,
   });
 };

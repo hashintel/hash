@@ -14,7 +14,7 @@ import { nodeFocusStyle } from "../../../styles/focus";
 import { nodeSurfaceStyle } from "../../../styles/node-surface";
 import { placeBorderColor, placeFillColor } from "../../../styles/type-colors";
 import { PlaceStateTooltip } from "./place-state-tooltip";
-import { portPlaceLabel, PortPins } from "./port-pin";
+import { portPlaceLabels, PortPins } from "./port-pin";
 import { NodeHandles } from "./shared/node-handles";
 
 import type { PlaceNodeType } from "./react-flow-types";
@@ -111,9 +111,9 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
               <Icon name="function" size="sm" />
             </div>
           ) : null}
-          {data.port === null ? null : (
+          {data.portDirection === null ? null : (
             <span className={portCaptionStyle}>
-              {portPlaceLabel(data.port)}
+              {portPlaceLabels[data.portDirection]}
             </span>
           )}
         </div>
@@ -125,8 +125,8 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
             <div className={tokenCountBadgeStyle}>{tokenLabel}</div>
           )}
         </div>
-        {data.port === null ? null : (
-          <PortPins direction={data.port} typeColor={data.typeColor} />
+        {data.portDirection === null ? null : (
+          <PortPins direction={data.portDirection} typeColor={data.typeColor} />
         )}
       </div>
       <NodeHandles isConnectable={isConnectable} />

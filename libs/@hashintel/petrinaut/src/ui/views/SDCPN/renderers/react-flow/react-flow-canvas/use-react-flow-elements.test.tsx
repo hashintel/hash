@@ -30,7 +30,7 @@ const nodes: CanvasNode[] = [
     ...nodeBase,
     id: "place",
     kind: "place",
-    port: null,
+    portDirection: null,
     dynamicsEnabled: false,
     hasColorType: false,
     hasVisualizer: false,
@@ -58,7 +58,7 @@ const nodes: CanvasNode[] = [
       { id: "port", name: "Port", direction: "inout", typeColor: undefined },
     ],
     foldable: false,
-    expanded: true,
+    unfolded: true,
     anchorOffset: 0,
   },
 ];
