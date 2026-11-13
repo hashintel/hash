@@ -65,6 +65,45 @@ test("production rejects every mixed proposal outside the allowlist before publi
   }
 });
 
+test("a response stopped at the output limit fails the turn, with or without text", () => {
+  expect(result.outputLimits).toHaveLength(2);
+  for (const limited of result.outputLimits) {
+    const { submissionId } = limited.attempt.receipt;
+    expect(limited.attempt.error).toContain("model_output_limit");
+    expect(limited.history.settlements).toContainEqual(
+      expect.objectContaining({ submissionId, outcome: "failed" }),
+    );
+    const uiChunks: UIMessageChunk[] = [];
+    const ui = createFlueUiStream({
+      submissionId,
+      clientToolNames: new Set(["addType"]),
+      write: (chunk) => {
+        uiChunks.push(chunk);
+      },
+    });
+    for (const { chunk } of result.wire) ui.accept(chunk);
+    const errorTexts = uiChunks.flatMap((chunk) =>
+      chunk.type === "error" ? [chunk.errorText] : [],
+    );
+    expect(errorTexts).toHaveLength(1);
+    expect(errorTexts[0]).toContain("model_output_limit");
+    expect(uiChunks.some((chunk) => chunk.type === "finish")).toBe(false);
+  }
+  const withText = result.outputLimits.find(
+    ({ caseId }) => caseId === "length-with-text",
+  )!;
+  expect(
+    withText.history.messages
+      .filter(
+        (message) =>
+          message.submissionId === withText.attempt.receipt.submissionId,
+      )
+      .flatMap((message) => message.parts),
+  ).toContainEqual(
+    expect.objectContaining({ type: "text", text: "The account is partly" }),
+  );
+});
+
 test("every failed submission is attributable from the server output by stage, submission ID and original error", () => {
   const diagnosticLines = serverOutput
     .split("\n")

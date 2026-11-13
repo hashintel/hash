@@ -87,7 +87,7 @@ In Brunch, what you have selected in the editor goes with each message you send,
 
 If the host offers voice input, only a finalized transcript captured while Voice owns the input turn can be submitted. Voice waits while an existing response finishes or yields through the host's handoff control.
 
-If an assistant request fails, Petrinaut shows the complete error in a persistent toast rather than adding it to the conversation. Long errors wrap, diagnostic details can be copied, and the toast stays open until you close it. Retry from the composer when the assistant is ready.
+If an assistant request fails, Petrinaut shows the complete error in a persistent toast rather than adding it to the conversation. Long errors wrap, diagnostic details can be copied, and the toast stays open until you close it. Retry from the composer when the assistant is ready. A response that reaches the model's output limit counts as a failed request: the toast says so, and any text written before the limit stays in the conversation.
 
 If a turn ends on a tool result and no assistant message since your last message contains reply text, the turn ends with a neutral **No reply received** note and the composer is ready. Text written before the tool counts. The panel does not retry automatically; send a new message to continue. The note belongs to the current turn: your next message clears it, and it is not saved in the conversation history.
 

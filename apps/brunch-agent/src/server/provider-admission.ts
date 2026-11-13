@@ -61,6 +61,22 @@ class ModelStreamIdleError extends Error {
   }
 }
 
+/**
+ * The model stopped at its output limit. The provider call succeeded and its
+ * finish reason stays `length`, but the response is incomplete, so the turn
+ * fails rather than settling as a completed reply.
+ */
+class ModelOutputLimitError extends Error {
+  public readonly code = "model_output_limit";
+
+  constructor() {
+    super(
+      "model_output_limit: the model reached its output limit before finishing its response. Send a message to continue.",
+    );
+    this.name = "ModelOutputLimitError";
+  }
+}
+
 class ModelStreamCancellationUnacknowledgedError extends Error {
   public readonly code = "model_stream_cancellation_unacknowledged";
 
@@ -337,6 +353,7 @@ class AdmittedStream extends AssistantMessageEventStream {
       }
       const message = await Promise.race([upstream.result(), interrupted]);
       count(message);
+      if (message.stopReason === "length") throw new ModelOutputLimitError();
       // Flue publishes toolcall_end inputs, then executes final-message calls.
       // Neither representation may smuggle a mixed proposal past admission.
       const finalCalls = message.content.flatMap((part) =>
