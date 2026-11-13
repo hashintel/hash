@@ -12,7 +12,9 @@ import {
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
+  describePortDirection,
   inferPortDirection,
+  portDirections,
   validateEntityName,
   type PortDirection,
 } from "@hashintel/petrinaut-core";
@@ -63,16 +65,15 @@ const capacityContentStyle = css({
   },
 });
 
-const capacityFieldStyle = css({
+const indentedFieldStyle = css({
   paddingTop: "2",
   paddingLeft: "6",
   "& label": { fontWeight: "normal" },
 });
 
-const portDirectionLabels: Record<PortDirection, string> = {
-  in: "Input",
-  out: "Output",
-  inout: "Input and output",
+const directionLabel = (direction: PortDirection): string => {
+  const text = describePortDirection(direction);
+  return `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
 };
 
 const typeColorDotStyle = css({
@@ -221,40 +222,37 @@ const PlaceMainContent: React.FC = () => {
           <HelpTooltip content="Expose this place as a port when its subnet is used as a component: fuse it with a place of the net that holds the instance, or connect it to a transition there." />
         </div>
         {place.isPort && (
-          <div className={capacityFieldStyle}>
-            <Form.Field
-              label="Direction"
+          <Form.Field
+            label="Direction"
+            size="sm"
+            className={indentedFieldStyle}
+            labelTooltip="What the component promises about the port: input ports are only consumed by its transitions, output ports only produced into. Inferred from the arcs unless set."
+          >
+            <Select
+              required
               size="sm"
-              labelTooltip="What the component promises about the port: input ports are only consumed by its transitions, output ports only produced into. Inferred from the arcs unless set."
-            >
-              <Select
-                required
-                size="sm"
-                value={place.portDirection ?? "auto"}
-                disabled={isReadOnly}
-                onChange={(value: PortDirection | "auto") =>
-                  updatePlace({
-                    placeId: place.id,
-                    update: {
-                      portDirection: value === "auto" ? undefined : value,
-                    },
-                  })
-                }
-                items={[
-                  {
-                    value: "auto",
-                    text: `Inferred (${portDirectionLabels[inferredDirection]})`,
+              value={place.portDirection ?? "auto"}
+              disabled={isReadOnly}
+              onChange={(value: PortDirection | "auto") =>
+                updatePlace({
+                  placeId: place.id,
+                  update: {
+                    portDirection: value === "auto" ? undefined : value,
                   },
-                  ...(
-                    Object.entries(portDirectionLabels) as [
-                      PortDirection,
-                      string,
-                    ][]
-                  ).map(([value, text]) => ({ value, text })),
-                ]}
-              />
-            </Form.Field>
-          </div>
+                })
+              }
+              items={[
+                {
+                  value: "auto",
+                  text: `Inferred (${directionLabel(inferredDirection)})`,
+                },
+                ...portDirections.map((value) => ({
+                  value,
+                  text: directionLabel(value),
+                })),
+              ]}
+            />
+          </Form.Field>
         )}
         <Collapsible.Root open={capacityEnabled} lazyMount unmountOnExit>
           <div className={optionRowStyle}>
@@ -282,7 +280,7 @@ const PlaceMainContent: React.FC = () => {
               size="xs"
               layout="inline"
               inputAlign="end"
-              className={capacityFieldStyle}
+              className={indentedFieldStyle}
               disabled={isReadOnly}
             >
               <NumberInput

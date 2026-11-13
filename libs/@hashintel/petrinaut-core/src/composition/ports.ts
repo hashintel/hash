@@ -5,40 +5,55 @@
  * contract the checks hold the component and the composition to.
  */
 
-import { getArcEndpoint } from "../arc-endpoints";
+import { arcMatchesEndpoint, placeArcEndpoint } from "../arc-endpoints";
 
-import type { Place, PortDirection, Subnet } from "../types/sdcpn";
+import type {
+  ArcEndpoint,
+  Place,
+  PortDirection,
+  Subnet,
+  Transition,
+} from "../types/sdcpn";
 
-/** How the subnet's own transitions touch a place. */
+/** Every direction a port can declare, in the order a picker lists them. */
+export const portDirections = [
+  "in",
+  "out",
+  "inout",
+] as const satisfies readonly PortDirection[];
+
+/** How a set of transitions touches a place. */
 export type PortUsage = {
-  /** Some transition of the subnet consumes, reads or is inhibited by it. */
+  /** Some transition consumes from it, reads it or is inhibited by it. */
   consumed: boolean;
-  /** Some transition of the subnet produces into it. */
+  /** Some transition takes tokens from it, which a read or an inhibitor arc does not. */
+  drained: boolean;
+  /** Some transition produces into it. */
   produced: boolean;
 };
 
+/** How `transitions` touch the place `endpoint` names. */
+export const endpointUsage = (
+  transitions: readonly Transition[],
+  endpoint: ArcEndpoint,
+): PortUsage => {
+  const inputs = transitions.flatMap(({ inputArcs }) =>
+    inputArcs.filter((arc) => arcMatchesEndpoint(arc, endpoint)),
+  );
+  return {
+    consumed: inputs.length > 0,
+    drained: inputs.some(({ type }) => type === "standard"),
+    produced: transitions.some(({ outputArcs }) =>
+      outputArcs.some((arc) => arcMatchesEndpoint(arc, endpoint)),
+    ),
+  };
+};
+
+/** How the subnet's own transitions touch one of its places. */
 export const portUsage = (
   subnet: Pick<Subnet, "transitions">,
   placeId: string,
-): PortUsage => {
-  let consumed = false;
-  let produced = false;
-  for (const transition of subnet.transitions) {
-    for (const arc of transition.inputArcs) {
-      const endpoint = getArcEndpoint(arc);
-      if (endpoint.kind === "place" && endpoint.placeId === placeId) {
-        consumed = true;
-      }
-    }
-    for (const arc of transition.outputArcs) {
-      const endpoint = getArcEndpoint(arc);
-      if (endpoint.kind === "place" && endpoint.placeId === placeId) {
-        produced = true;
-      }
-    }
-  }
-  return { consumed, produced };
-};
+): PortUsage => endpointUsage(subnet.transitions, placeArcEndpoint(placeId));
 
 /**
  * The direction the subnet's arcs give a port: `in` when only consumed, `out`
