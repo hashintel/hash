@@ -475,6 +475,14 @@ const cloneSubnet = (
     next.implements = [...subnet.implements];
   }
 
+  if (subnet.iconSvg !== undefined) {
+    next.iconSvg = subnet.iconSvg;
+  }
+
+  if (subnet.displayColor !== undefined) {
+    next.displayColor = subnet.displayColor;
+  }
+
   if (subnet.componentInstances) {
     next.componentInstances = cloneComponentInstances(
       subnet.componentInstances,

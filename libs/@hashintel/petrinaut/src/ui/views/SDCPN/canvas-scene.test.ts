@@ -357,6 +357,48 @@ describe("buildCanvasScene", () => {
       });
     });
 
+    it("gives a card the icon and colour of what it runs", () => {
+      const icon = "<svg/>";
+      const styled: SDCPN = {
+        ...composed,
+        subnets: [
+          { ...iface, iconSvg: icon, displayColor: "#111111" },
+          { ...fast, displayColor: "#222222" },
+        ],
+      };
+      const { nodes } = buildCanvasScene({
+        ...input,
+        sdcpn: styled,
+        net: {
+          ...styled,
+          componentInstances: styled.componentInstances ?? [],
+          fusions: [],
+        },
+      });
+      const card = (id: string) => nodes.find((node) => node.id === id);
+
+      // Runs Fast: its colour, and the interface's icon where Fast has none.
+      expect(card("bound")).toMatchObject({ icon, color: "#222222" });
+      // An instance of the component itself.
+      expect(card("plain")).toMatchObject({ icon: null, color: "#222222" });
+      // Nothing bound: the interface's own.
+      expect(card("loose")).toMatchObject({ icon, color: "#111111" });
+      // A subnet with neither leaves the defaults.
+      const plain = buildCanvasScene({
+        ...input,
+        sdcpn: composed,
+        net: {
+          ...composed,
+          componentInstances: composed.componentInstances ?? [],
+          fusions: [],
+        },
+      });
+      expect(plain.nodes.find((node) => node.id === "plain")).toMatchObject({
+        icon: null,
+        color: null,
+      });
+    });
+
     it("folds an instance with many ports until it is unfolded", () => {
       const wide: Subnet = {
         ...fast,

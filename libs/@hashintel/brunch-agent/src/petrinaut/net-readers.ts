@@ -94,6 +94,7 @@ const presentationalFields = [
   "visualizerCode",
   "showAsInitialState",
   "iconSlug",
+  "iconSvg",
   "displayColor",
   "metadata",
 ] as const satisfies readonly KeyOf<SDCPN | Subnet | NetItem>[];

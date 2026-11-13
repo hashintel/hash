@@ -17,7 +17,10 @@ type NetWithoutVisualInfo<Net extends SDCPN | Subnet> = Omit<
   componentInstances: Array<Omit<ComponentInstance, "x" | "y">>;
 };
 
-type SubnetWithoutVisualInfo = NetWithoutVisualInfo<Subnet>;
+type SubnetWithoutVisualInfo = Omit<
+  NetWithoutVisualInfo<Subnet>,
+  "iconSvg" | "displayColor"
+>;
 type SDCPNWithoutVisualInfo = NetWithoutVisualInfo<SDCPN> & {
   subnets: SubnetWithoutVisualInfo[];
 };
@@ -46,6 +49,9 @@ const stripVisualFromNet = <Net extends SDCPN | Subnet>(
 export function removeVisualInformation(sdcpn: SDCPN): SDCPNWithoutVisualInfo {
   return {
     ...stripVisualFromNet(sdcpn),
-    subnets: (sdcpn.subnets ?? []).map((subnet) => stripVisualFromNet(subnet)),
+    subnets: (sdcpn.subnets ?? []).map(
+      ({ iconSvg: _iconSvg, displayColor: _displayColor, ...subnet }) =>
+        stripVisualFromNet(subnet),
+    ),
   };
 }

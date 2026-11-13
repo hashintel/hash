@@ -13,6 +13,7 @@ import {
   outputArcSchema as currentOutputArcSchema,
   parameterSchema as currentParameterSchema,
   placeSchema as currentPlaceSchema,
+  subnetSchema as currentSubnetSchema,
   transitionSchema as currentTransitionSchema,
 } from "../schemas/entity-schemas";
 import { metricSchema as currentMetricSchema } from "../schemas/metric-schema";
@@ -181,6 +182,8 @@ const subnetSchema = z
     metadata: metadataSchema,
     interface: z.boolean().optional(),
     implements: z.array(z.string()).optional(),
+    iconSvg: currentSubnetSchema.shape.iconSvg,
+    displayColor: currentSubnetSchema.shape.displayColor,
     places: z.array(placeSchema),
     transitions: z.array(transitionSchema),
     types: z.array(colorSchema).default([]),

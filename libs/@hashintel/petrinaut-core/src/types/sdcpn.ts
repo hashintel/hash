@@ -435,6 +435,14 @@ export type Subnet = {
   /** Host-defined data, opaque to Petrinaut. */
   metadata?: Record<string, JsonValue>;
   /**
+   * The component's icon, as SVG markup. Its shape is drawn in one colour on
+   * the cards of the component's instances, in place of the default glyph.
+   * The markup is untrusted: draw it as an image, never as page markup.
+   */
+  iconSvg?: string;
+  /** CSS colour of the component's icon and its tile, as a token type has. */
+  displayColor?: string;
+  /**
    * A signature: ports, types and parameters with no transition or instance.
    * An instance of it runs the implementation bound to it, the instance's
    * own choice or the document's default.

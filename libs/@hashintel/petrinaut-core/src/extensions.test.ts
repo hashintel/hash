@@ -448,6 +448,30 @@ describe("transition logic availability", () => {
     expect(Object.hasOwn(sanitized.subnets![0]!, "metadata")).toBe(false);
   });
 
+  it("keeps a subnet's icon and colour", () => {
+    const iconSvg = '<svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/></svg>';
+    const sdcpn: SDCPN = {
+      ...createSDCPN(),
+      subnets: [
+        {
+          id: "subnet-1",
+          name: "Subnet 1",
+          iconSvg,
+          displayColor: "#3b82f6",
+          places: [],
+          transitions: [],
+          types: [],
+          differentialEquations: [],
+          parameters: [],
+        },
+      ],
+    };
+
+    expect(
+      sanitizeSDCPNForExtensions(sdcpn, allEnabled).subnets?.[0],
+    ).toMatchObject({ iconSvg, displayColor: "#3b82f6" });
+  });
+
   it("keeps the description and metadata of the net and its subnets", () => {
     const sdcpn: SDCPN = {
       ...createSDCPN(),

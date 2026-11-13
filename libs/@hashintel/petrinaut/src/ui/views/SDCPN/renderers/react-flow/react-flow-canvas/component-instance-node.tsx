@@ -6,6 +6,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { componentInstanceHeaderHeight } from "@hashintel/petrinaut-core";
 
 import { EditorContext } from "../../../../../../react/state/editor-context";
+import { ComponentGlyph } from "../../../../../components/component-glyph";
 import { problemTextStyle } from "../../../../../constants/problem-severity";
 import { nodeFocusStyle } from "../../../styles/focus";
 import { iconContainerBaseStyle } from "./node-card";
@@ -56,6 +57,16 @@ const headerStyle = css({
 
 const iconTileStyle = css({
   borderRadius: "md",
+});
+
+/**
+ * A component's colour paints its glyph and washes its tile. Set inline: the
+ * tile's own colours come from a shared class this must win over.
+ */
+const tileTint = (color: string): React.CSSProperties => ({
+  color,
+  backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)`,
+  borderColor: `color-mix(in srgb, ${color} 30%, transparent)`,
 });
 
 const textStyle = css({
@@ -230,8 +241,14 @@ export const ComponentInstanceNode: React.FC<
     >
       <div className={cx(cardStyle, nodeFocusStyle({ focus }))}>
         <div className={headerStyle}>
-          <div className={cx(iconContainerBaseStyle, iconTileStyle)}>
-            <Icon name={isInterface ? "puzzlePiece" : "cube"} />
+          <div
+            className={cx(iconContainerBaseStyle, iconTileStyle)}
+            style={data.color === null ? undefined : tileTint(data.color)}
+          >
+            <ComponentGlyph
+              iconSvg={data.icon}
+              fallback={isInterface ? "puzzlePiece" : "cube"}
+            />
           </div>
           <div className={textStyle}>
             <div className={titleStyle}>{data.label}</div>

@@ -3,6 +3,7 @@ import { describe, expect, test } from "vitest";
 import { createJsonDocHandle } from "./handle";
 import { createPetrinaut } from "./instance";
 import { toPetrinautId } from "./petrinaut-id";
+import { maxSubnetIconLength } from "./schemas/entity-schemas";
 
 import type { SDCPN, Subnet } from "./types/sdcpn";
 
@@ -1924,5 +1925,36 @@ describe("Petrinaut core interface actions", () => {
       instance.definition.get().subnets?.find(({ id }) => id === idOf("stage"))
         ?.interface,
     ).toBeUndefined();
+  });
+
+  test("a subnet takes an icon and a colour, and clearing one deletes it", () => {
+    const instance = createInstance(withInterface());
+    const iconSvg = '<svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/></svg>';
+    const fast = () =>
+      instance.definition.get().subnets?.find(({ id }) => id === idOf("fast"));
+
+    instance.mutations.updateSubnet({
+      subnetId: "fast",
+      update: { iconSvg, displayColor: "#3b82f6" },
+    });
+    expect(fast()).toMatchObject({ iconSvg, displayColor: "#3b82f6" });
+
+    instance.mutations.updateSubnet({
+      subnetId: "fast",
+      update: { iconSvg: undefined, displayColor: undefined },
+    });
+    expect(fast()).not.toHaveProperty("iconSvg");
+    expect(fast()).not.toHaveProperty("displayColor");
+  });
+
+  test("an icon longer than the limit is refused", () => {
+    const instance = createInstance(withInterface());
+
+    expect(() =>
+      instance.mutations.updateSubnet({
+        subnetId: "fast",
+        update: { iconSvg: `<svg>${" ".repeat(maxSubnetIconLength)}</svg>` },
+      }),
+    ).toThrow();
   });
 });

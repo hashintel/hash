@@ -12,6 +12,8 @@ To use a component, place an **instance** of it: pick the component from the cub
 
 A component with more than four ports starts **folded**: its card keeps its base height, says how many ports go in and out, and its arcs and fusion links meet its edges. The chevron in the card's header unfolds it to show every port with its pin and name, and folds it again. The card unfolds downward, so its header stays where it is.
 
+A component can carry its own **icon** and **colour**. Open the options on its row in the **Nets** panel, choose an SVG file under **Icon** and a colour under **Color**. The icon's shape is drawn in one colour, the component's or the default grey, in place of the cube on the card of each instance and beside the component's name in the **Nets** panel. An instance of an interface wears the icon and colour of the implementation it runs, then the interface's own. **Remove** takes the icon away again, and an export without visual information leaves both out.
+
 A transition of the net can connect to a port with an arc, as to any place. The arc reaches the place inside the instance.
 
 ## Ports and their direction

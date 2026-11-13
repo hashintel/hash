@@ -496,6 +496,9 @@ export const fusionSchema = z
       "A fusion set: a place of the net and ports of its component instances that act as one place in simulation.",
   }) satisfies z.ZodType<Fusion>;
 
+/** The longest icon a subnet may carry, in characters of SVG markup. */
+export const maxSubnetIconLength = 16_384;
+
 export const subnetSchema = z
   .strictObject({
     id: idSchema,
@@ -504,6 +507,14 @@ export const subnetSchema = z
     }),
     description: descriptionSchema,
     metadata: metadataSchema,
+    iconSvg: z.string().min(1).max(maxSubnetIconLength).optional().meta({
+      description:
+        "SVG markup for the component's icon. Its shape is drawn in one colour on the component's instances, in place of the default cube. Keep it small: one `<svg>` with a `viewBox`, shapes only.",
+    }),
+    displayColor: z.string().min(1).optional().meta({
+      description:
+        'CSS colour string for the component\'s icon and its tile, e.g. `"#1E90FF"`. Omit for the default glyph colour.',
+    }),
     interface: z.literal(true).optional().meta({
       description:
         "When true, the subnet is an interface: a signature of ports, types and parameters with no transitions. Instances of it run the implementation bound to them.",
