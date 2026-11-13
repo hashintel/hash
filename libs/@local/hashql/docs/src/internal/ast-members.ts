@@ -337,7 +337,7 @@ const isClassMember = (node: Syntax.ClassElement): boolean =>
   Syntax.isConstructorDeclaration(node) ||
   Syntax.isSemicolonClassElement(node);
 
-/** The members of a class that code outside it can use: named members first, then its constructors as one member. Any other class element fails the class. */
+/** The members of a class that code outside it can use: named members first, then its constructors as one member. A private member and a private constructor are not among them. Any other class element fails the class. */
 export const classMembers = (
   nodes: readonly Syntax.ClassElement[],
 ): Parsed<Chunk.Chunk<AST.Member.InternedClass>> =>
@@ -348,7 +348,10 @@ export const classMembers = (
       commonMembers,
     ),
     constructors: Array.match(
-      Array.filter(nodes, Syntax.isConstructorDeclaration),
+      pipe(
+        Array.filter(nodes, Syntax.isConstructorDeclaration),
+        Array.filter((node) => !TypeScript.Node.isPrivate(node)),
+      ),
       {
         onEmpty: () => Effect.succeedNone,
         onNonEmpty: (constructors) =>
