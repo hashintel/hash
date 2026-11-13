@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { use, type ReactNode } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 
+import { CompositionContext } from "../../../../../react/state/composition-context";
 import { EditorContext } from "../../../../../react/state/editor-context";
 import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
 import { useKeyboardShortcuts } from "./use-keyboard-shortcuts";
@@ -82,6 +83,24 @@ test.each([
     expect(actions.mode).not.toHaveBeenCalled();
   },
 );
+
+test("the place and transition shortcuts do nothing in an editor that only composes", () => {
+  actions.readOnly = false;
+  const Composing = ({ children }: { children: ReactNode }) => (
+    <CompositionContext
+      value={{ ...use(CompositionContext), compositionOnly: true }}
+    >
+      {children}
+    </CompositionContext>
+  );
+  render(<Shortcuts />, { wrapper: Composing });
+
+  fireEvent.keyDown(document.body, { key: "n" });
+  fireEvent.keyDown(document.body, { key: "t" });
+
+  expect(actions.mode).not.toHaveBeenCalled();
+  expect(actions.notify).not.toHaveBeenCalled();
+});
 
 test("typing and selection shortcuts stay quiet", () => {
   render(

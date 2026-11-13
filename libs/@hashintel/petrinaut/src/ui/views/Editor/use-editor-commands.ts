@@ -2,6 +2,7 @@ import { use, useEffect, useEffectEvent } from "react";
 
 import { usePetrinautCommands } from "../../../react";
 import { useCommand } from "../../../react/commands/command-registry";
+import { CompositionContext } from "../../../react/state/composition-context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { UndoRedoContext } from "../../../react/state/undo-redo-context";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
@@ -37,6 +38,9 @@ const useEditorCommands = ({
   const isReadOnly = useIsReadOnly();
   const canEditNet =
     globalMode === "edit" && editViewMode === "canvas" && !isReadOnly;
+  // An editor that only composes draws no place and no transition.
+  const { compositionOnly } = use(CompositionContext);
+  const canDrawNet = canEditNet && !compositionOnly;
   const runAutoLayout = () => {
     void (applyAutoLayoutAndFrame?.() ?? applyAutoLayout());
   };
@@ -153,7 +157,7 @@ const useEditorCommands = ({
       shortcut: "n",
       run: () => setEditionMode("add-place"),
     },
-    { when: canEditNet },
+    { when: canDrawNet },
   );
   useCommand(
     {
@@ -164,7 +168,7 @@ const useEditorCommands = ({
       shortcut: "t",
       run: () => setEditionMode("add-transition"),
     },
-    { when: canEditNet },
+    { when: canDrawNet },
   );
   useCommand(
     {

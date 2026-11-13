@@ -399,6 +399,7 @@ full prop list, from `petrinaut/src/ui/petrinaut.tsx`:
 | `eventSimulationWorkerFactory`, `monteCarloWorkerFactory`, `lspWorkerFactory` | Worker construction for hosts consuming the published dist, typically via the bundler's `?worker` import. Omitted: inlined-blob workers. |
 | `plugins`                                                                     | Plugins that add buttons, top-bar items, commands, settings and UI. Define each at module scope.                                         |
 | `components`                                                                  | Components the host provides for the user to instantiate. Define the list at module scope. See Providing components.                     |
+| `compositionOnly`                                                             | Keeps the editor to placing and wiring `components`. See Composition only.                                                               |
 
 A plugin declares what it adds in a manifest and returns it from a hook the
 editor runs per document; see [Plugins](doc:ui.plugins/overview).
@@ -486,6 +487,52 @@ like to any other, and the net then runs in the editor.
 The document keeps the copy it took. A component the host later changes keeps
 its earlier ports and parameters in the documents that already hold it.
 :::
+
+### Composition only
+
+`compositionOnly`, on `<Petrinaut>` and on `createPetrinaut`, makes an editor
+that composes the provided components and changes nothing else:
+
+```tsx
+<Petrinaut handle={handle} components={components} compositionOnly />
+```
+
+The user places instances, names them and sets their parameters, fuses ports
+by dragging between pins, moves or detaches the ends of fusion links, deletes
+instances and fusions, and arranges the canvas. The editor offers no tool
+that draws a place or a transition, no Nets panel, no Definitions view, no
+Simulate mode and no playback, and the canvas connects ports by fusion alone.
+The left sidebar holds the Components panel, and the bottom panel the
+Diagnostics tab.
+
+Core holds the rule, beside the one that protects the host's interfaces, so
+every caller meets it. An instance created with `compositionOnly` composes
+its root net: a mutation that targets a subnet is refused. Of the others,
+these go through:
+
+| Mutation                                                                 | Allowed when                                            |
+| ------------------------------------------------------------------------ | ------------------------------------------------------- |
+| `addComponentInstance`                                                   | `subnetId` is a provided component's.                   |
+| `updateComponentInstance`                                                | `update.subnetId`, if given, is a provided component's. |
+| `updateComponentInstancePosition`, `removeComponentInstance`             | Always.                                                 |
+| `addFusion`, `updateFusion`, `removeFusion`                              | Always.                                                 |
+| `addFusionMember`, `removeFusionMember`, `replaceFusionMember`           | Always.                                                 |
+| `deleteItemsByIds`                                                       | Every item is a component instance or a fusion.         |
+| `commitNodePositions`, `updatePlacePosition`, `updateTransitionPosition` | Always.                                                 |
+
+Every other mutation throws one sentence, "This editor only places and
+connects the components it is given.", followed by the mutation's name.
+`instance.mutationRefusal(name, input)` gives the sentence without running
+the mutation, the React bindings show it as a notice, and a plugin's `edit`
+returns it as a refusal of kind `host-restriction`. `applyClipboardPaste`
+throws too, and the React bindings turn that into a notice: the clipboard
+carries places and transitions.
+
+A document that already holds places and transitions shows them. They can be
+moved and fused with ports, and nothing else of them changes. With no
+`components`, the editor places nothing and still wires what the document
+holds. The rule binds the instance's mutations and commands: code that holds
+the document handle can still change the document through `handle.change`.
 
 ## Capabilities
 

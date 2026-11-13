@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PetrinautInstanceContext } from "../../../react/instance-context";
 import { NotificationsContext } from "../../../react/notifications/context";
 import { ActiveNetContext } from "../../../react/state/active-net-context";
+import { CompositionContext } from "../../../react/state/composition-context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { fusionLinks } from "./fusion-links";
@@ -91,11 +92,15 @@ const dropPortEnd = (
   onto: nodeId === undefined ? null : { nodeId, portId },
 });
 const addNotification = vi.fn();
-const editor: { selection: SelectionMap } = { selection: new Map() };
+const editor: { selection: SelectionMap; compositionOnly: boolean } = {
+  selection: new Map(),
+  compositionOnly: false,
+};
 
 beforeEach(() => {
   vi.clearAllMocks();
   editor.selection = new Map([[belt.id, { type: "fusion", id: belt.id }]]);
+  editor.compositionOnly = false;
 });
 
 const Wrapper = ({ children }: { children: ReactNode }) => (
@@ -109,28 +114,35 @@ const Wrapper = ({ children }: { children: ReactNode }) => (
         getItemType: (id) => itemTypes[id] ?? null,
       }}
     >
-      <ActiveNetContext
+      <CompositionContext
         value={{
-          ...use(ActiveNetContext),
-          activeNet: { ...use(ActiveNetContext).activeNet, fusions: [belt] },
+          ...use(CompositionContext),
+          compositionOnly: editor.compositionOnly,
         }}
       >
-        <NotificationsContext
-          value={{ ...use(NotificationsContext), addNotification }}
+        <ActiveNetContext
+          value={{
+            ...use(ActiveNetContext),
+            activeNet: { ...use(ActiveNetContext).activeNet, fusions: [belt] },
+          }}
         >
-          <EditorContext
-            value={{
-              ...use(EditorContext),
-              setSelection: (next) => {
-                editor.selection =
-                  typeof next === "function" ? next(editor.selection) : next;
-              },
-            }}
+          <NotificationsContext
+            value={{ ...use(NotificationsContext), addNotification }}
           >
-            {children}
-          </EditorContext>
-        </NotificationsContext>
-      </ActiveNetContext>
+            <EditorContext
+              value={{
+                ...use(EditorContext),
+                setSelection: (next) => {
+                  editor.selection =
+                    typeof next === "function" ? next(editor.selection) : next;
+                },
+              }}
+            >
+              {children}
+            </EditorContext>
+          </NotificationsContext>
+        </ActiveNetContext>
+      </CompositionContext>
     </SDCPNContext>
   </PetrinautInstanceContext>
 );
@@ -175,6 +187,19 @@ describe("useCanvasInteractions", () => {
     expect(valid("buffer", null, "store", null)).toBe(false);
     // A place to a transition is an arc.
     expect(valid("buffer", null, "t", null)).toBe(true);
+  });
+
+  it("connects by fusion alone in an editor that only composes", () => {
+    editor.compositionOnly = true;
+    const { interactions } = renderInteractions();
+    const valid = (...ends: Parameters<typeof connection>) =>
+      interactions.isValidConnection(connection(...ends));
+
+    expect(valid("m1", "out", "m2", "in")).toBe(true);
+    expect(valid("store", null, "m2", "in")).toBe(true);
+    // No arc is drawn, to a place or to a port.
+    expect(valid("buffer", null, "t", null)).toBe(false);
+    expect(valid("t", null, "m2", "in")).toBe(false);
   });
 
   it("adds a port to the fusion its other end is in, and refuses a second place", () => {

@@ -14,8 +14,9 @@ import type { PetrinautCommands } from "@hashintel/petrinaut-core";
  *
  * Each command shows the read-only notice and returns a default-shaped result
  * when {@link useIsReadOnly} returns `true`, matching the behaviour of
- * {@link usePetrinautMutations}. Components MUST NOT reach for
- * `usePetrinautInstance().commands` directly.
+ * {@link usePetrinautMutations}. A paste into an editor that only composes
+ * says why it does nothing, where Core itself would throw. Components MUST
+ * NOT reach for `usePetrinautInstance().commands` directly.
  */
 export function usePetrinautCommands(): PetrinautCommands {
   const instance = use(PetrinautInstanceContext);

@@ -3,7 +3,7 @@
  */
 import { act, renderHook } from "@testing-library/react";
 import { type ReactNode } from "react";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 
 import {
   CLIPBOARD_FORMAT_VERSION,
@@ -16,6 +16,10 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { PetrinautInstanceContext } from "../instance-context";
+import {
+  NotificationsContext,
+  type AddNotificationInput,
+} from "../notifications/context";
 import {
   SimulationContext,
   type SimulationState,
@@ -93,6 +97,7 @@ const editorContextValue = (
 type WrapperOptions = {
   sdcpn?: SDCPN;
   readonly?: boolean;
+  compositionOnly?: boolean;
   globalMode?: "edit" | "simulate";
   simulationState?: SimulationState;
 };
@@ -101,12 +106,14 @@ const createWrapper = (options: WrapperOptions = {}) => {
   const {
     sdcpn: initialSdcpn = EMPTY_SDCPN,
     readonly = false,
+    compositionOnly = false,
     globalMode = "edit",
     simulationState = "NotRun",
   } = options;
 
   const instance: Petrinaut = createPetrinaut({
     document: createJsonDocHandle({ initial: structuredClone(initialSdcpn) }),
+    compositionOnly,
   });
 
   const sdcpnContextValue: SDCPNContextValue = {
@@ -190,6 +197,35 @@ describe("usePetrinautCommands", () => {
 
       const { commitCount } = await result.current.applyAutoLayout();
       expect(commitCount).toBe(0);
+    });
+  });
+
+  describe("in an editor that only composes", () => {
+    test("applyClipboardPaste says why it pastes nothing", () => {
+      const addNotification = vi.fn((_notice: AddNotificationInput) => "");
+      const { Wrapper, instance } = createWrapper({ compositionOnly: true });
+      const { result } = renderHook(usePetrinautCommands, {
+        wrapper: ({ children }: { children: ReactNode }) => (
+          <NotificationsContext
+            value={{ addNotification, dismissNotification: () => {} }}
+          >
+            <Wrapper>{children}</Wrapper>
+          </NotificationsContext>
+        ),
+      });
+
+      let output: ReturnType<typeof result.current.applyClipboardPaste>;
+      act(() => {
+        output = result.current.applyClipboardPaste({
+          payload: samplePastePayload,
+        });
+      });
+
+      expect(output!).toEqual({ newItemIds: [] });
+      expect(instance.definition.get().places).toHaveLength(0);
+      expect(addNotification.mock.calls[0]?.[0].message).toContain(
+        "nothing can be pasted into it",
+      );
     });
   });
 
