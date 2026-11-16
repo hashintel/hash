@@ -291,7 +291,19 @@ export const sendPersonaCommand = (
       if (record.type === "turn_settled") finish();
     });
     socket.on("data", (chunk: Buffer) => reader.write(chunk));
-    socket.on("error", finish);
+    socket.on("error", (error: Error) =>
+      finish(
+        // The launcher removes the socket when the run stops, for example
+        // at its message limit; say so rather than leave a bare ENOENT.
+        "code" in error &&
+          (error.code === "ENOENT" || error.code === "ECONNREFUSED")
+          ? new Error(
+              "This run has ended: its launcher has stopped, for example at its message limit or by the operator. Send nothing more; report to the operator.",
+              { cause: error },
+            )
+          : error,
+      ),
+    );
     socket.on("close", () =>
       finish(new Error("Persona bridge closed the connection")),
     );

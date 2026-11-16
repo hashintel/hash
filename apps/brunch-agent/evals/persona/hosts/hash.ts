@@ -52,7 +52,7 @@ const checkHashStack = async (signal: AbortSignal) => {
     );
   const [frontend, api] = await Promise.all([
     answer(hashOrigins.frontend),
-    answer(`${hashOrigins.api}/health-check`),
+    answer(`${hashOrigins.api}/`),
   ]);
   const start = `Start \`yarn compose up\`, \`yarn start:graph\`, \`yarn dev:backend:api\` and \`HASH_BRUNCH_AGENT_ORIGIN=${hashOrigins.brunch} yarn dev:frontend\`.`;
   const missing = [

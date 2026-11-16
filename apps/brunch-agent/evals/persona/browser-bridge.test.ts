@@ -298,3 +298,11 @@ test("the generated helper reads like an ordinary CLI over the bridge", async ()
     stderr: "Expected nonblank text\n",
   });
 }, 20_000);
+
+test("a command to a run whose launcher has stopped says the run has ended", async () => {
+  await expect(
+    sendPersonaCommand(join(tmpdir(), "TEST-persona-gone", "s"), {
+      type: "get_state",
+    }),
+  ).rejects.toThrow("This run has ended");
+});
