@@ -72,7 +72,7 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
   const [latestEntityTypesByKind, setLatestEntityTypesByKind] = useState<{
     nonLink: EntityTypeWithMetadata[];
     link: EntityTypeWithMetadata[];
-  }>();
+  } | null>();
 
   /**
    * This page only lists the latest version of each entity type, so it runs
@@ -101,6 +101,7 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
     if (!subgraph) {
       // eslint-disable-next-line no-console -- TODO: consider using logger
       console.error("Error fetching entity types:", errors);
+      setLatestEntityTypesByKind(null);
       return;
     }
 
@@ -134,6 +135,7 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
     fetchEntityTypes().catch((error) => {
       // eslint-disable-next-line no-console -- TODO: consider using logger
       console.error("Error fetching entity types:", error);
+      setLatestEntityTypesByKind(null);
     });
   }, [fetchEntityTypes]);
 
@@ -281,7 +283,12 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
           <DataTypesLoadError />
         ) : (
           <TypesTable
-            allTypes={allTypes}
+            allTypes={
+              latestEntityTypesByKind === null ||
+              (dataTypesError && latestDataTypesObject === null)
+                ? null
+                : allTypes
+            }
             kind={currentTab}
             types={currentTypes}
           />

@@ -198,9 +198,9 @@ export const TypesTable: FunctionComponent<
         /**
          * The types of every kind, whichever kind the table shows, to tell
          * whether the user's webs have any types at all. `undefined` while
-         * they load.
+         * they load, and `null` if some of them could not be loaded.
          */
-        allTypes: TypesTableType[] | undefined;
+        allTypes: TypesTableType[] | null | undefined;
       }
   )
 > = ({ types, allTypes, kind, onlyOneWeb, loading = false }) => {
@@ -399,15 +399,22 @@ export const TypesTable: FunctionComponent<
   ]);
 
   const emptyState = useMemo(() => {
-    if (onlyOneWeb || !types || !allTypes || filteredTypes.length > 0) {
+    if (
+      onlyOneWeb ||
+      !types ||
+      allTypes === undefined ||
+      filteredTypes.length > 0
+    ) {
       return undefined;
     }
 
-    const hasNoOwnTypes = !allTypes.some(
-      (type) =>
-        getInternalWebId(type, internalWebIds) !== undefined &&
-        !isTypeArchived(type),
-    );
+    const hasNoOwnTypes =
+      allTypes !== null &&
+      !allTypes.some(
+        (type) =>
+          getInternalWebId(type, internalWebIds) !== undefined &&
+          !isTypeArchived(type),
+      );
 
     const filtersNarrowResults =
       typeFilters.length > 0 ||
@@ -918,7 +925,9 @@ export const TypesTable: FunctionComponent<
             dataLoading={
               !types ||
               loading ||
-              (!onlyOneWeb && !allTypes && filteredTypes.length === 0)
+              (!onlyOneWeb &&
+                allTypes === undefined &&
+                filteredTypes.length === 0)
             }
             enableCheckboxSelection
             firstColumnLeftPadding={firstColumnLeftPadding}
