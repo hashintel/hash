@@ -108,6 +108,26 @@ const ownPortFlow = (
     : { produced: true, consumed: true };
 };
 
+/**
+ * What is on the far side of a member from this net's transitions: the
+ * component's own flow, for an instance port. For an anchor that is itself a
+ * port of this net it is the net above, which does with the port the
+ * opposite of what this net does.
+ */
+const farSideFlow = (
+  net: CheckedNet,
+  resolved: ResolvedFusionMember,
+): TokenFlow => {
+  if (resolved.kind === "port") {
+    return ownPortFlow(resolved.subnet, resolved.place);
+  }
+  if (!resolved.place.isPort) {
+    return { produced: false, consumed: false };
+  }
+  const own = ownPortFlow(net, resolved.place);
+  return { produced: own.consumed, consumed: own.produced };
+};
+
 type MemberFacts = TokenFlow & {
   label: string;
   color: Color | undefined;
@@ -129,21 +149,7 @@ const factsFor = (
     resolved.kind === "place" ? subnetId : resolved.subnet.id;
   const equationIds = getRunningEquationIds(place);
   const outside = flowOf(endpointUsage(net.transitions, member));
-  // What is on the far side of the member from this net's transitions: the
-  // component's own, for an instance port. For an anchor that is itself a
-  // port of this net it is the net above, which does with the port the
-  // opposite of what this net does.
-  const usage = (): TokenFlow => {
-    if (resolved.kind === "port") {
-      return ownPortFlow(resolved.subnet, place);
-    }
-    if (!place.isPort) {
-      return { produced: false, consumed: false };
-    }
-    const own = ownPortFlow(net, place);
-    return { produced: own.consumed, consumed: own.produced };
-  };
-  const inside = usage();
+  const inside = farSideFlow(net, resolved);
   return {
     color: place.colorId
       ? types.find(({ id }) => id === place.colorId)
