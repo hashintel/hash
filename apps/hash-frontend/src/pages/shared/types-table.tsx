@@ -1,5 +1,5 @@
 import { GridCellKind } from "@glideapps/glide-data-grid";
-import { Box, useTheme } from "@mui/material";
+import { Box, Typography, useTheme } from "@mui/material";
 import { format } from "date-fns";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -685,7 +685,7 @@ export const TypesTable: FunctionComponent<{
     );
   }, [treeSearchValue, sortedRows, createGetCellContent, typesTableColumns]);
 
-  const visibleRows = useMemo(
+  const tree = useMemo(
     () =>
       hierarchical
         ? buildDataTypeTree({
@@ -694,9 +694,10 @@ export const TypesTable: FunctionComponent<{
             matchingIds,
             collapsedSearchRows,
           })
-        : sortedRows,
+        : undefined,
     [hierarchical, sortedRows, expandedRows, matchingIds, collapsedSearchRows],
   );
+  const visibleRows = tree?.rows ?? sortedRows;
 
   const contentTopRef = useRef<HTMLDivElement>(null);
   const [contentTop, setContentTop] = useState<number | null>(null);
@@ -870,6 +871,12 @@ export const TypesTable: FunctionComponent<{
         }
       />
       <Box ref={contentTopRef} />
+      {view === "Table" && tree?.isFlat ? (
+        <Typography variant="smallTextParagraphs" sx={{ px: 2, py: 1 }}>
+          Showing each matching type once because this hierarchy has too many
+          branches to expand.
+        </Typography>
+      ) : null}
       {view === "Table" ? (
         <Box
           sx={[

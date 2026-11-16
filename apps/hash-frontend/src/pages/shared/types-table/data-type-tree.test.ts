@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildDataTypeTree } from "./data-type-tree";
+import { buildDataTypeTree as buildTree } from "./data-type-tree";
 
 import type { VersionedUrl } from "@blockprotocol/type-system";
 
@@ -29,6 +29,9 @@ const defaults = {
   expandedRows: new Set<string>(),
   collapsedSearchRows: new Set<string>(),
 };
+const buildDataTypeTree = (
+  options: Parameters<typeof buildTree<(typeof rows)[number]>>[0],
+) => buildTree(options).rows;
 
 describe("data type hierarchy", () => {
   it("starts with the children of Value, collapsed", () => {
@@ -237,5 +240,35 @@ describe("data type hierarchy", () => {
       matchingIds: new Set([id("unit-1499")]),
     });
     expect(tree.map(({ title }) => title)).toEqual(["number", "unit-1499"]);
+  });
+
+  it("bounds repeated diamond paths without omitting matching types", () => {
+    const catalogue = [row("root")];
+    let parents = ["root"];
+    for (let level = 0; level < 16; level++) {
+      const names = [`left-${level}`, `right-${level}`];
+      catalogue.push(...names.map((name) => row(name, parents)));
+      parents = names;
+    }
+    const matchingIds = new Set(parents.map((name) => id(name)));
+    const tree = buildTree({ ...defaults, rows: catalogue, matchingIds });
+    expect(tree.isFlat).toBe(true);
+    expect(tree.rows.map(({ typeId }) => typeId)).toEqual([...matchingIds]);
+    expect(tree.rows.every(({ hierarchy }) => hierarchy.depth === 0)).toBe(
+      true,
+    );
+  });
+
+  it("handles deep inheritance without overflowing the call stack", () => {
+    const catalogue = Array.from({ length: 10_000 }, (_, index) =>
+      row(`type-${index}`, index ? [`type-${index - 1}`] : []),
+    );
+    const tree = buildTree({
+      ...defaults,
+      rows: catalogue,
+      matchingIds: new Set([id("type-9999")]),
+    });
+    expect(tree.isFlat).toBe(true);
+    expect(tree.rows.map(({ title }) => title)).toEqual(["type-9999"]);
   });
 });

@@ -34,7 +34,10 @@ export const buildDataTypeTree = <Row extends DataTypeRow>({
   /** Undefined means browsing; an empty set means a search with no matches. */
   matchingIds?: ReadonlySet<VersionedUrl>;
   collapsedSearchRows: ReadonlySet<string>;
-}): (Row & { hierarchy: DataTypeTreePosition })[] => {
+}): {
+  rows: (Row & { hierarchy: DataTypeTreePosition })[];
+  isFlat: boolean;
+} => {
   const byId = new Map(rows.map((row) => [row.typeId, row]));
   const latestByBaseUrl = new Map<string, Row>();
   for (const row of rows) {
@@ -104,12 +107,15 @@ export const buildDataTypeTree = <Row extends DataTypeRow>({
   // Keep malformed cyclic components reachable, even when they have no root.
   const reachable = new Set<VersionedUrl>();
   const markReachable = (id: VersionedUrl) => {
-    if (reachable.has(id)) {
-      return;
-    }
-    reachable.add(id);
-    for (const childId of children.get(id) ?? []) {
-      markReachable(childId);
+    const pending = [id];
+    while (pending.length) {
+      const current = pending.pop()!;
+      if (!reachable.has(current)) {
+        reachable.add(current);
+        for (const childId of children.get(current) ?? []) {
+          pending.push(childId);
+        }
+      }
     }
   };
   for (const root of roots) {
@@ -123,17 +129,26 @@ export const buildDataTypeTree = <Row extends DataTypeRow>({
   }
 
   const result: (Row & { hierarchy: DataTypeTreePosition })[] = [];
-  const visit = (row: Row, path: VersionedUrl[]) => {
+  // Shared ancestry can multiply paths exponentially. Bound path copying and
+  // edge traversal, then fall back to a complete, flat list of matching types.
+  const traversalBudget = Math.max(10_000, rows.length * 4);
+  let traversalWork = 0;
+  const visit = (row: Row, path: VersionedUrl[]): boolean => {
     if (
       path.includes(row.typeId) ||
       (includedIds && !includedIds.has(row.typeId))
     ) {
-      return;
+      return true;
+    }
+    const descendants = children.get(row.typeId) ?? [];
+    traversalWork += (path.length + 1) * (descendants.length + 1);
+    if (traversalWork > traversalBudget || path.length >= 256) {
+      return false;
     }
     const nextPath = [...path, row.typeId];
     // A type can inherit from several parents: each occurrence needs its own expansion and selection identity.
     const rowId = JSON.stringify(nextPath);
-    const childIds = (children.get(row.typeId) ?? []).filter(
+    const childIds = descendants.filter(
       (id) => !nextPath.includes(id) && (!includedIds || includedIds.has(id)),
     );
     const hasChildren = childIds.length > 0;
@@ -152,12 +167,31 @@ export const buildDataTypeTree = <Row extends DataTypeRow>({
     });
     if (expanded) {
       for (const childId of childIds) {
-        visit(byId.get(childId)!, nextPath);
+        if (!visit(byId.get(childId)!, nextPath)) {
+          return false;
+        }
       }
     }
+    return true;
   };
   for (const root of roots) {
-    visit(root, []);
+    if (!visit(root, [])) {
+      return {
+        isFlat: true,
+        rows: rows
+          .filter((row) => !matchingIds || matchingIds.has(row.typeId))
+          .map((row) => ({
+            ...row,
+            rowId: JSON.stringify([row.typeId]),
+            hierarchy: {
+              depth: 0,
+              expanded: false,
+              hasChildren: false,
+              matchesSearch: true,
+            },
+          })),
+      };
+    }
   }
-  return result;
+  return { rows: result, isFlat: false };
 };
