@@ -79,7 +79,11 @@ export const fusionStatuses = (
 export type FusionPlan =
   /** The fused place would be two places of this net, and it holds one at most. */
   | { kind: "refused" }
-  /** One end belongs to a fusion: `member` joins it, bringing its own along. */
+  /**
+   * One end belongs to a fusion: `member` joins it. When `member` is in a
+   * fusion too, the mutation merges that one in; the first end's fusion is
+   * the one kept.
+   */
   | { kind: "join"; fusionId: string; member: FusionMember }
   | { kind: "new"; members: [FusionMember, FusionMember] };
 

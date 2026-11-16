@@ -72,7 +72,8 @@ const memberButtonStyle = css({
   alignItems: "center",
   gap: "1.5",
   width: "full",
-  // The tooltip's wrapper sets none, and a name is clipped to its line.
+  // The tooltip's wrapper sets no line height, and the name's
+  // `overflow: hidden` would clip descenders at the inherited one.
   lineHeight: "[1.5]",
   padding: "0",
   border: "none",
@@ -90,7 +91,6 @@ const memberNameStyle = css({
   whiteSpace: "nowrap",
 });
 
-/** A member's kind stays on its row's one line. */
 const memberKindStyle = css({
   whiteSpace: "nowrap",
 });
