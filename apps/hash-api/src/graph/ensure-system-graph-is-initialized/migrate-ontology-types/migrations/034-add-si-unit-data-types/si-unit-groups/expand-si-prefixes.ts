@@ -90,15 +90,15 @@ const prefixConversion = (
   const factor = dividend[2].const;
   if (
     JSON.stringify(conversion.from) !==
-    JSON.stringify(scaledConversion(factor, divisor.const).from)
+    JSON.stringify(scaledConversion({ factor, divisor: divisor.const }).from)
   ) {
     throw new Error("SI prefix conversion has an inconsistent inverse");
   }
   const [coefficient, originalExponent] = factor.toExponential().split("e");
-  return scaledConversion(
-    Number(`${coefficient}e${Number(originalExponent) + exponent}`),
-    divisor.const,
-  );
+  return scaledConversion({
+    factor: Number(`${coefficient}e${Number(originalExponent) + exponent}`),
+    divisor: divisor.const,
+  });
 };
 
 export const expandSiPrefixes = (
@@ -136,7 +136,7 @@ export const expandSiPrefixes = (
 
       const scale = Number(`1e${prefix.exponent * power}`);
       const conversions = unit.conversions ?? {
-        [baseUrl]: scaledConversion(1),
+        [baseUrl]: scaledConversion({ factor: 1 }),
       };
       expanded.push({
         title,

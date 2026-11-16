@@ -42,7 +42,9 @@ const unprefixedGroups: SiUnitGroup[] = [
           "A unit of length in the International System of Units (SI), equal to one thousandth of a meter.",
         symbol: "mm",
         conversions: {
-          [systemDataTypes.meters.dataTypeBaseUrl]: scaledConversion(0.001),
+          [systemDataTypes.meters.dataTypeBaseUrl]: scaledConversion({
+            factor: 0.001,
+          }),
         },
       },
       {
@@ -51,7 +53,9 @@ const unprefixedGroups: SiUnitGroup[] = [
           "A unit of length in the International System of Units (SI), equal to one hundredth of a meter.",
         symbol: "cm",
         conversions: {
-          [systemDataTypes.meters.dataTypeBaseUrl]: scaledConversion(0.01),
+          [systemDataTypes.meters.dataTypeBaseUrl]: scaledConversion({
+            factor: 0.01,
+          }),
         },
       },
       {
@@ -60,7 +64,9 @@ const unprefixedGroups: SiUnitGroup[] = [
           "A unit of length in the International System of Units (SI), equal to one thousand meters.",
         symbol: "km",
         conversions: {
-          [systemDataTypes.meters.dataTypeBaseUrl]: scaledConversion(1000),
+          [systemDataTypes.meters.dataTypeBaseUrl]: scaledConversion({
+            factor: 1000,
+          }),
         },
       },
     ],
@@ -80,7 +86,9 @@ const unprefixedGroups: SiUnitGroup[] = [
           "A metric unit of mass equal to one thousandth of a kilogram.",
         symbol: "g",
         conversions: {
-          [systemDataTypes.kilograms.dataTypeBaseUrl]: scaledConversion(0.001),
+          [systemDataTypes.kilograms.dataTypeBaseUrl]: scaledConversion({
+            factor: 0.001,
+          }),
         },
       },
       {
@@ -88,7 +96,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         description: "A metric unit of mass equal to 1000 kilograms.",
         symbol: "t",
         conversions: {
-          [systemDataTypes.kilograms.dataTypeBaseUrl]: scaledConversion(1000),
+          [systemDataTypes.kilograms.dataTypeBaseUrl]: scaledConversion({
+            factor: 1000,
+          }),
         },
       },
     ],
@@ -109,7 +119,9 @@ const unprefixedGroups: SiUnitGroup[] = [
           "A measure of the length of time in the International System of Units (SI), defined as exactly 1/1000 of a second.",
         symbol: "ms",
         conversions: {
-          [systemDataTypes.second.dataTypeBaseUrl]: scaledConversion(0.001),
+          [systemDataTypes.second.dataTypeBaseUrl]: scaledConversion({
+            factor: 0.001,
+          }),
         },
       },
       {
@@ -118,7 +130,9 @@ const unprefixedGroups: SiUnitGroup[] = [
           "A measure of the length of time in the International System of Units (SI), defined as exactly 1/1000000 (1 millionth) of a second.",
         symbol: "µs",
         conversions: {
-          [systemDataTypes.second.dataTypeBaseUrl]: scaledConversion(0.000001),
+          [systemDataTypes.second.dataTypeBaseUrl]: scaledConversion({
+            factor: 0.000001,
+          }),
         },
       },
       {
@@ -127,7 +141,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         description:
           "A measure of the length of time, defined as exactly 60 seconds.",
         conversions: {
-          [systemDataTypes.second.dataTypeBaseUrl]: scaledConversion(60),
+          [systemDataTypes.second.dataTypeBaseUrl]: scaledConversion({
+            factor: 60,
+          }),
         },
       },
       {
@@ -136,7 +152,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         description:
           "A measure of the length of time, defined as exactly 3,600 seconds.",
         conversions: {
-          [systemDataTypes.second.dataTypeBaseUrl]: scaledConversion(3600),
+          [systemDataTypes.second.dataTypeBaseUrl]: scaledConversion({
+            factor: 3600,
+          }),
         },
       },
       {
@@ -144,7 +162,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         symbol: "d",
         description: "A duration of exactly 24 hours.",
         conversions: {
-          [systemDataTypes.second.dataTypeBaseUrl]: scaledConversion(86400),
+          [systemDataTypes.second.dataTypeBaseUrl]: scaledConversion({
+            factor: 86400,
+          }),
         },
       },
       {
@@ -152,7 +172,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         symbol: "wk",
         description: "A duration of exactly 7 days.",
         conversions: {
-          [systemDataTypes.second.dataTypeBaseUrl]: scaledConversion(604800),
+          [systemDataTypes.second.dataTypeBaseUrl]: scaledConversion({
+            factor: 604800,
+          }),
         },
       },
       {
@@ -161,7 +183,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         description:
           "A mean duration of 2,629,800 seconds, preserving the existing fixed month conversion. Calendar months vary in length.",
         conversions: {
-          [systemDataTypes.second.dataTypeBaseUrl]: scaledConversion(2629800),
+          [systemDataTypes.second.dataTypeBaseUrl]: scaledConversion({
+            factor: 2629800,
+          }),
         },
       },
       {
@@ -170,7 +194,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         description:
           "A duration of 31,557,600 seconds (365.25 days), preserving the existing fixed year conversion. Calendar years vary in length.",
         conversions: {
-          [systemDataTypes.second.dataTypeBaseUrl]: scaledConversion(31557600),
+          [systemDataTypes.second.dataTypeBaseUrl]: scaledConversion({
+            factor: 31557600,
+          }),
         },
       },
       {
@@ -178,7 +204,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         symbol: "h",
         description: "A unit of time equal to 60 minutes.",
         conversions: {
-          [systemDataTypes.second.dataTypeBaseUrl]: scaledConversion(3600),
+          [systemDataTypes.second.dataTypeBaseUrl]: scaledConversion({
+            factor: 3600,
+          }),
         },
       },
       {
@@ -186,7 +214,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         symbol: "d",
         description: "A unit of time equal to 24 hours.",
         conversions: {
-          [systemDataTypes.second.dataTypeBaseUrl]: scaledConversion(86400),
+          [systemDataTypes.second.dataTypeBaseUrl]: scaledConversion({
+            factor: 86400,
+          }),
         },
       },
     ],
@@ -208,7 +238,9 @@ const unprefixedGroups: SiUnitGroup[] = [
           "A unit of frequency in the International System of Units (SI), equal to one thousand hertz.",
         symbol: "kHz",
         conversions: {
-          [systemDataTypes.hertz.dataTypeBaseUrl]: scaledConversion(1000),
+          [systemDataTypes.hertz.dataTypeBaseUrl]: scaledConversion({
+            factor: 1000,
+          }),
         },
       },
       {
@@ -217,7 +249,9 @@ const unprefixedGroups: SiUnitGroup[] = [
           "A unit of frequency in the International System of Units (SI), equal to one million hertz.",
         symbol: "MHz",
         conversions: {
-          [systemDataTypes.hertz.dataTypeBaseUrl]: scaledConversion(1000000),
+          [systemDataTypes.hertz.dataTypeBaseUrl]: scaledConversion({
+            factor: 1000000,
+          }),
         },
       },
       {
@@ -226,7 +260,9 @@ const unprefixedGroups: SiUnitGroup[] = [
           "A unit of frequency in the International System of Units (SI), equal to one billion hertz.",
         symbol: "GHz",
         conversions: {
-          [systemDataTypes.hertz.dataTypeBaseUrl]: scaledConversion(1000000000),
+          [systemDataTypes.hertz.dataTypeBaseUrl]: scaledConversion({
+            factor: 1000000000,
+          }),
         },
       },
     ],
@@ -247,7 +283,9 @@ const unprefixedGroups: SiUnitGroup[] = [
           "A unit of power in the International System of Units (SI), equal to one thousand watts.",
         symbol: "kW",
         conversions: {
-          [systemDataTypes.watts.dataTypeBaseUrl]: scaledConversion(1000),
+          [systemDataTypes.watts.dataTypeBaseUrl]: scaledConversion({
+            factor: 1000,
+          }),
         },
       },
       {
@@ -256,7 +294,9 @@ const unprefixedGroups: SiUnitGroup[] = [
           "A unit of power in the International System of Units (SI), equal to one million watts.",
         symbol: "MW",
         conversions: {
-          [systemDataTypes.watts.dataTypeBaseUrl]: scaledConversion(1000000),
+          [systemDataTypes.watts.dataTypeBaseUrl]: scaledConversion({
+            factor: 1000000,
+          }),
         },
       },
       {
@@ -265,7 +305,9 @@ const unprefixedGroups: SiUnitGroup[] = [
           "A unit of power in the International System of Units (SI), equal to one billion watts.",
         symbol: "GW",
         conversions: {
-          [systemDataTypes.watts.dataTypeBaseUrl]: scaledConversion(1000000000),
+          [systemDataTypes.watts.dataTypeBaseUrl]: scaledConversion({
+            factor: 1000000000,
+          }),
         },
       },
     ],
@@ -286,8 +328,9 @@ const unprefixedGroups: SiUnitGroup[] = [
           "A metric unit of area equal to one ten-thousandth of a square metre.",
         symbol: "cm²",
         conversions: {
-          [systemDataTypes.squareMetres.dataTypeBaseUrl]:
-            scaledConversion(0.0001),
+          [systemDataTypes.squareMetres.dataTypeBaseUrl]: scaledConversion({
+            factor: 0.0001,
+          }),
         },
       },
     ],
@@ -308,7 +351,9 @@ const unprefixedGroups: SiUnitGroup[] = [
           "A metric unit of volume equal to one thousandth of a litre.",
         symbol: "mL",
         conversions: {
-          [systemDataTypes.litres.dataTypeBaseUrl]: scaledConversion(0.001),
+          [systemDataTypes.litres.dataTypeBaseUrl]: scaledConversion({
+            factor: 0.001,
+          }),
         },
       },
       {
@@ -316,7 +361,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         description: "A metric unit of volume equal to 1000 litres.",
         symbol: "m³",
         conversions: {
-          [systemDataTypes.litres.dataTypeBaseUrl]: scaledConversion(1000),
+          [systemDataTypes.litres.dataTypeBaseUrl]: scaledConversion({
+            factor: 1000,
+          }),
         },
       },
     ],
@@ -335,7 +382,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         symbol: "mA",
         description: "A unit of electric current equal to 0.001 amperes.",
         conversions: {
-          [systemDataTypes.amperes.dataTypeBaseUrl]: scaledConversion(0.001),
+          [systemDataTypes.amperes.dataTypeBaseUrl]: scaledConversion({
+            factor: 0.001,
+          }),
         },
       },
       {
@@ -343,7 +392,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         symbol: "µA",
         description: "A unit of electric current equal to 0.000001 amperes.",
         conversions: {
-          [systemDataTypes.amperes.dataTypeBaseUrl]: scaledConversion(1e-6),
+          [systemDataTypes.amperes.dataTypeBaseUrl]: scaledConversion({
+            factor: 1e-6,
+          }),
         },
       },
     ],
@@ -405,7 +456,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         symbol: "mmol",
         description: "A unit of amount of substance equal to 0.001 moles.",
         conversions: {
-          [systemDataTypes.moles.dataTypeBaseUrl]: scaledConversion(0.001),
+          [systemDataTypes.moles.dataTypeBaseUrl]: scaledConversion({
+            factor: 0.001,
+          }),
         },
       },
       {
@@ -413,7 +466,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         symbol: "µmol",
         description: "A unit of amount of substance equal to 0.000001 moles.",
         conversions: {
-          [systemDataTypes.moles.dataTypeBaseUrl]: scaledConversion(1e-6),
+          [systemDataTypes.moles.dataTypeBaseUrl]: scaledConversion({
+            factor: 1e-6,
+          }),
         },
       },
     ],
@@ -446,10 +501,10 @@ const unprefixedGroups: SiUnitGroup[] = [
         symbol: "rad",
         description: "The SI unit of plane angle. A full turn is 2π radians.",
         conversions: {
-          [systemDataTypes.degree.dataTypeBaseUrl]: scaledConversion(
-            180,
-            3.141592653589793,
-          ),
+          [systemDataTypes.degree.dataTypeBaseUrl]: scaledConversion({
+            factor: 180,
+            divisor: 3.141592653589793,
+          }),
         },
       },
     ],
@@ -482,7 +537,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         symbol: "kN",
         description: "A unit of force equal to 1000 newtons.",
         conversions: {
-          [systemDataTypes.newtons.dataTypeBaseUrl]: scaledConversion(1000),
+          [systemDataTypes.newtons.dataTypeBaseUrl]: scaledConversion({
+            factor: 1000,
+          }),
         },
       },
     ],
@@ -502,7 +559,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         symbol: "hPa",
         description: "A unit of pressure equal to 100 pascals.",
         conversions: {
-          [systemDataTypes.pascals.dataTypeBaseUrl]: scaledConversion(100),
+          [systemDataTypes.pascals.dataTypeBaseUrl]: scaledConversion({
+            factor: 100,
+          }),
         },
       },
       {
@@ -510,7 +569,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         symbol: "kPa",
         description: "A unit of pressure equal to 1000 pascals.",
         conversions: {
-          [systemDataTypes.pascals.dataTypeBaseUrl]: scaledConversion(1000),
+          [systemDataTypes.pascals.dataTypeBaseUrl]: scaledConversion({
+            factor: 1000,
+          }),
         },
       },
       {
@@ -518,7 +579,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         symbol: "MPa",
         description: "A unit of pressure equal to 1000000 pascals.",
         conversions: {
-          [systemDataTypes.pascals.dataTypeBaseUrl]: scaledConversion(1000000),
+          [systemDataTypes.pascals.dataTypeBaseUrl]: scaledConversion({
+            factor: 1000000,
+          }),
         },
       },
       {
@@ -526,7 +589,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         symbol: "bar",
         description: "A unit of pressure equal to 100000 pascals.",
         conversions: {
-          [systemDataTypes.pascals.dataTypeBaseUrl]: scaledConversion(100000),
+          [systemDataTypes.pascals.dataTypeBaseUrl]: scaledConversion({
+            factor: 100000,
+          }),
         },
       },
       {
@@ -534,7 +599,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         symbol: "atm",
         description: "A unit of pressure equal to 101325 pascals.",
         conversions: {
-          [systemDataTypes.pascals.dataTypeBaseUrl]: scaledConversion(101325),
+          [systemDataTypes.pascals.dataTypeBaseUrl]: scaledConversion({
+            factor: 101325,
+          }),
         },
       },
     ],
@@ -554,7 +621,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         symbol: "kJ",
         description: "A unit of energy equal to 1000 joules.",
         conversions: {
-          [systemDataTypes.joules.dataTypeBaseUrl]: scaledConversion(1000),
+          [systemDataTypes.joules.dataTypeBaseUrl]: scaledConversion({
+            factor: 1000,
+          }),
         },
       },
       {
@@ -562,7 +631,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         symbol: "MJ",
         description: "A unit of energy equal to 1000000 joules.",
         conversions: {
-          [systemDataTypes.joules.dataTypeBaseUrl]: scaledConversion(1000000),
+          [systemDataTypes.joules.dataTypeBaseUrl]: scaledConversion({
+            factor: 1000000,
+          }),
         },
       },
       {
@@ -570,7 +641,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         symbol: "W·h",
         description: "A unit of energy equal to 3600 joules.",
         conversions: {
-          [systemDataTypes.joules.dataTypeBaseUrl]: scaledConversion(3600),
+          [systemDataTypes.joules.dataTypeBaseUrl]: scaledConversion({
+            factor: 3600,
+          }),
         },
       },
       {
@@ -578,7 +651,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         symbol: "kW·h",
         description: "A unit of energy equal to 3600000 joules.",
         conversions: {
-          [systemDataTypes.joules.dataTypeBaseUrl]: scaledConversion(3600000),
+          [systemDataTypes.joules.dataTypeBaseUrl]: scaledConversion({
+            factor: 3600000,
+          }),
         },
       },
     ],
@@ -598,7 +673,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         symbol: "A·h",
         description: "A unit of electric charge equal to 3600 coulombs.",
         conversions: {
-          [systemDataTypes.coulombs.dataTypeBaseUrl]: scaledConversion(3600),
+          [systemDataTypes.coulombs.dataTypeBaseUrl]: scaledConversion({
+            factor: 3600,
+          }),
         },
       },
       {
@@ -606,7 +683,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         symbol: "mA·h",
         description: "A unit of electric charge equal to 3.6 coulombs.",
         conversions: {
-          [systemDataTypes.coulombs.dataTypeBaseUrl]: scaledConversion(3.6),
+          [systemDataTypes.coulombs.dataTypeBaseUrl]: scaledConversion({
+            factor: 3.6,
+          }),
         },
       },
     ],
@@ -628,7 +707,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         description:
           "A unit of electric potential difference equal to 0.001 volts.",
         conversions: {
-          [systemDataTypes.volts.dataTypeBaseUrl]: scaledConversion(0.001),
+          [systemDataTypes.volts.dataTypeBaseUrl]: scaledConversion({
+            factor: 0.001,
+          }),
         },
       },
       {
@@ -637,7 +718,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         description:
           "A unit of electric potential difference equal to 1000 volts.",
         conversions: {
-          [systemDataTypes.volts.dataTypeBaseUrl]: scaledConversion(1000),
+          [systemDataTypes.volts.dataTypeBaseUrl]: scaledConversion({
+            factor: 1000,
+          }),
         },
       },
     ],
@@ -658,7 +741,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         symbol: "µF",
         description: "A unit of capacitance equal to 1e-06 farads.",
         conversions: {
-          [systemDataTypes.farads.dataTypeBaseUrl]: scaledConversion(1e-6),
+          [systemDataTypes.farads.dataTypeBaseUrl]: scaledConversion({
+            factor: 1e-6,
+          }),
         },
       },
       {
@@ -666,7 +751,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         symbol: "nF",
         description: "A unit of capacitance equal to 1e-09 farads.",
         conversions: {
-          [systemDataTypes.farads.dataTypeBaseUrl]: scaledConversion(1e-9),
+          [systemDataTypes.farads.dataTypeBaseUrl]: scaledConversion({
+            factor: 1e-9,
+          }),
         },
       },
       {
@@ -674,7 +761,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         symbol: "pF",
         description: "A unit of capacitance equal to 1e-12 farads.",
         conversions: {
-          [systemDataTypes.farads.dataTypeBaseUrl]: scaledConversion(1e-12),
+          [systemDataTypes.farads.dataTypeBaseUrl]: scaledConversion({
+            factor: 1e-12,
+          }),
         },
       },
     ],
@@ -695,7 +784,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         symbol: "kΩ",
         description: "A unit of electric resistance equal to 1000 ohms.",
         conversions: {
-          [systemDataTypes.ohms.dataTypeBaseUrl]: scaledConversion(1000),
+          [systemDataTypes.ohms.dataTypeBaseUrl]: scaledConversion({
+            factor: 1000,
+          }),
         },
       },
       {
@@ -703,7 +794,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         symbol: "MΩ",
         description: "A unit of electric resistance equal to 1000000 ohms.",
         conversions: {
-          [systemDataTypes.ohms.dataTypeBaseUrl]: scaledConversion(1000000),
+          [systemDataTypes.ohms.dataTypeBaseUrl]: scaledConversion({
+            factor: 1000000,
+          }),
         },
       },
     ],
@@ -747,7 +840,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         symbol: "mT",
         description: "A unit of magnetic flux density equal to 0.001 teslas.",
         conversions: {
-          [systemDataTypes.teslas.dataTypeBaseUrl]: scaledConversion(0.001),
+          [systemDataTypes.teslas.dataTypeBaseUrl]: scaledConversion({
+            factor: 0.001,
+          }),
         },
       },
       {
@@ -756,7 +851,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         description:
           "A unit of magnetic flux density equal to 0.000001 teslas.",
         conversions: {
-          [systemDataTypes.teslas.dataTypeBaseUrl]: scaledConversion(1e-6),
+          [systemDataTypes.teslas.dataTypeBaseUrl]: scaledConversion({
+            factor: 1e-6,
+          }),
         },
       },
     ],
@@ -776,7 +873,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         symbol: "mH",
         description: "A unit of inductance equal to 0.001 henries.",
         conversions: {
-          [systemDataTypes.henries.dataTypeBaseUrl]: scaledConversion(0.001),
+          [systemDataTypes.henries.dataTypeBaseUrl]: scaledConversion({
+            factor: 0.001,
+          }),
         },
       },
     ],
@@ -823,7 +922,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         description:
           "A unit of radionuclide activity equal to 1000 becquerels.",
         conversions: {
-          [systemDataTypes.becquerels.dataTypeBaseUrl]: scaledConversion(1000),
+          [systemDataTypes.becquerels.dataTypeBaseUrl]: scaledConversion({
+            factor: 1000,
+          }),
         },
       },
     ],
@@ -843,7 +944,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         symbol: "mGy",
         description: "A unit of absorbed dose equal to 0.001 grays.",
         conversions: {
-          [systemDataTypes.grays.dataTypeBaseUrl]: scaledConversion(0.001),
+          [systemDataTypes.grays.dataTypeBaseUrl]: scaledConversion({
+            factor: 0.001,
+          }),
         },
       },
     ],
@@ -864,7 +967,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         symbol: "mSv",
         description: "A unit of dose equivalent equal to 0.001 sieverts.",
         conversions: {
-          [systemDataTypes.sieverts.dataTypeBaseUrl]: scaledConversion(0.001),
+          [systemDataTypes.sieverts.dataTypeBaseUrl]: scaledConversion({
+            factor: 0.001,
+          }),
         },
       },
       {
@@ -872,7 +977,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         symbol: "µSv",
         description: "A unit of dose equivalent equal to 0.000001 sieverts.",
         conversions: {
-          [systemDataTypes.sieverts.dataTypeBaseUrl]: scaledConversion(1e-6),
+          [systemDataTypes.sieverts.dataTypeBaseUrl]: scaledConversion({
+            factor: 1e-6,
+          }),
         },
       },
     ],
@@ -907,10 +1014,10 @@ const unprefixedGroups: SiUnitGroup[] = [
         description:
           "A unit of speed expressing the number of kilometers traveled in one hour.",
         conversions: {
-          [systemDataTypes.metersPerSecond.dataTypeBaseUrl]: scaledConversion(
-            5,
-            18,
-          ),
+          [systemDataTypes.metersPerSecond.dataTypeBaseUrl]: scaledConversion({
+            factor: 5,
+            divisor: 18,
+          }),
         },
       },
     ],
@@ -954,7 +1061,7 @@ const unprefixedGroups: SiUnitGroup[] = [
           "A unit of mass density equal to 1000 kilograms per cubic meter.",
         conversions: {
           [systemDataTypes.kilogramsPerCubicMeter.dataTypeBaseUrl]:
-            scaledConversion(1000),
+            scaledConversion({ factor: 1000 }),
         },
       },
     ],
@@ -1023,7 +1130,7 @@ const unprefixedGroups: SiUnitGroup[] = [
           "A unit of amount concentration equal to 1000 moles per cubic meter.",
         conversions: {
           [systemDataTypes.molesPerCubicMeter.dataTypeBaseUrl]:
-            scaledConversion(1000),
+            scaledConversion({ factor: 1000 }),
         },
       },
     ],
@@ -1056,8 +1163,9 @@ const unprefixedGroups: SiUnitGroup[] = [
         description:
           "A unit of dynamic viscosity equal to 0.001 pascal seconds.",
         conversions: {
-          [systemDataTypes.pascalSeconds.dataTypeBaseUrl]:
-            scaledConversion(0.001),
+          [systemDataTypes.pascalSeconds.dataTypeBaseUrl]: scaledConversion({
+            factor: 0.001,
+          }),
         },
       },
     ],

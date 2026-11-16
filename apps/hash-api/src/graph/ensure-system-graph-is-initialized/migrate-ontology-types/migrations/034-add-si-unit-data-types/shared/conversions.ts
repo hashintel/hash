@@ -5,7 +5,13 @@ const constant = (value: number): ConversionValue => ({
   type: "number",
 });
 
-export const scaledConversion = (factor: number, divisor = 1): Conversions => ({
+export const scaledConversion = ({
+  factor,
+  divisor = 1,
+}: {
+  factor: number;
+  divisor?: number;
+}): Conversions => ({
   to: {
     expression: ["/", ["*", "self", constant(factor)], constant(divisor)],
   },

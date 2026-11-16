@@ -13,7 +13,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "in",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.meters.dataTypeBaseUrl]: scaledConversion(0.0254),
+        [systemDataTypes.meters.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.0254,
+        }),
       },
     },
     {
@@ -23,7 +25,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "ft",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.meters.dataTypeBaseUrl]: scaledConversion(0.3048),
+        [systemDataTypes.meters.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.3048,
+        }),
       },
     },
     {
@@ -33,7 +37,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "yd",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.meters.dataTypeBaseUrl]: scaledConversion(0.9144),
+        [systemDataTypes.meters.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.9144,
+        }),
       },
     },
     {
@@ -43,7 +49,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "mi",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.meters.dataTypeBaseUrl]: scaledConversion(1609.344),
+        [systemDataTypes.meters.dataTypeBaseUrl]: scaledConversion({
+          factor: 1609.344,
+        }),
       },
     },
     {
@@ -53,7 +61,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "thou",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.meters.dataTypeBaseUrl]: scaledConversion(2.54e-5),
+        [systemDataTypes.meters.dataTypeBaseUrl]: scaledConversion({
+          factor: 2.54e-5,
+        }),
       },
     },
     {
@@ -63,7 +73,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "hh",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.meters.dataTypeBaseUrl]: scaledConversion(0.1016),
+        [systemDataTypes.meters.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.1016,
+        }),
       },
     },
     {
@@ -73,7 +85,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "li",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.meters.dataTypeBaseUrl]: scaledConversion(0.201168),
+        [systemDataTypes.meters.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.201168,
+        }),
       },
     },
     {
@@ -83,7 +97,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "rd",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.meters.dataTypeBaseUrl]: scaledConversion(5.0292),
+        [systemDataTypes.meters.dataTypeBaseUrl]: scaledConversion({
+          factor: 5.0292,
+        }),
       },
     },
     {
@@ -93,7 +109,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "ch",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.meters.dataTypeBaseUrl]: scaledConversion(20.1168),
+        [systemDataTypes.meters.dataTypeBaseUrl]: scaledConversion({
+          factor: 20.1168,
+        }),
       },
     },
     {
@@ -103,7 +121,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "fur",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.meters.dataTypeBaseUrl]: scaledConversion(201.168),
+        [systemDataTypes.meters.dataTypeBaseUrl]: scaledConversion({
+          factor: 201.168,
+        }),
       },
     },
     {
@@ -113,7 +133,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "ftm",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.meters.dataTypeBaseUrl]: scaledConversion(1.8288),
+        [systemDataTypes.meters.dataTypeBaseUrl]: scaledConversion({
+          factor: 1.8288,
+        }),
       },
     },
   ],
@@ -124,8 +146,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "lb",
       systems: ["Imperial", "US Customary"],
       conversions: {
-        [systemDataTypes.kilograms.dataTypeBaseUrl]:
-          scaledConversion(0.45359237),
+        [systemDataTypes.kilograms.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.45359237,
+        }),
       },
     },
     {
@@ -134,8 +157,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "oz",
       systems: ["Imperial", "US Customary"],
       conversions: {
-        [systemDataTypes.kilograms.dataTypeBaseUrl]:
-          scaledConversion(0.028349523125),
+        [systemDataTypes.kilograms.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.028349523125,
+        }),
       },
     },
     {
@@ -144,8 +168,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "st",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.kilograms.dataTypeBaseUrl]:
-          scaledConversion(6.35029318),
+        [systemDataTypes.kilograms.dataTypeBaseUrl]: scaledConversion({
+          factor: 6.35029318,
+        }),
       },
     },
     {
@@ -154,8 +179,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "gr",
       systems: ["Imperial", "US Customary"],
       conversions: {
-        [systemDataTypes.kilograms.dataTypeBaseUrl]:
-          scaledConversion(6.479891e-5),
+        [systemDataTypes.kilograms.dataTypeBaseUrl]: scaledConversion({
+          factor: 6.479891e-5,
+        }),
       },
     },
     {
@@ -164,8 +190,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "cwt (UK)",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.kilograms.dataTypeBaseUrl]:
-          scaledConversion(50.80234544),
+        [systemDataTypes.kilograms.dataTypeBaseUrl]: scaledConversion({
+          factor: 50.80234544,
+        }),
       },
     },
     {
@@ -174,8 +201,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "long ton",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.kilograms.dataTypeBaseUrl]:
-          scaledConversion(1016.0469088),
+        [systemDataTypes.kilograms.dataTypeBaseUrl]: scaledConversion({
+          factor: 1016.0469088,
+        }),
       },
     },
     {
@@ -184,8 +212,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "oz t",
       systems: ["Imperial", "US Customary"],
       conversions: {
-        [systemDataTypes.kilograms.dataTypeBaseUrl]:
-          scaledConversion(0.0311034768),
+        [systemDataTypes.kilograms.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.0311034768,
+        }),
       },
     },
     {
@@ -194,8 +223,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "lb t",
       systems: ["Imperial", "US Customary"],
       conversions: {
-        [systemDataTypes.kilograms.dataTypeBaseUrl]:
-          scaledConversion(0.3732417216),
+        [systemDataTypes.kilograms.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.3732417216,
+        }),
       },
     },
     {
@@ -204,8 +234,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "dwt",
       systems: ["Imperial", "US Customary"],
       conversions: {
-        [systemDataTypes.kilograms.dataTypeBaseUrl]:
-          scaledConversion(0.00155517384),
+        [systemDataTypes.kilograms.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.00155517384,
+        }),
       },
     },
     {
@@ -214,10 +245,10 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "slug",
       systems: ["Imperial", "US Customary"],
       conversions: {
-        [systemDataTypes.kilograms.dataTypeBaseUrl]: scaledConversion(
-          4.4482216152605,
-          0.3048,
-        ),
+        [systemDataTypes.kilograms.dataTypeBaseUrl]: scaledConversion({
+          factor: 4.4482216152605,
+          divisor: 0.3048,
+        }),
       },
     },
     {
@@ -226,8 +257,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "cwt (US)",
       systems: ["US Customary"],
       conversions: {
-        [systemDataTypes.kilograms.dataTypeBaseUrl]:
-          scaledConversion(45.359237),
+        [systemDataTypes.kilograms.dataTypeBaseUrl]: scaledConversion({
+          factor: 45.359237,
+        }),
       },
     },
     {
@@ -236,8 +268,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "short ton",
       systems: ["US Customary"],
       conversions: {
-        [systemDataTypes.kilograms.dataTypeBaseUrl]:
-          scaledConversion(907.18474),
+        [systemDataTypes.kilograms.dataTypeBaseUrl]: scaledConversion({
+          factor: 907.18474,
+        }),
       },
     },
   ],
@@ -249,8 +282,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "in²",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.squareMetres.dataTypeBaseUrl]:
-          scaledConversion(0.00064516),
+        [systemDataTypes.squareMetres.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.00064516,
+        }),
       },
     },
     {
@@ -260,8 +294,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "ft²",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.squareMetres.dataTypeBaseUrl]:
-          scaledConversion(0.09290304),
+        [systemDataTypes.squareMetres.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.09290304,
+        }),
       },
     },
     {
@@ -271,8 +306,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "yd²",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.squareMetres.dataTypeBaseUrl]:
-          scaledConversion(0.83612736),
+        [systemDataTypes.squareMetres.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.83612736,
+        }),
       },
     },
     {
@@ -282,8 +318,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "mi²",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.squareMetres.dataTypeBaseUrl]:
-          scaledConversion(2589988.110336),
+        [systemDataTypes.squareMetres.dataTypeBaseUrl]: scaledConversion({
+          factor: 2589988.110336,
+        }),
       },
     },
     {
@@ -293,8 +330,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "ac",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.squareMetres.dataTypeBaseUrl]:
-          scaledConversion(4046.8564224),
+        [systemDataTypes.squareMetres.dataTypeBaseUrl]: scaledConversion({
+          factor: 4046.8564224,
+        }),
       },
     },
     {
@@ -304,8 +342,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "rood",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.squareMetres.dataTypeBaseUrl]:
-          scaledConversion(1011.7141056),
+        [systemDataTypes.squareMetres.dataTypeBaseUrl]: scaledConversion({
+          factor: 1011.7141056,
+        }),
       },
     },
   ],
@@ -316,7 +355,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "in³",
       systems: ["Imperial", "US Customary"],
       conversions: {
-        [systemDataTypes.litres.dataTypeBaseUrl]: scaledConversion(0.016387064),
+        [systemDataTypes.litres.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.016387064,
+        }),
       },
     },
     {
@@ -325,8 +366,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "ft³",
       systems: ["Imperial", "US Customary"],
       conversions: {
-        [systemDataTypes.litres.dataTypeBaseUrl]:
-          scaledConversion(28.316846592),
+        [systemDataTypes.litres.dataTypeBaseUrl]: scaledConversion({
+          factor: 28.316846592,
+        }),
       },
     },
     {
@@ -335,8 +377,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "yd³",
       systems: ["Imperial", "US Customary"],
       conversions: {
-        [systemDataTypes.litres.dataTypeBaseUrl]:
-          scaledConversion(764.554857984),
+        [systemDataTypes.litres.dataTypeBaseUrl]: scaledConversion({
+          factor: 764.554857984,
+        }),
       },
     },
     {
@@ -345,7 +388,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "gal (UK)",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.litres.dataTypeBaseUrl]: scaledConversion(4.54609),
+        [systemDataTypes.litres.dataTypeBaseUrl]: scaledConversion({
+          factor: 4.54609,
+        }),
       },
     },
     {
@@ -354,7 +399,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "qt (UK)",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.litres.dataTypeBaseUrl]: scaledConversion(1.1365225),
+        [systemDataTypes.litres.dataTypeBaseUrl]: scaledConversion({
+          factor: 1.1365225,
+        }),
       },
     },
     {
@@ -363,7 +410,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "pt (UK)",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.litres.dataTypeBaseUrl]: scaledConversion(0.56826125),
+        [systemDataTypes.litres.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.56826125,
+        }),
       },
     },
     {
@@ -372,8 +421,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "gi (UK)",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.litres.dataTypeBaseUrl]:
-          scaledConversion(0.1420653125),
+        [systemDataTypes.litres.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.1420653125,
+        }),
       },
     },
     {
@@ -382,8 +432,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "fl oz (UK)",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.litres.dataTypeBaseUrl]:
-          scaledConversion(0.0284130625),
+        [systemDataTypes.litres.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.0284130625,
+        }),
       },
     },
     {
@@ -392,7 +443,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "bu (UK)",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.litres.dataTypeBaseUrl]: scaledConversion(36.36872),
+        [systemDataTypes.litres.dataTypeBaseUrl]: scaledConversion({
+          factor: 36.36872,
+        }),
       },
     },
     {
@@ -401,7 +454,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "pk (UK)",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.litres.dataTypeBaseUrl]: scaledConversion(9.09218),
+        [systemDataTypes.litres.dataTypeBaseUrl]: scaledConversion({
+          factor: 9.09218,
+        }),
       },
     },
     {
@@ -410,7 +465,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "gal (US)",
       systems: ["US Customary"],
       conversions: {
-        [systemDataTypes.litres.dataTypeBaseUrl]: scaledConversion(3.785411784),
+        [systemDataTypes.litres.dataTypeBaseUrl]: scaledConversion({
+          factor: 3.785411784,
+        }),
       },
     },
     {
@@ -419,7 +476,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "qt (US)",
       systems: ["US Customary"],
       conversions: {
-        [systemDataTypes.litres.dataTypeBaseUrl]: scaledConversion(0.946352946),
+        [systemDataTypes.litres.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.946352946,
+        }),
       },
     },
     {
@@ -428,7 +487,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "pt (US)",
       systems: ["US Customary"],
       conversions: {
-        [systemDataTypes.litres.dataTypeBaseUrl]: scaledConversion(0.473176473),
+        [systemDataTypes.litres.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.473176473,
+        }),
       },
     },
     {
@@ -438,8 +499,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "cup (US)",
       systems: ["US Customary"],
       conversions: {
-        [systemDataTypes.litres.dataTypeBaseUrl]:
-          scaledConversion(0.2365882365),
+        [systemDataTypes.litres.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.2365882365,
+        }),
       },
     },
     {
@@ -448,8 +510,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "fl oz (US)",
       systems: ["US Customary"],
       conversions: {
-        [systemDataTypes.litres.dataTypeBaseUrl]:
-          scaledConversion(0.0295735295625),
+        [systemDataTypes.litres.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.0295735295625,
+        }),
       },
     },
     {
@@ -458,8 +521,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "tbsp (US)",
       systems: ["US Customary"],
       conversions: {
-        [systemDataTypes.litres.dataTypeBaseUrl]:
-          scaledConversion(0.01478676478125),
+        [systemDataTypes.litres.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.01478676478125,
+        }),
       },
     },
     {
@@ -468,8 +532,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "tsp (US)",
       systems: ["US Customary"],
       conversions: {
-        [systemDataTypes.litres.dataTypeBaseUrl]:
-          scaledConversion(0.00492892159375),
+        [systemDataTypes.litres.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.00492892159375,
+        }),
       },
     },
     {
@@ -478,8 +543,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "dry gal (US)",
       systems: ["US Customary"],
       conversions: {
-        [systemDataTypes.litres.dataTypeBaseUrl]:
-          scaledConversion(4.40488377086),
+        [systemDataTypes.litres.dataTypeBaseUrl]: scaledConversion({
+          factor: 4.40488377086,
+        }),
       },
     },
     {
@@ -488,8 +554,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "dry qt (US)",
       systems: ["US Customary"],
       conversions: {
-        [systemDataTypes.litres.dataTypeBaseUrl]:
-          scaledConversion(1.101220942715),
+        [systemDataTypes.litres.dataTypeBaseUrl]: scaledConversion({
+          factor: 1.101220942715,
+        }),
       },
     },
     {
@@ -498,8 +565,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "dry pt (US)",
       systems: ["US Customary"],
       conversions: {
-        [systemDataTypes.litres.dataTypeBaseUrl]:
-          scaledConversion(0.5506104713575),
+        [systemDataTypes.litres.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.5506104713575,
+        }),
       },
     },
     {
@@ -508,8 +576,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "bu (US)",
       systems: ["US Customary"],
       conversions: {
-        [systemDataTypes.litres.dataTypeBaseUrl]:
-          scaledConversion(35.23907016688),
+        [systemDataTypes.litres.dataTypeBaseUrl]: scaledConversion({
+          factor: 35.23907016688,
+        }),
       },
     },
     {
@@ -518,8 +587,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "pk (US)",
       systems: ["US Customary"],
       conversions: {
-        [systemDataTypes.litres.dataTypeBaseUrl]:
-          scaledConversion(8.80976754172),
+        [systemDataTypes.litres.dataTypeBaseUrl]: scaledConversion({
+          factor: 8.80976754172,
+        }),
       },
     },
     {
@@ -528,8 +598,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "bbl",
       systems: ["US Customary"],
       conversions: {
-        [systemDataTypes.litres.dataTypeBaseUrl]:
-          scaledConversion(158.987294928),
+        [systemDataTypes.litres.dataTypeBaseUrl]: scaledConversion({
+          factor: 158.987294928,
+        }),
       },
     },
   ],
@@ -542,7 +613,10 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       systems: ["Imperial"],
       minimum: 0,
       conversions: {
-        [systemDataTypes.kelvins.dataTypeBaseUrl]: scaledConversion(5.0, 9.0),
+        [systemDataTypes.kelvins.dataTypeBaseUrl]: scaledConversion({
+          factor: 5.0,
+          divisor: 9.0,
+        }),
       },
     },
   ],
@@ -553,8 +627,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "lbf",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.newtons.dataTypeBaseUrl]:
-          scaledConversion(4.4482216152605),
+        [systemDataTypes.newtons.dataTypeBaseUrl]: scaledConversion({
+          factor: 4.4482216152605,
+        }),
       },
     },
     {
@@ -563,10 +638,10 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "ozf",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.newtons.dataTypeBaseUrl]: scaledConversion(
-          4.4482216152605,
-          16.0,
-        ),
+        [systemDataTypes.newtons.dataTypeBaseUrl]: scaledConversion({
+          factor: 4.4482216152605,
+          divisor: 16.0,
+        }),
       },
     },
     {
@@ -575,8 +650,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "kip",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.newtons.dataTypeBaseUrl]:
-          scaledConversion(4448.2216152605),
+        [systemDataTypes.newtons.dataTypeBaseUrl]: scaledConversion({
+          factor: 4448.2216152605,
+        }),
       },
     },
     {
@@ -585,8 +661,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "pdl",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.newtons.dataTypeBaseUrl]:
-          scaledConversion(0.138254954376),
+        [systemDataTypes.newtons.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.138254954376,
+        }),
       },
     },
   ],
@@ -598,10 +675,10 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "psi",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.pascals.dataTypeBaseUrl]: scaledConversion(
-          4.4482216152605,
-          0.00064516,
-        ),
+        [systemDataTypes.pascals.dataTypeBaseUrl]: scaledConversion({
+          factor: 4.4482216152605,
+          divisor: 0.00064516,
+        }),
       },
     },
     {
@@ -611,10 +688,10 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "psf",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.pascals.dataTypeBaseUrl]: scaledConversion(
-          4.4482216152605,
-          0.09290304,
-        ),
+        [systemDataTypes.pascals.dataTypeBaseUrl]: scaledConversion({
+          factor: 4.4482216152605,
+          divisor: 0.09290304,
+        }),
       },
     },
     {
@@ -623,10 +700,10 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "ksi",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.pascals.dataTypeBaseUrl]: scaledConversion(
-          4448.2216152605,
-          0.00064516,
-        ),
+        [systemDataTypes.pascals.dataTypeBaseUrl]: scaledConversion({
+          factor: 4448.2216152605,
+          divisor: 0.00064516,
+        }),
       },
     },
   ],
@@ -638,8 +715,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "Btu (IT)",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.joules.dataTypeBaseUrl]:
-          scaledConversion(1055.05585262),
+        [systemDataTypes.joules.dataTypeBaseUrl]: scaledConversion({
+          factor: 1055.05585262,
+        }),
       },
     },
     {
@@ -649,10 +727,10 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "Btu (th)",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.joules.dataTypeBaseUrl]: scaledConversion(
-          9489.1523804,
-          9.0,
-        ),
+        [systemDataTypes.joules.dataTypeBaseUrl]: scaledConversion({
+          factor: 9489.1523804,
+          divisor: 9.0,
+        }),
       },
     },
     {
@@ -661,8 +739,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "ft·lbf",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.joules.dataTypeBaseUrl]:
-          scaledConversion(1.3558179483314003),
+        [systemDataTypes.joules.dataTypeBaseUrl]: scaledConversion({
+          factor: 1.3558179483314003,
+        }),
       },
     },
     {
@@ -671,8 +750,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "in·lbf",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.joules.dataTypeBaseUrl]:
-          scaledConversion(0.1129848290276167),
+        [systemDataTypes.joules.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.1129848290276167,
+        }),
       },
     },
   ],
@@ -683,8 +763,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "hp",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.watts.dataTypeBaseUrl]:
-          scaledConversion(745.6998715822702),
+        [systemDataTypes.watts.dataTypeBaseUrl]: scaledConversion({
+          factor: 745.6998715822702,
+        }),
       },
     },
     {
@@ -694,10 +775,10 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "Btu (IT)/h",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.watts.dataTypeBaseUrl]: scaledConversion(
-          1055.05585262,
-          3600.0,
-        ),
+        [systemDataTypes.watts.dataTypeBaseUrl]: scaledConversion({
+          factor: 1055.05585262,
+          divisor: 3600.0,
+        }),
       },
     },
     {
@@ -707,8 +788,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "Btu (IT)/s",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.watts.dataTypeBaseUrl]:
-          scaledConversion(1055.05585262),
+        [systemDataTypes.watts.dataTypeBaseUrl]: scaledConversion({
+          factor: 1055.05585262,
+        }),
       },
     },
     {
@@ -717,8 +799,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "ft·lbf/s",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.watts.dataTypeBaseUrl]:
-          scaledConversion(1.3558179483314003),
+        [systemDataTypes.watts.dataTypeBaseUrl]: scaledConversion({
+          factor: 1.3558179483314003,
+        }),
       },
     },
   ],
@@ -729,8 +812,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "ft/s",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.metersPerSecond.dataTypeBaseUrl]:
-          scaledConversion(0.3048),
+        [systemDataTypes.metersPerSecond.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.3048,
+        }),
       },
     },
     {
@@ -739,8 +823,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "ft/min",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.metersPerSecond.dataTypeBaseUrl]:
-          scaledConversion(0.00508),
+        [systemDataTypes.metersPerSecond.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.00508,
+        }),
       },
     },
     {
@@ -749,8 +834,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "in/s",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.metersPerSecond.dataTypeBaseUrl]:
-          scaledConversion(0.0254),
+        [systemDataTypes.metersPerSecond.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.0254,
+        }),
       },
     },
     {
@@ -759,8 +845,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "mph",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.metersPerSecond.dataTypeBaseUrl]:
-          scaledConversion(0.44704),
+        [systemDataTypes.metersPerSecond.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.44704,
+        }),
       },
     },
   ],
@@ -773,7 +860,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       systems: ["Imperial"],
       conversions: {
         [systemDataTypes.metersPerSecondSquared.dataTypeBaseUrl]:
-          scaledConversion(0.3048),
+          scaledConversion({ factor: 0.3048 }),
       },
     },
     {
@@ -784,7 +871,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       systems: ["Imperial"],
       conversions: {
         [systemDataTypes.metersPerSecondSquared.dataTypeBaseUrl]:
-          scaledConversion(0.0254),
+          scaledConversion({ factor: 0.0254 }),
       },
     },
   ],
@@ -795,10 +882,10 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "ft⁻¹",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.reciprocalMeters.dataTypeBaseUrl]: scaledConversion(
-          1.0,
-          0.3048,
-        ),
+        [systemDataTypes.reciprocalMeters.dataTypeBaseUrl]: scaledConversion({
+          factor: 1.0,
+          divisor: 0.3048,
+        }),
       },
     },
     {
@@ -807,10 +894,10 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "in⁻¹",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.reciprocalMeters.dataTypeBaseUrl]: scaledConversion(
-          1.0,
-          0.0254,
-        ),
+        [systemDataTypes.reciprocalMeters.dataTypeBaseUrl]: scaledConversion({
+          factor: 1.0,
+          divisor: 0.0254,
+        }),
       },
     },
   ],
@@ -822,7 +909,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       systems: ["Imperial", "US Customary"],
       conversions: {
         [systemDataTypes.kilogramsPerCubicMeter.dataTypeBaseUrl]:
-          scaledConversion(0.45359237, 0.028316846592),
+          scaledConversion({ factor: 0.45359237, divisor: 0.028316846592 }),
       },
     },
     {
@@ -832,7 +919,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       systems: ["Imperial", "US Customary"],
       conversions: {
         [systemDataTypes.kilogramsPerCubicMeter.dataTypeBaseUrl]:
-          scaledConversion(0.45359237, 1.6387064e-5),
+          scaledConversion({ factor: 0.45359237, divisor: 1.6387064e-5 }),
       },
     },
     {
@@ -842,7 +929,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       systems: ["Imperial", "US Customary"],
       conversions: {
         [systemDataTypes.kilogramsPerCubicMeter.dataTypeBaseUrl]:
-          scaledConversion(0.45359237, 0.764554857984),
+          scaledConversion({ factor: 0.45359237, divisor: 0.764554857984 }),
       },
     },
     {
@@ -853,7 +940,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       systems: ["Imperial"],
       conversions: {
         [systemDataTypes.kilogramsPerCubicMeter.dataTypeBaseUrl]:
-          scaledConversion(0.45359237, 0.00454609),
+          scaledConversion({ factor: 0.45359237, divisor: 0.00454609 }),
       },
     },
     {
@@ -864,7 +951,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       systems: ["US Customary"],
       conversions: {
         [systemDataTypes.kilogramsPerCubicMeter.dataTypeBaseUrl]:
-          scaledConversion(0.45359237, 0.003785411784),
+          scaledConversion({ factor: 0.45359237, divisor: 0.003785411784 }),
       },
     },
   ],
@@ -877,7 +964,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       systems: ["Imperial"],
       conversions: {
         [systemDataTypes.kilogramsPerSquareMeter.dataTypeBaseUrl]:
-          scaledConversion(0.45359237, 0.09290304),
+          scaledConversion({ factor: 0.45359237, divisor: 0.09290304 }),
       },
     },
     {
@@ -888,7 +975,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       systems: ["Imperial"],
       conversions: {
         [systemDataTypes.kilogramsPerSquareMeter.dataTypeBaseUrl]:
-          scaledConversion(0.028349523125, 0.83612736),
+          scaledConversion({ factor: 0.028349523125, divisor: 0.83612736 }),
       },
     },
   ],
@@ -901,7 +988,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       systems: ["Imperial"],
       conversions: {
         [systemDataTypes.cubicMetersPerKilogram.dataTypeBaseUrl]:
-          scaledConversion(0.028316846592, 0.45359237),
+          scaledConversion({ factor: 0.028316846592, divisor: 0.45359237 }),
       },
     },
   ],
@@ -912,7 +999,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "lbmol",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.moles.dataTypeBaseUrl]: scaledConversion(453.59237),
+        [systemDataTypes.moles.dataTypeBaseUrl]: scaledConversion({
+          factor: 453.59237,
+        }),
       },
     },
   ],
@@ -924,10 +1013,10 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "lbmol/ft³",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.molesPerCubicMeter.dataTypeBaseUrl]: scaledConversion(
-          453.59237,
-          0.028316846592,
-        ),
+        [systemDataTypes.molesPerCubicMeter.dataTypeBaseUrl]: scaledConversion({
+          factor: 453.59237,
+          divisor: 0.028316846592,
+        }),
       },
     },
   ],
@@ -938,10 +1027,10 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "fc",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.lux.dataTypeBaseUrl]: scaledConversion(
-          1.0,
-          0.09290304,
-        ),
+        [systemDataTypes.lux.dataTypeBaseUrl]: scaledConversion({
+          factor: 1.0,
+          divisor: 0.09290304,
+        }),
       },
     },
   ],
@@ -953,7 +1042,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       systems: ["Imperial"],
       conversions: {
         [systemDataTypes.candelasPerSquareMeter.dataTypeBaseUrl]:
-          scaledConversion(1.0, 0.09290304),
+          scaledConversion({ factor: 1.0, divisor: 0.09290304 }),
       },
     },
     {
@@ -963,7 +1052,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       systems: ["Imperial"],
       conversions: {
         [systemDataTypes.candelasPerSquareMeter.dataTypeBaseUrl]:
-          scaledConversion(1.0, 0.00064516),
+          scaledConversion({ factor: 1.0, divisor: 0.00064516 }),
       },
     },
   ],
@@ -975,10 +1064,10 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "lbf·s/ft²",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.pascalSeconds.dataTypeBaseUrl]: scaledConversion(
-          4.4482216152605,
-          0.09290304,
-        ),
+        [systemDataTypes.pascalSeconds.dataTypeBaseUrl]: scaledConversion({
+          factor: 4.4482216152605,
+          divisor: 0.09290304,
+        }),
       },
     },
     {
@@ -988,10 +1077,10 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "lbf·s/in²",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.pascalSeconds.dataTypeBaseUrl]: scaledConversion(
-          4.4482216152605,
-          0.00064516,
-        ),
+        [systemDataTypes.pascalSeconds.dataTypeBaseUrl]: scaledConversion({
+          factor: 4.4482216152605,
+          divisor: 0.00064516,
+        }),
       },
     },
     {
@@ -1001,10 +1090,10 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "lb/(ft·s)",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.pascalSeconds.dataTypeBaseUrl]: scaledConversion(
-          0.45359237,
-          0.3048,
-        ),
+        [systemDataTypes.pascalSeconds.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.45359237,
+          divisor: 0.3048,
+        }),
       },
     },
   ],
@@ -1015,8 +1104,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "lbf·ft",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.newtonMeters.dataTypeBaseUrl]:
-          scaledConversion(1.3558179483314003),
+        [systemDataTypes.newtonMeters.dataTypeBaseUrl]: scaledConversion({
+          factor: 1.3558179483314003,
+        }),
       },
     },
     {
@@ -1025,8 +1115,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "lbf·in",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.newtonMeters.dataTypeBaseUrl]:
-          scaledConversion(0.1129848290276167),
+        [systemDataTypes.newtonMeters.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.1129848290276167,
+        }),
       },
     },
     {
@@ -1035,8 +1126,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "ozf·in",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.newtonMeters.dataTypeBaseUrl]:
-          scaledConversion(0.0070615518142260435),
+        [systemDataTypes.newtonMeters.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.0070615518142260435,
+        }),
       },
     },
   ],
@@ -1048,10 +1140,10 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "lbf/ft",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.newtonsPerMeter.dataTypeBaseUrl]: scaledConversion(
-          4.4482216152605,
-          0.3048,
-        ),
+        [systemDataTypes.newtonsPerMeter.dataTypeBaseUrl]: scaledConversion({
+          factor: 4.4482216152605,
+          divisor: 0.3048,
+        }),
       },
     },
     {
@@ -1061,10 +1153,10 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "lbf/in",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.newtonsPerMeter.dataTypeBaseUrl]: scaledConversion(
-          4.4482216152605,
-          0.0254,
-        ),
+        [systemDataTypes.newtonsPerMeter.dataTypeBaseUrl]: scaledConversion({
+          factor: 4.4482216152605,
+          divisor: 0.0254,
+        }),
       },
     },
   ],
@@ -1077,8 +1169,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       systems: ["Imperial"],
       conversions: {
         [systemDataTypes.wattsPerSquareMeter.dataTypeBaseUrl]: scaledConversion(
-          1055.05585262,
-          334.450944,
+          { factor: 1055.05585262, divisor: 334.450944 },
         ),
       },
     },
@@ -1091,8 +1182,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "Btu (IT)/°R",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.joulesPerKelvin.dataTypeBaseUrl]:
-          scaledConversion(1899.100534716),
+        [systemDataTypes.joulesPerKelvin.dataTypeBaseUrl]: scaledConversion({
+          factor: 1899.100534716,
+        }),
       },
     },
   ],
@@ -1105,7 +1197,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       systems: ["Imperial"],
       conversions: {
         [systemDataTypes.joulesPerKilogramKelvin.dataTypeBaseUrl]:
-          scaledConversion(4186.8),
+          scaledConversion({ factor: 4186.8 }),
       },
     },
   ],
@@ -1117,10 +1209,10 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "Btu (IT)/lb",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.joulesPerKilogram.dataTypeBaseUrl]: scaledConversion(
-          1055.05585262,
-          0.45359237,
-        ),
+        [systemDataTypes.joulesPerKilogram.dataTypeBaseUrl]: scaledConversion({
+          factor: 1055.05585262,
+          divisor: 0.45359237,
+        }),
       },
     },
   ],
@@ -1133,8 +1225,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       systems: ["Imperial"],
       conversions: {
         [systemDataTypes.wattsPerMeterKelvin.dataTypeBaseUrl]: scaledConversion(
-          1055.05585262,
-          609.6,
+          { factor: 1055.05585262, divisor: 609.6 },
         ),
       },
     },
@@ -1148,8 +1239,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       systems: ["Imperial"],
       conversions: {
         [systemDataTypes.joulesPerCubicMeter.dataTypeBaseUrl]: scaledConversion(
-          1055.05585262,
-          0.028316846592,
+          { factor: 1055.05585262, divisor: 0.028316846592 },
         ),
       },
     },
@@ -1162,10 +1252,10 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "Btu (IT)/lbmol",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.joulesPerMole.dataTypeBaseUrl]: scaledConversion(
-          1055.05585262,
-          453.59237,
-        ),
+        [systemDataTypes.joulesPerMole.dataTypeBaseUrl]: scaledConversion({
+          factor: 1055.05585262,
+          divisor: 453.59237,
+        }),
       },
     },
   ],
@@ -1177,8 +1267,9 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "Btu (IT)/(lbmol·°R)",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.joulesPerMoleKelvin.dataTypeBaseUrl]:
-          scaledConversion(4.1868),
+        [systemDataTypes.joulesPerMoleKelvin.dataTypeBaseUrl]: scaledConversion(
+          { factor: 4.1868 },
+        ),
       },
     },
   ],
@@ -1191,7 +1282,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       systems: ["Imperial"],
       conversions: {
         [systemDataTypes.amperesPerSquareMeter.dataTypeBaseUrl]:
-          scaledConversion(1.0, 0.09290304),
+          scaledConversion({ factor: 1.0, divisor: 0.09290304 }),
       },
     },
   ],
@@ -1203,10 +1294,10 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "A/ft",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.amperesPerMeter.dataTypeBaseUrl]: scaledConversion(
-          1.0,
-          0.3048,
-        ),
+        [systemDataTypes.amperesPerMeter.dataTypeBaseUrl]: scaledConversion({
+          factor: 1.0,
+          divisor: 0.3048,
+        }),
       },
     },
   ],
@@ -1218,10 +1309,10 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "V/ft",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.voltsPerMeter.dataTypeBaseUrl]: scaledConversion(
-          1.0,
-          0.3048,
-        ),
+        [systemDataTypes.voltsPerMeter.dataTypeBaseUrl]: scaledConversion({
+          factor: 1.0,
+          divisor: 0.3048,
+        }),
       },
     },
   ],
@@ -1234,7 +1325,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       systems: ["Imperial"],
       conversions: {
         [systemDataTypes.coulombsPerCubicMeter.dataTypeBaseUrl]:
-          scaledConversion(1.0, 0.028316846592),
+          scaledConversion({ factor: 1.0, divisor: 0.028316846592 }),
       },
     },
   ],
@@ -1247,7 +1338,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       systems: ["Imperial"],
       conversions: {
         [systemDataTypes.coulombsPerSquareMeter.dataTypeBaseUrl]:
-          scaledConversion(1.0, 0.09290304),
+          scaledConversion({ factor: 1.0, divisor: 0.09290304 }),
       },
     },
   ],
@@ -1258,10 +1349,10 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "F/ft",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.faradsPerMeter.dataTypeBaseUrl]: scaledConversion(
-          1.0,
-          0.3048,
-        ),
+        [systemDataTypes.faradsPerMeter.dataTypeBaseUrl]: scaledConversion({
+          factor: 1.0,
+          divisor: 0.3048,
+        }),
       },
     },
   ],
@@ -1273,10 +1364,10 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "H/ft",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.henriesPerMeter.dataTypeBaseUrl]: scaledConversion(
-          1.0,
-          0.3048,
-        ),
+        [systemDataTypes.henriesPerMeter.dataTypeBaseUrl]: scaledConversion({
+          factor: 1.0,
+          divisor: 0.3048,
+        }),
       },
     },
   ],
@@ -1289,8 +1380,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       systems: ["Imperial"],
       conversions: {
         [systemDataTypes.coulombsPerKilogram.dataTypeBaseUrl]: scaledConversion(
-          1.0,
-          0.45359237,
+          { factor: 1.0, divisor: 0.45359237 },
         ),
       },
     },
@@ -1304,7 +1394,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       systems: ["Imperial"],
       conversions: {
         [systemDataTypes.wattsPerSquareMeterSteradian.dataTypeBaseUrl]:
-          scaledConversion(1.0, 0.09290304),
+          scaledConversion({ factor: 1.0, divisor: 0.09290304 }),
       },
     },
   ],
@@ -1317,8 +1407,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       systems: ["Imperial"],
       conversions: {
         [systemDataTypes.katalsPerCubicMeter.dataTypeBaseUrl]: scaledConversion(
-          1.0,
-          0.028316846592,
+          { factor: 1.0, divisor: 0.028316846592 },
         ),
       },
     },

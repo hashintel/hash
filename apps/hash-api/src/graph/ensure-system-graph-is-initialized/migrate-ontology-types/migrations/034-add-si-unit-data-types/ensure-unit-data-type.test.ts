@@ -159,11 +159,11 @@ describe("unit definition upgrades", () => {
       ...updated,
       metadata: {
         ...updated.metadata,
-        conversions: { [target]: scaledConversion(0.3) },
+        conversions: { [target]: scaledConversion({ factor: 0.3 }) },
       },
     });
     const params = parameters();
-    params.conversions = { [target]: scaledConversion(0.3048) };
+    params.conversions = { [target]: scaledConversion({ factor: 0.3048 }) };
     await ensureUnitDataType(context, authentication, params);
     expect(updateDataType).toHaveBeenCalledWith(
       context,
@@ -187,11 +187,13 @@ describe("unit definition upgrades", () => {
         ...updated,
         metadata: {
           ...updated.metadata,
-          conversions: { [target]: scaledConversion(saved) },
+          conversions: { [target]: scaledConversion({ factor: saved }) },
         },
       });
       const params = parameters();
-      params.conversions = { [target]: scaledConversion(requested) };
+      params.conversions = {
+        [target]: scaledConversion({ factor: requested }),
+      };
       await ensureUnitDataType(context, authentication, params);
       expect(getDataTypeById).not.toHaveBeenCalled();
       expect(updateDataType).not.toHaveBeenCalled();
@@ -210,11 +212,13 @@ describe("unit definition upgrades", () => {
         ...updated,
         metadata: {
           ...updated.metadata,
-          conversions: { [target]: scaledConversion(saved) },
+          conversions: { [target]: scaledConversion({ factor: saved }) },
         },
       });
       const params = parameters();
-      params.conversions = { [target]: scaledConversion(requested) };
+      params.conversions = {
+        [target]: scaledConversion({ factor: requested }),
+      };
       await ensureUnitDataType(context, authentication, params);
       expect(updateDataType).toHaveBeenCalledWith(
         context,
