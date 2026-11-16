@@ -2,19 +2,19 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { SDCPN } from "../types/sdcpn";
 
-const elkStarts = vi.hoisted(() => ({
-  count: 0,
+const elkCalls = vi.hoisted(() => ({
+  starts: 0,
   edges: [] as { id: string; sources: string[]; targets: string[] }[],
 }));
 
 vi.mock("elkjs", () => ({
   default: class {
     constructor() {
-      elkStarts.count += 1;
+      elkCalls.starts += 1;
     }
 
-    layout = (graph: { edges?: typeof elkStarts.edges }) => {
-      elkStarts.edges = graph.edges ?? [];
+    layout = (graph: { edges?: typeof elkCalls.edges }) => {
+      elkCalls.edges = graph.edges ?? [];
       return Promise.resolve(graph);
     };
   },
@@ -43,12 +43,12 @@ describe("calculateGraphLayout", () => {
     const { calculateGraphLayout, layoutNodeDimensions } =
       await import("../index");
 
-    expect(elkStarts.count).toBe(0);
+    expect(elkCalls.starts).toBe(0);
 
     await calculateGraphLayout(net, layoutNodeDimensions);
     await calculateGraphLayout(net, layoutNodeDimensions);
 
-    expect(elkStarts.count).toBe(1);
+    expect(elkCalls.starts).toBe(1);
   });
 
   it("gives a fusion one edge per pair of nodes, and none from a node to itself", async () => {
@@ -88,7 +88,7 @@ describe("calculateGraphLayout", () => {
       layoutNodeDimensions,
     );
 
-    expect(elkStarts.edges).toEqual([
+    expect(elkCalls.edges).toEqual([
       { id: "fusion__loop-place-m1", sources: ["place"], targets: ["m1"] },
     ]);
   });
@@ -117,6 +117,6 @@ describe("calculateGraphLayout", () => {
       layoutNodeDimensions,
     );
 
-    expect(elkStarts.edges).toEqual([]);
+    expect(elkCalls.edges).toEqual([]);
   });
 });
