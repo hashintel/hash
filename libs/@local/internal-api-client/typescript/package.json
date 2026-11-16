@@ -16,7 +16,7 @@
   },
   "devDependencies": {
     "@local/tsconfig": "workspace:*",
-    "@openapitools/openapi-generator-cli": "2.42.2",
+    "@openapitools/openapi-generator-cli": "2.40.1",
     "@tsconfig/bases": "catalog:",
     "@types/node": "catalog:",
     "rimraf": "6.1.4",
