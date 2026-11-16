@@ -359,16 +359,13 @@ const removeComponentInstancesReferencingSubnet = (
   subnetId: string,
 ): void => {
   for (const net of getAllMutableNets(sdcpn)) {
-    const instances = net.componentInstances;
-    if (!instances) {
-      continue;
-    }
-    for (let index = instances.length - 1; index >= 0; index--) {
-      if (instances[index]!.subnetId === subnetId) {
-        removeReferencesToComponentInstance(net, instances[index]!.id);
-        instances.splice(index, 1);
+    const instances = net.componentInstances ?? [];
+    for (const instance of instances) {
+      if (instance.subnetId === subnetId) {
+        removeReferencesToComponentInstance(net, instance.id);
       }
     }
+    removeWhere(instances, (instance) => instance.subnetId === subnetId);
   }
 };
 
@@ -1429,85 +1426,49 @@ export function createPetrinautActions(
           arcIds.size > 0 ||
           componentInstanceIds.size > 0;
 
-        if (hasCanvasDeletes) {
-          for (let i = net.transitions.length - 1; i >= 0; i--) {
-            const transition = net.transitions[i]!;
-            if (transitionIds.has(transition.id)) {
-              net.transitions.splice(i, 1);
-              continue;
-            }
+        removeWhere(net.transitions, ({ id }) => transitionIds.has(id));
 
-            for (
-              let inputArcIndex = transition.inputArcs.length - 1;
-              inputArcIndex >= 0;
-              inputArcIndex--
-            ) {
-              const inputArc = transition.inputArcs[inputArcIndex]!;
-              const endpoint = getArcEndpoint(inputArc);
-              const arcId = generateArcId({
-                inputId: getArcEndpointKey(endpoint),
-                outputId: transition.id,
-              });
-
-              if (
-                arcIds.has(arcId) ||
-                (endpoint.kind === "place" && placeIds.has(endpoint.placeId)) ||
-                (endpoint.kind === "componentPort" &&
-                  componentInstanceIds.has(endpoint.componentInstanceId))
-              ) {
-                transition.inputArcs.splice(inputArcIndex, 1);
-              }
-            }
-
-            for (
-              let outputArcIndex = transition.outputArcs.length - 1;
-              outputArcIndex >= 0;
-              outputArcIndex--
-            ) {
-              const outputArc = transition.outputArcs[outputArcIndex]!;
-              const endpoint = getArcEndpoint(outputArc);
-              const arcId = generateArcId({
-                inputId: transition.id,
-                outputId: getArcEndpointKey(endpoint),
-              });
-
-              if (
-                arcIds.has(arcId) ||
-                (endpoint.kind === "place" && placeIds.has(endpoint.placeId)) ||
-                (endpoint.kind === "componentPort" &&
-                  componentInstanceIds.has(endpoint.componentInstanceId))
-              ) {
-                transition.outputArcs.splice(outputArcIndex, 1);
-              }
-            }
-          }
-
-          for (let i = net.places.length - 1; i >= 0; i--) {
-            const place = net.places[i]!;
-            if (placeIds.has(place.id)) {
-              net.places.splice(i, 1);
-              removeReferencesToPlace(net, place.id);
-              if (parsed.targetSubnetId) {
-                removeReferencesToSubnetPort(
-                  sdcpn,
-                  parsed.targetSubnetId,
-                  place.id,
-                );
-              }
-            }
+        if (arcIds.size > 0) {
+          for (const transition of net.transitions) {
+            removeWhere(transition.inputArcs, (arc) =>
+              arcIds.has(
+                generateArcId({
+                  inputId: getArcEndpointKey(getArcEndpoint(arc)),
+                  outputId: transition.id,
+                }),
+              ),
+            );
+            removeWhere(transition.outputArcs, (arc) =>
+              arcIds.has(
+                generateArcId({
+                  inputId: transition.id,
+                  outputId: getArcEndpointKey(getArcEndpoint(arc)),
+                }),
+              ),
+            );
           }
         }
 
-        if (componentInstanceIds.size > 0) {
-          const instances = net.componentInstances;
-          if (instances) {
-            for (let i = instances.length - 1; i >= 0; i--) {
-              if (componentInstanceIds.has(instances[i]!.id)) {
-                removeReferencesToComponentInstance(net, instances[i]!.id);
-                instances.splice(i, 1);
-              }
+        if (placeIds.size > 0 || componentInstanceIds.size > 0) {
+          // Arcs and fusion members on a deleted place or instance go with it.
+          removeEndpointReferences(net, (endpoint) =>
+            endpoint.kind === "place"
+              ? placeIds.has(endpoint.placeId)
+              : componentInstanceIds.has(endpoint.componentInstanceId),
+          );
+          if (parsed.targetSubnetId) {
+            for (const placeId of placeIds) {
+              removeReferencesToSubnetPort(
+                sdcpn,
+                parsed.targetSubnetId,
+                placeId,
+              );
             }
           }
+          removeWhere(net.places, ({ id }) => placeIds.has(id));
+          removeWhere(net.componentInstances ?? [], ({ id }) =>
+            componentInstanceIds.has(id),
+          );
         }
 
         if (fusionIds.size > 0) {
@@ -1516,11 +1477,7 @@ export function createPetrinautActions(
         }
 
         if (typeIds.size > 0) {
-          for (let i = net.types.length - 1; i >= 0; i--) {
-            if (typeIds.has(net.types[i]!.id)) {
-              net.types.splice(i, 1);
-            }
-          }
+          removeWhere(net.types, ({ id }) => typeIds.has(id));
           for (const place of net.places) {
             if (place.colorId && typeIds.has(place.colorId)) {
               place.colorId = null;
@@ -1534,23 +1491,15 @@ export function createPetrinautActions(
         }
 
         if (equationIds.size > 0) {
-          for (let i = net.differentialEquations.length - 1; i >= 0; i--) {
-            if (equationIds.has(net.differentialEquations[i]!.id)) {
-              net.differentialEquations.splice(i, 1);
-            }
-          }
+          removeWhere(net.differentialEquations, ({ id }) =>
+            equationIds.has(id),
+          );
           net.places = net.places.map((place) =>
             withoutDifferentialEquations(place, equationIds),
           );
         }
 
-        if (parameterIds.size > 0) {
-          for (let i = net.parameters.length - 1; i >= 0; i--) {
-            if (parameterIds.has(net.parameters[i]!.id)) {
-              net.parameters.splice(i, 1);
-            }
-          }
-        }
+        removeWhere(net.parameters, ({ id }) => parameterIds.has(id));
 
         if (hasCanvasDeletes || typeIds.size > 0) {
           sanitizeAllTransitions(sdcpn);
