@@ -280,7 +280,11 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
         (currentTab === "all" || currentTab === "data-type") ? (
           <DataTypesLoadError />
         ) : (
-          <TypesTable kind={currentTab} types={currentTypes} />
+          <TypesTable
+            allTypes={allTypes}
+            kind={currentTab}
+            types={currentTypes}
+          />
         )}
       </Container>
     </>

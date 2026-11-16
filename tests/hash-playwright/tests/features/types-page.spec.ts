@@ -25,11 +25,22 @@ test("/types page renders and loads types", async ({ page }) => {
   }
 
   // The count is scoped to the user's webs by default, which may hold no
-  // types. Widening to public webs brings the system types in, so a non-zero
-  // count proves types actually loaded.
+  // types. Deselecting every web empties the table whatever the user owns, and
+  // the empty state's action to include public webs brings the system types
+  // in, so a non-zero count proves types actually loaded.
   await page.getByRole("button", { name: /^Web is/ }).click();
-  await page.getByRole("menuitem", { name: "Public in any web" }).click();
+  const ownWebItems = page
+    .getByRole("menuitem")
+    .filter({ hasNotText: "Public in any web" });
+  for (const ownWebItem of await ownWebItems.all()) {
+    await ownWebItem.click();
+  }
   await page.keyboard.press("Escape");
+
+  await expect(page.getByText("No types match your filters")).toBeVisible({
+    timeout: 15_000,
+  });
+  await page.getByRole("button", { name: "Include public types" }).click();
 
   await expect(page.getByText(/^[1-9][\d,]* types$/)).toBeVisible({
     timeout: 15_000,
