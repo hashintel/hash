@@ -112,6 +112,10 @@ export const createTestPluginApi = (
     notifications: { add: notify },
     document: {
       id: instance.handle.id,
+      handle: {
+        doc: () => instance.handle.doc(),
+        subscribe: (listener) => instance.handle.subscribe(listener),
+      },
       net: instance.definition,
       title: titleStore,
       extensions: instance.extensions,

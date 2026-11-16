@@ -31,6 +31,7 @@ import type {
   DiagnosticsSnapshot,
   LanguageClient,
   Petrinaut,
+  PetrinautDocHandle,
   PetrinautExtensionSettings,
   PetrinautMutations,
   ReadableStore,
@@ -73,10 +74,21 @@ interface PluginBaseApi {
 /** What `diagnose()` resolves to: the diagnostics of the net it checked, and that net. */
 export type PluginDiagnostics = DiagnosticsSnapshot & { readonly net: SDCPN };
 
+/**
+ * The document's handle, read: `doc()` is the net as the handle holds it,
+ * `undefined` until it is ready, and `subscribe` reports each change with
+ * its patches. Unlike `net`, it keeps the data of disabled extensions.
+ */
+export type PluginDocumentHandle = Pick<
+  PetrinautDocHandle,
+  "doc" | "subscribe"
+>;
+
 /** The document, read: `access: { document: "read" }`. */
 export interface PluginDocumentReader {
   /** The handle's id; plugins remount for each document. */
   readonly id: string;
+  readonly handle: PluginDocumentHandle;
   /** The net without the data of disabled extensions; an empty net until the handle is ready. */
   readonly net: ReadableStore<SDCPN>;
   /** The title the host passed, or "Untitled" when it passes none. */
@@ -190,6 +202,10 @@ const readDocument = ({
   diagnostics,
 }: PluginEditorPorts): PluginDocumentReader => ({
   id: instance.handle.id,
+  handle: {
+    doc: () => instance.handle.doc(),
+    subscribe: (listener) => instance.handle.subscribe(listener),
+  },
   net: instance.definition,
   title,
   extensions: instance.extensions,
