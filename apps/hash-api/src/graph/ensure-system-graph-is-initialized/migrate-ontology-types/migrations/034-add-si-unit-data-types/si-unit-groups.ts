@@ -87,38 +87,6 @@ export const siUnitGroups: SiUnitGroup[] = [
     ],
   },
   {
-    title: "Temperature Difference",
-    description:
-      "The difference between two temperatures, or the size of a temperature interval.",
-    units: [
-      {
-        title: "Kelvin Temperature Difference",
-        symbol: "K",
-        description: "A temperature difference measured in kelvins.",
-      },
-      {
-        title: "Celsius Temperature Difference",
-        symbol: "°C",
-        description:
-          "A temperature difference measured in degrees Celsius, equal in size to the same difference in kelvins.",
-        conversion: {
-          target: "Kelvin Temperature Difference",
-        },
-      },
-      {
-        title: "Fahrenheit Temperature Difference",
-        symbol: "°F",
-        description:
-          "A temperature difference measured in degrees Fahrenheit; 9 °F equals 5 K.",
-        conversion: {
-          target: "Kelvin Temperature Difference",
-          factor: 5,
-          divisor: 9,
-        },
-      },
-    ],
-  },
-  {
     title: "Amount of Substance",
     description:
       "A measure of the number of specified elementary entities in a sample.",

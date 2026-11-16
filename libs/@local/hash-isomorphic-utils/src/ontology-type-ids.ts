@@ -2781,15 +2781,6 @@ export const systemDataTypes = {
     title: "CDF",
     description: "An amount denominated in Congolese Franc (ISO 4217 CDF).",
   },
-  celsiusTemperatureDifference: {
-    dataTypeId:
-      "https://hash.ai/@h/types/data-type/celsius-temperature-difference/v/1",
-    dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/celsius-temperature-difference/" as BaseUrl,
-    title: "Celsius Temperature Difference",
-    description:
-      "A temperature difference measured in degrees Celsius, equal in size to the same difference in kelvins.",
-  },
   centimeters: {
     dataTypeId: "https://hash.ai/@h/types/data-type/centimeters/v/1",
     dataTypeBaseUrl:
@@ -3114,15 +3105,6 @@ export const systemDataTypes = {
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/eur/" as BaseUrl,
     title: "EUR",
     description: "An amount denominated in Euro (ISO 4217 EUR).",
-  },
-  fahrenheitTemperatureDifference: {
-    dataTypeId:
-      "https://hash.ai/@h/types/data-type/fahrenheit-temperature-difference/v/1",
-    dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/fahrenheit-temperature-difference/" as BaseUrl,
-    title: "Fahrenheit Temperature Difference",
-    description:
-      "A temperature difference measured in degrees Fahrenheit; 9 °F equals 5 K.",
   },
   farads: {
     dataTypeId: "https://hash.ai/@h/types/data-type/farads/v/1",
@@ -3559,14 +3541,6 @@ export const systemDataTypes = {
     title: "Kelvins",
     description:
       "The SI base unit of thermodynamic temperature, measured from absolute zero.",
-  },
-  kelvinTemperatureDifference: {
-    dataTypeId:
-      "https://hash.ai/@h/types/data-type/kelvin-temperature-difference/v/1",
-    dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/kelvin-temperature-difference/" as BaseUrl,
-    title: "Kelvin Temperature Difference",
-    description: "A temperature difference measured in kelvins.",
   },
   kes: {
     dataTypeId: "https://hash.ai/@h/types/data-type/kes/v/1",
@@ -4754,14 +4728,6 @@ export const systemDataTypes = {
     title: "Temperature",
     description:
       "A measure of temperature on an absolute or offset temperature scale.",
-  },
-  temperatureDifference: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/temperature-difference/v/1",
-    dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/temperature-difference/" as BaseUrl,
-    title: "Temperature Difference",
-    description:
-      "The difference between two temperatures, or the size of a temperature interval.",
   },
   terabytes: {
     dataTypeId: "https://hash.ai/@h/types/data-type/terabytes/v/1",

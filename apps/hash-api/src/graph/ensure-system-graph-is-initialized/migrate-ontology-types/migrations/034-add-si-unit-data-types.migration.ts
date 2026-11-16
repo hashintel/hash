@@ -1,7 +1,7 @@
 import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { createSystemDataTypeIfNotExists } from "../util";
-import { siUnitGroups } from "./032-add-si-unit-data-types/si-unit-groups";
+import { siUnitGroups } from "./034-add-si-unit-data-types/si-unit-groups";
 
 import type { MigrationFunction } from "../types";
 import type {

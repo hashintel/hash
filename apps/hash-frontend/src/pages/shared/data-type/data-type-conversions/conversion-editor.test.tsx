@@ -121,6 +121,77 @@ describe("ConversionEditor", () => {
       "an inherited constant cannot be changed",
     ).toBe(0);
   });
+  it.each([true, false])(
+    "renders nested conversions without changing their structure (read-only: %s)",
+    (isReadOnly) => {
+      const temperatureConversions: Conversions = {
+        to: {
+          expression: [
+            "/",
+            [
+              "*",
+              ["+", "self", { const: 459.67, type: "number" }],
+              { const: 5, type: "number" },
+            ],
+            { const: 9, type: "number" },
+          ],
+        },
+        from: {
+          expression: [
+            "-",
+            [
+              "/",
+              ["*", "self", { const: 9, type: "number" }],
+              { const: 5, type: "number" },
+            ],
+            { const: 459.67, type: "number" },
+          ],
+        },
+      };
+      render(
+        <ThemeProvider theme={theme}>
+          <Form>
+            <ConversionEditor
+              conversions={temperatureConversions}
+              dataType={{ ...dataType, title: "Degrees Fahrenheit" }}
+              target={{
+                ...target,
+                schema: { ...target.schema, title: "Kelvins" },
+              }}
+              inheritedFromTitle={null}
+              isReadOnly={isReadOnly}
+            />
+          </Form>
+        </ThemeProvider>,
+      );
+      expect(
+        screen.getByText("(((Degrees Fahrenheit + 459.67) × 5) ÷ 9) = Kelvins"),
+      ).toBeDefined();
+      expect(
+        screen.getByText("(((Kelvins × 9) ÷ 5) – 459.67) = Degrees Fahrenheit"),
+      ).toBeDefined();
+      expect(screen.queryAllByRole("combobox")).toHaveLength(0);
+      expect(screen.queryAllByRole("spinbutton")).toHaveLength(0);
+    },
+  );
+
+  it("labels the source and target of each conversion correctly", () => {
+    render(
+      <ThemeProvider theme={theme}>
+        <Form>
+          <ConversionEditor
+            conversions={conversions}
+            dataType={dataType}
+            inheritedFromTitle={null}
+            isReadOnly
+            target={target}
+          />
+        </Form>
+      </ThemeProvider>,
+    );
+    expect(screen.getByText("(Metres × 100) = Centimetres")).toBeDefined();
+    expect(screen.getByText("(Centimetres ÷ 100) = Metres")).toBeDefined();
+  });
 });
 
 describe("applyConversionDefinition", () => {
