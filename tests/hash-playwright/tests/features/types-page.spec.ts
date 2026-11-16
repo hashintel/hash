@@ -24,13 +24,8 @@ test("/types page renders and loads types", async ({ page }) => {
     await expect(page.locator(`[href*="${href}"]`)).toHaveText(tabTitle);
   }
 
-  // The count is scoped to the user's webs by default, which may hold no
-  // types. Widening to public webs brings the system types in, so a non-zero
-  // count proves types actually loaded.
-  await page.getByRole("button", { name: /^Web is/ }).click();
-  await page.getByRole("menuitem", { name: "Public in any web" }).click();
-  await page.keyboard.press("Escape");
-
+  // The default web filter includes public webs, so the system types make
+  // the count non-zero once types have loaded.
   await expect(page.getByText(/^[1-9][\d,]* types$/)).toBeVisible({
     timeout: 15_000,
   });

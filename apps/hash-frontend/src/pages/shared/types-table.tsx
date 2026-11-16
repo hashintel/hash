@@ -180,7 +180,7 @@ export const TypesTable: FunctionComponent<{
 
   const [webFilter, setWebFilter] = useState<WebFilterState>(() => ({
     selectedInternalWebIds: new Set(internalWebs.map(({ webId }) => webId)),
-    includeOtherWebs: false,
+    includeOtherWebs: true,
   }));
 
   const [typeFilters, setTypeFilters] = useState<TypeFilter[]>([]);
