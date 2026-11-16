@@ -12,6 +12,13 @@ const migrate: MigrationFunction = async ({
   authentication,
   migrationState,
 }) => {
+  const unitDefinitions = new Map(
+    siUnitGroups.flatMap((group) =>
+      group.units.map((unit) => [unit.title, unit] as const),
+    ),
+  );
+  const unitParents = new Map<string, Set<VersionedUrl>>();
+
   for (const group of siUnitGroups) {
     const quantity = await ensureUnitDataType(context, authentication, {
       dataTypeDefinition: {
@@ -26,8 +33,18 @@ const migrate: MigrationFunction = async ({
       webShortname: "h",
     });
 
+    const units = [
+      ...group.units,
+      ...(group.sharedUnits ?? []).map((title) => {
+        const unit = unitDefinitions.get(title);
+        if (!unit) {
+          throw new Error(`Shared unit '${title}' is not in the catalogue`);
+        }
+        return unit;
+      }),
+    ];
     const systems = new Set<UnitSystem>(
-      group.units.flatMap<UnitSystem>((unit) => unit.systems ?? ["Metric"]),
+      units.flatMap<UnitSystem>((unit) => unit.systems ?? ["Metric"]),
     );
     const systemIds = new Map<UnitSystem, VersionedUrl>();
     for (const system of systems) {
@@ -46,36 +63,43 @@ const migrate: MigrationFunction = async ({
       systemIds.set(system, systemGroup.schema.$id);
     }
 
-    const seededUnitBaseUrls = new Set<BaseUrl>();
-
-    for (const unit of group.units) {
-      for (const target of Object.keys(unit.conversions ?? {})) {
-        if (!seededUnitBaseUrls.has(target as BaseUrl)) {
-          throw new Error(`Conversion target '${target}' has not been seeded`);
+    for (const unit of units) {
+      const parents = unitParents.get(unit.title) ?? new Set<VersionedUrl>();
+      for (const system of unit.systems ?? ["Metric"]) {
+        const systemId = systemIds.get(system);
+        if (!systemId) {
+          throw new Error(`Unit system '${system}' has not been seeded`);
         }
+        parents.add(systemId);
       }
-
-      const dataType = await ensureUnitDataType(context, authentication, {
-        dataTypeDefinition: {
-          allOf: (unit.systems ?? ["Metric"]).map((system) => {
-            const systemId = systemIds.get(system);
-            if (!systemId) {
-              throw new Error(`Unit system '${system}' has not been seeded`);
-            }
-            return { $ref: systemId };
-          }),
-          title: unit.title,
-          description: unit.description,
-          label: { right: unit.symbol },
-          type: "number",
-          ...(unit.minimum === undefined ? {} : { minimum: unit.minimum }),
-        },
-        conversions: unit.conversions ?? {},
-        migrationState,
-        webShortname: "h",
-      });
-      seededUnitBaseUrls.add(dataType.metadata.recordId.baseUrl);
+      unitParents.set(unit.title, parents);
     }
+  }
+
+  const seededUnitBaseUrls = new Set<BaseUrl>();
+  for (const unit of unitDefinitions.values()) {
+    for (const target of Object.keys(unit.conversions ?? {})) {
+      if (!seededUnitBaseUrls.has(target as BaseUrl)) {
+        throw new Error(`Conversion target '${target}' has not been seeded`);
+      }
+    }
+
+    const dataType = await ensureUnitDataType(context, authentication, {
+      dataTypeDefinition: {
+        allOf: [...(unitParents.get(unit.title) ?? [])].map(($ref) => ({
+          $ref,
+        })),
+        title: unit.title,
+        description: unit.description,
+        label: { right: unit.symbol },
+        type: "number",
+        ...(unit.minimum === undefined ? {} : { minimum: unit.minimum }),
+      },
+      conversions: unit.conversions ?? {},
+      migrationState,
+      webShortname: "h",
+    });
+    seededUnitBaseUrls.add(dataType.metadata.recordId.baseUrl);
   }
 
   return migrationState;

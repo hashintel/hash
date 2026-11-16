@@ -2,6 +2,7 @@ import { systemDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids"
 
 import { affineConversion, scaledConversion } from "./shared/conversions";
 import { expandSiPrefixes } from "./si-unit-groups/expand-si-prefixes";
+import { fluidPermeabilityUnits } from "./si-unit-groups/fluid-permeability-units";
 import { imperialUnits } from "./si-unit-groups/imperial-units";
 
 import type { BaseUrl, Conversions } from "@blockprotocol/type-system";
@@ -21,6 +22,7 @@ type SiUnitGroup = {
   title: string;
   description: string;
   units: SiUnitDefinition[];
+  sharedUnits?: string[];
 };
 
 const unprefixedGroups: SiUnitGroup[] = [
@@ -1227,7 +1229,7 @@ const unprefixedGroups: SiUnitGroup[] = [
     ],
   },
   {
-    title: "Permeability",
+    title: "Magnetic Permeability",
     description:
       "The magnetic flux density per unit magnetic field strength in a material.",
     units: [
@@ -1238,6 +1240,20 @@ const unprefixedGroups: SiUnitGroup[] = [
           "The coherent SI unit used to express magnetic permeability.",
       },
     ],
+  },
+  {
+    title: "Fluid Permeability",
+    description:
+      "The intrinsic ability of a porous material to transmit fluids, independent of the fluid's properties.",
+    sharedUnits: [
+      systemDataTypes.squareMetres.title,
+      systemDataTypes.squareCentimetres.title,
+      systemDataTypes.squareMillimetres.title,
+      systemDataTypes.squareMicrometres.title,
+      systemDataTypes.squareFeet.title,
+      systemDataTypes.squareInches.title,
+    ],
+    units: fluidPermeabilityUnits,
   },
   {
     title: "Molar Energy",

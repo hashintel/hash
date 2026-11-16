@@ -1265,10 +1265,11 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
   ],
-  Permeability: [
+  "Magnetic Permeability": [
     {
       title: "Henries per Foot",
-      description: "A unit of permeability expressed in henries per foot.",
+      description:
+        "A unit of magnetic permeability expressed in henries per foot.",
       symbol: "H/ft",
       systems: ["Imperial"],
       conversions: {
