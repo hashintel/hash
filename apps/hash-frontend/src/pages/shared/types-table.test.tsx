@@ -173,10 +173,10 @@ const csvTitles = () => {
   const csv = state.exportCsv!();
   return csv?.content.slice(1).map((row) => row[0]);
 };
-const renderTable = () =>
+const renderTable = (tableTypes = types) =>
   render(
     <ThemeProvider theme={theme}>
-      <TypesTable kind="data-type" onlyOneWeb types={types} />
+      <TypesTable kind="data-type" onlyOneWeb types={tableTypes} />
     </ThemeProvider>,
   );
 
@@ -368,5 +368,32 @@ describe("hierarchical type table", () => {
     expect(screen.queryByRole("button", { name: "Flat List" })).toBeNull();
     expect(screen.getByRole("button", { name: "Table view" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Graph view" })).toBeTruthy();
+  });
+
+  it("finds a type when its copied title and label preview are pasted into search", () => {
+    renderTable(
+      types.map((type) =>
+        type.schema.title === "meters"
+          ? { ...type, schema: { ...type.schema, label: { right: "m" } } }
+          : type,
+      ),
+    );
+    toggle("number");
+    toggle("distance");
+    const rows = visibleRows();
+    const index = rows.findIndex(({ title }) => title === "meters");
+    const cell = state.grid!.createGetCellContent(rows)([0, index]);
+    if (cell.kind !== GridCellKind.Custom) {
+      throw new Error("Expected a tree cell");
+    }
+    expect(cell.copyData).toBe("meters value m");
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
+    act(() => state.grid?.onSearchValueChange?.(cell.copyData));
+    expect(
+      visibleRows()
+        .filter(({ hierarchy }) => hierarchy?.matchesSearch)
+        .map(({ title }) => title),
+    ).toEqual(["meters", "meters"]);
+    expect(csvTitles()).toEqual(["meters"]);
   });
 });

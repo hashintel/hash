@@ -617,18 +617,19 @@ export const TypesTable: FunctionComponent<
 
         switch (column.id) {
           case "title": {
+            const copyData = [
+              row.title,
+              row.labelPreview?.map(({ text }) => text).join(""),
+            ]
+              .filter(Boolean)
+              .join(" ");
             if (row.hierarchy) {
               return {
                 kind: GridCellKind.Custom,
                 themeOverride,
                 readonly: true,
                 allowOverlay: false,
-                copyData: [
-                  row.title,
-                  row.labelPreview?.map(({ text }) => text).join(""),
-                ]
-                  .filter(Boolean)
-                  .join(" "),
+                copyData,
                 cursor: "pointer",
                 data: {
                   kind: "data-type-tree-cell",
@@ -653,7 +654,7 @@ export const TypesTable: FunctionComponent<
               themeOverride,
               readonly: true,
               allowOverlay: false,
-              copyData: row.title,
+              copyData,
               cursor: isClickable ? "pointer" : "default",
               data: {
                 kind: "chip-cell",
@@ -791,20 +792,12 @@ export const TypesTable: FunctionComponent<
     const query = treeSearchValue.toLowerCase();
     return new Set(
       rows
-        .filter(
-          (row, rowIndex) =>
-            Boolean(
-              row.labelPreview
-                ?.map(({ text }) => text)
-                .join("")
-                .toLowerCase()
-                .includes(query),
-            ) ||
-            typesTableColumns.some((_column, colIndex) =>
-              getCellSearchableText(getCellContent([colIndex, rowIndex]))
-                ?.toLowerCase()
-                .includes(query),
-            ),
+        .filter((_row, rowIndex) =>
+          typesTableColumns.some((_column, colIndex) =>
+            getCellSearchableText(getCellContent([colIndex, rowIndex]))
+              ?.toLowerCase()
+              .includes(query),
+          ),
         )
         .map(({ typeId }) => typeId),
     );
