@@ -8,7 +8,13 @@ import { componentInstanceHeaderHeight } from "@hashintel/petrinaut-core";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { problemTextStyle } from "../../../../../constants/problem-severity";
 import { nodeFocusStyle } from "../../../styles/focus";
-import { iconContainerBaseStyle } from "./node-card";
+import {
+  iconContainerBaseStyle,
+  nodeContainerStyle,
+  nodeSubtitleStyle,
+  nodeTextAreaStyle,
+  nodeTitleStyle,
+} from "./node-card";
 import { pinLayout, pinSides, portOnSide } from "./pin-layout";
 import { portInHandleId, portOutHandleId } from "./port-handles";
 import { pinColorStyle, pinStyle } from "./port-pin";
@@ -16,11 +22,6 @@ import { useRemeasureHandles } from "./use-remeasure-handles";
 
 import type { CanvasInstanceBinding, CanvasPort } from "../../../canvas-scene";
 import type { ComponentInstanceNodeType } from "./react-flow-types";
-
-const containerStyle = css({
-  position: "relative",
-  height: "full",
-});
 
 const cardStyle = css({
   width: "full",
@@ -58,32 +59,11 @@ const iconTileStyle = css({
   borderRadius: "md",
 });
 
-const textStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  flex: "1",
-  minWidth: "0",
-  overflow: "hidden",
-});
-
-const titleStyle = css({
-  fontSize: "sm",
-  fontWeight: "medium",
-  lineHeight: "[1.2]",
-  color: "neutral.s120",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-});
-
-const subtitleStyle = css({
-  fontSize: "xs",
-  color: "neutral.a90",
-  lineHeight: "[1.2]",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-});
+/** The cards' text column, grown to push the fold toggle to the header's end. */
+const textStyle = cx(
+  nodeTextAreaStyle,
+  css({ flex: "1", color: "neutral.s120" }),
+);
 
 /**
  * Folds and unfolds the ports. `nodrag` and `nopan` keep React Flow from
@@ -221,7 +201,7 @@ export const ComponentInstanceNode: React.FC<
 
   return (
     <div
-      className={containerStyle}
+      className={nodeContainerStyle}
       onTransitionEnd={(event) => {
         if (event.propertyName === "top") {
           remeasure();
@@ -234,9 +214,9 @@ export const ComponentInstanceNode: React.FC<
             <Icon name={isInterface ? "puzzlePiece" : "cube"} />
           </div>
           <div className={textStyle}>
-            <div className={titleStyle}>{data.label}</div>
+            <div className={nodeTitleStyle}>{data.label}</div>
             <div
-              className={cx(subtitleStyle, problemTextStyle)}
+              className={cx(nodeSubtitleStyle, problemTextStyle)}
               data-severity={unbound ? "error" : undefined}
               title={isInterface ? `${data.subnetName}: ${runs}` : undefined}
             >
