@@ -3,6 +3,7 @@ import { ApolloLink, Observable } from "@apollo/client";
 import { MockedProvider } from "@apollo/client/testing";
 import { Box } from "@mui/material";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { SnackbarProvider } from "notistack";
 import { afterEach, expect, it } from "vitest";
 
 import { fullTransactionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
@@ -91,16 +92,18 @@ it.each([
 
     const App = ({ showCatalogue }: { showCatalogue: boolean }) => (
       <MockedProvider link={link}>
-        <Provider>
-          {showCatalogue ? (
-            <>
-              <Catalogue />
-              <Catalogue />
-            </>
-          ) : (
-            <Box>Account settings</Box>
-          )}
-        </Provider>
+        <SnackbarProvider>
+          <Provider>
+            {showCatalogue ? (
+              <>
+                <Catalogue />
+                <Catalogue />
+              </>
+            ) : (
+              <Box>Account settings</Box>
+            )}
+          </Provider>
+        </SnackbarProvider>
       </MockedProvider>
     );
 
