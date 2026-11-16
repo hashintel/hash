@@ -31,6 +31,9 @@ type ParsedInput<Name extends MutationName> = z.output<
   (typeof mutationActionInputSchemas)[Name]
 >;
 
+/** Whether a subnet id names a provided component, in the document as it stands. */
+type IsProvided = (subnetId: ID) => boolean;
+
 /**
  * The mutations that compose. `true` for one that composes whatever its
  * input, else what its input must satisfy. A mutation absent from here never
@@ -39,11 +42,11 @@ type ParsedInput<Name extends MutationName> = z.output<
 const composing: {
   [Name in MutationName]?:
     | true
-    | ((input: ParsedInput<Name>, provided: ProvidedInterfaces) => boolean);
+    | ((input: ParsedInput<Name>, isProvided: IsProvided) => boolean);
 } = {
-  addComponentInstance: ({ subnetId }, provided) => provided.has(subnetId),
-  updateComponentInstance: ({ update }, provided) =>
-    update.subnetId === undefined || provided.has(update.subnetId),
+  addComponentInstance: ({ subnetId }, isProvided) => isProvided(subnetId),
+  updateComponentInstance: ({ update }, isProvided) =>
+    update.subnetId === undefined || isProvided(update.subnetId),
   updateComponentInstancePosition: true,
   removeComponentInstance: true,
   addFusion: true,
@@ -70,7 +73,7 @@ const fieldOf = (input: unknown, key: string): unknown =>
 const composes = (
   name: MutationName,
   input: unknown,
-  provided: ProvidedInterfaces,
+  isProvided: IsProvided,
 ): boolean => {
   const allowed = composing[name];
   if (
@@ -84,7 +87,7 @@ const composes = (
   }
   const parsed = mutationActionInputSchemas[name].safeParse(input);
   // A malformed input is the mutation's to refuse, saying what is wrong.
-  return !parsed.success || allowed(parsed.data as never, provided);
+  return !parsed.success || allowed(parsed.data as never, isProvided);
 };
 
 /**
@@ -154,7 +157,12 @@ export const mutationRefusal = (
   input: unknown,
 ): string | null =>
   providedRefusal(rules, sdcpn, subnetIdAt(input, changedSubnetKey(name))) ??
-  (rules.compositionOnly && !composes(name, input, rules.provided)
+  (rules.compositionOnly &&
+  !composes(
+    name,
+    input,
+    (subnetId) => providedComponentAt(rules, sdcpn, subnetId) !== undefined,
+  )
     ? `${composingOnlyNotice}.`
     : null);
 

@@ -170,6 +170,24 @@ describe("an instance that only composes", () => {
     ).toThrow(onlyComposes);
   });
 
+  it("refuses an instance of a subnet of the document's own that has a provided id", () => {
+    const [own] = initial().subnets!;
+    const { mutations, mutationRefusal } = createPetrinaut({
+      document: createJsonDocHandle({
+        initial: { ...initial(), subnets: [{ ...own!, id: packerId }] },
+      }),
+      components: [packer],
+      compositionOnly: true,
+    });
+
+    expect(
+      mutationRefusal("addComponentInstance", instanceOf("a", packerId)),
+    ).toBe(onlyComposes);
+    expect(() =>
+      mutations.addComponentInstance(instanceOf("a", packerId)),
+    ).toThrow(onlyComposes);
+  });
+
   it("composes the root net alone", () => {
     const { mutations, definition } = compose();
 
