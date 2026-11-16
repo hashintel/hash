@@ -331,4 +331,53 @@ describe("data type label previews", () => {
       ),
     ).toBe("value m per second");
   });
+
+  it("applies the inherited union label once, with option labels taking precedence", () => {
+    const parent = scalar("parent", { label: { left: "$", right: "/h" } });
+    const { type: _type, ...metadata } = scalar("union") as DataType & {
+      type: "number";
+    };
+    const union: DataType = {
+      ...metadata,
+      allOf: [{ $ref: parent.$id }],
+      anyOf: [
+        { type: "number", label: parent.label, minimum: 0, maximum: 10 },
+        { type: "number", minimum: 20 },
+      ],
+    };
+    const types = lookup(parent);
+    expect(getDataTypeLabelPreview(union, types)).toBe("$value /h");
+    expect(
+      getDataTypeLabelPreview(
+        {
+          ...union,
+          anyOf: [
+            { type: "number", label: { left: "€" } },
+            { type: "number", label: { right: "" } },
+            { type: "number" },
+          ],
+        },
+        types,
+      ),
+    ).toBe("(€value | value | $value /h)");
+  });
+
+  it("keeps item labels distinct from a union's label on the whole array", () => {
+    const { type: _type, ...metadata } = scalar("union") as DataType & {
+      type: "number";
+    };
+    const union: DataType = {
+      ...metadata,
+      label: { right: "m" },
+      anyOf: [
+        {
+          type: "array",
+          maxItems: 1,
+          items: { type: "number", label: { right: "m" } },
+          label: { right: "m" },
+        },
+      ],
+    };
+    expect(getDataTypeLabelPreview(union, {})).toBe("[value m] m");
+  });
 });

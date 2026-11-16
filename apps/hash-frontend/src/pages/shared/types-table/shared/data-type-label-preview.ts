@@ -180,19 +180,20 @@ export const getDataTypeLabelPreview = (
   let preview: DataTypeLabelPart[];
   if ("anyOf" in schema) {
     const options = schema.anyOf.map((option) =>
-      previewValue(option, inheritedArrays),
+      previewValue(
+        { ...option, label: option.label ?? label },
+        inheritedArrays,
+      ),
     );
     const formats = [
       ...new Map(
         options.map((parts) => [parts.map(({ text }) => text).join(""), parts]),
       ).values(),
     ];
-    preview = labelValue(
+    preview =
       formats.length > 1
         ? [punctuation("("), ...joinParts(formats, " | "), punctuation(")")]
-        : (formats[0] ?? [placeholder]),
-      label,
-    );
+        : (formats[0] ?? [placeholder]);
   } else {
     preview = previewValue({ ...schema, label }, inheritedArrays);
   }
