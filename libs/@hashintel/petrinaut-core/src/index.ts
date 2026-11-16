@@ -81,12 +81,7 @@ export {
   resolveFusionMember,
 } from "./composition/fusions";
 export type { FusionNet, ResolvedFusionMember } from "./composition/fusions";
-export {
-  checkComposition,
-  checkFusion,
-  checkFusions,
-  checkPorts,
-} from "./composition/check-fusions";
+export { checkComposition, checkFusion } from "./composition/check-fusions";
 export type {
   CompositionProblem,
   FusionProblem,
