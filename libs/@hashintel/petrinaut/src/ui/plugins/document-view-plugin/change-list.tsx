@@ -1,7 +1,7 @@
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import { onOneLine } from "./outline/rows";
-import { useRowStops } from "./use-row-stops";
+import { emptyStyle, rowStopStyle, useRowStops } from "./use-row-stops";
 
 import type { DocChangeEvent, PetrinautPatch } from "../../plugin";
 
@@ -22,16 +22,8 @@ const lineStyle = css({
   columnGap: "2",
   paddingY: "0.5",
   paddingX: "1",
-  borderRadius: "xs",
-  outline: "none",
-  scrollMargin: "[25px]",
   whiteSpace: "nowrap",
   "& > *": { overflow: "hidden", textOverflow: "ellipsis" },
-  _hover: { backgroundColor: "neutral.bg.subtle" },
-  _focusVisible: {
-    outline: "[2px solid {colors.neutral.s90}]",
-    outlineOffset: "[-2px]",
-  },
   // A rule between one change and the one before it.
   "&[data-starts-change]:not(:first-child)": {
     marginTop: "1.5",
@@ -61,8 +53,6 @@ const valueStyle = css({
   fontSize: "[11px]",
   color: "neutral.s90",
 });
-
-const emptyStyle = css({ color: "neutral.s90", fontStyle: "italic" });
 
 /** A change the handle reported, under its number among them: its rows go by it, and stay its own when a newer change arrives. */
 export type RecordedChange = {
@@ -123,7 +113,7 @@ export const ChangeList = ({
         <div
           key={id}
           role="listitem"
-          className={lineStyle}
+          className={cx(rowStopStyle, lineStyle)}
           data-starts-change={startsChange || undefined}
           data-op={line?.op}
           {...rowProps(id)}

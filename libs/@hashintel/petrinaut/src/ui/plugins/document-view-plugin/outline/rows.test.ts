@@ -33,11 +33,11 @@ const lines = (rows: readonly OutlineRow[]): string[] =>
     const said =
       value.kind === "scalar"
         ? value.text
-        : value.kind === "text"
-          ? `| ${value.lineCount} lines${value.open ? ", open" : ""}`
-          : value.open
-            ? ""
-            : value.summary;
+        : !value.open
+          ? value.summary
+          : value.kind === "text"
+            ? `${value.summary}, open`
+            : "";
     return `${"  ".repeat(depth)}${key}: ${said}`.trimEnd();
   });
 

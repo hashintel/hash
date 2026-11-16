@@ -46,12 +46,12 @@ export type OutlineRow = {
         readonly open: boolean;
         readonly summary: string;
       }
-    /** Text of several lines, drawn as a block under its line. */
+    /** Text of several lines, drawn as a block under its line; `summary` says how many, for the line of a closed one. */
     | {
         readonly kind: "text";
         readonly open: boolean;
         readonly text: string;
-        readonly lineCount: number;
+        readonly summary: string;
       };
 };
 
@@ -130,14 +130,16 @@ const summaryOf = (collection: Collection): string => {
     );
   }
   const entries = entriesOf(collection);
-  const said = entries
-    .flatMap(([key, value]) => {
-      const text = isList(value) ? summaryOf(value) : wholeOf(value);
-      return text === null ? [] : [{ key, text: `${key}: ${text}` }];
-    })
-    .sort((a, b) => Number(b.key === "name") - Number(a.key === "name"));
+  const nameFirst = [
+    ...entries.filter(([key]) => key === "name"),
+    ...entries.filter(([key]) => key !== "name"),
+  ];
+  const said = nameFirst.flatMap(([key, value]) => {
+    const text = isList(value) ? summaryOf(value) : wholeOf(value);
+    return text === null ? [] : [`${key}: ${text}`];
+  });
   const shown: string[] = [];
-  for (const { text } of said) {
+  for (const text of said) {
     if (shown.join(", ").length + text.length > summaryLength) {
       break;
     }
@@ -146,10 +148,13 @@ const summaryOf = (collection: Collection): string => {
   return `{ ${[...shown, ...(shown.length < entries.length ? ["…"] : [])].join(", ")} }`;
 };
 
+/** What a closed block of text says of itself. */
+const blockSummary = (text: string) => `| ${text.split("\n").length} lines`;
+
 /** Any value as it reads on one line: what a closed row of it would say. */
 export const onOneLine = (value: unknown): string =>
   isBlock(value)
-    ? `| ${value.split("\n").length} lines`
+    ? blockSummary(value)
     : holdsRows(value)
       ? summaryOf(value)
       : scalarOf(value).text;
@@ -218,12 +223,16 @@ export const outlineRows = (
           : depth < expansion.depth) !== expansion.toggled.has(path);
 
       if (isBlock(value)) {
-        const lineCount = value.split("\n").length;
         rows.push({
           path,
           depth,
           key,
-          value: { kind: "text", open, text: value, lineCount },
+          value: {
+            kind: "text",
+            open,
+            text: value,
+            summary: blockSummary(value),
+          },
         });
       } else if (holdsRows(value)) {
         rows.push({

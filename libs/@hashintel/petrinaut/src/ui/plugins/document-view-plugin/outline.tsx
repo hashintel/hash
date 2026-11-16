@@ -1,25 +1,19 @@
 import { Icon } from "@hashintel/ds-components";
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import { outlineRows, type Expansion, type OutlineRow } from "./outline/rows";
-import { useRowStops, type RowStop } from "./use-row-stops";
+import {
+  emptyStyle,
+  rowStopStyle,
+  useRowStops,
+  type RowStop,
+} from "./use-row-stops";
 
 const outlineStyle = css({
   fontFamily: "mono",
   fontSize: "xs",
   lineHeight: "[20px]",
   color: "neutral.s120",
-});
-
-const rowStyle = css({
-  borderRadius: "xs",
-  outline: "none",
-  scrollMargin: "[25px]",
-  _hover: { backgroundColor: "neutral.bg.subtle" },
-  _focusVisible: {
-    outline: "[2px solid {colors.neutral.s90}]",
-    outlineOffset: "[-2px]",
-  },
 });
 
 const lineStyle = css({
@@ -41,8 +35,6 @@ const indentWidth = 16;
 const labelStyle = css({ flexShrink: 0, whiteSpace: "nowrap" });
 
 const punctuationStyle = css({ color: "neutral.s90" });
-
-const emptyStyle = css({ color: "neutral.s90", fontStyle: "italic" });
 
 const valueStyle = cva({
   base: { minWidth: "[0]", overflowWrap: "anywhere" },
@@ -78,29 +70,25 @@ const blockStyle = css({
 
 /** A key of a map, or in grey an item's place in its list. */
 const Label = ({ rowKey }: { rowKey: string | number }) => (
-  <span className={typeof rowKey === "number" ? punctuationStyle : undefined}>
+  <span
+    className={cx(labelStyle, typeof rowKey === "number" && punctuationStyle)}
+  >
     {rowKey}
     <span className={punctuationStyle}>:</span>
   </span>
 );
 
 /** What the line of a row says after its key: its value, or what a closed map, list or block holds. */
-const Said = ({ value }: { value: OutlineRow["value"] }) => {
+const RowValue = ({ value }: { value: OutlineRow["value"] }) => {
   if (value.kind === "scalar") {
     return (
       <span className={valueStyle({ type: value.type })}>{value.text}</span>
     );
   }
-  const said =
-    value.kind === "collection"
-      ? value.open
-        ? null
-        : value.summary
-      : value.open
-        ? "|"
-        : `| ${value.lineCount} lines`;
-  return said === null ? null : (
-    <span className={valueStyle({ type: "summary" })}>{said}</span>
+  // An open block keeps the mark that its text follows.
+  const text = !value.open ? value.summary : value.kind === "text" ? "|" : null;
+  return text === null ? null : (
+    <span className={valueStyle({ type: "summary" })}>{text}</span>
   );
 };
 
@@ -130,7 +118,7 @@ const Row = ({
       aria-expanded={folds ? value.open : undefined}
       // The outline is flat: no row holds another, so none owns a selection.
       aria-selected={false}
-      className={rowStyle}
+      className={rowStopStyle}
       onKeyDown={(event) => {
         if (folds && (event.key === "Enter" || event.key === " ")) {
           event.preventDefault();
@@ -152,10 +140,8 @@ const Row = ({
         {folds ? (
           <Icon name={value.open ? "chevronDown" : "chevronRight"} size="xs" />
         ) : null}
-        <span className={labelStyle}>
-          <Label rowKey={row.key} />
-        </span>
-        <Said value={value} />
+        <Label rowKey={row.key} />
+        <RowValue value={value} />
       </div>
       {value.kind === "text" && value.open ? (
         <pre
@@ -198,30 +184,30 @@ export const Outline = ({
   /** Opens or closes the row at a path. */
   onToggle: (path: string) => void;
 }) => {
-  const rows = outlineRows(data, expansion, itemNames);
+  const rows = outlineRows(data, expansion, itemNames).map((row) => ({
+    row,
+    toggle: () => onToggle(row.path),
+  }));
   const { attach, rowProps } = useRowStops(
-    rows.map(({ path, value }) => {
-      const toggle = () => onToggle(path);
-      return {
-        id: path,
-        // The arrow that has nothing to fold stays a move.
-        ...(value.kind === "scalar"
-          ? {}
-          : value.open
-            ? { collapse: toggle }
-            : { expand: toggle }),
-      };
-    }),
+    rows.map(({ row: { path, value }, toggle }) => ({
+      id: path,
+      // The arrow that has nothing to fold stays a move.
+      ...(value.kind === "scalar"
+        ? {}
+        : value.open
+          ? { collapse: toggle }
+          : { expand: toggle }),
+    })),
   );
 
   return (
     <div ref={attach} role="tree" aria-label={label} className={outlineStyle}>
       {rows.length === 0 ? <p className={emptyStyle}>{empty}</p> : null}
-      {rows.map((row) => (
+      {rows.map(({ row, toggle }) => (
         <Row
           key={row.path}
           row={row}
-          onToggle={() => onToggle(row.path)}
+          onToggle={toggle}
           {...rowProps(row.path)}
         />
       ))}
