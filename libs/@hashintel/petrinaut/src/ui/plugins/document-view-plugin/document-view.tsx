@@ -1,6 +1,9 @@
 import { useSyncExternalStore } from "react";
 
-import { SegmentedControl } from "@hashintel/ds-components";
+import {
+  SegmentedControl,
+  type SegmentedControlItem,
+} from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { FocusRoot, FocusStack } from "../../worksheet/focus-stack";
@@ -15,7 +18,7 @@ export type ChangesAs = "formatted" | "raw";
 
 const noChanges = "Edit the net to see what each change does to the document.";
 
-const changesAsItems: { value: ChangesAs; label: string }[] = [
+const changesAsItems: SegmentedControlItem<ChangesAs>[] = [
   { value: "formatted", label: "Formatted" },
   { value: "raw", label: "Raw" },
 ];
@@ -71,7 +74,7 @@ export const DocumentView = ({
   expansion: Expansion;
   onToggle: (path: string) => void;
 }) => {
-  const document = useSyncExternalStore(handle.subscribe, handle.doc);
+  const doc = useSyncExternalStore(handle.subscribe, handle.doc);
 
   return (
     <FocusRoot>
@@ -83,7 +86,7 @@ export const DocumentView = ({
             </header>
             <Outline
               label="Document"
-              data={document}
+              data={doc}
               empty="The document is not ready."
               expansion={expansion}
               onToggle={onToggle}
@@ -97,7 +100,7 @@ export const DocumentView = ({
                 size="xxs"
                 value={changesAs}
                 items={changesAsItems}
-                onChange={(value) => onChangesAs(value as ChangesAs)}
+                onChange={onChangesAs}
               />
             </header>
             {changesAs === "formatted" ? (

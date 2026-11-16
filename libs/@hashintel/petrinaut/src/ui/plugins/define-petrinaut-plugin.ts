@@ -540,18 +540,16 @@ const assertValidManifest = ({
       `Plugin id "${id}" is reserved. Ids starting "petrinaut." name the editor's own commands.`,
     );
   }
-  for (const key of Object.keys(commands ?? {})) {
-    if (key.includes(".")) {
-      throw new Error(
-        `Plugin "${id}" command "${key}" contains a dot. Command keys contain no dot.`,
-      );
-    }
-  }
-  for (const key of Object.keys(bottomPanelViews ?? {})) {
-    if (key.includes(".")) {
-      throw new Error(
-        `Plugin "${id}" bottom panel view "${key}" contains a dot. View keys contain no dot.`,
-      );
+  for (const [kind, specs] of [
+    ["command", commands],
+    ["bottom panel view", bottomPanelViews],
+  ] as const) {
+    for (const key of Object.keys(specs ?? {})) {
+      if (key.includes(".")) {
+        throw new Error(
+          `Plugin "${id}" ${kind} "${key}" contains a dot. Its id is the plugin's id, a dot and the key.`,
+        );
+      }
     }
   }
   for (const [key, spec] of Object.entries(settings ?? {})) {
