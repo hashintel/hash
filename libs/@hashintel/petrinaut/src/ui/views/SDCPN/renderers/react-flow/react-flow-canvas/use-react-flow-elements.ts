@@ -62,7 +62,7 @@ const edgeBase = (link: CanvasLinkEnds & Pick<CanvasArc, "id" | "focus">) => ({
   className: link.focus === "none" ? undefined : "canvas-focus-role",
 });
 
-const toReactFlowEdge = (
+const toArcEdge = (
   arc: CanvasArc,
   attachments: Pick<
     ArcData,
@@ -137,7 +137,7 @@ export const useReactFlowElements = (
     nodes: useStableItems(scene.nodes.map(toReactFlowNode)),
     edges: useStableItems<CanvasEdgeType>([
       ...scene.arcs.map((arc): ArcEdgeType =>
-        toReactFlowEdge(arc, {
+        toArcEdge(arc, {
           sourceOutline: outlineOf(arc.sourceId),
           targetOutline: outlineOf(arc.targetId),
           hasReverseArc: connections.has(

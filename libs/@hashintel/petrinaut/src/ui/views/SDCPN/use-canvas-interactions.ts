@@ -126,6 +126,15 @@ const isCanvasItemType = (type: string) =>
   type === "componentInstance" ||
   type === "fusion";
 
+type ConnectionOutcome =
+  | {
+      kind: "arc";
+      transitionId: string;
+      arcDirection: "input" | "output";
+      endpoint: FusionMember;
+    }
+  | { kind: "fusion"; first: FusionMember; second: FusionMember };
+
 export const useCanvasInteractions = (
   scene: CanvasScene,
 ): CanvasInteractions => {
@@ -199,15 +208,7 @@ export const useCanvasInteractions = (
     targetId,
     sourcePortId,
     targetPortId,
-  }: CanvasConnection):
-    | {
-        kind: "arc";
-        transitionId: string;
-        arcDirection: "input" | "output";
-        endpoint: FusionMember;
-      }
-    | { kind: "fusion"; first: FusionMember; second: FusionMember }
-    | null => {
+  }: CanvasConnection): ConnectionOutcome | null => {
     const first = memberOf(sourceId, sourcePortId);
     const second = memberOf(targetId, targetPortId);
     if (first && kindOf(targetId) === "transition") {

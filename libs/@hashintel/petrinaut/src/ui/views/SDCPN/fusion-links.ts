@@ -51,7 +51,7 @@ export type FusionStatus = {
   severity: ProblemSeverity | null;
 };
 
-const severities: ProblemSeverity[] = ["error", "warning", "info"];
+const severitiesWorstFirst: ProblemSeverity[] = ["error", "warning", "info"];
 
 /** The name and the worst problem of every fusion of `net`, by fusion id. */
 export const fusionStatuses = (
@@ -67,7 +67,7 @@ export const fusionStatuses = (
         {
           name: fusionDisplayName(sdcpn, net, fusion),
           severity:
-            severities.find((severity) =>
+            severitiesWorstFirst.find((severity) =>
               problems.some((problem) => problem.severity === severity),
             ) ?? null,
         },
