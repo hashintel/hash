@@ -155,8 +155,6 @@ export type SimulationInstance = {
   maxTime: number | null;
   /** Simulation time for the current frame, owned by the run controller. */
   currentTime: number;
-  /** Current state of the seeded random number generator */
-  rngState: number;
   /**
    * Per-run intern pool for `string` token elements. Owned by the simulation
    * (fresh per init/run), append-only while the run advances — frames store

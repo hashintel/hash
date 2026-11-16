@@ -7,6 +7,7 @@ import { removeTokensFromSimulationFrame } from "./remove-tokens-from-simulation
 import { createTokenRegionViews, writeTokenValue } from "./token-layout";
 
 import type { ID } from "../../types/sdcpn";
+import type { RandomStream } from "./seeded-rng";
 import type {
   CompiledTransition,
   EngineFrame,
@@ -195,10 +196,8 @@ function applyOutcome(
  * Result of executing transitions on a frame.
  */
 export type ExecuteTransitionsResult = {
-  /** The updated simulation frame */
+  /** The updated simulation frame, with each transition's advanced random stream */
   frame: EngineFrame;
-  /** The updated RNG state after all transitions */
-  rngState: number;
   /** Whether any transition fired */
   transitionFired: boolean;
 };
@@ -213,17 +212,19 @@ export type ExecuteTransitionsResult = {
  * 4. Accumulates all token additions across all transitions
  * 5. At the end, adds all accumulated tokens at once
  *
+ * The returned frame advances every transition's timer, and holds the counter
+ * each transition's random stream advanced to: each transition draws only
+ * from its own stream in the frame.
+ *
  * @param frame - The simulation frame to execute transitions on
  * @param simulation - The simulation instance containing compiled functions
  * @param dt - Time step for the simulation
- * @param rngState - Current state of the random number generator
- * @returns Result containing the updated frame, new RNG state, and whether any transition fired
+ * @returns Result containing the updated frame and whether any transition fired
  */
 export function executeTransitions(
   frame: EngineFrame,
   simulation: SimulationInstance,
   dt: number,
-  rngState: number,
   control: TransitionControl | null = null,
 ): ExecuteTransitionsResult {
   // Map to accumulate all tokens to add: PlaceID -> array of token byte blocks
@@ -242,12 +243,14 @@ export function executeTransitions(
 
   // Start with the current frame and update it as transitions fire
   let currentFrame = frame;
+  const frameSnapshot = materializeEngineFrame(simulation.frameLayout, frame);
   // `currentFrame` materialized once and shared by every transition evaluated
   // against it; rebuilt only when a firing replaces the frame.
-  let currentSnapshot: EngineFrameSnapshot | null = null;
+  let currentSnapshot: EngineFrameSnapshot | null = frameSnapshot;
 
-  // Track current RNG state
-  let currentRngState = rngState;
+  const rngKeys = frameSnapshot.transitionRngKeys;
+  const rngCounters = frameSnapshot.transitionRngCounters.slice();
+  const stream: RandomStream = { key: 0, counter: 0 };
 
   // Chosen transitions go first, so that net-controlled transitions cannot take
   // their input tokens within the frame. Unchosen controlled transitions do not fire.
@@ -266,19 +269,23 @@ export function executeTransitions(
       simulation.frameLayout,
       currentFrame,
     );
-    const { firing, newRngState } = computePossibleTransition(
+    const transitionIndex =
+      simulation.frameLayout.transitionIndexById.get(transitionId)!;
+    stream.key = rngKeys[transitionIndex]!;
+    stream.counter = rngCounters[transitionIndex]!;
+    const { firing } = computePossibleTransition(
       currentFrame,
       simulation,
       transitionId,
-      currentRngState,
+      stream,
       control?.chosen.has(transitionId) ?? false,
       pendingOutputCounts,
       currentSnapshot,
     );
 
     // Every evaluation's randomness is consumed, fired or not — reusing the
-    // state would re-test the same draw next frame and freeze the outcome.
-    currentRngState = newRngState;
+    // counter would re-test the same draw next frame and freeze the outcome.
+    rngCounters[transitionIndex] = stream.counter;
 
     if (firing !== null) {
       // Transition fired!
@@ -325,23 +332,21 @@ export function executeTransitions(
     }
   }
 
-  // If no transitions fired, return the original frame. The RNG state still
-  // moves forward: every evaluated transition consumed a draw, and restoring
-  // the pre-frame state would hand the next frame the same draws again.
-  if (transitionsFired.size === 0) {
-    return { frame, rngState: currentRngState, transitionFired: false };
-  }
-
-  // Add all new tokens at once
-  const newFrame = addTokensToSimulationFrame(
-    currentFrame,
-    tokensToAdd,
-    simulation.frameLayout,
-  );
-  const newFrameSnapshot = materializeEngineFrame(
-    simulation.frameLayout,
-    newFrame,
-  );
+  // Add all new tokens at once. If no transitions fired, the tokens are
+  // unchanged, but the timers and streams still move forward: every evaluated
+  // transition consumed a draw, and restoring the pre-frame counters would
+  // hand the next frame the same draws again.
+  const newFrameSnapshot =
+    transitionsFired.size === 0
+      ? frameSnapshot
+      : materializeEngineFrame(
+          simulation.frameLayout,
+          addTokensToSimulationFrame(
+            currentFrame,
+            tokensToAdd,
+            simulation.frameLayout,
+          ),
+        );
 
   // Update transition timeSinceLastFiringMs, firedInThisFrame, and firingCount
   const newTransitions: EngineFrameSnapshot["transitions"] = {
@@ -372,8 +377,8 @@ export function executeTransitions(
     frame: createEngineFrame(simulation.frameLayout, {
       ...newFrameSnapshot,
       transitions: newTransitions,
+      transitionRngCounters: rngCounters,
     }),
-    rngState: currentRngState,
-    transitionFired: true,
+    transitionFired: transitionsFired.size > 0,
   };
 }

@@ -9,7 +9,7 @@ import {
   enumerateWeightedMarkingIndicesGenerator,
   firstWeightedMarkingIndices,
 } from "../engine/enumerate-weighted-markings";
-import { nextRandom } from "../engine/seeded-rng";
+import { nextRandom, type RandomStream } from "../engine/seeded-rng";
 import { getPlaceIndex } from "./layout";
 
 import type { CompiledTransition } from "../engine/types";
@@ -24,7 +24,7 @@ import type {
  * Computes the effect of one transition against a candidate frame.
  *
  * The function checks structural enablement, samples the transition firing
- * probability from the run RNG state, evaluates user-authored lambda/kernel
+ * probability from the transition's own random stream, evaluates user-authored lambda/kernel
  * functions, samples distribution-valued outputs, and returns the token
  * removals/additions that the caller should apply to the frame.
  */
@@ -38,7 +38,9 @@ export function computeTransitionEffect(
    * transitions feeding one bounded place could each fit and jointly overflow.
    */
   pendingOutputCounts: Uint32Array | null,
-): { firing: TransitionEffect | null; newRngState: number } {
+  /** The transition's own random stream, which every draw it makes advances. */
+  stream: RandomStream,
+): TransitionEffect | null {
   const { frameLayout } = run.simulation;
 
   const inputPlaces = transition.inputPlaces.map((inputPlace) => {
@@ -60,7 +62,7 @@ export function computeTransitionEffect(
   );
   // A disabled transition consumes no randomness.
   if (!enabled) {
-    return { firing: null, newRngState: run.rngState };
+    return null;
   }
 
   // A full output place blocks its producers, mirroring an input arc that
@@ -73,11 +75,11 @@ export function computeTransitionEffect(
       pendingOutputCounts,
     )
   ) {
-    return { firing: null, newRngState: run.rngState };
+    return null;
   }
 
   // One uniform draw per evaluated enabled transition, fired or not.
-  const [u1, candidateRngState] = nextRandom(run.rngState);
+  const u1 = nextRandom(stream);
   const inputPlacesWithValues = inputPlaces.filter(
     (place) => place.strideBytes > 0 && place.arcType !== "inhibitor",
   );
@@ -142,9 +144,8 @@ export function computeTransitionEffect(
 
     // The compiled kernel writes output tokens into the transition's staging
     // bytes; Distribution/uuid values are resolved through the kernel sink,
-    // advancing the RNG state.
+    // advancing the stream.
     let add: Record<PlaceID, Uint8Array[]>;
-    let currentRngState = candidateRngState;
 
     if (transition.kernelFn === null) {
       // No colored output places — every output gets `weight` empty blocks.
@@ -157,14 +158,11 @@ export function computeTransitionEffect(
       }
     } else {
       try {
-        const { add: kernelAdd, newRngState: rngAfterKernel } =
-          executeBufferKernel({
-            transition,
-            views: frame.tokenViews,
-            rngState: candidateRngState,
-          });
-        add = kernelAdd;
-        currentRngState = rngAfterKernel;
+        add = executeBufferKernel({
+          transition,
+          views: frame.tokenViews,
+          stream,
+        });
       } catch (error) {
         throw error instanceof SDCPNItemError
           ? error
@@ -188,12 +186,9 @@ export function computeTransitionEffect(
       }
     }
 
-    return {
-      firing: { remove, add },
-      newRngState: currentRngState,
-    };
+    return { remove, add };
   }
 
   // Enabled but not firing this frame; the draw is still consumed.
-  return { firing: null, newRngState: candidateRngState };
+  return null;
 }

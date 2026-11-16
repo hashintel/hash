@@ -13,7 +13,7 @@ import {
   enumerateWeightedMarkingIndicesGenerator,
   firstWeightedMarkingIndices,
 } from "./enumerate-weighted-markings";
-import { nextRandom } from "./seeded-rng";
+import { nextRandom, type RandomStream } from "./seeded-rng";
 import { createTokenRegionViews } from "./token-layout";
 
 import type { ID } from "../../types/sdcpn";
@@ -30,10 +30,10 @@ const EMPTY_TOKEN_BYTES = new Uint8Array(0);
 /**
  * Takes an EngineFrame, a SimulationInstance, a TransitionID, and computes the possible transition.
  *
- * Always returns the RNG state after any randomness consumed by the
- * evaluation — an enabled stochastic transition draws once whether or not it
- * fires, so the caller must thread `newRngState` forward on every call.
- * Re-testing the same draw each frame would freeze the outcome.
+ * Draws from `stream`, advancing it past every value the evaluation uses: an
+ * enabled transition draws once whether or not it fires, and a firing draws
+ * again for any sampled or generated output values. Re-testing the same draw
+ * each frame would freeze the outcome, so the caller keeps the advanced stream.
  *
  * `firing` is null when the transition doesn't fire; otherwise it carries:
  * - remove: Map from PlaceID to Set of token indices to remove.
@@ -43,7 +43,7 @@ export function computePossibleTransition(
   frame: EngineFrame,
   simulation: SimulationInstance,
   transitionId: string,
-  rngState: number,
+  stream: RandomStream,
   /**
    * Whether a controller chose this transition. A controller replaces the
    * random timing a rate gives, not whether the transition can fire: a chosen
@@ -68,7 +68,6 @@ export function computePossibleTransition(
     remove: Record<PlaceID, Set<number> | number>;
     add: Record<PlaceID, Uint8Array[]>;
   };
-  newRngState: number;
 } {
   const transitionState = snapshot.transitions[transitionId];
   if (!transitionState) {
@@ -107,7 +106,7 @@ export function computePossibleTransition(
 
   // A disabled transition consumes no randomness.
   if (!isTransitionEnabled) {
-    return { firing: null, newRngState: rngState };
+    return { firing: null };
   }
 
   // A full output place blocks its producers, mirroring an input arc that
@@ -123,7 +122,7 @@ export function computePossibleTransition(
       pendingOutputCounts,
     )
   ) {
-    return { firing: null, newRngState: rngState };
+    return { firing: null };
   }
 
   //
@@ -131,7 +130,7 @@ export function computePossibleTransition(
   //
 
   // One uniform draw per evaluated enabled transition, fired or not.
-  const [U1, newRngState] = nextRandom(rngState);
+  const U1 = nextRandom(stream);
 
   // Shared views over the frame's token byte region.
   const tokenViews = createTokenRegionViews(
@@ -214,9 +213,8 @@ export function computePossibleTransition(
     if (fires) {
       // Transition fires! The compiled kernel writes output tokens into the
       // transition's staging bytes; Distribution/uuid values are resolved
-      // through the kernel sink, advancing the RNG state.
+      // through the kernel sink, advancing the stream.
       let addMap: Record<PlaceID, Uint8Array[]>;
-      let currentRngState = newRngState;
 
       if (transition.kernelFn === null) {
         // No colored output places — every output gets `weight` empty blocks.
@@ -229,13 +227,11 @@ export function computePossibleTransition(
         }
       } else {
         try {
-          const { add, newRngState: rngAfterKernel } = executeBufferKernel({
+          addMap = executeBufferKernel({
             transition,
             views: tokenViews,
-            rngState: newRngState,
+            stream,
           });
-          addMap = add;
-          currentRngState = rngAfterKernel;
         } catch (err) {
           throw err instanceof SDCPNItemError
             ? err
@@ -271,11 +267,10 @@ export function computePossibleTransition(
           // create as per transition kernel output
           add: addMap,
         },
-        newRngState: currentRngState,
       };
     }
   }
 
   // Enabled but not firing this frame; the draw is still consumed.
-  return { firing: null, newRngState };
+  return { firing: null };
 }

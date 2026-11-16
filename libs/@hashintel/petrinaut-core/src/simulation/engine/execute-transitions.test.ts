@@ -5,7 +5,6 @@ import { describe, expect, it } from "vitest";
 import {
   createEngineFrameLayout,
   materializeEngineFrame,
-  type EngineFrameSnapshot,
 } from "../frames/internal-frame";
 import { makeCompiledTransition } from "./compiled-transition.test-helpers";
 import { executeTransitions as executeEngineTransitions } from "./execute-transitions";
@@ -123,7 +122,6 @@ function makeSimulation({
     dt: 0.1,
     maxTime: null,
     currentTime: 0,
-    rngState: 42,
     stringPool: new StringPool(),
     frameLayout,
     frames: [],
@@ -135,22 +133,17 @@ function executeTransitions(
   frame: TestFrame,
   simulation: SimulationInstance,
   dt: number,
-  rngState: number,
 ) {
   const result = executeEngineTransitions(
     frame,
     { ...simulation, frameLayout: frame.layout },
     dt,
-    rngState,
   );
 
   return {
     ...result,
     rawFrame: result.frame,
-    frame:
-      result.frame === frame
-        ? (frame as unknown as EngineFrameSnapshot)
-        : materializeEngineFrame(frame.layout, result.frame),
+    frame: materializeEngineFrame(frame.layout, result.frame),
   };
 }
 
@@ -164,7 +157,7 @@ const constantKernel =
   };
 
 describe("executeTransitions", () => {
-  it("returns the original frame when no transitions can fire", () => {
+  it("keeps the tokens and advances the timers when no transitions can fire", () => {
     const transition = makeTransition({
       id: "t1",
       inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
@@ -183,15 +176,11 @@ describe("executeTransitions", () => {
       },
     });
 
-    const result = executeTransitions(
-      frame,
-      simulation,
-      simulation.dt,
-      simulation.rngState,
-    );
+    const result = executeTransitions(frame, simulation, simulation.dt);
 
-    expect(result.frame).toBe(frame);
     expect(result.transitionFired).toBe(false);
+    expect(result.frame.places.p1?.count).toBe(0);
+    expect(result.frame.transitions.t1).toEqual(transitionState(1.1));
   });
 
   it("removes tokens and adds new tokens when a single transition fires", () => {
@@ -207,7 +196,7 @@ describe("executeTransitions", () => {
       ],
       transitions: [transition],
       types: [type1],
-      lambdaFns: new Map([["t1", () => 10.0]]),
+      lambdaFns: new Map([["t1", () => Infinity]]),
       kernelFns: new Map([["t1", constantKernel(2.0)]]),
     });
     const frame = makeTestFrame({
@@ -220,12 +209,7 @@ describe("executeTransitions", () => {
       },
     });
 
-    const result = executeTransitions(
-      frame,
-      simulation,
-      simulation.dt,
-      simulation.rngState,
-    );
+    const result = executeTransitions(frame, simulation, simulation.dt);
 
     expect(result.frame.places.p1?.count).toBe(1);
     expect(decodePlaceTokens(frame.layout, result.rawFrame, "p1")).toEqual([
@@ -279,12 +263,7 @@ describe("executeTransitions", () => {
       },
     });
 
-    const result = executeTransitions(
-      frame,
-      simulation,
-      simulation.dt,
-      simulation.rngState,
-    );
+    const result = executeTransitions(frame, simulation, simulation.dt);
 
     expect(result.transitionFired).toBe(true);
     expect(result.frame.places.p1?.count).toBe(0);
@@ -321,8 +300,8 @@ describe("executeTransitions", () => {
       transitions,
       types: [type1],
       lambdaFns: new Map([
-        ["t1", () => 10.0],
-        ["t2", () => 10.0],
+        ["t1", () => Infinity],
+        ["t2", () => Infinity],
       ]),
       kernelFns: new Map([
         ["t1", constantKernel(5.0)],
@@ -344,12 +323,7 @@ describe("executeTransitions", () => {
       },
     });
 
-    const result = executeTransitions(
-      frame,
-      simulation,
-      simulation.dt,
-      simulation.rngState,
-    );
+    const result = executeTransitions(frame, simulation, simulation.dt);
 
     expect(result.frame.places.p1?.count).toBe(1);
     expect(result.frame.places.p2?.count).toBe(1);
@@ -371,7 +345,7 @@ describe("executeTransitions", () => {
       ],
       transitions: [transition],
       types: [type2],
-      lambdaFns: new Map([["t1", () => 10.0]]),
+      lambdaFns: new Map([["t1", () => Infinity]]),
       kernelFns: new Map([["t1", constantKernel(3.0, 4.0)]]),
     });
     const frame = makeTestFrame({
@@ -384,12 +358,7 @@ describe("executeTransitions", () => {
       },
     });
 
-    const result = executeTransitions(
-      frame,
-      simulation,
-      simulation.dt,
-      simulation.rngState,
-    );
+    const result = executeTransitions(frame, simulation, simulation.dt);
 
     expect(result.frame.places.p1?.count).toBe(0);
     expect(result.frame.places.p2?.count).toBe(1);
@@ -419,8 +388,8 @@ describe("executeTransitions", () => {
       transitions,
       types: [type1],
       lambdaFns: new Map([
-        ["t1", () => 10.0],
-        ["t2", () => 0.001],
+        ["t1", () => Infinity],
+        ["t2", () => 0],
       ]),
       kernelFns: new Map([
         ["t1", constantKernel(2.0)],
@@ -438,12 +407,7 @@ describe("executeTransitions", () => {
       },
     });
 
-    const result = executeTransitions(
-      frame,
-      simulation,
-      simulation.dt,
-      simulation.rngState,
-    );
+    const result = executeTransitions(frame, simulation, simulation.dt);
 
     expect(result.frame.transitions.t1?.timeSinceLastFiringMs).toBe(0);
     expect(result.frame.transitions.t2?.timeSinceLastFiringMs).toBe(0.4);

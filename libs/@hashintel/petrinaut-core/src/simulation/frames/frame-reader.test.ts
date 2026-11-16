@@ -63,6 +63,8 @@ function makeFrame(): EngineFrame {
         firingCount: 3,
       },
     },
+    transitionRngKeys: new Uint32Array(sdcpn.transitions.length),
+    transitionRngCounters: new Uint32Array(sdcpn.transitions.length),
     buffer,
   });
 }
@@ -146,6 +148,8 @@ describe("SimulationFrameReader", () => {
         [stringPlace.id]: { byteOffset: 0, count: 2, strideBytes: 16 },
       },
       transitions: {},
+      transitionRngKeys: new Uint32Array(0),
+      transitionRngCounters: new Uint32Array(0),
       buffer,
     });
 

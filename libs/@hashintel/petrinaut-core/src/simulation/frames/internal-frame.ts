@@ -29,6 +29,10 @@ export type EngineFramePlaceState = {
 export type EngineFrameSnapshot = {
   places: Record<ID, EngineFramePlaceState>;
   transitions: Record<ID, SimulationTransitionState>;
+  /** Each transition's random stream key, in layout transition order. */
+  transitionRngKeys: Uint32Array;
+  /** Each transition's random stream counter, in layout transition order. */
+  transitionRngCounters: Uint32Array;
   /** Token region bytes (packed-struct token layout). */
   buffer: Uint8Array;
 };
@@ -69,6 +73,8 @@ type EngineFrameHeader = {
   placeValueOffsetsOffset: number;
   transitionElapsedOffset: number;
   transitionFiringCountsOffset: number;
+  transitionRngKeysOffset: number;
+  transitionRngCountersOffset: number;
   transitionFiredFlagsOffset: number;
   tokenValuesOffset: number;
   byteLength: number;
@@ -83,6 +89,10 @@ export type EngineFrameView = {
   placeCounts: Uint32Array;
   /** Dense per-place byte offsets into the token region. */
   placeByteOffsets: Uint32Array;
+  /** Dense per-transition random stream keys, indexed by frame transition index. */
+  transitionRngKeys: Uint32Array;
+  /** Dense per-transition random stream counters, indexed by frame transition index. */
+  transitionRngCounters: Uint32Array;
   getPlaceState(placeId: ID): EngineFramePlaceState | null;
   getPlaceEntries(): [ID, EngineFramePlaceState][];
   getTransitionState(transitionId: ID): SimulationTransitionState | null;
@@ -91,7 +101,7 @@ export type EngineFrameView = {
 };
 
 const FRAME_MAGIC = 0x5046524d; // "PFRM"
-const FRAME_VERSION = 2;
+const FRAME_VERSION = 3;
 const HEADER_BYTES = 64;
 
 const enum HeaderOffset {
@@ -105,9 +115,11 @@ const enum HeaderOffset {
   PlaceValueOffsetsOffset = 24,
   TransitionElapsedOffset = 28,
   TransitionFiringCountsOffset = 32,
-  TransitionFiredFlagsOffset = 36,
-  TokenValuesOffset = 40,
-  ByteLength = 44,
+  TransitionRngKeysOffset = 36,
+  TransitionRngCountersOffset = 40,
+  TransitionFiredFlagsOffset = 44,
+  TokenValuesOffset = 48,
+  ByteLength = 52,
 }
 
 const alignTo = (value: number, alignment: number): number =>
@@ -227,6 +239,14 @@ function readHeader(frame: EngineFrame): EngineFrameHeader {
       HeaderOffset.TransitionFiringCountsOffset,
       true,
     ),
+    transitionRngKeysOffset: view.getUint32(
+      HeaderOffset.TransitionRngKeysOffset,
+      true,
+    ),
+    transitionRngCountersOffset: view.getUint32(
+      HeaderOffset.TransitionRngCountersOffset,
+      true,
+    ),
     transitionFiredFlagsOffset: view.getUint32(
       HeaderOffset.TransitionFiredFlagsOffset,
       true,
@@ -281,6 +301,16 @@ function writeHeader(buffer: ArrayBuffer, header: EngineFrameHeader): void {
     true,
   );
   view.setUint32(
+    HeaderOffset.TransitionRngKeysOffset,
+    header.transitionRngKeysOffset,
+    true,
+  );
+  view.setUint32(
+    HeaderOffset.TransitionRngCountersOffset,
+    header.transitionRngCountersOffset,
+    true,
+  );
+  view.setUint32(
     HeaderOffset.TransitionFiredFlagsOffset,
     header.transitionFiredFlagsOffset,
     true,
@@ -299,6 +329,14 @@ export function createEngineFrame(
 ): EngineFrame {
   const placeCount = layout.placeIds.length;
   const transitionCount = layout.transitionIds.length;
+  if (
+    snapshot.transitionRngKeys.length !== transitionCount ||
+    snapshot.transitionRngCounters.length !== transitionCount
+  ) {
+    throw new Error(
+      `Snapshot has ${snapshot.transitionRngKeys.length} transition random stream keys and ${snapshot.transitionRngCounters.length} counters, expected ${transitionCount} of each`,
+    );
+  }
   const packedPlaceCounts = new Uint32Array(placeCount);
   const packedPlaceByteOffsets = new Uint32Array(placeCount);
 
@@ -332,8 +370,13 @@ export function createEngineFrame(
   );
   const transitionFiringCountsOffset =
     transitionElapsedOffset + transitionCount * Float64Array.BYTES_PER_ELEMENT;
-  const transitionFiredFlagsOffset =
+  const transitionRngKeysOffset =
     transitionFiringCountsOffset +
+    transitionCount * Uint32Array.BYTES_PER_ELEMENT;
+  const transitionRngCountersOffset =
+    transitionRngKeysOffset + transitionCount * Uint32Array.BYTES_PER_ELEMENT;
+  const transitionFiredFlagsOffset =
+    transitionRngCountersOffset +
     transitionCount * Uint32Array.BYTES_PER_ELEMENT;
   const tokenValuesOffset = alignTo(
     transitionFiredFlagsOffset + transitionCount * Uint8Array.BYTES_PER_ELEMENT,
@@ -350,6 +393,8 @@ export function createEngineFrame(
     placeValueOffsetsOffset,
     transitionElapsedOffset,
     transitionFiringCountsOffset,
+    transitionRngKeysOffset,
+    transitionRngCountersOffset,
     transitionFiredFlagsOffset,
     tokenValuesOffset,
     byteLength,
@@ -374,6 +419,12 @@ export function createEngineFrame(
     frame,
     transitionFiredFlagsOffset,
     transitionCount,
+  );
+  new Uint32Array(frame, transitionRngKeysOffset, transitionCount).set(
+    snapshot.transitionRngKeys,
+  );
+  new Uint32Array(frame, transitionRngCountersOffset, transitionCount).set(
+    snapshot.transitionRngCounters,
   );
 
   for (let index = 0; index < transitionCount; index++) {
@@ -439,6 +490,16 @@ export function readEngineFrame(
     header.transitionFiringCountsOffset,
     header.transitionCount,
   );
+  const transitionRngKeys = new Uint32Array(
+    frame,
+    header.transitionRngKeysOffset,
+    header.transitionCount,
+  );
+  const transitionRngCounters = new Uint32Array(
+    frame,
+    header.transitionRngCountersOffset,
+    header.transitionCount,
+  );
   const transitionFiredFlags = new Uint8Array(
     frame,
     header.transitionFiredFlagsOffset,
@@ -493,6 +554,8 @@ export function readEngineFrame(
     tokenViews,
     placeCounts,
     placeByteOffsets: placeValueOffsets,
+    transitionRngKeys,
+    transitionRngCounters,
     getPlaceState,
     getPlaceEntries,
     getTransitionState,
@@ -513,6 +576,8 @@ export function readEngineFrame(
       return {
         places,
         transitions,
+        transitionRngKeys: transitionRngKeys.slice(),
+        transitionRngCounters: transitionRngCounters.slice(),
         buffer: tokenBytes.slice(),
       };
     },

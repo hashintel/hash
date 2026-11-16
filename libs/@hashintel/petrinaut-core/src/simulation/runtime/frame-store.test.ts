@@ -49,6 +49,8 @@ function makeFrame(poolId: bigint, x: number): EngineFrame {
   return createEngineFrame(layout, {
     places: { [place.id]: { byteOffset: 0, count: 1, strideBytes: 16 } },
     transitions: {},
+    transitionRngKeys: new Uint32Array(0),
+    transitionRngCounters: new Uint32Array(0),
     buffer,
   });
 }

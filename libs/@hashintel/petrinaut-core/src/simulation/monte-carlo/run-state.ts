@@ -74,8 +74,8 @@ export function ensureFrameCapacity(
 /**
  * Builds one independent Monte Carlo run.
  *
- * Each run gets its own compiled simulation instance, RNG state, current frame,
- * and next frame. The engine's retained frame history is cleared after copying
+ * Each run gets its own compiled simulation instance, current frame, and next
+ * frame, whose transitions' random states start from the run's seed. The engine's retained frame history is cleared after copying
  * the initial frame into the reusable Monte Carlo buffer format.
  */
 export function createRunState(
@@ -143,7 +143,6 @@ export function createRunState(
     parameterValues: simulation.parameterValues,
     frameNumber: 0,
     maxFrameNumber: getMaxFrameNumber(config.maxTime, config.dt),
-    rngState: seed,
     completionReason: null,
     error: null,
     reallocations: 0,
@@ -166,7 +165,6 @@ export function summarizeRun(run: MonteCarloRunState): MonteCarloRunSummary {
     seed: run.seed,
     frameNumber: run.frameNumber,
     currentTime: getFrameTime(run.frameNumber, run.simulation.dt),
-    rngState: run.rngState,
     parameterValues: run.parameterValues,
     completionReason: run.completionReason,
     error: run.error,

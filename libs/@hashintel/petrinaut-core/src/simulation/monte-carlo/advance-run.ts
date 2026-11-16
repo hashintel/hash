@@ -10,6 +10,7 @@ import {
 import { computeTransitionEffect } from "./transition-effect";
 
 import type { SimulationCompletionReason } from "../engine/compute-next-frame";
+import type { RandomStream } from "../engine/seeded-rng";
 import type { MonteCarloRunState, PlaceID } from "./internal-types";
 
 /**
@@ -60,21 +61,31 @@ export function advanceRun(run: MonteCarloRunState): boolean {
     const pendingOutputCounts = run.pendingOutputCounts;
     pendingOutputCounts?.fill(0);
 
-    for (const transitionId of run.simulation.frameLayout.transitionIds) {
+    const { transitionIds } = run.simulation.frameLayout;
+    const stream: RandomStream = { key: 0, counter: 0 };
+    for (
+      let transitionIndex = 0;
+      transitionIndex < transitionIds.length;
+      transitionIndex++
+    ) {
+      const transitionId = transitionIds[transitionIndex]!;
       const transition = run.simulation.compiledTransitions.get(transitionId);
       if (!transition) {
         throw new Error(`Compiled transition ${transitionId} not found`);
       }
 
-      const { firing, newRngState } = computeTransitionEffect(
+      stream.key = workingFrame.transitionRngKeys[transitionIndex]!;
+      stream.counter = workingFrame.transitionRngCounters[transitionIndex]!;
+      const firing = computeTransitionEffect(
         run,
         workingFrame,
         transition,
         pendingOutputCounts,
+        stream,
       );
       // Every evaluation's randomness is consumed, fired or not — reusing
-      // the state would re-test the same draw next frame.
-      run.rngState = newRngState;
+      // the counter would re-test the same draw next frame.
+      workingFrame.transitionRngCounters[transitionIndex] = stream.counter;
       if (!firing) {
         continue;
       }

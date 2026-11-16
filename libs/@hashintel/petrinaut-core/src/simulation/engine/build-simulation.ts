@@ -38,6 +38,7 @@ import {
   flattenComponentInstancesForSimulation,
   getArcPlaceNameOverrideKey,
 } from "./flatten-component-instances";
+import { deriveTransitionStreamKeys } from "./seeded-rng";
 import { StringPool } from "./string-pool";
 import {
   computeTokenSlotLayout,
@@ -850,7 +851,6 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
     dt,
     maxTime,
     currentTime: 0,
-    rngState: seed,
     stringPool,
     frameLayout,
     frames: [], // Will be populated with the initial frame
@@ -861,6 +861,11 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
   const initialFrame = createEngineFrame(frameLayout, {
     places: placeStates,
     transitions: transitionStates,
+    transitionRngKeys: deriveTransitionStreamKeys(
+      frameLayout.transitionIds,
+      seed,
+    ),
+    transitionRngCounters: new Uint32Array(frameLayout.transitionIds.length),
     buffer,
   });
 

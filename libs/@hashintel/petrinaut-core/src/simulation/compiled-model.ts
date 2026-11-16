@@ -10,6 +10,7 @@ import { getOwn } from "../validation/record-keys";
 import { buildSimulation } from "./engine/build-simulation";
 import { applyDynamics, computeNextFrame } from "./engine/compute-next-frame";
 import { computePossibleTransition } from "./engine/compute-possible-transition";
+import { deriveTransitionStreamKeys } from "./engine/seeded-rng";
 import { readTokenRecord } from "./engine/token-layout";
 import { createHirMetricEvaluator } from "./frames/hir-metric";
 import {
@@ -197,9 +198,9 @@ export type PetrinautControlledRun = {
    */
   integrals(this: void): Record<string, number>;
   /**
-   * An independent copy of the run at this point. It keeps the run's random
-   * state, so answering both the same way plays both out the same way, unless
-   * `seed` gives it a random state of its own.
+   * An independent copy of the run at this point. It keeps each transition's
+   * random stream, so answering both the same way plays both out the same way,
+   * unless `seed` gives it fresh streams for that seed.
    */
   fork(this: void, seed?: number): PetrinautControlledRun;
 };
@@ -463,6 +464,23 @@ function resolveRunLimits(config: {
   return { seed, dt, maxTime, maxSteps };
 }
 
+/**
+ * A copy of the run's current frame whose transitions draw from fresh streams
+ * for `seed`, as a run started with `seed` would.
+ */
+function reseedFrame(
+  simulation: SimulationInstance,
+  seed: number,
+): EngineFrame {
+  const frame = simulation.frames[simulation.currentFrameNumber]!.slice(0);
+  const view = readEngineFrame(simulation.frameLayout, frame);
+  view.transitionRngKeys.set(
+    deriveTransitionStreamKeys(simulation.frameLayout.transitionIds, seed),
+  );
+  view.transitionRngCounters.fill(0);
+  return frame;
+}
+
 function timesAreEqual(left: number, right: number): boolean {
   const scale = Math.max(1, Math.abs(left), Math.abs(right));
   return Math.abs(left - right) <= Number.EPSILON * scale * 16;
@@ -543,8 +561,8 @@ function createControlledRun(args: {
     maxTime === null ? dt : Math.min(dt, maxTime - simulation.currentTime);
 
   // Evaluating a transition as chosen on the frame after the next frame's
-  // dynamics, where chosen transitions fire, and discarding the result and RNG
-  // state, says whether it would fire if chosen.
+  // dynamics, where chosen transitions fire, on a copy of its random stream,
+  // says whether it would fire if chosen.
   const liveLevers = () => {
     const stepping = { ...simulation, dt: frameDt() };
     const frameAfterDynamics = applyDynamics(stepping, simulation.frames[0]!);
@@ -562,18 +580,24 @@ function createControlledRun(args: {
         return [];
       }
       resumeAt.delete(lever.id);
-      const fireable = lever.transitionIds.filter(
-        (transitionId) =>
+      const fireable = lever.transitionIds.filter((transitionId) => {
+        const transitionIndex =
+          stepping.frameLayout.transitionIndexById.get(transitionId)!;
+        return (
           computePossibleTransition(
             frameAfterDynamics,
             stepping,
             transitionId,
-            simulation.rngState,
+            {
+              key: snapshot.transitionRngKeys[transitionIndex]!,
+              counter: snapshot.transitionRngCounters[transitionIndex]!,
+            },
             true,
             null,
             snapshot,
-          ).firing !== null,
-      );
+          ).firing !== null
+        );
+      });
       return fireable.length > 0 ? [{ lever, fireable }] : [];
     });
   };
@@ -729,10 +753,10 @@ function createControlledRun(args: {
       createControlledRun({
         ...args,
         forkOf: {
-          simulation: {
-            ...simulation,
-            ...(seed === undefined ? {} : { rngState: seed }),
-          },
+          simulation:
+            seed === undefined
+              ? simulation
+              : { ...simulation, frames: [reseedFrame(simulation, seed)] },
           steps,
           completionReason,
           chosen,

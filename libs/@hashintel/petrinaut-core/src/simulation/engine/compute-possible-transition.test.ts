@@ -7,7 +7,6 @@ import { instantiateHirBufferKernel } from "../../hir-runtime";
 import { createEngineFrameLayout } from "../frames/internal-frame";
 import { makeCompiledTransition } from "./compiled-transition.test-helpers";
 import { computePossibleTransition as computePossibleTransitionImpl } from "./compute-possible-transition";
-import { nextRandom } from "./seeded-rng";
 import { StringPool } from "./string-pool";
 import {
   decodeTokenBlock,
@@ -21,6 +20,7 @@ import type {
   HirCompiledBufferLambda,
 } from "../../hir-runtime";
 import type { Color, Place, SDCPN, Transition } from "../../types/sdcpn";
+import type { RandomStream } from "./seeded-rng";
 import type { SimulationInstance } from "./types";
 
 const type1: Color = {
@@ -159,7 +159,6 @@ function makeSimulation({
     dt: 0.1,
     maxTime: null,
     currentTime: 0,
-    rngState: 42,
     stringPool: new StringPool(),
     frameLayout,
     frames: [],
@@ -170,22 +169,24 @@ function makeSimulation({
 /**
  * Test convenience over the engine call: flattens the result back to the
  * pre-`firing` shape (`null` when nothing fired), which most assertions here
- * consume. The RNG state consumed by a non-firing evaluation is advanced by
- * the caller where it matters (see the firing-statistics tests).
+ * consume, with the stream's counter after the evaluation. A number for
+ * `stream` is the key of a fresh stream.
  */
 function computePossibleTransition(
   frame: TestFrame,
   simulation: SimulationInstance,
   transitionId: string,
-  rngState: number,
+  stream: RandomStream | number,
 ) {
-  const { firing, newRngState } = computePossibleTransitionImpl(
+  const randomStream =
+    typeof stream === "number" ? { key: stream, counter: 0 } : stream;
+  const { firing } = computePossibleTransitionImpl(
     frame,
     { ...simulation, frameLayout: frame.layout },
     transitionId,
-    rngState,
+    randomStream,
   );
-  return firing === null ? null : { ...firing, newRngState };
+  return firing === null ? null : { ...firing, counter: randomStream.counter };
 }
 
 describe("computePossibleTransition", () => {
@@ -387,7 +388,6 @@ describe("computePossibleTransition", () => {
     expect(
       result!.add.p2!.map((block) => decodeTokenBlock(type1.elements, block)),
     ).toEqual([{ x: 2 }]);
-    expect(result?.newRngState).toBeTypeOf("number");
   });
 
   describe("stochastic firing statistics", () => {
@@ -424,20 +424,16 @@ describe("computePossibleTransition", () => {
       });
 
       let fired = 0;
-      let rngState = 42;
+      const stream = { key: 42, counter: 0 };
       for (let index = 0; index < frames; index++) {
         const result = computePossibleTransition(
           frame,
           simulation,
           "t1",
-          rngState,
+          stream,
         );
         if (result !== null) {
           fired += 1;
-          rngState = result.newRngState;
-        } else {
-          // A non-firing evaluation still consumed one draw.
-          [, rngState] = nextRandom(rngState);
         }
       }
       return fired;
@@ -735,8 +731,8 @@ describe("computePossibleTransition", () => {
       expect(formatUuid(generated)).toMatch(
         /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
       );
-      // The auto-generation consumed RNG state beyond the firing draw.
-      expect(first!.newRngState).not.toBe(nextRandom(42)[1]);
+      // The auto-generation drew beyond the firing draw.
+      expect(first!.counter).toBeGreaterThan(1);
     });
 
     it("resolves the Uuid.generate() sentinel with the same seeded draw as omission", () => {
@@ -758,7 +754,7 @@ describe("computePossibleTransition", () => {
       );
 
       expect(firstAddedToken(sentinel).id).toBe(firstAddedToken(omitted).id);
-      expect(sentinel!.newRngState).toBe(omitted!.newRngState);
+      expect(sentinel!.counter).toBe(omitted!.counter);
     });
 
     it("resolves Uuid.from(value) deterministically without consuming RNG", () => {
@@ -776,8 +772,8 @@ describe("computePossibleTransition", () => {
       const second = run();
       expect(firstAddedToken(first).id).toBe(toUuid("order-1"));
       expect(firstAddedToken(second).id).toBe(toUuid("order-1"));
-      // Only the firing draw consumed RNG state.
-      expect(first!.newRngState).toBe(nextRandom(42)[1]);
+      // Only the firing draw advanced the stream.
+      expect(first!.counter).toBe(1);
     });
 
     it("forwards an input token's uuid bigint unchanged", () => {
@@ -1038,13 +1034,14 @@ describe("token-independent lambdas", () => {
         places: fourTokens,
         transitions: { t1: transitionState() },
       });
-      const { firing, newRngState } = computePossibleTransitionImpl(
+      const stream = { key: 42, counter: 0 };
+      const { firing } = computePossibleTransitionImpl(
         frame,
         { ...simulation, frameLayout: frame.layout },
         "t1",
-        42,
+        stream,
       );
-      return { calls, firing, newRngState };
+      return { calls, firing, counter: stream.counter };
     };
 
     const flagged = runWith(true);
@@ -1054,7 +1051,7 @@ describe("token-independent lambdas", () => {
     expect(flagless.calls).toBe(6);
     expect(flagged.firing).toBeNull();
     expect(flagless.firing).toBeNull();
-    expect(flagged.newRngState).toBe(flagless.newRngState);
+    expect(flagged.counter).toBe(flagless.counter);
   });
 
   it("fires identically to the enumerating path when the rate is certain", () => {

@@ -157,7 +157,13 @@ describe("token-independent lambda fast path", () => {
         calls += 1;
         return transition.lambdaFn(...args);
       };
-      const { firing, newRngState } = computeTransitionEffect(
+      const transitionIndex =
+        run.simulation.frameLayout.transitionIndexById.get("pair")!;
+      const stream = {
+        key: run.currentFrame.transitionRngKeys[transitionIndex]!,
+        counter: run.currentFrame.transitionRngCounters[transitionIndex]!,
+      };
+      const firing = computeTransitionEffect(
         run,
         run.currentFrame,
         {
@@ -166,8 +172,9 @@ describe("token-independent lambda fast path", () => {
           lambdaReadsNoInputTokens: tokenIndependent,
         },
         null,
+        stream,
       );
-      return { calls, firing, newRngState };
+      return { calls, firing, counter: stream.counter };
     };
 
     const flagged = runWith(true);
@@ -177,6 +184,6 @@ describe("token-independent lambda fast path", () => {
     expect(flagless.calls).toBe(15);
     expect(flagged.firing).toBeNull();
     expect(flagless.firing).toBeNull();
-    expect(flagged.newRngState).toBe(flagless.newRngState);
+    expect(flagged.counter).toBe(flagless.counter);
   });
 });

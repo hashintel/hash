@@ -10,6 +10,7 @@ import {
   type EngineFrameLayout,
   type EngineFrameSnapshot,
 } from "../frames/internal-frame";
+import { deriveTransitionStreamKeys } from "./seeded-rng";
 import {
   computeTokenSlotLayout,
   createTokenRegionViews,
@@ -186,6 +187,8 @@ export function makeTestFrame({
   const frame = createEngineFrame(layout, {
     places: snapshotPlaces,
     transitions,
+    transitionRngKeys: deriveTransitionStreamKeys(layout.transitionIds, 42),
+    transitionRngCounters: new Uint32Array(layout.transitionIds.length),
     buffer,
   }) as TestFrame;
   Object.defineProperty(frame, "layout", { value: layout });

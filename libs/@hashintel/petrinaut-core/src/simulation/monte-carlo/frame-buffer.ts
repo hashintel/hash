@@ -21,6 +21,10 @@ export type MonteCarloFrameBuffer = {
   transitionElapsedFrames: Float64Array;
   transitionElapsed: Float64Array;
   transitionFiringCounts: Uint32Array;
+  /** Each transition's random stream key, indexed by frame transition index. */
+  transitionRngKeys: Uint32Array;
+  /** Each transition's random stream counter, indexed by frame transition index. */
+  transitionRngCounters: Uint32Array;
   transitionFiredFlags: Uint8Array;
   /** u8 view over the whole token region capacity. */
   tokenBytes: Uint8Array;
@@ -63,8 +67,13 @@ function createViews(
   const transitionFiringCountsOffset =
     transitionElapsedFramesOffset +
     transitionCount * Float64Array.BYTES_PER_ELEMENT;
-  const transitionFiredFlagsOffset =
+  const transitionRngKeysOffset =
     transitionFiringCountsOffset +
+    transitionCount * Uint32Array.BYTES_PER_ELEMENT;
+  const transitionRngCountersOffset =
+    transitionRngKeysOffset + transitionCount * Uint32Array.BYTES_PER_ELEMENT;
+  const transitionFiredFlagsOffset =
+    transitionRngCountersOffset +
     transitionCount * Uint32Array.BYTES_PER_ELEMENT;
   const tokenValuesOffset = alignTo(
     transitionFiredFlagsOffset + transitionCount * Uint8Array.BYTES_PER_ELEMENT,
@@ -87,6 +96,16 @@ function createViews(
     transitionFiringCounts: new Uint32Array(
       buffer,
       transitionFiringCountsOffset,
+      transitionCount,
+    ),
+    transitionRngKeys: new Uint32Array(
+      buffer,
+      transitionRngKeysOffset,
+      transitionCount,
+    ),
+    transitionRngCounters: new Uint32Array(
+      buffer,
+      transitionRngCountersOffset,
       transitionCount,
     ),
     transitionFiredFlags: new Uint8Array(
@@ -124,6 +143,8 @@ export function getMonteCarloFrameBufferByteLength(
   const transitionBytes =
     transitionCount * Float64Array.BYTES_PER_ELEMENT +
     transitionCount * Float64Array.BYTES_PER_ELEMENT +
+    transitionCount * Uint32Array.BYTES_PER_ELEMENT +
+    transitionCount * Uint32Array.BYTES_PER_ELEMENT +
     transitionCount * Uint32Array.BYTES_PER_ELEMENT +
     transitionCount * Uint8Array.BYTES_PER_ELEMENT;
   const tokenValuesOffset = alignTo(
@@ -183,6 +204,8 @@ export function copyMonteCarloFrameBuffer(
   target.transitionElapsedFrames.set(source.transitionElapsedFrames);
   target.transitionElapsed.set(source.transitionElapsed);
   target.transitionFiringCounts.set(source.transitionFiringCounts);
+  target.transitionRngKeys.set(source.transitionRngKeys);
+  target.transitionRngCounters.set(source.transitionRngCounters);
   target.transitionFiredFlags.set(source.transitionFiredFlags);
   target.tokenBytes.set(source.tokenBytes.subarray(0, source.tokenByteCount));
   target.tokenByteCount = source.tokenByteCount;
@@ -256,6 +279,8 @@ export function copyEngineFrameViewToMonteCarloFrameBuffer(
       ? 1
       : 0;
   }
+  target.transitionRngKeys.set(source.transitionRngKeys);
+  target.transitionRngCounters.set(source.transitionRngCounters);
 
   target.tokenBytes.set(source.tokenBytes);
   target.tokenByteCount = tokenByteCount;

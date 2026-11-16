@@ -747,6 +747,56 @@ describe("startControlledRun", () => {
     expect(counts(twin)).toEqual(counts(unforked));
   });
 
+  it("draws a fork with a seed from fresh streams for that seed", () => {
+    const run = model.startControlledRun({
+      levers: router(),
+      seed: 4242,
+      dt: 0.1,
+      maxTime: 20,
+    });
+    run.decide({ fire: "RouteFast" });
+
+    const reseeded = run.fork(7);
+    const reseededAgain = run.fork(7);
+    const unseeded = run.fork();
+    alternate(reseeded);
+    alternate(reseededAgain);
+    alternate(unseeded);
+
+    expect(counts(reseeded)).toEqual(counts(reseededAgain));
+    expect(counts(reseeded)).not.toEqual(counts(unseeded));
+  });
+
+  it("keeps arrivals the same under different decisions, whatever else draws", () => {
+    // Spoil draws only while Slow holds tokens, so routing to Slow rather than
+    // Fast changes which transitions draw in each frame.
+    const spoilingModel = compilePetrinautModel({
+      sdcpn: {
+        ...routingNet,
+        transitions: [
+          ...routingNet.transitions,
+          transition("Spoil", ["Slow"], [], { type: "stochastic", body: "1" }),
+        ],
+      },
+    });
+    const arrivalTimes = (route: string) => {
+      const run = spoilingModel.startControlledRun({
+        levers: router(),
+        seed: 4242,
+        dt: 0.1,
+        maxTime: 20,
+      });
+      const times: number[] = [];
+      while (run.point.kind === "decision") {
+        times.push(run.point.time);
+        run.decide({ fire: route });
+      }
+      return times;
+    };
+
+    expect(arrivalTimes("RouteSlow")).toEqual(arrivalTimes("RouteFast"));
+  });
+
   it("integrates metrics over simulation time, up to maxTime", () => {
     const run = model.startControlledRun({
       levers: router(),

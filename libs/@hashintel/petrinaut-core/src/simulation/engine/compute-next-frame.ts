@@ -140,48 +140,21 @@ export function computeNextFrame(
     frameAfterDynamics,
     simulation,
     simulation.dt,
-    simulation.rngState,
     control,
   );
-  const frameAfterTransitions = transitionsResult.frame;
+  const finalFrame = transitionsResult.frame;
   const transitionFired = transitionsResult.transitionFired;
   const nextTime = simulation.currentTime + simulation.dt;
 
-  // Step 3: Ensure transition timers advance when no transition fired.
-  let finalFrame = frameAfterTransitions;
-  if (!transitionFired) {
-    const frameAfterTransitionsSnapshot = materializeEngineFrame(
-      simulation.frameLayout,
-      frameAfterTransitions,
-    );
-    finalFrame = createEngineFrame(simulation.frameLayout, {
-      ...frameAfterTransitionsSnapshot,
-      transitions: Object.fromEntries(
-        Object.entries(frameAfterTransitionsSnapshot.transitions).map(
-          ([id, state]) => [
-            id,
-            {
-              ...state,
-              timeSinceLastFiringMs:
-                state.timeSinceLastFiringMs + simulation.dt,
-              firedInThisFrame: false,
-            },
-          ],
-        ),
-      ),
-    });
-  }
-
-  // Step 4: Build updated simulation instance with new frame added
+  // Step 3: Build updated simulation instance with new frame added
   const updatedSimulation: SimulationInstance = {
     ...simulation,
     frames: [...simulation.frames, finalFrame],
     currentFrameNumber: simulation.currentFrameNumber + 1,
     currentTime: nextTime,
-    rngState: transitionsResult.rngState,
   };
 
-  // Step 5: Check for completion conditions
+  // Step 4: Check for completion conditions
   let completionReason: SimulationCompletionReason | null = null;
 
   // Check if maxTime was reached with this new frame

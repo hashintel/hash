@@ -103,21 +103,19 @@ describe("toUuid", () => {
 });
 
 describe("generateUuidFromRng", () => {
-  it("is deterministic for the same rng state and advances the state", () => {
-    const [first, stateAfterFirst] = generateUuidFromRng(42);
-    const [again] = generateUuidFromRng(42);
-    expect(again).toBe(first);
-    expect(stateAfterFirst).not.toBe(42);
+  it("is deterministic for the same stream and advances the stream", () => {
+    const stream = { key: 42, counter: 0 };
+    const first = generateUuidFromRng(stream);
+    expect(generateUuidFromRng({ key: 42, counter: 0 })).toBe(first);
+    expect(stream.counter).toBe(2);
 
-    const [second] = generateUuidFromRng(stateAfterFirst);
-    expect(second).not.toBe(first);
+    expect(generateUuidFromRng(stream)).not.toBe(first);
   });
 
   it("forces the v4 version nibble and RFC 4122 variant bits", () => {
-    let state = 7;
+    const stream = { key: 7, counter: 0 };
     for (let draw = 0; draw < 16; draw++) {
-      const [uuid, nextState] = generateUuidFromRng(state);
-      state = nextState;
+      const uuid = generateUuidFromRng(stream);
       // eslint-disable-next-line no-bitwise -- bit inspection
       expect((uuid >> 76n) & 0xfn).toBe(4n);
       // eslint-disable-next-line no-bitwise -- bit inspection

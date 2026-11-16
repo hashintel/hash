@@ -66,11 +66,16 @@ thread, which the frame store already isolates.
 
 ## Determinism
 
-One seeded RNG is threaded through stochastic lambda sampling and distribution
-draws, as a pure `nextRandom(state) → [value, nextState]` whose state lives on
-the instance.
+Each transition draws from a random stream of its own: a counter-based
+Philox-2x32-10 generator, keyed by a hash of the run's seed and the transition's
+id. Every draw a transition makes — its firing test, sampled distributions,
+generated UUIDs — advances its counter. Each transition's key and counter live
+in the frame, beside its firing count, so a frame carries everything needed to
+continue the run, and a fork of it continues the same future.
 
 The guarantee: the same `(SDCPN, marking, parameters, seed, dt)` always
 reproduces the same frame sequence. This is what makes experiments comparable
-across runs, and it is why the RNG state is threaded rather than global — a
-global would couple runs sharing a worker.
+across runs, and it is why the random state lives in the frame rather than in
+a global, which would couple runs sharing a worker. Because a transition draws
+only from its own stream, runs from one seed that differ in a decision keep
+the same random timing for every transition whose enablement they share.

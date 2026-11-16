@@ -23,7 +23,6 @@ export type MonteCarloRunState = {
   parameterValues: ParameterValues;
   frameNumber: number;
   maxFrameNumber: number;
-  rngState: number;
   completionReason: SimulationCompletionReason | null;
   error: string | null;
   reallocations: number;

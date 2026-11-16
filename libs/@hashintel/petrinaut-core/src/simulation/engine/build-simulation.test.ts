@@ -637,7 +637,6 @@ describe("buildSimulation", () => {
 
     // Verify simulation instance properties
     expect(simulationInstance.dt).toBe(0.1);
-    expect(simulationInstance.rngState).toBe(42);
     expect(simulationInstance.currentFrameNumber).toBe(0);
     expect(simulationInstance.frames).toHaveLength(1);
     expect(simulationInstance.frames[0]).toBe(engineFrame);
@@ -782,7 +781,6 @@ describe("buildSimulation", () => {
 
     // Verify simulation instance properties
     expect(simulationInstance.dt).toBe(0.05);
-    expect(simulationInstance.rngState).toBe(123);
 
     // Verify all places exist
     expect(Object.keys(frame.places).length).toBe(3);

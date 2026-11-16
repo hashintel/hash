@@ -28,6 +28,8 @@ function makeFrame(time: number): SimulationFramePayload {
   const frame = createEngineFrame(createEngineFrameLayout(empty()), {
     places: {},
     transitions: {},
+    transitionRngKeys: new Uint32Array(0),
+    transitionRngCounters: new Uint32Array(0),
     buffer: new Uint8Array(0),
   });
 

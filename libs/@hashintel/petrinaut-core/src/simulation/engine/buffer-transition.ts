@@ -14,6 +14,7 @@ import { generateUuidFromRng, toUuid } from "./uuid";
 
 import type { HirKernelSink } from "../../hir-runtime";
 import type { RuntimeDistribution } from "../authoring/user-code/distribution";
+import type { RandomStream } from "./seeded-rng";
 import type { TokenRegionViews } from "./token-layout";
 import type { CompiledTransition } from "./types";
 
@@ -72,10 +73,10 @@ export function fillTokenIndices(
  *
  * The kernel writes attribute values into the transition's reusable
  * `kernelStaging` bytes (colored output arcs place-major, tokens
- * back-to-back). RNG-consuming values — distributions, generated/converted
- * UUIDs — arrive through the sink in emitted call order, which the engine
- * processes immediately so the RNG stream is reproduced deterministically
- * per seed.
+ * back-to-back). Random values — distributions, generated UUIDs — arrive
+ * through the sink in emitted call order, which the engine processes
+ * immediately, drawing from and advancing `stream`, so the draws are
+ * reproduced deterministically per seed.
  *
  * Afterwards the staging bytes are sliced into per-token `Uint8Array` blocks
  * keyed by place ID (later arcs to the same place overwrite earlier ones,
@@ -86,9 +87,9 @@ export function executeBufferKernel(args: {
   transition: CompiledTransition;
   /** Views over the frame's token byte region. */
   views: TokenRegionViews;
-  rngState: number;
-}): { add: Record<string, Uint8Array[]>; newRngState: number } {
-  const { transition, views, rngState } = args;
+  stream: RandomStream;
+}): Record<string, Uint8Array[]> {
+  const { transition, views, stream } = args;
   const kernelFn = transition.kernelFn;
   if (kernelFn === null) {
     throw new Error(
@@ -101,19 +102,15 @@ export function executeBufferKernel(args: {
   // zeroed buffers (attribute lanes are fully overwritten by the kernel).
   kernelStaging.fill(0);
 
-  let rng = rngState;
   const sink: HirKernelSink = (kind, index, payload) => {
     /* eslint-disable no-bitwise -- uuid lane splitting */
     if (kind === "dist") {
-      const [value, nextRng] = sampleDistribution(
+      kernelStagingViews.f64[index] = sampleDistribution(
         payload as RuntimeDistribution,
-        rng,
+        stream,
       );
-      rng = nextRng;
-      kernelStagingViews.f64[index] = value;
     } else if (kind === "generate") {
-      const [uuid, nextRng] = generateUuidFromRng(rng);
-      rng = nextRng;
+      const uuid = generateUuidFromRng(stream);
       kernelStagingViews.u64[index] = uuid & UUID_LO_MASK;
       kernelStagingViews.u64[index + 1] = uuid >> 64n;
     } else {
@@ -157,5 +154,5 @@ export function executeBufferKernel(args: {
     add[outputPlace.placeId] = tokenBlocks;
   }
 
-  return { add, newRngState: rng };
+  return add;
 }

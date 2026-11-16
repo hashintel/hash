@@ -8,11 +8,10 @@
 /**
  * Counter-based RNG.
  *
- * The CPU engine's generator (`../simulation/engine/seeded-rng.ts`) is an
- * exact 31-bit LCG since FE-1499 and could be reproduced in WGSL bit for
- * bit. This backend deliberately uses PCG instead — a stronger generator,
- * and keeping the streams distinct makes cross-backend comparisons
- * statistical by construction rather than accidentally seed-coupled.
+ * The CPU engines (`../simulation/engine/seeded-rng.ts`) draw from a
+ * Philox-2x32-10 stream per transition. This backend uses one PCG stream per
+ * run instead, which keeps cross-backend comparisons statistical by
+ * construction rather than accidentally seed-coupled.
  *
  * The consequence must be stated wherever backends are compared: the GPU
  * backend does not reproduce CPU trajectories seed for seed, by choice.

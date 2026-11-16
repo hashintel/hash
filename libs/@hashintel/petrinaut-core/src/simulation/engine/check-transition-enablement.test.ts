@@ -81,6 +81,8 @@ function makeFrame({
     transitions: Object.fromEntries(
       transitions.map((transition) => [transition.id, transitionState]),
     ),
+    transitionRngKeys: new Uint32Array(transitions.length),
+    transitionRngCounters: new Uint32Array(transitions.length),
     buffer: new Uint8Array(0),
   }) as TestFrame;
   Object.defineProperty(frame, "layout", { value: layout });

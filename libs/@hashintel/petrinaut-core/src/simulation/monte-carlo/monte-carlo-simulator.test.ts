@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { compileHirArtifacts } from "../../hir";
+import { compilePetrinautModel } from "../compiled-model";
 import {
   createMonteCarloUserDefinedMetric,
   createMonteCarloUserDefinedMetricConfigsFromSpecs,
@@ -269,6 +270,74 @@ describe("MonteCarloSimulator", () => {
     const expected = frames * perFrame;
     expect(Math.abs(fired - expected)).toBeLessThanOrEqual(
       4 * Math.sqrt(expected * (1 - perFrame)),
+    );
+  });
+
+  it("draws as the stepping engine does, from a stream per transition", () => {
+    const place = (id: string) => ({
+      id,
+      name: id,
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 0,
+      y: 0,
+    });
+    const stochastic = (
+      id: string,
+      from: string[],
+      to: string,
+      rate: number,
+    ) => ({
+      id,
+      name: id,
+      inputArcs: from.map((placeId) => ({
+        placeId,
+        weight: 1,
+        type: "standard" as const,
+      })),
+      outputArcs: [{ placeId: to, weight: 1 }],
+      lambdaType: "stochastic" as const,
+      lambdaCode: `export default Lambda(() => ${rate});`,
+      transitionKernelCode: "",
+      x: 0,
+      y: 0,
+    });
+    // Two arrivals at one rate fill A and B alike only if they draw alike.
+    const twinArrivals: SDCPN = {
+      places: ["A", "B", "Served"].map(place),
+      transitions: [
+        stochastic("ArriveA", [], "A", 2),
+        stochastic("ArriveB", [], "B", 2),
+        stochastic("Serve", ["A"], "Served", 1),
+      ],
+      types: [],
+      differentialEquations: [],
+      parameters: [],
+    };
+    const seed = 11;
+    const dt = 0.1;
+    const maxTime = 20;
+
+    const simulator = createMonteCarloSimulator({
+      sdcpn: twinArrivals,
+      runCount: 1,
+      initialMarking: {},
+      runs: [{ seed, initialMarking: {} }],
+      dt,
+      maxTime,
+    });
+    simulator.runUntilComplete();
+    const monteCarlo = simulator.getRunSnapshot(0).placeTokenCounts;
+    const stepping = compilePetrinautModel({ sdcpn: twinArrivals }).run({
+      seed,
+      dt,
+      maxTime,
+    }).finalPlaceTokenCounts;
+
+    expect(monteCarlo).toEqual(stepping);
+    expect((monteCarlo.A ?? 0) + (monteCarlo.Served ?? 0)).not.toBe(
+      monteCarlo.B,
     );
   });
 

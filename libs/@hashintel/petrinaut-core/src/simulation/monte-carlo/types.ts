@@ -50,7 +50,6 @@ export type MonteCarloRunSummary = {
   seed: number;
   frameNumber: number;
   currentTime: number;
-  rngState: number;
   parameterValues: ParameterValues;
   completionReason: SimulationCompletionReason | null;
   error: string | null;
