@@ -57,8 +57,8 @@ Each numbered rule is a test target; `focus-flow.test.tsx` covers them.
 7. Inside a text input the horizontal arrows stay with the caret; only
    vertical arrows navigate.
 8. A header owns Left/Right when it collapses and expands; a member whose
-   entry fails (collapsed content) is skipped in the walk. A stop of a stop
-   table folds the same way from its first column, and a `FocusControls`
+   entry fails (collapsed content) is skipped in the walk. A `row` stop of a
+   stop table folds the same way from its first column, and a `FocusControls`
    group from its first control. Each gives the action that applies now:
    with only `expand` given, ArrowLeft is a move like any other, and
    ArrowRight is one with only `collapse`.

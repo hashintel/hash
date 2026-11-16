@@ -13,7 +13,7 @@ const contentsStyle = css({ display: "contents" });
 /**
  * Ordinary controls as one member of the enclosing stack: the arrows along
  * `axis` walk them, and the others leave the group. With `expand` or
- * `collapse` the group folds from its first control, as a stop of a stop
+ * `collapse` the group folds from its first control, as a row of a stop
  * table does: see `FocusFold`.
  */
 export const FocusControls: React.FC<

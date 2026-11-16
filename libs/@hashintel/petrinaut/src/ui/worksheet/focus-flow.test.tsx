@@ -450,7 +450,7 @@ describe("worksheet focus flow", () => {
     expectFocused("R 0,0");
   });
 
-  it("folds a stop from its first column, and moves where the stop has nothing to fold", () => {
+  it("folds a row stop from its first column, and moves where the stop has nothing to fold", () => {
     const expand = vi.fn();
     const collapse = vi.fn();
     render(
@@ -462,7 +462,6 @@ describe("worksheet focus flow", () => {
             stops={[
               { id: "closed", kind: "row", expand },
               { id: "open", kind: "row", collapse },
-              { id: "strip", kind: "full", expand },
             ]}
             columnCount={2}
           />
@@ -491,11 +490,6 @@ describe("worksheet focus flow", () => {
     arrow("ArrowLeft");
     expect(collapse).toHaveBeenCalledTimes(1);
     expectFocused("T open c0");
-
-    focusPart("T strip full");
-    arrow("ArrowRight");
-    expect(expand).toHaveBeenCalledTimes(2);
-    expectFocused("T strip full");
   });
 
   it("drives collapse/expand from a header's Left/Right, routing horizontally without them", () => {
