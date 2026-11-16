@@ -110,7 +110,9 @@ const wholeOf = (value: unknown): string | null => {
   if (isPlain(value)) {
     return scalarOf(value).text;
   }
-  if (!isList(value) || !value.every(isPlain)) {
+  // A list of more items than the line has characters cannot fit, and is
+  // not read through to find that out.
+  if (!isList(value) || value.length > summaryLength || !value.every(isPlain)) {
     return null;
   }
   const whole = `[${value.map((item) => scalarOf(item).text).join(", ")}]`;
@@ -186,7 +188,21 @@ const itemSegments = (items: DataList): string[] => {
   });
 };
 
-/** The rows of a map or a list. Any other data, or an empty one, has none. */
+/**
+ * The most rows that are drawn. Every row is mounted, and a document can
+ * hold any number of them: a list of a hundred thousand items, opened, would
+ * stall the page.
+ */
+export const rowLimit = 2000;
+
+/** What is said under rows that stop at the limit. */
+export const rowLimitNote = `Only the first ${rowLimit.toLocaleString("en-US")} rows are shown.`;
+
+/**
+ * The rows of a map or a list. Any other data, or an empty one, has none.
+ * The walk stops one row past `rowLimit`: a caller draws `rowLimit` of them,
+ * and the one more tells it that rows are left out.
+ */
 export const outlineRows = (
   data: unknown,
   expansion: Expansion,
@@ -201,20 +217,21 @@ export const outlineRows = (
     depth: number,
     names?: readonly string[],
   ) => {
+    // No more children than there are rows left to give.
+    const left = rowLimit + 1 - rows.length;
     const children: [key: string | number, segment: string, value: unknown][] =
       isList(collection)
-        ? (names ?? itemSegments(collection)).map((segment, index) => [
-            index,
-            segment,
-            collection[index],
-          ])
-        : entriesOf(collection).map(([key, value]) => [
-            key,
-            segmentOf(key),
-            value,
-          ]);
+        ? (names ?? itemSegments(collection.slice(0, left))).map(
+            (segment, index) => [index, segment, collection[index]],
+          )
+        : entriesOf(collection)
+            .slice(0, left)
+            .map(([key, value]) => [key, segmentOf(key), value]);
 
     for (const [key, segment, value] of children) {
+      if (rows.length > rowLimit) {
+        return;
+      }
       const path = `${parent}/${segment}`;
       // A block of text opens by itself only where everything does.
       const open =

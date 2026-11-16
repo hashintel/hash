@@ -95,6 +95,8 @@ The document, and the changes shown as **Raw**, read the same way:
   close every line at once.
 - An item of the document stays open while others are added, removed or moved
   around it, and a change stays open while newer ones arrive above it.
+- Each side draws at most 2,000 rows, and says so under them when it leaves
+  rows out. Close rows above to reach the ones below.
 
 Each side is one stop of the Tab order. **Up** and **Down** move from line to
 line, or from patch to patch. **Right** opens a closed line and **Left** closes

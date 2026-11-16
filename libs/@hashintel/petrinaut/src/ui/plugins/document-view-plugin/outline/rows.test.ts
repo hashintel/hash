@@ -5,6 +5,7 @@ import {
   outlineRows,
   toggleRow,
   onOneLine,
+  rowLimit,
   type Expansion,
   type OutlineRow,
 } from "./rows";
@@ -208,6 +209,27 @@ describe("outlineRows", () => {
       "[1 item]",
       "[40 items]",
     ]);
+  });
+
+  it("stops one row past the limit, however much the data holds", () => {
+    const zeros = Array.from({ length: 100_000 }, () => 0);
+
+    expect(outlineRows(zeros, openTo(Infinity))).toHaveLength(rowLimit + 1);
+    // The list's own row, then its items up to the same count in all.
+    const nested = outlineRows({ metadata: zeros, after: 1 }, openTo(Infinity));
+    expect(nested).toHaveLength(rowLimit + 1);
+    expect(nested.at(-1)?.path).toBe(`/metadata/${rowLimit - 1}`);
+    // Closed, the list is one row and says how many it holds.
+    expect(
+      lines(outlineRows({ metadata: zeros, after: 1 }, openTo(0))),
+    ).toEqual(["metadata: [100000 items]", "after: 1"]);
+    // Data that fits is given whole, with no row to say otherwise.
+    expect(
+      outlineRows(
+        Array.from({ length: rowLimit }, () => 0),
+        openTo(1),
+      ),
+    ).toHaveLength(rowLimit);
   });
 
   it("has no rows for data that is not a map or a list, or holds nothing", () => {

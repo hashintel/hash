@@ -318,6 +318,35 @@ it("keeps a row of a change as sent open when a newer change arrives", async () 
   ]);
 });
 
+it("draws no more rows than its limit, and says that rows are left out", () => {
+  const { instance } = renderShown();
+  const note = "Only the first 2,000 rows are shown.";
+
+  // One change of 2,500 patches, and a document of as many places.
+  act(() => {
+    instance.handle.change((draft) => {
+      for (let index = 0; index < 2500; index++) {
+        draft.places.push({
+          id: `00000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+          name: `Place${index}`,
+          colorId: null,
+          dynamicsEnabled: false,
+          x: 0,
+          y: 0,
+        });
+      }
+    });
+  });
+
+  expect(outline("Document")).toHaveLength(2000);
+  expect(patches()).toHaveLength(2000);
+  expect(screen.getAllByText(note)).toHaveLength(2);
+
+  fireEvent.click(screen.getByRole("button", { name: "Collapse all" }));
+  expect(outline("Document")[0]).toBe("places:[2500 items]");
+  expect(screen.getAllByText(note)).toHaveLength(1);
+});
+
 it("opens and closes rows by a click on their line, and all at once", () => {
   const { addPlace } = renderShown();
   addPlace("Stock");

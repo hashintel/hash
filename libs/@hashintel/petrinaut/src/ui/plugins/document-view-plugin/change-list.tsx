@@ -1,6 +1,6 @@
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
-import { onOneLine } from "./outline/rows";
+import { onOneLine, rowLimit, rowLimitNote } from "./outline/rows";
 import { emptyStyle, rowStopStyle, useRowStops } from "./use-row-stops";
 
 import type { DocChangeEvent, PetrinautPatch } from "../../plugin";
@@ -95,7 +95,7 @@ export const ChangeList = ({
   /** What the list says while there are no changes. */
   empty: string;
 }) => {
-  const rows = changes.flatMap(({ serial, change }) => {
+  const found = changes.flatMap(({ serial, change }) => {
     const lines = linesOf(change);
     // A handle that reports no patches still made a change.
     return (lines.length > 0 ? lines : [null]).map((line, index) => ({
@@ -104,6 +104,8 @@ export const ChangeList = ({
       line,
     }));
   });
+  // One change can hold any number of patches.
+  const rows = found.slice(0, rowLimit);
   const { attach, rowProps } = useRowStops(rows);
 
   return (
@@ -131,6 +133,9 @@ export const ChangeList = ({
           )}
         </div>
       ))}
+      {found.length > rowLimit ? (
+        <p className={emptyStyle}>{rowLimitNote}</p>
+      ) : null}
     </div>
   );
 };

@@ -1,7 +1,13 @@
 import { Icon } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
-import { outlineRows, type Expansion, type OutlineRow } from "./outline/rows";
+import {
+  outlineRows,
+  rowLimit,
+  rowLimitNote,
+  type Expansion,
+  type OutlineRow,
+} from "./outline/rows";
 import {
   emptyStyle,
   rowStopStyle,
@@ -186,7 +192,8 @@ export const Outline = ({
   /** Opens or closes the row at a path. */
   onToggle: (path: string) => void;
 }) => {
-  const rows = outlineRows(data, expansion, itemNames).map((row) => ({
+  const found = outlineRows(data, expansion, itemNames);
+  const rows = found.slice(0, rowLimit).map((row) => ({
     row,
     toggle: () => onToggle(row.path),
   }));
@@ -213,6 +220,9 @@ export const Outline = ({
           {...rowProps(row.path)}
         />
       ))}
+      {found.length > rowLimit ? (
+        <p className={emptyStyle}>{rowLimitNote}</p>
+      ) : null}
     </div>
   );
 };
