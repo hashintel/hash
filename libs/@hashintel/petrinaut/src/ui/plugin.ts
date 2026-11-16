@@ -14,6 +14,8 @@ export type {
   PetrinautPluginManifest,
   PluginApi,
   PluginAssistant,
+  PluginBottomPanelView,
+  PluginBottomPanelViewSpec,
   PluginButton,
   PluginButtonPlace,
   PluginButtonSpec,

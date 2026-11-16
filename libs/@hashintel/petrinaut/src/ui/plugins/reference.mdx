@@ -9,22 +9,23 @@ together.
 
 ## Manifest
 
-| Key              | Value                                                                                                                                          | Adds to `api`                       | The hook returns |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- | ---------------- |
-| `id`             | Namespaced, stable and unique among the editor's plugins, such as `example.counter`. Ids starting `petrinaut.` are reserved.                   |                                     |                  |
-| `name`           | Titles the plugin's row in User settings → Plugins and the group of its setting rows.                                                          |                                     |                  |
-| `description`    | Shown when the plugin's row opens.                                                                                                             |                                     |                  |
-| `author`         | Shown beside the name, as in "by HASH".                                                                                                        |                                     |                  |
-| `required`       | `true`: the user cannot switch the plugin off, and its row in User settings → Plugins has no switch. A hook that throws still marks it failed. |                                     |                  |
-| `access`         | A level per family; see [`access`](#access).                                                                                                   | `document`, `experiments`, `editor` |                  |
-| `settings`       | A spec per key; see [Settings](#settings).                                                                                                     | `settings`                          |                  |
-| `commands`       | Per key: `{ label, category?, keywords?, shortcut? }`; see [Commands](#commands). Keys contain no dot.                                         |                                     | `commands`       |
-| `buttons`        | Per key: `{ label, place, tooltip? }`. `label` is the accessible name; `tooltip` defaults to it.                                               |                                     | `buttons`        |
-| `topBarItems`    | Per key: `{ place }`.                                                                                                                          |                                     | `topBarItems`    |
-| `readOnlyAction` | `{ label }`: a button on the notice of a blocked edit on a document the host made read-only.                                                   |                                     | `readOnlyAction` |
-| `root`           | `true`: the plugin renders UI inside the editor.                                                                                               |                                     | `root`           |
-| `assistant`      | `true`: the plugin provides the AI assistant panel.                                                                                            |                                     | `assistant`      |
-| `provides`       | `pluginService<T>()`, the type of the service the hook provides.                                                                               |                                     | `provides`       |
+| Key                | Value                                                                                                                                          | Adds to `api`                       | The hook returns   |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- | ------------------ |
+| `id`               | Namespaced, stable and unique among the editor's plugins, such as `example.counter`. Ids starting `petrinaut.` are reserved.                   |                                     |                    |
+| `name`             | Titles the plugin's row in User settings → Plugins and the group of its setting rows.                                                          |                                     |                    |
+| `description`      | Shown when the plugin's row opens.                                                                                                             |                                     |                    |
+| `author`           | Shown beside the name, as in "by HASH".                                                                                                        |                                     |                    |
+| `required`         | `true`: the user cannot switch the plugin off, and its row in User settings → Plugins has no switch. A hook that throws still marks it failed. |                                     |                    |
+| `access`           | A level per family; see [`access`](#access).                                                                                                   | `document`, `experiments`, `editor` |                    |
+| `settings`         | A spec per key; see [Settings](#settings).                                                                                                     | `settings`                          |                    |
+| `commands`         | Per key: `{ label, category?, keywords?, shortcut? }`; see [Commands](#commands). Keys contain no dot.                                         |                                     | `commands`         |
+| `buttons`          | Per key: `{ label, place, tooltip? }`. `label` is the accessible name; `tooltip` defaults to it.                                               |                                     | `buttons`          |
+| `topBarItems`      | Per key: `{ place }`.                                                                                                                          |                                     | `topBarItems`      |
+| `bottomPanelViews` | Per key: `{ title, tooltip? }`: a tab in the bottom panel, after the editor's own. Keys contain no dot.                                        |                                     | `bottomPanelViews` |
+| `readOnlyAction`   | `{ label }`: a button on the notice of a blocked edit on a document the host made read-only.                                                   |                                     | `readOnlyAction`   |
+| `root`             | `true`: the plugin renders UI inside the editor.                                                                                               |                                     | `root`             |
+| `assistant`        | `true`: the plugin provides the AI assistant panel.                                                                                            |                                     | `assistant`        |
+| `provides`         | `pluginService<T>()`, the type of the service the hook provides.                                                                               |                                     | `provides`         |
 
 Every key but `id` and `name` is optional. Stored settings and the user's
 switch are keyed by `id`.
@@ -172,16 +173,17 @@ type EditRefusal = ReadOnlyReason | { kind: "no-title-setter" };
 
 ## Contributions
 
-| Key              | Allowed when | Type                                                                                                                                                                                       |
-| ---------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `root`           | Declared     | `ReactNode`, rendered inside the editor behind the plugin's error boundary: dialogs, overlays, tours. `null` shows nothing.                                                                |
-| `overlay`        | `root`       | Optional `boolean`: `true` while `root` covers the editor. Holds back the empty-canvas assistant prompt.                                                                                   |
-| `commands`       | Declared     | Per key: `{ run, when? }`. `when` defaults to `true`; while `false`, the command is not registered.                                                                                        |
-| `buttons`        | Declared     | Per key: `{ icon, onClick?, command?, className?, ref? }`. `onClick` runs before `command`, one of the plugin's command keys. A button has at least one of `onClick`, `command` and `ref`. |
-| `topBarItems`    | Declared     | Per key: a `ReactNode`.                                                                                                                                                                    |
-| `readOnlyAction` | Declared     | `{ run }`: what the read-only notice's button does. The notice shows the action of the first running plugin that declares one, and closes when the button is clicked.                      |
-| `assistant`      | Declared     | `{ content, onPrompt? }`: `content` fills the panel behind the plugin's error boundary, and `onPrompt(text)` takes the empty-net prompt's message. The user's choice shows, or the first.  |
-| `provides`       | Declared     | The service type `T` of `pluginService<T>()`.                                                                                                                                              |
+| Key                | Allowed when | Type                                                                                                                                                                                                                               |
+| ------------------ | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `root`             | Declared     | `ReactNode`, rendered inside the editor behind the plugin's error boundary: dialogs, overlays, tours. `null` shows nothing.                                                                                                        |
+| `overlay`          | `root`       | Optional `boolean`: `true` while `root` covers the editor. Holds back the empty-canvas assistant prompt.                                                                                                                           |
+| `commands`         | Declared     | Per key: `{ run, when? }`. `when` defaults to `true`; while `false`, the command is not registered.                                                                                                                                |
+| `buttons`          | Declared     | Per key: `{ icon, onClick?, command?, className?, ref? }`. `onClick` runs before `command`, one of the plugin's command keys. A button has at least one of `onClick`, `command` and `ref`.                                         |
+| `topBarItems`      | Declared     | Per key: a `ReactNode`.                                                                                                                                                                                                            |
+| `bottomPanelViews` | Declared     | Per key: `{ content, headerAction?, when? }`. `content` fills the panel and `headerAction` sits at the right of the tab bar, both while the tab is the active one. `when` defaults to `true`; while `false`, the tab is not shown. |
+| `readOnlyAction`   | Declared     | `{ run }`: what the read-only notice's button does. The notice shows the action of the first running plugin that declares one, and closes when the button is clicked.                                                              |
+| `assistant`        | Declared     | `{ content, onPrompt? }`: `content` fills the panel behind the plugin's error boundary, and `onPrompt(text)` takes the empty-net prompt's message. The user's choice shows, or the first.                                          |
+| `provides`         | Declared     | The service type `T` of `pluginService<T>()`.                                                                                                                                                                                      |
 
 Every declared key is required and every undeclared one is a type error.
 TypeScript also catches a setting value outside an enum's `options`, a button
@@ -189,8 +191,8 @@ TypeScript also catches a setting value outside an enum's `options`, a button
 wrong type, and a read of a family `access` does not declare.
 
 In the manifest itself, TypeScript catches a key it does not know at any depth,
-a reserved id, a command key with a dot, and an enum `default` outside its
-`options`. A manifest typed as `PetrinautPluginManifest` is a type error: the
+a reserved id, a command key or a view key with a dot, and an enum `default`
+outside its `options`. A manifest typed as `PetrinautPluginManifest` is a type error: the
 annotation drops the literal keys `api` and the contributions are typed from.
 Declare it inline, or with `as const satisfies PetrinautPluginManifest`.
 
@@ -212,9 +214,9 @@ From `@hashintel/petrinaut/ui/plugin`. `<Petrinaut>` itself comes from `@hashint
   `ServiceOf`.
 - Manifest entries: `PluginSettingSpec`, `PluginSettingSection`,
   `PluginCommandSpec`, `PluginButtonSpec`, `PluginButtonPlace`,
-  `PluginTopBarItemSpec`, `PluginTopBarPlace`.
+  `PluginTopBarItemSpec`, `PluginTopBarPlace`, `PluginBottomPanelViewSpec`.
 - Contributions: `PluginButton`, `PluginCommand`, `PluginReadOnlyAction`,
-  `PluginAssistant`.
+  `PluginAssistant`, `PluginBottomPanelView`.
 - Assistant panel: `AssistantPanel`.
 - Access: `PluginAccess`, `AccessApi`, `PluginDocumentReader`,
   `PluginDocument`, `PluginDiagnostics`, `PluginEdits`,
@@ -280,3 +282,4 @@ source `plugin` and tags `{ pluginId, place, contributionId }`:
 | `assistant`                                         | Its `assistant.content`                | Not set          |
 | `settings`                                          | Its setting rows                       | Not set          |
 | `top-bar-start`, `top-bar-end`, `viewport-controls` | A button or top-bar item at that place | Its key          |
+| `bottom-panel`                                      | A view's content or its header action  | Its key          |

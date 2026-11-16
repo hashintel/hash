@@ -22,13 +22,20 @@ type EditorEditionMode =
   | "add-transition"
   | "add-component";
 export type CursorMode = "select" | "pan";
+/**
+ * A tab a plugin adds to the bottom panel. Its id holds a dot, which the id
+ * of none of the editor's own tabs does.
+ */
+export type PluginBottomPanelTab = `${string}.${string}`;
+
 export type BottomPanelTab =
   | "compilation"
   | "diagnostics"
   | "simulation-settings"
   | "actual-events"
   | "actual-timeline"
-  | "simulation-timeline";
+  | "simulation-timeline"
+  | PluginBottomPanelTab;
 
 export type TimelineChartType = "run" | "stacked";
 

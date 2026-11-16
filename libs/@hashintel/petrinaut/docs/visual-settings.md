@@ -175,22 +175,22 @@ Controls selection box behavior in [Select mode](drawing-a-net.md#pan-and-select
 
 ## Plugins
 
-Hosts extend Petrinaut with plugins: extra buttons, top-bar items, settings
-and panels. The **Plugins** section lists every plugin the host gave this
+Hosts extend Petrinaut with plugins: extra buttons, top-bar items, tabs in
+the bottom panel, settings and panels. The **Plugins** section lists every plugin the host gave this
 editor, one line each with its name, its author and a switch. Click a line to
 read the plugin's description and what it adds. The header counts the plugins
 and how many of them run.
 
 - The **switch** runs the plugin, or not. Off, it adds nothing: its buttons,
-  items and settings disappear until you switch it back on. Your selection,
+  items, tabs and settings disappear until you switch it back on. Your selection,
   panels and open dialogs stay as they are. A plugin the host needs, such as
   its Save button, has no switch.
 - **Not running** marks a plugin that stopped on an error. Reload the page to
   start it again.
 - The tags under the description list what the plugin declares: the parts of
   the net it can read or change, its buttons and where they sit, its top-bar
-  items and settings, a service it offers other plugins, and whether it shows
-  something inside the editor.
+  items, its tabs in the bottom panel and its settings, a service it offers
+  other plugins, and whether it shows something inside the editor.
 - **Assistant** marks a plugin that provides the AI assistant. The assistant
   panel shows that plugin's content, such as its chat. When several plugins
   carry the tag, **General › AI assistant** chooses one, and the first running

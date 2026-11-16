@@ -12,6 +12,7 @@ import {
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { GlassPanel } from "../../../../components/glass-panel";
 import {
+  HorizontalTabPanel,
   HorizontalTabsContent,
   HorizontalTabsHeader,
   HorizontalTabsHeaderAction,
@@ -27,6 +28,7 @@ import {
   COMPILATION_SUBVIEWS,
   SIMULATION_ONLY_SUBVIEWS,
 } from "../../../../constants/ui-subviews";
+import { usePluginBottomPanelViews } from "../../../../plugins/plugin-outlets";
 import { fallbackBottomPanelTab } from "./fallback-tab";
 
 const glassPanelBaseStyle = css({
@@ -110,7 +112,8 @@ const getBottomPanelSubViews = ({
       ];
 
 /**
- * BottomPanel shows tabs for Diagnostics and Simulation Settings.
+ * BottomPanel shows tabs for Diagnostics and Simulation Settings, then the
+ * tabs plugins add.
  * Positioned at the bottom of the viewport.
  * When LeftSideBar is visible, positioned to its right. Otherwise full-width.
  * Resizable from the top edge.
@@ -158,9 +161,22 @@ export const BottomPanel: React.FC = () => {
     isSimulationActive,
     showCompilationOutput,
   });
+  const pluginViews = usePluginBottomPanelViews();
+  const tabs = [...subViews, ...pluginViews];
+
+  // The tab drawn is already the fallback on the render that loses the
+  // active one; an effect below then stores it.
+  const renderedActiveTab =
+    fallbackBottomPanelTab(
+      activeTab,
+      tabs.map((tab) => tab.id as BottomPanelTab),
+    ) ?? activeTab;
+  const activePluginView = pluginViews.find(
+    (view) => view.id === renderedActiveTab,
+  );
 
   // Automatically open bottom panel and switch to the relevant timeline when a
-  // run starts. The effect below picks the tab to show when one disappears.
+  // run starts. The effect below stores the tab shown when one disappears.
   useEffect(() => {
     const wasSimulationActive = prevSimulationActiveRef.current;
     const wasActualTimelineActive = prevActualTimelineActiveRef.current;
@@ -195,34 +211,10 @@ export const BottomPanel: React.FC = () => {
   ]);
 
   useEffect(() => {
-    const availableSubViews = getBottomPanelSubViews({
-      isActualMode,
-      isSimulationActive,
-      showCompilationOutput,
-    });
-
-    const fallbackTab = fallbackBottomPanelTab(
-      activeTab,
-      availableSubViews.map((subView) => subView.id as BottomPanelTab),
-    );
-    if (fallbackTab !== null) {
-      setActiveTab(fallbackTab);
+    if (renderedActiveTab !== activeTab) {
+      setActiveTab(renderedActiveTab);
     }
-  }, [
-    activeTab,
-    isActualMode,
-    isSimulationActive,
-    setActiveTab,
-    showCompilationOutput,
-  ]);
-
-  // The tab drawn is already the fallback on the render that loses the
-  // active one; the effect above then stores it.
-  const renderedActiveTab =
-    fallbackBottomPanelTab(
-      activeTab,
-      subViews.map((subView) => subView.id as BottomPanelTab),
-    ) ?? activeTab;
+  }, [activeTab, renderedActiveTab, setActiveTab]);
 
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId as BottomPanelTab);
@@ -263,15 +255,19 @@ export const BottomPanel: React.FC = () => {
       {/* Tab Header */}
       <div className={headerStyle}>
         <HorizontalTabsHeader
-          subViews={subViews}
+          subViews={tabs}
           activeTabId={renderedActiveTab}
           onTabChange={handleTabChange}
         />
         <div className={headerRightStyle}>
-          <HorizontalTabsHeaderAction
-            subViews={subViews}
-            activeTabId={renderedActiveTab}
-          />
+          {activePluginView ? (
+            activePluginView.headerAction
+          ) : (
+            <HorizontalTabsHeaderAction
+              subViews={subViews}
+              activeTabId={renderedActiveTab}
+            />
+          )}
           {!isActualMode && (
             <Button
               size="xxs"
@@ -286,10 +282,16 @@ export const BottomPanel: React.FC = () => {
       </div>
 
       {/* Scrollable content */}
-      <HorizontalTabsContent
-        subViews={subViews}
-        activeTabId={renderedActiveTab}
-      />
+      {activePluginView ? (
+        <HorizontalTabPanel tabId={activePluginView.id}>
+          {activePluginView.content}
+        </HorizontalTabPanel>
+      ) : (
+        <HorizontalTabsContent
+          subViews={subViews}
+          activeTabId={renderedActiveTab}
+        />
+      )}
     </GlassPanel>
   );
 };
