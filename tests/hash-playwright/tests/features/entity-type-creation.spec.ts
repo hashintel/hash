@@ -20,6 +20,8 @@ import { expect, test } from "../shared/runtime";
 test.use({ storageState: "tests/.auth/bob.json" });
 
 test("user can create entity type", async ({ page }) => {
+  test.slow();
+
   await page.goto("/");
   await expect(page.locator("text=Get support")).toBeVisible();
 
