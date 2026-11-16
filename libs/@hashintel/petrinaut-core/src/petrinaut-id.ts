@@ -231,11 +231,9 @@ type PetrinautIdNet = Pick<
 
 /**
  * Converts every entity id in `net` to a Petrinaut id, together with every
- * reference to it: arc endpoints, type and equation references, component
- * instances' subnets and parameter values, and the scenario overrides and
- * initial states keyed by id, at the root and inside subnets. Names, user
- * code, metadata and token values are left as they are. Returns `net` itself
- * when every id is already canonical.
+ * reference to one, at the root and inside subnets. Names, user code,
+ * metadata and token values are left as they are. Returns `net` itself when
+ * every id is already canonical.
  */
 export const canonicalizePetrinautIds = <Net extends PetrinautIdNet>(
   net: Net,

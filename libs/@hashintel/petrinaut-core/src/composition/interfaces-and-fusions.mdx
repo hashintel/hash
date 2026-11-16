@@ -59,6 +59,7 @@ The checks an interface adds, in `composition/check-interfaces.ts`:
 | An implementation lacks an interface parameter, by variable name       | error    |
 | Matching parameters differ in type                                     | error    |
 | An instance of an interface has no implementation bound                | error    |
+| A component holds an instance that runs it, directly or through others | error    |
 
 Matching by **name** is the rule a reader can check by eye. Extra ports and
 parameters on an implementation are allowed; through the interface they are

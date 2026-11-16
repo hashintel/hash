@@ -141,7 +141,8 @@ const InterfaceOptions: React.FC<{ subnet: Subnet }> = ({ subnet }) => {
             updateSubnet({
               subnetId: subnet.id,
               update: checked
-                ? { interface: true, implements: undefined }
+                ? // An interface has no body to stand behind another interface.
+                  { interface: true, implements: undefined }
                 : { interface: undefined },
             })
           }

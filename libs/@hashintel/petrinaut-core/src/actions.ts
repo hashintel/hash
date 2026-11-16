@@ -545,9 +545,8 @@ const dropImplementations = (
 };
 
 /**
- * Drops the bindings a change to `subnetId` broke: an instance's choice or a
- * document default that names it, as the interface or as the implementation,
- * and no longer resolves.
+ * Drops the instance choices and document defaults that name `subnetId`, as
+ * the interface or as the implementation, and do not resolve.
  */
 const pruneImplementationBindings = (sdcpn: SDCPN, subnetId: ID): void => {
   const broken = (interfaceId: ID, implementationId: ID): boolean =>
@@ -589,7 +588,7 @@ const assertImplementsReferences = (
   }
 };
 
-/** Takes a removed subnet out of the `implements` lists that name it. */
+/** Takes `subnetId` out of every `implements` list that names it. */
 const removeFromImplementsLists = (sdcpn: SDCPN, subnetId: ID): void => {
   for (const subnet of sdcpn.subnets ?? []) {
     if (subnet.implements?.includes(subnetId)) {

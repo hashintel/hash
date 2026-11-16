@@ -492,13 +492,11 @@ const cloneSubnet = (
  * Produce a sanitized deep copy of an SDCPN with data for disabled extensions
  * stripped out.
  *
- * The optional keys (`description`, `metadata`, `scenarios`, `metrics`,
- * `subnets`, `componentInstances`, `fusions`) are only set when they are
- * present on the source. Writing them
- * unconditionally would leave them present with a value of `undefined`, which
- * is not the same shape as a definition loaded back from JSON — where absent
- * keys stay absent — and would make `isSDCPNEqual` report an untouched net as
- * changed.
+ * The optional keys are only set when they are present on the source. Writing
+ * them unconditionally would leave them present with a value of `undefined`,
+ * which is not the same shape as a definition loaded back from JSON — where
+ * absent keys stay absent — and would make `isSDCPNEqual` report an untouched
+ * net as changed.
  */
 export const sanitizeSDCPNForExtensions = (
   sdcpn: SDCPN,

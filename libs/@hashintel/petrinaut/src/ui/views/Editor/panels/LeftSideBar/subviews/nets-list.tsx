@@ -49,8 +49,8 @@ const itemStyle = cva({
       outline: "none",
       backgroundColor: "neutral.bg.surface.hover",
     },
-    /* The delete button shows on hover or while the row or the button holds
-       focus. Hidden with `display` so it takes no width until shown. */
+    /* The row's buttons show on hover or while the row or a button holds
+       focus. Hidden with `display` so they take no width until shown. */
     "& [data-row-action]": {
       display: "none",
     },
@@ -282,7 +282,7 @@ export const NetNavigationList: React.FC<{
     return {
       ref: registerTarget(rowTarget),
       onFocus: (event: React.FocusEvent) => {
-        // Focus bubbles: the rename input and the delete button report their
+        // Focus bubbles: the rename input and the row's buttons report their
         // own positions.
         if (event.target === event.currentTarget) {
           onFocusTarget(rowTarget);
@@ -312,7 +312,7 @@ export const NetNavigationList: React.FC<{
           stopId: subnet.id,
           column: 1,
         };
-        const actionTarget: FocusStopTarget = {
+        const deleteTarget: FocusStopTarget = {
           stopId: subnet.id,
           column: 2,
         };
@@ -384,9 +384,9 @@ export const NetNavigationList: React.FC<{
                   />
                 </RowActionCell>
                 <RowActionCell
-                  registerButton={registerTarget(actionTarget)}
-                  onArrowKeyDown={onStopsKeyDown(actionTarget)}
-                  onButtonFocus={() => onFocusTarget(actionTarget)}
+                  registerButton={registerTarget(deleteTarget)}
+                  onArrowKeyDown={onStopsKeyDown(deleteTarget)}
+                  onButtonFocus={() => onFocusTarget(deleteTarget)}
                 >
                   <Button
                     aria-label="Delete subnet"

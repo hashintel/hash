@@ -98,6 +98,7 @@ export const checkImplementation = (
         `Port ${port.name} of ${implementation.name} holds a different token type from the one ${iface.name} declares.`,
       );
     }
+    // A port the interface declares two-way, or not at all, accepts any use.
     if (port.portDirection !== undefined && port.portDirection !== "inout") {
       const effective = effectivePortDirection(implementation, match);
       if (effective !== port.portDirection) {
