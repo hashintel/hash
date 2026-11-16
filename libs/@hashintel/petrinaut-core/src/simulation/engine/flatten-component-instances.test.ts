@@ -505,6 +505,34 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
     expect(result.placeParameterValues.has("m1::in")).toBe(false);
   });
 
+  it("gives a fused place its anchor's marking over a merged port's, in either order", () => {
+    const definition = sdcpn({
+      places: [place("buffer")],
+      componentInstances: [componentInstance("m1", "machine")],
+      subnets: [machine()],
+      fusions: [
+        {
+          id: "f1",
+          members: [
+            { kind: "place", placeId: "buffer" },
+            {
+              kind: "componentPort",
+              componentInstanceId: "m1",
+              portPlaceId: "in",
+            },
+          ],
+        },
+      ],
+    });
+    const markingOf = (initialMarking: InitialMarking) =>
+      flatten({ definition, initialMarking }).initialMarking;
+
+    expect(markingOf({ "m1::in": 5, buffer: 3 })).toEqual({ buffer: 3 });
+    expect(markingOf({ buffer: 3, "m1::in": 5 })).toEqual({ buffer: 3 });
+    // Without one on the anchor, the port's marking is the fused place's.
+    expect(markingOf({ "m1::in": 5 })).toEqual({ buffer: 5 });
+  });
+
   it("fuses two instance ports into one shared place", () => {
     const definition = sdcpn({
       componentInstances: [

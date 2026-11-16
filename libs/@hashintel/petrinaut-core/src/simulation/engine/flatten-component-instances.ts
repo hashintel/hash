@@ -546,17 +546,16 @@ export const flattenComponentInstancesForSimulation = ({
     ctx.placeParameterValues.delete(mergedId);
   }
 
-  const rootPlaceIds = new Set(sdcpn.places.map((place) => place.id));
-  const flatPlaceIds = new Set(target.places.map((place) => place.id));
   // Keyed by place ids from stored run inputs: no prototype.
   const flatInitialMarking: InitialMarking = createUserKeyedRecord();
   for (const [placeId, value] of Object.entries(initialMarking)) {
-    const flatPlaceId = fusedPlaceAliases.get(placeId) ?? placeId;
-    if (
-      (flatPlaceIds.has(flatPlaceId) || !rootPlaceIds.has(flatPlaceId)) &&
-      !(flatPlaceId in flatInitialMarking)
-    ) {
-      flatInitialMarking[flatPlaceId] = value;
+    const fusedId = fusedPlaceAliases.get(placeId);
+    if (fusedId === undefined) {
+      flatInitialMarking[placeId] = value;
+    } else if (!Object.hasOwn(initialMarking, fusedId)) {
+      // A marking on a merged place lands on the fused place, unless the
+      // fused place has one of its own.
+      flatInitialMarking[fusedId] ??= value;
     }
   }
 
