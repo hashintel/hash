@@ -1,5 +1,5 @@
 import { GridCellKind } from "@glideapps/glide-data-grid";
-import { Box, Typography, useTheme } from "@mui/material";
+import { Box, Stack, Typography, useTheme } from "@mui/material";
 import { format } from "date-fns";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -31,6 +31,7 @@ import { tableContentSx } from "../../shared/table-content";
 import { BulkActionsDropdown } from "../../shared/table-header/bulk-actions-dropdown";
 import { ExportToCsvButton } from "../../shared/table-header/export-to-csv-button";
 import { generateCsvFile as buildCsvFile } from "../../shared/table-header/generate-csv-file";
+import { Button } from "../../shared/ui/button";
 import {
   isAiMachineActor,
   type MinimalActor,
@@ -762,6 +763,25 @@ export const TypesTable: FunctionComponent<{
     selectedRows.some(({ typeId }) => type.schema.$id === typeId),
   );
 
+  const onSelectedRowsChange = useCallback(
+    (updatedRows: TypesTableRow[]) => {
+      if (!hierarchical) {
+        setSelectedRows(updatedRows);
+        return;
+      }
+      const visibleIds = new Set(visibleRows?.map(({ rowId }) => rowId));
+      const filteredTypeIds = new Set(sortedRows?.map(({ typeId }) => typeId));
+      setSelectedRows((previous) => [
+        ...previous.filter(
+          ({ rowId, typeId }) =>
+            !visibleIds.has(rowId) && filteredTypeIds.has(typeId),
+        ),
+        ...updatedRows,
+      ]);
+    },
+    [hierarchical, visibleRows, sortedRows],
+  );
+
   // Stable identity: a fresh object would re-render the memoized graph on
   // every table render.
   const graphSearchPanel = useMemo(
@@ -805,10 +825,21 @@ export const TypesTable: FunctionComponent<{
         }
         bottomLeft={
           selectedTypes && selectedTypes.length > 0 ? (
-            <BulkActionsDropdown
-              selectedItems={selectedTypes}
-              onBulkActionCompleted={() => setSelectedRows([])}
-            />
+            <Stack direction="row" alignItems="center" gap={1}>
+              <BulkActionsDropdown
+                selectedItems={selectedTypes}
+                onBulkActionCompleted={() => setSelectedRows([])}
+              />
+              {hierarchical ? (
+                <Button
+                  size="small"
+                  variant="tertiary_quiet"
+                  onClick={() => setSelectedRows([])}
+                >
+                  Clear selection
+                </Button>
+              ) : null}
+            </Stack>
           ) : (
             <TypesFilterRibbon
               leadingControls={
@@ -926,9 +957,7 @@ export const TypesTable: FunctionComponent<{
                 )
               )`}
             onSearchClose={() => setShowSearch(false)}
-            onSelectedRowsChange={(updatedSelectedRows) =>
-              setSelectedRows(updatedSelectedRows)
-            }
+            onSelectedRowsChange={onSelectedRowsChange}
             rows={visibleRows}
             searchValue={searchValue}
             onSearchValueChange={onSearchValueChange}

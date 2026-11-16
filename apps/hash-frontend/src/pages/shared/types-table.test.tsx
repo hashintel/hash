@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { GridCellKind } from "@glideapps/glide-data-grid";
 import { Box, ThemeProvider } from "@mui/material";
 import {
   act,
@@ -20,9 +21,12 @@ import type {
   DataTypeWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
+import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import type { ComponentProps, ReactNode } from "react";
 
-type GridProps = ComponentProps<typeof Grid<TypesTableRow>>;
+type GridProps = ComponentProps<
+  typeof Grid<TypesTableRow, SizedGridColumn, string>
+>;
 const state = vi.hoisted(() => ({
   grid: undefined as GridProps | undefined,
   exportCsv: undefined as
@@ -34,10 +38,10 @@ vi.mock("next/router", () => ({ useRouter: () => ({ query: {} }) }));
 vi.mock("../../components/grid/grid", () => ({
   Grid: (props: GridProps) => {
     state.grid = props;
-    if (props.currentlyDisplayedRowsRef)
-      props.currentlyDisplayedRowsRef.current = props.rows ?? [];
-    if (props.currentlyDisplayedColumnsRef)
-      props.currentlyDisplayedColumnsRef.current = props.columns;
+    const rowsRef = props.currentlyDisplayedRowsRef;
+    if (rowsRef) {
+      rowsRef.current = props.rows ?? [];
+    }
     return null;
   },
   gridHeaderHeightWithBorder: 40,
@@ -157,13 +161,15 @@ const toggle = (title: string) => {
   const index = rows.findIndex((row) => row.title === title);
   expect(index).toBeGreaterThanOrEqual(0);
   const cell = state.grid!.createGetCellContent(rows)([0, index]);
-  if (cell.kind !== "custom" || !("onToggle" in cell.data))
+  if (cell.kind !== GridCellKind.Custom || !("onToggle" in cell.data)) {
     throw new Error("Expected a tree cell");
-  act(() => (cell.data.onToggle as () => void)());
+  }
+  const onToggle = cell.data.onToggle as () => void;
+  act(onToggle);
 };
-const csvTitles = async () => {
+const csvTitles = () => {
   expect(state.exportCsv).toBeDefined();
-  const csv = await state.exportCsv!();
+  const csv = state.exportCsv!();
   return csv?.content.slice(1).map((row) => row[0]);
 };
 const renderTable = () =>
@@ -191,20 +197,42 @@ describe("hierarchical type table", () => {
     vi.unstubAllGlobals();
   });
 
-  it("exports all filtered types once regardless of expansion", async () => {
+  it("exports all filtered types once regardless of expansion", () => {
     renderTable();
     expect(visibleRows().map(({ title }) => title)).toEqual(["number"]);
     const expected = ["distance", "length", "meters", "number", "value"];
-    expect(await csvTitles()).toEqual(expected);
+    expect(csvTitles()).toEqual(expected);
     toggle("number");
     toggle("length");
     toggle("distance");
     expect(
       visibleRows().filter(({ title }) => title === "meters"),
     ).toHaveLength(2);
-    expect(await csvTitles()).toEqual(expected);
+    expect(csvTitles()).toEqual(expected);
     fireEvent.click(screen.getByRole("button", { name: "Search" }));
     act(() => state.grid?.onSearchValueChange?.("meters"));
-    expect(await csvTitles()).toEqual(["meters"]);
+    expect(csvTitles()).toEqual(["meters"]);
+  });
+
+  it("retains collapsed selections on checkbox edits and offers an explicit clear", () => {
+    renderTable();
+    toggle("number");
+    toggle("distance");
+    const meters = visibleRows().find(({ title }) => title === "meters")!;
+    act(() => state.grid?.onSelectedRowsChange?.([meters]));
+    toggle("distance");
+    const length = visibleRows().find(({ title }) => title === "length")!;
+    act(() => state.grid?.onSelectedRowsChange?.([length]));
+    expect(state.selected.map(({ schema }) => schema.title).sort()).toEqual([
+      "length",
+      "meters",
+    ]);
+    act(() => state.grid?.onSelectedRowsChange?.([]));
+    expect(state.selected.map(({ schema }) => schema.title)).toEqual([
+      "meters",
+    ]);
+    fireEvent.click(screen.getByRole("button", { name: "Clear selection" }));
+    expect(state.grid?.selectedRows).toEqual([]);
+    expect(screen.queryByTestId("selected-count")).toBeNull();
   });
 });

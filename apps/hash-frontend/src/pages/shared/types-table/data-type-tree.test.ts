@@ -247,7 +247,8 @@ describe("data type hierarchy", () => {
     let parents = ["root"];
     for (let level = 0; level < 16; level++) {
       const names = [`left-${level}`, `right-${level}`];
-      catalogue.push(...names.map((name) => row(name, parents)));
+      const currentParents = parents;
+      catalogue.push(...names.map((name) => row(name, currentParents)));
       parents = names;
     }
     const matchingIds = new Set(parents.map((name) => id(name)));
