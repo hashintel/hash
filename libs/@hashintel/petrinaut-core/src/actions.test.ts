@@ -2061,6 +2061,14 @@ describe("Petrinaut core interface actions", () => {
       name: "Renamed",
       implementation: idOf("other"),
     });
+    // Naming the subnet it already has makes no choice either.
+    instance.mutations.updateComponentInstance({
+      instanceId: "s1",
+      update: { subnetId: "stage" },
+    });
+    expect(
+      instance.definition.get().componentInstances?.[0]?.implementation,
+    ).toBe(idOf("other"));
     // Making the same choice again is held to the rule.
     expect(() =>
       instance.mutations.updateComponentInstance({

@@ -1521,8 +1521,8 @@ export function createPetrinautActions(
               parsed.update.subnetId !== instance.subnetId
             ) {
               removeReferencesToComponentInstance(net, instance.id);
-              // So does its choice of implementation, unless the update
-              // makes one.
+              // Nor its choice of implementation, unless the update makes
+              // one.
               delete instance.implementation;
             }
             assignUpdate(instance, parsed.update);
@@ -1530,10 +1530,7 @@ export function createPetrinautActions(
             assertComponentInstanceReferences(sdcpn, instance);
             // A choice the document was loaded with is left for the user to
             // repair: only an update that makes one is held to the rule.
-            if (
-              parsed.update.subnetId !== undefined ||
-              "implementation" in parsed.update
-            ) {
+            if (parsed.update.implementation !== undefined) {
               assertImplementationChoice(sdcpn, instance);
             }
             break;
