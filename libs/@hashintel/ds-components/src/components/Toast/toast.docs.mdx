@@ -1,0 +1,596 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { useRef, useState } from "react";
+
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import { Button } from "../Button/button";
+import {
+  Toast,
+  ToastAction,
+  ToastActions,
+  ToastBody,
+  ToastTitle,
+} from "./toast";
+import { Toaster } from "./toaster";
+
+<Meta title="Docs/Toast" />
+
+export const meta = {
+  title: "Toast",
+  description:
+    "A transient notification that confirms an action or reports a background event.",
+  alternativeNames: ["Snackbar", "Notification", "Toaster"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/Toast/toast.tsx",
+    stories:
+      "https://tokens.hash.design/?path=/story/components-toast--default",
+  },
+  referenceLinks: {
+    apg: "https://www.w3.org/WAI/ARIA/apg/patterns/alert/",
+    ark: "https://ark-ui.com/docs/components/toast",
+  },
+  related: ["Banner", "Dialog"],
+};
+
+# Toast
+
+A transient notification that confirms an action or reports a background event.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+export const heroCode = `import { useState } from "react";
+
+import { Button, Toast, Toaster } from "@hashintel/ds-components";
+
+// Somewhere near the application root:
+// <Toaster>…the app…</Toaster>
+
+export const PublishButton = () => {
+  const [published, setPublished] = useState(false);
+
+  return (
+    <>
+      <Button tone="brand" onClick={() => setPublished(true)}>
+        Publish entity type
+      </Button>
+      {published ? (
+        <Toast
+          tone="success"
+          onStatusChange={({ status }) => {
+            if (status === "exit") {
+              setPublished(false);
+            }
+          }}
+        >
+          <Toast.Title title="Entity type published" />
+          <Toast.Body>Version 3 is now live.</Toast.Body>
+        </Toast>
+      ) : null}
+    </>
+  );
+};`;
+
+export const HeroDemo = () => {
+  const [published, setPublished] = useState(false);
+  return (
+    <Toaster>
+      <Button tone="brand" onClick={() => setPublished(true)}>
+        Publish entity type
+      </Button>
+      {published ? (
+        <Toast
+          tone="success"
+          onStatusChange={({ status }) => {
+            if (status === "exit") {
+              setPublished(false);
+            }
+          }}
+        >
+          <Toast.Title title="Entity type published" />
+          <Toast.Body>Version 3 is now live.</Toast.Body>
+        </Toast>
+      ) : null}
+    </Toaster>
+  );
+};
+
+<Stage code={heroCode}>
+  <HeroDemo />
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Mount a `Toaster` once, wrapping the part of the application (usually all
+   of it) that shows toasts.
+
+```tsx
+import { Toaster } from "@hashintel/ds-components";
+
+export const App = () => <Toaster>{/* …the application… */}</Toaster>;
+```
+
+3. Render a `Toast` to show it, and remove it when `onStatusChange` reports
+   `exit` — the same mount-to-open contract as `Dialog`. The other statuses
+   (`enter`, plus `behind`/`front` as newer toasts stack in front of it and
+   leave again) are informational.
+
+### When to use
+
+<DoList
+  items={[
+    "Use Toast to confirm that an action the user just took succeeded — saving, publishing, archiving.",
+    "Use Toast to report the outcome of a background task that finished while the user was doing something else.",
+    "Use a loading title for short operations whose outcome arrives within a few seconds, then update the same toast with the result.",
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    "Don't put information the user must act on in a toast — it disappears. Use Banner for persistent status, or Dialog to force a decision.",
+    "Don't toast validation errors next to a form — show them at the field.",
+    "Don't fire a toast for every routine success; reserve them for outcomes the user can't already see on the page.",
+  ]}
+/>
+
+## Anatomy
+
+```tsx
+<Toast tone="error" variant="soft" position="bottom-end">
+  <Toast.Title title="Import failed" />
+  <Toast.Body>The file exceeds the 10 MB limit.</Toast.Body>
+  <Toast.Actions actions={<Toast.Action>Retry</Toast.Action>} />
+</Toast>
+```
+
+Children are free-form: compose `Toast.Title`, `Toast.Body`, and
+`Toast.Actions` in that order for the standard layout, or pass any custom
+node — paired with `withPadding={false}` for edge-to-edge content. A close
+button renders automatically unless `shouldCloseOn="none"`. The toast itself
+renders nothing where it is mounted — it appears in the `Toaster`'s stacking
+region for its `position`.
+
+## Examples
+
+### Tones and variants
+
+`tone` and `variant` reuse Banner's visual system: `solid` fills with the
+saturated tone color, `soft` tints the surface, and `outline` draws a border
+on a page-colored card. Each tone also sets `Toast.Title`'s default icon.
+
+export const tonesCode = `<Toast tone="success" variant="soft">
+  <Toast.Title title="A success soft toast" />
+  <Toast.Body>Describe what happened in a sentence.</Toast.Body>
+</Toast>`;
+
+export const TonesDemo = () => {
+  const [queued, setQueued] = useState([]);
+  const fire = (tone, variant) =>
+    setQueued((previous) => [...previous, { key: Date.now(), tone, variant }]);
+  return (
+    <Toaster>
+      {["soft", "outline", "solid"].map((variant) =>
+        ["neutral", "brand", "success", "warning", "error"].map((tone) => (
+          <Button key={`${variant}-${tone}`} size="xs" onClick={() => fire(tone, variant)}>
+            {tone} {variant}
+          </Button>
+        )),
+      )}
+      {queued.map(({ key, tone, variant }) => (
+        <Toast
+          key={key}
+          tone={tone}
+          variant={variant}
+          onStatusChange={({ status }) => {
+            if (status === "exit") {
+              setQueued((previous) => previous.filter((toast) => toast.key !== key));
+            }
+          }}
+        >
+          <Toast.Title title={`A ${tone} ${variant} toast`} />
+          <Toast.Body>Describe what happened in a sentence.</Toast.Body>
+        </Toast>
+      ))}
+    </Toaster>
+  );
+};
+
+<Stage code={tonesCode}>
+  <TonesDemo />
+</Stage>
+
+### Title row
+
+`Toast.Title` lays out the leading icon and the heading on one row. The icon
+defaults to the tone's: pass `icon={false}` for none, `icon={{ iconName }}`
+for another design-system icon, or `icon={{ custom }}` for arbitrary content.
+`loading` swaps the icon for a spinner. Pass `children` instead to replace
+the structured layout entirely.
+
+export const titleCode = `<Toast tone="brand" duration={Infinity}>
+  <Toast.Title title="Uploading entity types…" loading />
+  <Toast.Body>3 of 24 files processed.</Toast.Body>
+</Toast>`;
+
+export const TitleDemo = () => {
+  const [visible, setVisible] = useState(false);
+  return (
+    <Toaster>
+      <Button onClick={() => setVisible(true)}>Start upload</Button>
+      {visible ? (
+        <Toast tone="brand" duration={Infinity}>
+          <Toast.Title title="Uploading entity types…" loading />
+          <Toast.Body>3 of 24 files processed.</Toast.Body>
+        </Toast>
+      ) : null}
+    </Toaster>
+  );
+};
+
+<Stage code={titleCode}>
+  <TitleDemo />
+</Stage>
+
+### Actions
+
+`Toast.Actions` renders the buttons for responding to the toast — under the
+body, or sharing the title's line (when they fit) in a toast without a body.
+Fill it with `Toast.Action`s: `Button`s defaulting to the compact action
+treatment, lifted onto a white background on the `soft` and `solid` fills.
+Keep the toast around while it has actions — pass `duration={Infinity}` so it
+can't vanish before the user decides.
+
+An action leaves the toast open unless `closeToast` is set, which dismisses
+the toast when the action is activated — an action that resolves it, like
+"Undo" or "Retry". Calling `event.preventDefault()` in the action's `onClick`
+cancels the dismissal.
+
+export const actionsCode = `<Toast tone="error" duration={Infinity}>
+  <Toast.Title title="Import failed" />
+  <Toast.Body>The file exceeds the 10 MB limit.</Toast.Body>
+  <Toast.Actions
+    actions={
+      <>
+        <Toast.Action closeToast>Retry</Toast.Action>
+        <Toast.Action>Details</Toast.Action>
+      </>
+    }
+  />
+</Toast>`;
+
+export const ActionsDemo = () => {
+  const [visible, setVisible] = useState(false);
+  return (
+    <Toaster>
+      <Button onClick={() => setVisible(true)}>Import file</Button>
+      {visible ? (
+        <Toast
+          tone="error"
+          duration={Infinity}
+          onStatusChange={({ status }) => {
+            if (status === "exit") {
+              setVisible(false);
+            }
+          }}
+        >
+          <Toast.Title title="Import failed" />
+          <Toast.Body>The file exceeds the 10 MB limit.</Toast.Body>
+          <Toast.Actions
+            actions={
+              <>
+                <Toast.Action closeToast>Retry</Toast.Action>
+                <Toast.Action>Details</Toast.Action>
+              </>
+            }
+          />
+        </Toast>
+      ) : null}
+    </Toaster>
+  );
+};
+
+<Stage code={actionsCode}>
+  <ActionsDemo />
+</Stage>
+
+### Updating in place
+
+Toasts rendered with the same `id` update the same toast — re-render with new
+content to show progress without stacking a second card.
+
+export const updateCode = `const [saved, setSaved] = useState(false);
+
+<Toast id="save-draft" tone={saved ? "success" : "neutral"} duration={Infinity}>
+  <Toast.Title title={saved ? "Draft saved" : "Saving draft…"} loading={!saved} />
+</Toast>`;
+
+export const UpdateDemo = () => {
+  const [phase, setPhase] = useState("idle");
+  const start = () => {
+    setPhase("saving");
+    setTimeout(() => {
+      setPhase("saved");
+    }, 2000);
+  };
+  return (
+    <Toaster>
+      <Button onClick={start}>Save draft</Button>
+      {phase === "idle" ? null : (
+        <Toast
+          id="docs-save-draft"
+          tone={phase === "saved" ? "success" : "neutral"}
+          duration={Infinity}
+        >
+          <Toast.Title
+            title={phase === "saved" ? "Draft saved" : "Saving draft…"}
+            loading={phase !== "saved"}
+          />
+        </Toast>
+      )}
+    </Toaster>
+  );
+};
+
+<Stage code={updateCode}>
+  <UpdateDemo />
+</Stage>
+
+### Duration and dismissal
+
+By default a toast's lifetime depends on its `tone`: `success` dismisses
+after 2 seconds and the other tones after 5. Pass `duration` (in
+milliseconds, or `Infinity`) to override it. Hovering or focusing a stack
+pauses every timer in it, as does leaving the page — switching tabs or apps.
+`shouldCloseOn="none"` drops the close button and Escape, leaving dismissal
+to `duration`, unmounting, or a `closeToast` action.
+
+export const durationCode = `<Toast duration={30000}>
+  <Toast.Title title="Long-lived toast" />
+  <Toast.Body>Stays for 30 seconds.</Toast.Body>
+</Toast>
+
+<Toast shouldCloseOn="none" duration={4000}>
+  <Toast.Body>No close button; gone after 4 seconds.</Toast.Body>
+</Toast>`;
+
+export const DurationDemo = () => {
+  const [queued, setQueued] = useState([]);
+  const fire = (extras) =>
+    setQueued((previous) => [...previous, { key: Date.now(), ...extras }]);
+  return (
+    <Toaster>
+      <Button onClick={() => fire({ duration: 30000, label: "Stays for 30 seconds." })}>
+        Show for 30s
+      </Button>
+      <Button
+        onClick={() =>
+          fire({
+            duration: 4000,
+            shouldCloseOn: "none",
+            label: "No close button; gone after 4 seconds.",
+          })
+        }
+      >
+        No close button
+      </Button>
+      {queued.map(({ key, label, ...extras }) => (
+        <Toast
+          key={key}
+          {...extras}
+          onStatusChange={({ status }) => {
+            if (status === "exit") {
+              setQueued((previous) => previous.filter((toast) => toast.key !== key));
+            }
+          }}
+        >
+          <Toast.Body>{label}</Toast.Body>
+        </Toast>
+      ))}
+    </Toaster>
+  );
+};
+
+<Stage code={durationCode}>
+  <DurationDemo />
+</Stage>
+
+### Position
+
+`position` picks the viewport edge or corner the toast stacks at; toasts
+sharing a position share a stacking region. `left`/`right` values map onto
+the nearest corner (`-start` the top one, `-end` the bottom one). The
+centered `top` and `bottom` placements render slightly wider by default.
+
+export const positionCode = `<Toast position="top">
+  <Toast.Body>Placed top.</Toast.Body>
+</Toast>`;
+
+export const PositionDemo = () => {
+  const [queued, setQueued] = useState([]);
+  const fire = (position) =>
+    setQueued((previous) => [...previous, { key: Date.now(), position }]);
+  return (
+    <Toaster>
+      {["top-start", "top", "top-end", "bottom-start", "bottom", "bottom-end"].map(
+        (position) => (
+          <Button key={position} size="xs" onClick={() => fire(position)}>
+            {position}
+          </Button>
+        ),
+      )}
+      {queued.map(({ key, position }) => (
+        <Toast
+          key={key}
+          position={position}
+          tone="brand"
+          onStatusChange={({ status }) => {
+            if (status === "exit") {
+              setQueued((previous) => previous.filter((toast) => toast.key !== key));
+            }
+          }}
+        >
+          <Toast.Body>Placed {position}.</Toast.Body>
+        </Toast>
+      ))}
+    </Toaster>
+  );
+};
+
+<Stage code={positionCode}>
+  <PositionDemo />
+</Stage>
+
+### Deep stacks
+
+A collapsed stack shows its front three toasts; hovering or focusing it
+expands the full column, which scrolls when it outgrows the viewport. At most
+100 toasts are mounted per stacking region — any more wait in a queue and
+appear as older ones leave.
+
+export const stackingCode = `{toasts.map((toast) => (
+  <Toast key={toast.key} duration={Infinity}>
+    <Toast.Title title={toast.title} />
+  </Toast>
+))}`;
+
+export const StackingDemo = () => {
+  const [queued, setQueued] = useState([]);
+  const nextKeyRef = useRef(0);
+  const fire = (count) => {
+    const batch = [];
+    for (let i = 0; i < count; i++) {
+      nextKeyRef.current += 1;
+      batch.push(nextKeyRef.current);
+    }
+    setQueued((previous) => [...previous, ...batch]);
+  };
+  return (
+    <Toaster>
+      <Button onClick={() => fire(5)}>Show 5 toasts</Button>
+      <Button onClick={() => fire(20)}>Show 20 toasts</Button>
+      {queued.map((key) => (
+        <Toast
+          key={key}
+          tone="brand"
+          duration={Infinity}
+          onStatusChange={({ status }) => {
+            if (status === "exit") {
+              setQueued((previous) => previous.filter((toastKey) => toastKey !== key));
+            }
+          }}
+        >
+          <Toast.Title title={`Toast #${key}`} />
+          <Toast.Body>Hover the stack to expand it.</Toast.Body>
+        </Toast>
+      ))}
+    </Toaster>
+  );
+};
+
+<Stage code={stackingCode}>
+  <StackingDemo />
+</Stage>
+
+## Content
+
+- Lead with the outcome in the title, in a few words: "Entity type
+  published", "Import failed".
+- Use `Toast.Body` for the one detail worth adding — what changed, or what to
+  do about a failure.
+- Name action buttons with a verb ("Undo", "Retry", "View"), never "OK" — a
+  toast needs no acknowledgement.
+
+## Accessibility
+
+Toasts follow the
+[WAI-ARIA alert pattern](https://www.w3.org/WAI/ARIA/apg/patterns/alert/).
+
+### What Toast provides
+
+- Each stacking region is a labelled `role="region"` landmark with
+  `aria-live="polite"`, so new toasts are announced without interrupting what
+  the screen reader is currently saying.
+- Each toast is a `role="status"` element labelled by its title and described
+  by its body.
+- The hotkey <kbd>Alt</kbd>+<kbd>T</kbd> moves focus into a region; toasts
+  are focusable, and <kbd>Escape</kbd> dismisses the focused one (unless
+  `shouldCloseOn="none"`).
+- Timers pause while the pointer or focus is inside a region and while the
+  page is idle — the tab hidden or the window unfocused — so a toast can't
+  vanish mid-read.
+
+### What you must do
+
+- Remove the `Toast` element when `onStatusChange` reports `exit`;
+  otherwise the next render of a stale element re-creates the toast.
+- Keep toasts supplementary: anything the user must read or act on belongs in
+  persistent UI, since a toast may never be noticed.
+- Don't rely on color alone to distinguish outcomes — the title should carry
+  the meaning ("Import failed", not just a red tint).
+
+## API reference
+
+### Toast
+
+<PropsTable
+  of={Toast}
+  defaults={{
+    tone: '"neutral"',
+    variant: '"soft"',
+    position: '"bottom-end"',
+    withPadding: "true",
+    shouldCloseOn: '"closeButton"',
+  }}
+/>
+
+### Toast.Title
+
+Either the structured title row (`title`, `icon`, `loading`, `actions`)
+or fully custom `children` — the two are mutually exclusive.
+
+<PropsTable of={ToastTitle} defaults={{ icon: "true" }} />
+
+### Toast.Body
+
+<PropsTable of={ToastBody} />
+
+### Toast.Actions
+
+<PropsTable of={ToastActions} />
+
+### Toast.Action
+
+An action button for the `Toast.Actions` row, taking the same props as
+`Button`.
+
+<PropsTable
+  of={ToastAction}
+  defaults={{
+    variant: '"subtle"',
+    size: '"sm"',
+    tone: '"neutral"',
+    shape: '"default"',
+    iconPosition: '"left"',
+    type: '"button"',
+    closeToast: "false",
+  }}
+/>
+
+### Toaster
+
+<PropsTable of={Toaster} defaults={{ label: '"Notifications"' }} />
