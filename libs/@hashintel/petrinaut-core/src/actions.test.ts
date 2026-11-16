@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 
+import { updatePrunesReferences } from "./actions";
 import { createJsonDocHandle } from "./handle";
 import { createPetrinaut } from "./instance";
 import { toPetrinautId } from "./petrinaut-id";
@@ -1568,5 +1569,132 @@ describe("Petrinaut core fusion actions", () => {
 
     expect(instance.definition.get().fusions).toBeUndefined();
     expect(instance.definition.get().componentInstances).toHaveLength(1);
+  });
+
+  describe("updates that take arcs and fusion memberships with them", () => {
+    /** `M1.In` takes an arc and `M1.Out` is fused; nothing names a port of `M2`. */
+    const wired = (): SDCPN => {
+      const definition = composed();
+      definition.subnets!.push({
+        ...definition.subnets![0]!,
+        id: "press",
+        name: "Press",
+        places: [portPlace("press_in", "In")],
+      });
+      definition.transitions.push({
+        id: "feed",
+        name: "Feed",
+        inputArcs: [],
+        outputArcs: [{ endpoint: port("m1", "in"), weight: 1 }],
+        lambdaType: "predicate",
+        lambdaCode: "",
+        transitionKernelCode: "",
+        x: 0,
+        y: 0,
+      });
+      definition.fusions = [
+        {
+          id: "f1",
+          members: [{ kind: "place", placeId: "buffer" }, port("m1", "out")],
+        },
+      ];
+      return definition;
+    };
+
+    const references = (document: SDCPN): number =>
+      document.transitions.reduce(
+        (count, { inputArcs, outputArcs }) =>
+          count + inputArcs.length + outputArcs.length,
+        0,
+      ) +
+      (document.fusions ?? []).reduce(
+        (count, { members }) => count + members.length,
+        0,
+      );
+
+    const unmark = (placeId: string, update: object = { isPort: false }) =>
+      ({
+        action: "updatePlace",
+        input: { placeId, targetSubnetId: "machine", update },
+      }) as const;
+    const repoint = (instanceId: string, update: object) =>
+      ({
+        action: "updateComponentInstance",
+        input: { instanceId, update },
+      }) as const;
+
+    test.each([
+      ["unmarking a port an arc reaches", unmark("in"), true],
+      ["unmarking a port a fusion holds", unmark("out"), true],
+      [
+        "clearing the mark of such a port",
+        unmark("in", { isPort: undefined }),
+        true,
+      ],
+      ["renaming such a port", unmark("in", { name: "Inlet" }), false],
+      ["marking it a port again", unmark("in", { isPort: true }), false],
+      [
+        "pointing a wired instance at another subnet",
+        repoint("m1", { subnetId: "press" }),
+        true,
+      ],
+      [
+        "pointing it at the subnet it has",
+        repoint("m1", { subnetId: "machine" }),
+        false,
+      ],
+      ["renaming a wired instance", repoint("m1", { name: "Mill" }), false],
+      [
+        "pointing an instance nothing names at another subnet",
+        repoint("m2", { subnetId: "press" }),
+        false,
+      ],
+    ])("%s", (_case, { action, input }, prunes) => {
+      const instance = createInstance(wired());
+      const before = instance.definition.get();
+
+      expect(updatePrunesReferences(before, action, input)).toBe(prunes);
+
+      // What the check says is what the mutation then does.
+      const mutate = instance.mutations[action] as (input: unknown) => void;
+      mutate(input);
+      expect(references(instance.definition.get()) < references(before)).toBe(
+        prunes,
+      );
+    });
+
+    test("unmarking a port nothing outside its subnet names takes nothing", () => {
+      const definition = wired();
+      definition.transitions = [];
+      delete definition.fusions;
+      const { action, input } = unmark("in");
+
+      expect(updatePrunesReferences(definition, action, input)).toBe(false);
+    });
+
+    test("an update of a place of the root net, or of what is not there, takes nothing", () => {
+      const document = createInstance(wired()).definition.get();
+
+      expect(
+        updatePrunesReferences(document, "updatePlace", {
+          placeId: "buffer",
+          update: { isPort: false },
+        }),
+      ).toBe(false);
+      expect(
+        updatePrunesReferences(document, "updatePlace", {
+          placeId: "in",
+          targetSubnetId: "missing",
+          update: { isPort: false },
+        }),
+      ).toBe(false);
+      expect(
+        updatePrunesReferences(document, "updateComponentInstance", {
+          instanceId: "missing",
+          update: { subnetId: "press" },
+        }),
+      ).toBe(false);
+      expect(updatePrunesReferences(document, "removePlace", {})).toBe(false);
+    });
   });
 });

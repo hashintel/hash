@@ -24,6 +24,7 @@ export {
   parameterSchema,
   mutationActionInputSchemas,
   placeSchema,
+  pruningUpdateActions,
   scenarioSchema,
   subnetSchema,
   transitionSchema,

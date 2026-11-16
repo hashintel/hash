@@ -48,7 +48,7 @@ const layout = mutation();
  * What each canonical Petrinaut tool does to the bound document. An effect
  * is what the tool is asked to do: what a change takes with it, such as the
  * arcs and fusions on a place that stops being a port, does not make it a
- * removal.
+ * removal. The user approves a call that would take any all the same.
  */
 export const petrinautToolEffects = {
   addPlace: mutation("place"),

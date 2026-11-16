@@ -616,3 +616,12 @@ export type MutationActionName = keyof typeof mutationActionInputSchemas;
 export type MutationActionInput<Name extends MutationActionName> = z.infer<
   (typeof mutationActionInputSchemas)[Name]
 >;
+
+/**
+ * The updates that, on some inputs, drop arcs and fusion memberships:
+ * `updatePrunesReferences` says whether a call would.
+ */
+export const pruningUpdateActions = [
+  "updatePlace",
+  "updateComponentInstance",
+] as const satisfies readonly MutationActionName[];

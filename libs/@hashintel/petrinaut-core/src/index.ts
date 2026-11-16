@@ -156,7 +156,7 @@ export type {
   PetrinautOptimizationConstraintPolicy,
   PetrinautIntegerOptimizationDomain,
 } from "./optimization";
-export { createPetrinautActions } from "./actions";
+export { createPetrinautActions, updatePrunesReferences } from "./actions";
 export type {
   CreatePetrinautActionsOptions,
   MutationHelperFunctions,

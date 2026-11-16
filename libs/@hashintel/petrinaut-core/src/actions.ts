@@ -227,13 +227,15 @@ const pruneFusions = (net: MutableNet): void => {
   }
 };
 
+type EndpointTest = (endpoint: ArcEndpoint) => boolean;
+
 /**
  * Drops what in `net` names a place `matches` picks: the arcs onto it and
  * its membership of a fusion.
  */
 const removeEndpointReferences = (
   net: MutableNet,
-  matches: (endpoint: ArcEndpoint) => boolean,
+  matches: EndpointTest,
 ): void => {
   for (const transition of net.transitions) {
     removeWhere(transition.inputArcs, (arc) => matches(getArcEndpoint(arc)));
@@ -251,16 +253,48 @@ const removeReferencesToPlace = (net: MutableNet, placeId: string): void =>
     (endpoint) => endpoint.kind === "place" && endpoint.placeId === placeId,
   );
 
+/** Whether anything in `net` names a place `matches` picks: an arc or a fusion member. */
+const hasEndpointReferences = (
+  net: MutableNet,
+  matches: EndpointTest,
+): boolean =>
+  net.transitions.some(({ inputArcs, outputArcs }) =>
+    [...inputArcs, ...outputArcs].some((arc) => matches(getArcEndpoint(arc))),
+  ) || (net.fusions ?? []).some((fusion) => fusion.members.some(matches));
+
+/** Picks the ports of the instance `componentInstanceId`. */
+const onInstance =
+  (componentInstanceId: string): EndpointTest =>
+  (endpoint) =>
+    endpoint.kind === "componentPort" &&
+    endpoint.componentInstanceId === componentInstanceId;
+
 const removeReferencesToComponentInstance = (
   net: MutableNet,
   componentInstanceId: string,
-): void =>
-  removeEndpointReferences(
-    net,
-    (endpoint) =>
-      endpoint.kind === "componentPort" &&
-      endpoint.componentInstanceId === componentInstanceId,
+): void => removeEndpointReferences(net, onInstance(componentInstanceId));
+
+/**
+ * Picks `portPlaceId` on the instances of `subnetId` that `net` holds; `null`
+ * when it holds none.
+ */
+const onSubnetPort = (
+  net: MutableNet,
+  subnetId: string,
+  portPlaceId: string,
+): EndpointTest | null => {
+  const instanceIds = new Set(
+    (net.componentInstances ?? [])
+      .filter((instance) => instance.subnetId === subnetId)
+      .map((instance) => instance.id),
   );
+  return instanceIds.size === 0
+    ? null
+    : (endpoint) =>
+        endpoint.kind === "componentPort" &&
+        endpoint.portPlaceId === portPlaceId &&
+        instanceIds.has(endpoint.componentInstanceId);
+};
 
 /** Drops what names `portPlaceId` on an instance of `subnetId`, in every net. */
 const removeReferencesToSubnetPort = (
@@ -269,21 +303,64 @@ const removeReferencesToSubnetPort = (
   portPlaceId: string,
 ): void => {
   for (const net of getAllMutableNets(sdcpn)) {
-    const instanceIds = new Set(
-      (net.componentInstances ?? [])
-        .filter((instance) => instance.subnetId === subnetId)
-        .map((instance) => instance.id),
-    );
-    if (instanceIds.size > 0) {
-      removeEndpointReferences(
-        net,
-        (endpoint) =>
-          endpoint.kind === "componentPort" &&
-          endpoint.portPlaceId === portPlaceId &&
-          instanceIds.has(endpoint.componentInstanceId),
-      );
+    const matches = onSubnetPort(net, subnetId, portPlaceId);
+    if (matches) {
+      removeEndpointReferences(net, matches);
     }
   }
+};
+
+/**
+ * Whether a call of `action` with `input` would drop arcs or fusion
+ * memberships from `sdcpn`: an `updatePlace` that unmarks a port something
+ * outside its subnet still names, or an `updateComponentInstance` that points
+ * an instance at another subnet while something names its ports. A caller
+ * that asks before a removal asks before such an update. Throws on an input
+ * the action does not accept.
+ */
+export const updatePrunesReferences = (
+  sdcpn: SDCPN,
+  action: string,
+  input: unknown,
+): boolean => {
+  if (action === "updatePlace") {
+    const { placeId, update, targetSubnetId } =
+      mutationActionInputSchemas.updatePlace.parse(input);
+    if (!targetSubnetId) {
+      return false;
+    }
+    const place = sdcpn.subnets
+      ?.find(({ id }) => id === targetSubnetId)
+      ?.places.find(({ id }) => id === placeId);
+    // As `updatePlace` runs: a place of a subnet that stops being a port.
+    return (
+      place?.isPort === true &&
+      { ...place, ...update }.isPort !== true &&
+      getAllMutableNets(sdcpn).some((net) => {
+        const matches = onSubnetPort(net, targetSubnetId, placeId);
+        return matches !== null && hasEndpointReferences(net, matches);
+      })
+    );
+  }
+  if (action === "updateComponentInstance") {
+    const { instanceId, update, targetSubnetId } =
+      mutationActionInputSchemas.updateComponentInstance.parse(input);
+    const net: MutableNet | undefined = targetSubnetId
+      ? sdcpn.subnets?.find(({ id }) => id === targetSubnetId)
+      : sdcpn;
+    const instance = net?.componentInstances?.find(
+      ({ id }) => id === instanceId,
+    );
+    // As `updateComponentInstance` runs: an instance given another subnet.
+    return (
+      net !== undefined &&
+      instance !== undefined &&
+      update.subnetId !== undefined &&
+      update.subnetId !== instance.subnetId &&
+      hasEndpointReferences(net, onInstance(instanceId))
+    );
+  }
+  return false;
 };
 
 /**
