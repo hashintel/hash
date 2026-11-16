@@ -142,6 +142,13 @@ const typesTablesToTitle: Record<TypesTableKind, string> = {
   "data-type": "Data Types",
 };
 
+const typeKindLabels: Record<TypesTableTypeKind, string> = {
+  "entity-type": "Entity Type",
+  "link-type": "Link Type",
+  "property-type": "Property Type",
+  "data-type": "Data Type",
+};
+
 const firstColumnLeftPadding = 4;
 
 const createEntityTypeHref = "/new/types/entity-type";
@@ -721,8 +728,8 @@ export const TypesTable: FunctionComponent<
               themeOverride,
               readonly: true,
               allowOverlay: false,
-              displayData: String(row.kind),
-              data: row.kind,
+              displayData: typeKindLabels[row.kind],
+              data: typeKindLabels[row.kind],
             };
           case "webShortname": {
             const value = row.webShortname
@@ -965,6 +972,8 @@ export const TypesTable: FunctionComponent<
       columns: currentlyDisplayedColumns,
       rows: rowsToExport,
       title: typesTablesToTitle[kind],
+      resolveCell: (key, row) =>
+        key === "kind" ? typeKindLabels[row.kind] : undefined,
     });
   }, [sortedRows, matchingIds, kind]);
 
