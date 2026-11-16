@@ -75,7 +75,8 @@ const PanelHeader = ({
   icon: IconName;
   tone: StepTone;
   title: string;
-  group: string | undefined;
+  /** Left out for what belongs to no group, such as Start. */
+  group?: string;
   children: ReactNode;
 }) => (
   <div className={header}>
@@ -86,7 +87,7 @@ const PanelHeader = ({
         {group !== undefined && (
           <span className={headerGroup}>{`${group} · `}</span>
         )}
-        <span className={headerDescription}>{children}</span>
+        <div className={headerDescription}>{children}</div>
       </div>
     </div>
   </div>
@@ -143,7 +144,6 @@ const StartPanel = ({
         icon={startDisplay.icon}
         tone={startDisplay.tone}
         title={startDisplay.title}
-        group={undefined}
       >
         {startDisplay.description}
       </PanelHeader>

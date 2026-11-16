@@ -373,9 +373,10 @@ const FlowCanvas = ({
     );
   };
 
-  const addStepInView = (actionDefinitionId: string) => {
-    const position = getPositionInView();
-
+  const addStepInView = (
+    actionDefinitionId: string,
+    position = getPositionInView(),
+  ) => {
     if (position) {
       selectStep(editor.addStep(actionDefinitionId, { position }));
     }
@@ -829,8 +830,8 @@ const FlowCanvas = ({
               });
             }}
             onPaneContextMenu={refuseContextMenu}
-            /* The menu beside a ghost card would stay put as the card moves, so panning or zooming by hand closes
-               it; moves made in code, such as panning the card into view, have no event. */
+            /* The menu wouldn't follow its ghost card, so panning or zooming by hand closes it. Moves made in code,
+               such as panning the card into view, have no event. */
             onMoveStart={(event) => {
               if (event) {
                 setAddMenu(null);
@@ -868,13 +869,11 @@ const FlowCanvas = ({
             tool={tool}
             onToolChange={setTool}
             editing={{
-              onAddStep: (actionDefinitionId) => {
-                const position = toolbarAddPosition ?? getPositionInView();
-
-                if (position) {
-                  selectStep(editor.addStep(actionDefinitionId, { position }));
-                }
-              },
+              onAddStep: (actionDefinitionId) =>
+                addStepInView(
+                  actionDefinitionId,
+                  toolbarAddPosition ?? undefined,
+                ),
               onAddMenuOpen: (open) =>
                 setToolbarAddPosition(open ? getPositionInView() : null),
               emptyFlow,

@@ -1,3 +1,4 @@
+import { typedKeys } from "@local/advanced-types/typed-entries";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 
 import type { IconName } from "@hashintel/ds-components";
@@ -166,8 +167,8 @@ export type ActionGroup = {
 };
 
 /** The groups of actions in the Add tab and the add menu, leaving out any with nothing that can be added yet. */
-export const addableActionGroups: ActionGroup[] = (
-  Object.keys(actionGroups) as ActionGroupId[]
+export const addableActionGroups: ActionGroup[] = typedKeys(
+  actionGroups,
 ).flatMap((groupId) => {
   const { label, icon } = actionGroups[groupId];
   const actions = addableActions.filter((action) => action.groupId === groupId);

@@ -295,6 +295,8 @@ export const StepRunPanel = ({
 
   const getOutputUses = (outputName: string): ValueUse[] =>
     usesOf({ kind: "step-output", stepId: step.stepId, outputName });
+  const labelOutput = (outputName: string) =>
+    getOutputLabel(actionDefinition?.actionDefinitionId, outputName);
 
   return (
     <SidePanel label={name}>
@@ -373,37 +375,30 @@ export const StepRunPanel = ({
       {outputNames.length > 0 && (
         <PanelSection title="Outputs">
           <div className={values}>
-            {outputNames.map((outputName) => {
-              const outputLabel = getOutputLabel(
-                actionDefinition?.actionDefinitionId,
-                outputName,
-              );
-
-              return (
-                <OutputRow
-                  key={outputName}
-                  label={`${outputLabel} value`}
-                  onClose={() => {
-                    if (getHighlightFrom(outputName) !== null) {
-                      highlightFrom(outputName)(null);
-                    }
-                  }}
-                  name={
-                    <ValueName
-                      name={outputLabel}
-                      shape={shapes.getStepOutputShape(step.stepId, outputName)}
-                    />
+            {outputNames.map((outputName) => (
+              <OutputRow
+                key={outputName}
+                label={`${labelOutput(outputName)} value`}
+                onClose={() => {
+                  if (getHighlightFrom(outputName) !== null) {
+                    highlightFrom(outputName)(null);
                   }
-                >
-                  {renderOutputValue(outputName)}
-                  <OutputUses
-                    valueUses={getOutputUses(outputName)}
-                    highlightedStepId={getHighlightFrom(outputName)}
-                    onHighlightStep={highlightFrom(outputName)}
+                }}
+                name={
+                  <ValueName
+                    name={labelOutput(outputName)}
+                    shape={shapes.getStepOutputShape(step.stepId, outputName)}
                   />
-                </OutputRow>
-              );
-            })}
+                }
+              >
+                {renderOutputValue(outputName)}
+                <OutputUses
+                  valueUses={getOutputUses(outputName)}
+                  highlightedStepId={getHighlightFrom(outputName)}
+                  onHighlightStep={highlightFrom(outputName)}
+                />
+              </OutputRow>
+            ))}
           </div>
         </PanelSection>
       )}

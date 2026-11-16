@@ -8,7 +8,7 @@ const outputLabels: Partial<Record<string, Record<string, string>>> = {
   if: { true: "Yes", false: "No" },
 };
 
-/** A step's output as people read it, e.g. If's `true` as "Yes". `actionDefinitionId` is `undefined` for a for-each step. */
+/** A step's output as people read it. A for-each step has no `actionDefinitionId`. */
 export const getOutputLabel = (
   actionDefinitionId: string | undefined,
   outputName: string,
