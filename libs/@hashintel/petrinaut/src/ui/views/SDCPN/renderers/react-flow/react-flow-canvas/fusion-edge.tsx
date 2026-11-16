@@ -2,7 +2,7 @@ import { BaseEdge, type EdgeProps, getBezierPath } from "@xyflow/react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { problemColor } from "../../../../../constants/problem-severity";
+import { problemStrokeColor } from "../../../../../constants/problem-severity";
 import { arcHaloColor } from "../../../styles/focus";
 import { EdgeUnderlay } from "./shared/edge-underlay";
 
@@ -52,10 +52,7 @@ export const FusionEdge: React.FC<EdgeProps<FusionEdgeType>> = ({
     targetY,
     targetPosition,
   });
-  const strokeColor =
-    data?.severity === "error" || data?.severity === "warning"
-      ? problemColor[data.severity]
-      : fusionColor;
+  const strokeColor = problemStrokeColor(data?.severity) ?? fusionColor;
   const showName =
     data?.name !== undefined && (selected === true || data.focus !== "none");
   const labelWidth = (data?.name.length ?? 0) * 6.5 + 12;
