@@ -13,7 +13,6 @@ export {
   compactNodeDimensions,
   componentInstanceFooterHeight,
   componentInstanceHeaderHeight,
-  componentInstancePortRowHeight,
   getComponentInstanceHeight,
   layoutNodeDimensions,
   type NodeDimensions,

@@ -16,7 +16,7 @@ export const portOnSide = (direction: PortDirection, side: PinSide): boolean =>
   (side === "left" ? direction === "in" : direction === "out");
 
 /** A port and how far down the card each of its two pins is centred. */
-export type PinRow = { port: CanvasPort } & Record<PinSide, number>;
+type PinRow = { port: CanvasPort } & Record<PinSide, number>;
 
 /**
  * Where a card of this height centres the pins of its ports, under the

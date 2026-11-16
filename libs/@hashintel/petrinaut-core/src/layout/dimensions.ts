@@ -35,7 +35,7 @@ export const classicNodeDimensions: RenderNodeDimensions = {
  * the card and the canvas agree on where every pin is.
  */
 export const componentInstanceHeaderHeight = 48;
-export const componentInstancePortRowHeight = 26;
+const componentInstancePortRowHeight = 26;
 export const componentInstanceFooterHeight = 6;
 
 /**
