@@ -22,6 +22,15 @@ describe("readIconMarkup", () => {
     });
   });
 
+  it("refuses a file that draws shapes again through `use`, and says so", () => {
+    const result = readIconMarkup(
+      '<svg viewBox="0 0 8 8"><g id="a"><rect/></g><use href="#a"/></svg>',
+    );
+
+    expect(result).toMatchObject({ ok: false });
+    expect(result.ok ? "" : result.error).toContain("use");
+  });
+
   it("refuses a file over the size an icon may have", () => {
     const result = readIconMarkup(
       `<svg>${"<g/>".repeat(maxSubnetIconLength / 4 + 1)}</svg>`,

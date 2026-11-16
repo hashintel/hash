@@ -1,4 +1,7 @@
-import { maxSubnetIconLength } from "@hashintel/petrinaut-core";
+import {
+  maxSubnetIconLength,
+  subnetIconHoldsUse,
+} from "@hashintel/petrinaut-core";
 
 import { iconMaskImage } from "../components/component-glyph/icon-mask";
 import { pickFile, readFileText } from "./pick-file";
@@ -17,6 +20,13 @@ export const readIconMarkup = (text: string): PickedIcon => {
   const iconSvg = text.trim();
   if (iconSvg.length > maxSubnetIconLength) {
     return tooLarge;
+  }
+  if (subnetIconHoldsUse(iconSvg)) {
+    return {
+      ok: false,
+      error:
+        "That SVG repeats shapes through `use` elements. Convert them to plain shapes, then try again.",
+    };
   }
   return iconMaskImage(iconSvg) === null
     ? { ok: false, error: "That file is not an SVG." }

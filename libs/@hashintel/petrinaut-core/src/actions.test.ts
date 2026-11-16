@@ -2513,4 +2513,28 @@ describe("Petrinaut core interface actions", () => {
       }),
     ).toThrow();
   });
+
+  test("an icon that draws shapes again through `use` is refused", () => {
+    const instance = createInstance(withInterface());
+    // Each group draws the one before it twice: thirty of them ask for a
+    // billion shapes.
+    const groups = Array.from({ length: 30 }, (_, level) =>
+      level === 0
+        ? '<g id="g0"><rect width="1" height="1"/></g>'
+        : `<g id="g${level}"><use href="#g${level - 1}"/><use href="#g${level - 1}"/></g>`,
+    );
+
+    for (const iconSvg of [
+      `<svg viewBox="0 0 8 8">${groups.join("")}</svg>`,
+      '<svg><USE href="#a"/></svg>',
+      '<svg xmlns:s="http://www.w3.org/2000/svg"><s:use href="#a"/></svg>',
+    ]) {
+      expect(() =>
+        instance.mutations.updateSubnet({
+          subnetId: "fast",
+          update: { iconSvg },
+        }),
+      ).toThrow();
+    }
+  });
 });

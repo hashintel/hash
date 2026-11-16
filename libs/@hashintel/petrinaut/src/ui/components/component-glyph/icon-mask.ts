@@ -1,4 +1,7 @@
-import { maxSubnetIconLength } from "@hashintel/petrinaut-core";
+import {
+  maxSubnetIconLength,
+  subnetIconHoldsUse,
+} from "@hashintel/petrinaut-core";
 
 /** A length given in user units, a bare number or one in `px`; 0 for any other. */
 const userUnits = (length: string | null): number =>
@@ -6,15 +9,18 @@ const userUnits = (length: string | null): number =>
 
 /**
  * A CSS image of `markup`, to paint as a mask, or `null` when the markup is
- * not SVG, or is longer than an icon may be. The image fills the box that
- * draws it and keeps the icon's proportions: a missing `viewBox` is taken
- * from a width and height given in user units, and the fixed size goes.
+ * not SVG, is longer than an icon may be, or holds a `use` element. The
+ * image fills the box that draws it and keeps the icon's proportions: a
+ * missing `viewBox` is taken from a width and height given in user units,
+ * and the fixed size goes.
  *
  * A mask image is fetched as an image, so nothing in the markup runs or
- * loads, whatever it holds: nothing here filters it.
+ * loads, whatever it holds. What it costs to paint is bounded by the rules
+ * the document's schema has for an icon, asked again here: a document can
+ * reach a glyph without passing the schema.
  */
 export const iconMaskImage = (markup: string): string | null => {
-  if (markup.length > maxSubnetIconLength) {
+  if (markup.length > maxSubnetIconLength || subnetIconHoldsUse(markup)) {
     return null;
   }
   // Read into a detached document. The HTML parser takes a standalone SVG

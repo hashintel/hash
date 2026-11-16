@@ -507,6 +507,14 @@ export const fusionSchema = z
 /** The longest icon a subnet may carry, in characters of SVG markup. */
 export const maxSubnetIconLength = 16_384;
 
+/**
+ * Whether icon markup holds a `use` element, under any prefix. A `use` draws
+ * another element again, so groups that each use the one before twice ask
+ * for a billion shapes from an icon well under the length limit.
+ */
+export const subnetIconHoldsUse = (markup: string): boolean =>
+  /<(?:[^\s<>/]*:)?use[\s/>]/i.test(markup);
+
 export const subnetSchema = z
   .strictObject({
     id: idSchema,
@@ -515,10 +523,18 @@ export const subnetSchema = z
     }),
     description: descriptionSchema,
     metadata: metadataSchema,
-    iconSvg: z.string().min(1).max(maxSubnetIconLength).optional().meta({
-      description:
-        "SVG markup for the component's icon. Its shape is drawn in one colour on the component's instances, in place of the default cube. Keep it small: one `<svg>` with a `viewBox`, shapes only.",
-    }),
+    iconSvg: z
+      .string()
+      .min(1)
+      .max(maxSubnetIconLength)
+      .refine((markup) => !subnetIconHoldsUse(markup), {
+        message: "An icon draws each shape itself: it holds no `use` element.",
+      })
+      .optional()
+      .meta({
+        description:
+          "SVG markup for the component's icon. Its shape is drawn in one colour on the component's instances, in place of the default cube. Keep it small: one `<svg>` with a `viewBox`, shapes only, no `use` elements.",
+      }),
     displayColor: z.string().min(1).optional().meta({
       description:
         'CSS colour string for the component\'s icon and its tile, e.g. `"#1E90FF"`. Omit for the default glyph colour.',

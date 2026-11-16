@@ -72,6 +72,20 @@ describe("iconMaskImage", () => {
     ).toBeNull();
   });
 
+  it("refuses markup that draws shapes again through `use`", () => {
+    // Each group draws the one before it twice: thirty of them ask for a
+    // billion shapes.
+    const groups = Array.from({ length: 30 }, (_, level) =>
+      level === 0
+        ? '<g id="g0"><rect width="1" height="1"/></g>'
+        : `<g id="g${level}"><use href="#g${level - 1}"/><use href="#g${level - 1}"/></g>`,
+    );
+
+    expect(
+      iconMaskImage(`<svg viewBox="0 0 8 8">${groups.join("")}</svg>`),
+    ).toBeNull();
+  });
+
   it("does not throw on half of a surrogate pair", () => {
     expect(() =>
       iconMaskImage('<svg viewBox="0 0 8 8"><title>\ud800</title></svg>'),
