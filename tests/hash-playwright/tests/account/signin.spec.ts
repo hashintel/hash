@@ -51,7 +51,7 @@ test("user can sign out while the data type catalogue is loading", async ({
 
   const catalogueRequest = page.waitForRequest(isCatalogueRequest);
 
-  await page.reload();
+  await page.goto("/types");
   await catalogueRequest;
 
   await page.getByTestId("user-avatar").click();

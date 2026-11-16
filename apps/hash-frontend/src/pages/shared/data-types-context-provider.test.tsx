@@ -569,8 +569,8 @@ describe("data type catalogue pagination", () => {
     expect(screen.getByText("No catalogue")).toBeTruthy();
   });
 
-  it("starts a separate request after Strict Mode cancels the first mount", async () => {
-    const { link, operations, respondAt } = createCatalogueLink();
+  it("starts one request when a Strict Mode consumer enables the catalogue", async () => {
+    const { link, operations, respond } = createCatalogueLink();
     renderComponent(
       <StrictMode>
         <SnackbarProvider>
@@ -582,12 +582,12 @@ describe("data type catalogue pagination", () => {
         </SnackbarProvider>
       </StrictMode>,
     );
-    await waitFor(() => expect(operations).toHaveLength(2));
-    await respondAt(1, { queryDataTypes: { dataTypes: [meters(2)] } });
-    await respondAt(0, { queryDataTypes: { dataTypes: [meters(1)] } });
+    await waitFor(() => expect(operations).toHaveLength(1));
+    await respond({ queryDataTypes: { dataTypes: [meters(2)] } });
     expect(
       screen.getByText(`1 versions; latest ${meters(2).schema.$id}`),
     ).toBeTruthy();
+    expect(operations).toHaveLength(1);
     expect(captureException).not.toHaveBeenCalled();
   });
 
