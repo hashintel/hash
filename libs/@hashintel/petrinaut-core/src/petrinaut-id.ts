@@ -91,15 +91,16 @@ const rekeyUnlessUnchanged = <Value>(
   mapValue: (value: Value) => Value = (value) => value,
 ): Record<string, Value> => {
   const entries = Object.entries(record);
-  const mapped = entries.map(
-    ([key, value]) => [toPetrinautId(key), mapValue(value)] as const,
+  if (
+    entries.every(
+      ([key, value]) => toPetrinautId(key) === key && mapValue(value) === value,
+    )
+  ) {
+    return record;
+  }
+  return Object.fromEntries(
+    entries.map(([key, value]) => [toPetrinautId(key), mapValue(value)]),
   );
-  return mapped.every(
-    ([key, value], index) =>
-      key === entries[index]?.[0] && value === entries[index]?.[1],
-  )
-    ? record
-    : Object.fromEntries(mapped);
 };
 
 const toOptionalPetrinautId = (id: string | null): string | null =>
