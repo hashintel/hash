@@ -1464,6 +1464,23 @@ describe("Petrinaut core fusion actions", () => {
     expect(fusion()).not.toHaveProperty("description");
   });
 
+  test("names a fusion the document was loaded with one member of", () => {
+    const instance = createInstance({
+      ...composed(),
+      fusions: [{ id: "f1", members: [port("m1", "in")] }],
+    });
+
+    instance.mutations.updateFusion({
+      fusionId: "f1",
+      update: { name: "Belt" },
+    });
+
+    expect(instance.definition.get().fusions?.[0]).toMatchObject({
+      name: "Belt",
+      members: [port("m1", "in")],
+    });
+  });
+
   test("removing a place, an instance or a port takes it out of its fusions", () => {
     const instance = createInstance(composed());
     instance.mutations.addFusion({

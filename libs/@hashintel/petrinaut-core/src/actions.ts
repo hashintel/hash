@@ -1322,7 +1322,6 @@ export function createPetrinautActions(
         for (const fusion of net.fusions ?? []) {
           if (fusion.id === parsed.fusionId) {
             assignUpdate(fusion, parsed.update);
-            fusionSchema.parse(fusion);
             break;
           }
         }
