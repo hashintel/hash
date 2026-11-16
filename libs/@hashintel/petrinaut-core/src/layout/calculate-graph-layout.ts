@@ -124,9 +124,16 @@ export const calculateGraphLayout = async (
 
   // Fusions join their members, so fused places and instances land near each
   // other: one edge from the first member's node to each of the others. Two
-  // ports of one instance are one node, which gets no edge to itself.
+  // ports of one instance are one node, which gets no edge to itself. A
+  // member whose place or instance is gone has no node: ELK refuses an edge
+  // to one.
+  const nodeIds = new Set(elkNodes.map(({ id }) => id));
   for (const fusion of sdcpn.fusions ?? []) {
-    const [first, ...rest] = new Set(fusion.members.map(getArcEndpointNodeId));
+    const [first, ...rest] = new Set(
+      fusion.members
+        .map(getArcEndpointNodeId)
+        .filter((nodeId) => nodeIds.has(nodeId)),
+    );
     if (first === undefined) {
       continue;
     }

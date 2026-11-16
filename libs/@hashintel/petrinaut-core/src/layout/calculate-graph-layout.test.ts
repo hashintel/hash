@@ -92,4 +92,31 @@ describe("calculateGraphLayout", () => {
       { id: "fusion__loop-place-m1", sources: ["place"], targets: ["m1"] },
     ]);
   });
+
+  it("gives a fusion no edge to a member whose place or instance is gone", async () => {
+    const { calculateGraphLayout, layoutNodeDimensions } =
+      await import("../index");
+
+    await calculateGraphLayout(
+      {
+        ...net,
+        fusions: [
+          {
+            id: "dangling",
+            members: [
+              { kind: "place", placeId: "place" },
+              {
+                kind: "componentPort",
+                componentInstanceId: "gone",
+                portPlaceId: "in",
+              },
+            ],
+          },
+        ],
+      },
+      layoutNodeDimensions,
+    );
+
+    expect(elkStarts.edges).toEqual([]);
+  });
 });
