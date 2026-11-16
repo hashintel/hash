@@ -14,7 +14,7 @@ Changes apply immediately and are saved as your preferences across nets. On host
 
 | Section      | Settings                                                                         |
 | ------------ | -------------------------------------------------------------------------------- |
-| **General**  | Animations, panel loading, the AI assistant, and browser FPS.                    |
+| **General**  | Animations, panel loading, the AI assistant, browser FPS, and the document view. |
 | **Viewport** | Minimap, Petricon, compact nodes, hover highlight, grid snapping, and selection. |
 | **Plugins**  | The host's plugins: switch each on or off and see what it adds.                  |
 | **Labs**     | Experimental modeling views, code layouts, and developer tools.                  |
@@ -58,6 +58,51 @@ A browser stall appears in the next sample. Hidden tabs pause sampling and start
 fresh when shown again. FPS does not measure painted frames or identify which
 part of the page caused a delay. **Plugins → Browser FPS** disables the counter
 and its command and shortcut.
+
+### Document view
+
+Turn on **Show document view** under **General → Document view**. A
+**Document data** tab appears in the bottom panel, after the other tabs. It
+has two sides, and each follows your edits:
+
+- **Document** shows the net as the document holds it, as an outline: each
+  key with its value, and the entries of a map or the items of a list indented
+  under it. An item of a list goes under its place in the list, from 0.
+- **Changes** lists what each edit did to the document, latest first. The list
+  starts empty when the tab appears and keeps the last fifty changes. The
+  switch at its top right picks how the changes show:
+  - **Formatted**, the default, gives each patch two lines that never wrap.
+    The first says what the patch did (`add`, `replace` or `remove`) and
+    where. The second, smaller, is the value it put there. A line across the
+    list separates one change from the next. An undo, a redo or a jump to an
+    entry of **Recent changes** is no patch, and shows as one tinted
+    `restore` row: the entry of the history the document went to, then the
+    document that entry holds.
+  - **Raw** shows each change as the document reported it, as an outline like
+    the document's: its patches, each with its `op`, its `path` as a list and
+    its `value`, and where the change came from. A move through the history
+    also says which entry it restored.
+
+The document, and the changes shown as **Raw**, read the same way:
+
+- Click a line with an arrow to open or close it. A closed list shows its
+  items where they are a few plain values, and else how many it holds. A
+  closed map shows the entries that fit on its line, its name first, a list
+  among them as it would show closed.
+- Text of several lines, such as a transition's code, is closed at first and
+  opens as a block.
+- **Expand all** and **Collapse all**, at the right of the tab bar, open or
+  close every line at once.
+- An item of the document stays open while others are added, removed or moved
+  around it.
+
+Each side is one stop of the Tab order. **Up** and **Down** move from line to
+line, or from patch to patch. **Right** opens a closed line and **Left** closes
+an open one, and **Enter** or **Space** does either. Where there is nothing to
+open or close, **Right** and **Left** cross to the other side.
+
+The document shows everything it holds, including the data of extensions that
+are switched off. **Plugins → Document view** removes the tab and the setting.
 
 ## Viewport
 

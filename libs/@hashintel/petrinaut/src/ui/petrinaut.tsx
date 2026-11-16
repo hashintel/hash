@@ -24,6 +24,7 @@ import {
 import { PetrinautProvider } from "../react/petrinaut-provider";
 import { Stack } from "./components/stack";
 import { MonacoProvider } from "./monaco/provider";
+import { documentViewPlugin } from "./plugins/document-view-plugin";
 import { fpsCounterPlugin } from "./plugins/fps-counter-plugin";
 import { PetrinautPluginsProvider } from "./plugins/plugins-provider";
 import { EditorView } from "./views/Editor/editor-view";
@@ -182,7 +183,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
               ref={portalContainerRef}
             >
               <PetrinautPluginsProvider
-                plugins={[fpsCounterPlugin, ...plugins]}
+                plugins={[fpsCounterPlugin, documentViewPlugin, ...plugins]}
               >
                 <EditorView
                   hideNetManagementControls={hideNetManagementControls}
