@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
+  noProvidedInterfaces,
   toPetrinautId,
   type SDCPN,
   type SelectionMap,
@@ -19,6 +20,7 @@ import {
   type PetrinautNavigationState,
 } from "../navigation";
 import { ActiveNetContext } from "./active-net-context";
+import { CompositionContext } from "./composition-context";
 import { EditorContext, type EditorContextValue } from "./editor-context";
 import { EditorProvider } from "./editor-provider";
 import { SDCPNContext, type SDCPNContextValue } from "./sdcpn-context";
@@ -366,6 +368,48 @@ describe("EditorProvider selection gestures", () => {
     });
     await flushMicrotasks();
     expect(recorded[1]?.intent.phase).toBe("discrete");
+  });
+});
+
+describe("EditorProvider in an editor that only composes", () => {
+  let editor: EditorContextValue;
+
+  const view = (compositionOnly: boolean) => (
+    <SDCPNContext value={makeSdcpnContextValue(() => "place")}>
+      <CompositionContext
+        value={{ provided: noProvidedInterfaces, compositionOnly }}
+      >
+        <TestHost recorded={[]}>
+          <EditorProvider>
+            <EditorContextGrabber
+              onContextValue={(value) => {
+                editor = value;
+              }}
+            />
+          </EditorProvider>
+        </TestHost>
+      </CompositionContext>
+    </SDCPNContext>
+  );
+
+  it.each(["add-place", "add-transition"] as const)(
+    "reads an armed %s tool as the cursor once the host restricts the editor",
+    (tool) => {
+      const { rerender } = render(view(false));
+      act(() => editor.setEditionMode(tool));
+      expect(editor.editionMode).toBe(tool);
+
+      rerender(view(true));
+      expect(editor.editionMode).toBe("cursor");
+    },
+  );
+
+  it("keeps the tool that places a component, which is composing", () => {
+    render(view(true));
+    act(() => editor.setAddComponentMode("packer"));
+
+    expect(editor.editionMode).toBe("add-component");
+    expect(editor.componentSubnetId).toBe("packer");
   });
 });
 

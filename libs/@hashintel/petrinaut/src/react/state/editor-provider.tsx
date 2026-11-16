@@ -629,9 +629,15 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const selection = selectionFromNavigation(resolved.selection);
   const effectiveState: EditorState = {
     ...state,
-    // An editor that only composes has one mode and one view of it.
+    // An editor that only composes has one mode and one view of it, and no
+    // tool that draws a place or a transition: one left armed reads as the
+    // cursor. Placing a component is composing, so that tool stays.
     globalMode: compositionOnly ? "edit" : navigation.state.mode,
     editViewMode: compositionOnly ? "canvas" : navigation.state.editView,
+    editionMode:
+      compositionOnly && state.editionMode !== "add-component"
+        ? "cursor"
+        : state.editionMode,
     simulateViewMode: navigation.state.simulateView,
     simulateDrawer: navigationResourceToSimulateDrawer(
       resolved.simulateResource,
