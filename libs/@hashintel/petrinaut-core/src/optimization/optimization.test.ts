@@ -27,7 +27,6 @@ const definition = {
   parameters: [],
   subnets: [],
   componentInstances: [],
-  fusions: [],
   scenarios: [scenario],
   metrics: [{ id: toPetrinautId("profit"), name: "Profit", code: "return 1;" }],
 };

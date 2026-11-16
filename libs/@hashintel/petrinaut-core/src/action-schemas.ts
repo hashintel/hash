@@ -32,7 +32,6 @@ export {
   colorSchema,
   componentInstanceSchema,
   differentialEquationSchema,
-  fusionMemberSchema,
   fusionSchema,
   idSchema,
   nodePositionCommitSchema,

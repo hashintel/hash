@@ -33,7 +33,7 @@ type FlatNet = {
   types: Color[];
 };
 
-export type AppliedFusions = {
+type AppliedFusions = {
   /** The flat place that stands for each flat place merged away. */
   aliases: ReadonlyMap<ID, ID>;
   /**

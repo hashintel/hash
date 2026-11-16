@@ -39,14 +39,6 @@ export const getArcPlaceNameOverrideKey = ({
   placeId: ID;
 }): string => `${transitionId}\u0000${placeId}`;
 
-const _codeIdentifier = (value: string): string => {
-  const cleaned = value.replace(/[^A-Za-z0-9_$]/g, "_");
-  if (/^[A-Za-z_$]/.test(cleaned)) {
-    return cleaned;
-  }
-  return `_${cleaned}`;
-};
-
 const scopedPortPlaceName = ({
   instance,
   portName,
