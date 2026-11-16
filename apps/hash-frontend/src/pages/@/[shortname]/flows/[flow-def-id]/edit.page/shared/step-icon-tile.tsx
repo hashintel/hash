@@ -4,6 +4,20 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import type { StepTone } from "./step-display";
 import type { IconName } from "@hashintel/ds-components";
 
+/**
+ * The tile and icon steps the designs give each hue so that none looks weaker than another: yellow's tile is a step
+ * deeper, and purple's and pink's icons lighter, than the rest.
+ */
+const tones: Record<StepTone, string> = {
+  yellow: css({ bg: "yellow.s35", color: "yellow.s110" }),
+  blue: css({ bg: "blue.s25", color: "blue.s110" }),
+  pink: css({ bg: "pink.s25", color: "pink.s100" }),
+  orange: css({ bg: "orange.s25", color: "orange.s110" }),
+  green: css({ bg: "green.s25", color: "green.s110" }),
+  purple: css({ bg: "purple.s25", color: "purple.s90" }),
+  neutral: css({ bg: "neutral.s25", color: "neutral.s105" }),
+};
+
 const tile = css({
   display: "flex",
   flexShrink: "0",
@@ -30,13 +44,7 @@ export const StepIconTile = ({
   tone: StepTone;
   size: keyof typeof tileSizes;
 }) => (
-  <span
-    className={cx(tile, tileSizes[size])}
-    style={{
-      background: `var(--colors-${tone}-bg-subtle)`,
-      color: `var(--colors-${tone}-fg-muted)`,
-    }}
-  >
+  <span className={cx(tile, tileSizes[size], tones[tone])}>
     <Icon name={icon} size={iconSizes[size]} />
   </span>
 );
