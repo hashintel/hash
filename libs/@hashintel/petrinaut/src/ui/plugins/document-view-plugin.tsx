@@ -1,16 +1,14 @@
 import { useEffect, useState } from "react";
 
-import {
-  definePetrinautPlugin,
-  type DocChangeEvent,
-  type PluginHook,
-} from "../plugin";
+import { definePetrinautPlugin, type PluginHook } from "../plugin";
 import {
   DocumentView,
   type ChangesAs,
 } from "./document-view-plugin/document-view";
 import { ExpansionControls } from "./document-view-plugin/expansion-controls";
 import { openTo, toggleRow } from "./document-view-plugin/outline/rows";
+
+import type { RecordedChange } from "./document-view-plugin/change-list";
 
 const DocumentViewPlugin = definePetrinautPlugin({
   id: "hash.document",
@@ -45,7 +43,7 @@ const useDocumentViewPlugin: PluginHook<typeof DocumentViewPlugin> = (api) => {
   const { handle } = api.document;
   const [expansion, setExpansion] = useState(() => openTo(1));
   // Kept here, latest first, where they outlive the tab's turns out of view.
-  const [changes, setChanges] = useState<readonly DocChangeEvent[]>([]);
+  const [changes, setChanges] = useState<readonly RecordedChange[]>([]);
   const [changesAs, setChangesAs] = useState<ChangesAs>("formatted");
 
   useEffect(() => {
@@ -53,7 +51,10 @@ const useDocumentViewPlugin: PluginHook<typeof DocumentViewPlugin> = (api) => {
       return undefined;
     }
     return handle.subscribe((change) =>
-      setChanges((earlier) => [change, ...earlier].slice(0, changeLimit)),
+      setChanges((earlier) => [
+        { serial: (earlier[0]?.serial ?? 0) + 1, change },
+        ...earlier.slice(0, changeLimit - 1),
+      ]),
     );
   }, [handle, shown]);
 

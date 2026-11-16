@@ -4,10 +4,10 @@ import { SegmentedControl } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { FocusRoot, FocusStack } from "../../worksheet/focus-stack";
-import { ChangeList } from "./change-list";
+import { ChangeList, type RecordedChange } from "./change-list";
 import { Outline } from "./outline";
 
-import type { DocChangeEvent, PluginDocumentHandle } from "../../plugin";
+import type { PluginDocumentHandle } from "../../plugin";
 import type { Expansion } from "./outline/rows";
 
 /** How the changes show: each patch on two lines, or each change as the handle sent it. */
@@ -64,7 +64,7 @@ export const DocumentView = ({
   onToggle,
 }: {
   handle: PluginDocumentHandle;
-  changes: readonly DocChangeEvent[];
+  changes: readonly RecordedChange[];
   changesAs: ChangesAs;
   onChangesAs: (changesAs: ChangesAs) => void;
   /** Of both outlines: a path of the one is none of the other's. */
@@ -107,7 +107,12 @@ export const DocumentView = ({
                 label="Changes"
                 // What the handle sent, less the document it leaves, which
                 // the other pane shows.
-                data={changes.map(({ next: _next, ...sent }) => sent)}
+                data={changes.map(
+                  ({ change: { next: _next, ...sent } }) => sent,
+                )}
+                // By its number, a change keeps its rows when a newer one
+                // takes its place in the list.
+                itemNames={changes.map(({ serial }) => String(serial))}
                 empty={noChanges}
                 // A change holds its patches a level down, so it opens a
                 // level further than the document.

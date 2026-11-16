@@ -64,6 +64,12 @@ const valueStyle = css({
 
 const emptyStyle = css({ color: "neutral.s90", fontStyle: "italic" });
 
+/** A change the handle reported, under its number among them: its rows go by it, and stay its own when a newer change arrives. */
+export type RecordedChange = {
+  readonly serial: number;
+  readonly change: DocChangeEvent;
+};
+
 /** What a row says: what was done, to what, and the value that left there. */
 type Line = {
   op: PetrinautPatch["op"] | "restore";
@@ -95,15 +101,15 @@ export const ChangeList = ({
   changes,
   empty,
 }: {
-  changes: readonly DocChangeEvent[];
+  changes: readonly RecordedChange[];
   /** What the list says while there are no changes. */
   empty: string;
 }) => {
-  const rows = changes.flatMap((change, changeIndex) => {
+  const rows = changes.flatMap(({ serial, change }) => {
     const lines = linesOf(change);
     // A handle that reports no patches still made a change.
     return (lines.length > 0 ? lines : [null]).map((line, index) => ({
-      id: `${changeIndex}/${index}`,
+      id: `${serial}/${index}`,
       startsChange: index === 0,
       line,
     }));

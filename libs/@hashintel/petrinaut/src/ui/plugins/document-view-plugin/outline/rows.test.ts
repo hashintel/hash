@@ -143,6 +143,21 @@ describe("outlineRows", () => {
     ]);
   });
 
+  it("knows the items of a list of data by the names the caller gives, and still shows their place", () => {
+    const named = outlineRows(
+      [{ source: "local" }, { source: "remote" }],
+      openTo(1),
+      ["7", "6"],
+    );
+
+    expect(named.map(({ path, key }) => [path, key])).toEqual([
+      ["/7", 0],
+      ["/7/source", "source"],
+      ["/6", 1],
+      ["/6/source", "source"],
+    ]);
+  });
+
   it("says what a closed map holds: the entries that fit on its line, its name first, its lists among them", () => {
     const summaries = outlineRows(
       {

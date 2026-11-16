@@ -181,6 +181,7 @@ const Row = ({
 export const Outline = ({
   label,
   data,
+  itemNames,
   empty,
   expansion,
   onToggle,
@@ -189,13 +190,15 @@ export const Outline = ({
   label: string;
   /** A map or a list. Anything else, or an empty one, shows `empty`. */
   data: unknown;
+  /** For data that is a list: what each item goes by from one version of the data to the next, in place of its `id` or its place. */
+  itemNames?: readonly string[];
   /** What the outline says while it has no rows. */
   empty: string;
   expansion: Expansion;
   /** Opens or closes the row at a path. */
   onToggle: (path: string) => void;
 }) => {
-  const rows = outlineRows(data, expansion);
+  const rows = outlineRows(data, expansion, itemNames);
   const { attach, rowProps } = useRowStops(
     rows.map(({ path, value }) => {
       const toggle = () => onToggle(path);

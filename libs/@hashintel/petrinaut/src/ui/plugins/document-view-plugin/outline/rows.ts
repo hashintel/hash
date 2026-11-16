@@ -185,13 +185,20 @@ const itemSegments = (items: DataList): string[] => {
 export const outlineRows = (
   data: unknown,
   expansion: Expansion,
+  /** For data that is a list: what each item goes by in a path, in place of its `id` or its place. */
+  itemNames?: readonly string[],
 ): OutlineRow[] => {
   const rows: OutlineRow[] = [];
 
-  const addRows = (collection: Collection, parent: string, depth: number) => {
+  const addRows = (
+    collection: Collection,
+    parent: string,
+    depth: number,
+    names?: readonly string[],
+  ) => {
     const children: [key: string | number, segment: string, value: unknown][] =
       isList(collection)
-        ? itemSegments(collection).map((segment, index) => [
+        ? (names ?? itemSegments(collection)).map((segment, index) => [
             index,
             segment,
             collection[index],
@@ -235,7 +242,7 @@ export const outlineRows = (
   };
 
   if (holdsRows(data)) {
-    addRows(data, "", 0);
+    addRows(data, "", 0, itemNames);
   }
   return rows;
 };

@@ -72,9 +72,12 @@ const showChangesAs = async (name: "Formatted" | "Raw") => {
   });
 };
 
-/** The row of the document's outline whose line starts with `text`. */
-const row = (text: string): HTMLElement => {
-  const found = within(screen.getByRole("tree", { name: "Document" }))
+/** The row of an outline, the document's unless named, whose line starts with `text`. */
+const row = (
+  text: string,
+  name: "Document" | "Changes" = "Document",
+): HTMLElement => {
+  const found = within(screen.getByRole("tree", { name }))
     .getAllByRole("treeitem")
     .find((item) => item.textContent.startsWith(text));
   if (!found) {
@@ -232,6 +235,48 @@ it("shows each change as the handle sent it, on request", async () => {
 
   await showChangesAs("Formatted");
   expect(patches()).toHaveLength(1);
+});
+
+it("keeps a patch's row with its change when a newer change arrives", () => {
+  const { addPlace } = renderShown();
+  addPlace("Stock");
+  const [stock] = within(
+    screen.getByRole("list", { name: "Changes" }),
+  ).getAllByRole("listitem");
+  act(() => stock!.focus());
+
+  addPlace("Sold");
+
+  expect(patches().map(([, target]) => target)).toEqual([
+    "/places/1",
+    "/places/0",
+  ]);
+  expect(document.activeElement).toBe(stock);
+  expect(stock!.textContent).toMatch(/^add\/places\/0\{ name: "Stock"/);
+});
+
+it("keeps a row of a change as sent open when a newer change arrives", async () => {
+  const { addPlace } = renderShown();
+  addPlace("Stock");
+  await showChangesAs("Raw");
+  fireEvent.click(within(row("0:{", "Changes")).getByText(/op: "add"/));
+
+  addPlace("Sold");
+
+  // Each change still goes under its place in the list, and holds what was sent.
+  expect(outline("Changes")).toEqual([
+    "0:",
+    "patches:",
+    '0:{ op: "add", path: ["places", 1], … }',
+    'source:"local"',
+    "1:",
+    "patches:",
+    "0:",
+    'op:"add"',
+    'path:["places", 0]',
+    expect.stringMatching(/^value:\{ name: "Stock", id: "/),
+    'source:"local"',
+  ]);
 });
 
 it("opens and closes rows by a click on their line, and all at once", () => {
