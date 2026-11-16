@@ -105,6 +105,8 @@ type FlattenContext = {
   fusionGroups: FusionGroup[];
   /** For each flat equation, the `equationKey` of the equation it is a copy of. */
   equationKeys: Map<ID, string>;
+  /** What runs for each instance, checked once: every arc and fusion at its ports asks. */
+  runningSubnets: Map<ComponentInstance, RunningSubnet>;
 };
 
 const assertUniqueFlatId = ({
@@ -141,6 +143,10 @@ const requireRunningSubnet = (
   ctx: FlattenContext,
   instance: ComponentInstance,
 ): RunningSubnet => {
+  const checked = ctx.runningSubnets.get(instance);
+  if (checked) {
+    return checked;
+  }
   const binding = resolveImplementation(ctx.source, instance);
   if (binding === null) {
     throw new Error(
@@ -163,7 +169,9 @@ const requireRunningSubnet = (
       );
     }
   }
-  return runningSubnet(binding);
+  const running = runningSubnet(binding);
+  ctx.runningSubnets.set(instance, running);
+  return running;
 };
 
 /**
@@ -578,6 +586,7 @@ export const flattenComponentInstancesForSimulation = ({
     arcPlaceNameOverrides: new Map(),
     fusionGroups: [],
     equationKeys: new Map(),
+    runningSubnets: new Map(),
   };
 
   flattenNet({

@@ -1149,5 +1149,44 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
         /`s1` cannot run `partial`: partial has no port named Out/,
       );
     });
+
+    it("checks an implementation once for its instance, however many fusions reach its ports", () => {
+      const indices = Array.from({ length: 1000 }, (_, index) => index);
+      const ports = (subnetId: string) =>
+        indices.map((index) =>
+          place(`${subnetId}_${index}`, { name: `P${index}`, isPort: true }),
+        );
+      const definition = sdcpn({
+        places: indices.map((index) => place(`root_${index}`)),
+        componentInstances: [componentInstance("w1", "wide")],
+        subnets: [
+          subnet("wide", { interface: true, places: ports("wide") }),
+          subnet("impl", { implements: ["wide"], places: ports("impl") }),
+        ],
+        implementations: { wide: "impl" },
+        fusions: indices.map((index) => ({
+          id: `f${index}`,
+          members: [
+            { kind: "place", placeId: `root_${index}` },
+            {
+              kind: "componentPort",
+              componentInstanceId: "w1",
+              portPlaceId: `wide_${index}`,
+            },
+          ],
+        })),
+      });
+
+      const started = Date.now();
+      const result = flatten({ definition });
+      const elapsedMs = Date.now() - started;
+
+      expect(result.sdcpn.places.map(({ id }) => id)).toEqual(
+        indices.map((index) => `root_${index}`),
+      );
+      // One check takes milliseconds; one for every fusion takes several
+      // seconds.
+      expect(elapsedMs).toBeLessThan(2_000);
+    });
   });
 });
