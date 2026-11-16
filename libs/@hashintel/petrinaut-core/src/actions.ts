@@ -296,7 +296,6 @@ const absorbFusionsSharingMembers = (
   fusion: Fusion,
   members: readonly FusionMember[],
 ): void => {
-  const fusions = getFusions(net);
   for (const member of members) {
     const other = findFusionWithMember(net, member);
     if (!other || other.id === fusion.id) {
@@ -307,7 +306,7 @@ const absorbFusionsSharingMembers = (
         fusion.members.push(otherMember);
       }
     }
-    fusions.splice(fusions.indexOf(other), 1);
+    removeWhere(net.fusions ?? [], (held) => held === other);
   }
 };
 
@@ -414,17 +413,6 @@ const assertEndpointReferences = (
     throw new Error(
       `${referrer} references subnet place \`${port.name}\`, but only places marked \`isPort\` can be used as component ports.`,
     );
-  }
-};
-
-/** Throws when a fusion names a place or a port that is not in `net`. */
-const assertFusionReferences = (
-  sdcpn: SDCPN,
-  net: MutableNet,
-  fusion: Pick<Fusion, "members">,
-): void => {
-  for (const member of fusion.members) {
-    assertEndpointReferences(sdcpn, net, member, "Fusion");
   }
 };
 
@@ -1309,14 +1297,21 @@ export function createPetrinautActions(
       const parsedFusion = fusionSchema.parse(fusion);
       mutateWithExtensionGuards((sdcpn) => {
         const net = resolveTargetNet(sdcpn, targetSubnetId);
-        assertFusionReferences(sdcpn, net, parsedFusion);
-        if (getFusions(net).some(({ id }) => id === parsedFusion.id)) {
+        for (const member of parsedFusion.members) {
+          assertEndpointReferences(sdcpn, net, member, "Fusion");
+        }
+        const fusions = getFusions(net);
+        if (fusions.some(({ id }) => id === parsedFusion.id)) {
           throw new Error(
             `Fusion ID \`${parsedFusion.id}\` already exists in the target net.`,
           );
         }
-        absorbFusionsSharingMembers(net, parsedFusion, parsedFusion.members);
-        getFusions(net).push(parsedFusion);
+        // A copy of the members: absorbing appends to the list.
+        absorbFusionsSharingMembers(net, parsedFusion, [
+          ...parsedFusion.members,
+        ]);
+        fusions.push(parsedFusion);
+        // Absorbing a fusion can bring a second place of the net.
         fusionSchema.parse(parsedFusion);
       });
     },
