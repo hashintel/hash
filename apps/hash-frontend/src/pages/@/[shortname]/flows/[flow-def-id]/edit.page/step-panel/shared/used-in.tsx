@@ -80,21 +80,24 @@ export const UsedInButton = ({
   open: boolean;
   onToggle: () => void;
 }) => {
-  const names = valueUses.map(({ step }) => getStepName(step));
   const shown =
     valueUses.length > tileCap ? valueUses.slice(0, tileCap - 1) : valueUses;
   const rest = valueUses.length - shown.length;
-  const namesRest = names.length - nameCap;
+  const named = valueUses.slice(0, nameCap);
+  const more =
+    valueUses.length > nameCap
+      ? `and ${valueUses.length - nameCap} more`
+      : null;
 
   return (
     <Tooltip
       position="top"
       content={
         <span className={tooltipNames}>
-          {valueUses.slice(0, nameCap).map(({ step }) => (
+          {named.map(({ step }) => (
             <span key={step.stepId}>{getStepName(step)}</span>
           ))}
-          {namesRest > 0 && <span>{`and ${namesRest} more`}</span>}
+          {more && <span>{more}</span>}
         </span>
       }
     >
@@ -103,7 +106,7 @@ export const UsedInButton = ({
         size="xs"
         className={usedIn}
         aria-expanded={open}
-        aria-label={`Used in ${names.join(", ")}`}
+        aria-label={`Used in ${named.map(({ step }) => getStepName(step)).join(", ")}${more ? ` ${more}` : ""}`}
         suffix={
           <span className={tiles}>
             {shown.map(({ step }) => {
