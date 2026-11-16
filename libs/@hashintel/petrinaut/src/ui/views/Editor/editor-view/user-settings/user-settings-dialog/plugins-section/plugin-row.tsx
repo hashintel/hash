@@ -3,7 +3,7 @@
  * monogram, the name and author, a status label and the switch that runs the
  * plugin, which a `required` plugin lacks. Clicking the line opens the
  * description and the plugin's contributions as small tags, with an animated
- * disclosure.
+ * disclosure. From the line, ArrowRight opens them and ArrowLeft closes them.
  */
 
 import { use, useId, useState } from "react";
@@ -255,7 +255,11 @@ export const PluginRow = ({ manifest, status }: PluginRowProps) => {
       className={rowStyle}
       data-off={status === "on" ? undefined : true}
     >
-      <FocusControls>
+      <FocusControls
+        {...(open
+          ? { collapse: () => setOpen(false) }
+          : { expand: () => setOpen(true) })}
+      >
         <div className={headerStyle}>
           <button
             type="button"

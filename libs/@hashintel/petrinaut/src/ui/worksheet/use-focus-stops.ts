@@ -16,6 +16,10 @@
  * from column 0 returns to it. Moves past any edge ask the stack to carry
  * focus onward; a refused move leaves focus where it is.
  *
+ * A stop can fold: at its first column, ArrowRight calls its `expand` and
+ * ArrowLeft its `collapse` in place of moving. A stop gives the one that
+ * applies now, so ArrowLeft on a collapsed stop is a move like any other.
+ *
  * Focusing stays the owner's: `focusTarget` receives the wished position
  * and reports whether an element took focus, so ref bookkeeping and
  * nearest-column policies live with the table that owns them.
@@ -27,12 +31,15 @@ import {
   FocusGroupContext,
   type FocusDirection,
   type FocusEntry,
+  type FocusFold,
 } from "./focus-flow";
 
-export type FocusStop =
+export type FocusStop = (
   | { id: string; kind: "row"; gutter?: boolean }
   | { id: string; kind: "full" }
-  | { id: string; kind: "sparse"; columns: number[] };
+  | { id: string; kind: "sparse"; columns: number[] }
+) &
+  FocusFold;
 
 /** A wished position; `column: "gutter"` targets a row stop's gutter lane. */
 export interface FocusStopTarget {
@@ -241,7 +248,18 @@ export function useFocusStops(options: FocusStopsOptions): FocusStops {
         return;
       }
 
-      // Horizontal, within the line.
+      // Horizontal. A stop that folds does so from its first column, in
+      // place of moving.
+      const fold = direction === "right" ? stop.expand : stop.collapse;
+      if (
+        fold &&
+        position.column === (stop.kind === "sparse" ? stop.columns[0] : 0)
+      ) {
+        fold();
+        return;
+      }
+
+      // Within the line.
       if (stop.kind === "full") {
         moveFrom(direction, overflowFrom);
         return;

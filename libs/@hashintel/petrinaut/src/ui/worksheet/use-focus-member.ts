@@ -11,6 +11,7 @@ import {
   focusLands,
   type FocusDirection,
   type FocusEntry,
+  type FocusFold,
 } from "./focus-flow";
 
 export interface FocusMember {
@@ -63,10 +64,7 @@ export interface FocusHeader {
  * its collapse state when handlers are given — a header that owns
  * horizontal keys never emits horizontal moves.
  */
-export function useFocusHeader(options: {
-  collapse?: () => void;
-  expand?: () => void;
-}): FocusHeader {
+export function useFocusHeader(options: FocusFold): FocusHeader {
   const [element, setElement] = useState<HTMLButtonElement | null>(null);
   const member = useFocusMember(() => focusLands(element));
 

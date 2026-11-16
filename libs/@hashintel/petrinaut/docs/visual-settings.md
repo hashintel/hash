@@ -185,6 +185,8 @@ and how many of them run.
   items, tabs and settings disappear until you switch it back on. Your selection,
   panels and open dialogs stay as they are. A plugin the host needs, such as
   its Save button, has no switch.
+- With a plugin's line focused, **Right** opens its description and tags and
+  **Left** closes them.
 - **Not running** marks a plugin that stopped on an error. Reload the page to
   start it again.
 - The tags under the description list what the plugin declares: the parts of

@@ -450,6 +450,54 @@ describe("worksheet focus flow", () => {
     expectFocused("R 0,0");
   });
 
+  it("folds a stop from its first column, and moves where the stop has nothing to fold", () => {
+    const expand = vi.fn();
+    const collapse = vi.fn();
+    render(
+      <FocusRoot>
+        <FocusStack axis="horizontal">
+          <GridHarness label="L" rows={1} columns={1} />
+          <StopsHarness
+            label="T"
+            stops={[
+              { id: "closed", kind: "row", expand },
+              { id: "open", kind: "row", collapse },
+              { id: "strip", kind: "full", expand },
+            ]}
+            columnCount={2}
+          />
+        </FocusStack>
+      </FocusRoot>,
+    );
+
+    // A collapsed stop opens on ArrowRight and stays where it is.
+    focusPart("T closed c0");
+    arrow("ArrowRight");
+    expect(expand).toHaveBeenCalledTimes(1);
+    expectFocused("T closed c0");
+    // ArrowLeft on it is a move like any other: out of the table.
+    arrow("ArrowLeft");
+    expect(collapse).not.toHaveBeenCalled();
+    expectFocused("L 0,0");
+
+    // An expanded stop closes on ArrowLeft, and ArrowRight moves along it.
+    focusPart("T open c0");
+    arrow("ArrowLeft");
+    expect(collapse).toHaveBeenCalledTimes(1);
+    expectFocused("T open c0");
+    arrow("ArrowRight");
+    expectFocused("T open c1");
+    // Past its first column a stop does not fold.
+    arrow("ArrowLeft");
+    expect(collapse).toHaveBeenCalledTimes(1);
+    expectFocused("T open c0");
+
+    focusPart("T strip full");
+    arrow("ArrowRight");
+    expect(expand).toHaveBeenCalledTimes(2);
+    expectFocused("T strip full");
+  });
+
   it("drives collapse/expand from a header's Left/Right, routing horizontally without them", () => {
     const collapse = vi.fn();
     const expand = vi.fn();
