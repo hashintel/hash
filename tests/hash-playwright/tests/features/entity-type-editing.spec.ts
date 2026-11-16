@@ -7,11 +7,13 @@ import {
   parentCard,
   propertiesTable,
   propertyRow,
+  publishDraftEntityType,
   randomTypeName,
   removeParentButton,
   requiredCheckbox,
   rowMenuButton,
   saveChanges,
+  startDraftEntityType,
 } from "../shared/entity-type-editor";
 import { expectFullyShown } from "../shared/expect-fully-shown";
 import { expect, test } from "../shared/runtime";
@@ -31,12 +33,9 @@ test("removing a type's only parent survives a reload", async ({ page }) => {
   await createEntityType(page, parentName);
 
   const childName = randomTypeName();
-  const childPath = await createEntityType(page, childName);
-
+  await startDraftEntityType(page, childName);
   await addParent(page, parentName);
-  await saveChanges(page);
-
-  await openTypePage(page, childPath);
+  const childPath = await publishDraftEntityType(page, childName);
   await expect(parentCard(page, parentName)).toBeVisible();
 
   await parentCard(page, parentName).hover();
