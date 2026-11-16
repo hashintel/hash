@@ -43,12 +43,18 @@ const cardStyle = css({
   },
 });
 
+/**
+ * `componentInstanceHeaderHeight` as a literal: Panda extracts no style value
+ * it has to import. The type holds the two equal.
+ */
+const headerHeight: typeof componentInstanceHeaderHeight = 48;
+
 /** The header matches the compact place and transition cards: tile, name, kind. */
 const headerStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "[8px]",
-  height: `[${componentInstanceHeaderHeight}px]`,
+  height: `[${headerHeight}px]`,
   flexShrink: "0",
   padding: "[4px 6px 4px 4px]",
   borderBottom: "1px solid",
