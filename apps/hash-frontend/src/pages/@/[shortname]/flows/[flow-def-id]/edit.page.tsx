@@ -32,7 +32,7 @@ import { LeftPanel } from "./edit.page/left-panel";
 import { LogsView } from "./edit.page/logs-view";
 import { generateRunViewPath, parseRunParam } from "./edit.page/run-path";
 import { RunView } from "./edit.page/run-view";
-import { findStep, getEnclosingStepIds } from "./edit.page/shared/find-step";
+import { findStep } from "./edit.page/shared/find-step";
 import { sidePanelWidth } from "./edit.page/shared/side-panel";
 import { useFlowRuns } from "./edit.page/shared/use-flow-runs";
 import { StepPanel } from "./edit.page/step-panel";
@@ -274,21 +274,18 @@ const FlowEditor = ({
       return next;
     });
 
-  /* Selects one step and brings it into view on the canvas, expanding the for-each steps it's inside, as a step in a
-   * collapsed one isn't drawn. */
+  /* Selects one step and brings it into view on the canvas. A step in a collapsed for-each step isn't drawn, so the
+   * for-each step is expanded first. */
   const selectAndFocusStep = (stepId: string) => {
-    const enclosingStepIds = getEnclosingStepIds(flowDefinition.steps, stepId);
+    const collapsedParent = flowDefinition.steps.find(
+      (step) =>
+        step.kind === "for-each" &&
+        collapsedStepIds.has(step.stepId) &&
+        findStep(step.steps, stepId),
+    );
 
-    if (enclosingStepIds.some((id) => collapsedStepIds.has(id))) {
-      setCollapsedStepIds((collapsed) => {
-        const next = new Set(collapsed);
-
-        for (const id of enclosingStepIds) {
-          next.delete(id);
-        }
-
-        return next;
-      });
+    if (collapsedParent) {
+      toggleCollapsed(collapsedParent.stepId);
     }
 
     setSession((current) => ({

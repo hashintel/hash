@@ -1,4 +1,4 @@
-import { Tooltip } from "@hashintel/ds-components";
+import { Button, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { getStepName } from "../../shared/find-step";
@@ -12,23 +12,13 @@ const tileCap = 3;
 /** At most this many names show on hover, then "and N more", so a value used by many steps keeps a short tooltip. */
 const nameCap = 10;
 
+/* The design system's ghost button, in the design's quieter text: regular and subtle until hovered or open. */
 const usedIn = css({
-  display: "inline-flex",
   flexShrink: "0",
-  alignItems: "center",
-  gap: "1.5",
-  height: "6",
   px: "1.5",
-  bg: "[transparent]",
-  borderWidth: "0",
-  borderRadius: "md",
-  textStyle: "xs",
+  fontWeight: "normal",
   color: "fg.subtle",
-  whiteSpace: "nowrap",
-  cursor: "pointer",
-  _hover: { color: "fg.heading", bg: "bg.surface.hover" },
-  _focusVisible: { color: "fg.heading", bg: "bg.surface.hover" },
-  "&[aria-expanded=true]": { color: "fg.heading" },
+  "&:hover, &[aria-expanded=true]": { color: "fg.heading" },
 });
 const tiles = css({ display: "inline-flex", alignItems: "center" });
 /* Each tile sits 4px over the one before, with a ring in the panel's colour between them. */
@@ -38,9 +28,14 @@ const stackedTile = css({
   boxShadow: "[0 0 0 1.5px {colors.bgSolid.min}]",
   "& + &": { marginLeft: "-1" },
 });
-const moreCount = css({ marginLeft: "1", color: "fg.subtle" });
+const moreCount = css({ marginLeft: "1" });
 const tooltipNames = css({ display: "flex", flexDirection: "column" });
-const rows = css({ display: "flex", flexDirection: "column", gap: "1" });
+const rows = css({
+  alignSelf: "stretch",
+  display: "flex",
+  flexDirection: "column",
+  gap: "1",
+});
 const row = css({
   display: "flex",
   alignItems: "center",
@@ -103,27 +98,30 @@ export const UsedInButton = ({
         </span>
       }
     >
-      <button
-        type="button"
+      <Button
+        variant="ghost"
+        size="xs"
         className={usedIn}
         aria-expanded={open}
         aria-label={`Used in ${names.join(", ")}`}
+        suffix={
+          <span className={tiles}>
+            {shown.map(({ step }) => {
+              const { icon, tone } = getStepDisplay(step);
+
+              return (
+                <span key={step.stepId} className={stackedTile}>
+                  <StepIconTile icon={icon} tone={tone} size="stack" />
+                </span>
+              );
+            })}
+            {rest > 0 && <span className={moreCount}>{`+${rest}`}</span>}
+          </span>
+        }
         onClick={onToggle}
       >
         Used in
-        <span className={tiles}>
-          {shown.map(({ step }) => {
-            const { icon, tone } = getStepDisplay(step);
-
-            return (
-              <span key={step.stepId} className={stackedTile}>
-                <StepIconTile icon={icon} tone={tone} size="stack" />
-              </span>
-            );
-          })}
-          {rest > 0 && <span className={moreCount}>{`+${rest}`}</span>}
-        </span>
-      </button>
+      </Button>
     </Tooltip>
   );
 };

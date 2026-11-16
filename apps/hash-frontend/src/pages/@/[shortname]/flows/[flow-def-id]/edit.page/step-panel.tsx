@@ -19,8 +19,8 @@ import { getFieldProblems } from "./step-panel/field-problems";
 import { FlowInputCard } from "./step-panel/flow-input-card";
 import { InputField } from "./step-panel/input-field";
 import { getNewFlowInput } from "./step-panel/input-sources";
+import { OutputField } from "./step-panel/output-field";
 import { QueryField } from "./step-panel/query-field";
-import { UsedByField } from "./step-panel/used-by-field";
 
 import type { StepTone } from "./shared/step-display";
 import type { FlowValue, ValueUse } from "./shared/value-uses";
@@ -281,7 +281,7 @@ const SelectedStepPanel = ({
               );
 
               return (
-                <UsedByField
+                <OutputField
                   key={outputName}
                   name={getOutputLabel(
                     actionDefinition?.actionDefinitionId,

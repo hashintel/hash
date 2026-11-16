@@ -9,9 +9,6 @@ import { UsedInButton, UsedInRows } from "./shared/used-in";
 import type { ValueUse } from "../shared/value-uses";
 import type { PayloadKind } from "@local/hash-isomorphic-utils/flows/types";
 
-/* In "Used in"'s size and place. */
-const notUsed = css({ px: "1.5", textStyle: "xs", color: "fg.subtle" });
-
 /*
  * An output that isn't a flow output shows its star only while its row is hovered or focused, keeping its place so
  * "Used in" doesn't move. The row's root is `display: contents` in a `Form.Section`, which `:hover` and
@@ -27,12 +24,12 @@ const flowOutputToggle = css({ display: "flex" });
 const openRows = css({ display: "block", paddingLeft: "3" });
 
 /**
- * A value a step gives: its name and type, then the steps that use it as "Used in", which opens a row per step.
+ * A value a step gives: its name and type, then "Used in" when steps use it, which opens a row per step.
  *
  * Given `flowOutput`, a star before "Used in" marks or unmarks the value as one of the flow's outputs, which show in
  * its runs' results.
  */
-export const UsedByField = ({
+export const OutputField = ({
   name,
   shape,
   valueUses,
@@ -67,7 +64,7 @@ export const UsedByField = ({
         <span data-flow-output={flowOutput.marked} className={flowOutputToggle}>
           <Button
             variant="ghost"
-            size="xs"
+            size="sm"
             iconName={flowOutput.marked ? "starFilled" : "star"}
             tooltip="Show in run results"
             aria-pressed={flowOutput.marked}
@@ -75,9 +72,7 @@ export const UsedByField = ({
           />
         </span>
       )}
-      {valueUses.length === 0 ? (
-        <span className={notUsed}>Not used yet</span>
-      ) : (
+      {valueUses.length > 0 && (
         <UsedInButton
           valueUses={valueUses}
           open={open}

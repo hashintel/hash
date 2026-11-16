@@ -38,19 +38,19 @@ const titleRow = css({
 });
 const spacer = css({ flex: "1" });
 const collapsedType = css({ textStyle: "xs", color: "fg.subtle" });
-/* "Used in" sits under the fields' values, with no label of its own: its button and rows say what it is. */
+/*
+ * "Used in" sits under the fields' values, with no label of its own, pulled out by its padding so its words and its
+ * rows' tiles line up with the values. The selector outranks the section's rule placing each child across every column.
+ */
 const usedIn = css({
-  /* Over the section's own rule placing each child across every column. */
   '[data-part="form-section"] > &': { gridColumn: "[2 / -1]" },
   display: "flex",
   flexDirection: "column",
+  alignItems: "flex-start",
   gap: "1",
   marginTop: "3",
+  marginLeft: "-1.5",
 });
-/* Each is pulled out by its padding, so the words and the rows' tiles line up with the values above. */
-const usedInButton = css({ alignSelf: "flex-start", marginLeft: "-1.5" });
-const usedInRows = css({ display: "block", marginLeft: "-1.5" });
-const notUsed = css({ textStyle: "sm", color: "fg.subtle" });
 
 type FlowInputType = Pick<FlowInputDefinition, "payloadKind" | "array">;
 
@@ -61,8 +61,8 @@ const getTypeLabel = (type: FlowInputType) => upperFirst(getKindLabel(type));
 
 /**
  * A flow input on Start, as a card: its label, type and whether it's required, which can all be changed, and the steps
- * that use it, as "Used in". Collapsed, it shows its type beside its label. Renaming changes only the label: steps refer
- * to the input by its name.
+ * that use it. Collapsed, it shows its type beside its label. Renaming changes only the label: steps refer to the input
+ * by its name.
  */
 export const FlowInputCard = ({
   editor,
@@ -156,29 +156,18 @@ export const FlowInputCard = ({
               }
             />
           </Form.Field>
-          <div className={usedIn}>
-            {valueUses.length === 0 ? (
-              <span className={notUsed}>Not used yet</span>
-            ) : (
-              <>
-                <span className={usedInButton}>
-                  <UsedInButton
-                    valueUses={valueUses}
-                    open={usesOpen}
-                    onToggle={() => setUsesOpen(!usesOpen)}
-                  />
-                </span>
-                {usesOpen && (
-                  <span className={usedInRows}>
-                    <UsedInRows
-                      valueUses={valueUses}
-                      onSelectStep={onSelectStep}
-                    />
-                  </span>
-                )}
-              </>
-            )}
-          </div>
+          {valueUses.length > 0 && (
+            <div className={usedIn}>
+              <UsedInButton
+                valueUses={valueUses}
+                open={usesOpen}
+                onToggle={() => setUsesOpen(!usesOpen)}
+              />
+              {usesOpen && (
+                <UsedInRows valueUses={valueUses} onSelectStep={onSelectStep} />
+              )}
+            </div>
+          )}
         </Form.Section>
       )}
     </section>
