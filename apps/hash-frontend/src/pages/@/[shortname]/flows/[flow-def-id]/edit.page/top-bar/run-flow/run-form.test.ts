@@ -152,6 +152,7 @@ describe("getFlowInputValues", () => {
         ...getInitialFormValues(inputs),
         count: { kind: "Number", value: 0 },
         subject: { kind: "Text", value: "Hello" },
+        note: { kind: "Text", value: "  " },
         due: { kind: "Date", value: "2026-11-05" },
       }),
     ).toEqual({
@@ -179,27 +180,15 @@ describe("getFlowInputValues", () => {
     });
   });
 
-  it("names the required inputs left blank", () => {
-    expect(getFlowInputValues(inputs, getInitialFormValues(inputs))).toEqual({
-      flowInputs: { notify: { kind: "Boolean", value: false } },
-      missingInputNames: ["count", "subject"],
-    });
-  });
-
-  it("counts text of only spaces as blank", () => {
+  it("names the required inputs left blank, text of only spaces included", () => {
     expect(
       getFlowInputValues(inputs, {
         ...getInitialFormValues(inputs),
-        count: { kind: "Number", value: 3 },
         subject: { kind: "Text", value: "  " },
-        note: { kind: "Text", value: " \n" },
       }),
     ).toEqual({
-      flowInputs: {
-        count: { kind: "Number", value: 3 },
-        notify: { kind: "Boolean", value: false },
-      },
-      missingInputNames: ["subject"],
+      flowInputs: { notify: { kind: "Boolean", value: false } },
+      missingInputNames: ["count", "subject"],
     });
   });
 
@@ -264,23 +253,9 @@ describe("getFormValuesFromRun", () => {
     });
   });
 
-  it("leaves no required input blank when the run gave them all, so it can run again at once", () => {
+  it("leaves no required input missing when the run gave them all, so it can run again at once", () => {
     const acme =
       "f3c9a1d2-0b7e-4c55-9f0e-6a1b2c3d4e5f~1d4c8e2a-7b3f-4a61-8c9d-0e5f6a7b8c9d" as EntityId;
-    const inputs: FlowInputDefinition[] = [
-      { name: "subject", payloadKind: "Text", array: false, required: true },
-      { name: "count", payloadKind: "Number", array: false, required: true },
-      { name: "due", payloadKind: "Date", array: false, required: true },
-      { name: "entity", payloadKind: "EntityId", array: false, required: true },
-      {
-        name: "entities",
-        payloadKind: "EntityId",
-        array: true,
-        required: true,
-      },
-      /* Left blank when the flow ran. */
-      { name: "note", payloadKind: "Text", array: false, required: false },
-    ];
     const ranInputs: FlowInputValues = {
       subject: { kind: "Text", value: "Hello" },
       count: { kind: "Number", value: 0 },
@@ -288,13 +263,21 @@ describe("getFormValuesFromRun", () => {
       entity: { kind: "EntityId", value: acme },
       entities: { kind: "EntityId", value: [acme] },
     };
+    const inputs = Object.entries(ranInputs).map(
+      ([name, { kind, value }]): FlowInputDefinition => ({
+        name,
+        payloadKind: kind,
+        array: Array.isArray(value),
+        required: true,
+      }),
+    );
 
-    const { values } = getFormValuesFromRun(inputs, ranInputs);
-
-    expect(getFlowInputValues(inputs, values)).toEqual({
-      flowInputs: ranInputs,
-      missingInputNames: [],
-    });
+    expect(
+      getFlowInputValues(
+        inputs,
+        getFormValuesFromRun(inputs, ranInputs).values,
+      ),
+    ).toEqual({ flowInputs: ranInputs, missingInputNames: [] });
   });
 
   it("fills in the run's entity and list of entities, and names an entity input that changed between one and a list", () => {

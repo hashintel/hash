@@ -31,7 +31,6 @@ import type {
 
 const dialogText = css({ textStyle: "sm", color: "fg.body" });
 const dialogBody = css({ display: "flex", flexDirection: "column", gap: "4" });
-/* The run form's "· optional", as the prototype's run form (`run-dialogs.tsx`) draws it. */
 const optionalMark = css({
   textStyle: "xs",
   fontWeight: "medium",
@@ -112,9 +111,8 @@ const InputField = ({
   <Form.Field
     /* Not a label for an input the form can't take, as there's no input to label. */
     as={value ? "label" : "legend"}
-    /* The form marks the optional inputs, not the required ones, as Run waits for those. */
     label={
-      /* One span, as the label lays out its children as flex items, which would drop the space before "·". */
+      /* One span, as the label is a flex row, which would drop the space before "·". */
       <span>
         {getFlowInputLabel(input)}
         {!input.required && <span className={optionalMark}> · optional</span>}
@@ -164,9 +162,14 @@ const RunFlowDialog = ({
   const [runError, setRunError] = useState<string | null>(null);
 
   const { flowInputs, missingInputNames } = getFlowInputValues(inputs, values);
-  const missingInputLabels = inputs
-    .filter((input) => missingInputNames.includes(input.name))
-    .map((input) => getFlowInputLabel(input));
+  /* Why the form can't run yet, or `null` if it can: the required inputs left blank. */
+  const blocker =
+    missingInputNames.length > 0
+      ? `Fill in ${inputs
+          .filter((input) => missingInputNames.includes(input.name))
+          .map((input) => getFlowInputLabel(input))
+          .join(", ")}`
+      : null;
 
   const run = async () => {
     setRunning(true);
@@ -244,12 +247,8 @@ const RunFlowDialog = ({
             <Button
               iconName={ranInputs ? "rotate" : "play"}
               loading={running}
-              disabled={missingInputLabels.length > 0}
-              tooltip={
-                missingInputLabels.length > 0
-                  ? `Fill in ${missingInputLabels.join(", ")}`
-                  : undefined
-              }
+              disabled={blocker !== null}
+              tooltip={blocker ?? undefined}
               onClick={() => {
                 void run();
               }}

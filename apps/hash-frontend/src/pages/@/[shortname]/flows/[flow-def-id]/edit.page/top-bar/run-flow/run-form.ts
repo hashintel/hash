@@ -193,10 +193,7 @@ export const getRunBlocker = ({
   return null;
 };
 
-/**
- * The payload for a value, or `null` if it was left blank: text with nothing but spaces, no number or date, or no
- * entity picked. A toggle is never blank, as off is a value.
- */
+/** The payload for a value, or `null` if it was left blank. Text of only spaces is blank; a toggle never is. */
 const toPayload = (formValue: RunFormValue): Payload | null => {
   switch (formValue.kind) {
     case "Number":
@@ -224,7 +221,7 @@ const toPayload = (formValue: RunFormValue): Payload | null => {
 
 /**
  * The inputs to start a run with, from the form's values. A value left blank isn't given, and is in
- * `missingInputNames` if its input is required, which keeps the flow from running until it's filled in.
+ * `missingInputNames` if its input is required.
  */
 export const getFlowInputValues = (
   inputs: FlowInputDefinition[],
