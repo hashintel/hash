@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getValueDisplay, isLongText } from "./run-value-display";
+import { getListPeek, getValueDisplay, isLongText } from "./run-value-display";
 
 import type { EntityId } from "@blockprotocol/type-system";
 
@@ -13,6 +13,14 @@ describe("isLongText", () => {
     expect(isLongText("a".repeat(601))).toBe(true);
     expect(isLongText(Array(12).fill("line").join("\n"))).toBe(false);
     expect(isLongText(Array(13).fill("line").join("\n"))).toBe(true);
+  });
+});
+
+describe("getListPeek", () => {
+  it("shows a list's first 5 values, and the rest under Show all with the whole list's length", () => {
+    expect(getListPeek(1)).toEqual({ shown: 1, showAll: null });
+    expect(getListPeek(5)).toEqual({ shown: 5, showAll: null });
+    expect(getListPeek(6)).toEqual({ shown: 5, showAll: 6 });
   });
 });
 
