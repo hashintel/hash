@@ -4,9 +4,9 @@
  * fused place, and the members' attributes are reconciled.
  */
 
-import { getPlaceDynamicsEquationIds } from "../place-dynamics";
+import { getRunningEquationIds } from "../place-dynamics";
 import { scopeDepth, sourceItemId } from "../simulation/engine/scoped-id";
-import { colorsStructurallyEqual } from "./check-fusions";
+import { colorsStructurallyEqual } from "./fusions";
 
 import type {
   Color,
@@ -95,9 +95,6 @@ const resolveSets = (groups: readonly FusionGroup[]): Map<ID, ID> => {
   return aliases;
 };
 
-const runningEquations = (place: Place): ID[] =>
-  place.dynamicsEnabled ? getPlaceDynamicsEquationIds(place) : [];
-
 /** Whether two places run the same equations: each instance of a component scopes the same ones under its own id. */
 const sameEquations = (left: ID[], right: ID[]): boolean =>
   left.length === right.length &&
@@ -140,11 +137,11 @@ const reconcile = (
   if (fused.visualizerCode === undefined && member.visualizerCode) {
     target.visualizerCode = member.visualizerCode;
   }
-  const memberEquations = runningEquations(member);
+  const memberEquations = getRunningEquationIds(member);
   if (memberEquations.length === 0) {
     return false;
   }
-  const fusedEquations = runningEquations(fused);
+  const fusedEquations = getRunningEquationIds(fused);
   if (fusedEquations.length > 0) {
     if (!sameEquations(fusedEquations, memberEquations)) {
       throw disagree("that run different differential equations");

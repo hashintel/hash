@@ -12,6 +12,7 @@
 import { arcEndpointsEqual, getArcEndpointKey } from "../arc-endpoints";
 
 import type {
+  Color,
   ComponentInstance,
   Fusion,
   FusionMember,
@@ -28,14 +29,18 @@ export type FusionNet = Pick<
   "places" | "componentInstances" | "fusions"
 >;
 
+/** Whether `fusion` lists `member`. */
+export const fusionHolds = (
+  fusion: Pick<Fusion, "members">,
+  member: FusionMember,
+): boolean => fusion.members.some((held) => arcEndpointsEqual(held, member));
+
 /** The fusion of `net` that holds `member`, if any. */
 export const findFusionWithMember = (
   net: FusionNet,
   member: FusionMember,
 ): Fusion | undefined =>
-  (net.fusions ?? []).find((fusion) =>
-    fusion.members.some((candidate) => arcEndpointsEqual(candidate, member)),
-  );
+  (net.fusions ?? []).find((fusion) => fusionHolds(fusion, member));
 
 /** The member that is a place of the fusion's own net, if any. */
 export const fusionAnchor = (
@@ -73,6 +78,27 @@ export const fusionMemberIssues = (
     }
   }
   return { duplicates, multipleAnchors: anchors.size > 1 };
+};
+
+/**
+ * Whether two token types describe the same tokens: the same elements, in
+ * the same order, under the same names and value types. The types' own names
+ * and colours do not matter.
+ */
+export const colorsStructurallyEqual = (
+  left: Color | undefined,
+  right: Color | undefined,
+): boolean => {
+  if (left === undefined || right === undefined) {
+    return left === right;
+  }
+  return (
+    left.elements.length === right.elements.length &&
+    left.elements.every((element, index) => {
+      const other = right.elements[index];
+      return other?.name === element.name && other.type === element.type;
+    })
+  );
 };
 
 /** What a member names, once resolved against the document. */

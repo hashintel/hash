@@ -10,15 +10,13 @@
  * fusion shows: `place-fusion.mdx` lists those cases.
  */
 
+import { arcMatchesEndpoint, placeArcEndpoint } from "../arc-endpoints";
+import { getRunningEquationIds } from "../place-dynamics";
 import {
-  arcEndpointsEqual,
-  arcMatchesEndpoint,
-  placeArcEndpoint,
-} from "../arc-endpoints";
-import { getPlaceDynamicsEquationIds } from "../place-dynamics";
-import {
+  colorsStructurallyEqual,
   describeFusionMember,
   fusionDisplayName,
+  fusionHolds,
   fusionMemberIssues,
   resolveFusionMember,
   type FusionNet,
@@ -57,28 +55,6 @@ export type FusionProblem = {
   code: FusionProblemCode;
   severity: ProblemSeverity;
   message: string;
-};
-
-/**
- * Whether two token types describe the same tokens: the same elements, in
- * the same order, under the same names and value types. The types' own names
- * and colours do not matter.
- */
-export const colorsStructurallyEqual = (
-  left: Color | undefined,
-  right: Color | undefined,
-): boolean => {
-  if (left === undefined || right === undefined) {
-    return left === right;
-  }
-  return (
-    left.elements.length === right.elements.length &&
-    left.elements.every(
-      (element, index) =>
-        element.name === right.elements[index]!.name &&
-        element.type === right.elements[index]!.type,
-    )
-  );
 };
 
 type CheckedNet = FusionNet & Pick<SDCPN, "types" | "transitions">;
@@ -149,7 +125,7 @@ const factsFor = (
 ): MemberFacts => {
   const { place } = resolved;
   const types = resolved.kind === "place" ? net.types : resolved.subnet.types;
-  const equationIds = getPlaceDynamicsEquationIds(place);
+  const equationIds = getRunningEquationIds(place);
   const outside = flowThrough(net.transitions, member);
   // What is on the far side of the member from this net's transitions: the
   // component's own, for an instance port; for an anchor that is itself a
@@ -166,10 +142,7 @@ const factsFor = (
       ? types.find(({ id }) => id === place.colorId)
       : undefined,
     capacity: place.capacity ?? null,
-    dynamicsKey:
-      place.dynamicsEnabled && equationIds.length > 0
-        ? JSON.stringify(equationIds)
-        : null,
+    dynamicsKey: equationIds.length > 0 ? JSON.stringify(equationIds) : null,
     produced: outside.produced || inside.produced,
     consumed: outside.consumed || inside.consumed,
   };
@@ -230,9 +203,7 @@ export const checkFusion = (
       continue;
     }
     const elsewhere = (net.fusions ?? []).some(
-      (other) =>
-        other.id !== fusion.id &&
-        other.members.some((held) => arcEndpointsEqual(held, member)),
+      (other) => other.id !== fusion.id && fusionHolds(other, member),
     );
     if (elsewhere) {
       report(

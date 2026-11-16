@@ -17,7 +17,7 @@ import {
   deriveDefaultParameterValues,
   mergeParameterValues,
 } from "../../parameter-values";
-import { getPlaceDynamicsEquationIds } from "../../place-dynamics";
+import { getRunningEquationIds } from "../../place-dynamics";
 import {
   createUserKeyedRecord,
   describeDangerousSdcpnKeys,
@@ -695,9 +695,7 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
   // summed into the place's derivative when there are several.
   const differentialEquationFns = new Map<string, DifferentialEquationFn>();
   for (const place of sdcpn.places) {
-    const equationIds = place.dynamicsEnabled
-      ? getPlaceDynamicsEquationIds(place)
-      : [];
+    const equationIds = getRunningEquationIds(place);
     if (equationIds.length === 0) {
       continue;
     }

@@ -22,7 +22,7 @@ import {
   placeArcEndpoint,
 } from "./arc-endpoints";
 import { generateArcId } from "./arc-id";
-import { findFusionWithMember } from "./composition/fusions";
+import { findFusionWithMember, fusionHolds } from "./composition/fusions";
 import { generateDefaultTransitionKernelCode } from "./default-codes";
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
@@ -303,11 +303,7 @@ const absorbFusionsSharingMembers = (
       continue;
     }
     for (const otherMember of other.members) {
-      if (
-        !fusion.members.some((candidate) =>
-          arcEndpointsEqual(candidate, otherMember),
-        )
-      ) {
+      if (!fusionHolds(fusion, otherMember)) {
         fusion.members.push(otherMember);
       }
     }
@@ -1362,11 +1358,7 @@ export function createPetrinautActions(
         }
         assertEndpointReferences(sdcpn, net, parsed.member, "Fusion");
         absorbFusionsSharingMembers(net, fusion, [parsed.member]);
-        if (
-          !fusion.members.some((member) =>
-            arcEndpointsEqual(member, parsed.member),
-          )
-        ) {
+        if (!fusionHolds(fusion, parsed.member)) {
           fusion.members.push(parsed.member);
         }
         fusionSchema.parse(fusion);
