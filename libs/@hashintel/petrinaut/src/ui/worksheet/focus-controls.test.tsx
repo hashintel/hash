@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 
 import { FocusControls } from "./focus-controls";
 import { FocusRoot, FocusStack } from "./focus-stack";
@@ -121,6 +121,25 @@ it("keeps text arrows inside the value until its caret reaches an edge", () => {
   expect(document.activeElement).toBe(
     screen.getByRole("button", { name: "Next" }),
   );
+});
+
+it("folds from a text field only once its caret is at the edge", () => {
+  const collapse = vi.fn();
+  render(
+    <FocusControls collapse={collapse}>
+      <input aria-label="Name" defaultValue="Stock" />
+    </FocusControls>,
+  );
+  const input = screen.getByRole("textbox", {
+    name: "Name",
+  }) as HTMLInputElement;
+  input.focus();
+  input.setSelectionRange(3, 3);
+  fireEvent.keyDown(input, { key: "ArrowLeft" });
+  expect(collapse).not.toHaveBeenCalled();
+  input.setSelectionRange(0, 0);
+  fireEvent.keyDown(input, { key: "ArrowLeft" });
+  expect(collapse).toHaveBeenCalledTimes(1);
 });
 
 it("leaves arrow handling to an open picker", () => {

@@ -88,18 +88,6 @@ export const FocusControls: React.FC<
           return;
         }
         const horizontal = direction === "left" || direction === "right";
-        const fold =
-          direction === "right"
-            ? expand
-            : direction === "left"
-              ? collapse
-              : undefined;
-        if (fold && controls()[0] === target) {
-          event.preventDefault();
-          event.stopPropagation();
-          fold();
-          return;
-        }
         if (
           horizontal &&
           (target instanceof HTMLInputElement ||
@@ -117,6 +105,18 @@ export const FocusControls: React.FC<
           }
         }
         const candidates = controls();
+        const fold =
+          direction === "right"
+            ? expand
+            : direction === "left"
+              ? collapse
+              : undefined;
+        if (fold && candidates[0] === target) {
+          event.preventDefault();
+          event.stopPropagation();
+          fold();
+          return;
+        }
         const index = candidates.indexOf(target);
         if (index < 0) {
           if (remembered.current === target && member.moveFrom(direction)) {
