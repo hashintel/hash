@@ -101,12 +101,14 @@ const rowStyle = css({
     backgroundColor: "neutral.bg.subtle.hover",
     outline: "none",
   },
-  // Every row, groups and the selected one too, keeps the DS Sidebar Item's Medium (Figma, 3 Nov).
   "&[aria-current=true], &[aria-current=true]:hover": {
     color: "neutral.fg.heading",
     backgroundColor: "neutral.bg.subtle.active",
   },
 });
+
+const stepRowStyle = css({ height: "[36px]" });
+const stepLabelStyle = css({ fontWeight: "normal" });
 
 const chevronSlotStyle = css({
   display: "inline-flex",
@@ -138,6 +140,20 @@ const tileStyle = cva({
     },
   },
   variants: {
+    size: {
+      steps: {
+        width: "[20px]",
+        height: "[20px]",
+        minWidth: "[20px]",
+        borderRadius: "[5px]",
+        "&[class] svg": {
+          width: "[14px]",
+          height: "[14px]",
+          minWidth: "[14px]",
+          "--icon-size": "14px",
+        },
+      },
+    },
     tone: {
       // Neutral for every type (Aakarsh, 4 Nov); `tone` stays for when the Flows palette is picked.
       green: { color: "neutral.fg.muted" },
@@ -185,8 +201,16 @@ const onRowHoverStyle = css({
   "button[aria-current=true] &": { display: "inline" },
 });
 
-export const Tile = ({ icon, tone }: { icon: IconName; tone: Tone }) => (
-  <span className={tileStyle({ tone })} style={treeTileColor(icon)}>
+export const Tile = ({
+  icon,
+  tone,
+  size,
+}: {
+  icon: IconName;
+  tone: Tone;
+  size?: "steps";
+}) => (
+  <span className={tileStyle({ tone, size })} style={treeTileColor(icon)}>
     <Icon name={icon} size="sm" />
   </span>
 );
@@ -287,6 +311,7 @@ const FlowList = ({
         detail={status.state === "failed" ? status.count : undefined}
         textFirst
         small
+        variant="steps"
       />
     );
   };
@@ -315,6 +340,7 @@ const FlowList = ({
           progress={status.progress}
           detail={status.state === "failed" ? status.count : undefined}
           size={STATUS_MARK_SIZE}
+          variant="steps"
         />
       </span>
     );
@@ -400,7 +426,7 @@ const FlowList = ({
           <button
             key={step.stepId}
             type="button"
-            className={rowStyle}
+            className={`${rowStyle} ${stepRowStyle}`}
             style={pad}
             aria-current={isCurrent(step.stepId) || undefined}
             aria-expanded={open}
@@ -423,8 +449,10 @@ const FlowList = ({
             >
               <Icon name={open ? "chevronDown" : "chevronRight"} size="xs" />
             </span>
-            <Tile icon={look.icon} tone={look.tone} />
-            <span className={labelStyle}>{stepLabel(step)}</span>
+            <Tile icon={look.icon} tone={look.tone} size="steps" />
+            <span className={`${labelStyle} ${stepLabelStyle}`}>
+              {stepLabel(step)}
+            </span>
             {flowMark(step.stepId)}
             {statusFor
               ? trail(step.stepId)
@@ -437,7 +465,7 @@ const FlowList = ({
         <button
           key={step.stepId}
           type="button"
-          className={rowStyle}
+          className={`${rowStyle} ${stepRowStyle}`}
           style={pad}
           aria-current={isCurrent(step.stepId) || undefined}
           data-flow-row={step.stepId}
@@ -446,8 +474,10 @@ const FlowList = ({
         >
           {lead(step.stepId)}
           <span className={chevronSlotStyle} style={chevronPad} />
-          <Tile icon={look.icon} tone={look.tone} />
-          <span className={labelStyle}>{stepLabel(step)}</span>
+          <Tile icon={look.icon} tone={look.tone} size="steps" />
+          <span className={`${labelStyle} ${stepLabelStyle}`}>
+            {stepLabel(step)}
+          </span>
           {flowMark(step.stepId)}
           {statusFor ? trail(step.stepId) : null}
         </button>,
@@ -483,14 +513,14 @@ const FlowList = ({
       >
         <button
           type="button"
-          className={rowStyle}
+          className={`${rowStyle} ${stepRowStyle}`}
           aria-current={ui.selectedId === START_ID || undefined}
           onClick={() => select(START_ID)}
         >
           {lead(START_ID)}
           <span className={chevronSlotStyle} />
-          <Tile icon="play" tone="neutral" />
-          <span className={labelStyle}>
+          <Tile icon="play" tone="neutral" size="steps" />
+          <span className={`${labelStyle} ${stepLabelStyle}`}>
             {document.startDescription || "Flow inputs"}
           </span>
           {statusFor ? trail(START_ID) : null}
@@ -499,14 +529,14 @@ const FlowList = ({
         {flowTake === 4 || flowTake === 5 ? (
           <button
             type="button"
-            className={rowStyle}
+            className={`${rowStyle} ${stepRowStyle}`}
             aria-current={ui.selectedId === FLOW_OUTPUTS_ID || undefined}
             data-flow-row={FLOW_OUTPUTS_ID}
             onClick={() => select(FLOW_OUTPUTS_ID)}
           >
             <span className={chevronSlotStyle} />
-            <Tile icon="rightToLine" tone="neutral" />
-            <span className={labelStyle}>
+            <Tile icon="rightToLine" tone="neutral" size="steps" />
+            <span className={`${labelStyle} ${stepLabelStyle}`}>
               {starCopy ? "Featured outputs" : flowTake === 4 ? "Flow outputs" : "Outputs"}
             </span>
             <span className={flowCountStyle}>

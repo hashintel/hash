@@ -77,6 +77,7 @@ export const StatusCell = ({
   warnings = false,
   textClassName,
   run = false,
+  variant,
 }: {
   state: StepState;
   progress?: ItemProgress;
@@ -84,6 +85,7 @@ export const StatusCell = ({
   /** The tooltip's detail after the state; by default from `progress`. */
   detail?: string;
   size?: number;
+  variant?: "steps";
   /** The text before the glyph, for lists whose glyphs line up at the right edge. */
   textFirst?: boolean;
   /** Smaller, subtler text, for the step list. */
@@ -111,6 +113,7 @@ export const StatusCell = ({
       size={size}
       warnings={warnings}
       run={run}
+      variant={variant}
     />
   );
   return (

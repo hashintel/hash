@@ -300,9 +300,11 @@ const bareArc = (start: number, end: number) => {
 const BareGlyph = ({
   state,
   progress,
+  variant,
 }: {
   state: StepState;
   progress: GlyphProgress;
+  variant?: "steps";
 }) => {
   const track = <circle cx="8" cy="8" r={bareR} opacity="0.25" />;
   switch (state) {
@@ -314,8 +316,12 @@ const BareGlyph = ({
           cx="8"
           cy="8"
           r={bareR}
-          stroke="var(--colors-neutral-a30)"
-          strokeWidth={1}
+          stroke={
+            variant === "steps"
+              ? "var(--colors-neutral-s90)" // token-guard: allow decided Steps waiting mark uses neutral s90
+              : "var(--colors-neutral-a30)"
+          }
+          strokeWidth={variant === "steps" ? 1.25 : 1}
           strokeDasharray="2.094 2.094"
           strokeLinecap="butt"
           transform="rotate(-90 8 8)"
@@ -455,9 +461,12 @@ export const RunGlyph = ({
   warnings = false,
   run = false,
   flush = false,
+  variant,
 }: {
   state: StepState;
   size?: number;
+  /** Steps-list waiting mark; other glyphs keep their shared defaults. */
+  variant?: "steps";
   progress?: GlyphProgress;
   detail?: string;
   tooltip?: boolean;
@@ -506,7 +515,11 @@ export const RunGlyph = ({
         }`}
       >
         {glyphSet === "bare" ? (
-          <BareGlyph state={state} progress={progress ?? sampleProgress} />
+          <BareGlyph
+            state={state}
+            progress={progress ?? sampleProgress}
+            variant={variant}
+          />
         ) : (
           <OutlineGlyph
             state={state}
