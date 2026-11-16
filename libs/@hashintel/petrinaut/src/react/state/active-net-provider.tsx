@@ -15,11 +15,16 @@ import { SDCPNContext } from "./sdcpn-context";
  * by document, so uncontrolled locations reset when the active handle changes.
  * A requested subnet id resolves through `toPetrinautId`, and the location is
  * rewritten to the canonical id, or to the root net when no subnet matches.
+ * A component the host provides is a signature with no net to open, so its
+ * id resolves to the root net too. So does every id in an editor that only
+ * composes: it changes the root net alone, and has no panel that leads back
+ * from a subnet.
  */
 export const ActiveNetProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const { petriNetDefinition } = use(SDCPNContext);
+  const { provided, compositionOnly } = use(CompositionContext);
   const navigation = usePetrinautNavigation();
   const requestedSubnetId = navigation.state.subnetId;
 
@@ -32,8 +37,8 @@ export const ActiveNetProvider: React.FC<{ children: ReactNode }> = ({
 
   const canonicalSubnetId =
     requestedSubnetId !== null ? toPetrinautId(requestedSubnetId) : null;
-  const subnet =
-    canonicalSubnetId !== null
+  const requested =
+    !compositionOnly && canonicalSubnetId !== null
       ? petriNetDefinition.subnets?.find(({ id }) => id === canonicalSubnetId)
       : undefined;
 

@@ -70,9 +70,15 @@ const ActiveSubnet = () => (
 const TestHost = ({
   requestedSubnetId,
   recorded,
+  subnets = sdcpn.subnets,
+  provided = noProvidedInterfaces,
+  compositionOnly = false,
 }: {
   requestedSubnetId: string;
   recorded: RecordedNavigation[];
+  subnets?: Subnet[];
+  provided?: ProvidedInterfaces;
+  compositionOnly?: boolean;
 }) => {
   const [state, setState] = useState<PetrinautNavigationState>({
     ...defaultPetrinautNavigationState,
@@ -87,12 +93,21 @@ const TestHost = ({
     },
   };
   return (
-    <SDCPNContext value={sdcpnContextValue}>
-      <PetrinautNavigationProvider controller={controller}>
-        <ActiveNetProvider>
-          <ActiveSubnet />
-        </ActiveNetProvider>
-      </PetrinautNavigationProvider>
+    <SDCPNContext
+      value={{
+        ...sdcpnContextValue,
+        petriNetDefinition: { ...sdcpn, subnets },
+      }}
+    >
+      <CompositionContext
+        value={{ ...use(CompositionContext), provided, compositionOnly }}
+      >
+        <PetrinautNavigationProvider controller={controller}>
+          <ActiveNetProvider>
+            <ActiveSubnet />
+          </ActiveNetProvider>
+        </PetrinautNavigationProvider>
+      </CompositionContext>
     </SDCPNContext>
   );
 };
@@ -117,6 +132,20 @@ describe("ActiveNetProvider", () => {
 
     expect(screen.getByRole("status").textContent).toBe(subnetId);
     expect(recorded).toEqual([]);
+  });
+
+  it("stays on the root net in an editor that only composes", () => {
+    const recorded: RecordedNavigation[] = [];
+    render(
+      <TestHost
+        requestedSubnetId={subnetId}
+        recorded={recorded}
+        compositionOnly
+      />,
+    );
+
+    expect(screen.getByRole("status").textContent).toBe("root");
+    expect(recorded).toEqual([normalizationTo(null)]);
   });
 
   it("falls back to the root net for an unknown subnet id", () => {
