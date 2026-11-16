@@ -244,6 +244,52 @@ describe("a component that runs inside itself", () => {
       { subnetId: "middle", instanceId: "m", code: "component-cycle" },
     ]);
   });
+
+  it("is not reported on an instance outside the loop it leads into", () => {
+    const holder = (id: string, ...held: string[]) =>
+      subnet(id, {
+        componentInstances: held.map((heldId) =>
+          instance(`${id}_${heldId}`, heldId),
+        ),
+      });
+    // Two loops, `a` with `b` and `c` with `d`, and `b` holding `c` between them.
+    const sdcpn = net({
+      subnets: [
+        holder("entry", "a"),
+        holder("a", "b"),
+        holder("b", "a", "c"),
+        holder("c", "d"),
+        holder("d", "c"),
+      ],
+    });
+
+    expect(
+      checkInterfaces(sdcpn).map(({ instanceId, code }) => [instanceId, code]),
+    ).toEqual([
+      ["a_b", "component-cycle"],
+      ["b_a", "component-cycle"],
+      ["c_d", "component-cycle"],
+      ["d_c", "component-cycle"],
+    ]);
+  });
+
+  it("checks a long chain of components, each holding the next, in one pass", () => {
+    const length = 2_000;
+    const chain = Array.from({ length }, (_, index) =>
+      subnet(`link${index}`, {
+        componentInstances:
+          index + 1 < length
+            ? [instance(`holds${index + 1}`, `link${index + 1}`)]
+            : [],
+      }),
+    );
+
+    const started = Date.now();
+    expect(checkInterfaces(net({ subnets: chain }))).toEqual([]);
+    // One pass takes milliseconds; a walk restarted at every instance took
+    // several seconds.
+    expect(Date.now() - started).toBeLessThan(2_000);
+  });
 });
 
 describe("a fusion on a port of an interface", () => {

@@ -10,6 +10,7 @@ import { colorsStructurallyEqual } from "./fusions";
 import {
   describeUnboundInstance,
   hasBody,
+  indexSubnets,
   isInterface,
   mapInterfaceParameters,
   mapInterfacePorts,
@@ -126,34 +127,51 @@ export const checkImplementation = (
   return problems;
 };
 
-/** Whether `subnet` is `targetId`, or runs it through its instances and theirs. */
-const runs = (
-  sdcpn: SDCPN,
-  subnet: Subnet,
-  targetId: ID,
-  seen = new Set<ID>(),
-): boolean => {
-  if (subnet.id === targetId) {
-    return true;
+/**
+ * Numbers the groups of subnets that run each other: two share a number when
+ * each is reached from the other along `runs`, the subnets each one's
+ * instances run. Tarjan's algorithm, which visits every subnet once.
+ */
+const cycleGroups = (runs: ReadonlyMap<ID, readonly ID[]>): Map<ID, number> => {
+  const visited = new Map<ID, number>();
+  const groups = new Map<ID, number>();
+  const stack: ID[] = [];
+  /** The earliest visit among the subnets `id` reaches that are in no group yet. */
+  const visit = (id: ID): number => {
+    const order = visited.size;
+    visited.set(id, order);
+    stack.push(id);
+    let earliest = order;
+    for (const next of runs.get(id) ?? []) {
+      const seen = visited.get(next);
+      if (seen === undefined) {
+        earliest = Math.min(earliest, visit(next));
+      } else if (!groups.has(next)) {
+        earliest = Math.min(earliest, seen);
+      }
+    }
+    if (earliest === order) {
+      // Nothing `id` reaches leads back above it: the stack from `id` up is
+      // one group.
+      for (const member of stack.splice(stack.lastIndexOf(id))) {
+        groups.set(member, order);
+      }
+    }
+    return earliest;
+  };
+  for (const id of runs.keys()) {
+    if (!visited.has(id)) {
+      visit(id);
+    }
   }
-  if (seen.has(subnet.id)) {
-    return false;
-  }
-  seen.add(subnet.id);
-  return (subnet.componentInstances ?? []).some((instance) => {
-    const binding = resolveImplementation(sdcpn, instance);
-    return (
-      binding !== null &&
-      binding.kind !== "unbound" &&
-      runs(sdcpn, runningSubnet(binding).running, targetId, seen)
-    );
-  });
+  return groups;
 };
 
 /** The problems with the document's interfaces, their implementations and the instances bound to them. */
 export const checkInterfaces = (sdcpn: SDCPN): InterfaceProblem[] => {
   const problems: InterfaceProblem[] = [];
   const subnets = sdcpn.subnets ?? [];
+  const subnetsById = indexSubnets(sdcpn);
 
   for (const subnet of subnets) {
     if (isInterface(subnet) && hasBody(subnet)) {
@@ -166,7 +184,7 @@ export const checkInterfaces = (sdcpn: SDCPN): InterfaceProblem[] => {
       });
     }
     for (const interfaceId of subnet.implements ?? []) {
-      const iface = subnets.find(({ id }) => id === interfaceId);
+      const iface = subnetsById.get(interfaceId);
       if (!iface || !isInterface(iface)) {
         problems.push({
           kind: "interface",
@@ -187,37 +205,49 @@ export const checkInterfaces = (sdcpn: SDCPN): InterfaceProblem[] => {
     [null, sdcpn],
     ...subnets.map((subnet): [ID, Subnet] => [subnet.id, subnet]),
   ];
-  for (const [netId, net] of nets) {
-    for (const instance of net.componentInstances ?? []) {
-      const binding = resolveImplementation(sdcpn, instance);
-      if (binding === null) {
-        continue;
-      }
-      const report = (code: InterfaceProblemCode, message: string) =>
-        problems.push({
-          kind: "interface",
-          subnetId: netId,
-          instanceId: instance.id,
-          code,
-          severity: "error",
-          message,
-        });
-      if (binding.kind === "unbound") {
-        report(
-          "unbound-instance",
-          describeUnboundInstance(binding, instance.name),
-        );
-        continue;
-      }
-      const { running } = runningSubnet(binding);
-      if (netId !== null && runs(sdcpn, running, netId)) {
-        report(
-          "component-cycle",
-          running.id === netId
-            ? `${instance.name} runs ${running.name} inside itself: a component cannot contain itself.`
-            : `${instance.name} runs ${running.name}, which holds this component in turn: a component cannot contain itself.`,
-        );
-      }
+  const held = nets.flatMap(([netId, net]) =>
+    (net.componentInstances ?? []).flatMap((instance) => {
+      const binding = resolveImplementation(sdcpn, instance, subnetsById);
+      return binding === null ? [] : [{ netId, instance, binding }];
+    }),
+  );
+
+  const runs = new Map<ID, ID[]>();
+  for (const { netId, binding } of held) {
+    if (netId !== null && binding.kind !== "unbound") {
+      const ran = runs.get(netId) ?? [];
+      ran.push(runningSubnet(binding).running.id);
+      runs.set(netId, ran);
+    }
+  }
+  const groups = cycleGroups(runs);
+
+  for (const { netId, instance, binding } of held) {
+    const report = (code: InterfaceProblemCode, message: string) =>
+      problems.push({
+        kind: "interface",
+        subnetId: netId,
+        instanceId: instance.id,
+        code,
+        severity: "error",
+        message,
+      });
+    if (binding.kind === "unbound") {
+      report(
+        "unbound-instance",
+        describeUnboundInstance(binding, instance.name),
+      );
+      continue;
+    }
+    const { running } = runningSubnet(binding);
+    // An instance closes a loop when what it runs leads back to its holder.
+    if (netId !== null && groups.get(netId) === groups.get(running.id)) {
+      report(
+        "component-cycle",
+        running.id === netId
+          ? `${instance.name} runs ${running.name} inside itself: a component cannot contain itself.`
+          : `${instance.name} runs ${running.name}, which holds this component in turn: a component cannot contain itself.`,
+      );
     }
   }
   return problems;

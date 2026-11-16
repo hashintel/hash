@@ -70,16 +70,39 @@ export type UnboundReason = Extract<
 >["reason"];
 
 /**
+ * The document's subnets by id, for a caller that resolves many instances.
+ * Of two subnets with one id the first is kept, as a search of the list
+ * finds it.
+ */
+export const indexSubnets = (
+  sdcpn: Pick<SDCPN, "subnets">,
+): Map<ID, Subnet> => {
+  const subnetsById = new Map<ID, Subnet>();
+  for (const subnet of sdcpn.subnets ?? []) {
+    if (!subnetsById.has(subnet.id)) {
+      subnetsById.set(subnet.id, subnet);
+    }
+  }
+  return subnetsById;
+};
+
+/**
  * The subnet that runs for `instance`: its own subnet when that is a
  * component; for an interface, the implementation the instance chose, else
  * the document's default. `null` when the instance's subnet does not exist.
+ * `subnetsById` is `indexSubnets(sdcpn)`, which saves a search of the list
+ * for each instance.
  */
 export const resolveImplementation = (
   sdcpn: Pick<SDCPN, "subnets" | "implementations">,
   instance: Pick<ComponentInstance, "subnetId" | "implementation">,
+  subnetsById?: ReadonlyMap<ID, Subnet>,
 ): ImplementationBinding | null => {
-  const subnets = sdcpn.subnets ?? [];
-  const declared = subnets.find(({ id }) => id === instance.subnetId);
+  const subnetWithId = (subnetId: ID): Subnet | undefined =>
+    subnetsById
+      ? subnetsById.get(subnetId)
+      : sdcpn.subnets?.find(({ id }) => id === subnetId);
+  const declared = subnetWithId(instance.subnetId);
   if (!declared) {
     return null;
   }
@@ -92,7 +115,7 @@ export const resolveImplementation = (
   if (implementationId === undefined) {
     return { ...unbound, reason: "no-binding" };
   }
-  const implementation = subnets.find(({ id }) => id === implementationId);
+  const implementation = subnetWithId(implementationId);
   if (!implementation) {
     return { ...unbound, reason: "missing", implementationId };
   }
