@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Ingestion pipeline · Overview</title>
+<style>
+:root{color-scheme:light dark;--bg:#fff;--surface:#fff;--fg:#263341;--muted:#5f6d7a;--line:#dfe5eb;--green:#2c704b;--saved:#f0f7f2;--blue:#3564ac;--blue-bg:#edf3ff;--purple:#7952ad;--purple-bg:#f4effb;--orange:#a65d31;--orange-bg:#fff3e9;--shadow:0 5px 20px #18212c22}
+@media(prefers-color-scheme:dark){:root{--bg:#191919;--surface:#202020;--fg:#e4e5e7;--muted:#a6acb4;--line:#3b4148;--green:#93c5a6;--saved:#223129;--blue:#9bbcf4;--blue-bg:#253146;--purple:#c3ace9;--purple-bg:#322a40;--orange:#e8b38e;--orange-bg:#3b2d24;--shadow:0 5px 20px #0006}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:1020px;margin:auto;padding:16px}h1,h2,p{margin:0}header{display:flex;align-items:center;gap:12px}h1{font-size:20px;letter-spacing:-.4px;font-weight:600}.draft{font-size:10px;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:2px 6px}.intro{font-size:12px;color:var(--muted);margin-top:5px}.hint{font-size:10px;color:var(--muted);margin-top:12px;margin-bottom:5px}
+.diagram-scroll{overflow:auto;scrollbar-width:thin;padding:4px 3px 8px;margin:0 -3px}.canvas{min-width:700px}.flow-edge{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;font-size:11px;color:var(--muted)}.edge{display:flex;gap:8px;align-items:center}.edge strong{font-weight:500}.edge-arrow{font-size:16px}.tbc{font-size:9px;border:1px solid var(--line);padding:1px 5px;border-radius:3px}
+.stages{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}.stage{position:relative;border:1px solid var(--accent);border-radius:6px;background:var(--surface);display:flex;flex-direction:column}.stage[data-tone=capture]{--accent:var(--blue);--tint:var(--blue-bg)}.stage[data-tone=prepare]{--accent:var(--purple);--tint:var(--purple-bg)}.stage[data-tone=send]{--accent:var(--orange);--tint:var(--orange-bg)}.stage:not(:last-child)::after{content:'→';position:absolute;right:-21px;top:108px;color:var(--muted);font-size:21px}.stage-title{display:flex;gap:9px;align-items:center;padding:10px 12px;background:var(--tint);color:var(--accent);border-radius:5px 5px 0 0;border-bottom:1px solid var(--line)}.stage-title h2{font-size:16px;font-weight:600}.number,.seq{font:10px ui-monospace,SFMono-Regular,monospace;color:var(--accent)}.stage-caption{font-size:11px;color:var(--muted);padding:9px 11px 0}.tasks{padding:10px;display:flex;flex-direction:column;gap:12px;flex:1}.task{display:flex;align-items:baseline;gap:7px;padding:9px;background:var(--tint);border:1px solid var(--line);border-radius:4px;position:relative}.task+.task::before{content:'↓';position:absolute;left:50%;top:-15px;color:var(--accent);font-size:11px}.seq{flex-shrink:0}.name{display:block;font-size:12px;line-height:1.4;font-weight:600}.task small{display:block;font-size:10px;line-height:1.5;color:var(--muted);margin-top:4px}.strategy-note{font-size:10px;color:var(--muted);padding:0 11px 11px}
+.connections{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;height:20px}.connections span{justify-self:center;border-left:1px solid var(--green);position:relative}.connections span::after{content:'↓';position:absolute;bottom:-4px;left:-5px;color:var(--green);font-size:12px}.storage{border:1px solid var(--green);border-radius:6px;background:var(--surface)}.storage-head{display:flex;gap:12px;align-items:center;padding:7px 11px;background:var(--saved);border-radius:5px 5px 0 0;color:var(--muted);font-size:10px;border-bottom:1px solid var(--line)}.storage-head strong{color:var(--green);font-size:12px}.inspect{margin-left:auto;font-size:9px}.stores{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:10px}.store{padding:8px 10px;background:var(--saved);border:1px solid var(--line);border-radius:4px}.store strong{display:block;font-size:12px;color:var(--green);font-weight:600}.store span{display:block;font-size:10px;color:var(--muted);margin-top:3px}.store em{display:block;font-size:9px;font-style:normal;color:var(--green);margin-top:4px}.boundary{font-size:11px;color:var(--muted);margin-top:7px}.boundary strong{font-weight:500;color:var(--fg)}.footer{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:9px;color:var(--muted);margin-top:10px}
+[data-detail]{cursor:help}[data-detail]:hover{box-shadow:inset 0 0 0 1px var(--accent,var(--green))}[tabindex]:focus-visible{outline:2px solid var(--accent,var(--green));outline-offset:2px}[hidden]{display:none!important}.tooltip{position:fixed;z-index:5;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:6px;box-shadow:var(--shadow);padding:11px 13px;max-width:min(330px,calc(100vw - 24px));max-height:calc(100vh - 24px);overflow:auto;font-size:12px;line-height:1.55;white-space:pre-wrap}.tooltip strong{display:block;margin-bottom:4px;font-size:12px}.tooltip.file-layout{font:10px/1.55 ui-monospace,SFMono-Regular,monospace}
+@media(max-width:760px){main{padding:12px}h1{font-size:18px}.intro{font-size:11px}}
+@media print{.tooltip,.hint{display:none!important}.diagram-scroll{overflow:visible}.canvas{min-width:0}main{padding:0}.stages{gap:20px}}
+</style>
+</head>
+<body>
+<main>
+  <header><h1>Ingestion pipeline</h1><span class="draft">Working proposal</span></header>
+  <p class="intro">Full database dumps, partial updates and future input types → one shared pipeline.</p>
+  <p class="hint">Hover over a stage, step or storage box for a short explanation.</p>
+  <section class="diagram-scroll" tabindex="0" aria-label="Horizontal pipeline; scroll sideways on narrow screens">
+    <div class="canvas">
+      <div class="flow-edge"><div class="edge"><strong>Source data</strong><span class="tbc">Input formats TBC</span><span class="edge-arrow" aria-hidden="true">↓</span></div><div class="edge"><span class="edge-arrow" aria-hidden="true">↗</span><strong>Graph API</strong></div></div>
+      <div class="stages">
+        <section class="stage" data-tone="capture" aria-label="Stage 1 Capture"><div tabindex="0" class="stage-title" data-detail="capture"><span class="number">01</span><h2>Capture</h2></div><p class="stage-caption">Make the source input reusable.</p><div class="tasks">
+          <div tabindex="0" class="task" data-detail="save"><span class="seq">1.1</span><span><span class="name">Capture and publish input</span><small>Read → validate → save data<br>Publish a completed manifest.</small></span></div>
+        </div><p class="strategy-note">Input-specific readers.<br>Capture formats still to be defined.</p></section>
+        <section class="stage" data-tone="prepare" aria-label="Stage 2 Prepare"><div tabindex="0" class="stage-title" data-detail="prepare"><span class="number">02</span><h2>Prepare</h2></div><p class="stage-caption">Turn input into entity changes.</p><div class="tasks">
+          <div tabindex="0" class="task" data-detail="derive"><span class="seq">2.1</span><span><span class="name">Prepare entity changes</span><small>Derive changes, map identities<br>and convert values.</small></span></div>
+          <div tabindex="0" class="task" data-detail="append"><span class="seq">2.2</span><span><span class="name">Commit the sync ledger</span><small>Append changes to Iceberg.<br>Publish the accepted reference.</small></span></div>
+        </div></section>
+        <section class="stage" data-tone="send" aria-label="Stage 3 Send and record"><div tabindex="0" class="stage-title" data-detail="send"><span class="number">03</span><h2>Send &amp; record</h2></div><p class="stage-caption">Apply changes and track delivery.</p><div class="tasks">
+          <div tabindex="0" class="task" data-detail="requests"><span class="seq">3.1</span><span><span class="name">Generate requests and batches</span><small>Read ledger → encode requests<br>Group into bounded batches.</small></span></div>
+          <div tabindex="0" class="task" data-detail="record"><span class="seq">3.2</span><span><span class="name">Deliver, record and complete</span><small>Send → record outcomes<br>Retry or finish the run.</small></span></div>
+        </div></section>
+      </div>
+      <div class="connections" aria-hidden="true"><span></span><span></span><span></span></div>
+      <section class="storage" aria-label="Persistence in S3">
+        <div tabindex="0" class="storage-head" data-detail="s3"><strong>S3</strong><span>One bucket per integration · stage outputs and run progress</span><span class="inspect">Hover for layout</span></div>
+        <div class="stores">
+          <div tabindex="0" class="store" data-detail="capture-data"><strong>Capture Data</strong><span>Source files + completed manifest</span><em>Saved by Capture</em></div>
+          <div tabindex="0" class="store" data-detail="ledger"><strong>Iceberg sync ledger</strong><span>Entity changes + run ID + change index</span><em>Committed by Prepare</em></div>
+          <div tabindex="0" class="store" data-detail="progress"><strong>Run &amp; batch records</strong><span>Stage markers, outcomes, current.json</span><em>Updated across the run</em></div>
+        </div>
+      </section>
+    </div>
+  </section>
+  <p class="boundary"><strong>Persist the output, then mark the stage complete.</strong> Retry from saved input; Send also checkpoints batch outcomes.</p>
+  <footer class="footer"><span>No projections, separate hash/diff files or saved request bodies.</span><span>CLI first · queue orchestration later</span></footer>
+</main>
+<div id="tooltip" class="tooltip" role="tooltip" hidden></div>
+<script>
+(() => {
+  const descriptions = {
+    capture: ['Capture', 'Save source input so later stages can retry without recapturing. Full dumps, partial updates and future input kinds use the same publication contract.'],
+    save: ['1.1 · Capture and publish input', 'Read and validate data in bounded chunks. Preserve snapshot scope or partial-field meaning. Save the files, then publish the completed manifest in S3.'],
+    prepare: ['Prepare', 'Initial sync prepares every row. Snapshot hash/diff compares with the accepted baseline. Incremental preparation resolves supplied updates. All strategies share conversion and the same ledger output.'],
+    derive: ['2.1 · Prepare entity changes', 'Derive the changes for the input strategy, map entity/link identities and convert property values. Partial updates may need prior source context. This step has no separate persisted output.'],
+    append: ['2.2 · Commit the sync ledger', 'Append resolved changes to Iceberg with run_id and change_index, then save the accepted ledger reference in S3. Upserts retain entity values; archives retain deletion history. A retry must reuse any already committed append.'],
+    send: ['Send & record', 'Read the accepted changes, generate Graph requests in memory and deliver batches. S3 records what was confirmed. Generated request bodies are not stored.'],
+    requests: ['3.1 · Generate requests and batches', 'Turn this run’s pinned ledger changes into Graph requests. Build reproducible batches within size limits and entity/link dependency order. Requests stay in memory.'],
+    record: ['3.2 · Deliver, record and complete', 'Send batches and save outcomes in S3. Skip confirmed successes on retry; reconcile or safely replay uncertain outcomes. Publish completion and advance current.json when required writes are confirmed.'],
+    'capture-data': ['Capture Data', 'Source files plus capture/_done.json: format, scope, completeness and file references. Reuse completed capture on retry; interrupted reads must not appear complete.'],
+    ledger: ['Iceberg sync ledger', 'Entity changes stored in S3 through Iceberg, plus prepare/_done.json pointing to the accepted output. Retained history supports replay and compensating restore runs. Catalog and retention details remain to be specified.'],
+    progress: ['Run & batch records', 'run.json pins inputs. Stage markers track completion; send/batches/ records delivery. current.json points to the active and last completed runs—for example, run-12 and run-11. It is not a worker lock.'],
+    s3: ['S3 · illustrative layout', '<integration-bucket>/\n  current.json\n  runs/<run-id>/\n    run.json\n    capture/data/…\n    capture/_done.json\n    prepare/_done.json\n    send/batches/<id>.json\n    send/_done.json\n  iceberg/sync/\n    data/…\n    metadata/…']
+  };
+  const tooltip = document.getElementById('tooltip');
+  let owner = null;
+  function hide() {
+    tooltip.hidden = true;
+    if (owner) owner.removeAttribute('aria-describedby');
+    owner = null;
+  }
+  function show(element) {
+    hide();
+    const key = element.dataset.detail;
+    const [title, description] = descriptions[key];
+    const heading = document.createElement('strong');
+    heading.textContent = title;
+    tooltip.replaceChildren(heading, description);
+    tooltip.classList.toggle('file-layout', key === 's3');
+    tooltip.hidden = false;
+    owner = element;
+    owner.setAttribute('aria-describedby', 'tooltip');
+    const anchor = element.getBoundingClientRect();
+    const bounds = tooltip.getBoundingClientRect();
+    tooltip.style.left = Math.max(12, Math.min(anchor.left, innerWidth - bounds.width - 12)) + 'px';
+    tooltip.style.top = Math.max(12, anchor.bottom + bounds.height + 8 < innerHeight - 12 ? anchor.bottom + 8 : anchor.top - bounds.height - 8) + 'px';
+  }
+  for (const element of document.querySelectorAll('[data-detail]')) {
+    element.addEventListener('mouseenter', () => show(element));
+    element.addEventListener('mouseleave', event => { if (!tooltip.contains(event.relatedTarget)) hide(); });
+    element.addEventListener('focus', () => show(element));
+    element.addEventListener('blur', hide);
+  }
+  tooltip.addEventListener('mouseleave', hide);
+  window.addEventListener('resize', hide);
+  window.addEventListener('scroll', hide, true);
+  document.addEventListener('keydown', event => { if (event.key === 'Escape') hide(); });
+})();
+</script>
+</body>
+</html>
