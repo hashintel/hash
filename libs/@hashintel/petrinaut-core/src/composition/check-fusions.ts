@@ -1,22 +1,18 @@
 /**
- * The checks on a net's fusions and ports: every member names a port or a
- * place that exists and belongs to this fusion alone, the members agree on
- * what the fused place is, no transition reaches the fused place twice, a
- * port is used the way it is declared, and a fused flow has somewhere to come
- * from and somewhere to go. Run on a document as the editor shows it, before
- * flattening, one fusion and one net at a time. Flattening throws on each of
- * the fusion errors too, apart from a member listed twice and a fusion with
- * fewer than two members, which merge nothing. It merges across nested
- * instances as well, and can refuse what no single fusion shows:
- * `place-fusion.mdx` lists those cases.
+ * The checks on a net's fusions: every member names a port or a place that
+ * exists and belongs to this fusion alone, the members agree on what the
+ * fused place is, no transition reaches the fused place twice, and a fused
+ * flow has somewhere to come from and somewhere to go. Run on a document as
+ * the editor shows it, before flattening, one fusion and one net at a time.
+ * Flattening throws on each of the errors too, apart from a member listed
+ * twice and a fusion with fewer than two members, which merge nothing. It
+ * merges across nested instances as well, and can refuse what no single
+ * fusion shows: `place-fusion.mdx` lists those cases.
  */
 
-import {
-  arcEndpointsEqual,
-  arcMatchesEndpoint,
-  placeArcEndpoint,
-} from "../arc-endpoints";
+import { arcMatchesEndpoint } from "../arc-endpoints";
 import { getRunningEquationIds } from "../place-dynamics";
+import { checkPorts, type PortProblem } from "./check-ports";
 import {
   colorsStructurallyEqual,
   describeResolvedMember,
@@ -27,13 +23,7 @@ import {
   type FusionNet,
   type ResolvedFusionMember,
 } from "./fusions";
-import {
-  describePortDirection,
-  endpointUsage,
-  portUsage,
-  portUsageMatchesDirection,
-  type PortUsage,
-} from "./ports";
+import { endpointUsage, portUsage, type PortUsage } from "./ports";
 
 import type {
   ArcEndpoint,
@@ -83,14 +73,6 @@ export type FusionProblem = {
   fusionId: ID;
   code: FusionProblemCode;
   severity: ProblemSeverity;
-  message: string;
-};
-
-/** A port whose subnet uses it against the direction it declares. */
-export type PortProblem = {
-  subnetId: ID;
-  placeId: ID;
-  severity: "warning";
   message: string;
 };
 
@@ -327,51 +309,6 @@ export const checkFusions = (sdcpn: SDCPN): FusionProblem[] => [
     checkNetFusions(sdcpn, subnet, subnet.id),
   ),
 ];
-
-/**
- * How a subnet's transitions touch one of its ports, on the port itself or
- * on what the subnet fuses with it: fused, they are one place.
- */
-const fusedPortUsage = (
-  subnet: Pick<Subnet, "transitions" | "fusions">,
-  placeId: ID,
-): Pick<PortUsage, "consumed" | "produced"> => {
-  const port = placeArcEndpoint(placeId);
-  const members = subnet.fusions?.find((fusion) =>
-    fusion.members.some((member) => arcEndpointsEqual(member, port)),
-  )?.members ?? [port];
-  const usages = members.map((member) =>
-    endpointUsage(subnet.transitions, member),
-  );
-  return {
-    consumed: usages.some(({ consumed }) => consumed),
-    produced: usages.some(({ produced }) => produced),
-  };
-};
-
-/** The ports whose declared direction their subnet's arcs contradict. */
-export const checkPorts = (sdcpn: SDCPN): PortProblem[] =>
-  (sdcpn.subnets ?? []).flatMap((subnet) =>
-    subnet.places.flatMap((place) => {
-      if (!place.isPort || place.portDirection === undefined) {
-        return [];
-      }
-      const usage = fusedPortUsage(subnet, place.id);
-      if (portUsageMatchesDirection(usage, place.portDirection)) {
-        return [];
-      }
-      const against =
-        place.portDirection === "in" ? "produces into" : "consumes from";
-      return [
-        {
-          subnetId: subnet.id,
-          placeId: place.id,
-          severity: "warning" as const,
-          message: `Port ${place.name} of ${subnet.name} is declared ${describePortDirection(place.portDirection)}, but a transition of ${subnet.name} ${against} it.`,
-        },
-      ];
-    }),
-  );
 
 export type CompositionProblem =
   | ({ kind: "fusion" } & FusionProblem)

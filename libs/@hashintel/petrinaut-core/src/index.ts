@@ -86,9 +86,9 @@ export type {
   CompositionProblem,
   FusionProblem,
   FusionProblemCode,
-  PortProblem,
   ProblemSeverity,
 } from "./composition/check-fusions";
+export type { PortProblem } from "./composition/check-ports";
 export {
   describePortDirection,
   effectivePortDirection,
