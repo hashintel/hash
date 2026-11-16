@@ -1594,6 +1594,9 @@ export function createPetrinautActions(
               // Nor its choice of implementation, unless the update makes
               // one.
               delete instance.implementation;
+
+              // The update may name a provided component the document has
+              // no copy of yet.
               ensureProvidedComponent(sdcpn, provided, parsed.update.subnetId);
             }
             assignUpdate(instance, update);

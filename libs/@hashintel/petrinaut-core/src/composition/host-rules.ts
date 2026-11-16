@@ -31,7 +31,11 @@ const subnetIdAt = (input: unknown, key: string): ID | null => {
   return typeof id === "string" ? toPetrinautId(id) : null;
 };
 
-/** Where a mutation's input names the subnet it changes, or makes. */
+/**
+ * Where a mutation's input names the subnet it changes, or makes.
+ * `removeSubnet` is left out on purpose: the document's copy can go, with
+ * its instances.
+ */
 const changedSubnetKey = (name: MutationName): string => {
   if (name === "addSubnet") {
     return "id";
@@ -40,9 +44,10 @@ const changedSubnetKey = (name: MutationName): string => {
 };
 
 const providedRefusal = (rules: HostRules, subnetId: ID | null) => {
-  const provided = subnetId === null ? undefined : rules.provided.get(subnetId);
-  return provided
-    ? `${provided.name} is a component the application provides: it cannot be changed.`
+  const component =
+    subnetId === null ? undefined : rules.provided.get(subnetId);
+  return component
+    ? `${component.name} is a component the application provides: it cannot be changed.`
     : null;
 };
 

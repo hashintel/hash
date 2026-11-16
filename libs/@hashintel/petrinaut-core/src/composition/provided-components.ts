@@ -86,13 +86,6 @@ const assertNamedOnce = (
   }
 };
 
-/**
- * The interface a provided component is in a document. Every id inside it
- * derives from the component's id and the item's own name, so the same
- * component always gives the same interface, and two components may both
- * name a port `In`. Throws when two items of one kind share a name, since
- * they would share an id.
- */
 /** Whether two declarations of a token type say the same, element by element. */
 const sameTokenType = (
   first: ProvidedTokenType,
@@ -105,6 +98,13 @@ const sameTokenType = (
     return element.name === other?.name && element.type === other.type;
   });
 
+/**
+ * The interface a provided component is in a document. Every id inside it
+ * derives from the component's id and the item's own name, so the same
+ * component always gives the same interface, and two components may both
+ * name a port `In`. Throws when two items of one kind share a name, since
+ * they would share an id, and when a token type is declared in two ways.
+ */
 export const toInterface = (component: ProvidedComponent): Subnet => {
   const scoped = (kind: string, name: string): ID =>
     toPetrinautId(`${component.id}/${kind}/${name}`);
@@ -157,6 +157,8 @@ export const toInterface = (component: ProvidedComponent): Subnet => {
       dynamicsEnabled: false,
       isPort: true,
       portDirection: port.direction,
+      // A place needs a position: nothing opens a provided interface to
+      // show these.
       x: 0,
       y: index * 100,
     })),
