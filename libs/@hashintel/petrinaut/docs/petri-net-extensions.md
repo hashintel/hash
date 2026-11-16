@@ -185,7 +185,7 @@ return (
 );
 ```
 
-Reading a value off such a token is an error.
+Reading a value off such a token is an error. A place of this kind that holds more than 1,000,000 tokens shows a message in place of its drawing.
 
 | Property          | Default      | Purpose                                                                     |
 | ----------------- | ------------ | --------------------------------------------------------------------------- |

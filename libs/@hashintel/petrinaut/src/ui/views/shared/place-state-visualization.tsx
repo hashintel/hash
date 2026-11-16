@@ -51,10 +51,19 @@ const plainToken: TokenRecord = Object.freeze(
 );
 
 /**
+ * The most tokens a count is drawn from. A count costs the engine nothing to
+ * hold, and a visualizer is handed one record per token, so a larger one
+ * would freeze the tab. It is the ceiling `range()` has, for the same reason.
+ */
+const maxCountedTokens = 1_000_000;
+
+/**
  * The place's tokens for the frame being shown: the current frame of a run,
- * or the initial marking before one. A place with no type holds a count, so
- * its tokens are that many records with no attribute: `tokens.length` reads
- * the count, and `tokens.map` draws one mark per token.
+ * or the initial marking before one. A place whose tokens carry nothing, for
+ * want of a type or of an element in it, holds a count, so its tokens are
+ * that many records with no attribute: `tokens.length` reads the count, and
+ * `tokens.map` draws one mark per token. A count above `maxCountedTokens`
+ * gives `null`.
  *
  * Marking records may hold uuid values as at-rest strings; they are coerced
  * to runtime token values (uuid → bigint) as the engine would. Total per
@@ -65,19 +74,24 @@ const plainToken: TokenRecord = Object.freeze(
 const useCurrentTokens = (
   place: Place,
   placeType: Color | null,
-): TokenRecord[] => {
+): TokenRecord[] | null => {
   const { initialMarking } = use(SimulationContext);
   const { currentFrameReader, totalFrames } = use(ExecutionFrameSourceContext);
   const frameReader = totalFrames > 0 ? currentFrameReader : null;
   const marking = initialMarking[place.id];
 
-  if (!placeType) {
+  // A frame keeps the count of such a place and no token to read.
+  if (!placeType || placeType.elements.length === 0) {
     const count = frameReader
       ? frameReader.getPlaceTokenCount(place.id)
-      : typeof marking === "number"
-        ? marking
-        : 0;
-    return new Array<TokenRecord>(count).fill(plainToken);
+      : Array.isArray(marking)
+        ? marking.length
+        : typeof marking === "number"
+          ? marking
+          : 0;
+    return count > maxCountedTokens
+      ? null
+      : new Array<TokenRecord>(count).fill(plainToken);
   }
   if (frameReader) {
     return frameReader.getPlaceTokens(place);
@@ -126,6 +140,13 @@ const VisualizerPicture: React.FC<{
     return (
       <div className={visualizerErrorStyle}>
         {hir.diagnostics[0]?.message ?? "This visualizer cannot be drawn."}
+      </div>
+    );
+  }
+  if (tokens === null) {
+    return (
+      <div className={visualizerErrorStyle}>
+        {`This place holds more than ${maxCountedTokens.toLocaleString("en-US")} tokens, too many to draw.`}
       </div>
     );
   }
