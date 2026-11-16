@@ -1,10 +1,13 @@
 name: Restore OpenAPI Generator
-description: Restores the graph client's OpenAPI Generator jar from the Actions cache into the `storageDir` its `openapitools.json` names, keyed on the generator version.
+description: Restores the graph client's OpenAPI Generator jar from the Actions cache into the `storageDir` its `openapitools.json` names, keyed on the generator version, and fails when the restored jar does not match its pinned SHA-256.
 
 outputs:
   storage-dir:
     description: Absolute path of the restored directory. Empty when the checkout has no graph client config or the config sets no `storageDir`.
     value: ${{ steps.config.outputs.storage-dir }}
+  version:
+    description: Generator version pinned in `openapitools.json`.
+    value: ${{ steps.config.outputs.version }}
   key:
     description: Cache key of the jar for the pinned generator version.
     value: ${{ steps.config.outputs.key }}
@@ -30,3 +33,12 @@ runs:
       with:
         path: ${{ steps.config.outputs.storage-dir }}
         key: ${{ steps.config.outputs.key }}
+
+    - name: Verify OpenAPI Generator checksum
+      if: steps.restore.outputs.cache-hit == 'true'
+      shell: bash
+      env:
+        VERIFY_JAR: ${{ github.action_path }}/verify-jar.sh
+        STORAGE_DIR: ${{ steps.config.outputs.storage-dir }}
+        VERSION: ${{ steps.config.outputs.version }}
+      run: '"$VERIFY_JAR" "$STORAGE_DIR" "$VERSION"'

@@ -33,6 +33,15 @@ runs:
       working-directory: libs/@local/graph/client/typescript
       run: yarn openapi-generator-cli version
 
+    - name: Verify OpenAPI Generator checksum
+      if: steps.openapi-generator-download.outcome == 'success'
+      shell: bash
+      env:
+        VERIFY_JAR: ${{ github.action_path }}/../restore-openapi-generator/verify-jar.sh
+        STORAGE_DIR: ${{ steps.openapi-generator.outputs.storage-dir }}
+        VERSION: ${{ steps.openapi-generator.outputs.version }}
+      run: '"$VERIFY_JAR" "$STORAGE_DIR" "$VERSION"'
+
     - name: Save OpenAPI Generator
       if: steps.openapi-generator-download.outcome == 'success'
       uses: actions/cache/save@v4.3.0
