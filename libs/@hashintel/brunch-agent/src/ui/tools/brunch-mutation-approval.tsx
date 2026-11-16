@@ -9,6 +9,7 @@ import {
   parseArcEndpointKey,
   parseArcId,
   type ArcEndpoint,
+  type FusionNet,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 import { useStore } from "@hashintel/petrinaut/ui/plugin";
@@ -276,10 +277,7 @@ const namedNetItemsOf = (net: NetItems): NamedItem[] => [
 ];
 
 /** A net's fusions, under the name the editor shows for each. */
-const namedFusionsOf = (
-  definition: SDCPN,
-  net: Pick<SDCPN, "places" | "componentInstances" | "fusions">,
-): NamedItem[] =>
+const namedFusionsOf = (definition: SDCPN, net: FusionNet): NamedItem[] =>
   (net.fusions ?? []).map((fusion) => ({
     id: fusion.id,
     name: fusionDisplayName(definition, net, fusion),
