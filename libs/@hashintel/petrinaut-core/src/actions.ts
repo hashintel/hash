@@ -527,8 +527,8 @@ const dropImplementations = (
   sdcpn: SDCPN,
   drop: (interfaceId: ID, implementationId: ID) => boolean,
 ): void => {
-  const document = sdcpn;
-  const implementations = document.implementations;
+  const targetSdcpn = sdcpn;
+  const implementations = targetSdcpn.implementations;
   if (!implementations) {
     return;
   }
@@ -540,7 +540,7 @@ const dropImplementations = (
     }
   }
   if (Object.keys(implementations).length === 0) {
-    delete document.implementations;
+    delete targetSdcpn.implementations;
   }
 };
 
@@ -625,22 +625,40 @@ const assertComponentInstanceReferences = (
   }
 };
 
+/**
+ * Throws unless `implementation` can run for instances of `subnetId`.
+ * `subject` is what names it, and opens the message.
+ */
+const assertBindingRuns = (
+  sdcpn: SDCPN,
+  binding: { subnetId: ID; implementation: ID },
+  subject: string,
+): void => {
+  const resolved = resolveImplementation(sdcpn, binding);
+  if (resolved === null) {
+    throw new Error(`Subnet ID \`${binding.subnetId}\` does not exist.`);
+  }
+  if (resolved.kind === "component") {
+    throw new Error(
+      `${subject} names an implementation, but \`${resolved.subnet.name}\` is not an interface.`,
+    );
+  }
+  if (resolved.kind === "unbound") {
+    throw new Error(describeUnboundInstance(resolved, subject));
+  }
+};
+
 /** Throws when the implementation an instance names cannot run for it. */
 const assertImplementationChoice = (
   sdcpn: SDCPN,
   instance: ComponentInstance,
 ): void => {
-  if (instance.implementation === undefined) {
-    return;
-  }
-  const binding = resolveImplementation(sdcpn, instance);
-  if (binding?.kind === "component") {
-    throw new Error(
-      `Component instance \`${instance.name}\` names an implementation, but \`${binding.subnet.name}\` is not an interface.`,
+  if (instance.implementation !== undefined) {
+    assertBindingRuns(
+      sdcpn,
+      { subnetId: instance.subnetId, implementation: instance.implementation },
+      `Component instance \`${instance.name}\``,
     );
-  }
-  if (binding?.kind === "unbound") {
-    throw new Error(describeUnboundInstance(binding, instance.name));
   }
 };
 
@@ -1467,29 +1485,14 @@ export function createPetrinautActions(
           dropImplementations(sdcpn, (id) => id === interfaceId);
           return;
         }
-        const binding = resolveImplementation(sdcpn, {
-          subnetId: interfaceId,
-          implementation: implementationId,
-        });
-        if (binding === null) {
-          throw new Error(`Subnet ID \`${interfaceId}\` does not exist.`);
-        }
-        if (binding.kind === "component") {
-          throw new Error(
-            `Subnet \`${binding.subnet.name}\` is not an interface.`,
-          );
-        }
-        if (binding.kind === "unbound") {
-          throw new Error(
-            describeUnboundInstance(
-              binding,
-              `The default of ${binding.interface.name}`,
-            ),
-          );
-        }
-        const document = sdcpn;
-        document.implementations ??= {};
-        document.implementations[interfaceId] = implementationId;
+        assertBindingRuns(
+          sdcpn,
+          { subnetId: interfaceId, implementation: implementationId },
+          "The document's default",
+        );
+        const targetSdcpn = sdcpn;
+        targetSdcpn.implementations ??= {};
+        targetSdcpn.implementations[interfaceId] = implementationId;
       });
     },
     addComponentInstance(input) {

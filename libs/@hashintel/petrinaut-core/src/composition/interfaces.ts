@@ -141,21 +141,22 @@ export const resolveImplementation = (
 };
 
 /**
- * One sentence on why `binding` runs nothing, naming the instance and, for an
- * implementation that cannot run, what names it: the instance or the
+ * One sentence on why `binding` runs nothing. `subject` opens it: the name of
+ * the instance, or whatever else holds the binding. For an implementation
+ * that cannot run, the sentence says what names it: the subject or the
  * document's default.
  */
 export const describeUnboundInstance = (
   binding: Extract<ImplementationBinding, { kind: "unbound" }>,
-  instanceName: string,
+  subject: string,
 ): string => {
   if (binding.reason === "no-binding") {
-    return `${instanceName} is an instance of the interface ${binding.interface.name} with no implementation: choose one on the instance or set the document's default.`;
+    return `${subject} is an instance of the interface ${binding.interface.name} with no implementation: choose one on the instance or set the document's default.`;
   }
   const namer =
     binding.chosenBy === "instance"
-      ? instanceName
-      : `${instanceName} chooses no implementation, and the document's default for ${binding.interface.name}`;
+      ? subject
+      : `${subject} chooses no implementation, and the document's default for ${binding.interface.name}`;
   switch (binding.reason) {
     case "missing":
       return `${namer} names an implementation that does not exist.`;
