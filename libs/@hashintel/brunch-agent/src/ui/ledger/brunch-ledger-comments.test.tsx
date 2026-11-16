@@ -20,6 +20,7 @@ import { pendingCommentsFor } from "./brunch-ledger-comments";
 import { BrunchLedgerCommentsBar } from "./brunch-ledger-comments-bar";
 
 import type { PetrinautAiComposerControlContext } from "../chat/ai-assistant-composer-control";
+import type { FlueChatAdmissionFailure } from "@local/flue-aisdk-transport";
 
 afterEach(cleanup);
 
@@ -90,6 +91,23 @@ test("keeps a rejected batch editable and sends its current text on retry", asyn
     parseLedgerComments(submitText.mock.calls[0]?.[0].text ?? "")?.[0]?.text,
   ).toBe("There are three crews.");
   await vi.waitFor(() => expect(comments.get().comments).toEqual([]));
+});
+
+test.each<[FlueChatAdmissionFailure, "failed" | "uncertain"]>([
+  [{ kind: "rejected", status: 403 }, "failed"],
+  [{ kind: "aborted", requestSent: false }, "failed"],
+  [{ kind: "aborted", requestSent: true }, "uncertain"],
+  [{ kind: "ambiguous" }, "uncertain"],
+  [
+    { kind: "submission-conflict", status: 409, submissionId: "existing" },
+    "uncertain",
+  ],
+])("a batch whose send fails with %o is %s", async (failure, sending) => {
+  const comments = pendingCommentsFor({}, "conversation");
+  comments.add(onCrew);
+  comments.send(() => Promise.reject(new FlueChatAdmissionError(failure)));
+  await vi.waitFor(() => expect(comments.get().sending).toBe(sending));
+  expect(comments.get().comments).toHaveLength(1);
 });
 
 test("retries an uncertain admission with the same immutable batch and delivery identity", async () => {

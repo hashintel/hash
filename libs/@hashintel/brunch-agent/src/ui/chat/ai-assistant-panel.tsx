@@ -47,7 +47,10 @@ import {
   useAssistantPanel,
   useStoreSelector,
 } from "@hashintel/petrinaut/ui/plugin";
-import { FlueChatAdmissionError } from "@local/flue-aisdk-transport";
+import {
+  admissionOutcome,
+  FlueChatAdmissionError,
+} from "@local/flue-aisdk-transport";
 
 import { hashPetrinautPrimaryOperation } from "../../hash/petrinaut-tools";
 import { browserToolFacts } from "../../petrinaut/browser-executed-tools";
@@ -1420,12 +1423,12 @@ const ConversationAiAssistantPanel = ({
       setStreamError(submissionError);
       const unadmittedUserMessageId = unadmittedUserMessageIdRef.current;
       unadmittedUserMessageIdRef.current = null;
-      // Only a definite refusal proves the message was never admitted. Any
+      // Only a failure that proves the message never arrived removes it. Any
       // other failure keeps it, since a retry reuses its delivery identity.
       if (
         unadmittedUserMessageId !== null &&
         chatError instanceof FlueChatAdmissionError &&
-        chatError.failure.kind === "rejected"
+        admissionOutcome(chatError.failure) === "not-admitted"
       ) {
         setMessages((currentMessages) =>
           currentMessages.filter(

@@ -9,7 +9,10 @@ import {
   petrinautContextualUserMessageBody,
   readPetrinautSubmissionContext,
 } from "@hashintel/brunch-agent";
-import { FlueChatDisconnectError } from "@local/flue-aisdk-transport";
+import {
+  FlueChatAdmissionError,
+  FlueChatDisconnectError,
+} from "@local/flue-aisdk-transport";
 
 import { createBrunchFlueAdapter } from "./brunch-flue-adapter";
 import {
@@ -22,6 +25,7 @@ import { canonicalPetrinautClientToolNames } from "./tools/brunch-client-tools";
 import type { PetrinautAiComposerSubmitText } from "../ui/chat/ai-assistant-composer-control";
 import type { PetrinautAiMessage } from "../ui/chat/ai-assistant-panel";
 import type { AgentSendResult, FlueClient } from "@flue/sdk";
+import type { FlueChatAdmissionFailure } from "@local/flue-aisdk-transport";
 
 // The same await-and-return contract as the panel, using the installed SDK.
 const submitThroughChat =
@@ -66,6 +70,41 @@ test("host submission rejects a refused admission even though SDK sendMessage fu
     name: "FlueChatAdmissionError",
     failure: { kind: "rejected", status: 403 },
   });
+});
+
+test.each<[FlueChatAdmissionFailure, "delivered" | "fails"]>([
+  [{ kind: "rejected", status: 403 }, "fails"],
+  [{ kind: "aborted", requestSent: false }, "fails"],
+  [{ kind: "aborted", requestSent: true }, "fails"],
+  [{ kind: "ambiguous" }, "fails"],
+  [
+    { kind: "submission-conflict", status: 409, submissionId: "existing" },
+    "delivered",
+  ],
+])("a host send whose admission fails with %o %s", async (failure, ends) => {
+  const tracker = new BrunchPanelConversationTracker();
+  // As the panel transport reports it: the failure, then the AI SDK's
+  // fulfilled `sendMessage`.
+  const submitText: PetrinautAiComposerSubmitText = async ({ id }) => {
+    const messageId = id ?? "missing";
+    tracker.recordAdmissionFailure(
+      { kind: "user", messageId },
+      new FlueChatAdmissionError(failure),
+    );
+    return { kind: "message", messageId };
+  };
+  const submission = tracker.submitTextWithAdmission(submitText, {
+    id: "host",
+    text: "Results",
+  });
+  if (ends === "delivered") {
+    await expect(submission).resolves.toEqual({
+      kind: "message",
+      messageId: "host",
+    });
+  } else {
+    await expect(submission).rejects.toMatchObject({ failure });
+  }
 });
 
 test("captures words before waiting for the client and retains them for the same admission identity", async () => {
@@ -143,6 +182,44 @@ test("sends the editor's selection with the message it was sent with, and keeps 
   expect(
     send.mock.calls.map(([submission]) => submission.message.body),
   ).toEqual([expected, expected]);
+});
+
+test("a retry through a transport rebuilt after a version load and a reply resends the first payload", async () => {
+  const send = vi.fn<FlueClient["send"]>(async () => {
+    throw new TypeError("Connection lost after request write");
+  });
+  const client = Promise.resolve({ send } as unknown as FlueClient);
+  const tracker = new BrunchPanelConversationTracker();
+  const options = {
+    trigger: "submit-message" as const,
+    chatId: "one",
+    messageId: "user-one",
+    messages: [
+      {
+        id: "user-one",
+        role: "user" as const,
+        parts: [{ type: "text" as const, text: "Results." }],
+      },
+    ],
+    abortSignal: undefined,
+  };
+  await expect(
+    createBrunchPanelTransport(client, tracker, {
+      interviewBudgetLevel: "quick",
+      interviewRepliesAsked: 1,
+    }).sendMessages(options),
+  ).rejects.toThrow();
+  await expect(
+    createBrunchPanelTransport(client, tracker, {
+      interviewBudgetLevel: "quick",
+      interviewRepliesAsked: 2,
+      versionLoad: { id: "version-2", decisionTime: "2026-11-16T00:00:00Z" },
+    }).sendMessages(options),
+  ).rejects.toThrow();
+  const [first, retry] = send.mock.calls.map(
+    ([submission]) => submission.message,
+  );
+  expect(retry).toEqual(first);
 });
 
 test("announces a typed or comment submission before Flue admits it, but not an internal continuation", async () => {

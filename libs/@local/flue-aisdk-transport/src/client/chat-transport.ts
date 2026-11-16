@@ -111,7 +111,11 @@ export interface FlueChatTransportOptions {
 }
 
 export type FlueChatAdmissionFailure =
-  | { readonly kind: "aborted" }
+  | {
+      readonly kind: "aborted";
+      /** False only when the signal was aborted before the request was made. */
+      readonly requestSent: boolean;
+    }
   | { readonly kind: "ambiguous" }
   | { readonly kind: "rejected"; readonly status: number }
   | {
@@ -119,6 +123,27 @@ export type FlueChatAdmissionFailure =
       readonly status: 409;
       readonly submissionId: AgentSendResult["submissionId"];
     };
+
+/**
+ * Whether the agent admitted a message whose send failed: `not-admitted` only
+ * when the failure proves it never arrived, and `admitted` when the delivery
+ * key already names an admitted submission. A retry of the same message must
+ * resend its original payload, so a conflict on retry is that message.
+ */
+export const admissionOutcome = (
+  failure: FlueChatAdmissionFailure,
+): "not-admitted" | "maybe-admitted" | "admitted" => {
+  switch (failure.kind) {
+    case "rejected":
+      return "not-admitted";
+    case "aborted":
+      return failure.requestSent ? "maybe-admitted" : "not-admitted";
+    case "ambiguous":
+      return "maybe-admitted";
+    case "submission-conflict":
+      return "admitted";
+  }
+};
 
 const admissionFailureMessage = (failure: FlueChatAdmissionFailure): string => {
   switch (failure.kind) {
@@ -220,7 +245,10 @@ const admissionError = (
   signal: AbortSignal | undefined,
 ): FlueChatAdmissionError => {
   if (signal?.aborted || isAbortError(error)) {
-    return new FlueChatAdmissionError({ kind: "aborted" }, { cause: error });
+    return new FlueChatAdmissionError(
+      { kind: "aborted", requestSent: true },
+      { cause: error },
+    );
   }
   if (error instanceof FlueApiError) {
     const existingSubmissionId = conflictingSubmissionId(error);
@@ -513,6 +541,12 @@ export const createFlueChatTransport = (
       throw new Error("The submitted message identity is too long.");
     }
 
+    if (abortSignal?.aborted) {
+      throw new FlueChatAdmissionError(
+        { kind: "aborted", requestSent: false },
+        { cause: abortSignal.reason },
+      );
+    }
     let admission: AgentSendResult;
     try {
       admission = await options.client.send({

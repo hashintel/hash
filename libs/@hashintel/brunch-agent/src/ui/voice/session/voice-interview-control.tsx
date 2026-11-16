@@ -89,8 +89,11 @@ export const submitVoiceInputWithAdmission = async ({
   let unsubscribeFromFailure = () => {};
   let removeAbortListener = () => {};
   const cancelled = new Promise<never>((_resolve, reject) => {
+    // The send below starts regardless, so the abort cannot show it never left.
     const rejectForAbort = () =>
-      reject(new FlueChatAdmissionError({ kind: "aborted" }));
+      reject(
+        new FlueChatAdmissionError({ kind: "aborted", requestSent: true }),
+      );
     if (input.signal.aborted) {
       rejectForAbort();
       return;

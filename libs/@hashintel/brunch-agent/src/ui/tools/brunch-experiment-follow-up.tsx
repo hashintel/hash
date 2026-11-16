@@ -2,7 +2,10 @@ import { generateId } from "ai";
 import { useEffect, useSyncExternalStore } from "react";
 
 import { Button } from "@hashintel/ds-components";
-import { FlueChatAdmissionError } from "@local/flue-aisdk-transport";
+import {
+  admissionOutcome,
+  FlueChatAdmissionError,
+} from "@local/flue-aisdk-transport";
 
 import {
   editorDraftsFor,
@@ -39,7 +42,7 @@ const sendResults = (
       drafts.update(draft.toolCallId, {
         followUp:
           error instanceof FlueChatAdmissionError &&
-          error.failure.kind === "ambiguous"
+          admissionOutcome(error.failure) !== "not-admitted"
             ? "unconfirmed"
             : "failed",
       }),

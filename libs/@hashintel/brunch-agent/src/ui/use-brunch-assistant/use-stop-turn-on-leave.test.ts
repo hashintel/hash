@@ -186,6 +186,32 @@ test("a submission still awaiting admission is stopped once it is admitted", asy
   await vi.waitFor(() => expect(sent.abort).toHaveBeenCalledOnce());
 });
 
+test("a message sent from the new editor while the leaving send settles is not stopped", async () => {
+  const sent = session();
+  let leavingAdmitted = () => {};
+  void sent.tracker.trackSubmission(
+    new Promise<void>((resolve) => {
+      leavingAdmitted = resolve;
+    }),
+  );
+  const props = {
+    editorHandle: "handle-1",
+    binding,
+    sent,
+    snapshot: undefined,
+  };
+  const { rerender } = renderLeaving(props);
+
+  rerender({ ...props, editorHandle: "handle-2" });
+  // Same binding, so the new editor sends through the same session.
+  const arriving = Promise.withResolvers<void>();
+  void sent.tracker.trackSubmission(arriving.promise);
+  leavingAdmitted();
+  arriving.resolve();
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  expect(sent.abort).not.toHaveBeenCalled();
+});
+
 const leaveWhileSendFails = async (failure: FlueChatAdmissionFailure) => {
   const sent = session();
   let fail = () => {};
@@ -211,17 +237,30 @@ const leaveWhileSendFails = async (failure: FlueChatAdmissionFailure) => {
   return { ...sent, onError };
 };
 
-test("a submission awaiting admission that is then refused stops nothing", async () => {
-  const sent = await leaveWhileSendFails({ kind: "rejected", status: 403 });
-  await new Promise((resolve) => setTimeout(resolve, 10));
-  expect(sent.abort).not.toHaveBeenCalled();
-  expect(sent.onError).not.toHaveBeenCalled();
-});
+test.each<FlueChatAdmissionFailure>([
+  { kind: "rejected", status: 403 },
+  { kind: "aborted", requestSent: false },
+])(
+  "a submission awaiting admission that then fails with %o stops nothing",
+  async (failure) => {
+    const sent = await leaveWhileSendFails(failure);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(sent.abort).not.toHaveBeenCalled();
+    expect(sent.onError).not.toHaveBeenCalled();
+  },
+);
 
-test("a submission awaiting admission whose admission is then ambiguous is stopped", async () => {
-  const sent = await leaveWhileSendFails({ kind: "ambiguous" });
-  await vi.waitFor(() => expect(sent.abort).toHaveBeenCalledOnce());
-});
+test.each<FlueChatAdmissionFailure>([
+  { kind: "ambiguous" },
+  { kind: "aborted", requestSent: true },
+  { kind: "submission-conflict", status: 409, submissionId: "existing" },
+])(
+  "a submission awaiting admission that then fails with %o is stopped",
+  async (failure) => {
+    const sent = await leaveWhileSendFails(failure);
+    await vi.waitFor(() => expect(sent.abort).toHaveBeenCalledOnce());
+  },
+);
 
 test("a changed binding or an unmount stops the leaving session's turn, not the next one's", async () => {
   const first = session();

@@ -313,7 +313,7 @@ describe("voice interview control", () => {
     abortController.abort();
 
     await expect(resultPromise).rejects.toMatchObject({
-      failure: { kind: "aborted" },
+      failure: { kind: "aborted", requestSent: true },
       name: "FlueChatAdmissionError",
     });
     expect(unsubscribe).toHaveBeenCalledOnce();

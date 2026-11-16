@@ -7,7 +7,10 @@ import {
   selectionContextKey,
 } from "@hashintel/brunch-agent";
 import { petrinautDiagnosticsContextMessageId } from "@hashintel/petrinaut-core";
-import { FlueChatAdmissionError } from "@local/flue-aisdk-transport";
+import {
+  admissionOutcome,
+  FlueChatAdmissionError,
+} from "@local/flue-aisdk-transport";
 
 import { canonicalBrunchFlueAdapter } from "./brunch-flue-adapter";
 import { brunchSubmittedUserMessage } from "./brunch-panel-transport/submitted-user-message";
@@ -26,9 +29,9 @@ import type {
 import type {
   BrowserContext,
   InterviewBudgetLevel,
+  SubmissionContext,
   VersionLoad,
 } from "@hashintel/brunch-agent";
-import type { SelectionItem } from "@hashintel/petrinaut-core/selection";
 import type {
   FlueChatResponseMessageCompletedEvent,
   FlueChatResponseMessageStartedEvent,
@@ -44,7 +47,7 @@ export type BrunchPanelAdmissionTarget = Pick<
 >;
 
 export class BrunchPanelConversationTracker {
-  readonly #wordsByMessage = new Map<string, readonly string[]>();
+  readonly #contextByMessage = new Map<string, SubmissionContext | undefined>();
   readonly #submittedMessageIds = new Set<string>();
 
   /**
@@ -58,30 +61,18 @@ export class BrunchPanelConversationTracker {
   }
 
   /**
-   * The words snapshot for one user message, read once so that a retry of the
-   * same message sends the words it was first sent with.
+   * The submission context for one user message, read once so that a retry of
+   * the same message resends the payload it was first sent with: Flue refuses
+   * a changed payload under an admitted delivery key.
    */
-  public captureWords(
+  public captureSubmissionContext(
     messageId: string,
-    read?: () => readonly string[],
-  ): readonly string[] {
-    const captured = this.#wordsByMessage.get(messageId) ?? read?.() ?? [];
-    this.#wordsByMessage.set(messageId, captured);
-    return captured;
-  }
-
-  readonly #selectionByMessage = new Map<string, readonly SelectionItem[]>();
-
-  /**
-   * The editor's selection for one user message, read once so that a retry of
-   * the same message sends the selection it was first sent with.
-   */
-  public captureSelection(
-    messageId: string,
-    read: () => readonly SelectionItem[],
-  ): readonly SelectionItem[] {
-    const captured = this.#selectionByMessage.get(messageId) ?? read();
-    this.#selectionByMessage.set(messageId, captured);
+    read: () => SubmissionContext | undefined,
+  ): SubmissionContext | undefined {
+    if (this.#contextByMessage.has(messageId))
+      return this.#contextByMessage.get(messageId);
+    const captured = read();
+    this.#contextByMessage.set(messageId, captured);
     return captured;
   }
 
@@ -194,8 +185,9 @@ export class BrunchPanelConversationTracker {
 
   /**
    * Host-owned message sends settle on admission, not AI SDK fulfillment (which
-   * also follows swallowed transport errors). The caller must retain the same
-   * id and payload when retrying an unconfirmed delivery.
+   * also follows swallowed transport errors). A retry of an unconfirmed
+   * delivery keeps its id; the transport resends the payload first built for
+   * it, so a conflict on retry means this message was already admitted.
    */
   public async submitTextWithAdmission(
     submitText: PetrinautAiComposerSubmitText,
@@ -233,6 +225,13 @@ export class BrunchPanelConversationTracker {
             },
           ),
       ]);
+    } catch (error) {
+      if (
+        error instanceof FlueChatAdmissionError &&
+        admissionOutcome(error.failure) === "admitted"
+      )
+        return result;
+      throw error;
     } finally {
       unsubscribe();
       unsubscribeFailure();
@@ -277,9 +276,8 @@ export class BrunchPanelConversationTracker {
 
   /**
    * {@link hasUnsettledTurn} asked again once the submissions in flight now
-   * have settled. A send the agent definitively refused (`rejected`) or that
-   * was cancelled locally (`aborted`) no longer counts; any other failure,
-   * `ambiguous` included, may have been admitted without this tracker
+   * have settled. A send whose failure proves it never arrived no longer
+   * counts; any other failure may have been admitted without this tracker
    * recording it, so it still does.
    */
   public async hasUnsettledTurnAfterSettling(
@@ -291,14 +289,21 @@ export class BrunchPanelConversationTracker {
         outcome.status === "fulfilled" ||
         !(
           outcome.reason instanceof FlueChatAdmissionError &&
-          (outcome.reason.failure.kind === "rejected" ||
-            outcome.reason.failure.kind === "aborted")
+          admissionOutcome(outcome.reason.failure) === "not-admitted"
         ),
     );
     return mayBeAdmitted || this.hasUnsettledTurn(snapshot);
   }
 
+  #trackedSubmissionCount = 0;
+
+  /** Every send this tracker has started, so a caller can tell one began since it last looked. */
+  public get trackedSubmissionCount(): number {
+    return this.#trackedSubmissionCount;
+  }
+
   public trackSubmission<T>(submission: Promise<T>): Promise<T> {
+    this.#trackedSubmissionCount += 1;
     this.#inFlightSubmissions.add(submission);
     const release = (): void => {
       this.#inFlightSubmissions.delete(submission);
@@ -405,39 +410,42 @@ export const createBrunchPanelTransport = (
         const userMessage = sendOptions.messages.findLast(
           (message) => message.id !== petrinautDiagnosticsContextMessageId,
         );
-        const words =
-          userMessage === undefined
-            ? []
-            : tracker.captureWords(userMessage.id, options?.readWords);
         // The chat sends the editor's selection beside the messages.
         const { body } = sendOptions;
-        const selection =
-          userMessage === undefined
-            ? []
-            : tracker.captureSelection(userMessage.id, () =>
-                parseSelection(
-                  body !== undefined && selectionContextKey in body
-                    ? Reflect.get(body, selectionContextKey)
-                    : undefined,
-                ),
-              );
+        const readSubmissionContext = () => {
+          const budget = getInterviewBudget(
+            options?.interviewBudgetLevel ?? "off",
+            // Voice reports its mode when it mounts, before it can submit.
+            tracker.inputMode ?? "text",
+            options?.interviewRepliesAsked ?? 0,
+          );
+          // An empty context sends an ordinary message, which also clears
+          // Brunch's words snapshot.
+          return petrinautSubmissionContext({
+            ...(budget === undefined ? {} : { interviewBudget: budget }),
+            words:
+              userMessage === undefined ? [] : (options?.readWords?.() ?? []),
+            ...(options?.versionLoad === undefined
+              ? {}
+              : { versionLoad: options.versionLoad }),
+            selection:
+              userMessage === undefined
+                ? []
+                : parseSelection(
+                    body !== undefined && selectionContextKey in body
+                      ? Reflect.get(body, selectionContextKey)
+                      : undefined,
+                  ),
+          });
+        };
+        const submissionContext =
+          userMessage?.role === "user"
+            ? tracker.captureSubmissionContext(
+                userMessage.id,
+                readSubmissionContext,
+              )
+            : readSubmissionContext();
         const client = await clientPromise;
-        const budget = getInterviewBudget(
-          options?.interviewBudgetLevel ?? "off",
-          // Voice reports its mode when it mounts, before it can submit.
-          tracker.inputMode ?? "text",
-          options?.interviewRepliesAsked ?? 0,
-        );
-        // An empty context sends an ordinary message, which also clears
-        // Brunch's words snapshot.
-        const submissionContext = petrinautSubmissionContext({
-          ...(budget === undefined ? {} : { interviewBudget: budget }),
-          words,
-          ...(options?.versionLoad === undefined
-            ? {}
-            : { versionLoad: options.versionLoad }),
-          selection,
-        });
         const transport = (
           options?.adapter ?? canonicalBrunchFlueAdapter
         ).chatTransport({

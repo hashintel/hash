@@ -172,6 +172,23 @@ test.each([
     error: new TypeError("Connection lost after request write"),
     kept: 1,
   },
+  {
+    failure: "an abort after the request was made keeps",
+    error: new DOMException("cancelled", "AbortError"),
+    kept: 1,
+  },
+  {
+    failure: "a submission conflict keeps",
+    error: new FlueApiError(409, {
+      error: {
+        details: "",
+        message: "The delivery key already names another payload.",
+        meta: { submissionId: "existing" },
+        type: "submission_conflict",
+      },
+    }),
+    kept: 1,
+  },
 ])(
   "real panel: $failure the optimistic composer message",
   async ({ error, kept }) => {
@@ -358,6 +375,255 @@ test.each([
   },
 );
 
+/** The finished run the follow-up reports, registered by its "Finish experiment" button. */
+const finishedExperimentDraft = {
+  toolCallId: "result-tool",
+  dismissed: false,
+  prepared: null,
+  invalid: null,
+  definition: {
+    places: [],
+    transitions: [],
+    types: [],
+    parameters: [],
+    differentialEquations: [],
+  },
+  input: {
+    experiment: {
+      name: "Run",
+      scenarioId: "scenario",
+      runCount: 1,
+      seed: 1,
+      dt: 1,
+      maxTime: 1,
+      metricIds: [],
+      scenarioParameterValues: {},
+      execution: { mode: "simulate" as const },
+    },
+    declarations: [],
+    unsupported: [],
+  },
+  run: {
+    phase: "finished" as const,
+    result: {
+      status: "complete" as const,
+      experimentId: "experiment",
+      name: "Run",
+      runsCompleted: 1,
+      metrics: [],
+    },
+  },
+};
+
+/**
+ * Flue's admission by delivery key: the first send of a key admits its
+ * payload, a resend of the same payload returns that admission, and a
+ * different payload under the key is a `submission_conflict`. The first
+ * admission's response is lost when `loseFirstResponse` is set.
+ */
+const idempotentSend = ({
+  loseFirstResponse,
+}: {
+  loseFirstResponse: boolean;
+}) => {
+  const admitted = new Map<
+    string,
+    { message: unknown; submissionId: string }
+  >();
+  return vi.fn<FlueClient["send"]>(async ({ idempotencyKey, message }) => {
+    if (idempotencyKey === undefined) throw new Error("Missing delivery key");
+    const existing = admitted.get(idempotencyKey);
+    if (existing !== undefined) {
+      if (JSON.stringify(existing.message) !== JSON.stringify(message)) {
+        throw new FlueApiError(409, {
+          error: {
+            details: "",
+            message: "The delivery key already names another payload.",
+            meta: { submissionId: existing.submissionId },
+            type: "submission_conflict",
+          },
+        });
+      }
+      return {
+        submissionId: existing.submissionId,
+        uid: "uid",
+        offset: "offset",
+        streamUrl: "http://brunch.test/stream",
+      };
+    }
+    const submissionId = `admitted-${admitted.size + 1}`;
+    admitted.set(idempotencyKey, { message, submissionId });
+    if (loseFirstResponse && admitted.size === 1) {
+      throw new TypeError("Connection lost after request write");
+    }
+    return {
+      submissionId,
+      uid: "uid",
+      offset: "offset",
+      streamUrl: "http://brunch.test/stream",
+    };
+  });
+};
+
+/**
+ * The real panel with an experiment follow-up whose run has finished once
+ * "Finish experiment" is clicked. `use-brunch-assistant` rebuilds the
+ * transport when a version loads, and the panel always sends through the
+ * latest one, so `rebuildTransport` swaps what the panel sends through.
+ */
+const renderExperimentFollowUp = (send: FlueClient["send"]) => {
+  const wait = vi.fn<FlueClient["wait"]>(() => new Promise(() => {}));
+  const client = Promise.resolve({ send, wait } as unknown as FlueClient);
+  const tracker = new BrunchPanelConversationTracker();
+  let current = createBrunchPanelTransport(client, tracker);
+  const transport: typeof current = {
+    reconnectToStream: async () => null,
+    sendMessages: (options) => current.sendMessages(options),
+  };
+  const useHostPlugin: PluginHook<typeof HostAdmissionTestPlugin> = (api) => ({
+    assistant: {
+      content: (
+        <AiAssistantPanel
+          api={api}
+          aiAssistant={{
+            conversationId: "experiment-follow-up",
+            transport,
+            messages: [
+              {
+                id: "draft",
+                role: "assistant",
+                parts: [
+                  {
+                    type: "dynamic-tool",
+                    toolName: "draft_petrinaut_experiment",
+                    toolCallId: "result-tool",
+                    state: "output-available",
+                    input: {},
+                    output: {},
+                  },
+                ],
+              },
+            ],
+            renderComposerControl: (context) => (
+              <>
+                <button
+                  type="button"
+                  onClick={() =>
+                    editorDraftsFor(api.document.net).register(
+                      finishedExperimentDraft,
+                    )
+                  }
+                >
+                  Finish experiment
+                </button>
+                <BrunchExperimentFollowUp
+                  net={api.document.net}
+                  context={{
+                    ...context,
+                    submitText: (input) =>
+                      tracker.submitTextWithAdmission(
+                        context.submitText,
+                        input,
+                      ),
+                  }}
+                />
+              </>
+            ),
+          }}
+        />
+      ),
+    },
+  });
+  render(
+    <Petrinaut
+      handle={createJsonDocHandle({ initial: { places: [], transitions: [] } })}
+      plugins={[HostAdmissionTestPlugin(useHostPlugin)]}
+    />,
+  );
+  return {
+    wait,
+    rebuildTransport: (
+      options: Parameters<typeof createBrunchPanelTransport>[2],
+    ) => {
+      current = createBrunchPanelTransport(client, tracker, options);
+    },
+  };
+};
+
+const finishExperimentAndAwaitRetry = async () => {
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Show AI assistant" }),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Finish experiment" }));
+  return screen.findByRole("button", { name: "Retry result summary" });
+};
+
+test("real panel: an experiment follow-up admitted without confirmation is retried with its original payload after a version loads", async () => {
+  const send = idempotentSend({ loseFirstResponse: true });
+  const { wait, rebuildTransport } = renderExperimentFollowUp(send);
+  const retry = await finishExperimentAndAwaitRetry();
+  expect(send).toHaveBeenCalledOnce();
+
+  rebuildTransport({
+    versionLoad: { id: "version-2", decisionTime: "2026-11-16T00:00:00.000Z" },
+  });
+  fireEvent.click(retry);
+  await waitFor(() => expect(send).toHaveBeenCalledTimes(2));
+  expect(send.mock.calls[1]?.[0].message).toEqual(
+    send.mock.calls[0]?.[0].message,
+  );
+  await waitFor(() =>
+    expect(
+      screen.queryByRole("button", { name: "Retry result summary" }),
+    ).toBeNull(),
+  );
+  expect(wait).toHaveBeenCalledOnce();
+});
+
+test("real panel: a retried experiment follow-up that meets a submission conflict ends as delivered", async () => {
+  const send = vi
+    .fn<FlueClient["send"]>()
+    .mockRejectedValueOnce(new TypeError("Connection lost after request write"))
+    .mockRejectedValueOnce(
+      new FlueApiError(409, {
+        error: {
+          details: "",
+          message: "The delivery key already names another payload.",
+          meta: { submissionId: "admitted-first" },
+          type: "submission_conflict",
+        },
+      }),
+    );
+  renderExperimentFollowUp(send);
+  fireEvent.click(await finishExperimentAndAwaitRetry());
+  await waitFor(() => expect(send).toHaveBeenCalledTimes(2));
+  await waitFor(() =>
+    expect(
+      screen.queryByRole("button", { name: "Retry result summary" }),
+    ).toBeNull(),
+  );
+  // Let a settled follow-up's effects run: a delivered one sends nothing more.
+  await act(() => new Promise((resolve) => setTimeout(resolve, 200)));
+  expect(send).toHaveBeenCalledTimes(2);
+  expect(
+    screen.queryByRole("button", { name: "Retry result summary" }),
+  ).toBeNull();
+});
+
+test("real panel: a refused experiment follow-up still offers a retry", async () => {
+  const send = vi
+    .fn<FlueClient["send"]>()
+    .mockRejectedValue(new FlueApiError(403, "Refused"));
+  renderExperimentFollowUp(send);
+  const retry = await finishExperimentAndAwaitRetry();
+  fireEvent.click(retry);
+  await waitFor(() => expect(send).toHaveBeenCalledTimes(2));
+  await act(() => new Promise((resolve) => setTimeout(resolve, 200)));
+  expect(
+    screen.getByRole("button", { name: "Retry result summary" }),
+  ).toBeTruthy();
+});
+
 test("real panel offers experiment delivery retry after ambiguous admission and never retries an admitted response failure", async () => {
   const response = Promise.withResolvers<void>();
   const send = vi
@@ -407,44 +673,9 @@ test("real panel offers experiment delivery retry after ambiguous admission and 
                   <button
                     type="button"
                     onClick={() =>
-                      editorDraftsFor(api.document.net).register({
-                        toolCallId: "result-tool",
-                        dismissed: false,
-                        prepared: null,
-                        invalid: null,
-                        definition: {
-                          places: [],
-                          transitions: [],
-                          types: [],
-                          parameters: [],
-                          differentialEquations: [],
-                        },
-                        input: {
-                          experiment: {
-                            name: "Run",
-                            scenarioId: "scenario",
-                            runCount: 1,
-                            seed: 1,
-                            dt: 1,
-                            maxTime: 1,
-                            metricIds: [],
-                            scenarioParameterValues: {},
-                            execution: { mode: "simulate" },
-                          },
-                          declarations: [],
-                          unsupported: [],
-                        },
-                        run: {
-                          phase: "finished",
-                          result: {
-                            status: "complete",
-                            experimentId: "experiment",
-                            name: "Run",
-                            runsCompleted: 1,
-                            metrics: [],
-                          },
-                        },
-                      })
+                      editorDraftsFor(api.document.net).register(
+                        finishedExperimentDraft,
+                      )
                     }
                   >
                     Finish experiment

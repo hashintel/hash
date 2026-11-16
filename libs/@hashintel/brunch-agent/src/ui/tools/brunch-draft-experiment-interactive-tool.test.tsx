@@ -20,6 +20,7 @@ import {
   toPetrinautId,
 } from "@hashintel/petrinaut-core";
 import { prepareExperiment } from "@hashintel/petrinaut/react";
+import { FlueChatAdmissionError } from "@local/flue-aisdk-transport";
 
 import {
   BrunchPanelConversationTracker,
@@ -79,6 +80,7 @@ import type {
   SDCPN,
 } from "@hashintel/petrinaut-core";
 import type { ExperimentRecord } from "@hashintel/petrinaut/react";
+import type { FlueChatAdmissionFailure } from "@local/flue-aisdk-transport";
 
 // Distributive so the awaiting/submitted discriminant survives the Pick.
 type DistributivePick<T, K extends keyof T> = T extends unknown
@@ -1347,6 +1349,64 @@ describe("BrunchDraftExperimentWidget", () => {
       screen.getByRole("button", { name: "Retry result summary" }),
     ).toBeTruthy();
   });
+
+  it.each<[FlueChatAdmissionFailure, "failed" | "unconfirmed"]>([
+    [{ kind: "rejected", status: 403 }, "failed"],
+    [{ kind: "aborted", requestSent: false }, "failed"],
+    [{ kind: "aborted", requestSent: true }, "unconfirmed"],
+    [{ kind: "ambiguous" }, "unconfirmed"],
+    [
+      { kind: "submission-conflict", status: 409, submissionId: "existing" },
+      "unconfirmed",
+    ],
+  ])(
+    "marks a summary whose send fails with %o as %s",
+    async (failure, followUp) => {
+      const definition = createReadableStore(makeDefinition());
+      const drafts = editorDraftsFor(definition);
+      drafts.register({
+        toolCallId: "summary",
+        input: makeInput(),
+        definition: makeDefinition(),
+        prepared: null,
+        invalid: null,
+        dismissed: false,
+        run: { phase: "finished", result: finishedResult },
+      });
+      render(
+        <BrunchExperimentFollowUp
+          net={definition}
+          context={{
+            conversationId: "original",
+            messages: [
+              {
+                id: "drafts",
+                role: "assistant",
+                parts: [
+                  {
+                    type: "dynamic-tool",
+                    toolCallId: "summary",
+                    toolName: "draft_petrinaut_experiment",
+                    state: "output-available",
+                    input: {},
+                    output: {},
+                  },
+                ],
+              },
+            ],
+            status: "ready",
+            submitText: () =>
+              Promise.reject(new FlueChatAdmissionError(failure)),
+            stop: async () => {},
+          }}
+        />,
+      );
+
+      await waitFor(() =>
+        expect(drafts.get().drafts.get("summary")?.followUp).toBe(followUp),
+      );
+    },
+  );
 
   it.each(["simulate", "optimize"] as const)(
     "shows a %s run failure from the host",

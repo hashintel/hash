@@ -19,7 +19,8 @@ type SentSession = {
  *
  * A session recreated for another reason (a new `fetch`, actor key or chat
  * endpoint) with the same handle and binding is not a leave, and stops
- * nothing.
+ * nothing. A message sent after the leave withdraws the stop: the leaving
+ * turn's browser actions cannot reach the new editor, so the new message wins.
  */
 export const useStopTurnOnLeave = ({
   editorHandle,
@@ -51,11 +52,18 @@ export const useStopTurnOnLeave = ({
       const { client, tracker, snapshot } = committed.current;
       if (client === null || !tracker.hasUnsettledTurn(snapshot)) return;
       // Flue's abort is conversation-wide, so a send pending at leave that
-      // the agent then refuses must not stop another tab's turn.
+      // the agent then refuses must not stop another tab's turn, and a
+      // message the next editor sends through this same session (the binding
+      // unchanged) before the abort lands must not be stopped with it.
+      const sentAtLeave = tracker.trackedSubmissionCount;
+      const nothingSentSince = () =>
+        tracker.trackedSubmissionCount === sentAtLeave;
       tracker
         .hasUnsettledTurnAfterSettling(snapshot)
         .then((unsettled) =>
-          unsettled ? requestFlueStop(client, tracker) : undefined,
+          unsettled && nothingSentSince()
+            ? requestFlueStop(client, tracker, nothingSentSince)
+            : undefined,
         )
         .catch((error: unknown) => reportError.current(error));
     },
