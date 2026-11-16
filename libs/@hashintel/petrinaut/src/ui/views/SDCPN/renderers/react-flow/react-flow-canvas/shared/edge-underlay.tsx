@@ -33,27 +33,38 @@ export const EdgeUnderlay: React.FC<{
   strokeWidth,
   strokeDasharray,
   strokeLinecap,
-}) => (
-  <>
-    {selected ? (
-      <BaseEdge id={`${id}-selection`} path={path} style={selectionBandStyle} />
-    ) : null}
-    {haloColor === undefined
-      ? null
-      : [
-          [haloColor, ARC_HALO_OVERHANG] as const,
-          ["white", ARC_WHITE_OVERHANG] as const,
-        ].map(([stroke, overhang]) => (
+}) => {
+  const casing = {
+    d: path,
+    fill: "none",
+    strokeDasharray,
+    strokeLinecap,
+    style: { pointerEvents: "none" },
+  } as const;
+
+  return (
+    <>
+      {selected ? (
+        <BaseEdge
+          id={`${id}-selection`}
+          path={path}
+          style={selectionBandStyle}
+        />
+      ) : null}
+      {haloColor === undefined ? null : (
+        <>
           <path
-            key={stroke}
-            d={path}
-            fill="none"
-            stroke={stroke}
-            strokeWidth={strokeWidth + overhang * 2}
-            strokeDasharray={strokeDasharray}
-            strokeLinecap={strokeLinecap}
-            style={{ pointerEvents: "none" }}
+            {...casing}
+            stroke={haloColor}
+            strokeWidth={strokeWidth + ARC_HALO_OVERHANG * 2}
           />
-        ))}
-  </>
-);
+          <path
+            {...casing}
+            stroke="white"
+            strokeWidth={strokeWidth + ARC_WHITE_OVERHANG * 2}
+          />
+        </>
+      )}
+    </>
+  );
+};
