@@ -82,17 +82,24 @@ const mapOptional = <Item>(
 ): Item[] | undefined =>
   items === undefined ? undefined : mapUnlessUnchanged(items, mapItem);
 
-/** `record` with every key converted; itself when every key is canonical. */
+/**
+ * `record` with every key converted, and every value put through `mapValue`;
+ * itself when that changes nothing.
+ */
 const rekeyUnlessUnchanged = <Value>(
   record: Record<string, Value>,
+  mapValue: (value: Value) => Value = (value) => value,
 ): Record<string, Value> => {
   const entries = Object.entries(record);
-  if (entries.every(([key]) => toPetrinautId(key) === key)) {
-    return record;
-  }
-  return Object.fromEntries(
-    entries.map(([key, value]) => [toPetrinautId(key), value]),
+  const mapped = entries.map(
+    ([key, value]) => [toPetrinautId(key), mapValue(value)] as const,
   );
+  return mapped.every(
+    ([key, value], index) =>
+      key === entries[index]?.[0] && value === entries[index]?.[1],
+  )
+    ? record
+    : Object.fromEntries(mapped);
 };
 
 const toOptionalPetrinautId = (id: string | null): string | null =>
@@ -161,24 +168,6 @@ const canonicalizeComponentInstance = (
         ? undefined
         : toPetrinautId(instance.implementation),
   });
-
-/** Interface ids to implementation ids, both converted. */
-const canonicalizeImplementations = (
-  implementations: Record<string, string>,
-): Record<string, string> => {
-  const entries = Object.entries(implementations);
-  if (
-    entries.every(
-      ([key, value]) =>
-        toPetrinautId(key) === key && toPetrinautId(value) === value,
-    )
-  ) {
-    return implementations;
-  }
-  return Object.fromEntries(
-    entries.map(([key, value]) => [toPetrinautId(key), toPetrinautId(value)]),
-  );
-};
 
 const canonicalizeFusion = (fusion: Fusion): Fusion =>
   assignChanged(fusion, {
@@ -269,7 +258,7 @@ export const canonicalizePetrinautIds = <Net extends PetrinautIdNet>(
     implementations:
       net.implementations === undefined
         ? undefined
-        : canonicalizeImplementations(net.implementations),
+        : rekeyUnlessUnchanged(net.implementations, toPetrinautId),
     scenarios: mapOptional(net.scenarios, canonicalizeScenario),
     metrics: mapOptional(net.metrics, (metric) =>
       assignChanged(metric, { id: toPetrinautId(metric.id) }),
