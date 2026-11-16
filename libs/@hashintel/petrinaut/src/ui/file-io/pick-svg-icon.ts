@@ -3,7 +3,7 @@ import {
   subnetIconHoldsUse,
 } from "@hashintel/petrinaut-core";
 
-import { iconMaskImage } from "../components/component-glyph/icon-mask";
+import { iconMaskImage } from "../lib/icon-mask";
 import { pickFile, readFileText } from "./pick-file";
 
 export type PickedIcon =

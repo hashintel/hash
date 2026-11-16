@@ -15,9 +15,9 @@ const userUnits = (length: string | null): number =>
  * and the fixed size goes.
  *
  * A mask image is fetched as an image, so nothing in the markup runs or
- * loads, whatever it holds. What it costs to paint is bounded by the rules
- * the document's schema has for an icon, asked again here: a document can
- * reach a glyph without passing the schema.
+ * loads, whatever it holds. The rules the document's schema has for an icon
+ * are asked again here: a document can reach a glyph without passing the
+ * schema.
  */
 export const iconMaskImage = (markup: string): string | null => {
   if (markup.length > maxSubnetIconLength || subnetIconHoldsUse(markup)) {

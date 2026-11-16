@@ -1,7 +1,7 @@
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { iconMaskImage } from "./component-glyph/icon-mask";
+import { iconMaskImage } from "../lib/icon-mask";
 
 type IconProps = React.ComponentProps<typeof Icon>;
 
