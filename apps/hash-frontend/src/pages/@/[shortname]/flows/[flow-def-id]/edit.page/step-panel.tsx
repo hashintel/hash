@@ -55,6 +55,10 @@ const headerText = css({
   minWidth: "0",
 });
 const fixedDescription = css({ textStyle: "sm", color: "fg.body" });
+/* A for-each's derived name is what the step is called, so it reads as a description would, not as a hint. */
+const derivedDescription = css({
+  "& input::placeholder": { color: "[inherit]" },
+});
 const empty = css({ textStyle: "sm", color: "fg.subtle" });
 const addInputButton = css({ alignSelf: "flex-start" });
 
@@ -214,6 +218,7 @@ const SelectedStepPanel = ({
               ? `For each ${getItemName(step.stepId)}`
               : "Add a description…"
           }
+          className={step.kind === "for-each" ? derivedDescription : undefined}
           aria-label="Description"
           readonly={inner}
           onChange={(description) =>

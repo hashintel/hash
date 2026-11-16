@@ -367,7 +367,9 @@ export const InputField = ({
     getSourceLabel(
       flowDefinition,
       source,
-      forEachStepId ? getItemName(forEachStepId) : "item",
+      forEachStepId
+        ? { stepId: forEachStepId, itemName: getItemName(forEachStepId) }
+        : undefined,
     );
   const newFlowInput = getNewFlowInput({
     flowDefinition,

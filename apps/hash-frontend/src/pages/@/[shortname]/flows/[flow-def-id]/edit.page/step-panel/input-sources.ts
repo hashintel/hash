@@ -189,13 +189,13 @@ export const getSourceOptions = ({
 };
 
 /**
- * How a picked value reads in its field, e.g. "Flow inputs › Entity type" or "For each › supplier". `itemName` is what
- * one item of the step's for-each is called.
+ * How a picked value reads in its field, e.g. "Flow inputs › Entity type" or "For each › supplier". `forEach` is the
+ * for-each the step is in and what one item of its list is called.
  */
 export const getSourceLabel = (
   flowDefinition: FlowDefinition<string>,
   source: StepInputSource,
-  itemName: string,
+  forEach: { stepId: string; itemName: string } | undefined,
 ) => {
   switch (source.kind) {
     case "flow-input": {
@@ -212,8 +212,13 @@ export const getSourceLabel = (
       return `${found ? getStepName(found.step) : source.stepId} › ${getNameLabel(source.outputName)}`;
     }
 
-    case "item":
-      return `For each › ${itemName}`;
+    /* Named after its for-each as a step's output is after its step, so a described one reads "Check suppliers ›
+       supplier". */
+    case "item": {
+      const found = forEach && findStep(flowDefinition.steps, forEach.stepId);
+
+      return `${found ? getStepName(found.step) : "For each"} › ${forEach?.itemName ?? "item"}`;
+    }
 
     /* One that can be typed shows in a text field instead. */
     case "constant":
