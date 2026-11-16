@@ -122,6 +122,12 @@ const MemberRow = ({ member }: { member: FusionMember }) => {
   const isReadOnly = useIsReadOnly();
   const label = describeFusionMember(petriNetDefinition, activeNet, member);
   const resolved = resolveFusionMember(petriNetDefinition, activeNet, member);
+  const kindLabel =
+    resolved?.kind === "port"
+      ? `${describePortDirection(effectivePortDirection(resolved.subnet, resolved.place))} port`
+      : member.kind === "place"
+        ? "place of this net"
+        : "instance port";
 
   return (
     <div className={memberRowStyle}>
@@ -143,11 +149,7 @@ const MemberRow = ({ member }: { member: FusionMember }) => {
           />
           <span className={memberNameStyle}>{label}</span>
           <span className={cx(hintTextStyle, memberKindStyle)}>
-            {resolved?.kind === "port"
-              ? `${describePortDirection(effectivePortDirection(resolved.subnet, resolved.place))} port`
-              : member.kind === "place"
-                ? "place of this net"
-                : "instance port"}
+            {kindLabel}
           </span>
         </button>
       </Tooltip>
