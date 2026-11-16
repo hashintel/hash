@@ -487,13 +487,17 @@ export {
   placeUsesDifferentialEquation,
 } from "./place-dynamics";
 export {
-  isContinuousNet,
-  isTimedNet,
+  netColoringOf,
+  netTimeOf,
   runClockOf,
   runContinuityOf,
+  type NetChance,
+  type NetClass,
+  type NetColoring,
+  type NetTime,
   type RunClock,
   type RunContinuity,
-} from "./net-timing";
+} from "./net-class";
 export { GRID_SIZE } from "./grid-size";
 export {
   type DefaultParameterValues,

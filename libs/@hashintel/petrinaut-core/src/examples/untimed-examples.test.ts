@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { compileHirArtifacts } from "../hir";
 import { lowerScenarioToHir } from "../hir/scenario";
 import { buildVisualizerContext } from "../hir/surface-context";
-import { isTimedNet } from "../net-timing";
+import { netTimeOf } from "../net-class";
 import { PETRINAUT_DEFAULT_SEED } from "../simulation/api";
 import { compileScenario } from "../simulation/authoring/scenario/compile-scenario";
 import { createStepStepper } from "../simulation/event-trace/worker/step-stepper";
@@ -97,7 +97,7 @@ describe("Bicycle Assembly", () => {
   const { petriNetDefinition } = bicycleAssembly;
 
   it("is an untimed net", () => {
-    expect(isTimedNet(petriNetDefinition)).toBe(false);
+    expect(netTimeOf(petriNetDefinition)).toBe("untimed");
   });
 
   it("builds four bicycles from the Morning Stock in ten steps, and shows what is left", () => {
@@ -158,7 +158,7 @@ describe("Wheel Truing", () => {
   const { petriNetDefinition } = wheelTruing;
 
   it("is an untimed net", () => {
-    expect(isTimedNet(petriNetDefinition)).toBe(false);
+    expect(netTimeOf(petriNetDefinition)).toBe("untimed");
   });
 
   it("runs every wheel of the batch to Accepted or Rejected", () => {

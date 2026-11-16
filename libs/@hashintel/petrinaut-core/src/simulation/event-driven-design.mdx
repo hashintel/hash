@@ -208,7 +208,7 @@ the net and never stored:
 - Every other net is **untimed**. A subnet counts whether or not an instance
   uses it.
 
-`isTimedNet` in `net-timing.ts` reads the structure alone and compiles no
+`netTimeOf` in `net-class.ts` reads the structure alone and compiles no
 code, so the editor, the checker and the worker get the same answer from the
 same net.
 
@@ -264,22 +264,24 @@ where the runs are computed and nothing else. The editor reads the clock of
 an experiment from its net, with `runClockOf`, and keeps it on the
 experiment's record.
 
-### Continuous and discrete nets
+### Continuous and discrete runs
 
-A second property says what lies between two firings. A net is
-**continuous** when a place runs dynamics, by the rule above: its state
-moves all the time. Every other net is **discrete**: its state changes only
-when a transition fires. `isContinuousNet` infers it beside `isTimedNet`,
-from the structure alone.
+A second property says what the tokens carry, and with it what lies between
+two firings. A net is **dynamically coloured** when a place runs dynamics,
+by the rule above: the values of its tokens move all the time, and a run of
+it is **continuous**. Every other net is statically coloured or uncoloured,
+and a run of it is **discrete**: its state changes only when a transition
+fires. `netColoringOf` infers it beside `netTimeOf`, from the structure
+alone.
 
-Dynamics take time, so a continuous net is timed. That leaves three kinds
-of run, and `EventSimulation` carries both answers:
+Dynamics take time, so a dynamically coloured net is timed. That leaves
+three kinds of run, and `EventSimulation` carries both answers:
 
-| Net               | `clock` | `continuity` | A position is           |
-| ----------------- | ------- | ------------ | ----------------------- |
-| Untimed           | `steps` | `discrete`   | a step                  |
-| Timed, discrete   | `time`  | `discrete`   | the time of a firing    |
-| Timed, continuous | `time`  | `continuous` | any time the run covers |
+| Net                             | `clock` | `continuity` | A position is           |
+| ------------------------------- | ------- | ------------ | ----------------------- |
+| Untimed                         | `steps` | `discrete`   | a step                  |
+| Timed, not dynamically coloured | `time`  | `discrete`   | the time of a firing    |
+| Timed, dynamically coloured     | `time`  | `continuous` | any time the run covers |
 
 The view of a discrete run rests on an event. The editor's playback
 (`react/event-playback`) puts a view at the last firing at or before the
@@ -324,60 +326,77 @@ The declared `lambdaType` is kept for four reasons:
 
 ## What a net is, and who says so
 
-How a run reads depends on three properties of its net. Each is a fact
-about the model, so none is stored.
+How a run reads depends on the class of its net: three facts about the
+model, each inferred from the net and none stored. `NetClass` in
+`net-class.ts` holds them.
 
-| Property   | Values                | Question                             | Inferred from                                                 |
-| ---------- | --------------------- | ------------------------------------ | ------------------------------------------------------------- |
-| Time       | timed, untimed        | Does anything take time?             | Structure: a rate, or a place that runs dynamics              |
-| Continuity | continuous, discrete  | Does the state move between firings? | Structure: a place that runs dynamics                         |
-| Chance     | random, deterministic | Can two runs of one scenario differ? | A rate, or compiled code: a kernel that draws or mints a UUID |
+| Dimension | Values                                                | Question                                          | Inferred from                                                               |
+| --------- | ----------------------------------------------------- | ------------------------------------------------- | --------------------------------------------------------------------------- |
+| Time      | timed, untimed                                        | Does anything take time?                          | Structure: a rate, or a place that runs dynamics                            |
+| Colour    | uncoloured, statically coloured, dynamically coloured | What does a token carry, and when does it change? | Structure: a place with a type, a place that runs dynamics                  |
+| Chance    | stochastic, deterministic                             | Can two runs from one state differ?               | A rate, or lowered code: a kernel that draws or mints a UUID, `Math.random` |
 
-The first two are inferred in `net-timing.ts`. Chance is not inferred for a
-net yet: `analyzeHir` computes `isDeterministic` for one function, and
-nothing adds the functions up.
+Time and colour are read from the structure, by `netTimeOf` and
+`netColoringOf`. Chance needs the net's code, so `classifyNet`
+(`hir/classify-net.ts`) infers the whole class where code is lowered. A rate
+settles chance without reading any code. With no rate, every lambda, kernel
+and differential equation is lowered and `analyzeHir` says whether it is
+deterministic. Chance is `null`, not known, while one of them does not
+compile and none that does draws.
 
-A continuous net is timed, and a timed discrete net has a rate, which is
-random unless every rate is `0` or `Infinity`. Five of the eight
-combinations are left:
+A dynamically coloured net is timed, and a timed net that is not has a rate,
+which makes it stochastic. Eight of the twelve combinations are left, and
+the bundled examples cover four:
 
-| Time    | Continuity | Chance        | Bundled example  | Known as                               |
-| ------- | ---------- | ------------- | ---------------- | -------------------------------------- |
-| untimed | discrete   | deterministic | Bicycle Assembly | Petri net                              |
-| untimed | discrete   | random        | Wheel Truing     | discrete-time Markov chain             |
-| timed   | discrete   | random        | Café Queue, SIR  | stochastic Petri net                   |
-| timed   | continuous | deterministic | none             | hybrid automaton                       |
-| timed   | continuous | random        | Drone Patrol     | piecewise-deterministic Markov process |
+| Time    | Colour               | Chance        | Bundled example  | Known as                               |
+| ------- | -------------------- | ------------- | ---------------- | -------------------------------------- |
+| untimed | uncoloured           | deterministic | Bicycle Assembly | Petri net                              |
+| untimed | statically coloured  | deterministic | none             | coloured Petri net                     |
+| untimed | statically coloured  | stochastic    | Wheel Truing     | discrete-time Markov chain             |
+| timed   | uncoloured           | stochastic    | Café Queue, SIR  | stochastic Petri net                   |
+| timed   | statically coloured  | stochastic    | none             | stochastic coloured Petri net          |
+| timed   | dynamically coloured | deterministic | none             | hybrid automaton                       |
+| timed   | dynamically coloured | stochastic    | Drone Patrol     | piecewise-deterministic Markov process |
+
+The eighth is an untimed uncoloured net with a predicate that calls
+`Math.random()`.
 
 Other properties of a net decide who can compute a run, and how fast, and
-change nothing in how it reads: whether its places are coloured or bounded,
-whether it has subnets, the class of each place's dynamics
-(`classifyDynamics`), and whether the shader takes it
-(`assessGpuEligibility`). They stay with the simulator that asks.
+change nothing in how it reads: whether its places are bounded, whether it
+has subnets, the class of each place's dynamics (`classifyDynamics`), and
+whether the shader takes it (`assessGpuEligibility`). They stay with the
+simulator that asks.
 
 ### Names
 
 - **Timed** and **untimed** are the literature's words.
-- **Continuous** and **discrete** are the words `MetricShape` already uses
-  for a metric that moves between events or does not, with the same
-  meaning. Two readings have to be kept out. "Discrete" does not mean time
-  in steps: Café Queue is a continuous-time Markov chain, and discrete
-  here. And a "continuous Petri net" in the literature has real-valued
-  markings, which no net here has. The property is about the state between
-  firings, and prose should say "a net with dynamics" where it can.
-- **Stochastic** already names three things: a lambda's kind, the extension
-  and the mode that computes many runs. The third property takes
-  `deterministic`, the word `analyzeHir` uses, and "random" for its
-  opposite.
+- **Uncoloured**, **statically coloured** and **dynamically coloured** are
+  the words of the net class. A coloured Petri net, in Jensen's sense, has
+  tokens that carry values, and a firing is the only thing that changes
+  them. Everdij and Blom's dynamically coloured Petri net lets the values
+  follow a differential equation between firings.
+- **Continuous** and **discrete** stay the words for a run, and for a metric
+  (`MetricShape`), with one meaning: it moves between events or it does
+  not. A net is not called continuous, because a "continuous Petri net" in
+  the literature has real-valued markings, which no net here has. And
+  "discrete" does not mean time in steps: Café Queue is a continuous-time
+  Markov chain, and a run of it is discrete.
+- **Stochastic** and **deterministic** are the literature's pair.
+  "Stochastic" also names a lambda's kind, the extension and the mode that
+  computes many runs, and the four agree: a rate makes a net stochastic, the
+  extension is what allows rates and distributions, and the mode is the one
+  that has more than one run to show.
 
 ### Who decides
 
 The net decides what is true. Four parts then each have one job:
 
-- **Core infers.** `net-timing.ts` reads the structure and compiles
-  nothing. What needs compiled code belongs where code is compiled, in the
-  HIR artifacts. The two are kept apart so that "timed" never waits for a
-  compile, for the reasons under
+- **Core infers.** `net-class.ts` reads the structure and compiles
+  nothing. What needs lowered code is inferred where code is lowered:
+  `classifyNet` adds chance, and the language server publishes the class
+  with every check, as `NetAnalysis.netClass` beside `metricShapes`. The
+  two are kept apart so that "timed" never waits for a compile, for the
+  reasons under
   [Why a lambda's kind stays declared](#why-a-lambdas-kind-stays-declared).
 - **A simulator obeys.** It computes a run that is faithful to the net, and
   it does not choose what the net is. A net does not become continuous
@@ -389,15 +408,16 @@ The net decides what is true. Four parts then each have one job:
 - **The host shows it.** The editor reads the run, and words its readout,
   axis, scrubber and ticks from it. Before a run exists it reads the same
   answer for the net, published once as `SimulationContext.clock` and
-  `SimulationContext.continuity`.
+  `SimulationContext.continuity`. The Diagnostics tab reads the class of
+  the net at its top.
 
 A simulator has a say in one case: when it changes the kind of run on
-purpose. A fluid approximation computes a continuous run of a discrete net,
-and tau-leaping computes a timed net on a grid. Such a simulator would
-declare it in its manifest, as `samplePeriodParameter` declares the grid of
-an experiment, and the runtime would stamp the run from the manifest. No
-bundled simulator does, and that case is the reason the answer is on the
-run and not read off the net by the host.
+purpose. A fluid approximation computes a continuous run of a net with no
+dynamics, and tau-leaping computes a timed net on a grid. Such a simulator
+would declare it in its manifest, as `samplePeriodParameter` declares the
+grid of an experiment, and the runtime would stamp the run from the
+manifest. No bundled simulator does, and that case is the reason the answer
+is on the run and not read off the net by the host.
 
 ### What does not hold yet
 
@@ -410,7 +430,7 @@ run and not read off the net by the host.
   the extension and the colour. The editor's solver-error series reads the
   switch and the equation list. A place with its switch on and no equation
   is continuous to a metric's shape and to nothing else.
-- **Simulators keep states a discrete net does not need.** The fixed-step
+- **Simulators keep states a discrete run does not need.** The fixed-step
   and the adaptive stepper record a reference frame every 0.1 s without a
   firing, whatever the net. A 60 s run of Café Queue at a step of 0.01 s
   records 112 firings and 543 reference frames, each with no derivative to
@@ -419,8 +439,9 @@ run and not read off the net by the host.
   the worker's `createRunStepper` works it out a second time. They agree
   because both call `runClockOf` on the same net, and nothing else holds
   them together.
-- **Chance is not known.** A Stochastic simulation of Bicycle Assembly
-  computes 100 identical runs and says nothing.
+- **Nothing acts on chance.** The class says Bicycle Assembly is
+  deterministic, and a Stochastic simulation of it still computes 100
+  identical runs and says nothing.
 
 :::
 
@@ -1284,11 +1305,8 @@ over several tokens, which the fixed-step engines already sum per place.
    stepper from them, and recording a reference frame only in a continuous
    run. The inference then happens once per run, and a discrete trace holds
    its firings and its last state.
-8. Whether chance is inferred for a net. The document recommends a
-   net-level `deterministic` in the HIR artifacts, the sum of
-   `isDeterministic` over the kernels with every rate counted as random,
-   published to the editor beside `metricShapes`. A Stochastic simulation
-   or an experiment of a deterministic net would then say that one run is
-   every run.
+8. Whether a Stochastic simulation or an experiment of a deterministic net
+   says that one run is every run. Chance is inferred and published to the
+   editor, and only the Diagnostics tab reads it.
 9. Whether a simulator may declare the kind of run it computes. Not needed
-   until a simulator approximates a discrete net by a flow.
+   until a simulator approximates a net with no dynamics by a flow.

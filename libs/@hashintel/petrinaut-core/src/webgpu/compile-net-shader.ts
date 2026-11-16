@@ -19,7 +19,7 @@
  * live state) and `run-parameters` (per-run buffer).
  */
 import { getArcEndpointPlaceId } from "../arc-endpoints";
-import { isTimedNet } from "../net-timing";
+import { netTimeOf } from "../net-class";
 import { emitDynamics } from "./compile-net-shader/dynamics";
 import {
   emitFrameHistograms,
@@ -428,7 +428,7 @@ export function compileNetShader(
     // fires, so a frame that fires nothing is a deadlock whatever is
     // enabled, at the frame limit too, as in the CPU engine.
     const frameLimit = `      if (absolute_frame + 1u >= config.frame_limit) { status = 2u; }`;
-    if (isTimedNet(sdcpn, extensions)) {
+    if (netTimeOf(sdcpn, extensions) === "timed") {
       push(`      if (!any_fired && !any_enabled) { status = 1u; }`);
       push(frameLimit);
     } else {

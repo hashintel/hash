@@ -1,4 +1,4 @@
-import { STEP_SAMPLE_PERIOD, type RunClock } from "../../net-timing";
+import { STEP_SAMPLE_PERIOD, type RunClock } from "../../net-class";
 import { resolveSimulatorSelection, simulatorUnavailable } from "./simulator";
 
 import type { ExperimentAssessment } from "../../experiments/experiment-assessment";

@@ -9,6 +9,7 @@ import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useCodeNavigation } from "../../../../../monaco/code-navigation";
 import { parseDocumentUri } from "../../../../../monaco/editor-paths";
+import { NetClassSummary } from "./diagnostics/net-class-summary";
 
 import type { SubView } from "../../../../../components/sub-view/types";
 import type { Diagnostic, SelectionItemType } from "@hashintel/petrinaut-core";
@@ -372,12 +373,21 @@ const DiagnosticsContent: React.FC = () => {
   );
 };
 
+/** The Diagnostics tab: the class of the net, then the problems in it. */
+const DiagnosticsPanel: React.FC = () => (
+  <>
+    <NetClassSummary />
+    <DiagnosticsContent />
+  </>
+);
+
 /**
  * SubView definition for Diagnostics.
  */
 export const diagnosticsSubView: SubView = {
   id: "diagnostics",
   title: "Diagnostics",
-  tooltip: "View compilation errors and warnings in your model code.",
-  component: DiagnosticsContent,
+  tooltip:
+    "View the class of your net, and the errors and warnings in its code.",
+  component: DiagnosticsPanel,
 };
