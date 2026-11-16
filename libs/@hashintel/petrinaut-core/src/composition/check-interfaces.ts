@@ -183,7 +183,8 @@ export const checkInterfaces = (sdcpn: SDCPN): InterfaceProblem[] => {
         message: `${subnet.name} is an interface but holds transitions or instances; an interface is ports and parameters alone.`,
       });
     }
-    for (const interfaceId of subnet.implements ?? []) {
+    // A list may name an interface twice: its shortfall is reported once.
+    for (const interfaceId of new Set(subnet.implements)) {
       const iface = subnetsById.get(interfaceId);
       if (!iface || !isInterface(iface)) {
         problems.push({

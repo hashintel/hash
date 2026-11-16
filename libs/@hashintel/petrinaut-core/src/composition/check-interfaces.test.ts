@@ -161,6 +161,21 @@ describe("checkInterfaces", () => {
     ).toEqual(["unknown-interface", "unknown-interface"]);
   });
 
+  it("checks an interface once, however often a subnet says it implements it", () => {
+    const bare = subnet("bare", {
+      implements: ["stage", "ghost", "stage", "ghost"],
+    });
+
+    expect(
+      checkInterfaces(net({ subnets: [stage, bare] })).map(({ code }) => code),
+    ).toEqual([
+      "missing-port",
+      "missing-port",
+      "missing-parameter",
+      "unknown-interface",
+    ]);
+  });
+
   it("reports an instance of an interface with nothing bound, and accepts a document default or an instance choice", () => {
     const unbound = net({
       subnets: [stage, fast],
