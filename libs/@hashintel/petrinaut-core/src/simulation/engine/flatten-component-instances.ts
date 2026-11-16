@@ -126,7 +126,7 @@ const netHasComponentPortArcs = (net: SDCPN | Subnet): boolean =>
 /**
  * The flat place behind a port of one of `net`'s instances, for the arc or
  * the fusion `referrer` names. Throws when the instance, its subnet or the
- * port does not exist.
+ * port does not exist, and when the place is not marked as a port.
  */
 const flatPortPlace = ({
   ctx,
@@ -259,6 +259,67 @@ const cloneOutputArc = ({
     arc,
   });
   return placeId ? { placeId, weight: arc.weight } : null;
+};
+
+/**
+ * Adds the fusions of `net` to the context as groups of flat place ids.
+ * Throws on a second anchor, a member two fusions share, and a member that
+ * does not resolve.
+ */
+const collectFusionGroups = ({
+  ctx,
+  net,
+  path,
+  placeIdMap,
+}: {
+  ctx: FlattenContext;
+  net: SDCPN | Subnet;
+  path: readonly ID[];
+  placeIdMap: ReadonlyMap<ID, ID>;
+}): void => {
+  // A place or port in two fusions would chain them, and with them their
+  // anchors, into one place.
+  const fusedEndpoints = new Set<string>();
+  for (const fusion of net.fusions ?? []) {
+    const label = `\`${fusion.name ?? fusion.id}\``;
+    if (fusionMemberIssues(fusion.members).multipleAnchors) {
+      throw new Error(
+        `Fusion ${label} holds more than one place of its net: they would become one place.`,
+      );
+    }
+    for (const key of new Set(fusion.members.map(getArcEndpointKey))) {
+      if (fusedEndpoints.has(key)) {
+        throw new Error(
+          `Fusion ${label} shares a member with another fusion of its net: a place or port belongs to one fusion.`,
+        );
+      }
+      fusedEndpoints.add(key);
+    }
+    const placeIds = fusion.members.map((member) => {
+      if (member.kind === "componentPort") {
+        return flatPortPlace({
+          ctx,
+          net,
+          path,
+          endpoint: member,
+          referrer: `Fusion ${label}`,
+        }).placeId;
+      }
+      const placeId = placeIdMap.get(member.placeId);
+      if (placeId === undefined) {
+        throw new Error(
+          `Fusion ${label} references place ID \`${member.placeId}\` which does not exist in its net.`,
+        );
+      }
+      return placeId;
+    });
+    ctx.fusionGroups.push({
+      label,
+      placeIds,
+      // An anchor keeps its own name; without one the fusion names the place.
+      name: fusionAnchor(fusion) ? undefined : fusion.name,
+    });
+  }
 };
 
 const flattenNet = ({
@@ -394,51 +455,7 @@ const flattenNet = ({
     });
   }
 
-  // A place or port in two fusions would chain them, and with them their
-  // anchors, into one place.
-  const fusedEndpoints = new Set<string>();
-  for (const fusion of net.fusions ?? []) {
-    const label = `\`${fusion.name ?? fusion.id}\``;
-    if (fusionMemberIssues(fusion.members).multipleAnchors) {
-      throw new Error(
-        `Fusion ${label} holds more than one place of its net: they would become one place.`,
-      );
-    }
-    for (const key of new Set(fusion.members.map(getArcEndpointKey))) {
-      if (fusedEndpoints.has(key)) {
-        throw new Error(
-          `Fusion ${label} shares a member with another fusion of its net: a place or port belongs to one fusion.`,
-        );
-      }
-      fusedEndpoints.add(key);
-    }
-    const placeIds = fusion.members.map((member) => {
-      if (member.kind === "componentPort") {
-        return flatPortPlace({
-          ctx,
-          net,
-          path,
-          endpoint: member,
-          referrer: `Fusion ${label}`,
-        }).placeId;
-      }
-      const placeId = placeIdMap.get(member.placeId);
-      if (placeId === undefined) {
-        throw new Error(
-          `Fusion ${label} references place ID \`${member.placeId}\` which does not exist in its net.`,
-        );
-      }
-      return placeId;
-    });
-    ctx.fusionGroups.push({
-      label,
-      placeIds,
-      // An anchor keeps its own name; without one the fusion names the place.
-      ...(fusionAnchor(fusion) || fusion.name === undefined
-        ? {}
-        : { name: fusion.name }),
-    });
-  }
+  collectFusionGroups({ ctx, net, path, placeIdMap });
 };
 
 export const flattenComponentInstancesForSimulation = ({
@@ -454,6 +471,8 @@ export const flattenComponentInstancesForSimulation = ({
 }): FlattenedSimulationDefinition => {
   const hasRootComponentPortArcs = netHasComponentPortArcs(sdcpn);
 
+  // A fusion in a net without instances is still refused: the full pass
+  // throws on it.
   if (
     (sdcpn.componentInstances ?? []).length === 0 &&
     (sdcpn.fusions ?? []).length === 0 &&
