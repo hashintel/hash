@@ -4,6 +4,7 @@
  * fused place, and the members' attributes are reconciled.
  */
 
+/* eslint-disable no-param-reassign -- the flat net is merged in place. */
 import { getRunningEquationIds } from "../place-dynamics";
 import { scopeDepth, sourceItemId } from "../simulation/engine/scoped-id";
 import { colorsStructurallyEqual } from "./fusions";
@@ -21,7 +22,6 @@ import type {
 export type FusionGroup = {
   /** Names the fusion in error messages. */
   label: string;
-  /** The flat ids of the fused places. */
   placeIds: ID[];
   /** The name the fused place takes: the fusion's own, where no place of its net anchors it. */
   name?: string;
@@ -44,11 +44,12 @@ type AppliedFusions = {
 };
 
 /**
- * Union-find over the groups' place ids. The representative of a set is its
- * outermost place, the one nearest the root net: it keeps its name, so a root
- * place fused with ports keeps the name metrics and scenarios refer to.
+ * For each place merged away, the place that leads its set: a union-find over
+ * the groups' place ids. A set is led by its outermost place, the one nearest
+ * the root net: it keeps its name, so a root place fused with ports keeps the
+ * name metrics and scenarios refer to.
  */
-const resolveSets = (groups: readonly FusionGroup[]): Map<ID, ID> => {
+const mergedPlaceAliases = (groups: readonly FusionGroup[]): Map<ID, ID> => {
   const parent = new Map<ID, ID>();
   const find = (id: ID): ID => {
     let root = id;
@@ -113,7 +114,6 @@ const reconcile = (
   member: Place,
   label: string,
 ): boolean => {
-  const target = fused;
   const disagree = (on: string) =>
     new Error(
       `Fusion ${label} joins places \`${fused.name}\` and \`${member.name}\` ${on}.`,
@@ -129,13 +129,13 @@ const reconcile = (
     if (fused.capacity != null && fused.capacity !== member.capacity) {
       throw disagree("of different capacities");
     }
-    target.capacity = member.capacity;
+    fused.capacity = member.capacity;
   }
   if (member.showAsInitialState) {
-    target.showAsInitialState = true;
+    fused.showAsInitialState = true;
   }
   if (fused.visualizerCode === undefined && member.visualizerCode) {
-    target.visualizerCode = member.visualizerCode;
+    fused.visualizerCode = member.visualizerCode;
   }
   const memberEquations = getRunningEquationIds(member);
   if (memberEquations.length === 0) {
@@ -148,8 +148,8 @@ const reconcile = (
     }
     return false;
   }
-  target.dynamicsEnabled = true;
-  target.dynamics = memberEquations.map((differentialEquationId) => ({
+  fused.dynamicsEnabled = true;
+  fused.dynamics = memberEquations.map((differentialEquationId) => ({
     differentialEquationId,
   }));
   return true;
@@ -175,6 +175,7 @@ const redirectArcs = <Arc extends InputArc | OutputArc>(
     const key = `${"type" in arc ? arc.type : "output"}:${placeId}`;
     const merged = fusedId !== undefined;
     const earlier = reached.get(key);
+    // Two arcs that shared a place before any merge are not the fusion's doing.
     if (earlier !== undefined && (earlier || merged)) {
       throw new Error(
         `Transition \`${transition.name}\` reaches one fused place through two arcs of the same kind. Keep one of them.`,
@@ -194,7 +195,7 @@ export const applyFusions = (
   net: FlatNet,
   groups: readonly FusionGroup[],
 ): AppliedFusions => {
-  const aliases = resolveSets(groups);
+  const aliases = mergedPlaceAliases(groups);
   const dynamicsDonors = new Map<ID, ID>();
   const placeById = new Map(net.places.map((place) => [place.id, place]));
   for (const group of groups) {
@@ -227,8 +228,7 @@ export const applyFusions = (
       fused.name = name;
     }
   }
-  const flat = net;
-  flat.places = net.places.filter((place) => !aliases.has(place.id));
+  net.places = net.places.filter((place) => !aliases.has(place.id));
   for (const transition of net.transitions) {
     transition.inputArcs = redirectArcs(
       transition,
