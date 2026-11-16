@@ -241,7 +241,7 @@ export const placeSchema = z
     }),
     portDirection: z.enum(portDirections).optional().meta({
       description:
-        'For a port: the direction the component promises. `"in"` means only its transitions consume from the port, `"out"` only produce into it, `"inout"` both. Omit to infer it from the subnet\'s arcs.',
+        'For a port: the direction the component promises. `"in"`: the component\'s transitions only consume from the port. `"out"`: they only produce into it. `"inout"`: both. Omit to infer it from the subnet\'s arcs.',
     }),
     visualizerCode: z.string().optional().meta({
       description:
