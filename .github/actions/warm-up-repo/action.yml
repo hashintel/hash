@@ -20,30 +20,14 @@ runs:
           export YARN_ENABLE_HARDENED_MODE=0
           yarn install --immutable
 
-    - name: Read the OpenAPI Generator version and storage directory
-      id: openapi-generator
-      if: hashFiles('libs/@local/graph/client/typescript/openapitools.json') != ''
-      shell: bash
-      env:
-        CONFIG: libs/@local/graph/client/typescript/openapitools.json
-      run: |
-        {
-          echo "version=$(yq -r '.["generator-cli"].version' "$CONFIG")"
-          echo "storage-dir=$(yq -r '.["generator-cli"].storageDir // ""' "$CONFIG")"
-        } >>"$GITHUB_OUTPUT"
-
     - name: Restore OpenAPI Generator
-      id: openapi-generator-restore
-      if: steps.openapi-generator.outputs.storage-dir != ''
-      uses: actions/cache/restore@v4.3.0
-      with:
-        path: ${{ steps.openapi-generator.outputs.storage-dir }}
-        key: openapi-generator-cli-${{ steps.openapi-generator.outputs.version }}
+      id: openapi-generator
+      uses: $/.github/actions/restore-openapi-generator
 
     # On failure, codegen downloads the generator itself.
     - name: Download OpenAPI Generator
       id: openapi-generator-download
-      if: steps.openapi-generator.outputs.storage-dir != '' && steps.openapi-generator-restore.outputs.cache-hit != 'true'
+      if: steps.openapi-generator.outputs.storage-dir != '' && steps.openapi-generator.outputs.cache-hit != 'true'
       continue-on-error: true
       shell: bash
       working-directory: libs/@local/graph/client/typescript
@@ -54,4 +38,4 @@ runs:
       uses: actions/cache/save@v4.3.0
       with:
         path: ${{ steps.openapi-generator.outputs.storage-dir }}
-        key: openapi-generator-cli-${{ steps.openapi-generator.outputs.version }}
+        key: ${{ steps.openapi-generator.outputs.key }}

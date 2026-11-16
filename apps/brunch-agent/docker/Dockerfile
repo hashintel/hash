@@ -3,6 +3,9 @@
 # Build from the repository root:
 # docker buildx build --file apps/brunch-agent/docker/Dockerfile . --load
 
+# Empty unless the build passes an `openapi-generator-cli` build context holding the generator jar.
+FROM scratch AS openapi-generator-cli
+
 FROM debian:13.3-slim AS mise
 
 SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
@@ -88,6 +91,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     --mount=type=cache,target=/usr/local/cargo/git,sharing=locked \
     --mount=type=cache,target=/repo/target,sharing=locked \
     --mount=type=cache,target=/repo/.turbo/cache,sharing=locked \
+    --mount=type=bind,from=openapi-generator-cli,target=/root/.cache/openapi-generator-cli,rw \
     turbo run build --filter '@apps/brunch-agent' --env-mode=loose && \
     rm -rf apps/brunch-agent/src apps/brunch-agent/test
 
