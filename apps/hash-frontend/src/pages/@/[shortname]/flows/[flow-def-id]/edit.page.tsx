@@ -32,7 +32,7 @@ import { LeftPanel } from "./edit.page/left-panel";
 import { LogsView } from "./edit.page/logs-view";
 import { generateRunViewPath, parseRunParam } from "./edit.page/run-path";
 import { RunView } from "./edit.page/run-view";
-import { findStep } from "./edit.page/shared/find-step";
+import { findStep, getEnclosingStepIds } from "./edit.page/shared/find-step";
 import { sidePanelWidth } from "./edit.page/shared/side-panel";
 import { useFlowRuns } from "./edit.page/shared/use-flow-runs";
 import { StepPanel } from "./edit.page/step-panel";
@@ -247,15 +247,6 @@ const FlowEditor = ({
       startSelected: start,
     }));
 
-  /* Selects one step and brings it into view on the canvas. */
-  const selectAndFocusStep = (stepId: string) =>
-    setSession((current) => ({
-      ...current,
-      selectedStepIds: [stepId],
-      startSelected: false,
-      focusRequest: { stepId },
-    }));
-
   const [selectedStepId] = selectedStepIds;
   const panelSubject: StepPanelSubject | null =
     startSelected && selectedStepIds.length === 0
@@ -282,6 +273,31 @@ const FlowEditor = ({
 
       return next;
     });
+
+  /* Selects one step and brings it into view on the canvas, expanding the for-each steps it's inside, as a step in a
+   * collapsed one isn't drawn. */
+  const selectAndFocusStep = (stepId: string) => {
+    const enclosingStepIds = getEnclosingStepIds(flowDefinition.steps, stepId);
+
+    if (enclosingStepIds.some((id) => collapsedStepIds.has(id))) {
+      setCollapsedStepIds((collapsed) => {
+        const next = new Set(collapsed);
+
+        for (const id of enclosingStepIds) {
+          next.delete(id);
+        }
+
+        return next;
+      });
+    }
+
+    setSession((current) => ({
+      ...current,
+      selectedStepIds: [stepId],
+      startSelected: false,
+      focusRequest: { stepId },
+    }));
+  };
 
   /* The web the flow is in, which the editor's path names. */
   const webId = extractWebIdFromEntityId(flowDefinitionEntityId);

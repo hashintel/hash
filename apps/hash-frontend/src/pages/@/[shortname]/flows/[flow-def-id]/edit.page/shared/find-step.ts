@@ -25,6 +25,20 @@ export const findStep = (
   return undefined;
 };
 
+/** The for-each steps a step is inside, outermost first; none for a step at the top level or one that doesn't exist. */
+export const getEnclosingStepIds = (
+  steps: StepDefinition<string>[],
+  stepId: string,
+): string[] => {
+  for (const step of steps) {
+    if (step.kind === "for-each" && findStep(step.steps, stepId)) {
+      return [step.stepId, ...getEnclosingStepIds(step.steps, stepId)];
+    }
+  }
+
+  return [];
+};
+
 /** What a step is called where it's named, e.g. in a chip: its description, else its action's name. */
 export const getStepName = (step: StepDefinition<string>) => {
   const { title, description } = getStepDisplay(step);
