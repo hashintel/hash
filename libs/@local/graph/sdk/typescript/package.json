@@ -40,7 +40,7 @@
     "@tsconfig/bases": "catalog:",
     "@vitest/coverage-istanbul": "catalog:",
     "eslint": "9.39.4",
-    "rimraf": "6.1.3",
+    "rimraf": "6.1.4",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:"
