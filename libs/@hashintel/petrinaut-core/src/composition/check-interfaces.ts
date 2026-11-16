@@ -15,11 +15,11 @@ import {
   mapInterfaceParameters,
   mapInterfacePorts,
   resolveImplementation,
-  runningSubnet,
+  type ImplementationBinding,
 } from "./interfaces";
 import { describePortDirection, effectivePortDirection } from "./ports";
 
-import type { ComponentInstance, ID, SDCPN, Subnet } from "../types/sdcpn";
+import type { ID, SDCPN, Subnet } from "../types/sdcpn";
 
 export type InterfaceProblemCode =
   | "interface-has-body"
@@ -46,24 +46,30 @@ export type InterfaceProblem = {
   message: string;
 };
 
+/**
+ * A function that adds a problem to `problems`, on a subnet or on an instance
+ * and the net that holds it: an error unless it is told otherwise.
+ */
+const reporter =
+  (
+    problems: InterfaceProblem[],
+    on: Pick<InterfaceProblem, "subnetId" | "instanceId">,
+  ) =>
+  (
+    code: InterfaceProblemCode,
+    message: string,
+    severity: InterfaceProblem["severity"] = "error",
+  ): void => {
+    problems.push({ kind: "interface", ...on, code, severity, message });
+  };
+
 /** Where `implementation` falls short of what `iface` declares. */
 export const checkImplementation = (
   implementation: Subnet,
   iface: Subnet,
 ): InterfaceProblem[] => {
   const problems: InterfaceProblem[] = [];
-  const report = (
-    code: InterfaceProblemCode,
-    severity: InterfaceProblem["severity"],
-    message: string,
-  ) =>
-    problems.push({
-      kind: "interface",
-      subnetId: implementation.id,
-      code,
-      severity,
-      message,
-    });
+  const report = reporter(problems, { subnetId: implementation.id });
 
   // The pairs the flattener wires, so the check and the run cannot differ.
   const ports = mapInterfacePorts(iface, implementation);
@@ -76,7 +82,6 @@ export const checkImplementation = (
     if (!match) {
       report(
         "missing-port",
-        "error",
         `${implementation.name} has no port named ${port.name}, which ${iface.name} declares.`,
       );
       continue;
@@ -90,7 +95,6 @@ export const checkImplementation = (
     if (!colorsStructurallyEqual(interfaceColor, implementationColor)) {
       report(
         "port-type-mismatch",
-        "error",
         `Port ${port.name} of ${implementation.name} holds a different token type from the one ${iface.name} declares.`,
       );
     }
@@ -99,8 +103,8 @@ export const checkImplementation = (
       if (effective !== port.portDirection) {
         report(
           "port-direction-mismatch",
-          "warning",
           `Port ${port.name} of ${implementation.name} is ${describePortDirection(effective)}, but ${iface.name} declares it ${describePortDirection(port.portDirection)}.`,
+          "warning",
         );
       }
     }
@@ -113,13 +117,11 @@ export const checkImplementation = (
     if (!match) {
       report(
         "missing-parameter",
-        "error",
         `${implementation.name} has no parameter ${parameter.variableName}, which ${iface.name} declares.`,
       );
     } else if (match.type !== parameter.type) {
       report(
         "parameter-type-mismatch",
-        "error",
         `Parameter ${parameter.variableName} of ${implementation.name} is ${match.type}, but ${iface.name} declares it ${parameter.type}.`,
       );
     }
@@ -167,47 +169,62 @@ const cycleGroups = (runs: ReadonlyMap<ID, readonly ID[]>): Map<ID, number> => {
   return groups;
 };
 
-/** The problems with the document's interfaces, their implementations and the instances bound to them. */
-export const checkInterfaces = (sdcpn: SDCPN): InterfaceProblem[] => {
-  const problems: InterfaceProblem[] = [];
-  const subnets = sdcpn.subnets ?? [];
-  const subnetsById = indexSubnets(sdcpn);
+/** The subnet that runs for `binding`, without the id maps `runningSubnet` builds. */
+const runningOf = (
+  binding: Exclude<ImplementationBinding, { kind: "unbound" }>,
+): Subnet =>
+  binding.kind === "component" ? binding.subnet : binding.implementation;
 
-  for (const subnet of subnets) {
-    if (isInterface(subnet) && hasBody(subnet)) {
-      problems.push({
-        kind: "interface",
-        subnetId: subnet.id,
-        code: "interface-has-body",
-        severity: "error",
-        message: `${subnet.name} is an interface but holds transitions or instances; an interface is ports and parameters alone.`,
-      });
-    }
-    // A list may name an interface twice: its shortfall is reported once.
-    for (const interfaceId of new Set(subnet.implements)) {
-      const iface = subnetsById.get(interfaceId);
-      if (!iface || !isInterface(iface)) {
-        problems.push({
-          kind: "interface",
-          subnetId: subnet.id,
-          code: "unknown-interface",
-          severity: "error",
-          message: iface
-            ? `${subnet.name} implements ${iface.name}, which is not an interface.`
-            : `${subnet.name} implements an interface that does not exist.`,
-        });
-        continue;
-      }
+/**
+ * What `subnet` declares: an interface has no body, and what a subnet
+ * implements is an interface it lives up to.
+ */
+const checkDeclarations = (
+  subnet: Subnet,
+  subnetsById: ReadonlyMap<ID, Subnet>,
+): InterfaceProblem[] => {
+  const problems: InterfaceProblem[] = [];
+  const report = reporter(problems, { subnetId: subnet.id });
+  if (isInterface(subnet) && hasBody(subnet)) {
+    report(
+      "interface-has-body",
+      `${subnet.name} is an interface but holds transitions or instances; an interface is ports and parameters alone.`,
+    );
+  }
+  // A list may name an interface twice: its shortfall is reported once.
+  for (const interfaceId of new Set(subnet.implements)) {
+    const iface = subnetsById.get(interfaceId);
+    if (iface && isInterface(iface)) {
       problems.push(...checkImplementation(subnet, iface));
+    } else {
+      report(
+        "unknown-interface",
+        iface
+          ? `${subnet.name} implements ${iface.name}, which is not an interface.`
+          : `${subnet.name} implements an interface that does not exist.`,
+      );
     }
   }
+  return problems;
+};
 
-  const nets: [ID | null, { componentInstances?: ComponentInstance[] }][] = [
-    [null, sdcpn],
-    ...subnets.map((subnet): [ID, Subnet] => [subnet.id, subnet]),
-  ];
-  const held = nets.flatMap(([netId, net]) =>
-    (net.componentInstances ?? []).flatMap((instance) => {
+/**
+ * What each instance is bound to: an instance of an interface has an
+ * implementation to run, and no component runs inside itself.
+ */
+const checkBindings = (
+  sdcpn: SDCPN,
+  subnetsById: ReadonlyMap<ID, Subnet>,
+): InterfaceProblem[] => {
+  // An instance of a subnet that does not exist is for other checks to report.
+  const held = [
+    { netId: null, instances: sdcpn.componentInstances },
+    ...(sdcpn.subnets ?? []).map((subnet) => ({
+      netId: subnet.id,
+      instances: subnet.componentInstances,
+    })),
+  ].flatMap(({ netId, instances = [] }) =>
+    instances.flatMap((instance) => {
       const binding = resolveImplementation(sdcpn, instance, subnetsById);
       return binding === null ? [] : [{ netId, instance, binding }];
     }),
@@ -217,22 +234,18 @@ export const checkInterfaces = (sdcpn: SDCPN): InterfaceProblem[] => {
   for (const { netId, binding } of held) {
     if (netId !== null && binding.kind !== "unbound") {
       const ran = runs.get(netId) ?? [];
-      ran.push(runningSubnet(binding).running.id);
+      ran.push(runningOf(binding).id);
       runs.set(netId, ran);
     }
   }
   const groups = cycleGroups(runs);
 
+  const problems: InterfaceProblem[] = [];
   for (const { netId, instance, binding } of held) {
-    const report = (code: InterfaceProblemCode, message: string) =>
-      problems.push({
-        kind: "interface",
-        subnetId: netId,
-        instanceId: instance.id,
-        code,
-        severity: "error",
-        message,
-      });
+    const report = reporter(problems, {
+      subnetId: netId,
+      instanceId: instance.id,
+    });
     if (binding.kind === "unbound") {
       report(
         "unbound-instance",
@@ -240,7 +253,7 @@ export const checkInterfaces = (sdcpn: SDCPN): InterfaceProblem[] => {
       );
       continue;
     }
-    const { running } = runningSubnet(binding);
+    const running = runningOf(binding);
     // An instance closes a loop when what it runs leads back to its holder.
     if (netId !== null && groups.get(netId) === groups.get(running.id)) {
       report(
@@ -252,4 +265,15 @@ export const checkInterfaces = (sdcpn: SDCPN): InterfaceProblem[] => {
     }
   }
   return problems;
+};
+
+/** The problems with the document's interfaces, their implementations and the instances bound to them. */
+export const checkInterfaces = (sdcpn: SDCPN): InterfaceProblem[] => {
+  const subnetsById = indexSubnets(sdcpn);
+  return [
+    ...(sdcpn.subnets ?? []).flatMap((subnet) =>
+      checkDeclarations(subnet, subnetsById),
+    ),
+    ...checkBindings(sdcpn, subnetsById),
+  ];
 };
