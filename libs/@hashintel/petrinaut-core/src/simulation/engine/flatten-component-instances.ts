@@ -137,7 +137,7 @@ const netHasComponentPortArcs = (net: SDCPN | Subnet): boolean =>
  * implementation falls short of its interface: the kernels around the
  * instance are compiled against the interface's ports.
  */
-const resolveRunningSubnet = (
+const requireRunningSubnet = (
   ctx: FlattenContext,
   instance: ComponentInstance,
 ): RunningSubnet => {
@@ -193,7 +193,7 @@ const flatPortPlace = ({
     );
   }
 
-  const { declared, portId } = resolveRunningSubnet(ctx, instance);
+  const { declared, portId } = requireRunningSubnet(ctx, instance);
 
   const port = declared.places.find(
     (place) => place.id === endpoint.portPlaceId,
@@ -463,7 +463,7 @@ const flattenNet = ({
   }
 
   for (const instance of net.componentInstances ?? []) {
-    const { declared, running, parameterId } = resolveRunningSubnet(
+    const { declared, running, parameterId } = requireRunningSubnet(
       ctx,
       instance,
     );
