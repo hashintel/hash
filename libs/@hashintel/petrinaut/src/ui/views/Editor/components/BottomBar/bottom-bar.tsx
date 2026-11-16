@@ -122,7 +122,6 @@ export const BottomBar: React.FC<BottomBarProps> = ({
   const { activeSubnetId } = use(ActiveNetContext);
   const isInSubnet = activeSubnetId !== null;
   const isReadOnly = useIsReadOnly();
-  // An editor that only composes runs nothing.
   const { compositionOnly } = use(CompositionContext);
 
   const showDiagnostics = () => {
@@ -253,6 +252,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
                     onClick={showDiagnostics}
                     isExpanded={isBottomPanelOpen}
                   />
+                  {/* An editor that only composes runs nothing. */}
                   {compositionOnly ? null : (
                     <>
                       <ToolbarDivider />

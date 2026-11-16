@@ -48,7 +48,6 @@ export function useKeyboardShortcuts(
   const { applyClipboardPaste } = usePetrinautCommands();
   const mutationRefusal = useMutationRefusal();
   const isReadonly = useIsReadOnly();
-  // An editor that only composes has no place or transition to add.
   const { compositionOnly } = use(CompositionContext);
   // Undo stays available in Simulate mode, as the palette's Undo is: only a
   // read-only document has nothing to undo.
@@ -212,18 +211,8 @@ export function useKeyboardShortcuts(
         onEditionModeChange("cursor");
         break;
       case "n":
-        if (compositionOnly) {
-          break;
-        }
-        if (isReadonly) {
-          event.preventDefault();
-          notifyReadOnly();
-        } else if (mode === "edit") {
-          event.preventDefault();
-          onEditionModeChange("add-place");
-        }
-        break;
       case "t":
+        // An editor that only composes has no place or transition to add.
         if (compositionOnly) {
           break;
         }
@@ -232,7 +221,9 @@ export function useKeyboardShortcuts(
           notifyReadOnly();
         } else if (mode === "edit") {
           event.preventDefault();
-          onEditionModeChange("add-transition");
+          onEditionModeChange(
+            event.key.toLowerCase() === "n" ? "add-place" : "add-transition",
+          );
         }
         break;
     }

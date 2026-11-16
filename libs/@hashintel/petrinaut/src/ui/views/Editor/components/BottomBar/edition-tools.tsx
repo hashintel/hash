@@ -141,8 +141,10 @@ const DrawingTools: React.FC<EditionToolsProps> = ({
  * where every one of them is refused, and components alone in an editor
  * that only composes.
  */
-export const EditionTools: React.FC<EditionToolsProps> = (tools) => {
-  const { editionMode } = tools;
+export const EditionTools: React.FC<EditionToolsProps> = ({
+  editionMode,
+  onEditionModeChange,
+}) => {
   const isReadOnly = useIsReadOnly();
   const { activeSubnetId } = use(ActiveNetContext);
   const { extensions } = use(SDCPNContext);
@@ -160,7 +162,12 @@ export const EditionTools: React.FC<EditionToolsProps> = (tools) => {
   return (
     <>
       <ToolbarDivider />
-      {compositionOnly ? null : <DrawingTools {...tools} />}
+      {compositionOnly ? null : (
+        <DrawingTools
+          editionMode={editionMode}
+          onEditionModeChange={onEditionModeChange}
+        />
+      )}
       {offersComponents && <ComponentDropdown editionMode={editionMode} />}
     </>
   );

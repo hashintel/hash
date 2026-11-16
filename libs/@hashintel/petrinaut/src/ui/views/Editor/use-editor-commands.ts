@@ -38,7 +38,6 @@ const useEditorCommands = ({
   const isReadOnly = useIsReadOnly();
   const canEditNet =
     globalMode === "edit" && editViewMode === "canvas" && !isReadOnly;
-  // An editor that only composes draws no place and no transition.
   const { compositionOnly } = use(CompositionContext);
   const canDrawNet = canEditNet && !compositionOnly;
   const runAutoLayout = () => {

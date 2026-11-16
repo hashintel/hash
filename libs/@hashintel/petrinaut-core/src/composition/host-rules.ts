@@ -138,13 +138,14 @@ const providedRefusal = (
     : null;
 };
 
-const composingOnly =
+const composingOnlyNotice =
   "This editor only places and connects the components it is given";
 
 /**
  * Why the host's rules refuse a mutation of `sdcpn`, as a sentence a user can
  * read, or `null` when they allow it. A provided interface is not changed,
- * and no subnet is added under its id.
+ * and no subnet is added under its id. An instance that only composes refuses
+ * every mutation that does not compose, and every one aimed at a subnet.
  */
 export const mutationRefusal = (
   rules: HostRules,
@@ -154,7 +155,7 @@ export const mutationRefusal = (
 ): string | null =>
   providedRefusal(rules, sdcpn, subnetIdAt(input, changedSubnetKey(name))) ??
   (rules.compositionOnly && !composes(name, input, rules.provided)
-    ? `${composingOnly}.`
+    ? `${composingOnlyNotice}.`
     : null);
 
 /**
@@ -174,9 +175,9 @@ export const commandRefusal = (
     return refusal;
   }
   if (name === "applyClipboardPaste") {
-    return `${composingOnly}: nothing can be pasted into it.`;
+    return `${composingOnlyNotice}: nothing can be pasted into it.`;
   }
-  return subnetId === null ? null : `${composingOnly}.`;
+  return subnetId === null ? null : `${composingOnlyNotice}.`;
 };
 
 /** The same functions, each throwing its refusal where `refusalOf` gives one. */
