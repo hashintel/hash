@@ -2029,7 +2029,7 @@ const ConversationAiAssistantPanel = ({
   // Hosts retain this callback across transport-driven rerenders, so its
   // identity is part of the public composer-control contract. The ref keeps
   // its implementation current without forcing host controls to resubscribe.
-  const submitText = useCallback(
+  const submitText = useCallback<PetrinautAiComposerSubmitText>(
     async ({
       id,
       source,
@@ -2038,7 +2038,7 @@ const ConversationAiAssistantPanel = ({
       preserveDraft = false,
       selection,
       text,
-    }: Parameters<PetrinautAiComposerSubmitText>[0]): Promise<PetrinautAiComposerSubmitTextResult> => {
+    }) => {
       const submissionText = source === "voice" ? text : text.trim();
       if (!submissionText.trim()) {
         const submissionError = new Error(
