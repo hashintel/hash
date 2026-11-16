@@ -34,6 +34,7 @@ const state = vi.hoisted(() => ({
     | ComponentProps<typeof ExportToCsvButton>["generateCsvFile"]
     | undefined,
   selected: [] as DataTypeWithMetadata[],
+  dataTypes: {} as Record<VersionedUrl, DataTypeWithMetadata>,
 }));
 vi.mock("next/router", () => ({ useRouter: () => ({ query: {} }) }));
 vi.mock("../../components/grid/grid", () => ({
@@ -73,7 +74,7 @@ vi.mock("../../shared/use-actors", () => ({
   isAiMachineActor: () => false,
 }));
 vi.mock("./data-types-context", () => ({
-  useDataTypesContext: () => ({ dataTypes: {} }),
+  useDataTypesContext: () => ({ dataTypes: state.dataTypes }),
 }));
 vi.mock("./slide-stack", () => ({
   useSlideStack: () => ({ pushToSlideStack: vi.fn() }),
@@ -192,6 +193,7 @@ describe("hierarchical type table", () => {
     state.grid = undefined;
     state.exportCsv = undefined;
     state.selected = [];
+    state.dataTypes = {};
   });
   afterEach(() => {
     cleanup();
@@ -395,5 +397,44 @@ describe("hierarchical type table", () => {
         .map(({ title }) => title),
     ).toEqual(["meters", "meters"]);
     expect(csvTitles()).toEqual(["meters"]);
+  });
+
+  it("uses the bounded inherited tuple preview for both clipboard and search", () => {
+    const parent: DataTypeWithMetadata = {
+      ...dataType("parent"),
+      schema: {
+        ...dataType("parent").schema,
+        type: "array",
+        items: { type: "number", label: { right: "m".repeat(4096) } },
+      },
+    };
+    const tuple: DataTypeWithMetadata = {
+      ...dataType("tuple", ["parent"]),
+      schema: {
+        ...dataType("tuple", ["parent"]).schema,
+        type: "array",
+        items: false,
+        prefixItems: [
+          { type: "number" },
+          ...Array.from({ length: 2047 }, () => ({ type: "number" as const })),
+        ],
+      },
+    };
+    state.dataTypes = { [parent.schema.$id]: parent };
+    renderTable([tuple]);
+    const cell = state.grid!.createGetCellContent(visibleRows())([0, 0]);
+    if (cell.kind !== GridCellKind.Custom) {
+      throw new Error("Expected a tree cell");
+    }
+    expect(cell.copyData.length).toBeLessThanOrEqual("tuple ".length + 256);
+    expect(cell.copyData).toContain("…");
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
+    act(() => state.grid?.onSearchValueChange?.(cell.copyData));
+    expect(
+      visibleRows()
+        .filter(({ hierarchy }) => hierarchy?.matchesSearch)
+        .map(({ title }) => title),
+    ).toEqual(["tuple"]);
+    expect(csvTitles()).toEqual(["tuple"]);
   });
 });

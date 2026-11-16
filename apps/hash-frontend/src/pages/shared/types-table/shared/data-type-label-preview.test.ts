@@ -5,6 +5,7 @@ import { getDataTypeLabelPreview as getPreviewParts } from "./data-type-label-pr
 import type {
   DataType,
   DataTypeWithMetadata,
+  SingleValueSchema,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 
@@ -30,6 +31,14 @@ const getDataTypeLabelPreview = (...args: Parameters<typeof getPreviewParts>) =>
   getPreviewParts(...args)
     ?.map(({ text }) => text)
     .join("");
+
+const repeated = <Item>(
+  length: number,
+  item: (index: number) => Item,
+): [Item, ...Item[]] => [
+  item(0),
+  ...Array.from({ length: length - 1 }, (_, index) => item(index + 1)),
+];
 
 describe("data type label previews", () => {
   it("shows labels in their left and right positions", () => {
@@ -379,5 +388,169 @@ describe("data type label previews", () => {
       ],
     };
     expect(getDataTypeLabelPreview(union, {})).toBe("[value m] m");
+  });
+
+  it("bounds long uniform labels repeated across a large tuple", () => {
+    const parent = scalar("parent", {
+      type: "array",
+      items: { type: "number", label: { right: "m".repeat(4096) } },
+    });
+    const tuple = scalar("tuple", {
+      type: "array",
+      items: false,
+      prefixItems: repeated(2048, () => ({ type: "number" as const })),
+      allOf: [{ $ref: parent.$id }],
+    });
+    const parts = getPreviewParts(tuple, lookup(parent))!;
+    const text = parts.map((part) => part.text).join("");
+    expect(text.length).toBeLessThanOrEqual(256);
+    expect(text).toContain(`value ${"m".repeat(63)}…`);
+    expect(text.endsWith("…")).toBe(true);
+    expect(
+      parts
+        .filter(({ kind }) => kind === "label")
+        .every(({ text: label }) => label.length <= 64),
+    ).toBe(true);
+  });
+
+  it("does not inspect omitted tuple positions, including inherited shapes", () => {
+    const prefixItems = repeated(9, () => ({
+      type: "number" as const,
+      label: { right: "m" },
+    }));
+    Object.defineProperty(prefixItems, 8, {
+      get: () => {
+        throw new Error("Omitted tuple position was read");
+      },
+    });
+    const tuple = scalar("tuple", { type: "array", items: false, prefixItems });
+    const child = scalar("child", {
+      type: "array",
+      allOf: [{ $ref: tuple.$id }],
+    });
+    const expected = `[${Array.from({ length: 8 }, () => "value m").join(", ")}, …]`;
+    expect(getDataTypeLabelPreview(tuple, {})).toBe(expected);
+    expect(getDataTypeLabelPreview(child, lookup(tuple))).toBe(expected);
+  });
+
+  it("bounds union alternatives before inspecting or formatting them", () => {
+    const { type: _type, ...metadata } = scalar("union") as DataType & {
+      type: "number";
+    };
+    const anyOf = repeated<SingleValueSchema>(1024, (index) => ({
+      type: "number",
+      label: { right: `unit ${index}` },
+    }));
+    Object.defineProperty(anyOf, 8, {
+      get: () => {
+        throw new Error("Omitted union alternative was read");
+      },
+    });
+    const text = getDataTypeLabelPreview({ ...metadata, anyOf }, {});
+    expect(text).toBe(
+      `(${Array.from({ length: 8 }, (_, index) => `value unit ${index}`).join(" | ")} | …)`,
+    );
+  });
+
+  it("bounds the total text of individually short union alternatives", () => {
+    const { type: _type, ...metadata } = scalar("union") as DataType & {
+      type: "number";
+    };
+    const text = getDataTypeLabelPreview(
+      {
+        ...metadata,
+        anyOf: repeated<SingleValueSchema>(8, (index) => ({
+          type: "number",
+          label: { left: `${index}${"x".repeat(40)}`, right: "y".repeat(40) },
+        })),
+      },
+      {},
+    )!;
+    expect(text.length).toBeLessThanOrEqual(256);
+    expect(text.startsWith("(0")).toBe(true);
+    expect(text.endsWith("…")).toBe(true);
+  });
+
+  it("bounds array alternatives and ordinary lists with long labels on both sides", () => {
+    const { type: _type, ...metadata } = scalar("union") as DataType & {
+      type: "number";
+    };
+    const label = { left: "$".repeat(4096), right: "m".repeat(4096) };
+    const parent = scalar("parent", {
+      type: "array",
+      items: { type: "number", label },
+    });
+    const schemas: DataType[] = [
+      parent,
+      {
+        ...metadata,
+        allOf: [{ $ref: parent.$id }],
+        anyOf: [
+          {
+            type: "array" as const,
+            items: false as const,
+            prefixItems: repeated(2048, () => ({
+              type: "number" as const,
+            })),
+          },
+        ],
+      },
+    ];
+    for (const schema of schemas) {
+      const text = getDataTypeLabelPreview(schema, lookup(parent))!;
+      expect(text.length).toBeLessThanOrEqual(256);
+      expect(text).toContain("…");
+    }
+  });
+
+  it("compares full inherited labels before truncating their shared prefix", () => {
+    const common = "x".repeat(100);
+    const parents = ["a", "b"].map((suffix) =>
+      scalar(suffix, {
+        type: "array",
+        label: { right: `${common}${suffix}` },
+        items: { type: "number", label: { right: `${common}${suffix}` } },
+      }),
+    );
+    const child = scalar("child", {
+      type: "array",
+      maxItems: 1,
+      allOf: parents.map(({ $id }) => ({ $ref: $id })),
+    });
+    expect(getDataTypeLabelPreview(child, lookup(...parents))).toBeUndefined();
+    expect(
+      getDataTypeLabelPreview(
+        { ...child, label: { right: "measurements" } },
+        lookup(...parents),
+      ),
+    ).toBe("[value] measurements");
+  });
+
+  it("truncates and normalizes label text without splitting Unicode characters", () => {
+    expect(
+      getDataTypeLabelPreview(
+        scalar("unicode", {
+          label: {
+            left: `${"x".repeat(62)}💡rest`,
+            right: `m\n${"s".repeat(100)}`,
+          },
+        }),
+        {},
+      ),
+    ).toBe(`${"x".repeat(62)}…value m ${"s".repeat(61)}…`);
+    const tuple = scalar("unicode-tuple", {
+      type: "array",
+      items: false,
+      prefixItems: repeated(8, () => ({
+        type: "number" as const,
+        label: { right: "💡".repeat(20) },
+      })),
+    });
+    const text = getDataTypeLabelPreview(tuple, {})!;
+    expect(text.length).toBeLessThanOrEqual(256);
+    expect(text.endsWith("…")).toBe(true);
+    expect(text).not.toMatch(
+      /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/u,
+    );
   });
 });

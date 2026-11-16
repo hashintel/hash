@@ -59,16 +59,78 @@ const punctuation = (text: string): DataTypeLabelPart => ({
 });
 const placeholder: DataTypeLabelPart = { kind: "placeholder", text: "value" };
 
+// Bound schema-driven expansion before preview text reaches canvas, copy, or search.
+const maxLabelCharacters = 64;
+const maxPreviewCharacters = 256;
+const maxTupleItems = 8;
+const maxUnionOptions = 8;
+
+const prefix = (text: string, length: number): string => {
+  const last = text.charCodeAt(length - 1);
+  const next = text.charCodeAt(length);
+  const splitsSurrogate =
+    last >= 0xd800 && last <= 0xdbff && next >= 0xdc00 && next <= 0xdfff;
+  return text.slice(0, splitsSurrogate ? length - 1 : length);
+};
+
+const normalizeLabelText = (text: string | undefined): string | undefined =>
+  text === undefined
+    ? undefined
+    : (text.length > maxLabelCharacters
+        ? `${prefix(text, maxLabelCharacters - 1)}…`
+        : text
+      ).replace(/\s+/gu, " ");
+
+const limitPreview = (parts: DataTypeLabelPart[]): DataTypeLabelPart[] => {
+  if (
+    parts.reduce((length, { text }) => length + text.length, 0) <=
+    maxPreviewCharacters
+  ) {
+    return parts;
+  }
+  const bounded: DataTypeLabelPart[] = [];
+  let remaining = maxPreviewCharacters - 1;
+  for (const part of parts) {
+    if (part.text.length <= remaining) {
+      bounded.push(part);
+      remaining -= part.text.length;
+    } else {
+      const text = prefix(part.text, remaining);
+      if (text) {
+        bounded.push({ ...part, text });
+      }
+      break;
+    }
+  }
+  return [...bounded, punctuation("…")];
+};
+
 const labelValue = (
   inner: DataTypeLabelPart[],
-  label?: ValueLabel,
-): DataTypeLabelPart[] => [
-  ...(label?.left ? [{ kind: "label" as const, text: label.left }] : []),
-  ...inner,
-  ...(label?.right
-    ? [punctuation(" "), { kind: "label" as const, text: label.right }]
-    : []),
-];
+  label: ValueLabel | undefined,
+  normalizedLabels: WeakMap<ValueLabel, ValueLabel>,
+): DataTypeLabelPart[] => {
+  let normalized: ValueLabel | undefined;
+  if (label) {
+    normalized = normalizedLabels.get(label);
+    if (!normalized) {
+      normalized = {
+        left: normalizeLabelText(label.left),
+        right: normalizeLabelText(label.right),
+      };
+      normalizedLabels.set(label, normalized);
+    }
+  }
+  return limitPreview([
+    ...(normalized?.left
+      ? [{ kind: "label" as const, text: normalized.left }]
+      : []),
+    ...inner,
+    ...(normalized?.right
+      ? [punctuation(" "), { kind: "label" as const, text: normalized.right }]
+      : []),
+  ]);
+};
 
 const joinParts = (items: DataTypeLabelPart[][], separator: string) =>
   items.flatMap((item, index) =>
@@ -109,9 +171,10 @@ const getInheritedArraySchemas = (
 const previewValue = (
   schema: SingleValueSchema,
   inheritedArrays: ArraySchema[][],
+  normalizedLabels: WeakMap<ValueLabel, ValueLabel>,
 ): DataTypeLabelPart[] => {
   if (schema.type !== "array") {
-    return labelValue([placeholder], schema.label);
+    return labelValue([placeholder], schema.label, normalizedLabels);
   }
 
   const levels = [[schema], ...inheritedArrays];
@@ -130,7 +193,10 @@ const previewValue = (
         : Math.min(maximum, array.maxItems ?? Infinity),
     Infinity,
   );
-  const count = tupleLength ?? Math.min(maxItems, 2);
+  const count =
+    tupleLength === undefined
+      ? Math.min(maxItems, 2)
+      : Math.min(tupleLength, maxTupleItems);
   const items = Array.from({ length: count }, (_, index) => {
     const labels = levels
       .map((level) =>
@@ -152,15 +218,16 @@ const previewValue = (
     )
       ? first
       : undefined;
-    return labelValue([placeholder], label);
+    return labelValue([placeholder], label, normalizedLabels);
   });
 
-  if (tupleLength === undefined && maxItems > count) {
+  if ((tupleLength ?? maxItems) > count) {
     items.push([punctuation("…")]);
   }
   return labelValue(
     [punctuation("["), ...joinParts(items, ", "), punctuation("]")],
     schema.label,
+    normalizedLabels,
   );
 };
 
@@ -169,9 +236,12 @@ export const getDataTypeLabelPreview = (
   dataTypes: Record<VersionedUrl, DataTypeWithMetadata>,
 ): DataTypeLabelPart[] | undefined => {
   const label = resolveLabel(schema, dataTypes) ?? undefined;
+  const normalizedLabels = new WeakMap<ValueLabel, ValueLabel>();
+  const unionOptions =
+    "anyOf" in schema ? schema.anyOf.slice(0, maxUnionOptions) : [];
   const hasArray =
     "anyOf" in schema
-      ? schema.anyOf.some(({ type }) => type === "array")
+      ? unionOptions.some(({ type }) => type === "array")
       : schema.type === "array";
   const inheritedArrays = hasArray
     ? getInheritedArraySchemas(schema, dataTypes)
@@ -179,10 +249,11 @@ export const getDataTypeLabelPreview = (
 
   let preview: DataTypeLabelPart[];
   if ("anyOf" in schema) {
-    const options = schema.anyOf.map((option) =>
+    const options = unionOptions.map((option) =>
       previewValue(
         { ...option, label: option.label ?? label },
         inheritedArrays,
+        normalizedLabels,
       ),
     );
     const formats = [
@@ -190,17 +261,25 @@ export const getDataTypeLabelPreview = (
         options.map((parts) => [parts.map(({ text }) => text).join(""), parts]),
       ).values(),
     ];
+    if (schema.anyOf.length > maxUnionOptions) {
+      formats.push([punctuation("…")]);
+    }
     preview =
       formats.length > 1
-        ? [punctuation("("), ...joinParts(formats, " | "), punctuation(")")]
+        ? limitPreview([
+            punctuation("("),
+            ...joinParts(formats, " | "),
+            punctuation(")"),
+          ])
         : (formats[0] ?? [placeholder]);
   } else {
-    preview = previewValue({ ...schema, label }, inheritedArrays);
+    preview = previewValue(
+      { ...schema, label },
+      inheritedArrays,
+      normalizedLabels,
+    );
   }
   return preview.some(({ kind, text }) => kind === "label" && text.trim())
-    ? preview.map((part) => ({
-        ...part,
-        text: part.text.replace(/\s+/gu, " "),
-      }))
+    ? preview
     : undefined;
 };
