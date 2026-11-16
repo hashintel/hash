@@ -167,6 +167,21 @@ export const describeUnboundInstance = (
   }
 };
 
+/** `running`'s id for each item of `declared` with the same `key`. */
+const matchIds = <Item extends { id: ID }>(
+  declared: readonly Item[],
+  running: readonly Item[],
+  key: (item: Item) => string,
+): Map<ID, ID> => {
+  const byKey = new Map(running.map((item) => [key(item), item.id]));
+  return new Map(
+    declared.flatMap((item) => {
+      const match = byKey.get(key(item));
+      return match === undefined ? [] : [[item.id, match] as const];
+    }),
+  );
+};
+
 /**
  * The implementation's port for each of the interface's, matched by name. An
  * interface port without a match is absent, which `check-interfaces.ts`
@@ -175,42 +190,23 @@ export const describeUnboundInstance = (
 export const mapInterfacePorts = (
   iface: Pick<Subnet, "places">,
   implementation: Pick<Subnet, "places">,
-): Map<ID, ID> => {
-  const byName = new Map(
-    implementation.places
-      .filter((place) => place.isPort)
-      .map((place) => [place.name, place.id]),
+): Map<ID, ID> =>
+  matchIds(
+    iface.places.filter(({ isPort }) => isPort),
+    implementation.places.filter(({ isPort }) => isPort),
+    ({ name }) => name,
   );
-  const map = new Map<ID, ID>();
-  for (const port of iface.places) {
-    const target = port.isPort ? byName.get(port.name) : undefined;
-    if (target !== undefined) {
-      map.set(port.id, target);
-    }
-  }
-  return map;
-};
 
 /** The implementation's parameter for each of the interface's, matched by variable name. */
 export const mapInterfaceParameters = (
   iface: Pick<Subnet, "parameters">,
   implementation: Pick<Subnet, "parameters">,
-): Map<ID, ID> => {
-  const byVariable = new Map(
-    implementation.parameters.map((parameter) => [
-      parameter.variableName,
-      parameter.id,
-    ]),
+): Map<ID, ID> =>
+  matchIds(
+    iface.parameters,
+    implementation.parameters,
+    ({ variableName }) => variableName,
   );
-  const map = new Map<ID, ID>();
-  for (const parameter of iface.parameters) {
-    const target = byVariable.get(parameter.variableName);
-    if (target !== undefined) {
-      map.set(parameter.id, target);
-    }
-  }
-  return map;
-};
 
 /**
  * The subnet an instance declares, the one that runs for it, and the running
