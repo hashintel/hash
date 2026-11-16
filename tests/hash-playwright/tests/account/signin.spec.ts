@@ -1,4 +1,4 @@
-import { expect, test } from "../shared/runtime";
+import { expect, type Request, test } from "../shared/runtime";
 import {
   clearSessionCookies,
   expectSignedIn,
@@ -21,10 +21,39 @@ test("user can sign in with password", async ({ page }) => {
   await expectSignedIn(page);
 });
 
-test("user can sign out via account menu", async ({ page }) => {
+test("user can sign out while the data type catalogue is loading", async ({
+  page,
+}) => {
   await createUserAndCompleteSignup(page, testUsers.signoutTest);
 
-  // Use the real sign-out flow (not clearCookies)
+  const isCatalogueRequest = (request: Request) => {
+    if (
+      request.method() !== "POST" ||
+      !/\/graphql(?:\?|$)/.test(request.url())
+    ) {
+      return false;
+    }
+
+    const { operationName } = request.postDataJSON() as {
+      operationName: string;
+    };
+
+    return ["queryDataTypeSubgraph", "queryDataTypes"].includes(operationName);
+  };
+
+  await page.route(/\/graphql(?:\?|$)/, async (route) => {
+    if (isCatalogueRequest(route.request())) {
+      return;
+    }
+
+    await route.continue();
+  });
+
+  const catalogueRequest = page.waitForRequest(isCatalogueRequest);
+
+  await page.reload();
+  await catalogueRequest;
+
   await page.getByTestId("user-avatar").click();
   await page.getByText("Sign Out").click();
 
