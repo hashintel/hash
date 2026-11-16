@@ -53,28 +53,25 @@ interface ColorSelectProps {
 export const ColorSelect: React.FC<ColorSelectProps> = ({
   value,
   onChange,
-  disabled = false,
-}) => {
-  return (
-    <Select
-      required
-      value={value}
-      onChange={onChange}
-      items={colorPool}
-      disabled={disabled}
-      size="sm"
-      renderItem={(itemValue) => <ColorItem value={itemValue} />}
-    />
-  );
-};
+  disabled,
+}) => (
+  <Select
+    required
+    value={value}
+    onChange={onChange}
+    items={colorPool}
+    disabled={disabled}
+    size="sm"
+    renderItem={(itemValue) => <ColorItem value={itemValue} />}
+  />
+);
 
 const noColor = "none";
+const noColorLabel = "Default";
 
 interface OptionalColorSelectProps {
   value: string | null;
   onChange: (color: string | null) => void;
-  /** What choosing no colour is called. */
-  noneLabel: string;
   disabled?: boolean;
 }
 
@@ -82,8 +79,7 @@ interface OptionalColorSelectProps {
 export const OptionalColorSelect: React.FC<OptionalColorSelectProps> = ({
   value,
   onChange,
-  noneLabel,
-  disabled = false,
+  disabled,
 }) => (
   // A colour set in a file or by a tool can sit outside the pool: the select
   // keeps a value it has no item for on offer.
@@ -91,12 +87,12 @@ export const OptionalColorSelect: React.FC<OptionalColorSelectProps> = ({
     required
     value={value ?? noColor}
     onChange={(next) => onChange(next === noColor ? null : next)}
-    items={[{ value: noColor, text: noneLabel }, ...colorPool]}
+    items={[{ value: noColor, text: noColorLabel }, ...colorPool]}
     disabled={disabled}
     size="sm"
     renderItem={(itemValue) =>
       itemValue === noColor ? (
-        <span>{noneLabel}</span>
+        <span>{noColorLabel}</span>
       ) : (
         <ColorItem value={itemValue} />
       )

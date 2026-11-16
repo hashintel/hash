@@ -6,9 +6,7 @@ import {
 import { iconMaskImage } from "../lib/icon-mask";
 import { pickFile, readFileText } from "./pick-file";
 
-export type PickedIcon =
-  | { ok: true; iconSvg: string }
-  | { ok: false; error: string };
+type PickedIcon = { ok: true; iconSvg: string } | { ok: false; error: string };
 
 const tooLarge: PickedIcon = {
   ok: false,

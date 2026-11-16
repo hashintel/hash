@@ -340,12 +340,7 @@ export const NetNavigationList: React.FC<{
             aria-selected={activeSubnetId === subnet.id}
             tabIndex={tabIndexFor({ stopId: subnet.id, column: 0 })}
           >
-            <span
-              className={iconStyle}
-              style={
-                subnet.displayColor ? { color: subnet.displayColor } : undefined
-              }
-            >
+            <span className={iconStyle} style={{ color: subnet.displayColor }}>
               <ComponentGlyph
                 iconSvg={subnet.iconSvg}
                 fallback={isInterface(subnet) ? "puzzlePiece" : "diagramNested"}

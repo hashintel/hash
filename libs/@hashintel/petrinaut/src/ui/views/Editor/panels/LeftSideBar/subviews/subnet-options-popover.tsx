@@ -39,7 +39,7 @@ const iconRowStyle = css({
   gap: "2",
 });
 
-/** The icon as the cards draw it: the component's glyph, in its colour. */
+/** A small tile for the component's glyph, in its colour. */
 const iconPreviewStyle = css({
   display: "flex",
   alignItems: "center",
@@ -197,19 +197,17 @@ const AppearanceOptions: React.FC<{ subnet: Subnet }> = ({ subnet }) => {
   const isReadOnly = useIsReadOnly();
   const [iconError, setIconError] = useState<string | null>(null);
 
-  const chooseIcon = () => {
-    void pickSvgIcon().then((picked) => {
-      if (picked === null) {
-        return;
-      }
-      setIconError(picked.ok ? null : picked.error);
-      if (picked.ok) {
-        updateSubnet({
-          subnetId: subnet.id,
-          update: { iconSvg: picked.iconSvg },
-        });
-      }
-    });
+  const chooseIcon = async () => {
+    const picked = await pickSvgIcon();
+    if (picked === null) {
+      return;
+    }
+    if (!picked.ok) {
+      setIconError(picked.error);
+      return;
+    }
+    setIconError(null);
+    updateSubnet({ subnetId: subnet.id, update: { iconSvg: picked.iconSvg } });
   };
 
   return (
@@ -229,9 +227,7 @@ const AppearanceOptions: React.FC<{ subnet: Subnet }> = ({ subnet }) => {
         <div className={iconRowStyle}>
           <span
             className={iconPreviewStyle}
-            style={
-              subnet.displayColor ? { color: subnet.displayColor } : undefined
-            }
+            style={{ color: subnet.displayColor }}
           >
             <ComponentGlyph
               iconSvg={subnet.iconSvg}
@@ -244,7 +240,9 @@ const AppearanceOptions: React.FC<{ subnet: Subnet }> = ({ subnet }) => {
             tone="neutral"
             size="sm"
             disabled={isReadOnly}
-            onClick={chooseIcon}
+            onClick={() => {
+              void chooseIcon();
+            }}
           >
             {subnet.iconSvg ? "Replace" : "Choose SVG"}
           </Button>
@@ -270,7 +268,6 @@ const AppearanceOptions: React.FC<{ subnet: Subnet }> = ({ subnet }) => {
       <Form.Field label="Color" size="sm">
         <OptionalColorSelect
           value={subnet.displayColor ?? null}
-          noneLabel="Default"
           disabled={isReadOnly}
           onChange={(color) =>
             updateSubnet({
