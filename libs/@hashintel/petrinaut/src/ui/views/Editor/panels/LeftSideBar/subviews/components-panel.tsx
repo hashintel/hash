@@ -120,11 +120,7 @@ const ComponentsPanel: React.FC = () => {
           >
             <span
               className={glyphStyle}
-              style={
-                component.displayColor
-                  ? { color: component.displayColor }
-                  : undefined
-              }
+              style={{ color: component.displayColor }}
             >
               <ComponentGlyph
                 iconSvg={component.iconSvg}

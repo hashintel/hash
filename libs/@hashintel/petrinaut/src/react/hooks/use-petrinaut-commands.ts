@@ -1,9 +1,9 @@
 import { use } from "react";
 
 import { PetrinautInstanceContext } from "../instance-context";
-import { NotificationsContext } from "../notifications/context";
 import { ActiveNetContext } from "../state/active-net-context";
 import { useIsReadOnly } from "../state/use-is-read-only";
+import { useHostRulesFeedback } from "./use-host-rules-feedback";
 import { useReadOnlyFeedback } from "./use-read-only-feedback";
 
 import type { PetrinautCommands } from "@hashintel/petrinaut-core";
@@ -27,19 +27,14 @@ export function usePetrinautCommands(): PetrinautCommands {
   const isReadOnly = useIsReadOnly();
   const notifyReadOnly = useReadOnlyFeedback();
   const { activeSubnetId } = use(ActiveNetContext);
-  const { addNotification } = use(NotificationsContext);
+  const notifyHostRules = useHostRulesFeedback();
   const { commands } = instance;
 
   /** Says why the host's rules refuse a command, where Core itself would throw. */
   const refused = (name: keyof PetrinautCommands, input: unknown): boolean => {
     const refusal = instance.commandRefusal(name, input);
     if (refusal !== null) {
-      addNotification({
-        id: "host-rules",
-        message: refusal,
-        tone: "neutral",
-        durationMs: 4500,
-      });
+      notifyHostRules(refusal);
     }
     return refusal !== null;
   };

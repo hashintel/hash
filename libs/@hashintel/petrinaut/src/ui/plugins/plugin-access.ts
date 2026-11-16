@@ -235,6 +235,11 @@ const readDocument = ({
 
 type MutationEdits = Omit<PluginEdits, "applyAutoLayout">;
 
+const hostRestriction = (message: string): EditResult<never> => ({
+  applied: false,
+  reason: { kind: "host-restriction", message },
+});
+
 const guardMutations = ({ instance, latest }: PluginEditorPorts) =>
   Object.fromEntries(
     Object.entries(instance.mutations).map(
@@ -254,10 +259,7 @@ const guardMutations = ({ instance, latest }: PluginEditorPorts) =>
             input,
           );
           if (message !== null) {
-            return {
-              applied: false,
-              reason: { kind: "host-restriction", message },
-            };
+            return hostRestriction(message);
           }
           mutate(input);
 
@@ -285,10 +287,7 @@ const writeDocument = (
         const targeted = { targetSubnetId: activeSubnetId };
         const message = instance.commandRefusal("applyAutoLayout", targeted);
         if (message !== null) {
-          return {
-            applied: false,
-            reason: { kind: "host-restriction", message },
-          };
+          return hostRestriction(message);
         }
         const value = await instance.commands.applyAutoLayout(targeted);
         await frameSceneAfterRender();

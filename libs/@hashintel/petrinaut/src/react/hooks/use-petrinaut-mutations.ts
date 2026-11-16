@@ -1,12 +1,12 @@
 import { use } from "react";
 
 import { PetrinautInstanceContext } from "../instance-context";
-import { NotificationsContext } from "../notifications/context";
 import { ActiveNetContext } from "../state/active-net-context";
 import {
   mutationBlockedBy,
   useReadOnlyReason,
 } from "../state/use-read-only-reason";
+import { useHostRulesFeedback } from "./use-host-rules-feedback";
 import { useReadOnlyFeedback } from "./use-read-only-feedback";
 
 import type { PetrinautMutations } from "@hashintel/petrinaut-core";
@@ -41,7 +41,7 @@ export function usePetrinautMutations(): PetrinautMutations {
   const { activeSubnetId } = use(ActiveNetContext);
   const readOnlyReason = useReadOnlyReason();
   const notifyReadOnly = useReadOnlyFeedback();
-  const { addNotification } = use(NotificationsContext);
+  const notifyHostRules = useHostRulesFeedback();
   const { mutations } = instance;
 
   const withReadonlyGuard = <Name extends keyof PetrinautMutations>(
@@ -66,12 +66,7 @@ export function usePetrinautMutations(): PetrinautMutations {
       // Asked of the input as it goes out, with the net it targets.
       const refusal = instance.mutationRefusal(name, nextInput);
       if (refusal !== null) {
-        addNotification({
-          id: "host-rules",
-          message: refusal,
-          tone: "neutral",
-          durationMs: 4500,
-        });
+        notifyHostRules(refusal);
         return;
       }
       target(nextInput);

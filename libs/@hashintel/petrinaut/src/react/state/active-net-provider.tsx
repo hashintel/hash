@@ -37,11 +37,8 @@ export const ActiveNetProvider: React.FC<{ children: ReactNode }> = ({
   const canonicalSubnetId =
     requestedSubnetId !== null ? toPetrinautId(requestedSubnetId) : null;
   const subnet =
-    canonicalSubnetId !== null
-      ? petriNetDefinition.subnets?.find(
-          (candidate) =>
-            candidate.id === canonicalSubnetId && !provided.has(candidate.id),
-        )
+    canonicalSubnetId !== null && !provided.has(canonicalSubnetId)
+      ? petriNetDefinition.subnets?.find(({ id }) => id === canonicalSubnetId)
       : undefined;
 
   const resolvedSubnetId = subnet ? canonicalSubnetId : null;
