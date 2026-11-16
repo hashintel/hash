@@ -12,7 +12,9 @@ export {
 } from "./ledger/append";
 export {
   ledgerCommentsMessage,
+  ledgerCommentsVersionLoad,
   parseLedgerComments,
+  withoutLedgerCommentsVersionLoad,
   type LedgerComment,
 } from "./ledger/comments";
 export {

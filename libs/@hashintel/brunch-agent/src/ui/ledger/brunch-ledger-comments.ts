@@ -77,6 +77,7 @@ const createPendingComments = () => {
       void submitText({
         id: sent.id,
         target: "message",
+        ledgerComments: true,
         preserveDraft: true,
         text: ledgerCommentsMessage(sent.comments).body,
       }).then(

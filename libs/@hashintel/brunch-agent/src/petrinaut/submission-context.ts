@@ -23,7 +23,7 @@ export interface VersionLoad {
 
 const versionLoadContextKey = "versionLoad";
 
-const parseVersionLoad = (value: unknown): VersionLoad | undefined => {
+export const parseVersionLoad = (value: unknown): VersionLoad | undefined => {
   if (typeof value !== "object" || value === null) return undefined;
   const { id, decisionTime } = value as Record<string, unknown>;
   return typeof id === "string" &&

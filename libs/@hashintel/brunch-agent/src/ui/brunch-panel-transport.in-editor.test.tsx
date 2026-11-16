@@ -624,6 +624,162 @@ test("real panel: a refused experiment follow-up still offers a retry", async ()
   ).toBeTruthy();
 });
 
+/**
+ * The real panel with the Ledger comments bar and a button that queues one
+ * comment; `rebuildTransport` stands in for a version load, as above.
+ */
+const renderLedgerComments = (
+  send: FlueClient["send"],
+  options?: Parameters<typeof createBrunchPanelTransport>[2],
+) => {
+  const wait = vi.fn<FlueClient["wait"]>(() => new Promise(() => {}));
+  const client = Promise.resolve({ send, wait } as unknown as FlueClient);
+  const tracker = new BrunchPanelConversationTracker();
+  let current = createBrunchPanelTransport(client, tracker, options);
+  const transport: typeof current = {
+    reconnectToStream: async () => null,
+    sendMessages: (sendOptions) => current.sendMessages(sendOptions),
+  };
+  const useHostPlugin: PluginHook<typeof HostAdmissionTestPlugin> = (api) => ({
+    assistant: {
+      content: (
+        <AiAssistantPanel
+          api={api}
+          aiAssistant={{
+            conversationId: "comment-recovery",
+            transport,
+            renderComposerControl: (context) => (
+              <>
+                <button
+                  type="button"
+                  onClick={() =>
+                    pendingCommentsFor(
+                      api.document.net,
+                      context.conversationId,
+                    ).add({
+                      text: "Use nine agents",
+                      records: ["c1"],
+                    })
+                  }
+                >
+                  Queue comment
+                </button>
+                <BrunchLedgerCommentsBar
+                  net={api.document.net}
+                  context={{
+                    ...context,
+                    submitText: (input) =>
+                      tracker.submitTextWithAdmission(
+                        context.submitText,
+                        input,
+                      ),
+                  }}
+                />
+              </>
+            ),
+          }}
+        />
+      ),
+    },
+  });
+  render(
+    <Petrinaut
+      handle={createJsonDocHandle({ initial: { places: [], transitions: [] } })}
+      plugins={[HostAdmissionTestPlugin(useHostPlugin)]}
+    />,
+  );
+  return {
+    wait,
+    rebuildTransport: (
+      rebuilt: Parameters<typeof createBrunchPanelTransport>[2],
+    ) => {
+      current = createBrunchPanelTransport(client, tracker, rebuilt);
+    },
+  };
+};
+
+const sendCommentsAndAwaitRetry = async () => {
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Show AI assistant" }),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Queue comment" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Send" }));
+  return screen.findByRole("button", { name: "Retry" });
+};
+
+const loadedVersion = {
+  id: "version-2",
+  decisionTime: "2026-11-16T00:00:00.000Z",
+};
+
+test("real panel: a comment batch goes as the comment signal carrying the loaded version", async () => {
+  const send = idempotentSend({ loseFirstResponse: false });
+  renderLedgerComments(send, { versionLoad: loadedVersion });
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Show AI assistant" }),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Queue comment" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Send" }));
+  await waitFor(() =>
+    expect(screen.queryByRole("group", { name: "Ledger comments" })).toBeNull(),
+  );
+  expect(send.mock.calls[0]?.[0].message).toMatchObject({
+    kind: "signal",
+    tagName: "brunch.ledger-comments",
+    attributes: {
+      "version-load-id": loadedVersion.id,
+      "version-load-decision-time": loadedVersion.decisionTime,
+    },
+  });
+});
+
+test("real panel: a comment batch admitted without confirmation is retried with its original payload after a version loads", async () => {
+  const send = idempotentSend({ loseFirstResponse: true });
+  const { wait, rebuildTransport } = renderLedgerComments(send);
+  const retry = await sendCommentsAndAwaitRetry();
+  expect(send).toHaveBeenCalledOnce();
+
+  rebuildTransport({ versionLoad: loadedVersion });
+  fireEvent.click(retry);
+  await waitFor(() => expect(send).toHaveBeenCalledTimes(2));
+  expect(send.mock.calls[1]?.[0].message).toEqual(
+    send.mock.calls[0]?.[0].message,
+  );
+  await waitFor(() =>
+    expect(screen.queryByRole("group", { name: "Ledger comments" })).toBeNull(),
+  );
+  expect(wait).toHaveBeenCalledOnce();
+});
+
+test("real panel: a retried comment batch that meets a submission conflict ends cleared", async () => {
+  const send = vi
+    .fn<FlueClient["send"]>()
+    .mockRejectedValueOnce(new TypeError("Connection lost after request write"))
+    .mockRejectedValueOnce(
+      new FlueApiError(409, {
+        error: {
+          details: "",
+          message: "The delivery key already names another payload.",
+          meta: { submissionId: "admitted-first" },
+          type: "submission_conflict",
+        },
+      }),
+    );
+  renderLedgerComments(send);
+  fireEvent.click(await sendCommentsAndAwaitRetry());
+  await waitFor(() =>
+    expect(screen.queryByRole("group", { name: "Ledger comments" })).toBeNull(),
+  );
+  expect(send).toHaveBeenCalledTimes(2);
+  // A cleared batch frees the bar for the next comment.
+  fireEvent.click(screen.getByRole("button", { name: "Queue comment" }));
+  expect(
+    (await screen.findByRole("button", { name: "Send" })).hasAttribute(
+      "disabled",
+    ),
+  ).toBe(false);
+});
+
 test("real panel offers experiment delivery retry after ambiguous admission and never retries an admitted response failure", async () => {
   const response = Promise.withResolvers<void>();
   const send = vi

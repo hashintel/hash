@@ -255,6 +255,7 @@ test("announces a typed or comment submission before Flue admits it, but not an 
       {
         id: "comments",
         role: "user",
+        metadata: { ledgerComments: true },
         parts: [
           {
             type: "text",

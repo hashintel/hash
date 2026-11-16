@@ -2033,6 +2033,7 @@ const ConversationAiAssistantPanel = ({
     async ({
       id,
       source,
+      ledgerComments,
       target = "auto",
       preserveDraft = false,
       selection,
@@ -2070,7 +2071,9 @@ const ConversationAiAssistantPanel = ({
         toolCallId: string;
         toolName: string;
       }[] = [];
-      for (const message of target === "auto" ? currentMessages : []) {
+      for (const message of target === "auto" && !ledgerComments
+        ? currentMessages
+        : []) {
         // A failed response's unanswered calls will not get a result.
         if (message.metadata?.failed) continue;
         for (const part of message.parts) {
@@ -2205,7 +2208,14 @@ const ConversationAiAssistantPanel = ({
       await submitMessage(
         {
           id: messageId,
-          ...(source === "voice" ? { metadata: { source } } : {}),
+          ...(source === "voice" || ledgerComments
+            ? {
+                metadata: {
+                  ...(source === "voice" ? { source } : {}),
+                  ...(ledgerComments ? { ledgerComments } : {}),
+                },
+              }
+            : {}),
           parts: [{ text: submissionText, type: "text" }],
           role: "user",
         },

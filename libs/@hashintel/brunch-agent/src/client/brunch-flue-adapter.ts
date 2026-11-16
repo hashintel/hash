@@ -29,6 +29,7 @@ export type BrunchFlueAdapter = FlueAiSdkAdapter<PetrinautAiMessage>;
  */
 const petrinautMessageMetadataSchema = z.object({
   source: z.literal("voice").optional(),
+  ledgerComments: z.literal(true).optional(),
   stopped: z.literal(true).optional(),
   failed: z.literal(true).optional(),
   voiceToolCallIds: z.array(z.string()).optional(),
@@ -72,7 +73,22 @@ export const createBrunchFlueAdapter = (
   });
   return {
     ...adapter,
-    reopen: (history) => adapter.reopen(history).map(withHumanUserText),
+    // A reopened comment turn is marked from its stored signal, as the live
+    // submission was marked by the composer.
+    reopen: (history) => {
+      const commentTurnIds = new Set(
+        history.messages.flatMap(({ id, signal }) =>
+          signal?.tagName === brunchSignals.ledgerComments ? [id] : [],
+        ),
+      );
+      return adapter
+        .reopen(history)
+        .map((message) =>
+          commentTurnIds.has(message.id)
+            ? { ...message, metadata: { ledgerComments: true } }
+            : withHumanUserText(message),
+        );
+    },
   };
 };
 

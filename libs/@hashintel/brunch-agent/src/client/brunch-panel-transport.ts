@@ -3,7 +3,6 @@ import { generateId } from "ai";
 import {
   getInterviewBudget,
   parseSelection,
-  petrinautSubmissionContext,
   selectionContextKey,
 } from "@hashintel/brunch-agent";
 import { petrinautDiagnosticsContextMessageId } from "@hashintel/petrinaut-core";
@@ -29,7 +28,7 @@ import type {
 import type {
   BrowserContext,
   InterviewBudgetLevel,
-  SubmissionContext,
+  PetrinautSubmissionContext,
   VersionLoad,
 } from "@hashintel/brunch-agent";
 import type {
@@ -47,7 +46,7 @@ export type BrunchPanelAdmissionTarget = Pick<
 >;
 
 export class BrunchPanelConversationTracker {
-  readonly #contextByMessage = new Map<string, SubmissionContext | undefined>();
+  readonly #contextByMessage = new Map<string, PetrinautSubmissionContext>();
   readonly #submittedMessageIds = new Set<string>();
 
   /**
@@ -67,10 +66,10 @@ export class BrunchPanelConversationTracker {
    */
   public captureSubmissionContext(
     messageId: string,
-    read: () => SubmissionContext | undefined,
-  ): SubmissionContext | undefined {
-    if (this.#contextByMessage.has(messageId))
-      return this.#contextByMessage.get(messageId);
+    read: () => PetrinautSubmissionContext,
+  ): PetrinautSubmissionContext {
+    const pinned = this.#contextByMessage.get(messageId);
+    if (pinned !== undefined) return pinned;
     const captured = read();
     this.#contextByMessage.set(messageId, captured);
     return captured;
@@ -412,7 +411,7 @@ export const createBrunchPanelTransport = (
         );
         // The chat sends the editor's selection beside the messages.
         const { body } = sendOptions;
-        const readSubmissionContext = () => {
+        const readSubmissionContext = (): PetrinautSubmissionContext => {
           const budget = getInterviewBudget(
             options?.interviewBudgetLevel ?? "off",
             // Voice reports its mode when it mounts, before it can submit.
@@ -421,7 +420,7 @@ export const createBrunchPanelTransport = (
           );
           // An empty context sends an ordinary message, which also clears
           // Brunch's words snapshot.
-          return petrinautSubmissionContext({
+          return {
             ...(budget === undefined ? {} : { interviewBudget: budget }),
             words:
               userMessage === undefined ? [] : (options?.readWords?.() ?? []),
@@ -436,7 +435,7 @@ export const createBrunchPanelTransport = (
                       ? Reflect.get(body, selectionContextKey)
                       : undefined,
                   ),
-          });
+          };
         };
         const submissionContext =
           userMessage?.role === "user"
