@@ -297,8 +297,15 @@ export const useCanvasInteractions = (
     const link = scene.fusions.find(({ id }) => id === linkId);
     const fusion = activeNet.fusions.find(({ id }) => id === link?.fusionId);
     const member = link && memberOf(linkEnd(link, end));
-    const replacement = onto && memberOf(onto);
-    return fusion && member && (onto === null || replacement)
+    if (!fusion || !member) {
+      return { kind: "none" };
+    }
+    if (onto === null) {
+      return planRewire(activeNet, fusion, member, null);
+    }
+    // A transition holds no place: there is nothing to move the fusion onto.
+    const replacement = memberOf(onto);
+    return replacement
       ? planRewire(activeNet, fusion, member, replacement)
       : { kind: "none" };
   };

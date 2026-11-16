@@ -145,12 +145,12 @@ export type CanvasLinkEndName = "source" | "target";
 export type CanvasLinkEnd = { nodeId: string; portId: string | null };
 
 export const linkEnd = (
-  ends: CanvasLinkEnds,
-  end: CanvasLinkEndName,
+  link: CanvasLinkEnds,
+  name: CanvasLinkEndName,
 ): CanvasLinkEnd =>
-  end === "source"
-    ? { nodeId: ends.sourceId, portId: ends.sourcePortId }
-    : { nodeId: ends.targetId, portId: ends.targetPortId };
+  name === "source"
+    ? { nodeId: link.sourceId, portId: link.sourcePortId }
+    : { nodeId: link.targetId, portId: link.targetPortId };
 
 export type CanvasArc = CanvasLinkEnds & {
   id: string;

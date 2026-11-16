@@ -152,8 +152,12 @@ export const planRewire = (
   const staying = fusion.members.filter(
     (held) => !arcEndpointsEqual(held, member),
   );
-  return fusionAnchor({ members: staying }) &&
-    anchorOf(replacement, findFusionWithMember(net, replacement))
+  const stayingAnchor = fusionAnchor({ members: staying });
+  const incomingAnchor = anchorOf(
+    replacement,
+    findFusionWithMember(net, replacement),
+  );
+  return stayingAnchor && incomingAnchor
     ? { kind: "refused" }
     : { kind: "replace", fusionId: fusion.id, member, replacement };
 };
