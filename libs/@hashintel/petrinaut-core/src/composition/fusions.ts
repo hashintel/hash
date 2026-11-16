@@ -139,13 +139,14 @@ export const resolveFusionMember = (
     : null;
 };
 
-/** `Place` for a place of the net, `Instance.Port` for an instance port. */
-export const describeFusionMember = (
-  sdcpn: Pick<SDCPN, "subnets">,
-  net: FusionNet,
+/**
+ * `Place` for a place of the net, `Instance.Port` for an instance port, and
+ * the member's ids when it did not resolve.
+ */
+export const describeResolvedMember = (
   member: FusionMember,
+  resolved: ResolvedFusionMember | null,
 ): string => {
-  const resolved = resolveFusionMember(sdcpn, net, member);
   if (resolved === null) {
     return member.kind === "place"
       ? `place ${member.placeId}`
@@ -155,6 +156,14 @@ export const describeFusionMember = (
     ? resolved.place.name
     : `${resolved.instance.name}.${resolved.place.name}`;
 };
+
+/** `Place` for a place of the net, `Instance.Port` for an instance port. */
+export const describeFusionMember = (
+  sdcpn: Pick<SDCPN, "subnets">,
+  net: FusionNet,
+  member: FusionMember,
+): string =>
+  describeResolvedMember(member, resolveFusionMember(sdcpn, net, member));
 
 /**
  * The name the fused place shows: the fusion's own name, else its anchor's,

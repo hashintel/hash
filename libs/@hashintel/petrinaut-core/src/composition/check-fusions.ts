@@ -14,7 +14,7 @@ import { arcMatchesEndpoint, placeArcEndpoint } from "../arc-endpoints";
 import { getRunningEquationIds } from "../place-dynamics";
 import {
   colorsStructurallyEqual,
-  describeFusionMember,
+  describeResolvedMember,
   fusionDisplayName,
   fusionHolds,
   fusionMemberIssues,
@@ -28,6 +28,8 @@ import type {
   Color,
   Fusion,
   ID,
+  InputArc,
+  OutputArc,
   SDCPN,
   Subnet,
   Transition,
@@ -47,6 +49,20 @@ export type FusionProblemCode =
   | "no-consumer";
 
 export type ProblemSeverity = "error" | "warning" | "info";
+
+const severityOf: Record<FusionProblemCode, ProblemSeverity> = {
+  "unresolved-member": "error",
+  "duplicate-member": "error",
+  "shared-member": "error",
+  "multiple-anchors": "error",
+  "too-few-members": "error",
+  "color-mismatch": "error",
+  "capacity-mismatch": "error",
+  "dynamics-conflict": "error",
+  "repeated-arc": "error",
+  "no-producer": "warning",
+  "no-consumer": "info",
+};
 
 export type FusionProblem = {
   /** The subnet the fusion belongs to; `null` for the root net. */
@@ -121,8 +137,7 @@ const factsFor = (
   net: CheckedNet,
   member: ArcEndpoint,
   resolved: ResolvedFusionMember,
-  label: string,
-): MemberFacts => {
+): Omit<MemberFacts, "label"> => {
   const { place } = resolved;
   const types = resolved.kind === "place" ? net.types : resolved.subnet.types;
   const equationIds = getRunningEquationIds(place);
@@ -137,7 +152,6 @@ const factsFor = (
         ? bothWays
         : { produced: false, consumed: false };
   return {
-    label,
     color: place.colorId
       ? types.find(({ id }) => id === place.colorId)
       : undefined,
@@ -153,7 +167,7 @@ const transitionsReachingTwice = (
   net: CheckedNet,
   fusion: Fusion,
 ): Transition[] => {
-  const reaches = (arc: Transition["inputArcs" | "outputArcs"][number]) =>
+  const reaches = (arc: InputArc | OutputArc) =>
     fusion.members.some((member) => arcMatchesEndpoint(arc, member));
   return net.transitions.filter(({ inputArcs, outputArcs }) => {
     const inputKinds = inputArcs.filter(reaches).map(({ type }) => type);
@@ -175,17 +189,18 @@ export const checkFusion = (
   // Unnamed, a fusion goes by its anchor or first member: said as a fusion,
   // so a message is not read as one about that place.
   const fusionName = `the fusion ${fusionDisplayName(sdcpn, net, fusion)}`;
-  const report = (
-    code: FusionProblemCode,
-    severity: ProblemSeverity,
-    message: string,
-  ) =>
-    problems.push({ subnetId, fusionId: fusion.id, code, severity, message });
+  const report = (code: FusionProblemCode, message: string) =>
+    problems.push({
+      subnetId,
+      fusionId: fusion.id,
+      code,
+      severity: severityOf[code],
+      message,
+    });
 
   if (fusion.members.length < 2) {
     report(
       "too-few-members",
-      "error",
       `A fusion needs at least two members: ${fusionName} has fewer.`,
     );
   }
@@ -193,13 +208,10 @@ export const checkFusion = (
   const { duplicates, multipleAnchors } = fusionMemberIssues(fusion.members);
   const facts: MemberFacts[] = [];
   for (const [index, member] of fusion.members.entries()) {
-    const label = describeFusionMember(sdcpn, net, member);
+    const resolved = resolveFusionMember(sdcpn, net, member);
+    const label = describeResolvedMember(member, resolved);
     if (duplicates.includes(index)) {
-      report(
-        "duplicate-member",
-        "error",
-        `${label} is listed twice in ${fusionName}.`,
-      );
+      report("duplicate-member", `${label} is listed twice in ${fusionName}.`);
       continue;
     }
     const elsewhere = (net.fusions ?? []).some(
@@ -208,34 +220,29 @@ export const checkFusion = (
     if (elsewhere) {
       report(
         "shared-member",
-        "error",
         `${label} is in ${fusionName} and in another fusion of this net: a place or port belongs to one fusion.`,
       );
     }
-    const resolved = resolveFusionMember(sdcpn, net, member);
     if (resolved === null) {
       report(
         "unresolved-member",
-        "error",
         member.kind === "place"
           ? `A member of ${fusionName} is a place that no longer exists.`
           : `${label}, a member of ${fusionName}, is not a port of an instance in this net.`,
       );
       continue;
     }
-    facts.push(factsFor(net, member, resolved, label));
+    facts.push({ label, ...factsFor(net, member, resolved) });
   }
   if (multipleAnchors) {
     report(
       "multiple-anchors",
-      "error",
       `More than one place of this net is in ${fusionName}; fuse ports into one place instead.`,
     );
   }
   for (const transition of transitionsReachingTwice(net, fusion)) {
     report(
       "repeated-arc",
-      "error",
       `Transition ${transition.name} reaches ${fusionName} through two arcs of the same kind. Keep one of them.`,
     );
   }
@@ -250,43 +257,40 @@ export const checkFusion = (
   if (mistyped) {
     report(
       "color-mismatch",
-      "error",
       `${first.label} and ${mistyped.label} hold different token types, so they cannot be one place.`,
     );
   }
   const capacities = new Set(
-    facts.flatMap(({ capacity }) => (capacity === null ? [] : [capacity])),
+    facts
+      .map(({ capacity }) => capacity)
+      .filter((capacity) => capacity !== null),
   );
   if (capacities.size > 1) {
     report(
       "capacity-mismatch",
-      "error",
       `The places in ${fusionName} have different token capacities (${[...capacities].join(", ")}).`,
     );
   }
   const dynamics = new Set(
-    facts.flatMap(({ dynamicsKey }) =>
-      dynamicsKey === null ? [] : [dynamicsKey],
-    ),
+    facts
+      .map(({ dynamicsKey }) => dynamicsKey)
+      .filter((dynamicsKey) => dynamicsKey !== null),
   );
   if (dynamics.size > 1) {
     report(
       "dynamics-conflict",
-      "error",
       `The places in ${fusionName} run different differential equations; the members with dynamics must compose the same equations.`,
     );
   }
   if (!facts.some(({ produced }) => produced)) {
     report(
       "no-producer",
-      "warning",
       `Nothing puts tokens into ${fusionName}: every member only consumes from it, so it holds only its initial marking.`,
     );
   }
   if (!facts.some(({ consumed }) => consumed)) {
     report(
       "no-consumer",
-      "info",
       `Nothing takes tokens out of ${fusionName}: every member only produces into it, so it accumulates.`,
     );
   }
