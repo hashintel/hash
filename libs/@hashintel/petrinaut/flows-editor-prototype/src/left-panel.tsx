@@ -108,7 +108,7 @@ const rowStyle = css({
 });
 
 const stepRowStyle = css({ height: "[36px]" });
-const stepLabelStyle = css({ fontWeight: "normal" });
+const stepLabelStyle = css({ fontWeight: "normal", color: "neutral.fg.heading" });
 
 const chevronSlotStyle = css({
   display: "inline-flex",
@@ -210,7 +210,7 @@ export const Tile = ({
   tone: Tone;
   size?: "steps";
 }) => (
-  <span className={tileStyle({ tone, size })} style={treeTileColor(icon)}>
+  <span className={tileStyle({ tone, size })} style={treeTileColor(icon, size === "steps")}>
     <Icon name={icon} size="sm" />
   </span>
 );

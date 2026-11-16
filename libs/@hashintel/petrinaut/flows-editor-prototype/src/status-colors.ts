@@ -870,12 +870,21 @@ export const groupSwatch = (group: string) => {
   return hue ? tokenVar(`${hue}.s70`) : undefined;
 };
 
-const groupTileColor = (icon: string) => {
+const groupTileColor = (icon: string, stronger = false) => {
   const group = groupHues.find((entry) => entry.icons.includes(icon))?.group;
   const swatch = group ? paletteSwatch(group) : null;
   if (swatch) {
     return {
-      backgroundColor: runTile("bg", tokenVar(swatch.tile)),
+      backgroundColor: runTile(
+        "bg",
+        tokenVar(
+          stronger
+            ? swatch.tile === "yellow.s35"
+              ? "yellow.s40"
+              : swatch.tile.replace(".s25", ".s35")
+            : swatch.tile,
+        ),
+      ),
       color: runTile("icon", tokenVar(swatch.icon)),
     };
   }
@@ -951,13 +960,13 @@ const shaped = (style: CSSProperties, panel = false): CSSProperties =>
       }
     : style;
 
-const tileColorOf = (icon: string, ghost = false): CSSProperties =>
+const tileColorOf = (icon: string, ghost = false, stronger = false): CSSProperties =>
   ghost
     ? {
         backgroundColor: flowsVar("ghost-tile-bg"),
         color: flowsVar("ghost-tile-icon"),
       }
-    : (groupTileColor(icon) ??
+    : (groupTileColor(icon, stronger) ??
       (circleTiles ? { backgroundColor: "transparent", color: tokenVar("neutral.s105") } : null) ?? {
         backgroundColor: runTile("bg", flowsVar(`tile-${tileKindOf(icon)}-bg`)),
         color: runTile("icon", flowsVar(`tile-${tileKindOf(icon)}-icon`)),
@@ -1031,10 +1040,10 @@ const quieterTree: Record<string, (hue: string) => CSSProperties> = {
   }),
 };
 
-export const treeTileColor = (icon: string): CSSProperties =>
-  shaped(treeTileColorOf(icon), true);
+export const treeTileColor = (icon: string, stronger = false): CSSProperties =>
+  shaped(treeTileColorOf(icon, stronger), true);
 
-const treeTileColorOf = (icon: string): CSSProperties => {
+const treeTileColorOf = (icon: string, stronger = false): CSSProperties => {
   const take = new URLSearchParams(globalThis.location.search).get("treetiles");
   const hue = groupHues.find((entry) => entry.icons.includes(icon))?.hue;
   const quieter = take ? quieterTree[take] : undefined;
@@ -1042,7 +1051,7 @@ const treeTileColorOf = (icon: string): CSSProperties => {
     return quieter(hue);
   }
   if (take !== "b" && take !== "c" && take !== "d") {
-    return tileColor(icon);
+    return shaped(tileColorOf(icon, false, stronger));
   }
   const neutral = {
     backgroundColor: runTile("bg", flowsVar(`tile-${tileKindOf(icon)}-bg`)),
