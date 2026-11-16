@@ -94,7 +94,7 @@ The document, and the changes shown as **Raw**, read the same way:
 - **Expand all** and **Collapse all**, at the right of the tab bar, open or
   close every line at once.
 - An item of the document stays open while others are added, removed or moved
-  around it.
+  around it, and a change stays open while newer ones arrive above it.
 
 Each side is one stop of the Tab order. **Up** and **Down** move from line to
 line, or from patch to patch. **Right** opens a closed line and **Left** closes
