@@ -57,6 +57,26 @@ describe("iconMaskImage", () => {
     expect(svg).toContain('viewBox="0 0 32 16.5"');
   });
 
+  it("gives up on a long run of digits with a unit in time that does not grow with its square", () => {
+    const digits = "1".repeat(16_000);
+    const started = performance.now();
+    const svg = svgOf(
+      iconMaskImage(`<svg width="${digits}x" height="24"><rect/></svg>`),
+    );
+
+    expect(svg).not.toContain("viewBox");
+    // A pattern that backtracks takes most of a second here.
+    expect(performance.now() - started).toBeLessThan(250);
+  });
+
+  it("takes a size that opens with its decimal point", () => {
+    const svg = svgOf(
+      iconMaskImage('<svg width=".5" height="2"><rect/></svg>'),
+    );
+
+    expect(svg).toContain('viewBox="0 0 0.5 2"');
+  });
+
   it("makes no viewBox from a size in another unit", () => {
     const svg = svgOf(
       iconMaskImage('<svg width="100%" height="1em"><rect/></svg>'),

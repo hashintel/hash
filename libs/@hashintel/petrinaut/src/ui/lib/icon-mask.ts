@@ -3,9 +3,13 @@ import {
   subnetIconHoldsUse,
 } from "@hashintel/petrinaut-core";
 
-/** A length given in user units, a bare number or one in `px`; 0 for any other. */
+/**
+ * A length given in user units, a bare number or one in `px`; 0 for any
+ * other. The two forms of a number share no digit, so a long run of digits
+ * that ends in something else is given up on in one pass.
+ */
 const userUnits = (length: string | null): number =>
-  Number(/^\s*(\d*\.?\d+)(?:px)?\s*$/.exec(length ?? "")?.[1] ?? 0);
+  Number(/^\s*(\d*\.\d+|\d+)(?:px)?\s*$/.exec(length ?? "")?.[1] ?? 0);
 
 /**
  * A CSS image of `markup`, to paint as a mask, or `null` when the markup is
