@@ -247,6 +247,15 @@ const FlowEditor = ({
       startSelected: start,
     }));
 
+  /* Selects one step and brings it into view on the canvas. */
+  const selectAndFocusStep = (stepId: string) =>
+    setSession((current) => ({
+      ...current,
+      selectedStepIds: [stepId],
+      startSelected: false,
+      focusRequest: { stepId },
+    }));
+
   const [selectedStepId] = selectedStepIds;
   const panelSubject: StepPanelSubject | null =
     startSelected && selectedStepIds.length === 0
@@ -409,14 +418,7 @@ const FlowEditor = ({
           <LeftPanel
             steps={flowDefinition.steps}
             selectedStepIds={selectedStepIds}
-            onStepClick={(stepId) =>
-              setSession((current) => ({
-                ...current,
-                selectedStepIds: [stepId],
-                startSelected: false,
-                focusRequest: { stepId },
-              }))
-            }
+            onStepClick={selectAndFocusStep}
             collapsedGroupIds={collapsedStepIds}
             onToggleGroup={toggleCollapsed}
             onCollapseAll={(stepIds) => setCollapsedStepIds(new Set(stepIds))}
@@ -475,6 +477,7 @@ const FlowEditor = ({
                 editor={editor}
                 subject={panelSubject}
                 onSelectStart={() => setSelection({ stepIds: [], start: true })}
+                onSelectStep={selectAndFocusStep}
               />
             )}
           </div>
