@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import { checkFusions } from "./check-fusions";
 import { checkInterfaces } from "./check-interfaces";
-import { mapInterfacePorts, resolveImplementation } from "./interfaces";
+import {
+  implementationsOf,
+  mapInterfacePorts,
+  resolveImplementation,
+} from "./interfaces";
 
 import type {
   Color,
@@ -376,6 +380,17 @@ describe("resolveImplementation", () => {
     expect([...mapInterfacePorts(stage, fast)]).toEqual([
       ["stage_in", "fast_in"],
       ["stage_out", "fast_out"],
+    ]);
+  });
+});
+
+describe("implementationsOf", () => {
+  it("leaves out an interface that says it implements another: it has no body to run", () => {
+    const draft = subnet("draft", { interface: true, implements: ["stage"] });
+    const sdcpn = net({ subnets: [stage, fast, draft] });
+
+    expect(implementationsOf(sdcpn, "stage").map(({ id }) => id)).toEqual([
+      "fast",
     ]);
   });
 });

@@ -37,13 +37,17 @@ export const implementsInterface = (
   interfaceId: ID,
 ): boolean => subnet.implements?.includes(interfaceId) ?? false;
 
-/** The subnets that declare they implement `interfaceId`. */
+/**
+ * The subnets that can run for `interfaceId`: the ones that declare they
+ * implement it and are no interface themselves.
+ */
 export const implementationsOf = (
   sdcpn: Pick<SDCPN, "subnets">,
   interfaceId: ID,
 ): Subnet[] =>
-  (sdcpn.subnets ?? []).filter((subnet) =>
-    implementsInterface(subnet, interfaceId),
+  (sdcpn.subnets ?? []).filter(
+    (subnet) =>
+      !isInterface(subnet) && implementsInterface(subnet, interfaceId),
   );
 
 export type ImplementationBinding =
