@@ -99,7 +99,7 @@ const foldToggleStyle = css({
  */
 const foldMotionStyle = css({
   transitionDuration: "[var(--canvas-fold-duration, 180ms)]",
-  transitionTimingFunction: "[cubic-bezier(0.22, 1, 0.36, 1)]",
+  transitionTimingFunction: "[var(--canvas-fold-easing)]",
 });
 
 /** Faded out, not unmounted, so a fold has something to fade. */
