@@ -67,8 +67,6 @@ const ImplementationField: React.FC<{ iface: Subnet }> = ({ iface }) => {
   const { petriNetDefinition } = use(SDCPNContext);
   const isDisabled = useIsReadOnly();
 
-  const subnetName = (subnetId: string | undefined) =>
-    (petriNetDefinition.subnets ?? []).find(({ id }) => id === subnetId)?.name;
   const binding = resolveImplementation(petriNetDefinition, instance);
   const description =
     binding?.kind === "bound"
@@ -78,9 +76,10 @@ const ImplementationField: React.FC<{ iface: Subnet }> = ({ iface }) => {
       : binding?.kind === "unbound"
         ? describeUnboundInstance(binding, instance.name)
         : undefined;
-  const defaultName = subnetName(
-    defaultImplementationId(petriNetDefinition, iface.id),
-  );
+  const defaultId = defaultImplementationId(petriNetDefinition, iface.id);
+  const defaultName = petriNetDefinition.subnets?.find(
+    ({ id }) => id === defaultId,
+  )?.name;
   return (
     <Form.Field
       label="Implementation"
