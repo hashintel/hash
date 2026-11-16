@@ -8,9 +8,12 @@ import { use } from "react";
 
 import {
   arcEndpointsEqual,
+  componentPortArcEndpoint,
+  createArcEndpointReference,
   DEFAULT_TRANSITION_KERNEL_CODE,
   generateDefaultLambdaCode,
   generatePetrinautId,
+  placeArcEndpoint,
 } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../react/hooks/use-petrinaut-mutations";
@@ -176,14 +179,13 @@ export const useCanvasInteractions = (
   ): FusionMember | null => {
     const kind = kindOf(nodeId);
     if (kind === "place") {
-      return { kind: "place", placeId: nodeId };
+      return placeArcEndpoint(nodeId);
     }
     if (kind === "componentInstance" && portId !== null) {
-      return {
-        kind: "componentPort",
+      return componentPortArcEndpoint({
         componentInstanceId: nodeId,
         portPlaceId: portId,
-      };
+      });
     }
     return null;
   };
@@ -260,9 +262,7 @@ export const useCanvasInteractions = (
       addArc({
         transitionId,
         arcDirection,
-        ...(endpoint.kind === "place"
-          ? { placeId: endpoint.placeId }
-          : { endpoint }),
+        ...createArcEndpointReference(endpoint),
         weight: 1,
       });
     } else if (made?.kind === "fusion") {
