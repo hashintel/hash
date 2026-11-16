@@ -11,7 +11,7 @@ import {
   FLUSH_EVENTS,
   shouldFlush,
 } from "./flush-policy";
-import { createStepper } from "./steppers";
+import { createRunStepper } from "./steppers";
 import { createTraceRecorder, type TraceRecorder } from "./trace-recorder";
 
 import type { StringPool } from "../../engine/string-pool";
@@ -149,7 +149,7 @@ runtime.onMessage((message) => {
   switch (message.type) {
     case "init": {
       try {
-        const stepper = createStepper(message.simulator, {
+        const stepper = createRunStepper(message.simulator, {
           sdcpn: message.sdcpn,
           ...(message.extensions === undefined
             ? {}

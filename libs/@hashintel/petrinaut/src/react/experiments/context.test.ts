@@ -22,6 +22,7 @@ function makeRecord(overrides: Partial<ExperimentRecord>): ExperimentRecord {
     scenarioName: null,
     runCount: 1,
     seed: 1,
+    clock: "time",
     dt: 1,
     maxTime: 10,
     status: "running",

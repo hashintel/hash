@@ -45,7 +45,11 @@ const drain: SDCPN = {
   parameters: [],
 };
 
-/** A transition that stays enabled and never fires, so the run neither deadlocks nor records a firing. */
+/**
+ * A transition that stays enabled and never fires, so the run neither
+ * deadlocks nor records a firing. It has a rate, which makes the net timed:
+ * an untimed net ends at the first step that fires nothing.
+ */
 const idle: SDCPN = {
   places: [place("hold", "Hold")],
   transitions: [
@@ -54,8 +58,8 @@ const idle: SDCPN = {
       name: "Never",
       inputArcs: [{ placeId: "hold", weight: 1, type: "read" }],
       outputArcs: [],
-      lambdaType: "predicate",
-      lambdaCode: "export default Lambda(() => false);",
+      lambdaType: "stochastic",
+      lambdaCode: "export default Lambda(() => 0);",
       transitionKernelCode: "",
       x: 0,
       y: 0,

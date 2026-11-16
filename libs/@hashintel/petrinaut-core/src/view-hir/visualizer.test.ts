@@ -9,6 +9,7 @@ import {
   probabilisticSatellitesSDCPN,
   supplyChainProfit,
   supplyChainWithDisruption,
+  wheelTruing,
 } from "../examples";
 import { buildVisualizerContext } from "../hir/surface-context";
 import { interpretViewHir, ViewElementValue } from "./interpret-view";
@@ -118,6 +119,7 @@ describe("the view HIR", () => {
       deploymentPipelineSDCPN,
       supplyChainWithDisruption,
       supplyChainProfit,
+      wheelTruing,
     ].filter((example) =>
       example.petriNetDefinition.places.some((place) => place.visualizerCode),
     ),

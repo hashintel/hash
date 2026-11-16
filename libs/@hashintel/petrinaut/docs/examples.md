@@ -231,3 +231,37 @@ An n-body gravity simulation. A sun, planets of different masses and sizes, a mo
 **Suggested initial state:** pick **Sun, Two Planets and a Moon**, set the playback speed to 10x or faster and press Play; select Space and open its visualizer to watch the planets circle the sun while the moon circles its planet and satellites appear. The orbits are slow in simulated time on purpose: the simulator integrates with a fixed step, and an orbit that turns through much more than a fraction of a degree per step spirals out. Even so the moon, on the fastest orbit, drifts off its planet after a few planet years; lower the time step for long runs. Raise `launch_rate` to crowd the orbits until satellites merge into each other or fall into a planet; lower `gravitational_constant` to loosen every orbit at once. This net runs on the CPU: the GPU backend takes one equation over one token per place.
 
 **Key concepts:** [equations over several tokens](petri-net-extensions.md#equations-over-several-tokens), [composing equations](petri-net-extensions.md#composing-equations), [read arcs](petri-net-extensions.md#read-arcs), [arc weight](useful-patterns.md#arc-weight-for-multi-token-operations), [scenarios](scenarios.md), [visualizers](petri-net-extensions.md#visualizer).
+
+## Bicycle Assembly
+
+An [untimed](simulation.md#timed-and-untimed-nets) net with plain tokens. A workshop turns a stock of rims, tyres, frames and saddles into bicycles on a few workstands. Every transition is a Predicate that always holds and no place has dynamics, so nothing takes time: the run is a sequence of [steps](simulation.md#steps).
+
+**Demonstrates:**
+
+- **A run in steps** -- the simulator capsule reads **Step by step**, the toolbar reads **Step 3 of 10** and the Timeline's axis counts steps. Each transition fires at most once per step and what a step produces arrives at its end, so a part moves one stage per step.
+- **Arc weight as a recipe** -- **FitWheels** takes two tokens from **Wheels** for one frame. **FitTyre** builds one wheel per step, so a bicycle is finished every other step.
+- **A shared resource** -- **MountFrame** takes a token from **FreeStands** and **Finish** puts it back, so the workstands bound the work in progress.
+- **The end of a run as the answer** -- the run ends at the first step in which nothing can fire. From **Morning Stock** that is after step 10, with 4 bicycles. What is left shows where the line stopped: one rim with no tyre, and a fifth frame holding a stand with one wheel and no saddle to come.
+- **No chance at all** -- the net draws nothing at random, so every run of a scenario is the same run. An [experiment](experiments.md) over the stock needs one run per point.
+
+**Suggested initial state:** pick **Morning Stock** and press Play, then drag the scrubber: it moves one step at a time. Raise `saddles` to 5 in the scenario parameters and the run still ends with 4 bicycles: the fifth frame is one wheel short. Raise `tyres` to 10 as well and it builds 5. **One Workstand** builds the same 4 bicycles in 14 steps.
+
+**Key concepts:** [untimed nets](simulation.md#timed-and-untimed-nets), [predicates](petri-net-extensions.md#predicate), [arc weight](useful-patterns.md#arc-weight-for-multi-token-operations), [deadlock](simulation.md#deadlock), [scenarios](scenarios.md).
+
+## Wheel Truing
+
+An [untimed](simulation.md#timed-and-untimed-nets) net with typed tokens, whose runs differ from one seed to the next. A batch of freshly laced wheels goes over one truing stand until each wheel is within tolerance or has had its last pass. Each wheel is a **Wheel** token with its `runout`, the wobble of the rim in millimetres, and the `passes` it has had.
+
+**Demonstrates:**
+
+- **Chance without time** -- every transition is a Predicate, so the run is a sequence of [steps](simulation.md#steps). The chance is in a kernel: **TruingPass** draws the runout a pass leaves from `Distribution.Gaussian`, around a share of the runout the wheel came with, and clamps it with `.map()`.
+- **Predicates that sort tokens** -- **Accept**, **Retrue** and **Reject** all take from **Measured**, and each reads the wheel: within `tolerance`, still out with passes left, or still out after `max_passes`. Exactly one holds for any wheel.
+- **A loop that ends** -- **Retrue** sends a wheel back to **Laced** with its count of passes, and `max_passes` bounds the loop, so every run ends with each wheel in **Accepted** or **Rejected**.
+- **A Stochastic simulation in steps** -- one run is one batch. Many runs give the expected yield by step: with **Batch of Six**, about 5 of the 6 wheels are accepted on average, within 25 steps. **Tight Tolerance** accepts fewer than 4.
+- **A [visualizer](petri-net-extensions.md#visualizer) on every place** -- a wheel is drawn with the green ring its rim has to stay in. The ring is as wide as `tolerance` and centred on the hub, and the rim sits off the hub by the wheel's `runout`, so a wheel that is out of true looks it. Dots count the passes it has had. **Laced** shows the queue with the next wheel marked. **Measured** shows the wheel on the gauge, its runout on a scale against the tolerance, and which of Accept, Retrue and Reject takes it next. **Accepted** and **Rejected** show their racks, with the passes per wheel and the worst runout.
+- **Metrics over typed tokens** -- **Yield** reads two token counts, and **Passes per accepted wheel** averages an attribute over the tokens of **Accepted**.
+- **GPU-ready modelling** -- every place declares `capacity: 16`.
+
+**Suggested initial state:** pick **Batch of Six**, point at **Measured** and click the eye button above it to keep the gauge open, then press Play to follow one batch, wheel by wheel. Open the other three places the same way and drag the windows apart. A Quick simulation always uses the same seed, so it replays the same batch: it ends after step 22 with 3 wheels accepted and 3 rejected. Then switch the mode to **Stochastic** and press Play: the Timeline shows the mean of **Accepted** and **Rejected** by step across 100 batches. Create an experiment with a sweep over `tolerance` to see the yield fall as the check tightens.
+
+**Key concepts:** [untimed nets](simulation.md#timed-and-untimed-nets), [distributions](petri-net-extensions.md#distributions), [predicates](petri-net-extensions.md#predicate), [visualizers](petri-net-extensions.md#visualizer), [stochastic simulation](simulation.md#stochastic-simulation), [scenarios](scenarios.md).

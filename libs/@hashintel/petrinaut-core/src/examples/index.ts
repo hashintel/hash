@@ -15,3 +15,5 @@ export { dronePatrol } from "./drone-patrol";
 export { supplyChainWithDisruption } from "./supply-chain-with-disruption";
 export { supplyChainProfit } from "./supply-chain-profit";
 export { vaccinationCampaign } from "./vaccination-campaign";
+export { bicycleAssembly } from "./bicycle-assembly";
+export { wheelTruing } from "./wheel-truing";

@@ -1,4 +1,5 @@
 /* eslint-disable no-param-reassign -- Monte Carlo run state owns mutable frame buffers. */
+import { isTimedNet } from "../../net-timing";
 import { buildSimulation } from "../engine/build-simulation";
 import { readEngineFrame } from "../frames/internal-frame";
 import {
@@ -144,6 +145,7 @@ export function createRunState(
     parameterValues: simulation.parameterValues,
     frameNumber: 0,
     maxFrameNumber: getMaxFrameNumber(config.maxTime, config.dt),
+    endsWhenIdle: !isTimedNet(config.sdcpn, config.extensions),
     rngState: seed,
     completionReason: null,
     error: null,

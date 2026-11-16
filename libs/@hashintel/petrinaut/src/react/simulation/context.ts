@@ -11,6 +11,8 @@ import {
   type Parameter,
   type InitialMarking,
   type InitialPlaceMarking,
+  type RunClock,
+  type RunContinuity,
   type ScenarioCompilationError,
   type SimulationFrameReader,
   type SimulationFrameState,
@@ -64,8 +66,11 @@ export type StochasticRun = {
   readonly reader: ExperimentReader;
   readonly runCount: number;
   readonly seed: number;
+  /** What the experiment's positions count: simulated seconds, or steps. */
+  readonly clock: RunClock;
+  /** The time every run stops at, or the step on a clock of steps. */
   readonly maxTime: number;
-  /** The spacing of the experiment's samples, in simulated seconds. */
+  /** The spacing of the experiment's samples, in simulated seconds or steps. */
   readonly samplePeriod: number;
   /** The metrics the experiment computes: a token count per place. */
   readonly metricSpecs: readonly MonteCarloMetricSpec[];
@@ -117,6 +122,18 @@ export type SimulationContextValue = {
    * run.
    */
   mode: SimulationMode;
+  /**
+   * What a position of the simulation counts: simulated seconds, or the
+   * steps of an untimed net, which has no clock. Read from the run or the
+   * experiment while one exists, and from the net before.
+   */
+  clock: RunClock;
+  /**
+   * What lies between two events of a run: the continuous evolution of a
+   * net with dynamics, or nothing. Read from the run while one exists, and
+   * from the net before.
+   */
+  continuity: RunContinuity;
   /**
    * The simulator the next run is computed by in the current mode, with its
    * parameter values. Each mode keeps its own. Changing either discards the
@@ -245,6 +262,8 @@ export const DEFAULT_SIMULATION_CONTEXT: SimulationContextValue = {
   maxTime: null,
   totalFramesStore: constantStore(0),
   mode: "quick",
+  clock: "time",
+  continuity: "continuous",
   simulatorSelection: { simulatorId: "", parameters: {} },
   runs: 100,
   stochasticRun: null,
