@@ -14,7 +14,9 @@ const migrate: MigrationFunction = async ({
 }) => {
   const unitDefinitions = new Map(
     siUnitGroups.flatMap((group) =>
-      group.units.map((unit) => [unit.title, unit] as const),
+      group.units.map(
+        (unit) => [unit.dataTypeBaseUrl ?? unit.title, unit] as const,
+      ),
     ),
   );
   const unitParents = new Map<string, Set<VersionedUrl>>();
@@ -25,6 +27,9 @@ const migrate: MigrationFunction = async ({
         allOf: [{ $ref: blockProtocolDataTypes.number.dataTypeId }],
         abstract: true,
         title: group.title,
+        ...(group.titlePlural === undefined
+          ? {}
+          : { titlePlural: group.titlePlural }),
         description: group.description,
         type: "number",
       },
@@ -53,6 +58,9 @@ const migrate: MigrationFunction = async ({
           allOf: [{ $ref: quantity.schema.$id }],
           abstract: true,
           title: `${group.title} (${system})`,
+          ...(group.titlePlural === undefined
+            ? {}
+            : { titlePlural: `${group.titlePlural} (${system})` }),
           description: `${group.title} expressed in ${system === "Metric" ? "metric units, including SI units and their accepted companions" : system === "Imperial" ? "imperial units, including units shared with US customary measurement" : "US customary units"}.`,
           type: "number",
         },
@@ -64,7 +72,9 @@ const migrate: MigrationFunction = async ({
     }
 
     for (const unit of units) {
-      const parents = unitParents.get(unit.title) ?? new Set<VersionedUrl>();
+      const parents =
+        unitParents.get(unit.dataTypeBaseUrl ?? unit.title) ??
+        new Set<VersionedUrl>();
       for (const system of unit.systems ?? ["Metric"]) {
         const systemId = systemIds.get(system);
         if (!systemId) {
@@ -72,7 +82,7 @@ const migrate: MigrationFunction = async ({
         }
         parents.add(systemId);
       }
-      unitParents.set(unit.title, parents);
+      unitParents.set(unit.dataTypeBaseUrl ?? unit.title, parents);
     }
   }
 
@@ -86,15 +96,21 @@ const migrate: MigrationFunction = async ({
 
     const dataType = await ensureUnitDataType(context, authentication, {
       dataTypeDefinition: {
-        allOf: [...(unitParents.get(unit.title) ?? [])].map(($ref) => ({
+        allOf: [
+          ...(unitParents.get(unit.dataTypeBaseUrl ?? unit.title) ?? []),
+        ].map(($ref) => ({
           $ref,
         })),
         title: unit.title,
+        ...(unit.titlePlural === undefined
+          ? {}
+          : { titlePlural: unit.titlePlural }),
         description: unit.description,
         label: { right: unit.symbol },
         type: "number",
         ...(unit.minimum === undefined ? {} : { minimum: unit.minimum }),
       },
+      dataTypeBaseUrl: unit.dataTypeBaseUrl,
       conversions: unit.conversions ?? {},
       migrationState,
       webShortname: "h",

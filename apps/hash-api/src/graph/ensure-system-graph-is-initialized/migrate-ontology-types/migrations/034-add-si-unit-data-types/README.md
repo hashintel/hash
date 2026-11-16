@@ -8,12 +8,12 @@ The catalogue has 64 quantity parents and 108 system subgroups. For example:
 
 ```text
 Length
-  Length (Metric) → Meters, Centimeters, …
-  Length (Imperial) → Inches, Feet, Yards, Miles, …
+  Length (Metric) → Meter, Centimeter, …
+  Length (Imperial) → Inch, Foot, Yard, Mile, …
 Volume
-  Volume (Metric) → Litres, Cubic Metres, …
-  Volume (Imperial) → Imperial Gallons, Imperial Pints, …
-  Volume (US Customary) → US Liquid Gallons, US Liquid Pints, …
+  Volume (Metric) → Litre, Cubic Metre, …
+  Volume (Imperial) → Imperial Gallon, Imperial Pint, …
+  Volume (US Customary) → US Liquid Gallon, US Liquid Pint, …
 ```
 
 All quantities have a metric group. Forty-one also have imperial units. US customary subgroups distinguish mass, volume, and density definitions that differ from imperial ones. Shared units such as pounds and cubic feet belong to both system subgroups where both exist. Quantities without distinct imperial units, such as electric current and capacitance, have no imperial subgroup.
@@ -38,11 +38,11 @@ The catalogue stores the existing `Record<BaseUrl, Conversions>` schema directly
 
 Integer ratios preserve conversions such as kilometres per hour to metres per second without rounding their factors to decimal constants. Radians use a floating-point approximation of π to convert to the existing `Degree` type. Prefix expansion scales the coefficient in multiplicative conversions while retaining the shared target, ratio denominator, and evaluator operation order.
 
-Prefixes on square and cubic metres scale the whole prefixed length: 1 cm² is 10⁻⁴ m², and 1 cm³ is 10⁻⁶ m³. Ampere-hours and watt-hours convert through coulombs and joules respectively. Existing names and identifiers such as `Microsecond`, `Kilohms`, and `Square Centimetres` are reused.
+Prefixes on square and cubic metres scale the whole prefixed length: 1 cm² is 10⁻⁴ m², and 1 cm³ is 10⁻⁶ m³. Ampere-hours and watt-hours convert through coulombs and joules respectively. Existing base URLs, including those for `Microsecond`, `Kilohm`, and `Square Centimetre`, are reused.
 
 The JavaScript conversion evaluator rounds division results to 20 decimal places. Very small intermediate values can lose precision or become zero, including some conversions involving the extreme prefixes. This catalogue defines their scale factors; changing evaluator precision is outside its scope.
 
-Temperature readings use `Temperature` and convert through `Kelvins`. For example, 0 °C and 32 °F both convert to 273.15 K. Their schemas bound readings at absolute zero. These types represent temperature readings, not temperature differences. A property such as `Temperature Difference` describes the meaning of a value, but the current conversion expressions have no property context. Reusing the reading types would apply offsets to differences and reject negative kelvin differences. Supporting intervals with shared unit types is outside this change.
+Temperature readings use `Temperature` and convert through `Kelvin`. For example, 0 °C and 32 °F both convert to 273.15 K. Their schemas bound readings at absolute zero. These types represent temperature readings, not temperature differences. A property such as `Temperature Difference` describes the meaning of a value, but the current conversion expressions have no property context. Reusing the reading types would apply offsets to differences and reject negative kelvin differences. Supporting intervals with shared unit types is outside this change.
 
 ## Value constraints
 
@@ -56,7 +56,7 @@ The SI permits unlimited derived combinations. This catalogue covers the named u
 
 Conversions operate on one numeric value. Calculating energy from force and distance, for example, requires multiple measurements and is outside this conversion model. Quantities with matching dimensions retain separate parents and conversion groups: hertz and becquerels, joules and newton metres of torque, grays and sieverts, and radians and steradians.
 
-SI unit names and symbols follow the SI brochure. Prefixed families retain their existing spelling and singular or plural form. Other new compound units use `Meters` and `Litres` for concentration per litre.
+Every quantity, system group, and concrete unit has a singular `title` and a complementary `titlePlural`. Names such as `Foot`/`Feet` and `Henry`/`Henries` preserve irregular plurals; invariant names such as `Hertz` and `Siemens` use the same form for both. Prefixed families retain their existing spelling. Base URLs are explicit and independent of display titles, so changing a name does not change conversion targets or create a replacement type.
 
 The tests check catalogue coverage, parent and conversion dependencies, registry identifiers, temperature boundaries, and numerical results in both directions at magnitudes supported by the application's conversion evaluator. The migration creates missing types and versions existing types whose schemas or conversions change. Upgrade tests cover hosted and self-hosted instances, constraint and conversion changes, serialization rounding, restart safety, stale intermediate versions, and read errors.
 
@@ -66,7 +66,7 @@ Conversions use the international yard (0.9144 m), avoirdupois pound (0.45359237
 
 Rankine denominators in heat-capacity and conductivity units express intervals of 5/9 kelvin. These multiplicative compound conversions need no temperature offset. Standalone Rankine and Fahrenheit still represent temperature readings.
 
-Existing fixed month and year conversions are retained for compatibility and described as mean or fixed durations. No additional calendar-dependent conversion factors are introduced. The other duration conversions use fixed elapsed time: a day is exactly 24 hours and a week is exactly seven such days. These conversions do not perform calendar arithmetic or account for daylight-saving transitions. The older `Hours` and `Days` types now share the second reference used by `Hour` and `Day`, so conversions can compose across the duration catalogue.
+Existing fixed month and year conversions are retained for compatibility and described as mean or fixed durations. No additional calendar-dependent conversion factors are introduced. The other duration conversions use fixed elapsed time: a day is exactly 24 hours and a week is exactly seven such days. These conversions do not perform calendar arithmetic or account for daylight-saving transitions. The older `hours/` and `days/` identifiers now share the second reference used by `hour/` and `day/`, so conversions can compose across the duration catalogue. Both pairs use singular display titles while retaining their distinct base URLs.
 
 ## Catalogue display
 

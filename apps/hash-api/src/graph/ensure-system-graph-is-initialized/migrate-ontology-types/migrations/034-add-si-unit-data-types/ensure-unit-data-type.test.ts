@@ -4,7 +4,10 @@ import { makeOntologyTypeVersion } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import { getDataTypeById } from "@local/hash-graph-sdk/data-type";
 
-import { updateDataType } from "../../../../ontology/primitive/data-type";
+import {
+  createDataType,
+  updateDataType,
+} from "../../../../ontology/primitive/data-type";
 import { createSystemDataTypeIfNotExists } from "../../util";
 import { ensureUnitDataType } from "./ensure-unit-data-type";
 import { scaledConversion } from "./shared/conversions";
@@ -21,6 +24,7 @@ vi.mock("@local/hash-graph-sdk/data-type", () => ({
   getDataTypeById: vi.fn(),
 }));
 vi.mock("../../../../ontology/primitive/data-type", () => ({
+  createDataType: vi.fn(),
   updateDataType: vi.fn(),
 }));
 vi.mock("../../../system-webs-and-entities", () => ({
@@ -28,6 +32,10 @@ vi.mock("../../../system-webs-and-entities", () => ({
     .fn()
     .mockResolvedValue({ systemActorMachineId: "system-actor" }),
 }));
+vi.mock("../../../../ontology/primitive/entity-type", () => ({}));
+vi.mock("../../../../ontology/primitive/property-type", () => ({}));
+vi.mock("../../util/upgrade-entities", () => ({}));
+vi.mock("../../util/upgrade-entity-type-dependencies", () => ({}));
 vi.mock("../../util", () => ({
   createSystemDataTypeIfNotExists: vi.fn(),
   generateSystemDataTypeSchema: ({
@@ -112,6 +120,91 @@ describe("unit definition upgrades", () => {
     expect(updateDataType).not.toHaveBeenCalled();
     expect(loadExternalDataType).not.toHaveBeenCalled();
   });
+
+  it.each([false, true])(
+    "creates a singular type at its explicit base URL (self-hosted: %s)",
+    async (selfHosted) => {
+      settings.selfHosted = selfHosted;
+      const { createSystemDataTypeIfNotExists: createSystemType } =
+        await vi.importActual<{
+          createSystemDataTypeIfNotExists: typeof createSystemDataTypeIfNotExists;
+        }>("../../util");
+      const params = parameters();
+      params.dataTypeBaseUrl = baseUrl;
+      params.dataTypeDefinition = {
+        ...params.dataTypeDefinition,
+        title: "Foot",
+        titlePlural: "Feet",
+      };
+      vi.mocked(createDataType).mockResolvedValue(existing);
+      await createSystemType(context, authentication, params);
+      expect(getDataTypeById).toHaveBeenCalledWith(
+        context.graphApi,
+        authentication,
+        expect.objectContaining({ dataTypeId: `${baseUrl}v/1` }),
+      );
+      const expected = expect.objectContaining({
+        schema: expect.objectContaining({
+          $id: `${baseUrl}v/1`,
+          title: "Foot",
+          titlePlural: "Feet",
+        }),
+      });
+      if (selfHosted) {
+        expect(loadExternalDataType).toHaveBeenCalledWith(
+          "system-actor",
+          expected,
+        );
+      } else {
+        expect(createDataType).toHaveBeenCalledWith(
+          context,
+          { actorId: "system-actor" },
+          expected,
+        );
+      }
+    },
+  );
+
+  it.each([false, true])(
+    "versions singular and plural titles without changing identity (self-hosted: %s)",
+    async (selfHosted) => {
+      settings.selfHosted = selfHosted;
+      const params = parameters();
+      params.dataTypeBaseUrl = baseUrl;
+      params.dataTypeDefinition = {
+        ...params.dataTypeDefinition,
+        title: "Foot",
+        titlePlural: "Feet",
+      };
+      await ensureUnitDataType(context, authentication, params);
+      expect(createSystemDataTypeIfNotExists).toHaveBeenCalledWith(
+        context,
+        authentication,
+        params,
+      );
+      const expected = expect.objectContaining({
+        schema: expect.objectContaining({ title: "Foot", titlePlural: "Feet" }),
+      });
+      if (selfHosted) {
+        expect(loadExternalDataType).toHaveBeenCalledWith(
+          "system-actor",
+          expected,
+        );
+        expect(loadExternalDataType.mock.calls[0]?.[1].schema.$id).toBe(
+          `${baseUrl}v/2`,
+        );
+      } else {
+        expect(updateDataType).toHaveBeenCalledWith(
+          context,
+          { actorId: "system-actor" },
+          expected,
+        );
+        expect(vi.mocked(updateDataType).mock.calls[0]?.[2].dataTypeId).toBe(
+          `${baseUrl}v/1`,
+        );
+      }
+    },
+  );
 
   it("treats an omitted abstract flag as false", async () => {
     vi.mocked(createSystemDataTypeIfNotExists).mockResolvedValue({

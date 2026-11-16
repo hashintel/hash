@@ -24,46 +24,50 @@ vi.mock("./034-add-si-unit-data-types/ensure-unit-data-type", () => ({
   ensureUnitDataType: vi.fn(),
 }));
 
-const upgradedUnits = new Set([
-  "Meters",
-  "Millimeters",
-  "Centimeters",
-  "Kilometers",
-  "Inches",
-  "Feet",
-  "Yards",
-  "Miles",
-  "Kilograms",
-  "Grams",
-  "Metric Tonnes",
-  "Pounds",
-  "Second",
-  "Millisecond",
-  "Microsecond",
-  "Minute",
-  "Hour",
-  "Day",
-  "Week",
-  "Month",
-  "Year",
-  "Hours",
-  "Days",
-  "Hertz",
-  "Kilohertz",
-  "Megahertz",
-  "Gigahertz",
-  "Watts",
-  "Kilowatts",
-  "Megawatts",
-  "Gigawatts",
-  "Square Metres",
-  "Square Centimetres",
-  "Square Feet",
-  "Litres",
-  "Millilitres",
-  "Cubic Metres",
-  "Cubic Feet",
-]);
+const upgradedUnits = new Set(
+  [
+    "Meters",
+    "Millimeters",
+    "Centimeters",
+    "Kilometers",
+    "Inches",
+    "Feet",
+    "Yards",
+    "Miles",
+    "Kilograms",
+    "Grams",
+    "Metric Tonnes",
+    "Pounds",
+    "Second",
+    "Millisecond",
+    "Microsecond",
+    "Minute",
+    "Hour",
+    "Day",
+    "Week",
+    "Month",
+    "Year",
+    "Hours",
+    "Days",
+    "Hertz",
+    "Kilohertz",
+    "Megahertz",
+    "Gigahertz",
+    "Watts",
+    "Kilowatts",
+    "Megawatts",
+    "Gigawatts",
+    "Square Metres",
+    "Square Centimetres",
+    "Square Feet",
+    "Litres",
+    "Millilitres",
+    "Cubic Metres",
+    "Cubic Feet",
+  ].map(
+    (title) => `https://hash.ai/@h/types/data-type/${slugifyTypeTitle(title)}/`,
+  ),
+);
 
 const seeded = new Map<
   string,
@@ -72,20 +76,25 @@ const seeded = new Map<
 
 beforeAll(async () => {
   vi.mocked(ensureUnitDataType).mockImplementation(
-    async (_context, _authentication, { dataTypeDefinition, conversions }) => {
+    async (
+      _context,
+      _authentication,
+      { dataTypeDefinition, dataTypeBaseUrl, conversions },
+    ) => {
       const baseUrl =
-        `https://hash.ai/@h/types/data-type/${slugifyTypeTitle(dataTypeDefinition.title)}/` as BaseUrl;
+        dataTypeBaseUrl ??
+        (`https://hash.ai/@h/types/data-type/${slugifyTypeTitle(dataTypeDefinition.title)}/` as BaseUrl);
       const schema: DataType = {
         ...dataTypeDefinition,
         $schema:
           "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
-        $id: `${baseUrl}v/${upgradedUnits.has(dataTypeDefinition.title) ? 2 : 1}`,
+        $id: `${baseUrl}v/${upgradedUnits.has(baseUrl) ? 2 : 1}`,
         kind: "dataType",
       };
-      expect(seeded.has(schema.title), `Duplicate title: ${schema.title}`).toBe(
+      expect(seeded.has(baseUrl), `Duplicate identifier: ${baseUrl}`).toBe(
         false,
       );
-      seeded.set(schema.title, { schema, conversions });
+      seeded.set(baseUrl, { schema, conversions });
       return {
         schema,
         metadata: { recordId: { baseUrl } },
@@ -104,10 +113,17 @@ beforeAll(async () => {
   });
 });
 
-const getSeeded = (title: string) => {
-  const dataType = seeded.get(title);
+const hasSeeded = (identifierTitle: string) =>
+  seeded.has(
+    `https://hash.ai/@h/types/data-type/${slugifyTypeTitle(identifierTitle)}/`,
+  );
+
+const getSeeded = (identifierTitle: string) => {
+  const dataType = seeded.get(
+    `https://hash.ai/@h/types/data-type/${slugifyTypeTitle(identifierTitle)}/`,
+  );
   if (!dataType) {
-    throw new Error(`Missing seeded data type: ${title}`);
+    throw new Error(`Missing seeded data type: ${identifierTitle}`);
   }
   return dataType;
 };
@@ -135,17 +151,63 @@ describe("default SI data types", () => {
     expect(new Set(migrationNumbers).size).toBe(migrationNumbers.length);
   });
 
+  it("provides a plural title for every quantity, system group and unit", () => {
+    expect(seeded.size).toBe(1167);
+    for (const { schema } of seeded.values()) {
+      expect(schema.titlePlural, schema.title).toBeTruthy();
+    }
+  });
+
+  it.each([
+    ["Meters", "Meter", "Meters"],
+    ["Feet", "Foot", "Feet"],
+    ["Square Inches", "Square Inch", "Square Inches"],
+    ["Henries per Meter", "Henry per Meter", "Henries per Meter"],
+    ["Microhenries", "Microhenry", "Microhenries"],
+    ["Darcies", "Darcy", "Darcies"],
+    ["Quettasecond", "Quettasecond", "Quettaseconds"],
+    ["Kilosiemens", "Kilosiemens", "Kilosiemens"],
+    ["Hertz", "Hertz", "Hertz"],
+    ["Ampere Hours", "Ampere Hour", "Ampere Hours"],
+    [
+      "Pounds-Force Seconds per Square Foot",
+      "Pound-Force Second per Square Foot",
+      "Pound-Force Seconds per Square Foot",
+    ],
+    ["Amount of Substance", "Amount of Substance", "Amounts of Substance"],
+    ["Length (Imperial)", "Length (Imperial)", "Lengths (Imperial)"],
+  ])(
+    "preserves %s identifiers while setting singular and plural names",
+    (identifierTitle, title, titlePlural) => {
+      expect(getSeeded(identifierTitle).schema).toMatchObject({
+        title,
+        titlePlural,
+      });
+    },
+  );
+
+  it.each([
+    ["Hour", "Hours"],
+    ["Day", "Days"],
+  ])("preserves both existing %s identifiers", (singular, plural) => {
+    const original = getSeeded(singular);
+    const legacy = getSeeded(plural);
+    expect(original.schema.$id).not.toBe(legacy.schema.$id);
+    for (const { schema } of [original, legacy]) {
+      expect(schema).toMatchObject({ title: singular, titlePlural: plural });
+    }
+  });
+
+  it("describes fixed durations without migration history", () => {
+    expect(getSeeded("Month").schema.description).toBe(
+      "A mean duration of 2,629,800 seconds. Calendar months vary in length.",
+    );
+    expect(getSeeded("Year").schema.description).not.toContain(
+      "preserving the existing fixed",
+    );
+  });
+
   it("covers the seven base units and all 22 specially named derived units", () => {
-    const titles = new Set([
-      ...[
-        systemDataTypes.meters,
-        systemDataTypes.kilograms,
-        systemDataTypes.second,
-        systemDataTypes.hertz,
-        systemDataTypes.watts,
-      ].map(({ title }) => title),
-      ...seeded.keys(),
-    ]);
     const baseUnits = [
       "Meters",
       "Kilograms",
@@ -180,7 +242,7 @@ describe("default SI data types", () => {
       "Katals",
     ];
     for (const title of [...baseUnits, ...derivedUnits]) {
-      expect(titles.has(title), title).toBe(true);
+      expect(hasSeeded(title), title).toBe(true);
     }
   });
 
@@ -223,25 +285,19 @@ describe("default SI data types", () => {
       "Katals per Cubic Meter",
     ];
     for (const title of titles) {
-      const existing = ["Square Metres", "Cubic Metres"].includes(title);
-      if (existing) {
-        expect(
-          Object.values(systemDataTypes).some((type) => type.title === title),
-        ).toBe(true);
-      } else {
-        expect(getSeeded(title).schema.abstract, title).not.toBe(true);
-      }
+      expect(getSeeded(title).schema.abstract, title).not.toBe(true);
     }
   });
 
   it("registers every seeded type with its generated identifier and description", () => {
     for (const { schema } of seeded.values()) {
       const registered = Object.values(systemDataTypes).find(
-        ({ title }) => title === schema.title,
+        ({ dataTypeId }) => dataTypeId === schema.$id,
       );
       expect(registered, schema.title).toMatchObject({
         dataTypeId: schema.$id,
         title: schema.title,
+        titlePlural: schema.titlePlural,
         description: schema.description,
       });
     }
@@ -317,7 +373,7 @@ describe("default SI data types", () => {
     }
   });
 
-  it("preserves existing unit names and avoids double prefixes on kilograms", () => {
+  it("preserves existing unit identifiers and avoids double prefixes on kilograms", () => {
     for (const title of [
       "Microsecond",
       "Millisecond",
@@ -331,13 +387,16 @@ describe("default SI data types", () => {
       "Millilitres",
     ]) {
       expect(getSeeded(title).schema.$id).toBe(
-        Object.values(systemDataTypes).find((type) => type.title === title)
-          ?.dataTypeId,
+        Object.values(systemDataTypes).find(
+          (type) =>
+            type.dataTypeBaseUrl ===
+            `https://hash.ai/@h/types/data-type/${slugifyTypeTitle(title)}/`,
+        )?.dataTypeId,
       );
     }
-    expect(seeded.has("Microkilograms")).toBe(false);
-    expect(seeded.has("Kiloohms")).toBe(false);
-    expect(seeded.has("Megaohms")).toBe(false);
+    expect(hasSeeded("Microkilograms")).toBe(false);
+    expect(hasSeeded("Kiloohms")).toBe(false);
+    expect(hasSeeded("Megaohms")).toBe(false);
   });
 
   it("groups units by quantity and measurement system", () => {
@@ -378,7 +437,7 @@ describe("default SI data types", () => {
       "Capacitance (Imperial)",
       "Duration (Imperial)",
     ]) {
-      expect(seeded.has(title)).toBe(false);
+      expect(hasSeeded(title)).toBe(false);
     }
   });
 
@@ -409,7 +468,7 @@ describe("default SI data types", () => {
         { $ref: getSeeded("Fluid Permeability (Metric)").schema.$id },
       ]);
     }
-    expect(seeded.has("Permeability")).toBe(false);
+    expect(hasSeeded("Permeability")).toBe(false);
   });
 
   it("creates parents and conversion targets before their dependents", () => {
@@ -455,7 +514,7 @@ describe("default SI data types", () => {
     expect(leftType.conversions).not.toHaveProperty(
       `https://hash.ai/@h/types/data-type/${slugifyTypeTitle(right)}/`,
     );
-    if (seeded.has(right)) {
+    if (hasSeeded(right)) {
       expect(leftType.schema.allOf).not.toEqual(getSeeded(right).schema.allOf);
     }
   });
@@ -710,9 +769,9 @@ describe("SI unit conversions", () => {
     }
     for (const { schema, conversions } of seeded.values()) {
       if (
-        !schema.title.endsWith("kelvins") &&
-        schema.title !== "Kelvins" &&
-        !["Degrees Celsius", "Degrees Fahrenheit", "Degrees Rankine"].includes(
+        !schema.title.endsWith("kelvin") &&
+        schema.title !== "Kelvin" &&
+        !["Degree Celsius", "Degree Fahrenheit", "Degree Rankine"].includes(
           schema.title,
         )
       ) {

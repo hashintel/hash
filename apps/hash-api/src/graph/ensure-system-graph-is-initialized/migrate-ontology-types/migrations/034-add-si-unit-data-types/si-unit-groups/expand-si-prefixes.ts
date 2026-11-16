@@ -32,7 +32,7 @@ const prefixes = [
   { name: "quecto", symbol: "q", exponent: -30 },
 ];
 
-const prefixableUnits = new Map<string, BaseUrl>(
+const prefixableUnits = new Set<BaseUrl>(
   [
     systemDataTypes.meters,
     systemDataTypes.grams,
@@ -67,7 +67,7 @@ const prefixableUnits = new Map<string, BaseUrl>(
     systemDataTypes.litres,
     systemDataTypes.squareMetres,
     systemDataTypes.cubicMetres,
-  ].map(({ title, dataTypeBaseUrl }) => [title, dataTypeBaseUrl]),
+  ].map(({ dataTypeBaseUrl }) => dataTypeBaseUrl),
 );
 
 const prefixConversion = (
@@ -104,33 +104,44 @@ const prefixConversion = (
 export const expandSiPrefixes = (
   units: SiUnitDefinition[],
 ): SiUnitDefinition[] => {
-  const titles = new Set(units.map(({ title }) => title));
+  const baseUrls = new Set(units.map(({ dataTypeBaseUrl }) => dataTypeBaseUrl));
   const expanded = [...units];
 
   for (const unit of units) {
-    const baseUrl = prefixableUnits.get(unit.title);
-    if (!baseUrl) {
+    const baseUrl = unit.dataTypeBaseUrl;
+    if (!baseUrl || !prefixableUnits.has(baseUrl)) {
       continue;
     }
 
     const power =
-      unit.title === "Square Metres"
-        ? 2
-        : unit.title === "Cubic Metres"
-          ? 3
-          : 1;
-    const name = power === 1 ? unit.title : "Metres";
+      unit.title === "Square Metre" ? 2 : unit.title === "Cubic Metre" ? 3 : 1;
     const titlePrefix = power === 2 ? "Square " : power === 3 ? "Cubic " : "";
+    const name = power === 1 ? unit.title : "Metre";
+    const pluralName = power === 1 ? unit.titlePlural : "Metres";
+    const slug = baseUrl
+      .split("/")
+      .at(-2)
+      ?.replace(/^(square-|cubic-)/, "");
+    if (!pluralName || !slug) {
+      throw new Error(
+        `Prefixable unit '${unit.title}' needs a plural title and an identifier`,
+      );
+    }
 
     for (const prefix of prefixes) {
-      const prefixedName =
-        unit.title === "Ohms" && prefix.name === "kilo"
-          ? "kilohms"
-          : unit.title === "Ohms" && prefix.name === "mega"
-            ? "megohms"
-            : `${prefix.name}${name.charAt(0).toLowerCase()}${name.slice(1)}`;
-      const title = `${titlePrefix}${prefixedName.charAt(0).toUpperCase()}${prefixedName.slice(1)}`;
-      if (titles.has(title)) {
+      const prefixed = (suffix: string) => {
+        const word = `${prefix.name}${suffix.charAt(0).toLowerCase()}${suffix.slice(1)}`;
+        return word.replace(/^kiloohm/, "kilohm").replace(/^megaohm/, "megohm");
+      };
+      const prefixedTitle = (suffix: string) => {
+        const word = prefixed(suffix);
+        return `${titlePrefix}${word.charAt(0).toUpperCase()}${word.slice(1)}`;
+      };
+      const dataTypeBaseUrl = baseUrl.replace(
+        /[^/]+\/$/,
+        `${titlePrefix.toLowerCase().replace(" ", "-")}${prefixed(slug)}/`,
+      ) as BaseUrl;
+      if (baseUrls.has(dataTypeBaseUrl)) {
         continue;
       }
 
@@ -139,9 +150,11 @@ export const expandSiPrefixes = (
         [baseUrl]: scaledConversion({ factor: 1 }),
       };
       expanded.push({
-        title,
+        dataTypeBaseUrl,
+        title: prefixedTitle(name),
+        titlePlural: prefixedTitle(pluralName),
         symbol: `${prefix.symbol}${unit.symbol}`,
-        description: `A unit equal to 10^${prefix.exponent * power} ${unit.title.toLowerCase()}.`,
+        description: `A unit equal to 10^${prefix.exponent * power} ${unit.titlePlural?.toLowerCase()}.`,
         ...(unit.minimum === undefined
           ? {}
           : { minimum: unit.minimum / scale }),
@@ -152,7 +165,7 @@ export const expandSiPrefixes = (
           ]),
         ),
       });
-      titles.add(title);
+      baseUrls.add(dataTypeBaseUrl);
     }
   }
 
