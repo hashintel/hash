@@ -3,13 +3,18 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { use, type ReactNode } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 
+import {
+  createJsonDocHandle,
+  createPetrinaut,
+  type SelectionItem,
+} from "@hashintel/petrinaut-core";
+
 import { PetrinautInstanceContext } from "../../../../../react/instance-context";
+import { ActiveNetContext } from "../../../../../react/state/active-net-context";
 import { CompositionContext } from "../../../../../react/state/composition-context";
 import { EditorContext } from "../../../../../react/state/editor-context";
 import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
 import { useKeyboardShortcuts } from "./use-keyboard-shortcuts";
-
-import type { Petrinaut } from "@hashintel/petrinaut-core";
 
 const actions = vi.hoisted(() => ({
   readOnly: true,
@@ -44,10 +49,32 @@ afterEach(() => {
   cleanup();
 });
 
-const Shortcuts = () => {
+const emptyNet = {
+  places: [],
+  transitions: [],
+  types: [],
+  parameters: [],
+  differentialEquations: [],
+};
+const createInstance = (compositionOnly = false) =>
+  createPetrinaut({
+    document: createJsonDocHandle({ initial: emptyNet }),
+    compositionOnly,
+  });
+const plainInstance = createInstance();
+
+const BoundShortcuts = () => {
   useKeyboardShortcuts("edit", actions.mode, () => {});
   return <input aria-label="Search" />;
 };
+/** The shortcuts, on a plain instance unless a test mounts its own. */
+const Shortcuts = () => (
+  <PetrinautInstanceContext
+    value={use(PetrinautInstanceContext) ?? plainInstance}
+  >
+    <BoundShortcuts />
+  </PetrinautInstanceContext>
+);
 const Selection = ({ children }: { children: ReactNode }) => {
   const defaults = use(EditorContext);
   return (
@@ -105,40 +132,69 @@ test("the place and transition shortcuts do nothing in an editor that only compo
   expect(actions.notify).not.toHaveBeenCalled();
 });
 
-const host = vi.hoisted(() => ({
-  refusal: null as string | null,
-  clearSelection: vi.fn(),
-}));
-/** An editor on an instance whose host rules answer with `host.refusal`. */
-const Hosted = ({ children }: { children: ReactNode }) => (
-  <PetrinautInstanceContext
-    value={{ mutationRefusal: () => host.refusal } as unknown as Petrinaut}
-  >
-    <EditorContext
-      value={{
-        ...use(EditorContext),
-        hasSelection: true,
-        selection: new Map([["place", { type: "place", id: "place" }]]),
-        clearSelection: host.clearSelection,
-      }}
-    >
-      {children}
-    </EditorContext>
-  </PetrinautInstanceContext>
-);
+/** An editor that only composes, on the root net or a subnet, with one item selected. */
+const composing = (selected: SelectionItem, activeSubnetId?: string) => {
+  const instance = createInstance(true);
+  const clearSelection = vi.fn();
+  const Wrapper = ({ children }: { children: ReactNode }) => (
+    <PetrinautInstanceContext value={instance}>
+      <ActiveNetContext
+        value={{
+          ...use(ActiveNetContext),
+          activeSubnetId: activeSubnetId ?? null,
+        }}
+      >
+        <EditorContext
+          value={{
+            ...use(EditorContext),
+            hasSelection: true,
+            selection: new Map([[selected.id, selected]]),
+            clearSelection,
+          }}
+        >
+          {children}
+        </EditorContext>
+      </ActiveNetContext>
+    </PetrinautInstanceContext>
+  );
+  return { Wrapper, clearSelection };
+};
 
 test("a delete the host's rules refuse leaves the selection as it is", () => {
   actions.readOnly = false;
-  host.refusal = "This editor only places and connects.";
-  render(<Shortcuts />, { wrapper: Hosted });
+  const { Wrapper, clearSelection } = composing({ type: "place", id: "place" });
+  render(<Shortcuts />, { wrapper: Wrapper });
 
   fireEvent.keyDown(document.body, { key: "Delete" });
   expect(actions.remove).toHaveBeenCalledOnce();
-  expect(host.clearSelection).not.toHaveBeenCalled();
+  expect(clearSelection).not.toHaveBeenCalled();
+});
 
-  host.refusal = null;
+test("a delete the host's rules allow clears the selection", () => {
+  actions.readOnly = false;
+  const { Wrapper, clearSelection } = composing({
+    type: "componentInstance",
+    id: "instance",
+  });
+  render(<Shortcuts />, { wrapper: Wrapper });
+
   fireEvent.keyDown(document.body, { key: "Delete" });
-  expect(host.clearSelection).toHaveBeenCalledOnce();
+  expect(actions.remove).toHaveBeenCalledOnce();
+  expect(clearSelection).toHaveBeenCalledOnce();
+});
+
+test("a delete is asked about with the net it is aimed at", () => {
+  actions.readOnly = false;
+  // An instance can be deleted from the root net, and from no subnet.
+  const { Wrapper, clearSelection } = composing(
+    { type: "componentInstance", id: "instance" },
+    "subnet",
+  );
+  render(<Shortcuts />, { wrapper: Wrapper });
+
+  fireEvent.keyDown(document.body, { key: "Delete" });
+  expect(actions.remove).toHaveBeenCalledOnce();
+  expect(clearSelection).not.toHaveBeenCalled();
 });
 
 test("typing and selection shortcuts stay quiet", () => {

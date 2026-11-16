@@ -4,8 +4,8 @@ import {
   usePetrinautMutations,
   usePetrinautCommands,
 } from "../../../../../react";
+import { useMutationRefusal } from "../../../../../react/hooks/use-mutation-refusal";
 import { useReadOnlyFeedback } from "../../../../../react/hooks/use-read-only-feedback";
-import { PetrinautInstanceContext } from "../../../../../react/instance-context";
 import { ActiveNetContext } from "../../../../../react/state/active-net-context";
 import { CompositionContext } from "../../../../../react/state/composition-context";
 import { EditorContext } from "../../../../../react/state/editor-context";
@@ -46,7 +46,7 @@ export function useKeyboardShortcuts(
   const { petriNetId } = use(SDCPNContext);
   const { deleteItemsByIds } = usePetrinautMutations();
   const { applyClipboardPaste } = usePetrinautCommands();
-  const petrinaut = use(PetrinautInstanceContext);
+  const mutationRefusal = useMutationRefusal();
   const isReadonly = useIsReadOnly();
   // An editor that only composes has no place or transition to add.
   const { compositionOnly } = use(CompositionContext);
@@ -178,13 +178,11 @@ export function useKeyboardShortcuts(
         notifyReadOnly();
         return;
       }
-      const items = Array.from(selection.values());
-      deleteItemsByIds({ items });
+      const input = { items: Array.from(selection.values()) };
       // What the host's rules refuse stays in the document, and selected.
-      if (
-        (petrinaut?.mutationRefusal("deleteItemsByIds", { items }) ?? null) ===
-        null
-      ) {
+      const refused = mutationRefusal("deleteItemsByIds", input) !== null;
+      deleteItemsByIds(input);
+      if (!refused) {
         clearSelection();
       }
       return;
