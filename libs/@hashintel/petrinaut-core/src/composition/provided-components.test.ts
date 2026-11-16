@@ -8,6 +8,7 @@ import { isInterface, resolveImplementation } from "./interfaces";
 import {
   ensureProvidedComponent,
   instantiableSubnets,
+  isProvidedInterface,
   noProvidedInterfaces,
   providedComponentSubnetId,
   resolveProvidedComponents,
@@ -17,7 +18,7 @@ import {
   type ProvidedTokenType,
 } from "./provided-components";
 
-import type { SDCPN } from "../types/sdcpn";
+import type { SDCPN, Transition } from "../types/sdcpn";
 
 const order: ProvidedTokenType = {
   name: "Order",
@@ -64,6 +65,18 @@ const emptyDocument = (): SDCPN => ({
   differentialEquations: [],
   parameters: [],
 });
+
+const transition: Transition = {
+  id: "work",
+  name: "Work",
+  inputArcs: [],
+  outputArcs: [],
+  lambdaType: "predicate",
+  lambdaCode: "",
+  transitionKernelCode: "",
+  x: 0,
+  y: 0,
+};
 
 describe("toInterface", () => {
   it("gives an interface the document accepts, with nothing behind its ports", () => {
@@ -271,6 +284,29 @@ describe("instantiableSubnets", () => {
   });
 });
 
+describe("isProvidedInterface", () => {
+  const provided = resolveProvidedComponents([packer]);
+  const copy = toInterface(packer);
+
+  it("is true of the interface a document copied, under the component's id", () => {
+    expect(isProvidedInterface(copy, provided)).toBe(true);
+    expect(isProvidedInterface({ ...copy, name: "Renamed" }, provided)).toBe(
+      true,
+    );
+    expect(isProvidedInterface({ ...copy, id: "own" }, provided)).toBe(false);
+    expect(isProvidedInterface(copy, noProvidedInterfaces)).toBe(false);
+  });
+
+  it("is false of a subnet that has the id and is not an interface, or has a body", () => {
+    expect(
+      isProvidedInterface({ ...copy, interface: undefined }, provided),
+    ).toBe(false);
+    expect(
+      isProvidedInterface({ ...copy, transitions: [transition] }, provided),
+    ).toBe(false);
+  });
+});
+
 describe("runsAtHost", () => {
   const provided = resolveProvidedComponents([packer]);
   const sdcpn: SDCPN = { ...emptyDocument(), subnets: [toInterface(packer)] };
@@ -292,6 +328,17 @@ describe("runsAtHost", () => {
         provided,
       ),
     ).toBe(false);
+  });
+
+  it("is false for an interface of the document's own under a provided id", () => {
+    const own: SDCPN = {
+      ...emptyDocument(),
+      subnets: [{ ...toInterface(packer), transitions: [transition] }],
+    };
+
+    expect(runsAtHost(resolveImplementation(own, instance), provided)).toBe(
+      false,
+    );
   });
 });
 

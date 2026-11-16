@@ -467,15 +467,26 @@ user's Net Components setting.
   running anything, or `null`; the React bindings show it as a notice, and a
   plugin's `edit` returns it as a refusal of kind `host-restriction`.
   `removeSubnet` still takes the copy out, with its instances.
+- **A subnet under the id that is not the copy.** A document opened from
+  elsewhere can hold a subnet of its own under a provided component's id. It
+  is the component's copy only as what a host provides, an interface with no
+  transitions and no instances:
+  `isProvidedInterface(subnet, instance.providedInterfaces)` says so, and
+  every rule here asks it. Any other subnet under the id is the document's
+  own: the Nets panel lists it, it opens, mutations change it, an instance of
+  it is not said to be provided, and `checkComposition` reports the subnet
+  with the code `provided-id-taken`. The document is left as it was loaded,
+  and while the subnet is there, placing the component places an instance of
+  that subnet.
 - **Token types.** A port names the tokens it carries with `tokenType`. Two
   ports can be fused when their token types have the same elements, whatever
   the components.
 - **Reading the wiring back.** The host finds its instances in
   `componentInstances` by `subnetId`, their parameter values on the instance,
   and how their ports are joined in `fusions` and in the arcs of the net's
-  transitions. `providedComponentSubnetId` is exported from
-  `@hashintel/petrinaut` too, and `instance.providedInterfaces` maps each
-  subnet id to its interface.
+  transitions. `providedComponentSubnetId` and `isProvidedInterface` are
+  exported from `@hashintel/petrinaut` too, and `instance.providedInterfaces`
+  maps each subnet id to its interface.
 - **Validity.** `createPetrinaut` throws on two components under one id, on a
   component with two ports, parameters or token type elements of one name, on
   a token type name it declares in two ways, and on an interface the document

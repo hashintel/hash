@@ -267,20 +267,19 @@ export function createPetrinaut(config: CreatePetrinautConfig): Petrinaut {
     });
   };
 
+  const readDocument = () => definition.get();
   const mutations = enforceHostRules(
     createPetrinautActions(mutate, capabilities.extensions, {
       sanitizeAfterMutation: false,
       providedInterfaces: hostRules.provided,
     }),
     hostRules,
+    readDocument,
   );
   const commands = enforceHostRulesOnCommands(
-    createPetrinautCommands(
-      mutate,
-      () => definition.get(),
-      capabilities.extensions,
-    ),
+    createPetrinautCommands(mutate, readDocument, capabilities.extensions),
     hostRules,
+    readDocument,
   );
 
   return {
@@ -293,8 +292,10 @@ export function createPetrinaut(config: CreatePetrinautConfig): Petrinaut {
     commands,
     readonly: capabilities.readonly,
     providedInterfaces: hostRules.provided,
-    mutationRefusal: (name, input) => mutationRefusal(hostRules, name, input),
-    commandRefusal: (name, input) => commandRefusal(hostRules, name, input),
+    mutationRefusal: (name, input) =>
+      mutationRefusal(hostRules, readDocument(), name, input),
+    commandRefusal: (name, input) =>
+      commandRefusal(hostRules, readDocument(), name, input),
     dispose() {
       for (const dispose of disposers) {
         dispose();

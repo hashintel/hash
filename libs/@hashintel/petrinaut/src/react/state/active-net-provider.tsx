@@ -1,6 +1,6 @@
 import { use, useEffect, type ReactNode } from "react";
 
-import { toPetrinautId } from "@hashintel/petrinaut-core";
+import { isProvidedInterface, toPetrinautId } from "@hashintel/petrinaut-core";
 
 import { openPetrinautSubnet, usePetrinautNavigation } from "../navigation";
 import { ActiveNetContext } from "./active-net-context";
@@ -36,9 +36,13 @@ export const ActiveNetProvider: React.FC<{ children: ReactNode }> = ({
 
   const canonicalSubnetId =
     requestedSubnetId !== null ? toPetrinautId(requestedSubnetId) : null;
-  const subnet =
-    canonicalSubnetId !== null && !provided.has(canonicalSubnetId)
+  const requested =
+    canonicalSubnetId !== null
       ? petriNetDefinition.subnets?.find(({ id }) => id === canonicalSubnetId)
+      : undefined;
+  const subnet =
+    requested && !isProvidedInterface(requested, provided)
+      ? requested
       : undefined;
 
   const resolvedSubnetId = subnet ? canonicalSubnetId : null;

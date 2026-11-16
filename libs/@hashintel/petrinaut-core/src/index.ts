@@ -115,6 +115,7 @@ export type {
 export type { CommandName, MutationName } from "./composition/host-rules";
 export {
   instantiableSubnets,
+  isProvidedInterface,
   noProvidedInterfaces,
   providedComponentSubnetId,
   resolveProvidedComponents,

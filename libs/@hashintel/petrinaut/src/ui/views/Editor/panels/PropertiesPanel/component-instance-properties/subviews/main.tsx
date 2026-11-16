@@ -13,6 +13,7 @@ import {
   defaultImplementation,
   describeUnboundInstance,
   isInterface,
+  isProvidedInterface,
   resolveComponent,
   resolveImplementation,
   runsAtHost,
@@ -216,7 +217,7 @@ const ComponentInstanceMainContent: React.FC = () => {
           <div className={hintTextStyle}>
             {!subnet
               ? "The referenced subnet no longer exists."
-              : provided.has(subnet.id)
+              : isProvidedInterface(subnet, provided)
                 ? `${subnet.name}, provided by the application`
                 : subnet.name}
           </div>

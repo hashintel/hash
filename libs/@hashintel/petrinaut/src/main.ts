@@ -45,6 +45,7 @@ export {
   createPetrinautActions,
   createSimulation,
   createWorkerTransport,
+  isProvidedInterface,
   isSDCPNEqual,
   normalizeSDCPN,
   providedComponentSubnetId,

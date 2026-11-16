@@ -24,6 +24,7 @@ import {
 } from "./interfaces";
 import { describePortDirection, effectivePortDirections } from "./ports";
 import {
+  isProvidedInterface,
   noProvidedInterfaces,
   runsAtHost,
   type ProvidedInterfaces,
@@ -34,6 +35,7 @@ import type { ID, PortDirection, SDCPN, Subnet } from "../types/sdcpn";
 export type InterfaceProblemCode =
   | "interface-has-body"
   | "interface-implements"
+  | "provided-id-taken"
   | "unknown-interface"
   | "missing-port"
   | "port-type-mismatch"
@@ -215,14 +217,23 @@ const runningOf = (
 
 /**
  * What `subnet` declares: an interface has no body and implements nothing,
- * and what a component implements is an interface it lives up to.
+ * what a component implements is an interface it lives up to, and the id of
+ * a provided component is on that component's interface alone.
  */
 const checkDeclarations = (
   subnet: Subnet,
   index: DocumentIndex,
+  provided: ProvidedInterfaces,
 ): InterfaceProblem[] => {
   const problems: InterfaceProblem[] = [];
   const report = reporter(problems, { subnetId: subnet.id });
+  const component = provided.get(subnet.id);
+  if (component && !isProvidedInterface(subnet, provided)) {
+    report(
+      "provided-id-taken",
+      `${subnet.name} has the id of ${component.name}, a component the application provides, but is a net of this document: instances of it are not the application's component.`,
+    );
+  }
   // A list may name an interface twice: its shortfall is reported once.
   const implemented = new Set(subnet.implements);
   if (isInterface(subnet)) {
@@ -347,7 +358,7 @@ const checkBindings = (
 /**
  * The problems with the document's interfaces, their implementations and the
  * instances bound to them. An instance of an interface a host provides needs
- * no implementation in the document.
+ * no implementation in the document, and no other subnet has its id.
  */
 export const checkInterfaces = (
   sdcpn: SDCPN,
@@ -356,7 +367,7 @@ export const checkInterfaces = (
   const index = indexDocument(sdcpn);
   return [
     ...(sdcpn.subnets ?? []).flatMap((subnet) =>
-      checkDeclarations(subnet, index),
+      checkDeclarations(subnet, index, provided),
     ),
     ...checkDefaults(sdcpn, index.subnetsById),
     ...checkBindings(sdcpn, index, provided),

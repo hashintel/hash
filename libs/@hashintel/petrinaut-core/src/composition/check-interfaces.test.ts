@@ -303,6 +303,33 @@ describe("checkInterfaces", () => {
     );
   });
 
+  it("says when a subnet of the document has the id of a provided component without being it", () => {
+    const provided = resolveProvidedComponents([packer]);
+    const copy = toInterface(packer);
+    const worker = transition("work", [copy.places[0]!.id], []);
+    const codes = (held: Subnet) =>
+      checkInterfaces(
+        net({
+          subnets: [held],
+          componentInstances: [instance("p1", packerId)],
+        }),
+        provided,
+      ).map(({ subnetId, instanceId, code }) => [subnetId, instanceId, code]);
+
+    expect(codes(copy)).toEqual([]);
+    // A component of the document's own: it runs, so nothing is unbound.
+    expect(
+      codes({ ...copy, interface: undefined, transitions: [worker] }),
+    ).toEqual([[packerId, undefined, "provided-id-taken"]]);
+    // An interface with a body is the document's own too, and is held to
+    // what the document's interfaces are.
+    expect(codes({ ...copy, transitions: [worker] })).toEqual([
+      [packerId, undefined, "provided-id-taken"],
+      [packerId, undefined, "interface-has-body"],
+      [null, "p1", "unbound-instance"],
+    ]);
+  });
+
   it("checks instances inside subnets against the document's defaults", () => {
     const line = subnet("line", {
       componentInstances: [instance("inner", "stage")],

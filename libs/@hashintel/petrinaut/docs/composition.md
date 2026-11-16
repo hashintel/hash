@@ -60,4 +60,6 @@ An application that embeds Petrinaut can provide components of its own. They are
 
 A provided component is a signature: ports and parameters, with no net behind it to open. It is not in the Nets panel, and an instance's properties say that the application provides it. Wire its ports as any others, with fusions and with arcs, and set its parameters on the instance.
 
+A document opened from elsewhere can hold a subnet of its own under the id of a provided component: one that is not an interface, or that holds transitions or instances. It stays a subnet of the document like any other. It is listed in the Nets panel and opens from there, an instance of it is not said to be provided by the application, and **Diagnostics** reports under **Composition** that it has the id of a provided component.
+
 What a provided component does is up to the application, so the document holds no net to run for it: simulating a net that uses one stops with an error saying the instance has no implementation. To run it in the editor, give the component an implementation as for any interface: a subnet that ticks it under **Implements**, chosen on the instance.

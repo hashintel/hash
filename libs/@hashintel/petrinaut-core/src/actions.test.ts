@@ -2821,6 +2821,36 @@ describe("Petrinaut core provided components", () => {
     expect(instance.definition.get().subnets).toEqual([toInterface(packer)]);
   });
 
+  test("a subnet of the document's own under a provided component's id is the document's to change", () => {
+    const definition = cloneSDCPN(emptySDCPN);
+    definition.subnets = [
+      { ...toInterface(packer), name: "Own packer", interface: undefined },
+    ];
+    const instance = createPetrinaut({
+      document: createJsonDocHandle({ initial: definition }),
+      components: [packer],
+    });
+
+    expect(
+      instance.mutationRefusal("updateSubnet", { subnetId: packerId }),
+    ).toBeNull();
+    expect(
+      instance.commandRefusal("applyAutoLayout", { targetSubnetId: packerId }),
+    ).toBeNull();
+    instance.mutations.updateSubnet({
+      subnetId: packerId,
+      update: { name: "Renamed" },
+    });
+    // Instantiating it leaves the document's subnet as it is.
+    instance.mutations.addComponentInstance(packerInstance("p1"));
+
+    expect(
+      instance.definition
+        .get()
+        .subnets?.map((subnet) => [subnet.id, subnet.name, subnet.interface]),
+    ).toEqual([[packerId, "Renamed", undefined]]);
+  });
+
   test("a subnet neither the document nor the host has is still refused", () => {
     const instance = createHostedInstance();
 

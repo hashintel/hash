@@ -2,7 +2,11 @@ import { use, useEffect, useRef, useState } from "react";
 
 import { Button, Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
-import { generatePetrinautId, isInterface } from "@hashintel/petrinaut-core";
+import {
+  generatePetrinautId,
+  isInterface,
+  isProvidedInterface,
+} from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../react";
 import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
@@ -157,7 +161,7 @@ export const NetNavigationList: React.FC<{
   // A component the host provides is not a net: it is listed with the
   // components, and has nothing here to open or edit.
   const subnets = (petriNetDefinition.subnets ?? []).filter(
-    (subnet) => !provided.has(subnet.id),
+    (subnet) => !isProvidedInterface(subnet, provided),
   );
   const { activeSubnetId, setActiveSubnetId } = use(ActiveNetContext);
   const { updateSubnet, removeSubnet } = usePetrinautMutations();

@@ -9,6 +9,7 @@
 
 import { toPetrinautId } from "../petrinaut-id";
 import { subnetSchema } from "../schemas/entity-schemas";
+import { hasBody, isInterface, type ImplementationBinding } from "./interfaces";
 
 import type {
   Color,
@@ -19,7 +20,6 @@ import type {
   SDCPN,
   Subnet,
 } from "../types/sdcpn";
-import type { ImplementationBinding } from "./interfaces";
 
 /** The tokens a provided port carries. Ports with the same elements can be fused. */
 export type ProvidedTokenType = {
@@ -204,6 +204,18 @@ export const resolveProvidedComponents = (
 };
 
 /**
+ * Whether a subnet of a document is the host's: the copy of a provided
+ * component, which has the component's id and is all a host provides, an
+ * interface with no body. A subnet that has the id alone is the document's
+ * own, to list, open, change and check as any other.
+ */
+export const isProvidedInterface = (
+  subnet: Subnet,
+  provided: ProvidedInterfaces,
+): boolean =>
+  provided.has(subnet.id) && isInterface(subnet) && !hasBody(subnet);
+
+/**
  * Every subnet an instance can point at: the document's own, then each
  * provided interface the document has no copy of yet.
  */
@@ -250,4 +262,4 @@ export const runsAtHost = (
 ): boolean =>
   binding?.kind === "unbound" &&
   binding.reason === "no-binding" &&
-  provided.has(binding.interface.id);
+  isProvidedInterface(binding.interface, provided);

@@ -4,11 +4,14 @@
  */
 
 import { toPetrinautId } from "../petrinaut-id";
+import {
+  isProvidedInterface,
+  type ProvidedInterfaces,
+} from "./provided-components";
 
 import type { MutationHelperFunctions } from "../actions";
 import type { CommandHelperFunctions } from "../commands";
-import type { ID } from "../types/sdcpn";
-import type { ProvidedInterfaces } from "./provided-components";
+import type { ID, SDCPN, Subnet } from "../types/sdcpn";
 
 export type MutationName = keyof MutationHelperFunctions;
 export type CommandName = keyof CommandHelperFunctions;
@@ -43,32 +46,56 @@ const changedSubnetKey = (name: MutationName): string => {
   return name === "updateSubnet" ? "subnetId" : "targetSubnetId";
 };
 
-const providedRefusal = (rules: HostRules, subnetId: ID | null) => {
+/**
+ * The provided component `subnetId` names in `sdcpn`, or `undefined`. A
+ * subnet of the document's own that has a provided id is not one: it is the
+ * document's to change.
+ */
+const providedComponentAt = (
+  rules: HostRules,
+  sdcpn: SDCPN,
+  subnetId: ID | null,
+): Subnet | undefined => {
   const component =
     subnetId === null ? undefined : rules.provided.get(subnetId);
+  const held = component && sdcpn.subnets?.find(({ id }) => id === subnetId);
+  return held && !isProvidedInterface(held, rules.provided)
+    ? undefined
+    : component;
+};
+
+const providedRefusal = (
+  rules: HostRules,
+  sdcpn: SDCPN,
+  subnetId: ID | null,
+) => {
+  const component = providedComponentAt(rules, sdcpn, subnetId);
   return component
     ? `${component.name} is a component the application provides: it cannot be changed.`
     : null;
 };
 
 /**
- * Why the host's rules refuse a mutation, as a sentence a user can read, or
- * `null` when they allow it. A provided interface is not changed, and no
- * subnet is added under its id.
+ * Why the host's rules refuse a mutation of `sdcpn`, as a sentence a user can
+ * read, or `null` when they allow it. A provided interface is not changed,
+ * and no subnet is added under its id.
  */
 export const mutationRefusal = (
   rules: HostRules,
+  sdcpn: SDCPN,
   name: MutationName,
   input: unknown,
 ): string | null =>
-  providedRefusal(rules, subnetIdAt(input, changedSubnetKey(name)));
+  providedRefusal(rules, sdcpn, subnetIdAt(input, changedSubnetKey(name)));
 
 /** Why the host's rules refuse a command on the net it targets, or `null`. */
 export const commandRefusal = (
   rules: HostRules,
+  sdcpn: SDCPN,
   _name: CommandName,
   input: unknown,
-): string | null => providedRefusal(rules, subnetIdAt(input, "targetSubnetId"));
+): string | null =>
+  providedRefusal(rules, sdcpn, subnetIdAt(input, "targetSubnetId"));
 
 /** The same functions, each throwing its refusal where `refusalOf` gives one. */
 const guarded = <Functions extends Record<string, (input: never) => unknown>>(
@@ -88,16 +115,25 @@ const guarded = <Functions extends Record<string, (input: never) => unknown>>(
     ]),
   ) as Functions;
 
-/** The same mutations, each throwing its refusal where the host's rules give one. */
+/**
+ * The same mutations, each throwing its refusal where the host's rules give
+ * one. `readDocument` reads the document as each call finds it.
+ */
 export const enforceHostRules = (
   mutations: MutationHelperFunctions,
   rules: HostRules,
+  readDocument: () => SDCPN,
 ): MutationHelperFunctions =>
-  guarded(mutations, (name, input) => mutationRefusal(rules, name, input));
+  guarded(mutations, (name, input) =>
+    mutationRefusal(rules, readDocument(), name, input),
+  );
 
 /** The same commands, held to the host's rules as the mutations are. */
 export const enforceHostRulesOnCommands = (
   commands: CommandHelperFunctions,
   rules: HostRules,
+  readDocument: () => SDCPN,
 ): CommandHelperFunctions =>
-  guarded(commands, (name, input) => commandRefusal(rules, name, input));
+  guarded(commands, (name, input) =>
+    commandRefusal(rules, readDocument(), name, input),
+  );
