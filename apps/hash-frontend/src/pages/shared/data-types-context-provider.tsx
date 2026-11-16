@@ -26,46 +26,47 @@ export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
   > | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const [refreshId, setRefreshId] = useState(0);
-  const [refreshResult, setRefreshResult] = useState<{
-    signal: AbortSignal;
-    success: boolean;
-  } | null>(null);
   const activeRequest = useRef<AbortController | null>(null);
-  const refreshWaiters = useRef<((success: boolean) => void)[]>([]);
   const mounted = useRef(false);
 
-  useEffect(() => {
-    const waiters = refreshWaiters.current;
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-      for (const resolve of waiters.splice(0)) {
-        resolve(false);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (refreshResult && !refreshResult.signal.aborted) {
-      for (const resolve of refreshWaiters.current.splice(0)) {
-        resolve(refreshResult.success);
-      }
-    }
-  }, [refreshResult]);
-
-  const refetch = useCallback((): Promise<boolean> => {
+  const refetch = useCallback(async () => {
     if (!mounted.current) {
-      return Promise.resolve(false);
+      return;
     }
     activeRequest.current?.abort();
+    const controller = new AbortController();
+    activeRequest.current = controller;
     setLoading(true);
     setError(null);
-    setRefreshId((previous) => previous + 1);
-    return new Promise((resolve) => {
-      refreshWaiters.current.push(resolve);
-    });
-  }, []);
+
+    try {
+      const catalogue = await queryDataTypeCatalogue(client, controller.signal);
+      if (!controller.signal.aborted) {
+        setDataTypes(catalogue);
+      }
+    } catch (cause) {
+      if (!controller.signal.aborted) {
+        setError(
+          cause instanceof Error
+            ? cause
+            : new Error("Could not load data types", { cause }),
+        );
+      }
+    } finally {
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
+    }
+  }, [client]);
+
+  useEffect(() => {
+    mounted.current = true;
+    void refetch();
+    return () => {
+      mounted.current = false;
+      activeRequest.current?.abort();
+    };
+  }, [refetch]);
 
   const onDataTypeSaved = useCallback(
     (dataType: DataTypeWithMetadata) => {
@@ -76,41 +77,6 @@ export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
     },
     [refetch],
   );
-
-  useEffect(() => {
-    const controller = new AbortController();
-    activeRequest.current = controller;
-
-    const load = async () => {
-      try {
-        const catalogue = await queryDataTypeCatalogue(
-          client,
-          controller.signal,
-        );
-        if (controller.signal.aborted) {
-          return;
-        }
-
-        setDataTypes(catalogue);
-        setLoading(false);
-        setRefreshResult({ signal: controller.signal, success: true });
-      } catch (cause) {
-        if (controller.signal.aborted) {
-          return;
-        }
-        setError(
-          cause instanceof Error
-            ? cause
-            : new Error("Could not load data types", { cause }),
-        );
-        setLoading(false);
-        setRefreshResult({ signal: controller.signal, success: false });
-      }
-    };
-
-    void load();
-    return () => controller.abort();
-  }, [client, refreshId]);
 
   useEffect(() => {
     if (!error) {

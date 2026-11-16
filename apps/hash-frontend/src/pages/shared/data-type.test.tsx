@@ -135,7 +135,7 @@ const loadedContext = (): DataTypesContextValue => ({
   latestDataTypes: { [dataType(1).metadata.recordId.baseUrl]: dataType(1) },
   loading: false,
   error: null,
-  refetch: vi.fn().mockResolvedValue(true),
+  refetch: vi.fn().mockResolvedValue(undefined),
   onDataTypeSaved: vi.fn(),
 });
 

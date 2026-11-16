@@ -13,7 +13,7 @@ import {
 } from "@testing-library/react";
 import { GraphQLError } from "graphql";
 import { SnackbarProvider } from "notistack";
-import { StrictMode, useState } from "react";
+import { StrictMode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { makeOntologyTypeVersion } from "@blockprotocol/type-system";
@@ -69,7 +69,6 @@ const request = {
   limit: 1000,
 };
 const Catalogue = () => {
-  const [refreshResult, setRefreshResult] = useState("idle");
   const {
     dataTypes,
     latestDataTypes,
@@ -99,15 +98,11 @@ const Catalogue = () => {
           : Object.keys(latestDataTypes).length}
       </Box>
       <Box data-testid="catalogue-error">{error?.message ?? "none"}</Box>
-      <Box data-testid="refresh-result">{refreshResult}</Box>
       <Box
         component="button"
         type="button"
         onClick={() => {
-          setRefreshResult("pending");
-          void refetch().then((success) =>
-            setRefreshResult(success ? "complete" : "failed"),
-          );
+          void refetch();
         }}
       >
         Refresh catalogue
@@ -445,6 +440,7 @@ describe("data type catalogue pagination", () => {
     expect(operations[2]?.getContext().fetchOptions.signal.aborted).toBe(true);
     await respond({ queryDataTypes: { dataTypes: [superseded] } });
     await waitFor(() => expect(operations).toHaveLength(4));
+    expect(screen.getByText("Loading catalogue")).toBeTruthy();
     expect(operations.at(-1)?.variables).toEqual({ request });
     expect(
       screen.getByText(`1 versions; latest ${old.schema.$id}`),
@@ -453,27 +449,6 @@ describe("data type catalogue pagination", () => {
     await respond({ queryDataTypes: { dataTypes: [old, latest] } });
     await screen.findByText(`2 versions; latest ${latest.schema.$id}`);
     expect(screen.queryByText("Loading catalogue")).toBeNull();
-  });
-
-  it("resolves a refresh only after the final page is published", async () => {
-    const { link, respond } = createCatalogueLink();
-    render(
-      <MockedProvider link={link}>
-        <DataTypesContextProvider>
-          <Catalogue />
-        </DataTypesContextProvider>
-      </MockedProvider>,
-    );
-    await respond({ queryDataTypes: { dataTypes: [meters(1)] } });
-    fireEvent.click(screen.getByRole("button", { name: "Refresh catalogue" }));
-    await respond({
-      queryDataTypes: { dataTypes: [meters(1)], cursor: meters(1).schema.$id },
-    });
-    expect(screen.getByTestId("refresh-result").textContent).toBe("pending");
-    expect(screen.getByTestId("all-versions").textContent).toBe("1");
-    await respond({ queryDataTypes: { dataTypes: [meters(2)] } });
-    expect(screen.getByTestId("refresh-result").textContent).toBe("complete");
-    expect(screen.getByTestId("all-versions").textContent).toBe("2");
   });
 
   it("publishes a saved version immediately and ignores an older response arriving last", async () => {
@@ -506,7 +481,7 @@ describe("data type catalogue pagination", () => {
     expect(
       screen.getByText(`3 versions; latest ${meters(3).schema.$id}`),
     ).toBeTruthy();
-    expect(screen.getByTestId("refresh-result").textContent).toBe("complete");
+    expect(screen.queryByText("Loading catalogue")).toBeNull();
     expect(operations).toHaveLength(4);
   });
 
