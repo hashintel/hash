@@ -5,12 +5,7 @@ import { siUnitGroups } from "./034-add-si-unit-data-types/si-unit-groups";
 
 import type { MigrationFunction } from "../types";
 import type { UnitSystem } from "./034-add-si-unit-data-types/si-unit-groups";
-import type {
-  BaseUrl,
-  Conversions,
-  ConversionValue,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
 
 const migrate: MigrationFunction = async ({
   context,
@@ -51,53 +46,13 @@ const migrate: MigrationFunction = async ({
       systemIds.set(system, systemGroup.schema.$id);
     }
 
-    const unitBaseUrls = new Map<string, BaseUrl>();
+    const seededUnitBaseUrls = new Set<BaseUrl>();
 
     for (const unit of group.units) {
-      const conversions: Record<BaseUrl, Conversions> = {};
-
-      if (unit.conversion) {
-        const {
-          target,
-          factor = 1,
-          divisor = 1,
-          inputOffset = 0,
-          offset = 0,
-        } = unit.conversion;
-        const targetBaseUrl = unitBaseUrls.get(target);
-        if (!targetBaseUrl) {
+      for (const target of Object.keys(unit.conversions ?? {})) {
+        if (!seededUnitBaseUrls.has(target as BaseUrl)) {
           throw new Error(`Conversion target '${target}' has not been seeded`);
         }
-
-        const constant = (value: number): ConversionValue => ({
-          const: value,
-          type: "number",
-        });
-
-        conversions[targetBaseUrl] = {
-          to: {
-            expression: [
-              "+",
-              [
-                "/",
-                ["*", ["+", "self", constant(inputOffset)], constant(factor)],
-                constant(divisor),
-              ],
-              constant(offset),
-            ],
-          },
-          from: {
-            expression: [
-              "-",
-              [
-                "/",
-                ["*", ["-", "self", constant(offset)], constant(divisor)],
-                constant(factor),
-              ],
-              constant(inputOffset),
-            ],
-          },
-        };
       }
 
       const dataType = await ensureUnitDataType(context, authentication, {
@@ -115,11 +70,11 @@ const migrate: MigrationFunction = async ({
           type: "number",
           ...(unit.minimum === undefined ? {} : { minimum: unit.minimum }),
         },
-        conversions,
+        conversions: unit.conversions ?? {},
         migrationState,
         webShortname: "h",
       });
-      unitBaseUrls.set(unit.title, dataType.metadata.recordId.baseUrl);
+      seededUnitBaseUrls.add(dataType.metadata.recordId.baseUrl);
     }
   }
 
