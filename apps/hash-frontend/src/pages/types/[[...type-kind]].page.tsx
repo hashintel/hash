@@ -5,7 +5,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { getEntityTypes, getRoots } from "@blockprotocol/graph/stdlib";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { useBlockProtocolQueryDataTypes } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-data-types";
 import { useBlockProtocolQueryEntityTypes } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-entity-types";
 import { isSpecialEntityType } from "../../shared/entity-types-context/shared/is-special-entity-type";
 import { FilesLightIcon } from "../../shared/icons/files-light-icon";
@@ -13,6 +12,8 @@ import { PlusRegularIcon } from "../../shared/icons/plus-regular";
 import { getLayoutWithSidebar } from "../../shared/layout";
 import { usePropertyTypes } from "../../shared/property-types-context";
 import { CreateButton } from "../shared/create-button";
+import { useDataTypesContext } from "../shared/data-types-context";
+import { DataTypesLoadError } from "../shared/data-types-load-error";
 import { largePageMaxWidthCss } from "../shared/page-width";
 import { TopContextBar } from "../shared/top-context-bar";
 import { TypesTable } from "../shared/types-table";
@@ -20,11 +21,7 @@ import { tabTitles } from "./[[...type-kind]].page/tab-titles";
 import { TypesPageTabs } from "./[[...type-kind]].page/types-page-tabs";
 
 import type { NextPageWithLayout } from "../../shared/layout";
-import type { DataTypeRootType } from "@blockprotocol/graph";
-import type {
-  DataTypeWithMetadata,
-  EntityTypeWithMetadata,
-} from "@blockprotocol/type-system";
+import type { EntityTypeWithMetadata } from "@blockprotocol/type-system";
 import type { GetServerSideProps } from "next";
 
 type ParsedQueryKindParam =
@@ -143,7 +140,8 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
   const latestNonLinkEntityTypes = latestEntityTypesByKind?.nonLink;
   const latestLinkEntityTypes = latestEntityTypesByKind?.link;
 
-  const { queryDataTypes } = useBlockProtocolQueryDataTypes();
+  const { latestDataTypes: latestDataTypesObject, error: dataTypesError } =
+    useDataTypesContext();
 
   const { propertyTypes: latestPropertyTypesObject } = usePropertyTypes({
     latestOnly: true,
@@ -158,22 +156,11 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
     [latestPropertyTypesObject],
   );
 
-  const [latestDataTypes, setLatestDataTypes] =
-    useState<DataTypeWithMetadata[]>();
-
-  const fetchDataTypes = useCallback(
-    async () =>
-      await queryDataTypes({ data: {} }).then(({ data: dataTypesSubgraph }) => {
-        if (dataTypesSubgraph) {
-          setLatestDataTypes(getRoots<DataTypeRootType>(dataTypesSubgraph));
-        }
-      }),
-    [queryDataTypes],
+  const latestDataTypes = useMemo(
+    () =>
+      latestDataTypesObject ? Object.values(latestDataTypesObject) : undefined,
+    [latestDataTypesObject],
   );
-
-  useEffect(() => {
-    void fetchDataTypes();
-  }, [fetchDataTypes]);
 
   const allTypes = useMemo(
     () =>
@@ -288,7 +275,13 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
         </Container>
       </Box>
       <Container sx={{ ...largePageMaxWidthCss, pt: 2, pb: 5 }}>
-        <TypesTable kind={currentTab} types={currentTypes} />
+        {dataTypesError &&
+        latestDataTypesObject === null &&
+        (currentTab === "all" || currentTab === "data-type") ? (
+          <DataTypesLoadError />
+        ) : (
+          <TypesTable kind={currentTab} types={currentTypes} />
+        )}
       </Container>
     </>
   );
