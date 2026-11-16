@@ -106,12 +106,20 @@ describe("data type label previews", () => {
   });
 
   it("handles missing parents and cycles without breaking the listing", () => {
-    const child = scalar("child", { allOf: [{ $ref: id("parent") }] });
-    const parent = scalar("parent", { allOf: [{ $ref: child.$id }] });
+    const child = scalar("child", {
+      type: "array",
+      maxItems: 1,
+      allOf: [{ $ref: id("parent") }],
+    });
+    const parent = scalar("parent", {
+      type: "array",
+      items: { type: "number", label: { right: "m" } },
+      allOf: [{ $ref: child.$id }],
+    });
     expect(getDataTypeLabelPreview(child, {})).toBeUndefined();
-    expect(
-      getDataTypeLabelPreview(child, lookup(parent, child)),
-    ).toBeUndefined();
+    expect(getDataTypeLabelPreview(child, lookup(parent, child))).toBe(
+      "[value m]",
+    );
   });
 
   it("keeps local item and alternative labels when the outer label cannot be resolved", () => {
@@ -191,6 +199,90 @@ describe("data type label previews", () => {
       ],
     });
     expect(getDataTypeLabelPreview(tuple, {})).toBe("[value m, value s]");
+  });
+
+  it("inherits the referenced tuple shape while letting the child replace its outer label", () => {
+    const tuple = scalar("tuple", {
+      type: "array",
+      items: false,
+      prefixItems: [
+        { type: "number", label: { right: "m" } },
+        { type: "number", label: { right: "s" } },
+      ],
+      label: { right: "coordinate" },
+    });
+    const child = scalar("child", {
+      type: "array",
+      allOf: [{ $ref: tuple.$id }],
+    });
+    const later = {
+      ...tuple,
+      $id: tuple.$id.replace("/v/1", "/v/2") as VersionedUrl,
+      type: "array" as const,
+      items: { type: "number" as const, label: { right: "ft" } },
+    };
+    const types = lookup(tuple, later);
+    expect(getDataTypeLabelPreview(child, types)).toBe(
+      "[value m, value s] coordinate",
+    );
+    expect(
+      getDataTypeLabelPreview({ ...child, label: { right: "point" } }, types),
+    ).toBe("[value m, value s] point");
+  });
+
+  it("combines inherited item labels and the tightest list length across parents", () => {
+    const list = scalar("list", {
+      type: "array",
+      items: { type: "number", label: { right: "m" } },
+      maxItems: 2,
+    });
+    const single = scalar("single", {
+      type: "array",
+      minItems: 1,
+      maxItems: 1,
+    });
+    const child = scalar("child", {
+      type: "array",
+      items: { type: "number", minimum: 0 },
+      maxItems: 3,
+      allOf: [{ $ref: list.$id }, { $ref: single.$id }],
+    });
+    const grandchild = scalar("grandchild", {
+      type: "array",
+      allOf: [{ $ref: child.$id }],
+    });
+    const types = lookup(list, single, child);
+    expect(getDataTypeLabelPreview(grandchild, types)).toBe("[value m]");
+    expect(
+      getDataTypeLabelPreview(
+        {
+          ...child,
+          type: "array",
+          items: { type: "number", label: { right: "ft" } },
+        },
+        types,
+      ),
+    ).toBe("[value ft]");
+  });
+
+  it("does not choose arbitrarily between conflicting inherited item labels", () => {
+    const meters = scalar("meters", {
+      type: "array",
+      items: { type: "number", label: { right: "m" } },
+    });
+    const feet = scalar("feet", {
+      type: "array",
+      items: { type: "number", label: { right: "ft" } },
+    });
+    const child = scalar("child", {
+      type: "array",
+      maxItems: 1,
+      label: { right: "measurements" },
+      allOf: [{ $ref: meters.$id }, { $ref: feet.$id }],
+    });
+    expect(getDataTypeLabelPreview(child, lookup(meters, feet))).toBe(
+      "[value] measurements",
+    );
   });
 
   it("respects finite list lengths and empty tuples", () => {

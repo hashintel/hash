@@ -75,23 +75,87 @@ const joinParts = (items: DataTypeLabelPart[][], separator: string) =>
     index ? [punctuation(separator), ...item] : item,
   );
 
-const previewValue = (schema: SingleValueSchema): DataTypeLabelPart[] => {
+type ArraySchema = Extract<SingleValueSchema, { type: "array" }>;
+
+const getInheritedArraySchemas = (
+  schema: DataType,
+  dataTypes: Record<VersionedUrl, DataTypeWithMetadata>,
+): ArraySchema[][] => {
+  const levels: ArraySchema[][] = [];
+  const visited = new Set([schema.$id]);
+  let references = schema.allOf ?? [];
+  while (references.length) {
+    const level: ArraySchema[] = [];
+    const next: NonNullable<DataType["allOf"]> = [];
+    for (const { $ref } of references) {
+      if (visited.has($ref)) {
+        continue;
+      }
+      visited.add($ref);
+      const parent = dataTypes[$ref]?.schema;
+      if (parent) {
+        if ("type" in parent && parent.type === "array") {
+          level.push(parent);
+        }
+        next.push(...(parent.allOf ?? []));
+      }
+    }
+    levels.push(level);
+    references = next;
+  }
+  return levels;
+};
+
+const previewValue = (
+  schema: SingleValueSchema,
+  inheritedArrays: ArraySchema[][],
+): DataTypeLabelPart[] => {
   if (schema.type !== "array") {
     return labelValue([placeholder], schema.label);
   }
 
-  if (schema.items === false) {
-    const items = (schema.prefixItems ?? []).map(previewValue);
-    return labelValue(
-      [punctuation("["), ...joinParts(items, ", "), punctuation("]")],
-      schema.label,
-    );
-  }
+  const levels = [[schema], ...inheritedArrays];
+  const arrays = levels.flat();
+  const tupleLength = arrays.reduce<number | undefined>(
+    (length, array) =>
+      array.items === false
+        ? Math.max(length ?? 0, array.prefixItems?.length ?? 0)
+        : length,
+    undefined,
+  );
+  const maxItems = arrays.reduce(
+    (maximum, array) =>
+      array.items === false
+        ? maximum
+        : Math.min(maximum, array.maxItems ?? Infinity),
+    Infinity,
+  );
+  const count = tupleLength ?? Math.min(maxItems, 2);
+  const items = Array.from({ length: count }, (_, index) => {
+    const labels = levels
+      .map((level) =>
+        level.flatMap((array) => {
+          const label = (
+            array.items === false ? array.prefixItems?.[index] : array.items
+          )?.label;
+          return label &&
+            (label.left !== undefined || label.right !== undefined)
+            ? [label]
+            : [];
+        }),
+      )
+      .find((level) => level.length);
+    const first = labels?.[0];
+    const label = labels?.every(
+      (candidate) =>
+        candidate.left === first?.left && candidate.right === first?.right,
+    )
+      ? first
+      : undefined;
+    return labelValue([placeholder], label);
+  });
 
-  const item = schema.items ? previewValue(schema.items) : [placeholder];
-  const count = Math.min(schema.maxItems ?? 2, 2);
-  const items = Array.from({ length: count }, () => item);
-  if (schema.maxItems === undefined || schema.maxItems > count) {
+  if (tupleLength === undefined && maxItems > count) {
     items.push([punctuation("…")]);
   }
   return labelValue(
@@ -105,10 +169,19 @@ export const getDataTypeLabelPreview = (
   dataTypes: Record<VersionedUrl, DataTypeWithMetadata>,
 ): DataTypeLabelPart[] | undefined => {
   const label = resolveLabel(schema, dataTypes) ?? undefined;
+  const hasArray =
+    "anyOf" in schema
+      ? schema.anyOf.some(({ type }) => type === "array")
+      : schema.type === "array";
+  const inheritedArrays = hasArray
+    ? getInheritedArraySchemas(schema, dataTypes)
+    : [];
 
   let preview: DataTypeLabelPart[];
   if ("anyOf" in schema) {
-    const options = schema.anyOf.map(previewValue);
+    const options = schema.anyOf.map((option) =>
+      previewValue(option, inheritedArrays),
+    );
     const formats = [
       ...new Map(
         options.map((parts) => [parts.map(({ text }) => text).join(""), parts]),
@@ -121,7 +194,7 @@ export const getDataTypeLabelPreview = (
       label,
     );
   } else {
-    preview = previewValue({ ...schema, label });
+    preview = previewValue({ ...schema, label }, inheritedArrays);
   }
   return preview.some(({ kind, text }) => kind === "label" && text.trim())
     ? preview.map((part) => ({
