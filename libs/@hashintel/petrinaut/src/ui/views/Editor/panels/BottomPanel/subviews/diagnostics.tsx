@@ -1,61 +1,32 @@
 import { use, useCallback, useMemo, useState } from "react";
 
-import { Banner, Icon } from "@hashintel/ds-components";
-import { css, cx } from "@hashintel/ds-helpers/css";
+import { Banner } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
 
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { SimulationContext } from "../../../../../../react/simulation/context";
-import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { problemTextStyle } from "../../../../../constants/problem-severity";
 import { useCodeNavigation } from "../../../../../monaco/code-navigation";
 import { parseDocumentUri } from "../../../../../monaco/editor-paths";
 import { useCompositionProblems } from "../../../shared/use-composition-problems";
+import { CompositionDiagnostics } from "./diagnostics/composition-diagnostics";
+import {
+  bulletStyle,
+  countOf,
+  diagnosticButtonStyle,
+  diagnosticItemStyle,
+  DiagnosticsGroup,
+  diagnosticsListStyle,
+} from "./diagnostics/diagnostics-group";
 import { NetClassSummary } from "./diagnostics/net-class-summary";
 
 import type { SubView } from "../../../../../components/sub-view/types";
-import type {
-  FusionProblem,
-  Diagnostic,
-  SelectionItemType,
-} from "@hashintel/petrinaut-core";
+import type { Diagnostic, SelectionItemType } from "@hashintel/petrinaut-core";
 
 const emptyMessageStyle = css({
   color: "neutral.s100",
   fontStyle: "italic",
-});
-
-const entityGroupStyle = css({
-  marginBottom: "[8px]",
-});
-
-const entityButtonStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[6px]",
-  width: "[100%]",
-  padding: "[4px 0]",
-  border: "none",
-  cursor: "pointer",
-  textAlign: "left",
-  fontSize: "xs",
-  fontWeight: "medium",
-  color: "neutral.s115",
-  _hover: {
-    color: "neutral.s120",
-  },
-});
-
-const countStyle = css({
-  fontWeight: "normal",
-  color: "neutral.s100",
-  "&[data-errors]": { color: "[#dc2626]" },
-});
-
-const expandedContentStyle = css({
-  paddingLeft: "[16px]",
-  marginTop: "[4px]",
 });
 
 const itemGroupStyle = css({
@@ -67,43 +38,6 @@ const subTypeStyle = css({
   fontWeight: "medium",
   color: "neutral.s105",
   marginBottom: "[2px]",
-});
-
-const diagnosticsListStyle = css({
-  margin: "[0]",
-  paddingLeft: "[12px]",
-  listStyle: "none",
-});
-
-const diagnosticItemStyle = css({
-  marginBottom: "[4px]",
-});
-
-const diagnosticButtonStyle = css({
-  marginLeft: "[8px]",
-  padding: "[2px 4px]",
-  fontSize: "[11px]",
-  fontFamily: "mono",
-  color: "[#dc2626]",
-  lineHeight: "[1.5]",
-  cursor: "pointer",
-  borderRadius: "sm",
-  transition: "[background-color 0.15s]",
-  backgroundColor: "[transparent]",
-  border: "none",
-  textAlign: "left",
-  width: "[100%]",
-  _hover: {
-    backgroundColor: "[rgba(220, 38, 38, 0.08)]",
-  },
-  // A warning or a note is not an error: its hover is plain.
-  "&:is([data-severity=warning], [data-severity=info]):hover": {
-    backgroundColor: "neutral.bg.surface.hover",
-  },
-});
-
-const bulletStyle = css({
-  marginRight: "[4px]",
 });
 
 const positionStyle = css({
@@ -142,106 +76,6 @@ const SELECTION_TYPES: Record<EntityType, SelectionItemType> = {
   transition: "transition",
   "differential-equation": "differentialEquation",
   place: "place",
-};
-
-/** A group of diagnostics under a heading that folds it away. */
-const DiagnosticsGroup = ({
-  label,
-  count,
-  hasErrors,
-  expanded,
-  onToggle,
-  children,
-}: {
-  label: string;
-  /** What the group holds, in words: "2 errors". */
-  count: string;
-  hasErrors: boolean;
-  expanded: boolean;
-  onToggle: () => void;
-  children: React.ReactNode;
-}) => (
-  <div className={entityGroupStyle}>
-    <button
-      type="button"
-      aria-expanded={expanded}
-      onClick={onToggle}
-      className={entityButtonStyle}
-    >
-      <Icon name={expanded ? "chevronDown" : "chevronRight"} size="xs" />
-      <span>{label}</span>
-      <span className={countStyle} data-errors={hasErrors ? "" : undefined}>
-        ({count})
-      </span>
-    </button>
-    {expanded && <div className={expandedContentStyle}>{children}</div>}
-  </div>
-);
-
-const countOf = (count: number, noun: string): string =>
-  `${count} ${noun}${count === 1 ? "" : "s"}`;
-
-/**
- * The problems with the net's fusions. Clicking one opens the net the fusion
- * is in and selects it.
- */
-const CompositionDiagnostics = ({
-  problems,
-}: {
-  problems: FusionProblem[];
-}) => {
-  const { setActiveSubnetId } = use(ActiveNetContext);
-  const { selectItem } = use(EditorContext);
-  const [isExpanded, setIsExpanded] = useState(true);
-  const countWith = (severity: FusionProblem["severity"]) =>
-    problems.filter((problem) => problem.severity === severity).length;
-  const errorCount = countWith("error");
-  // Each kind the list holds, said apart: "1 error, 2 notes".
-  const counts = [
-    [errorCount, "error"],
-    [countWith("warning"), "warning"],
-    [countWith("info"), "note"],
-  ] as const;
-
-  const reveal = (problem: FusionProblem) => {
-    setActiveSubnetId(problem.subnetId);
-    selectItem({ type: "fusion", id: problem.fusionId });
-  };
-
-  return (
-    <DiagnosticsGroup
-      label="Composition"
-      count={counts
-        .filter(([count]) => count > 0)
-        .map(([count, noun]) => countOf(count, noun))
-        .join(", ")}
-      hasErrors={errorCount > 0}
-      expanded={isExpanded}
-      onToggle={() => setIsExpanded((expanded) => !expanded)}
-    >
-      <ul className={diagnosticsListStyle}>
-        {problems.map((problem, index) => (
-          <li
-            // The list is derived afresh on every render, and one check can
-            // report twice on one fusion.
-            // eslint-disable-next-line react/no-array-index-key
-            key={index}
-            className={diagnosticItemStyle}
-          >
-            <button
-              type="button"
-              onClick={() => reveal(problem)}
-              className={cx(diagnosticButtonStyle, problemTextStyle)}
-              data-severity={problem.severity}
-            >
-              <span className={bulletStyle}>•</span>
-              {problem.message}
-            </button>
-          </li>
-        ))}
-      </ul>
-    </DiagnosticsGroup>
-  );
 };
 
 interface GroupedDiagnostics {
