@@ -45,7 +45,11 @@ export interface PersonaHostRun {
    */
   readonly open: (
     page: Page,
-    input: { readonly initialNet?: PersonaInitialNet },
+    input: {
+      readonly initialNet?: PersonaInitialNet;
+      /** A name for anything the run creates in the app, such as `inventory-purchasing · persona run-p1WuHd`. */
+      readonly name: string;
+    },
   ) => Promise<Readonly<Record<string, unknown>>>;
   /**
    * Opens a resumed run's page on its original document, refusing when the

@@ -77,6 +77,11 @@ import type { AgentSendResult, FlueClient } from "@flue/sdk";
 
 const execute = promisify(execFile);
 const report = (text: string) => process.stdout.write(`${text}\n`);
+const reportEvidenceFailure = (error: unknown) => {
+  process.stderr.write(
+    `Could not refresh the run's evidence: ${error instanceof Error ? error.message : String(error)}\n`,
+  );
+};
 const appRoot = fileURLToPath(new URL("../../", import.meta.url));
 const repoRoot = resolve(appRoot, "../..");
 const casesRoot = join(repoRoot, "apps/brunch-agent/evals/petrinaut/cases");
@@ -521,8 +526,10 @@ const launchPersona = async ({
       await personaPage.evaluate((value) => {
         document.title = value;
       }, title);
-      await personaPage.bringToFront();
       if (!pauseForRecording || !process.stdin.isTTY) return;
+      // Only here: a window that takes focus later would catch keystrokes
+      // meant for another, and the bridge refuses to overwrite a draft.
+      await personaPage.bringToFront();
       report(
         recordingReadySummary({
           title,
@@ -577,7 +584,10 @@ const launchPersona = async ({
     if (!resume) {
       record = {
         ...record,
-        ...(await hostRun.open(personaPage, { initialNet })),
+        ...(await hostRun.open(personaPage, {
+          initialNet,
+          name: `${basename(caseDirectory)} · persona ${basename(run)}`,
+        })),
       };
       await save(join(run, "run.json"), record);
       await recordingPause();
@@ -628,12 +638,17 @@ const launchPersona = async ({
               });
             },
           });
-          await writeProofArtifacts(join(run, "evidence"), result.snapshot);
-          await hostRun.capture(
-            personaPage,
-            result.session,
-            join(run, "evidence"),
-          );
+          // Brunch has replied: the persona gets the reply even when the
+          // evidence could not be refreshed, which is reported here instead.
+          await writeProofArtifacts(join(run, "evidence"), result.snapshot)
+            .then(() =>
+              hostRun.capture(
+                personaPage,
+                result.session,
+                join(run, "evidence"),
+              ),
+            )
+            .catch(reportEvidenceFailure);
           if (!turn.opening) repliedMessages += 1;
           if (maxMessages !== undefined && repliedMessages >= maxMessages)
             // After the bridge has delivered this reply.
@@ -759,7 +774,9 @@ const launchPersona = async ({
       try {
         try {
           if (page && !page.isClosed() && session !== undefined)
-            await hostRun.capture(page, session, join(run, "evidence"));
+            await hostRun
+              .capture(page, session, join(run, "evidence"))
+              .catch(reportEvidenceFailure);
         } finally {
           await browser?.close();
         }

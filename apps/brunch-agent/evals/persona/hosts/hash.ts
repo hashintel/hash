@@ -6,8 +6,10 @@
  * with, so one HASH persona run uses the machine at a time.
  */
 import assert from "node:assert/strict";
-import { writeFile } from "node:fs/promises";
-import { basename, join } from "node:path";
+import { readFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+
+import { parseSDCPNFile } from "@hashintel/petrinaut-core";
 
 import { brunchEnv } from "../../../src/env.ts";
 import { hashAgentGuidance } from "../guidance-manifest.ts";
@@ -147,7 +149,7 @@ const createProcess = async (
 
 /**
  * The process's latest saved version, in the shape the website stores a net,
- * which the run packet reads. Edits the agent has not saved are not in it.
+ * which the run packet reads.
  */
 const readProcess = async (page: Page, entityUuid: string) => {
   const data = await hashGraphql(
@@ -236,6 +238,24 @@ const showAssistant = async (page: Page, load: () => Promise<unknown>) => {
   }
 };
 
+/**
+ * The net the editor holds now, saved or not, through the editor's own
+ * Export > JSON: a download, so neither the editor's state nor anything the
+ * agent reads changes.
+ */
+const exportLiveNet = async (page: Page, entityUuid: string) => {
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Menu", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Export", exact: true }).click();
+  await page.getByRole("menuitem", { name: "JSON", exact: true }).click();
+  const path = await (await download).path();
+  const parsed = parseSDCPNFile(JSON.parse(await readFile(path, "utf8")));
+  if (!parsed.ok)
+    throw new Error(`The editor exported no readable net: ${parsed.error}`);
+  const { title, ...sdcpn } = parsed.sdcpn;
+  return { id: entityUuid, title, exportedAt: new Date().toISOString(), sdcpn };
+};
+
 const processUrl = (entityUuid: string) =>
   new URL(`/processes/${entityUuid}`, hashOrigins.frontend).href;
 
@@ -250,7 +270,7 @@ const emptyNet = {
 export const hashHost = (): PersonaHost => ({
   name: "hash",
   guidance: hashAgentGuidance,
-  prepare: async ({ environment, run, retained, signal }) => {
+  prepare: async ({ environment, retained, signal }) => {
     await checkHashStack(signal);
     let entityUuid =
       typeof retained?.entityUuid === "string"
@@ -281,10 +301,12 @@ export const hashHost = (): PersonaHost => ({
         },
       ],
       buildFilters: ["@apps/brunch-agent^..."],
-      open: async (page, { initialNet }) => {
+      open: async (page, { initialNet, name }) => {
         await signIn(page);
         entityUuid = await createProcess(page, {
-          title: initialNet?.title ?? `Persona ${basename(run)}`,
+          // Each run leaves its process behind, named for the run.
+          title:
+            initialNet === undefined ? name : `${initialNet.title} · ${name}`,
           definition: initialNet?.sdcpn ?? emptyNet,
         });
         const opened = entityUuid;
@@ -306,10 +328,16 @@ export const hashHost = (): PersonaHost => ({
       },
       reload: (page) => showAssistant(page, () => page.reload()),
       capture: async (page, _session, evidenceDirectory) => {
-        await writeFile(
-          join(evidenceDirectory, "net.json"),
-          `${JSON.stringify(await readProcess(page, processOf()), null, 2)}\n`,
-        );
+        const entityUuid = processOf();
+        const [live, saved] = await Promise.all([
+          exportLiveNet(page, entityUuid),
+          readProcess(page, entityUuid),
+        ]);
+        const json = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
+        await Promise.all([
+          writeFile(join(evidenceDirectory, "net.json"), json(live)),
+          writeFile(join(evidenceDirectory, "saved-net.json"), json(saved)),
+        ]);
         await refreshProofManifest(evidenceDirectory);
       },
       release: async () => {},
