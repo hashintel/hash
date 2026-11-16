@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { checkFusions } from "./check-fusions";
 import { checkInterfaces } from "./check-interfaces";
 import {
+  describeUnboundInstance,
   implementationsOf,
   mapInterfacePorts,
   resolveImplementation,
@@ -392,5 +393,51 @@ describe("implementationsOf", () => {
     expect(implementationsOf(sdcpn, "stage").map(({ id }) => id)).toEqual([
       "fast",
     ]);
+  });
+});
+
+describe("describeUnboundInstance", () => {
+  const described = (sdcpn: SDCPN, held: ReturnType<typeof instance>) => {
+    const binding = resolveImplementation(sdcpn, held);
+    return binding?.kind === "unbound"
+      ? describeUnboundInstance(binding, held.name)
+      : undefined;
+  };
+  const stranger = subnet("stranger");
+  const draft = subnet("draft", { interface: true });
+  const subnets = [stage, stranger, draft];
+
+  it("names the instance for a choice of its own that cannot run", () => {
+    const sdcpn = net({ subnets, implementations: { stage: "stranger" } });
+
+    expect(described(sdcpn, instance("s1", "stage", "gone"))).toBe(
+      "s1 names an implementation that does not exist.",
+    );
+    expect(described(sdcpn, instance("s1", "stage", "draft"))).toBe(
+      "s1 names draft as its implementation, which is an interface itself.",
+    );
+    expect(described(sdcpn, instance("s1", "stage", "stranger"))).toBe(
+      "s1 names stranger as its implementation, which does not implement stage.",
+    );
+  });
+
+  it("names the document's default when the instance chooses none and the default cannot run", () => {
+    const withDefault = (implementationId: string) =>
+      described(
+        net({ subnets, implementations: { stage: implementationId } }),
+        instance("s1", "stage"),
+      );
+    const lead =
+      "s1 chooses no implementation, and the document's default for stage";
+
+    expect(withDefault("gone")).toBe(
+      `${lead} names an implementation that does not exist.`,
+    );
+    expect(withDefault("draft")).toBe(
+      `${lead} names draft as its implementation, which is an interface itself.`,
+    );
+    expect(withDefault("stranger")).toBe(
+      `${lead} names stranger as its implementation, which does not implement stage.`,
+    );
   });
 });

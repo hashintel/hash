@@ -50,21 +50,27 @@ export const implementationsOf = (
       !isInterface(subnet) && implementsInterface(subnet, interfaceId),
   );
 
+/** Whether the instance names the implementation or the document's default does. */
+type ChosenBy = "instance" | "document";
+
 export type ImplementationBinding =
   | { kind: "component"; subnet: Subnet }
   | {
       kind: "bound";
       interface: Subnet;
       implementation: Subnet;
-      /** Whether the instance chose the implementation or the document's default applied. */
-      chosenBy: "instance" | "document";
+      chosenBy: ChosenBy;
     }
   | ({ kind: "unbound"; interface: Subnet } & (
       | { reason: "no-binding" }
       /** The binding names a subnet that does not exist. */
-      | { reason: "missing"; implementationId: ID }
+      | { reason: "missing"; implementationId: ID; chosenBy: ChosenBy }
       /** The binding names a subnet that cannot stand behind the interface. */
-      | { reason: "is-interface" | "not-implementing"; implementation: Subnet }
+      | {
+          reason: "is-interface" | "not-implementing";
+          implementation: Subnet;
+          chosenBy: ChosenBy;
+        }
     ));
 
 /** Why an instance of an interface has nothing to run. */
@@ -119,38 +125,44 @@ export const resolveImplementation = (
   if (implementationId === undefined) {
     return { ...unbound, reason: "no-binding" };
   }
+  const chosenBy =
+    instance.implementation === undefined ? "document" : "instance";
   const implementation = subnetWithId(implementationId);
   if (!implementation) {
-    return { ...unbound, reason: "missing", implementationId };
+    return { ...unbound, chosenBy, reason: "missing", implementationId };
   }
   if (isInterface(implementation)) {
-    return { ...unbound, reason: "is-interface", implementation };
+    return { ...unbound, chosenBy, reason: "is-interface", implementation };
   }
   if (!implementsInterface(implementation, declared.id)) {
-    return { ...unbound, reason: "not-implementing", implementation };
+    return { ...unbound, chosenBy, reason: "not-implementing", implementation };
   }
-  return {
-    kind: "bound",
-    interface: declared,
-    implementation,
-    chosenBy: instance.implementation === undefined ? "document" : "instance",
-  };
+  return { kind: "bound", interface: declared, implementation, chosenBy };
 };
 
-/** One sentence on why `binding` runs nothing, naming the instance. */
+/**
+ * One sentence on why `binding` runs nothing, naming the instance and, for an
+ * implementation that cannot run, what names it: the instance or the
+ * document's default.
+ */
 export const describeUnboundInstance = (
   binding: Extract<ImplementationBinding, { kind: "unbound" }>,
   instanceName: string,
 ): string => {
+  if (binding.reason === "no-binding") {
+    return `${instanceName} is an instance of the interface ${binding.interface.name} with no implementation: choose one on the instance or set the document's default.`;
+  }
+  const namer =
+    binding.chosenBy === "instance"
+      ? instanceName
+      : `${instanceName} chooses no implementation, and the document's default for ${binding.interface.name}`;
   switch (binding.reason) {
-    case "no-binding":
-      return `${instanceName} is an instance of the interface ${binding.interface.name} with no implementation: choose one on the instance or set the document's default.`;
     case "missing":
-      return `${instanceName} names an implementation that does not exist.`;
+      return `${namer} names an implementation that does not exist.`;
     case "is-interface":
-      return `${instanceName} names ${binding.implementation.name} as its implementation, which is an interface itself.`;
+      return `${namer} names ${binding.implementation.name} as its implementation, which is an interface itself.`;
     case "not-implementing":
-      return `${instanceName} names ${binding.implementation.name} as its implementation, which does not implement ${binding.interface.name}.`;
+      return `${namer} names ${binding.implementation.name} as its implementation, which does not implement ${binding.interface.name}.`;
   }
 };
 
