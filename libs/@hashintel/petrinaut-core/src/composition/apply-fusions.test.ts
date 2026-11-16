@@ -123,12 +123,13 @@ describe("applyFusions", () => {
 
   it("names the place of a one-member fusion, whether or not another fusion merges anything", () => {
     const lone = { label: "f1", placeIds: ["m1::out"], name: "Conveyor" };
-    const alone = {
+    const ports = () => ({
       places: [place("m1::out"), place("m2::in"), place("m3::in")],
       transitions: [],
       types: [],
-    };
-    const beside = structuredClone(alone);
+    });
+    const alone = ports();
+    const beside = ports();
 
     applyFusions(alone, [lone]);
     applyFusions(beside, [
