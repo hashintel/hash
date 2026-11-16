@@ -616,6 +616,13 @@ moved and fused with ports, and nothing else of them changes. With no
 holds. The rule binds the instance's mutations and commands: code that holds
 the document handle can still change the document through `handle.change`.
 
+The editor's history starts where it took the handle. Undoing an earlier
+change would make a change the rule refuses, so an undo, or a jump from
+Recent changes, goes back no further than the entry `handle.history` was at
+when the editor was given the handle with `compositionOnly`, and Recent
+changes lists the entries from that one on. The handle's own history is left
+whole: `handle.history` still moves through all of it.
+
 ## Capabilities
 
 `capabilities` on the handle restricts what the editor exposes and what the

@@ -56,6 +56,7 @@ export const PetrinautDocumentProvider: React.FC<
 > = ({ children, instance, netManagement }) => {
   const handleHistoryUndoRedo = useHandleHistoryAsUndoRedo(
     instance.handle.history,
+    { sinceTaken: instance.compositionOnly },
   );
 
   const document = (
