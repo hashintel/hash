@@ -114,6 +114,48 @@ describe("data type label previews", () => {
     ).toBeUndefined();
   });
 
+  it("keeps local item and alternative labels when the outer label cannot be resolved", () => {
+    const meters = scalar("meters", { type: "array", label: { right: "m" } });
+    const feet = scalar("feet", { type: "array", label: { right: "ft" } });
+    const list = scalar("list", {
+      type: "array",
+      items: { type: "number", label: { right: "s" } },
+      allOf: [{ $ref: meters.$id }, { $ref: feet.$id }],
+    });
+    expect(getDataTypeLabelPreview(list, lookup(meters, feet))).toBe(
+      "[value s, value s, …]",
+    );
+    expect(getDataTypeLabelPreview(list, {})).toBe("[value s, value s, …]");
+    expect(
+      getDataTypeLabelPreview(
+        {
+          ...list,
+          type: "array",
+          items: false,
+          prefixItems: [{ type: "number", label: { right: "s" } }],
+        },
+        lookup(meters, feet),
+      ),
+    ).toBe("[value s]");
+    const { type: _type, ...metadata } = scalar("union") as DataType & {
+      type: "number";
+    };
+    expect(
+      getDataTypeLabelPreview(
+        {
+          ...metadata,
+          label: undefined,
+          allOf: [{ $ref: id("missing") }],
+          anyOf: [
+            { type: "number", label: { right: "m" } },
+            { type: "string", label: { left: "$" } },
+          ],
+        },
+        {},
+      ),
+    ).toBe("(value m | $value)");
+  });
+
   it("distinguishes labels on each list item from labels on the list itself", () => {
     const list = scalar("list", {
       type: "array",

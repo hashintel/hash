@@ -104,10 +104,7 @@ export const getDataTypeLabelPreview = (
   schema: DataType,
   dataTypes: Record<VersionedUrl, DataTypeWithMetadata>,
 ): DataTypeLabelPart[] | undefined => {
-  const label = resolveLabel(schema, dataTypes);
-  if (label === null) {
-    return undefined;
-  }
+  const label = resolveLabel(schema, dataTypes) ?? undefined;
 
   let preview: DataTypeLabelPart[];
   if ("anyOf" in schema) {
