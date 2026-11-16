@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { act, cleanup, render } from "@testing-library/react";
+import { act, cleanup, renderHook } from "@testing-library/react";
 import { use, useState, type ReactNode } from "react";
 import { afterEach, expect, it } from "vitest";
 
@@ -12,17 +12,11 @@ import {
   type PetrinautNavigationState,
 } from "../../../react/navigation";
 import { ActiveNetContext } from "../../../react/state/active-net-context";
-import {
-  EditorContext,
-  type EditorContextValue,
-} from "../../../react/state/editor-context";
+import { EditorContext } from "../../../react/state/editor-context";
 import { EditorProvider } from "../../../react/state/editor-provider";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { fusionLinks } from "./fusion-links";
-import {
-  useCanvasInteractions,
-  type CanvasInteractions,
-} from "./use-canvas-interactions";
+import { useCanvasInteractions } from "./use-canvas-interactions";
 
 import type { CanvasScene } from "./canvas-scene";
 import type {
@@ -74,66 +68,61 @@ const NavigationHost = ({ children }: { children: ReactNode }) => {
   );
 };
 
-const held: { interactions?: CanvasInteractions; editor?: EditorContextValue } =
-  {};
-
-const Probe = () => {
-  Object.assign(held, {
-    interactions: useCanvasInteractions(scene),
-    editor: use(EditorContext),
-  });
-  return null;
+/** The editor's own selection state around the hook, not a stand-in. */
+const Wrapper = ({ children }: { children: ReactNode }) => {
+  const activeNetContext = use(ActiveNetContext);
+  return (
+    <PetrinautInstanceContext value={{ mutations: {} } as unknown as Petrinaut}>
+      <SDCPNContext
+        value={{
+          ...use(SDCPNContext),
+          readonly: false,
+          extensions: DEFAULT_PETRINAUT_EXTENSIONS,
+          getItemType: (id) => itemTypes[id] ?? null,
+        }}
+      >
+        <NavigationHost>
+          <EditorProvider>
+            <ActiveNetContext
+              value={{
+                ...activeNetContext,
+                activeNet: { ...activeNetContext.activeNet, fusions: [belt] },
+              }}
+            >
+              {children}
+            </ActiveNetContext>
+          </EditorProvider>
+        </NavigationHost>
+      </SDCPNContext>
+    </PetrinautInstanceContext>
+  );
 };
 
-/** The canvas hook over the editor's own selection state, not a stand-in. */
-const App = () => (
-  <PetrinautInstanceContext value={{ mutations: {} } as unknown as Petrinaut}>
-    <SDCPNContext
-      value={{
-        ...use(SDCPNContext),
-        readonly: false,
-        extensions: DEFAULT_PETRINAUT_EXTENSIONS,
-        getItemType: (id) => itemTypes[id] ?? null,
-      }}
-    >
-      <NavigationHost>
-        <EditorProvider>
-          <ActiveNetContext
-            value={{
-              ...use(ActiveNetContext),
-              activeNet: {
-                ...use(ActiveNetContext).activeNet,
-                fusions: [belt],
-              },
-            }}
-          >
-            <Probe />
-          </ActiveNetContext>
-        </EditorProvider>
-      </NavigationHost>
-    </SDCPNContext>
-  </PetrinautInstanceContext>
-);
-
 it("keeps a fusion selected when one of its links is clicked again", async () => {
-  render(<App />);
+  const { result } = renderHook(
+    () => ({
+      interactions: useCanvasInteractions(scene),
+      selection: use(EditorContext).selection,
+    }),
+    { wrapper: Wrapper },
+  );
   const [firstLink, secondLink] = links;
   const click = async (deselected: string[]) =>
     // One click is two calls from React Flow: the edges it deselects, then
     // the edge that was clicked.
     act(async () => {
-      held.interactions!.applySelectionChanges(
+      result.current.interactions.applySelectionChanges(
         deselected.map((id) => ({ id, selected: false })),
       );
-      held.interactions!.selectLink({ type: "fusion", id: belt.id });
+      result.current.interactions.selectLink({ type: "fusion", id: belt.id });
       await Promise.resolve();
     });
 
   await click([]);
-  expect([...held.editor!.selection.keys()]).toEqual(["belt"]);
+  expect([...result.current.selection.keys()]).toEqual(["belt"]);
 
   // Both links are drawn selected, so clicking the first deselects the second.
   expect(firstLink).toBeDefined();
   await click([secondLink!.id]);
-  expect([...held.editor!.selection.keys()]).toEqual(["belt"]);
+  expect([...result.current.selection.keys()]).toEqual(["belt"]);
 });
