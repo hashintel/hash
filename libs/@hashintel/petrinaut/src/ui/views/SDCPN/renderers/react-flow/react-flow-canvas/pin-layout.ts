@@ -50,6 +50,7 @@ export const pinLayout = (
   };
   const left = pinnedOn("left");
   const right = pinnedOn("right");
+  // Every port pins a side; `middle` only closes the type.
   const middle = spread(1, 0);
   return ports.map((port) => {
     const shown = left.get(port.id) ?? right.get(port.id) ?? middle;

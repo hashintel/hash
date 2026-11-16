@@ -71,10 +71,6 @@ const textStyle = cx(
   css({ flex: "1", color: "neutral.s120" }),
 );
 
-/**
- * Folds and unfolds the ports. `nodrag` and `nopan` keep React Flow from
- * turning the press into a drag of the card or a pan of the canvas.
- */
 const foldToggleStyle = css({
   display: "flex",
   alignItems: "center",
@@ -195,7 +191,7 @@ export const ComponentInstanceNode: React.FC<
   const { ports, binding, unfolded, foldable } = data;
   const isInterface = binding.kind === "interface";
   const unbound = isInterface && binding.implementationName === null;
-  const runs = describeBinding(data.subnetName, binding);
+  const subtitle = describeBinding(data.subnetName, binding);
 
   // A card that keeps its height moves its pins when a port comes, goes or
   // changes side. They are measured at once, and again once they have slid
@@ -224,15 +220,18 @@ export const ComponentInstanceNode: React.FC<
             <div
               className={cx(nodeSubtitleStyle, problemTextStyle)}
               data-severity={unbound ? "error" : undefined}
-              title={isInterface ? `${data.subnetName}: ${runs}` : undefined}
+              title={
+                isInterface ? `${data.subnetName}: ${subtitle}` : undefined
+              }
             >
-              {runs}
+              {subtitle}
             </div>
           </div>
           {foldable ? (
             <button
               type="button"
-              // `nokey`: Space and Enter fold the card without selecting it.
+              // nodrag, nopan: a press is neither a drag of the card nor a
+              // pan. nokey: Space and Enter fold the card without selecting it.
               className={cx("nodrag", "nopan", "nokey", foldToggleStyle)}
               aria-label="Ports"
               aria-expanded={unfolded}
@@ -260,7 +259,9 @@ export const ComponentInstanceNode: React.FC<
               foldMotionStyle,
               unfolded ? fadedOutStyle : undefined,
             )}
-            // The body of the card folded, whatever height the card has now.
+            // The body of the card folded, whatever height the card has now:
+            // the offset is half of what unfolding added, so
+            // height - 2 * anchorOffset is the folded height.
             style={{
               height:
                 data.height -
