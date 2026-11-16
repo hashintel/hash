@@ -1,9 +1,10 @@
 import { useMutation, useQuery } from "@apollo/client";
+import { format, isSameDay, isSameYear, subDays } from "date-fns";
 import { useRouter } from "next/router";
 import { useState } from "react";
 
-import { EllipsisMenu } from "@hashintel/ds-components";
-import { css, cx } from "@hashintel/ds-helpers/css";
+import { EllipsisMenu, Tooltip } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
 
 import {
   archiveFlowDefinitionMutation,
@@ -47,8 +48,8 @@ export type FlowRow = {
 };
 
 /**
- * How many of a flow's runs to read. The API gives the runs that changed most recently, so the newest run is among
- * them unless this many of the flow's other runs changed after it last did. How many runs there are is counted in full.
+ * How many of a flow's runs to read. The API gives those that changed most recently, so the newest run is among them
+ * unless this many others changed after it last did. The count of runs is of all of them.
  */
 const runsPageSize = 10;
 
@@ -87,7 +88,7 @@ const table = css({
     textStyle: "xs",
     fontWeight: "medium",
     color: "fg.muted",
-    bg: "bg.subtle",
+    bg: "bgSolid.surface",
     borderBottomWidth: "1px",
     borderBottomStyle: "solid",
     borderBottomColor: "bd.subtle",
@@ -108,10 +109,11 @@ const table = css({
 });
 const openableRow = css({
   cursor: "pointer",
-  _hover: { bg: "bg.subtle" },
+  _hover: { bg: "bg.surface.hover" },
 });
 const nameText = css({ color: "fg.heading", whiteSpace: "normal" });
 const lastRun = css({ display: "inline-flex", alignItems: "center", gap: "2" });
+const runMark = css({ display: "inline-flex" });
 const subtle = css({ color: "fg.subtle" });
 const lastEdited = css({ display: "flex", gap: "1" });
 const timeText = css({ flexShrink: "0" });
@@ -122,6 +124,23 @@ const editorName = css({
   textOverflow: "ellipsis",
 });
 const menu = css({ display: "flex", justifyContent: "flex-end" });
+const lastRunColumn = css({ width: "[272px]" });
+const runsColumn = css({ width: "[96px]" });
+const lastEditedColumn = css({ width: "[200px]" });
+const menuColumn = css({ width: "[56px]" });
+
+/** When a flow was last edited: the time if that was today, and otherwise only the day. */
+const formatEditTime = (date: Date, now: Date) => {
+  if (isSameDay(date, now)) {
+    return `Today, ${format(date, "HH:mm")}`;
+  }
+
+  if (isSameDay(date, subDays(now, 1))) {
+    return "Yesterday";
+  }
+
+  return format(date, isSameYear(date, now) ? "d MMM" : "d MMM yyyy");
+};
 
 /** The row's menu, which has Archive, as the editor's does: flows are archived, never deleted. */
 const FlowMenu = ({ flow }: { flow: FlowRow }) => {
@@ -181,10 +200,15 @@ const LastRun = ({
   now: Date;
 }) => {
   const state = getRunState(run);
+  const { label } = runStates[state];
 
   return (
     <span className={lastRun}>
-      <RunGlyph state={runGlyphStates[state]} label={runStates[state].label} />
+      <Tooltip content={label}>
+        <span className={runMark}>
+          <RunGlyph state={runGlyphStates[state]} label={label} />
+        </span>
+      </Tooltip>
       <span>
         Run{" "}
         <span className={shortRunIdFont}>
@@ -257,7 +281,7 @@ const FlowTableRow = ({ flow, now }: { flow: FlowRow; now: Date }) => {
       <td>
         <span className={lastEdited}>
           <span className={timeText}>
-            {formatRunTime(new Date(flow.lastEditedAt), now)}
+            {formatEditTime(new Date(flow.lastEditedAt), now)}
             {flow.lastEditedBy !== null && " ·"}
           </span>
           {flow.lastEditedBy !== null && (
@@ -273,14 +297,7 @@ const FlowTableRow = ({ flow, now }: { flow: FlowRow; now: Date }) => {
 };
 
 /** The flows, each with its newest run and how many it has. A row opens its flow. */
-export const FlowsTable = ({
-  flows,
-  search,
-}: {
-  flows: FlowRow[];
-  /** What the flows were searched for, to say nothing matches it. */
-  search: string;
-}) => {
+export const FlowsTable = ({ flows }: { flows: FlowRow[] }) => {
   const now = new Date();
 
   return (
@@ -289,10 +306,10 @@ export const FlowsTable = ({
         <thead>
           <tr>
             <th>Name</th>
-            <th className={css({ width: "[272px]" })}>Last run</th>
-            <th className={css({ width: "[96px]" })}>Runs</th>
-            <th className={css({ width: "[240px]" })}>Last edited</th>
-            <th className={css({ width: "[56px]" })} aria-label="Actions" />
+            <th className={lastRunColumn}>Last run</th>
+            <th className={runsColumn}>Runs</th>
+            <th className={lastEditedColumn}>Last edited</th>
+            <th className={menuColumn} aria-label="Actions" />
           </tr>
         </thead>
         <tbody>
@@ -303,16 +320,6 @@ export const FlowsTable = ({
               now={now}
             />
           ))}
-          {flows.length === 0 && (
-            <tr>
-              <td
-                colSpan={5}
-                className={cx(subtle, css({ fontWeight: "normal" }))}
-              >
-                No flows match “{search}”
-              </td>
-            </tr>
-          )}
         </tbody>
       </table>
     </div>

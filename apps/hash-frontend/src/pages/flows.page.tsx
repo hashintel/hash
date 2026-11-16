@@ -53,7 +53,7 @@ const actions = css({
   gap: "2",
   mt: "1",
 });
-const search = css({ width: "[240px]" });
+const searchInput = css({ width: "[240px]" });
 const loading = css({ display: "flex", justifyContent: "center", py: "24" });
 
 const FlowsPageContent = () => {
@@ -99,7 +99,7 @@ const FlowsPageContent = () => {
           return {
             flowDefinitionEntityId,
             name,
-            /* The editor can't open a flow the user can't edit, so that opens on its own page, as it did before. */
+            /* The editor can't open a flow the user can't edit, so that opens on its own page. */
             path: userCanUpdate
               ? generateFlowEditorPath(pathParams)
               : generateFlowDefinitionPath(pathParams),
@@ -112,13 +112,15 @@ const FlowsPageContent = () => {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [flowDefinitions, getOwner, actors]);
 
-  const matchingFlows = useMemo(() => {
-    const query = searchText.trim().toLowerCase();
+  const search = searchText.trim();
 
-    return flows.filter(({ name }) => name.toLowerCase().includes(query));
-  }, [flows, searchText]);
-
-  const noFlows = !flowsLoading && flows.length === 0;
+  const matchingFlows = useMemo(
+    () =>
+      flows.filter(({ name }) =>
+        name.toLowerCase().includes(search.toLowerCase()),
+      ),
+    [flows, search],
+  );
 
   return (
     <DsComponentsScope>
@@ -132,7 +134,7 @@ const FlowsPageContent = () => {
           </div>
           {flows.length > 0 && (
             <div className={actions}>
-              <div className={search}>
+              <div className={searchInput}>
                 <TextInput
                   size="sm"
                   value={searchText}
@@ -147,14 +149,26 @@ const FlowsPageContent = () => {
             </div>
           )}
         </div>
-        {noFlows ? (
-          <FlowsEmptyState createFlow={createFlow} />
-        ) : flows.length === 0 ? (
-          <div className={loading}>
-            <LoadingSpinner size="lg" />
-          </div>
+        {flows.length === 0 ? (
+          flowsLoading ? (
+            <div className={loading}>
+              <LoadingSpinner size="lg" />
+            </div>
+          ) : (
+            <FlowsEmptyState
+              title="No flows yet"
+              description="A flow runs the same steps each time: by hand, on a schedule, or when data changes."
+            >
+              <NewFlowButton {...createFlow} />
+            </FlowsEmptyState>
+          )
+        ) : matchingFlows.length === 0 ? (
+          <FlowsEmptyState
+            title="No flow matches"
+            description={`Nothing is called “${search}”.`}
+          />
         ) : (
-          <FlowsTable flows={matchingFlows} search={searchText.trim()} />
+          <FlowsTable flows={matchingFlows} />
         )}
       </main>
     </DsComponentsScope>
