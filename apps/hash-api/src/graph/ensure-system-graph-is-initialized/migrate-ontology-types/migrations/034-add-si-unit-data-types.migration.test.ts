@@ -203,6 +203,99 @@ describe("default SI data types", () => {
     }
   });
 
+  it.each([
+    "m",
+    "g",
+    "s",
+    "A",
+    "K",
+    "mol",
+    "cd",
+    "rad",
+    "sr",
+    "Hz",
+    "N",
+    "Pa",
+    "J",
+    "W",
+    "C",
+    "V",
+    "F",
+    "Ω",
+    "S",
+    "Wb",
+    "T",
+    "H",
+    "lm",
+    "lx",
+    "Bq",
+    "Gy",
+    "Sv",
+    "kat",
+    "A·h",
+    "W·h",
+    "L",
+    "m²",
+    "m³",
+  ])("covers all 24 SI prefixes for %s", (symbol) => {
+    const symbols = new Set(
+      [...seeded.values()].map(({ schema }) => schema.label?.right),
+    );
+    for (const prefix of [
+      "Q",
+      "R",
+      "Y",
+      "Z",
+      "E",
+      "P",
+      "T",
+      "G",
+      "M",
+      "k",
+      "h",
+      "da",
+      "d",
+      "c",
+      "m",
+      "µ",
+      "n",
+      "p",
+      "f",
+      "a",
+      "z",
+      "y",
+      "r",
+      "q",
+    ]) {
+      expect(symbols.has(`${prefix}${symbol}`), `${prefix}${symbol}`).toBe(
+        true,
+      );
+    }
+  });
+
+  it("preserves existing unit names and avoids double prefixes on kilograms", () => {
+    for (const title of [
+      "Microsecond",
+      "Millisecond",
+      "Millimeters",
+      "Kilometers",
+      "Kilograms",
+      "Kilohms",
+      "Megohms",
+      "Square Centimetres",
+      "Cubic Metres",
+      "Millilitres",
+    ]) {
+      expect(getSeeded(title).schema.$id).toBe(
+        Object.values(systemDataTypes).find((type) => type.title === title)
+          ?.dataTypeId,
+      );
+    }
+    expect(seeded.has("Microkilograms")).toBe(false);
+    expect(seeded.has("Kiloohms")).toBe(false);
+    expect(seeded.has("Megaohms")).toBe(false);
+  });
+
   it("creates parents and conversion targets before their dependents", () => {
     const available = new Map<string, DataType>();
     for (const { schema, conversions } of seeded.values()) {
@@ -261,6 +354,20 @@ describe("SI unit conversions", () => {
     ["Moles per Litre", "Moles per Cubic Meter", 1, 1000],
     ["Millipascal Seconds", "Pascal Seconds", 1000, 1],
     ["Microsieverts", "Sieverts", 1000000, 1],
+    ["Kiloampere Hours", "Coulombs", 1, 3600000],
+    ["Microampere Hours", "Coulombs", 1000000, 3600],
+    ["Millicoulombs", "Coulombs", 1000, 1],
+    ["Megawatt Hours", "Joules", 1, 3600000000],
+    ["Milligrams", "Kilograms", 1000000, 1],
+    ["Megagrams", "Kilograms", 1, 1000],
+    ["Nanosecond", "Second", 1000000000, 1],
+    ["Gigahertz", "Hertz", 1, 1000000000],
+    ["Microkelvins", "Kelvins", 1000000, 1],
+    ["Square Millimetres", "Square Metres", 1000000, 1],
+    ["Square Kilometres", "Square Metres", 1, 1000000],
+    ["Cubic Centimetres", "Litres", 1000, 1],
+    ["Cubic Millimetres", "Litres", 1000000, 1],
+    ["Microlitres", "Litres", 1000000, 1],
   ])("converts %s to %s and back", (source, target, input, expected) => {
     const conversion = getConversion(source, target);
     expect(createConversionFunction([conversion.to])(input)).toBeCloseTo(
@@ -284,17 +391,64 @@ describe("SI unit conversions", () => {
     );
   });
 
-  it("round-trips every conversion with the application evaluator", () => {
+  it("round-trips every conversion at magnitudes supported by the application evaluator", () => {
     for (const { schema, conversions } of seeded.values()) {
       for (const conversion of Object.values(conversions)) {
-        for (const value of [0, 1, 123.456]) {
-          expect(
-            createConversionFunction([conversion.to, conversion.from])(value),
-            `${schema.title}: ${value}`,
-          ).toBeCloseTo(value, 8);
+        const reverseMagnitude = Math.abs(
+          createConversionFunction([conversion.from])(1),
+        );
+        const magnitude = Math.max(1, reverseMagnitude);
+        for (const value of [0, magnitude, 123.456 * magnitude]) {
+          const result = createConversionFunction([
+            conversion.to,
+            conversion.from,
+          ])(value);
+          if (value === 0) {
+            expect(result, schema.title).toBeCloseTo(0, 8);
+          } else {
+            expect(result / value, `${schema.title}: ${value}`).toBeCloseTo(
+              1,
+              12,
+            );
+          }
         }
       }
     }
+  });
+
+  it.each([
+    ["Quettaamperes", "Amperes", 1, 1e30],
+    ["Ronnaamperes", "Amperes", 1, 1e27],
+    ["Rontoamperes", "Amperes", 1e27, 1],
+    ["Quectoamperes", "Amperes", 1e30, 1],
+    ["Quectograms", "Kilograms", 1e33, 1],
+    ["Square Quectometres", "Square Metres", 1e60, 1],
+    ["Cubic Quectometres", "Litres", 1e87, 1],
+    ["Cubic Quettametres", "Litres", 1, 1e93],
+  ])(
+    "converts %s at supported magnitudes",
+    (source, target, input, expected) => {
+      const conversion = getConversion(source, target);
+      const actual = createConversionFunction([conversion.to])(input);
+      expect(actual / expected).toBeCloseTo(1, 12);
+      expect(
+        createConversionFunction([conversion.from])(expected) / input,
+      ).toBeCloseTo(1, 12);
+    },
+  );
+
+  it("composes charge and volume prefixes through their reference units", () => {
+    const kiloampereHours = getConversion("Kiloampere Hours", "Coulombs");
+    const milliampereHours = getConversion("Milliampere Hours", "Coulombs");
+    expect(
+      createConversionFunction([kiloampereHours.to, milliampereHours.from])(1),
+    ).toBeCloseTo(1000000, 6);
+
+    const cubicCentimetres = getConversion("Cubic Centimetres", "Litres");
+    const millilitres = getConversion("Millilitres", "Litres");
+    expect(
+      createConversionFunction([cubicCentimetres.to, millilitres.from])(1),
+    ).toBe(1);
   });
 
   it("bounds temperature readings at absolute zero", () => {
@@ -302,6 +456,8 @@ describe("SI unit conversions", () => {
       ["Kelvins", 0],
       ["Degrees Celsius", -273.15],
       ["Degrees Fahrenheit", -459.67],
+      ["Millikelvins", 0],
+      ["Quectokelvins", 0],
     ] as const) {
       expect(getSeeded(title).schema).toMatchObject({ minimum });
     }

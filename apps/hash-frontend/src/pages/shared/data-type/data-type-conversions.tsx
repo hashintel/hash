@@ -61,6 +61,9 @@ export const DataTypeConversions = ({
 
   const combinedConversions = useMemo<CombinedConversions>(() => {
     const combined: CombinedConversions = {};
+    if (!dataTypes) {
+      return combined;
+    }
 
     const latestDataTypeByBaseUrl: Record<BaseUrl, DataTypeWithMetadata> = {};
     for (const dataTypeOption of Object.values(dataTypes ?? {})) {
@@ -124,6 +127,7 @@ export const DataTypeConversions = ({
     FindDataTypeConversionTargetsQuery,
     FindDataTypeConversionTargetsQueryVariables
   >(findDataTypeConversionTargetsQuery, {
+    skip: !dataTypes,
     variables: {
       /**
        * This fetches the conversions available from the data types that _this_ data type defines conversions to ("local conversions").
@@ -224,6 +228,7 @@ export const DataTypeConversions = ({
   const type = useWatch({ control, name: "constraints.type" });
 
   if (
+    !dataTypes ||
     loading ||
     (!Object.keys(conversionTargetsMap ?? {}).length && isReadOnly) ||
     type !== "number"

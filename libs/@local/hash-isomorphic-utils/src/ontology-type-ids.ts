@@ -2590,6 +2590,215 @@ export const systemDataTypes = {
     title: "ARS",
     description: "An amount denominated in Argentine Peso (ISO 4217 ARS).",
   },
+  attoampereHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/attoampere-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/attoampere-hours/" as BaseUrl,
+    title: "Attoampere Hours",
+    description: "A unit equal to 10^-18 ampere hours.",
+  },
+  attoamperes: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/attoamperes/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/attoamperes/" as BaseUrl,
+    title: "Attoamperes",
+    description: "A unit equal to 10^-18 amperes.",
+  },
+  attobecquerels: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/attobecquerels/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/attobecquerels/" as BaseUrl,
+    title: "Attobecquerels",
+    description: "A unit equal to 10^-18 becquerels.",
+  },
+  attocandelas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/attocandelas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/attocandelas/" as BaseUrl,
+    title: "Attocandelas",
+    description: "A unit equal to 10^-18 candelas.",
+  },
+  attocoulombs: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/attocoulombs/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/attocoulombs/" as BaseUrl,
+    title: "Attocoulombs",
+    description: "A unit equal to 10^-18 coulombs.",
+  },
+  attofarads: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/attofarads/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/attofarads/" as BaseUrl,
+    title: "Attofarads",
+    description: "A unit equal to 10^-18 farads.",
+  },
+  attograms: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/attograms/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/attograms/" as BaseUrl,
+    title: "Attograms",
+    description: "A unit equal to 10^-18 grams.",
+  },
+  attograys: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/attograys/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/attograys/" as BaseUrl,
+    title: "Attograys",
+    description: "A unit equal to 10^-18 grays.",
+  },
+  attohenries: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/attohenries/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/attohenries/" as BaseUrl,
+    title: "Attohenries",
+    description: "A unit equal to 10^-18 henries.",
+  },
+  attohertz: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/attohertz/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/attohertz/" as BaseUrl,
+    title: "Attohertz",
+    description: "A unit equal to 10^-18 hertz.",
+  },
+  attojoules: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/attojoules/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/attojoules/" as BaseUrl,
+    title: "Attojoules",
+    description: "A unit equal to 10^-18 joules.",
+  },
+  attokatals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/attokatals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/attokatals/" as BaseUrl,
+    title: "Attokatals",
+    description: "A unit equal to 10^-18 katals.",
+  },
+  attokelvins: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/attokelvins/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/attokelvins/" as BaseUrl,
+    title: "Attokelvins",
+    description: "A unit equal to 10^-18 kelvins.",
+  },
+  attolitres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/attolitres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/attolitres/" as BaseUrl,
+    title: "Attolitres",
+    description: "A unit equal to 10^-18 litres.",
+  },
+  attolumens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/attolumens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/attolumens/" as BaseUrl,
+    title: "Attolumens",
+    description: "A unit equal to 10^-18 lumens.",
+  },
+  attolux: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/attolux/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/attolux/" as BaseUrl,
+    title: "Attolux",
+    description: "A unit equal to 10^-18 lux.",
+  },
+  attometers: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/attometers/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/attometers/" as BaseUrl,
+    title: "Attometers",
+    description: "A unit equal to 10^-18 meters.",
+  },
+  attomoles: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/attomoles/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/attomoles/" as BaseUrl,
+    title: "Attomoles",
+    description: "A unit equal to 10^-18 moles.",
+  },
+  attonewtons: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/attonewtons/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/attonewtons/" as BaseUrl,
+    title: "Attonewtons",
+    description: "A unit equal to 10^-18 newtons.",
+  },
+  attoohms: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/attoohms/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/attoohms/" as BaseUrl,
+    title: "Attoohms",
+    description: "A unit equal to 10^-18 ohms.",
+  },
+  attopascals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/attopascals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/attopascals/" as BaseUrl,
+    title: "Attopascals",
+    description: "A unit equal to 10^-18 pascals.",
+  },
+  attoradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/attoradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/attoradians/" as BaseUrl,
+    title: "Attoradians",
+    description: "A unit equal to 10^-18 radians.",
+  },
+  attosecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/attosecond/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/attosecond/" as BaseUrl,
+    title: "Attosecond",
+    description: "A unit equal to 10^-18 second.",
+  },
+  attosiemens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/attosiemens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/attosiemens/" as BaseUrl,
+    title: "Attosiemens",
+    description: "A unit equal to 10^-18 siemens.",
+  },
+  attosieverts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/attosieverts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/attosieverts/" as BaseUrl,
+    title: "Attosieverts",
+    description: "A unit equal to 10^-18 sieverts.",
+  },
+  attosteradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/attosteradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/attosteradians/" as BaseUrl,
+    title: "Attosteradians",
+    description: "A unit equal to 10^-18 steradians.",
+  },
+  attoteslas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/attoteslas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/attoteslas/" as BaseUrl,
+    title: "Attoteslas",
+    description: "A unit equal to 10^-18 teslas.",
+  },
+  attovolts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/attovolts/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/attovolts/" as BaseUrl,
+    title: "Attovolts",
+    description: "A unit equal to 10^-18 volts.",
+  },
+  attowattHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/attowatt-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/attowatt-hours/" as BaseUrl,
+    title: "Attowatt Hours",
+    description: "A unit equal to 10^-18 watt hours.",
+  },
+  attowatts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/attowatts/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/attowatts/" as BaseUrl,
+    title: "Attowatts",
+    description: "A unit equal to 10^-18 watts.",
+  },
+  attowebers: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/attowebers/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/attowebers/" as BaseUrl,
+    title: "Attowebers",
+    description: "A unit equal to 10^-18 webers.",
+  },
   aud: {
     dataTypeId: "https://hash.ai/@h/types/data-type/aud/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/aud/" as BaseUrl,
@@ -2781,6 +2990,117 @@ export const systemDataTypes = {
     title: "CDF",
     description: "An amount denominated in Congolese Franc (ISO 4217 CDF).",
   },
+  centiampereHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/centiampere-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/centiampere-hours/" as BaseUrl,
+    title: "Centiampere Hours",
+    description: "A unit equal to 10^-2 ampere hours.",
+  },
+  centiamperes: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/centiamperes/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/centiamperes/" as BaseUrl,
+    title: "Centiamperes",
+    description: "A unit equal to 10^-2 amperes.",
+  },
+  centibecquerels: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/centibecquerels/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/centibecquerels/" as BaseUrl,
+    title: "Centibecquerels",
+    description: "A unit equal to 10^-2 becquerels.",
+  },
+  centicandelas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/centicandelas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/centicandelas/" as BaseUrl,
+    title: "Centicandelas",
+    description: "A unit equal to 10^-2 candelas.",
+  },
+  centicoulombs: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/centicoulombs/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/centicoulombs/" as BaseUrl,
+    title: "Centicoulombs",
+    description: "A unit equal to 10^-2 coulombs.",
+  },
+  centifarads: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/centifarads/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/centifarads/" as BaseUrl,
+    title: "Centifarads",
+    description: "A unit equal to 10^-2 farads.",
+  },
+  centigrams: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/centigrams/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/centigrams/" as BaseUrl,
+    title: "Centigrams",
+    description: "A unit equal to 10^-2 grams.",
+  },
+  centigrays: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/centigrays/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/centigrays/" as BaseUrl,
+    title: "Centigrays",
+    description: "A unit equal to 10^-2 grays.",
+  },
+  centihenries: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/centihenries/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/centihenries/" as BaseUrl,
+    title: "Centihenries",
+    description: "A unit equal to 10^-2 henries.",
+  },
+  centihertz: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/centihertz/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/centihertz/" as BaseUrl,
+    title: "Centihertz",
+    description: "A unit equal to 10^-2 hertz.",
+  },
+  centijoules: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/centijoules/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/centijoules/" as BaseUrl,
+    title: "Centijoules",
+    description: "A unit equal to 10^-2 joules.",
+  },
+  centikatals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/centikatals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/centikatals/" as BaseUrl,
+    title: "Centikatals",
+    description: "A unit equal to 10^-2 katals.",
+  },
+  centikelvins: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/centikelvins/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/centikelvins/" as BaseUrl,
+    title: "Centikelvins",
+    description: "A unit equal to 10^-2 kelvins.",
+  },
+  centilitres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/centilitres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/centilitres/" as BaseUrl,
+    title: "Centilitres",
+    description: "A unit equal to 10^-2 litres.",
+  },
+  centilumens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/centilumens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/centilumens/" as BaseUrl,
+    title: "Centilumens",
+    description: "A unit equal to 10^-2 lumens.",
+  },
+  centilux: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/centilux/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/centilux/" as BaseUrl,
+    title: "Centilux",
+    description: "A unit equal to 10^-2 lux.",
+  },
   centimeters: {
     dataTypeId: "https://hash.ai/@h/types/data-type/centimeters/v/1",
     dataTypeBaseUrl:
@@ -2788,6 +3108,103 @@ export const systemDataTypes = {
     title: "Centimeters",
     description:
       "A unit of length in the International System of Units (SI), equal to one hundredth of a meter.",
+  },
+  centimoles: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/centimoles/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/centimoles/" as BaseUrl,
+    title: "Centimoles",
+    description: "A unit equal to 10^-2 moles.",
+  },
+  centinewtons: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/centinewtons/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/centinewtons/" as BaseUrl,
+    title: "Centinewtons",
+    description: "A unit equal to 10^-2 newtons.",
+  },
+  centiohms: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/centiohms/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/centiohms/" as BaseUrl,
+    title: "Centiohms",
+    description: "A unit equal to 10^-2 ohms.",
+  },
+  centipascals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/centipascals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/centipascals/" as BaseUrl,
+    title: "Centipascals",
+    description: "A unit equal to 10^-2 pascals.",
+  },
+  centiradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/centiradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/centiradians/" as BaseUrl,
+    title: "Centiradians",
+    description: "A unit equal to 10^-2 radians.",
+  },
+  centisecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/centisecond/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/centisecond/" as BaseUrl,
+    title: "Centisecond",
+    description: "A unit equal to 10^-2 second.",
+  },
+  centisiemens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/centisiemens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/centisiemens/" as BaseUrl,
+    title: "Centisiemens",
+    description: "A unit equal to 10^-2 siemens.",
+  },
+  centisieverts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/centisieverts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/centisieverts/" as BaseUrl,
+    title: "Centisieverts",
+    description: "A unit equal to 10^-2 sieverts.",
+  },
+  centisteradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/centisteradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/centisteradians/" as BaseUrl,
+    title: "Centisteradians",
+    description: "A unit equal to 10^-2 steradians.",
+  },
+  centiteslas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/centiteslas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/centiteslas/" as BaseUrl,
+    title: "Centiteslas",
+    description: "A unit equal to 10^-2 teslas.",
+  },
+  centivolts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/centivolts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/centivolts/" as BaseUrl,
+    title: "Centivolts",
+    description: "A unit equal to 10^-2 volts.",
+  },
+  centiwattHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/centiwatt-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/centiwatt-hours/" as BaseUrl,
+    title: "Centiwatt Hours",
+    description: "A unit equal to 10^-2 watt hours.",
+  },
+  centiwatts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/centiwatts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/centiwatts/" as BaseUrl,
+    title: "Centiwatts",
+    description: "A unit equal to 10^-2 watts.",
+  },
+  centiwebers: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/centiwebers/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/centiwebers/" as BaseUrl,
+    title: "Centiwebers",
+    description: "A unit equal to 10^-2 webers.",
   },
   chf: {
     dataTypeId: "https://hash.ai/@h/types/data-type/chf/v/1",
@@ -2849,6 +3266,41 @@ export const systemDataTypes = {
     title: "CRC",
     description: "An amount denominated in Costa Rican Colon (ISO 4217 CRC).",
   },
+  cubicAttometres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/cubic-attometres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/cubic-attometres/" as BaseUrl,
+    title: "Cubic Attometres",
+    description: "A unit equal to 10^-54 cubic metres.",
+  },
+  cubicCentimetres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/cubic-centimetres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/cubic-centimetres/" as BaseUrl,
+    title: "Cubic Centimetres",
+    description: "A unit equal to 10^-6 cubic metres.",
+  },
+  cubicDecametres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/cubic-decametres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/cubic-decametres/" as BaseUrl,
+    title: "Cubic Decametres",
+    description: "A unit equal to 10^3 cubic metres.",
+  },
+  cubicDecimetres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/cubic-decimetres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/cubic-decimetres/" as BaseUrl,
+    title: "Cubic Decimetres",
+    description: "A unit equal to 10^-3 cubic metres.",
+  },
+  cubicExametres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/cubic-exametres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/cubic-exametres/" as BaseUrl,
+    title: "Cubic Exametres",
+    description: "A unit equal to 10^54 cubic metres.",
+  },
   cubicFeet: {
     dataTypeId: "https://hash.ai/@h/types/data-type/cubic-feet/v/1",
     dataTypeBaseUrl:
@@ -2856,6 +3308,41 @@ export const systemDataTypes = {
     title: "Cubic Feet",
     description:
       "An imperial unit of volume equal to approximately 28.317 litres.",
+  },
+  cubicFemtometres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/cubic-femtometres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/cubic-femtometres/" as BaseUrl,
+    title: "Cubic Femtometres",
+    description: "A unit equal to 10^-45 cubic metres.",
+  },
+  cubicGigametres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/cubic-gigametres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/cubic-gigametres/" as BaseUrl,
+    title: "Cubic Gigametres",
+    description: "A unit equal to 10^27 cubic metres.",
+  },
+  cubicHectometres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/cubic-hectometres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/cubic-hectometres/" as BaseUrl,
+    title: "Cubic Hectometres",
+    description: "A unit equal to 10^6 cubic metres.",
+  },
+  cubicKilometres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/cubic-kilometres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/cubic-kilometres/" as BaseUrl,
+    title: "Cubic Kilometres",
+    description: "A unit equal to 10^9 cubic metres.",
+  },
+  cubicMegametres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/cubic-megametres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/cubic-megametres/" as BaseUrl,
+    title: "Cubic Megametres",
+    description: "A unit equal to 10^18 cubic metres.",
   },
   cubicMetersPerKilogram: {
     dataTypeId:
@@ -2871,6 +3358,104 @@ export const systemDataTypes = {
       "https://hash.ai/@h/types/data-type/cubic-metres/" as BaseUrl,
     title: "Cubic Metres",
     description: "A metric unit of volume equal to 1000 litres.",
+  },
+  cubicMicrometres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/cubic-micrometres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/cubic-micrometres/" as BaseUrl,
+    title: "Cubic Micrometres",
+    description: "A unit equal to 10^-18 cubic metres.",
+  },
+  cubicMillimetres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/cubic-millimetres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/cubic-millimetres/" as BaseUrl,
+    title: "Cubic Millimetres",
+    description: "A unit equal to 10^-9 cubic metres.",
+  },
+  cubicNanometres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/cubic-nanometres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/cubic-nanometres/" as BaseUrl,
+    title: "Cubic Nanometres",
+    description: "A unit equal to 10^-27 cubic metres.",
+  },
+  cubicPetametres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/cubic-petametres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/cubic-petametres/" as BaseUrl,
+    title: "Cubic Petametres",
+    description: "A unit equal to 10^45 cubic metres.",
+  },
+  cubicPicometres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/cubic-picometres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/cubic-picometres/" as BaseUrl,
+    title: "Cubic Picometres",
+    description: "A unit equal to 10^-36 cubic metres.",
+  },
+  cubicQuectometres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/cubic-quectometres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/cubic-quectometres/" as BaseUrl,
+    title: "Cubic Quectometres",
+    description: "A unit equal to 10^-90 cubic metres.",
+  },
+  cubicQuettametres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/cubic-quettametres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/cubic-quettametres/" as BaseUrl,
+    title: "Cubic Quettametres",
+    description: "A unit equal to 10^90 cubic metres.",
+  },
+  cubicRonnametres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/cubic-ronnametres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/cubic-ronnametres/" as BaseUrl,
+    title: "Cubic Ronnametres",
+    description: "A unit equal to 10^81 cubic metres.",
+  },
+  cubicRontometres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/cubic-rontometres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/cubic-rontometres/" as BaseUrl,
+    title: "Cubic Rontometres",
+    description: "A unit equal to 10^-81 cubic metres.",
+  },
+  cubicTerametres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/cubic-terametres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/cubic-terametres/" as BaseUrl,
+    title: "Cubic Terametres",
+    description: "A unit equal to 10^36 cubic metres.",
+  },
+  cubicYoctometres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/cubic-yoctometres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/cubic-yoctometres/" as BaseUrl,
+    title: "Cubic Yoctometres",
+    description: "A unit equal to 10^-72 cubic metres.",
+  },
+  cubicYottametres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/cubic-yottametres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/cubic-yottametres/" as BaseUrl,
+    title: "Cubic Yottametres",
+    description: "A unit equal to 10^72 cubic metres.",
+  },
+  cubicZeptometres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/cubic-zeptometres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/cubic-zeptometres/" as BaseUrl,
+    title: "Cubic Zeptometres",
+    description: "A unit equal to 10^-63 cubic metres.",
+  },
+  cubicZettametres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/cubic-zettametres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/cubic-zettametres/" as BaseUrl,
+    title: "Cubic Zettametres",
+    description: "A unit equal to 10^63 cubic metres.",
   },
   cup: {
     dataTypeId: "https://hash.ai/@h/types/data-type/cup/v/1",
@@ -2923,6 +3508,424 @@ export const systemDataTypes = {
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/days/" as BaseUrl,
     title: "Days",
     description: "A unit of time equal to 24 hours.",
+  },
+  decaampereHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decaampere-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decaampere-hours/" as BaseUrl,
+    title: "Decaampere Hours",
+    description: "A unit equal to 10^1 ampere hours.",
+  },
+  decaamperes: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decaamperes/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decaamperes/" as BaseUrl,
+    title: "Decaamperes",
+    description: "A unit equal to 10^1 amperes.",
+  },
+  decabecquerels: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decabecquerels/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decabecquerels/" as BaseUrl,
+    title: "Decabecquerels",
+    description: "A unit equal to 10^1 becquerels.",
+  },
+  decacandelas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decacandelas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decacandelas/" as BaseUrl,
+    title: "Decacandelas",
+    description: "A unit equal to 10^1 candelas.",
+  },
+  decacoulombs: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decacoulombs/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decacoulombs/" as BaseUrl,
+    title: "Decacoulombs",
+    description: "A unit equal to 10^1 coulombs.",
+  },
+  decafarads: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decafarads/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decafarads/" as BaseUrl,
+    title: "Decafarads",
+    description: "A unit equal to 10^1 farads.",
+  },
+  decagrams: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decagrams/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/decagrams/" as BaseUrl,
+    title: "Decagrams",
+    description: "A unit equal to 10^1 grams.",
+  },
+  decagrays: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decagrays/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/decagrays/" as BaseUrl,
+    title: "Decagrays",
+    description: "A unit equal to 10^1 grays.",
+  },
+  decahenries: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decahenries/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decahenries/" as BaseUrl,
+    title: "Decahenries",
+    description: "A unit equal to 10^1 henries.",
+  },
+  decahertz: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decahertz/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/decahertz/" as BaseUrl,
+    title: "Decahertz",
+    description: "A unit equal to 10^1 hertz.",
+  },
+  decajoules: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decajoules/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decajoules/" as BaseUrl,
+    title: "Decajoules",
+    description: "A unit equal to 10^1 joules.",
+  },
+  decakatals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decakatals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decakatals/" as BaseUrl,
+    title: "Decakatals",
+    description: "A unit equal to 10^1 katals.",
+  },
+  decakelvins: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decakelvins/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decakelvins/" as BaseUrl,
+    title: "Decakelvins",
+    description: "A unit equal to 10^1 kelvins.",
+  },
+  decalitres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decalitres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decalitres/" as BaseUrl,
+    title: "Decalitres",
+    description: "A unit equal to 10^1 litres.",
+  },
+  decalumens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decalumens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decalumens/" as BaseUrl,
+    title: "Decalumens",
+    description: "A unit equal to 10^1 lumens.",
+  },
+  decalux: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decalux/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/decalux/" as BaseUrl,
+    title: "Decalux",
+    description: "A unit equal to 10^1 lux.",
+  },
+  decameters: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decameters/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decameters/" as BaseUrl,
+    title: "Decameters",
+    description: "A unit equal to 10^1 meters.",
+  },
+  decamoles: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decamoles/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/decamoles/" as BaseUrl,
+    title: "Decamoles",
+    description: "A unit equal to 10^1 moles.",
+  },
+  decanewtons: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decanewtons/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decanewtons/" as BaseUrl,
+    title: "Decanewtons",
+    description: "A unit equal to 10^1 newtons.",
+  },
+  decaohms: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decaohms/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/decaohms/" as BaseUrl,
+    title: "Decaohms",
+    description: "A unit equal to 10^1 ohms.",
+  },
+  decapascals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decapascals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decapascals/" as BaseUrl,
+    title: "Decapascals",
+    description: "A unit equal to 10^1 pascals.",
+  },
+  decaradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decaradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decaradians/" as BaseUrl,
+    title: "Decaradians",
+    description: "A unit equal to 10^1 radians.",
+  },
+  decasecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decasecond/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decasecond/" as BaseUrl,
+    title: "Decasecond",
+    description: "A unit equal to 10^1 second.",
+  },
+  decasiemens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decasiemens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decasiemens/" as BaseUrl,
+    title: "Decasiemens",
+    description: "A unit equal to 10^1 siemens.",
+  },
+  decasieverts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decasieverts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decasieverts/" as BaseUrl,
+    title: "Decasieverts",
+    description: "A unit equal to 10^1 sieverts.",
+  },
+  decasteradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decasteradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decasteradians/" as BaseUrl,
+    title: "Decasteradians",
+    description: "A unit equal to 10^1 steradians.",
+  },
+  decateslas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decateslas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decateslas/" as BaseUrl,
+    title: "Decateslas",
+    description: "A unit equal to 10^1 teslas.",
+  },
+  decavolts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decavolts/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/decavolts/" as BaseUrl,
+    title: "Decavolts",
+    description: "A unit equal to 10^1 volts.",
+  },
+  decawattHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decawatt-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decawatt-hours/" as BaseUrl,
+    title: "Decawatt Hours",
+    description: "A unit equal to 10^1 watt hours.",
+  },
+  decawatts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decawatts/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/decawatts/" as BaseUrl,
+    title: "Decawatts",
+    description: "A unit equal to 10^1 watts.",
+  },
+  decawebers: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decawebers/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decawebers/" as BaseUrl,
+    title: "Decawebers",
+    description: "A unit equal to 10^1 webers.",
+  },
+  deciampereHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/deciampere-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/deciampere-hours/" as BaseUrl,
+    title: "Deciampere Hours",
+    description: "A unit equal to 10^-1 ampere hours.",
+  },
+  deciamperes: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/deciamperes/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/deciamperes/" as BaseUrl,
+    title: "Deciamperes",
+    description: "A unit equal to 10^-1 amperes.",
+  },
+  decibecquerels: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decibecquerels/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decibecquerels/" as BaseUrl,
+    title: "Decibecquerels",
+    description: "A unit equal to 10^-1 becquerels.",
+  },
+  decicandelas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decicandelas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decicandelas/" as BaseUrl,
+    title: "Decicandelas",
+    description: "A unit equal to 10^-1 candelas.",
+  },
+  decicoulombs: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decicoulombs/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decicoulombs/" as BaseUrl,
+    title: "Decicoulombs",
+    description: "A unit equal to 10^-1 coulombs.",
+  },
+  decifarads: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decifarads/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decifarads/" as BaseUrl,
+    title: "Decifarads",
+    description: "A unit equal to 10^-1 farads.",
+  },
+  decigrams: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decigrams/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/decigrams/" as BaseUrl,
+    title: "Decigrams",
+    description: "A unit equal to 10^-1 grams.",
+  },
+  decigrays: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decigrays/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/decigrays/" as BaseUrl,
+    title: "Decigrays",
+    description: "A unit equal to 10^-1 grays.",
+  },
+  decihenries: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decihenries/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decihenries/" as BaseUrl,
+    title: "Decihenries",
+    description: "A unit equal to 10^-1 henries.",
+  },
+  decihertz: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decihertz/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/decihertz/" as BaseUrl,
+    title: "Decihertz",
+    description: "A unit equal to 10^-1 hertz.",
+  },
+  decijoules: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decijoules/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decijoules/" as BaseUrl,
+    title: "Decijoules",
+    description: "A unit equal to 10^-1 joules.",
+  },
+  decikatals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decikatals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decikatals/" as BaseUrl,
+    title: "Decikatals",
+    description: "A unit equal to 10^-1 katals.",
+  },
+  decikelvins: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decikelvins/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decikelvins/" as BaseUrl,
+    title: "Decikelvins",
+    description: "A unit equal to 10^-1 kelvins.",
+  },
+  decilitres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decilitres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decilitres/" as BaseUrl,
+    title: "Decilitres",
+    description: "A unit equal to 10^-1 litres.",
+  },
+  decilumens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decilumens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decilumens/" as BaseUrl,
+    title: "Decilumens",
+    description: "A unit equal to 10^-1 lumens.",
+  },
+  decilux: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decilux/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/decilux/" as BaseUrl,
+    title: "Decilux",
+    description: "A unit equal to 10^-1 lux.",
+  },
+  decimeters: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decimeters/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decimeters/" as BaseUrl,
+    title: "Decimeters",
+    description: "A unit equal to 10^-1 meters.",
+  },
+  decimoles: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decimoles/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/decimoles/" as BaseUrl,
+    title: "Decimoles",
+    description: "A unit equal to 10^-1 moles.",
+  },
+  decinewtons: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decinewtons/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decinewtons/" as BaseUrl,
+    title: "Decinewtons",
+    description: "A unit equal to 10^-1 newtons.",
+  },
+  deciohms: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/deciohms/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/deciohms/" as BaseUrl,
+    title: "Deciohms",
+    description: "A unit equal to 10^-1 ohms.",
+  },
+  decipascals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decipascals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decipascals/" as BaseUrl,
+    title: "Decipascals",
+    description: "A unit equal to 10^-1 pascals.",
+  },
+  deciradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/deciradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/deciradians/" as BaseUrl,
+    title: "Deciradians",
+    description: "A unit equal to 10^-1 radians.",
+  },
+  decisecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decisecond/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decisecond/" as BaseUrl,
+    title: "Decisecond",
+    description: "A unit equal to 10^-1 second.",
+  },
+  decisiemens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decisiemens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decisiemens/" as BaseUrl,
+    title: "Decisiemens",
+    description: "A unit equal to 10^-1 siemens.",
+  },
+  decisieverts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decisieverts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decisieverts/" as BaseUrl,
+    title: "Decisieverts",
+    description: "A unit equal to 10^-1 sieverts.",
+  },
+  decisteradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decisteradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/decisteradians/" as BaseUrl,
+    title: "Decisteradians",
+    description: "A unit equal to 10^-1 steradians.",
+  },
+  deciteslas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/deciteslas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/deciteslas/" as BaseUrl,
+    title: "Deciteslas",
+    description: "A unit equal to 10^-1 teslas.",
+  },
+  decivolts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/decivolts/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/decivolts/" as BaseUrl,
+    title: "Decivolts",
+    description: "A unit equal to 10^-1 volts.",
+  },
+  deciwattHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/deciwatt-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/deciwatt-hours/" as BaseUrl,
+    title: "Deciwatt Hours",
+    description: "A unit equal to 10^-1 watt hours.",
+  },
+  deciwatts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/deciwatts/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/deciwatts/" as BaseUrl,
+    title: "Deciwatts",
+    description: "A unit equal to 10^-1 watts.",
+  },
+  deciwebers: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/deciwebers/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/deciwebers/" as BaseUrl,
+    title: "Deciwebers",
+    description: "A unit equal to 10^-1 webers.",
   },
   degree: {
     dataTypeId: "https://hash.ai/@h/types/data-type/degree/v/1",
@@ -3106,6 +4109,206 @@ export const systemDataTypes = {
     title: "EUR",
     description: "An amount denominated in Euro (ISO 4217 EUR).",
   },
+  exaampereHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exaampere-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/exaampere-hours/" as BaseUrl,
+    title: "Exaampere Hours",
+    description: "A unit equal to 10^18 ampere hours.",
+  },
+  exaamperes: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exaamperes/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/exaamperes/" as BaseUrl,
+    title: "Exaamperes",
+    description: "A unit equal to 10^18 amperes.",
+  },
+  exabecquerels: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exabecquerels/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/exabecquerels/" as BaseUrl,
+    title: "Exabecquerels",
+    description: "A unit equal to 10^18 becquerels.",
+  },
+  exacandelas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exacandelas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/exacandelas/" as BaseUrl,
+    title: "Exacandelas",
+    description: "A unit equal to 10^18 candelas.",
+  },
+  exacoulombs: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exacoulombs/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/exacoulombs/" as BaseUrl,
+    title: "Exacoulombs",
+    description: "A unit equal to 10^18 coulombs.",
+  },
+  exafarads: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exafarads/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/exafarads/" as BaseUrl,
+    title: "Exafarads",
+    description: "A unit equal to 10^18 farads.",
+  },
+  exagrams: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exagrams/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/exagrams/" as BaseUrl,
+    title: "Exagrams",
+    description: "A unit equal to 10^18 grams.",
+  },
+  exagrays: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exagrays/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/exagrays/" as BaseUrl,
+    title: "Exagrays",
+    description: "A unit equal to 10^18 grays.",
+  },
+  exahenries: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exahenries/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/exahenries/" as BaseUrl,
+    title: "Exahenries",
+    description: "A unit equal to 10^18 henries.",
+  },
+  exahertz: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exahertz/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/exahertz/" as BaseUrl,
+    title: "Exahertz",
+    description: "A unit equal to 10^18 hertz.",
+  },
+  exajoules: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exajoules/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/exajoules/" as BaseUrl,
+    title: "Exajoules",
+    description: "A unit equal to 10^18 joules.",
+  },
+  exakatals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exakatals/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/exakatals/" as BaseUrl,
+    title: "Exakatals",
+    description: "A unit equal to 10^18 katals.",
+  },
+  exakelvins: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exakelvins/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/exakelvins/" as BaseUrl,
+    title: "Exakelvins",
+    description: "A unit equal to 10^18 kelvins.",
+  },
+  exalitres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exalitres/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/exalitres/" as BaseUrl,
+    title: "Exalitres",
+    description: "A unit equal to 10^18 litres.",
+  },
+  exalumens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exalumens/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/exalumens/" as BaseUrl,
+    title: "Exalumens",
+    description: "A unit equal to 10^18 lumens.",
+  },
+  exalux: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exalux/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/exalux/" as BaseUrl,
+    title: "Exalux",
+    description: "A unit equal to 10^18 lux.",
+  },
+  exameters: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exameters/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/exameters/" as BaseUrl,
+    title: "Exameters",
+    description: "A unit equal to 10^18 meters.",
+  },
+  examoles: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/examoles/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/examoles/" as BaseUrl,
+    title: "Examoles",
+    description: "A unit equal to 10^18 moles.",
+  },
+  exanewtons: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exanewtons/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/exanewtons/" as BaseUrl,
+    title: "Exanewtons",
+    description: "A unit equal to 10^18 newtons.",
+  },
+  exaohms: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exaohms/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/exaohms/" as BaseUrl,
+    title: "Exaohms",
+    description: "A unit equal to 10^18 ohms.",
+  },
+  exapascals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exapascals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/exapascals/" as BaseUrl,
+    title: "Exapascals",
+    description: "A unit equal to 10^18 pascals.",
+  },
+  exaradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exaradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/exaradians/" as BaseUrl,
+    title: "Exaradians",
+    description: "A unit equal to 10^18 radians.",
+  },
+  exasecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exasecond/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/exasecond/" as BaseUrl,
+    title: "Exasecond",
+    description: "A unit equal to 10^18 second.",
+  },
+  exasiemens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exasiemens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/exasiemens/" as BaseUrl,
+    title: "Exasiemens",
+    description: "A unit equal to 10^18 siemens.",
+  },
+  exasieverts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exasieverts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/exasieverts/" as BaseUrl,
+    title: "Exasieverts",
+    description: "A unit equal to 10^18 sieverts.",
+  },
+  exasteradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exasteradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/exasteradians/" as BaseUrl,
+    title: "Exasteradians",
+    description: "A unit equal to 10^18 steradians.",
+  },
+  exateslas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exateslas/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/exateslas/" as BaseUrl,
+    title: "Exateslas",
+    description: "A unit equal to 10^18 teslas.",
+  },
+  exavolts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exavolts/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/exavolts/" as BaseUrl,
+    title: "Exavolts",
+    description: "A unit equal to 10^18 volts.",
+  },
+  exawattHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exawatt-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/exawatt-hours/" as BaseUrl,
+    title: "Exawatt Hours",
+    description: "A unit equal to 10^18 watt hours.",
+  },
+  exawatts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exawatts/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/exawatts/" as BaseUrl,
+    title: "Exawatts",
+    description: "A unit equal to 10^18 watts.",
+  },
+  exawebers: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/exawebers/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/exawebers/" as BaseUrl,
+    title: "Exawebers",
+    description: "A unit equal to 10^18 webers.",
+  },
   farads: {
     dataTypeId: "https://hash.ai/@h/types/data-type/farads/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/farads/" as BaseUrl,
@@ -3133,6 +4336,221 @@ export const systemDataTypes = {
     title: "Feet per Minute",
     description:
       "A unit of vertical speed commonly used in aviation to measure rate of climb or descent.",
+  },
+  femtoampereHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/femtoampere-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/femtoampere-hours/" as BaseUrl,
+    title: "Femtoampere Hours",
+    description: "A unit equal to 10^-15 ampere hours.",
+  },
+  femtoamperes: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/femtoamperes/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/femtoamperes/" as BaseUrl,
+    title: "Femtoamperes",
+    description: "A unit equal to 10^-15 amperes.",
+  },
+  femtobecquerels: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/femtobecquerels/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/femtobecquerels/" as BaseUrl,
+    title: "Femtobecquerels",
+    description: "A unit equal to 10^-15 becquerels.",
+  },
+  femtocandelas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/femtocandelas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/femtocandelas/" as BaseUrl,
+    title: "Femtocandelas",
+    description: "A unit equal to 10^-15 candelas.",
+  },
+  femtocoulombs: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/femtocoulombs/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/femtocoulombs/" as BaseUrl,
+    title: "Femtocoulombs",
+    description: "A unit equal to 10^-15 coulombs.",
+  },
+  femtofarads: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/femtofarads/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/femtofarads/" as BaseUrl,
+    title: "Femtofarads",
+    description: "A unit equal to 10^-15 farads.",
+  },
+  femtograms: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/femtograms/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/femtograms/" as BaseUrl,
+    title: "Femtograms",
+    description: "A unit equal to 10^-15 grams.",
+  },
+  femtograys: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/femtograys/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/femtograys/" as BaseUrl,
+    title: "Femtograys",
+    description: "A unit equal to 10^-15 grays.",
+  },
+  femtohenries: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/femtohenries/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/femtohenries/" as BaseUrl,
+    title: "Femtohenries",
+    description: "A unit equal to 10^-15 henries.",
+  },
+  femtohertz: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/femtohertz/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/femtohertz/" as BaseUrl,
+    title: "Femtohertz",
+    description: "A unit equal to 10^-15 hertz.",
+  },
+  femtojoules: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/femtojoules/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/femtojoules/" as BaseUrl,
+    title: "Femtojoules",
+    description: "A unit equal to 10^-15 joules.",
+  },
+  femtokatals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/femtokatals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/femtokatals/" as BaseUrl,
+    title: "Femtokatals",
+    description: "A unit equal to 10^-15 katals.",
+  },
+  femtokelvins: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/femtokelvins/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/femtokelvins/" as BaseUrl,
+    title: "Femtokelvins",
+    description: "A unit equal to 10^-15 kelvins.",
+  },
+  femtolitres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/femtolitres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/femtolitres/" as BaseUrl,
+    title: "Femtolitres",
+    description: "A unit equal to 10^-15 litres.",
+  },
+  femtolumens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/femtolumens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/femtolumens/" as BaseUrl,
+    title: "Femtolumens",
+    description: "A unit equal to 10^-15 lumens.",
+  },
+  femtolux: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/femtolux/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/femtolux/" as BaseUrl,
+    title: "Femtolux",
+    description: "A unit equal to 10^-15 lux.",
+  },
+  femtometers: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/femtometers/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/femtometers/" as BaseUrl,
+    title: "Femtometers",
+    description: "A unit equal to 10^-15 meters.",
+  },
+  femtomoles: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/femtomoles/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/femtomoles/" as BaseUrl,
+    title: "Femtomoles",
+    description: "A unit equal to 10^-15 moles.",
+  },
+  femtonewtons: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/femtonewtons/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/femtonewtons/" as BaseUrl,
+    title: "Femtonewtons",
+    description: "A unit equal to 10^-15 newtons.",
+  },
+  femtoohms: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/femtoohms/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/femtoohms/" as BaseUrl,
+    title: "Femtoohms",
+    description: "A unit equal to 10^-15 ohms.",
+  },
+  femtopascals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/femtopascals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/femtopascals/" as BaseUrl,
+    title: "Femtopascals",
+    description: "A unit equal to 10^-15 pascals.",
+  },
+  femtoradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/femtoradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/femtoradians/" as BaseUrl,
+    title: "Femtoradians",
+    description: "A unit equal to 10^-15 radians.",
+  },
+  femtosecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/femtosecond/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/femtosecond/" as BaseUrl,
+    title: "Femtosecond",
+    description: "A unit equal to 10^-15 second.",
+  },
+  femtosiemens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/femtosiemens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/femtosiemens/" as BaseUrl,
+    title: "Femtosiemens",
+    description: "A unit equal to 10^-15 siemens.",
+  },
+  femtosieverts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/femtosieverts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/femtosieverts/" as BaseUrl,
+    title: "Femtosieverts",
+    description: "A unit equal to 10^-15 sieverts.",
+  },
+  femtosteradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/femtosteradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/femtosteradians/" as BaseUrl,
+    title: "Femtosteradians",
+    description: "A unit equal to 10^-15 steradians.",
+  },
+  femtoteslas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/femtoteslas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/femtoteslas/" as BaseUrl,
+    title: "Femtoteslas",
+    description: "A unit equal to 10^-15 teslas.",
+  },
+  femtovolts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/femtovolts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/femtovolts/" as BaseUrl,
+    title: "Femtovolts",
+    description: "A unit equal to 10^-15 volts.",
+  },
+  femtowattHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/femtowatt-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/femtowatt-hours/" as BaseUrl,
+    title: "Femtowatt Hours",
+    description: "A unit equal to 10^-15 watt hours.",
+  },
+  femtowatts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/femtowatts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/femtowatts/" as BaseUrl,
+    title: "Femtowatts",
+    description: "A unit equal to 10^-15 watts.",
+  },
+  femtowebers: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/femtowebers/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/femtowebers/" as BaseUrl,
+    title: "Femtowebers",
+    description: "A unit equal to 10^-15 webers.",
   },
   fjd: {
     dataTypeId: "https://hash.ai/@h/types/data-type/fjd/v/1",
@@ -3192,11 +4610,72 @@ export const systemDataTypes = {
     title: "GHS",
     description: "An amount denominated in Ghana Cedi (ISO 4217 GHS).",
   },
+  gigaampereHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/gigaampere-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/gigaampere-hours/" as BaseUrl,
+    title: "Gigaampere Hours",
+    description: "A unit equal to 10^9 ampere hours.",
+  },
+  gigaamperes: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/gigaamperes/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/gigaamperes/" as BaseUrl,
+    title: "Gigaamperes",
+    description: "A unit equal to 10^9 amperes.",
+  },
+  gigabecquerels: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/gigabecquerels/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/gigabecquerels/" as BaseUrl,
+    title: "Gigabecquerels",
+    description: "A unit equal to 10^9 becquerels.",
+  },
   gigabytes: {
     dataTypeId: "https://hash.ai/@h/types/data-type/gigabytes/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/gigabytes/" as BaseUrl,
     title: "Gigabytes",
     description: "A unit of information equal to one billion bytes.",
+  },
+  gigacandelas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/gigacandelas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/gigacandelas/" as BaseUrl,
+    title: "Gigacandelas",
+    description: "A unit equal to 10^9 candelas.",
+  },
+  gigacoulombs: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/gigacoulombs/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/gigacoulombs/" as BaseUrl,
+    title: "Gigacoulombs",
+    description: "A unit equal to 10^9 coulombs.",
+  },
+  gigafarads: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/gigafarads/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/gigafarads/" as BaseUrl,
+    title: "Gigafarads",
+    description: "A unit equal to 10^9 farads.",
+  },
+  gigagrams: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/gigagrams/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/gigagrams/" as BaseUrl,
+    title: "Gigagrams",
+    description: "A unit equal to 10^9 grams.",
+  },
+  gigagrays: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/gigagrays/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/gigagrays/" as BaseUrl,
+    title: "Gigagrays",
+    description: "A unit equal to 10^9 grays.",
+  },
+  gigahenries: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/gigahenries/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/gigahenries/" as BaseUrl,
+    title: "Gigahenries",
+    description: "A unit equal to 10^9 henries.",
   },
   gigahertz: {
     dataTypeId: "https://hash.ai/@h/types/data-type/gigahertz/v/1",
@@ -3205,12 +4684,148 @@ export const systemDataTypes = {
     description:
       "A unit of frequency in the International System of Units (SI), equal to one billion hertz.",
   },
+  gigajoules: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/gigajoules/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/gigajoules/" as BaseUrl,
+    title: "Gigajoules",
+    description: "A unit equal to 10^9 joules.",
+  },
+  gigakatals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/gigakatals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/gigakatals/" as BaseUrl,
+    title: "Gigakatals",
+    description: "A unit equal to 10^9 katals.",
+  },
+  gigakelvins: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/gigakelvins/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/gigakelvins/" as BaseUrl,
+    title: "Gigakelvins",
+    description: "A unit equal to 10^9 kelvins.",
+  },
+  gigalitres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/gigalitres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/gigalitres/" as BaseUrl,
+    title: "Gigalitres",
+    description: "A unit equal to 10^9 litres.",
+  },
+  gigalumens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/gigalumens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/gigalumens/" as BaseUrl,
+    title: "Gigalumens",
+    description: "A unit equal to 10^9 lumens.",
+  },
+  gigalux: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/gigalux/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/gigalux/" as BaseUrl,
+    title: "Gigalux",
+    description: "A unit equal to 10^9 lux.",
+  },
+  gigameters: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/gigameters/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/gigameters/" as BaseUrl,
+    title: "Gigameters",
+    description: "A unit equal to 10^9 meters.",
+  },
+  gigamoles: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/gigamoles/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/gigamoles/" as BaseUrl,
+    title: "Gigamoles",
+    description: "A unit equal to 10^9 moles.",
+  },
+  giganewtons: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/giganewtons/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/giganewtons/" as BaseUrl,
+    title: "Giganewtons",
+    description: "A unit equal to 10^9 newtons.",
+  },
+  gigaohms: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/gigaohms/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/gigaohms/" as BaseUrl,
+    title: "Gigaohms",
+    description: "A unit equal to 10^9 ohms.",
+  },
+  gigapascals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/gigapascals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/gigapascals/" as BaseUrl,
+    title: "Gigapascals",
+    description: "A unit equal to 10^9 pascals.",
+  },
+  gigaradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/gigaradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/gigaradians/" as BaseUrl,
+    title: "Gigaradians",
+    description: "A unit equal to 10^9 radians.",
+  },
+  gigasecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/gigasecond/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/gigasecond/" as BaseUrl,
+    title: "Gigasecond",
+    description: "A unit equal to 10^9 second.",
+  },
+  gigasiemens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/gigasiemens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/gigasiemens/" as BaseUrl,
+    title: "Gigasiemens",
+    description: "A unit equal to 10^9 siemens.",
+  },
+  gigasieverts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/gigasieverts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/gigasieverts/" as BaseUrl,
+    title: "Gigasieverts",
+    description: "A unit equal to 10^9 sieverts.",
+  },
+  gigasteradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/gigasteradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/gigasteradians/" as BaseUrl,
+    title: "Gigasteradians",
+    description: "A unit equal to 10^9 steradians.",
+  },
+  gigateslas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/gigateslas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/gigateslas/" as BaseUrl,
+    title: "Gigateslas",
+    description: "A unit equal to 10^9 teslas.",
+  },
+  gigavolts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/gigavolts/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/gigavolts/" as BaseUrl,
+    title: "Gigavolts",
+    description: "A unit equal to 10^9 volts.",
+  },
+  gigawattHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/gigawatt-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/gigawatt-hours/" as BaseUrl,
+    title: "Gigawatt Hours",
+    description: "A unit equal to 10^9 watt hours.",
+  },
   gigawatts: {
     dataTypeId: "https://hash.ai/@h/types/data-type/gigawatts/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/gigawatts/" as BaseUrl,
     title: "Gigawatts",
     description:
       "A unit of power in the International System of Units (SI), equal to one billion watts.",
+  },
+  gigawebers: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/gigawebers/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/gigawebers/" as BaseUrl,
+    title: "Gigawebers",
+    description: "A unit equal to 10^9 webers.",
   },
   gip: {
     dataTypeId: "https://hash.ai/@h/types/data-type/gip/v/1",
@@ -3287,12 +4902,220 @@ export const systemDataTypes = {
     description:
       "Power transferred per unit area, also used to express irradiance.",
   },
+  hectoampereHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/hectoampere-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/hectoampere-hours/" as BaseUrl,
+    title: "Hectoampere Hours",
+    description: "A unit equal to 10^2 ampere hours.",
+  },
+  hectoamperes: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/hectoamperes/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/hectoamperes/" as BaseUrl,
+    title: "Hectoamperes",
+    description: "A unit equal to 10^2 amperes.",
+  },
+  hectobecquerels: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/hectobecquerels/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/hectobecquerels/" as BaseUrl,
+    title: "Hectobecquerels",
+    description: "A unit equal to 10^2 becquerels.",
+  },
+  hectocandelas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/hectocandelas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/hectocandelas/" as BaseUrl,
+    title: "Hectocandelas",
+    description: "A unit equal to 10^2 candelas.",
+  },
+  hectocoulombs: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/hectocoulombs/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/hectocoulombs/" as BaseUrl,
+    title: "Hectocoulombs",
+    description: "A unit equal to 10^2 coulombs.",
+  },
+  hectofarads: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/hectofarads/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/hectofarads/" as BaseUrl,
+    title: "Hectofarads",
+    description: "A unit equal to 10^2 farads.",
+  },
+  hectograms: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/hectograms/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/hectograms/" as BaseUrl,
+    title: "Hectograms",
+    description: "A unit equal to 10^2 grams.",
+  },
+  hectograys: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/hectograys/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/hectograys/" as BaseUrl,
+    title: "Hectograys",
+    description: "A unit equal to 10^2 grays.",
+  },
+  hectohenries: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/hectohenries/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/hectohenries/" as BaseUrl,
+    title: "Hectohenries",
+    description: "A unit equal to 10^2 henries.",
+  },
+  hectohertz: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/hectohertz/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/hectohertz/" as BaseUrl,
+    title: "Hectohertz",
+    description: "A unit equal to 10^2 hertz.",
+  },
+  hectojoules: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/hectojoules/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/hectojoules/" as BaseUrl,
+    title: "Hectojoules",
+    description: "A unit equal to 10^2 joules.",
+  },
+  hectokatals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/hectokatals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/hectokatals/" as BaseUrl,
+    title: "Hectokatals",
+    description: "A unit equal to 10^2 katals.",
+  },
+  hectokelvins: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/hectokelvins/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/hectokelvins/" as BaseUrl,
+    title: "Hectokelvins",
+    description: "A unit equal to 10^2 kelvins.",
+  },
+  hectolitres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/hectolitres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/hectolitres/" as BaseUrl,
+    title: "Hectolitres",
+    description: "A unit equal to 10^2 litres.",
+  },
+  hectolumens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/hectolumens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/hectolumens/" as BaseUrl,
+    title: "Hectolumens",
+    description: "A unit equal to 10^2 lumens.",
+  },
+  hectolux: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/hectolux/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/hectolux/" as BaseUrl,
+    title: "Hectolux",
+    description: "A unit equal to 10^2 lux.",
+  },
+  hectometers: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/hectometers/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/hectometers/" as BaseUrl,
+    title: "Hectometers",
+    description: "A unit equal to 10^2 meters.",
+  },
+  hectomoles: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/hectomoles/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/hectomoles/" as BaseUrl,
+    title: "Hectomoles",
+    description: "A unit equal to 10^2 moles.",
+  },
+  hectonewtons: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/hectonewtons/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/hectonewtons/" as BaseUrl,
+    title: "Hectonewtons",
+    description: "A unit equal to 10^2 newtons.",
+  },
+  hectoohms: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/hectoohms/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/hectoohms/" as BaseUrl,
+    title: "Hectoohms",
+    description: "A unit equal to 10^2 ohms.",
+  },
   hectopascals: {
     dataTypeId: "https://hash.ai/@h/types/data-type/hectopascals/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/hectopascals/" as BaseUrl,
     title: "Hectopascals",
     description: "A unit of pressure equal to 100 pascals.",
+  },
+  hectoradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/hectoradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/hectoradians/" as BaseUrl,
+    title: "Hectoradians",
+    description: "A unit equal to 10^2 radians.",
+  },
+  hectosecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/hectosecond/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/hectosecond/" as BaseUrl,
+    title: "Hectosecond",
+    description: "A unit equal to 10^2 second.",
+  },
+  hectosiemens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/hectosiemens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/hectosiemens/" as BaseUrl,
+    title: "Hectosiemens",
+    description: "A unit equal to 10^2 siemens.",
+  },
+  hectosieverts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/hectosieverts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/hectosieverts/" as BaseUrl,
+    title: "Hectosieverts",
+    description: "A unit equal to 10^2 sieverts.",
+  },
+  hectosteradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/hectosteradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/hectosteradians/" as BaseUrl,
+    title: "Hectosteradians",
+    description: "A unit equal to 10^2 steradians.",
+  },
+  hectoteslas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/hectoteslas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/hectoteslas/" as BaseUrl,
+    title: "Hectoteslas",
+    description: "A unit equal to 10^2 teslas.",
+  },
+  hectovolts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/hectovolts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/hectovolts/" as BaseUrl,
+    title: "Hectovolts",
+    description: "A unit equal to 10^2 volts.",
+  },
+  hectowattHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/hectowatt-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/hectowatt-hours/" as BaseUrl,
+    title: "Hectowatt Hours",
+    description: "A unit equal to 10^2 watt hours.",
+  },
+  hectowatts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/hectowatts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/hectowatts/" as BaseUrl,
+    title: "Hectowatts",
+    description: "A unit equal to 10^2 watts.",
+  },
+  hectowebers: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/hectowebers/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/hectowebers/" as BaseUrl,
+    title: "Hectowebers",
+    description: "A unit equal to 10^2 webers.",
   },
   henries: {
     dataTypeId: "https://hash.ai/@h/types/data-type/henries/v/1",
@@ -3305,7 +5128,7 @@ export const systemDataTypes = {
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/henries-per-meter/" as BaseUrl,
     title: "Henries per Meter",
-    description: "The coherent SI unit used to express permeability.",
+    description: "The coherent SI unit used to express magnetic permeability.",
   },
   hertz: {
     dataTypeId: "https://hash.ai/@h/types/data-type/hertz/v/1",
@@ -3560,6 +5383,20 @@ export const systemDataTypes = {
     title: "KHR",
     description: "An amount denominated in Riel (ISO 4217 KHR).",
   },
+  kiloampereHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kiloampere-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/kiloampere-hours/" as BaseUrl,
+    title: "Kiloampere Hours",
+    description: "A unit equal to 10^3 ampere hours.",
+  },
+  kiloamperes: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kiloamperes/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/kiloamperes/" as BaseUrl,
+    title: "Kiloamperes",
+    description: "A unit equal to 10^3 amperes.",
+  },
   kilobecquerels: {
     dataTypeId: "https://hash.ai/@h/types/data-type/kilobecquerels/v/1",
     dataTypeBaseUrl:
@@ -3572,6 +5409,27 @@ export const systemDataTypes = {
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/kilobytes/" as BaseUrl,
     title: "Kilobytes",
     description: "A unit of information equal to one thousand bytes.",
+  },
+  kilocandelas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kilocandelas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/kilocandelas/" as BaseUrl,
+    title: "Kilocandelas",
+    description: "A unit equal to 10^3 candelas.",
+  },
+  kilocoulombs: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kilocoulombs/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/kilocoulombs/" as BaseUrl,
+    title: "Kilocoulombs",
+    description: "A unit equal to 10^3 coulombs.",
+  },
+  kilofarads: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kilofarads/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/kilofarads/" as BaseUrl,
+    title: "Kilofarads",
+    description: "A unit equal to 10^3 farads.",
   },
   kilograms: {
     dataTypeId: "https://hash.ai/@h/types/data-type/kilograms/v/1",
@@ -3595,6 +5453,19 @@ export const systemDataTypes = {
     title: "Kilograms per Square Meter",
     description: "The coherent SI unit used to express surface density.",
   },
+  kilograys: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kilograys/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/kilograys/" as BaseUrl,
+    title: "Kilograys",
+    description: "A unit equal to 10^3 grays.",
+  },
+  kilohenries: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kilohenries/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/kilohenries/" as BaseUrl,
+    title: "Kilohenries",
+    description: "A unit equal to 10^3 henries.",
+  },
   kilohertz: {
     dataTypeId: "https://hash.ai/@h/types/data-type/kilohertz/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/kilohertz/" as BaseUrl,
@@ -3615,6 +5486,40 @@ export const systemDataTypes = {
     title: "Kilojoules",
     description: "A unit of energy equal to 1000 joules.",
   },
+  kilokatals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kilokatals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/kilokatals/" as BaseUrl,
+    title: "Kilokatals",
+    description: "A unit equal to 10^3 katals.",
+  },
+  kilokelvins: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kilokelvins/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/kilokelvins/" as BaseUrl,
+    title: "Kilokelvins",
+    description: "A unit equal to 10^3 kelvins.",
+  },
+  kilolitres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kilolitres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/kilolitres/" as BaseUrl,
+    title: "Kilolitres",
+    description: "A unit equal to 10^3 litres.",
+  },
+  kilolumens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kilolumens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/kilolumens/" as BaseUrl,
+    title: "Kilolumens",
+    description: "A unit equal to 10^3 lumens.",
+  },
+  kilolux: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kilolux/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/kilolux/" as BaseUrl,
+    title: "Kilolux",
+    description: "A unit equal to 10^3 lux.",
+  },
   kilometers: {
     dataTypeId: "https://hash.ai/@h/types/data-type/kilometers/v/1",
     dataTypeBaseUrl:
@@ -3631,6 +5536,12 @@ export const systemDataTypes = {
     description:
       "A unit of speed expressing the number of kilometers traveled in one hour.",
   },
+  kilomoles: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kilomoles/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/kilomoles/" as BaseUrl,
+    title: "Kilomoles",
+    description: "A unit equal to 10^3 moles.",
+  },
   kilonewtons: {
     dataTypeId: "https://hash.ai/@h/types/data-type/kilonewtons/v/1",
     dataTypeBaseUrl:
@@ -3644,6 +5555,48 @@ export const systemDataTypes = {
       "https://hash.ai/@h/types/data-type/kilopascals/" as BaseUrl,
     title: "Kilopascals",
     description: "A unit of pressure equal to 1000 pascals.",
+  },
+  kiloradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kiloradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/kiloradians/" as BaseUrl,
+    title: "Kiloradians",
+    description: "A unit equal to 10^3 radians.",
+  },
+  kilosecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kilosecond/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/kilosecond/" as BaseUrl,
+    title: "Kilosecond",
+    description: "A unit equal to 10^3 second.",
+  },
+  kilosiemens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kilosiemens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/kilosiemens/" as BaseUrl,
+    title: "Kilosiemens",
+    description: "A unit equal to 10^3 siemens.",
+  },
+  kilosieverts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kilosieverts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/kilosieverts/" as BaseUrl,
+    title: "Kilosieverts",
+    description: "A unit equal to 10^3 sieverts.",
+  },
+  kilosteradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kilosteradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/kilosteradians/" as BaseUrl,
+    title: "Kilosteradians",
+    description: "A unit equal to 10^3 steradians.",
+  },
+  kiloteslas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kiloteslas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/kiloteslas/" as BaseUrl,
+    title: "Kiloteslas",
+    description: "A unit equal to 10^3 teslas.",
   },
   kilovolts: {
     dataTypeId: "https://hash.ai/@h/types/data-type/kilovolts/v/1",
@@ -3664,6 +5617,13 @@ export const systemDataTypes = {
     title: "Kilowatts",
     description:
       "A unit of power in the International System of Units (SI), equal to one thousand watts.",
+  },
+  kilowebers: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kilowebers/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/kilowebers/" as BaseUrl,
+    title: "Kilowebers",
+    description: "A unit equal to 10^3 webers.",
   },
   kmf: {
     dataTypeId: "https://hash.ai/@h/types/data-type/kmf/v/1",
@@ -3857,11 +5817,72 @@ export const systemDataTypes = {
     title: "MDL",
     description: "An amount denominated in Moldovan Leu (ISO 4217 MDL).",
   },
+  megaampereHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/megaampere-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/megaampere-hours/" as BaseUrl,
+    title: "Megaampere Hours",
+    description: "A unit equal to 10^6 ampere hours.",
+  },
+  megaamperes: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/megaamperes/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/megaamperes/" as BaseUrl,
+    title: "Megaamperes",
+    description: "A unit equal to 10^6 amperes.",
+  },
+  megabecquerels: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/megabecquerels/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/megabecquerels/" as BaseUrl,
+    title: "Megabecquerels",
+    description: "A unit equal to 10^6 becquerels.",
+  },
   megabytes: {
     dataTypeId: "https://hash.ai/@h/types/data-type/megabytes/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/megabytes/" as BaseUrl,
     title: "Megabytes",
     description: "A unit of information equal to one million bytes.",
+  },
+  megacandelas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/megacandelas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/megacandelas/" as BaseUrl,
+    title: "Megacandelas",
+    description: "A unit equal to 10^6 candelas.",
+  },
+  megacoulombs: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/megacoulombs/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/megacoulombs/" as BaseUrl,
+    title: "Megacoulombs",
+    description: "A unit equal to 10^6 coulombs.",
+  },
+  megafarads: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/megafarads/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/megafarads/" as BaseUrl,
+    title: "Megafarads",
+    description: "A unit equal to 10^6 farads.",
+  },
+  megagrams: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/megagrams/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/megagrams/" as BaseUrl,
+    title: "Megagrams",
+    description: "A unit equal to 10^6 grams.",
+  },
+  megagrays: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/megagrays/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/megagrays/" as BaseUrl,
+    title: "Megagrays",
+    description: "A unit equal to 10^6 grays.",
+  },
+  megahenries: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/megahenries/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/megahenries/" as BaseUrl,
+    title: "Megahenries",
+    description: "A unit equal to 10^6 henries.",
   },
   megahertz: {
     dataTypeId: "https://hash.ai/@h/types/data-type/megahertz/v/1",
@@ -3877,6 +5898,60 @@ export const systemDataTypes = {
     title: "Megajoules",
     description: "A unit of energy equal to 1000000 joules.",
   },
+  megakatals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/megakatals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/megakatals/" as BaseUrl,
+    title: "Megakatals",
+    description: "A unit equal to 10^6 katals.",
+  },
+  megakelvins: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/megakelvins/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/megakelvins/" as BaseUrl,
+    title: "Megakelvins",
+    description: "A unit equal to 10^6 kelvins.",
+  },
+  megalitres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/megalitres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/megalitres/" as BaseUrl,
+    title: "Megalitres",
+    description: "A unit equal to 10^6 litres.",
+  },
+  megalumens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/megalumens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/megalumens/" as BaseUrl,
+    title: "Megalumens",
+    description: "A unit equal to 10^6 lumens.",
+  },
+  megalux: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/megalux/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/megalux/" as BaseUrl,
+    title: "Megalux",
+    description: "A unit equal to 10^6 lux.",
+  },
+  megameters: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/megameters/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/megameters/" as BaseUrl,
+    title: "Megameters",
+    description: "A unit equal to 10^6 meters.",
+  },
+  megamoles: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/megamoles/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/megamoles/" as BaseUrl,
+    title: "Megamoles",
+    description: "A unit equal to 10^6 moles.",
+  },
+  meganewtons: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/meganewtons/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/meganewtons/" as BaseUrl,
+    title: "Meganewtons",
+    description: "A unit equal to 10^6 newtons.",
+  },
   megapascals: {
     dataTypeId: "https://hash.ai/@h/types/data-type/megapascals/v/1",
     dataTypeBaseUrl:
@@ -3884,12 +5959,74 @@ export const systemDataTypes = {
     title: "Megapascals",
     description: "A unit of pressure equal to 1000000 pascals.",
   },
+  megaradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/megaradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/megaradians/" as BaseUrl,
+    title: "Megaradians",
+    description: "A unit equal to 10^6 radians.",
+  },
+  megasecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/megasecond/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/megasecond/" as BaseUrl,
+    title: "Megasecond",
+    description: "A unit equal to 10^6 second.",
+  },
+  megasiemens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/megasiemens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/megasiemens/" as BaseUrl,
+    title: "Megasiemens",
+    description: "A unit equal to 10^6 siemens.",
+  },
+  megasieverts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/megasieverts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/megasieverts/" as BaseUrl,
+    title: "Megasieverts",
+    description: "A unit equal to 10^6 sieverts.",
+  },
+  megasteradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/megasteradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/megasteradians/" as BaseUrl,
+    title: "Megasteradians",
+    description: "A unit equal to 10^6 steradians.",
+  },
+  megateslas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/megateslas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/megateslas/" as BaseUrl,
+    title: "Megateslas",
+    description: "A unit equal to 10^6 teslas.",
+  },
+  megavolts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/megavolts/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/megavolts/" as BaseUrl,
+    title: "Megavolts",
+    description: "A unit equal to 10^6 volts.",
+  },
+  megawattHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/megawatt-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/megawatt-hours/" as BaseUrl,
+    title: "Megawatt Hours",
+    description: "A unit equal to 10^6 watt hours.",
+  },
   megawatts: {
     dataTypeId: "https://hash.ai/@h/types/data-type/megawatts/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/megawatts/" as BaseUrl,
     title: "Megawatts",
     description:
       "A unit of power in the International System of Units (SI), equal to one million watts.",
+  },
+  megawebers: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/megawebers/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/megawebers/" as BaseUrl,
+    title: "Megawebers",
+    description: "A unit equal to 10^6 webers.",
   },
   megohms: {
     dataTypeId: "https://hash.ai/@h/types/data-type/megohms/v/1",
@@ -3941,12 +6078,40 @@ export const systemDataTypes = {
     title: "MGA",
     description: "An amount denominated in Malagasy Ariary (ISO 4217 MGA).",
   },
+  microampereHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/microampere-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/microampere-hours/" as BaseUrl,
+    title: "Microampere Hours",
+    description: "A unit equal to 10^-6 ampere hours.",
+  },
   microamperes: {
     dataTypeId: "https://hash.ai/@h/types/data-type/microamperes/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/microamperes/" as BaseUrl,
     title: "Microamperes",
     description: "A unit of electric current equal to 0.000001 amperes.",
+  },
+  microbecquerels: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/microbecquerels/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/microbecquerels/" as BaseUrl,
+    title: "Microbecquerels",
+    description: "A unit equal to 10^-6 becquerels.",
+  },
+  microcandelas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/microcandelas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/microcandelas/" as BaseUrl,
+    title: "Microcandelas",
+    description: "A unit equal to 10^-6 candelas.",
+  },
+  microcoulombs: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/microcoulombs/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/microcoulombs/" as BaseUrl,
+    title: "Microcoulombs",
+    description: "A unit equal to 10^-6 coulombs.",
   },
   microfarads: {
     dataTypeId: "https://hash.ai/@h/types/data-type/microfarads/v/1",
@@ -3955,12 +6120,115 @@ export const systemDataTypes = {
     title: "Microfarads",
     description: "A unit of capacitance equal to 1e-06 farads.",
   },
+  micrograms: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/micrograms/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/micrograms/" as BaseUrl,
+    title: "Micrograms",
+    description: "A unit equal to 10^-6 grams.",
+  },
+  micrograys: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/micrograys/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/micrograys/" as BaseUrl,
+    title: "Micrograys",
+    description: "A unit equal to 10^-6 grays.",
+  },
+  microhenries: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/microhenries/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/microhenries/" as BaseUrl,
+    title: "Microhenries",
+    description: "A unit equal to 10^-6 henries.",
+  },
+  microhertz: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/microhertz/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/microhertz/" as BaseUrl,
+    title: "Microhertz",
+    description: "A unit equal to 10^-6 hertz.",
+  },
+  microjoules: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/microjoules/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/microjoules/" as BaseUrl,
+    title: "Microjoules",
+    description: "A unit equal to 10^-6 joules.",
+  },
+  microkatals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/microkatals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/microkatals/" as BaseUrl,
+    title: "Microkatals",
+    description: "A unit equal to 10^-6 katals.",
+  },
+  microkelvins: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/microkelvins/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/microkelvins/" as BaseUrl,
+    title: "Microkelvins",
+    description: "A unit equal to 10^-6 kelvins.",
+  },
+  microlitres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/microlitres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/microlitres/" as BaseUrl,
+    title: "Microlitres",
+    description: "A unit equal to 10^-6 litres.",
+  },
+  microlumens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/microlumens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/microlumens/" as BaseUrl,
+    title: "Microlumens",
+    description: "A unit equal to 10^-6 lumens.",
+  },
+  microlux: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/microlux/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/microlux/" as BaseUrl,
+    title: "Microlux",
+    description: "A unit equal to 10^-6 lux.",
+  },
+  micrometers: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/micrometers/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/micrometers/" as BaseUrl,
+    title: "Micrometers",
+    description: "A unit equal to 10^-6 meters.",
+  },
   micromoles: {
     dataTypeId: "https://hash.ai/@h/types/data-type/micromoles/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/micromoles/" as BaseUrl,
     title: "Micromoles",
     description: "A unit of amount of substance equal to 0.000001 moles.",
+  },
+  micronewtons: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/micronewtons/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/micronewtons/" as BaseUrl,
+    title: "Micronewtons",
+    description: "A unit equal to 10^-6 newtons.",
+  },
+  microohms: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/microohms/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/microohms/" as BaseUrl,
+    title: "Microohms",
+    description: "A unit equal to 10^-6 ohms.",
+  },
+  micropascals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/micropascals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/micropascals/" as BaseUrl,
+    title: "Micropascals",
+    description: "A unit equal to 10^-6 pascals.",
+  },
+  microradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/microradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/microradians/" as BaseUrl,
+    title: "Microradians",
+    description: "A unit equal to 10^-6 radians.",
   },
   microsecond: {
     dataTypeId: "https://hash.ai/@h/types/data-type/microsecond/v/1",
@@ -3970,6 +6238,13 @@ export const systemDataTypes = {
     description:
       "A measure of the length of time in the International System of Units (SI), defined as exactly 1/1000000 (1 millionth) of a second.",
   },
+  microsiemens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/microsiemens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/microsiemens/" as BaseUrl,
+    title: "Microsiemens",
+    description: "A unit equal to 10^-6 siemens.",
+  },
   microsieverts: {
     dataTypeId: "https://hash.ai/@h/types/data-type/microsieverts/v/1",
     dataTypeBaseUrl:
@@ -3977,12 +6252,47 @@ export const systemDataTypes = {
     title: "Microsieverts",
     description: "A unit of dose equivalent equal to 0.000001 sieverts.",
   },
+  microsteradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/microsteradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/microsteradians/" as BaseUrl,
+    title: "Microsteradians",
+    description: "A unit equal to 10^-6 steradians.",
+  },
   microteslas: {
     dataTypeId: "https://hash.ai/@h/types/data-type/microteslas/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/microteslas/" as BaseUrl,
     title: "Microteslas",
     description: "A unit of magnetic flux density equal to 0.000001 teslas.",
+  },
+  microvolts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/microvolts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/microvolts/" as BaseUrl,
+    title: "Microvolts",
+    description: "A unit equal to 10^-6 volts.",
+  },
+  microwattHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/microwatt-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/microwatt-hours/" as BaseUrl,
+    title: "Microwatt Hours",
+    description: "A unit equal to 10^-6 watt hours.",
+  },
+  microwatts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/microwatts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/microwatts/" as BaseUrl,
+    title: "Microwatts",
+    description: "A unit equal to 10^-6 watts.",
+  },
+  microwebers: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/microwebers/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/microwebers/" as BaseUrl,
+    title: "Microwebers",
+    description: "A unit equal to 10^-6 webers.",
   },
   miles: {
     dataTypeId: "https://hash.ai/@h/types/data-type/miles/v/1",
@@ -4005,6 +6315,41 @@ export const systemDataTypes = {
     title: "Milliamperes",
     description: "A unit of electric current equal to 0.001 amperes.",
   },
+  millibecquerels: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/millibecquerels/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/millibecquerels/" as BaseUrl,
+    title: "Millibecquerels",
+    description: "A unit equal to 10^-3 becquerels.",
+  },
+  millicandelas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/millicandelas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/millicandelas/" as BaseUrl,
+    title: "Millicandelas",
+    description: "A unit equal to 10^-3 candelas.",
+  },
+  millicoulombs: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/millicoulombs/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/millicoulombs/" as BaseUrl,
+    title: "Millicoulombs",
+    description: "A unit equal to 10^-3 coulombs.",
+  },
+  millifarads: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/millifarads/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/millifarads/" as BaseUrl,
+    title: "Millifarads",
+    description: "A unit equal to 10^-3 farads.",
+  },
+  milligrams: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/milligrams/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/milligrams/" as BaseUrl,
+    title: "Milligrams",
+    description: "A unit equal to 10^-3 grams.",
+  },
   milligrays: {
     dataTypeId: "https://hash.ai/@h/types/data-type/milligrays/v/1",
     dataTypeBaseUrl:
@@ -4019,12 +6364,53 @@ export const systemDataTypes = {
     title: "Millihenries",
     description: "A unit of inductance equal to 0.001 henries.",
   },
+  millihertz: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/millihertz/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/millihertz/" as BaseUrl,
+    title: "Millihertz",
+    description: "A unit equal to 10^-3 hertz.",
+  },
+  millijoules: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/millijoules/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/millijoules/" as BaseUrl,
+    title: "Millijoules",
+    description: "A unit equal to 10^-3 joules.",
+  },
+  millikatals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/millikatals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/millikatals/" as BaseUrl,
+    title: "Millikatals",
+    description: "A unit equal to 10^-3 katals.",
+  },
+  millikelvins: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/millikelvins/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/millikelvins/" as BaseUrl,
+    title: "Millikelvins",
+    description: "A unit equal to 10^-3 kelvins.",
+  },
   millilitres: {
     dataTypeId: "https://hash.ai/@h/types/data-type/millilitres/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/millilitres/" as BaseUrl,
     title: "Millilitres",
     description: "A metric unit of volume equal to one thousandth of a litre.",
+  },
+  millilumens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/millilumens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/millilumens/" as BaseUrl,
+    title: "Millilumens",
+    description: "A unit equal to 10^-3 lumens.",
+  },
+  millilux: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/millilux/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/millilux/" as BaseUrl,
+    title: "Millilux",
+    description: "A unit equal to 10^-3 lux.",
   },
   millimeters: {
     dataTypeId: "https://hash.ai/@h/types/data-type/millimeters/v/1",
@@ -4041,12 +6427,39 @@ export const systemDataTypes = {
     title: "Millimoles",
     description: "A unit of amount of substance equal to 0.001 moles.",
   },
+  millinewtons: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/millinewtons/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/millinewtons/" as BaseUrl,
+    title: "Millinewtons",
+    description: "A unit equal to 10^-3 newtons.",
+  },
+  milliohms: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/milliohms/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/milliohms/" as BaseUrl,
+    title: "Milliohms",
+    description: "A unit equal to 10^-3 ohms.",
+  },
+  millipascals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/millipascals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/millipascals/" as BaseUrl,
+    title: "Millipascals",
+    description: "A unit equal to 10^-3 pascals.",
+  },
   millipascalSeconds: {
     dataTypeId: "https://hash.ai/@h/types/data-type/millipascal-seconds/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/millipascal-seconds/" as BaseUrl,
     title: "Millipascal Seconds",
     description: "A unit of dynamic viscosity equal to 0.001 pascal seconds.",
+  },
+  milliradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/milliradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/milliradians/" as BaseUrl,
+    title: "Milliradians",
+    description: "A unit equal to 10^-3 radians.",
   },
   millisecond: {
     dataTypeId: "https://hash.ai/@h/types/data-type/millisecond/v/1",
@@ -4056,12 +6469,26 @@ export const systemDataTypes = {
     description:
       "A measure of the length of time in the International System of Units (SI), defined as exactly 1/1000 of a second.",
   },
+  millisiemens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/millisiemens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/millisiemens/" as BaseUrl,
+    title: "Millisiemens",
+    description: "A unit equal to 10^-3 siemens.",
+  },
   millisieverts: {
     dataTypeId: "https://hash.ai/@h/types/data-type/millisieverts/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/millisieverts/" as BaseUrl,
     title: "Millisieverts",
     description: "A unit of dose equivalent equal to 0.001 sieverts.",
+  },
+  millisteradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/millisteradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/millisteradians/" as BaseUrl,
+    title: "Millisteradians",
+    description: "A unit equal to 10^-3 steradians.",
   },
   milliteslas: {
     dataTypeId: "https://hash.ai/@h/types/data-type/milliteslas/v/1",
@@ -4077,6 +6504,27 @@ export const systemDataTypes = {
     title: "Millivolts",
     description:
       "A unit of electric potential difference equal to 0.001 volts.",
+  },
+  milliwattHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/milliwatt-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/milliwatt-hours/" as BaseUrl,
+    title: "Milliwatt Hours",
+    description: "A unit equal to 10^-3 watt hours.",
+  },
+  milliwatts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/milliwatts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/milliwatts/" as BaseUrl,
+    title: "Milliwatts",
+    description: "A unit equal to 10^-3 watts.",
+  },
+  milliwebers: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/milliwebers/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/milliwebers/" as BaseUrl,
+    title: "Milliwebers",
+    description: "A unit equal to 10^-3 webers.",
   },
   minute: {
     dataTypeId: "https://hash.ai/@h/types/data-type/minute/v/1",
@@ -4208,12 +6656,214 @@ export const systemDataTypes = {
     title: "NAD",
     description: "An amount denominated in Namibia Dollar (ISO 4217 NAD).",
   },
+  nanoampereHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/nanoampere-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/nanoampere-hours/" as BaseUrl,
+    title: "Nanoampere Hours",
+    description: "A unit equal to 10^-9 ampere hours.",
+  },
+  nanoamperes: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/nanoamperes/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/nanoamperes/" as BaseUrl,
+    title: "Nanoamperes",
+    description: "A unit equal to 10^-9 amperes.",
+  },
+  nanobecquerels: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/nanobecquerels/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/nanobecquerels/" as BaseUrl,
+    title: "Nanobecquerels",
+    description: "A unit equal to 10^-9 becquerels.",
+  },
+  nanocandelas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/nanocandelas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/nanocandelas/" as BaseUrl,
+    title: "Nanocandelas",
+    description: "A unit equal to 10^-9 candelas.",
+  },
+  nanocoulombs: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/nanocoulombs/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/nanocoulombs/" as BaseUrl,
+    title: "Nanocoulombs",
+    description: "A unit equal to 10^-9 coulombs.",
+  },
   nanofarads: {
     dataTypeId: "https://hash.ai/@h/types/data-type/nanofarads/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/nanofarads/" as BaseUrl,
     title: "Nanofarads",
     description: "A unit of capacitance equal to 1e-09 farads.",
+  },
+  nanograms: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/nanograms/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/nanograms/" as BaseUrl,
+    title: "Nanograms",
+    description: "A unit equal to 10^-9 grams.",
+  },
+  nanograys: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/nanograys/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/nanograys/" as BaseUrl,
+    title: "Nanograys",
+    description: "A unit equal to 10^-9 grays.",
+  },
+  nanohenries: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/nanohenries/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/nanohenries/" as BaseUrl,
+    title: "Nanohenries",
+    description: "A unit equal to 10^-9 henries.",
+  },
+  nanohertz: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/nanohertz/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/nanohertz/" as BaseUrl,
+    title: "Nanohertz",
+    description: "A unit equal to 10^-9 hertz.",
+  },
+  nanojoules: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/nanojoules/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/nanojoules/" as BaseUrl,
+    title: "Nanojoules",
+    description: "A unit equal to 10^-9 joules.",
+  },
+  nanokatals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/nanokatals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/nanokatals/" as BaseUrl,
+    title: "Nanokatals",
+    description: "A unit equal to 10^-9 katals.",
+  },
+  nanokelvins: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/nanokelvins/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/nanokelvins/" as BaseUrl,
+    title: "Nanokelvins",
+    description: "A unit equal to 10^-9 kelvins.",
+  },
+  nanolitres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/nanolitres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/nanolitres/" as BaseUrl,
+    title: "Nanolitres",
+    description: "A unit equal to 10^-9 litres.",
+  },
+  nanolumens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/nanolumens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/nanolumens/" as BaseUrl,
+    title: "Nanolumens",
+    description: "A unit equal to 10^-9 lumens.",
+  },
+  nanolux: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/nanolux/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/nanolux/" as BaseUrl,
+    title: "Nanolux",
+    description: "A unit equal to 10^-9 lux.",
+  },
+  nanometers: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/nanometers/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/nanometers/" as BaseUrl,
+    title: "Nanometers",
+    description: "A unit equal to 10^-9 meters.",
+  },
+  nanomoles: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/nanomoles/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/nanomoles/" as BaseUrl,
+    title: "Nanomoles",
+    description: "A unit equal to 10^-9 moles.",
+  },
+  nanonewtons: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/nanonewtons/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/nanonewtons/" as BaseUrl,
+    title: "Nanonewtons",
+    description: "A unit equal to 10^-9 newtons.",
+  },
+  nanoohms: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/nanoohms/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/nanoohms/" as BaseUrl,
+    title: "Nanoohms",
+    description: "A unit equal to 10^-9 ohms.",
+  },
+  nanopascals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/nanopascals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/nanopascals/" as BaseUrl,
+    title: "Nanopascals",
+    description: "A unit equal to 10^-9 pascals.",
+  },
+  nanoradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/nanoradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/nanoradians/" as BaseUrl,
+    title: "Nanoradians",
+    description: "A unit equal to 10^-9 radians.",
+  },
+  nanosecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/nanosecond/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/nanosecond/" as BaseUrl,
+    title: "Nanosecond",
+    description: "A unit equal to 10^-9 second.",
+  },
+  nanosiemens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/nanosiemens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/nanosiemens/" as BaseUrl,
+    title: "Nanosiemens",
+    description: "A unit equal to 10^-9 siemens.",
+  },
+  nanosieverts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/nanosieverts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/nanosieverts/" as BaseUrl,
+    title: "Nanosieverts",
+    description: "A unit equal to 10^-9 sieverts.",
+  },
+  nanosteradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/nanosteradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/nanosteradians/" as BaseUrl,
+    title: "Nanosteradians",
+    description: "A unit equal to 10^-9 steradians.",
+  },
+  nanoteslas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/nanoteslas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/nanoteslas/" as BaseUrl,
+    title: "Nanoteslas",
+    description: "A unit equal to 10^-9 teslas.",
+  },
+  nanovolts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/nanovolts/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/nanovolts/" as BaseUrl,
+    title: "Nanovolts",
+    description: "A unit equal to 10^-9 volts.",
+  },
+  nanowattHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/nanowatt-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/nanowatt-hours/" as BaseUrl,
+    title: "Nanowatt Hours",
+    description: "A unit equal to 10^-9 watt hours.",
+  },
+  nanowatts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/nanowatts/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/nanowatts/" as BaseUrl,
+    title: "Nanowatts",
+    description: "A unit equal to 10^-9 watts.",
+  },
+  nanowebers: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/nanowebers/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/nanowebers/" as BaseUrl,
+    title: "Nanowebers",
+    description: "A unit equal to 10^-9 webers.",
   },
   nctId: {
     dataTypeId: "https://hash.ai/@h/types/data-type/nct-id/v/1",
@@ -4343,6 +6993,215 @@ export const systemDataTypes = {
     description:
       "The electric displacement per unit electric field strength in a material.",
   },
+  petaampereHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/petaampere-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/petaampere-hours/" as BaseUrl,
+    title: "Petaampere Hours",
+    description: "A unit equal to 10^15 ampere hours.",
+  },
+  petaamperes: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/petaamperes/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/petaamperes/" as BaseUrl,
+    title: "Petaamperes",
+    description: "A unit equal to 10^15 amperes.",
+  },
+  petabecquerels: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/petabecquerels/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/petabecquerels/" as BaseUrl,
+    title: "Petabecquerels",
+    description: "A unit equal to 10^15 becquerels.",
+  },
+  petacandelas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/petacandelas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/petacandelas/" as BaseUrl,
+    title: "Petacandelas",
+    description: "A unit equal to 10^15 candelas.",
+  },
+  petacoulombs: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/petacoulombs/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/petacoulombs/" as BaseUrl,
+    title: "Petacoulombs",
+    description: "A unit equal to 10^15 coulombs.",
+  },
+  petafarads: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/petafarads/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/petafarads/" as BaseUrl,
+    title: "Petafarads",
+    description: "A unit equal to 10^15 farads.",
+  },
+  petagrams: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/petagrams/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/petagrams/" as BaseUrl,
+    title: "Petagrams",
+    description: "A unit equal to 10^15 grams.",
+  },
+  petagrays: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/petagrays/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/petagrays/" as BaseUrl,
+    title: "Petagrays",
+    description: "A unit equal to 10^15 grays.",
+  },
+  petahenries: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/petahenries/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/petahenries/" as BaseUrl,
+    title: "Petahenries",
+    description: "A unit equal to 10^15 henries.",
+  },
+  petahertz: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/petahertz/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/petahertz/" as BaseUrl,
+    title: "Petahertz",
+    description: "A unit equal to 10^15 hertz.",
+  },
+  petajoules: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/petajoules/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/petajoules/" as BaseUrl,
+    title: "Petajoules",
+    description: "A unit equal to 10^15 joules.",
+  },
+  petakatals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/petakatals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/petakatals/" as BaseUrl,
+    title: "Petakatals",
+    description: "A unit equal to 10^15 katals.",
+  },
+  petakelvins: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/petakelvins/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/petakelvins/" as BaseUrl,
+    title: "Petakelvins",
+    description: "A unit equal to 10^15 kelvins.",
+  },
+  petalitres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/petalitres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/petalitres/" as BaseUrl,
+    title: "Petalitres",
+    description: "A unit equal to 10^15 litres.",
+  },
+  petalumens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/petalumens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/petalumens/" as BaseUrl,
+    title: "Petalumens",
+    description: "A unit equal to 10^15 lumens.",
+  },
+  petalux: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/petalux/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/petalux/" as BaseUrl,
+    title: "Petalux",
+    description: "A unit equal to 10^15 lux.",
+  },
+  petameters: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/petameters/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/petameters/" as BaseUrl,
+    title: "Petameters",
+    description: "A unit equal to 10^15 meters.",
+  },
+  petamoles: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/petamoles/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/petamoles/" as BaseUrl,
+    title: "Petamoles",
+    description: "A unit equal to 10^15 moles.",
+  },
+  petanewtons: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/petanewtons/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/petanewtons/" as BaseUrl,
+    title: "Petanewtons",
+    description: "A unit equal to 10^15 newtons.",
+  },
+  petaohms: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/petaohms/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/petaohms/" as BaseUrl,
+    title: "Petaohms",
+    description: "A unit equal to 10^15 ohms.",
+  },
+  petapascals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/petapascals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/petapascals/" as BaseUrl,
+    title: "Petapascals",
+    description: "A unit equal to 10^15 pascals.",
+  },
+  petaradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/petaradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/petaradians/" as BaseUrl,
+    title: "Petaradians",
+    description: "A unit equal to 10^15 radians.",
+  },
+  petasecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/petasecond/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/petasecond/" as BaseUrl,
+    title: "Petasecond",
+    description: "A unit equal to 10^15 second.",
+  },
+  petasiemens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/petasiemens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/petasiemens/" as BaseUrl,
+    title: "Petasiemens",
+    description: "A unit equal to 10^15 siemens.",
+  },
+  petasieverts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/petasieverts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/petasieverts/" as BaseUrl,
+    title: "Petasieverts",
+    description: "A unit equal to 10^15 sieverts.",
+  },
+  petasteradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/petasteradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/petasteradians/" as BaseUrl,
+    title: "Petasteradians",
+    description: "A unit equal to 10^15 steradians.",
+  },
+  petateslas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/petateslas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/petateslas/" as BaseUrl,
+    title: "Petateslas",
+    description: "A unit equal to 10^15 teslas.",
+  },
+  petavolts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/petavolts/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/petavolts/" as BaseUrl,
+    title: "Petavolts",
+    description: "A unit equal to 10^15 volts.",
+  },
+  petawattHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/petawatt-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/petawatt-hours/" as BaseUrl,
+    title: "Petawatt Hours",
+    description: "A unit equal to 10^15 watt hours.",
+  },
+  petawatts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/petawatts/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/petawatts/" as BaseUrl,
+    title: "Petawatts",
+    description: "A unit equal to 10^15 watts.",
+  },
+  petawebers: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/petawebers/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/petawebers/" as BaseUrl,
+    title: "Petawebers",
+    description: "A unit equal to 10^15 webers.",
+  },
   pgk: {
     dataTypeId: "https://hash.ai/@h/types/data-type/pgk/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/pgk/" as BaseUrl,
@@ -4355,12 +7214,214 @@ export const systemDataTypes = {
     title: "PHP",
     description: "An amount denominated in Philippine Peso (ISO 4217 PHP).",
   },
+  picoampereHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/picoampere-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/picoampere-hours/" as BaseUrl,
+    title: "Picoampere Hours",
+    description: "A unit equal to 10^-12 ampere hours.",
+  },
+  picoamperes: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/picoamperes/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/picoamperes/" as BaseUrl,
+    title: "Picoamperes",
+    description: "A unit equal to 10^-12 amperes.",
+  },
+  picobecquerels: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/picobecquerels/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/picobecquerels/" as BaseUrl,
+    title: "Picobecquerels",
+    description: "A unit equal to 10^-12 becquerels.",
+  },
+  picocandelas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/picocandelas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/picocandelas/" as BaseUrl,
+    title: "Picocandelas",
+    description: "A unit equal to 10^-12 candelas.",
+  },
+  picocoulombs: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/picocoulombs/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/picocoulombs/" as BaseUrl,
+    title: "Picocoulombs",
+    description: "A unit equal to 10^-12 coulombs.",
+  },
   picofarads: {
     dataTypeId: "https://hash.ai/@h/types/data-type/picofarads/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/picofarads/" as BaseUrl,
     title: "Picofarads",
     description: "A unit of capacitance equal to 1e-12 farads.",
+  },
+  picograms: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/picograms/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/picograms/" as BaseUrl,
+    title: "Picograms",
+    description: "A unit equal to 10^-12 grams.",
+  },
+  picograys: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/picograys/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/picograys/" as BaseUrl,
+    title: "Picograys",
+    description: "A unit equal to 10^-12 grays.",
+  },
+  picohenries: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/picohenries/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/picohenries/" as BaseUrl,
+    title: "Picohenries",
+    description: "A unit equal to 10^-12 henries.",
+  },
+  picohertz: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/picohertz/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/picohertz/" as BaseUrl,
+    title: "Picohertz",
+    description: "A unit equal to 10^-12 hertz.",
+  },
+  picojoules: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/picojoules/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/picojoules/" as BaseUrl,
+    title: "Picojoules",
+    description: "A unit equal to 10^-12 joules.",
+  },
+  picokatals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/picokatals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/picokatals/" as BaseUrl,
+    title: "Picokatals",
+    description: "A unit equal to 10^-12 katals.",
+  },
+  picokelvins: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/picokelvins/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/picokelvins/" as BaseUrl,
+    title: "Picokelvins",
+    description: "A unit equal to 10^-12 kelvins.",
+  },
+  picolitres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/picolitres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/picolitres/" as BaseUrl,
+    title: "Picolitres",
+    description: "A unit equal to 10^-12 litres.",
+  },
+  picolumens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/picolumens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/picolumens/" as BaseUrl,
+    title: "Picolumens",
+    description: "A unit equal to 10^-12 lumens.",
+  },
+  picolux: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/picolux/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/picolux/" as BaseUrl,
+    title: "Picolux",
+    description: "A unit equal to 10^-12 lux.",
+  },
+  picometers: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/picometers/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/picometers/" as BaseUrl,
+    title: "Picometers",
+    description: "A unit equal to 10^-12 meters.",
+  },
+  picomoles: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/picomoles/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/picomoles/" as BaseUrl,
+    title: "Picomoles",
+    description: "A unit equal to 10^-12 moles.",
+  },
+  piconewtons: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/piconewtons/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/piconewtons/" as BaseUrl,
+    title: "Piconewtons",
+    description: "A unit equal to 10^-12 newtons.",
+  },
+  picoohms: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/picoohms/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/picoohms/" as BaseUrl,
+    title: "Picoohms",
+    description: "A unit equal to 10^-12 ohms.",
+  },
+  picopascals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/picopascals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/picopascals/" as BaseUrl,
+    title: "Picopascals",
+    description: "A unit equal to 10^-12 pascals.",
+  },
+  picoradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/picoradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/picoradians/" as BaseUrl,
+    title: "Picoradians",
+    description: "A unit equal to 10^-12 radians.",
+  },
+  picosecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/picosecond/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/picosecond/" as BaseUrl,
+    title: "Picosecond",
+    description: "A unit equal to 10^-12 second.",
+  },
+  picosiemens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/picosiemens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/picosiemens/" as BaseUrl,
+    title: "Picosiemens",
+    description: "A unit equal to 10^-12 siemens.",
+  },
+  picosieverts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/picosieverts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/picosieverts/" as BaseUrl,
+    title: "Picosieverts",
+    description: "A unit equal to 10^-12 sieverts.",
+  },
+  picosteradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/picosteradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/picosteradians/" as BaseUrl,
+    title: "Picosteradians",
+    description: "A unit equal to 10^-12 steradians.",
+  },
+  picoteslas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/picoteslas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/picoteslas/" as BaseUrl,
+    title: "Picoteslas",
+    description: "A unit equal to 10^-12 teslas.",
+  },
+  picovolts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/picovolts/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/picovolts/" as BaseUrl,
+    title: "Picovolts",
+    description: "A unit equal to 10^-12 volts.",
+  },
+  picowattHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/picowatt-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/picowatt-hours/" as BaseUrl,
+    title: "Picowatt Hours",
+    description: "A unit equal to 10^-12 watt hours.",
+  },
+  picowatts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/picowatts/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/picowatts/" as BaseUrl,
+    title: "Picowatts",
+    description: "A unit equal to 10^-12 watts.",
+  },
+  picowebers: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/picowebers/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/picowebers/" as BaseUrl,
+    title: "Picowebers",
+    description: "A unit equal to 10^-12 webers.",
   },
   pkr: {
     dataTypeId: "https://hash.ai/@h/types/data-type/pkr/v/1",
@@ -4404,6 +7465,438 @@ export const systemDataTypes = {
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/qar/" as BaseUrl,
     title: "QAR",
     description: "An amount denominated in Qatari Rial (ISO 4217 QAR).",
+  },
+  quectoampereHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quectoampere-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quectoampere-hours/" as BaseUrl,
+    title: "Quectoampere Hours",
+    description: "A unit equal to 10^-30 ampere hours.",
+  },
+  quectoamperes: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quectoamperes/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quectoamperes/" as BaseUrl,
+    title: "Quectoamperes",
+    description: "A unit equal to 10^-30 amperes.",
+  },
+  quectobecquerels: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quectobecquerels/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quectobecquerels/" as BaseUrl,
+    title: "Quectobecquerels",
+    description: "A unit equal to 10^-30 becquerels.",
+  },
+  quectocandelas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quectocandelas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quectocandelas/" as BaseUrl,
+    title: "Quectocandelas",
+    description: "A unit equal to 10^-30 candelas.",
+  },
+  quectocoulombs: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quectocoulombs/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quectocoulombs/" as BaseUrl,
+    title: "Quectocoulombs",
+    description: "A unit equal to 10^-30 coulombs.",
+  },
+  quectofarads: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quectofarads/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quectofarads/" as BaseUrl,
+    title: "Quectofarads",
+    description: "A unit equal to 10^-30 farads.",
+  },
+  quectograms: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quectograms/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quectograms/" as BaseUrl,
+    title: "Quectograms",
+    description: "A unit equal to 10^-30 grams.",
+  },
+  quectograys: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quectograys/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quectograys/" as BaseUrl,
+    title: "Quectograys",
+    description: "A unit equal to 10^-30 grays.",
+  },
+  quectohenries: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quectohenries/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quectohenries/" as BaseUrl,
+    title: "Quectohenries",
+    description: "A unit equal to 10^-30 henries.",
+  },
+  quectohertz: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quectohertz/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quectohertz/" as BaseUrl,
+    title: "Quectohertz",
+    description: "A unit equal to 10^-30 hertz.",
+  },
+  quectojoules: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quectojoules/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quectojoules/" as BaseUrl,
+    title: "Quectojoules",
+    description: "A unit equal to 10^-30 joules.",
+  },
+  quectokatals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quectokatals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quectokatals/" as BaseUrl,
+    title: "Quectokatals",
+    description: "A unit equal to 10^-30 katals.",
+  },
+  quectokelvins: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quectokelvins/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quectokelvins/" as BaseUrl,
+    title: "Quectokelvins",
+    description: "A unit equal to 10^-30 kelvins.",
+  },
+  quectolitres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quectolitres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quectolitres/" as BaseUrl,
+    title: "Quectolitres",
+    description: "A unit equal to 10^-30 litres.",
+  },
+  quectolumens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quectolumens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quectolumens/" as BaseUrl,
+    title: "Quectolumens",
+    description: "A unit equal to 10^-30 lumens.",
+  },
+  quectolux: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quectolux/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/quectolux/" as BaseUrl,
+    title: "Quectolux",
+    description: "A unit equal to 10^-30 lux.",
+  },
+  quectometers: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quectometers/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quectometers/" as BaseUrl,
+    title: "Quectometers",
+    description: "A unit equal to 10^-30 meters.",
+  },
+  quectomoles: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quectomoles/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quectomoles/" as BaseUrl,
+    title: "Quectomoles",
+    description: "A unit equal to 10^-30 moles.",
+  },
+  quectonewtons: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quectonewtons/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quectonewtons/" as BaseUrl,
+    title: "Quectonewtons",
+    description: "A unit equal to 10^-30 newtons.",
+  },
+  quectoohms: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quectoohms/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quectoohms/" as BaseUrl,
+    title: "Quectoohms",
+    description: "A unit equal to 10^-30 ohms.",
+  },
+  quectopascals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quectopascals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quectopascals/" as BaseUrl,
+    title: "Quectopascals",
+    description: "A unit equal to 10^-30 pascals.",
+  },
+  quectoradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quectoradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quectoradians/" as BaseUrl,
+    title: "Quectoradians",
+    description: "A unit equal to 10^-30 radians.",
+  },
+  quectosecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quectosecond/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quectosecond/" as BaseUrl,
+    title: "Quectosecond",
+    description: "A unit equal to 10^-30 second.",
+  },
+  quectosiemens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quectosiemens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quectosiemens/" as BaseUrl,
+    title: "Quectosiemens",
+    description: "A unit equal to 10^-30 siemens.",
+  },
+  quectosieverts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quectosieverts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quectosieverts/" as BaseUrl,
+    title: "Quectosieverts",
+    description: "A unit equal to 10^-30 sieverts.",
+  },
+  quectosteradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quectosteradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quectosteradians/" as BaseUrl,
+    title: "Quectosteradians",
+    description: "A unit equal to 10^-30 steradians.",
+  },
+  quectoteslas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quectoteslas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quectoteslas/" as BaseUrl,
+    title: "Quectoteslas",
+    description: "A unit equal to 10^-30 teslas.",
+  },
+  quectovolts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quectovolts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quectovolts/" as BaseUrl,
+    title: "Quectovolts",
+    description: "A unit equal to 10^-30 volts.",
+  },
+  quectowattHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quectowatt-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quectowatt-hours/" as BaseUrl,
+    title: "Quectowatt Hours",
+    description: "A unit equal to 10^-30 watt hours.",
+  },
+  quectowatts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quectowatts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quectowatts/" as BaseUrl,
+    title: "Quectowatts",
+    description: "A unit equal to 10^-30 watts.",
+  },
+  quectowebers: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quectowebers/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quectowebers/" as BaseUrl,
+    title: "Quectowebers",
+    description: "A unit equal to 10^-30 webers.",
+  },
+  quettaampereHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quettaampere-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quettaampere-hours/" as BaseUrl,
+    title: "Quettaampere Hours",
+    description: "A unit equal to 10^30 ampere hours.",
+  },
+  quettaamperes: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quettaamperes/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quettaamperes/" as BaseUrl,
+    title: "Quettaamperes",
+    description: "A unit equal to 10^30 amperes.",
+  },
+  quettabecquerels: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quettabecquerels/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quettabecquerels/" as BaseUrl,
+    title: "Quettabecquerels",
+    description: "A unit equal to 10^30 becquerels.",
+  },
+  quettacandelas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quettacandelas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quettacandelas/" as BaseUrl,
+    title: "Quettacandelas",
+    description: "A unit equal to 10^30 candelas.",
+  },
+  quettacoulombs: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quettacoulombs/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quettacoulombs/" as BaseUrl,
+    title: "Quettacoulombs",
+    description: "A unit equal to 10^30 coulombs.",
+  },
+  quettafarads: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quettafarads/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quettafarads/" as BaseUrl,
+    title: "Quettafarads",
+    description: "A unit equal to 10^30 farads.",
+  },
+  quettagrams: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quettagrams/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quettagrams/" as BaseUrl,
+    title: "Quettagrams",
+    description: "A unit equal to 10^30 grams.",
+  },
+  quettagrays: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quettagrays/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quettagrays/" as BaseUrl,
+    title: "Quettagrays",
+    description: "A unit equal to 10^30 grays.",
+  },
+  quettahenries: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quettahenries/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quettahenries/" as BaseUrl,
+    title: "Quettahenries",
+    description: "A unit equal to 10^30 henries.",
+  },
+  quettahertz: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quettahertz/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quettahertz/" as BaseUrl,
+    title: "Quettahertz",
+    description: "A unit equal to 10^30 hertz.",
+  },
+  quettajoules: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quettajoules/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quettajoules/" as BaseUrl,
+    title: "Quettajoules",
+    description: "A unit equal to 10^30 joules.",
+  },
+  quettakatals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quettakatals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quettakatals/" as BaseUrl,
+    title: "Quettakatals",
+    description: "A unit equal to 10^30 katals.",
+  },
+  quettakelvins: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quettakelvins/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quettakelvins/" as BaseUrl,
+    title: "Quettakelvins",
+    description: "A unit equal to 10^30 kelvins.",
+  },
+  quettalitres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quettalitres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quettalitres/" as BaseUrl,
+    title: "Quettalitres",
+    description: "A unit equal to 10^30 litres.",
+  },
+  quettalumens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quettalumens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quettalumens/" as BaseUrl,
+    title: "Quettalumens",
+    description: "A unit equal to 10^30 lumens.",
+  },
+  quettalux: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quettalux/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/quettalux/" as BaseUrl,
+    title: "Quettalux",
+    description: "A unit equal to 10^30 lux.",
+  },
+  quettameters: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quettameters/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quettameters/" as BaseUrl,
+    title: "Quettameters",
+    description: "A unit equal to 10^30 meters.",
+  },
+  quettamoles: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quettamoles/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quettamoles/" as BaseUrl,
+    title: "Quettamoles",
+    description: "A unit equal to 10^30 moles.",
+  },
+  quettanewtons: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quettanewtons/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quettanewtons/" as BaseUrl,
+    title: "Quettanewtons",
+    description: "A unit equal to 10^30 newtons.",
+  },
+  quettaohms: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quettaohms/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quettaohms/" as BaseUrl,
+    title: "Quettaohms",
+    description: "A unit equal to 10^30 ohms.",
+  },
+  quettapascals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quettapascals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quettapascals/" as BaseUrl,
+    title: "Quettapascals",
+    description: "A unit equal to 10^30 pascals.",
+  },
+  quettaradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quettaradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quettaradians/" as BaseUrl,
+    title: "Quettaradians",
+    description: "A unit equal to 10^30 radians.",
+  },
+  quettasecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quettasecond/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quettasecond/" as BaseUrl,
+    title: "Quettasecond",
+    description: "A unit equal to 10^30 second.",
+  },
+  quettasiemens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quettasiemens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quettasiemens/" as BaseUrl,
+    title: "Quettasiemens",
+    description: "A unit equal to 10^30 siemens.",
+  },
+  quettasieverts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quettasieverts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quettasieverts/" as BaseUrl,
+    title: "Quettasieverts",
+    description: "A unit equal to 10^30 sieverts.",
+  },
+  quettasteradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quettasteradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quettasteradians/" as BaseUrl,
+    title: "Quettasteradians",
+    description: "A unit equal to 10^30 steradians.",
+  },
+  quettateslas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quettateslas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quettateslas/" as BaseUrl,
+    title: "Quettateslas",
+    description: "A unit equal to 10^30 teslas.",
+  },
+  quettavolts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quettavolts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quettavolts/" as BaseUrl,
+    title: "Quettavolts",
+    description: "A unit equal to 10^30 volts.",
+  },
+  quettawattHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quettawatt-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quettawatt-hours/" as BaseUrl,
+    title: "Quettawatt Hours",
+    description: "A unit equal to 10^30 watt hours.",
+  },
+  quettawatts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quettawatts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quettawatts/" as BaseUrl,
+    title: "Quettawatts",
+    description: "A unit equal to 10^30 watts.",
+  },
+  quettawebers: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/quettawebers/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/quettawebers/" as BaseUrl,
+    title: "Quettawebers",
+    description: "A unit equal to 10^30 webers.",
   },
   radiance: {
     dataTypeId: "https://hash.ai/@h/types/data-type/radiance/v/1",
@@ -4467,6 +7960,436 @@ export const systemDataTypes = {
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/ron/" as BaseUrl,
     title: "RON",
     description: "An amount denominated in Romanian Leu (ISO 4217 RON).",
+  },
+  ronnaampereHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ronnaampere-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/ronnaampere-hours/" as BaseUrl,
+    title: "Ronnaampere Hours",
+    description: "A unit equal to 10^27 ampere hours.",
+  },
+  ronnaamperes: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ronnaamperes/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/ronnaamperes/" as BaseUrl,
+    title: "Ronnaamperes",
+    description: "A unit equal to 10^27 amperes.",
+  },
+  ronnabecquerels: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ronnabecquerels/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/ronnabecquerels/" as BaseUrl,
+    title: "Ronnabecquerels",
+    description: "A unit equal to 10^27 becquerels.",
+  },
+  ronnacandelas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ronnacandelas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/ronnacandelas/" as BaseUrl,
+    title: "Ronnacandelas",
+    description: "A unit equal to 10^27 candelas.",
+  },
+  ronnacoulombs: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ronnacoulombs/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/ronnacoulombs/" as BaseUrl,
+    title: "Ronnacoulombs",
+    description: "A unit equal to 10^27 coulombs.",
+  },
+  ronnafarads: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ronnafarads/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/ronnafarads/" as BaseUrl,
+    title: "Ronnafarads",
+    description: "A unit equal to 10^27 farads.",
+  },
+  ronnagrams: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ronnagrams/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/ronnagrams/" as BaseUrl,
+    title: "Ronnagrams",
+    description: "A unit equal to 10^27 grams.",
+  },
+  ronnagrays: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ronnagrays/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/ronnagrays/" as BaseUrl,
+    title: "Ronnagrays",
+    description: "A unit equal to 10^27 grays.",
+  },
+  ronnahenries: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ronnahenries/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/ronnahenries/" as BaseUrl,
+    title: "Ronnahenries",
+    description: "A unit equal to 10^27 henries.",
+  },
+  ronnahertz: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ronnahertz/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/ronnahertz/" as BaseUrl,
+    title: "Ronnahertz",
+    description: "A unit equal to 10^27 hertz.",
+  },
+  ronnajoules: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ronnajoules/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/ronnajoules/" as BaseUrl,
+    title: "Ronnajoules",
+    description: "A unit equal to 10^27 joules.",
+  },
+  ronnakatals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ronnakatals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/ronnakatals/" as BaseUrl,
+    title: "Ronnakatals",
+    description: "A unit equal to 10^27 katals.",
+  },
+  ronnakelvins: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ronnakelvins/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/ronnakelvins/" as BaseUrl,
+    title: "Ronnakelvins",
+    description: "A unit equal to 10^27 kelvins.",
+  },
+  ronnalitres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ronnalitres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/ronnalitres/" as BaseUrl,
+    title: "Ronnalitres",
+    description: "A unit equal to 10^27 litres.",
+  },
+  ronnalumens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ronnalumens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/ronnalumens/" as BaseUrl,
+    title: "Ronnalumens",
+    description: "A unit equal to 10^27 lumens.",
+  },
+  ronnalux: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ronnalux/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/ronnalux/" as BaseUrl,
+    title: "Ronnalux",
+    description: "A unit equal to 10^27 lux.",
+  },
+  ronnameters: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ronnameters/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/ronnameters/" as BaseUrl,
+    title: "Ronnameters",
+    description: "A unit equal to 10^27 meters.",
+  },
+  ronnamoles: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ronnamoles/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/ronnamoles/" as BaseUrl,
+    title: "Ronnamoles",
+    description: "A unit equal to 10^27 moles.",
+  },
+  ronnanewtons: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ronnanewtons/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/ronnanewtons/" as BaseUrl,
+    title: "Ronnanewtons",
+    description: "A unit equal to 10^27 newtons.",
+  },
+  ronnaohms: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ronnaohms/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/ronnaohms/" as BaseUrl,
+    title: "Ronnaohms",
+    description: "A unit equal to 10^27 ohms.",
+  },
+  ronnapascals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ronnapascals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/ronnapascals/" as BaseUrl,
+    title: "Ronnapascals",
+    description: "A unit equal to 10^27 pascals.",
+  },
+  ronnaradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ronnaradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/ronnaradians/" as BaseUrl,
+    title: "Ronnaradians",
+    description: "A unit equal to 10^27 radians.",
+  },
+  ronnasecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ronnasecond/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/ronnasecond/" as BaseUrl,
+    title: "Ronnasecond",
+    description: "A unit equal to 10^27 second.",
+  },
+  ronnasiemens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ronnasiemens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/ronnasiemens/" as BaseUrl,
+    title: "Ronnasiemens",
+    description: "A unit equal to 10^27 siemens.",
+  },
+  ronnasieverts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ronnasieverts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/ronnasieverts/" as BaseUrl,
+    title: "Ronnasieverts",
+    description: "A unit equal to 10^27 sieverts.",
+  },
+  ronnasteradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ronnasteradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/ronnasteradians/" as BaseUrl,
+    title: "Ronnasteradians",
+    description: "A unit equal to 10^27 steradians.",
+  },
+  ronnateslas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ronnateslas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/ronnateslas/" as BaseUrl,
+    title: "Ronnateslas",
+    description: "A unit equal to 10^27 teslas.",
+  },
+  ronnavolts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ronnavolts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/ronnavolts/" as BaseUrl,
+    title: "Ronnavolts",
+    description: "A unit equal to 10^27 volts.",
+  },
+  ronnawattHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ronnawatt-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/ronnawatt-hours/" as BaseUrl,
+    title: "Ronnawatt Hours",
+    description: "A unit equal to 10^27 watt hours.",
+  },
+  ronnawatts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ronnawatts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/ronnawatts/" as BaseUrl,
+    title: "Ronnawatts",
+    description: "A unit equal to 10^27 watts.",
+  },
+  ronnawebers: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ronnawebers/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/ronnawebers/" as BaseUrl,
+    title: "Ronnawebers",
+    description: "A unit equal to 10^27 webers.",
+  },
+  rontoampereHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/rontoampere-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/rontoampere-hours/" as BaseUrl,
+    title: "Rontoampere Hours",
+    description: "A unit equal to 10^-27 ampere hours.",
+  },
+  rontoamperes: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/rontoamperes/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/rontoamperes/" as BaseUrl,
+    title: "Rontoamperes",
+    description: "A unit equal to 10^-27 amperes.",
+  },
+  rontobecquerels: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/rontobecquerels/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/rontobecquerels/" as BaseUrl,
+    title: "Rontobecquerels",
+    description: "A unit equal to 10^-27 becquerels.",
+  },
+  rontocandelas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/rontocandelas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/rontocandelas/" as BaseUrl,
+    title: "Rontocandelas",
+    description: "A unit equal to 10^-27 candelas.",
+  },
+  rontocoulombs: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/rontocoulombs/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/rontocoulombs/" as BaseUrl,
+    title: "Rontocoulombs",
+    description: "A unit equal to 10^-27 coulombs.",
+  },
+  rontofarads: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/rontofarads/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/rontofarads/" as BaseUrl,
+    title: "Rontofarads",
+    description: "A unit equal to 10^-27 farads.",
+  },
+  rontograms: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/rontograms/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/rontograms/" as BaseUrl,
+    title: "Rontograms",
+    description: "A unit equal to 10^-27 grams.",
+  },
+  rontograys: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/rontograys/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/rontograys/" as BaseUrl,
+    title: "Rontograys",
+    description: "A unit equal to 10^-27 grays.",
+  },
+  rontohenries: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/rontohenries/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/rontohenries/" as BaseUrl,
+    title: "Rontohenries",
+    description: "A unit equal to 10^-27 henries.",
+  },
+  rontohertz: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/rontohertz/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/rontohertz/" as BaseUrl,
+    title: "Rontohertz",
+    description: "A unit equal to 10^-27 hertz.",
+  },
+  rontojoules: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/rontojoules/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/rontojoules/" as BaseUrl,
+    title: "Rontojoules",
+    description: "A unit equal to 10^-27 joules.",
+  },
+  rontokatals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/rontokatals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/rontokatals/" as BaseUrl,
+    title: "Rontokatals",
+    description: "A unit equal to 10^-27 katals.",
+  },
+  rontokelvins: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/rontokelvins/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/rontokelvins/" as BaseUrl,
+    title: "Rontokelvins",
+    description: "A unit equal to 10^-27 kelvins.",
+  },
+  rontolitres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/rontolitres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/rontolitres/" as BaseUrl,
+    title: "Rontolitres",
+    description: "A unit equal to 10^-27 litres.",
+  },
+  rontolumens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/rontolumens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/rontolumens/" as BaseUrl,
+    title: "Rontolumens",
+    description: "A unit equal to 10^-27 lumens.",
+  },
+  rontolux: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/rontolux/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/rontolux/" as BaseUrl,
+    title: "Rontolux",
+    description: "A unit equal to 10^-27 lux.",
+  },
+  rontometers: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/rontometers/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/rontometers/" as BaseUrl,
+    title: "Rontometers",
+    description: "A unit equal to 10^-27 meters.",
+  },
+  rontomoles: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/rontomoles/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/rontomoles/" as BaseUrl,
+    title: "Rontomoles",
+    description: "A unit equal to 10^-27 moles.",
+  },
+  rontonewtons: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/rontonewtons/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/rontonewtons/" as BaseUrl,
+    title: "Rontonewtons",
+    description: "A unit equal to 10^-27 newtons.",
+  },
+  rontoohms: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/rontoohms/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/rontoohms/" as BaseUrl,
+    title: "Rontoohms",
+    description: "A unit equal to 10^-27 ohms.",
+  },
+  rontopascals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/rontopascals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/rontopascals/" as BaseUrl,
+    title: "Rontopascals",
+    description: "A unit equal to 10^-27 pascals.",
+  },
+  rontoradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/rontoradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/rontoradians/" as BaseUrl,
+    title: "Rontoradians",
+    description: "A unit equal to 10^-27 radians.",
+  },
+  rontosecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/rontosecond/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/rontosecond/" as BaseUrl,
+    title: "Rontosecond",
+    description: "A unit equal to 10^-27 second.",
+  },
+  rontosiemens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/rontosiemens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/rontosiemens/" as BaseUrl,
+    title: "Rontosiemens",
+    description: "A unit equal to 10^-27 siemens.",
+  },
+  rontosieverts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/rontosieverts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/rontosieverts/" as BaseUrl,
+    title: "Rontosieverts",
+    description: "A unit equal to 10^-27 sieverts.",
+  },
+  rontosteradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/rontosteradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/rontosteradians/" as BaseUrl,
+    title: "Rontosteradians",
+    description: "A unit equal to 10^-27 steradians.",
+  },
+  rontoteslas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/rontoteslas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/rontoteslas/" as BaseUrl,
+    title: "Rontoteslas",
+    description: "A unit equal to 10^-27 teslas.",
+  },
+  rontovolts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/rontovolts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/rontovolts/" as BaseUrl,
+    title: "Rontovolts",
+    description: "A unit equal to 10^-27 volts.",
+  },
+  rontowattHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/rontowatt-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/rontowatt-hours/" as BaseUrl,
+    title: "Rontowatt Hours",
+    description: "A unit equal to 10^-27 watt hours.",
+  },
+  rontowatts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/rontowatts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/rontowatts/" as BaseUrl,
+    title: "Rontowatts",
+    description: "A unit equal to 10^-27 watts.",
+  },
+  rontowebers: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/rontowebers/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/rontowebers/" as BaseUrl,
+    title: "Rontowebers",
+    description: "A unit equal to 10^-27 webers.",
   },
   rsd: {
     dataTypeId: "https://hash.ai/@h/types/data-type/rsd/v/1",
@@ -4616,6 +8539,13 @@ export const systemDataTypes = {
     description:
       "A measure of the rate of movement or change in position over time.",
   },
+  squareAttometres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/square-attometres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/square-attometres/" as BaseUrl,
+    title: "Square Attometres",
+    description: "A unit equal to 10^-36 square metres.",
+  },
   squareCentimetres: {
     dataTypeId: "https://hash.ai/@h/types/data-type/square-centimetres/v/1",
     dataTypeBaseUrl:
@@ -4623,6 +8553,27 @@ export const systemDataTypes = {
     title: "Square Centimetres",
     description:
       "A metric unit of area equal to one ten-thousandth of a square metre.",
+  },
+  squareDecametres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/square-decametres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/square-decametres/" as BaseUrl,
+    title: "Square Decametres",
+    description: "A unit equal to 10^2 square metres.",
+  },
+  squareDecimetres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/square-decimetres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/square-decimetres/" as BaseUrl,
+    title: "Square Decimetres",
+    description: "A unit equal to 10^-2 square metres.",
+  },
+  squareExametres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/square-exametres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/square-exametres/" as BaseUrl,
+    title: "Square Exametres",
+    description: "A unit equal to 10^36 square metres.",
   },
   squareFeet: {
     dataTypeId: "https://hash.ai/@h/types/data-type/square-feet/v/1",
@@ -4632,6 +8583,41 @@ export const systemDataTypes = {
     description:
       "An imperial unit of area equal to a square one foot on each side.",
   },
+  squareFemtometres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/square-femtometres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/square-femtometres/" as BaseUrl,
+    title: "Square Femtometres",
+    description: "A unit equal to 10^-30 square metres.",
+  },
+  squareGigametres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/square-gigametres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/square-gigametres/" as BaseUrl,
+    title: "Square Gigametres",
+    description: "A unit equal to 10^18 square metres.",
+  },
+  squareHectometres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/square-hectometres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/square-hectometres/" as BaseUrl,
+    title: "Square Hectometres",
+    description: "A unit equal to 10^4 square metres.",
+  },
+  squareKilometres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/square-kilometres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/square-kilometres/" as BaseUrl,
+    title: "Square Kilometres",
+    description: "A unit equal to 10^6 square metres.",
+  },
+  squareMegametres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/square-megametres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/square-megametres/" as BaseUrl,
+    title: "Square Megametres",
+    description: "A unit equal to 10^12 square metres.",
+  },
   squareMetres: {
     dataTypeId: "https://hash.ai/@h/types/data-type/square-metres/v/1",
     dataTypeBaseUrl:
@@ -4639,6 +8625,104 @@ export const systemDataTypes = {
     title: "Square Metres",
     description:
       "A metric unit of area equal to a square one metre on each side.",
+  },
+  squareMicrometres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/square-micrometres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/square-micrometres/" as BaseUrl,
+    title: "Square Micrometres",
+    description: "A unit equal to 10^-12 square metres.",
+  },
+  squareMillimetres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/square-millimetres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/square-millimetres/" as BaseUrl,
+    title: "Square Millimetres",
+    description: "A unit equal to 10^-6 square metres.",
+  },
+  squareNanometres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/square-nanometres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/square-nanometres/" as BaseUrl,
+    title: "Square Nanometres",
+    description: "A unit equal to 10^-18 square metres.",
+  },
+  squarePetametres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/square-petametres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/square-petametres/" as BaseUrl,
+    title: "Square Petametres",
+    description: "A unit equal to 10^30 square metres.",
+  },
+  squarePicometres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/square-picometres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/square-picometres/" as BaseUrl,
+    title: "Square Picometres",
+    description: "A unit equal to 10^-24 square metres.",
+  },
+  squareQuectometres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/square-quectometres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/square-quectometres/" as BaseUrl,
+    title: "Square Quectometres",
+    description: "A unit equal to 10^-60 square metres.",
+  },
+  squareQuettametres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/square-quettametres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/square-quettametres/" as BaseUrl,
+    title: "Square Quettametres",
+    description: "A unit equal to 10^60 square metres.",
+  },
+  squareRonnametres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/square-ronnametres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/square-ronnametres/" as BaseUrl,
+    title: "Square Ronnametres",
+    description: "A unit equal to 10^54 square metres.",
+  },
+  squareRontometres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/square-rontometres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/square-rontometres/" as BaseUrl,
+    title: "Square Rontometres",
+    description: "A unit equal to 10^-54 square metres.",
+  },
+  squareTerametres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/square-terametres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/square-terametres/" as BaseUrl,
+    title: "Square Terametres",
+    description: "A unit equal to 10^24 square metres.",
+  },
+  squareYoctometres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/square-yoctometres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/square-yoctometres/" as BaseUrl,
+    title: "Square Yoctometres",
+    description: "A unit equal to 10^-48 square metres.",
+  },
+  squareYottametres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/square-yottametres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/square-yottametres/" as BaseUrl,
+    title: "Square Yottametres",
+    description: "A unit equal to 10^48 square metres.",
+  },
+  squareZeptometres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/square-zeptometres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/square-zeptometres/" as BaseUrl,
+    title: "Square Zeptometres",
+    description: "A unit equal to 10^-42 square metres.",
+  },
+  squareZettametres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/square-zettametres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/square-zettametres/" as BaseUrl,
+    title: "Square Zettametres",
+    description: "A unit equal to 10^42 square metres.",
   },
   srd: {
     dataTypeId: "https://hash.ai/@h/types/data-type/srd/v/1",
@@ -4729,11 +8813,220 @@ export const systemDataTypes = {
     description:
       "A measure of temperature on an absolute or offset temperature scale.",
   },
+  teraampereHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/teraampere-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/teraampere-hours/" as BaseUrl,
+    title: "Teraampere Hours",
+    description: "A unit equal to 10^12 ampere hours.",
+  },
+  teraamperes: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/teraamperes/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/teraamperes/" as BaseUrl,
+    title: "Teraamperes",
+    description: "A unit equal to 10^12 amperes.",
+  },
+  terabecquerels: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/terabecquerels/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/terabecquerels/" as BaseUrl,
+    title: "Terabecquerels",
+    description: "A unit equal to 10^12 becquerels.",
+  },
   terabytes: {
     dataTypeId: "https://hash.ai/@h/types/data-type/terabytes/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/terabytes/" as BaseUrl,
     title: "Terabytes",
     description: "A unit of information equal to one trillion bytes.",
+  },
+  teracandelas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/teracandelas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/teracandelas/" as BaseUrl,
+    title: "Teracandelas",
+    description: "A unit equal to 10^12 candelas.",
+  },
+  teracoulombs: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/teracoulombs/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/teracoulombs/" as BaseUrl,
+    title: "Teracoulombs",
+    description: "A unit equal to 10^12 coulombs.",
+  },
+  terafarads: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/terafarads/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/terafarads/" as BaseUrl,
+    title: "Terafarads",
+    description: "A unit equal to 10^12 farads.",
+  },
+  teragrams: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/teragrams/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/teragrams/" as BaseUrl,
+    title: "Teragrams",
+    description: "A unit equal to 10^12 grams.",
+  },
+  teragrays: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/teragrays/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/teragrays/" as BaseUrl,
+    title: "Teragrays",
+    description: "A unit equal to 10^12 grays.",
+  },
+  terahenries: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/terahenries/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/terahenries/" as BaseUrl,
+    title: "Terahenries",
+    description: "A unit equal to 10^12 henries.",
+  },
+  terahertz: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/terahertz/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/terahertz/" as BaseUrl,
+    title: "Terahertz",
+    description: "A unit equal to 10^12 hertz.",
+  },
+  terajoules: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/terajoules/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/terajoules/" as BaseUrl,
+    title: "Terajoules",
+    description: "A unit equal to 10^12 joules.",
+  },
+  terakatals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/terakatals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/terakatals/" as BaseUrl,
+    title: "Terakatals",
+    description: "A unit equal to 10^12 katals.",
+  },
+  terakelvins: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/terakelvins/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/terakelvins/" as BaseUrl,
+    title: "Terakelvins",
+    description: "A unit equal to 10^12 kelvins.",
+  },
+  teralitres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/teralitres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/teralitres/" as BaseUrl,
+    title: "Teralitres",
+    description: "A unit equal to 10^12 litres.",
+  },
+  teralumens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/teralumens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/teralumens/" as BaseUrl,
+    title: "Teralumens",
+    description: "A unit equal to 10^12 lumens.",
+  },
+  teralux: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/teralux/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/teralux/" as BaseUrl,
+    title: "Teralux",
+    description: "A unit equal to 10^12 lux.",
+  },
+  terameters: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/terameters/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/terameters/" as BaseUrl,
+    title: "Terameters",
+    description: "A unit equal to 10^12 meters.",
+  },
+  teramoles: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/teramoles/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/teramoles/" as BaseUrl,
+    title: "Teramoles",
+    description: "A unit equal to 10^12 moles.",
+  },
+  teranewtons: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/teranewtons/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/teranewtons/" as BaseUrl,
+    title: "Teranewtons",
+    description: "A unit equal to 10^12 newtons.",
+  },
+  teraohms: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/teraohms/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/teraohms/" as BaseUrl,
+    title: "Teraohms",
+    description: "A unit equal to 10^12 ohms.",
+  },
+  terapascals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/terapascals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/terapascals/" as BaseUrl,
+    title: "Terapascals",
+    description: "A unit equal to 10^12 pascals.",
+  },
+  teraradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/teraradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/teraradians/" as BaseUrl,
+    title: "Teraradians",
+    description: "A unit equal to 10^12 radians.",
+  },
+  terasecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/terasecond/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/terasecond/" as BaseUrl,
+    title: "Terasecond",
+    description: "A unit equal to 10^12 second.",
+  },
+  terasiemens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/terasiemens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/terasiemens/" as BaseUrl,
+    title: "Terasiemens",
+    description: "A unit equal to 10^12 siemens.",
+  },
+  terasieverts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/terasieverts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/terasieverts/" as BaseUrl,
+    title: "Terasieverts",
+    description: "A unit equal to 10^12 sieverts.",
+  },
+  terasteradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/terasteradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/terasteradians/" as BaseUrl,
+    title: "Terasteradians",
+    description: "A unit equal to 10^12 steradians.",
+  },
+  terateslas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/terateslas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/terateslas/" as BaseUrl,
+    title: "Terateslas",
+    description: "A unit equal to 10^12 teslas.",
+  },
+  teravolts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/teravolts/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/teravolts/" as BaseUrl,
+    title: "Teravolts",
+    description: "A unit equal to 10^12 volts.",
+  },
+  terawattHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/terawatt-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/terawatt-hours/" as BaseUrl,
+    title: "Terawatt Hours",
+    description: "A unit equal to 10^12 watt hours.",
+  },
+  terawatts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/terawatts/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/terawatts/" as BaseUrl,
+    title: "Terawatts",
+    description: "A unit equal to 10^12 watts.",
+  },
+  terawebers: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/terawebers/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/terawebers/" as BaseUrl,
+    title: "Terawebers",
+    description: "A unit equal to 10^12 webers.",
   },
   teslas: {
     dataTypeId: "https://hash.ai/@h/types/data-type/teslas/v/1",
@@ -5028,11 +9321,871 @@ export const systemDataTypes = {
     title: "YER",
     description: "An amount denominated in Yemeni Rial (ISO 4217 YER).",
   },
+  yoctoampereHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yoctoampere-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yoctoampere-hours/" as BaseUrl,
+    title: "Yoctoampere Hours",
+    description: "A unit equal to 10^-24 ampere hours.",
+  },
+  yoctoamperes: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yoctoamperes/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yoctoamperes/" as BaseUrl,
+    title: "Yoctoamperes",
+    description: "A unit equal to 10^-24 amperes.",
+  },
+  yoctobecquerels: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yoctobecquerels/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yoctobecquerels/" as BaseUrl,
+    title: "Yoctobecquerels",
+    description: "A unit equal to 10^-24 becquerels.",
+  },
+  yoctocandelas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yoctocandelas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yoctocandelas/" as BaseUrl,
+    title: "Yoctocandelas",
+    description: "A unit equal to 10^-24 candelas.",
+  },
+  yoctocoulombs: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yoctocoulombs/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yoctocoulombs/" as BaseUrl,
+    title: "Yoctocoulombs",
+    description: "A unit equal to 10^-24 coulombs.",
+  },
+  yoctofarads: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yoctofarads/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yoctofarads/" as BaseUrl,
+    title: "Yoctofarads",
+    description: "A unit equal to 10^-24 farads.",
+  },
+  yoctograms: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yoctograms/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yoctograms/" as BaseUrl,
+    title: "Yoctograms",
+    description: "A unit equal to 10^-24 grams.",
+  },
+  yoctograys: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yoctograys/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yoctograys/" as BaseUrl,
+    title: "Yoctograys",
+    description: "A unit equal to 10^-24 grays.",
+  },
+  yoctohenries: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yoctohenries/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yoctohenries/" as BaseUrl,
+    title: "Yoctohenries",
+    description: "A unit equal to 10^-24 henries.",
+  },
+  yoctohertz: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yoctohertz/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yoctohertz/" as BaseUrl,
+    title: "Yoctohertz",
+    description: "A unit equal to 10^-24 hertz.",
+  },
+  yoctojoules: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yoctojoules/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yoctojoules/" as BaseUrl,
+    title: "Yoctojoules",
+    description: "A unit equal to 10^-24 joules.",
+  },
+  yoctokatals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yoctokatals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yoctokatals/" as BaseUrl,
+    title: "Yoctokatals",
+    description: "A unit equal to 10^-24 katals.",
+  },
+  yoctokelvins: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yoctokelvins/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yoctokelvins/" as BaseUrl,
+    title: "Yoctokelvins",
+    description: "A unit equal to 10^-24 kelvins.",
+  },
+  yoctolitres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yoctolitres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yoctolitres/" as BaseUrl,
+    title: "Yoctolitres",
+    description: "A unit equal to 10^-24 litres.",
+  },
+  yoctolumens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yoctolumens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yoctolumens/" as BaseUrl,
+    title: "Yoctolumens",
+    description: "A unit equal to 10^-24 lumens.",
+  },
+  yoctolux: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yoctolux/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/yoctolux/" as BaseUrl,
+    title: "Yoctolux",
+    description: "A unit equal to 10^-24 lux.",
+  },
+  yoctometers: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yoctometers/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yoctometers/" as BaseUrl,
+    title: "Yoctometers",
+    description: "A unit equal to 10^-24 meters.",
+  },
+  yoctomoles: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yoctomoles/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yoctomoles/" as BaseUrl,
+    title: "Yoctomoles",
+    description: "A unit equal to 10^-24 moles.",
+  },
+  yoctonewtons: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yoctonewtons/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yoctonewtons/" as BaseUrl,
+    title: "Yoctonewtons",
+    description: "A unit equal to 10^-24 newtons.",
+  },
+  yoctoohms: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yoctoohms/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/yoctoohms/" as BaseUrl,
+    title: "Yoctoohms",
+    description: "A unit equal to 10^-24 ohms.",
+  },
+  yoctopascals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yoctopascals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yoctopascals/" as BaseUrl,
+    title: "Yoctopascals",
+    description: "A unit equal to 10^-24 pascals.",
+  },
+  yoctoradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yoctoradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yoctoradians/" as BaseUrl,
+    title: "Yoctoradians",
+    description: "A unit equal to 10^-24 radians.",
+  },
+  yoctosecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yoctosecond/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yoctosecond/" as BaseUrl,
+    title: "Yoctosecond",
+    description: "A unit equal to 10^-24 second.",
+  },
+  yoctosiemens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yoctosiemens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yoctosiemens/" as BaseUrl,
+    title: "Yoctosiemens",
+    description: "A unit equal to 10^-24 siemens.",
+  },
+  yoctosieverts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yoctosieverts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yoctosieverts/" as BaseUrl,
+    title: "Yoctosieverts",
+    description: "A unit equal to 10^-24 sieverts.",
+  },
+  yoctosteradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yoctosteradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yoctosteradians/" as BaseUrl,
+    title: "Yoctosteradians",
+    description: "A unit equal to 10^-24 steradians.",
+  },
+  yoctoteslas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yoctoteslas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yoctoteslas/" as BaseUrl,
+    title: "Yoctoteslas",
+    description: "A unit equal to 10^-24 teslas.",
+  },
+  yoctovolts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yoctovolts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yoctovolts/" as BaseUrl,
+    title: "Yoctovolts",
+    description: "A unit equal to 10^-24 volts.",
+  },
+  yoctowattHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yoctowatt-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yoctowatt-hours/" as BaseUrl,
+    title: "Yoctowatt Hours",
+    description: "A unit equal to 10^-24 watt hours.",
+  },
+  yoctowatts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yoctowatts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yoctowatts/" as BaseUrl,
+    title: "Yoctowatts",
+    description: "A unit equal to 10^-24 watts.",
+  },
+  yoctowebers: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yoctowebers/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yoctowebers/" as BaseUrl,
+    title: "Yoctowebers",
+    description: "A unit equal to 10^-24 webers.",
+  },
+  yottaampereHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yottaampere-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yottaampere-hours/" as BaseUrl,
+    title: "Yottaampere Hours",
+    description: "A unit equal to 10^24 ampere hours.",
+  },
+  yottaamperes: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yottaamperes/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yottaamperes/" as BaseUrl,
+    title: "Yottaamperes",
+    description: "A unit equal to 10^24 amperes.",
+  },
+  yottabecquerels: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yottabecquerels/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yottabecquerels/" as BaseUrl,
+    title: "Yottabecquerels",
+    description: "A unit equal to 10^24 becquerels.",
+  },
+  yottacandelas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yottacandelas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yottacandelas/" as BaseUrl,
+    title: "Yottacandelas",
+    description: "A unit equal to 10^24 candelas.",
+  },
+  yottacoulombs: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yottacoulombs/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yottacoulombs/" as BaseUrl,
+    title: "Yottacoulombs",
+    description: "A unit equal to 10^24 coulombs.",
+  },
+  yottafarads: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yottafarads/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yottafarads/" as BaseUrl,
+    title: "Yottafarads",
+    description: "A unit equal to 10^24 farads.",
+  },
+  yottagrams: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yottagrams/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yottagrams/" as BaseUrl,
+    title: "Yottagrams",
+    description: "A unit equal to 10^24 grams.",
+  },
+  yottagrays: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yottagrays/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yottagrays/" as BaseUrl,
+    title: "Yottagrays",
+    description: "A unit equal to 10^24 grays.",
+  },
+  yottahenries: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yottahenries/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yottahenries/" as BaseUrl,
+    title: "Yottahenries",
+    description: "A unit equal to 10^24 henries.",
+  },
+  yottahertz: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yottahertz/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yottahertz/" as BaseUrl,
+    title: "Yottahertz",
+    description: "A unit equal to 10^24 hertz.",
+  },
+  yottajoules: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yottajoules/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yottajoules/" as BaseUrl,
+    title: "Yottajoules",
+    description: "A unit equal to 10^24 joules.",
+  },
+  yottakatals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yottakatals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yottakatals/" as BaseUrl,
+    title: "Yottakatals",
+    description: "A unit equal to 10^24 katals.",
+  },
+  yottakelvins: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yottakelvins/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yottakelvins/" as BaseUrl,
+    title: "Yottakelvins",
+    description: "A unit equal to 10^24 kelvins.",
+  },
+  yottalitres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yottalitres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yottalitres/" as BaseUrl,
+    title: "Yottalitres",
+    description: "A unit equal to 10^24 litres.",
+  },
+  yottalumens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yottalumens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yottalumens/" as BaseUrl,
+    title: "Yottalumens",
+    description: "A unit equal to 10^24 lumens.",
+  },
+  yottalux: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yottalux/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/yottalux/" as BaseUrl,
+    title: "Yottalux",
+    description: "A unit equal to 10^24 lux.",
+  },
+  yottameters: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yottameters/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yottameters/" as BaseUrl,
+    title: "Yottameters",
+    description: "A unit equal to 10^24 meters.",
+  },
+  yottamoles: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yottamoles/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yottamoles/" as BaseUrl,
+    title: "Yottamoles",
+    description: "A unit equal to 10^24 moles.",
+  },
+  yottanewtons: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yottanewtons/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yottanewtons/" as BaseUrl,
+    title: "Yottanewtons",
+    description: "A unit equal to 10^24 newtons.",
+  },
+  yottaohms: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yottaohms/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/yottaohms/" as BaseUrl,
+    title: "Yottaohms",
+    description: "A unit equal to 10^24 ohms.",
+  },
+  yottapascals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yottapascals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yottapascals/" as BaseUrl,
+    title: "Yottapascals",
+    description: "A unit equal to 10^24 pascals.",
+  },
+  yottaradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yottaradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yottaradians/" as BaseUrl,
+    title: "Yottaradians",
+    description: "A unit equal to 10^24 radians.",
+  },
+  yottasecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yottasecond/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yottasecond/" as BaseUrl,
+    title: "Yottasecond",
+    description: "A unit equal to 10^24 second.",
+  },
+  yottasiemens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yottasiemens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yottasiemens/" as BaseUrl,
+    title: "Yottasiemens",
+    description: "A unit equal to 10^24 siemens.",
+  },
+  yottasieverts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yottasieverts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yottasieverts/" as BaseUrl,
+    title: "Yottasieverts",
+    description: "A unit equal to 10^24 sieverts.",
+  },
+  yottasteradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yottasteradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yottasteradians/" as BaseUrl,
+    title: "Yottasteradians",
+    description: "A unit equal to 10^24 steradians.",
+  },
+  yottateslas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yottateslas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yottateslas/" as BaseUrl,
+    title: "Yottateslas",
+    description: "A unit equal to 10^24 teslas.",
+  },
+  yottavolts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yottavolts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yottavolts/" as BaseUrl,
+    title: "Yottavolts",
+    description: "A unit equal to 10^24 volts.",
+  },
+  yottawattHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yottawatt-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yottawatt-hours/" as BaseUrl,
+    title: "Yottawatt Hours",
+    description: "A unit equal to 10^24 watt hours.",
+  },
+  yottawatts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yottawatts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yottawatts/" as BaseUrl,
+    title: "Yottawatts",
+    description: "A unit equal to 10^24 watts.",
+  },
+  yottawebers: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/yottawebers/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/yottawebers/" as BaseUrl,
+    title: "Yottawebers",
+    description: "A unit equal to 10^24 webers.",
+  },
   zar: {
     dataTypeId: "https://hash.ai/@h/types/data-type/zar/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/zar/" as BaseUrl,
     title: "ZAR",
     description: "An amount denominated in Rand (ISO 4217 ZAR).",
+  },
+  zeptoampereHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zeptoampere-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zeptoampere-hours/" as BaseUrl,
+    title: "Zeptoampere Hours",
+    description: "A unit equal to 10^-21 ampere hours.",
+  },
+  zeptoamperes: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zeptoamperes/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zeptoamperes/" as BaseUrl,
+    title: "Zeptoamperes",
+    description: "A unit equal to 10^-21 amperes.",
+  },
+  zeptobecquerels: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zeptobecquerels/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zeptobecquerels/" as BaseUrl,
+    title: "Zeptobecquerels",
+    description: "A unit equal to 10^-21 becquerels.",
+  },
+  zeptocandelas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zeptocandelas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zeptocandelas/" as BaseUrl,
+    title: "Zeptocandelas",
+    description: "A unit equal to 10^-21 candelas.",
+  },
+  zeptocoulombs: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zeptocoulombs/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zeptocoulombs/" as BaseUrl,
+    title: "Zeptocoulombs",
+    description: "A unit equal to 10^-21 coulombs.",
+  },
+  zeptofarads: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zeptofarads/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zeptofarads/" as BaseUrl,
+    title: "Zeptofarads",
+    description: "A unit equal to 10^-21 farads.",
+  },
+  zeptograms: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zeptograms/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zeptograms/" as BaseUrl,
+    title: "Zeptograms",
+    description: "A unit equal to 10^-21 grams.",
+  },
+  zeptograys: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zeptograys/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zeptograys/" as BaseUrl,
+    title: "Zeptograys",
+    description: "A unit equal to 10^-21 grays.",
+  },
+  zeptohenries: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zeptohenries/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zeptohenries/" as BaseUrl,
+    title: "Zeptohenries",
+    description: "A unit equal to 10^-21 henries.",
+  },
+  zeptohertz: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zeptohertz/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zeptohertz/" as BaseUrl,
+    title: "Zeptohertz",
+    description: "A unit equal to 10^-21 hertz.",
+  },
+  zeptojoules: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zeptojoules/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zeptojoules/" as BaseUrl,
+    title: "Zeptojoules",
+    description: "A unit equal to 10^-21 joules.",
+  },
+  zeptokatals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zeptokatals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zeptokatals/" as BaseUrl,
+    title: "Zeptokatals",
+    description: "A unit equal to 10^-21 katals.",
+  },
+  zeptokelvins: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zeptokelvins/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zeptokelvins/" as BaseUrl,
+    title: "Zeptokelvins",
+    description: "A unit equal to 10^-21 kelvins.",
+  },
+  zeptolitres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zeptolitres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zeptolitres/" as BaseUrl,
+    title: "Zeptolitres",
+    description: "A unit equal to 10^-21 litres.",
+  },
+  zeptolumens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zeptolumens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zeptolumens/" as BaseUrl,
+    title: "Zeptolumens",
+    description: "A unit equal to 10^-21 lumens.",
+  },
+  zeptolux: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zeptolux/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/zeptolux/" as BaseUrl,
+    title: "Zeptolux",
+    description: "A unit equal to 10^-21 lux.",
+  },
+  zeptometers: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zeptometers/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zeptometers/" as BaseUrl,
+    title: "Zeptometers",
+    description: "A unit equal to 10^-21 meters.",
+  },
+  zeptomoles: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zeptomoles/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zeptomoles/" as BaseUrl,
+    title: "Zeptomoles",
+    description: "A unit equal to 10^-21 moles.",
+  },
+  zeptonewtons: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zeptonewtons/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zeptonewtons/" as BaseUrl,
+    title: "Zeptonewtons",
+    description: "A unit equal to 10^-21 newtons.",
+  },
+  zeptoohms: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zeptoohms/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/zeptoohms/" as BaseUrl,
+    title: "Zeptoohms",
+    description: "A unit equal to 10^-21 ohms.",
+  },
+  zeptopascals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zeptopascals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zeptopascals/" as BaseUrl,
+    title: "Zeptopascals",
+    description: "A unit equal to 10^-21 pascals.",
+  },
+  zeptoradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zeptoradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zeptoradians/" as BaseUrl,
+    title: "Zeptoradians",
+    description: "A unit equal to 10^-21 radians.",
+  },
+  zeptosecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zeptosecond/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zeptosecond/" as BaseUrl,
+    title: "Zeptosecond",
+    description: "A unit equal to 10^-21 second.",
+  },
+  zeptosiemens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zeptosiemens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zeptosiemens/" as BaseUrl,
+    title: "Zeptosiemens",
+    description: "A unit equal to 10^-21 siemens.",
+  },
+  zeptosieverts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zeptosieverts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zeptosieverts/" as BaseUrl,
+    title: "Zeptosieverts",
+    description: "A unit equal to 10^-21 sieverts.",
+  },
+  zeptosteradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zeptosteradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zeptosteradians/" as BaseUrl,
+    title: "Zeptosteradians",
+    description: "A unit equal to 10^-21 steradians.",
+  },
+  zeptoteslas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zeptoteslas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zeptoteslas/" as BaseUrl,
+    title: "Zeptoteslas",
+    description: "A unit equal to 10^-21 teslas.",
+  },
+  zeptovolts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zeptovolts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zeptovolts/" as BaseUrl,
+    title: "Zeptovolts",
+    description: "A unit equal to 10^-21 volts.",
+  },
+  zeptowattHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zeptowatt-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zeptowatt-hours/" as BaseUrl,
+    title: "Zeptowatt Hours",
+    description: "A unit equal to 10^-21 watt hours.",
+  },
+  zeptowatts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zeptowatts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zeptowatts/" as BaseUrl,
+    title: "Zeptowatts",
+    description: "A unit equal to 10^-21 watts.",
+  },
+  zeptowebers: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zeptowebers/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zeptowebers/" as BaseUrl,
+    title: "Zeptowebers",
+    description: "A unit equal to 10^-21 webers.",
+  },
+  zettaampereHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zettaampere-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zettaampere-hours/" as BaseUrl,
+    title: "Zettaampere Hours",
+    description: "A unit equal to 10^21 ampere hours.",
+  },
+  zettaamperes: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zettaamperes/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zettaamperes/" as BaseUrl,
+    title: "Zettaamperes",
+    description: "A unit equal to 10^21 amperes.",
+  },
+  zettabecquerels: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zettabecquerels/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zettabecquerels/" as BaseUrl,
+    title: "Zettabecquerels",
+    description: "A unit equal to 10^21 becquerels.",
+  },
+  zettacandelas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zettacandelas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zettacandelas/" as BaseUrl,
+    title: "Zettacandelas",
+    description: "A unit equal to 10^21 candelas.",
+  },
+  zettacoulombs: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zettacoulombs/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zettacoulombs/" as BaseUrl,
+    title: "Zettacoulombs",
+    description: "A unit equal to 10^21 coulombs.",
+  },
+  zettafarads: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zettafarads/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zettafarads/" as BaseUrl,
+    title: "Zettafarads",
+    description: "A unit equal to 10^21 farads.",
+  },
+  zettagrams: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zettagrams/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zettagrams/" as BaseUrl,
+    title: "Zettagrams",
+    description: "A unit equal to 10^21 grams.",
+  },
+  zettagrays: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zettagrays/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zettagrays/" as BaseUrl,
+    title: "Zettagrays",
+    description: "A unit equal to 10^21 grays.",
+  },
+  zettahenries: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zettahenries/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zettahenries/" as BaseUrl,
+    title: "Zettahenries",
+    description: "A unit equal to 10^21 henries.",
+  },
+  zettahertz: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zettahertz/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zettahertz/" as BaseUrl,
+    title: "Zettahertz",
+    description: "A unit equal to 10^21 hertz.",
+  },
+  zettajoules: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zettajoules/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zettajoules/" as BaseUrl,
+    title: "Zettajoules",
+    description: "A unit equal to 10^21 joules.",
+  },
+  zettakatals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zettakatals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zettakatals/" as BaseUrl,
+    title: "Zettakatals",
+    description: "A unit equal to 10^21 katals.",
+  },
+  zettakelvins: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zettakelvins/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zettakelvins/" as BaseUrl,
+    title: "Zettakelvins",
+    description: "A unit equal to 10^21 kelvins.",
+  },
+  zettalitres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zettalitres/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zettalitres/" as BaseUrl,
+    title: "Zettalitres",
+    description: "A unit equal to 10^21 litres.",
+  },
+  zettalumens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zettalumens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zettalumens/" as BaseUrl,
+    title: "Zettalumens",
+    description: "A unit equal to 10^21 lumens.",
+  },
+  zettalux: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zettalux/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/zettalux/" as BaseUrl,
+    title: "Zettalux",
+    description: "A unit equal to 10^21 lux.",
+  },
+  zettameters: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zettameters/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zettameters/" as BaseUrl,
+    title: "Zettameters",
+    description: "A unit equal to 10^21 meters.",
+  },
+  zettamoles: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zettamoles/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zettamoles/" as BaseUrl,
+    title: "Zettamoles",
+    description: "A unit equal to 10^21 moles.",
+  },
+  zettanewtons: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zettanewtons/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zettanewtons/" as BaseUrl,
+    title: "Zettanewtons",
+    description: "A unit equal to 10^21 newtons.",
+  },
+  zettaohms: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zettaohms/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/zettaohms/" as BaseUrl,
+    title: "Zettaohms",
+    description: "A unit equal to 10^21 ohms.",
+  },
+  zettapascals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zettapascals/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zettapascals/" as BaseUrl,
+    title: "Zettapascals",
+    description: "A unit equal to 10^21 pascals.",
+  },
+  zettaradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zettaradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zettaradians/" as BaseUrl,
+    title: "Zettaradians",
+    description: "A unit equal to 10^21 radians.",
+  },
+  zettasecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zettasecond/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zettasecond/" as BaseUrl,
+    title: "Zettasecond",
+    description: "A unit equal to 10^21 second.",
+  },
+  zettasiemens: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zettasiemens/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zettasiemens/" as BaseUrl,
+    title: "Zettasiemens",
+    description: "A unit equal to 10^21 siemens.",
+  },
+  zettasieverts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zettasieverts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zettasieverts/" as BaseUrl,
+    title: "Zettasieverts",
+    description: "A unit equal to 10^21 sieverts.",
+  },
+  zettasteradians: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zettasteradians/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zettasteradians/" as BaseUrl,
+    title: "Zettasteradians",
+    description: "A unit equal to 10^21 steradians.",
+  },
+  zettateslas: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zettateslas/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zettateslas/" as BaseUrl,
+    title: "Zettateslas",
+    description: "A unit equal to 10^21 teslas.",
+  },
+  zettavolts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zettavolts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zettavolts/" as BaseUrl,
+    title: "Zettavolts",
+    description: "A unit equal to 10^21 volts.",
+  },
+  zettawattHours: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zettawatt-hours/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zettawatt-hours/" as BaseUrl,
+    title: "Zettawatt Hours",
+    description: "A unit equal to 10^21 watt hours.",
+  },
+  zettawatts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zettawatts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zettawatts/" as BaseUrl,
+    title: "Zettawatts",
+    description: "A unit equal to 10^21 watts.",
+  },
+  zettawebers: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/zettawebers/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/zettawebers/" as BaseUrl,
+    title: "Zettawebers",
+    description: "A unit equal to 10^21 webers.",
   },
   zmw: {
     dataTypeId: "https://hash.ai/@h/types/data-type/zmw/v/1",
