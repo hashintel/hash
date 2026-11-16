@@ -61,8 +61,8 @@ const getTypeLabel = (type: FlowInputType) => upperFirst(getKindLabel(type));
 
 /**
  * A flow input on Start, as a card: its label, type and whether it's required, which can all be changed, and the steps
- * that use it, as "Used in". Collapsed, it shows its type beside its label. Renaming changes only the label: steps refer to the input
- * by its name.
+ * that use it, as "Used in". Collapsed, it shows its type beside its label. Renaming changes only the label: steps refer
+ * to the input by its name.
  */
 export const FlowInputCard = ({
   editor,
