@@ -205,6 +205,25 @@ describe("data type hierarchy", () => {
     expect(tree).toHaveLength(3);
   });
 
+  it("shows a child of Value at the root and beneath its other parent", () => {
+    const tree = buildDataTypeTree({
+      ...defaults,
+      rows: [
+        row("value"),
+        row("number", ["value"]),
+        row("count", ["value", "number"]),
+      ],
+      expandedRows: new Set([path("number")]),
+    });
+    expect(
+      tree.map(({ title, hierarchy }) => [title, hierarchy.depth]),
+    ).toEqual([
+      ["number", 0],
+      ["count", 1],
+      ["count", 0],
+    ]);
+  });
+
   it("finds a descendant beyond the first thousand catalogue entries", () => {
     const catalogue = [
       row("number"),

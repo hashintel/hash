@@ -96,7 +96,9 @@ export const buildDataTypeTree = <Row extends DataTypeRow>({
   const roots = rows.filter(
     (row) =>
       row.typeId !== hiddenValueId &&
-      [...(parents.get(row.typeId) ?? [])].every((id) => id === hiddenValueId),
+      (!parents.get(row.typeId)?.size ||
+        (hiddenValueId !== undefined &&
+          parents.get(row.typeId)?.has(hiddenValueId))),
   );
 
   // Keep malformed cyclic components reachable, even when they have no root.
