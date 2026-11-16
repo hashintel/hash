@@ -1,6 +1,10 @@
 import { expandSiPrefixes } from "./si-unit-groups/expand-si-prefixes";
+import { imperialUnits } from "./si-unit-groups/imperial-units";
+
+export type UnitSystem = "Metric" | "Imperial" | "US Customary";
 
 export type SiUnitDefinition = {
+  systems?: UnitSystem[];
   title: string;
   description: string;
   symbol: string;
@@ -22,9 +26,8 @@ type SiUnitGroup = {
 
 const unprefixedGroups: SiUnitGroup[] = [
   {
-    title: "Metric Length (SI)",
-    description:
-      "A measure of distance in the International System of Units (SI), the international standard for decimal-based measurements.",
+    title: "Length",
+    description: "A measure of distance.",
     units: [
       {
         title: "Meters",
@@ -83,6 +86,15 @@ const unprefixedGroups: SiUnitGroup[] = [
           factor: 0.001,
         },
       },
+      {
+        title: "Metric Tonnes",
+        description: "A metric unit of mass equal to 1000 kilograms.",
+        symbol: "t",
+        conversion: {
+          target: "Kilograms",
+          factor: 1000,
+        },
+      },
     ],
   },
   {
@@ -113,6 +125,82 @@ const unprefixedGroups: SiUnitGroup[] = [
         conversion: {
           target: "Second",
           factor: 0.000001,
+        },
+      },
+      {
+        title: "Minute",
+        symbol: "min",
+        description:
+          "A measure of the length of time, defined as exactly 60 seconds.",
+        conversion: {
+          target: "Second",
+          factor: 60,
+        },
+      },
+      {
+        title: "Hour",
+        symbol: "h",
+        description:
+          "A measure of the length of time, defined as exactly 3,600 seconds.",
+        conversion: {
+          target: "Second",
+          factor: 3600,
+        },
+      },
+      {
+        title: "Day",
+        symbol: "d",
+        description: "A duration of exactly 24 hours.",
+        conversion: {
+          target: "Second",
+          factor: 86400,
+        },
+      },
+      {
+        title: "Week",
+        symbol: "wk",
+        description: "A duration of exactly 7 days.",
+        conversion: {
+          target: "Second",
+          factor: 604800,
+        },
+      },
+      {
+        title: "Month",
+        symbol: "mo",
+        description:
+          "A mean duration of 2,629,800 seconds, preserving the existing fixed month conversion. Calendar months vary in length.",
+        conversion: {
+          target: "Second",
+          factor: 2629800,
+        },
+      },
+      {
+        title: "Year",
+        symbol: "yr",
+        description:
+          "A duration of 31,557,600 seconds (365.25 days), preserving the existing fixed year conversion. Calendar years vary in length.",
+        conversion: {
+          target: "Second",
+          factor: 31557600,
+        },
+      },
+      {
+        title: "Hours",
+        symbol: "h",
+        description: "A unit of time equal to 60 minutes.",
+        conversion: {
+          target: "Second",
+          factor: 3600,
+        },
+      },
+      {
+        title: "Days",
+        symbol: "d",
+        description: "A unit of time equal to 24 hours.",
+        conversion: {
+          target: "Second",
+          factor: 86400,
         },
       },
     ],
@@ -309,6 +397,7 @@ const unprefixedGroups: SiUnitGroup[] = [
       },
       {
         title: "Degrees Fahrenheit",
+        systems: ["Imperial"],
         symbol: "°F",
         description:
           "A unit of Fahrenheit temperature. Absolute zero is −459.67 °F.",
@@ -1285,5 +1374,8 @@ const unprefixedGroups: SiUnitGroup[] = [
 
 export const siUnitGroups: SiUnitGroup[] = unprefixedGroups.map((group) => ({
   ...group,
-  units: expandSiPrefixes(group.units),
+  units: [
+    ...expandSiPrefixes(group.units),
+    ...(imperialUnits[group.title] ?? []),
+  ],
 }));

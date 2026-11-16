@@ -1,6 +1,6 @@
-# Default SI units
+# Default measurement units
 
-Migration 034 adds the missing SI units to the default ontology. Together with
+Migration 034 expands the default ontology with SI, imperial, and US customary units. Together with
 migrations 000, 023, and 026, it covers all seven SI base units, all 22 derived
 units with special names, and every compound-unit example in tables 5 and 6 of
 the [BIPM SI Brochure, ninth edition](https://www.bipm.org/en/publications/si-brochure).
@@ -11,18 +11,45 @@ includes selected non-SI units with fixed conversions. The prefix table follows
 the [BIPM definitions](https://www.bipm.org/en/measurement-units/si-prefixes),
 including quetta, ronna, ronto, and quecto.
 
-The existing `Meters`, `Kilograms`, `Second`, `Hertz`, `Watts`, `Square Metres`,
-and `Cubic Metres` types keep their identifiers and conversions. `Angle`,
-`Degree`, `Speed`, `Meters per Second`, and `Kilometers per Hour` use the same
-definitions and identifiers as the aviation development migration, so existing
-development instances reuse those types.
+## Quantity and system groups
+
+The catalogue has 63 quantity parents and 106 system subgroups. For example:
+
+```text
+Length
+  Length (Metric) → Meters, Centimeters, …
+  Length (Imperial) → Inches, Feet, Yards, Miles, …
+Volume
+  Volume (Metric) → Litres, Cubic Metres, …
+  Volume (Imperial) → Imperial Gallons, Imperial Pints, …
+  Volume (US Customary) → US Liquid Gallons, US Liquid Pints, …
+```
+
+All quantities have a metric group. Forty also have imperial units. US customary
+subgroups distinguish mass, volume, and density definitions that differ from
+imperial ones. Shared units such as pounds and cubic feet belong to both system
+subgroups where both exist. Quantities without distinct imperial units, such as
+electric current and capacitance, have no imperial subgroup.
+
+The catalogue includes 991 concrete units. Imperial coverage spans length, mass,
+area, volume, temperature, force, pressure, energy, power, speed, acceleration,
+density, viscosity, torque, heat, light, and compound units that use imperial
+length or mass alongside shared electrical or chemical units.
+
+Existing unit base URLs remain stable. The 38 units already seeded by production
+migrations receive version 2 with their new system parents. Old versions and the
+old length groups remain available to existing property and value references.
+New units start at version 1. Development instances that already have aviation
+units receive updated versions of those too. The migration can resume after a
+partial run without creating further versions. Existing properties pinned to
+old units are not rewritten to accept every unit in the new quantity groups.
 
 ## Conversions
 
-Each quantity has an abstract numeric parent. Concrete units have a symbol and,
+Each system subgroup inherits from its abstract quantity parent. Concrete units have a symbol and,
 where another unit of the same quantity is available, a bidirectional conversion
 to a shared reference unit. The graph can compose conversions between units that
-share that reference.
+share that reference, including across metric, imperial, and US customary subgroups. There are 928 bidirectional conversion definitions.
 
 The catalogue specifies conversions as:
 
@@ -68,12 +95,41 @@ conversion model. Quantities with matching dimensions retain separate parents
 and conversion groups: hertz and becquerels, joules and newton metres of torque,
 grays and sieverts, and radians and steradians.
 
-The unit names and symbols follow the SI brochure. Prefixed families retain
+SI unit names and symbols follow the SI brochure. Prefixed families retain
 their existing spelling and singular or plural form. Other new compound units
 use `Meters` and `Litres` for concentration per litre.
 
 The tests check catalogue coverage, parent and conversion dependencies, registry
 identifiers, temperature boundaries, and numerical results in both directions
 at magnitudes supported by the application's conversion evaluator. The
-migration delegates creation and restart safety to
-`createSystemDataTypeIfNotExists`.
+migration creates missing types and versions existing types whose parents change.
+Upgrade tests cover hosted and self-hosted instances, restart safety, and read errors.
+
+## Imperial definitions
+
+Conversions use the international yard (0.9144 m), avoirdupois pound
+(0.45359237 kg), and standard gravity (9.80665 m/s²). Derived factors follow
+[NIST SP 811, Appendix B.9](https://www.nist.gov/pml/special-publication-811/nist-guide-si-appendix-b-conversion-factors/nist-guide-si-appendix-b9).
+Lengths and areas use the international foot, not the retired US survey foot.
+An imperial gallon is 4.54609 L; a US liquid gallon is 3.785411784 L. US dry
+measures have separate types. Cups and spoons use US customary definitions.
+Mass ounces and fluid ounces are distinct, as are avoirdupois and troy mass,
+long and short tons, and International Table and thermochemical British thermal
+units. Unqualified horsepower is avoided: the catalogue names mechanical
+horsepower explicitly.
+
+Rankine denominators in heat-capacity and conductivity units express intervals
+of 5/9 kelvin. These multiplicative compound conversions need no temperature
+offset. Standalone Rankine and Fahrenheit still represent temperature readings.
+
+Existing fixed month and year conversions are retained and described as mean
+or fixed durations. They do not perform calendar arithmetic. The older `Hours`
+and `Days` types now share the second reference used by `Hour` and `Day`, so
+conversions can compose across the duration catalogue.
+
+## Catalogue display
+
+The frontend follows pagination when loading data types, so quantities and
+conversion references remain available after the catalogue exceeds one page.
+Conversion lists show the latest version of each target and omit other versions
+of the source unit. Old type versions remain addressable directly.

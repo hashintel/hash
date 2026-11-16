@@ -18,6 +18,7 @@ import { useDataTypesContext } from "../data-types-context";
 import { useSlideStack } from "../slide-stack";
 import { ConversionEditor } from "./data-type-conversions/conversion-editor";
 import { ConversionTargetEditor } from "./data-type-conversions/conversion-target-editor";
+import { getLatestConversionTargets } from "./data-type-conversions/get-latest-conversion-targets";
 import { useInheritedConstraints } from "./shared/use-inherited-constraints";
 
 import type {
@@ -66,7 +67,7 @@ export const DataTypeConversions = ({
     }
 
     const latestDataTypeByBaseUrl: Record<BaseUrl, DataTypeWithMetadata> = {};
-    for (const dataTypeOption of Object.values(dataTypes ?? {})) {
+    for (const dataTypeOption of Object.values(dataTypes)) {
       const currentLatest =
         latestDataTypeByBaseUrl[dataTypeOption.metadata.recordId.baseUrl];
 
@@ -102,7 +103,7 @@ export const DataTypeConversions = ({
       inheritedConversions ?? {},
     )) {
       if (!combined[targetBaseUrl]) {
-        const target = Object.values(dataTypes ?? {}).find(
+        const target = Object.values(dataTypes).find(
           (option) => option.metadata.recordId.baseUrl === targetBaseUrl,
         );
 
@@ -153,7 +154,7 @@ export const DataTypeConversions = ({
 
   const conversionTargetsMap = data?.findDataTypeConversionTargets;
 
-  const conversionTargets = typedEntries(conversionTargetsMap ?? {})
+  const allConversionTargets = typedEntries(conversionTargetsMap ?? {})
     .flatMap<{
       targetDataTypeId: VersionedUrl;
       title: string;
@@ -222,8 +223,11 @@ export const DataTypeConversions = ({
         ),
       ];
     })
-    .filter((conversionTarget) => conversionTarget !== null)
-    .sort((a, b) => a.valueForOneOfThese - b.valueForOneOfThese);
+    .filter((conversionTarget) => conversionTarget !== null);
+  const conversionTargets = getLatestConversionTargets(
+    dataType.$id,
+    allConversionTargets,
+  );
 
   const type = useWatch({ control, name: "constraints.type" });
 
@@ -252,7 +256,7 @@ export const DataTypeConversions = ({
           </Typography>
           {conversionTargets.map((conversionTarget) => {
             return (
-              <Box key={conversionTarget.title}>
+              <Box key={conversionTarget.targetDataTypeId}>
                 <Typography variant="smallTextParagraphs">
                   <Box component="span" sx={{ fontWeight: 300 }}>
                     1 {dataType.title} ={" "}

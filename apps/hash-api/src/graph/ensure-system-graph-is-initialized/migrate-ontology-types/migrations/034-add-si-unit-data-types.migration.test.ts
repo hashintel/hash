@@ -9,8 +9,8 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { slugifyTypeTitle } from "@local/hash-isomorphic-utils/slugify-type-title";
 
-import { createSystemDataTypeIfNotExists } from "../util";
 import migrate from "./034-add-si-unit-data-types.migration";
+import { ensureUnitDataType } from "./034-add-si-unit-data-types/ensure-unit-data-type";
 
 import type { MigrationFunction } from "../types";
 import type {
@@ -20,9 +20,50 @@ import type {
   DataTypeWithMetadata,
 } from "@blockprotocol/type-system";
 
-vi.mock("../util", () => ({
-  createSystemDataTypeIfNotExists: vi.fn(),
+vi.mock("./034-add-si-unit-data-types/ensure-unit-data-type", () => ({
+  ensureUnitDataType: vi.fn(),
 }));
+
+const upgradedUnits = new Set([
+  "Meters",
+  "Millimeters",
+  "Centimeters",
+  "Kilometers",
+  "Inches",
+  "Feet",
+  "Yards",
+  "Miles",
+  "Kilograms",
+  "Grams",
+  "Metric Tonnes",
+  "Pounds",
+  "Second",
+  "Millisecond",
+  "Microsecond",
+  "Minute",
+  "Hour",
+  "Day",
+  "Week",
+  "Month",
+  "Year",
+  "Hours",
+  "Days",
+  "Hertz",
+  "Kilohertz",
+  "Megahertz",
+  "Gigahertz",
+  "Watts",
+  "Kilowatts",
+  "Megawatts",
+  "Gigawatts",
+  "Square Metres",
+  "Square Centimetres",
+  "Square Feet",
+  "Litres",
+  "Millilitres",
+  "Cubic Metres",
+  "Cubic Feet",
+]);
 
 const seeded = new Map<
   string,
@@ -30,7 +71,7 @@ const seeded = new Map<
 >();
 
 beforeAll(async () => {
-  vi.mocked(createSystemDataTypeIfNotExists).mockImplementation(
+  vi.mocked(ensureUnitDataType).mockImplementation(
     async (_context, _authentication, { dataTypeDefinition, conversions }) => {
       const baseUrl =
         `https://hash.ai/@h/types/data-type/${slugifyTypeTitle(dataTypeDefinition.title)}/` as BaseUrl;
@@ -38,7 +79,7 @@ beforeAll(async () => {
         ...dataTypeDefinition,
         $schema:
           "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
-        $id: `${baseUrl}v/1`,
+        $id: `${baseUrl}v/${upgradedUnits.has(dataTypeDefinition.title) ? 2 : 1}`,
         kind: "dataType",
       };
       expect(seeded.has(schema.title), `Duplicate title: ${schema.title}`).toBe(
@@ -72,7 +113,10 @@ const getSeeded = (title: string) => {
 };
 
 const getConversion = (source: string, target: string) => {
-  const baseUrl = getSeeded(target).schema.$id.replace(/v\/1$/, "") as BaseUrl;
+  const baseUrl = getSeeded(target).schema.$id.replace(
+    /v\/\d+$/,
+    "",
+  ) as BaseUrl;
   const conversion = getSeeded(source).conversions[baseUrl];
   if (!conversion) {
     throw new Error(`Missing conversion from ${source} to ${target}`);
@@ -296,6 +340,36 @@ describe("default SI data types", () => {
     expect(seeded.has("Megaohms")).toBe(false);
   });
 
+  it("groups units by quantity and measurement system", () => {
+    for (const [unit, system, quantity] of [
+      ["Meters", "Length (Metric)", "Length"],
+      ["Feet", "Length (Imperial)", "Length"],
+      ["Pounds", "Mass (Imperial)", "Mass"],
+      ["Short Tons", "Mass (US Customary)", "Mass"],
+      ["Litres", "Volume (Metric)", "Volume"],
+      ["Imperial Gallons", "Volume (Imperial)", "Volume"],
+      ["US Liquid Gallons", "Volume (US Customary)", "Volume"],
+      ["Degrees Fahrenheit", "Temperature (Imperial)", "Temperature"],
+      ["Pound-Force Feet", "Torque (Imperial)", "Torque"],
+      ["Amperes", "Electric Current (Metric)", "Electric Current"],
+    ] as const) {
+      expect(getSeeded(unit).schema.allOf).toContainEqual({
+        $ref: getSeeded(system).schema.$id,
+      });
+      expect(getSeeded(system).schema).toMatchObject({
+        abstract: true,
+        allOf: [{ $ref: getSeeded(quantity).schema.$id }],
+      });
+    }
+    for (const title of [
+      "Electric Current (Imperial)",
+      "Capacitance (Imperial)",
+      "Duration (Imperial)",
+    ]) {
+      expect(seeded.has(title)).toBe(false);
+    }
+  });
+
   it("creates parents and conversion targets before their dependents", () => {
     const available = new Map<string, DataType>();
     for (const { schema, conversions } of seeded.values()) {
@@ -305,9 +379,21 @@ describe("default SI data types", () => {
         }
       }
       for (const baseUrl of Object.keys(conversions)) {
-        const target = available.get(`${baseUrl}v/1`);
+        const target = [...available.values()].find((type) =>
+          type.$id.startsWith(baseUrl),
+        );
         expect(target, schema.title).toBeDefined();
-        expect(target?.allOf, schema.title).toEqual(schema.allOf);
+        const quantityIds = (type: DataType) =>
+          (type.allOf ?? []).flatMap(
+            ({ $ref }) =>
+              available.get($ref)?.allOf?.map((parent) => parent.$ref) ?? [],
+          );
+        expect(
+          quantityIds(schema).some(
+            (id) => target && quantityIds(target).includes(id),
+          ),
+          schema.title,
+        ).toBe(true);
       }
       if (!schema.abstract) {
         expect(schema.label?.right, schema.title).toBeTruthy();
@@ -334,6 +420,39 @@ describe("default SI data types", () => {
 
 describe("SI unit conversions", () => {
   it.each([
+    ["Feet", "Meters", 1, 0.3048],
+    ["Miles", "Meters", 1, 1609.344],
+    ["Pounds", "Kilograms", 1, 0.45359237],
+    ["Troy Ounces", "Kilograms", 1, 0.0311034768],
+    ["Long Tons", "Kilograms", 1, 1016.0469088],
+    ["Short Tons", "Kilograms", 1, 907.18474],
+    ["Acres", "Square Metres", 1, 4046.8564224],
+    ["Cubic Inches", "Litres", 1, 0.016387064],
+    ["Imperial Gallons", "Litres", 1, 4.54609],
+    ["US Liquid Gallons", "Litres", 1, 3.785411784],
+    ["US Dry Gallons", "Litres", 1, 4.40488377086],
+    ["US Cups", "Litres", 1, 0.2365882365],
+    ["Pounds-Force", "Newtons", 1, 4.4482216152605],
+    ["Pounds-Force per Square Inch", "Pascals", 1, 6894.757293168361],
+    ["Mechanical Horsepower", "Watts", 1, 745.6998715822702],
+    ["British Thermal Units (IT)", "Joules", 1, 1055.05585262],
+    [
+      "British Thermal Units (IT) per Pound Degree Rankine",
+      "Joules per Kilogram Kelvin",
+      1,
+      4186.8,
+    ],
+    ["Pound-Force Feet", "Newton Meters", 1, 1.3558179483314004],
+    [
+      "Pounds per Cubic Foot",
+      "Kilograms per Cubic Meter",
+      1,
+      16.01846337396014,
+    ],
+    ["Foot-Candles", "Lux", 1, 10.763910416709722],
+    ["Degrees Rankine", "Kelvins", 491.67, 273.15],
+    ["Hours", "Second", 1, 3600],
+    ["Days", "Second", 1, 86400],
     ["Degrees Celsius", "Kelvins", 0, 273.15],
     ["Degrees Celsius", "Kelvins", -273.15, 0],
     ["Degrees Celsius", "Kelvins", 100, 373.15],
@@ -379,6 +498,45 @@ describe("SI unit conversions", () => {
       10,
     );
   });
+
+  it.each([
+    ["Feet", "Centimeters", "Meters", 1, 30.48],
+    [
+      "Miles per Hour",
+      "Kilometers per Hour",
+      "Meters per Second",
+      60,
+      96.56064,
+    ],
+    ["Ounces", "Grams", "Kilograms", 1, 28.349523125],
+    ["Imperial Gallons", "US Liquid Gallons", "Litres", 1, 1.2009499255048549],
+    ["Imperial Pints", "US Liquid Pints", "Litres", 1, 1.2009499255048549],
+    [
+      "Imperial Fluid Ounces",
+      "US Fluid Ounces",
+      "Litres",
+      1,
+      0.9607599404038839,
+    ],
+    ["Pound-Force Feet", "Pound-Force Inches", "Newton Meters", 1, 12],
+    ["Days", "Hour", "Second", 1, 24],
+  ])(
+    "converts %s to %s through %s",
+    (source, target, reference, value, expected) => {
+      const sourceConversion = getConversion(source, reference);
+      const targetConversion = getConversion(target, reference);
+      expect(
+        createConversionFunction([sourceConversion.to, targetConversion.from])(
+          value,
+        ),
+      ).toBeCloseTo(expected, 10);
+      expect(
+        createConversionFunction([targetConversion.to, sourceConversion.from])(
+          expected,
+        ),
+      ).toBeCloseTo(value, 10);
+    },
+  );
 
   it("composes Fahrenheit and Celsius conversions through their shared Kelvin target", () => {
     const fahrenheit = getConversion("Degrees Fahrenheit", "Kelvins");
