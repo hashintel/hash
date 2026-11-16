@@ -41,8 +41,12 @@ migrations receive version 2 with their new system parents. Old versions and the
 old length groups remain available to existing property and value references.
 New units start at version 1. Development instances that already have aviation
 units receive updated versions of those too. The migration can resume after a
-partial run without creating further versions. Existing properties pinned to
-old units are not rewritten to accept every unit in the new quantity groups.
+partial run without creating further versions. It compares the complete schema
+and conversion definitions, so matching parents alone do not hide stale bounds
+or conversion factors. Floating conversion constants are compared at the graph's
+decimal precision to avoid creating versions for serialization rounding alone.
+Existing properties pinned to old units are not rewritten to accept every unit
+in the new quantity groups.
 
 ## Permeability
 
@@ -100,6 +104,22 @@ but the current conversion expressions have no property context. Reusing the
 reading types would apply offsets to differences and reject negative kelvin
 differences. Supporting intervals with shared unit types is outside this change.
 
+## Value constraints
+
+Concrete units accept numbers, including fractions. Reusable units generally
+have no lower or upper bound: metres can express signed positions, seconds
+signed offsets, and pascals gauge pressure. Angles are not limited to one turn.
+More restrictive domains can use constrained data type descendants referenced
+by the relevant property type.
+
+The temperature reading types have unit-specific absolute-zero bounds: 0 K,
+−273.15 °C, −459.67 °F, and 0 °R. Every prefixed kelvin type has a minimum of zero.
+Temperature's abstract parents remain unbounded because inherited constraints
+intersect without converting their numbers between units. A minimum of zero on
+the common parent would incorrectly reject valid negative Celsius and
+Fahrenheit readings. Abstract quantity and system groups cannot type values
+directly; values use their concrete descendants.
+
 ## Scope
 
 The SI permits unlimited derived combinations. This catalogue covers the named
@@ -121,8 +141,10 @@ use `Meters` and `Litres` for concentration per litre.
 The tests check catalogue coverage, parent and conversion dependencies, registry
 identifiers, temperature boundaries, and numerical results in both directions
 at magnitudes supported by the application's conversion evaluator. The
-migration creates missing types and versions existing types whose parents change.
-Upgrade tests cover hosted and self-hosted instances, restart safety, and read errors.
+migration creates missing types and versions existing types whose schemas or
+conversions change. Upgrade tests cover hosted and self-hosted instances,
+constraint and conversion changes, serialization rounding, restart safety,
+stale intermediate versions, and read errors.
 
 ## Imperial definitions
 

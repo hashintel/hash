@@ -699,4 +699,68 @@ describe("SI unit conversions", () => {
       expect(getSeeded(title).schema).toMatchObject({ minimum });
     }
   });
+
+  it("keeps offset temperature bounds off the shared ancestors", () => {
+    for (const title of [
+      "Temperature",
+      "Temperature (Metric)",
+      "Temperature (Imperial)",
+    ]) {
+      expect(getSeeded(title).schema).not.toHaveProperty("minimum");
+    }
+    for (const { schema, conversions } of seeded.values()) {
+      if (
+        !schema.title.endsWith("kelvins") &&
+        schema.title !== "Kelvins" &&
+        !["Degrees Celsius", "Degrees Fahrenheit", "Degrees Rankine"].includes(
+          schema.title,
+        )
+      ) {
+        continue;
+      }
+      const minimum =
+        "type" in schema && schema.type === "number" && "minimum" in schema
+          ? schema.minimum
+          : undefined;
+      expect(minimum, schema.title).toBeDefined();
+      const conversion = conversions[systemDataTypes.kelvins.dataTypeBaseUrl];
+      if (conversion && minimum !== undefined) {
+        expect(
+          createConversionFunction([conversion.to])(minimum),
+          schema.title,
+        ).toBe(0);
+        expect(
+          createConversionFunction([conversion.from])(0),
+          schema.title,
+        ).toBe(minimum);
+      }
+    }
+  });
+
+  it("allows signed fractional values in reusable units", () => {
+    for (const title of [
+      "Meters",
+      "Second",
+      "Pascals",
+      "Volts",
+      "Amperes",
+      "Joules",
+      "Watts",
+      "Radians",
+      "Degree",
+      "Newton Meters",
+    ]) {
+      const schema = getSeeded(title).schema;
+      for (const bound of [
+        "minimum",
+        "maximum",
+        "exclusiveMinimum",
+        "exclusiveMaximum",
+        "multipleOf",
+        "enum",
+      ]) {
+        expect(schema, `${title}: ${bound}`).not.toHaveProperty(bound);
+      }
+    }
+  });
 });

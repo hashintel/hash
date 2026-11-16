@@ -1,3 +1,5 @@
+import { isDeepStrictEqual } from "node:util";
+
 import {
   componentsFromVersionedUrl,
   incrementOntologyTypeVersion,
@@ -15,11 +17,28 @@ import {
   generateSystemDataTypeSchema,
 } from "../../util";
 
-import type { DataTypeMetadata } from "@blockprotocol/type-system";
+import type {
+  BaseUrl,
+  Conversions,
+  DataTypeMetadata,
+} from "@blockprotocol/type-system";
+
+const normalizeConversionNumbers = (
+  conversions: Record<BaseUrl, Conversions>,
+): unknown =>
+  JSON.parse(
+    JSON.stringify(conversions, (_key, value: unknown) =>
+      // The graph rounds floating constants to 15 significant digits when
+      // converting f64 to decimal. Integer constants retain their precision.
+      typeof value === "number" && !Number.isSafeInteger(value)
+        ? Number(value.toPrecision(15))
+        : value,
+    ),
+  );
 
 export const ensureUnitDataType: typeof createSystemDataTypeIfNotExists =
   async (context, authentication, parameters) => {
-    const existing = await createSystemDataTypeIfNotExists(
+    let existing = await createSystemDataTypeIfNotExists(
       context,
       authentication,
       parameters,
@@ -27,61 +46,78 @@ export const ensureUnitDataType: typeof createSystemDataTypeIfNotExists =
     const { dataTypeDefinition, conversions, migrationState, webShortname } =
       parameters;
 
-    if (
-      JSON.stringify(existing.schema.allOf) ===
-      JSON.stringify(dataTypeDefinition.allOf)
-    ) {
-      return existing;
-    }
-
-    // Keep the original version available to properties and values that reference it.
-    const { baseUrl, version } = componentsFromVersionedUrl(
-      existing.schema.$id,
-    );
-    const nextVersion = incrementOntologyTypeVersion(version);
-    const nextId = versionedUrlFromComponents(baseUrl, nextVersion);
-    const next = await getDataTypeById(context.graphApi, authentication, {
-      dataTypeId: nextId,
-      temporalAxes: currentTimeInstantTemporalAxes,
-    }).catch((error: unknown) => {
-      if (error instanceof NotFoundError) {
-        return null;
+    while (true) {
+      const expectedSchema = generateSystemDataTypeSchema({
+        ...dataTypeDefinition,
+        abstract: dataTypeDefinition.abstract ?? false,
+        dataTypeId: existing.schema.$id,
+      });
+      const { baseUrl, version } = componentsFromVersionedUrl(
+        existing.schema.$id,
+      );
+      if (
+        isDeepStrictEqual(
+          { ...existing.schema, abstract: existing.schema.abstract ?? false },
+          expectedSchema,
+        ) &&
+        isDeepStrictEqual(
+          normalizeConversionNumbers(existing.metadata.conversions ?? {}),
+          normalizeConversionNumbers(conversions),
+        )
+      ) {
+        migrationState.dataTypeVersions[baseUrl] = version;
+        return existing;
       }
-      throw error;
-    });
 
-    if (next) {
-      migrationState.dataTypeVersions[baseUrl] = nextVersion;
-      return next;
+      // Preserve versions referenced by existing properties and values.
+      const nextVersion = incrementOntologyTypeVersion(version);
+      const nextId = versionedUrlFromComponents(baseUrl, nextVersion);
+      const next = await getDataTypeById(context.graphApi, authentication, {
+        dataTypeId: nextId,
+        temporalAxes: currentTimeInstantTemporalAxes,
+      }).catch((error: unknown) => {
+        if (error instanceof NotFoundError) {
+          return null;
+        }
+        throw error;
+      });
+
+      if (next) {
+        existing = next;
+        continue;
+      }
+
+      const { systemActorMachineId } = await getOrCreateOwningWebId(
+        context,
+        webShortname,
+      );
+      const schema = generateSystemDataTypeSchema({
+        ...dataTypeDefinition,
+        dataTypeId: nextId,
+      });
+      const updated = isSelfHostedInstance
+        ? await context.graphApi
+            .loadExternalDataType(systemActorMachineId, {
+              schema,
+              conversions,
+              provenance: context.provenance,
+            })
+            .then(({ data }) => ({
+              schema,
+              metadata: data as DataTypeMetadata,
+            }))
+        : await updateDataType(
+            context,
+            { actorId: systemActorMachineId },
+            {
+              dataTypeId: existing.schema.$id,
+              schema: dataTypeDefinition,
+              conversions,
+            },
+          );
+
+      migrationState.dataTypeVersions[baseUrl] =
+        updated.metadata.recordId.version;
+      return updated;
     }
-
-    const { systemActorMachineId } = await getOrCreateOwningWebId(
-      context,
-      webShortname,
-    );
-    const schema = generateSystemDataTypeSchema({
-      ...dataTypeDefinition,
-      dataTypeId: nextId,
-    });
-    const updated = isSelfHostedInstance
-      ? await context.graphApi
-          .loadExternalDataType(systemActorMachineId, {
-            schema,
-            conversions,
-            provenance: context.provenance,
-          })
-          .then(({ data }) => ({ schema, metadata: data as DataTypeMetadata }))
-      : await updateDataType(
-          context,
-          { actorId: systemActorMachineId },
-          {
-            dataTypeId: existing.schema.$id,
-            schema: dataTypeDefinition,
-            conversions,
-          },
-        );
-
-    migrationState.dataTypeVersions[baseUrl] =
-      updated.metadata.recordId.version;
-    return updated;
   };
