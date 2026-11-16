@@ -30,6 +30,7 @@ type DocChangeEvent = {
   next: SDCPN;
   patches?: PetrinautPatch[];
   source?: "local" | "remote";
+  restored?: { index: number };
 };
 ```
 
@@ -102,6 +103,11 @@ proper.
   a handle that loads asynchronously must emit an event when the document
   first becomes available; otherwise the editor stays on the empty net until
   something unrelated forces a re-render.
+- **Set `restored` on a change that moves through the history.** An undo, a
+  redo or a jump puts the document at an entry of `history.entries`, and
+  `restored: { index }` names that entry, so a listener can tell the move from
+  an edit. `createJsonDocHandle` sets it. A handle without `history` never
+  does.
 - **`id` is unique per document and immutable for the handle's lifetime.**
   Reusing one id across documents leaks simulation and language-server state
   between them; deriving it from mutable state resets that state mid-session.
