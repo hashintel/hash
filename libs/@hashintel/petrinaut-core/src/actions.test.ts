@@ -2008,10 +2008,11 @@ describe("Petrinaut core interface actions", () => {
   });
 
   test("holds a default and an instance's choice to the one rule", () => {
+    const base = withInterface();
     const instance = createInstance({
-      ...withInterface(),
+      ...base,
       subnets: [
-        ...(withInterface().subnets ?? []),
+        ...(base.subnets ?? []),
         stageSubnet("draft", { interface: true, implements: ["stage"] }),
       ],
     });

@@ -376,7 +376,9 @@ describe("resolveImplementation", () => {
       subnet: { id: "fast" },
     });
   });
+});
 
+describe("mapInterfacePorts", () => {
   it("maps the interface's ports onto the implementation's by name", () => {
     expect([...mapInterfacePorts(stage, fast)]).toEqual([
       ["stage_in", "fast_in"],
