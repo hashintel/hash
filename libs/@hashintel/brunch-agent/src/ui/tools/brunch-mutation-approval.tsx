@@ -436,6 +436,13 @@ const canonicalRemovalDescriptions = (
         `Remove fusion member — ${nameOf(fusionId)} / ${endpointName(member, nameOf)}`,
       ];
     }
+    case "replaceFusionMember": {
+      const { fusionId, member, replacement } =
+        mutationActionInputSchemas.replaceFusionMember.parse(input);
+      return [
+        `Replace fusion member — ${nameOf(fusionId)} / ${endpointName(member, nameOf)} with ${endpointName(replacement, nameOf)}`,
+      ];
+    }
     case "deleteItemsByIds":
       return mutationActionInputSchemas.deleteItemsByIds
         .parse(input)
