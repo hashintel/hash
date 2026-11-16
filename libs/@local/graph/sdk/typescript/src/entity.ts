@@ -1,3 +1,5 @@
+import { dequal } from "dequal";
+
 import {
   extractBaseUrl,
   isArrayMetadata,
@@ -537,7 +539,7 @@ export const propertyObjectToPatches = (
 
 /**
  * Creates an array of PropertyPatchOperations that, if applied, will transform the oldProperties into the
- * newProperties.
+ * newProperties. A property whose value and metadata are deep-equal in both is left out of the patches.
  *
  * @deprecated this is a function for migration purposes only.
  *    For new code, track which properties are actually changed where they are changed, and create the patch operations
@@ -550,25 +552,24 @@ export const patchesFromPropertyObjects = ({
   newProperties,
   removeProperties = true,
 }: {
-  oldProperties: PropertyObject;
+  oldProperties: PropertyObjectWithMetadata;
   newProperties: PropertyObjectWithMetadata;
   removeProperties?: boolean;
 }): PropertyPatchOperation[] => {
   const patches: PropertyPatchOperation[] = [];
 
   for (const [key, property] of typedEntries(newProperties.value)) {
-    if (
-      typeof oldProperties[key] !== "undefined" &&
-      oldProperties[key] !== property.value
-    ) {
+    const oldProperty = oldProperties.value[key];
+
+    if (oldProperty === undefined) {
       patches.push({
-        op: "replace",
+        op: "add",
         path: [key],
         property,
       });
-    } else {
+    } else if (!dequal(oldProperty, property)) {
       patches.push({
-        op: "add",
+        op: "replace",
         path: [key],
         property,
       });
@@ -576,7 +577,7 @@ export const patchesFromPropertyObjects = ({
   }
 
   if (removeProperties) {
-    for (const key of typedKeys(oldProperties)) {
+    for (const key of typedKeys(oldProperties.value)) {
       if (typeof newProperties.value[key] === "undefined") {
         patches.push({
           op: "remove",
