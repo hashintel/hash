@@ -48,7 +48,7 @@
     "@local/flue-aisdk-transport": "workspace:*",
     "@local/hash-backend-utils": "workspace:*",
     "@opentelemetry/api": "1.9.1",
-    "hono": "4.13.17",
+    "hono": "4.13.18",
     "pg": "8.23.0",
     "react": "19.2.6",
     "react-dom": "19.2.6",
