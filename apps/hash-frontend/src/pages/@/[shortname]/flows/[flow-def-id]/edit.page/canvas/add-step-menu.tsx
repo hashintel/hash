@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Menu, SelectableListSearch } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { ActionIo, ActionIoTooltip } from "../shared/action-io";
+import { ActionIo } from "../shared/action-io";
 import { useRecentActions } from "../shared/recent-actions";
 import {
   addableActionGroups,
@@ -20,10 +20,6 @@ import type { ReactElement } from "react";
 type OnPick = (actionDefinitionId: string) => void;
 type OnHighlight = (action: AddableAction | null) => void;
 
-/* As wide as the description, so the tooltip opens beside the row rather than over it. */
-const actionNameTrigger = css({ flex: "1" });
-/* The menu's text style, as the tooltip's trigger sets a line height of 0, which collapses the name onto its description. */
-const actionName = css({ textStyle: "sm" });
 const highlightedActionIo = css({
   pt: "1.5",
   borderTop: "1px solid {colors.neutral.s35}",
@@ -56,14 +52,7 @@ const ActionItemName = ({
     return () => onHighlight(null);
   }, [highlighted, action, onHighlight]);
 
-  return (
-    <ActionIoTooltip
-      actionDefinitionId={action.actionDefinitionId}
-      className={actionNameTrigger}
-    >
-      <span className={actionName}>{action.label}</span>
-    </ActionIoTooltip>
-  );
+  return action.label;
 };
 
 /** `group` keeps ids apart when an action is listed twice in one menu. */

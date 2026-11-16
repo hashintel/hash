@@ -59,7 +59,6 @@ export const AddTab = ({
       icon={action.icon}
       tone={getActionTone(action)}
       label={action.label}
-      actionDefinitionId={action.actionDefinitionId}
       onClick={() => {
         recordAddedAction(action.actionDefinitionId);
         onAddStep(action.actionDefinitionId);
