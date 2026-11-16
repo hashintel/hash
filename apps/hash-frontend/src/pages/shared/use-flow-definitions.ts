@@ -24,6 +24,7 @@ import type {
 } from "../../graphql/api-types.gen";
 import type { EntityRootType } from "@blockprotocol/graph";
 import type {
+  ActorEntityUuid,
   EntityEditionId,
   EntityId,
   Timestamp,
@@ -46,6 +47,8 @@ export type LoadedFlowDefinition = {
   userCanUpdate: boolean;
   /** When the edition loaded was saved. */
   lastEditedAt: string;
+  /** The account that saved the edition loaded. */
+  lastEditedById: ActorEntityUuid;
 } & ReturnType<typeof validateFlowDefinitionEntity>;
 
 const userCanUpdateEntity = (
@@ -96,6 +99,7 @@ const getFlowDefinitionsFromQueryResult = (
     flowDefinitionEntityId: entity.metadata.recordId.entityId,
     userCanUpdate: userCanUpdateEntity(data, entity.metadata.recordId.entityId),
     lastEditedAt: entity.metadata.temporalVersioning.decisionTime.start.limit,
+    lastEditedById: entity.metadata.provenance.edition.createdById,
     ...validateFlowDefinitionEntity(entity),
   }));
 };

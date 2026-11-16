@@ -10,6 +10,7 @@ import {
 
 import { useGetOwnerForEntity } from "../components/hooks/use-get-owner-for-entity";
 import { getLayoutWithSidebar } from "../shared/layout";
+import { useActors } from "../shared/use-actors";
 import { FlowsEmptyState } from "./flows.page/flows-empty-state";
 import { FlowsTable } from "./flows.page/flows-table";
 import { NewFlowButton } from "./flows.page/new-flow-button";
@@ -65,35 +66,51 @@ const FlowsPageContent = () => {
 
   const createFlow = useCreateFlow();
 
-  const flows = useMemo<FlowRow[]>(
-    () =>
-      flowDefinitions
-        .filter(
-          ({ flowDefinitionEntityId }) =>
-            !isGoalFlowDefinitionEntityId(flowDefinitionEntityId),
-        )
-        .map(
-          ({ flowDefinitionEntityId, name, userCanUpdate, lastEditedAt }) => {
-            const { shortname } = getOwner({
-              entityId: flowDefinitionEntityId,
-            });
-            const pathParams = { shortname, flowDefinitionEntityId };
-
-            return {
-              flowDefinitionEntityId,
-              name,
-              /* The editor can't open a flow the user can't edit, so that opens on its own page, as it did before. */
-              path: userCanUpdate
-                ? generateFlowEditorPath(pathParams)
-                : generateFlowDefinitionPath(pathParams),
-              editable: userCanUpdate,
-              lastEditedAt,
-            };
-          },
-        )
-        .sort((a, b) => a.name.localeCompare(b.name)),
-    [flowDefinitions, getOwner],
+  const editorAccountIds = useMemo(
+    () => flowDefinitions.map(({ lastEditedById }) => lastEditedById),
+    [flowDefinitions],
   );
+
+  const { actors } = useActors({ accountIds: editorAccountIds });
+
+  const flows = useMemo<FlowRow[]>(() => {
+    const editorNames = new Map(
+      actors?.map(({ accountId, displayName }) => [accountId, displayName]),
+    );
+
+    return flowDefinitions
+      .filter(
+        ({ flowDefinitionEntityId }) =>
+          !isGoalFlowDefinitionEntityId(flowDefinitionEntityId),
+      )
+      .map(
+        ({
+          flowDefinitionEntityId,
+          name,
+          userCanUpdate,
+          lastEditedAt,
+          lastEditedById,
+        }) => {
+          const { shortname } = getOwner({
+            entityId: flowDefinitionEntityId,
+          });
+          const pathParams = { shortname, flowDefinitionEntityId };
+
+          return {
+            flowDefinitionEntityId,
+            name,
+            /* The editor can't open a flow the user can't edit, so that opens on its own page, as it did before. */
+            path: userCanUpdate
+              ? generateFlowEditorPath(pathParams)
+              : generateFlowDefinitionPath(pathParams),
+            editable: userCanUpdate,
+            lastEditedAt,
+            lastEditedBy: editorNames.get(lastEditedById) ?? null,
+          };
+        },
+      )
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [flowDefinitions, getOwner, actors]);
 
   const matchingFlows = useMemo(() => {
     const query = searchText.trim().toLowerCase();

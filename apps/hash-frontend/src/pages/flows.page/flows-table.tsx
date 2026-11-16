@@ -42,6 +42,8 @@ export type FlowRow = {
   /** Whether the user can edit the flow, and so archive it. */
   editable: boolean;
   lastEditedAt: string;
+  /** The name of who last edited the flow, or `null` while it isn't known, or if the user can't see who it was. */
+  lastEditedBy: string | null;
 };
 
 /**
@@ -111,6 +113,14 @@ const openableRow = css({
 const nameText = css({ color: "fg.heading", whiteSpace: "normal" });
 const lastRun = css({ display: "inline-flex", alignItems: "center", gap: "2" });
 const subtle = css({ color: "fg.subtle" });
+const lastEdited = css({ display: "flex", gap: "1" });
+const timeText = css({ flexShrink: "0" });
+/* A long name is cut short, rather than widening the column or wrapping the row. */
+const editorName = css({
+  minWidth: "0",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+});
 const menu = css({ display: "flex", justifyContent: "flex-end" });
 
 /** The row's menu, which has Archive, as the editor's does: flows are archived, never deleted. */
@@ -243,13 +253,20 @@ const FlowTableRow = ({ flow, now }: { flow: FlowRow; now: Date }) => {
           <span className={subtle}>Couldn't load runs</span>
         ) : null}
       </td>
+      <td>{runs && (runs.totalCount === 0 ? "–" : runs.totalCount)}</td>
       <td>
-        {runs &&
-          (runs.totalCount === 0
-            ? "–"
-            : `${runs.totalCount} ${runs.totalCount === 1 ? "run" : "runs"}`)}
+        <span className={lastEdited}>
+          <span className={timeText}>
+            {formatRunTime(new Date(flow.lastEditedAt), now)}
+            {flow.lastEditedBy !== null && " ·"}
+          </span>
+          {flow.lastEditedBy !== null && (
+            <span className={editorName} title={flow.lastEditedBy}>
+              {flow.lastEditedBy}
+            </span>
+          )}
+        </span>
       </td>
-      <td>{formatRunTime(new Date(flow.lastEditedAt), now)}</td>
       <td>{flow.editable && <FlowMenu flow={flow} />}</td>
     </tr>
   );
@@ -274,7 +291,7 @@ export const FlowsTable = ({
             <th>Name</th>
             <th className={css({ width: "[272px]" })}>Last run</th>
             <th className={css({ width: "[96px]" })}>Runs</th>
-            <th className={css({ width: "[160px]" })}>Last edited</th>
+            <th className={css({ width: "[240px]" })}>Last edited</th>
             <th className={css({ width: "[56px]" })} aria-label="Actions" />
           </tr>
         </thead>
