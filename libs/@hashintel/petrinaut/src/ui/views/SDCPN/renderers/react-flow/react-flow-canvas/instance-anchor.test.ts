@@ -30,31 +30,25 @@ const card = (
 });
 
 describe("instance anchor", () => {
+  // Unfolded by 140: the scene moves the centre down by half of that.
+  const unfolded = card({
+    unfolded: true,
+    height: 236,
+    position: { x: 300, y: 270 },
+    anchorOffset: 70,
+  });
+
   it("holds a card by the middle of its top edge", () => {
     expect(instanceFlowPosition(card({}))).toEqual({ x: 300, y: 152 });
   });
 
   it("keeps the top edge where it is when the card unfolds", () => {
-    const folded = card({});
-    // Unfolded by 140: the scene moves the centre down by half of that.
-    const unfolded = card({
-      unfolded: true,
-      height: 236,
-      position: { x: 300, y: 270 },
-      anchorOffset: 70,
-    });
     expect(instanceFlowPosition(unfolded)).toEqual(
-      instanceFlowPosition(folded),
+      instanceFlowPosition(card({})),
     );
   });
 
   it("returns a moved card to the position the document stores", () => {
-    const unfolded = card({
-      unfolded: true,
-      height: 236,
-      position: { x: 300, y: 270 },
-      anchorOffset: 70,
-    });
     const moved = { x: 340, y: 172 };
     // The folded card's centre: its top edge plus half the folded height.
     expect(documentPositionOf(unfolded, moved)).toEqual({ x: 340, y: 220 });

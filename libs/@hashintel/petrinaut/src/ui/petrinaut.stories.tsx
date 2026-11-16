@@ -896,7 +896,7 @@ export const Interfaces: Story = {
 };
 
 /** A cell with seven ports: four feeds in, three results out. */
-const cellSubnet: NonNullable<SDCPN["subnets"]>[number] = {
+const cellSubnet: Subnet = {
   id: "cell",
   name: "Cell",
   places: [

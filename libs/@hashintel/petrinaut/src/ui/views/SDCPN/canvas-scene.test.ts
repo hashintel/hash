@@ -385,33 +385,35 @@ describe("buildCanvasScene", () => {
         instance("loose", "iface", "ghost"),
       ],
     };
+    /** A document's root as the net the canvas shows, with nothing fused. */
+    const activeNet = (document: SDCPN) => ({
+      ...document,
+      componentInstances: document.componentInstances ?? [],
+      fusions: [],
+    });
 
     it("tells an instance's binding from the subnet it points at", () => {
       const { nodes } = buildCanvasScene({
         ...input,
         sdcpn: composed,
-        net: {
-          ...composed,
-          componentInstances: composed.componentInstances ?? [],
-          fusions: [],
-        },
+        net: activeNet(composed),
       });
-      const binding = (id: string) =>
+      const instanceNode = (id: string) =>
         nodes.find(
           (node) => node.id === id && node.kind === "componentInstance",
         );
 
-      expect(binding("bound")).toMatchObject({
+      expect(instanceNode("bound")).toMatchObject({
         subnetName: "Stage",
         binding: { kind: "interface", implementationName: "Fast" },
         ports: [
           { id: "in", name: "in", direction: "in", typeColor: "#ff0000" },
         ],
       });
-      expect(binding("plain")).toMatchObject({
+      expect(instanceNode("plain")).toMatchObject({
         binding: { kind: "component" },
       });
-      expect(binding("loose")).toMatchObject({
+      expect(instanceNode("loose")).toMatchObject({
         binding: { kind: "interface", implementationName: null },
       });
       expect(nodes.find((node) => node.id === "p1")).toMatchObject({
@@ -438,11 +440,7 @@ describe("buildCanvasScene", () => {
           instance("small", "fast"),
         ],
       };
-      const net = {
-        ...withWide,
-        componentInstances: withWide.componentInstances ?? [],
-        fusions: [],
-      };
+      const net = activeNet(withWide);
 
       const folded = buildCanvasScene({ ...input, sdcpn: withWide, net });
       const foldedBig = folded.nodes.find((node) => node.id === "big");
@@ -501,11 +499,7 @@ describe("buildCanvasScene", () => {
       const { arcs } = buildCanvasScene({
         ...input,
         sdcpn: wired,
-        net: {
-          ...wired,
-          componentInstances: wired.componentInstances ?? [],
-          fusions: [],
-        },
+        net: activeNet(wired),
       });
 
       expect(arcs.find((arc) => arc.sourceId === "p1")?.color).toBe(
