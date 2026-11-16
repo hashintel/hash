@@ -40,7 +40,7 @@ test("/types page renders and loads types", async ({ page }) => {
   await expect(page.getByText("No types match your filters")).toBeVisible({
     timeout: 15_000,
   });
-  await page.getByRole("button", { name: "Include public types" }).click();
+  await page.getByRole("button", { name: "Show all public types" }).click();
 
   await expect(page.getByText(/^[1-9][\d,]* types$/)).toBeVisible({
     timeout: 15_000,

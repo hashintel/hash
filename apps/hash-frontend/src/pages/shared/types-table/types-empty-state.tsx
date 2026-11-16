@@ -87,7 +87,7 @@ export const TypesEmptyState: FunctionComponent<TypesEmptyStateProps> = ({
         ) : null}
         {onIncludePublicTypes ? (
           <Button onClick={onIncludePublicTypes} size="xs" variant="tertiary">
-            Include public types
+            Show all public types
           </Button>
         ) : null}
       </Stack>
