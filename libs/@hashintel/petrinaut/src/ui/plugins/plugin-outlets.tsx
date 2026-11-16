@@ -118,6 +118,8 @@ export const usePluginBottomPanelViews =
         }
         const behindBoundary = (part: string, node: ReactNode) => (
           <PluginBoundary
+            // Keyed per view: the panel draws one at a time in the same
+            // place, and a boundary that caught an error stays empty.
             key={`${instanceKey}.bottomPanelViews.${key}.${part}`}
             pluginId={manifest.id}
             place="bottom-panel"

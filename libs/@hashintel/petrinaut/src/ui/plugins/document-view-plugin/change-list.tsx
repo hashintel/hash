@@ -60,7 +60,7 @@ export type RecordedChange = {
   readonly change: DocChangeEvent;
 };
 
-/** What a row says: what was done, to what, and the value that left there. */
+/** What a row says: what was done, to what, and the value put there. */
 type Line = {
   op: PetrinautPatch["op"] | "restore";
   target: string;
@@ -83,7 +83,7 @@ const linesOf = ({ next, patches = [], restored }: DocChangeEvent): Line[] =>
 
 /**
  * The changes, latest first, each line on two rows that do not wrap: what
- * was done and to what, then the value that left there. A rule sets one
+ * was done and to what, then the value put there. A rule sets one
  * change apart from the next. The list is one stop of the tab order, walked
  * by ArrowUp and ArrowDown.
  */

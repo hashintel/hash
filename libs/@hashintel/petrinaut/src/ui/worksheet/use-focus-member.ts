@@ -60,9 +60,8 @@ export interface FocusHeader {
 }
 
 /**
- * A single-element member for a section or place header. Left/Right drive
- * its collapse state when handlers are given — a header that owns
- * horizontal keys never emits horizontal moves.
+ * A single-element member for a section or place header. Left/Right fold it
+ * as `FocusFold` says; the arrow with no handler leaves horizontally.
  */
 export function useFocusHeader(options: FocusFold): FocusHeader {
   const [element, setElement] = useState<HTMLButtonElement | null>(null);

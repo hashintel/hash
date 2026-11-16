@@ -114,9 +114,11 @@ const Row = ({
       tabIndex={tabIndex}
       onFocus={onFocus}
       role="treeitem"
+      // Rows are siblings in the DOM, so the level carries the nesting.
       aria-level={row.depth + 1}
       aria-expanded={folds ? value.open : undefined}
-      // The outline is flat: no row holds another, so none owns a selection.
+      // Nothing here is selected. Left unsaid, the row that holds focus may
+      // be read out as selected.
       aria-selected={false}
       className={rowStopStyle}
       onKeyDown={(event) => {

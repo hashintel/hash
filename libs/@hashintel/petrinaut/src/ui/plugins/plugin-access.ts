@@ -88,6 +88,7 @@ export type PluginDocumentHandle = Pick<
 export interface PluginDocumentReader {
   /** The handle's id; plugins remount for each document. */
   readonly id: string;
+  /** What the handle holds and reports; see {@link PluginDocumentHandle}. */
   readonly handle: PluginDocumentHandle;
   /** The net without the data of disabled extensions; an empty net until the handle is ready. */
   readonly net: ReadableStore<SDCPN>;
@@ -202,6 +203,8 @@ const readDocument = ({
   diagnostics,
 }: PluginEditorPorts): PluginDocumentReader => ({
   id: instance.handle.id,
+  // Only what a reader may call: the handle itself also holds `change` and
+  // `history`.
   handle: {
     doc: () => instance.handle.doc(),
     subscribe: (listener) => instance.handle.subscribe(listener),
