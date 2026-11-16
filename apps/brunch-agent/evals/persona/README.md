@@ -11,7 +11,7 @@ yarn brunch:persona --case inventory-purchasing --agent claude
 
 Replace the case name with any listed case. `--help` lists every option without starting services or inference. Each run takes two free ports, so it runs beside other slots' servers. To choose them yourself, set both, for example `BRUNCH_CHAT_PORT=4332 BRUNCH_PANEL_PORT=4926 yarn brunch:persona --case truck-fleet-maintenance --agent codex`. When [portless](https://portless.sh) is installed, the launcher also names the run's panel in `portless list` as `https://<run>.persona.localhost` (for example `run-p1wuhd.persona.localhost`) and removes the name when the run stops. That address is a separate origin from the launcher's Chrome window, so it shows the website without the run's staged net and settings: use it to find a run, and drive the run in the launcher's window.
 
-The command uses the app's normal development configuration for Brunch: `apps/brunch-agent/.env*`, with process environment taking precedence. Google Chrome in `/Applications` and installed workspace dependencies are required, plus the agent you select. Brunch defaults to the Petrinaut assistant model; override it with `--brunch-model` and `--brunch-thinking`.
+The command uses the app's normal development configuration for Brunch: `apps/brunch-agent/.env*`, with process environment taking precedence. Google Chrome in `/Applications` and installed workspace dependencies are required, plus the agent you select. Brunch defaults to its own default model (`openai/gpt-6.1-sol` at medium thinking); override it with `--brunch-model` and `--brunch-thinking`.
 
 ## Hosts
 
