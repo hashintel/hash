@@ -121,6 +121,25 @@ describe("applyFusions", () => {
     expect(net.places).toMatchObject([{ id: "top", name: "top" }]);
   });
 
+  it("names the place of a one-member fusion, whether or not another fusion merges anything", () => {
+    const lone = { label: "f1", placeIds: ["m1::out"], name: "Conveyor" };
+    const alone = {
+      places: [place("m1::out"), place("m2::in"), place("m3::in")],
+      transitions: [],
+      types: [],
+    };
+    const beside = structuredClone(alone);
+
+    applyFusions(alone, [lone]);
+    applyFusions(beside, [
+      lone,
+      { label: "f2", placeIds: ["m2::in", "m3::in"] },
+    ]);
+
+    expect(alone.places[0]).toMatchObject({ id: "m1::out", name: "Conveyor" });
+    expect(beside.places[0]).toMatchObject({ id: "m1::out", name: "Conveyor" });
+  });
+
   it("keeps arcs of different kinds onto one fused place apart, in their order", () => {
     const net = {
       places: [place("buffer"), place("m1::in")],

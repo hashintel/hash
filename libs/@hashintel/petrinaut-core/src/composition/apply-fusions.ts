@@ -199,9 +199,6 @@ export const applyFusions = (
 ): AppliedFusions => {
   const aliases = resolveSets(groups);
   const dynamicsDonors = new Map<ID, ID>();
-  if (aliases.size === 0) {
-    return { aliases, dynamicsDonors };
-  }
   const placeById = new Map(net.places.map((place) => [place.id, place]));
   for (const group of groups) {
     for (const id of group.placeIds) {
