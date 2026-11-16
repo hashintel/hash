@@ -45,6 +45,13 @@ const useDocumentViewPlugin: PluginHook<typeof DocumentViewPlugin> = (api) => {
   // Kept here, latest first, where they outlive the tab's turns out of view.
   const [changes, setChanges] = useState<readonly RecordedChange[]>([]);
   const [changesAs, setChangesAs] = useState<ChangesAs>("formatted");
+  // The list starts over with the tab: it holds no change from before a
+  // stretch the tab was not there to see.
+  const [wasShown, setWasShown] = useState(shown);
+  if (shown !== wasShown) {
+    setWasShown(shown);
+    setChanges([]);
+  }
 
   useEffect(() => {
     if (!shown) {

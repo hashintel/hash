@@ -10,6 +10,7 @@ import { afterEach, beforeEach, expect, it } from "vitest";
 
 import { documentViewPlugin } from "./document-view-plugin";
 import { usePluginBottomPanelViews } from "./plugin-outlets";
+import { useRunningPlugins } from "./plugins-provider";
 import { renderPlugins } from "./plugins-test-harness";
 
 beforeEach(() => {
@@ -27,13 +28,33 @@ const Views = () =>
     </section>
   ));
 
+/** The plugin's setting as a button that flips it, in place of its switch in User settings. */
+const SettingSwitch = () =>
+  useRunningPlugins().map(({ manifest, settings }) => (
+    <button
+      key={manifest.id}
+      type="button"
+      onClick={() =>
+        settings.set("showDocument", !settings.get("showDocument"))
+      }
+    >
+      Show document view
+    </button>
+  ));
+
 /** Renders the plugin with its setting on, and a place added once the view is up. */
 const renderShown = () => {
   localStorage.setItem(
     "petrinaut:plugin:hash.document",
     JSON.stringify({ showDocument: true }),
   );
-  const rendered = renderPlugins([documentViewPlugin], <Views />);
+  const rendered = renderPlugins(
+    [documentViewPlugin],
+    <>
+      <Views />
+      <SettingSwitch />
+    </>,
+  );
   const addPlace = (name: string) =>
     act(() => {
       rendered.instance.mutations.addPlace({
@@ -169,6 +190,24 @@ it("lists the patches of each change, latest first: what each did and where, the
   press("ArrowDown");
   expect(document.activeElement).toBe(second);
   expect([first!.tabIndex, second!.tabIndex]).toEqual([-1, 0]);
+});
+
+it("starts the changes over when its setting is switched off and on again", () => {
+  const { addPlace } = renderShown();
+  const flipSetting = () =>
+    fireEvent.click(screen.getByRole("button", { name: "Show document view" }));
+  addPlace("Stock");
+  expect(patches()).toHaveLength(1);
+
+  flipSetting();
+  expect(screen.queryByRole("region", { name: "Document data" })).toBeNull();
+  // A change the tab was not there to see leaves no gap in the list.
+  addPlace("Sold");
+  flipSetting();
+
+  expect(patches()).toEqual([]);
+  addPlace("Spare");
+  expect(patches().map(([, target]) => target)).toEqual(["/places/2"]);
 });
 
 it("shows a move through the handle's history as a restore: the entry it went to, then the document there", async () => {
