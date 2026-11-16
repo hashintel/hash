@@ -105,10 +105,7 @@ export {
   isInterface,
   resolveImplementation,
 } from "./composition/interfaces";
-export type {
-  ImplementationBinding,
-  UnboundReason,
-} from "./composition/interfaces";
+export type { ImplementationBinding } from "./composition/interfaces";
 export {
   describePortDirection,
   effectivePortDirection,

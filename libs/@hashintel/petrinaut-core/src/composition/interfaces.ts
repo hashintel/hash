@@ -73,12 +73,6 @@ export type ImplementationBinding =
         }
     ));
 
-/** Why an instance of an interface has nothing to run. */
-export type UnboundReason = Extract<
-  ImplementationBinding,
-  { kind: "unbound" }
->["reason"];
-
 /**
  * The document's subnets by id, for a caller that resolves many instances.
  * Of two subnets with one id the first is kept, as a search of the list
