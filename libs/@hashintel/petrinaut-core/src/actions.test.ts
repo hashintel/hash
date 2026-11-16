@@ -2141,6 +2141,33 @@ describe("Petrinaut core interface actions", () => {
     );
   });
 
+  test("renaming a subnet keeps the stale bindings a document was loaded with", () => {
+    const loaded = withInterface();
+    // Loaded as is: `other` does not say it implements the stage.
+    const instance = createInstance({
+      ...loaded,
+      implementations: { stage: "other" },
+      componentInstances: loaded.componentInstances?.map((existing) => ({
+        ...existing,
+        implementation: "other",
+      })),
+    });
+
+    // The binding names both subnets: as its implementation, as its interface.
+    for (const subnetId of ["other", "stage"]) {
+      instance.mutations.updateSubnet({
+        subnetId,
+        update: { name: `${subnetId} renamed` },
+      });
+    }
+    expect(instance.definition.get().implementations).toEqual({
+      [idOf("stage")]: idOf("other"),
+    });
+    expect(
+      instance.definition.get().componentInstances?.[0]?.implementation,
+    ).toBe(idOf("other"));
+  });
+
   test("refuses a subnet that implements something that is no interface", () => {
     const instance = createInstance(withInterface());
 

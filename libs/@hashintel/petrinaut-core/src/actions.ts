@@ -1426,13 +1426,16 @@ export function createPetrinautActions(
             if (parsed.update.implements !== undefined) {
               assertImplementsReferences(sdcpn, subnet);
             }
-            // A subnet that stops being an interface is implemented by none,
-            // and one that stops being an interface or implementing one
-            // leaves the bindings that relied on it.
+            // A subnet that stops being an interface is implemented by none.
             if (wasInterface && !isInterface(subnet)) {
               removeFromImplementsLists(sdcpn, subnet.id);
             }
-            pruneImplementationBindings(sdcpn, subnet.id);
+            // Only a change to what bindings rest on drops the ones it leaves
+            // unresolved: a stale one outlives any other update, for the user
+            // to repair.
+            if ("interface" in parsed.update || "implements" in parsed.update) {
+              pruneImplementationBindings(sdcpn, subnet.id);
+            }
             break;
           }
         }
