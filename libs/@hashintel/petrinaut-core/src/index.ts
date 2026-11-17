@@ -91,6 +91,7 @@ export type {
 export type { PortProblem } from "./composition/check-ports";
 export { checkComposition } from "./composition/check-composition";
 export type { CompositionProblem } from "./composition/check-composition";
+export type { ImportProblem } from "./composition/check-imports";
 export {
   checkInterfaces,
   implementationsOf,
