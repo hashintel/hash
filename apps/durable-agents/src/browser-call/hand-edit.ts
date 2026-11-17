@@ -21,7 +21,7 @@ import {
 } from "../net-state/visible-net-view";
 import { BrowserBindingDoc } from "./browser-call";
 
-import type { Context } from "@earendil-works/chord";
+import type { Context } from "@earendil-works/chord/context";
 import type {
   ConversationId,
   Harness,

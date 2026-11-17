@@ -9,7 +9,7 @@
  * extensions built over it, and binds the Harness right after `Harness.open`,
  * which schedules nothing, so no task runs unbound.
  */
-import type { Context } from "@earendil-works/chord";
+import type { Context } from "@earendil-works/chord/context";
 import type {
   Conversation,
   ConversationId,

@@ -37,7 +37,7 @@ import {
   shapeOf,
 } from "./support";
 
-import type { Context } from "@earendil-works/chord";
+import type { Context } from "@earendil-works/chord/context";
 import type { FauxResponseFactory } from "@earendil-works/pi-ai/providers/faux";
 
 const firstTool = defineTool({

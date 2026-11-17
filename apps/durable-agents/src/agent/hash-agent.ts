@@ -45,7 +45,7 @@ import { readBackPruningExtension } from "./hash-agent/read-back-pruning";
 import { hashSkillsExtension } from "./hash-agent/skills";
 import { createHostBinding, type HostBinding } from "./host-binding";
 
-import type { Context } from "@earendil-works/chord";
+import type { Context } from "@earendil-works/chord/context";
 
 /** One open conversation, as `installBoundSave` reaches its Save. */
 export type BoundSaveTarget = {

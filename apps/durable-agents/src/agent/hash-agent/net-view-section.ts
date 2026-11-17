@@ -44,7 +44,7 @@ import {
 } from "../../net-state/visible-net-view";
 
 import type { HostBinding } from "../host-binding";
-import type { Context } from "@earendil-works/chord";
+import type { Context } from "@earendil-works/chord/context";
 
 /**
  * Whether the kept tail decides the view: a tool view or a note among the

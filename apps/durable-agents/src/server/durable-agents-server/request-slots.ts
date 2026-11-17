@@ -23,7 +23,7 @@ import {
   type TaskId,
 } from "@earendil-works/pi-durable";
 
-import type { Context } from "@earendil-works/chord";
+import type { Context } from "@earendil-works/chord/context";
 
 /** The name a conversation's agent selects the gate under. */
 export const requestSlotsExtensionName = "durable-agents.request-slots";

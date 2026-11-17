@@ -65,7 +65,7 @@ import {
 import { type VisibleNetView, visibleNetView } from "./visible-net-view";
 
 import type { HostBinding } from "../agent/host-binding";
-import type { Context } from "@earendil-works/chord";
+import type { Context } from "@earendil-works/chord/context";
 import type { Schema } from "@earendil-works/pi-schema";
 
 const elementSchema = v.object({

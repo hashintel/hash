@@ -8,7 +8,7 @@
  * Nothing here is product code. The net view is rendered as a tagged block so
  * the derivation can tell a complete view from one Pi's output bound cut.
  */
-import { awaitWithContext } from "@earendil-works/chord/context";
+import { awaitWithContext, type Context } from "@earendil-works/chord/context";
 import {
   type ContextEdit,
   type ContextView,
@@ -32,7 +32,6 @@ import { obj, str } from "@earendil-works/pi-schema";
 
 import { context } from "../support";
 
-import type { Context } from "@earendil-works/chord";
 import type { Message, ToolResultMessage } from "@earendil-works/pi-ai";
 import type { Models } from "@earendil-works/pi-ai/models";
 

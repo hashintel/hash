@@ -62,7 +62,7 @@ import {
   readBackPruningExtension,
 } from "./read-back-pruning";
 
-import type { JsonValue } from "@earendil-works/chord";
+import type { JsonValue } from "@earendil-works/chord/json";
 import type { Message } from "@earendil-works/pi-ai";
 import type { Models } from "@earendil-works/pi-ai/models";
 import type { FauxResponseStep } from "@earendil-works/pi-ai/providers/faux";
