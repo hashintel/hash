@@ -29,7 +29,10 @@
  * run's tool rounds, the process's model requests in flight, how long a turn
  * runs with nobody watching, and how often a task may crash its process.
  */
-import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
+import {
+  BACKGROUND_CONTEXT,
+  type Context,
+} from "@earendil-works/chord/context";
 import { LiveDoc, type SubmissionId } from "@earendil-works/pi-durable";
 import { createUIMessageStreamResponse, type UIMessage } from "ai";
 import { Hono } from "hono";
@@ -47,8 +50,6 @@ import { createRequestSlots } from "./durable-agents-server/request-slots";
 import { followSubmission } from "./durable-agents-server/submission-stream";
 import { brunchUserInput } from "./durable-agents-server/user-input";
 import { contentWithVersionLoadNote } from "./durable-agents-server/version-load";
-
-import type { Context } from "@earendil-works/chord";
 
 export type {
   CrashLoopingTask,

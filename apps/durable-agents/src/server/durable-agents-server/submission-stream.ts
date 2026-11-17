@@ -15,7 +15,7 @@ import {
   type ProjectionOptions,
 } from "./submission-stream/view-projector";
 
-import type { Context } from "@earendil-works/chord";
+import type { Context } from "@earendil-works/chord/context";
 import type { UIMessageChunk } from "ai";
 
 export { responseMessageId } from "./submission-stream/view-projector";

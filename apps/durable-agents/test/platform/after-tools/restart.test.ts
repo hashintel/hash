@@ -13,7 +13,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { awaitWithContext } from "@earendil-works/chord/context";
+import { awaitWithContext, type Context } from "@earendil-works/chord/context";
 import {
   type EntryId,
   type Harness,
@@ -39,8 +39,6 @@ import {
   pruneRequestId,
   shownReadBacks,
 } from "./support";
-
-import type { Context } from "@earendil-works/chord";
 
 let directory: string;
 let file: string;

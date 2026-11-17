@@ -42,7 +42,7 @@ import {
 import { brunchUserKind } from "./user-input";
 
 import type { OpenConversation } from "./conversation-registry";
-import type { Context } from "@earendil-works/chord";
+import type { Context } from "@earendil-works/chord/context";
 import type { Handler } from "hono";
 
 /** The UI part a Ledger-comment turn is shown as, with the entry's `data` (`{ comments }`). */

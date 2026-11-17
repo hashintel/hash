@@ -56,7 +56,7 @@ import {
 } from "./query-basis";
 
 import type { VisibleNetView } from "./visible-net-view";
-import type { JsonValue } from "@earendil-works/chord";
+import type { JsonValue } from "@earendil-works/chord/json";
 import type { FauxResponseStep } from "@earendil-works/pi-ai/providers/faux";
 
 const context = BACKGROUND_CONTEXT;

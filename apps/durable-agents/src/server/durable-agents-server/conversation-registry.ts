@@ -37,7 +37,7 @@ import type {
   OwnedStorage,
 } from "../conversation-storage";
 import type { RequestSlots } from "./request-slots";
-import type { Context } from "@earendil-works/chord";
+import type { Context } from "@earendil-works/chord/context";
 
 export type {
   CrashLoopAbort,

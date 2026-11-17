@@ -8,7 +8,7 @@ import {
 import { createHostBinding } from "./agent/host-binding";
 import { createLedgerExtension } from "./ledger";
 
-import type { Context } from "@earendil-works/chord";
+import type { Context } from "@earendil-works/chord/context";
 
 /** Open a Harness over `storage` with Brunch's Ledger extension installed over its host binding. */
 export const openHarness = async (

@@ -17,7 +17,7 @@ import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core/ai";
 import { visibleNetView } from "./visible-net-view";
 
 import type { HostBinding } from "../agent/host-binding";
-import type { Context } from "@earendil-works/chord";
+import type { Context } from "@earendil-works/chord/context";
 import type {
   ContextView,
   ConversationId,

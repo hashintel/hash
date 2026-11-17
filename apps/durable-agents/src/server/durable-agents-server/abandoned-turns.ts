@@ -13,7 +13,7 @@ import { LiveDoc } from "@earendil-works/pi-durable";
 import { BrowserCallsDoc } from "../../browser-call/browser-call";
 
 import type { OpenConversation } from "./conversation-registry";
-import type { Context } from "@earendil-works/chord";
+import type { Context } from "@earendil-works/chord/context";
 
 export type AbandonedTurnsOptions = {
   readonly timeoutMs: number;

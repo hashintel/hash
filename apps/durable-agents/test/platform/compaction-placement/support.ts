@@ -47,7 +47,7 @@ import { obj } from "@earendil-works/pi-schema";
 
 import { context, textOf } from "../support";
 
-import type { Context } from "@earendil-works/chord";
+import type { Context } from "@earendil-works/chord/context";
 import type { AssistantMessage, Message } from "@earendil-works/pi-ai";
 
 export { context };

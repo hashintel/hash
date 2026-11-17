@@ -69,7 +69,7 @@ import { drain } from "../server";
 import { allEntries, calls, context, textOf } from "../support";
 
 import type { OwnedStorage } from "../../../src/server/conversation-storage";
-import type { JsonValue } from "@earendil-works/chord";
+import type { JsonValue } from "@earendil-works/chord/json";
 import type { AssistantMessage, Message } from "@earendil-works/pi-ai";
 
 const origin = "http://durable.test";

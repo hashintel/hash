@@ -29,7 +29,7 @@ import {
 
 import { BrowserCallsDoc } from "../../../browser-call/browser-call";
 
-import type { Context } from "@earendil-works/chord";
+import type { Context } from "@earendil-works/chord/context";
 
 /** A task the guard aborted for: its ID, kind and restart count. */
 export type CrashLoopingTask = {

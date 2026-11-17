@@ -30,7 +30,7 @@
  */
 import { randomBytes } from "node:crypto";
 
-import { type Context, copyJson, type JsonValue } from "@earendil-works/chord";
+import { copyJson, type JsonValue } from "@earendil-works/chord/json";
 import {
   type ConversationId,
   defineDoc,
@@ -66,6 +66,7 @@ import { mayShowNet } from "../net-state/net-view";
 import { renderBrowserResult } from "../net-state/visible-net-view";
 
 import type { HostBinding } from "../agent/host-binding";
+import type { Context } from "@earendil-works/chord/context";
 
 /** Long enough that walking away is not a failure; the doorbell ends an unanswered call then. */
 export const callTtlMs = 24 * 60 * 60_000;

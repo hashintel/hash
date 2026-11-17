@@ -15,7 +15,7 @@
  * conversation, so Save is its own extension, built per binding and installed
  * into a Harness's registry once the binding is known.
  */
-import { copyJson, type JsonValue } from "@earendil-works/chord";
+import { copyJson, type JsonValue } from "@earendil-works/chord/json";
 import {
   defineExtension,
   type ToolRegistration,

@@ -42,7 +42,7 @@ import {
 } from "./ledger-doc/ledger-doc";
 
 import type { HostBinding } from "./agent/host-binding";
-import type { Context } from "@earendil-works/chord";
+import type { Context } from "@earendil-works/chord/context";
 import type { Schema } from "@earendil-works/pi-schema";
 
 export { foldLedger, LedgerDoc } from "./ledger-doc/ledger-doc";
