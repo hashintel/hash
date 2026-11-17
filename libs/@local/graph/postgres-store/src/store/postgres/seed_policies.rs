@@ -94,6 +94,9 @@ static RECORDS_USAGE_OF: LazyLock<EntityTypeConfig> = LazyLock::new(|| {
 
 static USER_SECRET: LazyLock<EntityTypeConfig> =
     LazyLock::new(|| EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/user-secret/"));
+static AGENT_CONVERSATION: LazyLock<EntityTypeConfig> = LazyLock::new(|| {
+    EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/agent-conversation/")
+});
 
 static SYNC_LINEAR_DATA_WITH: LazyLock<EntityTypeConfig> = LazyLock::new(|| {
     EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/sync-linear-data-with/")
@@ -488,7 +491,10 @@ fn global_update_entity_policies() -> impl Iterator<Item = PolicyCreationParams>
                     filters: vec![
                         EntityResourceFilter::CreatedByPrincipal,
                         EntityResourceFilter::Any {
-                            filters: vec![COMMENT.entity_is_of_base_type()],
+                            filters: vec![
+                                COMMENT.entity_is_of_base_type(),
+                                AGENT_CONVERSATION.entity_is_of_base_type(),
+                            ],
                         },
                     ],
                 },
@@ -539,7 +545,12 @@ fn global_archive_entity_policies() -> impl Iterator<Item = PolicyCreationParams
             filter: EntityResourceFilter::All {
                 filters: vec![
                     EntityResourceFilter::CreatedByPrincipal,
-                    COMMENT.entity_is_of_base_type(),
+                    EntityResourceFilter::Any {
+                        filters: vec![
+                            COMMENT.entity_is_of_base_type(),
+                            AGENT_CONVERSATION.entity_is_of_base_type(),
+                        ],
+                    },
                 ],
             },
         })),
@@ -638,7 +649,10 @@ fn web_view_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCreati
                         EntityResourceFilter::CreatedByPrincipal,
                         EntityResourceFilter::Not {
                             filter: Box::new(EntityResourceFilter::Any {
-                                filters: vec![USER_SECRET.entity_is_of_base_type()],
+                                filters: vec![
+                                    USER_SECRET.entity_is_of_base_type(),
+                                    AGENT_CONVERSATION.entity_is_of_base_type(),
+                                ],
                             }),
                         },
                     ],
@@ -702,6 +716,7 @@ fn web_update_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCrea
                             GOOGLE_ACCOUNT.entity_is_of_base_type(),
                             LINEAR_INTEGRATION.entity_is_of_base_type(),
                             SYNC_LINEAR_DATA_WITH.entity_is_of_base_type(),
+                            AGENT_CONVERSATION.entity_is_of_base_type(),
                         ],
                     }),
                 },
@@ -777,6 +792,7 @@ fn web_archive_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCre
                             GOOGLE_ACCOUNT.entity_is_of_base_type(),
                             LINEAR_INTEGRATION.entity_is_of_base_type(),
                             SYNC_LINEAR_DATA_WITH.entity_is_of_base_type(),
+                            AGENT_CONVERSATION.entity_is_of_base_type(),
                         ],
                     }),
                 },
