@@ -983,6 +983,12 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/connection-source-name/" as BaseUrl,
   },
+  contextEntityId: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/context-entity-id/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/context-entity-id/" as BaseUrl,
+  },
   conversationId: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/conversation-id/v/1",

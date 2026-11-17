@@ -6,7 +6,6 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import {
   systemEntityTypes,
-  systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
@@ -17,36 +16,55 @@ import type {
   QueryEntitySubgraphQueryVariables,
 } from "../../../../../../graphql/api-types.gen";
 import type * as ApolloClient from "@apollo/client";
-import type * as GraphStdlib from "@blockprotocol/graph/stdlib";
 import type { EntityId } from "@blockprotocol/type-system";
 
-const userWebId = "00000000-0000-4000-8000-0000000000aa";
+const userId = "00000000-0000-4000-8000-0000000000aa";
+const otherUserId = "00000000-0000-4000-8000-0000000000bb";
 const processWebId = "00000000-0000-4000-8000-000000000001";
+const otherWebId = "00000000-0000-4000-8000-000000000002";
 const processId =
   `${processWebId}~00000000-0000-4000-8000-00000000000a` as EntityId;
 const otherProcessId =
   `${processWebId}~00000000-0000-4000-8000-00000000000b` as EntityId;
+/** A process in another web. */
+const elsewhereProcessId =
+  `${otherWebId}~00000000-0000-4000-8000-00000000000c` as EntityId;
+/** A draft's id, which no entity has until its first save. */
+const draftId =
+  `${processWebId}~00000000-0000-4000-8000-00000000000d` as EntityId;
 const agentId = "test-agent";
 const conversationIdUrl =
   systemPropertyTypes.conversationId.propertyTypeBaseUrl;
 const agentIdUrl = systemPropertyTypes.agentId.propertyTypeBaseUrl;
+const contextEntityIdUrl =
+  systemPropertyTypes.contextEntityId.propertyTypeBaseUrl;
 
+/** One `Agent Conversation` entity in the fake graph. */
 type StoredConversation = {
   entityId: EntityId;
   conversationId: string;
+  agentId: string;
+  contextEntityId: EntityId;
+  createdById: string;
   createdAt: string;
-  /** What it is linked to, and whether the read returns it: absent when unlinked. */
-  subject?: { entityId: EntityId; seen: boolean };
+  archived: boolean;
 };
 
-/** The graph as these tests see it: the user's open conversations with the agent. */
+/**
+ * The graph as these tests see it. Reads are answered by applying the read's
+ * own filter to every stored conversation, the way the graph would answer a
+ * web admin, who can see every member's conversations.
+ */
 const graph = vi.hoisted(() => ({
-  /** `null` while the read is in flight. */
-  stored: null as StoredConversation[] | null,
-  /** The subjects the user archived. */
-  archivedSubjects: [] as EntityId[],
+  stored: [] as StoredConversation[],
+  /** The read is in flight. */
+  reading: false,
+  /** The answers this page has had, by read, as Apollo keeps them. */
+  answers: new Map<string, unknown>(),
   queries: [] as { skip: boolean; variables: unknown }[],
   writes: [] as { kind: string; variables: Record<string, unknown> }[],
+  /** While set, a write waits for it before it lands. */
+  gate: null as Promise<void> | null,
   nextEntity: 1,
   captureException: vi.fn(),
 }));
@@ -61,35 +79,56 @@ vi.mock("@hashintel/petrinaut", async () => {
 });
 
 vi.mock("../../../../../shared/auth-info-context", () => ({
-  useAuthInfo: () => ({ authenticatedUser: { accountId: userWebId } }),
-}));
-
-// The subgraph's roots are real; its link traversal is answered from the fake
-// graph, since these tests are about what the page does with the answer.
-vi.mock("@blockprotocol/graph/stdlib", async (importOriginal) => ({
-  ...(await importOriginal<typeof GraphStdlib>()),
-  getOutgoingLinkAndTargetEntities: (_subgraph: unknown, entityId: string) => {
-    const subject = graph.stored?.find(
-      (conversation) => conversation.entityId === entityId,
-    )?.subject;
-    if (subject === undefined) {
-      return [];
-    }
-    // As the graph does: an archived subject, like one the user can't see,
-    // is named by the link but not returned.
-    return [
-      {
-        linkEntity: [{ linkData: { rightEntityId: subject.entityId } }],
-        rightEntity: subject.seen
-          ? [{ metadata: { recordId: { entityId: subject.entityId } } }]
-          : [],
-      },
-    ];
-  },
+  useAuthInfo: () => ({ authenticatedUser: { accountId: userId } }),
 }));
 
 vi.mock("@apollo/client", async (importOriginal) => {
   const original = await importOriginal<typeof ApolloClient>();
+
+  type Clause = {
+    all?: Clause[];
+    equal?: [{ path: string[] }, { parameter: unknown }];
+  };
+
+  const valueAt = (conversation: StoredConversation, path: string[]) => {
+    const [root, key] = path;
+    if (root === "webId") {
+      return conversation.entityId.split("~")[0];
+    }
+    if (root === "type" && key === "versionedUrl") {
+      return systemEntityTypes.agentConversation.entityTypeId;
+    }
+    if (root === "properties" && key === conversationIdUrl) {
+      return conversation.conversationId;
+    }
+    if (root === "properties" && key === agentIdUrl) {
+      return conversation.agentId;
+    }
+    if (root === "properties" && key === contextEntityIdUrl) {
+      return conversation.contextEntityId;
+    }
+    if (root === "createdById") {
+      return conversation.createdById;
+    }
+    if (root === "archived") {
+      return conversation.archived;
+    }
+    throw new Error(`The fake graph can't filter on ${path.join(".")}`);
+  };
+
+  const matches = (
+    conversation: StoredConversation,
+    clause: Clause,
+  ): boolean => {
+    if (clause.all) {
+      return clause.all.every((inner) => matches(conversation, inner));
+    }
+    if (clause.equal) {
+      const [{ path }, { parameter }] = clause.equal;
+      return valueAt(conversation, path) === parameter;
+    }
+    throw new Error(`The fake graph can't apply ${JSON.stringify(clause)}`);
+  };
 
   const answer = (stored: StoredConversation[]): QueryEntitySubgraphQuery =>
     JSON.parse(
@@ -101,32 +140,45 @@ vi.mock("@apollo/client", async (importOriginal) => {
               revisionId: createdAt,
             })),
             vertices: Object.fromEntries(
-              stored.map(({ entityId, conversationId, createdAt }) => [
-                entityId,
+              stored.map((conversation) => [
+                conversation.entityId,
                 {
-                  [createdAt]: {
+                  [conversation.createdAt]: {
                     kind: "entity",
                     inner: {
                       metadata: {
-                        recordId: { entityId, editionId: createdAt },
+                        recordId: {
+                          entityId: conversation.entityId,
+                          editionId: conversation.createdAt,
+                        },
                         entityTypeIds: [
                           systemEntityTypes.agentConversation.entityTypeId,
                         ],
-                        provenance: { createdAtDecisionTime: createdAt },
+                        provenance: {
+                          createdById: conversation.createdById,
+                          createdAtDecisionTime: conversation.createdAt,
+                        },
                         temporalVersioning: {
                           decisionTime: {
-                            start: { kind: "inclusive", limit: createdAt },
+                            start: {
+                              kind: "inclusive",
+                              limit: conversation.createdAt,
+                            },
                             end: { kind: "unbounded" },
                           },
                           transactionTime: {
-                            start: { kind: "inclusive", limit: createdAt },
+                            start: {
+                              kind: "inclusive",
+                              limit: conversation.createdAt,
+                            },
                             end: { kind: "unbounded" },
                           },
                         },
                       },
                       properties: {
-                        [conversationIdUrl]: conversationId,
-                        [agentIdUrl]: agentId,
+                        [conversationIdUrl]: conversation.conversationId,
+                        [agentIdUrl]: conversation.agentId,
+                        [contextEntityIdUrl]: conversation.contextEntityId,
                       },
                     },
                   },
@@ -140,8 +192,6 @@ vi.mock("@apollo/client", async (importOriginal) => {
       }),
     ) as QueryEntitySubgraphQuery;
 
-  let answered: { stored: StoredConversation[]; data: unknown } | null = null;
-  let archivedAnswer: { key: string; data: unknown } | null = null;
   const useQuery = (
     _query: unknown,
     {
@@ -149,40 +199,23 @@ vi.mock("@apollo/client", async (importOriginal) => {
       variables,
     }: { skip?: boolean; variables: QueryEntitySubgraphQueryVariables },
   ) => {
-    // The second read: which of the subjects the first didn't return are archived.
-    if (JSON.stringify(variables).includes('"parameter":true')) {
-      if (skip) {
-        return { data: undefined, error: undefined };
-      }
-      const asked = JSON.stringify(variables);
-      const key = graph.archivedSubjects
-        .filter((entityId) => asked.includes(entityId.split("~")[1] ?? "~"))
-        .join();
-      if (archivedAnswer?.key !== key) {
-        archivedAnswer = {
-          key,
-          data: answer(
-            key === ""
-              ? []
-              : key.split(",").map((entityId) => ({
-                  entityId: entityId as EntityId,
-                  conversationId: "",
-                  createdAt: "2026-11-01T00:00:00.000Z",
-                })),
-          ),
-        };
-      }
-      return { data: archivedAnswer.data, error: undefined };
-    }
     graph.queries.push({ skip: skip ?? false, variables });
-    if (skip || graph.stored === null) {
+    if (skip || graph.reading) {
       return { data: undefined, error: undefined };
     }
-    // The same data object while the answer is unchanged, as Apollo's is.
-    if (answered?.stored !== graph.stored) {
-      answered = { stored: graph.stored, data: answer(graph.stored) };
+    // Answered once per read, and the same object after, as Apollo's is: a
+    // write isn't seen until the page reads again.
+    const key = JSON.stringify(variables);
+    if (!graph.answers.has(key)) {
+      const filter = variables.request.filter as Clause;
+      graph.answers.set(
+        key,
+        answer(
+          graph.stored.filter((conversation) => matches(conversation, filter)),
+        ),
+      );
     }
-    return { data: answered.data, error: undefined };
+    return { data: graph.answers.get(key), error: undefined };
   };
 
   // One mutate function per mutation, stable across renders, as Apollo's is.
@@ -196,10 +229,25 @@ vi.mock("@apollo/client", async (importOriginal) => {
       return existing;
     }
     const mutate = [
-      ({ variables }: { variables: Record<string, unknown> }) => {
+      async ({ variables }: { variables: Record<string, unknown> }) => {
         graph.writes.push({ kind, variables });
-        const entityId = `${userWebId}~created-${graph.nextEntity++}`;
-        return Promise.resolve({
+        await graph.gate;
+        const webId = variables.webId as string;
+        const entityId = `${webId}~created-${graph.nextEntity}` as EntityId;
+        const { value } = variables.properties as {
+          value: Record<string, { value: string }>;
+        };
+        graph.stored.push({
+          entityId,
+          conversationId: value[conversationIdUrl]?.value ?? "",
+          agentId: value[agentIdUrl]?.value ?? "",
+          contextEntityId: value[contextEntityIdUrl]?.value as EntityId,
+          createdById: userId,
+          createdAt: `2027-01-01T00:00:${String(graph.nextEntity).padStart(2, "0")}.000Z`,
+          archived: false,
+        });
+        graph.nextEntity++;
+        return {
           data: {
             createEntity: {
               metadata: {
@@ -209,7 +257,7 @@ vi.mock("@apollo/client", async (importOriginal) => {
               properties: {},
             },
           },
-        });
+        };
       },
     ];
     mutations.set(kind, mutate);
@@ -220,215 +268,222 @@ vi.mock("@apollo/client", async (importOriginal) => {
 });
 
 beforeEach(() => {
-  graph.stored = null;
-  graph.archivedSubjects = [];
+  graph.stored = [];
+  graph.reading = false;
+  graph.answers.clear();
   graph.queries.length = 0;
   graph.writes.length = 0;
+  graph.gate = null;
   graph.nextEntity = 1;
   graph.captureException.mockReset();
 });
 afterEach(() => {
   cleanup();
-  vi.useRealTimers();
 });
 
-const renderConversation = (
-  subjectExists: boolean,
-  subjectEntityId: EntityId = processId,
-) =>
+const renderConversation = (contextEntityId: EntityId = processId) =>
   renderHook(
-    (props: { subjectExists: boolean; subjectEntityId: EntityId }) =>
+    (props: { contextEntityId: EntityId }) =>
       useAgentConversation({ agentId, ...props }),
-    { initialProps: { subjectExists, subjectEntityId } },
+    { initialProps: { contextEntityId } },
   );
 
-const createdConversation = (conversationId: string) => ({
+/** Opens the page again, in this browser or another: everything is read afresh. */
+const reload = (contextEntityId: EntityId = processId) => {
+  cleanup();
+  graph.answers.clear();
+  return renderConversation(contextEntityId);
+};
+
+const stored = (
+  name: string,
+  overrides: Partial<StoredConversation> = {},
+): StoredConversation => ({
+  entityId: `${processWebId}~${name}` as EntityId,
+  conversationId: `${name}-conversation`,
+  agentId,
+  contextEntityId: processId,
+  createdById: userId,
+  createdAt: "2026-11-10T00:00:00.000Z",
+  archived: false,
+  ...overrides,
+});
+
+const createdConversation = (
+  conversationId: string,
+  contextEntityId: EntityId = processId,
+) => ({
   kind: "createEntity",
   variables: expect.objectContaining({
     entityTypeIds: [systemEntityTypes.agentConversation.entityTypeId],
-    webId: userWebId,
+    webId: contextEntityId.split("~")[0],
     properties: expect.objectContaining({
       value: {
         [conversationIdUrl]: expect.objectContaining({ value: conversationId }),
         [agentIdUrl]: expect.objectContaining({ value: agentId }),
+        [contextEntityIdUrl]: expect.objectContaining({
+          value: contextEntityId,
+        }),
       },
     }),
   }),
 });
 
-const createdLink = (conversationEntityId: string, subject = processId) => ({
-  kind: "createEntity",
-  variables: expect.objectContaining({
-    entityTypeIds: [systemLinkEntityTypes.hasSubject.linkEntityTypeId],
-    webId: userWebId,
-    linkData: { leftEntityId: conversationEntityId, rightEntityId: subject },
-  }),
-});
-
-const archived = (...entityIds: string[]) => ({
-  kind: "archiveEntities",
-  variables: { entityIds },
-});
-
-const stored = (
-  name: string,
-  subject?: StoredConversation["subject"],
-  createdAt = "2026-11-10T00:00:00.000Z",
-): StoredConversation => ({
-  entityId: `${userWebId}~${name}` as EntityId,
-  conversationId: `${name}-conversation`,
-  createdAt,
-  ...(subject === undefined ? {} : { subject }),
-});
-
-const live = (entityId: EntityId) => ({ entityId, seen: true });
-const unseen = (entityId: EntityId) => ({ entityId, seen: false });
-const archivedProcessId =
-  `${processWebId}~00000000-0000-4000-8000-00000000000c` as EntityId;
-const lostProcessId =
-  `${processWebId}~00000000-0000-4000-8000-00000000000d` as EntityId;
-
 /** Lets queued writes settle. */
 const settle = () => act(async () => {});
 
-test("the read asks for the user's open conversations with this agent, and the subject's newest is the open one", () => {
-  const { result, rerender } = renderConversation(true);
+test("the open conversation is the user's newest with this agent on this context", () => {
+  graph.stored = [
+    stored("older", { createdAt: "2026-11-01T00:00:00.000Z" }),
+    stored("newer", { createdAt: "2026-11-02T00:00:00.000Z" }),
+    stored("archived", {
+      createdAt: "2026-11-03T00:00:00.000Z",
+      archived: true,
+    }),
+    stored("other-agent", {
+      createdAt: "2026-11-04T00:00:00.000Z",
+      agentId: "another-agent",
+    }),
+    stored("elsewhere", {
+      createdAt: "2026-11-05T00:00:00.000Z",
+      contextEntityId: otherProcessId,
+    }),
+  ];
+  graph.reading = true;
+  const { result, rerender } = renderConversation();
   // Still reading: nothing binds yet.
   expect(result.current.conversationId).toBeUndefined();
-  const query = JSON.stringify(graph.queries.at(-1)?.variables);
-  expect(query).toContain(userWebId);
-  expect(query).toContain(agentId);
-  expect(query).toContain(systemEntityTypes.agentConversation.entityTypeId);
 
-  graph.stored = [
-    stored("older", live(processId), "2026-11-01T00:00:00.000Z"),
-    stored("newer", live(processId), "2026-11-02T00:00:00.000Z"),
-    stored("elsewhere", live(otherProcessId), "2026-11-03T00:00:00.000Z"),
-  ];
-  rerender({ subjectExists: true, subjectEntityId: processId });
+  graph.reading = false;
+  rerender({ contextEntityId: processId });
   expect(result.current.conversationId).toBe("newer-conversation");
 
-  // Another subject reads from the same answer, with nothing in between.
-  rerender({ subjectExists: true, subjectEntityId: otherProcessId });
+  rerender({ contextEntityId: otherProcessId });
   expect(result.current.conversationId).toBe("elsewhere-conversation");
 });
 
-test("a conversation's first message creates its entity, linked to the subject, and later messages write nothing", async () => {
-  graph.stored = [];
-  const { result } = renderConversation(true);
+test("another member's conversation on the same context, which a web admin's read could return, is not opened", () => {
+  graph.stored = [
+    stored("mine", { createdAt: "2026-11-01T00:00:00.000Z" }),
+    stored("theirs", {
+      createdAt: "2026-11-02T00:00:00.000Z",
+      createdById: otherUserId,
+    }),
+  ];
+  const { result } = renderConversation();
+  expect(result.current.conversationId).toBe("mine-conversation");
+
+  graph.stored = [stored("theirs", { createdById: otherUserId })];
+  const { result: reloaded } = reload();
+  expect(reloaded.current.conversationId).toBeNull();
+});
+
+test("a conversation's first message creates its entity in the context's web, recording the context, and later messages write nothing", async () => {
+  const { result } = renderConversation(elsewhereProcessId);
   expect(result.current.conversationId).toBeNull();
 
   act(() => result.current.start("first"));
-  await waitFor(() => expect(graph.writes).toHaveLength(2));
+  act(() => result.current.start("first"));
+  await settle();
   expect(graph.writes).toEqual([
-    createdConversation("first"),
-    createdLink(`${userWebId}~created-1`),
+    createdConversation("first", elsewhereProcessId),
   ]);
 
   act(() => result.current.start("first"));
   await settle();
-  expect(graph.writes).toHaveLength(2);
+  expect(graph.writes).toHaveLength(1);
   expect(graph.captureException).not.toHaveBeenCalled();
+
+  // Read again, it is the open one.
+  const { result: reloaded } = reload(elsewhereProcessId);
+  expect(reloaded.current.conversationId).toBe("first");
 });
 
 test("a message in a conversation that already has its entity writes nothing", async () => {
-  graph.stored = [stored("open", live(processId))];
-  const { result } = renderConversation(true);
+  graph.stored = [stored("open")];
+  const { result } = renderConversation();
   act(() => result.current.start("open-conversation"));
   await settle();
   expect(graph.writes).toEqual([]);
 });
 
-test("clearing creates the next conversation's entity and leaves the earlier one as it is", async () => {
-  graph.stored = [stored("open", live(processId))];
-  const { result } = renderConversation(true);
+test("clearing creates the next conversation's entity, which becomes the open one, and leaves the earlier one as it is", async () => {
+  graph.stored = [stored("open")];
+  const { result } = renderConversation();
 
   act(() => result.current.replace("next"));
-  await waitFor(() => expect(graph.writes).toHaveLength(2));
-  expect(graph.writes).toEqual([
-    createdConversation("next"),
-    createdLink(`${userWebId}~created-1`),
-  ]);
+  await settle();
+  expect(graph.writes).toEqual([createdConversation("next")]);
 
   // Its messages then write nothing more.
   act(() => result.current.start("next"));
   await settle();
-  expect(graph.writes).toHaveLength(2);
+  expect(graph.writes).toHaveLength(1);
+
+  const { result: reloaded } = reload();
+  expect(reloaded.current.conversationId).toBe("next");
+  expect(graph.stored.map(({ archived }) => archived)).toEqual([false, false]);
 });
 
-test("a draft's conversations have unlinked entities until the draft's first save, which links them without unbinding the open one", async () => {
-  graph.stored = [];
-  const { result, rerender } = renderConversation(false);
-  const beforeSave = result.current;
-  expect(beforeSave.conversationId).toBeNull();
+test.each([
+  { kind: "a draft, reloaded before its first save", contextEntityId: draftId },
+  { kind: "a saved process, reloaded", contextEntityId: processId },
+])(
+  "$kind opens the conversation the user cleared to",
+  async ({ contextEntityId }) => {
+    const { result } = renderConversation(contextEntityId);
+    act(() => result.current.start("first"));
+    act(() => result.current.replace("cleared-to"));
+    await settle();
+    expect(graph.writes).toEqual([
+      createdConversation("first", contextEntityId),
+      createdConversation("cleared-to", contextEntityId),
+    ]);
 
-  act(() => result.current.start("on-draft"));
-  act(() => result.current.replace("cleared-on-draft"));
-  await waitFor(() => expect(graph.writes).toHaveLength(2));
-  expect(graph.writes).toEqual([
-    createdConversation("on-draft"),
-    createdConversation("cleared-on-draft"),
-  ]);
+    const { result: reloaded } = reload(contextEntityId);
+    expect(reloaded.current.conversationId).toBe("cleared-to");
+  },
+);
 
-  // The first save lands: both are about the process it created.
-  const queriesBeforeSave = graph.queries.length;
-  rerender({ subjectExists: true, subjectEntityId: processId });
-  await waitFor(() => expect(graph.writes).toHaveLength(4));
-  expect(graph.writes.slice(2)).toEqual([
-    createdLink(`${userWebId}~created-1`),
-    createdLink(`${userWebId}~created-2`),
-  ]);
-  // Same object, so nothing built on it is rebuilt, and no new read was asked for.
-  expect(result.current).toBe(beforeSave);
-  expect(
-    graph.queries
-      .slice(queriesBeforeSave)
-      .every(
-        ({ variables }) =>
-          JSON.stringify(variables) ===
-          JSON.stringify(graph.queries[0]?.variables),
-      ),
-  ).toBe(true);
-
-  act(() => result.current.start("cleared-on-draft"));
+test("a write queued on one context is recorded against it after the user moves to another, and writes run one at a time", async () => {
+  let release = () => {};
+  graph.gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  const { result, rerender } = renderConversation(processId);
+  act(() => result.current.start("on-a"));
+  act(() => result.current.replace("cleared-on-a"));
   await settle();
-  expect(graph.writes).toHaveLength(4);
+  // The second waits for the first.
+  expect(graph.writes).toHaveLength(1);
+
+  rerender({ contextEntityId: elsewhereProcessId });
+  act(() => result.current.start("on-b"));
+  release();
+  await waitFor(() => expect(graph.writes).toHaveLength(3));
+  expect(graph.writes).toEqual([
+    createdConversation("on-a", processId),
+    createdConversation("cleared-on-a", processId),
+    createdConversation("on-b", elsewhereProcessId),
+  ]);
 });
 
-test("a draft's entity found again after a reload is reused, not created twice", async () => {
-  graph.stored = [stored("draft", undefined, new Date().toISOString())];
-  const { result, rerender } = renderConversation(false);
-  act(() => result.current.start("draft-conversation"));
+test("nothing is archived when the page opens", async () => {
+  graph.stored = [
+    stored("old", { createdAt: "2020-01-01T00:00:00.000Z" }),
+    stored("on-draft", {
+      createdAt: "2020-01-01T00:00:00.000Z",
+      contextEntityId: draftId,
+    }),
+  ];
+  renderConversation();
   await settle();
   expect(graph.writes).toEqual([]);
-
-  rerender({ subjectExists: true, subjectEntityId: processId });
-  await waitFor(() => expect(graph.writes).toHaveLength(1));
-  expect(graph.writes[0]).toEqual(createdLink(`${userWebId}~draft`));
-});
-
-test("opening the page ends conversations whose subject is archived and those left unlinked for a day, and leaves one whose subject the user can't see", async () => {
-  vi.useFakeTimers({ toFake: ["Date"] });
-  vi.setSystemTime(new Date("2026-11-12T12:00:00.000Z"));
-  graph.stored = [
-    stored("open", live(processId)),
-    stored("of-archived", unseen(archivedProcessId)),
-    stored("abandoned", undefined, "2026-11-11T11:00:00.000Z"),
-    stored("recent-draft", undefined, "2026-11-12T11:00:00.000Z"),
-    stored("of-lost", unseen(lostProcessId)),
-  ];
-  graph.archivedSubjects = [archivedProcessId];
-  renderConversation(true);
-  await waitFor(() => expect(graph.writes).toHaveLength(1));
-  expect(graph.writes[0]).toEqual(
-    archived(`${userWebId}~abandoned`, `${userWebId}~of-archived`),
-  );
 });
 
 test("the result keeps its identity while the open conversation, as read, is unchanged", () => {
-  graph.stored = [];
-  const { result, rerender } = renderConversation(true);
+  const { result, rerender } = renderConversation();
   const first = result.current;
-  rerender({ subjectExists: true, subjectEntityId: processId });
+  rerender({ contextEntityId: processId });
   expect(result.current).toBe(first);
 });
