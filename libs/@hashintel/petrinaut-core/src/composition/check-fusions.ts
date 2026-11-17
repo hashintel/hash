@@ -283,7 +283,7 @@ const awaitsImport = (
   }
   const from = net.componentInstances?.find(
     ({ id }) => id === member.componentInstanceId,
-  )?.component?.from;
+  )?.component.from;
   return from !== undefined && libraries?.has(from) !== true;
 };
 

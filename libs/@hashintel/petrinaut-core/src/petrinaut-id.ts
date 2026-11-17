@@ -163,10 +163,7 @@ const canonicalizeComponentInstance = (
 ): ComponentInstance =>
   assignChanged(instance, {
     id: toPetrinautId(instance.id),
-    componentId:
-      instance.componentId === undefined
-        ? undefined
-        : toPetrinautId(instance.componentId),
+    component: canonicalizeReference(instance.component),
     parameterValues: rekeyUnlessUnchanged(instance.parameterValues),
     implementation:
       instance.implementation === undefined

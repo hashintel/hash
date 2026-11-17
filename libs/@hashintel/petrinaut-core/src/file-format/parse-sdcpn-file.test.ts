@@ -131,7 +131,7 @@ describe("parseSDCPNFile", () => {
           {
             id: "instance-1",
             name: "Reusable instance",
-            componentId: "component-1",
+            component: { id: "component-1" },
             parameterValues: {},
             x: 500,
             y: 600,
@@ -164,7 +164,7 @@ describe("parseSDCPNFile", () => {
       if (!result.ok) return;
       expect(result.sdcpn.componentInstances?.[0]).toMatchObject({
         id: idOf("instance-1"),
-        componentId: toPetrinautId("component-1"),
+        component: { id: toPetrinautId("component-1") },
       });
       expect(result.sdcpn.components?.[0]?.id).toBe(
         toPetrinautId("component-1"),
@@ -196,7 +196,7 @@ describe("parseSDCPNFile", () => {
           {
             id: "instance-1",
             name: "Reusable instance",
-            componentId: "component-1",
+            component: { id: "component-1" },
             parameterValues: {},
             x: 500,
             y: 600,
@@ -442,7 +442,7 @@ describe("parseSDCPNFile", () => {
             name: "Instance1",
             description: "An instance",
             metadata: { origin: "imported" },
-            componentId: "component-1",
+            component: { id: "component-1" },
             parameterValues: {},
             x: 0,
             y: 0,
@@ -567,7 +567,7 @@ describe("parseSDCPNFile", () => {
           {
             id: "instance-1",
             name: "Reusable instance",
-            componentId: "component-1",
+            component: { id: "component-1" },
             parameterValues: {},
             x: undefined,
             y: undefined,

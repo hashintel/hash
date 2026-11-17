@@ -1,8 +1,8 @@
 /**
  * Inlining: a document with the components it takes from its imports made
- * its own. Each becomes a component of the document, and whatever named it names
- * that component. An export that must read without its libraries is this under
- * fresh ids. The simulator, the compiler and the language server take one
+ * its own. Each becomes a component of the document itself, and whatever
+ * named it in its library names that one. An export that must read without
+ * its libraries is this under fresh ids. The simulator, the compiler and the language server take one
  * net and no libraries, so they are handed this too, under ids that are the
  * same from one call to the next.
  */
@@ -11,7 +11,6 @@ import { toPetrinautId } from "../petrinaut-id";
 import {
   bindsWithinDocument,
   componentKey,
-  componentOf,
   resolveComponent,
 } from "./interfaces";
 
@@ -30,7 +29,7 @@ import type { ResolvedLibraries } from "./libraries";
 type NewId = (seed: string) => ID;
 
 type Inlined = {
-  /** The id of the component the component becomes. */
+  /** The id the component takes in the document. */
   id: ID;
   /** The id each of its places takes, by the id the library gives it. */
   placeIds: ReadonlyMap<ID, ID>;
@@ -50,7 +49,7 @@ const mapArcs = <Arc extends InputArc | OutputArc>(
       : { endpoint: mapEndpoint(arc.endpoint) }),
   }));
 
-/** The component as a component of the document, its places under their new ids. */
+/** The component as one of the document's own, its places under their new ids. */
 const toComponent = ({ id, placeIds, component }: Inlined): Component => {
   const placeId = (libraryId: ID): ID => placeIds.get(libraryId) ?? libraryId;
   const endpoint = (held: ArcEndpoint): ArcEndpoint =>
@@ -71,9 +70,9 @@ const toComponent = ({ id, placeIds, component }: Inlined): Component => {
 };
 
 /**
- * `sdcpn` with every component of `libraries` that it uses as a component of its
- * own: instances, bindings, arcs and fusions name the component and its ports,
- * and the imports that resolved are no longer listed. A reference that does
+ * `sdcpn` with every component of `libraries` that it uses as a component of
+ * its own: instances, bindings, arcs and fusions name that component and its
+ * ports, and the imports that resolved are no longer listed. A reference that does
  * not resolve is left as it is. Returns `sdcpn` itself when there is nothing
  * to inline.
  *
@@ -92,7 +91,7 @@ export const inlineImports = (
   /** What each interface is bound to, by an instance or by the document. */
   const bindings = [
     ...instances.map((instance) => ({
-      interface: componentOf(instance),
+      interface: instance.component,
       component: instance.implementation,
     })),
     ...(sdcpn.implementations ?? []),
@@ -130,8 +129,9 @@ export const inlineImports = (
     return target ? { id: target.id } : reference;
   };
 
-  // A component says what it implements, where a component of a library could
-  // not: each binding that crossed a library is written into that list.
+  // A component of the document says what it implements, where one of a
+  // library could not: each binding that crossed a library is written into
+  // that list.
   const implemented = new Map<ID, Set<ID>>();
   for (const binding of bindings) {
     if (
@@ -160,24 +160,21 @@ export const inlineImports = (
   };
 
   const inlineNet = <Net extends SDCPN | Component>(net: Net): Net => {
-    /** The new id of each port of the instances that now name a component. */
+    /** The new id of each port of the instances whose component was inlined. */
     const portIds = new Map<ID, ReadonlyMap<ID, ID>>();
-    const componentInstances = net.componentInstances?.map(
-      ({ component, ...instance }) => {
-        const target = component && inlined.get(componentKey(component));
-        if (target) {
-          portIds.set(instance.id, target.placeIds);
-        }
-        return {
-          ...instance,
-          ...(target ? { componentId: target.id } : {}),
-          ...(component && !target ? { component } : {}),
-          ...(instance.implementation
-            ? { implementation: moved(instance.implementation) }
-            : {}),
-        };
-      },
-    );
+    const componentInstances = net.componentInstances?.map((instance) => {
+      const target = inlined.get(componentKey(instance.component));
+      if (target) {
+        portIds.set(instance.id, target.placeIds);
+      }
+      return {
+        ...instance,
+        ...(target ? { component: { id: target.id } } : {}),
+        ...(instance.implementation
+          ? { implementation: moved(instance.implementation) }
+          : {}),
+      };
+    });
     const endpoint = (held: ArcEndpoint): ArcEndpoint =>
       held.kind === "componentPort"
         ? {

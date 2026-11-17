@@ -4,10 +4,8 @@ import {
   arcEndpointSchema,
   arcDirectionSchema,
   arcIdSchema,
-  checkInstanceNamesOneComponent,
   colorElementSchema,
   colorSchema,
-  componentInstanceObjectSchema,
   componentInstanceSchema,
   componentReferenceSchema,
   differentialEquationSchema,
@@ -125,7 +123,7 @@ export const metricUpdateSchema = simulationMetricSchema
 // JSON has no `undefined` to clear a field with, so the two updates below
 // each take a value that says it. Only an update does: what is stored holds a
 // reference or `true`, or no key.
-export const componentInstanceUpdateSchema = componentInstanceObjectSchema
+export const componentInstanceUpdateSchema = componentInstanceSchema
   .omit({ id: true, x: true, y: true })
   .partial()
   .extend({
@@ -538,12 +536,11 @@ export const mutationActionInputSchemas = {
     description:
       "Remove a component definition and component instances that reference it.",
   }),
-  addComponentInstance: componentInstanceObjectSchema
+  addComponentInstance: componentInstanceSchema
     .extend({ targetComponentId: targetComponentIdSchema })
-    .check(checkInstanceNamesOneComponent)
     .meta({
       description:
-        "Place an instance of a component in the root net or a component: a component of the document, named by `componentId`, or a component of a library the application resolves, named by `component: { from, id }`. The first instance to name a library, for its `component` or for its `implementation`, adds it to the document's `imports`.",
+        "Place an instance of a component in the root net or in another component: a component of the document, named by `component: { id }`, or a component of a library the application resolves, named by `component: { from, id }`. The first instance to name a library, for its `component` or for its `implementation`, adds it to the document's `imports`.",
     }),
   updateComponentInstance: z
     .strictObject({

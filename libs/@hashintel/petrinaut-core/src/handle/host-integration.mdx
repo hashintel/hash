@@ -428,14 +428,14 @@ componentInstances:
     component: { from: "@hashintel/logistics", id: conveyor }
   - id: drill-1
     name: Drill1
-    componentId: stage
+    component: { id: stage }
 ```
 
-An instance has `component`, for a component of an import, or `componentId`, for
-a component of the document, never both. A binding's `interface` and `component`
-and an instance's `implementation` take the same `{ from, id }` form. Both ids
-are kept as written: the import's is whatever its publisher owns, and the
-component's is the one it has in its library.
+An instance names its component with `component`: `{ from, id }` for a
+component of an import, `{ id }` for a component of the document. A binding's
+`interface` and `component` and an instance's `implementation` take the same
+form. With `from`, both ids are kept as written: the import's is whatever its
+publisher owns, and the component's is the one it has in its library.
 
 The host hands the libraries over through two props, which `createPetrinaut`
 takes under the same names:
@@ -618,15 +618,15 @@ Core holds the rule, so every caller meets it. An instance created with
 `edit: "compose"` composes its root net: a mutation that targets a component is
 refused. Of the others, these go through:
 
-| Mutation                                                                 | Allowed when                                                                                               |
-| ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
-| `addComponentInstance`                                                   | `component` names one of a library on offer, and so does an `implementation` it names.                     |
-| `updateComponentInstance`                                                | It names no `componentId`, and a `component` or an `implementation` it names is one of a library on offer. |
-| `updateComponentInstancePosition`, `removeComponentInstance`             | Always.                                                                                                    |
-| `addFusion`, `updateFusion`, `removeFusion`                              | Always.                                                                                                    |
-| `addFusionMember`, `removeFusionMember`, `replaceFusionMember`           | Always.                                                                                                    |
-| `deleteItemsByIds`                                                       | Every item is a component instance or a fusion.                                                            |
-| `commitNodePositions`, `updatePlacePosition`, `updateTransitionPosition` | Always.                                                                                                    |
+| Mutation                                                                 | Allowed when                                                                           |
+| ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| `addComponentInstance`                                                   | `component` names one of a library on offer, and so does an `implementation` it names. |
+| `updateComponentInstance`                                                | A `component` or an `implementation` it names is one of a library on offer.            |
+| `updateComponentInstancePosition`, `removeComponentInstance`             | Always.                                                                                |
+| `addFusion`, `updateFusion`, `removeFusion`                              | Always.                                                                                |
+| `addFusionMember`, `removeFusionMember`, `replaceFusionMember`           | Always.                                                                                |
+| `deleteItemsByIds`                                                       | Every item is a component instance or a fusion.                                        |
+| `commitNodePositions`, `updatePlacePosition`, `updateTransitionPosition` | Always.                                                                                |
 
 Every other mutation throws one sentence, "This editor only places and
 connects the components it is given.", followed by the mutation's name.

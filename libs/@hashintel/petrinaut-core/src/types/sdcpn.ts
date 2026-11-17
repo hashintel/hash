@@ -414,9 +414,6 @@ export type Import = { id: string };
  */
 export type ComponentReference = { from?: string; id: ID };
 
-/** A reference to a component of an import. */
-export type ImportedComponentReference = { from: string; id: string };
-
 /**
  * The component the document runs for the instances of an interface that
  * choose none themselves.
@@ -426,10 +423,7 @@ export type DefaultImplementation = {
   component: ComponentReference;
 };
 
-/**
- * An instance of a component placed inside a net. It has exactly one of
- * `componentId` and `component`: read either through `componentOf`.
- */
+/** An instance of a component placed inside a net. */
 export type ComponentInstance = {
   id: ID;
   /** Display name for this instance. */
@@ -437,10 +431,8 @@ export type ComponentInstance = {
   description?: string;
   /** Host-defined data, opaque to Petrinaut. */
   metadata?: Record<string, JsonValue>;
-  /** ID of the component of the document this instance instantiates, a lowercase UUID. */
-  componentId?: ID;
-  /** The component of an import this instance instantiates. */
-  component?: ImportedComponentReference;
+  /** The component this instance instantiates: one of the document or of an import. */
+  component: ComponentReference;
   /**
    * Concrete values for the component's parameters.
    * Keys are parameter IDs from the referenced component; values are expressions.

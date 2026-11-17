@@ -11,7 +11,6 @@ import {
 import { css } from "@hashintel/ds-helpers/css";
 import {
   componentKey,
-  componentOf,
   defaultImplementation,
   describeUnboundInstance,
   isInterface,
@@ -88,14 +87,14 @@ const ImplementationField: React.FC = () => {
         : undefined;
   const documentDefault = defaultImplementation(
     petriNetDefinition,
-    componentOf(instance),
+    instance.component,
   );
   const defaultName =
     documentDefault &&
     resolveComponent(petriNetDefinition, documentDefault, libraries)?.name;
   const implementations = implementationItems(
     petriNetDefinition,
-    componentOf(instance),
+    instance.component,
     instance.implementation,
     libraries,
     // The host's rules refuse some components as an instance's choice.
@@ -158,7 +157,7 @@ const ImplementationField: React.FC = () => {
 const ComponentField: React.FC = () => {
   const { instance, component } = useComponentInstancePropertiesContext();
   const { imports } = use(CompositionContext);
-  const from = instance.component?.from;
+  const { from, id } = instance.component;
 
   if (from === undefined) {
     return (
@@ -176,7 +175,7 @@ const ComponentField: React.FC = () => {
   if (component) {
     text = `${component.name}, from ${library}`;
   } else if (state?.status === "resolved") {
-    text = `${library} has no component ${instance.component?.id}.`;
+    text = `${library} has no component ${id}.`;
   } else if (state?.status === "failed") {
     text = `${text} ${state.message}`;
   }

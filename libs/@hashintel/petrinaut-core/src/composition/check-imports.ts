@@ -4,11 +4,7 @@
  * not reported.
  */
 
-import {
-  componentOf,
-  defaultImplementation,
-  indexDocument,
-} from "./interfaces";
+import { defaultImplementation, indexDocument } from "./interfaces";
 
 import type { SDCPN } from "../types/sdcpn";
 import type { ImportStates } from "./imports";
@@ -55,13 +51,11 @@ export const checkImports = (
   }
   const { defaults } = indexDocument(sdcpn);
   for (const net of [sdcpn, ...(sdcpn.components ?? [])]) {
-    for (const instance of net.componentInstances ?? []) {
-      const component = componentOf(instance);
-      const implementation =
-        instance.implementation ??
-        defaultImplementation(sdcpn, component, defaults);
+    for (const { component, implementation } of net.componentInstances ?? []) {
+      const running =
+        implementation ?? defaultImplementation(sdcpn, component, defaults);
       // Once for the instance, whatever it takes from the library.
-      for (const from of new Set([component.from, implementation?.from])) {
+      for (const from of new Set([component.from, running?.from])) {
         count(from, 1);
       }
     }

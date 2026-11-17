@@ -199,7 +199,7 @@ describe("buildCanvasScene", () => {
     const instance = (id: string, x: number) => ({
       id,
       name: id,
-      componentId: "stage",
+      component: { id: "stage" },
       parameterValues: {},
       x,
       y: 0,
@@ -323,7 +323,7 @@ describe("buildCanvasScene", () => {
       componentInstances: Array.from({ length: 20 }, (_, index) => ({
         id: `wide-${index}`,
         name: `Wide ${index}`,
-        componentId: "wide",
+        component: { id: "wide" },
         parameterValues: {},
         x: 0,
         y: index * 100,
@@ -393,7 +393,7 @@ describe("buildCanvasScene", () => {
     ) => ({
       id,
       name: id,
-      componentId,
+      component: { id: componentId },
       parameterValues: {},
       x: 0,
       y: 0,

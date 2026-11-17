@@ -26,7 +26,6 @@ import type {
   Fusion,
   FusionMember,
   Import,
-  ImportedComponentReference,
   InputArc,
   OutputArc,
   Parameter,
@@ -430,90 +429,57 @@ export const importSchema = z
       "A library the document takes components from. Only its ID is stored: what it holds is resolved when the document is opened.",
   }) satisfies z.ZodType<Import>;
 
-export const importedComponentReferenceSchema = z
-  .strictObject({
-    from: z.string().min(1).meta({
-      description: "The ID of the import the component comes from.",
-    }),
-    id: z.string().min(1).meta({
-      description:
-        "The component's ID inside that library, as the library writes it.",
-    }),
-  })
-  .meta({
-    description: "A reference to a component of an import.",
-  }) satisfies z.ZodType<ImportedComponentReference>;
-
 export const componentReferenceSchema = z
   .union([
     z.strictObject({
-      id: idSchema.meta({ description: "The component's component ID." }),
+      id: idSchema.meta({
+        description:
+          "The ID of a component of the document, a UUID. Any other string is converted to a stable UUID.",
+      }),
     }),
-    importedComponentReferenceSchema,
+    z.strictObject({
+      from: z.string().min(1).meta({
+        description: "The ID of the import the component comes from.",
+      }),
+      id: z.string().min(1).meta({
+        description:
+          "The component's ID inside that library, as the library writes it.",
+      }),
+    }),
   ])
   .meta({
     description:
       "A reference to a component: `{ id }` names a component of the document, `{ from, id }` a component of an import.",
   }) satisfies z.ZodType<ComponentReference>;
 
-/** The fields of a component instance, without the rule that ties `componentId` and `component`. */
-export const componentInstanceObjectSchema = z.strictObject({
-  id: idSchema,
-  name: entityNameSchema.meta({
-    description:
-      "PascalCase name for the component instance (e.g. MainProcessor, Ward2). Used as a code-level identifier.",
-  }),
-  description: descriptionSchema,
-  metadata: metadataSchema,
-  componentId: idSchema.optional().meta({
-    description:
-      "ID of the component of the document this component instantiates, a UUID. Any other string is converted to a stable UUID. Give this or `component`, never both.",
-  }),
-  component: importedComponentReferenceSchema.optional().meta({
-    description:
-      "The component of an import this instance instantiates, as `{ from, id }`. Give this or `componentId`, never both.",
-  }),
-  parameterValues: z.record(idSchema, z.string()).meta({
-    description:
-      "Per-instance parameter values keyed by parameter ID from the referenced component.",
-  }),
-  implementation: componentReferenceSchema.optional().meta({
-    description:
-      "For an instance of an interface: the component to run, as `{ id }` for a component of the document or `{ from, id }` for a component of an import. Omit to run the document's default implementation for the interface.",
-  }),
-  x: z.number().meta({
-    description: "Horizontal canvas position.",
-  }),
-  y: z.number().meta({
-    description: "Vertical canvas position.",
-  }),
-});
-
-/** An instance names one component: a component of the document or a component of an import. */
-export const checkInstanceNamesOneComponent = (context: {
-  value: { componentId?: string; component?: unknown };
-  issues: {
-    push(issue: {
-      code: "custom";
-      path: string[];
-      message: string;
-      input: unknown;
-    }): void;
-  };
-}): void => {
-  const { componentId, component } = context.value;
-  if ((componentId === undefined) === (component === undefined)) {
-    context.issues.push({
-      code: "custom",
-      path: ["componentId"],
-      message: "Provide exactly one of `componentId` or `component`.",
-      input: context.value,
-    });
-  }
-};
-
-export const componentInstanceSchema = componentInstanceObjectSchema
-  .check(checkInstanceNamesOneComponent)
+export const componentInstanceSchema = z
+  .strictObject({
+    id: idSchema,
+    name: entityNameSchema.meta({
+      description:
+        "PascalCase name for the component instance (e.g. MainProcessor, Ward2). Used as a code-level identifier.",
+    }),
+    description: descriptionSchema,
+    metadata: metadataSchema,
+    component: componentReferenceSchema.meta({
+      description:
+        "The component this instance instantiates, as `{ id }` for a component of the document or `{ from, id }` for a component of an import.",
+    }),
+    parameterValues: z.record(idSchema, z.string()).meta({
+      description:
+        "Per-instance parameter values keyed by parameter ID from the referenced component.",
+    }),
+    implementation: componentReferenceSchema.optional().meta({
+      description:
+        "For an instance of an interface: the component to run, as `{ id }` for a component of the document or `{ from, id }` for a component of an import. Omit to run the document's default implementation for the interface.",
+    }),
+    x: z.number().meta({
+      description: "Horizontal canvas position.",
+    }),
+    y: z.number().meta({
+      description: "Vertical canvas position.",
+    }),
+  })
   .meta({
     description:
       "A placed instance of a component: a component of the document, or a component of an import. Parent nets connect to its ports with fusions and transition arcs.",

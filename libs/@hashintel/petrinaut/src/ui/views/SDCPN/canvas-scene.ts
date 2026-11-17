@@ -8,7 +8,6 @@
 
 import {
   componentKey,
-  componentOf,
   effectivePortDirections,
   resolveImplementation,
   generateArcId,
@@ -406,7 +405,7 @@ export const buildCanvasScene = ({
     const component =
       resolved?.kind === "component" ? resolved.component : resolved?.interface;
     const ports: CanvasPort[] = component
-      ? portsOf(componentOf(instance), component).map((port) => ({ ...port }))
+      ? portsOf(instance.component, component).map((port) => ({ ...port }))
       : [];
     portsByInstanceId.set(instance.id, indexById(ports));
     const running =
@@ -437,7 +436,10 @@ export const buildCanvasScene = ({
       ...interaction(instance.id),
       // A component of an import that cannot be read goes by its id there.
       componentName:
-        component?.name ?? instance.component?.id ?? "Unknown component",
+        component?.name ??
+        (instance.component.from === undefined
+          ? "Unknown component"
+          : instance.component.id),
       binding,
       // The card wears what runs: an implementation's icon and colour come
       // before those of the interface it stands in for.

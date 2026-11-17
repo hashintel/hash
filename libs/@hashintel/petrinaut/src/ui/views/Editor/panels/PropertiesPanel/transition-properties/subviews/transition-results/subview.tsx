@@ -3,7 +3,6 @@ import { use } from "react";
 import { Button, Icon, Menu, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
-  componentOf,
   generateDefaultTransitionKernelCode,
   getArcEndpoint,
   resolveComponent,
@@ -84,7 +83,7 @@ const createTransitionArcPlaceResolver = (
 
     const instance = instanceById.get(endpoint.componentInstanceId);
     const component = instance
-      ? resolveComponent(sdcpn, componentOf(instance), libraries, componentById)
+      ? resolveComponent(sdcpn, instance.component, libraries, componentById)
       : undefined;
     const place = component?.places.find(
       (p) => p.id === endpoint.portPlaceId && p.isPort,

@@ -104,7 +104,7 @@ const createComponentPortSDCPN = (
     {
       id: "instance-1",
       name: "Instance 1",
-      componentId: "component-1",
+      component: { id: "component-1" },
       parameterValues: {},
       x: 0,
       y: 0,

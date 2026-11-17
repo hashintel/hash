@@ -10,7 +10,6 @@ import {
 import { equationKey, fusionMemberIssues } from "../../composition/fusions";
 import {
   bindingKey,
-  componentOf,
   describeMissingComponent,
   describeUnboundInstance,
   indexDocument,
@@ -172,7 +171,7 @@ const requireRunningComponent = (
   );
   if (binding === null) {
     throw new Error(
-      `Component instance \`${instance.name}\` references ${describeMissingComponent(componentOf(instance))}.`,
+      `Component instance \`${instance.name}\` references ${describeMissingComponent(instance.component)}.`,
     );
   }
   if (binding.kind === "unbound") {

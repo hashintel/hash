@@ -28,7 +28,6 @@ import {
   nextFusionName,
 } from "./composition/fusions";
 import {
-  componentOf,
   describeMissingComponent,
   describeUnboundInstance,
   isInterface,
@@ -333,6 +332,12 @@ const removeReferencesToComponentInstance = (
   componentInstanceId: string,
 ): void => removeEndpointReferences(net, onInstance(componentInstanceId));
 
+/** Whether `instance` instantiates the document's own component `componentId`. */
+const instantiates = (
+  instance: ComponentInstance,
+  componentId: string,
+): boolean => sameComponent(instance.component, { id: componentId });
+
 /**
  * Picks `portPlaceId` on the instances of `componentId` that `net` holds; `null`
  * when it holds none.
@@ -344,7 +349,7 @@ const onComponentPort = (
 ): EndpointTest | null => {
   const instanceIds = new Set(
     (net.componentInstances ?? [])
-      .filter((instance) => instance.componentId === componentId)
+      .filter((instance) => instantiates(instance, componentId))
       .map((instance) => instance.id),
   );
   return instanceIds.size === 0
@@ -372,10 +377,10 @@ const removeReferencesToComponentPort = (
 /** Whether an update of `instance` points it at a component other than its own. */
 const namesAnotherComponent = (
   instance: ComponentInstance,
-  update: Pick<Partial<ComponentInstance>, "componentId" | "component">,
+  update: Pick<Partial<ComponentInstance>, "component">,
 ): boolean =>
-  (update.componentId !== undefined || update.component !== undefined) &&
-  !sameComponent(componentOf(update), componentOf(instance));
+  update.component !== undefined &&
+  !sameComponent(update.component, instance.component);
 
 /**
  * Whether a call of `action` with `input` would drop arcs or fusion
@@ -503,11 +508,11 @@ const removeComponentInstancesReferencingComponent = (
   for (const net of getAllMutableNets(sdcpn)) {
     const instances = net.componentInstances ?? [];
     for (const instance of instances) {
-      if (instance.componentId === componentId) {
+      if (instantiates(instance, componentId)) {
         removeReferencesToComponentInstance(net, instance.id);
       }
     }
-    removeWhere(instances, (instance) => instance.componentId === componentId);
+    removeWhere(instances, (instance) => instantiates(instance, componentId));
   }
 };
 
@@ -547,7 +552,7 @@ const assertEndpointReferences = (
   );
   if (!component) {
     throw new Error(
-      `${referrer} references component instance \`${instance.name}\`, which names ${describeMissingComponent(componentOf(instance))}.`,
+      `${referrer} references component instance \`${instance.name}\`, which names ${describeMissingComponent(instance.component)}.`,
     );
   }
 
@@ -602,7 +607,7 @@ const pruneImplementationBindings = (
     for (const instance of net.componentInstances ?? []) {
       if (
         instance.implementation !== undefined &&
-        broken(componentOf(instance), instance.implementation)
+        broken(instance.component, instance.implementation)
       ) {
         delete instance.implementation;
       }
@@ -699,7 +704,7 @@ const assertComponentInstanceReferences = (
   libraries: Libraries,
   keepsComponent = false,
 ): void => {
-  const reference = componentOf(instance);
+  const reference = instance.component;
   const component = resolveComponent(sdcpn, reference, libraries);
   if (!component) {
     if (keepsComponent) {
@@ -759,7 +764,7 @@ const assertImplementationChoice = (
   if (instance.implementation !== undefined) {
     assertBindingRuns(
       sdcpn,
-      componentOf(instance),
+      instance.component,
       instance.implementation,
       `Component instance \`${instance.name}\``,
       libraries,
@@ -1689,9 +1694,6 @@ export function createPetrinautActions(
               // Nor its choice of implementation, unless the update makes
               // one.
               delete instance.implementation;
-              // It names its component one way: the update's.
-              delete instance.componentId;
-              delete instance.component;
             }
             assignUpdate(instance, update);
             componentInstanceSchema.parse(instance);
@@ -1702,8 +1704,7 @@ export function createPetrinautActions(
               sdcpn,
               instance,
               libraries,
-              update.componentId === undefined &&
-                update.component === undefined,
+              update.component === undefined,
             );
             if (update.implementation !== undefined) {
               assertImplementationChoice(sdcpn, instance, libraries);

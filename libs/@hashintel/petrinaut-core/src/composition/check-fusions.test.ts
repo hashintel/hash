@@ -56,7 +56,7 @@ const partIn = (instanceId: string): Fusion["members"][number] => ({
 const instance = (id: string, componentId: string) => ({
   id,
   name: id,
-  componentId,
+  component: { id: componentId },
   parameterValues: {},
   x: 0,
   y: 0,
@@ -281,11 +281,7 @@ describe("checkFusions", () => {
         components: [cooler("bath", "return { level: -1 };")],
         componentInstances: [
           instance("b1", "bath"),
-          {
-            ...instance("l1", "bath"),
-            componentId: undefined,
-            component: { from: "lib", id: "bath" },
-          },
+          { ...instance("l1", "bath"), component: { from: "lib", id: "bath" } },
         ],
         fusions: [
           { id: "f1", name: "F1", members: [partIn("b1"), partIn("l1")] },

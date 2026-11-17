@@ -177,7 +177,7 @@ describe("normalizeSDCPN", () => {
         {
           id: "ci1",
           name: "CI1",
-          componentId: "s1",
+          component: { id: "s1" },
           parameterValues: {},
           x: 0,
           y: 0,
@@ -203,8 +203,8 @@ describe("normalizeSDCPN", () => {
       toPetrinautId("s1"),
     ]);
     expect(
-      result.componentInstances?.map(({ componentId }) => componentId),
-    ).toEqual([toPetrinautId("s1")]);
+      result.componentInstances?.map(({ component }) => component),
+    ).toEqual([{ id: toPetrinautId("s1") }]);
   });
 
   it("omits component fields and arc endpoints that are absent", () => {

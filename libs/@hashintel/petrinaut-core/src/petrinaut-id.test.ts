@@ -22,7 +22,7 @@ const emptyNet = {
 const instance = (id: string, componentId: string): ComponentInstance => ({
   id,
   name: id,
-  componentId,
+  component: { id: componentId },
   parameterValues: {},
   x: 0,
   y: 0,
@@ -197,7 +197,7 @@ const legacyNet = (): SDCPN => ({
     {
       id: "unit",
       name: "Unit",
-      componentId: "machine",
+      component: { id: "machine" },
       parameterValues: { speed: "2" },
       x: 0,
       y: 0,
@@ -264,11 +264,11 @@ describe("canonicalizePetrinautIds", () => {
       toPetrinautId("inner"),
     ]);
     expect(
-      canonical.components?.[0]?.componentInstances?.[0]?.componentId,
-    ).toBe(toPetrinautId("inner"));
-    expect(canonical.componentInstances?.[0]?.componentId).toBe(
-      toPetrinautId("outer"),
-    );
+      canonical.components?.[0]?.componentInstances?.[0]?.component,
+    ).toEqual({ id: toPetrinautId("inner") });
+    expect(canonical.componentInstances?.[0]?.component).toEqual({
+      id: toPetrinautId("outer"),
+    });
     expect(canonical.components?.[1]).not.toHaveProperty("componentInstances");
     expect(sdcpn.components?.[0]?.id).toBe("outer");
   });
@@ -323,7 +323,7 @@ describe("canonicalizePetrinautIds", () => {
     });
     expect(canonical.componentInstances?.[0]).toMatchObject({
       id: idOf("unit"),
-      componentId: idOf("machine"),
+      component: { id: idOf("machine") },
       parameterValues: { [idOf("speed")]: "2" },
     });
     expect(canonical.metrics?.[0]?.id).toBe(idOf("throughput"));
@@ -401,7 +401,6 @@ describe("canonicalizePetrinautIds", () => {
       parameterValues: { [idOf("rate")]: "2" },
       implementation: { from: "@hashintel/logistics", id: "belt" },
     });
-    expect(net.componentInstances[0]).not.toHaveProperty("componentId");
     expect(net.implementations).toEqual([
       { interface: scale, component: { id: idOf("own-scale") } },
     ]);

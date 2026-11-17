@@ -696,7 +696,7 @@ const fusedLineNet: SDCPN = {
     {
       id: "cutter",
       name: "Cutter",
-      componentId: "stage",
+      component: { id: "stage" },
       parameterValues: {},
       x: 310,
       y: 220,
@@ -704,7 +704,7 @@ const fusedLineNet: SDCPN = {
     {
       id: "drill",
       name: "Drill",
-      componentId: "stage",
+      component: { id: "stage" },
       parameterValues: {},
       x: 730,
       y: 220,
@@ -848,7 +848,7 @@ const interfacedLineNet: SDCPN = {
     {
       id: "cutter",
       name: "Cutter",
-      componentId: "stage_interface",
+      component: { id: "stage_interface" },
       parameterValues: {},
       x: 310,
       y: 220,
@@ -856,7 +856,7 @@ const interfacedLineNet: SDCPN = {
     {
       id: "drill",
       name: "Drill",
-      componentId: "stage_interface",
+      component: { id: "stage_interface" },
       implementation: { id: "slow_stage" },
       parameterValues: {},
       x: 730,
@@ -1079,7 +1079,7 @@ const manyPortsNet: SDCPN = {
     {
       id: "cell1",
       name: "AssemblyCell",
-      componentId: "cell",
+      component: { id: "cell" },
       parameterValues: {},
       x: 600,
       y: 300,

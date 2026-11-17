@@ -42,9 +42,7 @@ const instanceOf = (
 ): ComponentInstance => ({
   id,
   name: id,
-  ...(component.from === undefined
-    ? { componentId: component.id }
-    : { component: { from: component.from, id: component.id } }),
+  component,
   parameterValues: {},
   ...(implementation ? { implementation } : {}),
   x: 0,

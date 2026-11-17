@@ -102,7 +102,6 @@ export type {
 } from "./composition/check-interfaces";
 export {
   componentKey,
-  componentOf,
   defaultImplementation,
   describeUnboundInstance,
   hasBody,

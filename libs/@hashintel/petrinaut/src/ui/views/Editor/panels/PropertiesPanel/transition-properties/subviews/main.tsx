@@ -3,7 +3,6 @@ import { use } from "react";
 import { Button, Form } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
-  componentOf,
   getArcEndpoint,
   getArcEndpointKey,
   getArcEndpointPlaceId,
@@ -104,7 +103,7 @@ const TransitionMainContent: React.FC = () => {
       ({ id }) => id === endpoint.componentInstanceId,
     );
     const component = instance
-      ? resolveComponent(fullSdcpn, componentOf(instance), libraries)
+      ? resolveComponent(fullSdcpn, instance.component, libraries)
       : undefined;
     const port = component?.places.find(
       (place) => place.id === endpoint.portPlaceId,

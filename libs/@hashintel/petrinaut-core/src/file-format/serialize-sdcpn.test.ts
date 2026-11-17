@@ -70,7 +70,7 @@ const sourceDocument = {
         {
           id: "nested1",
           name: "Nested 1",
-          componentId: "component1",
+          component: { id: "component1" },
           x: 0,
           y: 0,
         },
@@ -95,7 +95,7 @@ const sourceDocument = {
     {
       id: "instance1",
       name: "Instance 1",
-      componentId: "component1",
+      component: { id: "component1" },
       x: 0,
       y: 0,
     },
@@ -365,7 +365,7 @@ describe("serializeSDCPN", () => {
         {
           id: "drill",
           name: "Drill",
-          componentId: "stage",
+          component: { id: "stage" },
           implementation: { id: "slow-stage" },
         },
       ],
@@ -400,7 +400,7 @@ describe("serializeSDCPN", () => {
         {
           id: "drill",
           name: "Drill",
-          componentId: "stage",
+          component: { id: "stage" },
           implementation: "slow-stage",
         },
       ],
@@ -418,7 +418,7 @@ describe("serializeSDCPN", () => {
         {
           id: "drill",
           name: "Drill",
-          componentId: "stage",
+          component: { id: "stage" },
           implementation: null,
         },
       ],
@@ -502,25 +502,15 @@ describe("serializeSDCPN", () => {
     });
   });
 
-  it("refuses an instance that names both a component and a component of an import, or neither", () => {
-    for (const naming of [
-      {},
-      {
-        componentId: "stage",
-        component: { from: "@hashintel/logistics", id: "scale" },
-      },
-    ]) {
-      const parsed = parseSDCPNFile({
-        ...sourceDocument,
-        componentInstances: [{ id: "drill", name: "Drill", ...naming }],
-      });
+  it("refuses an instance that names no component", () => {
+    const parsed = parseSDCPNFile({
+      ...sourceDocument,
+      componentInstances: [{ id: "drill", name: "Drill" }],
+    });
 
-      expect(parsed.ok).toBe(false);
-      if (!parsed.ok) {
-        expect(parsed.error).toContain(
-          "Provide exactly one of `componentId` or `component`.",
-        );
-      }
+    expect(parsed.ok).toBe(false);
+    if (!parsed.ok) {
+      expect(parsed.error).toContain("componentInstances.0.component");
     }
   });
 

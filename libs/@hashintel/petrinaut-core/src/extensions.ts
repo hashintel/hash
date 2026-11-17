@@ -1,5 +1,5 @@
 import { getArcEndpoint } from "./arc-endpoints";
-import { componentOf, resolveComponent } from "./composition/interfaces";
+import { resolveComponent } from "./composition/interfaces";
 import { cloneAdHocScenarioState } from "./simulation/authoring/scenario/ad-hoc/ad-hoc-actions";
 
 import type { ResolvedLibraries } from "./composition/libraries";
@@ -148,7 +148,7 @@ export const createArcPlaceResolver = (
 
     const instance = instanceById.get(endpoint.componentInstanceId);
     const component = instance
-      ? resolveComponent(sdcpn, componentOf(instance), libraries, componentById)
+      ? resolveComponent(sdcpn, instance.component, libraries, componentById)
       : undefined;
 
     return component?.places.find(
@@ -173,7 +173,8 @@ const createUnreadPortTest = (
     (net.componentInstances ?? [])
       .filter(
         ({ component }) =>
-          component !== undefined && libraries?.has(component.from) !== true,
+          component.from !== undefined &&
+          libraries?.has(component.from) !== true,
       )
       .map(({ id }) => id),
   );
@@ -465,10 +466,8 @@ const cloneComponentInstances = (
 ): SDCPN["componentInstances"] =>
   componentInstances?.map((instance) => ({
     ...instance,
+    component: { ...instance.component },
     parameterValues: { ...instance.parameterValues },
-    ...(instance.component === undefined
-      ? {}
-      : { component: { ...instance.component } }),
     ...(instance.implementation === undefined
       ? {}
       : { implementation: { ...instance.implementation } }),

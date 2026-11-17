@@ -12,7 +12,6 @@ import {
   bindingKey,
   bindsWithinDocument,
   componentKey,
-  componentOf,
   defaultImplementation,
   describeUnboundInstance,
   hasBody,
@@ -342,7 +341,7 @@ const checkBindings = (
       // check. A library that resolved does not have the component. One that
       // failed is one problem already, of the imports, and one that is still
       // resolving is none.
-      const { from, id } = componentOf(instance);
+      const { from, id } = instance.component;
       if (from !== undefined && libraries?.has(from)) {
         reporter(problems, { componentId: netId, instanceId: instance.id })(
           "missing-component",
@@ -392,11 +391,11 @@ const checkBindings = (
     // where it says so. Across a library the binding is all that says it.
     const reference =
       instance.implementation ??
-      defaultImplementation(sdcpn, componentOf(instance), index.defaults);
+      defaultImplementation(sdcpn, instance.component, index.defaults);
     if (
       binding.kind === "bound" &&
       reference &&
-      !bindsWithinDocument(componentOf(instance), reference)
+      !bindsWithinDocument(instance.component, reference)
     ) {
       const key = bindingKey(instance);
       let shortfalls = shortfallsByBinding.get(key);

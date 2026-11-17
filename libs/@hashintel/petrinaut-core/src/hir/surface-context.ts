@@ -28,7 +28,7 @@
  * order, which matches the engine's `CompiledTransition.inputPlaces`.
  */
 import { getArcEndpoint } from "../arc-endpoints";
-import { componentOf, resolveComponent } from "../composition/interfaces";
+import { resolveComponent } from "../composition/interfaces";
 import {
   createArcPlaceResolver,
   DEFAULT_PETRINAUT_EXTENSIONS,
@@ -266,7 +266,7 @@ function getArcPlaceDisplayName(
     (inst) => inst.id === endpoint.componentInstanceId,
   );
   const component = instance
-    ? resolveComponent(sdcpn, componentOf(instance))
+    ? resolveComponent(sdcpn, instance.component)
     : undefined;
   const portPlace = component?.places.find(
     (pl) => pl.id === endpoint.portPlaceId && pl.isPort,

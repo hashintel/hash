@@ -86,7 +86,7 @@ const machine = {
 const instanceOfMachine = (id: string, name: string) => ({
   id,
   name,
-  componentId: "machine",
+  component: { id: "machine" },
   parameterValues: {},
   x: 0,
   y: 0,
@@ -125,7 +125,7 @@ const unmarkPort = (update: object = { isPort: false }) => ({
 });
 const repoint = (instanceId: string) => ({
   instanceId,
-  update: { componentId: "press" },
+  update: { component: { id: "press" } },
 });
 const inPortOf = (componentInstanceId: string) =>
   ({ kind: "componentPort", componentInstanceId, portPlaceId: "in" }) as const;

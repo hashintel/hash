@@ -361,7 +361,7 @@ describe("Petrinaut core actions", () => {
         {
           id: "instance-1",
           name: "Reusable instance",
-          componentId: "component-1",
+          component: { id: "component-1" },
           parameterValues: {},
           x: 100,
           y: 100,
@@ -500,7 +500,7 @@ describe("Petrinaut core actions", () => {
         {
           id: "instance-1",
           name: "Reusable instance",
-          componentId: "component-1",
+          component: { id: "component-1" },
           parameterValues: {},
           x: 100,
           y: 100,
@@ -1347,7 +1347,7 @@ describe("Petrinaut core fusion actions", () => {
       {
         id: "m1",
         name: "M1",
-        componentId: "machine",
+        component: { id: "machine" },
         parameterValues: {},
         x: 0,
         y: 0,
@@ -1355,7 +1355,7 @@ describe("Petrinaut core fusion actions", () => {
       {
         id: "m2",
         name: "M2",
-        componentId: "machine",
+        component: { id: "machine" },
         parameterValues: {},
         x: 0,
         y: 0,
@@ -1852,7 +1852,7 @@ describe("Petrinaut core fusion actions", () => {
 
     instance.mutations.updateComponentInstance({
       instanceId: "m1",
-      update: { componentId: "press" },
+      update: { component: { id: "press" } },
     });
 
     const document = instance.definition.get();
@@ -1986,18 +1986,18 @@ describe("Petrinaut core fusion actions", () => {
       ["marking it a port again", unmark("in", { isPort: true }), false],
       [
         "pointing a wired instance at another component",
-        repoint("m1", { componentId: "press" }),
+        repoint("m1", { component: { id: "press" } }),
         true,
       ],
       [
         "pointing it at the component it has",
-        repoint("m1", { componentId: "machine" }),
+        repoint("m1", { component: { id: "machine" } }),
         false,
       ],
       ["renaming a wired instance", repoint("m1", { name: "Mill" }), false],
       [
         "pointing an instance nothing names at another component",
-        repoint("m2", { componentId: "press" }),
+        repoint("m2", { component: { id: "press" } }),
         false,
       ],
     ])("%s", (_case, { action, input }, prunes) => {
@@ -2042,7 +2042,7 @@ describe("Petrinaut core fusion actions", () => {
       expect(
         updatePrunesReferences(document, "updateComponentInstance", {
           instanceId: "missing",
-          update: { componentId: "press" },
+          update: { component: { id: "press" } },
         }),
       ).toBe(false);
       expect(updatePrunesReferences(document, "removePlace", {})).toBe(false);
@@ -2092,7 +2092,7 @@ describe("Petrinaut core interface actions", () => {
       {
         id: "s1",
         name: "S1",
-        componentId: "stage",
+        component: { id: "stage" },
         parameterValues: {},
         x: 0,
         y: 0,
@@ -2163,7 +2163,7 @@ describe("Petrinaut core interface actions", () => {
       instance.mutations.addComponentInstance({
         id: "o1",
         name: "O1",
-        componentId: "other",
+        component: { id: "other" },
         implementation: { id: "fast" },
         parameterValues: {},
         x: 0,
@@ -2193,7 +2193,7 @@ describe("Petrinaut core interface actions", () => {
     // Naming the component it already has makes no choice either.
     instance.mutations.updateComponentInstance({
       instanceId: "s1",
-      update: { componentId: "stage" },
+      update: { component: { id: "stage" } },
     });
     expect(
       instance.definition.get().componentInstances?.[0]?.implementation,
@@ -2239,10 +2239,10 @@ describe("Petrinaut core interface actions", () => {
 
     instance.mutations.updateComponentInstance({
       instanceId: "s1",
-      update: { componentId: "other" },
+      update: { component: { id: "other" } },
     });
     expect(instance.definition.get().componentInstances?.[0]).toMatchObject({
-      componentId: idOf("other"),
+      component: { id: idOf("other") },
     });
     expect(
       instance.definition.get().componentInstances?.[0],
@@ -2715,18 +2715,15 @@ describe("Petrinaut core import actions", () => {
     expect(instance.definition.get().imports).toEqual([{ id: logistics.id }]);
   });
 
-  test("an instance names a component or a component of an import, never both nor neither", () => {
-    const instance = importing();
+  test("an instance that names no component is refused", () => {
+    const { component: _component, ...unnamed } = placed;
 
-    for (const naming of [{}, { componentId: "stage", component: belt }]) {
-      expect(() =>
-        callActionWithUnknownInput(instance.mutations.addComponentInstance, {
-          ...placed,
-          component: undefined,
-          ...naming,
-        }),
-      ).toThrow("Provide exactly one of `componentId` or `component`.");
-    }
+    expect(() =>
+      callActionWithUnknownInput(
+        importing().mutations.addComponentInstance,
+        unnamed,
+      ),
+    ).toThrow("component");
   });
 
   test("a component its library does not have is refused, and so is one of a library that did not resolve", () => {
@@ -2798,7 +2795,7 @@ describe("Petrinaut core import actions", () => {
       expect(() =>
         instance.mutations.updateComponentInstance({
           instanceId: "belt-1",
-          update: { componentId: "nowhere" },
+          update: { component: { id: "nowhere" } },
         }),
       ).toThrow("references component ID `nowhere` which does not exist");
     }
@@ -2869,7 +2866,7 @@ describe("Petrinaut core import actions", () => {
     ).toThrow("does not exist in component `Belt`");
   });
 
-  test("pointing an instance at a component of an import drops its component, its wiring and its choice, and adds the import", () => {
+  test("pointing an instance at a component of an import drops its wiring and its choice, and adds the import", () => {
     const stage: Component = {
       id: "stage",
       name: "Stage",
@@ -2906,7 +2903,7 @@ describe("Petrinaut core import actions", () => {
         {
           id: "worker",
           name: "Worker",
-          componentId: "stage",
+          component: { id: "stage" },
           parameterValues: {},
           x: 0,
           y: 0,
@@ -2990,7 +2987,7 @@ describe("Petrinaut core import actions", () => {
     const held = {
       id: "stage-1",
       name: "StageA",
-      componentId: "stage",
+      component: { id: "stage" },
       parameterValues: {},
       x: 0,
       y: 0,

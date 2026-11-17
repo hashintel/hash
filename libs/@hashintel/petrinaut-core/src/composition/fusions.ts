@@ -10,7 +10,7 @@
  */
 
 import { arcEndpointsEqual, getArcEndpointKey } from "../arc-endpoints";
-import { componentOf, resolveComponent } from "./interfaces";
+import { resolveComponent } from "./interfaces";
 
 import type {
   ColorElementType,
@@ -162,7 +162,7 @@ export const resolveFusionMember = (
     ({ id }) => id === member.componentInstanceId,
   );
   const component = instance
-    ? resolveComponent(sdcpn, componentOf(instance), libraries)
+    ? resolveComponent(sdcpn, instance.component, libraries)
     : undefined;
   const place = component?.places.find(({ id }) => id === member.portPlaceId);
   return instance && component && place && place.isPort

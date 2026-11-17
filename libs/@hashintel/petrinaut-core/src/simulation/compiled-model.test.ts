@@ -327,7 +327,7 @@ describe("compilePetrinautModel", () => {
           {
             id: "worker",
             name: "Worker",
-            componentId: "worker-component",
+            component: { id: "worker-component" },
             parameterValues: {},
             x: 0,
             y: 0,

@@ -396,9 +396,7 @@ export const useCanvasInteractions = (
     const added = addComponentInstance({
       id,
       name: component ? toInstanceName(component.name) : "Instance",
-      ...(reference.from === undefined
-        ? { componentId: reference.id }
-        : { component: { from: reference.from, id: reference.id } }),
+      component: reference,
       parameterValues: {},
       x: position.x,
       y: position.y,

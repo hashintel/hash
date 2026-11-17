@@ -474,7 +474,7 @@ describe("buildSimulation", () => {
           {
             id: "processor-1",
             name: "Processor 1",
-            componentId: "processor-component",
+            component: { id: "processor-component" },
             parameterValues: {},
             x: 100,
             y: 0,

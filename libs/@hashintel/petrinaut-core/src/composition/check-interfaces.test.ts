@@ -101,7 +101,7 @@ const instance = (
 ) => ({
   id,
   name: id,
-  componentId,
+  component: { id: componentId },
   parameterValues: {},
   x: 0,
   y: 0,

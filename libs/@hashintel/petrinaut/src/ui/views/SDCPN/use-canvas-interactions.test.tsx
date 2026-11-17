@@ -328,12 +328,9 @@ describe("useCanvasInteractions", () => {
         parameterValues: {},
       }),
     );
-    expect(
-      mutations.addComponentInstance.mock.calls[0]?.[0],
-    ).not.toHaveProperty("componentId");
     expect(mutations.addComponentInstance).toHaveBeenNthCalledWith(
       2,
-      expect.objectContaining({ componentId: "stage" }),
+      expect.objectContaining({ component: { id: "stage" } }),
     );
   });
 

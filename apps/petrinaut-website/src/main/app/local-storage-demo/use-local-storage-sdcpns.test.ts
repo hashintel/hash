@@ -347,7 +347,7 @@ describe("legacy net ids", () => {
       {
         id: "instance-1",
         name: "Instance",
-        componentId: "component__a",
+        component: { id: "component__a" },
         parameterValues: {},
         x: 0,
         y: 0,

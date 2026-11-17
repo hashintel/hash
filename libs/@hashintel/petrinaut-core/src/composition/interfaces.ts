@@ -21,13 +21,6 @@ import type {
 } from "../types/sdcpn";
 import type { ResolvedLibraries } from "./libraries";
 
-/** The component an instance instantiates: one of an import, else a component of the document. */
-export const componentOf = (
-  instance: Pick<ComponentInstance, "componentId" | "component">,
-): ComponentReference =>
-  // An instance has one of the two. With neither, the reference names nothing.
-  instance.component ?? { id: instance.componentId ?? "" };
-
 /** Whether two references name the same component: the same id, from the same place. */
 export const sameComponent = (
   left: ComponentReference,
@@ -260,7 +253,7 @@ export const indexDocument = (
 /** What names the component an instance instantiates and the one it chose to run. */
 export type InstanceBinding = Pick<
   ComponentInstance,
-  "componentId" | "component" | "implementation"
+  "component" | "implementation"
 >;
 
 /**
@@ -334,7 +327,7 @@ export const resolveImplementation = (
 ): ImplementationBinding | null =>
   resolveBinding(
     sdcpn,
-    componentOf(instance),
+    instance.component,
     instance.implementation,
     libraries,
     index,
@@ -452,7 +445,7 @@ export const runningComponent = (
  */
 export const bindingKey = (instance: InstanceBinding): string =>
   JSON.stringify([
-    componentKey(componentOf(instance)),
+    componentKey(instance.component),
     instance.implementation ? componentKey(instance.implementation) : null,
   ]);
 
@@ -483,7 +476,7 @@ export const resolveRunningPorts = (
   libraries?: ResolvedLibraries,
   index?: DocumentIndex,
 ): ((declared: PortOfComponent) => RunningPort) => {
-  const own = componentOf(instance);
+  const own = instance.component;
   const asDeclared = ({ component, place }: PortOfComponent): RunningPort => ({
     key: componentKey(own),
     component,

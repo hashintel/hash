@@ -11,7 +11,6 @@ import {
 import { css } from "@hashintel/ds-helpers/css";
 import {
   arcMatchesEndpoint,
-  componentOf,
   parseArcId,
   parseArcEndpointKey,
   placeArcEndpoint,
@@ -238,7 +237,7 @@ export const ArcProperties: React.FC<ArcPropertiesProps> = ({
       ({ id }) => id === endpoint.componentInstanceId,
     );
     const component = instance
-      ? resolveComponent(fullSdcpn, componentOf(instance), libraries)
+      ? resolveComponent(fullSdcpn, instance.component, libraries)
       : undefined;
     const port = component?.places.find(
       (place) => place.id === endpoint.portPlaceId,

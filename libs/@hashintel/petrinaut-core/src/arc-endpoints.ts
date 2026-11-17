@@ -1,4 +1,4 @@
-import { componentOf, resolveComponent } from "./composition/interfaces";
+import { resolveComponent } from "./composition/interfaces";
 
 import type { ResolvedLibraries } from "./composition/libraries";
 import type {
@@ -113,7 +113,7 @@ export const getArcEndpointPlaceId = (arc: ArcWithEndpoint): ID | null => {
 /** The component whose ports an instance's endpoints name, or `null` when it does not resolve. */
 export const getComponentPortEndpointComponent = (
   sdcpn: Pick<SDCPN, "components">,
-  instance: Pick<ComponentInstance, "componentId" | "component">,
+  instance: Pick<ComponentInstance, "component">,
   libraries?: ResolvedLibraries,
 ): Component | null =>
-  resolveComponent(sdcpn, componentOf(instance), libraries) ?? null;
+  resolveComponent(sdcpn, instance.component, libraries) ?? null;

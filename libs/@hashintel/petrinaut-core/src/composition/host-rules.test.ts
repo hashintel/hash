@@ -32,9 +32,7 @@ const portId = toPetrinautId;
 const instanceOf = (id: string, component: ComponentReference) => ({
   id,
   name: id === "a" ? "PackerA" : "PackerB",
-  ...(component.from === undefined
-    ? { componentId: component.id }
-    : { component: { from: component.from, id: component.id } }),
+  component,
   parameterValues: {},
   x: 0,
   y: 0,
@@ -179,7 +177,7 @@ describe("an instance that only composes", () => {
     expect(() =>
       mutations.updateComponentInstance({
         instanceId: "a",
-        update: { componentId: "own" },
+        update: { component: own },
       }),
     ).toThrow(onlyComposes);
   });

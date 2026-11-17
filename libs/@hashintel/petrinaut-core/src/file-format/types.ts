@@ -2,7 +2,6 @@ import { z } from "zod";
 
 import { getParameterValueError } from "../parameter-values";
 import {
-  checkInstanceNamesOneComponent,
   colorElementSchema as currentColorElementSchema,
   colorSchema as currentColorSchema,
   componentInstanceSchema as currentComponentInstanceSchema,
@@ -155,16 +154,14 @@ const metricSchema = z.object({
   code: z.string().default(""),
 });
 
-const componentInstanceSchema = z
-  .object({
-    ...currentComponentInstanceSchema.shape,
-    id: z.string(),
-    name: z.string(),
-    parameterValues: z.record(z.string(), z.string()).default({}),
-    x: z.number().optional(),
-    y: z.number().optional(),
-  })
-  .check(checkInstanceNamesOneComponent);
+const componentInstanceSchema = z.object({
+  ...currentComponentInstanceSchema.shape,
+  id: z.string(),
+  name: z.string(),
+  parameterValues: z.record(z.string(), z.string()).default({}),
+  x: z.number().optional(),
+  y: z.number().optional(),
+});
 
 /**
  * Any list of members loads: the checks report a fusion of one, a member

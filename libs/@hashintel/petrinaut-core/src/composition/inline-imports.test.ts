@@ -20,7 +20,7 @@ const libraries = new Map([
 
 const instance = (
   id: string,
-  overrides: Partial<ComponentInstance>,
+  overrides: Partial<ComponentInstance> & Pick<ComponentInstance, "component">,
 ): ComponentInstance => ({
   id,
   name: id,
@@ -117,10 +117,9 @@ describe("inlineImports", () => {
     expect(inlined.components).toHaveLength(1);
     expect(inlined.componentInstances?.[0]).toMatchObject({
       id: "belt-1",
-      componentId: belt?.id,
+      component: { id: belt?.id },
       parameterValues: { [toPetrinautId("rate")]: "3" },
     });
-    expect(inlined.componentInstances?.[0]).not.toHaveProperty("component");
   });
 
   it("points the fusions and arcs at the instance's ports to the component's places", () => {

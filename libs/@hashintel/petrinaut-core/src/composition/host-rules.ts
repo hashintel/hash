@@ -60,16 +60,15 @@ const composing: {
   // The implementation an instance chooses runs in its place: it is a
   // component of a library on offer as well.
   addComponentInstance: ({ component, implementation }, isOffered) =>
-    component !== undefined &&
-    isOffered(component.from) &&
+    isOfLibraryOnOffer(component, isOffered) &&
     (implementation === undefined ||
       isOfLibraryOnOffer(implementation, isOffered)),
   // An update may rename the instance or set its parameters; where it names
   // a component or an implementation, that is one of a library on offer too.
   // One that clears its choice names none.
   updateComponentInstance: ({ update }, isOffered) =>
-    update.componentId === undefined &&
-    (update.component === undefined || isOffered(update.component.from)) &&
+    (update.component === undefined ||
+      isOfLibraryOnOffer(update.component, isOffered)) &&
     (update.implementation == null ||
       isOfLibraryOnOffer(update.implementation, isOffered)),
   updateComponentInstancePosition: true,

@@ -1,5 +1,4 @@
 import {
-  componentOf,
   generateArcId,
   getArcEndpointKey,
   mutationActionInputSchemas,
@@ -179,7 +178,7 @@ const componentPortName = (
   // not among what a summary reads.
   const component =
     definition && instance
-      ? resolveComponent(definition, componentOf(instance))
+      ? resolveComponent(definition, instance.component)
       : undefined;
   const port = component?.places.find(
     (place) => place.id === endpoint.portPlaceId,

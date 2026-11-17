@@ -108,7 +108,7 @@ describe("checkPorts", () => {
           {
             id: "s1",
             name: "s1",
-            componentId: "stage",
+            component: { id: "stage" },
             parameterValues: {},
             x: 0,
             y: 0,
@@ -268,7 +268,7 @@ describe("a port's direction, as inferred and as checked", () => {
             {
               id: "s1",
               name: "s1",
-              componentId: "stage",
+              component: { id: "stage" },
               parameterValues: {},
               x: 0,
               y: 0,

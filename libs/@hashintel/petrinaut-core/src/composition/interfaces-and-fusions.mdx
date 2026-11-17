@@ -35,7 +35,7 @@ type Component = {
 
 What this buys, for free:
 
-- **Instances point at it as they point at any component.** `ComponentInstance.componentId`
+- **Instances point at it as they point at any component.** `ComponentInstance.component`
   keeps its meaning, so the canvas, port arcs, fusions and the Brunch tools
   work unchanged on an instance of an interface. Unbound, the instance still
   draws with the interface's ports, so a net can be wired before any
@@ -160,7 +160,7 @@ implementations:
     component: { id: fast-stage }
 componentInstances:
   - id: drill
-    componentId: stage
+    component: { id: stage }
     implementation: { id: slow-stage }
 ```
 

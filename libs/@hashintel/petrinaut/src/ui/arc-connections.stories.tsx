@@ -76,7 +76,7 @@ const definitionWithComponent: SDCPN = {
     {
       id: "archive",
       name: "Archive",
-      componentId: "archive-component",
+      component: { id: "archive-component" },
       parameterValues: {},
       x: 920,
       y: 320,
