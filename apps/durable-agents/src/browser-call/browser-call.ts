@@ -167,6 +167,13 @@ export type BrowserCallRecord = {
   callIndex?: number;
   /** Why a `failed` call ended without a result. */
   failure?: BrowserCallFailureDisposition;
+  /**
+   * The tool task that owns the call and its restart count when the
+   * browser's outcome (`finished` or `failed`) was committed: restarts while
+   * it waited, which the host's crash-loop guard does not charge. Absent
+   * before an outcome, and on calls answered before it was recorded.
+   */
+  ownerAtOutcome?: { task: number; restarts: number };
 };
 
 /** Every browser call of a conversation, by tool call ID: what a panel claims from. */
@@ -844,6 +851,19 @@ export const carriesClaim = (
     (record.binding ?? undefined) === result.binding) &&
   JSON.stringify(record.input) === JSON.stringify(result.canonicalInput);
 
+/**
+ * The tool task that owns `record`'s call and its restart count, read in the
+ * commit of the call's outcome so that no restart falls between them.
+ */
+const ownerAtOutcome = async (
+  tx: Tx,
+  record: BrowserCallRecord,
+): Promise<BrowserCallRecord["ownerAtOutcome"]> => {
+  const owner = (await tx.task(record.task as TaskId))?.owner;
+  if (owner === undefined) return undefined;
+  return { task: owner, restarts: (await tx.task(owner))?.restarts ?? 0 };
+};
+
 /** Ring a call's doorbell, if `arm` has created one; before then `arm` finds the call answered. */
 const ring = async (
   harness: Harness,
@@ -872,6 +892,8 @@ export const finishBrowserCall = async (
       record.status = "finished";
       record.output = (result.output ?? null) as JsonValue;
       record.metadata = (result.metadata ?? null) as JsonValue;
+      const owner = await ownerAtOutcome(tx, record);
+      if (owner !== undefined) record.ownerAtOutcome = owner;
     }
     return record.status === "finished" ? record.doorbell : undefined;
   }, context);
@@ -908,6 +930,8 @@ export const failBrowserCall = async (
         record.started === true && failure.disposition !== "failed"
           ? "failed"
           : failure.disposition;
+      const owner = await ownerAtOutcome(tx, record);
+      if (owner !== undefined) record.ownerAtOutcome = owner;
     }
     return record.status === "failed" ? record.doorbell : undefined;
   }, context);

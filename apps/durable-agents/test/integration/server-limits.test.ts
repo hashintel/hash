@@ -24,17 +24,21 @@ import {
   createRegistry,
   defineExtension,
   defineTool,
+  type Harness,
   LiveDoc,
 } from "@earendil-works/pi-durable";
 import { obj } from "@earendil-works/pi-schema";
 import { DefaultChatTransport, type UIMessage, type UIMessageChunk } from "ai";
 import { Pool } from "pg";
-import { afterAll, expect, test } from "vitest";
+import { afterAll, expect, test, vi } from "vitest";
 
 import {
   browserCallExtension,
+  type BrowserCallResult,
+  BrowserCallsDoc,
   browserToolName,
   claimBrowserCall,
+  failBrowserCall,
   finishBrowserCall,
 } from "../../src/browser-call/browser-call";
 import {
@@ -443,6 +447,277 @@ test("the crash-loop guard spares a tool call waiting on a browser", async () =>
     expect(chunks.at(-1)).toEqual({ type: "finish", finishReason: "stop" });
   } finally {
     await Promise.allSettled([first.close(), second.close()]);
+    await dropSchemas([chatId]);
+  }
+});
+
+type Opened = Awaited<ReturnType<typeof openConversation>>;
+
+/** The browser-answer tests' crash-loop limit: one restart after the answer is not a loop. */
+const answeredLimit = 3;
+
+/** The one browser call each browser-answer test issues. */
+const answeredCallId = "call-1";
+
+/** What the claim's holder sends with an outcome. */
+type ClaimProof = Omit<BrowserCallResult, "output" | "metadata">;
+
+/** A browser call's outcomes as the browser commits them: the call's status after it, and what a retry returns. */
+const browserOutcomes = {
+  finish: {
+    status: "finished",
+    retried: "settled",
+    commit: (harness: Harness, proof: ClaimProof) =>
+      finishBrowserCall(
+        harness,
+        { ...proof, output: { ok: true, title: "Dryer" } },
+        context,
+      ),
+  },
+  fail: {
+    status: "failed",
+    retried: "failed",
+    commit: (harness: Harness, proof: ClaimProof) =>
+      failBrowserCall(harness, { ...proof, disposition: "failed" }, context),
+  },
+} as const;
+
+type BrowserOutcome = keyof typeof browserOutcomes;
+
+const answeredCall = async ({ harness, root }: Opened) =>
+  (await harness.snapshot(BrowserCallsDoc, root.id, context))?.calls[
+    answeredCallId
+  ];
+
+const answeredToolResults = async ({ root }: Opened) => {
+  const { items } = await root.entries(
+    { order: "ascending" },
+    100,
+    undefined,
+    context,
+  );
+  return items.filter((entry) =>
+    entry.model?.some(
+      (message) =>
+        message.role === "toolResult" && message.toolCallId === answeredCallId,
+    ),
+  );
+};
+
+/** Instances that take one conversation over in turn, each with the crash-loop limit at `answeredLimit`. */
+const takeovers = () => {
+  const instances: Instance[] = [];
+  return {
+    start: (responses: FauxResponseStep[] = []) => {
+      const instance = startInstance(responses, {
+        crashLoopRestarts: answeredLimit,
+      });
+      instances.push(instance);
+      return instance;
+    },
+    close: () =>
+      Promise.allSettled(instances.map((instance) => instance.close())),
+  };
+};
+
+/** The live tool call once `instance` has opened the conversation and resumed it. */
+const runningTool = (instance: Instance, chatId: string) =>
+  eventually(async () => {
+    const opened = await openConversation(instance, chatId);
+    const { tasks } = await opened.harness.inspect(context);
+    const tool = tasks.find(({ record }) => record.kind === "pi.tool");
+    return tool?.state.kind === "running"
+      ? { opened, tool: tool.record }
+      : undefined;
+  });
+
+/**
+ * Issue the browser call, take the conversation over `waitingRestarts`
+ * times while it waits, then commit the browser's `outcome`. The owner dies
+ * after that commit, before it rings the doorbell, so the call stays
+ * answered and its tool call open.
+ */
+const answerAfterWaiting = async (
+  start: ReturnType<typeof takeovers>["start"],
+  chatId: string,
+  waitingRestarts: number,
+  outcome: BrowserOutcome,
+) => {
+  // Each takeover must find the tool call still waiting on an unanswered browser, and spare it.
+  const waitingOnBrowser = (instance: Instance, expectedRestarts: number) =>
+    eventually(async () => {
+      const opened = await openConversation(instance, chatId);
+      const { tasks } = await opened.harness.inspect(context);
+      const tool = tasks.find(({ record }) => record.kind === "pi.tool");
+      const browser = tasks.find(
+        ({ record }) => record.kind === "brunch.browser-call",
+      );
+      if (tool?.state.kind !== "running" || browser?.state.kind !== "waiting")
+        return undefined;
+      expect(tool.record.restarts ?? 0).toBe(expectedRestarts);
+      expect((await answeredCall(opened))?.status).toBe("pending");
+      expect(instance.crashLoops).toEqual([]);
+      return { opened, tool: tool.record.id };
+    });
+  const first = start([
+    fauxAssistantMessage(
+      fauxToolCall(browserToolName, { title: "Dryer" }, { id: answeredCallId }),
+      { stopReason: "toolUse" },
+    ),
+  ]);
+  void drain(await send(first, chatId)).catch(() => {});
+  let waiting = await waitingOnBrowser(first, 0);
+  for (let restart = 0; restart < waitingRestarts; restart++) {
+    // Each takeover waits for the one before.
+    // eslint-disable-next-line no-await-in-loop
+    waiting = await waitingOnBrowser(start(), restart + 1);
+  }
+  const { opened, tool } = waiting;
+
+  const claim = await claimBrowserCall(
+    opened.harness,
+    opened.root.id,
+    answeredCallId,
+    context,
+  );
+  if (claim === undefined) throw new Error("The call was not claimable.");
+  const proof: ClaimProof = {
+    conversationId: opened.root.id,
+    toolCallId: answeredCallId,
+    toolName: claim.toolName,
+    capability: claim.capability,
+    canonicalInput: claim.input,
+  };
+  const ring = vi
+    .spyOn(opened.harness, "abortTask")
+    .mockRejectedValueOnce(new Error("Interrupted before the ring."));
+  try {
+    await expect(
+      browserOutcomes[outcome].commit(opened.harness, proof),
+    ).rejects.toThrow("Interrupted before the ring.");
+    expect(ring).toHaveBeenCalledTimes(1);
+  } finally {
+    ring.mockRestore();
+  }
+  const call = await answeredCall(opened);
+  expect(call?.status).toBe(browserOutcomes[outcome].status);
+  // Every restart the tool call had when the outcome committed was a wait.
+  expect(call?.ownerAtOutcome).toEqual({
+    task: tool,
+    restarts: waitingRestarts,
+  });
+  expect(await answeredToolResults(opened)).toEqual([]);
+  return { opened, proof };
+};
+
+test.each([
+  ["finish", 0],
+  ["finish", 3],
+  ["fail", 0],
+  ["fail", 3],
+] as const)(
+  "a browser %s does not turn %i earlier waiting restarts into a crash loop",
+  async (outcome, waitingRestarts) => {
+    const chatId = `crash-loop-answered-${randomUUID()}`;
+    const { start, close } = takeovers();
+    try {
+      const { proof } = await answerAfterWaiting(
+        start,
+        chatId,
+        waitingRestarts,
+        outcome,
+      );
+
+      // One interruption after the answer, below the limit.
+      const replacement = start([fauxAssistantMessage("Renamed.")]);
+      const stream = await replacement.transport.reconnectToStream({ chatId });
+      expect(stream).not.toBeNull();
+      expect(replacement.crashLoops).toEqual([]);
+      // The browser's retry rings the doorbell the interruption left unrung.
+      const recovered = await openConversation(replacement, chatId);
+      expect(
+        await browserOutcomes[outcome].commit(recovered.harness, proof),
+      ).toBe(browserOutcomes[outcome].retried);
+      const chunks = await drain(stream!);
+      expect(textOf(chunks)).toBe("Renamed.");
+      expect(chunks.at(-1)).toEqual({ type: "finish", finishReason: "stop" });
+      expect(await answeredToolResults(recovered)).toHaveLength(1);
+    } finally {
+      await close();
+      await dropSchemas([chatId]);
+    }
+  },
+);
+
+test.each([0, 3])(
+  "a tool call answered after %i waiting restarts is a crash loop once it restarts as often again as the limit",
+  async (waitingRestarts) => {
+    const chatId = `crash-loop-after-answer-${randomUUID()}`;
+    const { start, close } = takeovers();
+    try {
+      await answerAfterWaiting(start, chatId, waitingRestarts, "finish");
+      // Nobody retries the answer: the doorbell stays unrung, and every takeover cuts the tool call off again.
+      for (let restart = 1; restart < answeredLimit; restart++) {
+        const instance = start();
+        // Each takeover waits for the one before.
+        // eslint-disable-next-line no-await-in-loop
+        const { tool } = await runningTool(instance, chatId);
+        expect(tool.restarts).toBe(waitingRestarts + restart);
+        expect(instance.crashLoops).toEqual([]);
+      }
+      const last = start();
+      await openConversation(last, chatId);
+      expect(last.crashLoops).toEqual([
+        {
+          conversationId: chatId,
+          tasks: [
+            expect.objectContaining({
+              kind: "pi.tool",
+              restarts: waitingRestarts + answeredLimit,
+            }),
+          ],
+        },
+      ]);
+    } finally {
+      await close();
+      await dropSchemas([chatId]);
+    }
+  },
+);
+
+test("a browser answer recorded without its tool call's restart count charges every restart", async () => {
+  const chatId = `crash-loop-answered-unrecorded-${randomUUID()}`;
+  const { start, close } = takeovers();
+  try {
+    const { opened } = await answerAfterWaiting(
+      start,
+      chatId,
+      answeredLimit,
+      "finish",
+    );
+    // As a call answered before the count was recorded.
+    await opened.harness.commit(async (tx) => {
+      const call = (await tx.doc(BrowserCallsDoc, opened.root.id)).calls[
+        answeredCallId
+      ];
+      if (call !== undefined) delete call.ownerAtOutcome;
+    }, context);
+
+    const replacement = start();
+    await openConversation(replacement, chatId);
+    expect(replacement.crashLoops).toEqual([
+      {
+        conversationId: chatId,
+        tasks: [
+          expect.objectContaining({
+            kind: "pi.tool",
+            restarts: answeredLimit + 1,
+          }),
+        ],
+      },
+    ]);
+  } finally {
+    await close();
     await dropSchemas([chatId]);
   }
 });

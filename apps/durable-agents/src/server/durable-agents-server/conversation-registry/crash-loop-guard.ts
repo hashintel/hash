@@ -14,7 +14,9 @@
  * stream (an `error` chunk instead of an `abort`) and to a later reader.
  *
  * Exempt: a `pi.tool` task waiting on a browser call that is still `pending`
- * or `claimed`. Its invocation is cut off on every restart by design.
+ * or `claimed`. Its invocation is cut off on every restart by design, and
+ * Pi keeps counting those restarts, so once the call has an outcome the task
+ * is charged only the restarts after it.
  */
 import {
   type Conversation,
@@ -67,33 +69,54 @@ export const stoppedByCrashLoop = (
       CrashLoopEntry.is(entry) && entry.data.inputs.includes(submission),
   );
 
-/** The tasks waiting on a browser call nobody has answered yet: the owners of their `BrowserCall` tasks. */
+/**
+ * How the browser calls of `root` bear on their owners' restarts. `waiting`:
+ * the tasks waiting on a call nobody has answered yet, the owners of their
+ * `BrowserCall` tasks. `restartsAtOutcome`: per task owning an answered
+ * call that recorded it (`ownerAtOutcome`), its restart count when its
+ * latest outcome was committed.
+ */
 const browserCallWaiters = async (
   harness: Harness,
   root: Conversation,
   tasks: readonly TaskInspection[],
   context: Context,
 ) => {
-  const calls =
-    (await harness.snapshot(BrowserCallsDoc, root.id, context))?.calls ?? {};
+  const calls = Object.values(
+    (await harness.snapshot(BrowserCallsDoc, root.id, context))?.calls ?? {},
+  );
   const openCalls = new Set<number>(
-    Object.values(calls)
+    calls
       .filter(({ status }) => status === "pending" || status === "claimed")
       .map(({ task }) => task),
   );
-  return new Set<number>(
+  const waiting = new Set<number>(
     tasks.flatMap(({ record }) =>
       openCalls.has(record.id) && record.owner !== undefined
         ? [record.owner]
         : [],
     ),
   );
+  const restartsAtOutcome = new Map<number, number>();
+  for (const { ownerAtOutcome } of calls) {
+    if (ownerAtOutcome === undefined) continue;
+    const { task, restarts } = ownerAtOutcome;
+    restartsAtOutcome.set(
+      task,
+      Math.max(restarts, restartsAtOutcome.get(task) ?? 0),
+    );
+  }
+  return { waiting, restartsAtOutcome };
 };
 
 /**
- * Abort `root`'s work when a live task reached `limit` restarts, before the
- * Harness schedules anything. Returns what it aborted, or `undefined` when
- * it did nothing.
+ * Abort `root`'s work when a live task was charged `limit` restarts, before
+ * the Harness schedules anything. A task is charged its restart count,
+ * except a `pi.tool` task that owns a browser call: none while the call is
+ * `pending` or `claimed`, and once the call has an outcome, only the
+ * restarts since it (all of them on a call that did not record its count).
+ * The tasks it reports carry their full count. Returns what it aborted, or
+ * `undefined` when it did nothing.
  */
 export const guardCrashLoops = async (
   harness: Harness,
@@ -105,11 +128,19 @@ export const guardCrashLoops = async (
   const { tasks, submissions } = await harness.inspect(context);
   const looping = tasks.filter(({ record }) => (record.restarts ?? 0) >= limit);
   if (looping.length === 0) return undefined;
-  const waiters = await browserCallWaiters(harness, root, tasks, context);
+  const { waiting, restartsAtOutcome } = await browserCallWaiters(
+    harness,
+    root,
+    tasks,
+    context,
+  );
+  const charged = ({ id, kind, restarts = 0 }: TaskInspection["record"]) => {
+    if (kind !== "pi.tool") return restarts;
+    if (waiting.has(id)) return 0;
+    return Math.max(0, restarts - (restartsAtOutcome.get(id) ?? 0));
+  };
   const offending = looping
-    .filter(
-      ({ record }) => !(record.kind === "pi.tool" && waiters.has(record.id)),
-    )
+    .filter(({ record }) => charged(record) >= limit)
     .map(({ record }) => ({
       id: record.id,
       kind: record.kind,
