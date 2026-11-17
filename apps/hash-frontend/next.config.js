@@ -47,6 +47,11 @@ process.env.NEXT_PUBLIC_API_ORIGIN =
 process.env.NEXT_PUBLIC_HASH_BRUNCH_AGENT_ORIGIN =
   process.env.HASH_BRUNCH_AGENT_ORIGIN ?? "";
 
+// Comma-separated origins file downloads may be served from, which the
+// report-only Content Security Policy narrows file downloads to.
+process.env.NEXT_PUBLIC_FILE_STORAGE_ORIGINS =
+  process.env.FILE_STORAGE_ORIGINS ?? "";
+
 process.env.NEXT_PUBLIC_SENTRY_DSN = process.env.SENTRY_DSN ?? "";
 process.env.NEXT_PUBLIC_ENVIRONMENT = process.env.ENVIRONMENT ?? "";
 process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT =
@@ -151,6 +156,39 @@ export default withSentryConfig(
       },
       async headers() {
         return [
+          {
+            source: "/:path*",
+            headers: [
+              // `frame-ancestors` in the Content Security Policy supersedes
+              // this where supported; it covers routes the policy isn't set on.
+              { key: "X-Frame-Options", value: "SAMEORIGIN" },
+              { key: "X-Content-Type-Options", value: "nosniff" },
+              {
+                key: "Referrer-Policy",
+                value: "strict-origin-when-cross-origin",
+              },
+              {
+                key: "Permissions-Policy",
+                value: [
+                  "accelerometer=()",
+                  "bluetooth=()",
+                  "browsing-topics=()",
+                  "camera=()",
+                  "display-capture=()",
+                  "geolocation=()",
+                  "gyroscope=()",
+                  "hid=()",
+                  "idle-detection=()",
+                  "magnetometer=()",
+                  "midi=()",
+                  "payment=()",
+                  "serial=()",
+                  "usb=()",
+                  "xr-spatial-tracking=()",
+                ].join(", "),
+              },
+            ],
+          },
           {
             /**
              * allow fetching types as JSON from anywhere

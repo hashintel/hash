@@ -6,7 +6,14 @@
 
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
-import { brunchAgentOrigin } from "./public-env";
+import { buildStamp } from "../../buildstamp";
+import {
+  brunchAgentOrigin,
+  fileStorageOrigins,
+  SENTRY_DSN,
+  SENTRY_ENVIRONMENT,
+} from "./public-env";
+import { sentrySecurityEndpoint } from "./sentry-security-endpoint";
 
 const buildDirectiveString = (directives: Record<string, string[]>): string =>
   Object.entries(directives)
@@ -25,15 +32,43 @@ const buildDirectiveString = (directives: Record<string, string[]>): string =>
 export const isProcessEditorPath = (pathname: string): boolean =>
   /^\/processes\/[^/]+\/?$/.test(pathname);
 
-export const buildCspHeader = ({
+/** The Vercel toolbar, which Vercel injects into preview deployments. */
+const isVercelPreview = (): boolean =>
+  process.env.NEXT_PUBLIC_VERCEL_ENV === "preview";
+
+const reportingEndpointName = "csp-endpoint";
+
+/**
+ * Where browsers send this deployment's policy violation reports, or `null`
+ * when it has no Sentry DSN to report to.
+ */
+const cspReportEndpoint = (): string | null =>
+  SENTRY_DSN
+    ? sentrySecurityEndpoint({
+        dsn: SENTRY_DSN,
+        environment: SENTRY_ENVIRONMENT,
+        release: buildStamp,
+      })
+    : null;
+
+const buildDirectives = ({
   nonce,
   pathname,
+  storageOrigins,
 }: {
   nonce: string;
-  /** The request's pathname, which decides the route-specific allowances. */
   pathname: string;
-}): string => {
+  /**
+   * The origins file downloads may come from. Omitted, `img-src` and
+   * `connect-src` allow any HTTPS origin instead.
+   */
+  storageOrigins?: string[];
+}): Record<string, string[]> => {
   const isProcessEditor = isProcessEditorPath(pathname);
+  const storageSources = storageOrigins
+    ? [apiOrigin, ...storageOrigins]
+    : ["https:"];
+  const reportEndpoint = cspReportEndpoint();
 
   const directives: Record<string, string[]> = {
     "default-src": ["'self'"],
@@ -57,7 +92,7 @@ export const buildCspHeader = ({
       // Google Picker API (Google Sheets integration)
       "https://apis.google.com",
       // Vercel toolbar / live preview widget
-      "https://vercel.live",
+      ...(isVercelPreview() ? ["https://vercel.live"] : []),
     ],
 
     "style-src": [
@@ -72,9 +107,8 @@ export const buildCspHeader = ({
       "data:",
       "blob:",
       // File uploads are served via the API's /file/ proxy which 302-redirects
-      // to presigned S3/R2 URLs on varying domains. `https:` avoids needing to
-      // enumerate every possible storage backend domain.
-      "https:",
+      // to presigned S3/R2 URLs on varying domains.
+      ...storageSources,
       // Local S3-compatible storage (MinIO) serves over plain HTTP
       ...(process.env.NODE_ENV === "development" ? ["http:"] : []),
     ],
@@ -112,10 +146,10 @@ export const buildCspHeader = ({
       // Vercel Edge Config (maintenance mode check in middleware)
       "https://edge-config.vercel.com",
       // Vercel toolbar / live preview widget
-      "https://vercel.live",
+      ...(isVercelPreview() ? ["https://vercel.live"] : []),
       // File uploads/downloads use presigned S3/R2 URLs on varying domains.
       // Production storage is always HTTPS; local MinIO uses plain HTTP.
-      "https:",
+      ...storageSources,
       ...(process.env.NODE_ENV === "development" ? ["http:"] : []),
     ],
 
@@ -132,13 +166,63 @@ export const buildCspHeader = ({
       // Google Picker iframe
       "https://docs.google.com",
       // Vercel toolbar / live preview widget
-      "https://vercel.live",
+      ...(isVercelPreview() ? ["https://vercel.live"] : []),
     ],
 
+    "frame-ancestors": ["'self'"],
     "object-src": ["'none'"],
     "base-uri": ["'self'"],
     "form-action": ["'self'"],
   };
 
-  return buildDirectiveString(directives);
+  if (reportEndpoint !== null) {
+    // `report-to` supersedes `report-uri` where a browser supports both.
+    directives["report-uri"] = [reportEndpoint];
+    directives["report-to"] = [reportingEndpointName];
+  }
+
+  return directives;
+};
+
+export const buildCspHeader = ({
+  nonce,
+  pathname,
+}: {
+  nonce: string;
+  /** The request's pathname, which decides the route-specific allowances. */
+  pathname: string;
+}): string => buildDirectiveString(buildDirectives({ nonce, pathname }));
+
+/**
+ * The enforced policy with file downloads narrowed to `FILE_STORAGE_ORIGINS`
+ * and the API, sent as `Content-Security-Policy-Report-Only` so its
+ * violations show which origins the list lacks. `null` when there is nowhere
+ * to report them.
+ */
+export const buildReportOnlyCspHeader = ({
+  nonce,
+  pathname,
+}: {
+  nonce: string;
+  pathname: string;
+}): string | null =>
+  cspReportEndpoint() === null
+    ? null
+    : buildDirectiveString(
+        buildDirectives({
+          nonce,
+          pathname,
+          storageOrigins: fileStorageOrigins,
+        }),
+      );
+
+/**
+ * The `Reporting-Endpoints` header value that names the policies' `report-to`
+ * endpoint, or `null` when they report nowhere.
+ */
+export const buildReportingEndpointsHeader = (): string | null => {
+  const reportEndpoint = cspReportEndpoint();
+  return reportEndpoint === null
+    ? null
+    : `${reportingEndpointName}="${reportEndpoint}"`;
 };
