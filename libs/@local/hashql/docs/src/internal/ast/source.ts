@@ -121,7 +121,11 @@ export const documentedAt: {
   2,
   (file: SourceFile, position: number): Option.Option<Node> => {
     let host = deepestAt(file, position);
-    while (host.parent !== file && host.parent.pos === host.pos) {
+    while (
+      host !== file &&
+      host.parent !== file &&
+      host.parent.pos === host.pos
+    ) {
       host = host.parent;
     }
 
