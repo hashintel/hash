@@ -1471,6 +1471,7 @@ describe("Petrinaut core fusion actions", () => {
     expect(instance.definition.get().fusions).toEqual([
       {
         id: idOf("f1"),
+        name: "Fusion 1",
         members: [{ kind: "place", placeId: idOf("buffer") }, port("m2", "in")],
       },
     ]);
@@ -1501,6 +1502,7 @@ describe("Petrinaut core fusion actions", () => {
     expect(instance.definition.get().fusions).toEqual([
       {
         id: idOf("f1"),
+        name: "Fusion 1",
         members: [
           { kind: "place", placeId: idOf("buffer") },
           port("m1", "out"),

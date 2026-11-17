@@ -262,6 +262,7 @@ describe("buildCanvasScene", () => {
     // Where three meet, a link moves by its member's end and the hub stays.
     const three = {
       id: "three",
+      name: "Three",
       members: [...fusionWith("left").members, fusionWith("right").members[1]!],
     };
     expect(
