@@ -42,6 +42,19 @@ export const findFusionWithMember = (
 ): Fusion | undefined =>
   (net.fusions ?? []).find((fusion) => fusionHolds(fusion, member));
 
+/** `Fusion N`, with the lowest number no fusion in `fusions` goes by. */
+export const nextFusionName = (
+  fusions: readonly Pick<Fusion, "name">[],
+): string => {
+  const taken = new Set(fusions.map(({ name }) => name));
+  for (let index = 1; ; index++) {
+    const name = `Fusion ${index}`;
+    if (!taken.has(name)) {
+      return name;
+    }
+  }
+};
+
 /** The member that is a place of the fusion's own net, if any. */
 export const fusionAnchor = (
   fusion: Pick<Fusion, "members">,

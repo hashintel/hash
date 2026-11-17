@@ -22,7 +22,11 @@ import {
   placeArcEndpoint,
 } from "./arc-endpoints";
 import { generateArcId } from "./arc-id";
-import { findFusionWithMember, fusionHolds } from "./composition/fusions";
+import {
+  findFusionWithMember,
+  fusionHolds,
+  nextFusionName,
+} from "./composition/fusions";
 import { generateDefaultTransitionKernelCode } from "./default-codes";
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
@@ -1387,6 +1391,8 @@ export function createPetrinautActions(
         absorbFusionsSharingMembers(net, parsedFusion, [
           ...parsedFusion.members,
         ]);
+        // Named once the fusions it absorbed are gone, so their numbers are free.
+        parsedFusion.name ??= nextFusionName(fusions);
         fusions.push(parsedFusion);
         // Absorbing a fusion can bring a second place of the net.
         fusionSchema.parse(parsedFusion);

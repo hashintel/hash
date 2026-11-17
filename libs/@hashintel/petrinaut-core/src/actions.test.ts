@@ -1373,12 +1373,55 @@ describe("Petrinaut core fusion actions", () => {
     expect(instance.definition.get().fusions).toEqual([
       {
         id: idOf("f2"),
+        name: "Fusion 1",
         members: [
           port("m1", "in"),
           port("m2", "in"),
           { kind: "place", placeId: idOf("buffer") },
         ],
       },
+    ]);
+  });
+
+  test("names a fusion added without a name `Fusion N`, with the lowest number free in its net", () => {
+    const instance = createInstance(composed());
+    const names = () =>
+      instance.definition.get().fusions?.map(({ name }) => name);
+
+    instance.mutations.addFusion({
+      id: "f1",
+      members: [{ kind: "place", placeId: "buffer" }, port("m1", "in")],
+    });
+    instance.mutations.addFusion({
+      id: "f2",
+      members: [port("m1", "out"), port("m2", "in")],
+    });
+    expect(names()).toEqual(["Fusion 1", "Fusion 2"]);
+
+    instance.mutations.removeFusion({ fusionId: "f1" });
+    instance.mutations.addFusion({
+      id: "f3",
+      members: [{ kind: "place", placeId: "buffer" }, port("m2", "out")],
+    });
+    expect(names()).toEqual(["Fusion 2", "Fusion 1"]);
+  });
+
+  test("keeps the name a fusion is added with, and numbers around it", () => {
+    const instance = createInstance(composed());
+
+    instance.mutations.addFusion({
+      id: "f1",
+      name: "Fusion 1",
+      members: [{ kind: "place", placeId: "buffer" }, port("m1", "in")],
+    });
+    instance.mutations.addFusion({
+      id: "f2",
+      members: [port("m1", "out"), port("m2", "in")],
+    });
+
+    expect(instance.definition.get().fusions?.map(({ name }) => name)).toEqual([
+      "Fusion 1",
+      "Fusion 2",
     ]);
   });
 
