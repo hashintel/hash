@@ -20,6 +20,8 @@ import { useEffect, useRef, useState } from "react";
 import {
   BreadCrumbs,
   Button,
+  ButtonGroup,
+  NumberInput,
   Icon,
   type IconName,
   Menu,
@@ -31,14 +33,33 @@ import {
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { Select } from "./fill-select";
+import { DatePopover } from "./date-picker";
 import { emptyDocument } from "./document";
-import { flowTriggersOf } from "./flow-triggers";
 import { Table } from "./ds-parts/table";
+import { Select } from "./fill-select";
+import { flowTriggersOf } from "./flow-triggers";
 import { HashShell } from "./hash-shell";
 import { firstLineIconStyle } from "./menu-rows";
 import { navigate } from "./router";
 import {
+  dayLetter,
+  dayNames,
+  isLastWeek,
+  nthOf,
+  ordinal,
+  parse,
+  quickChoices,
+  ruleWords,
+  nextRuns,
+  runWords,
+  unitItems,
+  weekday,
+  zoneItems,
+  times as scheduleTimes,
+  type Rule,
+  type Unit,
+  type Monthly,
+  type Ends,
   customPreset,
   endsWords,
   ruleSummary,
@@ -64,6 +85,18 @@ type StatusFilter = "all" | "on" | "paused";
 type Take = 1 | 2 | 3 | 4;
 
 const query = () => new URLSearchParams(globalThis.location.search);
+
+const defaultSchedulePage = () =>
+  ![
+    "triggerspage",
+    "triggeradd",
+    "scheduleform",
+    "schedshow",
+    "schedstart",
+    "schedopen",
+    "versionselect",
+    "versionwidth",
+  ].some((flag) => query().has(flag));
 
 /** `?triggerspage=1..4`, from the URL only. */
 export const triggersPageTake = (): Take | null => {
@@ -97,6 +130,7 @@ type Values = {
   event: string;
   /** `?triggeradd=g1|g2`: the row's own words, written by the schedule form. */
   label?: string;
+  schedule?: ScheduleValues;
 };
 
 type PageTrigger = Values & {
@@ -124,11 +158,37 @@ type PageFlow = {
 const onboardId = "onboard-new-supplier";
 const digestId = "weekly-digest";
 
+const mockSchedule: ScheduleValues = {
+  startIso: "2026-11-09",
+  at: "08:00",
+  zone: "Europe/London",
+  rule: {
+    once: false,
+    every: 1,
+    unit: "week",
+    days: [0],
+    monthly: "date",
+    ends: "never",
+    endIso: "2027-02-08",
+    count: 10,
+  },
+};
+
 /** Form values the panel's mock has no field for, keyed by its trigger ids. */
 const supplierReviewForm: Record<string, Partial<Values>> = {
   monthly: { repeat: "Monthly on day 1", at: "09:00" },
   monday: { repeat: "Weekly on Monday", at: "08:00" },
   supplierCreated: { entityType: "Supplier", event: "Is created" },
+};
+
+const defaultSchedules: Record<string, ScheduleValues> = {
+  monthly: {
+    ...mockSchedule,
+    startIso: "2026-11-01",
+    at: "09:00",
+    rule: { ...mockSchedule.rule, unit: "month", days: [6] },
+  },
+  monday: mockSchedule,
 };
 
 const blank: Omit<Values, "flowId"> = {
@@ -158,6 +218,9 @@ const supplierReview = (): { flow: PageFlow; triggers: PageTrigger[] } => {
     triggers: source.items.map((item) => ({
       ...blank,
       ...supplierReviewForm[item.id],
+      ...(defaultSchedulePage() && defaultSchedules[item.id]
+        ? { schedule: defaultSchedules[item.id] }
+        : {}),
       flowId: monthlyReviewId,
       id: item.id,
       kind: item.kind,
@@ -208,6 +271,16 @@ const seed = () => {
       label: "Every Friday at 17:00",
       repeat: "Weekly on Friday",
       at: "17:00",
+      ...(defaultSchedulePage()
+        ? {
+            schedule: {
+              ...mockSchedule,
+              startIso: "2026-11-06",
+              at: "17:00",
+              rule: { ...mockSchedule.rule, days: [4] },
+            },
+          }
+        : {}),
       web: "@aakarsh",
       version: "v3",
       failed: true,
@@ -521,6 +594,414 @@ const formGridStyle = css({
   "& > .label": { textStyle: "sm", color: "neutral.fg.muted" },
 });
 
+const scheduleRowStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+});
+const scheduleNumberStyle = css({
+  width: "[52px]",
+  flexShrink: 0,
+  "& input": { textAlign: "center" },
+});
+
+const DateButton = ({
+  label,
+  iso,
+  onPick,
+}: {
+  label: string;
+  iso: string;
+  onPick: (iso: string) => void;
+}) => {
+  const ref = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
+  const date = parse(iso);
+  return (
+    <>
+      <Button
+        ref={ref}
+        size="sm"
+        variant="subtle"
+        tone="neutral"
+        aria-label={label}
+        iconName="calendar"
+        iconPosition="left"
+        onClick={() => setOpen((current) => !current)}
+      >
+        {`${dayNames[weekday(date)]?.slice(0, 3)} ${date.getUTCDate()} ${date.toLocaleString("en-GB", { month: "short", timeZone: "UTC" })} ${date.getUTCFullYear()}`}
+      </Button>
+      {open ? (
+        <DatePopover
+          triggerRef={ref}
+          label={label}
+          iso={iso}
+          onPickDate={(value) => {
+            onPick(value);
+            setOpen(false);
+          }}
+          onClose={() => setOpen(false)}
+        />
+      ) : null}
+    </>
+  );
+};
+
+const CustomFields = ({
+  rule,
+  startIso,
+  onChange,
+  withEnds,
+}: {
+  rule: Rule;
+  startIso: string;
+  onChange: (rule: Rule) => void;
+  withEnds: boolean;
+}) => {
+  const start = parse(startIso);
+  const monthItems = [
+    { value: "date", text: `On the ${ordinal(start.getUTCDate())}` },
+    {
+      value: "nth",
+      text: `On the ${ordinal(nthOf(start))} ${dayNames[weekday(start)]}`,
+    },
+    ...(isLastWeek(start) || rule.monthly === "last"
+      ? [{ value: "last", text: `On the last ${dayNames[weekday(start)]}` }]
+      : []),
+  ];
+  return (
+    <>
+      <span className="label">Repeat every</span>
+      <span className={scheduleRowStyle}>
+        <NumberInput
+          size="sm"
+          aria-label="Repeat every"
+          value={rule.every}
+          min={1}
+          max={99}
+          hideStepper
+          className={scheduleNumberStyle}
+          onChange={(value) => onChange({ ...rule, every: value ?? 1 })}
+        />
+        <Select
+          required
+          size="sm"
+          aria-label="Unit"
+          items={unitItems(rule.every)}
+          value={rule.unit}
+          onChange={(value) =>
+            onChange({ ...rule, unit: (value ?? rule.unit) as Unit })
+          }
+        />
+      </span>
+      {rule.unit === "week" ? (
+        <>
+          <span className="label">On</span>
+          <ButtonGroup variant="segmented" spacing="sm" noWrap>
+            {dayLetter.map((letter, day) => {
+              const on = rule.days.includes(day);
+              return (
+                <Button
+                  key={day}
+                  size="sm"
+                  variant={on ? "solid" : "subtle"}
+                  tone="neutral"
+                  aria-label={dayNames[day]}
+                  aria-pressed={on}
+                  data-weekday={day}
+                  onClick={() =>
+                    onChange({
+                      ...rule,
+                      days: on
+                        ? rule.days.length > 1
+                          ? rule.days.filter((other) => other !== day)
+                          : rule.days
+                        : [...rule.days, day].sort(),
+                    })
+                  }
+                >
+                  {letter}
+                </Button>
+              );
+            })}
+          </ButtonGroup>
+        </>
+      ) : null}
+      {rule.unit === "month" ? (
+        <>
+          <span className="label">On</span>
+          <Select
+            required
+            size="sm"
+            aria-label="Day of the month"
+            items={monthItems}
+            value={rule.monthly}
+            onChange={(value) =>
+              onChange({ ...rule, monthly: (value ?? rule.monthly) as Monthly })
+            }
+          />
+        </>
+      ) : null}
+      {withEnds ? (
+        <EndsFields rule={rule} startIso={startIso} onChange={onChange} />
+      ) : null}
+    </>
+  );
+};
+
+const EndsFields = ({
+  rule,
+  startIso,
+  onChange,
+}: {
+  rule: Rule;
+  startIso: string;
+  onChange: (rule: Rule) => void;
+}) => (
+  <>
+    <span className="label">Ends</span>
+    <span className={scheduleRowStyle}>
+      <SegmentedControl
+        size="sm"
+        aria-label="Ends"
+        items={[
+          { value: "never", label: "Never" },
+          { value: "on", label: "On a date" },
+          { value: "after", label: "After" },
+        ]}
+        value={rule.ends}
+        onChange={(value) => onChange({ ...rule, ends: value as Ends })}
+      />
+      {rule.ends === "on" ? (
+        <DateButton
+          label="Ends on"
+          iso={rule.endIso}
+          onPick={(iso) =>
+            onChange({ ...rule, endIso: iso < startIso ? startIso : iso })
+          }
+        />
+      ) : rule.ends === "after" ? (
+        <span className={scheduleRowStyle}>
+          <NumberInput
+            size="sm"
+            aria-label="Runs"
+            value={rule.count}
+            min={1}
+            max={730}
+            hideStepper
+            className={scheduleNumberStyle}
+            onChange={(value) => onChange({ ...rule, count: value ?? 1 })}
+          />
+          <span className={css({ textStyle: "sm", color: "neutral.fg.muted" })}>
+            runs
+          </span>
+        </span>
+      ) : null}
+    </span>
+  </>
+);
+
+const DefaultScheduleFields = ({
+  values,
+  onChange,
+}: {
+  values: ScheduleValues;
+  onChange: (values: ScheduleValues) => void;
+}) => {
+  const { startIso, rule, at, zone } = values;
+  const quick = quickChoices(startIso);
+  const current = ruleWords(rule, startIso);
+  const quickMatch = quick.find((choice) => choice.value === current);
+  const [customRows, setCustomRows] = useState(!quickMatch);
+  const [popover, setPopover] = useState(false);
+  const [draft, setDraft] = useState<Rule>(() => rule);
+  const repeatRef = useRef<HTMLSpanElement>(null);
+  const items = [
+    ...quick.map((choice) => ({ value: choice.value, text: choice.value })),
+    ...(quickMatch ? [] : [{ value: current, text: current }]),
+    { value: "custom", text: "Custom…" },
+  ];
+  const set = (patch: Partial<ScheduleValues>) =>
+    onChange({ ...values, ...patch });
+  const pick = (value: string | null) => {
+    if (value === "custom") {
+      setDraft({ ...rule, once: false });
+      setPopover(true);
+      return;
+    }
+    const choice = quick.find((candidate) => candidate.value === value);
+    if (choice) {
+      setCustomRows(false);
+      set({
+        rule: {
+          ...choice.rule,
+          ends: choice.rule.once ? "never" : rule.ends,
+          endIso: rule.endIso,
+          count: rule.count,
+        },
+      });
+    }
+  };
+  const now = new Date(Date.now());
+  const clock = Object.fromEntries(
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: zone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      fractionalSecondDigits: 3,
+      hourCycle: "h23",
+    })
+      .formatToParts(now)
+      .map(({ type, value }) => [type, value]),
+  );
+  const cutoff = `${clock.year}-${clock.month}-${clock.day}T${clock.hour}:${clock.minute}:${clock.second}.${clock.fractionalSecond}`;
+  const runs = nextRuns(rule, startIso, 3700)
+    .filter(
+      (date) => `${date.toISOString().slice(0, 10)}T${at}:00.000` >= cutoff,
+    )
+    .slice(0, 3);
+  return (
+    <>
+      <span className="label">Repeat</span>
+      <span ref={repeatRef} className={css({ display: "block" })}>
+        <Select
+          required
+          size="sm"
+          aria-label="Repeat"
+          items={items}
+          value={current}
+          onChange={pick}
+        />
+      </span>
+      {customRows ? (
+        <CustomFields
+          rule={rule}
+          startIso={startIso}
+          onChange={(next) => set({ rule: next })}
+          withEnds={false}
+        />
+      ) : null}
+      {popover ? (
+        <Popover
+          triggerRef={repeatRef}
+          position="bottom-start"
+          gapY={4}
+          onClose={() => setPopover(false)}
+        >
+          <div
+            className={cx(confirmStyle, css({ width: "[560px]" }))}
+            data-custom-repeat
+          >
+            <span
+              className={css({
+                textStyle: "sm",
+                fontWeight: "medium",
+                color: "neutral.fg.heading",
+              })}
+            >
+              Custom
+            </span>
+            <div className={formGridStyle}>
+              <CustomFields
+                rule={draft}
+                startIso={startIso}
+                onChange={setDraft}
+                withEnds
+              />
+            </div>
+            <span
+              className={css({
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "2",
+              })}
+            >
+              <Button
+                size="sm"
+                variant="subtle"
+                tone="neutral"
+                onClick={() => setPopover(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                variant="solid"
+                tone="neutral"
+                onClick={() => {
+                  set({ rule: draft });
+                  setCustomRows(true);
+                  setPopover(false);
+                }}
+              >
+                Done
+              </Button>
+            </span>
+          </div>
+        </Popover>
+      ) : null}
+      <span className="label">Starts</span>
+      <span>
+        <DateButton
+          label="Starts"
+          iso={startIso}
+          onPick={(iso) =>
+            set({
+              startIso: iso,
+              rule: {
+                ...rule,
+                endIso: rule.endIso < iso ? iso : rule.endIso,
+              },
+            })
+          }
+        />
+      </span>
+      <span className="label">At</span>
+      <Select
+        required
+        searchable
+        size="sm"
+        aria-label="At"
+        items={scheduleTimes.map((time) => ({ value: time, text: time }))}
+        value={at}
+        onChange={(value) => set({ at: value ?? at })}
+      />
+      <span className="label">Time zone</span>
+      <Select
+        required
+        searchable
+        size="sm"
+        aria-label="Time zone"
+        items={zoneItems(startIso)}
+        value={zone}
+        onChange={(value) => set({ zone: value ?? zone })}
+      />
+      {!rule.once ? (
+        <EndsFields
+          rule={rule}
+          startIso={startIso}
+          onChange={(next) => set({ rule: next })}
+        />
+      ) : null}
+      <span className="label">Next runs</span>
+      <span className={mutedText} data-next-runs>
+        {runs.length === 0
+          ? "None"
+          : runs.map((date, index) => (
+              <span key={date.toISOString()}>
+                {runWords(date, at)}
+                {index < runs.length - 1 ? " ·" : ""}
+              </span>
+            ))}
+      </span>
+    </>
+  );
+};
+
 const TriggerForm = ({
   trigger,
   kind,
@@ -547,10 +1028,14 @@ const TriggerForm = ({
     setValues((current) => ({ ...current, [key]: value ?? current[key] }));
   const flow = flows.find((candidate) => candidate.id === values.flowId);
   const day = repeatDay(trigger);
-  const formTake = trigger ? null : scheduleFormTake();
+  const defaultPage = defaultSchedulePage() && kind === "schedule";
+  const formTake = defaultPage ? "g1" : trigger ? null : scheduleFormTake();
   const [schedule, setSchedule] = useState<ScheduleValues | null>(() => {
     if (!formTake) {
       return null;
+    }
+    if (defaultPage && trigger) {
+      return trigger.schedule ?? null;
     }
     const start = scheduleStart();
     return scheduleShow() === "custom" && formTake === "g1"
@@ -558,16 +1043,22 @@ const TriggerForm = ({
       : start;
   });
   const valuesToSave = (): Values =>
-    schedule
+    schedule &&
+    (!defaultPage ||
+      JSON.stringify(schedule) !== JSON.stringify(trigger?.schedule))
       ? {
           ...values,
+          ...(defaultPage ? { schedule } : {}),
           repeat: ruleSummary(schedule.rule, schedule.startIso, schedule.at),
           at: schedule.at,
           timeZone: zoneName(schedule.zone),
           label: `${ruleSummary(schedule.rule, schedule.startIso, schedule.at)}`,
         }
       : values;
-  const layout = formTake && schedule && kind === "schedule" ? scheduleLayout() : null;
+  const layout =
+    !defaultPage && formTake && schedule && kind === "schedule"
+      ? scheduleLayout()
+      : null;
   if (layout && schedule) {
     return (
       <div className={css({ paddingY: "3" })} data-trigger-form>
@@ -600,8 +1091,11 @@ const TriggerForm = ({
       })}
       data-trigger-form
     >
+      {defaultPage && trigger ? (
+        <span className={headingText}>Edit schedule</span>
+      ) : null}
       <div className={formGridStyle}>
-        {pickFlow && !trigger ? (
+        {pickFlow && !trigger && !defaultPage ? (
           <>
             <span className="label">Flow</span>
             <Select
@@ -617,7 +1111,9 @@ const TriggerForm = ({
             />
           </>
         ) : null}
-        {kind === "schedule" && formTake && schedule ? (
+        {defaultPage && kind === "schedule" && schedule ? (
+          <DefaultScheduleFields values={schedule} onChange={setSchedule} />
+        ) : kind === "schedule" && formTake && schedule ? (
           <ScheduleFields
             take={formTake}
             values={schedule}
@@ -696,6 +1192,22 @@ const TriggerForm = ({
           value={values.web}
           onChange={set("web")}
         />
+        {defaultPage && pickFlow && !trigger ? (
+          <>
+            <span className="label">Flow</span>
+            <Select
+              required
+              size="sm"
+              aria-label="Flow"
+              items={flows.map((candidate) => ({
+                value: candidate.id,
+                text: candidate.name,
+              }))}
+              value={values.flowId}
+              onChange={set("flowId")}
+            />
+          </>
+        ) : null}
         {/* An existing trigger's version is its row's dropdown, so the form doesn't repeat it. */}
         {trigger ? null : (
           <>
@@ -1312,7 +1824,15 @@ const versionsOf = (flow: PageFlow) => {
 const stopRowClick = (event: React.SyntheticEvent) => event.stopPropagation();
 
 /** The pinned version, chosen in the row (11 Nov sync: inline editing), with a hint when a newer one is out. */
-const VersionCell = ({ page, trigger, flow }: { page: Page; trigger: PageTrigger; flow: PageFlow }) => (
+const VersionCell = ({
+  page,
+  trigger,
+  flow,
+}: {
+  page: Page;
+  trigger: PageTrigger;
+  flow: PageFlow;
+}) => (
   // oxlint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events -- keeps the dropdown's clicks off the row
   <span className={versionCellStyle} onClick={stopRowClick}>
     {/* The page's other dropdowns (All flows, All webs): the same Select at a fixed 96 px, so the arrow sits with v5. */}
@@ -1376,7 +1896,13 @@ const RowMenu = ({ page, row }: { page: Page; row: Row }) => {
             },
           },
           ...(row.kind === "trigger"
-            ? [{ id: "delete", text: "Delete", onClick: () => page.remove(row.id) }]
+            ? [
+                {
+                  id: "delete",
+                  text: "Delete",
+                  onClick: () => page.remove(row.id),
+                },
+              ]
             : []),
         ]}
         trigger={
