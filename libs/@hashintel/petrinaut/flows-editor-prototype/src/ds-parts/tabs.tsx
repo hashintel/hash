@@ -228,6 +228,14 @@ const figmaBadgeStyle = css({
   fontWeight: "medium",
 });
 
+export const Badge = ({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) => <span className={cx(figmaBadgeStyle, className)}>{children}</span>;
+
 const brandBadgeStyle = css({
   backgroundColor: "[#e6f4fe]",
   color: "[#0d74ce]",
@@ -311,14 +319,15 @@ export const Tabs = <Value extends string>({
             onClick={() => onChange(item.value)}
           >
             {item.count === undefined ? null : (
-              <span
-                className={cx(
-                  figmaBadgeStyle,
-                  look !== "quiet" && value === item.value && brandBadgeStyle,
-                )}
+              <Badge
+                className={
+                  look !== "quiet" && value === item.value
+                    ? brandBadgeStyle
+                    : undefined
+                }
               >
                 {item.count}
-              </span>
+              </Badge>
             )}
             {item.label}
           </button>

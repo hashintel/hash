@@ -4,6 +4,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { HashShell } from "./hash-shell";
 import { RunGlyph } from "./run-glyph";
 import { RunIdsIn } from "./run-id";
+import { VersionLabel, versionLabel } from "./versions";
 
 import type { EditorDocument } from "./document";
 import type { ItemProgress, StepState } from "./run-history";
@@ -13,8 +14,7 @@ export type FlowListEntry = {
   document: EditorDocument;
   /** J0.2's "Last edited" column. */
   lastEdited: string;
-  /** "v6 · Draft" or "v5 · Live" (V0–V7). */
-  version?: string;
+  version?: ReturnType<typeof versionLabel>;
   /** The newest run: its mark and "Run 17 · Today 10:42", or none yet. */
   lastRun?: { state: StepState; label: string; progress?: ItemProgress };
   runCount?: number;
@@ -254,7 +254,7 @@ export const Home = ({
                       {flow.document.name}
                     </td>
                     <td className={css({ color: "neutral.fg.heading" })}>
-                      {flow.version ?? ""}
+                      {flow.version ? <VersionLabel {...flow.version} /> : null}
                     </td>
                     <td className={css({ color: "neutral.fg.heading" })}>
                       {flow.lastRun ? (

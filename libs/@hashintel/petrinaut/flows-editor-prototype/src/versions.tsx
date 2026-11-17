@@ -22,6 +22,7 @@ import { publishFlow } from "./app-store";
 import { setQuery, useLocation } from "./router";
 import { triggerNoneTake } from "./trigger-flags";
 import { NoTriggerWarning } from "./trigger-none";
+import { Badge } from "./ds-parts/tabs";
 import { InlineBanner } from "./ds-parts/inline-banner";
 import { SaveStatusIndicator } from "./ds-parts/save-status-indicator";
 import { Toast } from "./ds-parts/toast";
@@ -30,7 +31,7 @@ import type { FlowVersion } from "./seed-flows";
 
 /**
  * How a version number is written, open (Aakarsh, 4 Nov: why "v1" and not "V1"?; inbox `picks/version-label-case`):
- * ?versionlabel=lower|upper|word, from the URL only. lower is "v6", Petrinaut's form ("v2 · Draft") and the default;
+ * ?versionlabel=lower|upper|word, from the URL only. lower is "v6", Petrinaut's form ("v2") and the default;
  * upper is "V6"; word is "Version 6".
  */
 export type VersionLabelCase = "lower" | "upper" | "word";
@@ -46,8 +47,30 @@ export const versionName = (n: number, labelCase: VersionLabelCase = "lower") =>
 export const versionLabel = (
   version: FlowVersion,
   labelCase: VersionLabelCase = "lower",
-) =>
-  `${versionName(version.current, labelCase)} · ${version.state === "draft" ? "Draft" : "Live"}`;
+) => ({
+  number: versionName(version.current, labelCase),
+  state: version.state === "draft" ? ("Draft" as const) : ("Live" as const),
+});
+
+export const VersionLabel = ({
+  number,
+  state,
+}: {
+  number: string;
+  state?: "Draft" | "Live" | "Read-only";
+}) => (
+  <span
+    className={css({
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "1.5",
+      whiteSpace: "nowrap",
+    })}
+  >
+    {number}
+    {state ? <Badge>{state}</Badge> : null}
+  </span>
+);
 
 const menuRowStyle = css({
   display: "flex",
@@ -67,14 +90,6 @@ const menuMetaStyle = css({
   textStyle: "xs",
   color: "neutral.fg.muted",
   whiteSpace: "nowrap",
-});
-
-const stateTagStyle = css({
-  textStyle: "xs",
-  color: "neutral.fg.muted",
-  paddingX: "1",
-  borderRadius: "sm",
-  backgroundColor: "neutral.bg.surface.active",
 });
 
 /** V3: the draft (current), then published versions newest first, then All versions. */
@@ -97,8 +112,7 @@ export const VersionMenu = ({
             text: (
               <span className={menuRowStyle}>
                 <span className={cx(menuTitleStyle, viewing === null && selectedLabelStyle)}>
-                  {versionName(version.current, labelCase)}
-                  <span className={stateTagStyle}>Draft</span>
+                  <VersionLabel {...versionLabel(version, labelCase)} />
                 </span>
                 <span className={menuMetaStyle}>
                   Edited {version.editedAt ?? "just now"} · not published
@@ -120,10 +134,12 @@ export const VersionMenu = ({
       text: (
         <span className={menuRowStyle}>
           <span className={cx(menuTitleStyle, selected && selectedLabelStyle)}>
-            {entry.name && entry.name !== `v${entry.n}`
-              ? `${versionName(entry.n, labelCase)} · ${entry.name}`
-              : versionName(entry.n, labelCase)}
-            {live ? <span className={stateTagStyle}>Live</span> : null}
+            <VersionLabel
+              number={entry.name && entry.name !== `v${entry.n}`
+                ? `${versionName(entry.n, labelCase)} · ${entry.name}`
+                : versionName(entry.n, labelCase)}
+              state={live ? "Live" : undefined}
+            />
           </span>
           <span className={menuMetaStyle}>
             Published {entry.at} · {entry.by}
@@ -164,7 +180,7 @@ const quietButtonStyle = css({
   "&[class]": { color: "neutral.fg.muted", fontWeight: "medium" },
 });
 
-/** The version menu's own button: "v6 · Draft ▾", quiet, beside the title. */
+/** The version menu button beside the title. */
 export const VersionButton = ({
   version,
   viewing,
@@ -187,9 +203,11 @@ export const VersionButton = ({
         className={quietButtonStyle}
         data-version-menu
       >
-        {viewing === null
-          ? versionLabel(version, labelCase)
-          : `${versionName(viewing, labelCase)} · Read-only`}
+        <VersionLabel
+          {...(viewing === null
+            ? versionLabel(version, labelCase)
+            : { number: versionName(viewing, labelCase), state: "Read-only" as const })}
+        />
       </Button>
     }
   />
@@ -639,7 +657,11 @@ export const VersionBanner = ({
       className={bannerStyle}
       role="status"
       data-version-banner
-      title={`Viewing ${versionName(viewing, labelCase)} · read-only`}
+      title={
+        <>
+          Viewing <VersionLabel number={versionName(viewing, labelCase)} state="Read-only" />
+        </>
+      }
       description={`Published ${entry?.at ?? ""} by ${entry?.by ?? ""}. Your edits stay in the ${versionName(draft, labelCase)} draft.`}
       action={
         <span className={css({ display: "flex", gap: "2" })}>
