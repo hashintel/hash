@@ -173,7 +173,7 @@ export const compileActionStep = ({
       actionDefinitionId: step.actionDefinitionId,
       ...(Object.keys(constants).length > 0 ? { constants } : {}),
     } satisfies InstanceMetadata,
-    subnetId: generateSubnetKey(subnetName),
+    component: { id: generateSubnetKey(subnetName) },
     parameterValues: {
       [maxRetriesParameterKey]: String(step.retryCount ?? defaultMaxRetries),
     },
