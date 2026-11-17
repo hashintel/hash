@@ -8,10 +8,16 @@
  * with the Ledger extension built over its host binding.
  */
 import {
+  CompactionEntry,
+  type Conversation,
+  createRegistry,
   defineExtension,
   defineTool,
+  type EntryRecord,
   type Extension,
+  Harness,
   type JsonObject,
+  LiveDoc,
   MemoryStorage,
 } from "@earendil-works/pi-durable";
 import { bool, obj, str } from "@earendil-works/pi-schema";
@@ -26,6 +32,7 @@ import {
   ledgerCommentsMessage,
 } from "@hashintel/brunch-agent";
 
+import { scriptedModel } from "../test/platform/compaction-placement/support";
 import {
   changeText,
   createPlaceToolName,
@@ -38,17 +45,21 @@ import {
   context,
   fauxAssistantMessage,
   fauxToolCall,
+  holdTool,
   kindsOf,
   recordingModel,
   resultEntry,
   textOf,
 } from "../test/platform/support";
 import { readBackPruningExtension } from "./agent/hash-agent/read-back-pruning";
+import { createHostBinding } from "./agent/host-binding";
 import { bindBrowserDocument } from "./browser-call/browser-call";
 import { createLedgerExtension, foldLedger, LedgerDoc } from "./ledger";
+import { followSubmission } from "./server/durable-agents-server/submission-stream";
 
 import type { HostBinding } from "./agent/host-binding";
 import type { LedgerAppendOutput } from "./ledger-doc/ledger-doc";
+import type { Message } from "@earendil-works/pi-ai";
 import type { FauxResponseStep } from "@earendil-works/pi-ai/providers/faux";
 
 const dryer = {
@@ -248,6 +259,203 @@ test("a repaired commit ends the turn on the reply written beside the refused on
     await harness.close(context);
   }
 });
+
+/**
+ * One turn that streams its reply, "Noted.", to the client beside a refused
+ * commit, then repairs the commit in a later round. A held call keeps the run
+ * open between them while `during` acts on the reply's entry; what it writes
+ * is placed when the call is released, before the repair's request. The
+ * model's fourth answer is there only to show the repair left the turn open.
+ */
+const repairAfterDeliveredReply = async (
+  during: (target: {
+    readonly harness: Harness;
+    readonly root: Conversation;
+    readonly reply: EntryRecord;
+  }) => Promise<void>,
+) => {
+  const model = scriptedModel();
+  const held = holdTool();
+  model.script(
+    response("Noted.", commit("commit-1", refusable, true)),
+    response(undefined, fauxToolCall(held.tool.name, {}, { id: "hold-1" })),
+    response(undefined, commit("commit-2", recordable, true)),
+    response("Noted the dryer."),
+  );
+  const host = createHostBinding();
+  const extensions = [
+    createLedgerExtension(host),
+    defineExtension({ name: "test.hold", tools: [held.tool] }),
+  ];
+  const registry = createRegistry();
+  for (const extension of extensions) registry.install(extension);
+  const harness = await Harness.open(
+    new MemoryStorage(),
+    {
+      models: model.models,
+      registry,
+      settings: { compaction: { keepRecentTokens: 1 } },
+    },
+    context,
+  );
+  host.bind(harness);
+  let consumed: Promise<void> | undefined;
+  try {
+    const root = await harness.root(context, {
+      agent: { model: model.model, extensions },
+    });
+    const submission = await root.submit(
+      { type: "input", content: "We have a dryer." },
+      context,
+    );
+    const stream = await followSubmission(
+      root,
+      submission,
+      { clientToolNames: new Set<string>() },
+      context,
+    );
+    const delivered = Promise.withResolvers<void>();
+    let received = "";
+    consumed = (async () => {
+      for await (const chunk of stream) {
+        if (chunk.type !== "text-delta") continue;
+        received += chunk.delta;
+        if (received.includes("Noted.")) delivered.resolve();
+      }
+    })();
+    // Awaited in `finally`; this only keeps an early rejection attached.
+    consumed.catch(() => undefined);
+    await Promise.all([held.started, delivered.promise]);
+    const deliveredText = received;
+
+    const reply = (await allEntries(root)).find((entry) =>
+      entry.model?.some(
+        (message) =>
+          message.role === "assistant" && textOf(message) === "Noted.",
+      ),
+    );
+    if (reply === undefined) throw new Error("The reply was not committed.");
+    const first = (await harness.snapshot(LiveDoc, root.id, context))?.run
+      ?.first;
+
+    await during({ harness, root, reply });
+    held.release();
+    const status = (await submission.wait(context)).status;
+    await consumed;
+
+    const entries = await allEntries(root);
+    const repair = resultEntry(entries, "commit-2");
+    if (repair === undefined) throw new Error("The repair did not run.");
+    return {
+      status,
+      deliveredText,
+      reply,
+      first,
+      entries,
+      atRepair: await root.context(context, { at: repair.id }),
+      refused: await receiptOf(root, "commit-1"),
+      repaired: await receiptOf(root, "commit-2"),
+      requests: model.requests,
+      summaries: model.summaries,
+    };
+  } finally {
+    held.release();
+    await harness.close(context);
+    await consumed?.catch(() => undefined);
+  }
+};
+
+/** Compact `root` while its run is busy; the summary is placed at the run's next boundary. */
+const compactMidRun = async (harness: Harness, root: Conversation) => {
+  const task = await root.compact(undefined, context);
+  expect((await harness.waitForTask(task, context)).state.outcome.status).toBe(
+    "completed",
+  );
+};
+
+/** A write that omits `target`'s contribution to model context. */
+const omitFromContext = (root: Conversation, target: EntryRecord) =>
+  root.submit(
+    {
+      type: "write",
+      entry: {
+        kind: "test.omit",
+        edits: [{ target: target.id, action: "omit" }],
+      },
+    },
+    context,
+  );
+
+const replyInRequest = (messages: readonly Message[] | undefined) =>
+  (messages ?? []).some(
+    (message) => message.role === "assistant" && textOf(message) === "Noted.",
+  );
+
+test.each([false, true])(
+  "a reply delivered earlier in the run still ends the turn when native compaction has cut it (compacted: %s)",
+  async (compact) => {
+    const run = await repairAfterDeliveredReply(async ({ harness, root }) => {
+      if (compact) await compactMidRun(harness, root);
+    });
+    expect(run.status).toBe("done");
+    expect(run.deliveredText).toBe("Noted.");
+    expect(run.reply.model?.[0]).toMatchObject({
+      role: "assistant",
+      stopReason: "toolUse",
+    });
+    expect(run.first).toBeDefined();
+    expect(run.reply.id).toBeGreaterThanOrEqual(run.first ?? Infinity);
+    expect(run.refused).toMatchObject({ status: "refused" });
+    expect(run.repaired).toMatchObject({ status: "recorded" });
+    expect(run.summaries).toHaveLength(compact ? 1 : 0);
+    expect(CompactionEntry.is(run.atRepair.head)).toBe(compact);
+    expect(run.atRepair.entries.some(({ id }) => id === run.reply.id)).toBe(
+      !compact,
+    );
+    // The repair's request carried the reply only when nothing cut it.
+    expect(replyInRequest(run.requests[2])).toBe(!compact);
+    expect(run.requests).toHaveLength(3);
+  },
+  15_000,
+);
+
+test.each([
+  { compaction: "none", placed: ["test.omit"] },
+  { compaction: "after the edit", placed: ["test.omit", CompactionEntry.kind] },
+  {
+    compaction: "before the edit",
+    placed: [CompactionEntry.kind, "test.omit"],
+  },
+] as const)(
+  "a reply a context edit omitted does not end the turn (compaction: $compaction)",
+  async ({ compaction, placed }) => {
+    const compact = compaction !== "none";
+    const run = await repairAfterDeliveredReply(
+      async ({ harness, root, reply }) => {
+        if (compaction === "before the edit") {
+          await compactMidRun(harness, root);
+        }
+        await omitFromContext(root, reply);
+        if (compaction === "after the edit") {
+          await compactMidRun(harness, root);
+        }
+      },
+    );
+    expect(run.status).toBe("done");
+    expect(run.deliveredText).toBe("Noted.");
+    expect(run.repaired).toMatchObject({ status: "recorded" });
+    expect(run.summaries).toHaveLength(compact ? 1 : 0);
+    expect(CompactionEntry.is(run.atRepair.head)).toBe(compact);
+    expect(
+      run.entries.flatMap(({ kind }) =>
+        kind === "test.omit" || kind === CompactionEntry.kind ? [kind] : [],
+      ),
+    ).toEqual(placed);
+    expect(replyInRequest(run.requests[2])).toBe(false);
+    expect(run.requests).toHaveLength(4);
+  },
+  15_000,
+);
 
 test("an earlier exchange's reply is not this exchange's", async () => {
   const { harness, requests, turn } = await conversation([
