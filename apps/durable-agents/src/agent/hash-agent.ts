@@ -26,7 +26,7 @@ import {
 } from "@earendil-works/pi-durable";
 import * as v from "valibot";
 
-import { brunchTools, vSdcpnInitialData } from "@hashintel/brunch-agent";
+import { brunchTools, sdcpnInitialDataSchema } from "@hashintel/brunch-agent";
 
 import {
   BrowserBindingDoc,
@@ -109,7 +109,7 @@ const boundDocumentId = async (
   const stored = (await harness.snapshot(BrowserBindingDoc, root.id, context))
     ?.binding;
   if (stored === null || stored === undefined) return undefined;
-  return v.parse(vSdcpnInitialData, {
+  return v.parse(sdcpnInitialDataSchema, {
     binding: JSON.parse(stored) as unknown,
   })?.binding.documentId;
 };

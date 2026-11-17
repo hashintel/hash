@@ -21,6 +21,7 @@ import {
 import { netResultView } from "./net-view";
 
 import type { BrowserCallRecord } from "../browser-call/browser-call";
+import type { EntryId } from "@earendil-works/pi-durable";
 
 export type NetElement = NetElementAddress & { readonly arc?: ArcElement };
 
@@ -34,7 +35,7 @@ export type NetCall = {
   /** The browser's host-only metadata, as recorded. */
   readonly metadata: unknown;
   /** The `pi.assistant` entry that issued the call. */
-  readonly issuedEntry: number;
+  readonly issuedEntry: EntryId;
   /** The call's index among that entry's tool calls. */
   readonly callIndex: number;
 };

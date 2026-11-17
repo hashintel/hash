@@ -59,8 +59,8 @@ import {
   canonicalContent,
   hashPetrinautTools,
   type HashPetrinautToolName,
-  vLedgerAppendWith,
-  vOriginWith,
+  ledgerAppendSchemaWith,
+  originSchemaWith,
 } from "@hashintel/brunch-agent";
 
 import { createHashAgent } from "../../src/agent/hash-agent";
@@ -248,7 +248,11 @@ const hashDefinitions = async (): Promise<Definition[]> => {
     v.array(v.unknown()),
     ledger.createLedgerTools(
       notExecuted,
-      vLedgerAppendWith(vOriginWith(hashEvidencedDescription)),
+      ledgerAppendSchemaWith({
+        origin: originSchemaWith({
+          evidencedDescription: hashEvidencedDescription,
+        }),
+      }),
       brunchTools.ledgerQuery,
     ),
   );

@@ -37,6 +37,7 @@ import {
   defineExtension,
   defineTask,
   defineTool,
+  type EntryId,
   type Harness,
   type JsonObject,
   type TaskId,
@@ -157,7 +158,7 @@ export type BrowserCallRecord = {
    * The `pi.assistant` entry whose response issued the call. Absent on calls
    * issued before it was recorded, and on a nested call, which no entry holds.
    */
-  issuedEntry?: number;
+  issuedEntry?: EntryId;
   /**
    * The call's index among `issuedEntry`'s tool calls. A waiting call's
    * result reaches the model right after `issuedEntry`, at this index (Pi
@@ -173,7 +174,7 @@ export type BrowserCallRecord = {
    * it waited, which the host's crash-loop guard does not charge. Absent
    * before an outcome, and on calls answered before it was recorded.
    */
-  ownerAtOutcome?: { task: number; restarts: number };
+  ownerAtOutcome?: { task: TaskId; restarts: number };
 };
 
 /** Every browser call of a conversation, by tool call ID: what a panel claims from. */
@@ -378,7 +379,7 @@ const issuePosition = async (
   tx: Tx,
   taskId: TaskId,
   callId: string,
-): Promise<{ issuedEntry: number; callIndex: number } | undefined> => {
+): Promise<{ issuedEntry: EntryId; callIndex: number } | undefined> => {
   const input = (await tx.task(taskId))?.input as ToolTaskInput | undefined;
   if (input?.kind !== "model") return undefined;
   const calls = ((await tx.entry(input.assistant))?.model ?? []).flatMap(

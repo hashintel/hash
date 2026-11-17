@@ -10,7 +10,7 @@ import { arcDirections } from "../petrinaut/net-element-ids";
 import { netElementKinds } from "../petrinaut/petrinaut-tool-effects";
 
 /** The basis query's input: one net element, by its selector. */
-export const vBasisQueryInput = v.object({
+export const basisQueryInputSchema = v.object({
   selector: v.pipe(
     v.object({
       kind: v.picklist(netElementKinds),
@@ -43,7 +43,7 @@ export const vBasisQueryInput = v.object({
 });
 /** How the basis query names the element it asks about. */
 export type BasisQuerySelector = v.InferOutput<
-  typeof vBasisQueryInput
+  typeof basisQueryInputSchema
 >["selector"];
 
 /** The basis query's description. */

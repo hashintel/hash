@@ -11,6 +11,7 @@ import { toPetrinautId } from "@hashintel/petrinaut-core";
 import { callsForElement, netCalls } from "./net-changes";
 
 import type { BrowserCallRecord } from "../browser-call/browser-call";
+import type { EntryId } from "@earendil-works/pi-durable";
 
 /** An applied change, settled, issued at `callIndex` of one assistant entry. */
 const applied = (
@@ -33,7 +34,7 @@ const applied = (
   metadata: {
     documentRevision: { before: `${toolCallId}-0`, after: `${toolCallId}-1` },
   },
-  issuedEntry: 1,
+  issuedEntry: 1 as EntryId,
   callIndex,
 });
 

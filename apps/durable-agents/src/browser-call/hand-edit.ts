@@ -37,14 +37,14 @@ export const handEditsRoute = "hand-edits";
  * A report: the reporting tab's canonical editor binding, the edit episode
  * it belongs to, the report's position in it, and the document's revision.
  */
-export const vHandEditReportBody = v.object({
+export const handEditReportBodySchema = v.object({
   binding: v.string(),
   episode: v.pipe(v.string(), v.minLength(1)),
   seq: v.pipe(v.number(), v.integer(), v.minValue(0)),
   revision: v.pipe(v.string(), v.minLength(1)),
 });
 
-export type HandEditReport = v.InferOutput<typeof vHandEditReportBody>;
+export type HandEditReport = v.InferOutput<typeof handEditReportBodySchema>;
 
 /** The note entry's `data`. */
 export type HandEditData = {

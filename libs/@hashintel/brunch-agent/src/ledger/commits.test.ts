@@ -1,6 +1,7 @@
+import * as v from "valibot";
 import { expect, test } from "vitest";
 
-import { foldCommits } from "./commits";
+import { foldCommits, ledgerMapOutputSchema } from "./commits";
 
 test("a reflection recorded on a `subnet` is folded as one on a component, with the rest of its commit", () => {
   const { state, rejected } = foldCommits({
@@ -66,4 +67,16 @@ test("a reflection recorded on a `subnet` is folded as one on a component, with 
       ],
     },
   ]);
+});
+
+test("the Ledger map's result is its revision, its map and the rejected commits, and nothing else", () => {
+  const output = { revision: 2, map: "# Ledger", rejected: ["call-1"] };
+  expect(v.parse(ledgerMapOutputSchema, output)).toEqual(output);
+  expect(
+    v.safeParse(ledgerMapOutputSchema, { revision: 2, map: "# Ledger" })
+      .success,
+  ).toBe(false);
+  expect(
+    v.safeParse(ledgerMapOutputSchema, { ...output, owed: [] }).success,
+  ).toBe(false);
 });

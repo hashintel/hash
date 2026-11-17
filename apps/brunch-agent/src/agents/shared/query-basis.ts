@@ -9,7 +9,7 @@ import {
   namesId,
   queryBasisToolDescription,
   traceLedger,
-  vBasisQueryInput,
+  basisQueryInputSchema,
 } from "@hashintel/brunch-agent";
 import { migrateLegacyComponentKeys } from "@hashintel/petrinaut-core";
 
@@ -237,7 +237,7 @@ export const createQueryBasisTool = (options: {
   defineTool({
     name: options.name ?? brunchTools.queryBasis,
     description: queryBasisToolDescription,
-    input: vBasisQueryInput,
+    input: basisQueryInputSchema,
     output: v.custom<ReturnType<typeof queryBasis>>(() => true),
     async run({ data }) {
       return {

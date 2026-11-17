@@ -43,10 +43,10 @@ import {
   parseHashSaveInput,
   parseHashWebReadInput,
   unknownEditorRefusal,
-  vHashEntityReadInput,
-  vHashEntityTypeReadInput,
-  vHashSaveInput,
-  vHashWebReadInput,
+  hashEntityReadInputSchema,
+  hashEntityTypeReadInputSchema,
+  hashSaveInputSchema,
+  hashWebReadInputSchema,
 } from "@hashintel/brunch-agent";
 
 import {
@@ -140,7 +140,7 @@ const graphReadTools = [
     {
       name: brunchTools.hashQueryEntities,
       description: hashEntityReadDescription,
-      parameters: valibotParameters(vHashEntityReadInput),
+      parameters: valibotParameters(hashEntityReadInputSchema),
     },
     {
       parseInput: parseHashEntityReadInput,
@@ -153,7 +153,7 @@ const graphReadTools = [
     {
       name: brunchTools.hashQueryEntityTypes,
       description: hashEntityTypeReadDescription,
-      parameters: valibotParameters(vHashEntityTypeReadInput),
+      parameters: valibotParameters(hashEntityTypeReadInputSchema),
     },
     {
       parseInput: parseHashEntityTypeReadInput,
@@ -164,7 +164,7 @@ const graphReadTools = [
     {
       name: brunchTools.hashQueryWebs,
       description: hashWebReadDescription,
-      parameters: valibotParameters(vHashWebReadInput),
+      parameters: valibotParameters(hashWebReadInputSchema),
     },
     {
       parseInput: parseHashWebReadInput,
@@ -190,7 +190,7 @@ const saveTool = (documentId: string | undefined) =>
         documentId === undefined
           ? placeholderSaveDescription
           : hashSaveDescription(documentId),
-      parameters: valibotParameters(vHashSaveInput),
+      parameters: valibotParameters(hashSaveInputSchema),
     },
     {
       parseInput: parseHashSaveInput,
