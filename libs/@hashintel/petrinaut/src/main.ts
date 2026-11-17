@@ -82,6 +82,7 @@ export {
   type PetrinautHistory,
   type Petrinaut as PetrinautInstance,
   type PetrinautPatch,
+  type PetrinautRules,
   type Place,
   type ReadableStore,
   type ResolveImport,
