@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import { mutationActionInputSchemas } from "./action-schemas";
 import { updatePrunesReferences } from "./actions";
+import { logistics } from "./composition/libraries.test-helpers";
 import { createJsonDocHandle } from "./handle";
 import { createPetrinaut } from "./instance";
 import { toPetrinautId } from "./petrinaut-id";
@@ -2650,5 +2651,292 @@ describe("Petrinaut core interface actions", () => {
         }),
       ).toThrow(`\`${element}\``);
     }
+  });
+});
+
+describe("Petrinaut core import actions", () => {
+  const importing = (initial: SDCPN = emptySDCPN, known = true) =>
+    createPetrinaut({
+      document: createJsonDocHandle({ initial: cloneSDCPN(initial) }),
+      resolveImport: () => (known ? logistics : undefined),
+      libraries: [logistics.id],
+    });
+
+  const belt = { from: logistics.id, id: "belt" };
+  const placed = {
+    id: "belt-1",
+    name: "BeltA",
+    component: belt,
+    parameterValues: {},
+    x: 0,
+    y: 0,
+  };
+
+  test("placing the first instance of a component of a library adds the import", () => {
+    const instance = importing();
+
+    instance.mutations.addComponentInstance(placed);
+    instance.mutations.addComponentInstance({ ...placed, id: "belt-2" });
+
+    const { imports, componentInstances, subnets } = instance.definition.get();
+    expect(imports).toEqual([{ id: logistics.id }]);
+    expect(componentInstances?.map(({ component }) => component)).toEqual([
+      belt,
+      belt,
+    ]);
+    // Nothing of the library is copied into the document.
+    expect(subnets).toBeUndefined();
+  });
+
+  test("removing the last instance leaves the import in place", () => {
+    const instance = importing();
+    instance.mutations.addComponentInstance(placed);
+
+    instance.mutations.removeComponentInstance({ instanceId: "belt-1" });
+
+    expect(instance.definition.get().imports).toEqual([{ id: logistics.id }]);
+  });
+
+  test("an instance names a subnet or a component of an import, never both nor neither", () => {
+    const instance = importing();
+
+    for (const naming of [{}, { subnetId: "stage", component: belt }]) {
+      expect(() =>
+        callActionWithUnknownInput(instance.mutations.addComponentInstance, {
+          ...placed,
+          component: undefined,
+          ...naming,
+        }),
+      ).toThrow("Provide exactly one of `subnetId` or `component`.");
+    }
+  });
+
+  test("a component its library does not have is refused, and so is one of a library that did not resolve", () => {
+    expect(() =>
+      importing().mutations.addComponentInstance({
+        ...placed,
+        component: { from: logistics.id, id: "crane" },
+      }),
+    ).toThrow(
+      "Component instance `BeltA` references component `crane` of the import `@hashintel/logistics`, which is not available.",
+    );
+    expect(() =>
+      importing(emptySDCPN, false).mutations.addComponentInstance(placed),
+    ).toThrow("which is not available");
+  });
+
+  test("parameter values are keyed by the component's parameters", () => {
+    const instance = importing();
+
+    instance.mutations.addComponentInstance({
+      ...placed,
+      parameterValues: { rate: "4" },
+    });
+    expect(
+      instance.definition.get().componentInstances?.[0]?.parameterValues,
+    ).toEqual({ [idOf("rate")]: "4" });
+
+    expect(() =>
+      instance.mutations.addComponentInstance({
+        ...placed,
+        id: "belt-2",
+        parameterValues: { speed: "4" },
+      }),
+    ).toThrow("unknown subnet parameter ID");
+  });
+
+  test("a fusion joins a place with a port of a component of an import, by the port's id", () => {
+    const instance = importing({
+      ...emptySDCPN,
+      places: [
+        {
+          id: "stock",
+          name: "Stock",
+          colorId: null,
+          dynamicsEnabled: false,
+          x: 0,
+          y: 0,
+        },
+      ],
+    });
+    instance.mutations.addComponentInstance(placed);
+
+    instance.mutations.addFusion({
+      id: "feed",
+      members: [
+        { kind: "place", placeId: "stock" },
+        {
+          kind: "componentPort",
+          componentInstanceId: "belt-1",
+          portPlaceId: "in",
+        },
+      ],
+    });
+
+    expect(instance.definition.get().fusions?.[0]?.members[1]).toEqual({
+      kind: "componentPort",
+      componentInstanceId: idOf("belt-1"),
+      portPlaceId: idOf("in"),
+    });
+    expect(() =>
+      instance.mutations.addFusionMember({
+        fusionId: "feed",
+        member: {
+          kind: "componentPort",
+          componentInstanceId: "belt-1",
+          portPlaceId: "spill",
+        },
+      }),
+    ).toThrow("does not exist in subnet `Belt`");
+  });
+
+  test("pointing an instance at a component of an import drops its subnet, its wiring and its choice, and adds the import", () => {
+    const stage: Subnet = {
+      id: "stage",
+      name: "Stage",
+      places: [
+        {
+          id: "stage-in",
+          name: "In",
+          colorId: null,
+          dynamicsEnabled: false,
+          isPort: true,
+          x: 0,
+          y: 0,
+        },
+      ],
+      transitions: [],
+      types: [],
+      differentialEquations: [],
+      parameters: [],
+    };
+    const initial: SDCPN = {
+      ...emptySDCPN,
+      places: [
+        {
+          id: "stock",
+          name: "Stock",
+          colorId: null,
+          dynamicsEnabled: false,
+          x: 0,
+          y: 0,
+        },
+      ],
+      subnets: [stage],
+      componentInstances: [
+        {
+          id: "worker",
+          name: "Worker",
+          subnetId: "stage",
+          parameterValues: {},
+          x: 0,
+          y: 0,
+        },
+      ],
+      fusions: [
+        {
+          id: "feed",
+          name: "Feed",
+          members: [
+            { kind: "place", placeId: "stock" },
+            {
+              kind: "componentPort",
+              componentInstanceId: "worker",
+              portPlaceId: "stage-in",
+            },
+          ],
+        },
+      ],
+    };
+    const instance = importing(initial);
+    const update = { instanceId: "worker", update: { component: belt } };
+
+    expect(
+      updatePrunesReferences(
+        instance.definition.get(),
+        "updateComponentInstance",
+        update,
+      ),
+    ).toBe(true);
+    instance.mutations.updateComponentInstance(update);
+
+    const definition = instance.definition.get();
+    expect(definition.componentInstances?.[0]).toEqual({
+      id: idOf("worker"),
+      name: "Worker",
+      component: belt,
+      parameterValues: {},
+      x: 0,
+      y: 0,
+    });
+    expect(definition.fusions).toBeUndefined();
+    expect(definition.imports).toEqual([{ id: logistics.id }]);
+  });
+
+  test("an instance of an interface of an import chooses a component of the import to run", () => {
+    const instance = importing();
+    instance.mutations.addComponentInstance({
+      ...placed,
+      id: "scale-1",
+      component: { from: logistics.id, id: "scale" },
+    });
+
+    instance.mutations.updateComponentInstance({
+      instanceId: "scale-1",
+      update: { implementation: belt },
+    });
+    expect(
+      instance.definition.get().componentInstances?.[0]?.implementation,
+    ).toEqual(belt);
+
+    expect(() =>
+      instance.mutations.updateComponentInstance({
+        instanceId: "scale-1",
+        update: { implementation: { from: logistics.id, id: "scale" } },
+      }),
+    ).toThrow("which is an interface itself");
+  });
+
+  test("a transition keeps the code written for a port of a component whose library is not there to read", () => {
+    const initial: SDCPN = {
+      ...emptySDCPN,
+      imports: [{ id: logistics.id }],
+      transitions: [
+        {
+          id: "load",
+          name: "Load",
+          inputArcs: [],
+          outputArcs: [
+            {
+              endpoint: {
+                kind: "componentPort",
+                componentInstanceId: "belt-1",
+                portPlaceId: "in",
+              },
+              weight: 1,
+            },
+          ],
+          lambdaType: "predicate",
+          lambdaCode: "return true;",
+          transitionKernelCode: "return { In: [{}] };",
+          x: 0,
+          y: 0,
+        },
+      ],
+      componentInstances: [placed],
+    };
+    const instance = importing(initial, false);
+
+    expect(instance.definition.get().transitions[0]).toMatchObject({
+      transitionKernelCode: "return { In: [{}] };",
+    });
+    instance.mutations.updateTransition({
+      transitionId: "load",
+      update: { name: "Fill" },
+    });
+    expect(instance.definition.get().transitions[0]).toMatchObject({
+      name: "Fill",
+      transitionKernelCode: "return { In: [{}] };",
+    });
   });
 });

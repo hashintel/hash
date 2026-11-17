@@ -7,6 +7,12 @@ import {
   createPetrinautCommands,
 } from "./commands";
 import {
+  createImportStore,
+  resolvedLibraries,
+  type ImportStates,
+  type ResolveImport,
+} from "./composition/imports";
+import {
   resolvePetrinautHandleCapabilities,
   sanitizeSDCPNForExtensions,
   stripDisabledExtensionData,
@@ -77,12 +83,33 @@ export type Petrinaut = {
 
   readonly readonly: boolean;
 
+  /**
+   * The state of each import of the document, and of each library the host
+   * offers, by its id: resolving, resolved with its library, or failed with
+   * the reason. Read it as it stands: nothing else here waits for a library.
+   */
+  readonly imports: ReadableStore<ImportStates>;
+
+  /** The ids of the libraries the host offers to place components from. */
+  readonly libraries: readonly string[];
+
   dispose(this: void): void;
 };
 
 export type CreatePetrinautConfig = {
   document: PetrinautDocHandle;
   readonly?: boolean;
+  /**
+   * Resolves an import of the document to its library. Called once per
+   * import, when the instance is created and when an import joins the
+   * document. Without it, every import fails to resolve.
+   */
+  resolveImport?: ResolveImport;
+  /**
+   * The ids of the libraries on offer: each is resolved through
+   * `resolveImport` whether a document imports it yet or not.
+   */
+  libraries?: readonly string[];
 };
 
 function createDefinitionStore(
@@ -194,7 +221,12 @@ function createPatchStream(handle: PetrinautDocHandle): {
 }
 
 export function createPetrinaut(config: CreatePetrinautConfig): Petrinaut {
-  const { document: handle, readonly = false } = config;
+  const {
+    document: handle,
+    readonly = false,
+    resolveImport,
+    libraries = [],
+  } = config;
   const handleCapabilities = resolvePetrinautHandleCapabilities(
     handle.capabilities,
   );
@@ -210,7 +242,14 @@ export function createPetrinaut(config: CreatePetrinautConfig): Petrinaut {
   const patchesResource = createPatchStream(handle);
   const definition = definitionResource.store;
   const patches = patchesResource.stream;
+  const importsResource = createImportStore({
+    definition,
+    resolveImport,
+    offered: libraries,
+  });
+  const imports = importsResource.store;
   const disposers: Array<() => void> = [
+    importsResource.dispose,
     definitionResource.dispose,
     patchesResource.dispose,
   ];
@@ -231,6 +270,7 @@ export function createPetrinaut(config: CreatePetrinautConfig): Petrinaut {
 
   const mutations = createPetrinautActions(mutate, capabilities.extensions, {
     sanitizeAfterMutation: false,
+    libraries: () => resolvedLibraries(imports.get()),
   });
   const commands = createPetrinautCommands(
     mutate,
@@ -247,6 +287,8 @@ export function createPetrinaut(config: CreatePetrinautConfig): Petrinaut {
     mutations,
     commands,
     readonly: capabilities.readonly,
+    imports,
+    libraries,
     dispose() {
       for (const dispose of disposers) {
         dispose();
