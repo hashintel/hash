@@ -588,6 +588,17 @@ const assertImplementsReferences = (
   }
 };
 
+/** Throws when `subnet` is an interface that says it implements one. */
+const assertInterfaceImplementsNone = (
+  subnet: Pick<Subnet, "name" | "interface" | "implements">,
+): void => {
+  if (isInterface(subnet) && (subnet.implements?.length ?? 0) > 0) {
+    throw new Error(
+      `Subnet \`${subnet.name}\` is an interface, and an interface cannot implement an interface.`,
+    );
+  }
+};
+
 /** Takes `subnetId` out of every `implements` list that names it. */
 const removeFromImplementsLists = (sdcpn: SDCPN, subnetId: ID): void => {
   for (const subnet of sdcpn.subnets ?? []) {
@@ -1422,6 +1433,7 @@ export function createPetrinautActions(
     addSubnet(subnet) {
       const parsedSubnet = subnetSchema.parse(subnet);
       mutateWithExtensionGuards((sdcpn) => {
+        assertInterfaceImplementsNone(parsedSubnet);
         assertImplementsReferences(sdcpn, parsedSubnet);
         const targetSdcpn = sdcpn;
         targetSdcpn.subnets ??= [];
@@ -1447,10 +1459,11 @@ export function createPetrinautActions(
             if (wasInterface && !isInterface(subnet)) {
               removeFromImplementsLists(sdcpn, subnet.id);
             }
-            // Only a change to what bindings rest on drops the ones it leaves
-            // unresolved: a stale one outlives any other update, for the user
-            // to repair.
+            // Only a change to what bindings rest on is held to the rule, and
+            // drops the bindings it leaves unresolved: what a document was
+            // loaded with outlives any other update, for the user to repair.
             if ("interface" in parsed.update || "implements" in parsed.update) {
+              assertInterfaceImplementsNone(subnet);
               pruneImplementationBindings(sdcpn, subnet.id);
             }
             break;

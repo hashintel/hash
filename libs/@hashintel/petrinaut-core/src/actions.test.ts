@@ -2193,6 +2193,63 @@ describe("Petrinaut core interface actions", () => {
     ).toThrow(/which is not an interface/);
   });
 
+  test("refuses an interface that implements an interface", () => {
+    const instance = createInstance(withInterface());
+    const refusal = /an interface cannot implement an interface/;
+
+    expect(() =>
+      instance.mutations.addSubnet(
+        stageSubnet("draft", { interface: true, implements: ["stage"] }),
+      ),
+    ).toThrow(refusal);
+    expect(() =>
+      instance.mutations.updateSubnet({
+        subnetId: "fast",
+        update: { interface: true },
+      }),
+    ).toThrow(refusal);
+
+    instance.mutations.addSubnet(stageSubnet("draft", { interface: true }));
+    expect(() =>
+      instance.mutations.updateSubnet({
+        subnetId: "draft",
+        update: { implements: ["stage"] },
+      }),
+    ).toThrow(refusal);
+
+    // One update may turn an implementation into an interface.
+    instance.mutations.updateSubnet({
+      subnetId: "fast",
+      update: { interface: true, implements: undefined },
+    });
+    expect(
+      instance.definition.get().subnets?.find(({ id }) => id === idOf("fast")),
+    ).toMatchObject({ interface: true });
+  });
+
+  test("an interface loaded as implementing one is still edited, and repaired", () => {
+    const base = withInterface();
+    const instance = createInstance({
+      ...base,
+      subnets: [
+        ...(base.subnets ?? []),
+        stageSubnet("draft", { interface: true, implements: ["stage"] }),
+      ],
+    });
+
+    instance.mutations.updateSubnet({
+      subnetId: "draft",
+      update: { name: "Draft" },
+    });
+    instance.mutations.updateSubnet({
+      subnetId: "draft",
+      update: { implements: undefined },
+    });
+    expect(
+      instance.definition.get().subnets?.find(({ id }) => id === idOf("draft")),
+    ).not.toHaveProperty("implements");
+  });
+
   test("lets an instance choose and clear its own implementation", () => {
     const instance = createInstance(withInterface());
 

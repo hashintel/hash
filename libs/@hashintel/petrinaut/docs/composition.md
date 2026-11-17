@@ -38,7 +38,7 @@ When the net runs, each fusion is one place, shown under the fusion's name: toke
 
 ## Interfaces and implementations
 
-An **interface** is a component with ports and parameters but no body: it says what a component looks like from outside without saying how it works. Add a subnet, mark its places as ports, then open its options in the **Nets** panel (the gear on its row) and tick **Interface**. Its row shows a puzzle piece. An interface holds no transitions or instances; remove them before ticking the box.
+An **interface** is a component with ports and parameters but no body: it says what a component looks like from outside without saying how it works. Add a subnet, mark its places as ports, then open its options in the **Nets** panel (the gear on its row) and tick **Interface**. Its row shows a puzzle piece. An interface holds no transitions or instances; remove them before ticking the box. An interface cannot implement an interface: ticking the box clears what the subnet implemented.
 
 A component **implements** an interface when its options tick that interface under **Implements**. It needs every port the interface declares, matched by name and holding the same token type, and every parameter, matched by variable name; it may have more of each. A port used against the direction the interface declares is a warning. Problems show in the **Diagnostics** tab under **Composition**; click one to open the subnet or select the instance it is about.
 

@@ -505,11 +505,11 @@ export const subnetSchema = z
     metadata: metadataSchema,
     interface: z.literal(true).optional().meta({
       description:
-        "When true, the subnet is an interface: a signature of ports, types and parameters with no transitions. Instances of it run the implementation bound to them.",
+        "When true, the subnet is an interface: a signature of ports, types and parameters with no transitions, which implements no interface itself. Instances of it run the implementation bound to them.",
     }),
     implements: z.array(idSchema).optional().meta({
       description:
-        "IDs of the interface subnets this subnet implements: it has a port of the same name and token type for each of theirs, and a parameter of each variable name.",
+        "IDs of the interface subnets this subnet implements: it has a port of the same name and token type for each of theirs, and a parameter of each variable name. Not for a subnet that is an interface: an interface cannot implement an interface.",
     }),
     places: z.array(placeSchema).meta({
       description: "Places local to this subnet.",

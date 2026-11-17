@@ -1,9 +1,9 @@
 /**
  * The checks on interfaces and their implementations: an interface has no
- * body, an implementation has every port and parameter its interfaces
- * declare with the same token type and a compatible direction, every
- * instance of an interface has an implementation to run, and no component
- * runs inside itself.
+ * body and implements no interface, an implementation has every port and
+ * parameter its interfaces declare with the same token type and a compatible
+ * direction, every instance of an interface has an implementation to run,
+ * and no component runs inside itself.
  */
 
 import { colorsStructurallyEqual } from "./fusions";
@@ -23,6 +23,7 @@ import type { ID, SDCPN, Subnet } from "../types/sdcpn";
 
 export type InterfaceProblemCode =
   | "interface-has-body"
+  | "interface-implements"
   | "unknown-interface"
   | "missing-port"
   | "port-type-mismatch"
@@ -177,8 +178,8 @@ const runningOf = (
   binding.kind === "component" ? binding.subnet : binding.implementation;
 
 /**
- * What `subnet` declares: an interface has no body, and what a subnet
- * implements is an interface it lives up to.
+ * What `subnet` declares: an interface has no body and implements nothing,
+ * and what a component implements is an interface it lives up to.
  */
 const checkDeclarations = (
   subnet: Subnet,
@@ -186,14 +187,25 @@ const checkDeclarations = (
 ): InterfaceProblem[] => {
   const problems: InterfaceProblem[] = [];
   const report = reporter(problems, { subnetId: subnet.id });
-  if (isInterface(subnet) && hasBody(subnet)) {
-    report(
-      "interface-has-body",
-      `${subnet.name} is an interface but holds transitions or instances; an interface is ports and parameters alone.`,
-    );
-  }
   // A list may name an interface twice: its shortfall is reported once.
-  for (const interfaceId of new Set(subnet.implements)) {
+  const implemented = new Set(subnet.implements);
+  if (isInterface(subnet)) {
+    if (hasBody(subnet)) {
+      report(
+        "interface-has-body",
+        `${subnet.name} is an interface but holds transitions or instances; an interface is ports and parameters alone.`,
+      );
+    }
+    if (implemented.size > 0) {
+      report(
+        "interface-implements",
+        `${subnet.name} is an interface but says it implements one; an interface cannot implement an interface.`,
+      );
+    }
+    // With no body to run, it is not held to what it says it implements.
+    return problems;
+  }
+  for (const interfaceId of implemented) {
     const iface = subnetsById.get(interfaceId);
     if (iface && isInterface(iface)) {
       problems.push(...checkImplementation(subnet, iface));

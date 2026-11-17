@@ -157,6 +157,18 @@ describe("checkInterfaces", () => {
     ]);
   });
 
+  it("reports an interface that implements an interface, once, as an error on it", () => {
+    const draft = subnet("draft", {
+      interface: true,
+      // Neither is held against it: the one problem is that it implements at all.
+      implements: ["stage", "ghost"],
+    });
+
+    expect(checkInterfaces(net({ subnets: [stage, draft] }))).toMatchObject([
+      { subnetId: "draft", code: "interface-implements", severity: "error" },
+    ]);
+  });
+
   it("reports implementing something that is not an interface", () => {
     const other = subnet("other");
     const wrong = subnet("wrong", { implements: ["other", "ghost"] });
