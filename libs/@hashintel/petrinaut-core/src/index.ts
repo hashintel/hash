@@ -516,6 +516,7 @@ export type {
 // --- Domain types ---
 export type * from "./types/sdcpn";
 export { normalizeSDCPN } from "./types/sdcpn-input";
+export { migrateLegacyComponentKeys } from "./migrate-legacy-component-keys";
 export type {
   SDCPNInput,
   SDCPNInputArcInput,

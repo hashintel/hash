@@ -3,6 +3,7 @@
  * @role Reads and writes the on-disk SDCPN document format, plus export converters
  */
 
+import { migrateLegacyComponentKeys } from "../migrate-legacy-component-keys";
 import { migrateLegacyDynamics } from "../migrate-legacy-dynamics";
 import { canonicalizePetrinautIds } from "../petrinaut-id";
 import {
@@ -163,7 +164,10 @@ const toImportResult = (
  * pre-2025-11-28 formats. Pure — no DOM, no I/O. Callers (e.g. the `/ui`
  * file-picker wrapper) are responsible for sourcing the data.
  */
-export const parseSDCPNFile = (data: unknown): ImportResult => {
+export const parseSDCPNFile = (rawData: unknown): ImportResult => {
+  // Before the schemas, which drop the keys they do not know.
+  const data = migrateLegacyComponentKeys(rawData);
+
   // Try the versioned format first
   const versioned = sdcpnFileSchema.safeParse(data);
   if (versioned.success) {
