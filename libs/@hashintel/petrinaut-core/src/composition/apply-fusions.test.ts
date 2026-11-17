@@ -39,7 +39,7 @@ const color = (id: string, elements: Color["elements"]): Color => ({
 });
 
 describe("applyFusions", () => {
-  it("keeps the root place and moves the port's arcs onto it", () => {
+  it("keeps the root place's id, names it after the fusion and moves the port's arcs onto it", () => {
     const net = {
       places: [place("buffer"), place("m1::in")],
       transitions: [
@@ -54,11 +54,11 @@ describe("applyFusions", () => {
     };
 
     const { aliases } = applyFusions(net, [
-      { label: "f1", placeIds: ["buffer", "m1::in"] },
+      { name: "Belt", placeIds: ["buffer", "m1::in"] },
     ]);
 
     expect([...aliases]).toEqual([["m1::in", "buffer"]]);
-    expect(net.places.map(({ id }) => id)).toEqual(["buffer"]);
+    expect(net.places).toMatchObject([{ id: "buffer", name: "Belt" }]);
     expect(net.transitions[0]!.inputArcs).toEqual([
       { placeId: "buffer", weight: 2, type: "standard" },
     ]);
@@ -79,7 +79,7 @@ describe("applyFusions", () => {
     };
 
     const { aliases } = applyFusions(net, [
-      { label: "f1", placeIds: ["m1::out", "m2::in"], name: "Conveyor" },
+      { name: "Conveyor", placeIds: ["m1::out", "m2::in"] },
     ]);
 
     expect([...aliases]).toEqual([["m2::in", "m1::out"]]);
@@ -95,8 +95,8 @@ describe("applyFusions", () => {
     };
 
     const { aliases } = applyFusions(net, [
-      { label: "f1", placeIds: ["a::b::deep", "a::mid"] },
-      { label: "f2", placeIds: ["a::mid", "top"] },
+      { name: "f1", placeIds: ["a::b::deep", "a::mid"] },
+      { name: "f2", placeIds: ["a::mid", "top"] },
     ]);
 
     expect(Object.fromEntries(aliases)).toEqual({
@@ -106,7 +106,7 @@ describe("applyFusions", () => {
     expect(net.places.map(({ id }) => id)).toEqual(["top"]);
   });
 
-  it("leaves a place fused in from outside its own name, whatever an inner fusion is called", () => {
+  it("names a chain of fusions after the one that holds the outermost place", () => {
     const net = {
       places: [place("a::b::deep"), place("a::mid"), place("top")],
       transitions: [],
@@ -114,15 +114,30 @@ describe("applyFusions", () => {
     };
 
     applyFusions(net, [
-      { label: "f1", placeIds: ["a::b::deep", "a::mid"], name: "Inner" },
-      { label: "f2", placeIds: ["a::mid", "top"] },
+      { name: "Inner", placeIds: ["a::b::deep", "a::mid"] },
+      { name: "Outer", placeIds: ["a::mid", "top"] },
     ]);
 
-    expect(net.places).toMatchObject([{ id: "top", name: "top" }]);
+    expect(net.places).toMatchObject([{ id: "top", name: "Outer" }]);
+  });
+
+  it("names a port fused inside its component and in the net above after the outer fusion", () => {
+    const net = {
+      places: [place("a::out"), place("a::b::deep"), place("c::in")],
+      transitions: [],
+      types: [],
+    };
+
+    applyFusions(net, [
+      { name: "Inner", placeIds: ["a::out", "a::b::deep"] },
+      { name: "Outer", placeIds: ["a::out", "c::in"] },
+    ]);
+
+    expect(net.places).toMatchObject([{ id: "a::out", name: "Outer" }]);
   });
 
   it("names the place of a one-member fusion, whether or not another fusion merges anything", () => {
-    const lone = { label: "f1", placeIds: ["m1::out"], name: "Conveyor" };
+    const lone = { name: "Conveyor", placeIds: ["m1::out"] };
     const ports = () => ({
       places: [place("m1::out"), place("m2::in"), place("m3::in")],
       transitions: [],
@@ -134,7 +149,7 @@ describe("applyFusions", () => {
     applyFusions(alone, [lone]);
     applyFusions(beside, [
       lone,
-      { label: "f2", placeIds: ["m2::in", "m3::in"] },
+      { name: "f2", placeIds: ["m2::in", "m3::in"] },
     ]);
 
     expect(alone.places[0]).toMatchObject({ id: "m1::out", name: "Conveyor" });
@@ -155,7 +170,7 @@ describe("applyFusions", () => {
       types: [],
     };
 
-    applyFusions(net, [{ label: "f1", placeIds: ["buffer", "m1::in"] }]);
+    applyFusions(net, [{ name: "f1", placeIds: ["buffer", "m1::in"] }]);
 
     expect(net.transitions[0]!.inputArcs).toEqual([
       { placeId: "buffer", weight: 1, type: "standard" },
@@ -169,7 +184,7 @@ describe("applyFusions", () => {
       transitions: [transition("take", arcs)],
       types: [],
     });
-    const groups = [{ label: "f1", placeIds: ["buffer", "m1::in"] }];
+    const groups = [{ name: "f1", placeIds: ["buffer", "m1::in"] }];
 
     expect(() =>
       applyFusions(
@@ -214,7 +229,7 @@ describe("applyFusions", () => {
     };
 
     const { dynamicsDonors } = applyFusions(net, [
-      { label: "f1", placeIds: ["buffer", "m1::in"] },
+      { name: "f1", placeIds: ["buffer", "m1::in"] },
     ]);
 
     expect(net.places).toMatchObject([
@@ -243,7 +258,7 @@ describe("applyFusions", () => {
     };
 
     const { dynamicsDonors } = applyFusions(net, [
-      { label: "f1", placeIds: ["a::bath", "b::bath"] },
+      { name: "f1", placeIds: ["a::bath", "b::bath"] },
     ]);
 
     expect(net.places).toMatchObject([
@@ -253,7 +268,7 @@ describe("applyFusions", () => {
   });
 
   it("throws on members that run different equations, or hold different capacities", () => {
-    const groups = [{ label: "f1", placeIds: ["a::bath", "b::bath"] }];
+    const groups = [{ name: "f1", placeIds: ["a::bath", "b::bath"] }];
     const running = (id: string, equationId: string) =>
       place(id, {
         dynamicsEnabled: true,
@@ -302,9 +317,7 @@ describe("applyFusions", () => {
     };
 
     expect(() =>
-      applyFusions(net, [
-        { label: "f1", placeIds: ["buffer", "m1::in"], name: "Shared" },
-      ]),
+      applyFusions(net, [{ name: "Shared", placeIds: ["buffer", "m1::in"] }]),
     ).toThrow(/different token types/);
   });
 });

@@ -30,12 +30,13 @@ place. Petrinaut's version keeps it small on purpose.
   endpoint names them (`FusionMember = ArcEndpoint`), so the endpoint helpers
   and the id canonicalization apply unchanged.
 - At most one member is a place of the net itself: the **anchor**. It gives
-  the fused place its name, its initial marking, its visualizer, and the
-  thing metrics and scenarios refer to. The other members are ports. A
-  fusion without an anchor, two ports joined directly, makes a place that
-  exists only inside the composition.
+  the fused place its id, its initial marking and its visualizer, and it
+  stays the place metrics and scenarios refer to. The other members are
+  ports. A fusion without an anchor, two ports joined directly, makes a
+  place that exists only inside the composition.
 - A fusion has a name of its own, and goes by no other: the checks'
-  messages and the assistant's approval card say it. `addFusion` names a
+  messages, the assistant's approval card and the flattened net say it,
+  whatever its anchor is called. `addFusion` names a
   fusion that comes without one `Fusion N`, with the lowest number no fusion
   of its net uses. A file whose fusion has no name does not load, and
   `updateFusion` renames a fusion but does not take its name away.
@@ -125,16 +126,17 @@ flattener's message.
 under its id, `Instance::entity`. It collects each fusion, at each net it
 walks, as a group of flat place ids, then `applyFusions` runs union-find
 over the groups. The place with the fewest `::` separators leads its set, so
-a root anchor keeps its id and its name, and the scoped ones merge into it.
+a root anchor keeps its id, and the scoped ones merge into it.
 Merging moves every arc onto the leader, takes a member's capacity onto the
 leader, gives a leader with no dynamics the equations of the first member
 that runs some, along with the parameter values they read, and drops the
 merged places.
 
 A fusion without an anchor keeps the first port's scoped place as the
-leader, renamed after the fusion when it has a name, so a port-only fusion
-reads as one place in the timeline. An anchor keeps its own name whatever
-its fusion is called.
+leader. Either way the leader is renamed after its fusion, so the timeline
+shows the fused place under the name the canvas gives the fusion. Where a
+port is fused inside its component and again in the net above, the leader
+takes the name of the outer fusion.
 
 ## Where the model stops today
 

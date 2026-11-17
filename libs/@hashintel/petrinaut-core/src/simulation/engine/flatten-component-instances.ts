@@ -3,7 +3,7 @@ import {
   applyFusions,
   type FusionGroup,
 } from "../../composition/apply-fusions";
-import { fusionAnchor, fusionMemberIssues } from "../../composition/fusions";
+import { fusionMemberIssues } from "../../composition/fusions";
 import { remapPlaceDynamics } from "../../place-dynamics";
 import { createUserKeyedRecord, getOwn } from "../../validation/record-keys";
 import { scopedId, scopeSeparator } from "./scoped-id";
@@ -313,12 +313,7 @@ const collectFusionGroups = ({
       }
       return placeId;
     });
-    ctx.fusionGroups.push({
-      label,
-      placeIds,
-      // An anchor keeps its own name; without one the fusion names the place.
-      name: fusionAnchor(fusion) ? undefined : fusion.name,
-    });
+    ctx.fusionGroups.push({ name: fusion.name, placeIds });
   }
 };
 

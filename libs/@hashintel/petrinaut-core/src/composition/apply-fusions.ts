@@ -20,11 +20,9 @@ import type {
 
 /** One fusion, as flat place ids. */
 export type FusionGroup = {
-  /** Names the fusion in error messages. */
-  label: string;
+  /** The fusion's name, which the fused place takes. */
+  name: string;
   placeIds: ID[];
-  /** The name the fused place takes: the fusion's own, where no place of its net anchors it. */
-  name?: string;
 };
 
 type FlatNet = {
@@ -112,11 +110,11 @@ const reconcile = (
   net: FlatNet,
   fused: Place,
   member: Place,
-  label: string,
+  fusionName: string,
 ): boolean => {
   const disagree = (on: string) =>
     new Error(
-      `Fusion ${label} joins places \`${fused.name}\` and \`${member.name}\` ${on}.`,
+      `Fusion \`${fusionName}\` joins places \`${fused.name}\` and \`${member.name}\` ${on}.`,
     );
   const typeOf = (place: Place) =>
     place.colorId
@@ -189,7 +187,11 @@ const redirectArcs = <Arc extends InputArc | OutputArc>(
 /**
  * Applies the fusion groups to a flat net in place: merged places leave
  * `net.places`, arcs move to the fused place, and the fused place takes on
- * what its members declare.
+ * what its members declare and its fusion's name.
+ *
+ * `groups` lists a net's fusions after those of its instances: a place that
+ * is fused inside its component and again in the net above goes by the name
+ * of the outer fusion.
  */
 export const applyFusions = (
   net: FlatNet,
@@ -208,23 +210,23 @@ export const applyFusions = (
       const member = placeById.get(id);
       if (!fused || !member) {
         throw new Error(
-          `Fusion ${group.label} names a place that is not in the flattened net.`,
+          `Fusion \`${group.name}\` names a place that is not in the flattened net.`,
         );
       }
-      if (reconcile(net, fused, member, group.label)) {
+      if (reconcile(net, fused, member, group.name)) {
         dynamicsDonors.set(fusedId, id);
       }
     }
   }
-  // A fusion with no anchor names the fused place itself, when the fused
-  // place is one of its own members and not a place fused in from outside.
+  // A fusion names the fused place when that place is one of its own
+  // members, not a place fused in from the net above.
   for (const { name, placeIds } of groups) {
     const [first] = placeIds;
     const fused =
       first === undefined
         ? undefined
         : placeById.get(aliases.get(first) ?? first);
-    if (name !== undefined && fused && placeIds.includes(fused.id)) {
+    if (fused && placeIds.includes(fused.id)) {
       fused.name = name;
     }
   }

@@ -66,9 +66,10 @@ export type FusionMember = ArcEndpoint;
  * that reads or writes one of them reads or writes the fused place.
  *
  * At most one member is a place of the net itself, the anchor, which gives
- * the fused place its name, initial marking and visualizer; the others are
- * ports of the net's component instances. Members agree on their token type,
- * capacity and dynamics, which `checkFusions` verifies.
+ * the fused place its id, initial marking and visualizer; the others are
+ * ports of the net's component instances. The fused place goes by the
+ * fusion's name. Members agree on their token type, capacity and dynamics,
+ * which `checkFusions` verifies.
  */
 export type Fusion = {
   id: ID;

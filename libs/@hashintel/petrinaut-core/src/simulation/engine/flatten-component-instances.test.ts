@@ -467,7 +467,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
       ],
     });
 
-  it("fuses a root place with an instance port, keeping the root place", () => {
+  it("fuses a root place with an instance port, keeping the root place's id under the fusion's name", () => {
     const definition = sdcpn({
       places: [place("buffer", { name: "Buffer" })],
       transitions: [
@@ -480,7 +480,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
       fusions: [
         {
           id: "f1",
-          name: "F1",
+          name: "Belt",
           members: [
             { kind: "place", placeId: "buffer" },
             {
@@ -495,9 +495,9 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
 
     const result = flatten({ definition, initialMarking: { buffer: 2 } });
 
-    expect(result.sdcpn.places.map(({ id }) => id)).toEqual([
-      "buffer",
-      "m1::out",
+    expect(result.sdcpn.places.map(({ id, name }) => [id, name])).toEqual([
+      ["buffer", "Belt"],
+      ["m1::out", "Out"],
     ]);
     expect(
       result.sdcpn.transitions.find(({ id }) => id === "m1::work")!.inputArcs,
@@ -712,7 +712,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
     );
   });
 
-  it("keeps the name of an anchor inside a subnet, whatever its fusion is called", () => {
+  it("names an anchor inside a subnet after its fusion", () => {
     const definition = sdcpn({
       componentInstances: [componentInstance("line", "line")],
       subnets: [
@@ -742,7 +742,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
 
     expect(
       result.sdcpn.places.find(({ id }) => id === "line::feed"),
-    ).toMatchObject({ name: "Feed" });
+    ).toMatchObject({ name: "Belt" });
   });
 
   describe("dynamics on a fused port", () => {
