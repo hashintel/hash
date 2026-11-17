@@ -287,6 +287,9 @@ export const StepRunPanel = ({
     />
   );
 
+  const labelOutput = (outputName: string) =>
+    getOutputLabel(actionDefinition?.actionDefinitionId, outputName);
+
   const renderOutputValue = (outputName: string) => {
     if (perItem) {
       return null;
@@ -298,7 +301,7 @@ export const StepRunPanel = ({
 
     if (output) {
       return renderValue(
-        getNameLabel(outputName),
+        labelOutput(outputName),
         getValueDisplay(output.payload),
       );
     }
@@ -312,8 +315,6 @@ export const StepRunPanel = ({
 
   const getOutputUses = (outputName: string): ValueUse[] =>
     usesOf({ kind: "step-output", stepId: step.stepId, outputName });
-  const labelOutput = (outputName: string) =>
-    getOutputLabel(actionDefinition?.actionDefinitionId, outputName);
 
   return (
     <SidePanel label={name} inert={inert}>
