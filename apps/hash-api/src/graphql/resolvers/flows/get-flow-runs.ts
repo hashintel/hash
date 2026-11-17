@@ -72,10 +72,17 @@ export const getFlowRunsResolver: ResolverFn<
     graphApiClient: dataSources.graphApi,
   });
 
+  const flowRuns = await Promise.all(
+    page.flowRuns.map((flowRun) => getFlowRunAsRecorded(flowRun, context)),
+  );
+  /* The runs were filtered and counted by the status their entities had before any was corrected. */
+  const matching = executionStatus
+    ? flowRuns.filter(({ status }) => status === executionStatus)
+    : flowRuns;
+
   return {
     ...page,
-    flowRuns: await Promise.all(
-      page.flowRuns.map((flowRun) => getFlowRunAsRecorded(flowRun, context)),
-    ),
+    flowRuns: matching,
+    totalCount: page.totalCount - (flowRuns.length - matching.length),
   };
 };

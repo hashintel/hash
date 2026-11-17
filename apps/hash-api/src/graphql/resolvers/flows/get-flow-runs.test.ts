@@ -42,17 +42,17 @@ describe("getFlowRunsResolver", () => {
     mocks.warn.mockReset();
   });
 
-  const resolve = async () =>
+  const resolve = async (args = {}) =>
     (await getFlowRunsResolver(
       {},
-      {},
+      args,
       {
         authentication: { actorId: "user" },
         dataSources: { graphApi: {} },
         logger: { warn: mocks.warn },
       } as never,
       {} as never,
-    )) as { flowRuns: FlowRunParent[] };
+    )) as { flowRuns: FlowRunParent[]; totalCount: number };
 
   it("gives a run its entity says is running the status its record has, and reads no ended run's record", async () => {
     const ended = flowRun("ended", {
@@ -90,6 +90,33 @@ describe("getFlowRunsResolver", () => {
       ["web~ended", FlowRunStatus.Completed, "2026-11-17T10:01:00.000Z"],
     ]);
     expect(mocks.getRecordOfFlowRun).toHaveBeenCalledTimes(2);
+  });
+
+  it("leaves out and stops counting a run that ended when asked for running runs only", async () => {
+    mocks.getFlowRuns.mockResolvedValue({
+      flowRuns: [flowRun("stuck"), flowRun("going")],
+      totalCount: 5,
+      nextCursor: "after-going",
+    });
+    mocks.getRecordOfFlowRun.mockImplementation((run: FlowRunParent) =>
+      Promise.resolve({
+        header: {
+          status:
+            run.flowRunEntityId === "web~stuck"
+              ? FlowRunStatus.Terminated
+              : FlowRunStatus.Running,
+        },
+      }),
+    );
+
+    const { flowRuns, totalCount } = await resolve({
+      executionStatus: FlowRunStatus.Running,
+    });
+
+    expect(flowRuns.map(({ flowRunEntityId }) => flowRunEntityId)).toEqual([
+      "web~going",
+    ]);
+    expect(totalCount).toBe(4);
   });
 
   it("keeps a running run as its entity has it when its record can't be read", async () => {
