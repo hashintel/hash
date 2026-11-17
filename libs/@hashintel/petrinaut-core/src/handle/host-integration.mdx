@@ -404,12 +404,154 @@ full prop list, from `petrinaut/src/ui/petrinaut.tsx`:
 | `slots`                                                                       | `settingsLabs`: host content rendered after the built-in groups in the Labs settings section.                                            |
 | `eventSimulationWorkerFactory`, `monteCarloWorkerFactory`, `lspWorkerFactory` | Worker construction for hosts consuming the published dist, typically via the bundler's `?worker` import. Omitted: inlined-blob workers. |
 | `plugins`                                                                     | Plugins that add buttons, top-bar items, commands, settings and UI. Define each at module scope.                                         |
+| `resolveImport`, `libraries`                                                  | The libraries of components the host offers, and how each import of a document is resolved. See Libraries and imports.                   |
 
 A plugin declares what it adds in a manifest and returns it from a hook the
 editor runs per document; see [Plugins](doc:ui.plugins/overview).
 Wrap `<Petrinaut>` in `ErrorTrackerContext` (exported from
 `@hashintel/petrinaut`) to receive plugin failures and `api.errors.capture`
 calls; without it they are dropped.
+
+## Libraries and imports
+
+A host can offer **libraries**: sets of components kept outside the document.
+A document that uses one **imports** it, by the library's id, and names its
+components by reference. Nothing of a library is stored in the document.
+
+```yaml
+imports:
+  - { id: "@hashintel/logistics" }
+componentInstances:
+  - id: belt-1
+    name: Belt1
+    component: { from: "@hashintel/logistics", id: conveyor }
+  - id: drill-1
+    name: Drill1
+    subnetId: stage
+```
+
+An instance has `component`, for a component of an import, or `subnetId`, for
+a subnet of the document, never both. A binding's `interface` and `component`
+and an instance's `implementation` take the same `{ from, id }` form. Both ids
+are kept as written: the import's is whatever its publisher owns, and the
+component's is the one it has in its library.
+
+The host hands the libraries over through two props, which `createPetrinaut`
+takes under the same names:
+
+```tsx
+import {
+  Petrinaut,
+  type Library,
+  type ResolveImport,
+} from "@hashintel/petrinaut";
+
+const logistics: Library = {
+  id: "@hashintel/logistics",
+  name: "Logistics",
+  components: [
+    {
+      id: "conveyor",
+      name: "Conveyor",
+      ports: [
+        { id: "in", name: "In", direction: "in" },
+        { id: "out", name: "Out", direction: "out" },
+      ],
+      parameters: [
+        {
+          id: "rate",
+          name: "Rate",
+          variableName: "rate",
+          type: "real",
+          defaultValue: "1",
+        },
+      ],
+      // Left out, the component is an interface.
+      body: { places: [/* In, Out */], transitions: [/* Move */] },
+    },
+  ],
+};
+
+// At module scope: a new function or a new list creates a new editor
+// instance, which resolves every import again.
+const resolveImport: ResolveImport = async (id) =>
+  id === logistics.id ? logistics : fetchLibrary(id);
+const libraries = [logistics.id];
+
+<Petrinaut
+  handle={handle}
+  resolveImport={resolveImport}
+  libraries={libraries}
+/>;
+```
+
+- **`resolveImport(id)`** gives the whole library for an import: a promise of
+  it, the library itself when it is already in memory, which then resolves at
+  once, or `undefined` for a library the host does not know. A rejection's
+  message is shown to the user.
+- **`libraries`** lists the ids on offer. Each is resolved through
+  `resolveImport` and listed in the Components panel, to place instances of
+  its components. A document's own imports are resolved whether they are on
+  offer or not. Placing the first instance from a library adds the import to
+  the document, and removing the last one leaves it there. A mutation can
+  only name a component of a library that is on offer or already imported.
+- **A library is checked when it arrives.** Every id is required: the
+  library's, which must be the import's, a component's, a port's, a
+  parameter's. Two components, or two ports or parameters of one component,
+  under one id make the library fail, with a message that names them, and so
+  does a component the document's own schema would refuse as a subnet, such
+  as one whose icon holds anything but plain shapes.
+- **A body** is what a component runs, in the shape a subnet holds its own
+  content: `places`, `transitions`, and `types` and `differentialEquations`
+  where it has them. Its ports are the places `ports` names: a port's `id` is
+  that place's id, its `name` the place's name, and its `tokenType` describes
+  the place's token type. A component without a body is an
+  [interface](doc:core.composition/interfaces-and-fusions): an instance of it
+  needs an implementation bound, a subnet of the document or a component of
+  an import, and a net does not run while one is missing.
+- **Ids inside a library** are read as a document reads any id: a UUID stays
+  as written, and any other string is converted with `toPetrinautId`. A
+  fusion member or an arc names a port of an instance by that id, and
+  `parameterValues` are keyed by the parameters' ids the same way.
+
+Core resolves each import once, when the instance is created and when an
+import joins the document, and holds the outcome in `instance.imports`, a
+readable store of `resolving`, `resolved` with the library, or `failed` with a
+message, per import id. Everything else reads that store as it stands: the
+mutations, the checks (`checkComposition(sdcpn, instance.imports.get())`), the
+editor and the assistants. `resolveComponent(sdcpn, reference, libraries)`
+answers a reference from the document or from the resolved libraries
+(`resolvedLibraries(states)`), and `describeImports(states)` lists the
+libraries with their components.
+
+While an import of the document resolves, the editor covers itself with a
+loader and the word "Resolving", and the checks say nothing about that import.
+One that fails is one error of `checkComposition`, of kind `import`, naming
+its id and how many instances use it; those instances draw as unresolved.
+
+The simulator, the compiler and the language server take one net and no
+libraries. `inlineImports(sdcpn, libraries)` gives that net: each component
+the document uses becomes a subnet of it, under ids that are the same on
+every call. The editor passes it wherever a net is run or checked, and a host
+that runs a simulation itself does the same:
+
+```ts
+const net = inlineImports(
+  instance.definition.get(),
+  resolvedLibraries(instance.imports.get()),
+);
+```
+
+Passed `generatePetrinautId` as its third argument, `inlineImports` gives the
+components fresh ids instead. That is the editor's **Export with imports
+inlined**: a file that reads without the libraries and imports nothing.
+
+:::caution
+A document keeps the id of a library and of its components, and no version.
+A library that later drops or renames a component, a port or a parameter
+leaves the documents that named it with an instance or a fusion that no
+longer resolves.
+:::
 
 ## Capabilities
 
