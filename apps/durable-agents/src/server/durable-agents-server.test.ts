@@ -22,14 +22,18 @@ import {
   type UIMessage,
   type UIMessageChunk,
 } from "ai";
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 
 import {
   petrinautContextualUserMessageBody,
   versionLoadNote,
 } from "@hashintel/brunch-agent";
 
-import { fauxAssistantMessage, fauxToolCall } from "../../test/scripted-model";
+import {
+  fauxAssistantMessage,
+  fauxToolCall,
+  scriptedModel,
+} from "../../test/scripted-model";
 import {
   browserCallExtension,
   BrowserCallsDoc,
@@ -826,6 +830,79 @@ describe("POST /chat announces a version load once (fold 2c)", () => {
         submissionContext: { versionLoad: load2 },
       },
     ]);
+  });
+});
+
+describe("POST /chat reads only the last message's id, role and text parts", () => {
+  const post = (
+    server: ReturnType<typeof createDurableAgentsServer>,
+    messages: readonly unknown[],
+  ) =>
+    server.app.request(`${origin}/chat`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id: chatId, trigger: "submit-message", messages }),
+    });
+
+  test.each([
+    ["without parts", { id: "user-1", role: "user" }],
+    ["whose parts are not a list", { id: "user-1", role: "user", parts: "Hi" }],
+    [
+      "without a string id",
+      { role: "user", parts: [{ type: "text", text: "Hi" }] },
+    ],
+  ])(
+    "a last user message %s is a 400, before any storage lookup or model call",
+    async (_, message) => {
+      const { models, model, state } = scriptedModel([]);
+      const storage = memoryConversations();
+      const storageExists = vi.fn<typeof storage.storageExists>(
+        storage.storageExists,
+      );
+      const openStorage = vi.fn<typeof storage.openStorage>(
+        storage.openStorage,
+      );
+      const server = createDurableAgentsServer({
+        storageExists,
+        openStorage,
+        createRegistry,
+        models,
+        agent: { model },
+        clientToolNames: new Set<string>(),
+        context,
+      });
+      servers.push(server);
+
+      const response = await post(server, [message]);
+      expect(response.status).toBe(400);
+      expect(storageExists).not.toHaveBeenCalled();
+      expect(openStorage).not.toHaveBeenCalled();
+      expect(state.callCount).toBe(0);
+    },
+  );
+
+  test("earlier messages and the last message's other parts are not read: its text parts are the input", async () => {
+    const { requests, responses } = recordedAnswers(1);
+    const { server } = openChat({ responses });
+    const response = await post(server, [
+      null,
+      { role: "assistant" },
+      {
+        id: "user-1",
+        role: "user",
+        parts: [
+          null,
+          "Hi",
+          { type: "text" },
+          { type: "text", text: 5 },
+          { type: "reasoning", text: "Hmm." },
+          { type: "text", text: "Add a dryer." },
+        ],
+      },
+    ]);
+    expect(response.status).toBe(200);
+    await response.text();
+    expect(userTexts(requests)).toEqual([["Add a dryer."]]);
   });
 });
 

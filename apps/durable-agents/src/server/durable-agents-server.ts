@@ -34,7 +34,11 @@ import {
   type Context,
 } from "@earendil-works/chord/context";
 import { LiveDoc, type SubmissionId } from "@earendil-works/pi-durable";
-import { createUIMessageStreamResponse, type UIMessage } from "ai";
+import {
+  createUIMessageStreamResponse,
+  type TextUIPart,
+  type UIMessage,
+} from "ai";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 
@@ -48,7 +52,10 @@ import {
 import { historyHandler } from "./durable-agents-server/history";
 import { createRequestSlots } from "./durable-agents-server/request-slots";
 import { followSubmission } from "./durable-agents-server/submission-stream";
-import { brunchUserInput } from "./durable-agents-server/user-input";
+import {
+  brunchUserInput,
+  type ChatInput,
+} from "./durable-agents-server/user-input";
 import { contentWithVersionLoadNote } from "./durable-agents-server/version-load";
 
 export type {
@@ -122,10 +129,13 @@ export type DurableAgentsServerOptions = ConversationRegistryOptions & {
   readonly context?: Context;
 };
 
-/** What `DefaultChatTransport` POSTs, as far as this server reads it. */
+/**
+ * What `DefaultChatTransport` POSTs, as far as this server reads it. Its
+ * messages stay unread until `userInput` reads the last one.
+ */
 type ChatRequestBody = {
   readonly id: string;
-  readonly messages: readonly UIMessage[];
+  readonly messages: readonly unknown[];
   readonly trigger: "submit-message" | "regenerate-message";
   readonly messageId?: string;
 };
@@ -141,13 +151,46 @@ const isChatRequestBody = (body: unknown): body is ChatRequestBody => {
   );
 };
 
-/** The user message a submit-message request sends: the last message, its text parts joined, as an input. */
-const userInput = (messages: readonly UIMessage[]) => {
+/** The text a message part adds: a `TextUIPart`'s text; any other part, or one whose text is not a string, adds none. */
+const partText = (part: unknown): TextUIPart["text"] | undefined =>
+  typeof part === "object" &&
+  part !== null &&
+  "type" in part &&
+  part.type === ("text" satisfies TextUIPart["type"]) &&
+  "text" in part &&
+  typeof part.text === "string"
+    ? part.text
+    : undefined;
+
+/**
+ * The user message a submit-message request sends: the last message, its
+ * text parts joined, as an input. Only what this reads of the last message is
+ * checked: it is refused when it is not a user message, or is one without a
+ * string `id` and a list of `parts`.
+ */
+const userInput = (
+  messages: readonly unknown[],
+): (ChatInput & { readonly requestId: UIMessage["id"] }) | ChatRefusal => {
   const message = messages.at(-1);
-  if (message?.role !== "user") return undefined;
-  const text = message.parts
-    .flatMap((part) => (part.type === "text" ? [part.text] : []))
-    .join("");
+  if (
+    typeof message !== "object" ||
+    message === null ||
+    !("role" in message) ||
+    message.role !== ("user" satisfies UIMessage["role"])
+  )
+    return { status: 400, error: "The last message must be a user message." };
+  if (
+    !("id" in message) ||
+    typeof message.id !== "string" ||
+    !("parts" in message) ||
+    !Array.isArray(message.parts)
+  )
+    return {
+      status: 400,
+      error: "The last message must have a string id and a list of parts.",
+    };
+  const parts: readonly unknown[] = message.parts;
+  const text = parts.flatMap((part) => partText(part) ?? []).join("");
   return { requestId: message.id, ...brunchUserInput(text) };
 };
 
@@ -238,9 +281,7 @@ export const createDurableAgentsServer = (
       return ctx.text("Regenerating a message is not supported.", 400);
     }
     const input = userInput(body.messages);
-    if (input === undefined) {
-      return ctx.text("The last message must be a user message.", 400);
-    }
+    if ("error" in input) return ctx.text(input.error, input.status);
     let conversation = await conversations.acquire(body.id);
     if (conversation === undefined) {
       const refusal = options.admitNewConversation?.(body);
