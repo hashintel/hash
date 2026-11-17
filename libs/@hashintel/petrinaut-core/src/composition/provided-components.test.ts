@@ -324,7 +324,10 @@ describe("runsAtHost", () => {
     ).toBe(false);
     expect(
       runsAtHost(
-        resolveImplementation(sdcpn, { ...instance, implementation: "gone" }),
+        resolveImplementation(sdcpn, {
+          ...instance,
+          implementation: { id: "gone" },
+        }),
         provided,
       ),
     ).toBe(false);
