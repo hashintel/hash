@@ -59,7 +59,7 @@ const cardStyle = css({
 const cardTextStyle = css({
   textStyle: "sm",
   lineHeight: "[20px]",
-  color: "neutral.fg.body",
+  color: "neutral.fg.heading",
 });
 
 const cardPortsStyle = css({
@@ -171,7 +171,7 @@ const fitHeadStyle = css({
   fontWeight: "medium",
   letterSpacing: "[0.12px]",
   textTransform: "uppercase",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
 });
 
 const fitRowStyle = css({

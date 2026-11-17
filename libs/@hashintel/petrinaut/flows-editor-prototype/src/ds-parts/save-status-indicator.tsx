@@ -18,9 +18,9 @@ const rowStyle = css({
   transition: "[opacity 600ms ease-out]",
 });
 
-const savedStyle = css({ color: "neutral.fg.subtle" });
+const savedStyle = css({ color: "neutral.fg.muted" });
 
-const savingStyle = css({ color: "neutral.fg.subtle" });
+const savingStyle = css({ color: "neutral.fg.muted" });
 
 const errorStyle = css({ color: "[var(--flows-failed-text)]" });
 

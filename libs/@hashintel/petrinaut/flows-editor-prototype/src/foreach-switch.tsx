@@ -215,7 +215,7 @@ const pickerStyle = css({
   },
 });
 
-const quietNameStyle = css({ color: "neutral.fg.subtle" });
+const quietNameStyle = css({ color: "neutral.fg.muted" });
 
 const glyphSpaceStyle = css({ width: "[16px]", flexShrink: 0 });
 
@@ -517,7 +517,7 @@ const runWord: Partial<Record<StepState, string>> = {
 
 const statusLineStyle = css({
   textStyle: "sm",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
   whiteSpace: "nowrap",
   marginLeft: "2",
 });

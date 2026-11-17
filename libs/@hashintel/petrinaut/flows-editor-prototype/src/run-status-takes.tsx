@@ -127,10 +127,10 @@ const rowStyle = css({
   whiteSpace: "nowrap",
 });
 
-const wordStyle = css({ color: "neutral.fg.body" });
+const wordStyle = css({ color: "neutral.fg.heading" });
 
 const mutedStyle = css({
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
   overflow: "hidden",
   textOverflow: "ellipsis",
   fontVariantNumeric: "tabular-nums",
@@ -144,7 +144,7 @@ const chipStyle = css({
   paddingX: "2",
   borderRadius: "md",
   backgroundColor: "neutral.s20",
-  color: "neutral.fg.body",
+  color: "neutral.fg.heading",
   textStyle: "sm",
 });
 
@@ -240,14 +240,14 @@ export const RunStatusTakeCell = ({
 export const RunItemsCell = ({ run, now }: { run: RunRecord; now: number }) => {
   const status = runStatusOf(run, now);
   return (
-    <span className={css({ display: "block", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "neutral.fg.body" })}>
+    <span className={css({ display: "block", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "neutral.fg.heading" })}>
       {status.count ? (
         <>
           {status.count.done}
-          <span className={css({ color: "neutral.fg.subtle" })}> of {status.count.total}</span>
+          <span className={css({ color: "neutral.fg.muted" })}> of {status.count.total}</span>
         </>
       ) : (
-        <span className={css({ color: "neutral.fg.subtle" })}>–</span>
+        <span className={css({ color: "neutral.fg.muted" })}>–</span>
       )}
     </span>
   );

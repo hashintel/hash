@@ -305,7 +305,7 @@ const footerStyle = css({
 
 const footerLinkStyle = css({
   cursor: "pointer",
-  color: "neutral.fg.body",
+  color: "neutral.fg.heading",
   _hover: { textDecoration: "underline", textUnderlineOffset: "[2px]" },
 });
 
@@ -923,7 +923,7 @@ const statRowStyle = css({
 const statLabelStyle = css({ color: "neutral.fg.muted" });
 
 const statValueStyle = css({
-  color: "neutral.fg.body",
+  color: "neutral.fg.heading",
   fontVariantNumeric: "tabular-nums",
   whiteSpace: "nowrap",
 });
@@ -1167,7 +1167,7 @@ const periodStyle = css({
   borderRadius: "md",
   textStyle: "xs",
   fontWeight: "medium",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
   cursor: "pointer",
   _hover: { color: "neutral.fg.heading" },
   "&[aria-checked=true]": {
@@ -1288,7 +1288,7 @@ const RunsChart = ({ history }: { history: HistoryValue }) => {
             ))}
           </div>
         </div>
-        <span className={css({ textStyle: "xs", color: "neutral.fg.subtle" })}>
+        <span className={css({ textStyle: "xs", color: "neutral.fg.muted" })}>
           {name} · {range}
         </span>
       </div>
@@ -1493,7 +1493,7 @@ const RunsChart = ({ history }: { history: HistoryValue }) => {
             display: "flex",
             justifyContent: "space-between",
             textStyle: "xxs",
-            color: "neutral.fg.subtle",
+            color: "neutral.fg.muted",
           })}
         >
           {axis.map((label) => (
@@ -1708,7 +1708,7 @@ const Overview = ({ history }: { history: HistoryValue }) => {
               })}
             >
               <span
-                className={css({ textStyle: "sm", color: "neutral.fg.body" })}
+                className={css({ textStyle: "sm", color: "neutral.fg.heading" })}
               >
                 {failure.title}
               </span>

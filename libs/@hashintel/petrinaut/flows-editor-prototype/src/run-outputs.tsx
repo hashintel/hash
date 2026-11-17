@@ -502,7 +502,7 @@ const EmailPage = ({ file }: { file: Email }) => (
         gridTemplateColumns: "[52px 1fr]",
         rowGap: "[6px]",
         fontSize: "[13px]", // token-guard: allow a drawn print page, scaled as a whole
-        "& > span:nth-child(odd)": { color: "neutral.fg.subtle" },
+        "& > span:nth-child(odd)": { color: "neutral.fg.muted" },
       })}
     >
       <span>From</span>
@@ -526,7 +526,7 @@ const EmailPage = ({ file }: { file: Email }) => (
           fontSize: "[14px]", // token-guard: allow a drawn print page, scaled as a whole
           lineHeight: "[22px]",
           whiteSpace: "pre-line",
-          color: "neutral.fg.body",
+          color: "neutral.fg.heading",
         })}
       >
         {paragraph}
@@ -665,7 +665,7 @@ const blockTitleStyle = css({
   color: "neutral.fg.muted",
 });
 
-const quietStyle = css({ textStyle: "xs", color: "neutral.fg.subtle" });
+const quietStyle = css({ textStyle: "xs", color: "neutral.fg.muted" });
 
 const linkOutStyle = css({ display: "inline-flex", flexShrink: 0 });
 
@@ -755,7 +755,7 @@ const metaLineStyle = css({
   display: "block",
   marginTop: "0.5",
   textStyle: "xs",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
@@ -764,7 +764,7 @@ const metaLineStyle = css({
 const typeTagStyle = css({
   flexShrink: 0,
   textStyle: "xs",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
 });
 
 const emailLeadStyle = css({
@@ -804,7 +804,7 @@ const emailAsideStyle = css({
   alignItems: "center",
   gap: "1",
   textStyle: "xs",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
   fontVariantNumeric: "tabular-nums",
 });
 
@@ -816,7 +816,7 @@ const attachmentStyle = css({
   alignItems: "center",
   gap: "1",
   textStyle: "xs",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
   "& > span": {
     overflow: "hidden",
     textOverflow: "ellipsis",
@@ -1250,7 +1250,7 @@ const miniTableStyle = css({
   "& th": {
     textAlign: "left",
     fontWeight: "normal",
-    color: "neutral.fg.subtle",
+    color: "neutral.fg.muted",
     paddingX: "3",
     paddingTop: "2.5",
     paddingBottom: "1.5",
@@ -1258,7 +1258,7 @@ const miniTableStyle = css({
   "& td": {
     paddingX: "3",
     paddingY: "1.5",
-    color: "neutral.fg.body",
+    color: "neutral.fg.heading",
     whiteSpace: "nowrap",
   },
   "& tbody tr:last-child td": { paddingBottom: "2.5" },
@@ -1331,7 +1331,7 @@ const factsGridStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "4",
-  "& dt": { textStyle: "xs", color: "neutral.fg.subtle" },
+  "& dt": { textStyle: "xs", color: "neutral.fg.muted" },
   "& dd": {
     marginTop: "0.5",
     textStyle: "sm",
@@ -1413,7 +1413,7 @@ const headerActionsStyle = css({
 
 const counterStyle = css({
   textStyle: "sm",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
   fontVariantNumeric: "tabular-nums",
   minWidth: "[52px]",
   textAlign: "center",
@@ -1617,7 +1617,7 @@ const typeTabStyle = css({
   textStyle: "sm",
   color: "neutral.fg.muted",
   cursor: "pointer",
-  "& > span": { color: "neutral.fg.subtle" },
+  "& > span": { color: "neutral.fg.muted" },
   _hover: { backgroundColor: "neutral.bg.surface.hover" },
   "&[aria-selected=true]": {
     color: "neutral.fg.heading",
@@ -1718,7 +1718,7 @@ const groupTitleStyle = css({
   fontWeight: "medium",
   color: "neutral.fg.heading",
   "&:first-child": { paddingTop: "1" },
-  "& > span": { fontWeight: "normal", color: "neutral.fg.subtle" },
+  "& > span": { fontWeight: "normal", color: "neutral.fg.muted" },
 });
 
 const EntityTable = ({
@@ -2262,7 +2262,7 @@ const ListModal = ({
 );
 
 const muted = (text: string) => (
-  <span className={css({ color: "neutral.fg.subtle" })}>{text}</span>
+  <span className={css({ color: "neutral.fg.muted" })}>{text}</span>
 );
 
 /** The entity tables each output opens. */
@@ -2675,7 +2675,7 @@ const wrapLineStyle = css({
   display: "block",
   marginTop: "0.5",
   textStyle: "xs",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
   overflowWrap: "anywhere",
 });
 
@@ -2702,7 +2702,7 @@ const columnGroupHeadStyle = css({
   textStyle: "sm",
   fontWeight: "medium",
   color: "neutral.fg.heading",
-  "& > span": { fontWeight: "normal", color: "neutral.fg.subtle" },
+  "& > span": { fontWeight: "normal", color: "neutral.fg.muted" },
 });
 
 const listStackStyle = css({
@@ -2729,7 +2729,7 @@ const typeFilterStyle = css({
   textStyle: "sm",
   color: "neutral.fg.heading",
   cursor: "pointer",
-  "& > span": { color: "neutral.fg.subtle" },
+  "& > span": { color: "neutral.fg.muted" },
   "& svg": { color: "neutral.fg.subtle" },
   _hover: { backgroundColor: "neutral.bg.surface.hover" },
   "&[data-state=open], &[aria-expanded=true]": {
@@ -4136,10 +4136,10 @@ const cellStyle = css({
   alignItems: "center",
   columnGap: "1.5",
   rowGap: "0.5",
-  color: "neutral.fg.body",
+  color: "neutral.fg.heading",
 });
 
-const dotStyle = css({ color: "neutral.fg.subtle" });
+const dotStyle = css({ color: "neutral.fg.muted" });
 
 /** The Logs cell keeps one line (11 Nov, inbox conv-overflow): up to three counts show; past that, two and "+N". */
 const cellFits = 3;
@@ -4270,7 +4270,7 @@ export const RunOutputsCell = ({
   const { open, container, node } = useOutputViewer(outputs, anchor);
   if (outputs.findFailed) {
     return (
-      <span className={css({ color: "neutral.fg.subtle" })}>
+      <span className={css({ color: "neutral.fg.muted" })}>
         Nothing
       </span>
     );
@@ -4311,7 +4311,7 @@ export const RunOutputsCell = ({
       onClick={(event) => event.stopPropagation()}
     >
       {parts.length === 0 ? (
-        <span className={css({ color: "neutral.fg.subtle" })}>
+        <span className={css({ color: "neutral.fg.muted" })}>
           {flags.length === 0 ? "No outputs flagged" : "Nothing yet"}
         </span>
       ) : (

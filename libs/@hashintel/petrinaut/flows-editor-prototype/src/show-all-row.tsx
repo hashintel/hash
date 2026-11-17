@@ -16,7 +16,7 @@ const rowStyle = css({
 const linkStyle = css({
   all: "unset",
   cursor: "pointer",
-  color: "neutral.fg.body",
+  color: "neutral.fg.heading",
   textUnderlineOffset: "[2px]",
   _hover: { textDecorationLine: "underline" },
   _focusVisible: { textDecorationLine: "underline", outline: "none" },

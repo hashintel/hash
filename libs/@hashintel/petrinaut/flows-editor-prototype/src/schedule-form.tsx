@@ -351,7 +351,7 @@ const times = Array.from({ length: 96 }, (_, index) => {
 
 const mutedLine = css({
   textStyle: "sm",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
   minHeight: "[32px]",
   display: "flex",
   alignItems: "center",
@@ -377,7 +377,7 @@ const customPanel = css({
   borderColor: "neutral.bd.subtle",
   borderRadius: "lg",
   boxShadow: "md",
-  "& .label": { textStyle: "sm", color: "neutral.fg.subtle" },
+  "& .label": { textStyle: "sm", color: "neutral.fg.muted" },
   "& .grid": {
     display: "grid",
     gridTemplateColumns: "[96px minmax(0, 1fr)]",

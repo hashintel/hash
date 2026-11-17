@@ -30,7 +30,7 @@ const flowGlyphStyle = css({
 const flowCountStyle = css({
   marginLeft: "auto",
   textStyle: "xxs",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
 });
 
 /** Manual journeys only (ledger, 21 Oct): AI steps are parked. */
@@ -94,7 +94,7 @@ const rowStyle = css({
   lineHeight: "[14px]",
   fontWeight: "medium",
   // J1.1 (3 Nov): a row is muted; the selected one is dark with the #f4f4f4 fill, hovered or not (ledger 11 Nov ~19:40).
-  color: "neutral.fg.muted.hover",
+  color: "neutral.fg.heading",
   // Row hover is the figma-ds #f9f9f9 (11 Nov convergence A8).
   _hover: { backgroundColor: "neutral.bg.subtle.hover" },
   _focusVisible: {
@@ -145,7 +145,7 @@ const tileStyle = cva({
         width: "[20px]",
         height: "[20px]",
         minWidth: "[20px]",
-        borderRadius: "[5px]",
+        borderRadius: "[4px]",
         "&[class] svg": {
           width: "[14px]",
           height: "[14px]",
@@ -172,7 +172,7 @@ const labelStyle = css({
   whiteSpace: "nowrap",
 });
 
-const countStyle = css({ textStyle: "xxs", color: "neutral.fg.subtle" });
+const countStyle = css({ textStyle: "xxs", color: "neutral.fg.muted" });
 
 /**
  * The text at a Steps-tree row's right ("6 steps", "19 of 20", "Needs review"), inbox `picks/row-text`: a is the
@@ -734,7 +734,7 @@ const tabStyle = css({
   textStyle: "sm",
   lineHeight: "none",
   fontWeight: "medium",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
   cursor: "pointer",
   whiteSpace: "nowrap",
   _hover: { color: "neutral.fg.heading" },

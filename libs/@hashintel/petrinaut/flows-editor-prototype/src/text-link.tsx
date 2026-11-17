@@ -12,7 +12,7 @@ const linkStyle = css({
   gap: "1",
   cursor: "pointer",
   textStyle: "sm",
-  color: "neutral.fg.body",
+  color: "neutral.fg.heading",
   whiteSpace: "nowrap",
   textDecorationColor: "neutral.bd.solid",
   textUnderlineOffset: "[3px]",

@@ -199,7 +199,7 @@ const nodeLook = (
 };
 
 /** An empty value ("Ends here", "Not used yet"): the value's size, in the subtle colour of an empty state. */
-const emptyValueStyle = css({ textStyle: "sm", color: "neutral.fg.subtle" });
+const emptyValueStyle = css({ textStyle: "sm", color: "neutral.fg.muted" });
 
 /** "Used in N": which steps read a value, opening their `Step › Input` rows (11 Nov convergence A1; was "Used by" chips). */
 const UsedBy = ({
@@ -450,7 +450,7 @@ const kindWordStyle = css({
   flexShrink: 0,
   whiteSpace: "pre",
   textStyle: "sm",
-  color: "neutral.fg.muted.hover",
+  color: "neutral.fg.heading",
 });
 
 /**
@@ -616,7 +616,7 @@ const PanelHeader = ({
             flexShrink: 0,
             whiteSpace: "pre",
             textStyle: "sm",
-            color: "neutral.fg.muted.hover",
+            color: "neutral.fg.heading",
           })}
         >
           {"Action · "}
@@ -1287,7 +1287,7 @@ const rowActionStyle = css({
   transition: "[opacity 0.15s ease]",
 });
 
-const tableHeadStyle = css({ textStyle: "xs", color: "neutral.fg.subtle" });
+const tableHeadStyle = css({ textStyle: "xs", color: "neutral.fg.muted" });
 
 const RunFormFields = () => {
   const { document, setDocument } = useEditor();
@@ -2067,7 +2067,7 @@ const Checklist = ({
                 <span
                   className={css({
                     textStyle: "xs",
-                    color: "neutral.fg.subtle",
+                    color: "neutral.fg.muted",
                   })}
                 >
                   {item.message}
@@ -2087,7 +2087,7 @@ const multiRowStyle = css({
   gap: "1.5",
   height: "[32px]",
   textStyle: "sm",
-  color: "neutral.fg.muted.hover",
+  color: "neutral.fg.heading",
   fontWeight: "medium",
   whiteSpace: "nowrap",
   overflow: "hidden",

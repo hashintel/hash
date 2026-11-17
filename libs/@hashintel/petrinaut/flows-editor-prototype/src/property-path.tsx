@@ -16,7 +16,7 @@ const pathStyle = css({
   whiteSpace: "nowrap",
 });
 
-const chevronStyle = css({ color: "neutral.fg.subtle" });
+const chevronStyle = css({ color: "neutral.fg.muted" });
 
 const iconStyle = css({
   display: "inline-flex",

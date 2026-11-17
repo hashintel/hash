@@ -228,7 +228,7 @@ const SourceLine = ({ source }: { source: StepInputSource }) => {
     return null;
   }
   return (
-    <span className={css({ textStyle: "xs", color: "neutral.fg.subtle" })}>
+    <span className={css({ textStyle: "xs", color: "neutral.fg.muted" })}>
       {notes.join(" · ")}
     </span>
   );

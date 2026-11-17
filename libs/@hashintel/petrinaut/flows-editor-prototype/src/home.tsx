@@ -40,7 +40,7 @@ const tableStyle = css({
     textStyle: "xs",
     lineHeight: "[12px]",
     fontWeight: "medium",
-    color: "neutral.fg.muted.hover",
+    color: "neutral.fg.heading",
     backgroundColor: "neutral.bgSolid.surface.hover",
     borderBottomWidth: "thin",
     borderBottomStyle: "solid",
@@ -133,7 +133,7 @@ export const Home = ({
               className={css({
                 textStyle: "sm",
                 lineHeight: "[21px]",
-                color: "neutral.fg.muted.hover",
+                color: "neutral.fg.heading",
               })}
             >
               Processes that workers can monitor and manage
@@ -211,7 +211,7 @@ export const Home = ({
               <span
                 className={css({
                   textStyle: "sm",
-                  color: "neutral.fg.muted.disabled",
+                  color: "neutral.fg.muted",
                 })}
               >
                 {flows.length === 0
@@ -253,10 +253,10 @@ export const Home = ({
                     <td className={css({ color: "neutral.fg.heading" })}>
                       {flow.document.name}
                     </td>
-                    <td className={css({ color: "neutral.fg.muted.hover" })}>
+                    <td className={css({ color: "neutral.fg.heading" })}>
                       {flow.version ?? ""}
                     </td>
-                    <td className={css({ color: "neutral.fg.muted.hover" })}>
+                    <td className={css({ color: "neutral.fg.heading" })}>
                       {flow.lastRun ? (
                         <span
                           className={css({
@@ -279,17 +279,17 @@ export const Home = ({
                           />
                         </span>
                       ) : (
-                        <span className={css({ color: "neutral.fg.subtle" })}>
+                        <span className={css({ color: "neutral.fg.muted" })}>
                           No runs yet
                         </span>
                       )}
                     </td>
-                    <td className={css({ color: "neutral.fg.muted.hover" })}>
+                    <td className={css({ color: "neutral.fg.heading" })}>
                       {flow.runCount
                         ? `${flow.runCount}`
                         : "–"}
                     </td>
-                    <td className={css({ color: "neutral.fg.muted.hover" })}>
+                    <td className={css({ color: "neutral.fg.heading" })}>
                       {flow.lastEdited}
                     </td>
                     <td>

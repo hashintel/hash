@@ -97,7 +97,7 @@ const pathStyle = css({
     flex: "[0 1 auto]",
   },
   "& [data-ref-sep]": {
-    color: "neutral.fg.subtle",
+    color: "neutral.fg.muted",
     paddingX: "1.5",
     flexShrink: 0,
   },
@@ -158,7 +158,7 @@ const chipTextStyle = css({
     minWidth: "[24px]",
     flex: "[0 1 auto]",
   },
-  "& [data-ref-sep]": { color: "neutral.fg.subtle", paddingX: "1", flexShrink: 0 },
+  "& [data-ref-sep]": { color: "neutral.fg.muted", paddingX: "1", flexShrink: 0 },
   "& [data-ref-output]": { flexShrink: 0 },
 });
 
@@ -177,7 +177,7 @@ const runValueStyle = css({
   gap: "1",
   minWidth: "[0]",
   textStyle: "sm",
-  "& > [data-value]": { color: "neutral.fg.body", overflowWrap: "anywhere" },
+  "& > [data-value]": { color: "neutral.fg.heading", overflowWrap: "anywhere" },
 });
 
 /** In a run: the value first, then the tile and `Step › Output` under it, muted. */

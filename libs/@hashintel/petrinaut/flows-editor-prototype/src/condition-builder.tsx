@@ -364,7 +364,7 @@ const joinerColumnStyle = css({
   "& button": { flexShrink: 0 },
   textStyle: "sm",
   fontWeight: "medium",
-  color: "neutral.fg.body",
+  color: "neutral.fg.heading",
 });
 
 /** Full-width rows (field-conditions 2): the joiner on its own line above its chip, which spans the builder. */
@@ -1316,7 +1316,7 @@ const groupCaptionStyle = css({
   borderBottomStyle: "solid",
   borderBottomColor: "neutral.bd.subtle",
   textStyle: "sm",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
 });
 
 /** A footer: "Add filter" left, a text button right. */
@@ -1368,7 +1368,7 @@ const joinerTextStyle = css({
   "&:hover > svg, &:focus-visible > svg, &[aria-expanded=true] > svg": {
     visibility: "visible",
   },
-  _hover: { color: "neutral.fg.body" },
+  _hover: { color: "neutral.fg.heading" },
 });
 
 /** `?joiner=j2`: the DS xs ghost Button, lowercase and muted, its text level with "Where" (the xs padding pulled back). */
@@ -1471,7 +1471,7 @@ const matchLineStyle = css({
     border: "none",
     background: "[none]",
     cursor: "pointer",
-    color: "neutral.fg.body",
+    color: "neutral.fg.heading",
     fontSize: "[13px]",
     fontWeight: "medium",
   },

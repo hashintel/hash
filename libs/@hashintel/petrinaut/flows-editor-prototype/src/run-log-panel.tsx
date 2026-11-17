@@ -95,15 +95,15 @@ const monoStyle = css({
   fontFamily: "mono",
   textStyle: "xs",
   lineHeight: "[18px]",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
   whiteSpace: "nowrap",
 });
 
-const mutedStyle = css({ color: "neutral.fg.subtle" });
+const mutedStyle = css({ color: "neutral.fg.muted" });
 
 /** "2 failed" in the summary: a quiet link that opens the For each on its failures. */
 const failedLinkStyle = css({
-  "&[class]": { color: "neutral.fg.subtle", fontWeight: "normal" },
+  "&[class]": { color: "neutral.fg.muted", fontWeight: "normal" },
   "&[class]:hover": { color: "neutral.fg.heading" },
 });
 
@@ -215,7 +215,7 @@ const LogLine = ({
         {detail ? (
           <span
             className={css({
-              color: "neutral.fg.subtle",
+              color: "neutral.fg.muted",
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
@@ -250,7 +250,7 @@ const LogLine = ({
           style={{
             color: failure
               ? "var(--flows-failed-text)"
-              : "var(--colors-neutral-fg-subtle)",
+              : "var(--colors-neutral-fg-muted)",
           }}
         >
           {note}
@@ -551,7 +551,7 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
           paddingX: "4",
           paddingBottom: "1",
           textStyle: "sm",
-          color: "neutral.fg.subtle",
+          color: "neutral.fg.muted",
         })}
       >
         {logLabel}

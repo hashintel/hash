@@ -295,9 +295,9 @@ const valueStyle = css({
   overflowWrap: "anywhere",
 });
 
-const mutedStyle = css({ textStyle: "sm", color: "neutral.fg.subtle" });
+const mutedStyle = css({ textStyle: "sm", color: "neutral.fg.muted" });
 
-const runStripStyle = css({ textStyle: "xs", color: "neutral.fg.subtle" });
+const runStripStyle = css({ textStyle: "xs", color: "neutral.fg.muted" });
 
 /** The run's facts: which run, when, what started it. One quiet line; how it ended is the status. */
 const RunStrip = () => (
@@ -401,7 +401,7 @@ const EntitiesDrawer = ({ onClose }: { onClose: () => void }) => (
                   key={cell}
                   className={css({
                     paddingY: "1.5",
-                    color: "neutral.fg.body",
+                    color: "neutral.fg.heading",
                     borderBottomWidth: "thin",
                     borderBottomStyle: "solid",
                     borderBottomColor: "neutral.bd.subtle",
@@ -465,7 +465,7 @@ const itemRowStyle = css({
   textAlign: "left",
   cursor: "pointer",
   textStyle: "sm",
-  color: "neutral.fg.body",
+  color: "neutral.fg.heading",
   _hover: { backgroundColor: "neutral.bgSolid.subtle" },
   "&[data-picked]": {
     backgroundColor: "neutral.bgSolid.surface.active",

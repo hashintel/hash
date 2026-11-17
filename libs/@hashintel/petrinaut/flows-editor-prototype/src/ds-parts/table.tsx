@@ -19,7 +19,7 @@ export const tableStyle = css({
     textStyle: "xs",
     lineHeight: "[12px]",
     fontWeight: "medium",
-    color: "neutral.fg.body",
+    color: "neutral.fg.heading",
     whiteSpace: "nowrap",
     backgroundColor: "neutral.bg.subtle.hover",
     borderBottomWidth: "thin",
@@ -29,7 +29,7 @@ export const tableStyle = css({
   "& td": {
     height: "[48px]",
     paddingX: "3",
-    color: "neutral.fg.body",
+    color: "neutral.fg.heading",
     whiteSpace: "nowrap",
     borderBottomWidth: "thin",
     borderBottomStyle: "solid",

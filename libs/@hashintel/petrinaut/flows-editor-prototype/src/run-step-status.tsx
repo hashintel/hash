@@ -39,7 +39,7 @@ import {
  */
 export const approverName = "Maya Patel";
 
-const quietLineStyle = css({ textStyle: "sm", color: "neutral.fg.subtle" });
+const quietLineStyle = css({ textStyle: "sm", color: "neutral.fg.muted" });
 
 const seconds = (duration: string) =>
   Number(/(\d+)h/.exec(duration)?.[1] ?? 0) * 3600 +
@@ -127,7 +127,7 @@ const firstLineStyle = css({
   gap: "1",
   minWidth: "[0]",
   textStyle: "sm",
-  color: "neutral.fg.body",
+  color: "neutral.fg.heading",
   whiteSpace: "nowrap",
 });
 
@@ -141,7 +141,7 @@ const wordStyle = css({ color: "neutral.fg.heading" });
 
 const builtNoteStyle = css({
   textStyle: "sm",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
   overflowWrap: "anywhere",
 });
 
@@ -355,7 +355,7 @@ const itemRowStyle = css({
   width: "[calc(100% + 16px)]",
   borderRadius: "md",
   textStyle: "sm",
-  color: "neutral.fg.body",
+  color: "neutral.fg.heading",
   cursor: "pointer",
   textAlign: "left",
   "&:hover": { backgroundColor: "neutral.bg.surface.hover" },
@@ -395,7 +395,7 @@ const Branch = ({ facts, item }: { facts: RunFacts; item: number }) => {
               columnGap: "2",
               alignItems: "center",
               textStyle: "sm",
-              color: "neutral.fg.body",
+              color: "neutral.fg.heading",
             })}
             style={side === "right" ? { gridTemplateColumns: "1fr 16px" } : undefined}
           >

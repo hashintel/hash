@@ -21,7 +21,7 @@ const list = css({
 const code = css({
   fontFamily: "mono",
   textStyle: "xs",
-  color: "neutral.fg.body",
+  color: "neutral.fg.heading",
 });
 
 const urls: [string, string][] = [
@@ -53,7 +53,7 @@ export const Guide = () => {
         minHeight: "[100vh]",
         backgroundColor: "neutral.bgSolid.min",
         fontFamily: "body",
-        color: "neutral.fg.body",
+        color: "neutral.fg.heading",
         textStyle: "sm",
       })} petrinaut-root`}
     >

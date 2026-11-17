@@ -88,8 +88,8 @@ const dateWords = (iso: string) => {
 const runDay = (date: Date) =>
   `${dayShortWords[weekday(date)]} ${date.getUTCDate()} ${monthWords[date.getUTCMonth()]}`;
 
-const labelText = css({ textStyle: "sm", color: "neutral.fg.subtle" });
-const bodyText = css({ textStyle: "sm", color: "neutral.fg.body" });
+const labelText = css({ textStyle: "sm", color: "neutral.fg.muted" });
+const bodyText = css({ textStyle: "sm", color: "neutral.fg.heading" });
 const faintLine = css({ textStyle: "sm", color: "neutral.fg.subtle" });
 /** The Triggers panel group title ("Schedules · 4"): sm Medium heading. */
 const groupTitle = css({
@@ -368,7 +368,7 @@ const gridA = css({
   rowGap: "3",
   alignItems: "center",
   "& > .title": { gridColumn: "[1 / -1]" },
-  "& > .label": { textStyle: "sm", color: "neutral.fg.subtle" },
+  "& > .label": { textStyle: "sm", color: "neutral.fg.muted" },
 });
 
 const LayoutAB = ({

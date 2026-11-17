@@ -147,7 +147,7 @@ const barButtonStyle = css({
 
 /** Simulate (J4.4): the DS outline sm button, its label muted, after Start's 14 px grey play tile. */
 const simulateStyle = css({
-  "&[class]": { color: "neutral.fg.muted.hover" },
+  "&[class]": { color: "neutral.fg.heading" },
 });
 
 const squareStyle = css({

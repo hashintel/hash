@@ -136,14 +136,14 @@ const centreInRowStyle = css({
 const flowLinkStyle = css({
   "&[class]": {
     fontWeight: "medium",
-    color: "neutral.fg.subtle",
+    color: "neutral.fg.muted",
     paddingX: "1.5",
     maxWidth: "[320px]",
   },
   "&[class]:hover": { color: "neutral.fg.heading" },
 });
 
-const quietStyle = css({ "&[class]": { color: "neutral.fg.muted.hover" } });
+const quietStyle = css({ "&[class]": { color: "neutral.fg.heading" } });
 
 const squareStyle = css({
   "&[class]": {
@@ -155,7 +155,7 @@ const squareStyle = css({
   },
 });
 
-const dotStyle = css({ color: "neutral.fg.subtle" });
+const dotStyle = css({ color: "neutral.fg.muted" });
 
 /** Take 2's one control: a hairline group holding the way back and the run picker. */
 const groupStyle = css({
@@ -190,7 +190,7 @@ const runTitleStyle = css({
 
 const runMetaStyle = css({
   textStyle: "sm",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
   whiteSpace: "nowrap",
 });
 
@@ -258,7 +258,7 @@ const pathLineStyle = css({
   alignItems: "center",
   gap: "1",
   textStyle: "xs",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
   whiteSpace: "nowrap",
   "& button": {
     all: "unset",
@@ -287,7 +287,7 @@ const runNameStyle = css({
 });
 
 const runStatusStyle = css({
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
   overflow: "hidden",
   textOverflow: "ellipsis",
 });

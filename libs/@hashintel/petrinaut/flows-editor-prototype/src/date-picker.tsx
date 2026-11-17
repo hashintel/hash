@@ -125,7 +125,7 @@ const yearAndDateStyle = css({
   padding: "0.5",
   textStyle: "sm",
   fontWeight: "medium",
-  color: "neutral.fg.body",
+  color: "neutral.fg.heading",
   textDecorationLine: "underline",
   textDecorationStyle: "dotted",
   textUnderlineOffset: "[3px]",
@@ -138,7 +138,7 @@ const dayStyle = css({
   borderRadius: "[10px]",
   textStyle: "sm",
   fontWeight: "medium",
-  color: "neutral.fg.body",
+  color: "neutral.fg.heading",
   cursor: "pointer",
   _hover: { backgroundColor: "neutral.bg.surface.active" },
   // `_day` state=disabled: days outside the month.
@@ -251,7 +251,7 @@ export const DateCalendar = ({
             className={css({
               textAlign: "center",
               textStyle: "xs",
-              color: "neutral.fg.subtle",
+              color: "neutral.fg.muted",
             })}
           >
             {day}
@@ -356,7 +356,7 @@ const relativeRowStyle = css({
   textAlign: "left",
   textStyle: "sm",
   fontWeight: "medium",
-  color: "neutral.fg.body",
+  color: "neutral.fg.heading",
   whiteSpace: "nowrap",
   cursor: "pointer",
   _hover: { backgroundColor: "neutral.bg.surface.active" },
@@ -385,7 +385,7 @@ const customContentStyle = css({
     "[0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)]",
 });
 
-const customLabelStyle = css({ textStyle: "sm", color: "neutral.fg.subtle" });
+const customLabelStyle = css({ textStyle: "sm", color: "neutral.fg.muted" });
 
 export type DatePickerSurfaceProps = {
   label: string;
@@ -482,7 +482,7 @@ export const DatePickerSurface = ({
                   className={css({
                     textStyle: "sm",
                     fontWeight: "medium",
-                    color: "neutral.fg.body",
+                    color: "neutral.fg.heading",
                   })}
                 >
                   days ago

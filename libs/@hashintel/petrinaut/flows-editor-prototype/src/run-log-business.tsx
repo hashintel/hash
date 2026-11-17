@@ -66,7 +66,7 @@ const sentenceStyle = css({
   lineHeight: "[20px]",
 });
 
-const mutedStyle = css({ color: "neutral.fg.subtle" });
+const mutedStyle = css({ color: "neutral.fg.muted" });
 
 const sectionStyle = css({
   display: "flex",
@@ -87,7 +87,7 @@ const sectionHeadStyle = css({
   "[data-run-log-edge] &": { paddingX: "6" },
   paddingBottom: "1",
   textStyle: "sm",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
 });
 
 const lineStyle = css({
@@ -100,7 +100,7 @@ const lineStyle = css({
   "[data-run-log-edge] &": { paddingX: "6" },
   paddingY: "[7px]",
   textStyle: "sm",
-  color: "neutral.fg.body",
+  color: "neutral.fg.heading",
   "&[data-toggle]": { cursor: "pointer" },
   "&[data-toggle]:hover": { backgroundColor: "neutral.bg.surface.hover" },
   // A line with a second line centres its mark on the 22 px first line (B′, ledger 2 Nov "Menu rows").
@@ -131,7 +131,7 @@ const truncateStyle = css({
 
 const rightStyle = css({
   textStyle: "sm",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
   whiteSpace: "nowrap",
   fontVariantNumeric: "tabular-nums",
 });
@@ -147,13 +147,13 @@ const monoStyle = css({
   fontFamily: "mono",
   textStyle: "xs",
   lineHeight: "[18px]",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
   whiteSpace: "pre-wrap",
   overflowWrap: "anywhere",
 });
 
 const linkButtonStyle = css({
-  "&[class]": { color: "neutral.fg.subtle", fontWeight: "normal" },
+  "&[class]": { color: "neutral.fg.muted", fontWeight: "normal" },
   "&[class]:hover": { color: "neutral.fg.heading" },
 });
 
@@ -393,13 +393,13 @@ const Head = ({
         >
           {runIdMono() ? <RunIdText run={run} prefix /> : runLabel(run)}
         </span>
-        <span className={css({ textStyle: "sm", color: "neutral.fg.subtle" })}>
+        <span className={css({ textStyle: "sm", color: "neutral.fg.muted" })}>
           {[duration, runWhen(run)].filter(Boolean).join(" · ")}
         </span>
       </div>
       <RunStatusLine run={run} now={now} />
       <span className={sentenceStyle}>{sentence}</span>
-      <span className={css({ textStyle: "sm", color: "neutral.fg.subtle" })}>
+      <span className={css({ textStyle: "sm", color: "neutral.fg.muted" })}>
         {[
           started,
           usual && typical ? `usually about ${typical.duration}` : undefined,

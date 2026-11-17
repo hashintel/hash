@@ -164,7 +164,7 @@ const fullJoinerButtonStyle = css({
   color: "neutral.fg.muted",
   fontSize: "[13px]",
   lineHeight: "[16px]",
-  _hover: { color: "neutral.fg.body" },
+  _hover: { color: "neutral.fg.heading" },
   _disabled: { cursor: "default", _hover: { color: "neutral.fg.muted" } },
 });
 

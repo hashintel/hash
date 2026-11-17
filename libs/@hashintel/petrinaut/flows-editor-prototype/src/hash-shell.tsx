@@ -204,7 +204,7 @@ const accountStyle = css({
   flexShrink: 0,
   textStyle: "sm",
   fontWeight: "medium",
-  color: "neutral.fg.muted.hover",
+  color: "neutral.fg.heading",
   borderTopWidth: "thin",
   borderTopStyle: "solid",
   borderTopColor: "neutral.bd.subtle",

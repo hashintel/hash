@@ -65,7 +65,7 @@ const pathStyle = css({
   gap: "1.5",
   minWidth: "[0]",
   textStyle: "sm",
-  color: "neutral.fg.body",
+  color: "neutral.fg.heading",
 });
 
 /**
@@ -80,7 +80,7 @@ const pathGridStyle = css({
   alignItems: "center",
   alignSelf: "stretch",
   textStyle: "sm",
-  color: "neutral.fg.body",
+  color: "neutral.fg.heading",
 });
 
 const pathTargetCellStyle = css({ display: "flex", minWidth: "[0]" });
@@ -102,7 +102,7 @@ const dotStyle = css({
   backgroundColor: "neutral.fg.subtle",
 });
 
-const goesToStyle = css({ color: "neutral.fg.subtle" });
+const goesToStyle = css({ color: "neutral.fg.muted" });
 
 /** A two-field path: a dot column, then the condition and, under it, where it leads, both on one text edge. */
 const extraStyle = css({
@@ -187,7 +187,7 @@ export const useReadOnlyPanel = () => {
 const valuesStyle = css({
   textStyle: "xs",
   lineHeight: "[16px]",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
   whiteSpace: "nowrap",
 });
 
@@ -248,7 +248,7 @@ export const DecisionRow = ({
       }
       hover={`${output.label} · ${ports.map((port) => port.label).join(" or ")}`}
     >
-      <span className={css({ textStyle: "sm", color: "neutral.fg.subtle" })}>
+      <span className={css({ textStyle: "sm", color: "neutral.fg.muted" })}>
         {ports.map((port) => port.label).join(" · ")}
       </span>
     </PropertyRow>
@@ -775,7 +775,7 @@ const pathCardStyle = css({
   borderColor: "neutral.bd.subtle",
   borderRadius: "lg",
   textStyle: "sm",
-  color: "neutral.fg.body",
+  color: "neutral.fg.heading",
 });
 
 const pathHeadStyle = css({

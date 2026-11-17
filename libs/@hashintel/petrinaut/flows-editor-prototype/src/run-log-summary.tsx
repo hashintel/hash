@@ -118,10 +118,10 @@ const labelRowStyle = css({
   justifyContent: "space-between",
   gap: "2",
   textStyle: "sm",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
 });
 
-const quietStyle = css({ textStyle: "xs", color: "neutral.fg.subtle" });
+const quietStyle = css({ textStyle: "xs", color: "neutral.fg.muted" });
 
 export const LogSummary = ({
   run,
@@ -147,7 +147,7 @@ export const LogSummary = ({
       className={css({
         textStyle: "sm",
         lineHeight: "[22px]",
-        color: "neutral.fg.body",
+        color: "neutral.fg.heading",
       })}
     >
       {summaryParagraph(run, facts, now)}
@@ -239,7 +239,7 @@ const rawStyle = css({
   fontFamily: "mono",
   textStyle: "xs",
   lineHeight: "[18px]",
-  color: "neutral.fg.body",
+  color: "neutral.fg.heading",
   whiteSpace: "pre-wrap",
   wordBreak: "break-word",
 });
@@ -356,7 +356,7 @@ export const ErrorRow = ({
     >
       <span className={css({ color: "neutral.fg.heading" })}>
         {error.where}
-        <span className={css({ color: "neutral.fg.subtle" })}>
+        <span className={css({ color: "neutral.fg.muted" })}>
           {" "}
           · {error.plain}
         </span>
@@ -368,7 +368,7 @@ export const ErrorRow = ({
         fontFamily: "mono",
         textStyle: "xs",
         lineHeight: "[20px]",
-        color: "neutral.fg.subtle",
+        color: "neutral.fg.muted",
       })}
     >
       {error.time}
@@ -423,7 +423,7 @@ export const TechnicalFold = ({
           paddingX: "4",
           paddingBottom: "1",
           textStyle: "sm",
-          color: "neutral.fg.subtle",
+          color: "neutral.fg.muted",
           cursor: "pointer",
           _hover: { color: "neutral.fg.heading" },
         })}

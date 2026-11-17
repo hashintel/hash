@@ -47,7 +47,7 @@ const usedStyle = css({
   minWidth: "[0]",
   fontSize: "[13px]", // token-guard: allow Figma panel values beside labels are 13 px (J2.51)
   lineHeight: "[16px]",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
 });
 
 const namesStyle = css({ "[data-row]:hover &": { display: "none" } });
@@ -60,7 +60,7 @@ const chipsStyle = css({
 const emptyStyle = css({
   fontSize: "[13px]", // token-guard: allow Figma panel values beside labels are 13 px (J2.51)
   lineHeight: "[16px]",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
 });
 
 /** "Not used yet" and its "Use in a step" share one cell, so the row keeps its height when the action shows. */
@@ -372,7 +372,7 @@ const flowTagStyle = css({
   borderColor: "neutral.bd.subtle",
   textStyle: "xxs",
   lineHeight: "[16px]",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
   whiteSpace: "nowrap",
 });
 
@@ -394,7 +394,7 @@ const flowCheckStyle = css({
   borderRadius: "md",
   cursor: "pointer",
   textStyle: "xs",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
   whiteSpace: "nowrap",
   visibility: "hidden",
   "[data-row]:hover &": { visibility: "visible" },

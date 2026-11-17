@@ -314,7 +314,7 @@ const DurationField = ({
               variant="naked"
               // A picked unit is a value, not a placeholder: body text, as in the field beside it.
               className={css({
-                "&[class] [data-part=trigger]": { color: "neutral.fg.body" },
+                "&[class] [data-part=trigger]": { color: "neutral.fg.heading" },
               })}
               items={durationUnits}
               value={shownUnit}

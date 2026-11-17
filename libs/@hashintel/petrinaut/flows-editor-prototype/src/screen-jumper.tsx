@@ -34,7 +34,7 @@ const tagStyle = css({
   textStyle: "xs",
   whiteSpace: "nowrap",
   backgroundColor: "neutral.bg.surface",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
 });
 
 export const TagPill = ({ tag }: { tag: FigmaTag }) => (
@@ -156,7 +156,7 @@ export const ScreenJumper = ({ current }: { current?: FigmaScreen }) => {
               }}
             />
             <span
-              className={css({ textStyle: "xs", color: "neutral.fg.subtle" })}
+              className={css({ textStyle: "xs", color: "neutral.fg.muted" })}
             >
               {figmaScreens.length} Figma screens · {liveCount} live ·{" "}
               {figmaScreens.length - liveCount} Figma exports · ⌘K toggles ·{" "}
@@ -260,7 +260,7 @@ export const ScreenJumper = ({ current }: { current?: FigmaScreen }) => {
                     paddingBottom: "1",
                     textStyle: "xs",
                     fontWeight: "semibold",
-                    color: "neutral.fg.subtle",
+                    color: "neutral.fg.muted",
                     textTransform: "uppercase",
                     letterSpacing: "[0.04em]",
                   })}
@@ -284,7 +284,7 @@ export const ScreenJumper = ({ current }: { current?: FigmaScreen }) => {
                           paddingX: "3",
                           paddingY: "1",
                           textStyle: "sm",
-                          color: "neutral.fg.body",
+                          color: "neutral.fg.heading",
                           textDecoration: "none",
                           _hover: {
                             backgroundColor: "neutral.bg.surface.hover",
@@ -324,7 +324,7 @@ export const ScreenJumper = ({ current }: { current?: FigmaScreen }) => {
                             flexShrink: 0,
                             textAlign: "right",
                             textStyle: "xs",
-                            color: live ? "green.fg.body" : "neutral.fg.subtle",
+                            color: live ? "green.fg.body" : "neutral.fg.muted",
                           })}
                         >
                           {live ? "live" : "Figma"}
@@ -369,7 +369,7 @@ const OpenDecisions = () => {
   return (
     <details
       data-open-decisions
-      className={css({ textStyle: "xs", color: "neutral.fg.subtle" })}
+      className={css({ textStyle: "xs", color: "neutral.fg.muted" })}
     >
       <summary className={css({ cursor: "pointer" })}>
         Open decisions ({openDecisions.length}){anySet ? " · some set" : ""}
@@ -458,7 +458,7 @@ export const ScreenPlaceholder = ({ screen }: { screen: FigmaScreen }) => (
       })}
     >
       <strong>Not built yet · from Figma</strong>
-      <span className={css({ color: "neutral.fg.body" })}>
+      <span className={css({ color: "neutral.fg.heading" })}>
         {screen.id} · {screen.name}
       </span>
       <TagPill tag={screen.tag} />

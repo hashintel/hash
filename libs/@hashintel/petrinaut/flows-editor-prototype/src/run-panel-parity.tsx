@@ -52,8 +52,8 @@ export const supplierItem = (name: string): RunItem => {
   };
 };
 
-const valueStyle = css({ textStyle: "sm", color: "neutral.fg.body", overflowWrap: "anywhere" });
-const emptyStyle = css({ textStyle: "sm", color: "neutral.fg.subtle" });
+const valueStyle = css({ textStyle: "sm", color: "neutral.fg.heading", overflowWrap: "anywhere" });
+const emptyStyle = css({ textStyle: "sm", color: "neutral.fg.muted" });
 
 const step = (stepId: string, outputName: string) =>
   ({ kind: "step-output", stepId, outputName }) as StepInputSource;
@@ -86,7 +86,7 @@ const itemButtonStyle = css({
   border: "none",
   background: "[transparent]",
   textStyle: "sm",
-  color: "neutral.fg.body",
+  color: "neutral.fg.heading",
   cursor: "pointer",
   "& svg": { color: "neutral.fg.muted" },
   _hover: { color: "neutral.fg.heading" },
@@ -103,7 +103,7 @@ const itemFieldsStyle = css({
   textStyle: "xs",
   lineHeight: "[18px]",
   "& [data-label]": { color: "neutral.fg.muted", whiteSpace: "nowrap" },
-  "& [data-value]": { textStyle: "sm", color: "neutral.fg.body", overflowWrap: "anywhere", minWidth: "[0]" },
+  "& [data-value]": { textStyle: "sm", color: "neutral.fg.heading", overflowWrap: "anywhere", minWidth: "[0]" },
 });
 
 const failedStyle = css({ display: "flex", alignItems: "center", gap: "1.5", color: "neutral.fg.muted" });
@@ -153,7 +153,7 @@ const BodyAsWritten = ({ stepId }: { stepId: string }) => {
   const { document } = useEditor();
   const parts = document.templates[fieldKey(stepId, "body")] ?? [];
   return (
-    <span className={css({ textStyle: "sm", color: "neutral.fg.body", lineHeight: "[24px]" })}>
+    <span className={css({ textStyle: "sm", color: "neutral.fg.heading", lineHeight: "[24px]" })}>
       {parts.map((part, index) => {
         if (part.kind === "text") {
           return <span key={index}>{part.text}</span>;
@@ -178,7 +178,7 @@ const Outputs = ({ children }: { children: React.ReactNode }) => (
 );
 
 const NoneYet = () => (
-  <span className={css({ textStyle: "sm", color: "neutral.fg.subtle", paddingLeft: "[34px]" })}>None yet</span>
+  <span className={css({ textStyle: "sm", color: "neutral.fg.muted", paddingLeft: "[34px]" })}>None yet</span>
 );
 
 /** For each's Items addition (Q8 a), drawn by the run panel right under the item list. */
@@ -253,7 +253,7 @@ export const ParitySections = ({
         <Section title="Outputs">
           <PropertyRow label="Collect">
             <span className={css({ display: "flex", flexDirection: "column", gap: "1", textStyle: "sm" })}>
-              <span className={css({ color: "neutral.fg.body" })}>
+              <span className={css({ color: "neutral.fg.heading" })}>
                 {reached ? `${updated} suppliers` : "None yet"}
               </span>
               {collected ? <RefPath look={collected} muted /> : null}
@@ -426,7 +426,7 @@ export const ParitySections = ({
         <Outputs>
           <RunOutputRow stepId={stepId} outputName="decision" label="Decision" kind="Choice">
             {decision ? (
-              <span className={css({ textStyle: "sm", color: "neutral.fg.body", paddingLeft: "[34px]" })}>
+              <span className={css({ textStyle: "sm", color: "neutral.fg.heading", paddingLeft: "[34px]" })}>
                 {decision}
               </span>
             ) : (

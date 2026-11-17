@@ -122,7 +122,7 @@ export const menuGroupLabelStyle = css({
   fontWeight: "medium",
   letterSpacing: "[0.12px]",
   textTransform: "uppercase",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
 });
 
 /** A disabled row that says why a group is empty (J3 C2). */
@@ -464,7 +464,7 @@ const typeLabelStyle = css({
   marginLeft: "auto",
   paddingLeft: "3",
   textStyle: "xs",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
 });
 
 /** About how many characters of type names fit right of a property name before the row gets wide. */

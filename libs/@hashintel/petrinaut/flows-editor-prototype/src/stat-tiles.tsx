@@ -123,7 +123,7 @@ const valueStyle = css({
 
 const subStyle = css({
   textStyle: "xs",
-  color: "neutral.fg.body",
+  color: "neutral.fg.heading",
   fontVariantNumeric: "tabular-nums",
   whiteSpace: "nowrap",
 });
@@ -291,7 +291,7 @@ export const StatTiles = ({
             <div key={name} className={rowStyle} data-stat-row={name}>
               <span className={css({ color: "neutral.fg.muted" })}>{name}</span>
               {fact === null || typeof fact === "number" ? (
-                <span className={css({ color: "neutral.fg.body" })}>
+                <span className={css({ color: "neutral.fg.heading" })}>
                   {fact === null ? "None" : `${fact} runs`}
                 </span>
               ) : (

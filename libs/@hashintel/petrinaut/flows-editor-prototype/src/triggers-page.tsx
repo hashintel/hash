@@ -292,7 +292,7 @@ const hairline = {
 
 const headingText = css({ textStyle: "sm", color: "neutral.fg.heading" });
 const mutedText = css({ textStyle: "sm", color: "neutral.fg.muted" });
-const subtleText = css({ textStyle: "sm", color: "neutral.fg.subtle" });
+const subtleText = css({ textStyle: "sm", color: "neutral.fg.muted" });
 
 const iconCell = css({
   display: "inline-flex",
@@ -329,7 +329,7 @@ const lockStyle = css({
   gap: "3",
   minHeight: "[40px]",
   textStyle: "sm",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
 });
 
 const FailedDot = () => (
@@ -353,7 +353,7 @@ const Status = ({ trigger, on }: { trigger: PageTrigger; on: boolean }) => (
       gap: "1.5",
       flexShrink: 0,
       textStyle: "sm",
-      color: "neutral.fg.subtle",
+      color: "neutral.fg.muted",
       whiteSpace: "nowrap",
     })}
   >
@@ -518,7 +518,7 @@ const formGridStyle = css({
   columnGap: "4",
   rowGap: "2",
   alignItems: "center",
-  "& > .label": { textStyle: "sm", color: "neutral.fg.subtle" },
+  "& > .label": { textStyle: "sm", color: "neutral.fg.muted" },
 });
 
 const TriggerForm = ({
@@ -1018,7 +1018,7 @@ const PageHeader = ({ right }: { right?: React.ReactNode }) => (
         className={css({
           textStyle: "sm",
           lineHeight: "[21px]",
-          color: "neutral.fg.muted.hover",
+          color: "neutral.fg.heading",
         })}
       >
         What can start each flow
@@ -1296,7 +1296,7 @@ const newerHintStyle = css({
   all: "unset",
   cursor: "pointer",
   textStyle: "sm",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
   whiteSpace: "nowrap",
   textUnderlineOffset: "[3px]",
   _hover: { color: "neutral.fg.muted", textDecorationLine: "underline" },
@@ -1592,7 +1592,7 @@ const Take2 = ({
                         : row.trigger.label}
                     </span>
                   </td>
-                  <td className={css({ color: "neutral.fg.subtle!" })}>
+                  <td className={css({ color: "neutral.fg.muted!" })}>
                     {row.kind === "trigger" ? row.trigger.web : ""}
                   </td>
                   <td>

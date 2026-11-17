@@ -33,7 +33,7 @@ const textStyle = css({
 /** The step list's quieter count, as its "6 steps". */
 const smallTextStyle = css({
   textStyle: "xxs",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
   fontVariantNumeric: "tabular-nums",
   overflow: "hidden",
   textOverflow: "ellipsis",

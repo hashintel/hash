@@ -86,7 +86,7 @@ const pageStyle = css({
   padding: "12",
   fontFamily: "body",
   textStyle: "sm",
-  color: "neutral.fg.body",
+  color: "neutral.fg.heading",
   backgroundColor: "neutral.bgSolid.min",
   display: "flex",
   flexDirection: "column",

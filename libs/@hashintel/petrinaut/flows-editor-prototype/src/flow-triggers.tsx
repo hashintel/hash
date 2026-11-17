@@ -839,7 +839,7 @@ const ScaleTriggerRow = ({ row }: { row: ScaleRow }) => (
     >
       {row.label}
       {row.web ? (
-        <span className={css({ color: "neutral.fg.subtle" })}>
+        <span className={css({ color: "neutral.fg.muted" })}>
           {" "}
           · {row.web}
         </span>
@@ -1092,7 +1092,7 @@ const TriggersPanelAtScale = () => {
               gap: "2",
               minHeight: "[40px]",
               textStyle: "sm",
-              color: "neutral.fg.subtle",
+              color: "neutral.fg.muted",
             })}
           >
             <Icon name="lockClosed" size="sm" />6 more triggers in webs you

@@ -189,7 +189,7 @@ export const OptionalMark = () => (
       display: "block",
       textStyle: "xxs",
       fontWeight: "medium",
-      color: "neutral.fg.muted.disabled",
+      color: "neutral.fg.muted",
     })}
   >
     optional
@@ -365,7 +365,7 @@ export const SourceChip = ({
 
 export const mutedTextStyle = css({
   textStyle: "xs",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
 });
 
 /** A small grey marker for parts that exist only in this prototype's mock layer or an open PR. */
@@ -381,7 +381,7 @@ export const OriginMark = ({
       className={css({
         textStyle: "xxs",
         fontWeight: "medium",
-        color: "neutral.fg.subtle",
+        color: "neutral.fg.muted",
         borderWidth: "thin",
         borderStyle: "dashed",
         borderColor: "neutral.bd.subtle.hover",

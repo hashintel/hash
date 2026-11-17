@@ -144,7 +144,7 @@ const rowStyle = css({
 });
 
 const nameStyle = css({ textStyle: "sm", color: "neutral.fg.heading", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" });
-const metaStyle = css({ textStyle: "xs", color: "neutral.fg.subtle", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" });
+const metaStyle = css({ textStyle: "xs", color: "neutral.fg.muted", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" });
 
 const Waveform = ({ bars, height }: { bars: number; height: number }) => (
   <span className={css({ display: "flex", alignItems: "center", gap: "[2px]", flex: "1" })} style={{ height }}>
@@ -168,7 +168,7 @@ const codeStyle = css({
   borderColor: "neutral.bd.subtle",
   fontFamily: "mono",
   textStyle: "xs",
-  color: "neutral.fg.body",
+  color: "neutral.fg.heading",
   whiteSpace: "pre",
   overflow: "hidden",
 });
@@ -212,7 +212,7 @@ const Preview = ({ file, large, zoom = 1 }: { file: MediaFile; large: boolean; z
             <span className={css({ textStyle: large ? "xl" : "sm", fontWeight: "medium", color: "neutral.fg.heading" })}>{file.title}</span>
             <span className={css({ height: "[2px]", width: "[40%]", backgroundColor: "neutral.s40" })} />
           </div>
-          <span className={css({ position: "absolute", right: "2", bottom: "2", textStyle: "xs", color: "neutral.fg.subtle" })}>1 / {file.pages}</span>
+          <span className={css({ position: "absolute", right: "2", bottom: "2", textStyle: "xs", color: "neutral.fg.muted" })}>1 / {file.pages}</span>
         </div>
       );
     case "text":
@@ -221,7 +221,7 @@ const Preview = ({ file, large, zoom = 1 }: { file: MediaFile; large: boolean; z
       return (
         <div className={`${frame} ${css({ padding: "1" })}`}>
           {file.entries.map((entry) => (
-            <div key={entry.name} className={css({ display: "flex", alignItems: "center", gap: "2", height: "[28px]", paddingX: "2", textStyle: "xs", color: "neutral.fg.body" })}>
+            <div key={entry.name} className={css({ display: "flex", alignItems: "center", gap: "2", height: "[28px]", paddingX: "2", textStyle: "xs", color: "neutral.fg.heading" })}>
               <Icon name="file" size="xs" />
               <span className={css({ flex: "1" })}>{entry.name}</span>
               <span className={metaStyle}>{sizeText(entry.kb)}</span>
@@ -267,7 +267,7 @@ const ghostStyle = css({
   backgroundColor: "neutral.s00",
   cursor: "pointer",
   textStyle: "sm",
-  color: "neutral.fg.body",
+  color: "neutral.fg.heading",
   _hover: { backgroundColor: "neutral.bg.surface.hover" },
 });
 

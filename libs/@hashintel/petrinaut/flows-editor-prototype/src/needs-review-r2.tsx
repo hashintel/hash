@@ -531,7 +531,7 @@ const StepHeader = ({ request }: { request: R2Request }) => {
           <span
             className={css({
               textStyle: "sm",
-              color: "neutral.fg.muted.hover",
+              color: "neutral.fg.heading",
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",
@@ -557,7 +557,7 @@ const failedLineStyle = css({
 
 const valueStyle = css({
   textStyle: "sm",
-  color: "neutral.fg.body",
+  color: "neutral.fg.heading",
   overflowWrap: "anywhere",
 });
 
@@ -830,7 +830,7 @@ const contextLinkStyle = css({
   textDecorationColor: "neutral.bd.solid",
   textUnderlineOffset: "[3px]",
   cursor: "pointer",
-  _hover: { color: "neutral.fg.body" },
+  _hover: { color: "neutral.fg.heading" },
 });
 
 /**

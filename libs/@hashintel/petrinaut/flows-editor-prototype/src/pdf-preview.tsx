@@ -156,7 +156,7 @@ const controlsStyle = css({
   alignItems: "center",
   gap: "2",
   textStyle: "xs",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
   fontVariantNumeric: "tabular-nums",
 });
 

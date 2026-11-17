@@ -298,7 +298,7 @@ const previewStyle = css({
   borderRadius: "lg",
   backgroundColor: "neutral.bgSolid.subtle",
   textStyle: "sm",
-  color: "neutral.fg.body",
+  color: "neutral.fg.heading",
   whiteSpace: "pre-wrap",
   overflowWrap: "anywhere",
 });

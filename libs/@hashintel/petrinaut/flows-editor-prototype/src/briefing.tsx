@@ -77,7 +77,7 @@ export const Briefing = ({ onClose }: { onClose: () => void }) => (
                   <span
                     className={css({
                       textStyle: "xs",
-                      color: "neutral.fg.subtle",
+                      color: "neutral.fg.muted",
                     })}
                   >
                     e.g. {type.example}
@@ -102,7 +102,7 @@ export const Briefing = ({ onClose }: { onClose: () => void }) => (
               textStyle: "sm",
               color: "neutral.fg.muted",
               textDecoration: "underline",
-              _hover: { color: "neutral.fg.body" },
+              _hover: { color: "neutral.fg.heading" },
             })}
           >
             How to use this prototype
@@ -291,7 +291,7 @@ export const Results = () => {
         </Button>
       </div>
       {sessions.length === 0 ? (
-        <p className={css({ textStyle: "sm", color: "neutral.fg.subtle" })}>
+        <p className={css({ textStyle: "sm", color: "neutral.fg.muted" })}>
           No sessions in this browser yet.
         </p>
       ) : (

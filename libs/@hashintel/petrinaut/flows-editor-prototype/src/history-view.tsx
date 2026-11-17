@@ -227,7 +227,7 @@ export const menuRowStyle = css({
 
 export const menuTimeStyle = css({
   textStyle: "xs",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
   whiteSpace: "nowrap",
 });
 
@@ -470,7 +470,7 @@ const strongLineStyle = css({
 /** H4's second line, "Action · description": 14 px on the title's 20 px line, muted as in the editor. */
 const headerLineStyle = css({
   textStyle: "sm",
-  color: "neutral.fg.muted.hover",
+  color: "neutral.fg.heading",
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
@@ -478,7 +478,7 @@ const headerLineStyle = css({
 
 const valueStyle = css({
   textStyle: "sm",
-  color: "neutral.fg.body",
+  color: "neutral.fg.heading",
   overflowWrap: "anywhere",
 });
 

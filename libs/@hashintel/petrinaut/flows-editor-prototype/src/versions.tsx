@@ -65,7 +65,7 @@ const menuTitleStyle = css({
 
 const menuMetaStyle = css({
   textStyle: "xs",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
   whiteSpace: "nowrap",
 });
 
@@ -412,7 +412,7 @@ const fieldStyle = css({
 
 const hintStyle = css({
   textStyle: "xs",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
   marginLeft: "6",
 });
 

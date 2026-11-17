@@ -153,7 +153,7 @@ const headButtonStyle = css({
   color: "[inherit]",
   cursor: "pointer",
   "& [data-sort-mark]": { opacity: "0" },
-  "&:hover": { color: "neutral.fg.body" },
+  "&:hover": { color: "neutral.fg.heading" },
   "&:hover [data-sort-mark]": { opacity: "0.5" },
   "&[data-active]": { color: "neutral.fg.heading" },
   "&[data-active] [data-sort-mark]": { opacity: "1" },
@@ -197,7 +197,7 @@ const idCellStyle = css({
   fontVariantNumeric: "tabular-nums",
 });
 
-const mutedStyle = css({ color: "neutral.fg.subtle" });
+const mutedStyle = css({ color: "neutral.fg.muted" });
 
 export const IdCell = ({ run }: { run: RunRecord }) => (
   <td className={idCellStyle}>

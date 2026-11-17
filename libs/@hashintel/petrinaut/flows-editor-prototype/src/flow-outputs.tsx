@@ -65,7 +65,7 @@ const titleStyle = css({
 const leadStyle = css({
   marginTop: "1",
   textStyle: "sm",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
 });
 
 const listStyle = css({
@@ -113,7 +113,7 @@ const stepLeadStyle = css({
   whiteSpace: "nowrap",
   textStyle: "sm",
   color: "neutral.fg.muted",
-  "& > span": { color: "neutral.fg.subtle" },
+  "& > span": { color: "neutral.fg.muted" },
 });
 
 const ghostButtonStyle = css({
@@ -184,13 +184,13 @@ const drillHeadStyle = css({
   paddingX: "2",
   paddingY: "1",
   textStyle: "xs",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
 });
 
 const emptyStyle = css({
   paddingX: "2",
   textStyle: "sm",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
 });
 
 /** Take 4's "+ Add flow output": a step, then one of its outputs (Attio's drill picker). */
@@ -405,7 +405,7 @@ export const FlowOutputsCard = ({ selected }: { selected: boolean }) => {
             <span className={css({ color: "neutral.fg.heading" })}>
               {output.label}
             </span>
-            <span className={css({ color: "neutral.fg.subtle" })}>
+            <span className={css({ color: "neutral.fg.muted" })}>
               · {output.stepName}
             </span>
           </div>

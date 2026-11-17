@@ -276,7 +276,7 @@ export const useWaitingRun = (): RunRecord | null => {
  * Shared parts
  * ------------------------------------------------------------------------------------------------------------- */
 
-const mutedStyle = css({ color: "neutral.fg.subtle" });
+const mutedStyle = css({ color: "neutral.fg.muted" });
 
 const labelStyle = css({
   textStyle: "sm",
@@ -314,7 +314,7 @@ const questionLineStyle = css({
 });
 
 const subLineStyle = css({
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
   lineHeight: "[18px]",
   overflow: "hidden",
   textOverflow: "ellipsis",
@@ -390,7 +390,7 @@ const listHeaderStyle = css({
   paddingBottom: "1",
   minHeight: "[28px]",
   textStyle: "sm",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
 });
 
 const toggleLabelStyle = css({
@@ -398,7 +398,7 @@ const toggleLabelStyle = css({
   alignItems: "center",
   gap: "2",
   textStyle: "sm",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
 });
 
 const ShowAnswered = () => {
@@ -456,7 +456,7 @@ const RequestList = ({
               paddingTop: "3",
               paddingBottom: "1",
               textStyle: "sm",
-              color: "neutral.fg.subtle",
+              color: "neutral.fg.muted",
             })}
           >
             Answered · {answered.length}
@@ -509,7 +509,7 @@ export const RequestForm = ({
           {request.question}
         </span>
         {request.detail ? (
-          <span className={css({ textStyle: "sm", color: "neutral.fg.subtle" })}>
+          <span className={css({ textStyle: "sm", color: "neutral.fg.muted" })}>
             {request.detail}
           </span>
         ) : null}
@@ -538,7 +538,7 @@ export const RequestForm = ({
         </div>
       )}
       {answer ? (
-        <span className={css({ textStyle: "sm", color: "neutral.fg.subtle" })}>
+        <span className={css({ textStyle: "sm", color: "neutral.fg.muted" })}>
           Answered by {answer.by} · {answer.at}
         </span>
       ) : (
@@ -893,7 +893,7 @@ const RequestHeader = ({
           })}
         >
           <span className={labelStyle}>{step}</span>
-          <span className={css({ textStyle: "sm", color: "neutral.fg.subtle" })}>
+          <span className={css({ textStyle: "sm", color: "neutral.fg.muted" })}>
             <RunIdsIn
               text={[item, `${runLabel({ id: 17 })} · ${request.asked}`]
                 .filter(Boolean)
@@ -1135,7 +1135,7 @@ const InboxDetail = ({ request }: { request: ReviewRequest }) => {
             })}
           >
             <span className={labelStyle}>{step}</span>
-            <span className={css({ textStyle: "sm", color: "neutral.fg.subtle" })}>
+            <span className={css({ textStyle: "sm", color: "neutral.fg.muted" })}>
               {[flowName, runLabel({ id: 17 }), item, request.asked]
                 .filter(Boolean)
                 .join(" · ")}
@@ -1201,7 +1201,7 @@ export const ReviewInbox = () => {
               paddingTop: "2",
               paddingBottom: "1",
               textStyle: "sm",
-              color: "neutral.fg.subtle",
+              color: "neutral.fg.muted",
             })}
           >
             <RunIdsIn text={`${flowName} · ${runLabel({ id: 17 })}`} />
