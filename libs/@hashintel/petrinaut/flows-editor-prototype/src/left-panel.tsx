@@ -52,7 +52,7 @@ import { type EditorUi, useEditor } from "./editor-context";
 import { useWaitingStepIds } from "./needs-review";
 import { useLocation } from "./router";
 import { RunGlyph } from "./run-glyph";
-import { cellText, StatusCell } from "./status-cell";
+import { StatusCell } from "./status-cell";
 import { STATUS_MARK_SIZE, statusSlotStyle, useStatusSide } from "./status-side";
 import { treeTileColor } from "./status-colors";
 import { InlineStepPicker, pickerTake } from "./step-picker";
@@ -290,8 +290,6 @@ const FlowList = ({
     const status: StepRun = waiting.has(stepId)
       ? { state: "needsReview", count: "Waiting" }
       : statusFor(stepId);
-    const text = cellText(status);
-    const isWord = status.state === "failed" || status.state === "needsReview";
     // Take c: done for only some items so far reads as the progress ring, not a tick.
     const partial =
       rowText === "c" &&
@@ -302,12 +300,6 @@ const FlowList = ({
       <StatusCell
         state={partial ? "doneWithFailures" : status.state}
         progress={status.progress}
-        text={rowText === "b" || rowText === "c" ? undefined : text}
-        textClassName={
-          rowText === "a" || (rowText === "d" && !isWord)
-            ? onRowHoverStyle
-            : undefined
-        }
         detail={status.state === "failed" ? status.count : undefined}
         textFirst
         small
@@ -345,26 +337,6 @@ const FlowList = ({
       </span>
     );
   };
-  const sideText = (stepId: string) => {
-    const status = statusOf(stepId);
-    const text = rowText === "b" || rowText === "c" ? undefined : cellText(status);
-    if (!text) {
-      return null;
-    }
-    const isWord = status.state === "failed" || status.state === "needsReview";
-    return (
-      <span
-        className={
-          rowText === "a" || (rowText === "d" && !isWord)
-            ? `${countStyle} ${onRowHoverStyle}`
-            : countStyle
-        }
-        data-row-text
-      >
-        {text}
-      </span>
-    );
-  };
   /** What a run row shows before its chevron (the left slot) and after its label (text, then the right slot). */
   const lead = (stepId?: string) => (side === "left" ? sideGlyph(stepId) : null);
   const trail = (stepId: string) =>
@@ -372,7 +344,6 @@ const FlowList = ({
       mark(stepId)
     ) : (
       <>
-        {sideText(stepId)}
         {side === "right" ? sideGlyph(stepId) : null}
       </>
     );

@@ -554,7 +554,14 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
       >
         <Tabs
           label="Run status"
-          items={tabs.map((item) => ({ ...item, count: counts(item.value) }))}
+          items={tabs.map((item) => ({
+            ...item,
+            count: (
+              <span className={css({ color: "neutral.fg.muted" })}>
+                {counts(item.value)}
+              </span>
+            ),
+          }))}
           value={tab}
           onChange={setTab}
         />
