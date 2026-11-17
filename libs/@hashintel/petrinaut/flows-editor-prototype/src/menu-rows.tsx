@@ -290,7 +290,7 @@ const descriptionStyle = cva({
     lines: {
       // #8d8d8d in a value menu (playground and Figma 770:33030).
       value: { lineHeight: "[16px]", color: "neutral.fg.muted" },
-      step: { lineHeight: "[16px]", color: "neutral.fg.subtle" },
+      step: { lineHeight: "[16px]", color: "neutral.fg.muted" },
     },
   },
 });

@@ -7,7 +7,7 @@ export const kindIcon = (kind: string | null): IconName => {
   const name = (kind ?? "").replace(/^List of /, "");
   const list = kind?.startsWith("List of ") ?? false;
   if (/entit/i.test(name) || mockEntityTypes.some((type) => type.title === name || type.pluralTitle === name)) {
-    return list ? "cubes" : "cube";
+    return "cube";
   }
   if (/date|time/i.test(name)) {
     return "calendar";

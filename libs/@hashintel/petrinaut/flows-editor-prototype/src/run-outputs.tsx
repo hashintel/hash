@@ -3737,7 +3737,7 @@ export const RunOutputBody = ({
     body = (
       <EntityOutput
         label="Entities"
-        icon="cubes"
+        icon="cube"
         count={entityCount(outputs.entities, typesTake)}
         names={names(outputs.entities)}
         onOpen={() => open(views.suppliers)}
@@ -3763,7 +3763,7 @@ export const RunOutputBody = ({
     body = (
       <EntityOutput
         label="Entity"
-        icon="cubes"
+        icon="cube"
         count={entityCount(outputs.updated, typesTake)}
         names={names(outputs.updated)}
         onOpen={() => open(views.reviewed)}
@@ -3894,7 +3894,7 @@ export const StepOutputs = ({
     body = (
       <EntityOutput
         label={`Edge case ${edge}`}
-        icon="cubes"
+        icon="cube"
         count={view.title}
         names={sample}
         onOpen={() => open(view)}
@@ -3906,7 +3906,7 @@ export const StepOutputs = ({
         body = (
           <EntityOutput
             label="Entities"
-            icon="cubes"
+            icon="cube"
             count={entityCount(outputs.entities, typesTake)}
             names={names(outputs.entities)}
             flagged={flagged("entities")}
@@ -3920,7 +3920,7 @@ export const StepOutputs = ({
         body = (
           <EntityOutput
             label="Each supplier's outputs"
-            icon="cubes"
+            icon="cube"
             count={view.title}
             names={names(outputs.updated)}
             onOpen={() => open(view)}
@@ -3957,7 +3957,7 @@ export const StepOutputs = ({
         body = (
           <EntityOutput
             label="Entities"
-            icon="cubes"
+            icon="cube"
             count={`${entityCount(outputs.updated, typesTake)} updated`}
             names={names(outputs.updated)}
             flagged={flagged("entityId")}
@@ -4005,7 +4005,7 @@ export const StepOutputs = ({
               {list}
               <EntityOutput
                 label={`Entities · ${files.length} Supplier updated`}
-                icon="cubes"
+                icon="cube"
                 count="Certificate, Certificate expiry"
                 names={names(outputs.entities.filter((row) => row.certificate))}
                 onOpen={() => open(views.reviewed)}
