@@ -1,0 +1,224 @@
+/**
+ * Inlining: a document with the components it takes from its imports made
+ * its own. Each becomes a subnet of the document, and whatever named it names
+ * that subnet. An export that must read without its libraries is this under
+ * fresh ids. The simulator, the compiler and the language server take one
+ * net and no libraries, so they are handed this too, under ids that are the
+ * same from one call to the next.
+ */
+
+import { toPetrinautId } from "../petrinaut-id";
+import {
+  bindsWithinDocument,
+  componentKey,
+  componentOf,
+  resolveComponent,
+} from "./interfaces";
+
+import type {
+  ArcEndpoint,
+  ComponentReference,
+  ID,
+  InputArc,
+  OutputArc,
+  SDCPN,
+  Subnet,
+} from "../types/sdcpn";
+import type { ResolvedLibraries } from "./libraries";
+
+/** An id for what `seed` names. */
+type NewId = (seed: string) => ID;
+
+type Inlined = {
+  /** The id of the subnet the component becomes. */
+  id: ID;
+  /** The id each of its places takes, by the id the library gives it. */
+  placeIds: ReadonlyMap<ID, ID>;
+  subnet: Subnet;
+};
+
+const mapArcs = <Arc extends InputArc | OutputArc>(
+  arcs: Arc[],
+  mapEndpoint: (endpoint: ArcEndpoint) => ArcEndpoint,
+  mapPlaceId: (placeId: ID) => ID = (placeId) => placeId,
+): Arc[] =>
+  arcs.map((arc) => ({
+    ...arc,
+    ...(arc.placeId === undefined ? {} : { placeId: mapPlaceId(arc.placeId) }),
+    ...(arc.endpoint === undefined
+      ? {}
+      : { endpoint: mapEndpoint(arc.endpoint) }),
+  }));
+
+/** The component as a subnet of the document, its places under their new ids. */
+const toSubnet = ({ id, placeIds, subnet }: Inlined): Subnet => {
+  const placeId = (libraryId: ID): ID => placeIds.get(libraryId) ?? libraryId;
+  const endpoint = (held: ArcEndpoint): ArcEndpoint =>
+    held.kind === "place" ? { ...held, placeId: placeId(held.placeId) } : held;
+  return {
+    ...subnet,
+    id,
+    places: subnet.places.map((place) => ({ ...place, id: placeId(place.id) })),
+    transitions: subnet.transitions.map((transition) => ({
+      ...transition,
+      inputArcs: mapArcs(transition.inputArcs, endpoint, placeId),
+      outputArcs: mapArcs(transition.outputArcs, endpoint, placeId),
+    })),
+  };
+};
+
+/**
+ * `sdcpn` with every component of `libraries` that it uses as a subnet of its
+ * own: instances, bindings, arcs and fusions name the subnet and its ports,
+ * and the imports that resolved are no longer listed. A reference that does
+ * not resolve is left as it is. Returns `sdcpn` itself when there is nothing
+ * to inline.
+ *
+ * `newId` gives the subnet and its places their ids. Left out, a component
+ * gets the same ids every time, which is what two readers of one document
+ * need to agree; an export passes `generatePetrinautId` for ids no other
+ * document has.
+ */
+export const inlineImports = (
+  sdcpn: SDCPN,
+  libraries: ResolvedLibraries,
+  newId: NewId = toPetrinautId,
+): SDCPN => {
+  const nets = [sdcpn, ...(sdcpn.subnets ?? [])];
+  const instances = nets.flatMap((net) => net.componentInstances ?? []);
+  /** What each interface is bound to, by an instance or by the document. */
+  const bindings = [
+    ...instances.map((instance) => ({
+      interface: componentOf(instance),
+      component: instance.implementation,
+    })),
+    ...(sdcpn.implementations ?? []),
+  ];
+
+  const inlined = new Map<string, Inlined>();
+  for (const reference of bindings.flatMap((binding) => [
+    binding.interface,
+    binding.component,
+  ])) {
+    const subnet =
+      reference?.from === undefined
+        ? undefined
+        : resolveComponent(sdcpn, reference, libraries);
+    if (reference && subnet && !inlined.has(componentKey(reference))) {
+      const seed = componentKey(reference);
+      inlined.set(seed, {
+        id: newId(seed),
+        placeIds: new Map(
+          subnet.places.map(({ id }) => [id, newId(`${seed}/${id}`)]),
+        ),
+        subnet,
+      });
+    }
+  }
+
+  const listed = sdcpn.imports ?? [];
+  const unresolved = listed.filter(({ id }) => !libraries.has(id));
+  if (inlined.size === 0 && unresolved.length === listed.length) {
+    return sdcpn;
+  }
+
+  const moved = (reference: ComponentReference): ComponentReference => {
+    const target = inlined.get(componentKey(reference));
+    return target ? { id: target.id } : reference;
+  };
+
+  // A subnet says what it implements, where a component of a library could
+  // not: each binding that crossed a library is written into that list.
+  const implemented = new Map<ID, ID[]>();
+  for (const binding of bindings) {
+    if (
+      binding.component &&
+      !bindsWithinDocument(binding.interface, binding.component)
+    ) {
+      const [iface, component] = [
+        moved(binding.interface),
+        moved(binding.component),
+      ];
+      if (bindsWithinDocument(iface, component)) {
+        implemented.set(component.id, [
+          ...(implemented.get(component.id) ?? []),
+          iface.id,
+        ]);
+      }
+    }
+  }
+  const withImplemented = (subnet: Subnet): Subnet => {
+    const added = implemented.get(subnet.id);
+    return added
+      ? {
+          ...subnet,
+          implements: [...new Set([...(subnet.implements ?? []), ...added])],
+        }
+      : subnet;
+  };
+
+  const inlineNet = <Net extends SDCPN | Subnet>(net: Net): Net => {
+    /** The new id of each port of the instances that now name a subnet. */
+    const portIds = new Map<ID, ReadonlyMap<ID, ID>>();
+    const componentInstances = net.componentInstances?.map(
+      ({ component, ...instance }) => {
+        const target = component && inlined.get(componentKey(component));
+        if (target) {
+          portIds.set(instance.id, target.placeIds);
+        }
+        return {
+          ...instance,
+          ...(target ? { subnetId: target.id } : {}),
+          ...(component && !target ? { component } : {}),
+          ...(instance.implementation
+            ? { implementation: moved(instance.implementation) }
+            : {}),
+        };
+      },
+    );
+    const endpoint = (held: ArcEndpoint): ArcEndpoint =>
+      held.kind === "componentPort"
+        ? {
+            ...held,
+            portPlaceId:
+              portIds.get(held.componentInstanceId)?.get(held.portPlaceId) ??
+              held.portPlaceId,
+          }
+        : held;
+    return {
+      ...net,
+      ...(componentInstances ? { componentInstances } : {}),
+      transitions: net.transitions.map((transition) => ({
+        ...transition,
+        inputArcs: mapArcs(transition.inputArcs, endpoint),
+        outputArcs: mapArcs(transition.outputArcs, endpoint),
+      })),
+      ...(net.fusions
+        ? {
+            fusions: net.fusions.map((fusion) => ({
+              ...fusion,
+              members: fusion.members.map(endpoint),
+            })),
+          }
+        : {}),
+    };
+  };
+
+  const { imports: _imports, ...root } = inlineNet(sdcpn);
+  return {
+    ...root,
+    ...(unresolved.length > 0 ? { imports: unresolved } : {}),
+    subnets: [
+      ...(sdcpn.subnets ?? []).map(inlineNet),
+      ...[...inlined.values()].map(toSubnet),
+    ].map(withImplemented),
+    ...(sdcpn.implementations
+      ? {
+          implementations: sdcpn.implementations.map((entry) => ({
+            interface: moved(entry.interface),
+            component: moved(entry.component),
+          })),
+        }
+      : {}),
+  };
+};
