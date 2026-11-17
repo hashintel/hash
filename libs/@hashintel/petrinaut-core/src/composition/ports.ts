@@ -6,9 +6,11 @@
  */
 
 import { arcMatchesEndpoint, placeArcEndpoint } from "../arc-endpoints";
+import { findFusionWithMember } from "./fusions";
 
 import type {
   ArcEndpoint,
+  ID,
   Place,
   PortDirection,
   Subnet,
@@ -54,22 +56,36 @@ export const endpointUsage = (
   };
 };
 
-/** How the subnet's own transitions touch one of its places. */
-export const portUsage = (
-  subnet: Pick<Subnet, "transitions">,
-  placeId: string,
-): PortUsage => endpointUsage(subnet.transitions, placeArcEndpoint(placeId));
+/** The part of a net a port's usage is read from. */
+type PortNet = Pick<Subnet, "transitions" | "fusions">;
 
 /**
- * The direction the subnet's arcs give a port: `in` when only consumed from,
- * `out` when only produced into, `inout` when both. A port no arc moves a
- * token through is `inout`: it is whatever the outside makes of it.
+ * How a net's own transitions touch one of its ports, on the port itself or
+ * on what the net fuses with it: fused, they are one place.
+ */
+export const portUsage = (net: PortNet, placeId: ID): PortUsage => {
+  const port = placeArcEndpoint(placeId);
+  const members = findFusionWithMember(net, port)?.members ?? [port];
+  const usages = members.map((member) =>
+    endpointUsage(net.transitions, member),
+  );
+  return {
+    consumed: usages.some(({ consumed }) => consumed),
+    produced: usages.some(({ produced }) => produced),
+    touched: usages.some(({ touched }) => touched),
+  };
+};
+
+/**
+ * The direction a net's arcs give one of its ports: `in` when only consumed
+ * from, `out` when only produced into, `inout` when both. A port no arc
+ * moves a token through is `inout`: it is whatever the outside makes of it.
  */
 export const inferPortDirection = (
-  subnet: Pick<Subnet, "transitions">,
-  placeId: string,
+  net: PortNet,
+  placeId: ID,
 ): PortDirection => {
-  const { consumed, produced } = portUsage(subnet, placeId);
+  const { consumed, produced } = portUsage(net, placeId);
   if (consumed && !produced) {
     return "in";
   }
@@ -79,11 +95,11 @@ export const inferPortDirection = (
   return "inout";
 };
 
-/** The direction a port declares, else the one its subnet's arcs give it. */
+/** The direction a port declares, else the one its net's arcs give it. */
 export const effectivePortDirection = (
-  subnet: Pick<Subnet, "transitions">,
+  net: PortNet,
   place: Pick<Place, "id" | "portDirection">,
-): PortDirection => place.portDirection ?? inferPortDirection(subnet, place.id);
+): PortDirection => place.portDirection ?? inferPortDirection(net, place.id);
 
 /** Whether the subnet's arcs keep the port's declared direction. */
 export const portUsageMatchesDirection = (

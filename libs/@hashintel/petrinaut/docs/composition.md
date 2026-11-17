@@ -19,7 +19,7 @@ A port can declare a **direction** in the place properties, under Component port
 - **Input** -- the component only takes tokens from it.
 - **Output** -- the component only puts tokens into it.
 - **Input and output** -- both, as a shared pool of resources is.
-- **Inferred** -- whatever the component's arcs do with it. A read or an inhibitor arc takes nothing from a place, so it does not make a port an input.
+- **Inferred** -- whatever the component's arcs do with it, or with a port of an instance inside the component that it is fused with. A read or an inhibitor arc takes nothing from a place, so it does not make a port an input.
 
 Input ports draw on the left of an instance, output ports on the right, two-way ports on both sides. The checks tell you when a component uses a port against its declaration, in the **Diagnostics** tab under **Composition**.
 

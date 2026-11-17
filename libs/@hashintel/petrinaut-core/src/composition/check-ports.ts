@@ -3,15 +3,13 @@
  * way by its own subnet.
  */
 
-import { arcEndpointsEqual, placeArcEndpoint } from "../arc-endpoints";
 import {
   describePortDirection,
-  endpointUsage,
+  portUsage,
   portUsageMatchesDirection,
-  type PortUsage,
 } from "./ports";
 
-import type { ID, SDCPN, Subnet } from "../types/sdcpn";
+import type { ID, SDCPN } from "../types/sdcpn";
 
 /** A port whose subnet uses it against the direction it declares. */
 export type PortProblem = {
@@ -21,27 +19,6 @@ export type PortProblem = {
   message: string;
 };
 
-/**
- * How a subnet's transitions touch one of its ports, on the port itself or
- * on what the subnet fuses with it: fused, they are one place.
- */
-const fusedPortUsage = (
-  subnet: Pick<Subnet, "transitions" | "fusions">,
-  placeId: ID,
-): Pick<PortUsage, "consumed" | "produced"> => {
-  const port = placeArcEndpoint(placeId);
-  const members = subnet.fusions?.find((fusion) =>
-    fusion.members.some((member) => arcEndpointsEqual(member, port)),
-  )?.members ?? [port];
-  const usages = members.map((member) =>
-    endpointUsage(subnet.transitions, member),
-  );
-  return {
-    consumed: usages.some(({ consumed }) => consumed),
-    produced: usages.some(({ produced }) => produced),
-  };
-};
-
 /** The ports whose declared direction their subnet's arcs contradict. */
 export const checkPorts = (sdcpn: SDCPN): PortProblem[] =>
   (sdcpn.subnets ?? []).flatMap((subnet) =>
@@ -49,7 +26,7 @@ export const checkPorts = (sdcpn: SDCPN): PortProblem[] =>
       if (!place.isPort || place.portDirection === undefined) {
         return [];
       }
-      const usage = fusedPortUsage(subnet, place.id);
+      const usage = portUsage(subnet, place.id);
       if (portUsageMatchesDirection(usage, place.portDirection)) {
         return [];
       }

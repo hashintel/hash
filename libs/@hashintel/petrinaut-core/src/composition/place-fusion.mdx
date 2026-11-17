@@ -71,8 +71,13 @@ component uses it, seen from inside the component:
 A port without a declaration takes the direction its arcs give it, `inout`
 when none moves a token through it. Only arcs that move tokens count, here
 and in the checks: a read or an inhibitor arc looks at the port and takes
-nothing, so it makes no port an input. The checks hold a declaration against
-the arcs and report a port written to that declares `in`. The direction has no
+nothing, so it makes no port an input. The arcs are those of the component's
+own transitions, on the port and on whatever the component fuses it with
+inside, which is the same place: a port fused with a port of an inner
+instance that a transition of the component produces into is an output,
+though no arc reaches the port itself. What the inner instance does with its
+own port is not counted. The checks hold a declaration against the same arcs
+and report a port written to that declares `in`. The direction has no
 effect on what a fusion may join: a port is a place, and a place has no
 direction. It decides three things.
 

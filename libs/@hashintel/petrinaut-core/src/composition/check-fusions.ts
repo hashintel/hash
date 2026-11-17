@@ -87,7 +87,7 @@ type TokenFlow = { produced: boolean; consumed: boolean };
  * tokens through, so it counts as both.
  */
 const ownPortFlow = (
-  net: Pick<Subnet, "transitions">,
+  net: Pick<Subnet, "transitions" | "fusions">,
   port: Pick<Place, "id" | "portDirection">,
 ): TokenFlow => {
   if (port.portDirection !== undefined) {

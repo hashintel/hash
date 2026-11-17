@@ -4,6 +4,7 @@ import { checkPorts } from "./check-ports";
 import { inferPortDirection, portDirections } from "./ports";
 
 import type {
+  FusionMember,
   InputArc,
   OutputArc,
   Place,
@@ -146,6 +147,8 @@ describe("a port's direction, as inferred and as checked", () => {
     name: string;
     inputArcs?: InputArc[];
     outputArcs?: OutputArc[];
+    /** A port of the stage `s1` the subnet fuses `edge` with. */
+    fusedWith?: FusionMember;
     /** The direction the arcs give the port. */
     inferred: PortDirection;
     /** The declarations the arcs break. */
@@ -157,6 +160,11 @@ describe("a port's direction, as inferred and as checked", () => {
     type,
   });
   const into: OutputArc = { placeId: "edge", weight: 1 };
+  const stagePort = (portPlaceId: string): FusionMember => ({
+    kind: "componentPort",
+    componentInstanceId: "s1",
+    portPlaceId,
+  });
 
   const cases: Case[] = [
     {
@@ -197,14 +205,52 @@ describe("a port's direction, as inferred and as checked", () => {
       inferred: "out",
       contradicts: ["in"],
     },
+    {
+      name: "no arc of its own, fused inside with an inner input port a transition produces into",
+      fusedWith: stagePort("in"),
+      outputArcs: [{ endpoint: stagePort("in"), weight: 1 }],
+      inferred: "out",
+      contradicts: ["in"],
+    },
+    {
+      name: "no arc of its own, fused inside with an inner output port a transition consumes from",
+      fusedWith: stagePort("out"),
+      inputArcs: [{ endpoint: stagePort("out"), weight: 1, type: "standard" }],
+      inferred: "in",
+      contradicts: ["out"],
+    },
+    {
+      name: "no arc of its own, fused inside with an inner port a transition only reads",
+      fusedWith: stagePort("out"),
+      inputArcs: [{ endpoint: stagePort("out"), weight: 1, type: "read" }],
+      inferred: "inout",
+      contradicts: [],
+    },
   ];
 
   it.each(cases)(
     "$name",
-    ({ inputArcs = [], outputArcs = [], inferred, contradicts }) => {
+    ({ inputArcs = [], outputArcs = [], fusedWith, inferred, contradicts }) => {
       const line = (portDirection?: PortDirection) =>
         subnet("line", {
           places: [place("edge", { isPort: true, portDirection })],
+          componentInstances: [
+            {
+              id: "s1",
+              name: "s1",
+              subnetId: "stage",
+              parameterValues: {},
+              x: 0,
+              y: 0,
+            },
+          ],
+          fusions: fusedWith && [
+            {
+              id: "f1",
+              name: "F1",
+              members: [{ kind: "place", placeId: "edge" }, fusedWith],
+            },
+          ],
           transitions: [
             { ...transition("touch", [], []), inputArcs, outputArcs },
           ],
@@ -213,7 +259,9 @@ describe("a port's direction, as inferred and as checked", () => {
       expect(inferPortDirection(line(), "edge")).toBe(inferred);
       for (const declared of portDirections) {
         expect(
-          checkPorts(net([line(declared)])).map(({ placeId }) => placeId),
+          checkPorts(net([stage, line(declared)])).map(
+            ({ placeId }) => placeId,
+          ),
         ).toEqual(contradicts.includes(declared) ? ["edge"] : []);
       }
       // Declaring what the arcs give is never a problem.
