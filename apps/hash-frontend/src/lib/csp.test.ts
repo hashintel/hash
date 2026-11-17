@@ -164,7 +164,11 @@ describe("buildCspHeader's Vercel toolbar allowance", () => {
       vi.stubEnv("NEXT_PUBLIC_VERCEL_ENV", vercelEnv);
       const header = buildCspHeader({ nonce: "abc", pathname: "/" });
 
-      expect(header.includes("https://vercel.live")).toBe(allowed);
+      for (const directive of ["script-src", "connect-src", "frame-src"]) {
+        expect(
+          directiveSources(header, directive).includes("https://vercel.live"),
+        ).toBe(allowed);
+      }
     },
   );
 });
