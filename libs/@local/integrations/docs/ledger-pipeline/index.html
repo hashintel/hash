@@ -20,54 +20,54 @@
 <body>
 <main>
   <header><h1>Ingestion pipeline</h1><span class="draft">Working proposal</span></header>
-  <p class="intro">Full database dumps, partial updates and future input types → one shared pipeline.</p>
+  <p class="intro">Incremental updates → sync table → Graph. Three stages share one status file per run.</p>
   <p class="hint">Hover over a stage, step or storage box for a short explanation.</p>
   <section class="diagram-scroll" tabindex="0" aria-label="Horizontal pipeline; scroll sideways on narrow screens">
     <div class="canvas">
-      <div class="flow-edge"><div class="edge"><strong>Source data</strong><span class="tbc">Input formats TBC</span><span class="edge-arrow" aria-hidden="true">↓</span></div><div class="edge"><span class="edge-arrow" aria-hidden="true">↗</span><strong>Graph API</strong></div></div>
+      <div class="flow-edge"><div class="edge"><strong>Changed rows</strong><span class="tbc">Local Parquet files</span><span class="edge-arrow" aria-hidden="true">↓</span></div><div class="edge"><span class="edge-arrow" aria-hidden="true">↗</span><strong>Graph API</strong></div></div>
       <div class="stages">
-        <section class="stage" data-tone="capture" aria-label="Stage 1 Capture"><div tabindex="0" class="stage-title" data-detail="capture"><span class="number">01</span><h2>Capture</h2></div><p class="stage-caption">Make the source input reusable.</p><div class="tasks">
-          <div tabindex="0" class="task" data-detail="save"><span class="seq">1.1</span><span><span class="name">Capture and publish input</span><small>Read → validate → save data<br>Publish a completed manifest.</small></span></div>
-        </div><p class="strategy-note">Input-specific readers.<br>Capture formats still to be defined.</p></section>
-        <section class="stage" data-tone="prepare" aria-label="Stage 2 Prepare"><div tabindex="0" class="stage-title" data-detail="prepare"><span class="number">02</span><h2>Prepare</h2></div><p class="stage-caption">Turn input into entity changes.</p><div class="tasks">
-          <div tabindex="0" class="task" data-detail="derive"><span class="seq">2.1</span><span><span class="name">Prepare entity changes</span><small>Derive changes, map identities<br>and convert values.</small></span></div>
-          <div tabindex="0" class="task" data-detail="append"><span class="seq">2.2</span><span><span class="name">Commit the sync ledger</span><small>Append changes to Iceberg.<br>Publish the accepted reference.</small></span></div>
+        <section class="stage" data-tone="capture" aria-label="Stage 1 Capture"><div tabindex="0" class="stage-title" data-detail="capture"><span class="number">01</span><h2>Capture</h2></div><p class="stage-caption">Store the changed rows.</p><div class="tasks">
+          <div tabindex="0" class="task" data-detail="save"><span><span class="name">Copy the capture files</span><small>Local Parquet → S3<br>Record them in run.json.</small></span></div>
+        </div><p class="strategy-note">Incremental updates only.<br>Reading sources comes with data collection.</p></section>
+        <section class="stage" data-tone="prepare" aria-label="Stage 2 Prepare"><div tabindex="0" class="stage-title" data-detail="prepare"><span class="number">02</span><h2>Prepare</h2></div><p class="stage-caption">Turn changed rows into entity changes.</p><div class="tasks">
+          <div tabindex="0" class="task" data-detail="derive"><span><span class="name">Build the changes</span><small>Run pipelines, assign entity IDs,<br>resolve properties.</small></span></div>
+          <div tabindex="0" class="task" data-detail="append"><span><span class="name">Append to the sync table</span><small>One row per change.<br>Record the counts in run.json.</small></span></div>
         </div></section>
-        <section class="stage" data-tone="send" aria-label="Stage 3 Send and record"><div tabindex="0" class="stage-title" data-detail="send"><span class="number">03</span><h2>Send &amp; record</h2></div><p class="stage-caption">Apply changes and track delivery.</p><div class="tasks">
-          <div tabindex="0" class="task" data-detail="requests"><span class="seq">3.1</span><span><span class="name">Generate requests and batches</span><small>Read ledger → encode requests<br>Group into bounded batches.</small></span></div>
-          <div tabindex="0" class="task" data-detail="record"><span class="seq">3.2</span><span><span class="name">Deliver, record and complete</span><small>Send → record outcomes<br>Retry or finish the run.</small></span></div>
+        <section class="stage" data-tone="send" aria-label="Stage 3 Send"><div tabindex="0" class="stage-title" data-detail="send"><span class="number">03</span><h2>Send</h2></div><p class="stage-caption">Build Graph requests and send them.</p><div class="tasks">
+          <div tabindex="0" class="task" data-detail="requests"><span><span class="name">Sort, encode and batch</span><small>Sort by operation, then position.<br>Cut deterministic batches.</small></span></div>
+          <div tabindex="0" class="task" data-detail="record"><span><span class="name">Send and record</span><small>Send from the confirmed batch.<br>Update run.json, then current.json.</small></span></div>
         </div></section>
       </div>
       <div class="connections" aria-hidden="true"><span></span><span></span><span></span></div>
       <section class="storage" aria-label="Persistence in S3">
-        <div tabindex="0" class="storage-head" data-detail="s3"><strong>S3</strong><span>One bucket per integration · stage outputs and run progress</span><span class="inspect">Hover for layout</span></div>
+        <div tabindex="0" class="storage-head" data-detail="s3"><strong>S3</strong><span>One bucket per integration · data and run status</span><span class="inspect">Hover for layout</span></div>
         <div class="stores">
-          <div tabindex="0" class="store" data-detail="capture-data"><strong>Capture Data</strong><span>Source files + completed manifest</span><em>Saved by Capture</em></div>
-          <div tabindex="0" class="store" data-detail="ledger"><strong>Iceberg sync ledger</strong><span>Entity changes + run ID + change index</span><em>Committed by Prepare</em></div>
-          <div tabindex="0" class="store" data-detail="progress"><strong>Run &amp; batch records</strong><span>Stage markers, outcomes, current.json</span><em>Updated across the run</em></div>
+          <div tabindex="0" class="store" data-detail="capture-data"><strong>Capture files</strong><span>One Parquet file per source</span><em>Stored by Capture</em></div>
+          <div tabindex="0" class="store" data-detail="ledger"><strong>Sync table</strong><span>Entity changes · run ID · position</span><em>Appended by Prepare</em></div>
+          <div tabindex="0" class="store" data-detail="progress"><strong>Run status</strong><span>run.json per run · current.json</span><em>Updated by every stage</em></div>
         </div>
       </section>
     </div>
   </section>
-  <p class="boundary"><strong>Persist the output, then mark the stage complete.</strong> Retry from saved input; Send also checkpoints batch outcomes.</p>
-  <footer class="footer"><span>No projections, separate hash/diff files or saved request bodies.</span><span>CLI first · queue orchestration later</span></footer>
+  <p class="boundary"><strong>Write the result to S3, then update run.json.</strong> A retry runs the stage again and reads run.json.</p>
+  <footer class="footer"><span>No hash table, diff files or stored request bodies.</span><span>CLI first · queue later</span></footer>
 </main>
 <div id="tooltip" class="tooltip" role="tooltip" hidden></div>
 <script>
 (() => {
   const descriptions = {
-    capture: ['Capture', 'Save source input so later stages can retry without recapturing. Full dumps, partial updates and future input kinds use the same publication contract.'],
-    save: ['1.1 · Capture and publish input', 'Read and validate data in bounded chunks. Preserve snapshot scope or partial-field meaning. Save the files, then publish the completed manifest in S3.'],
-    prepare: ['Prepare', 'Initial sync prepares every row. Snapshot hash/diff compares with the accepted baseline. Incremental preparation resolves supplied updates. All strategies share conversion and the same ledger output.'],
-    derive: ['2.1 · Prepare entity changes', 'Derive the changes for the input strategy, map entity/link identities and convert property values. Partial updates may need prior source context. This step has no separate persisted output.'],
-    append: ['2.2 · Commit the sync ledger', 'Append resolved changes to Iceberg with run_id and change_index, then save the accepted ledger reference in S3. Upserts retain entity values; archives retain deletion history. A retry must reuse any already committed append.'],
-    send: ['Send & record', 'Read the accepted changes, generate Graph requests in memory and deliver batches. S3 records what was confirmed. Generated request bodies are not stored.'],
-    requests: ['3.1 · Generate requests and batches', 'Turn this run’s pinned ledger changes into Graph requests. Build reproducible batches within size limits and entity/link dependency order. Requests stay in memory.'],
-    record: ['3.2 · Deliver, record and complete', 'Send batches and save outcomes in S3. Skip confirmed successes on retry; reconcile or safely replay uncertain outcomes. Publish completion and advance current.json when required writes are confirmed.'],
-    'capture-data': ['Capture Data', 'Source files plus capture/_done.json: format, scope, completeness and file references. Reuse completed capture on retry; interrupted reads must not appear complete.'],
-    ledger: ['Iceberg sync ledger', 'Entity changes stored in S3 through Iceberg, plus prepare/_done.json pointing to the accepted output. Retained history supports replay and compensating restore runs. Catalog and retention details remain to be specified.'],
-    progress: ['Run & batch records', 'run.json pins inputs. Stage markers track completion; send/batches/ records delivery. current.json points to the active and last completed runs—for example, run-12 and run-11. It is not a worker lock.'],
-    s3: ['S3 · illustrative layout', '<integration-bucket>/\n  current.json\n  runs/<run-id>/\n    run.json\n    capture/data/…\n    capture/_done.json\n    prepare/_done.json\n    send/batches/<id>.json\n    send/_done.json\n  iceberg/sync/\n    data/…\n    metadata/…']
+    capture: ['Capture', 'Supports incremental updates only and reads no source system. The CLI gives it one local Parquet file of changed rows per source. Reading sources belongs to a later data collection service.'],
+    save: ['Copy the capture files', 'Copy each file to S3 and read its row count from the Parquet footer. When all files are stored, write the capture time, the file references and the row counts to run.json. A retry copies every file again.'],
+    prepare: ['Prepare', 'Turns the captured rows into entity changes. It computes no diff and reads no earlier run. Hash and diff and initial sync are later variants with the same input and output.'],
+    derive: ['Build the changes', 'Load the capture files, run the definition’s pipelines to build one table per target, assign entity IDs and resolve properties. A value that cannot be converted is left out and listed in the run’s issues file.'],
+    append: ['Append to the sync table', 'Append one row per change. A row holds the new value, its run, its position in the run, and whether it creates, updates or archives. Then write the row count and the issues file reference to run.json.'],
+    send: ['Send', 'Builds the Graph requests from the run’s rows in the sync table. Request bodies and batch numbers are not stored.'],
+    requests: ['Sort, encode and batch', 'Sort the rows by operation (entity upserts, link upserts, link archives, entity archives), then by position. Encode each row. A new batch starts when the operation changes, when create switches to patch, at a limit, or when the entity is already in the batch. The same rows and settings give the same batches.'],
+    record: ['Send and record', 'Send the batches in order, starting at the confirmed batch count. Write the new count to run.json after each confirmed batch. A create answered with a conflict counts as done. After the last batch, write the counts and set the run as last completed in current.json.'],
+    'capture-data': ['Capture files', 'One Parquet file of changed rows per source, in the format of the labs captures. The row shape is still to be agreed within the team.'],
+    ledger: ['Sync table', 'Append-only table of entity changes. A run adds rows and changes no existing row. The state at a run is the merge of each entity’s rows up to that run. The physical format and the columns are settled in Prepare planning.'],
+    progress: ['Run status', 'run.json is the only status file of a run. It holds the pinned input, the batch settings, one part per completed stage, and the last failure. Stages update it with a conditional write. current.json holds the active run and the last completed run.'],
+    s3: ['S3 · illustrative layout', '<integration-bucket>/\n  current.json\n  runs/<run-id>/\n    run.json\n  capture files\n  sync table\n  issues files\n\nOnly the two JSON paths are decided.']
   };
   const tooltip = document.getElementById('tooltip');
   let owner = null;
