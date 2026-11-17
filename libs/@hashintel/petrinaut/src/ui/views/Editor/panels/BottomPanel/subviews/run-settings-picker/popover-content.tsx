@@ -5,6 +5,10 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { SimulationContext } from "../../../../../../../react/simulation/context";
 import {
+  acceptsRunEnd,
+  runEndOf,
+} from "../../../../../../../react/simulation/run-end";
+import {
   findSimulator,
   simulatorRefusal,
   SimulatorsContext,
@@ -124,6 +128,15 @@ const unitStyle = css({
   color: "neutral.fg.subtle",
 });
 
+const steppedNoteStyle = css({
+  paddingX: "3",
+  paddingTop: "2",
+  paddingBottom: "1",
+  fontSize: "xs",
+  lineHeight: "[1.4]",
+  color: "neutral.fg.subtle",
+});
+
 const lockedNoteStyle = css({
   display: "flex",
   alignItems: "center",
@@ -159,6 +172,7 @@ export const RunSettingsPopoverContent: React.FC<{
   const { registrations } = use(SimulatorsContext);
   const {
     mode,
+    clock,
     simulatorSelection,
     selectSimulator,
     setSimulatorParameter,
@@ -168,12 +182,16 @@ export const RunSettingsPopoverContent: React.FC<{
     setMaxTime,
   } = use(SimulationContext);
   const selected = findSimulator(registrations, simulatorSelection.simulatorId);
-  const parameters = selected
-    ? visibleSimulatorParameters(
-        selected.parameters,
-        simulatorSelection.parameters,
-      )
-    : [];
+  const inSteps = clock === "steps";
+  // A simulator's parameters say how it advances time, which a run in steps
+  // has none of.
+  const parameters =
+    selected && !inSteps
+      ? visibleSimulatorParameters(
+          selected.parameters,
+          simulatorSelection.parameters,
+        )
+      : [];
   const hasFields = parameters.length > 0 || mode === "stochastic";
   const pickable = locked
     ? []
@@ -321,22 +339,32 @@ export const RunSettingsPopoverContent: React.FC<{
             />
             <label htmlFor={END_TIME_ID}>
               <span className={fieldLabelStyle}>
-                <span>
-                  End time<span className={unitStyle}> (s)</span>
-                </span>
-                <PointerHelpTooltip content="The simulated time every run stops at. Runs are compared at the same times, so a Stochastic simulation needs an end." />
+                {inSteps ? (
+                  <span>End at step</span>
+                ) : (
+                  <span>
+                    End time<span className={unitStyle}> (s)</span>
+                  </span>
+                )}
+                <PointerHelpTooltip
+                  content={
+                    inSteps
+                      ? "The step every run stops at. Runs are compared at the same steps, so a Stochastic simulation needs an end."
+                      : "The simulated time every run stops at. Runs are compared at the same times, so a Stochastic simulation needs an end."
+                  }
+                />
               </span>
             </label>
             <NumberInput
               htmlForId={END_TIME_ID}
               size="xs"
               width="xs"
-              min={0}
-              step="any"
+              min={inSteps ? 1 : 0}
+              step={inSteps ? 1 : "any"}
               hideStepper
-              value={maxTime}
+              value={maxTime === null ? null : runEndOf(clock, maxTime)}
               onChange={(next) => {
-                if (next !== null && next > 0) {
+                if (next !== null && acceptsRunEnd(clock, next)) {
                   setMaxTime(next);
                 }
               }}
@@ -344,6 +372,17 @@ export const RunSettingsPopoverContent: React.FC<{
             />
           </>
         ) : null}
+      </div>
+    </Popover.Body>
+  );
+  const steppedPanel = (
+    <Popover.Body key="stepped" className={sectionStyle}>
+      <div role="note" className={steppedNoteStyle}>
+        This net is untimed: no transition has a stochastic rate and no place
+        has dynamics.{" "}
+        {mode === "quick"
+          ? "A Quick simulation fires it step by step, and the simulator below is not used."
+          : "A Stochastic simulation fires every run step by step. The simulator below computes the runs, and its parameters are not used."}
       </div>
     </Popover.Body>
   );
@@ -360,6 +399,7 @@ export const RunSettingsPopoverContent: React.FC<{
     <Popover.Container className={containerStyle}>
       {[
         <Popover.Header key="header" title="Simulator" />,
+        ...(inSteps ? [steppedPanel] : []),
         simulatorsPanel,
         ...(hasFields ? [fieldsPanel] : []),
         ...(locked ? [lockedPanel] : []),

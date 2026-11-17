@@ -7,6 +7,7 @@ import {
   syncLanguageServers,
 } from "../lsp/lib/language-servers";
 import {
+  bicycleAssembly,
   cafeQueue,
   deploymentPipelineSDCPN,
   dronePatrol,
@@ -19,9 +20,11 @@ import {
   supplyChainProfit,
   supplyChainWithDisruption,
   vaccinationCampaign,
+  wheelTruing,
 } from "./index";
 
 const EXAMPLES = [
+  bicycleAssembly,
   cafeQueue,
   deploymentPipelineSDCPN,
   dronePatrol,
@@ -34,6 +37,7 @@ const EXAMPLES = [
   supplyChainProfit,
   supplyChainWithDisruption,
   vaccinationCampaign,
+  wheelTruing,
 ];
 
 describe.each(EXAMPLES.map((example) => [example.title, example] as const))(

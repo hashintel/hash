@@ -9,6 +9,11 @@ import { useGetOwnerForEntity } from "../../../../../../components/hooks/use-get
 import { RunCanvas } from "./canvas";
 import { RunLeftPanel } from "./left-panel";
 import { flowChangedBetween } from "./run-view/flow-changed";
+import { OutputViewer } from "./run-view/output-viewer";
+import {
+  outputSheetWidth,
+  useOutputViewer,
+} from "./run-view/shared/use-output-viewer";
 import { StepRunPanel } from "./run-view/step-run-panel";
 import { useRun } from "./run-view/use-run";
 import { findStep } from "./shared/find-step";
@@ -96,6 +101,7 @@ export const RunView = ({
   const [highlightedStepId, setHighlightedStepId] = useState<string | null>(
     null,
   );
+  const outputViewer = useOutputViewer();
   const getOwnerForEntity = useGetOwnerForEntity();
   const [collapsedStepIds, setCollapsedStepIds] = useState(
     () => new Set<string>(),
@@ -174,13 +180,20 @@ export const RunView = ({
     selectedStepIds.length === 1 && selectedStepId !== undefined
       ? findStep(flowDefinition.steps, selectedStepId)
       : undefined;
-  /* A new selection opens a new panel, without the "Used in" list that set the highlight. */
+  /* A new selection opens a new panel, without the "Used in" list that set the highlight, or a value it opened. */
   const selectSteps = (stepIds: string[]) => {
     if (!isEqual(stepIds, selectedStepIds)) {
       setHighlightedStepId(null);
+      outputViewer.close();
     }
     setSelectedStepIds(stepIds);
   };
+  /* The side sheet covers the panel, and more. */
+  const coveredRight = selected
+    ? outputViewer.wide
+      ? outputSheetWidth
+      : sidePanelWidth
+    : 0;
   const ownerShortname = getOwnerForEntity({
     entityId: flowRunEntityId,
   }).shortname;
@@ -202,7 +215,7 @@ export const RunView = ({
       <div className={canvasArea}>
         <div
           className={notices}
-          style={selected ? { right: sidePanelWidth + 16 } : undefined}
+          style={coveredRight ? { right: coveredRight + 16 } : undefined}
         >
           {ranDefinition === null ? (
             <Banner tone="warning">
@@ -238,31 +251,36 @@ export const RunView = ({
           collapsedStepIds={collapsedStepIds}
           onToggleCollapsed={toggleCollapsed}
           highlightedStepId={highlightedStepId}
-          coveredRight={selected ? sidePanelWidth : 0}
+          coveredRight={coveredRight}
         />
         {selected && (
-          <StepRunPanel
-            /* Each step's panel starts afresh, e.g. with its outputs open. */
-            key={selected.step.stepId}
-            step={selected.step}
-            inner={selected.inner}
-            flowDefinition={flowDefinition}
-            mark={marks.get(selected.step.stepId) ?? notReachedMark}
-            stepRuns={stepRuns}
-            waitingOnPerson={waitingOnPerson}
-            live={live}
-            /* Its owner's shortname is empty until users and orgs have loaded. */
-            runPageHref={
-              ownerShortname
-                ? generateWorkerRunPath({
-                    shortname: ownerShortname,
-                    flowRunEntityId,
-                  })
-                : null
-            }
-            highlightedStepId={highlightedStepId}
-            onHighlightStep={setHighlightedStepId}
-          />
+          <>
+            <StepRunPanel
+              /* Each step's panel starts afresh, e.g. with its outputs open. */
+              key={selected.step.stepId}
+              step={selected.step}
+              inner={selected.inner}
+              flowDefinition={flowDefinition}
+              mark={marks.get(selected.step.stepId) ?? notReachedMark}
+              stepRuns={stepRuns}
+              waitingOnPerson={waitingOnPerson}
+              live={live}
+              /* Its owner's shortname is empty until users and orgs have loaded. */
+              runPageHref={
+                ownerShortname
+                  ? generateWorkerRunPath({
+                      shortname: ownerShortname,
+                      flowRunEntityId,
+                    })
+                  : null
+              }
+              highlightedStepId={highlightedStepId}
+              onHighlightStep={setHighlightedStepId}
+              inert={outputViewer.view !== null}
+              onOpenValue={outputViewer.open}
+            />
+            <OutputViewer viewer={outputViewer} />
+          </>
         )}
       </div>
     </div>

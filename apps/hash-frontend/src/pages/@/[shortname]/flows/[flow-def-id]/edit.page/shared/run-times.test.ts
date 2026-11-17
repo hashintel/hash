@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { formatDuration, formatEndTime, formatRunTime } from "./run-times";
+import {
+  formatDuration,
+  formatEndTime,
+  formatRunTime,
+  getRunDuration,
+} from "./run-times";
 
 /* Local times, so the expectations hold in any time zone. */
 const now = new Date(2026, 10, 9, 14, 30);
@@ -53,5 +58,18 @@ describe("formatDuration", () => {
     expect(formatDuration(65_000)).toBe("1m 05s");
     expect(formatDuration(3_599_000)).toBe("59m 59s");
     expect(formatDuration((48 * 60 + 2) * 60_000 + 30_000)).toBe("48h 02m");
+  });
+});
+
+describe("getRunDuration", () => {
+  it("counts a running run to now, but not a stopped run with no end recorded", () => {
+    const startedAt = new Date(2026, 10, 9, 13, 30);
+
+    expect(
+      getRunDuration({ state: "running", startedAt, endedAt: null }, now),
+    ).toBe(60 * 60_000);
+    expect(
+      getRunDuration({ state: "unknown", startedAt, endedAt: null }, now),
+    ).toBeNull();
   });
 });
