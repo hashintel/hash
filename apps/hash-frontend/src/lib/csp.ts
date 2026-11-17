@@ -46,7 +46,7 @@ const reportingEndpointName = "csp-endpoint";
  */
 const cspReportEndpoint = (): string | null => {
   const dsn = SENTRY_DSN ? makeDsn(SENTRY_DSN) : undefined;
-  if (!dsn) {
+  if (!dsn?.publicKey) {
     return null;
   }
   const port = dsn.port ? `:${dsn.port}` : "";
