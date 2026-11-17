@@ -17,6 +17,7 @@ const port = (
 
 const fusion = (id: string, ...members: FusionMember[]): Fusion => ({
   id,
+  name: id,
   members,
 });
 
@@ -116,7 +117,7 @@ describe("fusionStatuses", () => {
       },
     ],
     fusions: [
-      { ...fusion("mismatch", place("buffer"), port("m1")), name: "Belt" },
+      fusion("mismatch", place("buffer"), port("m1")),
       fusion("ports", port("m2"), port("m3")),
     ],
   };
@@ -126,15 +127,12 @@ describe("fusionStatuses", () => {
     fusions: sdcpn.fusions ?? [],
   };
 
-  it("gives each fusion its name and the worst of its problems", () => {
+  it("gives each fusion the worst of its problems", () => {
     const statuses = fusionStatuses(sdcpn, net, null);
 
-    expect(statuses.get("mismatch")).toEqual({
-      name: "Belt",
-      severity: "error",
-    });
+    expect(statuses.get("mismatch")).toEqual({ severity: "error" });
     // Two ports no transition touches: nothing to report.
-    expect(statuses.get("ports")).toEqual({ name: "M2.In", severity: null });
+    expect(statuses.get("ports")).toEqual({ severity: null });
   });
 });
 

@@ -194,6 +194,7 @@ describe("buildCanvasScene", () => {
     });
     const fusionWith = (instanceId: string) => ({
       id: `fusion-${instanceId}`,
+      name: `Belt ${instanceId}`,
       members: [
         { kind: "place" as const, placeId: "p1" },
         {
@@ -220,19 +221,17 @@ describe("buildCanvasScene", () => {
         ...input,
         sdcpn: composed,
         net: composedNet,
-        fusionStatuses: new Map([
-          ["fusion-left", { name: "Belt", severity: "warning" }],
-        ]),
+        fusionStatuses: new Map([["fusion-left", { severity: "warning" }]]),
         ...overrides,
       });
     const { fusions } = build();
 
     expect(fusions).toHaveLength(2);
-    // A link wears its fusion's name and worst problem; without a status it
-    // falls back to the fusion's id and no problem.
+    // A link wears its fusion's name and worst problem, and no problem
+    // without a status.
     expect(fusions.map(({ name, severity }) => [name, severity])).toEqual([
-      ["Belt", "warning"],
-      ["fusion-right", null],
+      ["Belt left", "warning"],
+      ["Belt right", null],
     ]);
     // An instance dragged across the hub swaps the ends of its link.
     expect(

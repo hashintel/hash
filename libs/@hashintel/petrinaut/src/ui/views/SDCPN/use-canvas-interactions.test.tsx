@@ -33,7 +33,11 @@ const port = (
 });
 
 /** Buffer is fused with the port of M1; Store, T and M2 stand alone. */
-const belt: Fusion = { id: "belt", members: [place("buffer"), port("m1")] };
+const belt: Fusion = {
+  id: "belt",
+  name: "Belt",
+  members: [place("buffer"), port("m1")],
+};
 const itemTypes: Record<
   string,
   "place" | "transition" | "componentInstance" | "fusion"
@@ -160,5 +164,17 @@ describe("useCanvasInteractions", () => {
     expect(addNotification).toHaveBeenCalledOnce();
     expect(mutations.addFusionMember).toHaveBeenCalledOnce();
     expect(mutations.addFusion).not.toHaveBeenCalled();
+  });
+
+  it("starts a fusion without a name, which core then gives it", () => {
+    const { interactions } = renderInteractions();
+
+    interactions.connect(connection("store", null, "m2", "in"));
+
+    expect(mutations.addFusion).toHaveBeenCalledExactlyOnceWith({
+      id: expect.any(String) as string,
+      members: [place("store"), port("m2")],
+      targetSubnetId: null,
+    });
   });
 });

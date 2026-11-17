@@ -177,6 +177,7 @@ describe("resolveCanvasFocus", () => {
       fusions: [
         {
           id: "belt",
+          name: "Belt",
           members: [
             { kind: "place", placeId: "lonely" },
             portOf("m1"),

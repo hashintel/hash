@@ -9,7 +9,6 @@ import {
   checkFusion,
   findFusionWithMember,
   fusionAnchor,
-  fusionDisplayName,
   fusionHub,
   getArcEndpointKey,
 } from "@hashintel/petrinaut-core";
@@ -43,17 +42,15 @@ export const fusionLinks = (fusion: Fusion): FusionLink[] => {
         }));
 };
 
-/** What the canvas shows of a fusion as a whole. */
+/** What the canvas shows of a fusion as a whole, beside its name. */
 export type FusionStatus = {
-  /** The fused place's name. */
-  name: string;
   /** The worst of the fusion's problems, or `null` when it has none. */
   severity: ProblemSeverity | null;
 };
 
 const severitiesWorstFirst: ProblemSeverity[] = ["error", "warning", "info"];
 
-/** The name and the worst problem of every fusion of `net`, by fusion id. */
+/** The worst problem of every fusion of `net`, by fusion id. */
 export const fusionStatuses = (
   sdcpn: SDCPN,
   net: ActiveNetDefinition,
@@ -65,7 +62,6 @@ export const fusionStatuses = (
       return [
         fusion.id,
         {
-          name: fusionDisplayName(sdcpn, net, fusion),
           severity:
             severitiesWorstFirst.find((severity) =>
               problems.some((problem) => problem.severity === severity),

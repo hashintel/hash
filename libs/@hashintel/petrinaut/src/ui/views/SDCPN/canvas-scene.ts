@@ -121,7 +121,7 @@ export type CanvasFusionLink = CanvasLinkEnds & {
   /** Unique per link: the fusion id and the member the link leads to. */
   id: string;
   fusionId: string;
-  /** The fused place's name, shown on the link when selected or hovered. */
+  /** The fusion's name, shown on the link when selected or hovered. */
   name: string;
   selected: boolean;
   /** The worst of the fusion's problems, or `null` when it has none. */
@@ -145,7 +145,7 @@ export type CanvasSceneInput = {
   net: ActiveNetDefinition;
   /** The whole document, for subnet lookups. */
   sdcpn: SDCPN;
-  /** The name and the worst problem of each of the net's fusions. */
+  /** The worst problem of each of the net's fusions. */
   fusionStatuses: ReadonlyMap<string, FusionStatus>;
   extensions: PetrinautExtensionSettings;
   dimensions: RenderNodeDimensions;
@@ -198,7 +198,7 @@ const buildFusionLinks = ({
     return {
       id,
       fusionId: fusion.id,
-      name: status?.name ?? fusion.id,
+      name: fusion.name,
       sourceId: getArcEndpointNodeId(source),
       targetId: getArcEndpointNodeId(target),
       sourcePortId: portIdOf(source),

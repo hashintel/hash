@@ -36,6 +36,7 @@ const port = (componentInstanceId: string): FusionMember => ({
 /** Three members, so the fusion draws two links. */
 const belt: Fusion = {
   id: "belt",
+  name: "Belt",
   members: [{ kind: "place", placeId: "buffer" }, port("m1"), port("m2")],
 };
 const links = fusionLinks(belt);

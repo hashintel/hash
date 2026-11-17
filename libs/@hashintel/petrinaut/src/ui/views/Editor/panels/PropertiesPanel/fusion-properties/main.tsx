@@ -5,7 +5,6 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   checkFusion,
   describeFusionMember,
-  fusionDisplayName,
   getArcEndpointKey,
   validateDisplayName,
 } from "@hashintel/petrinaut-core";
@@ -111,12 +110,6 @@ const useFusion = (): Fusion => {
   return fusion;
 };
 
-/** A blank name is valid: it leaves the fusion named after its anchor. */
-const validateFusionName = (draft: string) =>
-  draft.trim() === ""
-    ? ({ valid: true, name: "" } as const)
-    : validateDisplayName(draft);
-
 const MemberRow = ({ member }: { member: FusionMember }) => {
   const fusion = useFusion();
   const { petriNetDefinition } = use(SDCPNContext);
@@ -183,18 +176,10 @@ const FusionMainContent: React.FC = () => {
         <DraftFieldInput
           label="Name"
           sourceId={fusion.id}
-          sourceValue={fusion.name ?? ""}
-          // Unnamed, the fusion goes by its anchor or its first member.
-          placeholder={fusionDisplayName(petriNetDefinition, activeNet, {
-            ...fusion,
-            name: undefined,
-          })}
-          validate={validateFusionName}
+          sourceValue={fusion.name}
+          validate={validateDisplayName}
           onCommit={(name) =>
-            updateFusion({
-              fusionId: fusion.id,
-              update: { name: name === "" ? undefined : name },
-            })
+            updateFusion({ fusionId: fusion.id, update: { name } })
           }
           disabled={isDisabled}
           tooltip={readOnlyTooltip}
@@ -243,13 +228,7 @@ const FusionMainContent: React.FC = () => {
 
 const FusionTitle: React.FC = () => {
   const fusion = useFusion();
-  const { petriNetDefinition } = use(SDCPNContext);
-  const { activeNet } = use(ActiveNetContext);
-  return (
-    <span className={titleStyle}>
-      {fusionDisplayName(petriNetDefinition, activeNet, fusion)}
-    </span>
-  );
+  return <span className={titleStyle}>{fusion.name}</span>;
 };
 
 const DeleteFusionAction: React.FC = () => {

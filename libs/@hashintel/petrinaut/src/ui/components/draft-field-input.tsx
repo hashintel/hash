@@ -26,8 +26,6 @@ interface DraftFieldInputProps {
   monospace?: boolean;
   /** Tooltip shown when hovering the input itself (eg. a read-only hint). */
   tooltip?: string;
-  /** What stands in for an empty value, in the input and when read-only. */
-  placeholder?: string;
 }
 
 const monospaceInputStyle = css({
@@ -52,7 +50,6 @@ export const DraftFieldInput: React.FC<DraftFieldInputProps> = ({
   disabled = false,
   monospace = false,
   tooltip,
-  placeholder,
 }) => {
   const field = useDraftField({ sourceId, sourceValue });
   const isReadOnly = useIsReadOnly();
@@ -69,12 +66,11 @@ export const DraftFieldInput: React.FC<DraftFieldInputProps> = ({
       // the canonical value would contradict the value itself.
       errors={!isReadOnly && field.error ? [field.error] : undefined}
     >
-      <PropertyValue text={sourceValue || (placeholder ?? "")}>
+      <PropertyValue text={sourceValue}>
         <Tooltip content={tooltip ?? ""} disableTooltip={!tooltip}>
           <TextInput
             value={field.value}
             size="sm"
-            placeholder={placeholder}
             className={monospace ? monospaceInputStyle : undefined}
             onChange={(value) => {
               field.setValue(value);

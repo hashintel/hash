@@ -704,6 +704,7 @@ const fusedLineNet: SDCPN = {
   fusions: [
     {
       id: "fuse_parts",
+      name: "Parts",
       members: [
         { kind: "place", placeId: "parts" },
         port("cutter", "stage_in"),
@@ -711,6 +712,7 @@ const fusedLineNet: SDCPN = {
     },
     {
       id: "fuse_buffer",
+      name: "Buffer",
       members: [
         { kind: "place", placeId: "buffer" },
         port("cutter", "stage_out"),
@@ -719,6 +721,7 @@ const fusedLineNet: SDCPN = {
     },
     {
       id: "fuse_finished",
+      name: "Finished",
       members: [
         { kind: "place", placeId: "finished" },
         port("drill", "stage_out"),
