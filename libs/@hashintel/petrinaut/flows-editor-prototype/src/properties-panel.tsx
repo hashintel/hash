@@ -169,9 +169,9 @@ const compactPanelStyle = css({
   "&[class] [data-input-icon]": {
     position: "absolute",
     left: "[var(--u-ix)]",
-    top: "[calc((var(--u-rh) - 16px) / 2)]",
-    width: "[16px]",
-    height: "[16px]",
+    top: "[calc((var(--u-rh) - 14px) / 2)]",
+    width: "[14px]",
+    height: "[14px]",
     display: "flex",
     color: "neutral.fg.heading",
   },
@@ -227,19 +227,101 @@ const compactPanelStyle = css({
     paddingTop: "[2px]",
     boxSizing: "border-box",
   },
-  "&[class] [data-output] [data-row] > [data-type-icon] svg": {
-    "--icon-size": "13px",
-    width: "[13px]",
-    height: "[13px]",
-    minWidth: "[13px]",
+  "&[class] [data-input-icon] svg, &[class] [data-output] [data-row] > [data-type-icon] svg": {
+    "--icon-size": "14px",
+    width: "[14px]",
+    height: "[14px]",
+    minWidth: "[14px]",
+    overflow: "visible",
   },
   "&[class] [data-output] [data-row] [data-output-flag] svg": {
-    "--icon-size": "13px",
-    width: "[13px]",
-    height: "[13px]",
+    "--icon-size": "14px",
+    width: "[14px]",
+    height: "[14px]",
+  },
+  "&[class] [data-input-icon] svg > *, &[class] [data-output] [data-row] > [data-type-icon] svg > *, &[class] [data-output] [data-row] [data-output-flag] svg > *": {
+    vectorEffect: "non-scaling-stroke",
   },
   "&[class] [data-output] div:has(> [data-output-use])": { visibility: "visible" },
 });
+
+/** Match all14's drawing-bound centring on the name's cap height, without changing the row's layout. */
+const alignPanelRowIcons = (panel: HTMLElement) => {
+  const align = () => {
+    if (!panel.isConnected) return;
+    const canvas = globalThis.document.createElement("canvas");
+    const context = canvas.getContext("2d");
+    if (!context) return;
+    for (const row of panel.querySelectorAll(
+      "[data-property-name], [data-joiner], [data-output] [data-row]",
+    )) {
+      const output = row.matches("[data-row]");
+      const name = row.querySelector<HTMLElement>(
+        output
+          ? ":scope > span:nth-child(2) > span"
+          : ":scope > input, :scope > span:last-child",
+      );
+      const icon = row.querySelector<SVGSVGElement>(
+        output
+          ? ":scope > [data-type-icon] svg"
+          : ":scope > [data-input-icon] svg",
+      );
+      if (!name || !icon || !icon.getBoundingClientRect().width) continue;
+      const font = getComputedStyle(name);
+      const sample = globalThis.document.createElement("span");
+      sample.style.cssText =
+        "position:absolute;left:-9999px;top:0;white-space:nowrap;display:block";
+      for (const property of [
+        "font-family",
+        "font-size",
+        "font-weight",
+        "font-style",
+        "line-height",
+        "letter-spacing",
+      ]) {
+        sample.style.setProperty(property, font.getPropertyValue(property));
+      }
+      sample.append("H");
+      const marker = globalThis.document.createElement("i");
+      marker.style.cssText =
+        "display:inline-block;width:0;height:0;padding:0;margin:0;vertical-align:baseline";
+      sample.append(marker);
+      globalThis.document.body.append(sample);
+      const contentTop =
+        name instanceof HTMLInputElement
+          ? parseFloat(font.borderTopWidth) + parseFloat(font.paddingTop)
+          : 0;
+      const baseline =
+        name.getBoundingClientRect().top +
+        contentTop +
+        marker.getBoundingClientRect().top -
+        sample.getBoundingClientRect().top;
+      sample.remove();
+      context.font = `${font.fontStyle} ${font.fontWeight} ${font.fontSize} ${font.fontFamily}`;
+      const capHeight = context.measureText("H").actualBoundingBoxAscent;
+      icon.style.transform = "none";
+      const bounds = icon.getBBox();
+      const matrix = icon.getScreenCTM();
+      if (!matrix) continue;
+      const center = (bounds.y + bounds.height / 2) * matrix.d + matrix.f;
+      icon.style.transform = `translateY(${baseline - capHeight / 2 - center}px)`;
+    }
+  };
+  align();
+  void globalThis.document.fonts.ready.then(align);
+  const mutations = new MutationObserver(align);
+  mutations.observe(panel, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+  });
+  const resize = new ResizeObserver(align);
+  resize.observe(panel);
+  return () => {
+    mutations.disconnect();
+    resize.disconnect();
+  };
+};
 
 const inputIcon = (input: InputView, kinds: readonly string[]) => {
   if (kinds.includes("VersionedUrl")) {
@@ -2345,6 +2427,7 @@ export const PropertiesPanel = () => {
   const ghost = ghostKindOf(ui.selectedId);
   return (
     <aside
+      ref={alignPanelRowIcons}
       className={cx(panelStyle, sizeTakeStyle, compactPanelStyle)}
       data-fieldsize={fieldSizeTake}
       data-labelsize={labelSizeTake}
