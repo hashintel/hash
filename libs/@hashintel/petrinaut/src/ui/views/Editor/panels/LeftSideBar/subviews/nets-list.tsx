@@ -439,7 +439,7 @@ export const netsListSubView: SubView = {
   id: "nets-list",
   title: "Nets",
   tooltip:
-    "View the root net and reusable components. Mark component places as ports, then instantiate components as components in the root net.",
+    "View the root net and the document's components. Mark a component's places as ports, then place instances of it in the root net.",
   component: NetNavigationList,
   renderHeaderAction: () => <NetsHeaderAction />,
   headerActionMutates: true,

@@ -1,12 +1,12 @@
 /**
- * Components and interfaces. A component is a component of the document or a
- * component of one of its imports, and every reader gets at one through
- * `resolveComponent`. A component flagged `interface` is a signature, ports,
- * types and parameters with no body, that instances point at like any
- * component. The component that runs for such an instance is the implementation
- * bound to it, by the instance itself or by the document's defaults.
- * `implements` on a component says which interfaces it can stand behind, and
- * `check-interfaces.ts` holds it to their ports and parameters.
+ * Components and interfaces. A component belongs to the document or to one of
+ * its imports, and every reader gets at one through `resolveComponent`. A
+ * component flagged `interface` is a signature, ports, types and parameters
+ * with no body, that instances point at like any component. The component
+ * that runs for such an instance is the implementation bound to it, by the
+ * instance itself or by the document's defaults. `implements` on a component
+ * says which interfaces it can stand behind, and `check-interfaces.ts` holds
+ * it to their ports and parameters.
  */
 
 import type {
@@ -51,11 +51,11 @@ export const hasBody = (
   (component.componentInstances?.length ?? 0) > 0;
 
 /**
- * The component `reference` names: a component of the document, or a component
- * of one of its imports, as a component too. `undefined` when there is none, and
- * for a component of an import that is not among `libraries`: one that is
- * still resolving, or that failed. `componentsById` is `indexComponents(sdcpn)`,
- * which saves a search of the document's list.
+ * The component `reference` names, of the document or of one of its imports.
+ * `undefined` when there is none, and for a component of an import that is
+ * not among `libraries`: one that is still resolving, or that failed.
+ * `componentsById` is `indexComponents(sdcpn)`, which saves a search of the
+ * document's list.
  */
 export const resolveComponent = (
   sdcpn: Pick<SDCPN, "components">,

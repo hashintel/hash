@@ -94,7 +94,7 @@ export const arcEndpointSchema = z
       }),
       portPlaceId: idSchema.meta({
         description:
-          "ID of a place marked `isPort: true` in the component instance's referenced component.",
+          "ID of a place marked `isPort: true` in the component the instance instantiates.",
       }),
     }),
   ])
@@ -633,16 +633,16 @@ export const componentSchema = z
       description: "Parameters local to this component.",
     }),
     componentInstances: z.array(componentInstanceSchema).optional().meta({
-      description: "Nested component instances local to this component.",
+      description: "Component instances placed inside this component.",
     }),
     fusions: z.array(fusionSchema).optional().meta({
       description:
-        "Fusions among this component's places and its nested instances' ports.",
+        "Fusions among this component's places and the ports of the instances inside it.",
     }),
   })
   .meta({
     description:
-      "A reusable component definition that can be instantiated as a component.",
+      "A component: a net of its own, placed in other nets as component instances.",
   }) satisfies z.ZodType<Component>;
 
 export type PlaceSchema = typeof placeSchema;

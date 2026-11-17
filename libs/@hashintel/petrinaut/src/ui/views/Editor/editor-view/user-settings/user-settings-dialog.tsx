@@ -579,7 +579,7 @@ export const UserSettingsDialog = ({
                         <SettingsGroup title="Modeling">
                           <SettingToggle
                             label="Net Components"
-                            description="Build hierarchical nets with component definitions and component instances."
+                            description="Build hierarchical nets from components and their instances."
                             value={settings.enableNetComponents}
                             onChange={settings.setEnableNetComponents}
                           />

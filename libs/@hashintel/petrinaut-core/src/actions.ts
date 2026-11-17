@@ -339,8 +339,8 @@ const instantiates = (
 ): boolean => sameComponent(instance.component, { id: componentId });
 
 /**
- * Picks `portPlaceId` on the instances of `componentId` that `net` holds; `null`
- * when it holds none.
+ * Picks `portPlaceId` on the instances of `componentId` that `net` holds;
+ * `null` when it holds none.
  */
 const onComponentPort = (
   net: MutableNet,
@@ -383,12 +383,12 @@ const namesAnotherComponent = (
   !sameComponent(update.component, instance.component);
 
 /**
- * Whether a call of `action` with `input` would drop arcs or fusion
- * memberships from `sdcpn`: an `updatePlace` that unmarks a port something
- * outside its component still names, or an `updateComponentInstance` that points
- * an instance at another component while something names its ports. A caller
- * that asks before a removal asks before such an update. Throws on an input
- * the action does not accept.
+ * Whether a call of `action` with `input` would drop arcs or fusion memberships
+ * from `sdcpn`: an `updatePlace` that unmarks a port something outside its
+ * component still names, or an `updateComponentInstance` that points an
+ * instance at another component while something names its ports. A caller that
+ * asks before a removal asks before such an update. Throws on an input the
+ * action does not accept.
  */
 export const updatePrunesReferences = (
   sdcpn: SDCPN,

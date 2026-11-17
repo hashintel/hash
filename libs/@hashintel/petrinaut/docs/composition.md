@@ -1,12 +1,12 @@
 # Composition
 
-Build a net from components: components drawn once and placed many times, joined to the net and to each other by **fusing** places. A fused set of places is one place when the net runs.
+Build a net from components: nets drawn once and placed many times, joined to the net and to each other by **fusing** places. A fused set of places is one place when the net runs.
 
 Composition is experimental. Enable **User settings → Labs → Net Components** to see the Nets panel, the component tool and the Components panel. A net that already holds components draws and runs with the setting off: only the tools that edit them are hidden.
 
 ## Components and instances
 
-A component is a component: a net of its own with places, transitions, types, parameters and equations. Draw one from the **Nets** panel (**+**). Mark the places that form its boundary as **ports** in the place properties (**Options → Component port**).
+A component is a net of its own, with places, transitions, types, parameters and equations. Draw one from the **Nets** panel (**+**). Mark the places that form its boundary as **ports** in the place properties (**Options → Component port**).
 
 To use a component, place an **instance** of it: pick the component from the cube tool in the bottom toolbar and click the canvas. An instance draws as a card: its name, the component it runs, and a labelled pin on its edge for each port, coloured by the port's token type. Inside the component, a port place wears the same pin on its own edge and says which kind of port it is beside its name, so the boundary reads alike from inside and outside. Select an instance to name it, describe it and set its parameters.
 
@@ -68,7 +68,7 @@ A library that cannot be fetched, or that the application does not know, is one 
 
 An instance that names a component its library does not have draws the same way and keeps the net from running. It is one error under **Composition**, naming the instance, the component and the library.
 
-To hand a document to someone without the libraries, export it with its imports inlined: **Export → YAML with imports inlined** or **JSON with imports inlined**, offered when the document imports a library. Each component the document uses becomes a component of the file, under ids of its own, and the file imports nothing.
+To hand a document to someone without the libraries, export it with its imports inlined: **Export → YAML with imports inlined** or **JSON with imports inlined**, offered when the document imports a library. Each component the document takes from a library becomes a component of the file itself, under ids of its own, and the file imports nothing.
 
 A library the net names without importing it, as a file edited by hand may, is one error under **Composition**. Choose the component or the implementation again to add the import.
 

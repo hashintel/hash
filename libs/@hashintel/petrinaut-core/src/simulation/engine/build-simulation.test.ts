@@ -411,7 +411,7 @@ describe("buildSimulation", () => {
     expect(simulation.parameterValues).toEqual({});
   });
 
-  it("flattens component-port arcs to the instantiated component port places", () => {
+  it("flattens component-port arcs to the port places of the instance's component", () => {
     const simulation = buildSimulation({
       sdcpn: {
         types: [],

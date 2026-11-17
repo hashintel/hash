@@ -502,13 +502,13 @@ const libraries = [logistics.id];
   library's, which must be the import's, a component's, a port's, a
   parameter's. Two components, or two ports or parameters of one component,
   under one id make the library fail, with a message that names them, and so
-  does a component the document's own schema would refuse as a component, such
-  as one whose icon holds anything but plain shapes.
-- **A body** is what a component runs, in the shape a component holds its own
-  content: `places`, `transitions`, and `types` and `differentialEquations`
-  where it has them. Its ports are the places `ports` names: a port's `id` is
-  that place's id, its `name` the place's name, and its `tokenType` describes
-  the place's token type. A component without a body is an
+  does a component the document's own schema would refuse, such as one whose
+  icon holds anything but plain shapes.
+- **A body** is what a component runs, in the shape a component of a document
+  holds its own content: `places`, `transitions`, and `types` and
+  `differentialEquations` where it has them. Its ports are the places `ports`
+  names: a port's `id` is that place's id, its `name` the place's name, and its
+  `tokenType` describes the place's token type. A component without a body is an
   [interface](doc:core.composition/interfaces-and-fusions): an instance of it
   needs an implementation bound, a component of the document or a component of
   an import, and a net does not run while one is missing.
@@ -545,10 +545,10 @@ component a resolved library does not have is one error of kind `interface`,
 with the code `missing-component`, on the instance.
 
 The simulator, the compiler and the language server take one net and no
-libraries. `inlineImports(sdcpn, libraries)` gives that net: each component
-the document uses becomes a component of it, under ids that are the same on
-every call. The editor passes it wherever a net is run or checked, and a host
-that runs a simulation itself does the same:
+libraries. `inlineImports(sdcpn, libraries)` gives that net: each component the
+document takes from a library becomes one of its own, under ids that are the
+same on every call. The editor passes it wherever a net is run or checked, and a
+host that runs a simulation itself does the same:
 
 ```ts
 const net = inlineImports(

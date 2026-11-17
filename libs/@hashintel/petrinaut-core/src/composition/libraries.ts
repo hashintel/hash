@@ -3,7 +3,7 @@
  * lists components under ids of its own, each with ports and parameters and,
  * when it runs, a body. A component without a body is an interface (see
  * `interfaces.ts`). A library is checked once, when it arrives, and each of
- * its components is read from then on as a component, the shape a document's own
+ * its components is read from then on in the shape a document's own
  * components have, so every reader takes both the same way.
  */
 
@@ -99,11 +99,11 @@ export type Library = {
 };
 
 /**
- * A library that passed its checks. Each component is a component whose `id` is
- * the component's id in the library, as written. A port or a parameter has
- * the id a document converts the library's to, so a document names it by
- * `toPetrinautId` of its id here. Every other id inside a component is its
- * own: no document and no other component holds it.
+ * A library that passed its checks. Each component has the shape of a
+ * document's own, under the id the library gives it, as written. A port or a
+ * parameter has the id a document converts the library's to, so a document
+ * names it by `toPetrinautId` of its id here. Every other id inside a
+ * component is its own: no document and no other component holds it.
  */
 export type ResolvedLibrary = {
   id: string;
@@ -136,7 +136,7 @@ const portSchema = z.strictObject({
 
 /**
  * The outline of a library: enough to name what is wrong with it. What a
- * component holds is checked as a component, once it is one.
+ * component holds is checked as a document's own is, in `toComponent`.
  */
 const librarySchema = z.strictObject({
   id: z.string().min(1),
@@ -348,7 +348,7 @@ const withOwnIds = (body: Component, libraryId: string): Component => {
   };
 };
 
-/** A component of a library as a component. Throws on one a document would not accept. */
+/** A component of a library in the shape of a document's own. Throws on one a document would not accept. */
 const toComponent = (
   outline: ComponentOutline,
   libraryId: string,
@@ -411,9 +411,10 @@ const toComponent = (
 
 /**
  * Checks what a host resolved the import `importId` to, and gives each of its
- * components as a component. Throws, in a sentence a user can read, on a library
- * under another id, on two components, two ports or two parameters that share
- * an id, and on a component a document would not accept as a component.
+ * components in the shape of a document's own. Throws, in a sentence a user
+ * can read, on a library under another id, on two components, two ports or
+ * two parameters that share an id, and on a component a document would not
+ * accept.
  */
 export const resolveLibrary = (
   importId: string,

@@ -2321,7 +2321,8 @@ describe("Petrinaut core interface actions", () => {
       })),
     });
 
-    // The binding names both components: as its implementation, as its interface.
+    // The binding names both components: as its implementation, as its
+    // interface.
     for (const componentId of ["other", "stage"]) {
       instance.mutations.updateComponent({
         componentId,

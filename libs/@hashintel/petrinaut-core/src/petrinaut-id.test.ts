@@ -247,7 +247,7 @@ const legacyNet = (): SDCPN => ({
 });
 
 describe("canonicalizePetrinautIds", () => {
-  it("rewrites component definitions together with their references", () => {
+  it("rewrites components together with their references", () => {
     const sdcpn: SDCPN = {
       ...emptyNet,
       components: [

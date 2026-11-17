@@ -109,7 +109,7 @@ const foldThreshold = 4;
 
 export type CanvasComponentInstanceNode = CanvasNodeBase & {
   kind: "componentInstance";
-  /** The component the instance points at: its component or its interface. */
+  /** The name of what the instance points at: a component or an interface. */
   componentName: string;
   binding: CanvasInstanceBinding;
   /** The component's icon as SVG markup, or `null` for the default glyph. */

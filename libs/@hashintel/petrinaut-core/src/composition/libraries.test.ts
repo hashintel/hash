@@ -19,7 +19,7 @@ const resolving = (library: unknown) => () =>
   resolveLibrary(logistics.id, library);
 
 describe("resolveLibrary", () => {
-  it("gives each component as a component under the id the library gives it", () => {
+  it("gives each component in the shape of a document's own, under the id the library gives it", () => {
     const library = resolveLibrary(logistics.id, logistics);
 
     expect(library).toMatchObject({ id: logistics.id, name: "Logistics" });
@@ -353,7 +353,7 @@ describe("resolveLibrary", () => {
     );
   });
 
-  it("holds a component to what a document accepts of a component", () => {
+  it("holds a component to what a document accepts of its own", () => {
     const library = withComponents([
       { ...scale!, iconSvg: "<svg><script>alert(1)</script></svg>" },
     ]);

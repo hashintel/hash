@@ -29,7 +29,8 @@ const launchHandleStyle = css({
   },
 });
 
-// Pseudo-elements expand hit areas without moving the anchors of component arcs.
+// Pseudo-elements expand hit areas without moving the anchors of component
+// arcs.
 const targetHandleStyle = css({
   _after: {
     content: '""',

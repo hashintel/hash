@@ -22,8 +22,9 @@ const sideNormals: Record<`${Position}`, CanvasPoint> = {
 };
 
 /**
- * A point an arc ends at rather than an outline: a component port's handle, which
- * the arc leaves along the side it sits on, or the pointer, which has none.
+ * A point an arc ends at rather than an outline: a component port's handle,
+ * which the arc leaves along the side it sits on, or the pointer, which has
+ * none.
  */
 export const fixedEndpoint = (
   x: number,

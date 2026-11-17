@@ -8,16 +8,18 @@ import { SDCPNContext } from "./sdcpn-context";
 import { useComposesOnly } from "./use-composes-only";
 
 /**
- * Derives the active net from the full SDCPN. When a component is active, editor
- * panels and canvas operations read that component's local places/transitions/etc.
+ * Derives the active net from the full SDCPN. When a component is active,
+ * editor panels and canvas operations read that component's local
+ * places/transitions/etc.
  *
- * activeComponentId is part of Petrinaut's app location. Changing components clears
- * selection in the same atomic transition. The navigation provider is keyed
- * by document, so uncontrolled locations reset when the active handle changes.
- * A requested component id resolves through `toPetrinautId`, and the location is
- * rewritten to the canonical id, or to the root net when no component matches.
- * Every id resolves to the root net in an editor that only composes: it
- * changes the root net alone, and has no panel that leads back from a component.
+ * activeComponentId is part of Petrinaut's app location. Changing components
+ * clears selection in the same atomic transition. The navigation provider is
+ * keyed by document, so uncontrolled locations reset when the active handle
+ * changes. A requested component id resolves through `toPetrinautId`, and the
+ * location is rewritten to the canonical id, or to the root net when no
+ * component matches. Every id resolves to the root net in an editor that only
+ * composes: it changes the root net alone, and has no panel that leads back
+ * from a component.
  */
 export const ActiveNetProvider: React.FC<{ children: ReactNode }> = ({
   children,

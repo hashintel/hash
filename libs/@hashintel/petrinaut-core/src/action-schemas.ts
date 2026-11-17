@@ -524,7 +524,7 @@ export const mutationActionInputSchemas = {
     .meta({ description: "Remove a simulation metric." }),
   addComponent: componentSchema.meta({
     description:
-      "Add a reusable component definition. Mark component places with `isPort: true` to expose them as component ports.",
+      "Add a component: a net of its own that instances reuse. Mark its places with `isPort: true` to expose them as ports.",
   }),
   updateComponent: z
     .strictObject({
@@ -534,7 +534,7 @@ export const mutationActionInputSchemas = {
     .meta({ description: "Update fields on an existing component." }),
   removeComponent: z.strictObject({ componentId: idSchema }).meta({
     description:
-      "Remove a component definition and component instances that reference it.",
+      "Remove a component and the component instances that reference it.",
   }),
   addComponentInstance: componentInstanceSchema
     .extend({ targetComponentId: targetComponentIdSchema })
@@ -629,11 +629,11 @@ export const mutationActionInputSchemas = {
   setImplementation: z
     .strictObject({
       interfaceId: idSchema.meta({
-        description: "The interface component's ID.",
+        description: "The ID of the interface, a component of the document.",
       }),
       implementationId: idSchema.nullable().meta({
         description:
-          "The implementing component to run for instances of the interface that choose none themselves, or null to clear the document's default.",
+          "The ID of the component to run for instances of the interface that choose none themselves, or null to clear the document's default.",
       }),
     })
     .meta({

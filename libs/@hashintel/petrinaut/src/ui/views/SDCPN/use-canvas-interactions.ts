@@ -120,7 +120,8 @@ export type CanvasInteractions = {
 };
 
 /**
- * Converts a free-form component display name to a valid PascalCase instance name.
+ * Converts a component's free-form display name to a valid PascalCase instance
+ * name.
  * Splits on non-alphanumeric boundaries, capitalises each letter-starting word,
  * and appends a trailing numeric suffix if present.
  * "Hospital Ward" → "HospitalWard", "Component 1" → "Component1", "Coal Plant" → "CoalPlant"

@@ -2,9 +2,9 @@
  * Inlining: a document with the components it takes from its imports made
  * its own. Each becomes a component of the document itself, and whatever
  * named it in its library names that one. An export that must read without
- * its libraries is this under fresh ids. The simulator, the compiler and the language server take one
- * net and no libraries, so they are handed this too, under ids that are the
- * same from one call to the next.
+ * its libraries is this under fresh ids. The simulator, the compiler and the
+ * language server take one net and no libraries, so they are handed this
+ * too, under ids that are the same from one call to the next.
  */
 
 import { toPetrinautId } from "../petrinaut-id";
@@ -72,9 +72,9 @@ const toComponent = ({ id, placeIds, component }: Inlined): Component => {
 /**
  * `sdcpn` with every component of `libraries` that it uses as a component of
  * its own: instances, bindings, arcs and fusions name that component and its
- * ports, and the imports that resolved are no longer listed. A reference that does
- * not resolve is left as it is. Returns `sdcpn` itself when there is nothing
- * to inline.
+ * ports, and the imports that resolved are no longer listed. A reference
+ * that does not resolve is left as it is. Returns `sdcpn` itself when there
+ * is nothing to inline.
  *
  * `newId` gives the component and its places their ids. Left out, a component
  * gets the same ids every time, which is what two readers of one document

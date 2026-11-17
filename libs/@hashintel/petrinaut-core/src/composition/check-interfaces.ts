@@ -69,8 +69,8 @@ export type InterfaceProblem = {
 };
 
 /**
- * A function that adds a problem to `problems`, on a component or on an instance
- * and the net that holds it: an error unless it is told otherwise.
+ * A function that adds a problem to `problems`, on a component or on an
+ * instance and the net that holds it: an error unless it is told otherwise.
  */
 const reporter =
   (

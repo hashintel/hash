@@ -507,18 +507,15 @@ const flattenNet = ({
         ctx.source.components?.find(({ id }) => id === componentId)?.name ??
         componentId;
       throw new Error(
-        `Component component cycle detected: ${[
-          ...activeComponentIds,
-          running.id,
-        ]
+        `Component cycle detected: ${[...activeComponentIds, running.id]
           .map((componentId) => `\`${nameOf(componentId)}\``)
           .join(" -> ")}.`,
       );
     }
     // The instance's values are keyed by the declared component's parameter
     // ids, and a parameter it leaves alone has the declared default: what the
-    // instance's properties show. The running component's parameters of the same
-    // variable names take them, and its other parameters keep their own.
+    // instance's properties show. The running component's parameters of the
+    // same variable names take them, and its other parameters keep their own.
     const runningParameterValues = Object.fromEntries(
       declared.parameters.map((parameter) => [
         parameterId(parameter.id),

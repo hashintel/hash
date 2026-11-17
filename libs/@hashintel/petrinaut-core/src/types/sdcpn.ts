@@ -47,7 +47,7 @@ export type ComponentPortArcEndpoint = {
   kind: "componentPort";
   /** ID of the component instance in the net containing the transition. */
   componentInstanceId: ID;
-  /** ID of a port place inside the component instance's referenced component. */
+  /** ID of a port place inside the component the instance instantiates. */
   portPlaceId: ID;
 };
 
@@ -150,14 +150,14 @@ export type Place = {
    * `null` or absent means unbounded.
    */
   capacity?: number | null;
-  /** When true, this place is exposed as a component port for component instances. */
+  /** When true, this place is a port on the instances of its component. */
   isPort?: boolean;
   /**
    * The direction a port promises, seen from the component: `in` is only
    * consumed by the component's transitions, `out` only produced into, and
    * `inout` both, as a shared resource pool is. Absent, the direction is read
-   * off the component's arcs. The checks report a port used against its promise,
-   * and a fusion that leaves a flow without a producer or a consumer.
+   * off the component's arcs. The checks report a port used against its
+   * promise, and a fusion that leaves a flow without a producer or a consumer.
    */
   portDirection?: PortDirection;
   visualizerCode?: string;

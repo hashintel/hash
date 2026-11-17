@@ -211,11 +211,11 @@ export type NetStructure = StructureOf<SDCPN> & {
 };
 
 /**
- * Drop presentational fields from the net, its components and the items of their
- * collections; the outline also drops code and expressions. Fields are matched
- * by their place in the net, so user-named keys such as an ad-hoc scenario's
- * shared columns are never mistaken for them, and fields not named here pass
- * through, so new core fields appear without changes here.
+ * Drop presentational fields from the net, its components and the items of
+ * their collections; the outline also drops code and expressions. Fields are
+ * matched by their place in the net, so user-named keys such as an ad-hoc
+ * scenario's shared columns are never mistaken for them, and fields not named
+ * here pass through, so new core fields appear without changes here.
  */
 export const projectNetDefinition = (
   value: unknown,

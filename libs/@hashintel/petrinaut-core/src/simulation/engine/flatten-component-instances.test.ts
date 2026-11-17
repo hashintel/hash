@@ -430,7 +430,7 @@ describe("flattenComponentInstancesForSimulation", () => {
     });
 
     expect(() => flatten({ definition })).toThrow(
-      "Component component cycle detected: `outer-component` -> `inner-component` -> `outer-component`",
+      "Component cycle detected: `outer-component` -> `inner-component` -> `outer-component`",
     );
   });
 
@@ -1141,7 +1141,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
       });
 
       expect(() => flatten({ definition })).toThrow(
-        "Component component cycle detected: `fast` -> `fast`",
+        "Component cycle detected: `fast` -> `fast`",
       );
     });
 
