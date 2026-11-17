@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import { FlowRunStatus } from "../../../../../../../graphql/api-types.gen";
-import { countRunsByTab, filterRuns, sortRuns, toRunRow } from "./run-list";
+import { isRunGoing } from "../shared/run-state";
+import {
+  countRunsByTab,
+  filterRuns,
+  isInTab,
+  sortRuns,
+  toRunRow,
+} from "./run-list";
 
 import type { RunSummary } from "../shared/use-flow-runs";
 import type { RunRow } from "./run-list";
@@ -119,6 +126,18 @@ describe("countRunsByTab", () => {
       completed: 1,
       failed: 4,
     });
+  });
+});
+
+describe("isRunGoing", () => {
+  it("follows exactly the runs the Running tab counts, including one that continued as new", () => {
+    for (const status of Object.values(FlowRunStatus)) {
+      expect(isRunGoing(status), status).toBe(
+        isInTab(row("000001", { status }), "running"),
+      );
+    }
+
+    expect(isRunGoing(FlowRunStatus.ContinuedAsNew)).toBe(true);
   });
 });
 
