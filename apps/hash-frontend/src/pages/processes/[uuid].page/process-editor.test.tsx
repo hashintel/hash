@@ -9,6 +9,7 @@ import {
   updateEntityMutation,
 } from "../../../graphql/queries/knowledge/entity.queries";
 import { ProcessEditor, type ProcessEditorView } from "./process-editor";
+import { NetExistsError } from "./process-editor/net-exists-error";
 
 import type { PersistedNet } from "../../processes.page/use-persisted-nets";
 import type { PetrinautEditor } from "./process-editor/petrinaut-editor";
@@ -461,4 +462,80 @@ test("unsaved changes guard the tab and a declined switch restores the URL", asy
   const leaveClean = new Event("beforeunload", { cancelable: true });
   window.dispatchEvent(leaveClean);
   expect(leaveClean.defaultPrevented).toBe(false);
+});
+
+test("a Create confirmed before its refetch failed is retried as an update, not a second create", async () => {
+  graph.createEntity.mockImplementation(() => {
+    graph.nets = [netA, netB, makeNet(createdId)];
+    return Promise.resolve({ data: { createEntity: { entityId: createdId } } });
+  });
+  graph.refetchNets.mockRejectedValueOnce(new Error("network down"));
+  await renderHost(draftView);
+  const create = {
+    definition: definition("new"),
+    title: "New",
+    entityId: null,
+  };
+
+  await expect(act(() => editor().onSave(create))).rejects.toThrow(
+    "network down",
+  );
+  expect(router.replace).not.toHaveBeenCalled();
+
+  const result = await act(() => editor().onSave(create));
+
+  expect(graph.createEntity).toHaveBeenCalledOnce();
+  expect(updatedEntityIds()).toEqual([createdId]);
+  expect(result.entityId).toBe(createdId);
+  expect(router.replace).toHaveBeenCalledWith(`/processes/${uuidCreated}`);
+});
+
+test("a Create refused for a net the user can see rejects as existing, and moves the host to that net", async () => {
+  const existing = makeNet(createdId, "2026-10-24T02:00:00.000Z");
+  graph.createEntity.mockImplementation(() => {
+    // Another tab created it first.
+    graph.nets = [netA, netB, existing];
+    return Promise.reject(new Error("Could not store entity"));
+  });
+  graph.history.set(createdId, [revisionOf(existing)]);
+  await renderHost(draftView);
+  const draftLoad = editor().load;
+
+  const refused = await act(() =>
+    editor()
+      .onSave({ definition: definition("mine"), title: "Mine", entityId: null })
+      .catch((error: unknown) => error),
+  );
+
+  expect(refused).toBeInstanceOf(NetExistsError);
+  expect(refused).toMatchObject({
+    entityId: createdId,
+    savedSnapshot: {
+      definition: existing.definition,
+      title: existing.title,
+      decisionTime: existing.lastUpdated,
+    },
+    userEditable: true,
+  });
+  expect(router.replace).toHaveBeenCalledWith(`/processes/${uuidCreated}`);
+  expect(editor().load).toBe(draftLoad);
+  expect(editor().revisions).toEqual([
+    { decisionTime: existing.lastUpdated, title: existing.title },
+  ]);
+});
+
+test("a Create refused for an id no visible net has fails saying the id is unavailable", async () => {
+  graph.createEntity.mockRejectedValue(new Error("Could not store entity"));
+  await renderHost(draftView);
+
+  await expect(
+    act(() =>
+      editor().onSave({
+        definition: definition("new"),
+        title: "New",
+        entityId: null,
+      }),
+    ),
+  ).rejects.toThrow(`its id ${uuidCreated} is unavailable`);
+  expect(router.replace).not.toHaveBeenCalled();
 });

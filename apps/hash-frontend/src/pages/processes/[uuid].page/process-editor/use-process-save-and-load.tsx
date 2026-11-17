@@ -4,6 +4,7 @@ import {
   type SetStateAction,
   useCallback,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -27,6 +28,7 @@ import {
   type PersistedNet,
   usePersistedNets,
 } from "../../../processes.page/use-persisted-nets";
+import { NetExistsError } from "./net-exists-error";
 
 import type {
   CreateEntityMutation,
@@ -85,10 +87,13 @@ export const useProcessSaveAndLoad = ({
   persistedNetsLoading: boolean;
   /**
    * Persist the supplied SDCPN + title to the graph: to the target's entity,
-   * creating it under the target's id when it doesn't exist yet. On success
+   * creating it under the target's id when it doesn't exist yet. A target
+   * this hook created already is updated, whatever it says. On success
    * resolves with the persisted entity id, the new decision-time, and
-   * whether the resulting entity is editable by the current user. It
-   * changes no selection: the caller decides whether the result still
+   * whether the resulting entity is editable by the current user. A
+   * refused create rejects with {@link NetExistsError} when the net exists
+   * and the user can see it, and otherwise says the id may be unavailable.
+   * It changes no selection: the caller decides whether the result still
    * applies to what is open, and is responsible for any URL navigation
    * following a create.
    */
@@ -107,6 +112,13 @@ export const useProcessSaveAndLoad = ({
   } = usePersistedNets();
 
   const [userEditable, setUserEditable] = useState(true);
+
+  /**
+   * The nets this page created, kept from the moment the graph confirmed
+   * each create, whatever the reads after it did: saving one again updates
+   * it, even while its draft still names it as not existing.
+   */
+  const createdEntityIdsRef = useRef(new Set<EntityId>());
 
   const [createEntity] = useMutation<
     CreateEntityMutation,
@@ -178,12 +190,57 @@ export const useProcessSaveAndLoad = ({
     [refetch, refetchRevisions],
   );
 
+  /**
+   * The error a refused create of `entityId` fails with. The graph refuses a
+   * uuid that is taken in the same way as any other failure, so whether the
+   * net exists is looked up: when the user can see it, the create is
+   * refused because it does; when they can't, the id may be taken by an
+   * entity they can't see. A lookup that fails tells nothing, so the
+   * create's own error stands.
+   */
+  const createRefusal = useCallback(
+    async (entityId: EntityId, cause: unknown): Promise<Error> => {
+      const unknownFailure =
+        cause instanceof Error ? cause : new Error(String(cause));
+      let nets: PersistedNet[];
+      try {
+        const { data } = await refetch();
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- as in `refetchPersistedNets`
+        if (!data) {
+          return unknownFailure;
+        }
+        nets = getPersistedNetsFromSubgraph(data);
+      } catch {
+        return unknownFailure;
+      }
+      const existing = nets.find((net) => net.entityId === entityId);
+      if (!existing) {
+        return new Error(
+          `The process could not be created: its id ${extractEntityUuidFromEntityId(entityId)} is unavailable. No process you can see has it, so it may be taken.`,
+          { cause },
+        );
+      }
+      return new NetExistsError({
+        entityId,
+        savedSnapshot: {
+          definition: existing.definition,
+          title: existing.title,
+          decisionTime: existing.lastUpdated,
+        },
+        userEditable: existing.userEditable,
+      });
+    },
+    [refetch],
+  );
+
   const persistDefinition = useCallback(
     async (
       petriNet: SDCPN,
       title: string,
-      { entityId, exists }: PersistTarget,
+      target: PersistTarget,
     ): Promise<PersistResult> => {
+      const { entityId } = target;
+      const exists = target.exists || createdEntityIdsRef.current.has(entityId);
       let persistedEntityId: EntityId | null = exists ? entityId : null;
 
       if (exists) {
@@ -241,10 +298,15 @@ export const useProcessSaveAndLoad = ({
               },
             } satisfies PetriNetPropertiesWithMetadata as PropertyObjectWithMetadata,
           },
+        }).catch(async (error: unknown) => {
+          throw await createRefusal(entityId, error);
         });
 
         if (!createdEntityData.data?.createEntity) {
-          throw new Error("Failed to create petri net");
+          throw await createRefusal(
+            entityId,
+            new Error("Failed to create petri net"),
+          );
         }
 
         const createdEntity = new HashEntity(
@@ -252,6 +314,7 @@ export const useProcessSaveAndLoad = ({
         );
 
         persistedEntityId = createdEntity.entityId;
+        createdEntityIdsRef.current.add(entityId);
       }
 
       if (!persistedEntityId) {
@@ -274,7 +337,7 @@ export const useProcessSaveAndLoad = ({
         userEditable: refetched.userEditable,
       };
     },
-    [createEntity, refetchPersistedNets, updateEntity],
+    [createEntity, createRefusal, refetchPersistedNets, updateEntity],
   );
 
   return useMemo(

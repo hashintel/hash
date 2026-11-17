@@ -82,6 +82,13 @@ const graph = vi.hoisted(() => {
     /** Gates the next writes wait on before applying. */
     writeGates: [] as Promise<void>[],
     writeFailures: [] as Error[],
+    /** Failures the next refetches reject with. */
+    refetchFailures: [] as Error[],
+    /**
+     * Entities the user can't see, whose uuids a create is refused as for
+     * any net that exists.
+     */
+    hiddenEntityIds: new Set<string>(),
     /** Edit permission the next written net has afterwards. */
     editableAfterWrite: null as boolean | null,
     writes: [] as {
@@ -456,6 +463,10 @@ vi.mock("@apollo/client", async (importOriginal) => {
     const data = key === null ? undefined : read(key);
     const refetch = useCallback(() => {
       const refetched = key ?? queryKey(variables);
+      const refetchFailure = graph.refetchFailures.shift();
+      if (refetchFailure) {
+        return Promise.reject(refetchFailure);
+      }
       const fresh = answer(refetched);
       graph.cache.set(refetched, fresh);
       graph.notify();
@@ -483,6 +494,14 @@ vi.mock("@apollo/client", async (importOriginal) => {
     const failure = graph.writeFailures.shift();
     if (failure) {
       throw failure;
+    }
+    // As the graph does: a uuid taken already is refused, with the same
+    // error as any other failure to store the entity.
+    if (
+      kind === "create" &&
+      (graph.nets.has(entityId) || graph.hiddenEntityIds.has(entityId))
+    ) {
+      throw new Error("Could not store entity");
     }
     const net = graph.nets.get(entityId) ?? {
       entityId,
@@ -636,6 +655,8 @@ beforeEach(() => {
   graph.nextTime = 1;
   graph.writeGates.length = 0;
   graph.writeFailures.length = 0;
+  graph.refetchFailures.length = 0;
+  graph.hiddenEntityIds.clear();
   graph.editableAfterWrite = null;
   graph.writes.length = 0;
   router.state.current = { isReady: false, asPath: "", query: {} };
@@ -1280,6 +1301,71 @@ test("a draft's URL naming a web the user can't create in, or a malformed uuid, 
   expect(topBar()).toMatchObject({ saveLabel: "Create" });
 });
 
+test("a Create refused because another tab created the net moves this tab to that net, keeping its edits unsaved for an update", async () => {
+  await renderRoute(draftUrl);
+  const draft = editor().handle;
+  editTitle("Mine");
+  const mine = structuredClone(draft.doc());
+  // Another tab of the same draft creates its net first.
+  graph.nets.set(createdId, graphNet(createdId, "Other tab"));
+
+  pressSave();
+  await settle();
+
+  expect(graph.writes.map(({ kind }) => kind)).toEqual(["create"]);
+  expect(url()).toBe(`/processes/${uuidCreated}`);
+  expect(editor().handle).toBe(draft);
+  expect(draft.doc()).toEqual(mine);
+  expect(topBar()).toMatchObject({
+    title: "Mine",
+    saveLabel: "Save",
+    isDirty: true,
+    persistPending: false,
+    loadedRevisionTime: firstSaved,
+    revisions: [{ decisionTime: firstSaved, title: "Other tab" }],
+  });
+  expect(observed.brunch?.openDocument?.documentId).toBe(createdId);
+  expect(leaveIsBlocked()).toBe(true);
+
+  pressSave();
+  await settle();
+
+  expect(graph.writes.slice(1)).toEqual([
+    { kind: "update", entityId: createdId, title: "Mine", definition: mine },
+  ]);
+  expect(topBar()).toMatchObject({ saveLabel: "Saved", isDirty: false });
+  expect(topBar().revisions.map(({ title }) => title)).toEqual([
+    "Mine",
+    "Other tab",
+  ]);
+});
+
+test("a Create confirmed before its follow-up read failed is retried as an update", async () => {
+  await renderRoute(draftUrl);
+  const draft = editor().handle;
+  graph.refetchFailures.push(new Error("network down"));
+
+  pressSave();
+  await settle();
+
+  expect(graph.nets.has(createdId)).toBe(true);
+  expect(url()).toBe(draftUrl);
+  expect(topBar()).toMatchObject({ saveLabel: "Create", isDirty: true });
+
+  pressSave();
+  await settle();
+
+  expect(
+    graph.writes.map(({ kind, entityId }) => ({ kind, entityId })),
+  ).toEqual([
+    { kind: "create", entityId: createdId },
+    { kind: "update", entityId: createdId },
+  ]);
+  expect(url()).toBe(`/processes/${uuidCreated}`);
+  expect(editor().handle).toBe(draft);
+  expect(topBar()).toMatchObject({ saveLabel: "Saved", isDirty: false });
+});
+
 test("contained failures reach Sentry as thrown, tagged with the net and permission the host loaded", async () => {
   graph.nets.set(netBId, graphNet(netBId, "B", false));
   await renderRoute(`/processes/${uuidB}`);
@@ -1422,6 +1508,25 @@ test("Brunch's agent save of a draft creates the net under the draft's id, in th
   expect(topBar()).toMatchObject({ saveLabel: "Saved", isDirty: false });
   expect(observed.brunch?.openDocument).toBe(offered);
   expect(observed.brunchMounts).toBe(mounts);
+});
+
+test("a Create refused for an id the user can't see fails saying the id is unavailable, and stays on the draft", async () => {
+  graph.hiddenEntityIds.add(createdId);
+  await renderRoute(draftUrl);
+
+  const saved = agentSave(createdId);
+  await settle();
+
+  await expect(saved).resolves.toEqual({
+    status: "unconfirmed",
+    error: expect.stringContaining(`its id ${uuidCreated} is unavailable`),
+  });
+  expect(url()).toBe(draftUrl);
+  expect(topBar()).toMatchObject({
+    saveLabel: "Create",
+    isDirty: true,
+    persistPending: false,
+  });
 });
 
 test("picking an earlier revision tells Brunch of a version load, which Saves keep and opening another net clears", async () => {

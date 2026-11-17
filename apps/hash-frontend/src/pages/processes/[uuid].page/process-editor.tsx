@@ -13,6 +13,7 @@ import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { AlertModal } from "@hashintel/design-system";
 
 import { draftPath } from "./draft-path";
+import { NetExistsError } from "./process-editor/net-exists-error";
 import {
   type PersistTarget,
   useProcessSaveAndLoad,
@@ -496,7 +497,9 @@ export const ProcessEditor = ({
    * Persists what the editor submitted to the net it names. Its result
    * applies to the host only while the load it was submitted from is still
    * open: a save finishing after another load changes neither the selection
-   * nor the URL.
+   * nor the URL. A draft whose Create finds its net saved already, from
+   * another tab of the same draft, moves to that net as a Create would,
+   * leaving the editor's edits unsaved.
    */
   const save = useCallback(
     async ({ definition, title, entityId }: PetrinautEditorSave) => {
@@ -513,21 +516,40 @@ export const ProcessEditor = ({
       if (target === null) {
         throw new Error("A net with no id can be saved only from a draft");
       }
-      const result = await persistDefinition(definition, title, target);
+
+      /** The draft is now the saved net `savedEntityId`, under its URL. */
+      const becomeSaved = (savedEntityId: EntityId) => {
+        const savedUuid = extractEntityUuidFromEntityId(savedEntityId);
+        expectedSavedUuidRef.current = savedUuid;
+        setLoaded((current) =>
+          current
+            ? { ...current, view: { kind: "saved", entityId: savedEntityId } }
+            : current,
+        );
+        void router.replace(`/processes/${savedUuid}`);
+      };
+
+      const result = await persistDefinition(definition, title, target).catch(
+        (error: unknown) => {
+          if (
+            error instanceof NetExistsError &&
+            entityId === null &&
+            loadedRef.current?.load === submittedFrom
+          ) {
+            setSelectedNetId(error.entityId);
+            setUserEditable(error.userEditable);
+            becomeSaved(error.entityId);
+          }
+          throw error;
+        },
+      );
       if (loadedRef.current?.load !== submittedFrom) {
         return result;
       }
       setSelectedNetId(result.entityId);
       setUserEditable(result.userEditable);
       if (entityId === null) {
-        const savedUuid = extractEntityUuidFromEntityId(result.entityId);
-        expectedSavedUuidRef.current = savedUuid;
-        setLoaded((current) =>
-          current
-            ? { ...current, view: { kind: "saved", entityId: result.entityId } }
-            : current,
-        );
-        void router.replace(`/processes/${savedUuid}`);
+        becomeSaved(result.entityId);
       }
       return result;
     },

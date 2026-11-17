@@ -30,6 +30,7 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut";
 
+import { NetExistsError } from "./net-exists-error";
 import { createAgentSave } from "./petrinaut-editor/agent-save";
 import { ProcessPetrinaut } from "./petrinaut-editor/process-petrinaut";
 import {
@@ -240,7 +241,9 @@ export const PetrinautEditor = ({
   onSelectRevision: (decisionTime: string) => void;
   /**
    * Persist a submitted net. Resolves after persistence and the host's
-   * refetches; rejects if either failed. History arrives through `revisions`
+   * refetches; rejects if either failed. A Create rejecting with
+   * {@link NetExistsError} turns the draft into that saved net, its edits
+   * unsaved against it. History arrives through `revisions`
    * separately, including the first history query after Create.
    */
   onSave: (save: PetrinautEditorSave) => Promise<PetrinautEditorSaved>;
@@ -443,10 +446,16 @@ export const PetrinautEditor = ({
             savedSnapshot: snapshot,
           }));
         } catch (error) {
-          updateSession(savedHandle, (current) => ({
-            ...current,
-            savePending: false,
-          }));
+          updateSession(savedHandle, (current) =>
+            error instanceof NetExistsError
+              ? {
+                  ...current,
+                  savePending: false,
+                  mode: { kind: "saved", entityId: error.entityId },
+                  savedSnapshot: asLoaded(error.savedSnapshot),
+                }
+              : { ...current, savePending: false },
+          );
           throw error;
         }
       })();
