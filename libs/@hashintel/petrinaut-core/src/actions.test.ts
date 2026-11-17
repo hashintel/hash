@@ -1537,6 +1537,24 @@ describe("Petrinaut core fusion actions", () => {
     });
   });
 
+  test("renames a subnet the document was loaded with a one-member fusion in", () => {
+    const definition = composed();
+    definition.subnets![0]!.fusions = [
+      { id: "f1", name: "F1", members: [{ kind: "place", placeId: "in" }] },
+    ];
+    const instance = createInstance(definition);
+
+    instance.mutations.updateSubnet({
+      subnetId: "machine",
+      update: { name: "Press" },
+    });
+
+    expect(instance.definition.get().subnets?.[0]).toMatchObject({
+      name: "Press",
+      fusions: [{ id: idOf("f1"), members: [{ placeId: idOf("in") }] }],
+    });
+  });
+
   test("removing a place, an instance or a port takes it out of its fusions", () => {
     const instance = createInstance(composed());
     instance.mutations.addFusion({

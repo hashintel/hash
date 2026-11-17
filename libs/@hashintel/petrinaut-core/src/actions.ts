@@ -1284,7 +1284,10 @@ export function createPetrinautActions(
         for (const subnet of sdcpn.subnets ?? []) {
           if (subnet.id === parsed.subnetId) {
             Object.assign(subnet, parsed.update);
-            subnetSchema.parse(subnet);
+            // Without its fusions, which an update leaves alone: a loaded
+            // document can hold one the mutations refuse, for the checks to
+            // report.
+            subnetSchema.parse({ ...subnet, fusions: undefined });
             break;
           }
         }
