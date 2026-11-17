@@ -35,9 +35,11 @@ type Check =
   | { readonly kind: "aborted" }
   | { readonly kind: "held"; readonly at: number };
 
+/** `stillDue` says, after every read, whether the turn may still be aborted. */
 const check = async (
   { harness, root }: OpenConversation,
   context: Context,
+  stillDue: () => boolean,
 ): Promise<Check> => {
   const live = await harness.snapshot(LiveDoc, root.id, context);
   if (live?.run === undefined) return { kind: "idle" };
@@ -51,6 +53,7 @@ const check = async (
       kind: "held",
       at: Math.max(...claimed.map(({ expiresAt }) => expiresAt)),
     };
+  if (!stillDue()) return { kind: "idle" };
   await root.abort(context);
   return { kind: "aborted" };
 };
@@ -66,6 +69,13 @@ export const createAbandonedTurns = (options: AbandonedTurnsOptions) => {
   /** Attached streams per conversation. */
   const streams = new Map<string, number>();
   const timers = new Map<string, NodeJS.Timeout>();
+  /**
+   * The token of each conversation's check in flight. A stream attaching or
+   * the monitor closing withdraws it, since a timer cleared then cannot stop a
+   * check already past it; a check whose token is gone neither aborts nor
+   * reschedules.
+   */
+  const checks = new Map<string, symbol>();
   let closed = false;
 
   const clear = (conversationId: string) => {
@@ -96,15 +106,22 @@ export const createAbandonedTurns = (options: AbandonedTurnsOptions) => {
 
   const run = async (conversationId: string) => {
     if (closed || watched(conversationId)) return;
-    const conversation = await options.ifOwned(conversationId);
-    if (conversation === undefined) return;
-    const found = await check(conversation, options.context).catch(
-      () => undefined,
-    );
-    if (found?.kind === "held") {
-      // After the call expires, the turn has been unwatched for longer than the timeout already. A call still
-      // claimed past its expiry is about to expire; look again shortly rather than spin.
-      schedule(conversationId, Math.max(found.at - now(), heldRecheckMs));
+    const token = Symbol(conversationId);
+    checks.set(conversationId, token);
+    const stillDue = () => checks.get(conversationId) === token;
+    try {
+      const conversation = await options.ifOwned(conversationId);
+      if (conversation === undefined) return;
+      const found = await check(conversation, options.context, stillDue).catch(
+        () => undefined,
+      );
+      if (found?.kind === "held" && stillDue()) {
+        // After the call expires, the turn has been unwatched for longer than the timeout already. A call still
+        // claimed past its expiry is about to expire; look again shortly rather than spin.
+        schedule(conversationId, Math.max(found.at - now(), heldRecheckMs));
+      }
+    } finally {
+      if (stillDue()) checks.delete(conversationId);
     }
   };
 
@@ -113,6 +130,7 @@ export const createAbandonedTurns = (options: AbandonedTurnsOptions) => {
     attach: (conversationId: string) => {
       streams.set(conversationId, (streams.get(conversationId) ?? 0) + 1);
       clear(conversationId);
+      checks.delete(conversationId);
       let detached = false;
       return () => {
         if (detached) return;
@@ -133,6 +151,7 @@ export const createAbandonedTurns = (options: AbandonedTurnsOptions) => {
     close: () => {
       closed = true;
       for (const conversationId of timers.keys()) clear(conversationId);
+      checks.clear();
     },
   };
 };
