@@ -232,6 +232,7 @@ const FlowTableRow = ({ flow, now }: { flow: FlowRow; now: Date }) => {
       cursor: null,
       limit: runsPageSize,
     },
+    fetchPolicy: "cache-and-network",
     pollInterval: refreshInterval,
     skipPollAttempt: () => document.visibilityState !== "visible",
   });
