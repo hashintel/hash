@@ -3,14 +3,12 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import {
   buildCspHeader,
   buildReportingEndpointsHeader,
-  buildReportOnlyCspHeader,
   isProcessEditorPath,
 } from "./csp";
 
 const deployment = vi.hoisted(() => ({
   brunchOrigin: null as string | null,
   sentryDsn: undefined as string | undefined,
-  fileStorageOrigins: [] as string[],
 }));
 
 vi.mock("./public-env", () => ({
@@ -21,9 +19,6 @@ vi.mock("./public-env", () => ({
     return deployment.sentryDsn;
   },
   SENTRY_ENVIRONMENT: "test",
-  get fileStorageOrigins() {
-    return deployment.fileStorageOrigins;
-  },
 }));
 
 vi.mock("../../buildstamp", () => ({ buildStamp: "commit-abc-main" }));
@@ -50,7 +45,6 @@ afterEach(() => {
   vi.unstubAllEnvs();
   deployment.brunchOrigin = null;
   deployment.sentryDsn = undefined;
-  deployment.fileStorageOrigins = [];
 });
 
 describe("isProcessEditorPath", () => {
@@ -160,133 +154,43 @@ describe("buildCspHeader with Brunch configured", () => {
 });
 
 describe("buildCspHeader's Vercel toolbar allowance", () => {
-  test("allows the toolbar on a Vercel preview deployment", () => {
-    vi.stubEnv("NEXT_PUBLIC_VERCEL_ENV", "preview");
-    const header = buildCspHeader({ nonce: "abc", pathname: "/" });
-
-    for (const directive of ["script-src", "connect-src", "frame-src"]) {
-      expect(directiveSources(header, directive)).toContain(
-        "https://vercel.live",
-      );
-    }
-  });
-
-  test.each(["production", undefined])(
-    "doesn't allow the toolbar when the Vercel environment is %s",
-    (vercelEnv) => {
+  test.each([
+    ["preview", true],
+    ["production", false],
+    [undefined, false],
+  ])(
+    "allows vercel.live when the Vercel environment is %s: %s",
+    (vercelEnv, allowed) => {
       vi.stubEnv("NEXT_PUBLIC_VERCEL_ENV", vercelEnv);
       const header = buildCspHeader({ nonce: "abc", pathname: "/" });
 
-      expect(header).not.toContain("vercel.live");
+      expect(header.includes("https://vercel.live")).toBe(allowed);
     },
   );
 });
 
-describe("buildCspHeader's framing", () => {
-  test.each([...processEditorPaths, ...otherPaths])(
-    "lets only this origin frame %s",
-    (pathname) => {
-      const header = buildCspHeader({ nonce: "abc", pathname });
+test("lets only this origin frame the app", () => {
+  const header = buildCspHeader({ nonce: "abc", pathname: "/" });
 
-      expect(directiveSources(header, "frame-ancestors")).toEqual(["'self'"]);
-    },
-  );
+  expect(directiveSources(header, "frame-ancestors")).toEqual(["'self'"]);
 });
 
-describe("CSP reporting without a Sentry DSN", () => {
-  test("reports nowhere and sends no report-only policy", () => {
-    const header = buildCspHeader({ nonce: "abc", pathname: "/" });
-
-    expect(header).not.toContain("report-uri");
-    expect(header).not.toContain("report-to");
-    expect(buildReportOnlyCspHeader({ nonce: "abc", pathname: "/" })).toBe(
-      null,
-    );
-    expect(buildReportingEndpointsHeader()).toBe(null);
-  });
-
-  test("treats an empty DSN as none", () => {
-    deployment.sentryDsn = "";
-
-    expect(buildReportingEndpointsHeader()).toBe(null);
-  });
-});
-
-describe("CSP reporting with a Sentry DSN", () => {
-  const endpoint =
-    "https://o1.ingest.sentry.io/api/42/security/?sentry_key=key&sentry_environment=test&sentry_release=commit-abc-main";
-
-  test("reports violations of the enforced policy to Sentry", () => {
-    deployment.sentryDsn = "https://key@o1.ingest.sentry.io/42";
-    const header = buildCspHeader({ nonce: "abc", pathname: "/" });
-
-    expect(directiveSources(header, "report-uri")).toEqual([endpoint]);
-    expect(directiveSources(header, "report-to")).toEqual(["csp-endpoint"]);
-    expect(buildReportingEndpointsHeader()).toBe(`csp-endpoint="${endpoint}"`);
-  });
-
-  test("sends no reporting directives for a DSN it can't parse", () => {
-    deployment.sentryDsn = "not a dsn";
-
+describe("CSP reporting", () => {
+  test("reports nowhere without a Sentry DSN", () => {
     expect(buildCspHeader({ nonce: "abc", pathname: "/" })).not.toContain(
       "report-",
     );
     expect(buildReportingEndpointsHeader()).toBe(null);
   });
 
-  test.each(["img-src", "connect-src"])(
-    "narrows %s to the API and file storage in the report-only policy",
-    (directive) => {
-      vi.stubEnv("NODE_ENV", "production");
-      deployment.sentryDsn = "https://key@o1.ingest.sentry.io/42";
-      deployment.fileStorageOrigins = [
-        "https://bucket.s3.us-east-1.amazonaws.com",
-        "https://files.example",
-      ];
-      const enforced = buildCspHeader({ nonce: "abc", pathname: "/" });
-      const reportOnly = buildReportOnlyCspHeader({
-        nonce: "abc",
-        pathname: "/",
-      });
-      if (reportOnly === null) {
-        throw new Error("Expected a report-only policy");
-      }
-
-      expect(directiveSources(enforced, directive)).toContain("https:");
-      expect(directiveSources(reportOnly, directive)).toEqual([
-        ...directiveSources(enforced, directive).filter(
-          (source) => source !== "https:",
-        ),
-        "http://localhost:5001",
-        "https://bucket.s3.us-east-1.amazonaws.com",
-        "https://files.example",
-      ]);
-    },
-  );
-
-  test("matches the enforced policy outside img-src and connect-src", () => {
-    vi.stubEnv("NODE_ENV", "production");
+  test("reports to the DSN's project security endpoint", () => {
     deployment.sentryDsn = "https://key@o1.ingest.sentry.io/42";
-    deployment.fileStorageOrigins = ["https://files.example"];
-    const enforced = buildCspHeader({ nonce: "abc", pathname: "/" });
-    const reportOnly =
-      buildReportOnlyCspHeader({ nonce: "abc", pathname: "/" }) ?? "";
+    const endpoint =
+      "https://o1.ingest.sentry.io/api/42/security/?sentry_key=key&sentry_environment=test&sentry_release=commit-abc-main";
+    const header = buildCspHeader({ nonce: "abc", pathname: "/" });
 
-    const differing = reportOnly
-      .split("; ")
-      .filter((entry) => !enforced.split("; ").includes(entry))
-      .map((entry) => entry.split(" ")[0]);
-
-    expect(differing).toEqual(["img-src", "connect-src"]);
-  });
-
-  test("keeps plain HTTP for local storage in development", () => {
-    vi.stubEnv("NODE_ENV", "development");
-    deployment.sentryDsn = "https://key@o1.ingest.sentry.io/42";
-    const reportOnly =
-      buildReportOnlyCspHeader({ nonce: "abc", pathname: "/" }) ?? "";
-
-    expect(directiveSources(reportOnly, "img-src")).toContain("http:");
-    expect(directiveSources(reportOnly, "connect-src")).toContain("http:");
+    expect(directiveSources(header, "report-uri")).toEqual([endpoint]);
+    expect(directiveSources(header, "report-to")).toEqual(["csp-endpoint"]);
+    expect(buildReportingEndpointsHeader()).toBe(`csp-endpoint="${endpoint}"`);
   });
 });

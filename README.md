@@ -247,7 +247,6 @@ By default, files are uploaded locally, which is **not** recommended for product
 
 - `FILE_UPLOAD_PROVIDER`: Which type of provider is used for file uploads. Possible values `LOCAL_FILE_SYSTEM`, or `AWS_S3`. If choosing S3, then you need to configure the `AWS_S3_UPLOADS_` variables above.
 - `LOCAL_FILE_UPLOAD_PATH`: Relative path to store uploaded files if using the local file system storage provider. Default is `var/uploads` (the `var` folder is the folder normally used for application data)
-- `FILE_STORAGE_ORIGINS`: (optional) comma-separated origins the frontend may download files from, e.g. `https://my-bucket.s3.us-east-1.amazonaws.com`. Each file keeps the storage location it was uploaded to, so list every origin any file still references, not only the current `AWS_S3_UPLOADS_` endpoint. When `SENTRY_DSN` is set, the frontend sends a report-only Content Security Policy that narrows file downloads to these origins and reports each download it would block to Sentry.
 
 #### Email
 

@@ -1,11 +1,7 @@
 import { get } from "@vercel/edge-config";
 import { type NextRequest, NextResponse } from "next/server";
 
-import {
-  buildCspHeader,
-  buildReportingEndpointsHeader,
-  buildReportOnlyCspHeader,
-} from "./lib/csp";
+import { buildCspHeader, buildReportingEndpointsHeader } from "./lib/csp";
 import {
   returnTypeAsJson,
   versionedUrlRegExp,
@@ -43,10 +39,6 @@ export const middleware = async (request: NextRequest) => {
   const { pathname } = request.nextUrl;
   const cspHeaders: [name: string, value: string | null][] = [
     ["Content-Security-Policy", buildCspHeader({ nonce, pathname })],
-    [
-      "Content-Security-Policy-Report-Only",
-      buildReportOnlyCspHeader({ nonce, pathname }),
-    ],
     ["Reporting-Endpoints", buildReportingEndpointsHeader()],
   ];
 

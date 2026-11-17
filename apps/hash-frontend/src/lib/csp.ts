@@ -4,16 +4,16 @@
  * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP
  */
 
+import { makeDsn } from "@sentry/core";
+
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
 import { buildStamp } from "../../buildstamp";
 import {
   brunchAgentOrigin,
-  fileStorageOrigins,
   SENTRY_DSN,
   SENTRY_ENVIRONMENT,
 } from "./public-env";
-import { sentrySecurityEndpoint } from "./sentry-security-endpoint";
 
 const buildDirectiveString = (directives: Record<string, string[]>): string =>
   Object.entries(directives)
@@ -39,35 +39,36 @@ const isVercelPreview = (): boolean =>
 const reportingEndpointName = "csp-endpoint";
 
 /**
- * Where browsers send this deployment's policy violation reports, or `null`
- * when it has no Sentry DSN to report to.
+ * The Sentry project's security endpoint, which browsers send policy
+ * violations to, or `null` without a valid DSN.
+ *
+ * @see https://docs.sentry.io/platforms/javascript/security-policy-reporting/
  */
-const cspReportEndpoint = (): string | null =>
-  SENTRY_DSN
-    ? sentrySecurityEndpoint({
-        dsn: SENTRY_DSN,
-        environment: SENTRY_ENVIRONMENT,
-        release: buildStamp,
-      })
-    : null;
+const cspReportEndpoint = (): string | null => {
+  const dsn = SENTRY_DSN ? makeDsn(SENTRY_DSN) : undefined;
+  if (!dsn) {
+    return null;
+  }
+  const port = dsn.port ? `:${dsn.port}` : "";
+  const path = dsn.path ? `/${dsn.path}` : "";
+  const endpoint = new URL(
+    `${dsn.protocol}://${dsn.host}${port}${path}/api/${dsn.projectId}/security/`,
+  );
+  endpoint.searchParams.set("sentry_key", dsn.publicKey);
+  endpoint.searchParams.set("sentry_environment", SENTRY_ENVIRONMENT);
+  endpoint.searchParams.set("sentry_release", buildStamp);
+  return endpoint.href;
+};
 
-const buildDirectives = ({
+export const buildCspHeader = ({
   nonce,
   pathname,
-  storageOrigins,
 }: {
   nonce: string;
+  /** The request's pathname, which decides the route-specific allowances. */
   pathname: string;
-  /**
-   * The origins file downloads may come from. Omitted, `img-src` and
-   * `connect-src` allow any HTTPS origin instead.
-   */
-  storageOrigins?: string[];
-}): Record<string, string[]> => {
+}): string => {
   const isProcessEditor = isProcessEditorPath(pathname);
-  const storageSources = storageOrigins
-    ? [apiOrigin, ...storageOrigins]
-    : ["https:"];
   const reportEndpoint = cspReportEndpoint();
 
   const directives: Record<string, string[]> = {
@@ -107,8 +108,9 @@ const buildDirectives = ({
       "data:",
       "blob:",
       // File uploads are served via the API's /file/ proxy which 302-redirects
-      // to presigned S3/R2 URLs on varying domains.
-      ...storageSources,
+      // to presigned S3/R2 URLs on varying domains. `https:` avoids needing to
+      // enumerate every possible storage backend domain.
+      "https:",
       // Local S3-compatible storage (MinIO) serves over plain HTTP
       ...(process.env.NODE_ENV === "development" ? ["http:"] : []),
     ],
@@ -149,7 +151,7 @@ const buildDirectives = ({
       ...(isVercelPreview() ? ["https://vercel.live"] : []),
       // File uploads/downloads use presigned S3/R2 URLs on varying domains.
       // Production storage is always HTTPS; local MinIO uses plain HTTP.
-      ...storageSources,
+      "https:",
       ...(process.env.NODE_ENV === "development" ? ["http:"] : []),
     ],
 
@@ -181,44 +183,12 @@ const buildDirectives = ({
     directives["report-to"] = [reportingEndpointName];
   }
 
-  return directives;
+  return buildDirectiveString(directives);
 };
 
-export const buildCspHeader = ({
-  nonce,
-  pathname,
-}: {
-  nonce: string;
-  /** The request's pathname, which decides the route-specific allowances. */
-  pathname: string;
-}): string => buildDirectiveString(buildDirectives({ nonce, pathname }));
-
 /**
- * The enforced policy with file downloads narrowed to `FILE_STORAGE_ORIGINS`
- * and the API, sent as `Content-Security-Policy-Report-Only` so its
- * violations show which origins the list lacks. `null` when there is nowhere
- * to report them.
- */
-export const buildReportOnlyCspHeader = ({
-  nonce,
-  pathname,
-}: {
-  nonce: string;
-  pathname: string;
-}): string | null =>
-  cspReportEndpoint() === null
-    ? null
-    : buildDirectiveString(
-        buildDirectives({
-          nonce,
-          pathname,
-          storageOrigins: fileStorageOrigins,
-        }),
-      );
-
-/**
- * The `Reporting-Endpoints` header value that names the policies' `report-to`
- * endpoint, or `null` when they report nowhere.
+ * The `Reporting-Endpoints` header value that names the policy's `report-to`
+ * endpoint, or `null` when it reports nowhere.
  */
 export const buildReportingEndpointsHeader = (): string | null => {
   const reportEndpoint = cspReportEndpoint();

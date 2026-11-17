@@ -679,6 +679,7 @@ __metadata:
     "@pandacss/dev": "npm:1.11.1"
     "@popperjs/core": "npm:2.11.8"
     "@react-sigma/core": "npm:4.0.3"
+    "@sentry/core": "npm:10.75.2"
     "@sentry/nextjs": "npm:10.75.2"
     "@sentry/react": "npm:10.75.2"
     "@sentry/webpack-plugin": "npm:5.3.0"
