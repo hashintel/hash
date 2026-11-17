@@ -33,13 +33,26 @@ export type ResolveImport = (
   id: string,
 ) => Library | undefined | PromiseLike<Library | undefined>;
 
-/** The libraries among `states` that resolved, for `resolveComponent`. */
-export const resolvedLibraries = (states: ImportStates): ResolvedLibraries =>
-  new Map(
+const librariesByStates = new WeakMap<ImportStates, ResolvedLibraries>();
+
+/**
+ * The libraries among `states` that resolved, for `resolveComponent`. The
+ * same map for the same states, so a reader that goes by identity sees a
+ * change only when a state changed.
+ */
+export const resolvedLibraries = (states: ImportStates): ResolvedLibraries => {
+  const known = librariesByStates.get(states);
+  if (known) {
+    return known;
+  }
+  const libraries: ResolvedLibraries = new Map(
     [...states].flatMap(([id, state]) =>
       state.status === "resolved" ? [[id, state.library] as const] : [],
     ),
   );
+  librariesByStates.set(states, libraries);
+  return libraries;
+};
 
 /** Whether an import of the document is still resolving. */
 export const isResolvingImports = (

@@ -86,6 +86,12 @@ describe("createImportStore", () => {
     expect([...resolvedLibraries(store.get()).keys()]).toEqual([logistics.id]);
   });
 
+  it("gives the same libraries for the same states", () => {
+    const { store } = storeOf(importing(logistics.id), () => logistics);
+
+    expect(resolvedLibraries(store.get())).toBe(resolvedLibraries(store.get()));
+  });
+
   it("resolves each import once, however often it is read", () => {
     const resolveImport = vi.fn<ResolveImport>(() => logistics);
     const { store } = storeOf(importing(logistics.id), resolveImport);
