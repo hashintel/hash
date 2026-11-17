@@ -9,7 +9,9 @@
  *   `openai/gpt-6.1-sol` (H12).
  *   Each provider reads its own credentials from its usual environment
  *   variables (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, …) when a turn calls
- *   it; no request is made before then.
+ *   it; no request is made before then. `turbo run start` forwards only the
+ *   variables its `turbo.json` task lists, and of the credentials only these
+ *   two.
  * - The server's limits (`limitsFromEnvironment`), integers of 1 or more:
  *   - `DURABLE_AGENTS_MAX_TURNS` (100): tool rounds one run takes at most.
  *     HA-3: the model makes one tool call per response, so a realistic net

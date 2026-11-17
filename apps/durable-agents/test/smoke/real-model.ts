@@ -35,6 +35,12 @@
  * Brunch's revision metadata and refuses a claimed change whose
  * `expectedRevision` the net has moved past by other means.
  *
+ * The scripted browser's net is a synthetic, opaque probe, not the editor's:
+ * its items are open records with an `id` and a `name`, without the fields
+ * Petrinaut's canonical structure requires, and its read-backs are passed off
+ * as a `NetStructure`. A run shows revision, freshness and context behaviour;
+ * it says nothing about how the server handles a real editor's structure.
+ *
  * Requests are counted by `count-provider-requests.ts`, preloaded into the
  * server process and imported into this one (which sends the compaction's
  * summary request): one ledger line per HTTP request to the provider API
@@ -442,6 +448,7 @@ const fakeBrowser = () => {
           ? { documentRevision: { before } }
           : {
               documentRevision: { before, after },
+              // Not a canonical structure: see the module comment.
               readBack: read("structure").definition as unknown as NetStructure,
             },
     };
