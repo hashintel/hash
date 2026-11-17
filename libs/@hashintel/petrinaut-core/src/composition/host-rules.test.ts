@@ -3,34 +3,42 @@ import { describe, expect, it } from "vitest";
 import { createJsonDocHandle } from "../handle/json-doc-handle";
 import { createPetrinaut } from "../instance";
 import { toPetrinautId } from "../petrinaut-id";
-import {
-  providedComponentSubnetId,
-  type ProvidedComponent,
-} from "./provided-components";
 
-import type { SDCPN } from "../types/sdcpn";
+import type { ComponentReference, SDCPN } from "../types/sdcpn";
+import type { Library } from "./libraries";
 
-const packer: ProvidedComponent = {
-  id: "warehouse/packer",
-  name: "Packer",
-  ports: [
-    { name: "Orders", direction: "in" },
-    { name: "Parcels", direction: "out" },
+const warehouse: Library = {
+  id: "@hashintel/warehouse",
+  name: "Warehouse",
+  components: [
+    {
+      id: "packer",
+      name: "Packer",
+      ports: [
+        { id: "orders", name: "Orders", direction: "in" },
+        { id: "parcels", name: "Parcels", direction: "out" },
+      ],
+    },
   ],
 };
-const packerId = providedComponentSubnetId(packer);
-const portId = (name: string) => toPetrinautId(`${packer.id}/port/${name}`);
+/** A library the document's host knows and does not offer. */
+const depot: Library = { ...warehouse, id: "@hashintel/depot", name: "Depot" };
+const packer: ComponentReference = { from: warehouse.id, id: "packer" };
+const own: ComponentReference = { id: "own" };
+const portId = toPetrinautId;
 
-const instanceOf = (id: string, subnetId: string) => ({
+const instanceOf = (id: string, component: ComponentReference) => ({
   id,
   name: id === "a" ? "PackerA" : "PackerB",
-  subnetId,
+  ...(component.from === undefined
+    ? { subnetId: component.id }
+    : { component: { from: component.from, id: component.id } }),
   parameterValues: {},
   x: 0,
   y: 0,
 });
 
-/** A document with a place, and a subnet of its own beside the host's components. */
+/** A document with a place, and a subnet of its own beside the libraries' components. */
 const initial = (): SDCPN => ({
   places: [
     {
@@ -59,10 +67,14 @@ const initial = (): SDCPN => ({
   ],
 });
 
-const compose = () =>
+const resolveImport = (id: string) =>
+  [warehouse, depot].find((library) => library.id === id);
+
+const compose = (document: SDCPN = initial()) =>
   createPetrinaut({
-    document: createJsonDocHandle({ initial: initial() }),
-    components: [packer],
+    document: createJsonDocHandle({ initial: document }),
+    resolveImport,
+    libraries: [warehouse.id],
     compositionOnly: true,
   });
 
@@ -70,23 +82,23 @@ const onlyComposes =
   "This editor only places and connects the components it is given.";
 
 describe("an instance that only composes", () => {
-  it("places, wires, arranges and removes instances of what the host provides", () => {
+  it("places, wires, arranges and removes instances of what the host offers", () => {
     const { mutations, definition } = compose();
 
-    mutations.addComponentInstance(instanceOf("a", packerId));
-    mutations.addComponentInstance(instanceOf("b", packerId));
+    mutations.addComponentInstance(instanceOf("a", packer));
+    mutations.addComponentInstance(instanceOf("b", packer));
     mutations.addFusion({
       id: "belt",
       members: [
         {
           kind: "componentPort",
           componentInstanceId: "a",
-          portPlaceId: portId("Parcels"),
+          portPlaceId: portId("parcels"),
         },
         {
           kind: "componentPort",
           componentInstanceId: "b",
-          portPlaceId: portId("Orders"),
+          portPlaceId: portId("orders"),
         },
       ],
     });
@@ -155,13 +167,13 @@ describe("an instance that only composes", () => {
     expect(definition.get()).toBe(before);
   });
 
-  it("refuses an instance of anything the host does not provide", () => {
+  it("refuses an instance of a subnet of the document", () => {
     const { mutations } = compose();
-    mutations.addComponentInstance(instanceOf("a", packerId));
+    mutations.addComponentInstance(instanceOf("a", packer));
 
-    expect(() =>
-      mutations.addComponentInstance(instanceOf("b", "own")),
-    ).toThrow(onlyComposes);
+    expect(() => mutations.addComponentInstance(instanceOf("b", own))).toThrow(
+      onlyComposes,
+    );
     expect(() =>
       mutations.updateComponentInstance({
         instanceId: "a",
@@ -170,22 +182,19 @@ describe("an instance that only composes", () => {
     ).toThrow(onlyComposes);
   });
 
-  it("refuses an instance of a subnet of the document's own that has a provided id", () => {
-    const [own] = initial().subnets!;
-    const { mutations, mutationRefusal } = createPetrinaut({
-      document: createJsonDocHandle({
-        initial: { ...initial(), subnets: [{ ...own!, id: packerId }] },
-      }),
-      components: [packer],
-      compositionOnly: true,
+  it("refuses an instance of a component of a library that is not on offer, though the document imports it", () => {
+    const { mutations, mutationRefusal } = compose({
+      ...initial(),
+      imports: [{ id: depot.id }],
     });
+    const fromDepot = instanceOf("a", { from: depot.id, id: "packer" });
 
-    expect(
-      mutationRefusal("addComponentInstance", instanceOf("a", packerId)),
-    ).toBe(onlyComposes);
-    expect(() =>
-      mutations.addComponentInstance(instanceOf("a", packerId)),
-    ).toThrow(onlyComposes);
+    expect(mutationRefusal("addComponentInstance", fromDepot)).toBe(
+      onlyComposes,
+    );
+    expect(() => mutations.addComponentInstance(fromDepot)).toThrow(
+      onlyComposes,
+    );
   });
 
   it("composes the root net alone", () => {
@@ -193,17 +202,10 @@ describe("an instance that only composes", () => {
 
     expect(() =>
       mutations.addComponentInstance({
-        ...instanceOf("a", packerId),
+        ...instanceOf("a", packer),
         targetSubnetId: "own",
       }),
     ).toThrow(onlyComposes);
-    // The host's own interface answers for itself.
-    expect(() =>
-      mutations.addComponentInstance({
-        ...instanceOf("a", packerId),
-        targetSubnetId: packerId,
-      }),
-    ).toThrow("Packer is a component the application provides");
     expect(definition.get().subnets).toHaveLength(1);
   });
 
@@ -237,11 +239,11 @@ describe("an instance that only composes", () => {
     const { mutationRefusal, definition } = compose();
 
     expect(
-      mutationRefusal("addComponentInstance", instanceOf("a", packerId)),
+      mutationRefusal("addComponentInstance", instanceOf("a", packer)),
     ).toBeNull();
-    expect(
-      mutationRefusal("addComponentInstance", instanceOf("a", "own")),
-    ).toBe(onlyComposes);
+    expect(mutationRefusal("addComponentInstance", instanceOf("a", own))).toBe(
+      onlyComposes,
+    );
     expect(mutationRefusal("removeFusion", { fusionId: "belt" })).toBeNull();
     expect(mutationRefusal("removeSubnet", { subnetId: "own" })).toBe(
       onlyComposes,
@@ -251,14 +253,15 @@ describe("an instance that only composes", () => {
 });
 
 describe("an instance without the restriction", () => {
-  it("changes anything but the host's interfaces", () => {
+  it("changes anything", () => {
     const { mutations, definition, compositionOnly, mutationRefusal } =
       createPetrinaut({
         document: createJsonDocHandle({ initial: initial() }),
-        components: [packer],
+        resolveImport,
+        libraries: [warehouse.id],
       });
 
-    mutations.addComponentInstance(instanceOf("b", "own"));
+    mutations.addComponentInstance(instanceOf("b", own));
 
     expect(compositionOnly).toBe(false);
     expect(definition.get().componentInstances).toHaveLength(1);

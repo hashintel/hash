@@ -104,6 +104,9 @@ const editor: { selection: SelectionMap; compositionOnly: boolean } = {
   selection: new Map(),
   compositionOnly: false,
 };
+const libraries = new Map([
+  [logisticsLibrary.id, resolveLibrary(logisticsLibrary.id, logisticsLibrary)],
+]);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -112,7 +115,9 @@ beforeEach(() => {
 });
 
 const Wrapper = ({ children }: { children: ReactNode }) => (
-  <PetrinautInstanceContext value={{ mutations } as unknown as Petrinaut}>
+  <PetrinautInstanceContext
+    value={{ mutations, mutationRefusal: () => null } as unknown as Petrinaut}
+  >
     <SDCPNContext
       value={{
         ...use(SDCPNContext),
@@ -120,20 +125,21 @@ const Wrapper = ({ children }: { children: ReactNode }) => (
         getItemType: (id) => itemTypes[id] ?? null,
       }}
     >
-      <CompositionContext
+      <ActiveNetContext
         value={{
-          ...use(CompositionContext),
-          compositionOnly: editor.compositionOnly,
+          ...use(ActiveNetContext),
+          activeNet: { ...use(ActiveNetContext).activeNet, fusions: [belt] },
         }}
       >
-        <ActiveNetContext
-          value={{
-            ...use(ActiveNetContext),
-            activeNet: { ...use(ActiveNetContext).activeNet, fusions: [belt] },
-          }}
+        <NotificationsContext
+          value={{ ...use(NotificationsContext), addNotification }}
         >
-          <NotificationsContext
-            value={{ ...use(NotificationsContext), addNotification }}
+          <CompositionContext
+            value={{
+              ...use(CompositionContext),
+              libraries,
+              compositionOnly: editor.compositionOnly,
+            }}
           >
             <EditorContext
               value={{
@@ -146,9 +152,9 @@ const Wrapper = ({ children }: { children: ReactNode }) => (
             >
               {children}
             </EditorContext>
-          </NotificationsContext>
-        </ActiveNetContext>
-      </CompositionContext>
+          </CompositionContext>
+        </NotificationsContext>
+      </ActiveNetContext>
     </SDCPNContext>
   </PetrinautInstanceContext>
 );

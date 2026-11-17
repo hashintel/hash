@@ -118,6 +118,7 @@ export type {
   DocumentIndex,
   ImplementationBinding,
 } from "./composition/interfaces";
+export type { CommandName, MutationName } from "./composition/host-rules";
 
 // --- Composition: imports and the libraries a host resolves them to ---
 export {

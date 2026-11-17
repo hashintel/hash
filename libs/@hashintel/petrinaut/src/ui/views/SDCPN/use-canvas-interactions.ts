@@ -170,10 +170,8 @@ export const useCanvasInteractions = (
   scene: CanvasScene,
 ): CanvasInteractions => {
   const { petriNetDefinition, getItemType } = use(SDCPNContext);
-  const { libraries } = use(CompositionContext);
+  const { libraries, compositionOnly } = use(CompositionContext);
   const { activeNet } = use(ActiveNetContext);
-  const instantiable = useInstantiableSubnets();
-  const { compositionOnly } = use(CompositionContext);
   const { addNotification } = use(NotificationsContext);
   const {
     addPlace,

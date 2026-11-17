@@ -20,6 +20,7 @@ import {
 } from "../navigation";
 import { ActiveNetContext } from "./active-net-context";
 import { ActiveNetProvider } from "./active-net-provider";
+import { CompositionContext } from "./composition-context";
 import { SDCPNContext, type SDCPNContextValue } from "./sdcpn-context";
 
 afterEach(cleanup);
@@ -70,14 +71,10 @@ const ActiveSubnet = () => (
 const TestHost = ({
   requestedSubnetId,
   recorded,
-  subnets = sdcpn.subnets,
-  provided = noProvidedInterfaces,
   compositionOnly = false,
 }: {
   requestedSubnetId: string;
   recorded: RecordedNavigation[];
-  subnets?: Subnet[];
-  provided?: ProvidedInterfaces;
   compositionOnly?: boolean;
 }) => {
   const [state, setState] = useState<PetrinautNavigationState>({
@@ -93,14 +90,9 @@ const TestHost = ({
     },
   };
   return (
-    <SDCPNContext
-      value={{
-        ...sdcpnContextValue,
-        petriNetDefinition: { ...sdcpn, subnets },
-      }}
-    >
+    <SDCPNContext value={sdcpnContextValue}>
       <CompositionContext
-        value={{ ...use(CompositionContext), provided, compositionOnly }}
+        value={{ ...use(CompositionContext), compositionOnly }}
       >
         <PetrinautNavigationProvider controller={controller}>
           <ActiveNetProvider>

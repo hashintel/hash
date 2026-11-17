@@ -107,7 +107,7 @@ export const LeftSideBar: React.FC = () => {
     isSearchOpen,
   } = use(EditorContext);
   const { extensions } = use(SDCPNContext);
-  const { provided, compositionOnly } = use(CompositionContext);
+  const { offered, compositionOnly } = use(CompositionContext);
 
   const { keepPanelsMounted, enableNetComponents } = use(UserSettingsContext);
 
@@ -115,8 +115,8 @@ export const LeftSideBar: React.FC = () => {
   const isVisible = isOpen || isSearchOpen;
 
   // The Nets list is behind the user's Labs setting; the Components panel
-  // shows whenever the host provides components to list, and is all an
-  // editor that only composes has to show.
+  // shows whenever the host offers libraries to place components from, and
+  // is all an editor that only composes has to show.
   const sidebarSubViews = LEFT_SIDEBAR_SUBVIEWS.filter((subView) => {
     if (subView.id === "components") {
       return extensions.subnets && offered.length > 0;

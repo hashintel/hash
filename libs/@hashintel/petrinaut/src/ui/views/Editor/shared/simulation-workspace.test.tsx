@@ -3,8 +3,6 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 
-import { noProvidedInterfaces } from "@hashintel/petrinaut-core";
-
 import {
   PetrinautNavigationProvider,
   usePetrinautNavigation,
@@ -162,7 +160,12 @@ it("leaves an editor that only composes usable when its navigation says fullscre
   const view = (compositionOnly: boolean) =>
     render(
       <CompositionContext
-        value={{ provided: noProvidedInterfaces, compositionOnly }}
+        value={{
+          imports: new Map(),
+          libraries: new Map(),
+          offered: [],
+          compositionOnly,
+        }}
       >
         <PetrinautNavigationProvider
           initialState={{

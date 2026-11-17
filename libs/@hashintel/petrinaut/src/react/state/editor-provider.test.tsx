@@ -7,7 +7,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
-  noProvidedInterfaces,
   toPetrinautId,
   type SDCPN,
   type SelectionMap,
@@ -377,7 +376,12 @@ describe("EditorProvider in an editor that only composes", () => {
   const view = (compositionOnly: boolean) => (
     <SDCPNContext value={makeSdcpnContextValue(() => "place")}>
       <CompositionContext
-        value={{ provided: noProvidedInterfaces, compositionOnly }}
+        value={{
+          imports: new Map(),
+          libraries: new Map(),
+          offered: [],
+          compositionOnly,
+        }}
       >
         <TestHost recorded={[]}>
           <EditorProvider>
@@ -406,10 +410,11 @@ describe("EditorProvider in an editor that only composes", () => {
 
   it("keeps the tool that places a component, which is composing", () => {
     render(view(true));
-    act(() => editor.setAddComponentMode("packer"));
+    const packer = { from: "@hashintel/warehouse", id: "packer" };
+    act(() => editor.setAddComponentMode(packer));
 
     expect(editor.editionMode).toBe("add-component");
-    expect(editor.componentSubnetId).toBe("packer");
+    expect(editor.componentToAdd).toEqual(packer);
   });
 });
 

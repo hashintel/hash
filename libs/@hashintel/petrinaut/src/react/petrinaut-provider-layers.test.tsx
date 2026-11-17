@@ -14,11 +14,10 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import {
   createJsonDocHandle,
   createPetrinaut,
-  providedComponentSubnetId,
   toPetrinautId,
+  type Library,
   type Petrinaut,
   type PetrinautDocHandle,
-  type ProvidedComponent,
 } from "@hashintel/petrinaut-core";
 
 import { PetrinautDocumentProvider } from "./petrinaut-provider-layers";
@@ -36,10 +35,16 @@ afterEach(() => {
 });
 const tick = () => vi.setSystemTime(Date.now() + 1000);
 
-const packer: ProvidedComponent = {
-  id: "warehouse/packer",
-  name: "Packer",
-  ports: [{ name: "Orders", direction: "in" }],
+const warehouse: Library = {
+  id: "@hashintel/warehouse",
+  name: "Warehouse",
+  components: [
+    {
+      id: "packer",
+      name: "Packer",
+      ports: [{ id: "orders", name: "Orders", direction: "in" }],
+    },
+  ],
 };
 
 const netManagement = {
@@ -80,7 +85,7 @@ const placeInstance = (instance: Petrinaut, id: string) => {
     instance.mutations.addComponentInstance({
       id,
       name: `Packer${id}`,
-      subnetId: providedComponentSubnetId(packer),
+      component: { from: warehouse.id, id: "packer" },
       parameterValues: {},
       x: 0,
       y: 0,
@@ -91,7 +96,8 @@ const placeInstance = (instance: Petrinaut, id: string) => {
 const composingOn = (handle: PetrinautDocHandle) =>
   createPetrinaut({
     document: handle,
-    components: [packer],
+    resolveImport: () => warehouse,
+    libraries: [warehouse.id],
     compositionOnly: true,
   });
 

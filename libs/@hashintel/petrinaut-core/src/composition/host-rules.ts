@@ -1,29 +1,22 @@
 /**
- * What a host lets an instance change. The interfaces of the components a
- * host provides are the host's own: no mutation changes one. A host can also
- * keep an instance to composing: placing instances of those components in
- * the root net, wiring their ports and arranging the canvas.
+ * What a host lets an instance change. A host can keep an instance to
+ * composing: placing instances of the components of the libraries it offers
+ * in the root net, wiring their ports and arranging the canvas.
  */
 
 import { mutationActionInputSchemas } from "../action-schemas";
-import { toPetrinautId } from "../petrinaut-id";
-import {
-  isProvidedInterface,
-  type ProvidedInterfaces,
-} from "./provided-components";
 
 import type { MutationHelperFunctions } from "../actions";
 import type { CommandHelperFunctions } from "../commands";
-import type { ID, SDCPN, Subnet } from "../types/sdcpn";
 import type { z } from "zod";
 
 export type MutationName = keyof MutationHelperFunctions;
 export type CommandName = keyof CommandHelperFunctions;
 
 export type HostRules = {
-  /** The interfaces of the components the host provides. */
-  provided: ProvidedInterfaces;
-  /** Whether the instance only composes those components. */
+  /** The ids of the libraries the host offers. */
+  libraries: readonly string[];
+  /** Whether the instance only composes components of those libraries. */
   compositionOnly: boolean;
 };
 
@@ -31,8 +24,8 @@ type ParsedInput<Name extends MutationName> = z.output<
   (typeof mutationActionInputSchemas)[Name]
 >;
 
-/** Whether a subnet id names a provided component, in the document as it stands. */
-type IsProvided = (subnetId: ID) => boolean;
+/** Whether an import id names a library the host offers. */
+type IsOffered = (importId: string) => boolean;
 
 /**
  * The mutations that compose. `true` for one that composes whatever its
@@ -42,11 +35,15 @@ type IsProvided = (subnetId: ID) => boolean;
 const composing: {
   [Name in MutationName]?:
     | true
-    | ((input: ParsedInput<Name>, isProvided: IsProvided) => boolean);
+    | ((input: ParsedInput<Name>, isOffered: IsOffered) => boolean);
 } = {
-  addComponentInstance: ({ subnetId }, isProvided) => isProvided(subnetId),
-  updateComponentInstance: ({ update }, isProvided) =>
-    update.subnetId === undefined || isProvided(update.subnetId),
+  addComponentInstance: ({ component }, isOffered) =>
+    component !== undefined && isOffered(component.from),
+  // An update may rename the instance or set its parameters; where it names
+  // a component, that is one of a library on offer too.
+  updateComponentInstance: ({ update }, isOffered) =>
+    update.subnetId === undefined &&
+    (update.component === undefined || isOffered(update.component.from)),
   updateComponentInstancePosition: true,
   removeComponentInstance: true,
   addFusion: true,
@@ -73,7 +70,7 @@ const fieldOf = (input: unknown, key: string): unknown =>
 const composes = (
   name: MutationName,
   input: unknown,
-  isProvided: IsProvided,
+  isOffered: IsOffered,
 ): boolean => {
   const allowed = composing[name];
   if (
@@ -87,84 +84,26 @@ const composes = (
   }
   const parsed = mutationActionInputSchemas[name].safeParse(input);
   // A malformed input is the mutation's to refuse, saying what is wrong.
-  return !parsed.success || allowed(parsed.data as never, isProvided);
-};
-
-/**
- * The subnet an input names under `key`, or `null` where it names none: the
- * root net. Read off the input as it came, since the mutation or the command
- * itself says what is wrong with a malformed one.
- */
-const subnetIdAt = (input: unknown, key: string): ID | null => {
-  const id = fieldOf(input, key);
-  return typeof id === "string" ? toPetrinautId(id) : null;
-};
-
-/**
- * Where a mutation's input names the subnet it changes, or makes.
- * `removeSubnet` is left out on purpose: the document's copy can go, with
- * its instances.
- */
-const changedSubnetKey = (name: MutationName): string => {
-  if (name === "addSubnet") {
-    return "id";
-  }
-  return name === "updateSubnet" ? "subnetId" : "targetSubnetId";
-};
-
-/**
- * The provided component `subnetId` names in `sdcpn`, or `undefined`. A
- * subnet of the document's own that has a provided id is not one: it is the
- * document's to change.
- */
-const providedComponentAt = (
-  rules: HostRules,
-  sdcpn: SDCPN,
-  subnetId: ID | null,
-): Subnet | undefined => {
-  const component =
-    subnetId === null ? undefined : rules.provided.get(subnetId);
-  const held = component && sdcpn.subnets?.find(({ id }) => id === subnetId);
-  return held && !isProvidedInterface(held, rules.provided)
-    ? undefined
-    : component;
-};
-
-const providedRefusal = (
-  rules: HostRules,
-  sdcpn: SDCPN,
-  subnetId: ID | null,
-) => {
-  const component = providedComponentAt(rules, sdcpn, subnetId);
-  return component
-    ? `${component.name} is a component the application provides: it cannot be changed.`
-    : null;
+  return !parsed.success || allowed(parsed.data as never, isOffered);
 };
 
 const composingOnlyNotice =
   "This editor only places and connects the components it is given";
 
 /**
- * Why the host's rules refuse a mutation of `sdcpn`, as a sentence a user can
- * read, or `null` when they allow it. A provided interface is not changed,
- * and no subnet is added under its id. An instance that only composes refuses
- * every mutation that does not compose, and every one aimed at a subnet.
+ * Why the host's rules refuse a mutation, as a sentence a user can read, or
+ * `null` when they allow it. An instance that only composes refuses every
+ * mutation that does not compose, and every one aimed at a subnet.
  */
 export const mutationRefusal = (
   rules: HostRules,
-  sdcpn: SDCPN,
   name: MutationName,
   input: unknown,
 ): string | null =>
-  providedRefusal(rules, sdcpn, subnetIdAt(input, changedSubnetKey(name))) ??
-  (rules.compositionOnly &&
-  !composes(
-    name,
-    input,
-    (subnetId) => providedComponentAt(rules, sdcpn, subnetId) !== undefined,
-  )
+  rules.compositionOnly &&
+  !composes(name, input, (importId) => rules.libraries.includes(importId))
     ? `${composingOnlyNotice}.`
-    : null);
+    : null;
 
 /**
  * Why the host's rules refuse a command, or `null`. An instance that only
@@ -173,19 +112,18 @@ export const mutationRefusal = (
  */
 export const commandRefusal = (
   rules: HostRules,
-  sdcpn: SDCPN,
   name: CommandName,
   input: unknown,
 ): string | null => {
-  const subnetId = subnetIdAt(input, "targetSubnetId");
-  const refusal = providedRefusal(rules, sdcpn, subnetId);
-  if (refusal !== null || !rules.compositionOnly) {
-    return refusal;
+  if (!rules.compositionOnly) {
+    return null;
   }
   if (name === "applyClipboardPaste") {
     return `${composingOnlyNotice}: nothing can be pasted into it.`;
   }
-  return subnetId === null ? null : `${composingOnlyNotice}.`;
+  return typeof fieldOf(input, "targetSubnetId") === "string"
+    ? `${composingOnlyNotice}.`
+    : null;
 };
 
 /** The same functions, each throwing its refusal where `refusalOf` gives one. */
@@ -206,25 +144,16 @@ const guarded = <Functions extends Record<string, (input: never) => unknown>>(
     ]),
   ) as Functions;
 
-/**
- * The same mutations, each throwing its refusal where the host's rules give
- * one. `readDocument` reads the document as each call finds it.
- */
+/** The same mutations, each throwing its refusal where the host's rules give one. */
 export const enforceHostRules = (
   mutations: MutationHelperFunctions,
   rules: HostRules,
-  readDocument: () => SDCPN,
 ): MutationHelperFunctions =>
-  guarded(mutations, (name, input) =>
-    mutationRefusal(rules, readDocument(), name, input),
-  );
+  guarded(mutations, (name, input) => mutationRefusal(rules, name, input));
 
 /** The same commands, held to the host's rules as the mutations are. */
 export const enforceHostRulesOnCommands = (
   commands: CommandHelperFunctions,
   rules: HostRules,
-  readDocument: () => SDCPN,
 ): CommandHelperFunctions =>
-  guarded(commands, (name, input) =>
-    commandRefusal(rules, readDocument(), name, input),
-  );
+  guarded(commands, (name, input) => commandRefusal(rules, name, input));

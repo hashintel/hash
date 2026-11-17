@@ -4,6 +4,7 @@ import {
   createJsonDocHandle,
   createPetrinaut,
   type Petrinaut,
+  type ResolveImport,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
@@ -41,7 +42,7 @@ const Passthrough = ({ children }: { children: ReactNode }) => children;
 /**
  * Renders `view` as the editor view beside `plugins`, under the editor's
  * providers over a new document, read-only with `readonly`, with the host's
- * `components` and composing only with `compositionOnly`; `Around` wraps the
+ * `libraries` and composing only with `compositionOnly`; `Around` wraps the
  * plugins provider inside them, and `navigation` makes the host own
  * navigation. `rerender` keeps the core instance unless given another.
  */
@@ -52,7 +53,8 @@ export const renderPlugins = (
     netManagement,
     navigation,
     readonly = false,
-    components,
+    resolveImport,
+    libraries,
     compositionOnly,
     Around = Passthrough,
     ...options
@@ -60,7 +62,8 @@ export const renderPlugins = (
     netManagement?: Partial<NetManagement>;
     navigation?: PetrinautNavigationController;
     readonly?: boolean;
-    components?: readonly ProvidedComponent[];
+    resolveImport?: ResolveImport;
+    libraries?: readonly string[];
     compositionOnly?: boolean;
     Around?: ComponentType<{ children: ReactNode }>;
   } = {},
@@ -68,7 +71,8 @@ export const renderPlugins = (
   const instance = createPetrinaut({
     document: createJsonDocHandle({ initial: emptyNet }),
     readonly,
-    components,
+    resolveImport,
+    libraries,
     compositionOnly,
   });
   const tree = (

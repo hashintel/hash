@@ -62,13 +62,19 @@ A document that uses a component of a library **imports** the library: it keeps 
 
 A component of a library either runs, or is an **interface**, shown with a puzzle piece. An instance of an interface needs an implementation, chosen in its properties: a component of the document that has the interface's ports and parameters, or a component of a library that does. A component of a library can likewise be chosen as the implementation of an interface of the document. Across a library nothing is ticked under **Implements**: the choice is checked on the ports and parameters, and what is missing is reported on the instance under **Composition**.
 
-What a provided component does is up to the application, so the document holds no net to run for it: simulating a net that uses one stops with an error saying the instance has no implementation. To run it in the editor, give the component an implementation as for any interface: a subnet that ticks it under **Implements**, chosen on the instance.
+While a library is being fetched, the editor is covered and says **Resolving**. Nothing is reported about that library until it has arrived, and the net does not run before it has.
+
+A library that cannot be fetched, or that the application does not know, is one error under **Composition**, naming the library and how many instances use it. Instances of its components draw with **unresolved** under their name and no ports, the Components panel says why under the library's id, and the net does not run. Such an instance can still be renamed, described, moved and removed.
+
+An instance that names a component its library does not have draws the same way and keeps the net from running. It is one error under **Composition**, naming the instance, the component and the library.
+
+To hand a document to someone without the libraries, export it with its imports inlined: **Export → YAML with imports inlined** or **JSON with imports inlined**, offered when the document imports a library. Each component the document uses becomes a subnet of the file, under ids of its own, and the file imports nothing.
 
 A library the net names without importing it, as a file edited by hand may, is one error under **Composition**. Choose the component or the implementation again to add the import.
 
 ### Composing only
 
-An application can set Petrinaut up to compose its components and nothing else. The editor then shows the canvas, the **Components** panel and the **Diagnostics** tab. It has no tools that draw places or transitions, no Nets panel, no Definitions view and no simulator. It shows the root net only: a diagnostic or a link that points into a subnet opens the root net.
+An application can set Petrinaut up to compose the components of its libraries and nothing else. The editor then shows the canvas, the **Components** panel and the **Diagnostics** tab. It has no tools that draw places or transitions, no Nets panel, no Definitions view and no simulator. It shows the root net only: a diagnostic or a link that points into a subnet opens the root net.
 
 What is left is composing: place instances, name them and set their parameters, fuse their ports by dragging from one pin to another, move or detach the ends of a fusion's line, delete instances and fusions, and arrange the canvas. Anything else, a paste included, is refused with a notice.
 
