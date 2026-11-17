@@ -30,7 +30,7 @@ import {
   canonicalContent,
   type ClientToolResultMetadata,
   type NetStructure,
-  vBrowserCallResultBody,
+  browserCallResultBodySchema,
 } from "@hashintel/brunch-agent";
 
 import { browserCallsPrefix } from "../../../src/server/start-durable-agents-server";
@@ -92,8 +92,7 @@ const routeOf = (method: string, url: string) =>
 const errorKind = (error: unknown): string => {
   if (!(error instanceof Error)) return String(error);
   const cause = error.cause as
-    | { code?: unknown; message?: unknown }
-    | undefined;
+    { code?: unknown; message?: unknown } | undefined;
   if (typeof cause?.code === "string") return cause.code;
   if (typeof cause?.message === "string")
     return `${error.message}: ${cause.message}`;
@@ -349,7 +348,7 @@ export const runConversation = async ({
       };
     await sleep(between(random, timing.browserThinkMs) / 2);
     // As Brunch's in-band browser calls do, the result is checked as JSON before it is posted.
-    const result = v.parse(vBrowserCallResultBody, {
+    const result = v.parse(browserCallResultBodySchema, {
       ...proof,
       toolName: claim.toolName,
       canonicalInput: claim.input,

@@ -31,12 +31,14 @@ import {
   foldCommits,
   hashEvidencedDescription,
   type LedgerAppend,
-  ledgerAppendOutputSchema,
-  ledgerAppendSchema,
-  ledgerAppendSchemaWith,
-  originSchemaWith,
+  type LedgerMapOutput,
+  ledgerMapOutputSchema,
   projectLedger,
   renderLedgerMarkdown,
+  ledgerAppendSchema,
+  ledgerAppendOutputSchema,
+  ledgerAppendSchemaWith,
+  originSchemaWith,
 } from "@hashintel/brunch-agent";
 
 import {
@@ -61,7 +63,7 @@ const typedJsonSchema = <T>(schema: v.GenericSchema) => {
 };
 
 /** HASH's Ledger entries: what the agent reads from HASH counts as evidenced too (Brunch's `guidance.ts`). */
-export const hashLedgerAppend = ledgerAppendSchemaWith({
+export const hashLedgerAppendSchema = ledgerAppendSchemaWith({
   origin: originSchemaWith({ evidencedDescription: hashEvidencedDescription }),
 });
 
@@ -130,8 +132,7 @@ const exchangeHasReplied = async (
   context: Context,
 ): Promise<boolean> => {
   const input = (await api.getTask(api.taskId, context))?.input as
-    | ToolTaskInput
-    | undefined;
+    ToolTaskInput | undefined;
   if (input?.kind !== "model") return false;
   const { assistant } = input;
   const first =
@@ -214,15 +215,7 @@ const defineLedgerCommitTool = ({
     },
   });
 
-const vLedgerQueryInput = v.strictObject({});
-
-const vLedgerQueryOutput = v.strictObject({
-  revision: v.number(),
-  map: v.string(),
-  rejected: v.array(v.string()),
-});
-
-type LedgerQueryOutput = v.InferOutput<typeof vLedgerQueryOutput>;
+const ledgerQueryInputSchema = v.strictObject({});
 
 /**
  * `ledger_query`: the Ledger as its current map, as Brunch's Ledger map tool
@@ -233,10 +226,12 @@ type LedgerQueryOutput = v.InferOutput<typeof vLedgerQueryOutput>;
 const ledgerQueryTool = defineTool({
   name: brunchTools.ledgerQuery,
   description: compileToolDescription,
-  parameters:
-    typedJsonSchema<v.InferOutput<typeof vLedgerQueryInput>>(vLedgerQueryInput),
-  structuredOutputSchema:
-    typedJsonSchema<LedgerQueryOutput>(vLedgerQueryOutput),
+  parameters: typedJsonSchema<v.InferOutput<typeof ledgerQueryInputSchema>>(
+    ledgerQueryInputSchema,
+  ),
+  structuredOutputSchema: typedJsonSchema<LedgerMapOutput>(
+    ledgerMapOutputSchema,
+  ),
   // Reads only.
   replay: "safe",
   executionMode: "sequential",
@@ -249,7 +244,7 @@ const ledgerQueryTool = defineTool({
       context,
     );
     const { state, revision, rejected } = foldCommits(history);
-    const output: LedgerQueryOutput = {
+    const output: LedgerMapOutput = {
       revision,
       rejected: [...rejected],
       map: renderLedgerMarkdown(projectLedger(state)),
@@ -272,7 +267,7 @@ export const createLedgerExtension = (host: HostBinding) =>
     tools: [
       defineLedgerCommitTool({
         description: commitToolDescription,
-        input: hashLedgerAppend,
+        input: hashLedgerAppendSchema,
         endsTurn: (api, context) => exchangeHasReplied(host, api, context),
       }),
       ledgerQueryTool,

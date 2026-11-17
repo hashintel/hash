@@ -14,7 +14,6 @@ import {
   type Conversation,
   type ConversationId,
   defineDoc,
-  type EntryId,
   type EntryRecord,
   type Harness,
   type JsonObject,
@@ -184,7 +183,7 @@ describe.each(cases)("fork to a new owner on $name", (storageCase) => {
         context,
       );
       const call = await pendingCall(harness, source.id);
-      const issuedEntry = call.issuedEntry as EntryId | undefined;
+      const { issuedEntry } = call;
       expect(issuedEntry).toBeDefined();
       const forkAt = issuedEntry!;
 

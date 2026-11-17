@@ -84,7 +84,7 @@ import {
   type ClientToolResultMetadata,
   hashProcessEditorId,
   type NetStructure,
-  vBrowserCallResultBody,
+  browserCallResultBodySchema,
 } from "@hashintel/brunch-agent";
 
 import { createHashAgent } from "../../src/agent/hash-agent";
@@ -649,7 +649,7 @@ const drive = async () => {
     const { output, metadata } = browser.answer(claim.toolName, claim.input);
     // The result as the server receives it: in its JSON form, checked as Brunch's in-band browser calls check it.
     const body = v.parse(
-      vBrowserCallResultBody,
+      browserCallResultBodySchema,
       JSON.parse(
         JSON.stringify({
           ...proof,

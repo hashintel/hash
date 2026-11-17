@@ -4,7 +4,7 @@ import { expect, test } from "vitest";
 import {
   basisQueryReasons,
   queryBasisToolDescription,
-  vBasisQueryInput,
+  basisQueryInputSchema,
 } from "./basis-query";
 
 test("the basis query's description and reasons are pinned", () => {
@@ -23,9 +23,11 @@ test("the basis query's description and reasons are pinned", () => {
 
 test("the basis query takes one element by its selector", () => {
   expect(
-    v.parse(vBasisQueryInput, { selector: { kind: "place", name: "Queue" } }),
+    v.parse(basisQueryInputSchema, {
+      selector: { kind: "place", name: "Queue" },
+    }),
   ).toEqual({ selector: { kind: "place", name: "Queue" } });
   expect(() =>
-    v.parse(vBasisQueryInput, { selector: { kind: "nothing" } }),
+    v.parse(basisQueryInputSchema, { selector: { kind: "nothing" } }),
   ).toThrow(/Invalid/u);
 });

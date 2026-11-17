@@ -3,15 +3,15 @@
  * `apps/brunch-agent/src/server/http/browser-calls.ts`, under the owner's
  * claim rule. Mounted where the server serves a conversation's agent:
  *
- * - `POST <id>/browser-calls/<callId>` claims, with `vBrowserCallClaimBody`;
- *   a claim for a call not yet issued waits up to `issueWaitMs` for its issue
- *   commit before answering 404;
+ * - `POST <id>/browser-calls/<callId>` claims, with
+ *   `browserCallClaimBodySchema`; a claim for a call not yet issued waits up
+ *   to `issueWaitMs` for its issue commit before answering 404;
  * - `POST …/start` says the holder is executing it, with the lease body;
  * - `POST …/lease`, `…/result` and `…/fail` take the library's bodies;
  * - `GET <id>/browser-calls` reads every call's committed record, without its
  *   capability: what a panel replays after a reload;
  * - `POST <id>/browser-calls/hand-edits` admits a panel's hand-edit report,
- *   with `vHandEditReportBody`, as a stored note the model reads
+ *   with `handEditReportBodySchema`, as a stored note the model reads
  *   (`reportHandEdit`); a wrong binding is refused with 409. It answers with
  *   the note's submission and is never streamed.
  *
@@ -32,9 +32,9 @@ import * as v from "valibot";
 
 import {
   brunchRoutes,
-  vBrowserCallFailureBody,
-  vBrowserCallLeaseBody,
-  vBrowserCallResultBody,
+  browserCallFailureBodySchema,
+  browserCallLeaseBodySchema,
+  browserCallResultBodySchema,
 } from "@hashintel/brunch-agent";
 
 import {
@@ -47,22 +47,26 @@ import {
   startBrowserCall,
 } from "./browser-call";
 import {
+  handEditReportBodySchema,
   handEditsRoute,
   reportHandEdit,
-  vHandEditReportBody,
 } from "./hand-edit";
 
 /** A claim: the claiming tab's ID and its canonical editor binding. Not yet in `@hashintel/brunch-agent`. */
-export const vBrowserCallClaimBody = v.object({
+export const browserCallClaimBodySchema = v.object({
   claimant: v.pipe(v.string(), v.minLength(1)),
   binding: v.string(),
 });
 
 /** A start: the claim's proof, as the lease body carries it. */
-export const vBrowserCallStartBody = vBrowserCallLeaseBody;
+export const browserCallStartBodySchema = browserCallLeaseBodySchema;
 
-export type BrowserCallClaimBody = v.InferOutput<typeof vBrowserCallClaimBody>;
-export type BrowserCallStartBody = v.InferOutput<typeof vBrowserCallStartBody>;
+export type BrowserCallClaimBody = v.InferOutput<
+  typeof browserCallClaimBodySchema
+>;
+export type BrowserCallStartBody = v.InferOutput<
+  typeof browserCallStartBodySchema
+>;
 
 /** The open Harness serving a conversation, by the conversation ID in the route; `undefined` when none does. */
 export type ResolveHarness = (
@@ -211,7 +215,7 @@ export const createBrowserCallRouter = ({
     `/:conversationId/${brunchRoutes.browserCalls}/${handEditsRoute}`,
     async (request) => {
       request.header("Cache-Control", "no-store");
-      const target = await addressed(request, vHandEditReportBody);
+      const target = await addressed(request, handEditReportBodySchema);
       if ("response" in target) return target.response;
       const outcome = await reportHandEdit(
         target.harness,
@@ -230,7 +234,7 @@ export const createBrowserCallRouter = ({
 
   router.post(callRoute, async (request) => {
     request.header("Cache-Control", "no-store");
-    const target = await addressed(request, vBrowserCallClaimBody);
+    const target = await addressed(request, browserCallClaimBodySchema);
     if ("response" in target) return target.response;
     const claim = () =>
       claimBrowserCallAs(
@@ -260,7 +264,7 @@ export const createBrowserCallRouter = ({
   });
 
   router.post(`${callRoute}/start`, async (request) => {
-    const target = await addressed(request, vBrowserCallStartBody);
+    const target = await addressed(request, browserCallStartBodySchema);
     if ("response" in target) return target.response;
     return (await startBrowserCall(
       target.harness,
@@ -274,7 +278,7 @@ export const createBrowserCallRouter = ({
   });
 
   router.post(`${callRoute}/lease`, async (request) => {
-    const target = await addressed(request, vBrowserCallLeaseBody);
+    const target = await addressed(request, browserCallLeaseBodySchema);
     if ("response" in target) return target.response;
     return (await renewBrowserCall(
       target.harness,
@@ -288,7 +292,7 @@ export const createBrowserCallRouter = ({
   });
 
   router.post(`${callRoute}/result`, async (request) => {
-    const target = await addressed(request, vBrowserCallResultBody);
+    const target = await addressed(request, browserCallResultBodySchema);
     if ("response" in target) return target.response;
     const { canonicalInput, ...body } = target.body;
     return (await finishBrowserCall(
@@ -306,7 +310,7 @@ export const createBrowserCallRouter = ({
   });
 
   router.post(`${callRoute}/fail`, async (request) => {
-    const target = await addressed(request, vBrowserCallFailureBody);
+    const target = await addressed(request, browserCallFailureBodySchema);
     if ("response" in target) return target.response;
     const { canonicalInput, ...body } = target.body;
     return (await failBrowserCall(

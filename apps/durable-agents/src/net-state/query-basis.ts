@@ -33,7 +33,7 @@ import * as v from "valibot";
 
 import {
   type ArcElement,
-  arcDirections,
+  type BasisQuerySelector,
   brunchTools,
   foldCommits,
   generatedArcId,
@@ -41,10 +41,10 @@ import {
   type LedgerTrace,
   namesId,
   type NetElementAddress,
-  netElementKinds,
   type NetStructure,
   queryBasisToolDescription,
   traceLedger,
+  basisQueryInputSchema,
 } from "@hashintel/brunch-agent";
 
 import {
@@ -68,40 +68,6 @@ import type { HostBinding } from "../agent/host-binding";
 import type { Context } from "@earendil-works/chord/context";
 import type { Schema } from "@earendil-works/pi-schema";
 
-const elementSchema = v.object({
-  selector: v.pipe(
-    v.object({
-      kind: v.picklist(netElementKinds),
-      name: v.optional(
-        v.pipe(
-          v.string(),
-          v.description("The element's recorded name, unique within its kind."),
-        ),
-      ),
-      id: v.optional(v.pipe(v.string(), v.description("The element's ID."))),
-      transitionId: v.optional(
-        v.pipe(v.string(), v.description("For an arc: its transition's ID.")),
-      ),
-      arcDirection: v.optional(
-        v.pipe(
-          v.picklist(arcDirections),
-          v.description(
-            "For an arc: its direction relative to the transition.",
-          ),
-        ),
-      ),
-      placeId: v.optional(
-        v.pipe(v.string(), v.description("For an arc: its place's ID.")),
-      ),
-    }),
-    v.description(
-      "One element by kind and its name or ID; an arc by transitionId, arcDirection and placeId.",
-    ),
-  ),
-});
-type ElementQuery = v.InferOutput<typeof elementSchema>;
-export type Selector = ElementQuery["selector"];
-
 /** A net element the selector can match: by ID, by name, or by its arc's endpoints. */
 type ElementCandidate = Omit<NetElement, "kind"> & { readonly name: string };
 
@@ -113,7 +79,7 @@ const netsOf = (definition: NetStructure) => [
 
 const netElements = (
   net: ReturnType<typeof netsOf>[number],
-  kind: Exclude<Selector["kind"], "scenario" | "metric" | "subnet">,
+  kind: Exclude<BasisQuerySelector["kind"], "scenario" | "metric" | "subnet">,
 ): ElementCandidate[] => {
   if (kind === "place") return net.places;
   if (kind === "transition") return net.transitions;
@@ -158,7 +124,7 @@ const netElements = (
 
 const elements = (
   definition: NetStructure,
-  kind: Selector["kind"],
+  kind: BasisQuerySelector["kind"],
 ): ElementCandidate[] => {
   if (kind === "scenario") return definition.scenarios ?? [];
   if (kind === "metric") return definition.metrics ?? [];
@@ -184,7 +150,7 @@ const basisContent = (trace: LedgerTrace) => ({
 
 /** Whether a reflection's net element address names the target, as the document or the model wrote it. */
 const namesTarget =
-  (kind: Selector["kind"], target: Omit<NetElement, "kind">) =>
+  (kind: BasisQuerySelector["kind"], target: Omit<NetElement, "kind">) =>
   (address: NetElementAddress) =>
     address.kind === kind && namesId(address.id, target.id);
 
@@ -195,7 +161,7 @@ export type QueryBasisInput = {
   readonly ledger: LedgerHistory;
   /** The conversation's editor binding, as Brunch reports it. */
   readonly binding: unknown;
-  readonly query: Selector;
+  readonly query: BasisQuerySelector;
   /** The Ledger revision as of the entry that issued a call. */
   readonly ledgerRevisionAt: (call: NetCall) => Promise<number | undefined>;
   /** The model's view now, from its effective context (`visibleNetView`'s state). */
@@ -389,14 +355,14 @@ export const createQueryBasisTool = (
     name,
     description,
     parameters: (({ $schema: _dialect, ...jsonSchema }) => jsonSchema)(
-      toJsonSchema(elementSchema, { errorMode: "ignore" }),
-    ) as Schema<ElementQuery>,
+      toJsonSchema(basisQueryInputSchema, { errorMode: "ignore" }),
+    ) as Schema<v.InferOutput<typeof basisQueryInputSchema>>,
     // Reads only.
     replay: "safe",
     // Answers from the reads issued before it in the same response (fold 3b).
     executionMode: "sequential",
     execute: async (args, api, context) => {
-      const { selector } = v.parse(elementSchema, args);
+      const { selector } = v.parse(basisQueryInputSchema, args);
       const { conversationId } = api;
       const [records, bound, ledger, netView] = await Promise.all([
         api.snapshot(BrowserCallsDoc, conversationId, context),
@@ -415,7 +381,7 @@ export const createQueryBasisTool = (
             await api.snapshotAsOf(
               LedgerDoc,
               conversationId,
-              issuedEntry as EntryId,
+              issuedEntry,
               context,
             ),
           ).revision,

@@ -22,8 +22,10 @@ export {
   isRefusedLedgerCommit,
   latestLedgerTurnId,
   ledgerAppendOutputSchema,
+  ledgerMapOutputSchema,
   prepareAppend,
   type FoldedLedger,
+  type LedgerMapOutput,
   type LedgerHistory,
   type LedgerHistoryMessage,
 } from "./ledger/commits";
@@ -49,7 +51,7 @@ export {
 export {
   basisQueryReasons,
   queryBasisToolDescription,
-  vBasisQueryInput,
+  basisQueryInputSchema,
   type BasisQuerySelector,
 } from "./ledger/basis-query";
 export {

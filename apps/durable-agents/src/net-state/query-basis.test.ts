@@ -10,6 +10,7 @@ import {
   type Conversation,
   type ConversationId,
   createRegistry,
+  type EntryId,
   type EntryRecord,
   Harness,
   type JsonObject,
@@ -18,6 +19,7 @@ import {
 import { describe, expect, test, vi } from "vitest";
 
 import {
+  type BasisQuerySelector,
   brunchTools,
   foldCommits,
   hashProcessEditorId,
@@ -52,7 +54,6 @@ import {
   createQueryBasisTool,
   queryBasis,
   queryBasisExtension,
-  type Selector,
 } from "./query-basis";
 
 import type { VisibleNetView } from "./visible-net-view";
@@ -123,7 +124,7 @@ const retargetInput = {
   newPlaceId: "buffer",
   weight: 2,
 };
-const arcTo = (placeId: string): Selector => ({
+const arcTo = (placeId: string): BasisQuerySelector => ({
   kind: "arc",
   transitionId: "serve",
   arcDirection: "input",
@@ -241,7 +242,7 @@ const queueReflection = committed(
  */
 const query = (
   steps: readonly Step[],
-  selector: Selector,
+  selector: BasisQuerySelector,
   netView: VisibleNetView["state"] = "current",
 ) => {
   const calls: Record<string, BrowserCallRecord> = {};
@@ -262,7 +263,7 @@ const query = (
         claimed: true,
         output: step.output as BrowserCallRecord["output"],
         metadata: step.metadata as BrowserCallRecord["metadata"],
-        issuedEntry: entry,
+        issuedEntry: entry as EntryId,
         callIndex: 0,
       };
   }
@@ -975,7 +976,7 @@ describe("the query_basis tool", () => {
   describe("mounted as the HASH agent's ledger_query_basis", () => {
     const getNet = () =>
       fauxToolCall("petrinaut_get_net", getNetInput, { id: "read-1" });
-    const queryCall = (selector: Selector) =>
+    const queryCall = (selector: BasisQuerySelector) =>
       fauxToolCall(
         brunchTools.ledgerQueryBasis,
         { selector },

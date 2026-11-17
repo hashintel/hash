@@ -7,9 +7,9 @@ import {
   renderHandEditNote,
 } from "../net-state/visible-net-view";
 import {
+  handEditReportBodySchema,
   handEditReportId,
   handEditWrite,
-  vHandEditReportBody,
 } from "./hand-edit";
 
 const report = {
@@ -60,7 +60,7 @@ describe("hand-edit report", () => {
   });
 
   test("the body needs a binding, a non-empty episode and revision, and a non-negative integer seq", () => {
-    expect(v.safeParse(vHandEditReportBody, report).success).toBe(true);
+    expect(v.safeParse(handEditReportBodySchema, report).success).toBe(true);
     for (const body of [
       { ...report, binding: undefined },
       { ...report, episode: "" },
@@ -68,6 +68,6 @@ describe("hand-edit report", () => {
       { ...report, seq: 0.5 },
       { ...report, revision: "" },
     ])
-      expect(v.safeParse(vHandEditReportBody, body).success).toBe(false);
+      expect(v.safeParse(handEditReportBodySchema, body).success).toBe(false);
   });
 });

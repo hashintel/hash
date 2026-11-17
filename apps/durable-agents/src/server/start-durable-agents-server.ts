@@ -39,7 +39,7 @@ import * as v from "valibot";
 import {
   type BrowserContext,
   canonicalContent,
-  vSdcpnInitialData,
+  sdcpnInitialDataSchema,
 } from "@hashintel/brunch-agent";
 
 import { createHashAgent, type HashAgent } from "../agent/hash-agent";
@@ -89,7 +89,7 @@ const bindingOf = (
   body: Readonly<Record<string, unknown>>,
 ): BrowserContext["binding"] | "invalid" | undefined => {
   if (body.binding === undefined) return undefined;
-  const parsed = v.safeParse(vSdcpnInitialData, {
+  const parsed = v.safeParse(sdcpnInitialDataSchema, {
     binding: body.binding,
   });
   return parsed.success && parsed.output !== undefined
