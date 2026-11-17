@@ -720,7 +720,7 @@ export const validateFlowDefinition = (
         if (outputName !== undefined) {
           report(
             "pathNotRunnable",
-            `Flows can't run a step on a path yet, and this step is on "${stepId}"'s "${outputName}" path`,
+            "This step is on a path, and flows can't run steps on paths yet",
             [...path, "runAfter", index, "outputName"],
           );
         }
