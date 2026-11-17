@@ -10,8 +10,13 @@
  * has replied (fold 7), and `ledger_query`.
  */
 import {
+  CompactionEntry,
+  type ContextView,
+  type Conversation,
   defineExtension,
   defineTool,
+  type EntryId,
+  type EntryRecord,
   LiveDoc,
   type ToolExecutionApi,
   type ToolTaskInput,
@@ -63,12 +68,53 @@ export const hashLedgerAppend = ledgerAppendSchemaWith({
 /** The extension's name, which a conversation's stored agent selects. */
 export const ledgerExtensionName = "brunch.ledger";
 
+/** Whether an assistant entry of `view` that `counts` has non-whitespace text in what it contributes. */
+const viewHasReply = (view: ContextView, counts: (id: EntryId) => boolean) =>
+  view.entries.some(
+    (entry, index) =>
+      entry.kind === "pi.assistant" &&
+      counts(entry.id) &&
+      (view.contributions[index] ?? []).some(
+        (message) =>
+          message.role === "assistant" &&
+          message.content.some(
+            (part) => part.type === "text" && part.text.trim() !== "",
+          ),
+      ),
+  );
+
+/** The effective context as of the newest entry below `marker`, or `undefined` when none is. */
+const contextBefore = async (
+  conversation: Conversation,
+  marker: EntryRecord,
+  context: Context,
+) => {
+  const { items } = await conversation.entries(
+    { maxEntryId: marker.id, order: "descending" },
+    2,
+    undefined,
+    context,
+  );
+  const previous = items.find(({ id }) => id < marker.id);
+  return previous === undefined
+    ? undefined
+    : conversation.context(context, { at: previous.id });
+};
+
 /**
  * Whether the exchange has replied by the call: some assistant entry from the
  * run's first entry through the call's own has non-whitespace text in what
  * the model was sent. By the one-input rule a run is one exchange, so a reply
  * written beside a refused commit in an earlier round counts (Brunch's
  * repaired commit); an earlier run's reply does not.
+ *
+ * A reply already sent stays sent when native compaction summarises it: an
+ * entry a compaction cut from the run counts as the context just before that
+ * compaction had it. Everything else still decides by the effective context.
+ * A context edit applies, also one written after the compaction that targets
+ * a cut entry, which then does not count; an entry a reset cut does not
+ * count; and Pi leaves an errored, aborted or deferred model attempt out of
+ * every context.
  *
  * Read through the host at the call's assistant entry, a fixed cutoff, so a
  * rerun after a restart decides the same. Outside any commit. A run that
@@ -91,22 +137,31 @@ const exchangeHasReplied = async (
   const first =
     (await api.snapshot(LiveDoc, api.conversationId, context))?.run?.first ??
     assistant;
-  const view = await (
-    await host.conversation(api.conversationId, context)
-  ).context(context, { at: assistant });
-  return view.entries.some(
-    (entry, index) =>
-      entry.kind === "pi.assistant" &&
-      entry.id >= first &&
-      entry.id <= assistant &&
-      (view.contributions[index] ?? []).some(
-        (message) =>
-          message.role === "assistant" &&
-          message.content.some(
-            (part) => part.type === "text" && part.text.trim() !== "",
-          ),
-      ),
-  );
+  const conversation = await host.conversation(api.conversationId, context);
+  let view: ContextView | undefined = await conversation.context(context, {
+    at: assistant,
+  });
+  if (viewHasReply(view, (id) => id >= first && id <= assistant)) return true;
+  const editedLater = new Set<EntryId>();
+  while (view !== undefined && CompactionEntry.is(view.head)) {
+    const kept = view.head.head;
+    if (kept === undefined || kept <= first) return false;
+    for (const entry of view.entries) {
+      for (const edit of entry.edits ?? []) editedLater.add(edit.target);
+    }
+    // eslint-disable-next-line no-await-in-loop -- Each compaction's context is read from the marker before it.
+    view = await contextBefore(conversation, view.head, context);
+    if (
+      view !== undefined &&
+      viewHasReply(
+        view,
+        (id) => id >= first && id < kept && !editedLater.has(id),
+      )
+    ) {
+      return true;
+    }
+  }
+  return false;
 };
 
 /**
