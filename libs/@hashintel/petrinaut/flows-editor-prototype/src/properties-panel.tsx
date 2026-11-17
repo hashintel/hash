@@ -211,6 +211,33 @@ const compactPanelStyle = css({
   "&[class] [data-used-names]": { paddingLeft: "[calc(var(--u-lx) - 6px)]" },
   "&[class] [data-used-names] > button": { gap: "[calc(var(--u-lt) - var(--u-lx) - 20px)]" },
   "&[class] [data-output] [data-row]": { minHeight: "[var(--u-rh)]" },
+  "&[class] [data-output] [data-row] > span.ml_auto": { display: "contents" },
+  "&[class] [data-output] [data-row] span:has(> [data-output-flag])": { marginLeft: "[-9px]" },
+  "&[class] [data-output] [data-row] span:has(> button[aria-label^='Used in'])": { marginLeft: "auto" },
+  "&[class] [data-output] [data-row] button[aria-label^='Used in']": {
+    position: "relative",
+    top: "[1px]",
+  },
+  "&[class] [data-output] [data-row] button[aria-label^='Used in'] [data-stack-tile]": {
+    position: "relative",
+    top: "[-1px]",
+  },
+  "&[class] [data-output] [data-row] > span[class*='h_[16px]']": {
+    height: "[18px]",
+    paddingTop: "[2px]",
+    boxSizing: "border-box",
+  },
+  "&[class] [data-output] [data-row] > [data-type-icon] svg": {
+    "--icon-size": "13px",
+    width: "[13px]",
+    height: "[13px]",
+    minWidth: "[13px]",
+  },
+  "&[class] [data-output] [data-row] [data-output-flag] svg": {
+    "--icon-size": "13px",
+    width: "[13px]",
+    height: "[13px]",
+  },
   "&[class] [data-output] div:has(> [data-output-use])": { visibility: "visible" },
 });
 
@@ -1300,21 +1327,32 @@ const nextInputNumber = (document: EditorDocument) => {
 /** One flow input: its fields stacked, Remove top right on hover. */
 const inputBlockStyle = css({
   position: "relative",
-  display: "grid",
-  gridTemplateColumns: "minmax(88px, 30%) minmax(0, 1fr)",
-  columnGap: "2",
-  rowGap: "2",
-  alignItems: "baseline",
-  "& > :not([data-row])": { gridColumn: "1 / -1" },
+  display: "flex",
+  flexDirection: "column",
   "&:not(:hover):not(:focus-within) [data-row-action]": { opacity: "[0]" },
 });
 
 const rowActionStyle = css({
   position: "absolute",
-  right: "[0]",
-  top: "[-4px]",
+  right: "[var(--u-r)]",
+  top: "[4px]",
   zIndex: "[1]",
   transition: "[opacity 0.15s ease]",
+});
+
+const inputFieldStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "1",
+  marginTop: "3",
+  marginLeft: "[var(--u-dx)]",
+  marginRight: "[var(--u-r)]",
+});
+
+const inputLabelStyle = css({
+  textStyle: "sm",
+  lineHeight: "[20px]",
+  color: "neutral.fg.muted",
 });
 
 const tableHeadStyle = css({ textStyle: "xs", color: "neutral.fg.muted" });
@@ -1410,7 +1448,7 @@ const RunFormFields = () => {
   }
 
   return (
-    <Section title="Inputs">
+    <Section title="Inputs" gridClassName={css({ rowGap: "[0]" })}>
       {document.inputs.length === 0 ? (
         <span className={mutedTextStyle}>
           No inputs. Add one when a step needs a value nothing earlier gives.
@@ -1423,7 +1461,8 @@ const RunFormFields = () => {
             inputBlockStyle,
             index > 0
               ? css({
-                  paddingTop: "2",
+                  marginTop: "3",
+                  paddingTop: "3",
                   borderTopWidth: "thin",
                   borderTopStyle: "solid",
                   borderTopColor: "neutral.bd.subtle",
@@ -1431,32 +1470,47 @@ const RunFormFields = () => {
               : undefined,
           )}
         >
-          <span className={rowActionStyle} data-row-action>
-            <Button
-              size="xs"
-              variant="ghost"
-              iconName="trash"
-              aria-label={`Remove ${input.label ?? input.name}`}
-              tooltip="Remove"
-              onClick={() =>
-                setDocument((current) => ({
-                  ...current,
-                  inputs: current.inputs.filter(
-                    (other) => other.name !== input.name,
-                  ),
-                }))
-              }
-            />
-          </span>
-          <PropertyRow label="Name">
-            <TextInput
-              size="sm"
-              value={input.label ?? ""}
-              aria-label="Input name"
-              onChange={(label) => updateInput(input.name, { label })}
-            />
-          </PropertyRow>
-          <PropertyRow label="Type">
+          <div className={css({ display: "contents" })} data-row>
+            <div data-property-name className={css({ paddingRight: "[36px]" })}>
+              <span data-input-icon>
+                <Icon
+                  name={kindIcon(kindLabel(input.payloadKind, input.array))}
+                  size="sm"
+                />
+              </span>
+              <DescriptionInput
+                value={input.label ?? input.name}
+                label="Input name"
+                className={css({
+                  "&[class]": {
+                    color: "neutral.fg.heading",
+                    lineHeight: "[20px]",
+                  },
+                  minWidth: "[0]",
+                })}
+                onChange={(label) => updateInput(input.name, { label })}
+              />
+              <span className={rowActionStyle} data-row-action>
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  iconName="trash"
+                  aria-label={`Remove ${input.label ?? input.name}`}
+                  tooltip="Remove"
+                  onClick={() =>
+                    setDocument((current) => ({
+                      ...current,
+                      inputs: current.inputs.filter(
+                        (other) => other.name !== input.name,
+                      ),
+                    }))
+                  }
+                />
+              </span>
+            </div>
+          </div>
+          <div className={inputFieldStyle}>
+            <span className={inputLabelStyle}>Type</span>
             <Select
               size="sm"
               aria-label="Input type"
@@ -1475,13 +1529,10 @@ const RunFormFields = () => {
                 setDefault(input.name, null);
               }}
             />
-          </PropertyRow>
+          </div>
           {input.payloadKind === "EntityId" ? (
-            <PropertyRow
-              label="Entity type"
-              optional
-              hover="Flow inputs have no entity type in the engine. Kept in the prototype's mock layer so the run form can filter its picker."
-            >
+            <div className={inputFieldStyle}>
+              <span className={inputLabelStyle}>Entity type</span>
               <Select
                 size="sm"
                 items={mockEntityTypes.map((type) => ({
@@ -1503,14 +1554,11 @@ const RunFormFields = () => {
                   }))
                 }
               />
-            </PropertyRow>
+            </div>
           ) : null}
           {input.array && input.payloadKind !== "EntityId" ? null : (
-            <PropertyRow
-              label="Default value"
-              optional
-              hover="Mock: what the run form fills in. The engine's flow inputs have no default."
-            >
+            <div className={inputFieldStyle}>
+              <span className={inputLabelStyle}>Default value</span>
               {input.array ? (
                 <Select
                   size="sm"
@@ -1554,14 +1602,20 @@ const RunFormFields = () => {
                   onChange={(value) => setDefault(input.name, value)}
                 />
               )}
-            </PropertyRow>
+            </div>
           )}
           {usersOf(
             document,
             (source) =>
               source.kind === "flow-input" && source.inputName === input.name,
           ).length > 0 ? (
-            <PropertyRow label="">
+            <div
+              className={css({
+                marginTop: "2",
+                marginLeft: "[var(--u-dx)]",
+                marginRight: "[var(--u-r)]",
+              })}
+            >
               <UsedBy
                 quiet
                 match={(source) =>
@@ -1569,15 +1623,36 @@ const RunFormFields = () => {
                   source.inputName === input.name
                 }
               />
-            </PropertyRow>
+            </div>
           ) : null}
         </div>
       ))}
-      <div>
-        <Button size="sm" variant="subtle" iconName="plus" onClick={addInput}>
-          Add input
-        </Button>
-      </div>
+      <button
+        type="button"
+        className={css({
+          position: "relative",
+          display: "flex",
+          alignItems: "center",
+          height: "[var(--u-rh)]",
+          marginTop: "1",
+          paddingLeft: "[var(--u-tx)]",
+          textStyle: "sm",
+          color: "neutral.fg.muted",
+          cursor: "pointer",
+        })}
+        onClick={addInput}
+      >
+        <span
+          className={css({
+            position: "absolute",
+            left: "[38px]",
+            display: "flex",
+          })}
+        >
+          <Icon name="plus" size="xs" />
+        </span>
+        Add input
+      </button>
     </Section>
   );
 };
