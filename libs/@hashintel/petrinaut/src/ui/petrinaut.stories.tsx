@@ -1006,6 +1006,7 @@ const manyPortsNet: SDCPN = {
     ] as const
   ).map(([placeId, portPlaceId]) => ({
     id: `fuse_${placeId}`,
+    name: `Cell ${placeId}`,
     members: [{ kind: "place" as const, placeId }, port("cell1", portPlaceId)],
   })),
 };
