@@ -166,7 +166,9 @@ describe("buildCspHeader's Vercel toolbar allowance", () => {
 
       for (const directive of ["script-src", "connect-src", "frame-src"]) {
         expect(
-          directiveSources(header, directive).includes("https://vercel.live"),
+          directiveSources(header, directive).some(
+            (source) => source === "https://vercel.live",
+          ),
         ).toBe(allowed);
       }
     },
