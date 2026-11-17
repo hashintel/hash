@@ -165,7 +165,7 @@ describe("compilePetrinautModel", () => {
         stochasticity: true,
         dynamics: false,
         parameters: false,
-        subnets: true,
+        components: true,
       },
     });
 
@@ -327,16 +327,16 @@ describe("compilePetrinautModel", () => {
           {
             id: "worker",
             name: "Worker",
-            subnetId: "worker-subnet",
+            componentId: "worker-component",
             parameterValues: {},
             x: 0,
             y: 0,
           },
         ],
-        subnets: [
+        components: [
           {
-            id: "worker-subnet",
-            name: "Worker subnet",
+            id: "worker-component",
+            name: "Worker component",
             places: [place("internal")],
             transitions: [],
             types: [],

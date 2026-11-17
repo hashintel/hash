@@ -34,7 +34,7 @@ const hasMissingPositions = (sdcpn: {
   places: { x?: number; y?: number }[];
   transitions: { x?: number; y?: number }[];
   componentInstances?: { x?: number; y?: number }[];
-  subnets?: {
+  components?: {
     places: { x?: number; y?: number }[];
     transitions: { x?: number; y?: number }[];
     componentInstances?: { x?: number; y?: number }[];
@@ -49,8 +49,8 @@ const hasMissingPositions = (sdcpn: {
       return true;
     }
   }
-  for (const subnet of sdcpn.subnets ?? []) {
-    if (hasMissingPositions(subnet)) {
+  for (const component of sdcpn.components ?? []) {
+    if (hasMissingPositions(component)) {
       return true;
     }
   }
@@ -68,7 +68,7 @@ const fillMissingVisualInfo = (sdcpn: {
   transitions: Array<{ x?: number; y?: number }>;
   types: Array<{ iconSlug?: string; displayColor?: string }>;
   componentInstances?: Array<{ x?: number; y?: number }>;
-  subnets?: Array<{
+  components?: Array<{
     places: Array<{ x?: number; y?: number }>;
     transitions: Array<{ x?: number; y?: number }>;
     types: Array<{ iconSlug?: string; displayColor?: string }>;
@@ -97,28 +97,30 @@ const fillMissingVisualInfo = (sdcpn: {
       x: instance.x ?? 0,
       y: instance.y ?? 0,
     })),
-    subnets: (sdcpn.subnets ?? []).map((subnet) => ({
-      ...subnet,
-      places: subnet.places.map((place) => ({
+    components: (sdcpn.components ?? []).map((component) => ({
+      ...component,
+      places: component.places.map((place) => ({
         ...place,
         x: place.x ?? 0,
         y: place.y ?? 0,
       })),
-      transitions: subnet.transitions.map((transition) => ({
+      transitions: component.transitions.map((transition) => ({
         ...transition,
         x: transition.x ?? 0,
         y: transition.y ?? 0,
       })),
-      types: subnet.types.map((type) => ({
+      types: component.types.map((type) => ({
         ...type,
         iconSlug: type.iconSlug ?? "circle",
         displayColor: type.displayColor ?? "#808080",
       })),
-      componentInstances: (subnet.componentInstances ?? []).map((instance) => ({
-        ...instance,
-        x: instance.x ?? 0,
-        y: instance.y ?? 0,
-      })),
+      componentInstances: (component.componentInstances ?? []).map(
+        (instance) => ({
+          ...instance,
+          x: instance.x ?? 0,
+          y: instance.y ?? 0,
+        }),
+      ),
     })),
   }) as SDCPNWithTitle;
 

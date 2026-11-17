@@ -19,6 +19,7 @@ import { variableNameSchema } from "../validation/variable-name";
 import type {
   ArcEndpoint,
   Color,
+  Component,
   ComponentInstance,
   ComponentReference,
   DifferentialEquation,
@@ -30,7 +31,6 @@ import type {
   OutputArc,
   Parameter,
   Place,
-  Subnet,
   Transition,
 } from "../types/sdcpn";
 
@@ -95,13 +95,13 @@ export const arcEndpointSchema = z
       }),
       portPlaceId: idSchema.meta({
         description:
-          "ID of a place marked `isPort: true` in the component instance's referenced subnet.",
+          "ID of a place marked `isPort: true` in the component instance's referenced component.",
       }),
     }),
   ])
   .meta({
     description:
-      "Arc endpoint. Normal arcs reference a place in the same net; component-port arcs reference a port place on a subnet instance.",
+      "Arc endpoint. Normal arcs reference a place in the same net; component-port arcs reference a port place on a component instance.",
   }) satisfies z.ZodType<ArcEndpoint>;
 
 const assertSingleArcEndpoint = (ctx: {
@@ -240,11 +240,11 @@ export const placeSchema = z
     }),
     isPort: z.boolean().optional().meta({
       description:
-        "When true, this place is exposed as a component port on instances of the subnet that contains it.",
+        "When true, this place is exposed as a component port on instances of the component that contains it.",
     }),
     portDirection: z.enum(portDirections).optional().meta({
       description:
-        'For a port: the direction the component promises. `"in"`: the component\'s transitions only consume from the port. `"out"`: they only produce into it. `"inout"`: both. A read or an inhibitor arc moves no token and counts as neither. Omit to infer it from the subnet\'s arcs on the port and on what the subnet fuses it with.',
+        'For a port: the direction the component promises. `"in"`: the component\'s transitions only consume from the port. `"out"`: they only produce into it. `"inout"`: both. A read or an inhibitor arc moves no token and counts as neither. Omit to infer it from the component\'s arcs on the port and on what the component fuses it with.',
     }),
     visualizerCode: z.string().optional().meta({
       description:
@@ -447,16 +447,16 @@ export const importedComponentReferenceSchema = z
 export const componentReferenceSchema = z
   .union([
     z.strictObject({
-      id: idSchema.meta({ description: "The component's subnet ID." }),
+      id: idSchema.meta({ description: "The component's component ID." }),
     }),
     importedComponentReferenceSchema,
   ])
   .meta({
     description:
-      "A reference to a component: `{ id }` names a subnet of the document, `{ from, id }` a component of an import.",
+      "A reference to a component: `{ id }` names a component of the document, `{ from, id }` a component of an import.",
   }) satisfies z.ZodType<ComponentReference>;
 
-/** The fields of a component instance, without the rule that ties `subnetId` and `component`. */
+/** The fields of a component instance, without the rule that ties `componentId` and `component`. */
 export const componentInstanceObjectSchema = z.strictObject({
   id: idSchema,
   name: entityNameSchema.meta({
@@ -465,13 +465,13 @@ export const componentInstanceObjectSchema = z.strictObject({
   }),
   description: descriptionSchema,
   metadata: metadataSchema,
-  subnetId: idSchema.optional().meta({
+  componentId: idSchema.optional().meta({
     description:
-      "ID of the subnet of the document this component instantiates, a UUID. Any other string is converted to a stable UUID. Give this or `component`, never both.",
+      "ID of the component of the document this component instantiates, a UUID. Any other string is converted to a stable UUID. Give this or `component`, never both.",
   }),
   component: importedComponentReferenceSchema.optional().meta({
     description:
-      "The component of an import this instance instantiates, as `{ from, id }`. Give this or `subnetId`, never both.",
+      "The component of an import this instance instantiates, as `{ from, id }`. Give this or `componentId`, never both.",
   }),
   parameterValues: z.record(idSchema, z.string()).meta({
     description:
@@ -479,7 +479,7 @@ export const componentInstanceObjectSchema = z.strictObject({
   }),
   implementation: componentReferenceSchema.optional().meta({
     description:
-      "For an instance of an interface: the component to run, as `{ id }` for a subnet of the document or `{ from, id }` for a component of an import. Omit to run the document's default implementation for the interface.",
+      "For an instance of an interface: the component to run, as `{ id }` for a component of the document or `{ from, id }` for a component of an import. Omit to run the document's default implementation for the interface.",
   }),
   x: z.number().meta({
     description: "Horizontal canvas position.",
@@ -489,9 +489,9 @@ export const componentInstanceObjectSchema = z.strictObject({
   }),
 });
 
-/** An instance names one component: a subnet of the document or a component of an import. */
+/** An instance names one component: a component of the document or a component of an import. */
 export const checkInstanceNamesOneComponent = (context: {
-  value: { subnetId?: string; component?: unknown };
+  value: { componentId?: string; component?: unknown };
   issues: {
     push(issue: {
       code: "custom";
@@ -501,12 +501,12 @@ export const checkInstanceNamesOneComponent = (context: {
     }): void;
   };
 }): void => {
-  const { subnetId, component } = context.value;
-  if ((subnetId === undefined) === (component === undefined)) {
+  const { componentId, component } = context.value;
+  if ((componentId === undefined) === (component === undefined)) {
     context.issues.push({
       code: "custom",
-      path: ["subnetId"],
-      message: "Provide exactly one of `subnetId` or `component`.",
+      path: ["componentId"],
+      message: "Provide exactly one of `componentId` or `component`.",
       input: context.value,
     });
   }
@@ -516,7 +516,7 @@ export const componentInstanceSchema = componentInstanceObjectSchema
   .check(checkInstanceNamesOneComponent)
   .meta({
     description:
-      "A placed instance of a component: a subnet of the document, or a component of an import. Parent nets connect to its ports with fusions and transition arcs.",
+      "A placed instance of a component: a component of the document, or a component of an import. Parent nets connect to its ports with fusions and transition arcs.",
   }) satisfies z.ZodType<ComponentInstance>;
 
 /** A fusion member names a place the way an arc endpoint does. */
@@ -566,11 +566,11 @@ export const fusionSchema = z
       "A fusion set: a place of the net and ports of its component instances that act as one place in simulation.",
   }) satisfies z.ZodType<Fusion>;
 
-/** The longest icon a subnet may carry, in characters of SVG markup. */
-export const maxSubnetIconLength = 16_384;
+/** The longest icon a component may carry, in characters of SVG markup. */
+export const maxComponentIconLength = 16_384;
 
 /** The elements an icon may hold: the root, groups and plain shapes. */
-const subnetIconElements = [
+const componentIconElements = [
   "svg",
   "g",
   "path",
@@ -594,12 +594,12 @@ const subnetIconElements = [
  * name ends where an HTML parser ends it, so nothing a parser may take for a
  * tag gets past.
  */
-export const disallowedSubnetIconElement = (
+export const disallowedComponentIconElement = (
   markup: string,
 ): string | undefined => {
   const tagNames = /<\/?([^\t\n\f\r <>/!?][^\t\n\f\r <>/]*)/g;
   for (const [, name] of markup.matchAll(tagNames)) {
-    if (name !== undefined && !subnetIconElements.includes(name)) {
+    if (name !== undefined && !componentIconElements.includes(name)) {
       return name;
     }
   }
@@ -607,27 +607,29 @@ export const disallowedSubnetIconElement = (
 };
 
 /** Why an icon that holds `element` is refused. */
-export const describeDisallowedSubnetIconElement = (element: string): string =>
-  `An icon cannot hold a \`${element}\` element: only ${subnetIconElements.slice(0, -1).join(", ")} and ${subnetIconElements.at(-1)}.`;
+export const describeDisallowedComponentIconElement = (
+  element: string,
+): string =>
+  `An icon cannot hold a \`${element}\` element: only ${componentIconElements.slice(0, -1).join(", ")} and ${componentIconElements.at(-1)}.`;
 
-export const subnetSchema = z
+export const componentSchema = z
   .strictObject({
     id: idSchema,
     name: displayNameSchema.meta({
-      description: "Human-readable subnet name.",
+      description: "Human-readable component name.",
     }),
     description: descriptionSchema,
     metadata: metadataSchema,
     iconSvg: z
       .string()
       .min(1)
-      .max(maxSubnetIconLength)
+      .max(maxComponentIconLength)
       .check((context) => {
-        const element = disallowedSubnetIconElement(context.value);
+        const element = disallowedComponentIconElement(context.value);
         if (element !== undefined) {
           context.issues.push({
             code: "custom",
-            message: describeDisallowedSubnetIconElement(element),
+            message: describeDisallowedComponentIconElement(element),
             input: context.value,
           });
         }
@@ -643,39 +645,39 @@ export const subnetSchema = z
     }),
     interface: z.literal(true).optional().meta({
       description:
-        "When true, the subnet is an interface: a signature of ports, types and parameters with no transitions, which implements no interface itself. Instances of it run the implementation bound to them.",
+        "When true, the component is an interface: a signature of ports, types and parameters with no transitions, which implements no interface itself. Instances of it run the implementation bound to them.",
     }),
     implements: z.array(idSchema).optional().meta({
       description:
-        "IDs of the interface subnets this subnet implements: it has a port of the same name and token type for each of theirs, and a parameter of each variable name. Not for a subnet that is an interface: an interface cannot implement an interface.",
+        "IDs of the interface components this component implements: it has a port of the same name and token type for each of theirs, and a parameter of each variable name. Not for a component that is an interface: an interface cannot implement an interface.",
     }),
     places: z.array(placeSchema).meta({
-      description: "Places local to this subnet.",
+      description: "Places local to this component.",
     }),
     transitions: z.array(transitionSchema).meta({
-      description: "Transitions local to this subnet.",
+      description: "Transitions local to this component.",
     }),
     types: z.array(colorSchema).meta({
-      description: "Token types local to this subnet.",
+      description: "Token types local to this component.",
     }),
     differentialEquations: z.array(differentialEquationSchema).meta({
-      description: "Differential equations local to this subnet.",
+      description: "Differential equations local to this component.",
     }),
     parameters: z.array(parameterSchema).meta({
-      description: "Parameters local to this subnet.",
+      description: "Parameters local to this component.",
     }),
     componentInstances: z.array(componentInstanceSchema).optional().meta({
-      description: "Nested component instances local to this subnet.",
+      description: "Nested component instances local to this component.",
     }),
     fusions: z.array(fusionSchema).optional().meta({
       description:
-        "Fusions among this subnet's places and its nested instances' ports.",
+        "Fusions among this component's places and its nested instances' ports.",
     }),
   })
   .meta({
     description:
-      "A reusable subnet definition that can be instantiated as a component.",
-  }) satisfies z.ZodType<Subnet>;
+      "A reusable component definition that can be instantiated as a component.",
+  }) satisfies z.ZodType<Component>;
 
 export type PlaceSchema = typeof placeSchema;
 export type TransitionSchema = typeof transitionSchema;
@@ -683,5 +685,5 @@ export type ColorSchema = typeof colorSchema;
 export type DifferentialEquationSchema = typeof differentialEquationSchema;
 export type ParameterSchema = typeof parameterSchema;
 export type ComponentInstanceSchema = typeof componentInstanceSchema;
-export type SubnetSchema = typeof subnetSchema;
+export type ComponentSchema = typeof componentSchema;
 export type FusionSchema = typeof fusionSchema;

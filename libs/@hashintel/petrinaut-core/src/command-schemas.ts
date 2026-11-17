@@ -38,7 +38,7 @@ export const commandActionInputSchemas = {
   ...aiCommandActionInputSchemas,
   applyClipboardPaste: z.strictObject({
     payload: clipboardPayloadSchema,
-    targetSubnetId: z.string().min(1).nullable().optional(),
+    targetComponentId: z.string().min(1).nullable().optional(),
   }),
 } as const;
 

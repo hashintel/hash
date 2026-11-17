@@ -58,7 +58,7 @@ const severitiesWorstFirst: ProblemSeverity[] = ["error", "warning", "info"];
 export const fusionStatuses = (
   sdcpn: SDCPN,
   net: ActiveNetDefinition,
-  activeSubnetId: string | null,
+  activeComponentId: string | null,
   libraries?: ResolvedLibraries,
 ): Map<string, FusionStatus> => {
   const pass = fusionCheckPass(sdcpn, libraries);
@@ -68,7 +68,7 @@ export const fusionStatuses = (
         sdcpn,
         net,
         fusion,
-        activeSubnetId,
+        activeComponentId,
         libraries,
         pass,
       );

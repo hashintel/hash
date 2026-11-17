@@ -119,8 +119,8 @@ export const BottomBar: React.FC<BottomBarProps> = ({
   // (e.g. HIR semantic lints) are informational.
   const { errorDiagnosticsCount } = use(LanguageClientContext);
   const hasDiagnostics = errorDiagnosticsCount > 0;
-  const { activeSubnetId } = use(ActiveNetContext);
-  const isInSubnet = activeSubnetId !== null;
+  const { activeComponentId } = use(ActiveNetContext);
+  const isInComponent = activeComponentId !== null;
   const isReadOnly = useIsReadOnly();
   const composesOnly = useComposesOnly();
 
@@ -258,7 +258,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
                       <ToolbarDivider />
                       <EventSimulationControls
                         disabled={hasDiagnostics}
-                        inSubnet={isInSubnet}
+                        inComponent={isInComponent}
                       />
                     </>
                   )}

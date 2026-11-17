@@ -29,7 +29,7 @@ const launchHandleStyle = css({
   },
 });
 
-// Pseudo-elements expand hit areas without moving the anchors of subnet arcs.
+// Pseudo-elements expand hit areas without moving the anchors of component arcs.
 const targetHandleStyle = css({
   _after: {
     content: '""',

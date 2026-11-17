@@ -46,7 +46,11 @@ const Harness = ({
       }}
     >
       <ActiveNetContext
-        value={{ activeNet, activeSubnetId: null, setActiveSubnetId: () => {} }}
+        value={{
+          activeNet,
+          activeComponentId: null,
+          setActiveComponentId: () => {},
+        }}
       >
         <EditorContext value={{ ...editor, selectItem }}>
           <UserSettingsContext

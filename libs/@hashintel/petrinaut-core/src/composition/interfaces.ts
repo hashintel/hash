@@ -1,32 +1,32 @@
 /**
- * Components and interfaces. A component is a subnet of the document or a
+ * Components and interfaces. A component is a component of the document or a
  * component of one of its imports, and every reader gets at one through
- * `resolveComponent`. A subnet flagged `interface` is a signature, ports,
+ * `resolveComponent`. A component flagged `interface` is a signature, ports,
  * types and parameters with no body, that instances point at like any
- * component. The subnet that runs for such an instance is the implementation
+ * component. The component that runs for such an instance is the implementation
  * bound to it, by the instance itself or by the document's defaults.
- * `implements` on a subnet says which interfaces it can stand behind, and
+ * `implements` on a component says which interfaces it can stand behind, and
  * `check-interfaces.ts` holds it to their ports and parameters.
  */
 
 import type {
   Color,
+  Component,
   ComponentInstance,
   ComponentReference,
   ID,
   Parameter,
   Place,
   SDCPN,
-  Subnet,
 } from "../types/sdcpn";
 import type { ResolvedLibraries } from "./libraries";
 
-/** The component an instance instantiates: one of an import, else a subnet of the document. */
+/** The component an instance instantiates: one of an import, else a component of the document. */
 export const componentOf = (
-  instance: Pick<ComponentInstance, "subnetId" | "component">,
+  instance: Pick<ComponentInstance, "componentId" | "component">,
 ): ComponentReference =>
   // An instance has one of the two. With neither, the reference names nothing.
-  instance.component ?? { id: instance.subnetId ?? "" };
+  instance.component ?? { id: instance.componentId ?? "" };
 
 /** Whether two references name the same component: the same id, from the same place. */
 export const sameComponent = (
@@ -44,39 +44,40 @@ export const describeMissingComponent = ({
   id,
 }: ComponentReference): string =>
   from === undefined
-    ? `subnet ID \`${id}\` which does not exist`
+    ? `component ID \`${id}\` which does not exist`
     : `component \`${id}\` of the import \`${from}\`, which is not available`;
 
-export const isInterface = (subnet: Pick<Subnet, "interface">): boolean =>
-  subnet.interface === true;
+export const isInterface = (component: Pick<Component, "interface">): boolean =>
+  component.interface === true;
 
-/** Whether a subnet holds what an interface may not: a transition or an instance. */
+/** Whether a component holds what an interface may not: a transition or an instance. */
 export const hasBody = (
-  subnet: Pick<Subnet, "transitions" | "componentInstances">,
+  component: Pick<Component, "transitions" | "componentInstances">,
 ): boolean =>
-  subnet.transitions.length > 0 || (subnet.componentInstances?.length ?? 0) > 0;
+  component.transitions.length > 0 ||
+  (component.componentInstances?.length ?? 0) > 0;
 
 /**
- * The component `reference` names: a subnet of the document, or a component
- * of one of its imports, as a subnet too. `undefined` when there is none, and
+ * The component `reference` names: a component of the document, or a component
+ * of one of its imports, as a component too. `undefined` when there is none, and
  * for a component of an import that is not among `libraries`: one that is
- * still resolving, or that failed. `subnetsById` is `indexSubnets(sdcpn)`,
+ * still resolving, or that failed. `componentsById` is `indexComponents(sdcpn)`,
  * which saves a search of the document's list.
  */
 export const resolveComponent = (
-  sdcpn: Pick<SDCPN, "subnets">,
+  sdcpn: Pick<SDCPN, "components">,
   reference: ComponentReference,
   libraries?: ResolvedLibraries,
-  subnetsById?: ReadonlyMap<ID, Subnet>,
-): Subnet | undefined => {
+  componentsById?: ReadonlyMap<ID, Component>,
+): Component | undefined => {
   if (reference.from !== undefined) {
     return libraries
       ?.get(reference.from)
       ?.components.find(({ id }) => id === reference.id);
   }
-  return subnetsById
-    ? subnetsById.get(reference.id)
-    : sdcpn.subnets?.find(({ id }) => id === reference.id);
+  return componentsById
+    ? componentsById.get(reference.id)
+    : sdcpn.components?.find(({ id }) => id === reference.id);
 };
 
 /**
@@ -97,29 +98,29 @@ export const defaultImplementation = (
       )?.component;
 
 export const implementsInterface = (
-  subnet: Pick<Subnet, "implements">,
+  component: Pick<Component, "implements">,
   interfaceId: ID,
-): boolean => subnet.implements?.includes(interfaceId) ?? false;
+): boolean => component.implements?.includes(interfaceId) ?? false;
 
 /** Whether the instance names the implementation or the document's default does. */
 type ChosenBy = "instance" | "document";
 
 export type ImplementationBinding =
-  | { kind: "component"; subnet: Subnet }
+  | { kind: "component"; component: Component }
   | {
       kind: "bound";
-      interface: Subnet;
-      implementation: Subnet;
+      interface: Component;
+      implementation: Component;
       chosenBy: ChosenBy;
     }
-  | ({ kind: "unbound"; interface: Subnet } & (
+  | ({ kind: "unbound"; interface: Component } & (
       | { reason: "no-binding" }
       /** The binding names a component that does not exist. */
       | { reason: "missing"; reference: ComponentReference; chosenBy: ChosenBy }
-      /** The binding names a subnet that cannot stand behind the interface. */
+      /** The binding names a component that cannot stand behind the interface. */
       | {
           reason: "is-interface" | "not-implementing";
-          implementation: Subnet;
+          implementation: Component;
           chosenBy: ChosenBy;
         }
     ));
@@ -140,9 +141,10 @@ export const indexById = <Item extends { id: ID }>(
   return itemsById;
 };
 
-/** The document's subnets by id, for a caller that resolves many instances. */
-export const indexSubnets = (sdcpn: Pick<SDCPN, "subnets">): Map<ID, Subnet> =>
-  indexById(sdcpn.subnets ?? []);
+/** The document's components by id, for a caller that resolves many instances. */
+export const indexComponents = (
+  sdcpn: Pick<SDCPN, "components">,
+): Map<ID, Component> => indexById(sdcpn.components ?? []);
 
 /** `read`, called once at most: what it gives is kept for the calls that follow. */
 export const once = <Value>(read: () => Value): (() => Value) => {
@@ -154,12 +156,12 @@ export const once = <Value>(read: () => Value): (() => Value) => {
 };
 
 /**
- * What the checks and the flattener read of a subnet that is an interface or
+ * What the checks and the flattener read of a component that is an interface or
  * stands behind one: each of its lists by id, its ports, and what an
  * interface's ports and parameters are matched by. Each is read once, when
  * first asked for.
  */
-export type SubnetIndex = {
+export type ComponentIndex = {
   places: () => ReadonlyMap<ID, Place>;
   types: () => ReadonlyMap<ID, Color>;
   parameters: () => ReadonlyMap<ID, Parameter>;
@@ -170,12 +172,12 @@ export type SubnetIndex = {
   parameterIdsByVariableName: () => ReadonlyMap<string, ID>;
 };
 
-export const indexSubnet = (subnet: Subnet): SubnetIndex => {
-  const ports = once(() => subnet.places.filter(({ isPort }) => isPort));
+export const indexComponent = (component: Component): ComponentIndex => {
+  const ports = once(() => component.places.filter(({ isPort }) => isPort));
   return {
-    places: once(() => indexById(subnet.places)),
-    types: once(() => indexById(subnet.types)),
-    parameters: once(() => indexById(subnet.parameters)),
+    places: once(() => indexById(component.places)),
+    types: once(() => indexById(component.types)),
+    parameters: once(() => indexById(component.parameters)),
     ports,
     portIdsByName: once(
       () => new Map(ports().map(({ name, id }) => [name, id])),
@@ -183,39 +185,42 @@ export const indexSubnet = (subnet: Subnet): SubnetIndex => {
     parameterIdsByVariableName: once(
       () =>
         new Map(
-          subnet.parameters.map(({ variableName, id }) => [variableName, id]),
+          component.parameters.map(({ variableName, id }) => [
+            variableName,
+            id,
+          ]),
         ),
     ),
   };
 };
 
 /**
- * The document's subnets by id and its default implementation by the
+ * The document's components by id and its default implementation by the
  * `componentKey` of each interface, for a caller that resolves many
  * instances. Of two defaults for one interface the first is kept, as a
  * search of the list finds it.
  */
 export type DocumentIndex = {
-  subnetsById: ReadonlyMap<ID, Subnet>;
+  componentsById: ReadonlyMap<ID, Component>;
   defaults: ReadonlyMap<string, ComponentReference>;
   /**
-   * `implementsInterface` for a subnet of the document, whose list of
+   * `implementsInterface` for a component of the document, whose list of
    * interfaces is read once however many instances are bound to it.
    */
   implementsInterface: (
-    subnet: Pick<Subnet, "id" | "implements">,
+    component: Pick<Component, "id" | "implements">,
     interfaceId: ID,
   ) => boolean;
   /**
-   * `indexSubnet` for a subnet of the document, whose lists are read once
-   * however many subnets it is matched with and instances it runs for. A
-   * subnet the document does not hold under its id is read for the call.
+   * `indexComponent` for a component of the document, whose lists are read once
+   * however many components it is matched with and instances it runs for. A
+   * component the document does not hold under its id is read for the call.
    */
-  subnetIndex: (subnet: Subnet) => SubnetIndex;
+  componentIndex: (component: Component) => ComponentIndex;
 };
 
 export const indexDocument = (
-  sdcpn: Pick<SDCPN, "subnets" | "implementations">,
+  sdcpn: Pick<SDCPN, "components" | "implementations">,
 ): DocumentIndex => {
   const defaults = new Map<string, ComponentReference>();
   for (const entry of sdcpn.implementations ?? []) {
@@ -224,28 +229,28 @@ export const indexDocument = (
       defaults.set(key, entry.component);
     }
   }
-  const implementedBySubnetId = new Map<ID, ReadonlySet<ID>>();
-  const subnetsById = indexSubnets(sdcpn);
-  const subnetIndexes = new Map<ID, SubnetIndex>();
+  const implementedByComponentId = new Map<ID, ReadonlySet<ID>>();
+  const componentsById = indexComponents(sdcpn);
+  const componentIndexes = new Map<ID, ComponentIndex>();
   return {
-    subnetsById,
+    componentsById,
     defaults,
-    implementsInterface: (subnet, interfaceId) => {
-      let implemented = implementedBySubnetId.get(subnet.id);
+    implementsInterface: (component, interfaceId) => {
+      let implemented = implementedByComponentId.get(component.id);
       if (!implemented) {
-        implemented = new Set(subnet.implements);
-        implementedBySubnetId.set(subnet.id, implemented);
+        implemented = new Set(component.implements);
+        implementedByComponentId.set(component.id, implemented);
       }
       return implemented.has(interfaceId);
     },
-    subnetIndex: (subnet) => {
-      if (subnetsById.get(subnet.id) !== subnet) {
-        return indexSubnet(subnet);
+    componentIndex: (component) => {
+      if (componentsById.get(component.id) !== component) {
+        return indexComponent(component);
       }
-      let index = subnetIndexes.get(subnet.id);
+      let index = componentIndexes.get(component.id);
       if (!index) {
-        index = indexSubnet(subnet);
-        subnetIndexes.set(subnet.id, index);
+        index = indexComponent(component);
+        componentIndexes.set(component.id, index);
       }
       return index;
     },
@@ -255,11 +260,11 @@ export const indexDocument = (
 /** What names the component an instance instantiates and the one it chose to run. */
 export type InstanceBinding = Pick<
   ComponentInstance,
-  "subnetId" | "component" | "implementation"
+  "componentId" | "component" | "implementation"
 >;
 
 /**
- * Whether a binding joins two components of the document. A subnet says what
+ * Whether a binding joins two components of the document. A component says what
  * it implements by the ids of interfaces of its own document, so only such a
  * binding can be held to that list. Across a library nothing can say it: the
  * binding stands, and the checks hold the component to the interface's ports
@@ -271,25 +276,25 @@ export const bindsWithinDocument = (
 ): boolean => iface.from === undefined && implementation.from === undefined;
 
 /**
- * The subnet that runs where `iface` is named: the component itself when it
+ * The component that runs where `iface` is named: the component itself when it
  * has a body; for an interface, the implementation `chosen` names, else the
  * document's default. `null` when `iface` does not resolve.
  */
 export const resolveBinding = (
-  sdcpn: Pick<SDCPN, "subnets" | "implementations">,
+  sdcpn: Pick<SDCPN, "components" | "implementations">,
   iface: ComponentReference,
   chosen: ComponentReference | undefined,
   libraries?: ResolvedLibraries,
   index?: DocumentIndex,
 ): ImplementationBinding | null => {
   const resolve = (reference: ComponentReference) =>
-    resolveComponent(sdcpn, reference, libraries, index?.subnetsById);
+    resolveComponent(sdcpn, reference, libraries, index?.componentsById);
   const declared = resolve(iface);
   if (!declared) {
     return null;
   }
   if (!isInterface(declared)) {
-    return { kind: "component", subnet: declared };
+    return { kind: "component", component: declared };
   }
   const unbound = { kind: "unbound", interface: declared } as const;
   const reference =
@@ -316,13 +321,13 @@ export const resolveBinding = (
 };
 
 /**
- * The subnet that runs for `instance`: see `resolveBinding`. `null` when the
+ * The component that runs for `instance`: see `resolveBinding`. `null` when the
  * instance's component does not resolve. `index` is `indexDocument(sdcpn)`,
- * which saves a search of the document's subnets and of its defaults for
+ * which saves a search of the document's components and of its defaults for
  * each instance.
  */
 export const resolveImplementation = (
-  sdcpn: Pick<SDCPN, "subnets" | "implementations">,
+  sdcpn: Pick<SDCPN, "components" | "implementations">,
   instance: InstanceBinding,
   libraries?: ResolvedLibraries,
   index?: DocumentIndex,
@@ -382,15 +387,15 @@ const matchIds = <Item extends { id: ID }>(
  * hands each call the same one.
  */
 export const mapInterfacePorts = (
-  iface: Pick<SubnetIndex, "ports">,
-  implementation: Pick<SubnetIndex, "portIdsByName">,
+  iface: Pick<ComponentIndex, "ports">,
+  implementation: Pick<ComponentIndex, "portIdsByName">,
 ): Map<ID, ID> =>
   matchIds(iface.ports(), implementation.portIdsByName(), ({ name }) => name);
 
 /** The implementation's parameter for each of the interface's, matched by variable name. */
 export const mapInterfaceParameters = (
-  iface: Pick<Subnet, "parameters">,
-  implementation: Pick<SubnetIndex, "parameterIdsByVariableName">,
+  iface: Pick<Component, "parameters">,
+  implementation: Pick<ComponentIndex, "parameterIdsByVariableName">,
 ): Map<ID, ID> =>
   matchIds(
     iface.parameters,
@@ -399,14 +404,14 @@ export const mapInterfaceParameters = (
   );
 
 /**
- * The subnet an instance declares, the one that runs for it, and the running
- * subnet's ids for the declared one's ports and parameters: identities for a
+ * The component an instance declares, the one that runs for it, and the running
+ * component's ids for the declared one's ports and parameters: identities for a
  * component, the name-matched ones of the implementation for an interface.
  * An id the implementation has no match for maps to itself.
  */
-export type RunningSubnet = {
-  declared: Subnet;
-  running: Subnet;
+export type RunningComponent = {
+  declared: Component;
+  running: Component;
   portId: (declaredPortId: ID) => ID;
   parameterId: (declaredParameterId: ID) => ID;
 };
@@ -416,20 +421,20 @@ export type RunningSubnet = {
  * read of the interface's places, and of the implementation's places and
  * parameters, for each binding and instance that joins them.
  */
-export const runningSubnet = (
+export const runningComponent = (
   binding: Exclude<ImplementationBinding, { kind: "unbound" }>,
-  index?: Pick<DocumentIndex, "subnetIndex">,
-): RunningSubnet => {
+  index?: Pick<DocumentIndex, "componentIndex">,
+): RunningComponent => {
   if (binding.kind === "component") {
     const identity = (id: ID): ID => id;
     return {
-      declared: binding.subnet,
-      running: binding.subnet,
+      declared: binding.component,
+      running: binding.component,
       portId: identity,
       parameterId: identity,
     };
   }
-  const indexOf = index?.subnetIndex ?? indexSubnet;
+  const indexOf = index?.componentIndex ?? indexComponent;
   const implementation = indexOf(binding.implementation);
   const ports = mapInterfacePorts(indexOf(binding.interface), implementation);
   const parameters = mapInterfaceParameters(binding.interface, implementation);
@@ -451,17 +456,17 @@ export const bindingKey = (instance: InstanceBinding): string =>
     instance.implementation ? componentKey(instance.implementation) : null,
   ]);
 
-/** A port, and the subnet it is in. */
-type PortOfSubnet = { subnet: Subnet; place: Place };
+/** A port, and the component it is in. */
+type PortOfComponent = { component: Component; place: Place };
 
 /**
- * A port that runs. `key` is the `componentKey` of the subnet it is in: it
- * tells a component of a library from a subnet of the document with its id.
+ * A port that runs. `key` is the `componentKey` of the component it is in: it
+ * tells a component of a library from a component of the document with its id.
  */
-export type RunningPort = PortOfSubnet & { key: string };
+export type RunningPort = PortOfComponent & { key: string };
 
 /**
- * The place that runs for each port of `instance`, and the subnet it is in:
+ * The place that runs for each port of `instance`, and the component it is in:
  * the declared port itself for a component, and for an instance of an
  * interface the bound implementation's port of the same name. Falls back to
  * the declared port while nothing is bound or the implementation lacks the
@@ -473,23 +478,25 @@ export type RunningPort = PortOfSubnet & { key: string };
  * implementation's places for each binding it runs behind.
  */
 export const resolveRunningPorts = (
-  sdcpn: Pick<SDCPN, "subnets" | "implementations">,
+  sdcpn: Pick<SDCPN, "components" | "implementations">,
   instance: InstanceBinding,
   libraries?: ResolvedLibraries,
   index?: DocumentIndex,
-): ((declared: PortOfSubnet) => RunningPort) => {
+): ((declared: PortOfComponent) => RunningPort) => {
   const own = componentOf(instance);
-  const asDeclared = ({ subnet, place }: PortOfSubnet): RunningPort => ({
+  const asDeclared = ({ component, place }: PortOfComponent): RunningPort => ({
     key: componentKey(own),
-    subnet,
+    component,
     place,
   });
   const binding = resolveImplementation(sdcpn, instance, libraries, index);
   if (binding?.kind !== "bound") {
     return asDeclared;
   }
-  const { running, portId } = runningSubnet(binding, index);
-  const placesById = (index?.subnetIndex ?? indexSubnet)(running).places();
+  const { running, portId } = runningComponent(binding, index);
+  const placesById = (index?.componentIndex ?? indexComponent)(
+    running,
+  ).places();
   // What a bound instance runs is its own choice, else the document's default.
   const key = componentKey(
     instance.implementation ??
@@ -498,6 +505,6 @@ export const resolveRunningPorts = (
   );
   return (declared) => {
     const place = placesById.get(portId(declared.place.id));
-    return place ? { key, subnet: running, place } : asDeclared(declared);
+    return place ? { key, component: running, place } : asDeclared(declared);
   };
 };

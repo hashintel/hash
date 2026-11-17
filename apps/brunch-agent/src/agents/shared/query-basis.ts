@@ -68,10 +68,10 @@ type Selector = v.InferOutput<typeof elementSchema>["selector"];
 /** A net element the selector can match: by ID, by name, or by its arc's endpoints. */
 type ElementCandidate = Omit<NetElement, "kind"> & { readonly name: string };
 
-/** The root net and each subnet: places, transitions and their other items can sit in either. */
+/** The root net and each component: places, transitions and their other items can sit in either. */
 const netsOf = (definition: NetStructure) => [
   definition,
-  ...(definition.subnets ?? []),
+  ...(definition.components ?? []),
 ];
 
 const elements = (
@@ -80,13 +80,13 @@ const elements = (
 ): ElementCandidate[] => {
   if (kind === "scenario") return definition.scenarios ?? [];
   if (kind === "metric") return definition.metrics ?? [];
-  if (kind === "subnet") return definition.subnets ?? [];
+  if (kind === "component") return definition.components ?? [];
   return netsOf(definition).flatMap((net) => netElements(net, kind));
 };
 
 const netElements = (
   net: ReturnType<typeof netsOf>[number],
-  kind: Exclude<Selector["kind"], "scenario" | "metric" | "subnet">,
+  kind: Exclude<Selector["kind"], "scenario" | "metric" | "component">,
 ): ElementCandidate[] => {
   if (kind === "place") return net.places;
   if (kind === "transition") return net.transitions;

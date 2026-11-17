@@ -1,7 +1,7 @@
 import {
-  describeDisallowedSubnetIconElement,
-  disallowedSubnetIconElement,
-  maxSubnetIconLength,
+  describeDisallowedComponentIconElement,
+  disallowedComponentIconElement,
+  maxComponentIconLength,
 } from "@hashintel/petrinaut-core";
 
 import { iconMaskImage } from "../lib/icon-mask";
@@ -11,18 +11,21 @@ type PickedIcon = { ok: true; iconSvg: string } | { ok: false; error: string };
 
 const tooLarge: PickedIcon = {
   ok: false,
-  error: `That file is too large for an icon: keep it under ${Math.floor(maxSubnetIconLength / 1024)} KB.`,
+  error: `That file is too large for an icon: keep it under ${Math.floor(maxComponentIconLength / 1024)} KB.`,
 };
 
 /** The text of a file as a component's icon, or why it cannot be one. */
 export const readIconMarkup = (text: string): PickedIcon => {
   const iconSvg = text.trim();
-  if (iconSvg.length > maxSubnetIconLength) {
+  if (iconSvg.length > maxComponentIconLength) {
     return tooLarge;
   }
-  const element = disallowedSubnetIconElement(iconSvg);
+  const element = disallowedComponentIconElement(iconSvg);
   if (element !== undefined) {
-    return { ok: false, error: describeDisallowedSubnetIconElement(element) };
+    return {
+      ok: false,
+      error: describeDisallowedComponentIconElement(element),
+    };
   }
   return iconMaskImage(iconSvg) === null
     ? { ok: false, error: "That file is not an SVG." }
@@ -37,7 +40,7 @@ export const readIconMarkup = (text: string): PickedIcon => {
 export const readIconFile = async (
   file: Pick<File, "size" | "text">,
 ): Promise<PickedIcon> => {
-  if (file.size > 3 * maxSubnetIconLength) {
+  if (file.size > 3 * maxComponentIconLength) {
     return tooLarge;
   }
   const text = await readFileText(file);

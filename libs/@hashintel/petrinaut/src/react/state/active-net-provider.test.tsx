@@ -26,7 +26,7 @@ import { SDCPNContext, type SDCPNContextValue } from "./sdcpn-context";
 
 afterEach(cleanup);
 
-const subnetId = toPetrinautId("subnet__legacy");
+const componentId = toPetrinautId("component__legacy");
 
 const sdcpn: SDCPN = {
   places: [],
@@ -34,10 +34,10 @@ const sdcpn: SDCPN = {
   types: [],
   parameters: [],
   differentialEquations: [],
-  subnets: [
+  components: [
     {
-      id: subnetId,
-      name: "Subnet",
+      id: componentId,
+      name: "Component",
       places: [],
       transitions: [],
       types: [],
@@ -61,32 +61,32 @@ const sdcpnContextValue: SDCPNContextValue = {
 };
 
 type RecordedNavigation = {
-  subnetId: string | null;
+  componentId: string | null;
   intent: PetrinautNavigationIntent;
 };
 
-const ActiveSubnet = () => (
-  <output>{use(ActiveNetContext).activeSubnetId ?? "root"}</output>
+const ActiveComponent = () => (
+  <output>{use(ActiveNetContext).activeComponentId ?? "root"}</output>
 );
 
 const TestHost = ({
-  requestedSubnetId,
+  requestedComponentId,
   recorded,
   rules = {},
 }: {
-  requestedSubnetId: string;
+  requestedComponentId: string;
   recorded: RecordedNavigation[];
   rules?: PetrinautRules;
 }) => {
   const [state, setState] = useState<PetrinautNavigationState>({
     ...defaultPetrinautNavigationState,
-    subnetId: requestedSubnetId,
+    componentId: requestedComponentId,
   });
   const controller: PetrinautNavigationController = {
     state,
     onNavigate: (update, { intent }) => {
       const next = update(state);
-      recorded.push({ subnetId: next.subnetId, intent });
+      recorded.push({ componentId: next.componentId, intent });
       setState(next);
     },
   };
@@ -95,7 +95,7 @@ const TestHost = ({
       <CompositionContext value={{ ...use(CompositionContext), rules }}>
         <PetrinautNavigationProvider controller={controller}>
           <ActiveNetProvider>
-            <ActiveSubnet />
+            <ActiveComponent />
           </ActiveNetProvider>
         </PetrinautNavigationProvider>
       </CompositionContext>
@@ -104,24 +104,26 @@ const TestHost = ({
 };
 
 const normalizationTo = (target: string | null): RecordedNavigation => ({
-  subnetId: target,
-  intent: { cause: "normalization", action: "subnet" },
+  componentId: target,
+  intent: { cause: "normalization", action: "component" },
 });
 
 describe("ActiveNetProvider", () => {
-  it("opens a subnet requested by its legacy id and rewrites the location", () => {
+  it("opens a component requested by its legacy id and rewrites the location", () => {
     const recorded: RecordedNavigation[] = [];
-    render(<TestHost requestedSubnetId="subnet__legacy" recorded={recorded} />);
+    render(
+      <TestHost requestedComponentId="component__legacy" recorded={recorded} />,
+    );
 
-    expect(screen.getByRole("status").textContent).toBe(subnetId);
-    expect(recorded).toEqual([normalizationTo(subnetId)]);
+    expect(screen.getByRole("status").textContent).toBe(componentId);
+    expect(recorded).toEqual([normalizationTo(componentId)]);
   });
 
-  it("keeps a canonical subnet id as it is", () => {
+  it("keeps a canonical component id as it is", () => {
     const recorded: RecordedNavigation[] = [];
-    render(<TestHost requestedSubnetId={subnetId} recorded={recorded} />);
+    render(<TestHost requestedComponentId={componentId} recorded={recorded} />);
 
-    expect(screen.getByRole("status").textContent).toBe(subnetId);
+    expect(screen.getByRole("status").textContent).toBe(componentId);
     expect(recorded).toEqual([]);
   });
 
@@ -129,7 +131,7 @@ describe("ActiveNetProvider", () => {
     const recorded: RecordedNavigation[] = [];
     render(
       <TestHost
-        requestedSubnetId={subnetId}
+        requestedComponentId={componentId}
         recorded={recorded}
         rules={{ edit: "compose" }}
       />,
@@ -139,9 +141,9 @@ describe("ActiveNetProvider", () => {
     expect(recorded).toEqual([normalizationTo(null)]);
   });
 
-  it("falls back to the root net for an unknown subnet id", () => {
+  it("falls back to the root net for an unknown component id", () => {
     const recorded: RecordedNavigation[] = [];
-    render(<TestHost requestedSubnetId="missing" recorded={recorded} />);
+    render(<TestHost requestedComponentId="missing" recorded={recorded} />);
 
     expect(screen.getByRole("status").textContent).toBe("root");
     expect(recorded).toEqual([normalizationTo(null)]);

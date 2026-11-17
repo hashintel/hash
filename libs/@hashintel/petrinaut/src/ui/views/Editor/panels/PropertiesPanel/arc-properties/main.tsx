@@ -237,10 +237,10 @@ export const ArcProperties: React.FC<ArcPropertiesProps> = ({
     const instance = (petriNetDefinition.componentInstances ?? []).find(
       ({ id }) => id === endpoint.componentInstanceId,
     );
-    const subnet = instance
+    const component = instance
       ? resolveComponent(fullSdcpn, componentOf(instance), libraries)
       : undefined;
-    const port = subnet?.places.find(
+    const port = component?.places.find(
       (place) => place.id === endpoint.portPlaceId,
     );
     return `${instance?.name ?? "Unknown component"}.${

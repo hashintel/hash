@@ -134,7 +134,7 @@ export function migrateScenarioRowsForTypeEdit(
 
   const type = [
     ...sdcpn.types,
-    ...(sdcpn.subnets ?? []).flatMap((subnet) => subnet.types),
+    ...(sdcpn.components ?? []).flatMap((component) => component.types),
   ].find((candidate) => candidate.id === typeId);
   if (!type) {
     return;
@@ -143,7 +143,7 @@ export function migrateScenarioRowsForTypeEdit(
   const affectedPlaceIds = new Set(
     [
       ...sdcpn.places,
-      ...(sdcpn.subnets ?? []).flatMap((subnet) => subnet.places),
+      ...(sdcpn.components ?? []).flatMap((component) => component.places),
     ]
       .filter((place) => place.colorId === typeId)
       .map((place) => place.id),

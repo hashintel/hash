@@ -208,7 +208,7 @@ const PlaceMainContent: React.FC = () => {
               updatePlace({ placeId: place.id, update: { isPort: checked } })
             }
           />
-          <HelpTooltip content="Expose this place as a port when its subnet is used as a component: fuse it with a place of the net that holds the instance, or connect it to a transition there." />
+          <HelpTooltip content="Expose this place as a port when its component is used as a component: fuse it with a place of the net that holds the instance, or connect it to a transition there." />
         </div>
         {place.isPort && (
           <PortDirectionField

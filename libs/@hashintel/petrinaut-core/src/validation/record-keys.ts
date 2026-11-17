@@ -145,9 +145,9 @@ export const findDangerousSdcpnKeys = (sdcpn: SDCPN): DangerousSdcpnKey[] => {
       check(found, "scenario parameter identifier", parameter.identifier);
     }
   }
-  for (const subnet of sdcpn.subnets ?? []) {
-    check(found, "subnet id", subnet.id);
-    collectNetKeys(found, subnet, `subnet "${subnet.id}" `);
+  for (const component of sdcpn.components ?? []) {
+    check(found, "component id", component.id);
+    collectNetKeys(found, component, `component "${component.id}" `);
   }
 
   return found;

@@ -52,7 +52,7 @@ const definition: SDCPN = {
   differentialEquations: [],
 };
 
-const definitionWithSubnet: SDCPN = {
+const definitionWithComponent: SDCPN = {
   ...definition,
   transitions: definition.transitions.map((transition) =>
     transition.id === "finish"
@@ -76,16 +76,16 @@ const definitionWithSubnet: SDCPN = {
     {
       id: "archive",
       name: "Archive",
-      subnetId: "archive-subnet",
+      componentId: "archive-component",
       parameterValues: {},
       x: 920,
       y: 320,
     },
   ],
-  subnets: [
+  components: [
     {
-      id: "archive-subnet",
-      name: "Archive subnet",
+      id: "archive-component",
+      name: "Archive component",
       places: [
         {
           id: "inbox",
@@ -107,15 +107,15 @@ const definitionWithSubnet: SDCPN = {
 
 const ArcConnectionsEditor = ({
   readonly = false,
-  withSubnet = false,
+  withComponent = false,
 }: {
   readonly?: boolean;
-  withSubnet?: boolean;
+  withComponent?: boolean;
 }) => (
   <div style={{ height: "100vh", width: "100vw" }}>
     <PetrinautStoryProvider
       initialTitle="Arc connections"
-      initialDefinition={withSubnet ? definitionWithSubnet : definition}
+      initialDefinition={withComponent ? definitionWithComponent : definition}
       readonly={readonly}
     />
   </div>
@@ -133,4 +133,4 @@ type Story = StoryObj<typeof meta>;
 
 export const Editable: Story = {};
 export const ReadOnly: Story = { args: { readonly: true } };
-export const WithSubnet: Story = { args: { withSubnet: true } };
+export const WithComponent: Story = { args: { withComponent: true } };

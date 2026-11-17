@@ -49,7 +49,7 @@ export function usePetrinautMutations(): GuardedPetrinautMutations {
       "usePetrinautMutations must be used inside <PetrinautProvider> (or <Petrinaut>).",
     );
   }
-  const { activeSubnetId } = use(ActiveNetContext);
+  const { activeComponentId } = use(ActiveNetContext);
   const readOnlyReason = useReadOnlyReason();
   const notifyReadOnly = useReadOnlyFeedback();
   const notifyHostRules = useHostRulesFeedback();
@@ -57,7 +57,7 @@ export function usePetrinautMutations(): GuardedPetrinautMutations {
 
   const withReadonlyGuard = <Name extends keyof PetrinautMutations>(
     name: Name,
-    options?: { targetActiveSubnet?: boolean },
+    options?: { targetActiveComponent?: boolean },
   ): GuardedPetrinautMutations[Name] => {
     const target = mutations[name] as (
       input: PetrinautMutationInput<Name>,
@@ -68,11 +68,11 @@ export function usePetrinautMutations(): GuardedPetrinautMutations {
         return false;
       }
       const nextInput =
-        options?.targetActiveSubnet === false
+        options?.targetActiveComponent === false
           ? input
           : ({
               ...input,
-              targetSubnetId: activeSubnetId,
+              targetComponentId: activeComponentId,
             } as PetrinautMutationInput<Name>);
       // Asked of the input as it goes out, with the net it targets.
       const refusal = instance.mutationRefusal(name, nextInput);
@@ -114,27 +114,29 @@ export function usePetrinautMutations(): GuardedPetrinautMutations {
     updateParameter: withReadonlyGuard("updateParameter"),
     removeParameter: withReadonlyGuard("removeParameter"),
     addScenario: withReadonlyGuard("addScenario", {
-      targetActiveSubnet: false,
+      targetActiveComponent: false,
     }),
     updateScenario: withReadonlyGuard("updateScenario", {
-      targetActiveSubnet: false,
+      targetActiveComponent: false,
     }),
     removeScenario: withReadonlyGuard("removeScenario", {
-      targetActiveSubnet: false,
+      targetActiveComponent: false,
     }),
-    addMetric: withReadonlyGuard("addMetric", { targetActiveSubnet: false }),
+    addMetric: withReadonlyGuard("addMetric", { targetActiveComponent: false }),
     updateMetric: withReadonlyGuard("updateMetric", {
-      targetActiveSubnet: false,
+      targetActiveComponent: false,
     }),
     removeMetric: withReadonlyGuard("removeMetric", {
-      targetActiveSubnet: false,
+      targetActiveComponent: false,
     }),
-    addSubnet: withReadonlyGuard("addSubnet", { targetActiveSubnet: false }),
-    updateSubnet: withReadonlyGuard("updateSubnet", {
-      targetActiveSubnet: false,
+    addComponent: withReadonlyGuard("addComponent", {
+      targetActiveComponent: false,
     }),
-    removeSubnet: withReadonlyGuard("removeSubnet", {
-      targetActiveSubnet: false,
+    updateComponent: withReadonlyGuard("updateComponent", {
+      targetActiveComponent: false,
+    }),
+    removeComponent: withReadonlyGuard("removeComponent", {
+      targetActiveComponent: false,
     }),
     addComponentInstance: withReadonlyGuard("addComponentInstance"),
     updateComponentInstance: withReadonlyGuard("updateComponentInstance"),
@@ -149,7 +151,7 @@ export function usePetrinautMutations(): GuardedPetrinautMutations {
     removeFusionMember: withReadonlyGuard("removeFusionMember"),
     replaceFusionMember: withReadonlyGuard("replaceFusionMember"),
     setImplementation: withReadonlyGuard("setImplementation", {
-      targetActiveSubnet: false,
+      targetActiveComponent: false,
     }),
     deleteItemsByIds: withReadonlyGuard("deleteItemsByIds"),
     commitNodePositions: withReadonlyGuard("commitNodePositions"),

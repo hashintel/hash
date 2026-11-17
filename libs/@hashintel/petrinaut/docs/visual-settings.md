@@ -149,7 +149,7 @@ along their tracks. These movements settle back without changing the control's
 meaning. Controls with a persistent state keep their existing state animation.
 
 **Recent changes** uses a clock with a return arrow. Hovering or opening its menu
-briefly rewinds the hands. The subnet cube turns in depth on hover and makes a
+briefly rewinds the hands. The component cube turns in depth on hover and makes a
 quarter-turn when clicked. The click turn finishes even if you move the pointer
 or keyboard focus away; rear edges stay hidden throughout the turn.
 
@@ -256,7 +256,7 @@ preferences are saved.
 
 ### Net Components (experimental)
 
-Shows the tools that build a net from [components](composition.md): the Nets panel, the component tool in the bottom toolbar and, where the application offers libraries, the Components panel. A net that already holds components draws and runs with the setting off. This option appears when the net supports subnets. Off by default.
+Shows the tools that build a net from [components](composition.md): the Nets panel, the component tool in the bottom toolbar and, where the application offers libraries, the Components panel. A net that already holds components draws and runs with the setting off. This option appears when the net supports components. Off by default.
 
 ### Compilation output (experimental)
 

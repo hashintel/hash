@@ -12,11 +12,11 @@ import { createPetrinaut } from "./instance";
 import { toPetrinautId } from "./petrinaut-id";
 import {
   componentInstanceSchema,
-  maxSubnetIconLength,
-  subnetSchema,
+  componentSchema,
+  maxComponentIconLength,
 } from "./schemas/entity-schemas";
 
-import type { ArcEndpoint, SDCPN, Subnet } from "./types/sdcpn";
+import type { ArcEndpoint, Component, SDCPN } from "./types/sdcpn";
 
 const idOf = toPetrinautId;
 
@@ -361,16 +361,16 @@ describe("Petrinaut core actions", () => {
         {
           id: "instance-1",
           name: "Reusable instance",
-          subnetId: "subnet-1",
+          componentId: "component-1",
           parameterValues: {},
           x: 100,
           y: 100,
         },
       ],
-      subnets: [
+      components: [
         {
-          id: "subnet-1",
-          name: "Reusable subnet",
+          id: "component-1",
+          name: "Reusable component",
           places: [
             {
               id: "place-output-port",
@@ -500,16 +500,16 @@ describe("Petrinaut core actions", () => {
         {
           id: "instance-1",
           name: "Reusable instance",
-          subnetId: "subnet-1",
+          componentId: "component-1",
           parameterValues: {},
           x: 100,
           y: 100,
         },
       ],
-      subnets: [
+      components: [
         {
-          id: "subnet-1",
-          name: "Reusable subnet",
+          id: "component-1",
+          name: "Reusable component",
           places: [
             {
               id: "place-input-port",
@@ -591,7 +591,7 @@ describe("Petrinaut core actions", () => {
     ).toThrow("only places marked `isPort` can be used as component ports");
 
     instance.mutations.removePlace({
-      targetSubnetId: "subnet-1",
+      targetComponentId: "component-1",
       placeId: "place-input-port",
     });
 
@@ -1211,9 +1211,9 @@ describe("Petrinaut core actions", () => {
       name: "Metric",
       code: "return 0;",
     });
-    instance.mutations.addSubnet({
-      id: "subnet-1",
-      name: "Reusable subnet",
+    instance.mutations.addComponent({
+      id: "component-1",
+      name: "Reusable component",
       places: [],
       transitions: [],
       types: [],
@@ -1238,10 +1238,10 @@ describe("Petrinaut core actions", () => {
         code: "return 0;",
       },
     ]);
-    expect(instance.definition.get().subnets).toEqual([
+    expect(instance.definition.get().components).toEqual([
       {
-        id: toPetrinautId("subnet-1"),
-        name: "Reusable subnet",
+        id: toPetrinautId("component-1"),
+        name: "Reusable component",
         places: [],
         transitions: [],
         types: [],
@@ -1252,12 +1252,12 @@ describe("Petrinaut core actions", () => {
     ]);
   });
 
-  test("targets place mutations at a subnet when targetSubnetId is provided", () => {
+  test("targets place mutations at a component when targetComponentId is provided", () => {
     const instance = createInstance();
 
-    instance.mutations.addSubnet({
-      id: "subnet-1",
-      name: "Reusable subnet",
+    instance.mutations.addComponent({
+      id: "component-1",
+      name: "Reusable component",
       places: [],
       transitions: [],
       types: [],
@@ -1266,7 +1266,7 @@ describe("Petrinaut core actions", () => {
       componentInstances: [],
     });
     instance.mutations.addPlace({
-      targetSubnetId: "subnet-1",
+      targetComponentId: "component-1",
       id: "place-1",
       name: "Input",
       colorId: null,
@@ -1275,14 +1275,14 @@ describe("Petrinaut core actions", () => {
       y: 0,
     });
     instance.mutations.updatePlace({
-      targetSubnetId: "subnet-1",
+      targetComponentId: "component-1",
       placeId: "place-1",
       update: { isPort: true },
     });
 
     const definition = instance.definition.get();
     expect(definition.places).toEqual([]);
-    expect(definition.subnets?.[0]?.places).toEqual([
+    expect(definition.components?.[0]?.places).toEqual([
       {
         id: idOf("place-1"),
         name: "Input",
@@ -1332,7 +1332,7 @@ describe("Petrinaut core fusion actions", () => {
         y: 0,
       },
     ],
-    subnets: [
+    components: [
       {
         id: "machine",
         name: "Machine",
@@ -1347,7 +1347,7 @@ describe("Petrinaut core fusion actions", () => {
       {
         id: "m1",
         name: "M1",
-        subnetId: "machine",
+        componentId: "machine",
         parameterValues: {},
         x: 0,
         y: 0,
@@ -1355,7 +1355,7 @@ describe("Petrinaut core fusion actions", () => {
       {
         id: "m2",
         name: "M2",
-        subnetId: "machine",
+        componentId: "machine",
         parameterValues: {},
         x: 0,
         y: 0,
@@ -1572,7 +1572,7 @@ describe("Petrinaut core fusion actions", () => {
   test("rejects a port that does not exist, a place that is not a port, a member twice and a second anchor", () => {
     const definition = composed();
     definition.places.push({ ...definition.places[0]!, id: "store" });
-    definition.subnets![0]!.places.push({
+    definition.components![0]!.places.push({
       ...portPlace("hidden", "Hidden"),
       isPort: false,
     });
@@ -1657,19 +1657,19 @@ describe("Petrinaut core fusion actions", () => {
     });
   });
 
-  test("renames a subnet the document was loaded with a one-member fusion in", () => {
+  test("renames a component the document was loaded with a one-member fusion in", () => {
     const definition = composed();
-    definition.subnets![0]!.fusions = [
+    definition.components![0]!.fusions = [
       { id: "f1", name: "F1", members: [{ kind: "place", placeId: "in" }] },
     ];
     const instance = createInstance(definition);
 
-    instance.mutations.updateSubnet({
-      subnetId: "machine",
+    instance.mutations.updateComponent({
+      componentId: "machine",
       update: { name: "Press" },
     });
 
-    expect(instance.definition.get().subnets?.[0]).toMatchObject({
+    expect(instance.definition.get().components?.[0]).toMatchObject({
       name: "Press",
       fusions: [{ id: idOf("f1"), members: [{ placeId: idOf("in") }] }],
     });
@@ -1819,16 +1819,16 @@ describe("Petrinaut core fusion actions", () => {
     });
     instance.mutations.updatePlace({
       placeId: "in",
-      targetSubnetId: "machine",
+      targetComponentId: "machine",
       update: { isPort: false },
     });
     expect(instance.definition.get().fusions).toBeUndefined();
   });
 
-  test("an instance pointed at another subnet leaves the fusions and arcs on its old ports", () => {
+  test("an instance pointed at another component leaves the fusions and arcs on its old ports", () => {
     const definition = composed();
-    definition.subnets!.push({
-      ...definition.subnets![0]!,
+    definition.components!.push({
+      ...definition.components![0]!,
       id: "press",
       name: "Press",
       places: [portPlace("press_in", "In")],
@@ -1852,7 +1852,7 @@ describe("Petrinaut core fusion actions", () => {
 
     instance.mutations.updateComponentInstance({
       instanceId: "m1",
-      update: { subnetId: "press" },
+      update: { componentId: "press" },
     });
 
     const document = instance.definition.get();
@@ -1882,20 +1882,20 @@ describe("Petrinaut core fusion actions", () => {
 
     instance.mutations.updatePlace({
       placeId: "in",
-      targetSubnetId: "machine",
+      targetComponentId: "machine",
       update: { portDirection: "in" },
     });
     expect(
-      instance.definition.get().subnets?.[0]?.places[0]?.portDirection,
+      instance.definition.get().components?.[0]?.places[0]?.portDirection,
     ).toBe("in");
 
     instance.mutations.updatePlace({
       placeId: "in",
-      targetSubnetId: "machine",
+      targetComponentId: "machine",
       update: { isPort: false },
     });
     expect(
-      instance.definition.get().subnets?.[0]?.places[0]?.portDirection,
+      instance.definition.get().components?.[0]?.places[0]?.portDirection,
     ).toBeUndefined();
   });
 
@@ -1925,8 +1925,8 @@ describe("Petrinaut core fusion actions", () => {
     /** `M1.In` takes an arc and `M1.Out` is fused; nothing names a port of `M2`. */
     const wired = (): SDCPN => {
       const definition = composed();
-      definition.subnets!.push({
-        ...definition.subnets![0]!,
+      definition.components!.push({
+        ...definition.components![0]!,
         id: "press",
         name: "Press",
         places: [portPlace("press_in", "In")],
@@ -1966,7 +1966,7 @@ describe("Petrinaut core fusion actions", () => {
     const unmark = (placeId: string, update: object = { isPort: false }) =>
       ({
         action: "updatePlace",
-        input: { placeId, targetSubnetId: "machine", update },
+        input: { placeId, targetComponentId: "machine", update },
       }) as const;
     const repoint = (instanceId: string, update: object) =>
       ({
@@ -1985,19 +1985,19 @@ describe("Petrinaut core fusion actions", () => {
       ["renaming such a port", unmark("in", { name: "Inlet" }), false],
       ["marking it a port again", unmark("in", { isPort: true }), false],
       [
-        "pointing a wired instance at another subnet",
-        repoint("m1", { subnetId: "press" }),
+        "pointing a wired instance at another component",
+        repoint("m1", { componentId: "press" }),
         true,
       ],
       [
-        "pointing it at the subnet it has",
-        repoint("m1", { subnetId: "machine" }),
+        "pointing it at the component it has",
+        repoint("m1", { componentId: "machine" }),
         false,
       ],
       ["renaming a wired instance", repoint("m1", { name: "Mill" }), false],
       [
-        "pointing an instance nothing names at another subnet",
-        repoint("m2", { subnetId: "press" }),
+        "pointing an instance nothing names at another component",
+        repoint("m2", { componentId: "press" }),
         false,
       ],
     ])("%s", (_case, { action, input }, prunes) => {
@@ -2014,7 +2014,7 @@ describe("Petrinaut core fusion actions", () => {
       );
     });
 
-    test("unmarking a port nothing outside its subnet names takes nothing", () => {
+    test("unmarking a port nothing outside its component names takes nothing", () => {
       const definition = wired();
       definition.transitions = [];
       delete definition.fusions;
@@ -2035,14 +2035,14 @@ describe("Petrinaut core fusion actions", () => {
       expect(
         updatePrunesReferences(document, "updatePlace", {
           placeId: "in",
-          targetSubnetId: "missing",
+          targetComponentId: "missing",
           update: { isPort: false },
         }),
       ).toBe(false);
       expect(
         updatePrunesReferences(document, "updateComponentInstance", {
           instanceId: "missing",
-          update: { subnetId: "press" },
+          update: { componentId: "press" },
         }),
       ).toBe(false);
       expect(updatePrunesReferences(document, "removePlace", {})).toBe(false);
@@ -2061,7 +2061,10 @@ describe("Petrinaut core interface actions", () => {
     y: 0,
   });
 
-  const stageSubnet = (id: string, extra: Partial<Subnet> = {}): Subnet => ({
+  const stageComponent = (
+    id: string,
+    extra: Partial<Component> = {},
+  ): Component => ({
     id,
     name: id,
     places: [port(`${id}_in`, "In"), port(`${id}_out`, "Out")],
@@ -2079,17 +2082,17 @@ describe("Petrinaut core interface actions", () => {
 
   const withInterface = (): SDCPN => ({
     ...emptySDCPN,
-    subnets: [
-      stageSubnet("stage", { interface: true }),
-      stageSubnet("fast", { implements: ["stage"] }),
-      stageSubnet("slow", { implements: ["stage"] }),
-      stageSubnet("other"),
+    components: [
+      stageComponent("stage", { interface: true }),
+      stageComponent("fast", { implements: ["stage"] }),
+      stageComponent("slow", { implements: ["stage"] }),
+      stageComponent("other"),
     ],
     componentInstances: [
       {
         id: "s1",
         name: "S1",
-        subnetId: "stage",
+        componentId: "stage",
         parameterValues: {},
         x: 0,
         y: 0,
@@ -2136,9 +2139,9 @@ describe("Petrinaut core interface actions", () => {
     const base = withInterface();
     const instance = createInstance({
       ...base,
-      subnets: [
-        ...(base.subnets ?? []),
-        stageSubnet("draft", { interface: true, implements: ["stage"] }),
+      components: [
+        ...(base.components ?? []),
+        stageComponent("draft", { interface: true, implements: ["stage"] }),
       ],
     });
 
@@ -2160,7 +2163,7 @@ describe("Petrinaut core interface actions", () => {
       instance.mutations.addComponentInstance({
         id: "o1",
         name: "O1",
-        subnetId: "other",
+        componentId: "other",
         implementation: { id: "fast" },
         parameterValues: {},
         x: 0,
@@ -2187,10 +2190,10 @@ describe("Petrinaut core interface actions", () => {
       name: "Renamed",
       implementation: { id: idOf("other") },
     });
-    // Naming the subnet it already has makes no choice either.
+    // Naming the component it already has makes no choice either.
     instance.mutations.updateComponentInstance({
       instanceId: "s1",
-      update: { subnetId: "stage" },
+      update: { componentId: "stage" },
     });
     expect(
       instance.definition.get().componentInstances?.[0]?.implementation,
@@ -2211,23 +2214,23 @@ describe("Petrinaut core interface actions", () => {
     ).toEqual({ id: idOf("fast") });
   });
 
-  test("a subnet that stops being an interface is implemented by none", () => {
+  test("a component that stops being an interface is implemented by none", () => {
     const instance = createInstance(withInterface());
 
-    instance.mutations.updateSubnet({
-      subnetId: "stage",
+    instance.mutations.updateComponent({
+      componentId: "stage",
       update: { interface: undefined },
     });
     for (const id of ["fast", "slow"]) {
       expect(
         instance.definition
           .get()
-          .subnets?.find((subnet) => subnet.id === idOf(id)),
+          .components?.find((component) => component.id === idOf(id)),
       ).not.toHaveProperty("implements");
     }
   });
 
-  test("an instance pointed at another subnet lets go of its implementation", () => {
+  test("an instance pointed at another component lets go of its implementation", () => {
     const instance = createInstance(withInterface());
     instance.mutations.updateComponentInstance({
       instanceId: "s1",
@@ -2236,17 +2239,17 @@ describe("Petrinaut core interface actions", () => {
 
     instance.mutations.updateComponentInstance({
       instanceId: "s1",
-      update: { subnetId: "other" },
+      update: { componentId: "other" },
     });
     expect(instance.definition.get().componentInstances?.[0]).toMatchObject({
-      subnetId: idOf("other"),
+      componentId: idOf("other"),
     });
     expect(
       instance.definition.get().componentInstances?.[0],
     ).not.toHaveProperty("implementation");
   });
 
-  test("a change to one subnet leaves the defaults of the others as they are", () => {
+  test("a change to one component leaves the defaults of the others as they are", () => {
     const instance = createInstance({
       ...withInterface(),
       // Loaded as is: `other` does not say it implements the stage.
@@ -2257,8 +2260,8 @@ describe("Petrinaut core interface actions", () => {
       patches.push(...(event.patches ?? [])),
     );
 
-    instance.mutations.updateSubnet({
-      subnetId: "slow",
+    instance.mutations.updateComponent({
+      componentId: "slow",
       update: { name: "Slower" },
     });
     expect(instance.definition.get().implementations).toEqual([
@@ -2276,10 +2279,10 @@ describe("Petrinaut core interface actions", () => {
   test("setting a default leaves one entry for the interface, whatever was loaded", () => {
     const instance = createInstance({
       ...withInterface(),
-      subnets: [
-        ...(withInterface().subnets ?? []),
-        stageSubnet("gate", { interface: true }),
-        stageSubnet("barrier", { implements: ["gate"] }),
+      components: [
+        ...(withInterface().components ?? []),
+        stageComponent("gate", { interface: true }),
+        stageComponent("barrier", { implements: ["gate"] }),
       ],
       implementations: [
         defaultOf("stage", "fast"),
@@ -2306,7 +2309,7 @@ describe("Petrinaut core interface actions", () => {
     ]);
   });
 
-  test("renaming a subnet keeps the stale bindings a document was loaded with", () => {
+  test("renaming a component keeps the stale bindings a document was loaded with", () => {
     const loaded = withInterface();
     // Loaded as is: `other` does not say it implements the stage.
     const instance = createInstance({
@@ -2318,11 +2321,11 @@ describe("Petrinaut core interface actions", () => {
       })),
     });
 
-    // The binding names both subnets: as its implementation, as its interface.
-    for (const subnetId of ["other", "stage"]) {
-      instance.mutations.updateSubnet({
-        subnetId,
-        update: { name: `${subnetId} renamed` },
+    // The binding names both components: as its implementation, as its interface.
+    for (const componentId of ["other", "stage"]) {
+      instance.mutations.updateComponent({
+        componentId,
+        update: { name: `${componentId} renamed` },
       });
     }
     expect(instance.definition.get().implementations).toEqual([
@@ -2333,18 +2336,18 @@ describe("Petrinaut core interface actions", () => {
     ).toEqual({ id: idOf("other") });
   });
 
-  test("refuses a subnet that implements something that is no interface", () => {
+  test("refuses a component that implements something that is no interface", () => {
     const instance = createInstance(withInterface());
 
     expect(() =>
-      instance.mutations.updateSubnet({
-        subnetId: "other",
+      instance.mutations.updateComponent({
+        componentId: "other",
         update: { implements: ["missing"] },
       }),
     ).toThrow(/which does not exist/);
     expect(() =>
-      instance.mutations.addSubnet(
-        stageSubnet("another", { implements: ["fast"] }),
+      instance.mutations.addComponent(
+        stageComponent("another", { implements: ["fast"] }),
       ),
     ).toThrow(/which is not an interface/);
   });
@@ -2354,32 +2357,36 @@ describe("Petrinaut core interface actions", () => {
     const refusal = /an interface cannot implement an interface/;
 
     expect(() =>
-      instance.mutations.addSubnet(
-        stageSubnet("draft", { interface: true, implements: ["stage"] }),
+      instance.mutations.addComponent(
+        stageComponent("draft", { interface: true, implements: ["stage"] }),
       ),
     ).toThrow(refusal);
     expect(() =>
-      instance.mutations.updateSubnet({
-        subnetId: "fast",
+      instance.mutations.updateComponent({
+        componentId: "fast",
         update: { interface: true },
       }),
     ).toThrow(refusal);
 
-    instance.mutations.addSubnet(stageSubnet("draft", { interface: true }));
+    instance.mutations.addComponent(
+      stageComponent("draft", { interface: true }),
+    );
     expect(() =>
-      instance.mutations.updateSubnet({
-        subnetId: "draft",
+      instance.mutations.updateComponent({
+        componentId: "draft",
         update: { implements: ["stage"] },
       }),
     ).toThrow(refusal);
 
     // One update may turn an implementation into an interface.
-    instance.mutations.updateSubnet({
-      subnetId: "fast",
+    instance.mutations.updateComponent({
+      componentId: "fast",
       update: { interface: true, implements: undefined },
     });
     expect(
-      instance.definition.get().subnets?.find(({ id }) => id === idOf("fast")),
+      instance.definition
+        .get()
+        .components?.find(({ id }) => id === idOf("fast")),
     ).toMatchObject({ interface: true });
   });
 
@@ -2387,22 +2394,24 @@ describe("Petrinaut core interface actions", () => {
     const base = withInterface();
     const instance = createInstance({
       ...base,
-      subnets: [
-        ...(base.subnets ?? []),
-        stageSubnet("draft", { interface: true, implements: ["stage"] }),
+      components: [
+        ...(base.components ?? []),
+        stageComponent("draft", { interface: true, implements: ["stage"] }),
       ],
     });
 
-    instance.mutations.updateSubnet({
-      subnetId: "draft",
+    instance.mutations.updateComponent({
+      componentId: "draft",
       update: { name: "Draft" },
     });
-    instance.mutations.updateSubnet({
-      subnetId: "draft",
+    instance.mutations.updateComponent({
+      componentId: "draft",
       update: { implements: undefined },
     });
     expect(
-      instance.definition.get().subnets?.find(({ id }) => id === idOf("draft")),
+      instance.definition
+        .get()
+        .components?.find(({ id }) => id === idOf("draft")),
     ).not.toHaveProperty("implements");
   });
 
@@ -2433,7 +2442,7 @@ describe("Petrinaut core interface actions", () => {
     ).toBeUndefined();
   });
 
-  test("a subnet that stops implementing an interface, or being one, leaves no binding behind", () => {
+  test("a component that stops implementing an interface, or being one, leaves no binding behind", () => {
     const bound = () => {
       const instance = createInstance(withInterface());
       instance.mutations.setImplementation({
@@ -2448,8 +2457,8 @@ describe("Petrinaut core interface actions", () => {
     };
 
     const unticked = bound();
-    unticked.mutations.updateSubnet({
-      subnetId: "fast",
+    unticked.mutations.updateComponent({
+      componentId: "fast",
       update: { implements: undefined },
     });
     expect(unticked.definition.get().implementations).toBeUndefined();
@@ -2466,8 +2475,8 @@ describe("Petrinaut core interface actions", () => {
     );
 
     const demoted = bound();
-    demoted.mutations.updateSubnet({
-      subnetId: "stage",
+    demoted.mutations.updateComponent({
+      componentId: "stage",
       update: { interface: undefined },
     });
     expect(demoted.definition.get().implementations).toBeUndefined();
@@ -2476,7 +2485,7 @@ describe("Petrinaut core interface actions", () => {
     );
   });
 
-  test("removing a subnet drops the bindings and implements entries that named it", () => {
+  test("removing a component drops the bindings and implements entries that named it", () => {
     const instance = createInstance(withInterface());
     instance.mutations.setImplementation({
       interfaceId: "stage",
@@ -2487,28 +2496,30 @@ describe("Petrinaut core interface actions", () => {
       update: { implementation: { id: "fast" } },
     });
 
-    instance.mutations.removeSubnet({ subnetId: "fast" });
+    instance.mutations.removeComponent({ componentId: "fast" });
     const definition = instance.definition.get();
     expect(definition.implementations).toBeUndefined();
     expect(definition.componentInstances?.[0]?.implementation).toBeUndefined();
 
-    instance.mutations.removeSubnet({ subnetId: "stage" });
+    instance.mutations.removeComponent({ componentId: "stage" });
     expect(
-      instance.definition.get().subnets?.find(({ id }) => id === idOf("slow"))
-        ?.implements,
+      instance.definition
+        .get()
+        .components?.find(({ id }) => id === idOf("slow"))?.implements,
     ).toBeUndefined();
   });
 
   test("clearing the interface flag deletes it", () => {
     const instance = createInstance(withInterface());
 
-    instance.mutations.updateSubnet({
-      subnetId: "stage",
+    instance.mutations.updateComponent({
+      componentId: "stage",
       update: { interface: undefined },
     });
     expect(
-      instance.definition.get().subnets?.find(({ id }) => id === idOf("stage"))
-        ?.interface,
+      instance.definition
+        .get()
+        .components?.find(({ id }) => id === idOf("stage"))?.interface,
     ).toBeUndefined();
   });
 
@@ -2539,35 +2550,35 @@ describe("Petrinaut core interface actions", () => {
       expect(placed()).not.toHaveProperty("implementation");
     });
 
-    test("makes an interface an ordinary subnet again with false", () => {
+    test("makes an interface an ordinary component again with false", () => {
       const instance = createInstance(withInterface());
-      const subnetOf = (id: string) =>
+      const componentOf = (id: string) =>
         instance.definition
           .get()
-          .subnets?.find((subnet) => subnet.id === idOf(id));
+          .components?.find((component) => component.id === idOf(id));
       instance.mutations.setImplementation({
         interfaceId: "stage",
         implementationId: "fast",
       });
 
       callActionWithUnknownInput(
-        instance.mutations.updateSubnet,
-        fromJson('{"subnetId":"stage","update":{"interface":false}}'),
+        instance.mutations.updateComponent,
+        fromJson('{"componentId":"stage","update":{"interface":false}}'),
       );
-      expect(subnetOf("stage")).not.toHaveProperty("interface");
+      expect(componentOf("stage")).not.toHaveProperty("interface");
       // What rested on the interface goes with the flag, however it is cleared.
-      expect(subnetOf("fast")).not.toHaveProperty("implements");
+      expect(componentOf("fast")).not.toHaveProperty("implements");
       expect(instance.definition.get().implementations).toBeUndefined();
 
       callActionWithUnknownInput(
-        instance.mutations.updateSubnet,
-        fromJson('{"subnetId":"other","update":{"interface":true}}'),
+        instance.mutations.updateComponent,
+        fromJson('{"componentId":"other","update":{"interface":true}}'),
       );
-      expect(subnetOf("other")).toMatchObject({ interface: true });
+      expect(componentOf("other")).toMatchObject({ interface: true });
     });
 
-    test("is the only place a clear is written: a stored instance or subnet holds none", () => {
-      const [stage] = withInterface().subnets ?? [];
+    test("is the only place a clear is written: a stored instance or component holds none", () => {
+      const [stage] = withInterface().components ?? [];
       const [placed] = withInterface().componentInstances ?? [];
 
       expect(
@@ -2576,8 +2587,8 @@ describe("Petrinaut core interface actions", () => {
         ).update,
       ).toEqual({ implementation: null });
       expect(
-        mutationActionInputSchemas.updateSubnet.parse(
-          fromJson('{"subnetId":"stage","update":{"interface":false}}'),
+        mutationActionInputSchemas.updateComponent.parse(
+          fromJson('{"componentId":"stage","update":{"interface":false}}'),
         ).update,
       ).toEqual({ interface: false });
 
@@ -2592,25 +2603,27 @@ describe("Petrinaut core interface actions", () => {
         }).success,
       ).toBe(false);
       expect(
-        subnetSchema.safeParse({ ...stage, interface: false }).success,
+        componentSchema.safeParse({ ...stage, interface: false }).success,
       ).toBe(false);
     });
   });
 
-  test("a subnet takes an icon and a colour, and clearing one deletes it", () => {
+  test("a component takes an icon and a colour, and clearing one deletes it", () => {
     const instance = createInstance(withInterface());
     const iconSvg = '<svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/></svg>';
     const fast = () =>
-      instance.definition.get().subnets?.find(({ id }) => id === idOf("fast"));
+      instance.definition
+        .get()
+        .components?.find(({ id }) => id === idOf("fast"));
 
-    instance.mutations.updateSubnet({
-      subnetId: "fast",
+    instance.mutations.updateComponent({
+      componentId: "fast",
       update: { iconSvg, displayColor: "#3b82f6" },
     });
     expect(fast()).toMatchObject({ iconSvg, displayColor: "#3b82f6" });
 
-    instance.mutations.updateSubnet({
-      subnetId: "fast",
+    instance.mutations.updateComponent({
+      componentId: "fast",
       update: { iconSvg: undefined, displayColor: undefined },
     });
     expect(fast()).not.toHaveProperty("iconSvg");
@@ -2621,9 +2634,9 @@ describe("Petrinaut core interface actions", () => {
     const instance = createInstance(withInterface());
 
     expect(() =>
-      instance.mutations.updateSubnet({
-        subnetId: "fast",
-        update: { iconSvg: `<svg>${" ".repeat(maxSubnetIconLength)}</svg>` },
+      instance.mutations.updateComponent({
+        componentId: "fast",
+        update: { iconSvg: `<svg>${" ".repeat(maxComponentIconLength)}</svg>` },
       }),
     ).toThrow();
   });
@@ -2649,8 +2662,8 @@ describe("Petrinaut core interface actions", () => {
       ["<svg><script>alert(1)</script></svg>", "script"],
     ] as const) {
       expect(() =>
-        instance.mutations.updateSubnet({
-          subnetId: "fast",
+        instance.mutations.updateComponent({
+          componentId: "fast",
           update: { iconSvg },
         }),
       ).toThrow(`\`${element}\``);
@@ -2682,14 +2695,15 @@ describe("Petrinaut core import actions", () => {
     instance.mutations.addComponentInstance(placed);
     instance.mutations.addComponentInstance({ ...placed, id: "belt-2" });
 
-    const { imports, componentInstances, subnets } = instance.definition.get();
+    const { imports, componentInstances, components } =
+      instance.definition.get();
     expect(imports).toEqual([{ id: logistics.id }]);
     expect(componentInstances?.map(({ component }) => component)).toEqual([
       belt,
       belt,
     ]);
     // Nothing of the library is copied into the document.
-    expect(subnets).toBeUndefined();
+    expect(components).toBeUndefined();
   });
 
   test("removing the last instance leaves the import in place", () => {
@@ -2701,17 +2715,17 @@ describe("Petrinaut core import actions", () => {
     expect(instance.definition.get().imports).toEqual([{ id: logistics.id }]);
   });
 
-  test("an instance names a subnet or a component of an import, never both nor neither", () => {
+  test("an instance names a component or a component of an import, never both nor neither", () => {
     const instance = importing();
 
-    for (const naming of [{}, { subnetId: "stage", component: belt }]) {
+    for (const naming of [{}, { componentId: "stage", component: belt }]) {
       expect(() =>
         callActionWithUnknownInput(instance.mutations.addComponentInstance, {
           ...placed,
           component: undefined,
           ...naming,
         }),
-      ).toThrow("Provide exactly one of `subnetId` or `component`.");
+      ).toThrow("Provide exactly one of `componentId` or `component`.");
     }
   });
 
@@ -2784,9 +2798,9 @@ describe("Petrinaut core import actions", () => {
       expect(() =>
         instance.mutations.updateComponentInstance({
           instanceId: "belt-1",
-          update: { subnetId: "nowhere" },
+          update: { componentId: "nowhere" },
         }),
-      ).toThrow("references subnet ID `nowhere` which does not exist");
+      ).toThrow("references component ID `nowhere` which does not exist");
     }
   });
 
@@ -2807,7 +2821,7 @@ describe("Petrinaut core import actions", () => {
         id: "belt-2",
         parameterValues: { speed: "4" },
       }),
-    ).toThrow("unknown subnet parameter ID");
+    ).toThrow("unknown component parameter ID");
   });
 
   test("a fusion joins a place with a port of a component of an import, by the port's id", () => {
@@ -2852,11 +2866,11 @@ describe("Petrinaut core import actions", () => {
           portPlaceId: "spill",
         },
       }),
-    ).toThrow("does not exist in subnet `Belt`");
+    ).toThrow("does not exist in component `Belt`");
   });
 
-  test("pointing an instance at a component of an import drops its subnet, its wiring and its choice, and adds the import", () => {
-    const stage: Subnet = {
+  test("pointing an instance at a component of an import drops its component, its wiring and its choice, and adds the import", () => {
+    const stage: Component = {
       id: "stage",
       name: "Stage",
       places: [
@@ -2887,12 +2901,12 @@ describe("Petrinaut core import actions", () => {
           y: 0,
         },
       ],
-      subnets: [stage],
+      components: [stage],
       componentInstances: [
         {
           id: "worker",
           name: "Worker",
-          subnetId: "stage",
+          componentId: "stage",
           parameterValues: {},
           x: 0,
           y: 0,
@@ -2963,7 +2977,7 @@ describe("Petrinaut core import actions", () => {
   });
 
   test("choosing a component of a library as an instance's implementation adds the import", () => {
-    const stage: Subnet = {
+    const stage: Component = {
       id: "stage",
       name: "Stage",
       interface: true,
@@ -2976,19 +2990,19 @@ describe("Petrinaut core import actions", () => {
     const held = {
       id: "stage-1",
       name: "StageA",
-      subnetId: "stage",
+      componentId: "stage",
       parameterValues: {},
       x: 0,
       y: 0,
     };
 
-    const placing = importing({ ...emptySDCPN, subnets: [stage] });
+    const placing = importing({ ...emptySDCPN, components: [stage] });
     placing.mutations.addComponentInstance({ ...held, implementation: belt });
     expect(placing.definition.get().imports).toEqual([{ id: logistics.id }]);
 
     const choosing = importing({
       ...emptySDCPN,
-      subnets: [stage],
+      components: [stage],
       componentInstances: [held],
     });
     choosing.mutations.updateComponentInstance({

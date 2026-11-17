@@ -54,7 +54,7 @@ const getTypeById = ({
         components.flatMap((component) => component.types),
       ),
       ...sdcpn.types,
-      ...(sdcpn.subnets ?? []).flatMap((subnet) => subnet.types),
+      ...(sdcpn.components ?? []).flatMap((component) => component.types),
       ...types,
     ].map((type) => [type.id, type]),
   );
@@ -67,8 +67,8 @@ const createTransitionArcPlaceResolver = (
   arc: InputArc | OutputArc,
 ) => { place: Place; placeName: string } | undefined) => {
   const placeById = new Map(net.places.map((place) => [place.id, place]));
-  const subnetById = new Map(
-    (sdcpn.subnets ?? []).map((subnet) => [subnet.id, subnet]),
+  const componentById = new Map(
+    (sdcpn.components ?? []).map((component) => [component.id, component]),
   );
   const instanceById = new Map(
     (net.componentInstances ?? []).map((instance) => [instance.id, instance]),
@@ -83,10 +83,10 @@ const createTransitionArcPlaceResolver = (
     }
 
     const instance = instanceById.get(endpoint.componentInstanceId);
-    const subnet = instance
-      ? resolveComponent(sdcpn, componentOf(instance), libraries, subnetById)
+    const component = instance
+      ? resolveComponent(sdcpn, componentOf(instance), libraries, componentById)
       : undefined;
-    const place = subnet?.places.find(
+    const place = component?.places.find(
       (p) => p.id === endpoint.portPlaceId && p.isPort,
     );
 

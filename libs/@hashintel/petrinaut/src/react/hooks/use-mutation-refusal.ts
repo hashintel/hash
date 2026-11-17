@@ -12,8 +12,8 @@ import type { PetrinautMutations } from "@hashintel/petrinaut-core";
  */
 export const useMutationRefusal = () => {
   const { mutationRefusal } = usePetrinautInstance();
-  const { activeSubnetId } = use(ActiveNetContext);
+  const { activeComponentId } = use(ActiveNetContext);
 
   return (name: keyof PetrinautMutations, input: object): string | null =>
-    mutationRefusal(name, { ...input, targetSubnetId: activeSubnetId });
+    mutationRefusal(name, { ...input, targetComponentId: activeComponentId });
 };

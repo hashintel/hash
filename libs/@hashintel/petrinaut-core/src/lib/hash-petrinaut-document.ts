@@ -31,7 +31,7 @@ const itemCollections = new Set([
   "metrics",
   "componentInstances",
   "fusions",
-  "subnets",
+  "components",
 ]);
 
 /** Copies a net or item without `fields`, recursing into item collections only. */

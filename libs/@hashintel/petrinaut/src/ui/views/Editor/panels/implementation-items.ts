@@ -27,7 +27,7 @@ export type ImplementationItem = {
  * the choice changes.
  */
 export const implementationItems = (
-  sdcpn: Pick<SDCPN, "subnets">,
+  sdcpn: Pick<SDCPN, "components">,
   iface: ComponentReference,
   chosen: ComponentReference | undefined,
   libraries?: ResolvedLibraries,
@@ -45,7 +45,7 @@ export const implementationItems = (
   };
   const items = implementationsOf(sdcpn, iface, libraries)
     .filter(({ reference }) => accepts(reference))
-    .map(({ reference, subnet }) => item(reference, subnet.name));
+    .map(({ reference, component }) => item(reference, component.name));
   if (
     chosen === undefined ||
     items.some(({ reference }) => sameComponent(reference, chosen))
@@ -56,7 +56,7 @@ export const implementationItems = (
     ...items,
     item(
       chosen,
-      resolveComponent(sdcpn, chosen, libraries)?.name ?? "Unknown subnet",
+      resolveComponent(sdcpn, chosen, libraries)?.name ?? "Unknown component",
     ),
   ];
 };

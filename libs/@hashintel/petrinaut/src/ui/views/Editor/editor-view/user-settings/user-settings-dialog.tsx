@@ -575,11 +575,11 @@ export const UserSettingsDialog = ({
                   {item.id === "plugins" && <PluginsSection />}
                   {item.id === "labs" && (
                     <>
-                      {extensions.subnets && (
+                      {extensions.components && (
                         <SettingsGroup title="Modeling">
                           <SettingToggle
                             label="Net Components"
-                            description="Build hierarchical nets with subnet definitions and component instances."
+                            description="Build hierarchical nets with component definitions and component instances."
                             value={settings.enableNetComponents}
                             onChange={settings.setEnableNetComponents}
                           />

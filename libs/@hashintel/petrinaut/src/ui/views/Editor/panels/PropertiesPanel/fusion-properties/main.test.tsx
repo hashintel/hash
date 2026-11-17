@@ -75,7 +75,7 @@ describe("FusionProperties", () => {
     expect(updateFusion).toHaveBeenCalledExactlyOnceWith({
       fusionId: "belt",
       update: { name: "Line" },
-      targetSubnetId: null,
+      targetComponentId: null,
     });
   });
 

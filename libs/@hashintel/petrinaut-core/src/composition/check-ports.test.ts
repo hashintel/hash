@@ -4,13 +4,13 @@ import { checkPorts } from "./check-ports";
 import { inferPortDirection, portDirections } from "./ports";
 
 import type {
+  Component,
   FusionMember,
   InputArc,
   OutputArc,
   Place,
   PortDirection,
   SDCPN,
-  Subnet,
   Transition,
 } from "../types/sdcpn";
 
@@ -44,7 +44,10 @@ const transition = (
   y: 0,
 });
 
-const subnet = (id: string, overrides: Partial<Subnet> = {}): Subnet => ({
+const component = (
+  id: string,
+  overrides: Partial<Component> = {},
+): Component => ({
   id,
   name: id,
   places: [],
@@ -55,33 +58,33 @@ const subnet = (id: string, overrides: Partial<Subnet> = {}): Subnet => ({
   ...overrides,
 });
 
-const net = (subnets: Subnet[]): SDCPN => ({
+const net = (components: Component[]): SDCPN => ({
   places: [],
   transitions: [],
   types: [],
   differentialEquations: [],
   parameters: [],
-  subnets,
+  components,
 });
 
-const stage = subnet("stage", {
+const stage = component("stage", {
   places: [place("in", { isPort: true }), place("out", { isPort: true })],
   transitions: [transition("work", ["in"], ["out"])],
 });
 
 describe("checkPorts", () => {
-  it("reports a port declared input that its subnet writes to", () => {
-    const loop = subnet("loop", {
+  it("reports a port declared input that its component writes to", () => {
+    const loop = component("loop", {
       places: [place("pool", { isPort: true, portDirection: "in" })],
       transitions: [transition("cycle", ["pool"], ["pool"])],
     });
 
     expect(checkPorts(net([loop]))).toMatchObject([
-      { subnetId: "loop", placeId: "pool", severity: "warning" },
+      { componentId: "loop", placeId: "pool", severity: "warning" },
     ]);
   });
 
-  it("holds a port to its direction through what its subnet fuses with it", () => {
+  it("holds a port to its direction through what its component fuses with it", () => {
     // Inside the line, the port is fused with a port of a stage, and a
     // transition of the line touches that port of the stage: fused, the two
     // are one place.
@@ -99,13 +102,13 @@ describe("checkPorts", () => {
       produces?: boolean;
       consumes?: boolean;
     }) => {
-      const line = subnet("line", {
+      const line = component("line", {
         places: [place("edge", { isPort: true, portDirection: direction })],
         componentInstances: [
           {
             id: "s1",
             name: "s1",
-            subnetId: "stage",
+            componentId: "stage",
             parameterValues: {},
             x: 0,
             y: 0,
@@ -132,10 +135,10 @@ describe("checkPorts", () => {
     };
 
     expect(problems({ direction: "in", produces: true })).toMatchObject([
-      { subnetId: "line", placeId: "edge" },
+      { componentId: "line", placeId: "edge" },
     ]);
     expect(problems({ direction: "out", consumes: true })).toMatchObject([
-      { subnetId: "line", placeId: "edge" },
+      { componentId: "line", placeId: "edge" },
     ]);
     expect(problems({ direction: "in", consumes: true })).toEqual([]);
   });
@@ -145,7 +148,7 @@ describe("checkPorts", () => {
     const ports = Array.from({ length: size }, (_, index) =>
       place(`port-${index}`, { isPort: true, portDirection: "out" }),
     );
-    const wide = subnet("wide", {
+    const wide = component("wide", {
       places: ports,
       transitions: ports.map(({ id }) => transition(`take-${id}`, [id], [])),
       fusions: [
@@ -161,7 +164,7 @@ describe("checkPorts", () => {
     const problems = checkPorts(net([wide]));
     const elapsed = Date.now() - started;
 
-    // Fused, the ports are one place the subnet consumes from: each of them
+    // Fused, the ports are one place the component consumes from: each of them
     // breaks its declaration.
     expect(problems).toHaveLength(size);
     expect(elapsed).toBeLessThan(1000);
@@ -169,12 +172,12 @@ describe("checkPorts", () => {
 });
 
 describe("a port's direction, as inferred and as checked", () => {
-  /** What a subnet does with its port `edge`. */
+  /** What a component does with its port `edge`. */
   type Case = {
     name: string;
     inputArcs?: InputArc[];
     outputArcs?: OutputArc[];
-    /** A port of the stage `s1` the subnet fuses `edge` with. */
+    /** A port of the stage `s1` the component fuses `edge` with. */
     fusedWith?: FusionMember;
     /** The direction the arcs give the port. */
     inferred: PortDirection;
@@ -259,13 +262,13 @@ describe("a port's direction, as inferred and as checked", () => {
     "$name",
     ({ inputArcs = [], outputArcs = [], fusedWith, inferred, contradicts }) => {
       const line = (portDirection?: PortDirection) =>
-        subnet("line", {
+        component("line", {
           places: [place("edge", { isPort: true, portDirection })],
           componentInstances: [
             {
               id: "s1",
               name: "s1",
-              subnetId: "stage",
+              componentId: "stage",
               parameterValues: {},
               x: 0,
               y: 0,

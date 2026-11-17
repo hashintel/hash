@@ -40,13 +40,13 @@ import {
 import type {
   ArcEndpoint,
   Color,
+  Component,
   Fusion,
   ID,
   InputArc,
   OutputArc,
   Place,
   SDCPN,
-  Subnet,
   Transition,
 } from "../types/sdcpn";
 import type { ResolvedLibraries } from "./libraries";
@@ -82,8 +82,8 @@ const severityOf: Record<FusionProblemCode, ProblemSeverity> = {
 
 export type FusionProblem = {
   kind: "fusion";
-  /** The subnet the fusion belongs to; `null` for the root net. */
-  subnetId: ID | null;
+  /** The component the fusion belongs to; `null` for the root net. */
+  componentId: ID | null;
   fusionId: ID;
   code: FusionProblemCode;
   severity: ProblemSeverity;
@@ -102,7 +102,7 @@ type TokenFlow = { produced: boolean; consumed: boolean };
 export type FusionCheckPass = {
   /**
    * How a net's own transitions touch its ports. `netKey` names the net: the
-   * `componentKey` of a component, `null` for the root net. Of two subnets
+   * `componentKey` of a component, `null` for the root net. Of two components
    * with one id the first asked about is read, as a search of the document
    * finds it.
    */
@@ -116,13 +116,13 @@ export type FusionCheckPass = {
    */
   runningPortOf: (
     instance: InstanceBinding,
-    declared: { subnet: Subnet; place: Place },
+    declared: { component: Component; place: Place },
   ) => RunningPort;
 };
 
 /** `libraries` are the ones the document's imports resolved to. */
 export const fusionCheckPass = (
-  sdcpn: Pick<SDCPN, "subnets" | "implementations">,
+  sdcpn: Pick<SDCPN, "components" | "implementations">,
   libraries?: ResolvedLibraries,
 ): FusionCheckPass => {
   const usagesByNetKey = new Map<string | null, (placeId: ID) => PortUsage>();
@@ -183,7 +183,7 @@ const ownPortFlow = (
  */
 const farSideFlow = (
   net: CheckedNet,
-  subnetId: ID | null,
+  componentId: ID | null,
   resolved: ResolvedFusionMember,
   /** The place that runs for an instance port; `null` for an anchor. */
   running: RunningPort | null,
@@ -196,14 +196,14 @@ const farSideFlow = (
         portDirection:
           resolved.place.portDirection ?? running.place.portDirection,
       },
-      () => pass.portUsagesOf(running.key, running.subnet),
+      () => pass.portUsagesOf(running.key, running.component),
     );
   }
   if (!resolved.place.isPort) {
     return { produced: false, consumed: false };
   }
   const own = ownPortFlow(resolved.place, () =>
-    pass.portUsagesOf(subnetId, net),
+    pass.portUsagesOf(componentId, net),
   );
   return { produced: own.consumed, consumed: own.produced };
 };
@@ -218,7 +218,7 @@ type MemberFacts = TokenFlow & {
 
 const factsFor = (
   net: CheckedNet,
-  subnetId: ID | null,
+  componentId: ID | null,
   member: ArcEndpoint,
   resolved: ResolvedFusionMember,
   pass: FusionCheckPass,
@@ -230,13 +230,13 @@ const factsFor = (
       ? pass.runningPortOf(resolved.instance, resolved)
       : null;
   const place = running?.place ?? resolved.place;
-  const types = running ? running.subnet.types : net.types;
+  const types = running ? running.component.types : net.types;
   // A place runs equations of its own net, which `key` tells from a
-  // library's component under the id of a subnet.
-  const equationNetKey = running ? running.key : subnetId;
+  // library's component under the same id.
+  const equationNetKey = running ? running.key : componentId;
   const equationIds = getRunningEquationIds(place);
   const outside = endpointUsage(net.transitions, member);
-  const inside = farSideFlow(net, subnetId, resolved, running, pass);
+  const inside = farSideFlow(net, componentId, resolved, running, pass);
   return {
     color: place.colorId
       ? types.find(({ id }) => id === place.colorId)
@@ -296,10 +296,10 @@ const awaitsImport = (
  * same `pass`, made for the same libraries.
  */
 export const checkFusion = (
-  sdcpn: Pick<SDCPN, "subnets" | "implementations">,
+  sdcpn: Pick<SDCPN, "components" | "implementations">,
   net: CheckedNet,
   fusion: Fusion,
-  subnetId: ID | null,
+  componentId: ID | null,
   libraries?: ResolvedLibraries,
   pass: FusionCheckPass = fusionCheckPass(sdcpn, libraries),
 ): FusionProblem[] => {
@@ -308,7 +308,7 @@ export const checkFusion = (
   const report = (code: FusionProblemCode, message: string) =>
     problems.push({
       kind: "fusion",
-      subnetId,
+      componentId,
       fusionId: fusion.id,
       code,
       severity: severityOf[code],
@@ -356,7 +356,7 @@ export const checkFusion = (
     }
     facts.push({
       label,
-      ...factsFor(net, subnetId, member, resolved, pass),
+      ...factsFor(net, componentId, member, resolved, pass),
     });
   }
   if (multipleAnchors) {
@@ -424,13 +424,13 @@ export const checkFusion = (
 
 const checkNetFusions = (
   sdcpn: SDCPN,
-  net: SDCPN | Subnet,
-  subnetId: ID | null,
+  net: SDCPN | Component,
+  componentId: ID | null,
   libraries: ResolvedLibraries | undefined,
   pass: FusionCheckPass,
 ): FusionProblem[] =>
   (net.fusions ?? []).flatMap((fusion) =>
-    checkFusion(sdcpn, net, fusion, subnetId, libraries, pass),
+    checkFusion(sdcpn, net, fusion, componentId, libraries, pass),
   );
 
 /** The problems with every fusion of the document, root first. */
@@ -441,8 +441,8 @@ export const checkFusions = (
   const pass = fusionCheckPass(sdcpn, libraries);
   return [
     ...checkNetFusions(sdcpn, sdcpn, null, libraries, pass),
-    ...(sdcpn.subnets ?? []).flatMap((subnet) =>
-      checkNetFusions(sdcpn, subnet, subnet.id, libraries, pass),
+    ...(sdcpn.components ?? []).flatMap((component) =>
+      checkNetFusions(sdcpn, component, component.id, libraries, pass),
     ),
   ];
 };

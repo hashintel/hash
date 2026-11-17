@@ -16,9 +16,9 @@ import { buildCanvasScene, type CanvasSceneInput } from "./canvas-scene";
 import { arcStrokeColor } from "./styles/type-colors";
 
 import type {
+  Component,
   Place,
   SDCPN,
-  Subnet,
   Transition,
 } from "@hashintel/petrinaut-core";
 
@@ -199,7 +199,7 @@ describe("buildCanvasScene", () => {
     const instance = (id: string, x: number) => ({
       id,
       name: id,
-      subnetId: "stage",
+      componentId: "stage",
       parameterValues: {},
       x,
       y: 0,
@@ -218,7 +218,7 @@ describe("buildCanvasScene", () => {
     });
     const composed: SDCPN = {
       ...sdcpn,
-      subnets: [stage],
+      components: [stage],
       componentInstances: [instance("left", -400), instance("right", 900)],
       fusions: [fusionWith("left"), fusionWith("right")],
     };
@@ -291,7 +291,7 @@ describe("buildCanvasScene", () => {
     });
   });
 
-  it("reads a subnet's arcs once for the directions of its ports, however many ports and instances it has", () => {
+  it("reads a component's arcs once for the directions of its ports, however many ports and instances it has", () => {
     // Two hundred ports that declare no direction, under 24,000 arcs: the
     // even ones are consumed from and the odd ones produced into.
     const ports = Array.from({ length: 200 }, (_, index) => ({
@@ -319,11 +319,11 @@ describe("buildCanvasScene", () => {
     };
     const composed: SDCPN = {
       ...sdcpn,
-      subnets: [wide],
+      components: [wide],
       componentInstances: Array.from({ length: 20 }, (_, index) => ({
         id: `wide-${index}`,
         name: `Wide ${index}`,
-        subnetId: "wide",
+        componentId: "wide",
         parameterValues: {},
         x: 0,
         y: index * 100,
@@ -362,7 +362,7 @@ describe("buildCanvasScene", () => {
       displayColor: "#ff0000",
       elements: [{ elementId: "v", name: "v", type: "real" as const }],
     };
-    const iface: Subnet = {
+    const iface: Component = {
       id: "iface",
       name: "Stage",
       interface: true,
@@ -379,7 +379,7 @@ describe("buildCanvasScene", () => {
       differentialEquations: [],
       parameters: [],
     };
-    const fast: Subnet = {
+    const fast: Component = {
       ...iface,
       id: "fast",
       name: "Fast",
@@ -388,12 +388,12 @@ describe("buildCanvasScene", () => {
     };
     const instance = (
       id: string,
-      subnetId: string,
+      componentId: string,
       implementation?: string,
     ) => ({
       id,
       name: id,
-      subnetId,
+      componentId,
       parameterValues: {},
       x: 0,
       y: 0,
@@ -403,7 +403,7 @@ describe("buildCanvasScene", () => {
     });
     const composed: SDCPN = {
       ...sdcpn,
-      subnets: [iface, fast],
+      components: [iface, fast],
       implementations: [
         { interface: { id: "iface" }, component: { id: "fast" } },
       ],
@@ -420,7 +420,7 @@ describe("buildCanvasScene", () => {
       fusions: [],
     });
 
-    it("tells an instance's binding from the subnet it points at", () => {
+    it("tells an instance's binding from the component it points at", () => {
       const { nodes } = buildCanvasScene({
         ...input,
         sdcpn: composed,
@@ -432,7 +432,7 @@ describe("buildCanvasScene", () => {
         );
 
       expect(instanceNode("bound")).toMatchObject({
-        subnetName: "Stage",
+        componentName: "Stage",
         binding: { kind: "interface", implementationName: "Fast" },
         ports: [
           { id: "in", name: "in", direction: "in", typeColor: "#ff0000" },
@@ -484,7 +484,7 @@ describe("buildCanvasScene", () => {
 
       expect(sceneWith(new Map([[library.id, library]]))).toMatchObject([
         {
-          subnetName: "Conveyor",
+          componentName: "Conveyor",
           binding: { kind: "component" },
           color: "#2563eb",
           ports: [
@@ -493,13 +493,21 @@ describe("buildCanvasScene", () => {
           ],
         },
         {
-          subnetName: "Station",
+          componentName: "Station",
           binding: { kind: "interface", implementationName: "Conveyor" },
         },
       ]);
       expect(sceneWith(new Map())).toMatchObject([
-        { subnetName: "conveyor", binding: { kind: "unresolved" }, ports: [] },
-        { subnetName: "station", binding: { kind: "unresolved" }, ports: [] },
+        {
+          componentName: "conveyor",
+          binding: { kind: "unresolved" },
+          ports: [],
+        },
+        {
+          componentName: "station",
+          binding: { kind: "unresolved" },
+          ports: [],
+        },
       ]);
     });
 
@@ -507,7 +515,7 @@ describe("buildCanvasScene", () => {
       const icon = "<svg/>";
       const styled: SDCPN = {
         ...composed,
-        subnets: [
+        components: [
           { ...iface, iconSvg: icon, displayColor: "#111111" },
           { ...fast, displayColor: "#222222" },
         ],
@@ -529,7 +537,7 @@ describe("buildCanvasScene", () => {
       expect(card("plain")).toMatchObject({ icon: null, color: "#222222" });
       // Nothing bound: the interface's own.
       expect(card("loose")).toMatchObject({ icon, color: "#111111" });
-      // A subnet with neither leaves the defaults.
+      // A component with neither leaves the defaults.
       const plain = buildCanvasScene({
         ...input,
         sdcpn: composed,
@@ -546,7 +554,7 @@ describe("buildCanvasScene", () => {
     });
 
     it("folds an instance with many ports until it is unfolded", () => {
-      const wide: Subnet = {
+      const wide: Component = {
         ...fast,
         id: "wide",
         name: "Wide",
@@ -558,7 +566,7 @@ describe("buildCanvasScene", () => {
       };
       const withWide: SDCPN = {
         ...sdcpn,
-        subnets: [wide, fast],
+        components: [wide, fast],
         componentInstances: [
           instance("big", "wide"),
           instance("small", "fast"),
@@ -634,7 +642,7 @@ describe("buildCanvasScene", () => {
       );
     });
 
-    it("flags a port place inside a subnet with its direction", () => {
+    it("flags a port place inside a component with its direction", () => {
       const { nodes } = buildCanvasScene({
         ...input,
         sdcpn: composed,
@@ -655,7 +663,7 @@ describe("buildCanvasScene", () => {
         ...place(`port-${index}`, 0, 0),
         isPort: true,
       }));
-      const wide: Subnet = {
+      const wide: Component = {
         ...fast,
         id: "wide",
         name: "Wide",
@@ -673,7 +681,7 @@ describe("buildCanvasScene", () => {
       const started = Date.now();
       const { nodes } = buildCanvasScene({
         ...input,
-        sdcpn: { ...sdcpn, subnets: [wide] },
+        sdcpn: { ...sdcpn, components: [wide] },
         net: { ...wide, componentInstances: [], fusions: [] },
       });
       const elapsed = Date.now() - started;
@@ -689,10 +697,10 @@ describe("buildCanvasScene", () => {
       expect(elapsed).toBeLessThan(1000);
     });
 
-    it("looks up the token types of a subnet's ports once, however many ports and instances it has", () => {
+    it("looks up the token types of a component's ports once, however many ports and instances it has", () => {
       // Four thousand ports, each of a token type of its own.
       const names = Array.from({ length: 4000 }, (_, index) => `port-${index}`);
-      const wide: Subnet = {
+      const wide: Component = {
         ...fast,
         id: "wide",
         name: "Wide",
@@ -710,7 +718,7 @@ describe("buildCanvasScene", () => {
       };
       const many: SDCPN = {
         ...sdcpn,
-        subnets: [wide],
+        components: [wide],
         componentInstances: Array.from({ length: 200 }, (_, index) =>
           instance(`wide-${index}`, "wide"),
         ),
@@ -743,7 +751,7 @@ describe("buildCanvasScene", () => {
     it("gives each instance ports of its own", () => {
       const twice: SDCPN = {
         ...sdcpn,
-        subnets: [fast],
+        components: [fast],
         componentInstances: [instance("one", "fast"), instance("two", "fast")],
       };
       const { nodes } = buildCanvasScene({
@@ -767,7 +775,7 @@ describe("buildCanvasScene", () => {
         { length: 10_000 },
         (_, index) => `port-${index}`,
       );
-      const wide: Subnet = {
+      const wide: Component = {
         ...fast,
         id: "wide",
         name: "Wide",
@@ -780,7 +788,7 @@ describe("buildCanvasScene", () => {
       };
       const wired: SDCPN = {
         ...sdcpn,
-        subnets: [wide],
+        components: [wide],
         componentInstances: [instance("w1", "wide")],
         transitions: Array.from({ length: 10 }, (_, index) => ({
           ...transition(`feed-${index}`, [], []),
@@ -815,7 +823,7 @@ describe("buildCanvasScene", () => {
       const size = 30_000;
       const many: SDCPN = {
         ...sdcpn,
-        subnets: [iface, fast],
+        components: [iface, fast],
         implementations: [
           ...Array.from({ length: size }, (_, index) => ({
             interface: { id: `other${index}` },

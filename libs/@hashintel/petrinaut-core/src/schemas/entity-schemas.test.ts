@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { disallowedSubnetIconElement, subnetSchema } from "./entity-schemas";
+import {
+  componentSchema,
+  disallowedComponentIconElement,
+} from "./entity-schemas";
 
-describe("disallowedSubnetIconElement", () => {
+describe("disallowedComponentIconElement", () => {
   it("allows the root, groups and plain shapes", () => {
     expect(
-      disallowedSubnetIconElement(
+      disallowedComponentIconElement(
         '<?xml version="1.0"?>\n<!-- drawn by hand -->\n<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8"><g><path d="M0 0h8"/><rect width="2" height="2"/><circle r="1"/><ellipse rx="2" ry="1"/><line x2="8" y2="8"/><polyline points="0,0 4,4"/><polygon points="0,0 4,4 0,4"></polygon></g></svg>',
       ),
     ).toBeUndefined();
@@ -23,50 +26,50 @@ describe("disallowedSubnetIconElement", () => {
     ["<svg><text>A</text></svg>", "text"],
     ["<div><p>Hello</p></div>", "div"],
   ])("names the element %s may not hold", (markup, element) => {
-    expect(disallowedSubnetIconElement(markup)).toBe(element);
+    expect(disallowedComponentIconElement(markup)).toBe(element);
   });
 
   it("takes a name in another case or under a prefix for another element", () => {
-    expect(disallowedSubnetIconElement('<svg><USE href="#a"/></svg>')).toBe(
+    expect(disallowedComponentIconElement('<svg><USE href="#a"/></svg>')).toBe(
       "USE",
     );
     expect(
-      disallowedSubnetIconElement(
+      disallowedComponentIconElement(
         '<svg xmlns:s="http://www.w3.org/2000/svg"><s:use href="#a"/></svg>',
       ),
     ).toBe("s:use");
-    expect(disallowedSubnetIconElement("<svg><Path/></svg>")).toBe("Path");
-    expect(disallowedSubnetIconElement("<svg:svg><svg:path/></svg:svg>")).toBe(
-      "svg:svg",
-    );
+    expect(disallowedComponentIconElement("<svg><Path/></svg>")).toBe("Path");
+    expect(
+      disallowedComponentIconElement("<svg:svg><svg:path/></svg:svg>"),
+    ).toBe("svg:svg");
   });
 
   it("counts a tag wherever it stands: closing, in a comment, in an attribute or cut short", () => {
-    expect(disallowedSubnetIconElement("<svg></p></svg>")).toBe("p");
-    expect(disallowedSubnetIconElement("<svg><!-- <use/> --></svg>")).toBe(
+    expect(disallowedComponentIconElement("<svg></p></svg>")).toBe("p");
+    expect(disallowedComponentIconElement("<svg><!-- <use/> --></svg>")).toBe(
       "use",
     );
-    expect(disallowedSubnetIconElement('<svg><path d="<use>"/></svg>')).toBe(
+    expect(disallowedComponentIconElement('<svg><path d="<use>"/></svg>')).toBe(
       "use",
     );
-    expect(disallowedSubnetIconElement("<svg><use")).toBe("use");
+    expect(disallowedComponentIconElement("<svg><use")).toBe("use");
   });
 
   it("ends a name where an HTML parser does", () => {
-    expect(disallowedSubnetIconElement("<svg><path\u00a0d/></svg>")).toBe(
+    expect(disallowedComponentIconElement("<svg><path\u00a0d/></svg>")).toBe(
       "path\u00a0d",
     );
-    expect(disallowedSubnetIconElement("<svg><use\n/></svg>")).toBe("use");
+    expect(disallowedComponentIconElement("<svg><use\n/></svg>")).toBe("use");
     expect(
-      disallowedSubnetIconElement("<svg\t><g\f/><rect\r/></svg>"),
+      disallowedComponentIconElement("<svg\t><g\f/><rect\r/></svg>"),
     ).toBeUndefined();
   });
 });
 
-describe("subnetSchema icon", () => {
-  const subnet = (iconSvg: string) => ({
-    id: "subnet",
-    name: "Subnet",
+describe("componentSchema icon", () => {
+  const component = (iconSvg: string) => ({
+    id: "component",
+    name: "Component",
     iconSvg,
     places: [],
     transitions: [],
@@ -77,15 +80,15 @@ describe("subnetSchema icon", () => {
 
   it("accepts an icon of shapes", () => {
     expect(
-      subnetSchema.safeParse(
-        subnet('<svg viewBox="0 0 8 8"><circle r="3"/></svg>'),
+      componentSchema.safeParse(
+        component('<svg viewBox="0 0 8 8"><circle r="3"/></svg>'),
       ).success,
     ).toBe(true);
   });
 
   it("refuses any other element, and the message names it", () => {
-    const result = subnetSchema.safeParse(
-      subnet('<svg viewBox="0 0 8 8"><mask id="m"><rect/></mask></svg>'),
+    const result = componentSchema.safeParse(
+      component('<svg viewBox="0 0 8 8"><mask id="m"><rect/></mask></svg>'),
     );
 
     expect(result.success).toBe(false);

@@ -27,7 +27,7 @@ are still rendered, and simply do nothing. On a wide embed the
 inspector docks to the right of the canvas. On a narrow embed it sits under
 the canvas so the canvas remains usable.
 
-Use the compact net selector to move between the root net and its subnets. The
+Use the compact net selector to move between the root net and its components. The
 canvas, selection, and inspector update together when you change nets.
 
 ## Quick Simulation
@@ -58,7 +58,7 @@ example.
 ## Navigation and embedding
 
 The application hosting `PetrinautPreview` owns navigation. It can reflect the
-selected subnet or item in its URL and restore that state when the page loads;
+selected component or item in its URL and restore that state when the page loads;
 the preview does not install or access an application router itself.
 
 The Petrinaut demo's oEmbed route replaces its current iframe URL when preview

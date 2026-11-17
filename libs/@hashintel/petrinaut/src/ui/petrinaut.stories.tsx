@@ -3,10 +3,10 @@ import { useMemo, useState, useEffect } from "react";
 import { Button, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
+  type Component,
   DEFAULT_TRANSITION_KERNEL_CODE,
   generateDefaultLambdaCode,
   type ResolveImport,
-  type Subnet,
 } from "@hashintel/petrinaut-core";
 import { sirModel } from "@hashintel/petrinaut-core/examples";
 
@@ -119,11 +119,11 @@ const stochasticTimingCapabilities = {
   disabledExtensions: ["colors", "dynamics", "parameters"],
 } satisfies PetrinautHandleCapabilities;
 
-const subnetsWithColorsCapabilities = {
+const componentsWithColorsCapabilities = {
   disabledExtensions: [],
 } satisfies PetrinautHandleCapabilities;
 
-const subnetsWithoutColorsCapabilities = {
+const componentsWithoutColorsCapabilities = {
   disabledExtensions: ["colors", "dynamics"],
 } satisfies PetrinautHandleCapabilities;
 
@@ -617,11 +617,11 @@ export const StochasticTimingOnly: Story = {
   ),
 };
 
-export const SubnetsWithColors: Story = {
-  name: "Subnets — with colours",
+export const ComponentsWithColors: Story = {
+  name: "Components — with colours",
   render: () => (
     <HandleSpikeRender
-      capabilities={subnetsWithColorsCapabilities}
+      capabilities={componentsWithColorsCapabilities}
       initial={sirModel.petriNetDefinition}
       initialTitle={sirModel.title}
     />
@@ -645,7 +645,7 @@ const place = (
 });
 
 /** A stage with one input port and one output port, processing one token at a time. */
-const stageSubnet: Subnet = {
+const stageComponent: Component = {
   id: "stage",
   name: "Stage",
   places: [
@@ -691,12 +691,12 @@ const fusedLineNet: SDCPN = {
   types: [],
   parameters: [],
   differentialEquations: [],
-  subnets: [stageSubnet],
+  components: [stageComponent],
   componentInstances: [
     {
       id: "cutter",
       name: "Cutter",
-      subnetId: "stage",
+      componentId: "stage",
       parameterValues: {},
       x: 310,
       y: 220,
@@ -704,7 +704,7 @@ const fusedLineNet: SDCPN = {
     {
       id: "drill",
       name: "Drill",
-      subnetId: "stage",
+      componentId: "stage",
       parameterValues: {},
       x: 730,
       y: 220,
@@ -743,7 +743,7 @@ export const PlaceFusion: Story = {
   name: "Place fusion",
   render: () => (
     <HandleSpikeRender
-      capabilities={subnetsWithColorsCapabilities}
+      capabilities={componentsWithColorsCapabilities}
       initial={fusedLineNet}
       initialTitle="Fused line"
     />
@@ -751,7 +751,7 @@ export const PlaceFusion: Story = {
 };
 
 /** The stage as a signature alone: two ports, no transition. */
-const stageInterface: Subnet = {
+const stageInterface: Component = {
   id: "stage_interface",
   name: "Stage",
   interface: true,
@@ -773,7 +773,7 @@ const stageImplementation = (
   id: string,
   name: string,
   steps: 1 | 2,
-): Subnet => {
+): Component => {
   const stochastic = {
     lambdaType: "stochastic" as const,
     lambdaCode: generateDefaultLambdaCode("stochastic"),
@@ -836,7 +836,7 @@ const stageImplementation = (
  */
 const interfacedLineNet: SDCPN = {
   ...fusedLineNet,
-  subnets: [
+  components: [
     stageInterface,
     stageImplementation("fast_stage", "Fast stage", 1),
     stageImplementation("slow_stage", "Slow stage", 2),
@@ -848,7 +848,7 @@ const interfacedLineNet: SDCPN = {
     {
       id: "cutter",
       name: "Cutter",
-      subnetId: "stage_interface",
+      componentId: "stage_interface",
       parameterValues: {},
       x: 310,
       y: 220,
@@ -856,7 +856,7 @@ const interfacedLineNet: SDCPN = {
     {
       id: "drill",
       name: "Drill",
-      subnetId: "stage_interface",
+      componentId: "stage_interface",
       implementation: { id: "slow_stage" },
       parameterValues: {},
       x: 730,
@@ -896,7 +896,7 @@ export const Interfaces: Story = {
   name: "Interfaces",
   render: () => (
     <HandleSpikeRender
-      capabilities={subnetsWithColorsCapabilities}
+      capabilities={componentsWithColorsCapabilities}
       initial={interfacedLineNet}
       initialTitle="Interfaced line"
     />
@@ -983,7 +983,7 @@ export const CompositionOnly: Story = {
 };
 
 /** A cell with seven ports: four feeds in, three results out. */
-const cellSubnet: Subnet = {
+const cellComponent: Component = {
   id: "cell",
   name: "Cell",
   displayColor: "#14b8a6",
@@ -1074,12 +1074,12 @@ const manyPortsNet: SDCPN = {
   types: [],
   parameters: [],
   differentialEquations: [],
-  subnets: [cellSubnet],
+  components: [cellComponent],
   componentInstances: [
     {
       id: "cell1",
       name: "AssemblyCell",
-      subnetId: "cell",
+      componentId: "cell",
       parameterValues: {},
       x: 600,
       y: 300,
@@ -1105,18 +1105,18 @@ export const ManyPorts: Story = {
   name: "Many ports",
   render: () => (
     <HandleSpikeRender
-      capabilities={subnetsWithColorsCapabilities}
+      capabilities={componentsWithColorsCapabilities}
       initial={manyPortsNet}
       initialTitle="Assembly cell"
     />
   ),
 };
 
-export const SubnetsWithoutColors: Story = {
-  name: "Subnets — without colours",
+export const ComponentsWithoutColors: Story = {
+  name: "Components — without colours",
   render: () => (
     <HandleSpikeRender
-      capabilities={subnetsWithoutColorsCapabilities}
+      capabilities={componentsWithoutColorsCapabilities}
       initial={sirModel.petriNetDefinition}
       initialTitle={sirModel.title}
     />

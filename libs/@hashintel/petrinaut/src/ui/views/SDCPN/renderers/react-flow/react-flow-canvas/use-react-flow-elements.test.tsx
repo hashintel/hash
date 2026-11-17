@@ -49,10 +49,10 @@ const nodes: CanvasNode[] = [
   },
   {
     ...nodeBase,
-    id: "subnet",
+    id: "component",
     kind: "componentInstance",
     position: { x: 600, y: 0 },
-    subnetName: "Subnet",
+    componentName: "Component",
     binding: { kind: "component" },
     icon: null,
     color: null,
@@ -91,7 +91,7 @@ const scene: CanvasScene = {
     {
       ...arcBase,
       id: "port-input",
-      sourceId: "subnet",
+      sourceId: "component",
       targetId: "transition",
       sourcePortId: "port",
     },
@@ -99,7 +99,7 @@ const scene: CanvasScene = {
       ...arcBase,
       id: "port-output",
       sourceId: "transition",
-      targetId: "subnet",
+      targetId: "component",
       targetPortId: "port",
     },
   ],
@@ -115,7 +115,7 @@ describe("fusion links", () => {
       fusionId: "belt",
       name: "Belt",
       sourceId: "place",
-      targetId: "subnet",
+      targetId: "component",
       sourcePortId: null,
       targetPortId: "port",
       selected: false,
@@ -196,7 +196,7 @@ describe("arc rendering", () => {
     },
   );
 
-  it("attaches arcs to node outlines and subnet port arcs to the port's handle", () => {
+  it("attaches arcs to node outlines and component port arcs to the port's handle", () => {
     const { result } = renderHook(() => useReactFlowElements(scene));
     const edges = new Map(
       arcEdges(result.current.edges).map((edge) => [edge.id, edge]),
@@ -299,8 +299,8 @@ describe("node placement", () => {
     const byId = new Map(result.current.nodes.map((node) => [node.id, node]));
 
     // Centred at (600, 0) and 100 high in the scene.
-    expect(byId.get("subnet")?.origin).toEqual([0.5, 0]);
-    expect(byId.get("subnet")?.position).toEqual({ x: 600, y: -50 });
+    expect(byId.get("component")?.origin).toEqual([0.5, 0]);
+    expect(byId.get("component")?.position).toEqual({ x: 600, y: -50 });
 
     expect(byId.get("place")?.origin).toBeUndefined();
     expect(byId.get("place")?.position).toEqual({ x: 0, y: 0 });

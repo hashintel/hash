@@ -141,7 +141,7 @@ describe("normalizeSDCPN", () => {
     });
   });
 
-  it("preserves explicit arc endpoints and passes through subnet fields", () => {
+  it("preserves explicit arc endpoints and passes through component fields", () => {
     const result = normalizeSDCPN({
       places: [{ id: "p1", name: "P1", x: 0, y: 0, isPort: true }],
       transitions: [
@@ -162,7 +162,7 @@ describe("normalizeSDCPN", () => {
           y: 0,
         },
       ],
-      subnets: [
+      components: [
         {
           id: "s1",
           name: "S1",
@@ -177,7 +177,7 @@ describe("normalizeSDCPN", () => {
         {
           id: "ci1",
           name: "CI1",
-          subnetId: "s1",
+          componentId: "s1",
           parameterValues: {},
           x: 0,
           y: 0,
@@ -199,13 +199,15 @@ describe("normalizeSDCPN", () => {
       endpoint: { kind: "place", placeId: idOf("p1") },
       weight: 1,
     });
-    expect(result.subnets?.map(({ id }) => id)).toEqual([toPetrinautId("s1")]);
-    expect(result.componentInstances?.map(({ subnetId }) => subnetId)).toEqual([
+    expect(result.components?.map(({ id }) => id)).toEqual([
       toPetrinautId("s1"),
     ]);
+    expect(
+      result.componentInstances?.map(({ componentId }) => componentId),
+    ).toEqual([toPetrinautId("s1")]);
   });
 
-  it("omits subnet fields and arc endpoints that are absent", () => {
+  it("omits component fields and arc endpoints that are absent", () => {
     const result = normalizeSDCPN({
       places: [],
       transitions: [
@@ -220,7 +222,7 @@ describe("normalizeSDCPN", () => {
       ],
     });
 
-    expect(Object.hasOwn(result, "subnets")).toBe(false);
+    expect(Object.hasOwn(result, "components")).toBe(false);
     expect(Object.hasOwn(result, "componentInstances")).toBe(false);
     expect(Object.hasOwn(result.places, "isPort")).toBe(false);
     expect(
@@ -314,7 +316,7 @@ describe("normalizeSDCPN composition fields", () => {
         { id: "p", name: "P", x: 0, y: 0, isPort: true, portDirection: "in" },
       ],
       transitions: [],
-      subnets: [],
+      components: [],
       componentInstances: [],
       fusions: [
         { id: "f", name: "F", members: [{ kind: "place", placeId: "p" }] },

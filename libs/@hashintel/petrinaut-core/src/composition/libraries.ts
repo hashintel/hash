@@ -3,7 +3,7 @@
  * lists components under ids of its own, each with ports and parameters and,
  * when it runs, a body. A component without a body is an interface (see
  * `interfaces.ts`). A library is checked once, when it arrives, and each of
- * its components is read from then on as a subnet, the shape a document's own
+ * its components is read from then on as a component, the shape a document's own
  * components have, so every reader takes both the same way.
  */
 
@@ -11,7 +11,7 @@ import { z } from "zod";
 
 import { toPetrinautId } from "../petrinaut-id";
 import { remapPlaceDynamics } from "../place-dynamics";
-import { subnetSchema } from "../schemas/entity-schemas";
+import { componentSchema } from "../schemas/entity-schemas";
 import { COLOR_ELEMENT_TYPES } from "../simulation/engine/type-policies";
 import { colorsStructurallyEqual } from "./fusions";
 import { componentKey } from "./interfaces";
@@ -20,6 +20,7 @@ import { portDirections } from "./ports";
 import type {
   Color,
   ColorElementType,
+  Component,
   DifferentialEquation,
   ID,
   InputArc,
@@ -27,7 +28,6 @@ import type {
   Parameter,
   Place,
   PortDirection,
-  Subnet,
   Transition,
 } from "../types/sdcpn";
 
@@ -58,7 +58,7 @@ export type LibraryPort = {
 export type LibraryParameter = Parameter;
 
 /**
- * What a component runs, as a subnet of a document holds its own content.
+ * What a component runs, as a component of a document holds its own content.
  * The places `ports` name are its ports, whatever the places themselves say.
  * Its ids need only be distinct within it: a resolved library holds each, the
  * ports apart, under an id of the component's own.
@@ -99,7 +99,7 @@ export type Library = {
 };
 
 /**
- * A library that passed its checks. Each component is a subnet whose `id` is
+ * A library that passed its checks. Each component is a component whose `id` is
  * the component's id in the library, as written. A port or a parameter has
  * the id a document converts the library's to, so a document names it by
  * `toPetrinautId` of its id here. Every other id inside a component is its
@@ -108,7 +108,7 @@ export type Library = {
 export type ResolvedLibrary = {
   id: string;
   name: string;
-  components: Subnet[];
+  components: Component[];
 };
 
 /** The libraries that resolved, by the id of their import. */
@@ -136,7 +136,7 @@ const portSchema = z.strictObject({
 
 /**
  * The outline of a library: enough to name what is wrong with it. What a
- * component holds is checked as a subnet, once it is one.
+ * component holds is checked as a component, once it is one.
  */
 const librarySchema = z.strictObject({
   id: z.string().min(1),
@@ -216,7 +216,7 @@ const declaredTypes = (
     }
     // A library gives a type no id: it takes one from its library, its
     // component and the first port to carry it. The same library always
-    // resolves to the same subnet, and no two libraries to the same type.
+    // resolves to the same component, and no two libraries to the same type.
     const seed = `${componentKey({ from: libraryId, id: component.id })}/${id}/type`;
     typesByName.set(
       tokenType.name,
@@ -246,7 +246,7 @@ const declaredTypes = (
  * goes by.
  */
 const markPorts = (
-  body: Subnet,
+  body: Component,
   ports: readonly PortOutline[],
   owner: string,
 ): Place[] => {
@@ -298,7 +298,7 @@ const markPorts = (
  * would be taken for a document's that reads the same. Ports and parameters
  * keep theirs, since documents name them.
  */
-const withOwnIds = (body: Subnet, libraryId: string): Subnet => {
+const withOwnIds = (body: Component, libraryId: string): Component => {
   const scope = componentKey({ from: libraryId, id: body.id });
   const own = (id: ID): ID => toPetrinautId(`${scope}/${id}`);
   const portIds = new Set(
@@ -348,25 +348,24 @@ const withOwnIds = (body: Subnet, libraryId: string): Subnet => {
   };
 };
 
-/** A component of a library as a subnet. Throws on one a document would not accept. */
-const toSubnet = (component: ComponentOutline, libraryId: string): Subnet => {
-  const owner = `component \`${component.name}\` of library \`${libraryId}\``;
-  assertDistinctIds(component.ports, "ports", `The ${owner}`);
-  assertDistinctIds(component.parameters ?? [], "parameters", `The ${owner}`);
+/** A component of a library as a component. Throws on one a document would not accept. */
+const toComponent = (
+  outline: ComponentOutline,
+  libraryId: string,
+): Component => {
+  const owner = `component \`${outline.name}\` of library \`${libraryId}\``;
+  assertDistinctIds(outline.ports, "ports", `The ${owner}`);
+  assertDistinctIds(outline.parameters ?? [], "parameters", `The ${owner}`);
 
-  const { body } = component;
-  const { types, typeIdOf } = declaredTypes(
-    component,
-    libraryId,
-    `The ${owner}`,
-  );
-  const parsed = subnetSchema.safeParse({
-    id: component.id,
-    name: component.name,
-    description: component.description,
-    iconSvg: component.iconSvg,
-    displayColor: component.displayColor,
-    parameters: component.parameters ?? [],
+  const { body } = outline;
+  const { types, typeIdOf } = declaredTypes(outline, libraryId, `The ${owner}`);
+  const parsed = componentSchema.safeParse({
+    id: outline.id,
+    name: outline.name,
+    description: outline.description,
+    iconSvg: outline.iconSvg,
+    displayColor: outline.displayColor,
+    parameters: outline.parameters ?? [],
     ...(body
       ? {
           places: body.places,
@@ -376,7 +375,7 @@ const toSubnet = (component: ComponentOutline, libraryId: string): Subnet => {
         }
       : {
           interface: true,
-          places: component.ports.map((port, index) => ({
+          places: outline.ports.map((port, index) => ({
             id: port.id,
             name: port.name,
             colorId: typeIdOf(port),
@@ -398,23 +397,23 @@ const toSubnet = (component: ComponentOutline, libraryId: string): Subnet => {
       `The ${owner} is not valid: ${describeIssues(parsed.error)}`,
     );
   }
-  const subnet: Subnet = { ...parsed.data, id: component.id };
+  const component: Component = { ...parsed.data, id: outline.id };
   return body
     ? withOwnIds(
         {
-          ...subnet,
-          places: markPorts(subnet, component.ports, `the ${owner}`),
+          ...component,
+          places: markPorts(component, outline.ports, `the ${owner}`),
         },
         libraryId,
       )
-    : subnet;
+    : component;
 };
 
 /**
  * Checks what a host resolved the import `importId` to, and gives each of its
- * components as a subnet. Throws, in a sentence a user can read, on a library
+ * components as a component. Throws, in a sentence a user can read, on a library
  * under another id, on two components, two ports or two parameters that share
- * an id, and on a component a document would not accept as a subnet.
+ * an id, and on a component a document would not accept as a component.
  */
 export const resolveLibrary = (
   importId: string,
@@ -436,6 +435,6 @@ export const resolveLibrary = (
   return {
     id,
     name,
-    components: components.map((component) => toSubnet(component, id)),
+    components: components.map((declared) => toComponent(declared, id)),
   };
 };

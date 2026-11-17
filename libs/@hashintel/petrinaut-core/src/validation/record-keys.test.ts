@@ -186,12 +186,12 @@ describe("findDangerousSdcpnKeys", () => {
     });
   });
 
-  it("walks subnets", () => {
+  it("walks components", () => {
     const sdcpn = emptySdcpn();
-    sdcpn.subnets = [
+    sdcpn.components = [
       {
         id: "s1",
-        name: "Subnet 1",
+        name: "Component 1",
         places: [
           {
             id: "constructor",
@@ -210,7 +210,7 @@ describe("findDangerousSdcpnKeys", () => {
     ];
 
     expect(findDangerousSdcpnKeys(sdcpn)).toEqual([
-      { location: 'subnet "s1" place id', key: "constructor" },
+      { location: 'component "s1" place id', key: "constructor" },
     ]);
   });
 

@@ -117,7 +117,7 @@ proper.
   id it is given, so its `handle.id` may differ from `opts.id`.
 - **Entity ids are lowercase UUIDs too.** This covers places, transitions,
   types, type elements, parameters, equations, scenarios, metrics, component
-  instances and subnets, and every reference to them. `normalizeSDCPN` and
+  instances and components, and every reference to them. `normalizeSDCPN` and
   `createJsonDocHandle` convert other ids with `canonicalizePetrinautIds`,
   which returns the same object when every id is already a UUID. A custom
   handle converts its document the same way before `doc()` returns it.
@@ -176,7 +176,7 @@ Defaults filled by `normalizeSDCPN()`: arc `weight: 1`, input arc
 `type: "standard"`, place `colorId: null` and `dynamicsEnabled: false`,
 transition `lambdaType: "predicate"` with empty lambda and kernel code, and
 empty top-level `types`, `parameters`, and `differentialEquations` arrays.
-Optional fields (`scenarios`, `metrics`, `subnets`, `componentInstances`,
+Optional fields (`scenarios`, `metrics`, `components`, `componentInstances`,
 place `isPort`, `dynamics`, `visualizerCode`, `showAsInitialState`) pass
 through only when present, so a normalized document compares equal to what the editor itself
 produces (`isSDCPNEqual`).
@@ -428,11 +428,11 @@ componentInstances:
     component: { from: "@hashintel/logistics", id: conveyor }
   - id: drill-1
     name: Drill1
-    subnetId: stage
+    componentId: stage
 ```
 
-An instance has `component`, for a component of an import, or `subnetId`, for
-a subnet of the document, never both. A binding's `interface` and `component`
+An instance has `component`, for a component of an import, or `componentId`, for
+a component of the document, never both. A binding's `interface` and `component`
 and an instance's `implementation` take the same `{ from, id }` form. Both ids
 are kept as written: the import's is whatever its publisher owns, and the
 component's is the one it has in its library.
@@ -502,15 +502,15 @@ const libraries = [logistics.id];
   library's, which must be the import's, a component's, a port's, a
   parameter's. Two components, or two ports or parameters of one component,
   under one id make the library fail, with a message that names them, and so
-  does a component the document's own schema would refuse as a subnet, such
+  does a component the document's own schema would refuse as a component, such
   as one whose icon holds anything but plain shapes.
-- **A body** is what a component runs, in the shape a subnet holds its own
+- **A body** is what a component runs, in the shape a component holds its own
   content: `places`, `transitions`, and `types` and `differentialEquations`
   where it has them. Its ports are the places `ports` names: a port's `id` is
   that place's id, its `name` the place's name, and its `tokenType` describes
   the place's token type. A component without a body is an
   [interface](doc:core.composition/interfaces-and-fusions): an instance of it
-  needs an implementation bound, a subnet of the document or a component of
+  needs an implementation bound, a component of the document or a component of
   an import, and a net does not run while one is missing.
 - **The ids of ports and parameters** are read as a document reads any id: a
   UUID stays as written, and any other string is converted with
@@ -546,7 +546,7 @@ with the code `missing-component`, on the instance.
 
 The simulator, the compiler and the language server take one net and no
 libraries. `inlineImports(sdcpn, libraries)` gives that net: each component
-the document uses becomes a subnet of it, under ids that are the same on
+the document uses becomes a component of it, under ids that are the same on
 every call. The editor passes it wherever a net is run or checked, and a host
 that runs a simulation itself does the same:
 
@@ -611,22 +611,22 @@ that draws a place or a transition, no Nets panel, no Definitions view, no
 Simulate mode and no playback, and the canvas connects ports by fusion alone.
 The left sidebar holds the Components panel, and the bottom panel the
 Diagnostics tab. The editor stays on the root net: a location that names a
-subnet, from the host's navigation or from a click on a diagnostic, resolves
+component, from the host's navigation or from a click on a diagnostic, resolves
 to the root net.
 
 Core holds the rule, so every caller meets it. An instance created with
-`edit: "compose"` composes its root net: a mutation that targets a subnet is
+`edit: "compose"` composes its root net: a mutation that targets a component is
 refused. Of the others, these go through:
 
-| Mutation                                                                 | Allowed when                                                                                            |
-| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
-| `addComponentInstance`                                                   | `component` names one of a library on offer, and so does an `implementation` it names.                  |
-| `updateComponentInstance`                                                | It names no `subnetId`, and a `component` or an `implementation` it names is one of a library on offer. |
-| `updateComponentInstancePosition`, `removeComponentInstance`             | Always.                                                                                                 |
-| `addFusion`, `updateFusion`, `removeFusion`                              | Always.                                                                                                 |
-| `addFusionMember`, `removeFusionMember`, `replaceFusionMember`           | Always.                                                                                                 |
-| `deleteItemsByIds`                                                       | Every item is a component instance or a fusion.                                                         |
-| `commitNodePositions`, `updatePlacePosition`, `updateTransitionPosition` | Always.                                                                                                 |
+| Mutation                                                                 | Allowed when                                                                                               |
+| ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `addComponentInstance`                                                   | `component` names one of a library on offer, and so does an `implementation` it names.                     |
+| `updateComponentInstance`                                                | It names no `componentId`, and a `component` or an `implementation` it names is one of a library on offer. |
+| `updateComponentInstancePosition`, `removeComponentInstance`             | Always.                                                                                                    |
+| `addFusion`, `updateFusion`, `removeFusion`                              | Always.                                                                                                    |
+| `addFusionMember`, `removeFusionMember`, `replaceFusionMember`           | Always.                                                                                                    |
+| `deleteItemsByIds`                                                       | Every item is a component instance or a fusion.                                                            |
+| `commitNodePositions`, `updatePlacePosition`, `updateTransitionPosition` | Always.                                                                                                    |
 
 Every other mutation throws one sentence, "This editor only places and
 connects the components it is given.", followed by the mutation's name.
@@ -634,7 +634,7 @@ connects the components it is given.", followed by the mutation's name.
 the mutation, the React bindings show it as a notice, and a plugin's `edit`
 returns it as a refusal of kind `host-restriction`. `applyClipboardPaste`
 throws too, since the clipboard carries places and transitions, and so does
-`applyAutoLayout` on a subnet; `instance.commandRefusal(name, input)` gives
+`applyAutoLayout` on a component; `instance.commandRefusal(name, input)` gives
 either sentence, and the React bindings show it as a notice.
 
 A document that already holds places and transitions shows them. They can be
@@ -665,15 +665,15 @@ const capabilities: PetrinautHandleCapabilities = {
     "stochasticity",
     "dynamics",
     "parameters",
-    "subnets",
+    "components",
   ],
 };
 ```
 
 The five extensions are `"colors"`, `"stochasticity"`, `"dynamics"`,
-`"parameters"`, and `"subnets"`. Two derivation rules: disabling `"colors"`
-also disables `"dynamics"`, and disabling `"subnets"` removes component-port
-arcs along with `subnets` and `componentInstances`.
+`"parameters"`, and `"components"`. Two derivation rules: disabling `"colors"`
+also disables `"dynamics"`, and disabling `"components"` removes component-port
+arcs along with `components` and `componentInstances`.
 
 Sanitization is destructive and runs early. `createJsonDocHandle` strips
 disabled-extension data from the initial document at construction and after

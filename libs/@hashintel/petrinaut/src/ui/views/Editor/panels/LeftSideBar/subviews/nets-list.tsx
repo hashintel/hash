@@ -13,8 +13,8 @@ import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import { focusLands } from "../../../../../worksheet/focus-flow";
 import { useFocusStops } from "../../../../../worksheet/use-focus-stops";
 import { usePetrinautPresentation } from "../../../../shared/presentation-context";
+import { ComponentOptionsPopover } from "./component-options-popover";
 import { RowActionCell } from "./row-action-cell";
-import { SubnetOptionsPopover } from "./subnet-options-popover";
 
 import type { SubView } from "../../../../../components/sub-view/types";
 import type {
@@ -111,24 +111,24 @@ const renameInputStyle = css({
 
 const NetsHeaderAction: React.FC = () => {
   const {
-    petriNetDefinition: { subnets },
+    petriNetDefinition: { components },
   } = use(SDCPNContext);
-  const { addSubnet } = usePetrinautMutations();
+  const { addComponent } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
 
   return (
     <Button
-      aria-label="Add subnet"
+      aria-label="Add component"
       size="xs"
       variant="ghost"
       iconName="plus"
       disabled={isReadOnly}
-      tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Add subnet"}
+      tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Add component"}
       onClick={() => {
-        const count = (subnets ?? []).length;
-        addSubnet({
+        const count = (components ?? []).length;
+        addComponent({
           id: generatePetrinautId(),
-          name: `Subnet ${count + 1}`,
+          name: `Component ${count + 1}`,
           places: [],
           transitions: [],
           types: [],
@@ -152,10 +152,10 @@ export const NetNavigationList: React.FC<{
 }> = ({ onSelect }) => {
   const presentation = usePetrinautPresentation();
   const {
-    petriNetDefinition: { subnets },
+    petriNetDefinition: { components },
   } = use(SDCPNContext);
-  const { activeSubnetId, setActiveSubnetId } = use(ActiveNetContext);
-  const { updateSubnet, removeSubnet } = usePetrinautMutations();
+  const { activeComponentId, setActiveComponentId } = use(ActiveNetContext);
+  const { updateComponent, removeComponent } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
   const mutationActionsVisible = presentation.showMutationActions;
 
@@ -165,17 +165,17 @@ export const NetNavigationList: React.FC<{
   const cancellingRef = useRef(false);
   const targets = useRef<Map<string, HTMLElement>>(new Map());
   const [optionsAnchor, setOptionsAnchor] = useState<{
-    subnetId: string;
+    componentId: string;
     element: Element;
   } | null>(null);
-  const optionsSubnet = optionsAnchor
-    ? (subnets ?? []).find(({ id }) => id === optionsAnchor.subnetId)
+  const optionsComponent = optionsAnchor
+    ? (components ?? []).find(({ id }) => id === optionsAnchor.componentId)
     : undefined;
 
   const stops: FocusStop[] = [
     { id: ROOT_STOP_ID, kind: "row" },
-    ...(subnets ?? []).map((subnet): FocusStop => ({
-      id: subnet.id,
+    ...(components ?? []).map((component): FocusStop => ({
+      id: component.id,
       kind: "row",
     })),
   ];
@@ -209,14 +209,14 @@ export const NetNavigationList: React.FC<{
     }
   }, [editingId]);
 
-  const handleSelect = (subnetId: string | null) => {
-    setActiveSubnetId(subnetId);
+  const handleSelect = (componentId: string | null) => {
+    setActiveComponentId(componentId);
     onSelect?.();
   };
 
-  const startEditing = (subnetId: string, currentName: string) => {
+  const startEditing = (componentId: string, currentName: string) => {
     if (isReadOnly) return;
-    setEditingId(subnetId);
+    setEditingId(componentId);
     setEditingName(currentName);
   };
 
@@ -228,7 +228,7 @@ export const NetNavigationList: React.FC<{
     if (editingId === null) return;
     const trimmed = editingName.trim();
     if (trimmed) {
-      updateSubnet({ subnetId: editingId, update: { name: trimmed } });
+      updateComponent({ componentId: editingId, update: { name: trimmed } });
     }
     setEditingId(null);
   };
@@ -238,11 +238,11 @@ export const NetNavigationList: React.FC<{
     setEditingId(null);
   };
 
-  const deleteSubnet = (subnetId: string) => {
-    if (activeSubnetId === subnetId) {
-      setActiveSubnetId(null);
+  const deleteComponent = (componentId: string) => {
+    if (activeComponentId === componentId) {
+      setActiveComponentId(null);
     }
-    removeSubnet({ subnetId });
+    removeComponent({ componentId });
   };
 
   const onRowKeyDown =
@@ -272,7 +272,7 @@ export const NetNavigationList: React.FC<{
             targets.current.get(targetKey({ stopId: neighbour.id, column: 0 })),
           );
         }
-        deleteSubnet(stopId);
+        deleteComponent(stopId);
         return;
       }
       onStopsKeyDown({ stopId, column: 0 })(event);
@@ -296,11 +296,11 @@ export const NetNavigationList: React.FC<{
     <div ref={attach} className={listStyle} role="listbox" aria-label="Nets">
       <div
         {...rowFocusProps(ROOT_STOP_ID)}
-        className={itemStyle({ active: activeSubnetId === null })}
+        className={itemStyle({ active: activeComponentId === null })}
         onClick={() => handleSelect(null)}
         onKeyDown={onRowKeyDown(ROOT_STOP_ID, () => handleSelect(null))}
         role="option"
-        aria-selected={activeSubnetId === null}
+        aria-selected={activeComponentId === null}
         tabIndex={tabIndexFor({ stopId: ROOT_STOP_ID, column: 0 })}
       >
         <span className={iconStyle}>
@@ -308,46 +308,55 @@ export const NetNavigationList: React.FC<{
         </span>
         Root
       </div>
-      {(subnets ?? []).map((subnet) => {
+      {(components ?? []).map((component) => {
         const optionsTarget: FocusStopTarget = {
-          stopId: subnet.id,
+          stopId: component.id,
           column: 1,
         };
         const deleteTarget: FocusStopTarget = {
-          stopId: subnet.id,
+          stopId: component.id,
           column: 2,
         };
         return (
           <div
-            key={subnet.id}
-            {...rowFocusProps(subnet.id)}
-            className={itemStyle({ active: activeSubnetId === subnet.id })}
+            key={component.id}
+            {...rowFocusProps(component.id)}
+            className={itemStyle({
+              active: activeComponentId === component.id,
+            })}
             data-options-open={
-              optionsAnchor?.subnetId === subnet.id ? "" : undefined
+              optionsAnchor?.componentId === component.id ? "" : undefined
             }
             onClick={() => {
-              if (editingId !== subnet.id) {
-                handleSelect(subnet.id);
+              if (editingId !== component.id) {
+                handleSelect(component.id);
               }
             }}
             onDoubleClick={() => {
               if (mutationActionsVisible) {
-                startEditing(subnet.id, subnet.name);
+                startEditing(component.id, component.name);
               }
             }}
-            onKeyDown={onRowKeyDown(subnet.id, () => handleSelect(subnet.id))}
+            onKeyDown={onRowKeyDown(component.id, () =>
+              handleSelect(component.id),
+            )}
             role="option"
-            aria-selected={activeSubnetId === subnet.id}
-            tabIndex={tabIndexFor({ stopId: subnet.id, column: 0 })}
+            aria-selected={activeComponentId === component.id}
+            tabIndex={tabIndexFor({ stopId: component.id, column: 0 })}
           >
-            <span className={iconStyle} style={{ color: subnet.displayColor }}>
+            <span
+              className={iconStyle}
+              style={{ color: component.displayColor }}
+            >
               <ComponentGlyph
-                iconSvg={subnet.iconSvg}
-                fallback={isInterface(subnet) ? "puzzlePiece" : "diagramNested"}
+                iconSvg={component.iconSvg}
+                fallback={
+                  isInterface(component) ? "puzzlePiece" : "diagramNested"
+                }
                 size="xs"
               />
             </span>
-            {editingId === subnet.id ? (
+            {editingId === component.id ? (
               <input
                 ref={inputRef}
                 className={renameInputStyle}
@@ -362,9 +371,9 @@ export const NetNavigationList: React.FC<{
                 onClick={(e) => e.stopPropagation()}
               />
             ) : (
-              <span className={nameStyle}>{subnet.name}</span>
+              <span className={nameStyle}>{component.name}</span>
             )}
-            {mutationActionsVisible && editingId !== subnet.id && (
+            {mutationActionsVisible && editingId !== component.id && (
               <>
                 <RowActionCell
                   registerButton={registerTarget(optionsTarget)}
@@ -372,14 +381,14 @@ export const NetNavigationList: React.FC<{
                   onButtonFocus={() => onFocusTarget(optionsTarget)}
                 >
                   <Button
-                    aria-label="Subnet options"
+                    aria-label="Component options"
                     size="xs"
                     variant="ghost"
                     iconName="gear"
                     tooltip="Interface, icon and colour"
                     onClick={(event) =>
                       setOptionsAnchor({
-                        subnetId: subnet.id,
+                        componentId: component.id,
                         element: event.currentTarget,
                       })
                     }
@@ -391,18 +400,20 @@ export const NetNavigationList: React.FC<{
                   onButtonFocus={() => onFocusTarget(deleteTarget)}
                 >
                   <Button
-                    aria-label="Delete subnet"
+                    aria-label="Delete component"
                     size="xs"
                     variant="ghost"
                     tone="error"
                     iconName="trash"
                     disabled={isReadOnly}
                     tooltip={
-                      isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete subnet"
+                      isReadOnly
+                        ? UI_MESSAGES.READ_ONLY_MODE
+                        : "Delete component"
                     }
                     onClick={(e) => {
                       e.stopPropagation();
-                      deleteSubnet(subnet.id);
+                      deleteComponent(component.id);
                     }}
                   />
                 </RowActionCell>
@@ -411,11 +422,11 @@ export const NetNavigationList: React.FC<{
           </div>
         );
       })}
-      {optionsAnchor && optionsSubnet && (
-        <SubnetOptionsPopover
-          // One popover per subnet: opening another row's starts afresh.
-          key={optionsSubnet.id}
-          subnet={optionsSubnet}
+      {optionsAnchor && optionsComponent && (
+        <ComponentOptionsPopover
+          // One popover per component: opening another row's starts afresh.
+          key={optionsComponent.id}
+          component={optionsComponent}
           anchor={optionsAnchor.element}
           onClose={() => setOptionsAnchor(null)}
         />
@@ -428,7 +439,7 @@ export const netsListSubView: SubView = {
   id: "nets-list",
   title: "Nets",
   tooltip:
-    "View the root net and reusable subnets. Mark subnet places as ports, then instantiate subnets as components in the root net.",
+    "View the root net and reusable components. Mark component places as ports, then instantiate components as components in the root net.",
   component: NetNavigationList,
   renderHeaderAction: () => <NetsHeaderAction />,
   headerActionMutates: true,

@@ -45,14 +45,14 @@ const imports: ImportStates = new Map([
 const editor = {
   readonly: false,
   armed: null as ComponentReference | null,
-  activeSubnetId: null as string | null,
+  activeComponentId: null as string | null,
 };
 
 beforeEach(() => {
   vi.clearAllMocks();
   editor.readonly = false;
   editor.armed = null;
-  editor.activeSubnetId = null;
+  editor.activeComponentId = null;
 });
 
 const Wrapper = ({ children }: { children: ReactNode }) => (
@@ -68,7 +68,7 @@ const Wrapper = ({ children }: { children: ReactNode }) => (
       <ActiveNetContext
         value={{
           ...use(ActiveNetContext),
-          activeSubnetId: editor.activeSubnetId,
+          activeComponentId: editor.activeComponentId,
         }}
       >
         <EditorContext
@@ -156,7 +156,7 @@ describe("the Components panel", () => {
 
   it.each([
     ["while the net is read-only", { readonly: true }],
-    ["inside a subnet", { activeSubnetId: "stage" }],
+    ["inside a component", { activeComponentId: "stage" }],
   ])("offers nothing to place %s", (_when, state) => {
     Object.assign(editor, state);
     renderPanel();

@@ -68,7 +68,7 @@ const composing: {
   // a component or an implementation, that is one of a library on offer too.
   // One that clears its choice names none.
   updateComponentInstance: ({ update }, isOffered) =>
-    update.subnetId === undefined &&
+    update.componentId === undefined &&
     (update.component === undefined || isOffered(update.component.from)) &&
     (update.implementation == null ||
       isOfLibraryOnOffer(update.implementation, isOffered)),
@@ -103,7 +103,7 @@ const composes = (
   const allowed = composing[name];
   if (
     allowed === undefined ||
-    typeof fieldOf(input, "targetSubnetId") === "string"
+    typeof fieldOf(input, "targetComponentId") === "string"
   ) {
     return false;
   }
@@ -122,7 +122,7 @@ const composingOnlyNotice =
  * Why the rules refuse a mutation, as a sentence a user can read, or `null`
  * when they allow it. `libraries` are the ids of the libraries on offer. An
  * instance kept to composing refuses every mutation that does not compose,
- * and every one aimed at a subnet.
+ * and every one aimed at a component.
  */
 export const mutationRefusal = (
   rules: PetrinautRules,
@@ -151,7 +151,7 @@ export const commandRefusal = (
   if (name === "applyClipboardPaste") {
     return `${composingOnlyNotice}: nothing can be pasted into it.`;
   }
-  return typeof fieldOf(input, "targetSubnetId") === "string"
+  return typeof fieldOf(input, "targetComponentId") === "string"
     ? `${composingOnlyNotice}.`
     : null;
 };

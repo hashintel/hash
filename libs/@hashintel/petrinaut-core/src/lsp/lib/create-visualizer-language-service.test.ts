@@ -221,7 +221,7 @@ describe("VisualizerLanguageServer diagnostics", () => {
         stochasticity: true,
         dynamics: true,
         parameters: true,
-        subnets: true,
+        components: true,
       },
     );
 

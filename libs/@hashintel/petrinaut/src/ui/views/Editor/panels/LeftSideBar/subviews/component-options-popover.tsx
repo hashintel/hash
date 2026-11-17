@@ -25,7 +25,7 @@ import { hintTextStyle } from "../../../../../constants/hint-text";
 import { pickSvgIcon } from "../../../../../file-io/pick-svg-icon";
 import { implementationItems } from "../../implementation-items";
 
-import type { Subnet } from "@hashintel/petrinaut-core";
+import type { Component } from "@hashintel/petrinaut-core";
 
 const bodyStyle = css({
   display: "flex",
@@ -61,14 +61,16 @@ const checkboxListStyle = css({
 });
 
 /** The implementation the document runs for instances of `iface` that choose none. */
-const DefaultImplementationField: React.FC<{ iface: Subnet }> = ({ iface }) => {
+const DefaultImplementationField: React.FC<{ iface: Component }> = ({
+  iface,
+}) => {
   const { petriNetDefinition } = use(SDCPNContext);
   const { setImplementation } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
 
   const reference = { id: iface.id };
   const chosen = defaultImplementation(petriNetDefinition, reference);
-  // The document's default is chosen among its own subnets.
+  // The document's default is chosen among its own components.
   const implementations = implementationItems(
     petriNetDefinition,
     reference,
@@ -97,7 +99,7 @@ const DefaultImplementationField: React.FC<{ iface: Subnet }> = ({ iface }) => {
             value: "none",
             text:
               implementations.length === 0
-                ? "None: no subnet implements this yet"
+                ? "None: no component implements this yet"
                 : "None",
           },
           ...implementations,
@@ -107,20 +109,20 @@ const DefaultImplementationField: React.FC<{ iface: Subnet }> = ({ iface }) => {
   );
 };
 
-/** The interfaces of the document, each ticked when `subnet` implements it. */
-const ImplementsField: React.FC<{ subnet: Subnet }> = ({ subnet }) => {
+/** The interfaces of the document, each ticked when `component` implements it. */
+const ImplementsField: React.FC<{ component: Component }> = ({ component }) => {
   const { petriNetDefinition } = use(SDCPNContext);
-  const { updateSubnet } = usePetrinautMutations();
+  const { updateComponent } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
 
-  const interfaces = (petriNetDefinition.subnets ?? []).filter((candidate) =>
+  const interfaces = (petriNetDefinition.components ?? []).filter((candidate) =>
     isInterface(candidate),
   );
 
   if (interfaces.length === 0) {
     return (
       <div className={hintTextStyle}>
-        Mark another subnet as an interface to implement it here.
+        Mark another component as an interface to implement it here.
       </div>
     );
   }
@@ -133,15 +135,15 @@ const ImplementsField: React.FC<{ subnet: Subnet }> = ({ subnet }) => {
             key={iface.id}
             size="sm"
             label={iface.name}
-            value={implementsInterface(subnet, iface.id)}
+            value={implementsInterface(component, iface.id)}
             disabled={isReadOnly}
             onChange={(checked) => {
-              const current = subnet.implements ?? [];
+              const current = component.implements ?? [];
               const next = checked
                 ? [...current, iface.id]
                 : current.filter((id) => id !== iface.id);
-              updateSubnet({
-                subnetId: subnet.id,
+              updateComponent({
+                componentId: component.id,
                 update: { implements: next.length > 0 ? next : undefined },
               });
             }}
@@ -153,17 +155,19 @@ const ImplementsField: React.FC<{ subnet: Subnet }> = ({ subnet }) => {
 };
 
 /**
- * What a subnet is to the nets around it: an interface, a signature with no
+ * What a component is to the nets around it: an interface, a signature with no
  * body that instances run through an implementation, or a component that
  * may implement interfaces. For an interface, the document's default
  * implementation is chosen here too.
  */
-const InterfaceOptions: React.FC<{ subnet: Subnet }> = ({ subnet }) => {
-  const { updateSubnet } = usePetrinautMutations();
+const InterfaceOptions: React.FC<{ component: Component }> = ({
+  component,
+}) => {
+  const { updateComponent } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
 
-  const isAnInterface = isInterface(subnet);
-  const cannotBecomeInterface = !isAnInterface && hasBody(subnet);
+  const isAnInterface = isInterface(component);
+  const cannotBecomeInterface = !isAnInterface && hasBody(component);
 
   return (
     <>
@@ -174,8 +178,8 @@ const InterfaceOptions: React.FC<{ subnet: Subnet }> = ({ subnet }) => {
           value={isAnInterface}
           disabled={isReadOnly || cannotBecomeInterface}
           onChange={(checked) =>
-            updateSubnet({
-              subnetId: subnet.id,
+            updateComponent({
+              componentId: component.id,
               update: checked
                 ? // An interface has no body to stand behind another interface.
                   { interface: true, implements: undefined }
@@ -190,17 +194,19 @@ const InterfaceOptions: React.FC<{ subnet: Subnet }> = ({ subnet }) => {
         </div>
       </div>
       {isAnInterface ? (
-        <DefaultImplementationField iface={subnet} />
+        <DefaultImplementationField iface={component} />
       ) : (
-        <ImplementsField subnet={subnet} />
+        <ImplementsField component={component} />
       )}
     </>
   );
 };
 
 /** How a component's instances look: the icon and the colour their cards wear. */
-const AppearanceOptions: React.FC<{ subnet: Subnet }> = ({ subnet }) => {
-  const { updateSubnet } = usePetrinautMutations();
+const AppearanceOptions: React.FC<{ component: Component }> = ({
+  component,
+}) => {
+  const { updateComponent } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
   const [iconError, setIconError] = useState<string | null>(null);
 
@@ -214,7 +220,10 @@ const AppearanceOptions: React.FC<{ subnet: Subnet }> = ({ subnet }) => {
       return;
     }
     setIconError(null);
-    updateSubnet({ subnetId: subnet.id, update: { iconSvg: picked.iconSvg } });
+    updateComponent({
+      componentId: component.id,
+      update: { iconSvg: picked.iconSvg },
+    });
   };
 
   return (
@@ -234,11 +243,11 @@ const AppearanceOptions: React.FC<{ subnet: Subnet }> = ({ subnet }) => {
         <div className={iconRowStyle}>
           <span
             className={iconPreviewStyle}
-            style={{ color: subnet.displayColor }}
+            style={{ color: component.displayColor }}
           >
             <ComponentGlyph
-              iconSvg={subnet.iconSvg}
-              fallback={isInterface(subnet) ? "puzzlePiece" : "cube"}
+              iconSvg={component.iconSvg}
+              fallback={isInterface(component) ? "puzzlePiece" : "cube"}
               size="sm"
             />
           </span>
@@ -251,9 +260,9 @@ const AppearanceOptions: React.FC<{ subnet: Subnet }> = ({ subnet }) => {
               void chooseIcon();
             }}
           >
-            {subnet.iconSvg ? "Replace" : "Choose SVG"}
+            {component.iconSvg ? "Replace" : "Choose SVG"}
           </Button>
-          {subnet.iconSvg ? (
+          {component.iconSvg ? (
             <Button
               variant="subtle"
               tone="neutral"
@@ -261,8 +270,8 @@ const AppearanceOptions: React.FC<{ subnet: Subnet }> = ({ subnet }) => {
               disabled={isReadOnly}
               onClick={() => {
                 setIconError(null);
-                updateSubnet({
-                  subnetId: subnet.id,
+                updateComponent({
+                  componentId: component.id,
                   update: { iconSvg: undefined },
                 });
               }}
@@ -274,11 +283,11 @@ const AppearanceOptions: React.FC<{ subnet: Subnet }> = ({ subnet }) => {
       </Form.Field>
       <Form.Field label="Color" size="sm">
         <OptionalColorSelect
-          value={subnet.displayColor ?? null}
+          value={component.displayColor ?? null}
           disabled={isReadOnly}
           onChange={(color) =>
-            updateSubnet({
-              subnetId: subnet.id,
+            updateComponent({
+              componentId: component.id,
               update: { displayColor: color ?? undefined },
             })
           }
@@ -288,12 +297,12 @@ const AppearanceOptions: React.FC<{ subnet: Subnet }> = ({ subnet }) => {
   );
 };
 
-/** The options of one subnet, hung off its row in the Nets list. */
-export const SubnetOptionsPopover: React.FC<{
-  subnet: Subnet;
+/** The options of one component, hung off its row in the Nets list. */
+export const ComponentOptionsPopover: React.FC<{
+  component: Component;
   anchor: Element;
   onClose: () => void;
-}> = ({ subnet, anchor, onClose }) => (
+}> = ({ component, anchor, onClose }) => (
   <Popover
     triggerRef={{ current: anchor }}
     position="bottom-start"
@@ -302,8 +311,8 @@ export const SubnetOptionsPopover: React.FC<{
     <Popover.Container>
       <Popover.Body>
         <div className={bodyStyle}>
-          <InterfaceOptions subnet={subnet} />
-          <AppearanceOptions subnet={subnet} />
+          <InterfaceOptions component={component} />
+          <AppearanceOptions component={component} />
         </div>
       </Popover.Body>
     </Popover.Container>

@@ -2,4 +2,4 @@
 "@hashintel/petrinaut": patch
 ---
 
-Draws a component's own icon and colour on its instances and in the Nets list, set from the subnet's options.
+Draws a component's own icon and colour on its instances and in the Nets list, set from the component's options.

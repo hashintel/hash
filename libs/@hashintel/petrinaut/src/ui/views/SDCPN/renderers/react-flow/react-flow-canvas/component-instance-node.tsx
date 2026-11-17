@@ -173,14 +173,14 @@ const handles = {
  * interface what runs for it. The line is short, so it leads with that.
  */
 const describeBinding = (
-  subnetName: string,
+  componentName: string,
   binding: CanvasInstanceBinding,
 ): string => {
   switch (binding.kind) {
     case "component":
-      return subnetName;
+      return componentName;
     case "unresolved":
-      return `${subnetName}, unresolved`;
+      return `${componentName}, unresolved`;
     case "interface":
       return binding.implementationName ?? "no implementation";
   }
@@ -212,7 +212,7 @@ export const ComponentInstanceNode: React.FC<
   const unbound =
     binding.kind === "unresolved" ||
     (isInterface && binding.implementationName === null);
-  const subtitle = describeBinding(data.subnetName, binding);
+  const subtitle = describeBinding(data.componentName, binding);
 
   // A card that keeps its height moves its pins when a port comes, goes or
   // changes side. They are measured at once, and again once they have slid
@@ -248,7 +248,7 @@ export const ComponentInstanceNode: React.FC<
               className={cx(nodeSubtitleStyle, problemTextStyle)}
               data-severity={unbound ? "error" : undefined}
               title={
-                isInterface ? `${data.subnetName}: ${subtitle}` : undefined
+                isInterface ? `${data.componentName}: ${subtitle}` : undefined
               }
             >
               {subtitle}

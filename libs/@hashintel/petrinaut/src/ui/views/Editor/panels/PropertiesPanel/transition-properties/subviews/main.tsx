@@ -103,14 +103,14 @@ const TransitionMainContent: React.FC = () => {
     const instance = activeNet.componentInstances.find(
       ({ id }) => id === endpoint.componentInstanceId,
     );
-    const subnet = instance
+    const component = instance
       ? resolveComponent(fullSdcpn, componentOf(instance), libraries)
       : undefined;
-    const port = subnet?.places.find(
+    const port = component?.places.find(
       (place) => place.id === endpoint.portPlaceId,
     );
     const color = port?.colorId
-      ? subnet?.types.find((type) => type.id === port.colorId)?.displayColor
+      ? component?.types.find((type) => type.id === port.colorId)?.displayColor
       : undefined;
     return {
       id: getArcEndpointKey(endpoint),

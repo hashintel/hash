@@ -50,7 +50,7 @@ test("a merged update makes the canonical calls its input names, its failable st
 
 test("an update carries the value that clears an instance's choice, or an interface flag, to its canonical call", () => {
   expect(
-    hashPetrinautTools.petrinaut_update_component.parseCall({
+    hashPetrinautTools.petrinaut_update_component_instance.parseCall({
       editor_id: hashProcessEditorId,
       instanceId: "worker",
       update: { implementation: null },
@@ -65,15 +65,18 @@ test("an update carries the value that clears an instance's choice, or an interf
     },
   ]);
   expect(
-    hashPetrinautTools.petrinaut_update_subnet.parseCall({
+    hashPetrinautTools.petrinaut_update_component.parseCall({
       editor_id: hashProcessEditorId,
-      subnetId: "stage",
+      componentId: "stage",
       update: { interface: false },
     }).calls,
   ).toEqual([
     {
-      toolName: "updateSubnet",
-      input: { subnetId: toPetrinautId("stage"), update: { interface: false } },
+      toolName: "updateComponent",
+      input: {
+        componentId: toPetrinautId("stage"),
+        update: { interface: false },
+      },
     },
   ]);
 });
@@ -121,7 +124,7 @@ test.each([
       portPlaceId: "inbox",
     },
     weight: 2,
-    targetSubnetId: "pipeline",
+    targetComponentId: "pipeline",
   },
   {
     placeId: "queue",

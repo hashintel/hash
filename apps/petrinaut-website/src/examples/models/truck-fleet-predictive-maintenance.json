@@ -5097,7 +5097,7 @@
       "code": "const fleet = state.places.Available.tokens.concat(state.places.OnRoute.tokens.concat(state.places.Returning.tokens.concat(state.places.DepotQueue.tokens.concat(state.places.InBay.tokens.concat(state.places.AwaitingParts.tokens.concat(state.places.Stranded.tokens.concat(state.places.UnderRecovery.tokens.concat(state.places.Rest.tokens.concat(state.places.NeedsRepair.tokens)))))))));\nif (fleet.length === 0) return 0;\nreturn fleet.reduce((t, tr) => t + tr.tyre_wear, 0) / fleet.length;"
     }
   ],
-  "subnets": [],
+  "components": [],
   "componentInstances": [],
   "version": 1,
   "meta": {

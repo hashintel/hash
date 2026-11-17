@@ -334,14 +334,14 @@ test("query_basis matches a reflection that names an arc by Petrinaut's generate
   });
 });
 
-test("query_basis finds an element inside a subnet and the call that added it there", () => {
+test("query_basis finds an element inside a component and the call that added it there", () => {
   const [queue] = definition.places;
-  const intoSubnet = {
+  const intoComponent = {
     ...add,
     toolCallId: "add-triage",
-    input: { id: "triage", name: "Triage", targetSubnetId: "intake" },
+    input: { id: "triage", name: "Triage", targetComponentId: "intake" },
   };
-  const readWithSubnet = {
+  const readWithComponent = {
     ...read,
     output: {
       brunchBrowserResult: true,
@@ -349,7 +349,7 @@ test("query_basis finds an element inside a subnet and the call that added it th
         title: "Queue",
         definition: {
           ...definition,
-          subnets: [
+          components: [
             {
               id: "intake",
               name: "Intake",
@@ -369,7 +369,7 @@ test("query_basis finds an element inside a subnet and the call that added it th
     ...snapshot,
     messages: [
       user,
-      { ...assistant, parts: [commit, intoSubnet, readWithSubnet] },
+      { ...assistant, parts: [commit, intoComponent, readWithComponent] },
     ],
   } as FlueConversationSnapshot;
 

@@ -45,7 +45,7 @@ export type ArcData = Pick<
   "kind" | "weight" | "focus" | "transitionId"
 > & {
   /**
-   * The outlines the arc attaches to. An end with none, at a subnet port,
+   * The outlines the arc attaches to. An end with none, at a component port,
    * attaches to the port's handle instead.
    */
   sourceOutline: OutlineNode | null;

@@ -257,7 +257,7 @@ describe("useCanvasInteractions", () => {
     expect(mutations.addFusion).toHaveBeenCalledExactlyOnceWith({
       id: expect.any(String) as string,
       members: [place("store"), port("m2")],
-      targetSubnetId: null,
+      targetComponentId: null,
     });
   });
 
@@ -330,10 +330,10 @@ describe("useCanvasInteractions", () => {
     );
     expect(
       mutations.addComponentInstance.mock.calls[0]?.[0],
-    ).not.toHaveProperty("subnetId");
+    ).not.toHaveProperty("componentId");
     expect(mutations.addComponentInstance).toHaveBeenNthCalledWith(
       2,
-      expect.objectContaining({ subnetId: "stage" }),
+      expect.objectContaining({ componentId: "stage" }),
     );
   });
 

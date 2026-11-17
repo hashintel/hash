@@ -166,7 +166,7 @@ describe("resolveCanvasFocus", () => {
     const instance = (id: string) => ({
       id,
       name: id,
-      subnetId: "stage",
+      componentId: "stage",
       parameterValues: {},
       x: 0,
       y: 0,

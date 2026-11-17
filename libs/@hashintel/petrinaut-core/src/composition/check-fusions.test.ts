@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { checkComposition } from "./check-composition";
 import { checkFusions } from "./check-fusions";
 
-import type { Color, Fusion, Place, SDCPN, Subnet } from "../types/sdcpn";
+import type { Color, Component, Fusion, Place, SDCPN } from "../types/sdcpn";
 import type { ResolvedLibraries } from "./libraries";
 
 const place = (id: string, overrides: Partial<Place> = {}): Place => ({
@@ -24,7 +24,10 @@ const color = (id: string, elements: Color["elements"]): Color => ({
   elements,
 });
 
-const subnet = (id: string, overrides: Partial<Subnet> = {}): Subnet => ({
+const component = (
+  id: string,
+  overrides: Partial<Component> = {},
+): Component => ({
   id,
   name: id,
   places: [],
@@ -50,10 +53,10 @@ const partIn = (instanceId: string): Fusion["members"][number] => ({
   portPlaceId: "in",
 });
 
-const instance = (id: string, subnetId: string) => ({
+const instance = (id: string, componentId: string) => ({
   id,
   name: id,
-  subnetId,
+  componentId,
   parameterValues: {},
   x: 0,
   y: 0,
@@ -66,8 +69,8 @@ describe("checkFusions", () => {
         color("root_part", [{ elementId: "w", name: "weight", type: "real" }]),
       ],
       places: [place("buffer", { colorId: "root_part" })],
-      subnets: [
-        subnet("machine", {
+      components: [
+        component("machine", {
           types: [
             color("part", [{ elementId: "w", name: "weight", type: "real" }]),
           ],
@@ -99,7 +102,7 @@ describe("checkFusions", () => {
   it("reports members that do not resolve to a port", () => {
     const sdcpn = net({
       places: [place("buffer")],
-      subnets: [subnet("machine", { places: [place("in")] })],
+      components: [component("machine", { places: [place("in")] })],
       componentInstances: [instance("m1", "machine")],
       fusions: [
         {
@@ -139,8 +142,8 @@ describe("checkFusions", () => {
           dynamics: [{ differentialEquationId: "cool" }],
         }),
       ],
-      subnets: [
-        subnet("machine", {
+      components: [
+        component("machine", {
           types: [
             color("part", [{ elementId: "n", name: "count", type: "integer" }]),
           ],
@@ -181,10 +184,10 @@ describe("checkFusions", () => {
     ).toEqual(["color-mismatch", "capacity-mismatch", "dynamics-conflict"]);
   });
 
-  it("accepts the same equation on two instances of one subnet", () => {
+  it("accepts the same equation on two instances of one component", () => {
     const sdcpn = net({
-      subnets: [
-        subnet("tank", {
+      components: [
+        component("tank", {
           types: [
             color("fluid", [{ elementId: "l", name: "level", type: "real" }]),
           ],
@@ -236,9 +239,9 @@ describe("checkFusions", () => {
         dynamics: [{ differentialEquationId: "cool" }],
         ...overrides,
       });
-    /** A subnet whose port runs the equation the subnet defines as `cool`. */
+    /** A component whose port runs the equation the component defines as `cool`. */
     const cooler = (id: string, code: string) =>
-      subnet(id, {
+      component(id, {
         types: [fluid],
         differentialEquations: [cool(code)],
         places: [cooled("in", { isPort: true })],
@@ -248,9 +251,9 @@ describe("checkFusions", () => {
         .filter(({ severity }) => severity === "error")
         .map(({ code }) => code);
 
-    it("reports the ports of two subnets", () => {
+    it("reports the ports of two components", () => {
       const sdcpn = net({
-        subnets: [
+        components: [
           cooler("bath", "return { level: -1 };"),
           cooler("kiln", "return { level: 1 };"),
         ],
@@ -263,7 +266,7 @@ describe("checkFusions", () => {
       expect(errorCodes(sdcpn)).toEqual(["dynamics-conflict"]);
     });
 
-    it("reports the ports of a subnet and of a library's component under its id", () => {
+    it("reports the ports of a component and of a library's component under its id", () => {
       const libraries: ResolvedLibraries = new Map([
         [
           "lib",
@@ -275,12 +278,12 @@ describe("checkFusions", () => {
         ],
       ]);
       const sdcpn = net({
-        subnets: [cooler("bath", "return { level: -1 };")],
+        components: [cooler("bath", "return { level: -1 };")],
         componentInstances: [
           instance("b1", "bath"),
           {
             ...instance("l1", "bath"),
-            subnetId: undefined,
+            componentId: undefined,
             component: { from: "lib", id: "bath" },
           },
         ],
@@ -292,12 +295,12 @@ describe("checkFusions", () => {
       expect(errorCodes(sdcpn, libraries)).toEqual(["dynamics-conflict"]);
     });
 
-    it("reports a root place and the port of a subnet", () => {
+    it("reports a root place and the port of a component", () => {
       const sdcpn = net({
         types: [fluid],
         differentialEquations: [cool("return { level: 1 };")],
         places: [cooled("tank")],
-        subnets: [cooler("bath", "return { level: -1 };")],
+        components: [cooler("bath", "return { level: -1 };")],
         componentInstances: [instance("b1", "bath")],
         fusions: [
           {
@@ -315,7 +318,9 @@ describe("checkFusions", () => {
   it("reports duplicate members, a second anchor and a lone member", () => {
     const sdcpn = net({
       places: [place("a"), place("b")],
-      subnets: [subnet("machine", { places: [place("in", { isPort: true })] })],
+      components: [
+        component("machine", { places: [place("in", { isPort: true })] }),
+      ],
       componentInstances: [
         instance("m1", "machine"),
         instance("m2", "machine"),
@@ -345,7 +350,9 @@ describe("checkFusions", () => {
   it("reports a place or port that two fusions of one net hold", () => {
     const sdcpn = net({
       places: [place("a"), place("b")],
-      subnets: [subnet("machine", { places: [place("in", { isPort: true })] })],
+      components: [
+        component("machine", { places: [place("in", { isPort: true })] }),
+      ],
       componentInstances: [instance("m1", "machine")],
       fusions: [
         {
@@ -398,11 +405,11 @@ describe("checkFusions", () => {
     );
   });
 
-  it("checks the fusions inside subnets, naming the subnet", () => {
+  it("checks the fusions inside components, naming the component", () => {
     const sdcpn = net({
-      subnets: [
-        subnet("cell", { places: [place("in", { isPort: true })] }),
-        subnet("line", {
+      components: [
+        component("cell", { places: [place("in", { isPort: true })] }),
+        component("line", {
           places: [place("feed")],
           componentInstances: [instance("c1", "cell")],
           fusions: [
@@ -419,7 +426,7 @@ describe("checkFusions", () => {
     expect(
       checkFusions(sdcpn).filter(({ severity }) => severity === "error"),
     ).toMatchObject([
-      { subnetId: "line", fusionId: "f1", code: "unresolved-member" },
+      { componentId: "line", fusionId: "f1", code: "unresolved-member" },
     ]);
   });
 });
@@ -441,7 +448,7 @@ describe("token flow through fused ports", () => {
     y: 0,
   });
 
-  const stage = subnet("stage", {
+  const stage = component("stage", {
     places: [place("in", { isPort: true }), place("out", { isPort: true })],
     transitions: [transition("work", ["in"], ["out"])],
   });
@@ -454,7 +461,7 @@ describe("token flow through fused ports", () => {
 
   it("is quiet on an output fused with an input", () => {
     const sdcpn = net({
-      subnets: [stage],
+      components: [stage],
       componentInstances: [instance("s1", "stage"), instance("s2", "stage")],
       fusions: [
         {
@@ -470,7 +477,7 @@ describe("token flow through fused ports", () => {
 
   it("warns on two inputs fused together, and notes two outputs", () => {
     const sdcpn = net({
-      subnets: [stage],
+      components: [stage],
       componentInstances: [instance("s1", "stage"), instance("s2", "stage")],
       fusions: [
         {
@@ -493,7 +500,7 @@ describe("token flow through fused ports", () => {
   });
 
   it("does not count a port that is only read as one that empties the fused place", () => {
-    const gauge = subnet("gauge", {
+    const gauge = component("gauge", {
       places: [place("level", { isPort: true })],
       transitions: [
         {
@@ -503,7 +510,7 @@ describe("token flow through fused ports", () => {
       ],
     });
     const sdcpn = net({
-      subnets: [stage, gauge],
+      components: [stage, gauge],
       componentInstances: [instance("s1", "stage"), instance("g1", "gauge")],
       fusions: [
         {
@@ -535,7 +542,7 @@ describe("token flow through fused ports", () => {
           ],
         },
       ],
-      subnets: [stage],
+      components: [stage],
       componentInstances: [instance("s1", "stage"), instance("s2", "stage")],
       fusions: [
         {
@@ -555,7 +562,7 @@ describe("token flow through fused ports", () => {
   });
 
   it("leaves the flow through an anchor that is itself a port to the net above", () => {
-    const line = subnet("line", {
+    const line = component("line", {
       places: [place("feed", { isPort: true })],
       componentInstances: [instance("s1", "stage")],
       fusions: [
@@ -567,7 +574,7 @@ describe("token flow through fused ports", () => {
       ],
     });
     const sdcpn = net({
-      subnets: [stage, line],
+      components: [stage, line],
       componentInstances: [instance("l1", "line")],
     });
 
@@ -577,9 +584,9 @@ describe("token flow through fused ports", () => {
   it("reads the far side of an anchor port off the direction the port declares", () => {
     const lineWith = (portDirection: "in" | "out") =>
       net({
-        subnets: [
+        components: [
           stage,
-          subnet("line", {
+          component("line", {
             places: [place("feed", { isPort: true, portDirection })],
             componentInstances: [instance("s1", "stage")],
             fusions: [
@@ -600,7 +607,7 @@ describe("token flow through fused ports", () => {
     expect(checkFusions(lineWith("in"))).toEqual([]);
     // An output port is emptied from above, and the stage only consumes too.
     expect(checkFusions(lineWith("out"))).toMatchObject([
-      { subnetId: "line", code: "no-producer" },
+      { componentId: "line", code: "no-producer" },
     ]);
   });
 
@@ -616,7 +623,7 @@ describe("token flow through fused ports", () => {
           ],
         },
       ],
-      subnets: [stage],
+      components: [stage],
       componentInstances: [instance("s1", "stage")],
       fusions: [
         {
@@ -633,7 +640,7 @@ describe("token flow through fused ports", () => {
   });
 
   it("reports a type mismatch once, however many members disagree", () => {
-    const typed = subnet("typed", {
+    const typed = component("typed", {
       types: [
         color("part", [{ elementId: "w", name: "weight", type: "real" }]),
       ],
@@ -641,7 +648,7 @@ describe("token flow through fused ports", () => {
     });
     const sdcpn = net({
       places: [place("feed")],
-      subnets: [typed],
+      components: [typed],
       componentInstances: [instance("t1", "typed"), instance("t2", "typed")],
       fusions: [
         {
@@ -662,12 +669,12 @@ describe("token flow through fused ports", () => {
   });
 
   it("takes a declared direction over the arcs", () => {
-    const sink = subnet("sink", {
+    const sink = component("sink", {
       places: [place("in", { isPort: true, portDirection: "inout" })],
       transitions: [transition("absorb", ["in"], [])],
     });
     const sdcpn = net({
-      subnets: [sink],
+      components: [sink],
       componentInstances: [instance("k1", "sink"), instance("k2", "sink")],
       fusions: [
         {
@@ -681,21 +688,21 @@ describe("token flow through fused ports", () => {
     expect(checkFusions(sdcpn)).toEqual([]);
   });
 
-  it("reads a subnet's arcs once for its fused ports that declare no direction, however many", () => {
+  it("reads a component's arcs once for its fused ports that declare no direction, however many", () => {
     // A thousand ports that declare no direction, under 20,000 arcs that
     // consume from them.
     const ports = Array.from({ length: 1000 }, (_, index) =>
       place(`port-${index}`, { isPort: true }),
     );
     const portIds = ports.map(({ id }) => id);
-    const wide = subnet("wide", {
+    const wide = component("wide", {
       places: ports,
       transitions: Array.from({ length: 20 }, (_, index) =>
         transition(`take-${index}`, portIds, []),
       ),
     });
     const sdcpn = net({
-      subnets: [wide],
+      components: [wide],
       componentInstances: [instance("w1", "wide"), instance("w2", "wide")],
       fusions: portIds.map((id) => ({
         id: `fusion-${id}`,
@@ -718,8 +725,8 @@ describe("token flow through fused ports", () => {
 
   it("tags fusion and port problems by kind", () => {
     const sdcpn = net({
-      subnets: [
-        subnet("loop", {
+      components: [
+        component("loop", {
           places: [place("pool", { isPort: true, portDirection: "out" })],
           transitions: [transition("cycle", ["pool"], ["pool"])],
         }),

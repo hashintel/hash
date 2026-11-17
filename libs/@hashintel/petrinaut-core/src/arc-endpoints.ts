@@ -3,6 +3,7 @@ import { componentOf, resolveComponent } from "./composition/interfaces";
 import type { ResolvedLibraries } from "./composition/libraries";
 import type {
   ArcEndpoint,
+  Component,
   ComponentInstance,
   ComponentPortArcEndpoint,
   ID,
@@ -10,7 +11,6 @@ import type {
   OutputArc,
   PlaceArcEndpoint,
   SDCPN,
-  Subnet,
 } from "./types/sdcpn";
 
 type ArcWithEndpoint = Pick<InputArc | OutputArc, "endpoint" | "placeId">;
@@ -111,9 +111,9 @@ export const getArcEndpointPlaceId = (arc: ArcWithEndpoint): ID | null => {
 };
 
 /** The component whose ports an instance's endpoints name, or `null` when it does not resolve. */
-export const getComponentPortEndpointSubnet = (
-  sdcpn: Pick<SDCPN, "subnets">,
-  instance: Pick<ComponentInstance, "subnetId" | "component">,
+export const getComponentPortEndpointComponent = (
+  sdcpn: Pick<SDCPN, "components">,
+  instance: Pick<ComponentInstance, "componentId" | "component">,
   libraries?: ResolvedLibraries,
-): Subnet | null =>
+): Component | null =>
   resolveComponent(sdcpn, componentOf(instance), libraries) ?? null;

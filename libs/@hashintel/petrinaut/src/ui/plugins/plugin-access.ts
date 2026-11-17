@@ -136,12 +136,12 @@ export interface PluginDocumentReader {
  * the refusal would be lost.
  */
 export type PluginEdits = {
-  /** Edits the root net unless `input.targetSubnetId` is set. Scenario and metric edits are refused only on a read-only host. */
+  /** Edits the root net unless `input.targetComponentId` is set. Scenario and metric edits are refused only on a read-only host. */
   readonly [Name in keyof PetrinautMutations]: (
     input: Parameters<PetrinautMutations[Name]>[0],
   ) => EditResult;
 } & {
-  /** Lays out the viewed subnet in one undo entry, then frames it once drawn. */
+  /** Lays out the viewed component in one undo entry, then frames it once drawn. */
   readonly applyAutoLayout: () => Promise<EditResult<ApplyAutoLayoutResult>>;
 };
 
@@ -169,7 +169,7 @@ export interface PluginExperiments extends PluginExperimentsReader {
 export interface PluginEditorReader {
   /**
    * The editor's location, as the host's navigation state: mode, views, the
-   * open Simulate record, scenario, subnet, selection and overlay. Changes
+   * open Simulate record, scenario, component, selection and overlay. Changes
    * only when one of them does.
    */
   readonly navigation: ReadableStore<PetrinautNavigationState>;
@@ -190,7 +190,7 @@ export interface PluginEditor extends PluginEditorReader {
 /** Editor state the actions read when called, copied after every commit. */
 export interface PluginEditorState {
   readonly readOnlyReason: ReadOnlyReason | null;
-  readonly activeSubnetId: string | null;
+  readonly activeComponentId: string | null;
   readonly setTitle: ((title: string) => void) | undefined;
   readonly navigate: (
     update: PetrinautNavigationUpdate<PetrinautNavigationState>,
@@ -294,11 +294,11 @@ const writeDocument = (
     edit: {
       ...guardMutations(ports),
       applyAutoLayout: async () => {
-        const { readOnlyReason, activeSubnetId } = latest.get();
+        const { readOnlyReason, activeComponentId } = latest.get();
         if (readOnlyReason !== null) {
           return { applied: false, reason: readOnlyReason };
         }
-        const targeted = { targetSubnetId: activeSubnetId };
+        const targeted = { targetComponentId: activeComponentId };
         const message = instance.commandRefusal("applyAutoLayout", targeted);
         if (message !== null) {
           return hostRestriction(message);
@@ -353,7 +353,7 @@ const navigationActions: readonly (readonly [
   ["simulateResource", "simulation-resource"],
   ["simulatePresentation", "simulation-presentation"],
   ["scenarioId", "scenario"],
-  ["subnetId", "subnet"],
+  ["componentId", "component"],
   ["expandedSubView", "subview"],
   ["simulateView", "simulation-view"],
   ["editView", "edit-view"],

@@ -103,27 +103,27 @@ describe("example search contract", () => {
     expect(
       validateSharedExampleSearch({
         scenario: "scenario-1",
-        subnet: 42,
+        component: 42,
         itemType: "unknown",
         itemId: "place-1",
         unrelated: "value",
       }),
     ).toEqual({
       scenario: "scenario-1",
-      subnet: undefined,
+      component: undefined,
     });
   });
 
   it("keeps focused items only as complete pairs", () => {
     expect(validateSharedExampleSearch({ itemType: "place" })).toEqual({
       scenario: undefined,
-      subnet: undefined,
+      component: undefined,
     });
     expect(
       validateSharedExampleSearch({ itemType: "place", itemId: "place-1" }),
     ).toEqual({
       scenario: undefined,
-      subnet: undefined,
+      component: undefined,
       itemType: "place",
       itemId: "place-1",
     });
@@ -141,8 +141,8 @@ describe("example search contract", () => {
   it("compares locations by canonical string, not key order", () => {
     expect(
       sharedSearchesMatch(
-        { subnet: "subnet-1", scenario: "scenario-1" },
-        { scenario: "scenario-1", subnet: "subnet-1" },
+        { component: "component-1", scenario: "scenario-1" },
+        { scenario: "scenario-1", component: "component-1" },
       ),
     ).toBe(true);
     expect(
@@ -156,12 +156,14 @@ describe("example search contract", () => {
   it("encodes the canonical string with contract keys only, sorted", () => {
     expect(
       canonicalSearchString({
-        subnet: "subnet-1",
+        component: "component-1",
         scenario: "scenario-1",
         itemType: "place",
         itemId: "place-1",
       }),
-    ).toBe("itemId=place-1&itemType=place&scenario=scenario-1&subnet=subnet-1");
+    ).toBe(
+      "component=component-1&itemId=place-1&itemType=place&scenario=scenario-1",
+    );
   });
 
   it("normalises a link to the retired Optimizations section", () => {
@@ -176,7 +178,7 @@ describe("example search contract", () => {
     });
     expect(search).toEqual({
       scenario: undefined,
-      subnet: undefined,
+      component: undefined,
       mode: "simulate",
       view: undefined,
       overlay: undefined,

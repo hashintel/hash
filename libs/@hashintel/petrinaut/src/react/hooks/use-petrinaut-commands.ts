@@ -27,7 +27,7 @@ export function usePetrinautCommands(): PetrinautCommands {
   }
   const isReadOnly = useIsReadOnly();
   const notifyReadOnly = useReadOnlyFeedback();
-  const { activeSubnetId } = use(ActiveNetContext);
+  const { activeComponentId } = use(ActiveNetContext);
   const notifyHostRules = useHostRulesFeedback();
   const { commands } = instance;
 
@@ -46,7 +46,7 @@ export function usePetrinautCommands(): PetrinautCommands {
         notifyReadOnly();
         return { newItemIds: [] };
       }
-      const targeted = { ...input, targetSubnetId: activeSubnetId };
+      const targeted = { ...input, targetComponentId: activeComponentId };
       return refused("applyClipboardPaste", targeted)
         ? { newItemIds: [] }
         : commands.applyClipboardPaste(targeted);
@@ -56,7 +56,7 @@ export function usePetrinautCommands(): PetrinautCommands {
         notifyReadOnly();
         return { commitCount: 0 };
       }
-      const targeted = { targetSubnetId: activeSubnetId };
+      const targeted = { targetComponentId: activeComponentId };
       return refused("applyAutoLayout", targeted)
         ? { commitCount: 0 }
         : commands.applyAutoLayout(targeted);

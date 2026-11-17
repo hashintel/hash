@@ -158,12 +158,12 @@ const SelectedItemPropertiesContent: React.FC = () => {
         if (!instance) {
           return null;
         }
-        const subnet =
+        const component =
           resolveComponent(fullSdcpn, componentOf(instance), libraries) ?? null;
         return (
           <ComponentInstanceProperties
             instance={instance}
-            subnet={subnet}
+            component={component}
             updateComponentInstance={updateComponentInstance}
           />
         );

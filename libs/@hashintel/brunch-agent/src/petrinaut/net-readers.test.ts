@@ -213,11 +213,11 @@ test("the outline drops scenario code and expressions but keeps the ad-hoc shape
   });
 });
 
-test("presentational and code fields are stripped from subnet items too", () => {
+test("presentational and code fields are stripped from component items too", () => {
   const nested = projectNetDefinition(
     {
       ...definition,
-      subnets: [
+      components: [
         {
           id: "n1",
           name: "Sub",
@@ -230,7 +230,7 @@ test("presentational and code fields are stripped from subnet items too", () => 
     "outline",
   );
   expect(nested).toMatchObject({
-    subnets: [
+    components: [
       {
         id: "n1",
         places: [{ id: "p1", name: "Queue", colorId: null }],

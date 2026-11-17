@@ -266,6 +266,7 @@ export {
 export {
   colorSchema,
   componentInstanceSchema,
+  componentSchema,
   createExperimentToolName,
   differentialEquationSchema,
   getLatestNetDefinitionToolName,
@@ -285,7 +286,6 @@ export {
   scenarioSchema,
   setNetTitleToolInputSchema,
   setNetTitleToolName,
-  subnetSchema,
   transitionSchema,
 } from "./ai";
 export type {
@@ -558,7 +558,7 @@ export {
   getArcEndpointKey,
   getArcEndpointNodeId,
   getArcEndpointPlaceId,
-  getComponentPortEndpointSubnet,
+  getComponentPortEndpointComponent,
   parseArcEndpointKey,
   placeArcEndpoint,
 } from "./arc-endpoints";
@@ -858,7 +858,7 @@ export {
 } from "./view-hir/visualizer-svg";
 export type { MetricShape } from "./hir/metric-shape";
 export {
-  describeDisallowedSubnetIconElement,
-  disallowedSubnetIconElement,
-  maxSubnetIconLength,
+  describeDisallowedComponentIconElement,
+  disallowedComponentIconElement,
+  maxComponentIconLength,
 } from "./schemas/entity-schemas";

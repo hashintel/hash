@@ -22,7 +22,10 @@ export const SDCPNProvider: React.FC<{ children: ReactNode }> = ({
   const netManagement = use(NetManagementContext);
 
   const petriNetDefinition = useStore(instance.definition);
-  const allNets = [petriNetDefinition, ...(petriNetDefinition.subnets ?? [])];
+  const allNets = [
+    petriNetDefinition,
+    ...(petriNetDefinition.components ?? []),
+  ];
 
   const value: SDCPNContextValue = {
     petriNetId: instance.handle.id,

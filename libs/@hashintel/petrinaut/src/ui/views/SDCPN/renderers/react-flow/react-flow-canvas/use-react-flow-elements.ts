@@ -120,7 +120,7 @@ const toFusionEdge = (link: CanvasFusionLink): FusionEdgeType => ({
 
 /**
  * The scene as React Flow nodes and edges. Each arc carries the outlines of
- * the nodes it joins; a component instance has none, so an arc at a subnet
+ * the nodes it joins; a component instance has none, so an arc at a component
  * port ends at the port's handle. No per-frame value rides here: a place's
  * token count and a transition's firing state reach them by subscription, so
  * a playback frame leaves this list untouched.
@@ -133,7 +133,7 @@ export const useReactFlowElements = (
     const node = nodesById.get(nodeId);
     return node ? getOutlineNode(node) : null;
   };
-  // Node pairs only, ports aside: an arc into a subnet port and one out of
+  // Node pairs only, ports aside: an arc into a component port and one out of
   // the same component would otherwise meet the transition at one point.
   const connections = new Set(
     scene.arcs.map((arc) => JSON.stringify([arc.sourceId, arc.targetId])),

@@ -8,11 +8,11 @@ import { resolveLibrary } from "./libraries";
 import { logistics } from "./libraries.test-helpers";
 
 import type {
+  Component,
   ComponentInstance,
   ComponentReference,
   Place,
   SDCPN,
-  Subnet,
 } from "../types/sdcpn";
 import type { ImportStates } from "./imports";
 
@@ -43,7 +43,7 @@ const instanceOf = (
   id,
   name: id,
   ...(component.from === undefined
-    ? { subnetId: component.id }
+    ? { componentId: component.id }
     : { component: { from: component.from, id: component.id } }),
   parameterValues: {},
   ...(implementation ? { implementation } : {}),
@@ -61,8 +61,8 @@ const net = (overrides: Partial<SDCPN> = {}): SDCPN => ({
   ...overrides,
 });
 
-/** A subnet of the document with the ports of `scale` and no parameter. */
-const handScale: Subnet = {
+/** A component of the document with the ports of `scale` and no parameter. */
+const handScale: Component = {
   id: "hand-scale",
   name: "HandScale",
   places: [
@@ -130,7 +130,7 @@ describe("checkComposition with imports", () => {
     expect(checkComposition(wired, failed)).toEqual([
       {
         kind: "import",
-        subnetId: null,
+        componentId: null,
         importId: logistics.id,
         severity: "error",
         message:
@@ -169,7 +169,7 @@ describe("checkComposition with imports", () => {
     const failed: ImportStates = new Map([
       [logistics.id, { status: "failed", message: "The registry is offline." }],
     ]);
-    const stage: Subnet = { ...handScale, id: "stage", interface: true };
+    const stage: Component = { ...handScale, id: "stage", interface: true };
     const messages = (sdcpn: SDCPN) =>
       checkComposition(sdcpn, failed).flatMap((problem) =>
         problem.kind === "import" ? [problem.message] : [],
@@ -178,7 +178,7 @@ describe("checkComposition with imports", () => {
     expect(
       messages(
         net({
-          subnets: [stage],
+          components: [stage],
           componentInstances: [instanceOf("stage-1", { id: "stage" }, belt)],
         }),
       ),
@@ -188,7 +188,7 @@ describe("checkComposition with imports", () => {
     expect(
       messages(
         net({
-          subnets: [stage],
+          components: [stage],
           componentInstances: [
             instanceOf("stage-1", { id: "stage" }),
             instanceOf("stage-2", { id: "stage" }),
@@ -203,7 +203,7 @@ describe("checkComposition with imports", () => {
   });
 
   it("reports a library only a binding names without the document importing it", () => {
-    const stage: Subnet = { ...handScale, id: "stage", interface: true };
+    const stage: Component = { ...handScale, id: "stage", interface: true };
     const messages = (sdcpn: SDCPN) =>
       checkComposition(sdcpn, resolved).flatMap((problem) =>
         problem.kind === "import" ? [problem.message] : [],
@@ -213,7 +213,7 @@ describe("checkComposition with imports", () => {
       messages(
         net({
           imports: undefined,
-          subnets: [stage],
+          components: [stage],
           componentInstances: [instanceOf("stage-1", { id: "stage" }, belt)],
         }),
       ),
@@ -224,7 +224,7 @@ describe("checkComposition with imports", () => {
       messages(
         net({
           imports: undefined,
-          subnets: [stage],
+          components: [stage],
           implementations: [{ interface: { id: "stage" }, component: belt }],
         }),
       ),
@@ -235,9 +235,9 @@ describe("checkComposition with imports", () => {
 
   describe("a component its library does not have", () => {
     const crane: ComponentReference = { from: logistics.id, id: "crane" };
-    const stage: Subnet = { ...handScale, id: "stage", interface: true };
+    const stage: Component = { ...handScale, id: "stage", interface: true };
     const named = net({
-      subnets: [
+      components: [
         { ...handScale, componentInstances: [instanceOf("crane-2", crane)] },
       ],
       componentInstances: [
@@ -256,14 +256,14 @@ describe("checkComposition with imports", () => {
       expect(checkComposition(named, resolved)).toEqual([
         {
           ...problem,
-          subnetId: null,
+          componentId: null,
           instanceId: "crane-1",
           message:
             "crane-1 names the component `crane`, which the library `@hashintel/logistics` does not have.",
         },
         {
           ...problem,
-          subnetId: handScale.id,
+          componentId: handScale.id,
           instanceId: "crane-2",
           message:
             "crane-2 names the component `crane`, which the library `@hashintel/logistics` does not have.",
@@ -293,7 +293,7 @@ describe("checkComposition with imports", () => {
       expect(
         messages(
           net({
-            subnets: [stage],
+            components: [stage],
             componentInstances: [
               instanceOf("stage-1", { id: "stage" }, crane),
               instanceOf("scale-1", scale, crane),
@@ -307,7 +307,7 @@ describe("checkComposition with imports", () => {
       expect(
         messages(
           net({
-            subnets: [stage],
+            components: [stage],
             componentInstances: [instanceOf("stage-1", { id: "stage" })],
             implementations: [{ interface: { id: "stage" }, component: crane }],
           }),
@@ -366,15 +366,15 @@ describe("checkComposition with imports", () => {
     expect(checkComposition(sdcpn, resolved)).toEqual([]);
   });
 
-  it("holds a subnet bound to an interface of an import to its ports and parameters, at the instance", () => {
+  it("holds a component bound to an interface of an import to its ports and parameters, at the instance", () => {
     const sdcpn = net({
-      subnets: [handScale],
+      components: [handScale],
       componentInstances: [instanceOf("scale-1", scale, { id: handScale.id })],
     });
 
     expect(checkComposition(sdcpn, resolved)).toContainEqual({
       kind: "interface",
-      subnetId: null,
+      componentId: null,
       instanceId: "scale-1",
       code: "missing-parameter",
       severity: "error",
@@ -395,7 +395,7 @@ describe("checkComposition with imports", () => {
 
   it("does not take an interface of the document and one of an import under one id for the same", () => {
     const sdcpn = net({
-      subnets: [{ ...handScale, id: "scale", interface: true }],
+      components: [{ ...handScale, id: "scale", interface: true }],
       implementations: [
         { interface: scale, component: belt },
         { interface: { id: "scale" }, component: belt },
@@ -407,7 +407,7 @@ describe("checkComposition with imports", () => {
 });
 
 describe("implementationsOf across libraries", () => {
-  const fitting: Subnet = {
+  const fitting: Component = {
     ...handScale,
     id: "fitting",
     name: "Fitting",
@@ -422,29 +422,31 @@ describe("implementationsOf across libraries", () => {
     ],
   };
   const names = (iface: ComponentReference, sdcpn: SDCPN) =>
-    implementationsOf(sdcpn, iface, libraries).map(({ reference, subnet }) => [
-      reference.from ?? "document",
-      subnet.name,
-    ]);
+    implementationsOf(sdcpn, iface, libraries).map(
+      ({ reference, component }) => [
+        reference.from ?? "document",
+        component.name,
+      ],
+    );
 
   it("lists what has the ports and parameters of an interface of an import", () => {
-    expect(names(scale, net({ subnets: [handScale, fitting] }))).toEqual([
+    expect(names(scale, net({ components: [handScale, fitting] }))).toEqual([
       ["document", "Fitting"],
       [logistics.id, "Belt"],
     ]);
   });
 
-  it("lists the subnets that say they implement an interface of the document, then the components of imports that fit it", () => {
-    const iface: Subnet = {
+  it("lists the components that say they implement an interface of the document, then the components of imports that fit it", () => {
+    const iface: Component = {
       ...fitting,
       id: "stage",
       name: "Stage",
       interface: true,
     };
-    const declared: Subnet = { ...handScale, implements: ["stage"] };
+    const declared: Component = { ...handScale, implements: ["stage"] };
 
     expect(
-      names({ id: "stage" }, net({ subnets: [iface, declared, fitting] })),
+      names({ id: "stage" }, net({ components: [iface, declared, fitting] })),
     ).toEqual([
       ["document", "HandScale"],
       [logistics.id, "Belt"],

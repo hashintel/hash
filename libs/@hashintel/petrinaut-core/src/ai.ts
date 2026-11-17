@@ -26,7 +26,7 @@ export {
   placeSchema,
   pruningUpdateActions,
   scenarioSchema,
-  subnetSchema,
+  componentSchema,
   transitionSchema,
 } from "./action-schemas";
 export type {
@@ -125,7 +125,7 @@ export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
   "useful-patterns":
     "Duration modelling (exponential / non-exponential), resource pools, mutual exclusion, source / sink transitions, competing/routing transitions, multi-token arcs.",
   composition:
-    "Components (subnets) and instances, marking ports and their direction (input, output, both), fusing a place with instance ports by dragging, what fused places must agree on, interfaces (port-only subnets) and the components that implement them, choosing an implementation per document or per instance, fusion, port and interface checks in Diagnostics, moving or detaching a fusion by dragging an end of its link, components from the libraries an embedding application offers, the Components panel, imports, what shows while a library resolves or when one fails, exporting with imports inlined, an editor set up to compose those components only.",
+    "Components (components) and instances, marking ports and their direction (input, output, both), fusing a place with instance ports by dragging, what fused places must agree on, interfaces (port-only components) and the components that implement them, choosing an implementation per document or per instance, fusion, port and interface checks in Diagnostics, moving or detaching a fusion by dragging an end of its link, components from the libraries an embedding application offers, the Components panel, imports, what shows while a library resolves or when one fails, exporting with imports inlined, an editor set up to compose those components only.",
   simulation:
     "Simulating the open net: initial state, simulation settings (scenario picker, parameters, mode, simulator and its parameters), the class of a net (timed or untimed, its colouring, stochastic or deterministic), Quick Simulation of one run, Stochastic mode across many runs, deadlock, playback controls, timeline, locked editing.",
   scenarios:
@@ -139,7 +139,7 @@ export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
   "actual-mode":
     "Actual mode: host-provided live execution view, read-only net, timeline scrubbing, Events tab with recording and net exports.",
   preview:
-    "Compact read-only PetrinautPreview for host-controlled embeds: shared SDCPN canvas, pan/zoom/fit/minimap, selection and responsive inspector, root/subnet navigation, URL-state ownership, omitted editing and management UI, and host-owned iframe security.",
+    "Compact read-only PetrinautPreview for host-controlled embeds: shared SDCPN canvas, pan/zoom/fit/minimap, selection and responsive inspector, root/component navigation, URL-state ownership, omitted editing and management UI, and host-owned iframe security.",
   "ai-assistant":
     "In-app AI assistant: opening the panel, one text and Voice mode transcript/composer, waveform start, inline Voice state and provenance, typed handoff, consent/recovery, prompt chips, tool cards, read-only/simulate-mode rules, host configuration.",
   "code-editor":

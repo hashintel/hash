@@ -2,22 +2,22 @@ import { use, useEffect, type ReactNode } from "react";
 
 import { toPetrinautId } from "@hashintel/petrinaut-core";
 
-import { openPetrinautSubnet, usePetrinautNavigation } from "../navigation";
+import { openPetrinautComponent, usePetrinautNavigation } from "../navigation";
 import { ActiveNetContext } from "./active-net-context";
 import { SDCPNContext } from "./sdcpn-context";
 import { useComposesOnly } from "./use-composes-only";
 
 /**
- * Derives the active net from the full SDCPN. When a subnet is active, editor
- * panels and canvas operations read that subnet's local places/transitions/etc.
+ * Derives the active net from the full SDCPN. When a component is active, editor
+ * panels and canvas operations read that component's local places/transitions/etc.
  *
- * activeSubnetId is part of Petrinaut's app location. Changing subnets clears
+ * activeComponentId is part of Petrinaut's app location. Changing components clears
  * selection in the same atomic transition. The navigation provider is keyed
  * by document, so uncontrolled locations reset when the active handle changes.
- * A requested subnet id resolves through `toPetrinautId`, and the location is
- * rewritten to the canonical id, or to the root net when no subnet matches.
+ * A requested component id resolves through `toPetrinautId`, and the location is
+ * rewritten to the canonical id, or to the root net when no component matches.
  * Every id resolves to the root net in an editor that only composes: it
- * changes the root net alone, and has no panel that leads back from a subnet.
+ * changes the root net alone, and has no panel that leads back from a component.
  */
 export const ActiveNetProvider: React.FC<{ children: ReactNode }> = ({
   children,
@@ -25,42 +25,47 @@ export const ActiveNetProvider: React.FC<{ children: ReactNode }> = ({
   const { petriNetDefinition } = use(SDCPNContext);
   const composesOnly = useComposesOnly();
   const navigation = usePetrinautNavigation();
-  const requestedSubnetId = navigation.state.subnetId;
+  const requestedComponentId = navigation.state.componentId;
 
-  const setActiveSubnetId = (subnetId: string | null) => {
-    navigation.navigate(openPetrinautSubnet(subnetId), {
+  const setActiveComponentId = (componentId: string | null) => {
+    navigation.navigate(openPetrinautComponent(componentId), {
       cause: "user",
-      action: "subnet",
+      action: "component",
     });
   };
 
-  const canonicalSubnetId =
-    requestedSubnetId !== null ? toPetrinautId(requestedSubnetId) : null;
-  const subnet =
-    !composesOnly && canonicalSubnetId !== null
-      ? petriNetDefinition.subnets?.find(({ id }) => id === canonicalSubnetId)
+  const canonicalComponentId =
+    requestedComponentId !== null ? toPetrinautId(requestedComponentId) : null;
+  const component =
+    !composesOnly && canonicalComponentId !== null
+      ? petriNetDefinition.components?.find(
+          ({ id }) => id === canonicalComponentId,
+        )
       : undefined;
 
-  const resolvedSubnetId = subnet ? canonicalSubnetId : null;
+  const resolvedComponentId = component ? canonicalComponentId : null;
 
   useEffect(() => {
-    if (requestedSubnetId !== null && requestedSubnetId !== resolvedSubnetId) {
-      navigation.navigate(openPetrinautSubnet(resolvedSubnetId), {
+    if (
+      requestedComponentId !== null &&
+      requestedComponentId !== resolvedComponentId
+    ) {
+      navigation.navigate(openPetrinautComponent(resolvedComponentId), {
         cause: "normalization",
-        action: "subnet",
+        action: "component",
       });
     }
-  }, [navigation, requestedSubnetId, resolvedSubnetId]);
+  }, [navigation, requestedComponentId, resolvedComponentId]);
 
-  const activeNet = subnet
+  const activeNet = component
     ? {
-        places: subnet.places,
-        transitions: subnet.transitions,
-        types: subnet.types,
-        differentialEquations: subnet.differentialEquations,
-        parameters: subnet.parameters,
-        componentInstances: subnet.componentInstances ?? [],
-        fusions: subnet.fusions ?? [],
+        places: component.places,
+        transitions: component.transitions,
+        types: component.types,
+        differentialEquations: component.differentialEquations,
+        parameters: component.parameters,
+        componentInstances: component.componentInstances ?? [],
+        fusions: component.fusions ?? [],
       }
     : {
         places: petriNetDefinition.places,
@@ -76,8 +81,8 @@ export const ActiveNetProvider: React.FC<{ children: ReactNode }> = ({
     <ActiveNetContext
       value={{
         activeNet,
-        activeSubnetId: resolvedSubnetId,
-        setActiveSubnetId,
+        activeComponentId: resolvedComponentId,
+        setActiveComponentId,
       }}
     >
       {children}

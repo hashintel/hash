@@ -16,17 +16,17 @@ import { UserSettingsContext } from "./user-settings-context";
 const isOn = ({
   enableNetComponents = false,
   rules = {},
-  subnets = true,
+  components = true,
 }: {
   enableNetComponents?: boolean;
   rules?: PetrinautRules;
-  subnets?: boolean;
+  components?: boolean;
 }) => {
   const Wrapper = ({ children }: { children: ReactNode }) => (
     <SDCPNContext
       value={{
         ...use(SDCPNContext),
-        extensions: { ...DEFAULT_PETRINAUT_EXTENSIONS, subnets },
+        extensions: { ...DEFAULT_PETRINAUT_EXTENSIONS, components },
       }}
     >
       <UserSettingsContext
@@ -54,7 +54,7 @@ describe("the composition interface", () => {
   });
 
   it("is off over a document that cannot hold components", () => {
-    expect(isOn({ enableNetComponents: true, subnets: false })).toBe(false);
-    expect(isOn({ rules: { edit: "compose" }, subnets: false })).toBe(false);
+    expect(isOn({ enableNetComponents: true, components: false })).toBe(false);
+    expect(isOn({ rules: { edit: "compose" }, components: false })).toBe(false);
   });
 });

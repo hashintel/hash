@@ -17,7 +17,7 @@ import type { ImportStates } from "./imports";
 export type ImportProblem = {
   kind: "import";
   /** Always the root net: an import belongs to the document. */
-  subnetId: null;
+  componentId: null;
   importId: string;
   severity: "error";
   message: string;
@@ -54,7 +54,7 @@ export const checkImports = (
     count(component.from, 0);
   }
   const { defaults } = indexDocument(sdcpn);
-  for (const net of [sdcpn, ...(sdcpn.subnets ?? [])]) {
+  for (const net of [sdcpn, ...(sdcpn.components ?? [])]) {
     for (const instance of net.componentInstances ?? []) {
       const component = componentOf(instance);
       const implementation =
@@ -69,7 +69,7 @@ export const checkImports = (
   return [...uses].flatMap(([importId, instances]) => {
     const problem = (message: string): ImportProblem => ({
       kind: "import",
-      subnetId: null,
+      componentId: null,
       importId,
       severity: "error",
       message,
