@@ -140,7 +140,7 @@ describe("plugin editor", () => {
 
   it("refuses an edit beyond composing, in an editor that only composes", () => {
     const { instance } = renderPlugins([documentPlugin], <Probe />, {
-      compositionOnly: true,
+      rules: { edit: "compose" },
     });
 
     const refused = documentOf().edit.addPlace(place);

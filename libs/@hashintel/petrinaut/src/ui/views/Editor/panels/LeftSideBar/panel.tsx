@@ -5,6 +5,7 @@ import { css, cva, cx } from "@hashintel/ds-helpers/css";
 import { CompositionContext } from "../../../../../react/state/composition-context";
 import { EditorContext } from "../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
+import { useComposesOnly } from "../../../../../react/state/use-composes-only";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { GlassPanel } from "../../../../components/glass-panel";
 import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
@@ -107,7 +108,8 @@ export const LeftSideBar: React.FC = () => {
     isSearchOpen,
   } = use(EditorContext);
   const { extensions } = use(SDCPNContext);
-  const { offered, compositionOnly } = use(CompositionContext);
+  const { offered } = use(CompositionContext);
+  const composesOnly = useComposesOnly();
 
   const { keepPanelsMounted, enableNetComponents } = use(UserSettingsContext);
 
@@ -121,7 +123,7 @@ export const LeftSideBar: React.FC = () => {
     if (subView.id === "components") {
       return extensions.subnets && offered.length > 0;
     }
-    if (compositionOnly) {
+    if (composesOnly) {
       return false;
     }
     return subView.id === "nets-list"

@@ -4,12 +4,12 @@ import { Icon, type MenuItem, Menu } from "@hashintel/ds-components";
 import { sameComponent } from "@hashintel/petrinaut-core";
 
 import { ActiveNetContext } from "../../../../../react/state/active-net-context";
-import { CompositionContext } from "../../../../../react/state/composition-context";
 import {
   EditorContext,
   type EditorState,
 } from "../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
+import { useComposesOnly } from "../../../../../react/state/use-composes-only";
 import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import {
@@ -80,11 +80,11 @@ export const EditionTools: React.FC<{
   const { activeSubnetId } = use(ActiveNetContext);
   const isRootNet = activeSubnetId === null;
   const { extensions } = use(SDCPNContext);
-  const { compositionOnly } = use(CompositionContext);
+  const composesOnly = useComposesOnly();
   const { enableNetComponents, enableExperimentalIconPack } =
     use(UserSettingsContext);
 
-  if (isReadOnly || compositionOnly) {
+  if (isReadOnly || composesOnly) {
     return null;
   }
 

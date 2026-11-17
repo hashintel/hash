@@ -24,6 +24,7 @@ import type {
   Fusion,
   FusionMember,
   Petrinaut,
+  PetrinautRules,
   SelectionMap,
 } from "@hashintel/petrinaut-core";
 
@@ -100,9 +101,9 @@ const dropPortEnd = (
   onto: nodeId === undefined ? null : { nodeId, portId },
 });
 const addNotification = vi.fn();
-const editor: { selection: SelectionMap; compositionOnly: boolean } = {
+const editor: { selection: SelectionMap; rules: PetrinautRules } = {
   selection: new Map(),
-  compositionOnly: false,
+  rules: {},
 };
 const libraries = new Map([
   [logisticsLibrary.id, resolveLibrary(logisticsLibrary.id, logisticsLibrary)],
@@ -111,7 +112,7 @@ const libraries = new Map([
 beforeEach(() => {
   vi.clearAllMocks();
   editor.selection = new Map([[belt.id, { type: "fusion", id: belt.id }]]);
-  editor.compositionOnly = false;
+  editor.rules = {};
 });
 
 const Wrapper = ({ children }: { children: ReactNode }) => (
@@ -138,7 +139,7 @@ const Wrapper = ({ children }: { children: ReactNode }) => (
             value={{
               ...use(CompositionContext),
               libraries,
-              compositionOnly: editor.compositionOnly,
+              rules: editor.rules,
             }}
           >
             <EditorContext
@@ -202,7 +203,7 @@ describe("useCanvasInteractions", () => {
   });
 
   it("connects by fusion alone in an editor that only composes", () => {
-    editor.compositionOnly = true;
+    editor.rules = { edit: "compose" };
     const { interactions } = renderInteractions();
     const valid = (...ends: Parameters<typeof connection>) =>
       interactions.isValidConnection(connection(...ends));

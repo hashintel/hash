@@ -222,7 +222,7 @@ the compiler generates per resolved kinds is an implementation. The executor is
 a provider, and a dry-run mock is a second implementation of the same
 interface. A constrained editing mode, "pick from a fixed list of actions", is
 an editor kept to composing the components of the libraries a host offers:
-`libraries` with `compositionOnly`.
+`libraries` with `rules: { edit: "compose" }`.
 
 ## The three fusions
 

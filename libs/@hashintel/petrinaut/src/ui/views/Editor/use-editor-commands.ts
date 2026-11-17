@@ -2,9 +2,9 @@ import { use, useEffect, useEffectEvent } from "react";
 
 import { usePetrinautCommands } from "../../../react";
 import { useCommand } from "../../../react/commands/command-registry";
-import { CompositionContext } from "../../../react/state/composition-context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { UndoRedoContext } from "../../../react/state/undo-redo-context";
+import { useComposesOnly } from "../../../react/state/use-composes-only";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 
 export const autoLayoutShortcut = "mod+shift+l";
@@ -38,8 +38,8 @@ const useEditorCommands = ({
   const isReadOnly = useIsReadOnly();
   const canEditNet =
     globalMode === "edit" && editViewMode === "canvas" && !isReadOnly;
-  const { compositionOnly } = use(CompositionContext);
-  const canDrawNet = canEditNet && !compositionOnly;
+  const composesOnly = useComposesOnly();
+  const canDrawNet = canEditNet && !composesOnly;
   const runAutoLayout = () => {
     void (applyAutoLayoutAndFrame?.() ?? applyAutoLayout());
   };

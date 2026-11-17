@@ -24,6 +24,7 @@ import { ActiveNetContext } from "../../../react/state/active-net-context";
 import { CompositionContext } from "../../../react/state/composition-context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
+import { useComposesOnly } from "../../../react/state/use-composes-only";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
 import { snapPositionToGrid } from "../../lib/snap-position-to-grid";
@@ -170,7 +171,8 @@ export const useCanvasInteractions = (
   scene: CanvasScene,
 ): CanvasInteractions => {
   const { petriNetDefinition, getItemType } = use(SDCPNContext);
-  const { libraries, compositionOnly } = use(CompositionContext);
+  const { libraries } = use(CompositionContext);
+  const composesOnly = useComposesOnly();
   const { activeNet } = use(ActiveNetContext);
   const { addNotification } = use(NotificationsContext);
   const {
@@ -239,7 +241,7 @@ export const useCanvasInteractions = (
     const first = memberOf(linkEnd(connection, "source"));
     const second = memberOf(linkEnd(connection, "target"));
     // An editor that only composes draws no arc: ports connect by fusion.
-    if (!compositionOnly) {
+    if (!composesOnly) {
       if (first && kindOf(targetId) === "transition") {
         return {
           kind: "arc",

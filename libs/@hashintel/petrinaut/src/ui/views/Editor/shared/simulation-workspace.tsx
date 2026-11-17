@@ -11,7 +11,7 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { useElementSize } from "../../../../react/hooks/use-element-size";
 import { usePetrinautNavigation } from "../../../../react/navigation";
-import { CompositionContext } from "../../../../react/state/composition-context";
+import { useComposesOnly } from "../../../../react/state/use-composes-only";
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
 import { ResizeHandle } from "../../../resize/resize-handle";
 
@@ -29,11 +29,11 @@ export const SimulationWorkspace = ({ children }: { children: ReactNode }) => {
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const { state } = usePetrinautNavigation();
   const { showAnimations } = use(UserSettingsContext);
-  const { compositionOnly } = use(CompositionContext);
+  const composesOnly = useComposesOnly();
   // An editor that only composes has no Simulate mode, whatever the
   // navigation it is handed says.
   const fullscreen =
-    !compositionOnly &&
+    !composesOnly &&
     state.mode === "simulate" &&
     state.simulatePresentation === "fullscreen";
   const location = `${state.mode}/${state.simulateView}/${state.simulateResource?.type}/${state.simulateResource?.id}/${state.overlay?.type}`;

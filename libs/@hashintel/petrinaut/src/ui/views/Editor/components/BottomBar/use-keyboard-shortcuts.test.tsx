@@ -6,6 +6,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import {
   createJsonDocHandle,
   createPetrinaut,
+  type PetrinautRules,
   type SelectionItem,
 } from "@hashintel/petrinaut-core";
 
@@ -56,10 +57,10 @@ const emptyNet = {
   parameters: [],
   differentialEquations: [],
 };
-const createInstance = (compositionOnly = false) =>
+const createInstance = (rules?: PetrinautRules) =>
   createPetrinaut({
     document: createJsonDocHandle({ initial: emptyNet }),
-    compositionOnly,
+    rules,
   });
 const plainInstance = createInstance();
 
@@ -118,7 +119,7 @@ test("the place and transition shortcuts do nothing in an editor that only compo
   actions.readOnly = false;
   const Composing = ({ children }: { children: ReactNode }) => (
     <CompositionContext
-      value={{ ...use(CompositionContext), compositionOnly: true }}
+      value={{ ...use(CompositionContext), rules: { edit: "compose" } }}
     >
       {children}
     </CompositionContext>
@@ -134,7 +135,7 @@ test("the place and transition shortcuts do nothing in an editor that only compo
 
 /** An editor that only composes, on the root net or a subnet, with one item selected. */
 const composing = (selected: SelectionItem, activeSubnetId?: string) => {
-  const instance = createInstance(true);
+  const instance = createInstance({ edit: "compose" });
   const clearSelection = vi.fn();
   const Wrapper = ({ children }: { children: ReactNode }) => (
     <PetrinautInstanceContext value={instance}>

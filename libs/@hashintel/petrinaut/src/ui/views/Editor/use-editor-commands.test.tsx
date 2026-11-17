@@ -3,7 +3,10 @@ import { cleanup, fireEvent, render, renderHook } from "@testing-library/react";
 import { type ReactNode, use } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { createCommandRegistry } from "@hashintel/petrinaut-core";
+import {
+  createCommandRegistry,
+  type PetrinautRules,
+} from "@hashintel/petrinaut-core";
 
 import { CommandRegistryProvider } from "../../../react/commands/command-registry";
 import { CompositionContext } from "../../../react/state/composition-context";
@@ -53,12 +56,10 @@ describe("new net command", () => {
 
 describe("drawing commands", () => {
   it("are not listed in an editor that only composes, where auto-layout stays", () => {
-    const ids = (compositionOnly: boolean) => {
+    const ids = (rules: PetrinautRules) => {
       const registry = createCommandRegistry();
       const Composing = ({ children }: { children: ReactNode }) => (
-        <CompositionContext
-          value={{ ...use(CompositionContext), compositionOnly }}
-        >
+        <CompositionContext value={{ ...use(CompositionContext), rules }}>
           <EditableNet>{children}</EditableNet>
         </CompositionContext>
       );
@@ -73,16 +74,17 @@ describe("drawing commands", () => {
       return listed;
     };
 
-    expect(ids(false)).toEqual(
+    expect(ids({})).toEqual(
       expect.arrayContaining([
         "petrinaut.tool.add-place",
         "petrinaut.tool.add-transition",
         "petrinaut.net.auto-layout",
       ]),
     );
-    expect(ids(true)).toContain("petrinaut.net.auto-layout");
-    expect(ids(true)).not.toContain("petrinaut.tool.add-place");
-    expect(ids(true)).not.toContain("petrinaut.tool.add-transition");
+    const composing = ids({ edit: "compose" });
+    expect(composing).toContain("petrinaut.net.auto-layout");
+    expect(composing).not.toContain("petrinaut.tool.add-place");
+    expect(composing).not.toContain("petrinaut.tool.add-transition");
   });
 });
 

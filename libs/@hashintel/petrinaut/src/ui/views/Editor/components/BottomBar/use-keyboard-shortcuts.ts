@@ -7,10 +7,10 @@ import {
 import { useMutationRefusal } from "../../../../../react/hooks/use-mutation-refusal";
 import { useReadOnlyFeedback } from "../../../../../react/hooks/use-read-only-feedback";
 import { ActiveNetContext } from "../../../../../react/state/active-net-context";
-import { CompositionContext } from "../../../../../react/state/composition-context";
 import { EditorContext } from "../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
+import { useComposesOnly } from "../../../../../react/state/use-composes-only";
 import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
 import { useReadOnlyReason } from "../../../../../react/state/use-read-only-reason";
 import {
@@ -48,7 +48,7 @@ export function useKeyboardShortcuts(
   const { applyClipboardPaste } = usePetrinautCommands();
   const mutationRefusal = useMutationRefusal();
   const isReadonly = useIsReadOnly();
-  const { compositionOnly } = use(CompositionContext);
+  const composesOnly = useComposesOnly();
   // Undo stays available in Simulate mode, as the palette's Undo is: only a
   // read-only document has nothing to undo.
   const undoBlocked = useReadOnlyReason()?.kind === "host-readonly";
@@ -213,7 +213,7 @@ export function useKeyboardShortcuts(
       case "n":
       case "t":
         // An editor that only composes has no place or transition to add.
-        if (compositionOnly) {
+        if (composesOnly) {
           break;
         }
         if (isReadonly) {

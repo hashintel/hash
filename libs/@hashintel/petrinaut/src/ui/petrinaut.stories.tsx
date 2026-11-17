@@ -5,6 +5,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import {
   DEFAULT_TRANSITION_KERNEL_CODE,
   generateDefaultLambdaCode,
+  type ResolveImport,
   type Subnet,
 } from "@hashintel/petrinaut-core";
 import { sirModel } from "@hashintel/petrinaut-core/examples";
@@ -911,16 +912,10 @@ const offeredLibraries = [
   missingLibraryId,
 ];
 
-const ImportsRender = ({
-  initial = importingLineNet,
-  compositionOnly,
-}: {
-  initial?: SDCPN;
-  compositionOnly?: boolean;
-}) => {
+const ImportsRender = () => {
   const handle = useMemo(
-    () => createJsonDocHandle({ id: "imports-net", initial }),
-    [initial],
+    () => createJsonDocHandle({ id: "imports-net", initial: importingLineNet }),
+    [],
   );
   const [title, setTitle] = useState("Imported line");
 
@@ -933,7 +928,6 @@ const ImportsRender = ({
         hideNetManagementControls="all"
         resolveImport={resolveStoryImport}
         libraries={offeredLibraries}
-        compositionOnly={compositionOnly}
       />
     </div>
   );
@@ -950,10 +944,40 @@ export const Imports: Story = {
   render: () => <ImportsRender />,
 };
 
-/** An empty net in an editor kept to placing and wiring the libraries' components. */
+// A library the host holds in memory: it resolves at once, with no loader.
+const resolveLogistics: ResolveImport = (id) =>
+  id === logisticsLibrary.id ? logisticsLibrary : undefined;
+const logisticsOnly = [logisticsLibrary.id];
+
+const CompositionOnlyRender = () => {
+  const handle = useMemo(
+    () => createJsonDocHandle({ id: "composed-net", initial: emptySDCPN }),
+    [],
+  );
+  const [title, setTitle] = useState("Composed line");
+
+  return (
+    <div style={{ height: "100vh", width: "100vw" }}>
+      <Petrinaut
+        handle={handle}
+        title={title}
+        setTitle={setTitle}
+        hideNetManagementControls="all"
+        resolveImport={resolveLogistics}
+        libraries={logisticsOnly}
+        rules={{ edit: "compose" }}
+      />
+    </div>
+  );
+};
+
+/**
+ * An empty net in an editor its host keeps to composing, over a library the
+ * host holds in memory.
+ */
 export const CompositionOnly: Story = {
   name: "Composition only",
-  render: () => <ImportsRender initial={emptySDCPN} compositionOnly />,
+  render: () => <CompositionOnlyRender />,
 };
 
 /** A cell with seven ports: four feeds in, three results out. */

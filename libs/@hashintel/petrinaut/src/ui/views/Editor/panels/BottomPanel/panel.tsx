@@ -5,11 +5,11 @@ import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import { ActualModeContext } from "../../../../../react/actual-mode-context";
 import { SimulationContext } from "../../../../../react/simulation/context";
-import { CompositionContext } from "../../../../../react/state/composition-context";
 import {
   type BottomPanelTab,
   EditorContext,
 } from "../../../../../react/state/editor-context";
+import { useComposesOnly } from "../../../../../react/state/use-composes-only";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { GlassPanel } from "../../../../components/glass-panel";
 import {
@@ -97,18 +97,18 @@ const headerRightStyle = css({
 });
 
 const getBottomPanelSubViews = ({
-  compositionOnly,
+  composesOnly,
   isActualMode,
   isSimulationActive,
   showCompilationOutput,
 }: {
-  compositionOnly: boolean;
+  composesOnly: boolean;
   isActualMode: boolean;
   isSimulationActive: boolean;
   showCompilationOutput: boolean;
 }) =>
   // An editor that only composes has problems to show and nothing to run.
-  compositionOnly
+  composesOnly
     ? [diagnosticsSubView]
     : isActualMode
       ? ACTUAL_BOTTOM_PANEL_SUBVIEWS
@@ -142,7 +142,7 @@ export const BottomPanel: React.FC = () => {
   } = use(EditorContext);
 
   const { keepPanelsMounted, showCompilationOutput } = use(UserSettingsContext);
-  const { compositionOnly } = use(CompositionContext);
+  const composesOnly = useComposesOnly();
 
   // Simulation state for conditional subviews
   const { state: simulationState } = use(SimulationContext);
@@ -165,7 +165,7 @@ export const BottomPanel: React.FC = () => {
 
   // Dynamically compute subviews based on available execution modes.
   const subViews = getBottomPanelSubViews({
-    compositionOnly,
+    composesOnly,
     isActualMode,
     isSimulationActive,
     showCompilationOutput,

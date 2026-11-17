@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   toPetrinautId,
+  type PetrinautRules,
   type SDCPN,
   type SelectionMap,
 } from "@hashintel/petrinaut-core";
@@ -373,14 +374,14 @@ describe("EditorProvider selection gestures", () => {
 describe("EditorProvider in an editor that only composes", () => {
   let editor: EditorContextValue;
 
-  const view = (compositionOnly: boolean) => (
+  const view = (rules: PetrinautRules) => (
     <SDCPNContext value={makeSdcpnContextValue(() => "place")}>
       <CompositionContext
         value={{
           imports: new Map(),
           libraries: new Map(),
           offered: [],
-          compositionOnly,
+          rules,
         }}
       >
         <TestHost recorded={[]}>
@@ -399,17 +400,17 @@ describe("EditorProvider in an editor that only composes", () => {
   it.each(["add-place", "add-transition"] as const)(
     "reads an armed %s tool as the cursor once the host restricts the editor",
     (tool) => {
-      const { rerender } = render(view(false));
+      const { rerender } = render(view({}));
       act(() => editor.setEditionMode(tool));
       expect(editor.editionMode).toBe(tool);
 
-      rerender(view(true));
+      rerender(view({ edit: "compose" }));
       expect(editor.editionMode).toBe("cursor");
     },
   );
 
   it("keeps the tool that places a component, which is composing", () => {
-    render(view(true));
+    render(view({ edit: "compose" }));
     const packer = { from: "@hashintel/warehouse", id: "packer" };
     act(() => editor.setAddComponentMode(packer));
 

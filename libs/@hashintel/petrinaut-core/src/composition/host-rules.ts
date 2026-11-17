@@ -1,7 +1,7 @@
 /**
- * What a host lets an instance change. A host can keep an instance to
- * composing: placing instances of the components of the libraries it offers
- * in the root net, wiring their ports and arranging the canvas.
+ * The rules a host sets on an instance, and what they refuse. Every reader
+ * asks a function of this module and none looks into the rules itself, so a
+ * rule is added here and nowhere else.
  */
 
 import { mutationActionInputSchemas } from "../action-schemas";
@@ -10,15 +10,29 @@ import type { MutationHelperFunctions } from "../actions";
 import type { CommandHelperFunctions } from "../commands";
 import type { z } from "zod";
 
-export type MutationName = keyof MutationHelperFunctions;
-export type CommandName = keyof CommandHelperFunctions;
-
-export type HostRules = {
-  /** The ids of the libraries the host offers. */
-  libraries: readonly string[];
-  /** Whether the instance only composes components of those libraries. */
-  compositionOnly: boolean;
+/** The rules a host sets on an instance. A rule left out takes its default. */
+export type PetrinautRules = {
+  /**
+   * What the instance edits. `"all"`, the default, is everything.
+   * `"compose"` keeps it to composing: placing instances of the components
+   * of the libraries on offer in the root net, wiring their ports with
+   * fusions, and arranging the canvas.
+   */
+  readonly edit?: "all" | "compose";
 };
+
+type MutationName = keyof MutationHelperFunctions;
+type CommandName = keyof CommandHelperFunctions;
+
+/** Whether the rules keep an instance to composing. */
+export const composesOnly = (rules: PetrinautRules): boolean =>
+  rules.edit === "compose";
+
+/** Whether two sets of rules say the same, whatever objects hold them. */
+export const sameRules = (
+  first: PetrinautRules,
+  second: PetrinautRules,
+): boolean => composesOnly(first) === composesOnly(second);
 
 type ParsedInput<Name extends MutationName> = z.output<
   (typeof mutationActionInputSchemas)[Name]
@@ -91,31 +105,33 @@ const composingOnlyNotice =
   "This editor only places and connects the components it is given";
 
 /**
- * Why the host's rules refuse a mutation, as a sentence a user can read, or
- * `null` when they allow it. An instance that only composes refuses every
- * mutation that does not compose, and every one aimed at a subnet.
+ * Why the rules refuse a mutation, as a sentence a user can read, or `null`
+ * when they allow it. `libraries` are the ids of the libraries on offer. An
+ * instance kept to composing refuses every mutation that does not compose,
+ * and every one aimed at a subnet.
  */
 export const mutationRefusal = (
-  rules: HostRules,
+  rules: PetrinautRules,
+  libraries: readonly string[],
   name: MutationName,
   input: unknown,
 ): string | null =>
-  rules.compositionOnly &&
-  !composes(name, input, (importId) => rules.libraries.includes(importId))
+  composesOnly(rules) &&
+  !composes(name, input, (importId) => libraries.includes(importId))
     ? `${composingOnlyNotice}.`
     : null;
 
 /**
- * Why the host's rules refuse a command, or `null`. An instance that only
- * composes pastes nothing, since the clipboard carries places and
- * transitions, and lays out its root net alone.
+ * Why the rules refuse a command, or `null`. An instance kept to composing
+ * pastes nothing, since the clipboard carries places and transitions, and
+ * lays out its root net alone.
  */
 export const commandRefusal = (
-  rules: HostRules,
+  rules: PetrinautRules,
   name: CommandName,
   input: unknown,
 ): string | null => {
-  if (!rules.compositionOnly) {
+  if (!composesOnly(rules)) {
     return null;
   }
   if (name === "applyClipboardPaste") {
@@ -144,16 +160,19 @@ const guarded = <Functions extends Record<string, (input: never) => unknown>>(
     ]),
   ) as Functions;
 
-/** The same mutations, each throwing its refusal where the host's rules give one. */
+/** The same mutations, each throwing its refusal where the rules give one. */
 export const enforceHostRules = (
   mutations: MutationHelperFunctions,
-  rules: HostRules,
+  rules: PetrinautRules,
+  libraries: readonly string[],
 ): MutationHelperFunctions =>
-  guarded(mutations, (name, input) => mutationRefusal(rules, name, input));
+  guarded(mutations, (name, input) =>
+    mutationRefusal(rules, libraries, name, input),
+  );
 
-/** The same commands, held to the host's rules as the mutations are. */
+/** The same commands, held to the rules as the mutations are. */
 export const enforceHostRulesOnCommands = (
   commands: CommandHelperFunctions,
-  rules: HostRules,
+  rules: PetrinautRules,
 ): CommandHelperFunctions =>
   guarded(commands, (name, input) => commandRefusal(rules, name, input));

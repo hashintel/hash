@@ -98,7 +98,7 @@ const composingOn = (handle: PetrinautDocHandle) =>
     document: handle,
     resolveImport: () => warehouse,
     libraries: [warehouse.id],
-    compositionOnly: true,
+    rules: { edit: "compose" },
   });
 
 const placeCount = (handle: PetrinautDocHandle) => handle.doc()?.places.length;

@@ -1,4 +1,4 @@
-import { resolvedLibraries } from "@hashintel/petrinaut-core";
+import { composesOnly, resolvedLibraries } from "@hashintel/petrinaut-core";
 
 import { EventPlaybackProvider } from "./event-playback/provider";
 import { ExecutionFrameProvider } from "./execution-frame/provider";
@@ -26,7 +26,10 @@ export type PetrinautDocumentProviderProps = {
   netManagement: NetManagement;
 };
 
-/** Publishes the state of the document's imports, as the Core instance holds it. */
+/**
+ * Publishes the state of the document's imports and the host's rules, as the
+ * Core instance holds them.
+ */
 const CompositionProvider: React.FC<{
   children: ReactNode;
   instance: Petrinaut;
@@ -38,7 +41,7 @@ const CompositionProvider: React.FC<{
         imports,
         libraries: resolvedLibraries(imports),
         offered: instance.libraries,
-        compositionOnly: instance.compositionOnly,
+        rules: instance.rules,
       }}
     >
       {children}
@@ -57,7 +60,7 @@ export const PetrinautDocumentProvider: React.FC<
 > = ({ children, instance, netManagement }) => {
   const handleHistoryUndoRedo = useHandleHistoryAsUndoRedo(
     instance.handle.history,
-    { sinceTaken: instance.compositionOnly },
+    { sinceTaken: composesOnly(instance.rules) },
   );
 
   const document = (

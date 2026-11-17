@@ -2,17 +2,25 @@ import "@fontsource-variable/inter";
 import "@fontsource-variable/inter-tight";
 import "@fontsource-variable/jetbrains-mono";
 import "./index.css";
-import { type FunctionComponent, useEffect, useMemo, useRef } from "react";
+import {
+  type FunctionComponent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { PortalContainerContext } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   createPetrinaut,
+  sameRules,
   type PetrinautDocHandle,
   type Petrinaut as Instance,
   type LspWorkerFactory,
   type WorkerFactory,
   type MinimalNetMetadata,
+  type PetrinautRules,
   type ResolveImport,
   type SDCPN,
   type SimulatorRegistration,
@@ -77,13 +85,15 @@ export type PetrinautProps = {
    */
   libraries?: readonly string[];
   /**
-   * Restricts the editor to composing the components of `libraries`: the
-   * user places instances of them, wires their ports and arranges the
-   * canvas. The tools that draw a net, the Definitions view and the
-   * simulator are not offered, and Core refuses every other change to the
-   * document.
+   * What the host lets the editor do: everything, when left out.
+   * `{ edit: "compose" }` keeps it to composing the components of
+   * `libraries`: the user places instances of them, wires their ports and
+   * arranges the canvas. The tools that draw a net, the Definitions view and
+   * the simulator are not offered, and Core refuses every other change to
+   * the document. The rules are read by what they say, so an object written
+   * inline is fine.
    */
-  compositionOnly?: boolean;
+  rules?: PetrinautRules;
   /**
    * Controls visibility of net-management UI in the editor's top bar and
    * burger menu.
@@ -142,6 +152,7 @@ export type PetrinautProps = {
 
 const noop = () => {};
 const noPlugins: readonly PetrinautPlugin[] = [];
+const noRules: PetrinautRules = {};
 
 /**
  * Handle-driven entry point. Creates a Core {@link Instance} from the given
@@ -159,7 +170,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   readonly = false,
   resolveImport,
   libraries,
-  compositionOnly = false,
+  rules = noRules,
   hideNetManagementControls,
   existingNets = [],
   createNewNet = noop,
@@ -174,6 +185,12 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
 }) => {
   const titleEditable = setTitle !== undefined;
   const portalContainerRef = useRef<HTMLDivElement>(null);
+  // Held for as long as the rules say the same: `rules={{ edit: "compose" }}`
+  // is a new object on every render, and must not create a new instance.
+  const [heldRules, setHeldRules] = useState(rules);
+  if (!sameRules(heldRules, rules)) {
+    setHeldRules(rules);
+  }
   const instance = useMemo<Instance>(
     () =>
       createPetrinaut({
@@ -181,9 +198,9 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
         readonly,
         resolveImport,
         libraries,
-        compositionOnly,
+        rules: heldRules,
       }),
-    [handle, readonly, resolveImport, libraries, compositionOnly],
+    [handle, readonly, resolveImport, libraries, heldRules],
   );
 
   useEffect(() => () => instance.dispose(), [instance]);

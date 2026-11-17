@@ -7,14 +7,14 @@ import { CompositionContext } from "../../../../../react/state/composition-conte
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { EditionTools } from "./edition-tools";
 
+import type { PetrinautRules } from "@hashintel/petrinaut-core";
+
 afterEach(cleanup);
 
-const renderTools = (compositionOnly: boolean) => {
+const renderTools = (rules: PetrinautRules) => {
   const Wrapper = ({ children }: { children: ReactNode }) => (
     <SDCPNContext value={{ ...use(SDCPNContext), readonly: false }}>
-      <CompositionContext
-        value={{ ...use(CompositionContext), compositionOnly }}
-      >
+      <CompositionContext value={{ ...use(CompositionContext), rules }}>
         {children}
       </CompositionContext>
     </SDCPNContext>
@@ -27,13 +27,10 @@ const renderTools = (compositionOnly: boolean) => {
 
 describe("the edition tools", () => {
   it("draw places and transitions", () => {
-    expect(renderTools(false)).toEqual([
-      "Add place mode",
-      "Add transition mode",
-    ]);
+    expect(renderTools({})).toEqual(["Add place mode", "Add transition mode"]);
   });
 
   it("offer nothing in an editor that only composes: it places from the Components panel", () => {
-    expect(renderTools(true)).toEqual([]);
+    expect(renderTools({ edit: "compose" })).toEqual([]);
   });
 });

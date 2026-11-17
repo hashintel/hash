@@ -405,7 +405,7 @@ full prop list, from `petrinaut/src/ui/petrinaut.tsx`:
 | `eventSimulationWorkerFactory`, `monteCarloWorkerFactory`, `lspWorkerFactory` | Worker construction for hosts consuming the published dist, typically via the bundler's `?worker` import. Omitted: inlined-blob workers. |
 | `plugins`                                                                     | Plugins that add buttons, top-bar items, commands, settings and UI. Define each at module scope.                                         |
 | `resolveImport`, `libraries`                                                  | The libraries of components the host offers, and how each import of a document is resolved. See Libraries and imports.                   |
-| `compositionOnly`                                                             | Keeps the editor to placing and wiring the components of `libraries`. See Composition only.                                              |
+| `rules`                                                                       | What the host lets the editor do: `{ edit: "compose" }` keeps it to placing and wiring the components of `libraries`. See Rules.         |
 
 A plugin declares what it adds in a manifest and returns it from a hook the
 editor runs per document; see [Plugins](doc:ui.plugins/overview).
@@ -567,18 +567,33 @@ leaves the documents that named it with an instance or a fusion that no
 longer resolves.
 :::
 
-### Composition only
+### Rules
 
-`compositionOnly`, on `<Petrinaut>` and on `createPetrinaut`, makes an editor
-that composes the components of the libraries on offer and changes nothing
-else:
+`rules`, on `<Petrinaut>` and on `createPetrinaut`, says what the host lets an
+editor do. It is an object with a key per rule, and a rule left out takes its
+default:
+
+| Rule   | Values               | Default |
+| ------ | -------------------- | ------- |
+| `edit` | `"all"`, `"compose"` | `"all"` |
+
+Nothing reads into the object: core answers for it. `composesOnly(rules)` says
+whether the rules keep an instance to composing, and
+`instance.mutationRefusal(name, input)` and
+`instance.commandRefusal(name, input)` say what they refuse. A rule added
+later is another key, answered by the same functions. `<Petrinaut>` reads the
+rules by what they say, so the object can be written inline: one that says the
+same as the last keeps the editor's instance.
+
+`edit: "compose"` makes an editor that composes the components of the
+libraries on offer and changes nothing else:
 
 ```tsx
 <Petrinaut
   handle={handle}
   resolveImport={resolveImport}
   libraries={libraries}
-  compositionOnly
+  rules={{ edit: "compose" }}
 />
 ```
 
@@ -593,7 +608,7 @@ subnet, from the host's navigation or from a click on a diagnostic, resolves
 to the root net.
 
 Core holds the rule, so every caller meets it. An instance created with
-`compositionOnly` composes its root net: a mutation that targets a subnet is
+`edit: "compose"` composes its root net: a mutation that targets a subnet is
 refused. Of the others, these go through:
 
 | Mutation                                                                 | Allowed when                                                                     |
@@ -624,7 +639,7 @@ the document handle can still change the document through `handle.change`.
 The editor's history starts where it took the handle. Undoing an earlier
 change would make a change the rule refuses, so an undo, or a jump from
 Recent changes, goes back no further than the entry `handle.history` was at
-when the editor was given the handle with `compositionOnly`, and Recent
+when the editor was given the handle with `edit: "compose"`, and Recent
 changes lists the entries from that one on. The handle's own history is left
 whole: `handle.history` still moves through all of it.
 

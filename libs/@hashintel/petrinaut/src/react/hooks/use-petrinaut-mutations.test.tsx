@@ -11,6 +11,7 @@ import {
   createPetrinaut,
   toPetrinautId,
   type Petrinaut,
+  type PetrinautRules,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
@@ -101,7 +102,7 @@ const editorContextValue = (
 type WrapperOptions = {
   sdcpn?: SDCPN;
   readonly?: boolean;
-  compositionOnly?: boolean;
+  rules?: PetrinautRules;
   globalMode?: "edit" | "simulate";
   simulationState?: SimulationState;
 };
@@ -110,14 +111,14 @@ const createWrapper = (options: WrapperOptions = {}) => {
   const {
     sdcpn: initialSdcpn = EMPTY_SDCPN,
     readonly = false,
-    compositionOnly,
+    rules,
     globalMode = "edit",
     simulationState = "NotRun",
   } = options;
 
   const instance: Petrinaut = createPetrinaut({
     document: createJsonDocHandle({ initial: structuredClone(initialSdcpn) }),
-    compositionOnly,
+    rules,
   });
 
   const sdcpnContextValue: SDCPNContextValue = {
@@ -310,7 +311,9 @@ describe("usePetrinautMutations", () => {
   describe("in an editor that only composes", () => {
     test("a mutation beyond composing shows the reason and does nothing", () => {
       const addNotification = vi.fn((_notice: AddNotificationInput) => "");
-      const { Wrapper, instance } = createWrapper({ compositionOnly: true });
+      const { Wrapper, instance } = createWrapper({
+        rules: { edit: "compose" },
+      });
       const { result } = renderHook(usePetrinautMutations, {
         wrapper: ({ children }: { children: ReactNode }) => (
           <NotificationsContext
@@ -353,7 +356,7 @@ describe("usePetrinautMutations", () => {
       });
       const { Wrapper, instance } = createWrapper({
         sdcpn,
-        compositionOnly: true,
+        rules: { edit: "compose" },
       });
       const { result } = renderHook(usePetrinautMutations, {
         wrapper: Wrapper,

@@ -118,7 +118,6 @@ export type {
   DocumentIndex,
   ImplementationBinding,
 } from "./composition/interfaces";
-export type { CommandName, MutationName } from "./composition/host-rules";
 
 // --- Composition: imports and the libraries a host resolves them to ---
 export {
@@ -173,6 +172,8 @@ export type {
   PetrinautCommands,
   PetrinautMutations,
 } from "./instance";
+export { composesOnly, sameRules } from "./composition/host-rules";
+export type { PetrinautRules } from "./composition/host-rules";
 export {
   PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE,
   PETRINAUT_OPTIMIZATION_MAX_SEED,

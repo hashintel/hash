@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { createJsonDocHandle } from "../handle/json-doc-handle";
 import { createPetrinaut } from "../instance";
 import { toPetrinautId } from "../petrinaut-id";
+import { composesOnly, sameRules } from "./host-rules";
 
 import type { ComponentReference, SDCPN } from "../types/sdcpn";
 import type { Library } from "./libraries";
@@ -75,7 +76,7 @@ const compose = (document: SDCPN = initial()) =>
     document: createJsonDocHandle({ initial: document }),
     resolveImport,
     libraries: [warehouse.id],
-    compositionOnly: true,
+    rules: { edit: "compose" },
   });
 
 const onlyComposes =
@@ -252,19 +253,39 @@ describe("an instance that only composes", () => {
   });
 });
 
-describe("an instance without the restriction", () => {
-  it("changes anything", () => {
-    const { mutations, definition, compositionOnly, mutationRefusal } =
+describe("an instance the rules leave to edit everything", () => {
+  it.each([
+    ["no rules", undefined],
+    ["rules that name none", {}],
+    ['`edit: "all"`', { edit: "all" }],
+  ] as const)("changes anything, with %s", (_label, given) => {
+    const { mutations, definition, rules, mutationRefusal, commandRefusal } =
       createPetrinaut({
         document: createJsonDocHandle({ initial: initial() }),
         resolveImport,
         libraries: [warehouse.id],
+        rules: given,
       });
 
     mutations.addComponentInstance(instanceOf("b", own));
 
-    expect(compositionOnly).toBe(false);
+    expect(composesOnly(rules)).toBe(false);
     expect(definition.get().componentInstances).toHaveLength(1);
     expect(mutationRefusal("addPlace", { targetSubnetId: "own" })).toBeNull();
+    expect(commandRefusal("applyClipboardPaste", {})).toBeNull();
+  });
+});
+
+describe("the rules", () => {
+  it("say whether they keep an instance to composing", () => {
+    expect(composesOnly(compose().rules)).toBe(true);
+    expect(composesOnly({ edit: "all" })).toBe(false);
+    expect(composesOnly({})).toBe(false);
+  });
+
+  it("are the same when they say the same, in whatever object", () => {
+    expect(sameRules({ edit: "compose" }, { edit: "compose" })).toBe(true);
+    expect(sameRules({}, { edit: "all" })).toBe(true);
+    expect(sameRules({ edit: "compose" }, {})).toBe(false);
   });
 });

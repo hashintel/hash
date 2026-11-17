@@ -6,12 +6,12 @@ import { refractive } from "@hashintel/refractive";
 
 import { LanguageClientContext } from "../../../../../react/lsp/context";
 import { ActiveNetContext } from "../../../../../react/state/active-net-context";
-import { CompositionContext } from "../../../../../react/state/composition-context";
 import {
   type CursorMode,
   EditorContext,
   type EditorState,
 } from "../../../../../react/state/editor-context";
+import { useComposesOnly } from "../../../../../react/state/use-composes-only";
 import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
 import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
 import { BOTTOM_BAR_GAP } from "../../../../constants/ui";
@@ -122,7 +122,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
   const { activeSubnetId } = use(ActiveNetContext);
   const isInSubnet = activeSubnetId !== null;
   const isReadOnly = useIsReadOnly();
-  const { compositionOnly } = use(CompositionContext);
+  const composesOnly = useComposesOnly();
 
   const showDiagnostics = () => {
     setBottomPanelOpen(true);
@@ -253,7 +253,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
                     isExpanded={isBottomPanelOpen}
                   />
                   {/* An editor that only composes runs nothing. */}
-                  {compositionOnly ? null : (
+                  {composesOnly ? null : (
                     <>
                       <ToolbarDivider />
                       <EventSimulationControls

@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   toPetrinautId,
+  type PetrinautRules,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
@@ -71,11 +72,11 @@ const ActiveSubnet = () => (
 const TestHost = ({
   requestedSubnetId,
   recorded,
-  compositionOnly = false,
+  rules = {},
 }: {
   requestedSubnetId: string;
   recorded: RecordedNavigation[];
-  compositionOnly?: boolean;
+  rules?: PetrinautRules;
 }) => {
   const [state, setState] = useState<PetrinautNavigationState>({
     ...defaultPetrinautNavigationState,
@@ -91,9 +92,7 @@ const TestHost = ({
   };
   return (
     <SDCPNContext value={sdcpnContextValue}>
-      <CompositionContext
-        value={{ ...use(CompositionContext), compositionOnly }}
-      >
+      <CompositionContext value={{ ...use(CompositionContext), rules }}>
         <PetrinautNavigationProvider controller={controller}>
           <ActiveNetProvider>
             <ActiveSubnet />
@@ -132,7 +131,7 @@ describe("ActiveNetProvider", () => {
       <TestHost
         requestedSubnetId={subnetId}
         recorded={recorded}
-        compositionOnly
+        rules={{ edit: "compose" }}
       />,
     );
 

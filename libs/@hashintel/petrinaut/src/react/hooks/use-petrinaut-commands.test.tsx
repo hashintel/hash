@@ -12,6 +12,7 @@ import {
   createJsonDocHandle,
   createPetrinaut,
   type Petrinaut,
+  type PetrinautRules,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
@@ -97,7 +98,7 @@ const editorContextValue = (
 type WrapperOptions = {
   sdcpn?: SDCPN;
   readonly?: boolean;
-  compositionOnly?: boolean;
+  rules?: PetrinautRules;
   globalMode?: "edit" | "simulate";
   simulationState?: SimulationState;
 };
@@ -106,14 +107,14 @@ const createWrapper = (options: WrapperOptions = {}) => {
   const {
     sdcpn: initialSdcpn = EMPTY_SDCPN,
     readonly = false,
-    compositionOnly = false,
+    rules,
     globalMode = "edit",
     simulationState = "NotRun",
   } = options;
 
   const instance: Petrinaut = createPetrinaut({
     document: createJsonDocHandle({ initial: structuredClone(initialSdcpn) }),
-    compositionOnly,
+    rules,
   });
 
   const sdcpnContextValue: SDCPNContextValue = {
@@ -203,7 +204,9 @@ describe("usePetrinautCommands", () => {
   describe("in an editor that only composes", () => {
     test("applyClipboardPaste says why it pastes nothing", () => {
       const addNotification = vi.fn((_notice: AddNotificationInput) => "");
-      const { Wrapper, instance } = createWrapper({ compositionOnly: true });
+      const { Wrapper, instance } = createWrapper({
+        rules: { edit: "compose" },
+      });
       const { result } = renderHook(usePetrinautCommands, {
         wrapper: ({ children }: { children: ReactNode }) => (
           <NotificationsContext
