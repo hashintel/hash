@@ -1,3 +1,5 @@
+import { upperFirst } from "lodash";
+
 import { getNameLabel } from "./name-label";
 
 import type { IconName } from "@hashintel/ds-components";
@@ -12,12 +14,24 @@ export const getFlowInputLabel = ({
   name,
 }: Pick<FlowInputDefinition, "label" | "name">) => label ?? getNameLabel(name);
 
-const kindDisplays: Record<PayloadKind, { label: string; icon: IconName }> = {
+/** `plural` only where adding an "s" by the usual rules reads wrong. */
+const kindDisplays: Record<
+  PayloadKind,
+  { label: string; plural?: string; icon: IconName }
+> = {
   ActorType: { label: "actor type", icon: "user" },
   Aggregation: { label: "aggregation", icon: "chartBar" },
-  Boolean: { label: "true or false", icon: "squareCheck" },
+  Boolean: {
+    label: "true or false",
+    plural: "true or false values",
+    icon: "squareCheck",
+  },
   Date: { label: "date", icon: "calendar" },
-  DateTime: { label: "date and time", icon: "calendarClock" },
+  DateTime: {
+    label: "date and time",
+    plural: "dates and times",
+    icon: "calendarClock",
+  },
   Duration: { label: "duration", icon: "clock" },
   EntityId: { label: "entity", icon: "cube" },
   EntityQuery: { label: "entity query", icon: "search" },
@@ -45,14 +59,29 @@ const kindDisplays: Record<PayloadKind, { label: string; icon: IconName }> = {
   WebSearchResult: { label: "web search result", icon: "search" },
 };
 
-/** The kind of a value in lower case, e.g. "date" or, for an array, "date list". */
+/** "entity" → "entities", "sheet" → "sheets"; words ending in s, x, ch, sh or text stay as they are. */
+const pluralize = (noun: string) =>
+  /[^aeiou]y$/i.test(noun)
+    ? `${noun.slice(0, -1)}ies`
+    : /(s|x|ch|sh|text)$/i.test(noun)
+      ? noun
+      : `${noun}s`;
+
+/**
+ * The kind of a value in lower case, e.g. "date". An array names its kind's plural with a capital, as a list of entities
+ * names its type: "list of Dates", which reads "List of Dates" at the start of a sentence.
+ */
 export const getKindLabel = ({
   payloadKind,
   array,
 }: {
   payloadKind: PayloadKind;
   array: boolean;
-}) => `${kindDisplays[payloadKind].label}${array ? " list" : ""}`;
+}) => {
+  const { label, plural } = kindDisplays[payloadKind];
+
+  return array ? `list of ${upperFirst(plural ?? pluralize(label))}` : label;
+};
 
 /** An array of entities shows the many-entities icon, as Figma's Entities output does. */
 export const getKindIcon = ({

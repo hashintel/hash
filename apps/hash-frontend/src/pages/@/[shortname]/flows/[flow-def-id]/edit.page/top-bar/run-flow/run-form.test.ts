@@ -113,7 +113,7 @@ describe("getRunBlocker", () => {
           { name: "topics", payloadKind: "Text", array: true, required: true },
         ]),
       ),
-    ).toBe("“Topics” takes a text list, which can't be given here yet");
+    ).toBe("“Topics” takes a list of Text, which can't be given here yet");
   });
 });
 
