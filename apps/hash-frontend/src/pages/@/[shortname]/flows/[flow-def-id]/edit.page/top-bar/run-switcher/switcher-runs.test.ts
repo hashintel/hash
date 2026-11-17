@@ -1,8 +1,9 @@
-import { describe, expect, it } from "vitest";
+// @vitest-environment jsdom
+import { afterEach, describe, expect, it } from "vitest";
 
 import { FlowRunStatus } from "../../../../../../../../graphql/api-types.gen";
 import { getShortRunId } from "../../shared/run-id";
-import { getSwitcherRuns } from "./switcher-runs";
+import { getArrowKeyRun, getSwitcherRuns } from "./switcher-runs";
 
 import type { RunSummary } from "../../shared/use-flow-runs";
 import type { EntityId, WebId } from "@blockprotocol/type-system";
@@ -161,5 +162,122 @@ describe("getSwitcherRuns", () => {
       FlowRunStatus.Completed,
       FlowRunStatus.Completed,
     ]);
+  });
+});
+
+describe("getArrowKeyRun", () => {
+  const older = run("0000d4", 1);
+  const newer = run("0000f2", 3);
+
+  const press = (
+    key: string,
+    {
+      target = document.body,
+      sides = { older, newer },
+      ...options
+    }: Partial<
+      Pick<
+        KeyboardEvent,
+        | "target"
+        | "defaultPrevented"
+        | "altKey"
+        | "ctrlKey"
+        | "metaKey"
+        | "shiftKey"
+      > & { sides: Parameters<typeof getArrowKeyRun>[1] }
+    > = {},
+  ) =>
+    shortIdOf(
+      getArrowKeyRun(
+        {
+          key,
+          target,
+          defaultPrevented: false,
+          altKey: false,
+          ctrlKey: false,
+          metaKey: false,
+          shiftKey: false,
+          ...options,
+        },
+        sides,
+      ),
+    );
+
+  /** Puts `html` on the page, and returns its element marked `data-target`. */
+  const render = (html: string) => {
+    document.body.innerHTML = html;
+
+    return document.querySelector<HTMLElement>("[data-target]");
+  };
+
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("opens the newer run with ↑ and the older with ↓, as the menu lists them", () => {
+    expect(press("ArrowUp")).toBe("0000F2");
+    expect(press("ArrowDown")).toBe("0000D4");
+  });
+
+  it("does nothing with other keys, or with a modifier", () => {
+    expect(press("ArrowLeft")).toBeNull();
+    expect(press("ArrowDown", { shiftKey: true })).toBeNull();
+    expect(press("ArrowUp", { metaKey: true })).toBeNull();
+    expect(press("ArrowDown", { altKey: true })).toBeNull();
+  });
+
+  it("does nothing at the end of the list", () => {
+    expect(press("ArrowUp", { sides: { older, newer: null } })).toBeNull();
+  });
+
+  it("leaves the key to whatever already handled it", () => {
+    expect(press("ArrowDown", { defaultPrevented: true })).toBeNull();
+  });
+
+  it("leaves the key to fields, menus and the controls that open them", () => {
+    expect(
+      press("ArrowDown", { target: render(`<input data-target />`) }),
+    ).toBeNull();
+    expect(
+      press("ArrowDown", {
+        target: render(
+          `<div role="menu"><div><span data-target>Run</span></div></div>`,
+        ),
+      }),
+    ).toBeNull();
+    expect(
+      press("ArrowUp", {
+        target: render(`<button aria-haspopup="menu" data-target>Run</button>`),
+      }),
+    ).toBeNull();
+  });
+
+  it("switches runs from a button that doesn't use the key", () => {
+    expect(
+      press("ArrowDown", {
+        target: render(`<button data-target>Older run</button>`),
+      }),
+    ).toBe("0000D4");
+  });
+
+  it("leaves the key to a panel it scrolls, but not to one with nothing to scroll", () => {
+    const target = render(
+      `<div style="overflow-y: auto"><p data-target>Output</p></div>`,
+    );
+    const panel = target?.parentElement;
+
+    if (!panel) {
+      throw new Error("The panel didn't render");
+    }
+
+    Object.defineProperty(panel, "clientHeight", { value: 200 });
+    Object.defineProperty(panel, "scrollHeight", {
+      value: 200,
+      configurable: true,
+    });
+    expect(press("ArrowDown", { target })).toBe("0000D4");
+
+    Object.defineProperty(panel, "scrollHeight", { value: 800 });
+    expect(press("ArrowDown", { target })).toBeNull();
   });
 });
