@@ -247,14 +247,17 @@ export const RunsTable = ({
                 key={row.flowRunEntityId}
                 className={openableRow}
                 onClick={(event) => {
-                  /* A click that ends selecting text isn't a click on the row. */
-                  if (window.getSelection()?.toString()) {
+                  /*
+                   * A click with a modifier opens the run in a new tab, as one on the ID's link does. It's checked
+                   * first, as Shift-click extends the selection and the others leave it in place.
+                   */
+                  if (event.metaKey || event.ctrlKey || event.shiftKey) {
+                    window.open(runPath, "_blank", "noopener");
                     return;
                   }
 
-                  /* A click with a modifier opens the run in a new tab, as one on the ID's link does. */
-                  if (event.metaKey || event.ctrlKey || event.shiftKey) {
-                    window.open(runPath, "_blank", "noopener");
+                  /* A click that ends selecting text isn't a click on the row. */
+                  if (window.getSelection()?.toString()) {
                     return;
                   }
 
