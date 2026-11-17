@@ -3,6 +3,10 @@
  * the server from the conversation's watched view. The stream starts from the
  * committed view, so a follow that attaches mid-run replays what the run
  * committed so far under the same message id, then follows it to its end.
+ *
+ * A response's stored entries project through the same writer
+ * (`projectResponseEntries`), with the same message ID and hand-edit parts,
+ * so a reopened conversation shows each response as its stream did.
  */
 import {
   type Conversation,
@@ -18,7 +22,13 @@ import {
 import type { Context } from "@earendil-works/chord/context";
 import type { UIMessageChunk } from "ai";
 
-export { responseMessageId } from "./submission-stream/view-projector";
+export {
+  handEditPartId,
+  handEditPartType,
+  type ProjectionOptions,
+  projectResponseEntries,
+  responseMessageId,
+} from "./submission-stream/view-projector";
 
 /**
  * Follow `submission` on `conversation` until it settles, the client cancels,

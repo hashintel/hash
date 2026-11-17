@@ -16,11 +16,13 @@
  * committed output after it, so a note after the response's last output
  * (at its `final` boundary, or between turns) is never part of it.
  */
+import { browserToolEnvelopeOf } from "@hashintel/brunch-agent";
+
 import { handEditEntryKind } from "../../../net-state/visible-net-view";
 import {
   crashLoopErrorText,
   stoppedByCrashLoop,
-} from "../conversation-registry/crash-loop-guard";
+} from "../shared/crash-loop-entry";
 
 import type {
   AssistantMessage,
@@ -100,28 +102,15 @@ const toolResultText = (
     : text;
 };
 
-/** A browser tool's real output: Brunch's branded envelope in `details`, exactly as stored. */
-const browserOutput = (
-  message: ToolResultMessage,
-): { readonly output: unknown } | undefined => {
-  const details: unknown = message.details;
-  return typeof details === "object" &&
-    details !== null &&
-    "brunchBrowserResult" in details &&
-    details.brunchBrowserResult === true &&
-    "output" in details
-    ? { output: details.output }
-    : undefined;
-};
-
 /**
  * A tool result's output as the UI sees it: a browser tool's real output from
- * its `details`, whatever the model was sent; otherwise the text, as JSON
- * when it is JSON.
+ * Brunch's branded envelope in its `details`, exactly as stored, whatever the
+ * model was sent; otherwise the text, as JSON when it is JSON.
  */
 const toolOutput = (message: ToolResultMessage, text: string): unknown => {
-  const browser = browserOutput(message);
-  if (browser !== undefined) return browser.output;
+  const envelope = browserToolEnvelopeOf(message.details);
+  // `null` is a browser output of its own, so the envelope's presence decides.
+  if (envelope !== undefined) return envelope.output;
   try {
     return JSON.parse(text) as unknown;
   } catch {

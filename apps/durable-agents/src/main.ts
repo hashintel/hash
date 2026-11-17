@@ -45,8 +45,10 @@ import { builtinModels } from "@earendil-works/pi-ai/providers/all";
 import { Pool } from "pg";
 
 import { startDurableAgentsServer } from "./server/start-durable-agents-server";
-import { poolLimitsFromEnvironment } from "./server/start-durable-agents-server/limits-from-environment";
-import { postgresConfigFromEnvironment } from "./storage/postgres/postgres-config";
+import {
+  poolLimitsFromEnvironment,
+  postgresConfigFromEnvironment,
+} from "./storage/postgres/postgres-config";
 
 const defaultPort = 4324;
 

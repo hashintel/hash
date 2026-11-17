@@ -1,3 +1,8 @@
+import {
+  type Environment,
+  integerFromEnvironment,
+} from "../../shared/integer-from-environment";
+
 import type { PoolConfig } from "pg";
 
 /** Brunch's Postgres variables (`apps/brunch-agent/src/env.ts`), which a library can't import. */
@@ -57,4 +62,49 @@ export const postgresConfigFromEnvironment = (
     environment.POSTGRES_PASSWORD ??
     "postgres",
   database: environment[brunchPostgresEnv.database] ?? "postgres",
+});
+
+/** The pool's limits, as `pg` names them. */
+export type PoolLimits = Required<
+  Pick<PoolConfig, "max" | "connectionTimeoutMillis">
+>;
+
+export const defaultPoolLimits: PoolLimits = {
+  max: 32,
+  connectionTimeoutMillis: 10_000,
+};
+
+const poolVariables = {
+  max: "DURABLE_AGENTS_PG_POOL_MAX",
+  connectionTimeoutMillis: "DURABLE_AGENTS_PG_POOL_WAIT_MS",
+} as const satisfies Record<keyof PoolLimits, string>;
+
+/**
+ * The pool's limits from the environment, each over `defaultPoolLimits`, to
+ * spread over its connection config:
+ *
+ * - `DURABLE_AGENTS_PG_POOL_MAX` (32): connections the pool opens at most,
+ *   `pg`'s `max`.
+ * - `DURABLE_AGENTS_PG_POOL_WAIT_MS` (10000): how long a query waits for a
+ *   connection, a free one or a new one, before it fails; `pg`'s
+ *   `connectionTimeoutMillis`.
+ *
+ * Each is an integer of 1 or more; any other value throws, so a typo does
+ * not silently run on the default.
+ */
+export const poolLimitsFromEnvironment = (
+  environment: Environment,
+): PoolLimits => ({
+  max: integerFromEnvironment(
+    environment,
+    poolVariables.max,
+    defaultPoolLimits.max,
+    { infinite: false },
+  ),
+  connectionTimeoutMillis: integerFromEnvironment(
+    environment,
+    poolVariables.connectionTimeoutMillis,
+    defaultPoolLimits.connectionTimeoutMillis,
+    { infinite: false },
+  ),
 });
