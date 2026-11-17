@@ -373,12 +373,16 @@ describe("buildCanvasScene", () => {
       parameterValues: {},
       x: 0,
       y: 0,
-      ...(implementation === undefined ? {} : { implementation }),
+      ...(implementation === undefined
+        ? {}
+        : { implementation: { id: implementation } }),
     });
     const composed: SDCPN = {
       ...sdcpn,
       subnets: [iface, fast],
-      implementations: { iface: "fast" },
+      implementations: [
+        { interface: { id: "iface" }, component: { id: "fast" } },
+      ],
       componentInstances: [
         instance("bound", "iface"),
         instance("plain", "fast"),
