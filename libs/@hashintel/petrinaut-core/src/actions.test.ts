@@ -2514,7 +2514,7 @@ describe("Petrinaut core interface actions", () => {
     ).toThrow();
   });
 
-  test("an icon that draws shapes again through `use` is refused", () => {
+  test("an icon that holds anything but shapes is refused, naming the element", () => {
     const instance = createInstance(withInterface());
     // Each group draws the one before it twice: thirty of them ask for a
     // billion shapes.
@@ -2524,17 +2524,22 @@ describe("Petrinaut core interface actions", () => {
         : `<g id="g${level}"><use href="#g${level - 1}"/><use href="#g${level - 1}"/></g>`,
     );
 
-    for (const iconSvg of [
-      `<svg viewBox="0 0 8 8">${groups.join("")}</svg>`,
-      '<svg><USE href="#a"/></svg>',
-      '<svg xmlns:s="http://www.w3.org/2000/svg"><s:use href="#a"/></svg>',
-    ]) {
+    for (const [iconSvg, element] of [
+      [`<svg viewBox="0 0 8 8">${groups.join("")}</svg>`, "use"],
+      ['<svg><USE href="#a"/></svg>', "USE"],
+      [
+        '<svg xmlns:s="http://www.w3.org/2000/svg"><s:use href="#a"/></svg>',
+        "s:use",
+      ],
+      ["<svg><defs><clipPath/></defs></svg>", "defs"],
+      ["<svg><script>alert(1)</script></svg>", "script"],
+    ] as const) {
       expect(() =>
         instance.mutations.updateSubnet({
           subnetId: "fast",
           update: { iconSvg },
         }),
-      ).toThrow();
+      ).toThrow(`\`${element}\``);
     }
   });
 });

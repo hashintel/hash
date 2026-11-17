@@ -824,6 +824,7 @@ export {
 } from "./view-hir/visualizer-svg";
 export type { MetricShape } from "./hir/metric-shape";
 export {
+  describeDisallowedSubnetIconElement,
+  disallowedSubnetIconElement,
   maxSubnetIconLength,
-  subnetIconHoldsUse,
 } from "./schemas/entity-schemas";

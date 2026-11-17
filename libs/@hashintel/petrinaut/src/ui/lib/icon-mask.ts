@@ -1,6 +1,6 @@
 import {
+  disallowedSubnetIconElement,
   maxSubnetIconLength,
-  subnetIconHoldsUse,
 } from "@hashintel/petrinaut-core";
 
 /**
@@ -13,10 +13,10 @@ const userUnits = (length: string | null): number =>
 
 /**
  * A CSS image of `markup`, to paint as a mask, or `null` when the markup is
- * not SVG, is longer than an icon may be, or holds a `use` element. The
- * image fills the box that draws it and keeps the icon's proportions: a
- * missing `viewBox` is taken from a width and height given in user units,
- * and the fixed size goes.
+ * not SVG, is longer than an icon may be, or holds an element an icon may
+ * not. The image fills the box that draws it and keeps the icon's
+ * proportions: a missing `viewBox` is taken from a width and height given in
+ * user units, and the fixed size goes.
  *
  * A mask image is fetched as an image, so nothing in the markup runs or
  * loads, whatever it holds. The rules the document's schema has for an icon
@@ -24,7 +24,10 @@ const userUnits = (length: string | null): number =>
  * schema.
  */
 export const iconMaskImage = (markup: string): string | null => {
-  if (markup.length > maxSubnetIconLength || subnetIconHoldsUse(markup)) {
+  if (
+    markup.length > maxSubnetIconLength ||
+    disallowedSubnetIconElement(markup) !== undefined
+  ) {
     return null;
   }
   // Read into a detached document. The HTML parser takes a standalone SVG

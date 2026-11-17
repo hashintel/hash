@@ -507,13 +507,46 @@ export const fusionSchema = z
 /** The longest icon a subnet may carry, in characters of SVG markup. */
 export const maxSubnetIconLength = 16_384;
 
+/** The elements an icon may hold: the root, groups and plain shapes. */
+const subnetIconElements = [
+  "svg",
+  "g",
+  "path",
+  "rect",
+  "circle",
+  "ellipse",
+  "line",
+  "polyline",
+  "polygon",
+];
+
 /**
- * Whether icon markup holds a `use` element, under any prefix. A `use` draws
- * another element again, so groups that each use the one before twice ask
- * for a billion shapes from an icon well under the length limit.
+ * The first element of icon markup that an icon may not hold, as the markup
+ * writes it, or `undefined` when there is none. A name in another case or
+ * under a prefix is another element. What is left out can load, run or draw
+ * without bound: a `use` draws another element again, so groups that each
+ * use the one before twice ask for a billion shapes from an icon well under
+ * the length limit.
+ *
+ * Every `<name` and `</name` counts, in a comment or an attribute too, and a
+ * name ends where an HTML parser ends it, so nothing a parser may take for a
+ * tag gets past.
  */
-export const subnetIconHoldsUse = (markup: string): boolean =>
-  /<(?:[^\s<>/]*:)?use[\s/>]/i.test(markup);
+export const disallowedSubnetIconElement = (
+  markup: string,
+): string | undefined => {
+  const tagNames = /<\/?([^\t\n\f\r <>/!?][^\t\n\f\r <>/]*)/g;
+  for (const [, name] of markup.matchAll(tagNames)) {
+    if (name !== undefined && !subnetIconElements.includes(name)) {
+      return name;
+    }
+  }
+  return undefined;
+};
+
+/** Why an icon that holds `element` is refused. */
+export const describeDisallowedSubnetIconElement = (element: string): string =>
+  `An icon cannot hold a \`${element}\` element: only ${subnetIconElements.slice(0, -1).join(", ")} and ${subnetIconElements.at(-1)}.`;
 
 export const subnetSchema = z
   .strictObject({
@@ -527,13 +560,20 @@ export const subnetSchema = z
       .string()
       .min(1)
       .max(maxSubnetIconLength)
-      .refine((markup) => !subnetIconHoldsUse(markup), {
-        message: "An icon draws each shape itself: it holds no `use` element.",
+      .check((context) => {
+        const element = disallowedSubnetIconElement(context.value);
+        if (element !== undefined) {
+          context.issues.push({
+            code: "custom",
+            message: describeDisallowedSubnetIconElement(element),
+            input: context.value,
+          });
+        }
       })
       .optional()
       .meta({
         description:
-          "SVG markup for the component's icon. Its shape is drawn in one colour on the component's instances, in place of the default cube. Keep it small: one `<svg>` with a `viewBox`, shapes only, no `use` elements.",
+          "SVG markup for the component's icon. Its shape is drawn in one colour on the component's instances, in place of the default cube. Keep it small: one `<svg>` with a `viewBox` that holds only `g`, `path`, `rect`, `circle`, `ellipse`, `line`, `polyline` and `polygon` elements. Any other element is refused.",
       }),
     displayColor: z.string().min(1).optional().meta({
       description:

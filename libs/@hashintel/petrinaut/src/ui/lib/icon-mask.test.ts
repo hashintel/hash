@@ -92,7 +92,7 @@ describe("iconMaskImage", () => {
     ).toBeNull();
   });
 
-  it("refuses markup that draws shapes again through `use`", () => {
+  it("refuses markup that holds anything but shapes", () => {
     // Each group draws the one before it twice: thirty of them ask for a
     // billion shapes.
     const groups = Array.from({ length: 30 }, (_, level) =>
@@ -101,14 +101,21 @@ describe("iconMaskImage", () => {
         : `<g id="g${level}"><use href="#g${level - 1}"/><use href="#g${level - 1}"/></g>`,
     );
 
-    expect(
-      iconMaskImage(`<svg viewBox="0 0 8 8">${groups.join("")}</svg>`),
-    ).toBeNull();
+    for (const markup of [
+      `<svg viewBox="0 0 8 8">${groups.join("")}</svg>`,
+      '<svg viewBox="0 0 8 8"><USE href="#a"/></svg>',
+      '<svg viewBox="0 0 8 8"><image href="https://example.com/a.png"/></svg>',
+      '<svg viewBox="0 0 8 8"><foreignObject><div/></foreignObject></svg>',
+      '<svg viewBox="0 0 8 8"><style>rect{fill:red}</style><rect/></svg>',
+      '<svg viewBox="0 0 8 8"><title>Stage</title><rect/></svg>',
+    ]) {
+      expect(iconMaskImage(markup)).toBeNull();
+    }
   });
 
   it("does not throw on half of a surrogate pair", () => {
     expect(() =>
-      iconMaskImage('<svg viewBox="0 0 8 8"><title>\ud800</title></svg>'),
+      iconMaskImage('<svg viewBox="0 0 8 8"><g>\ud800</g></svg>'),
     ).not.toThrow();
   });
 

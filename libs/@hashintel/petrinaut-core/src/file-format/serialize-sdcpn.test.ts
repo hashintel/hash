@@ -449,7 +449,7 @@ describe("serializeSDCPN", () => {
     expect(bare).not.toContain("displayColor");
   });
 
-  it("refuses a file whose subnet icon draws shapes again through `use`", () => {
+  it("refuses a file whose subnet icon holds anything but shapes, naming the element", () => {
     const [subnet] = sourceDocument.subnets;
     const withIcon = (iconSvg: string) =>
       parseSDCPNFile({
@@ -458,9 +458,15 @@ describe("serializeSDCPN", () => {
       });
 
     expect(withIcon('<svg viewBox="0 0 8 8"><rect/></svg>').ok).toBe(true);
-    expect(
-      withIcon('<svg viewBox="0 0 8 8"><g id="a"/><use href="#a"/></svg>').ok,
-    ).toBe(false);
+
+    const refused = withIcon(
+      '<svg viewBox="0 0 8 8"><g id="a"/><use href="#a"/></svg>',
+    );
+    expect(refused.ok).toBe(false);
+    if (!refused.ok) {
+      expect(refused.error).toContain("`use`");
+    }
+    expect(withIcon("<svg><title>Stage</title><rect/></svg>").ok).toBe(false);
   });
 
   it("rejects text that is neither YAML nor JSON via parseSDCPNDocument", () => {

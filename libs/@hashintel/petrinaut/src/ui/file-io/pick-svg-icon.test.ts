@@ -22,13 +22,17 @@ describe("readIconMarkup", () => {
     });
   });
 
-  it("refuses a file that draws shapes again through `use`, and says so", () => {
-    const result = readIconMarkup(
+  it("refuses a file that holds anything but shapes, and names the element", () => {
+    const repeated = readIconMarkup(
       '<svg viewBox="0 0 8 8"><g id="a"><rect/></g><use href="#a"/></svg>',
     );
+    expect(repeated).toMatchObject({ ok: false });
+    expect(repeated.ok ? "" : repeated.error).toContain("`use`");
 
-    expect(result).toMatchObject({ ok: false });
-    expect(result.ok ? "" : result.error).toContain("use");
+    const clipped = readIconMarkup(
+      '<svg viewBox="0 0 8 8"><clipPath id="c"><rect/></clipPath><rect clip-path="url(#c)"/></svg>',
+    );
+    expect(clipped.ok ? "" : clipped.error).toContain("`clipPath`");
   });
 
   it("refuses a file over the size an icon may have", () => {
