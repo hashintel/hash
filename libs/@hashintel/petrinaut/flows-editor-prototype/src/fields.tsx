@@ -6,6 +6,7 @@ import {
   Button,
   Chip,
   Icon,
+  IconProvider,
   type IconName,
   type ItemOrGroup,
   Menu,
@@ -45,6 +46,7 @@ import {
   refStatus,
   TemplatePreview,
 } from "./inline-chips";
+import { iconPackTake } from "./icon-take";
 import { tileMenu, type TiledItem, tiledRowsStyle } from "./menu-rows";
 import {
   findEntityType,
@@ -403,7 +405,8 @@ const chipWrapClass = css({
 const editorClass = css({
   width: "[100%]",
   paddingX: "2.5",
-  paddingY: "1.5",
+  paddingY: "1",
+  minHeight: "[32px]",
   textStyle: "sm",
   color: "neutral.fg.heading",
   backgroundColor: "neutral.bgSolid.min",
@@ -444,9 +447,11 @@ const makeChip = (
     chip.dataset.fallback = JSON.stringify(part.fallback);
   }
   chip.innerHTML = renderToStaticMarkup(
-    <InlineChip status={status} icon={label(part.source).icon}>
-      {label(part.source).text}
-    </InlineChip>,
+    <IconProvider icons={iconPackTake}>
+      <InlineChip status={status} icon={label(part.source).icon}>
+        {label(part.source).text}
+      </InlineChip>
+    </IconProvider>,
   );
   return chip;
 };
@@ -905,9 +910,9 @@ const listFieldStyle = css({
   "&[data-all]": { flexWrap: "wrap" },
   // Spec Error state: a red border with the one line under the field.
   "&[data-invalid]": { borderColor: "red.bd.strong" },
-  paddingY: "[1px]",
-  paddingLeft: "[1px]",
-  paddingRight: "[1px]",
+  paddingY: "1",
+  paddingLeft: "1",
+  paddingRight: "1",
   borderWidth: "thin",
   borderStyle: "solid",
   borderColor: "neutral.bd.solid",
@@ -1317,7 +1322,17 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
                   : "Add from earlier steps"}
             </span>
           ) : null}
-          <span className={css({ marginLeft: "auto" })}>{addButton}</span>
+          <span
+            className={css({
+              display: "flex",
+              alignItems: "center",
+              flexShrink: "0",
+              lineHeight: "[0]",
+              marginLeft: "auto",
+            })}
+          >
+            {addButton}
+          </span>
         </div>
       )}
       {/* The "Skips this step when missing" line under To is parked (Aakarsh, 3 Nov). */}
