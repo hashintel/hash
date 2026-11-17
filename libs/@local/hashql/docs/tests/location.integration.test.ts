@@ -12,6 +12,7 @@ import {
 } from "effect";
 import { isInterfaceDeclaration } from "typescript/ast";
 
+import * as Source from "../src/internal/ast/source.js";
 import * as Location from "../src/Location.js";
 import * as Compiler from "./fixtures/compiler.js";
 import * as Reference from "./fixtures/reference.js";
@@ -206,6 +207,19 @@ describe("location", () => {
         run: (input) => locate(input).pipe(Effect.result),
       });
       expect(Result.isFailure(result)).toBe(true);
+    }),
+  );
+
+  it.effect(
+    "end_of_file",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const result = yield* fixture({
+        read: () => Effect.fail(missing),
+        run: ({ source }) =>
+          Effect.succeed(Source.documentedAt(source, source.end)),
+      });
+      expect(result).toStrictEqual(Option.none());
     }),
   );
 
