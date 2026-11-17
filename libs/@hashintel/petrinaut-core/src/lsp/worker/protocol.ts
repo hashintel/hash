@@ -21,6 +21,7 @@ import type { PetrinautExtensionSettings } from "../../extensions";
 import type { CompileHirArtifactsOptions } from "../../hir/compile";
 import type { MetricShape } from "../../hir/metric-shape";
 import type { HirVisualizerContext } from "../../hir/surface-context";
+import type { NetClass } from "../../net-class";
 import type {
   AdHocScenarioState,
   AdHocSynthesisContext,
@@ -283,6 +284,8 @@ type ServerResponse<Result = unknown> =
 export type NetAnalysis = {
   /** By metric id, for every metric whose code lowers. */
   metricShapes: Record<string, MetricShape>;
+  /** The class of the net. `null` until the first check lands. */
+  netClass: NetClass | null;
 };
 
 /** Server-initiated notifications (no `id`). */

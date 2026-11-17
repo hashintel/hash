@@ -6,6 +6,7 @@ import { createSDCPN } from "./lib/helper/create-sdcpn";
 import type { LspTransport } from "./transport";
 import type {
   ClientMessage,
+  NetAnalysis,
   PublishDiagnosticsParams,
   ServerMessage,
 } from "./worker/protocol";
@@ -175,29 +176,31 @@ describe("createLanguageClient diagnostics", () => {
     const client = createLanguageClient({ transport });
     const onChange = vi.fn();
     client.netAnalysis.subscribe(onChange);
+    const pushAnalysis = (params: NetAnalysis) =>
+      push({ jsonrpc: "2.0", method: "sdcpn/netAnalysis", params });
+    const netClass = {
+      time: "untimed",
+      coloring: "none",
+      chance: null,
+    } as const;
+    const analysis: NetAnalysis = {
+      metricShapes: { m1: "discrete", m2: "continuous" },
+      netClass,
+    };
 
-    push({
-      jsonrpc: "2.0",
-      method: "sdcpn/netAnalysis",
-      params: { metricShapes: { m1: "discrete", m2: "continuous" } },
-    });
-    push({
-      jsonrpc: "2.0",
-      method: "sdcpn/netAnalysis",
-      params: { metricShapes: { m1: "discrete", m2: "continuous" } },
-    });
+    pushAnalysis(analysis);
+    pushAnalysis({ ...analysis, netClass: { ...netClass } });
     expect(onChange).toHaveBeenCalledTimes(1);
-    expect(client.netAnalysis.get().metricShapes).toEqual({
-      m1: "discrete",
-      m2: "continuous",
-    });
+    expect(client.netAnalysis.get()).toEqual(analysis);
 
-    push({
-      jsonrpc: "2.0",
-      method: "sdcpn/netAnalysis",
-      params: { metricShapes: { m1: "continuous" } },
-    });
+    pushAnalysis({ ...analysis, metricShapes: { m1: "continuous" } });
     expect(onChange).toHaveBeenCalledTimes(2);
+
+    pushAnalysis({
+      metricShapes: { m1: "continuous" },
+      netClass: { ...netClass, chance: "deterministic" },
+    });
+    expect(onChange).toHaveBeenCalledTimes(3);
   });
 
   it("keeps the array of a document whose diagnostics did not change", () => {
