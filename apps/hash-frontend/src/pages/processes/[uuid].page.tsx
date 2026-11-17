@@ -5,16 +5,21 @@ import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 
 import { getLayoutWithSidebar } from "../../shared/layout";
-import { exampleTileBySlug } from "../processes.page/example-tiles-data";
+import { useAuthInfo } from "../shared/auth-info-context";
 import { useActiveWorkspace } from "../shared/workspace-context";
 import { draftPath, draftWebQueryParam } from "./[uuid].page/draft-path";
+import {
+  creatableWebIds,
+  draftEntityIdFromQuery,
+  exampleFromQuery,
+} from "./[uuid].page/draft-query";
 import {
   ProcessEditor,
   type ProcessEditorView,
 } from "./[uuid].page/process-editor";
 
 import type { NextPageWithLayout } from "../../shared/layout";
-import type { EntityUuid, WebId } from "@blockprotocol/type-system";
+import type { EntityUuid } from "@blockprotocol/type-system";
 
 const firstQueryValue = (value: string | string[] | undefined) =>
   (Array.isArray(value) ? value[0] : value) ?? null;
@@ -30,6 +35,12 @@ const firstQueryValue = (value: string | string[] | undefined) =>
  * id. The saved net's URL is the same path without the query, so saving
  * never changes route.
  *
+ * A draft URL is checked when it opens: one whose uuid is malformed, or
+ * whose web is not one the user can create entities in, could never be
+ * saved, so it is replaced with a fresh draft in the active workspace, as
+ * `/processes/draft` would start. An `example` naming none of ours is
+ * dropped, which opens a blank draft.
+ *
  * We deliberately render `<ProcessEditor>` even before `router.isReady`
  * (passing `view={null}`) so the editor starts loading on the very first
  * React render. That parallelises the editor-bundle download with `router`
@@ -44,13 +55,36 @@ const firstQueryValue = (value: string | string[] | undefined) =>
 const ProcessRoutePage: NextPageWithLayout = () => {
   const router = useRouter();
   const { activeWorkspaceWebId } = useActiveWorkspace();
+  const { authenticatedUser } = useAuthInfo();
 
   const uuidParam = router.isReady ? firstQueryValue(router.query.uuid) : null;
-  const exampleSlug = firstQueryValue(router.query.example);
+  const example = exampleFromQuery(firstQueryValue(router.query.example));
+  const exampleSlug = example?.slug ?? null;
   const draftWeb = firstQueryValue(router.query[draftWebQueryParam]);
 
-  /** `/processes/draft` names no draft yet: give it one and go there. */
-  const startsDraft = uuidParam === "draft";
+  const creatableWebs = useMemo(
+    () => (authenticatedUser ? creatableWebIds(authenticatedUser) : null),
+    [authenticatedUser],
+  );
+
+  /**
+   * The id a draft URL names, `null` when it names none the user could
+   * save, and `undefined` when this is no draft URL or the user's webs are
+   * not known yet.
+   */
+  const draftEntityId =
+    uuidParam === null ||
+    uuidParam === "draft" ||
+    draftWeb === null ||
+    creatableWebs === null
+      ? undefined
+      : draftEntityIdFromQuery({ uuid: uuidParam, draftWeb, creatableWebs });
+
+  /**
+   * `/processes/draft` names no draft yet, and a draft URL failing its
+   * check names none that could be saved: give it one and go there.
+   */
+  const startsDraft = uuidParam === "draft" || draftEntityId === null;
   useEffect(() => {
     if (!startsDraft || !activeWorkspaceWebId) {
       return;
@@ -72,29 +106,27 @@ const ProcessRoutePage: NextPageWithLayout = () => {
     }
 
     if (draftWeb !== null) {
-      const entityId = entityIdFromComponents(
-        draftWeb as WebId,
-        uuidParam as EntityUuid,
-      );
+      if (draftEntityId === undefined) {
+        return null;
+      }
       // An unknown slug falls back to a blank draft rather than blocking
       // the user.
-      const seed = exampleSlug ? exampleTileBySlug.get(exampleSlug) : undefined;
-      if (!exampleSlug || !seed) {
-        return { kind: "draft", seedKey: null, entityId };
+      if (!example) {
+        return { kind: "draft", seedKey: null, entityId: draftEntityId };
       }
       return {
         kind: "draft",
-        seedKey: exampleSlug,
+        seedKey: example.slug,
         seed: {
-          title: seed.title,
-          petriNetDefinition: seed.petriNetDefinition,
+          title: example.title,
+          petriNetDefinition: example.petriNetDefinition,
         },
-        entityId,
+        entityId: draftEntityId,
       };
     }
 
     return { kind: "saved", entityUuid: uuidParam };
-  }, [draftWeb, exampleSlug, startsDraft, uuidParam]);
+  }, [draftEntityId, draftWeb, example, startsDraft, uuidParam]);
 
   return <ProcessEditor view={view} />;
 };

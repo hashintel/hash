@@ -18,6 +18,7 @@ import { afterEach, beforeAll, beforeEach, expect, test, vi } from "vitest";
 import { brunchTools, hashPetrinautTools } from "@hashintel/brunch-agent";
 import { canonicalizePetrinautIds } from "@hashintel/petrinaut-core";
 
+import { exampleTileBySlug } from "../../processes.page/example-tiles-data";
 import ProcessRoutePage from "../[uuid].page";
 
 import type {
@@ -212,6 +213,8 @@ vi.mock("../../shared/auth-info-context", () => ({
     authenticatedUser: {
       accountId: "alice-account",
       accountSignupComplete: true,
+      // The web the tests' nets and drafts are in is an org Alice belongs to.
+      memberOf: [{ org: { webId: "00000000-0000-4000-8000-000000000001" } }],
     },
   }),
 }));
@@ -1221,6 +1224,60 @@ test("a draft's URL opens the saved net once a net exists under its id", async (
   pressSave();
   await settle();
   expect(graph.writes.map(({ kind }) => kind)).toEqual(["update"]);
+});
+
+/** The draft URL `url()` holds, or `null` when it holds none. */
+const openDraft = () => {
+  const [, uuid, web, query] =
+    /^\/processes\/([0-9a-f-]{36})\?draftWeb=([^&]+)(.*)$/u.exec(url()) ?? [];
+  return uuid && web ? { uuid, web, query } : null;
+};
+
+test("starting a draft keeps an example we have and drops any other value", async () => {
+  await renderRoute("/processes/draft?example=sir-model");
+  expect(openDraft()?.query).toBe("&example=sir-model");
+  expect(topBar().title).toBe(exampleTileBySlug.get("sir-model")?.title);
+  cleanup();
+  observed.editor = null;
+
+  await renderRoute(
+    `/processes/draft?example=${encodeURIComponent("//evil.test/x")}`,
+  );
+  expect(openDraft()).toMatchObject({ web: webId, query: "" });
+  expect(topBar()).toMatchObject({ title: "Process", saveLabel: "Create" });
+});
+
+test("a draft's URL with an example we don't have opens a blank draft", async () => {
+  await renderRoute(`${draftUrl}&example=unknown`);
+  expect(url()).toBe(`${draftUrl}&example=unknown`);
+  expect(topBar()).toMatchObject({ title: "Process", saveLabel: "Create" });
+});
+
+test("a draft's URL naming a web the user can't create in, or a malformed uuid, opens a fresh draft in the active workspace instead", async () => {
+  const otherWeb = "00000000-0000-4000-8000-0000000000ff";
+  await renderRoute(
+    `/processes/${uuidCreated}?draftWeb=${otherWeb}&example=sir-model`,
+  );
+  const replacing = openDraft();
+  expect(replacing).toMatchObject({
+    web: webId,
+    query: "&example=sir-model",
+  });
+  expect(replacing?.uuid).not.toBe(uuidCreated);
+  pressSave();
+  await settle();
+  expect(graph.writes).toEqual([
+    expect.objectContaining({
+      kind: "create",
+      entityId: `${webId}~${replacing?.uuid}`,
+    }),
+  ]);
+  cleanup();
+  observed.editor = null;
+
+  await renderRoute(`/processes/not-a-uuid?draftWeb=${webId}`);
+  expect(openDraft()).toMatchObject({ web: webId, query: "" });
+  expect(topBar()).toMatchObject({ saveLabel: "Create" });
 });
 
 test("contained failures reach Sentry as thrown, tagged with the net and permission the host loaded", async () => {
