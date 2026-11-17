@@ -14,6 +14,7 @@ import type { EntityId } from "@blockprotocol/type-system";
 import type {
   FlowDefinition,
   FlowInputDefinition,
+  FlowInputValues,
 } from "@local/hash-isomorphic-utils/flows/types";
 
 const instructionsInput: FlowInputDefinition = {
@@ -151,6 +152,7 @@ describe("getFlowInputValues", () => {
         ...getInitialFormValues(inputs),
         count: { kind: "Number", value: 0 },
         subject: { kind: "Text", value: "Hello" },
+        note: { kind: "Text", value: "  " },
         due: { kind: "Date", value: "2026-11-05" },
       }),
     ).toEqual({
@@ -178,8 +180,13 @@ describe("getFlowInputValues", () => {
     });
   });
 
-  it("names the required inputs left blank", () => {
-    expect(getFlowInputValues(inputs, getInitialFormValues(inputs))).toEqual({
+  it("names the required inputs left blank, text of only spaces included", () => {
+    expect(
+      getFlowInputValues(inputs, {
+        ...getInitialFormValues(inputs),
+        subject: { kind: "Text", value: "  " },
+      }),
+    ).toEqual({
       flowInputs: { notify: { kind: "Boolean", value: false } },
       missingInputNames: ["count", "subject"],
     });
@@ -244,6 +251,33 @@ describe("getFormValuesFromRun", () => {
       },
       changedInputLabels: ["Region", "Limit", "Topics"],
     });
+  });
+
+  it("leaves no required input missing when the run gave them all, so it can run again at once", () => {
+    const acme =
+      "f3c9a1d2-0b7e-4c55-9f0e-6a1b2c3d4e5f~1d4c8e2a-7b3f-4a61-8c9d-0e5f6a7b8c9d" as EntityId;
+    const ranInputs: FlowInputValues = {
+      subject: { kind: "Text", value: "Hello" },
+      count: { kind: "Number", value: 0 },
+      due: { kind: "Date", value: "2026-11-05" },
+      entity: { kind: "EntityId", value: acme },
+      entities: { kind: "EntityId", value: [acme] },
+    };
+    const inputs = Object.entries(ranInputs).map(
+      ([name, { kind, value }]): FlowInputDefinition => ({
+        name,
+        payloadKind: kind,
+        array: Array.isArray(value),
+        required: true,
+      }),
+    );
+
+    expect(
+      getFlowInputValues(
+        inputs,
+        getFormValuesFromRun(inputs, ranInputs).values,
+      ),
+    ).toEqual({ flowInputs: ranInputs, missingInputNames: [] });
   });
 
   it("fills in the run's entity and list of entities, and names an entity input that changed between one and a list", () => {

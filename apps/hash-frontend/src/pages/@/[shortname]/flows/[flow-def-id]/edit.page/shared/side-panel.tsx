@@ -1,4 +1,6 @@
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
+
+import { sidePanelFrame } from "./side-panel-frame";
 
 import type { ReactNode } from "react";
 
@@ -6,21 +8,11 @@ import type { ReactNode } from "react";
 export const sidePanelWidth = 384;
 
 const panel = css({
-  position: "absolute",
-  zIndex: "docked",
-  top: "0",
-  right: "0",
-  bottom: "0",
   display: "flex",
   flexDirection: "column",
   gap: "8",
-  width: "[384px]",
   p: "4",
-  bg: "bgSolid.min",
   overflowY: "auto",
-  borderLeftWidth: "1px",
-  borderLeftStyle: "solid",
-  borderLeftColor: "bd.subtle",
 });
 
 const heading = css({
@@ -35,12 +27,15 @@ const section = css({ display: "flex", flexDirection: "column", gap: "2" });
 /** The panel beside the canvas for what's selected on it, e.g. a step in the editor or in a run. */
 export const SidePanel = ({
   label,
+  inert,
   children,
 }: {
   label: string;
+  /** Out of reach, e.g. under what opened in its place. */
+  inert?: boolean;
   children: ReactNode;
 }) => (
-  <aside className={panel} aria-label={label}>
+  <aside className={cx(sidePanelFrame, panel)} aria-label={label} inert={inert}>
     {children}
   </aside>
 );
