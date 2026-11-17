@@ -360,6 +360,44 @@ test("a reopened conversation's messages are the live stream's: the user's words
   ]);
 });
 
+test("an old pi.user input shows its text beside a brunch.user input's words", async () => {
+  const chat = openChat([
+    fauxAssistantMessage("Hello."),
+    fauxAssistantMessage("Again."),
+  ]);
+  await drain(
+    await send(chat.transport, {
+      id: "user-1",
+      role: "user",
+      parts: [{ type: "text", text: userText }],
+    }),
+  );
+  // As `POST /chat` admitted before `brunch.user`: the panel's body as a plain input.
+  const { root } = await chat.conversation();
+  const old = await root.submit(
+    { type: "input", content: "Add a dryer.", requestId: "user-old" },
+    context,
+  );
+  expect((await old.wait(context)).status).toBe("done");
+
+  const entries = await entriesOf(chat);
+  const { messages } = await chat.history();
+  expect(
+    messages
+      ?.filter(({ role }) => role === "user")
+      .map(({ id, parts }) => ({ id, parts })),
+  ).toEqual([
+    {
+      id: `durable:user:${entryOfKind(entries, "brunch.user").id}`,
+      parts: [{ type: "text", text: userText, state: "done" }],
+    },
+    {
+      id: `durable:user:${entryOfKind(entries, "pi.user").id}`,
+      parts: [{ type: "text", text: "Add a dryer.", state: "done" }],
+    },
+  ]);
+});
+
 test("an envelope that does not parse shows as sent, and an unknown conversation is a 404 that creates nothing", async () => {
   const chat = openChat([fauxAssistantMessage("Hello.")]);
   expect((await chat.history()).status).toBe(404);

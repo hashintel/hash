@@ -34,12 +34,15 @@ import { brunchSignals } from "@hashintel/brunch-agent";
 
 import { handEditEntryKind } from "../../net-state/visible-net-view";
 import {
+  brunchUserKind,
+  brunchUserWords,
+} from "../../shared/brunch-user-entry";
+import {
   handEditPartId,
   handEditPartType,
   type ProjectionOptions,
   projectResponseEntries,
 } from "./submission-stream/view-projector";
-import { brunchUserKind } from "./user-input";
 
 import type { OpenConversation } from "./conversation-registry";
 import type { Context } from "@earendil-works/chord/context";
@@ -72,19 +75,6 @@ const modelText = (entry: EntryRecord): string => {
         .join("");
 };
 
-/** The user's own words of a `brunch.user` entry; an invalid envelope was admitted, and is shown, as sent. */
-const userText = (entry: EntryRecord): string => {
-  const { data } = entry;
-  if (
-    typeof data === "object" &&
-    data !== null &&
-    !Array.isArray(data) &&
-    typeof data.userText === "string"
-  )
-    return data.userText;
-  return modelText(entry);
-};
-
 const inputMessage = (entry: EntryRecord): UIMessage => {
   const id = userMessageId(entry.id);
   if (entry.kind === brunchSignals.ledgerComments)
@@ -99,8 +89,8 @@ const inputMessage = (entry: EntryRecord): UIMessage => {
     parts: [
       {
         type: "text",
-        text:
-          entry.kind === brunchUserKind ? userText(entry) : modelText(entry),
+        // A `brunch.user` envelope that did not parse was admitted, and is shown, as sent.
+        text: brunchUserWords(entry) ?? modelText(entry),
         state: "done",
       },
     ],

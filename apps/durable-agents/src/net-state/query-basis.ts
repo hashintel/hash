@@ -26,7 +26,6 @@ import {
   defineExtension,
   defineTool,
   type EntryId,
-  type EntryRecord,
   type ToolExecutionApi,
 } from "@earendil-works/pi-durable";
 import { toJsonSchema } from "@valibot/to-json-schema";
@@ -53,6 +52,7 @@ import {
   BrowserCallsDoc,
 } from "../browser-call/browser-call";
 import { foldLedger, LedgerDoc } from "../ledger";
+import { brunchUserWords } from "../shared/brunch-user-entry";
 import {
   callsForElement,
   isAppliedChange,
@@ -304,25 +304,12 @@ const userText = (content: string | readonly { type: string }[]) =>
         )
         .join(" ");
 
-/** The kind `POST /chat` admits the USER's messages as (`user-input.ts`). */
-const brunchUserKind = "brunch.user";
-
 /**
- * The USER's words a `brunch.user` entry keeps, as `POST /chat` admitted
- * them: its `data.userText`. An envelope that did not parse keeps none.
+ * The conversation's Ledger history, its turns given the USER's words from
+ * their entries: a `brunch.user` entry's words, else the entry's message text,
+ * as an older `pi.user` entry or a `brunch.user` envelope that did not parse
+ * keeps them.
  */
-const wordsOf = (entry: EntryRecord | undefined): string | undefined => {
-  if (entry?.kind !== brunchUserKind) return undefined;
-  const { data } = entry;
-  return typeof data === "object" &&
-    data !== null &&
-    "userText" in data &&
-    typeof data.userText === "string"
-    ? data.userText
-    : undefined;
-};
-
-/** The conversation's Ledger history, its turns given the USER's words from their entries. */
 const ledgerWithWords = async (
   api: ToolExecutionApi,
   conversationId: ConversationId,
@@ -341,7 +328,7 @@ const ledgerWithWords = async (
               const message = entry?.model?.[0];
               return [
                 id,
-                wordsOf(entry) ??
+                brunchUserWords(entry) ??
                   (message?.role === "user" ? userText(message.content) : ""),
               ] as const;
             }),

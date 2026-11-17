@@ -23,26 +23,15 @@ import {
   type VersionLoad,
 } from "@hashintel/brunch-agent";
 
-import type { JsonObject } from "@earendil-works/pi-durable";
+import {
+  type BrunchUserData,
+  brunchUserKind,
+} from "../../shared/brunch-user-entry";
 
-/** The entry kind a user's chat message is placed as. */
-export const brunchUserKind = "brunch.user";
+import type { JsonObject } from "@earendil-works/pi-durable";
 
 /** The entry kind a user's Ledger comments are placed as. */
 export const ledgerCommentsKind = brunchSignals.ledgerComments;
-
-/** What a `brunch.user` entry keeps of the panel's body, by how it parsed. */
-export type BrunchUserData =
-  | { readonly body: "ordinary"; readonly userText: string }
-  | {
-      readonly body: "contextual";
-      readonly userText: string;
-      /** Present when the panel sent diagnostics. */
-      readonly diagnosticsContext?: string;
-      /** Present for a v2 envelope; a v1 envelope carries diagnostics only. */
-      readonly submissionContext?: JsonObject;
-    }
-  | { readonly body: "invalid-contextual" };
 
 /** What a `brunch.ledger-comments` entry keeps: the comments as parsed. */
 export type LedgerCommentsData = {
