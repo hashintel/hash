@@ -7,6 +7,7 @@ import { analyzeCompilation } from "@hashintel/petrinaut-core/webgpu";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { useExecutableDefinition } from "../../../../../../react/state/use-executable-definition";
 
 import type { SubView } from "../../../../../components/sub-view/types";
 import type {
@@ -186,7 +187,8 @@ const Group = ({
 );
 
 const CompilationContent: React.FC = () => {
-  const { petriNetDefinition, extensions, getItemType } = use(SDCPNContext);
+  const { extensions, getItemType } = use(SDCPNContext);
+  const petriNetDefinition = useExecutableDefinition();
   const { requestHirArtifacts } = use(LanguageClientContext);
   const { selection, selectItem } = use(EditorContext);
 

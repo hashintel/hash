@@ -6,6 +6,7 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { ActiveNetContext } from "../../../react/state/active-net-context";
+import { CompositionContext } from "../../../react/state/composition-context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
@@ -24,6 +25,7 @@ export const useCanvasScene = (
 ): CanvasScene => {
   const { activeNet, activeSubnetId } = use(ActiveNetContext);
   const { extensions, petriNetDefinition } = use(SDCPNContext);
+  const { libraries } = use(CompositionContext);
   const {
     draggingStateByNodeId,
     isSelected,
@@ -66,11 +68,13 @@ export const useCanvasScene = (
     petriNetDefinition,
     activeNet,
     activeSubnetId,
+    libraries,
   );
 
   return buildCanvasScene({
     net: activeNet,
     sdcpn: petriNetDefinition,
+    libraries,
     fusionStatuses: statuses,
     extensions,
     dimensions: compactNodes ? compactNodeDimensions : classicNodeDimensions,

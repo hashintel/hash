@@ -6,6 +6,8 @@
  * from that table, so the `api` type and the runtime object cannot drift.
  */
 
+import { inlineImports, resolvedLibraries } from "@hashintel/petrinaut-core";
+
 import { petrinautNavigationStatesMatch } from "../../react/navigation";
 import {
   formatReadOnlyReason,
@@ -215,9 +217,13 @@ const readDocument = ({
   diagnostics,
   diagnose: async () => {
     const net = instance.definition.get();
+    // Checked as it runs, with the components of its imports inlined.
     const checked = await latest
       .get()
-      .requestDiagnostics(net, instance.extensions);
+      .requestDiagnostics(
+        inlineImports(net, resolvedLibraries(instance.imports.get())),
+        instance.extensions,
+      );
 
     return { ...checked, net };
   },

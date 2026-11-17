@@ -6,8 +6,11 @@ import {
   generateArcId,
   getArcEndpointKey,
   getComponentInstanceHeight,
+  resolveLibrary,
+  toPetrinautId,
 } from "@hashintel/petrinaut-core";
 
+import { logisticsLibrary } from "../../libraries-story-fixtures";
 import { buildNetAdjacency, resolveCanvasFocus } from "./canvas-focus";
 import { buildCanvasScene, type CanvasSceneInput } from "./canvas-scene";
 import { arcStrokeColor } from "./styles/type-colors";
@@ -64,6 +67,7 @@ const outputArcId = generateArcId({ inputId: "t1", outputId: placeKey("p2") });
 const input: CanvasSceneInput = {
   net: { ...sdcpn, componentInstances: [], fusions: [] },
   sdcpn,
+  libraries: new Map(),
   fusionStatuses: new Map(),
   extensions: DEFAULT_PETRINAUT_EXTENSIONS,
   dimensions: compactNodeDimensions,
@@ -443,6 +447,60 @@ describe("buildCanvasScene", () => {
       expect(nodes.find((node) => node.id === "p1")).toMatchObject({
         portDirection: null,
       });
+    });
+
+    it("draws an instance of a component of an import from its library, and as unresolved without it", () => {
+      const library = resolveLibrary(logisticsLibrary.id, logisticsLibrary);
+      const importing: SDCPN = {
+        ...sdcpn,
+        imports: [{ id: library.id }],
+        componentInstances: [
+          {
+            id: "belt",
+            name: "Belt",
+            component: { from: library.id, id: "conveyor" },
+            parameterValues: {},
+            x: 0,
+            y: 0,
+          },
+          {
+            id: "stop",
+            name: "Stop",
+            component: { from: library.id, id: "station" },
+            parameterValues: {},
+            implementation: { from: library.id, id: "conveyor" },
+            x: 0,
+            y: 0,
+          },
+        ],
+      };
+      const sceneWith = (libraries: CanvasSceneInput["libraries"]) =>
+        buildCanvasScene({
+          ...input,
+          sdcpn: importing,
+          net: activeNet(importing),
+          libraries,
+        }).nodes.filter((node) => node.kind === "componentInstance");
+
+      expect(sceneWith(new Map([[library.id, library]]))).toMatchObject([
+        {
+          subnetName: "Conveyor",
+          binding: { kind: "component" },
+          color: "#2563eb",
+          ports: [
+            { id: toPetrinautId("in"), name: "In", direction: "in" },
+            { id: toPetrinautId("out"), name: "Out", direction: "out" },
+          ],
+        },
+        {
+          subnetName: "Station",
+          binding: { kind: "interface", implementationName: "Conveyor" },
+        },
+      ]);
+      expect(sceneWith(new Map())).toMatchObject([
+        { subnetName: "conveyor", binding: { kind: "unresolved" }, ports: [] },
+        { subnetName: "station", binding: { kind: "unresolved" }, ports: [] },
+      ]);
     });
 
     it("gives a card the icon and colour of what it runs", () => {

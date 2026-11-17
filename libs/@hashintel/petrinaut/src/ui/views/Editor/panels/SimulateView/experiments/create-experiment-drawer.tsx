@@ -42,6 +42,7 @@ import {
   SimulatorsContext,
 } from "../../../../../../react/simulators/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { useExecutableDefinition } from "../../../../../../react/state/use-executable-definition";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { AdHocScenarioForm } from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
 import {
@@ -874,6 +875,7 @@ export const CreateExperimentDrawer = ({
   onClose,
 }: CreateExperimentDrawerProps) => {
   const { petriNetDefinition, extensions } = use(SDCPNContext);
+  const executableDefinition = useExecutableDefinition();
   // An untimed net's runs count steps: the form asks for a step to end at,
   // and shows no parameter of how a simulator advances time.
   const clock = runClockOf(petriNetDefinition, extensions);
@@ -1044,7 +1046,7 @@ export const CreateExperimentDrawer = ({
   );
   const gpu = useGpuAvailability({
     enabled: open && webGpuSimulator?.isAvailable() === true,
-    sdcpn: petriNetDefinition,
+    sdcpn: executableDefinition,
     extensions,
     metricSpecs: draftMetricSpecs,
   });

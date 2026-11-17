@@ -381,14 +381,13 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       setState((prev) => ({
         ...prev,
         editionMode: mode,
-        componentSubnetId:
-          mode === "add-component" ? prev.componentSubnetId : null,
+        componentToAdd: mode === "add-component" ? prev.componentToAdd : null,
       })),
-    setAddComponentMode: (subnetId) =>
+    setAddComponentMode: (component) =>
       setState((prev) => ({
         ...prev,
         editionMode: "add-component",
-        componentSubnetId: subnetId,
+        componentToAdd: component,
       })),
     setCursorMode: (mode) =>
       setState((prev) => ({ ...prev, cursorMode: mode })),

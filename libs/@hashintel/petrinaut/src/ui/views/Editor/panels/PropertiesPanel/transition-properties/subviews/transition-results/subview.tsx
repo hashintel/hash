@@ -9,6 +9,7 @@ import {
   resolveComponent,
 } from "@hashintel/petrinaut-core";
 
+import { CompositionContext } from "../../../../../../../../react/state/composition-context";
 import { EditorContext } from "../../../../../../../../react/state/editor-context";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
@@ -21,6 +22,7 @@ import type {
   InputArc,
   OutputArc,
   Place,
+  ResolvedLibraries,
   SDCPN,
 } from "@hashintel/petrinaut-core";
 
@@ -37,9 +39,20 @@ const contentStyle = css({
   minHeight: "[0]",
 });
 
-const getTypeById = ({ sdcpn, types }: { sdcpn: SDCPN; types: Color[] }) =>
+const getTypeById = ({
+  sdcpn,
+  types,
+  libraries,
+}: {
+  sdcpn: SDCPN;
+  types: Color[];
+  libraries: ResolvedLibraries;
+}) =>
   new Map(
     [
+      ...[...libraries.values()].flatMap(({ components }) =>
+        components.flatMap((component) => component.types),
+      ),
       ...sdcpn.types,
       ...(sdcpn.subnets ?? []).flatMap((subnet) => subnet.types),
       ...types,
@@ -49,6 +62,7 @@ const getTypeById = ({ sdcpn, types }: { sdcpn: SDCPN; types: Color[] }) =>
 const createTransitionArcPlaceResolver = (
   sdcpn: SDCPN,
   net: { places: Place[]; componentInstances?: SDCPN["componentInstances"] },
+  libraries: ResolvedLibraries,
 ): ((
   arc: InputArc | OutputArc,
 ) => { place: Place; placeName: string } | undefined) => {
@@ -70,7 +84,7 @@ const createTransitionArcPlaceResolver = (
 
     const instance = instanceById.get(endpoint.componentInstanceId);
     const subnet = instance
-      ? resolveComponent(sdcpn, componentOf(instance), undefined, subnetById)
+      ? resolveComponent(sdcpn, componentOf(instance), libraries, subnetById)
       : undefined;
     const place = subnet?.places.find(
       (p) => p.id === endpoint.portPlaceId && p.isPort,
@@ -85,6 +99,7 @@ const ResultsHeaderAction: React.FC = () => {
   const { logicAvailability, transition, sdcpn, net, types, updateTransition } =
     useTransitionPropertiesContext();
   const { globalMode } = use(EditorContext);
+  const { libraries } = use(CompositionContext);
 
   if (globalMode !== "edit" || !logicAvailability.transitionKernel) {
     return null;
@@ -109,8 +124,9 @@ const ResultsHeaderAction: React.FC = () => {
             const resolveArcPlace = createTransitionArcPlaceResolver(
               sdcpn,
               net,
+              libraries,
             );
-            const typeById = getTypeById({ sdcpn, types });
+            const typeById = getTypeById({ sdcpn, types, libraries });
 
             const inputs = transition.inputArcs
               .filter((arc) => arc.type !== "inhibitor")

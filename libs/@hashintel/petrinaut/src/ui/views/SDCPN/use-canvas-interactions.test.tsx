@@ -3,11 +3,15 @@ import { cleanup, renderHook } from "@testing-library/react";
 import { use, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { resolveLibrary } from "@hashintel/petrinaut-core";
+
 import { PetrinautInstanceContext } from "../../../react/instance-context";
 import { NotificationsContext } from "../../../react/notifications/context";
 import { ActiveNetContext } from "../../../react/state/active-net-context";
+import { CompositionContext } from "../../../react/state/composition-context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
+import { logisticsLibrary } from "../../libraries-story-fixtures";
 import { fusionLinks } from "./fusion-links";
 import { useCanvasInteractions } from "./use-canvas-interactions";
 
@@ -80,6 +84,7 @@ const connection = (
 ): CanvasConnection => ({ sourceId, sourcePortId, targetId, targetPortId });
 
 const mutations = {
+  addComponentInstance: vi.fn(),
   addFusion: vi.fn(),
   addFusionMember: vi.fn(),
   removeFusionMember: vi.fn(),
@@ -96,6 +101,9 @@ const dropPortEnd = (
 });
 const addNotification = vi.fn();
 const editor: { selection: SelectionMap } = { selection: new Map() };
+const libraries = new Map([
+  [logisticsLibrary.id, resolveLibrary(logisticsLibrary.id, logisticsLibrary)],
+]);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -120,17 +128,19 @@ const Wrapper = ({ children }: { children: ReactNode }) => (
         <NotificationsContext
           value={{ ...use(NotificationsContext), addNotification }}
         >
-          <EditorContext
-            value={{
-              ...use(EditorContext),
-              setSelection: (next) => {
-                editor.selection =
-                  typeof next === "function" ? next(editor.selection) : next;
-              },
-            }}
-          >
-            {children}
-          </EditorContext>
+          <CompositionContext value={{ ...use(CompositionContext), libraries }}>
+            <EditorContext
+              value={{
+                ...use(EditorContext),
+                setSelection: (next) => {
+                  editor.selection =
+                    typeof next === "function" ? next(editor.selection) : next;
+                },
+              }}
+            >
+              {children}
+            </EditorContext>
+          </CompositionContext>
         </NotificationsContext>
       </ActiveNetContext>
     </SDCPNContext>
@@ -253,5 +263,31 @@ describe("useCanvasInteractions", () => {
     interactions.rewireLink(dropPortEnd("store"));
     expect(addNotification).toHaveBeenCalledOnce();
     expect(mutations.replaceFusionMember).not.toHaveBeenCalled();
+  });
+
+  it("places an instance of the component dropped on the canvas, named after it", () => {
+    const { interactions } = renderInteractions();
+
+    interactions.dropComponent(
+      { from: logisticsLibrary.id, id: "conveyor" },
+      { x: 40, y: 60 },
+    );
+    interactions.dropComponent({ id: "stage" }, { x: 0, y: 0 });
+
+    expect(mutations.addComponentInstance).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        name: "Conveyor",
+        component: { from: logisticsLibrary.id, id: "conveyor" },
+        parameterValues: {},
+      }),
+    );
+    expect(
+      mutations.addComponentInstance.mock.calls[0]?.[0],
+    ).not.toHaveProperty("subnetId");
+    expect(mutations.addComponentInstance).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ subnetId: "stage" }),
+    );
   });
 });

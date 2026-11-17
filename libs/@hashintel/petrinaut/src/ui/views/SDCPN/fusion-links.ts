@@ -21,6 +21,7 @@ import type {
   Fusion,
   FusionMember,
   ProblemSeverity,
+  ResolvedLibraries,
   SDCPN,
 } from "@hashintel/petrinaut-core";
 
@@ -58,11 +59,19 @@ export const fusionStatuses = (
   sdcpn: SDCPN,
   net: ActiveNetDefinition,
   activeSubnetId: string | null,
+  libraries?: ResolvedLibraries,
 ): Map<string, FusionStatus> => {
-  const pass = fusionCheckPass(sdcpn);
+  const pass = fusionCheckPass(sdcpn, libraries);
   return new Map(
     net.fusions.map((fusion) => {
-      const problems = checkFusion(sdcpn, net, fusion, activeSubnetId, pass);
+      const problems = checkFusion(
+        sdcpn,
+        net,
+        fusion,
+        activeSubnetId,
+        libraries,
+        pass,
+      );
       return [
         fusion.id,
         {
