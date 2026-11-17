@@ -1,3 +1,4 @@
+import { ListFilter } from "lucide-react";
 /**
  * The condition builder of Find entities, If and Filter list, on the DS `Filter` as Figma J3 draws it (section
  * 470:3681, 21 Oct): each condition is one line: a fixed-width joiner column ("Where", then an "and ▾" / "or ▾" menu), the Filter chip (attribute · operator · value) and a ⋮ menu; grey groups hold their own rows, "Add filter" and "Delete group". The builder's footer is "Add filter" and "Clear all filters". Operators follow the
@@ -1443,9 +1444,12 @@ export const Joiner = ({
         }
       />
     ) : (
-      <span className={whereStyle} data-field-label="">
-        Where
-      </span>
+      <>
+        <span data-input-icon className={css({ display: "none" })}>
+          <ListFilter size={16} strokeWidth={1.25} />
+        </span>
+        <span className={whereStyle} data-field-label="">Where</span>
+      </>
     )}
   </span>
 );

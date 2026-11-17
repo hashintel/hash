@@ -1,3 +1,4 @@
+import { Box } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
@@ -1632,6 +1633,7 @@ export const QueryField = ({
       {mode === "query" ? (
         <PropertyRow
           label="Entity type"
+          icon={<Box size={16} strokeWidth={1.25} />}
           hover="Entity type · the kind of entity to find. At least one of Webs, Entity type or Query."
         >
           <EntityTypeField

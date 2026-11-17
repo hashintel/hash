@@ -209,6 +209,7 @@ export const PropertyRow = ({
   required,
   optional,
   wrapLabel,
+  icon,
   children,
   invalid,
 }: {
@@ -219,6 +220,7 @@ export const PropertyRow = ({
   optional?: boolean;
   /** Lets a label too long for the key column wrap instead of truncate. */
   wrapLabel?: boolean;
+  icon?: React.ReactNode;
   children: React.ReactNode;
   invalid?: boolean;
 }) => {
@@ -231,7 +233,8 @@ export const PropertyRow = ({
   const tip = named && detail ? `${named} · ${detail}` : (detail ?? named);
   const tipKey = Boolean(detail);
   const key = (
-    <span className={css({ display: "block", minWidth: "[0]" })}>
+    <span data-property-name className={css({ display: "block", minWidth: "[0]" })}>
+      {icon ? <span data-input-icon>{icon}</span> : null}
       <span
         className={cx(
           keyStyle,

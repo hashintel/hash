@@ -1,4 +1,7 @@
 import { useRef, useState } from "react";
+import { Box, ListChecks } from "lucide-react";
+
+import { kindIcon } from "./kind-icon";
 
 import {
   Button,
@@ -6,7 +9,6 @@ import {
   NumberInput,
   SegmentedControl,
   TextInput,
-  Tooltip,
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
@@ -104,8 +106,6 @@ import {
   descriptionInputStyle,
   HueHeader,
   kindGroupOf,
-  keyHoverStyle,
-  keyStyle,
   kindLabel,
   mutedTextStyle,
   OriginMark,
@@ -134,6 +134,96 @@ const panelStyle = css({
   borderLeftColor: "neutral.bd.solid",
   zIndex: "[5]",
 });
+
+const compactPanelStyle = css({
+  "&[class]": {
+    "--u-ix": "8px",
+    "--u-nx": "34px",
+    "--u-dx": "34px",
+    "--u-r": "8px",
+    "--u-nc": "4px",
+    "--u-rh": "32px",
+    "--u-px": "36px",
+    "--u-tx": "66px",
+    "--u-lx": "34px",
+    "--u-lt": "66px",
+  },
+  "&[class] section > div[class*='grid-tc_']": {
+    gridTemplateColumns: "minmax(0, 1fr)",
+  },
+  "&[class] [data-row].d_contents > span[data-scope=tooltip]:first-child, &[class] [data-row].d_contents > [data-property-name], &[class] [data-joiner='where']": {
+    position: "relative",
+    display: "flex",
+    alignItems: "center",
+    alignSelf: "stretch",
+    width: "[auto]",
+    height: "[var(--u-rh)]",
+    paddingLeft: "[var(--u-nx)]",
+    boxSizing: "border-box",
+  },
+  "&[class] [data-property-name] > span:not([data-input-icon]), &[class] [data-field-label]": {
+    textStyle: "sm",
+    lineHeight: "[20px]",
+    color: "neutral.fg.heading",
+  },
+  "&[class] [data-input-icon]": {
+    position: "absolute",
+    left: "[var(--u-ix)]",
+    top: "[calc((var(--u-rh) - 16px) / 2)]",
+    width: "[16px]",
+    height: "[16px]",
+    display: "flex",
+    color: "neutral.fg.heading",
+  },
+  "&[class] [data-row].d_contents > span[data-scope=tooltip]:first-child + div, &[class] [data-row].d_contents > [data-property-name] + div": {
+    marginLeft: "[var(--u-dx)]",
+    marginRight: "[var(--u-r)]",
+    marginTop: "[calc(var(--u-nc) - 12px)]",
+  },
+  "&[class] [data-condition-row]": {
+    marginLeft: "[var(--u-dx)]",
+    marginRight: "[var(--u-r)]",
+    marginTop: "[calc(var(--u-nc) - 8px)]",
+    width: "[auto]",
+    alignSelf: "stretch",
+  },
+  "&[class] [data-condition-builder] > div:last-child": { marginTop: "[-12px]" },
+  "&[class] [data-condition-builder] > div:last-child > button": {
+    border: "none",
+    background: "[transparent]",
+    boxShadow: "[none]",
+    height: "[32px]",
+    padding: "[0 0 0 var(--u-px)]",
+    color: "neutral.fg.muted",
+    opacity: "1",
+    fontWeight: "normal",
+    textStyle: "sm",
+  },
+  "&[class] [data-condition-builder] > div:last-child > button > span": {
+    marginLeft: "[calc(var(--u-tx) - var(--u-px) - 16px)]",
+  },
+  "&[class] [data-output-use]": {
+    color: "neutral.fg.muted",
+    opacity: "1",
+    marginLeft: "[calc(var(--u-px) - 34px)]",
+    gap: "[calc(var(--u-tx) - var(--u-px) - 16px)]",
+  },
+  "&[class] [data-used-names]": { paddingLeft: "[calc(var(--u-lx) - 6px)]" },
+  "&[class] [data-used-names] > button": { gap: "[calc(var(--u-lt) - var(--u-lx) - 20px)]" },
+  "&[class] [data-output] [data-row]": { minHeight: "[var(--u-rh)]" },
+  "&[class] [data-output] div:has(> [data-output-use])": { visibility: "visible" },
+});
+
+const inputIcon = (input: InputView, kinds: readonly string[]) => {
+  if (kinds.includes("VersionedUrl")) {
+    return <Box size={16} strokeWidth={1.25} />;
+  }
+  if (input.options || (kinds.length === 1 && kinds.includes("Boolean"))) {
+    return <ListChecks size={16} strokeWidth={1.25} />;
+  }
+  const kind = kinds.length === 1 ? kinds.at(0) : undefined;
+  return kind ? <Icon name={kindIcon(kindLabel(kind, input.array))} size="sm" /> : undefined;
+};
 
 /**
  * DS size takes (inbox `value-field-size`, `panel-label-size`), off by default:
@@ -236,6 +326,7 @@ const StepSettings = ({
     {actionDefinitionId === "requestReview" ? (
       <PropertyRow
         label="Deadline"
+        icon={<ListChecks size={16} strokeWidth={1.25} />}
         hover="With no deadline the request waits until someone answers (ledger, 13 Oct)"
       >
         <Select
@@ -248,6 +339,7 @@ const StepSettings = ({
     ) : null}
     <PropertyRow
       label="On failure"
+      icon={<ListChecks size={16} strokeWidth={1.25} />}
       hover="A step that errors stops the run by default (ledger, 13 Oct)"
     >
       <Select
@@ -282,20 +374,21 @@ const expandWrapStyle = css({
 const expandedBoxStyle = css({ "& [role=textbox]": { minHeight: "[190px]" } });
 
 /**
- * A short text area (Instructions) beside its label, with an expand control at its top-right on hover or focus.
- * Expanded, it takes Body's layout: label on its own line, the box across the panel (inbox textarea-placement 7).
+ * A short text area with an expand control at its top-right on hover or focus.
  */
 const ExpandableTextRow = ({
   label,
   hover,
   required,
   invalid,
+  icon,
   children,
 }: {
   label: string;
   hover: string;
   required?: boolean;
   invalid?: boolean;
+  icon?: React.ReactNode;
   children: React.ReactNode;
 }) => {
   const [expanded, setExpanded] = useState(false);
@@ -311,56 +404,15 @@ const ExpandableTextRow = ({
       />
     </span>
   );
-  if (!expanded) {
-    return (
-      <PropertyRow
-        label={label}
-        hover={hover}
-        required={required}
-        invalid={invalid}
-      >
-        <div className={expandWrapStyle}>
-          {children}
-          {control}
-        </div>
-      </PropertyRow>
-    );
-  }
   return (
-    <div
-      data-row
-      className={css({
-        gridColumn: "1 / -1",
-        display: "flex",
-        flexDirection: "column",
-        gap: "2.5",
-      })}
-    >
-      <Tooltip content={`${label} · ${hover}`} position="top">
-        <span className={cx(keyStyle, keyHoverStyle)}>{label}</span>
-      </Tooltip>
-      <div className={cx(expandWrapStyle, expandedBoxStyle)}>
+    <PropertyRow label={label} icon={icon} hover={hover} required={required} invalid={invalid}>
+      <div className={cx(expandWrapStyle, expanded && expandedBoxStyle)}>
         {children}
         {control}
       </div>
-    </div>
+    </PropertyRow>
   );
 };
-
-/** Text areas for writing, which keep their own line; any other text area sits beside its label (D-v2). */
-const writingInputs = new Set([
-  "body",
-  // Subject is one line: a row beside its label with textarea-placement 7 (13 Nov).
-  "prompt",
-  "userGoal",
-  "relevantEntitiesPrompt",
-  "reportSpecification",
-  "context",
-  "query",
-  "question",
-  "description",
-  "displayName",
-]);
 
 /** Fields and sections the Figma panels leave out; `?full` brings them back. */
 const trimmedInputs: Record<string, string[]> = {
@@ -781,31 +833,6 @@ const ActionSections = ({
     }
     const label =
       inputLabels[`${step.actionDefinitionId}.${input.name}`] ?? input.label;
-    // Free text for writing is a wide control: its label above, the field across the panel (J3 D1). A short note
-    // (Instructions) sits beside its label in the value column (D-v2, 12 Nov).
-    if (isFreeText(input) && writingInputs.has(input.name)) {
-      return (
-        <div
-          key={input.name}
-          data-row
-          className={css({
-            gridColumn: "1 / -1",
-            display: "flex",
-            flexDirection: "column",
-            // 10 px label to box: figma-ds FieldSet 44333:21444.
-            gap: "2.5",
-          })}
-        >
-          <Tooltip
-            content={`${label} · ${inputHover(input, kinds)}`}
-            position="top"
-          >
-            <span className={cx(keyStyle, keyHoverStyle)}>{label}</span>
-          </Tooltip>
-          {fieldFor(document, step, input)}
-        </div>
-      );
-    }
     if (
       isFreeText(input) &&
       expandableInputs.has(input.name)
@@ -814,6 +841,7 @@ const ActionSections = ({
         <ExpandableTextRow
           key={input.name}
           label={label}
+          icon={inputIcon(input, kinds)}
           hover={inputHover(input, kinds)}
           required={input.required && !input.hasDefault}
           invalid={validation.mockFields.has(`${step.stepId}.${input.name}`)}
@@ -826,6 +854,7 @@ const ActionSections = ({
       <PropertyRow
         key={input.name}
         label={label}
+        icon={inputIcon(input, kinds)}
         hover={inputHover(input, kinds)}
         required={
           input.required &&
@@ -1112,7 +1141,7 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
         stepId={step.stepId}
       />
       <Section title="Inputs">
-        <PropertyRow label="List" hover="List of any kind · required" required>
+        <PropertyRow label="List" icon={<Icon name="list" size="sm" />} hover="List of any kind · required" required>
           <div
             ref={anchorRef}
             className={css({
@@ -1187,6 +1216,7 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
       <Section title="Outputs">
         <PropertyRow
           label="Collect"
+          icon={<ListChecks size={16} strokeWidth={1.25} />}
           hover="The engine collects one output from every item into a list"
           required
         >
@@ -2240,7 +2270,7 @@ export const PropertiesPanel = () => {
   const ghost = ghostKindOf(ui.selectedId);
   return (
     <aside
-      className={cx(panelStyle, sizeTakeStyle)}
+      className={cx(panelStyle, sizeTakeStyle, compactPanelStyle)}
       data-fieldsize={fieldSizeTake}
       data-labelsize={labelSizeTake}
       aria-label="Properties"
