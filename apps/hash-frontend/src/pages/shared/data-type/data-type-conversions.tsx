@@ -103,9 +103,7 @@ export const DataTypeConversions = ({
       inheritedConversions ?? {},
     )) {
       if (!combined[targetBaseUrl]) {
-        const target = Object.values(dataTypes).find(
-          (option) => option.metadata.recordId.baseUrl === targetBaseUrl,
-        );
+        const target = latestDataTypeByBaseUrl[targetBaseUrl];
 
         if (!target) {
           throw new Error(`Target data type not found: ${targetBaseUrl}`);
