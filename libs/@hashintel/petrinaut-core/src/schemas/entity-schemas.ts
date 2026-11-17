@@ -24,6 +24,8 @@ import type {
   DifferentialEquation,
   Fusion,
   FusionMember,
+  Import,
+  ImportedComponentReference,
   InputArc,
   OutputArc,
   Parameter,
@@ -416,45 +418,105 @@ export const parameterSchema = parameterObjectSchema
       "A net-level parameter available to executable SDCPN code and scenarios.",
   }) satisfies z.ZodType<Parameter>;
 
-export const componentReferenceSchema = z
+export const importSchema = z
   .strictObject({
-    id: idSchema.meta({ description: "The component's subnet ID." }),
-  })
-  .meta({
-    description: "A reference to a component: a subnet of the document.",
-  }) satisfies z.ZodType<ComponentReference>;
-
-export const componentInstanceSchema = z
-  .strictObject({
-    id: idSchema,
-    name: entityNameSchema.meta({
+    id: z.string().min(1).meta({
       description:
-        "PascalCase name for the component instance (e.g. MainProcessor, Ward2). Used as a code-level identifier.",
-    }),
-    description: descriptionSchema,
-    metadata: metadataSchema,
-    subnetId: idSchema.meta({
-      description:
-        "ID of the subnet definition this component instantiates, a UUID. Any other string is converted to a stable UUID.",
-    }),
-    parameterValues: z.record(idSchema, z.string()).meta({
-      description:
-        "Per-instance parameter values keyed by parameter ID from the referenced subnet.",
-    }),
-    implementation: componentReferenceSchema.optional().meta({
-      description:
-        "For an instance of an interface: the implementing subnet to run, as `{ id }`. Omit to run the document's default implementation for the interface.",
-    }),
-    x: z.number().meta({
-      description: "Horizontal canvas position.",
-    }),
-    y: z.number().meta({
-      description: "Vertical canvas position.",
+        "The library's ID, as its publisher writes it, e.g. `@hashintel/logistics`. Kept as written.",
     }),
   })
   .meta({
     description:
-      "A placed instance of a subnet. Parent nets connect to exposed subnet ports with transition arcs.",
+      "A library the document takes components from. Only its ID is stored: what it holds is resolved when the document is opened.",
+  }) satisfies z.ZodType<Import>;
+
+export const importedComponentReferenceSchema = z
+  .strictObject({
+    from: z.string().min(1).meta({
+      description: "The ID of the import the component comes from.",
+    }),
+    id: z.string().min(1).meta({
+      description:
+        "The component's ID inside that library, as the library writes it.",
+    }),
+  })
+  .meta({
+    description: "A reference to a component of an import.",
+  }) satisfies z.ZodType<ImportedComponentReference>;
+
+export const componentReferenceSchema = z
+  .union([
+    z.strictObject({
+      id: idSchema.meta({ description: "The component's subnet ID." }),
+    }),
+    importedComponentReferenceSchema,
+  ])
+  .meta({
+    description:
+      "A reference to a component: `{ id }` names a subnet of the document, `{ from, id }` a component of an import.",
+  }) satisfies z.ZodType<ComponentReference>;
+
+/** The fields of a component instance, without the rule that ties `subnetId` and `component`. */
+export const componentInstanceObjectSchema = z.strictObject({
+  id: idSchema,
+  name: entityNameSchema.meta({
+    description:
+      "PascalCase name for the component instance (e.g. MainProcessor, Ward2). Used as a code-level identifier.",
+  }),
+  description: descriptionSchema,
+  metadata: metadataSchema,
+  subnetId: idSchema.optional().meta({
+    description:
+      "ID of the subnet of the document this component instantiates, a UUID. Any other string is converted to a stable UUID. Give this or `component`, never both.",
+  }),
+  component: importedComponentReferenceSchema.optional().meta({
+    description:
+      "The component of an import this instance instantiates, as `{ from, id }`. Give this or `subnetId`, never both.",
+  }),
+  parameterValues: z.record(idSchema, z.string()).meta({
+    description:
+      "Per-instance parameter values keyed by parameter ID from the referenced component.",
+  }),
+  implementation: componentReferenceSchema.optional().meta({
+    description:
+      "For an instance of an interface: the component to run, as `{ id }` for a subnet of the document or `{ from, id }` for a component of an import. Omit to run the document's default implementation for the interface.",
+  }),
+  x: z.number().meta({
+    description: "Horizontal canvas position.",
+  }),
+  y: z.number().meta({
+    description: "Vertical canvas position.",
+  }),
+});
+
+/** An instance names one component: a subnet of the document or a component of an import. */
+export const checkInstanceNamesOneComponent = (context: {
+  value: { subnetId?: string; component?: unknown };
+  issues: {
+    push(issue: {
+      code: "custom";
+      path: string[];
+      message: string;
+      input: unknown;
+    }): void;
+  };
+}): void => {
+  const { subnetId, component } = context.value;
+  if ((subnetId === undefined) === (component === undefined)) {
+    context.issues.push({
+      code: "custom",
+      path: ["subnetId"],
+      message: "Provide exactly one of `subnetId` or `component`.",
+      input: context.value,
+    });
+  }
+};
+
+export const componentInstanceSchema = componentInstanceObjectSchema
+  .check(checkInstanceNamesOneComponent)
+  .meta({
+    description:
+      "A placed instance of a component: a subnet of the document, or a component of an import. Parent nets connect to its ports with fusions and transition arcs.",
   }) satisfies z.ZodType<ComponentInstance>;
 
 /** A fusion member names a place the way an arc endpoint does. */

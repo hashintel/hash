@@ -411,6 +411,100 @@ describe("serializeSDCPN", () => {
     }
   });
 
+  it("writes imports before the subnets, and reads them back with what names their components as written", () => {
+    const sdcpn = parseFixture();
+    const scale = { from: "@hashintel/logistics", id: "scale" };
+    const importing = {
+      ...sdcpn,
+      imports: [{ id: "@hashintel/logistics" }],
+      componentInstances: [
+        {
+          id: toPetrinautId("scale-1"),
+          name: "ScaleA",
+          component: scale,
+          parameterValues: {},
+          implementation: { from: "@hashintel/logistics", id: "belt" },
+          x: 0,
+          y: 0,
+        },
+      ],
+      implementations: [{ interface: scale, component: scale }],
+    };
+
+    const text = serializeSDCPN({
+      petriNetDefinition: importing,
+      title: "Test Net",
+      format: "json",
+    });
+    const keys = Object.keys(JSON.parse(text) as object);
+    const parsed = parseSDCPNDocument(text);
+
+    expect(keys.indexOf("imports")).toBe(keys.indexOf("subnets") - 1);
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.sdcpn.imports).toEqual(importing.imports);
+    expect(parsed.sdcpn.componentInstances).toEqual(
+      importing.componentInstances,
+    );
+    expect(parsed.sdcpn.implementations).toEqual(importing.implementations);
+  });
+
+  it("reads a port of a component of an import as a document reads any id", () => {
+    const parsed = parseSDCPNFile({
+      ...sourceDocument,
+      imports: [{ id: "@hashintel/logistics" }],
+      componentInstances: [
+        {
+          id: "scale-1",
+          name: "ScaleA",
+          component: { from: "@hashintel/logistics", id: "scale" },
+        },
+      ],
+      fusions: [
+        {
+          id: "feed",
+          name: "Feed",
+          members: [
+            { kind: "place", placeId: "p1" },
+            {
+              kind: "componentPort",
+              componentInstanceId: "scale-1",
+              portPlaceId: "in",
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.sdcpn.fusions?.[0]?.members[1]).toMatchObject({
+      portPlaceId: toPetrinautId("in"),
+    });
+  });
+
+  it("refuses an instance that names both a subnet and a component of an import, or neither", () => {
+    for (const naming of [
+      {},
+      {
+        subnetId: "stage",
+        component: { from: "@hashintel/logistics", id: "scale" },
+      },
+    ]) {
+      const parsed = parseSDCPNFile({
+        ...sourceDocument,
+        componentInstances: [{ id: "drill", name: "Drill", ...naming }],
+      });
+
+      expect(parsed.ok).toBe(false);
+      if (!parsed.ok) {
+        expect(parsed.error).toContain(
+          "Provide exactly one of `subnetId` or `component`.",
+        );
+      }
+    }
+  });
+
   it("writes a subnet's colour and icon last, and leaves them out without visual info", () => {
     const sdcpn = parseFixture();
     const iconSvg = '<svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/></svg>';

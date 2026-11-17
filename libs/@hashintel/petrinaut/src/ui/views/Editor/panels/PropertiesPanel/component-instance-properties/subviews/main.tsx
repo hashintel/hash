@@ -10,6 +10,8 @@ import {
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
+  componentKey,
+  componentOf,
   defaultImplementation,
   describeUnboundInstance,
   isInterface,
@@ -31,7 +33,6 @@ import { implementationItems } from "../../../implementation-items";
 import { useComponentInstancePropertiesContext } from "../context";
 
 import type { SubView } from "../../../../../../components/sub-view/types";
-import type { Subnet } from "@hashintel/petrinaut-core";
 
 const fieldsSectionStyle = css({
   paddingY: "3",
@@ -62,7 +63,7 @@ const paramFieldLabelStyle = css({
  * Which implementation runs for an instance of an interface: the instance's
  * own choice, or the document's default.
  */
-const ImplementationField: React.FC<{ iface: Subnet }> = ({ iface }) => {
+const ImplementationField: React.FC = () => {
   const { instance, updateComponentInstance } =
     useComponentInstancePropertiesContext();
   const { petriNetDefinition } = use(SDCPNContext);
@@ -77,10 +78,18 @@ const ImplementationField: React.FC<{ iface: Subnet }> = ({ iface }) => {
       : binding?.kind === "unbound"
         ? describeUnboundInstance(binding, instance.name)
         : undefined;
-  const documentDefault = defaultImplementation(petriNetDefinition, iface.id);
+  const documentDefault = defaultImplementation(
+    petriNetDefinition,
+    componentOf(instance),
+  );
   const defaultName =
     documentDefault &&
     resolveComponent(petriNetDefinition, documentDefault)?.name;
+  const implementations = implementationItems(
+    petriNetDefinition,
+    componentOf(instance),
+    instance.implementation,
+  );
   return (
     <Form.Field
       label="Implementation"
@@ -98,13 +107,19 @@ const ImplementationField: React.FC<{ iface: Subnet }> = ({ iface }) => {
         <Select
           required
           size="sm"
-          value={instance.implementation?.id ?? "default"}
+          value={
+            instance.implementation
+              ? componentKey(instance.implementation)
+              : "default"
+          }
           disabled={isDisabled}
           onChange={(value) =>
             updateComponentInstance({
               instanceId: instance.id,
               update: {
-                implementation: value === "default" ? undefined : { id: value },
+                implementation: implementations.find(
+                  (item) => item.value === value,
+                )?.reference,
               },
             })
           }
@@ -116,11 +131,7 @@ const ImplementationField: React.FC<{ iface: Subnet }> = ({ iface }) => {
                   ? "Document default (none)"
                   : `Document default (${defaultName})`,
             },
-            ...implementationItems(
-              petriNetDefinition,
-              iface.id,
-              instance.implementation,
-            ),
+            ...implementations,
           ]}
         />
       </Tooltip>
@@ -202,9 +213,7 @@ const ComponentInstanceMainContent: React.FC = () => {
           </div>
         </Form.Field>
 
-        {subnet && isInterface(subnet) && (
-          <ImplementationField iface={subnet} />
-        )}
+        {subnet && isInterface(subnet) && <ImplementationField />}
       </Form.Section>
 
       {subnetParameters.length > 0 && (

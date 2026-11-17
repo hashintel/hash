@@ -150,17 +150,23 @@ const canonicalizeDifferentialEquation = (
     colorId: toOptionalPetrinautId(equation.colorId),
   });
 
+/** A component of an import keeps the id its library gives it. */
 const canonicalizeReference = (
   reference: ComponentReference,
 ): ComponentReference =>
-  assignChanged(reference, { id: toPetrinautId(reference.id) });
+  reference.from === undefined
+    ? assignChanged(reference, { id: toPetrinautId(reference.id) })
+    : reference;
 
 const canonicalizeComponentInstance = (
   instance: ComponentInstance,
 ): ComponentInstance =>
   assignChanged(instance, {
     id: toPetrinautId(instance.id),
-    subnetId: toPetrinautId(instance.subnetId),
+    subnetId:
+      instance.subnetId === undefined
+        ? undefined
+        : toPetrinautId(instance.subnetId),
     parameterValues: rekeyUnlessUnchanged(instance.parameterValues),
     implementation:
       instance.implementation === undefined

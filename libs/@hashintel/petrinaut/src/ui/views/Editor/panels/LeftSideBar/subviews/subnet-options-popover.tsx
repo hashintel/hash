@@ -9,6 +9,7 @@ import {
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
+  componentKey,
   defaultImplementation,
   hasBody,
   implementsInterface,
@@ -65,10 +66,12 @@ const DefaultImplementationField: React.FC<{ iface: Subnet }> = ({ iface }) => {
   const { setImplementation } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
 
-  const chosen = defaultImplementation(petriNetDefinition, iface.id);
+  const reference = { id: iface.id };
+  const chosen = defaultImplementation(petriNetDefinition, reference);
+  // The document's default is chosen among its own subnets.
   const implementations = implementationItems(
     petriNetDefinition,
-    iface.id,
+    reference,
     chosen,
   );
 
@@ -77,14 +80,18 @@ const DefaultImplementationField: React.FC<{ iface: Subnet }> = ({ iface }) => {
       <Select
         required
         size="sm"
-        value={chosen?.id ?? "none"}
+        value={chosen ? componentKey(chosen) : "none"}
         disabled={isReadOnly}
-        onChange={(value) =>
+        onChange={(value) => {
+          const picked = implementations.find((item) => item.value === value);
           setImplementation({
             interfaceId: iface.id,
-            implementationId: value === "none" ? null : value,
-          })
-        }
+            implementationId:
+              picked?.reference.from === undefined
+                ? (picked?.reference.id ?? null)
+                : null,
+          });
+        }}
         items={[
           {
             value: "none",

@@ -10,9 +10,10 @@
  */
 
 import { arcEndpointsEqual, getArcEndpointKey } from "../arc-endpoints";
+import { componentOf, resolveComponent } from "./interfaces";
 
 import type {
-  Color,
+  ColorElementType,
   ComponentInstance,
   Fusion,
   FusionMember,
@@ -22,6 +23,7 @@ import type {
   SDCPN,
   Subnet,
 } from "../types/sdcpn";
+import type { ResolvedLibraries } from "./libraries";
 
 /** The net a fusion belongs to: the document's root or one of its subnets. */
 export type FusionNet = Pick<
@@ -92,14 +94,19 @@ export const fusionMemberIssues = (
   return { duplicates, multipleAnchors: anchors.size > 1 };
 };
 
+/** The part of a token type that says what its tokens are. */
+type TokenShape = {
+  elements: readonly { name: string; type: ColorElementType }[];
+};
+
 /**
  * Whether two token types describe the same tokens: the same elements, in
  * the same order, under the same names and value types. The types' own names
  * and colours do not matter.
  */
 export const colorsStructurallyEqual = (
-  left: Color | undefined,
-  right: Color | undefined,
+  left: TokenShape | undefined,
+  right: TokenShape | undefined,
 ): boolean => {
   if (left === undefined || right === undefined) {
     return left === right;
@@ -115,13 +122,14 @@ export const colorsStructurallyEqual = (
 
 /**
  * A string two equations share exactly when they are one definition: the
- * same id in the net that defines it, `null` for the root net. An id alone
- * does not say it, since two nets can each define an equation under one id.
- * The fusion check and the flattener both compare fused places' equations by
+ * same id in the net that defines it. `netKey` names that net: the
+ * `componentKey` of a component, `null` for the root net. An id alone does
+ * not say it, since two nets can each define an equation under one id. The
+ * fusion check and the flattener both compare fused places' equations by
  * this key.
  */
-export const equationKey = (netId: ID | null, equationId: ID): string =>
-  JSON.stringify([netId, equationId]);
+export const equationKey = (netKey: string | null, equationId: ID): string =>
+  JSON.stringify([netKey, equationId]);
 
 /** What a member names, once resolved against the document. */
 export type ResolvedFusionMember =
@@ -136,14 +144,15 @@ export type ResolvedFusionMember =
 
 /**
  * Resolves a member to the place it names: a place of `net`, or a port place
- * inside the subnet one of `net`'s instances instantiates. `null` when the
- * place, the instance, its subnet or the port does not exist, or when the
+ * inside the component one of `net`'s instances instantiates. `null` when the
+ * place, the instance, its component or the port does not exist, or when the
  * place is not marked as a port.
  */
 export const resolveFusionMember = (
   sdcpn: Pick<SDCPN, "subnets">,
   net: FusionNet,
   member: FusionMember,
+  libraries?: ResolvedLibraries,
 ): ResolvedFusionMember | null => {
   if (member.kind === "place") {
     const place = net.places.find(({ id }) => id === member.placeId);
@@ -153,7 +162,7 @@ export const resolveFusionMember = (
     ({ id }) => id === member.componentInstanceId,
   );
   const subnet = instance
-    ? (sdcpn.subnets ?? []).find(({ id }) => id === instance.subnetId)
+    ? resolveComponent(sdcpn, componentOf(instance), libraries)
     : undefined;
   const place = subnet?.places.find(({ id }) => id === member.portPlaceId);
   return instance && subnet && place && place.isPort
@@ -184,5 +193,9 @@ export const describeFusionMember = (
   sdcpn: Pick<SDCPN, "subnets">,
   net: FusionNet,
   member: FusionMember,
+  libraries?: ResolvedLibraries,
 ): string =>
-  describeResolvedMember(member, resolveFusionMember(sdcpn, net, member));
+  describeResolvedMember(
+    member,
+    resolveFusionMember(sdcpn, net, member, libraries),
+  );

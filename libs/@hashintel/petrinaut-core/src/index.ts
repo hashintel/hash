@@ -91,27 +91,45 @@ export type {
 export type { PortProblem } from "./composition/check-ports";
 export { checkComposition } from "./composition/check-composition";
 export type { CompositionProblem } from "./composition/check-composition";
-export { checkInterfaces } from "./composition/check-interfaces";
+export {
+  checkInterfaces,
+  implementationsOf,
+} from "./composition/check-interfaces";
 export type {
   InterfaceProblem,
   InterfaceProblemCode,
 } from "./composition/check-interfaces";
 export {
+  componentKey,
+  componentOf,
   defaultImplementation,
   describeUnboundInstance,
   hasBody,
-  implementationsOf,
   implementsInterface,
   indexById,
   indexDocument,
   isInterface,
   resolveComponent,
   resolveImplementation,
+  sameComponent,
 } from "./composition/interfaces";
 export type {
   DocumentIndex,
   ImplementationBinding,
 } from "./composition/interfaces";
+
+// --- Composition: imports and the libraries a host resolves them to ---
+export { resolveLibrary } from "./composition/libraries";
+export type {
+  Library,
+  LibraryComponent,
+  LibraryComponentBody,
+  LibraryParameter,
+  LibraryPort,
+  LibraryTokenType,
+  ResolvedLibraries,
+  ResolvedLibrary,
+} from "./composition/libraries";
 export {
   describePortDirection,
   effectivePortDirection,

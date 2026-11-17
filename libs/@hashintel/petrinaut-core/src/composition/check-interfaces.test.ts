@@ -1,10 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import { checkFusions } from "./check-fusions";
-import { checkInterfaces } from "./check-interfaces";
+import { checkInterfaces, implementationsOf } from "./check-interfaces";
 import {
   describeUnboundInstance,
-  implementationsOf,
   indexSubnet,
   mapInterfacePorts,
   resolveImplementation,
@@ -823,9 +822,11 @@ describe("implementationsOf", () => {
     const draft = subnet("draft", { interface: true, implements: ["stage"] });
     const sdcpn = net({ subnets: [stage, fast, draft] });
 
-    expect(implementationsOf(sdcpn, "stage").map(({ id }) => id)).toEqual([
-      "fast",
-    ]);
+    expect(
+      implementationsOf(sdcpn, { id: "stage" }).map(
+        (candidate) => candidate.subnet.id,
+      ),
+    ).toEqual(["fast"]);
   });
 });
 

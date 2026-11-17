@@ -400,8 +400,22 @@ export type Metric = {
   code: string;
 };
 
-/** A reference to a component: a subnet of the document, by its id. */
-export type ComponentReference = { id: ID };
+/**
+ * A library the document takes components from, under the id its publisher
+ * gives it. The id is kept as written. What the library holds is resolved
+ * when the document is opened: nothing of it is stored here.
+ */
+export type Import = { id: string };
+
+/**
+ * A reference to a component. Without `from` it names a subnet of the
+ * document by its id. With `from` it names a component of the import of that
+ * id, by the id the component has in its library, kept as written.
+ */
+export type ComponentReference = { from?: string; id: ID };
+
+/** A reference to a component of an import. */
+export type ImportedComponentReference = { from: string; id: string };
 
 /**
  * The component the document runs for the instances of an interface that
@@ -413,7 +427,8 @@ export type DefaultImplementation = {
 };
 
 /**
- * An instance of a subnet placed inside another net.
+ * An instance of a component placed inside a net. It has exactly one of
+ * `subnetId` and `component`: read either through `componentOf`.
  */
 export type ComponentInstance = {
   id: ID;
@@ -422,11 +437,13 @@ export type ComponentInstance = {
   description?: string;
   /** Host-defined data, opaque to Petrinaut. */
   metadata?: Record<string, JsonValue>;
-  /** ID of the subnet this instance instantiates, a lowercase UUID. */
-  subnetId: ID;
+  /** ID of the subnet of the document this instance instantiates, a lowercase UUID. */
+  subnetId?: ID;
+  /** The component of an import this instance instantiates. */
+  component?: ImportedComponentReference;
   /**
-   * Concrete values for the subnet's parameters.
-   * Keys are parameter IDs from the referenced subnet; values are expressions.
+   * Concrete values for the component's parameters.
+   * Keys are parameter IDs from the referenced component; values are expressions.
    */
   parameterValues: Record<ID, string>;
   /**
@@ -486,6 +503,8 @@ export type SDCPN = {
   parameters: Parameter[];
   scenarios?: Scenario[];
   metrics?: Metric[];
+  /** The libraries the document's instances and bindings take components from. */
+  imports?: Import[];
   subnets?: Subnet[];
   componentInstances?: ComponentInstance[];
   /** Fusions among the root net's places and its instances' ports. */
