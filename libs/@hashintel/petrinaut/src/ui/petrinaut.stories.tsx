@@ -856,6 +856,7 @@ const interfacedLineNet: SDCPN = {
   fusions: [
     {
       id: "fuse_parts",
+      name: "Parts",
       members: [
         { kind: "place", placeId: "parts" },
         port("cutter", "iface_in"),
@@ -863,6 +864,7 @@ const interfacedLineNet: SDCPN = {
     },
     {
       id: "fuse_buffer",
+      name: "Buffer",
       members: [
         { kind: "place", placeId: "buffer" },
         port("cutter", "iface_out"),
@@ -871,6 +873,7 @@ const interfacedLineNet: SDCPN = {
     },
     {
       id: "fuse_finished",
+      name: "Finished",
       members: [
         { kind: "place", placeId: "finished" },
         port("drill", "iface_out"),

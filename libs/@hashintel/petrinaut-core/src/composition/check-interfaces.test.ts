@@ -330,6 +330,7 @@ describe("a fusion on a port of an interface", () => {
       fusions: [
         {
           id: "f1",
+          name: "F1",
           members: [
             { kind: "place", placeId: "buffer" },
             {

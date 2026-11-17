@@ -1007,6 +1007,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
         fusions: [
           {
             id: "f1",
+            name: "F1",
             members: [
               { kind: "place", placeId: "buffer" },
               {
@@ -1166,6 +1167,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
         implementations: { wide: "impl" },
         fusions: indices.map((index) => ({
           id: `f${index}`,
+          name: `F${index}`,
           members: [
             { kind: "place", placeId: `root_${index}` },
             {
