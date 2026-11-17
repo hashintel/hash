@@ -32,34 +32,6 @@ const buildDirectiveString = (directives: Record<string, string[]>): string =>
 export const isProcessEditorPath = (pathname: string): boolean =>
   /^\/processes\/[^/]+\/?$/.test(pathname);
 
-/**
- * Whether `pathname` is a route that mounts `GoogleAuthProvider`, whose policy
- * lets Google's sign-in and Picker scripts and frames load. Shortname routes
- * match both as requested (`/@alice/...`) and as rewritten (`/@/alice/...`).
- *
- * A document keeps the policy it was loaded with across client-side
- * navigation, so `GoogleAuthProvider` reloads one that reaches these routes
- * from another.
- */
-export const isGoogleIntegrationPath = (pathname: string): boolean =>
-  /^(?:\/settings\/integrations\/google-sheets|\/goals\/new|\/@\/?[^/]+\/(?:flows|workers)\/[^/]+)\/?$/.test(
-    pathname,
-  );
-
-const googleScriptSources = [
-  // Google Identity Services (OAuth sign-in)
-  "https://accounts.google.com",
-  // Google Picker API (Google Sheets integration)
-  "https://apis.google.com",
-];
-
-const googleFrameSources = [
-  // Google Identity Services sign-in iframe
-  "https://accounts.google.com",
-  // Google Picker iframe
-  "https://docs.google.com",
-];
-
 /** The Vercel toolbar, which Vercel injects into preview deployments. */
 const isVercelPreview = (): boolean =>
   process.env.NEXT_PUBLIC_VERCEL_ENV === "preview";
@@ -93,7 +65,6 @@ const buildDirectives = ({
   storageOrigins?: string[];
 }): Record<string, string[]> => {
   const isProcessEditor = isProcessEditorPath(pathname);
-  const isGoogleIntegration = isGoogleIntegrationPath(pathname);
   const storageSources = storageOrigins
     ? [apiOrigin, ...storageOrigins]
     : ["https:"];
@@ -116,7 +87,10 @@ const buildDirectives = ({
       ...(process.env.NODE_ENV === "development" || isProcessEditor
         ? ["'unsafe-eval'"]
         : []),
-      ...(isGoogleIntegration ? googleScriptSources : []),
+      // Google Identity Services (OAuth sign-in)
+      "https://accounts.google.com",
+      // Google Picker API (Google Sheets integration)
+      "https://apis.google.com",
       // Vercel toolbar / live preview widget
       ...(isVercelPreview() ? ["https://vercel.live"] : []),
     ],
@@ -168,7 +142,7 @@ const buildDirectives = ({
       // Sentry error reporting and session replay
       "https://*.ingest.sentry.io",
       // Google APIs (OAuth, Drive)
-      ...(isGoogleIntegration ? ["https://www.googleapis.com"] : []),
+      "https://www.googleapis.com",
       // Vercel Edge Config (maintenance mode check in middleware)
       "https://edge-config.vercel.com",
       // Vercel toolbar / live preview widget
@@ -187,7 +161,10 @@ const buildDirectives = ({
 
     "frame-src": [
       "'self'",
-      ...(isGoogleIntegration ? googleFrameSources : []),
+      // Google Identity Services sign-in iframe
+      "https://accounts.google.com",
+      // Google Picker iframe
+      "https://docs.google.com",
       // Vercel toolbar / live preview widget
       ...(isVercelPreview() ? ["https://vercel.live"] : []),
     ],
