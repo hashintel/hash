@@ -552,14 +552,17 @@ mod tests {
         }
     }
 
-    async fn list_data_types() -> [DataType; 2] {
-        let value = ensure_validation_from_str::<DataType, _>(
+    async fn value_data_type() -> DataType {
+        ensure_validation_from_str::<DataType, _>(
             hash_graph_test_data::data_type::VALUE_V1,
             DataTypeValidator,
             JsonEqualityCheck::Yes,
         )
         .await
-        .into_inner();
+        .into_inner()
+    }
+
+    async fn list_data_types() -> [DataType; 2] {
         let list = ensure_validation_from_str::<DataType, _>(
             hash_graph_test_data::data_type::LIST_V1,
             DataTypeValidator,
@@ -568,7 +571,7 @@ mod tests {
         .await
         .into_inner();
 
-        [value, list]
+        [value_data_type().await, list]
     }
 
     async fn data_type(schema: serde_json::Value) -> DataType {
@@ -675,6 +678,78 @@ mod tests {
                 .expect("should be a valid array schema"),
             )
             .to_string(),
+        );
+    }
+
+    #[tokio::test]
+    async fn resolve_any_of_parent() {
+        let value = value_data_type().await;
+        let color = data_type(json!({
+          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+          "kind": "dataType",
+          "$id": "https://example.com/data-type/color/v/1",
+          "title": "Color",
+          "description": "A color, either as RGB channels or as a label.",
+          "allOf": [{ "$ref": value.id }],
+          "abstract": true,
+          "anyOf": [
+            { "type": "array" },
+            { "type": "string" },
+          ],
+        }))
+        .await;
+        let rgb_color = data_type(json!({
+          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+          "kind": "dataType",
+          "$id": "https://example.com/data-type/rgb-color/v/1",
+          "title": "RGB Color",
+          "description": "The red, green and blue channel of a color.",
+          "allOf": [{ "$ref": color.id }],
+          "type": "array",
+          "abstract": false,
+          "items": { "type": "number", "minimum": 0.0, "maximum": 255.0 },
+          "minItems": 3,
+          "maxItems": 3,
+        }))
+        .await;
+        let color_label = data_type(json!({
+          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+          "kind": "dataType",
+          "$id": "https://example.com/data-type/color-label/v/1",
+          "title": "Color Label",
+          "description": "The name of a color.",
+          "allOf": [{ "$ref": color.id }],
+          "type": "string",
+          "abstract": false,
+        }))
+        .await;
+        let definitions = [value, color.clone(), rgb_color.clone(), color_label.clone()];
+
+        let closed_color =
+            resolve_closed(&color, definitions.clone()).expect("`Color` should be closed");
+        let closed_rgb_color =
+            resolve_closed(&rgb_color, definitions.clone()).expect("`RGB Color` should be closed");
+        let closed_color_label =
+            resolve_closed(&color_label, definitions).expect("`Color Label` should be closed");
+
+        assert_eq!(
+            json!(closed_color.all_of),
+            json!([{ "anyOf": [{ "type": "array" }, { "type": "string" }] }]),
+        );
+        assert_eq!(
+            json!(closed_rgb_color.all_of),
+            json!([{
+                "type": "array",
+                "items": { "type": "number", "minimum": 0.0, "maximum": 255.0 },
+                "minItems": 3,
+                "maxItems": 3,
+            }]),
+            "the closed schema of a child should only allow the child's own type"
+        );
+        assert_eq!(
+            json!(closed_color_label.all_of),
+            json!([{ "type": "string" }]),
+            "the closed schema of a child should only allow the child's own type"
         );
     }
 }

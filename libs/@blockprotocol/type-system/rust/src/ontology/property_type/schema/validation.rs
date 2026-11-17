@@ -6,6 +6,7 @@ use crate::{
     Valid, Validator,
     ontology::{
         BaseUrl,
+        data_type::schema::VALUE_DATA_TYPE_ID,
         json_schema::{OneOfSchemaValidationError, OneOfSchemaValidator},
     },
 };
@@ -17,6 +18,8 @@ pub enum PropertyTypeValidationError {
         base_url: BaseUrl,
         reference: PropertyTypeReference,
     },
+    #[display("A property type cannot reference the value data type")]
+    ValueDataTypeReference,
     #[display("Property object validation failed: {_0}")]
     #[from]
     ObjectValidationFailed(ObjectSchemaValidationError),
@@ -54,7 +57,11 @@ impl Validator<PropertyValues> for PropertyTypeValidator {
         value: &'v PropertyValues,
     ) -> Result<&'v Valid<PropertyValues>, Self::Error> {
         match value {
-            PropertyValues::Value(_) => {}
+            PropertyValues::Value(reference) => {
+                if *reference == *VALUE_DATA_TYPE_ID {
+                    return Err(PropertyTypeValidationError::ValueDataTypeReference);
+                }
+            }
             PropertyValues::Object(object) => {
                 ObjectSchemaValidator.validate_ref(object)?;
                 for (property, value) in &object.properties {
