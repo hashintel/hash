@@ -630,7 +630,8 @@ type StepDefinitionBase = {
    * inputs. A skipped step counts as finished.
    *
    * With `outputName`, the step is on that output's path, such as an If's `true`, and should start only when the
-   * output is given. TODO(FE-2277): the engine and the compiled net ignore `outputName` and start it either way.
+   * output is given. TODO(FE-2277): the engine and the compiled net ignore `outputName` and would start it either
+   * way, so `validateFlowDefinition` rejects it for now.
    */
   runAfter?: { stepId: string; outputName?: string }[];
 };

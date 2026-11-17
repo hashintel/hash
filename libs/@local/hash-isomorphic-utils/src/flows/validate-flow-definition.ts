@@ -54,7 +54,12 @@ export type FlowDefinitionDiagnosticCode =
   /** An input with a derived kind, given a value of a different kind from its kind source's. */
   | "kindMismatch"
   /** An input its action's own check rejects (see `ActionStepCheck`). */
-  | "invalidInput";
+  | "invalidInput"
+  /**
+   * A `runAfter` naming an output's path, which a run would start whichever path is taken. TODO(FE-2277): allow it
+   * once runs follow paths.
+   */
+  | "pathNotRunnable";
 
 export type FlowDefinitionDiagnostic = {
   severity: "error" | "warning";
@@ -712,6 +717,14 @@ export const validateFlowDefinition = (
           [...path, "runAfter", index, "outputName"],
         );
       } else {
+        if (outputName !== undefined) {
+          report(
+            "pathNotRunnable",
+            `Flows can't run a step on a path yet, and this step is on "${stepId}"'s "${outputName}" path`,
+            [...path, "runAfter", index, "outputName"],
+          );
+        }
+
         addDependency(step.stepId, stepId);
       }
     }
