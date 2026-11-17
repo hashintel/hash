@@ -193,7 +193,7 @@ export const getRunBlocker = ({
   return null;
 };
 
-/** The payload for a value, or `null` if it was left blank. */
+/** The payload for a value, or `null` if it was left blank. Text of only spaces is blank; a toggle never is. */
 const toPayload = (formValue: RunFormValue): Payload | null => {
   switch (formValue.kind) {
     case "Number":
@@ -203,6 +203,7 @@ const toPayload = (formValue: RunFormValue): Payload | null => {
     case "Boolean":
       return formValue;
     case "Text":
+      return formValue.value.trim() === "" ? null : formValue;
     case "Date":
       return formValue.value === "" ? null : formValue;
     case "EntityId":

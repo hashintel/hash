@@ -28,26 +28,28 @@ export type IdentReason =
   | ExpectedLiteral
   | InvalidBaseUrl;
 
-/** A lexical identifier retaining its source spelling. */
-export interface Lexical {
-  readonly _tag: "Lexical";
-  readonly value: string;
-}
-
-/** An operator identifier retaining its source spelling without backticks. */
-export interface SymbolIdent {
-  readonly _tag: "Symbol";
-  readonly value: string;
-}
-
-/** The original ASCII spelling of a validated HTTP(S) URL ending in a slash. */
-export interface BaseUrl {
-  readonly _tag: "BaseUrl";
-  readonly value: string;
-}
-
 /** Identifier forms accepted by the grammar. */
-export type Ident = Lexical | SymbolIdent | BaseUrl;
+export type Ident = Ident.Lexical | Ident.Symbol | Ident.BaseUrl;
+
+export declare namespace Ident {
+  /** A lexical identifier retaining its source spelling. */
+  export interface Lexical {
+    readonly _tag: "Lexical";
+    readonly value: string;
+  }
+
+  /** An operator identifier retaining its source spelling without backticks. */
+  export interface Symbol {
+    readonly _tag: "Symbol";
+    readonly value: string;
+  }
+
+  /** The original ASCII spelling of a validated HTTP(S) URL ending in a slash. */
+  export interface BaseUrl {
+    readonly _tag: "BaseUrl";
+    readonly value: string;
+  }
+}
 
 export const symbolCharacter: CharacterClass = characterClass({
   name: "operator character",
@@ -136,15 +138,15 @@ export const baseUrlValue: Parser.Parser<
 
 const lexical = pipe(
   lexicalValue,
-  Parser.map((value): Lexical => ({ _tag: "Lexical", value })),
+  Parser.map((value): Ident.Lexical => ({ _tag: "Lexical", value })),
 );
 const symbol = pipe(
   symbolValue,
-  Parser.map((value): SymbolIdent => ({ _tag: "Symbol", value })),
+  Parser.map((value): Ident.Symbol => ({ _tag: "Symbol", value })),
 );
 const baseUrl = pipe(
   baseUrlValue,
-  Parser.map((value): BaseUrl => ({ _tag: "BaseUrl", value })),
+  Parser.map((value): Ident.BaseUrl => ({ _tag: "BaseUrl", value })),
 );
 
 /** Accepts backticks around symbols or URLs, never lexical names. */

@@ -6,7 +6,10 @@
 import { use, useEffect, useRef, useState } from "react";
 import { v4 as generateUuid } from "uuid";
 
-import { type MonteCarloExperiment } from "@hashintel/petrinaut-core";
+import {
+  runClockOf,
+  type MonteCarloExperiment,
+} from "@hashintel/petrinaut-core";
 import {
   type ExperimentBackendRegistration,
   selectExperimentBackend,
@@ -469,17 +472,20 @@ export const ExperimentsProvider: React.FC<React.PropsWithChildren> = ({
     });
     options?.ownership?.signal.throwIfAborted();
 
+    const clock = runClockOf(experimentSdcpn, experimentExtensions);
     // Resolved before the record exists, so a simulator nobody registered
     // rejects the creation instead of listing an experiment that cannot run.
     const { registrations, samplePeriod } = experimentSimulatorBackends(
       simulatorsRef.current,
       input,
+      clock,
     );
 
     const experimentId = generateUuid();
     const experiment = newExperimentRecord({
       id: experimentId,
       input: samplePeriod === input.dt ? input : { ...input, dt: samplePeriod },
+      clock,
       scenarioName:
         scenario?.name ?? (input.adHocScenario ? "Ad-hoc scenario" : null),
       axes: compiled.axes,
@@ -624,6 +630,7 @@ export const ExperimentsProvider: React.FC<React.PropsWithChildren> = ({
           maxTime: input.maxTime,
           metricSpecs: input.metricSpecs,
         },
+        clock: input.clock,
         scenarioName: input.scenarioName,
         axes: [],
         fixedScenarioValues: {},

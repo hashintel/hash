@@ -34,7 +34,7 @@ import {
 } from "./parser.js";
 
 import type { Reason } from "./parser-error.js";
-import type { Parser, Sample } from "./parser.js";
+import type { Parser } from "./parser.js";
 
 /** Consumes one exact spelling and drops the unused seed. */
 const text = <const T extends string>(value: T): Parser<T, ExpectedLiteral> =>
@@ -47,7 +47,7 @@ const text = <const T extends string>(value: T): Parser<T, ExpectedLiteral> =>
 /** Samples a reproducible batch for parser contract tests. */
 const sample = <T, R extends Reason>(
   parser: Parser<T, R>,
-): Effect.Effect<readonly Sample<T>[], Arbitrary.SampleError> =>
+): Effect.Effect<readonly Parser.Sample<T>[], Arbitrary.SampleError> =>
   Arbitrary.sampleEffect(parser.arbitrary(), { count: 30, size: 4, seed: 42 });
 
 /** A semantic reason independent of built-in syntax expectations. */
@@ -446,7 +446,7 @@ describe("parser_builder", () => {
       nextSliceBetween({ minLength: 1, maxLength: 4 }),
       map(([, value]) => value),
     );
-    const visited: Sample<string>[] = [];
+    const visited: Parser.Sample<string>[] = [];
     const result = await Effect.runPromise(
       Arbitrary.checkEffect(
         parser.arbitrary(),

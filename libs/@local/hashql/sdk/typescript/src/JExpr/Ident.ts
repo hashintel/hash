@@ -7,6 +7,7 @@
  */
 import {
   Schema as $Schema,
+  Brand,
   Effect,
   Result,
   SchemaGetter,
@@ -109,12 +110,23 @@ export const Schema: $Schema.decodeTo<
 /**
  * The decoded form of an identifier, with its kind in `_tag` and its value without backticks.
  *
- * A `Lexical` value follows Unicode XID rules, with `_` permitted before one or more continuation characters. A `Symbol` contains ASCII operator characters or non-ASCII punctuation and symbols. Lexical and symbol values retain their Unicode spelling. Character membership follows the JavaScript runtime's Unicode tables. The HashQL compiler handles normalization. A `BaseUrl` retains the source spelling of a validated HTTP(S) URL ending in `/`. An object literal remains unchecked until {@link make} validates it.
+ * A `Lexical` value follows Unicode XID rules, with `_` permitted before one or more continuation characters. A `Symbol` contains ASCII operator characters or non-ASCII punctuation and symbols. Lexical and symbol values retain their Unicode spelling, because normalizing can produce text HashQL does not parse, such as U+1FEF becoming a backtick. HashQL compares identifiers by their {@link name} instead. Character membership follows the JavaScript runtime's Unicode tables. A `BaseUrl` retains the source spelling of a validated HTTP(S) URL ending in `/`. An object literal remains unchecked until {@link make} validates it.
  */
-export type Ident = (typeof Schema)["Type"];
+export type Ident = Ident.Lexical | Ident.Symbol | Ident.BaseUrl;
 
-/** Identifier source text, with backticks around a quoted symbol or base URL. */
-export type Encoded = (typeof Schema)["Encoded"];
+export declare namespace Ident {
+  /** An unquoted name whose value follows the lexical identifier grammar. */
+  export interface Lexical extends $Schema.Schema.Type<typeof LexicalSchema> {}
+
+  /** An operator name stored without its source backticks. */
+  export interface Symbol extends $Schema.Schema.Type<typeof SymbolSchema> {}
+
+  /** A base-URL name stored without its source backticks. */
+  export interface BaseUrl extends $Schema.Schema.Type<typeof BaseUrlSchema> {}
+
+  /** Identifier source text, with backticks around a quoted symbol or base URL. */
+  export type Encoded = (typeof Schema)["Encoded"];
+}
 
 /** Input accepted by {@link make} before validation: an identifier object, not source text. */
 type MakeIn = (typeof Schema)["~type.make.in"];
@@ -155,7 +167,7 @@ export const parse: (
 > = Grammar.parseIdent;
 
 /** Source text accepted by the identifier grammar, paired with the identifier it parses to. */
-export type Sample = Parser.Sample<Ident>;
+export type Sample = Parser.Parser.Sample<Ident>;
 
 /** Generates source text and its parsed identifier from the identifier grammar. */
 export const arbitrary: () => Arbitrary.Arbitrary<Sample> =
@@ -193,3 +205,14 @@ export const decodeResult: (
  * Nothing validates the value first.
  */
 export const compile: (ident: Ident) => string = Grammar.compileIdent;
+
+/** An identifier's value in Unicode normalization form C, as HashQL interns it. */
+export type Name = string & Brand.Brand<"Ident.Name">;
+const Name = Brand.nominal<Name>();
+
+/**
+ * Returns the name HashQL interns for an identifier.
+ *
+ * Canonically equivalent spellings, such as the precomposed `"\u00E9"` and the combining `"e\u0301"`, have one name, so HashQL reads them as one binding or one struct field.
+ */
+export const name = (ident: Ident): Name => Name(ident.value.normalize("NFC"));

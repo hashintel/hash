@@ -1900,6 +1900,28 @@ return true;`;
   });
 });
 
+describe("net class", () => {
+  it("classifies the net it checks, with or without errors in its code", () => {
+    const sdcpn = createSDCPN({
+      places: [{ id: "p1", name: "Queue" }],
+      transitions: [
+        {
+          lambdaType: "stochastic",
+          lambdaCode: "return 1 +;",
+          outputArcs: [{ placeId: "p1", weight: 1 }],
+        },
+      ],
+    });
+    const result = check(sdcpn, DEFAULT_PETRINAUT_EXTENSIONS);
+    expect(result.isValid).toBe(false);
+    expect(result.netClass).toEqual({
+      time: "timed",
+      coloring: "none",
+      chance: "stochastic",
+    });
+  });
+});
+
 describe("metric shapes", () => {
   it("classifies every metric that lowers, and skips one that does not", () => {
     const sdcpn: SDCPN = {

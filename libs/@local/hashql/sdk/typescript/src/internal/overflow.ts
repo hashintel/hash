@@ -40,6 +40,17 @@ export const makeEffect = <S extends Schema.Constraint>(schema: S) => {
     recover(Effect.suspend(() => run(input, options)));
 };
 
+/** Validates the schema's decoded type side, with a schema issue or a stack overflow as the failure. */
+export const makeResult = <S extends Schema.Constraint>(schema: S) => {
+  const run = makeEffect(schema);
+
+  return (
+    input: S["~type.make.in"],
+    options?: Schema.MakeOptions,
+  ): Result.Result<S["Type"], SchemaIssue.Issue> =>
+    Effect.runSync(Effect.result(run(input, options)));
+};
+
 /** Validates the schema's decoded type side, returning `None` for a schema issue or a stack overflow. */
 export const makeOption = <S extends Schema.Constraint>(schema: S) => {
   const run = makeEffect(schema);
@@ -56,10 +67,11 @@ export const makeOption = <S extends Schema.Constraint>(schema: S) => {
  * @throws {Error} If validation fails or exhausts the call stack. The error's `cause` is a {@link SchemaIssue.Issue}.
  */
 export const make = <S extends Schema.Constraint>(schema: S) => {
-  const run = makeEffect(schema);
+  const run = makeResult(schema);
+
   return (input: S["~type.make.in"], options?: Schema.MakeOptions): S["Type"] =>
     Result.getOrThrowWith(
-      Effect.runSync(Effect.result(run(input, options))),
+      run(input, options),
       (issue) => new Error("Schema validation failed", { cause: issue }),
     );
 };

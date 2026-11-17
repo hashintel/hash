@@ -70,6 +70,24 @@ const EMPTY_SDCPN: SDCPN = {
   differentialEquations: [],
 };
 
+/** A net with a rate in it: its experiments are sampled over time. */
+const TIMED_SDCPN: SDCPN = {
+  ...EMPTY_SDCPN,
+  transitions: [
+    {
+      id: "arrive",
+      name: "Arrive",
+      inputArcs: [],
+      outputArcs: [],
+      lambdaType: "stochastic",
+      lambdaCode: "",
+      transitionKernelCode: "",
+      x: 0,
+      y: 0,
+    },
+  ],
+};
+
 const CONSTANT_METRIC_SPEC = [
   {
     id: "constant",
@@ -1687,7 +1705,9 @@ describe("ExperimentsProvider", () => {
 
   it("runs an experiment on the simulator it names, sampled as asked, and records the simulator", async () => {
     const worker = new FakeMonteCarloWorker();
-    const { getValue, renderResult } = renderExperimentsProvider(worker);
+    const { getValue, renderResult } = renderExperimentsProvider(worker, {
+      petriNetDefinition: TIMED_SDCPN,
+    });
 
     try {
       await act(async () => {
@@ -1714,6 +1734,7 @@ describe("ExperimentsProvider", () => {
         simulatorLabel: "JS adaptive",
         computeBackend: "cpu",
         computeBackendFallbackReason: null,
+        clock: "time",
         dt: 0.5,
         status: "running",
       });
@@ -1728,9 +1749,50 @@ describe("ExperimentsProvider", () => {
     }
   });
 
-  it("samples a fixed-step simulator at its time step, whatever spacing is asked for", async () => {
+  it("samples an untimed net at every step, whatever the simulator and the spacing asked for", async () => {
     const worker = new FakeMonteCarloWorker();
     const { getValue, renderResult } = renderExperimentsProvider(worker);
+
+    try {
+      await act(async () => {
+        const createPromise = createSelectedExperiment(getValue, {
+          name: "Untimed experiment",
+          scenarioId: null,
+          scenarioParameterValues: {},
+          runCount: 1,
+          seed: 42,
+          dt: 0.5,
+          maxTime: 9.5,
+          metricSpecs: CONSTANT_METRIC_SPEC,
+          simulator: {
+            simulatorId: "js-adaptive",
+            parameters: { tolerance: 1e-4 },
+          },
+        });
+        await flushWorkerSetup();
+        worker.emit({ type: "ready" });
+        await createPromise;
+      });
+
+      // The runs count steps, and stop at the first one at or past the end.
+      expect(getValue().selectedExperiment).toMatchObject({
+        simulatorLabel: "JS adaptive",
+        clock: "steps",
+        dt: 1,
+        maxTime: 10,
+        status: "running",
+      });
+      expect(worker.sent[0]).toMatchObject({ type: "init", dt: 1 });
+    } finally {
+      renderResult.unmount();
+    }
+  });
+
+  it("samples a fixed-step simulator at its time step, whatever spacing is asked for", async () => {
+    const worker = new FakeMonteCarloWorker();
+    const { getValue, renderResult } = renderExperimentsProvider(worker, {
+      petriNetDefinition: TIMED_SDCPN,
+    });
 
     try {
       await act(async () => {
@@ -1764,7 +1826,7 @@ describe("ExperimentsProvider", () => {
     }
   });
 
-  it("falls back to the default simulator at the same step when the GPU simulator declines the net", async () => {
+  it("falls back to the default simulator when the GPU simulator declines the net", async () => {
     const worker = new FakeMonteCarloWorker();
     const notifications: AddNotificationInput[] = [];
     const { getValue, renderResult } = renderExperimentsProvider(worker, {
@@ -1800,16 +1862,19 @@ describe("ExperimentsProvider", () => {
           await createPromise;
         });
 
+        // A net with no transitions is untimed, so either simulator samples
+        // it at every step. The fallback at a time step is covered with
+        // `experimentSimulatorBackends`.
         expect(getValue().selectedExperiment).toMatchObject({
           simulatorLabel: "JS fixed step",
           computeBackend: "cpu",
-          dt: 0.5,
+          clock: "steps",
+          dt: 1,
         });
         expect(
           getValue().selectedExperiment?.computeBackendFallbackReason,
         ).toMatch(/no transitions/i);
-        // The fallback steps at the step the GPU simulator was given.
-        expect(worker.sent[0]).toMatchObject({ type: "init", dt: 0.5 });
+        expect(worker.sent[0]).toMatchObject({ type: "init", dt: 1 });
         expect(
           notifications.some((notification) =>
             /running on JS fixed step/i.test(notification.message),
@@ -2229,6 +2294,7 @@ describe("adoptExperiment", () => {
     scenarioName: null,
     runCount: 100,
     seed: 7,
+    clock: "time" as const,
     dt: 0.1,
     maxTime: 60,
     metricSpecs: CONSTANT_METRIC_SPEC,

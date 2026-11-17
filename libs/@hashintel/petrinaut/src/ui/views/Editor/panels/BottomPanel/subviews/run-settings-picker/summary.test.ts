@@ -42,6 +42,7 @@ describe("summarizeRunSettings", () => {
   it("reads a number with a unit by its unit, stored or by default", () => {
     const base = {
       mode: "quick",
+      clock: "time",
       specs: stepped,
       runs: 100,
       maxTime: null,
@@ -57,6 +58,7 @@ describe("summarizeRunSettings", () => {
   it("names a number without a unit, an enum by its option and a boolean only when on", () => {
     const base = {
       mode: "quick",
+      clock: "time",
       specs: solved,
       runs: 100,
       maxTime: null,
@@ -78,11 +80,25 @@ describe("summarizeRunSettings", () => {
     expect(
       summarizeRunSettings({
         mode: "stochastic",
+        clock: "time",
         specs: stepped,
         parameters: { dt: 0.1 },
         runs: 1500,
         maxTime: 60,
       }),
     ).toEqual(["0.1 s", "1,500 runs", "to 60 s"]);
+  });
+
+  it("says step by step in place of the parameters on a clock of steps, and ends at a step", () => {
+    expect(
+      summarizeRunSettings({
+        mode: "stochastic",
+        clock: "steps",
+        specs: stepped,
+        parameters: { dt: 0.1 },
+        runs: 1500,
+        maxTime: 59.5,
+      }),
+    ).toEqual(["step by step", "1,500 runs", "to step 60"]);
   });
 });

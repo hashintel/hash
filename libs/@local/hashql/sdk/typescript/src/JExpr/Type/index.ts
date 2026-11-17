@@ -1,9 +1,9 @@
 /**
  * Builds HashQL type syntax for J-Expr queries.
  *
- * A {@link Type} describes type syntax. Use {@link reference} for a named type and {@link struct}, {@link tuple}, {@link union} or {@link intersection} to compose types. {@link compile} writes the type's source spelling.
+ * A {@link Type} describes type syntax. Use {@link reference} for a named type and {@link struct}, {@link tuple}, {@link union} or {@link intersection} to compose types. The syntax has two J-Expr spellings. {@link compile} writes annotation text for a `#type` field, and {@link toExpression} writes the constructor syntax that `as`, `input`, `fn`, `type` and `newtype` emit.
  *
- * {@link reference} and {@link struct} return an {@link Option.Option}: an invalid name produces `None`. The other builders accept their members without checks. Name resolution and type checking belong to the HashQL compiler.
+ * {@link reference} and {@link struct} return an {@link Option.Option}: an invalid name produces `None`, and so does an invalid generic argument passed to {@link reference}. The other builders accept their members without checks. Name resolution and type checking belong to the HashQL compiler.
  *
  * @module
  */
@@ -16,6 +16,8 @@ import * as Ident from "../Ident.js";
 import * as Path from "../Path.js";
 import * as Defs from "./schema.js";
 
+import type { Identifier } from "../Identifier.js";
+import type { ExpressionType } from "../schema.js";
 import type { Schema as $Schema, Effect, SchemaIssue } from "effect";
 import type { NonEmptyReadonlyArray } from "effect/Array";
 
@@ -31,23 +33,25 @@ export * as Union from "./Union.js";
 /**
  * Schema for validating and encoding {@link Type} values.
  *
- * Use {@link make} to construct a value or {@link compile} to render type syntax. Schema encoding produces the tagged object representation described by {@link Encoded}.
+ * Use {@link make} to construct a value or {@link compile} to render type syntax. Schema encoding produces the tagged object representation described by {@link Type.Encoded}.
  */
 export const Schema: typeof Defs.Type = Defs.Type;
 
 /**
- * Tagged HashQL type syntax.
+ * Tagged HashQL type syntax, as accepted by `JExpr.input`, `JExpr.as`, `JExpr.typed` and the other builders that take a type.
  *
  * The `_tag` discriminant selects the form. `Reference` names a type by path with optional generics. `Struct` lists named members and `Tuple` positional ones. `Union` and `Intersection` combine member types. `Infer` is the `_` placeholder for a type the compiler infers. Paths and member names hold decoded identifier objects. Nothing validates an object written directly until {@link make} checks its names, and the HashQL compiler resolves those names and checks the type.
  */
 export type Type = Defs.Type;
 
-/**
- * The schema-encoded form of a {@link Type}, which writes each path and member name as source text.
- *
- * A reference's path becomes text such as `"::core::List<Integer>"`, and a struct member name becomes text such as `` "`+`" ``. Path arguments use type syntax, which omits single-member union and intersection wrappers. Other type nodes keep their tagged objects. {@link Schema} encodes and decodes this form. Use {@link compile} for type source text.
- */
-export type Encoded = Defs.TypeEncoded;
+export declare namespace Type {
+  /**
+   * The schema-encoded form of a {@link Type}, which writes each path and member name as source text.
+   *
+   * A reference's path becomes text such as `"::core::List<Integer>"`, and a struct member name becomes text such as `` "`+`" ``. Path arguments use type syntax, which omits single-member union and intersection wrappers. Other type nodes keep their tagged objects. {@link Schema} encodes and decodes this form, and neither form is J-Expr. Use {@link compile} or {@link toExpression} for J-Expr.
+   */
+  export type Encoded = Defs.TypeEncoded;
+}
 
 /** Constructor input accepted by {@link Schema} before validation. */
 type MakeIn = (typeof Schema)["~type.make.in"];
@@ -155,7 +159,7 @@ const asReadonlyUnsafe = <T>(input: T): Readonly<T> => input;
 /**
  * Creates a type with named fields.
  *
- * Returns `None` if any field name is not a valid identifier according to `Ident.decodeResult`. Symbol names accept bare (`+`) or backticked (`` `+` ``) spelling. Fields follow the record's own enumerable string-key order. An empty record produces an empty struct, which {@link compile} renders as `(:)`.
+ * Returns `None` if any field name is not a valid identifier according to `Ident.decodeResult`. Symbol names accept bare (`+`) or backticked (`` `+` ``) spelling. Spelling one {@link Ident.name | name} two ways, such as `+` and `` `+` ``, also returns `None`. Fields follow the record's own enumerable string-key order. An empty record produces an empty struct, which {@link compile} renders as `(:)`.
  *
  * @example <caption>Build a struct type and reject an invalid field name.</caption>
  * ```ts
@@ -185,6 +189,11 @@ export const struct = (
       ),
     ),
     Option.all,
+    Option.filter(
+      (members) =>
+        Array.dedupe(Array.map(members, ([name]) => Ident.name(name)))
+          .length === members.length,
+    ),
     Option.map(asReadonlyUnsafe),
     Option.map((members) => ({
       _tag: "Struct",
@@ -216,10 +225,10 @@ export const tuple = (...members: readonly Type[]): Defs.TupleType => ({
 /** Creates the `_` placeholder for compiler-inferred type syntax. */
 export const infer = (): Defs.InferType => ({ _tag: "Infer" });
 
-/** Converts builder generics into the argument model used by a path segment. */
+/** Converts builder generics into the argument fields of a path segment, which the enclosing path validates. */
 const segmentArgument = (
   generic: Type | Defs.GenericType,
-): Path.SegmentArgument => {
+): (typeof Path.SegmentArgument)["~type.make.in"] => {
   if (generic._tag === "GenericArgument") {
     return generic;
   }
@@ -251,7 +260,7 @@ const segmentArgument = (
 /**
  * Refers to a named type with optional generic arguments or bounds.
  *
- * `path` accepts the SDK syntax documented by {@link Path.parse}, including per-segment generic lists. Returns `None` if parsing fails. Additional generic arguments append to the last segment's existing arguments. This checks supported path syntax, not full language validity. The HashQL compiler normalizes and resolves names and checks types.
+ * `path` accepts the SDK syntax documented by {@link Path.parse}, including per-segment generic lists. Returns `None` if parsing fails or a generic argument has an invalid name or type. Additional generic arguments append to the last segment's existing arguments. This checks supported path syntax, not full language validity. The HashQL compiler normalizes and resolves names and checks types.
  *
  * A plain {@link Type} supplies a positional argument. A `GenericBound` with a bound supplies a named constraint. Without a bound it supplies a reference to its name. Generic order follows the argument list.
  *
@@ -281,22 +290,16 @@ export const reference = (
   pipe(
     Path.parse(path),
     Result.getSuccess,
-    Option.map((parsed) => ({
-      _tag: "Reference",
-      path: {
+    Option.flatMap((parsed) =>
+      Path.makeOption({
         rooted: parsed.rooted,
-        segments: Array.map(parsed.segments, (segment, index) => {
-          if (index !== parsed.segments.length - 1) {
-            return segment;
-          }
-
-          return {
-            name: segment.name,
-            arguments: [...segment.arguments, ...generics.map(segmentArgument)],
-          };
-        }),
-      },
-    })),
+        segments: Array.modifyLastNonEmpty(parsed.segments, (segment) => ({
+          name: segment.name,
+          arguments: [...segment.arguments, ...generics.map(segmentArgument)],
+        })),
+      }),
+    ),
+    Option.map((validated) => ({ _tag: "Reference", path: validated })),
   );
 
 const unionMembers = (type: Type): NonEmptyReadonlyArray<Type> => {
@@ -387,4 +390,90 @@ export const and: {
  * JExpr.Type.compile(list); // => "List<Integer | String>"
  * ```
  */
-export const compile: (type: Type) => string = compileType;
+export const compile: (type: Type) => Identifier = compileType;
+
+/** A type and the expressions of its members built so far, in member order. */
+interface Frame {
+  readonly type: Type;
+  readonly members: readonly Type[];
+  readonly expressions: ExpressionType[];
+}
+
+const open = (type: Type): Frame => {
+  switch (type._tag) {
+    case "Infer":
+    case "Reference": {
+      return { type, members: [], expressions: [] };
+    }
+    case "Struct": {
+      return {
+        type,
+        members: Array.map(type.members, Tuple.get(1)),
+        expressions: [],
+      };
+    }
+    case "Tuple":
+    case "Union":
+    case "Intersection": {
+      return { type, members: type.members, expressions: [] };
+    }
+  }
+};
+
+const construct = ({ type, expressions }: Frame): ExpressionType => {
+  switch (type._tag) {
+    case "Infer": {
+      return "_";
+    }
+    case "Reference": {
+      return compile(type);
+    }
+    case "Tuple": {
+      return { "#tuple": expressions };
+    }
+    case "Struct": {
+      return {
+        "#struct": Record.fromEntries(
+          Array.zipWith(type.members, expressions, ([name], expression) => [
+            Ident.compile(name),
+            expression,
+          ]),
+        ),
+      };
+    }
+    case "Union": {
+      return ["::kernel::type::Union", ...expressions];
+    }
+    case "Intersection": {
+      return ["::kernel::type::Intersection", ...expressions];
+    }
+  }
+};
+
+/**
+ * Encodes a type in an expression position, such as a type definition or closure parameter.
+ *
+ * Compound types use constructors here. Only annotation positions accept their type-syntax strings.
+ */
+export const toExpression = (type: Type): ExpressionType => {
+  // Types wait here for their members instead of on the call stack, which bounds the nesting depth by memory alone.
+  const parents: Frame[] = [];
+  let current = open(type);
+
+  for (;;) {
+    const member = current.members[current.expressions.length];
+    if (member === undefined) {
+      const expression = construct(current);
+      const parent = parents.pop();
+      if (parent === undefined) {
+        return expression;
+      }
+
+      parent.expressions.push(expression);
+      current = parent;
+    } else {
+      parents.push(current);
+      current = open(member);
+    }
+  }
+};

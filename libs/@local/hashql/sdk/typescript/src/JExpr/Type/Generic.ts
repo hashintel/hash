@@ -16,7 +16,10 @@ import type { Schema as $Schema, Effect, SchemaIssue } from "effect";
 export const Schema: typeof Defs.Generic = Defs.Generic;
 
 export type Generic = Defs.GenericType;
-export type Encoded = Defs.GenericEncoded;
+
+export declare namespace Generic {
+  export type Encoded = Defs.GenericEncoded;
+}
 
 type MakeIn = (typeof Schema)["~type.make.in"];
 

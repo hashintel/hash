@@ -11,8 +11,10 @@ import type {
 } from "@hashintel/petrinaut-core";
 
 /**
- * Playback over a run. The viewed position is a simulation time, and any
- * time the trace covers can be viewed.
+ * Playback over a run. The viewed position is a simulation time. Any time
+ * the trace covers can be viewed in a continuous run. A discrete run changes
+ * only at its events, so its view rests on one: it is between two events
+ * only while it plays.
  *
  * Nothing in this value changes at frame rate. The viewed time lives in
  * `playbackStore`; a component that shows it reads it through
@@ -35,7 +37,10 @@ export type EventPlaybackContextValue = {
   /** True while the run can still compute. */
   isComputeAvailable: boolean;
 
-  /** Views `time`, clamped to what the trace covers. */
+  /**
+   * Views `time`, clamped to what the trace covers. A discrete run is viewed
+   * at its last event at or before it.
+   */
   setTime: (time: number) => void;
   /**
    * Views the previous or next firing's time, or the initial state. The
@@ -44,6 +49,7 @@ export type EventPlaybackContextValue = {
   stepToEvent: (direction: -1 | 1) => void;
   /** Starts playback, initializing and starting the run when none exists. */
   play: () => Promise<void>;
+  /** Pauses. A discrete run then rests on the event it last passed. */
   pause: () => void;
   /** Pauses and returns to time 0. */
   stop: () => void;

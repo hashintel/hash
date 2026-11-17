@@ -19,7 +19,7 @@ import {
 } from "../src/internal/parser.js";
 
 import type { Reason } from "../src/internal/parser-error.js";
-import type { Return } from "../src/internal/parser.js";
+import type { Parser } from "../src/internal/parser.js";
 
 const surrogateStart = 0xd8_00;
 const surrogateEnd = 0xe0_00;
@@ -34,7 +34,7 @@ const direct =
     length: number,
   ): ((
     input: string,
-  ) => Return<
+  ) => Parser.Return<
     string,
     ExpectedScalar | InsufficientLength | ExpectedEndOfInput
   >) =>
@@ -60,7 +60,7 @@ const direct =
 
 /** Batches calls above timer resolution and consumes their results. */
 const consume = <R extends Reason>(
-  parse: (input: string) => Return<string, R>,
+  parse: (input: string) => Parser.Return<string, R>,
   inputs: readonly string[],
 ): number => {
   let checksum = 0;

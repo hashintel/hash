@@ -120,6 +120,37 @@ describe("resolveExperimentSimulator", () => {
     expect(resolved.registration).toBe(adaptive);
   });
 
+  it("samples every step on a clock of steps, whichever simulator and whatever the field holds", () => {
+    for (const simulatorId of ["js-fixed-step", "js-adaptive"]) {
+      const resolved = resolveExperimentSimulator(
+        { ...EMPTY_EXPERIMENT_SIMULATOR, simulatorId, samplePeriod: "0.25" },
+        simulators,
+        none,
+        "steps",
+      );
+      expect(resolved.registration?.id).toBe(simulatorId);
+      expect(resolved.clock).toBe("steps");
+      // Held to a step: the Sample every field is not read, and an empty
+      // one is no error.
+      expect(resolved.timeStep).toBe(1);
+      expect(resolved.samplePeriod).toBe(1);
+    }
+    expect(
+      experimentSimulatorError(
+        resolveExperimentSimulator(
+          {
+            ...EMPTY_EXPERIMENT_SIMULATOR,
+            simulatorId: "js-adaptive",
+            samplePeriod: "",
+          },
+          simulators,
+          none,
+          "steps",
+        ),
+      ),
+    ).toBeNull();
+  });
+
   it("resolves to no simulator, and says so, when none is registered", () => {
     const resolved = resolveExperimentSimulator(
       EMPTY_EXPERIMENT_SIMULATOR,

@@ -251,7 +251,13 @@ function checkNet(
       ),
     };
   });
-  return { params, analysis: { metricShapes: result.metricShapes } };
+  return {
+    params,
+    analysis: {
+      metricShapes: result.metricShapes,
+      netClass: result.netClass,
+    },
+  };
 }
 
 function netDiagnostics(

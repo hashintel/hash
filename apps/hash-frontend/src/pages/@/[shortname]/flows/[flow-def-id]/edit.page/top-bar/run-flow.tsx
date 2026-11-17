@@ -31,18 +31,21 @@ import type {
 
 const dialogText = css({ textStyle: "sm", color: "fg.body" });
 const dialogBody = css({ display: "flex", flexDirection: "column", gap: "4" });
+const optionalMark = css({
+  textStyle: "xs",
+  fontWeight: "medium",
+  color: "fg.subtle",
+});
 
 const InputControl = ({
   webId,
   value,
   required,
-  invalid,
   onChange,
 }: {
   webId: WebId;
   value: RunFormValue;
   required: boolean;
-  invalid: boolean;
   onChange: (value: RunFormValue) => void;
 }) => {
   switch (value.kind) {
@@ -51,7 +54,6 @@ const InputControl = ({
         <TextInput
           value={value.value}
           required={required}
-          invalid={invalid}
           onChange={(text) => onChange({ kind: "Text", value: text })}
         />
       );
@@ -63,7 +65,6 @@ const InputControl = ({
           max={Number.MAX_VALUE}
           step="any"
           required={required}
-          invalid={invalid}
           onChange={(number) => onChange({ kind: "Number", value: number })}
         />
       );
@@ -80,7 +81,6 @@ const InputControl = ({
           type="date"
           value={value.value}
           required={required}
-          invalid={invalid}
           onChange={(date) => onChange({ kind: "Date", value: date })}
         />
       );
@@ -90,7 +90,6 @@ const InputControl = ({
           webId={webId}
           value={value}
           required={required}
-          invalid={invalid}
           onChange={onChange}
         />
       );
@@ -101,30 +100,31 @@ const InputField = ({
   webId,
   input,
   value,
-  missing,
   onChange,
 }: {
   webId: WebId;
   input: FlowInputDefinition;
   /** Absent for an input the form can't take. */
   value: RunFormValue | undefined;
-  missing: boolean;
   onChange: (value: RunFormValue) => void;
 }) => (
   <Form.Field
     /* Not a label for an input the form can't take, as there's no input to label. */
     as={value ? "label" : "legend"}
-    label={getFlowInputLabel(input)}
-    required={input.required}
+    label={
+      /* One span, as the label is a flex row, which would drop the space before "·". */
+      <span>
+        {getFlowInputLabel(input)}
+        {!input.required && <span className={optionalMark}> · optional</span>}
+      </span>
+    }
     description={upperFirst(getKindLabel(input))}
-    errors={missing ? ["Required to run the flow"] : undefined}
   >
     {value ? (
       <InputControl
         webId={webId}
         value={value}
         required={input.required}
-        invalid={missing}
         onChange={onChange}
       />
     ) : (
@@ -158,18 +158,20 @@ const RunFlowDialog = ({
       : { values: getInitialFormValues(inputs), changedInputLabels: [] },
   );
   const [values, setValues] = useState(initialValues);
-  const [showMissing, setShowMissing] = useState(false);
   const [running, setRunning] = useState(false);
   const [runError, setRunError] = useState<string | null>(null);
 
   const { flowInputs, missingInputNames } = getFlowInputValues(inputs, values);
+  /* Why the form can't run yet, or `null` if it can: the required inputs left blank. */
+  const blocker =
+    missingInputNames.length > 0
+      ? `Fill in ${inputs
+          .filter((input) => missingInputNames.includes(input.name))
+          .map((input) => getFlowInputLabel(input))
+          .join(", ")}`
+      : null;
 
   const run = async () => {
-    if (missingInputNames.length > 0) {
-      setShowMissing(true);
-      return;
-    }
-
     setRunning(true);
     setRunError(null);
 
@@ -229,9 +231,6 @@ const RunFlowDialog = ({
                   webId={webId}
                   input={input}
                   value={values[input.name]}
-                  missing={
-                    showMissing && missingInputNames.includes(input.name)
-                  }
                   onChange={(value) => setValue(input.name, value)}
                 />
               ))}
@@ -248,6 +247,8 @@ const RunFlowDialog = ({
             <Button
               iconName={ranInputs ? "rotate" : "play"}
               loading={running}
+              disabled={blocker !== null}
+              tooltip={blocker ?? undefined}
               onClick={() => {
                 void run();
               }}

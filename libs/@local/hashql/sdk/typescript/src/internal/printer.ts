@@ -3,8 +3,8 @@
  *
  * @internal
  */
-import { Array } from "effect";
-import { dual } from "effect/Function";
+import { Array, Result } from "effect";
+import { dual, flow } from "effect/Function";
 
 /** A part of the tree that a printer expands into further steps. */
 export interface Node {
@@ -14,11 +14,13 @@ export interface Node {
 /**
  * Returns a printer that concatenates the text of its steps, replacing each node with the steps `expand` returns for it.
  *
- * Steps still to write wait on an array instead of the call stack. A printer whose `expand` handles one level of the tree therefore never recurses, however deep the tree nests.
+ * Steps still to write wait on an array instead of the call stack. A printer whose `expand` handles one level of the tree therefore never recurses, however deep the tree nests. The printer stops at the first node `expand` fails on and returns that failure.
  */
-export const printer =
-  <N extends Node>(expand: (node: N) => readonly (string | N)[]) =>
-  (steps: readonly (string | N)[]): string => {
+export const tryPrinter =
+  <N extends Node, E>(
+    expand: (node: N) => Result.Result<readonly (string | N)[], E>,
+  ) =>
+  (steps: readonly (string | N)[]): Result.Result<string, E> => {
     const pending = steps.toReversed();
     const output: string[] = [];
 
@@ -26,14 +28,26 @@ export const printer =
       if (typeof step === "string") {
         output.push(step);
       } else {
-        for (const next of expand(step).toReversed()) {
+        const expanded = expand(step);
+
+        if (Result.isFailure(expanded)) {
+          return Result.fail(expanded.failure);
+        }
+
+        for (const next of expanded.success.toReversed()) {
           pending.push(next);
         }
       }
     }
 
-    return output.join("");
+    return Result.succeed(output.join(""));
   };
+
+/** Returns a printer as {@link tryPrinter} does, for an `expand` that cannot fail. */
+export const printer = <N extends Node>(
+  expand: (node: N) => readonly (string | N)[],
+): ((steps: readonly (string | N)[]) => string) =>
+  flow(tryPrinter(flow(expand, Result.succeed)), Result.merge);
 
 /** Concatenates the steps of each item, with `separator` between consecutive items. */
 export const separated: {

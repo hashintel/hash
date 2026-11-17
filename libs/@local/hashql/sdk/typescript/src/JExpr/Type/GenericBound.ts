@@ -5,6 +5,7 @@
  *
  * @module
  */
+
 import * as Overflow from "../../internal/overflow.js";
 import * as Defs from "./schema.js";
 
@@ -13,7 +14,10 @@ import type { Schema as $Schema, Effect, Option, SchemaIssue } from "effect";
 export const Schema: typeof Defs.GenericBound = Defs.GenericBound;
 
 export interface GenericBound extends Defs.GenericBoundType {}
-export interface Encoded extends Defs.GenericBoundEncoded {}
+
+export declare namespace GenericBound {
+  export interface Encoded extends Defs.GenericBoundEncoded {}
+}
 
 type MakeIn = (typeof Schema)["~type.make.in"];
 
