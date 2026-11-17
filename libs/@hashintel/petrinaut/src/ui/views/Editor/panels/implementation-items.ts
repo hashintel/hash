@@ -1,6 +1,6 @@
-import { implementationsOf } from "@hashintel/petrinaut-core";
+import { implementationsOf, resolveComponent } from "@hashintel/petrinaut-core";
 
-import type { ID, SDCPN } from "@hashintel/petrinaut-core";
+import type { ComponentReference, ID, SDCPN } from "@hashintel/petrinaut-core";
 
 /**
  * The implementations of an interface as the items of a picker. A loaded
@@ -10,18 +10,20 @@ import type { ID, SDCPN } from "@hashintel/petrinaut-core";
 export const implementationItems = (
   sdcpn: Pick<SDCPN, "subnets">,
   interfaceId: ID,
-  chosenId: ID | undefined,
+  chosen: ComponentReference | undefined,
 ): { value: ID; text: string }[] => {
   const items = implementationsOf(sdcpn, interfaceId).map(({ id, name }) => ({
     value: id,
     text: name,
   }));
-  if (chosenId === undefined || items.some(({ value }) => value === chosenId)) {
+  if (chosen === undefined || items.some(({ value }) => value === chosen.id)) {
     return items;
   }
-  const chosen = sdcpn.subnets?.find(({ id }) => id === chosenId);
   return [
     ...items,
-    { value: chosenId, text: chosen?.name ?? "Unknown subnet" },
+    {
+      value: chosen.id,
+      text: resolveComponent(sdcpn, chosen)?.name ?? "Unknown subnet",
+    },
   ];
 };

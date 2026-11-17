@@ -11,6 +11,7 @@ import {
 
 import type {
   Color,
+  DefaultImplementation,
   Parameter,
   Place,
   SDCPN,
@@ -95,7 +96,18 @@ const instance = (id: string, subnetId: string, implementation?: string) => ({
   parameterValues: {},
   x: 0,
   y: 0,
-  ...(implementation === undefined ? {} : { implementation }),
+  ...(implementation === undefined
+    ? {}
+    : { implementation: { id: implementation } }),
+});
+
+/** The document's default implementation for an interface. */
+const defaultOf = (
+  interfaceId: string,
+  componentId: string,
+): DefaultImplementation => ({
+  interface: { id: interfaceId },
+  component: { id: componentId },
 });
 
 /** A stage signature: In consumed, Out produced, a rate parameter. */
@@ -202,7 +214,10 @@ describe("checkInterfaces", () => {
       { subnetId: null, instanceId: "s1", code: "unbound-instance" },
     ]);
 
-    const byDefault = { ...unbound, implementations: { stage: "fast" } };
+    const byDefault = {
+      ...unbound,
+      implementations: [defaultOf("stage", "fast")],
+    };
     expect(checkInterfaces(byDefault)).toEqual([]);
 
     const byInstance = net({
@@ -210,6 +225,29 @@ describe("checkInterfaces", () => {
       componentInstances: [instance("s1", "stage", "fast")],
     });
     expect(checkInterfaces(byInstance)).toEqual([]);
+  });
+
+  it("reports two defaults for one interface, once, and runs the first", () => {
+    const slow = { ...fast, id: "slow", name: "slow" };
+    const sdcpn = net({
+      subnets: [stage, fast, slow],
+      componentInstances: [instance("s1", "stage")],
+      implementations: [
+        defaultOf("stage", "fast"),
+        defaultOf("stage", "slow"),
+        defaultOf("stage", "fast"),
+        defaultOf("ghost", "fast"),
+        defaultOf("ghost", "slow"),
+      ],
+    });
+
+    expect(checkInterfaces(sdcpn)).toMatchObject([
+      { subnetId: "stage", code: "duplicate-default", severity: "error" },
+      { subnetId: null, code: "duplicate-default", severity: "error" },
+    ]);
+    expect(resolveImplementation(sdcpn, instance("s1", "stage"))).toMatchObject(
+      { kind: "bound", implementation: { id: "fast" } },
+    );
   });
 
   it("reports a binding to a subnet that does not implement the interface, naming it", () => {
@@ -236,7 +274,10 @@ describe("checkInterfaces", () => {
       { subnetId: "line", instanceId: "inner", code: "unbound-instance" },
     ]);
     expect(
-      checkInterfaces({ ...sdcpn, implementations: { stage: "fast" } }),
+      checkInterfaces({
+        ...sdcpn,
+        implementations: [defaultOf("stage", "fast")],
+      }),
     ).toEqual([]);
   });
 });
@@ -253,7 +294,7 @@ describe("a component that runs inside itself", () => {
     });
     const sdcpn = net({
       subnets: [stage, fast, wrapper],
-      implementations: { stage: "wrapper" },
+      implementations: [defaultOf("stage", "wrapper")],
     });
 
     const problems = checkInterfaces(sdcpn);
@@ -262,7 +303,10 @@ describe("a component that runs inside itself", () => {
     ]);
     expect(problems[0]?.message).toContain("inner runs wrapper inside itself");
     expect(
-      checkInterfaces({ ...sdcpn, implementations: { stage: "fast" } }),
+      checkInterfaces({
+        ...sdcpn,
+        implementations: [defaultOf("stage", "fast")],
+      }),
     ).toEqual([]);
 
     const outer = subnet("outer", {
@@ -337,7 +381,7 @@ describe("a fusion on a port of an interface", () => {
     const sdcpn = net({
       places: [place("buffer", { capacity: 5 })],
       subnets: [stage, narrow],
-      implementations: { stage: "narrow" },
+      implementations: [defaultOf("stage", "narrow")],
       componentInstances: [instance("s1", "stage")],
       fusions: [
         {
@@ -371,7 +415,7 @@ describe("resolveImplementation", () => {
     const slow = { ...fast, id: "slow", name: "slow" };
     const sdcpn = net({
       subnets: [stage, fast, slow],
-      implementations: { stage: "fast" },
+      implementations: [defaultOf("stage", "fast")],
     });
 
     expect(resolveImplementation(sdcpn, instance("s1", "stage"))).toMatchObject(
@@ -423,7 +467,10 @@ describe("describeUnboundInstance", () => {
   const subnets = [stage, stranger, draft];
 
   it("names the instance for a choice of its own that cannot run", () => {
-    const sdcpn = net({ subnets, implementations: { stage: "stranger" } });
+    const sdcpn = net({
+      subnets,
+      implementations: [defaultOf("stage", "stranger")],
+    });
 
     expect(described(sdcpn, instance("s1", "stage", "gone"))).toBe(
       "s1 names an implementation that does not exist.",
@@ -439,7 +486,10 @@ describe("describeUnboundInstance", () => {
   it("names the document's default when the instance chooses none and the default cannot run", () => {
     const withDefault = (implementationId: string) =>
       described(
-        net({ subnets, implementations: { stage: implementationId } }),
+        net({
+          subnets,
+          implementations: [defaultOf("stage", implementationId)],
+        }),
         instance("s1", "stage"),
       );
     const lead =

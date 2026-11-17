@@ -400,6 +400,18 @@ export type Metric = {
   code: string;
 };
 
+/** A reference to a component: a subnet of the document, by its id. */
+export type ComponentReference = { id: ID };
+
+/**
+ * The component the document runs for the instances of an interface that
+ * choose none themselves.
+ */
+export type DefaultImplementation = {
+  interface: ComponentReference;
+  component: ComponentReference;
+};
+
 /**
  * An instance of a subnet placed inside another net.
  */
@@ -418,10 +430,10 @@ export type ComponentInstance = {
    */
   parameterValues: Record<ID, string>;
   /**
-   * For an instance of an interface: the subnet that runs in its place.
+   * For an instance of an interface: the component that runs in its place.
    * Absent, the document's default implementation for the interface applies.
    */
-  implementation?: ID;
+  implementation?: ComponentReference;
   // UI positioning
   x: number;
   y: number;
@@ -471,10 +483,10 @@ export type SDCPN = {
   /** Fusions among the root net's places and its instances' ports. */
   fusions?: Fusion[];
   /**
-   * The subnet that runs for instances of each interface, unless an instance
-   * chooses its own. Keyed by interface id.
+   * The component that runs for instances of each interface, unless an
+   * instance chooses its own: one entry per interface.
    */
-  implementations?: Record<ID, ID>;
+  implementations?: DefaultImplementation[];
 };
 
 export type MinimalNetMetadata = {

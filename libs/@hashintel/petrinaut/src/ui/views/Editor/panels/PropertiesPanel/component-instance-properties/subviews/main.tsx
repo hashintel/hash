@@ -10,9 +10,10 @@ import {
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
-  defaultImplementationId,
+  defaultImplementation,
   describeUnboundInstance,
   isInterface,
+  resolveComponent,
   resolveImplementation,
   validateEntityName,
 } from "@hashintel/petrinaut-core";
@@ -76,10 +77,10 @@ const ImplementationField: React.FC<{ iface: Subnet }> = ({ iface }) => {
       : binding?.kind === "unbound"
         ? describeUnboundInstance(binding, instance.name)
         : undefined;
-  const defaultId = defaultImplementationId(petriNetDefinition, iface.id);
-  const defaultName = petriNetDefinition.subnets?.find(
-    ({ id }) => id === defaultId,
-  )?.name;
+  const documentDefault = defaultImplementation(petriNetDefinition, iface.id);
+  const defaultName =
+    documentDefault &&
+    resolveComponent(petriNetDefinition, documentDefault)?.name;
   return (
     <Form.Field
       label="Implementation"
@@ -97,13 +98,13 @@ const ImplementationField: React.FC<{ iface: Subnet }> = ({ iface }) => {
         <Select
           required
           size="sm"
-          value={instance.implementation ?? "default"}
+          value={instance.implementation?.id ?? "default"}
           disabled={isDisabled}
           onChange={(value) =>
             updateComponentInstance({
               instanceId: instance.id,
               update: {
-                implementation: value === "default" ? undefined : value,
+                implementation: value === "default" ? undefined : { id: value },
               },
             })
           }

@@ -20,6 +20,7 @@ import type {
   ArcEndpoint,
   Color,
   ComponentInstance,
+  ComponentReference,
   DifferentialEquation,
   Fusion,
   FusionMember,
@@ -415,6 +416,14 @@ export const parameterSchema = parameterObjectSchema
       "A net-level parameter available to executable SDCPN code and scenarios.",
   }) satisfies z.ZodType<Parameter>;
 
+export const componentReferenceSchema = z
+  .strictObject({
+    id: idSchema.meta({ description: "The component's subnet ID." }),
+  })
+  .meta({
+    description: "A reference to a component: a subnet of the document.",
+  }) satisfies z.ZodType<ComponentReference>;
+
 export const componentInstanceSchema = z
   .strictObject({
     id: idSchema,
@@ -432,9 +441,9 @@ export const componentInstanceSchema = z
       description:
         "Per-instance parameter values keyed by parameter ID from the referenced subnet.",
     }),
-    implementation: idSchema.optional().meta({
+    implementation: componentReferenceSchema.optional().meta({
       description:
-        "For an instance of an interface: the ID of the implementing subnet to run. Omit to run the document's default implementation for the interface.",
+        "For an instance of an interface: the implementing subnet to run, as `{ id }`. Omit to run the document's default implementation for the interface.",
     }),
     x: z.number().meta({
       description: "Horizontal canvas position.",

@@ -3,7 +3,7 @@ import { use } from "react";
 import { Checkbox, Form, Popover, Select } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
-  defaultImplementationId,
+  defaultImplementation,
   hasBody,
   implementsInterface,
   isInterface,
@@ -36,11 +36,11 @@ const DefaultImplementationField: React.FC<{ iface: Subnet }> = ({ iface }) => {
   const { setImplementation } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
 
-  const defaultId = defaultImplementationId(petriNetDefinition, iface.id);
+  const chosen = defaultImplementation(petriNetDefinition, iface.id);
   const implementations = implementationItems(
     petriNetDefinition,
     iface.id,
-    defaultId,
+    chosen,
   );
 
   return (
@@ -48,7 +48,7 @@ const DefaultImplementationField: React.FC<{ iface: Subnet }> = ({ iface }) => {
       <Select
         required
         size="sm"
-        value={defaultId ?? "none"}
+        value={chosen?.id ?? "none"}
         disabled={isReadOnly}
         onChange={(value) =>
           setImplementation({

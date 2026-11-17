@@ -5,6 +5,7 @@ import {
   colorElementSchema as currentColorElementSchema,
   colorSchema as currentColorSchema,
   componentInstanceSchema as currentComponentInstanceSchema,
+  componentReferenceSchema,
   descriptionSchema,
   differentialEquationSchema as currentDifferentialEquationSchema,
   fusionSchema as currentFusionSchema,
@@ -207,7 +208,14 @@ export const sdcpnSchema = z.object({
   // A net without fusions carries no `fusions` key, here as in the editor, so
   // a file that never had one exports as it was read.
   fusions: z.array(fusionSchema).optional(),
-  implementations: z.record(z.string(), z.string()).optional(),
+  implementations: z
+    .array(
+      z.object({
+        interface: componentReferenceSchema,
+        component: componentReferenceSchema,
+      }),
+    )
+    .optional(),
 });
 
 const fileMetaSchema = z.object({

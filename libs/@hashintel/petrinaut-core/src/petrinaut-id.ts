@@ -18,6 +18,7 @@ import type {
   ArcEndpoint,
   Color,
   ComponentInstance,
+  ComponentReference,
   DifferentialEquation,
   Fusion,
   InputArc,
@@ -82,24 +83,16 @@ const mapOptional = <Item>(
 ): Item[] | undefined =>
   items === undefined ? undefined : mapUnlessUnchanged(items, mapItem);
 
-/**
- * `record` with every key converted, and every value put through `mapValue`;
- * itself when that changes nothing.
- */
+/** `record` with every key converted; itself when every key is canonical. */
 const rekeyUnlessUnchanged = <Value>(
   record: Record<string, Value>,
-  mapValue: (value: Value) => Value = (value) => value,
 ): Record<string, Value> => {
   const entries = Object.entries(record);
-  if (
-    entries.every(
-      ([key, value]) => toPetrinautId(key) === key && mapValue(value) === value,
-    )
-  ) {
+  if (entries.every(([key]) => toPetrinautId(key) === key)) {
     return record;
   }
   return Object.fromEntries(
-    entries.map(([key, value]) => [toPetrinautId(key), mapValue(value)]),
+    entries.map(([key, value]) => [toPetrinautId(key), value]),
   );
 };
 
@@ -157,6 +150,11 @@ const canonicalizeDifferentialEquation = (
     colorId: toOptionalPetrinautId(equation.colorId),
   });
 
+const canonicalizeReference = (
+  reference: ComponentReference,
+): ComponentReference =>
+  assignChanged(reference, { id: toPetrinautId(reference.id) });
+
 const canonicalizeComponentInstance = (
   instance: ComponentInstance,
 ): ComponentInstance =>
@@ -167,7 +165,7 @@ const canonicalizeComponentInstance = (
     implementation:
       instance.implementation === undefined
         ? undefined
-        : toPetrinautId(instance.implementation),
+        : canonicalizeReference(instance.implementation),
   });
 
 const canonicalizeFusion = (fusion: Fusion): Fusion =>
@@ -254,10 +252,12 @@ export const canonicalizePetrinautIds = <Net extends PetrinautIdNet>(
       canonicalizeComponentInstance,
     ),
     fusions: mapOptional(net.fusions, canonicalizeFusion),
-    implementations:
-      net.implementations === undefined
-        ? undefined
-        : rekeyUnlessUnchanged(net.implementations, toPetrinautId),
+    implementations: mapOptional(net.implementations, (entry) =>
+      assignChanged(entry, {
+        interface: canonicalizeReference(entry.interface),
+        component: canonicalizeReference(entry.component),
+      }),
+    ),
     scenarios: mapOptional(net.scenarios, canonicalizeScenario),
     metrics: mapOptional(net.metrics, (metric) =>
       assignChanged(metric, { id: toPetrinautId(metric.id) }),

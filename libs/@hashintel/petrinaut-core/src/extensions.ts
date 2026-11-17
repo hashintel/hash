@@ -417,6 +417,9 @@ const cloneComponentInstances = (
   componentInstances?.map((instance) => ({
     ...instance,
     parameterValues: { ...instance.parameterValues },
+    ...(instance.implementation === undefined
+      ? {}
+      : { implementation: { ...instance.implementation } }),
   }));
 
 /** A copy that shares nothing with `place`; `dynamics` stays absent when absent. */
@@ -573,7 +576,10 @@ export const sanitizeSDCPNForExtensions = (
   }
 
   if (sdcpn.implementations) {
-    next.implementations = { ...sdcpn.implementations };
+    next.implementations = sdcpn.implementations.map((entry) => ({
+      interface: { ...entry.interface },
+      component: { ...entry.component },
+    }));
   }
 
   stripDisabledExtensionData(next, extensions);

@@ -59,6 +59,7 @@ The checks an interface adds, in `composition/check-interfaces.ts`:
 | Matching ports disagree on direction, declared or read off the arcs    | warning  |
 | An implementation lacks an interface parameter, by variable name       | error    |
 | Matching parameters differ in type                                     | error    |
+| The document has two default implementations for one interface         | error    |
 | An instance of an interface has no implementation bound                | error    |
 | A component holds an instance that runs it, directly or through others | error    |
 
@@ -122,12 +123,32 @@ simulate their responses", and it is a choice of implementation, not of net.
 A binding says which implementation stands behind an interface, and where:
 
 ```ts
-/** Document-level defaults, by interface. In the model. */
-SDCPN.implementations?: Record<ID /* interface */, ID /* subnet */>;
+/** A reference to a component: a subnet of the document. */
+type ComponentReference = { id: ID };
+/** Document-level defaults, one entry per interface. In the model. */
+SDCPN.implementations?: {
+  interface: ComponentReference;
+  component: ComponentReference;
+}[];
 /** One instance's own choice. In the model. */
-ComponentInstance.implementation?: ID;
+ComponentInstance.implementation?: ComponentReference;
 /** A scenario's choices, by interface or by instance path. Next. */
 Scenario.implementations?: Record<ID, ID>;
+```
+
+A binding names its two sides with a reference, an object, so that a
+reference can later say where a component comes from without the file
+changing form. `resolveComponent` in `composition/interfaces.ts` is the one
+place that turns a reference into a subnet. In a file:
+
+```yaml
+implementations:
+  - interface: { id: stage }
+    component: { id: fast-stage }
+componentInstances:
+  - id: drill
+    subnetId: stage
+    implementation: { id: slow-stage }
 ```
 
 Resolution at flatten time, first match wins:
@@ -135,7 +156,7 @@ Resolution at flatten time, first match wins:
 ```
 instance.implementation
   → scenario.implementations[instance path, then interface]
-    → sdcpn.implementations[interface]
+    → the entry of sdcpn.implementations for the interface
       → provider (host or plugin) for the interface
         → error: no implementation bound
 ```

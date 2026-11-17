@@ -97,12 +97,13 @@ export type {
   InterfaceProblemCode,
 } from "./composition/check-interfaces";
 export {
-  defaultImplementationId,
+  defaultImplementation,
   describeUnboundInstance,
   hasBody,
   implementationsOf,
   implementsInterface,
   isInterface,
+  resolveComponent,
   resolveImplementation,
 } from "./composition/interfaces";
 export type { ImplementationBinding } from "./composition/interfaces";

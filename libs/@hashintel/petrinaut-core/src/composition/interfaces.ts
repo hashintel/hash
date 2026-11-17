@@ -7,10 +7,9 @@
  * holds it to their ports and parameters.
  */
 
-import { getOwn } from "../validation/record-keys";
-
 import type {
   ComponentInstance,
+  ComponentReference,
   ID,
   Place,
   SDCPN,
@@ -26,11 +25,31 @@ export const hasBody = (
 ): boolean =>
   subnet.transitions.length > 0 || (subnet.componentInstances?.length ?? 0) > 0;
 
-/** The subnet the document runs for an interface whose instance chooses none. */
-export const defaultImplementationId = (
+/**
+ * The component `reference` names, a subnet of the document, or `undefined`
+ * when there is none. `subnetsById` is `indexSubnets(sdcpn)`, which saves a
+ * search of the list.
+ */
+export const resolveComponent = (
+  sdcpn: Pick<SDCPN, "subnets">,
+  reference: ComponentReference,
+  subnetsById?: ReadonlyMap<ID, Subnet>,
+): Subnet | undefined =>
+  subnetsById
+    ? subnetsById.get(reference.id)
+    : sdcpn.subnets?.find(({ id }) => id === reference.id);
+
+/**
+ * The component the document runs for an interface whose instance chooses
+ * none. Of two entries for one interface the first applies, and
+ * `check-interfaces.ts` reports the pair.
+ */
+export const defaultImplementation = (
   sdcpn: Pick<SDCPN, "implementations">,
   interfaceId: ID,
-): ID | undefined => getOwn(sdcpn.implementations, interfaceId);
+): ComponentReference | undefined =>
+  sdcpn.implementations?.find((entry) => entry.interface.id === interfaceId)
+    ?.component;
 
 export const implementsInterface = (
   subnet: Pick<Subnet, "implements">,
@@ -63,8 +82,8 @@ export type ImplementationBinding =
     }
   | ({ kind: "unbound"; interface: Subnet } & (
       | { reason: "no-binding" }
-      /** The binding names a subnet that does not exist. */
-      | { reason: "missing"; implementationId: ID; chosenBy: ChosenBy }
+      /** The binding names a component that does not exist. */
+      | { reason: "missing"; reference: ComponentReference; chosenBy: ChosenBy }
       /** The binding names a subnet that cannot stand behind the interface. */
       | {
           reason: "is-interface" | "not-implementing";
@@ -102,11 +121,11 @@ export const resolveImplementation = (
   instance: Pick<ComponentInstance, "subnetId" | "implementation">,
   subnetsById?: ReadonlyMap<ID, Subnet>,
 ): ImplementationBinding | null => {
-  const subnetWithId = (subnetId: ID): Subnet | undefined =>
-    subnetsById
-      ? subnetsById.get(subnetId)
-      : sdcpn.subnets?.find(({ id }) => id === subnetId);
-  const declared = subnetWithId(instance.subnetId);
+  const declared = resolveComponent(
+    sdcpn,
+    { id: instance.subnetId },
+    subnetsById,
+  );
   if (!declared) {
     return null;
   }
@@ -114,16 +133,16 @@ export const resolveImplementation = (
     return { kind: "component", subnet: declared };
   }
   const unbound = { kind: "unbound", interface: declared } as const;
-  const implementationId =
-    instance.implementation ?? defaultImplementationId(sdcpn, declared.id);
-  if (implementationId === undefined) {
+  const reference =
+    instance.implementation ?? defaultImplementation(sdcpn, declared.id);
+  if (reference === undefined) {
     return { ...unbound, reason: "no-binding" };
   }
   const chosenBy =
     instance.implementation === undefined ? "document" : "instance";
-  const implementation = subnetWithId(implementationId);
+  const implementation = resolveComponent(sdcpn, reference, subnetsById);
   if (!implementation) {
-    return { ...unbound, chosenBy, reason: "missing", implementationId };
+    return { ...unbound, chosenBy, reason: "missing", reference };
   }
   if (isInterface(implementation)) {
     return { ...unbound, chosenBy, reason: "is-interface", implementation };

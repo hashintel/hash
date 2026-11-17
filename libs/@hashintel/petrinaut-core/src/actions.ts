@@ -54,6 +54,8 @@ import type {
   ArcEndpoint,
   Color,
   ComponentInstance,
+  ComponentReference,
+  DefaultImplementation,
   Fusion,
   FusionMember,
   ID,
@@ -522,24 +524,17 @@ const assertEndpointReferences = (
   }
 };
 
-/** Drops the document's default implementations `drop` picks, and the record once it is empty. */
+/** Drops the document's default implementations `drop` picks, and the list once it is empty. */
 const dropImplementations = (
   sdcpn: SDCPN,
-  drop: (interfaceId: ID, implementationId: ID) => boolean,
+  drop: (entry: DefaultImplementation) => boolean,
 ): void => {
   const targetSdcpn = sdcpn;
-  const implementations = targetSdcpn.implementations;
-  if (!implementations) {
+  if (!targetSdcpn.implementations) {
     return;
   }
-  for (const [interfaceId, implementationId] of Object.entries(
-    implementations,
-  )) {
-    if (drop(interfaceId, implementationId)) {
-      delete implementations[interfaceId];
-    }
-  }
-  if (Object.keys(implementations).length === 0) {
+  removeWhere(targetSdcpn.implementations, drop);
+  if (targetSdcpn.implementations.length === 0) {
     delete targetSdcpn.implementations;
   }
 };
@@ -549,12 +544,10 @@ const dropImplementations = (
  * the interface or as the implementation, and do not resolve.
  */
 const pruneImplementationBindings = (sdcpn: SDCPN, subnetId: ID): void => {
-  const broken = (interfaceId: ID, implementationId: ID): boolean =>
-    (interfaceId === subnetId || implementationId === subnetId) &&
-    resolveImplementation(sdcpn, {
-      subnetId: interfaceId,
-      implementation: implementationId,
-    })?.kind !== "bound";
+  const broken = (interfaceId: ID, implementation: ComponentReference) =>
+    (interfaceId === subnetId || implementation.id === subnetId) &&
+    resolveImplementation(sdcpn, { subnetId: interfaceId, implementation })
+      ?.kind !== "bound";
   for (const net of getAllMutableNets(sdcpn)) {
     for (const instance of net.componentInstances ?? []) {
       if (
@@ -565,7 +558,9 @@ const pruneImplementationBindings = (sdcpn: SDCPN, subnetId: ID): void => {
       }
     }
   }
-  dropImplementations(sdcpn, broken);
+  dropImplementations(sdcpn, (entry) =>
+    broken(entry.interface.id, entry.component),
+  );
 };
 
 /** Throws when `subnet` says it implements something that is no interface of the document. */
@@ -641,7 +636,7 @@ const assertComponentInstanceReferences = (
  */
 const assertBindingRuns = (
   sdcpn: SDCPN,
-  binding: { subnetId: ID; implementation: ID },
+  binding: { subnetId: ID; implementation: ComponentReference },
   subject: string,
 ): void => {
   const resolved = resolveImplementation(sdcpn, binding);
@@ -1493,18 +1488,29 @@ export function createPetrinautActions(
       const { interfaceId, implementationId } =
         mutationActionInputSchemas.setImplementation.parse(input);
       mutateWithExtensionGuards((sdcpn) => {
-        if (implementationId === null) {
-          dropImplementations(sdcpn, (id) => id === interfaceId);
-          return;
+        const component =
+          implementationId === null ? null : { id: implementationId };
+        if (component) {
+          assertBindingRuns(
+            sdcpn,
+            { subnetId: interfaceId, implementation: component },
+            "The document's default",
+          );
         }
-        assertBindingRuns(
+        // An interface has one entry: what it had goes, with any double a
+        // document was loaded with.
+        dropImplementations(
           sdcpn,
-          { subnetId: interfaceId, implementation: implementationId },
-          "The document's default",
+          (entry) => entry.interface.id === interfaceId,
         );
-        const targetSdcpn = sdcpn;
-        targetSdcpn.implementations ??= {};
-        targetSdcpn.implementations[interfaceId] = implementationId;
+        if (component) {
+          const targetSdcpn = sdcpn;
+          targetSdcpn.implementations ??= [];
+          targetSdcpn.implementations.push({
+            interface: { id: interfaceId },
+            component,
+          });
+        }
       });
     },
     addComponentInstance(input) {

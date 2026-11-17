@@ -1952,6 +1952,11 @@ describe("Petrinaut core interface actions", () => {
     ...extra,
   });
 
+  const defaultOf = (interfaceId: string, componentId: string) => ({
+    interface: { id: interfaceId },
+    component: { id: componentId },
+  });
+
   const withInterface = (): SDCPN => ({
     ...emptySDCPN,
     subnets: [
@@ -1979,9 +1984,9 @@ describe("Petrinaut core interface actions", () => {
       interfaceId: "stage",
       implementationId: "fast",
     });
-    expect(instance.definition.get().implementations).toEqual({
-      [idOf("stage")]: idOf("fast"),
-    });
+    expect(instance.definition.get().implementations).toEqual([
+      defaultOf(idOf("stage"), idOf("fast")),
+    ]);
 
     instance.mutations.setImplementation({
       interfaceId: "stage",
@@ -2027,7 +2032,7 @@ describe("Petrinaut core interface actions", () => {
     expect(() =>
       instance.mutations.updateComponentInstance({
         instanceId: "s1",
-        update: { implementation: "draft" },
+        update: { implementation: { id: "draft" } },
       }),
     ).toThrow(/which is an interface itself/);
     // An instance of a component has nothing to choose.
@@ -2036,7 +2041,7 @@ describe("Petrinaut core interface actions", () => {
         id: "o1",
         name: "O1",
         subnetId: "other",
-        implementation: "fast",
+        implementation: { id: "fast" },
         parameterValues: {},
         x: 0,
         y: 0,
@@ -2050,7 +2055,7 @@ describe("Petrinaut core interface actions", () => {
       ...loaded,
       componentInstances: loaded.componentInstances?.map((existing) => ({
         ...existing,
-        implementation: "other",
+        implementation: { id: "other" },
       })),
     });
 
@@ -2060,7 +2065,7 @@ describe("Petrinaut core interface actions", () => {
     });
     expect(instance.definition.get().componentInstances?.[0]).toMatchObject({
       name: "Renamed",
-      implementation: idOf("other"),
+      implementation: { id: idOf("other") },
     });
     // Naming the subnet it already has makes no choice either.
     instance.mutations.updateComponentInstance({
@@ -2069,21 +2074,21 @@ describe("Petrinaut core interface actions", () => {
     });
     expect(
       instance.definition.get().componentInstances?.[0]?.implementation,
-    ).toBe(idOf("other"));
+    ).toEqual({ id: idOf("other") });
     // Making the same choice again is held to the rule.
     expect(() =>
       instance.mutations.updateComponentInstance({
         instanceId: "s1",
-        update: { implementation: "other" },
+        update: { implementation: { id: "other" } },
       }),
     ).toThrow(/does not implement/);
     instance.mutations.updateComponentInstance({
       instanceId: "s1",
-      update: { implementation: "fast" },
+      update: { implementation: { id: "fast" } },
     });
     expect(
       instance.definition.get().componentInstances?.[0]?.implementation,
-    ).toBe(idOf("fast"));
+    ).toEqual({ id: idOf("fast") });
   });
 
   test("a subnet that stops being an interface is implemented by none", () => {
@@ -2106,7 +2111,7 @@ describe("Petrinaut core interface actions", () => {
     const instance = createInstance(withInterface());
     instance.mutations.updateComponentInstance({
       instanceId: "s1",
-      update: { implementation: "fast" },
+      update: { implementation: { id: "fast" } },
     });
 
     instance.mutations.updateComponentInstance({
@@ -2125,7 +2130,7 @@ describe("Petrinaut core interface actions", () => {
     const instance = createInstance({
       ...withInterface(),
       // Loaded as is: `other` does not say it implements the stage.
-      implementations: { stage: "other" },
+      implementations: [defaultOf("stage", "other")],
     });
     const patches: unknown[] = [];
     instance.handle.subscribe((event) =>
@@ -2136,18 +2141,49 @@ describe("Petrinaut core interface actions", () => {
       subnetId: "slow",
       update: { name: "Slower" },
     });
-    expect(instance.definition.get().implementations).toEqual({
-      [idOf("stage")]: idOf("other"),
-    });
+    expect(instance.definition.get().implementations).toEqual([
+      defaultOf(idOf("stage"), idOf("other")),
+    ]);
     expect(JSON.stringify(patches)).not.toContain("implementations");
 
     instance.mutations.setImplementation({
       interfaceId: "stage",
       implementationId: "fast",
     });
-    expect(JSON.stringify(patches)).toContain(
-      JSON.stringify(["implementations", idOf("stage")]),
-    );
+    expect(JSON.stringify(patches)).toContain("implementations");
+  });
+
+  test("setting a default leaves one entry for the interface, whatever was loaded", () => {
+    const instance = createInstance({
+      ...withInterface(),
+      subnets: [
+        ...(withInterface().subnets ?? []),
+        stageSubnet("gate", { interface: true }),
+        stageSubnet("barrier", { implements: ["gate"] }),
+      ],
+      implementations: [
+        defaultOf("stage", "fast"),
+        defaultOf("gate", "barrier"),
+        defaultOf("stage", "slow"),
+      ],
+    });
+
+    instance.mutations.setImplementation({
+      interfaceId: "stage",
+      implementationId: "slow",
+    });
+    expect(instance.definition.get().implementations).toEqual([
+      defaultOf(idOf("gate"), idOf("barrier")),
+      defaultOf(idOf("stage"), idOf("slow")),
+    ]);
+
+    instance.mutations.setImplementation({
+      interfaceId: "stage",
+      implementationId: null,
+    });
+    expect(instance.definition.get().implementations).toEqual([
+      defaultOf(idOf("gate"), idOf("barrier")),
+    ]);
   });
 
   test("renaming a subnet keeps the stale bindings a document was loaded with", () => {
@@ -2155,10 +2191,10 @@ describe("Petrinaut core interface actions", () => {
     // Loaded as is: `other` does not say it implements the stage.
     const instance = createInstance({
       ...loaded,
-      implementations: { stage: "other" },
+      implementations: [defaultOf("stage", "other")],
       componentInstances: loaded.componentInstances?.map((existing) => ({
         ...existing,
-        implementation: "other",
+        implementation: { id: "other" },
       })),
     });
 
@@ -2169,12 +2205,12 @@ describe("Petrinaut core interface actions", () => {
         update: { name: `${subnetId} renamed` },
       });
     }
-    expect(instance.definition.get().implementations).toEqual({
-      [idOf("stage")]: idOf("other"),
-    });
+    expect(instance.definition.get().implementations).toEqual([
+      defaultOf(idOf("stage"), idOf("other")),
+    ]);
     expect(
       instance.definition.get().componentInstances?.[0]?.implementation,
-    ).toBe(idOf("other"));
+    ).toEqual({ id: idOf("other") });
   });
 
   test("refuses a subnet that implements something that is no interface", () => {
@@ -2255,16 +2291,16 @@ describe("Petrinaut core interface actions", () => {
 
     instance.mutations.updateComponentInstance({
       instanceId: "s1",
-      update: { implementation: "slow" },
+      update: { implementation: { id: "slow" } },
     });
     expect(
       instance.definition.get().componentInstances?.[0]?.implementation,
-    ).toBe(idOf("slow"));
+    ).toEqual({ id: idOf("slow") });
 
     expect(() =>
       instance.mutations.updateComponentInstance({
         instanceId: "s1",
-        update: { implementation: "other" },
+        update: { implementation: { id: "other" } },
       }),
     ).toThrow(/does not implement/);
 
@@ -2286,7 +2322,7 @@ describe("Petrinaut core interface actions", () => {
       });
       instance.mutations.updateComponentInstance({
         instanceId: "s1",
-        update: { implementation: "fast" },
+        update: { implementation: { id: "fast" } },
       });
       return instance;
     };
@@ -2328,7 +2364,7 @@ describe("Petrinaut core interface actions", () => {
     });
     instance.mutations.updateComponentInstance({
       instanceId: "s1",
-      update: { implementation: "fast" },
+      update: { implementation: { id: "fast" } },
     });
 
     instance.mutations.removeSubnet({ subnetId: "fast" });

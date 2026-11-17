@@ -952,7 +952,9 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
         ],
         componentInstances: [componentInstance("s1", "stage")],
         subnets: [stage, implementation("fast")],
-        implementations: { stage: "fast" },
+        implementations: [
+          { interface: { id: "stage" }, component: { id: "fast" } },
+        ],
       });
 
       const result = flatten({ definition });
@@ -975,10 +977,12 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
       const definition = sdcpn({
         componentInstances: [
           componentInstance("s1", "stage"),
-          componentInstance("s2", "stage", { implementation: "slow" }),
+          componentInstance("s2", "stage", { implementation: { id: "slow" } }),
         ],
         subnets: [stage, implementation("fast"), implementation("slow")],
-        implementations: { stage: "fast" },
+        implementations: [
+          { interface: { id: "stage" }, component: { id: "fast" } },
+        ],
       });
 
       const result = flatten({ definition });
@@ -1003,7 +1007,9 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
         places: [place("buffer")],
         componentInstances: [componentInstance("s1", "stage")],
         subnets: [stage, implementation("fast")],
-        implementations: { stage: "fast" },
+        implementations: [
+          { interface: { id: "stage" }, component: { id: "fast" } },
+        ],
         fusions: [
           {
             id: "f1",
@@ -1039,7 +1045,9 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
           }),
         ],
         subnets: [stage, implementation("fast")],
-        implementations: { stage: "fast" },
+        implementations: [
+          { interface: { id: "stage" }, component: { id: "fast" } },
+        ],
       });
 
       const result = flatten({ definition });
@@ -1067,7 +1075,9 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
           },
           implementation("fast"),
         ],
-        implementations: { stage: "fast" },
+        implementations: [
+          { interface: { id: "stage" }, component: { id: "fast" } },
+        ],
       });
 
       expect(
@@ -1095,7 +1105,9 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
           typed(stage, "reals", "real"),
           typed(implementation("fast"), "integers", "integer"),
         ],
-        implementations: { stage: "fast" },
+        implementations: [
+          { interface: { id: "stage" }, component: { id: "fast" } },
+        ],
       });
 
       expect(() => flatten({ definition })).toThrow(
@@ -1111,7 +1123,9 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
       const definition = sdcpn({
         componentInstances: [componentInstance("s1", "stage")],
         subnets: [stage, nested],
-        implementations: { stage: "fast" },
+        implementations: [
+          { interface: { id: "stage" }, component: { id: "fast" } },
+        ],
       });
 
       expect(() => flatten({ definition })).toThrow(
@@ -1141,7 +1155,9 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
           }),
         ],
         componentInstances: [
-          componentInstance("s1", "stage", { implementation: "partial" }),
+          componentInstance("s1", "stage", {
+            implementation: { id: "partial" },
+          }),
         ],
         subnets: [stage, partial],
       });
@@ -1164,7 +1180,9 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
           subnet("wide", { interface: true, places: ports("wide") }),
           subnet("impl", { implements: ["wide"], places: ports("impl") }),
         ],
-        implementations: { wide: "impl" },
+        implementations: [
+          { interface: { id: "wide" }, component: { id: "impl" } },
+        ],
         fusions: indices.map((index) => ({
           id: `f${index}`,
           name: `F${index}`,

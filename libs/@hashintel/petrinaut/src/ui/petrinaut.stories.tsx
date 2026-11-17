@@ -833,7 +833,9 @@ const interfacedLineNet: SDCPN = {
     stageImplementation("fast_stage", "Fast stage", 1),
     stageImplementation("slow_stage", "Slow stage", 2),
   ],
-  implementations: { stage_interface: "fast_stage" },
+  implementations: [
+    { interface: { id: "stage_interface" }, component: { id: "fast_stage" } },
+  ],
   componentInstances: [
     {
       id: "cutter",
@@ -847,7 +849,7 @@ const interfacedLineNet: SDCPN = {
       id: "drill",
       name: "Drill",
       subnetId: "stage_interface",
-      implementation: "slow_stage",
+      implementation: { id: "slow_stage" },
       parameterValues: {},
       x: 730,
       y: 220,

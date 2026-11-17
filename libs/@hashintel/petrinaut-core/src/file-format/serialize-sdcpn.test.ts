@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { toPetrinautId } from "../petrinaut-id";
 import { parseSDCPNDocument, parseSDCPNFile } from "./parse-sdcpn-file";
 import { serializeSDCPN } from "./serialize-sdcpn";
 
@@ -307,19 +308,23 @@ describe("serializeSDCPN", () => {
           { ...iface, interface: true },
           { ...iface, id: "fast", name: "Fast", implements: [iface.id] },
         ],
-        implementations: { [iface.id]: "fast" },
+        implementations: [
+          { interface: { id: iface.id }, component: { id: "fast" } },
+        ],
       },
       title: "Test Net",
       format: "json",
     });
     const document = JSON.parse(text) as {
-      implementations: Record<string, string>;
+      implementations: unknown;
       subnets: Record<string, unknown>[];
     };
 
     const keys = Object.keys(document);
     expect(keys.indexOf("implementations")).toBe(keys.indexOf("subnets") + 1);
-    expect(document.implementations).toEqual({ [iface.id]: "fast" });
+    expect(document.implementations).toEqual([
+      { interface: { id: iface.id }, component: { id: "fast" } },
+    ]);
     expect(Object.keys(document.subnets[0]!).slice(0, 5)).toEqual([
       "id",
       "name",
@@ -334,6 +339,62 @@ describe("serializeSDCPN", () => {
       "metadata",
       "implements",
     ]);
+  });
+
+  it("reads the document's bindings and an instance's choice as references, converting their ids", () => {
+    const parsed = parseSDCPNFile({
+      ...sourceDocument,
+      implementations: [
+        { interface: { id: "stage" }, component: { id: "fast-stage" } },
+      ],
+      componentInstances: [
+        {
+          id: "drill",
+          name: "Drill",
+          subnetId: "stage",
+          implementation: { id: "slow-stage" },
+        },
+      ],
+    });
+
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.sdcpn.implementations).toEqual([
+      {
+        interface: { id: toPetrinautId("stage") },
+        component: { id: toPetrinautId("fast-stage") },
+      },
+    ]);
+    expect(parsed.sdcpn.componentInstances?.[0]?.implementation).toEqual({
+      id: toPetrinautId("slow-stage"),
+    });
+  });
+
+  it("refuses bindings keyed by interface id, and an instance's choice given as a bare id", () => {
+    const keyed = parseSDCPNFile({
+      ...sourceDocument,
+      implementations: { stage: "fast-stage" },
+    });
+    expect(keyed.ok).toBe(false);
+    if (!keyed.ok) {
+      expect(keyed.error).toContain("implementations");
+    }
+
+    const bare = parseSDCPNFile({
+      ...sourceDocument,
+      componentInstances: [
+        {
+          id: "drill",
+          name: "Drill",
+          subnetId: "stage",
+          implementation: "slow-stage",
+        },
+      ],
+    });
+    expect(bare.ok).toBe(false);
+    if (!bare.ok) {
+      expect(bare.error).toContain("implementation");
+    }
   });
 
   it("rejects text that is neither YAML nor JSON via parseSDCPNDocument", () => {

@@ -319,12 +319,17 @@ describe("normalizeSDCPN composition fields", () => {
       fusions: [
         { id: "f", name: "F", members: [{ kind: "place", placeId: "p" }] },
       ],
-      implementations: { stage: "fast" },
+      implementations: [
+        { interface: { id: "stage" }, component: { id: "fast" } },
+      ],
     });
 
-    expect(result.implementations).toEqual({
-      [toPetrinautId("stage")]: toPetrinautId("fast"),
-    });
+    expect(result.implementations).toEqual([
+      {
+        interface: { id: toPetrinautId("stage") },
+        component: { id: toPetrinautId("fast") },
+      },
+    ]);
 
     expect(result.places[0]?.portDirection).toBe("in");
     expect(result.fusions).toEqual([

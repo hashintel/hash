@@ -5,6 +5,7 @@ import type {
   ArcEndpoint,
   Color,
   ComponentInstance,
+  DefaultImplementation,
   DifferentialEquation,
   Fusion,
   ID,
@@ -54,7 +55,7 @@ export type SDCPNInput = {
   subnets?: Subnet[];
   componentInstances?: ComponentInstance[];
   fusions?: Fusion[];
-  implementations?: Record<ID, ID>;
+  implementations?: DefaultImplementation[];
 };
 
 export type SDCPNPlaceInput = {

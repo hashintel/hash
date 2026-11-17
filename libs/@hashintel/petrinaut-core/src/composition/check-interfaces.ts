@@ -2,8 +2,9 @@
  * The checks on interfaces and their implementations: an interface has no
  * body and implements no interface, an implementation has every port and
  * parameter its interfaces declare with the same token type and a compatible
- * direction, every instance of an interface has an implementation to run,
- * and no component runs inside itself.
+ * direction, the document has one default per interface, every instance of
+ * an interface has an implementation to run, and no component runs inside
+ * itself.
  */
 
 import { colorsStructurallyEqual } from "./fusions";
@@ -30,6 +31,7 @@ export type InterfaceProblemCode =
   | "port-direction-mismatch"
   | "missing-parameter"
   | "parameter-type-mismatch"
+  | "duplicate-default"
   | "unbound-instance"
   | "component-cycle";
 
@@ -37,7 +39,8 @@ export type InterfaceProblem = {
   kind: "interface";
   /**
    * The subnet the problem is on: the interface or the implementation, or
-   * for an instance the net that holds it, `null` for the root net.
+   * for an instance the net that holds it, `null` for the root net. `null`
+   * too for a default of the document whose interface does not exist.
    */
   subnetId: ID | null;
   /** The instance, for a problem with an instance's binding. */
@@ -221,6 +224,28 @@ const checkDeclarations = (
   return problems;
 };
 
+/** The document's defaults: an interface has one entry at most. */
+const checkDefaults = (
+  sdcpn: SDCPN,
+  subnetsById: ReadonlyMap<ID, Subnet>,
+): InterfaceProblem[] => {
+  const entryCounts = new Map<ID, number>();
+  for (const { interface: iface } of sdcpn.implementations ?? []) {
+    entryCounts.set(iface.id, (entryCounts.get(iface.id) ?? 0) + 1);
+  }
+  const problems: InterfaceProblem[] = [];
+  for (const [interfaceId, count] of entryCounts) {
+    if (count > 1) {
+      const iface = subnetsById.get(interfaceId);
+      reporter(problems, { subnetId: iface ? interfaceId : null })(
+        "duplicate-default",
+        `The document names ${count} default implementations for ${iface?.name ?? "an interface that does not exist"}: an interface has one, and the first applies.`,
+      );
+    }
+  }
+  return problems;
+};
+
 /**
  * What each instance is bound to: an instance of an interface has an
  * implementation to run, and no component runs inside itself.
@@ -287,6 +312,7 @@ export const checkInterfaces = (sdcpn: SDCPN): InterfaceProblem[] => {
     ...(sdcpn.subnets ?? []).flatMap((subnet) =>
       checkDeclarations(subnet, subnetsById),
     ),
+    ...checkDefaults(sdcpn, subnetsById),
     ...checkBindings(sdcpn, subnetsById),
   ];
 };
