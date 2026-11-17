@@ -1,3 +1,5 @@
+import { BookOpen, Grid2x2Plus } from "lucide-react";
+
 import Bullseye from "./svgs/light/bullseye.svg";
 import Table from "./svgs/light/table.svg";
 import OneHundred from "./svgs/regular/100.svg";
@@ -260,6 +262,8 @@ export const IconMap = {
   squareFilled: Stop,
   squareCheck: SquareCheck,
   squarePlus: SquarePlus,
+  bookOpen: BookOpen as unknown as typeof SquarePlus,
+  grid2x2Plus: Grid2x2Plus as unknown as typeof SquarePlus,
   star: Star,
   starFilled: StarSolid,
   stop: Square,
