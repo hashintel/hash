@@ -28,6 +28,7 @@ import {
 } from "../client/tools/brunch-client-tools";
 import { OpenAIRealtimeSession } from "../client/voice/realtime/openai-realtime-session";
 import { createTestEditorApi } from "./chat/testing/create-test-editor-api";
+import { browserConversationPointer } from "./conversation/browser-conversation-pointer";
 import { InterviewBudgetControl } from "./interview-budget/interview-budget-control";
 import { documentRevisionOf } from "./tools/shared/document-revision";
 import { useBrunchAssistant } from "./use-brunch-assistant";
@@ -1775,4 +1776,56 @@ test("a host that stores the conversation decides which one binds, hears of each
   );
   // The host's store is the only one written.
   expect(window.localStorage.length).toBe(0);
+});
+
+test("by default the conversation pointer is this browser's storage: the document's first conversation, until Clear stores the next", () => {
+  const firstId = ordinaryConstructionConversationIdFrom(netOneId);
+  const pointer = browserConversationPointer(netOneId);
+  const stored = () =>
+    JSON.parse(
+      window.localStorage.getItem("brunch-conversation-id-v1") ?? "null",
+    ) as unknown;
+
+  // Nothing is read or written until the pointer is asked.
+  expect(stored()).toBeNull();
+  expect(pointer.conversationId).toBe(firstId);
+  expect(stored()).toEqual({ [firstId]: firstId });
+
+  // A message sent records nothing.
+  pointer.start(firstId);
+  expect(stored()).toEqual({ [firstId]: firstId });
+
+  pointer.replace(`${firstId}:next`);
+  expect(stored()).toEqual({ [firstId]: `${firstId}:next` });
+  expect(browserConversationPointer(netOneId).conversationId).toBe(
+    `${firstId}:next`,
+  );
+});
+
+test("a host that passes no pointer binds the conversation in this browser's storage, and Clear stores the new one there", async () => {
+  const firstId = ordinaryConstructionConversationIdFrom(netOneId);
+  const first = renderAssistant();
+  await waitFor(() =>
+    expect(first.assistant().conversationId).toBe(
+      brunchEvaluationConversationIdFrom(firstId),
+    ),
+  );
+
+  act(() => first.assistant().onClearMessages?.());
+  const clearedId = browserConversationPointer(netOneId).conversationId ?? "";
+  expect(clearedId.startsWith(`${firstId}:`)).toBe(true);
+  await waitFor(() =>
+    expect(first.assistant().conversationId).toBe(
+      brunchEvaluationConversationIdFrom(clearedId),
+    ),
+  );
+  first.unmount();
+
+  // A later page load binds the conversation Clear stored.
+  const reloaded = renderAssistant();
+  await waitFor(() =>
+    expect(reloaded.assistant().conversationId).toBe(
+      brunchEvaluationConversationIdFrom(clearedId),
+    ),
+  );
 });
