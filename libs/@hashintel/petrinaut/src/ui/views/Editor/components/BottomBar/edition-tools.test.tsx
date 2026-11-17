@@ -5,18 +5,29 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { CompositionContext } from "../../../../../react/state/composition-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
+import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { EditionTools } from "./edition-tools";
 
 import type { PetrinautRules } from "@hashintel/petrinaut-core";
 
 afterEach(cleanup);
 
-const renderTools = (rules: PetrinautRules) => {
+const renderTools = ({
+  rules = {},
+  enableNetComponents = false,
+}: {
+  rules?: PetrinautRules;
+  enableNetComponents?: boolean;
+}) => {
   const Wrapper = ({ children }: { children: ReactNode }) => (
     <SDCPNContext value={{ ...use(SDCPNContext), readonly: false }}>
-      <CompositionContext value={{ ...use(CompositionContext), rules }}>
-        {children}
-      </CompositionContext>
+      <UserSettingsContext
+        value={{ ...use(UserSettingsContext), enableNetComponents }}
+      >
+        <CompositionContext value={{ ...use(CompositionContext), rules }}>
+          {children}
+        </CompositionContext>
+      </UserSettingsContext>
     </SDCPNContext>
   );
   render(<EditionTools editionMode="cursor" onEditionModeChange={() => {}} />, {
@@ -30,7 +41,15 @@ describe("the edition tools", () => {
     expect(renderTools({})).toEqual(["Add place mode", "Add transition mode"]);
   });
 
+  it("place components too once Net Components is on", () => {
+    expect(renderTools({ enableNetComponents: true })).toEqual([
+      "Add place mode",
+      "Add transition mode",
+      "Add component",
+    ]);
+  });
+
   it("offer nothing in an editor that only composes: it places from the Components panel", () => {
-    expect(renderTools({ edit: "compose" })).toEqual([]);
+    expect(renderTools({ rules: { edit: "compose" } })).toEqual([]);
   });
 });

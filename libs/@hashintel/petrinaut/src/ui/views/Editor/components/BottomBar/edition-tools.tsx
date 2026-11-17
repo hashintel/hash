@@ -10,6 +10,7 @@ import {
 } from "../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { useComposesOnly } from "../../../../../react/state/use-composes-only";
+import { useIsCompositionInterfaceOn } from "../../../../../react/state/use-is-composition-interface-on";
 import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import {
@@ -79,10 +80,9 @@ export const EditionTools: React.FC<{
   const isReadOnly = useIsReadOnly();
   const { activeSubnetId } = use(ActiveNetContext);
   const isRootNet = activeSubnetId === null;
-  const { extensions } = use(SDCPNContext);
   const composesOnly = useComposesOnly();
-  const { enableNetComponents, enableExperimentalIconPack } =
-    use(UserSettingsContext);
+  const isCompositionInterfaceOn = useIsCompositionInterfaceOn();
+  const { enableExperimentalIconPack } = use(UserSettingsContext);
 
   if (isReadOnly || composesOnly) {
     return null;
@@ -143,7 +143,7 @@ export const EditionTools: React.FC<{
           <Icon name="squarePlus" />
         )}
       </ToolbarButton>
-      {isRootNet && extensions.subnets && enableNetComponents && (
+      {isRootNet && isCompositionInterfaceOn && (
         <ComponentDropdown editionMode={editionMode} />
       )}
     </>

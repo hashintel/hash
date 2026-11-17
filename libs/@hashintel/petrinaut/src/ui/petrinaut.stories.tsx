@@ -938,6 +938,7 @@ const ImportsRender = () => {
  * after a moment, and the editor says "Resolving" over a blurred backdrop
  * until it does. The third library fails: its instance is drawn unresolved,
  * the Components panel says why under its id, and Diagnostics reports it.
+ * The Components panel shows once Net Components is on in the Labs settings.
  */
 export const Imports: Story = {
   name: "Imports",
@@ -973,7 +974,8 @@ const CompositionOnlyRender = () => {
 
 /**
  * An empty net in an editor its host keeps to composing, over a library the
- * host holds in memory.
+ * host holds in memory. The Components panel shows whatever the Net
+ * Components setting says.
  */
 export const CompositionOnly: Story = {
   name: "Composition only",

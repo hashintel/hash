@@ -256,7 +256,7 @@ preferences are saved.
 
 ### Net Components (experimental)
 
-Enable subnet definitions and component instances for hierarchical nets. This option appears when the net supports subnets. Off by default.
+Shows the tools that build a net from [components](composition.md): the Nets panel, the component tool in the bottom toolbar and, where the application offers libraries, the Components panel. A net that already holds components draws and runs with the setting off. This option appears when the net supports subnets. Off by default.
 
 ### Compilation output (experimental)
 

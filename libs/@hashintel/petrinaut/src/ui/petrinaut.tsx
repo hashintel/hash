@@ -81,7 +81,9 @@ export type PetrinautProps = {
   /**
    * The ids of the libraries on offer. Each is resolved through
    * `resolveImport`, and its components are listed in the Components panel
-   * to place instances of. Define the list at module scope.
+   * to place instances of. The panel shows once the user switches Net
+   * Components on, or where `rules` keep the editor to composing. Define the
+   * list at module scope.
    */
   libraries?: readonly string[];
   /**

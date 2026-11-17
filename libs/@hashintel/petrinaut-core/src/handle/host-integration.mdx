@@ -492,7 +492,8 @@ const libraries = [logistics.id];
   message is shown to the user.
 - **`libraries`** lists the ids on offer. Each is resolved through
   `resolveImport` and listed in the Components panel, to place instances of
-  its components. A document's own imports are resolved whether they are on
+  its components. The panel shows once the composition interface is on: see
+  Rules. A document's own imports are resolved whether they are on
   offer or not. Placing the first instance from a library adds the import to
   the document, as does choosing one of its components as an instance's
   implementation, and removing the last one leaves it there. A mutation can
@@ -584,6 +585,12 @@ whether the rules keep an instance to composing, and
 later is another key, answered by the same functions. `<Petrinaut>` reads the
 rules by what they say, so the object can be written inline: one that says the
 same as the last keeps the editor's instance.
+
+The editor's composition interface is the Nets panel, the component tool and
+the Components panel. It is off until the user switches **Net Components** on
+in the Labs settings, and `edit: "compose"` switches it on whatever the
+setting says. One hook decides it, `useIsCompositionInterfaceOn`. A document
+that already holds components draws and runs with the interface off.
 
 `edit: "compose"` makes an editor that composes the components of the
 libraries on offer and changes nothing else:

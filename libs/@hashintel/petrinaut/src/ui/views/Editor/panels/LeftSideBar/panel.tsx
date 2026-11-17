@@ -4,8 +4,8 @@ import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import { CompositionContext } from "../../../../../react/state/composition-context";
 import { EditorContext } from "../../../../../react/state/editor-context";
-import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { useComposesOnly } from "../../../../../react/state/use-composes-only";
+import { useIsCompositionInterfaceOn } from "../../../../../react/state/use-is-composition-interface-on";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { GlassPanel } from "../../../../components/glass-panel";
 import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
@@ -107,28 +107,26 @@ export const LeftSideBar: React.FC = () => {
     isPanelAnimating,
     isSearchOpen,
   } = use(EditorContext);
-  const { extensions } = use(SDCPNContext);
   const { offered } = use(CompositionContext);
   const composesOnly = useComposesOnly();
+  const isCompositionInterfaceOn = useIsCompositionInterfaceOn();
 
-  const { keepPanelsMounted, enableNetComponents } = use(UserSettingsContext);
+  const { keepPanelsMounted } = use(UserSettingsContext);
 
   // The sidebar is visible when explicitly opened OR when search is active
   const isVisible = isOpen || isSearchOpen;
 
-  // The Nets list is behind the user's Labs setting; the Components panel
-  // shows whenever the host offers libraries to place components from, and
-  // is all an editor that only composes has to show.
+  // The Nets list and the Components panel are part of the composition
+  // interface. The Components panel lists the libraries on offer, and is all
+  // an editor that only composes has to show.
   const sidebarSubViews = LEFT_SIDEBAR_SUBVIEWS.filter((subView) => {
     if (subView.id === "components") {
-      return extensions.subnets && offered.length > 0;
+      return isCompositionInterfaceOn && offered.length > 0;
     }
     if (composesOnly) {
       return false;
     }
-    return subView.id === "nets-list"
-      ? extensions.subnets && enableNetComponents
-      : true;
+    return subView.id !== "nets-list" || isCompositionInterfaceOn;
   });
 
   const searchSubViews = useMemo(() => [searchSubView], []);
