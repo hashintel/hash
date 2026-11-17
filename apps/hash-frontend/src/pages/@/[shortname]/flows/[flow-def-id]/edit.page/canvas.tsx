@@ -182,6 +182,8 @@ const FlowCanvas = ({
   );
   const contextPointRef = useRef<XYPosition>({ x: 0, y: 0 });
   const [addMenu, setAddMenu] = useState<AddMenuState | null>(null);
+  /** Bumped by each add menu opened and each move by hand, so a menu waiting on its pan doesn't open after either. */
+  const addMenuRequestRef = useRef(0);
   /** Where a step picked from the toolbar's add menu will land, while that menu is open. */
   const [toolbarAddPosition, setToolbarAddPosition] =
     useState<XYPosition | null>(null);
@@ -387,6 +389,8 @@ const FlowCanvas = ({
   /** Opens the add menu beside its ghost card, first panning the card out from under a panel or the canvas's edge. */
   const openAddMenu = useCallback(
     (menu: AddMenuState) => {
+      addMenuRequestRef.current += 1;
+      const request = addMenuRequestRef.current;
       const viewport = getViewport();
       const { width, height } = store.getState();
       const center = getCenterToReveal(
@@ -404,7 +408,11 @@ const FlowCanvas = ({
       void setCenter(center.x, center.y, {
         zoom: viewport.zoom,
         duration: 300,
-      }).then(() => setAddMenu(menu));
+      }).then(() => {
+        if (addMenuRequestRef.current === request) {
+          setAddMenu(menu);
+        }
+      });
     },
     [getViewport, store, coveredRight, setCenter],
   );
@@ -834,6 +842,7 @@ const FlowCanvas = ({
                such as panning the card into view, have no event. */
             onMoveStart={(event) => {
               if (event) {
+                addMenuRequestRef.current += 1;
                 setAddMenu(null);
               }
             }}
