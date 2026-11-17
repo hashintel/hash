@@ -38,6 +38,8 @@ type Column = Sorter<RunSortKey> & {
   /** The direction the column sorts in when picked, in its header or in Sort. */
   defaultDirection: SortDirection;
   align?: "right";
+  /** Its width, which holds the longest value it shows. The column without one takes the rest. */
+  className?: string;
 };
 
 /**
@@ -45,24 +47,32 @@ type Column = Sorter<RunSortKey> & {
  * statuses with those that need a look, and text A to Z.
  */
 const columns: Column[] = [
-  { name: "ID", sortKey: "id", defaultDirection: "ASCENDING" },
+  {
+    name: "ID",
+    sortKey: "id",
+    defaultDirection: "ASCENDING",
+    className: css({ width: "[128px]" }),
+  },
   {
     name: "Status",
     sortKey: "status",
     sortIcon: "generic",
     defaultDirection: "ASCENDING",
+    className: css({ width: "[160px]" }),
   },
   {
     name: "Started",
     sortKey: "started",
     sortIcon: "numeric",
     defaultDirection: "DESCENDING",
+    className: css({ width: "[176px]" }),
   },
   {
     name: "Ended",
     sortKey: "ended",
     sortIcon: "numeric",
     defaultDirection: "DESCENDING",
+    className: css({ width: "[176px]" }),
   },
   { name: "Web", sortKey: "web", defaultDirection: "ASCENDING" },
   {
@@ -71,6 +81,7 @@ const columns: Column[] = [
     sortIcon: "numeric",
     defaultDirection: "DESCENDING",
     align: "right",
+    className: css({ width: "[120px]" }),
   },
 ];
 
@@ -78,7 +89,11 @@ const noFilters: RunFilters = { states: [], trigger: null };
 
 const tabCount = css({ color: "fg.subtle", ml: "1.5" });
 const filterBar = css({ mt: "3" });
-const table = css({ mt: "3" });
+const table = css({
+  mt: "3",
+  /* So that the columns keep their widths as tabs and filters change the rows. */
+  tableLayout: "fixed",
+});
 const openableRow = css({
   cursor: "pointer",
   _hover: { backgroundColor: "bg.subtle" },
@@ -94,6 +109,8 @@ const sortButton = css({
   "&[data-active] [data-sort-arrow]": { opacity: "1" },
 });
 const muted = css({ color: "fg.subtle" });
+/* A long shortname is cut short, rather than widening the column. */
+const webCell = css({ overflow: "hidden", textOverflow: "ellipsis" });
 const noMatches = css({ color: "fg.muted" });
 
 /** A column's header, which sorts the table by it, or flips the order when it already does. */
@@ -111,6 +128,7 @@ const SortHeader = ({
 
   return (
     <th
+      className={column.className}
       data-align={column.align}
       aria-sort={active ? (ascending ? "ascending" : "descending") : undefined}
     >
@@ -278,7 +296,7 @@ export const RunsTable = ({
                     <span className={muted}>–</span>
                   )}
                 </td>
-                <td className={muted}>
+                <td className={cx(muted, webCell)}>
                   {row.webShortname ? `@${row.webShortname}` : "–"}
                 </td>
                 <td data-align="right">
