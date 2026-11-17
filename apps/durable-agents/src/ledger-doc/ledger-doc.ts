@@ -15,6 +15,7 @@ import {
   type EntryRecord,
   type JsonObject,
   type Tx,
+  UserEntry,
 } from "@earendil-works/pi-durable";
 import * as v from "valibot";
 
@@ -29,6 +30,8 @@ import {
   ledgerAppendOutputSchema,
 } from "@hashintel/brunch-agent";
 
+import { brunchUserKind } from "../shared/brunch-user-entry";
+
 /** `ledger_commit`'s result: recorded or refused. The lib exports the schema, not the type. */
 export type LedgerAppendOutput = v.InferOutput<typeof ledgerAppendOutputSchema>;
 
@@ -37,7 +40,10 @@ export type LedgerAppendOutput = v.InferOutput<typeof ledgerAppendOutputSchema>;
  * admits a message, and `pi.user`, as conversations admitted before it hold.
  * Host notes and edits (`brunch.hand-edit`, `brunch.prune`) open none.
  */
-const userTurnKinds: ReadonlySet<string> = new Set(["brunch.user", "pi.user"]);
+const userTurnKinds: ReadonlySet<string> = new Set([
+  brunchUserKind,
+  UserEntry.kind,
+]);
 
 /** A USER message the Ledger's turns anchor to, by its user input entry ID. */
 type LedgerUserTurn = { id: string; role: "user"; parts: [] };
