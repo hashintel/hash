@@ -3,7 +3,6 @@ import { use } from "react";
 import { PetrinautInstanceContext } from "../instance-context";
 import { ActiveNetContext } from "../state/active-net-context";
 import { useIsReadOnly } from "../state/use-is-read-only";
-import { useHostRulesFeedback } from "./use-host-rules-feedback";
 import { useReadOnlyFeedback } from "./use-read-only-feedback";
 
 import type { PetrinautCommands } from "@hashintel/petrinaut-core";
@@ -27,17 +26,7 @@ export function usePetrinautCommands(): PetrinautCommands {
   const isReadOnly = useIsReadOnly();
   const notifyReadOnly = useReadOnlyFeedback();
   const { activeSubnetId } = use(ActiveNetContext);
-  const notifyHostRules = useHostRulesFeedback();
   const { commands } = instance;
-
-  /** Says why the host's rules refuse a command, where Core itself would throw. */
-  const refused = (name: keyof PetrinautCommands, input: unknown): boolean => {
-    const refusal = instance.commandRefusal(name, input);
-    if (refusal !== null) {
-      notifyHostRules(refusal);
-    }
-    return refusal !== null;
-  };
 
   return {
     applyClipboardPaste(input) {
@@ -45,20 +34,17 @@ export function usePetrinautCommands(): PetrinautCommands {
         notifyReadOnly();
         return { newItemIds: [] };
       }
-      const targeted = { ...input, targetSubnetId: activeSubnetId };
-      return refused("applyClipboardPaste", targeted)
-        ? { newItemIds: [] }
-        : commands.applyClipboardPaste(targeted);
+      return commands.applyClipboardPaste({
+        ...input,
+        targetSubnetId: activeSubnetId,
+      });
     },
     async applyAutoLayout() {
       if (isReadOnly) {
         notifyReadOnly();
         return { commitCount: 0 };
       }
-      const targeted = { targetSubnetId: activeSubnetId };
-      return refused("applyAutoLayout", targeted)
-        ? { commitCount: 0 }
-        : commands.applyAutoLayout(targeted);
+      return commands.applyAutoLayout({ targetSubnetId: activeSubnetId });
     },
   };
 }

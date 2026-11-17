@@ -23,19 +23,12 @@ import {
   type SubnetIndex,
 } from "./interfaces";
 import { describePortDirection, effectivePortDirections } from "./ports";
-import {
-  isProvidedInterface,
-  noProvidedInterfaces,
-  runsAtHost,
-  type ProvidedInterfaces,
-} from "./provided-components";
 
 import type { ID, PortDirection, SDCPN, Subnet } from "../types/sdcpn";
 
 export type InterfaceProblemCode =
   | "interface-has-body"
   | "interface-implements"
-  | "provided-id-taken"
   | "unknown-interface"
   | "missing-port"
   | "port-type-mismatch"
@@ -217,23 +210,14 @@ const runningOf = (
 
 /**
  * What `subnet` declares: an interface has no body and implements nothing,
- * what a component implements is an interface it lives up to, and the id of
- * a provided component is on that component's interface alone.
+ * and what a component implements is an interface it lives up to.
  */
 const checkDeclarations = (
   subnet: Subnet,
   index: DocumentIndex,
-  provided: ProvidedInterfaces,
 ): InterfaceProblem[] => {
   const problems: InterfaceProblem[] = [];
   const report = reporter(problems, { subnetId: subnet.id });
-  const component = provided.get(subnet.id);
-  if (component && !isProvidedInterface(subnet, provided)) {
-    report(
-      "provided-id-taken",
-      `${subnet.name} has the id of ${component.name}, a component the application provides, but is a net of this document: instances of it are not the application's component.`,
-    );
-  }
   // A list may name an interface twice: its shortfall is reported once.
   const implemented = new Set(subnet.implements);
   if (isInterface(subnet)) {
@@ -300,7 +284,6 @@ const checkDefaults = (
 const checkBindings = (
   sdcpn: SDCPN,
   index: DocumentIndex,
-  provided: ProvidedInterfaces,
 ): InterfaceProblem[] => {
   // An instance of a subnet that does not exist is for other checks to report.
   const held = [
@@ -333,12 +316,10 @@ const checkBindings = (
       instanceId: instance.id,
     });
     if (binding.kind === "unbound") {
-      if (!runsAtHost(binding, provided)) {
-        report(
-          "unbound-instance",
-          describeUnboundInstance(binding, instance.name),
-        );
-      }
+      report(
+        "unbound-instance",
+        describeUnboundInstance(binding, instance.name),
+      );
       continue;
     }
     const running = runningOf(binding);
@@ -355,21 +336,14 @@ const checkBindings = (
   return problems;
 };
 
-/**
- * The problems with the document's interfaces, their implementations and the
- * instances bound to them. An instance of an interface a host provides needs
- * no implementation in the document, and no other subnet has its id.
- */
-export const checkInterfaces = (
-  sdcpn: SDCPN,
-  provided: ProvidedInterfaces = noProvidedInterfaces,
-): InterfaceProblem[] => {
+/** The problems with the document's interfaces, their implementations and the instances bound to them. */
+export const checkInterfaces = (sdcpn: SDCPN): InterfaceProblem[] => {
   const index = indexDocument(sdcpn);
   return [
     ...(sdcpn.subnets ?? []).flatMap((subnet) =>
-      checkDeclarations(subnet, index, provided),
+      checkDeclarations(subnet, index),
     ),
     ...checkDefaults(sdcpn, index.subnetsById),
-    ...checkBindings(sdcpn, index, provided),
+    ...checkBindings(sdcpn, index),
   ];
 };

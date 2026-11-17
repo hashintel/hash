@@ -18,7 +18,6 @@ import {
   getTransitionLogicAvailability,
   indexById,
   indexDocument,
-  runsAtHost,
 } from "@hashintel/petrinaut-core";
 
 import { fusionLinks, type FusionStatus } from "./fusion-links";
@@ -38,7 +37,6 @@ import type {
   PetrinautExtensionSettings,
   PortDirection,
   ProblemSeverity,
-  ProvidedInterfaces,
   RenderNodeDimensions,
   SDCPN,
   Subnet,
@@ -94,8 +92,7 @@ export type CanvasPort = {
 
 /**
  * What an instance runs: its component, or the implementation bound to the
- * interface it points at, `null` while nothing is bound. An instance of a
- * component the host provides reads as a component: the host runs it.
+ * interface it points at, `null` while nothing is bound.
  */
 export type CanvasInstanceBinding =
   | { kind: "component" }
@@ -211,8 +208,6 @@ export type CanvasSceneInput = {
   sdcpn: SDCPN;
   /** The worst problem of each of the net's fusions. */
   fusionStatuses: ReadonlyMap<string, FusionStatus>;
-  /** The interfaces of the components the host provides. */
-  provided: ProvidedInterfaces;
   extensions: PetrinautExtensionSettings;
   dimensions: RenderNodeDimensions;
   draggingStateByNodeId: DraggingStateByNodeId;
@@ -284,7 +279,6 @@ export const buildCanvasScene = ({
   net,
   sdcpn,
   fusionStatuses,
-  provided,
   extensions,
   dimensions,
   draggingStateByNodeId,
@@ -403,10 +397,7 @@ export const buildCanvasScene = ({
     const running =
       resolved?.kind === "bound" ? resolved.implementation : undefined;
     const binding: CanvasInstanceBinding =
-      resolved === null ||
-      resolved.kind === "component" ||
-      // What runs for it is the host's business: nothing is missing here.
-      runsAtHost(resolved, provided)
+      resolved === null || resolved.kind === "component"
         ? { kind: "component" }
         : { kind: "interface", implementationName: running?.name ?? null };
     const foldable = ports.length > foldThreshold;

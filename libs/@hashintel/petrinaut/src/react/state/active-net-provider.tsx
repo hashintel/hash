@@ -1,10 +1,9 @@
 import { use, useEffect, type ReactNode } from "react";
 
-import { isProvidedInterface, toPetrinautId } from "@hashintel/petrinaut-core";
+import { toPetrinautId } from "@hashintel/petrinaut-core";
 
 import { openPetrinautSubnet, usePetrinautNavigation } from "../navigation";
 import { ActiveNetContext } from "./active-net-context";
-import { CompositionContext } from "./composition-context";
 import { SDCPNContext } from "./sdcpn-context";
 
 /**
@@ -16,14 +15,11 @@ import { SDCPNContext } from "./sdcpn-context";
  * by document, so uncontrolled locations reset when the active handle changes.
  * A requested subnet id resolves through `toPetrinautId`, and the location is
  * rewritten to the canonical id, or to the root net when no subnet matches.
- * A component the host provides is a signature with no net to open, so its
- * id resolves to the root net too.
  */
 export const ActiveNetProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const { petriNetDefinition } = use(SDCPNContext);
-  const { provided } = use(CompositionContext);
   const navigation = usePetrinautNavigation();
   const requestedSubnetId = navigation.state.subnetId;
 
@@ -36,13 +32,9 @@ export const ActiveNetProvider: React.FC<{ children: ReactNode }> = ({
 
   const canonicalSubnetId =
     requestedSubnetId !== null ? toPetrinautId(requestedSubnetId) : null;
-  const requested =
+  const subnet =
     canonicalSubnetId !== null
       ? petriNetDefinition.subnets?.find(({ id }) => id === canonicalSubnetId)
-      : undefined;
-  const subnet =
-    requested && !isProvidedInterface(requested, provided)
-      ? requested
       : undefined;
 
   const resolvedSubnetId = subnet ? canonicalSubnetId : null;

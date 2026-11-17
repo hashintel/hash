@@ -6,7 +6,6 @@ import {
   mutationBlockedBy,
   useReadOnlyReason,
 } from "../state/use-read-only-reason";
-import { useHostRulesFeedback } from "./use-host-rules-feedback";
 import { useReadOnlyFeedback } from "./use-read-only-feedback";
 
 import type { PetrinautMutations } from "@hashintel/petrinaut-core";
@@ -24,8 +23,6 @@ type PetrinautMutationInput<Name extends keyof PetrinautMutations> = Parameters<
  *   {@link mutationBlockedBy} names a reason, the rule the AI
  *   tool dispatcher applies too: scenario and metric mutations stay
  *   available in simulate mode, where the Simulate panel manages them.
- * - It shows the sentence and does nothing where the host's rules refuse the
- *   mutation, which Core itself would throw.
  *
  * Components MUST NOT reach for `usePetrinautInstance().mutations` directly;
  * the public `usePetrinautInstance()` return type narrows away the mutation
@@ -41,7 +38,6 @@ export function usePetrinautMutations(): PetrinautMutations {
   const { activeSubnetId } = use(ActiveNetContext);
   const readOnlyReason = useReadOnlyReason();
   const notifyReadOnly = useReadOnlyFeedback();
-  const notifyHostRules = useHostRulesFeedback();
   const { mutations } = instance;
 
   const withReadonlyGuard = <Name extends keyof PetrinautMutations>(
@@ -63,12 +59,6 @@ export function usePetrinautMutations(): PetrinautMutations {
               ...input,
               targetSubnetId: activeSubnetId,
             } as PetrinautMutationInput<Name>);
-      // Asked of the input as it goes out, with the net it targets.
-      const refusal = instance.mutationRefusal(name, nextInput);
-      if (refusal !== null) {
-        notifyHostRules(refusal);
-        return;
-      }
       target(nextInput);
     }) as PetrinautMutations[Name];
     return wrapped;

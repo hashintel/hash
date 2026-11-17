@@ -32,11 +32,6 @@ import {
   isInterface,
   resolveImplementation,
 } from "./composition/interfaces";
-import {
-  ensureProvidedComponent,
-  noProvidedInterfaces,
-  type ProvidedInterfaces,
-} from "./composition/provided-components";
 import { generateDefaultTransitionKernelCode } from "./default-codes";
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
@@ -83,11 +78,6 @@ export type CreatePetrinautActionsOptions = {
    * extension is disabled.
    */
   sanitizeAfterMutation?: boolean;
-  /**
-   * The interfaces of the components the host provides. Pointing an instance
-   * at one the document has no copy of puts it into the document first.
-   */
-  providedInterfaces?: ProvidedInterfaces;
 };
 
 type TargetableInput = {
@@ -792,7 +782,6 @@ export function createPetrinautActions(
   );
   const shouldSanitizeAfterMutation =
     options.sanitizeAfterMutation ?? hasDisabledExtensions;
-  const provided = options.providedInterfaces ?? noProvidedInterfaces;
 
   const sanitizeTransition = (
     transition: SDCPN["transitions"][number],
@@ -1565,7 +1554,6 @@ export function createPetrinautActions(
       const parsedInstance = componentInstanceSchema.parse(instance);
       mutateWithExtensionGuards((sdcpn) => {
         const net = resolveTargetNet(sdcpn, targetSubnetId);
-        ensureProvidedComponent(sdcpn, provided, parsedInstance.subnetId);
         assertComponentInstanceReferences(sdcpn, parsedInstance);
         assertImplementationChoice(sdcpn, parsedInstance);
         getComponentInstances(net).push(parsedInstance);
@@ -1594,10 +1582,6 @@ export function createPetrinautActions(
               // Nor its choice of implementation, unless the update makes
               // one.
               delete instance.implementation;
-
-              // The update may name a provided component the document has
-              // no copy of yet.
-              ensureProvidedComponent(sdcpn, provided, parsed.update.subnetId);
             }
             assignUpdate(instance, update);
             componentInstanceSchema.parse(instance);

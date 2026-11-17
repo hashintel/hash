@@ -103,9 +103,7 @@ beforeEach(() => {
 });
 
 const Wrapper = ({ children }: { children: ReactNode }) => (
-  <PetrinautInstanceContext
-    value={{ mutations, mutationRefusal: () => null } as unknown as Petrinaut}
-  >
+  <PetrinautInstanceContext value={{ mutations } as unknown as Petrinaut}>
     <SDCPNContext
       value={{
         ...use(SDCPNContext),

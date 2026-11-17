@@ -40,12 +40,7 @@ const updateFusion = vi.fn();
 
 const Wrapper = ({ children }: { children: ReactNode }) => (
   <PetrinautInstanceContext
-    value={
-      {
-        mutations: { updateFusion },
-        mutationRefusal: () => null,
-      } as unknown as Petrinaut
-    }
+    value={{ mutations: { updateFusion } } as unknown as Petrinaut}
   >
     <SDCPNContext value={{ ...use(SDCPNContext), readonly: false }}>
       {children}

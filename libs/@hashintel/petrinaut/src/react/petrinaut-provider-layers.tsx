@@ -8,7 +8,6 @@ import {
 import { SDCPNProvider } from "./sdcpn-provider";
 import { ActiveNetProvider } from "./state/active-net-provider";
 import { CanvasViewportProvider } from "./state/canvas-viewport-provider";
-import { CompositionContext } from "./state/composition-context";
 import { EditorProvider } from "./state/editor-provider";
 import { UndoRedoContext } from "./state/undo-redo-context";
 import { UserSettingsProvider } from "./state/user-settings-provider";
@@ -38,9 +37,7 @@ export const PetrinautDocumentProvider: React.FC<
 
   const document = (
     <UserSettingsProvider>
-      <CompositionContext value={{ provided: instance.providedInterfaces }}>
-        <SDCPNProvider>{children}</SDCPNProvider>
-      </CompositionContext>
+      <SDCPNProvider>{children}</SDCPNProvider>
     </UserSettingsProvider>
   );
 

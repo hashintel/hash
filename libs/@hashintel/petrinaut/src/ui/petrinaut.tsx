@@ -13,7 +13,6 @@ import {
   type LspWorkerFactory,
   type WorkerFactory,
   type MinimalNetMetadata,
-  type ProvidedComponent,
   type SDCPN,
   type SimulatorRegistration,
 } from "@hashintel/petrinaut-core";
@@ -61,13 +60,6 @@ export type PetrinautProps = {
   title?: string;
   setTitle?: (title: string) => void;
   readonly?: boolean;
-  /**
-   * Components the host provides. The user instantiates them from the
-   * Components panel and wires their ports; each is a signature, ports and
-   * parameters, with no net to open. Define the list at module scope: a new
-   * list creates a new editor instance.
-   */
-  components?: readonly ProvidedComponent[];
   /**
    * Controls visibility of net-management UI in the editor's top bar and
    * burger menu.
@@ -141,7 +133,6 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   title = "Untitled",
   setTitle,
   readonly = false,
-  components,
   hideNetManagementControls,
   existingNets = [],
   createNewNet = noop,
@@ -157,8 +148,8 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   const titleEditable = setTitle !== undefined;
   const portalContainerRef = useRef<HTMLDivElement>(null);
   const instance = useMemo<Instance>(
-    () => createPetrinaut({ document: handle, readonly, components }),
-    [handle, readonly, components],
+    () => createPetrinaut({ document: handle, readonly }),
+    [handle, readonly],
   );
 
   useEffect(() => () => instance.dispose(), [instance]);
