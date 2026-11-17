@@ -76,8 +76,8 @@ export const useHashIconMotionAllowed = () =>
 
 const searchGeometry = (
   <g fill="none">
-    <circle cx="10.5" cy="10.5" r="6.5" />
-    <path d="m15.5 15.5 4.5 4.5" />
+    <circle cx="10.5" cy="10.5" r="6.75" />
+    <path d="m15.25 15.25 5.25 5.25" />
   </g>
 );
 
@@ -102,17 +102,20 @@ const geometry = {
       <path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V4a1.5 1.5 0 0 1 3 0v1.5a1.5 1.5 0 0 1 3 0v2a1.5 1.5 0 0 1 3 0V14c0 4.5-2.5 7-6.5 7h-.75c-2 0-3.75-.8-5.25-2.25L3.75 14a1.5 1.5 0 0 1 2.1-2.1L8 14.1Z" />
     </FilledShape>
   ),
-  cursor: <path d="M5 5 19.5 11.5 13 13 11.5 19.5Z" />,
+  cursor: <path d="M4.5 3.5v17L9 16l3.5 6 3-1.75-3.5-6H19Z" />,
   place: <circle cx="12" cy="12" r="8" />,
-  transition: <rect x="4" y="4" width="16" height="16" rx="2" />,
+  transition: <rect x="4" y="4" width="16" height="16" rx="1" />,
   addPlace: null,
   addTransition: null,
   settings: null,
   parameter: null,
   function: (
-    <path d="M7 20h1c2 0 2.5-2 3-5l1-6c.5-3 1-5 3-5h2M7 10h10" fill="none" />
+    <path
+      d="M6.5 20h1.1c2.1 0 2.5-1.9 3-4.8l1.1-6.4C12.2 5.9 12.8 4 15.2 4h2.3M7 10.5h10"
+      fill="none"
+    />
   ),
-  play: <path d="M7 4.5 20 12 7 19.5Z" />,
+  play: <path d="M7 4.75 19.5 12 7 19.25Z" />,
   pause: <PauseGeometry />,
   stepForward: (
     <>
@@ -120,7 +123,7 @@ const geometry = {
       <path d="M19 5v14" fill="none" />
     </>
   ),
-  stop: <rect x="4" y="4" width="16" height="16" rx="2" />,
+  stop: <rect x="4" y="4" width="16" height="16" rx="1" />,
   plus: <path d="M5 12h14M12 5v14" fill="none" />,
   minus: <path d="M5 12h14" fill="none" />,
   close: <path d="m6 6 12 12M6 18 18 6" fill="none" />,
@@ -139,10 +142,10 @@ const geometry = {
     </>
   ),
   fitView: <path d="M9 4H4v5m11-5h5v5M4 15v5h5m11-5v5h-5" fill="none" />,
-  chevronUp: <path d="m6 15 6-6 6 6" fill="none" />,
-  chevronDown: <path d="m6 9 6 6 6-6" fill="none" />,
-  chevronLeft: <path d="m15 6-6 6 6 6" fill="none" />,
-  chevronRight: <path d="m9 6 6 6-6 6" fill="none" />,
+  chevronUp: <path d="m7 14.5 5-5 5 5" fill="none" />,
+  chevronDown: <path d="m7 9.5 5 5 5-5" fill="none" />,
+  chevronLeft: <path d="m14.5 7-5 5 5 5" fill="none" />,
+  chevronRight: <path d="m9.5 7 5 5-5 5" fill="none" />,
   ...modelingGeometry,
 } as const;
 
@@ -264,7 +267,7 @@ export const HashIcon = ({
   const resolvedWeight = Number.isFinite(requestedWeight)
     ? Math.min(700, Math.max(100, requestedWeight))
     : 400;
-  const resolvedStrokeWidth = strokeWidth ?? 1 + (resolvedWeight - 100) / 300;
+  const resolvedStrokeWidth = strokeWidth ?? 0.75 + resolvedWeight / 400;
   const labelled = Boolean(props["aria-label"] || props["aria-labelledby"]);
 
   return (
@@ -276,8 +279,9 @@ export const HashIcon = ({
       fill={variant === "filled" ? "currentColor" : "none"}
       stroke="currentColor"
       strokeWidth={resolvedStrokeWidth}
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      strokeLinecap="butt"
+      strokeLinejoin="miter"
+      strokeMiterlimit={2}
       color={color ?? defaults.color ?? "currentColor"}
       role={labelled ? "img" : undefined}
       aria-hidden={labelled ? undefined : true}
@@ -285,6 +289,10 @@ export const HashIcon = ({
       {...props}
       style={
         {
+          "--hash-icon-stroke-width": resolvedStrokeWidth,
+          "--hash-icon-dot-size": "calc(var(--hash-icon-stroke-width) * 1.25)",
+          "--hash-icon-detail-stroke":
+            "calc(var(--hash-icon-stroke-width) * 1.4)",
           "--petricon-iterations":
             resolvedAnimationMode === "continuous" ? "infinite" : "1",
           ...(name === "diagnostics" ? { transition: resolvedTransition } : {}),
