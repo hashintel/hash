@@ -84,7 +84,7 @@ const rowStyle = css({
   gap: "1.5",
   width: "[100%]",
   height: "[32px]",
-  paddingLeft: "1",
+  paddingLeft: "0",
   // The count at the right keeps 8 px inside the selected fill.
   paddingRight: "2",
   borderRadius: "md",
@@ -115,11 +115,11 @@ const chevronSlotStyle = css({
   alignItems: "center",
   justifyContent: "center",
   flexShrink: 0,
-  // J1.1: the expand slot is 8 px at 4 px in; with the row's 6 px gap the tile lands 16 px in.
-  width: "[6px]",
-  height: "[16px]",
-  color: "neutral.fg.subtle",
-  "& svg": { width: "[10px]", height: "[10px]" },
+  width: "[12px]",
+  height: "[12px]",
+  marginRight: "[-2px]",
+  color: "neutral.fg.muted",
+  "& svg": { width: "[12px]", height: "[12px]" },
 });
 
 const tileStyle = cva({
@@ -231,7 +231,10 @@ const listHeadStyle = css({
   alignItems: "center",
   justifyContent: "space-between",
   height: "[32px]",
-  paddingLeft: "3",
+  paddingLeft: "4",
+  marginTop: "1",
+  lineHeight: "[16px]",
+  fontWeight: "normal",
   // 14 px, not 16: centres the 21 px Collapse all button on the rows' 16 px run marks (5 Nov: "misaligned").
   paddingRight: "[14px]",
   textStyle: "xs",
@@ -350,8 +353,8 @@ const FlowList = ({
   /** The row's indent: on the button today, after the left slot with marks on the left. */
   const indent = (depth: number) =>
     side === "left"
-      ? { button: { paddingLeft: 4 }, chevron: { marginLeft: depth * 16 } }
-      : { button: { paddingLeft: 4 + depth * 16 }, chevron: undefined };
+      ? { button: { paddingLeft: 0 }, chevron: { marginLeft: depth * 16 } }
+      : { button: { paddingLeft: depth * 16 }, chevron: undefined };
   // Shared with the canvas: a For each closed here folds its box there too (J1.13).
   const closed = ui.collapsed ?? [];
   const setClosed = (next: string[] | ((current: string[]) => string[])) =>
@@ -469,6 +472,7 @@ const FlowList = ({
           size="xs"
           variant="ghost"
           tone="neutral"
+          className={css({ color: "neutral.fg.muted" })}
           iconName={allClosed ? "expand" : "collapse"}
           aria-label={allClosed ? "Expand all" : "Collapse all"}
           tooltip={allClosed ? "Expand all" : "Collapse all"}

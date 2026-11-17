@@ -264,7 +264,11 @@ const useStepFacts = (stepId: string) => {
       ? getCatalogEntry(step.actionDefinitionId)
       : undefined;
   const icon: IconName = entry?.icon ?? "user";
-  return { icon, kind: entry?.title ?? "Ask a person" };
+  return {
+    icon,
+    kind: entry?.title ?? "Ask a person",
+    name: step?.description,
+  };
 };
 
 const splitPath = (request: ReviewRequest) => {
@@ -318,8 +322,25 @@ const InboxButton = ({ request }: { request: ReviewRequest }) => (
 
 const listCountStyle = css({ color: "neutral.fg.muted" });
 
-const ListTitle = ({ count }: { count: number }) => (
-  <span className={sectionTitleStyle}>
+const ListTitle = ({
+  count,
+  quiet = false,
+}: {
+  count: number;
+  quiet?: boolean;
+}) => (
+  <span
+    className={
+      quiet
+        ? css({
+            textStyle: "xs",
+            lineHeight: "[16px]",
+            fontWeight: "normal",
+            color: "neutral.fg.muted",
+          })
+        : sectionTitleStyle
+    }
+  >
     Needs review <span className={listCountStyle}>· {count}</span>
   </span>
 );
@@ -364,13 +385,15 @@ const QuestionRow = ({
   current,
   oneLine,
   onPick,
+  stepCount,
 }: {
   request: R2Request;
   current: boolean;
   oneLine?: boolean;
+  stepCount?: number;
   onPick: () => void;
 }) => {
-  const { icon, kind } = useStepFacts(request.stepId);
+  const { icon, kind, name } = useStepFacts(request.stepId);
   const { step, item } = splitPath(request);
   const { answers } = useReview();
   const answered = Boolean(answerOf(request, answers));
@@ -395,15 +418,38 @@ const QuestionRow = ({
       onClick={onPick}
     >
       {side === "left" ? sideMark : null}
-      <RowTile icon={icon} twoLine={!oneLine} tint={tileColor(icon)} />
+      {stepCount !== undefined ? (
+        <span
+          className={css({
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+            width: "[32px]",
+            height: "[32px]",
+            borderRadius: "md",
+          })}
+          style={tileColor(icon)}
+        >
+          <Icon name={icon} size="sm" />
+        </span>
+      ) : (
+        <RowTile icon={icon} twoLine={!oneLine} tint={tileColor(icon)} />
+      )}
       <span className={css({ flex: "1", minWidth: "[0]" })}>
         {oneLine ? (
           <span className={lineOne}>{request.path}</span>
         ) : (
-          // The item the question is about over its step: short real names that fit a narrow column.
           <>
-            <span className={lineOne}>{item ?? step}</span>
-            <span className={lineTwo}>{item ? step : kind}</span>
+            <span className={lineOne}>
+              {stepCount !== undefined ? (name ?? step) : (item ?? step)}
+              {stepCount !== undefined && stepCount > 1 ? (
+                <span className={listCountStyle}> · {stepCount}</span>
+              ) : null}
+            </span>
+            <span className={lineTwo}>
+              {stepCount !== undefined ? kind : item ? step : kind}
+            </span>
           </>
         )}
       </span>
@@ -426,9 +472,11 @@ const QuestionRow = ({
 const QuestionList = ({
   oneLine,
   direction = "column",
+  byStep = false,
 }: {
   oneLine?: boolean;
   direction?: "column" | "row";
+  byStep?: boolean;
 }) => {
   const { shown, open, answers } = useShown();
   const pick = usePick();
@@ -437,6 +485,17 @@ const QuestionList = ({
   const answered = viewerRequests.filter((request) =>
     Boolean(answerOf(request, answers)),
   );
+  const groupRequests = (requests: R2Request[]) =>
+    byStep
+      ? requests.filter(
+          (request, index) =>
+            requests.findIndex(
+              (candidate) => candidate.stepId === request.stepId,
+            ) === index,
+        )
+      : requests;
+  const openRows = groupRequests(open);
+  const answeredRows = groupRequests(answered);
   if (direction === "row") {
     return (
       <div className={css({ display: "flex", gap: "2", minWidth: "[0]" })}>
@@ -471,11 +530,21 @@ const QuestionList = ({
   }
   return (
     <div className={css({ display: "flex", flexDirection: "column" })}>
-      {open.map((request) => (
+      {openRows.map((request) => (
         <QuestionRow
           key={request.id}
           request={request}
-          current={shown?.id === request.id}
+          current={
+            byStep
+              ? shown?.stepId === request.stepId && !answerOf(shown, answers)
+              : shown?.id === request.id
+          }
+          stepCount={
+            byStep
+              ? open.filter((candidate) => candidate.stepId === request.stepId)
+                  .length
+              : undefined
+          }
           oneLine={oneLine}
           onPick={() => pick(request)}
         />
@@ -484,7 +553,7 @@ const QuestionList = ({
         <button
           type="button"
           className={cx(rowBase, css({ color: "neutral.fg.muted", textStyle: "sm" }))}
-          style={{ height: 32 }}
+          style={{ height: byStep ? 36 : 32 }}
           data-control-check="skip"
           onClick={() => setShowAnswered((value) => !value)}
         >
@@ -498,17 +567,27 @@ const QuestionList = ({
               flexShrink: 0,
             })}
           >
-            <Icon name={showAnswered ? "chevronDown" : "chevronRight"} size="sm" />
+            <Icon
+              name={showAnswered ? "chevronDown" : "chevronRight"}
+              size={byStep ? "xs" : "sm"}
+            />
           </span>
           Answered · {answered.length}
         </button>
       ) : null}
       {showAnswered
-        ? answered.map((request) => (
+        ? answeredRows.map((request) => (
             <QuestionRow
               key={request.id}
               request={request}
               current={shown?.id === request.id}
+              stepCount={
+                byStep
+                  ? answered.filter(
+                      (candidate) => candidate.stepId === request.stepId,
+                    ).length
+                  : undefined
+              }
               oneLine={oneLine}
               onPick={() => pick(request)}
             />
@@ -1044,18 +1123,25 @@ const ListInSteps = () => {
             flexDirection: "column",
             gap: "2",
             paddingX: "2",
-            paddingTop: "3",
-            paddingBottom: "3",
+            paddingTop: "2",
+            paddingBottom: "2",
             borderBottomWidth: "thin",
             borderBottomStyle: "solid",
             borderBottomColor: "neutral.bd.subtle",
           })}
           data-review-list
         >
-          <span className={css({ paddingX: "2", paddingY: "1" })}>
-            <ListTitle count={open.length} />
+          <span
+            className={css({
+              display: "flex",
+              alignItems: "center",
+              height: "[32px]",
+              paddingX: "2",
+            })}
+          >
+            <ListTitle count={open.length} quiet />
           </span>
-          <QuestionList />
+          <QuestionList byStep />
         </div>,
         host,
       )
