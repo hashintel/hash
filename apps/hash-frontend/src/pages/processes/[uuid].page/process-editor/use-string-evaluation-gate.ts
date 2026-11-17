@@ -2,6 +2,7 @@ import Router, { type NextRouter, useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
 import { isProcessEditorPath } from "../../../../lib/csp";
+import { readDocumentPathname } from "../../../../lib/document-pathname";
 
 type RouterEvents = Pick<NextRouter["events"], "on" | "off">;
 
@@ -22,16 +23,6 @@ export const canEvaluateStrings = (): boolean => {
     }
     throw error;
   }
-};
-
-/**
- * The pathname this document was itself loaded at, which decides its policy.
- * Unlike `location`, client-side navigation doesn't change it. `null` when the
- * browser doesn't report the document's navigation.
- */
-const readDocumentPathname = (): string | null => {
-  const [entry] = performance.getEntriesByType("navigation");
-  return entry ? new URL(entry.name).pathname : null;
 };
 
 /**

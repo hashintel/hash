@@ -1,13 +1,15 @@
 import Script from "next/script";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
+import { readDocumentPathname } from "../../../../lib/document-pathname";
 import {
   GoogleAuthContext,
   useIsGoogleAuthAvailable,
 } from "./google-auth-context";
 import { useGoogleAccounts } from "./google-auth-context/use-google-accounts";
+import { runGooglePolicyGate } from "./google-policy-gate";
 
 import type { GoogleAuthContextReturn } from "./google-auth-context";
 import type { PropsWithChildren } from "react";
@@ -16,6 +18,21 @@ const googleOAuthClientId = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID;
 
 export const GoogleAuthProvider = ({ children }: PropsWithChildren) => {
   const available = useIsGoogleAuthAvailable();
+
+  const [policyAllowsGoogle, setPolicyAllowsGoogle] = useState(false);
+
+  useEffect(() => {
+    if (!available) {
+      return;
+    }
+    setPolicyAllowsGoogle(
+      runGooglePolicyGate({
+        documentPathname: readDocumentPathname,
+        currentPathname: () => window.location.pathname,
+        reload: () => window.location.reload(),
+      }),
+    );
+  }, [available]);
 
   const [oauthClient, setOAuthClient] =
     useState<google.accounts.oauth2.CodeClient | null>(null);
@@ -140,7 +157,7 @@ export const GoogleAuthProvider = ({ children }: PropsWithChildren) => {
 
   return (
     <GoogleAuthContext.Provider value={value}>
-      {available && (
+      {available && policyAllowsGoogle && (
         <Script
           src="https://accounts.google.com/gsi/client"
           onReady={loadOAuthClient}

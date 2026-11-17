@@ -4,6 +4,7 @@ import {
   buildCspHeader,
   buildReportingEndpointsHeader,
   buildReportOnlyCspHeader,
+  isGoogleIntegrationPath,
   isProcessEditorPath,
 } from "./csp";
 
@@ -157,6 +158,69 @@ describe("buildCspHeader with Brunch configured", () => {
       ),
     ).toEqual(["https://agent.brunch.example"]);
   });
+});
+
+const googleIntegrationPaths = [
+  "/settings/integrations/google-sheets",
+  "/goals/new",
+  "/goals/new/",
+  "/@alice/flows/00000000-0000-4000-8000-000000000002",
+  "/@alice/workers/00000000-0000-4000-8000-000000000002",
+  "/@/alice/workers/00000000-0000-4000-8000-000000000002",
+];
+
+const nonGoogleIntegrationPaths = [
+  "/",
+  "/settings/integrations",
+  "/goals",
+  "/@alice",
+  "/@alice/flows",
+  "/@alice/flows/00000000-0000-4000-8000-000000000002/edit",
+  "/@alice/entities/00000000-0000-4000-8000-000000000002",
+  "/processes/draft",
+];
+
+describe("isGoogleIntegrationPath", () => {
+  test.each(googleIntegrationPaths)("matches %s", (pathname) => {
+    expect(isGoogleIntegrationPath(pathname)).toBe(true);
+  });
+
+  test.each(nonGoogleIntegrationPaths)("does not match %s", (pathname) => {
+    expect(isGoogleIntegrationPath(pathname)).toBe(false);
+  });
+});
+
+describe("buildCspHeader's Google allowances", () => {
+  test.each(googleIntegrationPaths)("allows Google on %s", (pathname) => {
+    vi.stubEnv("NODE_ENV", "production");
+    const header = buildCspHeader({ nonce: "abc", pathname });
+
+    expect(directiveSources(header, "script-src")).toEqual(
+      expect.arrayContaining([
+        "https://accounts.google.com",
+        "https://apis.google.com",
+      ]),
+    );
+    expect(directiveSources(header, "frame-src")).toEqual(
+      expect.arrayContaining([
+        "https://accounts.google.com",
+        "https://docs.google.com",
+      ]),
+    );
+    expect(directiveSources(header, "connect-src")).toContain(
+      "https://www.googleapis.com",
+    );
+  });
+
+  test.each(nonGoogleIntegrationPaths)(
+    "names no Google origin on %s",
+    (pathname) => {
+      vi.stubEnv("NODE_ENV", "production");
+      const header = buildCspHeader({ nonce: "abc", pathname });
+
+      expect(header).not.toContain("google");
+    },
+  );
 });
 
 describe("buildCspHeader's Vercel toolbar allowance", () => {
