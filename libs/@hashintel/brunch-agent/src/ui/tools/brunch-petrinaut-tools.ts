@@ -10,11 +10,13 @@ import {
   parseNetReaderInput,
 } from "@hashintel/brunch-agent";
 import {
+  describeImports,
   getLatestNetDefinitionToolName,
   getNetCompilationErrorsToolName,
   mutationActionInputSchemas,
   petrinautAiTools,
   resolvePetrinautHandleCapabilities,
+  type ImportStates,
   type PetrinautDocHandle,
 } from "@hashintel/petrinaut-core";
 
@@ -94,16 +96,19 @@ const currentRevision = (
 
 /**
  * The net as a read shows it: its title, its definition at `detail` (the
- * readers' projections, or all of it), and the document's enabled extensions.
+ * readers' projections, or all of it), the document's enabled extensions,
+ * and the libraries it imports or is offered, where there are any.
  */
 export const netReadOutput = ({
   handle,
   title,
   detail,
+  imports,
 }: {
   readonly handle: PetrinautDocHandle;
   readonly title: string;
   readonly detail: NetReaderLevel | "full";
+  readonly imports: ImportStates;
 }) => {
   const definition = handle.doc();
   if (!definition)
@@ -114,6 +119,8 @@ export const netReadOutput = ({
     definition: detail === "full" ? copy : projectNetDefinition(copy, detail),
     extensions: resolvePetrinautHandleCapabilities(handle.capabilities)
       .extensions,
+    // Left out of a net that imports nothing and is offered nothing.
+    ...(imports.size > 0 ? { imports: describeImports(imports) } : {}),
   };
 };
 
@@ -171,12 +178,18 @@ export const createCanonicalPetrinautHostTools = (
     detail: NetReaderLevel | "full",
     toolCallId: string,
     handle: PetrinautDocHandle,
+    imports: ImportStates,
   ) => {
     const prior = priorOutput(toolCallId);
     if (prior.found) return prior.output;
     if (input.replayReadiness.status === "pending")
       throw new Error("Conversation history is not ready.");
-    const output = netReadOutput({ handle, title: input.readTitle(), detail });
+    const output = netReadOutput({
+      handle,
+      title: input.readTitle(),
+      detail,
+      imports,
+    });
     stampBefore(toolCallId, handle);
     toolNames.set(toolCallId, toolName);
     started.set(toolCallId, { toolName, input: {}, output });
@@ -186,8 +199,14 @@ export const createCanonicalPetrinautHostTools = (
     toolName: getLatestNetDefinitionToolName,
     inputParser: petrinautAiTools[getLatestNetDefinitionToolName].inputSchema,
     outputParser: passthrough,
-    execute: ({ toolCallId, handle }) =>
-      readNet(getLatestNetDefinitionToolName, "full", toolCallId, handle),
+    execute: ({ toolCallId, handle, document }) =>
+      readNet(
+        getLatestNetDefinitionToolName,
+        "full",
+        toolCallId,
+        handle,
+        document.imports.get(),
+      ),
   };
   const readerTools: PetrinautAiAutomaticTool[] = (
     Object.keys(netReaderToolNames) as NetReaderLevel[]
@@ -195,8 +214,14 @@ export const createCanonicalPetrinautHostTools = (
     toolName: netReaderToolNames[level],
     inputParser: { parse: parseNetReaderInput },
     outputParser: passthrough,
-    execute: ({ toolCallId, handle }) =>
-      readNet(netReaderToolNames[level], level, toolCallId, handle),
+    execute: ({ toolCallId, handle, document }) =>
+      readNet(
+        netReaderToolNames[level],
+        level,
+        toolCallId,
+        handle,
+        document.imports.get(),
+      ),
   }));
   const diagnosticsTool: PetrinautAiAutomaticTool = {
     toolName: getNetCompilationErrorsToolName,

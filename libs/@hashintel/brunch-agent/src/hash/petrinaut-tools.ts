@@ -502,7 +502,7 @@ export const hashPetrinautTools = {
   petrinaut_get_net: standIn({
     operation: "getLatestNetDefinition",
     description:
-      "Read the net open in the editor at one level of detail. Returns { title, definition, extensions }: the user-visible net title, the net, and the extension capabilities enabled for this document.",
+      "Read the net open in the editor at one level of detail. Returns { title, definition, extensions }: the user-visible net title, the net, and the extension capabilities enabled for this document. Where the net imports libraries or the editor offers some, also `imports`: each library with its `status` and, once `resolved`, its `name` and `components`, each with its `id`, whether it is an `interface`, its `ports` and its `parameters`. Place an instance of one with `petrinaut_create_component` and `component: { from: <library id>, id: <component id> }`.",
     shape: {
       detail: netDetailSchema.meta({
         description:

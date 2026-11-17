@@ -155,7 +155,7 @@ export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
 const getLatestNetDefinitionToolInputSchema = z
   .strictObject({})
   .describe(
-    "Get the current Petrinaut net state. Returns `{ title, definition, extensions }` where `title` is the user-visible net title, `definition` is the complete SDCPN net definition, and `extensions` lists the currently enabled Petrinaut extension capabilities.",
+    "Get the current Petrinaut net state. Returns `{ title, definition, extensions, imports }` where `title` is the user-visible net title, `definition` is the complete SDCPN net definition, `extensions` lists the currently enabled Petrinaut extension capabilities, and `imports` lists the libraries the net imports and those the application offers: each with its `status` (`resolving`, `resolved` or `failed` with a `message`) and, once resolved, its `name` and `components`. A component gives its `id`, whether it is an `interface`, its `ports` and its `parameters`. Place an instance of one with `addComponentInstance` and `component: { from: <library id>, id: <component id> }`; name its ports by their `id` as `portPlaceId`, and key `parameterValues` by its parameters' `id`s.",
   );
 
 const getNetCompilationErrorsToolInputSchema = z
@@ -240,7 +240,7 @@ const petrinautDocIndex = petrinautDocNames
   .join("\n");
 
 const petrinautAiCapabilityIntroduction = `Use the provided tools to directly modify the current net. The tools use Petrinaut's raw mutation interfaces, so include stable IDs, full entity objects where required, and canvas positions for places and transitions.
-You can check the current net state at any point using the ${getLatestNetDefinitionToolName} tool, which returns \`{ title, definition, extensions }\` — the user-visible net title, the complete SDCPN, and the active extension capabilities for this document. Use it before making changes that depend on existing places, transitions, arcs, scenarios, metrics, parameters, or types; consult \`extensions\` before authoring extension-specific content; and consult the \`title\` when deciding whether the net could use a more descriptive name.
+You can check the current net state at any point using the ${getLatestNetDefinitionToolName} tool, which returns \`{ title, definition, extensions, imports }\` — the user-visible net title, the complete SDCPN, the active extension capabilities for this document, and the libraries it imports or is offered, with their components. Use it before making changes that depend on existing places, transitions, arcs, scenarios, metrics, parameters, or types; consult \`extensions\` before authoring extension-specific content; and consult the \`title\` when deciding whether the net could use a more descriptive name.
 You can check current TypeScript compilation diagnostics at any point using the ${getNetCompilationErrorsToolName} tool.
 You can rename the net at any point using the ${setNetTitleToolName} tool.
 You can read pages of the Petrinaut user guide at any point using the ${readPetrinautDocToolName} tool. Reach for it when the user asks how a UI workflow works (panels, simulation controls, visual settings, the built-in examples), or when you need to confirm a UI detail before instructing them. The available pages and what they cover:

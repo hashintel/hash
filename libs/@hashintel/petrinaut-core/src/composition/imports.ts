@@ -5,15 +5,17 @@
  * they stand.
  */
 
+import { isInterface } from "./interfaces";
 import {
   resolveLibrary,
   type Library,
   type ResolvedLibraries,
   type ResolvedLibrary,
 } from "./libraries";
+import { effectivePortDirection } from "./ports";
 
 import type { ReadableStore } from "../store";
-import type { SDCPN } from "../types/sdcpn";
+import type { ID, Parameter, PortDirection, SDCPN } from "../types/sdcpn";
 
 export type ImportState =
   | { status: "resolving" }
@@ -53,6 +55,59 @@ export const resolvedLibraries = (states: ImportStates): ResolvedLibraries => {
   librariesByStates.set(states, libraries);
   return libraries;
 };
+
+/** A component of a library, as far as placing and wiring an instance of it goes. */
+export type LibraryComponentSummary = {
+  /** What an instance names it by, with the library's id as `from`. */
+  id: string;
+  name: string;
+  description?: string;
+  /** An interface runs nothing itself: an instance of it needs an implementation. */
+  interface: boolean;
+  /** `id` is what a fusion member or an arc endpoint names as `portPlaceId`. */
+  ports: { id: ID; name: string; direction: PortDirection }[];
+  /** `id` keys an instance's `parameterValues`. */
+  parameters: Parameter[];
+};
+
+/** An import and where it stands, with its components once it resolved. */
+export type ImportSummary = { id: string } & (
+  | { status: "resolving" }
+  | { status: "failed"; message: string }
+  | { status: "resolved"; name: string; components: LibraryComponentSummary[] }
+);
+
+/**
+ * What `states` hold, in a form to hand an assistant or to list: each import
+ * with its state, and each component of a resolved library with the ids a
+ * document names its ports and parameters by. Bodies are left out.
+ */
+export const describeImports = (states: ImportStates): ImportSummary[] =>
+  [...states].map(([id, state]) =>
+    state.status === "resolved"
+      ? {
+          id,
+          status: state.status,
+          name: state.library.name,
+          components: state.library.components.map((component) => ({
+            id: component.id,
+            name: component.name,
+            ...(component.description === undefined
+              ? {}
+              : { description: component.description }),
+            interface: isInterface(component),
+            ports: component.places
+              .filter((place) => place.isPort)
+              .map((place) => ({
+                id: place.id,
+                name: place.name,
+                direction: effectivePortDirection(component, place),
+              })),
+            parameters: component.parameters,
+          })),
+        }
+      : { id, ...state },
+  );
 
 /** Whether an import of the document is still resolving. */
 export const isResolvingImports = (

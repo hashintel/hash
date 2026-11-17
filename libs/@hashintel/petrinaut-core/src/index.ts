@@ -120,11 +120,17 @@ export type {
 } from "./composition/interfaces";
 
 // --- Composition: imports and the libraries a host resolves them to ---
-export { isResolvingImports, resolvedLibraries } from "./composition/imports";
+export {
+  describeImports,
+  isResolvingImports,
+  resolvedLibraries,
+} from "./composition/imports";
 export { inlineImports } from "./composition/inline-imports";
 export type {
   ImportState,
   ImportStates,
+  ImportSummary,
+  LibraryComponentSummary,
   ResolveImport,
 } from "./composition/imports";
 export { resolveLibrary } from "./composition/libraries";

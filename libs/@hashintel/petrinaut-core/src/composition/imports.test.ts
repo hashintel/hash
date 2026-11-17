@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { toPetrinautId } from "../petrinaut-id";
 import { createReadableStore } from "../store";
 import {
   createImportStore,
+  describeImports,
   isResolvingImports,
   resolvedLibraries,
   type ImportStates,
@@ -53,6 +55,64 @@ const deferred = () => {
 
 /** Lets a settled promise reach its handlers. */
 const settled = () => Promise.resolve();
+
+describe("describeImports", () => {
+  it("lists each import with its state, and a resolved library's components with the ids a document names", () => {
+    const { resolveImport, settle } = deferred();
+    const { store } = storeOf(
+      importing(logistics.id, "@hashintel/later", "@hashintel/unknown"),
+      (id) => {
+        if (id === logistics.id) {
+          return logistics;
+        }
+        return id === "@hashintel/later" ? resolveImport(id) : undefined;
+      },
+    );
+    void settle;
+
+    expect(describeImports(store.get())).toEqual([
+      {
+        id: logistics.id,
+        status: "resolved",
+        name: "Logistics",
+        components: [
+          {
+            id: "scale",
+            name: "Scale",
+            description: "Weighs what passes",
+            interface: true,
+            ports: [
+              { id: toPetrinautId("in"), name: "In", direction: "in" },
+              { id: toPetrinautId("out"), name: "Out", direction: "out" },
+            ],
+            parameters: [
+              expect.objectContaining({
+                id: toPetrinautId("rate"),
+                variableName: "rate",
+              }),
+            ],
+          },
+          expect.objectContaining({
+            id: "belt",
+            interface: false,
+            // Read off the body's arcs, which the library left to it.
+            ports: [
+              { id: toPetrinautId("in"), name: "In", direction: "in" },
+              { id: toPetrinautId("out"), name: "Out", direction: "out" },
+            ],
+          }),
+        ],
+      },
+      { id: "@hashintel/later", status: "resolving" },
+      {
+        id: "@hashintel/unknown",
+        status: "failed",
+        message:
+          "The application does not know the library `@hashintel/unknown`.",
+      },
+    ]);
+  });
+});
 
 describe("createImportStore", () => {
   it("resolves a library given in memory at once", () => {

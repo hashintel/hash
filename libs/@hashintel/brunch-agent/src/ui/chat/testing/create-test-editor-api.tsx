@@ -116,6 +116,7 @@ export const createTestEditorApi = (
       id: instance.handle.id,
       handle: instance.handle,
       net: instance.definition,
+      imports: instance.imports,
       title: titleStore,
       extensions: instance.extensions,
       diagnostics: createReadableStore<DiagnosticsSnapshot>({
