@@ -554,6 +554,7 @@ describe("token flow through fused ports", () => {
             fusions: [
               {
                 id: "f1",
+                name: "F1",
                 members: [
                   { kind: "place", placeId: "feed" },
                   portOf("s1", "in"),
@@ -638,7 +639,11 @@ describe("token flow through fused ports", () => {
       subnets: [sink],
       componentInstances: [instance("k1", "sink"), instance("k2", "sink")],
       fusions: [
-        { id: "f1", members: [portOf("k1", "in"), portOf("k2", "in")] },
+        {
+          id: "f1",
+          name: "F1",
+          members: [portOf("k1", "in"), portOf("k2", "in")],
+        },
       ],
     });
 
@@ -654,7 +659,7 @@ describe("token flow through fused ports", () => {
         }),
       ],
       componentInstances: [instance("l1", "loop")],
-      fusions: [{ id: "f1", members: [portOf("l1", "pool")] }],
+      fusions: [{ id: "f1", name: "F1", members: [portOf("l1", "pool")] }],
     });
 
     const kinds = checkComposition(sdcpn).map(({ kind }) => kind);

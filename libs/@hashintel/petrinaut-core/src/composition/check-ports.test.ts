@@ -104,6 +104,7 @@ describe("checkPorts", () => {
         fusions: [
           {
             id: "f1",
+            name: "F1",
             members: [{ kind: "place", placeId: "edge" }, stagePort],
           },
         ],
