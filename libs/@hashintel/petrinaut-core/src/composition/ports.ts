@@ -22,14 +22,18 @@ export const portDirections = [
   "inout",
 ] as const satisfies readonly PortDirection[];
 
-/** How a set of transitions touches a place. */
+/**
+ * How a set of transitions touches a place. A read or an inhibitor arc looks
+ * at the place without moving a token: it touches the place and neither
+ * consumes from it nor produces into it.
+ */
 export type PortUsage = {
-  /** Some transition consumes from it, reads it or is inhibited by it. */
+  /** Some transition takes tokens from it. */
   consumed: boolean;
-  /** Some transition takes tokens from it, which a read or an inhibitor arc does not. */
-  drained: boolean;
   /** Some transition produces into it. */
   produced: boolean;
+  /** Some arc reaches it, of any kind. */
+  touched: boolean;
 };
 
 /** How `transitions` touch the place `endpoint` names. */
@@ -40,12 +44,13 @@ export const endpointUsage = (
   const inputs = transitions.flatMap(({ inputArcs }) =>
     inputArcs.filter((arc) => arcMatchesEndpoint(arc, endpoint)),
   );
+  const produced = transitions.some(({ outputArcs }) =>
+    outputArcs.some((arc) => arcMatchesEndpoint(arc, endpoint)),
+  );
   return {
-    consumed: inputs.length > 0,
-    drained: inputs.some(({ type }) => type === "standard"),
-    produced: transitions.some(({ outputArcs }) =>
-      outputArcs.some((arc) => arcMatchesEndpoint(arc, endpoint)),
-    ),
+    consumed: inputs.some(({ type }) => type === "standard"),
+    produced,
+    touched: produced || inputs.length > 0,
   };
 };
 
@@ -56,9 +61,9 @@ export const portUsage = (
 ): PortUsage => endpointUsage(subnet.transitions, placeArcEndpoint(placeId));
 
 /**
- * The direction the subnet's arcs give a port: `in` when only consumed, `out`
- * when only produced into, `inout` when both. A port no transition touches
- * is `inout`: it is whatever the outside makes of it.
+ * The direction the subnet's arcs give a port: `in` when only consumed from,
+ * `out` when only produced into, `inout` when both. A port no arc moves a
+ * token through is `inout`: it is whatever the outside makes of it.
  */
 export const inferPortDirection = (
   subnet: Pick<Subnet, "transitions">,

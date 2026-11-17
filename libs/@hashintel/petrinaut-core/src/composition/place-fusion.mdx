@@ -69,8 +69,10 @@ component uses it, seen from inside the component:
 | `inout`   | both                         | a shared resource pool, a counter |
 
 A port without a declaration takes the direction its arcs give it, `inout`
-when no transition touches it. The checks hold a declaration against the
-arcs and report a port written to that declares `in`. The direction has no
+when none moves a token through it. Only arcs that move tokens count, here
+and in the checks: a read or an inhibitor arc looks at the port and takes
+nothing, so it makes no port an input. The checks hold a declaration against
+the arcs and report a port written to that declares `in`. The direction has no
 effect on what a fusion may join: a port is a place, and a place has no
 direction. It decides three things.
 

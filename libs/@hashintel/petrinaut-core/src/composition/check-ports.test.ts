@@ -1,8 +1,17 @@
 import { describe, expect, it } from "vitest";
 
 import { checkPorts } from "./check-ports";
+import { inferPortDirection, portDirections } from "./ports";
 
-import type { Place, SDCPN, Subnet, Transition } from "../types/sdcpn";
+import type {
+  InputArc,
+  OutputArc,
+  Place,
+  PortDirection,
+  SDCPN,
+  Subnet,
+  Transition,
+} from "../types/sdcpn";
 
 const place = (id: string, overrides: Partial<Place> = {}): Place => ({
   id,
@@ -129,4 +138,86 @@ describe("checkPorts", () => {
     ]);
     expect(problems({ direction: "in", consumes: true })).toEqual([]);
   });
+});
+
+describe("a port's direction, as inferred and as checked", () => {
+  /** What a subnet does with its port `edge`. */
+  type Case = {
+    name: string;
+    inputArcs?: InputArc[];
+    outputArcs?: OutputArc[];
+    /** The direction the arcs give the port. */
+    inferred: PortDirection;
+    /** The declarations the arcs break. */
+    contradicts: PortDirection[];
+  };
+  const from = (type: InputArc["type"]): InputArc => ({
+    placeId: "edge",
+    weight: 1,
+    type,
+  });
+  const into: OutputArc = { placeId: "edge", weight: 1 };
+
+  const cases: Case[] = [
+    {
+      name: "only standard input arcs",
+      inputArcs: [from("standard")],
+      inferred: "in",
+      contradicts: ["out"],
+    },
+    {
+      name: "only output arcs",
+      outputArcs: [into],
+      inferred: "out",
+      contradicts: ["in"],
+    },
+    {
+      name: "standard input arcs and output arcs",
+      inputArcs: [from("standard")],
+      outputArcs: [into],
+      inferred: "inout",
+      contradicts: ["in", "out"],
+    },
+    {
+      name: "only an inhibitor arc",
+      inputArcs: [from("inhibitor")],
+      inferred: "inout",
+      contradicts: [],
+    },
+    {
+      name: "only a read arc",
+      inputArcs: [from("read")],
+      inferred: "inout",
+      contradicts: [],
+    },
+    {
+      name: "an inhibitor arc and an output arc",
+      inputArcs: [from("inhibitor")],
+      outputArcs: [into],
+      inferred: "out",
+      contradicts: ["in"],
+    },
+  ];
+
+  it.each(cases)(
+    "$name",
+    ({ inputArcs = [], outputArcs = [], inferred, contradicts }) => {
+      const line = (portDirection?: PortDirection) =>
+        subnet("line", {
+          places: [place("edge", { isPort: true, portDirection })],
+          transitions: [
+            { ...transition("touch", [], []), inputArcs, outputArcs },
+          ],
+        });
+
+      expect(inferPortDirection(line(), "edge")).toBe(inferred);
+      for (const declared of portDirections) {
+        expect(
+          checkPorts(net([line(declared)])).map(({ placeId }) => placeId),
+        ).toEqual(contradicts.includes(declared) ? ["edge"] : []);
+      }
+      // Declaring what the arcs give is never a problem.
+      expect(contradicts).not.toContain(inferred);
+    },
+  );
 });

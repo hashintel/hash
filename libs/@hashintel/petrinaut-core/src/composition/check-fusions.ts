@@ -23,7 +23,7 @@ import {
   type FusionNet,
   type ResolvedFusionMember,
 } from "./fusions";
-import { endpointUsage, portUsage, type PortUsage } from "./ports";
+import { endpointUsage, portUsage } from "./ports";
 
 import type {
   ArcEndpoint,
@@ -81,12 +81,6 @@ type CheckedNet = FusionNet & Pick<SDCPN, "types" | "transitions">;
 /** Whether tokens can enter and leave the fused place by way of one member. */
 type TokenFlow = { produced: boolean; consumed: boolean };
 
-/** What `usage` moves: a read or an inhibitor arc takes nothing. */
-const flowOf = ({ produced, drained }: PortUsage): TokenFlow => ({
-  produced,
-  consumed: drained,
-});
-
 /**
  * What a net does with one of its own ports: what the port declares, else
  * what the net's arcs move through it. A port no transition touches passes
@@ -102,10 +96,8 @@ const ownPortFlow = (
       consumed: port.portDirection !== "out",
     };
   }
-  const usage = portUsage(net, port.id);
-  return usage.produced || usage.consumed
-    ? flowOf(usage)
-    : { produced: true, consumed: true };
+  const { touched, ...flow } = portUsage(net, port.id);
+  return touched ? flow : { produced: true, consumed: true };
 };
 
 /**
@@ -148,7 +140,7 @@ const factsFor = (
   const equationNetId =
     resolved.kind === "place" ? subnetId : resolved.subnet.id;
   const equationIds = getRunningEquationIds(place);
-  const outside = flowOf(endpointUsage(net.transitions, member));
+  const outside = endpointUsage(net.transitions, member);
   const inside = farSideFlow(net, resolved);
   return {
     color: place.colorId
