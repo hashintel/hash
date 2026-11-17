@@ -54,7 +54,7 @@ import {
 import {
   CrashLoopEntry,
   crashLoopErrorText,
-} from "../../src/server/durable-agents-server/conversation-registry/crash-loop-guard";
+} from "../../src/server/durable-agents-server/shared/crash-loop-entry";
 import { postgresConfigFromEnvironment } from "../../src/storage/postgres/postgres-config";
 
 const context = BACKGROUND_CONTEXT;

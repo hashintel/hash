@@ -22,8 +22,10 @@ import { Pool } from "pg";
 
 import { conversationSchema } from "../../../src/server/conversation-storage";
 import { startDurableAgentsServer } from "../../../src/server/start-durable-agents-server";
-import { poolLimitsFromEnvironment } from "../../../src/server/start-durable-agents-server/limits-from-environment";
-import { postgresConfigFromEnvironment } from "../../../src/storage/postgres/postgres-config";
+import {
+  poolLimitsFromEnvironment,
+  postgresConfigFromEnvironment,
+} from "../../../src/storage/postgres/postgres-config";
 import { PostgresStorage } from "../../../src/storage/postgres/postgres-storage";
 import { report } from "../../browser-call/proof/server-process";
 import { scriptedModel } from "../../scripted-model";

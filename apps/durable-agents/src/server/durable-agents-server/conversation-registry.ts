@@ -39,10 +39,8 @@ import type {
 import type { RequestSlots } from "./request-slots";
 import type { Context } from "@earendil-works/chord/context";
 
-export type {
-  CrashLoopAbort,
-  CrashLoopingTask,
-} from "./conversation-registry/crash-loop-guard";
+export type { CrashLoopAbort } from "./conversation-registry/crash-loop-guard";
+export type { CrashLoopingTask } from "./shared/crash-loop-entry";
 
 export type ConversationRegistryOptions = {
   readonly openStorage: OpenConversationStorage;

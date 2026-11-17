@@ -44,6 +44,7 @@ import {
 } from "../../../browser-call/hash-browser-tools";
 import { createViewProjector, projectResponseEntries } from "./view-projector";
 
+import type { JsonValue } from "@earendil-works/chord/json";
 import type { UIMessageChunk } from "ai";
 
 const context = BACKGROUND_CONTEXT;
@@ -369,4 +370,66 @@ test("the response is named by its input entry; a note inside it is a data part 
   expect(history.chunks).toEqual(live.slice(0, -1));
   expect(history.notesBefore.map(({ id }) => id)).toEqual([2]);
   expect(history.notesAfter.map(({ id }) => id)).toEqual([8]);
+});
+
+test("a browser envelope's output is shown exactly, null and JSON-looking strings included, whatever the model read; a result without the envelope shows its text, as JSON when it is JSON", () => {
+  const result = (
+    id: number,
+    toolCallId: string,
+    text: string,
+    details?: JsonValue,
+  ) =>
+    entry(id, {
+      kind: "pi.tool-result",
+      data: { diagnostics: [] },
+      model: [
+        {
+          role: "toolResult",
+          toolCallId,
+          toolName: "petrinaut_get_net",
+          content: [{ type: "text", text }],
+          details,
+          isError: false,
+          timestamp: 0,
+        },
+      ],
+    });
+  const toolCallIds = ["null", "string", "json", "text", "unbranded"];
+  const entries = [
+    assistant(
+      2,
+      fauxAssistantMessage(
+        toolCallIds.map((id) =>
+          fauxToolCall("petrinaut_get_net", editor, { id }),
+        ),
+        { stopReason: "toolUse" },
+      ),
+    ),
+    result(3, "null", "Nothing to show.", {
+      brunchBrowserResult: true,
+      output: null,
+    }),
+    result(4, "string", "123", { brunchBrowserResult: true, output: "123" }),
+    result(5, "json", '{"a":1}'),
+    result(6, "text", "plain"),
+    result(7, "unbranded", '{"a":2}', { output: "ignored" }),
+  ];
+
+  const { chunks } = projectResponseEntries(entryId(1), entries, {
+    clientToolNames: new Set(["petrinaut_get_net"]),
+  });
+  const outputs = Object.fromEntries(
+    chunks.flatMap((chunk): [string, unknown][] =>
+      chunk.type === "tool-output-available"
+        ? [[chunk.toolCallId, chunk.output]]
+        : [],
+    ),
+  );
+  expect(outputs).toEqual({
+    null: null,
+    string: "123",
+    json: { a: 1 },
+    text: "plain",
+    unbranded: { a: 2 },
+  });
 });

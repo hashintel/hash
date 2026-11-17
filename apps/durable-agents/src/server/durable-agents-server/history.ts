@@ -42,7 +42,7 @@ import {
   handEditPartType,
   type ProjectionOptions,
   projectResponseEntries,
-} from "./submission-stream/view-projector";
+} from "./submission-stream";
 
 import type { OpenConversation } from "./conversation-registry";
 import type { Context } from "@earendil-works/chord/context";

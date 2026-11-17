@@ -8,10 +8,10 @@
  * `pi.live.runFailure` shows.
  *
  * Pi Durable's abort takes no reason, so before it the guard appends a
- * `CrashLoopEntry` to the transcript: a bookkeeping entry, with no model
- * message, naming the inputs the abort ends and the tasks it aborted for.
- * That entry is what tells this abort from a user's stop, to the client's
- * stream (an `error` chunk instead of an `abort`) and to a later reader.
+ * `CrashLoopEntry` to the transcript, naming the inputs the abort ends and
+ * the tasks it aborted for: what tells this abort from a user's stop, to the
+ * client's stream (an `error` chunk instead of an `abort`) and to a later
+ * reader.
  *
  * Exempt: a `pi.tool` task waiting on a browser call that is still `pending`
  * or `claimed`. Its invocation is cut off on every restart by design, and
@@ -20,25 +20,19 @@
  */
 import {
   type Conversation,
-  defineEntry,
-  type EntryRecord,
   type Harness,
   LiveDoc,
   type SubmissionId,
-  type TaskId,
   type TaskInspection,
 } from "@earendil-works/pi-durable";
 
 import { BrowserCallsDoc } from "../../../browser-call/browser-call";
+import {
+  CrashLoopEntry,
+  type CrashLoopingTask,
+} from "../shared/crash-loop-entry";
 
 import type { Context } from "@earendil-works/chord/context";
-
-/** A task the guard aborted for: its ID, kind and restart count. */
-export type CrashLoopingTask = {
-  readonly id: TaskId;
-  readonly kind: string;
-  readonly restarts: number;
-};
 
 /** What one guard's abort ended, and why. */
 export type CrashLoopAbort = {
@@ -48,26 +42,6 @@ export type CrashLoopAbort = {
   /** The input the run was answering, which a client reconnecting to the conversation follows. */
   readonly running?: SubmissionId;
 };
-
-/** The transcript's record of a crash-loop abort, appended just before it. */
-export const CrashLoopEntry = defineEntry<{
-  readonly inputs: number[];
-  readonly tasks: { id: number; kind: string; restarts: number }[];
-}>("durable-agents.crash-loop");
-
-/** Why the stream of an input a crash-loop abort ended errors. */
-export const crashLoopErrorText =
-  "The turn stopped because the server failed repeatedly.";
-
-/** Whether `entries` record a crash-loop abort of input `submission`. */
-export const stoppedByCrashLoop = (
-  entries: readonly EntryRecord[],
-  submission: SubmissionId,
-): boolean =>
-  entries.some(
-    (entry) =>
-      CrashLoopEntry.is(entry) && entry.data.inputs.includes(submission),
-  );
 
 /**
  * How the browser calls of `root` bear on their owners' restarts. `waiting`:
