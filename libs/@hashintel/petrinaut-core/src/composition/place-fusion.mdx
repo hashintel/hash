@@ -34,6 +34,11 @@ place. Petrinaut's version keeps it small on purpose.
   thing metrics and scenarios refer to. The other members are ports. A
   fusion without an anchor, two ports joined directly, makes a place that
   exists only inside the composition.
+- A fusion has a name of its own, and goes by no other: the checks'
+  messages and the assistant's approval card say it. `addFusion` names a
+  fusion that comes without one `Fusion N`, with the lowest number no fusion
+  of its net uses. A file whose fusion has no name does not load, and
+  `updateFusion` renames a fusion but does not take its name away.
 - Fusions are sets: a member belongs to one fusion, and a connection that
   joins two fusions merges them. `addFusion` and `addFusionMember` absorb a
   fusion that already holds one of the members; a member removed from a

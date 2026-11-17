@@ -480,6 +480,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
       fusions: [
         {
           id: "f1",
+          name: "F1",
           members: [
             { kind: "place", placeId: "buffer" },
             {
@@ -513,6 +514,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
       fusions: [
         {
           id: "f1",
+          name: "F1",
           members: [
             { kind: "place", placeId: "buffer" },
             {
@@ -583,6 +585,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
           fusions: [
             {
               id: "f1",
+              name: "F1",
               members: [
                 { kind: "place", placeId: "feed" },
                 {
@@ -619,6 +622,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
       fusions: [
         {
           id: "f1",
+          name: "F1",
           members: [
             { kind: "place", placeId: "buffer" },
             {
@@ -632,7 +636,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
     });
 
     expect(() => flatten({ definition })).toThrow(
-      /Fusion `f1` references subnet place `hidden`, but only places marked `isPort`/,
+      /Fusion `F1` references subnet place `hidden`, but only places marked `isPort`/,
     );
   });
 
@@ -642,6 +646,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
       fusions: [
         {
           id: "f1",
+          name: "F1",
           members: [
             { kind: "place", placeId: "first" },
             { kind: "place", placeId: "second" },
@@ -654,7 +659,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
     });
 
     expect(() => flatten({ definition })).toThrow(
-      /Fusion `f1` holds more than one place of its net/,
+      /Fusion `F1` holds more than one place of its net/,
     );
   });
 
@@ -664,6 +669,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
       fusions: [
         {
           id: "f1",
+          name: "F1",
           members: [
             { kind: "place", placeId: "first" },
             { kind: "place", placeId: "second" },
@@ -673,7 +679,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
     });
 
     expect(() => flatten({ definition })).toThrow(
-      /Fusion `f1` holds more than one place of its net/,
+      /Fusion `F1` holds more than one place of its net/,
     );
   });
 
@@ -688,13 +694,21 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
       componentInstances: [componentInstance("m1", "machine")],
       subnets: [machine()],
       fusions: [
-        { id: "f1", members: [{ kind: "place", placeId: "first" }, port] },
-        { id: "f2", members: [{ kind: "place", placeId: "second" }, port] },
+        {
+          id: "f1",
+          name: "F1",
+          members: [{ kind: "place", placeId: "first" }, port],
+        },
+        {
+          id: "f2",
+          name: "F2",
+          members: [{ kind: "place", placeId: "second" }, port],
+        },
       ],
     });
 
     expect(() => flatten({ definition })).toThrow(
-      /Fusion `f2` shares a member with another fusion of its net/,
+      /Fusion `F2` shares a member with another fusion of its net/,
     );
   });
 
@@ -783,6 +797,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
         fusions: [
           {
             id: "f1",
+            name: "F1",
             members: [{ kind: "place", placeId: "tank" }, poolOf("b1")],
           },
         ],
@@ -809,7 +824,9 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
           componentInstance("b2", "bath"),
         ],
         subnets: [bath()],
-        fusions: [{ id: "f1", members: [poolOf("b1"), poolOf("b2")] }],
+        fusions: [
+          { id: "f1", name: "F1", members: [poolOf("b1"), poolOf("b2")] },
+        ],
       });
 
       const result = flatten({ definition });

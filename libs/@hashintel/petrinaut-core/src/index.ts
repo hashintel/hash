@@ -77,7 +77,6 @@ export {
   describeFusionMember,
   findFusionWithMember,
   fusionAnchor,
-  fusionDisplayName,
   fusionHub,
   resolveFusionMember,
 } from "./composition/fusions";

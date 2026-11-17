@@ -448,9 +448,8 @@ export const fusionMemberSchema = arcEndpointSchema.meta({
 export const fusionSchema = z
   .strictObject({
     id: idSchema,
-    name: displayNameSchema.optional().meta({
-      description:
-        "Optional display name for the fused place. Omitted, the anchor place's name, else the first port's, stands in.",
+    name: displayNameSchema.meta({
+      description: "Human-readable fusion name.",
     }),
     description: descriptionSchema,
     members: z

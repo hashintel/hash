@@ -314,12 +314,15 @@ describe("normalizeSDCPN fusions", () => {
       transitions: [],
       subnets: [],
       componentInstances: [],
-      fusions: [{ id: "f", members: [{ kind: "place", placeId: "p" }] }],
+      fusions: [
+        { id: "f", name: "F", members: [{ kind: "place", placeId: "p" }] },
+      ],
     });
 
     expect(result.fusions).toEqual([
       {
         id: toPetrinautId("f"),
+        name: "F",
         members: [{ kind: "place", placeId: toPetrinautId("p") }],
       },
     ]);

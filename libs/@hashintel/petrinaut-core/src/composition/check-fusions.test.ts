@@ -79,6 +79,7 @@ describe("checkFusions", () => {
       fusions: [
         {
           id: "f1",
+          name: "F1",
           members: [
             { kind: "place", placeId: "buffer" },
             partIn("m1"),
@@ -101,6 +102,7 @@ describe("checkFusions", () => {
       fusions: [
         {
           id: "f1",
+          name: "F1",
           members: [{ kind: "place", placeId: "buffer" }, partIn("m1")],
         },
       ],
@@ -204,7 +206,9 @@ describe("checkFusions", () => {
         }),
       ],
       componentInstances: [instance("t1", "tank"), instance("t2", "tank")],
-      fusions: [{ id: "f1", members: [partIn("t1"), partIn("t2")] }],
+      fusions: [
+        { id: "f1", name: "F1", members: [partIn("t1"), partIn("t2")] },
+      ],
     });
 
     expect(
@@ -223,6 +227,7 @@ describe("checkFusions", () => {
       fusions: [
         {
           id: "f1",
+          name: "F1",
           members: [
             { kind: "place", placeId: "a" },
             { kind: "place", placeId: "b" },
@@ -230,7 +235,7 @@ describe("checkFusions", () => {
             partIn("m1"),
           ],
         },
-        { id: "f2", members: [partIn("m2")] },
+        { id: "f2", name: "F2", members: [partIn("m2")] },
       ],
     });
 
@@ -247,8 +252,16 @@ describe("checkFusions", () => {
       subnets: [subnet("machine", { places: [place("in", { isPort: true })] })],
       componentInstances: [instance("m1", "machine")],
       fusions: [
-        { id: "f1", members: [{ kind: "place", placeId: "a" }, partIn("m1")] },
-        { id: "f2", members: [{ kind: "place", placeId: "b" }, partIn("m1")] },
+        {
+          id: "f1",
+          name: "F1",
+          members: [{ kind: "place", placeId: "a" }, partIn("m1")],
+        },
+        {
+          id: "f2",
+          name: "F2",
+          members: [{ kind: "place", placeId: "b" }, partIn("m1")],
+        },
       ],
     });
 
@@ -262,16 +275,17 @@ describe("checkFusions", () => {
       ["f2", "error"],
     ]);
     expect(shared[0]?.message).toBe(
-      "m1.in is in the fusion a and in another fusion of this net: a place or port belongs to one fusion.",
+      "m1.in is in the fusion F1 and in another fusion of this net: a place or port belongs to one fusion.",
     );
   });
 
-  it("says a message is about a fusion, whatever names it", () => {
+  it("names a fusion by its own name, not a member's", () => {
     const sdcpn = net({
       places: [place("a"), place("b")],
       fusions: [
         {
           id: "f1",
+          name: "Belt",
           members: [
             { kind: "place", placeId: "a" },
             { kind: "place", placeId: "b" },
@@ -284,7 +298,7 @@ describe("checkFusions", () => {
       checkFusions(sdcpn).find(({ code }) => code === "multiple-anchors")
         ?.message,
     ).toBe(
-      "More than one place of this net is in the fusion a; fuse ports into one place instead.",
+      "More than one place of this net is in the fusion Belt; fuse ports into one place instead.",
     );
   });
 
@@ -298,6 +312,7 @@ describe("checkFusions", () => {
           fusions: [
             {
               id: "f1",
+              name: "F1",
               members: [{ kind: "place", placeId: "feed" }, partIn("missing")],
             },
           ],
@@ -346,7 +361,11 @@ describe("token flow through fused ports", () => {
       subnets: [stage],
       componentInstances: [instance("s1", "stage"), instance("s2", "stage")],
       fusions: [
-        { id: "f1", members: [portOf("s1", "out"), portOf("s2", "in")] },
+        {
+          id: "f1",
+          name: "F1",
+          members: [portOf("s1", "out"), portOf("s2", "in")],
+        },
       ],
     });
 
@@ -358,8 +377,16 @@ describe("token flow through fused ports", () => {
       subnets: [stage],
       componentInstances: [instance("s1", "stage"), instance("s2", "stage")],
       fusions: [
-        { id: "f1", members: [portOf("s1", "in"), portOf("s2", "in")] },
-        { id: "f2", members: [portOf("s1", "out"), portOf("s2", "out")] },
+        {
+          id: "f1",
+          name: "F1",
+          members: [portOf("s1", "in"), portOf("s2", "in")],
+        },
+        {
+          id: "f2",
+          name: "F2",
+          members: [portOf("s1", "out"), portOf("s2", "out")],
+        },
       ],
     });
 
@@ -383,7 +410,11 @@ describe("token flow through fused ports", () => {
       subnets: [stage, gauge],
       componentInstances: [instance("s1", "stage"), instance("g1", "gauge")],
       fusions: [
-        { id: "f1", members: [portOf("s1", "out"), portOf("g1", "level")] },
+        {
+          id: "f1",
+          name: "F1",
+          members: [portOf("s1", "out"), portOf("g1", "level")],
+        },
       ],
     });
 
@@ -413,9 +444,14 @@ describe("token flow through fused ports", () => {
       fusions: [
         {
           id: "f1",
+          name: "F1",
           members: [{ kind: "place", placeId: "feed" }, portOf("s1", "in")],
         },
-        { id: "f2", members: [portOf("s1", "out"), portOf("s2", "out")] },
+        {
+          id: "f2",
+          name: "F2",
+          members: [portOf("s1", "out"), portOf("s2", "out")],
+        },
       ],
     });
 
@@ -429,6 +465,7 @@ describe("token flow through fused ports", () => {
       fusions: [
         {
           id: "f1",
+          name: "F1",
           members: [{ kind: "place", placeId: "feed" }, portOf("s1", "in")],
         },
       ],
@@ -458,6 +495,7 @@ describe("token flow through fused ports", () => {
       fusions: [
         {
           id: "f1",
+          name: "F1",
           members: [{ kind: "place", placeId: "feed" }, portOf("s1", "in")],
         },
       ],
@@ -482,6 +520,7 @@ describe("token flow through fused ports", () => {
       fusions: [
         {
           id: "f1",
+          name: "F1",
           members: [
             { kind: "place", placeId: "feed" },
             partIn("t1"),

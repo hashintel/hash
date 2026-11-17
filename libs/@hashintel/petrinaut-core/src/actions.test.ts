@@ -1483,7 +1483,7 @@ describe("Petrinaut core fusion actions", () => {
     expect(instance.definition.get().fusions).toBeUndefined();
   });
 
-  test("names a fusion, describes it, and clears both", () => {
+  test("renames a fusion and describes it, clears the description, and refuses to leave it unnamed", () => {
     const instance = createInstance(composed());
     instance.mutations.addFusion({
       id: "f1",
@@ -1502,16 +1502,28 @@ describe("Petrinaut core fusion actions", () => {
 
     instance.mutations.updateFusion({
       fusionId: "f1",
-      update: { name: undefined, description: undefined },
+      update: { description: undefined },
     });
-    expect(fusion()).not.toHaveProperty("name");
     expect(fusion()).not.toHaveProperty("description");
+
+    for (const name of ["", "  "]) {
+      expect(() =>
+        instance.mutations.updateFusion({ fusionId: "f1", update: { name } }),
+      ).toThrow(/Name cannot be empty/);
+    }
+    expect(() =>
+      instance.mutations.updateFusion({
+        fusionId: "f1",
+        update: { name: undefined },
+      }),
+    ).toThrow(/expected string, received undefined/);
+    expect(fusion()?.name).toBe("Belt");
   });
 
   test("names a fusion the document was loaded with one member of", () => {
     const instance = createInstance({
       ...composed(),
-      fusions: [{ id: "f1", members: [port("m1", "in")] }],
+      fusions: [{ id: "f1", name: "F1", members: [port("m1", "in")] }],
     });
 
     instance.mutations.updateFusion({
@@ -1638,6 +1650,7 @@ describe("Petrinaut core fusion actions", () => {
       definition.fusions = [
         {
           id: "f1",
+          name: "F1",
           members: [{ kind: "place", placeId: "buffer" }, port("m1", "out")],
         },
       ];

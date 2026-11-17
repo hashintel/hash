@@ -168,7 +168,6 @@ const componentInstanceSchema = z.object({
 const fusionSchema = z.object({
   ...currentFusionSchema.shape,
   id: z.string(),
-  name: z.string().optional(),
   members: z.array(currentFusionSchema.shape.members.element),
 });
 

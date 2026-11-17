@@ -186,6 +186,42 @@ describe("Brunch destructive edit approval", () => {
     },
   );
 
+  test("names a removed fusion by its own name, not a member's", () => {
+    const ApprovalWidget = createBrunchMutationApprovalWidget(
+      createBrunchMutationApprovalCoordinator(),
+      "removeFusion",
+    );
+    render(
+      <ApprovalWidget
+        input={{ fusionId: "belt" }}
+        net={netWith({
+          ...wiredNet,
+          places: [{ id: "buffer", name: "Buffer", x: 0, y: 0 }],
+          fusions: [
+            {
+              id: "belt",
+              name: "Belt",
+              members: [
+                { kind: "place", placeId: "buffer" },
+                {
+                  kind: "componentPort",
+                  componentInstanceId: "m1",
+                  portPlaceId: "in",
+                },
+              ],
+            },
+          ],
+        })}
+        state="awaiting"
+        submit={vi.fn()}
+        submitAndWait={vi.fn()}
+        toolCallId="remove-1"
+      />,
+    );
+
+    expect(screen.getByText("Remove fusion — Belt")).not.toBeNull();
+  });
+
   test("renders itemized removals and resolves Allow without submitting a tool result", async () => {
     const coordinator = createBrunchMutationApprovalCoordinator();
     const decision = coordinator.request({

@@ -542,6 +542,7 @@ describe("transition logic availability", () => {
       fusions: [
         {
           id: "fusion-1",
+          name: "Fusion-1",
           members: [
             { kind: "place", placeId: "place-1" },
             {

@@ -63,8 +63,7 @@ export const fusionAnchor = (
 
 /**
  * The member that stands for the fused place: the anchor, else the first
- * member. The fused place shows its name, and the canvas links the other
- * members to it.
+ * member. The canvas links the other members to it.
  */
 export const fusionHub = (
   fusion: Pick<Fusion, "members">,
@@ -177,19 +176,3 @@ export const describeFusionMember = (
   member: FusionMember,
 ): string =>
   describeResolvedMember(member, resolveFusionMember(sdcpn, net, member));
-
-/**
- * The name the fused place shows: the fusion's own name, else its anchor's,
- * else the first member's.
- */
-export const fusionDisplayName = (
-  sdcpn: Pick<SDCPN, "subnets">,
-  net: FusionNet,
-  fusion: Fusion,
-): string => {
-  if (fusion.name !== undefined) {
-    return fusion.name;
-  }
-  const hub = fusionHub(fusion);
-  return hub ? describeFusionMember(sdcpn, net, hub) : fusion.id;
-};

@@ -374,7 +374,7 @@ export const updatePrunesReferences = (
  */
 const absorbFusionsSharingMembers = (
   net: MutableNet,
-  fusion: Fusion,
+  fusion: Pick<Fusion, "id" | "members">,
   members: readonly FusionMember[],
 ): void => {
   for (const member of members) {
@@ -1374,28 +1374,29 @@ export function createPetrinautActions(
     },
     addFusion(input) {
       const parsed = mutationActionInputSchemas.addFusion.parse(input);
-      const [targetSubnetId, fusion] = splitTargetSubnetId(parsed);
-      const parsedFusion = fusionSchema.parse(fusion);
+      const [targetSubnetId, { name, ...given }] = splitTargetSubnetId(parsed);
       mutateWithExtensionGuards((sdcpn) => {
         const net = resolveTargetNet(sdcpn, targetSubnetId);
-        for (const member of parsedFusion.members) {
+        for (const member of given.members) {
           assertEndpointReferences(sdcpn, net, member, "Fusion");
         }
         const fusions = getFusions(net);
-        if (fusions.some(({ id }) => id === parsedFusion.id)) {
+        if (fusions.some(({ id }) => id === given.id)) {
           throw new Error(
-            `Fusion ID \`${parsedFusion.id}\` already exists in the target net.`,
+            `Fusion ID \`${given.id}\` already exists in the target net.`,
           );
         }
-        // A copy of the members: absorbing appends to the list.
-        absorbFusionsSharingMembers(net, parsedFusion, [
-          ...parsedFusion.members,
-        ]);
-        // Named once the fusions it absorbed are gone, so their numbers are free.
-        parsedFusion.name ??= nextFusionName(fusions);
-        fusions.push(parsedFusion);
-        // Absorbing a fusion can bring a second place of the net.
-        fusionSchema.parse(parsedFusion);
+        // Its own member list: absorbing appends to it.
+        const absorbing = { ...given, members: [...given.members] };
+        absorbFusionsSharingMembers(net, absorbing, given.members);
+        // Named once the fusions it absorbed are gone, so their numbers are
+        // free. Parsed whole: absorbing can bring a second place of the net.
+        fusions.push(
+          fusionSchema.parse({
+            ...absorbing,
+            name: name ?? nextFusionName(fusions),
+          }),
+        );
       });
     },
     updateFusion(input) {

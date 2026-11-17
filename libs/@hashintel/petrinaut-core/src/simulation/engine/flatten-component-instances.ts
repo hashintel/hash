@@ -281,7 +281,7 @@ const collectFusionGroups = ({
   // anchors, into one place.
   const fusedEndpoints = new Set<string>();
   for (const fusion of net.fusions ?? []) {
-    const label = `\`${fusion.name ?? fusion.id}\``;
+    const label = `\`${fusion.name}\``;
     if (fusionMemberIssues(fusion.members).multipleAnchors) {
       throw new Error(
         `Fusion ${label} holds more than one place of its net: they would become one place.`,

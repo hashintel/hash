@@ -76,13 +76,14 @@ describe("calculateGraphLayout", () => {
         fusions: [
           {
             id: "loop",
+            name: "Loop",
             members: [
               { kind: "place", placeId: "place" },
               port("in"),
               port("out"),
             ],
           },
-          { id: "self", members: [port("a"), port("b")] },
+          { id: "self", name: "Self", members: [port("a"), port("b")] },
         ],
       },
       layoutNodeDimensions,
@@ -103,6 +104,7 @@ describe("calculateGraphLayout", () => {
         fusions: [
           {
             id: "dangling",
+            name: "Dangling",
             members: [
               { kind: "place", placeId: "place" },
               {

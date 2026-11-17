@@ -147,6 +147,8 @@ export const subnetUpdateSchema = subnetSchema
 export const fusionUpdateSchema = fusionSchema
   .omit({ id: true, members: true })
   .partial()
+  // A fusion always has a name: an update changes it or leaves it out.
+  .extend({ name: fusionSchema.shape.name.exactOptional() })
   .meta({
     description:
       "Fields to assign to an existing fusion. Members change through `addFusionMember` and `removeFusionMember`.",
@@ -537,7 +539,10 @@ export const mutationActionInputSchemas = {
     })
     .meta({ description: "Remove a component instance." }),
   addFusion: fusionSchema
-    .extend({ targetSubnetId: targetSubnetIdSchema })
+    .extend({
+      name: fusionSchema.shape.name.optional(),
+      targetSubnetId: targetSubnetIdSchema,
+    })
     .meta({
       description:
         "Fuse a place of the net with ports of its component instances, or ports with each other, so they are one place in simulation. Without a `name`, the fusion is named `Fusion N`, with the lowest number no fusion of the net uses. A member already in another fusion of the same net brings that fusion's members along, and that fusion is removed.",
@@ -548,7 +553,10 @@ export const mutationActionInputSchemas = {
       update: fusionUpdateSchema,
       targetSubnetId: targetSubnetIdSchema,
     })
-    .meta({ description: "Update the name or description of a fusion." }),
+    .meta({
+      description:
+        "Rename a fusion or change its description. A fusion keeps a name: an empty one is refused.",
+    }),
   removeFusion: z
     .strictObject({
       fusionId: idSchema,

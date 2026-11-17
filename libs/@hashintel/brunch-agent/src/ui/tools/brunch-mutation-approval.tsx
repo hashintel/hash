@@ -4,13 +4,11 @@ import { brunchTools } from "@hashintel/brunch-agent";
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
-  fusionDisplayName,
   mutationActionInputSchemas,
   parseArcEndpointKey,
   parseArcId,
   updatePrunesReferences,
   type ArcEndpoint,
-  type FusionNet,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 import { useStore } from "@hashintel/petrinaut/ui/plugin";
@@ -288,6 +286,7 @@ type NetItems = Pick<
   | "differentialEquations"
   | "parameters"
   | "componentInstances"
+  | "fusions"
 >;
 
 const namedNetItemsOf = (net: NetItems): NamedItem[] => [
@@ -300,25 +299,17 @@ const namedNetItemsOf = (net: NetItems): NamedItem[] => [
   ...net.differentialEquations,
   ...net.parameters,
   ...(net.componentInstances ?? []),
+  ...(net.fusions ?? []),
 ];
-
-/** A net's fusions, under the name the editor shows for each. */
-const namedFusionsOf = (definition: SDCPN, net: FusionNet): NamedItem[] =>
-  (net.fusions ?? []).map((fusion) => ({
-    id: fusion.id,
-    name: fusionDisplayName(definition, net, fusion),
-  }));
 
 /** The document's named items, subnets included. Ids are UUIDs, so names describe removals. */
 const namedItemsOf = (definition: SDCPN): NamedItem[] => [
   ...namedNetItemsOf(definition),
-  ...namedFusionsOf(definition, definition),
   ...(definition.scenarios ?? []),
   ...(definition.metrics ?? []),
   ...(definition.subnets ?? []).flatMap((subnet) => [
     subnet,
     ...namedNetItemsOf(subnet),
-    ...namedFusionsOf(definition, subnet),
   ]),
 ];
 

@@ -94,12 +94,7 @@ const netElements = (
   if (kind === "parameter") return net.parameters;
   if (kind === "differentialEquation") return net.differentialEquations;
   if (kind === "componentInstance") return net.componentInstances ?? [];
-  // An unnamed fusion is found by its ID alone.
-  if (kind === "fusion")
-    return (net.fusions ?? []).map((fusion) => ({
-      id: fusion.id,
-      name: fusion.name ?? fusion.id,
-    }));
+  if (kind === "fusion") return net.fusions ?? [];
   if (kind === "typeElement")
     return net.types.flatMap((color) =>
       color.elements.map((element) => ({

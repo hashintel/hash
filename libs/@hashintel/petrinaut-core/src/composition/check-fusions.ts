@@ -15,7 +15,6 @@ import { getRunningEquationIds } from "../place-dynamics";
 import {
   colorsStructurallyEqual,
   describeResolvedMember,
-  fusionDisplayName,
   fusionHolds,
   fusionMemberIssues,
   resolveFusionMember,
@@ -186,9 +185,7 @@ export const checkFusion = (
   subnetId: ID | null,
 ): FusionProblem[] => {
   const problems: FusionProblem[] = [];
-  // Unnamed, a fusion goes by its anchor or first member: said as a fusion,
-  // so a message is not read as one about that place.
-  const fusionName = `the fusion ${fusionDisplayName(sdcpn, net, fusion)}`;
+  const fusionName = `the fusion ${fusion.name}`;
   const report = (code: FusionProblemCode, message: string) =>
     problems.push({
       subnetId,

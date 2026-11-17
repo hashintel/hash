@@ -72,8 +72,7 @@ export type FusionMember = ArcEndpoint;
  */
 export type Fusion = {
   id: ID;
-  /** Display name. Absent, the anchor's name, else the first member's, stands in. */
-  name?: string;
+  name: string;
   description?: string;
   members: FusionMember[];
 };

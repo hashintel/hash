@@ -397,7 +397,7 @@ test("query_basis finds a fusion by its name or its ID, and never mistakes it fo
           ...definition,
           fusions: [
             { id: "belt", name: "Belt", members: [] },
-            { id: "unnamed", members: [] },
+            { id: "spare", name: "Spare", members: [] },
           ],
         },
       },
@@ -415,9 +415,9 @@ test("query_basis finds a fusion by its name or its ID, and never mistakes it fo
     disposition: "basis-absent",
     target: { id: "belt" },
   });
-  expect(find({ kind: "fusion", id: "unnamed" })).toMatchObject({
+  expect(find({ kind: "fusion", id: "spare" })).toMatchObject({
     disposition: "basis-absent",
-    target: { id: "unnamed" },
+    target: { id: "spare" },
   });
 });
 

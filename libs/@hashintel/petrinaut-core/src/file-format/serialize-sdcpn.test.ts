@@ -71,6 +71,7 @@ const sourceDocument = {
       fusions: [
         {
           id: "fusion2",
+          name: "Fusion 2",
           members: [
             { kind: "place", placeId: "inner1" },
             {
@@ -89,6 +90,7 @@ const sourceDocument = {
   fusions: [
     {
       id: "fusion1",
+      name: "Fusion 1",
       members: [
         { kind: "place", placeId: "p1" },
         {
@@ -250,6 +252,21 @@ describe("serializeSDCPN", () => {
     });
 
     expect(parsed.ok).toBe(true);
+  });
+
+  it("refuses a fusion without a name", () => {
+    const parsed = parseSDCPNFile({
+      ...sourceDocument,
+      fusions: sourceDocument.fusions.map(
+        ({ name: _name, ...unnamed }) => unnamed,
+      ),
+    });
+
+    expect(parsed).toEqual({
+      ok: false,
+      error:
+        "Invalid SDCPN file: fusions.0.name: Invalid input: expected string, received undefined",
+    });
   });
 
   it("reads a fusion the editor would refuse, for the checks to report", () => {
