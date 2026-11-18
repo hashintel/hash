@@ -446,6 +446,7 @@ export const FolderIcon = createIcon("folder");
 export const NoteStickyIcon = createIcon("noteSticky");
 export const NotePlusIcon = createIcon("notePlus");
 export const MemoInfoIcon = createIcon("memoInfo");
+export const ClipboardIcon = createIcon("clipboard");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -631,6 +632,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  clipboard: ClipboardIcon,
   memoInfo: MemoInfoIcon,
   notePlus: NotePlusIcon,
   noteSticky: NoteStickyIcon,
