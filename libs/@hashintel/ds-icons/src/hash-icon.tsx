@@ -492,6 +492,7 @@ export const TagIcon = createIcon("tag");
 export const PowerIcon = createIcon("power");
 export const ToggleOnIcon = createIcon("toggleOn");
 export const ToggleOffIcon = createIcon("toggleOff");
+export const CommandIcon = createIcon("command");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -677,6 +678,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  command: CommandIcon,
   toggleOff: ToggleOffIcon,
   toggleOn: ToggleOnIcon,
   power: PowerIcon,

@@ -164,6 +164,7 @@ export const hashIconStudies = [
 
 const categories = {
   Interface: [
+    "command",
     "toggleOff",
     "toggleOn",
     "power",

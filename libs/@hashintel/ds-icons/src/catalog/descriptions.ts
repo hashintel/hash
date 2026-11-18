@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  command:
+    "A looped command symbol represents a keyboard modifier or shortcut.",
   toggleOff:
     "A switch with its knob on the left represents a disabled setting.",
   toggleOn:

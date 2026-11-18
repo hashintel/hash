@@ -20,6 +20,7 @@ export type HashIconHint =
   | "up";
 
 export const hashIconHints = {
+  command: "lift",
   toggleOff: "lift",
   toggleOn: "lift",
   power: "lift",
