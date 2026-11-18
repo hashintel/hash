@@ -20,6 +20,7 @@ export type HashIconHint =
   | "up";
 
 export const hashIconHints = {
+  truckPlane: "lift",
   planeArrival: "lift",
   planeDeparture: "lift",
   planeTail: "lift",

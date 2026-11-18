@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  truckPlane:
+    "A truck beneath an aircraft represents combined road and air transport.",
   planeArrival: "An aircraft approaching a runway represents arrival.",
   planeDeparture: "An aircraft lifting from a runway represents departure.",
   planeTail:
