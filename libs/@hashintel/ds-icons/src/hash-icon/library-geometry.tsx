@@ -132,6 +132,7 @@ import { pencilRulerGeometry } from "./library-geometry/pencil-ruler";
 import { pencilSlashGeometry } from "./library-geometry/pencil-slash";
 import { pentagonGeometry } from "./library-geometry/pentagon";
 import { percentGeometry } from "./library-geometry/percent";
+import { phoneGeometry } from "./library-geometry/phone";
 import { pinGeometry } from "./library-geometry/pin";
 import { powerGeometry } from "./library-geometry/power";
 import { quoteGeometry } from "./library-geometry/quote";
@@ -179,6 +180,7 @@ import { ungroupGeometry } from "./library-geometry/ungroup";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  phone: phoneGeometry,
   megaphone: megaphoneGeometry,
   shareNodes: shareNodesGeometry,
   share: shareGeometry,

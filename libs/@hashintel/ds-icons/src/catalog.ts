@@ -164,6 +164,7 @@ export const hashIconStudies = [
 
 const categories = {
   Communication: [
+    "phone",
     "megaphone",
     "shareNodes",
     "share",

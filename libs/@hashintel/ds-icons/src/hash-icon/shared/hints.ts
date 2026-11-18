@@ -20,6 +20,7 @@ export type HashIconHint =
   | "up";
 
 export const hashIconHints = {
+  phone: "lift",
   megaphone: "lift",
   shareNodes: "lift",
   share: "lift",

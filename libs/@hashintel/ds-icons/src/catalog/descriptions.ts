@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  phone: "A telephone handset represents calling or telephone contact.",
   megaphone: "A horn represents an announcement or broadcast.",
   shareNodes:
     "Three connected points represent distributing content to others.",
