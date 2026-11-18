@@ -763,6 +763,7 @@ export const LayerPlusIcon = createIcon("layerPlus");
 export const TargetArrowIcon = createIcon("targetArrow");
 export const PlugCheckIcon = createIcon("plugCheck");
 export const SpecificationIcon = createIcon("specification");
+export const SurveyIcon = createIcon("survey");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -948,6 +949,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  survey: SurveyIcon,
   specification: SpecificationIcon,
   plugCheck: PlugCheckIcon,
   targetArrow: TargetArrowIcon,

@@ -290,6 +290,7 @@ import { stackVerticalGeometry } from "./library-geometry/stack-vertical";
 import { strikethroughGeometry } from "./library-geometry/strikethrough";
 import { sunGeometry } from "./library-geometry/sun";
 import { sunMoonGeometry } from "./library-geometry/sun-moon";
+import { surveyGeometry } from "./library-geometry/survey";
 import { swatchBookGeometry } from "./library-geometry/swatch-book";
 import { tableTreeGeometry } from "./library-geometry/table-tree";
 import { tagGeometry } from "./library-geometry/tag";
@@ -336,6 +337,7 @@ import { wavesGeometry } from "./library-geometry/waves";
 import { workflowGeometry } from "./library-geometry/workflow";
 
 export const libraryGeometry = {
+  survey: surveyGeometry,
   specification: specificationGeometry,
   plugCheck: plugCheckGeometry,
   targetArrow: targetArrowGeometry,

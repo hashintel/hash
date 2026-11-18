@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  survey: "A form with choices represents a survey or questionnaire.",
   specification:
     "A document with a verification mark represents a specification.",
   plugCheck: "A plug beside a check represents a successful connection.",

@@ -180,6 +180,7 @@ const categories = {
     "palette",
   ],
   Data: [
+    "survey",
     "specification",
     "plugCheck",
     "targetArrow",
