@@ -144,6 +144,7 @@ import { logoutGeometry } from "./library-geometry/logout";
 import { magneticMediaGeometry } from "./library-geometry/magnetic-media";
 import { mailGeometry } from "./library-geometry/mail";
 import { mailUnreadGeometry } from "./library-geometry/mail-unread";
+import { mapGeometry } from "./library-geometry/map";
 import { megaphoneGeometry } from "./library-geometry/megaphone";
 import { memoInfoGeometry } from "./library-geometry/memo-info";
 import { messageGeometry } from "./library-geometry/message";
@@ -238,6 +239,7 @@ import { usersGeometry } from "./library-geometry/users";
 import { warehouseGeometry } from "./library-geometry/warehouse";
 
 export const libraryGeometry = {
+  map: mapGeometry,
   locationCheck: locationCheckGeometry,
   location: locationGeometry,
   shop: shopGeometry,
