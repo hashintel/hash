@@ -339,7 +339,7 @@ export const additionalGeometry = {
         </>
       }
     >
-      <path d="M12 3 2 21h20Z" />
+      <path d="M12 3 2.25 21h19.5Z" />
     </FilledShape>
   ),
   circleCheck: (
