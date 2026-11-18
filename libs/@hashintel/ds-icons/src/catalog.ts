@@ -164,6 +164,7 @@ export const hashIconStudies = [
 
 const categories = {
   People: [
+    "accessibility",
     "person",
     "userBountyHunter",
     "userTag",

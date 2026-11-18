@@ -1,3 +1,4 @@
+import { accessibilityGeometry } from "./library-geometry/accessibility";
 import { alignBottomGeometry } from "./library-geometry/align-bottom";
 import { alignBottomCenterGeometry } from "./library-geometry/align-bottom-center";
 import { alignBottomLeftGeometry } from "./library-geometry/align-bottom-left";
@@ -193,6 +194,7 @@ import { userTieGeometry } from "./library-geometry/user-tie";
 import { usersGeometry } from "./library-geometry/users";
 
 export const libraryGeometry = {
+  accessibility: accessibilityGeometry,
   person: personGeometry,
   userBountyHunter: userBountyHunterGeometry,
   userTag: userTagGeometry,
