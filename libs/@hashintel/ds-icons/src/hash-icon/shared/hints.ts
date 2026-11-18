@@ -20,6 +20,7 @@ export type HashIconHint =
   | "up";
 
 export const hashIconHints = {
+  clipboardList: "lift",
   clipboardCheck: "lift",
   clipboard: "lift",
   memoInfo: "lift",

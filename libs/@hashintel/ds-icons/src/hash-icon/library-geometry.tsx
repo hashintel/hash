@@ -1,5 +1,6 @@
 import { clipboardGeometry } from "./library-geometry/clipboard";
 import { clipboardCheckGeometry } from "./library-geometry/clipboard-check";
+import { clipboardListGeometry } from "./library-geometry/clipboard-list";
 import { fileArchiveGeometry } from "./library-geometry/file-archive";
 import { fileAudioGeometry } from "./library-geometry/file-audio";
 import { fileBoxGeometry } from "./library-geometry/file-box";
@@ -23,6 +24,7 @@ import { notePlusGeometry } from "./library-geometry/note-plus";
 import { noteStickyGeometry } from "./library-geometry/note-sticky";
 
 export const libraryGeometry = {
+  clipboardList: clipboardListGeometry,
   clipboardCheck: clipboardCheckGeometry,
   clipboard: clipboardGeometry,
   memoInfo: memoInfoGeometry,
