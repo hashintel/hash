@@ -2,7 +2,11 @@ import { describe, expect, test } from "vitest";
 
 import { mutationActionInputSchemas } from "./action-schemas";
 import { updatePrunesReferences } from "./actions";
-import { gateLibrary, logistics } from "./composition/libraries.test-helpers";
+import {
+  gateLibrary,
+  logistics,
+  tankLibrary,
+} from "./composition/libraries.test-helpers";
 import { createJsonDocHandle } from "./handle";
 import { createPetrinaut } from "./instance";
 import { toPetrinautId } from "./petrinaut-id";
@@ -12,7 +16,7 @@ import {
   subnetSchema,
 } from "./schemas/entity-schemas";
 
-import type { SDCPN, Subnet } from "./types/sdcpn";
+import type { ArcEndpoint, SDCPN, Subnet } from "./types/sdcpn";
 
 const idOf = toPetrinautId;
 
@@ -3045,6 +3049,79 @@ describe("Petrinaut core import actions", () => {
       .transitions.find(({ id }) => id === idOf("sort"))?.transitionKernelCode;
     expect(code).toContain("{ weight: ");
     expect(code).toContain("{ count: ");
+  });
+
+  test("a transition's default kernel takes a port's token type from the body of its library, and a place's from the document, when both write one id for a type", () => {
+    const tanks = tankLibrary("@hashintel/tanks", {
+      name: "level",
+      type: "real",
+    });
+    const instance = createPetrinaut({
+      document: createJsonDocHandle({
+        initial: cloneSDCPN({
+          ...emptySDCPN,
+          // The id the body of `tank` writes for its type, with other fields.
+          types: [
+            {
+              id: "fluid",
+              name: "Fluid",
+              iconSlug: "circle",
+              displayColor: "#000",
+              elements: [
+                { elementId: "count", name: "count", type: "integer" },
+              ],
+            },
+          ],
+          places: [
+            {
+              id: "shelf",
+              name: "Shelf",
+              colorId: "fluid",
+              dynamicsEnabled: false,
+              x: 0,
+              y: 0,
+            },
+          ],
+        }),
+      }),
+      resolveImport: () => tanks,
+      libraries: [tanks.id],
+    });
+    instance.mutations.addComponentInstance({
+      ...placed,
+      id: "tank-1",
+      name: "TankA",
+      component: { from: tanks.id, id: "tank" },
+    });
+
+    const kernelOnto = (id: string, endpoint: ArcEndpoint) => {
+      instance.mutations.addTransition({
+        id,
+        name: id,
+        inputArcs: [],
+        outputArcs: [{ endpoint, weight: 1 }],
+        lambdaType: "predicate",
+        lambdaCode: "",
+        transitionKernelCode: "",
+        x: 0,
+        y: 0,
+      });
+      return instance.definition
+        .get()
+        .transitions.find((transition) => transition.id === idOf(id))
+        ?.transitionKernelCode;
+    };
+
+    expect(
+      kernelOnto("pour", {
+        kind: "componentPort",
+        componentInstanceId: "tank-1",
+        portPlaceId: "in",
+      }),
+    ).toContain("In: [\n    { level: ");
+    expect(kernelOnto("stack", { kind: "place", placeId: "shelf" })).toContain(
+      "Shelf: [\n    { count: ",
+    );
   });
 
   test("a transition keeps the code written for a port of a component whose library is not there to read", () => {

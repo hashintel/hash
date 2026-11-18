@@ -10,7 +10,7 @@ import { checkComposition } from "./check-composition";
 import { inlineImports } from "./inline-imports";
 import { resolveImplementation } from "./interfaces";
 import { resolveLibrary } from "./libraries";
-import { gateLibrary, logistics } from "./libraries.test-helpers";
+import { gateLibrary, logistics, tankLibrary } from "./libraries.test-helpers";
 
 import type { ComponentInstance, SDCPN, Subnet } from "../types/sdcpn";
 
@@ -306,6 +306,99 @@ describe("inlineImports", () => {
     expect(inlined.subnets?.map((subnet) => subnet.places[0]?.colorId)).toEqual(
       types?.map((type) => type?.id),
     );
+  });
+
+  it("gives no two items of one kind one id, whatever ids the bodies of two libraries and the document write alike", () => {
+    const north = tankLibrary("@hashintel/north", {
+      name: "level",
+      type: "real",
+    });
+    const south = tankLibrary("@hashintel/south", {
+      name: "count",
+      type: "integer",
+    });
+    // A document that wrote the words the bodies write holds these ids.
+    const fluid = toPetrinautId("fluid");
+    const drain = toPetrinautId("drain");
+    const fill = toPetrinautId("fill");
+    const store = toPetrinautId("store");
+    const tanks: SDCPN = {
+      places: [
+        {
+          id: store,
+          name: "Store",
+          colorId: fluid,
+          dynamicsEnabled: false,
+          x: 0,
+          y: 0,
+        },
+      ],
+      transitions: [
+        {
+          id: fill,
+          name: "Fill",
+          inputArcs: [],
+          outputArcs: [{ placeId: store, weight: 1 }],
+          lambdaType: "predicate",
+          lambdaCode: "",
+          transitionKernelCode: "",
+          x: 0,
+          y: 0,
+        },
+      ],
+      types: [
+        {
+          id: fluid,
+          name: "Fluid",
+          iconSlug: "circle",
+          displayColor: "#000",
+          elements: [],
+        },
+      ],
+      differentialEquations: [
+        { id: drain, name: "Drain", colorId: fluid, code: "", arity: 1 },
+      ],
+      parameters: [],
+      imports: [{ id: north.id }, { id: south.id }],
+      componentInstances: [north, south].map((library) =>
+        instance(library.name, { component: { from: library.id, id: "tank" } }),
+      ),
+    };
+
+    const inlined = inlineImports(
+      tanks,
+      new Map(
+        [north, south].map((library) => [
+          library.id,
+          resolveLibrary(library.id, library),
+        ]),
+      ),
+    );
+
+    const nets = [inlined, ...(inlined.subnets ?? [])];
+    expect(nets).toHaveLength(3);
+    for (const kind of [
+      "places",
+      "transitions",
+      "types",
+      "differentialEquations",
+    ] as const) {
+      const ids = nets.flatMap((net) => net[kind].map(({ id }) => id));
+      expect(new Set(ids).size, kind).toBe(ids.length);
+    }
+    // Each body still reads its own type, equation and places.
+    for (const tank of inlined.subnets ?? []) {
+      const [port, held] = tank.places;
+      expect(port?.colorId).toBe(tank.types[0]?.id);
+      expect(port?.dynamics?.[0]?.differentialEquationId).toBe(
+        tank.differentialEquations[0]?.id,
+      );
+      expect(tank.differentialEquations[0]?.colorId).toBe(tank.types[0]?.id);
+      expect(tank.transitions[0]).toMatchObject({
+        inputArcs: [{ placeId: port?.id }],
+        outputArcs: [{ endpoint: { placeId: held?.id } }],
+      });
+    }
   });
 
   it("leaves what names an import that did not resolve as it is", () => {

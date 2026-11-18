@@ -510,10 +510,18 @@ const libraries = [logistics.id];
   [interface](doc:core.composition/interfaces-and-fusions): an instance of it
   needs an implementation bound, a subnet of the document or a component of
   an import, and a net does not run while one is missing.
-- **Ids inside a library** are read as a document reads any id: a UUID stays
-  as written, and any other string is converted with `toPetrinautId`. A
-  fusion member or an arc names a port of an instance by that id, and
-  `parameterValues` are keyed by the parameters' ids the same way.
+- **The ids of ports and parameters** are read as a document reads any id: a
+  UUID stays as written, and any other string is converted with
+  `toPetrinautId`. A fusion member or an arc names a port of an instance by
+  that id, and `parameterValues` are keyed by the parameters' ids the same
+  way.
+- **The other ids of a body** are the component's own. A type and its
+  elements, an equation, a transition and a place that is not a port each
+  take an id made from the library's id, the component's id and the id the
+  body writes, with every reference to it inside the body. The id is the same
+  each time the library is resolved, and no document and no other component
+  has it: a body can write `item` for a type beside a document, or another
+  library, that does too. Nothing in a document names these ids.
 
 Core resolves each import once, when the instance is created and when an
 import joins the document, and holds the outcome in `instance.imports`, a

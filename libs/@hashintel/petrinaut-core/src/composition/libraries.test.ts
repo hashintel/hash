@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import { toPetrinautId } from "../petrinaut-id";
 import { isInterface, resolveComponent } from "./interfaces";
 import { resolveLibrary, type Library } from "./libraries";
-import { gateLibrary, logistics } from "./libraries.test-helpers";
+import { gateLibrary, logistics, tankLibrary } from "./libraries.test-helpers";
+
+import type { Subnet } from "../types/sdcpn";
 
 const [scale, belt] = logistics.components;
 
@@ -152,6 +154,77 @@ describe("resolveLibrary", () => {
     expect(resolveLibrary(logistics.id, logistics)).toEqual(
       resolveLibrary(logistics.id, logistics),
     );
+  });
+
+  describe("the ids a body writes", () => {
+    const north = tankLibrary("@hashintel/north", {
+      name: "level",
+      type: "real",
+    });
+    const south = tankLibrary("@hashintel/south", {
+      name: "count",
+      type: "integer",
+    });
+    const tankOf = (library: Library): Subnet =>
+      resolveLibrary(library.id, library).components[0]!;
+    /** The ids of what only the body can name: all but its port. */
+    const internalIds = (tank: Subnet): string[] => [
+      ...tank.types.flatMap((type) => [
+        type.id,
+        ...type.elements.map(({ elementId }) => elementId),
+      ]),
+      ...tank.differentialEquations.map(({ id }) => id),
+      ...tank.transitions.map(({ id }) => id),
+      ...tank.places.filter(({ isPort }) => !isPort).map(({ id }) => id),
+    ];
+
+    it("gives a type, an equation, a transition and a place that is no port ids no other library and no document has", () => {
+      const ids = [
+        ...internalIds(tankOf(north)),
+        ...internalIds(tankOf(south)),
+      ];
+
+      expect(ids).toHaveLength(10);
+      expect(new Set(ids).size).toBe(ids.length);
+      // What a document that writes the same words holds.
+      for (const written of ["fluid", "amount", "drain", "fill", "store"]) {
+        expect(ids).not.toContain(toPetrinautId(written));
+      }
+    });
+
+    it("keeps every reference of a body inside its own component", () => {
+      for (const tank of [tankOf(north), tankOf(south)]) {
+        const [type] = tank.types;
+        const [equation] = tank.differentialEquations;
+
+        expect(tank.places.map(({ colorId }) => colorId)).toEqual([
+          type?.id,
+          type?.id,
+        ]);
+        expect(equation?.colorId).toBe(type?.id);
+        expect(tank.places[0]?.dynamics).toEqual([
+          { differentialEquationId: equation?.id },
+        ]);
+      }
+    });
+
+    it("leaves a port under the id a document names it by, and carries an arc onto a place that is no port to that place's id", () => {
+      const tank = tankOf(north);
+      const [port, store] = tank.places;
+      const [fill] = tank.transitions;
+
+      expect(port).toMatchObject({ id: toPetrinautId("in"), isPort: true });
+      expect(store?.id).not.toBe(toPetrinautId("store"));
+      expect(fill?.inputArcs[0]?.placeId).toBe(port?.id);
+      expect(fill?.outputArcs[0]?.endpoint).toEqual({
+        kind: "place",
+        placeId: store?.id,
+      });
+    });
+
+    it("gives a body the same ids each time it reads the library", () => {
+      expect(tankOf(north)).toEqual(tankOf(north));
+    });
   });
 
   it("refuses a library under another id than the import's", () => {

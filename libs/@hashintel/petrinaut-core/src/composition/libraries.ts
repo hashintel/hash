@@ -10,6 +10,7 @@
 import { z } from "zod";
 
 import { toPetrinautId } from "../petrinaut-id";
+import { remapPlaceDynamics } from "../place-dynamics";
 import { subnetSchema } from "../schemas/entity-schemas";
 import { COLOR_ELEMENT_TYPES } from "../simulation/engine/type-policies";
 import { colorsStructurallyEqual } from "./fusions";
@@ -20,6 +21,9 @@ import type {
   Color,
   ColorElementType,
   DifferentialEquation,
+  ID,
+  InputArc,
+  OutputArc,
   Parameter,
   Place,
   PortDirection,
@@ -56,6 +60,8 @@ export type LibraryParameter = Parameter;
 /**
  * What a component runs, as a subnet of a document holds its own content.
  * The places `ports` name are its ports, whatever the places themselves say.
+ * Its ids need only be distinct within it: a resolved library holds each, the
+ * ports apart, under an id of the component's own.
  */
 export type LibraryComponentBody = {
   places: Place[];
@@ -94,9 +100,10 @@ export type Library = {
 
 /**
  * A library that passed its checks. Each component is a subnet whose `id` is
- * the component's id in the library, as written. Every id inside it is a
- * Petrinaut id, converted as a document converts the ids it loads, so a port
- * or a parameter is named in a document by `toPetrinautId` of its id here.
+ * the component's id in the library, as written. A port or a parameter has
+ * the id a document converts the library's to, so a document names it by
+ * `toPetrinautId` of its id here. Every other id inside a component is its
+ * own: no document and no other component holds it.
  */
 export type ResolvedLibrary = {
   id: string;
@@ -282,6 +289,65 @@ const markPorts = (
   );
 };
 
+/**
+ * `body` with each id only it can name replaced by one made from its library,
+ * its component and that id: its types and their elements, its equations,
+ * its transitions and the places that are not ports, with every reference to
+ * one. A host writes ids a person can read, and some readers look an item up
+ * by id alone across a document and its libraries: an id kept as written
+ * would be taken for a document's that reads the same. Ports and parameters
+ * keep theirs, since documents name them.
+ */
+const withOwnIds = (body: Subnet, libraryId: string): Subnet => {
+  const scope = componentKey({ from: libraryId, id: body.id });
+  const own = (id: ID): ID => toPetrinautId(`${scope}/${id}`);
+  const portIds = new Set(
+    body.places.filter(({ isPort }) => isPort).map(({ id }) => id),
+  );
+  const placeId = (id: ID): ID => (portIds.has(id) ? id : own(id));
+  const onPlaces = <Arc extends InputArc | OutputArc>(arcs: Arc[]): Arc[] =>
+    arcs.map((arc) => ({
+      ...arc,
+      ...(arc.placeId === undefined ? {} : { placeId: placeId(arc.placeId) }),
+      ...(arc.endpoint?.kind === "place"
+        ? {
+            endpoint: {
+              ...arc.endpoint,
+              placeId: placeId(arc.endpoint.placeId),
+            },
+          }
+        : {}),
+    }));
+  return {
+    ...body,
+    types: body.types.map((type) => ({
+      ...type,
+      id: own(type.id),
+      elements: type.elements.map((element) => ({
+        ...element,
+        elementId: own(element.elementId),
+      })),
+    })),
+    differentialEquations: body.differentialEquations.map((equation) => ({
+      ...equation,
+      id: own(equation.id),
+      colorId: equation.colorId === null ? null : own(equation.colorId),
+    })),
+    places: body.places.map((place) => ({
+      ...place,
+      id: placeId(place.id),
+      colorId: place.colorId === null ? null : own(place.colorId),
+      ...remapPlaceDynamics(place, own),
+    })),
+    transitions: body.transitions.map((transition) => ({
+      ...transition,
+      id: own(transition.id),
+      inputArcs: onPlaces(transition.inputArcs),
+      outputArcs: onPlaces(transition.outputArcs),
+    })),
+  };
+};
+
 /** A component of a library as a subnet. Throws on one a document would not accept. */
 const toSubnet = (component: ComponentOutline, libraryId: string): Subnet => {
   const owner = `component \`${component.name}\` of library \`${libraryId}\``;
@@ -334,7 +400,13 @@ const toSubnet = (component: ComponentOutline, libraryId: string): Subnet => {
   }
   const subnet: Subnet = { ...parsed.data, id: component.id };
   return body
-    ? { ...subnet, places: markPorts(subnet, component.ports, `the ${owner}`) }
+    ? withOwnIds(
+        {
+          ...subnet,
+          places: markPorts(subnet, component.ports, `the ${owner}`),
+        },
+        libraryId,
+      )
     : subnet;
 };
 

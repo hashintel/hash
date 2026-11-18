@@ -100,3 +100,88 @@ export const gateLibrary = (
     },
   ],
 });
+
+/**
+ * A library with one component that runs, `tank`. Its body writes plain
+ * words for ids: a type `fluid`, an equation `drain`, a transition `fill`,
+ * and beside its port `in` a place that is no port, `store`. Two of them
+ * differ in the library's id and in the element of `fluid` alone.
+ */
+export const tankLibrary = (
+  id: string,
+  element: LibraryTokenType["elements"][number],
+): Library => ({
+  id,
+  name: id,
+  components: [
+    {
+      id: "tank",
+      name: "Tank",
+      ports: [
+        {
+          id: "in",
+          name: "In",
+          tokenType: {
+            name: "Fluid",
+            displayColor: "#1E90FF",
+            elements: [element],
+          },
+        },
+      ],
+      body: {
+        types: [
+          {
+            id: "fluid",
+            name: "Fluid",
+            iconSlug: "circle",
+            displayColor: "#1E90FF",
+            elements: [{ elementId: "amount", ...element }],
+          },
+        ],
+        differentialEquations: [
+          {
+            id: "drain",
+            name: "Drain",
+            colorId: "fluid",
+            code: "return {};",
+            arity: 1,
+          },
+        ],
+        places: [
+          {
+            id: "in",
+            name: "In",
+            colorId: "fluid",
+            dynamicsEnabled: true,
+            dynamics: [{ differentialEquationId: "drain" }],
+            x: 0,
+            y: 0,
+          },
+          {
+            id: "store",
+            name: "Store",
+            colorId: "fluid",
+            dynamicsEnabled: false,
+            x: 200,
+            y: 0,
+          },
+        ],
+        transitions: [
+          {
+            id: "fill",
+            name: "Fill",
+            inputArcs: [{ placeId: "in", weight: 1, type: "standard" }],
+            outputArcs: [
+              { endpoint: { kind: "place", placeId: "store" }, weight: 1 },
+            ],
+            lambdaType: "predicate",
+            lambdaCode: "",
+            transitionKernelCode: "",
+            x: 100,
+            y: 0,
+          },
+        ],
+      },
+    },
+  ],
+});
