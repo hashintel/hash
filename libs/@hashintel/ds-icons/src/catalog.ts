@@ -163,7 +163,7 @@ export const hashIconStudies = [
 }[];
 
 const categories = {
-  Logistics: ["boxes", "box"],
+  Logistics: ["pack", "boxes", "box"],
   Places: [
     "graduationCap",
     "briefcase",

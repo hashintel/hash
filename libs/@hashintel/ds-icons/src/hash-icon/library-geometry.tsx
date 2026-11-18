@@ -168,6 +168,7 @@ import { newspaperGeometry } from "./library-geometry/newspaper";
 import { notePlusGeometry } from "./library-geometry/note-plus";
 import { noteStickyGeometry } from "./library-geometry/note-sticky";
 import { octagonGeometry } from "./library-geometry/octagon";
+import { packGeometry } from "./library-geometry/pack";
 import { paperclipGeometry } from "./library-geometry/paperclip";
 import { parallelogramGeometry } from "./library-geometry/parallelogram";
 import { pencilRulerGeometry } from "./library-geometry/pencil-ruler";
@@ -251,6 +252,7 @@ import { usersGeometry } from "./library-geometry/users";
 import { warehouseGeometry } from "./library-geometry/warehouse";
 
 export const libraryGeometry = {
+  pack: packGeometry,
   boxes: boxesGeometry,
   box: boxGeometry,
   graduationCap: graduationCapGeometry,
