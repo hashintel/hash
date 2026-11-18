@@ -516,7 +516,7 @@ export const TypesTable: FunctionComponent<
           typeId: type.schema.$id,
           title: type.schema.title,
           labelPreview:
-            hierarchical && type.schema.kind === "dataType"
+            kind === "data-type" && type.schema.kind === "dataType"
               ? getDataTypeLabelPreview(type.schema, dataTypes ?? {})
               : undefined,
           parentIds:
@@ -532,7 +532,7 @@ export const TypesTable: FunctionComponent<
           archived: type.archived,
         } as const;
       }),
-    [actors, filteredTypes, hierarchical, dataTypes],
+    [actors, filteredTypes, kind, dataTypes],
   );
 
   const [sort, setSort] = useState<GridSort<TypesTableColumnId>>(
@@ -623,7 +623,7 @@ export const TypesTable: FunctionComponent<
             ]
               .filter(Boolean)
               .join(" ");
-            if (row.hierarchy) {
+            if (kind === "data-type") {
               return {
                 kind: GridCellKind.Custom,
                 themeOverride,
@@ -636,8 +636,14 @@ export const TypesTable: FunctionComponent<
                   title: row.title,
                   labelPreview: row.labelPreview,
                   icon: row.icon,
-                  ...row.hierarchy,
-                  muted: !row.hierarchy.matchesSearch,
+                  ...(row.hierarchy ?? {
+                    depth: 0,
+                    continuationDepths: [],
+                    hasNextSibling: false,
+                    expanded: false,
+                    hasChildren: false,
+                  }),
+                  muted: row.hierarchy?.matchesSearch === false,
                   onToggle: () => toggleRow(row.rowId),
                   onOpen: () =>
                     pushToSlideStack({ kind: "dataType", itemId: row.typeId }),
@@ -780,7 +786,7 @@ export const TypesTable: FunctionComponent<
           }
         }
       },
-    [typesTableColumns, pushToSlideStack, router, theme, toggleRow],
+    [typesTableColumns, pushToSlideStack, router, theme, toggleRow, kind],
   );
 
   const matchingIds = useMemo(() => {

@@ -397,6 +397,25 @@ describe("hierarchical type table", () => {
         .map(({ title }) => title),
     ).toEqual(["meters", "meters"]);
     expect(csvTitles()).toEqual(["meters"]);
+    fireEvent.click(screen.getByRole("button", { name: "Flat List" }));
+    expect(visibleRows().map(({ title }) => title)).toEqual(["meters"]);
+    const flatCell = state.grid!.createGetCellContent(visibleRows())([0, 0]);
+    expect(flatCell.copyData).toBe(cell.copyData);
+    if (flatCell.kind !== GridCellKind.Custom) {
+      throw new Error("Expected a label-preview cell");
+    }
+    expect(flatCell.data).toMatchObject({
+      kind: "data-type-tree-cell",
+      labelPreview: visibleRows()[0]!.labelPreview,
+      hasChildren: false,
+    });
+    expect(csvTitles()).toEqual(["meters"]);
+    fireEvent.click(screen.getByRole("button", { name: "Nested List" }));
+    expect(
+      visibleRows()
+        .filter(({ hierarchy }) => hierarchy?.matchesSearch)
+        .map(({ title }) => title),
+    ).toEqual(["meters", "meters"]);
   });
 
   it("uses the bounded inherited tuple preview for both clipboard and search", () => {
@@ -436,5 +455,10 @@ describe("hierarchical type table", () => {
         .map(({ title }) => title),
     ).toEqual(["tuple"]);
     expect(csvTitles()).toEqual(["tuple"]);
+    fireEvent.click(screen.getByRole("button", { name: "Flat List" }));
+    expect(visibleRows().map(({ title }) => title)).toEqual(["tuple"]);
+    expect(
+      state.grid!.createGetCellContent(visibleRows())([0, 0]).copyData,
+    ).toBe(cell.copyData);
   });
 });
