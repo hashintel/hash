@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  alignCenterRight:
+    "A square at the center right of a frame represents content alignment.",
   alignCenterCenter:
     "A square at the center center of a frame represents content alignment.",
   alignCenterLeft:
