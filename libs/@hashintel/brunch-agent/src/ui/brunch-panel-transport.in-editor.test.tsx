@@ -166,19 +166,23 @@ test.each([
     failure: "a definite refusal removes",
     error: new FlueApiError(403, "Refused"),
     kept: 0,
+    delivered: false,
   },
   {
     failure: "an ambiguous failure keeps",
     error: new TypeError("Connection lost after request write"),
     kept: 1,
+    delivered: false,
   },
   {
     failure: "an abort after the request was made keeps",
     error: new DOMException("cancelled", "AbortError"),
     kept: 1,
+    delivered: false,
   },
   {
-    failure: "a submission conflict keeps",
+    // Flue admitted this delivery key earlier: the message arrived.
+    failure: "a submission conflict delivers, and keeps",
     error: new FlueApiError(409, {
       error: {
         details: "",
@@ -188,10 +192,11 @@ test.each([
       },
     }),
     kept: 1,
+    delivered: true,
   },
 ])(
   "real panel: $failure the optimistic composer message",
-  async ({ error, kept }) => {
+  async ({ error, kept, delivered }) => {
     const send = vi.fn<FlueClient["send"]>().mockRejectedValue(error);
     const transport = createBrunchPanelTransport(
       Promise.resolve({ send } as unknown as FlueClient),
@@ -239,11 +244,17 @@ test.each([
     });
     fireEvent.change(composer, { target: { value: "Hello Brunch" } });
     fireEvent.click(screen.getByRole("button", { name: "Send message" }));
-    await waitFor(() => expect(composer.value).toBe("Hello Brunch"));
+    // A failed send gives the text back; a delivered one leaves it sent.
+    await waitFor(() =>
+      expect(composer.value).toBe(delivered ? "" : "Hello Brunch"),
+    );
     // Let the panel's 80ms message throttle publish the settled transcript.
     await act(() => new Promise((resolve) => setTimeout(resolve, 200)));
     expect(send).toHaveBeenCalledOnce();
     expect(userMessages).toBe(kept);
+    if (delivered) {
+      expect(screen.queryByText("AI assistant error")).toBeNull();
+    }
   },
 );
 

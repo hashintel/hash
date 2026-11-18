@@ -30,12 +30,7 @@ const admit = (tracker: BrunchPanelConversationTracker, submissionId: string) =>
   tracker.recordAdmission({
     kind: "user",
     messageId: `message-${submissionId}`,
-    admission: {
-      submissionId,
-      uid: "uid",
-      offset: "offset",
-      streamUrl: "http://brunch.test/stream",
-    },
+    admission: { submissionId },
   });
 
 /** A history snapshot with settlements for exactly `settled`. */

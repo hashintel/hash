@@ -1367,12 +1367,7 @@ const offerSettledWrapUp = async () => {
     tracker.recordAdmission({
       kind: "user",
       messageId: id,
-      admission: {
-        submissionId: "root",
-        uid: "test",
-        offset: "opaque",
-        streamUrl: "http://local/stream",
-      },
+      admission: { submissionId: "root" },
     });
     return { kind: "message", messageId: id };
   });
@@ -1602,12 +1597,7 @@ test("Stop sends the partial answer to Live quietly and Continue admits one new 
     tracker.recordAdmission({
       kind: "user",
       messageId: id,
-      admission: {
-        submissionId: `submission-${id}`,
-        uid: "test",
-        offset: "opaque",
-        streamUrl: "http://local/stream",
-      },
+      admission: { submissionId: `submission-${id}` },
     });
     return { kind: "message", messageId: id };
   });

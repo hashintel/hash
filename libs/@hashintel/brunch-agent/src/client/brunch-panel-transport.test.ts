@@ -73,16 +73,73 @@ test("host submission rejects a refused admission even though SDK sendMessage fu
   });
 });
 
-test.each<[FlueChatAdmissionFailure, "delivered" | "fails"]>([
-  [{ kind: "rejected", status: 403 }, "fails"],
-  [{ kind: "aborted", requestSent: false }, "fails"],
-  [{ kind: "aborted", requestSent: true }, "fails"],
-  [{ kind: "ambiguous" }, "fails"],
-  [
-    { kind: "submission-conflict", status: 409, submissionId: "existing" },
-    "delivered",
-  ],
-])("a host send whose admission fails with %o %s", async (failure, ends) => {
+test("a send that meets a submission conflict is delivered: its admission is recorded and the chat shows no error", async () => {
+  const send = vi.fn<FlueClient["send"]>(async () => {
+    throw new FlueApiError(409, {
+      error: {
+        details: "",
+        message: "The delivery key already names another payload.",
+        meta: { submissionId: "admitted-first" },
+        type: "submission_conflict",
+      },
+    });
+  });
+  const tracker = new BrunchPanelConversationTracker();
+  const onAdmission = vi.fn();
+  const failureListener = vi.fn();
+  tracker.subscribeToAdmissionFailure(
+    { kind: "user", messageId: "host" },
+    failureListener,
+  );
+  // Voice waits for its input's admission the same way.
+  const admissionListener = vi.fn();
+  tracker.subscribeToAdmission(
+    { kind: "user", messageId: "host" },
+    admissionListener,
+  );
+  const chat = new Chat<PetrinautAiMessage>({
+    transport: createBrunchPanelTransport(
+      Promise.resolve({ send } as unknown as FlueClient),
+      tracker,
+      { onAdmission },
+    ),
+  });
+
+  await expect(
+    tracker.submitTextWithAdmission(submitThroughChat(chat), {
+      id: "host",
+      text: "Results",
+      target: "message",
+    }),
+  ).resolves.toEqual({ kind: "message", messageId: "host" });
+
+  // The earlier admission under this delivery key is this message's: its
+  // reply arrives through the conversation's history, not this send.
+  expect(chat.error).toBeUndefined();
+  expect(chat.status).toBe("ready");
+  expect(chat.messages.map(({ role }) => role)).toEqual(["user"]);
+  expect(failureListener).not.toHaveBeenCalled();
+  expect(admissionListener).toHaveBeenCalledWith(
+    expect.objectContaining({
+      admission: { submissionId: "admitted-first" },
+      messageId: "host",
+    }),
+  );
+  expect(onAdmission).toHaveBeenCalledWith({ submissionId: "admitted-first" });
+  expect(tracker.submissionForInput("host")).toBe("admitted-first");
+  // Leaving the editor stops the turn until history shows it settled.
+  expect(tracker.hasUnsettledTurn(undefined)).toBe(true);
+  expect(send).toHaveBeenCalledOnce();
+});
+
+// A submission conflict never arrives here: the transport records it as the
+// message's admission.
+test.each<FlueChatAdmissionFailure>([
+  { kind: "rejected", status: 403 },
+  { kind: "aborted", requestSent: false },
+  { kind: "aborted", requestSent: true },
+  { kind: "ambiguous" },
+])("a host send whose admission fails with %o fails", async (failure) => {
   const tracker = new BrunchPanelConversationTracker();
   // As the panel transport reports it: the failure, then the AI SDK's
   // fulfilled `sendMessage`.
@@ -98,14 +155,7 @@ test.each<[FlueChatAdmissionFailure, "delivered" | "fails"]>([
     id: "host",
     text: "Results",
   });
-  if (ends === "delivered") {
-    await expect(submission).resolves.toEqual({
-      kind: "message",
-      messageId: "host",
-    });
-  } else {
-    await expect(submission).rejects.toMatchObject({ failure });
-  }
+  await expect(submission).rejects.toMatchObject({ failure });
 });
 
 test("captures words before waiting for the client and retains them for the same admission identity", async () => {

@@ -34,10 +34,16 @@ import type {
   FlueChatResponseMessageStartedEvent,
   FlueChatTransportOptions,
 } from "@local/flue-aisdk-transport";
+import type { UIMessageChunk } from "ai";
 
-export type BrunchPanelAdmission = Parameters<
-  NonNullable<FlueChatTransportOptions["onAdmission"]>
->[0];
+/**
+ * A message Flue admitted, by the submission it became. A submission conflict
+ * shows only that submission's id, so nothing here reads more of it.
+ */
+export type BrunchPanelAdmission = Omit<
+  Parameters<NonNullable<FlueChatTransportOptions["onAdmission"]>>[0],
+  "admission"
+> & { readonly admission: Pick<AgentSendResult, "submissionId"> };
 export type BrunchPanelAdmissionTarget = Pick<
   BrunchPanelAdmission,
   "kind" | "messageId"
@@ -170,7 +176,7 @@ export class BrunchPanelConversationTracker {
    * Host-owned message sends settle on admission, not AI SDK fulfillment (which
    * also follows swallowed transport errors). A retry of an unconfirmed
    * delivery keeps its id; the transport resends the payload first built for
-   * it, so a conflict on retry means this message was already admitted.
+   * it, and records a submission conflict on retry as this message's admission.
    */
   public async submitTextWithAdmission(
     submitText: PetrinautAiComposerSubmitText,
@@ -208,13 +214,6 @@ export class BrunchPanelConversationTracker {
             },
           ),
       ]);
-    } catch (error) {
-      if (
-        error instanceof FlueChatAdmissionError &&
-        admissionOutcome(error.failure) === "admitted"
-      )
-        return result;
-      throw error;
     } finally {
       unsubscribe();
       unsubscribeFailure();
@@ -372,7 +371,9 @@ export const createBrunchPanelTransport = (
     readonly interviewRepliesAsked?: number;
     /** The host's latest version load, sent with every message while it stands. */
     readonly versionLoad?: VersionLoad;
-    readonly onAdmission?: (admission: AgentSendResult) => void;
+    readonly onAdmission?: (
+      admission: Pick<AgentSendResult, "submissionId">,
+    ) => void;
     /**
      * The user sent a turn of their own, typed or of comments: called once its
      * payload is built and before Flue is asked to admit it, so whether Flue
@@ -430,25 +431,26 @@ export const createBrunchPanelTransport = (
               )
             : readSubmissionContext();
         const client = await clientPromise;
+        const admit = (admission: BrunchPanelAdmission): void => {
+          tracker.recordAdmission(admission);
+          options?.onAdmission?.(admission.admission);
+        };
+        let submitted:
+          | ReturnType<typeof brunchSubmittedUserMessage>
+          | undefined;
         const transport = (
           options?.adapter ?? canonicalBrunchFlueAdapter
         ).chatTransport({
           client,
           submittedUserMessage: (messages) => {
-            const submitted = brunchSubmittedUserMessage(
-              messages,
-              submissionContext,
-            );
+            submitted = brunchSubmittedUserMessage(messages, submissionContext);
             if (tracker.recordSubmission(submitted.messageId))
               options?.onSubmission?.(submitted.messageId);
             return submitted;
           },
           initialData: options?.initialData,
           liveToolStream: options?.liveToolStream,
-          onAdmission: (event) => {
-            tracker.recordAdmission(event);
-            options?.onAdmission?.(event.admission);
-          },
+          onAdmission: admit,
           onResponseMessage: (event) => tracker.recordResponse(event),
           onResponseMessageCompleted: (event) =>
             tracker.recordResponseMessageCompleted(event),
@@ -459,6 +461,24 @@ export const createBrunchPanelTransport = (
         try {
           return await transport.sendMessages(sendOptions);
         } catch (error) {
+          // Flue admitted this delivery key earlier, as this message: the
+          // first response was lost, or this payload differs from that one.
+          // The send is delivered, and its reply arrives through the
+          // conversation's history, since only the admission's id is known.
+          if (
+            error instanceof FlueChatAdmissionError &&
+            error.failure.kind === "submission-conflict" &&
+            submitted !== undefined
+          ) {
+            admit({
+              admission: { submissionId: error.failure.submissionId },
+              kind: submitted.message.kind,
+              messageId: submitted.messageId,
+            });
+            return new ReadableStream<UIMessageChunk>({
+              start: (controller) => controller.close(),
+            });
+          }
           const messageId =
             sendOptions.messageId ?? sendOptions.messages.at(-1)?.id;
           if (
