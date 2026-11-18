@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  historyUser:
+    "A person inside a return arrow represents account activity history.",
   historyPages:
     "Documents inside a return arrow represent a page\u2019s revision history.",
   calendars:

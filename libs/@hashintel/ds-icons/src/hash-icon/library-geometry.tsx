@@ -30,12 +30,14 @@ import { filesGeometry } from "./library-geometry/files";
 import { folderGeometry } from "./library-geometry/folder";
 import { handwrittenDocsGeometry } from "./library-geometry/handwritten-docs";
 import { historyPagesGeometry } from "./library-geometry/history-pages";
+import { historyUserGeometry } from "./library-geometry/history-user";
 import { memoInfoGeometry } from "./library-geometry/memo-info";
 import { newspaperGeometry } from "./library-geometry/newspaper";
 import { notePlusGeometry } from "./library-geometry/note-plus";
 import { noteStickyGeometry } from "./library-geometry/note-sticky";
 
 export const libraryGeometry = {
+  historyUser: historyUserGeometry,
   historyPages: historyPagesGeometry,
   calendars: calendarsGeometry,
   calendarCheck: calendarCheckGeometry,
