@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  buildingSearch:
+    "A building and magnifier represent researching an organization.",
   building: "A multi-storey building represents an organization or office.",
   pullRequest:
     "A returning branch represents a pull request or proposed merge.",
