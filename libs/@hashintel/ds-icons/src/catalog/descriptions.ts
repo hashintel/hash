@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  circleThree: "The numeral three in a circle represents a third step or item.",
   circleTwo: "The numeral two in a circle represents a second step or item.",
   survey: "A form with choices represents a survey or questionnaire.",
   specification:
