@@ -164,6 +164,7 @@ export const hashIconStudies = [
 
 const categories = {
   Canvas: [
+    "roundedCorner",
     "splineCubic",
     "splineLine",
     "dashDraw",

@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  roundedCorner: "A rounded bend represents a corner-radius setting.",
   splineCubic: "A curved segment between points represents a smooth connector.",
   splineLine:
     "A straight segment between points represents a linear connector.",

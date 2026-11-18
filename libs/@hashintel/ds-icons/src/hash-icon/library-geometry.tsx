@@ -83,6 +83,7 @@ import { powerGeometry } from "./library-geometry/power";
 import { radioCheckedGeometry } from "./library-geometry/radio-checked";
 import { rectangleGeometry } from "./library-geometry/rectangle";
 import { redoGeometry } from "./library-geometry/redo";
+import { roundedCornerGeometry } from "./library-geometry/rounded-corner";
 import { shapeArrowDownGeometry } from "./library-geometry/shape-arrow-down";
 import { shapeArrowLeftGeometry } from "./library-geometry/shape-arrow-left";
 import { shapeArrowRightGeometry } from "./library-geometry/shape-arrow-right";
@@ -100,6 +101,7 @@ import { triangleGeometry } from "./library-geometry/triangle";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  roundedCorner: roundedCornerGeometry,
   splineCubic: splineCubicGeometry,
   splineLine: splineLineGeometry,
   dashDraw: dashDrawGeometry,
