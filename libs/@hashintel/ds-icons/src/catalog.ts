@@ -163,6 +163,7 @@ export const hashIconStudies = [
 }[];
 
 const categories = {
+  Nature: ["flame"],
   Objects: [
     "diceD20",
     "cctvCamera",

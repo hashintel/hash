@@ -145,6 +145,7 @@ import { fillPatternGeometry } from "./library-geometry/fill-pattern";
 import { fillSemiGeometry } from "./library-geometry/fill-semi";
 import { fillSolidGeometry } from "./library-geometry/fill-solid";
 import { flagGeometry } from "./library-geometry/flag";
+import { flameGeometry } from "./library-geometry/flame";
 import { flaskVialGeometry } from "./library-geometry/flask-vial";
 import { folderGeometry } from "./library-geometry/folder";
 import { fontCaseGeometry } from "./library-geometry/font-case";
@@ -350,6 +351,7 @@ import { wavesGeometry } from "./library-geometry/waves";
 import { workflowGeometry } from "./library-geometry/workflow";
 
 export const libraryGeometry = {
+  flame: flameGeometry,
   circleThreeQuarters: circleThreeQuartersGeometry,
   circleHalf: circleHalfGeometry,
   chartHeatmap: chartHeatmapGeometry,

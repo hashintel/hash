@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  flame: "A flame represents heat, fire, urgency, or sustained activity.",
   circleThreeQuarters:
     "A three-quarter-filled circle represents work that is nearing completion.",
   circleHalf: "A half-filled circle represents work that is in progress.",
