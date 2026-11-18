@@ -4,6 +4,8 @@ import { Button, Icon, Menu } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { EditorContext } from "../../../../react/state/editor-context";
+import { usePanelSizes } from "../../../../react/state/panel-sizes-context";
+import { useStore } from "../../../../react/use-store";
 import { AiAssistantIcon } from "../../../components/ai-assistant-icon";
 import {
   ExperimentalIcon,
@@ -249,13 +251,14 @@ export const PluginAssistantPanel = ({
   focusRequest: number;
   children: ReactNode;
 }) => {
-  const {
-    aiAssistantPlacement,
-    aiAssistantWidth,
-    isPanelAnimating,
-    setAiAssistantPlacement,
-    setAiAssistantWidth,
-  } = use(EditorContext);
+  const { aiAssistantPlacement, isPanelAnimating, setAiAssistantPlacement } =
+    use(EditorContext);
+  // The width shapes the dock, the shell and the floating window at once, so
+  // the shell renders with it. Nothing else does.
+  const panelSizes = usePanelSizes();
+  const aiAssistantWidth = useStore(panelSizes.aiAssistantWidth);
+  const setAiAssistantWidth = (width: number) =>
+    panelSizes.aiAssistantWidth.set(width);
   const { isOpen, close } = panel;
 
   const isFloating = aiAssistantPlacement === "floating";

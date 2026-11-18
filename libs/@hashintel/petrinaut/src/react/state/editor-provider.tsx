@@ -16,7 +16,6 @@ import {
   type EditorState,
   initialEditorState,
 } from "./editor-context";
-import { usePanelSizes } from "./panel-sizes-context";
 import { SDCPNContext } from "./sdcpn-context";
 import { useComposesOnly } from "./use-composes-only";
 import { useSyncEditorToSettings } from "./use-sync-editor-to-settings";
@@ -48,7 +47,6 @@ const raiseVisualizer = (state: EditorState, placeId: string): EditorState =>
 
 export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const userSettings = use(UserSettingsContext);
-  const panelSizes = usePanelSizes();
   const composesOnly = useComposesOnly();
   const actualMode = use(ActualModeContext);
   const navigation = usePetrinautNavigation();
@@ -399,10 +397,6 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         ...animationPatch(),
         isLeftSidebarOpen: isOpen,
       }));
-    },
-    setAiAssistantWidth: (width) => {
-      panelSizes.aiAssistantWidth.set(width);
-      setState((prev) => ({ ...prev, aiAssistantWidth: width }));
     },
     setAiAssistantDockHeight: (height) =>
       setState((prev) =>

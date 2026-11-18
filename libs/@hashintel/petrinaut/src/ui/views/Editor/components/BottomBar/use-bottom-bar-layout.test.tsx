@@ -34,10 +34,12 @@ it("centers in the available main view as sibling panels resize it", () => {
     isAiAssistantOpen: false,
     isAiAssistantCollapsed: false,
     aiAssistantPlacement: "docked" as "docked" | "floating",
-    aiAssistantWidth: 420,
   };
+  const panelSizes = createPanelSizes();
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <EditorContext value={editor}>{children}</EditorContext>
+    <PanelSizesContext value={panelSizes}>
+      <EditorContext value={editor}>{children}</EditorContext>
+    </PanelSizesContext>
   );
   const { result, rerender } = renderHook(
     () =>
@@ -71,11 +73,8 @@ it("centers in the available main view as sibling panels resize it", () => {
     `max(calc(${12 - laneWidth / 2}px + 50%), min(0px, calc(${laneWidth / 2 - (editor.hasSelection ? propertiesPanelWidth : 0) - 12}px - 50%)))`,
   );
 
-  editor = {
-    ...editor,
-    aiAssistantPlacement: "docked",
-    aiAssistantWidth: 1000,
-  };
+  editor = { ...editor, aiAssistantPlacement: "docked" };
+  act(() => panelSizes.aiAssistantWidth.set(1000));
   laneWidth = 1000;
   rerender();
   expect(result.current.isCollapsed).toBe(true);

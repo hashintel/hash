@@ -86,6 +86,7 @@ export const useCanvasInsets = (options?: CanvasInsetOptions): CanvasInsets => {
   const leftSidebarWidth = useStore(panelSizes.leftSidebarWidth);
   const propertiesPanelWidth = useStore(panelSizes.propertiesPanelWidth);
   const bottomPanelHeight = useStore(panelSizes.bottomPanelHeight);
+  const aiAssistantWidth = useStore(panelSizes.aiAssistantWidth);
 
   // Where the panels sit beside the canvas rather than over it, the canvas is
   // already the space it occupies and there is nothing to keep clear of.
@@ -96,6 +97,7 @@ export const useCanvasInsets = (options?: CanvasInsetOptions): CanvasInsets => {
           leftSidebarWidth,
           propertiesPanelWidth,
           bottomPanelHeight,
+          aiAssistantWidth,
         },
         options,
       )

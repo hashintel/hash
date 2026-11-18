@@ -871,7 +871,6 @@ export function FakeEditorProvider({
     setAddComponentMode: () => {},
     setCursorMode: () => {},
     setLeftSidebarOpen: () => {},
-    setAiAssistantWidth: () => {},
     setAiAssistantDockHeight: () => {},
     setAiAssistantPlacement: () => {},
     setAiAssistantCollapsed: () => {},

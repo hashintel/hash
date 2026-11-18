@@ -1,7 +1,5 @@
 import { createContext, createRef } from "react";
 
-import { DEFAULT_AI_ASSISTANT_WIDTH } from "./panel-defaults";
-
 import type {
   ComponentReference,
   SelectionItem,
@@ -87,11 +85,6 @@ export type EditorState = {
   cursorMode: CursorMode;
   isLeftSidebarOpen: boolean;
   isBottomPanelOpen: boolean;
-  /**
-   * Width of the AI assistant panel. Held here rather than inside the panel so
-   * the surfaces that have to keep clear of it can read it.
-   */
-  aiAssistantWidth: number;
   /** Rendered compact dock height; null when expanded or closed. */
   aiAssistantDockHeight: number | null;
   aiAssistantPlacement: "docked" | "floating";
@@ -152,7 +145,6 @@ export type EditorActions = {
   setEditionMode: (mode: EditorEditionMode) => void;
   setCursorMode: (mode: CursorMode) => void;
   setLeftSidebarOpen: (isOpen: boolean) => void;
-  setAiAssistantWidth: (width: number) => void;
   setAiAssistantDockHeight: (height: number | null) => void;
   setAiAssistantPlacement: (placement: "docked" | "floating") => void;
   setAiAssistantCollapsed: (collapsed: boolean) => void;
@@ -211,7 +203,6 @@ export const initialEditorState: EditorState = {
   cursorMode: "pan",
   isLeftSidebarOpen: true,
   isBottomPanelOpen: false,
-  aiAssistantWidth: DEFAULT_AI_ASSISTANT_WIDTH,
   aiAssistantDockHeight: null,
   aiAssistantPlacement: "docked",
   isAiAssistantCollapsed: false,
@@ -244,7 +235,6 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   setEditionMode: () => {},
   setCursorMode: () => {},
   setLeftSidebarOpen: () => {},
-  setAiAssistantWidth: () => {},
   setAiAssistantDockHeight: () => {},
   setAiAssistantPlacement: () => {},
   setAiAssistantCollapsed: () => {},
