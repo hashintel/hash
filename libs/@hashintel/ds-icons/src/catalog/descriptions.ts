@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  dashDraw: "An uneven stroke represents a hand-drawn line.",
   dashDotted: "Evenly spaced dots represent a dotted line.",
   dashDashed: "Separated strokes represent a dashed line.",
   dashSolid: "An uninterrupted stroke represents a solid line.",
