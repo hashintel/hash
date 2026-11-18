@@ -2,4 +2,4 @@
 "@hashintel/ds-icons": patch
 ---
 
-Move the radar blip clear of the inner ring so it remains distinct at every weight.
+Center the radar blip at the sweep's pivot and open the rings in the sweep direction.

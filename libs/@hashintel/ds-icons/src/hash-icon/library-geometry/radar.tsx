@@ -1,8 +1,6 @@
 export const radarGeometry = (
   <g fill="none">
-    <circle cx="12" cy="12" r="9" />
-    <circle cx="12" cy="12" r="5" />
-    <path d="M12 12 20 4" />
-    <circle cx="10" cy="13.5" r="1" fill="currentColor" stroke="none" />
+    <path d="M18.364 5.636A9 9 0 1 0 21 12M16.066 7.934A5.75 5.75 0 1 0 17.75 12M12 12 20.5 3.5" />
+    <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
   </g>
 );
