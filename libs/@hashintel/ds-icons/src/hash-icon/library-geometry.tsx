@@ -119,6 +119,7 @@ import { parallelogramGeometry } from "./library-geometry/parallelogram";
 import { pencilRulerGeometry } from "./library-geometry/pencil-ruler";
 import { pencilSlashGeometry } from "./library-geometry/pencil-slash";
 import { pentagonGeometry } from "./library-geometry/pentagon";
+import { percentGeometry } from "./library-geometry/percent";
 import { pinGeometry } from "./library-geometry/pin";
 import { powerGeometry } from "./library-geometry/power";
 import { radioCheckedGeometry } from "./library-geometry/radio-checked";
@@ -156,6 +157,7 @@ import { ungroupGeometry } from "./library-geometry/ungroup";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  percent: percentGeometry,
   hashtag: hashtagGeometry,
   fontCase: fontCaseGeometry,
   fontDraw: fontDrawGeometry,

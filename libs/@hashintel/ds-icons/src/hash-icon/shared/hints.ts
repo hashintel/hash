@@ -20,6 +20,7 @@ export type HashIconHint =
   | "up";
 
 export const hashIconHints = {
+  percent: "lift",
   hashtag: "lift",
   fontCase: "lift",
   fontDraw: "lift",

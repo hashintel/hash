@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  percent: "A slash between two circles represents a percentage.",
   hashtag:
     "Crossed parallel strokes represent a hashtag or numbered identifier.",
   fontCase: "An uppercase A beside a lowercase a represents letter case.",
