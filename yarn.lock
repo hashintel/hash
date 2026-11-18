@@ -9698,7 +9698,7 @@ __metadata:
     "@types/react-dom": "npm:19.2.3"
     fumadocs-core: "npm:16.17.8"
     fumadocs-mdx: "npm:15.4.10"
-    next: "npm:16.4.1"
+    next: "npm:16.4.5"
     oxlint: "catalog:"
     react: "npm:19.2.6"
     react-dom: "npm:19.2.6"
