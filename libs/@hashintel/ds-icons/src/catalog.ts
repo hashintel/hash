@@ -177,6 +177,7 @@ const categories = {
     "logicInvariant",
     "logicCounterexample",
     "logicConstraint",
+    "logicRobustness",
   ],
   Navigation: [
     "arrowUp",

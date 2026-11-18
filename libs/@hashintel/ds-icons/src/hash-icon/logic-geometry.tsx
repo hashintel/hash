@@ -88,4 +88,10 @@ export const logicGeometry = {
   logicConstraint: (
     <path d="M6 4H3v16h3M18 4h3v16h-3M14.5 7 9 10l5.5 3M9 16h6" />
   ),
+  logicRobustness: (
+    <>
+      <path d="M3 18h18" strokeDasharray="2.5 2" />
+      <path d="M3 12c3 0 3-6 6-6s3 3 6 3h6M18 9v9m-2.5 0h5" />
+    </>
+  ),
 } as const;

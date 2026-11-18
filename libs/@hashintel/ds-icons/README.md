@@ -180,21 +180,22 @@ The Logic category includes the following operators and verification concepts.
 All use the shared weight scale and keep their strokes open in both styles.
 Filled dots mark states or events where that distinction carries meaning.
 
-| Name                  | Meaning                                           |
-| --------------------- | ------------------------------------------------- |
-| `logicAnd`            | All conditions hold.                              |
-| `logicOr`             | At least one condition holds.                     |
-| `logicNot`            | Negates a condition.                              |
-| `logicImplies`        | One condition implies another.                    |
-| `logicEquivalent`     | Two conditions are logically equivalent.          |
-| `logicForAll`         | A condition holds for every member.               |
-| `logicExists`         | Some member satisfies a condition.                |
-| `logicNext`           | Highlights the next state in a sequence.          |
-| `logicUntil`          | A condition persists until an event occurs.       |
-| `logicBranching`      | A state has alternative possible futures.         |
-| `logicInvariant`      | The same condition holds across states.           |
-| `logicCounterexample` | A trace reaches a state that violates a property. |
-| `logicConstraint`     | An inequality restricts the permitted values.     |
+| Name                  | Meaning                                            |
+| --------------------- | -------------------------------------------------- |
+| `logicAnd`            | All conditions hold.                               |
+| `logicOr`             | At least one condition holds.                      |
+| `logicNot`            | Negates a condition.                               |
+| `logicImplies`        | One condition implies another.                     |
+| `logicEquivalent`     | Two conditions are logically equivalent.           |
+| `logicForAll`         | A condition holds for every member.                |
+| `logicExists`         | Some member satisfies a condition.                 |
+| `logicNext`           | Highlights the next state in a sequence.           |
+| `logicUntil`          | A condition persists until an event occurs.        |
+| `logicBranching`      | A state has alternative possible futures.          |
+| `logicInvariant`      | The same condition holds across states.            |
+| `logicCounterexample` | A trace reaches a state that violates a property.  |
+| `logicConstraint`     | An inequality restricts the permitted values.      |
+| `logicRobustness`     | Shows the margin between a signal and a threshold. |
 
 ### Temporal logic
 

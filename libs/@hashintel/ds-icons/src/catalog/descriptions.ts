@@ -213,6 +213,8 @@ export const descriptions = {
     "A trace ending in a cross represents an execution that violates a property.",
   logicConstraint:
     "A bracketed inequality represents a restriction on permitted values.",
+  logicRobustness:
+    "A marked gap between a signal and a threshold represents the margin by which a condition holds.",
   logicSignalBounded:
     "A waveform with a marked interval represents signal temporal logic over a bounded period.",
   logicSignalThreshold:

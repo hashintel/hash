@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const relatedGroups = [
+  ["logicRobustness", "logicSignalThreshold", "logicSignalBounded"],
   ["logicConstraint", "logicSignalThreshold", "parameterRange"],
   ["logicCounterexample", "logicStateSequence", "logicInvariant"],
   ["logicInvariant", "logicTemporalOperators", "logicForAll"],
