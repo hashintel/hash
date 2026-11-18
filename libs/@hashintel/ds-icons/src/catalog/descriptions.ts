@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  hexagon: "A six-sided outline represents a hexagon shape.",
   pentagon: "A five-sided outline represents a pentagon shape.",
   triangle: "A triangular outline represents a triangle shape.",
   diamond: "A diamond outline represents a diamond shape or decision.",
