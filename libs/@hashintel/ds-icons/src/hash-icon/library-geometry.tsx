@@ -62,6 +62,7 @@ import { dashDashedGeometry } from "./library-geometry/dash-dashed";
 import { dashDottedGeometry } from "./library-geometry/dash-dotted";
 import { dashDrawGeometry } from "./library-geometry/dash-draw";
 import { dashSolidGeometry } from "./library-geometry/dash-solid";
+import { databaseGeometry } from "./library-geometry/database";
 import { diamondGeometry } from "./library-geometry/diamond";
 import { distributeHorizontalGeometry } from "./library-geometry/distribute-horizontal";
 import { distributeVerticalGeometry } from "./library-geometry/distribute-vertical";
@@ -214,6 +215,7 @@ import { userTieGeometry } from "./library-geometry/user-tie";
 import { usersGeometry } from "./library-geometry/users";
 
 export const libraryGeometry = {
+  database: databaseGeometry,
   server: serverGeometry,
   app: appGeometry,
   browser: browserGeometry,

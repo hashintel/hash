@@ -641,6 +641,7 @@ export const LaptopIcon = createIcon("laptop");
 export const BrowserIcon = createIcon("browser");
 export const AppIcon = createIcon("app");
 export const ServerIcon = createIcon("server");
+export const DatabaseIcon = createIcon("database");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -826,6 +827,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  database: DatabaseIcon,
   server: ServerIcon,
   app: AppIcon,
   browser: BrowserIcon,
