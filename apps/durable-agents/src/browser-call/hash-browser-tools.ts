@@ -74,9 +74,9 @@ type HashPetrinautInput = {
 };
 
 /** A native schema's input JSON Schema, as Flue's `toolInputToJsonSchema` exports it (`$schema` kept). */
-const zodParameters = (zInput: HashPetrinautInput) =>
+const zodParameters = (inputSchema: HashPetrinautInput) =>
   structuredClone(
-    zInput["~standard"].jsonSchema.input({ target: "draft-2020-12" }),
+    inputSchema["~standard"].jsonSchema.input({ target: "draft-2020-12" }),
   );
 
 /** A Valibot schema's JSON Schema without `$schema`, as Flue's `valibotToJsonSchema` converts it. */
@@ -113,13 +113,15 @@ const petrinautTools = (
 ).map((name) => {
   const {
     description,
-    zInput,
-  }: { readonly description: string; readonly zInput: HashPetrinautInput } =
-    hashPetrinautTools[name];
+    inputSchema,
+  }: {
+    readonly description: string;
+    readonly inputSchema: HashPetrinautInput;
+  } = hashPetrinautTools[name];
   return hashBrowserTool(
-    { name, description, parameters: zodParameters(zInput) },
+    { name, description, parameters: zodParameters(inputSchema) },
     {
-      parseInput: (args) => zInput.parse(args),
+      parseInput: (args) => inputSchema.parse(args),
       refuse: ({ editor_id: editorId }) =>
         editorId === hashProcessEditorId
           ? undefined

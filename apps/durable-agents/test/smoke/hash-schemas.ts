@@ -223,8 +223,12 @@ const hashDefinitions = async (): Promise<Definition[]> => {
   const petrinaut = (
     Object.keys(hashPetrinautTools) as HashPetrinautToolName[]
   ).map((name): Definition => {
-    const { description, zInput } = hashPetrinautTools[name];
-    return { name, description, parameters: toolInputToJsonSchema(zInput) };
+    const { description, inputSchema } = hashPetrinautTools[name];
+    return {
+      name,
+      description,
+      parameters: toolInputToJsonSchema(inputSchema),
+    };
   });
   const [graphReads, save, ledger, queryBasis] = await Promise.all([
     brunchModule("hash/tools/hash-graph-reads.ts", {
