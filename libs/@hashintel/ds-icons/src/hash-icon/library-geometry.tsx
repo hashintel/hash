@@ -133,9 +133,11 @@ import { toggleOffGeometry } from "./library-geometry/toggle-off";
 import { toggleOnGeometry } from "./library-geometry/toggle-on";
 import { trapezoidGeometry } from "./library-geometry/trapezoid";
 import { triangleGeometry } from "./library-geometry/triangle";
+import { ungroupGeometry } from "./library-geometry/ungroup";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  ungroup: ungroupGeometry,
   group: groupGeometry,
   stackVertical: stackVerticalGeometry,
   stackHorizontal: stackHorizontalGeometry,

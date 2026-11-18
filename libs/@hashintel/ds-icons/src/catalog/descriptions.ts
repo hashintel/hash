@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  ungroup: "Separated shapes represent ungrouping objects.",
   group:
     "Corner brackets enclosing a shape represent grouping selected objects.",
   stackVertical: "Adjacent panels represent stacking objects vertically.",
