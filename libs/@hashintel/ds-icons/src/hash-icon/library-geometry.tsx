@@ -21,6 +21,7 @@ import { calendarDayGeometry } from "./library-geometry/calendar-day";
 import { calendarDaysGeometry } from "./library-geometry/calendar-days";
 import { calendarWeekGeometry } from "./library-geometry/calendar-week";
 import { calendarsGeometry } from "./library-geometry/calendars";
+import { canvasGeometry } from "./library-geometry/canvas";
 import { checkDoubleGeometry } from "./library-geometry/check-double";
 import { chevronsUpDownGeometry } from "./library-geometry/chevrons-up-down";
 import { circleArrowRightGeometry } from "./library-geometry/circle-arrow-right";
@@ -103,6 +104,7 @@ import { triangleGeometry } from "./library-geometry/triangle";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  canvas: canvasGeometry,
   aspectRatio: aspectRatioGeometry,
   frame: frameGeometry,
   roundedCorner: roundedCornerGeometry,
