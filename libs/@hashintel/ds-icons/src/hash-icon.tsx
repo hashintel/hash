@@ -634,6 +634,7 @@ export const ThumbsDownIcon = createIcon("thumbsDown");
 export const HandshakeIcon = createIcon("handshake");
 export const SmileIcon = createIcon("smile");
 export const SadIcon = createIcon("sad");
+export const HeartIcon = createIcon("heart");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -819,6 +820,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  heart: HeartIcon,
   sad: SadIcon,
   smile: SmileIcon,
   handshake: HandshakeIcon,

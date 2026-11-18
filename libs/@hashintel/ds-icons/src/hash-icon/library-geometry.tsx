@@ -103,6 +103,7 @@ import { groupGeometry } from "./library-geometry/group";
 import { handshakeGeometry } from "./library-geometry/handshake";
 import { handwrittenDocsGeometry } from "./library-geometry/handwritten-docs";
 import { hashtagGeometry } from "./library-geometry/hashtag";
+import { heartGeometry } from "./library-geometry/heart";
 import { helpGeometry } from "./library-geometry/help";
 import { hexagonGeometry } from "./library-geometry/hexagon";
 import { highlighterGeometry } from "./library-geometry/highlighter";
@@ -207,6 +208,7 @@ import { userTieGeometry } from "./library-geometry/user-tie";
 import { usersGeometry } from "./library-geometry/users";
 
 export const libraryGeometry = {
+  heart: heartGeometry,
   sad: sadGeometry,
   smile: smileGeometry,
   handshake: handshakeGeometry,
