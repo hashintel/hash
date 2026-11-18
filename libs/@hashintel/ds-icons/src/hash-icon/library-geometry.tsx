@@ -116,6 +116,7 @@ import { loginGeometry } from "./library-geometry/login";
 import { logoutGeometry } from "./library-geometry/logout";
 import { mailGeometry } from "./library-geometry/mail";
 import { mailUnreadGeometry } from "./library-geometry/mail-unread";
+import { megaphoneGeometry } from "./library-geometry/megaphone";
 import { memoInfoGeometry } from "./library-geometry/memo-info";
 import { messageGeometry } from "./library-geometry/message";
 import { messageDollarGeometry } from "./library-geometry/message-dollar";
@@ -178,6 +179,7 @@ import { ungroupGeometry } from "./library-geometry/ungroup";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  megaphone: megaphoneGeometry,
   shareNodes: shareNodesGeometry,
   share: shareGeometry,
   send: sendGeometry,

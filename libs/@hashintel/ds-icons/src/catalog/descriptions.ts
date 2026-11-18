@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  megaphone: "A horn represents an announcement or broadcast.",
   shareNodes:
     "Three connected points represent distributing content to others.",
   share: "An arrow leaving a tray represents sharing content.",
