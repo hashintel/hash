@@ -1,7 +1,5 @@
-//! An agent conversation in an organization web is private to the member who created it.
-//!
-//! The seeded web policies let a member view, update and archive an agent conversation only if
-//! they created it, while an administrator of the web keeps the access the web grants them.
+//! The seeded web policies let members and web administrators view, update and archive only the
+//! agent conversations they created.
 
 use core::{error::Error, str::FromStr as _};
 use std::collections::{HashMap, HashSet};
@@ -157,6 +155,13 @@ async fn create_agent_conversation_types(
 }
 
 async fn setup(database: &mut DatabaseTestWrapper) -> Result<Fixture<'_>, Box<dyn Error>> {
+    setup_with_creator_role(database, RoleName::Member).await
+}
+
+async fn setup_with_creator_role(
+    database: &mut DatabaseTestWrapper,
+    creator_role: RoleName,
+) -> Result<Fixture<'_>, Box<dyn Error>> {
     let (mut store, system_machine) = database.seed().await?;
 
     let creator = store.create_user(None).await?;
@@ -180,8 +185,13 @@ async fn setup(database: &mut DatabaseTestWrapper) -> Result<Fixture<'_>, Box<dy
         .await?
         .expect("web should have a member role")
         .id();
+    let creator_role = store
+        .get_role(ActorGroupId::Web(web_id), creator_role)
+        .await?
+        .expect("web should have the creator's role")
+        .id();
     store
-        .assign_role_by_id(ActorId::User(creator), member_role)
+        .assign_role_by_id(ActorId::User(creator), creator_role)
         .await?;
     store
         .assign_role_by_id(ActorId::User(member), member_role)
@@ -308,9 +318,52 @@ async fn view_administrator() -> Result<(), Box<dyn Error>> {
     let mut fixture = setup(&mut database).await?;
 
     assert!(
-        fixture.can_view(fixture.administrator).await?,
-        "web administrator should view the conversation"
+        !fixture.can_view(fixture.administrator).await?,
+        "web administrator should not view another user's conversation"
     );
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn update_administrator() -> Result<(), Box<dyn Error>> {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut fixture = setup(&mut database).await?;
+
+    let report = fixture
+        .update(fixture.administrator)
+        .await
+        .expect_err("web administrator should not update another user's conversation");
+    assert_eq!(status(&report), Some(StatusCode::PermissionDenied));
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn archive_administrator() -> Result<(), Box<dyn Error>> {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut fixture = setup(&mut database).await?;
+
+    let report = fixture
+        .archive(fixture.administrator)
+        .await
+        .expect_err("web administrator should not archive another user's conversation");
+    assert_eq!(status(&report), Some(StatusCode::PermissionDenied));
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn access_administrator_creator() -> Result<(), Box<dyn Error>> {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut fixture = setup_with_creator_role(&mut database, RoleName::Administrator).await?;
+
+    assert!(
+        fixture.can_view(fixture.creator).await?,
+        "web administrator should view their own conversation"
+    );
+    fixture.archive(fixture.creator).await?;
+    fixture.update(fixture.creator).await?;
 
     Ok(())
 }

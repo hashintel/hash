@@ -490,12 +490,7 @@ fn global_update_entity_policies() -> impl Iterator<Item = PolicyCreationParams>
                 filter: EntityResourceFilter::All {
                     filters: vec![
                         EntityResourceFilter::CreatedByPrincipal,
-                        EntityResourceFilter::Any {
-                            filters: vec![
-                                COMMENT.entity_is_of_base_type(),
-                                AGENT_CONVERSATION.entity_is_of_base_type(),
-                            ],
-                        },
+                        COMMENT.entity_is_of_base_type(),
                     ],
                 },
             })),
@@ -545,12 +540,7 @@ fn global_archive_entity_policies() -> impl Iterator<Item = PolicyCreationParams
             filter: EntityResourceFilter::All {
                 filters: vec![
                     EntityResourceFilter::CreatedByPrincipal,
-                    EntityResourceFilter::Any {
-                        filters: vec![
-                            COMMENT.entity_is_of_base_type(),
-                            AGENT_CONVERSATION.entity_is_of_base_type(),
-                        ],
-                    },
+                    COMMENT.entity_is_of_base_type(),
                 ],
             },
         })),
@@ -643,17 +633,21 @@ fn web_view_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCreati
         resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Web {
             web_id: role.web_id,
             filter: match role.name {
-                RoleName::Administrator => EntityResourceFilter::All { filters: vec![] },
-                RoleName::Member => EntityResourceFilter::Any {
+                RoleName::Administrator => EntityResourceFilter::Not {
+                    filter: Box::new(AGENT_CONVERSATION.entity_is_of_base_type()),
+                },
+                RoleName::Member => EntityResourceFilter::All {
                     filters: vec![
-                        EntityResourceFilter::CreatedByPrincipal,
                         EntityResourceFilter::Not {
-                            filter: Box::new(EntityResourceFilter::Any {
-                                filters: vec![
-                                    USER_SECRET.entity_is_of_base_type(),
-                                    AGENT_CONVERSATION.entity_is_of_base_type(),
-                                ],
-                            }),
+                            filter: Box::new(AGENT_CONVERSATION.entity_is_of_base_type()),
+                        },
+                        EntityResourceFilter::Any {
+                            filters: vec![
+                                EntityResourceFilter::CreatedByPrincipal,
+                                EntityResourceFilter::Not {
+                                    filter: Box::new(USER_SECRET.entity_is_of_base_type()),
+                                },
+                            ],
                         },
                     ],
                 },
@@ -691,6 +685,7 @@ fn web_update_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCrea
                             OCCURRED_IN_COMMENT.entity_is_of_base_type(),
                             OCCURRED_IN_TEXT.entity_is_of_base_type(),
                             GOOGLE_ACCOUNT.entity_is_of_base_type(),
+                            AGENT_CONVERSATION.entity_is_of_base_type(),
                         ],
                     }),
                 },
@@ -771,6 +766,7 @@ fn web_archive_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCre
                             OCCURRED_IN_COMMENT.entity_is_of_base_type(),
                             OCCURRED_IN_TEXT.entity_is_of_base_type(),
                             GOOGLE_ACCOUNT.entity_is_of_base_type(),
+                            AGENT_CONVERSATION.entity_is_of_base_type(),
                         ],
                     }),
                 },
@@ -858,6 +854,31 @@ fn web_crud_ontology_policies(role: &WebRole) -> impl Iterator<Item = PolicyCrea
     filters.into_iter()
 }
 
+fn web_conversation_creator_policy(role: &WebRole) -> PolicyCreationParams {
+    PolicyCreationParams {
+        name: Some("default-web-conversation-creator".to_owned()),
+        effect: Effect::Permit,
+        principal: Some(PrincipalConstraint::Role {
+            role: RoleId::Web(role.id),
+            actor_type: Some(ActorType::User),
+        }),
+        actions: vec![
+            ActionName::ViewEntity,
+            ActionName::UpdateEntity,
+            ActionName::ArchiveEntity,
+        ],
+        resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Web {
+            web_id: role.web_id,
+            filter: EntityResourceFilter::All {
+                filters: vec![
+                    EntityResourceFilter::CreatedByPrincipal,
+                    AGENT_CONVERSATION.entity_is_of_base_type(),
+                ],
+            },
+        })),
+    }
+}
+
 // TODO: Returning an iterator causes a borrow checker error
 pub(crate) fn web_policies(role: &WebRole) -> Vec<PolicyCreationParams> {
     let mut policies = web_create_entity_policies(role)
@@ -865,6 +886,7 @@ pub(crate) fn web_policies(role: &WebRole) -> Vec<PolicyCreationParams> {
         .chain(web_update_entity_policies(role))
         .chain(web_archive_entity_policies(role))
         .chain(web_crud_ontology_policies(role))
+        .chain(iter::once(web_conversation_creator_policy(role)))
         .collect::<Vec<_>>();
     if role.name == RoleName::Administrator {
         policies.extend(web_meta_admin_policies(role));
