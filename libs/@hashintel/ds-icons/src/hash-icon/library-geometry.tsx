@@ -154,6 +154,7 @@ import { hashtagGeometry } from "./library-geometry/hashtag";
 import { heartGeometry } from "./library-geometry/heart";
 import { helpGeometry } from "./library-geometry/help";
 import { hexagonGeometry } from "./library-geometry/hexagon";
+import { hexagonNodesGeometry } from "./library-geometry/hexagon-nodes";
 import { highlighterGeometry } from "./library-geometry/highlighter";
 import { historyPagesGeometry } from "./library-geometry/history-pages";
 import { historyUserGeometry } from "./library-geometry/history-user";
@@ -320,6 +321,7 @@ import { wavePulseGeometry } from "./library-geometry/wave-pulse";
 import { wavesGeometry } from "./library-geometry/waves";
 
 export const libraryGeometry = {
+  hexagonNodes: hexagonNodesGeometry,
   chartNetwork: chartNetworkGeometry,
   cctvCamera: cctvCameraGeometry,
   tombstone: tombstoneGeometry,
