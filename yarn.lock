@@ -451,7 +451,7 @@ __metadata:
     "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
     "@valibot/to-json-schema": "npm:1.7.1"
     ai: "npm:6.0.286"
-    hono: "npm:4.13.13"
+    hono: "npm:4.13.18"
     oxlint: "catalog:"
     oxlint-tsgolint: "catalog:"
     pg: "npm:8.23.0"

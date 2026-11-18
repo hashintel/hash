@@ -25,7 +25,7 @@
     "@hashintel/brunch-agent": "workspace:*",
     "@valibot/to-json-schema": "1.7.1",
     "ai": "6.0.286",
-    "hono": "4.13.13",
+    "hono": "4.13.18",
     "pg": "8.23.0",
     "valibot": "1.4.2"
   },
