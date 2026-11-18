@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  trapezoid:
+    "A quadrilateral with unequal parallel edges represents a trapezoid shape.",
   parallelogram: "A slanted quadrilateral represents a parallelogram shape.",
   octagon: "An eight-sided outline represents an octagon shape.",
   hexagon: "A six-sided outline represents a hexagon shape.",

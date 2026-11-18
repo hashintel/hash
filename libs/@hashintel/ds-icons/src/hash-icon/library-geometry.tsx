@@ -76,10 +76,12 @@ import { squareMinusGeometry } from "./library-geometry/square-minus";
 import { tagGeometry } from "./library-geometry/tag";
 import { toggleOffGeometry } from "./library-geometry/toggle-off";
 import { toggleOnGeometry } from "./library-geometry/toggle-on";
+import { trapezoidGeometry } from "./library-geometry/trapezoid";
 import { triangleGeometry } from "./library-geometry/triangle";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  trapezoid: trapezoidGeometry,
   parallelogram: parallelogramGeometry,
   octagon: octagonGeometry,
   hexagon: hexagonGeometry,
