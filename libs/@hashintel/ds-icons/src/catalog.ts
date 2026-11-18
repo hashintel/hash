@@ -164,6 +164,7 @@ export const hashIconStudies = [
 
 const categories = {
   Technology: [
+    "devices",
     "calculator",
     "creditCard",
     "microchip",

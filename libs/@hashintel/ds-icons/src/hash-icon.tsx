@@ -645,6 +645,7 @@ export const DatabaseIcon = createIcon("database");
 export const MicrochipIcon = createIcon("microchip");
 export const CreditCardIcon = createIcon("creditCard");
 export const CalculatorIcon = createIcon("calculator");
+export const DevicesIcon = createIcon("devices");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -830,6 +831,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  devices: DevicesIcon,
   calculator: CalculatorIcon,
   creditCard: CreditCardIcon,
   microchip: MicrochipIcon,

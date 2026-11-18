@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  devices: "A desktop screen beside a phone represents multiple devices.",
   calculator: "A keypad and display represent a calculator.",
   creditCard: "A card with a payment strip represents a credit or debit card.",
   microchip:
