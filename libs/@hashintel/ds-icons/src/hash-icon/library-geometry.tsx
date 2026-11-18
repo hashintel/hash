@@ -50,6 +50,7 @@ import { memoInfoGeometry } from "./library-geometry/memo-info";
 import { newspaperGeometry } from "./library-geometry/newspaper";
 import { notePlusGeometry } from "./library-geometry/note-plus";
 import { noteStickyGeometry } from "./library-geometry/note-sticky";
+import { radioCheckedGeometry } from "./library-geometry/radio-checked";
 import { redoGeometry } from "./library-geometry/redo";
 import { shuffleGeometry } from "./library-geometry/shuffle";
 import { squareCloseGeometry } from "./library-geometry/square-close";
@@ -57,6 +58,7 @@ import { squareMinusGeometry } from "./library-geometry/square-minus";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  radioChecked: radioCheckedGeometry,
   squareMinus: squareMinusGeometry,
   squareClose: squareCloseGeometry,
   circlePlay: circlePlayGeometry,
