@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  monitor: "A screen on a stand represents a desktop display.",
   brain: "Two connected lobes represent thought, intelligence, or cognition.",
   heart: "A heart represents care, affection, or a favorite.",
   sad: "A frowning face represents sadness or negative feedback.",

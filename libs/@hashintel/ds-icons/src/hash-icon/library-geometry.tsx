@@ -129,6 +129,7 @@ import { messageGeometry } from "./library-geometry/message";
 import { messageDollarGeometry } from "./library-geometry/message-dollar";
 import { messageQuestionGeometry } from "./library-geometry/message-question";
 import { mixedGeometry } from "./library-geometry/mixed";
+import { monitorGeometry } from "./library-geometry/monitor";
 import { newspaperGeometry } from "./library-geometry/newspaper";
 import { notePlusGeometry } from "./library-geometry/note-plus";
 import { noteStickyGeometry } from "./library-geometry/note-sticky";
@@ -209,6 +210,7 @@ import { userTieGeometry } from "./library-geometry/user-tie";
 import { usersGeometry } from "./library-geometry/users";
 
 export const libraryGeometry = {
+  monitor: monitorGeometry,
   brain: brainGeometry,
   heart: heartGeometry,
   sad: sadGeometry,
