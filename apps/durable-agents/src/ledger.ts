@@ -132,7 +132,8 @@ const exchangeHasReplied = async (
   context: Context,
 ): Promise<boolean> => {
   const input = (await api.getTask(api.taskId, context))?.input as
-    ToolTaskInput | undefined;
+    | ToolTaskInput
+    | undefined;
   if (input?.kind !== "model") return false;
   const { assistant } = input;
   const first =

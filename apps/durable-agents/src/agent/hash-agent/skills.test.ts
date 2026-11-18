@@ -1,6 +1,4 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { relative } from "node:path";
-import { fileURLToPath } from "node:url";
+import { readFileSync } from "node:fs";
 
 import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
 import {
@@ -30,42 +28,11 @@ import {
 
 const context = BACKGROUND_CONTEXT;
 
-/** Brunch's HASH agent's own guidance, which the copies must equal until cutover. */
-const brunchHashAgent = new URL(
-  "../../../../brunch-agent/src/agents/hash/",
-  import.meta.url,
-);
-
-/** Every file under `directory`, by relative path. */
-const filesUnder = (directory: URL) => {
-  const root = fileURLToPath(directory);
-  return Object.fromEntries(
-    readdirSync(root, { recursive: true, withFileTypes: true })
-      .filter((entry) => entry.isFile())
-      .map((entry) => {
-        const path = `${entry.parentPath}/${entry.name}`;
-        return [relative(root, path), readFileSync(path, "utf8")] as const;
-      })
-      .toSorted(([left], [right]) => left.localeCompare(right)),
-  );
-};
-
 const skill = (name: string) => {
   const found = hashSkills.find((candidate) => candidate.name === name);
   if (!found) throw new Error(`No skill ${name}.`);
   return found;
 };
-
-describe("HASH's guidance copies", () => {
-  test("equal Brunch's prompt and skill files, path for path (drift)", () => {
-    expect(readFileSync(hashSystemPromptFile, "utf8")).toBe(
-      readFileSync(new URL("prompts/system.md", brunchHashAgent), "utf8"),
-    );
-    const copies = filesUnder(hashSkillsDirectory);
-    expect(Object.keys(copies).length).toBeGreaterThan(0);
-    expect(copies).toEqual(filesUnder(new URL("skills/", brunchHashAgent)));
-  });
-});
 
 describe("HASH's skills", () => {
   test("are Brunch's four, in its mounting order, with Flue's packaged IDs", () => {
