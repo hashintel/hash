@@ -1,10 +1,12 @@
 import { expect, test } from "vitest";
 
+import { offeredQuestionsOf } from "./browser-turn.ts";
 import {
   formatPersonaResult,
   personaCommandFromArguments,
   splitPersonaArguments,
 } from "./persona-cli.ts";
+import { encodePersonaRecord } from "./rpc-protocol.ts";
 
 test("a message that begins with a dash is text, not an option", async () => {
   const { options, positionals } = splitPersonaArguments([
@@ -107,25 +109,61 @@ test("answer keeps each argument as one question's answer, and a reply lists the
   );
 });
 
-test("a reply with one docked question says that say still answers it", () => {
-  expect(
-    formatPersonaResult({ type: "prompt", message: "We plan weekly." }, [
+test("a confirmation offer lists the dock's Yes option in JSON and printed replies", () => {
+  const questions = offeredQuestionsOf(
+    {
+      v: 1,
+      conversationId: "conversation",
+      offset: "1",
+      settlements: [],
+      messages: [
+        {
+          id: "assistant",
+          role: "assistant",
+          purpose: "assistant",
+          display: "visible",
+          submissionId: "sub_3",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolCallId: "offer",
+              toolName: "offer_answers",
+              state: "output-available",
+              input: {
+                questions: [
+                  {
+                    kind: "confirm",
+                    label: "Production demand",
+                    text: "Is demand fixed for the week?",
+                  },
+                ],
+              },
+              output: { ok: true },
+            },
+          ],
+        },
+      ],
+    },
+    ["sub_3"],
+  );
+  const reply = {
+    type: "assistant_message",
+    text: "One thing to check.",
+    questions,
+  } as const;
+  const printed = formatPersonaResult(
+    { type: "prompt", message: "We plan weekly." },
+    [
       { type: "response", command: "prompt", success: true },
-      {
-        type: "assistant_message",
-        text: "So demand is fixed for the week?",
-        questions: [
-          {
-            kind: "confirm",
-            label: "Production demand",
-            text: "Production demand?",
-            options: [{ label: "Yes" }],
-          },
-        ],
-      },
+      reply,
       { type: "turn_settled", outcome: "replied", submissionIds: ["sub_3"] },
-    ]),
-  ).toContain(
+    ],
+  );
+  expect(printed).toContain("   - Yes");
+  expect(printed).toContain(
     'Reply with `say`, or pick an option with `answer "<its label>"`',
   );
+  expect(JSON.parse(encodePersonaRecord(reply))).toMatchObject({
+    questions: [{ kind: "confirm", options: [{ label: "Yes" }] }],
+  });
 });
