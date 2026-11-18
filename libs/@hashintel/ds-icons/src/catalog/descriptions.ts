@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  expandHorizontal: "Outward horizontal arrows represent expanding width.",
   chevronsUpDown:
     "Opposed chevrons represent increasing or decreasing a selection.",
   arrowProgress:
