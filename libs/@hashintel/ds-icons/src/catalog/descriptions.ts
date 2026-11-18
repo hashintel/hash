@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  cookie: "A bitten biscuit represents a cookie or browser cookie setting.",
   pizza: "A triangular slice with toppings represents pizza.",
   palmTree:
     "A curved trunk and fronds represent a palm tree or tropical destination.",

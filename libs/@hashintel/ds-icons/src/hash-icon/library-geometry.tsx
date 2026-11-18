@@ -82,6 +82,7 @@ import { columnsGeometry } from "./library-geometry/columns";
 import { commandGeometry } from "./library-geometry/command";
 import { compassGeometry } from "./library-geometry/compass";
 import { conveyorBeltGeometry } from "./library-geometry/conveyor-belt";
+import { cookieGeometry } from "./library-geometry/cookie";
 import { creditCardGeometry } from "./library-geometry/credit-card";
 import { crosshairsGeometry } from "./library-geometry/crosshairs";
 import { dashDashedGeometry } from "./library-geometry/dash-dashed";
@@ -314,6 +315,7 @@ import { wavePulseGeometry } from "./library-geometry/wave-pulse";
 import { wavesGeometry } from "./library-geometry/waves";
 
 export const libraryGeometry = {
+  cookie: cookieGeometry,
   pizza: pizzaGeometry,
   palmTree: palmTreeGeometry,
   lifeRing: lifeRingGeometry,

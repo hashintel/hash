@@ -164,6 +164,7 @@ export const hashIconStudies = [
 
 const categories = {
   Objects: [
+    "cookie",
     "pizza",
     "palmTree",
     "lifeRing",
