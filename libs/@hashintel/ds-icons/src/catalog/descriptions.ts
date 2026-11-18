@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  entityEdit: "An entity and pencil represent editing an entity.",
   entityPlus: "An entity with a plus represents creating a new entity.",
   entity: "A connected three-dimensional object represents an entity.",
   typeInheritance:

@@ -101,6 +101,7 @@ import { dollarGeometry } from "./library-geometry/dollar";
 import { dotGeometry } from "./library-geometry/dot";
 import { ellipseGeometry } from "./library-geometry/ellipse";
 import { entityGeometry } from "./library-geometry/entity";
+import { entityEditGeometry } from "./library-geometry/entity-edit";
 import { entityPlusGeometry } from "./library-geometry/entity-plus";
 import { equalsGeometry } from "./library-geometry/equals";
 import { eraserGeometry } from "./library-geometry/eraser";
@@ -330,6 +331,7 @@ import { wavesGeometry } from "./library-geometry/waves";
 import { workflowGeometry } from "./library-geometry/workflow";
 
 export const libraryGeometry = {
+  entityEdit: entityEditGeometry,
   entityPlus: entityPlusGeometry,
   entity: entityGeometry,
   typeInheritance: typeInheritanceGeometry,
