@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  graduationCap: "An academic cap represents education or achievement.",
   briefcase:
     "A handled case represents work, business, or a professional role.",
   route: "A winding path between points represents a route or journey.",
