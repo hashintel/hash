@@ -10,6 +10,7 @@
 import { colorsStructurallyEqual } from "./fusions";
 import {
   bindsWithinDocument,
+  componentKey,
   componentOf,
   defaultImplementation,
   describeUnboundInstance,
@@ -23,7 +24,6 @@ import {
   once,
   resolveComponent,
   resolveImplementation,
-  sameComponent,
   type DocumentIndex,
   type ImplementationBinding,
   type SubnetIndex,
@@ -271,22 +271,27 @@ const checkDeclarations = (
 /** The document's defaults: an interface has one entry at most. */
 const checkDefaults = (
   sdcpn: SDCPN,
+  subnetsById: ReadonlyMap<ID, Subnet>,
   libraries: ResolvedLibraries | undefined,
 ): InterfaceProblem[] => {
-  const interfaces = (sdcpn.implementations ?? []).map(
-    (entry) => entry.interface,
-  );
+  // In the order of the first entry for each interface, where it is reported.
+  const entries = new Map<
+    string,
+    { reference: ComponentReference; count: number }
+  >();
+  for (const { interface: reference } of sdcpn.implementations ?? []) {
+    const key = componentKey(reference);
+    const counted = entries.get(key);
+    if (counted) {
+      counted.count += 1;
+    } else {
+      entries.set(key, { reference, count: 1 });
+    }
+  }
   const problems: InterfaceProblem[] = [];
-  for (const [index, reference] of interfaces.entries()) {
-    const count = interfaces.filter((other) =>
-      sameComponent(other, reference),
-    ).length;
-    // Reported once, at the first entry for the interface.
-    const first = interfaces.findIndex((other) =>
-      sameComponent(other, reference),
-    );
-    if (count > 1 && first === index) {
-      const iface = resolveComponent(sdcpn, reference, libraries);
+  for (const { reference, count } of entries.values()) {
+    if (count > 1) {
+      const iface = resolveComponent(sdcpn, reference, libraries, subnetsById);
       // Only a subnet of the document can be opened to show the problem.
       const onDocument = iface !== undefined && reference.from === undefined;
       reporter(problems, { subnetId: onDocument ? reference.id : null })(
@@ -399,7 +404,7 @@ export const checkInterfaces = (
     ...(sdcpn.subnets ?? []).flatMap((subnet) =>
       checkDeclarations(subnet, index),
     ),
-    ...checkDefaults(sdcpn, libraries),
+    ...checkDefaults(sdcpn, index.subnetsById, libraries),
     ...checkBindings(sdcpn, index, libraries),
   ];
 };

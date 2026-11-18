@@ -260,6 +260,28 @@ describe("checkInterfaces", () => {
     );
   });
 
+  it("counts the defaults of a long list in one pass", () => {
+    const size = 40_000;
+    const sdcpn = net({
+      subnets: [stage, fast],
+      implementations: Array.from({ length: size }, () =>
+        defaultOf("stage", "fast"),
+      ),
+    });
+
+    const started = Date.now();
+    const problems = checkInterfaces(sdcpn);
+    const elapsed = Date.now() - started;
+
+    expect(problems).toMatchObject([
+      { subnetId: "stage", code: "duplicate-default" },
+    ]);
+    expect(problems[0]?.message).toContain(`${size} default implementations`);
+    // One pass takes milliseconds; a search of the list for every entry
+    // takes several seconds.
+    expect(elapsed).toBeLessThan(1_000);
+  });
+
   it("reports a binding to a subnet that does not implement the interface, naming it", () => {
     const stranger = subnet("stranger");
     const sdcpn = net({
