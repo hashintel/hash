@@ -127,6 +127,26 @@ const repoint = (instanceId: string) => ({
   instanceId,
   update: { subnetId: "press" },
 });
+const inPortOf = (componentInstanceId: string) =>
+  ({ kind: "componentPort", componentInstanceId, portPlaceId: "in" }) as const;
+/** The fusion Line makes the root place Belt and `M1.In` one place. */
+const fusedNet: SDCPNInput = {
+  ...wiredNet,
+  places: [{ id: "belt", name: "Belt", x: 0, y: 0 }],
+  fusions: [
+    {
+      id: "line",
+      name: "Line",
+      members: [{ kind: "place", placeId: "belt" }, inPortOf("m1")],
+    },
+  ],
+};
+/** Moves Line from `M1.In` to `M2.In`. */
+const moveLine = {
+  fusionId: "line",
+  member: inPortOf("m1"),
+  replacement: inPortOf("m2"),
+};
 
 describe("Brunch destructive edit approval", () => {
   test("covers every destructive canonical tool, the updates that can prune, and no other", () => {
@@ -220,6 +240,27 @@ describe("Brunch destructive edit approval", () => {
     );
 
     expect(screen.getByText("Remove fusion — Belt")).not.toBeNull();
+  });
+
+  test("names the member a fusion replacement takes out, and the one that joins", () => {
+    const ApprovalWidget = createBrunchMutationApprovalWidget(
+      createBrunchMutationApprovalCoordinator(),
+      "replaceFusionMember",
+    );
+    render(
+      <ApprovalWidget
+        input={moveLine}
+        net={netWith(fusedNet)}
+        state="awaiting"
+        submit={vi.fn()}
+        submitAndWait={vi.fn()}
+        toolCallId="replace-1"
+      />,
+    );
+
+    expect(
+      screen.getByText("Replace fusion member — Line / M1 / In with M2 / In"),
+    ).not.toBeNull();
   });
 
   test("renders itemized removals and resolves Allow without submitting a tool result", async () => {
@@ -817,6 +858,37 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
     await allowedRun;
     expect(allowed.prepareInput).toHaveBeenCalledOnce();
   });
+
+  test.each([
+    ["replaceFusionMember", moveLine],
+    [
+      "petrinaut_replace_fusion_member",
+      { editor_id: hashProcessEditorId, ...moveLine },
+    ],
+  ])(
+    "%s waits for approval, as taking the member out alone does",
+    async (toolName, input) => {
+      const { calls, coordinator } = issuedCalls(toolName, input);
+      const execute = vi.fn(async () => ({ applied: true }));
+      const run = calls.run(
+        {
+          toolCallId: "replace-1",
+          toolName,
+          input,
+          signal: new AbortController().signal,
+        },
+        execute,
+      );
+      await vi.waitFor(() =>
+        expect(coordinator.hasPending("replace-1")).toBe(true),
+      );
+      expect(execute).not.toHaveBeenCalled();
+      coordinator.resolve("replace-1", "allow");
+
+      await run;
+      expect(execute).toHaveBeenCalledOnce();
+    },
+  );
 
   test("a constructive call runs without asking", async () => {
     const input = {

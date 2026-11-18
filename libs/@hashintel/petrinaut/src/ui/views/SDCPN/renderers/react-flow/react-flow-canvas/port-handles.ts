@@ -24,8 +24,14 @@ const portIdOf = (handle: string | null | undefined): string | null => {
   return handle && prefix ? handle.slice(prefix.length) : null;
 };
 
+/** The ends of a connection as React Flow names them, on a connection or on an edge. */
+export type FlowConnection = Pick<
+  Edge,
+  "source" | "target" | "sourceHandle" | "targetHandle"
+>;
+
 export const toCanvasConnection = (
-  connection: Pick<Edge, "source" | "target" | "sourceHandle" | "targetHandle">,
+  connection: FlowConnection,
 ): CanvasConnection => ({
   sourceId: connection.source,
   targetId: connection.target,

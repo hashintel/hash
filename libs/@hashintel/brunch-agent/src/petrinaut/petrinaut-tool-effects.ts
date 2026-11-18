@@ -96,6 +96,8 @@ export const petrinautToolEffects = {
   removeFusion: removal("fusion"),
   addFusionMember: mutation("fusion"),
   removeFusionMember: removal("fusion"),
+  // The member it replaces leaves the fusion, as `removeFusionMember` takes one out.
+  replaceFusionMember: removal("fusion"),
   setImplementation: mutation("subnet"),
   deleteItemsByIds: removal(...selectionItemTypes),
   commitNodePositions: layout,
