@@ -36,7 +36,8 @@ pub(super) async fn run(args: Args) -> Result<(), Box<dyn Error + Send + Sync>> 
         .load()
         .await;
 
-    let benchmarks = Benchmark::gather(criterion_directory()).collect::<Result<Vec<_>, _>>()?;
+    let benchmarks =
+        Benchmark::gather(criterion_directory(), "new").collect::<Result<Vec<_>, _>>()?;
 
     let artifacts_path = args.artifacts_path.unwrap_or_else(target_directory);
 
