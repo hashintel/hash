@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  arrowTurnDownRight:
+    "A bent arrow pointing right represents continuing along a turn.",
   arrowTurnDownLeft:
     "A bent arrow pointing left represents returning or turning left.",
   logout: "An arrow leaving a doorway represents signing out.",
