@@ -6,6 +6,6 @@ The MCP Server symbol reproduces the official Model Context Protocol mark from [
 
 ## Open Source Initiative
 
-The Open Source Initiative keyhole mark was designed by Colin Viebrock. OSI and Open Source Initiative are trademarks of Open Source Initiative. This icon carries forward the existing HASH website artwork without changing its proportions; its appearance stays fixed across icon weights and variants. Inclusion in the main icon catalog does not grant trademark rights.
+The Open Source Initiative keyhole mark was designed by Colin Viebrock. OSI and Open Source Initiative are trademarks of Open Source Initiative. This icon adapts the keyhole silhouette used on the HASH website to the catalog’s shared stroke weights. Outline and filled variants share the same keyhole silhouette. Inclusion in the main icon catalog does not grant trademark rights.
 
 Source and usage guidance: https://opensource.org/about/brand-and-trademark-guidelines
