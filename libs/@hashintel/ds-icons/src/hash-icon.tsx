@@ -699,6 +699,7 @@ export const PlaneDepartureIcon = createIcon("planeDeparture");
 export const PlaneArrivalIcon = createIcon("planeArrival");
 export const TruckPlaneIcon = createIcon("truckPlane");
 export const TowerControlIcon = createIcon("towerControl");
+export const DollarIcon = createIcon("dollar");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -884,6 +885,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  dollar: DollarIcon,
   towerControl: TowerControlIcon,
   truckPlane: TruckPlaneIcon,
   planeArrival: PlaneArrivalIcon,

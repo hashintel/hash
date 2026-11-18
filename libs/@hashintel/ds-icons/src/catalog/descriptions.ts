@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  dollar: "A dollar sign represents money, pricing, or currency.",
   towerControl: "An elevated glazed tower represents air traffic control.",
   truckPlane:
     "A truck beneath an aircraft represents combined road and air transport.",

@@ -86,6 +86,7 @@ import { devicesGeometry } from "./library-geometry/devices";
 import { diamondGeometry } from "./library-geometry/diamond";
 import { distributeHorizontalGeometry } from "./library-geometry/distribute-horizontal";
 import { distributeVerticalGeometry } from "./library-geometry/distribute-vertical";
+import { dollarGeometry } from "./library-geometry/dollar";
 import { dotGeometry } from "./library-geometry/dot";
 import { ellipseGeometry } from "./library-geometry/ellipse";
 import { equalsGeometry } from "./library-geometry/equals";
@@ -272,6 +273,7 @@ import { usersGeometry } from "./library-geometry/users";
 import { warehouseGeometry } from "./library-geometry/warehouse";
 
 export const libraryGeometry = {
+  dollar: dollarGeometry,
   towerControl: towerControlGeometry,
   truckPlane: truckPlaneGeometry,
   planeArrival: planeArrivalGeometry,
