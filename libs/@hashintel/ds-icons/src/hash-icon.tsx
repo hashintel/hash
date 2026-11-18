@@ -503,6 +503,7 @@ export const DiamondIcon = createIcon("diamond");
 export const TriangleIcon = createIcon("triangle");
 export const PentagonIcon = createIcon("pentagon");
 export const HexagonIcon = createIcon("hexagon");
+export const OctagonIcon = createIcon("octagon");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -688,6 +689,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  octagon: OctagonIcon,
   hexagon: HexagonIcon,
   pentagon: PentagonIcon,
   triangle: TriangleIcon,
