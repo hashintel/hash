@@ -8,6 +8,7 @@ import {
   fireEvent,
   screen,
 } from "@testing-library/react";
+import { useImperativeHandle } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { theme } from "@hashintel/design-system/theme";
@@ -18,11 +19,15 @@ import { TypesTable } from "./types-table";
 import type { Grid } from "../../components/grid/grid";
 import type { ExportToCsvButton } from "../../shared/table-header/export-to-csv-button";
 import type { TypesTableRow } from "./types-table";
+import type { DataTypeTreeCell } from "./types-table/data-type-tree-cell";
 import type {
   DataTypeWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import type { SizedGridColumn } from "@glideapps/glide-data-grid";
+import type {
+  DataEditorRef,
+  SizedGridColumn,
+} from "@glideapps/glide-data-grid";
 import type { ComponentProps, ReactNode } from "react";
 
 type GridProps = ComponentProps<
@@ -35,10 +40,20 @@ const state = vi.hoisted(() => ({
     | undefined,
   selected: [] as DataTypeWithMetadata[],
   dataTypes: {} as Record<VersionedUrl, DataTypeWithMetadata>,
+  getBounds: vi.fn((column: number, row = 0) => ({
+    x: column === 0 ? 340 : 820,
+    y: 420 + row * 42,
+    width: 480,
+    height: 42,
+  })),
 }));
 vi.mock("next/router", () => ({ useRouter: () => ({ query: {} }) }));
 vi.mock("../../components/grid/grid", () => ({
   Grid: (props: GridProps) => {
+    useImperativeHandle(
+      props.gridRef,
+      () => ({ getBounds: state.getBounds }) as unknown as DataEditorRef,
+    );
     state.grid = props;
     const rowsRef = props.currentlyDisplayedRowsRef;
     if (rowsRef) {
@@ -194,11 +209,46 @@ describe("hierarchical type table", () => {
     state.exportCsv = undefined;
     state.selected = [];
     state.dataTypes = {};
+    state.getBounds.mockClear();
   });
   afterEach(() => {
     cleanup();
     vi.unstubAllGlobals();
   });
+
+  it.each(["Nested List", "Flat List"])(
+    "keeps the %s label tooltip anchored to the data column while the pointer moves",
+    (mode) => {
+      const meters = dataType("meters");
+      meters.schema.label = { right: "m" };
+      state.dataTypes = { [meters.schema.$id]: meters };
+      renderTable([meters]);
+      fireEvent.click(screen.getByRole("button", { name: mode }));
+      expect(state.grid?.enableCheckboxSelection).toBe(true);
+      const cell = state.grid!.createGetCellContent(visibleRows())([
+        0, 0,
+      ]) as DataTypeTreeCell;
+      act(() =>
+        cell.data.showLabelExample({
+          horizontalAlign: "left",
+          interactablePosRelativeToCell: { right: 12, top: 0 },
+          interactableSize: { width: 80, height: 42 },
+        }),
+      );
+      expect(state.getBounds).toHaveBeenLastCalledWith(0, 0);
+      expect(screen.getByRole("tooltip").textContent).toBe("Example value42 m");
+      fireEvent.mouseMove(document, { clientX: 760, clientY: 440 });
+      fireEvent.mouseMove(document, { clientX: 765, clientY: 435 });
+      expect(screen.getByRole("tooltip")).toBeTruthy();
+      fireEvent.mouseMove(screen.getByText("Example value"), {
+        clientX: 740,
+        clientY: 410,
+      });
+      expect(screen.getByRole("tooltip")).toBeTruthy();
+      fireEvent.mouseMove(document, { clientX: 600, clientY: 440 });
+      expect(screen.queryByRole("tooltip")).toBeNull();
+    },
+  );
 
   it("reserves room for the empty state, then sizes the table to visible tree rows", () => {
     render(
@@ -388,7 +438,7 @@ describe("hierarchical type table", () => {
     if (cell.kind !== GridCellKind.Custom) {
       throw new Error("Expected a tree cell");
     }
-    expect(cell.copyData).toBe("meters value m");
+    expect(cell.copyData).toBe("meters x m");
     fireEvent.click(screen.getByRole("button", { name: "Search" }));
     act(() => state.grid?.onSearchValueChange?.(cell.copyData));
     expect(

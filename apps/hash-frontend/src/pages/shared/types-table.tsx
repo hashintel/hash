@@ -23,6 +23,7 @@ import {
   type GridSort,
 } from "../../components/grid/grid";
 import { getCellSearchableText } from "../../components/grid/utils";
+import { useGridTooltip } from "../../components/grid/utils/use-grid-tooltip";
 import { useOrgs } from "../../components/hooks/use-orgs";
 import { useUsers } from "../../components/hooks/use-users";
 import { extractWebId } from "../../lib/user-and-org";
@@ -57,6 +58,7 @@ import { TableHeaderToggle } from "./table-header-toggle";
 import { createRenderTextIconCell } from "./text-icon-cell";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 import { TypeGraphVisualizer } from "./type-graph-visualizer";
+import { DataTypeLabelTooltip } from "./types-table/data-type-label-tooltip";
 import {
   buildDataTypeTree,
   type DataTypeTreePosition,
@@ -89,6 +91,7 @@ import type {
 } from "./types-table/shared/type-filters";
 import type { VisualizerView } from "./visualizer-views";
 import type {
+  DataEditorRef,
   Item,
   SizedGridColumn,
   TextCell,
@@ -223,6 +226,8 @@ export const TypesTable: FunctionComponent<
   )
 > = ({ types, allTypes, kind, onlyOneWeb, loading = false }) => {
   const router = useRouter();
+  const gridRef = useRef<DataEditorRef>(null);
+  const { tooltipElement, showTooltip } = useGridTooltip(gridRef);
 
   const [view, _setView] = useState<VisualizerView>("Table");
 
@@ -635,6 +640,22 @@ export const TypesTable: FunctionComponent<
                   kind: "data-type-tree-cell",
                   title: row.title,
                   labelPreview: row.labelPreview,
+                  showLabelExample: (tooltip) => {
+                    const schema = dataTypes?.[row.typeId]?.schema;
+                    if (schema) {
+                      showTooltip({
+                        ...tooltip,
+                        colIndex,
+                        rowIndex,
+                        content: (
+                          <DataTypeLabelTooltip
+                            schema={schema}
+                            dataTypes={dataTypes}
+                          />
+                        ),
+                      });
+                    }
+                  },
                   icon: row.icon,
                   ...(row.hierarchy ?? {
                     depth: 0,
@@ -786,7 +807,16 @@ export const TypesTable: FunctionComponent<
           }
         }
       },
-    [typesTableColumns, pushToSlideStack, router, theme, toggleRow, kind],
+    [
+      typesTableColumns,
+      pushToSlideStack,
+      router,
+      theme,
+      toggleRow,
+      kind,
+      dataTypes,
+      showTooltip,
+    ],
   );
 
   const matchingIds = useMemo(() => {
@@ -1168,6 +1198,7 @@ export const TypesTable: FunctionComponent<
           ]}
         >
           <Grid
+            gridRef={gridRef}
             columns={typesTableColumns}
             createGetCellContent={createGetCellContent}
             currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
@@ -1238,6 +1269,7 @@ export const TypesTable: FunctionComponent<
               "lastEditedBy",
             ]}
           />
+          {tooltipElement}
         </Box>
       ) : (
         <Box height={maxTableHeight} sx={tableContentSx}>

@@ -44,16 +44,16 @@ describe("data type label previews", () => {
   it("shows labels in their left and right positions", () => {
     expect(
       getDataTypeLabelPreview(scalar("meters", { label: { right: "m" } }), {}),
-    ).toBe("value m");
+    ).toBe("x m");
     expect(
       getDataTypeLabelPreview(scalar("dollars", { label: { left: "$" } }), {}),
-    ).toBe("$value");
+    ).toBe("$x");
     expect(
       getDataTypeLabelPreview(
         scalar("rate", { label: { left: "$", right: "/h" } }),
         {},
       ),
-    ).toBe("$value /h");
+    ).toBe("$x /h");
   });
 
   it("leaves unlabeled types and abstract groups without a preview", () => {
@@ -73,10 +73,10 @@ describe("data type label previews", () => {
     });
     const child = scalar("child", { allOf: [{ $ref: parent.$id }] });
     const types = lookup(distant, parent, child);
-    expect(getDataTypeLabelPreview(child, types)).toBe("value m");
+    expect(getDataTypeLabelPreview(child, types)).toBe("x m");
     expect(
       getDataTypeLabelPreview({ ...child, label: { left: "€" } }, types),
-    ).toBe("€value");
+    ).toBe("€x");
     expect(
       getDataTypeLabelPreview({ ...child, label: { right: "" } }, types),
     ).toBeUndefined();
@@ -94,7 +94,7 @@ describe("data type label previews", () => {
         scalar("child", { allOf: [{ $ref: parent.$id }] }),
         lookup(parent, later),
       ),
-    ).toBe("value m");
+    ).toBe("x m");
   });
 
   it("omits ambiguous inherited labels instead of selecting an arbitrary parent", () => {
@@ -111,7 +111,7 @@ describe("data type label previews", () => {
         child,
         lookup(meters, { ...feet, label: { right: "m" } }),
       ),
-    ).toBe("value m");
+    ).toBe("x m");
   });
 
   it("handles missing parents and cycles without breaking the listing", () => {
@@ -127,7 +127,7 @@ describe("data type label previews", () => {
     });
     expect(getDataTypeLabelPreview(child, {})).toBeUndefined();
     expect(getDataTypeLabelPreview(child, lookup(parent, child))).toBe(
-      "[value m]",
+      "[x₁ m]",
     );
   });
 
@@ -140,9 +140,9 @@ describe("data type label previews", () => {
       allOf: [{ $ref: meters.$id }, { $ref: feet.$id }],
     });
     expect(getDataTypeLabelPreview(list, lookup(meters, feet))).toBe(
-      "[value s, value s, …]",
+      "[x₁ s, x₂ s, …]",
     );
-    expect(getDataTypeLabelPreview(list, {})).toBe("[value s, value s, …]");
+    expect(getDataTypeLabelPreview(list, {})).toBe("[x₁ s, x₂ s, …]");
     expect(
       getDataTypeLabelPreview(
         {
@@ -153,7 +153,7 @@ describe("data type label previews", () => {
         },
         lookup(meters, feet),
       ),
-    ).toBe("[value s]");
+    ).toBe("[x s]");
     const { type: _type, ...metadata } = scalar("union") as DataType & {
       type: "number";
     };
@@ -170,7 +170,7 @@ describe("data type label previews", () => {
         },
         {},
       ),
-    ).toBe("(value m | $value)");
+    ).toBe("(x m | $x)");
   });
 
   it("distinguishes labels on each list item from labels on the list itself", () => {
@@ -178,7 +178,7 @@ describe("data type label previews", () => {
       type: "array",
       items: { type: "number", label: { right: "m" } },
     });
-    expect(getDataTypeLabelPreview(list, {})).toBe("[value m, value m, …]");
+    expect(getDataTypeLabelPreview(list, {})).toBe("[x₁ m, x₂ m, …]");
     expect(
       getDataTypeLabelPreview(
         {
@@ -189,13 +189,13 @@ describe("data type label previews", () => {
         },
         {},
       ),
-    ).toBe("[value, value, …] m");
+    ).toBe("[x₁, x₂, …] m");
     expect(
       getDataTypeLabelPreview(
         { ...list, label: { left: "(", right: ")" } },
         {},
       ),
-    ).toBe("([value m, value m, …] )");
+    ).toBe("([x₁ m, x₂ m, …] )");
   });
 
   it("preserves tuple order and fixed arity", () => {
@@ -207,8 +207,36 @@ describe("data type label previews", () => {
         { type: "number", label: { right: "s" } },
       ],
     });
-    expect(getDataTypeLabelPreview(tuple, {})).toBe("[value m, value s]");
+    expect(getDataTypeLabelPreview(tuple, {})).toBe("[x m, y s]");
   });
+
+  it.each([
+    { length: 1, symbols: ["x"], text: "[x] vector" },
+    { length: 2, symbols: ["x", "y"], text: "[x, y] vector" },
+    { length: 3, symbols: ["x", "y", "z"], text: "[x, y, z] vector" },
+    {
+      length: 4,
+      symbols: ["x₁", "x₂", "x₃", "x₄"],
+      text: "[x₁, x₂, x₃, x₄] vector",
+    },
+  ])(
+    "uses distinct placeholder symbols for a $length-position tuple",
+    ({ length, symbols, text }) => {
+      const tuple = scalar("vector", {
+        type: "array",
+        items: false,
+        prefixItems: repeated(length, () => ({ type: "number" as const })),
+        label: { right: "vector" },
+      });
+      const parts = getPreviewParts(tuple, {})!;
+      expect(parts.map((part) => part.text).join("")).toBe(text);
+      expect(
+        parts
+          .filter((part) => part.kind === "placeholder")
+          .map((part) => part.text),
+      ).toEqual(symbols);
+    },
+  );
 
   it("inherits the referenced tuple shape while letting the child replace its outer label", () => {
     const tuple = scalar("tuple", {
@@ -231,12 +259,10 @@ describe("data type label previews", () => {
       items: { type: "number" as const, label: { right: "ft" } },
     };
     const types = lookup(tuple, later);
-    expect(getDataTypeLabelPreview(child, types)).toBe(
-      "[value m, value s] coordinate",
-    );
+    expect(getDataTypeLabelPreview(child, types)).toBe("[x m, y s] coordinate");
     expect(
       getDataTypeLabelPreview({ ...child, label: { right: "point" } }, types),
-    ).toBe("[value m, value s] point");
+    ).toBe("[x m, y s] point");
   });
 
   it("combines inherited item labels and the tightest list length across parents", () => {
@@ -261,7 +287,7 @@ describe("data type label previews", () => {
       allOf: [{ $ref: child.$id }],
     });
     const types = lookup(list, single, child);
-    expect(getDataTypeLabelPreview(grandchild, types)).toBe("[value m]");
+    expect(getDataTypeLabelPreview(grandchild, types)).toBe("[x₁ m]");
     expect(
       getDataTypeLabelPreview(
         {
@@ -271,7 +297,7 @@ describe("data type label previews", () => {
         },
         types,
       ),
-    ).toBe("[value ft]");
+    ).toBe("[x₁ ft]");
   });
 
   it("does not choose arbitrarily between conflicting inherited item labels", () => {
@@ -290,7 +316,7 @@ describe("data type label previews", () => {
       allOf: [{ $ref: meters.$id }, { $ref: feet.$id }],
     });
     expect(getDataTypeLabelPreview(child, lookup(meters, feet))).toBe(
-      "[value] measurements",
+      "[x₁] measurements",
     );
   });
 
@@ -300,7 +326,7 @@ describe("data type label previews", () => {
       maxItems: 1,
       items: { type: "number", label: { right: "m" } },
     });
-    expect(getDataTypeLabelPreview(list, {})).toBe("[value m]");
+    expect(getDataTypeLabelPreview(list, {})).toBe("[x₁ m]");
     expect(
       getDataTypeLabelPreview(
         scalar("empty", { type: "array", items: false, label: { right: "m" } }),
@@ -319,7 +345,7 @@ describe("data type label previews", () => {
         { type: "number", label: { right: "ft" } },
       ],
     };
-    expect(getDataTypeLabelPreview(union, {})).toBe("(value m | value ft)");
+    expect(getDataTypeLabelPreview(union, {})).toBe("(x m | x ft)");
     expect(
       getDataTypeLabelPreview(
         {
@@ -329,7 +355,7 @@ describe("data type label previews", () => {
         },
         {},
       ),
-    ).toBe("value m");
+    ).toBe("x m");
   });
 
   it("keeps previews on one line even when a label contains line breaks", () => {
@@ -338,7 +364,7 @@ describe("data type label previews", () => {
         scalar("multiline", { label: { right: "m\nper second" } }),
         {},
       ),
-    ).toBe("value m per second");
+    ).toBe("x m per second");
   });
 
   it("applies the inherited union label once, with option labels taking precedence", () => {
@@ -355,7 +381,7 @@ describe("data type label previews", () => {
       ],
     };
     const types = lookup(parent);
-    expect(getDataTypeLabelPreview(union, types)).toBe("$value /h");
+    expect(getDataTypeLabelPreview(union, types)).toBe("$x /h");
     expect(
       getDataTypeLabelPreview(
         {
@@ -368,7 +394,7 @@ describe("data type label previews", () => {
         },
         types,
       ),
-    ).toBe("(€value | value | $value /h)");
+    ).toBe("(€x | x | $x /h)");
   });
 
   it("keeps item labels distinct from a union's label on the whole array", () => {
@@ -387,7 +413,7 @@ describe("data type label previews", () => {
         },
       ],
     };
-    expect(getDataTypeLabelPreview(union, {})).toBe("[value m] m");
+    expect(getDataTypeLabelPreview(union, {})).toBe("[x₁ m] m");
   });
 
   it("bounds long uniform labels repeated across a large tuple", () => {
@@ -404,7 +430,7 @@ describe("data type label previews", () => {
     const parts = getPreviewParts(tuple, lookup(parent))!;
     const text = parts.map((part) => part.text).join("");
     expect(text.length).toBeLessThanOrEqual(256);
-    expect(text).toContain(`value ${"m".repeat(63)}…`);
+    expect(text).toContain(`x₁ ${"m".repeat(63)}…`);
     expect(text.endsWith("…")).toBe(true);
     expect(
       parts
@@ -428,7 +454,7 @@ describe("data type label previews", () => {
       type: "array",
       allOf: [{ $ref: tuple.$id }],
     });
-    const expected = `[${Array.from({ length: 8 }, () => "value m").join(", ")}, …]`;
+    const expected = "[x₁ m, x₂ m, x₃ m, x₄ m, x₅ m, x₆ m, x₇ m, x₈ m, …]";
     expect(getDataTypeLabelPreview(tuple, {})).toBe(expected);
     expect(getDataTypeLabelPreview(child, lookup(tuple))).toBe(expected);
   });
@@ -448,7 +474,7 @@ describe("data type label previews", () => {
     });
     const text = getDataTypeLabelPreview({ ...metadata, anyOf }, {});
     expect(text).toBe(
-      `(${Array.from({ length: 8 }, (_, index) => `value unit ${index}`).join(" | ")} | …)`,
+      `(${Array.from({ length: 8 }, (_, index) => `x unit ${index}`).join(" | ")} | …)`,
     );
   });
 
@@ -523,7 +549,7 @@ describe("data type label previews", () => {
         { ...child, label: { right: "measurements" } },
         lookup(...parents),
       ),
-    ).toBe("[value] measurements");
+    ).toBe("[x₁] measurements");
   });
 
   it("truncates and normalizes label text without splitting Unicode characters", () => {
@@ -537,7 +563,7 @@ describe("data type label previews", () => {
         }),
         {},
       ),
-    ).toBe(`${"x".repeat(62)}…value m ${"s".repeat(61)}…`);
+    ).toBe(`${"x".repeat(62)}…x m ${"s".repeat(61)}…`);
     const tuple = scalar("unicode-tuple", {
       type: "array",
       items: false,

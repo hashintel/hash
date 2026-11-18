@@ -136,6 +136,7 @@ describe("tree cell selection", () => {
         copyData: "Meters",
         data: {
           kind: "data-type-tree-cell",
+          showLabelExample: vi.fn(),
           title: "Meters",
           depth: 2,
           continuationDepths: [],

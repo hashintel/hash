@@ -27,7 +27,7 @@ describe("data type title and preview layout", () => {
   it("measures placeholder and label fonts separately and preserves their styling through truncation", () => {
     const preview: DataTypeLabelPart[] = [
       { kind: "label", text: "$" },
-      { kind: "placeholder", text: "value" },
+      { kind: "placeholder", text: "x" },
       { kind: "label", text: " per hour with a long label" },
     ];
     const mixedMeasure = (text: string, kind?: DataTypeLabelPart["kind"]) =>
@@ -51,19 +51,19 @@ describe("data type title and preview layout", () => {
   it("keeps short labels intact and reserves room between the chip and preview", () => {
     const layout = getDataTypeCellLayout({
       title: "Meters",
-      preview: "value m",
+      preview: "x m",
       availableWidth: 300,
       measure,
     });
     expect(layout.title).toBe("Meters");
-    expect(layout.preview).toBe("value m");
+    expect(layout.preview).toBe("x m");
     expect(layout.chipAreaWidth + measure(layout.preview) + 16).toBe(300);
   });
 
   it("truncates both a long title and a complex preview without overlap", () => {
     const layout = getDataTypeCellLayout({
       title: "A long data type with a very long name",
-      preview: "[value millimeters, value seconds, value degrees Celsius]",
+      preview: "[x millimeters, y seconds, z degrees Celsius]",
       availableWidth: 240,
       measure,
     });
@@ -81,7 +81,7 @@ describe("data type title and preview layout", () => {
     for (const availableWidth of [0, 20, 80, 100]) {
       const layout = getDataTypeCellLayout({
         title: "Meters",
-        preview: "value m",
+        preview: "x m",
         availableWidth,
         measure,
       });

@@ -1,3 +1,4 @@
+import type { JsonValue } from "@blockprotocol/core";
 import type {
   DataType,
   DataTypeWithMetadata,
@@ -49,7 +50,7 @@ const resolveLabel = (
 };
 
 export type DataTypeLabelPart = {
-  kind: "placeholder" | "label" | "punctuation";
+  kind: "placeholder" | "value" | "label" | "punctuation";
   text: string;
 };
 
@@ -57,7 +58,20 @@ const punctuation = (text: string): DataTypeLabelPart => ({
   kind: "punctuation",
   text,
 });
-const placeholder: DataTypeLabelPart = { kind: "placeholder", text: "value" };
+const placeholder = (
+  index?: number,
+  tupleLength?: number,
+): DataTypeLabelPart => ({
+  kind: "placeholder",
+  text:
+    index === undefined
+      ? "x"
+      : tupleLength !== undefined && tupleLength <= 3
+        ? (["x", "y", "z"][index] ?? "x")
+        : `x${String(index + 1).replace(/\d/gu, (digit) =>
+            String.fromCharCode(0x2080 + Number(digit)),
+          )}`,
+});
 
 // Bound schema-driven expansion before preview text reaches canvas, copy, or search.
 const maxLabelCharacters = 64;
@@ -172,9 +186,18 @@ const previewValue = (
   schema: SingleValueSchema,
   inheritedArrays: ArraySchema[][],
   normalizedLabels: WeakMap<ValueLabel, ValueLabel>,
+  value?: JsonValue,
 ): DataTypeLabelPart[] => {
+  const valuePart = (inner: JsonValue): DataTypeLabelPart => ({
+    kind: "value",
+    text: typeof inner === "string" ? inner || '""' : JSON.stringify(inner),
+  });
   if (schema.type !== "array") {
-    return labelValue([placeholder], schema.label, normalizedLabels);
+    return labelValue(
+      [value === undefined ? placeholder() : valuePart(value)],
+      schema.label,
+      normalizedLabels,
+    );
   }
 
   const levels = [[schema], ...inheritedArrays];
@@ -193,8 +216,10 @@ const previewValue = (
         : Math.min(maximum, array.maxItems ?? Infinity),
     Infinity,
   );
-  const count =
-    tupleLength === undefined
+  const values = Array.isArray(value) ? value : undefined;
+  const count = values
+    ? Math.min(values.length, maxTupleItems)
+    : tupleLength === undefined
       ? Math.min(maxItems, 2)
       : Math.min(tupleLength, maxTupleItems);
   const items = Array.from({ length: count }, (_, index) => {
@@ -218,10 +243,18 @@ const previewValue = (
     )
       ? first
       : undefined;
-    return labelValue([placeholder], label, normalizedLabels);
+    return labelValue(
+      [
+        values?.[index] === undefined
+          ? placeholder(index, tupleLength)
+          : valuePart(values[index]),
+      ],
+      label,
+      normalizedLabels,
+    );
   });
 
-  if ((tupleLength ?? maxItems) > count) {
+  if ((values?.length ?? tupleLength ?? maxItems) > count) {
     items.push([punctuation("…")]);
   }
   return labelValue(
@@ -234,6 +267,7 @@ const previewValue = (
 export const getDataTypeLabelPreview = (
   schema: DataType,
   dataTypes: Record<VersionedUrl, DataTypeWithMetadata>,
+  value?: JsonValue,
 ): DataTypeLabelPart[] | undefined => {
   const label = resolveLabel(schema, dataTypes) ?? undefined;
   const normalizedLabels = new WeakMap<ValueLabel, ValueLabel>();
@@ -254,6 +288,7 @@ export const getDataTypeLabelPreview = (
         { ...option, label: option.label ?? label },
         inheritedArrays,
         normalizedLabels,
+        value,
       ),
     );
     const formats = [
@@ -271,12 +306,13 @@ export const getDataTypeLabelPreview = (
             ...joinParts(formats, " | "),
             punctuation(")"),
           ])
-        : (formats[0] ?? [placeholder]);
+        : (formats[0] ?? [placeholder()]);
   } else {
     preview = previewValue(
       { ...schema, label },
       inheritedArrays,
       normalizedLabels,
+      value,
     );
   }
   return preview.some(({ kind, text }) => kind === "label" && text.trim())

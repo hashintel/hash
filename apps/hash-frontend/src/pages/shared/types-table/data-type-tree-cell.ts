@@ -7,6 +7,7 @@ import { drawChipWithIcon } from "../../../components/grid/utils/draw-chip-with-
 import { InteractableManager } from "../../../components/grid/utils/interactable-manager";
 import { getDataTypeCellLayout } from "./data-type-tree-cell/layout";
 
+import type { GridTooltip } from "../../../components/grid/utils/use-grid-tooltip/types";
 import type { DataTypeLabelPart } from "./shared/data-type-label-preview";
 import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
 
@@ -14,6 +15,9 @@ export type DataTypeTreeCell = CustomCell<{
   kind: "data-type-tree-cell";
   title: string;
   labelPreview?: DataTypeLabelPart[];
+  showLabelExample: (
+    tooltip: Omit<GridTooltip, "content" | "colIndex" | "rowIndex">,
+  ) => void;
   icon?: string;
   depth: number;
   continuationDepths: number[];
@@ -43,6 +47,7 @@ export const renderDataTypeTreeCell: CustomRenderer<DataTypeTreeCell> = {
     const {
       title,
       labelPreview,
+      showLabelExample,
       icon,
       depth,
       continuationDepths,
@@ -176,6 +181,29 @@ export const renderDataTypeTreeCell: CustomRenderer<DataTypeTreeCell> = {
         previewLeft += ctx.measureText(part.text).width;
       }
       ctx.restore();
+      interactables.push(
+        InteractableManager.createCellInteractable(args, {
+          id: "label-example",
+          posRelativeToVisibleGridArea: {
+            left: right - layout.previewWidth - 4,
+            right: right + 4,
+            top: rect.y,
+            bottom: rect.y + rect.height,
+          },
+          onMouseEnter: () =>
+            showLabelExample({
+              horizontalAlign: "left",
+              interactablePosRelativeToCell: {
+                right: 12,
+                top: 0,
+              },
+              interactableSize: {
+                width: layout.previewWidth + 8,
+                height: rect.height,
+              },
+            }),
+        }),
+      );
     }
 
     InteractableManager.setInteractablesForCell(args, interactables);
