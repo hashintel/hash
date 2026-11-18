@@ -4,6 +4,7 @@ import { alignCenterVerticalGeometry } from "./library-geometry/align-center-ver
 import { alignLeftGeometry } from "./library-geometry/align-left";
 import { alignRightGeometry } from "./library-geometry/align-right";
 import { alignTopGeometry } from "./library-geometry/align-top";
+import { alignTopCenterGeometry } from "./library-geometry/align-top-center";
 import { alignTopLeftGeometry } from "./library-geometry/align-top-left";
 import { archiveGeometry } from "./library-geometry/archive";
 import { arrowPointerGeometry } from "./library-geometry/arrow-pointer";
@@ -123,6 +124,7 @@ import { triangleGeometry } from "./library-geometry/triangle";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  alignTopCenter: alignTopCenterGeometry,
   alignTopLeft: alignTopLeftGeometry,
   alignCenterVertical: alignCenterVerticalGeometry,
   alignCenterHorizontal: alignCenterHorizontalGeometry,
