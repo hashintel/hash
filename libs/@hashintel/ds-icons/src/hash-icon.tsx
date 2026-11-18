@@ -470,6 +470,7 @@ export const ArrowTurnDownRightIcon = createIcon("arrowTurnDownRight");
 export const ArrowProgressIcon = createIcon("arrowProgress");
 export const ChevronsUpDownIcon = createIcon("chevronsUpDown");
 export const ExpandHorizontalIcon = createIcon("expandHorizontal");
+export const ExpandVerticalIcon = createIcon("expandVertical");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -655,6 +656,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  expandVertical: ExpandVerticalIcon,
   expandHorizontal: ExpandHorizontalIcon,
   chevronsUpDown: ChevronsUpDownIcon,
   arrowProgress: ArrowProgressIcon,
