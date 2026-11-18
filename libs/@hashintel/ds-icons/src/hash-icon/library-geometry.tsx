@@ -251,6 +251,7 @@ import { sizeLargeGeometry } from "./library-geometry/size-large";
 import { sizeMediumGeometry } from "./library-geometry/size-medium";
 import { sizeSmallGeometry } from "./library-geometry/size-small";
 import { smileGeometry } from "./library-geometry/smile";
+import { solarSystemGeometry } from "./library-geometry/solar-system";
 import { speakerGeometry } from "./library-geometry/speaker";
 import { splineCubicGeometry } from "./library-geometry/spline-cubic";
 import { splineLineGeometry } from "./library-geometry/spline-line";
@@ -295,6 +296,7 @@ import { wavePulseGeometry } from "./library-geometry/wave-pulse";
 import { wavesGeometry } from "./library-geometry/waves";
 
 export const libraryGeometry = {
+  solarSystem: solarSystemGeometry,
   orbit: orbitGeometry,
   radar: radarGeometry,
   antenna: antennaGeometry,
