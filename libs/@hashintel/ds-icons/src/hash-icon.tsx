@@ -604,6 +604,7 @@ export const MessageQuestionIcon = createIcon("messageQuestion");
 export const InboxIcon = createIcon("inbox");
 export const SendIcon = createIcon("send");
 export const ShareIcon = createIcon("share");
+export const ShareNodesIcon = createIcon("shareNodes");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -789,6 +790,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  shareNodes: ShareNodesIcon,
   share: ShareIcon,
   send: SendIcon,
   inbox: InboxIcon,
