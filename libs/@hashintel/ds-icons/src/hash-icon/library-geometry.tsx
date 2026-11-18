@@ -22,6 +22,7 @@ import { clipboardCheckGeometry } from "./library-geometry/clipboard-check";
 import { clipboardListGeometry } from "./library-geometry/clipboard-list";
 import { collapseVerticalGeometry } from "./library-geometry/collapse-vertical";
 import { commandGeometry } from "./library-geometry/command";
+import { diamondGeometry } from "./library-geometry/diamond";
 import { dotGeometry } from "./library-geometry/dot";
 import { ellipseGeometry } from "./library-geometry/ellipse";
 import { equalsGeometry } from "./library-geometry/equals";
@@ -74,6 +75,7 @@ import { toggleOnGeometry } from "./library-geometry/toggle-on";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  diamond: diamondGeometry,
   ellipse: ellipseGeometry,
   rectangle: rectangleGeometry,
   key: keyGeometry,
