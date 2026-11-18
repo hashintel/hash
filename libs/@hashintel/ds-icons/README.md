@@ -187,6 +187,7 @@ Filled dots mark states or events where that distinction carries meaning.
 | `logicNot`        | Negates a condition.                     |
 | `logicImplies`    | One condition implies another.           |
 | `logicEquivalent` | Two conditions are logically equivalent. |
+| `logicForAll`     | A condition holds for every member.      |
 
 ### Temporal logic
 

@@ -89,6 +89,7 @@ describe("icon catalog metadata", () => {
     "logicNot",
     "logicImplies",
     "logicEquivalent",
+    "logicForAll",
     "logicSignalBounded",
     "logicSignalThreshold",
     "logicSignalClock",

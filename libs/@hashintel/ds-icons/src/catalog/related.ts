@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const relatedGroups = [
+  ["logicForAll", "logicTemporalOperators"],
   ["logicEquivalent", "logicImplies"],
   ["logicImplies", "logicAnd", "logicOr", "logicNot"],
   ["logicNot", "logicAnd", "logicOr", "logicBooleanTrace"],
