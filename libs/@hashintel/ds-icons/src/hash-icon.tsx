@@ -622,6 +622,7 @@ export const UserBountyHunterIcon = createIcon("userBountyHunter");
 export const PersonIcon = createIcon("person");
 export const AccessibilityIcon = createIcon("accessibility");
 export const PersonGreetingIcon = createIcon("personGreeting");
+export const PersonSignIcon = createIcon("personSign");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -807,6 +808,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  personSign: PersonSignIcon,
   personGreeting: PersonGreetingIcon,
   accessibility: AccessibilityIcon,
   person: PersonIcon,
