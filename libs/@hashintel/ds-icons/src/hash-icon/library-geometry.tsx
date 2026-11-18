@@ -182,6 +182,7 @@ import { peopleArrowsGeometry } from "./library-geometry/people-arrows";
 import { percentGeometry } from "./library-geometry/percent";
 import { personGeometry } from "./library-geometry/person";
 import { personBoothGeometry } from "./library-geometry/person-booth";
+import { personDollyGeometry } from "./library-geometry/person-dolly";
 import { personGreetingGeometry } from "./library-geometry/person-greeting";
 import { personPortalGeometry } from "./library-geometry/person-portal";
 import { personSignGeometry } from "./library-geometry/person-sign";
@@ -257,6 +258,7 @@ import { usersGeometry } from "./library-geometry/users";
 import { warehouseGeometry } from "./library-geometry/warehouse";
 
 export const libraryGeometry = {
+  personDolly: personDollyGeometry,
   forklift: forkliftGeometry,
   conveyorBelt: conveyorBeltGeometry,
   shelves: shelvesGeometry,
