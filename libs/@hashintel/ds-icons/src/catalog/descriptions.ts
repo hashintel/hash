@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  distributeVertical:
+    "Evenly spaced bars between guides represent distributing objects vertically.",
   distributeHorizontal:
     "Evenly spaced bars between guides represent distributing objects horizontally.",
   alignBottomRight:

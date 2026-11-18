@@ -54,6 +54,7 @@ import { dashDrawGeometry } from "./library-geometry/dash-draw";
 import { dashSolidGeometry } from "./library-geometry/dash-solid";
 import { diamondGeometry } from "./library-geometry/diamond";
 import { distributeHorizontalGeometry } from "./library-geometry/distribute-horizontal";
+import { distributeVerticalGeometry } from "./library-geometry/distribute-vertical";
 import { dotGeometry } from "./library-geometry/dot";
 import { ellipseGeometry } from "./library-geometry/ellipse";
 import { equalsGeometry } from "./library-geometry/equals";
@@ -132,6 +133,7 @@ import { triangleGeometry } from "./library-geometry/triangle";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  distributeVertical: distributeVerticalGeometry,
   distributeHorizontal: distributeHorizontalGeometry,
   alignBottomRight: alignBottomRightGeometry,
   alignBottomCenter: alignBottomCenterGeometry,
