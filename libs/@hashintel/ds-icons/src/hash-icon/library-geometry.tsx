@@ -187,6 +187,7 @@ import { textAlignCenterGeometry } from "./library-geometry/text-align-center";
 import { textAlignJustifyGeometry } from "./library-geometry/text-align-justify";
 import { textAlignLeftGeometry } from "./library-geometry/text-align-left";
 import { textAlignRightGeometry } from "./library-geometry/text-align-right";
+import { thumbsUpGeometry } from "./library-geometry/thumbs-up";
 import { toggleOffGeometry } from "./library-geometry/toggle-off";
 import { toggleOnGeometry } from "./library-geometry/toggle-on";
 import { trapezoidGeometry } from "./library-geometry/trapezoid";
@@ -202,6 +203,7 @@ import { userTieGeometry } from "./library-geometry/user-tie";
 import { usersGeometry } from "./library-geometry/users";
 
 export const libraryGeometry = {
+  thumbsUp: thumbsUpGeometry,
   hospitalUser: hospitalUserGeometry,
   expertInterviews: expertInterviewsGeometry,
   peopleArrows: peopleArrowsGeometry,
