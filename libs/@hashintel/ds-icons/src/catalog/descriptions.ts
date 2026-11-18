@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  archive: "A lidded storage box represents archived material.",
   clipboardList:
     "A clipboard with entries represents a checklist or recorded tasks.",
   clipboardCheck:

@@ -449,6 +449,7 @@ export const MemoInfoIcon = createIcon("memoInfo");
 export const ClipboardIcon = createIcon("clipboard");
 export const ClipboardCheckIcon = createIcon("clipboardCheck");
 export const ClipboardListIcon = createIcon("clipboardList");
+export const ArchiveIcon = createIcon("archive");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -634,6 +635,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  archive: ArchiveIcon,
   clipboardList: ClipboardListIcon,
   clipboardCheck: ClipboardCheckIcon,
   clipboard: ClipboardIcon,
