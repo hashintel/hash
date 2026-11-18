@@ -719,6 +719,7 @@ export const VibrationIcon = createIcon("vibration");
 export const HumidityIcon = createIcon("humidity");
 export const ThermometerIcon = createIcon("thermometer");
 export const ThermometerColdIcon = createIcon("thermometerCold");
+export const ThermometerHotIcon = createIcon("thermometerHot");
 export const AntennaIcon = createIcon("antenna");
 export const RadarIcon = createIcon("radar");
 export const OrbitIcon = createIcon("orbit");
@@ -1029,6 +1030,7 @@ export const hashIconPack = {
   radar: RadarIcon,
   antenna: AntennaIcon,
   thermometerCold: ThermometerColdIcon,
+  thermometerHot: ThermometerHotIcon,
   thermometer: ThermometerIcon,
   humidity: HumidityIcon,
   vibration: VibrationIcon,

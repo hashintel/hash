@@ -83,6 +83,7 @@ export const hashIconHints = {
   radar: "lift",
   antenna: "lift",
   thermometerCold: "lift",
+  thermometerHot: "lift",
   thermometer: "lift",
   humidity: "lift",
   vibration: "lift",

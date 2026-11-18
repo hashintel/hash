@@ -318,6 +318,7 @@ import { textAlignLeftGeometry } from "./library-geometry/text-align-left";
 import { textAlignRightGeometry } from "./library-geometry/text-align-right";
 import { thermometerGeometry } from "./library-geometry/thermometer";
 import { thermometerColdGeometry } from "./library-geometry/thermometer-cold";
+import { thermometerHotGeometry } from "./library-geometry/thermometer-hot";
 import { thumbsDownGeometry } from "./library-geometry/thumbs-down";
 import { thumbsUpGeometry } from "./library-geometry/thumbs-up";
 import { timelineGeometry } from "./library-geometry/timeline";
@@ -417,6 +418,7 @@ export const libraryGeometry = {
   radar: radarGeometry,
   antenna: antennaGeometry,
   thermometerCold: thermometerColdGeometry,
+  thermometerHot: thermometerHotGeometry,
   thermometer: thermometerGeometry,
   humidity: humidityGeometry,
   vibration: vibrationGeometry,

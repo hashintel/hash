@@ -85,6 +85,7 @@ export const descriptions = {
     "An antenna radiating waves represents broadcast or wireless communication.",
   thermometerCold:
     "A thermometer beside a snowflake represents low temperature.",
+  thermometerHot: "A thermometer beside a sun represents high temperature.",
   thermometer: "A graduated bulb represents temperature.",
   humidity: "A water droplet represents moisture or humidity.",
   vibration: "Wavy marks beside a device represent vibration.",

@@ -307,6 +307,7 @@ const categories = {
     "radar",
     "antenna",
     "thermometerCold",
+    "thermometerHot",
     "thermometer",
     "humidity",
     "vibration",
