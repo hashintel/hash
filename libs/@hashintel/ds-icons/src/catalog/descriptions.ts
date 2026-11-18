@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  sendToBack:
+    "A square beneath stacked outlines represents moving an object to the back.",
   bringToFront:
     "A square above stacked outlines represents moving an object to the front.",
   sendBackward:
