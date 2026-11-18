@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  historyPages:
+    "Documents inside a return arrow represent a page\u2019s revision history.",
   calendars:
     "Overlapping calendars represent multiple schedules or date ranges.",
   calendarCheck: "A calendar with a check represents a confirmed appointment.",

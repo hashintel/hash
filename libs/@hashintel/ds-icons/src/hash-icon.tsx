@@ -460,6 +460,7 @@ export const CalendarWeekIcon = createIcon("calendarWeek");
 export const CalendarDaysIcon = createIcon("calendarDays");
 export const CalendarCheckIcon = createIcon("calendarCheck");
 export const CalendarsIcon = createIcon("calendars");
+export const HistoryPagesIcon = createIcon("historyPages");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -645,6 +646,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  historyPages: HistoryPagesIcon,
   calendars: CalendarsIcon,
   calendarCheck: CalendarCheckIcon,
   calendarDays: CalendarDaysIcon,

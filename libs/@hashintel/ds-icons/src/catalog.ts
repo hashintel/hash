@@ -164,6 +164,7 @@ export const hashIconStudies = [
 
 const categories = {
   Time: [
+    "historyPages",
     "calendars",
     "calendarCheck",
     "calendarDays",
