@@ -69,6 +69,7 @@ import { checkDoubleGeometry } from "./library-geometry/check-double";
 import { chevronsUpDownGeometry } from "./library-geometry/chevrons-up-down";
 import { circleArrowRightGeometry } from "./library-geometry/circle-arrow-right";
 import { circleArrowUpRightGeometry } from "./library-geometry/circle-arrow-up-right";
+import { circleFourGeometry } from "./library-geometry/circle-four";
 import { circlePlayGeometry } from "./library-geometry/circle-play";
 import { circleThreeGeometry } from "./library-geometry/circle-three";
 import { circleTwoGeometry } from "./library-geometry/circle-two";
@@ -339,6 +340,7 @@ import { wavesGeometry } from "./library-geometry/waves";
 import { workflowGeometry } from "./library-geometry/workflow";
 
 export const libraryGeometry = {
+  circleFour: circleFourGeometry,
   circleThree: circleThreeGeometry,
   circleTwo: circleTwoGeometry,
   survey: surveyGeometry,

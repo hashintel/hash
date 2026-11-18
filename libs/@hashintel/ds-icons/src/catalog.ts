@@ -445,6 +445,7 @@ const categories = {
     "rectangle",
   ],
   Interface: [
+    "circleFour",
     "circleThree",
     "circleTwo",
     "searchChart",
