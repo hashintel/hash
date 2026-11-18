@@ -89,7 +89,7 @@ Neither case produces an error.
 
 A relation between two records needs no join. It is a link, and an entity id is derived from the web, the namespace, the entity type and the source id (`derive_entity_id` in `stage/diff/rows/ids.rs`). A person row that carries the department's key is enough to build the link. For this reason few joins are expected in incremental runs. Joins are mainly used with hash and diff, which has the full capture (Paul, 2026-11-17).
 
-**Chosen for now:** Prepare fails an incremental run when a target reads more than one source (Paul, 2026-11-17). An aggregation over one source is not detected; finding it would require parsing the SQL.
+**Chosen for now:** Prepare fails an incremental run when a target reads more than one source (Paul, 2026-11-17). Links and joins are still under discussion in the team; see "Link changes in incremental runs". An aggregation over one source is not detected; finding it would require parsing the SQL.
 
 **Options for later:**
 
@@ -116,6 +116,24 @@ In labs a link is derived from a source row by a link pipeline, and its id is de
 - **A row is deleted.** The links of the deleted entity have to be archived as well.
 
 The labs capture format has a `_before` column for change streams. It could carry the old values of a changed or deleted row. Labs sets it to null and never reads it.
+
+**Status:** deferred (Paul, 2026-11-18). The integration team is still discussing links and joins, and no decision is made. How a link row gets its Graph operation stays open until then.
+
+**Under discussion: [Links From Joins](https://claude.ai/artifact/PzCHqfjKBYHyWpH5DygnJW).** The page proposes one rule: a join row becomes a link once both of its entities are in the lake, and until then the row waits there. It says the planner today writes a link for every row without checking its ends. It states these Graph rules and gives a Lean proof against them:
+
+- The Graph refuses a link when one of its ends was never created.
+- The Graph accepts a link when one of its ends is archived, which leaves a live link to an archived entity.
+- Archiving an entity does not archive its links.
+- The Graph removes nothing. A record deleted at the source is archived.
+
+The page delivers in the order this spec uses: upsert entities, upsert links, archive links, archive entities. It proves that every arrival order of the tables ends in the same live Graph. It also names a case that matters for incremental runs: checking only the changed rows misses an unchanged row that gains a link.
+
+What this means for the ledger pipeline, as Claude reads it and not yet discussed:
+
+- The rule needs rows that stay available after their run. A person row captured in run 2 gets its link in run 3, when the company arrives, and the person row is not in run 3's capture. The spec has no such store: the sync table holds entity changes, and Prepare reads no earlier run.
+- "Joins and aggregations in incremental runs" needs the same store for a different reason: the latest row per source key.
+
+One option was drafted before the deferral and is recorded here without a decision. Prepare requires `_op` on link tables, as it does on entity tables. An insert and an update both create the link, and a conflict counts as done. A delete archives the link when the row still carries both endpoint values. It covers a new row, a changed foreign key and an unchanged link. It sends many creates for links that exist, it does not archive the old link, and it does not apply changes to a link's own properties.
 
 ### A source that cannot tell an insert from an update
 
@@ -183,7 +201,7 @@ Send sorts a run's rows by operation first and by their position in the run seco
 
 The inventory of labs, `engine` and the `pipeline` crate is in [inventory/](inventory/). Section 5 of each file lists the questions it raises. These contradict the spec or the skeleton and need a decision before the stage that depends on them is specified:
 
-- **`engine` differs between this branch and `main`.** The storage module (`ArtifactStorage`, `ArtifactRef`, `ArtifactNamespace`) exists only on this branch. The `graph` module, with the request encoder that builds one `add` per property, exists only on `main`. The skeleton builds on this branch only.
+- **`engine` differed between this branch and `main`.** Resolved on 2026-11-18 by merging `main` into the branch: `engine` now has the storage module and the `graph` module. The storage module still comes from the open pull request hashintel/hash#10392, so the new crate builds only on a branch that has it.
 - **A conditional write cannot be built on `engine`'s public API.** The object store is a private field, `ArtifactKey` has no public constructor, and `bind` can create a key but never update it. The `pipeline` crate's copy of the storage module adds `read_versioned` and `replace_if`.
 - **The sync table has no way to find its files.** `PrepareOutput` holds no file references, `engine` has no list operation, and `publish` names a file by its content.
 - **Send needs the capture time.** Every request body carries it as `loadedAt`. The Send contract in the spec takes no `CaptureOutput`.

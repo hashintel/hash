@@ -308,8 +308,12 @@ src/
 ```
 
 - Each stage is one module at the top level. `run` and `sync_table` are the two modules the stages share.
-- The crate depends on `hash-integrations-engine` for `Workspace`, `ArtifactStorage`, `SourceCapture` and `derive_entity_id`. The previous refactor copied these modules. `ArtifactStorage` is in `engine` on this branch only, not on `main`.
-- `engine` has no conditional write, and its public API does not allow one to be built outside the crate. See "Raised by the code inventory" in the open issues.
+- The crate builds on `hash-integrations-engine` and does not copy its modules (Paul, 2026-11-18). It takes from `engine`: the DuckDB workspace and the pipelines, storage (`ArtifactStorage`), `SourceCapture`, `derive_entity_id`, property resolution (`SinkRow`), and the operation types `EntityUpsert`, `LinkUpsert` and `Archive`.
+- `engine`'s storage module comes from the open pull request hashintel/hash#10392 and is not on `main` yet. The crate builds only on a branch that has it.
+- `engine`'s `GraphClient` sends one write at a time and falls back from create to patch. Send needs bulk requests without a fallback, so the client and the batching are new code in this crate.
+- `engine` encodes the create, update and archive bodies of a write into one sealed `Payload`. Send needs them separately. This needs a small change to `engine` or a copy of `graph/plan/request.rs`.
+- The skeleton's `prepare/properties/` and `graph/client.rs` were written as copies from the previous refactor. They are replaced when the steps of Prepare and Send are specified.
+- `engine` has no conditional write, and its public API does not allow one to be built outside the crate. It is added to `engine`'s storage module. See "Raised by the code inventory" in the open issues.
 - `Graph` is the only trait. It exists so that tests can use `FakeGraph`.
 
 ## Existing code
