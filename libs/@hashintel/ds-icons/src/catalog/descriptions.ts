@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  antenna:
+    "An antenna radiating waves represents broadcast or wireless communication.",
   thermometerCold:
     "A thermometer beside a snowflake represents low temperature.",
   thermometer: "A graduated bulb represents temperature.",

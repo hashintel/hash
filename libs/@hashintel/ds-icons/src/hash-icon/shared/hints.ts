@@ -20,6 +20,7 @@ export type HashIconHint =
   | "up";
 
 export const hashIconHints = {
+  antenna: "lift",
   thermometerCold: "lift",
   thermometer: "lift",
   humidity: "lift",

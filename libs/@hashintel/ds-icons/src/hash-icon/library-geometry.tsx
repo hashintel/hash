@@ -14,6 +14,7 @@ import { alignTopGeometry } from "./library-geometry/align-top";
 import { alignTopCenterGeometry } from "./library-geometry/align-top-center";
 import { alignTopLeftGeometry } from "./library-geometry/align-top-left";
 import { alignTopRightGeometry } from "./library-geometry/align-top-right";
+import { antennaGeometry } from "./library-geometry/antenna";
 import { appGeometry } from "./library-geometry/app";
 import { archiveGeometry } from "./library-geometry/archive";
 import { arrowPointerGeometry } from "./library-geometry/arrow-pointer";
@@ -292,6 +293,7 @@ import { wavePulseGeometry } from "./library-geometry/wave-pulse";
 import { wavesGeometry } from "./library-geometry/waves";
 
 export const libraryGeometry = {
+  antenna: antennaGeometry,
   thermometerCold: thermometerColdGeometry,
   thermometer: thermometerGeometry,
   humidity: humidityGeometry,
