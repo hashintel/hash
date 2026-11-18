@@ -92,7 +92,7 @@ export const useProcessSaveAndLoad = ({
    * resolves with the persisted entity id, the new decision-time, and
    * whether the resulting entity is editable by the current user. A
    * refused create rejects with {@link NetExistsError} when the net exists
-   * and the user can see it, and otherwise says the id may be unavailable.
+   * and the user can see it, and otherwise preserves the original error.
    * It changes no selection: the caller decides whether the result still
    * applies to what is open, and is responsible for any URL navigation
    * following a create.
@@ -191,12 +191,8 @@ export const useProcessSaveAndLoad = ({
   );
 
   /**
-   * The error a refused create of `entityId` fails with. The graph refuses a
-   * uuid that is taken in the same way as any other failure, so whether the
-   * net exists is looked up: when the user can see it, the create is
-   * refused because it does; when they can't, the id may be taken by an
-   * entity they can't see. A lookup that fails tells nothing, so the
-   * create's own error stands.
+   * Recover a refused create only if we can find the exact saved process.
+   * A missing result does not tell us why the create failed.
    */
   const createRefusal = useCallback(
     async (entityId: EntityId, cause: unknown): Promise<Error> => {
@@ -215,10 +211,7 @@ export const useProcessSaveAndLoad = ({
       }
       const existing = nets.find((net) => net.entityId === entityId);
       if (!existing) {
-        return new Error(
-          `The process could not be created: its id ${extractEntityUuidFromEntityId(entityId)} is unavailable. No process you can see has it, so it may be taken.`,
-          { cause },
-        );
+        return unknownFailure;
       }
       return new NetExistsError({
         entityId,

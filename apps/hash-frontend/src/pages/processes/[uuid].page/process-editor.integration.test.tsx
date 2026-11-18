@@ -1510,7 +1510,7 @@ test("Brunch's agent save of a draft creates the net under the draft's id, in th
   expect(observed.brunchMounts).toBe(mounts);
 });
 
-test("a Create refused for an id the user can't see fails saying the id is unavailable, and stays on the draft", async () => {
+test("a refused create with no visible process preserves the error and stays on the draft", async () => {
   graph.hiddenEntityIds.add(createdId);
   await renderRoute(draftUrl);
 
@@ -1519,7 +1519,7 @@ test("a Create refused for an id the user can't see fails saying the id is unava
 
   await expect(saved).resolves.toEqual({
     status: "unconfirmed",
-    error: expect.stringContaining(`its id ${uuidCreated} is unavailable`),
+    error: expect.stringContaining("Could not store entity"),
   });
   expect(url()).toBe(draftUrl);
   expect(topBar()).toMatchObject({

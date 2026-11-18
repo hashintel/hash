@@ -524,8 +524,9 @@ test("a Create refused for a net the user can see rejects as existing, and moves
   ]);
 });
 
-test("a Create refused for an id no visible net has fails saying the id is unavailable", async () => {
-  graph.createEntity.mockRejectedValue(new Error("Could not store entity"));
+test("a failed create with no matching process preserves the original error", async () => {
+  const failure = new Error("Write timed out");
+  graph.createEntity.mockRejectedValue(failure);
   await renderHost(draftView);
 
   await expect(
@@ -536,6 +537,6 @@ test("a Create refused for an id no visible net has fails saying the id is unava
         entityId: null,
       }),
     ),
-  ).rejects.toThrow(`its id ${uuidCreated} is unavailable`);
+  ).rejects.toBe(failure);
   expect(router.replace).not.toHaveBeenCalled();
 });
