@@ -96,6 +96,7 @@ import { fontSerifGeometry } from "./library-geometry/font-serif";
 import { frameGeometry } from "./library-geometry/frame";
 import { groupGeometry } from "./library-geometry/group";
 import { handwrittenDocsGeometry } from "./library-geometry/handwritten-docs";
+import { hashtagGeometry } from "./library-geometry/hashtag";
 import { helpGeometry } from "./library-geometry/help";
 import { hexagonGeometry } from "./library-geometry/hexagon";
 import { highlighterGeometry } from "./library-geometry/highlighter";
@@ -155,6 +156,7 @@ import { ungroupGeometry } from "./library-geometry/ungroup";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  hashtag: hashtagGeometry,
   fontCase: fontCaseGeometry,
   fontDraw: fontDrawGeometry,
   fontMono: fontMonoGeometry,

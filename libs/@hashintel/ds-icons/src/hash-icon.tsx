@@ -582,6 +582,7 @@ export const FontSerifIcon = createIcon("fontSerif");
 export const FontMonoIcon = createIcon("fontMono");
 export const FontDrawIcon = createIcon("fontDraw");
 export const FontCaseIcon = createIcon("fontCase");
+export const HashtagIcon = createIcon("hashtag");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -767,6 +768,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  hashtag: HashtagIcon,
   fontCase: FontCaseIcon,
   fontDraw: FontDrawIcon,
   fontMono: FontMonoIcon,
