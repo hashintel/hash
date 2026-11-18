@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  listTimeline:
+    "Entries connected along a vertical line represent a chronological list.",
   listCheck: "Checked entries represent a task list.",
   listOrdered: "Numbered lines represent an ordered list.",
   quote: "Paired quotation marks represent a quotation or testimonial.",

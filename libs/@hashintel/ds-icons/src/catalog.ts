@@ -279,6 +279,7 @@ const categories = {
     "circlePlay",
   ],
   Time: [
+    "listTimeline",
     "historyUser",
     "historyPages",
     "calendars",
