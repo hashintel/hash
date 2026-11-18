@@ -1438,16 +1438,22 @@ export function createPetrinautActions(
     },
     updateSubnet(input) {
       const parsed = mutationActionInputSchemas.updateSubnet.parse(input);
+      // The flag is `true` or absent on a subnet: `false` clears it.
+      const { interface: flag, ...fields } = parsed.update;
+      const update: Partial<Subnet> =
+        "interface" in parsed.update
+          ? { ...fields, interface: flag === true ? true : undefined }
+          : fields;
       mutateWithExtensionGuards((sdcpn) => {
         for (const subnet of sdcpn.subnets ?? []) {
           if (subnet.id === parsed.subnetId) {
             const wasInterface = isInterface(subnet);
-            assignUpdate(subnet, parsed.update);
+            assignUpdate(subnet, update);
             // Without its fusions, which an update leaves alone: a loaded
             // document can hold one the mutations refuse, for the checks to
             // report.
             subnetSchema.parse({ ...subnet, fusions: undefined });
-            if (parsed.update.implements !== undefined) {
+            if (update.implements !== undefined) {
               assertImplementsReferences(sdcpn, subnet);
             }
             // A subnet that stops being an interface is implemented by none.
@@ -1457,7 +1463,7 @@ export function createPetrinautActions(
             // Only a change to what bindings rest on is held to the rule, and
             // drops the bindings it leaves unresolved: what a document was
             // loaded with outlives any other update, for the user to repair.
-            if ("interface" in parsed.update || "implements" in parsed.update) {
+            if ("interface" in update || "implements" in update) {
               assertInterfaceImplementsNone(subnet);
               pruneImplementationBindings(sdcpn, subnet.id);
             }
@@ -1528,6 +1534,12 @@ export function createPetrinautActions(
     updateComponentInstance(input) {
       const parsed =
         mutationActionInputSchemas.updateComponentInstance.parse(input);
+      // The choice is a reference or absent on an instance: `null` clears it.
+      const { implementation, ...fields } = parsed.update;
+      const update: Partial<ComponentInstance> =
+        "implementation" in parsed.update
+          ? { ...fields, implementation: implementation ?? undefined }
+          : fields;
       mutateWithExtensionGuards((sdcpn) => {
         const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
         for (const instance of net.componentInstances ?? []) {
@@ -1535,20 +1547,20 @@ export function createPetrinautActions(
             // Ports belong to the subnet: an instance pointed at another
             // subnet keeps no arc and no fusion on the ports of the old one.
             if (
-              parsed.update.subnetId !== undefined &&
-              parsed.update.subnetId !== instance.subnetId
+              update.subnetId !== undefined &&
+              update.subnetId !== instance.subnetId
             ) {
               removeReferencesToComponentInstance(net, instance.id);
               // Nor its choice of implementation, unless the update makes
               // one.
               delete instance.implementation;
             }
-            assignUpdate(instance, parsed.update);
+            assignUpdate(instance, update);
             componentInstanceSchema.parse(instance);
             assertComponentInstanceReferences(sdcpn, instance);
             // A choice the document was loaded with is left for the user to
             // repair: only an update that makes one is held to the rule.
-            if (parsed.update.implementation !== undefined) {
+            if (update.implementation !== undefined) {
               assertImplementationChoice(sdcpn, instance);
             }
             break;

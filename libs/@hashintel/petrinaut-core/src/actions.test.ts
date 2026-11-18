@@ -1,9 +1,14 @@
 import { describe, expect, test } from "vitest";
 
+import { mutationActionInputSchemas } from "./action-schemas";
 import { updatePrunesReferences } from "./actions";
 import { createJsonDocHandle } from "./handle";
 import { createPetrinaut } from "./instance";
 import { toPetrinautId } from "./petrinaut-id";
+import {
+  componentInstanceSchema,
+  subnetSchema,
+} from "./schemas/entity-schemas";
 
 import type { SDCPN, Subnet } from "./types/sdcpn";
 
@@ -2390,5 +2395,90 @@ describe("Petrinaut core interface actions", () => {
       instance.definition.get().subnets?.find(({ id }) => id === idOf("stage"))
         ?.interface,
     ).toBeUndefined();
+  });
+
+  describe("an update that arrives as JSON", () => {
+    const fromJson = (json: string): unknown => JSON.parse(json);
+
+    test("clears an instance's choice with null, and keeps it when it names none", () => {
+      const instance = createInstance(withInterface());
+      const placed = () => instance.definition.get().componentInstances?.[0];
+      instance.mutations.updateComponentInstance({
+        instanceId: "s1",
+        update: { implementation: { id: "slow" } },
+      });
+
+      callActionWithUnknownInput(
+        instance.mutations.updateComponentInstance,
+        fromJson('{"instanceId":"s1","update":{"name":"Renamed"}}'),
+      );
+      expect(placed()).toMatchObject({
+        name: "Renamed",
+        implementation: { id: idOf("slow") },
+      });
+
+      callActionWithUnknownInput(
+        instance.mutations.updateComponentInstance,
+        fromJson('{"instanceId":"s1","update":{"implementation":null}}'),
+      );
+      expect(placed()).not.toHaveProperty("implementation");
+    });
+
+    test("makes an interface an ordinary subnet again with false", () => {
+      const instance = createInstance(withInterface());
+      const subnetOf = (id: string) =>
+        instance.definition
+          .get()
+          .subnets?.find((subnet) => subnet.id === idOf(id));
+      instance.mutations.setImplementation({
+        interfaceId: "stage",
+        implementationId: "fast",
+      });
+
+      callActionWithUnknownInput(
+        instance.mutations.updateSubnet,
+        fromJson('{"subnetId":"stage","update":{"interface":false}}'),
+      );
+      expect(subnetOf("stage")).not.toHaveProperty("interface");
+      // What rested on the interface goes with the flag, however it is cleared.
+      expect(subnetOf("fast")).not.toHaveProperty("implements");
+      expect(instance.definition.get().implementations).toBeUndefined();
+
+      callActionWithUnknownInput(
+        instance.mutations.updateSubnet,
+        fromJson('{"subnetId":"other","update":{"interface":true}}'),
+      );
+      expect(subnetOf("other")).toMatchObject({ interface: true });
+    });
+
+    test("is the only place a clear is written: a stored instance or subnet holds none", () => {
+      const [stage] = withInterface().subnets ?? [];
+      const [placed] = withInterface().componentInstances ?? [];
+
+      expect(
+        mutationActionInputSchemas.updateComponentInstance.parse(
+          fromJson('{"instanceId":"s1","update":{"implementation":null}}'),
+        ).update,
+      ).toEqual({ implementation: null });
+      expect(
+        mutationActionInputSchemas.updateSubnet.parse(
+          fromJson('{"subnetId":"stage","update":{"interface":false}}'),
+        ).update,
+      ).toEqual({ interface: false });
+
+      expect(
+        componentInstanceSchema.safeParse({ ...placed, implementation: null })
+          .success,
+      ).toBe(false);
+      expect(
+        mutationActionInputSchemas.addComponentInstance.safeParse({
+          ...placed,
+          implementation: null,
+        }).success,
+      ).toBe(false);
+      expect(
+        subnetSchema.safeParse({ ...stage, interface: false }).success,
+      ).toBe(false);
+    });
   });
 });

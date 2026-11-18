@@ -397,6 +397,20 @@ describe("serializeSDCPN", () => {
     }
   });
 
+  it("refuses an instance's choice given as null: an update clears a choice that way, a file holds none", () => {
+    const parsed = parseSDCPNFile({
+      ...sourceDocument,
+      componentInstances: [
+        { id: "drill", name: "Drill", subnetId: "stage", implementation: null },
+      ],
+    });
+
+    expect(parsed.ok).toBe(false);
+    if (!parsed.ok) {
+      expect(parsed.error).toContain("implementation");
+    }
+  });
+
   it("rejects text that is neither YAML nor JSON via parseSDCPNDocument", () => {
     const result = parseSDCPNDocument("places: [");
     expect(result.ok).toBe(false);

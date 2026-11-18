@@ -905,6 +905,31 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
         expect(execute).toHaveBeenCalledOnce();
       },
     );
+
+    const clearChoice = { instanceId: "m1", update: { implementation: null } };
+    const unmarkInterface = {
+      subnetId: "machine",
+      update: { interface: false },
+    };
+
+    // Neither removes what the user built, as clearing the document's default
+    // with `setImplementation` does not.
+    test.each([
+      ["updateComponentInstance", clearChoice],
+      ["petrinaut_update_component", forHash(clearChoice)],
+      ["updateSubnet", unmarkInterface],
+      ["petrinaut_update_subnet", forHash(unmarkInterface)],
+    ])(
+      "%s runs without asking when it clears a choice or an interface flag",
+      async (toolName, input) => {
+        const { coordinator, execute, run } = runUpdate(toolName, input);
+        const request = vi.spyOn(coordinator, "request");
+
+        await run;
+        expect(request).not.toHaveBeenCalled();
+        expect(execute).toHaveBeenCalledOnce();
+      },
+    );
   });
 
   test("Stop before approval reports nothing and never runs", async () => {
