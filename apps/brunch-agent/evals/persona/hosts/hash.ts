@@ -391,23 +391,32 @@ export const hashHost = (): PersonaHost => ({
         // loaded; until the exported title is the saved one, try again.
         const deadline = Date.now() + settleMs;
         let reopened: { title: unknown; sdcpn: unknown } | undefined;
+        let lastExportedTitle: unknown;
         let lastError: unknown;
         while (Date.now() < deadline) {
           const timeout = Math.min(15_000, deadline - Date.now());
           try {
             // eslint-disable-next-line no-await-in-loop -- Each attempt waits on what the page shows next.
             const exported = await exportLiveNet(page, processOf(), timeout);
-            reopened = { title: exported.title, sdcpn: exported.sdcpn };
-            if (exported.title === saved.title) break;
+            lastExportedTitle = exported.title;
+            if (exported.title === saved.title) {
+              reopened = { title: exported.title, sdcpn: exported.sdcpn };
+              break;
+            }
           } catch (error) {
             lastError = error;
             // eslint-disable-next-line no-await-in-loop -- As above.
             await page.keyboard.press("Escape").catch(() => {});
           }
         }
+        // Only the saved process, once shown, says anything about unsaved edits.
         if (reopened === undefined)
           throw new Error(
-            `The HASH editor did not export its net within ${settleMs / 1000}s`,
+            `The HASH editor did not show process ${processOf()} as saved within ${settleMs / 1000}s${
+              lastExportedTitle === undefined
+                ? ""
+                : `; it last exported a net titled ${JSON.stringify(lastExportedTitle)}`
+            }`,
             { cause: lastError },
           );
         if (!isDeepStrictEqual(reopened, retained))
