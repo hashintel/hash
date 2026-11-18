@@ -725,6 +725,7 @@ export const OrbitIcon = createIcon("orbit");
 export const SolarSystemIcon = createIcon("solarSystem");
 export const AtomIcon = createIcon("atom");
 export const VirusIcon = createIcon("virus");
+export const BiohazardIcon = createIcon("biohazard");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -910,6 +911,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  biohazard: BiohazardIcon,
   virus: VirusIcon,
   atom: AtomIcon,
   solarSystem: SolarSystemIcon,

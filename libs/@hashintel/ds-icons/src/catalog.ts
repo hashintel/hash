@@ -244,6 +244,7 @@ const categories = {
     "monitor",
   ],
   Science: [
+    "biohazard",
     "virus",
     "atom",
     "solarSystem",

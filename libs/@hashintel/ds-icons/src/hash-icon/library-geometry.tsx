@@ -35,6 +35,7 @@ import { badgeCheckGeometry } from "./library-geometry/badge-check";
 import { ballotCheckGeometry } from "./library-geometry/ballot-check";
 import { bankGeometry } from "./library-geometry/bank";
 import { binaryGeometry } from "./library-geometry/binary";
+import { biohazardGeometry } from "./library-geometry/biohazard";
 import { blobGeometry } from "./library-geometry/blob";
 import { boldGeometry } from "./library-geometry/bold";
 import { bookGeometry } from "./library-geometry/book";
@@ -298,6 +299,7 @@ import { wavePulseGeometry } from "./library-geometry/wave-pulse";
 import { wavesGeometry } from "./library-geometry/waves";
 
 export const libraryGeometry = {
+  biohazard: biohazardGeometry,
   virus: virusGeometry,
   atom: atomGeometry,
   solarSystem: solarSystemGeometry,
