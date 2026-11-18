@@ -179,7 +179,13 @@ const categories = {
     "swatchBook",
     "palette",
   ],
-  Data: ["gauge", "presentationChart", "pieChart", "chartMixed"],
+  Data: [
+    "chartNetwork",
+    "gauge",
+    "presentationChart",
+    "pieChart",
+    "chartMixed",
+  ],
   Finance: [
     "chartRevenue",
     "receipt",

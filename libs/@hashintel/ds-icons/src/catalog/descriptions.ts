@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  chartNetwork: "Connected vertices represent a network or graph chart.",
   cctvCamera:
     "An angled surveillance camera represents monitoring or security footage.",
   tombstone:

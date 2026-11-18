@@ -746,6 +746,7 @@ export const PartyHornIcon = createIcon("partyHorn");
 export const TeddyBearIcon = createIcon("teddyBear");
 export const TombstoneIcon = createIcon("tombstone");
 export const CctvCameraIcon = createIcon("cctvCamera");
+export const ChartNetworkIcon = createIcon("chartNetwork");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -931,6 +932,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  chartNetwork: ChartNetworkIcon,
   cctvCamera: CctvCameraIcon,
   tombstone: TombstoneIcon,
   teddyBear: TeddyBearIcon,

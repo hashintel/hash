@@ -63,6 +63,7 @@ import { calendarsGeometry } from "./library-geometry/calendars";
 import { canvasGeometry } from "./library-geometry/canvas";
 import { cctvCameraGeometry } from "./library-geometry/cctv-camera";
 import { chartMixedGeometry } from "./library-geometry/chart-mixed";
+import { chartNetworkGeometry } from "./library-geometry/chart-network";
 import { chartRevenueGeometry } from "./library-geometry/chart-revenue";
 import { checkDoubleGeometry } from "./library-geometry/check-double";
 import { chevronsUpDownGeometry } from "./library-geometry/chevrons-up-down";
@@ -319,6 +320,7 @@ import { wavePulseGeometry } from "./library-geometry/wave-pulse";
 import { wavesGeometry } from "./library-geometry/waves";
 
 export const libraryGeometry = {
+  chartNetwork: chartNetworkGeometry,
   cctvCamera: cctvCameraGeometry,
   tombstone: tombstoneGeometry,
   teddyBear: teddyBearGeometry,
