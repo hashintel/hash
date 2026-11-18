@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  dashSolid: "An uninterrupted stroke represents a solid line.",
   arrowheadNone: "A plain line represents an endpoint without an arrowhead.",
   arrowheadTriangleInverted:
     "A reversed triangular arrowhead represents an inverted line ending.",
