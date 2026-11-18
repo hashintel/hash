@@ -9,7 +9,7 @@ import type { Provider } from "@earendil-works/pi-ai";
  * the undated `gpt-5.5` alias, which points at this snapshot, so the snapshot
  * takes the alias's metadata under its dated id. Read from Pi's catalogue
  * module rather than the provider factory: tests substitute the factory with a
- * faux provider that must still resolve the default model.
+ * faux provider that must still resolve this snapshot.
  */
 const gpt55Snapshot = {
   ...OPENAI_MODELS["gpt-5.5"],
