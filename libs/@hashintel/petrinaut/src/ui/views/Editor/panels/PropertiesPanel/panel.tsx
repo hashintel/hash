@@ -14,7 +14,7 @@ import {
   MIN_PROPERTIES_PANEL_WIDTH,
   PANEL_MARGIN,
 } from "../../../../constants/ui";
-import { styleFromStore } from "../../../../lib/style-from-store";
+import { styleFromStores } from "../../../../lib/style-from-stores";
 import { SelectedItemProperties } from "./selected-item-properties";
 
 const glassPanelStyle = css({
@@ -84,8 +84,8 @@ export const PropertiesPanel: React.FC = () => {
         panelStyle({ open: isOpen, animating: isPanelAnimating }),
       )}
       // The width follows the drag by a direct write, with no render.
-      ref={styleFromStore(propertiesPanelWidth, (width) => ({
-        width: `${width}px`,
+      ref={styleFromStores({ propertiesPanelWidth }, (sizes) => ({
+        width: `${sizes.propertiesPanelWidth}px`,
       }))}
       style={{ bottom: bottomOffset, padding: PANEL_MARGIN }}
       contentClassName={glassPanelContentStyle}

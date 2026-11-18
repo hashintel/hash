@@ -14,7 +14,7 @@ import type { ReadableStore } from "@hashintel/petrinaut-core";
  *
  * It is held outside React state, so a drag can set it on every pointer move
  * without rendering the editor. An element that depends on it follows it with
- * `styleFromStore`; a component that computes with it reads it with
+ * `styleFromStores`; a component that computes with it reads it with
  * `useStore` and re-renders on each change.
  */
 export type PanelSize = ReadableStore<number> & { set(size: number): void };
