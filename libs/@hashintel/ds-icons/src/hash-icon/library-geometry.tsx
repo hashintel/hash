@@ -122,6 +122,7 @@ import { pentagonGeometry } from "./library-geometry/pentagon";
 import { percentGeometry } from "./library-geometry/percent";
 import { pinGeometry } from "./library-geometry/pin";
 import { powerGeometry } from "./library-geometry/power";
+import { quoteGeometry } from "./library-geometry/quote";
 import { radioCheckedGeometry } from "./library-geometry/radio-checked";
 import { rectangleGeometry } from "./library-geometry/rectangle";
 import { rectanglesMixedGeometry } from "./library-geometry/rectangles-mixed";
@@ -161,6 +162,7 @@ import { ungroupGeometry } from "./library-geometry/ungroup";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  quote: quoteGeometry,
   textAlignJustify: textAlignJustifyGeometry,
   textAlignCenter: textAlignCenterGeometry,
   textAlignRight: textAlignRightGeometry,

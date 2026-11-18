@@ -588,6 +588,7 @@ export const TextAlignLeftIcon = createIcon("textAlignLeft");
 export const TextAlignRightIcon = createIcon("textAlignRight");
 export const TextAlignCenterIcon = createIcon("textAlignCenter");
 export const TextAlignJustifyIcon = createIcon("textAlignJustify");
+export const QuoteIcon = createIcon("quote");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -773,6 +774,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  quote: QuoteIcon,
   textAlignJustify: TextAlignJustifyIcon,
   textAlignCenter: TextAlignCenterIcon,
   textAlignRight: TextAlignRightIcon,
