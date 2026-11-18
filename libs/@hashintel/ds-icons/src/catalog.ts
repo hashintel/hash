@@ -163,7 +163,7 @@ export const hashIconStudies = [
 }[];
 
 const categories = {
-  Security: ["shieldCheck"],
+  Security: ["shieldAlert", "shieldCheck"],
   Text: [
     "listCheck",
     "listOrdered",

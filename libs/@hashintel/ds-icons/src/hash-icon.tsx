@@ -593,6 +593,7 @@ export const ListOrderedIcon = createIcon("listOrdered");
 export const ListCheckIcon = createIcon("listCheck");
 export const ListTimelineIcon = createIcon("listTimeline");
 export const ShieldCheckIcon = createIcon("shieldCheck");
+export const ShieldAlertIcon = createIcon("shieldAlert");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -778,6 +779,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  shieldAlert: ShieldAlertIcon,
   shieldCheck: ShieldCheckIcon,
   listTimeline: ListTimelineIcon,
   listCheck: ListCheckIcon,
