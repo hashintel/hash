@@ -30,6 +30,7 @@ import {
   LogicEquivalentIcon,
   LogicForAllIcon,
   LogicExistsIcon,
+  LogicNextIcon,
   PlaceIcon,
   LoadingIcon,
   AddPlaceIcon,
@@ -82,6 +83,7 @@ describe("HashIcon SVG API", () => {
     },
     { name: "logicForAll", IconComponent: LogicForAllIcon, filledDots: 0 },
     { name: "logicExists", IconComponent: LogicExistsIcon, filledDots: 0 },
+    { name: "logicNext", IconComponent: LogicNextIcon, filledDots: 1 },
   ] as const)(
     "preserves the meaning of $name in both styles across the weight range",
     ({ name, IconComponent, filledDots }) => {

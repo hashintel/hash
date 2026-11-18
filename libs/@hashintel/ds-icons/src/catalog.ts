@@ -171,6 +171,7 @@ const categories = {
     "logicEquivalent",
     "logicForAll",
     "logicExists",
+    "logicNext",
   ],
   Navigation: [
     "arrowUp",

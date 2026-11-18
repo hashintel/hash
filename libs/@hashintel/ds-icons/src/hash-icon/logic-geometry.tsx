@@ -45,4 +45,11 @@ export const logicGeometry = {
   logicEquivalent: <path d="M5 9h14M5 15h14M9 5l-7 7 7 7M15 5l7 7-7 7" />,
   logicForAll: <path d="M4.5 4 12 20l7.5-16M7.3 10h9.4" />,
   logicExists: <path d="M5.5 5h13v14h-13M7.5 12h11" />,
+  logicNext: (
+    <g strokeWidth="calc(var(--hash-icon-stroke-width) * .8)">
+      <path d="M7.5 12h7m-3-3 3 3-3 3" />
+      <circle cx="4.5" cy="12" r="3" />
+      <circle cx="17.5" cy="12" r="3" fill="currentColor" />
+    </g>
+  ),
 } as const;

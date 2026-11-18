@@ -189,6 +189,7 @@ Filled dots mark states or events where that distinction carries meaning.
 | `logicEquivalent` | Two conditions are logically equivalent. |
 | `logicForAll`     | A condition holds for every member.      |
 | `logicExists`     | Some member satisfies a condition.       |
+| `logicNext`       | Highlights the next state in a sequence. |
 
 ### Temporal logic
 
