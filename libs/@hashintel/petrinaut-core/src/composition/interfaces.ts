@@ -7,11 +7,16 @@
  * holds it to their ports and parameters.
  */
 
+import { effectivePortDirections } from "./ports";
+
 import type {
+  Color,
   ComponentInstance,
   ComponentReference,
   ID,
+  Parameter,
   Place,
+  PortDirection,
   SDCPN,
   Subnet,
 } from "../types/sdcpn";
@@ -116,6 +121,53 @@ export const indexById = <Item extends { id: ID }>(
 export const indexSubnets = (sdcpn: Pick<SDCPN, "subnets">): Map<ID, Subnet> =>
   indexById(sdcpn.subnets ?? []);
 
+/** `read`, called once at most: what it gives is kept for the calls that follow. */
+export const once = <Value>(read: () => Value): (() => Value) => {
+  let kept: { value: Value } | undefined;
+  return () => {
+    kept ??= { value: read() };
+    return kept.value;
+  };
+};
+
+/**
+ * What the checks and the flattener read of a subnet that stands behind an
+ * interface: each of its lists by id, the directions of its ports, and what
+ * the interface's ports and parameters are matched by. Each is read once,
+ * when first asked for.
+ */
+export type SubnetIndex = {
+  places: () => ReadonlyMap<ID, Place>;
+  types: () => ReadonlyMap<ID, Color>;
+  parameters: () => ReadonlyMap<ID, Parameter>;
+  directions: () => ReadonlyMap<ID, PortDirection>;
+  /** The id of its port of each name: of two ports with one name, the last. */
+  portIdsByName: () => ReadonlyMap<string, ID>;
+  /** The id of its parameter of each variable name: of two with one, the last. */
+  parameterIdsByVariableName: () => ReadonlyMap<string, ID>;
+};
+
+export const indexSubnet = (subnet: Subnet): SubnetIndex => ({
+  places: once(() => indexById(subnet.places)),
+  types: once(() => indexById(subnet.types)),
+  parameters: once(() => indexById(subnet.parameters)),
+  directions: once(() => effectivePortDirections(subnet)),
+  portIdsByName: once(
+    () =>
+      new Map(
+        subnet.places
+          .filter(({ isPort }) => isPort)
+          .map(({ name, id }) => [name, id]),
+      ),
+  ),
+  parameterIdsByVariableName: once(
+    () =>
+      new Map(
+        subnet.parameters.map(({ variableName, id }) => [variableName, id]),
+      ),
+  ),
+});
+
 /**
  * The document's subnets by id and its default implementation by the id of
  * each interface, for a caller that resolves many instances. Of two defaults
@@ -132,6 +184,12 @@ export type DocumentIndex = {
     subnet: Pick<Subnet, "id" | "implements">,
     interfaceId: ID,
   ) => boolean;
+  /**
+   * `indexSubnet` for a subnet of the document, whose lists are read once
+   * however many interfaces it is held to and instances it runs for. A
+   * subnet the document does not hold under its id is read for the call.
+   */
+  subnetIndex: (subnet: Subnet) => SubnetIndex;
 };
 
 export const indexDocument = (
@@ -144,8 +202,10 @@ export const indexDocument = (
     }
   }
   const implementedBySubnetId = new Map<ID, ReadonlySet<ID>>();
+  const subnetsById = indexSubnets(sdcpn);
+  const subnetIndexes = new Map<ID, SubnetIndex>();
   return {
-    subnetsById: indexSubnets(sdcpn),
+    subnetsById,
     defaults,
     implementsInterface: (subnet, interfaceId) => {
       let implemented = implementedBySubnetId.get(subnet.id);
@@ -154,6 +214,17 @@ export const indexDocument = (
         implementedBySubnetId.set(subnet.id, implemented);
       }
       return implemented.has(interfaceId);
+    },
+    subnetIndex: (subnet) => {
+      if (subnetsById.get(subnet.id) !== subnet) {
+        return indexSubnet(subnet);
+      }
+      let index = subnetIndexes.get(subnet.id);
+      if (!index) {
+        index = indexSubnet(subnet);
+        subnetIndexes.set(subnet.id, index);
+      }
+      return index;
     },
   };
 };
@@ -231,44 +302,43 @@ export const describeUnboundInstance = (
   }
 };
 
-/** `running`'s id for each item of `declared` with the same `key`. */
+/** The id `runningIdsByKey` holds for each item of `declared`, under the item's `key`. */
 const matchIds = <Item extends { id: ID }>(
   declared: readonly Item[],
-  running: readonly Item[],
+  runningIdsByKey: ReadonlyMap<string, ID>,
   key: (item: Item) => string,
-): Map<ID, ID> => {
-  const byKey = new Map(running.map((item) => [key(item), item.id]));
-  return new Map(
+): Map<ID, ID> =>
+  new Map(
     declared.flatMap((item) => {
-      const match = byKey.get(key(item));
+      const match = runningIdsByKey.get(key(item));
       return match === undefined ? [] : [[item.id, match] as const];
     }),
   );
-};
 
 /**
  * The implementation's port for each of the interface's, matched by name. An
  * interface port without a match is absent, which `check-interfaces.ts`
- * reports.
+ * reports. `implementation` is the implementation's index: a caller that
+ * matches it to many interfaces hands each call the same one.
  */
 export const mapInterfacePorts = (
   iface: Pick<Subnet, "places">,
-  implementation: Pick<Subnet, "places">,
+  implementation: Pick<SubnetIndex, "portIdsByName">,
 ): Map<ID, ID> =>
   matchIds(
     iface.places.filter(({ isPort }) => isPort),
-    implementation.places.filter(({ isPort }) => isPort),
+    implementation.portIdsByName(),
     ({ name }) => name,
   );
 
 /** The implementation's parameter for each of the interface's, matched by variable name. */
 export const mapInterfaceParameters = (
   iface: Pick<Subnet, "parameters">,
-  implementation: Pick<Subnet, "parameters">,
+  implementation: Pick<SubnetIndex, "parameterIdsByVariableName">,
 ): Map<ID, ID> =>
   matchIds(
     iface.parameters,
-    implementation.parameters,
+    implementation.parameterIdsByVariableName(),
     ({ variableName }) => variableName,
   );
 
@@ -285,8 +355,14 @@ export type RunningSubnet = {
   parameterId: (declaredParameterId: ID) => ID;
 };
 
+/**
+ * What runs for `binding`. `index` is `indexDocument(sdcpn)`, which saves a
+ * read of the implementation's ports and parameters for each interface and
+ * instance it runs for.
+ */
 export const runningSubnet = (
   binding: Exclude<ImplementationBinding, { kind: "unbound" }>,
+  index?: Pick<DocumentIndex, "subnetIndex">,
 ): RunningSubnet => {
   if (binding.kind === "component") {
     const identity = (id: ID): ID => id;
@@ -297,11 +373,11 @@ export const runningSubnet = (
       parameterId: identity,
     };
   }
-  const ports = mapInterfacePorts(binding.interface, binding.implementation);
-  const parameters = mapInterfaceParameters(
-    binding.interface,
+  const implementation = (index?.subnetIndex ?? indexSubnet)(
     binding.implementation,
   );
+  const ports = mapInterfacePorts(binding.interface, implementation);
+  const parameters = mapInterfaceParameters(binding.interface, implementation);
   return {
     declared: binding.interface,
     running: binding.implementation,

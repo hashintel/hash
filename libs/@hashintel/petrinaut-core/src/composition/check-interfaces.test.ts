@@ -5,6 +5,7 @@ import { checkInterfaces } from "./check-interfaces";
 import {
   describeUnboundInstance,
   implementationsOf,
+  indexSubnet,
   mapInterfacePorts,
   resolveImplementation,
 } from "./interfaces";
@@ -205,6 +206,16 @@ describe("checkInterfaces", () => {
     ]);
   });
 
+  it("holds each of two subnets with one id to its own ports and parameters", () => {
+    const lacking = subnet("fast", { implements: ["stage"] });
+
+    expect(
+      checkInterfaces(net({ subnets: [stage, fast, lacking] })).map(
+        ({ code }) => code,
+      ),
+    ).toEqual(["missing-port", "missing-port", "missing-parameter"]);
+  });
+
   it("reports an instance of an interface with nothing bound, and accepts a document default or an instance choice", () => {
     const unbound = net({
       subnets: [stage, fast],
@@ -335,6 +346,28 @@ describe("an implementation that lists many interfaces", () => {
     // names that do not exist.
     expect(codes).toEqual(new Set(["unknown-interface"]));
     // A search of the list for every instance takes several seconds.
+    expect(elapsed).toBeLessThan(1_000);
+  });
+
+  it("has its ports and parameters read by name once, however many interfaces it is held to", () => {
+    // Five thousand interfaces that declare nothing, and one implementation
+    // of them all with ten thousand ports and as many parameters.
+    const interfaces = Array.from({ length: 5_000 }, (_, index) =>
+      subnet(`empty${index}`, { interface: true }),
+    );
+    const names = Array.from({ length: 10_000 }, (_, index) => `item-${index}`);
+    const wide = subnet("wide", {
+      implements: interfaces.map(({ id }) => id),
+      places: names.map((name) => place(`port_${name}`, { isPort: true })),
+      parameters: names.map((name) => parameter(`rate_${name}`, name)),
+    });
+
+    const started = Date.now();
+    const problems = checkInterfaces(net({ subnets: [...interfaces, wide] }));
+    const elapsed = Date.now() - started;
+
+    expect(problems).toEqual([]);
+    // A read of both lists for every interface takes several seconds.
     expect(elapsed).toBeLessThan(1_000);
   });
 });
@@ -674,9 +707,23 @@ describe("resolveImplementation", () => {
 
 describe("mapInterfacePorts", () => {
   it("maps the interface's ports onto the implementation's by name", () => {
-    expect([...mapInterfacePorts(stage, fast)]).toEqual([
+    expect([...mapInterfacePorts(stage, indexSubnet(fast))]).toEqual([
       ["stage_in", "fast_in"],
       ["stage_out", "fast_out"],
+    ]);
+  });
+
+  it("maps a port onto the last of two of the implementation's with its name", () => {
+    const twice = subnet("twice", {
+      places: [
+        place("first_in", { name: "In", isPort: true }),
+        place("last_in", { name: "In", isPort: true }),
+        place("inner", { name: "Out" }),
+      ],
+    });
+
+    expect([...mapInterfacePorts(stage, indexSubnet(twice))]).toEqual([
+      ["stage_in", "last_in"],
     ]);
   });
 });

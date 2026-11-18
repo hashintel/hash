@@ -97,7 +97,10 @@ type FlatIdSets = {
 
 type FlattenContext = {
   source: SDCPN;
-  /** The source's subnets and defaults, read once for every instance to resolve. */
+  /**
+   * The source's subnets and defaults, and each subnet's lists, read once for
+   * every instance to resolve.
+   */
   index: DocumentIndex;
   target: MutableFlatSDCPN;
   parametersEnabled: boolean;
@@ -166,6 +169,7 @@ const requireRunningSubnet = (
     const shortfall = checkImplementation(
       binding.implementation,
       binding.interface,
+      ctx.index.subnetIndex(binding.implementation),
     ).find(({ severity }) => severity === "error");
     if (shortfall) {
       throw new Error(
@@ -173,7 +177,7 @@ const requireRunningSubnet = (
       );
     }
   }
-  const running = runningSubnet(binding);
+  const running = runningSubnet(binding, ctx.index);
   ctx.runningSubnets.set(instance, running);
   return running;
 };

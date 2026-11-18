@@ -13,24 +13,19 @@ import {
   hasBody,
   indexById,
   indexDocument,
+  indexSubnet,
   isInterface,
   mapInterfaceParameters,
   mapInterfacePorts,
+  once,
   resolveImplementation,
   type DocumentIndex,
   type ImplementationBinding,
+  type SubnetIndex,
 } from "./interfaces";
-import { describePortDirection, effectivePortDirections } from "./ports";
+import { describePortDirection } from "./ports";
 
-import type {
-  Color,
-  ID,
-  Parameter,
-  Place,
-  PortDirection,
-  SDCPN,
-  Subnet,
-} from "../types/sdcpn";
+import type { ID, SDCPN, Subnet } from "../types/sdcpn";
 
 export type InterfaceProblemCode =
   | "interface-has-body"
@@ -77,33 +72,6 @@ const reporter =
     problems.push({ kind: "interface", ...on, code, severity, message });
   };
 
-/** `read`, called once at most: what it gives is kept for the calls that follow. */
-const once = <Value>(read: () => Value): (() => Value) => {
-  let kept: { value: Value } | undefined;
-  return () => {
-    kept ??= { value: read() };
-    return kept.value;
-  };
-};
-
-/**
- * What the check reads of an implementation: each of its lists by id, and
- * the directions of its ports. Each is read once, when first asked for.
- */
-type ImplementationIndex = {
-  places: () => ReadonlyMap<ID, Place>;
-  types: () => ReadonlyMap<ID, Color>;
-  parameters: () => ReadonlyMap<ID, Parameter>;
-  directions: () => ReadonlyMap<ID, PortDirection>;
-};
-
-const indexImplementation = (implementation: Subnet): ImplementationIndex => ({
-  places: once(() => indexById(implementation.places)),
-  types: once(() => indexById(implementation.types)),
-  parameters: once(() => indexById(implementation.parameters)),
-  directions: once(() => effectivePortDirections(implementation)),
-});
-
 /**
  * Where `implementation` falls short of what `iface` declares. A caller that
  * holds one implementation to many interfaces hands each call the same
@@ -112,14 +80,14 @@ const indexImplementation = (implementation: Subnet): ImplementationIndex => ({
 export const checkImplementation = (
   implementation: Subnet,
   iface: Subnet,
-  index: ImplementationIndex = indexImplementation(implementation),
+  index: SubnetIndex = indexSubnet(implementation),
 ): InterfaceProblem[] => {
   const problems: InterfaceProblem[] = [];
   const report = reporter(problems, { subnetId: implementation.id });
 
   // The pairs the flattener wires, so the check and the run cannot differ.
-  const ports = mapInterfacePorts(iface, implementation);
-  const parameters = mapInterfaceParameters(iface, implementation);
+  const ports = mapInterfacePorts(iface, index);
+  const parameters = mapInterfaceParameters(iface, index);
   const interfaceTypes = once(() => indexById(iface.types));
 
   for (const port of iface.places.filter((place) => place.isPort)) {
@@ -230,7 +198,7 @@ const runningOf = (
  */
 const checkDeclarations = (
   subnet: Subnet,
-  subnetsById: ReadonlyMap<ID, Subnet>,
+  index: DocumentIndex,
 ): InterfaceProblem[] => {
   const problems: InterfaceProblem[] = [];
   const report = reporter(problems, { subnetId: subnet.id });
@@ -252,11 +220,11 @@ const checkDeclarations = (
     // With no body to run, it is not held to what it says it implements.
     return problems;
   }
-  const index = indexImplementation(subnet);
+  const own = index.subnetIndex(subnet);
   for (const interfaceId of implemented) {
-    const iface = subnetsById.get(interfaceId);
+    const iface = index.subnetsById.get(interfaceId);
     if (iface && isInterface(iface)) {
-      problems.push(...checkImplementation(subnet, iface, index));
+      problems.push(...checkImplementation(subnet, iface, own));
     } else {
       report(
         "unknown-interface",
@@ -355,7 +323,7 @@ export const checkInterfaces = (sdcpn: SDCPN): InterfaceProblem[] => {
   const index = indexDocument(sdcpn);
   return [
     ...(sdcpn.subnets ?? []).flatMap((subnet) =>
-      checkDeclarations(subnet, index.subnetsById),
+      checkDeclarations(subnet, index),
     ),
     ...checkDefaults(sdcpn, index.subnetsById),
     ...checkBindings(sdcpn, index),
