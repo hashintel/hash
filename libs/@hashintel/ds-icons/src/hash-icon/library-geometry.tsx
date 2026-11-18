@@ -85,6 +85,7 @@ import { fillSemiGeometry } from "./library-geometry/fill-semi";
 import { fillSolidGeometry } from "./library-geometry/fill-solid";
 import { folderGeometry } from "./library-geometry/folder";
 import { frameGeometry } from "./library-geometry/frame";
+import { groupGeometry } from "./library-geometry/group";
 import { handwrittenDocsGeometry } from "./library-geometry/handwritten-docs";
 import { helpGeometry } from "./library-geometry/help";
 import { hexagonGeometry } from "./library-geometry/hexagon";
@@ -135,6 +136,7 @@ import { triangleGeometry } from "./library-geometry/triangle";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  group: groupGeometry,
   stackVertical: stackVerticalGeometry,
   stackHorizontal: stackHorizontalGeometry,
   distributeVertical: distributeVerticalGeometry,
