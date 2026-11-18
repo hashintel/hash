@@ -311,22 +311,41 @@ export const runningSubnet = (
 };
 
 /**
- * The place that runs for a port of `instance`, and the subnet it is in: the
- * declared port itself for a component, and for an instance of an interface
- * the bound implementation's port of the same name. Falls back to the
- * declared port while nothing is bound or the implementation lacks the port.
+ * A string two instances share exactly when they are bound alike: they name
+ * one subnet and choose one implementation, or none.
  */
-export const resolveRunningPort = (
+export const bindingKey = (
+  instance: Pick<ComponentInstance, "subnetId" | "implementation">,
+): string =>
+  JSON.stringify([instance.subnetId, instance.implementation?.id ?? null]);
+
+/** A port, and the subnet it is in. */
+type PortOfSubnet = { subnet: Subnet; place: Place };
+
+/**
+ * The place that runs for each port of `instance`, and the subnet it is in:
+ * the declared port itself for a component, and for an instance of an
+ * interface the bound implementation's port of the same name. Falls back to
+ * the declared port while nothing is bound or the implementation lacks the
+ * port.
+ *
+ * The binding is resolved here, once: a caller with many ports to ask about,
+ * of this instance or of others with its `bindingKey`, keeps the function it
+ * is given. `index` is `indexDocument(sdcpn)`.
+ */
+export const resolveRunningPorts = (
   sdcpn: Pick<SDCPN, "subnets" | "implementations">,
   instance: Pick<ComponentInstance, "subnetId" | "implementation">,
-  declared: { subnet: Subnet; place: Place },
-): { subnet: Subnet; place: Place } => {
-  const binding = resolveImplementation(sdcpn, instance);
+  index?: DocumentIndex,
+): ((declared: PortOfSubnet) => PortOfSubnet) => {
+  const binding = resolveImplementation(sdcpn, instance, index);
   if (binding?.kind !== "bound") {
-    return declared;
+    return (declared) => declared;
   }
   const { running, portId } = runningSubnet(binding);
-  const runningId = portId(declared.place.id);
-  const place = running.places.find(({ id }) => id === runningId);
-  return place ? { subnet: running, place } : declared;
+  const placesById = indexById(running.places);
+  return (declared) => {
+    const place = placesById.get(portId(declared.place.id));
+    return place ? { subnet: running, place } : declared;
+  };
 };

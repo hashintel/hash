@@ -57,7 +57,7 @@ export const fusionStatuses = (
   net: ActiveNetDefinition,
   activeSubnetId: string | null,
 ): Map<string, FusionStatus> => {
-  const pass = fusionCheckPass();
+  const pass = fusionCheckPass(sdcpn);
   return new Map(
     net.fusions.map((fusion) => {
       const problems = checkFusion(sdcpn, net, fusion, activeSubnetId, pass);

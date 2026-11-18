@@ -597,6 +597,54 @@ describe("a fusion on a port of an interface", () => {
     // Unbound, the interface's own port is all there is to check.
     expect(errors({ ...sdcpn, implementations: undefined })).toEqual([]);
   });
+
+  it("resolves what runs behind the fused ports once, however many are fused", () => {
+    // Two thousand ports on the interface and on its implementation, every
+    // one of five instances' fused, and the default that binds them last in
+    // a long list.
+    const names = Array.from({ length: 2000 }, (_, index) => `port-${index}`);
+    const portsOf = (id: string) =>
+      names.map((name) => place(`${id}_${name}`, { name, isPort: true }));
+    const wideStage = subnet("wide_stage", {
+      interface: true,
+      places: portsOf("stage"),
+    });
+    const wide = subnet("wide", {
+      implements: ["wide_stage"],
+      places: portsOf("wide"),
+    });
+    const instances = ["s1", "s2", "s3", "s4", "s5"];
+    const sdcpn = net({
+      subnets: [wideStage, wide],
+      implementations: [
+        ...Array.from({ length: 20_000 }, (_, index) =>
+          defaultOf(`other${index}`, "wide"),
+        ),
+        defaultOf("wide_stage", "wide"),
+      ],
+      componentInstances: instances.map((id) => instance(id, "wide_stage")),
+      fusions: [
+        {
+          id: "f1",
+          name: "F1",
+          members: instances.flatMap((componentInstanceId) =>
+            names.map((name) => ({
+              kind: "componentPort" as const,
+              componentInstanceId,
+              portPlaceId: `stage_${name}`,
+            })),
+          ),
+        },
+      ],
+    });
+
+    const started = Date.now();
+    const problems = checkFusions(sdcpn);
+    const elapsed = Date.now() - started;
+
+    expect(problems).toEqual([]);
+    expect(elapsed).toBeLessThan(1_000);
+  });
 });
 
 describe("resolveImplementation", () => {

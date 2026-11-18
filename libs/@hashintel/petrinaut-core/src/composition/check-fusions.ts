@@ -22,7 +22,12 @@ import {
   type FusionNet,
   type ResolvedFusionMember,
 } from "./fusions";
-import { resolveRunningPort } from "./interfaces";
+import {
+  bindingKey,
+  indexDocument,
+  resolveRunningPorts,
+  type DocumentIndex,
+} from "./interfaces";
 import {
   endpointUsage,
   portUsages,
@@ -33,6 +38,7 @@ import {
 import type {
   ArcEndpoint,
   Color,
+  ComponentInstance,
   Fusion,
   ID,
   InputArc,
@@ -98,11 +104,36 @@ export type FusionCheckPass = {
    * first asked about is read, as a search of the document finds it.
    */
   portUsagesOf: (netId: ID | null, net: PortNet) => (placeId: ID) => PortUsage;
+  /**
+   * The place that runs for a port of `instance`: see `resolveRunningPorts`.
+   * What runs is resolved once for the instances bound alike.
+   */
+  runningPortOf: (
+    instance: Pick<ComponentInstance, "subnetId" | "implementation">,
+    declared: { subnet: Subnet; place: Place },
+  ) => { subnet: Subnet; place: Place };
 };
 
-export const fusionCheckPass = (): FusionCheckPass => {
+export const fusionCheckPass = (
+  sdcpn: Pick<SDCPN, "subnets" | "implementations">,
+): FusionCheckPass => {
   const usagesByNetId = new Map<ID | null, (placeId: ID) => PortUsage>();
+  let index: DocumentIndex | undefined;
+  const runningPortsByBinding = new Map<
+    string,
+    ReturnType<typeof resolveRunningPorts>
+  >();
   return {
+    runningPortOf: (instance, declared) => {
+      const key = bindingKey(instance);
+      let runningPorts = runningPortsByBinding.get(key);
+      if (!runningPorts) {
+        index ??= indexDocument(sdcpn);
+        runningPorts = resolveRunningPorts(sdcpn, instance, index);
+        runningPortsByBinding.set(key, runningPorts);
+      }
+      return runningPorts(declared);
+    },
     portUsagesOf: (netId, net) => {
       const known = usagesByNetId.get(netId);
       if (known) {
@@ -178,7 +209,6 @@ type MemberFacts = TokenFlow & {
 };
 
 const factsFor = (
-  sdcpn: Pick<SDCPN, "subnets" | "implementations">,
   net: CheckedNet,
   subnetId: ID | null,
   member: ArcEndpoint,
@@ -189,7 +219,7 @@ const factsFor = (
   // interface, the bound implementation's port, which the flattener merges.
   const running =
     resolved.kind === "port"
-      ? resolveRunningPort(sdcpn, resolved.instance, resolved)
+      ? pass.runningPortOf(resolved.instance, resolved)
       : null;
   const place = running?.place ?? resolved.place;
   const types = running ? running.subnet.types : net.types;
@@ -239,7 +269,7 @@ export const checkFusion = (
   net: CheckedNet,
   fusion: Fusion,
   subnetId: ID | null,
-  pass: FusionCheckPass = fusionCheckPass(),
+  pass: FusionCheckPass = fusionCheckPass(sdcpn),
 ): FusionProblem[] => {
   const problems: FusionProblem[] = [];
   const fusionName = `the fusion ${fusion.name}`;
@@ -289,7 +319,7 @@ export const checkFusion = (
     }
     facts.push({
       label,
-      ...factsFor(sdcpn, net, subnetId, member, resolved, pass),
+      ...factsFor(net, subnetId, member, resolved, pass),
     });
   }
   if (multipleAnchors) {
@@ -367,7 +397,7 @@ const checkNetFusions = (
 
 /** The problems with every fusion of the document, root first. */
 export const checkFusions = (sdcpn: SDCPN): FusionProblem[] => {
-  const pass = fusionCheckPass();
+  const pass = fusionCheckPass(sdcpn);
   return [
     ...checkNetFusions(sdcpn, sdcpn, null, pass),
     ...(sdcpn.subnets ?? []).flatMap((subnet) =>
