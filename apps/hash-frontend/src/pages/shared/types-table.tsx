@@ -142,7 +142,7 @@ const typesTablesToTitle: Record<TypesTableKind, string> = {
   "data-type": "Data Types",
 };
 
-const firstColumnLeftPadding = 16;
+const firstColumnLeftPadding = 4;
 
 const createEntityTypeHref = "/new/types/entity-type";
 
@@ -638,6 +638,8 @@ export const TypesTable: FunctionComponent<
                 cursor: "pointer",
                 data: {
                   kind: "data-type-tree-cell",
+                  hierarchical,
+                  leftPadding: firstColumnLeftPadding,
                   title: row.title,
                   labelPreview: row.labelPreview,
                   showLabelExample: (tooltip) => {
@@ -816,6 +818,7 @@ export const TypesTable: FunctionComponent<
       kind,
       dataTypes,
       showTooltip,
+      hierarchical,
     ],
   );
 
@@ -1215,6 +1218,7 @@ export const TypesTable: FunctionComponent<
                 filteredTypes.length === 0)
             }
             enableCheckboxSelection
+            rowMarkerWidth={28}
             drawFocusRing={hierarchical}
             preserveCurrentCell={hierarchical}
             firstColumnLeftPadding={firstColumnLeftPadding}

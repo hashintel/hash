@@ -13,6 +13,8 @@ import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
 
 export type DataTypeTreeCell = CustomCell<{
   kind: "data-type-tree-cell";
+  hierarchical: boolean;
+  leftPadding: number;
   title: string;
   labelPreview?: DataTypeLabelPart[];
   showLabelExample: (
@@ -29,7 +31,6 @@ export type DataTypeTreeCell = CustomCell<{
   onOpen: () => void;
 }>;
 
-const treeInset = 16;
 const treeIndent = 24;
 
 export const renderDataTypeTreeCell: CustomRenderer<DataTypeTreeCell> = {
@@ -37,8 +38,13 @@ export const renderDataTypeTreeCell: CustomRenderer<DataTypeTreeCell> = {
   isMatch: (cell): cell is DataTypeTreeCell =>
     "kind" in cell.data && cell.data.kind === "data-type-tree-cell",
   onSelect: ({ cell, posX, preventDefault }) => {
-    const left = treeInset + cell.data.depth * treeIndent;
-    if (cell.data.hasChildren && posX >= left && posX <= left + treeIndent) {
+    const left = cell.data.leftPadding + cell.data.depth * treeIndent;
+    if (
+      cell.data.hierarchical &&
+      cell.data.hasChildren &&
+      posX >= left &&
+      posX <= left + treeIndent
+    ) {
       preventDefault();
     }
   },
@@ -46,6 +52,8 @@ export const renderDataTypeTreeCell: CustomRenderer<DataTypeTreeCell> = {
     const { ctx, rect, theme, spriteManager } = args;
     const {
       title,
+      hierarchical,
+      leftPadding,
       labelPreview,
       showLabelExample,
       icon,
@@ -58,7 +66,7 @@ export const renderDataTypeTreeCell: CustomRenderer<DataTypeTreeCell> = {
       onToggle,
       onOpen,
     } = cell.data;
-    const left = rect.x + treeInset + depth * treeIndent;
+    const left = rect.x + leftPadding + depth * treeIndent;
     const centerY = rect.y + rect.height / 2;
     const interactables = [];
 
@@ -68,7 +76,8 @@ export const renderDataTypeTreeCell: CustomRenderer<DataTypeTreeCell> = {
     ctx.beginPath();
     for (const ancestorDepth of continuationDepths) {
       const ancestorX =
-        Math.floor(rect.x + treeInset + ancestorDepth * treeIndent + 11) + 0.5;
+        Math.floor(rect.x + leftPadding + ancestorDepth * treeIndent + 11) +
+        0.5;
       ctx.moveTo(ancestorX, rect.y);
       ctx.lineTo(ancestorX, rect.y + rect.height);
     }
@@ -112,7 +121,7 @@ export const renderDataTypeTreeCell: CustomRenderer<DataTypeTreeCell> = {
       );
     }
 
-    const chipLeft = left + 28;
+    const chipLeft = left + (hierarchical ? 28 : 0);
     const right = rect.x + rect.width - 16;
     const previewFont = (kind: DataTypeLabelPart["kind"]) =>
       `${kind === "placeholder" ? "italic 12px" : "13px"} ${theme.fontFamily}`;

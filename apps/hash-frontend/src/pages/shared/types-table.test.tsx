@@ -456,6 +456,8 @@ describe("hierarchical type table", () => {
     }
     expect(flatCell.data).toMatchObject({
       kind: "data-type-tree-cell",
+      hierarchical: false,
+      leftPadding: 4,
       labelPreview: visibleRows()[0]!.labelPreview,
       hasChildren: false,
     });
