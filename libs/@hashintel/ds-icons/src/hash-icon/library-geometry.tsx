@@ -32,6 +32,7 @@ import { clipboardListGeometry } from "./library-geometry/clipboard-list";
 import { collapseVerticalGeometry } from "./library-geometry/collapse-vertical";
 import { commandGeometry } from "./library-geometry/command";
 import { dashDashedGeometry } from "./library-geometry/dash-dashed";
+import { dashDottedGeometry } from "./library-geometry/dash-dotted";
 import { dashSolidGeometry } from "./library-geometry/dash-solid";
 import { diamondGeometry } from "./library-geometry/diamond";
 import { dotGeometry } from "./library-geometry/dot";
@@ -96,6 +97,7 @@ import { triangleGeometry } from "./library-geometry/triangle";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  dashDotted: dashDottedGeometry,
   dashDashed: dashDashedGeometry,
   dashSolid: dashSolidGeometry,
   arrowheadNone: arrowheadNoneGeometry,
