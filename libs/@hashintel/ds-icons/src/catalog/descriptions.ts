@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  circleThreeQuarters:
+    "A three-quarter-filled circle represents work that is nearing completion.",
   circleHalf: "A half-filled circle represents work that is in progress.",
   chartHeatmap:
     "Cells with different intensities represent a heatmap or matrix of values.",

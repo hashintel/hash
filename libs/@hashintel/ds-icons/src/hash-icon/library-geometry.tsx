@@ -78,6 +78,7 @@ import { circleHalfGeometry } from "./library-geometry/circle-half";
 import { circlePlayGeometry } from "./library-geometry/circle-play";
 import { circleTagGeometry } from "./library-geometry/circle-tag";
 import { circleThreeGeometry } from "./library-geometry/circle-three";
+import { circleThreeQuartersGeometry } from "./library-geometry/circle-three-quarters";
 import { circleTwoGeometry } from "./library-geometry/circle-two";
 import { circleUpGeometry } from "./library-geometry/circle-up";
 import { cityGeometry } from "./library-geometry/city";
@@ -349,6 +350,7 @@ import { wavesGeometry } from "./library-geometry/waves";
 import { workflowGeometry } from "./library-geometry/workflow";
 
 export const libraryGeometry = {
+  circleThreeQuarters: circleThreeQuartersGeometry,
   circleHalf: circleHalfGeometry,
   chartHeatmap: chartHeatmapGeometry,
   chartScatter: chartScatterGeometry,
