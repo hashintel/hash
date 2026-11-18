@@ -6,6 +6,8 @@
  * from that table, so the `api` type and the runtime object cannot drift.
  */
 
+import { inlineImports, resolvedLibraries } from "@hashintel/petrinaut-core";
+
 import { petrinautNavigationStatesMatch } from "../../react/navigation";
 import {
   formatReadOnlyReason,
@@ -29,6 +31,7 @@ import type { AddNotificationInput } from "../../react/notifications/context";
 import type {
   ApplyAutoLayoutResult,
   DiagnosticsSnapshot,
+  ImportStates,
   LanguageClient,
   Petrinaut,
   PetrinautDocHandle,
@@ -92,6 +95,12 @@ export interface PluginDocumentReader {
   readonly handle: PluginDocumentHandle;
   /** The net without the data of disabled extensions; an empty net until the handle is ready. */
   readonly net: ReadableStore<SDCPN>;
+  /**
+   * The state of each import of the net and of each library the host offers,
+   * by its id: resolving, resolved with its library, or failed with the
+   * reason. `describeImports` lists them for a reader.
+   */
+  readonly imports: ReadableStore<ImportStates>;
   /** The title the host passed, or "Untitled" when it passes none. */
   readonly title: ReadableStore<string>;
   readonly extensions: PetrinautExtensionSettings;
@@ -210,14 +219,19 @@ const readDocument = ({
     subscribe: (listener) => instance.handle.subscribe(listener),
   },
   net: instance.definition,
+  imports: instance.imports,
   title,
   extensions: instance.extensions,
   diagnostics,
   diagnose: async () => {
     const net = instance.definition.get();
+    // Checked as it runs, with the components of its imports inlined.
     const checked = await latest
       .get()
-      .requestDiagnostics(net, instance.extensions);
+      .requestDiagnostics(
+        inlineImports(net, resolvedLibraries(instance.imports.get())),
+        instance.extensions,
+      );
 
     return { ...checked, net };
   },

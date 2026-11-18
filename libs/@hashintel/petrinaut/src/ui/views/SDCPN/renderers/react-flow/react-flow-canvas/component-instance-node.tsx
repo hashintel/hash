@@ -175,10 +175,16 @@ const handles = {
 const describeBinding = (
   subnetName: string,
   binding: CanvasInstanceBinding,
-): string =>
-  binding.kind === "component"
-    ? subnetName
-    : (binding.implementationName ?? "no implementation");
+): string => {
+  switch (binding.kind) {
+    case "component":
+      return subnetName;
+    case "unresolved":
+      return `${subnetName}, unresolved`;
+    case "interface":
+      return binding.implementationName ?? "no implementation";
+  }
+};
 
 const describeFoldedPorts = (ports: CanvasPort[]): string => {
   const inputs = ports.filter((port) => port.direction !== "out").length;
@@ -201,7 +207,11 @@ export const ComponentInstanceNode: React.FC<
 
   const { ports, binding, unfolded, foldable } = data;
   const isInterface = binding.kind === "interface";
-  const unbound = isInterface && binding.implementationName === null;
+  // Nothing runs for it: no implementation is bound, or its component cannot
+  // be read.
+  const unbound =
+    binding.kind === "unresolved" ||
+    (isInterface && binding.implementationName === null);
   const subtitle = describeBinding(data.subnetName, binding);
 
   // A card that keeps its height moves its pins when a port comes, goes or

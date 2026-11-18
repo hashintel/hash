@@ -1,10 +1,12 @@
 /**
- * Interfaces: a subnet flagged `interface` is a signature, ports, types and
- * parameters with no body, that instances point at like any subnet. The
- * subnet that runs for such an instance is the implementation bound to it,
- * by the instance itself or by the document's defaults. `implements` on a
- * subnet says which interfaces it can stand behind, and `check-interfaces.ts`
- * holds it to their ports and parameters.
+ * Components and interfaces. A component is a subnet of the document or a
+ * component of one of its imports, and every reader gets at one through
+ * `resolveComponent`. A subnet flagged `interface` is a signature, ports,
+ * types and parameters with no body, that instances point at like any
+ * component. The subnet that runs for such an instance is the implementation
+ * bound to it, by the instance itself or by the document's defaults.
+ * `implements` on a subnet says which interfaces it can stand behind, and
+ * `check-interfaces.ts` holds it to their ports and parameters.
  */
 
 import type {
@@ -17,6 +19,33 @@ import type {
   SDCPN,
   Subnet,
 } from "../types/sdcpn";
+import type { ResolvedLibraries } from "./libraries";
+
+/** The component an instance instantiates: one of an import, else a subnet of the document. */
+export const componentOf = (
+  instance: Pick<ComponentInstance, "subnetId" | "component">,
+): ComponentReference =>
+  // An instance has one of the two. With neither, the reference names nothing.
+  instance.component ?? { id: instance.subnetId ?? "" };
+
+/** Whether two references name the same component: the same id, from the same place. */
+export const sameComponent = (
+  left: ComponentReference,
+  right: ComponentReference,
+): boolean => left.id === right.id && left.from === right.from;
+
+/** A string that two references share exactly when they name the same component. */
+export const componentKey = ({ from, id }: ComponentReference): string =>
+  from === undefined ? id : JSON.stringify([from, id]);
+
+/** How a message ends that says `reference` names no component it can read. */
+export const describeMissingComponent = ({
+  from,
+  id,
+}: ComponentReference): string =>
+  from === undefined
+    ? `subnet ID \`${id}\` which does not exist`
+    : `component \`${id}\` of the import \`${from}\`, which is not available`;
 
 export const isInterface = (subnet: Pick<Subnet, "interface">): boolean =>
   subnet.interface === true;
@@ -28,18 +57,27 @@ export const hasBody = (
   subnet.transitions.length > 0 || (subnet.componentInstances?.length ?? 0) > 0;
 
 /**
- * The component `reference` names, a subnet of the document, or `undefined`
- * when there is none. `subnetsById` is `indexSubnets(sdcpn)`, which saves a
- * search of the list.
+ * The component `reference` names: a subnet of the document, or a component
+ * of one of its imports, as a subnet too. `undefined` when there is none, and
+ * for a component of an import that is not among `libraries`: one that is
+ * still resolving, or that failed. `subnetsById` is `indexSubnets(sdcpn)`,
+ * which saves a search of the document's list.
  */
 export const resolveComponent = (
   sdcpn: Pick<SDCPN, "subnets">,
   reference: ComponentReference,
+  libraries?: ResolvedLibraries,
   subnetsById?: ReadonlyMap<ID, Subnet>,
-): Subnet | undefined =>
-  subnetsById
+): Subnet | undefined => {
+  if (reference.from !== undefined) {
+    return libraries
+      ?.get(reference.from)
+      ?.components.find(({ id }) => id === reference.id);
+  }
+  return subnetsById
     ? subnetsById.get(reference.id)
     : sdcpn.subnets?.find(({ id }) => id === reference.id);
+};
 
 /**
  * The component the document runs for an interface whose instance chooses
@@ -49,31 +87,19 @@ export const resolveComponent = (
  */
 export const defaultImplementation = (
   sdcpn: Pick<SDCPN, "implementations">,
-  interfaceId: ID,
+  iface: ComponentReference,
   defaults?: DocumentIndex["defaults"],
 ): ComponentReference | undefined =>
   defaults
-    ? defaults.get(interfaceId)
-    : sdcpn.implementations?.find((entry) => entry.interface.id === interfaceId)
-        ?.component;
+    ? defaults.get(componentKey(iface))
+    : sdcpn.implementations?.find((entry) =>
+        sameComponent(entry.interface, iface),
+      )?.component;
 
 export const implementsInterface = (
   subnet: Pick<Subnet, "implements">,
   interfaceId: ID,
 ): boolean => subnet.implements?.includes(interfaceId) ?? false;
-
-/**
- * The subnets that can run for `interfaceId`: the ones that declare they
- * implement it and are no interface themselves.
- */
-export const implementationsOf = (
-  sdcpn: Pick<SDCPN, "subnets">,
-  interfaceId: ID,
-): Subnet[] =>
-  (sdcpn.subnets ?? []).filter(
-    (subnet) =>
-      !isInterface(subnet) && implementsInterface(subnet, interfaceId),
-  );
 
 /** Whether the instance names the implementation or the document's default does. */
 type ChosenBy = "instance" | "document";
@@ -164,13 +190,14 @@ export const indexSubnet = (subnet: Subnet): SubnetIndex => {
 };
 
 /**
- * The document's subnets by id and its default implementation by the id of
- * each interface, for a caller that resolves many instances. Of two defaults
- * for one interface the first is kept, as a search of the list finds it.
+ * The document's subnets by id and its default implementation by the
+ * `componentKey` of each interface, for a caller that resolves many
+ * instances. Of two defaults for one interface the first is kept, as a
+ * search of the list finds it.
  */
 export type DocumentIndex = {
   subnetsById: ReadonlyMap<ID, Subnet>;
-  defaults: ReadonlyMap<ID, ComponentReference>;
+  defaults: ReadonlyMap<string, ComponentReference>;
   /**
    * `implementsInterface` for a subnet of the document, whose list of
    * interfaces is read once however many instances are bound to it.
@@ -190,10 +217,11 @@ export type DocumentIndex = {
 export const indexDocument = (
   sdcpn: Pick<SDCPN, "subnets" | "implementations">,
 ): DocumentIndex => {
-  const defaults = new Map<ID, ComponentReference>();
+  const defaults = new Map<string, ComponentReference>();
   for (const entry of sdcpn.implementations ?? []) {
-    if (!defaults.has(entry.interface.id)) {
-      defaults.set(entry.interface.id, entry.component);
+    const key = componentKey(entry.interface);
+    if (!defaults.has(key)) {
+      defaults.set(key, entry.component);
     }
   }
   const implementedBySubnetId = new Map<ID, ReadonlySet<ID>>();
@@ -224,23 +252,39 @@ export const indexDocument = (
   };
 };
 
+/** What names the component an instance instantiates and the one it chose to run. */
+export type InstanceBinding = Pick<
+  ComponentInstance,
+  "subnetId" | "component" | "implementation"
+>;
+
 /**
- * The subnet that runs for `instance`: its own subnet when that is a
- * component; for an interface, the implementation the instance chose, else
- * the document's default. `null` when the instance's subnet does not exist.
- * `index` is `indexDocument(sdcpn)`, which saves a search of the document's
- * subnets and of its defaults for each instance.
+ * Whether a binding joins two components of the document. A subnet says what
+ * it implements by the ids of interfaces of its own document, so only such a
+ * binding can be held to that list. Across a library nothing can say it: the
+ * binding stands, and the checks hold the component to the interface's ports
+ * and parameters where it is bound.
  */
-export const resolveImplementation = (
+export const bindsWithinDocument = (
+  iface: ComponentReference,
+  implementation: ComponentReference,
+): boolean => iface.from === undefined && implementation.from === undefined;
+
+/**
+ * The subnet that runs where `iface` is named: the component itself when it
+ * has a body; for an interface, the implementation `chosen` names, else the
+ * document's default. `null` when `iface` does not resolve.
+ */
+export const resolveBinding = (
   sdcpn: Pick<SDCPN, "subnets" | "implementations">,
-  instance: Pick<ComponentInstance, "subnetId" | "implementation">,
+  iface: ComponentReference,
+  chosen: ComponentReference | undefined,
+  libraries?: ResolvedLibraries,
   index?: DocumentIndex,
 ): ImplementationBinding | null => {
-  const declared = resolveComponent(
-    sdcpn,
-    { id: instance.subnetId },
-    index?.subnetsById,
-  );
+  const resolve = (reference: ComponentReference) =>
+    resolveComponent(sdcpn, reference, libraries, index?.subnetsById);
+  const declared = resolve(iface);
   if (!declared) {
     return null;
   }
@@ -249,14 +293,12 @@ export const resolveImplementation = (
   }
   const unbound = { kind: "unbound", interface: declared } as const;
   const reference =
-    instance.implementation ??
-    defaultImplementation(sdcpn, declared.id, index?.defaults);
+    chosen ?? defaultImplementation(sdcpn, iface, index?.defaults);
   if (reference === undefined) {
     return { ...unbound, reason: "no-binding" };
   }
-  const chosenBy =
-    instance.implementation === undefined ? "document" : "instance";
-  const implementation = resolveComponent(sdcpn, reference, index?.subnetsById);
+  const chosenBy = chosen === undefined ? "document" : "instance";
+  const implementation = resolve(reference);
   if (!implementation) {
     return { ...unbound, chosenBy, reason: "missing", reference };
   }
@@ -264,11 +306,34 @@ export const resolveImplementation = (
     return { ...unbound, chosenBy, reason: "is-interface", implementation };
   }
   const implementsIt = index?.implementsInterface ?? implementsInterface;
-  if (!implementsIt(implementation, declared.id)) {
+  if (
+    bindsWithinDocument(iface, reference) &&
+    !implementsIt(implementation, declared.id)
+  ) {
     return { ...unbound, chosenBy, reason: "not-implementing", implementation };
   }
   return { kind: "bound", interface: declared, implementation, chosenBy };
 };
+
+/**
+ * The subnet that runs for `instance`: see `resolveBinding`. `null` when the
+ * instance's component does not resolve. `index` is `indexDocument(sdcpn)`,
+ * which saves a search of the document's subnets and of its defaults for
+ * each instance.
+ */
+export const resolveImplementation = (
+  sdcpn: Pick<SDCPN, "subnets" | "implementations">,
+  instance: InstanceBinding,
+  libraries?: ResolvedLibraries,
+  index?: DocumentIndex,
+): ImplementationBinding | null =>
+  resolveBinding(
+    sdcpn,
+    componentOf(instance),
+    instance.implementation,
+    libraries,
+    index,
+  );
 
 /**
  * One sentence on why `binding` runs nothing. `subject` opens it: the name of
@@ -378,15 +443,22 @@ export const runningSubnet = (
 
 /**
  * A string two instances share exactly when they are bound alike: they name
- * one subnet and choose one implementation, or none.
+ * one component and choose one implementation, or none.
  */
-export const bindingKey = (
-  instance: Pick<ComponentInstance, "subnetId" | "implementation">,
-): string =>
-  JSON.stringify([instance.subnetId, instance.implementation?.id ?? null]);
+export const bindingKey = (instance: InstanceBinding): string =>
+  JSON.stringify([
+    componentKey(componentOf(instance)),
+    instance.implementation ? componentKey(instance.implementation) : null,
+  ]);
 
 /** A port, and the subnet it is in. */
 type PortOfSubnet = { subnet: Subnet; place: Place };
+
+/**
+ * A port that runs. `key` is the `componentKey` of the subnet it is in: it
+ * tells a component of a library from a subnet of the document with its id.
+ */
+export type RunningPort = PortOfSubnet & { key: string };
 
 /**
  * The place that runs for each port of `instance`, and the subnet it is in:
@@ -402,17 +474,30 @@ type PortOfSubnet = { subnet: Subnet; place: Place };
  */
 export const resolveRunningPorts = (
   sdcpn: Pick<SDCPN, "subnets" | "implementations">,
-  instance: Pick<ComponentInstance, "subnetId" | "implementation">,
+  instance: InstanceBinding,
+  libraries?: ResolvedLibraries,
   index?: DocumentIndex,
-): ((declared: PortOfSubnet) => PortOfSubnet) => {
-  const binding = resolveImplementation(sdcpn, instance, index);
+): ((declared: PortOfSubnet) => RunningPort) => {
+  const own = componentOf(instance);
+  const asDeclared = ({ subnet, place }: PortOfSubnet): RunningPort => ({
+    key: componentKey(own),
+    subnet,
+    place,
+  });
+  const binding = resolveImplementation(sdcpn, instance, libraries, index);
   if (binding?.kind !== "bound") {
-    return (declared) => declared;
+    return asDeclared;
   }
   const { running, portId } = runningSubnet(binding, index);
   const placesById = (index?.subnetIndex ?? indexSubnet)(running).places();
+  // What a bound instance runs is its own choice, else the document's default.
+  const key = componentKey(
+    instance.implementation ??
+      defaultImplementation(sdcpn, own, index?.defaults) ??
+      own,
+  );
   return (declared) => {
     const place = placesById.get(portId(declared.place.id));
-    return place ? { subnet: running, place } : declared;
+    return place ? { key, subnet: running, place } : asDeclared(declared);
   };
 };

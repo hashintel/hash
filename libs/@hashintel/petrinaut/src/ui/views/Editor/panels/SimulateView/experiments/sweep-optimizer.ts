@@ -17,6 +17,7 @@ import {
   OptimizationsContext,
 } from "../../../../../../react/optimizations/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { useExecutableDefinition } from "../../../../../../react/state/use-executable-definition";
 import { directionWord } from "../shared/study-labels";
 
 import type {
@@ -133,7 +134,8 @@ export const useStartSweepStudy = (): ((
   experiment: ExperimentRecord,
   objective: SweepObjective,
 ) => Promise<void>) => {
-  const { petriNetDefinition, title } = use(SDCPNContext);
+  const { title } = use(SDCPNContext);
+  const petriNetDefinition = useExecutableDefinition();
   const { createOptimization } = use(OptimizationsContext);
   return (experiment, objective) =>
     startSweepStudy(

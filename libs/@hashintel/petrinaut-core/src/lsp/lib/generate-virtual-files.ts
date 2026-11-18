@@ -1,6 +1,7 @@
 import ts from "@typescript/typescript6";
 
 import { getArcEndpoint } from "../../arc-endpoints";
+import { componentOf, resolveComponent } from "../../composition/interfaces";
 import { isSupportedArity } from "../../equation-arity";
 import {
   createArcPlaceResolver,
@@ -201,7 +202,7 @@ function getPlaceDisplayNameForArc(
     (i) => i.id === endpoint.componentInstanceId,
   );
   const subnet = instance
-    ? sdcpn.subnets?.find((s) => s.id === instance.subnetId)
+    ? resolveComponent(sdcpn, componentOf(instance))
     : undefined;
   const portPlace = subnet?.places.find(
     (p) => p.id === endpoint.portPlaceId && p.isPort,

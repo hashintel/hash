@@ -371,6 +371,42 @@ describe("canonicalizePetrinautIds", () => {
     ]);
   });
 
+  it("keeps an import's id and what names a component of an import as written", () => {
+    const scale = { from: "@hashintel/logistics", id: "scale" };
+    const net = canonicalizePetrinautIds({
+      places: [],
+      transitions: [],
+      types: [],
+      differentialEquations: [],
+      parameters: [],
+      imports: [{ id: "@hashintel/logistics" }],
+      componentInstances: [
+        {
+          id: "scale-1",
+          name: "ScaleA",
+          component: scale,
+          parameterValues: { rate: "2" },
+          implementation: { from: "@hashintel/logistics", id: "belt" },
+          x: 0,
+          y: 0,
+        },
+      ],
+      implementations: [{ interface: scale, component: { id: "own-scale" } }],
+    });
+
+    expect(net.imports).toEqual([{ id: "@hashintel/logistics" }]);
+    expect(net.componentInstances[0]).toMatchObject({
+      id: idOf("scale-1"),
+      component: scale,
+      parameterValues: { [idOf("rate")]: "2" },
+      implementation: { from: "@hashintel/logistics", id: "belt" },
+    });
+    expect(net.componentInstances[0]).not.toHaveProperty("subnetId");
+    expect(net.implementations).toEqual([
+      { interface: scale, component: { id: idOf("own-scale") } },
+    ]);
+  });
+
   it("is idempotent and keeps a canonical net by reference", () => {
     expect(canonicalizePetrinautIds(canonical)).toBe(canonical);
     expect(canonicalizePetrinautIds(emptyNet)).toBe(emptyNet);

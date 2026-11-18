@@ -2,21 +2,28 @@
  * The checks on interfaces and their implementations: an interface has no
  * body and implements no interface, an implementation has every port and
  * parameter its interfaces declare with the same token type and a compatible
- * direction, the document has one default per interface, every instance of
- * an interface has an implementation to run, and no component runs inside
- * itself.
+ * direction, the document has one default per interface, every instance
+ * names a component its library has, every instance of an interface has an
+ * implementation to run, and no component runs inside itself.
  */
 
 import { colorsStructurallyEqual } from "./fusions";
 import {
+  bindingKey,
+  bindsWithinDocument,
+  componentKey,
+  componentOf,
+  defaultImplementation,
   describeUnboundInstance,
   hasBody,
+  implementsInterface,
   indexDocument,
   indexSubnet,
   isInterface,
   mapInterfaceParameters,
   mapInterfacePorts,
   once,
+  resolveComponent,
   resolveImplementation,
   type DocumentIndex,
   type ImplementationBinding,
@@ -24,7 +31,14 @@ import {
 } from "./interfaces";
 import { describePortDirection, effectivePortDirections } from "./ports";
 
-import type { ID, PortDirection, SDCPN, Subnet } from "../types/sdcpn";
+import type {
+  ComponentReference,
+  ID,
+  PortDirection,
+  SDCPN,
+  Subnet,
+} from "../types/sdcpn";
+import type { ResolvedLibraries } from "./libraries";
 
 export type InterfaceProblemCode =
   | "interface-has-body"
@@ -36,6 +50,7 @@ export type InterfaceProblemCode =
   | "missing-parameter"
   | "parameter-type-mismatch"
   | "duplicate-default"
+  | "missing-component"
   | "unbound-instance"
   | "component-cycle";
 
@@ -47,7 +62,7 @@ export type InterfaceProblem = {
    * too for a default of the document whose interface does not exist.
    */
   subnetId: ID | null;
-  /** The instance, for a problem with an instance's binding. */
+  /** The instance, for a problem with an instance's component or binding. */
   instanceId?: ID;
   code: InterfaceProblemCode;
   severity: "error" | "warning";
@@ -259,16 +274,29 @@ const checkDeclarations = (
 const checkDefaults = (
   sdcpn: SDCPN,
   subnetsById: ReadonlyMap<ID, Subnet>,
+  libraries: ResolvedLibraries | undefined,
 ): InterfaceProblem[] => {
-  const entryCounts = new Map<ID, number>();
-  for (const { interface: iface } of sdcpn.implementations ?? []) {
-    entryCounts.set(iface.id, (entryCounts.get(iface.id) ?? 0) + 1);
+  // In the order of the first entry for each interface, where it is reported.
+  const entries = new Map<
+    string,
+    { reference: ComponentReference; count: number }
+  >();
+  for (const { interface: reference } of sdcpn.implementations ?? []) {
+    const key = componentKey(reference);
+    const counted = entries.get(key);
+    if (counted) {
+      counted.count += 1;
+    } else {
+      entries.set(key, { reference, count: 1 });
+    }
   }
   const problems: InterfaceProblem[] = [];
-  for (const [interfaceId, count] of entryCounts) {
+  for (const { reference, count } of entries.values()) {
     if (count > 1) {
-      const iface = subnetsById.get(interfaceId);
-      reporter(problems, { subnetId: iface ? interfaceId : null })(
+      const iface = resolveComponent(sdcpn, reference, libraries, subnetsById);
+      // Only a subnet of the document can be opened to show the problem.
+      const onDocument = iface !== undefined && reference.from === undefined;
+      reporter(problems, { subnetId: onDocument ? reference.id : null })(
         "duplicate-default",
         `The document names ${count} default implementations for ${iface?.name ?? "an interface that does not exist"}: an interface has one, and the first applies.`,
       );
@@ -278,14 +306,16 @@ const checkDefaults = (
 };
 
 /**
- * What each instance is bound to: an instance of an interface has an
- * implementation to run, and no component runs inside itself.
+ * What each instance is bound to: its library has the component it names, an
+ * instance of an interface has an implementation to run, and no component
+ * runs inside itself.
  */
 const checkBindings = (
   sdcpn: SDCPN,
   index: DocumentIndex,
+  libraries: ResolvedLibraries | undefined,
 ): InterfaceProblem[] => {
-  // An instance of a subnet that does not exist is for other checks to report.
+  const problems: InterfaceProblem[] = [];
   const held = [
     { netId: null, instances: sdcpn.componentInstances },
     ...(sdcpn.subnets ?? []).map((subnet) => ({
@@ -294,14 +324,36 @@ const checkBindings = (
     })),
   ].flatMap(({ netId, instances = [] }) =>
     instances.flatMap((instance) => {
-      const binding = resolveImplementation(sdcpn, instance, index);
-      return binding === null ? [] : [{ netId, instance, binding }];
+      const binding = resolveImplementation(sdcpn, instance, libraries, index);
+      if (binding !== null) {
+        return [{ netId, instance, binding }];
+      }
+      // An instance whose component does not resolve has no binding to
+      // check. A library that resolved does not have the component. One that
+      // failed is one problem already, of the imports, and one that is still
+      // resolving is none.
+      const { from, id } = componentOf(instance);
+      if (from !== undefined && libraries?.has(from)) {
+        reporter(problems, { subnetId: netId, instanceId: instance.id })(
+          "missing-component",
+          `${instance.name} names the component \`${id}\`, which the library \`${from}\` does not have.`,
+        );
+      }
+      return [];
     }),
   );
 
+  // A component of an import holds no instance, so no loop runs through one:
+  // only the document's own subnets are joined.
+  const inDocument = (subnet: Subnet) =>
+    index.subnetsById.get(subnet.id) === subnet;
   const runs = new Map<ID, ID[]>();
   for (const { netId, binding } of held) {
-    if (netId !== null && binding.kind !== "unbound") {
+    if (
+      netId !== null &&
+      binding.kind !== "unbound" &&
+      inDocument(runningOf(binding))
+    ) {
       const ran = runs.get(netId) ?? [];
       ran.push(runningOf(binding).id);
       runs.set(netId, ran);
@@ -309,7 +361,10 @@ const checkBindings = (
   }
   const groups = cycleGroups(runs);
 
-  const problems: InterfaceProblem[] = [];
+  // What a binding across a library falls short of, checked once for the
+  // instances bound alike.
+  const shortfallsByBinding = new Map<string, InterfaceProblem[]>();
+
   for (const { netId, instance, binding } of held) {
     const report = reporter(problems, {
       subnetId: netId,
@@ -323,8 +378,32 @@ const checkBindings = (
       continue;
     }
     const running = runningOf(binding);
+    // A subnet that implements an interface of its document is held to it
+    // where it says so. Across a library the binding is all that says it.
+    const reference =
+      instance.implementation ??
+      defaultImplementation(sdcpn, componentOf(instance), index.defaults);
+    if (
+      binding.kind === "bound" &&
+      reference &&
+      !bindsWithinDocument(componentOf(instance), reference)
+    ) {
+      const key = bindingKey(instance);
+      let shortfalls = shortfallsByBinding.get(key);
+      if (!shortfalls) {
+        shortfalls = checkImplementation(running, binding.interface);
+        shortfallsByBinding.set(key, shortfalls);
+      }
+      for (const shortfall of shortfalls) {
+        report(shortfall.code, shortfall.message, shortfall.severity);
+      }
+    }
     // An instance closes a loop when what it runs leads back to its holder.
-    if (netId !== null && groups.get(netId) === groups.get(running.id)) {
+    if (
+      netId !== null &&
+      inDocument(running) &&
+      groups.get(netId) === groups.get(running.id)
+    ) {
       report(
         "component-cycle",
         running.id === netId
@@ -336,14 +415,63 @@ const checkBindings = (
   return problems;
 };
 
-/** The problems with the document's interfaces, their implementations and the instances bound to them. */
-export const checkInterfaces = (sdcpn: SDCPN): InterfaceProblem[] => {
+/**
+ * The problems with the document's interfaces, their implementations and the
+ * instances bound to them. `libraries` are the ones the document's imports
+ * resolved to: an instance of a component of any other import is left alone.
+ */
+export const checkInterfaces = (
+  sdcpn: SDCPN,
+  libraries?: ResolvedLibraries,
+): InterfaceProblem[] => {
   const index = indexDocument(sdcpn);
   return [
     ...(sdcpn.subnets ?? []).flatMap((subnet) =>
       checkDeclarations(subnet, index),
     ),
-    ...checkDefaults(sdcpn, index.subnetsById),
-    ...checkBindings(sdcpn, index),
+    ...checkDefaults(sdcpn, index.subnetsById, libraries),
+    ...checkBindings(sdcpn, index, libraries),
   ];
+};
+
+/**
+ * The components that can run for the interface `iface` names, each with the
+ * reference a binding names it by: the document's subnets that say they
+ * implement it, then the components with a body of every library that have
+ * its ports and parameters. For an interface of an import, a subnet of the
+ * document is listed on its ports and parameters too, since it cannot say
+ * what it implements there.
+ */
+export const implementationsOf = (
+  sdcpn: Pick<SDCPN, "subnets">,
+  iface: ComponentReference,
+  libraries?: ResolvedLibraries,
+): { reference: ComponentReference; subnet: Subnet }[] => {
+  const declared = resolveComponent(sdcpn, iface, libraries);
+  if (!declared) {
+    return [];
+  }
+  const conforms = (subnet: Subnet) =>
+    !checkImplementation(subnet, declared).some(
+      ({ severity }) => severity === "error",
+    );
+  const candidates: { reference: ComponentReference; subnet: Subnet }[] = [
+    ...(sdcpn.subnets ?? []).map((subnet) => ({
+      reference: { id: subnet.id },
+      subnet,
+    })),
+    ...[...(libraries?.values() ?? [])].flatMap((library) =>
+      library.components.map((subnet) => ({
+        reference: { from: library.id, id: subnet.id },
+        subnet,
+      })),
+    ),
+  ];
+  return candidates.filter(
+    ({ reference, subnet }) =>
+      !isInterface(subnet) &&
+      (bindsWithinDocument(iface, reference)
+        ? implementsInterface(subnet, iface.id)
+        : conforms(subnet)),
+  );
 };

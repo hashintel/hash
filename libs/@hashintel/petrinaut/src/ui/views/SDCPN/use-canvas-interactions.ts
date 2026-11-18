@@ -14,12 +14,14 @@ import {
   generateDefaultLambdaCode,
   generatePetrinautId,
   placeArcEndpoint,
+  resolveComponent,
 } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../react/hooks/use-petrinaut-mutations";
 import { useReadOnlyFeedback } from "../../../react/hooks/use-read-only-feedback";
 import { NotificationsContext } from "../../../react/notifications/context";
 import { ActiveNetContext } from "../../../react/state/active-net-context";
+import { CompositionContext } from "../../../react/state/composition-context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
@@ -37,7 +39,11 @@ import type {
   CanvasPoint,
   CanvasScene,
 } from "./canvas-scene";
-import type { FusionMember, SelectionMap } from "@hashintel/petrinaut-core";
+import type {
+  ComponentReference,
+  FusionMember,
+  SelectionMap,
+} from "@hashintel/petrinaut-core";
 
 /** A connection being drawn or just drawn, from its source to its target. */
 export type CanvasConnection = CanvasLinkEnds;
@@ -105,6 +111,11 @@ export type CanvasInteractions = {
   clickPane: (scenePosition: CanvasPoint) => void;
   /** A node dragged in from the toolbar. */
   dropNode: (kind: DraggedNodeKind, scenePosition: CanvasPoint) => void;
+  /** A component dragged in from the Components panel. */
+  dropComponent: (
+    component: ComponentReference,
+    scenePosition: CanvasPoint,
+  ) => void;
 };
 
 /**
@@ -159,6 +170,7 @@ export const useCanvasInteractions = (
   scene: CanvasScene,
 ): CanvasInteractions => {
   const { petriNetDefinition, getItemType } = use(SDCPNContext);
+  const { libraries } = use(CompositionContext);
   const { activeNet } = use(ActiveNetContext);
   const { addNotification } = use(NotificationsContext);
   const {
@@ -175,7 +187,7 @@ export const useCanvasInteractions = (
   const {
     editionMode,
     setEditionMode,
-    componentSubnetId,
+    componentToAdd,
     cursorMode,
     beginSelectionGesture,
     endSelectionGesture,
@@ -358,20 +370,24 @@ export const useCanvasInteractions = (
     setEditionMode("cursor");
   };
 
-  const createComponentInstanceAt = (rawPosition: CanvasPoint) => {
-    if (!componentSubnetId) {
-      return;
-    }
-    const subnet = (petriNetDefinition.subnets ?? []).find(
-      ({ id }) => id === componentSubnetId,
+  const createComponentInstanceAt = (
+    reference: ComponentReference,
+    rawPosition: CanvasPoint,
+  ) => {
+    const component = resolveComponent(
+      petriNetDefinition,
+      reference,
+      libraries,
     );
     const position = snap(rawPosition);
     const id = generatePetrinautId();
 
     addComponentInstance({
       id,
-      name: subnet ? toInstanceName(subnet.name) : "Instance",
-      subnetId: componentSubnetId,
+      name: component ? toInstanceName(component.name) : "Instance",
+      ...(reference.from === undefined
+        ? { subnetId: reference.id }
+        : { component: { from: reference.from, id: reference.id } }),
       parameterValues: {},
       x: position.x,
       y: position.y,
@@ -384,7 +400,9 @@ export const useCanvasInteractions = (
     if (editionMode === "cursor") {
       clearSelection();
     } else if (editionMode === "add-component") {
-      createComponentInstanceAt(scenePosition);
+      if (componentToAdd) {
+        createComponentInstanceAt(componentToAdd, scenePosition);
+      }
     } else if (editionMode === "add-place") {
       createNodeAt("place", scenePosition);
     } else {
@@ -496,5 +514,6 @@ export const useCanvasInteractions = (
     rewireLink,
     clickPane,
     dropNode: createNodeAt,
+    dropComponent: createComponentInstanceAt,
   };
 };

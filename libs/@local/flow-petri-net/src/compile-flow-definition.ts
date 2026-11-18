@@ -154,7 +154,10 @@ export const compileFlowDefinition = async (
     }
 
     const instance = instancesById.get(endpoint.componentInstanceId);
-    const subnet = instance ? subnetsById.get(instance.subnetId) : undefined;
+    const subnet =
+      instance?.subnetId === undefined
+        ? undefined
+        : subnetsById.get(instance.subnetId);
     const port = subnet?.places.find(({ id }) => id === endpoint.portPlaceId);
     const color = port?.colorId
       ? subnet?.types.find(({ id }) => id === port.colorId)

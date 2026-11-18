@@ -7,6 +7,8 @@
  */
 
 import {
+  componentKey,
+  componentOf,
   effectivePortDirections,
   resolveImplementation,
   generateArcId,
@@ -32,11 +34,13 @@ import type {
 } from "./canvas-focus";
 import type {
   ArcEndpoint,
+  ComponentReference,
   FusionMember,
   InputArcType,
   PetrinautExtensionSettings,
   PortDirection,
   ProblemSeverity,
+  ResolvedLibraries,
   RenderNodeDimensions,
   SDCPN,
   Subnet,
@@ -92,11 +96,14 @@ export type CanvasPort = {
 
 /**
  * What an instance runs: its component, or the implementation bound to the
- * interface it points at, `null` while nothing is bound.
+ * interface it points at, `null` while nothing is bound. `unresolved` when
+ * its component cannot be read: one the document no longer has, or one of an
+ * import that failed.
  */
 export type CanvasInstanceBinding =
   | { kind: "component" }
-  | { kind: "interface"; implementationName: string | null };
+  | { kind: "interface"; implementationName: string | null }
+  | { kind: "unresolved" };
 
 /** A component with more ports than this starts folded, its ports behind a toggle. */
 const foldThreshold = 4;
@@ -206,6 +213,8 @@ export type CanvasSceneInput = {
   net: ActiveNetDefinition;
   /** The whole document, for subnet lookups. */
   sdcpn: SDCPN;
+  /** The libraries the document's imports resolved to. */
+  libraries: ResolvedLibraries;
   /** The worst problem of each of the net's fusions. */
   fusionStatuses: ReadonlyMap<string, FusionStatus>;
   extensions: PetrinautExtensionSettings;
@@ -278,6 +287,7 @@ const buildFusionLinks = ({
 export const buildCanvasScene = ({
   net,
   sdcpn,
+  libraries,
   fusionStatuses,
   extensions,
   dimensions,
@@ -337,6 +347,7 @@ export const buildCanvasScene = ({
       sdcpn,
       extensions,
       net,
+      libraries,
     );
     nodes.push({
       kind: "transition",
@@ -351,12 +362,16 @@ export const buildCanvasScene = ({
     });
   }
 
-  // What a subnet's ports show is worked out once, however many instances of
-  // it the net holds: its arcs are read once for their directions, and its
+  // What a component's ports show is worked out once, however many instances
+  // of it the net holds: its arcs are read once for their directions, and its
   // token types are looked up by id for their colours.
-  const portsBySubnetId = new Map<string, readonly CanvasPort[]>();
-  const portsOf = (subnet: Subnet): readonly CanvasPort[] => {
-    const known = portsBySubnetId.get(subnet.id);
+  const portsByComponent = new Map<string, readonly CanvasPort[]>();
+  const portsOf = (
+    reference: ComponentReference,
+    subnet: Subnet,
+  ): readonly CanvasPort[] => {
+    const key = componentKey(reference);
+    const known = portsByComponent.get(key);
     if (known) {
       return known;
     }
@@ -373,7 +388,7 @@ export const buildCanvasScene = ({
             ? types.get(place.colorId)?.displayColor
             : undefined,
       }));
-    portsBySubnetId.set(subnet.id, ports);
+    portsByComponent.set(key, ports);
     return ports;
   };
 
@@ -385,21 +400,23 @@ export const buildCanvasScene = ({
   const portsByInstanceId = new Map<string, ReadonlyMap<string, CanvasPort>>();
 
   for (const instance of net.componentInstances) {
-    const resolved = resolveImplementation(sdcpn, instance, index);
+    const resolved = resolveImplementation(sdcpn, instance, libraries, index);
     // The subnet the instance points at: the ports it shows are that one's,
     // whichever implementation runs behind them.
     const subnet =
       resolved?.kind === "component" ? resolved.subnet : resolved?.interface;
     const ports: CanvasPort[] = subnet
-      ? portsOf(subnet).map((port) => ({ ...port }))
+      ? portsOf(componentOf(instance), subnet).map((port) => ({ ...port }))
       : [];
     portsByInstanceId.set(instance.id, indexById(ports));
     const running =
       resolved?.kind === "bound" ? resolved.implementation : undefined;
     const binding: CanvasInstanceBinding =
-      resolved === null || resolved.kind === "component"
-        ? { kind: "component" }
-        : { kind: "interface", implementationName: running?.name ?? null };
+      resolved === null
+        ? { kind: "unresolved" }
+        : resolved.kind === "component"
+          ? { kind: "component" }
+          : { kind: "interface", implementationName: running?.name ?? null };
     const foldable = ports.length > foldThreshold;
     const unfolded = !foldable || unfoldedInstanceIds.has(instance.id);
     const foldedHeight = dimensions.componentInstance.height;
@@ -418,7 +435,8 @@ export const buildCanvasScene = ({
       dragging,
       anchorOffset,
       ...interaction(instance.id),
-      subnetName: subnet?.name ?? "Unknown subnet",
+      // A component of an import that cannot be read goes by its id there.
+      subnetName: subnet?.name ?? instance.component?.id ?? "Unknown subnet",
       binding,
       // The card wears what runs: an implementation's icon and colour come
       // before those of the interface it stands in for.

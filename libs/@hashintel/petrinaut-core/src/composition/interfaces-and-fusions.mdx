@@ -108,14 +108,27 @@ Three things people mean by inheritance, and what each should be:
 | Source                     | Lives in the document? | Exists today                                 |
 | -------------------------- | ---------------------- | -------------------------------------------- |
 | Drawn in the document      | yes                    | yes                                          |
-| Copied from a library      | yes, with its source   | no                                           |
+| Imported from a library    | by reference           | yes                                          |
+| Inlined from a library     | yes                    | yes, as an export                            |
 | Provided at run time       | no                     | no; the Flows executor is the first consumer |
 | Referenced, pinned version | by reference           | no                                           |
 
-A copy keeps the document complete without the provider. A run-time provision
-does not, which is right when the provider is the thing that runs the net
-anyway: a host providing the real implementation of an action, or a mock of it
-for a dry run. That is a choice at simulation time, "execute the real calls, or
+A document **imports** a library by its id and names its components as
+`{ from, id }`; the host resolves the library each time the document is
+opened (see [Host integration](doc:core.handle/host-integration)). A
+component of a library is read as a subnet, so `resolveComponent` answers a
+reference from the document or from the resolved libraries and every reader
+goes through it. A component with a body runs it, and one without is an
+interface.
+
+An inlined copy keeps the document complete without its host:
+`inlineImports` makes each component the document uses a subnet of it. The
+simulator, the compiler and the language server are given that net, under
+ids that do not change from one call to the next, since they take one net
+and no libraries. A run-time provision keeps nothing in the document either,
+which is right when the provider is the thing that runs the net anyway: a
+host providing the real implementation of an action, or a mock of it for a
+dry run. That is a choice at simulation time, "execute the real calls, or
 simulate their responses", and it is a choice of implementation, not of net.
 
 ### Binding
@@ -177,12 +190,22 @@ instance path is the key the flattener already uses.
 An unbound instance is an error, not a silent run of the stub: a stub that
 never moves tokens is a deadlock a user would spend an hour finding.
 
+A subnet lists what it implements by the ids of interfaces of its own
+document, and a binding between two subnets of the document is held to that
+list. Across a library nothing can list the other side: a component of a
+library has no `implements`, and a subnet cannot name an interface of an
+import there. Such a binding stands on the interface's ports and parameters
+alone. `checkInterfaces` reports what is missing on the instance that is
+bound, `implementationsOf` lists only the components that have them, and
+`inlineImports` writes the binding into `implements` once both sides are
+subnets of one document.
+
 ### Providers
 
 A plugin or host contribution, `implementations`, maps interface ids to
 subnets it supplies at run time, shown in the instance's properties as
-"provided by X". A library copies instead. The two differ only in whether the
-document keeps the subnet.
+"provided by X". A library is imported instead: the document names the
+implementation, and the host resolves it. The two differ in who chooses.
 
 ### Experiments over implementations
 

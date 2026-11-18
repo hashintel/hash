@@ -199,10 +199,8 @@ describe("Petrinaut AI core exports", () => {
     const { implementation } = updateOf(
       petrinautAiTools.updateComponentInstance.inputSchema,
     );
-    expect(implementation?.anyOf?.map(({ type }) => type)).toEqual([
-      "object",
-      "null",
-    ]);
+    // Beside the two ways to name a component.
+    expect(implementation?.anyOf).toContainEqual({ type: "null" });
     expect(implementation?.description).toMatch(/null to clear/u);
     expect(implementation?.description).toMatch(/Omit to leave/u);
 

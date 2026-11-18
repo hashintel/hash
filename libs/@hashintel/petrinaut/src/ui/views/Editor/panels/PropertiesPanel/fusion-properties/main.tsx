@@ -14,6 +14,7 @@ import {
 
 import { usePetrinautMutations } from "../../../../../../react";
 import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
+import { CompositionContext } from "../../../../../../react/state/composition-context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
@@ -120,8 +121,19 @@ const MemberRow = ({ member }: { member: FusionMember }) => {
   const { selectItem } = use(EditorContext);
   const { removeFusionMember } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
-  const label = describeFusionMember(petriNetDefinition, activeNet, member);
-  const resolved = resolveFusionMember(petriNetDefinition, activeNet, member);
+  const { libraries } = use(CompositionContext);
+  const label = describeFusionMember(
+    petriNetDefinition,
+    activeNet,
+    member,
+    libraries,
+  );
+  const resolved = resolveFusionMember(
+    petriNetDefinition,
+    activeNet,
+    member,
+    libraries,
+  );
   const kindLabel =
     resolved?.kind === "port"
       ? `${describePortDirection(effectivePortDirection(resolved.subnet, resolved.place))} port`
@@ -173,11 +185,13 @@ const FusionMainContent: React.FC = () => {
   const { updateFusion } = usePetrinautMutations();
   const isDisabled = useIsReadOnly();
   const readOnlyTooltip = isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined;
+  const { libraries } = use(CompositionContext);
   const problems = checkFusion(
     petriNetDefinition,
     activeNet,
     fusion,
     activeSubnetId,
+    libraries,
   );
 
   return (

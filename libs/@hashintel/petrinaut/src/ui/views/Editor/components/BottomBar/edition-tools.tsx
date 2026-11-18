@@ -1,6 +1,7 @@
 import { use } from "react";
 
 import { Icon, type MenuItem, Menu } from "@hashintel/ds-components";
+import { sameComponent } from "@hashintel/petrinaut-core";
 
 import { ActiveNetContext } from "../../../../../react/state/active-net-context";
 import {
@@ -28,15 +29,17 @@ const ComponentDropdown: React.FC<{
   const {
     petriNetDefinition: { subnets },
   } = use(SDCPNContext);
-  const { componentSubnetId, setAddComponentMode } = use(EditorContext);
+  const { componentToAdd, setAddComponentMode } = use(EditorContext);
 
   const items: MenuItem[] = (subnets ?? []).map((subnet) => ({
     id: subnet.id,
     icon: "cube",
     text: subnet.name,
     selected:
-      editionMode === "add-component" && componentSubnetId === subnet.id,
-    onClick: () => setAddComponentMode(subnet.id),
+      editionMode === "add-component" &&
+      componentToAdd !== null &&
+      sameComponent(componentToAdd, { id: subnet.id }),
+    onClick: () => setAddComponentMode({ id: subnet.id }),
   }));
 
   if (items.length === 0) {
@@ -53,9 +56,7 @@ const ComponentDropdown: React.FC<{
       trigger={
         <ToolbarMenuTrigger
           icon="cube"
-          isActive={
-            editionMode === "add-component" && componentSubnetId !== null
-          }
+          isActive={editionMode === "add-component" && componentToAdd !== null}
           aria-label="Add component"
         />
       }

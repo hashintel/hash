@@ -1,5 +1,6 @@
 import {
   createExperimentToolName,
+  describeImports,
   getLatestNetDefinitionToolName,
   getNetCompilationErrorsToolName,
   mutationActionInputSchemas,
@@ -99,12 +100,16 @@ export const runBuiltInTool = async (
         toolCallId,
         petrinautExperimentRequestSchema.parse(input),
       );
-    case getLatestNetDefinitionToolName:
+    case getLatestNetDefinitionToolName: {
+      const imports = document.imports.get();
       return {
         title: document.title.get(),
         definition: document.net.get(),
         extensions: document.extensions,
+        // Left out of a net that imports nothing and is offered nothing.
+        ...(imports.size > 0 ? { imports: describeImports(imports) } : {}),
       };
+    }
     case getNetCompilationErrorsToolName:
       return readCurrentDiagnostics(document);
     case readPetrinautDocToolName:

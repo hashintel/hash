@@ -4,8 +4,10 @@ import {
   arcEndpointSchema,
   arcDirectionSchema,
   arcIdSchema,
+  checkInstanceNamesOneComponent,
   colorElementSchema,
   colorSchema,
+  componentInstanceObjectSchema,
   componentInstanceSchema,
   componentReferenceSchema,
   differentialEquationSchema,
@@ -123,13 +125,13 @@ export const metricUpdateSchema = simulationMetricSchema
 // JSON has no `undefined` to clear a field with, so the two updates below
 // each take a value that says it. Only an update does: what is stored holds a
 // reference or `true`, or no key.
-export const componentInstanceUpdateSchema = componentInstanceSchema
+export const componentInstanceUpdateSchema = componentInstanceObjectSchema
   .omit({ id: true, x: true, y: true })
   .partial()
   .extend({
     implementation: componentReferenceSchema.nullable().optional().meta({
       description:
-        "For an instance of an interface: the implementing subnet to run, as `{ id }`, or null to clear the instance's choice, so that it runs the document's default implementation for the interface. Omit to leave the choice as it is.",
+        "For an instance of an interface: the component to run, as `{ id }` for a subnet of the document or `{ from, id }` for a component of an import, or null to clear the instance's choice, so that it runs the document's default implementation for the interface. Omit to leave the choice as it is.",
     }),
   })
   .meta({
@@ -526,11 +528,12 @@ export const mutationActionInputSchemas = {
     description:
       "Remove a subnet definition and component instances that reference it.",
   }),
-  addComponentInstance: componentInstanceSchema
+  addComponentInstance: componentInstanceObjectSchema
     .extend({ targetSubnetId: targetSubnetIdSchema })
+    .check(checkInstanceNamesOneComponent)
     .meta({
       description:
-        "Place an instance of an existing subnet in the root net or another subnet.",
+        "Place an instance of a component in the root net or a subnet: a subnet of the document, named by `subnetId`, or a component of a library the application resolves, named by `component: { from, id }`. The first instance to name a library, for its `component` or for its `implementation`, adds it to the document's `imports`.",
     }),
   updateComponentInstance: z
     .strictObject({

@@ -10,6 +10,8 @@ import {
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
+  componentKey,
+  componentOf,
   defaultImplementation,
   describeUnboundInstance,
   isInterface,
@@ -19,6 +21,7 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../../react";
+import { CompositionContext } from "../../../../../../../react/state/composition-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { DescriptionField } from "../../../../../../components/description-field";
@@ -31,7 +34,6 @@ import { implementationItems } from "../../../implementation-items";
 import { useComponentInstancePropertiesContext } from "../context";
 
 import type { SubView } from "../../../../../../components/sub-view/types";
-import type { Subnet } from "@hashintel/petrinaut-core";
 
 const fieldsSectionStyle = css({
   paddingY: "3",
@@ -62,13 +64,18 @@ const paramFieldLabelStyle = css({
  * Which implementation runs for an instance of an interface: the instance's
  * own choice, or the document's default.
  */
-const ImplementationField: React.FC<{ iface: Subnet }> = ({ iface }) => {
+const ImplementationField: React.FC = () => {
   const { instance, updateComponentInstance } =
     useComponentInstancePropertiesContext();
   const { petriNetDefinition } = use(SDCPNContext);
+  const { libraries } = use(CompositionContext);
   const isDisabled = useIsReadOnly();
 
-  const binding = resolveImplementation(petriNetDefinition, instance);
+  const binding = resolveImplementation(
+    petriNetDefinition,
+    instance,
+    libraries,
+  );
   const description =
     binding?.kind === "bound"
       ? binding.chosenBy === "instance"
@@ -77,10 +84,19 @@ const ImplementationField: React.FC<{ iface: Subnet }> = ({ iface }) => {
       : binding?.kind === "unbound"
         ? describeUnboundInstance(binding, instance.name)
         : undefined;
-  const documentDefault = defaultImplementation(petriNetDefinition, iface.id);
+  const documentDefault = defaultImplementation(
+    petriNetDefinition,
+    componentOf(instance),
+  );
   const defaultName =
     documentDefault &&
-    resolveComponent(petriNetDefinition, documentDefault)?.name;
+    resolveComponent(petriNetDefinition, documentDefault, libraries)?.name;
+  const implementations = implementationItems(
+    petriNetDefinition,
+    componentOf(instance),
+    instance.implementation,
+    libraries,
+  );
   return (
     <Form.Field
       label="Implementation"
@@ -98,13 +114,19 @@ const ImplementationField: React.FC<{ iface: Subnet }> = ({ iface }) => {
         <Select
           required
           size="sm"
-          value={instance.implementation?.id ?? "default"}
+          value={
+            instance.implementation
+              ? componentKey(instance.implementation)
+              : "default"
+          }
           disabled={isDisabled}
           onChange={(value) =>
             updateComponentInstance({
               instanceId: instance.id,
               update: {
-                implementation: value === "default" ? undefined : { id: value },
+                implementation: implementations.find(
+                  (item) => item.value === value,
+                )?.reference,
               },
             })
           }
@@ -116,14 +138,43 @@ const ImplementationField: React.FC<{ iface: Subnet }> = ({ iface }) => {
                   ? "Document default (none)"
                   : `Document default (${defaultName})`,
             },
-            ...implementationItems(
-              petriNetDefinition,
-              iface.id,
-              instance.implementation,
-            ),
+            ...implementations,
           ]}
         />
       </Tooltip>
+    </Form.Field>
+  );
+};
+
+/** What the instance is an instance of, or why that cannot be read. */
+const ComponentField: React.FC = () => {
+  const { instance, subnet } = useComponentInstancePropertiesContext();
+  const { imports } = use(CompositionContext);
+  const from = instance.component?.from;
+
+  if (from === undefined) {
+    return (
+      <Form.Field label="Subnet" size="sm">
+        <div className={hintTextStyle}>
+          {subnet?.name ?? "The referenced subnet no longer exists."}
+        </div>
+      </Form.Field>
+    );
+  }
+
+  const state = imports.get(from);
+  const library = state?.status === "resolved" ? state.library.name : from;
+  let text = `The import ${from} did not resolve.`;
+  if (subnet) {
+    text = `${subnet.name}, from ${library}`;
+  } else if (state?.status === "resolved") {
+    text = `${library} has no component ${instance.component?.id}.`;
+  } else if (state?.status === "failed") {
+    text = `${text} ${state.message}`;
+  }
+  return (
+    <Form.Field label="Component" size="sm">
+      <div className={hintTextStyle}>{text}</div>
     </Form.Field>
   );
 };
@@ -196,15 +247,9 @@ const ComponentInstanceMainContent: React.FC = () => {
           tooltip={readOnlyTooltip}
         />
 
-        <Form.Field label="Subnet" size="sm">
-          <div className={hintTextStyle}>
-            {subnet?.name ?? "The referenced subnet no longer exists."}
-          </div>
-        </Form.Field>
+        <ComponentField />
 
-        {subnet && isInterface(subnet) && (
-          <ImplementationField iface={subnet} />
-        )}
+        {subnet && isInterface(subnet) && <ImplementationField />}
       </Form.Section>
 
       {subnetParameters.length > 0 && (

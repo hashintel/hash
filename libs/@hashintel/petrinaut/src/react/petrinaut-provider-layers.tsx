@@ -1,3 +1,5 @@
+import { resolvedLibraries } from "@hashintel/petrinaut-core";
+
 import { EventPlaybackProvider } from "./event-playback/provider";
 import { ExecutionFrameProvider } from "./execution-frame/provider";
 import { PetrinautInstanceContext } from "./instance-context";
@@ -8,10 +10,12 @@ import {
 import { SDCPNProvider } from "./sdcpn-provider";
 import { ActiveNetProvider } from "./state/active-net-provider";
 import { CanvasViewportProvider } from "./state/canvas-viewport-provider";
+import { CompositionContext } from "./state/composition-context";
 import { EditorProvider } from "./state/editor-provider";
 import { UndoRedoContext } from "./state/undo-redo-context";
 import { UserSettingsProvider } from "./state/user-settings-provider";
 import { useHandleHistoryAsUndoRedo } from "./use-handle-history-as-undo-redo";
+import { useStore } from "./use-store";
 
 import type { Petrinaut, PlaybackSpeed } from "@hashintel/petrinaut-core";
 import type { ReactNode } from "react";
@@ -20,6 +24,25 @@ export type PetrinautDocumentProviderProps = {
   children: ReactNode;
   instance: Petrinaut;
   netManagement: NetManagement;
+};
+
+/** Publishes the state of the document's imports, as the Core instance holds it. */
+const CompositionProvider: React.FC<{
+  children: ReactNode;
+  instance: Petrinaut;
+}> = ({ children, instance }) => {
+  const imports = useStore(instance.imports);
+  return (
+    <CompositionContext
+      value={{
+        imports,
+        libraries: resolvedLibraries(imports),
+        offered: instance.libraries,
+      }}
+    >
+      {children}
+    </CompositionContext>
+  );
 };
 
 /**
@@ -37,7 +60,9 @@ export const PetrinautDocumentProvider: React.FC<
 
   const document = (
     <UserSettingsProvider>
-      <SDCPNProvider>{children}</SDCPNProvider>
+      <CompositionProvider instance={instance}>
+        <SDCPNProvider>{children}</SDCPNProvider>
+      </CompositionProvider>
     </UserSettingsProvider>
   );
 

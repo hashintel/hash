@@ -1,9 +1,11 @@
 import { use } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
+import { componentOf, resolveComponent } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../react";
 import { ActiveNetContext } from "../../../../../react/state/active-net-context";
+import { CompositionContext } from "../../../../../react/state/composition-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { usePanelTarget } from "../../../../../react/state/use-selection";
 import { ArcProperties } from "./arc-properties/main";
@@ -30,6 +32,7 @@ const propertiesStyle = css({
 const SelectedItemPropertiesContent: React.FC = () => {
   const { activeNet: petriNetDefinition } = use(ActiveNetContext);
   const { extensions, petriNetDefinition: fullSdcpn } = use(SDCPNContext);
+  const { libraries } = use(CompositionContext);
   const {
     updatePlace,
     updateTransition,
@@ -156,9 +159,7 @@ const SelectedItemPropertiesContent: React.FC = () => {
           return null;
         }
         const subnet =
-          (fullSdcpn.subnets ?? []).find(
-            (candidate) => candidate.id === instance.subnetId,
-          ) ?? null;
+          resolveComponent(fullSdcpn, componentOf(instance), libraries) ?? null;
         return (
           <ComponentInstanceProperties
             instance={instance}

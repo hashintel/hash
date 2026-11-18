@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { getParameterValueError } from "../parameter-values";
 import {
+  checkInstanceNamesOneComponent,
   colorElementSchema as currentColorElementSchema,
   colorSchema as currentColorSchema,
   componentInstanceSchema as currentComponentInstanceSchema,
@@ -9,6 +10,7 @@ import {
   descriptionSchema,
   differentialEquationSchema as currentDifferentialEquationSchema,
   fusionSchema as currentFusionSchema,
+  importSchema,
   inputArcSchema as currentInputArcSchema,
   metadataSchema,
   outputArcSchema as currentOutputArcSchema,
@@ -153,14 +155,16 @@ const metricSchema = z.object({
   code: z.string().default(""),
 });
 
-const componentInstanceSchema = z.object({
-  ...currentComponentInstanceSchema.shape,
-  id: z.string(),
-  name: z.string(),
-  parameterValues: z.record(z.string(), z.string()).default({}),
-  x: z.number().optional(),
-  y: z.number().optional(),
-});
+const componentInstanceSchema = z
+  .object({
+    ...currentComponentInstanceSchema.shape,
+    id: z.string(),
+    name: z.string(),
+    parameterValues: z.record(z.string(), z.string()).default({}),
+    x: z.number().optional(),
+    y: z.number().optional(),
+  })
+  .check(checkInstanceNamesOneComponent);
 
 /**
  * Any list of members loads: the checks report a fusion of one, a member
@@ -206,6 +210,8 @@ export const sdcpnSchema = z.object({
   parameters: z.array(parameterSchema).default([]),
   scenarios: z.array(scenarioSchema).default([]),
   metrics: z.array(metricSchema).default([]),
+  // Absent in a net that imports nothing, as `fusions` is.
+  imports: z.array(importSchema).optional(),
   subnets: z.array(subnetSchema).default([]),
   componentInstances: z.array(componentInstanceSchema).default([]),
   // A net without fusions carries no `fusions` key, here as in the editor, so

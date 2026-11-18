@@ -13,6 +13,7 @@ import {
   type LspWorkerFactory,
   type WorkerFactory,
   type MinimalNetMetadata,
+  type ResolveImport,
   type SDCPN,
   type SimulatorRegistration,
 } from "@hashintel/petrinaut-core";
@@ -22,6 +23,7 @@ import {
   useCommandRegistry,
 } from "../react/commands/command-registry";
 import { PetrinautProvider } from "../react/petrinaut-provider";
+import { ResolvingOverlay } from "./components/resolving-overlay";
 import { Stack } from "./components/stack";
 import { MonacoProvider } from "./monaco/provider";
 import { documentViewPlugin } from "./plugins/document-view-plugin";
@@ -60,6 +62,20 @@ export type PetrinautProps = {
   title?: string;
   setTitle?: (title: string) => void;
   readonly?: boolean;
+  /**
+   * Resolves an import of the document to its library: a promise of the
+   * whole library, the library itself when it is in memory, or `undefined`
+   * for one the host does not know. Keep it the same function from one
+   * render to the next, at module scope for instance: a new one creates a
+   * new editor instance, which resolves every import again.
+   */
+  resolveImport?: ResolveImport;
+  /**
+   * The ids of the libraries on offer. Each is resolved through
+   * `resolveImport`, and its components are listed in the Components panel
+   * to place instances of. Define the list at module scope.
+   */
+  libraries?: readonly string[];
   /**
    * Controls visibility of net-management UI in the editor's top bar and
    * burger menu.
@@ -133,6 +149,8 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   title = "Untitled",
   setTitle,
   readonly = false,
+  resolveImport,
+  libraries,
   hideNetManagementControls,
   existingNets = [],
   createNewNet = noop,
@@ -148,8 +166,9 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   const titleEditable = setTitle !== undefined;
   const portalContainerRef = useRef<HTMLDivElement>(null);
   const instance = useMemo<Instance>(
-    () => createPetrinaut({ document: handle, readonly }),
-    [handle, readonly],
+    () =>
+      createPetrinaut({ document: handle, readonly, resolveImport, libraries }),
+    [handle, readonly, resolveImport, libraries],
   );
 
   useEffect(() => () => instance.dispose(), [instance]);
@@ -191,6 +210,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
                   titleEditable={titleEditable}
                 />
               </PetrinautPluginsProvider>
+              <ResolvingOverlay />
             </Stack>
           </MonacoProvider>
         </PetrinautPresentationProvider>

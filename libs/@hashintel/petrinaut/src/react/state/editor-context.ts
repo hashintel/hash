@@ -7,7 +7,11 @@ import {
   DEFAULT_PROPERTIES_PANEL_WIDTH,
 } from "./panel-defaults";
 
-import type { SelectionItem, SelectionMap } from "@hashintel/petrinaut-core";
+import type {
+  ComponentReference,
+  SelectionItem,
+  SelectionMap,
+} from "@hashintel/petrinaut-core";
 
 export type DraggingStateByNodeId = Record<
   string,
@@ -101,7 +105,8 @@ export type EditorState = {
   aiAssistantPlacement: "docked" | "floating";
   isAiAssistantCollapsed: boolean;
   activeBottomPanelTab: BottomPanelTab;
-  componentSubnetId: string | null;
+  /** The component the next click on the canvas places an instance of. */
+  componentToAdd: ComponentReference | null;
   selection: SelectionMap;
   /** Whether any items are currently selected. */
   hasSelection: boolean;
@@ -165,7 +170,7 @@ export type EditorActions = {
   toggleBottomPanel: () => void;
   setBottomPanelHeight: (height: number) => void;
   setActiveBottomPanelTab: (tab: BottomPanelTab) => void;
-  setAddComponentMode: (subnetId: string) => void;
+  setAddComponentMode: (component: ComponentReference) => void;
   /** Check whether a given ID is in the current selection. */
   isSelected: (id: string) => boolean;
   setSelection: (
@@ -225,7 +230,7 @@ export const initialEditorState: EditorState = {
   aiAssistantPlacement: "docked",
   isAiAssistantCollapsed: false,
   activeBottomPanelTab: "diagnostics",
-  componentSubnetId: null,
+  componentToAdd: null,
   selection: new Map(),
   hasSelection: false,
   hoveredItem: null,

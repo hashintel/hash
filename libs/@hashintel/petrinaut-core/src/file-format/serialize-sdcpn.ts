@@ -22,6 +22,7 @@ const DOCUMENT_KEY_ORDER = [
   "parameters",
   "types",
   "differentialEquations",
+  "imports",
   "subnets",
   "implementations",
   "places",

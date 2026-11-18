@@ -1,14 +1,15 @@
 import { describe, expect, it } from "vitest";
 
 import { checkFusions } from "./check-fusions";
-import { checkInterfaces } from "./check-interfaces";
+import { checkInterfaces, implementationsOf } from "./check-interfaces";
 import {
   describeUnboundInstance,
-  implementationsOf,
   indexSubnet,
   mapInterfacePorts,
   resolveImplementation,
 } from "./interfaces";
+import { resolveLibrary } from "./libraries";
+import { logistics } from "./libraries.test-helpers";
 
 import type {
   Color,
@@ -261,6 +262,28 @@ describe("checkInterfaces", () => {
     );
   });
 
+  it("counts the defaults of a long list in one pass", () => {
+    const size = 40_000;
+    const sdcpn = net({
+      subnets: [stage, fast],
+      implementations: Array.from({ length: size }, () =>
+        defaultOf("stage", "fast"),
+      ),
+    });
+
+    const started = Date.now();
+    const problems = checkInterfaces(sdcpn);
+    const elapsed = Date.now() - started;
+
+    expect(problems).toMatchObject([
+      { subnetId: "stage", code: "duplicate-default" },
+    ]);
+    expect(problems[0]?.message).toContain(`${size} default implementations`);
+    // One pass takes milliseconds; a search of the list for every entry
+    // takes several seconds.
+    expect(elapsed).toBeLessThan(1_000);
+  });
+
   it("reports a binding to a subnet that does not implement the interface, naming it", () => {
     const stranger = subnet("stranger");
     const sdcpn = net({
@@ -316,6 +339,78 @@ describe("checkInterfaces", () => {
     // One read of the list takes milliseconds; a search of it for every
     // instance takes several seconds.
     expect(Date.now() - started).toBeLessThan(1_000);
+  });
+});
+
+describe("an implementation bound across a library", () => {
+  const libraries = new Map([
+    [logistics.id, resolveLibrary(logistics.id, logistics)],
+  ]);
+  /** An instance of the library's interface that runs a subnet of the document. */
+  const scaleRunning = (id: string, implementation: string) => ({
+    id,
+    name: id,
+    component: { from: logistics.id, id: "scale" },
+    implementation: { id: implementation },
+    parameterValues: {},
+    x: 0,
+    y: 0,
+  });
+
+  it("is held to the interface once for the instances bound alike, however many", () => {
+    // In and Out declare no direction, under 20,000 arcs that give them one.
+    const wide = subnet("wide", {
+      places: [
+        place("wide_in", { name: "In", isPort: true }),
+        place("wide_out", { name: "Out", isPort: true }),
+      ],
+      transitions: Array.from({ length: 10_000 }, (_, index) =>
+        transition(`move-${index}`, ["wide_in"], ["wide_out"]),
+      ),
+      parameters: [parameter("wide_rate", "rate")],
+    });
+    const sdcpn = net({
+      subnets: [wide],
+      componentInstances: Array.from({ length: 2000 }, (_, index) =>
+        scaleRunning(`s${index}`, "wide"),
+      ),
+    });
+
+    const started = Date.now();
+    const problems = checkInterfaces(sdcpn, libraries);
+    const elapsed = Date.now() - started;
+
+    expect(problems).toEqual([]);
+    // Reading the implementation's arcs for every instance takes seconds.
+    expect(elapsed).toBeLessThan(1_000);
+  });
+
+  it("reports what it falls short of on every instance bound to it", () => {
+    const backwards = subnet("backwards", {
+      places: [
+        place("back_in", { name: "In", isPort: true, portDirection: "out" }),
+        place("back_out", { name: "Out", isPort: true, portDirection: "out" }),
+      ],
+    });
+    const sdcpn = net({
+      subnets: [backwards],
+      componentInstances: [
+        scaleRunning("s1", "backwards"),
+        scaleRunning("s2", "backwards"),
+      ],
+    });
+
+    expect(
+      checkInterfaces(sdcpn, libraries).map(({ instanceId, code }) => [
+        instanceId,
+        code,
+      ]),
+    ).toEqual([
+      ["s1", "port-direction-mismatch"],
+      ["s1", "missing-parameter"],
+      ["s2", "port-direction-mismatch"],
+      ["s2", "missing-parameter"],
+    ]);
   });
 });
 
@@ -823,9 +918,11 @@ describe("implementationsOf", () => {
     const draft = subnet("draft", { interface: true, implements: ["stage"] });
     const sdcpn = net({ subnets: [stage, fast, draft] });
 
-    expect(implementationsOf(sdcpn, "stage").map(({ id }) => id)).toEqual([
-      "fast",
-    ]);
+    expect(
+      implementationsOf(sdcpn, { id: "stage" }).map(
+        (candidate) => candidate.subnet.id,
+      ),
+    ).toEqual(["fast"]);
   });
 });
 

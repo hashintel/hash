@@ -170,11 +170,19 @@ shows the fused place under the name the canvas gives the fusion. Where a
 port is fused inside its component and again in the net above, the leader
 takes the name of the outer fusion.
 
+A component of an import is flattened as a subnet of the document is: the
+net the flattener is given has each one inlined by `inlineImports`, under ids
+that are the same on every call, so its body is scoped under the instance's
+id like any other.
+
 ## Where the model stops today
 
-- **Component libraries**: ready-made components a host or a plugin offers,
-  copied into the document with a record of where they came from, and a
-  root net marked as composed from components alone.
+- **Component libraries** are imported by reference, with no version: a
+  document names a library and its components by id, and the host resolves
+  them (see [Host integration](doc:core.handle/host-integration)). A body of
+  a library's component holds places and transitions, not instances of
+  other components. A root net marked as composed from components alone is
+  not there yet.
 - **Initial markings** address root places. A component with internal
   state, a pool of workers say, has no marking of its own. A per-instance
   marking, or markings written into the component, is the next step.

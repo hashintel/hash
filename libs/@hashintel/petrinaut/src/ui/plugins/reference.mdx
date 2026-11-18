@@ -73,11 +73,11 @@ access: {
 }
 ```
 
-| Family        | `"read"` gives                                                                                                | `"write"` also gives                                                   |
-| ------------- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| `document`    | `PluginDocumentReader`: `id`, `handle`, `net`, `title` and `diagnostics` (stores), `extensions`, `diagnose()` | `PluginDocument`: `edit.*` (including `applyAutoLayout`), `setTitle()` |
-| `experiments` | `PluginExperimentsReader`: `records`, `optimizationUnavailableReason` (stores)                                | `PluginExperiments`: `run()`                                           |
-| `editor`      | `PluginEditorReader`: `navigation` (store)                                                                    | `PluginEditor`: `navigate()`, `reveal()`                               |
+| Family        | `"read"` gives                                                                                                           | `"write"` also gives                                                   |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
+| `document`    | `PluginDocumentReader`: `id`, `handle`, `net`, `imports`, `title` and `diagnostics` (stores), `extensions`, `diagnose()` | `PluginDocument`: `edit.*` (including `applyAutoLayout`), `setTitle()` |
+| `experiments` | `PluginExperimentsReader`: `records`, `optimizationUnavailableReason` (stores)                                           | `PluginExperiments`: `run()`                                           |
+| `editor`      | `PluginEditorReader`: `navigation` (store)                                                                               | `PluginEditor`: `navigate()`, `reveal()`                               |
 
 - **Undeclared means absent.** A family left out of `access` is missing from
   the `api` type and from the object, as is a writer member at `"read"`.
@@ -119,6 +119,7 @@ described in [AI-created experiments](doc:react.experiment-host/ai-created-exper
 | `id`                     | read  | The handle's id. Plugins remount for each document.                                                                                                                                                                                                                                                             |
 | `handle`                 | read  | `PluginDocumentHandle`: `doc()` is the net as the handle holds it, `undefined` until it is ready, and `subscribe(listener)` reports each change as a `DocChangeEvent` with its patches, and with `restored` where the change was a move through the handle's history. It keeps the data of disabled extensions. |
 | `net`                    | read  | `ReadableStore<SDCPN>`: the net without the data of disabled extensions; an empty net until the handle is ready.                                                                                                                                                                                                |
+| `imports`                | read  | `ReadableStore<ImportStates>`: the state of each import of the net and of each library the host offers, by its id. `describeImports` from `@hashintel/petrinaut-core` lists them with their components. See [Host integration](doc:core.handle/host-integration).                                               |
 | `title`                  | read  | `ReadableStore<string>`: the title the host passed, or "Untitled" when it passes none.                                                                                                                                                                                                                          |
 | `extensions`             | read  | The document's `PetrinautExtensionSettings`.                                                                                                                                                                                                                                                                    |
 | `diagnostics`            | read  | `ReadableStore<DiagnosticsSnapshot>`: the diagnostics the editor shows.                                                                                                                                                                                                                                         |

@@ -4,6 +4,7 @@ import { checkComposition } from "./check-composition";
 import { checkFusions } from "./check-fusions";
 
 import type { Color, Fusion, Place, SDCPN, Subnet } from "../types/sdcpn";
+import type { ResolvedLibraries } from "./libraries";
 
 const place = (id: string, overrides: Partial<Place> = {}): Place => ({
   id,
@@ -242,8 +243,8 @@ describe("checkFusions", () => {
         differentialEquations: [cool(code)],
         places: [cooled("in", { isPort: true })],
       });
-    const errorCodes = (sdcpn: SDCPN) =>
-      checkFusions(sdcpn)
+    const errorCodes = (sdcpn: SDCPN, libraries?: ResolvedLibraries) =>
+      checkFusions(sdcpn, libraries)
         .filter(({ severity }) => severity === "error")
         .map(({ code }) => code);
 
@@ -260,6 +261,35 @@ describe("checkFusions", () => {
       });
 
       expect(errorCodes(sdcpn)).toEqual(["dynamics-conflict"]);
+    });
+
+    it("reports the ports of a subnet and of a library's component under its id", () => {
+      const libraries: ResolvedLibraries = new Map([
+        [
+          "lib",
+          {
+            id: "lib",
+            name: "Lib",
+            components: [cooler("bath", "return { level: 1 };")],
+          },
+        ],
+      ]);
+      const sdcpn = net({
+        subnets: [cooler("bath", "return { level: -1 };")],
+        componentInstances: [
+          instance("b1", "bath"),
+          {
+            ...instance("l1", "bath"),
+            subnetId: undefined,
+            component: { from: "lib", id: "bath" },
+          },
+        ],
+        fusions: [
+          { id: "f1", name: "F1", members: [partIn("b1"), partIn("l1")] },
+        ],
+      });
+
+      expect(errorCodes(sdcpn, libraries)).toEqual(["dynamics-conflict"]);
     });
 
     it("reports a root place and the port of a subnet", () => {

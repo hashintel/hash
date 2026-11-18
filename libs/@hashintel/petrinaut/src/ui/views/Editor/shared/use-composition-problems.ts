@@ -5,6 +5,7 @@ import {
   type CompositionProblem,
 } from "@hashintel/petrinaut-core";
 
+import { CompositionContext } from "../../../../react/state/composition-context";
 import { SDCPNContext } from "../../../../react/state/sdcpn-context";
 
 /**
@@ -13,5 +14,6 @@ import { SDCPNContext } from "../../../../react/state/sdcpn-context";
  */
 export const useCompositionProblems = (): CompositionProblem[] => {
   const { petriNetDefinition } = use(SDCPNContext);
-  return checkComposition(petriNetDefinition);
+  const { imports } = use(CompositionContext);
+  return checkComposition(petriNetDefinition, imports);
 };

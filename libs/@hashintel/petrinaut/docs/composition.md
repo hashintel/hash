@@ -53,3 +53,21 @@ An instance of an interface runs an **implementation**:
 - An instance's properties choose an **Implementation** for that instance alone, or keep the document's default. The properties say which implementation the instance runs, and so does the card on the canvas, under the instance's name.
 
 Wire the net against the interface: arcs and fusions attach to the interface's ports and follow whichever implementation runs. An instance with nothing bound is an error, and the net does not run until an implementation is chosen for it. The net does not run either while the implementation that is bound falls short of its interface, or while a component holds an instance that runs that same component, directly or through others: both are listed under **Composition**.
+
+## Components from libraries
+
+An application that embeds Petrinaut can offer **libraries**: sets of components kept outside the document. Each library is listed in the **Components** panel on the left under its name, with its components beneath it. Click a component, then the canvas, to place an instance of it, or drag it from the panel onto the canvas. The panel shows without the Net Components setting, and places instances in the root net.
+
+A document that uses a component of a library **imports** the library: it keeps the library's id and nothing else, and reads the components each time it is opened. Placing the first instance from a library adds the import, and so does choosing one of its components as an instance's implementation. Removing the last instance leaves it in place. A component of a library is not in the Nets panel and cannot be opened or changed. An instance's properties name the component and the library it comes from. Wire its ports as any others, with fusions and with arcs, and set its parameters on the instance.
+
+A component of a library either runs, or is an **interface**, shown with a puzzle piece. An instance of an interface needs an implementation, chosen in its properties: a component of the document that has the interface's ports and parameters, or a component of a library that does. A component of a library can likewise be chosen as the implementation of an interface of the document. Across a library nothing is ticked under **Implements**: the choice is checked on the ports and parameters, and what is missing is reported on the instance under **Composition**.
+
+While a library is being fetched, the editor is covered and says **Resolving**. Nothing is reported about that library until it has arrived, and the net does not run before it has.
+
+A library that cannot be fetched, or that the application does not know, is one error under **Composition**, naming the library and how many instances use it. Instances of its components draw with **unresolved** under their name and no ports, the Components panel says why under the library's id, and the net does not run. Such an instance can still be renamed, described, moved and removed.
+
+An instance that names a component its library does not have draws the same way and keeps the net from running. It is one error under **Composition**, naming the instance, the component and the library.
+
+To hand a document to someone without the libraries, export it with its imports inlined: **Export → YAML with imports inlined** or **JSON with imports inlined**, offered when the document imports a library. Each component the document uses becomes a subnet of the file, under ids of its own, and the file imports nothing.
+
+A library the net names without importing it, as a file edited by hand may, is one error under **Composition**. Choose the component or the implementation again to add the import.

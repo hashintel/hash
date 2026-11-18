@@ -10,6 +10,8 @@ import {
 import { equationKey, fusionMemberIssues } from "../../composition/fusions";
 import {
   bindingKey,
+  componentOf,
+  describeMissingComponent,
   describeUnboundInstance,
   indexDocument,
   resolveImplementation,
@@ -162,10 +164,15 @@ const requireRunningSubnet = (
   if (checked) {
     return checked;
   }
-  const binding = resolveImplementation(ctx.source, instance, ctx.index);
+  const binding = resolveImplementation(
+    ctx.source,
+    instance,
+    undefined,
+    ctx.index,
+  );
   if (binding === null) {
     throw new Error(
-      `Component instance \`${instance.name}\` references subnet ID \`${instance.subnetId}\` which does not exist.`,
+      `Component instance \`${instance.name}\` references ${describeMissingComponent(componentOf(instance))}.`,
     );
   }
   if (binding.kind === "unbound") {

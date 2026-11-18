@@ -16,6 +16,13 @@ import {
 } from "../main";
 import { useStoreSelector } from "../react/use-store";
 import { Petrinaut } from "../ui/petrinaut";
+import {
+  createStoryImportResolver,
+  importingLineNet,
+  logisticsLibrary,
+  missingLibraryId,
+  toolingLibrary,
+} from "./libraries-story-fixtures";
 import { PetrinautStoryProvider } from "./petrinaut-story-provider";
 import {
   definePetrinautPlugin,
@@ -893,6 +900,47 @@ export const Interfaces: Story = {
       initialTitle="Interfaced line"
     />
   ),
+};
+
+// At module scope: a new resolver or a new list would create a new editor
+// instance on every render, and resolve every import again.
+const resolveStoryImport = createStoryImportResolver(2500);
+const offeredLibraries = [
+  logisticsLibrary.id,
+  toolingLibrary.id,
+  missingLibraryId,
+];
+
+const ImportsRender = () => {
+  const handle = useMemo(
+    () => createJsonDocHandle({ id: "imports-net", initial: importingLineNet }),
+    [],
+  );
+  const [title, setTitle] = useState("Imported line");
+
+  return (
+    <div style={{ height: "100vh", width: "100vw" }}>
+      <Petrinaut
+        handle={handle}
+        title={title}
+        setTitle={setTitle}
+        hideNetManagementControls="all"
+        resolveImport={resolveStoryImport}
+        libraries={offeredLibraries}
+      />
+    </div>
+  );
+};
+
+/**
+ * A document over three imports. Logistics is in memory. Tooling arrives
+ * after a moment, and the editor says "Resolving" over a blurred backdrop
+ * until it does. The third library fails: its instance is drawn unresolved,
+ * the Components panel says why under its id, and Diagnostics reports it.
+ */
+export const Imports: Story = {
+  name: "Imports",
+  render: () => <ImportsRender />,
 };
 
 /** A cell with seven ports: four feeds in, three results out. */
