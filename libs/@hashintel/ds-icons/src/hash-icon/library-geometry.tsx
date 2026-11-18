@@ -114,6 +114,7 @@ import { listTimelineGeometry } from "./library-geometry/list-timeline";
 import { loginGeometry } from "./library-geometry/login";
 import { logoutGeometry } from "./library-geometry/logout";
 import { mailGeometry } from "./library-geometry/mail";
+import { mailUnreadGeometry } from "./library-geometry/mail-unread";
 import { memoInfoGeometry } from "./library-geometry/memo-info";
 import { mixedGeometry } from "./library-geometry/mixed";
 import { newspaperGeometry } from "./library-geometry/newspaper";
@@ -170,6 +171,7 @@ import { ungroupGeometry } from "./library-geometry/ungroup";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  mailUnread: mailUnreadGeometry,
   mail: mailGeometry,
   ballotCheck: ballotCheckGeometry,
   badgeCheck: badgeCheckGeometry,

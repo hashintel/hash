@@ -20,6 +20,7 @@ export type HashIconHint =
   | "up";
 
 export const hashIconHints = {
+  mailUnread: "lift",
   mail: "lift",
   ballotCheck: "lift",
   badgeCheck: "lift",
