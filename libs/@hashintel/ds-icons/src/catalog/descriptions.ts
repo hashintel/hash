@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  shop: "A building with an awning represents a shop or retail location.",
   warehouse: "A broad building with a loading door represents a warehouse.",
   factory: "A sawtooth roof and chimney represent manufacturing.",
   bank: "A columned building represents a bank or public institution.",

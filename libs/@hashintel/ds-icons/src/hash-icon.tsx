@@ -662,6 +662,7 @@ export const HomeIcon = createIcon("home");
 export const BankIcon = createIcon("bank");
 export const FactoryIcon = createIcon("factory");
 export const WarehouseIcon = createIcon("warehouse");
+export const ShopIcon = createIcon("shop");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -847,6 +848,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  shop: ShopIcon,
   warehouse: WarehouseIcon,
   factory: FactoryIcon,
   bank: BankIcon,
