@@ -66,6 +66,8 @@ While a library is being fetched, the editor is covered and says **Resolving**. 
 
 A library that cannot be fetched, or that the application does not know, is one error under **Composition**, naming the library and how many instances use it. Instances of its components draw with **unresolved** under their name and no ports, the Components panel says why under the library's id, and the net does not run. Such an instance can still be renamed, described, moved and removed.
 
+An instance that names a component its library does not have draws the same way and keeps the net from running. It is one error under **Composition**, naming the instance, the component and the library.
+
 To hand a document to someone without the libraries, export it with its imports inlined: **Export → YAML with imports inlined** or **JSON with imports inlined**, offered when the document imports a library. Each component the document uses becomes a subnet of the file, under ids of its own, and the file imports nothing.
 
 A library the net names without importing it, as a file edited by hand may, is one error under **Composition**. Choose the component or the implementation again to add the import.

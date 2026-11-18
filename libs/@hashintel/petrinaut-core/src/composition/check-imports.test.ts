@@ -233,6 +233,91 @@ describe("checkComposition with imports", () => {
     ]);
   });
 
+  describe("a component its library does not have", () => {
+    const crane: ComponentReference = { from: logistics.id, id: "crane" };
+    const stage: Subnet = { ...handScale, id: "stage", interface: true };
+    const named = net({
+      subnets: [
+        { ...handScale, componentInstances: [instanceOf("crane-2", crane)] },
+      ],
+      componentInstances: [
+        instanceOf("crane-1", crane),
+        instanceOf("belt-1", belt),
+      ],
+    });
+
+    it("is one error on each instance that names it, with the component and the library", () => {
+      const problem = {
+        kind: "interface",
+        code: "missing-component",
+        severity: "error",
+      };
+
+      expect(checkComposition(named, resolved)).toEqual([
+        {
+          ...problem,
+          subnetId: null,
+          instanceId: "crane-1",
+          message:
+            "crane-1 names the component `crane`, which the library `@hashintel/logistics` does not have.",
+        },
+        {
+          ...problem,
+          subnetId: handScale.id,
+          instanceId: "crane-2",
+          message:
+            "crane-2 names the component `crane`, which the library `@hashintel/logistics` does not have.",
+        },
+      ]);
+    });
+
+    it("is not reported while its library resolves, nor beside the one error of a library that failed", () => {
+      expect(
+        checkComposition(
+          named,
+          new Map([[logistics.id, { status: "resolving" }]]),
+        ),
+      ).toEqual([]);
+      expect(
+        checkComposition(
+          named,
+          new Map([[logistics.id, { status: "failed", message: "Offline." }]]),
+        ),
+      ).toMatchObject([{ kind: "import", importId: logistics.id }]);
+    });
+
+    it("is reported as an implementation on each instance it leaves with nothing to run", () => {
+      const messages = (sdcpn: SDCPN) =>
+        checkComposition(sdcpn, resolved).map(({ message }) => message);
+
+      expect(
+        messages(
+          net({
+            subnets: [stage],
+            componentInstances: [
+              instanceOf("stage-1", { id: "stage" }, crane),
+              instanceOf("scale-1", scale, crane),
+            ],
+          }),
+        ),
+      ).toEqual([
+        "stage-1 names an implementation that does not exist.",
+        "scale-1 names an implementation that does not exist.",
+      ]);
+      expect(
+        messages(
+          net({
+            subnets: [stage],
+            componentInstances: [instanceOf("stage-1", { id: "stage" })],
+            implementations: [{ interface: { id: "stage" }, component: crane }],
+          }),
+        ),
+      ).toEqual([
+        "stage-1 chooses no implementation, and the document's default for HandScale names an implementation that does not exist.",
+      ]);
+    });
+  });
+
   it("reports a port a resolved component does not have", () => {
     const sdcpn = net({
       ...wired,

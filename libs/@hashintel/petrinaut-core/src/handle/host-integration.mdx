@@ -530,7 +530,9 @@ loader and the word "Resolving", and the checks say nothing about that import.
 One that fails is one error of `checkComposition`, of kind `import`, naming
 its id and how many instances use it; those instances draw as unresolved. A
 library a reference names without the document importing it is one error of
-that kind too, whatever the host resolved it to.
+that kind too, whatever the host resolved it to. An instance that names a
+component a resolved library does not have is one error of kind `interface`,
+with the code `missing-component`, on the instance.
 
 The simulator, the compiler and the language server take one net and no
 libraries. `inlineImports(sdcpn, libraries)` gives that net: each component

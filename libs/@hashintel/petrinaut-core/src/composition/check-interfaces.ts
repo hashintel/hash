@@ -2,9 +2,9 @@
  * The checks on interfaces and their implementations: an interface has no
  * body and implements no interface, an implementation has every port and
  * parameter its interfaces declare with the same token type and a compatible
- * direction, the document has one default per interface, every instance of
- * an interface has an implementation to run, and no component runs inside
- * itself.
+ * direction, the document has one default per interface, every instance
+ * names a component its library has, every instance of an interface has an
+ * implementation to run, and no component runs inside itself.
  */
 
 import { colorsStructurallyEqual } from "./fusions";
@@ -50,6 +50,7 @@ export type InterfaceProblemCode =
   | "missing-parameter"
   | "parameter-type-mismatch"
   | "duplicate-default"
+  | "missing-component"
   | "unbound-instance"
   | "component-cycle";
 
@@ -61,7 +62,7 @@ export type InterfaceProblem = {
    * too for a default of the document whose interface does not exist.
    */
   subnetId: ID | null;
-  /** The instance, for a problem with an instance's binding. */
+  /** The instance, for a problem with an instance's component or binding. */
   instanceId?: ID;
   code: InterfaceProblemCode;
   severity: "error" | "warning";
@@ -305,16 +306,16 @@ const checkDefaults = (
 };
 
 /**
- * What each instance is bound to: an instance of an interface has an
- * implementation to run, and no component runs inside itself.
+ * What each instance is bound to: its library has the component it names, an
+ * instance of an interface has an implementation to run, and no component
+ * runs inside itself.
  */
 const checkBindings = (
   sdcpn: SDCPN,
   index: DocumentIndex,
   libraries: ResolvedLibraries | undefined,
 ): InterfaceProblem[] => {
-  // An instance of a component that does not resolve is for other checks to
-  // report.
+  const problems: InterfaceProblem[] = [];
   const held = [
     { netId: null, instances: sdcpn.componentInstances },
     ...(sdcpn.subnets ?? []).map((subnet) => ({
@@ -324,7 +325,21 @@ const checkBindings = (
   ].flatMap(({ netId, instances = [] }) =>
     instances.flatMap((instance) => {
       const binding = resolveImplementation(sdcpn, instance, libraries, index);
-      return binding === null ? [] : [{ netId, instance, binding }];
+      if (binding !== null) {
+        return [{ netId, instance, binding }];
+      }
+      // An instance whose component does not resolve has no binding to
+      // check. A library that resolved does not have the component. One that
+      // failed is one problem already, of the imports, and one that is still
+      // resolving is none.
+      const { from, id } = componentOf(instance);
+      if (from !== undefined && libraries?.has(from)) {
+        reporter(problems, { subnetId: netId, instanceId: instance.id })(
+          "missing-component",
+          `${instance.name} names the component \`${id}\`, which the library \`${from}\` does not have.`,
+        );
+      }
+      return [];
     }),
   );
 
@@ -350,7 +365,6 @@ const checkBindings = (
   // instances bound alike.
   const shortfallsByBinding = new Map<string, InterfaceProblem[]>();
 
-  const problems: InterfaceProblem[] = [];
   for (const { netId, instance, binding } of held) {
     const report = reporter(problems, {
       subnetId: netId,
