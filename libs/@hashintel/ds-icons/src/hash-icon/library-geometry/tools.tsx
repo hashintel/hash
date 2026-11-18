@@ -1,13 +1,14 @@
 import { FilledShape } from "../filled-shape";
 
 export const toolsGeometry = (
-  <g fill="none" transform="translate(1.44 1.44) scale(.88)">
+  <g fill="none">
     <FilledShape>
-      <path d="m3 3 2-1 5 5-3 3Z" />
+      <path d="m3 3 2-1 4 5-2 2Z" />
+      <path d="m16 14 5 5-2 2-5-5" />
     </FilledShape>
-    <path d="m9 9 10 10M3 21l7-7m5-5 2-2" />
+    <path d="m7 7 2.5 2.5" />
     <FilledShape>
-      <path d="M13 3a6 6 0 0 0-2 6l-9 9a2 2 0 0 0 4 3l9-9a6 6 0 0 0 6-8l-4 4-3-3 4-4a6 6 0 0 0-5 2Z" />
+      <path d="M14 3a5 5 0 0 0-2.8 6.5L3.2 17.5a2.3 2.3 0 0 0 3.3 3.3l8-8A5 5 0 0 0 21 6l-4 4-3-3 4-4a5 5 0 0 0-4 0Z" />
     </FilledShape>
   </g>
 );
