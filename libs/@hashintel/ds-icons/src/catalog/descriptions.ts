@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  splineCubic: "A curved segment between points represents a smooth connector.",
   splineLine:
     "A straight segment between points represents a linear connector.",
   dashDraw: "An uneven stroke represents a hand-drawn line.",
