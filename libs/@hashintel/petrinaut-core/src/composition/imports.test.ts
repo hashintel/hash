@@ -189,6 +189,40 @@ describe("createImportStore", () => {
     expect(store.get().get(logistics.id)?.status).toBe("resolved");
   });
 
+  it("tells its subscribers once of the imports that join the document together", () => {
+    const { definition, store } = storeOf(importing(), () => undefined);
+    const before = store.get();
+    const seen: ImportStates[] = [];
+    store.subscribe((states) => seen.push(states));
+
+    definition.set(importing("@hashintel/one", "@hashintel/two"));
+
+    expect(seen).toHaveLength(1);
+    expect([...store.get().keys()]).toEqual([
+      "@hashintel/one",
+      "@hashintel/two",
+    ]);
+    // The states handed out earlier stay as they were.
+    expect(before.size).toBe(0);
+  });
+
+  it("takes the imports of a long list into one copy of the states", () => {
+    const ids = Array.from(
+      { length: 20_000 },
+      (_, index) => `@hashintel/library-${index}`,
+    );
+
+    const started = Date.now();
+    const { store } = storeOf(importing(...ids));
+    const states = store.get();
+    const elapsed = Date.now() - started;
+
+    expect(states.size).toBe(ids.length);
+    // One copy takes milliseconds; a copy for every import takes several
+    // seconds.
+    expect(elapsed).toBeLessThan(1_000);
+  });
+
   it("fails an import the host does not know", () => {
     const { store } = storeOf(importing("@hashintel/unknown"), () => undefined);
 

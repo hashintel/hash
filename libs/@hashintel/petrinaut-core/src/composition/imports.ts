@@ -146,20 +146,30 @@ export const createImportStore = ({
   offered: readonly string[];
 }): { store: ReadableStore<ImportStates>; dispose: () => void } => {
   let states: ImportStates = new Map();
+  /** The states a pass over the document's imports gathers, to publish together. */
+  let gathered: Map<string, ImportState> | undefined;
   const listeners = new Set<(states: ImportStates) => void>();
   let stopObserving: (() => void) | undefined;
   let disposed = false;
 
-  /** `announce` is false for a state set while the store is being read. */
-  const set = (id: string, state: ImportState, announce: boolean): void => {
-    if (disposed) {
-      return;
-    }
-    states = new Map(states).set(id, state);
+  /** `announce` is false for states set while the store is being read. */
+  const publish = (next: ImportStates, announce: boolean): void => {
+    states = next;
     if (announce) {
       for (const listener of listeners) {
         listener(states);
       }
+    }
+  };
+
+  const set = (id: string, state: ImportState, announce: boolean): void => {
+    if (disposed) {
+      return;
+    }
+    if (gathered) {
+      gathered.set(id, state);
+    } else {
+      publish(new Map(states).set(id, state), announce);
     }
   };
 
@@ -207,9 +217,25 @@ export const createImportStore = ({
     announce: boolean,
   ): void => {
     const ids = [...offered, ...(sdcpn.imports ?? []).map(({ id }) => id)];
-    for (const id of ids) {
-      if (!states.has(id)) {
-        resolve(id, announce);
+    const unseen = ids.filter((id) => !states.has(id));
+    if (unseen.length === 0) {
+      return;
+    }
+    // One copy of the states for the pass: a copy for each import would make
+    // the work grow with the square of their number. An answer that comes
+    // later publishes a copy of its own.
+    const pass = new Map(states);
+    gathered = pass;
+    try {
+      for (const id of unseen) {
+        if (!pass.has(id)) {
+          resolve(id, announce);
+        }
+      }
+    } finally {
+      gathered = undefined;
+      if (!disposed) {
+        publish(pass, announce);
       }
     }
   };
