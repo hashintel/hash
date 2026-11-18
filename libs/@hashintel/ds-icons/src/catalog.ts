@@ -172,6 +172,7 @@ const categories = {
     "logicForAll",
     "logicExists",
     "logicNext",
+    "logicUntil",
   ],
   Navigation: [
     "arrowUp",

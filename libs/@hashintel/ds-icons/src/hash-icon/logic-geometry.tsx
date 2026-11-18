@@ -52,4 +52,10 @@ export const logicGeometry = {
       <circle cx="17.5" cy="12" r="3" fill="currentColor" />
     </g>
   ),
+  logicUntil: (
+    <>
+      <path d="M3 9v6m0-3h12.5" />
+      <circle cx="19" cy="12" r="3.5" fill="currentColor" stroke="none" />
+    </>
+  ),
 } as const;
