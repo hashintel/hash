@@ -402,7 +402,8 @@ type PortOfSubnet = { subnet: Subnet; place: Place };
  *
  * The binding is resolved here, once: a caller with many ports to ask about,
  * of this instance or of others with its `bindingKey`, keeps the function it
- * is given. `index` is `indexDocument(sdcpn)`.
+ * is given. `index` is `indexDocument(sdcpn)`, which also saves a read of the
+ * implementation's places for each binding it runs behind.
  */
 export const resolveRunningPorts = (
   sdcpn: Pick<SDCPN, "subnets" | "implementations">,
@@ -413,8 +414,8 @@ export const resolveRunningPorts = (
   if (binding?.kind !== "bound") {
     return (declared) => declared;
   }
-  const { running, portId } = runningSubnet(binding);
-  const placesById = indexById(running.places);
+  const { running, portId } = runningSubnet(binding, index);
+  const placesById = (index?.subnetIndex ?? indexSubnet)(running).places();
   return (declared) => {
     const place = placesById.get(portId(declared.place.id));
     return place ? { subnet: running, place } : declared;

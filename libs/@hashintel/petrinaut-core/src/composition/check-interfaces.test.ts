@@ -720,6 +720,52 @@ describe("a fusion on a port of an interface", () => {
     expect(problems).toEqual([]);
     expect(elapsed).toBeLessThan(1_000);
   });
+
+  it("reads an implementation's places once, however many interfaces it runs behind", () => {
+    // Two thousand interfaces of one port each, an instance of each fused at
+    // that port, and one implementation of ten thousand ports behind them all.
+    const count = 2_000;
+    const interfaces = Array.from({ length: count }, (_, index) =>
+      subnet(`narrow${index}`, {
+        interface: true,
+        places: [
+          place(`narrow${index}_port`, { name: `port-${index}`, isPort: true }),
+        ],
+      }),
+    );
+    const wide = subnet("wide", {
+      implements: interfaces.map(({ id }) => id),
+      places: Array.from({ length: 10_000 }, (_, index) =>
+        place(`port-${index}`, { isPort: true }),
+      ),
+    });
+    const sdcpn = net({
+      subnets: [...interfaces, wide],
+      componentInstances: interfaces.map(({ id }, index) =>
+        instance(`s${index}`, id, "wide"),
+      ),
+      fusions: [
+        {
+          id: "f1",
+          name: "F1",
+          members: interfaces.map(({ id }, index) => ({
+            kind: "componentPort" as const,
+            componentInstanceId: `s${index}`,
+            portPlaceId: `${id}_port`,
+          })),
+        },
+      ],
+    });
+
+    const started = Date.now();
+    const problems = checkFusions(sdcpn);
+    const elapsed = Date.now() - started;
+
+    expect(problems).toEqual([]);
+    // A read of the implementation's places for every binding takes several
+    // seconds.
+    expect(elapsed).toBeLessThan(1_000);
+  });
 });
 
 describe("resolveImplementation", () => {
