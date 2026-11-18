@@ -164,6 +164,7 @@ export const hashIconStudies = [
 
 const categories = {
   Files: [
+    "clipboardCheck",
     "clipboard",
     "memoInfo",
     "notePlus",

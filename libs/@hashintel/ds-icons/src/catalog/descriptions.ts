@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  clipboardCheck:
+    "A clipboard with a check represents a completed task or verified record.",
   clipboard: "A clipboard represents recorded or copied information.",
   memoInfo:
     "A note with an information mark represents contextual documentation.",
