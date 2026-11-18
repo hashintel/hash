@@ -14,6 +14,8 @@ type DataTypeRow = {
 
 export type DataTypeTreePosition = {
   depth: number;
+  continuationDepths: number[];
+  hasNextSibling: boolean;
   expanded: boolean;
   hasChildren: boolean;
   matchesSearch: boolean;
@@ -133,7 +135,12 @@ export const buildDataTypeTree = <Row extends DataTypeRow>({
   // edge traversal, then fall back to a complete, flat list of matching types.
   const traversalBudget = Math.max(10_000, rows.length * 4);
   let traversalWork = 0;
-  const visit = (row: Row, path: VersionedUrl[]): boolean => {
+  const visit = (
+    row: Row,
+    path: VersionedUrl[],
+    continuationDepths: number[],
+    hasNextSibling: boolean,
+  ): boolean => {
     if (
       path.includes(row.typeId) ||
       (includedIds && !includedIds.has(row.typeId))
@@ -160,14 +167,27 @@ export const buildDataTypeTree = <Row extends DataTypeRow>({
       rowId,
       hierarchy: {
         depth: path.length,
+        continuationDepths,
+        hasNextSibling,
         expanded,
         hasChildren,
         matchesSearch: !matchingIds || matchingIds.has(row.typeId),
       },
     });
     if (expanded) {
-      for (const childId of childIds) {
-        if (!visit(byId.get(childId)!, nextPath)) {
+      const childContinuationDepths =
+        path.length > 0 && hasNextSibling
+          ? [...continuationDepths, path.length - 1]
+          : continuationDepths;
+      for (const [index, childId] of childIds.entries()) {
+        if (
+          !visit(
+            byId.get(childId)!,
+            nextPath,
+            childContinuationDepths,
+            index < childIds.length - 1,
+          )
+        ) {
           return false;
         }
       }
@@ -175,7 +195,7 @@ export const buildDataTypeTree = <Row extends DataTypeRow>({
     return true;
   };
   for (const root of roots) {
-    if (!visit(root, [])) {
+    if (!visit(root, [], [], false)) {
       return {
         isFlat: true,
         rows: rows
@@ -185,6 +205,8 @@ export const buildDataTypeTree = <Row extends DataTypeRow>({
             rowId: JSON.stringify([row.typeId]),
             hierarchy: {
               depth: 0,
+              continuationDepths: [],
+              hasNextSibling: false,
               expanded: false,
               hasChildren: false,
               matchesSearch: true,

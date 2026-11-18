@@ -107,6 +107,7 @@ export type GridProps<
     dataTypeId: VersionedUrl | null;
   }) => void;
   onSelectedRowsChange?: (selectedRows: Row[]) => void;
+  preserveCurrentCell?: boolean;
   resizable?: boolean;
   rows?: Row[];
   selectedRows?: Row[];
@@ -175,6 +176,7 @@ export const Grid = <
   searchValue: externalSearchValue,
   onSelectedRowsChange,
   onVisibleRegionChanged,
+  preserveCurrentCell = false,
   resizable = true,
   rows,
   selectedRows,
@@ -197,6 +199,7 @@ export const Grid = <
     columns: CompactSelection.empty(),
     rows: CompactSelection.empty(),
   });
+  const [currentCellRowId, setCurrentCellRowId] = useState<string>();
 
   useEffect(() => {
     // delete saved interactables on unmount
@@ -434,6 +437,21 @@ export const Grid = <
   }, [onSearchClose, setSearchValue]);
 
   const gridSelection = useMemo(() => {
+    let current = selection.current;
+    if (preserveCurrentCell && current) {
+      const rowIndex =
+        sortedAndFilteredRows?.findIndex(
+          (row) => row.rowId === currentCellRowId,
+        ) ?? -1;
+      current =
+        rowIndex < 0
+          ? undefined
+          : {
+              cell: [current.cell[0], rowIndex],
+              range: { x: current.cell[0], y: rowIndex, width: 1, height: 1 },
+              rangeStack: [],
+            };
+    }
     if (sortedAndFilteredRows && selectedRows) {
       let mergedRowSelection = CompactSelection.empty();
 
@@ -449,12 +467,19 @@ export const Grid = <
 
       return {
         ...selection,
+        current,
         rows: mergedRowSelection,
       };
     }
 
-    return selection;
-  }, [selection, sortedAndFilteredRows, selectedRows]);
+    return { ...selection, current };
+  }, [
+    selection,
+    sortedAndFilteredRows,
+    selectedRows,
+    preserveCurrentCell,
+    currentCellRowId,
+  ]);
 
   const gridTheme: Partial<Theme> = useMemo(
     () => ({
@@ -769,6 +794,11 @@ export const Grid = <
         onColumnResize={resizable ? handleColumnResize : undefined}
         onGridSelectionChange={(newSelection) => {
           setSelection(newSelection);
+          setCurrentCellRowId(
+            newSelection.current
+              ? sortedAndFilteredRows?.[newSelection.current.cell[1]]?.rowId
+              : undefined,
+          );
 
           if (onSelectedRowsChange && sortedAndFilteredRows) {
             newSelection.rows.toArray();

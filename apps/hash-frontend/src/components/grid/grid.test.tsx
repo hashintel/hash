@@ -1,11 +1,16 @@
 // @vitest-environment jsdom
-import { GridCellKind } from "@glideapps/glide-data-grid";
+import {
+  CompactSelection,
+  getDefaultTheme,
+  GridCellKind,
+} from "@glideapps/glide-data-grid";
 import { ThemeProvider } from "@mui/material";
 import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { theme } from "@hashintel/design-system/theme";
 
+import { renderDataTypeTreeCell } from "../../pages/shared/types-table/data-type-tree-cell";
 import { Grid } from "./grid";
 
 import type * as DataGridModule from "@glideapps/glide-data-grid";
@@ -37,7 +42,7 @@ const grid = (
   searchProps: Pick<
     DataGridModule.DataEditorProps,
     "searchValue" | "onSearchValueChange" | "onSearchClose"
-  > = {},
+  > & { rows?: typeof rows; preserveCurrentCell?: boolean } = {},
 ) => (
   <ThemeProvider theme={theme}>
     <Grid
@@ -88,5 +93,83 @@ describe("grid search ownership", () => {
     act(() => editor.props?.onSearchClose?.());
     expect(editor.props?.searchValue).toBe("");
     expect(editor.props?.searchResults).toEqual([]);
+  });
+});
+
+describe("tree cell selection", () => {
+  afterEach(cleanup);
+
+  it("keeps the active cell on the same type when a branch above it changes", () => {
+    const { rerender } = render(grid({ preserveCurrentCell: true }));
+    const selection: DataGridModule.GridSelection = {
+      rows: CompactSelection.empty(),
+      columns: CompactSelection.empty(),
+      current: {
+        cell: [0, 1],
+        range: { x: 0, y: 1, width: 1, height: 1 },
+        rangeStack: [],
+      },
+    };
+    act(() => editor.props?.onGridSelectionChange?.(selection));
+    const expanded = [rows[0]!, { rowId: "length", title: "Length" }, rows[1]!];
+    rerender(grid({ rows: expanded, preserveCurrentCell: true }));
+    expect(editor.props?.gridSelection?.current?.cell).toEqual([0, 2]);
+    rerender(grid({ rows: [rows[0]!], preserveCurrentCell: true }));
+    expect(editor.props?.gridSelection?.current).toBeUndefined();
+    rerender(grid({ preserveCurrentCell: true }));
+    expect(editor.props?.gridSelection?.current?.cell).toEqual([0, 1]);
+  });
+
+  it("cancels pointer selection only over an expandable row's chevron", () => {
+    const preventDefault = vi.fn();
+    const args: Parameters<
+      NonNullable<typeof renderDataTypeTreeCell.onSelect>
+    >[0] = {
+      cell: {
+        kind: GridCellKind.Custom,
+        allowOverlay: false,
+        copyData: "Meters",
+        data: {
+          kind: "data-type-tree-cell",
+          title: "Meters",
+          depth: 2,
+          continuationDepths: [],
+          hasNextSibling: false,
+          expanded: false,
+          hasChildren: true,
+          muted: false,
+          onToggle: vi.fn(),
+          onOpen: vi.fn(),
+        },
+      },
+      posX: 70,
+      posY: 20,
+      bounds: { x: 0, y: 0, width: 300, height: 42 },
+      theme: {
+        ...getDefaultTheme(),
+        headerFontFull: "14px sans-serif",
+        baseFontFull: "14px sans-serif",
+        markerFontFull: "14px sans-serif",
+      },
+      shiftKey: false,
+      ctrlKey: false,
+      metaKey: false,
+      isTouch: false,
+      isEdge: false,
+      button: 0,
+      buttons: 1,
+      scrollEdge: [0, 0],
+      preventDefault,
+    };
+    renderDataTypeTreeCell.onSelect?.(args);
+    expect(preventDefault).toHaveBeenCalledOnce();
+    preventDefault.mockClear();
+    renderDataTypeTreeCell.onSelect?.({ ...args, posX: 100 });
+    renderDataTypeTreeCell.onSelect?.({ ...args, posX: 45 });
+    renderDataTypeTreeCell.onSelect?.({
+      ...args,
+      cell: { ...args.cell, data: { ...args.cell.data, hasChildren: false } },
+    });
+    expect(preventDefault).not.toHaveBeenCalled();
   });
 });

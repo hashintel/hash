@@ -11,6 +11,7 @@ import {
   type PropertyTypeWithMetadata,
   type VersionedUrl,
 } from "@blockprotocol/type-system";
+import { faListTree, FontAwesomeIcon } from "@hashintel/design-system";
 import { SortMenu } from "@hashintel/ds-components";
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 
@@ -177,7 +178,10 @@ export const TypesTable: FunctionComponent<{
 
   const [view, _setView] = useState<VisualizerView>("Table");
 
-  const hierarchical = kind === "data-type";
+  const [dataTypeLayout, setDataTypeLayout] = useState<"Nested" | "Flat">(
+    "Nested",
+  );
+  const hierarchical = kind === "data-type" && dataTypeLayout === "Nested";
   const [searchValue, setSearchValue] = useState("");
   const [expandedRows, setExpandedRows] = useState<Set<string>>(
     () => new Set(),
@@ -455,7 +459,7 @@ export const TypesTable: FunctionComponent<{
     [filteredRows, activeSort],
   );
 
-  const treeSearchValue = hierarchical && showSearch ? searchValue : "";
+  const treeSearchValue = kind === "data-type" && showSearch ? searchValue : "";
   const toggleRow = useCallback(
     (rowId: string) => {
       const setRows = treeSearchValue
@@ -698,7 +702,12 @@ export const TypesTable: FunctionComponent<{
         : undefined,
     [hierarchical, sortedRows, expandedRows, matchingIds, collapsedSearchRows],
   );
-  const visibleRows = tree?.rows ?? sortedRows;
+  const visibleRows = useMemo(
+    () =>
+      tree?.rows ??
+      sortedRows?.filter((row) => !matchingIds || matchingIds.has(row.typeId)),
+    [tree, sortedRows, matchingIds],
+  );
 
   const contentTopRef = useRef<HTMLDivElement>(null);
   const [contentTop, setContentTop] = useState<number | null>(null);
@@ -745,9 +754,12 @@ export const TypesTable: FunctionComponent<{
   );
 
   const generateCsvFile = useCallback<GenerateCsvFileFunction>(() => {
-    const rowsToExport = hierarchical
-      ? sortedRows?.filter((row) => !matchingIds || matchingIds.has(row.typeId))
-      : currentlyDisplayedRowsRef.current;
+    const rowsToExport =
+      kind === "data-type"
+        ? sortedRows?.filter(
+            (row) => !matchingIds || matchingIds.has(row.typeId),
+          )
+        : currentlyDisplayedRowsRef.current;
     const currentlyDisplayedColumns = currentlyDisplayedColumnsRef.current;
     if (!rowsToExport || !currentlyDisplayedColumns) {
       return null;
@@ -757,7 +769,7 @@ export const TypesTable: FunctionComponent<{
       rows: rowsToExport,
       title: typesTablesToTitle[kind],
     });
-  }, [hierarchical, sortedRows, matchingIds, kind]);
+  }, [sortedRows, matchingIds, kind]);
 
   const selectedTypes = types?.filter((type) =>
     selectedRows.some(({ typeId }) => type.schema.$id === typeId),
@@ -765,22 +777,46 @@ export const TypesTable: FunctionComponent<{
 
   const onSelectedRowsChange = useCallback(
     (updatedRows: TypesTableRow[]) => {
-      if (!hierarchical) {
+      if (kind !== "data-type") {
         setSelectedRows(updatedRows);
         return;
       }
-      const visibleIds = new Set(visibleRows?.map(({ rowId }) => rowId));
+      const visibleIds = new Set(visibleRows?.map(({ typeId }) => typeId));
       const filteredTypeIds = new Set(sortedRows?.map(({ typeId }) => typeId));
-      setSelectedRows((previous) => [
-        ...previous.filter(
-          ({ rowId, typeId }) =>
-            !visibleIds.has(rowId) && filteredTypeIds.has(typeId),
-        ),
-        ...updatedRows,
-      ]);
+      setSelectedRows((previous) => {
+        const selectedIds = new Set(previous.map(({ typeId }) => typeId));
+        const updatedRowIds = new Set(updatedRows.map(({ rowId }) => rowId));
+        const deselectedTypeIds = new Set(
+          visibleRows
+            ?.filter(
+              ({ rowId, typeId }) =>
+                selectedIds.has(typeId) && !updatedRowIds.has(rowId),
+            )
+            .map(({ typeId }) => typeId),
+        );
+        return [
+          ...previous.filter(
+            ({ typeId }) =>
+              !visibleIds.has(typeId) && filteredTypeIds.has(typeId),
+          ),
+          ...new Map(
+            updatedRows
+              .filter(({ typeId }) => !deselectedTypeIds.has(typeId))
+              .map((row) => [row.typeId, row]),
+          ).values(),
+        ];
+      });
     },
-    [hierarchical, visibleRows, sortedRows],
+    [kind, visibleRows, sortedRows],
   );
+
+  const selectedVisibleRows = useMemo(() => {
+    if (kind !== "data-type") {
+      return selectedRows;
+    }
+    const selectedIds = new Set(selectedRows.map(({ typeId }) => typeId));
+    return visibleRows?.filter(({ typeId }) => selectedIds.has(typeId));
+  }, [kind, selectedRows, visibleRows]);
 
   // Stable identity: a fresh object would re-render the memoized graph on
   // every table render.
@@ -810,17 +846,50 @@ export const TypesTable: FunctionComponent<{
                 sx={{ px: 1.5, borderRadius: "4px" }}
               />
             ) : null}
-            <TableHeaderToggle
-              value={view}
-              setValue={setView}
-              options={(
-                ["Table", "Graph"] as const satisfies VisualizerView[]
-              ).map((optionValue) => ({
-                icon: visualizerViewIcons[optionValue],
-                label: `${optionValue} view`,
-                value: optionValue,
-              }))}
-            />
+            {kind === "data-type" ? (
+              <TableHeaderToggle
+                value={view === "Graph" ? "Graph" : dataTypeLayout}
+                setValue={(mode: "Nested" | "Flat" | "Graph") => {
+                  if (mode === "Graph") {
+                    setView("Graph");
+                  } else {
+                    setDataTypeLayout(mode);
+                    if (view !== "Table") {
+                      setView("Table");
+                    }
+                  }
+                }}
+                options={[
+                  {
+                    icon: <FontAwesomeIcon icon={{ icon: faListTree }} />,
+                    label: "Nested List",
+                    value: "Nested",
+                  },
+                  {
+                    icon: visualizerViewIcons.Table,
+                    label: "Flat List",
+                    value: "Flat",
+                  },
+                  {
+                    icon: visualizerViewIcons.Graph,
+                    label: "Graph view",
+                    value: "Graph",
+                  },
+                ]}
+              />
+            ) : (
+              <TableHeaderToggle
+                value={view}
+                setValue={setView}
+                options={(
+                  ["Table", "Graph"] as const satisfies VisualizerView[]
+                ).map((optionValue) => ({
+                  icon: visualizerViewIcons[optionValue],
+                  label: `${optionValue} view`,
+                  value: optionValue,
+                }))}
+              />
+            )}
           </>
         }
         bottomLeft={
@@ -830,7 +899,7 @@ export const TypesTable: FunctionComponent<{
                 selectedItems={selectedTypes}
                 onBulkActionCompleted={() => setSelectedRows([])}
               />
-              {hierarchical ? (
+              {kind === "data-type" ? (
                 <Button
                   size="small"
                   variant="tertiary_quiet"
@@ -946,6 +1015,7 @@ export const TypesTable: FunctionComponent<{
             dataLoading={!types || loading}
             enableCheckboxSelection
             drawFocusRing={hierarchical}
+            preserveCurrentCell={hierarchical}
             firstColumnLeftPadding={firstColumnLeftPadding}
             freezeColumns={1}
             height={`min(
@@ -984,7 +1054,7 @@ export const TypesTable: FunctionComponent<{
                 pushToSlideStack({ kind: "dataType", itemId: row.typeId });
               }
             }}
-            selectedRows={selectedRows}
+            selectedRows={selectedVisibleRows}
             setSort={setSort}
             showSearch={showSearch}
             sort={activeSort}

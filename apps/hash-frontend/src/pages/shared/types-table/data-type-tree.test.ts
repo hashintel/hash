@@ -39,10 +39,44 @@ describe("data type hierarchy", () => {
     expect(tree.map(({ title }) => title)).toEqual(["number", "text"]);
     expect(tree[0]?.hierarchy).toEqual({
       depth: 0,
+      continuationDepths: [],
+      hasNextSibling: false,
       hasChildren: true,
       expanded: false,
       matchesSearch: true,
     });
+  });
+
+  it("continues ancestor branches through expanded children and stops after the last sibling", () => {
+    const tree = buildDataTypeTree({
+      ...defaults,
+      matchingIds: new Set([id("meters"), id("feet")]),
+    });
+    expect(
+      tree.map(({ title, hierarchy }) => [
+        title,
+        hierarchy.continuationDepths,
+        hierarchy.hasNextSibling,
+      ]),
+    ).toEqual([
+      ["number", [], false],
+      ["length", [], false],
+      ["metric", [], true],
+      ["meters", [1], false],
+      ["imperial", [], false],
+      ["feet", [], false],
+    ]);
+    const singleBranch = buildDataTypeTree({
+      ...defaults,
+      matchingIds: new Set([id("meters")]),
+    });
+    expect(
+      singleBranch.every(
+        ({ hierarchy }) =>
+          !hierarchy.hasNextSibling &&
+          hierarchy.continuationDepths.length === 0,
+      ),
+    ).toBe(true);
   });
 
   it("expands one level at a time and keeps siblings in input sort order", () => {

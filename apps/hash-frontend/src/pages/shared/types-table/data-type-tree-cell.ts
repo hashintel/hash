@@ -13,6 +13,8 @@ export type DataTypeTreeCell = CustomCell<{
   title: string;
   icon?: string;
   depth: number;
+  continuationDepths: number[];
+  hasNextSibling: boolean;
   expanded: boolean;
   hasChildren: boolean;
   muted: boolean;
@@ -20,34 +22,62 @@ export type DataTypeTreeCell = CustomCell<{
   onOpen: () => void;
 }>;
 
+const treeInset = 16;
+const treeIndent = 24;
+
 export const renderDataTypeTreeCell: CustomRenderer<DataTypeTreeCell> = {
   kind: GridCellKind.Custom,
   isMatch: (cell): cell is DataTypeTreeCell =>
     "kind" in cell.data && cell.data.kind === "data-type-tree-cell",
+  onSelect: ({ cell, posX, preventDefault }) => {
+    const left = treeInset + cell.data.depth * treeIndent;
+    if (cell.data.hasChildren && posX >= left && posX <= left + treeIndent) {
+      preventDefault();
+    }
+  },
   draw: (args, cell) => {
     const { ctx, rect, theme, spriteManager } = args;
     const {
       title,
       icon,
       depth,
+      continuationDepths,
+      hasNextSibling,
       expanded,
       hasChildren,
       muted,
       onToggle,
       onOpen,
     } = cell.data;
-    const left = rect.x + 16 + depth * 24;
+    const left = rect.x + treeInset + depth * treeIndent;
     const centerY = rect.y + rect.height / 2;
     const interactables = [];
 
-    if (depth > 0) {
-      ctx.strokeStyle = customColors.gray[30];
-      ctx.beginPath();
-      ctx.moveTo(left - 12, rect.y);
-      ctx.lineTo(left - 12, centerY);
-      ctx.lineTo(left - 4, centerY);
-      ctx.stroke();
+    ctx.save();
+    ctx.strokeStyle = customColors.gray[30];
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (const ancestorDepth of continuationDepths) {
+      const ancestorX =
+        Math.floor(rect.x + treeInset + ancestorDepth * treeIndent + 11) + 0.5;
+      ctx.moveTo(ancestorX, rect.y);
+      ctx.lineTo(ancestorX, rect.y + rect.height);
     }
+    if (depth > 0) {
+      const parentX = Math.floor(left - treeIndent + 11) + 0.5;
+      const branchY = Math.floor(centerY) + 0.5;
+      ctx.moveTo(parentX, rect.y);
+      ctx.lineTo(parentX, hasNextSibling ? rect.y + rect.height : branchY);
+      ctx.moveTo(parentX, branchY);
+      ctx.lineTo(hasChildren ? left + 3 : left + 24, branchY);
+    }
+    if (expanded) {
+      const childX = Math.floor(left + 11) + 0.5;
+      ctx.moveTo(childX, centerY + 7);
+      ctx.lineTo(childX, rect.y + rect.height);
+    }
+    ctx.stroke();
+    ctx.restore();
 
     if (hasChildren) {
       spriteManager.drawSprite(

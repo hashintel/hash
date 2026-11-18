@@ -235,4 +235,93 @@ describe("hierarchical type table", () => {
     expect(state.grid?.selectedRows).toEqual([]);
     expect(screen.queryByTestId("selected-count")).toBeNull();
   });
+
+  it("switches layout without losing expanded branches, search, or bulk selections", () => {
+    renderTable();
+    expect(
+      screen
+        .getByRole("button", { name: "Nested List" })
+        .getAttribute("aria-pressed"),
+    ).toBe("true");
+    toggle("number");
+    toggle("distance");
+    const meters = visibleRows().find(({ title }) => title === "meters")!;
+    act(() => state.grid?.onSelectedRowsChange?.([meters]));
+    fireEvent.click(screen.getByRole("button", { name: "Flat List" }));
+    expect(visibleRows().map(({ title }) => title)).toEqual([
+      "distance",
+      "length",
+      "meters",
+      "number",
+      "value",
+    ]);
+    expect(visibleRows().every(({ hierarchy }) => !hierarchy)).toBe(true);
+    expect(state.grid?.selectedRows?.map(({ title }) => title)).toEqual([
+      "meters",
+    ]);
+    fireEvent.click(screen.getByRole("button", { name: "Nested List" }));
+    expect(visibleRows().map(({ title }) => title)).toEqual([
+      "number",
+      "distance",
+      "meters",
+      "length",
+    ]);
+    fireEvent.click(screen.getByRole("button", { name: "Clear selection" }));
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
+    act(() => state.grid?.onSearchValueChange?.("meters"));
+    fireEvent.click(screen.getByRole("button", { name: "Flat List" }));
+    expect(visibleRows().map(({ title }) => title)).toEqual(["meters"]);
+    expect(csvTitles()).toEqual(["meters"]);
+    fireEvent.click(screen.getByRole("button", { name: "Nested List" }));
+    expect(visibleRows().map(({ title }) => title)).toEqual([
+      "number",
+      "distance",
+      "meters",
+      "length",
+      "meters",
+    ]);
+  });
+
+  it("selects a multiply inherited type once and allows either occurrence to clear it", () => {
+    renderTable();
+    toggle("number");
+    toggle("distance");
+    toggle("length");
+    const occurrences = visibleRows().filter(({ title }) => title === "meters");
+    act(() => state.grid?.onSelectedRowsChange?.([occurrences[0]!]));
+    expect(state.selected).toHaveLength(1);
+    expect(state.grid?.selectedRows).toHaveLength(2);
+    act(() => state.grid?.onSelectedRowsChange?.([occurrences[1]!]));
+    expect(state.grid?.selectedRows).toEqual([]);
+  });
+
+  it("offers nested, flat, and graph views in one switcher for Data Types", () => {
+    const { rerender } = renderTable();
+    const modes = screen.getByRole("group", { name: "view" });
+    expect(
+      Array.from(modes.querySelectorAll("button"), (button) =>
+        button.getAttribute("aria-label"),
+      ),
+    ).toEqual(["Nested List", "Flat List", "Graph view"]);
+    fireEvent.click(screen.getByRole("button", { name: "Graph view" }));
+    expect(
+      screen
+        .getByRole("button", { name: "Graph view" })
+        .getAttribute("aria-pressed"),
+    ).toBe("true");
+    fireEvent.click(screen.getByRole("button", { name: "Flat List" }));
+    expect(visibleRows().every(({ hierarchy }) => !hierarchy)).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Graph view" }));
+    fireEvent.click(screen.getByRole("button", { name: "Nested List" }));
+    expect(visibleRows().every(({ hierarchy }) => hierarchy)).toBe(true);
+    rerender(
+      <ThemeProvider theme={theme}>
+        <TypesTable kind="all" onlyOneWeb types={types} />
+      </ThemeProvider>,
+    );
+    expect(screen.queryByRole("button", { name: "Nested List" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Flat List" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Table view" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Graph view" })).toBeTruthy();
+  });
 });
