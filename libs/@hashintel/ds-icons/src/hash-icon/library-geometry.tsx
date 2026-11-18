@@ -14,6 +14,7 @@ import { alignTopGeometry } from "./library-geometry/align-top";
 import { alignTopCenterGeometry } from "./library-geometry/align-top-center";
 import { alignTopLeftGeometry } from "./library-geometry/align-top-left";
 import { alignTopRightGeometry } from "./library-geometry/align-top-right";
+import { appGeometry } from "./library-geometry/app";
 import { archiveGeometry } from "./library-geometry/archive";
 import { arrowPointerGeometry } from "./library-geometry/arrow-pointer";
 import { arrowProgressGeometry } from "./library-geometry/arrow-progress";
@@ -212,6 +213,7 @@ import { userTieGeometry } from "./library-geometry/user-tie";
 import { usersGeometry } from "./library-geometry/users";
 
 export const libraryGeometry = {
+  app: appGeometry,
   browser: browserGeometry,
   laptop: laptopGeometry,
   monitor: monitorGeometry,

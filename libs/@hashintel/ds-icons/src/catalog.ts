@@ -163,7 +163,7 @@ export const hashIconStudies = [
 }[];
 
 const categories = {
-  Technology: ["browser", "laptop", "monitor"],
+  Technology: ["app", "browser", "laptop", "monitor"],
   Science: ["brain"],
   People: [
     "heart",
