@@ -164,6 +164,7 @@ export const hashIconStudies = [
 
 const categories = {
   Interface: [
+    "tag",
     "pin",
     "dot",
     "help",
