@@ -74,6 +74,7 @@ import { redoGeometry } from "./library-geometry/redo";
 import { shapeArrowDownGeometry } from "./library-geometry/shape-arrow-down";
 import { shapeArrowLeftGeometry } from "./library-geometry/shape-arrow-left";
 import { shapeArrowRightGeometry } from "./library-geometry/shape-arrow-right";
+import { shapeArrowUpGeometry } from "./library-geometry/shape-arrow-up";
 import { shuffleGeometry } from "./library-geometry/shuffle";
 import { squareCloseGeometry } from "./library-geometry/square-close";
 import { squareMinusGeometry } from "./library-geometry/square-minus";
@@ -85,6 +86,7 @@ import { triangleGeometry } from "./library-geometry/triangle";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  shapeArrowUp: shapeArrowUpGeometry,
   shapeArrowLeft: shapeArrowLeftGeometry,
   shapeArrowDown: shapeArrowDownGeometry,
   shapeArrowRight: shapeArrowRightGeometry,
