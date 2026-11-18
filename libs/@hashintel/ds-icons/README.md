@@ -191,6 +191,7 @@ Filled dots mark states or events where that distinction carries meaning.
 | `logicExists`     | Some member satisfies a condition.          |
 | `logicNext`       | Highlights the next state in a sequence.    |
 | `logicUntil`      | A condition persists until an event occurs. |
+| `logicBranching`  | A state has alternative possible futures.   |
 
 ### Temporal logic
 

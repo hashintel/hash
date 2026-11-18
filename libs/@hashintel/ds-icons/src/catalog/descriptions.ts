@@ -205,6 +205,8 @@ export const descriptions = {
   logicNext: "An arrow between states highlights the next state in a sequence.",
   logicUntil:
     "A line ending at an event represents a condition persisting until that event occurs.",
+  logicBranching:
+    "A state with two outgoing paths represents alternative possible futures.",
   logicSignalBounded:
     "A waveform with a marked interval represents signal temporal logic over a bounded period.",
   logicSignalThreshold:

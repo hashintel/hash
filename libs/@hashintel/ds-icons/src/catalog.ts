@@ -173,6 +173,7 @@ const categories = {
     "logicExists",
     "logicNext",
     "logicUntil",
+    "logicBranching",
   ],
   Navigation: [
     "arrowUp",

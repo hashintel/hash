@@ -58,4 +58,12 @@ export const logicGeometry = {
       <circle cx="19" cy="12" r="3.5" fill="currentColor" stroke="none" />
     </>
   ),
+  logicBranching: (
+    <g strokeWidth="calc(var(--hash-icon-stroke-width) * .8)">
+      <path d="M7 12h3.5l6.2-5.9M10.5 12l6.2 5.9" />
+      <circle cx="4.5" cy="12" r="2.5" fill="currentColor" stroke="none" />
+      <circle cx="19" cy="5" r="2.5" />
+      <circle cx="19" cy="19" r="2.5" />
+    </g>
+  ),
 } as const;
