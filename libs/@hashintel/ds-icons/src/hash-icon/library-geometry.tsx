@@ -107,6 +107,7 @@ import { hexagonGeometry } from "./library-geometry/hexagon";
 import { highlighterGeometry } from "./library-geometry/highlighter";
 import { historyPagesGeometry } from "./library-geometry/history-pages";
 import { historyUserGeometry } from "./library-geometry/history-user";
+import { hospitalUserGeometry } from "./library-geometry/hospital-user";
 import { inboxGeometry } from "./library-geometry/inbox";
 import { italicGeometry } from "./library-geometry/italic";
 import { keyGeometry } from "./library-geometry/key";
@@ -201,6 +202,7 @@ import { userTieGeometry } from "./library-geometry/user-tie";
 import { usersGeometry } from "./library-geometry/users";
 
 export const libraryGeometry = {
+  hospitalUser: hospitalUserGeometry,
   expertInterviews: expertInterviewsGeometry,
   peopleArrows: peopleArrowsGeometry,
   family: familyGeometry,

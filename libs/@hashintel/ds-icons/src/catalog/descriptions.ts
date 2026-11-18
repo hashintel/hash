@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  hospitalUser:
+    "A person beside a medical cross represents a patient or care recipient.",
   expertInterviews:
     "A person beside a speech bubble represents an expert interview.",
   peopleArrows:
