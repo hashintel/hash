@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  sad: "A frowning face represents sadness or negative feedback.",
   smile: "A smiling face represents happiness or positive feedback.",
   handshake: "Two joined hands represent agreement or partnership.",
   thumbsDown: "A lowered thumb represents disapproval or a negative reaction.",

@@ -154,6 +154,7 @@ import { rectanglesMixedGeometry } from "./library-geometry/rectangles-mixed";
 import { redoGeometry } from "./library-geometry/redo";
 import { roundedCornerGeometry } from "./library-geometry/rounded-corner";
 import { rowsGeometry } from "./library-geometry/rows";
+import { sadGeometry } from "./library-geometry/sad";
 import { searchChartGeometry } from "./library-geometry/search-chart";
 import { searchCheckGeometry } from "./library-geometry/search-check";
 import { searchDollarGeometry } from "./library-geometry/search-dollar";
@@ -206,6 +207,7 @@ import { userTieGeometry } from "./library-geometry/user-tie";
 import { usersGeometry } from "./library-geometry/users";
 
 export const libraryGeometry = {
+  sad: sadGeometry,
   smile: smileGeometry,
   handshake: handshakeGeometry,
   thumbsDown: thumbsDownGeometry,
