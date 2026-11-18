@@ -102,11 +102,15 @@ export {
   hasBody,
   implementationsOf,
   implementsInterface,
+  indexDocument,
   isInterface,
   resolveComponent,
   resolveImplementation,
 } from "./composition/interfaces";
-export type { ImplementationBinding } from "./composition/interfaces";
+export type {
+  DocumentIndex,
+  ImplementationBinding,
+} from "./composition/interfaces";
 export {
   describePortDirection,
   effectivePortDirection,

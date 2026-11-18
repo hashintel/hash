@@ -527,5 +527,44 @@ describe("buildCanvasScene", () => {
         typeColor: "#ff0000",
       });
     });
+
+    it("resolves many instances against a long list of defaults, with one read of the list", () => {
+      const size = 30_000;
+      const many: SDCPN = {
+        ...sdcpn,
+        subnets: [iface, fast],
+        implementations: [
+          ...Array.from({ length: size }, (_, index) => ({
+            interface: { id: `other${index}` },
+            component: { id: "fast" },
+          })),
+          { interface: { id: "iface" }, component: { id: "fast" } },
+        ],
+        componentInstances: Array.from({ length: size }, (_, index) =>
+          instance(`bound-${index}`, "iface"),
+        ),
+      };
+
+      const started = Date.now();
+      const { nodes } = buildCanvasScene({
+        ...input,
+        sdcpn: many,
+        net: activeNet(many),
+      });
+      const elapsed = Date.now() - started;
+
+      const bindings = new Set(
+        nodes.flatMap((node) =>
+          node.kind === "componentInstance"
+            ? [JSON.stringify(node.binding)]
+            : [],
+        ),
+      );
+      expect([...bindings]).toEqual([
+        JSON.stringify({ kind: "interface", implementationName: "Fast" }),
+      ]);
+      // A search of the defaults for every instance takes several seconds.
+      expect(elapsed).toBeLessThan(1000);
+    });
   });
 });

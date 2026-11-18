@@ -17,6 +17,7 @@ import {
   getComponentInstanceHeight,
   getEffectiveTransitionLambdaType,
   getTransitionLogicAvailability,
+  indexDocument,
 } from "@hashintel/petrinaut-core";
 
 import { fusionLinks, type FusionStatus } from "./fusion-links";
@@ -336,8 +337,12 @@ export const buildCanvasScene = ({
     return directions;
   };
 
+  // The document's subnets and defaults, read once for every instance.
+  const index =
+    net.componentInstances.length > 0 ? indexDocument(sdcpn) : undefined;
+
   for (const instance of net.componentInstances) {
-    const resolved = resolveImplementation(sdcpn, instance);
+    const resolved = resolveImplementation(sdcpn, instance, index);
     // The subnet the instance points at: the ports it shows are that one's,
     // whichever implementation runs behind them.
     const subnet =
