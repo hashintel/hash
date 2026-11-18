@@ -163,6 +163,7 @@ export const hashIconStudies = [
 }[];
 
 const categories = {
+  Science: ["brain"],
   People: [
     "heart",
     "sad",

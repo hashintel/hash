@@ -35,6 +35,7 @@ import { boldGeometry } from "./library-geometry/bold";
 import { bookGeometry } from "./library-geometry/book";
 import { bookOpenGeometry } from "./library-geometry/book-open";
 import { booksGeometry } from "./library-geometry/books";
+import { brainGeometry } from "./library-geometry/brain";
 import { bringForwardGeometry } from "./library-geometry/bring-forward";
 import { bringToFrontGeometry } from "./library-geometry/bring-to-front";
 import { calendarCheckGeometry } from "./library-geometry/calendar-check";
@@ -208,6 +209,7 @@ import { userTieGeometry } from "./library-geometry/user-tie";
 import { usersGeometry } from "./library-geometry/users";
 
 export const libraryGeometry = {
+  brain: brainGeometry,
   heart: heartGeometry,
   sad: sadGeometry,
   smile: smileGeometry,

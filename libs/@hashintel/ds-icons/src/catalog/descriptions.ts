@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  brain: "Two connected lobes represent thought, intelligence, or cognition.",
   heart: "A heart represents care, affection, or a favorite.",
   sad: "A frowning face represents sadness or negative feedback.",
   smile: "A smiling face represents happiness or positive feedback.",
