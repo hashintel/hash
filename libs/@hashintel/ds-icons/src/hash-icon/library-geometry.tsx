@@ -125,6 +125,7 @@ import { splineCubicGeometry } from "./library-geometry/spline-cubic";
 import { splineLineGeometry } from "./library-geometry/spline-line";
 import { squareCloseGeometry } from "./library-geometry/square-close";
 import { squareMinusGeometry } from "./library-geometry/square-minus";
+import { stackHorizontalGeometry } from "./library-geometry/stack-horizontal";
 import { tagGeometry } from "./library-geometry/tag";
 import { toggleOffGeometry } from "./library-geometry/toggle-off";
 import { toggleOnGeometry } from "./library-geometry/toggle-on";
@@ -133,6 +134,7 @@ import { triangleGeometry } from "./library-geometry/triangle";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  stackHorizontal: stackHorizontalGeometry,
   distributeVertical: distributeVerticalGeometry,
   distributeHorizontal: distributeHorizontalGeometry,
   alignBottomRight: alignBottomRightGeometry,

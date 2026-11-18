@@ -1,0 +1,5 @@
+---
+"@hashintel/ds-icons": minor
+---
+
+Add `StackHorizontalIcon` (`stackHorizontal`) in the HASH style with a description, variable weight, and outline and filled rendering. Adjacent panels represent stacking objects horizontally.
