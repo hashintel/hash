@@ -82,6 +82,7 @@ import { noteStickyGeometry } from "./library-geometry/note-sticky";
 import { octagonGeometry } from "./library-geometry/octagon";
 import { paperclipGeometry } from "./library-geometry/paperclip";
 import { parallelogramGeometry } from "./library-geometry/parallelogram";
+import { pencilRulerGeometry } from "./library-geometry/pencil-ruler";
 import { pencilSlashGeometry } from "./library-geometry/pencil-slash";
 import { pentagonGeometry } from "./library-geometry/pentagon";
 import { pinGeometry } from "./library-geometry/pin";
@@ -107,6 +108,7 @@ import { triangleGeometry } from "./library-geometry/triangle";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  pencilRuler: pencilRulerGeometry,
   pencilSlash: pencilSlashGeometry,
   highlighter: highlighterGeometry,
   eraser: eraserGeometry,
