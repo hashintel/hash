@@ -444,6 +444,7 @@ export const FileExportIcon = createIcon("fileExport");
 export const FilesIcon = createIcon("files");
 export const FolderIcon = createIcon("folder");
 export const NoteStickyIcon = createIcon("noteSticky");
+export const NotePlusIcon = createIcon("notePlus");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -629,6 +630,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  notePlus: NotePlusIcon,
   noteSticky: NoteStickyIcon,
   folder: FolderIcon,
   files: FilesIcon,
