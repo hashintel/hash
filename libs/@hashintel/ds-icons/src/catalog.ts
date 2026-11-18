@@ -181,6 +181,7 @@ const categories = {
     "palette",
   ],
   Data: [
+    "circleAsterisk",
     "survey",
     "specification",
     "plugCheck",
