@@ -149,6 +149,7 @@ import { stackVerticalGeometry } from "./library-geometry/stack-vertical";
 import { strikethroughGeometry } from "./library-geometry/strikethrough";
 import { tagGeometry } from "./library-geometry/tag";
 import { textAlignLeftGeometry } from "./library-geometry/text-align-left";
+import { textAlignRightGeometry } from "./library-geometry/text-align-right";
 import { toggleOffGeometry } from "./library-geometry/toggle-off";
 import { toggleOnGeometry } from "./library-geometry/toggle-on";
 import { trapezoidGeometry } from "./library-geometry/trapezoid";
@@ -158,6 +159,7 @@ import { ungroupGeometry } from "./library-geometry/ungroup";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  textAlignRight: textAlignRightGeometry,
   textAlignLeft: textAlignLeftGeometry,
   percent: percentGeometry,
   hashtag: hashtagGeometry,
