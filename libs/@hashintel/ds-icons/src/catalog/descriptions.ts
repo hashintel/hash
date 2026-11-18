@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  arrowheadTriangle:
+    "A triangular arrowhead represents a closed arrow line ending.",
   arrowheadSquare: "A square represents a square line ending.",
   arrowheadDot: "A circle represents a dotted line ending.",
   arrowheadDiamond: "A diamond represents a diamond line ending.",
