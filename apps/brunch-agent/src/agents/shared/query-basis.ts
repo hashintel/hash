@@ -10,6 +10,7 @@ import {
   netElementKinds,
   traceLedger,
 } from "@hashintel/brunch-agent";
+import { migrateLegacyComponentKeys } from "@hashintel/petrinaut-core";
 
 import {
   callsForElement,
@@ -197,8 +198,13 @@ export const queryBasis = (input: {
       basis: undefined,
       changes: [],
     };
+  // A stored view can list its components under `subnets`, as a document
+  // written with that key does: it is read the way a file is.
   const candidates = latest
-    ? elements(latest.definition, input.query.kind).filter(
+    ? elements(
+        migrateLegacyComponentKeys(latest.definition),
+        input.query.kind,
+      ).filter(
         (element) =>
           namesId(input.query.id, element.id) ||
           (input.query.name !== undefined &&

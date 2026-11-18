@@ -386,6 +386,63 @@ test("query_basis finds an element inside a component and the call that added it
   });
 });
 
+test("query_basis finds a component and what is inside it in a view recorded with `subnets` and `subnetId`", () => {
+  const [queue] = definition.places;
+  const instanceOf = (id: string, name: string, componentId: string) => ({
+    id,
+    name,
+    subnetId: componentId,
+    parameterValues: {},
+    x: 0,
+    y: 0,
+  });
+  const readWithOldKeys = {
+    ...read,
+    output: {
+      brunchBrowserResult: true,
+      output: {
+        title: "Queue",
+        definition: {
+          ...definition,
+          componentInstances: [instanceOf("intake-1", "Intake1", "intake")],
+          subnets: [
+            {
+              id: "intake",
+              name: "Intake",
+              places: [{ ...queue, id: "triage", name: "Triage" }],
+              transitions: [],
+              types: [],
+              parameters: [],
+              differentialEquations: [],
+              componentInstances: [instanceOf("desk-1", "Desk1", "desk")],
+            },
+          ],
+        },
+      },
+      metadata: { documentRevision: { before: "revision-2" } },
+    },
+  };
+  const history = {
+    ...snapshot,
+    messages: [user, { ...assistant, parts: [commit, add, readWithOldKeys] }],
+  } as FlueConversationSnapshot;
+  const find = (query: Parameters<typeof queryBasis>[0]["query"]) =>
+    queryBasis({ snapshot: history, browser, query });
+
+  expect(find({ kind: "component", name: "Intake" })).toMatchObject({
+    disposition: "basis-absent",
+    target: { id: "intake" },
+  });
+  expect(find({ kind: "place", name: "Triage" })).toMatchObject({
+    disposition: "basis-absent",
+    target: { id: "triage" },
+  });
+  expect(find({ kind: "componentInstance", name: "Desk1" })).toMatchObject({
+    disposition: "basis-absent",
+    target: { id: "desk-1" },
+  });
+});
+
 test("query_basis finds a fusion by its name or its ID, and never mistakes it for an arc", () => {
   const readWithFusions = {
     ...read,
