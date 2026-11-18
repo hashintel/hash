@@ -133,6 +133,7 @@ import { parallelogramGeometry } from "./library-geometry/parallelogram";
 import { pencilRulerGeometry } from "./library-geometry/pencil-ruler";
 import { pencilSlashGeometry } from "./library-geometry/pencil-slash";
 import { pentagonGeometry } from "./library-geometry/pentagon";
+import { peopleArrowsGeometry } from "./library-geometry/people-arrows";
 import { percentGeometry } from "./library-geometry/percent";
 import { personGeometry } from "./library-geometry/person";
 import { personBoothGeometry } from "./library-geometry/person-booth";
@@ -199,6 +200,7 @@ import { userTieGeometry } from "./library-geometry/user-tie";
 import { usersGeometry } from "./library-geometry/users";
 
 export const libraryGeometry = {
+  peopleArrows: peopleArrowsGeometry,
   family: familyGeometry,
   personBooth: personBoothGeometry,
   personPortal: personPortalGeometry,

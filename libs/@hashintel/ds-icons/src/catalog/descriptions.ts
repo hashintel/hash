@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  peopleArrows:
+    "People with opposing arrows represent exchange or collaboration.",
   family: "Adults and a child represent a family or household.",
   personBooth:
     "A figure using an enclosed booth represents a private session or service point.",

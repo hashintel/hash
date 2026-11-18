@@ -626,6 +626,7 @@ export const PersonSignIcon = createIcon("personSign");
 export const PersonPortalIcon = createIcon("personPortal");
 export const PersonBoothIcon = createIcon("personBooth");
 export const FamilyIcon = createIcon("family");
+export const PeopleArrowsIcon = createIcon("peopleArrows");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -811,6 +812,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  peopleArrows: PeopleArrowsIcon,
   family: FamilyIcon,
   personBooth: PersonBoothIcon,
   personPortal: PersonPortalIcon,
