@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  ballotCheck: "A checked selection on a ballot represents an approved choice.",
   badgeCheck:
     "A check in a seal represents verified identity or certification.",
   shieldAlert: "A shield with an exclamation mark represents a security alert.",

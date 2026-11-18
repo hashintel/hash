@@ -20,6 +20,7 @@ export type HashIconHint =
   | "up";
 
 export const hashIconHints = {
+  ballotCheck: "lift",
   badgeCheck: "lift",
   shieldAlert: "lift",
   shieldCheck: "lift",

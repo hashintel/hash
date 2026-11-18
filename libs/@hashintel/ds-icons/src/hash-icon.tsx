@@ -595,6 +595,7 @@ export const ListTimelineIcon = createIcon("listTimeline");
 export const ShieldCheckIcon = createIcon("shieldCheck");
 export const ShieldAlertIcon = createIcon("shieldAlert");
 export const BadgeCheckIcon = createIcon("badgeCheck");
+export const BallotCheckIcon = createIcon("ballotCheck");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -780,6 +781,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  ballotCheck: BallotCheckIcon,
   badgeCheck: BadgeCheckIcon,
   shieldAlert: ShieldAlertIcon,
   shieldCheck: ShieldCheckIcon,
