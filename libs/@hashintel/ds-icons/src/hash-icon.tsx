@@ -542,6 +542,7 @@ export const FillPatternIcon = createIcon("fillPattern");
 export const SizeSmallIcon = createIcon("sizeSmall");
 export const SizeMediumIcon = createIcon("sizeMedium");
 export const SizeLargeIcon = createIcon("sizeLarge");
+export const SizeExtraLargeIcon = createIcon("sizeExtraLarge");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -727,6 +728,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  sizeExtraLarge: SizeExtraLargeIcon,
   sizeLarge: SizeLargeIcon,
   sizeMedium: SizeMediumIcon,
   sizeSmall: SizeSmallIcon,

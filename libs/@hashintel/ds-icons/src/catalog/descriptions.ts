@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  sizeExtraLarge:
+    "A extralarge square represents the corresponding drawing size.",
   sizeLarge: "A large square represents the corresponding drawing size.",
   sizeMedium: "A medium square represents the corresponding drawing size.",
   sizeSmall: "A small square represents the corresponding drawing size.",
