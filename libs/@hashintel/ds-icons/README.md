@@ -62,6 +62,29 @@ export default defineConfig({
 
 The preset defines the keyframes the icon animations use.
 
+## Static hosts
+
+Use the separate `@hashintel/ds-icons/static` entrypoint when a host does not use
+Panda CSS or icon animation. It renders the same canonical geometry, without the
+motion classes or styling runtime. `size` defaults to `1em`; `variant` and `weight`
+work as on `HashIcon`. Use the main entrypoint for animated or stateful icons.
+
+```tsx
+import { StaticHashIcon } from "@hashintel/ds-icons/static";
+
+<StaticHashIcon name="copy" aria-label="Copy" />;
+```
+
+`HashIconArtwork` draws inside an existing 24 × 24 SVG, including MUI adapters.
+`getHashIconArtwork(name, variant, idPrefix)` returns trusted, generated SVG markup
+for static assets and canvas renderers. Supply an instance-specific prefix when
+embedding more than one drawing in an SVG document. The build regenerates this
+artwork from `HashIcon`; edit the canonical geometry, not `src/static/artwork.json`.
+
+The repository inventory in `docs/icon-migration-map.json` records the counterparts
+for interface icons in HASH and internal-sites. Brand marks, national flags,
+illustrations, and test fixtures are identified separately to preserve their meaning.
+
 ## One-time and continuous animations
 
 Prefer one-time animations for hover feedback and completed actions. They acknowledge

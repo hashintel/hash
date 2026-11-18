@@ -29,6 +29,7 @@ export default defineConfig(({ command }) => ({
     lib: {
       entry: {
         index: "src/main.ts",
+        static: "src/static.tsx",
         "panda-preset": "src/panda-preset.ts",
       },
       fileName: (_format, entryName) => `${entryName}.js`,
