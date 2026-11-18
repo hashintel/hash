@@ -7,14 +7,17 @@ import { hashIconNames } from "./hash-icon";
 const entries = new Map(hashIconCatalog.map((entry) => [entry.name, entry]));
 
 describe("icon catalog metadata", () => {
-  it("describes every canonical icon once without reusing a study summary", () => {
+  it("describes every canonical icon in one sentence about its meaning", () => {
     expect(hashIconCatalog.map(({ name }) => name)).toEqual(hashIconNames);
     expect(Object.keys(descriptions).sort()).toEqual([...hashIconNames].sort());
     expect(
       new Set(hashIconCatalog.map(({ description }) => description)).size,
     ).toBe(hashIconNames.length);
+    const sentences = new Intl.Segmenter("en", { granularity: "sentence" });
     for (const { description } of hashIconCatalog) {
       expect(description.trim().length).toBeGreaterThan(0);
+      expect([...sentences.segment(description)]).toHaveLength(1);
+      expect(description).not.toMatch(/\b(?:hover|animation)\b/i);
       expect(
         hashIconStudies.some((study) => study.motion === description),
       ).toBe(false);
@@ -22,7 +25,7 @@ describe("icon catalog metadata", () => {
   });
 
   it("distinguishes the cube from the subnet network in the same study", () => {
-    expect(entries.get("cube")?.description).toMatch(/cube.*turns in depth/i);
+    expect(entries.get("cube")?.description).toMatch(/cube.*spatial module/i);
     expect(entries.get("subnetNetwork")?.description).toMatch(
       /places connected to a transition/i,
     );

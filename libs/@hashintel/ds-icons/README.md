@@ -125,15 +125,13 @@ related-icon names, motion hint, and optional study name.
 import { hashIconCatalog } from "@hashintel/ds-icons";
 
 const place = hashIconCatalog.find(({ name }) => name === "place");
-// place.description explains the place symbol and its default hover behavior.
+// place.description explains what the place symbol represents.
 // place.related includes "addPlace" and "transition".
 ```
 
-Use `description` for an individual icon's shape, purpose, and default interaction.
-Hover descriptions assume motion is enabled and the icon is inside a supported
-interactive control or preview. Explicit animation effects and state props may
-change that behavior. This descriptive text does not replace an accessible label
-for the action a control performs.
+Each `description` is one sentence explaining the icon's shape and meaning.
+Animation controls and motion hints are separate. This descriptive text does not
+replace an accessible label for the action a control performs.
 
 `related` contains curated canonical names in catalog order. Relationships are
 reciprocal and contain no aliases, duplicates, or self-links. An empty array means
