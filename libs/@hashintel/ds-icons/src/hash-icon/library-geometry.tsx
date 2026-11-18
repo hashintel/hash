@@ -100,6 +100,7 @@ import { fontSansGeometry } from "./library-geometry/font-sans";
 import { fontSerifGeometry } from "./library-geometry/font-serif";
 import { frameGeometry } from "./library-geometry/frame";
 import { groupGeometry } from "./library-geometry/group";
+import { handshakeGeometry } from "./library-geometry/handshake";
 import { handwrittenDocsGeometry } from "./library-geometry/handwritten-docs";
 import { hashtagGeometry } from "./library-geometry/hashtag";
 import { helpGeometry } from "./library-geometry/help";
@@ -204,6 +205,7 @@ import { userTieGeometry } from "./library-geometry/user-tie";
 import { usersGeometry } from "./library-geometry/users";
 
 export const libraryGeometry = {
+  handshake: handshakeGeometry,
   thumbsDown: thumbsDownGeometry,
   thumbsUp: thumbsUpGeometry,
   hospitalUser: hospitalUserGeometry,
