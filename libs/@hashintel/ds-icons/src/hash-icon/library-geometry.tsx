@@ -70,6 +70,7 @@ import { clipboardListGeometry } from "./library-geometry/clipboard-list";
 import { cloudDownloadGeometry } from "./library-geometry/cloud-download";
 import { codeBranchGeometry } from "./library-geometry/code-branch";
 import { codeEditGeometry } from "./library-geometry/code-edit";
+import { coinsGeometry } from "./library-geometry/coins";
 import { collapseVerticalGeometry } from "./library-geometry/collapse-vertical";
 import { columnsGeometry } from "./library-geometry/columns";
 import { commandGeometry } from "./library-geometry/command";
@@ -273,6 +274,7 @@ import { usersGeometry } from "./library-geometry/users";
 import { warehouseGeometry } from "./library-geometry/warehouse";
 
 export const libraryGeometry = {
+  coins: coinsGeometry,
   dollar: dollarGeometry,
   towerControl: towerControlGeometry,
   truckPlane: truckPlaneGeometry,

@@ -163,7 +163,7 @@ export const hashIconStudies = [
 }[];
 
 const categories = {
-  Finance: ["dollar"],
+  Finance: ["coins", "dollar"],
   Transport: [
     "towerControl",
     "truckPlane",
