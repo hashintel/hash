@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  truckRamp:
+    "A truck with a loading ramp represents loading or unloading goods.",
   truckFast: "A truck with motion strokes represents expedited delivery.",
   truckContainer:
     "A truck with a corrugated body represents container transport.",
