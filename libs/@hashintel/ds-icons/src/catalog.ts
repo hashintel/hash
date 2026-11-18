@@ -163,7 +163,13 @@ export const hashIconStudies = [
 }[];
 
 const categories = {
-  Interface: ["radioChecked", "squareMinus", "squareClose", "circlePlay"],
+  Interface: [
+    "checkDouble",
+    "radioChecked",
+    "squareMinus",
+    "squareClose",
+    "circlePlay",
+  ],
   Time: [
     "historyUser",
     "historyPages",

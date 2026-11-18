@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  checkDouble:
+    "Two check marks represent completed delivery or double confirmation.",
   radioChecked: "A dot inside a circle represents a selected radio option.",
   squareMinus: "A minus in a square represents removing or collapsing an item.",
   squareClose: "A cross in a square represents closing or rejecting an item.",

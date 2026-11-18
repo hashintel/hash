@@ -11,6 +11,7 @@ import { calendarDayGeometry } from "./library-geometry/calendar-day";
 import { calendarDaysGeometry } from "./library-geometry/calendar-days";
 import { calendarWeekGeometry } from "./library-geometry/calendar-week";
 import { calendarsGeometry } from "./library-geometry/calendars";
+import { checkDoubleGeometry } from "./library-geometry/check-double";
 import { chevronsUpDownGeometry } from "./library-geometry/chevrons-up-down";
 import { circleArrowRightGeometry } from "./library-geometry/circle-arrow-right";
 import { circleArrowUpRightGeometry } from "./library-geometry/circle-arrow-up-right";
@@ -58,6 +59,7 @@ import { squareMinusGeometry } from "./library-geometry/square-minus";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  checkDouble: checkDoubleGeometry,
   radioChecked: radioCheckedGeometry,
   squareMinus: squareMinusGeometry,
   squareClose: squareCloseGeometry,
