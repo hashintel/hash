@@ -88,6 +88,7 @@ import { fillPatternGeometry } from "./library-geometry/fill-pattern";
 import { fillSemiGeometry } from "./library-geometry/fill-semi";
 import { fillSolidGeometry } from "./library-geometry/fill-solid";
 import { folderGeometry } from "./library-geometry/folder";
+import { fontCaseGeometry } from "./library-geometry/font-case";
 import { fontDrawGeometry } from "./library-geometry/font-draw";
 import { fontMonoGeometry } from "./library-geometry/font-mono";
 import { fontSansGeometry } from "./library-geometry/font-sans";
@@ -154,6 +155,7 @@ import { ungroupGeometry } from "./library-geometry/ungroup";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  fontCase: fontCaseGeometry,
   fontDraw: fontDrawGeometry,
   fontMono: fontMonoGeometry,
   fontSerif: fontSerifGeometry,

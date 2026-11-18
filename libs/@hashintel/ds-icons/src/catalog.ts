@@ -164,6 +164,7 @@ export const hashIconStudies = [
 
 const categories = {
   Text: [
+    "fontCase",
     "fontDraw",
     "fontMono",
     "fontSerif",

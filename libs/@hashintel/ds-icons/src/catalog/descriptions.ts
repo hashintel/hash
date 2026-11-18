@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  fontCase: "An uppercase A beside a lowercase a represents letter case.",
   fontDraw: "An irregular A represents a handwritten typeface.",
   fontMono: "A wide I with equal horizontal bars represents monospaced text.",
   fontSerif: "A bracketed A represents a serif typeface.",
