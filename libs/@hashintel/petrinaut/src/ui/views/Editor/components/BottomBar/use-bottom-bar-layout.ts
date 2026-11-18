@@ -1,19 +1,36 @@
-import { useCallback, useState } from "react";
+import { useCallback, useLayoutEffect, useState } from "react";
 
 import { useElementSize } from "../../../../../react/hooks/use-element-size";
+import { useStoreSelector } from "../../../../../react/use-store";
 import { VIEWPORT_CONTROLS_CLEARANCE } from "../../../../constants/ui";
-import { useCanvasInsets } from "../../../../hooks/use-canvas-insets";
+import {
+  useCanvasInsetsStore,
+  type CanvasInsets,
+} from "../../../../hooks/use-canvas-insets";
+import { bindStyleToStores } from "../../../../lib/style-from-stores";
 import { fitsWithinBounds, getBottomBarOffset } from "./bottom-bar-placement";
 import { type CollapsibleGroupWidth } from "./collapse-context";
 
 /** Gap kept between the bar and a panel it has been pushed away from. */
 const BOTTOM_BAR_MARGIN = 12;
 
+/** The room the panels and the viewport controls leave the bar. */
+const boundsWithin = (
+  insets: CanvasInsets,
+  containerWidth: number,
+  hasViewportControls: boolean,
+) => ({
+  containerWidth,
+  leftInset: insets.left,
+  // The viewport controls sit in the bar's row on the right of the canvas,
+  // so they bound it the same way a panel does. They are absent in actual
+  // mode, where `SDCPNCanvas` does not render them.
+  rightInset:
+    insets.right + (hasViewportControls ? VIEWPORT_CONTROLS_CLEARANCE : 0),
+  margin: BOTTOM_BAR_MARGIN,
+});
+
 export interface BottomBarLayout {
-  /** CSS translation that clears the panels using the bar's rendered width. */
-  readonly offsetX: string;
-  /** How far the bottom panel lifts the bar, in px. */
-  readonly liftY: number;
   /** True while the bar has room only for its essential controls. */
   readonly isCollapsed: boolean;
   /** Reports what one collapsible group takes up. See the collapse context. */
@@ -26,6 +43,11 @@ export interface BottomBarLayout {
 /**
  * Places the bottom bar between the docked panels and decides whether it has
  * room for every control.
+ *
+ * The bar's place is written straight onto `barRef`'s element as a transform:
+ * a translation that clears the panels using the bar's rendered width, and
+ * the lift of the bottom panel. It follows a panel drag with no render. The
+ * bar renders only when a drag changes whether it fits.
  *
  * Each collapsible group reports its natural and occupied widths, keeping the
  * fit calculation stable throughout animation. CSS positions the visible bar.
@@ -79,17 +101,23 @@ export const useBottomBarLayout = (
     [],
   );
 
-  const insets = useCanvasInsets();
-  const bounds = {
-    containerWidth,
-    leftInset: insets.left,
-    // The viewport controls sit in the bar's row on the right of the canvas,
-    // so they bound it the same way a panel does. They are absent in actual
-    // mode, where `SDCPNCanvas` does not render them.
-    rightInset:
-      insets.right + (hasViewportControls ? VIEWPORT_CONTROLS_CLEARANCE : 0),
-    margin: BOTTOM_BAR_MARGIN,
-  };
+  const insets = useCanvasInsetsStore();
+
+  useLayoutEffect(() => {
+    const bar = barRef.current;
+    return bar
+      ? bindStyleToStores(bar, { insets }, (current) => {
+          const bounds = boundsWithin(
+            current.insets,
+            containerWidth,
+            hasViewportControls,
+          );
+          return {
+            transform: `translate(${getBottomBarOffset(bounds)}, ${-current.insets.bottom}px)`,
+          };
+        })
+      : undefined;
+  }, [barRef, insets, containerWidth, hasViewportControls]);
 
   let hiddenWidth = 0;
   for (const width of groupWidths.values()) {
@@ -99,12 +127,14 @@ export const useBottomBarLayout = (
   // What the bar would take with every control shown. Its two terms move
   // together while a group folds, so the sum holds still throughout.
   const expandedWidth = barWidth + hiddenWidth;
-  const isCollapsed = !fitsWithinBounds(bounds, expandedWidth);
+  const isCollapsed = useStoreSelector(
+    insets,
+    (current) =>
+      !fitsWithinBounds(
+        boundsWithin(current, containerWidth, hasViewportControls),
+        expandedWidth,
+      ),
+  );
 
-  return {
-    offsetX: getBottomBarOffset(bounds),
-    liftY: insets.bottom,
-    isCollapsed,
-    reportGroupWidth,
-  };
+  return { isCollapsed, reportGroupWidth };
 };

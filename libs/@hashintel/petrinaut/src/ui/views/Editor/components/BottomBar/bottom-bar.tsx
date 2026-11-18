@@ -159,9 +159,6 @@ export const BottomBar: React.FC<BottomBarProps> = ({
         ref={barRef}
         data-bottom-bar
         className={`${bottomBarStyle} ${barAnimatingStyle({ animating: isPanelAnimating })}`}
-        style={{
-          transform: `translate(${layout.offsetX}, ${-layout.liftY}px)`,
-        }}
       >
         <BottomBarCollapseContext
           value={{

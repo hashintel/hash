@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { createRef, use, type ReactNode } from "react";
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { EditorContext } from "../../../../../react/state/editor-context";
 import {
@@ -21,6 +21,15 @@ vi.mock("../../../../../react/hooks/use-element-size", () => ({
   }),
 }));
 
+// The hook writes the bar's place on the bar element.
+const placement = () =>
+  /^translate\((.*), (-?[\d.]+)px\)$/.exec(barRef.current!.style.transform)!;
+const offsetX = () => placement()[1];
+const liftY = () => 0 - Number(placement()[2]);
+
+beforeEach(() => {
+  barRef.current = document.createElement("div");
+});
 afterEach(cleanup);
 
 it("centers in the available main view as sibling panels resize it", () => {
@@ -48,13 +57,13 @@ it("centers in the available main view as sibling panels resize it", () => {
       }),
     { wrapper },
   );
-  expect(result.current.offsetX).toBe(
+  expect(offsetX()).toBe(
     `max(calc(${12 - laneWidth / 2}px + 50%), min(0px, calc(${laneWidth / 2 - (editor.hasSelection ? propertiesPanelWidth : 0) - 12}px - 50%)))`,
   );
   editor = { ...editor, isAiAssistantOpen: true };
   laneWidth = 1580;
   rerender();
-  expect(result.current.offsetX).toBe(
+  expect(offsetX()).toBe(
     `max(calc(${12 - laneWidth / 2}px + 50%), min(0px, calc(${laneWidth / 2 - (editor.hasSelection ? propertiesPanelWidth : 0) - 12}px - 50%)))`,
   );
   expect(result.current.isCollapsed).toBe(false);
@@ -62,14 +71,14 @@ it("centers in the available main view as sibling panels resize it", () => {
   editor = { ...editor, hasSelection: true };
   laneWidth = 1200;
   rerender();
-  expect(result.current.offsetX).toBe(
+  expect(offsetX()).toBe(
     "max(calc(-588px + 50%), min(0px, calc(138px - 50%)))",
   );
 
   editor = { ...editor, aiAssistantPlacement: "floating" };
   laneWidth = 2000;
   rerender();
-  expect(result.current.offsetX).toBe(
+  expect(offsetX()).toBe(
     `max(calc(${12 - laneWidth / 2}px + 50%), min(0px, calc(${laneWidth / 2 - (editor.hasSelection ? propertiesPanelWidth : 0) - 12}px - 50%)))`,
   );
 
@@ -81,7 +90,7 @@ it("centers in the available main view as sibling panels resize it", () => {
   editor = { ...editor, isAiAssistantOpen: false };
   laneWidth = 2000;
   rerender();
-  expect(result.current.offsetX).toBe(
+  expect(offsetX()).toBe(
     `max(calc(${12 - laneWidth / 2}px + 50%), min(0px, calc(${laneWidth / 2 - (editor.hasSelection ? propertiesPanelWidth : 0) - 12}px - 50%)))`,
   );
   expect(result.current.isCollapsed).toBe(false);
@@ -117,16 +126,16 @@ it("keeps horizontal placement unchanged when a panel moves a hover-expanded bar
     }),
   );
   expect(result.current.isCollapsed).toBe(true);
-  const offset = result.current.offsetX;
+  const offset = offsetX();
   for (const isBottomPanelOpen of [true, false]) {
     editor = { ...editor, isBottomPanelOpen, isPanelAnimating: true };
     rerender();
-    expect(result.current.offsetX).toBe(offset);
-    expect(result.current.liftY).toBe(
+    expect(offsetX()).toBe(offset);
+    expect(liftY()).toBe(
       isBottomPanelOpen ? defaultPanelSizes.bottomPanelHeight : 0,
     );
     editor = { ...editor, isPanelAnimating: false };
     rerender();
-    expect(result.current.offsetX).toBe(offset);
+    expect(offsetX()).toBe(offset);
   }
 });
