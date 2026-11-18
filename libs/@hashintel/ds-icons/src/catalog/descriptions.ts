@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  city: "Several buildings represent a city or urban area.",
   buildingShield:
     "A building and shield represent organizational protection or compliance.",
   buildingSearch:

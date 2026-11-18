@@ -57,6 +57,7 @@ import { circleArrowRightGeometry } from "./library-geometry/circle-arrow-right"
 import { circleArrowUpRightGeometry } from "./library-geometry/circle-arrow-up-right";
 import { circlePlayGeometry } from "./library-geometry/circle-play";
 import { circleUpGeometry } from "./library-geometry/circle-up";
+import { cityGeometry } from "./library-geometry/city";
 import { clipboardGeometry } from "./library-geometry/clipboard";
 import { clipboardCheckGeometry } from "./library-geometry/clipboard-check";
 import { clipboardListGeometry } from "./library-geometry/clipboard-list";
@@ -230,6 +231,7 @@ import { userTieGeometry } from "./library-geometry/user-tie";
 import { usersGeometry } from "./library-geometry/users";
 
 export const libraryGeometry = {
+  city: cityGeometry,
   buildingShield: buildingShieldGeometry,
   buildingSearch: buildingSearchGeometry,
   building: buildingGeometry,
