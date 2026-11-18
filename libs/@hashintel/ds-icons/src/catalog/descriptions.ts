@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  entity: "A connected three-dimensional object represents an entity.",
   typeInheritance:
     "A parent type connected to derived types represents inheritance.",
   tableTree: "Rows joined by branch lines represent a hierarchical table.",
