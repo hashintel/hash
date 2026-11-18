@@ -498,6 +498,7 @@ export const KeyboardIcon = createIcon("keyboard");
 export const PaperclipIcon = createIcon("paperclip");
 export const KeyIcon = createIcon("key");
 export const RectangleIcon = createIcon("rectangle");
+export const EllipseIcon = createIcon("ellipse");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -683,6 +684,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  ellipse: EllipseIcon,
   rectangle: RectangleIcon,
   key: KeyIcon,
   paperclip: PaperclipIcon,
