@@ -94,9 +94,10 @@ static RECORDS_USAGE_OF: LazyLock<EntityTypeConfig> = LazyLock::new(|| {
 
 static USER_SECRET: LazyLock<EntityTypeConfig> =
     LazyLock::new(|| EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/user-secret/"));
-static AGENT_CONVERSATION: LazyLock<EntityTypeConfig> = LazyLock::new(|| {
-    EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/agent-conversation/")
-});
+pub(super) const AGENT_CONVERSATION_BASE_URL: &str =
+    "https://hash.ai/@h/types/entity-type/agent-conversation/";
+static AGENT_CONVERSATION: LazyLock<EntityTypeConfig> =
+    LazyLock::new(|| EntityTypeConfig::new(AGENT_CONVERSATION_BASE_URL));
 
 static SYNC_LINEAR_DATA_WITH: LazyLock<EntityTypeConfig> = LazyLock::new(|| {
     EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/sync-linear-data-with/")

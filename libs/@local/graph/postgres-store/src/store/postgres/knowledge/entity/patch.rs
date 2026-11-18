@@ -56,7 +56,8 @@ use super::{
     provenance_violations,
 };
 use crate::store::{
-    AsClient, InTransaction, PostgresStore, error::EntityDoesNotExist, validation::StoreProvider,
+    AsClient, InTransaction, PostgresStore, error::EntityDoesNotExist,
+    postgres::seed_policies::AGENT_CONVERSATION_BASE_URL, validation::StoreProvider,
 };
 
 enum DraftTransition {
@@ -543,6 +544,8 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
         })
         .await
         .change_context(UpdateError)?;
+        self.ensure_conversation_classification(locked_row.entity_edition_id, edition_id)
+            .await?;
         let (entity_id, temporal_versioning) = match draft_transition {
             DraftTransition::Update => (
                 entity_id,
@@ -582,6 +585,36 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
         };
         entity.metadata.temporal_versioning = temporal_versioning;
         Ok(entity)
+    }
+
+    async fn ensure_conversation_classification(
+        &self,
+        previous_edition_id: EntityEditionId,
+        edition_id: EntityEditionId,
+    ) -> Result<(), Report<UpdateError>> {
+        // The edition cache includes both the direct and inherited type base URLs.
+        let unchanged: bool = self
+            .as_client()
+            .query_one(
+                "SELECT count(*) <> 1
+                   FROM entity_edition_cache
+                  WHERE entity_edition_id IN ($1, $2) AND $3 = ANY(base_urls)",
+                &[
+                    &previous_edition_id,
+                    &edition_id,
+                    &AGENT_CONVERSATION_BASE_URL,
+                ],
+            )
+            .await
+            .change_context(UpdateError)?
+            .get(0);
+        ensure!(
+            unchanged,
+            Report::new(UpdateError)
+                .attach_opaque(StatusCode::PermissionDenied)
+                .attach("Entity updates must preserve the Agent Conversation classification")
+        );
+        Ok(())
     }
 
     /// Starts a new draft history for an existing live entity.
@@ -644,6 +677,11 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
             .lock_entity_edition(entity_id, transaction_time, decision_time)
             .await?
         {
+            self.ensure_conversation_classification(
+                previous_live_entity.entity_edition_id,
+                edition_id,
+            )
+            .await?;
             self.archive_entity(
                 actor_id,
                 previous_live_entity,

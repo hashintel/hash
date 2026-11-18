@@ -379,6 +379,59 @@ async fn update_creator() -> Result<(), Box<dyn Error>> {
 }
 
 #[tokio::test]
+async fn publish_private_draft() -> Result<(), Box<dyn Error>> {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut fixture = setup(&mut database).await?;
+    let draft = fixture.update(fixture.creator).await?;
+
+    let published = fixture
+        .store
+        .patch_entity(
+            ActorId::User(fixture.creator),
+            PatchEntityParams {
+                entity_id: draft.metadata.record_id.entity_id,
+                decision_time: None,
+                entity_type_ids: HashSet::new(),
+                properties: Vec::new(),
+                draft: Some(false),
+                archived: None,
+                confidence: None,
+                provenance: entity_provenance(),
+            },
+        )
+        .await?;
+
+    assert_eq!(
+        published.metadata.record_id.entity_id, fixture.conversation,
+        "publication should replace the live edition"
+    );
+    let live = fixture
+        .store
+        .get_entity_by_id(
+            Some(ActorId::User(fixture.creator)),
+            fixture.conversation,
+            None,
+            None,
+        )
+        .await?
+        .expect("the creator should still see the published conversation");
+    assert_eq!(
+        live.metadata.record_id, published.metadata.record_id,
+        "the live conversation should be the newly published edition"
+    );
+    assert!(
+        !fixture.can_view(fixture.member).await?,
+        "another member should not see the published conversation"
+    );
+    assert!(
+        !fixture.can_view(fixture.administrator).await?,
+        "the web administrator should not see the published conversation"
+    );
+
+    Ok(())
+}
+
+#[tokio::test]
 async fn update_other_member() -> Result<(), Box<dyn Error>> {
     let mut database = DatabaseTestWrapper::new().await;
     let mut fixture = setup(&mut database).await?;
