@@ -55,16 +55,22 @@ The CLI gives Capture one local Parquet file of changed rows per source of the d
 
 A retry copies every file again.
 
-The rows have the format of the labs captures: one row per changed source record. This choice holds until the team agrees on the row shape; see "What a row of the incremental capture holds" in the open issues.
+A capture file holds the source's own rows, one row per changed source record. For an incremental source, the column `_change` says what happened to each record: `insert`, `update` or `delete`. The sender provides that column with the data.
+
+Capture adds no column and reads no row, and it is the same code for every variant of Prepare. The columns the pipelines need are added by Prepare. The row shape is still to be agreed within the team; see "What a row of the incremental capture holds" in the open issues.
 
 ### Prepare
 
 Prepare turns the captured rows into changes:
 
-1. It loads the capture files and runs the definition's pipelines to build one table per target (`prepare_rows`).
-2. It assigns the entity id of each row (`ids::assign`).
-3. It resolves the properties of each row through the definition's mapping (`SinkRow::resolve`).
-4. It appends one change per row to the sync table.
+1. It stages each capture file: it builds the table the pipelines read and adds the internal columns `_op` and `_key` that the pipelines need. `_op` is taken from `_change`, and `_key` is computed from the primary key.
+2. It runs the definition's pipelines to build one table per target (`prepare_rows`).
+3. It assigns the entity id of each row (`ids::assign`).
+4. It resolves the properties of each row through the definition's mapping (`SinkRow::resolve`).
+5. It maps the `_op` of each row to a Graph operation.
+6. It appends one change per row to the sync table.
+
+Staging is the step a variant of Prepare replaces. Hash and diff stages every row as a snapshot row, as `stage_table` in `engine` does today, and it also replaces step 5, because it finds the operation by comparing with the previous state. The other steps are shared.
 
 Prepare expects valid entity updates in the capture. It computes no diff and reads no earlier run.
 
@@ -77,7 +83,7 @@ A value that cannot be converted is left out, and the rest of the row is written
 - The table is append-only. A run adds rows and changes no existing row.
 - Each row belongs to one run and has a position in that run.
 - A row holds the new value its change carries. Prepare does not read earlier rows to complete it.
-- A row says whether it creates, updates or archives. The kind comes from the `_op` column of the capture, which holds `insert`, `update` or `delete`. Send has no fallback between create and patch, so it cannot find the kind out from the Graph.
+- A row says whether it creates, updates or archives. Prepare derives this from the `_change` column of the capture file. Send has no fallback between create and patch, so it cannot find the kind out from the Graph.
 - The Graph writes of a run are derived from its rows. Request bodies and batch numbers are not stored.
 - The state of the integration at a run can be reconstructed by merging the rows of each entity up to that run.
 
@@ -302,8 +308,8 @@ src/
 ```
 
 - Each stage is one module at the top level. `run` and `sync_table` are the two modules the stages share.
-- The crate depends on `hash-integrations-engine` for `Workspace`, `ArtifactStorage`, `SourceCapture` and `derive_entity_id`. The previous refactor copied these modules.
-- `engine` has no conditional write. It is added to `engine` or lives in `run/store.rs`.
+- The crate depends on `hash-integrations-engine` for `Workspace`, `ArtifactStorage`, `SourceCapture` and `derive_entity_id`. The previous refactor copied these modules. `ArtifactStorage` is in `engine` on this branch only, not on `main`.
+- `engine` has no conditional write, and its public API does not allow one to be built outside the crate. See "Raised by the code inventory" in the open issues.
 - `Graph` is the only trait. It exists so that tests can use `FakeGraph`.
 
 ## Existing code
@@ -312,7 +318,7 @@ The crate of the previous refactor, [`libs/@local/integrations/pipeline`](../../
 
 Expected values in tests come from the labs proof of concept (`pocs/integrations_rs` in the labs repository) and from the `engine` crate first. The tests of the previous refactor are the second choice.
 
-The update request follows labs: `entity_patch_params` in `src/graph/client.rs` builds one `add` operation per property.
+The update request follows labs: `entity_patch_params` in `src/graph/client.rs` builds one `add` operation per property. `engine` on `main` has the same encoder in `graph/plan/request.rs`.
 
 The paths below are in the previous refactor.
 

@@ -1307,7 +1307,7 @@
           <table>
             <thead>
               <tr>
-                <th>_op</th>
+                <th>_change</th>
                 <th>id</th>
                 <th>name</th>
                 <th>weight</th>
@@ -1390,8 +1390,9 @@
           <h3>Bucket after Capture</h3>
           <ul class="objects" id="bucket-capture"></ul>
           <p class="where">
-            The capture file also holds the labs columns <code>_key</code> (the
-            primary key as JSON) and <code>_before</code> (null).
+            Capture adds no column to the file. Prepare adds its internal
+            columns
+            <code>_op</code> and <code>_key</code> when it stages the file.
           </p>
         </div>
       </div>
@@ -1502,13 +1503,17 @@
       <div class="card tone">
         <h3>Does</h3>
         <ul>
-          <li>Runs the definition's pipelines on the captured rows.</li>
+          <li>
+            Stages each file: adds the internal columns the pipelines need and
+            takes the kind of change from <code>_change</code>.
+          </li>
+          <li>Runs the definition's pipelines on the staged rows.</li>
           <li>
             Derives each entity id from the namespace, the entity type and the
             source id.
           </li>
           <li>Resolves the properties through the definition's mapping.</li>
-          <li>Takes the kind of change from <code>_op</code>.</li>
+          <li>Maps the kind of change to the Graph operation.</li>
         </ul>
       </div>
       <div class="card tone">
@@ -2129,20 +2134,12 @@
 
     // The example data, used by the arrow hover cards and the store inspector.
     const captureRows = [
-      ["insert", '{"id":"A-1"}', null, "A-1", "Widget", null, "B-1"],
-      ["insert", '{"id":"B-1"}', null, "B-1", "Gadget", "heavy", null],
-      ["update", '{"id":"C-1"}', null, "C-1", "Sprocket", "2.5", null],
-      ["delete", '{"id":"D-1"}', null, "D-1", null, null, null],
+      ["insert", "A-1", "Widget", null, "B-1"],
+      ["insert", "B-1", "Gadget", "heavy", null],
+      ["update", "C-1", "Sprocket", "2.5", null],
+      ["delete", "D-1", null, null, null],
     ];
-    const captureHead = [
-      "_op",
-      "_key",
-      "_before",
-      "id",
-      "name",
-      "weight",
-      "related_to",
-    ];
+    const captureHead = ["_change", "id", "name", "weight", "related_to"];
     const changeRows = [
       [
         "…0012",
@@ -2261,11 +2258,7 @@
     const code = (data) => element("pre", "mini", pretty(data));
     const empty = (text) => element("p", "empty", text);
     const note = (text) => element("p", "where", text);
-    const captureShort = () =>
-      table(
-        ["_op", "id", "name", "weight", "related_to"],
-        pick(captureRows, [0, 3, 4, 5, 6]),
-      );
+    const captureShort = () => table(captureHead, captureRows);
     const changesShort = (order) =>
       table(
         ["order_id", "op", "entity", "properties"],

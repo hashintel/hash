@@ -59,7 +59,9 @@ The capture is the input of Prepare. Its row shape decides how much of the defin
 **Option A: source rows, as in labs.** The capture holds one Parquet file per source of the definition. Each row is a changed source record. Prepare runs the definition's SQL pipelines on these rows to build one table per target, assigns entity ids, and resolves the properties.
 
 - Reuses `prepare_rows`, `ids::assign` and `SinkRow::resolve` from the previous refactor without change.
-- The capture format is the one the source readers already write. Labs writes the columns `_op`, `_key` and `_before` into every capture file and sets `_op` to `'snapshot'`. The monorepo staging and pipeline code already carries `_op` and `_key` through to the target tables, so `_op` can hold the kind of change.
+- The file holds the source's own columns plus `_change`, which says `insert`, `update` or `delete`. Capture adds no column. Labs does it differently: its capture step writes the internal columns `_op`, `_key` and `_before` into every file. Those columns exist for the pipeline step, so they belong to Prepare.
+- Prepare stages the file with `stage_table` in `engine`, which adds `_op = 'snapshot'` and `_key` and rejects a source column named `_op`, `_key` or `_content_hash` (`engine/src/workspace/connection/staging.rs:75-111`). The incremental staging step then copies `_change` into `_op`. This needs no change to `engine`. A later change to `stage_table` could take the kind of change directly.
+- Link tables carry no `_op` today. See "Link changes in incremental runs".
 - A definition written for full captures also works for incremental captures, as long as each pipeline reads one row at a time.
 - A pipeline that joins two sources or aggregates rows sees only the changed rows and produces wrong results. Such a pipeline needs the earlier source rows, which the sync table does not hold.
 - Prepare needs DuckDB and a workspace on this path.
@@ -72,7 +74,7 @@ The capture is the input of Prepare. Its row shape decides how much of the defin
 - The `pipelines` section of the definition is unused on this path. A definition for incremental captures differs from one for full captures.
 - The capture format is new and has to be specified.
 
-**Chosen for now:** option A, the labs format (Paul, 2026-11-17). The limit this puts on joins and aggregations is described in "Joins and aggregations in incremental runs".
+**Chosen for now:** option A with plain source rows and a `_change` column (Paul, 2026-11-18). The labs capture format, chosen on 2026-11-17, is dropped, because its internal columns are Prepare's concern. The limit option A puts on joins and aggregations is described in "Joins and aggregations in incremental runs".
 
 ### Joins and aggregations in incremental runs
 
@@ -115,6 +117,30 @@ In labs a link is derived from a source row by a link pipeline, and its id is de
 
 The labs capture format has a `_before` column for change streams. It could carry the old values of a changed or deleted row. Labs sets it to null and never reads it.
 
+### A source that cannot tell an insert from an update
+
+**Stage:** Capture, Prepare and Send.
+
+Capture deals with the source data only. `_change` in the capture file says what happened to a source record: `insert`, `update` or `delete`. Prepare is the only stage that turns this into a Graph operation (Paul, 2026-11-18).
+
+Many sources cannot say whether a changed record is new. A query for "everything changed since yesterday" returns changed records without that information. Only a change feed knows it.
+
+One way to express this is a fourth `_change` value that means "this is the record as it is now; new or changed is not known". Labs calls that value `snapshot`. Something later then has to find out whether the entity exists:
+
+- **Send asks the Graph.** For such a row Send sends a create, and if the Graph answers with a conflict, it sends an update.
+  - The Graph is the only component that knows for certain whether an entity exists.
+  - The `pipeline` crate's `stage/send/delivery.rs` does this today, with tests.
+  - A replay is safe as long as the Graph writes no new edition for an update with unchanged values. See "How the Graph answers a replayed write".
+  - It costs more requests. The bulk endpoint is atomic, so a batch with one existing entity fails as a whole and is sent again one write at a time.
+- **Prepare checks the sync table.** If the table already holds a create for the entity id, the row becomes an update, otherwise a create.
+  - Send keeps one behaviour, with no fallback.
+  - Prepare has to read earlier rows and needs an efficient lookup over the whole table.
+  - The result is wrong whenever the table and the Graph differ, for example after a refused write.
+
+A source that reports only changed records also cannot report a deleted one. Finding those needs a full capture and a comparison, which is the hash and diff variant of Prepare.
+
+**Chosen for now:** `_change` has the three values `insert`, `update` and `delete`, and Send has no fallback (Paul, 2026-11-18). A source that cannot tell an insert from an update is not supported in the first version.
+
 ### How the Graph answers a replayed write
 
 **Stage:** Send and record.
@@ -126,6 +152,13 @@ Send treats a create that the Graph answers with a conflict as done (Paul, 2026-
 - **Patch of a missing entity.** Which status is returned. The previous refactor answered a 404 by sending a create; without that fallback the update is lost.
 - **Archive of an archived or missing entity.** The previous refactor counted a 404 as `Absent` and continued.
 - **An update stored as a create, or the reverse.** Each row says whether it creates or updates. A row with the wrong kind is ignored on conflict or fails with a 404.
+
+Found in the code and its tests on 2026-11-18 ([inventory/send.md](inventory/send.md)). None of it has been tested with the new request bodies.
+
+- **Patch with unchanged values.** The Graph returns `Unchanged` and writes no new edition when the properties, their metadata, the archived flag, the draft flag, the types and the confidence are equal. It does not compare the provenance (`postgres-store/src/store/postgres/knowledge/entity/patch.rs:413-426`). A test against a pinned Graph image confirms this for a patch that replaces the whole property object. No test covers a patch made of `add` operations.
+- **Create of an existing entity.** On the pinned image, a bulk create with one write gets a 409. For a bulk create with several writes and one existing entity, the status is not known, and the client discards the response body, so Send cannot tell which entity existed. The rule "a create conflict counts as done" needs a decision for such a batch: count the whole batch as created, send it again one write at a time, or read the body.
+- **Patch of a missing entity.** On the pinned image it gets a 404.
+- **An update of an archived entity.** Every update body carries `archived: false`, so an update makes an archived entity live again.
 
 ### Several changes to one entity in a run
 
@@ -145,3 +178,17 @@ Send sorts a run's rows by operation first and by their position in the run seco
 ## Kept for later
 
 - **Periodic snapshots of the sync table.** A job merges the rows of each entity into one table of current values, for example once a week. Reconstructing the state at a run then starts from the latest snapshot. This is an optimization and is outside the first version (Paul, 2026-11-17).
+
+## Raised by the code inventory
+
+The inventory of labs, `engine` and the `pipeline` crate is in [inventory/](inventory/). Section 5 of each file lists the questions it raises. These contradict the spec or the skeleton and need a decision before the stage that depends on them is specified:
+
+- **`engine` differs between this branch and `main`.** The storage module (`ArtifactStorage`, `ArtifactRef`, `ArtifactNamespace`) exists only on this branch. The `graph` module, with the request encoder that builds one `add` per property, exists only on `main`. The skeleton builds on this branch only.
+- **A conditional write cannot be built on `engine`'s public API.** The object store is a private field, `ArtifactKey` has no public constructor, and `bind` can create a key but never update it. The `pipeline` crate's copy of the storage module adds `read_versioned` and `replace_if`.
+- **The sync table has no way to find its files.** `PrepareOutput` holds no file references, `engine` has no list operation, and `publish` names a file by its content.
+- **Send needs the capture time.** Every request body carries it as `loadedAt`. The Send contract in the spec takes no `CaptureOutput`.
+- **No code cuts a batch when an entity is already in it.** The existing `Batcher` cuts on the operation, on create or update, at 128 writes and at 1,500,000 bytes. `engine` on `main` refuses two writes to one entity.
+- **Nothing preserves the order of the captured rows.** `order_id` has no source when one entity changes several times in a run.
+- **The skeleton contradicts today's behaviour in three places.** It fails on a blank source id, where `pipeline` leaves the row out and lists it. It fails when two rows of a target share an entity id, which sending every change has to allow. Its issue type has two fields, where the issues file has seven columns.
+- **Labs and `pipeline` convert some values differently.** A blank boolean is `false` in labs and left out in `pipeline`. An unknown unit gives the bare amount in labs and a failure in `pipeline`. The spec takes expected values from labs first.
+- **`run.json` embeds the definition.** The existing conditional write refuses an object over 1 MiB.
