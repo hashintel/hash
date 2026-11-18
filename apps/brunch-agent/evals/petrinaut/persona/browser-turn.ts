@@ -33,7 +33,7 @@ export class PersonaBrowserTurnError extends Error {
   }
 }
 
-/** `initialData` stays as the browser sent it; resume parses it with `vSdcpnInitialData`. */
+/** `initialData` stays as the browser sent it; resume parses it with `sdcpnInitialDataSchema`. */
 export type PersonaBrowserSession = ConversationIdentity & {
   readonly url: string;
   readonly uid: string;

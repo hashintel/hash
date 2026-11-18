@@ -7,11 +7,11 @@ import type {
 import type { PetrinautAiMessage } from "../../../ui/chat/ai-assistant-panel";
 import type { FlueConversationState } from "@flue/sdk";
 
-const zLine = z.object({
+const lineSchema = z.object({
   text: z.string().max(32_000),
   state: z.enum(["streaming", "done"]),
 });
-const zTurn = z.object({
+const turnSchema = z.object({
   id: z.string(),
   text: z.string().max(32_000),
   submissionId: z.string().optional(),
@@ -19,10 +19,10 @@ const zTurn = z.object({
   responseIds: z.array(z.string()),
   fields: z.record(z.string(), z.string()).optional(),
   preparationFailed: z.boolean().optional(),
-  reply: zLine.optional(),
-  wrapUp: zLine.optional(),
+  reply: lineSchema.optional(),
+  wrapUp: lineSchema.optional(),
 });
-type Turn = z.infer<typeof zTurn>;
+type Turn = z.infer<typeof turnSchema>;
 
 /** Browser-local presentation only. Never a source of admission, tools or speech replay. */
 export class VoiceMediationHistory {
@@ -47,7 +47,7 @@ export class VoiceMediationHistory {
     this.#storage = storage;
     try {
       const saved = z
-        .array(zTurn)
+        .array(turnSchema)
         .max(100)
         .parse(JSON.parse(storage?.getItem(this.#key) ?? "[]"));
       for (const turn of saved) {
