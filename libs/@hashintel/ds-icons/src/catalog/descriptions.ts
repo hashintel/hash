@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  personPortal:
+    "A figure entering a doorway represents access or a transition.",
   personSign:
     "A person beside a placard represents advocacy or public communication.",
   personGreeting: "A person raising a hand represents a greeting or welcome.",

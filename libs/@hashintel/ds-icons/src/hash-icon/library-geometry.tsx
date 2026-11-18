@@ -135,6 +135,7 @@ import { pentagonGeometry } from "./library-geometry/pentagon";
 import { percentGeometry } from "./library-geometry/percent";
 import { personGeometry } from "./library-geometry/person";
 import { personGreetingGeometry } from "./library-geometry/person-greeting";
+import { personPortalGeometry } from "./library-geometry/person-portal";
 import { personSignGeometry } from "./library-geometry/person-sign";
 import { phoneGeometry } from "./library-geometry/phone";
 import { phoneOffGeometry } from "./library-geometry/phone-off";
@@ -196,6 +197,7 @@ import { userTieGeometry } from "./library-geometry/user-tie";
 import { usersGeometry } from "./library-geometry/users";
 
 export const libraryGeometry = {
+  personPortal: personPortalGeometry,
   personSign: personSignGeometry,
   personGreeting: personGreetingGeometry,
   accessibility: accessibilityGeometry,
