@@ -49,6 +49,7 @@ import { handwrittenDocsGeometry } from "./library-geometry/handwritten-docs";
 import { helpGeometry } from "./library-geometry/help";
 import { historyPagesGeometry } from "./library-geometry/history-pages";
 import { historyUserGeometry } from "./library-geometry/history-user";
+import { keyGeometry } from "./library-geometry/key";
 import { keyboardGeometry } from "./library-geometry/keyboard";
 import { keycapKGeometry } from "./library-geometry/keycap-k";
 import { loginGeometry } from "./library-geometry/login";
@@ -71,6 +72,7 @@ import { toggleOnGeometry } from "./library-geometry/toggle-on";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  key: keyGeometry,
   paperclip: paperclipGeometry,
   keyboard: keyboardGeometry,
   keycapK: keycapKGeometry,
