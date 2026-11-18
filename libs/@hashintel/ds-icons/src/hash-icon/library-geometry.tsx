@@ -137,6 +137,7 @@ import { laptopGeometry } from "./library-geometry/laptop";
 import { listCheckGeometry } from "./library-geometry/list-check";
 import { listOrderedGeometry } from "./library-geometry/list-ordered";
 import { listTimelineGeometry } from "./library-geometry/list-timeline";
+import { locationGeometry } from "./library-geometry/location";
 import { loginGeometry } from "./library-geometry/login";
 import { logoutGeometry } from "./library-geometry/logout";
 import { magneticMediaGeometry } from "./library-geometry/magnetic-media";
@@ -236,6 +237,7 @@ import { usersGeometry } from "./library-geometry/users";
 import { warehouseGeometry } from "./library-geometry/warehouse";
 
 export const libraryGeometry = {
+  location: locationGeometry,
   shop: shopGeometry,
   warehouse: warehouseGeometry,
   factory: factoryGeometry,
