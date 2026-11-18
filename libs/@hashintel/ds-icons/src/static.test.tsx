@@ -9,6 +9,8 @@ import {
   StaticHashIcon,
 } from "./static";
 
+import type { HashIconName, HashIconVariant } from "./hash-icon";
+
 afterEach(cleanup);
 
 describe("static artwork", () => {
@@ -59,6 +61,49 @@ describe("static artwork", () => {
     ).toBe("2.5");
     expect(getHashIconStrokeWidth(Number.NaN)).toBe(1.75);
     expect(getHashIconStrokeWidth(-1)).toBe(1);
+  });
+
+  it.each([
+    "missing-icon",
+    "__proto__",
+    "constructor",
+    "toString",
+    '"><image href="x" onerror="alert(1)">',
+    null,
+    undefined,
+    42,
+  ])("renders no artwork for an invalid runtime name: %s", (name) => {
+    const { container } = render(
+      <StaticHashIcon name={name as HashIconName} />,
+    );
+    expect(container.querySelector("svg > g")?.innerHTML).toBe("");
+  });
+
+  it.each([
+    "missing-style",
+    "__proto__",
+    "constructor",
+    "toString",
+    '"><image href="x" onerror="alert(1)">',
+    null,
+    42,
+  ])("renders no artwork for an invalid runtime variant: %s", (variant) => {
+    const { container } = render(
+      <StaticHashIcon name="filePdf" variant={variant as HashIconVariant} />,
+    );
+    expect(container.querySelector("svg > g")?.innerHTML).toBe("");
+  });
+
+  it("rejects object selectors without coercing them to property keys", () => {
+    const name = {
+      toString: () => {
+        throw new Error("Unexpected property-key coercion");
+      },
+    };
+    expect(getHashIconArtwork(name as unknown as HashIconName)).toBe("");
+    expect(
+      getHashIconArtwork("filePdf", name as unknown as HashIconVariant),
+    ).toBe("");
   });
 
   it("does not interpolate markup in an ID prefix", () => {

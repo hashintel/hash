@@ -48,7 +48,7 @@ export const HashIconArtwork = ({
             "calc(var(--hash-icon-stroke-width) * 1.4)",
         } as CSSProperties
       }
-      // Generated package artwork; only the sanitized instance ID is substituted.
+      // Validated keys select bundled artwork; only the restricted instance ID is substituted.
       // eslint-disable-next-line react/no-danger
       dangerouslySetInnerHTML={{
         __html: getHashIconArtwork(name, variant, id),
