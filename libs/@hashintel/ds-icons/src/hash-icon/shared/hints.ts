@@ -20,6 +20,7 @@ export type HashIconHint =
   | "up";
 
 export const hashIconHints = {
+  fileCode: "lift",
   fileArchive: "lift",
   mcpServer: "detail",
   infinity: "grow",

@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  fileCode: "A document with angle brackets represents a source code file.",
   fileArchive: "A document with a zipper represents a compressed archive.",
   mcpServer:
     "The official Model Context Protocol mark represents an MCP server or connection.",
