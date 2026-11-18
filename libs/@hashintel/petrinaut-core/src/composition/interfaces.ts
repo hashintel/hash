@@ -124,6 +124,14 @@ export const indexSubnets = (sdcpn: Pick<SDCPN, "subnets">): Map<ID, Subnet> =>
 export type DocumentIndex = {
   subnetsById: ReadonlyMap<ID, Subnet>;
   defaults: ReadonlyMap<ID, ComponentReference>;
+  /**
+   * `implementsInterface` for a subnet of the document, whose list of
+   * interfaces is read once however many instances are bound to it.
+   */
+  implementsInterface: (
+    subnet: Pick<Subnet, "id" | "implements">,
+    interfaceId: ID,
+  ) => boolean;
 };
 
 export const indexDocument = (
@@ -135,7 +143,19 @@ export const indexDocument = (
       defaults.set(entry.interface.id, entry.component);
     }
   }
-  return { subnetsById: indexSubnets(sdcpn), defaults };
+  const implementedBySubnetId = new Map<ID, ReadonlySet<ID>>();
+  return {
+    subnetsById: indexSubnets(sdcpn),
+    defaults,
+    implementsInterface: (subnet, interfaceId) => {
+      let implemented = implementedBySubnetId.get(subnet.id);
+      if (!implemented) {
+        implemented = new Set(subnet.implements);
+        implementedBySubnetId.set(subnet.id, implemented);
+      }
+      return implemented.has(interfaceId);
+    },
+  };
 };
 
 /**
@@ -177,7 +197,8 @@ export const resolveImplementation = (
   if (isInterface(implementation)) {
     return { ...unbound, chosenBy, reason: "is-interface", implementation };
   }
-  if (!implementsInterface(implementation, declared.id)) {
+  const implementsIt = index?.implementsInterface ?? implementsInterface;
+  if (!implementsIt(implementation, declared.id)) {
     return { ...unbound, chosenBy, reason: "not-implementing", implementation };
   }
   return { kind: "bound", interface: declared, implementation, chosenBy };

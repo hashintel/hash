@@ -308,6 +308,37 @@ describe("checkInterfaces", () => {
   });
 });
 
+describe("an implementation that lists many interfaces", () => {
+  it("is read once for the instances bound to it, however many", () => {
+    const size = 50_000;
+    // The list names the interface last, after as many it does not have.
+    const versatile = subnet("versatile", {
+      ...fast,
+      id: "versatile",
+      implements: [
+        ...Array.from({ length: size }, (_, index) => `other${index}`),
+        "stage",
+      ],
+    });
+    const sdcpn = net({
+      subnets: [stage, versatile],
+      componentInstances: Array.from({ length: size }, (_, index) =>
+        instance(`s${index}`, "stage", "versatile"),
+      ),
+    });
+
+    const started = Date.now();
+    const codes = new Set(checkInterfaces(sdcpn).map(({ code }) => code));
+    const elapsed = Date.now() - started;
+
+    // Every instance is bound: what is reported is the interfaces the list
+    // names that do not exist.
+    expect(codes).toEqual(new Set(["unknown-interface"]));
+    // A search of the list for every instance takes several seconds.
+    expect(elapsed).toBeLessThan(1_000);
+  });
+});
+
 describe("an implementation with many ports, token types and parameters", () => {
   const size = 20_000;
   const names = Array.from({ length: size }, (_, index) => `item-${index}`);
