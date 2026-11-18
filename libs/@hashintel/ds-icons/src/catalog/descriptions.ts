@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  fillNone: "A crossed empty square represents no fill.",
   pencilRuler:
     "A pencil and marked ruler represent design or construction tools.",
   pencilSlash: "A struck-through pencil represents disabling editing.",

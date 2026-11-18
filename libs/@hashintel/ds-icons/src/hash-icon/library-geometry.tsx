@@ -62,6 +62,7 @@ import { filePresentationGeometry } from "./library-geometry/file-presentation";
 import { fileTextGeometry } from "./library-geometry/file-text";
 import { fileVideoGeometry } from "./library-geometry/file-video";
 import { filesGeometry } from "./library-geometry/files";
+import { fillNoneGeometry } from "./library-geometry/fill-none";
 import { folderGeometry } from "./library-geometry/folder";
 import { frameGeometry } from "./library-geometry/frame";
 import { handwrittenDocsGeometry } from "./library-geometry/handwritten-docs";
@@ -108,6 +109,7 @@ import { triangleGeometry } from "./library-geometry/triangle";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  fillNone: fillNoneGeometry,
   pencilRuler: pencilRulerGeometry,
   pencilSlash: pencilSlashGeometry,
   highlighter: highlighterGeometry,
