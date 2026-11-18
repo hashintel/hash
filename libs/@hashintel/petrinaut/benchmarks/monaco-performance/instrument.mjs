@@ -45,6 +45,49 @@ export const instrument = () => {
       animationFrames.push(...list.getEntries().map((entry) => entry.toJSON())),
     ).observe({ type: "long-animation-frame", buffered: true });
   }
+  // Which components rendered in each commit. React reports commits to this
+  // hook when it is present at startup. Fibers carry timings only in React's
+  // profiling bundle, so the list stays empty on the production build.
+  const commits = [];
+  const componentName = (type) =>
+    type?.displayName ??
+    type?.name ??
+    type?.render?.displayName ??
+    type?.render?.name ??
+    type?.type?.displayName ??
+    type?.type?.name;
+  let lastCommit = 0;
+  globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__ ??= {
+    supportsFiber: true,
+    isDisabled: false,
+    renderers: new Map(),
+    inject(renderer) {
+      this.renderers.set(this.renderers.size + 1, renderer);
+      return this.renderers.size;
+    },
+    checkDCE() {},
+    onCommitFiberUnmount() {},
+    onPostCommitFiberRoot() {},
+    onCommitFiberRoot(_id, root) {
+      const rendered = new Map();
+      const visit = (fiber) => {
+        for (let node = fiber; node; node = node.sibling) {
+          // A fiber this commit left alone keeps its older start time.
+          if (node.actualStartTime >= lastCommit) {
+            // React keeps a fiber's flags as a bit field; 1 says it rendered.
+            // oxlint-disable-next-line no-bitwise
+            const name = (node.flags & 1) !== 0 && componentName(node.type);
+            if (name) rendered.set(name, (rendered.get(name) ?? 0) + 1);
+            visit(node.child);
+          }
+        }
+      };
+      visit(root.current);
+      const time = performance.now();
+      if (rendered.size > 0) commits.push({ time, rendered });
+      lastCommit = time;
+    },
+  };
   const NativeWorker = globalThis.Worker;
   globalThis.Worker = class extends NativeWorker {
     constructor(...args) {
@@ -226,6 +269,16 @@ export const instrument = () => {
               entry.name.startsWith("react:") && entry.startTime >= since,
           )
           .map((entry) => entry.toJSON()),
+        // Renders per component over the window, most rendered first.
+        renders: (() => {
+          const totals = new Map();
+          for (const commit of commits) {
+            if (commit.time < since) continue;
+            for (const [name, count] of commit.rendered)
+              totals.set(name, (totals.get(name) ?? 0) + count);
+          }
+          return [...totals].sort((left, right) => right[1] - left[1]);
+        })(),
         workers,
         editors: instances.size,
         models: api?.editor.getModels().length ?? 0,
