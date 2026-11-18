@@ -9,6 +9,7 @@
 
 import { colorsStructurallyEqual } from "./fusions";
 import {
+  bindingKey,
   bindsWithinDocument,
   componentKey,
   componentOf,
@@ -345,6 +346,10 @@ const checkBindings = (
   }
   const groups = cycleGroups(runs);
 
+  // What a binding across a library falls short of, checked once for the
+  // instances bound alike.
+  const shortfallsByBinding = new Map<string, InterfaceProblem[]>();
+
   const problems: InterfaceProblem[] = [];
   for (const { netId, instance, binding } of held) {
     const report = reporter(problems, {
@@ -369,7 +374,13 @@ const checkBindings = (
       reference &&
       !bindsWithinDocument(componentOf(instance), reference)
     ) {
-      for (const shortfall of checkImplementation(running, binding.interface)) {
+      const key = bindingKey(instance);
+      let shortfalls = shortfallsByBinding.get(key);
+      if (!shortfalls) {
+        shortfalls = checkImplementation(running, binding.interface);
+        shortfallsByBinding.set(key, shortfalls);
+      }
+      for (const shortfall of shortfalls) {
         report(shortfall.code, shortfall.message, shortfall.severity);
       }
     }
