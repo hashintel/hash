@@ -128,6 +128,7 @@ import { listOrderedGeometry } from "./library-geometry/list-ordered";
 import { listTimelineGeometry } from "./library-geometry/list-timeline";
 import { loginGeometry } from "./library-geometry/login";
 import { logoutGeometry } from "./library-geometry/logout";
+import { magneticMediaGeometry } from "./library-geometry/magnetic-media";
 import { mailGeometry } from "./library-geometry/mail";
 import { mailUnreadGeometry } from "./library-geometry/mail-unread";
 import { megaphoneGeometry } from "./library-geometry/megaphone";
@@ -219,6 +220,7 @@ import { userTieGeometry } from "./library-geometry/user-tie";
 import { usersGeometry } from "./library-geometry/users";
 
 export const libraryGeometry = {
+  magneticMedia: magneticMediaGeometry,
   devices: devicesGeometry,
   calculator: calculatorGeometry,
   creditCard: creditCardGeometry,
