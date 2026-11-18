@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  underline: "An underlined U represents underline formatting.",
   italic: "A slanted I represents italic text formatting.",
   bold: "A bold B represents bold text formatting.",
   mixed: "Different marks represent a mixture of property values or styles.",

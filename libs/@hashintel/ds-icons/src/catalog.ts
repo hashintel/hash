@@ -163,7 +163,7 @@ export const hashIconStudies = [
 }[];
 
 const categories = {
-  Text: ["italic", "bold"],
+  Text: ["underline", "italic", "bold"],
   Canvas: [
     "mixed",
     "splitView",

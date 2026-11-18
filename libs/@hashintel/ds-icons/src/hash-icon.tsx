@@ -575,6 +575,7 @@ export const SplitViewIcon = createIcon("splitView");
 export const MixedIcon = createIcon("mixed");
 export const BoldIcon = createIcon("bold");
 export const ItalicIcon = createIcon("italic");
+export const UnderlineIcon = createIcon("underline");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -760,6 +761,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  underline: UnderlineIcon,
   italic: ItalicIcon,
   bold: BoldIcon,
   mixed: MixedIcon,
