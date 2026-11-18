@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  listOrdered: "Numbered lines represent an ordered list.",
   quote: "Paired quotation marks represent a quotation or testimonial.",
   textAlignJustify: "Equal-width lines represent justified text.",
   textAlignCenter: "Centered lines represent centered text.",
