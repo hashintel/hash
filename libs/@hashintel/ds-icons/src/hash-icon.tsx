@@ -452,6 +452,7 @@ export const ClipboardListIcon = createIcon("clipboardList");
 export const ArchiveIcon = createIcon("archive");
 export const BookIcon = createIcon("book");
 export const BookOpenIcon = createIcon("bookOpen");
+export const BooksIcon = createIcon("books");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -637,6 +638,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  books: BooksIcon,
   bookOpen: BookOpenIcon,
   book: BookIcon,
   archive: ArchiveIcon,

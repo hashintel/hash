@@ -164,6 +164,7 @@ export const hashIconStudies = [
 
 const categories = {
   Files: [
+    "books",
     "bookOpen",
     "book",
     "archive",
