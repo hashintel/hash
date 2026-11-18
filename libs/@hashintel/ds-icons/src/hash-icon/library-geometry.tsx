@@ -5,6 +5,7 @@ import { fileCodeGeometry } from "./library-geometry/file-code";
 import { fileContractGeometry } from "./library-geometry/file-contract";
 import { fileDocumentGeometry } from "./library-geometry/file-document";
 import { fileEditGeometry } from "./library-geometry/file-edit";
+import { fileExportGeometry } from "./library-geometry/file-export";
 import { fileImageGeometry } from "./library-geometry/file-image";
 import { fileInvoiceGeometry } from "./library-geometry/file-invoice";
 import { fileInvoiceDollarGeometry } from "./library-geometry/file-invoice-dollar";
@@ -15,6 +16,7 @@ import { fileTextGeometry } from "./library-geometry/file-text";
 import { fileVideoGeometry } from "./library-geometry/file-video";
 
 export const libraryGeometry = {
+  fileExport: fileExportGeometry,
   fileEdit: fileEditGeometry,
   filePlus: filePlusGeometry,
   fileInvoiceDollar: fileInvoiceDollarGeometry,
