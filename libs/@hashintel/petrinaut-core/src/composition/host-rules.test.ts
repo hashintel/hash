@@ -4,6 +4,7 @@ import { createJsonDocHandle } from "../handle/json-doc-handle";
 import { createPetrinaut } from "../instance";
 import { toPetrinautId } from "../petrinaut-id";
 import { composesOnly, sameRules } from "./host-rules";
+import { logistics } from "./libraries.test-helpers";
 
 import type { ComponentReference, SDCPN } from "../types/sdcpn";
 import type { Library } from "./libraries";
@@ -250,6 +251,94 @@ describe("an instance that only composes", () => {
       onlyComposes,
     );
     expect(definition.get().componentInstances).toBeUndefined();
+  });
+});
+
+describe("the implementation an instance that only composes chooses", () => {
+  /** The logistics library again, which the document imports and the host does not offer. */
+  const surplus: Library = { ...logistics, id: "@hashintel/surplus" };
+  const scale: ComponentReference = { from: logistics.id, id: "scale" };
+  const belt: ComponentReference = { from: logistics.id, id: "belt" };
+
+  const composeLogistics = () =>
+    createPetrinaut({
+      document: createJsonDocHandle({
+        initial: { ...initial(), imports: [{ id: surplus.id }] },
+      }),
+      resolveImport: (id) =>
+        [logistics, surplus].find((library) => library.id === id),
+      libraries: [logistics.id],
+      rules: { edit: "compose" },
+    });
+
+  it("is a component of a library on offer, or the document's default again", () => {
+    const { mutations, definition } = composeLogistics();
+    const chosen = () =>
+      definition.get().componentInstances?.[0]?.implementation;
+
+    mutations.addComponentInstance({
+      ...instanceOf("a", scale),
+      implementation: belt,
+    });
+    expect(chosen()).toEqual(belt);
+
+    mutations.updateComponentInstance({
+      instanceId: "a",
+      update: { implementation: undefined },
+    });
+    expect(chosen()).toBeUndefined();
+
+    mutations.updateComponentInstance({
+      instanceId: "a",
+      update: { implementation: belt },
+    });
+    expect(chosen()).toEqual(belt);
+
+    // As an update that arrives as JSON clears it.
+    mutations.updateComponentInstance({
+      instanceId: "a",
+      update: { implementation: null },
+    });
+    expect(chosen()).toBeUndefined();
+  });
+
+  it.each<[string, ComponentReference]>([
+    ["a subnet of the document", own],
+    [
+      "a component of a library that is not on offer, though the document imports it",
+      { from: surplus.id, id: "belt" },
+    ],
+  ])("is never %s", (_label, implementation) => {
+    const { mutations, mutationRefusal, definition } = composeLogistics();
+    mutations.addComponentInstance(instanceOf("a", scale));
+    const before = definition.get();
+    const added = { ...instanceOf("b", scale), implementation };
+    const updated = { instanceId: "a", update: { implementation } };
+
+    expect(mutationRefusal("addComponentInstance", added)).toBe(onlyComposes);
+    expect(() => mutations.addComponentInstance(added)).toThrow(onlyComposes);
+    expect(mutationRefusal("updateComponentInstance", updated)).toBe(
+      onlyComposes,
+    );
+    expect(() => mutations.updateComponentInstance(updated)).toThrow(
+      onlyComposes,
+    );
+    expect(definition.get()).toBe(before);
+  });
+
+  it("is any component that can run where the rules leave everything to edit", () => {
+    const { mutations, definition } = createPetrinaut({
+      document: createJsonDocHandle({ initial: initial() }),
+      resolveImport: () => logistics,
+      libraries: [logistics.id],
+    });
+
+    mutations.addComponentInstance({
+      ...instanceOf("a", scale),
+      implementation: own,
+    });
+
+    expect(definition.get().componentInstances).toHaveLength(1);
   });
 });
 

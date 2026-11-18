@@ -21,6 +21,7 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../../react";
+import { useMutationRefusal } from "../../../../../../../react/hooks/use-mutation-refusal";
 import { CompositionContext } from "../../../../../../../react/state/composition-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
@@ -69,6 +70,7 @@ const ImplementationField: React.FC = () => {
     useComponentInstancePropertiesContext();
   const { petriNetDefinition } = use(SDCPNContext);
   const { libraries } = use(CompositionContext);
+  const mutationRefusal = useMutationRefusal();
   const isDisabled = useIsReadOnly();
 
   const binding = resolveImplementation(
@@ -96,6 +98,12 @@ const ImplementationField: React.FC = () => {
     componentOf(instance),
     instance.implementation,
     libraries,
+    // The host's rules refuse some components as an instance's choice.
+    (implementation) =>
+      mutationRefusal("updateComponentInstance", {
+        instanceId: instance.id,
+        update: { implementation },
+      }) === null,
   );
   return (
     <Form.Field

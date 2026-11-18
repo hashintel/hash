@@ -8,6 +8,7 @@ import { mutationActionInputSchemas } from "../action-schemas";
 
 import type { MutationHelperFunctions } from "../actions";
 import type { CommandHelperFunctions } from "../commands";
+import type { ComponentReference } from "../types/sdcpn";
 import type { z } from "zod";
 
 /** The rules a host sets on an instance. A rule left out takes its default. */
@@ -41,6 +42,11 @@ type ParsedInput<Name extends MutationName> = z.output<
 /** Whether an import id names a library the host offers. */
 type IsOffered = (importId: string) => boolean;
 
+const isOfLibraryOnOffer = (
+  { from }: ComponentReference,
+  isOffered: IsOffered,
+): boolean => from !== undefined && isOffered(from);
+
 /**
  * The mutations that compose. `true` for one that composes whatever its
  * input, else what its input must satisfy. A mutation absent from here never
@@ -51,13 +57,21 @@ const composing: {
     | true
     | ((input: ParsedInput<Name>, isOffered: IsOffered) => boolean);
 } = {
-  addComponentInstance: ({ component }, isOffered) =>
-    component !== undefined && isOffered(component.from),
+  // The implementation an instance chooses runs in its place: it is a
+  // component of a library on offer as well.
+  addComponentInstance: ({ component, implementation }, isOffered) =>
+    component !== undefined &&
+    isOffered(component.from) &&
+    (implementation === undefined ||
+      isOfLibraryOnOffer(implementation, isOffered)),
   // An update may rename the instance or set its parameters; where it names
-  // a component, that is one of a library on offer too.
+  // a component or an implementation, that is one of a library on offer too.
+  // One that clears its choice names none.
   updateComponentInstance: ({ update }, isOffered) =>
     update.subnetId === undefined &&
-    (update.component === undefined || isOffered(update.component.from)),
+    (update.component === undefined || isOffered(update.component.from)) &&
+    (update.implementation == null ||
+      isOfLibraryOnOffer(update.implementation, isOffered)),
   updateComponentInstancePosition: true,
   removeComponentInstance: true,
   addFusion: true,

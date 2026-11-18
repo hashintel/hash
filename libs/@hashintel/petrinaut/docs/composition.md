@@ -76,6 +76,6 @@ A library the net names without importing it, as a file edited by hand may, is o
 
 An application can set Petrinaut up to compose the components of its libraries and nothing else. The editor then shows the canvas, the **Components** panel and the **Diagnostics** tab, whether Net Components is on or off. It has no tools that draw places or transitions, no Nets panel, no Definitions view and no simulator. It shows the root net only: a diagnostic or a link that points into a subnet opens the root net.
 
-What is left is composing: place instances, name them and set their parameters, fuse their ports by dragging from one pin to another, move or detach the ends of a fusion's line, delete instances and fusions, and arrange the canvas. Anything else, a paste included, is refused with a notice.
+What is left is composing: place instances, name them and set their parameters, fuse their ports by dragging from one pin to another, move or detach the ends of a fusion's line, delete instances and fusions, and arrange the canvas. An instance of an interface chooses its **Implementation** among the components of the application's libraries, or keeps the document's default. Anything else, a paste included, is refused with a notice.
 
 Undo goes back as far as where the editor started composing, and no further: what was done to the net before that stays. **Recent changes** lists the changes made since.

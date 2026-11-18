@@ -618,15 +618,15 @@ Core holds the rule, so every caller meets it. An instance created with
 `edit: "compose"` composes its root net: a mutation that targets a subnet is
 refused. Of the others, these go through:
 
-| Mutation                                                                 | Allowed when                                                                     |
-| ------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| `addComponentInstance`                                                   | `component` names one of a library on offer.                                     |
-| `updateComponentInstance`                                                | It names no `subnetId`, and a `component` it names is one of a library on offer. |
-| `updateComponentInstancePosition`, `removeComponentInstance`             | Always.                                                                          |
-| `addFusion`, `updateFusion`, `removeFusion`                              | Always.                                                                          |
-| `addFusionMember`, `removeFusionMember`, `replaceFusionMember`           | Always.                                                                          |
-| `deleteItemsByIds`                                                       | Every item is a component instance or a fusion.                                  |
-| `commitNodePositions`, `updatePlacePosition`, `updateTransitionPosition` | Always.                                                                          |
+| Mutation                                                                 | Allowed when                                                                                            |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| `addComponentInstance`                                                   | `component` names one of a library on offer, and so does an `implementation` it names.                  |
+| `updateComponentInstance`                                                | It names no `subnetId`, and a `component` or an `implementation` it names is one of a library on offer. |
+| `updateComponentInstancePosition`, `removeComponentInstance`             | Always.                                                                                                 |
+| `addFusion`, `updateFusion`, `removeFusion`                              | Always.                                                                                                 |
+| `addFusionMember`, `removeFusionMember`, `replaceFusionMember`           | Always.                                                                                                 |
+| `deleteItemsByIds`                                                       | Every item is a component instance or a fusion.                                                         |
+| `commitNodePositions`, `updatePlacePosition`, `updateTransitionPosition` | Always.                                                                                                 |
 
 Every other mutation throws one sentence, "This editor only places and
 connects the components it is given.", followed by the mutation's name.
