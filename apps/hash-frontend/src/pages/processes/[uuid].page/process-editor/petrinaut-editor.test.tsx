@@ -506,7 +506,7 @@ test("a Save kept from before Create, called once Create resolves but before the
     decisionTime: "2026-10-24T02:00:00.000Z",
   });
   renderEditor({ load: draftLoad() });
-  await waitFor(() => expect(lastTopBar()?.saveLabel).toBe("Create"));
+  await waitFor(() => expect(lastTopBar()?.saveLabel).toBe("Save"));
   const draftBar = lastTopBar();
   act(() => draftBar?.onSave());
 
@@ -523,7 +523,7 @@ test("a Save kept from before Create, called once Create resolves but before the
     }
     // Create has resolved, and the editor has not rendered since.
     expect(lastTopBar()).toMatchObject({
-      saveLabel: "Create",
+      saveLabel: "Save",
       persistPending: true,
     });
     draftBar?.onTitleChange("Renamed");
@@ -551,7 +551,7 @@ test("Create turns the draft into the saved net in the same editor, which then o
     decisionTime: "2026-10-24T01:00:00.000Z",
   });
   renderEditor({ load: draftLoad() });
-  await waitFor(() => expect(lastTopBar()?.saveLabel).toBe("Create"));
+  await waitFor(() => expect(lastTopBar()?.saveLabel).toBe("Save"));
   const handle = lastHandle();
 
   await act(async () => {

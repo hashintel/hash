@@ -811,7 +811,7 @@ test("each deliberate load opens a fresh handle; rerenders, history, permission 
 test("Create turns the draft into the saved net in the same editor, under its URL, with its history and Brunch", async () => {
   await renderRoute(draftUrl);
   const draft = editor().handle;
-  expect(topBar()).toMatchObject({ saveLabel: "Create", isDirty: true });
+  expect(topBar()).toMatchObject({ saveLabel: "Save", isDirty: true });
   // The draft has Brunch already, under the id its first save creates.
   const offered = observed.brunch?.openDocument;
   expect(offered).toMatchObject({
@@ -1202,7 +1202,7 @@ test("a failed Create stays on the draft, and its retry creates the net and move
   expect(url()).toBe(draftUrl);
   expect(topBar()).toMatchObject({
     persistPending: false,
-    saveLabel: "Create",
+    saveLabel: "Save",
     isDirty: true,
   });
 
@@ -1221,7 +1221,7 @@ test("starting a draft gives it an id in the active workspace, carried in its UR
     /^\/processes\/([0-9a-f-]{36})\?draftWeb=(.+)$/u.exec(url()) ?? [];
   expect(uuid).toBeDefined();
   expect(web).toBe(webId);
-  expect(topBar()).toMatchObject({ saveLabel: "Create" });
+  expect(topBar()).toMatchObject({ saveLabel: "Save" });
 
   pressSave();
   await settle();
@@ -1265,13 +1265,13 @@ test("starting a draft keeps an example we have and drops any other value", asyn
     `/processes/draft?example=${encodeURIComponent("//evil.test/x")}`,
   );
   expect(openDraft()).toMatchObject({ web: webId, query: "" });
-  expect(topBar()).toMatchObject({ title: "Process", saveLabel: "Create" });
+  expect(topBar()).toMatchObject({ title: "Process", saveLabel: "Save" });
 });
 
 test("a draft's URL with an example we don't have opens a blank draft", async () => {
   await renderRoute(`${draftUrl}&example=unknown`);
   expect(url()).toBe(`${draftUrl}&example=unknown`);
-  expect(topBar()).toMatchObject({ title: "Process", saveLabel: "Create" });
+  expect(topBar()).toMatchObject({ title: "Process", saveLabel: "Save" });
 });
 
 test("a draft's URL naming a web the user can't create in, or a malformed uuid, opens a fresh draft in the active workspace instead", async () => {
@@ -1298,7 +1298,7 @@ test("a draft's URL naming a web the user can't create in, or a malformed uuid, 
 
   await renderRoute(`/processes/not-a-uuid?draftWeb=${webId}`);
   expect(openDraft()).toMatchObject({ web: webId, query: "" });
-  expect(topBar()).toMatchObject({ saveLabel: "Create" });
+  expect(topBar()).toMatchObject({ saveLabel: "Save" });
 });
 
 test("a Create refused because another tab created the net moves this tab to that net, keeping its edits unsaved for an update", async () => {
@@ -1350,7 +1350,7 @@ test("a Create confirmed before its follow-up read failed is retried as an updat
 
   expect(graph.nets.has(createdId)).toBe(true);
   expect(url()).toBe(draftUrl);
-  expect(topBar()).toMatchObject({ saveLabel: "Create", isDirty: true });
+  expect(topBar()).toMatchObject({ saveLabel: "Save", isDirty: true });
 
   pressSave();
   await settle();
@@ -1523,7 +1523,7 @@ test("a Create refused for an id the user can't see fails saying the id is unava
   });
   expect(url()).toBe(draftUrl);
   expect(topBar()).toMatchObject({
-    saveLabel: "Create",
+    saveLabel: "Save",
     isDirty: true,
     persistPending: false,
   });

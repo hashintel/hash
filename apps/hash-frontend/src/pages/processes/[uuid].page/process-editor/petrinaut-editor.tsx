@@ -540,8 +540,7 @@ export const PetrinautEditor = ({
       saving: session.savePending,
       isDirty,
     }),
-    saveLabel:
-      session.mode.kind === "saved" ? (isDirty ? "Save" : "Saved") : "Create",
+    saveLabel: isDirty ? "Save" : "Saved",
     revisions,
     loadedRevisionTime: session.savedSnapshot?.decisionTime ?? null,
     onNavigateBack,
