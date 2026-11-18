@@ -191,6 +191,8 @@ export const descriptions = {
   ruler:
     "A diagonal ruler with measurement marks represents dimensions or spacing.",
   logicAnd: "A conjunction symbol represents conditions that must all hold.",
+  logicOr:
+    "A disjunction symbol represents a choice where at least one condition holds.",
   logicSignalBounded:
     "A waveform with a marked interval represents signal temporal logic over a bounded period.",
   logicSignalThreshold:

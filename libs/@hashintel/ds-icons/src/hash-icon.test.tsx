@@ -24,6 +24,7 @@ import {
   hashIconNames,
   hashIconPack,
   LogicAndIcon,
+  LogicOrIcon,
   PlaceIcon,
   LoadingIcon,
   AddPlaceIcon,
@@ -66,6 +67,7 @@ describe("HashIcon SVG API", () => {
 
   it.each([
     { name: "logicAnd", IconComponent: LogicAndIcon, filledDots: 0 },
+    { name: "logicOr", IconComponent: LogicOrIcon, filledDots: 0 },
   ] as const)(
     "preserves the meaning of $name in both styles across the weight range",
     ({ name, IconComponent, filledDots }) => {

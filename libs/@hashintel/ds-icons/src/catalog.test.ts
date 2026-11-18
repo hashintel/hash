@@ -85,6 +85,7 @@ describe("icon catalog metadata", () => {
 
   it.each([
     "logicAnd",
+    "logicOr",
     "logicSignalBounded",
     "logicSignalThreshold",
     "logicSignalClock",
