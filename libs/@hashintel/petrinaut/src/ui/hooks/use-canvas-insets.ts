@@ -1,10 +1,13 @@
 import { use } from "react";
 
+import { deriveStore } from "../../react/derive-store";
 import { EditorContext } from "../../react/state/editor-context";
 import { usePanelSizes } from "../../react/state/panel-sizes-context";
 import { useStore } from "../../react/use-store";
 import { PANEL_MARGIN } from "../constants/ui";
 import { usePetrinautPresentation } from "../views/shared/presentation-context";
+
+import type { ReadableStore } from "@hashintel/petrinaut-core";
 
 /** How much of the canvas each edge's panels cover, in CSS pixels. */
 export interface CanvasInsets {
@@ -70,36 +73,68 @@ export const getCanvasInsets = (
   };
 };
 
+const NO_INSETS: CanvasInsets = { left: 0, right: 0, bottom: 0 };
+
+const sameInsets = (previous: CanvasInsets, next: CanvasInsets) =>
+  previous.left === next.left &&
+  previous.right === next.right &&
+  previous.bottom === next.bottom;
+
 /**
- * What the docked panels take out of the canvas, for the controls that float
- * over it and have to keep clear of them.
+ * What the docked panels take out of the canvas, as a store: for whatever
+ * floats over the canvas and has to keep clear of them, without rendering on
+ * each pointer move of a panel drag.
  *
  * The panels overlay the canvas rather than shrinking it, so a floating
  * control cannot read this off its own layout.
  */
-const NO_INSETS: CanvasInsets = { left: 0, right: 0, bottom: 0 };
-
-export const useCanvasInsets = (options?: CanvasInsetOptions): CanvasInsets => {
+export const useCanvasInsetsStore = (
+  options?: CanvasInsetOptions,
+): ReadableStore<CanvasInsets> => {
   const presentation = usePetrinautPresentation();
-  const editor = use(EditorContext);
+  const {
+    isLeftSidebarOpen,
+    isSearchOpen,
+    hasSelection,
+    isAiAssistantOpen,
+    aiAssistantDockHeight,
+    aiAssistantPlacement,
+    isAiAssistantCollapsed,
+    isBottomPanelOpen,
+  } = use(EditorContext);
   const panelSizes = usePanelSizes();
-  const leftSidebarWidth = useStore(panelSizes.leftSidebarWidth);
-  const propertiesPanelWidth = useStore(panelSizes.propertiesPanelWidth);
-  const bottomPanelHeight = useStore(panelSizes.bottomPanelHeight);
-  const aiAssistantWidth = useStore(panelSizes.aiAssistantWidth);
-
+  const aboveCollapsedDock = options?.aboveCollapsedDock ?? false;
   // Where the panels sit beside the canvas rather than over it, the canvas is
   // already the space it occupies and there is nothing to keep clear of.
-  return presentation.panelsOverlayCanvas
-    ? getCanvasInsets(
-        {
-          ...editor,
-          leftSidebarWidth,
-          propertiesPanelWidth,
-          bottomPanelHeight,
-          aiAssistantWidth,
-        },
-        options,
-      )
-    : NO_INSETS;
+  const overlaid = presentation.panelsOverlayCanvas;
+
+  return deriveStore(
+    panelSizes,
+    (sizes) =>
+      overlaid
+        ? getCanvasInsets(
+            {
+              isLeftSidebarOpen,
+              isSearchOpen,
+              hasSelection,
+              isAiAssistantOpen,
+              aiAssistantDockHeight,
+              aiAssistantPlacement,
+              isAiAssistantCollapsed,
+              isBottomPanelOpen,
+              ...sizes,
+            },
+            { aboveCollapsedDock },
+          )
+        : NO_INSETS,
+    sameInsets,
+  );
 };
+
+/**
+ * The insets as a value, for a component that computes with them while
+ * rendering. It renders on every pointer move of a panel drag: an element
+ * that only positions itself follows {@link useCanvasInsetsStore} instead.
+ */
+export const useCanvasInsets = (options?: CanvasInsetOptions): CanvasInsets =>
+  useStore(useCanvasInsetsStore(options));
