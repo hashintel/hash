@@ -22,6 +22,8 @@ const card = (
   focus: "none",
   subnetName: "Cell",
   binding: { kind: "component" },
+  icon: null,
+  color: null,
   ports: [],
   foldable: true,
   unfolded: false,

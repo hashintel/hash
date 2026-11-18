@@ -54,6 +54,8 @@ const nodes: CanvasNode[] = [
     position: { x: 600, y: 0 },
     subnetName: "Subnet",
     binding: { kind: "component" },
+    icon: null,
+    color: null,
     ports: [
       { id: "port", name: "Port", direction: "inout", typeColor: undefined },
     ],

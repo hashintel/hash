@@ -3,13 +3,13 @@ import { css } from "@hashintel/ds-helpers/css";
 import { validateDisplayName } from "@hashintel/petrinaut-core";
 
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
+import { ColorSelect } from "../../../../../../components/color-select";
 import { DescriptionField } from "../../../../../../components/description-field";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { SectionList } from "../../../../../../components/section";
 import { TokenTypeIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { usePetrinautPresentation } from "../../../../../shared/presentation-context";
-import { ColorSelect } from "../color-select";
 import { useTypePropertiesContext } from "../context";
 import { DimensionsTable } from "./dimensions-table";
 

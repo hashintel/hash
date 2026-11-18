@@ -106,6 +106,10 @@ export type CanvasComponentInstanceNode = CanvasNodeBase & {
   /** The subnet the instance points at: its component or its interface. */
   subnetName: string;
   binding: CanvasInstanceBinding;
+  /** The component's icon as SVG markup, or `null` for the default glyph. */
+  icon: string | null;
+  /** The component's colour, or `null` for the default. */
+  color: string | null;
   ports: CanvasPort[];
   /** Whether the card can fold its ports away: it has more than the threshold. */
   foldable: boolean;
@@ -369,14 +373,12 @@ export const buildCanvasScene = ({
       ? portsOf(subnet).map((port) => ({ ...port }))
       : [];
     portsByInstanceId.set(instance.id, indexById(ports));
+    const running =
+      resolved?.kind === "bound" ? resolved.implementation : undefined;
     const binding: CanvasInstanceBinding =
       resolved === null || resolved.kind === "component"
         ? { kind: "component" }
-        : {
-            kind: "interface",
-            implementationName:
-              resolved.kind === "bound" ? resolved.implementation.name : null,
-          };
+        : { kind: "interface", implementationName: running?.name ?? null };
     const foldable = ports.length > foldThreshold;
     const unfolded = !foldable || unfoldedInstanceIds.has(instance.id);
     const foldedHeight = dimensions.componentInstance.height;
@@ -397,6 +399,10 @@ export const buildCanvasScene = ({
       ...interaction(instance.id),
       subnetName: subnet?.name ?? "Unknown subnet",
       binding,
+      // The card wears what runs: an implementation's icon and colour come
+      // before those of the interface it stands in for.
+      icon: running?.iconSvg ?? subnet?.iconSvg ?? null,
+      color: running?.displayColor ?? subnet?.displayColor ?? null,
       ports,
       foldable,
       unfolded,
