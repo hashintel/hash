@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  tools:
+    "A wrench and screwdriver represent tools, maintenance, or technical setup.",
   wind: "Curving air currents represent wind, airflow, or lightness.",
   flame: "A flame represents heat, fire, urgency, or sustained activity.",
   circleThreeQuarters:
