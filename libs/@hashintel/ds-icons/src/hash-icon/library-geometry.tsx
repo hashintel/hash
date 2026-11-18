@@ -120,6 +120,7 @@ import { fontSerifGeometry } from "./library-geometry/font-serif";
 import { frameGeometry } from "./library-geometry/frame";
 import { globeGeometry } from "./library-geometry/globe";
 import { globeNodesGeometry } from "./library-geometry/globe-nodes";
+import { globePointerGeometry } from "./library-geometry/globe-pointer";
 import { groupGeometry } from "./library-geometry/group";
 import { handshakeGeometry } from "./library-geometry/handshake";
 import { handwrittenDocsGeometry } from "./library-geometry/handwritten-docs";
@@ -244,6 +245,7 @@ import { usersGeometry } from "./library-geometry/users";
 import { warehouseGeometry } from "./library-geometry/warehouse";
 
 export const libraryGeometry = {
+  globePointer: globePointerGeometry,
   globeNodes: globeNodesGeometry,
   globe: globeGeometry,
   crosshairs: crosshairsGeometry,

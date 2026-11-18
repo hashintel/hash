@@ -20,6 +20,7 @@ export type HashIconHint =
   | "up";
 
 export const hashIconHints = {
+  globePointer: "lift",
   globeNodes: "lift",
   globe: "lift",
   crosshairs: "lift",

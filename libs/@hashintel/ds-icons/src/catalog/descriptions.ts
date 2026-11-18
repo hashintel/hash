@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  globePointer: "A globe and pointer represent navigating the web.",
   globeNodes:
     "A globe with connection points represents an international network.",
   globe: "A globe represents the world, the web, or international reach.",
