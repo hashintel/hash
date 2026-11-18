@@ -4870,7 +4870,7 @@ describe("AiAssistantPanel composer submissions", () => {
     },
   );
 
-  test("does not show a missing-reply notice when reply text precedes a browser tool whose follow-up is empty", async () => {
+  test("shows a missing-reply notice when the only reply text precedes a browser tool whose follow-up is empty", async () => {
     expect(
       await runBrowserToolThenFollowUp(
         [{ type: "finish", finishReason: "stop" }],
@@ -4888,8 +4888,59 @@ describe("AiAssistantPanel composer submissions", () => {
           ],
         },
       ),
-    ).toEqual({ ...endedWithoutReply, noReplyNotices: 0 });
+    ).toEqual(endedWithoutReply);
     expect(screen.getByText("Checking the net")).not.toBeNull();
+  });
+
+  test("shows a missing-reply notice when the only reply text precedes a server tool the server followed up with nothing", async () => {
+    expect(
+      await runServerToolThenFollowUp(
+        [
+          { type: "start-step" },
+          { type: "message-metadata", messageMetadata: {} },
+          { type: "finish-step" },
+        ],
+        {
+          toolStep: [
+            ...textChunks("preamble", "Outlining the net"),
+            ...serverToolChunks(),
+          ],
+        },
+      ),
+    ).toEqual(serverEndedWithoutReply);
+    expect(screen.getByText("Outlining the net")).not.toBeNull();
+  });
+
+  test("shows a missing-reply notice when the only reply text precedes an answered question and the follow-up ends on a server tool", async () => {
+    expect(
+      await runBrowserToolThenFollowUp(
+        [
+          { type: "start-step" },
+          ...serverToolChunks(),
+          { type: "finish-step" },
+          { type: "finish", finishReason: "stop" },
+        ],
+        {
+          toolStep: [
+            ...textChunks("preamble", "I can tidy the layout"),
+            {
+              type: "tool-input-available",
+              toolCallId: "layout-1",
+              toolName: "applyAutoLayout",
+              input: { askUserFirst: true },
+            },
+            { type: "finish-step" },
+            { type: "finish", finishReason: "tool-calls" },
+          ],
+          answerTool: async () => {
+            fireEvent.click(
+              await screen.findByRole("button", { name: "Deny" }),
+            );
+          },
+        },
+      ),
+    ).toEqual(endedWithoutReply);
+    expect(screen.getByText("I can tidy the layout")).not.toBeNull();
   });
 
   /**
@@ -4965,9 +5016,9 @@ describe("AiAssistantPanel composer submissions", () => {
     };
   };
 
-  test("does not show a missing-reply notice when an earlier message in the turn already replied", async () => {
+  test("shows a missing-reply notice when reply text came only before an earlier tool result", async () => {
     expect(await runLaterServerTool("Recorded the reservoir.")).toEqual({
-      noReplyNotices: 0,
+      noReplyNotices: 1,
       requests: 1,
     });
     expect(screen.getByText("Recorded the reservoir.")).not.toBeNull();
