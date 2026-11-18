@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  orbit:
+    "A body and an orbital path represent orbital motion or a connected system.",
   radar: "Concentric rings and a sweep represent detection or monitoring.",
   antenna:
     "An antenna radiating waves represents broadcast or wireless communication.",

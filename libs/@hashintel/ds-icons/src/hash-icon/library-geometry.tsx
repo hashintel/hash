@@ -184,6 +184,7 @@ import { newspaperGeometry } from "./library-geometry/newspaper";
 import { notePlusGeometry } from "./library-geometry/note-plus";
 import { noteStickyGeometry } from "./library-geometry/note-sticky";
 import { octagonGeometry } from "./library-geometry/octagon";
+import { orbitGeometry } from "./library-geometry/orbit";
 import { packGeometry } from "./library-geometry/pack";
 import { paperclipGeometry } from "./library-geometry/paperclip";
 import { parallelogramGeometry } from "./library-geometry/parallelogram";
@@ -294,6 +295,7 @@ import { wavePulseGeometry } from "./library-geometry/wave-pulse";
 import { wavesGeometry } from "./library-geometry/waves";
 
 export const libraryGeometry = {
+  orbit: orbitGeometry,
   radar: radarGeometry,
   antenna: antennaGeometry,
   thermometerCold: thermometerColdGeometry,

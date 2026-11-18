@@ -244,6 +244,7 @@ const categories = {
     "monitor",
   ],
   Science: [
+    "orbit",
     "radar",
     "antenna",
     "thermometerCold",
