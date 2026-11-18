@@ -68,6 +68,7 @@ import { codeEditGeometry } from "./library-geometry/code-edit";
 import { collapseVerticalGeometry } from "./library-geometry/collapse-vertical";
 import { columnsGeometry } from "./library-geometry/columns";
 import { commandGeometry } from "./library-geometry/command";
+import { compassGeometry } from "./library-geometry/compass";
 import { creditCardGeometry } from "./library-geometry/credit-card";
 import { dashDashedGeometry } from "./library-geometry/dash-dashed";
 import { dashDottedGeometry } from "./library-geometry/dash-dotted";
@@ -240,6 +241,7 @@ import { usersGeometry } from "./library-geometry/users";
 import { warehouseGeometry } from "./library-geometry/warehouse";
 
 export const libraryGeometry = {
+  compass: compassGeometry,
   mapPin: mapPinGeometry,
   map: mapGeometry,
   locationCheck: locationCheckGeometry,

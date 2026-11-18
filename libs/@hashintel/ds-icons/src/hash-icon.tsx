@@ -667,6 +667,7 @@ export const LocationIcon = createIcon("location");
 export const LocationCheckIcon = createIcon("locationCheck");
 export const MapIcon = createIcon("map");
 export const MapPinIcon = createIcon("mapPin");
+export const CompassIcon = createIcon("compass");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -852,6 +853,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  compass: CompassIcon,
   mapPin: MapPinIcon,
   map: MapIcon,
   locationCheck: LocationCheckIcon,
