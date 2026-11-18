@@ -136,6 +136,44 @@ are in [Panel sizes outside React state](doc:react.state/panel-sizes).
 `geometry.mjs` beside the other benchmark scripts measures panel drags and the
 maximize, restore, collapse and expand animations of a code section.
 
+## Typing
+
+A count of component renders per commit (`render-counts.mjs`) showed what a
+keystroke cost in the benchmark app: the host re-rendered on every document
+change and handed the editor a new list of nets and new callbacks. Those reach
+every reader of the document through context, so the whole editor rendered on
+every key, whatever the editor itself coalesced.
+
+Twenty characters typed in the Visualizer editor on Supply Chain:
+
+| Measurement                     |  Before | Host props held | Undo history in stores too |
+| ------------------------------- | ------: | --------------: | -------------------------: |
+| Component renders               |  53,423 |           3,842 |                      2,554 |
+| React commits                   |      57 |              33 |                         24 |
+| Key to second frame, production | 37.8 ms |    not measured |                    16.6 ms |
+| Main-thread script, production  |  624 ms |    not measured |                     153 ms |
+
+On Satellites the key-to-frame time went from 16.7 ms to 11.2 ms.
+
+Two changes:
+
+- `Petrinaut` holds the host's net list for as long as it says the same and
+  gives its callbacks one identity (`use-held-net-management.ts`).
+- The undo history, which gains an entry per edit, is handed out as stores.
+  The top bar and the bottom bar no longer render for an edit, and the version
+  history menu reads the list only while it is open.
+
+:::danger[A host whose net list changes on every edit]
+
+Holding the list helps only while it says the same. The website saves a new
+`lastUpdated` for the open net on every edit, so its list changes on every
+key and the whole editor still renders, as read from its code and not
+measured. The document context has to stop carrying the host's net list
+before that host gains what the benchmark shows. Tracked in
+[FE-2169](https://linear.app/hash/issue/FE-2169/prototype-faster-monaco-opening-and-typing-in-petrinaut).
+
+:::
+
 ## What the baseline does when an editor opens
 
 1. `MonacoProvider` starts importing Monaco, its React adapter and selected

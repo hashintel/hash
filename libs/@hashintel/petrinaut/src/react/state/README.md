@@ -15,3 +15,10 @@ What a host's rules mean for the editor is asked the same way.
 `use-is-composition-interface-on` whether the tools that edit composition
 show: the Net Components setting switches them on, and so does a host that
 keeps the editor to composing.
+
+What changes on every edit or pointer move is not published through context.
+The undo history gains an entry per edit, so `UndoRedoContext` carries its
+actions and hands out its flags and its list as stores: a reader that only
+undoes never renders for an edit, and the version history menu subscribes
+while it is open. The panel sizes follow the same rule, described in
+[Panel sizes outside React state](doc:react.state/panel-sizes).
