@@ -143,6 +143,7 @@ import { rectanglesMixedGeometry } from "./library-geometry/rectangles-mixed";
 import { redoGeometry } from "./library-geometry/redo";
 import { roundedCornerGeometry } from "./library-geometry/rounded-corner";
 import { rowsGeometry } from "./library-geometry/rows";
+import { searchChartGeometry } from "./library-geometry/search-chart";
 import { searchCheckGeometry } from "./library-geometry/search-check";
 import { searchDollarGeometry } from "./library-geometry/search-dollar";
 import { searchEmptyGeometry } from "./library-geometry/search-empty";
@@ -185,6 +186,7 @@ import { ungroupGeometry } from "./library-geometry/ungroup";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  searchChart: searchChartGeometry,
   searchDollar: searchDollarGeometry,
   searchEmpty: searchEmptyGeometry,
   searchCheck: searchCheckGeometry,

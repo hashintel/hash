@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  searchChart: "A magnifier with bars represents investigating data or trends.",
   searchDollar:
     "A magnifier with a currency mark represents researching prices or costs.",
   searchEmpty: "A magnifier with a dash represents no search results.",
