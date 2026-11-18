@@ -38,4 +38,5 @@ export const logicGeometry = {
   logicBooleanTrace: (
     <path d="M2.5 14H7V6h6v8h5V6h3.5M2.5 20h19m-3-3 3 3-3 3" />
   ),
+  logicAnd: <path d="M4.5 19 12 5l7.5 14" />,
 } as const;

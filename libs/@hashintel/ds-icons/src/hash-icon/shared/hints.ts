@@ -111,6 +111,7 @@ export const hashIconHints = {
   print: "detail",
   puzzlePiece: "shrink",
   ruler: "tilt",
+  logicAnd: "lift",
   logicSignalBounded: "lift",
   logicSignalThreshold: "lift",
   logicSignalClock: "lift",

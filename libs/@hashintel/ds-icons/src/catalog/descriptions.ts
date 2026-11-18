@@ -190,6 +190,7 @@ export const descriptions = {
   puzzlePiece: "A puzzle piece represents an extension or compatible part.",
   ruler:
     "A diagonal ruler with measurement marks represents dimensions or spacing.",
+  logicAnd: "A conjunction symbol represents conditions that must all hold.",
   logicSignalBounded:
     "A waveform with a marked interval represents signal temporal logic over a bounded period.",
   logicSignalThreshold:

@@ -561,6 +561,7 @@ export const PlugIcon = createIcon("plug");
 export const PrintIcon = createIcon("print");
 export const PuzzlePieceIcon = createIcon("puzzlePiece");
 export const RulerIcon = createIcon("ruler");
+export const LogicAndIcon = createIcon("logicAnd");
 export const LogicSignalBoundedIcon = createIcon("logicSignalBounded");
 export const LogicSignalThresholdIcon = createIcon("logicSignalThreshold");
 export const LogicSignalClockIcon = createIcon("logicSignalClock");
@@ -627,6 +628,7 @@ export const hashIconPack = {
   print: PrintIcon,
   puzzlePiece: PuzzlePieceIcon,
   ruler: RulerIcon,
+  logicAnd: LogicAndIcon,
   logicSignalBounded: LogicSignalBoundedIcon,
   logicSignalThreshold: LogicSignalThresholdIcon,
   logicSignalClock: LogicSignalClockIcon,

@@ -23,6 +23,7 @@ import {
   HashIconProvider,
   hashIconNames,
   hashIconPack,
+  LogicAndIcon,
   PlaceIcon,
   LoadingIcon,
   AddPlaceIcon,
@@ -62,6 +63,47 @@ describe("HashIcon SVG API", () => {
       Array.from(container.querySelectorAll("clipPath"), (clip) => clip.id),
     ).toEqual(clipIds);
   });
+
+  it.each([
+    { name: "logicAnd", IconComponent: LogicAndIcon, filledDots: 0 },
+  ] as const)(
+    "preserves the meaning of $name in both styles across the weight range",
+    ({ name, IconComponent, filledDots }) => {
+      expect(hashIconPack[name]).toBe(IconComponent);
+      for (const variant of ["outline", "filled"] as const) {
+        for (const weight of [100, 400, 700]) {
+          const { container, unmount } = render(
+            <IconComponent
+              variant={variant}
+              weight={weight}
+              aria-label={name}
+              motion="none"
+            />,
+          );
+          expect(
+            screen.getByRole("img", { name }).getAttribute("data-icon"),
+          ).toBe(name);
+          expect(
+            container.querySelector("svg")?.getAttribute("stroke-width"),
+          ).toBe(String(0.75 + weight / 400));
+          const shapes = container.querySelectorAll("path, circle");
+          expect(shapes.length).toBeGreaterThan(0);
+          let filled = 0;
+          for (const shape of shapes) {
+            const fill = shape.closest("[fill]")?.getAttribute("fill");
+            if (fill === "currentColor") {
+              expect(shape.tagName).toBe("circle");
+              filled++;
+            } else {
+              expect(fill).toBe("none");
+            }
+          }
+          expect(filled).toBe(filledDots);
+          unmount();
+        }
+      }
+    },
+  );
 
   it("renders every icon as a single 24 by 24 SVG", () => {
     for (const name of hashIconNames) {
