@@ -150,6 +150,12 @@ const TokenTable = () => {
   keeps the column memory across it itself, so wiring `onFocusTarget` on the
   strip is safe.
 - Rebuild the `stops` array every render; the hook reads it fresh.
+- A `row` stop that folds carries `expand` or `collapse`, whichever applies
+  now: `{ id, kind: "row", ...(open ? { collapse } : { expand }) }`. At the
+  row's first column ArrowRight calls `expand` and ArrowLeft calls `collapse`,
+  in place of moving. The arrow with nothing to do stays a move: ArrowLeft on
+  a collapsed row leaves the line as it would on any other. `full` and
+  `sparse` stops do not fold.
 - The returned `moveFrom(direction, from?)` hands a move to the enclosing
   stack. Use it from custom key handling at edges the stop walk does not
   cover.
@@ -183,6 +189,23 @@ const SectionHeader = () => {
 ```
 
 A collapsed section's content fails entry, and the vertical walk skips it.
+
+Give only the handler that applies to keep the other arrow a move:
+`useFocusHeader(expanded ? { collapse } : { expand })` closes an expanded
+header on ArrowLeft and lets ArrowLeft leave a collapsed one.
+
+`FocusControls` takes the same pair for a group of ordinary controls, such
+as a row's disclosure button and its switch. The group folds from its first
+control, and its other controls keep their arrows.
+
+```tsx
+<FocusControls {...(open ? { collapse } : { expand })}>
+  <button type="button" aria-expanded={open} onClick={toggle}>
+    Details
+  </button>
+  <Toggle value={enabled} onChange={setEnabled} />
+</FocusControls>
+```
 
 `useFocusMember(enter)` registers anything else as one member. The `enter`
 callback receives the arriving `FocusEntry` and returns whether focus landed;

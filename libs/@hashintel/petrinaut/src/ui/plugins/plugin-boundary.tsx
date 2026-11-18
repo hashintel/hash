@@ -10,6 +10,7 @@ type PluginPlace =
   | "root"
   | "assistant"
   | "settings"
+  | "bottom-panel"
   | PluginButtonPlace;
 
 type Props = {
