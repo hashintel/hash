@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  receipt: "An itemized slip represents a receipt or transaction record.",
   handDollar:
     "An open hand beneath a currency mark represents a payment or donation.",
   moneyTransfer:

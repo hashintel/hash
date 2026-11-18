@@ -204,6 +204,7 @@ import { powerGeometry } from "./library-geometry/power";
 import { pullRequestGeometry } from "./library-geometry/pull-request";
 import { quoteGeometry } from "./library-geometry/quote";
 import { radioCheckedGeometry } from "./library-geometry/radio-checked";
+import { receiptGeometry } from "./library-geometry/receipt";
 import { rectangleGeometry } from "./library-geometry/rectangle";
 import { rectanglesMixedGeometry } from "./library-geometry/rectangles-mixed";
 import { redoGeometry } from "./library-geometry/redo";
@@ -276,6 +277,7 @@ import { usersGeometry } from "./library-geometry/users";
 import { warehouseGeometry } from "./library-geometry/warehouse";
 
 export const libraryGeometry = {
+  receipt: receiptGeometry,
   handDollar: handDollarGeometry,
   moneyTransfer: moneyTransferGeometry,
   coins: coinsGeometry,
