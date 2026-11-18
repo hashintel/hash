@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  tableTree: "Rows joined by branch lines represent a hierarchical table.",
   timelineArrow:
     "Timed events below an arrow represent progression along a timeline.",
   timeline: "Offset bars along a time axis represent a schedule or timeline.",

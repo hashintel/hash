@@ -180,6 +180,7 @@ const categories = {
     "palette",
   ],
   Data: [
+    "tableTree",
     "timelineArrow",
     "timeline",
     "workflow",

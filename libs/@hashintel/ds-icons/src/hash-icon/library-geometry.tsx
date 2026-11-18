@@ -284,6 +284,7 @@ import { strikethroughGeometry } from "./library-geometry/strikethrough";
 import { sunGeometry } from "./library-geometry/sun";
 import { sunMoonGeometry } from "./library-geometry/sun-moon";
 import { swatchBookGeometry } from "./library-geometry/swatch-book";
+import { tableTreeGeometry } from "./library-geometry/table-tree";
 import { tagGeometry } from "./library-geometry/tag";
 import { teddyBearGeometry } from "./library-geometry/teddy-bear";
 import { telescopeGeometry } from "./library-geometry/telescope";
@@ -326,6 +327,7 @@ import { wavesGeometry } from "./library-geometry/waves";
 import { workflowGeometry } from "./library-geometry/workflow";
 
 export const libraryGeometry = {
+  tableTree: tableTreeGeometry,
   timelineArrow: timelineArrowGeometry,
   timeline: timelineGeometry,
   workflow: workflowGeometry,
