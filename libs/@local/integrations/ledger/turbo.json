@@ -1,0 +1,8 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "fix:clippy": { "command": ["just", "clippy", "--fix"] },
+    "lint:clippy": { "command": ["just", "clippy"] },
+    "test:unit": { "command": ["mise", "run", "test:unit", "hash-integrations-ledger"] }
+  }
+}

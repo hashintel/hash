@@ -1,0 +1,39 @@
+[package]
+name              = "hash-integrations-ledger"
+description       = "Applies incremental integration captures to the Graph through an append-only sync table"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+authors.workspace = true
+
+[features]
+test-utils = []
+
+[dependencies]
+# Public workspace dependencies
+error-stack                  = { workspace = true, public = true, features = ["std"] }
+hash-crypto                  = { workspace = true, public = true }
+hash-integrations-definition = { workspace = true, public = true }
+hash-integrations-engine     = { workspace = true, public = true }
+type-system                  = { workspace = true, public = true }
+
+# Public third-party dependencies
+serde      = { workspace = true, public = true, features = ["derive"] }
+serde_json = { workspace = true, public = true, features = ["raw_value"] }
+time       = { workspace = true, public = true, features = ["std", "formatting", "parsing", "serde"] }
+url        = { workspace = true, public = true }
+uuid       = { workspace = true, public = true, features = ["serde"] }
+
+# Private workspace dependencies
+
+# Private third-party dependencies
+derive_more  = { workspace = true, features = ["display", "error", "from", "into"] }
+duckdb       = { workspace = true, features = ["appender-arrow", "bundled", "json"] }
+object_store = { workspace = true }
+reqwest      = { workspace = true }
+tokio        = { workspace = true, features = ["time"] }
+tracing      = { workspace = true, features = ["attributes"] }
+
+[lints]
+workspace = true

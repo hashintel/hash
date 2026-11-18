@@ -7119,6 +7119,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "hash-integrations-ledger"
+version = "0.0.0"
+dependencies = [
+ "derive_more",
+ "duckdb",
+ "error-stack",
+ "hash-crypto",
+ "hash-integrations-definition",
+ "hash-integrations-engine",
+ "object_store",
+ "reqwest 0.13.4",
+ "serde",
+ "serde_json",
+ "time",
+ "tokio",
+ "tracing",
+ "type-system",
+ "url",
+ "uuid",
+]
+
+[[package]]
 name = "hash-integrations-pipeline"
 version = "0.0.0"
 dependencies = [
