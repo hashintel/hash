@@ -66,4 +66,15 @@ export const logicGeometry = {
       <circle cx="19" cy="19" r="2.5" />
     </g>
   ),
+  logicInvariant: (
+    <>
+      <path d="M3 5h18" />
+      <g strokeWidth="calc(var(--hash-icon-stroke-width) * .8)">
+        <path d="M7 15h2.5m5 0H17" />
+        <circle cx="4.5" cy="15" r="2.5" />
+        <circle cx="12" cy="15" r="2.5" />
+        <circle cx="19.5" cy="15" r="2.5" />
+      </g>
+    </>
+  ),
 } as const;

@@ -33,6 +33,7 @@ import {
   LogicNextIcon,
   LogicUntilIcon,
   LogicBranchingIcon,
+  LogicInvariantIcon,
   PlaceIcon,
   LoadingIcon,
   AddPlaceIcon,
@@ -91,6 +92,11 @@ describe("HashIcon SVG API", () => {
       name: "logicBranching",
       IconComponent: LogicBranchingIcon,
       filledDots: 1,
+    },
+    {
+      name: "logicInvariant",
+      IconComponent: LogicInvariantIcon,
+      filledDots: 0,
     },
   ] as const)(
     "preserves the meaning of $name in both styles across the weight range",

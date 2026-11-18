@@ -207,6 +207,8 @@ export const descriptions = {
     "A line ending at an event represents a condition persisting until that event occurs.",
   logicBranching:
     "A state with two outgoing paths represents alternative possible futures.",
+  logicInvariant:
+    "A bar above successive states represents a condition that holds throughout an execution.",
   logicSignalBounded:
     "A waveform with a marked interval represents signal temporal logic over a bounded period.",
   logicSignalThreshold:
