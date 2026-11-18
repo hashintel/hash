@@ -204,6 +204,7 @@ import { planeDepartureGeometry } from "./library-geometry/plane-departure";
 import { planeTailGeometry } from "./library-geometry/plane-tail";
 import { planeUpGeometry } from "./library-geometry/plane-up";
 import { powerGeometry } from "./library-geometry/power";
+import { presentationChartGeometry } from "./library-geometry/presentation-chart";
 import { pullRequestGeometry } from "./library-geometry/pull-request";
 import { quoteGeometry } from "./library-geometry/quote";
 import { radioCheckedGeometry } from "./library-geometry/radio-checked";
@@ -280,6 +281,7 @@ import { usersGeometry } from "./library-geometry/users";
 import { warehouseGeometry } from "./library-geometry/warehouse";
 
 export const libraryGeometry = {
+  presentationChart: presentationChartGeometry,
   pieChart: pieChartGeometry,
   chartMixed: chartMixedGeometry,
   chartRevenue: chartRevenueGeometry,
