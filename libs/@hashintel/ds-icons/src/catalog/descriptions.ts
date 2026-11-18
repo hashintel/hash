@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  chartRevenue:
+    "A rising chart with a currency mark represents revenue or financial growth.",
   receipt: "An itemized slip represents a receipt or transaction record.",
   handDollar:
     "An open hand beneath a currency mark represents a payment or donation.",
