@@ -44,6 +44,7 @@ import { bookOpenGeometry } from "./library-geometry/book-open";
 import { booksGeometry } from "./library-geometry/books";
 import { boxGeometry } from "./library-geometry/box";
 import { boxLocationGeometry } from "./library-geometry/box-location";
+import { boxOpenGeometry } from "./library-geometry/box-open";
 import { boxesGeometry } from "./library-geometry/boxes";
 import { boxesPackingGeometry } from "./library-geometry/boxes-packing";
 import { brainGeometry } from "./library-geometry/brain";
@@ -345,6 +346,7 @@ import { wavesGeometry } from "./library-geometry/waves";
 import { workflowGeometry } from "./library-geometry/workflow";
 
 export const libraryGeometry = {
+  boxOpen: boxOpenGeometry,
   cloud: cloudGeometry,
   circleTag: circleTagGeometry,
   circleAsterisk: circleAsteriskGeometry,

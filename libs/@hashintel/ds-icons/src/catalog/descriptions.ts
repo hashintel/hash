@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  boxOpen:
+    "An open box represents unpacking, contents, or an available package.",
   cloud: "A cloud represents hosted services or remote computing.",
   circleTag: "A tag in a circle represents a label or categorized item.",
   circleAsterisk:

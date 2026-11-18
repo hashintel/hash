@@ -225,6 +225,7 @@ const categories = {
     "plane",
   ],
   Logistics: [
+    "boxOpen",
     "gift",
     "shoppingBasket",
     "shoppingCart",
