@@ -20,6 +20,7 @@ export type HashIconHint =
   | "up";
 
 export const hashIconHints = {
+  sizeSmall: "lift",
   fillPattern: "lift",
   fillSemi: "lift",
   fillSolid: "lift",
