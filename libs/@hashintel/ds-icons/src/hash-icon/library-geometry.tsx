@@ -31,6 +31,7 @@ import { arrowheadTriangleInvertedGeometry } from "./library-geometry/arrowhead-
 import { aspectRatioGeometry } from "./library-geometry/aspect-ratio";
 import { badgeCheckGeometry } from "./library-geometry/badge-check";
 import { ballotCheckGeometry } from "./library-geometry/ballot-check";
+import { binaryGeometry } from "./library-geometry/binary";
 import { blobGeometry } from "./library-geometry/blob";
 import { boldGeometry } from "./library-geometry/bold";
 import { bookGeometry } from "./library-geometry/book";
@@ -222,6 +223,7 @@ import { userTieGeometry } from "./library-geometry/user-tie";
 import { usersGeometry } from "./library-geometry/users";
 
 export const libraryGeometry = {
+  binary: binaryGeometry,
   scanner: scannerGeometry,
   scanLine: scanLineGeometry,
   magneticMedia: magneticMediaGeometry,

@@ -20,6 +20,7 @@ export type HashIconHint =
   | "up";
 
 export const hashIconHints = {
+  binary: "lift",
   scanner: "lift",
   scanLine: "lift",
   magneticMedia: "lift",
