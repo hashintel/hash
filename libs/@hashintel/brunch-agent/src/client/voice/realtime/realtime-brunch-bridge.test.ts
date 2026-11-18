@@ -65,7 +65,7 @@ const completedResponseMessage = (
 });
 
 const createHarness = ({
-  readSelection,
+  readSelection = () => [],
 }: {
   readSelection?: () => readonly SelectionItem[];
 } = {}) => {

@@ -75,7 +75,7 @@ type SubmitInterviewAnswerResult =
 
 interface RealtimeBrunchBridgeDependencies {
   /** The editor's selection now; read when the person finishes speaking. */
-  readonly readSelection?: () => Selection;
+  readonly readSelection: () => NonNullable<Selection>;
   readonly reportDiagnostic?: VoiceDiagnosticReporter;
   readonly session: RealtimeBridgeSession;
   readonly submitInterviewAnswer: (
@@ -250,7 +250,7 @@ export class RealtimeBrunchBridge {
   readonly #pendingSpeechRequestIds = new Set<string>();
   readonly #playbackOverlappingInputItemIds = new Set<string>();
   readonly #processedTranscripts = new Set<string>();
-  readonly #readSelection: (() => Selection) | undefined;
+  readonly #readSelection: () => NonNullable<Selection>;
   readonly #reportDiagnostic: VoiceDiagnosticReporter;
   readonly #session: RealtimeBridgeSession;
   readonly #submitInterviewAnswer: (
@@ -529,7 +529,7 @@ export class RealtimeBrunchBridge {
       const pendingInput = this.#pendingInputItems.get(event.itemId);
       if (this.#acceptedInputItemIds.has(event.itemId) && pendingInput) {
         pendingInput.stopped = true;
-        pendingInput.selection = this.#readSelection?.();
+        pendingInput.selection = this.#readSelection();
       }
       return;
     }
@@ -679,7 +679,7 @@ export class RealtimeBrunchBridge {
     // Read now only if speech-stopped was never reported for this item.
     const selection = pendingInput?.stopped
       ? pendingInput.selection
-      : this.#readSelection?.();
+      : this.#readSelection();
     if (this.#pendingInterruption) {
       this.#rejectTranscript(event.key.itemId, "pending");
       return;

@@ -92,16 +92,18 @@ export const createLiveConversation = (
   onFinalizedInput: (input: FinalizedInput) => void,
   onDelegation: (delegationId: string) => void,
   onAppendResult: (result: LiveAppendResult) => void,
-  audioSettings?: VoiceAudioSettings,
-  speech?: {
-    readonly started: () => void;
-    readonly input: (fragment: LiveTranscriptFragment) => void;
-    readonly output: (fragment: LiveTranscriptFragment) => void;
-    readonly closed: () => void;
-  },
-  initialBudgetLevel: InterviewBudgetLevel = "off",
-  readWords?: () => readonly VoiceWord[],
-  readSelection?: () => EditorSelection,
+  audioSettings: VoiceAudioSettings | undefined,
+  speech:
+    | {
+        readonly started: () => void;
+        readonly input: (fragment: LiveTranscriptFragment) => void;
+        readonly output: (fragment: LiveTranscriptFragment) => void;
+        readonly closed: () => void;
+      }
+    | undefined,
+  initialBudgetLevel: InterviewBudgetLevel,
+  readWords: (() => readonly VoiceWord[]) | undefined,
+  readSelection: () => EditorSelection,
 ) => {
   let wordsHeader: string | undefined;
   let transcriptionPrompt: string | undefined;
@@ -448,14 +450,14 @@ export const createLiveConversation = (
         sendInterviewBudgetNote();
         // Taken when speech stopped; read now only if that was never reported.
         const atSpeechEnd = selectionAtSpeechEnd.get(itemId);
-        const selection = atSpeechEnd ?? readSelection?.();
+        const selection = atSpeechEnd ?? readSelection();
         selectionAtSpeechEnd.delete(itemId);
-        if (!atSpeechEnd && selection) latestSelectionLabels = selection.labels;
+        if (!atSpeechEnd) latestSelectionLabels = selection.labels;
         // Speech may have stopped before both connections were ready, or
         // never been reported; an unchanged selection sends nothing again.
         if (latestSelectionLabels) sendSelectionNote(latestSelectionLabels);
         onFinalizedInput({
-          ...(selection ? { selection: selection.items } : {}),
+          selection: selection.items,
           ...input,
           ...(transcriptionPrompt === undefined ? {} : { transcriptionPrompt }),
           ...(latestSpeechItem && latestSpeechItem !== itemId
@@ -516,8 +518,8 @@ export const createLiveConversation = (
       utteranceLevels.speechStopped(data.item_id);
       // The selection as the person stopped speaking: the turn carries it,
       // and Live hears of it before it replies.
-      const selection = readSelection?.();
-      if (selection && typeof data.item_id === "string") {
+      const selection = readSelection();
+      if (typeof data.item_id === "string") {
         selectionAtSpeechEnd.set(data.item_id, selection);
         latestSelectionLabels = selection.labels;
         sendSelectionNote(selection.labels);

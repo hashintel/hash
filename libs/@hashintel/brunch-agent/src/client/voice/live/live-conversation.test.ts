@@ -142,7 +142,7 @@ const setup = ({
   audioVolume = 1,
   inputEnabled = true,
   readWords,
-  readSelection,
+  readSelection = () => ({ items: [], labels: [] }),
 }: {
   readonly audioSettings?: VoiceAudioSettings;
   readonly audioMuted?: boolean;
@@ -2185,9 +2185,16 @@ test("records transcription confidence on input.finalized from numbers only", as
   expect(
     fixture.onFinalizedInput.mock.calls.map(([input]) => Object.keys(input)),
   ).toEqual([
-    ["id", "text", "transcriptionPrompt", "startedDuringOutput", "minLogprob"],
-    ["id", "text", "transcriptionPrompt", "startedDuringOutput"],
-    ["id", "text", "transcriptionPrompt", "startedDuringOutput"],
+    [
+      "selection",
+      "id",
+      "text",
+      "transcriptionPrompt",
+      "startedDuringOutput",
+      "minLogprob",
+    ],
+    ["selection", "id", "text", "transcriptionPrompt", "startedDuringOutput"],
+    ["selection", "id", "text", "transcriptionPrompt", "startedDuringOutput"],
   ]);
   expect(fixture.onFinalizedInput.mock.calls[0]?.[0].minLogprob).toBe(-1.9004);
   const traced = JSON.stringify(debug.mock.calls);
@@ -2372,6 +2379,7 @@ test("passes Live's recent words only with speech that overlapped its audible ou
     fixture.onFinalizedInput.mock.calls.map(([input]) => Object.keys(input)),
   ).toEqual([
     [
+      "selection",
       "id",
       "text",
       "transcriptionPrompt",
@@ -2379,7 +2387,7 @@ test("passes Live's recent words only with speech that overlapped its audible ou
       "startedDuringOutput",
       "liveOutputText",
     ],
-    ["id", "text", "transcriptionPrompt", "startedDuringOutput"],
+    ["selection", "id", "text", "transcriptionPrompt", "startedDuringOutput"],
   ]);
   expect(traceRecords(debug.mock.calls, "input.finalized")).toEqual([
     expect.objectContaining({ itemId: "early", overlappedOutput: true }),
