@@ -3,9 +3,11 @@ import { fileCodeGeometry } from "./library-geometry/file-code";
 import { fileContractGeometry } from "./library-geometry/file-contract";
 import { fileDocumentGeometry } from "./library-geometry/file-document";
 import { fileInvoiceGeometry } from "./library-geometry/file-invoice";
+import { filePresentationGeometry } from "./library-geometry/file-presentation";
 import { fileTextGeometry } from "./library-geometry/file-text";
 
 export const libraryGeometry = {
+  filePresentation: filePresentationGeometry,
   fileContract: fileContractGeometry,
   fileInvoice: fileInvoiceGeometry,
   fileText: fileTextGeometry,

@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  filePresentation: "A document with a P represents a presentation file.",
   fileContract: "A signed document represents a contract or agreement.",
   fileInvoice: "A document with itemized lines represents an invoice.",
   fileText: "A document with a T represents a plain text file.",

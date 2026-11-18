@@ -164,6 +164,7 @@ export const hashIconStudies = [
 
 const categories = {
   Files: [
+    "filePresentation",
     "fileContract",
     "fileInvoice",
     "fileText",
