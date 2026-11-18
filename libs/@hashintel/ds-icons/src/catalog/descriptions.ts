@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  chartMixed:
+    "Bars and a line represent a chart combining multiple data series.",
   chartRevenue:
     "A rising chart with a currency mark represents revenue or financial growth.",
   receipt: "An itemized slip represents a receipt or transaction record.",

@@ -57,6 +57,7 @@ import { calendarDaysGeometry } from "./library-geometry/calendar-days";
 import { calendarWeekGeometry } from "./library-geometry/calendar-week";
 import { calendarsGeometry } from "./library-geometry/calendars";
 import { canvasGeometry } from "./library-geometry/canvas";
+import { chartMixedGeometry } from "./library-geometry/chart-mixed";
 import { chartRevenueGeometry } from "./library-geometry/chart-revenue";
 import { checkDoubleGeometry } from "./library-geometry/check-double";
 import { chevronsUpDownGeometry } from "./library-geometry/chevrons-up-down";
@@ -278,6 +279,7 @@ import { usersGeometry } from "./library-geometry/users";
 import { warehouseGeometry } from "./library-geometry/warehouse";
 
 export const libraryGeometry = {
+  chartMixed: chartMixedGeometry,
   chartRevenue: chartRevenueGeometry,
   receipt: receiptGeometry,
   handDollar: handDollarGeometry,
