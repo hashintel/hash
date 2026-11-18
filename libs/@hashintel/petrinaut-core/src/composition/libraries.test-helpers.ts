@@ -1,4 +1,4 @@
-import type { Library, LibraryParameter } from "./libraries";
+import type { Library, LibraryParameter, LibraryTokenType } from "./libraries";
 
 const rate: LibraryParameter = {
   id: "rate",
@@ -71,3 +71,32 @@ export const logistics: Library = {
     },
   ],
 };
+
+/**
+ * A library with one interface, `gate`, whose port `in` carries tokens of one
+ * element. Two of them differ in the library's id and in that element alone.
+ */
+export const gateLibrary = (
+  id: string,
+  element: LibraryTokenType["elements"][number],
+): Library => ({
+  id,
+  name: id,
+  components: [
+    {
+      id: "gate",
+      name: "Gate",
+      ports: [
+        {
+          id: "in",
+          name: "In",
+          tokenType: {
+            name: "Parcel",
+            displayColor: "#1E90FF",
+            elements: [element],
+          },
+        },
+      ],
+    },
+  ],
+});

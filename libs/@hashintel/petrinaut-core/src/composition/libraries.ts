@@ -13,6 +13,7 @@ import { toPetrinautId } from "../petrinaut-id";
 import { subnetSchema } from "../schemas/entity-schemas";
 import { COLOR_ELEMENT_TYPES } from "../simulation/engine/type-policies";
 import { colorsStructurallyEqual } from "./fusions";
+import { componentKey } from "./interfaces";
 import { portDirections } from "./ports";
 
 import type {
@@ -192,6 +193,7 @@ const assertDistinctIds = (
  */
 const declaredTypes = (
   component: ComponentOutline,
+  libraryId: string,
   owner: string,
 ): { types: Color[]; typeIdOf: (port: PortOutline) => string | null } => {
   const typesByName = new Map<string, Color>();
@@ -205,9 +207,10 @@ const declaredTypes = (
         `${owner} declares the token type \`${tokenType.name}\` in two ways.`,
       );
     }
-    // A library gives a type no id: it takes one from the first port to
-    // carry it, so the same library always resolves to the same subnet.
-    const seed = `${component.id}/${id}/type`;
+    // A library gives a type no id: it takes one from its library, its
+    // component and the first port to carry it. The same library always
+    // resolves to the same subnet, and no two libraries to the same type.
+    const seed = `${componentKey({ from: libraryId, id: component.id })}/${id}/type`;
     typesByName.set(
       tokenType.name,
       declared ?? {
@@ -286,7 +289,11 @@ const toSubnet = (component: ComponentOutline, libraryId: string): Subnet => {
   assertDistinctIds(component.parameters ?? [], "parameters", `The ${owner}`);
 
   const { body } = component;
-  const { types, typeIdOf } = declaredTypes(component, `The ${owner}`);
+  const { types, typeIdOf } = declaredTypes(
+    component,
+    libraryId,
+    `The ${owner}`,
+  );
   const parsed = subnetSchema.safeParse({
     id: component.id,
     name: component.name,

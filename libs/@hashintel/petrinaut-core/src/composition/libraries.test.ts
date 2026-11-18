@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import { toPetrinautId } from "../petrinaut-id";
-import { isInterface } from "./interfaces";
+import { isInterface, resolveComponent } from "./interfaces";
 import { resolveLibrary, type Library } from "./libraries";
-import { logistics } from "./libraries.test-helpers";
+import { gateLibrary, logistics } from "./libraries.test-helpers";
 
 const [scale, belt] = logistics.components;
 
@@ -120,6 +120,32 @@ describe("resolveLibrary", () => {
       iface?.types[0]?.id,
       iface?.types[0]?.id,
     ]);
+  });
+
+  it("keeps the token types of two libraries apart, whatever ids their components and ports share", () => {
+    const north = gateLibrary("@hashintel/north", {
+      name: "weight",
+      type: "real",
+    });
+    const south = gateLibrary("@hashintel/south", {
+      name: "count",
+      type: "integer",
+    });
+    const libraries = new Map(
+      [north, south].map((library) => [
+        library.id,
+        resolveLibrary(library.id, library),
+      ]),
+    );
+    const typeOf = (from: string) =>
+      resolveComponent({}, { from, id: "gate" }, libraries)?.types[0];
+
+    expect(typeOf(north.id)?.elements).toMatchObject([{ name: "weight" }]);
+    expect(typeOf(south.id)?.elements).toMatchObject([{ name: "count" }]);
+    expect(typeOf(north.id)?.id).not.toBe(typeOf(south.id)?.id);
+    expect(typeOf(north.id)?.elements[0]?.elementId).not.toBe(
+      typeOf(south.id)?.elements[0]?.elementId,
+    );
   });
 
   it("gives the same subnets each time it reads the same library", () => {

@@ -10,7 +10,7 @@ import { checkComposition } from "./check-composition";
 import { inlineImports } from "./inline-imports";
 import { resolveImplementation } from "./interfaces";
 import { resolveLibrary } from "./libraries";
-import { logistics } from "./libraries.test-helpers";
+import { gateLibrary, logistics } from "./libraries.test-helpers";
 
 import type { ComponentInstance, SDCPN, Subnet } from "../types/sdcpn";
 
@@ -231,6 +231,47 @@ describe("inlineImports", () => {
     expect(subnetNamed(inlined, "OwnScale")?.implements).toEqual([
       subnetNamed(inlined, "Scale")?.id,
     ]);
+  });
+
+  it("keeps the token types of two libraries apart in the subnets it makes of their components", () => {
+    const north = gateLibrary("@hashintel/north", {
+      name: "weight",
+      type: "real",
+    });
+    const south = gateLibrary("@hashintel/south", {
+      name: "count",
+      type: "integer",
+    });
+    const gates: SDCPN = {
+      ...document,
+      places: [],
+      transitions: [],
+      fusions: [],
+      imports: [{ id: north.id }, { id: south.id }],
+      componentInstances: [north, south].map((library) =>
+        instance(library.name, { component: { from: library.id, id: "gate" } }),
+      ),
+    };
+
+    const inlined = inlineImports(
+      gates,
+      new Map(
+        [north, south].map((library) => [
+          library.id,
+          resolveLibrary(library.id, library),
+        ]),
+      ),
+    );
+
+    const types = inlined.subnets?.map((subnet) => subnet.types[0]);
+    expect(types).toMatchObject([
+      { elements: [{ name: "weight" }] },
+      { elements: [{ name: "count" }] },
+    ]);
+    expect(types?.[0]?.id).not.toBe(types?.[1]?.id);
+    expect(inlined.subnets?.map((subnet) => subnet.places[0]?.colorId)).toEqual(
+      types?.map((type) => type?.id),
+    );
   });
 
   it("leaves what names an import that did not resolve as it is", () => {

@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import { mutationActionInputSchemas } from "./action-schemas";
 import { updatePrunesReferences } from "./actions";
-import { logistics } from "./composition/libraries.test-helpers";
+import { gateLibrary, logistics } from "./composition/libraries.test-helpers";
 import { createJsonDocHandle } from "./handle";
 import { createPetrinaut } from "./instance";
 import { toPetrinautId } from "./petrinaut-id";
@@ -2931,6 +2931,59 @@ describe("Petrinaut core import actions", () => {
       update: { implementation: belt },
     });
     expect(choosing.definition.get().imports).toEqual([{ id: logistics.id }]);
+  });
+
+  test("a transition's default kernel takes each port's token type from its own library, whatever ids two libraries share", () => {
+    const north = gateLibrary("@hashintel/north", {
+      name: "weight",
+      type: "real",
+    });
+    const south = gateLibrary("@hashintel/south", {
+      name: "count",
+      type: "integer",
+    });
+    const instance = createPetrinaut({
+      document: createJsonDocHandle({ initial: cloneSDCPN(emptySDCPN) }),
+      resolveImport: (id) =>
+        [north, south].find((library) => library.id === id),
+      libraries: [north.id, south.id],
+    });
+    for (const [id, library] of [
+      ["north-1", north],
+      ["south-1", south],
+    ] as const) {
+      instance.mutations.addComponentInstance({
+        ...placed,
+        id,
+        name: id === "north-1" ? "North" : "South",
+        component: { from: library.id, id: "gate" },
+      });
+    }
+
+    instance.mutations.addTransition({
+      id: "sort",
+      name: "Sort",
+      inputArcs: [],
+      outputArcs: ["north-1", "south-1"].map((componentInstanceId) => ({
+        endpoint: {
+          kind: "componentPort" as const,
+          componentInstanceId,
+          portPlaceId: "in",
+        },
+        weight: 1,
+      })),
+      lambdaType: "predicate",
+      lambdaCode: "",
+      transitionKernelCode: "",
+      x: 0,
+      y: 0,
+    });
+
+    const code = instance.definition
+      .get()
+      .transitions.find(({ id }) => id === idOf("sort"))?.transitionKernelCode;
+    expect(code).toContain("{ weight: ");
+    expect(code).toContain("{ count: ");
   });
 
   test("a transition keeps the code written for a port of a component whose library is not there to read", () => {
