@@ -12,7 +12,7 @@ held in stores, and the elements that depend on a size are written directly.
 pointer move
   -> ResizeHandle.onResize(size)
   -> panelSizes.propertiesPanelWidth.set(size)        a store, no React state
-       -> styleFromStore: panel.style.width = size    one element, no render
+       -> styleFromStores: panel.style.width = size   each dependent element, no render
        -> useStore readers re-render                  only those that compute with it
 pointer up
   -> ResizeHandle.onResizeEnd()
@@ -25,7 +25,7 @@ pointer up
 | ------------------------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------- |
 | `PanelSizes`, `createPanelSizes`      | `react/state/panel-sizes.ts`                                     | One store per size, in CSS pixels.                                   |
 | `PanelSizesProvider`, `usePanelSizes` | `react/state/panel-sizes-provider.tsx`, `panel-sizes-context.ts` | Creates the stores from the saved settings, once per editor.         |
-| `styleFromStore`                      | `ui/lib/style-from-store.ts`                                     | A ref that writes an element's inline style from a store.            |
+| `styleFromStores`                     | `ui/lib/style-from-stores.ts`                                    | A ref that writes an element's inline style from stores.             |
 | `ResizeHandle`                        | `ui/resize/resize-handle.tsx`                                    | Asks for the size when a drag starts, reports each move and the end. |
 
 The stores keep one identity for the editor's life. Reading `usePanelSizes()`
@@ -35,19 +35,23 @@ never re-renders the reader.
 
 Pick the first row that fits.
 
-| The reader                                                | Reads with                            | Renders per pointer move |
-| --------------------------------------------------------- | ------------------------------------- | ------------------------ |
-| An element whose style is the size or a function of it    | `ref={styleFromStore(size, toStyle)}` | No                       |
-| An event handler or an effect                             | `size.get()`, or `size.subscribe()`   | No                       |
-| A component that computes with the number while rendering | `useStore(size)`                      | Yes, that component      |
+| The reader                                                | Reads with                              | Renders per pointer move |
+| --------------------------------------------------------- | --------------------------------------- | ------------------------ |
+| An element whose style is a function of one or more sizes | `ref={styleFromStores(sizes, toStyle)}` | No                       |
+| An event handler or an effect                             | `size.get()`, or `size.subscribe()`     | No                       |
+| A component that computes with the number while rendering | `useStore(size)`                        | Yes, that component      |
 
 ```tsx
-const { propertiesPanelWidth } = usePanelSizes();
+const { propertiesPanelWidth, bottomPanelHeight } = usePanelSizes();
 
 <GlassPanel
-  ref={styleFromStore(propertiesPanelWidth, (width) => ({
-    width: `${width}px`,
-  }))}
+  ref={styleFromStores(
+    { propertiesPanelWidth, bottomPanelHeight },
+    (sizes) => ({
+      width: `${sizes.propertiesPanelWidth}px`,
+      bottom: `${isBottomPanelOpen ? sizes.bottomPanelHeight + PANEL_MARGIN : 0}px`,
+    }),
+  )}
   resizable={{
     edge: "left",
     getSize: () => propertiesPanelWidth.get(),
@@ -57,8 +61,13 @@ const { propertiesPanelWidth } = usePanelSizes();
 />;
 ```
 
-`styleFromStore` must not set a property that the element's React `style` prop
-also sets: React would write its own value back on the next render.
+The Properties panel follows two stores: its own width, and the height of the
+bottom panel it ends above. `toStyle` may close over React values such as
+`isBottomPanelOpen`. When one changes, the component renders, the ref is
+attached again and the style is written with the new value.
+
+`styleFromStores` must not set a property that the element's React `style`
+prop also sets: React would write its own value back on the next render.
 
 ## Why the write goes to each element
 
@@ -87,29 +96,32 @@ A drag saves the size to the user settings when it ends, through
 storage, which is one frame of about 25 ms on the Supply Chain example. During
 the drag nothing is saved.
 
-## What a width drag of the Properties panel costs
+## What a drag costs
 
 Sixty pointer moves on the Supply Chain example with the Visualizer editor
-open, medians of three runs. React figures are from the profiling build.
+open, medians of three runs, production build.
 
-| Measurement                            | In editor state | In a store |
-| -------------------------------------- | --------------: | ---------: |
-| Script per pointer move                |         23.8 ms |     4.7 ms |
-| React render time                      |        1,026 ms |     119 ms |
-| Frames over 12 ms                      |       13 of 313 |   2 of 185 |
-| 95th-percentile frame                  |         10.2 ms |    10.2 ms |
-| Script per move, 4x CPU throttle       |        120.8 ms |    16.3 ms |
-| 95th-percentile frame, 4x CPU throttle |          107 ms |      25 ms |
+| Drag                   | Script per move, in editor state | In a store | Frames over 12 ms, in editor state | In a store |
+| ---------------------- | -------------------------------: | ---------: | ---------------------------------: | ---------: |
+| Properties panel width |                          23.8 ms |     4.7 ms |                          13 of 313 |   2 of 185 |
+| Bottom panel height    |                          25.2 ms |     4.7 ms |                          32 of 306 |   1 of 170 |
+| Left sidebar width     |                          25.9 ms |     6.2 ms |                          62 of 319 |   2 of 225 |
+
+On the profiling build, React render time for the Properties panel drag went
+from 1,026 ms to 119 ms. With a 4x CPU throttle its script per move went from
+120.8 ms to 16.3 ms, and the 95th-percentile frame from 107 ms to 25 ms.
+
+The frames over 12 ms that remain are the release, when the size is saved.
 
 Reproduce with `benchmarks/monaco-performance/geometry.mjs`.
 
-:::danger[Sizes and readers not moved yet]
+:::danger[Readers that still render on each move]
 
-The left sidebar width, the bottom panel height and the assistant width are
-still set through editor state, which mirrors them into their stores. The
-canvas insets read the Properties panel width with `useStore`, so the minimap,
-the viewport controls, the bottom bar, the canvas and the visualizer windows
-still render on each move: about three React commits per move remain. Both are
-tracked in [FE-2169](https://linear.app/hash/issue/FE-2169/prototype-faster-monaco-opening-and-typing-in-petrinaut).
+The canvas insets read the four sizes with `useStore`, so the minimap, the
+viewport controls, the bottom bar, the canvas and the visualizer windows
+render on each move: about three React commits per move remain. The assistant
+shell reads its width with `useStore` and renders with it. Moving the insets
+to stores of their own is tracked in
+[FE-2169](https://linear.app/hash/issue/FE-2169/prototype-faster-monaco-opening-and-typing-in-petrinaut).
 
 :::
