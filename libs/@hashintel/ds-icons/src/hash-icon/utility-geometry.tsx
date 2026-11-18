@@ -7,9 +7,15 @@ const calendarFrame = (
     <path fill="none" d="M8 3v4m8-4v4" />
   </>
 );
-const sortPyramid = (
-  <FilledShape cutout={<path d="M4 0v8" />}>
-    <path d="M4 0 0 7 4 8 8 7Z" />
+const sortLetterA = <path d="M12.9 7 15.7 0h.6l2.8 7M13.8 4.75h4.4" />;
+const sortLetterZ = <path d="M13.4 0h5.2v.35l-5.2 6.3V7h5.2" />;
+const sortDigitOne = <path d="M16.5 0v7M13.75 1.75h1.75c.65 0 1-.35 1-1.1" />;
+const sortDigitNine = (
+  <path d="M18.5 2.25c0 1.25-.95 2.25-2.5 2.25s-2.5-1-2.5-2.25S14.45 0 16 0s2.5 1 2.5 2.25c0 3.65-.5 4.75-2.5 4.75-1.35 0-2.1-.65-2.3-1.8" />
+);
+const sortTriangle = (
+  <FilledShape>
+    <path d="M4 0 0 7h8Z" />
   </FilledShape>
 );
 
@@ -289,16 +295,40 @@ export const utilityGeometry = {
   sortDown: <path d="M5 3v18m-3-3 3 3 3-3M11 5h10M11 10h7M11 15h4" />,
   sortUp: <path d="M5 21V3m-3 3 3-3 3 3M11 5h4M11 10h7M11 15h10" />,
   sortDownNumeric: (
-    <path d="M5 3v18m-3-3 3 3 3-3M13.5 5l2-2v6M17.5 16.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 1 1 5 0c0 3-1 4.5-3.5 4.5" />
+    <>
+      <path d="M5 3v18m-3-3 3 3 3-3" />
+      <g strokeWidth="calc(var(--hash-icon-stroke-width) * .8)">
+        <g transform="translate(0 3)">{sortDigitOne}</g>
+        <g transform="translate(0 14)">{sortDigitNine}</g>
+      </g>
+    </>
   ),
   sortUpNumeric: (
-    <path d="M5 21V3m-3 3 3-3 3 3M17.5 6.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 1 1 5 0c0 3-1 4.5-3.5 4.5M13.5 16l2-2v7" />
+    <>
+      <path d="M5 21V3m-3 3 3-3 3 3" />
+      <g strokeWidth="calc(var(--hash-icon-stroke-width) * .8)">
+        <g transform="translate(0 3)">{sortDigitNine}</g>
+        <g transform="translate(0 14)">{sortDigitOne}</g>
+      </g>
+    </>
   ),
   sortDownAlphabetical: (
-    <path d="M5 3v18m-3-3 3 3 3-3M12 9.5 15.5 3 19 9.5m-5.6-2.6h4.2M12 14h7l-7 7h7" />
+    <>
+      <path d="M5 3v18m-3-3 3 3 3-3" />
+      <g strokeWidth="calc(var(--hash-icon-stroke-width) * .8)">
+        <g transform="translate(0 3)">{sortLetterA}</g>
+        <g transform="translate(0 14)">{sortLetterZ}</g>
+      </g>
+    </>
   ),
   sortUpAlphabetical: (
-    <path d="M5 21V3m-3 3 3-3 3 3M12 3h7l-7 7h7M12 21l3.5-6.5L19 21m-5.6-2.6h4.2" />
+    <>
+      <path d="M5 21V3m-3 3 3-3 3 3" />
+      <g strokeWidth="calc(var(--hash-icon-stroke-width) * .8)">
+        <g transform="translate(0 3)">{sortLetterZ}</g>
+        <g transform="translate(0 14)">{sortLetterA}</g>
+      </g>
+    </>
   ),
   sortDownShapes: (
     <>
@@ -306,7 +336,7 @@ export const utilityGeometry = {
       <FilledShape>
         <circle cx="16" cy="6" r="3" />
       </FilledShape>
-      <g transform="translate(12 13)">{sortPyramid}</g>
+      <g transform="translate(12 13)">{sortTriangle}</g>
     </>
   ),
   sortUpShapes: (
@@ -315,7 +345,7 @@ export const utilityGeometry = {
       <FilledShape>
         <circle cx="16" cy="18" r="3" />
       </FilledShape>
-      <g transform="translate(12 3)">{sortPyramid}</g>
+      <g transform="translate(12 3)">{sortTriangle}</g>
     </>
   ),
   sortDownSize: (
