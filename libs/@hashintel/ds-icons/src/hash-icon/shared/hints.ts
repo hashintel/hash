@@ -20,6 +20,7 @@ export type HashIconHint =
   | "up";
 
 export const hashIconHints = {
+  entityPlus: "lift",
   entity: "lift",
   typeInheritance: "lift",
   tableTree: "lift",

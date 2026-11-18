@@ -180,6 +180,7 @@ const categories = {
     "palette",
   ],
   Data: [
+    "entityPlus",
     "entity",
     "typeInheritance",
     "tableTree",

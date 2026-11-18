@@ -756,6 +756,7 @@ export const TimelineArrowIcon = createIcon("timelineArrow");
 export const TableTreeIcon = createIcon("tableTree");
 export const TypeInheritanceIcon = createIcon("typeInheritance");
 export const EntityIcon = createIcon("entity");
+export const EntityPlusIcon = createIcon("entityPlus");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -941,6 +942,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  entityPlus: EntityPlusIcon,
   entity: EntityIcon,
   typeInheritance: TypeInheritanceIcon,
   tableTree: TableTreeIcon,
