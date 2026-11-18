@@ -60,6 +60,7 @@ import { fileTextGeometry } from "./library-geometry/file-text";
 import { fileVideoGeometry } from "./library-geometry/file-video";
 import { filesGeometry } from "./library-geometry/files";
 import { folderGeometry } from "./library-geometry/folder";
+import { frameGeometry } from "./library-geometry/frame";
 import { handwrittenDocsGeometry } from "./library-geometry/handwritten-docs";
 import { helpGeometry } from "./library-geometry/help";
 import { hexagonGeometry } from "./library-geometry/hexagon";
@@ -101,6 +102,7 @@ import { triangleGeometry } from "./library-geometry/triangle";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  frame: frameGeometry,
   roundedCorner: roundedCornerGeometry,
   splineCubic: splineCubicGeometry,
   splineLine: splineLineGeometry,
