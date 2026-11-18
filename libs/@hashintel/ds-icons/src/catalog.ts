@@ -164,6 +164,7 @@ export const hashIconStudies = [
 
 const categories = {
   Canvas: [
+    "arrowheadDiamond",
     "arrowheadBar",
     "arrowheadArrow",
     "shapeArrowUp",

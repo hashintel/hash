@@ -5,6 +5,7 @@ import { arrowTurnDownLeftGeometry } from "./library-geometry/arrow-turn-down-le
 import { arrowTurnDownRightGeometry } from "./library-geometry/arrow-turn-down-right";
 import { arrowheadArrowGeometry } from "./library-geometry/arrowhead-arrow";
 import { arrowheadBarGeometry } from "./library-geometry/arrowhead-bar";
+import { arrowheadDiamondGeometry } from "./library-geometry/arrowhead-diamond";
 import { blobGeometry } from "./library-geometry/blob";
 import { bookGeometry } from "./library-geometry/book";
 import { bookOpenGeometry } from "./library-geometry/book-open";
@@ -88,6 +89,7 @@ import { triangleGeometry } from "./library-geometry/triangle";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  arrowheadDiamond: arrowheadDiamondGeometry,
   arrowheadBar: arrowheadBarGeometry,
   arrowheadArrow: arrowheadArrowGeometry,
   shapeArrowUp: shapeArrowUpGeometry,
