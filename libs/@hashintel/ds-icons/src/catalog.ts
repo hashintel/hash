@@ -244,6 +244,7 @@ const categories = {
     "monitor",
   ],
   Science: [
+    "flaskVial",
     "testTubes",
     "biohazard",
     "virus",

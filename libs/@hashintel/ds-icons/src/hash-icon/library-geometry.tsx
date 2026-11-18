@@ -124,6 +124,7 @@ import { fillNoneGeometry } from "./library-geometry/fill-none";
 import { fillPatternGeometry } from "./library-geometry/fill-pattern";
 import { fillSemiGeometry } from "./library-geometry/fill-semi";
 import { fillSolidGeometry } from "./library-geometry/fill-solid";
+import { flaskVialGeometry } from "./library-geometry/flask-vial";
 import { folderGeometry } from "./library-geometry/folder";
 import { fontCaseGeometry } from "./library-geometry/font-case";
 import { fontDrawGeometry } from "./library-geometry/font-draw";
@@ -300,6 +301,7 @@ import { wavePulseGeometry } from "./library-geometry/wave-pulse";
 import { wavesGeometry } from "./library-geometry/waves";
 
 export const libraryGeometry = {
+  flaskVial: flaskVialGeometry,
   testTubes: testTubesGeometry,
   biohazard: biohazardGeometry,
   virus: virusGeometry,
