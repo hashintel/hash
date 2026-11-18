@@ -62,9 +62,11 @@ import { shuffleGeometry } from "./library-geometry/shuffle";
 import { squareCloseGeometry } from "./library-geometry/square-close";
 import { squareMinusGeometry } from "./library-geometry/square-minus";
 import { tagGeometry } from "./library-geometry/tag";
+import { toggleOnGeometry } from "./library-geometry/toggle-on";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  toggleOn: toggleOnGeometry,
   power: powerGeometry,
   tag: tagGeometry,
   pin: pinGeometry,
