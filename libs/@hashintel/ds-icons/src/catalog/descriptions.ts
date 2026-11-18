@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  shapeArrowLeft: "A block arrow pointing left represents a directional shape.",
   shapeArrowDown: "A block arrow pointing down represents a directional shape.",
   shapeArrowRight:
     "A block arrow pointing right represents a directional shape.",

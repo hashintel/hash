@@ -72,6 +72,7 @@ import { radioCheckedGeometry } from "./library-geometry/radio-checked";
 import { rectangleGeometry } from "./library-geometry/rectangle";
 import { redoGeometry } from "./library-geometry/redo";
 import { shapeArrowDownGeometry } from "./library-geometry/shape-arrow-down";
+import { shapeArrowLeftGeometry } from "./library-geometry/shape-arrow-left";
 import { shapeArrowRightGeometry } from "./library-geometry/shape-arrow-right";
 import { shuffleGeometry } from "./library-geometry/shuffle";
 import { squareCloseGeometry } from "./library-geometry/square-close";
@@ -84,6 +85,7 @@ import { triangleGeometry } from "./library-geometry/triangle";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  shapeArrowLeft: shapeArrowLeftGeometry,
   shapeArrowDown: shapeArrowDownGeometry,
   shapeArrowRight: shapeArrowRightGeometry,
   blob: blobGeometry,

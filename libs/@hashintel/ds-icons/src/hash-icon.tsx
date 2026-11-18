@@ -509,6 +509,7 @@ export const TrapezoidIcon = createIcon("trapezoid");
 export const BlobIcon = createIcon("blob");
 export const ShapeArrowRightIcon = createIcon("shapeArrowRight");
 export const ShapeArrowDownIcon = createIcon("shapeArrowDown");
+export const ShapeArrowLeftIcon = createIcon("shapeArrowLeft");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -694,6 +695,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  shapeArrowLeft: ShapeArrowLeftIcon,
   shapeArrowDown: ShapeArrowDownIcon,
   shapeArrowRight: ShapeArrowRightIcon,
   blob: BlobIcon,
