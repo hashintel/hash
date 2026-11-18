@@ -88,6 +88,7 @@ import { shapeArrowLeftGeometry } from "./library-geometry/shape-arrow-left";
 import { shapeArrowRightGeometry } from "./library-geometry/shape-arrow-right";
 import { shapeArrowUpGeometry } from "./library-geometry/shape-arrow-up";
 import { shuffleGeometry } from "./library-geometry/shuffle";
+import { splineLineGeometry } from "./library-geometry/spline-line";
 import { squareCloseGeometry } from "./library-geometry/square-close";
 import { squareMinusGeometry } from "./library-geometry/square-minus";
 import { tagGeometry } from "./library-geometry/tag";
@@ -98,6 +99,7 @@ import { triangleGeometry } from "./library-geometry/triangle";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  splineLine: splineLineGeometry,
   dashDraw: dashDrawGeometry,
   dashDotted: dashDottedGeometry,
   dashDashed: dashDashedGeometry,
