@@ -232,8 +232,10 @@ import { userSearchGeometry } from "./library-geometry/user-search";
 import { userTagGeometry } from "./library-geometry/user-tag";
 import { userTieGeometry } from "./library-geometry/user-tie";
 import { usersGeometry } from "./library-geometry/users";
+import { warehouseGeometry } from "./library-geometry/warehouse";
 
 export const libraryGeometry = {
+  warehouse: warehouseGeometry,
   factory: factoryGeometry,
   bank: bankGeometry,
   home: homeGeometry,
