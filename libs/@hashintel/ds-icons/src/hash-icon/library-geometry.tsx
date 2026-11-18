@@ -14,6 +14,7 @@ import { calendarsGeometry } from "./library-geometry/calendars";
 import { chevronsUpDownGeometry } from "./library-geometry/chevrons-up-down";
 import { circleArrowRightGeometry } from "./library-geometry/circle-arrow-right";
 import { circleArrowUpRightGeometry } from "./library-geometry/circle-arrow-up-right";
+import { circlePlayGeometry } from "./library-geometry/circle-play";
 import { circleUpGeometry } from "./library-geometry/circle-up";
 import { clipboardGeometry } from "./library-geometry/clipboard";
 import { clipboardCheckGeometry } from "./library-geometry/clipboard-check";
@@ -54,6 +55,7 @@ import { shuffleGeometry } from "./library-geometry/shuffle";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  circlePlay: circlePlayGeometry,
   circleUp: circleUpGeometry,
   circleArrowUpRight: circleArrowUpRightGeometry,
   circleArrowRight: circleArrowRightGeometry,

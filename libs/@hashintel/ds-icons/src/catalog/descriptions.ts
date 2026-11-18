@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  circlePlay:
+    "A play symbol in a circle represents starting media or an execution.",
   circleUp: "An upward arrow in a circle represents moving to a higher level.",
   circleArrowUpRight:
     "A diagonal arrow in a circle represents opening or navigating outward.",
