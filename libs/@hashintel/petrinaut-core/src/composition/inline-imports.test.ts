@@ -233,6 +233,40 @@ describe("inlineImports", () => {
     ]);
   });
 
+  it("carries the bindings of many instances across a library with one list of what a subnet implements", () => {
+    const own: Subnet = {
+      id: "own-scale",
+      name: "OwnScale",
+      places: [],
+      transitions: [],
+      types: [],
+      differentialEquations: [],
+      parameters: [],
+    };
+    const bound: SDCPN = {
+      ...document,
+      transitions: [],
+      fusions: [],
+      subnets: [own],
+      componentInstances: Array.from({ length: 50_000 }, (_, index) =>
+        instance(`scale-${index}`, {
+          component: fromLogistics("scale"),
+          implementation: { id: own.id },
+        }),
+      ),
+    };
+
+    const started = Date.now();
+    const inlined = inlineImports(bound, libraries);
+    const elapsed = Date.now() - started;
+
+    expect(subnetNamed(inlined, "OwnScale")?.implements).toEqual([
+      subnetNamed(inlined, "Scale")?.id,
+    ]);
+    // A copy of the list for every instance takes several seconds.
+    expect(elapsed).toBeLessThan(1_000);
+  });
+
   it("keeps the token types of two libraries apart in the subnets it makes of their components", () => {
     const north = gateLibrary("@hashintel/north", {
       name: "weight",

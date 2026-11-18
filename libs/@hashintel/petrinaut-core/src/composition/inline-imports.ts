@@ -129,7 +129,7 @@ export const inlineImports = (
 
   // A subnet says what it implements, where a component of a library could
   // not: each binding that crossed a library is written into that list.
-  const implemented = new Map<ID, ID[]>();
+  const implemented = new Map<ID, Set<ID>>();
   for (const binding of bindings) {
     if (
       binding.component &&
@@ -140,10 +140,9 @@ export const inlineImports = (
         moved(binding.component),
       ];
       if (bindsWithinDocument(iface, component)) {
-        implemented.set(component.id, [
-          ...(implemented.get(component.id) ?? []),
-          iface.id,
-        ]);
+        const interfaces = implemented.get(component.id) ?? new Set();
+        interfaces.add(iface.id);
+        implemented.set(component.id, interfaces);
       }
     }
   }
