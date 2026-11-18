@@ -266,6 +266,7 @@ import { strikethroughGeometry } from "./library-geometry/strikethrough";
 import { sunGeometry } from "./library-geometry/sun";
 import { sunMoonGeometry } from "./library-geometry/sun-moon";
 import { tagGeometry } from "./library-geometry/tag";
+import { testTubesGeometry } from "./library-geometry/test-tubes";
 import { textAlignCenterGeometry } from "./library-geometry/text-align-center";
 import { textAlignJustifyGeometry } from "./library-geometry/text-align-justify";
 import { textAlignLeftGeometry } from "./library-geometry/text-align-left";
@@ -299,6 +300,7 @@ import { wavePulseGeometry } from "./library-geometry/wave-pulse";
 import { wavesGeometry } from "./library-geometry/waves";
 
 export const libraryGeometry = {
+  testTubes: testTubesGeometry,
   biohazard: biohazardGeometry,
   virus: virusGeometry,
   atom: atomGeometry,

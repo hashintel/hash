@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  testTubes: "Two tilted sample tubes represent laboratory experiments.",
   biohazard: "Three interlocking lobes represent a biological hazard.",
   virus: "A particle with projecting spikes represents a virus.",
   atom: "Crossing orbital paths around a nucleus represent an atom.",
