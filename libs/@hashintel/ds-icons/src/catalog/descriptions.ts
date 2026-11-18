@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  cctvCamera:
+    "An angled surveillance camera represents monitoring or security footage.",
   tombstone:
     "A rounded memorial stone represents a tombstone or deleted record.",
   teddyBear: "A soft toy bear represents toys, childhood, or comfort.",
