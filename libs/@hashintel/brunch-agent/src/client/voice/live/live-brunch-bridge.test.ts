@@ -210,7 +210,7 @@ test("submits a turn with the selection it finished with", async () => {
   expect(fixture.submit.mock.calls[0]?.[0].selection).toEqual(selection);
 });
 
-test("speech merged behind the composer carries every element its parts had selected", async () => {
+test("speech merged behind the composer carries its newest non-empty selection", async () => {
   const fixture = setup();
   let admitFirst = () => {};
   fixture.submit.mockImplementationOnce(async (input) => {
@@ -223,18 +223,67 @@ test("speech merged behind the composer carries every element its parts had sele
   const first = fixture.bridge.accept(speech("one", "Compare staffing"));
   await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledOnce());
   await fixture.bridge.accept({
-    ...speech("two", "Make this two"),
+    ...speech("two", "Make this faster"),
     selection: [{ type: "place", id: "doctors" }],
   });
   await fixture.bridge.accept({
-    ...speech("three", "and this one faster"),
+    ...speech("three", "no, this one"),
     selection: [{ type: "transition", id: "consult" }],
+  });
+  await fixture.bridge.accept({
+    ...speech("four", "and keep it under a minute"),
+    selection: [],
   });
   admitFirst();
   await first;
   await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledTimes(2));
   expect(fixture.submit.mock.calls[1]?.[0].selection).toEqual([
-    { type: "place", id: "doctors" },
+    { type: "transition", id: "consult" },
+  ]);
+});
+
+test("words withdrawn by a speech start keep their selection when the next input selects nothing", async () => {
+  const fixture = setup({
+    history: new VoiceMediationHistory("test"),
+    prepare: abortablePreparation(),
+    summarize: vi.fn(),
+    offered: vi.fn(),
+  });
+  const first = fixture.bridge.accept({
+    ...speech("one", "Make this faster"),
+    selection: [{ type: "transition", id: "consult" }],
+  });
+  fixture.bridge.speechStarted();
+  await first;
+  await fixture.bridge.accept({
+    ...speech("two", "and keep it under a minute"),
+    selection: [],
+  });
+  expect(fixture.submit).toHaveBeenCalledOnce();
+  expect(fixture.submit.mock.calls[0]?.[0].selection).toEqual([
+    { type: "transition", id: "consult" },
+  ]);
+});
+
+test("words withdrawn by a speech start give way to the next input's selection", async () => {
+  const fixture = setup({
+    history: new VoiceMediationHistory("test"),
+    prepare: abortablePreparation(),
+    summarize: vi.fn(),
+    offered: vi.fn(),
+  });
+  const first = fixture.bridge.accept({
+    ...speech("one", "Make this faster"),
+    selection: [{ type: "place", id: "doctors" }],
+  });
+  fixture.bridge.speechStarted();
+  await first;
+  await fixture.bridge.accept({
+    ...speech("two", "no, this one"),
+    selection: [{ type: "transition", id: "consult" }],
+  });
+  expect(fixture.submit).toHaveBeenCalledOnce();
+  expect(fixture.submit.mock.calls[0]?.[0].selection).toEqual([
     { type: "transition", id: "consult" },
   ]);
 });

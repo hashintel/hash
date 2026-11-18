@@ -37,12 +37,17 @@ export interface EditorSelection {
   readonly labels: readonly string[];
 }
 
-/** One turn's selection from several merged ones: every element any of them named. */
-export const mergeSelections = (
+/**
+ * One turn's selection from the selections of several merged utterances, in
+ * spoken order: the newest that selected something, since a later "no, this
+ * one" corrects an earlier "this". An utterance that ended with nothing
+ * selected leaves an earlier selection standing, so a follow-up spoken after
+ * clicking empty canvas still means it. Empty when every utterance selected
+ * nothing; undefined when none carried a selection.
+ */
+export const newestNonEmptySelection = (
   selections: readonly (readonly SelectionItem[] | undefined)[],
 ): readonly SelectionItem[] | undefined => {
   const present = selections.filter((selection) => selection !== undefined);
-  return present.length === 0
-    ? undefined
-    : canonicalizeSelection(present.flat());
+  return present.findLast((selection) => selection.length > 0) ?? present[0];
 };

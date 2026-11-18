@@ -72,7 +72,7 @@ export {
 export { type InterviewBudget } from "./petrinaut/interview-budget";
 export {
   type EditorSelection,
-  mergeSelections,
+  newestNonEmptySelection,
   parseSelection,
   selectionContextKey,
 } from "./petrinaut/selection";

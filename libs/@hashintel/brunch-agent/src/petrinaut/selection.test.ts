@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { mergeSelections, parseSelection } from "./selection";
+import { newestNonEmptySelection, parseSelection } from "./selection";
 
 test("reads a selection in Petrinaut's order, without extra fields", () => {
   expect(
@@ -31,20 +31,33 @@ test("reads a selection of any size; the message's own limit bounds it", () => {
   expect(parseSelection(whole)).toEqual(whole);
 });
 
-test("merges selections into every element any of them named", () => {
-  expect(mergeSelections([undefined, undefined])).toBeUndefined();
-  expect(
-    mergeSelections([
-      [{ type: "place", id: "queue" }],
-      undefined,
-      [
-        { type: "transition", id: "serve" },
-        { type: "place", id: "queue" },
-      ],
-    ]),
-  ).toEqual([
-    { type: "place", id: "queue" },
-    { type: "transition", id: "serve" },
-  ]);
-  expect(mergeSelections([[], undefined])).toEqual([]);
+const queue = [{ type: "place", id: "queue" }] as const;
+const serve = [{ type: "transition", id: "serve" }] as const;
+
+test("a later selection corrects an earlier one", () => {
+  expect(newestNonEmptySelection([queue, serve])).toEqual(serve);
+});
+
+test("a follow-up with nothing selected keeps the earlier selection", () => {
+  expect(newestNonEmptySelection([queue, []])).toEqual(queue);
+});
+
+test("every utterance selecting nothing selects nothing", () => {
+  expect(newestNonEmptySelection([[], []])).toEqual([]);
+  expect(newestNonEmptySelection([[], undefined])).toEqual([]);
+});
+
+test("no utterance carrying a selection carries none", () => {
+  expect(newestNonEmptySelection([undefined, undefined])).toBeUndefined();
+  expect(newestNonEmptySelection([])).toBeUndefined();
+});
+
+test("utterances without a selection neither replace nor clear one", () => {
+  expect(newestNonEmptySelection([queue, undefined])).toEqual(queue);
+  expect(newestNonEmptySelection([undefined, queue, undefined, []])).toEqual(
+    queue,
+  );
+  expect(newestNonEmptySelection([queue, undefined, serve, undefined])).toEqual(
+    serve,
+  );
 });

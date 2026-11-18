@@ -1,6 +1,6 @@
 import { getToolName, isToolUIPart } from "ai";
 
-import { mergeSelections } from "@hashintel/brunch-agent";
+import { newestNonEmptySelection } from "@hashintel/brunch-agent";
 
 import {
   maxUtteranceTextLength,
@@ -692,7 +692,8 @@ export class LiveBrunchBridge {
       mergedInputIds: carried.map((entry) => entry.inputId).join(","),
       reason: "speech-started",
     });
-    const selection = mergeSelections([
+    // The newest utterance that selected something says what "this" means.
+    const selection = newestNonEmptySelection([
       ...carried.map((entry) => entry.selection),
       input.selection,
     ]);
@@ -735,8 +736,9 @@ export class LiveBrunchBridge {
           queued.delegationId,
         );
     }
-    // "This" in any of the merged utterances meant what was selected then.
-    const selection = mergeSelections(
+    // The newest utterance that selected something says what "this" means: a
+    // later selection corrects an earlier one, and nothing selected keeps it.
+    const selection = newestNonEmptySelection(
       batch.map((queued) => queued.input.selection),
     );
     const input: FinalizedInput = {
