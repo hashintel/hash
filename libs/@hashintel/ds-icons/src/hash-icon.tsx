@@ -600,6 +600,7 @@ export const MailIcon = createIcon("mail");
 export const MailUnreadIcon = createIcon("mailUnread");
 export const MessageIcon = createIcon("message");
 export const MessageDollarIcon = createIcon("messageDollar");
+export const MessageQuestionIcon = createIcon("messageQuestion");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -785,6 +786,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  messageQuestion: MessageQuestionIcon,
   messageDollar: MessageDollarIcon,
   message: MessageIcon,
   mailUnread: MailUnreadIcon,

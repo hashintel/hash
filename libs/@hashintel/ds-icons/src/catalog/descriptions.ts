@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  messageQuestion: "A speech bubble with a question represents an inquiry.",
   messageDollar:
     "A speech bubble with a currency mark represents a pricing conversation.",
   message: "A speech bubble represents a message or comment.",
