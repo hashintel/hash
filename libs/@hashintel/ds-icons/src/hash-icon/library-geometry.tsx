@@ -211,6 +211,7 @@ import { powerGeometry } from "./library-geometry/power";
 import { presentationChartGeometry } from "./library-geometry/presentation-chart";
 import { pullRequestGeometry } from "./library-geometry/pull-request";
 import { quoteGeometry } from "./library-geometry/quote";
+import { radarGeometry } from "./library-geometry/radar";
 import { radioCheckedGeometry } from "./library-geometry/radio-checked";
 import { receiptGeometry } from "./library-geometry/receipt";
 import { rectangleGeometry } from "./library-geometry/rectangle";
@@ -293,6 +294,7 @@ import { wavePulseGeometry } from "./library-geometry/wave-pulse";
 import { wavesGeometry } from "./library-geometry/waves";
 
 export const libraryGeometry = {
+  radar: radarGeometry,
   antenna: antennaGeometry,
   thermometerCold: thermometerColdGeometry,
   thermometer: thermometerGeometry,

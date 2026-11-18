@@ -720,6 +720,7 @@ export const HumidityIcon = createIcon("humidity");
 export const ThermometerIcon = createIcon("thermometer");
 export const ThermometerColdIcon = createIcon("thermometerCold");
 export const AntennaIcon = createIcon("antenna");
+export const RadarIcon = createIcon("radar");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -905,6 +906,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  radar: RadarIcon,
   antenna: AntennaIcon,
   thermometerCold: ThermometerColdIcon,
   thermometer: ThermometerIcon,
