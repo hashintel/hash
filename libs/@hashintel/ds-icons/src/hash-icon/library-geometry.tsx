@@ -30,6 +30,7 @@ import { arrowheadSquareGeometry } from "./library-geometry/arrowhead-square";
 import { arrowheadTriangleGeometry } from "./library-geometry/arrowhead-triangle";
 import { arrowheadTriangleInvertedGeometry } from "./library-geometry/arrowhead-triangle-inverted";
 import { aspectRatioGeometry } from "./library-geometry/aspect-ratio";
+import { atomGeometry } from "./library-geometry/atom";
 import { badgeCheckGeometry } from "./library-geometry/badge-check";
 import { ballotCheckGeometry } from "./library-geometry/ballot-check";
 import { bankGeometry } from "./library-geometry/bank";
@@ -296,6 +297,7 @@ import { wavePulseGeometry } from "./library-geometry/wave-pulse";
 import { wavesGeometry } from "./library-geometry/waves";
 
 export const libraryGeometry = {
+  atom: atomGeometry,
   solarSystem: solarSystemGeometry,
   orbit: orbitGeometry,
   radar: radarGeometry,

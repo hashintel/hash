@@ -723,6 +723,7 @@ export const AntennaIcon = createIcon("antenna");
 export const RadarIcon = createIcon("radar");
 export const OrbitIcon = createIcon("orbit");
 export const SolarSystemIcon = createIcon("solarSystem");
+export const AtomIcon = createIcon("atom");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -908,6 +909,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  atom: AtomIcon,
   solarSystem: SolarSystemIcon,
   orbit: OrbitIcon,
   radar: RadarIcon,

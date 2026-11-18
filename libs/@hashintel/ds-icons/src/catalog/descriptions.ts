@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  atom: "Crossing orbital paths around a nucleus represent an atom.",
   solarSystem: "Several orbital paths and bodies represent a solar system.",
   orbit:
     "A body and an orbital path represent orbital motion or a connected system.",
