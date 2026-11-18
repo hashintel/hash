@@ -15,6 +15,14 @@ export const netElementKinds = [
 export type NetElementKind = (typeof netElementKinds)[number];
 
 /**
+ * A net element kind as a conversation recorded it, under the name the kind
+ * has today: a component was recorded as a `subnet`. Any other value is
+ * returned as it is.
+ */
+export const readRecordedNetElementKind = (kind: unknown): unknown =>
+  kind === "subnet" ? ("component" satisfies NetElementKind) : kind;
+
+/**
  * A read or experiment leaves the bound document unchanged; a mutation or
  * command may change it.
  */
