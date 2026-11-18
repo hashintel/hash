@@ -8,11 +8,13 @@ import { fileImageGeometry } from "./library-geometry/file-image";
 import { fileInvoiceGeometry } from "./library-geometry/file-invoice";
 import { fileInvoiceDollarGeometry } from "./library-geometry/file-invoice-dollar";
 import { filePdfGeometry } from "./library-geometry/file-pdf";
+import { filePlusGeometry } from "./library-geometry/file-plus";
 import { filePresentationGeometry } from "./library-geometry/file-presentation";
 import { fileTextGeometry } from "./library-geometry/file-text";
 import { fileVideoGeometry } from "./library-geometry/file-video";
 
 export const libraryGeometry = {
+  filePlus: filePlusGeometry,
   fileInvoiceDollar: fileInvoiceDollarGeometry,
   fileBox: fileBoxGeometry,
   fileImage: fileImageGeometry,
