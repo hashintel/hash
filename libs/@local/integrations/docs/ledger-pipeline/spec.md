@@ -2,7 +2,7 @@
 
 The ingestion pipeline changes from four stages with a completion marker each to three stages that share one status file per run. Today the crate [`pipeline`](../../pipeline/src) captures full sources, diffs them against the previous run by content hash, stores the Graph request bodies in a file, and sends that file. The new pipeline captures incremental updates, stores each entity change once in an append-only sync table, and builds the Graph requests from that table when it sends them.
 
-This document fixes the stages, what each stage reads and writes, and the state kept in S3. Each stage is planned in detail against it. Questions it leaves unanswered are in [open-issues.md](open-issues.md).
+This document fixes the stages, what each stage reads and writes, and the state kept in S3. Each stage is planned in detail against it. Questions it leaves unanswered are in [open-issues.md](open-issues.md). The steps of each stage, one per issue, are in [steps.md](steps.md).
 
 Every statement was decided with Paul on 2026-11-17.
 
@@ -47,13 +47,13 @@ Rules for every stage:
 - A stage that returns an error writes the failure part of `run.json`: the stage, whether the failure is retryable or permanent, the error code and, for Send, the batch index. The retry class and the code are the existing `StageError` and `Code`. A stage that crashes writes nothing.
 - A stage that succeeds removes the failure part in the same write that adds its own part.
 - A retry runs the stage again. The stage reads `run.json` to find its input and its progress.
-- Run N+1 starts only after run N has completed all three stages.
+- Run N+1 starts only after run N has completed all three stages. `start` writes the first `run.json` and sets the active run in `current.json`, and it refuses when another run is active.
 
 ### Capture
 
-The CLI gives Capture one local Parquet file of changed rows per source of the definition. Capture copies each file to S3 with the existing `SourceCapture::copy_from` and reads the row count from the Parquet footer. When all files are stored, it writes the capture time, the file references and the row counts to `run.json`.
+The CLI gives Capture one local Parquet file of changed rows per source of the definition. Capture uploads each file as it is with `ArtifactStorage::publish`, without a local copy, and reads the row count from the Parquet footer. When all files are stored, it writes the capture time, the file references and the row counts to `run.json`.
 
-A retry copies every file again.
+A retry reads every file again. A file that is already stored is not uploaded a second time.
 
 A capture file holds the source's own rows, one row per changed source record. For an incremental source, the column `_change` says what happened to each record: `insert`, `update` or `delete`. The sender provides that column with the data, and writes the rows in the order the changes happened.
 
@@ -109,7 +109,7 @@ Several rows of a target may have the same entity id, because an incremental cap
 
 The web, the actor and the provenance of a request come from `run.json` and have no column.
 
-The physical format of the table is settled in Prepare planning. The format has to solve "Prepare retry appends the same rows twice" in the open issues.
+The physical format of the table is settled in Prepare planning. How the table is stored is open; see "How the sync table is stored" in the open issues.
 
 ### Send
 
@@ -215,7 +215,7 @@ pub struct Failure {
 | Send           | `send`          | Send, after the last batch       |
 | Failure        | `failure`       | The stage that failed            |
 
-`CapturedSource`, `SendCounts`, `ArtifactRef`, `StageError` and `Code` are the existing types, unchanged. Three existing types lose fields:
+`CapturedSource`, `SendCounts`, `ArtifactRef` and `StageError` are the existing types, unchanged. `Code` loses eight codes that no stage of the new design returns and gains `run_active`. Three existing types lose fields:
 
 - `RunInput` loses `operation` and `allow_mass_archive`. Only apply is in scope, and only the diff stage reads `allow_mass_archive`.
 - `CaptureOutput` loses `adopted_from`, which exists for restore and reconcile.
@@ -300,8 +300,8 @@ src/
 │   ├── mod.rs        prepare(), PrepareOutput
 │   ├── rows.rs       load the capture files, run the pipelines
 │   ├── ids.rs        entity and link ids
-│   ├── properties/   SinkRow::resolve and coercion
 │   └── issues.rs     the issues file
+├── table.rs          Parquet row files, used by the issues file and the sync table
 ├── sync_table/
 │   ├── mod.rs        the row type and the operation
 │   ├── write.rs      append the rows of a run
@@ -322,7 +322,8 @@ src/
 - `engine`'s storage module comes from the open pull request hashintel/hash#10392 and is not on `main` yet. The crate builds only on a branch that has it.
 - `engine`'s `GraphClient` sends one write at a time and falls back from create to patch. Send needs bulk requests without a fallback, so the client and the batching are new code in this crate.
 - `engine` encodes the create, update and archive bodies of a write into one sealed `Payload`. Send needs them separately. This needs a small change to `engine` or a copy of `graph/plan/request.rs`.
-- The skeleton's `prepare/properties/` and `graph/client.rs` were written as copies from the previous refactor. They are replaced when the steps of Prepare and Send are specified.
+- Property conversion follows `engine`: Prepare calls `SinkRow::resolve` there. Labs differs in three cases, listed in [steps.md](steps.md).
+- The steps need three changes to `engine`: the conditional write, a public path check for local files, and the request bodies exposed separately.
 - The conditional write for `run.json` and `current.json` goes into `engine`'s storage module (Paul, 2026-11-18). The previous refactor's `storage/artifact/mutable` module moves there with its tests: `read_versioned` returns the bytes and a version, and `replace_if` writes only if the version still matches. `ArtifactNamespace` gets the two key names. A file is limited to 1 MiB, and `run.json` embeds the definition.
 - `Graph` is the only trait. It exists so that tests can use `FakeGraph`.
 
@@ -338,7 +339,7 @@ The paths below are in the previous refactor.
 
 | Used by   | Reused                                                                                                                                                                                                 | No longer needed                                                                                                                               |
 | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| Capture   | `SourceCapture::copy_from` and `CapturedSource` (`capture.rs`, `sources/mod.rs`)                                                                                                                       | The SQL, PostgreSQL and REST readers, the secret lookup, the binding file per source                                                           |
+| Capture   | `SourceCapture::open` and `ArtifactStorage::publish` from `engine`, `CapturedSource` (`sources/mod.rs`)                                                                                                | The SQL, PostgreSQL and REST readers, the secret lookup, the binding file per source                                                           |
 | Prepare   | `prepare_rows` and `ids::assign` (`stage/diff/rows`), `SinkRow::resolve` (`graph/property`)                                                                                                            | The hash table, the diff labels and the per-target change files (`stage/diff`)                                                                 |
 | Send      | The create and archive encoders (`graph/plan/request.rs`), the batch cut rule (`stage/plan/write.rs`), the `Graph` trait and client (`graph`), the retry loop (`stage/send/delivery.rs`), `SendCounts` | `writes.parquet` and its reader, the fallback from create to patch and from patch to create, the patch that replaces the whole property object |
 | Run state | Conditional writes (`storage/artifact/mutable`), the error codes (`run/error.rs`)                                                                                                                      | The four `_done.json` markers, `input.json`, the `sending` list in `current.json`                                                              |

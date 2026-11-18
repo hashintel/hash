@@ -9,6 +9,7 @@ use core::{fmt, str::FromStr};
 use std::path::PathBuf;
 
 use ::serde::{Deserialize, Serialize};
+use error_stack::Report;
 use hash_integrations_definition::ConnectorId;
 use hash_integrations_engine::{ArtifactNamespace, ArtifactStorage, WorkspaceConfig};
 use time::OffsetDateTime;
@@ -137,11 +138,36 @@ impl Clock for SystemClock {
     }
 }
 
+/// Starts a run: writes its first `run.json` and sets it as the active run of the integration.
+///
+/// The first `run.json` holds `input` and `batch` and no stage part. Starting is where the rule
+/// "one run at a time" is enforced: a run starts only when no other run is active. Starting a
+/// run again with the same `input` and `batch` returns its stored state.
+///
+/// # Errors
+///
+/// - [`Code::IntegrationMismatch`] if `context` belongs to another web or connector than `input`
+/// - [`Code::InvalidDefinition`] if the definition in `input` cannot be parsed
+/// - [`Code::RequestMismatch`] if the run already has a `run.json` with another input or batch
+///   settings
+/// - [`Code::RunActive`] if another run of the integration is active
+/// - [`Code::StorageUnavailable`] if `run.json` or `current.json` cannot be read or written
+#[tracing::instrument(level = "debug", skip_all, fields(run_id = %input.run))]
+pub async fn start(
+    context: &RunContext,
+    input: RunInput,
+    batch: BatchSettings,
+) -> Result<Run, Report<StageError>> {
+    unimplemented!()
+}
+
 /// Run-local resources; stages exchange persisted references, never workspace files.
 pub struct RunContext {
     pub storage: ArtifactStorage,
     pub namespace: ArtifactNamespace,
     pub scratch: PathBuf,
+    /// The local folder that holds the Parquet files Capture stores.
+    pub local: PathBuf,
     pub workspace: WorkspaceConfig,
     pub send: SendSettings,
     pub clock: Box<dyn Clock>,
@@ -153,6 +179,7 @@ impl fmt::Debug for RunContext {
             .field("storage", &self.storage)
             .field("namespace", &self.namespace)
             .field("scratch", &self.scratch)
+            .field("local", &self.local)
             .field("workspace", &self.workspace)
             .field("send", &self.send)
             .finish_non_exhaustive()

@@ -28,17 +28,20 @@ pub struct CapturedSource {
     pub rows: u64,
 }
 
-/// Copies the local Parquet file of each source to storage and writes the capture part.
+/// Stores the local Parquet file of each source and writes the capture part.
 ///
-/// The definition in `input` names one local Parquet file of changed rows per source. Each file
-/// is stored unchanged, and its row count is read from the Parquet footer. The capture part is
-/// written to `run.json` once, after every file is stored. A run whose capture part is present
-/// returns that part without reading a file.
+/// The definition in `input` names one Parquet file of changed rows per source, inside the local
+/// folder of `context`. Each file is uploaded as it is, without a local copy, and its row count is
+/// read from the Parquet footer. The upload fails if the file changes while it is read. The
+/// capture part is written to `run.json` once, after every file is stored. A run whose capture
+/// part is present returns that part without reading a file.
 ///
 /// # Errors
 ///
 /// - [`Code::InvalidDefinition`] if the stored definition cannot be parsed
-/// - [`Code::SourceConfiguration`] if a source does not name a readable local Parquet file
+/// - [`Code::SourceConfiguration`] if a source is not a local file, or its file is missing, lies
+///   outside the local folder or is not a readable Parquet file. Running Capture again cannot fix
+///   this, so the error is permanent.
 /// - [`Code::StorageUnavailable`] if a file or `run.json` cannot be written
 ///
 /// [`Code::InvalidDefinition`]: crate::Code::InvalidDefinition

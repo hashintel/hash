@@ -31,26 +31,16 @@ pub enum StageError {
 pub enum Code {
     #[display("invalid_definition")]
     InvalidDefinition,
-    #[display("target_missing")]
-    TargetMissing,
-    #[display("nothing_committed")]
-    NothingCommitted,
     #[display("duplicate_entity_id")]
     DuplicateEntityId,
-    #[display("archive_limit")]
-    ArchiveLimit,
-    #[display("base_moved")]
-    BaseMoved,
-    #[display("superseded")]
-    Superseded,
     #[display("request_mismatch")]
     RequestMismatch,
+    #[display("run_active")]
+    RunActive,
     #[display("integration_mismatch")]
     IntegrationMismatch,
     #[display("reserved_column")]
     ReservedColumn,
-    #[display("marker_missing")]
-    MarkerMissing,
     #[display("storage_unavailable")]
     StorageUnavailable,
     #[display("storage_mismatch")]
@@ -81,16 +71,12 @@ pub enum Code {
     CaptureMissing,
     #[display("row_key")]
     RowKey,
-    #[display("invalid_checkpoint")]
-    InvalidCheckpoint,
     #[display("unencodable_request")]
     UnencodableRequest,
     #[display("plan_too_large")]
     PlanTooLarge,
     #[display("graph_unavailable")]
     GraphUnavailable,
-    #[display("invalid_writes")]
-    InvalidWrites,
     #[display("reader_stopped")]
     ReaderStopped,
 }
@@ -99,16 +85,11 @@ impl Code {
     /// All shared codes, in declaration order.
     pub const ALL: [Self; mem::variant_count::<Self>()] = [
         Self::InvalidDefinition,
-        Self::TargetMissing,
-        Self::NothingCommitted,
         Self::DuplicateEntityId,
-        Self::ArchiveLimit,
-        Self::BaseMoved,
-        Self::Superseded,
         Self::RequestMismatch,
+        Self::RunActive,
         Self::IntegrationMismatch,
         Self::ReservedColumn,
-        Self::MarkerMissing,
         Self::StorageUnavailable,
         Self::StorageMismatch,
         Self::StoredJsonInvalid,
@@ -124,11 +105,9 @@ impl Code {
         Self::SecretUnavailable,
         Self::CaptureMissing,
         Self::RowKey,
-        Self::InvalidCheckpoint,
         Self::UnencodableRequest,
         Self::PlanTooLarge,
         Self::GraphUnavailable,
-        Self::InvalidWrites,
         Self::ReaderStopped,
     ];
 
@@ -137,16 +116,11 @@ impl Code {
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::InvalidDefinition => "invalid_definition",
-            Self::TargetMissing => "target_missing",
-            Self::NothingCommitted => "nothing_committed",
             Self::DuplicateEntityId => "duplicate_entity_id",
-            Self::ArchiveLimit => "archive_limit",
-            Self::BaseMoved => "base_moved",
-            Self::Superseded => "superseded",
             Self::RequestMismatch => "request_mismatch",
+            Self::RunActive => "run_active",
             Self::IntegrationMismatch => "integration_mismatch",
             Self::ReservedColumn => "reserved_column",
-            Self::MarkerMissing => "marker_missing",
             Self::StorageUnavailable => "storage_unavailable",
             Self::StorageMismatch => "storage_mismatch",
             Self::StoredJsonInvalid => "stored_json_invalid",
@@ -162,11 +136,9 @@ impl Code {
             Self::SecretUnavailable => "secret_unavailable",
             Self::CaptureMissing => "capture_missing",
             Self::RowKey => "row_key",
-            Self::InvalidCheckpoint => "invalid_checkpoint",
             Self::UnencodableRequest => "unencodable_request",
             Self::PlanTooLarge => "plan_too_large",
             Self::GraphUnavailable => "graph_unavailable",
-            Self::InvalidWrites => "invalid_writes",
             Self::ReaderStopped => "reader_stopped",
         }
     }
@@ -181,18 +153,13 @@ impl Code {
             | Self::SourceUnavailable
             | Self::SecretUnavailable
             | Self::GraphUnavailable
+            | Self::RunActive
             | Self::ReaderStopped => StageError::Retryable,
             Self::InvalidDefinition
-            | Self::TargetMissing
-            | Self::NothingCommitted
             | Self::DuplicateEntityId
-            | Self::ArchiveLimit
-            | Self::BaseMoved
-            | Self::Superseded
             | Self::RequestMismatch
             | Self::IntegrationMismatch
             | Self::ReservedColumn
-            | Self::MarkerMissing
             | Self::StorageMismatch
             | Self::StoredJsonInvalid
             | Self::QueryInvalid
@@ -203,10 +170,8 @@ impl Code {
             | Self::SourceResponse
             | Self::CaptureMissing
             | Self::RowKey
-            | Self::InvalidCheckpoint
             | Self::UnencodableRequest
-            | Self::PlanTooLarge
-            | Self::InvalidWrites => StageError::Permanent,
+            | Self::PlanTooLarge => StageError::Permanent,
         }
     }
 

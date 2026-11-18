@@ -1,9 +1,9 @@
-//! Reads and conditionally writes `current.json`, the status of the integration.
+//! Reads and writes `current.json`, the status of the integration.
 
 use error_stack::Report;
 use serde::{Deserialize, Serialize};
 
-use super::{RunContext, RunId, StageError, store::MutableVersion};
+use super::{RunContext, RunId, StageError};
 
 /// The contents of `current.json`.
 ///
@@ -18,7 +18,7 @@ pub struct Current {
     pub last_completed: Option<RunId>,
 }
 
-/// Reads `current.json` and its version. An integration without the file has no runs.
+/// Reads `current.json`. An integration without the file has no runs.
 ///
 /// # Errors
 ///
@@ -27,25 +27,37 @@ pub struct Current {
 ///
 /// [`Code::StorageUnavailable`]: super::Code::StorageUnavailable
 /// [`Code::StoredJsonInvalid`]: super::Code::StoredJsonInvalid
-pub(crate) async fn read(
-    context: &RunContext,
-) -> Result<(Current, Option<MutableVersion>), Report<StageError>> {
+pub(crate) async fn read(context: &RunContext) -> Result<Current, Report<StageError>> {
     unimplemented!()
 }
 
-/// Writes `current` to `current.json` if the stored file still has the version `expected`.
-///
-/// Returns `false` if another writer changed the file first.
+/// Sets `run` as the active run. A run that is already active stays active.
 ///
 /// # Errors
 ///
-/// - [`Code::StorageUnavailable`] if storage cannot be written
+/// - [`Code::RunActive`] if another run is active
+/// - [`Code::StorageUnavailable`] if storage cannot be read or written, or the write still
+///   conflicts after eight attempts
 ///
+/// [`Code::RunActive`]: super::Code::RunActive
 /// [`Code::StorageUnavailable`]: super::Code::StorageUnavailable
-pub(crate) async fn write(
-    context: &RunContext,
-    current: &Current,
-    expected: Option<&MutableVersion>,
-) -> Result<bool, Report<StageError>> {
+pub(super) async fn activate(context: &RunContext, run: RunId) -> Result<(), Report<StageError>> {
+    unimplemented!()
+}
+
+/// Sets `run` as the last completed run and clears the active run.
+///
+/// Send calls this after it wrote the send part. A run that is already the last completed run
+/// stays so.
+///
+/// # Errors
+///
+/// - [`Code::RunActive`] if another run is active
+/// - [`Code::StorageUnavailable`] if storage cannot be read or written, or the write still
+///   conflicts after eight attempts
+///
+/// [`Code::RunActive`]: super::Code::RunActive
+/// [`Code::StorageUnavailable`]: super::Code::StorageUnavailable
+pub(crate) async fn complete(context: &RunContext, run: RunId) -> Result<(), Report<StageError>> {
     unimplemented!()
 }

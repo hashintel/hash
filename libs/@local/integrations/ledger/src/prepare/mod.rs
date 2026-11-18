@@ -2,7 +2,6 @@
 
 mod ids;
 mod issues;
-mod properties;
 mod rows;
 
 use error_stack::Report;

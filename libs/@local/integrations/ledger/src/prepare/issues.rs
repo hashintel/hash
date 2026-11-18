@@ -2,10 +2,10 @@
 //! be converted.
 
 use error_stack::Report;
-use hash_integrations_engine::ArtifactRef;
+use hash_integrations_engine::{ArtifactRef, FailureReason};
 use type_system::{knowledge::entity::id::EntityId, ontology::VersionedUrl};
 
-use super::{properties::FailureReason, rows::Kind};
+use super::rows::Kind;
 use crate::run::{RunContext, StageError};
 
 /// Why a row or one of its properties is listed in the issues file.

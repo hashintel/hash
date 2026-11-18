@@ -4,17 +4,26 @@ Questions the high-level spec leaves unanswered. Each entry names the stage that
 
 ## Open
 
-### Prepare retry appends the same rows twice
+### How the sync table is stored
 
-**Stage:** Prepare, and the physical format of the sync table.
+**Stage:** Prepare and Send. **Status:** open (Paul, 2026-11-18). The integration team lists it as "Persistence solution for storing sync table in S3" on its architecture page.
 
-The sync table is append-only. If Prepare writes some rows, stops, and runs again, the second attempt appends rows the first attempt already wrote. Send then reads each of those changes twice.
+The spec fixes what the sync table holds and leaves open how it is stored: Iceberg, plain Parquet files per run, or something else. The format has to answer two questions.
 
-A solution needs one of these properties:
+**How a Prepare retry avoids writing rows twice.** The table is append-only. If Prepare writes some rows, stops, and runs again, the second attempt appends rows the first attempt already wrote, and Send reads each of those changes twice. A solution needs one of these properties:
 
 - A run's rows become visible in one atomic step, so a stopped attempt leaves nothing behind.
 - The files of a run have names fixed by the run and the row order, so a retry replaces the earlier files.
-- Readers drop duplicate rows by `run_id` and the row's position in the run.
+- Readers drop duplicate rows by `run_id` and `order_id`.
+
+**How Send finds the rows of a run.** Found by the code inventory:
+
+- `PrepareOutput` holds a row count and no file references.
+- `engine`'s storage has no operation that lists files.
+- `engine`'s `publish` names a file by its content, so a file of a run cannot be found by a name built from the run.
+- The `pipeline` crate's Parquet writer (`run/table`) fits the column types of the sync table. It always publishes under a name built from the content, so the second property above cannot be built on it as it is.
+
+One way that fits today's storage is to list the files of the run in `PrepareOutput`: Prepare publishes each file under its content name and writes the references to `run.json` last. A stopped attempt then leaves files that nothing references, and a retry writes its own. This is noted as an option and is not decided.
 
 ### What happens to a write the Graph refuses
 
@@ -32,7 +41,7 @@ The spec has to say whether a refused write stops the run, where the refusal is 
 
 A separate data collection service will later read the sources. It will coordinate the collection and push the data to this pipeline (Paul, 2026-11-17). The current work covers the pipeline only.
 
-**Chosen for now:** Capture supports incremental updates only (Paul, 2026-11-17). It reads no source system. The CLI is given one local Parquet file of changed rows per source. Capture copies each file to S3 with the existing `SourceCapture::copy_from` and writes the capture time and the files to `run.json` once.
+**Chosen for now:** Capture supports incremental updates only (Paul, 2026-11-17). It reads no source system. The CLI is given one local Parquet file of changed rows per source. Capture uploads each file to S3 as it is, without a local copy, and writes the capture time and the files to `run.json` once.
 
 **Deferred:**
 
@@ -174,9 +183,39 @@ Send treats a create that the Graph answers with a conflict as done (Paul, 2026-
 Found in the code and its tests on 2026-11-18 ([inventory/send.md](inventory/send.md)). None of it has been tested with the new request bodies.
 
 - **Patch with unchanged values.** The Graph returns `Unchanged` and writes no new edition when the properties, their metadata, the archived flag, the draft flag, the types and the confidence are equal. It does not compare the provenance (`postgres-store/src/store/postgres/knowledge/entity/patch.rs:413-426`). A test against a pinned Graph image confirms this for a patch that replaces the whole property object. No test covers a patch made of `add` operations.
-- **Create of an existing entity.** On the pinned image, a bulk create with one write gets a 409. For a bulk create with several writes and one existing entity, the status is not known, and the client discards the response body, so Send cannot tell which entity existed. The rule "a create conflict counts as done" needs a decision for such a batch: count the whole batch as created, send it again one write at a time, or read the body.
+- **Create of an existing entity.** On the pinned image, a bulk create with one write gets a 409. For a bulk create with several writes and one existing entity, the status is not known, and the client discards the response body, so Send cannot tell which entity existed. See "A bulk request that the Graph refuses".
 - **Patch of a missing entity.** On the pinned image it gets a 404.
 - **An update of an archived entity.** Every update body carries `archived: false`, so an update makes an archived entity live again.
+
+### A bulk request that the Graph refuses
+
+**Stage:** Send and record. **Status:** open (Paul, 2026-11-18).
+
+Send puts up to 128 writes into one request. The Graph applies a bulk request as a whole or not at all. If one entity of a bulk create already exists, the Graph refuses the request, and none of the entities is created.
+
+The rule "a create that the Graph answers with a conflict counts as done" is clear for one create. For a batch it is not: the answer does not say which entity existed, and the client discards the response body.
+
+It happens in two cases:
+
+- **A replayed batch.** Send stopped after the Graph applied a batch and before the batch count was saved. On the retry every entity of the batch exists.
+- **A wrong label.** A row says `insert`, but the entity exists. The other rows of the batch are new.
+
+Options:
+
+- **Send the writes again one at a time.** A single create that gets a conflict counts as done, and one that succeeds counts as created.
+  - It is correct in both cases.
+  - The `pipeline` crate's `stage/send/delivery.rs` already falls back from a refused batch to single writes. The create-to-patch step behind it would be dropped.
+  - It does not depend on whether a batch with one existing entity gets a 409 or a 500, which is not known.
+  - A refused batch costs up to 128 more requests.
+- **Count the whole batch as done.** It needs no extra requests. With a wrong label it loses every new entity of the batch without an error.
+- **Read the response body.** Send drops the entity the Graph names and sends the rest again. Whether the body names the entity is not known.
+
+Claude recommends the first option. Not decided.
+
+Two points depend on the choice:
+
+- `SendCounts` has no count for an entity that existed already. A new count, for example `existing`, would make a run with wrong labels visible in `run.json`.
+- The same rule would apply to a refused batch of updates or archives. What a single refused update means is covered by "What happens to a write the Graph refuses".
 
 ### Several changes to one entity in a run
 
@@ -205,7 +244,7 @@ The inventory of labs, `engine` and the `pipeline` crate is in [inventory/](inve
 
 - **`engine` differed between this branch and `main`.** Resolved on 2026-11-18 by merging `main` into the branch: `engine` now has the storage module and the `graph` module. The storage module still comes from the open pull request hashintel/hash#10392, so the new crate builds only on a branch that has it.
 - **A conditional write could not be built on `engine`'s public API.** Decided on 2026-11-18: it is added to `engine`'s storage module, by moving the `pipeline` crate's `storage/artifact/mutable` module there. See the crate layout in the spec.
-- **The sync table has no way to find its files.** `PrepareOutput` holds no file references, `engine` has no list operation, and `publish` names a file by its content.
+- **The sync table has no way to find its files.** Open. See "How the sync table is stored".
 - **Send needs the capture time.** Decided on 2026-11-18: Send takes `CaptureOutput` as an input. Every request body carries the capture time as `loadedAt`.
 - **No code cuts a batch when an entity is already in it.** The existing `Batcher` cuts on the operation, on create or update, at 128 writes and at 1,500,000 bytes. `engine` on `main` refuses two writes to one entity.
 - **Nothing preserved the order of the captured rows.** Decided on 2026-11-18: the order is the position of a row in its capture file. Prepare numbers the rows in the internal column `_seq` when it stages a file, and `order_id` is assigned from the target and `_seq`. See the Prepare section of the spec.

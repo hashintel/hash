@@ -26,13 +26,14 @@ mod prepare;
 pub mod run;
 mod send;
 mod sync_table;
+mod table;
 
 pub use self::{
     capture::{CaptureOutput, CapturedSource, capture},
     prepare::{PrepareOutput, prepare},
     run::{
         BatchSettings, Clock, Code, Current, Failure, Run, RunContext, RunId, RunInput, Stage,
-        StageError, SystemClock,
+        StageError, SystemClock, start,
     },
     send::{SendCounts, SendOutput, SendProgress, SendSettings, send},
     sync_table::{Change, Operation},

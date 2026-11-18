@@ -1,19 +1,13 @@
-//! Reads and conditionally writes `run.json`.
+//! Reads and writes `run.json`.
+//!
+//! Every write is conditional: it replaces the file only if nobody changed it since it was read.
+//! [`update`] is the one place that handles a conflicting write, so a stage never sees one.
 
 use error_stack::Report;
-use hash_crypto::digest::Sha256Digest;
-use object_store::UpdateVersion;
 
-use super::{Run, RunContext, RunId, StageError};
+use super::{Run, RunContext, RunId, Stage, StageError};
 
-/// The version of a stored object that a conditional write compares against.
-#[derive(Debug, Clone)]
-pub(crate) enum MutableVersion {
-    Object(UpdateVersion),
-    Local(Sha256Digest),
-}
-
-/// Reads the `run.json` of `run` and its version, or `None` if the run has no `run.json`.
+/// Reads the `run.json` of `run`, or `None` if the run has no `run.json`.
 ///
 /// # Errors
 ///
@@ -25,24 +19,54 @@ pub(crate) enum MutableVersion {
 pub(crate) async fn read(
     context: &RunContext,
     run: RunId,
-) -> Result<Option<(Run, MutableVersion)>, Report<StageError>> {
+) -> Result<Option<Run>, Report<StageError>> {
     unimplemented!()
 }
 
-/// Writes `run` to its `run.json` if the stored file still has the version `expected`.
-///
-/// `expected` is `None` for a file that must not exist yet. Returns `false` if another writer
-/// changed the file first; the caller reads the file again and decides whether to retry.
+/// Writes the first `run.json` of a run. Returns `false` if the run already has one.
 ///
 /// # Errors
 ///
 /// - [`Code::StorageUnavailable`] if storage cannot be written
 ///
 /// [`Code::StorageUnavailable`]: super::Code::StorageUnavailable
-pub(crate) async fn write(
+pub(super) async fn create(context: &RunContext, run: &Run) -> Result<bool, Report<StageError>> {
+    unimplemented!()
+}
+
+/// Applies `change` to the `run.json` of `run`, writes it and returns the stored state.
+///
+/// A stage calls this to write its part, and removes the failure part in the same `change`. If
+/// another writer changed the file since it was read, the file is read again and `change` is
+/// applied to the new state, up to eight times.
+///
+/// # Errors
+///
+/// - [`Code::StorageUnavailable`] if storage cannot be read or written, the run has no `run.json`,
+///   or the write still conflicts after eight attempts
+/// - [`Code::StoredJsonInvalid`] if the stored file is not a [`Run`]
+///
+/// [`Code::StorageUnavailable`]: super::Code::StorageUnavailable
+/// [`Code::StoredJsonInvalid`]: super::Code::StoredJsonInvalid
+pub(crate) async fn update(
     context: &RunContext,
-    run: &Run,
-    expected: Option<&MutableVersion>,
-) -> Result<bool, Report<StageError>> {
+    run: RunId,
+    change: impl FnMut(&mut Run) + Send,
+) -> Result<Run, Report<StageError>> {
+    unimplemented!()
+}
+
+/// Writes the failure part of `run.json` for the error `stage` returned.
+///
+/// The part holds the stage, the retry class and the code of `error`, and `batch` for a failure
+/// of Send. An error while writing the part is logged and not returned, so the caller still
+/// returns `error`.
+pub(crate) async fn fail(
+    context: &RunContext,
+    run: RunId,
+    stage: Stage,
+    error: &Report<StageError>,
+    batch: Option<u32>,
+) {
     unimplemented!()
 }

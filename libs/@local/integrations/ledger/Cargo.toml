@@ -30,7 +30,6 @@ uuid       = { workspace = true, public = true, features = ["serde"] }
 # Private third-party dependencies
 derive_more  = { workspace = true, features = ["display", "error", "from", "into"] }
 duckdb       = { workspace = true, features = ["appender-arrow", "bundled", "json"] }
-object_store = { workspace = true }
 reqwest      = { workspace = true }
 tokio        = { workspace = true, features = ["time"] }
 tracing      = { workspace = true, features = ["attributes"] }
