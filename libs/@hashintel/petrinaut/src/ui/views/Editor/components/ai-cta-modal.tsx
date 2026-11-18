@@ -1,9 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 
 import { Button, TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { EditorContext } from "../../../../react/state/editor-context";
+import { usePanelSizes } from "../../../../react/state/panel-sizes-context";
 import { AiAssistantIcon } from "../../../components/ai-assistant-icon";
+import { styleFromStores } from "../../../lib/style-from-stores";
 
 const aiCtaModalLayerStyle = css({
   position: "absolute",
@@ -84,14 +87,14 @@ const aiCtaModalInputStyle = css({
 });
 
 export const AiCtaModal = ({
-  bottomClearance,
   onDismiss,
   onSubmit,
 }: {
-  bottomClearance: number;
   onDismiss: () => void;
   onSubmit: (message: string) => void;
 }) => {
+  const { isBottomPanelOpen } = use(EditorContext);
+  const { bottomPanelHeight } = usePanelSizes();
   const [promptInput, setPromptInput] = useState("");
 
   const canSubmit = promptInput.trim().length > 0;
@@ -130,7 +133,13 @@ export const AiCtaModal = ({
   }, [onDismiss]);
 
   return (
-    <div className={aiCtaModalLayerStyle} style={{ bottom: bottomClearance }}>
+    <div
+      className={aiCtaModalLayerStyle}
+      // The layer ends where an open bottom panel starts.
+      ref={styleFromStores({ bottomPanelHeight }, (sizes) => ({
+        bottom: `${isBottomPanelOpen ? sizes.bottomPanelHeight : 0}px`,
+      }))}
+    >
       <form
         ref={formRef}
         className={aiCtaModalStyle}

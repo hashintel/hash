@@ -18,7 +18,6 @@ export const useSyncEditorToSettings = (values: {
   cursorMode: CursorMode;
   isLeftSidebarOpen: boolean;
   isBottomPanelOpen: boolean;
-  bottomPanelHeight: number;
   activeBottomPanelTab: BottomPanelTab;
   timelineChartType: TimelineChartType;
 }) => {
@@ -26,7 +25,6 @@ export const useSyncEditorToSettings = (values: {
     setCursorMode,
     setIsLeftSidebarOpen,
     setIsBottomPanelOpen,
-    setBottomPanelHeight,
     setActiveBottomPanelTab,
     setTimelineChartType,
   } = use(UserSettingsContext);
@@ -45,7 +43,6 @@ export const useSyncEditorToSettings = (values: {
       setCursorMode(values.cursorMode);
       setIsLeftSidebarOpen(values.isLeftSidebarOpen);
       setIsBottomPanelOpen(values.isBottomPanelOpen);
-      setBottomPanelHeight(values.bottomPanelHeight);
       setActiveBottomPanelTab(values.activeBottomPanelTab);
       setTimelineChartType(values.timelineChartType);
     }, 100);
@@ -55,13 +52,11 @@ export const useSyncEditorToSettings = (values: {
     values.cursorMode,
     values.isLeftSidebarOpen,
     values.isBottomPanelOpen,
-    values.bottomPanelHeight,
     values.activeBottomPanelTab,
     values.timelineChartType,
     setCursorMode,
     setIsLeftSidebarOpen,
     setIsBottomPanelOpen,
-    setBottomPanelHeight,
     setActiveBottomPanelTab,
     setTimelineChartType,
   ]);

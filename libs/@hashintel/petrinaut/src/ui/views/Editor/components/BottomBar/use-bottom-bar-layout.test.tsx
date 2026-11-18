@@ -124,7 +124,7 @@ it("keeps horizontal placement unchanged when a panel moves a hover-expanded bar
     rerender();
     expect(result.current.offsetX).toBe(offset);
     expect(result.current.liftY).toBe(
-      isBottomPanelOpen ? editor.bottomPanelHeight : 0,
+      isBottomPanelOpen ? defaultPanelSizes.bottomPanelHeight : 0,
     );
     editor = { ...editor, isPanelAnimating: false };
     rerender();

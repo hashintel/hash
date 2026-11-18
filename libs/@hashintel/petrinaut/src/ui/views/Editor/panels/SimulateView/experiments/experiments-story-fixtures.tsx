@@ -877,7 +877,6 @@ export function FakeEditorProvider({
     setAiAssistantCollapsed: () => {},
     setBottomPanelOpen: () => {},
     toggleBottomPanel: () => {},
-    setBottomPanelHeight: () => {},
     setActiveBottomPanelTab: () => {},
     isSelected: () => false,
     setSelection: () => {},

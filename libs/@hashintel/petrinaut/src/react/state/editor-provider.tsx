@@ -68,7 +68,6 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     isBottomPanelOpen: startsWithActualTimeline
       ? true
       : userSettings.isBottomPanelOpen,
-    bottomPanelHeight: userSettings.bottomPanelHeight,
     activeBottomPanelTab: startsWithActualTimeline
       ? "actual-timeline"
       : userSettings.activeBottomPanelTab,
@@ -443,10 +442,6 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         isBottomPanelOpen: !prev.isBottomPanelOpen,
       }));
     },
-    setBottomPanelHeight: (height) => {
-      panelSizes.bottomPanelHeight.set(height);
-      setState((prev) => ({ ...prev, bottomPanelHeight: height }));
-    },
     setActiveBottomPanelTab: (tab) =>
       setState((prev) => ({ ...prev, activeBottomPanelTab: tab })),
     setSelection,
@@ -619,7 +614,6 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     cursorMode: state.cursorMode,
     isLeftSidebarOpen: state.isLeftSidebarOpen,
     isBottomPanelOpen: state.isBottomPanelOpen,
-    bottomPanelHeight: state.bottomPanelHeight,
     activeBottomPanelTab: state.activeBottomPanelTab,
     timelineChartType: state.timelineChartType,
   });

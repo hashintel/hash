@@ -1,9 +1,6 @@
 import { createContext, createRef } from "react";
 
-import {
-  DEFAULT_AI_ASSISTANT_WIDTH,
-  DEFAULT_BOTTOM_PANEL_HEIGHT,
-} from "./panel-defaults";
+import { DEFAULT_AI_ASSISTANT_WIDTH } from "./panel-defaults";
 
 import type {
   ComponentReference,
@@ -90,7 +87,6 @@ export type EditorState = {
   cursorMode: CursorMode;
   isLeftSidebarOpen: boolean;
   isBottomPanelOpen: boolean;
-  bottomPanelHeight: number;
   /**
    * Width of the AI assistant panel. Held here rather than inside the panel so
    * the surfaces that have to keep clear of it can read it.
@@ -162,7 +158,6 @@ export type EditorActions = {
   setAiAssistantCollapsed: (collapsed: boolean) => void;
   setBottomPanelOpen: (isOpen: boolean) => void;
   toggleBottomPanel: () => void;
-  setBottomPanelHeight: (height: number) => void;
   setActiveBottomPanelTab: (tab: BottomPanelTab) => void;
   setAddComponentMode: (component: ComponentReference) => void;
   /** Check whether a given ID is in the current selection. */
@@ -216,7 +211,6 @@ export const initialEditorState: EditorState = {
   cursorMode: "pan",
   isLeftSidebarOpen: true,
   isBottomPanelOpen: false,
-  bottomPanelHeight: DEFAULT_BOTTOM_PANEL_HEIGHT,
   aiAssistantWidth: DEFAULT_AI_ASSISTANT_WIDTH,
   aiAssistantDockHeight: null,
   aiAssistantPlacement: "docked",
@@ -256,7 +250,6 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   setAiAssistantCollapsed: () => {},
   setBottomPanelOpen: () => {},
   toggleBottomPanel: () => {},
-  setBottomPanelHeight: () => {},
   setActiveBottomPanelTab: () => {},
   setAddComponentMode: () => {},
   isSelected: () => false,

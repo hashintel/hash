@@ -56,19 +56,14 @@ const glassPanelContentStyle = css({
  * PropertiesPanel displays properties and controls for the selected node/edge.
  */
 export const PropertiesPanel: React.FC = () => {
-  const { isBottomPanelOpen, bottomPanelHeight, isPanelAnimating } =
-    use(EditorContext);
-  const { propertiesPanelWidth } = usePanelSizes();
+  const { isBottomPanelOpen, isPanelAnimating } = use(EditorContext);
+  const { propertiesPanelWidth, bottomPanelHeight } = usePanelSizes();
 
   const { petriNetId } = use(SDCPNContext);
   const { activeComponentId } = use(ActiveNetContext);
   const panelTarget = usePanelTarget();
 
   const isOpen = panelTarget.kind !== "none";
-
-  // Calculate bottom offset based on bottom panel visibility
-  // Gap between PropertiesPanel and BottomPanel matches gap between LeftSideBar and BottomPanel
-  const bottomOffset = isBottomPanelOpen ? bottomPanelHeight + PANEL_MARGIN : 0;
 
   const { keepPanelsMounted, setPropertiesPanelWidth: saveWidth } =
     use(UserSettingsContext);
@@ -83,11 +78,16 @@ export const PropertiesPanel: React.FC = () => {
         glassPanelStyle,
         panelStyle({ open: isOpen, animating: isPanelAnimating }),
       )}
-      // The width follows the drag by a direct write, with no render.
-      ref={styleFromStores({ propertiesPanelWidth }, (sizes) => ({
-        width: `${sizes.propertiesPanelWidth}px`,
-      }))}
-      style={{ bottom: bottomOffset, padding: PANEL_MARGIN }}
+      // The box follows both drags by direct writes, with no render. The gap
+      // to the bottom panel matches the one beside the left sidebar.
+      ref={styleFromStores(
+        { propertiesPanelWidth, bottomPanelHeight },
+        (sizes) => ({
+          width: `${sizes.propertiesPanelWidth}px`,
+          bottom: `${isBottomPanelOpen ? sizes.bottomPanelHeight + PANEL_MARGIN : 0}px`,
+        }),
+      )}
+      style={{ padding: PANEL_MARGIN }}
       contentClassName={glassPanelContentStyle}
       resizable={{
         edge: "left",

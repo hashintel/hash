@@ -215,8 +215,6 @@ const EditorViewContent = ({
     clearSelection,
     setAiAssistantOpen,
     setAiAssistantCollapsed,
-    isBottomPanelOpen,
-    bottomPanelHeight,
   } = use(EditorContext);
   const actualMode = use(ActualModeContext);
   const composesOnly = useComposesOnly();
@@ -649,9 +647,6 @@ const EditorViewContent = ({
 
                   {showEmptyAiHero && (
                     <AiCtaModal
-                      bottomClearance={
-                        isBottomPanelOpen ? bottomPanelHeight : 0
-                      }
                       onDismiss={() => setIsAiCtaDismissed(true)}
                       onSubmit={(message) => {
                         setAiAssistantOpen(true);

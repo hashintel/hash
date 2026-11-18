@@ -60,7 +60,6 @@ const editorContextValue = (
   setAiAssistantCollapsed: () => {},
   setBottomPanelOpen: () => {},
   toggleBottomPanel: () => {},
-  setBottomPanelHeight: () => {},
   setActiveBottomPanelTab: () => {},
   isSelected: () => false,
   setSelection: () => {},

@@ -85,12 +85,18 @@ export const useCanvasInsets = (options?: CanvasInsetOptions): CanvasInsets => {
   const panelSizes = usePanelSizes();
   const leftSidebarWidth = useStore(panelSizes.leftSidebarWidth);
   const propertiesPanelWidth = useStore(panelSizes.propertiesPanelWidth);
+  const bottomPanelHeight = useStore(panelSizes.bottomPanelHeight);
 
   // Where the panels sit beside the canvas rather than over it, the canvas is
   // already the space it occupies and there is nothing to keep clear of.
   return presentation.panelsOverlayCanvas
     ? getCanvasInsets(
-        { ...editor, leftSidebarWidth, propertiesPanelWidth },
+        {
+          ...editor,
+          leftSidebarWidth,
+          propertiesPanelWidth,
+          bottomPanelHeight,
+        },
         options,
       )
     : NO_INSETS;

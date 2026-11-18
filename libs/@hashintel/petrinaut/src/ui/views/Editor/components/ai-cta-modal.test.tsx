@@ -10,9 +10,7 @@ afterEach(cleanup);
 
 describe("AiCtaModal", () => {
   test("asks for the process without mode tabs", () => {
-    render(
-      <AiCtaModal bottomClearance={0} onDismiss={vi.fn()} onSubmit={vi.fn()} />,
-    );
+    render(<AiCtaModal onDismiss={vi.fn()} onSubmit={vi.fn()} />);
 
     expect(
       screen
@@ -32,13 +30,7 @@ describe("AiCtaModal", () => {
 
   test("submits the trimmed text", () => {
     const onSubmit = vi.fn();
-    render(
-      <AiCtaModal
-        bottomClearance={0}
-        onDismiss={vi.fn()}
-        onSubmit={onSubmit}
-      />,
-    );
+    render(<AiCtaModal onDismiss={vi.fn()} onSubmit={onSubmit} />);
 
     const input = screen.getByLabelText(
       "Describe the process you want to create",
@@ -59,9 +51,7 @@ describe("AiCtaModal", () => {
   });
 
   test("disables Send while the input is blank", () => {
-    render(
-      <AiCtaModal bottomClearance={0} onDismiss={vi.fn()} onSubmit={vi.fn()} />,
-    );
+    render(<AiCtaModal onDismiss={vi.fn()} onSubmit={vi.fn()} />);
 
     fireEvent.change(
       screen.getByLabelText("Describe the process you want to create"),
@@ -77,13 +67,7 @@ describe("AiCtaModal", () => {
 
   test("keeps outside-click and Escape dismissal", () => {
     const onDismiss = vi.fn();
-    render(
-      <AiCtaModal
-        bottomClearance={0}
-        onDismiss={onDismiss}
-        onSubmit={vi.fn()}
-      />,
-    );
+    render(<AiCtaModal onDismiss={onDismiss} onSubmit={vi.fn()} />);
 
     fireEvent.mouseDown(document.body);
     expect(onDismiss).toHaveBeenCalledOnce();

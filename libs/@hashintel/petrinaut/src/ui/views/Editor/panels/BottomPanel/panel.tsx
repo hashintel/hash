@@ -133,8 +133,6 @@ export const BottomPanel: React.FC = () => {
     setBottomPanelOpen,
     isLeftSidebarOpen,
     isSearchOpen,
-    bottomPanelHeight: panelHeight,
-    setBottomPanelHeight,
     activeBottomPanelTab: activeTab,
     setActiveBottomPanelTab: setActiveTab,
     toggleBottomPanel,
@@ -142,7 +140,11 @@ export const BottomPanel: React.FC = () => {
     globalMode,
   } = use(EditorContext);
 
-  const { keepPanelsMounted, showCompilationOutput } = use(UserSettingsContext);
+  const {
+    keepPanelsMounted,
+    showCompilationOutput,
+    setBottomPanelHeight: saveHeight,
+  } = use(UserSettingsContext);
   const composesOnly = useComposesOnly();
 
   // Simulation state for conditional subviews
@@ -233,7 +235,7 @@ export const BottomPanel: React.FC = () => {
   // Calculate left position based on left sidebar visibility.
   // The sidebar is visible when explicitly opened OR when search is active.
   const isSidebarVisible = isLeftSidebarOpen || isSearchOpen;
-  const { leftSidebarWidth } = usePanelSizes();
+  const { leftSidebarWidth, bottomPanelHeight } = usePanelSizes();
 
   if (!isOpen && !isPanelAnimating && !keepPanelsMounted) {
     return null;
@@ -245,19 +247,20 @@ export const BottomPanel: React.FC = () => {
         glassPanelBaseStyle,
         panelStyle({ open: isOpen, animating: isPanelAnimating }),
       )}
-      ref={styleFromStores({ leftSidebarWidth }, (sizes) => ({
-        left: `${isSidebarVisible ? sizes.leftSidebarWidth + PANEL_MARGIN * 2 : PANEL_MARGIN}px`,
-      }))}
-      style={{
-        bottom: PANEL_MARGIN,
-        right: PANEL_MARGIN,
-        height: panelHeight,
-      }}
+      ref={styleFromStores(
+        { leftSidebarWidth, bottomPanelHeight },
+        (sizes) => ({
+          left: `${isSidebarVisible ? sizes.leftSidebarWidth + PANEL_MARGIN * 2 : PANEL_MARGIN}px`,
+          height: `${sizes.bottomPanelHeight}px`,
+        }),
+      )}
+      style={{ bottom: PANEL_MARGIN, right: PANEL_MARGIN }}
       contentClassName={panelContainerStyle}
       resizable={{
         edge: "top",
-        getSize: () => panelHeight,
-        onResize: setBottomPanelHeight,
+        getSize: () => bottomPanelHeight.get(),
+        onResize: (height) => bottomPanelHeight.set(height),
+        onResizeEnd: () => saveHeight(bottomPanelHeight.get()),
         minSize: MIN_BOTTOM_PANEL_HEIGHT,
         maxSize: MAX_BOTTOM_PANEL_HEIGHT,
       }}
