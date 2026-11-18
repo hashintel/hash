@@ -291,6 +291,7 @@ import { sunMoonGeometry } from "./library-geometry/sun-moon";
 import { swatchBookGeometry } from "./library-geometry/swatch-book";
 import { tableTreeGeometry } from "./library-geometry/table-tree";
 import { tagGeometry } from "./library-geometry/tag";
+import { targetArrowGeometry } from "./library-geometry/target-arrow";
 import { teddyBearGeometry } from "./library-geometry/teddy-bear";
 import { telescopeGeometry } from "./library-geometry/telescope";
 import { testTubesGeometry } from "./library-geometry/test-tubes";
@@ -333,6 +334,7 @@ import { wavesGeometry } from "./library-geometry/waves";
 import { workflowGeometry } from "./library-geometry/workflow";
 
 export const libraryGeometry = {
+  targetArrow: targetArrowGeometry,
   layerPlus: layerPlusGeometry,
   gridPlus: gridPlusGeometry,
   entityEdit: entityEditGeometry,

@@ -180,6 +180,7 @@ const categories = {
     "palette",
   ],
   Data: [
+    "targetArrow",
     "layerPlus",
     "gridPlus",
     "entityEdit",

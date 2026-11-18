@@ -20,6 +20,7 @@ export type HashIconHint =
   | "up";
 
 export const hashIconHints = {
+  targetArrow: "lift",
   layerPlus: "lift",
   gridPlus: "lift",
   entityEdit: "lift",

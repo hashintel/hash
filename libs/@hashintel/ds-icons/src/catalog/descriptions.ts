@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  targetArrow:
+    "An arrow meeting a target represents an objective or precise action.",
   layerPlus: "Layers and a plus represent adding a layer.",
   gridPlus: "Grid cells and a plus represent adding a view or item.",
   entityEdit: "An entity and pencil represent editing an entity.",
