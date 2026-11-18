@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  pencilSlash: "A struck-through pencil represents disabling editing.",
   highlighter: "A broad pen tip represents highlighting content.",
   eraser: "An angled eraser represents removing drawn content.",
   canvas: "A bordered work area represents a drawing canvas.",
