@@ -149,6 +149,7 @@ import { historyPagesGeometry } from "./library-geometry/history-pages";
 import { historyUserGeometry } from "./library-geometry/history-user";
 import { homeGeometry } from "./library-geometry/home";
 import { hospitalUserGeometry } from "./library-geometry/hospital-user";
+import { humidityGeometry } from "./library-geometry/humidity";
 import { inboxGeometry } from "./library-geometry/inbox";
 import { italicGeometry } from "./library-geometry/italic";
 import { jetGeometry } from "./library-geometry/jet";
@@ -289,6 +290,7 @@ import { wavePulseGeometry } from "./library-geometry/wave-pulse";
 import { wavesGeometry } from "./library-geometry/waves";
 
 export const libraryGeometry = {
+  humidity: humidityGeometry,
   vibration: vibrationGeometry,
   signal: signalGeometry,
   wavePulse: wavePulseGeometry,
