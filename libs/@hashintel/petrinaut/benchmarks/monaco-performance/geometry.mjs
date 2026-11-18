@@ -1,6 +1,7 @@
 // Measures what a change of panel geometry costs with a code editor open:
 // a width drag of the Properties panel, a height drag between two sections,
-// and maximize, restore, collapse and expand of the Visualizer section.
+// maximize, restore, collapse and expand of the Visualizer section, then a
+// height drag of the bottom panel and a width drag of the left sidebar.
 //
 // React commit counts and render time need the profiling build
 // (BENCH_REACT_PROFILING=true, port 6028); they read 0 on the production build.
@@ -259,6 +260,40 @@ try {
         await observe(page, session, "expand", () =>
           section.locator("[data-toggle-subview]").click(),
         ),
+      );
+
+      // Height drag of the bottom panel, with the Properties panel above it.
+      await page
+        .getByRole("button", { name: "Show panel", exact: true })
+        .click();
+      await page.waitForTimeout(700);
+      const topEdge = await center(
+        page
+          .locator('button[data-resize-edge="top"]')
+          .filter({ visible: true })
+          .first(),
+      );
+      measurements.push(
+        await observe(page, session, "bottom-panel-height-drag", async () => {
+          await drag(page, topEdge, { x: topEdge.x, y: topEdge.y - 180 });
+        }),
+      );
+
+      // Width drag of the left sidebar, with the bottom panel beside it.
+      await page
+        .getByRole("button", { name: "Expand sidebar", exact: true })
+        .click();
+      await page.waitForTimeout(700);
+      const rightEdge = await center(
+        page
+          .locator('button[data-resize-edge="right"]')
+          .filter({ visible: true })
+          .first(),
+      );
+      measurements.push(
+        await observe(page, session, "left-sidebar-width-drag", async () => {
+          await drag(page, rightEdge, { x: rightEdge.x + 180, y: rightEdge.y });
+        }),
       );
       if (errors.length) throw new Error(`Page errors: ${errors.join("; ")}`);
       rows.push({
