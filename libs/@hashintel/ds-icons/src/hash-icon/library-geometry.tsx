@@ -145,6 +145,7 @@ import { homeGeometry } from "./library-geometry/home";
 import { hospitalUserGeometry } from "./library-geometry/hospital-user";
 import { inboxGeometry } from "./library-geometry/inbox";
 import { italicGeometry } from "./library-geometry/italic";
+import { jetGeometry } from "./library-geometry/jet";
 import { keyGeometry } from "./library-geometry/key";
 import { keyboardGeometry } from "./library-geometry/keyboard";
 import { keycapKGeometry } from "./library-geometry/keycap-k";
@@ -266,6 +267,7 @@ import { usersGeometry } from "./library-geometry/users";
 import { warehouseGeometry } from "./library-geometry/warehouse";
 
 export const libraryGeometry = {
+  jet: jetGeometry,
   planeUp: planeUpGeometry,
   plane: planeGeometry,
   gift: giftGeometry,
