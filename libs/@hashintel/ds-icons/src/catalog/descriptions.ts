@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  mixed: "Different marks represent a mixture of property values or styles.",
   splitView: "A divided panel represents a split view.",
   rows: "Two horizontal panels represent a row layout.",
   columns: "Two vertical panels represent a column layout.",

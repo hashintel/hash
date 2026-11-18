@@ -101,6 +101,7 @@ import { keycapKGeometry } from "./library-geometry/keycap-k";
 import { loginGeometry } from "./library-geometry/login";
 import { logoutGeometry } from "./library-geometry/logout";
 import { memoInfoGeometry } from "./library-geometry/memo-info";
+import { mixedGeometry } from "./library-geometry/mixed";
 import { newspaperGeometry } from "./library-geometry/newspaper";
 import { notePlusGeometry } from "./library-geometry/note-plus";
 import { noteStickyGeometry } from "./library-geometry/note-sticky";
@@ -145,6 +146,7 @@ import { ungroupGeometry } from "./library-geometry/ungroup";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  mixed: mixedGeometry,
   splitView: splitViewGeometry,
   rows: rowsGeometry,
   columns: columnsGeometry,
