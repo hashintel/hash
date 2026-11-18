@@ -11,6 +11,7 @@ import { colorsStructurallyEqual } from "./fusions";
 import {
   describeUnboundInstance,
   hasBody,
+  indexById,
   indexDocument,
   isInterface,
   mapInterfaceParameters,
@@ -21,7 +22,15 @@ import {
 } from "./interfaces";
 import { describePortDirection, effectivePortDirections } from "./ports";
 
-import type { ID, PortDirection, SDCPN, Subnet } from "../types/sdcpn";
+import type {
+  Color,
+  ID,
+  Parameter,
+  Place,
+  PortDirection,
+  SDCPN,
+  Subnet,
+} from "../types/sdcpn";
 
 export type InterfaceProblemCode =
   | "interface-has-body"
@@ -78,17 +87,32 @@ const once = <Value>(read: () => Value): (() => Value) => {
 };
 
 /**
- * Where `implementation` falls short of what `iface` declares.
- * `directionsOf` gives the directions of the implementation's ports: a caller
- * that holds one implementation to many interfaces hands each call the same
- * one, so the implementation's arcs are read once.
+ * What the check reads of an implementation: each of its lists by id, and
+ * the directions of its ports. Each is read once, when first asked for.
+ */
+type ImplementationIndex = {
+  places: () => ReadonlyMap<ID, Place>;
+  types: () => ReadonlyMap<ID, Color>;
+  parameters: () => ReadonlyMap<ID, Parameter>;
+  directions: () => ReadonlyMap<ID, PortDirection>;
+};
+
+const indexImplementation = (implementation: Subnet): ImplementationIndex => ({
+  places: once(() => indexById(implementation.places)),
+  types: once(() => indexById(implementation.types)),
+  parameters: once(() => indexById(implementation.parameters)),
+  directions: once(() => effectivePortDirections(implementation)),
+});
+
+/**
+ * Where `implementation` falls short of what `iface` declares. A caller that
+ * holds one implementation to many interfaces hands each call the same
+ * `index`, so the implementation's lists and arcs are read once.
  */
 export const checkImplementation = (
   implementation: Subnet,
   iface: Subnet,
-  directionsOf: () => ReadonlyMap<ID, PortDirection> = once(() =>
-    effectivePortDirections(implementation),
-  ),
+  index: ImplementationIndex = indexImplementation(implementation),
 ): InterfaceProblem[] => {
   const problems: InterfaceProblem[] = [];
   const report = reporter(problems, { subnetId: implementation.id });
@@ -96,11 +120,12 @@ export const checkImplementation = (
   // The pairs the flattener wires, so the check and the run cannot differ.
   const ports = mapInterfacePorts(iface, implementation);
   const parameters = mapInterfaceParameters(iface, implementation);
+  const interfaceTypes = once(() => indexById(iface.types));
 
   for (const port of iface.places.filter((place) => place.isPort)) {
-    const match = implementation.places.find(
-      ({ id }) => id === ports.get(port.id),
-    );
+    const matchId = ports.get(port.id);
+    const match =
+      matchId === undefined ? undefined : index.places().get(matchId);
     if (!match) {
       report(
         "missing-port",
@@ -109,10 +134,10 @@ export const checkImplementation = (
       continue;
     }
     const interfaceColor = port.colorId
-      ? iface.types.find(({ id }) => id === port.colorId)
+      ? interfaceTypes().get(port.colorId)
       : undefined;
     const implementationColor = match.colorId
-      ? implementation.types.find(({ id }) => id === match.colorId)
+      ? index.types().get(match.colorId)
       : undefined;
     if (!colorsStructurallyEqual(interfaceColor, implementationColor)) {
       report(
@@ -123,7 +148,7 @@ export const checkImplementation = (
     // A port the interface declares two-way, or not at all, accepts any use.
     if (port.portDirection !== undefined && port.portDirection !== "inout") {
       const effective =
-        match.portDirection ?? directionsOf().get(match.id) ?? "inout";
+        match.portDirection ?? index.directions().get(match.id) ?? "inout";
       if (effective !== port.portDirection) {
         report(
           "port-direction-mismatch",
@@ -135,9 +160,9 @@ export const checkImplementation = (
   }
 
   for (const parameter of iface.parameters) {
-    const match = implementation.parameters.find(
-      ({ id }) => id === parameters.get(parameter.id),
-    );
+    const matchId = parameters.get(parameter.id);
+    const match =
+      matchId === undefined ? undefined : index.parameters().get(matchId);
     if (!match) {
       report(
         "missing-parameter",
@@ -227,11 +252,11 @@ const checkDeclarations = (
     // With no body to run, it is not held to what it says it implements.
     return problems;
   }
-  const directionsOf = once(() => effectivePortDirections(subnet));
+  const index = indexImplementation(subnet);
   for (const interfaceId of implemented) {
     const iface = subnetsById.get(interfaceId);
     if (iface && isInterface(iface)) {
-      problems.push(...checkImplementation(subnet, iface, directionsOf));
+      problems.push(...checkImplementation(subnet, iface, index));
     } else {
       report(
         "unknown-interface",

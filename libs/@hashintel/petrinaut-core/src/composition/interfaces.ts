@@ -97,21 +97,24 @@ export type ImplementationBinding =
     ));
 
 /**
- * The document's subnets by id, for a caller that resolves many instances.
- * Of two subnets with one id the first is kept, as a search of the list
- * finds it.
+ * `items` by id, for a caller that looks many of them up. Of two items with
+ * one id the first is kept, as a search of the list finds it.
  */
-export const indexSubnets = (
-  sdcpn: Pick<SDCPN, "subnets">,
-): Map<ID, Subnet> => {
-  const subnetsById = new Map<ID, Subnet>();
-  for (const subnet of sdcpn.subnets ?? []) {
-    if (!subnetsById.has(subnet.id)) {
-      subnetsById.set(subnet.id, subnet);
+export const indexById = <Item extends { id: ID }>(
+  items: readonly Item[],
+): Map<ID, Item> => {
+  const itemsById = new Map<ID, Item>();
+  for (const item of items) {
+    if (!itemsById.has(item.id)) {
+      itemsById.set(item.id, item);
     }
   }
-  return subnetsById;
+  return itemsById;
 };
+
+/** The document's subnets by id, for a caller that resolves many instances. */
+export const indexSubnets = (sdcpn: Pick<SDCPN, "subnets">): Map<ID, Subnet> =>
+  indexById(sdcpn.subnets ?? []);
 
 /**
  * The document's subnets by id and its default implementation by the id of

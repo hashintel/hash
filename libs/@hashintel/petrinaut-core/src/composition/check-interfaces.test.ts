@@ -308,6 +308,73 @@ describe("checkInterfaces", () => {
   });
 });
 
+describe("an implementation with many ports, token types and parameters", () => {
+  const size = 20_000;
+  const names = Array.from({ length: size }, (_, index) => `item-${index}`);
+  /** A port for each name, of a token type of its own, and a parameter for each. */
+  const wide = (id: string, overrides: Partial<Subnet>) =>
+    subnet(id, {
+      types: names.map((name) =>
+        color(`${id}_type_${name}`, [
+          { elementId: "w", name: "weight", type: "real" },
+        ]),
+      ),
+      places: names.map((name) =>
+        place(`${id}_${name}`, {
+          name,
+          isPort: true,
+          colorId: `${id}_type_${name}`,
+        }),
+      ),
+      parameters: names.map((name) => parameter(`${id}_rate_${name}`, name)),
+      ...overrides,
+    });
+
+  it("is held to its interface with one read of each of its lists", () => {
+    const sdcpn = net({
+      subnets: [
+        wide("stage", { interface: true }),
+        wide("fast", { implements: ["stage"] }),
+      ],
+    });
+
+    const started = Date.now();
+    const problems = checkInterfaces(sdcpn);
+    const elapsed = Date.now() - started;
+
+    expect(problems).toEqual([]);
+    // A search of the implementation's places, types and parameters for each
+    // of the interface's takes several seconds.
+    expect(elapsed).toBeLessThan(1_000);
+  });
+
+  it("is held to the first of two places, types or parameters with one id", () => {
+    const twice = <Item>(items: Item[]): Item[] => [...items, ...items];
+    const typed = subnet("typed", {
+      interface: true,
+      types: [color("t", [{ elementId: "w", name: "weight", type: "real" }])],
+      places: [place("typed_in", { name: "In", isPort: true, colorId: "t" })],
+      parameters: [parameter("typed_rate", "rate")],
+    });
+    const doubled = subnet("doubled", {
+      implements: ["typed"],
+      types: [
+        color("t", [{ elementId: "w", name: "weight", type: "real" }]),
+        color("t", [{ elementId: "n", name: "count", type: "integer" }]),
+      ],
+      places: twice([
+        place("doubled_in", { name: "In", isPort: true, colorId: "t" }),
+      ]),
+      parameters: [
+        parameter("doubled_rate", "rate"),
+        parameter("doubled_rate", "rate", "boolean"),
+      ],
+    });
+
+    expect(checkInterfaces(net({ subnets: [typed, doubled] }))).toEqual([]);
+  });
+});
+
 describe("the directions of an implementation's ports", () => {
   // A thousand ports that declare no direction, under 20,000 arcs that
   // consume from them.
