@@ -489,6 +489,7 @@ export const HelpIcon = createIcon("help");
 export const DotIcon = createIcon("dot");
 export const PinIcon = createIcon("pin");
 export const TagIcon = createIcon("tag");
+export const PowerIcon = createIcon("power");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -674,6 +675,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  power: PowerIcon,
   tag: TagIcon,
   pin: PinIcon,
   dot: DotIcon,

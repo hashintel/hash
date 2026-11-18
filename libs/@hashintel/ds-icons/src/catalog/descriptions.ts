@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  power: "A broken circle and vertical bar represent power or activation.",
   tag: "A tag represents a label, category, or price.",
   pin: "A pushpin represents keeping an item fixed or prominent.",
   dot: "A small dot represents a point, bullet, or status marker.",
