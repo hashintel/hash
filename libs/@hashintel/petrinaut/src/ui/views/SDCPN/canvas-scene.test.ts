@@ -258,4 +258,67 @@ describe("buildCanvasScene", () => {
       targetPortId: "in",
     });
   });
+
+  it("reads a subnet's arcs once for the directions of its ports, however many ports and instances it has", () => {
+    // Two hundred ports that declare no direction, under 24,000 arcs: the
+    // even ones are consumed from and the odd ones produced into.
+    const ports = Array.from({ length: 200 }, (_, index) => ({
+      ...place(`port-${index}`, 0, 0),
+      isPort: true,
+    }));
+    const consumed = ports.filter((_, index) => index % 2 === 0);
+    const produced = ports.filter((_, index) => index % 2 === 1);
+    const wide = {
+      id: "wide",
+      name: "Wide",
+      places: ports,
+      transitions: Array.from({ length: 120 }, (_, index) => ({
+        ...transition(`work-${index}`, [], []),
+        inputArcs: consumed.map(({ id }) => ({
+          placeId: id,
+          weight: 1,
+          type: "standard" as const,
+        })),
+        outputArcs: produced.map(({ id }) => ({ placeId: id, weight: 1 })),
+      })),
+      types: [],
+      differentialEquations: [],
+      parameters: [],
+    };
+    const composed: SDCPN = {
+      ...sdcpn,
+      subnets: [wide],
+      componentInstances: Array.from({ length: 20 }, (_, index) => ({
+        id: `wide-${index}`,
+        name: `Wide ${index}`,
+        subnetId: "wide",
+        parameterValues: {},
+        x: 0,
+        y: index * 100,
+      })),
+    };
+
+    const started = Date.now();
+    const { nodes } = buildCanvasScene({
+      ...input,
+      sdcpn: composed,
+      net: {
+        ...composed,
+        componentInstances: composed.componentInstances ?? [],
+        fusions: [],
+      },
+    });
+    const elapsed = Date.now() - started;
+
+    const instances = nodes.filter((node) => node.kind === "componentInstance");
+    expect(instances).toHaveLength(20);
+    for (const instance of instances) {
+      expect(instance.ports).toHaveLength(200);
+      expect(instance.ports.slice(0, 2)).toEqual([
+        { id: "port-0", name: "port-0", direction: "in" },
+        { id: "port-1", name: "port-1", direction: "out" },
+      ]);
+    }
+    expect(elapsed).toBeLessThan(1000);
+  });
 });

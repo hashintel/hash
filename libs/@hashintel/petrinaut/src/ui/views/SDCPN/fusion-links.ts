@@ -9,6 +9,7 @@ import {
   checkFusion,
   findFusionWithMember,
   fusionAnchor,
+  fusionCheckPass,
   fusionHub,
   getArcEndpointKey,
 } from "@hashintel/petrinaut-core";
@@ -55,10 +56,11 @@ export const fusionStatuses = (
   sdcpn: SDCPN,
   net: ActiveNetDefinition,
   activeSubnetId: string | null,
-): Map<string, FusionStatus> =>
-  new Map(
+): Map<string, FusionStatus> => {
+  const pass = fusionCheckPass();
+  return new Map(
     net.fusions.map((fusion) => {
-      const problems = checkFusion(sdcpn, net, fusion, activeSubnetId);
+      const problems = checkFusion(sdcpn, net, fusion, activeSubnetId, pass);
       return [
         fusion.id,
         {
@@ -70,6 +72,7 @@ export const fusionStatuses = (
       ];
     }),
   );
+};
 
 /** What joining two places by a drag does to the net's fusions. */
 export type FusionPlan =

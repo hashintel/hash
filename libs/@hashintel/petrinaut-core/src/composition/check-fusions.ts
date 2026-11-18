@@ -10,8 +10,9 @@
  * fusion shows: `place-fusion.mdx` lists those cases.
  */
 
-import { arcMatchesEndpoint, placeArcEndpoint } from "../arc-endpoints";
+import { arcMatchesEndpoint } from "../arc-endpoints";
 import { getRunningEquationIds } from "../place-dynamics";
+import { checkPorts, type PortProblem } from "./check-ports";
 import {
   colorsStructurallyEqual,
   describeResolvedMember,
@@ -22,6 +23,12 @@ import {
   type FusionNet,
   type ResolvedFusionMember,
 } from "./fusions";
+import {
+  endpointUsage,
+  portUsages,
+  type PortNet,
+  type PortUsage,
+} from "./ports";
 
 import type {
   ArcEndpoint,
@@ -30,6 +37,7 @@ import type {
   ID,
   InputArc,
   OutputArc,
+  Place,
   SDCPN,
   Subnet,
   Transition,
@@ -75,51 +83,81 @@ export type FusionProblem = {
 
 type CheckedNet = FusionNet & Pick<SDCPN, "types" | "transitions">;
 
-type TokenFlow = {
-  /** Whether tokens can enter the fused place this way. */
-  produced: boolean;
-  /** Whether tokens can leave the fused place this way. */
-  consumed: boolean;
-};
-
-const bothWays: TokenFlow = { produced: true, consumed: true };
+/** Whether tokens can enter and leave the fused place by way of one member. */
+type TokenFlow = { produced: boolean; consumed: boolean };
 
 /**
- * How `transitions` move tokens through the place `endpoint` names, and
- * whether any of their arcs touches it at all. A read or an inhibitor arc
- * looks at the place and takes nothing from it.
+ * What a check of many fusions reads once, whatever their number. Without
+ * one, `checkFusion` reads it for the fusion it is given.
  */
-const flowThrough = (
-  transitions: readonly Transition[],
-  endpoint: ArcEndpoint,
-): TokenFlow & { touched: boolean } => {
-  const inputs = transitions.flatMap(({ inputArcs }) =>
-    inputArcs.filter((arc) => arcMatchesEndpoint(arc, endpoint)),
-  );
-  const produced = transitions.some(({ outputArcs }) =>
-    outputArcs.some((arc) => arcMatchesEndpoint(arc, endpoint)),
-  );
+export type FusionCheckPass = {
+  /**
+   * How a net's own transitions touch its ports. `netId` names the net: the
+   * id of a subnet, `null` for the root net. Of two subnets with one id the
+   * first asked about is read, as a search of the document finds it.
+   */
+  portUsagesOf: (netId: ID | null, net: PortNet) => (placeId: ID) => PortUsage;
+};
+
+export const fusionCheckPass = (): FusionCheckPass => {
+  const usagesByNetId = new Map<ID | null, (placeId: ID) => PortUsage>();
   return {
-    consumed: inputs.some(({ type }) => type === "standard"),
-    produced,
-    touched: produced || inputs.length > 0,
+    portUsagesOf: (netId, net) => {
+      const known = usagesByNetId.get(netId);
+      if (known) {
+        return known;
+      }
+      const usageOf = portUsages(net);
+      usagesByNetId.set(netId, usageOf);
+      return usageOf;
+    },
   };
 };
 
 /**
- * How a net's own transitions touch one of its ports. A port no transition
- * touches passes tokens through for whoever is on the other side, so it
- * counts as both produced and consumed.
+ * What a net does with one of its own ports: what the port declares, else
+ * what the net's arcs move through it. A port no transition touches passes
+ * tokens through, so it counts as both.
  */
-const portFlow = (
-  subnet: Pick<Subnet, "transitions">,
-  placeId: ID,
+const ownPortFlow = (
+  port: Pick<Place, "id" | "portDirection">,
+  /** How the port's net touches its ports: asked for a port that declares no direction. */
+  usagesOfNet: () => (placeId: ID) => PortUsage,
 ): TokenFlow => {
-  const { touched, ...flow } = flowThrough(
-    subnet.transitions,
-    placeArcEndpoint(placeId),
+  if (port.portDirection !== undefined) {
+    return {
+      produced: port.portDirection !== "in",
+      consumed: port.portDirection !== "out",
+    };
+  }
+  const { touched, ...flow } = usagesOfNet()(port.id);
+  return touched ? flow : { produced: true, consumed: true };
+};
+
+/**
+ * What is on the far side of a member from this net's transitions: the
+ * component's own flow, for an instance port. For an anchor that is itself a
+ * port of this net it is the net above, which does with the port the
+ * opposite of what this net does.
+ */
+const farSideFlow = (
+  net: CheckedNet,
+  subnetId: ID | null,
+  resolved: ResolvedFusionMember,
+  pass: FusionCheckPass,
+): TokenFlow => {
+  if (resolved.kind === "port") {
+    return ownPortFlow(resolved.place, () =>
+      pass.portUsagesOf(resolved.subnet.id, resolved.subnet),
+    );
+  }
+  if (!resolved.place.isPort) {
+    return { produced: false, consumed: false };
+  }
+  const own = ownPortFlow(resolved.place, () =>
+    pass.portUsagesOf(subnetId, net),
   );
-  return touched ? flow : bothWays;
+  return { produced: own.consumed, consumed: own.produced };
 };
 
 type MemberFacts = TokenFlow & {
@@ -135,6 +173,7 @@ const factsFor = (
   subnetId: ID | null,
   member: ArcEndpoint,
   resolved: ResolvedFusionMember,
+  pass: FusionCheckPass,
 ): Omit<MemberFacts, "label"> => {
   const { place } = resolved;
   const types = resolved.kind === "place" ? net.types : resolved.subnet.types;
@@ -142,16 +181,8 @@ const factsFor = (
   const equationNetId =
     resolved.kind === "place" ? subnetId : resolved.subnet.id;
   const equationIds = getRunningEquationIds(place);
-  const outside = flowThrough(net.transitions, member);
-  // What is on the far side of the member from this net's transitions: the
-  // component's own, for an instance port; for an anchor that is itself a
-  // port of this net, whatever the net above does with it.
-  const inside =
-    resolved.kind === "port"
-      ? portFlow(resolved.subnet, place.id)
-      : place.isPort
-        ? bothWays
-        : { produced: false, consumed: false };
+  const outside = endpointUsage(net.transitions, member);
+  const inside = farSideFlow(net, subnetId, resolved, pass);
   return {
     color: place.colorId
       ? types.find(({ id }) => id === place.colorId)
@@ -184,12 +215,16 @@ const transitionsReachingTwice = (
   });
 };
 
-/** The problems with one fusion of `net`. */
+/**
+ * The problems with one fusion of `net`. A caller that checks many fusions
+ * of one document hands each call the same `pass`.
+ */
 export const checkFusion = (
   sdcpn: Pick<SDCPN, "subnets">,
   net: CheckedNet,
   fusion: Fusion,
   subnetId: ID | null,
+  pass: FusionCheckPass = fusionCheckPass(),
 ): FusionProblem[] => {
   const problems: FusionProblem[] = [];
   const fusionName = `the fusion ${fusion.name}`;
@@ -236,7 +271,10 @@ export const checkFusion = (
       );
       continue;
     }
-    facts.push({ label, ...factsFor(net, subnetId, member, resolved) });
+    facts.push({
+      label,
+      ...factsFor(net, subnetId, member, resolved, pass),
+    });
   }
   if (multipleAnchors) {
     report(
@@ -305,15 +343,35 @@ const checkNetFusions = (
   sdcpn: SDCPN,
   net: SDCPN | Subnet,
   subnetId: ID | null,
+  pass: FusionCheckPass,
 ): FusionProblem[] =>
   (net.fusions ?? []).flatMap((fusion) =>
-    checkFusion(sdcpn, net, fusion, subnetId),
+    checkFusion(sdcpn, net, fusion, subnetId, pass),
   );
 
 /** The problems with every fusion of the document, root first. */
-export const checkFusions = (sdcpn: SDCPN): FusionProblem[] => [
-  ...checkNetFusions(sdcpn, sdcpn, null),
-  ...(sdcpn.subnets ?? []).flatMap((subnet) =>
-    checkNetFusions(sdcpn, subnet, subnet.id),
-  ),
+export const checkFusions = (sdcpn: SDCPN): FusionProblem[] => {
+  const pass = fusionCheckPass();
+  return [
+    ...checkNetFusions(sdcpn, sdcpn, null, pass),
+    ...(sdcpn.subnets ?? []).flatMap((subnet) =>
+      checkNetFusions(sdcpn, subnet, subnet.id, pass),
+    ),
+  ];
+};
+
+export type CompositionProblem =
+  | ({ kind: "fusion" } & FusionProblem)
+  | ({ kind: "port" } & PortProblem);
+
+/** Every problem with the document's composition: its fusions and its ports. */
+export const checkComposition = (sdcpn: SDCPN): CompositionProblem[] => [
+  ...checkFusions(sdcpn).map((problem): CompositionProblem => ({
+    kind: "fusion",
+    ...problem,
+  })),
+  ...checkPorts(sdcpn).map((problem): CompositionProblem => ({
+    kind: "port",
+    ...problem,
+  })),
 ];

@@ -7,6 +7,7 @@
  */
 
 import {
+  effectivePortDirections,
   generateArcId,
   getArcEndpoint,
   getArcEndpointKey,
@@ -31,9 +32,11 @@ import type {
   FusionMember,
   InputArcType,
   PetrinautExtensionSettings,
+  PortDirection,
   ProblemSeverity,
   RenderNodeDimensions,
   SDCPN,
+  Subnet,
 } from "@hashintel/petrinaut-core";
 
 export type CanvasPoint = { x: number; y: number };
@@ -73,7 +76,12 @@ export type CanvasTransitionNode = CanvasNodeBase & {
   lambdaType: "none" | "predicate" | "stochastic";
 };
 
-export type CanvasPort = { id: string; name: string };
+export type CanvasPort = {
+  id: string;
+  name: string;
+  /** Which way tokens cross the port, as the component declares or uses it. */
+  direction: PortDirection;
+};
 
 export type CanvasComponentInstanceNode = CanvasNodeBase & {
   kind: "componentInstance";
@@ -275,13 +283,34 @@ export const buildCanvasScene = ({
     });
   }
 
+  // The directions of a subnet's ports are worked out once, however many
+  // instances of it the net holds.
+  const directionsBySubnetId = new Map<
+    string,
+    ReadonlyMap<string, PortDirection>
+  >();
+  const portDirectionsOf = (subnet: Subnet) => {
+    const known = directionsBySubnetId.get(subnet.id);
+    if (known) {
+      return known;
+    }
+    const directions = effectivePortDirections(subnet);
+    directionsBySubnetId.set(subnet.id, directions);
+    return directions;
+  };
+
   for (const instance of net.componentInstances) {
     const subnet = (sdcpn.subnets ?? []).find(
       ({ id }) => id === instance.subnetId,
     );
+    const directions = subnet ? portDirectionsOf(subnet) : undefined;
     const ports = (subnet?.places ?? [])
       .filter((place) => place.isPort)
-      .map((place) => ({ id: place.id, name: place.name }));
+      .map((place) => ({
+        id: place.id,
+        name: place.name,
+        direction: directions?.get(place.id) ?? ("inout" as const),
+      }));
     nodes.push({
       kind: "componentInstance",
       id: instance.id,

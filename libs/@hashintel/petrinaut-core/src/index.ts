@@ -81,12 +81,26 @@ export {
   resolveFusionMember,
 } from "./composition/fusions";
 export type { FusionNet, ResolvedFusionMember } from "./composition/fusions";
-export { checkFusion, checkFusions } from "./composition/check-fusions";
+export {
+  checkComposition,
+  checkFusion,
+  fusionCheckPass,
+} from "./composition/check-fusions";
 export type {
+  CompositionProblem,
+  FusionCheckPass,
   FusionProblem,
   FusionProblemCode,
   ProblemSeverity,
 } from "./composition/check-fusions";
+export type { PortProblem } from "./composition/check-ports";
+export {
+  describePortDirection,
+  effectivePortDirection,
+  effectivePortDirections,
+  inferPortDirection,
+  portDirections,
+} from "./composition/ports";
 
 // --- Command registry (palette commands) ---
 export {

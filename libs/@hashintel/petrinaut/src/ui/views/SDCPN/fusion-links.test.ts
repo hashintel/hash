@@ -134,6 +134,53 @@ describe("fusionStatuses", () => {
     // Two ports no transition touches: nothing to report.
     expect(statuses.get("ports")).toEqual({ severity: null });
   });
+
+  it("reads a subnet's arcs once for its fused ports that declare no direction, however many", () => {
+    // A thousand ports that declare no direction, under 20,000 arcs that
+    // consume from them.
+    const portIds = Array.from({ length: 1000 }, (_, index) => `port-${index}`);
+    const [stage] = sdcpn.subnets ?? [];
+    const [stagePort] = stage?.places ?? [];
+    const wide: SDCPN = {
+      ...sdcpn,
+      subnets: [
+        {
+          ...stage!,
+          places: portIds.map((id) => ({ ...stagePort!, id, name: id })),
+          transitions: Array.from({ length: 20 }, (_, index) => ({
+            id: `take-${index}`,
+            name: `take-${index}`,
+            inputArcs: portIds.map((placeId) => ({
+              placeId,
+              weight: 1,
+              type: "standard" as const,
+            })),
+            outputArcs: [],
+            lambdaType: "predicate" as const,
+            lambdaCode: "",
+            transitionKernelCode: "",
+            x: 0,
+            y: 0,
+          })),
+        },
+      ],
+      fusions: portIds.map((id) => fusion(id, port("m1", id), port("m2", id))),
+    };
+
+    const started = Date.now();
+    const statuses = fusionStatuses(
+      wide,
+      { ...net, ...wide, fusions: wide.fusions ?? [] },
+      null,
+    );
+    const elapsed = Date.now() - started;
+
+    // Each fused place is consumed from on both sides, and never filled.
+    expect([...statuses.values()]).toEqual(
+      portIds.map(() => ({ severity: "warning" })),
+    );
+    expect(elapsed).toBeLessThan(1000);
+  });
 });
 
 describe("planFusion", () => {

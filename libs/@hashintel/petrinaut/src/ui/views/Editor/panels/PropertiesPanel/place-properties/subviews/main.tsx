@@ -26,6 +26,7 @@ import { PlaceIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { usePlacePropertiesContext } from "../context";
 import { placeTypeChange } from "./place-dynamics/compose-dynamics";
+import { PortDirectionField } from "./port-direction-field";
 
 import type { SubView } from "../../../../../../components/sub-view/types";
 
@@ -59,7 +60,7 @@ const capacityContentStyle = css({
   },
 });
 
-const capacityFieldStyle = css({
+const indentedFieldStyle = css({
   paddingTop: "2",
   paddingLeft: "6",
   "& label": { fontWeight: "normal" },
@@ -90,9 +91,8 @@ const PlaceMainContent: React.FC = () => {
     place.capacity !== undefined && place.capacity !== null;
 
   const { extensions } = use(SDCPNContext);
-  const {
-    activeNet: { types: availableTypes },
-  } = use(ActiveNetContext);
+  const { activeNet } = use(ActiveNetContext);
+  const { types: availableTypes } = activeNet;
 
   const placeTypeName =
     types.find((candidate) => candidate.id === place.colorId)?.name ?? "None";
@@ -210,6 +210,16 @@ const PlaceMainContent: React.FC = () => {
           />
           <HelpTooltip content="Expose this place as a port when its subnet is used as a component: fuse it with a place of the net that holds the instance, or connect it to a transition there." />
         </div>
+        {place.isPort && (
+          <PortDirectionField
+            place={place}
+            disabled={isReadOnly}
+            className={indentedFieldStyle}
+            onChange={(portDirection) =>
+              updatePlace({ placeId: place.id, update: { portDirection } })
+            }
+          />
+        )}
         <Collapsible.Root open={capacityEnabled} lazyMount unmountOnExit>
           <div className={optionRowStyle}>
             <Checkbox
@@ -236,7 +246,7 @@ const PlaceMainContent: React.FC = () => {
               size="xs"
               layout="inline"
               inputAlign="end"
-              className={capacityFieldStyle}
+              className={indentedFieldStyle}
               disabled={isReadOnly}
             >
               <NumberInput

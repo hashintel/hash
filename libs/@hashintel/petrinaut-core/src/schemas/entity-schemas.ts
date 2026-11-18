@@ -6,6 +6,7 @@
 import { z } from "zod";
 
 import { fusionMemberIssues } from "../composition/fusions";
+import { portDirections } from "../composition/ports";
 import { MAX_DIFFERENTIAL_EQUATION_ARITY } from "../equation-arity";
 import { getParameterValueError } from "../parameter-values";
 import { canonicalizeArcId, petrinautIdSchema } from "../petrinaut-id";
@@ -237,6 +238,10 @@ export const placeSchema = z
     isPort: z.boolean().optional().meta({
       description:
         "When true, this place is exposed as a component port on instances of the subnet that contains it.",
+    }),
+    portDirection: z.enum(portDirections).optional().meta({
+      description:
+        'For a port: the direction the component promises. `"in"`: the component\'s transitions only consume from the port. `"out"`: they only produce into it. `"inout"`: both. A read or an inhibitor arc moves no token and counts as neither. Omit to infer it from the subnet\'s arcs on the port and on what the subnet fuses it with.',
     }),
     visualizerCode: z.string().optional().meta({
       description:

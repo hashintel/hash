@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { checkFusions } from "./check-fusions";
+import { checkComposition, checkFusions } from "./check-fusions";
 
 import type { Color, Fusion, Place, SDCPN, Subnet } from "../types/sdcpn";
 
@@ -543,6 +543,36 @@ describe("token flow through fused ports", () => {
     expect(checkFusions(sdcpn)).toEqual([]);
   });
 
+  it("reads the far side of an anchor port off the direction the port declares", () => {
+    const lineWith = (portDirection: "in" | "out") =>
+      net({
+        subnets: [
+          stage,
+          subnet("line", {
+            places: [place("feed", { isPort: true, portDirection })],
+            componentInstances: [instance("s1", "stage")],
+            fusions: [
+              {
+                id: "f1",
+                name: "F1",
+                members: [
+                  { kind: "place", placeId: "feed" },
+                  portOf("s1", "in"),
+                ],
+              },
+            ],
+          }),
+        ],
+      });
+
+    // An input port of the line is filled by the net above it.
+    expect(checkFusions(lineWith("in"))).toEqual([]);
+    // An output port is emptied from above, and the stage only consumes too.
+    expect(checkFusions(lineWith("out"))).toMatchObject([
+      { subnetId: "line", code: "no-producer" },
+    ]);
+  });
+
   it("reports a transition that reaches the fused place through two arcs of one kind", () => {
     const sdcpn = net({
       places: [place("feed")],
@@ -598,5 +628,78 @@ describe("token flow through fused ports", () => {
     expect(
       checkFusions(sdcpn).filter(({ code }) => code === "color-mismatch"),
     ).toHaveLength(1);
+  });
+
+  it("takes a declared direction over the arcs", () => {
+    const sink = subnet("sink", {
+      places: [place("in", { isPort: true, portDirection: "inout" })],
+      transitions: [transition("absorb", ["in"], [])],
+    });
+    const sdcpn = net({
+      subnets: [sink],
+      componentInstances: [instance("k1", "sink"), instance("k2", "sink")],
+      fusions: [
+        {
+          id: "f1",
+          name: "F1",
+          members: [portOf("k1", "in"), portOf("k2", "in")],
+        },
+      ],
+    });
+
+    expect(checkFusions(sdcpn)).toEqual([]);
+  });
+
+  it("reads a subnet's arcs once for its fused ports that declare no direction, however many", () => {
+    // A thousand ports that declare no direction, under 20,000 arcs that
+    // consume from them.
+    const ports = Array.from({ length: 1000 }, (_, index) =>
+      place(`port-${index}`, { isPort: true }),
+    );
+    const portIds = ports.map(({ id }) => id);
+    const wide = subnet("wide", {
+      places: ports,
+      transitions: Array.from({ length: 20 }, (_, index) =>
+        transition(`take-${index}`, portIds, []),
+      ),
+    });
+    const sdcpn = net({
+      subnets: [wide],
+      componentInstances: [instance("w1", "wide"), instance("w2", "wide")],
+      fusions: portIds.map((id) => ({
+        id: `fusion-${id}`,
+        name: id,
+        members: [portOf("w1", id), portOf("w2", id)],
+      })),
+    });
+
+    const started = Date.now();
+    const problems = checkFusions(sdcpn);
+    const elapsed = Date.now() - started;
+
+    // Each fused place is consumed from on both sides, and never filled.
+    expect(problems).toHaveLength(portIds.length);
+    expect(new Set(problems.map(({ code }) => code))).toEqual(
+      new Set(["no-producer"]),
+    );
+    expect(elapsed).toBeLessThan(1000);
+  });
+
+  it("tags fusion and port problems by kind", () => {
+    const sdcpn = net({
+      subnets: [
+        subnet("loop", {
+          places: [place("pool", { isPort: true, portDirection: "out" })],
+          transitions: [transition("cycle", ["pool"], ["pool"])],
+        }),
+      ],
+      componentInstances: [instance("l1", "loop")],
+      fusions: [{ id: "f1", name: "F1", members: [portOf("l1", "pool")] }],
+    });
+
+    const kinds = checkComposition(sdcpn).map(({ kind }) => kind);
+    expect(kinds).toContain("fusion");
+    expect(kinds).toContain("port");
+    expect(kinds.indexOf("port")).toBeGreaterThan(kinds.lastIndexOf("fusion"));
   });
 });

@@ -307,10 +307,12 @@ describe("normalizeSDCPN", () => {
   });
 });
 
-describe("normalizeSDCPN fusions", () => {
-  it("keeps fusions and canonicalizes the ids their members name", () => {
+describe("normalizeSDCPN composition fields", () => {
+  it("keeps fusions and port directions, canonicalizing the ids members name", () => {
     const result = normalizeSDCPN({
-      places: [{ id: "p", name: "P", x: 0, y: 0 }],
+      places: [
+        { id: "p", name: "P", x: 0, y: 0, isPort: true, portDirection: "in" },
+      ],
       transitions: [],
       subnets: [],
       componentInstances: [],
@@ -319,6 +321,7 @@ describe("normalizeSDCPN fusions", () => {
       ],
     });
 
+    expect(result.places[0]?.portDirection).toBe("in");
     expect(result.fusions).toEqual([
       {
         id: toPetrinautId("f"),
