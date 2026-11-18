@@ -164,6 +164,7 @@ export const hashIconStudies = [
 
 const categories = {
   Logistics: [
+    "shoppingBasket",
     "shoppingCart",
     "truckRamp",
     "truckFast",

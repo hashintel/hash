@@ -220,6 +220,7 @@ import { shelvesGeometry } from "./library-geometry/shelves";
 import { shieldAlertGeometry } from "./library-geometry/shield-alert";
 import { shieldCheckGeometry } from "./library-geometry/shield-check";
 import { shopGeometry } from "./library-geometry/shop";
+import { shoppingBasketGeometry } from "./library-geometry/shopping-basket";
 import { shoppingCartGeometry } from "./library-geometry/shopping-cart";
 import { shuffleGeometry } from "./library-geometry/shuffle";
 import { sizeExtraLargeGeometry } from "./library-geometry/size-extra-large";
@@ -262,6 +263,7 @@ import { usersGeometry } from "./library-geometry/users";
 import { warehouseGeometry } from "./library-geometry/warehouse";
 
 export const libraryGeometry = {
+  shoppingBasket: shoppingBasketGeometry,
   shoppingCart: shoppingCartGeometry,
   truckRamp: truckRampGeometry,
   truckFast: truckFastGeometry,
