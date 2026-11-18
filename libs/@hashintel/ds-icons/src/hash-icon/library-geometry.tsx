@@ -15,8 +15,10 @@ import { filePresentationGeometry } from "./library-geometry/file-presentation";
 import { fileTextGeometry } from "./library-geometry/file-text";
 import { fileVideoGeometry } from "./library-geometry/file-video";
 import { filesGeometry } from "./library-geometry/files";
+import { folderGeometry } from "./library-geometry/folder";
 
 export const libraryGeometry = {
+  folder: folderGeometry,
   files: filesGeometry,
   fileExport: fileExportGeometry,
   fileEdit: fileEditGeometry,
