@@ -398,7 +398,8 @@ describe("validating HASH's inputs and the editor (§3.4)", () => {
         status: "settled",
         toolName: "petrinaut_create_place",
         // The schema turns the model's name for the place into its ID, as Brunch on Flue issues it.
-        input: hashPetrinautTools.petrinaut_create_place.zInput.parse(place),
+        input:
+          hashPetrinautTools.petrinaut_create_place.inputSchema.parse(place),
         expectedRevision: "R1",
       });
     } finally {

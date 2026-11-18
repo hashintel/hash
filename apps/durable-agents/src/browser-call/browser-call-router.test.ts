@@ -74,7 +74,7 @@ const modelInput = {
   y: 0,
 };
 /** As the call is issued: the schema turns the model's name for the place into its ID. */
-const input = hashPetrinautTools.petrinaut_create_place.zInput.parse(
+const input = hashPetrinautTools.petrinaut_create_place.inputSchema.parse(
   modelInput,
 ) as typeof modelInput;
 const binding = canonicalContent({
