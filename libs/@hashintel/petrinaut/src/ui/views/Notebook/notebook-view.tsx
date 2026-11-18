@@ -601,7 +601,7 @@ const NotebookViewContent = ({ toolbarStart }: NotebookViewProps) => {
         <div className={explorerColumnStyle} style={{ width: explorerWidth }}>
           <ResizeHandle
             edge="left"
-            size={explorerWidth}
+            getSize={() => explorerWidth}
             onResize={setExplorerWidth}
             minSize={MIN_EXPLORER_WIDTH}
             maxSize={MAX_EXPLORER_WIDTH}

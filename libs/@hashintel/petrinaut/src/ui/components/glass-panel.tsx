@@ -1,4 +1,4 @@
-import { type CSSProperties, type ReactNode } from "react";
+import { type CSSProperties, type ReactNode, type Ref } from "react";
 
 import { css, cx } from "@hashintel/ds-helpers/css";
 
@@ -34,10 +34,12 @@ const contentContainerStyle = css({
 interface ResizeConfig {
   /** Which edge of the panel is resizable */
   edge: ResizableEdge;
-  /** Callback when the size changes */
+  /** Called on every pointer move of a drag, with the new size */
   onResize: (newSize: number) => void;
-  /** Current size (width for left/right, height for top/bottom) */
-  size: number;
+  /** Called once when a drag ends */
+  onResizeEnd?: () => void;
+  /** The size when a drag starts (width for left/right, height for top/bottom) */
+  getSize: () => number;
   /** Minimum size constraint */
   minSize?: number;
   /** Maximum size constraint */
@@ -51,6 +53,8 @@ interface GlassPanelProps {
   className?: string;
   /** Inline styles for the panel container */
   style?: CSSProperties;
+  /** The panel container element */
+  ref?: Ref<HTMLDivElement>;
   /** Additional CSS class name for the content container */
   contentClassName?: string;
   /** Inline styles for the content container */
@@ -68,16 +72,18 @@ export const GlassPanel: React.FC<GlassPanelProps> = ({
   children,
   className,
   style,
+  ref,
   contentClassName,
   contentStyle,
   resizable,
 }) => (
-  <div className={cx(panelContainerStyle, className)} style={style}>
+  <div className={cx(panelContainerStyle, className)} style={style} ref={ref}>
     {resizable && (
       <ResizeHandle
         edge={resizable.edge}
-        size={resizable.size}
+        getSize={resizable.getSize}
         onResize={resizable.onResize}
+        onResizeEnd={resizable.onResizeEnd}
         minSize={resizable.minSize ?? 100}
         maxSize={resizable.maxSize ?? 800}
         label={`Resize panel from ${resizable.edge}`}

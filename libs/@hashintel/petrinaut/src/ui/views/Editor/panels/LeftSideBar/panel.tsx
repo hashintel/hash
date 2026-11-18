@@ -144,7 +144,7 @@ export const LeftSideBar: React.FC = () => {
       style={{ width: leftSidebarWidth }}
       resizable={{
         edge: "right",
-        size: leftSidebarWidth,
+        getSize: () => leftSidebarWidth,
         onResize: setLeftSidebarWidth,
         minSize: MIN_LEFT_SIDEBAR_WIDTH,
         maxSize: MAX_LEFT_SIDEBAR_WIDTH,

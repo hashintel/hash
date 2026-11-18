@@ -16,6 +16,7 @@ import {
   type EditorState,
   initialEditorState,
 } from "./editor-context";
+import { usePanelSizes } from "./panel-sizes-context";
 import { SDCPNContext } from "./sdcpn-context";
 import { useComposesOnly } from "./use-composes-only";
 import { useSyncEditorToSettings } from "./use-sync-editor-to-settings";
@@ -47,6 +48,7 @@ const raiseVisualizer = (state: EditorState, placeId: string): EditorState =>
 
 export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const userSettings = use(UserSettingsContext);
+  const panelSizes = usePanelSizes();
   const composesOnly = useComposesOnly();
   const actualMode = use(ActualModeContext);
   const navigation = usePetrinautNavigation();
@@ -64,7 +66,6 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     cursorMode: userSettings.cursorMode,
     isLeftSidebarOpen: userSettings.isLeftSidebarOpen,
     leftSidebarWidth: userSettings.leftSidebarWidth,
-    propertiesPanelWidth: userSettings.propertiesPanelWidth,
     isBottomPanelOpen: startsWithActualTimeline
       ? true
       : userSettings.isBottomPanelOpen,
@@ -401,12 +402,14 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         isLeftSidebarOpen: isOpen,
       }));
     },
-    setLeftSidebarWidth: (width) =>
-      setState((prev) => ({ ...prev, leftSidebarWidth: width })),
-    setPropertiesPanelWidth: (width) =>
-      setState((prev) => ({ ...prev, propertiesPanelWidth: width })),
-    setAiAssistantWidth: (width) =>
-      setState((prev) => ({ ...prev, aiAssistantWidth: width })),
+    setLeftSidebarWidth: (width) => {
+      panelSizes.leftSidebarWidth.set(width);
+      setState((prev) => ({ ...prev, leftSidebarWidth: width }));
+    },
+    setAiAssistantWidth: (width) => {
+      panelSizes.aiAssistantWidth.set(width);
+      setState((prev) => ({ ...prev, aiAssistantWidth: width }));
+    },
     setAiAssistantDockHeight: (height) =>
       setState((prev) =>
         prev.aiAssistantDockHeight === height
@@ -445,8 +448,10 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         isBottomPanelOpen: !prev.isBottomPanelOpen,
       }));
     },
-    setBottomPanelHeight: (height) =>
-      setState((prev) => ({ ...prev, bottomPanelHeight: height })),
+    setBottomPanelHeight: (height) => {
+      panelSizes.bottomPanelHeight.set(height);
+      setState((prev) => ({ ...prev, bottomPanelHeight: height }));
+    },
     setActiveBottomPanelTab: (tab) =>
       setState((prev) => ({ ...prev, activeBottomPanelTab: tab })),
     setSelection,
@@ -619,7 +624,6 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     cursorMode: state.cursorMode,
     isLeftSidebarOpen: state.isLeftSidebarOpen,
     leftSidebarWidth: state.leftSidebarWidth,
-    propertiesPanelWidth: state.propertiesPanelWidth,
     isBottomPanelOpen: state.isBottomPanelOpen,
     bottomPanelHeight: state.bottomPanelHeight,
     activeBottomPanelTab: state.activeBottomPanelTab,

@@ -255,7 +255,7 @@ export const BottomPanel: React.FC = () => {
       contentClassName={panelContainerStyle}
       resizable={{
         edge: "top",
-        size: panelHeight,
+        getSize: () => panelHeight,
         onResize: setBottomPanelHeight,
         minSize: MIN_BOTTOM_PANEL_HEIGHT,
         maxSize: MAX_BOTTOM_PANEL_HEIGHT,

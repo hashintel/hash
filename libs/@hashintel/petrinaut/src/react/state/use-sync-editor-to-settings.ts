@@ -18,7 +18,6 @@ export const useSyncEditorToSettings = (values: {
   cursorMode: CursorMode;
   isLeftSidebarOpen: boolean;
   leftSidebarWidth: number;
-  propertiesPanelWidth: number;
   isBottomPanelOpen: boolean;
   bottomPanelHeight: number;
   activeBottomPanelTab: BottomPanelTab;
@@ -28,7 +27,6 @@ export const useSyncEditorToSettings = (values: {
     setCursorMode,
     setIsLeftSidebarOpen,
     setLeftSidebarWidth,
-    setPropertiesPanelWidth,
     setIsBottomPanelOpen,
     setBottomPanelHeight,
     setActiveBottomPanelTab,
@@ -49,7 +47,6 @@ export const useSyncEditorToSettings = (values: {
       setCursorMode(values.cursorMode);
       setIsLeftSidebarOpen(values.isLeftSidebarOpen);
       setLeftSidebarWidth(values.leftSidebarWidth);
-      setPropertiesPanelWidth(values.propertiesPanelWidth);
       setIsBottomPanelOpen(values.isBottomPanelOpen);
       setBottomPanelHeight(values.bottomPanelHeight);
       setActiveBottomPanelTab(values.activeBottomPanelTab);
@@ -61,7 +58,6 @@ export const useSyncEditorToSettings = (values: {
     values.cursorMode,
     values.isLeftSidebarOpen,
     values.leftSidebarWidth,
-    values.propertiesPanelWidth,
     values.isBottomPanelOpen,
     values.bottomPanelHeight,
     values.activeBottomPanelTab,
@@ -69,7 +65,6 @@ export const useSyncEditorToSettings = (values: {
     setCursorMode,
     setIsLeftSidebarOpen,
     setLeftSidebarWidth,
-    setPropertiesPanelWidth,
     setIsBottomPanelOpen,
     setBottomPanelHeight,
     setActiveBottomPanelTab,

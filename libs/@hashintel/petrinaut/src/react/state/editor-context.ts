@@ -4,7 +4,6 @@ import {
   DEFAULT_AI_ASSISTANT_WIDTH,
   DEFAULT_BOTTOM_PANEL_HEIGHT,
   DEFAULT_LEFT_SIDEBAR_WIDTH,
-  DEFAULT_PROPERTIES_PANEL_WIDTH,
 } from "./panel-defaults";
 
 import type {
@@ -92,7 +91,6 @@ export type EditorState = {
   cursorMode: CursorMode;
   isLeftSidebarOpen: boolean;
   leftSidebarWidth: number;
-  propertiesPanelWidth: number;
   isBottomPanelOpen: boolean;
   bottomPanelHeight: number;
   /**
@@ -161,7 +159,6 @@ export type EditorActions = {
   setCursorMode: (mode: CursorMode) => void;
   setLeftSidebarOpen: (isOpen: boolean) => void;
   setLeftSidebarWidth: (width: number) => void;
-  setPropertiesPanelWidth: (width: number) => void;
   setAiAssistantWidth: (width: number) => void;
   setAiAssistantDockHeight: (height: number | null) => void;
   setAiAssistantPlacement: (placement: "docked" | "floating") => void;
@@ -222,7 +219,6 @@ export const initialEditorState: EditorState = {
   cursorMode: "pan",
   isLeftSidebarOpen: true,
   leftSidebarWidth: DEFAULT_LEFT_SIDEBAR_WIDTH,
-  propertiesPanelWidth: DEFAULT_PROPERTIES_PANEL_WIDTH,
   isBottomPanelOpen: false,
   bottomPanelHeight: DEFAULT_BOTTOM_PANEL_HEIGHT,
   aiAssistantWidth: DEFAULT_AI_ASSISTANT_WIDTH,
@@ -259,7 +255,6 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   setCursorMode: () => {},
   setLeftSidebarOpen: () => {},
   setLeftSidebarWidth: () => {},
-  setPropertiesPanelWidth: () => {},
   setAiAssistantWidth: () => {},
   setAiAssistantDockHeight: () => {},
   setAiAssistantPlacement: () => {},

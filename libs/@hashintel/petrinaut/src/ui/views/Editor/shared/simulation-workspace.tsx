@@ -160,7 +160,7 @@ export const SimulationWorkspace = ({ children }: { children: ReactNode }) => {
               <ResizeHandle
                 edge="left"
                 label="Resize simulation panel"
-                size={panelWidth}
+                getSize={() => panelWidth}
                 onResize={setPreferredWidth}
                 minSize={minWidth}
                 maxSize={maxWidth}

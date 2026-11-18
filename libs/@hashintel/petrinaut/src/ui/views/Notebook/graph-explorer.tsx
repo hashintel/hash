@@ -328,7 +328,7 @@ export const GraphExplorer: React.FC<GraphExplorerProps> = ({
       <div className={listsPaneStyle} style={{ height: listsHeight }}>
         <ResizeHandle
           edge="top"
-          size={listsHeight}
+          getSize={() => listsHeight}
           onResize={setListsHeight}
           minSize={MIN_LISTS_HEIGHT}
           maxSize={MAX_LISTS_HEIGHT}

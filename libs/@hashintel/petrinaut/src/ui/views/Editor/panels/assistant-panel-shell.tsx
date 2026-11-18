@@ -334,7 +334,7 @@ export const PluginAssistantPanel = ({
               <ResizeHandle
                 edge="left"
                 appearance="hidden"
-                size={aiAssistantWidth}
+                getSize={() => aiAssistantWidth}
                 onResize={setAiAssistantWidth}
                 minSize={320}
                 maxSize={720}

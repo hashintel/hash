@@ -4,6 +4,11 @@ import { createRef, use, type ReactNode } from "react";
 import { afterEach, expect, it, vi } from "vitest";
 
 import { EditorContext } from "../../../../../react/state/editor-context";
+import {
+  createPanelSizes,
+  defaultPanelSizes,
+} from "../../../../../react/state/panel-sizes";
+import { PanelSizesContext } from "../../../../../react/state/panel-sizes-context";
 import { useBottomBarLayout } from "./use-bottom-bar-layout";
 
 const laneRef = createRef<HTMLDivElement>();
@@ -19,6 +24,7 @@ vi.mock("../../../../../react/hooks/use-element-size", () => ({
 afterEach(cleanup);
 
 it("centers in the available main view as sibling panels resize it", () => {
+  const { propertiesPanelWidth } = defaultPanelSizes;
   const defaults = renderHook(() => use(EditorContext)).result.current;
   let editor = {
     ...defaults,
@@ -29,7 +35,6 @@ it("centers in the available main view as sibling panels resize it", () => {
     isAiAssistantCollapsed: false,
     aiAssistantPlacement: "docked" as "docked" | "floating",
     aiAssistantWidth: 420,
-    propertiesPanelWidth: 450,
   };
   const wrapper = ({ children }: { children: ReactNode }) => (
     <EditorContext value={editor}>{children}</EditorContext>
@@ -42,13 +47,13 @@ it("centers in the available main view as sibling panels resize it", () => {
     { wrapper },
   );
   expect(result.current.offsetX).toBe(
-    `max(calc(${12 - laneWidth / 2}px + 50%), min(0px, calc(${laneWidth / 2 - (editor.hasSelection ? editor.propertiesPanelWidth : 0) - 12}px - 50%)))`,
+    `max(calc(${12 - laneWidth / 2}px + 50%), min(0px, calc(${laneWidth / 2 - (editor.hasSelection ? propertiesPanelWidth : 0) - 12}px - 50%)))`,
   );
   editor = { ...editor, isAiAssistantOpen: true };
   laneWidth = 1580;
   rerender();
   expect(result.current.offsetX).toBe(
-    `max(calc(${12 - laneWidth / 2}px + 50%), min(0px, calc(${laneWidth / 2 - (editor.hasSelection ? editor.propertiesPanelWidth : 0) - 12}px - 50%)))`,
+    `max(calc(${12 - laneWidth / 2}px + 50%), min(0px, calc(${laneWidth / 2 - (editor.hasSelection ? propertiesPanelWidth : 0) - 12}px - 50%)))`,
   );
   expect(result.current.isCollapsed).toBe(false);
 
@@ -63,7 +68,7 @@ it("centers in the available main view as sibling panels resize it", () => {
   laneWidth = 2000;
   rerender();
   expect(result.current.offsetX).toBe(
-    `max(calc(${12 - laneWidth / 2}px + 50%), min(0px, calc(${laneWidth / 2 - (editor.hasSelection ? editor.propertiesPanelWidth : 0) - 12}px - 50%)))`,
+    `max(calc(${12 - laneWidth / 2}px + 50%), min(0px, calc(${laneWidth / 2 - (editor.hasSelection ? propertiesPanelWidth : 0) - 12}px - 50%)))`,
   );
 
   editor = {
@@ -78,7 +83,7 @@ it("centers in the available main view as sibling panels resize it", () => {
   laneWidth = 2000;
   rerender();
   expect(result.current.offsetX).toBe(
-    `max(calc(${12 - laneWidth / 2}px + 50%), min(0px, calc(${laneWidth / 2 - (editor.hasSelection ? editor.propertiesPanelWidth : 0) - 12}px - 50%)))`,
+    `max(calc(${12 - laneWidth / 2}px + 50%), min(0px, calc(${laneWidth / 2 - (editor.hasSelection ? propertiesPanelWidth : 0) - 12}px - 50%)))`,
   );
   expect(result.current.isCollapsed).toBe(false);
 });
@@ -91,12 +96,14 @@ it("keeps horizontal placement unchanged when a panel moves a hover-expanded bar
     isLeftSidebarOpen: true,
     leftSidebarWidth: 220,
     hasSelection: true,
-    propertiesPanelWidth: 600,
     isBottomPanelOpen: false,
     isPanelAnimating: false,
   };
+  const panelSizes = createPanelSizes({ propertiesPanelWidth: 600 });
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <EditorContext value={editor}>{children}</EditorContext>
+    <PanelSizesContext value={panelSizes}>
+      <EditorContext value={editor}>{children}</EditorContext>
+    </PanelSizesContext>
   );
   const { result, rerender } = renderHook(
     () => useBottomBarLayout(laneRef, barRef, { hasViewportControls: true }),

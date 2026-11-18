@@ -127,9 +127,16 @@ const positionStyle = (edge: ResizableEdge): CSSProperties => {
 export interface ResizeHandleProps {
   /** Which edge of the positioned parent this handle sits on. */
   edge: ResizableEdge;
-  /** Current size along the resized axis, in pixels. */
-  size: number;
+  /**
+   * The size along the resized axis, in pixels. Asked once, when a drag
+   * starts, so an owner that keeps the size outside React state has nothing
+   * to re-render for.
+   */
+  getSize: () => number;
+  /** Called on every pointer move of a drag, with the clamped size. */
   onResize: (size: number) => void;
+  /** Called once when the drag ends, for work a drag should do once. */
+  onResizeEnd?: () => void;
   minSize?: number;
   maxSize?: number;
   /** Accessible label; defaults to naming the edge. */
@@ -151,8 +158,9 @@ export interface ResizeHandleProps {
  */
 export const ResizeHandle: React.FC<ResizeHandleProps> = ({
   edge,
-  size,
+  getSize,
   onResize,
+  onResizeEnd,
   minSize = 100,
   maxSize = 1200,
   label,
@@ -175,7 +183,11 @@ export const ResizeHandle: React.FC<ResizeHandleProps> = ({
   const direction =
     edge === "left" || edge === "right" ? "horizontal" : "vertical";
 
-  const { isResizing, handleMouseDown } = useResizeDrag({ onDrag, direction });
+  const { isResizing, handleMouseDown } = useResizeDrag({
+    onDrag,
+    onDragEnd: onResizeEnd,
+    direction,
+  });
 
   return (
     <button
@@ -188,7 +200,7 @@ export const ResizeHandle: React.FC<ResizeHandleProps> = ({
       data-resizing={isResizing}
       data-resize-edge={edge}
       onMouseDown={(event) => {
-        startSizeRef.current = size;
+        startSizeRef.current = getSize();
         handleMouseDown(event);
       }}
       className={handleStyle({ isResizing, direction, appearance })}
