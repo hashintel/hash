@@ -16,6 +16,7 @@ import {
   getComponentInstanceHeight,
   getEffectiveTransitionLambdaType,
   getTransitionLogicAvailability,
+  indexById,
   indexDocument,
 } from "@hashintel/petrinaut-core";
 
@@ -325,20 +326,30 @@ export const buildCanvasScene = ({
     });
   }
 
-  // The directions of a subnet's ports are worked out once, however many
-  // instances of it the net holds.
-  const directionsBySubnetId = new Map<
-    string,
-    ReadonlyMap<string, PortDirection>
-  >();
-  const portDirectionsOf = (subnet: Subnet) => {
-    const known = directionsBySubnetId.get(subnet.id);
+  // What a subnet's ports show is worked out once, however many instances of
+  // it the net holds: its arcs are read once for their directions, and its
+  // token types are looked up by id for their colours.
+  const portsBySubnetId = new Map<string, readonly CanvasPort[]>();
+  const portsOf = (subnet: Subnet): readonly CanvasPort[] => {
+    const known = portsBySubnetId.get(subnet.id);
     if (known) {
       return known;
     }
     const directions = effectivePortDirections(subnet);
-    directionsBySubnetId.set(subnet.id, directions);
-    return directions;
+    const types = indexById(subnet.types);
+    const ports = subnet.places
+      .filter((place) => place.isPort)
+      .map((place) => ({
+        id: place.id,
+        name: place.name,
+        direction: directions.get(place.id) ?? "inout",
+        typeColor:
+          extensions.colors && place.colorId
+            ? types.get(place.colorId)?.displayColor
+            : undefined,
+      }));
+    portsBySubnetId.set(subnet.id, ports);
+    return ports;
   };
 
   // The document's subnets and defaults, read once for every instance.
@@ -352,14 +363,7 @@ export const buildCanvasScene = ({
     const subnet =
       resolved?.kind === "component" ? resolved.subnet : resolved?.interface;
     const ports: CanvasPort[] = subnet
-      ? subnet.places
-          .filter((place) => place.isPort)
-          .map((place) => ({
-            id: place.id,
-            name: place.name,
-            direction: portDirectionsOf(subnet).get(place.id) ?? "inout",
-            typeColor: typeIn(subnet, place.colorId)?.displayColor,
-          }))
+      ? portsOf(subnet).map((port) => ({ ...port }))
       : [];
     const binding: CanvasInstanceBinding =
       resolved === null || resolved.kind === "component"

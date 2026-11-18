@@ -102,6 +102,7 @@ export {
   hasBody,
   implementationsOf,
   implementsInterface,
+  indexById,
   indexDocument,
   isInterface,
   resolveComponent,

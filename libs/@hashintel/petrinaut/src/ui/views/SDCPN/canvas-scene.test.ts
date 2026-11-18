@@ -569,6 +569,78 @@ describe("buildCanvasScene", () => {
       expect(elapsed).toBeLessThan(1000);
     });
 
+    it("looks up the token types of a subnet's ports once, however many ports and instances it has", () => {
+      // Four thousand ports, each of a token type of its own.
+      const names = Array.from({ length: 4000 }, (_, index) => `port-${index}`);
+      const wide: Subnet = {
+        ...fast,
+        id: "wide",
+        name: "Wide",
+        types: names.map((name) => ({
+          ...token,
+          id: `type-${name}`,
+          displayColor: `#${name}`,
+        })),
+        places: names.map((name) => ({
+          ...place(name, 0, 0),
+          isPort: true,
+          portDirection: "in" as const,
+          colorId: `type-${name}`,
+        })),
+      };
+      const many: SDCPN = {
+        ...sdcpn,
+        subnets: [wide],
+        componentInstances: Array.from({ length: 200 }, (_, index) =>
+          instance(`wide-${index}`, "wide"),
+        ),
+      };
+
+      const started = Date.now();
+      const { nodes } = buildCanvasScene({
+        ...input,
+        sdcpn: many,
+        net: activeNet(many),
+      });
+      const elapsed = Date.now() - started;
+
+      const instances = nodes.filter(
+        (node) => node.kind === "componentInstance",
+      );
+      expect(instances).toHaveLength(200);
+      for (const node of instances) {
+        expect(node.ports).toHaveLength(names.length);
+        expect(node.ports.at(-1)).toMatchObject({
+          id: "port-3999",
+          direction: "in",
+          typeColor: "#port-3999",
+        });
+      }
+      // A search of the types for each port of each instance takes seconds.
+      expect(elapsed).toBeLessThan(1000);
+    });
+
+    it("gives each instance ports of its own", () => {
+      const twice: SDCPN = {
+        ...sdcpn,
+        subnets: [fast],
+        componentInstances: [instance("one", "fast"), instance("two", "fast")],
+      };
+      const { nodes } = buildCanvasScene({
+        ...input,
+        sdcpn: twice,
+        net: activeNet(twice),
+      });
+      const portsOf = (id: string) => {
+        const node = nodes.find((candidate) => candidate.id === id);
+        return node?.kind === "componentInstance" ? node.ports : [];
+      };
+
+      expect(portsOf("one")).toEqual(portsOf("two"));
+      expect(portsOf("one")).not.toBe(portsOf("two"));
+      expect(portsOf("one")[0]).not.toBe(portsOf("two")[0]);
+    });
+
     it("resolves many instances against a long list of defaults, with one read of the list", () => {
       const size = 30_000;
       const many: SDCPN = {
