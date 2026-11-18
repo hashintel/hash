@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  arrowProgress:
+    "A stepped arrow represents progress through successive stages.",
   arrowTurnDownRight:
     "A bent arrow pointing right represents continuing along a turn.",
   arrowTurnDownLeft:

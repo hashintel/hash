@@ -221,6 +221,7 @@ const categories = {
     "logicRobustness",
   ],
   Navigation: [
+    "arrowProgress",
     "arrowTurnDownRight",
     "arrowTurnDownLeft",
     "logout",

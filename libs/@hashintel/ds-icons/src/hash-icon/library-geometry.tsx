@@ -1,4 +1,5 @@
 import { archiveGeometry } from "./library-geometry/archive";
+import { arrowProgressGeometry } from "./library-geometry/arrow-progress";
 import { arrowTurnDownLeftGeometry } from "./library-geometry/arrow-turn-down-left";
 import { arrowTurnDownRightGeometry } from "./library-geometry/arrow-turn-down-right";
 import { bookGeometry } from "./library-geometry/book";
@@ -42,6 +43,7 @@ import { noteStickyGeometry } from "./library-geometry/note-sticky";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  arrowProgress: arrowProgressGeometry,
   arrowTurnDownRight: arrowTurnDownRightGeometry,
   arrowTurnDownLeft: arrowTurnDownLeftGeometry,
   logout: logoutGeometry,

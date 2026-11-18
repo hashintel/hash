@@ -467,6 +467,7 @@ export const LoginIcon = createIcon("login");
 export const LogoutIcon = createIcon("logout");
 export const ArrowTurnDownLeftIcon = createIcon("arrowTurnDownLeft");
 export const ArrowTurnDownRightIcon = createIcon("arrowTurnDownRight");
+export const ArrowProgressIcon = createIcon("arrowProgress");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -652,6 +653,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  arrowProgress: ArrowProgressIcon,
   arrowTurnDownRight: ArrowTurnDownRightIcon,
   arrowTurnDownLeft: ArrowTurnDownLeftIcon,
   logout: LogoutIcon,
