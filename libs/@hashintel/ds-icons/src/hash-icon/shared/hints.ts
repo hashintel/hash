@@ -20,6 +20,7 @@ export type HashIconHint =
   | "up";
 
 export const hashIconHints = {
+  keycapK: "lift",
   command: "lift",
   toggleOff: "lift",
   toggleOn: "lift",
