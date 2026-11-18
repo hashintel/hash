@@ -1,7 +1,8 @@
 //! Reads and writes `run.json`.
 //!
-//! Every write is conditional: it replaces the file only if nobody changed it since it was read.
-//! [`update`] is the one place that handles a conflicting write, so a stage never sees one.
+//! A stage [reads](read) the file first, for its input and its progress. Every write is
+//! conditional: it replaces the file only if nobody changed it since it was read. [`update`] is
+//! the one place that handles a conflicting write, so a stage never sees one.
 
 use error_stack::Report;
 
@@ -42,10 +43,12 @@ pub(super) async fn create(context: &RunContext, run: &Run) -> Result<bool, Repo
 ///
 /// # Errors
 ///
-/// - [`Code::StorageUnavailable`] if storage cannot be read or written, the run has no `run.json`,
-///   or the write still conflicts after eight attempts
+/// - [`Code::RunNotReady`] if the run has no `run.json`
+/// - [`Code::StorageUnavailable`] if storage cannot be read or written, or the write still
+///   conflicts after eight attempts
 /// - [`Code::StoredJsonInvalid`] if the stored file is not a [`Run`]
 ///
+/// [`Code::RunNotReady`]: super::Code::RunNotReady
 /// [`Code::StorageUnavailable`]: super::Code::StorageUnavailable
 /// [`Code::StoredJsonInvalid`]: super::Code::StoredJsonInvalid
 pub(crate) async fn update(

@@ -1,22 +1,22 @@
 # Ledger pipeline: steps
 
-Each step below is one unit of work with its own issue: 18 steps in all. A step names what it delivers, the functions it adds, what it reads and writes, the code it reuses and the tests it ports. The functions exist in the skeleton crate [`ledger`](../../ledger/src) with empty bodies. The reuse and test references come from the [code inventory](inventory/).
+Each step below is one unit of work with its own issue: 19 steps in all. A step names what it delivers, the functions it adds, what it reads and writes, the code it reuses and the tests it ports. The stage functions and the shared types exist in the skeleton crate [`ledger`](../../ledger/src) with empty bodies. A helper that a step takes over from the previous refactor is added by that step. The reuse and test references come from the [code inventory](inventory/).
 
 ## Status
 
-All 18 steps are agreed (Paul, 2026-11-18).
+All 19 steps are agreed (Paul, 2026-11-18). An independent cross-check on 2026-11-18 found gaps in them. The fixes are in this file, and the questions it raised are in [open-issues.md](open-issues.md).
 
-| Step                       | State                                                                                                                                             |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| R1 to R5, C1               | Ready to become issues                                                                                                                            |
-| T1, P1, P2, P4, S1, S2, S3 | Ready to become issues                                                                                                                            |
-| T2                         | Blocked by "How the sync table is stored"                                                                                                         |
-| P3, P5                     | Ready for entities. The link part is blocked by "Link changes in incremental runs"                                                                |
-| P6                         | Ready for the issues file. The write is blocked by T2                                                                                             |
-| S4                         | Ready for retries. A refused batch or write is blocked by "A bulk request that the Graph refuses" and "What happens to a write the Graph refuses" |
-| S5                         | Ready except for the read, which is blocked by T2                                                                                                 |
+| Step                                 | State                                                                                                                                                                                       |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1 to R5, C1, T1, P1, P4, S1, S2, S3 | Ready to become issues                                                                                                                                                                      |
+| T2                                   | The row types are ready. Write and read are blocked by "How the sync table is stored"                                                                                                       |
+| P2                                   | Ready for entity targets. Link targets are blocked by "Link changes in incremental runs"                                                                                                    |
+| P3, P5                               | Ready for entities. The link part is blocked by "Link changes in incremental runs"                                                                                                          |
+| P6                                   | Ready for the issues file. The write is blocked by T2                                                                                                                                       |
+| S4                                   | Ready for retries. A refused batch or write is blocked by "A bulk request that the Graph refuses", "What happens to a write the Graph refuses" and "How the Graph answers a replayed write" |
+| S5                                   | Ready except for the read, which is blocked by T2                                                                                                                                           |
 
-The blocking questions are in [open-issues.md](open-issues.md).
+Twelve steps are ready, and seven are blocked in part.
 
 Five choices were decided with the steps (Paul, 2026-11-18):
 
@@ -26,7 +26,12 @@ Five choices were decided with the steps (Paul, 2026-11-18):
 4. **`engine` exposes the create, update and archive bodies of a write separately.** Today it seals them in one `Payload`.
 5. **The check "a target reads more than one source" runs after the pipelines,** with the source sets the existing code computes.
 
-The steps need three changes to `engine`: the conditional write (R1), making the path check `CaptureStore::local_file` public (C1), and exposing the request bodies (S1).
+The steps need four changes to `engine`:
+
+- the conditional write (R1);
+- the check that a file name stays inside the local folder, as a function that takes the folder and the name (C1). Today it is a private method of `CaptureStore`, which also owns a storage;
+- the function that renders an id value as text (P3). Today it is private to `engine`'s `graph` module;
+- the request bodies exposed separately (S1).
 
 ## Run state
 
@@ -44,11 +49,13 @@ The module `run/` holds the state of a run and the two status files. Every stage
 ### R2. `run.json`
 
 - **Delivers:** the types of `run.json` and the one place that reads and changes the file.
-- **Functions:** `store::read`, `store::create` and `store::update`. `update` takes a change to apply, writes the result, and on a conflicting write reads the file again and retries, up to eight times. A stage never sees a conflict.
+- **Functions:** `store::read`, `store::create`, `store::update` and `store::fail`. Every stage starts with `read`, which gives it its input and its progress. `update` takes a change to apply, writes the result, and on a conflicting write reads the file again and retries, up to eight times. A stage never sees a conflict. `fail` writes the failure part. The retry is one helper, which `current.json` uses as well.
 - **Reads and writes:** `runs/{run}/run.json`.
 - **Reuses:** the skeleton's `Run` types, the `pipeline` crate's `run/serde.rs`, and the retry loop of its `run/current.rs`.
 - **Tests to port:** the cases of the `pipeline` crate's `run/tests/marker.rs` and `run/tests/current.rs` that cover a stored file being read back and a conflicting write.
-- **Depends on:** R1.
+- **In tests:** a stage test writes the `run.json` it needs with `start` and `store::update`, because a stage takes only the run id.
+- **Assumes:** one process works on a run at a time. See "Two attempts of one stage at the same time" in the open issues.
+- **Depends on:** R1, R4, R5.
 
 ### R3. Start and completion
 
@@ -61,17 +68,17 @@ The module `run/` holds the state of a run and the two status files. Every stage
 
 ### R4. Errors and the failure part
 
-- **Delivers:** the error codes, their retry class, and the failure part of `run.json`.
-- **Functions:** `StageError`, `Code`, the helpers that map a storage, workspace or capture error to a code, and `store::fail`, which writes the failure part. A stage removes the failure part in the same `store::update` that writes its own part.
-- **Reads and writes:** the failure part of `run.json`.
-- **Reuses:** the `pipeline` crate's `run/error.rs`. Eight codes of the four-stage design are removed, and `run_active` is new.
+- **Delivers:** the error codes and their retry class.
+- **Functions:** `StageError`, `Code`, and the helpers that map a storage, workspace or capture error to a code.
+- **Reads and writes:** nothing.
+- **Reuses:** the `pipeline` crate's `run/error.rs`. Eight codes of the four-stage design are removed. `run_active` and `run_not_ready` are new, and both are retryable.
 - **Tests to port:** the `pipeline` crate's `run/tests/error.rs`.
-- **Depends on:** R2.
+- **Depends on:** nothing.
 
 ### R5. Run context
 
 - **Delivers:** the resources a stage runs with.
-- **Functions:** `RunContext` with its constructor and its helpers to publish a file, fetch a file and open a workspace, and the clocks `SystemClock` and `FixedClock`.
+- **Functions:** `RunContext` with its constructor and its helpers to publish a file, fetch a file and open a workspace, the clocks `SystemClock` and `FixedClock`, and `SendSettings`. The skeleton has the struct, `SystemClock` and `SendSettings`. The constructor, the helpers and `FixedClock` come with this step.
 - **Reads and writes:** nothing by itself.
 - **Reuses:** the `pipeline` crate's `run/context.rs`. `RunContext` gains the local folder that Capture reads from.
 - **Tests to port:** none of its own. Every stage test uses `FixedClock`.
@@ -82,17 +89,17 @@ The module `run/` holds the state of a run and the two status files. Every stage
 ### C1. Capture
 
 - **Delivers:** the capture files in storage and the capture part of `run.json`.
-- **Functions:** `capture(context, input) -> CaptureOutput`.
+- **Functions:** `capture(context, run) -> CaptureOutput`.
 - **What it does:**
-  1. It returns the capture part if `run.json` has one.
-  2. For each source of the definition, it finds the Parquet file inside the local folder. A source that is not a local file, and a file that is missing, outside the folder or not readable Parquet, is a permanent error.
+  1. It reads `run.json` for the input of the run. A run without a `run.json` is the error `run_not_ready`. It returns the capture part if `run.json` has one.
+  2. For each source of the definition, it finds the Parquet file inside the local folder. It skips a checkpoint source, which a pipeline produces. Any other source that is not a local file, and a file that is missing, outside the folder or not readable Parquet, is a permanent error.
   3. It reads the row count from the Parquet footer.
   4. It uploads the file as it is. The file is read in place, once to compute its SHA-256 and once to upload it in parts. No local copy is made, and the upload fails if the file changes while it is read.
   5. It writes the capture part with `store::update`.
 - **Reads and writes:** reads the local files. Writes one file per source under `artifacts/`, named by its SHA-256, and the capture part of `run.json`.
-- **Reuses:** `SourceCapture::open` and `ArtifactStorage::publish` from `engine`. `engine`'s check that a file name stays inside the local folder (`CaptureStore::local_file`) is private and has to be made public.
+- **Reuses:** `SourceCapture::open` and `ArtifactStorage::publish` from `engine`, and `engine`'s check that a file name stays inside the local folder. That check is a private method of `CaptureStore` (`local_file`), which owns its own storage, so `engine` has to offer it as a function that takes the folder and the name.
 - **Tests to port:** `local_root_invalid_key`, `local_root_symlink` and `overlapping_roots` from `engine`'s `sources/tests.rs`, and the cases of the `pipeline` crate's `stage/capture/tests.rs` for a completed capture that is returned without reading a file.
-- **Depends on:** R2, R5.
+- **Depends on:** R2, R4, R5.
 
 ## Row files and the sync table
 
@@ -108,7 +115,7 @@ The module `run/` holds the state of a run and the two status files. Every stage
 ### T2. Sync table
 
 - **Delivers:** appending the changes of a run and reading them back in send order.
-- **Functions:** `sync_table::write::append` and `sync_table::read::in_send_order`, with the row type `Change` and the `Operation`.
+- **Functions:** `sync_table::write::append` and `sync_table::read::in_send_order`. The row type `Change` and the `Operation` are in the skeleton already and are not blocked, so P5, S1 and S2 can use them.
 - **Reads and writes:** the sync table.
 - **Reuses:** T1 for the column types. Nothing in labs, `engine` or the `pipeline` crate writes `Change` rows.
 - **Tests:** the five rows of the walkthrough example, written and read back in send order: 0, 1, 2, 4, 3.
@@ -116,7 +123,7 @@ The module `run/` holds the state of a run and the two status files. Every stage
 
 ## Prepare
 
-`prepare(context, input, capture) -> PrepareOutput` runs the steps below in order. A run that has a prepare part returns it.
+`prepare(context, run) -> PrepareOutput` reads `run.json` for the input and the capture part, and runs the steps below in order. A run that has a prepare part returns it. A run without a `run.json` or without a capture part is the error `run_not_ready`.
 
 ### P1. Stage the capture files
 
@@ -129,18 +136,18 @@ The module `run/` holds the state of a run and the two status files. Every stage
 ### P2. Run the pipelines
 
 - **Delivers:** one table per target, with the sources it reads.
-- **What it does:** it runs the entity pipelines and the link pipelines of the definition in dependency order. It fails the run when a target reads more than one source, and when a target table has lost `_seq`.
+- **What it does:** it runs the entity pipelines and the link pipelines of the definition in dependency order. For an entity target, it fails the run when the target reads more than one source, and when its table has lost `_seq`. `engine` checks `_op` and `_key` on entity pipelines only, and what holds for a link target is open.
 - **Reuses:** `Workspace::prepare_pipeline` and `prepare_link_pipeline` from `engine`, and `prepare_rows` and `pipelines.rs` from the `pipeline` crate's `stage/diff/rows/`.
-- **Tests to port:** `pipeline_metadata_loss`, `link_named_inputs` and `definition_aviation_tables` from `engine`'s `tests/pipeline.rs`; `rows_checkpoint_source_provenance` and `rows_aviation_empty_repeat` from the `pipeline` crate's `stage/diff/rows/tests.rs`.
-- **Depends on:** P1.
+- **Tests to port:** `pipeline_metadata_loss` and `definition_aviation_tables` from `engine`'s `tests/pipeline.rs`, and `rows_aviation_empty_repeat` from the `pipeline` crate's `stage/diff/rows/tests.rs`. Two more tests cover the same code and need new expected results: `link_named_inputs` builds a link from two sources and drops `_seq`, and `rows_checkpoint_source_provenance` expects targets that read two sources to succeed.
+- **Depends on:** P1. Link targets are **blocked** by "Link changes in incremental runs".
 
 ### P3. Assign ids
 
 - **Delivers:** the entity id of every row, the two endpoint ids of every link row, and an issue for every row that has none.
-- **What it does:** it derives each id from the web, the namespace, the type and the source id. A row without a usable source id, and a link row without both endpoints, is left out and listed as an issue. Several rows may have the same entity id.
+- **What it does:** it derives each id from the web, the namespace, the type and the source id. A row without a usable source id, and a link row without both endpoints, is left out and listed as an issue. This includes a `delete` row that does not carry the id column, so such a delete archives nothing and shows up in the issues file. Several rows may have the same entity id.
 - **Reuses:** `derive_entity_id` and `LinkUpsert::new` from `engine`, and `ids.rs` from the `pipeline` crate's `stage/diff/rows/`.
 - **Tests to port:** `uuids_match_the_ts_engine` from labs with `tests/golden/uuids.json`; `derive_entity_id_recorded_vectors`, `link_endpoints_match_entities` and `link_id_from_type_and_endpoints` from `engine`; `rows_missing_ids_and_endpoints`, `rows_typed_id_text` and `rows_id_range_boundaries` from the `pipeline` crate.
-- **Depends on:** P2. Its link part is **blocked** by "Link changes in incremental runs".
+- **Depends on:** P2, and T1 for the file of ids that the reused code writes. Its link part is **blocked** by "Link changes in incremental runs".
 
 ### P4. Resolve properties
 
@@ -153,7 +160,7 @@ The module `run/` holds the state of a run and the two status files. Every stage
 ### P5. Build the changes
 
 - **Delivers:** the `Change` rows of the run.
-- **What it does:** it maps `_op` to the operation: `insert` creates, `update` updates, `delete` archives. It assigns `order_id` from the rows sorted by target, in the order of the definition, and then by `_seq`.
+- **What it does:** it maps `_op` to the operation: `insert` creates, `update` updates, `delete` archives. It assigns `order_id` from the rows sorted by target, in the order of the definition, and then by `_seq`. Rows of one target with the same `_seq` are ordered by entity id.
 - **Reuses:** nothing. This is new code.
 - **Tests:** the walkthrough example. Its four captured rows give the changes with `order_id` 0 to 3 for the entities.
 - **Depends on:** P4. The operation of a link row is **blocked** by "Link changes in incremental runs".
@@ -165,16 +172,16 @@ The module `run/` holds the state of a run and the two status files. Every stage
 - **Reads and writes:** the sync table, one issues file under `artifacts/` with the seven columns, and the prepare part.
 - **Reuses:** T1 for the issues file and T2 for the sync table. The seven issue columns are those of the `pipeline` crate's `stage/plan/write.rs`.
 - **Tests to port:** `issues_omit_values_and_preserve_key` from the `pipeline` crate's `stage/plan/tests.rs`. New test: Prepare stops after the append and before `run.json`, and runs again.
-- **Depends on:** P5, T1, T2, R2.
+- **Depends on:** P5, T1, T2, R2, R4.
 
 ## Send
 
-`send(context, input, batch, capture, prepare, progress, graph) -> SendOutput` runs the steps below. A run that has a send part returns it.
+`send(context, run, graph) -> SendOutput` reads `run.json` for the input, the batch settings, the capture part, the prepare part and the send progress, and runs the steps below. A run without a `run.json`, a capture part or a prepare part is the error `run_not_ready`. A run that has a send part sends nothing, and still sets the run as the last completed run before it returns the part. This repairs a Send that stopped between its last two writes.
 
 ### S1. Request bodies
 
 - **Delivers:** the body of the request for one change.
-- **Functions:** `request::encode(change, provenance)`. A create carries the properties. An update carries one `add` per property. An archive carries none. The provenance is built from the run input and the capture time.
+- **Functions:** `request::encode(change, provenance)`, and a function that builds the provenance from the run input and the capture time. The location name of the provenance is the connector, as in the previous refactor. A create carries the properties. An update carries one `add` per property. An archive carries none.
 - **Reuses:** `EntityUpsert`, `LinkUpsert`, `Archive` and `integration_provenance` from `engine`, and the bodies of `engine`'s `graph/plan/request.rs`.
 - **Tests to port:** `exact_entity_and_link_delivery_bytes_match_independent_golden` from labs with `tests/golden/graph-delivery-v1.json`, and the two labs tests on links without properties: `propertyless_link_patch_only_revives_like_typescript` and `all_null_link_properties_do_not_emit_an_empty_patch_array`.
 - **Depends on:** nothing.
@@ -201,19 +208,19 @@ The module `run/` holds the state of a run and the two status files. Every stage
 - **What it does:** it sends the batch and retries when the Graph is unreachable or answers 429, 502, 503 or 504, up to the attempts of `SendSettings`. A create that gets a conflict counts as done.
 - **Reuses:** the retry loop of the `pipeline` crate's `stage/send/delivery.rs`, without the fallback between create and update.
 - **Tests to port:** `transport_failure_yields_with_default_backoff_…` and `duplicate_words_in_a_non_409_response_never_trigger_patch` from labs `src/graph/executor.rs`.
-- **Depends on:** S3. What happens to a refused batch and to a refused write is **blocked** by "A bulk request that the Graph refuses" and "What happens to a write the Graph refuses".
+- **Depends on:** S3, R5. What happens to a refused batch and to a refused write is **blocked** by "A bulk request that the Graph refuses", "What happens to a write the Graph refuses" and "How the Graph answers a replayed write".
 
 ### S5. Send the run
 
 - **Delivers:** the Graph holding the changes of the run, the send part of `run.json`, and the run as the last completed run.
-- **What it does:** it reads the changes in send order and compares their number with the prepare part. It encodes and batches them, skips the batches the send progress counts as confirmed, and delivers the rest in order. After each confirmed batch it writes the batch count and the running counts. After the last batch it writes the send part and calls `current::complete`.
+- **What it does:** it reads `run.json`, then reads the changes in send order and compares their number with the prepare part. It encodes and batches them, skips the batches the send progress counts as confirmed, and delivers the rest in order. After each confirmed batch it writes the batch count and the running counts, and the first such write of an attempt removes the failure part. After the last batch it writes the send part and calls `current::complete`.
 - **Reads and writes:** the sync table, the send progress and send parts of `run.json`, and `current.json`.
 - **Reuses:** the counting of the `pipeline` crate's `stage/send/tally.rs`.
 - **Tests to port:** from labs `src/graph/executor.rs`, `recovery_resumes_strictly_after_the_durable_exclusive_cursor`, `failed_cursor_commit_leaves_the_effect_replayable`, `a_rejected_full_batch_never_sends_or_advances_a_later_batch` and `empty_work_completes_the_turn_without_inventing_a_cursor`; from labs `tests/crash_replay_test.rs`, `process_death_mid_delivery_resumes_at_the_durable_cursor_…`. The walkthrough example is the end-to-end case: four batches and the counts 3 created, 1 patched, 1 archived.
-- **Depends on:** S1, S2, S4, T2, R2, R3.
+- **Depends on:** S1, S2, S4, T2, R2, R3, R4.
 
 ## Order
 
-- **Run state and Capture:** R1 first, then R2 and R3. R4 and R5 can run alongside R2. C1 needs R2 and R5.
-- **Prepare:** P1 to P6 in order. T1 can start with R5.
+- **Run state and Capture:** R1, R4 and R5 depend on nothing and come first. R2 needs all three, and R3 needs R2. C1 needs R2, R4 and R5.
+- **Prepare:** P1 to P6 in order. T1 can start with R5, and P3 needs it.
 - **Send:** S1, S2 and S3 need nothing from Prepare and can start early. S4 follows S3, and S5 comes last.

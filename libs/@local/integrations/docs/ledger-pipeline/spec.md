@@ -45,13 +45,13 @@ Rules for every stage:
 - A stage writes its result to S3 first and updates `run.json` second.
 - A stage is complete when its part is present in `run.json`. There is no separate status field.
 - A stage that returns an error writes the failure part of `run.json`: the stage, whether the failure is retryable or permanent, the error code and, for Send, the batch index. The retry class and the code are the existing `StageError` and `Code`. A stage that crashes writes nothing.
-- A stage that succeeds removes the failure part in the same write that adds its own part.
-- A retry runs the stage again. The stage reads `run.json` to find its input and its progress.
+- A stage removes the failure part with its first successful write to `run.json`. For Send that is the first send progress write of the attempt.
+- A stage takes the run id and reads `run.json` to find its input and its progress. A retry runs the stage again with the same run id.
 - Run N+1 starts only after run N has completed all three stages. `start` writes the first `run.json` and sets the active run in `current.json`, and it refuses when another run is active.
 
 ### Capture
 
-The CLI gives Capture one local Parquet file of changed rows per source of the definition. Capture uploads each file as it is with `ArtifactStorage::publish`, without a local copy, and reads the row count from the Parquet footer. When all files are stored, it writes the capture time, the file references and the row counts to `run.json`.
+The CLI gives Capture one local Parquet file of changed rows per source of the definition. A checkpoint source has no file, because a pipeline produces it. Capture uploads each file as it is with `ArtifactStorage::publish`, without a local copy, and reads the row count from the Parquet footer. When all files are stored, it writes the capture time, the file references and the row counts to `run.json`.
 
 A retry reads every file again. A file that is already stored is not uploaded a second time.
 
@@ -63,7 +63,7 @@ Capture adds no column and reads no row, and it is the same code for every varia
 
 Prepare turns the captured rows into changes:
 
-1. It stages each capture file: it builds the table the pipelines read and adds three internal columns. `_op` is taken from `_change`, `_key` is computed from the primary key, and `_seq` is the position of the row in the capture file.
+1. It stages each capture file (`stage_sources`): it builds the table the pipelines read and adds three internal columns. `_op` is taken from `_change`, `_key` is computed from the primary key, and `_seq` is the position of the row in the capture file.
 2. It runs the definition's pipelines to build one table per target (`prepare_rows`).
 3. It assigns the entity id of each row (`ids::assign`).
 4. It resolves the properties of each row through the definition's mapping (`SinkRow::resolve`).
@@ -71,7 +71,7 @@ Prepare turns the captured rows into changes:
 6. It assigns `order_id`: the rows sorted by target, in the order of the definition, and then by `_seq`.
 7. It appends one change per row to the sync table.
 
-A pipeline's SQL has to keep `_op`, `_key` and `_seq`. `engine` checks the first two after every step. Prepare checks `_seq` on each target table and fails the run when a pipeline dropped it. That loading a Parquet file keeps its row order is assumed and has to be confirmed by a test.
+A pipeline's SQL has to keep `_op`, `_key` and `_seq`. `engine` checks the first two after every step of an entity pipeline, and does not check link pipelines. Prepare checks `_seq` on each target table and fails the run when a pipeline dropped it. That loading a Parquet file keeps its row order is assumed and has to be confirmed by a test.
 
 Staging is the step a variant of Prepare replaces. Hash and diff stages every row as a snapshot row, as `stage_table` in `engine` does today, and it also replaces step 5, because it finds the operation by comparing with the previous state. The other steps are shared.
 
@@ -107,7 +107,7 @@ Several rows of a target may have the same entity id, because an incremental cap
 | `left_entity_id`, `right_entity_id` | The two endpoints of a link. Empty for an entity.    |
 | `properties`                        | The new value: the properties the change carries     |
 
-The web, the actor and the provenance of a request come from `run.json` and have no column.
+The actor and the provenance of a request come from `run.json` and have no column. `entity_id` and the two endpoint ids are full entity ids, which include the web. `properties` is empty for an archive.
 
 The physical format of the table is settled in Prepare planning. How the table is stored is open; see "How the sync table is stored" in the open issues.
 
@@ -115,22 +115,22 @@ The physical format of the table is settled in Prepare planning. How the table i
 
 Send turns the run's changes into Graph requests:
 
-1. It reads the run's rows, sorted by operation first and by position in the run second. The operations are sent in the order entity upserts, link upserts, link archives, entity archives.
+1. It reads the run's rows, sorted by operation first and by position in the run second. The operations are sent in the order entity upserts, link upserts, link archives, entity archives. `op` has six values, and within an upsert group the creates are sent before the updates: create entity, update entity, create link, update link, archive link, archive entity.
 2. It encodes each row as a Graph request. A create carries the properties of the row. An update carries one `add` operation per property of the row, and a property that is absent from the row stays unchanged in the Graph. An archive carries no properties.
-3. It cuts the sorted rows into batches. A new batch starts when the operation changes, when create switches to patch, at the write limit, at the byte limit, or when the entity is already in the open batch.
+3. It cuts the sorted rows into batches. A new batch starts when the operation changes, which includes a switch from create to update, at the write limit, at the byte limit, or when the entity is already in the open batch.
 4. It sends the batches in order, starting at the confirmed batch count in `run.json`. After each confirmed batch it writes the new batch count and the running counts to the Send progress part of `run.json`.
 
 Batches are deterministic. The same rows, the same sort and the same batch settings give the same batches, so a retry needs only the batch count. For this reason the write limit and the byte limit are pinned in `run.json`.
 
 A create that the Graph answers with a conflict counts as done. A batch can then be sent again without changing the history of an entity.
 
-When the last batch is confirmed, Send writes the Send part with the final counts to `run.json` and sets the run as the last completed run in `current.json`. Send progress and the Send part are separate, so the Send part is present only when Send is complete. A Send that resumes reads the running counts from Send progress.
+When the last batch is confirmed, Send writes the Send part with the final counts to `run.json` and sets the run as the last completed run in `current.json`. Send progress and the Send part are separate, so the Send part is present only when Send is complete. A Send that resumes reads the running counts from Send progress. A Send that finds the Send part present sends nothing and still sets the run as the last completed run, so a stop between the two writes is repaired by running Send again.
 
 ## State in S3
 
-Each integration has one S3 bucket. It holds the capture files, the sync table, the issues files, one `run.json` per run at `runs/{run}/run.json`, and one `current.json`.
+Each integration has one S3 bucket. It holds the capture files, the sync table, the issues files, one `run.json` per run at `runs/{run}/run.json`, and one `current.json`. In `engine`'s storage today an integration has its own root instead, `tenants/{web}/integrations/{id}`, and every path in this document is below that root.
 
-`run.json` is the only status file of a run. Each stage updates it with a conditional write, so a stale writer fails.
+`run.json` is the only status file of a run. Each stage updates it with a conditional write. When another writer changed the file first, the update reads it again and applies its change to the new state. The first version assumes that one process works on a run at a time; see "Two attempts of one stage at the same time" in the open issues.
 
 ```rust
 /// The contents of `run.json`.
@@ -200,7 +200,7 @@ pub struct Failure {
     /// `Retryable` or `Permanent`.
     pub error: StageError,
     pub code: Code,
-    /// The index of the batch that failed. Present when `stage` is Send.
+    /// The index of the batch that failed. Present when a batch of Send failed.
     pub batch: Option<u32>,
 }
 ```
@@ -215,7 +215,7 @@ pub struct Failure {
 | Send           | `send`          | Send, after the last batch       |
 | Failure        | `failure`       | The stage that failed            |
 
-`CapturedSource`, `SendCounts`, `ArtifactRef` and `StageError` are the existing types, unchanged. `Code` loses eight codes that no stage of the new design returns and gains `run_active`. Three existing types lose fields:
+`CapturedSource`, `SendCounts` and `ArtifactRef` are the existing types, unchanged. `StageError` is the existing type and gains a serialized form, `retryable` or `permanent`, for the failure part. `Code` loses eight codes that no stage of the new design returns and gains `run_active` and `run_not_ready`. Three existing types lose fields:
 
 - `RunInput` loses `operation` and `allow_mass_archive`. Only apply is in scope, and only the diff stage reads `allow_mass_archive`.
 - `CaptureOutput` loses `adopted_from`, which exists for restore and reconcile.
@@ -272,15 +272,23 @@ The parts that are present give the status of a run:
 
 ## Stage contracts
 
-A stage takes the outputs of the stages before it and returns its own output, as the stages of the previous refactor do. A stage writes its part of `run.json` itself.
+A stage takes the run id, reads `run.json` itself and returns its own output (Paul, 2026-11-18). A stage writes its part of `run.json` itself. Nothing hands a stage the output of another stage, so `run.json` is the only place a stage's input comes from, and a message that starts a stage holds the integration, the run id and the stage.
 
-| Stage   | Input                                                                                    | Output          |
+```rust
+pub async fn capture(context: &RunContext, run: RunId) -> Result<CaptureOutput, Report<StageError>>;
+pub async fn prepare(context: &RunContext, run: RunId) -> Result<PrepareOutput, Report<StageError>>;
+pub async fn send(context: &RunContext, run: RunId, graph: &impl Graph) -> Result<SendOutput, Report<StageError>>;
+```
+
+| Stage   | Reads from `run.json`                                                                    | Output          |
 | ------- | ---------------------------------------------------------------------------------------- | --------------- |
 | Capture | `RunInput`                                                                               | `CaptureOutput` |
 | Prepare | `RunInput`, `CaptureOutput`                                                              | `PrepareOutput` |
 | Send    | `RunInput`, `BatchSettings`, `CaptureOutput`, `PrepareOutput`, `SendProgress` if present | `SendOutput`    |
 
-The definition in `RunInput` names the local Parquet file of each source for Capture. Send takes `CaptureOutput` for the capture time, which every request carries as `loadedAt`.
+The definition in `RunInput` names the local Parquet file of each source for Capture. Send reads `CaptureOutput` for the capture time, which every request carries as `loadedAt`.
+
+A stage returns the retryable error `run_not_ready` when the run has no `run.json`, or when the part of the stage before it is missing. `start` writes the first `run.json`, so a run is started before its first stage.
 
 ## Crate layout
 
@@ -317,13 +325,13 @@ src/
     └── fake.rs       FakeGraph for tests
 ```
 
-- Each stage is one module at the top level. `run` and `sync_table` are the two modules the stages share.
+- Each stage is one module at the top level. `run`, `sync_table` and `table` are the three modules the stages share.
 - The crate builds on `hash-integrations-engine` and does not copy its modules (Paul, 2026-11-18). It takes from `engine`: the DuckDB workspace and the pipelines, storage (`ArtifactStorage`), `SourceCapture`, `derive_entity_id`, property resolution (`SinkRow`), and the operation types `EntityUpsert`, `LinkUpsert` and `Archive`.
 - `engine`'s storage module comes from the open pull request hashintel/hash#10392 and is not on `main` yet. The crate builds only on a branch that has it.
 - `engine`'s `GraphClient` sends one write at a time and falls back from create to patch. Send needs bulk requests without a fallback, so the client and the batching are new code in this crate.
-- `engine` encodes the create, update and archive bodies of a write into one sealed `Payload`. Send needs them separately. This needs a small change to `engine` or a copy of `graph/plan/request.rs`.
+- `engine` encodes the create, update and archive bodies of a write into one sealed `Payload`. Send needs them separately. `engine` will expose them separately.
 - Property conversion follows `engine`: Prepare calls `SinkRow::resolve` there. Labs differs in three cases, listed in [steps.md](steps.md).
-- The steps need three changes to `engine`: the conditional write, a public path check for local files, and the request bodies exposed separately.
+- The steps need four changes to `engine`: the conditional write, the path check for local files as a function, the function that renders an id as text, and the request bodies exposed separately. [steps.md](steps.md) has the details.
 - The conditional write for `run.json` and `current.json` goes into `engine`'s storage module (Paul, 2026-11-18). The previous refactor's `storage/artifact/mutable` module moves there with its tests: `read_versioned` returns the bytes and a version, and `replace_if` writes only if the version still matches. `ArtifactNamespace` gets the two key names. A file is limited to 1 MiB, and `run.json` embeds the definition.
 - `Graph` is the only trait. It exists so that tests can use `FakeGraph`.
 

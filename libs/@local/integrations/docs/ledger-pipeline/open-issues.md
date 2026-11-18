@@ -96,7 +96,7 @@ A pipeline of the definition is SQL that builds a target table from the source t
 
 Neither case produces an error.
 
-A relation between two records needs no join. It is a link, and an entity id is derived from the web, the namespace, the entity type and the source id (`derive_entity_id` in `stage/diff/rows/ids.rs`). A person row that carries the department's key is enough to build the link. For this reason few joins are expected in incremental runs. Joins are mainly used with hash and diff, which has the full capture (Paul, 2026-11-17).
+A relation between two records needs no join. It is a link, and an entity id is derived from the web, the namespace, the entity type and the source id (`derive_entity_id` in `engine`'s `entity_id.rs`). A person row that carries the department's key is enough to build the link. For this reason few joins are expected in incremental runs. Joins are mainly used with hash and diff, which has the full capture (Paul, 2026-11-17).
 
 **Chosen for now:** Prepare fails an incremental run when a target reads more than one source (Paul, 2026-11-17). Links and joins are still under discussion in the team; see "Link changes in incremental runs". An aggregation over one source is not detected; finding it would require parsing the SQL.
 
@@ -217,6 +217,27 @@ Two points depend on the choice:
 - `SendCounts` has no count for an entity that existed already. A new count, for example `existing`, would make a run with wrong labels visible in `run.json`.
 - The same rule would apply to a refused batch of updates or archives. What a single refused update means is covered by "What happens to a write the Graph refuses".
 
+### Two attempts of one stage at the same time
+
+**Stage:** all. **Status:** open. Found by the cross-check on 2026-11-18.
+
+`run.json` cannot tell a stage that is running from one that crashed. Nothing stops a second attempt of a stage from starting while the first still runs. A conflicting write to `run.json` does not stop either of them: the update reads the file again and applies its change.
+
+The first version assumes that one process works on a run at a time. That holds for a command line tool run by hand. It does not hold for a queue, where a message can be delivered twice.
+
+Two related gaps:
+
+- Only `start` enforces "one run at a time". No stage checks that its run is the active run in `current.json`.
+- For two Sends at once, each would send the batches the other also sends.
+
+### A run that fails for good blocks the integration
+
+**Stage:** run state. **Status:** open. Found by the cross-check on 2026-11-18.
+
+Run N+1 starts only after run N has completed. The only thing that clears the active run is the end of Send. A run that stops with a permanent failure therefore stays active, and every later `start` is refused with `run_active`.
+
+The first version has no way to give up a run. Cancel is one of the operations left out of scope. The question is what giving up means for a run that has already sent some of its batches.
+
 ### Several changes to one entity in a run
 
 **Stage:** Send and record.
@@ -249,5 +270,5 @@ The inventory of labs, `engine` and the `pipeline` crate is in [inventory/](inve
 - **No code cuts a batch when an entity is already in it.** The existing `Batcher` cuts on the operation, on create or update, at 128 writes and at 1,500,000 bytes. `engine` on `main` refuses two writes to one entity.
 - **Nothing preserved the order of the captured rows.** Decided on 2026-11-18: the order is the position of a row in its capture file. Prepare numbers the rows in the internal column `_seq` when it stages a file, and `order_id` is assigned from the target and `_seq`. See the Prepare section of the spec.
 - **The skeleton contradicted today's behaviour in three places.** Decided on 2026-11-18: a row with a blank source id is left out and listed in the issues file; several rows of a target may share an entity id in the incremental variant; the issues file keeps the seven columns of the previous refactor. The spec's Prepare section has the rules.
-- **Labs and `pipeline` convert some values differently.** A blank boolean is `false` in labs and left out in `pipeline`. An unknown unit gives the bare amount in labs and a failure in `pipeline`. The spec takes expected values from labs first.
-- **`run.json` embeds the definition.** The existing conditional write refuses an object over 1 MiB.
+- **Labs and `pipeline` convert some values differently.** Decided on 2026-11-18: property conversion follows `engine`, and labs tests are ported where the two agree. The three differing cases are listed in [steps.md](steps.md).
+- **`run.json` embeds the definition.** Decided on 2026-11-18: the limit of 1 MiB per file stays. No error code is named yet for a definition that is too large.

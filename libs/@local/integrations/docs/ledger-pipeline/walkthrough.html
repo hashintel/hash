@@ -1054,7 +1054,7 @@
       <g class="node store" data-s="prepare">
         <rect x="456" y="430" width="130" height="38" rx="8" />
         <text class="t" x="468" y="447">Issues file</text>
-        <text class="s" x="468" y="461">if a conversion fails</text>
+        <text class="s" x="468" y="461">if a row or value fails</text>
       </g>
 
       <!-- edges: Capture -->
@@ -1394,8 +1394,8 @@
           <ul class="objects" id="bucket-capture"></ul>
           <p class="where">
             Capture adds no column to the file. Prepare adds its internal
-            columns
-            <code>_op</code> and <code>_key</code> when it stages the file.
+            columns <code>_op</code>, <code>_key</code> and
+            <code>_seq</code> when it stages the file.
           </p>
         </div>
       </div>
@@ -1592,7 +1592,7 @@
                 <td>item/v/1</td>
                 <td class="null">null</td>
                 <td class="null">null</td>
-                <td class="null">null</td>
+                <td>{}</td>
               </tr>
               <tr data-rec="L">
                 <td>…0012</td>
@@ -2196,7 +2196,7 @@
         "item/v/1",
         null,
         null,
-        null,
+        "{}",
         "D-1",
       ],
       [
@@ -2451,7 +2451,7 @@
       ],
       issues: [
         "Issues file",
-        "S3 data · written only when a conversion fails",
+        "S3 data · written only when a row or a value could not be used",
         (order) =>
           order >= 2
             ? [note(`${issuesFile} · 1 entry`), table(issueHead, issueRows)]

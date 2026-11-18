@@ -8,7 +8,7 @@ use hash_integrations_engine::ArtifactRef;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 
-use crate::run::{RunContext, RunInput, StageError};
+use crate::run::{RunContext, RunId, StageError};
 
 /// The capture files of a run, written to `run.json` as the capture part.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -28,29 +28,33 @@ pub struct CapturedSource {
     pub rows: u64,
 }
 
-/// Stores the local Parquet file of each source and writes the capture part.
+/// Stores the local Parquet file of each source of the run `run` and writes the capture part.
 ///
-/// The definition in `input` names one Parquet file of changed rows per source, inside the local
-/// folder of `context`. Each file is uploaded as it is, without a local copy, and its row count is
-/// read from the Parquet footer. The upload fails if the file changes while it is read. The
-/// capture part is written to `run.json` once, after every file is stored. A run whose capture
-/// part is present returns that part without reading a file.
+/// Reads `run.json` for the input of the run. The definition pinned there names one Parquet file
+/// of changed rows per source, inside the local folder of `context`. Each file is uploaded as it
+/// is, without a local copy, and its row count is read from the Parquet footer. The upload fails
+/// if the file changes while it is read. The capture part is written to `run.json` once, after
+/// every file is stored. A run whose capture part is present returns that part without reading a
+/// file.
 ///
 /// # Errors
 ///
+/// - [`Code::RunNotReady`] if the run has no `run.json`
 /// - [`Code::InvalidDefinition`] if the stored definition cannot be parsed
 /// - [`Code::SourceConfiguration`] if a source is not a local file, or its file is missing, lies
 ///   outside the local folder or is not a readable Parquet file. Running Capture again cannot fix
 ///   this, so the error is permanent.
-/// - [`Code::StorageUnavailable`] if a file or `run.json` cannot be written
+/// - [`Code::StorageUnavailable`] if `run.json` cannot be read, or a file or `run.json` cannot be
+///   written
 ///
+/// [`Code::RunNotReady`]: crate::Code::RunNotReady
 /// [`Code::InvalidDefinition`]: crate::Code::InvalidDefinition
 /// [`Code::SourceConfiguration`]: crate::Code::SourceConfiguration
 /// [`Code::StorageUnavailable`]: crate::Code::StorageUnavailable
-#[tracing::instrument(level = "debug", skip_all, fields(run_id = %input.run))]
+#[tracing::instrument(level = "debug", skip_all, fields(run_id = %run))]
 pub async fn capture(
     context: &RunContext,
-    input: &RunInput,
+    run: RunId,
 ) -> Result<CaptureOutput, Report<StageError>> {
     unimplemented!()
 }

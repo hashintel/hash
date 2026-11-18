@@ -1,6 +1,6 @@
 //! Loads the capture files into the workspace and runs the pipelines of the definition.
 
-use alloc::collections::BTreeSet;
+use alloc::collections::{BTreeMap, BTreeSet};
 
 use error_stack::Report;
 use hash_integrations_definition::{Definition, SourceName};
@@ -31,26 +31,49 @@ pub(super) struct TargetRows {
     pub sources: BTreeSet<SourceName>,
 }
 
-/// Builds one table per target from the capture files.
+/// Stages each capture file as the table its pipelines read, and returns the table of each
+/// source.
 ///
-/// Each capture file is staged first: staging adds `_key`, takes `_op` from the file's `_change`
-/// column and numbers the rows in file order in `_seq`. Each row of a table carries the `_op` and
-/// the `_seq` of the captured row it was built from.
+/// Staging numbers the rows in file order in `_seq`, adds `_key` from the primary key, and takes
+/// `_op` from the file's `_change` column. This is the step a later variant of Prepare, such as
+/// hash and diff, replaces.
 ///
 /// # Errors
 ///
 /// - [`Code::CaptureMissing`] if `capture` has no file for a source the definition reads
-/// - [`Code::QueryInvalid`] if a target reads more than one source, or a pipeline query fails
-/// - [`Code::WorkspaceUnavailable`] if the workspace cannot run a query
+/// - [`Code::DataInvalid`] if a `_change` is not `insert`, `update` or `delete`, or a primary key
+///   column is missing
+/// - [`Code::WorkspaceUnavailable`] if the workspace cannot load or stage a file
 ///
 /// [`Code::CaptureMissing`]: crate::Code::CaptureMissing
-/// [`Code::QueryInvalid`]: crate::Code::QueryInvalid
+/// [`Code::DataInvalid`]: crate::Code::DataInvalid
 /// [`Code::WorkspaceUnavailable`]: crate::Code::WorkspaceUnavailable
-pub(super) async fn prepare_rows(
+pub(super) async fn stage_sources(
     context: &RunContext,
     workspace: &Workspace,
     definition: &Definition,
     capture: &CaptureOutput,
+) -> Result<BTreeMap<SourceName, Box<str>>, Report<StageError>> {
+    unimplemented!()
+}
+
+/// Runs the pipelines of the definition on the `staged` tables and builds one table per target.
+///
+/// Each row of a target table carries the `_op` and the `_seq` of the captured row it was built
+/// from.
+///
+/// # Errors
+///
+/// - [`Code::QueryInvalid`] if an entity target reads more than one source, a target table has lost
+///   `_seq`, or a pipeline query fails
+/// - [`Code::WorkspaceUnavailable`] if the workspace cannot run a query
+///
+/// [`Code::QueryInvalid`]: crate::Code::QueryInvalid
+/// [`Code::WorkspaceUnavailable`]: crate::Code::WorkspaceUnavailable
+pub(super) async fn prepare_rows(
+    workspace: &Workspace,
+    definition: &Definition,
+    staged: &BTreeMap<SourceName, Box<str>>,
 ) -> Result<Vec<TargetRows>, Report<StageError>> {
     unimplemented!()
 }

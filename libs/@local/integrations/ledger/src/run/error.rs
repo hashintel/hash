@@ -37,6 +37,8 @@ pub enum Code {
     RequestMismatch,
     #[display("run_active")]
     RunActive,
+    #[display("run_not_ready")]
+    RunNotReady,
     #[display("integration_mismatch")]
     IntegrationMismatch,
     #[display("reserved_column")]
@@ -88,6 +90,7 @@ impl Code {
         Self::DuplicateEntityId,
         Self::RequestMismatch,
         Self::RunActive,
+        Self::RunNotReady,
         Self::IntegrationMismatch,
         Self::ReservedColumn,
         Self::StorageUnavailable,
@@ -119,6 +122,7 @@ impl Code {
             Self::DuplicateEntityId => "duplicate_entity_id",
             Self::RequestMismatch => "request_mismatch",
             Self::RunActive => "run_active",
+            Self::RunNotReady => "run_not_ready",
             Self::IntegrationMismatch => "integration_mismatch",
             Self::ReservedColumn => "reserved_column",
             Self::StorageUnavailable => "storage_unavailable",
@@ -154,6 +158,7 @@ impl Code {
             | Self::SecretUnavailable
             | Self::GraphUnavailable
             | Self::RunActive
+            | Self::RunNotReady
             | Self::ReaderStopped => StageError::Retryable,
             Self::InvalidDefinition
             | Self::DuplicateEntityId

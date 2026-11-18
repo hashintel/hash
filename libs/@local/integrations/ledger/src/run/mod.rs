@@ -119,7 +119,7 @@ pub struct Failure {
     /// Whether running the stage again can succeed.
     pub error: StageError,
     pub code: Code,
-    /// The index of the batch that failed. Present when `stage` is [`Stage::Send`].
+    /// The index of the batch that failed. Present when a batch of Send failed.
     pub batch: Option<u32>,
 }
 

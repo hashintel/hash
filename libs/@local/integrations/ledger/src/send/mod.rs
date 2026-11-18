@@ -10,10 +10,8 @@ use error_stack::Report;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    capture::CaptureOutput,
     graph::Graph,
-    prepare::PrepareOutput,
-    run::{BatchSettings, RunContext, RunInput, StageError},
+    run::{RunContext, RunId, StageError},
 };
 
 /// Bounds attempts and exponential waits for one Graph request.
@@ -63,46 +61,45 @@ pub struct SendOutput {
     pub counts: SendCounts,
 }
 
-/// Sends the changes of the run to the Graph and completes the run.
+/// Sends the changes of the run `run` to the Graph and completes the run.
+///
+/// Reads `run.json` for the input, the batch settings, the capture part, the prepare part and
+/// the send progress of the run. The capture part holds the capture time every request carries,
+/// and the prepare part holds the number of rows to read.
 ///
 /// Reads the rows of the run from the sync table in send order, encodes each row as a request
-/// and cuts the requests into batches. The same rows and the same `batch` settings give the
-/// same batches, so Send starts at the batch after `progress` and skips the confirmed ones.
+/// and cuts the requests into batches. The same rows and the same batch settings give the same
+/// batches, so Send starts at the batch after the send progress and skips the confirmed ones.
 /// After each confirmed batch the new batch count and counts are written to `run.json` as send
 /// progress. After the last batch the send part is written to `run.json`, and the run is set as
 /// the last completed run in `current.json`.
 ///
 /// A create that the Graph answers with a conflict counts as done.
 ///
-/// # Arguments
-///
-/// * `batch` - The limits of one batch, pinned in `run.json`
-/// * `capture` - The capture part of the run, which holds the capture time every request carries
-/// * `prepare` - The prepare part of the run, which holds the number of rows to read
-/// * `progress` - The send progress of an earlier attempt, if `run.json` has one
-/// * `graph` - The Graph the requests are sent to
+/// A run whose send part is present sends nothing and is still set as the last completed run, so
+/// a Send that stopped between its last two writes is repaired by running it again. The first
+/// progress write of an attempt removes the failure part.
 ///
 /// # Errors
 ///
-/// - [`Code::RowInvalid`] if the sync table holds a different number of rows than `prepare`
+/// - [`Code::RunNotReady`] if the run has no `run.json`, or its capture part or prepare part is
+///   missing
+/// - [`Code::RowInvalid`] if the sync table holds a different number of rows than the prepare part
 /// - [`Code::UnencodableRequest`] if a row cannot be encoded as a request
 /// - [`Code::GraphUnavailable`] if the Graph does not confirm a batch within the attempts of
 ///   [`SendSettings`]
-/// - [`Code::StorageUnavailable`] if the sync table cannot be read, or `run.json` or `current.json`
-///   cannot be written
+/// - [`Code::StorageUnavailable`] if `run.json` or the sync table cannot be read, or `run.json` or
+///   `current.json` cannot be written
 ///
+/// [`Code::RunNotReady`]: crate::Code::RunNotReady
 /// [`Code::RowInvalid`]: crate::Code::RowInvalid
 /// [`Code::UnencodableRequest`]: crate::Code::UnencodableRequest
 /// [`Code::GraphUnavailable`]: crate::Code::GraphUnavailable
 /// [`Code::StorageUnavailable`]: crate::Code::StorageUnavailable
-#[tracing::instrument(level = "info", skip_all, fields(run_id = %input.run))]
+#[tracing::instrument(level = "info", skip_all, fields(run_id = %run))]
 pub async fn send(
     context: &RunContext,
-    input: &RunInput,
-    batch: BatchSettings,
-    capture: &CaptureOutput,
-    prepare: &PrepareOutput,
-    progress: Option<&SendProgress>,
+    run: RunId,
     graph: &impl Graph,
 ) -> Result<SendOutput, Report<StageError>> {
     unimplemented!()

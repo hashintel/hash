@@ -6,9 +6,10 @@
 //! 2. [`prepare()`] turns the changed rows into entity changes and appends them to the sync table.
 //! 3. [`send()`] builds the Graph requests from the sync table and sends them in batches.
 //!
-//! The stages share the state of a run, [`Run`], which is stored as `run.json`. A stage writes
-//! its result to storage first and its part of `run.json` second, so a stage that stopped can be
-//! run again.
+//! The stages share the state of a run, [`Run`], which is stored as `run.json`. [`start()`]
+//! writes the first `run.json`. A stage takes the id of the run and reads `run.json` for its
+//! input and its progress. It writes its result to storage first and its part of `run.json`
+//! second, so a stage that stopped can be run again.
 #![feature(variant_count)]
 #![expect(
     dead_code,
