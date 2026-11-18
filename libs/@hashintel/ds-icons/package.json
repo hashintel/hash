@@ -35,6 +35,10 @@
     "./static": {
       "types": "./dist/static.d.ts",
       "default": "./dist/static.js"
+    },
+    "./artwork": {
+      "types": "./dist/artwork.d.ts",
+      "default": "./dist/artwork.js"
     }
   },
   "publishConfig": {
