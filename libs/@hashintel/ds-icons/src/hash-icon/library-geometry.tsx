@@ -348,9 +348,11 @@ import { virusGeometry } from "./library-geometry/virus";
 import { warehouseGeometry } from "./library-geometry/warehouse";
 import { wavePulseGeometry } from "./library-geometry/wave-pulse";
 import { wavesGeometry } from "./library-geometry/waves";
+import { windGeometry } from "./library-geometry/wind";
 import { workflowGeometry } from "./library-geometry/workflow";
 
 export const libraryGeometry = {
+  wind: windGeometry,
   flame: flameGeometry,
   circleThreeQuarters: circleThreeQuartersGeometry,
   circleHalf: circleHalfGeometry,

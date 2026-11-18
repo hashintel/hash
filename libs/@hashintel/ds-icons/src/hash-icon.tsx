@@ -778,6 +778,7 @@ export const ChartHeatmapIcon = createIcon("chartHeatmap");
 export const CircleHalfIcon = createIcon("circleHalf");
 export const CircleThreeQuartersIcon = createIcon("circleThreeQuarters");
 export const FlameIcon = createIcon("flame");
+export const WindIcon = createIcon("wind");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -963,6 +964,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  wind: WindIcon,
   flame: FlameIcon,
   circleThreeQuarters: CircleThreeQuartersIcon,
   circleHalf: CircleHalfIcon,
