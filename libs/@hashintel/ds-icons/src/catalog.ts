@@ -163,7 +163,7 @@ export const hashIconStudies = [
 }[];
 
 const categories = {
-  Interface: ["circlePlay"],
+  Interface: ["squareClose", "circlePlay"],
   Time: [
     "historyUser",
     "historyPages",

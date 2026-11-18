@@ -52,9 +52,11 @@ import { notePlusGeometry } from "./library-geometry/note-plus";
 import { noteStickyGeometry } from "./library-geometry/note-sticky";
 import { redoGeometry } from "./library-geometry/redo";
 import { shuffleGeometry } from "./library-geometry/shuffle";
+import { squareCloseGeometry } from "./library-geometry/square-close";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  squareClose: squareCloseGeometry,
   circlePlay: circlePlayGeometry,
   circleUp: circleUpGeometry,
   circleArrowUpRight: circleArrowUpRightGeometry,
