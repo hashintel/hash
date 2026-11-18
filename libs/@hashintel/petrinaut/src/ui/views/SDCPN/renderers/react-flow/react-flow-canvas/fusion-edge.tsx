@@ -99,7 +99,9 @@ export const FusionEdge: React.FC<EdgeProps<FusionEdgeType>> = ({
           }}
         />
       </g>
+      {/* Among the strokes, so that the knot fades with its line. */}
       <g
+        className="arc-strokes"
         transform={`translate(${labelX}, ${labelY})`}
         style={{ pointerEvents: "none" }}
       >
