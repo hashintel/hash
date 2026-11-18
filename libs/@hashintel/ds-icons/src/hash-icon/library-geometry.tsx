@@ -174,6 +174,7 @@ import { sizeExtraLargeGeometry } from "./library-geometry/size-extra-large";
 import { sizeLargeGeometry } from "./library-geometry/size-large";
 import { sizeMediumGeometry } from "./library-geometry/size-medium";
 import { sizeSmallGeometry } from "./library-geometry/size-small";
+import { smileGeometry } from "./library-geometry/smile";
 import { speakerGeometry } from "./library-geometry/speaker";
 import { splineCubicGeometry } from "./library-geometry/spline-cubic";
 import { splineLineGeometry } from "./library-geometry/spline-line";
@@ -205,6 +206,7 @@ import { userTieGeometry } from "./library-geometry/user-tie";
 import { usersGeometry } from "./library-geometry/users";
 
 export const libraryGeometry = {
+  smile: smileGeometry,
   handshake: handshakeGeometry,
   thumbsDown: thumbsDownGeometry,
   thumbsUp: thumbsUpGeometry,
