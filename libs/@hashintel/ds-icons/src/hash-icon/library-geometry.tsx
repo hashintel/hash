@@ -184,8 +184,10 @@ import { triangleGeometry } from "./library-geometry/triangle";
 import { underlineGeometry } from "./library-geometry/underline";
 import { ungroupGeometry } from "./library-geometry/ungroup";
 import { uploadGeometry } from "./library-geometry/upload";
+import { usersGeometry } from "./library-geometry/users";
 
 export const libraryGeometry = {
+  users: usersGeometry,
   searchChart: searchChartGeometry,
   searchDollar: searchDollarGeometry,
   searchEmpty: searchEmptyGeometry,
