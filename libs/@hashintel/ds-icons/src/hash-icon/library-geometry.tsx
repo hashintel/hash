@@ -136,6 +136,7 @@ import { fillNoneGeometry } from "./library-geometry/fill-none";
 import { fillPatternGeometry } from "./library-geometry/fill-pattern";
 import { fillSemiGeometry } from "./library-geometry/fill-semi";
 import { fillSolidGeometry } from "./library-geometry/fill-solid";
+import { flagGeometry } from "./library-geometry/flag";
 import { flaskVialGeometry } from "./library-geometry/flask-vial";
 import { folderGeometry } from "./library-geometry/folder";
 import { fontCaseGeometry } from "./library-geometry/font-case";
@@ -341,6 +342,7 @@ import { wavesGeometry } from "./library-geometry/waves";
 import { workflowGeometry } from "./library-geometry/workflow";
 
 export const libraryGeometry = {
+  flag: flagGeometry,
   diceD20: diceD20Geometry,
   circleFour: circleFourGeometry,
   circleThree: circleThreeGeometry,

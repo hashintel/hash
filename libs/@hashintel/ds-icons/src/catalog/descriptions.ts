@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  flag: "A notched flag represents a marker, milestone, or report.",
   diceD20:
     "A faceted twenty-sided die represents randomness or a tabletop game.",
   circleFour: "The numeral four in a circle represents a fourth step or item.",
