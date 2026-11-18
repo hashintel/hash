@@ -6,7 +6,7 @@
  * with, so one HASH persona run uses the machine at a time.
  */
 import assert from "node:assert/strict";
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 
@@ -250,11 +250,23 @@ const showAssistant = async (page: Page, load: () => Promise<unknown>) => {
  * Export > JSON: a download, so neither the editor's state nor anything the
  * agent reads changes.
  */
-const exportLiveNet = async (page: Page, entityUuid: string) => {
-  const download = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Menu", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Export", exact: true }).click();
-  await page.getByRole("menuitem", { name: "JSON", exact: true }).click();
+const exportLiveNet = async (
+  page: Page,
+  entityUuid: string,
+  timeout?: number,
+) => {
+  const download = page.waitForEvent("download", { timeout });
+  // A failed click leaves the download wait to reject unobserved.
+  download.catch(() => {});
+  await page
+    .getByRole("button", { name: "Menu", exact: true })
+    .click({ timeout });
+  await page
+    .getByRole("menuitem", { name: "Export", exact: true })
+    .click({ timeout });
+  await page
+    .getByRole("menuitem", { name: "JSON", exact: true })
+    .click({ timeout });
   const path = await (await download).path();
   const parsed = parseSDCPNFile(JSON.parse(await readFile(path, "utf8")));
   if (!parsed.ok)
@@ -265,6 +277,12 @@ const exportLiveNet = async (page: Page, entityUuid: string) => {
 
 const processUrl = (entityUuid: string) =>
   new URL(`/processes/${entityUuid}`, hashOrigins.frontend).href;
+
+/**
+ * Written to the run directory when a capture fails and removed by the next
+ * that succeeds: while it stands, `evidence/net.json` is not the live net.
+ */
+const captureFailedFile = "net-capture-failed.json";
 
 const emptyNet = {
   places: [],
@@ -333,12 +351,24 @@ export const hashHost = (): PersonaHost => ({
           await page.goto(processUrl(processOf()));
         }
         // Both refusals come before Brunch starts recovering the turn.
-        if ((await readProcess(page, processOf())) === undefined)
+        const saved = await readProcess(page, processOf());
+        if (saved === undefined)
           throw new Error(
             `The run's HASH process ${processOf()} no longer exists; it cannot resume.`,
           );
         // The editor opens the saved process, so edits the run left unsaved
-        // exist only in the retained live net.
+        // exist only in the retained live net, which must be current.
+        const failedCapture = await readFile(
+          join(run, captureFailedFile),
+          "utf8",
+        ).then(
+          (text) => text,
+          () => undefined,
+        );
+        if (failedCapture !== undefined)
+          throw new Error(
+            `The run's last capture of its live net failed (${captureFailedFile}), so evidence/net.json may be out of date; it cannot resume.`,
+          );
         const retainedNet = await readFile(
           join(run, "evidence", "net.json"),
           "utf8",
@@ -346,18 +376,41 @@ export const hashHost = (): PersonaHost => ({
           (text) => JSON.parse(text) as { title?: unknown; sdcpn?: unknown },
           (error: unknown) => {
             if ((error as NodeJS.ErrnoException).code === "ENOENT")
-              return undefined;
+              throw new Error(
+                "The run never captured its live net (evidence/net.json), so unsaved edits cannot be ruled out; it cannot resume.",
+              );
             throw error;
           },
         );
-        if (retainedNet === undefined) return;
-        const reopened = await exportLiveNet(page, processOf());
-        if (
-          !isDeepStrictEqual(
-            { title: reopened.title, sdcpn: reopened.sdcpn },
-            { title: retainedNet.title, sdcpn: retainedNet.sdcpn },
-          )
-        )
+        const retained = {
+          title: retainedNet.title,
+          sdcpn: retainedNet.sdcpn,
+        };
+        // The launcher's build can leave the frontend recompiling and
+        // reloading, and the editor shows the saved process only once it has
+        // loaded; until the exported title is the saved one, try again.
+        const deadline = Date.now() + settleMs;
+        let reopened: { title: unknown; sdcpn: unknown } | undefined;
+        let lastError: unknown;
+        while (Date.now() < deadline) {
+          const timeout = Math.min(15_000, deadline - Date.now());
+          try {
+            // eslint-disable-next-line no-await-in-loop -- Each attempt waits on what the page shows next.
+            const exported = await exportLiveNet(page, processOf(), timeout);
+            reopened = { title: exported.title, sdcpn: exported.sdcpn };
+            if (exported.title === saved.title) break;
+          } catch (error) {
+            lastError = error;
+            // eslint-disable-next-line no-await-in-loop -- As above.
+            await page.keyboard.press("Escape").catch(() => {});
+          }
+        }
+        if (reopened === undefined)
+          throw new Error(
+            `The HASH editor did not export its net within ${settleMs / 1000}s`,
+            { cause: lastError },
+          );
+        if (!isDeepStrictEqual(reopened, retained))
           throw new Error(
             `The run's last live net (evidence/net.json) differs from HASH process ${processOf()} as saved, so the run left edits unsaved that reopening cannot restore; it cannot resume.`,
           );
@@ -365,16 +418,27 @@ export const hashHost = (): PersonaHost => ({
       reload: (page) => showAssistant(page, () => page.reload()),
       capture: async (page, _session, evidenceDirectory) => {
         const entityUuid = processOf();
-        const [live, saved] = await Promise.all([
-          exportLiveNet(page, entityUuid),
-          readProcess(page, entityUuid),
-        ]);
-        assert(saved, `HASH process ${entityUuid} no longer exists`);
-        const json = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
-        await Promise.all([
-          writeFile(join(evidenceDirectory, "net.json"), json(live)),
-          writeFile(join(evidenceDirectory, "saved-net.json"), json(saved)),
-        ]);
+        const marker = join(run, captureFailedFile);
+        try {
+          // One page action at a time: the export clicks through the editor.
+          const live = await exportLiveNet(page, entityUuid);
+          const saved = await readProcess(page, entityUuid);
+          assert(saved, `HASH process ${entityUuid} no longer exists`);
+          const json = (value: unknown) =>
+            `${JSON.stringify(value, null, 2)}\n`;
+          await Promise.all([
+            writeFile(join(evidenceDirectory, "net.json"), json(live)),
+            writeFile(join(evidenceDirectory, "saved-net.json"), json(saved)),
+          ]);
+        } catch (error) {
+          // Resume refuses while this stands: net.json is not the live net.
+          await writeFile(
+            marker,
+            `${JSON.stringify({ failedAt: new Date().toISOString(), error: String(error) }, null, 2)}\n`,
+          );
+          throw error;
+        }
+        await rm(marker, { force: true });
         await refreshProofManifest(evidenceDirectory);
       },
       release: async () => {},
