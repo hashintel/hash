@@ -164,6 +164,7 @@ export const hashIconStudies = [
 
 const categories = {
   Places: [
+    "locationCheck",
     "location",
     "shop",
     "warehouse",
