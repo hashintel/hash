@@ -45,7 +45,6 @@
         "@apps/hash-integration-worker#build",
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
-        "@hashintel/petrinaut-core#build",
         "@local/advanced-types#build",
         "@local/eslint#build",
         "@local/harpc-client#build",
@@ -56,7 +55,6 @@
         "@local/hash-graph-store#build",
         "@local/hash-isomorphic-utils#build",
         "@local/internal-api-client#build",
-        "@local/petrinaut-optimizer-client#build",
         "@local/status#build",
         "codegen"
       ],
@@ -73,6 +71,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimizer-core",
         "type-system"
       ]
     },
@@ -83,7 +82,6 @@
         "@apps/hash-integration-worker#build",
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
-        "@hashintel/petrinaut-core#build",
         "@local/advanced-types#build",
         "@local/eslint#build",
         "@local/harpc-client#build",
@@ -94,7 +92,6 @@
         "@local/hash-graph-store#build",
         "@local/hash-isomorphic-utils#build",
         "@local/internal-api-client#build",
-        "@local/petrinaut-optimizer-client#build",
         "@local/status#build",
         "codegen"
       ],
@@ -114,6 +111,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimizer-core",
         "type-system"
       ]
     },
@@ -124,7 +122,6 @@
         "@apps/hash-integration-worker#build",
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
-        "@hashintel/petrinaut-core#build",
         "@local/advanced-types#build",
         "@local/eslint#build",
         "@local/harpc-client#build",
@@ -135,7 +132,6 @@
         "@local/hash-graph-store#build",
         "@local/hash-isomorphic-utils#build",
         "@local/internal-api-client#build",
-        "@local/petrinaut-optimizer-client#build",
         "@local/status#build",
         "codegen"
       ],
@@ -152,6 +148,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimizer-core",
         "type-system"
       ]
     },
@@ -165,7 +162,6 @@
         "@apps/hash-integration-worker#start:test:healthcheck",
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
-        "@hashintel/petrinaut-core#build",
         "@local/advanced-types#build",
         "@local/eslint#build",
         "@local/harpc-client#build",
@@ -176,7 +172,6 @@
         "@local/hash-graph-store#build",
         "@local/hash-isomorphic-utils#build",
         "@local/internal-api-client#build",
-        "@local/petrinaut-optimizer-client#build",
         "@local/status#build",
         "codegen",
         "hash-graph#start:test:healthcheck"
@@ -202,6 +197,7 @@
         "harpc-wire-protocol",
         "hash-codec",
         "hash-codegen",
+        "hash-crypto",
         "hash-graph",
         "hash-graph-api",
         "hash-graph-atlas",
@@ -216,7 +212,6 @@
         "hash-graph-types",
         "hash-graph-validation",
         "hash-middleware",
-        "hash-secret",
         "hash-status",
         "hash-telemetry",
         "hash-temporal-client",
@@ -228,6 +223,7 @@
         "hashql-macros",
         "hashql-mir",
         "hashql-syntax-jexpr",
+        "petrinaut-optimizer-core",
         "problematic",
         "type-system"
       ]

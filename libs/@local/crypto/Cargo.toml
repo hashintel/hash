@@ -1,0 +1,35 @@
+[package]
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+name              = "hash-crypto"
+publish.workspace = true
+version.workspace = true
+
+[dependencies]
+# Public workspace dependencies
+error-stack = { workspace = true, public = true }
+
+# Public third-party dependencies
+clap_builder = { workspace = true, public = true, optional = true, features = ["env"] }
+zerocopy     = { workspace = true, public = true, features = ["derive"] }
+zeroize      = { workspace = true, public = true, features = ["alloc"] }
+
+# Private workspace dependencies
+
+# Private third-party dependencies
+aws-lc-rs      = { workspace = true }
+base16ct       = { workspace = true }
+derive_more    = { workspace = true, features = ["display"] }
+simple-mermaid = { workspace = true }
+
+[dev-dependencies]
+clap     = { workspace = true, features = ["derive", "env"] }
+rstest   = { workspace = true }
+trybuild = { workspace = true }
+
+[features]
+clap = ["dep:clap_builder"]
+
+[lints]
+workspace = true

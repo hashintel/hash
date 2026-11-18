@@ -19,13 +19,13 @@ export type Variant = "solid" | "subtle" | "ghost" | "link" | "linkSubtle";
 type SharedButtonProps<Element extends HTMLButtonElement | HTMLAnchorElement> =
   {
     className?: string;
-    /** The overall style of the button */
+    /** The overall visual style, from `solid` fill to inline `link` text; `subtle` and `ghost` sit between with a tinted or transparent background. */
     variant?: Variant;
-    /** Sets the color treatment of the button for destructive actions. */
+    /** The color treatment of the button, e.g. for primary or destructive actions. */
     tone?: Exclude<Tone, "warning" | "success">;
     /** The size (height) of the button */
     size?: FormInputSize;
-    /** The shape of the button. Non default shapes should VERY rarely be used */
+    /** The shape of the button. Non default shapes should very rarely be used */
     shape?: "default" | "round";
     /** Whether the button is in a loading state */
     loading?: boolean;
@@ -33,9 +33,8 @@ type SharedButtonProps<Element extends HTMLButtonElement | HTMLAnchorElement> =
     pressed?: boolean;
     disabled?: boolean;
     tabIndex?: number;
-    /** Set to true to make the element focused on mount or 'never' to prevent the item being auto-focused */
+    /** Whether to focus the element on mount; `"never"` prevents the element being focused automatically. */
     autoFocus?: boolean | "never";
-    /** An optional testId */
     testId?: string;
     onClick?: React.ButtonHTMLAttributes<Element>["onClick"];
     onMouseDown?: React.ButtonHTMLAttributes<Element>["onMouseDown"];
@@ -45,13 +44,17 @@ type SharedButtonProps<Element extends HTMLButtonElement | HTMLAnchorElement> =
     onKeyDown?: React.ButtonHTMLAttributes<Element>["onKeyDown"];
     onFocus?: React.ButtonHTMLAttributes<Element>["onFocus"];
     onBlur?: React.ButtonHTMLAttributes<Element>["onBlur"];
+    /** Options forwarded to the tooltip shown when `tooltip` is set */
     tooltipOptions?: Omit<
       React.ComponentProps<typeof Tooltip>,
       "children" | "content"
     >;
   } & RequireAtLeastOne<{
+    /** Accessible name; required when there is no label or tooltip. */
     "aria-label"?: string;
+    /** Tooltip shown on hover/focus; also names icon-only buttons */
     tooltip?: string;
+    /** The button's label */
     children?: React.ReactNode;
   }> &
     React.AriaAttributes;
@@ -62,19 +65,19 @@ type ButtonIconProps = ExclusifyUnion<
   | {
       /** Optional icon to display */
       iconName?: IconName;
-      /** Whether the icon should be on the left or right */
+      /** Which side of the label the icon is rendered on. */
       iconPosition?: "left" | "right";
     }
   | {
-      /** Optional element to include at the beginning of a button */
+      /** Element rendered at the start of the button. */
       prefix?: React.ReactNode;
-      /** Optional element to include at the end of a button */
+      /** Element rendered at the end of the button. */
       suffix?: React.ReactNode;
     }
 >;
 
 type ButtonElementOnlyProps = {
-  /** Button type - defaults to "button" */
+  /** The native button `type`. Unlike a native `<button>`, it only submits forms when explicitly set to `submit`. */
   type?: "button" | "submit" | "reset";
   href?: never;
   target?: never;
@@ -84,8 +87,11 @@ type ButtonElementOnlyProps = {
 };
 
 export type AnchorElementOnlyProps = {
+  /** Renders the button as an anchor that navigates to this URL */
   href: string;
+  /** Opens the link in a new tab */
   target?: "_blank";
+  /** Whether to download the linked resource instead of navigating. */
   download?: boolean;
   type?: never;
   ref?: React.Ref<HTMLAnchorElement>;
@@ -279,3 +285,5 @@ export const Button = (props: ButtonProps) => {
 
   return element;
 };
+
+Button.displayName = "Button";

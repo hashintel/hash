@@ -5,7 +5,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { formInputSizes } from "../../util/form-shared";
 import { CheckboxGroup } from "./checkbox-group";
 
-import type { Story, StoryDefault } from "@ladle/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type Props = React.ComponentProps<typeof CheckboxGroup>;
 
@@ -44,19 +44,19 @@ const ControlledCheckboxGroup = ({
   );
 };
 
-export default {
+const meta = {
   title: "Components/CheckboxGroup",
-  argTypes: {
-    layout: { control: { type: "select" }, options: layouts },
-    size: { control: { type: "select" }, options: formInputSizes },
-    disabled: { control: { type: "boolean" } },
-  },
+  component: CheckboxGroup,
   args: {
     layout: "block",
     size: "md",
     disabled: false,
   },
-} satisfies StoryDefault<Props>;
+} satisfies Meta<Props>;
+
+export default meta;
+
+type Story = StoryObj<Props>;
 
 const headingClass = css({
   fontSize: "[12px]",
@@ -84,96 +84,108 @@ const layoutRowClass = css({
   flexWrap: "wrap",
 });
 
-export const Layouts: Story<Props> = (args) => (
-  <div className={sectionClass}>
-    {layouts.map((layout) => (
-      <div key={layout}>
-        <div className={headingClass}>layout={layout}</div>
+export const Default: Story = {
+  render: (args) => (
+    <div className={sectionClass}>
+      {layouts.map((layout) => (
+        <div key={layout}>
+          <div className={headingClass}>layout={layout}</div>
+          <ControlledCheckboxGroup
+            {...args}
+            layout={layout}
+            defaultValue={["apple", "cherry"]}
+          />
+        </div>
+      ))}
+      <div>
+        <div className={headingClass}>
+          layout=blockWithBorder, labelPlacement=left
+        </div>
         <ControlledCheckboxGroup
           {...args}
-          layout={layout}
-          defaultValue={["apple", "cherry"]}
+          layout="blockWithBorder"
+          items={leftLabelItems}
         />
       </div>
-    ))}
-    <div>
-      <div className={headingClass}>
-        layout=blockWithBorder, labelPlacement=left
+      <div>
+        <div className={headingClass}>layout=block, labelPlacement=left</div>
+        <ControlledCheckboxGroup
+          {...args}
+          layout="block"
+          items={leftLabelItems}
+        />
       </div>
-      <ControlledCheckboxGroup
-        {...args}
-        layout="blockWithBorder"
-        items={leftLabelItems}
-      />
     </div>
-    <div>
-      <div className={headingClass}>layout=block, labelPlacement=left</div>
-      <ControlledCheckboxGroup
-        {...args}
-        layout="block"
-        items={leftLabelItems}
-      />
-    </div>
-  </div>
-);
+  ),
+};
 
-export const Sizes: Story<Props> = (args) => (
-  <div className={sectionClass}>
-    {formInputSizes.map((size) => (
-      <div key={size}>
-        <div className={headingClass}>size={size}</div>
-        <div className={layoutRowClass}>
-          {layouts.map((layout) => (
-            <div key={layout}>
-              <div className={subHeadingClass}>{layout}</div>
-              <ControlledCheckboxGroup {...args} layout={layout} size={size} />
-            </div>
-          ))}
+export const Sizes: Story = {
+  render: (args) => (
+    <div className={sectionClass}>
+      {formInputSizes.map((size) => (
+        <div key={size}>
+          <div className={headingClass}>size={size}</div>
+          <div className={layoutRowClass}>
+            {layouts.map((layout) => (
+              <div key={layout}>
+                <div className={subHeadingClass}>{layout}</div>
+                <ControlledCheckboxGroup
+                  {...args}
+                  layout={layout}
+                  size={size}
+                />
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
-    ))}
-  </div>
-);
+      ))}
+    </div>
+  ),
+};
 
-export const Disabled: Story<Props> = (args) => (
-  <div className={sectionClass}>
-    <div>
-      <div className={headingClass}>whole group disabled</div>
-      <ControlledCheckboxGroup {...args} disabled defaultValue={["apple"]} />
-    </div>
-    <div>
-      <div className={headingClass}>single option disabled</div>
-      <ControlledCheckboxGroup
-        {...args}
-        items={[
-          { value: "apple", label: "Apple" },
-          { value: "banana", label: "Banana", disabled: true },
-          { value: "cherry", label: "Cherry" },
-        ]}
-      />
-    </div>
-  </div>
-);
-
-export const MaxSelectable: Story<Props> = (args) => (
-  <div className={sectionClass}>
-    <div>
-      <div className={headingClass}>maxSelectable=2</div>
-      <div className={subHeadingClass}>
-        Once two are selected, the remaining unchecked options are disabled
-        until one is unchecked.
+export const Disabled: Story = {
+  render: (args) => (
+    <div className={sectionClass}>
+      <div>
+        <div className={headingClass}>whole group disabled</div>
+        <ControlledCheckboxGroup {...args} disabled defaultValue={["apple"]} />
       </div>
-      <ControlledCheckboxGroup
-        {...args}
-        maxSelectable={2}
-        defaultValue={[]}
-        items={[
-          { value: "apple", label: "Apple" },
-          { value: "banana", label: "Banana" },
-          { value: "cherry", label: "Cherry" },
-          { value: "date", label: "Date" },
-        ]}
-      />
+      <div>
+        <div className={headingClass}>single option disabled</div>
+        <ControlledCheckboxGroup
+          {...args}
+          items={[
+            { value: "apple", label: "Apple" },
+            { value: "banana", label: "Banana", disabled: true },
+            { value: "cherry", label: "Cherry" },
+          ]}
+        />
+      </div>
     </div>
-  </div>
-);
+  ),
+};
+
+export const MaxSelectable: Story = {
+  render: (args) => (
+    <div className={sectionClass}>
+      <div>
+        <div className={headingClass}>maxSelectable=2</div>
+        <div className={subHeadingClass}>
+          Once two are selected, the remaining unchecked options are disabled
+          until one is unchecked.
+        </div>
+        <ControlledCheckboxGroup
+          {...args}
+          maxSelectable={2}
+          defaultValue={[]}
+          items={[
+            { value: "apple", label: "Apple" },
+            { value: "banana", label: "Banana" },
+            { value: "cherry", label: "Cherry" },
+            { value: "date", label: "Date" },
+          ]}
+        />
+      </div>
+    </div>
+  ),
+};

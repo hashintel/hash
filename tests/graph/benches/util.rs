@@ -3,6 +3,7 @@
 use core::mem::ManuallyDrop;
 use std::{collections::HashMap, path::Path};
 
+use hash_crypto::Secret;
 use hash_graph_postgres_store::{
     Environment, load_env,
     store::{
@@ -19,12 +20,10 @@ use hash_graph_store::{
     query::ConflictBehavior,
 };
 use hash_repo_chores::benches::generate_path;
-use hash_secret::Secret;
 use hash_telemetry::TelemetryRegistry;
 use regex::Regex;
 use time::OffsetDateTime;
 use tokio::runtime::Runtime;
-use tokio_postgres::NoTls;
 use tracing::Instrument as _;
 use type_system::{
     ontology::{
@@ -114,7 +113,6 @@ impl StoreWrapper {
         let source_db_pool = PostgresStorePool::new(
             &source_db_connection_info,
             &DatabasePoolConfig::default(),
-            NoTls,
             PostgresStoreSettings::default(),
         )
         .expect("could not connect to database");
@@ -205,7 +203,6 @@ impl StoreWrapper {
                     bench_db_name.to_owned(),
                 ),
                 &DatabasePoolConfig::default(),
-                NoTls,
                 PostgresStoreSettings::default(),
             )
             .expect("could not connect to database");
@@ -222,7 +219,6 @@ impl StoreWrapper {
         let pool = PostgresStorePool::new(
             &bench_db_connection_info,
             &DatabasePoolConfig::default(),
-            NoTls,
             PostgresStoreSettings::default(),
         )
         .expect("could not connect to database");
@@ -396,6 +392,7 @@ pub async fn seed<D, P, E, C, S>(
                         origin: OriginProvenance::from_empty_type(OriginType::Api),
                         sources: Vec::new(),
                     },
+                    fetched_from_origin: false,
                 }
             }),
         )

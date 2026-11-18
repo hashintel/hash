@@ -1,7 +1,7 @@
 import {
   historicalFlightsFlow,
   scheduledFlightsFlow,
-} from "@local/hash-isomorphic-utils/flows/integration-flow-definitions";
+} from "@local/hash-isomorphic-utils/flows/definitions/integration-flow-definitions";
 
 import type { FlowDefinitionWithId } from "@local/hash-isomorphic-utils/flows/types";
 

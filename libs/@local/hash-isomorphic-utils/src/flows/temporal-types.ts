@@ -1,7 +1,9 @@
+import type { FlowRunEventError, FlowRunStepError } from "./run-events.js";
 import type {
   FlowDataSources,
   LocalFlowRun,
   FlowInputValues,
+  StepOutput,
 } from "./types.js";
 import type {
   EntityId,
@@ -21,12 +23,12 @@ export type BaseRunFlowWorkflowParams = {
    * 1. The first run might not start immediately, so we don't do any re-routing.
    * 2. Schedules result in multiple runs, so there's no single entity UUID to return.
    */
-  flowRunId?: EntityUuid;
+  flowRunEntityUuid?: EntityUuid;
   /**
-   * The uuid of the `Flow Definition` entity to run. The run loads the definition when it starts, so it runs the
-   * edition current at that time.
+   * The `Flow Definition` entity to run. The run loads the definition when it starts, so it runs the edition current
+   * at that time.
    */
-  flowDefinitionId: EntityUuid;
+  flowDefinitionEntityId: EntityId;
   /**
    * Optional name for the flow run. If not provided, the flow definition name is used.
    * For scheduled flows, this is typically the schedule name.
@@ -52,3 +54,22 @@ export type RunFlowWorkflowResponse = Status<{
   outputs?: LocalFlowRun["outputs"];
   stepErrors?: Status<{ stepId: string }>[];
 }>;
+
+/**
+ * How a run ended: as the event that closes its workflow's history records it, or as the workflow gives it to the
+ * activity that records the run before that event is written.
+ */
+export type FlowRunEnding =
+  | {
+      kind: "completed";
+      flowOutputs: StepOutput[];
+      stepErrors?: FlowRunStepError[];
+    }
+  | {
+      kind: "failed";
+      failure: FlowRunEventError;
+      stepErrors?: FlowRunStepError[];
+    }
+  | { kind: "cancelled" }
+  | { kind: "terminated"; reason?: string }
+  | { kind: "timedOut" };

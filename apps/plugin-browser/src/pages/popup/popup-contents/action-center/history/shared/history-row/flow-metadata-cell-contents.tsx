@@ -3,6 +3,10 @@ import { formatDuration, intervalToDuration } from "date-fns";
 import { useEffect, useState } from "react";
 
 import {
+  extractEntityUuidFromEntityId,
+  type EntityId,
+} from "@blockprotocol/type-system";
+import {
   ArrowDownRegularIcon,
   ArrowRightRegularIcon,
   AsteriskRegularIcon,
@@ -46,7 +50,7 @@ type TotalUsage = {
   outputTokens: number;
 };
 
-const getTotalUsage = ({ flowRunId }: { flowRunId: string }) =>
+const getTotalUsage = ({ flowRunEntityId }: { flowRunEntityId: EntityId }) =>
   queryGraphQlApi<QueryEntitiesQuery, QueryEntitiesQueryVariables>(
     queryEntitiesQuery,
     {
@@ -65,7 +69,7 @@ const getTotalUsage = ({ flowRunId }: { flowRunId: string }) =>
               equal: [
                 { path: ["outgoingLinks", "rightEntity", "uuid"] },
                 {
-                  parameter: flowRunId,
+                  parameter: extractEntityUuidFromEntityId(flowRunEntityId),
                 },
               ],
             },
@@ -97,15 +101,15 @@ const getTotalUsage = ({ flowRunId }: { flowRunId: string }) =>
   });
 
 const generateDurationString = ({
-  executedAt,
+  startedAt,
   closedAt,
 }: {
-  executedAt: string;
+  startedAt: string;
   closedAt?: string | null;
 }) =>
   formatDuration(
     intervalToDuration({
-      start: new Date(executedAt),
+      start: new Date(startedAt),
       // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string
       end: new Date(closedAt || Date.now()),
     }),
@@ -120,19 +124,17 @@ export const FlowMetadataCellContents = ({
 }) => {
   const [usage, setUsage] = useState<TotalUsage | null>(null);
 
-  const { executedAt, closedAt } = flowRun;
+  const { startedAt, closedAt } = flowRun;
 
   const [timeElapsed, setTimeElapsed] = useState(() =>
-    executedAt
-      ? generateDurationString({ executedAt, closedAt })
-      : "Pending...",
+    generateDurationString({ startedAt, closedAt }),
   );
 
   useEffect(() => {});
 
   useEffect(() => {
-    if (visible && executedAt) {
-      const timeElapsedNow = generateDurationString({ executedAt, closedAt });
+    if (visible) {
+      const timeElapsedNow = generateDurationString({ startedAt, closedAt });
 
       /**
        * Stop the interval if we have a closedAt time and we've already calculated the final elapsed duration
@@ -141,7 +143,7 @@ export const FlowMetadataCellContents = ({
         setTimeout(() => {
           setTimeElapsed(
             generateDurationString({
-              executedAt,
+              startedAt,
               closedAt,
             }),
           );
@@ -159,18 +161,22 @@ export const FlowMetadataCellContents = ({
        * are accounted for.
        */
       const interval = setInterval(() => {
-        void getTotalUsage({ flowRunId: flowRun.flowRunId }).then(setUsage);
+        void getTotalUsage({ flowRunEntityId: flowRun.flowRunEntityId }).then(
+          setUsage,
+        );
       }, 10_000);
 
       return () => clearInterval(interval);
     }
-  }, [flowRun.flowRunId, visible]);
+  }, [flowRun.flowRunEntityId, visible]);
 
   useEffect(() => {
     if (visible) {
-      void getTotalUsage({ flowRunId: flowRun.flowRunId }).then(setUsage);
+      void getTotalUsage({ flowRunEntityId: flowRun.flowRunEntityId }).then(
+        setUsage,
+      );
     }
-  }, [flowRun.flowRunId, visible]);
+  }, [flowRun.flowRunEntityId, visible]);
 
   return (
     <Stack

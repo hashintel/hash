@@ -10,7 +10,14 @@ import { useStreamingData } from "./use-streaming-data";
 
 import type { SubView } from "../../../../../../components/sub-view/types";
 
-const ActualTimelineContent: React.FC = () => {
+export const ActualTimeline: React.FC<{
+  showLegend?: boolean;
+}> = ({ showLegend = true }) => {
+  "use no memo";
+  // `useStreamingData` appends frames to the same store object, so a memoized
+  // render keeps what it drew before them: a run that has finished when the
+  // timeline mounts stays on "no data".
+
   const {
     hiddenTimelineSeriesIds: hiddenSeries,
     setHiddenTimelineSeriesIds: setHiddenSeries,
@@ -33,8 +40,13 @@ const ActualTimelineContent: React.FC = () => {
   const { currentFrameIndex, scrubToFrame, totalFrames } = source;
   const lastFrameIndex = Math.max(0, totalFrames - 1);
 
+  // An execution reported by the host carries token counts only: no metric
+  // is evaluated on it, and no solver recorded an error.
   useEffect(() => {
-    if (timelineView.kind === "metric") {
+    if (
+      timelineView.kind === "metric" ||
+      timelineView.kind === "solver-error"
+    ) {
       setTimelineView({ kind: "per-place" });
     }
   }, [setTimelineView, timelineView.kind]);
@@ -70,7 +82,7 @@ const ActualTimelineContent: React.FC = () => {
             onScrub={handleScrub}
             paused={!onScreen}
           />
-          {store.series.length > 1 && (
+          {showLegend && store.series.length > 1 && (
             <TimelineLegend
               series={store.series}
               hiddenSeries={hiddenSeries}
@@ -88,6 +100,6 @@ export const actualTimelineSubView: SubView = {
   title: "Timeline",
   tooltip:
     "View the actual execution timeline with compartment time-series. Click/drag to scrub through frames.",
-  component: ActualTimelineContent,
+  component: ActualTimeline,
   noPadding: true,
 };

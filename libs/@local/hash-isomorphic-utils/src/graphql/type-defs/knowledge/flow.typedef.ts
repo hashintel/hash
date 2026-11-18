@@ -51,93 +51,68 @@ export const flowTypedef = gql`
     SKIPPED
   }
 
-  scalar ArbitraryJsonData
   scalar EntityUuid
   scalar ExternalInputRequest
-  scalar StepInput
   scalar FlowInputValues
-  scalar ResolvedStepRunOutput
-  scalar StepProgressLog
+  scalar ResolvedPayload
   scalar FlowDataSources
   scalar ExternalInputResponseWithoutUser
   scalar ScheduleSpec
   scalar CreateFlowScheduleInput
   scalar UpdateFlowScheduleInput
+  scalar FlowRunEvent
+  scalar FlowDefinitionDiagnostic
 
-  type StepRun {
+  type FlowRunOutput {
+    outputName: String!
     """
-    id for the step
-    @todo do we also want nodeId to link it to the Step Definition, where there might be multiple steps per node definition
-          in the case of spawning multiple parallel executions of a particular action?
+    The output's value, with any payload the run stored elsewhere resolved.
     """
-    stepId: String!
-    """
-    The type of step, i.e a name for what action it is performing, e.g. Persist Entities
-    @todo do we need this? it can be derived from the step definition.
-    @todo is this actually stepName, and we want a separate stepType of Action, Trigger etc?
-    """
-    stepType: String!
-    """
-    When the step was LAST scheduled for execution - this may have happened previously if a previous execution failed.
-    See https://docs.temporal.io/activities#activity-execution for execution details
-    """
-    scheduledAt: String!
-    """
-    When execution of a step was LAST started - there may be earlier executions which failed.
-    Note that this event is not written to the history until execution completes (successfully or unsuccessfully)
-    """
-    startedAt: String
-    """
-    Starting at 1, the number of times execution of this step has been attempted.
-    """
-    attempt: Int!
-    """
-    When the step last execution attempt finished, either successfully or unsuccessfully.
-    Another execution may yet be scheduled – check retryState.
-    """
-    closedAt: String
-    """
-    If the last execution failed, what retry policy applies.
-    """
-    retryState: String
-    """
-    Details of the last failure, if any.
-    The step may still be running if it has been retried since the last failure.
-    """
-    lastFailure: ArbitraryJsonData
-    """
-    The status of the step
-    """
-    status: FlowStepStatus!
-    """
-    Logs from the step, reporting on progress as it executes
-    """
-    logs: [StepProgressLog!]!
-    """
-    Inputs to the step
-    """
-    inputs: [StepInput!]
-    """
-    Outputs of the step
-    """
-    outputs: [ResolvedStepRunOutput!]
+    payload: ResolvedPayload!
   }
 
-  type FlowRun {
+  """
+  A run of a step: the step's id in the flow definition and, inside \`forEach\` steps, its item's index in each,
+  outermost first.
+  """
+  type FlowRunStepRun {
+    stepId: String!
+    itemPath: [Int!]!
+  }
+
+  type FlowRunError {
+    message: String!
     """
-    The uuid of the flow run.
-    This is equivalent to the EntityUuid of the Flow entity.
+    The code of the status the run or step failed with (a \`StatusCode\` from \`@local/status\`), when it gave one.
     """
-    flowRunId: EntityUuid!
+    code: String
+  }
+
+  """
+  A step that failed after its action returned, e.g. because an output was of the wrong kind.
+  """
+  type FlowRunStepError {
+    stepRun: FlowRunStepRun!
+    error: FlowRunError!
+  }
+
+  """
+  A run as its Flow Run entity describes it, for lists of runs.
+  """
+  type FlowRunSummary {
+    """
+    The entity id of the run's Flow Run entity.
+    """
+    flowRunEntityId: EntityId!
     """
     The id of the schedule that triggered this run, if any.
     Only present for flow runs triggered by a FlowSchedule.
     """
     flowScheduleId: EntityUuid
     """
-    The id for the definition of the flow this run is executing (the template for the flow)
+    The entity id of the Flow Definition entity this run is executing.
     """
-    flowDefinitionId: String!
+    flowDefinitionEntityId: EntityId!
     """
     A user-facing name for the flow run to distinguish it from other runs of its kind,
     which might include a key input or a summary of its key inputs.
@@ -147,26 +122,68 @@ export const flowTypedef = gql`
     The web this flow run is associated with
     """
     webId: WebId!
-    """
-    Details of the run's status, inputs, outputs etc
-    """
     status: FlowRunStatus!
     """
-    When the run was triggered
+    When the run was triggered. Resetting the run doesn't change it.
     """
     startedAt: String!
-    """
-    When the run began executing (which may be after it was started if it has a delay before execution)
-    """
-    executedAt: String
     """
     When the run stopped
     """
     closedAt: String
     """
-    The reason the run failed, if it did
+    When the run's entity last changed. getFlowRuns pages through runs from the most recently changed.
     """
-    failureMessage: String
+    updatedAt: String!
+    """
+    The values given to the flow's inputs
+    """
+    flowInputs: FlowInputValues!
+    """
+    The run's requests for input that haven't been answered, latest first. Empty once the run has stopped.
+    """
+    openInputRequests: [ExternalInputRequest!]!
+  }
+
+  """
+  A run, with what its record says about how it went.
+  """
+  type FlowRun {
+    """
+    The entity id of the run's Flow Run entity.
+    """
+    flowRunEntityId: EntityId!
+    """
+    The id of the schedule that triggered this run, if any.
+    Only present for flow runs triggered by a FlowSchedule.
+    """
+    flowScheduleId: EntityUuid
+    """
+    The entity id of the Flow Definition entity this run is executing.
+    """
+    flowDefinitionEntityId: EntityId!
+    """
+    A user-facing name for the flow run to distinguish it from other runs of its kind,
+    which might include a key input or a summary of its key inputs.
+    """
+    name: String!
+    """
+    The web this flow run is associated with
+    """
+    webId: WebId!
+    status: FlowRunStatus!
+    """
+    When the run was triggered. Resetting the run doesn't change it.
+    """
+    startedAt: String!
+    """
+    When the run stopped
+    """
+    closedAt: String
+    """
+    When the run's entity last changed.
+    """
+    updatedAt: String!
     """
     The values given to the flow's inputs
     """
@@ -176,28 +193,95 @@ export const flowTypedef = gql`
     """
     dataSources: FlowDataSources
     """
-    Outputs of the flow run
+    The flow's outputs, once the run has completed.
     """
-    outputs: [ResolvedStepRunOutput!]
+    outputs: [FlowRunOutput!]
     """
-    Any requests for external input made by steps within the Flow
+    Why the run failed, or the reason it was terminated with, once it has ended.
     """
-    inputRequests: [ExternalInputRequest!]!
+    failure: FlowRunError
     """
-    The steps in the flow
+    Steps that failed after their action returned, once the run has ended, if it records them.
     """
-    steps: [StepRun!]!
+    stepErrors: [FlowRunStepError!]
+    """
+    The run's requests for input that haven't been answered, latest first. Empty once the run has stopped.
+    """
+    openInputRequests: [ExternalInputRequest!]!
+    """
+    What happened in the run, in the order its history records it.
+    Ask again with \`endCursor\` to follow a run, and handle \`restarted\` before appending.
+    """
+    events(
+      """
+      The \`endCursor\` of an earlier page. The page starts after it.
+      """
+      after: String
+      """
+      How many events to return: 500 by default, and at most 2,000.
+      """
+      first: Int
+    ): FlowRunEventsPage!
+  }
+
+  type FlowRunEventsPage {
+    """
+    Each event is a \`FlowRunEvent\` from \`@local/hash-isomorphic-utils/flows/run-events\`, told apart by its \`kind\`.
+    """
+    events: [FlowRunEvent!]!
+    """
+    The cursor of the page's last event, to ask for the next page with: the cursor given when the page is empty,
+    and null when the run has no events.
+    """
+    endCursor: String
+    hasNextPage: Boolean!
+    """
+    The run of the workflow the events are from, which changes when the run is reset.
+    """
+    runId: String!
+    """
+    Whether the given cursor is from a run that has since been reset past it, so the events the client has after
+    \`keptUpTo\` (or all of them, if it's null) no longer happened.
+    """
+    restarted: Boolean!
+    """
+    When \`restarted\`, the position of the last event the client has that the current run kept.
+    """
+    keptUpTo: String
+  }
+
+  """
+  A flow definition as saved. A definition is saved even when it isn't valid yet, so that it can be finished later,
+  but it can only run once none of its diagnostics is an error.
+  """
+  type FlowDefinitionSaveResult {
+    """
+    The entity id of the Flow Definition entity holding the definition.
+    """
+    flowDefinitionEntityId: EntityId!
+    """
+    The edition of the Flow Definition entity the save created, to give as \`expectedEditionId\` when saving it next.
+    """
+    editionId: EntityEditionId!
+    """
+    Every problem with the definition, including warnings, which don't stop it running. Each is a
+    \`FlowDefinitionDiagnostic\` from \`@local/hash-isomorphic-utils/flows/validate-flow-definition\`, with the id of the
+    step it's in, if any.
+    """
+    diagnostics: [FlowDefinitionDiagnostic!]!
+    """
+    Whether the flow can run: none of its diagnostics is an error.
+    """
+    isRunnable: Boolean!
   }
 
   type PaginatedFlowRuns {
     """
     The flow runs for the requested page
     """
-    flowRuns: [FlowRun!]!
+    flowRuns: [FlowRunSummary!]!
     """
     The total number of flow run entities matching the filters.
-    Note: this count comes from the graph query and may not reflect
-    Temporal-side filtering (e.g. by executionStatus).
     """
     totalCount: Int!
     """
@@ -209,9 +293,9 @@ export const flowTypedef = gql`
   extend type Query {
     getFlowRuns(
       """
-      Return only flow runs that are based off specific definitions
+      Return only flow runs of these Flow Definition entities
       """
-      flowDefinitionIds: [String!]
+      flowDefinitionEntityIds: [EntityId!]
       """
       Return only flows that match the given status
       """
@@ -228,19 +312,19 @@ export const flowTypedef = gql`
       limit: Int
     ): PaginatedFlowRuns!
 
-    getFlowRunById(flowRunId: String!): FlowRun!
+    getFlowRunById(flowRunEntityId: EntityId!): FlowRun!
   }
 
   extend type Mutation {
     """
-    Start a new flow run, and return its flowRunId to allow for identifying it later.
+    Start a new flow run, and return the entity id of its Flow Run entity to allow for identifying it later.
     """
     startFlow(
       dataSources: FlowDataSources
-      flowDefinitionId: EntityUuid!
+      flowDefinitionEntityId: EntityId!
       flowInputs: FlowInputValues!
       webId: WebId!
-    ): EntityUuid!
+    ): EntityId!
 
     """
     Reset a flow to a specific checkpoint, available via the 'checkpoints' field on a run
@@ -250,22 +334,60 @@ export const flowTypedef = gql`
 
     Any API usage incurred at any point will still be recorded, whether or not it is after the checkpoint.
     """
-    resetFlow(flowUuid: ID!, checkpointId: ID!, eventId: Int!): Boolean!
+    resetFlow(
+      flowRunEntityId: EntityId!
+      checkpointId: ID!
+      eventId: Int!
+    ): Boolean!
 
     """
     Cancel a flow, stopping its execution.
 
     This does _NOT_ roll back any database mutations made as part of the flow so far.
     """
-    cancelFlow(flowUuid: ID!): Boolean!
+    cancelFlow(flowRunEntityId: EntityId!): Boolean!
 
     """
     Submit a response to a request from a flow step for external input
     """
     submitExternalInputResponse(
       response: ExternalInputResponseWithoutUser!
-      flowUuid: ID!
+      flowRunEntityId: EntityId!
     ): Boolean!
+
+    """
+    Save a new flow definition in a web. It's saved even if it isn't valid yet, as long as it has the shape of one.
+    """
+    createFlowDefinition(
+      webId: WebId!
+      """
+      A \`FlowDefinition\` from \`@local/hash-isomorphic-utils/flows/types\`.
+      """
+      definition: JSONObject!
+    ): FlowDefinitionSaveResult!
+
+    """
+    Replace a flow's definition. Runs already started keep the definition they started with.
+
+    The save is refused if the flow has changed since \`expectedEditionId\`, or if the flow has active schedules and
+    the new definition isn't valid or no longer takes the inputs they give it. Pause them first to make such a change.
+    """
+    updateFlowDefinition(
+      flowDefinitionEntityId: EntityId!
+      """
+      The edition of the Flow Definition entity the new definition was made from.
+      """
+      expectedEditionId: EntityEditionId!
+      """
+      A \`FlowDefinition\` from \`@local/hash-isomorphic-utils/flows/types\`.
+      """
+      definition: JSONObject!
+    ): FlowDefinitionSaveResult!
+
+    """
+    Archive a flow, pausing its active schedules first. Its past runs stay readable.
+    """
+    archiveFlowDefinition(flowDefinitionEntityId: EntityId!): Boolean!
 
     """
     Create a new flow schedule for recurring executions

@@ -1,7 +1,10 @@
 import { TableCell, TableRow } from "@mui/material";
 import { useMemo } from "react";
 
-import { automaticBrowserInferenceFlow } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
+import {
+  flowDefinitionIds,
+  isHashFlowDefinitionEntityId,
+} from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 
 import { EventTable } from "./shared/event-table";
 import { HistoryRow } from "./shared/history-row";
@@ -16,11 +19,11 @@ export const AutomaticallyTriggered = ({
 }) => {
   const automaticallyTriggeredFlows = useMemo(
     () =>
-      unfilteredFlowRuns.filter(
-        (flow) =>
-          flow.flowDefinitionId ===
-            automaticBrowserInferenceFlow.flowDefinitionId ||
-          flow.requestedPageUrl,
+      unfilteredFlowRuns.filter((flow) =>
+        isHashFlowDefinitionEntityId(
+          flow.flowDefinitionEntityId,
+          flowDefinitionIds.automaticBrowserInference,
+        ),
       ),
     [unfilteredFlowRuns],
   );
@@ -32,24 +35,18 @@ export const AutomaticallyTriggered = ({
         {automaticallyTriggeredFlows.length === 0 ? (
           <TableRow>
             <TableCell colSpan={4} sx={{ lineHeight: "1.3 !important" }}>
-              The status of flows triggered automatically from the plugin and
-              requests for webpages from flows to the plugin will appear here.
+              The status of flows triggered automatically from the plugin will
+              appear here.
             </TableCell>
           </TableRow>
         ) : (
-          automaticallyTriggeredFlows.map((flow) => {
-            const flowRunId = flow.flowRunId;
-
-            return (
-              <HistoryRow
-                flowRun={flow}
-                key={flowRunId}
-                type={
-                  flow.requestedPageUrl ? "external-page-request" : "automatic"
-                }
-              />
-            );
-          })
+          automaticallyTriggeredFlows.map((flow) => (
+            <HistoryRow
+              flowRun={flow}
+              key={flow.flowRunEntityId}
+              type="automatic"
+            />
+          ))
         )}
       </EventTable>
     </>

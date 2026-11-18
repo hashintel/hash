@@ -4,7 +4,6 @@ import { token } from "@hashintel/ds-helpers/tokens";
 
 import type { PaletteName } from "./_types";
 import type { Token } from "@hashintel/ds-helpers/tokens";
-import type { Story } from "@ladle/react";
 
 const COLOR_PALETTES: readonly PaletteName[] = [
   "neutral",
@@ -93,11 +92,13 @@ const BgSwatch = ({
     : "colorPalette.fg.onSolid";
   return (
     <Box
-      px="3"
-      py="2"
-      borderRadius="sm"
-      minWidth="[70px]"
-      boxShadow="[inset_0_0_0_1px_rgba(0,0,0,0.06)]"
+      css={{
+        px: "3",
+        py: "2",
+        borderRadius: "sm",
+        minWidth: "[70px]",
+        boxShadow: "[inset_0_0_0_1px_rgba(0,0,0,0.06)]",
+      }}
       style={{ backgroundColor: token(`colors.${tokenPath}` as Token) }}
     >
       <span
@@ -111,14 +112,14 @@ const BgSwatch = ({
 };
 
 const BgColumn = () => (
-  <VStack gap="3" alignItems="flex-start">
+  <VStack gap="3" css={{ alignItems: "flex-start" }}>
     <span className={sectionTitle}>bg.*</span>
     {bgCategories.map(({ key, desc, useDarkText }) => (
-      <VStack key={key} gap="1" alignItems="flex-start">
+      <VStack key={key} gap="1" css={{ alignItems: "flex-start" }}>
         <span className={categoryLabel}>
           bg.{key} — {desc}
         </span>
-        <HStack gap="1" flexWrap="wrap">
+        <HStack gap="1" css={{ flexWrap: "wrap" }}>
           {states.map((state) => {
             const tokenPath =
               state === "DEFAULT"
@@ -140,14 +141,14 @@ const BgColumn = () => (
 );
 
 const BgSolidColumn = () => (
-  <VStack gap="3" alignItems="flex-start">
+  <VStack gap="3" css={{ alignItems: "flex-start" }}>
     <span className={sectionTitle}>bgSolid.* (opaque surfaces)</span>
     {bgSolidCategories.map(({ key, desc }) => (
-      <VStack key={key} gap="1" alignItems="flex-start">
+      <VStack key={key} gap="1" css={{ alignItems: "flex-start" }}>
         <span className={categoryLabel}>
           bgSolid.{key} — {desc}
         </span>
-        <HStack gap="1" flexWrap="wrap">
+        <HStack gap="1" css={{ flexWrap: "wrap" }}>
           {states.map((state) => {
             const tokenPath =
               state === "DEFAULT"
@@ -165,9 +166,9 @@ const BgSolidColumn = () => (
         </HStack>
       </VStack>
     ))}
-    <VStack gap="1" alignItems="flex-start">
+    <VStack gap="1" css={{ alignItems: "flex-start" }}>
       <span className={categoryLabel}>bgSolid.solid — opaque accent</span>
-      <HStack gap="1" flexWrap="wrap">
+      <HStack gap="1" css={{ flexWrap: "wrap" }}>
         {states.map((state) => {
           const tokenPath =
             state === "DEFAULT"
@@ -188,13 +189,17 @@ const BgSolidColumn = () => (
 );
 
 const FgColumn = () => (
-  <VStack gap="3" alignItems="flex-start">
+  <VStack gap="3" css={{ alignItems: "flex-start" }}>
     <span className={sectionTitle}>fg.*</span>
-    <VStack gap="1" alignItems="flex-start" width="[100%]">
+    <VStack gap="1" css={{ alignItems: "flex-start", width: "[100%]" }}>
       {fgTokens.map(({ key, label }) => {
         const isSolid = key === "fg.onSolid";
         return (
-          <HStack key={key} gap="2" alignItems="center" width="[100%]">
+          <HStack
+            key={key}
+            gap="2"
+            css={{ alignItems: "center", width: "[100%]" }}
+          >
             <span
               className={css({
                 textStyle: "xs",
@@ -206,14 +211,16 @@ const FgColumn = () => (
               {label}
             </span>
             <Box
-              px="3"
-              py="1.5"
-              borderRadius="sm"
-              flex="1"
-              bg={isSolid ? "colorPalette.bg.solid" : undefined}
-              boxShadow={
-                isSolid ? undefined : "[inset_0_0_0_1px_rgba(0,0,0,0.06)]"
-              }
+              css={{
+                px: "3",
+                py: "1.5",
+                borderRadius: "sm",
+                flex: "1",
+                bg: isSolid ? "colorPalette.bg.solid" : undefined,
+                boxShadow: isSolid
+                  ? undefined
+                  : "[inset_0_0_0_1px_rgba(0,0,0,0.06)]",
+              }}
             >
               <span
                 className={css({ textStyle: "xs" })}
@@ -238,14 +245,16 @@ const BorderSwatch = ({
   label: string;
   tokenPath: string;
 }) => (
-  <VStack gap="0.5" alignItems="center">
+  <VStack gap="0.5" css={{ alignItems: "center" }}>
     <Box
-      width="[56px]"
-      height="[42px]"
-      borderRadius="sm"
-      display="flex"
-      alignItems="center"
-      justifyContent="center"
+      css={{
+        width: "[56px]",
+        height: "[42px]",
+        borderRadius: "sm",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
       style={{
         border: `2px solid ${token(`colors.${tokenPath}` as Token)}`,
       }}
@@ -263,9 +272,9 @@ const BorderSwatch = ({
 );
 
 const FocusRingDemo = () => (
-  <VStack gap="3" alignItems="flex-start">
+  <VStack gap="3" css={{ alignItems: "flex-start" }}>
     <span className={sectionTitle}>focusRing</span>
-    <HStack gap="3" flexWrap="wrap">
+    <HStack gap="3" css={{ flexWrap: "wrap" }}>
       {(["outside", "inside", "mixed"] as const).map((variant) => (
         <button
           key={variant}
@@ -301,14 +310,14 @@ const FocusRingDemo = () => (
 );
 
 const BdColumn = () => (
-  <VStack gap="3" alignItems="flex-start">
+  <VStack gap="3" css={{ alignItems: "flex-start" }}>
     <span className={sectionTitle}>bd.*</span>
     {bdCategories.map(({ key, desc }) => (
-      <VStack key={key} gap="1" alignItems="flex-start">
+      <VStack key={key} gap="1" css={{ alignItems: "flex-start" }}>
         <span className={categoryLabel}>
           bd.{key} — {desc}
         </span>
-        <HStack gap="1" flexWrap="wrap">
+        <HStack gap="1" css={{ flexWrap: "wrap" }}>
           {states.map((state) => {
             const tokenPath =
               state === "DEFAULT"
@@ -329,7 +338,7 @@ const BdColumn = () => (
 );
 
 const PaletteSection = ({ palette }: { palette: string }) => (
-  <Box colorPalette={palette as "bg.min"}>
+  <Box css={{ colorPalette: palette as "bg.min" }}>
     <h2
       className={css({
         textStyle: "lg",
@@ -344,7 +353,7 @@ const PaletteSection = ({ palette }: { palette: string }) => (
       <BgColumn />
       <BgSolidColumn />
       <FgColumn />
-      <VStack gap="6" alignItems="flex-start">
+      <VStack gap="6" css={{ alignItems: "flex-start" }}>
         <BdColumn />
         <FocusRingDemo />
       </VStack>
@@ -352,9 +361,9 @@ const PaletteSection = ({ palette }: { palette: string }) => (
   </Box>
 );
 
-export const ColorVariants: Story = () => (
-  <VStack gap="6" alignItems="flex-start" p="6">
-    <VStack gap="1" alignItems="flex-start">
+export const ColorVariantsDemo = () => (
+  <VStack gap="6" css={{ alignItems: "flex-start", p: "6" }}>
+    <VStack gap="1" css={{ alignItems: "flex-start" }}>
       <h1 className={css({ textStyle: "2xl", fontWeight: "semibold" })}>
         Color Variants
       </h1>
@@ -389,12 +398,10 @@ export const ColorVariants: Story = () => (
       </p>
     </VStack>
 
-    <Grid columns={2} gap="10" width="[100%]">
+    <Grid columns={2} gap="10" css={{ width: "[100%]" }}>
       {COLOR_PALETTES.map((palette) => (
         <PaletteSection key={palette} palette={palette} />
       ))}
     </Grid>
   </VStack>
 );
-
-ColorVariants.storyName = "Color Variants";

@@ -27,6 +27,9 @@ export const IconProvider = ({
   <IconPackContext value={icons}>{children}</IconPackContext>
 );
 
+// Stable name for the docs Stage code serializer under minification
+IconProvider.displayName = "IconProvider";
+
 export const Icon = ({
   className,
   name,
@@ -53,3 +56,6 @@ export const Icon = ({
     />
   );
 };
+
+// Stable name for the docs Stage code serializer under minification
+Icon.displayName = "Icon";

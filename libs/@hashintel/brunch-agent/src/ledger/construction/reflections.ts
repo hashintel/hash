@@ -2,12 +2,13 @@ import * as v from "valibot";
 
 import { netElementKinds } from "../../petrinaut/petrinaut-tool-effects";
 import {
-  vClaimReference,
-  vEntityReference,
-  vObligationReference,
+  resolvesField,
+  claimReferenceSchema,
+  entityReferenceSchema,
+  obligationReferenceSchema,
 } from "../shared/references";
 
-export const vNetElementAddress = v.pipe(
+export const netElementAddressSchema = v.pipe(
   v.strictObject({
     kind: v.pipe(
       v.picklist(netElementKinds),
@@ -17,25 +18,25 @@ export const vNetElementAddress = v.pipe(
       v.string(),
       v.minLength(1),
       v.description(
-        "The net element's ID from an inspection or accepted change, not a display name or Ledger entity ID.",
+        "The ID you gave the element when you created it, or for an element you did not create the ID from an inspection; never a display name or Ledger entity ID.",
       ),
     ),
   }),
   v.description("An address of an observed net element by kind and ID."),
 );
 
-export const vReflection = v.pipe(
+export const reflectionSchema = v.pipe(
   v.strictObject({
     text: v.pipe(
       v.string(),
       v.minLength(1),
       v.description(
-        "The reflection itself: the modeling choice behind an accepted change, what referenced net elements represent, and any consequential approximation or omission. A stand-in or approximation a reported result rests on also gets an obligation entry in the same call, naming the run that would test it. Do not repeat mechanical tool receipts or revision IDs.",
+        "The reflection itself: why an accepted change was made, what referenced net elements represent, and any consequential approximation or omission, not a restatement of the change or its element descriptions. A stand-in or approximation a reported result rests on also gets an obligation entry in the same call, naming the run that would test it. Do not repeat tool outcomes (accepted, read back, diagnostics clean, not yet run) or revision IDs.",
       ),
     ),
     netElements: v.optional(
       v.pipe(
-        v.array(vNetElementAddress),
+        v.array(netElementAddressSchema),
         v.description(
           "Addresses of the observed net elements this reflection concerns.",
         ),
@@ -43,7 +44,7 @@ export const vReflection = v.pipe(
     ),
     claims: v.optional(
       v.pipe(
-        v.array(vClaimReference),
+        v.array(claimReferenceSchema),
         v.description(
           "References to the claims this reflection addresses: existing claim IDs or $index references to claim entries in this call.",
         ),
@@ -51,20 +52,21 @@ export const vReflection = v.pipe(
     ),
     entities: v.optional(
       v.pipe(
-        v.array(vEntityReference),
+        v.array(entityReferenceSchema),
         v.description(
-          "References to the entities this reflection concerns: existing entity IDs or $index references to entity entries in this call.",
+          "References to the entities this reflection concerns that its claims do not already reach: existing entity IDs or $index references to entity entries in this call.",
         ),
       ),
     ),
     discharges: v.optional(
       v.pipe(
-        v.array(vObligationReference),
+        v.array(obligationReferenceSchema),
         v.description(
           "Obligations this reflection discharges: existing obligation IDs or $index references to obligation entries in this call. The text names the run, calculation or inspection that met each one, with its observed result, the USER's explicit waiver, or the model change that left no result resting on it.",
         ),
       ),
     ),
+    ...resolvesField,
   }),
   v.check(
     (reflection) =>
@@ -80,5 +82,5 @@ export const vReflection = v.pipe(
   ),
 );
 
-export type NetElementAddress = v.InferOutput<typeof vNetElementAddress>;
-export type Reflection = v.InferOutput<typeof vReflection>;
+export type NetElementAddress = v.InferOutput<typeof netElementAddressSchema>;
+export type Reflection = v.InferOutput<typeof reflectionSchema>;

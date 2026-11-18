@@ -1,5 +1,3 @@
-import { Fragment, type ReactNode } from "react";
-
 import { css } from "@hashintel/ds-helpers/css";
 
 import { formInputSizes } from "../../util/form-shared";
@@ -7,7 +5,8 @@ import { Avatar } from "../Avatar/avatar";
 import { Tooltip } from "../Tooltip/tooltip";
 import { AvatarGroup } from "./avatar-group";
 
-import type { Story, StoryDefault } from "@ladle/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { ReactNode } from "react";
 
 type AvatarGroupProps = React.ComponentProps<typeof AvatarGroup>;
 type AvatarProps = React.ComponentProps<typeof Avatar>;
@@ -21,20 +20,29 @@ type PersonAvatar = {
   placeholder: AvatarProps["placeholder"];
 };
 
-const sampleImage = "https://avatars.githubusercontent.com/u/1846056?v=4";
+const sampleImage = "https://avatars.githubusercontent.com/u/2991143?v=4";
 
-export default {
+const meta = {
   title: "Components/AvatarGroup",
-} satisfies StoryDefault<AvatarGroupProps>;
+  component: AvatarGroup,
+  args: {
+    lastOnTop: false,
+    spacing: "md",
+  },
+} satisfies Meta<AvatarGroupProps>;
+
+export default meta;
+
+type Story = StoryObj<AvatarGroupProps>;
 
 // Avatars are passed as children; the group sets size/tone via context, so the
 // children below leave those unset.
 const people: PersonAvatar[] = [
   {
     shape: "circle",
-    alt: "Christian Busch",
+    alt: "Chris Feijoo",
     src: sampleImage,
-    placeholder: { initials: "CB" },
+    placeholder: { initials: "CF" },
   },
   { shape: "circle", alt: "Ada Lovelace", placeholder: { initials: "AL" } },
   { shape: "circle", alt: "Grace Hopper", placeholder: { initials: "GH" } },
@@ -77,124 +85,112 @@ const labelClass = css({
   whiteSpace: "nowrap",
 });
 
-type LabeledRow = { label: string; content: ReactNode };
-
-const Rows = ({ rows }: { rows: LabeledRow[] }) => (
-  <div className={rowClass}>
-    {rows.map((row) => (
-      <Fragment key={row.label}>
-        <span className={labelClass}>{row.label}</span>
-        {row.content}
-      </Fragment>
-    ))}
-  </div>
+const Rows = ({ children }: { children: ReactNode }) => (
+  <div className={rowClass}>{children}</div>
 );
 
-export const Default: Story<AvatarGroupProps> = () => (
-  <Rows
-    rows={[
-      {
-        label: "All avatars",
-        content: <AvatarGroup>{avatarsOf(people)}</AvatarGroup>,
-      },
-      {
-        label: "lastOnTop",
-        content: <AvatarGroup lastOnTop>{avatarsOf(people)}</AvatarGroup>,
-      },
-      {
-        label: "max = 4",
-        content: <AvatarGroup max={4}>{avatarsOf(people)}</AvatarGroup>,
-      },
-      {
-        label: "total = 24",
-        content: (
-          <AvatarGroup max={4} total={24}>
-            {avatarsOf(people)}
-          </AvatarGroup>
-        ),
-      },
-      {
-        label: "custom overflow",
-        content: (
-          <AvatarGroup>
-            {avatarsOf(people.slice(0, 3))}
-            <AvatarGroup.More alt="99 or more people">
-              <span style={{ fontSize: 11 }}>99+</span>
-            </AvatarGroup.More>
-          </AvatarGroup>
-        ),
-      },
-      {
-        label: "brand tone",
-        content: (
-          <AvatarGroup max={4} tone="brand">
-            {avatarsOf(people)}
-          </AvatarGroup>
-        ),
-      },
-      {
-        label: "square",
-        content: (
-          <AvatarGroup max={4}>{avatarsOf(asShape("square"))}</AvatarGroup>
-        ),
-      },
-      {
-        label: "mixed shapes",
-        content: <AvatarGroup max={4}>{avatarsOf(mixedShapes)}</AvatarGroup>,
-      },
-      {
-        label: "spacing = sm",
-        content: (
-          <AvatarGroup max={4} spacing="sm">
-            {avatarsOf(people)}
-          </AvatarGroup>
-        ),
-      },
-      {
-        label: "with tooltips",
-        content: (
-          <AvatarGroup max={4}>
-            {people.map((props) => (
-              <Tooltip
-                key={props.src ?? props.alt}
-                content={props.alt}
-                position="bottom"
-              >
-                <Avatar
-                  {...props}
-                  onClick={() => {
-                    // eslint-disable-next-line no-console
-                    console.log(`Clicked ${props.alt}`);
-                  }}
-                />
-              </Tooltip>
-            ))}
-          </AvatarGroup>
-        ),
-      },
-    ]}
-  />
+// Row content flows as children, never inside a plain-object prop: Storybook's
+// docs source serializer deep-walks object props, and in dev it escapes via an
+// element's _owner fiber into the live React tree and freezes the page.
+const Row = ({ label, children }: { label: string; children: ReactNode }) => (
+  <>
+    <span className={labelClass}>{label}</span>
+    {children}
+  </>
 );
 
-export const Sizes: Story<AvatarGroupProps> = () => (
-  <Rows
-    rows={[
-      ...formInputSizes.map((size) => ({
-        label: size,
-        content: (
-          <AvatarGroup max={4} size={size}>
+export const Default: Story = {
+  render: (args: Partial<AvatarGroupProps>) => (
+    <Rows>
+      <Row label="All avatars">
+        <AvatarGroup {...args}>{avatarsOf(people)}</AvatarGroup>
+      </Row>
+      <Row label="lastOnTop">
+        <AvatarGroup {...args} lastOnTop>
+          {avatarsOf(people)}
+        </AvatarGroup>
+      </Row>
+      <Row label="max = 4">
+        <AvatarGroup {...args} max={4}>
+          {avatarsOf(people)}
+        </AvatarGroup>
+      </Row>
+      <Row label="total = 24">
+        <AvatarGroup {...args} max={4} total={24}>
+          {avatarsOf(people)}
+        </AvatarGroup>
+      </Row>
+      <Row label="custom overflow">
+        <AvatarGroup {...args}>
+          {avatarsOf(people.slice(0, 3))}
+          <AvatarGroup.More alt="99 or more people">
+            <span style={{ fontSize: 11 }}>99+</span>
+          </AvatarGroup.More>
+        </AvatarGroup>
+      </Row>
+      <Row label="brand tone">
+        <AvatarGroup {...args} max={4} tone="brand">
+          {avatarsOf(people)}
+        </AvatarGroup>
+      </Row>
+      <Row label="square">
+        <AvatarGroup {...args} max={4}>
+          {avatarsOf(asShape("square"))}
+        </AvatarGroup>
+      </Row>
+      <Row label="mixed shapes">
+        <AvatarGroup {...args} max={4}>
+          {avatarsOf(mixedShapes)}
+        </AvatarGroup>
+      </Row>
+      <Row label="spacing = sm">
+        <AvatarGroup {...args} max={4} spacing="sm">
+          {avatarsOf(people)}
+        </AvatarGroup>
+      </Row>
+      <Row label="with tooltips">
+        <AvatarGroup {...args} max={4}>
+          {people.map((props) => (
+            <Tooltip
+              key={props.src ?? props.alt}
+              content={props.alt}
+              position="bottom"
+            >
+              <Avatar
+                {...props}
+                onClick={() => {
+                  // eslint-disable-next-line no-console
+                  console.log(`Clicked ${props.alt}`);
+                }}
+              />
+            </Tooltip>
+          ))}
+        </AvatarGroup>
+      </Row>
+    </Rows>
+  ),
+};
+
+export const Sizes: Story = {
+  render: (args: Partial<AvatarGroupProps>) => (
+    <Rows>
+      {formInputSizes.map((size) => (
+        <Row key={size} label={size}>
+          <AvatarGroup {...args} max={4} size={size}>
             {avatarsOf(people)}
           </AvatarGroup>
-        ),
-      })),
-      {
-        label: "custom (64px)",
-        content: (
-          <AvatarGroup max={4} size="custom" className={customSizeClass}>
-            {avatarsOf(people)}
-          </AvatarGroup>
-        ),
-      },
-    ]}
-  />
-);
+        </Row>
+      ))}
+      <Row label="custom (64px)">
+        <AvatarGroup
+          {...args}
+          max={4}
+          size="custom"
+          className={customSizeClass}
+        >
+          {avatarsOf(people)}
+        </AvatarGroup>
+      </Row>
+    </Rows>
+  ),
+};

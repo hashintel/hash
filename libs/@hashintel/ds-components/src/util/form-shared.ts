@@ -13,7 +13,12 @@ export type FormInputWidth =
 export type SharedInputAndFieldProps = {
   /** Set to show the input as disabled */
   disabled?: boolean;
-  /** Set to show the input as required */
+  /**
+   * Marks the input as required: sets the native `required` attribute, so
+   * assistive technology announces it and form validation blocks empty
+   * submits. Purely functional — the input looks unchanged; pair it with
+   * `Form.Field`'s `required` for the visible mark.
+   */
   required?: boolean;
   /** The size (height) of the element */
   size?: FormInputSize;

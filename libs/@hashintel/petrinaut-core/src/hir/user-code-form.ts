@@ -1,13 +1,13 @@
 /**
- * Source-form detection for dynamics/lambda/kernel user code.
+ * Source-form detection for dynamics/lambda/kernel/visualizer user code.
  *
  * These surfaces accept two source forms:
  *
  * - **module** — `export default <Ctor>((tokens, parameters) => …)`, the
  *   original authoring style;
  * - **body** — a bare function body ending in `return`, with the input
- *   (`tokens` / `input`) and `parameters` available ambiently, like
- *   metric and scenario code.
+ *   (`token` / `tokens` / `input`) and `parameters` available ambiently,
+ *   like metric and scenario code.
  *
  * The HIR lowering and the LSP's virtual-file wrapping must agree on which
  * form a given piece of code is in, so the decision lives here and nowhere
@@ -34,13 +34,25 @@ export type UserCodeForm = "module" | "body";
 /**
  * Ambient input-object names for the bare-body form — the names the docs
  * teach and the LSP's body wrapper declares. `parameters` is ambient in
- * every bare body.
+ * every bare body. An equation that couples one token sees `token` instead
+ * of the `tokens` tuple: see {@link dynamicsInputName}.
  */
 export const AMBIENT_INPUT_NAMES: Record<DualFormSurfaceKind, string> = {
   dynamics: "tokens",
   lambda: "input",
   kernel: "input",
 };
+
+/** The ambient name of the one token an equation of arity 1 couples. */
+export const SINGLE_TOKEN_INPUT_NAME = "token";
+
+/**
+ * The ambient input name of an equation's bare body: `token`, the token
+ * itself, for an equation that couples one; `tokens`, the tuple, for one
+ * that couples more.
+ */
+export const dynamicsInputName = (arity: number | undefined): string =>
+  arity === 1 ? SINGLE_TOKEN_INPUT_NAME : AMBIENT_INPUT_NAMES.dynamics;
 
 function isExportStatement(statement: ts.Statement): boolean {
   if (ts.isExportAssignment(statement) || ts.isExportDeclaration(statement)) {
@@ -55,17 +67,25 @@ function isExportStatement(statement: ts.Statement): boolean {
 }
 
 /**
- * Classifies dynamics/lambda/kernel user code as the module form or the
+ * Classifies user code as the module form or the
  * bare-body form. Tolerant of syntax errors — the parser still produces
  * statements for broken code, and downstream lowering / type checking reports
  * the errors for whichever form was detected.
  */
-export function detectUserCodeForm(code: string): UserCodeForm {
-  const sourceFile = ts.createSourceFile(
-    "detect-form.ts",
-    code,
-    ts.ScriptTarget.ES2020,
-  );
+export function detectUserCodeForm(
+  code: string | ts.SourceFile,
+  scriptKind = ts.ScriptKind.TS,
+): UserCodeForm {
+  const sourceFile =
+    typeof code === "string"
+      ? ts.createSourceFile(
+          "detect-form.ts",
+          code,
+          ts.ScriptTarget.ES2020,
+          false,
+          scriptKind,
+        )
+      : code;
   return sourceFile.statements.some(isExportStatement) ? "module" : "body";
 }
 

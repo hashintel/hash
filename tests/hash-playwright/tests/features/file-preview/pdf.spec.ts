@@ -7,6 +7,7 @@ import {
 import {
   expectFileUrlEditOnLaterPageShowsNewFile,
   getPdfPage,
+  getPdfSearchHighlights,
   pdf,
   uploadAndOpenFile,
 } from "../../shared/file-preview/utils";
@@ -51,7 +52,7 @@ test.describe("PDF preview", () => {
       .toBeGreaterThan(widthBeforeZoom);
   });
 
-  test("search highlights a word and the next result moves to the next page holding it", async ({
+  test("search highlights a word and the next result moves to the next page holding it, then back to the first hit", async ({
     page,
   }) => {
     const pdfPage = getPdfPage(page);
@@ -61,12 +62,15 @@ test.describe("PDF preview", () => {
     await expectFullyShown(searchInput);
     await searchInput.fill(testDocumentSearchWord);
 
-    const searchHighlight = pdfPage.locator('span[style*="border-bottom"]', {
-      hasText: testDocumentSearchWord,
-    });
+    const shownPageHighlights = {
+      hits: [testDocumentSearchWord],
+      current: [testDocumentSearchWord],
+    };
 
-    await expect(searchHighlight).toBeVisible();
     await expect(page.getByText("1 of 2", { exact: true })).toBeVisible();
+    await expect
+      .poll(() => getPdfSearchHighlights(page))
+      .toEqual(shownPageHighlights);
 
     const nextResult = page.getByRole("button", { name: "Next result" });
     await expectFullyShown(nextResult);
@@ -75,7 +79,18 @@ test.describe("PDF preview", () => {
     await expect(
       pdfPage.getByText(thirdPage.heading, { exact: true }),
     ).toBeVisible();
-    await expect(searchHighlight).toBeVisible();
+    await expect
+      .poll(() => getPdfSearchHighlights(page))
+      .toEqual(shownPageHighlights);
+
+    await nextResult.click();
+    await expect(page.getByText("1 of 2", { exact: true })).toBeVisible();
+    await expect(
+      pdfPage.getByText(firstPage.heading, { exact: true }),
+    ).toBeVisible();
+    await expect
+      .poll(() => getPdfSearchHighlights(page))
+      .toEqual(shownPageHighlights);
   });
 
   test("text selected on a page can be copied and pasted", async ({ page }) => {

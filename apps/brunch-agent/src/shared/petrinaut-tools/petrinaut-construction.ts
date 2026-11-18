@@ -9,34 +9,12 @@ import {
 } from "@hashintel/brunch-agent";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
-type CanonicalJson =
-  | string
-  | number
-  | boolean
-  | null
-  | CanonicalJson[]
-  | { [key: string]: CanonicalJson };
+import {
+  browserResultEnvelope,
+  type BrowserToolExecutor,
+} from "../conversation/browser-tool-executor.ts";
 
-/** Issues one call to the bound browser and resolves with its settled result. */
-export type BrowserToolExecutor = (call: {
-  readonly toolName: string;
-  readonly input: unknown;
-  readonly toolCallId: string;
-  readonly signal?: AbortSignal;
-}) => Promise<{ readonly output: unknown; readonly metadata?: unknown }>;
-
-/** The browser's output goes to the model; the envelope and its metadata stay host-only. */
-export const browserResultEnvelope = (result: {
-  readonly output: unknown;
-  readonly metadata?: unknown;
-}) =>
-  JSON.parse(
-    JSON.stringify({
-      brunchBrowserResult: true,
-      output: result.output,
-      ...(result.metadata === undefined ? {} : { metadata: result.metadata }),
-    }),
-  ) as CanonicalJson;
+import type { PetrinautAiToolName } from "@hashintel/petrinaut-core/ai";
 
 /** The browser runs `getLatestNetDefinition` and returns only the requested view. */
 export const netReaderTools = (execute: BrowserToolExecutor) =>
@@ -57,8 +35,11 @@ export const netReaderTools = (execute: BrowserToolExecutor) =>
     }),
   );
 
-export const asyncCanonicalPetrinautTools = (execute: BrowserToolExecutor) =>
-  CANONICAL_PETRINAUT_TOOL_NAMES.map((toolName) => {
+export const asyncCanonicalPetrinautTools = (
+  execute: BrowserToolExecutor,
+  toolNames: readonly PetrinautAiToolName[] = CANONICAL_PETRINAUT_TOOL_NAMES,
+) =>
+  toolNames.map((toolName) => {
     const tool = petrinautAiTools[toolName];
     return defineTool({
       name: toolName,

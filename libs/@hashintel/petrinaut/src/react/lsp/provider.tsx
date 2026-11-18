@@ -33,8 +33,8 @@ export const LanguageClientProvider: React.FC<{
   /**
    * Optional LSP worker factory. When provided, used instead of the bundled
    * inlined-blob default (which can fail under some host bundler setups when
-   * consuming the published dist). Mirrors `simulationWorkerFactory` on
-   * SimulationProvider.
+   * consuming the published dist). Mirrors `eventSimulationWorkerFactory`
+   * on PetrinautProvider.
    */
   workerFactory?: LspWorkerFactory;
 }> = ({ children, workerFactory }) => {
@@ -110,10 +110,12 @@ export const LanguageClientProvider: React.FC<{
     requestHover: client.requestHover,
     requestSignatureHelp: client.requestSignatureHelp,
     requestDiagnostics: client.requestDiagnostics,
+    netAnalysis: client.netAnalysis,
     requestHirArtifacts: client.requestHirArtifacts,
     requestScenarioHir: client.requestScenarioHir,
     requestFormatExpression: client.requestFormatExpression,
     requestConstraint: client.requestConstraint,
+    requestVisualizerHir: client.requestVisualizerHir,
     initializeMetricSession: client.initializeMetricSession,
     initializeAdHocSession: client.initializeAdHocSession,
     updateAdHocSession: client.updateAdHocSession,

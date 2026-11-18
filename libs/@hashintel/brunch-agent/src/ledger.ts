@@ -5,25 +5,44 @@
  * same projection the server compiles.
  */
 
-export { vLedgerAppend, type LedgerAppend } from "./ledger/append";
+export {
+  ledgerAppendSchemaWith,
+  ledgerAppendSchema,
+  type LedgerAppend,
+} from "./ledger/append";
+export {
+  ledgerCommentsMessage,
+  parseLedgerComments,
+  type LedgerComment,
+} from "./ledger/comments";
 export {
   foldCommits,
   isRefusedLedgerCommit,
+  latestLedgerTurnId,
   ledgerAppendOutputSchema,
   prepareAppend,
-  type AcceptedCommit,
   type FoldedLedger,
-  type LedgerAppendOutput,
   type LedgerHistory,
   type LedgerHistoryMessage,
 } from "./ledger/commits";
-export { vObligation } from "./ledger/construction/obligations";
-export { vReflection } from "./ledger/construction/reflections";
-export { vClaim } from "./ledger/elicitation/claims";
+export {
+  latestTurnChanges,
+  type LedgerChange,
+} from "./ledger/latest-turn-changes";
+export { claimSchema } from "./ledger/elicitation/claims";
 export {
   entityKindStages,
-  vEntity,
-  vEntityKind,
+  entitySchema,
+  entityKindSchema,
 } from "./ledger/elicitation/entities";
-export { vOrigin, vStatus } from "./ledger/shared/epistemics";
+export {
+  reflectionSchema,
+  type NetElementAddress,
+} from "./ledger/construction/reflections";
+export {
+  originSchemaWith,
+  originSchema,
+  statusSchema,
+} from "./ledger/shared/epistemics";
+export { traceLedger, type LedgerTrace } from "./ledger/trace";
 export * from "./ledger/projection";

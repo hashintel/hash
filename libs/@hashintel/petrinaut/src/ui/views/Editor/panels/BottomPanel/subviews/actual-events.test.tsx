@@ -20,7 +20,6 @@ const definition: SDCPN = {
       name: "Queue",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     },
@@ -29,7 +28,6 @@ const definition: SDCPN = {
       name: "",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     },
@@ -62,7 +60,7 @@ describe("Actual mode events", () => {
       <ActualModeContext
         value={{
           available: true,
-          source: { kind: "brunch", endpoint: "/brunch" },
+          source: { id: "run-1" },
           status: "complete",
           title: null,
           definition,
@@ -75,7 +73,6 @@ describe("Actual mode events", () => {
               ts: "2026-10-07T00:00:00.000Z",
             },
           ],
-          receivedEvents: [],
           timelineStartedAtMs: null,
           timelineNowMs: null,
           error: null,

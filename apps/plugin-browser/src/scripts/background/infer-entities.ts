@@ -1,10 +1,12 @@
 import { v4 as uuid } from "uuid";
 import browser from "webextension-polyfill";
 
+import { entityIdFromComponents } from "@blockprotocol/type-system";
 import {
-  automaticBrowserInferenceFlow,
-  manualBrowserInferenceFlow,
-} from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
+  flowDefinitionIds,
+  generateHashFlowDefinitionEntityId,
+} from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
 
 import { FlowRunStatus } from "../../graphql/api-types.gen";
@@ -15,7 +17,7 @@ import {
 import { getWebsiteContent } from "./infer-entities/get-website-content";
 
 import type { InferEntitiesRequest } from "../../shared/messages";
-import type { EntityUuid } from "@blockprotocol/type-system";
+import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
 import type {
   AutomaticInferenceWebsocketRequestMessage,
   CancelInferEntitiesWebsocketRequestMessage,
@@ -172,7 +174,7 @@ const createWebSocket = async ({ onClose }: { onClose: () => void }) => {
         return;
       }
 
-      const { workflowId, payload } = message;
+      const { flowRunEntityId, payload } = message;
       if (payload.type === "get-urls-html-content") {
         const inputRequests =
           (await getFromLocalStorage("externalInputRequests")) ?? {};
@@ -205,7 +207,7 @@ const createWebSocket = async ({ onClose }: { onClose: () => void }) => {
           newWs.send(
             JSON.stringify({
               cookie,
-              workflowId,
+              flowRunEntityId,
               payload: {
                 ...payload,
                 data: { webPages: webPages ?? [] },
@@ -300,9 +302,9 @@ const sendInferEntitiesMessage = async (
 };
 
 export const cancelInferEntities = async ({
-  flowRunId,
+  flowRunEntityId,
 }: {
-  flowRunId: string;
+  flowRunEntityId: EntityId;
 }) => {
   const cookie = await buildWebsocketCookieString();
 
@@ -311,7 +313,7 @@ export const cancelInferEntities = async ({
   socket.send(
     JSON.stringify({
       cookie,
-      flowRunId,
+      flowRunEntityId,
       requestUuid: uuid(),
       type: "cancel-inference-request",
     } satisfies CancelInferEntitiesWebsocketRequestMessage),
@@ -331,7 +333,7 @@ export const inferEntities = async (
 
   const { createAs, entityTypeIds, model, webId, sourceWebPage } = message;
 
-  const requestUuid = uuid() as EntityUuid;
+  const requestUuid = generateUuid() as EntityUuid;
 
   const basePayload = {
     webId,
@@ -370,10 +372,12 @@ export const inferEntities = async (
 
   await sendInferEntitiesMessage(inferenceArgs);
 
-  const flowDefinition =
+  const flowDefinitionEntityId = generateHashFlowDefinitionEntityId(
+    user.hashWebId,
     trigger === "automatic"
-      ? automaticBrowserInferenceFlow
-      : manualBrowserInferenceFlow;
+      ? flowDefinitionIds.automaticBrowserInference
+      : flowDefinitionIds.manualBrowserInference,
+  );
 
   /**
    * Optimistically add the run to local storage so that it appears in the history tab immediately.
@@ -382,13 +386,12 @@ export const inferEntities = async (
   await setLocalPendingRuns((existingValue) => [
     ...(existingValue ?? []),
     {
-      flowDefinitionId: flowDefinition.flowDefinitionId,
-      flowRunId: requestUuid,
+      flowDefinitionEntityId,
+      flowRunEntityId: entityIdFromComponents(webId, requestUuid),
       closedAt: null,
-      executedAt: new Date().toISOString(),
+      startedAt: new Date().toISOString(),
       persistedEntities: [],
       webId,
-      inputRequests: [],
       flowInputs: {},
       webPage: basePayload.visitedWebPage.value,
       status: FlowRunStatus.Running,

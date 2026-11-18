@@ -1,7 +1,12 @@
 mod v1;
 
-use crate::rest::Api;
+use hash_graph_store::pool::StorePool;
 
-pub(super) fn api() -> [Api; 1] {
+use crate::rest::{Api, ApiState};
+
+pub(super) fn api<S>() -> [Api<ApiState<S>>; 1]
+where
+    S: StorePool + Send + Sync + 'static,
+{
     [v1::api()]
 }

@@ -1,4 +1,8 @@
-import type { ClientToolResult } from "./browser-tool-result";
+import {
+  browserToolEnvelopeOf,
+  type ClientToolResult,
+} from "./browser-tool-result";
+
 import type { FlueConversationMessage, FlueConversationPart } from "@flue/sdk";
 
 type DynamicToolPart = Extract<FlueConversationPart, { type: "dynamic-tool" }>;
@@ -47,22 +51,16 @@ const resultsFrom = (
 ): readonly ClientToolHistoryResult[] =>
   messages.flatMap((message) => {
     return message.parts.flatMap((part): ClientToolHistoryResult[] => {
-      if (
-        part.type !== "dynamic-tool" ||
-        part.state !== "output-available" ||
-        !isRecord(part.output) ||
-        part.output.brunchBrowserResult !== true ||
-        !("output" in part.output)
-      )
+      if (part.type !== "dynamic-tool" || part.state !== "output-available")
         return [];
+      const envelope = browserToolEnvelopeOf(part.output);
+      if (!envelope) return [];
       return [
         {
           toolCallId: part.toolCallId,
           toolName: part.toolName,
-          output: part.output.output,
-          ...("metadata" in part.output
-            ? { metadata: part.output.metadata }
-            : {}),
+          output: envelope.output,
+          ...("metadata" in envelope ? { metadata: envelope.metadata } : {}),
         },
       ];
     });

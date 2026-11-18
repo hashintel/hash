@@ -59,7 +59,7 @@ mod tests {
     };
     #[test]
     fn constraint() -> Result<(), Box<dyn Error>> {
-        let web_role_id = WebRoleId::new(Uuid::new_v4());
+        let web_role_id = WebRoleId::new(Uuid::now_v7());
         check_principal(
             PrincipalConstraint::Role {
                 actor_type: None,
@@ -91,7 +91,7 @@ mod tests {
             json!({
                 "type": "role",
                 "roleType": "web",
-                "id": Uuid::new_v4(),
+                "id": Uuid::now_v7(),
                 "additional": "unexpected",
             }),
             "unknown field `additional`",

@@ -69,7 +69,7 @@ export const QuestionModal = ({
     );
   }
 
-  const { selectedFlowRunId } = useFlowRunsContext();
+  const { selectedFlowRunEntityId } = useFlowRunsContext();
 
   const [submitExternalInputResponse] = useMutation<
     SubmitExternalInputResponseMutation,
@@ -87,13 +87,13 @@ export const QuestionModal = ({
   );
 
   const submitAnswers = async () => {
-    if (!allQuestionsAnswered || !selectedFlowRunId) {
+    if (!allQuestionsAnswered || !selectedFlowRunEntityId) {
       return;
     }
 
     await submitExternalInputResponse({
       variables: {
-        flowUuid: selectedFlowRunId,
+        flowRunEntityId: selectedFlowRunEntityId,
         response: {
           requestId: inputRequest.requestId,
           type: "human-input",

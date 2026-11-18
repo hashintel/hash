@@ -3,6 +3,7 @@
   "dependencies": [
     "error-stack",
     "hash-codec",
+    "hash-crypto",
     "hash-graph-authentication",
     "hash-graph-authorization",
     "hash-graph-embeddings",
@@ -12,7 +13,6 @@
     "hash-graph-types",
     "hash-graph-validation",
     "hash-middleware",
-    "hash-secret",
     "hash-status",
     "hash-telemetry",
     "hash-temporal-client",

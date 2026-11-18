@@ -1,0 +1,391 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { Fragment } from "react";
+
+import { noop } from "../../util/noop";
+import { DemoState } from "../../../docs/blocks/demo-state";
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import { Form } from "../Form/form";
+import { TextArea } from "./text-area";
+
+<Meta title="Docs/TextArea" />
+
+export const meta = {
+  title: "TextArea",
+  description:
+    "Capture free-form text that spans multiple lines, such as descriptions and comments.",
+  alternativeNames: ["Textarea", "MultilineTextField"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/TextArea/text-area.tsx",
+    stories:
+      "https://tokens.hash.design/?path=/story/components-textarea--default",
+  },
+  referenceLinks: {
+    mdn: "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/textarea",
+  },
+  related: ["TextInput", "CharacterCount", "Form"],
+};
+
+# TextArea
+
+Capture free-form text that spans multiple lines, such as descriptions and comments.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+<Stage>
+  <div style={{ width: 340 }}>
+    <DemoState data-harness>
+      <TextArea
+        value="Tracks every research paper the lab has published, with links to authors and funding sources."
+        onChange={noop}
+      />
+    </DemoState>
+  </div>
+  <div style={{ width: 340 }}>
+    <DemoState data-harness>
+      <TextArea
+        value=""
+        placeholder="Describe this entity type…"
+        characterLimit={120}
+        onChange={noop}
+      />
+    </DemoState>
+  </div>
+  <div style={{ width: 340 }}>
+    <DemoState data-harness>
+      <TextArea
+        variant="subtle"
+        value="Combines arXiv metadata with citation counts to rank papers by influence."
+        onChange={noop}
+      />
+    </DemoState>
+  </div>
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { useState } from "react";
+
+import { TextArea } from "@hashintel/ds-components";
+
+export const EntityDescriptionField = () => {
+  const [description, setDescription] = useState("");
+
+  return (
+    <TextArea
+      value={description}
+      onChange={setDescription}
+      placeholder="Describe this entity type…"
+      rows={4}
+    />
+  );
+};
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use TextArea for free-form text that runs longer than a few words: descriptions, notes, comments, feedback.",
+    <Fragment key="0">
+      Use <code>autoResize</code> for composer-style inputs — comments, chat
+      messages — where the field should grow with the text.
+    </Fragment>,
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    "Don't use TextArea for single-line values such as names, emails or URLs — use TextInput.",
+    "Don't ask users to type what they could pick — for a known set of options use Select, Combobox or RadioGroup.",
+    "Don't use it for formatted text — TextArea is plain text only; reach for a dedicated rich-text editor.",
+  ]}
+/>
+
+## Examples
+
+### Basic
+
+The default field is bordered, `md`-sized and three rows tall, and fills the width of its container.
+
+<Stage>
+  <div style={{ width: 360 }}>
+    <DemoState data-harness>
+      <TextArea
+        value=""
+        placeholder="Add a note for reviewers…"
+        onChange={noop}
+      />
+    </DemoState>
+  </div>
+</Stage>
+
+### Invalid
+
+Set `invalid` when the value fails validation — the border turns red and `aria-invalid` is set. Pair it with a visible error message, such as Form.Field's `errors`.
+
+<Stage>
+  <div style={{ width: 360 }}>
+    <DemoState data-harness>
+      <TextArea invalid value="TBD" onChange={noop} />
+    </DemoState>
+  </div>
+</Stage>
+
+### Disabled
+
+Disabled fields keep their value visible but grey out and stop accepting focus. Use `disabled` only while editing is temporarily unavailable — for values the viewer can never edit, prefer `readonly`.
+
+<Stage>
+  <div style={{ width: 360 }}>
+    <TextArea
+      disabled
+      value="Synced from GitHub — edit the repository README to change this description."
+      onChange={noop}
+    />
+  </div>
+</Stage>
+
+### Read-only
+
+`readonly` drops the field styling entirely and renders the value as plain text, preserving line breaks — the same content without the affordance to edit. Unlike the native `readOnly` attribute, the result is no longer a form control: it isn't focusable and doesn't submit.
+
+<Stage>
+  <div style={{ width: 360 }}>
+    <TextArea
+      readonly
+      value="Tracks every research paper the lab has published, with links to authors and funding sources."
+      onChange={noop}
+    />
+  </div>
+</Stage>
+
+### Subtle variant
+
+`subtle` removes the border and background so the field reads as page text — for editing content in place, such as an entity description on its own page. Hovering reveals a faint border; focusing restores a solid field.
+
+<Stage>
+  <div style={{ width: 340 }}>
+    <DemoState data-harness>
+      <TextArea
+        variant="default"
+        value="The default variant always shows its border."
+        onChange={noop}
+      />
+    </DemoState>
+  </div>
+  <div style={{ width: 340 }}>
+    <DemoState data-harness>
+      <TextArea
+        variant="subtle"
+        value="The subtle variant is borderless until hovered or focused."
+        onChange={noop}
+      />
+    </DemoState>
+  </div>
+</Stage>
+
+### Sizes
+
+`size` sets the text style and padding; `md` is the default. Match the size of neighbouring inputs, and use `sm` and below in dense chrome such as side panels and table cells.
+
+<Stage>
+  <div style={{ width: 220 }}>
+    <DemoState data-harness>
+      <TextArea size="xxs" rows={2} value="xxs" onChange={noop} />
+    </DemoState>
+  </div>
+  <div style={{ width: 220 }}>
+    <DemoState data-harness>
+      <TextArea size="xs" rows={2} value="xs" onChange={noop} />
+    </DemoState>
+  </div>
+  <div style={{ width: 220 }}>
+    <DemoState data-harness>
+      <TextArea size="sm" rows={2} value="sm" onChange={noop} />
+    </DemoState>
+  </div>
+  <div style={{ width: 220 }}>
+    <DemoState data-harness>
+      <TextArea size="md" rows={2} value="md" onChange={noop} />
+    </DemoState>
+  </div>
+  <div style={{ width: 220 }}>
+    <DemoState data-harness>
+      <TextArea size="lg" rows={2} value="lg" onChange={noop} />
+    </DemoState>
+  </div>
+</Stage>
+
+### Rows
+
+`rows` sets the visible height in text lines (default 3) — the field doesn't grow with content unless `autoResize` is set; longer text scrolls. Match it to the expected length of the answer.
+
+<Stage>
+  <div style={{ width: 340 }}>
+    <DemoState data-harness>
+      <TextArea
+        rows={2}
+        value=""
+        placeholder="Add a short note…"
+        onChange={noop}
+      />
+    </DemoState>
+  </div>
+  <div style={{ width: 340 }}>
+    <DemoState data-harness>
+      <TextArea
+        rows={6}
+        value=""
+        placeholder="Paste the paper abstract…"
+        onChange={noop}
+      />
+    </DemoState>
+  </div>
+</Stage>
+
+### Resizing
+
+`resize` sets which directions the drag handle allows: `vertical` (the default), `horizontal`, `both`, or `none`. Prefer vertical — it lets users make room without disturbing the surrounding layout; use `none` when the layout is fixed.
+
+<Stage>
+  <div style={{ width: 340 }}>
+    <DemoState data-harness>
+      <TextArea
+        resize="vertical"
+        value="Drag the handle to make room — vertically only."
+        onChange={noop}
+      />
+    </DemoState>
+  </div>
+  <div style={{ width: 340 }}>
+    <DemoState data-harness>
+      <TextArea resize="none" value="No resize handle." onChange={noop} />
+    </DemoState>
+  </div>
+</Stage>
+
+### Auto-resize
+
+`autoResize` grows and shrinks the field with its content instead of scrolling — right for composer-style inputs. `rows` becomes the minimum height, and manual resizing is disabled.
+
+<Stage>
+  <div style={{ width: 340 }}>
+    <DemoState data-harness>
+      <TextArea
+        autoResize
+        rows={2}
+        value="Renamed the Funding Source entity type to Grant, merged the duplicate Organization entities it pointed at, and re-ran the ingestion flow to confirm nothing else links to the old type."
+        onChange={noop}
+      />
+    </DemoState>
+  </div>
+</Stage>
+
+### Character limit
+
+`characterLimit` renders a counter below the field. The limit is soft: typing past it is never blocked — the counter turns red so the writer can trim, and your validation enforces the limit on submit.
+
+<Stage>
+  <div style={{ width: 340 }}>
+    <DemoState data-harness>
+      <TextArea
+        characterLimit={80}
+        includeCharCountHeight
+        value="Monitors the status of long-running flows."
+        onChange={noop}
+      />
+    </DemoState>
+  </div>
+  <div style={{ width: 340 }}>
+    <DemoState data-harness>
+      <TextArea
+        characterLimit={80}
+        includeCharCountHeight
+        value="Monitors the status of every long-running flow in the workspace and notifies the owner when one stalls."
+        onChange={noop}
+      />
+    </DemoState>
+  </div>
+</Stage>
+
+### In a form field
+
+Inside a Form.Field the label is associated with the textarea automatically — no `htmlForId` needed. See the Form docs for descriptions, errors and layout.
+
+<Stage>
+  <div style={{ width: 420 }}>
+    <Form.Field
+      label="Description"
+      description="Shown on the entity type's page and in search results."
+    >
+      <DemoState data-harness>
+        <TextArea
+          value=""
+          placeholder="Describe this entity type…"
+          onChange={noop}
+        />
+      </DemoState>
+    </Form.Field>
+  </div>
+</Stage>
+
+## Behavior
+
+- Clicking anywhere inside the field's box, padding included, focuses the `<textarea>`.
+- `characterLimit` never sets the native `maxLength` attribute, so typing and pasting past the limit always work — enforce the limit in validation.
+
+## Content
+
+- Make the placeholder a prompt for the content, sentence case, ending with an ellipsis when it invites typing: "Describe this entity type…".
+- Never put the label or requirements in the placeholder — it disappears as soon as the user types. Put requirements in the Form.Field `description`.
+- State character limits in the field's description and repeat them in the error: "Description must be 280 characters or fewer."
+
+## Accessibility
+
+TextArea renders a native [`<textarea>`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/textarea), which carries the standard text-editing semantics and keyboard behavior.
+
+### What TextArea provides
+
+- Inside a Form.Field it adopts the field's generated id, so the label is associated automatically.
+- The character counter announces politely only once the limit is exceeded, instead of narrating every keystroke.
+
+### What you must do
+
+- Label every field: wrap it in a Form.Field, or set `aria-label` when a visible label is impossible — a placeholder is not a label.
+- Pair `invalid` with a visible error message, such as Form.Field `errors` — the red border alone doesn't say what's wrong.
+- State the character limit in the field's description — until it's exceeded, the counter is visual only.
+
+## API reference
+
+<PropsTable
+  of={TextArea}
+  defaults={{
+    rows: "3",
+    resize: '"vertical"',
+    autoResize: "false",
+    variant: '"default"',
+    align: '"left"',
+    size: '"md"',
+    includeCharCountHeight: "false",
+  }}
+/>

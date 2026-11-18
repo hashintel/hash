@@ -9,12 +9,14 @@ import { useContextBarActionsContext } from "../top-context-bar";
 interface ConvertTypeMenuItemProps {
   convertToLinkType: () => void;
   disabled?: boolean;
+  hasLinks: boolean;
   typeTitle: string;
 }
 
 export const ConvertTypeMenuItem = ({
   convertToLinkType,
   disabled,
+  hasLinks,
   typeTitle,
 }: ConvertTypeMenuItemProps) => {
   const { closeContextMenu } = useContextBarActionsContext();
@@ -53,8 +55,9 @@ export const ConvertTypeMenuItem = ({
             convertToLinkType();
             closeContextMenu();
           }}
-          calloutMessage="A new version of this type will be created as a Link Type, and you
-              won't be able to revert this change."
+          calloutMessage={`A new version of this type will be created as a Link Type, and you won't be able to revert this change.${
+            hasLinks ? " The links defined on this type will be removed." : ""
+          }`}
           close={() => {
             setShowConvertTypeConfirmationModal(false);
             closeContextMenu();

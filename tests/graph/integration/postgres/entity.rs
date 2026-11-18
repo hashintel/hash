@@ -13,9 +13,11 @@ use hash_graph_store::{
 };
 use hash_graph_temporal_versioning::{ClosedTemporalBound, LimitedTemporalBound, TemporalBound};
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
+use hash_status::StatusCode;
+use serde_json::json;
 use type_system::{
     knowledge::{
-        entity::provenance::ProvidedEntityEditionProvenance,
+        entity::{EntityId, id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
         property::{
             Property, PropertyObject, PropertyObjectWithMetadata, PropertyPatchOperation,
             PropertyPath, PropertyWithMetadata,
@@ -25,8 +27,91 @@ use type_system::{
     principal::{actor::ActorType, actor_group::WebId},
     provenance::{OriginProvenance, OriginType},
 };
+use uuid::Uuid;
 
-use crate::DatabaseTestWrapper;
+use crate::{DatabaseApi, DatabaseTestWrapper};
+
+#[tokio::test]
+async fn insert_duplicate_id() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = database
+        .seed(
+            [data_type::VALUE_V1, data_type::TEXT_V1],
+            [property_type::NAME_V1],
+            [entity_type::ORGANIZATION_V1],
+        )
+        .await
+        .expect("the organization types should be seeded");
+    let mut params = CreateEntityParams {
+        web_id: WebId::new(api.account_id),
+        entity_uuid: Some(EntityUuid::new(Uuid::now_v7())),
+        decision_time: None,
+        entity_type_ids: HashSet::from([
+            "https://blockprotocol.org/@alice/types/entity-type/organization/v/1"
+                .parse()
+                .expect("the organization type URL should be valid"),
+        ]),
+        properties: serde_json::from_value(json!({
+            "value": {
+                "https://blockprotocol.org/@alice/types/property-type/name/": {
+                    "value": "Original organization",
+                    "metadata": { "dataTypeId": null }
+                }
+            }
+        }))
+        .expect("the organization properties should be valid"),
+        confidence: None,
+        link_data: None,
+        draft: false,
+        policies: Vec::new(),
+        provenance: ProvidedEntityEditionProvenance {
+            actor_type: ActorType::User,
+            origin: OriginProvenance::from_empty_type(OriginType::Api),
+            sources: Vec::new(),
+        },
+        read_only: false,
+    };
+    let original = api
+        .create_entity(api.account_id, params.clone())
+        .await
+        .expect("the first entity should be created");
+    params.properties = PropertyObjectWithMetadata::default();
+    let error = api
+        .create_entity(api.account_id, params)
+        .await
+        .expect_err("creating the same entity ID twice should fail");
+    assert_eq!(
+        error.request_ref::<StatusCode>().next(),
+        Some(&StatusCode::AlreadyExists),
+        "duplicate entity IDs should report AlreadyExists (HTTP 409)"
+    );
+
+    let entities = api
+        .query_entities(
+            Some(api.account_id),
+            QueryEntitiesParams {
+                filter: Filter::for_entity_by_entity_id(original.metadata.record_id.entity_id),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
+                sorting: EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
+                limit: 2,
+                conversions: Vec::new(),
+                include_entity_types: None,
+                include_drafts: false,
+                include_permissions: false,
+            },
+        )
+        .await
+        .expect("the original entity should remain readable")
+        .entities;
+    assert_eq!(
+        entities,
+        [original],
+        "the failed duplicate create should leave the original entity unchanged"
+    );
+}
 
 #[tokio::test]
 async fn insert() {
@@ -560,4 +645,111 @@ async fn update() {
     assert_eq!(num_entities, 2);
     let entity_v2 = response_v2.entities.pop().expect("no entity found");
     assert_eq!(entity_v2.properties.properties(), page_v2.properties());
+}
+
+/// Creates an organization in the account's web, under no policy of its own.
+async fn create_organization(api: &mut DatabaseApi<'_>) -> EntityId {
+    let organization: PropertyObject =
+        serde_json::from_str(entity::ORGANIZATION_V1).expect("could not parse entity");
+    api.create_entity(
+        api.account_id,
+        CreateEntityParams {
+            web_id: WebId::new(api.account_id),
+            entity_uuid: None,
+            decision_time: None,
+            entity_type_ids: HashSet::from([VersionedUrl {
+                base_url: BaseUrl::new(
+                    "https://blockprotocol.org/@alice/types/entity-type/organization/".to_owned(),
+                )
+                .expect("couldn't construct Base URL"),
+                version: OntologyTypeVersion {
+                    major: OntologyTypeMajorVersion::MIN,
+                    pre_release: None,
+                },
+            }]),
+            properties: PropertyObjectWithMetadata::from_parts(organization, None)
+                .expect("could not create property with metadata object"),
+            confidence: None,
+            link_data: None,
+            draft: false,
+            policies: Vec::new(),
+            provenance: ProvidedEntityEditionProvenance {
+                actor_type: ActorType::User,
+                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                sources: Vec::new(),
+            },
+            read_only: false,
+        },
+    )
+    .await
+    .expect("could not create entity")
+    .metadata
+    .record_id
+    .entity_id
+}
+
+/// An entity the actor may not view reads as absent, not as an error.
+#[tokio::test]
+async fn get_entity_by_id_unpermitted() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = database
+        .seed(
+            [data_type::VALUE_V1, data_type::TEXT_V1],
+            [property_type::NAME_V1],
+            [entity_type::ORGANIZATION_V1],
+        )
+        .await
+        .expect("could not seed database");
+    let entity_id = create_organization(&mut api).await;
+
+    let owned = api
+        .get_entity_by_id(Some(api.account_id), entity_id, None, None)
+        .await
+        .expect("the owner's read should succeed");
+    assert_eq!(
+        owned.map(|entity| entity.metadata.record_id.entity_id),
+        Some(entity_id),
+        "the owner should see the entity in its web"
+    );
+
+    let hidden = api
+        .get_entity_by_id(None, entity_id, None, None)
+        .await
+        .expect("the public read should succeed");
+    assert!(
+        hidden.is_none(),
+        "the public actor should not see an entity no policy permits it to view"
+    );
+}
+
+/// An entity that does not exist reads as absent, not as an error.
+#[tokio::test]
+async fn get_entity_by_id_missing() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = database
+        .seed(
+            [data_type::VALUE_V1, data_type::TEXT_V1],
+            [property_type::NAME_V1],
+            [entity_type::ORGANIZATION_V1],
+        )
+        .await
+        .expect("could not seed database");
+    let entity_id = create_organization(&mut api).await;
+
+    let missing = api
+        .get_entity_by_id(
+            Some(api.account_id),
+            EntityId {
+                entity_uuid: EntityUuid::new(Uuid::now_v7()),
+                ..entity_id
+            },
+            None,
+            None,
+        )
+        .await
+        .expect("the read should succeed");
+    assert!(
+        missing.is_none(),
+        "an entity UUID nothing was created under should read as absent"
+    );
 }

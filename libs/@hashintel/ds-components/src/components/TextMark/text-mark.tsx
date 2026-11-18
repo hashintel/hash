@@ -7,6 +7,7 @@ export const TextMark = ({
   children,
   className,
 }: {
+  /** The mark kept attached to the preceding word — a footnote marker, HelpTooltip, etc. */
   children?: React.ReactNode;
   className?: string;
 }) => {
@@ -17,3 +18,6 @@ export const TextMark = ({
     </span>
   );
 };
+
+// Stable name for the docs Stage code serializer under minification
+TextMark.displayName = "TextMark";

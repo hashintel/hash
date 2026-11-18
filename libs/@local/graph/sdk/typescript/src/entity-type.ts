@@ -116,10 +116,8 @@ export const queryEntityTypes = (
         | undefined,
       entityTypes: mapGraphApiEntityTypesToEntityTypes(response.entityTypes),
       cursor: response.cursor as VersionedUrl | undefined,
-      webIds: response.webIds as Record<WebId, number> | undefined,
-      editionCreatedByIds: response.editionCreatedByIds as
-        | Record<ActorEntityUuid, number>
-        | undefined,
+      webIds: response.webIds,
+      editionCreatedByIds: response.editionCreatedByIds,
     }));
 
 export type SearchEntityTypesRequest = DistributiveOmit<
@@ -186,10 +184,8 @@ export const queryEntityTypeSubgraph = (
       ...response,
       subgraph: mapGraphApiSubgraphToSubgraph(response.subgraph),
       cursor: response.cursor as VersionedUrl | undefined,
-      webIds: response.webIds as Record<WebId, number> | undefined,
-      editionCreatedByIds: response.editionCreatedByIds as
-        | Record<ActorEntityUuid, number>
-        | undefined,
+      webIds: response.webIds,
+      editionCreatedByIds: response.editionCreatedByIds,
     }));
 
 export const serializeQueryEntityTypeSubgraphResponse = (

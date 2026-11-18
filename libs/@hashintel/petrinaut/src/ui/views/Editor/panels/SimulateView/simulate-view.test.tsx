@@ -8,8 +8,10 @@ import { PetrinautOptimizationContext } from "../../../../../react/optimization-
 import { FakeEditorProvider } from "./experiments/experiments-story-fixtures";
 import { SimulateViewTabs } from "./simulate-view";
 
-import type { PetrinautOptimization } from "@hashintel/petrinaut-core";
-import type { PetrinautConnectedOptimization } from "@hashintel/petrinaut-core/optimization";
+import type {
+  PetrinautConnectedOptimization,
+  PetrinautConnectedOptimizationCapability,
+} from "@hashintel/petrinaut-core/optimization";
 import type { ReactNode } from "react";
 
 vi.mock("@hashintel/ds-components", async (importOriginal) => {
@@ -42,7 +44,10 @@ vi.mock("./scenarios/scenarios-view", () => ({
   ScenariosView: () => <div>Scenarios view</div>,
 }));
 
-const capability: PetrinautOptimization = {
+const capability: Pick<
+  PetrinautConnectedOptimizationCapability,
+  "createOptimizationRun" | "attachOptimizationRun" | "cancelOptimizationRun"
+> = {
   createOptimizationRun: () => Promise.resolve({ runId: "run-test" }),
   async *attachOptimizationRun() {
     yield { type: "started", requestedTrials: 1, seq: 1 };
@@ -81,13 +86,6 @@ const tabsUnder = (wrap: (view: ReactNode) => ReactNode): string[] => {
 describe("SimulateView tabs", () => {
   it("are Experiments and Scenarios whatever the optimization source", () => {
     expect(tabsUnder((view) => view)).toEqual(["Experiments", "Scenarios"]);
-    expect(
-      tabsUnder((view) => (
-        <PetrinautOptimizationContext value={capability}>
-          {view}
-        </PetrinautOptimizationContext>
-      )),
-    ).toEqual(["Experiments", "Scenarios"]);
     expect(
       tabsUnder((view) => (
         <PetrinautOptimizationContext value={connectedSource}>

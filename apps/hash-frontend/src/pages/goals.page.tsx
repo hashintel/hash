@@ -44,7 +44,7 @@ const GoalsPageContent = () => {
 
 const GoalsPage: NextPageWithLayout = () => {
   return (
-    <FlowRunsContextProvider selectedFlowRunId={null}>
+    <FlowRunsContextProvider selectedFlowRunEntityId={null}>
       <GoalsPageContent />
     </FlowRunsContextProvider>
   );

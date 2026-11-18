@@ -12,6 +12,7 @@ import type {
   DocumentUri,
   LanguageClient,
   HirCompileResult,
+  HirVisualizerContext,
   Hover,
   PetrinautExtensionSettings,
   Position,
@@ -19,6 +20,8 @@ import type {
   ScenarioLoweringInput,
   SDCPN,
   SignatureHelp,
+  VisualizerHir,
+  NetAnalysis,
 } from "@hashintel/petrinaut-core";
 import type {
   AdHocSessionParams,
@@ -59,6 +62,12 @@ export interface LanguageClientContextValue {
   /** Check a captured net, independently of pushed editor diagnostics. */
   requestDiagnostics: LanguageClient["requestDiagnostics"];
   /**
+   * What the server learned about the net beyond its diagnostics, pushed
+   * with them on every check: the class of the net and the shape of each
+   * metric.
+   */
+  netAnalysis: LanguageClient["netAnalysis"];
+  /**
    * Compile the SDCPN's user code to HIR artifacts (in the language worker).
    * Required before starting simulations/experiments — the engine has no
    * compiler of its own.
@@ -93,6 +102,15 @@ export interface LanguageClientContextValue {
     source: ConstraintSource,
     context: LowerConstraintContext,
   ) => Promise<LowerConstraintResult>;
+  /**
+   * Lower one place visualizer's module to HIR (in the language worker) and
+   * check it against the place's colour and the net's parameters. The
+   * result is interpreted and rendered here; no code from the net runs.
+   */
+  requestVisualizerHir: (
+    code: string,
+    context: HirVisualizerContext,
+  ) => Promise<VisualizerHir>;
   /** Initialize a temporary metric editing session. */
   initializeMetricSession: (params: MetricSessionParams) => void;
   /** Starts an ad-hoc scenario editing session for expression type-checking */
@@ -121,6 +139,8 @@ export const EMPTY_DIAGNOSTICS_SNAPSHOT: DiagnosticsSnapshot = {
 };
 
 /** The inert default: no worker wired — requests resolve to empty results. */
+const EMPTY_NET_ANALYSIS: NetAnalysis = { metricShapes: {}, netClass: null };
+
 export const DEFAULT_LANGUAGE_CLIENT_CONTEXT: LanguageClientContextValue = {
   diagnostics: EMPTY_DIAGNOSTICS_SNAPSHOT,
   diagnosticsByUri: EMPTY_DIAGNOSTICS_SNAPSHOT.byUri,
@@ -134,6 +154,7 @@ export const DEFAULT_LANGUAGE_CLIENT_CONTEXT: LanguageClientContextValue = {
     Promise.reject(
       new Error("No language client is wired; diagnostics are unavailable."),
     ),
+  netAnalysis: { get: () => EMPTY_NET_ANALYSIS, subscribe: () => () => {} },
   requestHirArtifacts: () =>
     Promise.resolve({
       artifacts: {
@@ -160,6 +181,18 @@ export const DEFAULT_LANGUAGE_CLIENT_CONTEXT: LanguageClientContextValue = {
         {
           code: "hir:no-language-client",
           message: "No language client is wired; constraints cannot compile.",
+          severity: "error" as const,
+          span: { start: 0, length: 0 },
+        },
+      ],
+    }),
+  requestVisualizerHir: () =>
+    Promise.resolve({
+      ok: false as const,
+      diagnostics: [
+        {
+          code: "hir:no-language-client",
+          message: "No language client is wired; visualizers cannot be drawn.",
           severity: "error" as const,
           span: { start: 0, length: 0 },
         },

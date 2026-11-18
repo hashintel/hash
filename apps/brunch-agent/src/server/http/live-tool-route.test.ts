@@ -1,24 +1,22 @@
 import { Hono } from "hono";
 import { expect, test } from "vitest";
 
+import { agentOwnershipHeaders } from "@hashintel/brunch-agent";
 import {
   createLiveToolBroadcaster,
   liveToolResponse,
   liveToolRouteSegment,
 } from "@local/flue-aisdk-transport/server";
 
-import {
-  agentOwnershipHeaders,
-  flueConversationIdFrom,
-} from "../../shared/conversation/identity.ts";
+import { flueConversationId } from "../../shared/conversation/identity.ts";
 import { agentOwnershipGuard } from "./ownership.ts";
 
 const mount = "/agents/chat";
 const identity = {
   conversationId: "live-route-conversation",
-  principalKey: "live-route-principal",
+  actorKey: "live-route-owner",
 };
-const instanceId = flueConversationIdFrom(identity);
+const instanceId = flueConversationId(identity);
 const url = `http://brunch.test${mount}/${instanceId}/${liveToolRouteSegment}?submissionId=submission-1`;
 
 test("guards the live SSE route with the existing conversation ownership", async () => {
@@ -38,7 +36,7 @@ test("guards the live SSE route with the existing conversation ownership", async
   const forbidden = await app.request(url, {
     headers: agentOwnershipHeaders({
       ...identity,
-      principalKey: "another-principal",
+      actorKey: "another-owner",
     }),
   });
   expect(forbidden.status).toBe(403);

@@ -51,6 +51,24 @@ describe("Preview navigation adapter", () => {
     });
   });
 
+  test("pins an execution's Preview to Actual mode", () => {
+    const controller: PetrinautNavigationController<PetrinautPreviewNavigationState> =
+      {
+        state: {
+          scenarioId: undefined,
+          subnetId: null,
+          selection: [],
+        },
+        onNavigate: vi.fn(),
+      };
+
+    expect(createPreviewNavigationAdapter(controller, "actual").state).toEqual({
+      ...defaultPetrinautNavigationState,
+      mode: "actual",
+      simulateView: "scenarios",
+    });
+  });
+
   test("projects full-state updaters back onto the Preview contract", () => {
     const onNavigate =
       vi.fn<

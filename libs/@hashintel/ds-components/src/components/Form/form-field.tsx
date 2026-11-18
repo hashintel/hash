@@ -35,28 +35,43 @@ const FormField = ({
   className?: string;
   children: React.ReactNode;
   label: React.ReactNode;
+  /** Visually hides the label while keeping it announced to screen readers */
   hideLabel?: boolean;
   as?: "label" | "legend";
 
+  /** `right` puts the label after the input in inline layout; in block layout it right-aligns the label, description and errors instead */
   labelDirection?: "left" | "right";
 
+  /** Helper text rendered between the label and the input */
   description?: React.ReactNode;
+  /** Helper text rendered below the input, in addition to any `description` above it. */
   descriptionBottom?: React.ReactNode;
+  /** A HelpTooltip beside the label — a string for plain text, or custom tooltip content */
   labelTooltip?: string | React.ReactNode;
+  /** Content at the label row's far edge, such as a small action Button */
   labelActions?: React.ReactNode;
 
   errors?: Array<string | React.ReactNode>;
 } & (
   | {
+      /** `inline` places the label and input on one line. `block` stacks the label above the input */
       layout: "inline";
+      /** `end` pushes the input to the far edge of the inline row */
       inputAlign?: "start" | "end";
     }
   | {
+      /** `inline` places the label and input on one line — the settings-panel arrangement; `block` (the default) stacks the label above the input */
       layout?: "block";
       inputAlign?: never;
     }
 ) &
-  SharedInputAndFieldProps) => {
+  Omit<SharedInputAndFieldProps, "required"> & {
+    /**
+     * Shows the required mark next to the field's label. Visual only — set
+     * `required` on the input itself for validation and announcement.
+     */
+    required?: boolean;
+  }) => {
   // resolve logical start/end to a physical side against labelDirection
   const classes = styles({
     size,
@@ -175,6 +190,9 @@ const FormField = ({
     </fieldset>
   );
 };
+
+// Stable name for the docs Stage code serializer under minification
+FormField.displayName = "Form.Field";
 
 FormField.Label = Label;
 FormField.Description = Description;

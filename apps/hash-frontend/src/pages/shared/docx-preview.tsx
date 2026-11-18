@@ -1,6 +1,12 @@
 import { Box, CircularProgress, Stack, Typography } from "@mui/material";
 import * as Sentry from "@sentry/nextjs";
-import { useEffect, useEffectEvent, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+} from "react";
 import { FullScreen, useFullScreenHandle } from "react-full-screen";
 
 import {
@@ -20,6 +26,7 @@ import { useFilePreviewMaxHeight } from "./use-file-preview-max-height";
 import type {
   DocxDocumentControls,
   DocxDocumentPages,
+  DocxSearchResult,
 } from "./docx-preview/folio-document";
 
 const zoomStep = 0.2;
@@ -102,19 +109,20 @@ export const DocxPreview = ({
     };
   }, [url]);
 
-  const selectSearchHit = (index: number | null) => {
-    setSelectedSearchHit(index);
-
-    if (index !== null) {
-      controlsRef.current?.showHit(index);
-    }
-  };
-
-  const search = (text: string, ignoreCase: boolean) => {
-    const hitCount = controlsRef.current?.search(text, ignoreCase) ?? 0;
+  const showSearchResult = ({
+    hitCount,
+    currentHitIndex,
+  }: DocxSearchResult) => {
     setSearchHitCount(hitCount);
-    selectSearchHit(hitCount > 0 ? 0 : null);
+    setSelectedSearchHit(currentHitIndex);
   };
+
+  // TODO(FE-1978): remove this useCallback once React Compiler compiles this component.
+  const search = useCallback(
+    (text: string, ignoreCase: boolean) =>
+      controlsRef.current?.search(text, ignoreCase),
+    [],
+  );
 
   return (
     <FullScreen
@@ -139,6 +147,7 @@ export const DocxPreview = ({
               data={data}
               onError={handleError}
               onPagesChange={setPages}
+              onSearchResultChange={showSearchResult}
               onZoomChange={setZoom}
             />
           </Sentry.ErrorBoundary>
@@ -151,7 +160,7 @@ export const DocxPreview = ({
           <FilePreviewSearch
             closeSearch={() => setShowSearch(false)}
             onSearch={search}
-            onSelectHit={selectSearchHit}
+            onSelectHit={(index) => controlsRef.current?.showHit(index)}
             selectedIndex={selectedSearchHit}
             showSearch={showSearch}
             total={searchHitCount}

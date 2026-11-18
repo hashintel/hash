@@ -1,6 +1,5 @@
 import {
   type AbortSignalLike,
-  type PetrinautOptimization,
   type PetrinautOptimizationEvent,
   type PetrinautOptimizationInput,
   type PetrinautOptimizationParameterBinding,
@@ -14,6 +13,7 @@ import {
   deriveOptimizationTrialSeeds,
   type OptimizationScalar,
   type PetrinautConnectedOptimization,
+  type PetrinautConnectedOptimizationCapability,
   type PetrinautOptimizationChannel,
   resolveTrialScenarioParameterValues,
 } from "@hashintel/petrinaut-core/optimization";
@@ -136,7 +136,10 @@ let nextFakeRunId = 1;
 
 const createFakeOptimization = (
   evaluate: FakeTrialEvaluator,
-): PetrinautOptimization => ({
+): Pick<
+  PetrinautConnectedOptimizationCapability,
+  "createOptimizationRun" | "attachOptimizationRun" | "cancelOptimizationRun"
+> => ({
   createOptimizationRun: (input) => {
     const runId = `story-run-${nextFakeRunId++}`;
     fakeRuns.set(runId, input);
@@ -149,12 +152,7 @@ const createFakeOptimization = (
   async *attachOptimizationRun(runId, options) {
     const input = fakeRuns.get(runId);
     if (!input) {
-      // Shaped like a classified transport 404 so the provider silently
-      // drops records restored from a previous story session.
-      throw Object.assign(new Error(`Unknown story run ${runId}`), {
-        category: "http",
-        httpStatus: 404,
-      });
+      throw new Error(`Unknown story run ${runId}`);
     }
     options?.onAttached?.();
 

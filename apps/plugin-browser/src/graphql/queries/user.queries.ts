@@ -9,6 +9,9 @@ export const meQuery = /* GraphQL */ `
         ...SubgraphFields
       }
     }
+    hashInstanceSettings {
+      entity
+    }
   }
   ${print(subgraphFieldsFragment)}
 `;

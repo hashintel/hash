@@ -1,12 +1,8 @@
 import { Handle, Position, useNodeId, useStore } from "@xyflow/react";
-import { use } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { UserSettingsContext } from "../../../../../../../react/state/user-settings-context";
-import { handleStyling } from "../../../../styles/styling";
-
-import type { KeyboardEvent } from "react";
+import type { CSSProperties, KeyboardEvent } from "react";
 
 const launchHandleStyle = css({
   opacity: "[0]",
@@ -53,8 +49,22 @@ const activateHandle = (event: KeyboardEvent<HTMLDivElement>) => {
   }
 };
 
+/** Whether an arc may run from a node of one kind to a node of the other. */
+const acceptsArc = (
+  sourceKind: string | undefined,
+  targetKind: string | undefined,
+): boolean =>
+  (sourceKind === "place" && targetKind === "transition") ||
+  (sourceKind === "transition" && targetKind === "place") ||
+  // A component instance only starts an arc from one of its ports.
+  (sourceKind === "componentInstance" && targetKind === "transition");
+
+/**
+ * A place's or transition's two handles. Hovering the node reveals the
+ * outgoing one; while an arc is being drawn, the whole node of a kind that
+ * can receive it becomes its target.
+ */
 export const NodeHandles = ({ isConnectable }: { isConnectable: boolean }) => {
-  const { enableAutomaticArcConnections } = use(UserSettingsContext);
   const nodeId = useNodeId();
   const node = useStore((state) =>
     nodeId ? state.nodeLookup.get(nodeId) : undefined,
@@ -73,11 +83,7 @@ export const NodeHandles = ({ isConnectable }: { isConnectable: boolean }) => {
       state.connection.toNode?.id === nodeId,
   );
 
-  const canReceive =
-    isConnectable &&
-    ((sourceKind === "place" && nodeKind === "transition") ||
-      (sourceKind === "transition" && nodeKind === "place"));
-  const borderRadius = nodeKind === "place" ? "999px" : "0";
+  const canReceive = isConnectable && acceptsArc(sourceKind, nodeKind);
 
   return (
     <>
@@ -85,69 +91,52 @@ export const NodeHandles = ({ isConnectable }: { isConnectable: boolean }) => {
         type="target"
         position={Position.Left}
         isConnectable={isConnectable}
-        isConnectableStart={!enableAutomaticArcConnections}
-        isConnectableEnd={!enableAutomaticArcConnections || canReceive}
-        tabIndex={enableAutomaticArcConnections && canReceive ? 0 : undefined}
-        role={enableAutomaticArcConnections ? "button" : undefined}
-        aria-hidden={
-          enableAutomaticArcConnections && !canReceive ? true : undefined
+        isConnectableStart={false}
+        isConnectableEnd={canReceive}
+        tabIndex={canReceive ? 0 : undefined}
+        role="button"
+        aria-hidden={canReceive ? undefined : true}
+        aria-label="Connect arc to this node"
+        onKeyDown={activateHandle}
+        className={targetHandleStyle}
+        style={
+          {
+            "--arc-target-width": `${node?.measured.width ?? 0}px`,
+            "--arc-target-height": `${node?.measured.height ?? 0}px`,
+            "--arc-target-radius": nodeKind === "place" ? "999px" : "0",
+            "--arc-target-outline": isActiveTarget
+              ? "3px solid var(--colors-blue-s80)"
+              : "none",
+            width: 9,
+            height: 9,
+            border: "none",
+            background: "transparent",
+            outline: "none",
+            pointerEvents: canReceive ? "all" : "none",
+            zIndex: canReceive ? 10 : -1,
+          } as CSSProperties
         }
-        aria-label={
-          enableAutomaticArcConnections ? "Connect arc to this node" : undefined
-        }
-        onKeyDown={enableAutomaticArcConnections ? activateHandle : undefined}
-        className={
-          enableAutomaticArcConnections ? targetHandleStyle : undefined
-        }
-        style={{
-          ...handleStyling,
-          ...(enableAutomaticArcConnections
-            ? {
-                "--arc-target-width": `${node?.measured.width ?? 0}px`,
-                "--arc-target-height": `${node?.measured.height ?? 0}px`,
-                "--arc-target-radius": borderRadius,
-                "--arc-target-outline": isActiveTarget
-                  ? "3px solid var(--colors-blue-s80)"
-                  : "none",
-                border: "none",
-                background: "transparent",
-                outline: "none",
-                pointerEvents: canReceive ? "all" : "none",
-                zIndex: canReceive ? 10 : -1,
-              }
-            : {}),
-        }}
       />
       <Handle
         type="source"
         position={Position.Right}
         isConnectable={isConnectable}
         isConnectableStart={isConnectable}
-        isConnectableEnd={!enableAutomaticArcConnections}
-        tabIndex={
-          enableAutomaticArcConnections && isConnectable ? 0 : undefined
-        }
-        role={enableAutomaticArcConnections ? "button" : undefined}
-        aria-label={
-          enableAutomaticArcConnections ? "Create outgoing arc" : undefined
-        }
-        onKeyDown={enableAutomaticArcConnections ? activateHandle : undefined}
-        className={
-          enableAutomaticArcConnections ? launchHandleStyle : undefined
-        }
-        style={
-          enableAutomaticArcConnections
-            ? {
-                width: 9,
-                height: 9,
-                right: 0,
-                border: "none",
-                background: "transparent",
-                zIndex: 11,
-                visibility: isConnectable && !sourceKind ? "visible" : "hidden",
-              }
-            : handleStyling
-        }
+        isConnectableEnd={false}
+        tabIndex={isConnectable ? 0 : undefined}
+        role="button"
+        aria-label="Create outgoing arc"
+        onKeyDown={activateHandle}
+        className={launchHandleStyle}
+        style={{
+          width: 9,
+          height: 9,
+          right: 0,
+          border: "none",
+          background: "transparent",
+          zIndex: 11,
+          visibility: isConnectable && !sourceKind ? "visible" : "hidden",
+        }}
       />
     </>
   );

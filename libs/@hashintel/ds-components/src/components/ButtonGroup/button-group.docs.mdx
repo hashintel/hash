@@ -1,0 +1,247 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { Fragment } from "react";
+
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import { Button } from "../Button/button";
+import { ButtonGroup } from "./button-group";
+
+<Meta title="Docs/ButtonGroup" />
+
+export const meta = {
+  title: "ButtonGroup",
+  description:
+    "Lay out related buttons with consistent spacing, or join them into one segmented control.",
+  alternativeNames: ["ButtonBar", "SplitButton"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/ButtonGroup/button-group.tsx",
+    stories:
+      "https://tokens.hash.design/?path=/story/components-buttongroup--default",
+  },
+  related: ["Button", "SegmentedControl"],
+};
+
+# ButtonGroup
+
+Lay out related buttons with consistent spacing, or join them into one segmented control.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+<Stage>
+  <ButtonGroup>
+    <Button tone="brand" iconName="plus">
+      Create entity
+    </Button>
+    <Button variant="subtle">Import</Button>
+    <Button variant="subtle">Export</Button>
+  </ButtonGroup>
+  <ButtonGroup variant="segmented">
+    <Button variant="subtle" iconName="zoomOut" tooltip="Zoom out" />
+    <Button variant="subtle">100%</Button>
+    <Button variant="subtle" iconName="zoomIn" tooltip="Zoom in" />
+  </ButtonGroup>
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { Button, ButtonGroup } from "@hashintel/ds-components";
+
+export const EntityActions = () => (
+  <ButtonGroup>
+    <Button tone="brand" iconName="plus">
+      Create entity
+    </Button>
+    <Button variant="subtle">Import</Button>
+  </ButtonGroup>
+);
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use ButtonGroup when two or more related actions sit together — page headers, dialog footers, toolbars — so gaps, alignment, and wrapping stay consistent.",
+    <Fragment key="0">
+      Use <code>variant="segmented"</code> to join tightly coupled commands into
+      one control: pagers, zoom, playback.
+    </Fragment>,
+    <Fragment key="1">
+      Use <code>alignedTo="right"</code> for footer actions anchored to the
+      trailing edge of a dialog or form.
+    </Fragment>,
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    "Don't use a segmented group to pick one value from a visible set — use SegmentedControl, or RadioGroup in forms.",
+    "Don't group unrelated controls just for layout — the group role announces them as related; use a plain flex container instead.",
+    "Don't line up 4+ secondary actions — fold the overflow into an EllipsisMenu.",
+    "Don't mix button sizes inside a segmented group — row rounding assumes equal heights; give every child the same size.",
+  ]}
+/>
+
+## Examples
+
+### Basic
+
+The default group is `spaced` with an `md` gap: buttons sit apart, keep their own styling, and wrap as a set.
+
+<Stage>
+  <ButtonGroup>
+    <Button tone="brand">Save draft</Button>
+    <Button variant="subtle">Preview</Button>
+    <Button variant="subtle">Discard changes</Button>
+  </ButtonGroup>
+</Stage>
+
+### Segmented
+
+`segmented` joins the buttons into a single control with shared borders. Use it for tightly coupled commands that read as one unit. Adjacent solid buttons separate with a hairline gap instead of a shared border.
+
+<Stage>
+  <ButtonGroup variant="segmented">
+    <Button variant="subtle" iconName="play">
+      Run
+    </Button>
+    <Button variant="subtle" iconName="pause">
+      Pause
+    </Button>
+    <Button variant="subtle" iconName="stop">
+      Stop
+    </Button>
+  </ButtonGroup>
+  <ButtonGroup variant="segmented">
+    <Button variant="solid" tone="brand" iconName="play">
+      Run flow
+    </Button>
+    <Button
+      variant="solid"
+      tone="brand"
+      iconName="chevronDown"
+      tooltip="More run options"
+    />
+  </ButtonGroup>
+</Stage>
+
+### Spacing
+
+Match `spacing` to the children's `size` — the scale is fitted to Button sizes with the same value. It has no effect on segmented groups, whose buttons sit flush.
+
+<Stage>
+  <ButtonGroup spacing="xxs">
+    <Button size="xxs">xxs</Button>
+    <Button size="xxs">xxs</Button>
+  </ButtonGroup>
+  <ButtonGroup spacing="xs">
+    <Button size="xs">xs</Button>
+    <Button size="xs">xs</Button>
+  </ButtonGroup>
+  <ButtonGroup spacing="sm">
+    <Button size="sm">sm</Button>
+    <Button size="sm">sm</Button>
+  </ButtonGroup>
+  <ButtonGroup spacing="md">
+    <Button size="md">md</Button>
+    <Button size="md">md</Button>
+  </ButtonGroup>
+  <ButtonGroup spacing="lg">
+    <Button size="lg">lg</Button>
+    <Button size="lg">lg</Button>
+  </ButtonGroup>
+</Stage>
+
+### Aligned to the right
+
+A group fills its container and aligns buttons to the left edge by default. Use `alignedTo="right"` for dialog and form footers anchored to the trailing edge.
+
+<Stage>
+  <ButtonGroup alignedTo="right">
+    <Button variant="subtle">Cancel</Button>
+    <Button tone="brand">Save changes</Button>
+  </ButtonGroup>
+</Stage>
+
+### Reversed
+
+`reverse` flips the buttons by reversing the DOM, so focus and tab order follow the visual order. Use it when a surface mirrors the usual priority order instead of reordering children by hand.
+
+<Stage>
+  <ButtonGroup>
+    <Button variant="subtle">First</Button>
+    <Button variant="subtle">Second</Button>
+    <Button variant="subtle">Third</Button>
+  </ButtonGroup>
+  <ButtonGroup reverse>
+    <Button variant="subtle">First</Button>
+    <Button variant="subtle">Second</Button>
+    <Button variant="subtle">Third</Button>
+  </ButtonGroup>
+</Stage>
+
+### Keeping one row
+
+Groups wrap when they run out of width. Set `noWrap` in fixed chrome — toolbars, table headers — where the group should keep one line and overflow instead.
+
+<Stage>
+  <ButtonGroup noWrap>
+    <Button variant="subtle" iconName="filter">
+      Filter
+    </Button>
+    <Button variant="subtle" iconName="sortDown">
+      Sort
+    </Button>
+    <Button variant="subtle" iconName="table">
+      Columns
+    </Button>
+  </ButtonGroup>
+</Stage>
+
+## Behavior
+
+- Each direct child of a segmented group must render exactly one element and pass data attributes through to its control — every Button does, including tooltip-wrapped ones. Children that render fragments or swallow unknown props misalign the per-row rounding; a dev-only console warning catches count mismatches.
+- Adjacent segmented buttons overlap their borders, and the hovered or focused button rises above its neighbors so its border and focus ring aren't clipped. If a segmented button group wraps, border radius is applied to each line.
+- `spacing` only affects spaced groups; a segmented group's buttons sit flush, with a fixed small gap between wrapped rows.
+
+## Accessibility
+
+### What ButtonGroup provides
+
+- Renders a `role="group"` container, so assistive technology announces the buttons as a related set.
+- `reverse` reorders the DOM, not just the presentation, so tab order always matches what's on screen.
+
+### What you must do
+
+- Don't rely on segmented styling to convey a selected value — selection needs SegmentedControl's radio semantics.
+
+## API reference
+
+<PropsTable
+  of={ButtonGroup}
+  defaults={{
+    variant: '"spaced"',
+    spacing: '"md"',
+    reverse: "false",
+    alignedTo: '"left"',
+    noWrap: "false",
+  }}
+/>

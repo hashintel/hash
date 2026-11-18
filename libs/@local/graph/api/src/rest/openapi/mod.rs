@@ -1,7 +1,8 @@
 #[cfg(test)]
 mod tests;
 
-use alloc::collections::BTreeSet;
+use alloc::{borrow::Cow, collections::BTreeSet};
+use core::mem;
 use std::collections::HashSet;
 
 use aide::{
@@ -17,9 +18,10 @@ use aide::{
 };
 use convert_case::{Case, Casing as _};
 use indexmap::IndexMap;
+use percent_encoding::percent_decode_str;
 use serde_json::Value;
 
-use super::{Api, credentials::Credentials, extract::MessagePart, middleware};
+use super::{Api, credentials::Credentials, extract::MessagePart, middleware, routing::Routes};
 
 /// Builds an API from its routes and generates the document describing them.
 ///
@@ -36,21 +38,22 @@ use super::{Api, credentials::Credentials, extract::MessagePart, middleware};
 /// - The path parameters an operation documents are not exactly the placeholders of its path, or
 ///   one of them is optional, a sequence or a map.
 /// - A query parameter is a map or a sequence of anything but single values.
-/// - An operation documents a path parameter, a query parameter, a request body or a JSON response
-///   that [`Json`], [`Path`] or [`Query`] did not read or write, or documents a header or cookie
-///   parameter.
+/// - An operation documents a path parameter, a query parameter or a request body that [`Json`],
+///   [`Path`] or [`Query`] did not read, or documents a header or cookie parameter.
 /// - The problem variants of an operation cannot be documented, such as when the status of a
 ///   variant already has a response that documents none.
+/// - Two operations of the document share an `operationId`.
+/// - The document references a component schema it does not declare.
 ///
 /// [`Json`]: crate::rest::extract::Json
 /// [`Path`]: crate::rest::extract::Path
 /// [`Query`]: crate::rest::extract::Query
-pub(super) fn build<C: Credentials>(
+pub(super) fn build<C: Credentials, T: Clone + Send + Sync + 'static>(
     prefix: &'static str,
     info: Info,
-    build_routes: impl FnOnce() -> ApiRouter,
+    build_routes: impl FnOnce() -> Routes<T>,
     transform: impl FnOnce(TransformOpenApi<'_>) -> TransformOpenApi<'_>,
-) -> Api {
+) -> Api<T> {
     #[expect(
         clippy::wildcard_enum_match_arm,
         reason = "Every documentation error apart from the inferred-response conflicts is a \
@@ -67,7 +70,7 @@ pub(super) fn build<C: Credentials>(
         ..OpenApi::default()
     };
     let router = ApiRouter::new()
-        .nest(prefix, build_routes())
+        .nest(prefix, build_routes().into_router())
         .finish_api_with(&mut document, |mut document| {
             for (name, scheme) in C::schemes() {
                 document = document.security_scheme(name, scheme);
@@ -80,6 +83,8 @@ pub(super) fn build<C: Credentials>(
     assert_security_schemes_declared(&mut document);
     assert_parameters_readable(&mut document);
     assert_read_through_extractors(&mut document);
+    assert_operation_ids_unique(&document);
+    remove_unreferenced_schemas(&mut document);
     Api {
         audience: C::AUDIENCE,
         challenge: C::CHALLENGE,
@@ -212,10 +217,10 @@ fn assert_parameters_readable(document: &mut OpenApi) {
 }
 
 /// Checks that [`Json`], [`Path`] and [`Query`] read every path parameter, query parameter and
-/// request body and write every JSON response an operation documents, and removes their marks.
+/// request body an operation documents, and removes their marks.
 ///
-/// Axum's own extractors and `axum::Json` answer a failure with plain text. An operation that
-/// documents a header or cookie parameter panics.
+/// Axum's own extractors answer a failure with plain text. An operation that documents a header or
+/// cookie parameter panics.
 ///
 /// [`Json`]: crate::rest::extract::Json
 /// [`Path`]: crate::rest::extract::Path
@@ -244,7 +249,6 @@ fn assert_read_through_extractors(document: &mut OpenApi) {
             let path_read = marked(MessagePart::PathParameters);
             let query_read = marked(MessagePart::QueryParameters);
             let body_read = marked(MessagePart::RequestBody);
-            let response_written = marked(MessagePart::ResponseBody);
             for parameter in shared
                 .iter()
                 .chain(operation.parameters.iter().filter_map(ReferenceOr::as_item))
@@ -279,19 +283,106 @@ fn assert_read_through_extractors(document: &mut OpenApi) {
                 "{method} {path} should read its request body through `rest::extract::Json`, \
                  whose rejections are problem details"
             );
-            let answers_json = operation
-                .responses
-                .iter()
-                .flat_map(|responses| responses.responses.values().chain(&responses.default))
-                .filter_map(ReferenceOr::as_item)
-                .any(|response| response.content.contains_key("application/json"));
-            assert!(
-                !answers_json || response_written,
-                "{method} {path} should answer with JSON through `rest::extract::Json`, which \
-                 answers a body that fails to serialize with problem details"
-            );
         }
     }
+}
+
+/// Checks that no two operations of `document` share an `operationId`.
+fn assert_operation_ids_unique(document: &OpenApi) {
+    let Some(paths) = &document.paths else {
+        return;
+    };
+    let mut ids = HashSet::new();
+    for (path, item) in &paths.paths {
+        let Some(item) = item.as_item() else {
+            continue;
+        };
+        for (method, operation) in item.iter() {
+            if let Some(id) = &operation.operation_id {
+                assert!(
+                    ids.insert(id.clone()),
+                    "{method} {path} should have an `operationId` of its own, another operation \
+                     already has `{id}`"
+                );
+            }
+        }
+    }
+}
+
+/// Removes the component schemas that nothing else in the document references, directly or
+/// through other component schemas.
+///
+/// Aide adds a component for the struct a handler reads its path or query parameters into, though
+/// the parameters inline its fields.
+fn remove_unreferenced_schemas(document: &mut OpenApi) {
+    let Some(components) = &mut document.components else {
+        return;
+    };
+    let schemas = mem::take(&mut components.schemas);
+    let mut pending = Vec::new();
+    schema_references(
+        &serde_json::to_value(&*document).expect("the document should be a JSON value"),
+        &mut pending,
+    );
+    let mut referenced = HashSet::new();
+    while let Some(name) = pending.pop() {
+        if referenced.contains(&name) {
+            continue;
+        }
+        let schema = schemas.get(&name).unwrap_or_else(|| {
+            panic!(
+                "the document should declare every component schema it references, `{name}` is \
+                 missing"
+            )
+        });
+        schema_references(schema.json_schema.as_value(), &mut pending);
+        referenced.insert(name);
+    }
+    if let Some(components) = &mut document.components {
+        components.schemas = schemas
+            .into_iter()
+            .filter(|(name, _)| referenced.contains(name))
+            .collect();
+    }
+}
+
+/// Appends the name of every component schema that `value` references to `references`.
+fn schema_references(value: &Value, references: &mut Vec<String>) {
+    match value {
+        Value::Object(object) => {
+            if let Some(name) = object
+                .get("$ref")
+                .and_then(Value::as_str)
+                .and_then(schema_name)
+            {
+                references.push(name.into_owned());
+            }
+            for member in object.values() {
+                schema_references(member, references);
+            }
+        }
+        Value::Array(elements) => {
+            for element in elements {
+                schema_references(element, references);
+            }
+        }
+        Value::Null | Value::Bool(_) | Value::Number(_) | Value::String(_) => {}
+    }
+}
+
+/// The name of the component schema `reference` points to, if it points to one.
+///
+/// A reference names the schema by a JSON pointer token in a URI fragment: `~` and `/` as `~0` and
+/// `~1`, and the characters a fragment does not allow percent-encoded.
+fn schema_name(reference: &str) -> Option<Cow<'_, str>> {
+    let token = percent_decode_str(reference.strip_prefix("#/components/schemas/")?)
+        .decode_utf8()
+        .ok()?;
+    Some(if token.contains('~') {
+        Cow::Owned(token.replace("~1", "/").replace("~0", "~"))
+    } else {
+        token
+    })
 }
 
 /// The schema of `parameter`, unless it describes its value by media type instead.
@@ -322,8 +413,8 @@ fn resolved<'schema>(
             schema
                 .get("$ref")
                 .and_then(Value::as_str)
-                .and_then(|reference| reference.strip_prefix("#/components/schemas/"))
-                .and_then(|name| schemas?.get(name))
+                .and_then(schema_name)
+                .and_then(|name| schemas?.get(name.as_ref()))
                 .map(|component| component.json_schema.as_value())
         };
         let Some(next) = next else {

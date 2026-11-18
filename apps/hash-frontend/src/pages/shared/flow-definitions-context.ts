@@ -1,13 +1,13 @@
 import { createContext, useContext } from "react";
 
-import type { EntityUuid } from "@blockprotocol/type-system";
-import type { FlowDefinitionWithId } from "@local/hash-isomorphic-utils/flows/types";
+import type { LoadedFlowDefinition } from "./use-flow-definitions";
+import type { EntityId } from "@blockprotocol/type-system";
 
 export type FlowDefinitionsContextType = {
-  /** Every flow defined in code. */
-  flowDefinitions: FlowDefinitionWithId[];
+  /** The current edition of every flow definition the user can view, from the graph. */
+  flowDefinitions: LoadedFlowDefinition[];
   loading: boolean;
-  selectedFlowDefinitionId: EntityUuid | null;
+  selectedFlowDefinitionEntityId: EntityId | null;
 };
 
 export const FlowDefinitionsContext =

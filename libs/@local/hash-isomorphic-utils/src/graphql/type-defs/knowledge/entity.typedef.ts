@@ -12,6 +12,7 @@ export const entityTypedef = gql`
   scalar EntityMetadata
   scalar EntityPermissionsMap
   scalar EntityQueryCursor
+  scalar EntityEditionId
   scalar EntityRecordId
   scalar EntityValidationReport
   scalar QueryEntitiesRequest

@@ -11,9 +11,11 @@ ENV PATH="/mise/shims:$PATH"
 
 COPY .config/mise /etc/mise
 
+# The runner copies this bundle.
 RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates && \
+    dpkg --compare-versions "$(dpkg-query -W -f='${Version}' ca-certificates)" ge 20250419+deb13u1 && \
     /etc/mise/install.sh && \
     mise --version && \
     apt-get clean && \
@@ -101,6 +103,13 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
 FROM scratch AS runner
 
 COPY --from=builder /out/ /
+
+# Amazon's RDS root certificates for eu-central-1, which the database server's certificate is
+# verified against.
+# To update the digest: curl -fsSL https://truststore.pki.rds.amazonaws.com/eu-central-1/eu-central-1-bundle.pem | shasum -a 256
+ADD --checksum=sha256:56a0cae044b6cc433971d964347401692a92ea0294e392753a3ebdaee54d8b84 --chmod=0644 \
+    https://truststore.pki.rds.amazonaws.com/eu-central-1/eu-central-1-bundle.pem \
+    /etc/ssl/certs/rds-eu-central-1-bundle.pem
 
 USER graph:hash
 

@@ -25,15 +25,14 @@ export type ActualModeTransitionFiring = {
   ts: string;
 };
 
-export type ActualModeReceivedEvent = {
-  event: string;
-  data: unknown;
-};
-
+/**
+ * The host's execution source. Petrinaut treats both fields as opaque.
+ */
 export type ActualModeSource = {
-  kind: "brunch";
-  endpoint: string;
-  runId?: string;
+  /** Unique per execution; a new id starts a new timeline. */
+  id: string;
+  /** Human-readable provenance, such as a run name or URL, kept in recordings. */
+  label?: string;
 };
 
 export type ActualModeRecording = {
@@ -46,14 +45,6 @@ export type ActualModeRecording = {
   transitionFirings: ActualModeTransitionFiring[];
 };
 
-export type ActualModeReceivedEventsRecording = {
-  version: typeof ACTUAL_MODE_RECORDING_VERSION;
-  exportedAt: string;
-  title: string | null;
-  source: ActualModeSource | null;
-  events: ActualModeReceivedEvent[];
-};
-
 export type ActualModeContextValue =
   | {
       available: false;
@@ -63,7 +54,6 @@ export type ActualModeContextValue =
       definition: null;
       initialState: null;
       transitionFirings: readonly [];
-      receivedEvents: readonly [];
       timelineStartedAtMs: null;
       timelineNowMs: null;
       error: null;
@@ -76,7 +66,6 @@ export type ActualModeContextValue =
       definition: SDCPN | null;
       initialState: ActualModeMarking | null;
       transitionFirings: readonly ActualModeTransitionFiring[];
-      receivedEvents: readonly ActualModeReceivedEvent[];
       timelineStartedAtMs: number | null;
       timelineNowMs: number | null;
       error: string | null;

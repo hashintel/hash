@@ -36,7 +36,9 @@ use futures::{SinkExt as _, channel::mpsc::Sender};
 use hash_codec::numeric::Real;
 use hash_graph_authorization::policies::store::{PolicyStore, PrincipalStore};
 use hash_graph_embeddings::{EmbeddingError, EmbeddingGenerator as _, OpenAiEmbeddingClient};
-use hash_graph_postgres_store::store::error::VersionedUrlAlreadyExists;
+use hash_graph_postgres_store::store::{
+    error::VersionedUrlAlreadyExists, postgres::PostgresClient,
+};
 use hash_graph_store::{
     account::AccountStore,
     api_token::ApiTokenStore,
@@ -227,7 +229,8 @@ static STATIC_SCHEMAS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/src/rest/lega
 pub(crate) fn routes<S>() -> Router
 where
     S: StorePool + Send + Sync + 'static,
-    for<'pool> S::Store<'pool>: RestApiStore + PrincipalStore + PolicyStore + ApiTokenStore,
+    for<'pool> S::Store<'pool>:
+        RestApiStore + PrincipalStore + PolicyStore + ApiTokenStore + AsRef<PostgresClient>,
 {
     [
         data_type::DataTypeResource::routes::<S>(),
@@ -237,7 +240,7 @@ where
         permissions::PermissionResource::routes::<S>(),
         principal::PrincipalResource::routes::<S>(),
         api_token::ApiTokenResource::routes::<S>(),
-        hashql::HashQlResource::routes(),
+        hashql::HashQlResource::routes::<S>(),
     ]
     .into_iter()
     .fold(Router::new(), Router::merge)

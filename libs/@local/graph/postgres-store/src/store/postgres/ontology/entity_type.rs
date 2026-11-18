@@ -2,11 +2,11 @@ use alloc::{borrow::Cow, collections::BTreeSet, sync::Arc};
 use core::iter;
 use std::collections::{HashMap, HashSet};
 
-use error_stack::{Report, ResultExt as _};
+use error_stack::{Report, ResultExt as _, TryReportIteratorExt as _};
 use futures::{StreamExt as _, TryStreamExt as _};
 use hash_graph_authorization::policies::{
-    Authorized, MergePolicies, PolicyComponents, Request, RequestContext, ResourceId,
-    action::ActionName,
+    Authorized, MergePolicies, PolicyComponents, PolicyComponentsBuilder, PolicySet, Request,
+    RequestContext, ResourceId, action::ActionName,
 };
 use hash_graph_store::{
     entity::ClosedMultiEntityTypeMap,
@@ -54,7 +54,7 @@ use type_system::{
             EntityTypeUuid,
             schema::{
                 EntityTypeResolveData, EntityTypeToPropertyTypeEdge, EntityTypeValidator,
-                PartialEntityType,
+                LINK_ENTITY_TYPE_BASE_URL, PartialEntityType,
             },
         },
         id::{OntologyTypeRecordId, OntologyTypeUuid, OntologyTypeVersion, VersionedUrl},
@@ -69,7 +69,7 @@ use type_system::{
 };
 
 use crate::store::{
-    error::{DeletionError, OntologyVersionDoesNotExist},
+    error::{DeletionError, LinkToLinkConstraint, OntologyVersionDoesNotExist},
     postgres::{
         AsClient, GenericClientIter as _, PostgresStore, ResponseCountMap, TransactionState,
         TraversalContext,
@@ -433,6 +433,88 @@ where
 
                 Ok((source_id, resolve_data))
             }))
+    }
+
+    /// Rejects the `entity_types` that would let a link point to a link.
+    ///
+    /// An entity type must not allow a link type as a link destination, and a link type must not
+    /// declare links. The check reads the reference tables, so the references of every type in
+    /// `entity_types` have to be inserted before.
+    ///
+    /// # Errors
+    ///
+    /// - [`LinkToLinkConstraint`] for each link destination and each declared link that breaks this
+    async fn ensure_no_links_to_links(
+        &self,
+        entity_types: &[EntityTypeUuid],
+    ) -> Result<(), Report<InsertionError>> {
+        // `endpoint_id` is the entity type at the end of the link that must not be a link: the
+        // destination for a link destination, and the declaring type for a declared link.
+        self.as_client()
+            .query(
+                "
+                    SELECT
+                        reference.is_destination,
+                        source.base_url || 'v/' || source.version,
+                        target.base_url || 'v/' || target.version
+                    FROM (
+                        SELECT
+                            TRUE AS is_destination,
+                            source_entity_type_ontology_id AS source_id,
+                            target_entity_type_ontology_id AS target_id,
+                            target_entity_type_ontology_id AS endpoint_id
+                        FROM entity_type_constrains_link_destinations_on
+                        WHERE source_entity_type_ontology_id = ANY($1)
+                        UNION ALL
+                        SELECT
+                            FALSE,
+                            source_entity_type_ontology_id,
+                            target_entity_type_ontology_id,
+                            source_entity_type_ontology_id
+                        FROM entity_type_constrains_links_on
+                        WHERE source_entity_type_ontology_id = ANY($1)
+                    ) AS reference
+                    JOIN ontology_ids AS source ON source.ontology_id = reference.source_id
+                    JOIN ontology_ids AS target ON target.ontology_id = reference.target_id
+                    JOIN ontology_ids AS endpoint ON endpoint.ontology_id = reference.endpoint_id
+                    WHERE endpoint.base_url = $2
+                       OR EXISTS (
+                           SELECT 1
+                           FROM entity_type_inherits_from AS inherits
+                           JOIN ontology_ids AS ancestor
+                             ON ancestor.ontology_id = inherits.target_entity_type_ontology_id
+                           WHERE inherits.source_entity_type_ontology_id = reference.endpoint_id
+                             AND ancestor.base_url = $2
+                       );
+                ",
+                &[&entity_types, &LINK_ENTITY_TYPE_BASE_URL],
+            )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres"
+            ))
+            .await
+            .change_context(InsertionError)?
+            .into_iter()
+            .map(|row| {
+                let entity_type_id = row.get(1);
+                let referenced_type_id = row.get(2);
+                Err(Report::new(if row.get(0) {
+                    LinkToLinkConstraint::Destination {
+                        entity_type_id,
+                        destination_id: referenced_type_id,
+                    }
+                } else {
+                    LinkToLinkConstraint::Source {
+                        entity_type_id,
+                        link_type_id: referenced_type_id,
+                    }
+                }))
+            })
+            .try_collect_reports::<()>()
+            .change_context(InsertionError)
     }
 
     #[expect(clippy::too_many_lines)]
@@ -881,6 +963,80 @@ where
     }
 }
 
+/// Adds the parents of `entity_types` that are in `viewable_entity_type_ids` to the policy context,
+/// together with their ancestors.
+///
+/// A parent the actor cannot view is left out, so that it fails to resolve in the same way as a
+/// parent that does not exist.
+fn add_viewable_parent_entity_types<'a, S>(
+    policy_components_builder: &mut PolicyComponentsBuilder<'a, S>,
+    entity_types: &'a [(EntityTypeUuid, Arc<EntityType>)],
+    viewable_entity_type_ids: &HashSet<&VersionedUrl>,
+) {
+    policy_components_builder.add_entity_type_ids(
+        entity_types
+            .iter()
+            .flat_map(|(_, entity_type)| &entity_type.all_of)
+            .map(|parent| &parent.url)
+            .filter(|parent_id| viewable_entity_type_ids.contains(parent_id)),
+    );
+}
+
+/// Fails unless the actor may instantiate every entity type that `entity_type` inherits from,
+/// directly or transitively.
+///
+/// The policy context has to contain all of these ancestors.
+fn ensure_ancestors_are_instantiable<C>(
+    policy_set: &PolicySet,
+    policy_components: &PolicyComponents,
+    entity_type: &ClosedEntityType,
+    context: C,
+) -> Result<(), Report<C>>
+where
+    C: core::error::Error + Send + Sync + 'static,
+{
+    let mut forbidden_ancestors = Vec::new();
+    for ancestor in entity_type
+        .all_of
+        .iter()
+        .filter(|ancestor| ancestor.id != entity_type.id)
+    {
+        let authorized = policy_set.evaluate(
+            &Request {
+                actor: policy_components.actor_id(),
+                action: ActionName::Instantiate,
+                resource: &ResourceId::EntityType(Cow::Borrowed((&ancestor.id).into())),
+                context: RequestContext::default(),
+            },
+            policy_components.context(),
+        );
+        match authorized {
+            Ok(Authorized::Always) => {}
+            Ok(Authorized::Never) => forbidden_ancestors.push(ancestor.id.to_string()),
+            Err(error) => {
+                return Err(error.change_context(context).attach(format!(
+                    "Could not check whether the actor may instantiate `{}`, which the entity \
+                     type `{}` inherits from",
+                    ancestor.id, entity_type.id
+                )));
+            }
+        }
+    }
+
+    if forbidden_ancestors.is_empty() {
+        return Ok(());
+    }
+
+    Err(Report::new(context)
+        .attach_opaque(StatusCode::PermissionDenied)
+        .attach(format!(
+            "The actor does not have permission to instantiate `{}`, which the entity type `{}` \
+             inherits from",
+            forbidden_ancestors.join("`, `"),
+            entity_type.id
+        )))
+}
+
 impl<C, S> EntityTypeStore for PostgresStore<C, S>
 where
     C: AsClient,
@@ -903,6 +1059,7 @@ where
 
         let mut inserted_entity_type_metadata = Vec::new();
         let mut inserted_entity_types = Vec::new();
+        let mut inserted_fetched_from_origin = Vec::new();
         let mut entity_type_reference_ids = Vec::new();
 
         let mut policy_components_builder = PolicyComponents::builder(&transaction, Some(actor_id));
@@ -919,12 +1076,6 @@ where
             let record_id = OntologyTypeRecordId::from(parameters.schema.id.clone());
             let entity_type_id = EntityTypeUuid::from_url(&parameters.schema.id);
 
-            if let OntologyOwnership::Local { web_id } = &parameters.ownership {
-                policy_components_builder.add_entity_type(&parameters.schema.id, Some(*web_id));
-            } else {
-                policy_components_builder.add_entity_type(&parameters.schema.id, None);
-            }
-
             if let Some((_ontology_id, temporal_versioning)) = transaction
                 .create_ontology_metadata(
                     &parameters.schema.id,
@@ -934,6 +1085,11 @@ where
                 )
                 .await?
             {
+                if let OntologyOwnership::Local { web_id } = &parameters.ownership {
+                    policy_components_builder.add_entity_type(&parameters.schema.id, Some(*web_id));
+                } else {
+                    policy_components_builder.add_entity_type(&parameters.schema.id, None);
+                }
                 entity_type_reference_ids.extend(
                     parameters
                         .schema
@@ -941,6 +1097,10 @@ where
                         .map(|(reference, _)| EntityTypeUuid::from_url(&reference.url)),
                 );
                 inserted_entity_types.push((entity_type_id, Arc::new(parameters.schema)));
+                inserted_fetched_from_origin.push(
+                    parameters.fetched_from_origin
+                        && matches!(parameters.ownership, OntologyOwnership::Remote { .. }),
+                );
                 inserted_entity_type_metadata.push(EntityTypeMetadata {
                     record_id,
                     ownership: parameters.ownership,
@@ -950,13 +1110,54 @@ where
             }
         }
 
+        let required_reference_ids = entity_type_reference_ids.into_iter().collect::<Vec<_>>();
+        let referenced_entity_types = transaction
+            .query_entity_types(
+                Some(actor_id),
+                QueryEntityTypesParams {
+                    request: CommonQueryEntityTypesParams {
+                        filter: Filter::In(
+                            FilterExpression::Path {
+                                path: EntityTypeQueryPath::OntologyId,
+                            },
+                            FilterExpressionList::ParameterList {
+                                parameters: ParameterList::EntityTypeIds(&required_reference_ids),
+                            },
+                        ),
+                        temporal_axes: QueryTemporalAxesUnresolved::live_only(),
+                        after: None,
+                        limit: None,
+                        include_count: false,
+                        include_web_ids: false,
+                        include_edition_created_by_ids: false,
+                    },
+                    include_entity_types: None,
+                },
+            )
+            .await
+            .change_context(InsertionError)
+            .attach("Could not read parent entity types")?
+            .entity_types;
+        let viewable_entity_type_ids = referenced_entity_types
+            .iter()
+            .map(|entity_type| &entity_type.schema.id)
+            .collect::<HashSet<_>>();
+        add_viewable_parent_entity_types(
+            &mut policy_components_builder,
+            &inserted_entity_types,
+            &viewable_entity_type_ids,
+        );
+
         let policy_components = policy_components_builder
-            .with_actions([ActionName::CreateEntityType], MergePolicies::No)
+            .with_actions(
+                [ActionName::CreateEntityType, ActionName::Instantiate],
+                MergePolicies::No,
+            )
             .await
             .change_context(InsertionError)?;
 
         let policy_set = policy_components
-            .build_policy_set([ActionName::CreateEntityType])
+            .build_policy_set([ActionName::CreateEntityType, ActionName::Instantiate])
             .change_context(InsertionError)?;
 
         let mut ontology_type_resolver = OntologyTypeResolver::default();
@@ -991,8 +1192,6 @@ where
                 .add_unresolved_entity_type(*entity_type_id, Arc::clone(inserted_entity_type));
         }
 
-        let required_reference_ids = entity_type_reference_ids.into_iter().collect::<Vec<_>>();
-
         let mut resolve_data = transaction
             .get_per_entity_type_resolve_metadata(&required_reference_ids)
             .await
@@ -1001,47 +1200,19 @@ where
             .collect::<Result<HashMap<_, _>, _>>()
             .change_context(InsertionError)?;
 
-        transaction
-            .query_entity_types(
-                Some(actor_id),
-                QueryEntityTypesParams {
-                    request: CommonQueryEntityTypesParams {
-                        filter: Filter::In(
-                            FilterExpression::Path {
-                                path: EntityTypeQueryPath::OntologyId,
-                            },
-                            FilterExpressionList::ParameterList {
-                                parameters: ParameterList::EntityTypeIds(&required_reference_ids),
-                            },
-                        ),
-                        temporal_axes: QueryTemporalAxesUnresolved::live_only(),
-                        after: None,
-                        limit: None,
-                        include_count: false,
-                        include_web_ids: false,
-                        include_edition_created_by_ids: false,
-                    },
-                    include_entity_types: None,
-                },
-            )
-            .await
-            .change_context(InsertionError)
-            .attach("Could not read parent entity types")?
-            .entity_types
-            .into_iter()
-            .for_each(|entity_type| {
-                let entity_type_id = EntityTypeUuid::from_url(&entity_type.schema.id);
-                if let Some(resolve_data) = resolve_data.remove(&entity_type_id) {
-                    ontology_type_resolver.add_closed_entity_type(
-                        entity_type_id,
-                        Arc::new(entity_type.schema),
-                        Arc::new(resolve_data),
-                    );
-                } else {
-                    ontology_type_resolver
-                        .add_unresolved_entity_type(entity_type_id, Arc::new(entity_type.schema));
-                }
-            });
+        for entity_type in referenced_entity_types {
+            let entity_type_id = EntityTypeUuid::from_url(&entity_type.schema.id);
+            if let Some(resolve_data) = resolve_data.remove(&entity_type_id) {
+                ontology_type_resolver.add_closed_entity_type(
+                    entity_type_id,
+                    Arc::new(entity_type.schema),
+                    Arc::new(resolve_data),
+                );
+            } else {
+                ontology_type_resolver
+                    .add_unresolved_entity_type(entity_type_id, Arc::new(entity_type.schema));
+            }
+        }
 
         let closed_schemas = inserted_entity_types
             .iter()
@@ -1056,6 +1227,21 @@ where
                 Ok((closed_schema, closed_metadata))
             })
             .collect::<Result<Vec<_>, Report<_>>>()?;
+
+        // A type fetched from where it is published inherits what its owner defined there, which
+        // the actor cannot change.
+        for ((closed_schema, _), fetched_from_origin) in
+            closed_schemas.iter().zip(&inserted_fetched_from_origin)
+        {
+            if !fetched_from_origin {
+                ensure_ancestors_are_instantiable(
+                    &policy_set,
+                    &policy_components,
+                    closed_schema,
+                    InsertionError,
+                )?;
+            }
+        }
 
         let entity_type_validator = EntityTypeValidator;
         for ((entity_type_id, entity_type), (closed_schema, _resolve_data)) in
@@ -1080,6 +1266,15 @@ where
                 .insert_entity_type_references(*entity_type_id, closed_metadata)
                 .await?;
         }
+
+        transaction
+            .ensure_no_links_to_links(
+                &inserted_entity_types
+                    .iter()
+                    .map(|(entity_type_id, _)| *entity_type_id)
+                    .collect::<Vec<_>>(),
+            )
+            .await?;
 
         transaction.commit().await.change_context(InsertionError)?;
 
@@ -1629,6 +1824,8 @@ where
 
         let mut old_entity_type_ids = Vec::new();
 
+        let mut policy_components_builder = PolicyComponents::builder(&transaction, Some(actor_id));
+
         for parameters in params {
             let provenance = OntologyProvenance {
                 edition: OntologyEditionProvenance {
@@ -1663,6 +1860,7 @@ where
             let (_ontology_id, web_id, temporal_versioning) = transaction
                 .update_owned_ontology_id(&parameters.schema.id, &provenance.edition)
                 .await?;
+            policy_components_builder.add_entity_type(&parameters.schema.id, Some(web_id));
 
             entity_type_reference_ids.extend(
                 parameters
@@ -1679,14 +1877,55 @@ where
             });
         }
 
-        let policy_components = PolicyComponents::builder(&transaction, Some(actor_id))
-            .with_entity_type_ids(&old_entity_type_ids)
-            .with_actions([ActionName::UpdateEntityType], MergePolicies::No)
+        policy_components_builder.add_entity_type_ids(&old_entity_type_ids);
+        let required_reference_ids = entity_type_reference_ids.into_iter().collect::<Vec<_>>();
+        let referenced_entity_types = transaction
+            .query_entity_types(
+                Some(actor_id),
+                QueryEntityTypesParams {
+                    request: CommonQueryEntityTypesParams {
+                        filter: Filter::In(
+                            FilterExpression::Path {
+                                path: EntityTypeQueryPath::OntologyId,
+                            },
+                            FilterExpressionList::ParameterList {
+                                parameters: ParameterList::EntityTypeIds(&required_reference_ids),
+                            },
+                        ),
+                        temporal_axes: QueryTemporalAxesUnresolved::live_only(),
+                        after: None,
+                        limit: None,
+                        include_count: false,
+                        include_web_ids: false,
+                        include_edition_created_by_ids: false,
+                    },
+                    include_entity_types: None,
+                },
+            )
+            .await
+            .change_context(UpdateError)
+            .attach("Could not read parent entity types")?
+            .entity_types;
+        let viewable_entity_type_ids = referenced_entity_types
+            .iter()
+            .map(|entity_type| &entity_type.schema.id)
+            .collect::<HashSet<_>>();
+        add_viewable_parent_entity_types(
+            &mut policy_components_builder,
+            &inserted_entity_types,
+            &viewable_entity_type_ids,
+        );
+
+        let policy_components = policy_components_builder
+            .with_actions(
+                [ActionName::UpdateEntityType, ActionName::Instantiate],
+                MergePolicies::No,
+            )
             .await
             .change_context(UpdateError)?;
 
         let policy_set = policy_components
-            .build_policy_set([ActionName::UpdateEntityType])
+            .build_policy_set([ActionName::UpdateEntityType, ActionName::Instantiate])
             .change_context(UpdateError)?;
 
         for entity_type_id in &old_entity_type_ids {
@@ -1721,8 +1960,6 @@ where
                 .add_unresolved_entity_type(*entity_type_id, Arc::clone(inserted_entity_type));
         }
 
-        let required_reference_ids = entity_type_reference_ids.into_iter().collect::<Vec<_>>();
-
         let mut resolve_data = transaction
             .get_per_entity_type_resolve_metadata(&required_reference_ids)
             .await
@@ -1731,47 +1968,19 @@ where
             .collect::<Result<HashMap<_, _>, _>>()
             .change_context(UpdateError)?;
 
-        transaction
-            .query_entity_types(
-                Some(actor_id),
-                QueryEntityTypesParams {
-                    request: CommonQueryEntityTypesParams {
-                        filter: Filter::In(
-                            FilterExpression::Path {
-                                path: EntityTypeQueryPath::OntologyId,
-                            },
-                            FilterExpressionList::ParameterList {
-                                parameters: ParameterList::EntityTypeIds(&required_reference_ids),
-                            },
-                        ),
-                        temporal_axes: QueryTemporalAxesUnresolved::live_only(),
-                        after: None,
-                        limit: None,
-                        include_count: false,
-                        include_web_ids: false,
-                        include_edition_created_by_ids: false,
-                    },
-                    include_entity_types: None,
-                },
-            )
-            .await
-            .change_context(UpdateError)
-            .attach("Could not read parent entity types")?
-            .entity_types
-            .into_iter()
-            .for_each(|entity_type| {
-                let entity_type_id = EntityTypeUuid::from_url(&entity_type.schema.id);
-                if let Some(resolve_data) = resolve_data.remove(&entity_type_id) {
-                    ontology_type_resolver.add_closed_entity_type(
-                        entity_type_id,
-                        Arc::new(entity_type.schema),
-                        Arc::new(resolve_data),
-                    );
-                } else {
-                    ontology_type_resolver
-                        .add_unresolved_entity_type(entity_type_id, Arc::new(entity_type.schema));
-                }
-            });
+        for entity_type in referenced_entity_types {
+            let entity_type_id = EntityTypeUuid::from_url(&entity_type.schema.id);
+            if let Some(resolve_data) = resolve_data.remove(&entity_type_id) {
+                ontology_type_resolver.add_closed_entity_type(
+                    entity_type_id,
+                    Arc::new(entity_type.schema),
+                    Arc::new(resolve_data),
+                );
+            } else {
+                ontology_type_resolver
+                    .add_unresolved_entity_type(entity_type_id, Arc::new(entity_type.schema));
+            }
+        }
 
         let closed_schemas = inserted_entity_types
             .iter()
@@ -1786,6 +1995,15 @@ where
                 Ok((closed_schema, closed_metadata))
             })
             .collect::<Result<Vec<_>, Report<_>>>()?;
+
+        for (closed_schema, _) in &closed_schemas {
+            ensure_ancestors_are_instantiable(
+                &policy_set,
+                &policy_components,
+                closed_schema,
+                UpdateError,
+            )?;
+        }
 
         let entity_type_validator = EntityTypeValidator;
         for ((entity_type_id, entity_type), (closed_schema, _resolve_data)) in
@@ -1812,6 +2030,16 @@ where
                 .await
                 .change_context(UpdateError)?;
         }
+
+        transaction
+            .ensure_no_links_to_links(
+                &inserted_entity_types
+                    .iter()
+                    .map(|(entity_type_id, _)| *entity_type_id)
+                    .collect::<Vec<_>>(),
+            )
+            .await
+            .change_context(UpdateError)?;
 
         transaction.commit().await.change_context(UpdateError)?;
 

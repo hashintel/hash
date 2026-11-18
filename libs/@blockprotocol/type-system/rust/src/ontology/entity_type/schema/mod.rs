@@ -8,7 +8,7 @@ use std::collections::{HashMap, HashSet, hash_map::Entry};
 pub use self::{
     closed::{
         ClosedEntityType, ClosedEntityTypeMetadata, ClosedMultiEntityType, EntityTypeResolveData,
-        ResolveClosedEntityTypeError,
+        LINK_ENTITY_TYPE_BASE_URL, ResolveClosedEntityTypeError,
     },
     constraints::EntityConstraints,
     validation::{EntityTypeValidationError, EntityTypeValidator},

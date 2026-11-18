@@ -5,6 +5,7 @@ import { checkDefinition } from "../../diagnostics";
 import { createJsonDocHandle } from "../../handle";
 import { createPetrinaut } from "../../instance";
 import { toPetrinautId } from "../../petrinaut-id";
+import { SOURCE_PREDICATE_IN_TIMED_NET_CODE } from "./check-net-timing";
 import { createSDCPN } from "./helper/create-sdcpn";
 
 import type { SDCPN } from "../../types/sdcpn";
@@ -50,9 +51,10 @@ const cleanNet = () =>
       {
         id: "decay-dynamics",
         colorId: "item",
-        code: `export default Dynamics((tokens, parameters) =>
-          tokens.map(({ level }) => ({ level: -parameters.decay_rate * level })),
-        );`,
+        arity: 1,
+        code: `export default Dynamics(({ level }, parameters) => ({
+          level: -parameters.decay_rate * level,
+        }));`,
       },
     ],
     places: [
@@ -61,7 +63,7 @@ const cleanNet = () =>
         name: "Store",
         colorId: "item",
         dynamicsEnabled: true,
-        differentialEquationId: "decay-dynamics",
+        dynamics: [{ differentialEquationId: "decay-dynamics" }],
       },
       { id: "shipped", name: "Shipped", colorId: "item" },
     ],
@@ -151,12 +153,18 @@ describe("dependency changes invalidate untouched code", () => {
         }),
       ),
     );
+    const compilerErrors = errors.filter(
+      (error) => error.code !== SOURCE_PREDICATE_IN_TIMED_NET_CODE,
+    );
     // Without the arc the input type is `Record<string, never>`, so the read
     // of `input.Store` yields `never` and the error lands on `.level`.
-    expect(errors.length).toBeGreaterThanOrEqual(2);
-    expect(errors.every((error) => /Store|never/u.test(error.message))).toBe(
-      true,
-    );
+    expect(compilerErrors.length).toBeGreaterThanOrEqual(2);
+    expect(
+      compilerErrors.every((error) => /Store|never/u.test(error.message)),
+    ).toBe(true);
+    // The arc was the predicate's only input, and the net's dynamics make
+    // it timed, so the transition's shape is reported as well.
+    expect(errors).toHaveLength(compilerErrors.length + 1);
   });
 
   it("turning an input arc into an inhibitor removes its tokens from the input type", () => {
@@ -190,7 +198,7 @@ describe("dependency changes invalidate untouched code", () => {
           update: {
             colorId: "crate",
             dynamicsEnabled: false,
-            differentialEquationId: null,
+            dynamics: [],
           },
         });
       }),
@@ -229,7 +237,8 @@ describe("removing net-level state", () => {
       id: "idle-dynamics",
       name: "Idle",
       colorId: "pallet",
-      code: `export default Dynamics((tokens) => tokens.map(() => ({ slots: 0 })));`,
+      arity: 1,
+      code: `export default Dynamics((pallet) => ({ slots: 0 }));`,
     });
   };
 
@@ -266,15 +275,21 @@ describe("removing net-level state", () => {
         mutations.removeTypeElement({ typeId: "item", elementId: "level" }),
       ),
     );
-    // Dynamics, lambda and kernel all read `level`; the kernel's output row
-    // additionally fails as `never` once the type has no elements.
+    // Dynamics and the kernel's output read `level`; the kernel's output row
+    // additionally fails as `never` once the type has no elements. A type
+    // with no elements delivers no token values, so the lambda and kernel
+    // that index `input.Store` fail on the place, which now exposes only
+    // `.count`.
     expect(errors.length).toBeGreaterThanOrEqual(3);
-    expect(errors.every((error) => /level|never/u.test(error.message))).toBe(
-      true,
-    );
+    expect(
+      errors.every((error) => /level|never|Store/u.test(error.message)),
+    ).toBe(true);
     expect(
       errors.filter((error) => /level/u.test(error.message)).length,
-    ).toBeGreaterThanOrEqual(3);
+    ).toBeGreaterThanOrEqual(1);
+    expect(
+      errors.filter((error) => /Store/u.test(error.message)).length,
+    ).toBeGreaterThanOrEqual(2);
   });
 
   it("removing a referenced equation clears the place's dynamics reference and stays clean", () => {
@@ -284,9 +299,8 @@ describe("removing net-level state", () => {
     // The cascade is complete in the canonical definition: no place still
     // names the removed equation, so nothing is left half-referenced.
     expect(
-      definition.places.find(({ id }) => id === idOf("store"))
-        ?.differentialEquationId,
-    ).toBeNull();
+      definition.places.find(({ id }) => id === idOf("store"))?.dynamics,
+    ).toEqual([]);
     expect(definition.differentialEquations).toEqual([]);
     expect(errorsOf(definition)).toEqual([]);
   });
@@ -302,8 +316,16 @@ describe("removing net-level state", () => {
     expect(
       definition.differentialEquations.every(({ colorId }) => colorId === null),
     ).toBe(true);
+    // Uncoloured places deliver no token values: code that read `level`
+    // through `input.Store[0]` fails on the place, which exposes `.count`.
+    // The uncoloured equation's `level` reads and its returned derivative
+    // both fail: the former names the element, the latter the `never` the
+    // colourless derivative type leaves.
     const errors = errorsOf(definition);
     expect(errors.length).toBeGreaterThanOrEqual(1);
-    expect(errors.every((error) => /level/u.test(error.message))).toBe(true);
+    expect(errors.some((error) => /level/u.test(error.message))).toBe(true);
+    expect(
+      errors.every((error) => /level|Store|never/u.test(error.message)),
+    ).toBe(true);
   });
 });

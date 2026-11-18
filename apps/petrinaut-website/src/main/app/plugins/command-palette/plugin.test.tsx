@@ -3,7 +3,7 @@ import {
   cleanup,
   fireEvent,
   screen,
-  waitForElementToBeRemoved,
+  waitFor,
   within,
 } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
@@ -13,7 +13,7 @@ import { commandPalettePlugin } from "./plugin";
 
 await vi.hoisted(async () => {
   const { installPetrinautDomShims } =
-    await import("../../shared/petrinaut-jsdom");
+    await import("@hashintel/brunch-agent/testing/petrinaut-jsdom");
   installPetrinautDomShims();
 });
 
@@ -40,6 +40,13 @@ test.each(["metaKey", "ctrlKey"])(
     expect(
       within(palette).getByText("Toggle the command palette"),
     ).toBeTruthy();
+    fireEvent.keyDown(within(palette).getByPlaceholderText("Type a command…"), {
+      key: "k",
+      [modifier]: true,
+    });
+    expect(
+      screen.queryByRole("dialog", { name: "Command palette" }),
+    ).toBeNull();
   },
 );
 
@@ -52,5 +59,9 @@ test("the top-bar button opens the palette and its own toggle row closes it", as
   const palette = screen.getByRole("dialog", { name: "Command palette" });
 
   fireEvent.click(within(palette).getByText("Toggle the command palette"));
-  await waitForElementToBeRemoved(palette);
+  await waitFor(() =>
+    expect(
+      screen.queryByRole("dialog", { name: "Command palette" }),
+    ).toBeNull(),
+  );
 });

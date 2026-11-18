@@ -2,8 +2,8 @@
  * The Monte Carlo worker protocol, detached from any thread host.
  *
  * The protocol logic lives here so every host runs the same code: the editor's
- * Web Worker entry wraps `self`, the CLI's `worker_threads` entry wraps
- * `parentPort`, and the in-process worker wraps a plain callback pair. What a
+ * Web Worker entry wraps `self`, and the in-process worker wraps a plain
+ * callback pair. What a
  * host must supply is only a {@link WorkerThreadRuntime}: post a message,
  * receive messages, and yield between compute batches.
  */
@@ -21,10 +21,13 @@ import type {
   MonteCarloUserDefinedMetric,
   MonteCarloUserDefinedMetricFrame,
 } from "../metrics";
+import type {
+  MonteCarloRunDriverFactory,
+  MonteCarloSimulatorSelection,
+} from "../run-driver";
 import type { MonteCarloAdvanceResult, MonteCarloSimulator } from "../types";
 import type {
   MonteCarloInitMessage,
-  MonteCarloRunResultEntry,
   MonteCarloToMainMessage,
   MonteCarloToWorkerMessage,
   MonteCarloWorkerProgress,
@@ -35,21 +38,32 @@ const DEFAULT_BATCH_SIZE = 4;
 /**
  * Runs the Monte Carlo worker protocol against `runtime`.
  *
- * Handles `init`/`start`/`cancel`, streams `progress` and `metricFrames`, and
- * posts each run's final metric values as `runResults` before `complete`.
+ * Handles `init`/`start`/`cancel`, and streams `progress` and `metricFrames`
+ * until `complete`.
  */
+export type AttachMonteCarloWorkerOptions = {
+  /**
+   * Builds the run drivers of a simulator other than the fixed-step engine.
+   * Without it the worker hosts that engine alone, and refuses an
+   * experiment that names another simulator.
+   */
+  createRunDriver?: (
+    selection: MonteCarloSimulatorSelection,
+  ) => MonteCarloRunDriverFactory;
+};
+
 export function attachMonteCarloWorker(
   runtime: WorkerThreadRuntime<
     MonteCarloToWorkerMessage,
     MonteCarloToMainMessage
   >,
+  options: AttachMonteCarloWorkerOptions = {},
 ): void {
   let simulator: MonteCarloSimulator | null = null;
   let userMetrics: MonteCarloUserDefinedMetric[] = [];
   let isRunning = false;
   let isInitialized = false;
   let batchSize = DEFAULT_BATCH_SIZE;
-  let runIndexOffset = 0;
   let lastSentMetricFrameCounts = new Map<string, number>();
   let latestProgress: MonteCarloWorkerProgress | null = null;
 
@@ -161,27 +175,6 @@ export function attachMonteCarloWorker(
     }
   }
 
-  /** Each run's final metric values, keyed by the run's global index. */
-  function collectRunResults(): MonteCarloRunResultEntry[] {
-    const byRunIndex = new Map<number, Record<string, number>>();
-
-    for (const metric of userMetrics) {
-      for (const [localRunIndex, value] of metric.getRunValues()) {
-        const globalRunIndex = runIndexOffset + localRunIndex;
-        let values = byRunIndex.get(globalRunIndex);
-        if (!values) {
-          values = {};
-          byRunIndex.set(globalRunIndex, values);
-        }
-        values[metric.id] = value;
-      }
-    }
-
-    return [...byRunIndex.entries()]
-      .sort(([left], [right]) => left - right)
-      .map(([runIndex, values]) => ({ runIndex, values }));
-  }
-
   function initialize(message: MonteCarloInitMessage): void {
     const metricSpecs = message.metricSpecs;
     userMetrics = metricSpecs
@@ -195,7 +188,16 @@ export function attachMonteCarloWorker(
           ),
         ).map((metricConfig) => createMonteCarloUserDefinedMetric(metricConfig))
       : [];
+    const selection = message.simulator;
+    if (selection && !options.createRunDriver) {
+      throw new Error(
+        `Simulator "${selection.id}" is not hosted by this Monte Carlo worker`,
+      );
+    }
     simulator = createMonteCarloSimulator({
+      ...(selection && options.createRunDriver
+        ? { createRunDriver: options.createRunDriver(selection) }
+        : {}),
       sdcpn: message.sdcpn,
       extensions: message.extensions,
       initialMarking: message.initialMarking,
@@ -210,7 +212,6 @@ export function attachMonteCarloWorker(
       metrics: userMetrics,
     });
     batchSize = message.batchSize ?? DEFAULT_BATCH_SIZE;
-    runIndexOffset = message.runIndexOffset ?? 0;
     isInitialized = true;
     isRunning = false;
     lastSentMetricFrameCounts = new Map();
@@ -244,10 +245,6 @@ export function attachMonteCarloWorker(
 
         if (result.allFinished) {
           isRunning = false;
-          const results = collectRunResults();
-          if (results.length > 0) {
-            postTypedMessage({ type: "runResults", results });
-          }
           postTypedMessage({ type: "complete", progress: latestProgress });
           return;
         }

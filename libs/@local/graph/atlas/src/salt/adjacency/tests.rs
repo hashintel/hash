@@ -251,7 +251,11 @@ fn wide_indices_read_back() {
 }
 
 mod miri {
-    use crate::{file::WriteInto as _, identity::NodeRowId, salt::adjacency::Adjacency};
+    use crate::{
+        file::sprs::write::write_matrix,
+        identity::NodeRowId,
+        salt::adjacency::{Adjacency, AdjacencyGraph},
+    };
 
     #[test]
     fn writing_to_memory_conjures_the_unit_region() {
@@ -261,11 +265,13 @@ mod miri {
             [NodeRowId::new(0), NodeRowId::new(2)],
         ];
         let adjacency = Adjacency::build(3, &endpoints);
+        let AdjacencyGraph::U16(matrix) = &adjacency.0 else {
+            panic!("three edges should fit two-byte row ids");
+        };
 
+        // `write_into` also digests the bytes, which Miri cannot run.
         let mut bytes = Vec::new();
-        let _digest = adjacency
-            .write_into(&mut bytes)
-            .expect("an in-memory write cannot fail");
+        write_matrix(matrix, &mut bytes).expect("an in-memory write cannot fail");
 
         assert_ne!(bytes, [] as [u8; 0]);
     }

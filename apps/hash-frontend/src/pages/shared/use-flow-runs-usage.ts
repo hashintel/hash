@@ -24,31 +24,32 @@ import type {
   QueryEntitySubgraphQuery,
   QueryEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
-import type { EntityUuid } from "@blockprotocol/type-system";
+import type { EntityId } from "@blockprotocol/type-system";
 import type {
   AggregatedUsageByTask,
   AggregatedUsageRecord,
 } from "@local/hash-isomorphic-utils/service-usage";
 import type { UsageRecord } from "@local/hash-isomorphic-utils/system-types/usagerecord";
 
-type UsageByFlowRunId = {
-  [flowRunId: EntityUuid]: {
+type UsageByFlowRunEntityId = Record<
+  EntityId,
+  {
     recordsByTask: AggregatedUsageByTask[];
     recordsByServiceFeature: AggregatedUsageRecord[];
     total: number;
-  };
-};
+  }
+>;
 
 export const useFlowRunsUsage = ({
-  flowRunIds,
+  flowRunEntityIds,
   pollInterval = 5_000,
 }: {
-  flowRunIds: EntityUuid[];
+  flowRunEntityIds: EntityId[];
   pollInterval?: number;
 }): {
   isUsageAvailable: boolean;
   loading: boolean;
-  usageByFlowRun: UsageByFlowRunId;
+  usageByFlowRun: UsageByFlowRunEntityId;
 } => {
   const { isUserAdmin } = useHashInstance();
 
@@ -72,10 +73,10 @@ export const useFlowRunsUsage = ({
               ],
             },
             {
-              any: flowRunIds.map((flowRunId) => ({
+              any: flowRunEntityIds.map((flowRunEntityId) => ({
                 equal: [
                   { path: ["outgoingLinks", "rightEntity", "uuid"] },
-                  { parameter: flowRunId },
+                  { parameter: extractEntityUuidFromEntityId(flowRunEntityId) },
                 ],
               })),
             },
@@ -97,14 +98,14 @@ export const useFlowRunsUsage = ({
     },
   });
 
-  const usageByFlowRun = useMemo<UsageByFlowRunId>(() => {
+  const usageByFlowRun = useMemo<UsageByFlowRunEntityId>(() => {
     if (!data) {
       return {};
     }
 
-    const usageByFlowRunId: UsageByFlowRunId = {};
+    const usageByFlowRunEntityId: UsageByFlowRunEntityId = {};
 
-    for (const flowRunId of flowRunIds) {
+    for (const flowRunEntityId of flowRunEntityIds) {
       const serviceUsageRecordSubgraph =
         deserializeQueryEntitySubgraphResponse<UsageRecord>(
           data.queryEntitySubgraph,
@@ -142,11 +143,7 @@ export const useFlowRunsUsage = ({
           return false;
         }
 
-        return (
-          extractEntityUuidFromEntityId(
-            incurredInEntity.metadata.recordId.entityId,
-          ) === flowRunId
-        );
+        return incurredInEntity.metadata.recordId.entityId === flowRunEntityId;
       });
 
       const aggregatedUsageRecordsForFlowRun =
@@ -165,15 +162,15 @@ export const useFlowRunsUsage = ({
         total += aggregatedUsageRecordForFlowRun.totalCostInUsd;
       }
 
-      usageByFlowRunId[flowRunId] = {
+      usageByFlowRunEntityId[flowRunEntityId] = {
         recordsByTask: aggregatedUsageRecordsByTask,
         recordsByServiceFeature: aggregatedUsageRecordsForFlowRun,
         total,
       };
     }
 
-    return usageByFlowRunId;
-  }, [data, flowRunIds]);
+    return usageByFlowRunEntityId;
+  }, [data, flowRunEntityIds]);
 
   return useMemo(
     () => ({

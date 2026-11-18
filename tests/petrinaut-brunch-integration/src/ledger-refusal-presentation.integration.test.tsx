@@ -10,6 +10,7 @@ import { createFlueClient } from "@flue/sdk";
 import {
   cleanup,
   fireEvent,
+  render,
   screen,
   waitFor,
   within,
@@ -18,23 +19,36 @@ import { getToolName, isToolUIPart, readUIMessageStream } from "ai";
 import { afterAll, afterEach, beforeAll, expect, test, vi } from "vitest";
 
 import { loadBuiltBrunchApplication } from "@apps/brunch-agent/testing/load-built-application";
-import { renderEditorWith } from "@apps/petrinaut-website/src/main/app/plugins/_shared/testing/render-editor-with";
-import { createBrunchFlueAdapter } from "@apps/petrinaut-website/src/main/app/plugins/brunch/brunch-flue-adapter";
-import {
-  BrunchPanelConversationTracker,
-  createBrunchPanelTransport,
-} from "@apps/petrinaut-website/src/main/app/plugins/brunch/brunch-panel-transport";
-import { resolveBrunchToolPresentation } from "@apps/petrinaut-website/src/main/app/plugins/brunch/tools/brunch-tool-presentation";
 import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
 } from "@hashintel/brunch-agent";
+import {
+  createBrunchFlueAdapter,
+  BrunchPanelConversationTracker,
+  createBrunchPanelTransport,
+} from "@hashintel/brunch-agent/client";
+import {
+  InProcessLspWorker,
+  NoopResizeObserver,
+  preloadMonaco,
+} from "@hashintel/brunch-agent/testing/petrinaut-jsdom";
+import {
+  BrunchAssistantContext,
+  brunchPlugin,
+  resolveBrunchToolPresentation,
+} from "@hashintel/brunch-agent/ui";
+import { createJsonDocHandle } from "@hashintel/petrinaut-core";
+import { Petrinaut } from "@hashintel/petrinaut/ui";
 
-import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
+import type {
+  PetrinautAiMessage,
+  PetrinautAiAssistant,
+} from "@hashintel/brunch-agent/ui";
 
 await vi.hoisted(async () => {
   const { installPetrinautDomShims } =
-    await import("@apps/petrinaut-website/src/main/app/shared/petrinaut-jsdom");
+    await import("@hashintel/brunch-agent/testing/petrinaut-jsdom");
   installPetrinautDomShims();
 });
 
@@ -52,29 +66,43 @@ const claimAbout = (entityId: string, text: string) => [
 ];
 const commitName = "ledger_commit";
 
-beforeAll(() => {
+beforeAll(async () => {
   globalThis.fetch = () =>
     Promise.reject(new Error("External fetch is forbidden in this fixture."));
-});
+  // Kept until the environment is disposed: the editor loads both lazily.
+  vi.stubGlobal("ResizeObserver", NoopResizeObserver);
+  vi.stubGlobal("Worker", InProcessLspWorker);
+  await preloadMonaco();
+}, 30_000);
 
 afterAll(() => {
   globalThis.fetch = originalFetch;
 });
 afterEach(cleanup);
 
-/** Opens the real editor's Brunch assistant on `messages`, through Petrinaut's public props. */
+/**
+ * Opens Brunch's own chat on `messages` in the real editor, as the website
+ * does: the host provides the assistant and the Brunch plugin renders it.
+ */
 const renderAssistant = (messages: readonly PetrinautAiMessage[]) => {
-  renderEditorWith([], {
-    aiAssistant: {
-      presentation: "brunch",
-      messages: [...messages],
-      resolveToolPresentation: resolveBrunchToolPresentation,
-      transport: {
-        sendMessages: () => new Promise(() => {}),
-        reconnectToStream: async () => null,
-      },
+  const assistant: PetrinautAiAssistant = {
+    messages: [...messages],
+    resolveToolPresentation: resolveBrunchToolPresentation,
+    transport: {
+      sendMessages: () => new Promise(() => {}),
+      reconnectToStream: async () => null,
     },
-  });
+  };
+  render(
+    <BrunchAssistantContext value={{ assistant, show: () => () => {} }}>
+      <Petrinaut
+        handle={createJsonDocHandle({
+          initial: { places: [], transitions: [] },
+        })}
+        plugins={[brunchPlugin]}
+      />
+    </BrunchAssistantContext>,
+  );
   fireEvent.click(screen.getByRole("button", { name: "Show AI assistant" }));
 };
 
@@ -141,7 +169,7 @@ test("presents pending calls as pending, and renders applied green, typed refusa
   setProvider(faux.provider);
   const identity = {
     conversationId: `ledger-refusal-${crypto.randomUUID()}`,
-    principalKey: "ledger-refusal-principal",
+    actorKey: "ledger-refusal-owner",
   };
   const headers = agentOwnershipHeaders(identity);
   const instanceId = await flueConversationIdWeb(identity);

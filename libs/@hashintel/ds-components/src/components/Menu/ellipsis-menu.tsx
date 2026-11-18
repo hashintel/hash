@@ -30,3 +30,6 @@ export const EllipsisMenu = ({
     />
   );
 };
+
+// Stable name for the docs Stage code serializer under minification
+EllipsisMenu.displayName = "EllipsisMenu";

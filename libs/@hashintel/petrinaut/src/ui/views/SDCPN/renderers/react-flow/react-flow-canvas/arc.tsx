@@ -1,16 +1,8 @@
-import {
-  BaseEdge,
-  type EdgeProps,
-  getBezierPath,
-  getSmoothStepPath,
-  type Position,
-  useStoreApi,
-} from "@xyflow/react";
-import { type CSSProperties, use, useEffect, useRef } from "react";
+import { BaseEdge, type EdgeProps, useStoreApi } from "@xyflow/react";
+import { type CSSProperties, useEffect, useRef } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { useTransitionFrame } from "../../../canvas-frame-store";
 import { useFiringDelta } from "../../../hooks/use-firing-delta";
 import {
@@ -19,6 +11,7 @@ import {
   arcHaloColor,
 } from "../../../styles/focus";
 import { arcFiringIsVisible } from "./firing-animation-visibility";
+import { fixedEndpoint, getOutlineArcPath } from "./shared/outline-arcs";
 
 import type { ArcData, ArcEdgeType } from "./react-flow-types";
 
@@ -65,8 +58,7 @@ function useFiringAnimation(
     }
 
     // The box the drawn path occupies, in flow units: a curve can sweep well
-    // past its endpoints, so where it is drawn is what decides, whichever
-    // rendering made it.
+    // past its endpoints, so where it is drawn is what decides.
     const box = pathRef.current.getBBox();
     if (
       !arcFiringIsVisible(
@@ -178,10 +170,9 @@ type TickMark = { x1: number; y1: number; x2: number; y2: number };
  * Computes evenly spaced perpendicular tick marks along an SVG path.
  *
  * Used to render the inhibitor arc as a crossed "barrier" line. The geometry is
- * derived from the actual rendered path (bezier, smoothstep, or custom) by
- * walking a detached path element with `getPointAtLength`, so the ticks follow
- * whichever arc rendering the user has selected. A margin is left at the target
- * end so the ticks do not collide with the inhibitor circle marker.
+ * derived from the rendered path by walking a detached path element with
+ * `getPointAtLength`, so the ticks follow the curve. A margin is left at the
+ * target end so the ticks do not collide with the inhibitor circle marker.
  *
  * This is a pure computation (the path element is never attached to the
  * document) and is safe to run during render.
@@ -253,45 +244,6 @@ function computeArcTickMarks(path: string): TickMark[] {
   return ticks;
 }
 
-/**
- * Custom cubic bezier path between two points.
- * Control point offsets are proportional to the horizontal distance
- * so arcs stay tight for nearby nodes and sweep wide for distant ones.
- */
-function getCustomArcPath({
-  sourceX,
-  sourceY,
-  sourcePosition: _sourcePosition,
-  targetX,
-  targetY,
-  targetPosition: _targetPosition,
-}: {
-  sourceX: number;
-  sourceY: number;
-  sourcePosition: Position;
-  targetX: number;
-  targetY: number;
-  targetPosition: Position;
-}): [path: string, labelX: number, labelY: number] {
-  const dx = targetX - sourceX;
-
-  // Control point offset scales with horizontal distance, with a minimum
-  const offset = Math.max(Math.abs(dx) * 0.7, 80);
-
-  const cp1x = sourceX + offset / 2;
-  const cp1y = sourceY;
-  const cp2x = targetX - offset;
-  const cp2y = targetY;
-
-  const path = `M ${sourceX},${sourceY} C ${cp1x},${cp1y} ${cp2x},${cp2y} ${targetX},${targetY}`;
-
-  // Label at the midpoint of the cubic bezier: B(0.5) = (P0 + 3·CP1 + 3·CP2 + P3) / 8
-  const labelX = (sourceX + 3 * cp1x + 3 * cp2x + targetX) / 8;
-  const labelY = (sourceY + 3 * cp1y + 3 * cp2y + targetY) / 8;
-
-  return [path, labelX, labelY];
-}
-
 export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
   id,
   sourceX,
@@ -305,8 +257,6 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
   markerEnd,
   selected,
 }) => {
-  const { arcRendering } = use(UserSettingsContext);
-
   const inhibitorMarkerId = `inhibitor-circle-${id}`;
   const readMarkerId = `read-dot-${id}`;
 
@@ -320,35 +270,13 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
   // Animate stroke width when firing delta changes (scaled by arc weight)
   useFiringAnimation(arcPathRef, firingDelta, data?.weight ?? 1);
 
-  // Compute path based on arc rendering setting.
-  const [arcPath, labelX, labelY] =
-    data?.outlinePath ??
-    (arcRendering === "smoothstep"
-      ? getSmoothStepPath({
-          sourceX,
-          sourceY,
-          sourcePosition,
-          targetX,
-          targetY,
-          targetPosition,
-        })
-      : arcRendering === "bezier"
-        ? getBezierPath({
-            sourceX,
-            sourceY,
-            sourcePosition,
-            targetX,
-            targetY,
-            targetPosition,
-          })
-        : getCustomArcPath({
-            sourceX,
-            sourceY,
-            sourcePosition,
-            targetX,
-            targetY,
-            targetPosition,
-          }));
+  // An end at a subnet port has no outline: it starts at the port's handle
+  // and leaves along the side the handle sits on, as the arc's preview did.
+  const [arcPath, labelX, labelY] = getOutlineArcPath(
+    data?.sourceOutline ?? fixedEndpoint(sourceX, sourceY, sourcePosition),
+    data?.targetOutline ?? fixedEndpoint(targetX, targetY, targetPosition),
+    data?.hasReverseArc,
+  );
 
   const strokeColor = style?.stroke ?? "#b1b1b7";
   const arcType = data?.kind;

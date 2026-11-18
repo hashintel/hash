@@ -46,7 +46,21 @@ export const comboboxDropdownRecipe = cva({
         "--combobox-list-anchor-inset": "spacing.2",
       },
     },
+    // The multiple combobox renders its own frame, whose subtle overlay hugs
+    // the anchor rect (±1px) instead of extending by a padding-x.
+    multi: {
+      true: {},
+    },
   },
+  compoundVariants: [
+    {
+      variant: "subtle",
+      multi: true,
+      css: {
+        "--combobox-list-anchor-inset": "[1px]",
+      },
+    },
+  ],
   defaultVariants: {
     variant: "default",
   },
@@ -114,11 +128,21 @@ export const comboboxMultiRecipe = sva({
       "&:focus-within [data-part='clear']": {
         opacity: "1",
         visibility: "visible",
+        position: "relative",
+        right: "[auto]",
+        flexShrink: "0",
+        marginRight:
+          "[calc(var(--clear-right-offset, var(--spacing-2)) - var(--content-pad-x, 0px))]",
+        _before: {
+          display: "none",
+        },
       },
-      "& input[role='combobox']": {
+      // The row's inline input — the combobox and tags-input machines both
+      // stamp data-part="input" on the shared element.
+      "& input[data-part='input']": {
         paddingY: "var(--form-padding-y)",
       },
-      "& input[role='combobox']:not(:first-child)": {
+      "& input[data-part='input']:not(:first-child)": {
         marginLeft:
           "[calc(var(--before-input-inset, var(--spacing-1)) - var(--overflow-row-gap, var(--spacing-1)) + var(--caret-gap-boost, 0px))]",
       },
@@ -231,17 +255,41 @@ export const comboboxMultiRecipe = sva({
         frame: {
           "--base-input-border-hover-color": "var(--colors-neutral-a40)",
           "--base-input-background-color": "transparent",
+          // Unlike BaseInput's subtle overlay (±1 padding-x), this one hugs
+          // the frame on every side: the chip row carries its own horizontal
+          // inset (--before-input-inset, tuned per size to equal the vertical
+          // chip gap), so extending further would leave the box visibly wider
+          // than it is tall.
           _before: {
             content: '""',
             position: "absolute",
-            insetY: "[-1px]",
-            insetX: "[calc(-1 * var(--base-input-padding-x))]",
+            inset: "[-1px]",
             borderRadius: "var(--base-input-border-radius)",
             border: "1px solid transparent",
             pointerEvents: "none",
             background: "[var(--base-input-background-color)]",
             transition: "[background 0.15s ease, border 0.15s ease]",
           },
+          // BaseInput's subtle slots pull adornments out into its extended
+          // overlay; this overlay hugs the frame, so they stay put
+          // (!important: the pull has equal specificity, and plain overrides
+          // would fall back to extraction order).
+          "& > [data-part='adornment-text'], & > [data-part='adornment-button']":
+            {
+              left: "[0px !important]",
+              right: "[0px !important]",
+            },
+          // The overlay clear's backdrop paints the field background, which
+          // subtle leaves transparent — mask the row's content out from under
+          // the button instead. Only while the button overlays: focused it
+          // is inline, and a hidden button (data-hidden) covers nothing.
+          "&:hover:not(:focus-within):has([data-part='clear']:not([data-hidden])) [data-scope='tags-input'][data-part='root']":
+            {
+              "--clear-mask-span":
+                "[calc(var(--clear-right-offset, var(--spacing-2)) + var(--clear-icon-size, 24px) - var(--content-pad-x, 0px))]",
+              maskImage:
+                "[linear-gradient(to right, black, black calc(100% - var(--clear-mask-span) - var(--clear-backdrop-fade, 13px)), transparent calc(100% - var(--clear-mask-span)))]",
+            },
           "&:not(.layer-style_disabled):hover": {
             _before: {
               borderColor: "var(--base-input-border-hover-color)",
@@ -254,16 +302,13 @@ export const comboboxMultiRecipe = sva({
             },
           },
         },
-        clear: {
-          "--clear-right-offset":
-            "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-2))]",
-        },
       },
     },
     size: {
       xxs: {
         wrapper: {
           ...formSizes.variants.sizes.xxs,
+          "--clear-icon-size": "[12px]",
           "--base-input-border-radius": "radii.md",
           "--base-input-padding-x": "spacing.2",
           "--clear-backdrop-overhang": "5px",
@@ -277,6 +322,7 @@ export const comboboxMultiRecipe = sva({
       xs: {
         wrapper: {
           ...formSizes.variants.sizes.xs,
+          "--clear-icon-size": "[12px]",
           "--base-input-border-radius": "radii.md",
           "--base-input-padding-x": "spacing.2",
           "--clear-backdrop-overhang": "6px",
@@ -290,6 +336,7 @@ export const comboboxMultiRecipe = sva({
       sm: {
         wrapper: {
           ...formSizes.variants.sizes.sm,
+          "--clear-icon-size": "[16px]",
           "--base-input-border-radius": "radii.lg",
           "--base-input-padding-x": "spacing.2.5",
           "--clear-backdrop-overhang": "8px",
@@ -303,6 +350,7 @@ export const comboboxMultiRecipe = sva({
       md: {
         wrapper: {
           ...formSizes.variants.sizes.md,
+          "--clear-icon-size": "[24px]",
           "--base-input-border-radius": "radii.lg",
           "--base-input-padding-x": "spacing.3",
           "--clear-backdrop-overhang": "10px",
@@ -316,6 +364,7 @@ export const comboboxMultiRecipe = sva({
       lg: {
         wrapper: {
           ...formSizes.variants.sizes.lg,
+          "--clear-icon-size": "[24px]",
           "--base-input-border-radius": "radii.xl",
           "--base-input-padding-x": "spacing.4",
           "--clear-backdrop-overhang": "12px",
@@ -340,6 +389,14 @@ export const comboboxMultiRecipe = sva({
         frame: {
           ...({ layerStyle: "disabled" } as Record<string, string>),
           cursor: "auto",
+        },
+        row: {
+          opacity: "[0.6]",
+          filter: "[grayscale(1)]",
+        },
+        customSelection: {
+          opacity: "[0.6]",
+          filter: "[grayscale(1)]",
         },
       },
     },
@@ -382,11 +439,13 @@ export const comboboxMultiRecipe = sva({
       chips: {
         content: {
           paddingX: "[var(--before-input-inset, var(--spacing-1))]",
+          "--content-pad-x": "[var(--before-input-inset, var(--spacing-1))]",
         },
       },
       text: {
         content: {
           paddingX: "var(--base-input-padding-x)",
+          "--content-pad-x": "[var(--base-input-padding-x)]",
         },
       },
     },
@@ -453,16 +512,6 @@ export const comboboxMultiRecipe = sva({
           _before: {
             borderColor: "var(--base-input-border-color)",
           },
-        },
-      },
-    },
-    {
-      variant: "subtle",
-      loading: true,
-      css: {
-        clear: {
-          "--clear-right-offset":
-            "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-1\\.5))]",
         },
       },
     },

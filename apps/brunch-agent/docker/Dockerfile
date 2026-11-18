@@ -16,6 +16,7 @@ COPY .config/mise /etc/mise
 RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     apt-get update && \
     apt-get install -y --no-install-recommends ca-certificates curl && \
+    dpkg --compare-versions "$(dpkg-query -W -f='${Version}' ca-certificates)" ge 20250419+deb13u1 && \
     /etc/mise/install.sh && \
     mise --version && \
     apt-get clean && \
@@ -36,6 +37,7 @@ RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     mise install --locked yq && \
     echo "Installing Rust toolchain: $(yq '.toolchain.channel' rust-toolchain.toml)" && \
     mise use --global rust[profile=minimal]@$(yq '.toolchain.channel' rust-toolchain.toml) && \
+    mise lock --global rust && \
     mise list rust && \
     rustc --version && \
     cargo --version && \

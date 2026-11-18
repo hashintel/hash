@@ -4,6 +4,7 @@
     "@hashintel/brunch-agent",
     "@hashintel/ds-components",
     "@hashintel/ds-helpers",
+    "@hashintel/ds-icons",
     "@hashintel/petrinaut",
     "@hashintel/petrinaut-core",
     "@local/flue-aisdk-transport",
@@ -15,6 +16,7 @@
         "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
         "@local/flue-aisdk-transport#build",
@@ -26,6 +28,9 @@
         "VITE_BRUNCH_CHAT_ENDPOINT",
         "VITE_PETRINAUT_DEFAULT_ASSISTANT",
         "VITE_VERCEL_ENV"
+      ],
+      "affectedBy": [
+        "petrinaut-optimizer-core"
       ]
     },
     "codegen": {
@@ -36,6 +41,7 @@
         "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
         "@local/flue-aisdk-transport#build",
@@ -43,16 +49,23 @@
         "examples:generate"
       ],
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "affectedBy": [
+        "petrinaut-optimizer-core"
+      ]
     },
     "examples:generate": {
       "dependsOn": [
         "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
         "@local/flue-aisdk-transport#build"
+      ],
+      "affectedBy": [
+        "petrinaut-optimizer-core"
       ]
     },
     "fix:eslint": {
@@ -60,11 +73,15 @@
         "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
         "@local/eslint#build",
         "@local/flue-aisdk-transport#build",
         "codegen"
+      ],
+      "affectedBy": [
+        "petrinaut-optimizer-core"
       ]
     },
     "lint:eslint": {
@@ -72,6 +89,7 @@
         "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
         "@local/eslint#build",
@@ -80,6 +98,9 @@
       ],
       "env": [
         "CHECK_TEMPORARILY_DISABLED_RULES"
+      ],
+      "affectedBy": [
+        "petrinaut-optimizer-core"
       ]
     },
     "lint:tsc": {
@@ -87,11 +108,15 @@
         "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
         "@local/flue-aisdk-transport#build",
         "codegen",
         "examples:generate"
+      ],
+      "affectedBy": [
+        "petrinaut-optimizer-core"
       ]
     },
     "test:unit": {
@@ -99,6 +124,7 @@
         "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
         "@local/flue-aisdk-transport#build",
@@ -107,6 +133,9 @@
       ],
       "env": [
         "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "petrinaut-optimizer-core"
       ]
     }
   }

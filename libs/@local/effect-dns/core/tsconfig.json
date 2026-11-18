@@ -1,9 +1,0 @@
-{
-  "extends": ["@tsconfig/bases/node22", "@local/tsconfig/policy.json"],
-  "compilerOptions": {
-    "checkJs": true,
-    "lib": ["ES2024"],
-    "moduleResolution": "nodenext"
-  },
-  "include": ["src", "tests", "eslint.config.js"]
-}

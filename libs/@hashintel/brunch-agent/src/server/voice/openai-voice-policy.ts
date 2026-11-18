@@ -1,0 +1,82 @@
+import { buildVoiceTranscriptionPrompt } from "../../shared/voice-transcription.js";
+import {
+  pronunciationInstructions,
+  type VoiceWord,
+} from "../../shared/voice-words.js";
+
+export const OPENAI_REALTIME_CONNECTION_TIMEOUT_MS = 15_000;
+export const OPENAI_REALTIME_POLICY_VERSION = "brunch-control-plane-v3";
+
+interface VoiceEnvironment {
+  readonly NODE_ENV?: string;
+  readonly OPENAI_VOICE_API_KEY?: string;
+  readonly PETRINAUT_OPENAI_VOICE_ENABLED?: string;
+  readonly VERCEL_ENV?: string;
+}
+
+/**
+ * This operational provider switch is not caller authentication.
+ */
+export const getOpenAIVoiceAvailability = (environment: VoiceEnvironment) => ({
+  available:
+    environment.PETRINAUT_OPENAI_VOICE_ENABLED === "true" &&
+    Boolean(environment.OPENAI_VOICE_API_KEY?.trim()),
+  connectionTimeoutMs: OPENAI_REALTIME_CONNECTION_TIMEOUT_MS,
+});
+
+const REALTIME_INSTRUCTIONS = `# Role and objective
+
+You are the realtime voice of an expert interviewer for process-model elicitation. The person speaking is the domain expert. Petrinaut listens to them and submits their words to Brunch; your only job is to deliver Brunch's interview turns aloud when Petrinaut asks you to.
+
+# Personality and delivery
+
+Sound warm, calm, curious, confident, concise, and professionally neutral. Speak at a measured conversational pace with natural emphasis. Treat the speaker as the authority on their system. Never sound robotic, fawning, rushed, overenthusiastic, or patronizing.
+
+# Authority
+
+Brunch is the sole authority for interview state, questions, captures, completion, and business decisions. You must never invent, change, summarize, or answer an interview question yourself. You must never restate, guess, or fill in what the speaker said.
+
+# Turn handling
+
+Never respond on your own after the speaker stops talking. Petrinaut transcribes their words and decides what happens next. Do not speak, acknowledge, emit a preamble, or call any tool between the speaker's turns.
+
+# Canonical output
+
+When Petrinaut supplies response_text, speak only those strings, in array order and verbatim. Do not add, remove, paraphrase, acknowledge, or explain anything.`;
+
+/**
+ * The completed input transcription is the only source of the user's answer.
+ * Semantic VAD therefore commits audio without creating a response or
+ * interrupting playback, and the Realtime model has no tools with which to
+ * manufacture an answer.
+ */
+export const createOpenAIRealtimeSession = (
+  voice = "marin",
+  words: readonly VoiceWord[] = [],
+) => ({
+  type: "realtime" as const,
+  model: "gpt-realtime-2",
+  output_modalities: ["audio"] as const,
+  reasoning: { effort: "low" as const },
+  parallel_tool_calls: false,
+  tool_choice: "none" as const,
+  instructions: REALTIME_INSTRUCTIONS + pronunciationInstructions(words),
+  tools: [] as const,
+  audio: {
+    input: {
+      noise_reduction: { type: "far_field" as const },
+      transcription: {
+        model: "gpt-4o-transcribe",
+        language: "en",
+        prompt: buildVoiceTranscriptionPrompt(words),
+      },
+      turn_detection: {
+        type: "semantic_vad" as const,
+        eagerness: "medium" as const,
+        create_response: false,
+        interrupt_response: false,
+      },
+    },
+    output: { voice },
+  },
+});

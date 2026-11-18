@@ -56,7 +56,12 @@ export type FilterLeaf =
       kind: "condition";
       subject: { kind: "entityType" };
       operator: "isOfType";
-      value: Extract<FilterValue, { kind: "VersionedUrl" }>;
+      /** A versioned URL matches that version of the type, a base URL any version. */
+      value:
+        | Extract<FilterValue, { kind: "VersionedUrl" }>
+        | { kind: "BaseUrl"; value: BaseUrl };
+      /** Also match entities whose types inherit from this type, directly or indirectly. */
+      includeSubtypes?: boolean;
     };
 
 /**
@@ -245,12 +250,23 @@ export const validateSubject = (
 };
 
 const validateLeaf = (
-  { subject, operator, value }: FilterLeaf,
+  leaf: FilterLeaf,
   inputKind: PayloadKind,
 ): ConditionError | undefined => {
+  const { subject, operator, value } = leaf;
   const subjectError = validateSubject(subject, inputKind);
   if (subjectError) {
     return invalidCondition(subjectError);
+  }
+  /* Persisted definitions may set the flag on any leaf. */
+  const { includeSubtypes } = leaf as { includeSubtypes?: unknown };
+  if (operator !== "isOfType" && includeSubtypes !== undefined) {
+    return invalidCondition(
+      "includeSubtypes only applies to isOfType conditions.",
+    );
+  }
+  if (includeSubtypes !== undefined && typeof includeSubtypes !== "boolean") {
+    return invalidCondition("includeSubtypes must be a boolean.");
   }
   if (operator === "isEmpty" || operator === "isNotEmpty") {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Persisted definitions may be malformed.
@@ -265,12 +281,16 @@ const validateLeaf = (
     if (
       operator !== "isOfType" ||
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Persisted definitions may be malformed.
-      value?.kind !== "VersionedUrl" ||
+      !value ||
       typeof value.value !== "string" ||
-      validateVersionedUrl(value.value).type !== "Ok"
+      (value.kind === "VersionedUrl"
+        ? validateVersionedUrl(value.value).type !== "Ok"
+        : // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Persisted definitions may be malformed.
+          value.kind !== "BaseUrl" ||
+          validateBaseUrl(value.value).type !== "Ok")
     ) {
       return invalidCondition(
-        "Entity type conditions require isOfType and a versioned type URL.",
+        "Entity type conditions require isOfType and a versioned or base type URL.",
       );
     }
     return undefined;

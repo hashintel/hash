@@ -8,15 +8,12 @@ export {
   getActualModeMarkingAtTransitionFiringIndex,
 } from "./marking";
 export {
-  createActualModeReceivedEventsRecording,
   createActualModeRecording,
   parseActualModeRecording,
   retimeActualModeRecordingForReplay,
 } from "./recording";
 export {
   actualModeMarkingSchema,
-  actualModeReceivedEventSchema,
-  actualModeReceivedEventsRecordingSchema,
   actualModeRecordingSchema,
   actualModeSourceSchema,
   actualModeTransitionEffectSchema,
@@ -30,8 +27,6 @@ export {
 export type {
   ActualModeContextValue,
   ActualModeMarking,
-  ActualModeReceivedEvent,
-  ActualModeReceivedEventsRecording,
   ActualModeRecording,
   ActualModeSource,
   ActualModeTimelinePoint,

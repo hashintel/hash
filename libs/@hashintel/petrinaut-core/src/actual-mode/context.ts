@@ -8,7 +8,6 @@ export const unavailableActualMode: ActualModeContextValue = {
   definition: null,
   initialState: null,
   transitionFirings: [],
-  receivedEvents: [],
   timelineStartedAtMs: null,
   timelineNowMs: null,
   error: null,

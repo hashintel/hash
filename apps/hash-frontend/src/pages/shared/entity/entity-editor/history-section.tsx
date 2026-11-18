@@ -9,7 +9,6 @@ import {
   fullDecisionTimeAxis,
 } from "@local/hash-isomorphic-utils/graph-queries";
 
-import { useUserOrOrgShortnameByWebId } from "../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import {
   getEntityDiffsQuery,
   queryEntitySubgraphQuery,
@@ -30,10 +29,6 @@ import type { DiffEntityInput } from "@local/hash-graph-sdk/entity";
 
 export const HistorySection = ({ entityId }: { entityId: EntityId }) => {
   const [webId, entityUuid, _draftUuid] = splitEntityId(entityId);
-
-  const { shortname } = useUserOrOrgShortnameByWebId({
-    webId,
-  });
 
   const { data: editionsData, loading: editionsLoading } = useQuery<
     QueryEntitySubgraphQuery,
@@ -152,11 +147,7 @@ export const HistorySection = ({ entityId }: { entityId: EntityId }) => {
         {loading || !subgraph ? (
           <Skeleton height={600} />
         ) : (
-          <HistoryTable
-            events={historyEvents}
-            subgraph={subgraph}
-            shortname={shortname ?? ""}
-          />
+          <HistoryTable events={historyEvents} subgraph={subgraph} />
         )}
       </WhiteCard>
     </SectionWrapper>

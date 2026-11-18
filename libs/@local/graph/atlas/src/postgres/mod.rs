@@ -94,6 +94,7 @@ pub(crate) mod vocabulary;
 use hash_graph_postgres_store::store::AsClient;
 use tokio_postgres::GenericClient as _;
 use type_system::knowledge::entity::id::EntityEditionId;
+pub(crate) use type_system::ontology::entity_type::schema::LINK_ENTITY_TYPE_BASE_URL;
 use uuid::Uuid;
 
 pub(crate) use self::{card::CardParameters, classification::Classification};
@@ -102,10 +103,6 @@ use crate::{
     dataset::{PROJECTOR_DIMENSIONS, TemporalAxes, postgres::PostgresDatasetError},
     math::BoxedVecN,
 };
-
-/// The type every link entity type descends from.
-pub(crate) const LINK_ROOT_BASE_URL: &str =
-    "https://blockprotocol.org/@blockprotocol/types/entity-type/link/";
 
 /// Classifies the requested identities against the store's current state.
 ///

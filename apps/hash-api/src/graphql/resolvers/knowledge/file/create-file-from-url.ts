@@ -44,6 +44,7 @@ export const createFileFromUrl: ResolverFn<
   if (user.enabledFeatureFlags.includes("ai")) {
     await triggerPdfAnalysisWorkflow({
       entity,
+      graphApiClient: context.graphApi,
       temporalClient: temporal,
       userAccountId: user.accountId,
       webId: extractWebIdFromEntityId(entity.entityId),

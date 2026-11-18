@@ -6,7 +6,11 @@ import type {
   ExternalInputRequestSignal,
   ExternalInputResponseSignal,
 } from "./flows/types.js";
-import type { PropertyObject, VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  EntityId,
+  PropertyObject,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 import type { Status } from "@local/status";
@@ -144,7 +148,7 @@ export type ManualInferenceWebsocketRequestMessage = WebSocketMessageAuth & {
 
 export type CancelInferEntitiesWebsocketRequestMessage =
   WebSocketMessageAuth & {
-    flowRunId: string;
+    flowRunEntityId: EntityId;
     type: "cancel-inference-request";
     requestUuid: string;
   };
@@ -155,7 +159,7 @@ export type CheckForExternalInputRequestsWebsocketRequestMessage =
   };
 
 export type ExternalInputWebsocketResponseMessage = WebSocketMessageAuth & {
-  workflowId: string;
+  flowRunEntityId: EntityId;
   type: "external-input-response";
   payload: DistributiveOmit<ExternalInputResponseSignal, "resolvedBy">;
 };
@@ -168,7 +172,7 @@ export type InferenceWebsocketClientMessage =
   | ExternalInputWebsocketResponseMessage;
 
 export type ExternalInputWebsocketRequestMessage = {
-  workflowId: string;
+  flowRunEntityId: EntityId;
   payload: ExternalInputRequestSignal;
   type: "external-input-request";
 };

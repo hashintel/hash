@@ -215,6 +215,7 @@ const guardMutations = ({ instance, latest }: PluginEditorPorts) =>
           const reason = mutationBlockedBy(
             name as keyof PetrinautMutations,
             latest.get().readOnlyReason,
+            input,
           );
           if (reason !== null) {
             return { applied: false, reason };

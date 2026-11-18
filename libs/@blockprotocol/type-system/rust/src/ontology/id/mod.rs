@@ -31,6 +31,8 @@
 //! );
 //! ```
 
+#[cfg(feature = "schemars")]
+use alloc::borrow::Cow;
 #[cfg(feature = "postgres")]
 use core::error::Error;
 use core::{
@@ -47,6 +49,8 @@ pub use error::{
 use error_stack::Report;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, ToSql, Type};
+#[cfg(feature = "schemars")]
+use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 use url::Url;
 #[cfg(feature = "utoipa")]
@@ -219,6 +223,25 @@ impl ToSchema<'_> for BaseUrl {
                 .max_length(Some(2048))
                 .into(),
         )
+    }
+}
+
+#[cfg(feature = "schemars")]
+impl JsonSchema for BaseUrl {
+    fn schema_name() -> Cow<'static, str> {
+        Cow::Borrowed("BaseUrl")
+    }
+
+    fn json_schema(_: &mut SchemaGenerator) -> Schema {
+        json_schema!({
+            "type": "string",
+            "title": "Base URL",
+            "description": "The base URL of a SemType ontology type (the $id of the schema without \
+                            the versioned suffix). It must end with a trailing slash.",
+            "format": "uri",
+            "maxLength": 2048,
+            "pattern": "/$",
+        })
     }
 }
 
@@ -772,6 +795,26 @@ impl ToSchema<'_> for VersionedUrl {
                 .max_length(Some(2048))
                 .into(),
         )
+    }
+}
+
+#[cfg(feature = "schemars")]
+impl JsonSchema for VersionedUrl {
+    fn schema_name() -> Cow<'static, str> {
+        Cow::Borrowed("VersionedUrl")
+    }
+
+    fn json_schema(_: &mut SchemaGenerator) -> Schema {
+        json_schema!({
+            "type": "string",
+            "title": "Versioned URL",
+            "description": "The versioned URL of a SemType ontology type (the $id of the \
+                            schema). It must be of the form `${baseUrl}v/${version}`, where \
+                            `version` is a major version number.",
+            "format": "uri",
+            "maxLength": 2048,
+            "examples": ["https://hash.ai/@h/types/entity-type/user/v/1"],
+        })
     }
 }
 

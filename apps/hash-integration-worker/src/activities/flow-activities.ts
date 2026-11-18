@@ -1,3 +1,5 @@
+import { wrapFlowActionActivities } from "@local/hash-backend-utils/flows/wrap-flow-action-activities";
+
 import { createAviationActivities } from "./flow-activities/aviation-activities.js";
 import { createIntegrationActivities } from "./flow-activities/integration-activities.js";
 
@@ -7,7 +9,8 @@ import type { IntegrationFlowActionDefinitionId } from "@local/hash-isomorphic-u
 
 export const createFlowActivities: CreateFlowActivities<
   IntegrationFlowActionDefinitionId
-> = ({ graphApiClient }: { graphApiClient: GraphApi }) => ({
-  ...createAviationActivities({ graphApiClient }),
-  ...createIntegrationActivities({ graphApiClient }),
-});
+> = ({ graphApiClient }: { graphApiClient: GraphApi }) =>
+  wrapFlowActionActivities<IntegrationFlowActionDefinitionId>({
+    ...createAviationActivities({ graphApiClient }),
+    ...createIntegrationActivities({ graphApiClient }),
+  });

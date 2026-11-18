@@ -1,0 +1,305 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { Children, cloneElement, Fragment, useState } from "react";
+
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import { Button } from "./button";
+
+<Meta title="Docs/Button" />
+
+export const meta = {
+  title: "Button",
+  description: "Buttons let users trigger an action with a single press.",
+  alternativeNames: ["IconButton", "LinkButton", "ToggleButton"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/Button/button.tsx",
+    stories:
+      "https://tokens.hash.design/?path=/story/components-button--default",
+  },
+  referenceLinks: {
+    apg: "https://www.w3.org/WAI/ARIA/apg/patterns/button/",
+    mdn: "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button",
+  },
+  related: ["ButtonGroup", "SegmentedControl", "Toggle", "Chip"],
+};
+
+# Button
+
+Allow users to take actions, and make choices, with a single click.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+<Stage>
+  <Button tone="brand" iconName="plus">
+    Create entity
+  </Button>
+  <Button>Cancel</Button>
+  <Button variant="subtle" iconName="gear" tooltip="Settings" />
+  <Button variant="link" href="#" iconName="arrowRight" iconPosition="right">
+    View run history
+  </Button>
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { Button } from "@hashintel/ds-components";
+
+export const CreateEntityButton = () => (
+  <Button variant="solid" tone="brand" iconName="plus">
+    Create entity
+  </Button>
+);
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use Button for a discrete action: create, save, delete, open a dialog, run a flow.",
+    <Fragment key="0">
+      Use <code>type="submit"</code> to submit the surrounding form.
+    </Fragment>,
+    <Fragment key="1">
+      Use the <code>href</code> form when navigation deserves action-level
+      prominence, such as a call-to-action.
+    </Fragment>,
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    "Don't use buttons to pick one value from a visible set — use SegmentedControl, or RadioGroup in forms.",
+    "Don't use a button to switch a setting on or off — use Toggle.",
+    "Don't use buttons as compact labels, counts, or filter tokens — use Chip.",
+    "Don't use buttons for <button> elements that look markedly different from <Button> - style a <button> from scratch",
+  ]}
+/>
+
+## Examples
+
+### Basic
+
+The default button is `solid`, `neutral`, and `md`-sized — right for most secondary actions.
+
+<Stage>
+  <Button>Save draft</Button>
+</Stage>
+
+### Disabled
+
+Avoid disabling where possible — instead consider hiding the button completely to reduce visual noise. When a button is disabled add a tooltip to explain why the button is unusable.
+
+<Stage>
+  <Button disabled>Save draft</Button>
+  <Button disabled tone="brand" iconName="plus">
+    Create entity
+  </Button>
+</Stage>
+
+### Loading
+
+Set `loading` while a request runs: the button goes inert, shows a spinner, and announces busy to assistive technology. The label stays in the layout, so the button keeps its width.
+
+<Stage>
+  <Button loading tone="brand">
+    Publish type
+  </Button>
+  <Button loading variant="subtle">
+    Sync
+  </Button>
+</Stage>
+
+### Pressed
+
+Set `pressed` when a button reflects an on/off state it controls, such as an open panel or an active filter. Note that `pressed` only changes the visual state: [toggle buttons](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Reference/Roles/button_role#toggle_buttons) carry a specific ARIA meaning, so pair it with `aria-pressed` when the button is a true toggle.
+
+export const TogglesPressed = ({ children }) => {
+  const child = Children.only(children);
+  const [pressed, setPressed] = useState(!!child.props.pressed);
+  return cloneElement(child, {
+    pressed,
+    onClick: () => setPressed(!pressed),
+  });
+};
+
+<Stage>
+  <TogglesPressed data-harness>
+    <Button variant="subtle" iconName="filter" pressed>
+      Filters
+    </Button>
+  </TogglesPressed>
+  <TogglesPressed data-harness>
+    <Button variant="subtle" iconName="filter" pressed={false}>
+      Filters
+    </Button>
+  </TogglesPressed>
+</Stage>
+
+### Variants
+
+Variants set emphasis. Use `solid` for the actions a user is most likely to take, `subtle` and `ghost` for supporting actions, and `link`/`linkSubtle` for actions that should read as text. `link` and `linkSubtle` will inherit text styles to match its container.
+
+<Stage>
+  <Button variant="solid">Solid</Button>
+  <Button variant="subtle">Subtle</Button>
+  <Button variant="ghost">Ghost</Button>
+  <Button variant="link" href="#">
+    Link
+  </Button>
+  <Button variant="linkSubtle" href="#">
+    Link subtle
+  </Button>
+</Stage>
+
+### Tones
+
+Tone sets intent: `neutral` (default) for everyday actions, `brand` for the primary action, `error` for destructive ones. Use one `brand` button per view — more than one leaves the user without a clear next step.
+
+<Stage>
+  <Button tone="neutral">Neutral</Button>
+  <Button tone="brand">Brand</Button>
+  <Button tone="error">Error</Button>
+</Stage>
+
+### Sizes
+
+`md` is the default. Use `xxs`–`sm` in dense chrome such as toolbars and table rows, and `lg` for empty states and marketing surfaces. Avoid `xxs` outside of extremely dense UIs, such as the toolbar within a rich text editor.
+
+<Stage>
+  <Button size="xxs">xxs</Button>
+  <Button size="xs">xs</Button>
+  <Button size="sm">sm</Button>
+  <Button size="md">md</Button>
+  <Button size="lg">lg</Button>
+</Stage>
+
+### Round shape
+
+Reserve `shape="round"` for standalone icon affordances; use the default shape everywhere else.
+
+<Stage>
+  <Button shape="round" iconName="plus" tooltip="Add property" />
+  <Button shape="round" variant="subtle" iconName="sparkles" tooltip="Ask AI" />
+</Stage>
+
+### With icon
+
+Use `iconName` to reinforce the label, with `iconPosition` choosing the side. The icon supports the label; it never carries meaning the label doesn't.
+
+<Stage>
+  <Button iconName="plus" tone="brand">
+    New entity type
+  </Button>
+  <Button variant="subtle" iconName="arrowRight" iconPosition="right">
+    Next step
+  </Button>
+</Stage>
+
+### Icon-only buttons
+
+An icon-only button must name its action through `tooltip` (it appears on hover and doubles as the accessible name) or `aria-label` — the props require one of them when there's no label.
+
+<Stage>
+  <Button variant="subtle" iconName="pencil" tooltip="Edit property" />
+  <Button variant="subtle" iconName="copy" tooltip="Copy entity ID" />
+  <Button
+    variant="subtle"
+    tone="error"
+    iconName="trash"
+    tooltip="Delete entity"
+  />
+</Stage>
+
+### Custom prefix and suffix
+
+When `iconName` can't express it, pass arbitrary nodes as `prefix` or `suffix`; they occupy the same slots as icons. `iconName` and `prefix`/`suffix` are mutually exclusive.
+
+<Stage>
+  <Button variant="subtle" suffix={<span>12</span>}>
+    Comments
+  </Button>
+</Stage>
+
+### As a link
+
+Passing `href` renders a real anchor with button styling, with optional `target="_blank"` and `download`. Disabled or loading link-buttons drop their `href` and leave the tab order.
+
+<Stage>
+  <Button
+    href="https://hash.ai/docs"
+    target="_blank"
+    iconName="externalLink"
+    iconPosition="right"
+  >
+    Open the docs
+  </Button>
+  <Button href="#" variant="subtle" iconName="download" download>
+    Download CSV
+  </Button>
+</Stage>
+
+### Submitting forms
+
+`type` defaults to `"button"`, so buttons never submit a form by accident. Set `type="submit"` on the form's confirming action.
+
+<Stage>
+  <Button type="submit" tone="brand">
+    Create account
+  </Button>
+</Stage>
+
+## Content
+
+- Write labels verb-first, 1–3 words, sentence case: "Create entity", "Save draft", "Invite teammate". No punctuation.
+- Established one-word labels need no noun: "Cancel", "Done", "Close".
+- Name the object when the surrounding context doesn't: "Delete property" beats "Delete" when several things could be deleted.
+- Give destructive (`tone="error"`) buttons an explicit noun, and confirm before irreversible actions.
+
+## Accessibility
+
+Button implements the [WAI-ARIA button pattern](https://www.w3.org/WAI/ARIA/apg/patterns/button/).
+
+### What Button provides
+
+- Renders a real `<button>` (or `<a>` when `href` is set).
+- Loading buttons set `aria-busy` and a polite live region, and leave the tab order along with disabled ones.
+- Icon-only buttons take their accessible name from `tooltip` when no `aria-label` is given; the types require at least one of `children`, `tooltip`, or `aria-label`.
+
+### What you must do
+
+- Name the action in icon-only tooltips: "Delete entity", not "Trash".
+- Avoid `disabled` where possible — disabled buttons have poor contrast and don't say why they're unusable.
+- Keep any custom `aria-label` consistent with the visible label, so voice-control users can press what they read.
+
+## API reference
+
+<PropsTable
+  of={Button}
+  defaults={{
+    variant: '"solid"',
+    tone: '"neutral"',
+    size: '"md"',
+    shape: '"default"',
+    iconPosition: '"left"',
+    type: '"button"',
+  }}
+/>

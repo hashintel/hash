@@ -7,6 +7,7 @@ use core::{
 
 use camino::Utf8PathBuf;
 use clap::{Args, ValueHint};
+use error_stack::{Report, ResultExt as _};
 
 use super::ReportError;
 use crate::salt::quality::report::live::{self, Assessment};
@@ -70,8 +71,12 @@ impl QualityArgs {
     ///
     /// Returns a [`ReportError`] when the run cannot dial the store, the assessment fails, or the
     /// run cannot write the record.
-    pub(super) async fn run(self) -> Result<QualityVerdict, ReportError> {
-        let mut client = self.store.connect().await.map_err(ReportError::Connect)?;
+    pub(super) async fn run(self) -> Result<QualityVerdict, Report<ReportError>> {
+        let mut client = self
+            .store
+            .connect()
+            .await
+            .change_context(ReportError::Connect)?;
 
         let assessment = live::assess(
             &mut client,
@@ -83,10 +88,13 @@ impl QualityArgs {
             },
         )
         .await
-        .map_err(ReportError::Assess)?;
+        .change_context(ReportError::Assess)?;
 
-        let report = serde_json::to_string_pretty(&assessment.report)?;
-        std::fs::write(&self.output, report).map_err(ReportError::Io)?;
+        let report = serde_json::to_string_pretty(&assessment.report)
+            .change_context(ReportError::Serialize)?;
+        std::fs::write(&self.output, report)
+            .change_context(ReportError::Write)
+            .attach_with(|| self.output.clone())?;
 
         Ok(QualityVerdict {
             assessment,

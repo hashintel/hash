@@ -12,23 +12,23 @@ use aide::{
     util::iter_operations_mut,
 };
 use axum::{Router, response::Response};
+use hash_crypto::Secret;
 use hash_middleware::{
     authentication::{
         AuthenticationLayer, AuthenticationMetrics, Bootstrap, Challenge,
-        provider::AuthenticationProvider,
+        provider::{AuthenticationProvider, Caller},
     },
     problem::InternalServerError,
     rate_limit::{CallerLimitLayer, IpGateLayer, RateLimiters},
     response::{problem_response, status_problem},
 };
-use hash_secret::Secret;
 use http::{HeaderValue, Method, StatusCode, Uri, header::CACHE_CONTROL};
 use indexmap::IndexMap;
 use problematic::{ProblemDetails, ProblemVariant as _};
 use tower_http::{catch_panic::CatchPanicLayer, set_header::SetResponseHeaderLayer};
 use type_system::principal::actor::ActorId;
 
-use super::{Api, Audience, legacy};
+use super::{Api, Audience, cors::CorsConfig, legacy};
 
 /// The `Cache-Control` value of every response that does not set its own.
 ///
@@ -137,14 +137,16 @@ pub(super) struct Middleware<P, I, L> {
     pub service_secret: Pin<Arc<Secret<str>>>,
     pub authentication_metrics: Arc<AuthenticationMetrics>,
     pub rate_limiters: Arc<RateLimiters>,
+    pub cors: CorsConfig,
 }
 
 impl<P, I, L> Middleware<P, I, L>
 where
-    P: AuthenticationProvider<Option<ActorId>> + 'static,
+    P: AuthenticationProvider<ActorId> + 'static,
     I: AuthenticationProvider<Option<ActorId>> + 'static,
     L: AuthenticationProvider<Option<ActorId>> + 'static,
 {
+    /// Attaches authentication and the caller budget to `api`, as its [`Audience`] requires.
     fn attach_api(&self, api: Api) -> Router {
         let Api {
             audience,
@@ -153,8 +155,12 @@ where
             ..
         } = api;
         match audience {
-            Audience::Public => self.attach(router, &self.public_provider, None, challenge),
-            Audience::Internal => self.attach(router, &self.internal_provider, None, challenge),
+            Audience::Public => {
+                self.attach::<ActorId>(router, &self.public_provider, None, challenge)
+            }
+            Audience::Internal => {
+                self.attach::<Option<ActorId>>(router, &self.internal_provider, None, challenge)
+            }
         }
     }
 
@@ -166,8 +172,10 @@ where
     /// on the same budgets, and answer a method a path does not serve after authentication. The
     /// service secret passes the address gate everywhere, but the caller budgets only on the legacy
     /// routes, the only routes the services holding it call. A request whose handling panics is
-    /// answered with [`InternalServerError`]. Every response that sets no `Cache-Control` of its
-    /// own carries [`DEFAULT_CACHE_CONTROL`].
+    /// answered with [`InternalServerError`]. With CORS origins configured, [`CorsConfig::layer`]
+    /// answers every `OPTIONS` request ahead of all of this, and adds its headers to every other
+    /// response, rejections included. Every response that sets no `Cache-Control` of its own
+    /// carries [`DEFAULT_CACHE_CONTROL`].
     ///
     /// # Panics
     ///
@@ -178,7 +186,7 @@ where
         apis: impl IntoIterator<Item = Api>,
         documentation: Router,
     ) -> Router {
-        let mut router = self.attach(
+        let mut router = self.attach::<Option<ActorId>>(
             legacy_routes,
             &self.legacy_provider,
             Some(Bootstrap {
@@ -187,12 +195,14 @@ where
             }),
             Challenge::Service,
         );
+        let mut prefixes = Vec::new();
         for api in apis {
+            prefixes.push((api.prefix, api.audience));
             router = router.merge(self.attach_api(api));
         }
         // Axum sets the method-not-allowed fallback only on routes without one, which leaves the
         // documentation routes.
-        router
+        let router = router
             .merge(documentation)
             .method_not_allowed_fallback(method_not_allowed)
             .fallback(|method: Method, uri: Uri| async move {
@@ -203,23 +213,27 @@ where
                 limiters: Arc::clone(&self.rate_limiters),
                 service_secret: Some(Pin::clone(&self.service_secret)),
             })
-            .layer(CatchPanicLayer::custom(panicked))
-            .layer(default_cache_control())
+            .layer(CatchPanicLayer::custom(panicked));
+        let router = match self.cors.layer(prefixes) {
+            Some(cors) => router.layer(cors),
+            None => router,
+        };
+        router.layer(default_cache_control())
     }
 
     /// Attaches authentication and the caller budget to `routes`.
     ///
     /// The bootstrap secret also exempts its presenters from the caller budget, which a bootstrap
     /// request naming no actor can pass only by that exemption.
-    fn attach<A>(
+    fn attach<C>(
         &self,
         routes: Router,
-        provider: &Arc<A>,
+        provider: &Arc<impl AuthenticationProvider<C> + 'static>,
         bootstrap: Option<Bootstrap>,
         challenge: Challenge,
     ) -> Router
     where
-        A: AuthenticationProvider<Option<ActorId>> + 'static,
+        C: Caller + 'static,
     {
         // `route_layer` panics on a router without routes.
         if !routes.has_routes() {
@@ -236,7 +250,7 @@ where
                     .as_ref()
                     .map(|bootstrap| Pin::clone(&bootstrap.service_secret)),
             })
-            .route_layer(AuthenticationLayer::<_, Option<ActorId>> {
+            .route_layer(AuthenticationLayer::<_, C> {
                 provider: Arc::clone(provider),
                 metrics: Arc::clone(&self.authentication_metrics),
                 bootstrap,

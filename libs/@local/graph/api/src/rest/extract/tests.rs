@@ -3,21 +3,28 @@ use std::io;
 use aide::{
     axum::{
         ApiRouter,
-        routing::{get, post, post_with},
+        routing::{get, post},
     },
     openapi::{Info, OpenApi, Operation, PathItem, Response, StatusCode},
 };
 use axum::{Router, body::Body, extract::DefaultBodyLimit};
 use bytes::Bytes;
 use hash_middleware::problem::InternalServerError;
-use http::{Request, StatusCode as HttpStatusCode, header::CONTENT_TYPE};
+use http::{
+    Request, StatusCode as HttpStatusCode,
+    header::{CONTENT_TYPE, LINK},
+};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize, Serializer, ser::Error as _};
 use serde_json::{Value, json};
 use tower::ServiceExt as _;
 
-use super::{Json, Path, Query, json::content_status};
-use crate::rest::{openapi, test_utils::NoCredentials};
+use super::{Json, NextPage, Page, Path, Query, json::content_status};
+use crate::rest::{
+    Api, openapi,
+    routing::{self, Routes},
+    test_utils::NoCredentials,
+};
 
 #[derive(Deserialize, JsonSchema)]
 struct Subject {
@@ -29,10 +36,11 @@ struct Limit {
     limit: u8,
 }
 
-/// The status, the media type and the parsed body of one reply.
+/// The status, the media type, the `Link` header and the parsed body of one reply.
 struct Reply {
     status: u16,
     content_type: Option<String>,
+    link: Option<String>,
     body: Value,
 }
 
@@ -48,12 +56,19 @@ async fn send(router: Router, request: Request<Body>) -> Reply {
             .expect("the media type should be readable")
             .to_owned()
     });
+    let link = response.headers().get(LINK).map(|value| {
+        value
+            .to_str()
+            .expect("the link should be readable")
+            .to_owned()
+    });
     let body = axum::body::to_bytes(response.into_body(), 64 * 1024)
         .await
         .expect("the response body should be readable");
     Reply {
         status,
         content_type,
+        link,
         body: serde_json::from_slice(&body).expect("the response body should be JSON"),
     }
 }
@@ -324,6 +339,67 @@ async fn json_response_unserializable() {
     );
 }
 
+fn next_page() -> NextPage {
+    NextPage::new("?cursor=a").expect("the URI should be a header value")
+}
+
+#[tokio::test]
+async fn page_response_link() {
+    let router = Router::new().route(
+        "/subject",
+        axum::routing::get(async || Page::new(json!({ "name": "n" }), Some(next_page()))),
+    );
+
+    let reply = send(router, get_request("/subject")).await;
+
+    assert_eq!(reply.status, 200, "a page should answer 200");
+    assert_eq!(
+        reply.link.as_deref(),
+        Some("<?cursor=a>; rel=\"next\""),
+        "a page should name the next one in its `Link` header"
+    );
+    assert_eq!(
+        reply.body,
+        json!({ "name": "n" }),
+        "a page should carry the serialized body"
+    );
+}
+
+#[tokio::test]
+async fn page_response_last() {
+    let router = Router::new().route(
+        "/subject",
+        axum::routing::get(async || Page::new(json!({ "name": "n" }), None)),
+    );
+
+    let reply = send(router, get_request("/subject")).await;
+
+    assert_eq!(reply.status, 200, "the last page should answer 200");
+    assert_eq!(
+        reply.link, None,
+        "the last page should have no `Link` header"
+    );
+}
+
+#[tokio::test]
+async fn page_response_unserializable() {
+    let router = Router::new().route(
+        "/subject",
+        axum::routing::get(async || Page::new(Unserializable, Some(next_page()))),
+    );
+
+    let reply = send(router, get_request("/subject")).await;
+
+    assert_eq!(
+        reply.status, 500,
+        "a page whose body fails to serialize should answer 500"
+    );
+    assert_eq!(
+        reply.link, None,
+        "a problem document should name no next page"
+    );
+}
+
 #[test]
 fn json_content_status() {
     assert_eq!(
@@ -500,7 +576,7 @@ async fn echo(
 /// snapshot shows how its rejections join the responses of the middleware.
 #[test]
 fn echo_document() {
-    let api = openapi::build::<NoCredentials>(
+    let api: Api = openapi::build::<NoCredentials, _>(
         "/example",
         Info {
             title: "Extractor example".to_owned(),
@@ -508,9 +584,9 @@ fn echo_document() {
             ..Info::default()
         },
         || {
-            ApiRouter::new().api_route(
+            Routes::new().route(
                 "/echo/{label}",
-                post_with(echo, |operation| {
+                routing::post(echo, |operation| {
                     operation.id("echo").summary("Echo a request").description(
                         "Returns the label from the path and the value from the body, repeated as \
                          often as the query parameter `repeat` asks.",

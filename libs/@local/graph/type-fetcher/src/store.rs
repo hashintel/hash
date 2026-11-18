@@ -55,7 +55,8 @@ use hash_graph_store::{
         UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
     error::{
-        CheckPermissionError, ClusterError, DeletionError, InsertionError, QueryError, UpdateError,
+        CheckPermissionError, ClusterError, DeletionError, EntityCreationError, InsertionError,
+        QueryError, UpdateError,
     },
     filter::{Filter, QueryRecord},
     pool::StorePool,
@@ -172,6 +173,15 @@ where
 pub struct FetchingStore<S> {
     store: S,
     connection_info: Option<TypeFetcherConnectionInfo>,
+}
+
+impl<S, T> AsRef<T> for FetchingStore<S>
+where
+    S: AsRef<T>,
+{
+    fn as_ref(&self) -> &T {
+        self.store.as_ref()
+    }
 }
 
 impl<S> PrincipalStore for FetchingStore<S>
@@ -757,6 +767,7 @@ where
                                 origin: OriginProvenance::from_empty_type(OriginType::Api),
                                 sources: Vec::new(),
                             },
+                            fetched_from_origin: true,
                         }),
                 )
                 .await?;
@@ -846,6 +857,7 @@ where
                                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                                     sources: Vec::new(),
                                 },
+                                fetched_from_origin: true,
                             },
                         ),
                     )
@@ -1618,7 +1630,7 @@ where
         &mut self,
         actor_id: ActorId,
         params: Vec<CreateEntityParams>,
-    ) -> Result<Vec<Entity>, Report<InsertionError>> {
+    ) -> Result<Vec<Entity>, Report<EntityCreationError>> {
         let type_ids = params
             .iter()
             .flat_map(|params| &params.entity_type_ids)
@@ -1634,7 +1646,8 @@ where
                 ConflictBehavior::Skip,
                 &HashSet::new(),
             )
-            .await?;
+            .await
+            .change_context(EntityCreationError::Store)?;
         }
 
         self.store.create_entities(actor_id, params).await
@@ -1673,12 +1686,12 @@ where
     }
 
     async fn get_entity_by_id(
-        &self,
+        &mut self,
         actor_id: Option<ActorId>,
         entity_id: EntityId,
         transaction_time: Option<Timestamp<TransactionTime>>,
         decision_time: Option<Timestamp<DecisionTime>>,
-    ) -> Result<Entity, Report<QueryError>> {
+    ) -> Result<Option<Entity>, Report<QueryError>> {
         self.store
             .get_entity_by_id(actor_id, entity_id, transaction_time, decision_time)
             .await

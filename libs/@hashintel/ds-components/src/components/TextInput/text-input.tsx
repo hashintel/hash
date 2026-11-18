@@ -8,3 +8,5 @@ export const TextInput = (
 ) => {
   return <BaseInput {...props} />;
 };
+
+TextInput.displayName = "TextInput";

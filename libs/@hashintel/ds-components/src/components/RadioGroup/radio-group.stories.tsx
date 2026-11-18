@@ -5,7 +5,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { formInputSizes } from "../../util/form-shared";
 import { RadioGroup } from "./radio-group";
 
-import type { Story, StoryDefault } from "@ladle/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type Props = React.ComponentProps<typeof RadioGroup>;
 
@@ -44,19 +44,19 @@ const ControlledRadioGroup = ({
   );
 };
 
-export default {
+const meta = {
   title: "Components/RadioGroup",
-  argTypes: {
-    layout: { control: { type: "select" }, options: layouts },
-    size: { control: { type: "select" }, options: formInputSizes },
-    disabled: { control: { type: "boolean" } },
-  },
+  component: RadioGroup,
   args: {
     layout: "block",
     size: "md",
     disabled: false,
   },
-} satisfies StoryDefault<Props>;
+} satisfies Meta<Props>;
+
+export default meta;
+
+type Story = StoryObj<Props>;
 
 const headingClass = css({
   fontSize: "[12px]",
@@ -84,65 +84,71 @@ const layoutRowClass = css({
   flexWrap: "wrap",
 });
 
-export const Layouts: Story<Props> = (args) => (
-  <div className={sectionClass}>
-    {layouts.map((layout) => (
-      <div key={layout}>
-        <div className={headingClass}>layout={layout}</div>
-        <ControlledRadioGroup {...args} layout={layout} />
-      </div>
-    ))}
-    <div>
-      <div className={headingClass}>
-        layout=blockWithBorder, labelPlacement=left
-      </div>
-      <ControlledRadioGroup
-        {...args}
-        layout="blockWithBorder"
-        items={leftLabelItems}
-      />
-    </div>
-    <div>
-      <div className={headingClass}>layout=block, labelPlacement=left</div>
-      <ControlledRadioGroup {...args} layout="block" items={leftLabelItems} />
-    </div>
-  </div>
-);
-
-export const Sizes: Story<Props> = (args) => (
-  <div className={sectionClass}>
-    {formInputSizes.map((size) => (
-      <div key={size}>
-        <div className={headingClass}>size={size}</div>
-        <div className={layoutRowClass}>
-          {layouts.map((layout) => (
-            <div key={layout}>
-              <div className={subHeadingClass}>{layout}</div>
-              <ControlledRadioGroup {...args} layout={layout} size={size} />
-            </div>
-          ))}
+export const Default: Story = {
+  render: (args) => (
+    <div className={sectionClass}>
+      {layouts.map((layout) => (
+        <div key={layout}>
+          <div className={headingClass}>layout={layout}</div>
+          <ControlledRadioGroup {...args} layout={layout} />
         </div>
+      ))}
+      <div>
+        <div className={headingClass}>
+          layout=blockWithBorder, labelPlacement=left
+        </div>
+        <ControlledRadioGroup
+          {...args}
+          layout="blockWithBorder"
+          items={leftLabelItems}
+        />
       </div>
-    ))}
-  </div>
-);
+      <div>
+        <div className={headingClass}>layout=block, labelPlacement=left</div>
+        <ControlledRadioGroup {...args} layout="block" items={leftLabelItems} />
+      </div>
+    </div>
+  ),
+};
 
-export const Disabled: Story<Props> = (args) => (
-  <div className={sectionClass}>
-    <div>
-      <div className={headingClass}>whole group disabled</div>
-      <ControlledRadioGroup {...args} disabled />
+export const Sizes: Story = {
+  render: (args) => (
+    <div className={sectionClass}>
+      {formInputSizes.map((size) => (
+        <div key={size}>
+          <div className={headingClass}>size={size}</div>
+          <div className={layoutRowClass}>
+            {layouts.map((layout) => (
+              <div key={layout}>
+                <div className={subHeadingClass}>{layout}</div>
+                <ControlledRadioGroup {...args} layout={layout} size={size} />
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
-    <div>
-      <div className={headingClass}>single option disabled</div>
-      <ControlledRadioGroup
-        {...args}
-        items={[
-          { value: "apple", label: "Apple" },
-          { value: "banana", label: "Banana", disabled: true },
-          { value: "cherry", label: "Cherry" },
-        ]}
-      />
+  ),
+};
+
+export const Disabled: Story = {
+  render: (args) => (
+    <div className={sectionClass}>
+      <div>
+        <div className={headingClass}>whole group disabled</div>
+        <ControlledRadioGroup {...args} disabled />
+      </div>
+      <div>
+        <div className={headingClass}>single option disabled</div>
+        <ControlledRadioGroup
+          {...args}
+          items={[
+            { value: "apple", label: "Apple" },
+            { value: "banana", label: "Banana", disabled: true },
+            { value: "cherry", label: "Cherry" },
+          ]}
+        />
+      </div>
     </div>
-  </div>
-);
+  ),
+};

@@ -1,31 +1,38 @@
-use aws_lc_rs::aead::{AES_256_GCM, Aad, NONCE_LEN, Nonce, RandomizedNonceKey};
+use core::pin::pin;
+
 use error_stack::{Report, ResultExt as _};
-use hash_graph_store::api_token::{
-    ApiTokenEncryptedSecretHash, ApiTokenEncryptionKeyId, ApiTokenId, ApiTokenSecretHash,
+use hash_crypto::{
+    Secret,
+    aes_gcm::{AeadPurpose, Aes256GcmKey, Sealed},
+    digest::SHA256_OUTPUT_LEN,
 };
-use hash_secret::Secret;
+use hash_graph_store::api_token::{
+    ApiTokenEncryptedSecretHash, ApiTokenEncryptionKeyId, ApiTokenId,
+};
 use type_system::principal::{actor::ActorEntityUuid, actor_group::WebId};
 use uuid::Uuid;
-use zerocopy::{FromBytes, Immutable, IntoBytes};
+use zerocopy::{Immutable, IntoBytes};
 
-use super::{ApiTokenType, ApiTokenVersion, ENVIRONMENT_LENGTH, Environment, TYPE_LENGTH};
+use super::{
+    ApiTokenSecretHash, ApiTokenType, ApiTokenVersion, ENVIRONMENT_LENGTH, Environment, TYPE_LENGTH,
+};
 
-const SECRET_HASH_LENGTH: usize = 32;
-const TAG_LENGTH: usize = 16;
+/// The purpose of the keys that encrypt the secret hashes of API tokens.
+struct SecretHashes;
 
-/// The bytes of an encrypted secret hash: the nonce, then the ciphertext followed by its tag.
-#[derive(FromBytes, IntoBytes, Immutable)]
-#[repr(C)]
-struct EncryptedSecretHashLayout {
-    nonce: [u8; NONCE_LEN],
-    sealed: [u8; SECRET_HASH_LENGTH + TAG_LENGTH],
+impl AeadPurpose for SecretHashes {
+    type AssociatedData = AssociatedData;
+
+    fn associated_data(data: &AssociatedData) -> impl AsRef<[u8]> {
+        data.layout()
+    }
 }
 
 /// An AES-256-GCM key for the secret hashes of API tokens, and its ID.
 #[derive(Debug)]
 pub struct ApiTokenEncryptionKey {
     id: ApiTokenEncryptionKeyId,
-    key: RandomizedNonceKey,
+    key: Aes256GcmKey<SecretHashes>,
 }
 
 impl ApiTokenEncryptionKey {
@@ -33,9 +40,7 @@ impl ApiTokenEncryptionKey {
     pub fn new(id: ApiTokenEncryptionKeyId, key: &Secret<[u8; 32]>) -> Self {
         Self {
             id,
-            key: RandomizedNonceKey::new(&AES_256_GCM, key.expose()).unwrap_or_else(|error| {
-                unreachable!("AES-256-GCM should accept a 32-byte key: {error}")
-            }),
+            key: Aes256GcmKey::from_secret(key),
         }
     }
 
@@ -46,57 +51,53 @@ impl ApiTokenEncryptionKey {
 
     /// Encrypts `secret_hash` bound to `associated_data`, under a random nonce.
     ///
-    /// The process aborts if the random number generator fails.
-    #[must_use]
+    /// # Errors
+    ///
+    /// Returns [`ApiTokenEncryptionError`] if the cipher fails, such as when the random number
+    /// generator fails.
     pub fn encrypt(
         &self,
         secret_hash: ApiTokenSecretHash,
         associated_data: &AssociatedData,
-    ) -> ApiTokenEncryptedSecretHash {
-        let mut sealed = [0; SECRET_HASH_LENGTH + TAG_LENGTH];
-        let (ciphertext, tag_part) = sealed.split_at_mut(SECRET_HASH_LENGTH);
-        ciphertext.copy_from_slice(secret_hash.as_bytes());
-        let (nonce, tag) = self
-            .key
-            .seal_in_place_separate_tag(Aad::from(associated_data.layout().as_bytes()), ciphertext)
-            .unwrap_or_else(|error| {
-                unreachable!("AES-256-GCM should seal a SHA-256 hash: {error}")
-            });
-        tag_part.copy_from_slice(tag.as_ref());
+    ) -> Result<ApiTokenEncryptedSecretHash, Report<ApiTokenEncryptionError>> {
+        let mut plaintext = pin!(Secret::<[u8; SHA256_OUTPUT_LEN]>::zeroed());
+        plaintext
+            .as_mut()
+            .expose_mut()
+            .copy_from_slice(&secret_hash.0.to_bytes());
 
-        ApiTokenEncryptedSecretHash::new(zerocopy::transmute!(EncryptedSecretHashLayout {
-            nonce: *nonce.as_ref(),
-            sealed,
-        }))
+        let sealed = self
+            .key
+            .seal(&plaintext, associated_data)
+            .change_context(ApiTokenEncryptionError)?;
+        Ok(ApiTokenEncryptedSecretHash::new(zerocopy::transmute!(
+            sealed
+        )))
     }
 
-    /// Decrypts `encrypted_secret_hash` with the associated data it was encrypted with.
+    /// Whether `encrypted_secret_hash` decrypts to `secret_hash` with the associated data it was
+    /// encrypted with.
+    ///
+    /// The secret hashes are compared in constant time.
     ///
     /// # Errors
     ///
     /// Returns [`ApiTokenDecryptionError`] if `encrypted_secret_hash` was not encrypted with this
     /// key for `associated_data`.
-    pub fn decrypt(
+    pub fn matches(
         &self,
         encrypted_secret_hash: ApiTokenEncryptedSecretHash,
         associated_data: &AssociatedData,
-    ) -> Result<ApiTokenSecretHash, Report<ApiTokenDecryptionError>> {
-        let EncryptedSecretHashLayout { nonce, mut sealed } =
+        secret_hash: ApiTokenSecretHash,
+    ) -> Result<bool, Report<ApiTokenDecryptionError>> {
+        let sealed: Sealed<SecretHashes, SHA256_OUTPUT_LEN> =
             zerocopy::transmute!(*encrypted_secret_hash.as_bytes());
-        let secret_hash = self
-            .key
-            .open_in_place(
-                Nonce::assume_unique_for_key(nonce),
-                Aad::from(associated_data.layout().as_bytes()),
-                &mut sealed,
-            )
+        let mut plaintext = pin!(Secret::<[u8; SHA256_OUTPUT_LEN]>::zeroed());
+        self.key
+            .open(&sealed, associated_data, plaintext.as_mut())
             .change_context(ApiTokenDecryptionError)?;
 
-        Ok(ApiTokenSecretHash::new(
-            <[u8; SECRET_HASH_LENGTH]>::try_from(&*secret_hash).unwrap_or_else(|error| {
-                unreachable!("the plaintext should be a SHA-256 hash: {error}")
-            }),
-        ))
+        Ok(*plaintext == secret_hash.0.to_bytes()[..])
     }
 }
 
@@ -145,6 +146,17 @@ impl AssociatedData {
     }
 }
 
+impl AsRef<[u8]> for AssociatedDataLayout {
+    fn as_ref(&self) -> &[u8] {
+        self.as_bytes()
+    }
+}
+
+/// Why a secret hash could not be encrypted.
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("the secret hash could not be encrypted")]
+pub struct ApiTokenEncryptionError;
+
 /// Why an encrypted secret hash could not be decrypted.
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 #[display("the encrypted secret hash does not match the key and the associated data")]
@@ -154,10 +166,10 @@ pub struct ApiTokenDecryptionError;
 mod tests {
     use core::{assert_matches, pin::pin};
 
+    use hash_crypto::Secret;
     use hash_graph_store::api_token::{
         ApiTokenEncryptedSecretHash, ApiTokenEncryptionKeyId, ApiTokenId,
     };
-    use hash_secret::Secret;
     use rstest::rstest;
     use type_system::principal::{actor::ActorEntityUuid, actor_group::WebId};
     use uuid::Uuid;
@@ -205,18 +217,18 @@ mod tests {
     }
 
     #[test]
-    fn decrypt_fixed_token() {
+    fn matches_fixed_token() {
         let token = fixed_token();
 
-        assert_eq!(
+        assert!(
             fixed_key()
-                .decrypt(
+                .matches(
                     ApiTokenEncryptedSecretHash::new(FIXED_ENCRYPTED_SECRET_HASH),
-                    &fixed_associated_data(&token)
+                    &fixed_associated_data(&token),
+                    token.secret_hash(),
                 )
                 .expect("the pinned value should decrypt"),
-            token.secret_hash(),
-            "decrypting should yield the SHA-256 of the secret"
+            "the pinned value should decrypt to the SHA-256 of the secret"
         );
     }
 
@@ -225,13 +237,18 @@ mod tests {
         let token = fixed_token();
         let key = fixed_key();
 
-        let encrypted = key.encrypt(token.secret_hash(), &fixed_associated_data(&token));
+        let encrypted = key
+            .encrypt(token.secret_hash(), &fixed_associated_data(&token))
+            .expect("the secret hash should encrypt");
 
-        assert_eq!(
-            key.decrypt(encrypted, &fixed_associated_data(&token))
-                .expect("the encrypted secret hash should decrypt"),
-            token.secret_hash(),
-            "decrypting should yield the secret hash that was encrypted"
+        assert!(
+            key.matches(
+                encrypted,
+                &fixed_associated_data(&token),
+                token.secret_hash()
+            )
+            .expect("the encrypted secret hash should decrypt"),
+            "the encrypted secret hash should decrypt to the secret hash that was encrypted"
         );
     }
 
@@ -240,8 +257,12 @@ mod tests {
         let token = fixed_token();
         let key = fixed_key();
 
-        let first = key.encrypt(token.secret_hash(), &fixed_associated_data(&token));
-        let second = key.encrypt(token.secret_hash(), &fixed_associated_data(&token));
+        let first = key
+            .encrypt(token.secret_hash(), &fixed_associated_data(&token))
+            .expect("the secret hash should encrypt");
+        let second = key
+            .encrypt(token.secret_hash(), &fixed_associated_data(&token))
+            .expect("the secret hash should encrypt");
 
         assert_ne!(
             first, second,
@@ -259,13 +280,14 @@ mod tests {
         web_id: WebId::new(Uuid::from(data.actor_id)),
         ..data
     })]
-    fn decrypt_other_associated_data(#[case] change: fn(AssociatedData) -> AssociatedData) {
+    fn matches_other_associated_data(#[case] change: fn(AssociatedData) -> AssociatedData) {
         let token = fixed_token();
 
         let report = fixed_key()
-            .decrypt(
+            .matches(
                 ApiTokenEncryptedSecretHash::new(FIXED_ENCRYPTED_SECRET_HASH),
                 &change(fixed_associated_data(&token)),
+                token.secret_hash(),
             )
             .expect_err("the pinned value should not decrypt with other associated data");
         assert_matches!(
@@ -282,8 +304,7 @@ mod tests {
         assert_eq!(
             format!("{key:?}"),
             format!(
-                "ApiTokenEncryptionKey {{ id: {:?}, key: RandomizedNonceKey {{ algorithm: \
-                 AES_256_GCM }} }}",
+                "ApiTokenEncryptionKey {{ id: {:?}, key: Aes256GcmKey {{ .. }} }}",
                 key.id()
             ),
             "the debug output should leave out the key"

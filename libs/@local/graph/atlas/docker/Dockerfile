@@ -17,6 +17,7 @@ COPY .config/mise /etc/mise
 RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates && \
+    dpkg --compare-versions "$(dpkg-query -W -f='${Version}' ca-certificates)" ge 20250419+deb13u1 && \
     /etc/mise/install.sh && \
     mise --version && \
     apt-get clean && \
@@ -61,6 +62,7 @@ COPY rust-toolchain.toml .
 RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates build-essential && \
+    dpkg --compare-versions "$(dpkg-query -W -f='${Version}' ca-certificates)" ge 20260816ubuntu0.24.04.1 && \
     /etc/mise/install.sh && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
@@ -107,7 +109,8 @@ RUN cuda="${CUDA_VERSION%.*}" && \
     cuda="${cuda/./-}" && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
-    "cuda-nvrtc-${cuda}" "cuda-cudart-dev-${cuda}" "cuda-cccl-${cuda}" && \
+    "cuda-nvrtc-${cuda}" "cuda-cudart-dev-${cuda}" "cuda-cccl-${cuda}" ca-certificates && \
+    dpkg --compare-versions "$(dpkg-query -W -f='${Version}' ca-certificates)" ge 20260816ubuntu0.24.04.1 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     ldconfig && \
@@ -116,6 +119,13 @@ RUN cuda="${CUDA_VERSION%.*}" && \
     install -d -m 0775 -o 61000 -g 60000 /home/atlas /app /atlas-generations
 
 COPY --from=builder /out/ /
+
+# Amazon's RDS root certificates for eu-central-1, which the database server's certificate is
+# verified against.
+# To update the digest: curl -fsSL https://truststore.pki.rds.amazonaws.com/eu-central-1/eu-central-1-bundle.pem | shasum -a 256
+ADD --checksum=sha256:56a0cae044b6cc433971d964347401692a92ea0294e392753a3ebdaee54d8b84 --chmod=0644 \
+    https://truststore.pki.rds.amazonaws.com/eu-central-1/eu-central-1-bundle.pem \
+    /etc/ssl/certs/rds-eu-central-1-bundle.pem
 
 ENV HOME="/home/atlas"
 ENV HASH_GRAPH_ATLAS_ROOT="/atlas-generations"

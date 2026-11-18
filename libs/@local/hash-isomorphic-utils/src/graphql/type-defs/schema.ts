@@ -1,9 +1,9 @@
 import { gql } from "graphql-tag";
 
+import { apiTokenTypedef } from "./api-token.typedef.js";
 import { blockprotocolTypedef } from "./blockprotocol.typedef.js";
 import { embedTypeDef } from "./embed.typedef.js";
 import { generationTypedef } from "./generation.typedef.js";
-import { linearTypedef } from "./integration/linear.typedef.js";
 import { blockCollectionTypedef } from "./knowledge/block-collection.typedef.js";
 import { blockTypedef } from "./knowledge/block.typedef.js";
 import { commentTypedef } from "./knowledge/comment.typedef.js";
@@ -58,11 +58,11 @@ const knowledge = [
 // It could alternatively be a default export.
 export const schema = [
   baseSchema,
+  apiTokenTypedef,
   blockprotocolTypedef,
   embedTypeDef,
   generationTypedef,
   ...ontology,
   ...knowledge,
-  linearTypedef,
   subgraphTypedef,
 ];

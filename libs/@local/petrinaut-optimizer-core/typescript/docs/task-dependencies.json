@@ -1,0 +1,12 @@
+{
+  "package": "@local/petrinaut-optimizer-core",
+  "dependencies": [],
+  "tasks": {
+    "build": {
+      "dependsOn": [],
+      "affectedBy": [
+        "petrinaut-optimizer-core"
+      ]
+    }
+  }
+}

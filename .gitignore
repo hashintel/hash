@@ -189,6 +189,3 @@ out/
 /lefthook-local.*
 /.lefthook-local.*
 /.config/lefthook-local.*
-
-# napi
-libs/@local/effect-dns/hickory/npm

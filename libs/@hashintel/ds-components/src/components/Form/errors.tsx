@@ -14,9 +14,11 @@ export const Errors = ({
   "data-part": dataPart,
 }: {
   className?: string;
+  /** An array of error messages to show. One renders inline, several render as a list, nothing renders while empty */
   errors?: Array<string | React.ReactNode>;
 
   size?: FormInputSize;
+  /** `right` right-aligns the messages, matching a right-`labelDirection` field */
   direction?: "left" | "right";
   disabled?: boolean;
 
@@ -52,3 +54,5 @@ export const Errors = ({
     </ul>
   );
 };
+
+Errors.displayName = "Form.Field.Errors";

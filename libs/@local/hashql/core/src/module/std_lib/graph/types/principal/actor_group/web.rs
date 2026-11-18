@@ -1,7 +1,9 @@
+use core::alloc::Allocator;
+
 use crate::{
-    module::{
-        StandardLibrary,
-        std_lib::{self, ItemDef, ModuleDef, StandardLibraryModule},
+    module::std_lib::{
+        self, CacheId, ItemDef, ModuleCache, ModuleDef, StandardLibraryContext,
+        StandardLibraryModule,
     },
     symbol::{Symbol, sym},
 };
@@ -39,25 +41,30 @@ pub(in crate::module::std_lib) struct Web {
 impl<'heap> StandardLibraryModule<'heap> for Web {
     type Children = ();
 
+    const CACHE_ID: CacheId = CacheId::GraphTypesPrincipalActorGroupWeb;
+
     fn name() -> Symbol<'heap> {
         sym::web
     }
 
-    fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {
-        let mut def = ModuleDef::new();
+    fn define<S: Allocator + Clone>(
+        context: &mut StandardLibraryContext<'_, 'heap, S>,
+        cache: &mut ModuleCache<'heap, S>,
+    ) -> ModuleDef<'heap, S> {
+        let mut def = ModuleDef::new_in(context.alloc.clone());
 
         // newtype WebId = ActorGroupEntityUuid;
-        let actor_group_entity_uuid_ty = lib
-            .manifest::<std_lib::graph::types::principal::actor_group::ActorGroup>()
+        let actor_group_entity_uuid_ty = cache
+            .request::<std_lib::graph::types::principal::actor_group::ActorGroup>(context)
             .expect_newtype(sym::ActorGroupEntityUuid)
             .id;
         let web_id_ty = types::web_id(
-            &lib.ty,
+            &context.ty,
             Some(types::WebIdDependencies {
                 actor_group_entity_uuid: actor_group_entity_uuid_ty,
             }),
         );
-        def.push(sym::WebId, ItemDef::newtype(lib.ty.env, web_id_ty, &[]));
+        def.push(sym::WebId, ItemDef::newtype(context.ty.env, web_id_ty, &[]));
 
         def
     }

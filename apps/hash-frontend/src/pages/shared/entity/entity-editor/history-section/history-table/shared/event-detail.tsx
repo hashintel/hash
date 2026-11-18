@@ -11,7 +11,7 @@ import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-p
 import { ValueChip } from "../../../../../value-chip";
 
 import type { HistoryEvent } from "../../shared/types";
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type { Subgraph } from "@blockprotocol/graph";
 
 const createValueText = (value: PropertyValue, metadata: PropertyMetadata) => {
   if (isValueMetadata(metadata)) {
@@ -38,10 +38,7 @@ export const EventDetail = ({
 }) => {
   switch (event.type) {
     case "created": {
-      const entityLabel = generateEntityLabel(
-        subgraph as Subgraph<EntityRootType>,
-        event.entity,
-      );
+      const entityLabel = generateEntityLabel(subgraph, event.entity);
       return (
         <>
           <ValueChip>{entityLabel}</ValueChip>

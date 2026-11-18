@@ -1,0 +1,813 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { createRef } from "react";
+
+import { noop } from "../../util/noop";
+import { DemoState } from "../../../docs/blocks/demo-state";
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { OverlayDemo } from "../../../docs/blocks/overlay-demo";
+import { Stage } from "../../../docs/blocks/stage";
+import { Button } from "../Button/button";
+import { TextInput } from "../TextInput/text-input";
+import { Popover } from "./popover";
+
+<Meta title="Docs/Popover" />
+
+export const meta = {
+  title: "Popover",
+  description:
+    "A floating, non-modal panel anchored to a trigger, for lightweight interactive content.",
+  alternativeNames: ["Flyout", "Popper", "Toggletip"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/Popover/popover.tsx",
+    stories:
+      "https://tokens.hash.design/?path=/story/components-popover--default",
+  },
+  referenceLinks: {
+    ark: "https://ark-ui.com/docs/components/popover",
+  },
+  related: ["Tooltip", "HelpTooltip", "Menu", "Dialog"],
+};
+
+# Popover
+
+A floating, non-modal panel anchored to a trigger, for lightweight interactive
+content.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+export const heroPopoverCode = `import { useRef, useState } from "react";
+
+import { Button, Popover } from "@hashintel/ds-components";
+
+export const FilterEntitiesButton = () => {
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
+  const close = () => setOpen(false);
+
+  return (
+    <>
+      <Button
+        ref={triggerRef}
+        iconName="filter"
+        pressed={open}
+        onClick={() => setOpen((wasOpen) => !wasOpen)}
+      >
+        Filter
+      </Button>
+      {open ? (
+        <Popover triggerRef={triggerRef} onClose={close}>
+          <Popover.Container>
+            <Popover.Header title="Filter entities" />
+            <Popover.Body>Only show entities of type Person.</Popover.Body>
+            <Popover.Footer
+              secondaryActions={
+                <Button size="xs" variant="ghost" onClick={close}>
+                  Clear
+                </Button>
+              }
+              actions={
+                <Button size="xs" tone="brand" onClick={close}>
+                  Apply
+                </Button>
+              }
+            />
+          </Popover.Container>
+        </Popover>
+      ) : null}
+    </>
+  );
+};`;
+
+export const HeroDemo = () => (
+  <OverlayDemo triggerLabel="Filter">
+    {({ close, triggerRef }) => (
+      <Popover triggerRef={triggerRef} onClose={close}>
+        <Popover.Container>
+          <Popover.Header title="Filter entities" />
+          <Popover.Body>Only show entities of type Person.</Popover.Body>
+          <Popover.Footer
+            secondaryActions={
+              <Button size="xs" variant="ghost" onClick={close}>
+                Clear
+              </Button>
+            }
+            actions={
+              <Button size="xs" tone="brand" onClick={close}>
+                Apply
+              </Button>
+            }
+          />
+        </Popover.Container>
+      </Popover>
+    )}
+  </OverlayDemo>
+);
+
+<Stage code={heroPopoverCode}>
+  <HeroDemo />
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { useRef, useState } from "react";
+
+import { Button, Popover } from "@hashintel/ds-components";
+
+export const DisplayOptionsButton = () => {
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button
+        ref={triggerRef}
+        iconName="sliders"
+        onClick={() => setOpen((wasOpen) => !wasOpen)}
+      >
+        Display options
+      </Button>
+      {open ? (
+        <Popover triggerRef={triggerRef} onClose={() => setOpen(false)}>
+          <Popover.Container>
+            <Popover.Header title="Display options" />
+            <Popover.Body>Columns, density, and sort order.</Popover.Body>
+          </Popover.Container>
+        </Popover>
+      ) : null}
+    </>
+  );
+};
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use Popover for lightweight interactive content anchored to a control: display options, filters, a quick rename, an entity preview.",
+    "Use it instead of Tooltip when the user must click or type in the overlay — tooltips are hover-only text.",
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    "Don't use a popover for short explanatory text on hover — use Tooltip, or HelpTooltip beside a form label.",
+    "Don't use one for a list of actions or options — use Menu, which adds menu semantics and keyboard navigation.",
+    "Don't use one for a blocking decision or a multi-section task — use Dialog; for long structured content, use Drawer.",
+  ]}
+/>
+
+## Anatomy
+
+```tsx
+<Popover triggerRef={triggerRef} onClose={close}>
+  <Popover.Container>
+    <Popover.Header title="Title" />
+    <Popover.Body>Content</Popover.Body>
+    <Popover.Footer actions={<Button>Apply</Button>} />
+  </Popover.Container>
+</Popover>
+```
+
+Children are free-form: `Popover.Container` draws the framed panel and accepts
+only Header, Body, and Footer, each optional and repeatable — several bodies
+render as separate cards.
+
+The popover renders no trigger of its own — `triggerRef` points at whatever
+element opens it, anchoring the panel's position and receiving focus back when
+it closes.
+
+## Examples
+
+### Opening and closing
+
+There is no `open` prop — render the popover to open it, and remove it from
+the tree in `onClose`. Clicks on the trigger never count as outside
+interactions, so a toggle trigger like this closes it without immediately
+reopening.
+
+export const openClosePopoverCode = `import { useRef, useState } from "react";
+
+import { Button, Popover } from "@hashintel/ds-components";
+
+export const SavedViewsButton = () => {
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button
+        ref={triggerRef}
+        iconName="eye"
+        pressed={open}
+        onClick={() => setOpen((wasOpen) => !wasOpen)}
+      >
+        Saved views
+      </Button>
+      {open ? (
+        <Popover triggerRef={triggerRef} onClose={() => setOpen(false)}>
+          <Popover.Container>
+            <Popover.Header title="Saved views" />
+            <Popover.Body>All entities, People, Recently updated.</Popover.Body>
+          </Popover.Container>
+        </Popover>
+      ) : null}
+    </>
+  );
+};`;
+
+export const OpeningAndClosingDemo = () => (
+  <OverlayDemo triggerLabel="Saved views">
+    {({ close, triggerRef }) => (
+      <Popover triggerRef={triggerRef} onClose={close}>
+        <Popover.Container>
+          <Popover.Header title="Saved views" />
+          <Popover.Body>All entities, People, Recently updated.</Popover.Body>
+        </Popover.Container>
+      </Popover>
+    )}
+  </OverlayDemo>
+);
+
+<Stage code={openClosePopoverCode}>
+  <OpeningAndClosingDemo />
+</Stage>
+
+### Header
+
+`Popover.Header` renders `title` as an uppercase label, with `actions` beside
+the built-in close button. The close button renders only when the popover has
+`onClose`; set `hideCloseButton` when a footer action dismisses it instead.
+
+export const headerPopoverCode = `import { useRef, useState } from "react";
+
+import { Button, Popover } from "@hashintel/ds-components";
+
+export const NotificationsButton = () => {
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button
+        ref={triggerRef}
+        iconName="bell"
+        onClick={() => setOpen((wasOpen) => !wasOpen)}
+      >
+        Notifications
+      </Button>
+      {open ? (
+        <Popover triggerRef={triggerRef} onClose={() => setOpen(false)}>
+          <Popover.Container>
+            <Popover.Header
+              title="Notifications"
+              actions={
+                <Button
+                  size="xxs"
+                  variant="ghost"
+                  iconName="gear"
+                  tooltip="Notification settings"
+                  autoFocus="never"
+                />
+              }
+            />
+            <Popover.Body>
+              Mentions, assignments, and completed flow runs.
+            </Popover.Body>
+          </Popover.Container>
+        </Popover>
+      ) : null}
+    </>
+  );
+};`;
+
+export const HeaderDemo = () => (
+  <OverlayDemo triggerLabel="Notifications">
+    {({ close, triggerRef }) => (
+      <Popover triggerRef={triggerRef} onClose={close}>
+        <Popover.Container>
+          <Popover.Header
+            title="Notifications"
+            actions={
+              <Button
+                size="xxs"
+                variant="ghost"
+                iconName="gear"
+                tooltip="Notification settings"
+                autoFocus="never"
+              />
+            }
+          />
+          <Popover.Body>
+            Mentions, assignments, and completed flow runs.
+          </Popover.Body>
+        </Popover.Container>
+      </Popover>
+    )}
+  </OverlayDemo>
+);
+
+<Stage code={headerPopoverCode}>
+  <HeaderDemo />
+</Stage>
+
+### Footer actions
+
+`Popover.Footer` right-aligns `actions` and left-aligns `secondaryActions`.
+Put the confirming action in `actions` and reset or escape actions in
+`secondaryActions`.
+
+export const footerActionsPopoverCode = `import { useRef, useState } from "react";
+
+import { Button, Popover } from "@hashintel/ds-components";
+
+export const SortEntitiesButton = () => {
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
+  const close = () => setOpen(false);
+
+  return (
+    <>
+      <Button
+        ref={triggerRef}
+        iconName="sortDown"
+        onClick={() => setOpen((wasOpen) => !wasOpen)}
+      >
+        Sort
+      </Button>
+      {open ? (
+        <Popover triggerRef={triggerRef} onClose={close}>
+          <Popover.Container>
+            <Popover.Header title="Sort entities" />
+            <Popover.Body>Sort by last updated, newest first.</Popover.Body>
+            <Popover.Footer
+              secondaryActions={
+                <Button size="xs" variant="ghost" onClick={close}>
+                  Reset
+                </Button>
+              }
+              actions={
+                <Button size="xs" tone="brand" onClick={close}>
+                  Apply
+                </Button>
+              }
+            />
+          </Popover.Container>
+        </Popover>
+      ) : null}
+    </>
+  );
+};`;
+
+export const FooterActionsDemo = () => (
+  <OverlayDemo triggerLabel="Sort">
+    {({ close, triggerRef }) => (
+      <Popover triggerRef={triggerRef} onClose={close}>
+        <Popover.Container>
+          <Popover.Header title="Sort entities" />
+          <Popover.Body>Sort by last updated, newest first.</Popover.Body>
+          <Popover.Footer
+            secondaryActions={
+              <Button size="xs" variant="ghost" onClick={close}>
+                Reset
+              </Button>
+            }
+            actions={
+              <Button size="xs" tone="brand" onClick={close}>
+                Apply
+              </Button>
+            }
+          />
+        </Popover.Container>
+      </Popover>
+    )}
+  </OverlayDemo>
+);
+
+<Stage code={footerActionsPopoverCode}>
+  <FooterActionsDemo />
+</Stage>
+
+### Sectioned bodies
+
+Each `Popover.Body` renders as its own inset card — stack several to group
+related content without custom dividers.
+
+export const sectionedBodiesPopoverCode = `import { useRef, useState } from "react";
+
+import { Button, Popover } from "@hashintel/ds-components";
+
+export const FlowRunSummaryButton = () => {
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button
+        ref={triggerRef}
+        iconName="play"
+        onClick={() => setOpen((wasOpen) => !wasOpen)}
+      >
+        Last run
+      </Button>
+      {open ? (
+        <Popover triggerRef={triggerRef} onClose={() => setOpen(false)}>
+          <Popover.Container>
+            <Popover.Header title="Flow run" />
+            <Popover.Body>
+              Research companies · completed 2 hours ago.
+            </Popover.Body>
+            <Popover.Body>32 entities created, 4 updated.</Popover.Body>
+          </Popover.Container>
+        </Popover>
+      ) : null}
+    </>
+  );
+};`;
+
+export const SectionedBodiesDemo = () => (
+  <OverlayDemo triggerLabel="Last run">
+    {({ close, triggerRef }) => (
+      <Popover triggerRef={triggerRef} onClose={close}>
+        <Popover.Container>
+          <Popover.Header title="Flow run" />
+          <Popover.Body>
+            Research companies · completed 2 hours ago.
+          </Popover.Body>
+          <Popover.Body>32 entities created, 4 updated.</Popover.Body>
+        </Popover.Container>
+      </Popover>
+    )}
+  </OverlayDemo>
+);
+
+<Stage code={sectionedBodiesPopoverCode}>
+  <SectionedBodiesDemo />
+</Stage>
+
+### Positions
+
+`position` sets the preferred placement: four sides, each with optional
+`-start`/`-end` alignment. When it doesn't fit the viewport, the popover flips
+to the opposite side.
+
+export const positionsPopoverCode = `import { useRef, useState } from "react";
+
+import { Button, Popover } from "@hashintel/ds-components";
+
+export const PropertyDetailsButton = () => {
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button
+        ref={triggerRef}
+        variant="subtle"
+        iconName="info"
+        tooltip="Property details"
+        onClick={() => setOpen((wasOpen) => !wasOpen)}
+      />
+      {open ? (
+        <Popover
+          triggerRef={triggerRef}
+          position="right-start"
+          onClose={() => setOpen(false)}
+        >
+          <Popover.Container>
+            <Popover.Header title="Expected values" />
+            <Popover.Body>Text, or a list of Text values.</Popover.Body>
+          </Popover.Container>
+        </Popover>
+      ) : null}
+    </>
+  );
+};`;
+
+export const PositionsDemo = () => (
+  <OverlayDemo triggerLabel="Property details">
+    {({ close, triggerRef }) => (
+      <Popover triggerRef={triggerRef} position="right-start" onClose={close}>
+        <Popover.Container>
+          <Popover.Header title="Expected values" />
+          <Popover.Body>Text, or a list of Text values.</Popover.Body>
+        </Popover.Container>
+      </Popover>
+    )}
+  </OverlayDemo>
+);
+
+<Stage code={positionsPopoverCode}>
+  <PositionsDemo />
+</Stage>
+
+### Anchoring to a point
+
+`positionFromPoint` anchors to a point relative to the trigger's top-left
+corner instead of its edges. The point is re-measured every frame, so the
+popover tracks a node while a chart pans or zooms; the cross-axis gap then
+offsets the panel across the placement.
+
+```tsx
+import { useRef, useState } from "react";
+
+import { Popover } from "@hashintel/ds-components";
+
+type GraphNode = { name: string; x: number; y: number };
+
+export const EntityGraph = () => {
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
+
+  return (
+    <div ref={canvasRef}>
+      {/* Canvas rendering; clicking a node calls setSelectedNode. */}
+      {selectedNode ? (
+        <Popover
+          triggerRef={canvasRef}
+          positionFromPoint={{ x: selectedNode.x, y: selectedNode.y }}
+          position="right-start"
+          onClose={() => setSelectedNode(null)}
+        >
+          <Popover.Container>
+            <Popover.Header title={selectedNode.name} />
+            <Popover.Body>Entity details for the selected node.</Popover.Body>
+          </Popover.Container>
+        </Popover>
+      ) : null}
+    </div>
+  );
+};
+```
+
+### Staying open on outside clicks
+
+Set `closeOnInteractOutside={false}` to protect in-progress input from stray
+clicks. Escape and the close button still close the popover.
+
+export const stayOpenPopoverCode = `import { useRef, useState } from "react";
+
+import { Button, Popover } from "@hashintel/ds-components";
+
+export const NewPropertyButton = () => {
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
+  const close = () => setOpen(false);
+
+  return (
+    <>
+      <Button
+        ref={triggerRef}
+        iconName="plus"
+        onClick={() => setOpen((wasOpen) => !wasOpen)}
+      >
+        New property
+      </Button>
+      {open ? (
+        <Popover
+          triggerRef={triggerRef}
+          closeOnInteractOutside={false}
+          onClose={close}
+        >
+          <Popover.Container>
+            <Popover.Header title="New property" />
+            <Popover.Body>
+              Name and expected values for the property.
+            </Popover.Body>
+            <Popover.Footer
+              actions={
+                <Button size="xs" tone="brand" onClick={close}>
+                  Create
+                </Button>
+              }
+            />
+          </Popover.Container>
+        </Popover>
+      ) : null}
+    </>
+  );
+};`;
+
+export const StayingOpenOnOutsideClicksDemo = () => (
+  <OverlayDemo triggerLabel="New property">
+    {({ close, triggerRef }) => (
+      <Popover
+        triggerRef={triggerRef}
+        closeOnInteractOutside={false}
+        onClose={close}
+      >
+        <Popover.Container>
+          <Popover.Header title="New property" />
+          <Popover.Body>
+            Name and expected values for the property.
+          </Popover.Body>
+          <Popover.Footer
+            actions={
+              <Button size="xs" tone="brand" onClick={close}>
+                Create
+              </Button>
+            }
+          />
+        </Popover.Container>
+      </Popover>
+    )}
+  </OverlayDemo>
+);
+
+<Stage code={stayOpenPopoverCode}>
+  <StayingOpenOnOutsideClicksDemo />
+</Stage>
+
+### Initial and return focus
+
+On open the popover focuses its first focusable element, and on close it
+returns focus to the trigger. Pass `initialFocusRef` to focus a specific
+control instead, and `returnFocusRef` when the trigger will be gone by the
+time the popover closes.
+
+export const initialFocusPopoverCode = `import { useRef, useState } from "react";
+
+import { Button, Popover, TextInput } from "@hashintel/ds-components";
+
+export const RenameViewButton = () => {
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("Recently updated");
+
+  return (
+    <>
+      <Button
+        ref={triggerRef}
+        iconName="pencil"
+        onClick={() => setOpen((wasOpen) => !wasOpen)}
+      >
+        Rename view
+      </Button>
+      {open ? (
+        <Popover
+          triggerRef={triggerRef}
+          initialFocusRef={nameInputRef}
+          onClose={() => setOpen(false)}
+        >
+          <Popover.Container>
+            <Popover.Header title="Rename view" />
+            <Popover.Body>
+              <TextInput
+                inputRef={nameInputRef}
+                value={name}
+                onChange={setName}
+              />
+            </Popover.Body>
+          </Popover.Container>
+        </Popover>
+      ) : null}
+    </>
+  );
+};`;
+
+export const nameInputRef = createRef();
+
+export const InitialAndReturnFocusDemo = () => (
+  <OverlayDemo triggerLabel="Rename view">
+    {({ close, triggerRef }) => (
+      <Popover
+        triggerRef={triggerRef}
+        initialFocusRef={nameInputRef}
+        onClose={close}
+      >
+        <Popover.Container>
+          <Popover.Header title="Rename view" />
+          <Popover.Body>
+            <DemoState data-harness>
+              <TextInput
+                inputRef={nameInputRef}
+                value="Recently updated"
+                onChange={noop}
+              />
+            </DemoState>
+          </Popover.Body>
+        </Popover.Container>
+      </Popover>
+    )}
+  </OverlayDemo>
+);
+
+<Stage code={initialFocusPopoverCode}>
+  <InitialAndReturnFocusDemo />
+</Stage>
+
+## Behavior
+
+- Positioning tracks the trigger as it moves, resizes, or scrolls; a point
+  anchor is re-measured every frame, so it can follow a node while a chart
+  pans or zooms.
+- The popover is non-modal: no backdrop, no focus trap, no scroll lock — the
+  page behind stays interactive.
+- Popovers stack: one opened from inside another layers above it, and
+  interacting with the inner one doesn't dismiss the outer.
+- Without `onClose` the popover is not dismissable: Escape and outside clicks
+  do nothing and the header renders no close button — only unmounting closes
+  it.
+
+## Content
+
+- Title the popover with the object or task it shows, 1–3 words — the title
+  renders as an uppercase label, so keep it short: "Display options",
+  "Filter entities". No punctuation.
+- Keep the body to a single task or detail; content that needs sections,
+  scrolling, or a multi-step form belongs in a Dialog or Drawer.
+- Footer labels follow Button content rules: verb-first, 1–3 words, with the
+  confirming action in `actions`.
+
+## Accessibility
+
+Popover renders the panel as a non-modal `role="dialog"`.
+
+On open, focus moves to the first focusable element inside the panel — the
+built-in close button opts out — or to `initialFocusRef`. On close, it
+returns to the trigger, or to `returnFocusRef`.
+
+Tabbing past the panel's last element moves focus to the element after the
+trigger, as if the popover were inline after it.
+
+Escape closes the popover when `onClose` is set; the built-in close button
+is labelled "Close".
+
+### What you must do
+
+- Make the trigger a focusable control, such as a Button holding `triggerRef`
+  — the popover renders no trigger of its own, so keyboard access depends on
+  yours.
+- Provide `onClose` wherever the user should be able to dismiss the popover —
+  without it, Escape, outside clicks, and the close button are all disabled.
+- Lead the content with text naming its purpose, such as a `Popover.Header`
+  title — the panel has no accessible name of its own, so the first content
+  read is the user's only context.
+- Give header `actions` buttons `autoFocus="never"` so they don't take the
+  popover's initial focus.
+
+### Keyboard
+
+| Key                                | Action                                                                  |
+| ---------------------------------- | ----------------------------------------------------------------------- |
+| `Escape`                           | Close the popover and return focus to the trigger (requires `onClose`). |
+| `Tab` from the last element        | Move focus out of the popover, to the element after the trigger.        |
+| `Shift+Tab` from the first element | Move focus back to the trigger.                                         |
+
+## API reference
+
+### Popover
+
+<PropsTable
+  of={Popover}
+  defaults={{
+    position: '"bottom"',
+    gapX: "8",
+    gapY: "8",
+    closeOnInteractOutside: "true",
+  }}
+/>
+
+### Popover.Container
+
+<PropsTable of={Popover.Container} />
+
+### Popover.Header
+
+<PropsTable of={Popover.Header} />
+
+### Popover.Body
+
+<PropsTable of={Popover.Body} defaults={{ withPadding: "true" }} />
+
+### Popover.Footer
+
+<PropsTable of={Popover.Footer} />
+
+## Styling
+
+`Popover.Container` draws the panel chrome (surface, radius, shadow) but has
+no intrinsic width — set one via `className`.
+
+`className` on the Popover styles the positioned content
+element, and `positionerClassName` targets the outer positioner, which carries
+the `popover` z-index token — override the layer there.

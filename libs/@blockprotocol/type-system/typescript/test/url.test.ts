@@ -115,19 +115,16 @@ describe("makeOntologyTypeVersion", () => {
 });
 
 const extractBaseUrlCases: [VersionedUrl, BaseUrl][] = [
-  ["http://example.com/v/1" as VersionedUrl, "http://example.com/" as BaseUrl],
+  ["http://example.com/v/1", "http://example.com/" as BaseUrl],
   [
-    "http://example.com/sandwich/v/1" as VersionedUrl,
+    "http://example.com/sandwich/v/1",
     "http://example.com/sandwich/" as BaseUrl,
   ],
   [
-    "file://localhost/documents/myfolder/v/10" as VersionedUrl,
+    "file://localhost/documents/myfolder/v/10",
     "file://localhost/documents/myfolder/" as BaseUrl,
   ],
-  [
-    "ftp://rms@example.com/foo/v/5" as VersionedUrl,
-    "ftp://rms@example.com/foo/" as BaseUrl,
-  ],
+  ["ftp://rms@example.com/foo/v/5", "ftp://rms@example.com/foo/" as BaseUrl],
 ];
 
 describe("extractBaseUrl", () => {
@@ -140,10 +137,10 @@ describe("extractBaseUrl", () => {
 });
 
 const extractVersionCases: [VersionedUrl, string][] = [
-  ["http://example.com/v/1" as VersionedUrl, "1"],
-  ["http://example.com/sandwich/v/1" as VersionedUrl, "1"],
-  ["file://localhost/documents/myfolder/v/10" as VersionedUrl, "10"],
-  ["ftp://rms@example.com/foo/v/5" as VersionedUrl, "5"],
+  ["http://example.com/v/1", "1"],
+  ["http://example.com/sandwich/v/1", "1"],
+  ["file://localhost/documents/myfolder/v/10", "10"],
+  ["ftp://rms@example.com/foo/v/5", "5"],
 ];
 
 describe("extractVersion", () => {
@@ -194,15 +191,9 @@ describe("Draft version support", () => {
   });
 
   describe("extractVersion with drafts", () => {
-    test.each([
-      [
-        "http://example.com/v/1-draft.abc12345.1" as VersionedUrl,
-        "1-draft.abc12345.1",
-      ],
-      [
-        "http://example.com/v/2-draft.xyz98765.999" as VersionedUrl,
-        "2-draft.xyz98765.999",
-      ],
+    test.each<[VersionedUrl, string]>([
+      ["http://example.com/v/1-draft.abc12345.1", "1-draft.abc12345.1"],
+      ["http://example.com/v/2-draft.xyz98765.999", "2-draft.xyz98765.999"],
     ])("extractVersion(%s) returns draft version", (input, expected) => {
       expect(extractVersion(input).toString()).toEqual(expected);
     });

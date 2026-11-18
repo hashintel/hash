@@ -6,6 +6,7 @@ import { createSDCPN } from "./lib/helper/create-sdcpn";
 import type { LspTransport } from "./transport";
 import type {
   ClientMessage,
+  NetAnalysis,
   PublishDiagnosticsParams,
   ServerMessage,
 } from "./worker/protocol";
@@ -34,7 +35,8 @@ const createFakeTransport = () => {
     });
   const respond = (id: number, result: PublishDiagnosticsParams[]) =>
     listener?.({ jsonrpc: "2.0", id, result });
-  return { transport, sent, publish, respond };
+  const push = (message: ServerMessage) => listener?.(message);
+  return { transport, sent, publish, respond, push };
 };
 
 const diagnostic = (message: string): Diagnostic => ({
@@ -169,6 +171,38 @@ describe("createLanguageClient diagnostics", () => {
     expect(client.diagnostics.get().total).toBe(0);
   });
 
+  it("keeps the net analysis the server pushes, and only notifies on a change", () => {
+    const { transport, push } = createFakeTransport();
+    const client = createLanguageClient({ transport });
+    const onChange = vi.fn();
+    client.netAnalysis.subscribe(onChange);
+    const pushAnalysis = (params: NetAnalysis) =>
+      push({ jsonrpc: "2.0", method: "sdcpn/netAnalysis", params });
+    const netClass = {
+      time: "untimed",
+      coloring: "none",
+      chance: null,
+    } as const;
+    const analysis: NetAnalysis = {
+      metricShapes: { m1: "discrete", m2: "continuous" },
+      netClass,
+    };
+
+    pushAnalysis(analysis);
+    pushAnalysis({ ...analysis, netClass: { ...netClass } });
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(client.netAnalysis.get()).toEqual(analysis);
+
+    pushAnalysis({ ...analysis, metricShapes: { m1: "continuous" } });
+    expect(onChange).toHaveBeenCalledTimes(2);
+
+    pushAnalysis({
+      metricShapes: { m1: "continuous" },
+      netClass: { ...netClass, chance: "deterministic" },
+    });
+    expect(onChange).toHaveBeenCalledTimes(3);
+  });
+
   it("keeps the array of a document whose diagnostics did not change", () => {
     const { transport, publish } = createFakeTransport();
     const client = createLanguageClient({ transport });
@@ -188,5 +222,31 @@ describe("createLanguageClient diagnostics", () => {
     expect(snapshot.byUri.get("inmemory://b")?.[0]?.message).toBe("z");
     expect(snapshot.total).toBe(2);
     expect(snapshot.errorCount).toBe(2);
+  });
+});
+
+describe("createLanguageClient run gate", () => {
+  it("leaves a place visualizer's errors out of the error count", () => {
+    const { transport, publish } = createFakeTransport();
+    const client = createLanguageClient({ transport });
+
+    publish([
+      {
+        uri: "inmemory://sdcpn/places/p1/visualizer.jsx",
+        diagnostics: [diagnostic("misspelt attribute")],
+      },
+      {
+        uri: "inmemory://sdcpn/transitions/t1/lambda.ts",
+        diagnostics: [diagnostic("not a boolean")],
+      },
+    ]);
+
+    // Both documents keep their diagnostics; only the lambda's gates a run.
+    expect(client.diagnostics.get()).toMatchObject({ total: 2, errorCount: 1 });
+    expect(
+      client.diagnostics
+        .get()
+        .byUri.get("inmemory://sdcpn/places/p1/visualizer.jsx"),
+    ).toHaveLength(1);
   });
 });

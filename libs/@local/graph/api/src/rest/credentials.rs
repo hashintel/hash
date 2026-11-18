@@ -77,6 +77,12 @@ impl<C: Credentials> OperationInput for Actor<C> {
     }
 }
 
+/// Credentials of an API that serves a request without a credential anonymously.
+///
+/// Only such an API reads its caller through [`MaybeActor`], which documents anonymous access that
+/// [`Audience::Public`] refuses before a handler runs.
+pub(super) trait AdmitsAnonymous: Credentials {}
+
 pub(super) struct MaybeActor<C>(Option<ActorId>, PhantomData<fn() -> C>);
 
 impl<C> From<MaybeActor<C>> for Option<ActorId> {
@@ -85,7 +91,7 @@ impl<C> From<MaybeActor<C>> for Option<ActorId> {
     }
 }
 
-impl<S: Sync, C> FromRequestParts<S> for MaybeActor<C> {
+impl<S: Sync, C: AdmitsAnonymous> FromRequestParts<S> for MaybeActor<C> {
     type Rejection = AuthenticationRejection;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
@@ -95,8 +101,15 @@ impl<S: Sync, C> FromRequestParts<S> for MaybeActor<C> {
     }
 }
 
-impl<C: Credentials> OperationInput for MaybeActor<C> {
+impl<C: AdmitsAnonymous> OperationInput for MaybeActor<C> {
     fn operation_input(ctx: &mut GenContext, operation: &mut Operation) {
+        const {
+            assert!(
+                matches!(C::AUDIENCE, Audience::Internal),
+                "`AdmitsAnonymous` should only be implemented for credentials of \
+                 `Audience::Internal`"
+            );
+        }
         let _: TransformOperation<'_> =
             TransformOperation::new(operation).security_requirement_multi([]);
         C::operation_input(ctx, operation);

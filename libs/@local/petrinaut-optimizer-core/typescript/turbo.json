@@ -1,0 +1,17 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "manifest": {
+      "dependsOn": ["^manifest", "petrinaut-optimizer-core#manifest"]
+    },
+    "build": {
+      "dependsOn": ["petrinaut-optimizer-core#manifest"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "../python/src/**",
+        "../python/runtime-lock.json"
+      ],
+      "outputs": ["dist/**"]
+    }
+  }
+}

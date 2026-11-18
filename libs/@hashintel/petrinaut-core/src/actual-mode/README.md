@@ -9,46 +9,43 @@ This folder contains the experimental, transport-neutral pieces of Petrinaut
 Actual Mode.
 
 Actual Mode lets Petrinaut render an execution that comes from an external
-source instead of from Quick Simulation or Monte Carlo. The first integration is
-the Brunch demo route in `apps/petrinaut-website`, which connects to a Brunch
-SSE endpoint and feeds Petrinaut a Petri net definition, an initial marking, and
-transition firing events.
+source instead of from Quick Simulation or Monte Carlo. A host application
+connects to that source however it likes, then feeds Petrinaut a Petri net
+definition, an initial marking, and transition firing events through
+`ActualModeContext`. Petrinaut does not know or care what the source is.
 
 ## Experimental Status
 
-This is not a stable Petrinaut protocol yet.
+This is not a stable Petrinaut protocol yet. The shapes below may change as
+more hosts adopt Actual Mode.
 
-The Brunch SSE event names, endpoint layout, raw export shape, and temporary
-Brunch definition schema are still owned by the demo website integration. They
-should not be treated as a public Petrinaut Core protocol until the Brunch and
-Petrinaut teams standardize that contract.
-
-Core currently owns only the pieces that are useful independently of React and
+Core owns only the pieces that are useful independently of React and
 independently of how a host transports events:
 
-- the transition firing effect shape used by Petrinaut's timeline
+- the source, marking and transition firing effect shapes used by Petrinaut's
+  timeline
 - marking reconstruction from an initial state plus transition effects
 - timeline point generation for a live or completed external execution
 - a `SimulationFrameReader` adapter so existing visualizer/timeline code can
   inspect Actual Mode frames
-- recording helpers for normalized replay artifacts and raw received events
+- recording helpers for normalized replay artifacts
 - the context value type shared with the React package
 
-## Current Brunch Flow
+Wire formats, connection handling and raw-payload exports belong to the host.
 
-The current demo path is:
+## Host Flow
 
-1. `apps/petrinaut-website` opens `/brunch?sse=<url>`.
-2. The Brunch provider connects with `EventSource`.
-3. Website-local parsers validate the temporary Brunch definition, initial
-   state, and transition firing payloads.
-4. The website normalizes the Brunch definition into a read-only SDCPN with
-   Petrinaut extensions disabled.
-5. `@hashintel/petrinaut` receives `ActualModeContext`.
-6. Core reconstructs markings and timeline frames from the initial state and
+1. The host connects to its execution source.
+2. The host validates its own payloads and converts them to an SDCPN, an
+   `ActualModeMarking` and `ActualModeTransitionFiring`s.
+3. The host provides an `ActualModeContextValue` with an `ActualModeSource`:
+   an opaque `id`, unique per execution, and an optional human-readable
+   `label`. A new `id` starts a new timeline.
+4. `@hashintel/petrinaut` reads `ActualModeContext`.
+5. Core reconstructs markings and timeline frames from the initial state and
    transition firing effects.
 
-The currently accepted transition firing shape is:
+The accepted transition firing shape is:
 
 ```json
 {
@@ -62,6 +59,12 @@ The currently accepted transition firing shape is:
 `input` and `output` are transition-local token count maps. They are not full
 before/after markings.
 
+## Recordings
+
+`createActualModeRecording` builds a normalized recording: the SDCPN, the
+initial marking, the transition firings and the source. `parseActualModeRecording`
+reads one back.
+
 ## File Map
 
 - `constants.ts`: shared Actual Mode constants.
@@ -70,8 +73,5 @@ before/after markings.
 - `context.ts`: unavailable/default context value.
 - `marking.ts`: marking reconstruction helpers.
 - `timeline.ts`: live timeline point generation and frame-reader adapter.
-- `recording.ts`: normalized and raw-event recording helpers.
+- `recording.ts`: normalized recording helpers.
 - `time.ts`: timestamp parsing helpers used by recordings and timelines.
-
-When the Brunch/Petrinaut protocol becomes stable, the standardized protocol
-schemas should move here from the website adapter.

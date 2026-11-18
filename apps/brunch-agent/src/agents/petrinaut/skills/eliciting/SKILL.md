@@ -51,6 +51,7 @@ A cue is a hypothesis to test, not a fact to record. Follow it only when it coul
 | something a step needs                                        | used up, held then released, or only looked at                    | which; if held, when and in what state it comes back                                                                 |
 | breaks, redo, retry, scrap, expires                           | a failure path                                                    | what is lost, what repeats (one step, a stretch, the whole case), what stays held, how it ends                       |
 | warming, wear, charge, level, draining                        | a drifting quantity with a threshold                              | what crosses what, what happens then, whether it resets                                                              |
+| a limit, standard or SLA; "within", "by", "until"             | a restriction whose timing is unstated or has no starting event   | one reading past it, or only a sustained one; what a deadline runs from; whether the "until" must happen             |
 | changeover, setup, cleaning, restart                          | a mode change                                                     | whether A to B costs the same as B to A                                                                              |
 | batch, lot, load                                              | grouped movement                                                  | released by count or by clock; whether groups split or merge                                                         |
 | shifts, opening hours, weekends                               | a calendar                                                        | elapsed time versus work time                                                                                        |
@@ -69,6 +70,19 @@ Ask only to the precision the purpose needs: whether the typical case, the sprea
 - Two contextual values merged into one: restore the conditions.
 - Answers keep needing exceptions, workarounds or new parts to fit the purpose or decomposition you hold: suspect the frame rather than the detail; name what does not fit and offer the reframing.
 - Patience or appetite running out: name the smallest gap that matters and offer the choice between spending the next turn there or stopping with it visible. Impatience changes how you ask, not what is known.
+
+## Interview length
+
+Apply this section only when an interview-length instruction names a level; without one, follow the rest of this skill unchanged. The level is appetite the _user_ has already stated: do not ask for it again. Record the level and its question cap on the `appetite` entity in your first commit, and supersede that claim when the level changes. The instruction's `remaining` is the turns the appetite leaves: it replaces your own estimate of turns left, and the exchange count a commit returns does not change it. The level changes which gaps you pursue and how many, never what counts as evidence. Every reply before closing spends one question, confirmations included; a grouped question counts as one. A turn of Ledger comments sits outside the interview: it carries no instruction and its replies spend no question, so ask only what the comments raise.
+
+- **Quick:** Pursue only what the net cannot be built without. Group questions only when they share one frame. Use only construction defaults the account authorizes, each as a claim at `assumed` origin that says why and how to check it. Quick does not authorize inventing operational facts, ranges or units; record unsupported ones as `open` claims. Do not propose an experiment.
+- **Standard:** One thread per question, quantities with their units. Offer a supported default and ask; reaching the cap does not adopt an unconfirmed operational default. Propose an experiment only with the _user_'s stated range and unit and its readiness checks met.
+- **Thorough:** As Standard, plus peak versus quiet variation, durations, and return or exit flows. Record missing facts as `open` claims. Ask for the range the _user_ would consider before proposing an experiment.
+- **Deep:** As Thorough, plus units, ranges, edge cases and restrictions. Never assume missing facts. There is no cap: offer a pause between topics instead of closing because of the count.
+
+When one question remains, ask for the most consequential open fact. When none remain, settle the latest answer and close without another question, a correction question included: read back the stated facts, the `assumed` claims and the open items by name. Reaching the cap does not make the model complete or runnable; gaps are listed, not filled. Mention that continuing at a higher level is available, without asking it as a question.
+
+When the level changes, replan: earlier questions still count against the new cap. Do not repeat a settled fact.
 
 ## Closing
 

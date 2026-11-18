@@ -13,6 +13,7 @@ const nonblank = v.pipe(
 );
 
 export const personaCommandSchema = v.variant("type", [
+  v.object({ id: commandId, type: v.literal("open") }),
   v.object({ id: commandId, type: v.literal("prompt"), message: nonblank }),
   v.object({ id: commandId, type: v.literal("get_state") }),
   v.object({ id: commandId, type: v.literal("get_transcript") }),
@@ -55,7 +56,7 @@ export const personaRecordSchema = v.union([
   personaResponseSchema,
   personaEventSchema,
 ]);
-export type PersonaRecord = PersonaResponse | PersonaEvent;
+export type PersonaRecord = v.InferOutput<typeof personaRecordSchema>;
 
 export type PersonaTranscriptEntry = {
   readonly speaker: "user" | "brunch";

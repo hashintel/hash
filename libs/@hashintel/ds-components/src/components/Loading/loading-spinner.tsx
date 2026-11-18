@@ -31,6 +31,7 @@ export const LoadingSpinner = ({
   ...dataAttributes
 }: {
   size?: FormInputSize;
+  /** The spinner's visual style: `default` rotates smoothly, `bars` ticks through discrete spokes. */
   variant?: LoadingSpinnerVariant;
   className?: string;
 } & DataAttributes) => {
@@ -93,3 +94,5 @@ export const LoadingSpinner = ({
     </svg>
   );
 };
+
+LoadingSpinner.displayName = "LoadingSpinner";

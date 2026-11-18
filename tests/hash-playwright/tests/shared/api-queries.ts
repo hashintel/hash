@@ -3,6 +3,10 @@ import { HashEntity } from "@local/hash-graph-sdk/entity";
 import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
+import {
+  createEntityTypeMutation,
+  updateEntityTypeMutation,
+} from "../graphql/queries/entity-type.queries";
 import { createEntityMutation } from "../graphql/queries/entity.queries";
 import { requestFileUploadMutation } from "../graphql/queries/file.queries";
 import { meQuery } from "../graphql/queries/user.queries";
@@ -10,25 +14,39 @@ import { meQuery } from "../graphql/queries/user.queries";
 import type {
   CreateEntityMutation,
   CreateEntityMutationVariables,
+  CreateEntityTypeMutation,
+  CreateEntityTypeMutationVariables,
   LinkedEntityDefinition,
   MeQuery,
   MeQueryVariables,
   RequestFileUploadMutation,
   RequestFileUploadMutationVariables,
+  UpdateEntityTypeMutation,
+  UpdateEntityTypeMutationVariables,
 } from "../graphql/api-types.gen";
 import type { EntityRootType } from "@blockprotocol/graph";
 import type {
   Entity,
+  EntityTypeWithMetadata,
   LinkData,
   TypeIdsAndPropertiesForEntity,
+  VersionedUrl,
   WebId,
 } from "@blockprotocol/type-system";
+import type { ConstructEntityTypeParams } from "@local/hash-graph-sdk/ontology";
 import type {
   File,
   User,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { APIRequestContext } from "@playwright/test";
 import type { GraphQLError } from "graphql/error";
+
+/**
+ * Playwright's request client never times out idle keep-alive sockets, so it
+ * can reuse one just as the API closes it, and the request fails with
+ * `ECONNRESET`. Closing each connection after its response avoids reuse.
+ */
+const closeConnectionHeaders = { connection: "close" };
 
 const callGraphQlApi = async <Response, Variables>(
   requestContext: APIRequestContext,
@@ -42,6 +60,7 @@ const callGraphQlApi = async <Response, Variables>(
 ): Promise<{ data?: Response; errors?: GraphQLError[] }> => {
   const resp = await requestContext.post(`${apiOrigin}/graphql`, {
     data: { query, variables },
+    headers: closeConnectionHeaders,
   });
   if (!resp.ok()) {
     throw new Error(
@@ -105,6 +124,44 @@ export const createEntity = async <T extends TypeIdsAndPropertiesForEntity>(
   });
 };
 
+/** Creates an entity type in the web of the user making the request. */
+export const createEntityType = async (
+  requestContext: APIRequestContext,
+  entityType: ConstructEntityTypeParams,
+): Promise<EntityTypeWithMetadata> => {
+  const { data } = await callGraphQlApi<
+    CreateEntityTypeMutation,
+    CreateEntityTypeMutationVariables
+  >(requestContext, {
+    query: createEntityTypeMutation,
+    variables: { entityType },
+  });
+  if (!data) {
+    throw new Error("createEntityType returned no data");
+  }
+  return data.createEntityType;
+};
+
+export const updateEntityType = async (
+  requestContext: APIRequestContext,
+  params: {
+    entityTypeId: VersionedUrl;
+    updatedEntityType: ConstructEntityTypeParams;
+  },
+): Promise<EntityTypeWithMetadata> => {
+  const { data } = await callGraphQlApi<
+    UpdateEntityTypeMutation,
+    UpdateEntityTypeMutationVariables
+  >(requestContext, {
+    query: updateEntityTypeMutation,
+    variables: params,
+  });
+  if (!data) {
+    throw new Error("updateEntityType returned no data");
+  }
+  return data.updateEntityType;
+};
+
 /**
  * Creates a file entity in the given web and uploads the file's contents to
  * the storage URL the API returns.
@@ -137,7 +194,7 @@ export const uploadFile = async (
 
   const resp = await requestContext.put(presignedPut.url, {
     data: params.contents,
-    headers: { "content-type": params.mimeType },
+    headers: { ...closeConnectionHeaders, "content-type": params.mimeType },
   });
   if (!resp.ok()) {
     throw new Error(

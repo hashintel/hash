@@ -19,6 +19,7 @@ mod multi_type;
 mod partial_updates;
 mod property_metadata;
 mod property_type;
+mod provenance;
 mod read_only;
 mod semantic_search;
 mod sorting;
@@ -28,6 +29,7 @@ mod transaction;
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _};
+use hash_crypto::Secret;
 use hash_graph_authorization::policies::store::{PolicyStore as _, PrincipalStore as _};
 use hash_graph_postgres_store::{
     Environment, load_env,
@@ -63,7 +65,10 @@ use hash_graph_store::{
         SearchEntityTypesParams, SearchEntityTypesResponse, UnarchiveEntityTypeParams,
         UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
-    error::{CheckPermissionError, DeletionError, InsertionError, QueryError, UpdateError},
+    error::{
+        CheckPermissionError, DeletionError, EntityCreationError, InsertionError, QueryError,
+        UpdateError,
+    },
     pool::StorePool,
     property_type::{
         ArchivePropertyTypeParams, CountPropertyTypesParams, CreatePropertyTypeParams,
@@ -75,9 +80,8 @@ use hash_graph_store::{
     subgraph::temporal_axes::QueryTemporalAxesUnresolved,
 };
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
-use hash_secret::Secret;
 use hash_telemetry::logging::env_filter;
-use tokio_postgres::{NoTls, Transaction};
+use tokio_postgres::Transaction;
 use type_system::{
     knowledge::entity::{Entity, EntityId, id::EntityEditionId},
     ontology::{
@@ -185,13 +189,9 @@ impl DatabaseTestWrapper {
             database,
         );
 
-        let pool = PostgresStorePool::new(
-            &connection_info,
-            &DatabasePoolConfig::default(),
-            NoTls,
-            settings,
-        )
-        .expect("could not connect to database");
+        let pool =
+            PostgresStorePool::new(&connection_info, &DatabasePoolConfig::default(), settings)
+                .expect("could not connect to database");
 
         let connection = pool
             .acquire_owned(None)
@@ -307,6 +307,7 @@ impl DatabaseTestWrapper {
                             origin: OriginProvenance::from_empty_type(OriginType::Api),
                             sources: Vec::new(),
                         },
+                        fetched_from_origin: false,
                     }
                 }),
             )
@@ -809,7 +810,7 @@ impl EntityStore for DatabaseApi<'_> {
         &mut self,
         actor_id: ActorId,
         params: Vec<CreateEntityParams>,
-    ) -> Result<Vec<Entity>, Report<InsertionError>> {
+    ) -> Result<Vec<Entity>, Report<EntityCreationError>> {
         self.store.create_entities(actor_id, params).await
     }
 
@@ -862,12 +863,12 @@ impl EntityStore for DatabaseApi<'_> {
     }
 
     async fn get_entity_by_id(
-        &self,
+        &mut self,
         actor_id: Option<ActorId>,
         entity_id: EntityId,
         transaction_time: Option<Timestamp<TransactionTime>>,
         decision_time: Option<Timestamp<DecisionTime>>,
-    ) -> Result<Entity, Report<QueryError>> {
+    ) -> Result<Option<Entity>, Report<QueryError>> {
         self.store
             .get_entity_by_id(actor_id, entity_id, transaction_time, decision_time)
             .await

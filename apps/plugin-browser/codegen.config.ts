@@ -10,13 +10,23 @@ const config: CodegenConfig = {
     "./src/graphql/fragment-types.gen.json": {
       plugins: ["fragment-matcher"],
     },
+    "./src/graphql/schema-types.gen.ts": {
+      plugins: ["typescript"],
+      config: baseGraphQlCodegenConfig,
+    },
     "./src/graphql/api-types.gen.ts": {
-      plugins: ["typescript", "typescript-operations"],
+      plugins: [
+        { add: { content: 'export * from "./schema-types.gen";' } },
+        "typescript-operations",
+      ],
       documents: [
         "./src/graphql/queries/**/*.ts",
         "../../libs/@local/hash-isomorphic-utils/src/graphql/queries/**/*.ts",
       ],
-      config: baseGraphQlCodegenConfig,
+      config: {
+        ...baseGraphQlCodegenConfig,
+        importSchemaTypesFrom: "./src/graphql/schema-types.gen.ts",
+      },
     },
   },
 };

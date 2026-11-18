@@ -50,7 +50,7 @@ import type {
 } from "./define-petrinaut-plugin";
 
 /** A running plugin as the editor reads it. */
-interface RunningPlugin {
+export interface RunningPlugin {
   readonly manifest: PetrinautPluginManifest;
   /**
    * New for each host, so the outlets key a plugin's contributions by it and a

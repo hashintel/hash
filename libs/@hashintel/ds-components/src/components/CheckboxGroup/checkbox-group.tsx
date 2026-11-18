@@ -12,9 +12,12 @@ import { Checkbox } from "../Checkbox/checkbox";
 import type { SharedInputProps } from "../../util/form-shared";
 
 type CheckboxGroupProps<ValueType extends string = string> = {
-  /** How the options are arranged (defaults to `block`) */
+  /**
+   * How the options are arranged: `block` stacks them vertically, `inline`
+   * lays them out in a row, `blockWithBorder` stacks them inside a bordered
+   * container with a divider between options.
+   */
   layout?: "block" | "inline" | "blockWithBorder";
-  /** The selectable options */
   items: Array<
     Omit<
       React.ComponentProps<typeof Checkbox>,
@@ -75,6 +78,7 @@ export const CheckboxGroup = <const ValueType extends string>({
           value: optionValue,
           disabled: itemDisabled,
           required: itemRequired,
+          invalid: itemInvalid,
           ...itemProps
         } = item;
         const isSelected = selectedValues.has(optionValue);
@@ -99,6 +103,9 @@ export const CheckboxGroup = <const ValueType extends string>({
             size={size}
             name={groupName}
             disabled={itemIsDisabled}
+            // The group-level `invalid` shows on every box; `item.invalid`
+            // singles one out.
+            invalid={invalid === true || itemInvalid === true}
             required={itemIsRequired}
             value={isSelected}
             htmlValue={optionValue}
@@ -123,3 +130,6 @@ export const CheckboxGroup = <const ValueType extends string>({
     </ArkCheckboxGroup>
   );
 };
+
+// Stable name for the docs Stage code serializer under minification
+CheckboxGroup.displayName = "CheckboxGroup";

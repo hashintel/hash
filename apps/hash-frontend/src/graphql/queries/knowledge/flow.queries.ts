@@ -3,32 +3,84 @@ import { gql } from "@apollo/client";
 export const startFlowMutation = gql`
   mutation startFlow(
     $dataSources: FlowDataSources
-    $flowDefinitionId: EntityUuid!
+    $flowDefinitionEntityId: EntityId!
     $flowInputs: FlowInputValues!
     $webId: WebId!
   ) {
     startFlow(
       dataSources: $dataSources
-      flowDefinitionId: $flowDefinitionId
+      flowDefinitionEntityId: $flowDefinitionEntityId
       flowInputs: $flowInputs
       webId: $webId
     )
   }
 `;
 
+export const getFlowDefinitionRunsQuery = gql`
+  query getFlowDefinitionRuns(
+    $flowDefinitionEntityId: EntityId!
+    $cursor: String
+    $limit: Int
+  ) {
+    getFlowRuns(
+      flowDefinitionEntityIds: [$flowDefinitionEntityId]
+      cursor: $cursor
+      limit: $limit
+    ) {
+      nextCursor
+      totalCount
+      flowRuns {
+        flowRunEntityId
+        flowScheduleId
+        webId
+        status
+        startedAt
+        closedAt
+        updatedAt
+        openInputRequests
+      }
+    }
+  }
+`;
+
+export const getFlowRunProgressQuery = gql`
+  query getFlowRunProgress($flowRunEntityId: EntityId!, $after: String) {
+    getFlowRunById(flowRunEntityId: $flowRunEntityId) {
+      status
+      outputs {
+        outputName
+        payload
+      }
+      failure {
+        message
+      }
+      events(after: $after, first: 2000) {
+        events
+        endCursor
+        hasNextPage
+        restarted
+      }
+    }
+  }
+`;
+
 export const resetFlowMutation = gql`
-  mutation resetFlow($flowUuid: ID!, $checkpointId: ID!, $eventId: Int!) {
+  mutation resetFlow(
+    $flowRunEntityId: EntityId!
+    $checkpointId: ID!
+    $eventId: Int!
+  ) {
     resetFlow(
       checkpointId: $checkpointId
       eventId: $eventId
-      flowUuid: $flowUuid
+      flowRunEntityId: $flowRunEntityId
     )
   }
 `;
 
 export const cancelFlowMutation = gql`
-  mutation cancelFlow($flowUuid: ID!) {
-    cancelFlow(flowUuid: $flowUuid)
+  mutation cancelFlow($flowRunEntityId: EntityId!) {
+    cancelFlow(flowRunEntityId: $flowRunEntityId)
   }
 `;
 
@@ -53,5 +105,35 @@ export const resumeFlowScheduleMutation = gql`
 export const archiveFlowScheduleMutation = gql`
   mutation archiveFlowSchedule($scheduleEntityId: EntityId!) {
     archiveFlowSchedule(scheduleEntityId: $scheduleEntityId)
+  }
+`;
+
+export const createFlowDefinitionMutation = gql`
+  mutation createFlowDefinition($webId: WebId!, $definition: JSONObject!) {
+    createFlowDefinition(webId: $webId, definition: $definition) {
+      flowDefinitionEntityId
+    }
+  }
+`;
+
+export const updateFlowDefinitionMutation = gql`
+  mutation updateFlowDefinition(
+    $flowDefinitionEntityId: EntityId!
+    $expectedEditionId: EntityEditionId!
+    $definition: JSONObject!
+  ) {
+    updateFlowDefinition(
+      flowDefinitionEntityId: $flowDefinitionEntityId
+      expectedEditionId: $expectedEditionId
+      definition: $definition
+    ) {
+      editionId
+    }
+  }
+`;
+
+export const archiveFlowDefinitionMutation = gql`
+  mutation archiveFlowDefinition($flowDefinitionEntityId: EntityId!) {
+    archiveFlowDefinition(flowDefinitionEntityId: $flowDefinitionEntityId)
   }
 `;

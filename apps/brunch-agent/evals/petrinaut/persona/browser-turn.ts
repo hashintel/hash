@@ -12,9 +12,13 @@ import {
   type Response as BrowserResponse,
 } from "@playwright/test";
 
-import { brunchHeaders, brunchRoutes } from "@hashintel/brunch-agent";
+import {
+  agentOwnershipHeaders,
+  brunchHeaders,
+  brunchRoutes,
+} from "@hashintel/brunch-agent";
 
-import { agentOwnershipHeaders } from "../../../src/shared/conversation/identity.ts";
+import type { ConversationIdentity } from "@hashintel/brunch-agent";
 
 /** A failed persona turn that still carries the admitted conversation's history. */
 export class PersonaBrowserTurnError extends Error {
@@ -29,13 +33,12 @@ export class PersonaBrowserTurnError extends Error {
   }
 }
 
-export interface PersonaBrowserSession {
+/** `initialData` stays as the browser sent it; resume parses it with `sdcpnInitialDataSchema`. */
+export type PersonaBrowserSession = ConversationIdentity & {
   readonly url: string;
-  readonly principalKey: string;
-  readonly conversationId: string;
   readonly uid: string;
   readonly initialData: unknown;
-}
+};
 
 /** A destructive edit the harness allowed, described as the approval panel listed it. */
 export interface PersonaAllowedEdit {
@@ -158,12 +161,15 @@ export const submitPersonaBrowserTurn = async (
         request.kind === "user",
       "Persona utterance must be a user submission",
     );
-    const principalKey = headers[brunchHeaders.principal];
+    // The website names the actor under the header's former name until it
+    // sends the actor header from its own server-side hop.
+    const actorKey =
+      headers[brunchHeaders.actor] ?? headers[brunchHeaders.legacyPrincipal];
     const conversationId = headers[brunchHeaders.conversation];
-    assert(principalKey && conversationId && admission.uid);
+    assert(actorKey && conversationId && admission.uid);
     const session: PersonaBrowserSession = {
       url: first.url(),
-      principalKey,
+      actorKey,
       conversationId,
       uid: admission.uid,
       initialData:
@@ -172,12 +178,7 @@ export const submitPersonaBrowserTurn = async (
           : options.session?.initialData,
     };
     if (options.session) {
-      for (const key of [
-        "url",
-        "principalKey",
-        "conversationId",
-        "uid",
-      ] as const)
+      for (const key of ["url", "actorKey", "conversationId", "uid"] as const)
         assert.equal(
           session[key],
           options.session[key],

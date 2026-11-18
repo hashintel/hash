@@ -80,7 +80,8 @@ impl<'ctx, 'heap, A: Allocator> CodeGenerationContext<'ctx, 'heap, A> {
                 Source::Ctor(_)
                 | Source::Closure(_, _)
                 | Source::Thunk(_, _)
-                | Source::Intrinsic(_) => continue,
+                | Source::Intrinsic(_)
+                | Source::Synthetic(_) => continue,
                 Source::GraphReadFilter(_) => {}
             }
 

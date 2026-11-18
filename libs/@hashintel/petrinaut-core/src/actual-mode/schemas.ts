@@ -7,8 +7,6 @@ import { ACTUAL_MODE_RECORDING_VERSION } from "./constants";
 import type { SDCPN } from "../types/sdcpn";
 import type {
   ActualModeMarking,
-  ActualModeReceivedEvent,
-  ActualModeReceivedEventsRecording,
   ActualModeRecording,
   ActualModeSource,
   ActualModeTransitionEffect,
@@ -24,7 +22,7 @@ const actualModeMarkingValueSchema = z.union([
 /**
  * Root schema for an Actual Mode marking.
  *
- * This validates `initial_state` stream frames and recording snapshots. Places
+ * This validates host-supplied initial markings and recording snapshots. Places
  * can currently be represented by a numeric token count or by token-colour
  * arrays for future coloured-token support.
  */
@@ -56,7 +54,7 @@ const actualModeTransitionFiringEffectSchema = z
 /**
  * Root schema for Actual Mode transition events.
  *
- * This is the only accepted `transition_firing` payload shape for this PR:
+ * This is the only accepted transition firing shape:
  * `input` contains consumed token counts, `output` contains produced token
  * counts, and neither field carries a full before or after marking.
  */
@@ -65,18 +63,10 @@ export const actualModeTransitionFiringSchema =
 
 export const actualModeSourceSchema = z
   .object({
-    kind: z.literal("brunch"),
-    endpoint: z.string(),
-    runId: z.string().optional(),
+    id: z.string(),
+    label: z.string().optional(),
   })
   .strict() satisfies z.ZodType<ActualModeSource>;
-
-export const actualModeReceivedEventSchema = z
-  .object({
-    event: z.string(),
-    data: z.unknown(),
-  })
-  .strict() satisfies z.ZodType<ActualModeReceivedEvent>;
 
 const actualModeRecordingDefinitionSchema = z.custom<SDCPN>(
   (value) => sdcpnSchema.safeParse(value).success,
@@ -98,11 +88,3 @@ export const actualModeRecordingSchema = z.object({
   initialState: actualModeMarkingSchema,
   transitionFirings: z.array(actualModeTransitionFiringSchema),
 }) satisfies z.ZodType<ActualModeRecording>;
-
-export const actualModeReceivedEventsRecordingSchema = z.object({
-  version: z.literal(ACTUAL_MODE_RECORDING_VERSION),
-  exportedAt: z.string(),
-  title: z.string().nullable(),
-  source: actualModeSourceSchema.nullable(),
-  events: z.array(actualModeReceivedEventSchema),
-}) satisfies z.ZodType<ActualModeReceivedEventsRecording>;

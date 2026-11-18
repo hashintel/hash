@@ -34,6 +34,10 @@ pub struct ClosedEntityTypeMetadata {
     pub inverse: InverseEntityTypeMetadata,
 }
 
+/// The base URL of the entity type every link entity type inherits from.
+pub const LINK_ENTITY_TYPE_BASE_URL: &str =
+    "https://blockprotocol.org/@blockprotocol/types/entity-type/link/";
+
 impl ClosedEntityTypeMetadata {
     /// Determines if this entity type represents a link in the knowledge graph.
     ///
@@ -41,10 +45,9 @@ impl ClosedEntityTypeMetadata {
     /// BlockProtocol base Link entity type.
     #[must_use]
     pub fn is_link(&self) -> bool {
-        self.all_of.iter().any(|entity_type| {
-            entity_type.id.base_url.as_str()
-                == "https://blockprotocol.org/@blockprotocol/types/entity-type/link/"
-        })
+        self.all_of
+            .iter()
+            .any(|entity_type| entity_type.id.base_url.as_str() == LINK_ENTITY_TYPE_BASE_URL)
     }
 }
 

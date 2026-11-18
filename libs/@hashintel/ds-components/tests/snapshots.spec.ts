@@ -2,41 +2,50 @@ import { expect, test } from "@playwright/test";
 
 const defaultBaseUrl = "http://localhost:61000";
 
-type LadleMeta = {
-  stories: Record<string, { name: string; levels: string[] }>;
+type StorybookIndex = {
+  entries: Record<string, { id: string; type: string }>;
 };
 
-let storyKeys: string[] = [];
+let storyIds: string[] = [];
 
 test.beforeAll(async ({ request, baseURL }) => {
   const targetBaseUrl = baseURL ?? defaultBaseUrl;
-  const response = await request.get(`${targetBaseUrl}/meta.json`);
+  const response = await request.get(`${targetBaseUrl}/index.json`);
 
   if (!response.ok()) {
     throw new Error(
-      `Failed to fetch Ladle meta from ${targetBaseUrl}/meta.json (status ${response.status()})`,
+      `Failed to fetch Storybook index from ${targetBaseUrl}/index.json (status ${response.status()})`,
     );
   }
 
-  const { stories } = (await response.json()) as LadleMeta;
-  storyKeys = Object.keys(stories ?? {});
+  const { entries } = (await response.json()) as StorybookIndex;
+  storyIds = Object.values(entries ?? {})
+    .filter((entry) => entry.type === "story")
+    .map((entry) => entry.id);
 
-  if (storyKeys.length === 0) {
-    throw new Error("Ladle meta contained no stories");
+  if (storyIds.length === 0) {
+    throw new Error("Storybook index contained no stories");
   }
 });
 
 test("visual snapshots", async ({ page, baseURL }) => {
+  // One navigation per story; the fixed 30s test budget can't cover them all
+  test.setTimeout(60_000 + storyIds.length * 5_000);
+
   const targetBaseUrl = baseURL ?? defaultBaseUrl;
 
-  for (const storyKey of storyKeys) {
-    await test.step(storyKey, async () => {
-      await page.goto(`${targetBaseUrl}/?story=${storyKey}&mode=preview`, {
-        waitUntil: "networkidle",
+  for (const storyId of storyIds) {
+    await test.step(storyId, async () => {
+      await page.goto(
+        `${targetBaseUrl}/iframe.html?id=${storyId}&viewMode=story`,
+        { waitUntil: "networkidle" },
+      );
+      await page.waitForFunction(() => {
+        const root = document.querySelector("#storybook-root");
+        return root !== null && root.childNodes.length > 0;
       });
-      await page.waitForSelector("[data-storyloaded]");
       await page.waitForTimeout(100);
-      await expect(page).toHaveScreenshot(`${storyKey}.png`);
+      await expect(page).toHaveScreenshot(`${storyId}.png`);
     });
   }
 });

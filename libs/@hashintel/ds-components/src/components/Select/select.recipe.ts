@@ -38,6 +38,16 @@ export const selectRecipe = sva({
       ...formWidths.base,
       display: "inline-flex",
       position: "relative",
+      // The arrow and the clear X share one stroke width. Keep it a whole
+      // pixel: browsers round border widths down, but not SVG strokes.
+      "--select-stroke-width": "1px",
+      // Whole pixels (an even glyph inside even padding) keep the X on the
+      // select's middle at every size
+      "--select-clear-size": "round(0.625em, 2px)",
+      "--select-clear-padding": "round(0.3125em, 1px)",
+      "--select-icon-gap": "0.625em",
+      // Icon boxes carry their own margin around the ink
+      "--select-spinner-gap": "calc(var(--select-icon-gap) - 0.15em)",
     },
     select: {
       display: "inline-flex",
@@ -84,8 +94,8 @@ export const selectRecipe = sva({
         marginRight: "var(--base-input-padding-x)",
         width: "[0.5em]",
         height: "[0.5em]",
-        borderRight: "[1.5px solid currentColor]",
-        borderBottom: "[1.5px solid currentColor]",
+        borderRight: "[var(--select-stroke-width) solid currentColor]",
+        borderBottom: "[var(--select-stroke-width) solid currentColor]",
         color: "neutral.s100",
         transform: "[rotate(45deg) translateY(-15%)]",
         flex: "[0 0 auto]",
@@ -131,14 +141,24 @@ export const selectRecipe = sva({
       color: "fg.muted",
       position: "relative",
     },
+    // Spaced by its box, not its ink, so a new spinner icon keeps the gaps
     loading: {
       alignSelf: "center",
       position: "relative",
+      marginRight:
+        "[round(var(--select-spinner-gap) + 0.05em - var(--base-input-padding-x), 1px)]",
     },
+    // --select-clear-inset is how far inside the trigger wrapper the X's ink
+    // ends. The arrow's ink starts 0.05em before its left margin ends, so
+    // this puts the X one icon gap left of the arrow.
     clear: {
+      "--select-clear-inset":
+        "calc(var(--select-icon-gap) + 0.05em - var(--base-input-padding-x))",
       position: "absolute",
       zIndex: "[1]",
-      right: "-1",
+      right:
+        "[round(var(--select-clear-inset) - var(--select-clear-padding), 1px)]",
+      padding: "[var(--select-clear-padding)]",
       display: "flex",
       alignItems: "center",
       opacity: "0",
@@ -168,7 +188,10 @@ export const selectRecipe = sva({
       },
     },
     clearIcon: {
-      padding: "0.5",
+      width: "var(--select-clear-size)",
+      height: "var(--select-clear-size)",
+      overflow: "visible",
+      strokeWidth: "var(--select-stroke-width)",
     },
     hideClear: {
       visibility: "hidden !important",
@@ -250,6 +273,13 @@ export const selectRecipe = sva({
         select: {
           "--base-input-border-hover-color": "var(--colors-neutral-a40)",
           "--base-input-background-color": "transparent",
+          "&:is(:hover, :focus-within, :has([data-part='trigger'][data-state='open'])):has([data-part='clear']:not([data-hidden])) [data-part='trigger']":
+            {
+              "--select-clear-mask-span":
+                "[calc(var(--select-icon-gap) + 0.05em - var(--base-input-padding-x) + var(--select-clear-size) + var(--select-clear-padding))]",
+              maskImage:
+                "[linear-gradient(to right, black, black calc(100% - var(--select-clear-mask-span) - 0.75em), transparent calc(100% - var(--select-clear-mask-span)))]",
+            },
           _before: {
             content: '""',
             position: "absolute",
@@ -278,10 +308,6 @@ export const selectRecipe = sva({
             marginRight: "[calc(var(--base-input-padding-x) / 2)]",
           },
         },
-        clear: {
-          right:
-            "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-1))]",
-        },
         prefix: {
           paddingLeft: "1",
           left: "[calc(var(--base-input-padding-x) * -1 + 1px)]",
@@ -304,12 +330,6 @@ export const selectRecipe = sva({
           "--base-input-padding-x": "spacing.2",
         },
         readonly: { textStyle: formSizes.variants.sizes.xxs.textStyle },
-        select: {
-          "&::after": {
-            borderRight: "[1px solid currentColor]",
-            borderBottom: "[1px solid currentColor]",
-          },
-        },
       },
       xs: {
         wrapper: {
@@ -318,12 +338,6 @@ export const selectRecipe = sva({
           "--base-input-padding-x": "spacing.2",
         },
         readonly: { textStyle: formSizes.variants.sizes.xs.textStyle },
-        select: {
-          "&::after": {
-            borderRight: "[1px solid currentColor]",
-            borderBottom: "[1px solid currentColor]",
-          },
-        },
       },
       sm: {
         wrapper: {
@@ -410,7 +424,6 @@ export const selectRecipe = sva({
         },
         clear: {
           position: "relative",
-          right: "[auto]",
           gridArea: "[1 / 2]",
         },
         list: {
@@ -424,10 +437,11 @@ export const selectRecipe = sva({
       center: { trigger: { textAlign: "center", justifyContent: "center" } },
       right: { trigger: { textAlign: "end", justifyContent: "flex-end" } },
     },
+    // The spinner sits between the X and the arrow
     loading: {
       true: {
         clear: {
-          right: "1",
+          "--select-clear-inset": "var(--select-spinner-gap)",
         },
       },
     },
@@ -435,6 +449,12 @@ export const selectRecipe = sva({
       true: {
         select: {
           "&::after": { display: "none" },
+        },
+        loading: {
+          marginRight: "0",
+        },
+        clear: {
+          "--select-clear-inset": "var(--base-input-padding-x)",
         },
       },
     },
@@ -497,12 +517,11 @@ export const selectRecipe = sva({
       },
     },
     {
-      variant: "subtle",
+      hideArrow: true,
       loading: true,
       css: {
         clear: {
-          right:
-            "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-2\\.5))]",
+          "--select-clear-inset": "var(--select-spinner-gap)",
         },
       },
     },

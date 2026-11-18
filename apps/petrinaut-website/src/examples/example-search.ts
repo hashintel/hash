@@ -58,8 +58,8 @@ export type SharedOverlay = (typeof sharedOverlays)[number];
  * Search params understood by every example surface. A URL carries at most one
  * focused item: multi-selection is in-app state, not a shareable location.
  *
- * A field the URL leaves out means "whatever this page starts from", which for
- * every page but `/brunch` is the editor's own default. That is what lets Back
+ * A field the URL leaves out means "whatever this page starts from", which is
+ * the editor's own default unless the page seeds another one. That is what lets Back
  * undo a mode change or close an overlay: the entry it returns to simply does
  * not name the field.
  */

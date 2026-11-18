@@ -243,26 +243,29 @@ const EventRow: React.FC<{
 
 const ActualEventsContent: React.FC = () => {
   const actualMode = use(ActualModeContext);
-  const canExportStream =
+  const canExportRecording =
     actualMode.available &&
-    (actualMode.receivedEvents.length > 0 ||
-      (actualMode.definition !== null && actualMode.initialState !== null));
+    actualMode.definition !== null &&
+    actualMode.initialState !== null;
   const canExportNet = actualMode.available && actualMode.definition !== null;
-  const canExport = canExportStream || canExportNet;
+  const canExport = canExportRecording || canExportNet;
   const transitionFirings = actualMode.transitionFirings;
   const visibleFirings = transitionFirings.slice(-MAX_VISIBLE_EVENTS);
   const firstVisibleIndex = transitionFirings.length - visibleFirings.length;
   const namesById = namesByIdOf(actualMode.definition);
 
-  const handleExportStream = () => {
-    if (!actualMode.available || !canExportStream) {
+  const handleExportRecording = () => {
+    if (
+      !actualMode.available ||
+      actualMode.definition === null ||
+      actualMode.initialState === null
+    ) {
       return;
     }
 
     exportActualModeRecording({
       definition: actualMode.definition,
       initialState: actualMode.initialState,
-      receivedEvents: actualMode.receivedEvents,
       source: actualMode.source,
       title: actualMode.title,
       transitionFirings,
@@ -282,10 +285,10 @@ const ActualEventsContent: React.FC = () => {
 
   const exportMenuItems: MenuItem[] = [
     {
-      id: "export-stream",
-      text: "Export Stream",
-      disabled: !canExportStream,
-      onClick: handleExportStream,
+      id: "export-recording",
+      text: "Export Recording",
+      disabled: !canExportRecording,
+      onClick: handleExportRecording,
     },
     {
       id: "export-net",
@@ -410,6 +413,6 @@ export const actualEventsSubView: SubView = {
   id: "actual-events",
   title: "Events",
   tooltip:
-    "Inspect the Actual mode transition stream and export stream or net JSON.",
+    "Inspect the Actual mode transition stream and export a recording or the net.",
   component: ActualEventsContent,
 };

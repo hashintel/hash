@@ -1,4 +1,4 @@
-import isEqual from "lodash.isequal";
+import { dequal } from "dequal";
 
 import {
   extractBaseUrl,
@@ -65,7 +65,7 @@ export const addOutwardEdgeToSubgraphByMutation = (
 
   if (
     !outwardEdgesAtVersion.find((otherOutwardEdge: OutwardEdge) =>
-      isEqual(otherOutwardEdge, outwardEdge),
+      dequal(otherOutwardEdge, outwardEdge),
     )
   ) {
     outwardEdgesAtVersion.push(outwardEdge);

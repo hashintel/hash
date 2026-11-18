@@ -1,8 +1,6 @@
 import {
   createActualModeRecording,
-  createActualModeReceivedEventsRecording,
   type ActualModeMarking,
-  type ActualModeReceivedEvent,
   type ActualModeSource,
   type ActualModeTransitionFiring,
   type SDCPN,
@@ -13,38 +11,23 @@ import { downloadBlob, timestampedFilename } from "../lib/download-blob";
 export function exportActualModeRecording({
   definition,
   initialState,
-  receivedEvents,
   source,
   title,
   transitionFirings,
 }: {
-  definition: SDCPN | null;
-  initialState: ActualModeMarking | null;
-  receivedEvents?: readonly ActualModeReceivedEvent[];
+  definition: SDCPN;
+  initialState: ActualModeMarking;
   source: ActualModeSource | null;
   title: string | null;
   transitionFirings: readonly ActualModeTransitionFiring[];
 }): void {
-  const recording =
-    receivedEvents && receivedEvents.length > 0
-      ? createActualModeReceivedEventsRecording({
-          title,
-          source,
-          events: receivedEvents,
-        })
-      : definition && initialState
-        ? createActualModeRecording({
-            title,
-            source,
-            definition,
-            initialState,
-            transitionFirings,
-          })
-        : null;
-
-  if (!recording) {
-    return;
-  }
+  const recording = createActualModeRecording({
+    title,
+    source,
+    definition,
+    initialState,
+    transitionFirings,
+  });
 
   downloadBlob({
     content: JSON.stringify(recording, null, 2),

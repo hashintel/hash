@@ -1,4 +1,3 @@
-import "reactflow/dist/style.css";
 import { useApolloClient, useMutation, useQuery } from "@apollo/client";
 import { Box, Collapse, Fade, Stack } from "@mui/material";
 import { useRouter } from "next/router";
@@ -8,14 +7,12 @@ import { getRoots } from "@blockprotocol/graph/stdlib";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { IconButton, Skeleton } from "@hashintel/design-system";
 import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
-import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import {
-  automaticBrowserInferenceFlow,
-  manualBrowserInferenceFlow,
-} from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
-import { inferMetadataFromDocumentFlow } from "@local/hash-isomorphic-utils/flows/file-flow-definitions";
+  flowDefinitionIds,
+  isGoalFlowDefinitionEntityId,
+  isHashFlowDefinitionEntityId,
+} from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
-import { isGoalFlowDefinitionId } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import {
   almostFullOntologyResolveDepths,
   currentTimeInstantTemporalAxes,
@@ -36,35 +33,29 @@ import { defaultBrowserPluginDomains } from "../../../goals/new.page/default-bro
 import { useFlowDefinitionsContext } from "../../../shared/flow-definitions-context";
 import { useFlowRunsContext } from "../../../shared/flow-runs-context";
 import { NotFound } from "../../../shared/not-found";
+import { useFlowDefinitionAtTime } from "../../../shared/use-flow-definitions";
 import { useFlowSchedules } from "../../../shared/use-flow-schedules";
 import { ActivityLog } from "./flow-visualizer/activity-log";
-import { DAG } from "./flow-visualizer/dag";
-import { DagSlide } from "./flow-visualizer/dag-slide";
+import { FlowDefinitionProblems } from "./flow-visualizer/flow-definition-problems";
+import { FlowNetSlide } from "./flow-visualizer/flow-net-slide";
+import { FlowNetView } from "./flow-visualizer/flow-net-view";
 import { FlowRunSidebar } from "./flow-visualizer/flow-run-sidebar";
+import { getFlattenedSteps } from "./flow-visualizer/get-flattened-steps";
 import { Outputs } from "./flow-visualizer/outputs";
 import { RunFlowModal } from "./flow-visualizer/run-flow-modal";
 import { SectionLabel } from "./flow-visualizer/section-label";
-import { nodeDimensions } from "./flow-visualizer/shared/dimensions";
-import { getNamedInputSources } from "./flow-visualizer/shared/named-input-sources";
 import { transitionOptions } from "./flow-visualizer/shared/styles";
-import {
-  getFlattenedSteps,
-  groupStepsByDependencyLayer,
-} from "./flow-visualizer/sort-graph";
 import { Topbar, topbarHeight } from "./flow-visualizer/topbar";
 
 import type {
-  CustomEdgeType,
-  CustomNodeType,
-  EdgeData,
-  EdgesAndNodes,
+  FlowStepSummary,
   LocalProgressLog,
   LogDisplay,
   LogThread,
   ProposedEntityOutput,
 } from "./flow-visualizer/shared/types";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import type { EntityId, WebId } from "@blockprotocol/type-system";
+import type { EntityId, Timestamp, WebId } from "@blockprotocol/type-system";
 import type { Filter } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type {
@@ -77,89 +68,19 @@ import type {
   FlowDefinition as FlowDefinitionType,
   PersistedEntityMetadata,
   FlowInputValues,
+  ResolvedStepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
 
-const getGraphFromFlowDefinition = (
+/** Every step, including those inside a `forEach`, for the run sidebar's list of steps. */
+const getStepSummaries = (
   flowDefinition: FlowDefinitionType<FlowActionDefinitionId>,
-  showAllDependencies = false,
-) => {
-  const { layerByStepId } = groupStepsByDependencyLayer(flowDefinition.steps);
-
-  const flattenedSteps = getFlattenedSteps(flowDefinition.steps);
-
-  const derivedNodes: CustomNodeType[] = flattenedSteps.map((step) => {
-    const node: CustomNodeType = {
-      id: step.stepId,
-      data: {
-        kind: step.kind,
-        actionDefinition:
-          step.kind === "action"
-            ? actionDefinitions[step.actionDefinitionId]
-            : null,
-        label: step.description,
-        inputSources: getNamedInputSources(step),
-      },
-      type: step.kind,
-      parentNode: step.parallelParentId,
-      extent: step.parallelParentId ? ("parent" as const) : undefined,
-      position: { x: 0, y: 0 },
-      ...nodeDimensions,
-    };
-
-    return node;
-  });
-
-  const derivedEdges: CustomEdgeType[] = [];
-  for (let i = 0; i < derivedNodes.length; i++) {
-    const node = derivedNodes[i]!;
-
-    const baseEdgeOptions = {
-      data: { sourceStatus: "Waiting" } satisfies EdgeData,
-      type: "custom-edge",
-      /**
-       * If this isn't set, the edge container will have a zIndex of 0 and appear below a parent node,
-       * meaning that edges between nodes in a sub-flow are not visible.
-       * Needs further investigation with more complex flows.
-       */
-      zIndex: 1,
-    };
-
-    if (showAllDependencies) {
-      for (const inputSource of node.data.inputSources) {
-        if (inputSource.kind === "step-output") {
-          derivedEdges.push({
-            id: `${flowDefinition.name}-${inputSource.stepId}-${node.id}`,
-            source: inputSource.stepId,
-            sourceHandle: inputSource.outputName,
-            target: node.id,
-            targetHandle: inputSource.inputName,
-            ...baseEdgeOptions,
-          });
-        }
-      }
-    } else {
-      const nextNode = derivedNodes[i + 1];
-
-      if (
-        nextNode &&
-        nextNode.parentNode !== node.id &&
-        layerByStepId.get(node.id) !== layerByStepId.get(nextNode.id)
-      ) {
-        derivedEdges.push({
-          id: `${node.id}-${nextNode.id}`,
-          source: node.id,
-          target: nextNode.id,
-          ...baseEdgeOptions,
-        });
-      }
-    }
-  }
-
-  return {
-    nodes: derivedNodes,
-    edges: derivedEdges,
-  };
-};
+): FlowStepSummary[] =>
+  getFlattenedSteps(flowDefinition.steps).map((step) => ({
+    stepId: step.stepId,
+    parentStepId: step.parallelParentId,
+    kind: step.kind,
+    label: step.description,
+  }));
 
 const logHeight = 400;
 
@@ -167,9 +88,9 @@ const containerHeight = `calc(100vh - ${HEADER_HEIGHT}px)`;
 
 /** Flows that only the browser plugin or a file upload starts, because their inputs come from there. */
 const unrunnableDefinitionIds = [
-  manualBrowserInferenceFlow.flowDefinitionId,
-  automaticBrowserInferenceFlow.flowDefinitionId,
-  inferMetadataFromDocumentFlow.flowDefinitionId,
+  flowDefinitionIds.manualBrowserInference,
+  flowDefinitionIds.automaticBrowserInference,
+  flowDefinitionIds.inferMetadataFromDocument,
 ];
 
 export const FlowRunVisualizerSkeleton = () => (
@@ -187,7 +108,7 @@ export const FlowRunVisualizerSkeleton = () => (
 );
 
 export const FlowVisualizer = () => {
-  const [showDag, setShowDag] = useState(false);
+  const [showFlowNet, setShowFlowNet] = useState(false);
 
   const [bottomPanelIsCollapsed, setBottomPanelIsCollapsed] = useState(false);
 
@@ -202,10 +123,25 @@ export const FlowVisualizer = () => {
   const {
     flowDefinitions,
     loading: flowDefinitionsLoading,
-    selectedFlowDefinitionId,
+    selectedFlowDefinitionEntityId,
   } = useFlowDefinitionsContext();
 
   const { selectedFlowRun } = useFlowRunsContext();
+
+  /**
+   * A run is drawn with the edition of its definition it executed: the one current when it started.
+   */
+  const {
+    flowDefinition: flowOfSelectedRun,
+    loading: flowOfSelectedRunLoading,
+  } = useFlowDefinitionAtTime({
+    flowDefinitionEntityId: selectedFlowRun
+      ? selectedFlowRun.flowDefinitionEntityId
+      : null,
+    timestamp: selectedFlowRun
+      ? (selectedFlowRun.startedAt as Timestamp)
+      : null,
+  });
 
   const { schedulesByEntityUuid } = useFlowSchedules();
 
@@ -224,29 +160,29 @@ export const FlowVisualizer = () => {
 
   const selectedFlow = useMemo(
     () =>
-      flowDefinitions.find(
-        ({ flowDefinitionId }) =>
-          flowDefinitionId ===
-          (selectedFlowRun?.flowDefinitionId ?? selectedFlowDefinitionId),
-      ),
-    [flowDefinitions, selectedFlowDefinitionId, selectedFlowRun],
+      selectedFlowRun
+        ? flowOfSelectedRun
+        : flowDefinitions.find(
+            ({ flowDefinitionEntityId }) =>
+              flowDefinitionEntityId === selectedFlowDefinitionEntityId,
+          ),
+    [
+      flowDefinitions,
+      flowOfSelectedRun,
+      selectedFlowDefinitionEntityId,
+      selectedFlowRun,
+    ],
   );
 
   const selectedFlowDefinition = selectedFlow?.flowDefinition;
 
-  const { nodes: derivedNodes, edges: derivedEdges } = useMemo(() => {
-    if (!selectedFlowDefinition) {
-      return { nodes: [], edges: [] };
-    }
-    return getGraphFromFlowDefinition(selectedFlowDefinition);
-  }, [selectedFlowDefinition]);
+  const steps = useMemo(
+    () =>
+      selectedFlowDefinition ? getStepSummaries(selectedFlowDefinition) : [],
+    [selectedFlowDefinition],
+  );
 
   const [showRunModal, setShowRunModal] = useState(false);
-
-  const graph = useMemo<EdgesAndNodes>(
-    () => ({ nodes: derivedNodes, edges: derivedEdges }),
-    [derivedNodes, derivedEdges],
-  );
 
   const {
     logs,
@@ -292,8 +228,9 @@ export const FlowVisualizer = () => {
       { logs: LocalProgressLog[]; level: number; thread?: LogThread }
     > = {};
 
-    for (const step of selectedFlowRun.steps) {
-      const outputs = step.outputs?.[0]?.contents[0]?.outputs ?? [];
+    for (const step of selectedFlowRun.stepRuns) {
+      /* The API resolves stored payloads in the events step runs are built from. */
+      const outputs = (step.outputs ?? []) as ResolvedStepOutput[];
 
       for (const log of step.logs) {
         if (
@@ -446,7 +383,7 @@ export const FlowVisualizer = () => {
     if (selectedFlowRun.closedAt) {
       progressLogs.push({
         level: 1,
-        message: `Flow run closed: ${selectedFlowRun.failureMessage?.toLowerCase() ?? selectedFlowRun.status.toLowerCase()}`,
+        message: `Flow run closed: ${selectedFlowRun.failure?.message.toLowerCase() ?? selectedFlowRun.status.toLowerCase()}`,
         recordedAt: selectedFlowRun.closedAt,
         stepId: "closure",
         type: "StateChange",
@@ -575,7 +512,7 @@ export const FlowVisualizer = () => {
 
         variables = {
           dataSources: selectedFlowRun.dataSources,
-          flowDefinitionId: selectedFlow.flowDefinitionId,
+          flowDefinitionEntityId: selectedFlow.flowDefinitionEntityId,
           flowInputs: selectedFlowRun.flowInputs,
           webId: selectedFlowRun.webId,
         };
@@ -592,7 +529,7 @@ export const FlowVisualizer = () => {
               enabled: true,
             },
           },
-          flowDefinitionId: selectedFlow.flowDefinitionId,
+          flowDefinitionEntityId: selectedFlow.flowDefinitionEntityId,
           flowInputs,
           webId,
         };
@@ -603,8 +540,8 @@ export const FlowVisualizer = () => {
       try {
         const { data } = await startFlow({ variables });
 
-        const flowRunId = data?.startFlow;
-        if (!flowRunId) {
+        const flowRunEntityId = data?.startFlow;
+        if (!flowRunEntityId) {
           throw new Error("Failed to start flow");
         }
 
@@ -616,7 +553,7 @@ export const FlowVisualizer = () => {
 
         const { shortname } = getOwner({ webId: variables.webId });
 
-        void push(generateWorkerRunPath({ shortname, flowRunId }));
+        void push(generateWorkerRunPath({ shortname, flowRunEntityId }));
       } finally {
         setStartFlowPending(false);
       }
@@ -632,38 +569,50 @@ export const FlowVisualizer = () => {
     setShowRunModal(true);
   }, [runFlow, selectedFlowRun]);
 
-  if (!selectedFlow || !selectedFlowDefinition) {
-    if (flowDefinitionsLoading) {
+  if (!selectedFlow) {
+    if (flowDefinitionsLoading || flowOfSelectedRunLoading) {
       return <FlowRunVisualizerSkeleton />;
     }
 
-    if (selectedFlowDefinitionId) {
+    if (selectedFlowDefinitionEntityId) {
       /* The definition doesn't exist, or the user can't view it. */
       return <NotFound />;
     }
     throw new Error("Is this possible?");
   }
 
-  const flowDefinitionStateKey = `${selectedFlowDefinition.name} ?? "loading`;
+  const flowDefinitionStateKey = selectedFlow.flowDefinitionEntityId;
   const flowRunStateKey = `${flowDefinitionStateKey}-${
-    selectedFlowRun?.flowRunId ?? "definition"
+    selectedFlowRun?.flowRunEntityId ?? "definition"
   }`;
 
-  const isRunnableFromHere = !unrunnableDefinitionIds.includes(
-    selectedFlow.flowDefinitionId,
-  );
+  /* A flow saved before it was valid can't run until its problems are fixed. */
+  const isRunnableFromHere =
+    !!selectedFlowDefinition &&
+    !unrunnableDefinitionIds.some((flowDefinitionId) =>
+      isHashFlowDefinitionEntityId(
+        selectedFlow.flowDefinitionEntityId,
+        flowDefinitionId,
+      ),
+    );
 
-  const isGoal = isGoalFlowDefinitionId(selectedFlow.flowDefinitionId);
+  const isGoal = isGoalFlowDefinitionEntityId(
+    selectedFlow.flowDefinitionEntityId,
+  );
 
   return (
     <>
-      {selectedFlowRun && (
-        <DagSlide
-          graph={graph}
-          open={showDag}
-          onClose={() => setShowDag(false)}
+      {selectedFlowRun && selectedFlowDefinition && (
+        <FlowNetSlide
+          open={showFlowNet}
+          onClose={() => setShowFlowNet(false)}
           selectedFlowDefinition={selectedFlowDefinition}
-          flowDefinitionId={selectedFlow.flowDefinitionId}
+          flowDefinitionEntityId={selectedFlow.flowDefinitionEntityId}
+          flowRun={{
+            flowRunEntityId: selectedFlowRun.flowRunEntityId,
+            name: selectedFlowRun.name,
+            live: !selectedFlowRun.closedAt,
+          }}
         />
       )}
       <Stack sx={{ height: containerHeight }}>
@@ -671,7 +620,7 @@ export const FlowVisualizer = () => {
           <RunFlowModal
             key={selectedFlowDefinition.name}
             flowDefinition={selectedFlowDefinition}
-            flowDefinitionId={selectedFlow.flowDefinitionId}
+            flowDefinitionEntityId={selectedFlow.flowDefinitionEntityId}
             open={showRunModal}
             onClose={() => setShowRunModal(false)}
             onScheduleCreated={() => {
@@ -694,7 +643,7 @@ export const FlowVisualizer = () => {
           direction="row"
           sx={{
             flex: 1,
-            minHeight: `calc(100% - ${logHeight + topbarHeight}px)`,
+            minHeight: `calc(100% - ${(selectedFlowRun ? logHeight : 0) + topbarHeight}px)`,
             overflow: "auto",
             width: "100%",
             background: ({ palette }) =>
@@ -706,12 +655,12 @@ export const FlowVisualizer = () => {
         >
           {selectedFlowRun ? (
             <FlowRunSidebar
-              flowDefinitionId={selectedFlow.flowDefinitionId}
-              flowRunId={selectedFlowRun.flowRunId}
+              flowDefinitionEntityId={selectedFlow.flowDefinitionEntityId}
+              flowRunEntityId={selectedFlowRun.flowRunEntityId}
               flowScheduleId={selectedFlowRun.flowScheduleId ?? null}
-              graph={graph}
+              steps={steps}
               name={selectedFlowRun.name}
-              showDag={() => setShowDag(true)}
+              showFlowNet={() => setShowFlowNet(true)}
             />
           ) : null}
           <Stack
@@ -733,77 +682,83 @@ export const FlowVisualizer = () => {
                 proposedEntities={proposedEntities}
                 relevantEntityIds={relevantEntityIds}
               />
+            ) : selectedFlowDefinition ? (
+              <Box key={flowDefinitionStateKey} sx={{ flex: 1, minHeight: 0 }}>
+                <FlowNetView
+                  flowDefinition={selectedFlowDefinition}
+                  flowDefinitionEntityId={selectedFlow.flowDefinitionEntityId}
+                />
+              </Box>
             ) : (
-              <DAG
-                key={flowDefinitionStateKey}
-                graph={graph}
-                selectedFlowDefinition={selectedFlowDefinition}
-              />
+              <FlowDefinitionProblems diagnostics={selectedFlow.diagnostics} />
             )}
           </Stack>
         </Stack>
 
-        <Collapse
-          collapsedSize={45}
-          in={!bottomPanelIsCollapsed}
-          sx={{ maxHeight: "40%" }}
-        >
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            sx={({ palette, transitions }) => ({
-              background: bottomPanelIsCollapsed
-                ? palette.common.white
-                : palette.gray[10],
-              borderTop: `2px solid ${palette.gray[20]}`,
-              height: logHeight,
-              maxHeight: "100%",
-              maxWidth: "100%",
-              px: 3,
-              transition: transitions.create("background", transitionOptions),
-              width: "100%",
-            })}
+        {selectedFlowRun ? (
+          <Collapse
+            collapsedSize={45}
+            in={!bottomPanelIsCollapsed}
+            sx={{ maxHeight: "40%" }}
           >
-            <Fade in={!bottomPanelIsCollapsed}>
-              <Stack
-                sx={{
-                  borderRight: ({ palette }) => `1px solid ${palette.gray[20]}`,
-                  height: "100%",
-                  py: 2.5,
-                  pr: 3,
-                  width: "70%",
-                }}
-              >
-                <ActivityLog
-                  key={`${flowRunStateKey}-activity-log`}
-                  logs={logs}
-                  logDisplay={logDisplay}
-                  persistedEntities={persistedEntities}
-                  setLogDisplay={setLogDisplay}
-                />
-              </Stack>
-            </Fade>
-            <Box py={0.5}>
-              <IconButton
-                aria-hidden
-                size="medium"
-                sx={({ palette }) => ({
-                  transform: `rotate(${bottomPanelIsCollapsed ? "90deg" : "270deg"})`,
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              sx={({ palette, transitions }) => ({
+                background: bottomPanelIsCollapsed
+                  ? palette.common.white
+                  : palette.gray[10],
+                borderTop: `2px solid ${palette.gray[20]}`,
+                height: logHeight,
+                maxHeight: "100%",
+                maxWidth: "100%",
+                px: 3,
+                transition: transitions.create("background", transitionOptions),
+                width: "100%",
+              })}
+            >
+              <Fade in={!bottomPanelIsCollapsed}>
+                <Stack
+                  sx={{
+                    borderRight: ({ palette }) =>
+                      `1px solid ${palette.gray[20]}`,
+                    height: "100%",
+                    py: 2.5,
+                    pr: 3,
+                    width: "70%",
+                  }}
+                >
+                  <ActivityLog
+                    key={`${flowRunStateKey}-activity-log`}
+                    logs={logs}
+                    logDisplay={logDisplay}
+                    persistedEntities={persistedEntities}
+                    setLogDisplay={setLogDisplay}
+                  />
+                </Stack>
+              </Fade>
+              <Box py={0.5}>
+                <IconButton
+                  aria-hidden
+                  size="medium"
+                  sx={({ palette }) => ({
+                    transform: `rotate(${bottomPanelIsCollapsed ? "90deg" : "270deg"})`,
 
-                  "&:hover": {
-                    backgroundColor: palette.gray[20],
-                    color: palette.gray[60],
-                  },
-                })}
-                onClick={() =>
-                  setBottomPanelIsCollapsed(!bottomPanelIsCollapsed)
-                }
-              >
-                <ArrowRightToLineIcon />
-              </IconButton>
-            </Box>
-          </Stack>
-        </Collapse>
+                    "&:hover": {
+                      backgroundColor: palette.gray[20],
+                      color: palette.gray[60],
+                    },
+                  })}
+                  onClick={() =>
+                    setBottomPanelIsCollapsed(!bottomPanelIsCollapsed)
+                  }
+                >
+                  <ArrowRightToLineIcon />
+                </IconButton>
+              </Box>
+            </Stack>
+          </Collapse>
+        ) : null}
       </Stack>
     </>
   );

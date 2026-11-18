@@ -12,7 +12,6 @@ const externalDependencies = [
   /^react(\/.*)?$/,
   /^react-dom(\/.*)?$/,
   "@xyflow/react",
-  "@babel/standalone",
   // Pure-CJS dep pulled in transitively by @tanstack/react-form →
   // @tanstack/react-store. Rolldown can't safely transform its
   // `require("react")` when react is external, so it falls back to a
@@ -53,13 +52,7 @@ export default defineConfig(({ command }) => ({
       formats: ["es"],
     },
     rolldownOptions: {
-      external: (id, importer) =>
-        isExternalDependency(id) ||
-        // Keep the AI SDK's transitive declaration graph out of Petrinaut's
-        // bundled types without externalizing its runtime JavaScript.
-        (id === "ai" &&
-          importer !== undefined &&
-          declarationFilePattern.test(importer)),
+      external: (id) => isExternalDependency(id),
     },
     sourcemap: true,
     minify: true,
@@ -105,11 +98,13 @@ export default defineConfig(({ command }) => ({
   ],
 
   experimental: {
+    // A relative worker URL is emitted as `new URL(<path>, import.meta.url)`,
+    // which the host's bundler recognises and copies the worker for. A string
+    // is emitted against `"" + import.meta.url`, which hides the worker from
+    // the host's bundler.
     renderBuiltUrl: (filename) => {
-      // Fix worker URL for Webpack consumers
-      // Using `config.base` adds `"" +` prefix to the URL, which breaks the worker URL
       if (filename.includes(".worker")) {
-        return `./${filename}`;
+        return { relative: true };
       }
       return filename;
     },

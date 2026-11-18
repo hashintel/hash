@@ -1,42 +1,30 @@
 import { getFlowRuns } from "@local/hash-backend-utils/flows";
 
-import { wereDetailedFieldsRequested } from "./shared/were-detailed-fields-requested";
-
 import type {
-  FlowRun,
+  PaginatedFlowRuns,
   QueryGetFlowRunsArgs,
   ResolverFn,
 } from "../../api-types.gen";
 import type { GraphQLContext } from "../../context";
-import type { SparseFlowRun } from "@local/hash-isomorphic-utils/flows/types";
 
 export const getFlowRunsResolver: ResolverFn<
-  {
-    flowRuns: FlowRun[] | SparseFlowRun[];
-    totalCount: number;
-    nextCursor: string | null;
-  },
+  PaginatedFlowRuns,
   Record<string, never>,
-  Pick<GraphQLContext, "authentication" | "dataSources" | "temporal">,
+  Pick<GraphQLContext, "authentication" | "dataSources">,
   QueryGetFlowRunsArgs
-> = async (_parent, args, context, info) => {
-  const includeDetails = wereDetailedFieldsRequested(info);
+> = async (_parent, args, context) => {
+  const { authentication, dataSources } = context;
 
-  const { authentication, dataSources, temporal } = context;
-
-  const { flowDefinitionIds, executionStatus, cursor, limit } = args;
+  const { flowDefinitionEntityIds, executionStatus, cursor, limit } = args;
 
   return await getFlowRuns({
     authentication,
     filters: {
-      flowDefinitionIds,
+      flowDefinitionEntityIds,
       executionStatus,
       cursor,
       limit,
     },
     graphApiClient: dataSources.graphApi,
-    includeDetails,
-    storageProvider: dataSources.uploadProvider,
-    temporalClient: temporal,
   });
 };

@@ -1,7 +1,7 @@
 import { Box } from "@mui/material";
 import { useMemo } from "react";
 
-import { isGoalFlowDefinitionId } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
+import { isGoalFlowDefinitionEntityId } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 
 import { useAuthenticatedUser } from "../shared/auth-info-context";
 import { useFlowRunsContext } from "../shared/flow-runs-context";
@@ -9,7 +9,6 @@ import { flowRunStatusToStatusText } from "../shared/flow-tables";
 import { GoalListSection } from "./goals-list/goal-list-section";
 
 import type { GoalSummary } from "./goals-list/goal-list-section/goal-row";
-import type { EntityUuid } from "@blockprotocol/type-system";
 
 export const GoalsList = () => {
   const { flowRuns, loading } = useFlowRunsContext();
@@ -26,11 +25,11 @@ export const GoalsList = () => {
     const webByWebId: Record<string, GoalSummary["web"]> = {};
 
     for (const run of flowRuns) {
-      if (!isGoalFlowDefinitionId(run.flowDefinitionId as EntityUuid)) {
+      if (!isGoalFlowDefinitionEntityId(run.flowDefinitionEntityId)) {
         continue;
       }
 
-      const { webId, flowRunId, executedAt, closedAt } = run;
+      const { webId, flowRunEntityId, startedAt, closedAt } = run;
 
       let web: GoalSummary["web"] | undefined = webByWebId[webId];
 
@@ -63,35 +62,15 @@ export const GoalsList = () => {
         webByWebId[webId] = web;
       }
 
-      let lastEventTimestamp = closedAt ?? executedAt ?? "";
-      for (const step of run.steps) {
-        for (const log of step.logs) {
-          if (log.recordedAt > lastEventTimestamp) {
-            lastEventTimestamp = log.recordedAt;
-          }
-        }
-      }
-
       const status = flowRunStatusToStatusText(run.status);
 
-      let openInputRequests = 0;
-      if (status === "Running") {
-        for (const inputRequest of run.inputRequests) {
-          const lastInputEvent =
-            inputRequest.resolvedAt ?? inputRequest.raisedAt;
-          if (lastInputEvent > lastEventTimestamp) {
-            lastEventTimestamp = lastInputEvent;
-          }
-          if (!inputRequest.resolvedAt && inputRequest.type === "human-input") {
-            openInputRequests++;
-          }
-        }
-      }
-
       const goalRun = {
-        flowRunId,
-        lastEventTimestamp,
-        openInputRequests,
+        flowRunEntityId,
+        startedAt,
+        endedAt: closedAt ?? undefined,
+        openInputRequests: run.openInputRequests.filter(
+          ({ type }) => type === "human-input",
+        ).length,
         /**
          * @todo H-2722 – decide how to store an informative name per goal / flow run
          */

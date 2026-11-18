@@ -2,7 +2,7 @@
  * CSS variables that bridge Panda's preflight (which uses `--global-font-body`
  * / `--global-font-mono`) with the generated `--fonts-*` token vars.
  *
- * In a full-page app these live on `:root` (see ds-helpers Ladle CSS).
+ * In a full-page app these live on `:root` (see the Storybook preview CSS).
  * When the theme is scoped to a subtree, the preset places them on the scope
  * root so preflight can resolve them.
  *

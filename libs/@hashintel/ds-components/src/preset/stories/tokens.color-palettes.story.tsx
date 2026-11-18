@@ -4,15 +4,13 @@ import { token } from "@hashintel/ds-helpers/tokens";
 
 import type { AlphaStep, PaletteName, SolidStep } from "./_types";
 import type { Token } from "@hashintel/ds-helpers/tokens";
-import type { Story } from "@ladle/react";
 import type { ReactNode } from "react";
 
 const DIAGONAL_PATTERN_SVG = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Cpath d='M-4,4 l8,-8 M0,16 l16,-16 M12,20 l8,-8' stroke='%23808080' stroke-width='0.5' stroke-opacity='0.3'/%3E%3C/svg%3E")`;
 
 const TransparencyBackground = ({ children }: { children: ReactNode }) => (
   <Box
-    p="4"
-    borderRadius="md"
+    css={{ p: "4", borderRadius: "md" }}
     style={{
       backgroundImage: DIAGONAL_PATTERN_SVG,
       backgroundSize: "16px 16px",
@@ -191,7 +189,7 @@ const ColorRow = ({
 }) => {
   const alias = STATUS_ALIASES[name];
   return (
-    <HStack gap="1" alignItems="center">
+    <HStack gap="1" css={{ alignItems: "center" }}>
       <span className={labelStyles}>{name}</span>
       {steps.map((step) => (
         <ColorSwatch key={step} colorName={name} step={step} />
@@ -206,7 +204,7 @@ const ColorRow = ({
 };
 
 const StepHeaders = ({ steps }: { steps: readonly string[] }) => (
-  <HStack gap="1" alignItems="center">
+  <HStack gap="1" css={{ alignItems: "center" }}>
     <span className={labelStyles} />
     {steps.map((step) => (
       <span key={step} className={headerStyles}>
@@ -217,9 +215,9 @@ const StepHeaders = ({ steps }: { steps: readonly string[] }) => (
   </HStack>
 );
 
-export const ColorPalettes: Story = () => (
-  <VStack gap="8" alignItems="flex-start" p="6">
-    <VStack gap="2" alignItems="flex-start">
+export const ColorPalettesDemo = () => (
+  <VStack gap="8" css={{ alignItems: "flex-start", p: "6" }}>
+    <VStack gap="2" css={{ alignItems: "flex-start" }}>
       <h1 className={css({ textStyle: "2xl", fontWeight: "semibold" })}>
         Color Palettes
       </h1>
@@ -243,11 +241,11 @@ export const ColorPalettes: Story = () => (
       </p>
     </VStack>
 
-    <VStack gap="4" alignItems="flex-start">
+    <VStack gap="4" css={{ alignItems: "flex-start" }}>
       <h2 className={css({ textStyle: "lg", fontWeight: "semibold" })}>
         Solid Scales (s00–s125)
       </h2>
-      <VStack gap="1" alignItems="flex-start">
+      <VStack gap="1" css={{ alignItems: "flex-start" }}>
         <StepHeaders steps={SOLID_STEPS} />
         {COLOR_PALETTES.map((name) => (
           <ColorRow key={name} name={name} steps={SOLID_STEPS} />
@@ -255,12 +253,12 @@ export const ColorPalettes: Story = () => (
       </VStack>
     </VStack>
 
-    <VStack gap="4" alignItems="flex-start">
+    <VStack gap="4" css={{ alignItems: "flex-start" }}>
       <h2 className={css({ textStyle: "lg", fontWeight: "semibold" })}>
         Alpha Scales (a00–a125)
       </h2>
       <TransparencyBackground>
-        <VStack gap="1" alignItems="flex-start">
+        <VStack gap="1" css={{ alignItems: "flex-start" }}>
           <StepHeaders steps={ALPHA_STEPS} />
           {COLOR_PALETTES.map((name) => (
             <ColorRow key={name} name={name} steps={ALPHA_STEPS} />
@@ -269,16 +267,16 @@ export const ColorPalettes: Story = () => (
       </TransparencyBackground>
     </VStack>
 
-    <VStack gap="4" alignItems="flex-start">
+    <VStack gap="4" css={{ alignItems: "flex-start" }}>
       <h2 className={css({ textStyle: "lg", fontWeight: "semibold" })}>
-        Static Colors (black / white)
+        Black &amp; White (invert in dark mode)
       </h2>
-      <VStack gap="4" alignItems="flex-start">
-        <VStack gap="2" alignItems="flex-start">
+      <VStack gap="4" css={{ alignItems: "flex-start" }}>
+        <VStack gap="2" css={{ alignItems: "flex-start" }}>
           <h3 className={css({ fontSize: "base", fontWeight: "medium" })}>
             Black
           </h3>
-          <Box p="4" borderRadius="md" style={{ backgroundColor: "white" }}>
+          <Box css={{ p: "4", borderRadius: "md", bg: "white" }}>
             <HStack gap="1">
               {ALPHA_STEPS.map((step) => (
                 <ColorSwatch key={step} colorName="black" step={step} />
@@ -286,11 +284,11 @@ export const ColorPalettes: Story = () => (
             </HStack>
           </Box>
         </VStack>
-        <VStack gap="2" alignItems="flex-start">
+        <VStack gap="2" css={{ alignItems: "flex-start" }}>
           <h3 className={css({ fontSize: "base", fontWeight: "medium" })}>
             White
           </h3>
-          <Box p="4" borderRadius="md" style={{ backgroundColor: "black" }}>
+          <Box css={{ p: "4", borderRadius: "md", bg: "black" }}>
             <HStack gap="1">
               {ALPHA_STEPS.map((step) => (
                 <ColorSwatch key={step} colorName="white" step={step} />
@@ -302,5 +300,3 @@ export const ColorPalettes: Story = () => (
     </VStack>
   </VStack>
 );
-
-ColorPalettes.storyName = "Color Palettes";

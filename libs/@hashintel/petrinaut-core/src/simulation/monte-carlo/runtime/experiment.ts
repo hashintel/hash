@@ -32,6 +32,7 @@ import type {
   MonteCarloUserDefinedMetricConfig,
   MonteCarloUserDefinedMetricFrame,
 } from "../metrics";
+import type { MonteCarloSimulatorSelection } from "../run-driver";
 import type {
   MonteCarloAdvanceResult,
   MonteCarloRunConfig,
@@ -86,14 +87,21 @@ type CreateMonteCarloExperimentBaseConfig = {
    *
    * Defaults to **one**: the experiment is pure and never inspects the host,
    * so hardware detection belongs to whoever supplies `createWorker` — the
-   * editor passes `getDefaultMonteCarloShardCount()`, the CLI derives it from
-   * `os.availableParallelism()`. Runs are independent and seeds derive from
+   * editor passes `getDefaultMonteCarloShardCount()`. Runs are independent
+   * and seeds derive from
    * the global run index, so shard count changes only how fast an experiment
    * finishes, never what it reports. Only honoured for `createWorker`
    * experiments — a caller-supplied `transport` is a single channel and always
    * runs as one shard.
    */
   shardCount?: number;
+  /**
+   * The simulator that advances each run between samples, when it is not
+   * the fixed-step engine. The workers have to host it; `dt` is then the
+   * sample period alone. An experiment that runs without a worker hosts
+   * none, and rejects one.
+   */
+  simulator?: MonteCarloSimulatorSelection;
   signal?: AbortSignalLike;
 };
 
@@ -126,24 +134,10 @@ export type CreateMonteCarloExperimentConfig =
         }
     );
 
-/** Each run's final metric values, keyed by global run index then metric id. */
-export type MonteCarloExperimentRunResults = ReadonlyMap<
-  number,
-  Readonly<Record<string, number>>
->;
-
 export interface MonteCarloExperiment {
   readonly status: ReadableStore<MonteCarloExperimentState>;
   readonly progress: ReadableStore<MonteCarloWorkerProgress | null>;
   readonly metrics: ReadableStore<MonteCarloExperimentMetrics>;
-  /**
-   * Per-run final metric values, populated as runs finish.
-   *
-   * Metric frames aggregate across runs; this keeps the run axis, which is
-   * what optimization replicates read. Complete once the `complete` event has
-   * fired.
-   */
-  readonly runResults: ReadableStore<MonteCarloExperimentRunResults>;
   readonly events: EventStream<MonteCarloExperimentEvent>;
 
   start(this: void): void;
@@ -282,15 +276,17 @@ function createLocalMonteCarloExperiment(
   const metrics = createReadableStore<MonteCarloExperimentMetrics>(
     createEmptyMetricsState(),
   );
-  const runResults = createReadableStore<MonteCarloExperimentRunResults>(
-    new Map(),
-  );
   const events = createEventStream<MonteCarloExperimentEvent>();
   let disposed = false;
   let running = false;
   let abortListener: (() => void) | null = null;
 
   try {
+    if (config.simulator !== undefined) {
+      throw new Error(
+        `Simulator "${config.simulator.id}" is not hosted by an experiment that runs without a worker`,
+      );
+    }
     const userMetrics = config.metrics.map((metricConfig) =>
       createMonteCarloUserDefinedMetric(metricConfig),
     );
@@ -308,23 +304,6 @@ function createLocalMonteCarloExperiment(
       runs: config.runs,
       metrics: userMetrics,
     });
-
-    const publishRunResults = () => {
-      const byRunIndex = new Map<number, Record<string, number>>();
-      for (const metric of userMetrics) {
-        for (const [runIndex, value] of metric.getRunValues()) {
-          let values = byRunIndex.get(runIndex);
-          if (!values) {
-            values = {};
-            byRunIndex.set(runIndex, values);
-          }
-          values[metric.id] = value;
-        }
-      }
-      if (byRunIndex.size > 0) {
-        runResults.set(byRunIndex);
-      }
-    };
 
     const syncStores = (nextProgress: MonteCarloWorkerProgress | null) => {
       const nextMetricFrames = takePendingMetricFrames(
@@ -388,7 +367,6 @@ function createLocalMonteCarloExperiment(
 
           if (result.allFinished) {
             running = false;
-            publishRunResults();
             status.set("Complete");
             events.emit({ type: "complete", progress: nextProgress });
             return;
@@ -403,7 +381,6 @@ function createLocalMonteCarloExperiment(
       status,
       progress,
       metrics,
-      runResults,
       events,
       start() {
         if (disposed || running) {
@@ -535,9 +512,6 @@ export function createMonteCarloExperiment(
   const progress = createReadableStore<MonteCarloWorkerProgress | null>(null);
   const metrics = createReadableStore<MonteCarloExperimentMetrics>(
     createEmptyMetricsState(),
-  );
-  const runResults = createReadableStore<MonteCarloExperimentRunResults>(
-    new Map(),
   );
   const events = createEventStream<MonteCarloExperimentEvent>();
   let disposed = false;
@@ -688,7 +662,6 @@ export function createMonteCarloExperiment(
       status,
       progress,
       metrics,
-      runResults,
       events,
       start() {
         if (disposed) {
@@ -791,16 +764,6 @@ export function createMonteCarloExperiment(
             publishMetricFrames(merger.accept(shardIndex, message.frames));
             break;
           }
-          case "runResults": {
-            // Run indices are global and shards own disjoint slices, so a
-            // plain union cannot collide.
-            const merged = new Map(runResults.get());
-            for (const { runIndex, values } of message.results) {
-              merged.set(runIndex, values);
-            }
-            runResults.set(merged);
-            break;
-          }
           case "progress":
             shardProgress[shardIndex] = message.progress;
             publishProgress();
@@ -863,6 +826,9 @@ export function createMonteCarloExperiment(
           ),
           batchSize: config.batchSize,
           metricSpecs: "metricSpecs" in config ? config.metricSpecs : undefined,
+          ...(config.simulator === undefined
+            ? {}
+            : { simulator: config.simulator }),
         });
       }
     } catch (error) {

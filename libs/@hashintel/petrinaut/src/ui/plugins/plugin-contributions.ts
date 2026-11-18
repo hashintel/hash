@@ -16,7 +16,8 @@ export type PluginContributionKind =
   | "command"
   | "setting"
   | "provides"
-  | "root";
+  | "root"
+  | "assistant";
 
 export interface PluginContributionItem {
   readonly kind: PluginContributionKind;
@@ -81,5 +82,8 @@ export const describePluginContributions = (
     : [{ kind: "provides" as const, subject: manifest.id }]),
   ...(manifest.root === true
     ? [{ kind: "root" as const, subject: "Inside the editor" }]
+    : []),
+  ...(manifest.assistant === true
+    ? [{ kind: "assistant" as const, subject: "AI assistant panel" }]
     : []),
 ];

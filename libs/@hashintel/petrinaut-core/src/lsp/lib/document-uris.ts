@@ -30,6 +30,8 @@ export function getDocumentUri(itemType: ItemType, itemId: string): string {
       return `inmemory://sdcpn/transitions/${itemId}/kernel.ts`;
     case "differential-equation":
       return `inmemory://sdcpn/differential-equations/${itemId}.ts`;
+    case "place-visualizer":
+      return `inmemory://sdcpn/places/${itemId}/visualizer.jsx`;
   }
 }
 
@@ -79,6 +81,8 @@ const TRANSITION_LAMBDA_URI_RE =
 const TRANSITION_KERNEL_URI_RE =
   /^inmemory:\/\/sdcpn\/transitions\/([^/]+)\/kernel\.ts$/;
 const DE_URI_RE = /^inmemory:\/\/sdcpn\/differential-equations\/([^/]+)\.ts$/;
+const PLACE_VISUALIZER_URI_RE =
+  /^inmemory:\/\/sdcpn\/places\/([^/]+)\/visualizer\.jsx$/;
 
 const SCENARIO_PARAM_OVERRIDE_URI_RE =
   /^inmemory:\/\/sdcpn\/_temp\/scenarios\/([^/]+)\/param-overrides\/([^/]+)\.ts$/;
@@ -102,6 +106,7 @@ const ADHOC_VALUE_URI_RE =
 const TRANSITION_LAMBDA_PATH_RE = /^\/transitions\/([^/]+)\/lambda\/code\.ts$/;
 const TRANSITION_KERNEL_PATH_RE = /^\/transitions\/([^/]+)\/kernel\/code\.ts$/;
 const DE_PATH_RE = /^\/differential_equations\/([^/]+)\/code\.ts$/;
+const PLACE_VISUALIZER_PATH_RE = /^\/places\/([^/]+)\/visualizer\/code\.jsx$/;
 
 const SCENARIO_PARAM_OVERRIDE_PATH_RE =
   /^\/_temp\/scenarios\/([^/]+)\/param_overrides\/([^/]+)\/code\.ts$/;
@@ -138,6 +143,11 @@ export function parseDocumentUri(
   match = DE_URI_RE.exec(uri);
   if (match) {
     return { itemType: "differential-equation", itemId: match[1]! };
+  }
+
+  match = PLACE_VISUALIZER_URI_RE.exec(uri);
+  if (match) {
+    return { itemType: "place-visualizer", itemId: match[1]! };
   }
 
   return null;
@@ -247,6 +257,10 @@ export function uriToFilePath(uri: string): string | null {
         return getItemFilePath("differential-equation-code", {
           id: parsed.itemId,
         });
+      case "place-visualizer":
+        return getItemFilePath("place-visualizer-code", {
+          placeId: parsed.itemId,
+        });
     }
   }
 
@@ -293,6 +307,11 @@ export function filePathToUri(filePath: string): string | null {
   match = DE_PATH_RE.exec(filePath);
   if (match) {
     return getDocumentUri("differential-equation", match[1]!);
+  }
+
+  match = PLACE_VISUALIZER_PATH_RE.exec(filePath);
+  if (match) {
+    return getDocumentUri("place-visualizer", match[1]!);
   }
 
   // Scenario file paths

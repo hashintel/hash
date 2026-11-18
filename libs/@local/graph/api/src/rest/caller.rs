@@ -1,21 +1,19 @@
-use aide::{
-    axum::{ApiRouter, routing::get_with},
-    transform::TransformOperation,
-};
+use aide::transform::TransformOperation;
 use schemars::JsonSchema;
 use serde::Serialize;
 use type_system::principal::actor::ActorId;
 
 use super::{
-    credentials::{Actor, Credentials, MaybeActor},
+    credentials::{Actor, AdmitsAnonymous, Credentials, MaybeActor},
     extract::Json,
+    routing::{self, Route, Routes},
 };
 
-/// The resolved caller.
+/// The caller of the request.
 #[derive(Serialize, JsonSchema)]
 #[schemars(extend("required" = ["actor"]))]
 pub(super) struct CallerResponse {
-    /// The resolved actor, or `null` for an anonymous request.
+    /// The actor the request's credentials identify, or `null` for an anonymous request.
     actor: Option<ActorId>,
 }
 
@@ -25,10 +23,10 @@ pub(super) async fn caller<A: Into<Option<ActorId>>>(actor: A) -> Json<CallerRes
     })
 }
 
-/// The resolved caller.
+/// The caller of the request.
 #[derive(Serialize, JsonSchema)]
 struct AuthenticatedCallerResponse {
-    /// The resolved actor.
+    /// The actor the request's credentials identify.
     actor: ActorId,
 }
 
@@ -42,7 +40,10 @@ fn document_caller(operation: TransformOperation<'_>) -> TransformOperation<'_> 
     operation
         .id("getCaller")
         .summary("Get the caller")
-        .description("Returns the resolved actor, or `actor: null` for an anonymous request.")
+        .description(
+            "Returns the actor the request's credentials identify, or `actor: null` for an \
+             anonymous request.",
+        )
 }
 
 fn document_authenticated_caller(operation: TransformOperation<'_>) -> TransformOperation<'_> {
@@ -51,18 +52,32 @@ fn document_authenticated_caller(operation: TransformOperation<'_>) -> Transform
         .summary("Get the authenticated caller")
 }
 
-pub(super) fn routes<C: Credentials>() -> ApiRouter {
-    ApiRouter::new()
-        .api_route(
+fn authenticated_caller_route<C: Credentials, T: Clone + Send + Sync + 'static>() -> Route<T> {
+    routing::get(
+        authenticated_caller::<Actor<C>>,
+        document_authenticated_caller,
+    )
+}
+
+pub(super) fn routes<C: AdmitsAnonymous, T: Clone + Send + Sync + 'static>() -> Routes<T> {
+    Routes::new()
+        .route(
             "/caller",
-            get_with(caller::<MaybeActor<C>>, document_caller),
+            routing::get(caller::<MaybeActor<C>>, document_caller),
         )
-        .api_route(
+        .route(
             "/authenticated-caller",
-            get_with(
-                authenticated_caller::<Actor<C>>,
-                document_authenticated_caller,
-            ),
+            authenticated_caller_route::<C, T>(),
         )
-        .with_path_items(|path| path.tag("Caller"))
+        .tag("Caller")
+}
+
+pub(super) fn authenticated_routes<C: Credentials, T: Clone + Send + Sync + 'static>() -> Routes<T>
+{
+    Routes::new()
+        .route(
+            "/authenticated-caller",
+            authenticated_caller_route::<C, T>(),
+        )
+        .tag("Caller")
 }

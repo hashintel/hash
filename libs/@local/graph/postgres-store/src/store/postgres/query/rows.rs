@@ -276,8 +276,8 @@ pub struct EntityEditionRow {
     pub properties: PropertyObject,
     pub archived: bool,
     pub confidence: Option<Confidence>,
-    pub provenance: SqlEntityEditionProvenanceJson,
-    pub property_metadata: PropertyObjectMetadata,
+    pub provenance: Valid<SqlEntityEditionProvenanceJson>,
+    pub property_metadata: Valid<PropertyObjectMetadata>,
     pub created_by_id: ActorEntityUuid,
 }
 
@@ -395,7 +395,7 @@ pub struct EntityEdgeRow {
     pub target_web_id: WebId,
     pub target_entity_uuid: EntityUuid,
     pub confidence: Option<Confidence>,
-    pub provenance: PropertyProvenance,
+    pub provenance: Valid<PropertyProvenance>,
     pub kind: EntityTraversalEdgeKind,
     pub direction: EdgeDirection,
 }
@@ -802,7 +802,7 @@ impl PostgresRow for OntologyExternalMetadataRow {
 pub struct OntologyTemporalMetadataRow {
     pub ontology_id: OntologyTypeUuid,
     pub transaction_time: LeftClosedTemporalInterval<TransactionTime>,
-    pub provenance: OntologyEditionProvenance,
+    pub provenance: Valid<OntologyEditionProvenance>,
 }
 
 impl PostgresRow for OntologyTemporalMetadataRow {

@@ -15,7 +15,6 @@ use core::{error::Error, fmt};
 
 use clap::Args;
 
-use super::ReportError;
 use crate::file::generation::GenerationId;
 
 /// Root and generation settings of one realization report.
@@ -64,15 +63,15 @@ impl RealizationArgs {
     ///
     /// This panics when the generation cannot be opened. A report run has no recovery path,
     /// and the error is the diagnosis.
-    pub(super) fn run(self) -> ReportError {
+    pub(super) fn run(self) -> RealizationError {
         let _generation = self
             .root
             .root
             .open(self.generation)
             .expect("the generation is published");
 
-        ReportError::Realization(RealizationError::NoTargetEvidence {
+        RealizationError::NoTargetEvidence {
             generation: self.generation,
-        })
+        }
     }
 }

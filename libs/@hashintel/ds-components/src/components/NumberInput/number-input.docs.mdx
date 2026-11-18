@@ -1,0 +1,658 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { Fragment, useState } from "react";
+
+import { noop } from "../../util/noop";
+import { DemoState } from "../../../docs/blocks/demo-state";
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import { PrefixOrSuffixDoc } from "../TextInput/base-input";
+import { NumberInput } from "./number-input";
+
+<Meta title="Docs/NumberInput" />
+
+export const meta = {
+  title: "NumberInput",
+  description: "Lets users enter a numeric value by typing or stepping.",
+  alternativeNames: ["NumberField", "Spinbutton", "Stepper"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/NumberInput/number-input.tsx",
+    stories:
+      "https://tokens.hash.design/?path=/story/components-numberinput--default",
+  },
+  referenceLinks: {
+    apg: "https://www.w3.org/WAI/ARIA/apg/patterns/spinbutton/",
+    mdn: "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/number",
+  },
+  related: ["TextInput", "Slider", "Form"],
+};
+
+# NumberInput
+
+Lets users enter a numeric value by typing or stepping.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+<Stage>
+  <DemoState data-harness>
+    <NumberInput
+      value={8}
+      min={1}
+      max={64}
+      width="xs"
+      aria-label="vCPU limit"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <NumberInput
+      value={0.75}
+      step={0.05}
+      width="xs"
+      aria-label="Sampling temperature"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <NumberInput
+      value={1024}
+      hideStepper
+      width="xs"
+      aria-label="Max tokens"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <NumberInput
+      variant="subtle"
+      value={12}
+      width="fitContent"
+      aria-label="Page size"
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { NumberInput } from "@hashintel/ds-components";
+
+export const RetryLimitInput = ({
+  value,
+  onChange,
+}: {
+  value: number | null;
+  onChange: (value: number | null) => void;
+}) => (
+  <NumberInput
+    value={value}
+    onChange={onChange}
+    min={0}
+    max={10}
+    width="xs"
+    aria-label="Retry limit"
+  />
+);
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use NumberInput when the stored value is a number: counts, limits, timeouts, numeric entity properties.",
+    <Fragment key="0">
+      Set <code>min</code>, <code>max</code>, <code>step</code> and <code>inputMode</code> to match the
+      value's constraints — stepping stays in range and mobile devices get the
+      matching keyboard.
+    </Fragment>,
+    <Fragment key="1">
+      Wrap it in <code>Form.Field</code> for a label, description, and error
+      messages — the label connects to the input automatically.
+    </Fragment>,
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    <Fragment key="0">
+      Don't use it for numeric codes — IDs, phone numbers, postal codes — where
+      leading zeros matter and stepping makes no sense. Use TextInput with{" "}
+      <code>inputMode="numeric"</code>.
+    </Fragment>,
+    "Don't use it when the rough position in a bounded range matters more than the exact figure — use Slider.",
+    <Fragment key="1">
+      Don't expect formatted text while typing (thousands separators, currency
+      symbols) — the field holds a plain number. Use <code>styledValue</code>{" "}
+      for a formatted unfocused display and a prefix or suffix for symbols.
+    </Fragment>,
+  ]}
+/>
+
+## Examples
+
+### Basic
+
+NumberInput is controlled: pass `value` and take the parsed number from `onChange`, which reports `null` when the field is empty.
+
+<Stage>
+  <DemoState data-harness>
+    <NumberInput
+      value={32}
+      min={1}
+      max={512}
+      width="xs"
+      aria-label="Batch size"
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+```tsx
+import { useState } from "react";
+
+import { NumberInput } from "@hashintel/ds-components";
+
+export const BatchSizeInput = () => {
+  const [batchSize, setBatchSize] = useState<number | null>(32);
+
+  return (
+    <NumberInput
+      value={batchSize}
+      onChange={(value) => setBatchSize(value)}
+      min={1}
+      max={512}
+      width="xs"
+      aria-label="Batch size"
+    />
+  );
+};
+```
+
+### Decimal values
+
+`step` defaults to `1`, which makes an integer input: decimal-separator keys are rejected and parsed values are truncated. A fractional step — or `"any"` — switches to decimal mode and the decimal mobile keyboard.
+
+<Stage>
+  <DemoState data-harness>
+    <NumberInput
+      value={0.25}
+      step={0.01}
+      width="xs"
+      aria-label="Confidence threshold"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <NumberInput
+      value={3.14159}
+      step="any"
+      width="xs"
+      aria-label="Property value"
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Minimum and maximum
+
+`min` defaults to `0` — pass a negative `min` to allow negative values. The bounds constrain stepping only: users can still type outside the range, so validate the value and set `invalid` yourself.
+
+<Stage>
+  <DemoState data-harness>
+    <NumberInput
+      value={5}
+      min={1}
+      max={10}
+      width="xs"
+      aria-label="Crawl depth"
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### States
+
+Disabled, invalid, and loading, in that order. `invalid` is presentational — an out-of-range typed value doesn't set it automatically.
+
+<Stage>
+  <NumberInput
+    value={16}
+    disabled
+    width="xs"
+    aria-label="Instance count"
+    onChange={noop}
+  />
+  <DemoState data-harness>
+    <NumberInput
+      value={2048}
+      max={1024}
+      invalid
+      width="xs"
+      aria-label="Max tokens"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <NumberInput
+      value={42}
+      loading
+      width="xs"
+      aria-label="Random seed"
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Read-only
+
+`readonly` renders the value as plain text — no border, stepper, or focus ring — for view modes that later switch to editing. Unlike `disabled`, it reads as content rather than a blocked control.
+
+<Stage>
+  <DemoState data-harness>
+    <NumberInput
+      value={1250}
+      width="xs"
+      aria-label="Entity count"
+      onChange={noop}
+    />
+  </DemoState>
+  <NumberInput
+    value={1250}
+    readonly
+    aria-label="Entity count"
+    onChange={noop}
+  />
+</Stage>
+
+### Subtle variant
+
+`subtle` drops the border and background so the field reads as inline text until hovered or focused. Use it for in-place editing in dense surfaces; keep `default` in forms.
+
+<Stage>
+  <DemoState data-harness>
+    <NumberInput
+      variant="default"
+      value={3}
+      width="xs"
+      aria-label="Retry limit"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <NumberInput
+      variant="subtle"
+      value={3}
+      width="fitContent"
+      aria-label="Retry limit"
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Sizes
+
+`md` is the default. Match the size of neighbouring inputs and buttons; use `xxs`–`sm` in dense chrome such as table rows and toolbars.
+
+<Stage>
+  <DemoState data-harness>
+    <NumberInput
+      size="xxs"
+      placeholder="xxs"
+      value={null}
+      width="xs"
+      aria-label="xxs size"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <NumberInput
+      size="xs"
+      placeholder="xs"
+      value={null}
+      width="xs"
+      aria-label="xs size"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <NumberInput
+      size="sm"
+      placeholder="sm"
+      value={null}
+      width="xs"
+      aria-label="sm size"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <NumberInput
+      size="md"
+      placeholder="md"
+      value={null}
+      width="xs"
+      aria-label="md size"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <NumberInput
+      size="lg"
+      placeholder="lg"
+      value={null}
+      width="xs"
+      aria-label="lg size"
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Widths
+
+Width presets align fields across form rows: `xs`, `sm`, `md`, `lg`, plus `fullWidth` (the default, stretching to the container) and `fitContent`, which hugs the current value. Set a custom width with `className` when alignment doesn't matter.
+
+<Stage>
+  <DemoState data-harness>
+    <NumberInput
+      width="xs"
+      placeholder="xs"
+      value={null}
+      aria-label="xs width"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <NumberInput
+      width="sm"
+      placeholder="sm"
+      value={null}
+      aria-label="sm width"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <NumberInput
+      width="md"
+      placeholder="md"
+      value={null}
+      aria-label="md width"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <NumberInput
+      width="fitContent"
+      value={1234}
+      aria-label="fitContent width"
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Sizing to the maximum value
+
+`width="maxNumber"` sizes the field to exactly fit `max` at `step`'s precision. It assumes the stepper is hidden, so pair it with `hideStepper`, and it needs a finite `max`.
+
+<Stage>
+  <DemoState data-harness>
+    <NumberInput
+      width="maxNumber"
+      hideStepper
+      value={999}
+      max={999}
+      aria-label="Max retries"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <NumberInput
+      width="maxNumber"
+      hideStepper
+      value={98.425}
+      max={99}
+      step={0.001}
+      aria-label="Threshold"
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Hiding the stepper
+
+The spin buttons show only while the field is focused but reserve their space; `hideStepper` removes them and reclaims it. Hide the stepper when values are typed rather than nudged.
+
+<Stage>
+  <DemoState data-harness>
+    <NumberInput
+      value={1024}
+      width="xs"
+      aria-label="With stepper"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <NumberInput
+      value={1024}
+      hideStepper
+      width="xs"
+      aria-label="Without stepper"
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Clearable
+
+`clearable` shows a clear button on hover or focus; clearing reports `null` to `onChange` and refocuses the input. Pass `{ onClear }` to run your own reset instead.
+
+<Stage>
+  <DemoState data-harness>
+    <NumberInput
+      value={250}
+      clearable
+      width="xs"
+      aria-label="Row limit"
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Units with prefix and suffix
+
+Put the unit in an adornment so users enter only the number. Text adornments take `{ text }`, icons `{ iconName }`, and either becomes a button when given `onClick`.
+
+<Stage>
+  <DemoState data-harness>
+    <NumberInput
+      value={512}
+      suffix={{ text: "MB" }}
+      width="xs"
+      aria-label="Memory limit"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <NumberInput
+      value={20}
+      step={0.01}
+      prefix={{ text: "$" }}
+      width="xs"
+      aria-label="Monthly budget"
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Formatted display
+
+`styledValue` overlays a custom rendering while the field is unfocused — thousands separators, highlights — and reveals the raw number for editing on focus.
+
+export const formattedDisplayCode = `import { useState } from "react";
+
+import { NumberInput } from "@hashintel/ds-components";
+
+export const EntityCountInput = () => {
+  const [count, setCount] = useState<number | null>(1234567);
+
+  return (
+    <NumberInput
+      value={count}
+      styledValue={
+        count === null ? undefined : (
+          <strong>{count.toLocaleString("en-US")}</strong>
+        )
+      }
+      width="sm"
+      aria-label="Entity count"
+      onChange={setCount}
+    />
+  );
+};`;
+
+export const FormattedDisplayDemo = () => {
+  const [count, setCount] = useState(1234567);
+  return (
+    <NumberInput
+      value={count}
+      styledValue={
+        count === null ? undefined : (
+          <strong>{count.toLocaleString("en-US")}</strong>
+        )
+      }
+      width="sm"
+      aria-label="Entity count"
+      onChange={setCount}
+    />
+  );
+};
+
+<Stage code={formattedDisplayCode}>
+  <FormattedDisplayDemo />
+</Stage>
+
+### Connected inputs
+
+Set `connectToRightInput` on the left input and `connectToLeftInput` on the
+right to join a pair into one visual control. Only the `default` variant
+connects — `subtle` and `readonly` inputs render separately.
+
+<Stage>
+  <div style={{ display: "flex", alignItems: "center" }}>
+    <DemoState data-harness>
+      <NumberInput
+        connectToRightInput
+        value={1}
+        width="xs"
+        aria-label="Minimum instances"
+        onChange={noop}
+      />
+    </DemoState>
+    <DemoState data-harness>
+      <NumberInput
+        connectToLeftInput
+        value={8}
+        width="xs"
+        aria-label="Maximum instances"
+        onChange={noop}
+      />
+    </DemoState>
+  </div>
+</Stage>
+
+### In a form
+
+Inside `Form.Field` the label connects to the input automatically. Keep `invalid` and the `errors` list in step so the message explains the red border.
+
+```tsx
+import { Form, NumberInput } from "@hashintel/ds-components";
+
+export const MaxTokensField = ({
+  value,
+  error,
+  onChange,
+}: {
+  value: number | null;
+  error?: string;
+  onChange: (value: number | null) => void;
+}) => (
+  <Form.Field
+    label="Max tokens"
+    description="Upper limit for each flow step"
+    errors={error ? [error] : undefined}
+  >
+    <NumberInput
+      value={value}
+      onChange={onChange}
+      min={1}
+      max={128000}
+      width="sm"
+      invalid={!!error}
+    />
+  </Form.Field>
+);
+```
+
+## Behavior
+
+- An integer `step` makes an integer input: decimal-separator and exponent keys are blocked with a brief grey flash, and parsed values are truncated. A fractional step (or `"any"`) accepts every locale's decimal separator.
+- Typed values are never clamped: arrows and spin buttons stay within `min`/`max`, but typing can leave the range. Validate the value and set `invalid`.
+- Scrolling over a focused field doesn't change the value — the wheel is disabled on focus to prevent accidental edits.
+- Spin buttons appear on focus and reserve their space while hidden, so the layout never shifts; Firefox never shows them.
+- The minimum width fits two digits plus padding — much narrower than other inputs — so number fields sit comfortably in table rows.
+
+## Content
+
+- Name the quantity in the label and put the unit in a suffix adornment: "Memory limit" plus "MB", not "Memory limit in megabytes".
+- Use the placeholder for an example value ("e.g. 512"), never as the label — it disappears as soon as users type.
+- Put the valid range in the field description, and template errors as "[Field] must be between [min] and [max]": "Batch size must be between 1 and 512."
+
+## Accessibility
+
+NumberInput renders a native `<input type="number">`, which implements the [WAI-ARIA spinbutton pattern](https://www.w3.org/WAI/ARIA/apg/patterns/spinbutton/) — arrow-key stepping and numeric semantics come from the browser.
+
+### What you must do
+
+- Always label the input — via `Form.Field`, your own label with `htmlForId`, or `aria-label`.
+- Pair `invalid` with a visible message (for example `Form.Field` `errors`) — color alone doesn't explain the problem.
+- Surface the valid range in the label or description — rejected keystrokes and stepping limits only flash the field, they don't announce why.
+
+## API reference
+
+### NumberInput
+
+<PropsTable
+  of={NumberInput}
+  defaults={{
+    min: "0",
+    max: "Number.MAX_SAFE_INTEGER",
+    step: "1",
+    variant: '"default"',
+    size: '"md"',
+    align: '"left"',
+    width: '"fullWidth"',
+    autocomplete: "false",
+  }}
+/>
+
+### PrefixOrSuffix
+
+The object shape `prefix` and `suffix` take.
+
+<PropsTable of={PrefixOrSuffixDoc} defaults={{ variant: '"default"' }} />

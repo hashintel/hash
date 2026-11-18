@@ -9,7 +9,6 @@ import type {
   InsetShadow,
 } from "./_types";
 import type { Token } from "@hashintel/ds-helpers/tokens";
-import type { Story } from "@ladle/react";
 
 const SHADOW_STEPS: readonly BaseShadow[] = [
   "2xs",
@@ -67,13 +66,17 @@ const ShadowSwatch = ({
   const shadowValue = token(`shadows.${tokenPath}` as Token);
 
   return (
-    <VStack gap="2" alignItems="center">
+    <VStack gap="2" css={{ alignItems: "center" }}>
       <div
         className={css({
           width: "[80px]",
           height: "[80px]",
           borderRadius: "lg",
           bg: "neutral.s00",
+          _dark: {
+            bg: "neutral.s15",
+            border: "[1px solid {colors.neutral.s40}]",
+          },
         })}
         style={{ boxShadow: shadowValue }}
       />
@@ -93,13 +96,17 @@ const InsetSwatch = ({
   const shadowValue = token(`shadows.${tokenPath}` as Token);
 
   return (
-    <VStack gap="2" alignItems="center">
+    <VStack gap="2" css={{ alignItems: "center" }}>
       <div
         className={css({
           width: "[80px]",
           height: "[80px]",
           borderRadius: "lg",
           bg: "neutral.s10",
+          _dark: {
+            bg: "neutral.s15",
+            border: "[1px solid {colors.neutral.s40}]",
+          },
         })}
         style={{ boxShadow: shadowValue }}
       />
@@ -122,11 +129,15 @@ const ElevationSwatch = ({
   const height = scale === "macro" ? "[80px]" : "[48px]";
 
   return (
-    <VStack gap="2" alignItems="center">
+    <VStack gap="2" css={{ alignItems: "center" }}>
       <div
         className={css({
           borderRadius: "lg",
           bg: "neutral.s00",
+          _dark: {
+            bg: "neutral.s15",
+            border: "[1px solid {colors.neutral.s40}]",
+          },
         })}
         style={{
           width: `var(--w, ${size === "[120px]" ? "120px" : "64px"})`,
@@ -139,8 +150,8 @@ const ElevationSwatch = ({
   );
 };
 
-export const Shadows: Story = () => (
-  <VStack gap="8" alignItems="flex-start" p="6">
+export const ShadowsDemo = () => (
+  <VStack gap="8" css={{ alignItems: "flex-start", p: "6" }}>
     <h1 className={css({ textStyle: "2xl", fontWeight: "semibold" })}>
       Shadows &amp; Elevation
     </h1>
@@ -156,18 +167,18 @@ export const Shadows: Story = () => (
       (small surfaces) scales.
     </p>
 
-    <VStack gap="8" alignItems="flex-start" width="[100%]">
+    <VStack gap="8" css={{ alignItems: "flex-start", width: "[100%]" }}>
       <h2 className={sectionTitleStyles}>Base Shadows</h2>
-      <HStack gap="6" flexWrap="wrap">
+      <HStack gap="6" css={{ flexWrap: "wrap" }}>
         {SHADOW_STEPS.map((step) => (
           <ShadowSwatch key={step} name={step} tokenPath={step} />
         ))}
       </HStack>
     </VStack>
 
-    <VStack gap="8" alignItems="flex-start" width="[100%]">
+    <VStack gap="8" css={{ alignItems: "flex-start", width: "[100%]" }}>
       <h2 className={sectionTitleStyles}>Inset Shadows</h2>
-      <HStack gap="6" flexWrap="wrap">
+      <HStack gap="6" css={{ flexWrap: "wrap" }}>
         {INSET_STEPS.map((step) => (
           <InsetSwatch
             key={step}
@@ -178,7 +189,7 @@ export const Shadows: Story = () => (
       </HStack>
     </VStack>
 
-    <VStack gap="8" alignItems="flex-start" width="[100%]">
+    <VStack gap="8" css={{ alignItems: "flex-start", width: "[100%]" }}>
       <h2 className={sectionTitleStyles}>Elevation Tokens</h2>
       <p
         className={css({
@@ -193,9 +204,9 @@ export const Shadows: Story = () => (
         badges).
       </p>
 
-      <Grid columns={2} gap="10" width="[100%]">
+      <Grid columns={2} gap="10" css={{ width: "[100%]" }}>
         {ELEVATION_SCALES.map((scale) => (
-          <VStack key={scale} gap="4" alignItems="flex-start">
+          <VStack key={scale} gap="4" css={{ alignItems: "flex-start" }}>
             <span
               className={css({
                 textStyle: "sm",
@@ -216,7 +227,7 @@ export const Shadows: Story = () => (
                   : "Small Surface Area"}
               </span>
             </span>
-            <HStack gap="6" flexWrap="wrap">
+            <HStack gap="6" css={{ flexWrap: "wrap" }}>
               {ELEVATION_LEVELS.map((level) => (
                 <ElevationSwatch key={level} level={level} scale={scale} />
               ))}
@@ -227,5 +238,3 @@ export const Shadows: Story = () => (
     </VStack>
   </VStack>
 );
-
-Shadows.storyName = "Shadows & Elevation";

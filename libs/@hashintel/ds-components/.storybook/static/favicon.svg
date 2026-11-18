@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="358px" height="358px" viewBox="0 0 358 358" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 63.1 (92452) - https://sketch.com -->
+    <title>hash_mark_black</title>
+    <desc>Created with Sketch.</desc>
+    <defs>
+        <linearGradient x1="50%" y1="100%" x2="50%" y2="0%" id="linearGradient-1">
+            <stop stop-color="#2B3133" offset="0%"></stop>
+            <stop stop-color="#1A1E27" offset="100%"></stop>
+        </linearGradient>
+        <linearGradient x1="50%" y1="0.137246622%" x2="50%" y2="100%" id="linearGradient-2">
+            <stop stop-color="#292E30" offset="0%"></stop>
+            <stop stop-color="#1D1D29" offset="100%"></stop>
+        </linearGradient>
+        <linearGradient x1="5.85639584%" y1="50%" x2="95.92606%" y2="50%" id="linearGradient-3">
+            <stop stop-color="#343738" offset="0%"></stop>
+            <stop stop-color="#1C1D25" offset="100%"></stop>
+        </linearGradient>
+        <linearGradient x1="8.80316122%" y1="50%" x2="100%" y2="50%" id="linearGradient-4">
+            <stop stop-color="#222029" offset="0%"></stop>
+            <stop stop-color="#222426" offset="100%"></stop>
+        </linearGradient>
+    </defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="hash_mark_black" fill-rule="nonzero">
+            <polygon id="Fill-1" fill="url(#linearGradient-1)" opacity="0.886276972" points="200.52 357.646213 300.102128 357.646213 300.102128 -0.002297872 200.52 -0.002297872"></polygon>
+            <polygon id="Fill-2" fill="url(#linearGradient-2)" opacity="0.898344494" points="57.546383 357.646213 157.120851 357.646213 157.120851 -0.002297872 57.546383 -0.002297872"></polygon>
+            <polygon id="Fill-3" fill="url(#linearGradient-3)" opacity="0.881277902" points="0 153.288766 357.648511 153.288766 357.648511 53.7066383 0 53.7066383"></polygon>
+            <polygon id="Fill-4" fill="url(#linearGradient-4)" opacity="0.85563151" points="0 298.820681 357.648511 298.820681 357.648511 199.246213 0 199.246213"></polygon>
+        </g>
+    </g>
+</svg>

@@ -1,7 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 
-import { brunchEnv } from "@hashintel/brunch-agent";
-
+import { brunchEnv } from "../env.ts";
 import { type PostgresDatabaseConfig } from "./database-config.ts";
 import {
   createPostgresPool,

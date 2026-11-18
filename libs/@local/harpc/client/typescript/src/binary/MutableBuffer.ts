@@ -1,4 +1,4 @@
-import { Data, Either, Function, pipe, Pipeable } from "effect";
+import { Data, Function, pipe, Pipeable, Result } from "effect";
 
 import { createProto } from "../utils.js";
 import * as MutableBytes from "./MutableBytes.js";
@@ -22,7 +22,7 @@ export type Read = typeof Read;
 
 export type ReadBuffer = MutableBuffer<Read>;
 
-export type ReadResult<T, E = UnexpectedEndOfBufferError> = Either.Either<T, E>;
+export type ReadResult<T, E = UnexpectedEndOfBufferError> = Result.Result<T, E>;
 
 const Write: unique symbol = Symbol(
   "@local/harpc-client/binary/MutableBuffer/Write",
@@ -32,7 +32,7 @@ export type Write = typeof Write;
 
 export type WriteBuffer = MutableBuffer<Write>;
 
-export type WriteResult<E = UnexpectedEndOfBufferError> = Either.Either<
+export type WriteResult<E = UnexpectedEndOfBufferError> = Result.Result<
   WriteBuffer,
   E
 >;
@@ -89,17 +89,17 @@ export const makeWrite = (buffer?: MutableBytes.MutableBytes): WriteBuffer =>
 const validateBounds = <T>(
   self: MutableBuffer<T>,
   width: number,
-): Either.Either<void, UnexpectedEndOfBufferError> => {
+): Result.Result<void, UnexpectedEndOfBufferError> => {
   const impl = self as MutableBufferImpl<T>;
 
   return impl.index + width > MutableBytes.length(impl.bytes)
-    ? Either.left(
+    ? Result.fail(
         new UnexpectedEndOfBufferError({
           index: impl.index,
           length: MutableBytes.length(impl.bytes),
         }),
       )
-    : Either.right(undefined);
+    : Result.succeed(undefined);
 };
 
 /**
@@ -122,7 +122,7 @@ const putInt = (sign: "u" | "i", width: 1 | 2 | 4) =>
   >(2, (self, value) =>
     pipe(
       validateBounds(self, width),
-      Either.map(() => {
+      Result.map(() => {
         const impl = self as MutableBufferImpl<Write>;
         const view = MutableBytes.asDataView(impl.bytes);
 
@@ -173,7 +173,7 @@ export const putI32 = putInt("i", 4);
 const getInt = (sign: "u" | "i", width: 1 | 2 | 4) => (self: ReadBuffer) =>
   pipe(
     validateBounds(self, width),
-    Either.map(() => {
+    Result.map(() => {
       const impl = self as MutableBufferImpl<Read>;
       const view = MutableBytes.asDataView(impl.bytes);
 
@@ -215,7 +215,7 @@ export const putSlice = Function.dual<
 >(2, (self, value) =>
   pipe(
     validateBounds(self, value.length),
-    Either.map(() => {
+    Result.map(() => {
       const impl = self as MutableBufferImpl<Write>;
 
       const slice = MutableBytes.asArray(impl.bytes);
@@ -232,7 +232,7 @@ export const putSlice = Function.dual<
 export const getSlice = (self: ReadBuffer, byteLength: number) =>
   pipe(
     validateBounds(self, byteLength),
-    Either.map(() => {
+    Result.map(() => {
       const impl = self as MutableBufferImpl<Read>;
 
       const slice = MutableBytes.asArray(impl.bytes).slice(
@@ -257,15 +257,15 @@ export const advance = Function.dual<
     length: number,
   ) => <T>(
     self: MutableBuffer<T>,
-  ) => Either.Either<MutableBuffer<T>, UnexpectedEndOfBufferError>,
+  ) => Result.Result<MutableBuffer<T>, UnexpectedEndOfBufferError>,
   <T>(
     self: MutableBuffer<T>,
     length: number,
-  ) => Either.Either<MutableBuffer<T>, UnexpectedEndOfBufferError>
+  ) => Result.Result<MutableBuffer<T>, UnexpectedEndOfBufferError>
 >(2, <T>(self: MutableBuffer<T>, byteLength: number) =>
   pipe(
     validateBounds(self, byteLength),
-    Either.map(() => {
+    Result.map(() => {
       const impl = self as MutableBufferImpl<T>;
 
       impl.index = impl.index + byteLength;

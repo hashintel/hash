@@ -79,7 +79,7 @@ async fn create_role_with_id() -> Result<(), Box<dyn Error>> {
     let team_id = client.insert_team(None, web_id.into(), "team").await?;
 
     // Then create a role with a specific ID
-    let id = Uuid::new_v4();
+    let id = Uuid::now_v7();
     let role_id = client
         .create_role(Some(id), ActorGroupId::Team(team_id), RoleName::Member)
         .await?;
@@ -105,7 +105,7 @@ async fn create_role_with_nonexistent_team() -> Result<(), Box<dyn Error>> {
     let (mut client, _actor_id) = db.seed().await?;
 
     // Try to create a role with a non-existent team
-    let non_existent_team_id = ActorGroupId::Web(WebId::new(Uuid::new_v4()));
+    let non_existent_team_id = ActorGroupId::Web(WebId::new(Uuid::now_v7()));
     let result = client
         .create_role(None, non_existent_team_id, RoleName::Member)
         .await;
@@ -207,7 +207,7 @@ async fn delete_nonexistent_role() -> Result<(), Box<dyn Error>> {
     let (mut client, _actor_id) = db.seed().await?;
 
     // Try to delete a non-existent role
-    let non_existent_id = RoleId::Web(WebRoleId::new(Uuid::new_v4()));
+    let non_existent_id = RoleId::Web(WebRoleId::new(Uuid::now_v7()));
     let result = client.delete_role(non_existent_id).await;
 
     assert_matches!(
@@ -296,7 +296,7 @@ async fn assign_role_to_nonexistent_actor() -> Result<(), Box<dyn Error>> {
         .id();
 
     // Try to assign the role to a non-existent user
-    let non_existent_user_id = UserId::new(Uuid::new_v4());
+    let non_existent_user_id = UserId::new(Uuid::now_v7());
     let result = client
         .assign_role_by_id(ActorId::User(non_existent_user_id), role_id)
         .await;
@@ -318,7 +318,7 @@ async fn assign_nonexistent_role_to_actor() -> Result<(), Box<dyn Error>> {
     let user_id = client.create_user(None).await?;
 
     // Try to assign a non-existent role to the user
-    let non_existent_role_id = RoleId::Web(WebRoleId::new(Uuid::new_v4()));
+    let non_existent_role_id = RoleId::Web(WebRoleId::new(Uuid::now_v7()));
     let result = client
         .assign_role_by_id(ActorId::User(user_id), non_existent_role_id)
         .await;

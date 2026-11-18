@@ -1,38 +1,31 @@
 import { getFlowRunById } from "@local/hash-backend-utils/flows";
 
 import * as Error from "../../error";
-import { wereDetailedFieldsRequested } from "./shared/were-detailed-fields-requested";
 
 import type {
-  FlowRun,
+  FlowRunSummary,
   QueryGetFlowRunByIdArgs,
   ResolverFn,
 } from "../../api-types.gen";
 import type { GraphQLContext } from "../../context";
-import type { EntityUuid } from "@blockprotocol/type-system";
-import type { SparseFlowRun } from "@local/hash-isomorphic-utils/flows/types";
 
+/** The run as its entity describes it. Its other fields have resolvers of their own, which read its record. */
 export const getFlowRunByIdResolver: ResolverFn<
-  FlowRun | SparseFlowRun,
+  FlowRunSummary,
   Record<string, never>,
-  Pick<GraphQLContext, "authentication" | "dataSources" | "temporal">,
+  Pick<GraphQLContext, "authentication" | "dataSources">,
   QueryGetFlowRunByIdArgs
-> = async (_parent, args, context, info) => {
-  const { flowRunId } = args;
-
-  const includeDetails = wereDetailedFieldsRequested(info);
+> = async (_parent, args, context) => {
+  const { flowRunEntityId } = args;
 
   const flowRun = await getFlowRunById({
-    flowRunId: flowRunId as EntityUuid,
+    flowRunEntityId,
     graphApiClient: context.dataSources.graphApi,
-    includeDetails,
-    storageProvider: context.dataSources.uploadProvider,
-    temporalClient: context.temporal,
     userAuthentication: context.authentication,
   });
 
   if (!flowRun) {
-    throw Error.notFound(`Flow run with id ${flowRunId} not found`);
+    throw Error.notFound(`Flow run with id ${flowRunEntityId} not found`);
   }
 
   return flowRun;

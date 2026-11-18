@@ -1,0 +1,123 @@
+{
+  "$schema": "../../../node_modules/oxlint/configuration_schema.json",
+  "extends": ["../../../.config/oxlint/react-compiler.json"],
+  "plugins": ["import", "unicorn", "typescript"],
+  "categories": {
+    "correctness": "error"
+  },
+  "env": {
+    "builtin": true,
+    "es2026": true
+  },
+  "rules": {
+    "default-case-last": "error",
+    "eqeqeq": [
+      "error",
+      "always",
+      {
+        "null": "ignore"
+      }
+    ],
+    "no-console": "error",
+    "no-param-reassign": [
+      "error",
+      {
+        "props": true
+      }
+    ],
+    "no-shadow": "error",
+    "no-unused-vars": [
+      "error",
+      {
+        "args": "all",
+        "argsIgnorePattern": "^_+",
+        "varsIgnorePattern": "^_+"
+      }
+    ],
+    "no-use-before-define": "error",
+    "import/no-cycle": "error",
+    "import/no-duplicates": "error",
+    "import/no-mutable-exports": "error",
+    "import/no-self-import": "error",
+    "@typescript-eslint/no-explicit-any": "error",
+    "@typescript-eslint/no-unsafe-function-type": "error",
+    "unicorn/filename-case": "error"
+  },
+  "ignorePatterns": [
+    "site/dist/**",
+    "site/src/content/**",
+    "fonts/**",
+    ".turbo/**"
+  ],
+  "overrides": [
+    {
+      "files": ["site/**"],
+      "env": {
+        "browser": true
+      },
+      "plugins": ["import", "react", "jsx-a11y", "unicorn", "typescript"],
+      "rules": {
+        "no-use-before-define": [
+          "error",
+          {
+            "variables": false
+          }
+        ],
+        "react/jsx-pascal-case": [
+          "error",
+          {
+            "allowAllCaps": true
+          }
+        ],
+        "react/no-danger": "error",
+        "react/jsx-no-target-blank": [
+          "error",
+          {
+            "enforceDynamicLinks": "always"
+          }
+        ],
+        "react/jsx-no-comment-textnodes": "error",
+        "react/no-array-index-key": "error",
+        "react/button-has-type": [
+          "error",
+          {
+            "button": true,
+            "submit": true,
+            "reset": false
+          }
+        ],
+        "jsx-a11y/aria-role": [
+          "error",
+          {
+            "ignoreNonDOM": false
+          }
+        ],
+        "jsx-a11y/label-has-associated-control": "error",
+        "jsx-a11y/no-static-element-interactions": [
+          "error",
+          {
+            "handlers": [
+              "onClick",
+              "onMouseDown",
+              "onMouseUp",
+              "onKeyPress",
+              "onKeyDown",
+              "onKeyUp"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["site/src/plugins/**"],
+      "rules": {
+        "no-param-reassign": [
+          "error",
+          {
+            "props": false
+          }
+        ]
+      }
+    }
+  ]
+}

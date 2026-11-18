@@ -1,14 +1,13 @@
 import {
-  type FastCheck,
+  Arbitrary,
   Data,
-  type Effect,
-  Either,
   Equal,
   Hash,
   Inspectable,
   pipe,
   Pipeable,
   Predicate,
+  Result,
 } from "effect";
 
 import { MutableBuffer } from "../../binary/index.js";
@@ -45,11 +44,7 @@ const ProtocolVersionProto: Omit<ProtocolVersion, "value"> = {
   },
 
   [Hash.symbol](this: ProtocolVersion) {
-    return pipe(
-      Hash.hash(this[TypeId]),
-      Hash.combine(Hash.number(this.value)),
-      Hash.cached(this),
-    );
+    return pipe(Hash.hash(this[TypeId]), Hash.combine(Hash.number(this.value)));
   },
 
   toString(this: ProtocolVersion) {
@@ -80,14 +75,14 @@ export const encode = implEncode((buffer, version: ProtocolVersion) =>
   MutableBuffer.putU8(buffer, version.value),
 );
 
-export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
+export type DecodeError = Result.Result.Failure<ReturnType<typeof decode>>;
 
 export const decode = implDecode((buffer) =>
-  Either.gen(function* () {
+  Result.gen(function* () {
     const version = yield* MutableBuffer.getU8(buffer);
 
     if (version !== 1) {
-      yield* Either.left(
+      yield* Result.fail(
         new InvalidProtocolVersionError({ received: version }),
       );
     }
@@ -101,4 +96,4 @@ export const V1: ProtocolVersion = make(1);
 export const isProtocolVersion = (value: unknown): value is ProtocolVersion =>
   Predicate.hasProperty(value, TypeId);
 
-export const arbitrary = (fc: typeof FastCheck) => fc.oneof(fc.constant(V1));
+export const arbitrary = Arbitrary.Constant(V1);

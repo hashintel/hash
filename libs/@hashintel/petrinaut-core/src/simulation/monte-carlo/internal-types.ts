@@ -23,6 +23,12 @@ export type MonteCarloRunState = {
   parameterValues: ParameterValues;
   frameNumber: number;
   maxFrameNumber: number;
+  /**
+   * True for a run of an untimed net, which ends at the first step that
+   * fires nothing: nothing in such a net changes while nothing fires, so no
+   * later step would fire either.
+   */
+  endsWhenIdle: boolean;
   rngState: number;
   completionReason: SimulationCompletionReason | null;
   error: string | null;

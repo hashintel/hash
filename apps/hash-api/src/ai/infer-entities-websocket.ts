@@ -4,8 +4,12 @@ import {
   getFlowRunEntityById,
   getFlowRuns,
 } from "@local/hash-backend-utils/flows";
+import {
+  automaticBrowserInferenceFlow,
+  manualBrowserInferenceFlow,
+} from "@local/hash-isomorphic-utils/flows/definitions/browser-plugin-flow-definitions";
 import { externalInputResponseSignal } from "@local/hash-isomorphic-utils/flows/signals";
-import { assertNoStoredPayloadRefsInFlowInputs } from "@local/hash-isomorphic-utils/flows/stored-payload-refs";
+import { validateFlowInputs } from "@local/hash-isomorphic-utils/flows/validate-payloads";
 
 import { getUserAndSession } from "../auth/create-auth-handlers";
 import { FlowRunStatus } from "../graphql/api-types.gen";
@@ -14,8 +18,6 @@ import { handleInferEntitiesRequest } from "./infer-entities-websocket/handle-in
 
 import type { GraphApi, ImpureGraphContext } from "../graph/context-types";
 import type { User } from "../graph/knowledge/system-types/user";
-import type { EntityUuid } from "@blockprotocol/type-system";
-import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import type {
   ExternalInputWebsocketRequestMessage,
@@ -31,12 +33,10 @@ const inferEntitiesMessageHandler = async ({
   graphApiClient,
   temporalClient,
   message,
-  storageProvider,
   user,
 }: {
   graphApiClient: GraphApi;
   socket: WebSocket;
-  storageProvider: FileStorageProvider;
   temporalClient: Client;
   message: InferenceWebsocketClientMessage;
   user: User;
@@ -51,10 +51,19 @@ const inferEntitiesMessageHandler = async ({
 
       const { webId: _webId, ...flowInputs } = message.payload;
 
-      try {
-        assertNoStoredPayloadRefsInFlowInputs(flowInputs);
-      } catch (error) {
-        socket.send((error as Error).message);
+      /* The code that seeds the flow the request starts, which a test keeps equal to its seeded definition. */
+      const { flowDefinition } =
+        message.type === "manual-inference-request"
+          ? manualBrowserInferenceFlow
+          : automaticBrowserInferenceFlow;
+
+      const invalidFlowInputMessage = validateFlowInputs({
+        inputDefinitions: flowDefinition.inputs,
+        flowInputs,
+      });
+
+      if (invalidFlowInputMessage) {
+        socket.send(invalidFlowInputMessage);
         return;
       }
 
@@ -62,7 +71,6 @@ const inferEntitiesMessageHandler = async ({
         graphApiClient,
         temporalClient,
         message,
-        storageProvider,
         user,
       });
       return;
@@ -80,31 +88,29 @@ const inferEntitiesMessageHandler = async ({
         authentication: { actorId: user.accountId },
         filters: { executionStatus: FlowRunStatus.Running },
         graphApiClient,
-        includeDetails: true,
-        storageProvider,
-        temporalClient,
       });
 
-      for (const flowRun of openFlowRuns.flowRuns) {
-        for (const inputRequest of flowRun.inputRequests) {
-          if (!inputRequest.resolvedAt) {
-            const requestMessage: ExternalInputWebsocketRequestMessage = {
-              workflowId: flowRun.flowRunId,
-              payload: inputRequest,
-              type: "external-input-request",
-            };
-            socket.send(JSON.stringify(requestMessage));
-          }
+      for (const {
+        flowRunEntityId,
+        openInputRequests,
+      } of openFlowRuns.flowRuns) {
+        for (const inputRequest of openInputRequests) {
+          const requestMessage: ExternalInputWebsocketRequestMessage = {
+            flowRunEntityId,
+            payload: inputRequest,
+            type: "external-input-request",
+          };
+          socket.send(JSON.stringify(requestMessage));
         }
       }
       return;
     }
     case "external-input-response": {
-      const { workflowId, payload } = message;
+      const { flowRunEntityId, payload } = message;
 
       const flow = await getFlowRunEntityById({
         userAuthentication: { actorId: user.accountId },
-        flowRunId: workflowId as EntityUuid,
+        flowRunEntityId,
         graphApiClient,
       });
 
@@ -112,7 +118,9 @@ const inferEntitiesMessageHandler = async ({
         return;
       }
 
-      const handle = temporalClient.workflow.getHandle(workflowId);
+      const handle = temporalClient.workflow.getHandle(
+        flow.properties["https://hash.ai/@h/types/property-type/workflow-id/"],
+      );
       await handle.signal<[ExternalInputResponseSignal]>(
         externalInputResponseSignal,
         { ...payload, resolvedBy: user.accountId },
@@ -152,7 +160,7 @@ const isInferenceWebsocketClientMessage = (
       );
     case "cancel-inference-request":
       return (
-        typeof message.flowRunId === "string" &&
+        typeof message.flowRunEntityId === "string" &&
         typeof message.requestUuid === "string" &&
         hasValidOptionalCookie(message)
       );
@@ -160,7 +168,7 @@ const isInferenceWebsocketClientMessage = (
       return hasValidOptionalCookie(message);
     case "external-input-response":
       return (
-        typeof message.workflowId === "string" &&
+        typeof message.flowRunEntityId === "string" &&
         typeof message.payload === "object" &&
         message.payload !== null &&
         hasValidOptionalCookie(message)
@@ -185,13 +193,11 @@ export const openInferEntitiesWebSocket = ({
   context,
   httpServer,
   logger,
-  storageProvider,
   temporalClient,
 }: {
   context: ImpureGraphContext;
   httpServer: http.Server;
   logger: Logger;
-  storageProvider: FileStorageProvider;
   temporalClient: Client;
 }) => {
   const wss = new WebSocketServer({
@@ -200,6 +206,13 @@ export const openInferEntitiesWebSocket = ({
 
   wss.on("connection", (socket, request) => {
     const ipAddress = request.socket.remoteAddress ?? "unknown";
+
+    // Handle protocol errors before authentication and on rejected connections.
+    socket.on("error", (error) => {
+      logger.error("Infer-entities WebSocket error", { error, ipAddress });
+      socket.terminate();
+    });
+
     const activeConnections = activeConnectionsByIp.get(ipAddress) ?? 0;
 
     if (activeConnections >= MAX_CONNECTIONS_PER_IP) {
@@ -219,35 +232,102 @@ export const openInferEntitiesWebSocket = ({
     });
 
     void (async () => {
-      let authenticatedUser: User | null = null;
+      let authenticatedSession:
+        | { cookie: string; expiresAt: number; user: User }
+        | undefined;
+      let sessionExpiryTimeout: ReturnType<typeof setTimeout> | undefined;
+      let authenticationInProgress: Promise<User | undefined> | undefined;
+      let unauthenticatedTimeout: ReturnType<typeof setTimeout> | undefined;
 
-      const upgradeCookie = request.headers.cookie;
-
-      if (upgradeCookie) {
-        const { user } = await getUserAndSession({
-          context,
-          cookie: upgradeCookie,
-          logger,
-        }).catch(() => {
-          return { user: null };
-        });
-
-        authenticatedUser = user ?? null;
-      }
-
-      let messageCount = 0;
-      let messageWindowStart = Date.now();
-
-      const unauthenticatedTimeout = setTimeout(() => {
-        if (!authenticatedUser) {
+      const closeUnauthenticated = () => {
+        if (socket.readyState === socket.OPEN) {
           socket.send("Unauthenticated");
           socket.close(1008, "Unauthenticated");
         }
-      }, UNAUTHENTICATED_CONNECTION_TIMEOUT_MS);
+      };
+
+      const scheduleSessionExpiry = () => {
+        clearTimeout(sessionExpiryTimeout);
+
+        if (!authenticatedSession) {
+          return;
+        }
+
+        const remainingMs = authenticatedSession.expiresAt - Date.now();
+
+        if (remainingMs <= 0) {
+          closeUnauthenticated();
+          return;
+        }
+
+        // Kratos sessions can outlive Node's maximum setTimeout delay.
+        sessionExpiryTimeout = setTimeout(
+          scheduleSessionExpiry,
+          Math.min(remainingMs, 2_147_483_647),
+        );
+      };
+
+      const authenticate = async (cookie: string | undefined) => {
+        if (!cookie) {
+          return undefined;
+        }
+
+        // Serialize authentication to prevent concurrent updates
+        if (authenticationInProgress) {
+          return authenticationInProgress;
+        }
+
+        const authPromise = (async () => {
+          const { user, session } = await getUserAndSession({
+            context,
+            cookie,
+            logger,
+          }).catch(() => ({ user: undefined, session: undefined }));
+
+          const expiresAt = Date.parse(session?.expires_at ?? "");
+
+          if (
+            socket.readyState !== socket.OPEN ||
+            !user ||
+            !session?.active ||
+            !Number.isFinite(expiresAt) ||
+            expiresAt <= Date.now() ||
+            (authenticatedSession &&
+              (authenticatedSession.expiresAt <= Date.now() ||
+                authenticatedSession.user.accountId !== user.accountId))
+          ) {
+            return undefined;
+          }
+
+          // Only retain credentials after live validation, and never switch actors.
+          authenticatedSession = { cookie, expiresAt, user };
+          scheduleSessionExpiry();
+          return user;
+        })();
+
+        authenticationInProgress = authPromise;
+        const result = await authPromise;
+        authenticationInProgress = undefined;
+        return result;
+      };
 
       socket.once("close", () => {
         clearTimeout(unauthenticatedTimeout);
+        clearTimeout(sessionExpiryTimeout);
       });
+
+      if (request.headers.cookie) {
+        await authenticate(request.headers.cookie);
+      }
+
+      unauthenticatedTimeout = setTimeout(() => {
+        if (!authenticatedSession) {
+          closeUnauthenticated();
+        }
+      }, UNAUTHENTICATED_CONNECTION_TIMEOUT_MS);
+
+      let messageCount = 0;
+      let messageWindowStart = Date.now();
 
       socket.on(
         "message",
@@ -292,38 +372,19 @@ export const openInferEntitiesWebSocket = ({
             return;
           }
 
-          if (!authenticatedUser) {
-            const { cookie } = parsedMessage;
+          // Revalidate before every operation, including when no new cookie is sent.
+          const user = await authenticate(
+            parsedMessage.cookie ?? authenticatedSession?.cookie,
+          );
 
-            if (!cookie) {
-              socket.send("Unauthenticated");
-              socket.close(1008, "Unauthenticated");
-              return;
-            }
-
-            const { user } = await getUserAndSession({
-              context,
-              cookie,
-              logger,
-            }).catch(() => {
-              return { user: null };
-            });
-
-            if (!user) {
-              socket.send("Unauthenticated");
-              socket.close(1008, "Unauthenticated");
-              return;
-            }
-
-            authenticatedUser = user;
+          if (!user || socket.readyState !== socket.OPEN) {
+            closeUnauthenticated();
+            return;
           }
-
-          const user = authenticatedUser;
 
           void inferEntitiesMessageHandler({
             graphApiClient: context.graphApi,
             socket,
-            storageProvider,
             temporalClient,
             message: parsedMessage,
             user,

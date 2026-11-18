@@ -83,6 +83,7 @@ const makeRecord = (optimize = false): ExperimentRecord => ({
   constraintPolicy: null,
   runCount: 25,
   seed: 1,
+  clock: "time",
   dt: 1,
   maxTime: 10,
   status: optimize ? "idle" : "running",
@@ -90,6 +91,7 @@ const makeRecord = (optimize = false): ExperimentRecord => ({
   metricSpecs: [],
   computeBackend: "cpu",
   computeBackendFallbackReason: null,
+  simulatorLabel: null,
   startedAt: 0,
   finishedAt: null,
   progress: {

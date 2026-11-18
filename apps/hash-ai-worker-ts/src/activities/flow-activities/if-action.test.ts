@@ -3,14 +3,12 @@ import { describe, expect, it, vi } from "vitest";
 import { storePayload } from "@local/hash-backend-utils/flows/payload-storage";
 import { StatusCode } from "@local/status";
 
+import { createProposedEntity } from "../../shared/testing-utilities/create-proposed-entity.js";
 import { ifAction } from "./if-action.js";
 
 import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
 import type { FilterCondition } from "@local/hash-isomorphic-utils/flows/filter-condition";
-import type {
-  ProposedEntity,
-  StepInput,
-} from "@local/hash-isomorphic-utils/flows/types";
+import type { StepInput } from "@local/hash-isomorphic-utils/flows/types";
 
 const workflowId = "workflow";
 const objects = new Map<string, string>();
@@ -67,7 +65,7 @@ describe("ifAction", () => {
             stepId: "propose",
             outputName: "proposedEntity",
             kind: "ProposedEntity",
-            value: { summary: "A company" } as ProposedEntity,
+            value: createProposedEntity({ summary: "A company" }),
           }),
         },
       };

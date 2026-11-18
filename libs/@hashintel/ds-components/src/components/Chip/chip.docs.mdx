@@ -1,0 +1,303 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { Fragment } from "react";
+
+import { noop } from "../../util/noop";
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import { Chip, ChipAffixSlot } from "./chip";
+
+<Meta title="Docs/Chip" />
+
+export const meta = {
+  title: "Chip",
+  description:
+    "Compact labels for metadata such as types, statuses, and values, optionally clickable or removeable.",
+  alternativeNames: ["Tag", "Pill", "Token", "Lozenge"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/Chip/chip.tsx",
+    stories: "https://tokens.hash.design/?path=/story/components-chip--default",
+  },
+  referenceLinks: {
+    apg: "https://www.w3.org/WAI/ARIA/apg/patterns/button/",
+  },
+  related: ["Badge", "Button"],
+};
+
+# Chip
+
+Compact labels for metadata such as types, statuses, and values, optionally clickable or removeable.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+<Stage>
+  <Chip color="blue">Person</Chip>
+  <Chip color="green" variant="soft" shape="round">
+    Published
+  </Chip>
+  <Chip color="purple" variant="outline">
+    v2.4
+  </Chip>
+  <Chip size="lg" color="orange">
+    Draft
+  </Chip>
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { Chip } from "@hashintel/ds-components";
+
+export const EntityTypeChip = () => (
+  <Chip color="blue" variant="defined">
+    Person
+  </Chip>
+);
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use Chip to label an object with compact metadata: an entity's type, a property value, a status, a version.",
+    <Fragment key="0">
+      Use <code>onClick</code> when the token itself opens something, such as a
+      filter chip that opens its editor.
+    </Fragment>,
+    "Use color to tell categories apart at a glance, keeping each color's meaning consistent across a view.",
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    "Don't use chips for actions or navigation — a chip's primary purpose is to label something. Prefer a Button or Link.",
+    "Don't use chips for counts that annotate another element, like an unread count on an icon — use Badge.",
+    "Don't use chips to pick one value from a visible set — use SegmentedControl, or RadioGroup in forms.",
+  ]}
+/>
+
+## Examples
+
+### Basic
+
+The default chip is `defined`, `grey`, and `md`-sized.
+
+<Stage>
+  <Chip>Entity type</Chip>
+</Stage>
+
+### Variants
+
+Variants set emphasis. `defined` (default) has a solid border for standalone labels, `soft` and `outline` sit quieter inside busy UI, and `ghost` shows no fill or border until hovered or focused — for metadata that shouldn't compete with content.
+
+<Stage>
+  <Chip variant="defined">Defined</Chip>
+  <Chip variant="soft">Soft</Chip>
+  <Chip variant="outline">Outline</Chip>
+  <Chip variant="ghost">Ghost</Chip>
+</Stage>
+
+### Colors
+
+Color categorizes: give each category one color and keep the mapping stable across the product. `grey` is the default. The label must still carry the meaning — never rely on color alone.
+
+<Stage>
+  <Chip color="grey">Grey</Chip>
+  <Chip color="red">Red</Chip>
+  <Chip color="blue">Blue</Chip>
+  <Chip color="green">Green</Chip>
+  <Chip color="orange">Orange</Chip>
+  <Chip color="yellow">Yellow</Chip>
+  <Chip color="purple">Purple</Chip>
+  <Chip color="pink">Pink</Chip>
+</Stage>
+
+### Sizes
+
+`md` is the default. Use `xxs`-`sm` inside dense tables and metadata rows, and `lg`/`xl` next to headings. Icons, dots, and spinners inside the chip scale with it.
+
+<Stage>
+  <Chip size="xxs">xxs</Chip>
+  <Chip size="xs">xs</Chip>
+  <Chip size="sm">sm</Chip>
+  <Chip size="md">md</Chip>
+  <Chip size="lg">lg</Chip>
+  <Chip size="xl">xl</Chip>
+</Stage>
+
+### Round shape
+
+`shape="round"` renders a pill. Use it for status chips, and keep one shape per chip group — mixing shapes reads as a difference in meaning.
+
+<Stage>
+  <Chip shape="default">Default</Chip>
+  <Chip shape="round" color="green">
+    Round
+  </Chip>
+</Stage>
+
+### Prefix and suffix
+
+`prefix` and `suffix` add a slot on either side of the label. A slot's content is an `iconName`, a status `dot`, a `loading` spinner, or arbitrary `children` such as a count or version.
+
+<Stage>
+  <Chip color="blue" prefix={{ iconName: "cube" }}>
+    Person
+  </Chip>
+  <Chip color="green" suffix={{ iconName: "check" }}>
+    Validated
+  </Chip>
+  <Chip color="purple" suffix={{ children: "v2" }}>
+    Company
+  </Chip>
+</Stage>
+
+### Status dot
+
+A `dot` prefix draws a small circle in the chip's text color, with three fill states — `filled`, `partiallyFilled`, `empty` — for lifecycle or progress readings. The dot is hidden from assistive technology, so the label must state the status.
+
+<Stage>
+  <Chip color="green" shape="round" prefix={{ dot: "filled" }}>
+    Running
+  </Chip>
+  <Chip color="orange" shape="round" prefix={{ dot: "partiallyFilled" }}>
+    Partially synced
+  </Chip>
+  <Chip shape="round" prefix={{ dot: "empty" }}>
+    Not started
+  </Chip>
+</Stage>
+
+### Loading
+
+A `loading: true` affix shows a spinner. Swapping the affix to a success mark when work completes can help communicate finished progress.
+
+<Stage>
+  <Chip color="blue" prefix={{ loading: true }}>
+    Syncing entities
+  </Chip>
+  <Chip color="blue" prefix={{ iconName: "check" }}>
+    Synced
+  </Chip>
+</Stage>
+
+### Affix styles
+
+An affix's `variant` shapes its edge treatment: `straight` (default) draws a divider between slot and label, `naked` drops the divider, `badge` fills the slot and bleeds to the chip's edge, and `angle` slants the boundary.
+
+<Stage>
+  <Chip color="blue" prefix={{ iconName: "cube", variant: "straight" }}>
+    Straight
+  </Chip>
+  <Chip color="blue" prefix={{ iconName: "cube", variant: "naked" }}>
+    Naked
+  </Chip>
+  <Chip color="blue" suffix={{ children: "12", variant: "badge" }}>
+    Badge
+  </Chip>
+  <Chip color="blue" prefix={{ children: "beta", variant: "angle" }}>
+    Angle
+  </Chip>
+</Stage>
+
+### Clickable
+
+`onClick` turns the whole chip into a real `<button>` with hover and focus styles. Reserve it for token-level interactions such as opening a filter's editor. Consider promoting anything that reads as an action to Button. An affix with its own `onClick` becomes a separate button beside the clickable centre (`aria-label` required).
+
+<Stage>
+  <Chip color="blue" prefix={{ iconName: "filter" }} onClick={noop}>
+    Type: Person
+  </Chip>
+  <Chip
+    color="purple"
+    onClick={noop}
+    prefix={{
+      iconName: "sparkles",
+      variant: "badge",
+      onClick: noop,
+      "aria-label": "Accept suggestion",
+    }}
+    removeable={{ onRemove: noop, "aria-label": "Dismiss suggestion" }}
+  >
+    Works at Acme Corp
+  </Chip>
+</Stage>
+
+### Removeable
+
+`removeable` appends a close button that calls `onRemove`. Name each removal through its `aria-label` — the default name is just "Remove". `removeable` and `suffix` are mutually exclusive.
+
+<Stage>
+  <Chip
+    color="blue"
+    removeable={{ onRemove: noop, "aria-label": "Remove Person filter" }}
+  >
+    Person
+  </Chip>
+  <Chip
+    color="blue"
+    removeable={{ onRemove: noop, "aria-label": "Remove Company filter" }}
+  >
+    Company
+  </Chip>
+</Stage>
+
+## Behavior
+
+- A static chip renders as a `<div>`, `onClick` alone renders one `<button>`, and `onClick` combined with an interactive affix or `removeable` renders a `<div>` containing a separate button per segment.
+- Labels never wrap. Under a width constraint the label truncates with an ellipsis. Wrap the chip in Tooltip when the full value matters.
+
+## Content
+
+- Write labels as nouns or values, 1–3 words, sentence case: "Person", "Draft", "3 properties". Prefer labels under 20 characters.
+- Keep affix text to a short token: a count ("12"), a version ("v2"), a stage ("beta").
+
+## Accessibility
+
+Clickable chips, interactive affixes, and the remove control implement the [WAI-ARIA button pattern](https://www.w3.org/WAI/ARIA/apg/patterns/button/).
+
+- Status dots are `aria-hidden`, so they never produce an unlabeled announcement.
+- Chips pass through `aria-*` attributes for contextual labelling.
+
+### What you must do
+
+- The default aria label for the remove button is "Remove". Generally you should re-label the action with the chip contents through `removeable.aria-label`, for ex: "Remove 'Ready Status'", so that buttons are distinguishable in a list.
+- Move focus to a sensible neighbour after removing a chip; the component doesn't manage focus for you.
+- State status in the label text — dots and colors are invisible to assistive technology.
+
+## API reference
+
+### Chip
+
+<PropsTable
+  of={Chip}
+  defaults={{
+    size: '"md"',
+    shape: '"default"',
+    color: '"grey"',
+    variant: '"defined"',
+  }}
+/>
+
+### PrefixOrSuffix
+
+The object shape `prefix` and `suffix` take.
+
+<PropsTable of={ChipAffixSlot} defaults={{ variant: '"straight"' }} />

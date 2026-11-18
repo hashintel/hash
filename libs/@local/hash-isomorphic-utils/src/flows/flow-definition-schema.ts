@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { stepRunIdSeparator } from "./step-run-id.js";
 import { allPayloadKinds } from "./types.js";
 
 import type {
@@ -23,8 +24,8 @@ const connectionOptionsShape = {
 const stepIdSchema = z
   .string()
   .min(1)
-  .refine((stepId) => !stepId.includes("~"), {
-    message: 'A step id cannot contain "~"',
+  .refine((stepId) => !stepId.includes(stepRunIdSeparator), {
+    message: `A step id cannot contain "${stepRunIdSeparator}"`,
   });
 
 const stepInputSourceSchema = z.discriminatedUnion("kind", [
@@ -49,6 +50,12 @@ const stepInputSourceSchema = z.discriminatedUnion("kind", [
   }),
 ]) satisfies z.ZodType<StepInputSource>;
 
+const stepDefinitionBaseShape = {
+  stepId: stepIdSchema,
+  position: z.strictObject({ x: z.number(), y: z.number() }).optional(),
+  runAfter: z.array(z.strictObject({ stepId: stepIdSchema })).optional(),
+};
+
 /*
  * Action ids are typed as strings here, because a definition from outside the codebase may name one that
  * doesn't exist: `validateFlowDefinition` reports it against the step that uses it.
@@ -57,7 +64,7 @@ const stepDefinitionSchema: z.ZodType<StepDefinition<string>> = z.lazy(() =>
   z.discriminatedUnion("kind", [
     z.strictObject({
       kind: z.literal("action"),
-      stepId: stepIdSchema,
+      ...stepDefinitionBaseShape,
       actionDefinitionId: z.string(),
       description: z.string(),
       inputs: z.record(z.string(), stepInputSourceSchema),
@@ -65,25 +72,26 @@ const stepDefinitionSchema: z.ZodType<StepDefinition<string>> = z.lazy(() =>
     }),
     z.strictObject({
       kind: z.literal("for-each"),
-      stepId: stepIdSchema,
+      ...stepDefinitionBaseShape,
       description: z.string(),
       over: stepInputSourceSchema,
       steps: z.array(stepDefinitionSchema),
       collect: z.strictObject({
         stepId: stepIdSchema,
         outputName: z.string(),
-        as: z.string().min(1),
+        as: z.string(),
       }),
     }),
   ]),
 );
 
+/** Names may be empty, so that a half-built flow can be saved: `validateFlowDefinition` reports them. */
 export const flowDefinitionSchema = z.strictObject({
   name: z.string(),
   description: z.string(),
   inputs: z.array(
     z.strictObject({
-      name: z.string().min(1),
+      name: z.string(),
       payloadKind: payloadKindSchema,
       array: z.boolean(),
       required: z.boolean(),
@@ -94,7 +102,7 @@ export const flowDefinitionSchema = z.strictObject({
   steps: z.array(stepDefinitionSchema),
   outputs: z.array(
     z.strictObject({
-      name: z.string().min(1),
+      name: z.string(),
       stepId: stepIdSchema,
       outputName: z.string(),
       description: z.string().optional(),

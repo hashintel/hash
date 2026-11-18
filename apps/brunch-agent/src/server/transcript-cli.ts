@@ -3,21 +3,18 @@
  *
  * Usage, with the Brunch server already running (`yarn dev:brunch`):
  *
- *   yarn workspace @apps/brunch-agent transcript -- --principal <key> --id <conversationId>
+ *   yarn workspace @apps/brunch-agent transcript -- --actor-key <key> --id <conversationId>
  *
- * Identity matches the mounted Flue route: principal + conversation id hash
+ * Identity matches the mounted Flue route: actor key + conversation id hash
  * to the Flue instance, with those values also sent as ownership headers.
  * This is a read of canonical Flue history, not a second log.
  */
 
 import { createFlueClient } from "@flue/sdk";
 
-import { brunchRoutes } from "@hashintel/brunch-agent";
+import { agentOwnershipHeaders, brunchRoutes } from "@hashintel/brunch-agent";
 
-import {
-  agentOwnershipHeaders,
-  flueConversationIdFrom,
-} from "../shared/conversation/identity.ts";
+import { flueConversationId } from "../shared/conversation/identity.ts";
 import { formatFlueTranscript } from "../shared/conversation/transcript.ts";
 import { defaultChatOrigin } from "./http/local-origins.ts";
 
@@ -32,19 +29,19 @@ const readFlag = (
 };
 
 const argv = process.argv.slice(2);
-const principalKey = readFlag(argv, "--principal");
+const actorKey = readFlag(argv, "--actor-key");
 const conversationId = readFlag(argv, "--id");
 const origin = readFlag(argv, "--origin") ?? defaultChatOrigin;
 
-if (principalKey === undefined || conversationId === undefined) {
+if (actorKey === undefined || conversationId === undefined) {
   process.stderr.write(
-    "usage: transcript -- --principal <key> --id <conversationId> [--origin <url>]\n",
+    "usage: transcript -- --actor-key <key> --id <conversationId> [--origin <url>]\n",
   );
   process.exit(1);
 }
 
-const identity = { principalKey, conversationId };
-const instanceId = flueConversationIdFrom(identity);
+const identity = { actorKey, conversationId };
+const instanceId = flueConversationId(identity);
 const snapshot = await createFlueClient({
   url: `${origin}${brunchRoutes.agents}/${brunchRoutes.petrinautAgent}/${instanceId}`,
   headers: agentOwnershipHeaders(identity),

@@ -23,6 +23,7 @@ describes the code.
 | `plugin-statuses.ts`                                  | Each plugin's status, `on`, `off` or `failed`, in the host's order.                                                      |
 | `plugin-contributions.ts`                             | What a manifest declares, as tags for the plugin's row in User settings.                                                 |
 | `plugin-outlets.tsx`                                  | Where the view renders buttons, top-bar items and roots.                                                                 |
+| `plugin-assistant.tsx`                                | The plugin that provides the AI assistant, its panel state and `AssistantPanelTitle`.                                    |
 | `plugin-boundary.tsx`                                 | Suspense plus an error boundary around each host and each contribution; reports failures to the error tracker.           |
 | `plugins-test-harness.tsx`                            | `renderPlugins`: renders plugins beside a view under the editor's providers, for tests.                                  |
 
@@ -45,7 +46,8 @@ PetrinautPluginsProvider
                                               │
                       contributions store ◄───┘
                               │
-        PluginToolbarItems, PluginRoots, PluginSettingsRows   (the view's outlets)
+        PluginToolbarItems, PluginRoots, PluginSettingsRows,
+        usePluginAssistant                                    (the view's outlets)
 ```
 
 `definePetrinautPlugin(manifest, implementation)` returns the same plugin in
@@ -56,20 +58,21 @@ so it reads the action from `NetManagementContext`.
 
 ## Design
 
-[How the editor runs plugins](../../../../../@local/petrinaut-arch-docs/content/plugins/runtime.mdx)
+[How the editor runs plugins](./runtime.mdx)
 describes hosts, publishing, remounts, failures, settings storage and the
 React Compiler directives. The
-[Plugin API reference](../../../../../@local/petrinaut-arch-docs/content/plugins/reference.mdx)
+[Plugin API reference](./reference.mdx)
 gives the typing rules.
 
 ## Consumers
 
 - `ui/petrinaut.tsx` mounts `PetrinautPluginsProvider` inside the editor's
   providers and supplies a command registry when the host passes none.
-- The editor view renders the outlets; User settings renders
-  `PluginSettingsRows` and, under Plugins, one row per status entry.
-- `ui/index.ts` and `main.ts` export the definition, the types and the hooks
-  plugin code imports.
+- The editor view renders the outlets, and the assistant panel's shell around
+  the providing plugin's content; User settings renders `PluginSettingsRows`
+  and, under Plugins, one row per status entry.
+- `ui/plugin.ts`, the `@hashintel/petrinaut/ui/plugin` entry, exports the
+  definition, the types, the hooks and the components plugin code imports.
 
 ## Tests
 

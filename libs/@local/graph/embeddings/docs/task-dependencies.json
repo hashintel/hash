@@ -3,8 +3,8 @@
   "dependencies": [
     "darwin-kperf-criterion",
     "error-stack",
-    "hash-graph-types",
-    "hash-secret"
+    "hash-crypto",
+    "hash-graph-types"
   ],
   "tasks": {
     "build:codspeed": {

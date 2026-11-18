@@ -64,7 +64,7 @@ fn resolver() -> KratosEmailActorResolver<EchoingActorResolver> {
 
 /// An address that cannot collide with another test or another run.
 fn unique_email() -> String {
-    format!("graph-contract-{}@example.com", Uuid::new_v4())
+    format!("graph-contract-{}@example.com", Uuid::now_v7())
 }
 
 /// Creates an identity carrying the given address and returns its Kratos ID.
@@ -122,7 +122,7 @@ async fn delete_identity(client: &Client, id: &str) -> Result<(), Box<dyn Error>
 async fn verified_address_resolves_to_the_provisioned_actor() -> Result<(), Box<dyn Error>> {
     let client = Client::new();
     let email = unique_email();
-    let actor_id = ActorEntityUuid::new(Uuid::new_v4());
+    let actor_id = ActorEntityUuid::new(Uuid::now_v7());
     let identity_id = create_identity(&client, &email, true, Some(actor_id)).await?;
 
     let resolved = resolver().resolve_email_actor(&email).await;
@@ -148,7 +148,7 @@ async fn unverified_address_does_not_resolve() -> Result<(), Box<dyn Error>> {
         &client,
         &email,
         false,
-        Some(ActorEntityUuid::new(Uuid::new_v4())),
+        Some(ActorEntityUuid::new(Uuid::now_v7())),
     )
     .await?;
 
@@ -204,7 +204,7 @@ async fn address_without_an_identity_does_not_resolve() {
 async fn address_resolves_regardless_of_case() -> Result<(), Box<dyn Error>> {
     let client = Client::new();
     let email = unique_email();
-    let actor_id = ActorEntityUuid::new(Uuid::new_v4());
+    let actor_id = ActorEntityUuid::new(Uuid::now_v7());
     let identity_id = create_identity(&client, &email, true, Some(actor_id)).await?;
 
     let resolved = resolver().resolve_email_actor(&email.to_uppercase()).await;
@@ -243,7 +243,7 @@ async fn identity_read_by_id_yields_the_registered_addresses() -> Result<(), Box
 #[tokio::test]
 async fn identity_read_by_unknown_id_yields_none() {
     let read = admin_client()
-        .get_by_id(&Uuid::new_v4().to_string())
+        .get_by_id(&Uuid::now_v7().to_string())
         .await
         .expect("an unknown identity should not fail the read");
     assert!(

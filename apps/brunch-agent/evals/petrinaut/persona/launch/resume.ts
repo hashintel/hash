@@ -6,12 +6,13 @@ import { join, resolve } from "node:path";
 import { createFlueClient } from "@flue/sdk";
 import * as v from "valibot";
 
-import { sdcpnInitialDataSchema } from "@hashintel/brunch-agent";
-
 import {
   agentOwnershipHeaders,
-  flueConversationIdFrom,
-} from "../../../../src/shared/conversation/identity.ts";
+  brunchActorKeyStorageKey,
+  sdcpnInitialDataSchema,
+} from "@hashintel/brunch-agent";
+
+import { flueConversationId } from "../../../../src/shared/conversation/identity.ts";
 import { lastAdmittedUtterance } from "./bridge-log.ts";
 import { roleSettingsFromRun } from "./role-settings.ts";
 
@@ -21,7 +22,7 @@ import type { Page } from "@playwright/test";
 const text = v.pipe(v.string(), v.minLength(1));
 const netArray = v.array(v.unknown());
 /** The website opens only stored entries of this shape and skips the rest. */
-const storedNetSchema = (documentId: string) =>
+const storedNetSchemaWith = ({ documentId }: { documentId: string }) =>
   v.object({
     id: v.literal(documentId),
     title: v.string(),
@@ -53,13 +54,31 @@ const runSchema = v.pipe(
     ...roleSettingsFromRun(config),
   })),
 );
-const sessionSchema = v.object({
-  url: text,
-  principalKey: text,
-  conversationId: text,
-  uid: text,
-  initialData: v.nonOptional(sdcpnInitialDataSchema),
-});
+/**
+ * `session.json` as run directories hold it. The actor key keeps its
+ * pre-rename field name on disk, so runs recorded before the rename still
+ * resume; in memory it is the session's `actorKey`.
+ */
+const sessionSchema = v.pipe(
+  v.object({
+    url: text,
+    ownerKey: text,
+    conversationId: text,
+    uid: text,
+    initialData: v.nonOptional(sdcpnInitialDataSchema),
+  }),
+  v.transform(({ ownerKey, ...session }) => ({
+    ...session,
+    actorKey: ownerKey,
+  })),
+);
+
+/** The `session.json` text for a session, in the shape `readPersonaResume` reads. */
+export const personaSessionFileText = ({
+  actorKey,
+  ...session
+}: PersonaBrowserSession): string =>
+  `${JSON.stringify({ ...session, ownerKey: actorKey }, null, 2)}\n`;
 export const readPersonaResume = async (directory: string) => {
   const run = resolve(directory);
   const config = v.parse(
@@ -73,7 +92,7 @@ export const readPersonaResume = async (directory: string) => {
   assert.equal(resolve(config.databasePath), join(run, "conversation.db"));
   assert.equal(
     session.url,
-    `${config.panelOrigin}/agents/petrinaut/${flueConversationIdFrom(session)}`,
+    `${config.panelOrigin}/agents/petrinaut/${flueConversationId(session)}`,
   );
   const binding = session.initialData.binding;
   assert.equal(binding.conversationId, session.conversationId);
@@ -100,25 +119,28 @@ export const openRetainedPersonaBrowser = async (
   );
   await page.goto(checkUrl);
   await page.unroute(checkUrl);
-  const saved = await page.evaluate(() => ({
-    principal: localStorage.getItem("brunch-principal-v1"),
-    documents: JSON.parse(
-      localStorage.getItem("petrinaut-sdcpn") ?? "{}",
-    ) as unknown,
-  }));
+  const saved = await page.evaluate(
+    (storageKey) => ({
+      actorKey: localStorage.getItem(storageKey),
+      documents: JSON.parse(
+        localStorage.getItem("petrinaut-sdcpn") ?? "{}",
+      ) as unknown,
+    }),
+    brunchActorKeyStorageKey,
+  );
   const data = v.parse(sdcpnInitialDataSchema, session.initialData);
   assert(data);
   const binding = data.binding;
   assert.equal(
-    saved.principal,
-    session.principalKey,
-    "Original browser principal is missing or changed",
+    saved.actorKey,
+    session.actorKey,
+    "Original browser actor key is missing or changed",
   );
   const documents = v.parse(v.record(v.string(), v.unknown()), saved.documents);
   const stored = documents[binding.documentId];
   assert.ok(stored !== undefined, "Original browser document is missing");
   assert.ok(
-    v.is(storedNetSchema(binding.documentId), stored),
+    v.is(storedNetSchemaWith({ documentId: binding.documentId }), stored),
     "Original browser document is not a net the website opens",
   );
   await page.goto(new URL(route, origin).href);

@@ -1,13 +1,21 @@
-import { CLIENT_TOOL_RESULT_CONTEXT_MAX_LENGTH } from "../client-tools";
-
 export const PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX =
   "petrinaut-contextual-user-message:v1\n";
+const submissionContextPrefix = "petrinaut-contextual-user-message:v2\n";
 export const PETRINAUT_CONTEXTUAL_USER_TEXT_MAX_LENGTH = 32_000;
 const PETRINAUT_CONTEXTUAL_USER_BODY_MAX_LENGTH = 256_000;
+/** Keep diagnostics context comfortably below Flue's delivered-message limit. */
+const diagnosticsContextMaxLength = 32_000;
+
+/**
+ * Host data for one submission. The envelope never reads its keys; each
+ * reader validates its own, and the body limit bounds the whole.
+ */
+export type SubmissionContext = Readonly<Record<string, unknown>>;
 
 export interface PetrinautContextualUserMessagePayload {
   readonly userText: string;
   readonly diagnosticsContext: string;
+  readonly submissionContext?: SubmissionContext;
 }
 
 export type PetrinautUserMessageBody =
@@ -34,6 +42,11 @@ const hasExactKeys = (
   );
 };
 
+const isSubmissionContext = (value: unknown): value is SubmissionContext => {
+  const record = asRecord(value);
+  return record !== null && Object.keys(record).length > 0;
+};
+
 /** Build the bounded, provenance-preserving body used for a contextual user admission. */
 export const petrinautContextualUserMessageBody = (
   payload: PetrinautContextualUserMessagePayload,
@@ -42,15 +55,26 @@ export const petrinautContextualUserMessageBody = (
     payload.userText.length === 0 ||
     Array.from(payload.userText).length >
       PETRINAUT_CONTEXTUAL_USER_TEXT_MAX_LENGTH ||
-    payload.diagnosticsContext.length === 0 ||
-    Array.from(payload.diagnosticsContext).length >
-      CLIENT_TOOL_RESULT_CONTEXT_MAX_LENGTH
+    (payload.submissionContext === undefined
+      ? payload.diagnosticsContext.length === 0
+      : !isSubmissionContext(payload.submissionContext)) ||
+    Array.from(payload.diagnosticsContext).length > diagnosticsContextMaxLength
   ) {
     throw new Error(
       "The contextual user message payload is invalid or too long.",
     );
   }
-  const body = `${PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX}${JSON.stringify(payload)}`;
+  const body =
+    payload.submissionContext === undefined
+      ? `${PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX}${JSON.stringify({
+          userText: payload.userText,
+          diagnosticsContext: payload.diagnosticsContext,
+        })}`
+      : `${submissionContextPrefix}${JSON.stringify({
+          userText: payload.userText,
+          diagnosticsContext: payload.diagnosticsContext,
+          submissionContext: payload.submissionContext,
+        })}`;
   if (Array.from(body).length > PETRINAUT_CONTEXTUAL_USER_BODY_MAX_LENGTH) {
     throw new Error("The contextual user message body is too long.");
   }
@@ -61,7 +85,11 @@ export const petrinautContextualUserMessageBody = (
 export const parsePetrinautUserMessageBody = (
   body: string,
 ): PetrinautUserMessageBody => {
-  if (!body.startsWith(PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX)) {
+  const hasSubmissionContext = body.startsWith(submissionContextPrefix);
+  if (
+    !hasSubmissionContext &&
+    !body.startsWith(PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX)
+  ) {
     return { kind: "ordinary", userText: body };
   }
   if (Array.from(body).length > PETRINAUT_CONTEXTUAL_USER_BODY_MAX_LENGTH) {
@@ -70,7 +98,11 @@ export const parsePetrinautUserMessageBody = (
   let parsed: unknown;
   try {
     parsed = JSON.parse(
-      body.slice(PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX.length),
+      body.slice(
+        hasSubmissionContext
+          ? submissionContextPrefix.length
+          : PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX.length,
+      ),
     );
   } catch {
     return { kind: "invalid-contextual" };
@@ -78,23 +110,37 @@ export const parsePetrinautUserMessageBody = (
   const payload = asRecord(parsed);
   if (
     payload === null ||
-    !hasExactKeys(payload, ["diagnosticsContext", "userText"]) ||
+    !hasExactKeys(
+      payload,
+      hasSubmissionContext
+        ? ["diagnosticsContext", "submissionContext", "userText"]
+        : ["diagnosticsContext", "userText"],
+    ) ||
     typeof payload.userText !== "string" ||
-    typeof payload.diagnosticsContext !== "string"
+    typeof payload.diagnosticsContext !== "string" ||
+    (hasSubmissionContext && !isSubmissionContext(payload.submissionContext))
   ) {
     return { kind: "invalid-contextual" };
   }
+  const result: PetrinautContextualUserMessagePayload = {
+    userText: payload.userText,
+    diagnosticsContext: payload.diagnosticsContext,
+    ...(hasSubmissionContext && isSubmissionContext(payload.submissionContext)
+      ? { submissionContext: payload.submissionContext }
+      : {}),
+  };
   try {
-    petrinautContextualUserMessageBody({
-      userText: payload.userText,
-      diagnosticsContext: payload.diagnosticsContext,
-    });
+    petrinautContextualUserMessageBody(result);
   } catch {
     return { kind: "invalid-contextual" };
   }
-  return {
-    kind: "contextual",
-    userText: payload.userText,
-    diagnosticsContext: payload.diagnosticsContext,
-  };
+  return { kind: "contextual", ...result };
+};
+
+/** The user's own text, without host context or diagnostics, for display and evidence. */
+export const petrinautUserMessageText = (body: string): string => {
+  const parsed = parsePetrinautUserMessageBody(body);
+  return parsed.kind === "invalid-contextual"
+    ? "[Invalid contextual user message]"
+    : parsed.userText;
 };

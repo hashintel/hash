@@ -9,7 +9,7 @@ import {
 } from "@blockprotocol/type-system";
 import { CheckRegularIcon, IconButton } from "@hashintel/design-system";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
-import { isGoalFlowDefinitionId } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
+import { isGoalFlowDefinitionEntityId } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
 import { getClosedMultiEntityTypesQuery } from "../../../../../graphql/queries/ontology/entity-type.queries";
@@ -33,7 +33,6 @@ import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type {
   EntityEditionId,
   EntityId,
-  EntityUuid,
   LeftClosedTemporalInterval,
   Timestamp,
   VersionedUrl,
@@ -261,7 +260,7 @@ export const Outputs = ({
 
   const hasClaims =
     !!selectedFlowRun &&
-    isGoalFlowDefinitionId(selectedFlowRun.flowDefinitionId as EntityUuid);
+    isGoalFlowDefinitionEntityId(selectedFlowRun.flowDefinitionEntityId);
 
   const hasEntities =
     persistedEntitiesMetadata.length > 0 || proposedEntities.length > 0;

@@ -2,6 +2,11 @@ import assert from "node:assert/strict";
 
 import { expect, test } from "vitest";
 
+import {
+  brunchTools,
+  petrinautContextualUserMessageBody,
+} from "@hashintel/brunch-agent";
+
 import { projectBrunchContext } from "./context-projection";
 
 import type { ContextProjectionEntry } from "@flue/runtime";
@@ -74,6 +79,40 @@ test("projects in-band canonical output without exposing host sidecars or alteri
   assert(!JSON.stringify(projected).includes("brunchBrowserResult"));
 });
 
+const hashRead = (output: unknown): ContextProjectionEntry => ({
+  id: "hash-read",
+  message: {
+    role: "toolResult",
+    toolCallId: "h1",
+    toolName: brunchTools.hashQueryEntities,
+    isError: false,
+    content: [
+      {
+        type: "text",
+        text: JSON.stringify({
+          brunchBrowserResult: true,
+          output,
+          metadata: sidecar,
+        }),
+      },
+    ],
+  },
+});
+
+const contentOf = (entry: ContextProjectionEntry | undefined) =>
+  entry?.message.role === "toolResult" && entry.message.content;
+
+test("a failed read of a text-result tool reaches the model as its error and note in JSON", () => {
+  const failure = {
+    error: "Response not successful: GraphQL error",
+    note: "The read failed; the document is unchanged.",
+  };
+  const [projected] = projectBrunchContext([hashRead(failure)]);
+  expect(contentOf(projected)).toEqual([
+    { type: "text", text: JSON.stringify(failure) },
+  ]);
+});
+
 test("user messages and server tool results pass through unchanged", () => {
   const ledger: ContextProjectionEntry = {
     id: "ledger",
@@ -87,6 +126,60 @@ test("user messages and server tool results pass through unchanged", () => {
   };
   const input = [entries()[0]!, ledger];
   expect(projectBrunchContext(input)).toEqual(input);
+});
+
+test("shows the model each user turn as it would read without submission context", () => {
+  const submissionContext = {
+    interviewBudget: {
+      level: "quick",
+      questionCap: 3,
+      asked: 1,
+      remaining: 2,
+    },
+    words: ["RelayDesk"],
+  };
+  const diagnosed = petrinautContextualUserMessageBody({
+    userText: "Two suppliers.",
+    diagnosticsContext: "Selected: Supplier A",
+  });
+  const input: ContextProjectionEntry[] = [
+    {
+      id: "budgeted",
+      message: {
+        role: "user",
+        content: petrinautContextualUserMessageBody({
+          userText: "We hold stock.",
+          diagnosticsContext: "",
+          submissionContext,
+        }),
+      },
+    },
+    {
+      id: "budgeted-diagnosed",
+      message: {
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: petrinautContextualUserMessageBody({
+              userText: "Two suppliers.",
+              diagnosticsContext: "Selected: Supplier A",
+              submissionContext,
+            }),
+          },
+        ],
+      },
+    },
+    { id: "diagnosed", message: { role: "user", content: diagnosed } },
+  ];
+  const projected = projectBrunchContext(input);
+  expect(projected.map(({ message }) => message)).toEqual([
+    { role: "user", content: "We hold stock." },
+    { role: "user", content: [{ type: "text", text: diagnosed }] },
+    { role: "user", content: diagnosed },
+  ]);
+  expect(JSON.stringify(projected)).not.toContain("interviewBudget");
+  expect(JSON.stringify(projected)).not.toContain("RelayDesk");
 });
 
 // Runtime wiring (opt-in per agent, exact compaction slices, canonical

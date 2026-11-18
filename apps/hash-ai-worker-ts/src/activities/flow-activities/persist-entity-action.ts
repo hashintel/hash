@@ -1,12 +1,10 @@
 import { Context } from "@temporalio/activity";
-import { backOff } from "exponential-backoff";
 
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import {
   getStorageProvider,
   resolvePayloadValue,
 } from "@local/hash-backend-utils/flows/payload-storage";
-import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
 import {
   HashEntity,
   HashLinkEntity,
@@ -16,7 +14,6 @@ import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flow
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { StatusCode } from "@local/status";
 
-import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity.js";
 import { extractErrorMessage } from "../infer-entities/shared/extract-validation-failure-details.js";
 import { createInferredEntityNotification } from "../shared/create-inferred-entity-notification.js";
 import {
@@ -31,6 +28,7 @@ import {
   getEntityUpdate,
   getLatestEntityById,
 } from "./shared/graph-requests.js";
+import { getSavingActorId, retrySave } from "./shared/save-entity.js";
 
 import type { MatchedEntityUpdate } from "../shared/match-existing-entity.js";
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
@@ -101,30 +99,11 @@ export const persistEntity = async ({
 
   const isAiGenerated = provenance.actorType === "ai";
 
-  const webBotActorId = isAiGenerated
-    ? await getAiAssistantAccountIdActivity({
-        authentication: { actorId },
-        graphApiClient,
-        grantCreatePermissionForWeb: webId,
-      })
-    : await getWebMachineId(
-        { graphApi: graphApiClient },
-        { actorId },
-        { webId },
-      ).then((maybeMachineId) => {
-        if (!maybeMachineId) {
-          throw new Error(
-            `Failed to get web bot account ID for web ID: ${webId}`,
-          );
-        }
-        return maybeMachineId;
-      });
-
-  if (!webBotActorId) {
-    throw new Error(
-      `Could not get ${isAiGenerated ? "AI" : "web"} bot for web ${webId}`,
-    );
-  }
+  const webBotActorId = await getSavingActorId({
+    actorId,
+    webId,
+    isAiGenerated,
+  });
 
   /**
    * @todo: determine whether the entity type ID is a file entity type ID
@@ -206,47 +185,35 @@ export const persistEntity = async ({
          */
         const stableReferenceToMatchedEntity = matchedEntityUpdate;
 
-        entity = await backOff(
-          () =>
-            stableReferenceToMatchedEntity.existingEntity.patch(
-              graphApiClient,
-              { actorId: webBotActorId },
-              {
-                entityTypeIds:
-                  stableReferenceToMatchedEntity.newValues.entityTypeIds,
-                draft: existingEntityIsDraft ? true : createEditionAsDraft,
-                propertyPatches: patchOperations,
-                provenance: {
-                  ...entityValues.provenance,
-                  sources:
-                    stableReferenceToMatchedEntity.newValues.editionSources,
-                },
+        entity = await retrySave(() =>
+          stableReferenceToMatchedEntity.existingEntity.patch(
+            graphApiClient,
+            { actorId: webBotActorId },
+            {
+              entityTypeIds:
+                stableReferenceToMatchedEntity.newValues.entityTypeIds,
+              draft: existingEntityIsDraft ? true : createEditionAsDraft,
+              propertyPatches: patchOperations,
+              provenance: {
+                ...entityValues.provenance,
+                sources:
+                  stableReferenceToMatchedEntity.newValues.editionSources,
               },
-            ),
-          {
-            jitter: "full",
-            numOfAttempts: 3,
-            startingDelay: 1_000,
-          },
+            },
+          ),
         );
       } else {
-        entity = await backOff(
-          () =>
-            HashEntity.create(
-              graphApiClient,
-              { actorId: webBotActorId },
-              {
-                ...entityValues,
-                draft: createEditionAsDraft,
-                entityUuid,
-                webId,
-              },
-            ),
-          {
-            jitter: "full",
-            numOfAttempts: 3,
-            startingDelay: 1_000,
-          },
+        entity = await retrySave(() =>
+          HashEntity.create(
+            graphApiClient,
+            { actorId: webBotActorId },
+            {
+              ...entityValues,
+              draft: createEditionAsDraft,
+              entityUuid,
+              webId,
+            },
+          ),
         );
       }
     } catch (err) {

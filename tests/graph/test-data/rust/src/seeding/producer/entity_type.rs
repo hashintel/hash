@@ -321,6 +321,7 @@ impl<
                     .global_id(local_id, Scope::Provenance, SubScope::Provenance)
                     .rng(),
             ),
+            fetched_from_origin: false,
         })
     }
 }

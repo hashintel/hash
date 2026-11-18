@@ -2,7 +2,6 @@ import { useQuery } from "@apollo/client";
 import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -47,16 +46,17 @@ export const ClaimsOutput = memo(({ proposedEntities }: ClaimsTableProps) => {
             },
             {
               equal: [
+                { path: ["editionProvenance", "origin", "type"] },
+                { parameter: "flow" },
+              ],
+            },
+            {
+              equal: [
                 {
                   path: ["editionProvenance", "origin", "id"],
                 },
                 {
-                  parameter: selectedFlowRun
-                    ? entityIdFromComponents(
-                        selectedFlowRun.webId,
-                        selectedFlowRun.flowRunId,
-                      )
-                    : "never",
+                  parameter: selectedFlowRun?.flowRunEntityId ?? "never",
                 },
               ],
             },

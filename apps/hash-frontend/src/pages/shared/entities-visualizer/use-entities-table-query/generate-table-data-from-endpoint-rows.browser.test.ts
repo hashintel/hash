@@ -215,7 +215,7 @@ describe("generateTableDataFromEndpointRows", () => {
         definitions: {
           ...definitions,
           propertyTypes: {},
-        } as unknown as EntityTypeResolveDefinitions,
+        },
         endpointRows: [row("1", { name: "Alice" })],
       }),
     ).toThrow(/Property type not found/);

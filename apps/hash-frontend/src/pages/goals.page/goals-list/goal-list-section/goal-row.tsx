@@ -13,12 +13,13 @@ import { FlowStatusChip, FlowTableChip } from "../../../shared/flow-tables";
 import { goalRowSx } from "./goal-row-sx";
 
 import type { SimpleFlowRunStatus } from "../../../shared/flow-tables";
-import type { EntityUuid } from "@blockprotocol/type-system";
+import type { EntityId } from "@blockprotocol/type-system";
 
 export type GoalSummary = {
-  flowRunId: EntityUuid;
+  flowRunEntityId: EntityId;
   openInputRequests: number;
-  lastEventTimestamp: string;
+  startedAt: string;
+  endedAt?: string;
   name: string;
   status: SimpleFlowRunStatus;
   web: {
@@ -31,10 +32,11 @@ export type GoalSummary = {
 export const GoalRow = memo(({ goalSummary }: { goalSummary: GoalSummary }) => {
   const {
     name,
-    lastEventTimestamp,
+    startedAt,
+    endedAt,
     openInputRequests,
     web,
-    flowRunId,
+    flowRunEntityId,
     status,
   } = goalSummary;
 
@@ -64,7 +66,10 @@ export const GoalRow = memo(({ goalSummary }: { goalSummary: GoalSummary }) => {
       </FlowTableChip>
 
       <Link
-        href={generateWorkerRunPath({ shortname: web.shortname, flowRunId })}
+        href={generateWorkerRunPath({
+          shortname: web.shortname,
+          flowRunEntityId,
+        })}
         sx={{
           display: "block",
           fontSize: 14,
@@ -80,8 +85,8 @@ export const GoalRow = memo(({ goalSummary }: { goalSummary: GoalSummary }) => {
         mr={2.5}
         sx={{ fontSize: 14, color: ({ palette }) => palette.gray[80] }}
       >
-        last event{" "}
-        {formatDistance(new Date(lastEventTimestamp), new Date(), {
+        {endedAt ? "ended" : "started"}{" "}
+        {formatDistance(new Date(endedAt ?? startedAt), new Date(), {
           addSuffix: true,
         })}
       </Typography>

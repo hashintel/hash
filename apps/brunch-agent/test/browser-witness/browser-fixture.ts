@@ -21,13 +21,14 @@ import {
 import { createFlueClient } from "@flue/sdk";
 import { chromium, type Page } from "@playwright/test";
 
+import {
+  agentOwnershipHeaders,
+  brunchActorKeyStorageKey,
+} from "@hashintel/brunch-agent";
 import { installFauxProvider } from "@local/pi-faux-providers/install-faux-provider";
 import { nativeOpenaiProvider } from "@local/pi-faux-providers/native-openai-provider";
 
-import {
-  agentOwnershipHeaders,
-  flueConversationIdFrom,
-} from "../../src/shared/conversation/identity.ts";
+import { flueConversationId } from "../../src/shared/conversation/identity.ts";
 
 import type { BuiltBrunchApplication } from "../load-built-application.ts";
 
@@ -140,7 +141,8 @@ export const openBrowserFixture = async (app: BuiltBrunchApplication) => {
       else {
         const file = resolve(
           websiteDist,
-          `.${url.pathname === "/" ? "/index.html" : url.pathname}`,
+          // The website's client-side document route must also survive reload.
+          `.${url.pathname === "/" || url.pathname.startsWith("/local/") ? "/index.html" : url.pathname}`,
         );
         assert(file.startsWith(`${websiteDist}/`));
         const mime: Record<string, string> = {
@@ -196,7 +198,7 @@ export const openBrowserFixture = async (app: BuiltBrunchApplication) => {
   }
   const launched = browser;
 
-  /** A fresh browser context, so each case gets its own principal and storage. */
+  /** A fresh browser context, so each case gets its own actor key and storage. */
   const openPage = async () => {
     const page = await launched.newPage({
       viewport: { width: 1440, height: 1000 },
@@ -276,16 +278,13 @@ export const openBrowserFixture = async (app: BuiltBrunchApplication) => {
     openStreams.clear();
   };
 
-  const principalOf = async (page: Page) => {
-    const principalKey = await page.evaluate(() => {
-      const key = Object.keys(localStorage).find((entry) =>
-        entry.includes("principal"),
-      );
-      const raw = key === undefined ? null : localStorage.getItem(key);
+  const actorKeyOf = async (page: Page) => {
+    const actorKey = await page.evaluate((storageKey) => {
+      const raw = localStorage.getItem(storageKey);
       return raw?.startsWith('"') ? (JSON.parse(raw) as string) : raw;
-    });
-    assert(principalKey, "Missing browser principal");
-    return principalKey;
+    }, brunchActorKeyStorageKey);
+    assert(actorKey, "Missing browser actor key");
+    return actorKey;
   };
 
   /** The Flue client for the conversation the delivery's binding names. */
@@ -293,11 +292,11 @@ export const openBrowserFixture = async (app: BuiltBrunchApplication) => {
     const binding = delivery.initialData?.binding;
     assert(binding, "Missing browser conversation binding");
     const identity = {
-      principalKey: await principalOf(page),
+      actorKey: await actorKeyOf(page),
       conversationId: binding.conversationId,
     };
     const client = createFlueClient({
-      url: `${origin}/agents/petrinaut/${flueConversationIdFrom(identity)}`,
+      url: `${origin}/agents/petrinaut/${flueConversationId(identity)}`,
       headers: agentOwnershipHeaders(identity),
     });
     return { binding, client };

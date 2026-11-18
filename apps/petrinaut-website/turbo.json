@@ -36,11 +36,7 @@
       "dependsOn": ["codegen", "examples:generate", "^build"]
     },
     "test:unit": {
-      "dependsOn": ["codegen", "examples:generate", "^build"],
-      // Restated because a package task definition replaces the root one, and
-      // the root declares this so a coverage run cannot reuse a plain cache
-      // entry.
-      "env": ["TEST_COVERAGE"]
+      "dependsOn": ["codegen", "examples:generate", "^build"]
     }
   }
 }

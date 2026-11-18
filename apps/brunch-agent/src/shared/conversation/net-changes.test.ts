@@ -1,8 +1,9 @@
 import { expect, test } from "vitest";
 
+import { generatedArcId } from "@hashintel/brunch-agent";
 import { toPetrinautId } from "@hashintel/petrinaut-core";
 
-import { queryBasis } from "../../agents/petrinaut/tools/query-basis.ts";
+import { queryBasis } from "../../agents/shared/query-basis.ts";
 import {
   isAppliedChange,
   latestNetDefinition,
@@ -39,7 +40,6 @@ const definition = {
       name: "Queue",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     },
@@ -154,7 +154,7 @@ test("credits only canonical applied calls with an after revision, in history or
   );
 });
 
-test("query_basis locates the latest read element and relates the applied call to the Ledger revision and the records its turn committed", () => {
+test("query_basis locates the latest read element and relates the applied call to the Ledger revision", () => {
   expect(
     queryBasis({
       snapshot,
@@ -170,7 +170,6 @@ test("query_basis locates the latest read element and relates the applied call t
         toolCallId: "add-queue",
         petrinautRevisionId: "revision-2",
         ledgerRevision: 1,
-        recordsCommittedThisTurn: [{ id: "e1", type: "entity" }],
       },
     ],
   });
@@ -254,7 +253,6 @@ test("a refused Ledger commit adds nothing to the revision or records a call is 
     }).changes[0],
   ).toMatchObject({
     ledgerRevision: 1,
-    recordsCommittedThisTurn: [{ id: "e1", type: "entity" }],
   });
 });
 
@@ -349,7 +347,13 @@ test("query_basis matches a root arc to canonical addArc by transition, directio
       },
     }),
   ).toMatchObject({
-    target: { id: `${toPetrinautId("serve")}:input:${toPetrinautId("queue")}` },
+    target: {
+      id: generatedArcId({
+        transitionId: toPetrinautId("serve"),
+        arcDirection: "input",
+        placeId: toPetrinautId("queue"),
+      }),
+    },
     changes: [
       { toolCallId: "delete-arc", operation: "deleteItemsByIds" },
       {
@@ -357,7 +361,6 @@ test("query_basis matches a root arc to canonical addArc by transition, directio
         operation: "addArc",
         petrinautRevisionId: "revision-3",
         ledgerRevision: 1,
-        recordsCommittedThisTurn: [{ id: "e1", type: "entity" }],
       },
     ],
   });

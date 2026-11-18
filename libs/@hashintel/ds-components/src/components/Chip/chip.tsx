@@ -1,3 +1,5 @@
+import { useRef } from "react";
+
 import { cx } from "@hashintel/ds-helpers/css";
 
 import { Icon, type IconName } from "../Icon/icon";
@@ -13,16 +15,33 @@ import type { ExclusifyUnion, RequireAllOrNone } from "type-fest";
  * children. `variant` shapes the slot's edge treatment (see the affix zone
  * styles below); `onClick` makes just the slot interactive, in which case an
  * `aria-label` is required so the resulting button has an accessible name.
+ * A handled click does not propagate to ancestors.
  */
 type PrefixOrSuffix = (
-  | { iconName: IconName }
-  | { dot: "filled" | "partiallyFilled" | "empty" }
-  | { loading: boolean }
-  | { children: React.ReactNode }
+  | {
+      /** Name of icon to display */
+      iconName: IconName;
+    }
+  | {
+      /** A status dot in the chip's text color. */
+      dot: "filled" | "partiallyFilled" | "empty";
+    }
+  | {
+      /** A spinner sized to the chip; `false` keeps the slot empty. */
+      loading: boolean;
+    }
+  | {
+      /** Arbitrary slot content, instead of a named icon, dot, or spinner. */
+      children: React.ReactNode;
+    }
 ) & {
   variant?: "straight" | "badge" | "angle" | "naked";
   "aria-label"?: string;
 } & RequireAllOrNone<{ onClick: () => void; "aria-label": string }>;
+
+// Docs-only marker: renders nothing, exists so react-docgen can surface the
+// `prefix`/`suffix` slot object's props in the docs prop table.
+export const ChipAffixSlot = (_props: PrefixOrSuffix): null => null;
 
 export type ChipColor =
   | "grey"
@@ -100,14 +119,18 @@ const ChipAffix = ({
     interactive: !!affix.onClick,
   });
 
-  if (affix.onClick) {
+  const affixClick = affix.onClick;
+  if (affixClick) {
     return (
       <button
         type="button"
         data-chip-segment={side}
         className={className}
         aria-label={affix["aria-label"]}
-        onClick={affix.onClick}
+        onClick={(event) => {
+          event.stopPropagation();
+          affixClick();
+        }}
       >
         {content}
       </button>
@@ -135,6 +158,7 @@ export const Chip = ({
   ...ariaAttributes
 }: ChipProps) => {
   const showRemove = !!removeable;
+  const removePressOriginRef = useRef<HTMLElement | null>(null);
   const prefixInteractive = !!prefix?.onClick;
   const suffixInteractive = !!suffix?.onClick;
 
@@ -173,6 +197,13 @@ export const Chip = ({
 
   const rootClassName = cx(classes.root, className);
 
+  const handleBodyClick = onClick
+    ? (event: React.MouseEvent) => {
+        event.stopPropagation();
+        onClick();
+      }
+    : undefined;
+
   const prefixNode = prefix && (
     <ChipAffix affix={prefix} side="prefix" size={size} />
   );
@@ -192,7 +223,26 @@ export const Chip = ({
         side: "suffix",
         interactive: true,
       })}
-      onClick={removeable.onRemove}
+      // Some browsers move focus to a pressed button, and this one unmounts
+      // on click. Remember where focus came from and hand it back as the click lands.
+      onFocus={(event) => {
+        removePressOriginRef.current =
+          event.relatedTarget instanceof HTMLElement
+            ? event.relatedTarget
+            : null;
+      }}
+      onClick={(event) => {
+        event.stopPropagation();
+        if (document.activeElement === event.currentTarget) {
+          const origin = removePressOriginRef.current;
+          if (origin?.isConnected) {
+            origin.focus({ preventScroll: true });
+          } else {
+            event.currentTarget.blur();
+          }
+        }
+        removeable.onRemove();
+      }}
     >
       <Icon name="close" size={iconSizeMap[size]} />
     </button>
@@ -209,7 +259,7 @@ export const Chip = ({
       <button
         type="button"
         className={rootClassName}
-        onClick={onClick}
+        onClick={handleBodyClick}
         {...ariaAttributes}
       >
         {prefixNode}
@@ -227,7 +277,7 @@ export const Chip = ({
           type="button"
           data-chip-segment="center"
           className={classes.centerButton}
-          onClick={onClick}
+          onClick={handleBodyClick}
           {...ariaAttributes}
         >
           {prefix && !prefixInteractive && prefixNode}
@@ -250,3 +300,6 @@ export const Chip = ({
     </div>
   );
 };
+
+// Stable name for the docs Stage code serializer under minification
+Chip.displayName = "Chip";

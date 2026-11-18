@@ -1,31 +1,17 @@
-import type { SimpleStatus } from "../../../../../shared/flow-runs-context";
-import type { NamedStepInputSource } from "./named-input-sources";
 import type {
-  ActionDefinition,
-  FlowActionDefinitionId,
   ProgressLogBase,
   ProposedEntity,
   StepDefinition,
   StepProgressLog,
 } from "@local/hash-isomorphic-utils/flows/types";
-import type { Edge, Node } from "reactflow";
 
-export type NodeData = {
+/** A step of a flow, including one inside a `forEach`, for the run sidebar's list of steps. */
+export type FlowStepSummary = {
+  stepId: string;
+  /** The `forEach` step it's inside, if any. */
+  parentStepId?: string;
   kind: StepDefinition["kind"];
-  actionDefinition?: ActionDefinition<FlowActionDefinitionId> | null;
   label: string;
-  inputSources: NamedStepInputSource[];
-};
-
-export type CustomNodeType = Node<NodeData>;
-
-export type EdgeData = { sourceStatus: SimpleStatus };
-
-export type CustomEdgeType = Edge<EdgeData>;
-
-export type EdgesAndNodes = {
-  edges: CustomEdgeType[];
-  nodes: CustomNodeType[];
 };
 
 export type StateChangeLog = ProgressLogBase & {

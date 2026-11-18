@@ -5,7 +5,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { formInputSizes } from "../../util/form-shared";
 import { Toggle } from "./toggle";
 
-import type { Story, StoryDefault } from "@ladle/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type ToggleProps = React.ComponentProps<typeof Toggle>;
 
@@ -25,17 +25,9 @@ const ControlledToggle = ({
   return <Toggle {...props} value={value} onChange={setValue} />;
 };
 
-export default {
+const meta = {
   title: "Components/Toggle",
-  argTypes: {
-    tone: { control: { type: "select" }, options: tones },
-    offTone: { control: { type: "select" }, options: offTones },
-    size: { control: { type: "select" }, options: formInputSizes },
-    disabled: { control: { type: "boolean" } },
-    invalid: { control: { type: "boolean" } },
-    labelOnText: { control: { type: "text" } },
-    labelOffText: { control: { type: "text" } },
-  },
+  component: Toggle,
   args: {
     tone: "neutral",
     offTone: "neutral",
@@ -43,7 +35,11 @@ export default {
     disabled: false,
     invalid: false,
   },
-} satisfies StoryDefault<ToggleProps>;
+} satisfies Meta<ToggleProps>;
+
+export default meta;
+
+type Story = StoryObj<ToggleProps>;
 
 type Example = {
   label: string;
@@ -98,72 +94,76 @@ const labelClass = css({
   color: "neutral.s80",
 });
 
-export const Default: Story<ToggleProps> = (args) => (
-  <div
-    className={css({
-      display: "grid",
-      gridTemplateColumns: "[260px max-content max-content]",
-      alignItems: "center",
-      columnGap: "[32px]",
-      rowGap: "[12px]",
-    })}
-  >
-    <span />
-    <span className={headingClass}>Default</span>
-    <span className={headingClass}>Disabled</span>
-    {examples.map(({ label, props, defaultValue, withDisabled }) => (
-      <Fragment key={label}>
-        <span className={labelClass}>{label}</span>
-        <ControlledToggle {...args} {...props} defaultValue={defaultValue} />
-        {withDisabled ? (
-          <ControlledToggle
-            {...args}
-            {...props}
-            disabled
-            defaultValue={defaultValue}
-          />
-        ) : (
-          <span />
-        )}
-      </Fragment>
-    ))}
-  </div>
-);
+export const Default: Story = {
+  render: (args: ToggleProps) => (
+    <div
+      className={css({
+        display: "grid",
+        gridTemplateColumns: "[260px max-content max-content]",
+        alignItems: "center",
+        columnGap: "[32px]",
+        rowGap: "[12px]",
+      })}
+    >
+      <span />
+      <span className={headingClass}>Default</span>
+      <span className={headingClass}>Disabled</span>
+      {examples.map(({ label, props, defaultValue, withDisabled }) => (
+        <Fragment key={label}>
+          <span className={labelClass}>{label}</span>
+          <ControlledToggle {...args} {...props} defaultValue={defaultValue} />
+          {withDisabled ? (
+            <ControlledToggle
+              {...args}
+              {...props}
+              disabled
+              defaultValue={defaultValue}
+            />
+          ) : (
+            <span />
+          )}
+        </Fragment>
+      ))}
+    </div>
+  ),
+};
 
-export const Sizes: Story<ToggleProps> = (args) => (
-  <div
-    className={css({
-      display: "flex",
-      flexDirection: "column",
-      gap: "[16px]",
-    })}
-  >
-    {formInputSizes.map((size) => (
-      <div
-        key={size}
-        className={css({
-          display: "flex",
-          alignItems: "center",
-          gap: "[24px]",
-        })}
-      >
-        <span
+export const Sizes: Story = {
+  render: (args: ToggleProps) => (
+    <div
+      className={css({
+        display: "flex",
+        flexDirection: "column",
+        gap: "[16px]",
+      })}
+    >
+      {formInputSizes.map((size) => (
+        <div
+          key={size}
           className={css({
-            width: "[40px]",
-            fontSize: "[12px]",
-            color: "neutral.s80",
+            display: "flex",
+            alignItems: "center",
+            gap: "[24px]",
           })}
         >
-          {size}
-        </span>
-        <ControlledToggle {...args} size={size} />
-        <ControlledToggle
-          {...args}
-          size={size}
-          labelOnText="On"
-          labelOffText="Off"
-        />
-      </div>
-    ))}
-  </div>
-);
+          <span
+            className={css({
+              width: "[40px]",
+              fontSize: "[12px]",
+              color: "neutral.s80",
+            })}
+          >
+            {size}
+          </span>
+          <ControlledToggle {...args} size={size} />
+          <ControlledToggle
+            {...args}
+            size={size}
+            labelOnText="On"
+            labelOffText="Off"
+          />
+        </div>
+      ))}
+    </div>
+  ),
+};

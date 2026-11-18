@@ -1,8 +1,6 @@
-import type { ResizableEdge } from "../../../../resize/resize-handle";
+import type { FloatingResizeDirection } from "../../../shared/floating-resize-handles";
 
-export type FloatingResizeDirection =
-  | ResizableEdge
-  | `${"top" | "bottom"}-${"left" | "right"}`;
+export type { FloatingResizeDirection } from "../../../shared/floating-resize-handles";
 
 export type FloatingPanelBounds = {
   right: number;

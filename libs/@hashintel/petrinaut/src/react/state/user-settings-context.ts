@@ -16,8 +16,6 @@ import type {
   TimelineChartType,
 } from "./editor-context";
 
-export type ArcRendering = "smoothstep" | "bezier" | "custom";
-
 export type SubViewSectionSettings = {
   collapsed: boolean;
   /** Last known panel height in pixels */
@@ -35,8 +33,6 @@ export type UserSettings = {
   keepPanelsMounted: boolean;
   compactNodes: boolean;
   enableExperimentalIconPack: boolean;
-  enableAutomaticArcConnections: boolean;
-  arcRendering: ArcRendering;
   cursorMode: CursorMode;
   isLeftSidebarOpen: boolean;
   leftSidebarWidth: number;
@@ -64,6 +60,12 @@ export type UserSettings = {
   showCompilationOutput: boolean;
   /** Plugins the user switched off in the Plugins section, by id. */
   disabledPluginIds: readonly string[];
+  /**
+   * The plugin whose assistant the user chose, by id. While it is not
+   * running, the editor shows the assistant of the first running plugin that
+   * provides one.
+   */
+  assistantPluginId: string | null;
   subViewPanels: SubViewPanelsSettings;
   /** Where each document's canvas was last left, keyed by document id. */
   canvasViewports: Record<string, SavedCanvasViewport>;
@@ -74,8 +76,6 @@ export type UserSettingsActions = {
   setKeepPanelsMounted: (value: boolean) => void;
   setCompactNodes: (value: boolean) => void;
   setEnableExperimentalIconPack: (value: boolean) => void;
-  setEnableAutomaticArcConnections: (value: boolean) => void;
-  setArcRendering: (value: ArcRendering) => void;
   setIsLeftSidebarOpen: (value: boolean) => void;
   setLeftSidebarWidth: (value: number) => void;
   setPropertiesPanelWidth: (value: number) => void;
@@ -91,6 +91,7 @@ export type UserSettingsActions = {
   setEnableNetComponents: (value: boolean) => void;
   setShowCompilationOutput: (value: boolean) => void;
   setPluginEnabled: (pluginId: string, enabled: boolean) => void;
+  setAssistantPluginId: (pluginId: string) => void;
   updateSubViewSection: (
     containerName: string,
     sectionId: string,
@@ -106,8 +107,6 @@ export const defaultUserSettings: UserSettings = {
   keepPanelsMounted: true,
   compactNodes: false,
   enableExperimentalIconPack: true,
-  enableAutomaticArcConnections: false,
-  arcRendering: "custom",
   cursorMode: "pan",
   isLeftSidebarOpen: true,
   leftSidebarWidth: DEFAULT_LEFT_SIDEBAR_WIDTH,
@@ -123,6 +122,7 @@ export const defaultUserSettings: UserSettings = {
   enableNetComponents: false,
   showCompilationOutput: false,
   disabledPluginIds: [],
+  assistantPluginId: null,
   subViewPanels: {},
   canvasViewports: {},
 };
@@ -137,8 +137,6 @@ export const defaultUserSettingsContextValue: UserSettingsContextValue = {
   setKeepPanelsMounted: () => {},
   setCompactNodes: () => {},
   setEnableExperimentalIconPack: () => {},
-  setEnableAutomaticArcConnections: () => {},
-  setArcRendering: () => {},
   setIsLeftSidebarOpen: () => {},
   setLeftSidebarWidth: () => {},
   setPropertiesPanelWidth: () => {},
@@ -154,6 +152,7 @@ export const defaultUserSettingsContextValue: UserSettingsContextValue = {
   setEnableNetComponents: () => {},
   setShowCompilationOutput: () => {},
   setPluginEnabled: () => {},
+  setAssistantPluginId: () => {},
   updateSubViewSection: () => {},
   setCanvasViewport: () => {},
 };

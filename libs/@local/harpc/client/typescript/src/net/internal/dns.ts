@@ -1,7 +1,7 @@
 import dns from "node:dns/promises";
 import { isIPv4, isIPv6 } from "node:net";
 
-import { Array, Cause, Data, Duration, Effect, Function } from "effect";
+import { Array, Cause, Data, Duration, Effect, Function, Result } from "effect";
 
 import type { NonEmptyReadonlyArray } from "effect/Array";
 
@@ -71,7 +71,7 @@ const logEnvironment = Effect.fn("logEnvironment")(function* (
 ) {
   const servers = dns.getServers();
   const records = yield* Effect.tryPromise(() => dns.resolveAny(hostname)).pipe(
-    Effect.merge,
+    Effect.catch((error) => Effect.succeed(error)),
   );
 
   yield* Effect.logTrace("resolved DNS environment").pipe(
@@ -100,7 +100,7 @@ export const resolve = Effect.fn("resolve")(function* (
 
           address: hostname,
           timeToLive: Duration.infinity,
-        } as DnsRecord,
+        },
       ];
     }
   }
@@ -115,7 +115,7 @@ export const resolve = Effect.fn("resolve")(function* (
 
           address: hostname,
           timeToLive: Duration.infinity,
-        } as DnsRecord,
+        },
       ];
     }
   }
@@ -126,14 +126,12 @@ export const resolve = Effect.fn("resolve")(function* (
     });
   }
 
-  yield* Effect.fork(logEnvironment(hostname));
+  yield* Effect.forkChild(logEnvironment(hostname));
 
-  const [excluded, satisfying] = yield* Effect.partition(
+  const [satisfying, excluded] = yield* Effect.partition(
     resolvers,
     Function.identity,
-    {
-      concurrency: "unbounded",
-    },
+    { concurrency: "unbounded" },
   );
 
   if (satisfying.length === 0) {
@@ -141,7 +139,7 @@ export const resolve = Effect.fn("resolve")(function* (
 
     return yield* Effect.failCause(
       // reduce without default is save here, because we guarantee non empty satisfying array
-      excluded.map(Cause.fail).reduce(Cause.parallel),
+      excluded.map(Cause.fail).reduce(Cause.combine),
     );
   }
 
@@ -158,34 +156,26 @@ export const lookup = Effect.fn("lookup")(function* (
     catch: (cause) => new DnsError({ cause }),
   });
 
-  yield* Effect.fork(logEnvironment(hostname));
+  yield* Effect.forkChild(logEnvironment(hostname));
 
   // partition into A and AAAA records
-  const [excluded, satisfying] = Array.partition(
-    records,
-    (record) => record.family === 4,
+  const [satisfying, excluded] = Array.partition(records, (record) =>
+    record.family === 4 ? Result.succeed(record) : Result.fail(record),
   );
 
   // we cannot determine the TTL of lookup records, therefore we set it to infinity
   // `getaddrinfo` (the underlying call used by dns.lookup) does not return TTLs
-  // to fix this see: https://linear.app/hash/issue/H-3785/create-typescripteffect-dns-package
-  const aRecords = satisfying.map(
-    (record) =>
-      ({
-        type: "A",
-        address: record.address,
-        timeToLive: Duration.infinity,
-      }) as DnsRecord,
-  );
+  const aRecords = satisfying.map((record): DnsRecord => ({
+    type: "A",
+    address: record.address,
+    timeToLive: Duration.infinity,
+  }));
 
-  const aaaaRecords = excluded.map(
-    (record) =>
-      ({
-        type: "AAAA",
-        address: record.address,
-        timeToLive: Duration.infinity,
-      }) as DnsRecord,
-  );
+  const aaaaRecords = excluded.map((record): DnsRecord => ({
+    type: "AAAA",
+    address: record.address,
+    timeToLive: Duration.infinity,
+  }));
 
   const output: DnsRecord[] = [];
 

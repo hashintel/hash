@@ -4,15 +4,24 @@ export const getMinimalFlowRunsQuery = /* GraphQL */ `
       totalCount
       flowRuns {
         name
-        flowDefinitionId
-        flowRunId
+        flowDefinitionEntityId
+        flowRunEntityId
         webId
         status
-        executedAt
+        startedAt
         closedAt
         flowInputs
-        inputRequests
-        outputs
+      }
+    }
+  }
+`;
+
+export const getFlowRunOutputsQuery = /* GraphQL */ `
+  query getFlowRunOutputs($flowRunEntityId: EntityId!) {
+    getFlowRunById(flowRunEntityId: $flowRunEntityId) {
+      outputs {
+        outputName
+        payload
       }
     }
   }

@@ -1,3 +1,4 @@
+import { parseStepRunId } from "@local/hash-isomorphic-utils/flows/step-run-id";
 import { getAllStepDefinitionsInFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
 
 import type {
@@ -20,7 +21,7 @@ export const getStepDefinitionFromFlowDefinition = <
 }): T extends ActionStep ? ActionStepDefinition : ForEachStepDefinition => {
   const { step, flowDefinition } = params;
 
-  const [stepIdWithoutIndex] = step.stepId.split("~");
+  const { stepId: stepIdWithoutIndex } = parseStepRunId(step.stepId);
 
   const stepDefinition = getAllStepDefinitionsInFlowDefinition(
     flowDefinition,

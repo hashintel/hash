@@ -59,10 +59,11 @@ use hash_status::StatusCode;
 use hash_temporal_client::TemporalClient;
 use postgres_types::{Json, ToSql};
 use time::OffsetDateTime;
+pub use tokio_postgres::Client as PostgresClient;
 use tokio_postgres::{Client, GenericClient as _, error::SqlState};
 use tracing::Instrument as _;
 use type_system::{
-    Valid,
+    Valid, Validator as _,
     knowledge::entity::{Entity, EntityId, id::EntityEditionId},
     ontology::{
         OntologyTemporalMetadata,
@@ -80,6 +81,7 @@ use type_system::{
         actor_group::{ActorGroupEntityUuid, ActorGroupId, Team, TeamId, Web, WebId},
         role::{RoleId, RoleName, TeamRole, TeamRoleId, WebRole, WebRoleId},
     },
+    provenance::validation::ProvenanceValidator,
 };
 use uuid::Uuid;
 
@@ -155,7 +157,7 @@ pub struct PostgresStoreSettings {
     ///
     /// When set, filters on protected properties will automatically exclude
     /// specified entity types to prevent enumeration attacks.
-    pub filter_protection: PropertyProtectionFilterConfig<'static>,
+    pub filter_protection: Arc<PropertyProtectionFilterConfig<'static>>,
     pub semantic_search: SemanticSearchSettings,
 }
 
@@ -164,7 +166,7 @@ impl Default for PostgresStoreSettings {
         Self {
             validate_links: true,
             skip_embedding_creation: false,
-            filter_protection: PropertyProtectionFilterConfig::hash_default(),
+            filter_protection: Arc::new(PropertyProtectionFilterConfig::hash_default()),
             semantic_search: SemanticSearchSettings::default(),
         }
     }
@@ -243,7 +245,7 @@ where
             .iter()
             .map(|policy| {
                 let policy = policy.borrow();
-                let policy_id = PolicyId::new(Uuid::new_v4());
+                let policy_id = PolicyId::new(Uuid::now_v7());
                 let (principal_id, actor_type) = policy
                     .principal
                     .as_ref()
@@ -940,7 +942,7 @@ where
             .await
             .change_context(WebCreationError::BuildPolicyComponents)?;
 
-        let web_id = WebId::new(parameter.id.unwrap_or_else(Uuid::new_v4));
+        let web_id = WebId::new(parameter.id.unwrap_or_else(Uuid::now_v7));
 
         match policy_components
             .build_policy_set([ActionName::CreateWeb])
@@ -993,7 +995,7 @@ where
             .await
             .change_context(WebCreationError::MachineCreationError)?;
 
-        let admin_role_id = Uuid::new_v4();
+        let admin_role_id = Uuid::now_v7();
         let admin_role = transaction
             .create_role(
                 Some(admin_role_id),
@@ -1010,7 +1012,7 @@ where
                 .change_context(WebCreationError::RoleAssignmentError)?;
         }
 
-        let member_role_id = Uuid::new_v4();
+        let member_role_id = Uuid::now_v7();
         let member_role = transaction
             .create_role(
                 Some(member_role_id),
@@ -2777,6 +2779,10 @@ where
         ontology_id: OntologyTypeUuid,
         provenance: &OntologyEditionProvenance,
     ) -> Result<LeftClosedTemporalInterval<TransactionTime>, Report<InsertionError>> {
+        let provenance = ProvenanceValidator
+            .validate_ref(provenance)
+            .change_context(InsertionError)
+            .attach_opaque(StatusCode::InvalidArgument)?;
         let query = "
               INSERT INTO ontology_temporal_metadata (
                 ontology_id,
@@ -2874,6 +2880,10 @@ where
         id: &VersionedUrl,
         provenance: &OntologyEditionProvenance,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
+        let provenance = ProvenanceValidator
+            .validate_ref(provenance)
+            .change_context(UpdateError)
+            .attach_opaque(StatusCode::InvalidArgument)?;
         let query = "
           INSERT INTO ontology_temporal_metadata (
             ontology_id,

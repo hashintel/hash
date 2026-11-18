@@ -4,9 +4,11 @@ import {
   type EntityKind,
   type EntityStage,
 } from "../elicitation/entities";
+import { questionStatuses } from "../shared/epistemics";
 
 import type {
   ClaimRecord,
+  CommentRecord,
   EntityRecord,
   LedgerState,
   ObligationRecord,
@@ -23,6 +25,10 @@ export const owedObligations = (ledger: LedgerState): ObligationRecord[] => {
   );
 };
 
+/** The user's comments no entry has resolved, in the order they were sent. */
+export const openComments = (ledger: LedgerState): CommentRecord[] =>
+  ledger.comments.filter((comment) => comment.resolvedBy === undefined);
+
 export interface ProjectedClaim {
   record: ClaimRecord;
   /** Superseded ancestors, oldest first. */
@@ -32,6 +38,12 @@ export interface ProjectedClaim {
 export interface ProjectedEntity {
   record: EntityRecord;
   claims: ProjectedClaim[];
+  /**
+   * Reflections on how the net represents this entity: those naming it or one
+   * of its current claims or the claims they replaced, in recording order. Renderers choose whether to
+   * show them; the model's Markdown does not.
+   */
+  reflections: ReflectionRecord[];
 }
 
 export interface ProjectedKindGroup {
@@ -70,6 +82,7 @@ export interface LedgerProjection {
   questions: ProjectedQuestion[];
   owed: ProjectedObligation[];
   met: ProjectedMetObligation[];
+  openComments: CommentRecord[];
 }
 
 const stageTitles: Record<EntityStage, string> = {
@@ -113,8 +126,8 @@ const addressNumber = (address: string) => Number(address.slice(1));
 
 /**
  * The deterministic fold from committed records to the sectioned view
- * structure. Reflections are construction-mode records and deliberately stay
- * out of this account view.
+ * structure. Reflections are construction-mode records: each entity carries
+ * the ones about it, and renderers decide whether to show them.
  */
 export const projectLedger = (ledger: LedgerState): LedgerProjection => {
   const supersededBy = new Map<string, string>();
@@ -144,12 +157,30 @@ export const projectLedger = (ledger: LedgerState): LedgerProjection => {
     return ancestors;
   };
 
-  const projectEntity = (record: EntityRecord): ProjectedEntity => ({
-    record,
-    claims: currentClaims
-      .filter((claim) => claim.entities.includes(record.address))
-      .map((claim) => ({ record: claim, history: historyOf(claim) })),
-  });
+  const projectEntity = (record: EntityRecord): ProjectedEntity => {
+    const claims = currentClaims.filter((claim) =>
+      claim.entities.includes(record.address),
+    );
+    const projected = claims.map((claim) => ({
+      record: claim,
+      history: historyOf(claim),
+    }));
+    const claimAddresses = new Set(
+      projected.flatMap(({ record: claim, history }) =>
+        [claim, ...history].map(({ address }) => address),
+      ),
+    );
+    return {
+      record,
+      claims: projected,
+      reflections: ledger.reflections.filter(
+        (reflection) =>
+          reflection.entities?.includes(record.address) === true ||
+          reflection.claims?.some((claim) => claimAddresses.has(claim)) ===
+            true,
+      ),
+    };
+  };
 
   const included = ledger.entities.filter(
     (entity) => entity.status !== "out-of-scope",
@@ -179,7 +210,7 @@ export const projectLedger = (ledger: LedgerState): LedgerProjection => {
     .filter((section) => section.kinds.length > 0);
 
   const questions = currentClaims
-    .filter((claim) => claim.status === "open" || claim.status === "conflicted")
+    .filter((claim) => questionStatuses.has(claim.status))
     .map((claim) => projectQuestion(claim, ledger));
 
   const nameOf = (address: string) =>
@@ -211,6 +242,7 @@ export const projectLedger = (ledger: LedgerState): LedgerProjection => {
     questions,
     owed,
     met,
+    openComments: openComments(ledger),
   };
 };
 

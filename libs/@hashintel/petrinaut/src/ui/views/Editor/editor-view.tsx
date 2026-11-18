@@ -14,15 +14,20 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 import {
+  bicycleAssembly,
   cafeQueue,
   deploymentPipelineSDCPN,
   dronePatrol,
+  planetsAndSatellites,
   probabilisticSatellitesSDCPN,
   productionMachines,
+  satellitesWithAttraction,
+  sirMassActionModel,
   sirModel,
   supplyChainWithDisruption,
   supplyChainProfit,
   vaccinationCampaign,
+  wheelTruing,
 } from "@hashintel/petrinaut-core/examples";
 
 import { usePetrinautCommands } from "../../../react";
@@ -33,7 +38,6 @@ import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 import { useSelectionCleanup } from "../../../react/state/use-selection-cleanup";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
-import { VoiceSessionProvider } from "../../../react/voice-session/provider";
 import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
 import { ExperimentalIconProvider } from "../../experimental-icons";
@@ -53,9 +57,13 @@ import { ImportErrorDialog } from "./components/import-error-dialog";
 import { TopBar } from "./components/TopBar/top-bar";
 import { applyAutoLayoutAndFrame } from "./editor-view/apply-auto-layout-and-frame";
 import { EditViewSelector } from "./editor-view/edit-view-selector";
+import {
+  AssistantCommands,
+  EditorAssistantPanel,
+  useEditorAssistant,
+} from "./editor-view/editor-assistant";
 import { emptyPetriNetDefinition } from "./editor-view/empty-petri-net-definition";
 import { UserSettings } from "./editor-view/user-settings";
-import { AiAssistantPanel } from "./panels/ai-assistant-panel";
 import { BottomPanel } from "./panels/BottomPanel/panel";
 import { LeftSideBar } from "./panels/LeftSideBar/panel";
 import { PropertiesPanel } from "./panels/PropertiesPanel/panel";
@@ -67,8 +75,6 @@ import { SimulationWorkspace } from "./shared/simulation-workspace";
 import { SimulationCreationDrawer } from "./simulation-creation-drawer";
 import { autoLayoutShortcut, EditorCommands } from "./use-editor-commands";
 
-import type { PetrinautAiAssistant } from "../../petrinaut";
-import type { PetrinautAiInputMode } from "../../types/ai-assistant-composer-control";
 import type { PetrinautSlots } from "../../types/petrinaut-slots";
 
 const relativeTimeFormat = new Intl.RelativeTimeFormat("en", {
@@ -155,12 +161,10 @@ const isEmptySDCPN = (sdcpn: SDCPN) =>
  * It relies on sdcpn-store and editor-store for state, and uses SDCPNView for visualization.
  */
 const EditorViewContent = ({
-  aiAssistant,
   hideNetManagementControls,
   slots,
   titleEditable,
 }: {
-  aiAssistant?: PetrinautAiAssistant;
   /**
    * See {@link TopBar} for the full semantics.
    */
@@ -210,12 +214,8 @@ const EditorViewContent = ({
     bottomPanelHeight,
   } = use(EditorContext);
   const actualMode = use(ActualModeContext);
+  const assistant = useEditorAssistant();
 
-  const [pendingAiAssistantMessage, setPendingAiAssistantMessage] = useState<
-    string | null
-  >(null);
-  const [pendingAiInteractionMode, setPendingAiInteractionMode] =
-    useState<PetrinautAiInputMode | null>(null);
   const [isAiCtaDismissed, setIsAiCtaDismissed] = useState(false);
   const [aiAssistantFocusRequest, setAiAssistantFocusRequest] = useState(0);
 
@@ -408,6 +408,14 @@ const EditorViewContent = ({
                 },
               },
               {
+                id: "load-example-sir-mass-action",
+                text: "SIR Mass-Action Model",
+                onClick: () => {
+                  createNewNet(sirMassActionModel);
+                  clearSelection();
+                },
+              },
+              {
                 id: "load-example-cafe-queue",
                 text: "Café Queue",
                 onClick: () => {
@@ -456,6 +464,22 @@ const EditorViewContent = ({
                 },
               },
               {
+                id: "load-example-satellites-attraction",
+                text: "Satellites with Attraction",
+                onClick: () => {
+                  createNewNet(satellitesWithAttraction);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-planets-and-satellites",
+                text: "Planets and Satellites",
+                onClick: () => {
+                  createNewNet(planetsAndSatellites);
+                  clearSelection();
+                },
+              },
+              {
                 id: "load-example-supply-chain-profit",
                 text: "Supply Chain Profit",
                 onClick: () => {
@@ -468,6 +492,22 @@ const EditorViewContent = ({
                 text: "Vaccination Campaign",
                 onClick: () => {
                   createNewNet(vaccinationCampaign);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-bicycle-assembly",
+                text: "Bicycle Assembly",
+                onClick: () => {
+                  createNewNet(bicycleAssembly);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-wheel-truing",
+                text: "Wheel Truing",
+                onClick: () => {
+                  createNewNet(wheelTruing);
                   clearSelection();
                 },
               },
@@ -498,8 +538,10 @@ const EditorViewContent = ({
     },
   ];
 
+  // The empty-net prompt hands its message to the plugin assistant's
+  // `onPrompt`.
   const showEmptyAiHero =
-    aiAssistant !== undefined &&
+    assistant.onPrompt !== undefined &&
     !isAiAssistantOpen &&
     !isAiCtaDismissed &&
     !pluginOverlay &&
@@ -513,8 +555,11 @@ const EditorViewContent = ({
       <EditorCommands
         applyAutoLayoutAndFrame={runAutoLayoutAndFrame}
         onNewNet={showNetManagementMenuItems ? handleCreateEmpty : undefined}
-        onToggleAiAssistant={aiAssistant ? toggleAiAssistant : undefined}
+        onToggleAiAssistant={
+          assistant.hasAssistant ? toggleAiAssistant : undefined
+        }
       />
+      <AssistantCommands />
       <PluginRoots />
       <UserSettings settingsLabs={slots?.settingsLabs} />
       <ImportErrorDialog
@@ -543,114 +588,91 @@ const EditorViewContent = ({
         }
       />
 
-      {/* Voice session state is shared between the assistant panel that owns
-          the session and the toolbar segment that controls it. */}
-      <VoiceSessionProvider>
-        <Stack direction="row" className={rowContainerStyle}>
-          {globalMode === "simulate" && <SimulateViewTabs />}
-          <SimulationWorkspace>
-            {globalMode === "simulate" ? (
-              <SimulateView />
-            ) : (
-              <div className={workspaceStyle}>
-                {globalMode === "edit" && <EditViewSelector />}
-                <Activity
-                  mode={
-                    globalMode === "actual" || editViewMode === "canvas"
-                      ? "visible"
-                      : "hidden"
+      <Stack direction="row" className={rowContainerStyle}>
+        {globalMode === "simulate" && <SimulateViewTabs />}
+        <SimulationWorkspace>
+          {globalMode === "simulate" ? (
+            <SimulateView />
+          ) : (
+            <div className={workspaceStyle}>
+              {globalMode === "edit" && <EditViewSelector />}
+              <Activity
+                mode={
+                  globalMode === "actual" || editViewMode === "canvas"
+                    ? "visible"
+                    : "hidden"
+                }
+              >
+                <Box className={canvasContainerStyle}>
+                  {/* Left Sidebar - Tools and content panels */}
+                  <LeftSideBar />
+
+                  {/* Properties Panel - Right Side */}
+                  <PropertiesPanel />
+
+                  {/* SDCPN Visualization */}
+                  <SDCPNView onControllerChange={registerController} />
+
+                  {showEmptyAiHero && (
+                    <AiCtaModal
+                      bottomClearance={
+                        isBottomPanelOpen ? bottomPanelHeight : 0
+                      }
+                      onDismiss={() => setIsAiCtaDismissed(true)}
+                      onSubmit={(message) => {
+                        setAiAssistantOpen(true);
+                        assistant.onPrompt?.(message);
+                      }}
+                    />
+                  )}
+
+                  {/* Bottom Panel */}
+                  <BottomPanel />
+                </Box>
+              </Activity>
+              <Activity
+                mode={
+                  globalMode === "edit" && editViewMode === "definitions"
+                    ? "visible"
+                    : "hidden"
+                }
+              >
+                <NotebookView
+                  key={petriNetId ?? "no-net"}
+                  toolbarStart={
+                    <div aria-hidden className={editViewSelectorSpaceStyle} />
                   }
-                >
-                  <Box className={canvasContainerStyle}>
-                    {/* Left Sidebar - Tools and content panels */}
-                    <LeftSideBar />
-
-                    {/* Properties Panel - Right Side */}
-                    <PropertiesPanel />
-
-                    {/* SDCPN Visualization */}
-                    <SDCPNView onControllerChange={registerController} />
-
-                    {showEmptyAiHero && (
-                      <AiCtaModal
-                        bottomClearance={
-                          isBottomPanelOpen ? bottomPanelHeight : 0
-                        }
-                        onDismiss={() => setIsAiCtaDismissed(true)}
-                        onStartVoiceMode={() => {
-                          setPendingAiInteractionMode("voice");
-                          setAiAssistantOpen(true);
-                        }}
-                        onSubmit={(message) => {
-                          setPendingAiAssistantMessage(message);
-                          setPendingAiInteractionMode("text");
-                          setAiAssistantOpen(true);
-                        }}
-                        voiceModeAvailable={
-                          aiAssistant.renderVoiceMode !== undefined
-                        }
-                      />
-                    )}
-
-                    {/* Bottom Panel */}
-                    <BottomPanel />
-                  </Box>
-                </Activity>
-                <Activity
-                  mode={
-                    globalMode === "edit" && editViewMode === "definitions"
-                      ? "visible"
-                      : "hidden"
-                  }
-                >
-                  <NotebookView
-                    key={petriNetId ?? "no-net"}
-                    toolbarStart={
-                      <div aria-hidden className={editViewSelectorSpaceStyle} />
-                    }
-                  />
-                </Activity>
-              </div>
-            )}
-            <Activity
-              mode={
-                globalMode === "actual" ||
-                (globalMode === "edit" && editViewMode === "canvas")
-                  ? "visible"
-                  : "hidden"
-              }
-            >
-              <BottomBar
-                mode={globalMode}
-                editionMode={editionMode}
-                onEditionModeChange={setEditionMode}
-                cursorMode={cursorMode}
-                onCursorModeChange={setCursorMode}
-                hasAiAssistant={aiAssistant !== undefined}
-              />
-            </Activity>
-            <SimulationCreationDrawer />
-          </SimulationWorkspace>
-          {aiAssistant && (
-            <AiAssistantPanel
-              /** Reset state (e.g. initial messages) when the active net changes */
-              key={`ai-assistant-${petriNetId ?? "no-net"}`}
-              aiAssistant={aiAssistant}
-              applyAutoLayoutAndFrame={runAutoLayoutAndFrame}
-              focusRequest={aiAssistantFocusRequest}
-              frameSceneAfterRender={frameSceneAfterRender}
-              initialMessage={pendingAiAssistantMessage}
-              initialInteractionMode={pendingAiInteractionMode}
-              onInitialMessageConsumed={() =>
-                setPendingAiAssistantMessage(null)
-              }
-              onInitialInteractionModeConsumed={() =>
-                setPendingAiInteractionMode(null)
-              }
-            />
+                />
+              </Activity>
+            </div>
           )}
-        </Stack>
-      </VoiceSessionProvider>
+          <Activity
+            mode={
+              globalMode === "actual" ||
+              (globalMode === "edit" && editViewMode === "canvas")
+                ? "visible"
+                : "hidden"
+            }
+          >
+            <BottomBar
+              mode={globalMode}
+              editionMode={editionMode}
+              onEditionModeChange={setEditionMode}
+              cursorMode={cursorMode}
+              onCursorModeChange={setCursorMode}
+              hasAiAssistant={assistant.hasAssistant}
+            />
+          </Activity>
+          <SimulationCreationDrawer />
+        </SimulationWorkspace>
+        {assistant.plugin && (
+          <EditorAssistantPanel
+            plugin={assistant.plugin}
+            petriNetId={petriNetId}
+            focusRequest={aiAssistantFocusRequest}
+          />
+        )}
+      </Stack>
     </ExperimentalIconProvider>
   );
 };

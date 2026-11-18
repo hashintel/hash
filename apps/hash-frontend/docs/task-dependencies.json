@@ -4,6 +4,7 @@
     "@blockprotocol/graph",
     "@blockprotocol/type-system",
     "@hashintel/block-design-system",
+    "@hashintel/brunch-agent",
     "@hashintel/design-system",
     "@hashintel/ds-components",
     "@hashintel/ds-helpers",
@@ -14,6 +15,7 @@
     "@hashintel/type-editor",
     "@local/advanced-types",
     "@local/eslint",
+    "@local/flow-petri-net",
     "@local/hash-graph-client",
     "@local/hash-graph-sdk",
     "@local/hash-graph-store",
@@ -25,6 +27,7 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
+        "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
         "@hashintel/ds-icons#build",
@@ -32,6 +35,7 @@
         "@hashintel/petrinaut-core#build",
         "@local/advanced-types#build",
         "@local/eslint#build",
+        "@local/flow-petri-net#build",
         "@local/hash-graph-client#build",
         "@local/hash-graph-sdk#build",
         "@local/hash-graph-store#build",
@@ -53,6 +57,7 @@
         "API_ORIGIN",
         "ENVIRONMENT",
         "GOOGLE_OAUTH_CLIENT_ID",
+        "HASH_BRUNCH_AGENT_ORIGIN",
         "NODE_ENV",
         "NOTIFICATION_POLL_INTERVAL",
         "SELF_HOSTED_HASH",
@@ -74,6 +79,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimizer-core",
         "type-system"
       ]
     },
@@ -98,6 +104,7 @@
         "harpc-wire-protocol",
         "hash-codec",
         "hash-codegen",
+        "hash-crypto",
         "hash-graph-api",
         "hash-graph-authentication",
         "hash-graph-authorization",
@@ -110,7 +117,6 @@
         "hash-graph-types",
         "hash-graph-validation",
         "hash-middleware",
-        "hash-secret",
         "hash-status",
         "hash-telemetry",
         "hash-temporal-client",
@@ -122,12 +128,14 @@
         "hashql-macros",
         "hashql-mir",
         "hashql-syntax-jexpr",
+        "petrinaut-optimizer-core",
         "problematic",
         "type-system"
       ]
     },
     "codegen": {
       "dependsOn": [
+        "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-icons#build",
         "@hashintel/petrinaut#build",
@@ -146,6 +154,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimizer-core",
         "type-system"
       ]
     },
@@ -153,6 +162,7 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
+        "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
         "@hashintel/ds-icons#build",
@@ -160,6 +170,7 @@
         "@hashintel/petrinaut-core#build",
         "@local/advanced-types#build",
         "@local/eslint#build",
+        "@local/flow-petri-net#build",
         "@local/hash-graph-client#build",
         "@local/hash-graph-sdk#build",
         "@local/hash-graph-store#build",
@@ -181,6 +192,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimizer-core",
         "type-system"
       ]
     },
@@ -188,6 +200,7 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
+        "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
         "@hashintel/ds-icons#build",
@@ -195,6 +208,7 @@
         "@hashintel/petrinaut-core#build",
         "@local/advanced-types#build",
         "@local/eslint#build",
+        "@local/flow-petri-net#build",
         "@local/hash-graph-client#build",
         "@local/hash-graph-sdk#build",
         "@local/hash-graph-store#build",
@@ -214,6 +228,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimizer-core",
         "type-system"
       ]
     },
@@ -221,6 +236,7 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
+        "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
         "@hashintel/ds-icons#build",
@@ -228,6 +244,7 @@
         "@hashintel/petrinaut-core#build",
         "@local/advanced-types#build",
         "@local/eslint#build",
+        "@local/flow-petri-net#build",
         "@local/hash-graph-client#build",
         "@local/hash-graph-sdk#build",
         "@local/hash-graph-store#build",
@@ -250,6 +267,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimizer-core",
         "type-system"
       ]
     },
@@ -257,6 +275,7 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
+        "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
         "@hashintel/ds-icons#build",
@@ -264,6 +283,7 @@
         "@hashintel/petrinaut-core#build",
         "@local/advanced-types#build",
         "@local/eslint#build",
+        "@local/flow-petri-net#build",
         "@local/hash-graph-client#build",
         "@local/hash-graph-sdk#build",
         "@local/hash-graph-store#build",
@@ -283,6 +303,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimizer-core",
         "type-system"
       ]
     },
@@ -307,6 +328,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimizer-core",
         "type-system"
       ]
     },
@@ -335,6 +357,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimizer-core",
         "type-system"
       ]
     },
@@ -346,6 +369,7 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
+        "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
         "@hashintel/ds-icons#build",
@@ -353,6 +377,7 @@
         "@hashintel/petrinaut-core#build",
         "@local/advanced-types#build",
         "@local/eslint#build",
+        "@local/flow-petri-net#build",
         "@local/hash-graph-client#build",
         "@local/hash-graph-sdk#build",
         "@local/hash-graph-store#build",
@@ -375,6 +400,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimizer-core",
         "type-system"
       ]
     }

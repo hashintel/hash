@@ -27,7 +27,7 @@ export const guidanceManifest = async () => {
   const directories = [
     `${agent}/prompts`,
     `${agent}/skills`,
-    `${agent}/tools`,
+    "apps/brunch-agent/src/agents/shared",
     // The Ledger lives in the library so the website can render it.
     `${library}/src/ledger`,
   ];

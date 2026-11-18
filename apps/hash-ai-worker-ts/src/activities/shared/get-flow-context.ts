@@ -18,7 +18,7 @@ import { graphApiClient } from "./graph-api-client.js";
 
 import type { EntityId, UserId, WebId } from "@blockprotocol/type-system";
 import type { ManualInferenceInputName } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
-import type { GoalFlowInputName } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
+import type { GoalFlowInputName } from "@local/hash-isomorphic-utils/flows/definitions/goal-flow-definitions";
 import type { RunAiFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import type { FlowDataSources } from "@local/hash-isomorphic-utils/flows/types";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";

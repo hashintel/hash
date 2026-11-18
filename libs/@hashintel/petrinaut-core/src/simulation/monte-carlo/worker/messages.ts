@@ -6,6 +6,7 @@ import type {
   MonteCarloMetricSpec,
   MonteCarloUserDefinedMetricFrame,
 } from "../metrics";
+import type { MonteCarloSimulatorSelection } from "../run-driver";
 import type { MonteCarloAdvanceResult, MonteCarloRunConfig } from "../types";
 
 export type MonteCarloInitMessage = {
@@ -38,6 +39,11 @@ export type MonteCarloInitMessage = {
    * configures the run at global index `runIndexOffset`.
    */
   runs?: readonly MonteCarloRunConfig[];
+  /**
+   * The simulator that advances each run between samples, when it is not
+   * the fixed-step engine. `dt` is then the sample period alone.
+   */
+  simulator?: MonteCarloSimulatorSelection;
 };
 
 export type MonteCarloStartMessage = {
@@ -83,26 +89,6 @@ export type MonteCarloErrorMessage = {
   itemId: string | null;
 };
 
-/** One run's final metric values, keyed by metric id. */
-export type MonteCarloRunResultEntry = {
-  /** Global run index — the worker adds its `runIndexOffset`. */
-  runIndex: number;
-  values: Record<string, number>;
-};
-
-/**
- * Posted once, just before `complete`: each run's final-frame metric values.
- *
- * Metric frames aggregate across runs, which is what an experiment chart wants
- * but loses the run axis. Optimization replicates need each run's own
- * objective, so the per-run values travel separately. Runs are disjoint across
- * shards, so the main thread merges by map union — no watermark involved.
- */
-export type MonteCarloRunResultsMessage = {
-  type: "runResults";
-  results: MonteCarloRunResultEntry[];
-};
-
 export type MonteCarloWorkerProgress = MonteCarloAdvanceResult & {
   frameNumber: number;
   time: number;
@@ -113,7 +99,6 @@ export type MonteCarloToMainMessage =
   | MonteCarloReadyMessage
   | MonteCarloProgressMessage
   | MonteCarloMetricFramesMessage
-  | MonteCarloRunResultsMessage
   | MonteCarloCompleteMessage
   | MonteCarloCancelledMessage
   | MonteCarloErrorMessage;

@@ -1,8 +1,15 @@
 import * as v from "valibot";
 
-import { brunchTools } from "../constants";
-import { vLedgerAppend, type LedgerAppend } from "./append";
-import { owedObligations, projectLedger } from "./projection";
+import { brunchSignals, brunchTools } from "../constants";
+import { petrinautUserMessageText } from "../petrinaut/contextual-user-message";
+import { ledgerAppendSchema, type LedgerAppend } from "./append";
+import { parseLedgerComments, type LedgerComment } from "./comments";
+import {
+  openComments,
+  owedObligations,
+  projectLedger,
+} from "./projection/project-ledger";
+import { questionStatuses, type Origin } from "./shared/epistemics";
 
 import type {
   ClaimRecord,
@@ -10,15 +17,18 @@ import type {
   LedgerState,
   ObligationRecord,
   ReflectionRecord,
-} from "./projection";
+  Turn,
+} from "./projection/records";
+import type { FlueConversationMessage } from "@flue/sdk";
 
-/** Structural view of a conversation history; Flue and AI SDK messages both fit. */
-export interface LedgerHistoryMessage {
-  readonly id: string;
-  readonly role: string;
-  readonly purpose?: string;
-  readonly parts: readonly unknown[];
-}
+/** A Flue conversation message as the fold reads it: parts stay `unknown` because the fold parses them. */
+export type LedgerHistoryMessage = Pick<
+  FlueConversationMessage,
+  "id" | "role"
+> &
+  Partial<Pick<FlueConversationMessage, "purpose" | "signal">> & {
+    readonly parts: readonly unknown[];
+  };
 
 export interface LedgerHistory {
   readonly messages: readonly LedgerHistoryMessage[];
@@ -43,21 +53,100 @@ interface LedgerCall {
    * can still be running.
    */
   readonly followsUnsettledCall: boolean;
-  readonly afterMessageId?: string;
+  /** The user message the call followed, which anchors its records' turn. */
+  readonly turn?: Turn;
 }
 
 const isSettled = (part: ToolPart) => part.state.startsWith("output-");
 
-const isUserMessage = (message: LedgerHistoryMessage) =>
-  message.role === "user" && (message.purpose ?? "user") === "user";
+const textPartSchema = v.object({ type: v.literal("text"), text: v.string() });
 
-/** Every `ledger_commit` call in canonical order, whatever its state. */
-const ledgerCalls = (history: LedgerHistory): LedgerCall[] => {
-  let afterMessageId: string | undefined;
-  return history.messages.flatMap((message) => {
-    if (isUserMessage(message)) {
-      afterMessageId = message.id;
-      return [];
+const messageText = (message: LedgerHistoryMessage): string =>
+  message.parts
+    .flatMap((part) => {
+      const parsed = v.safeParse(textPartSchema, part);
+      return parsed.success ? [parsed.output.text] : [];
+    })
+    .join(" ");
+
+const turnExcerptLength = 240;
+
+/** The opening of the user's words, enough to recognise the turn by. */
+const turnExcerpt = (words: string): string => {
+  const text = words.replace(/\s+/g, " ").trim();
+  const characters = Array.from(text);
+  return characters.length > turnExcerptLength
+    ? `${characters.slice(0, turnExcerptLength - 1).join("")}…`
+    : text;
+};
+
+/** A message the user opens a turn with: their words, or comments on the Ledger. */
+interface TurnOpening {
+  readonly turn: Turn;
+  readonly comments: readonly LedgerComment[];
+}
+
+const turnOpening = (
+  message: LedgerHistoryMessage,
+): TurnOpening | undefined => {
+  if (message.role === "user" && (message.purpose ?? "user") === "user")
+    return {
+      turn: {
+        id: message.id,
+        // A turn sent with host context is stored as a contextual envelope.
+        excerpt: turnExcerpt(petrinautUserMessageText(messageText(message))),
+      },
+      comments: [],
+    };
+  if (
+    message.role !== "system" ||
+    message.signal?.tagName !== brunchSignals.ledgerComments
+  )
+    return undefined;
+  const comments = parseLedgerComments(messageText(message));
+  if (comments === undefined) return undefined;
+  return {
+    turn: {
+      id: message.id,
+      excerpt: turnExcerpt(comments.map(({ text }) => text).join(" ")),
+    },
+    comments,
+  };
+};
+
+/** The message that opened the latest turn; absent while no turn has opened. */
+export const latestLedgerTurnId = (
+  history: LedgerHistory,
+): string | undefined =>
+  history.messages.findLast((message) => turnOpening(message) !== undefined)
+    ?.id;
+
+/** The history before its latest turn opened; absent while no turn has opened. */
+export const historyBeforeLatestTurn = (
+  history: LedgerHistory,
+): LedgerHistory | undefined => {
+  const opened = history.messages.findLastIndex(
+    (message) => turnOpening(message) !== undefined,
+  );
+  return opened === -1
+    ? undefined
+    : { messages: history.messages.slice(0, opened) };
+};
+
+type LedgerEvent =
+  | ({ readonly kind: "comments" } & TurnOpening)
+  | ({ readonly kind: "call" } & LedgerCall);
+
+/** Comment turns and `ledger_commit` calls in canonical order, whatever the calls' state. */
+const ledgerEvents = (history: LedgerHistory): LedgerEvent[] => {
+  let turn: Turn | undefined;
+  return history.messages.flatMap((message): LedgerEvent[] => {
+    const opening = turnOpening(message);
+    if (opening !== undefined) {
+      turn = opening.turn;
+      return opening.comments.length > 0
+        ? [{ kind: "comments", ...opening }]
+        : [];
     }
     if (message.role !== "assistant") return [];
     const parts = message.parts.flatMap((candidate) => {
@@ -67,21 +156,27 @@ const ledgerCalls = (history: LedgerHistory): LedgerCall[] => {
         ? [parsed.output]
         : [];
     });
-    return parts.map((part, index): LedgerCall => {
+    return parts.map((part, index): LedgerEvent => {
       const followsUnsettledCall = parts
         .slice(0, index)
         .some((earlier) => !isSettled(earlier));
-      return afterMessageId === undefined
-        ? { part, followsUnsettledCall }
-        : { part, followsUnsettledCall, afterMessageId };
+      return turn === undefined
+        ? { kind: "call", part, followsUnsettledCall }
+        : { kind: "call", part, followsUnsettledCall, turn };
     });
   });
 };
+
+const ledgerCalls = (history: LedgerHistory): LedgerCall[] =>
+  ledgerEvents(history).flatMap((event) =>
+    event.kind === "call" ? [event] : [],
+  );
 
 export const ledgerAppendRefusalCodes = [
   "unknown-address",
   "concurrent-commit",
   "claim-without-entity",
+  "ambiguous-comment",
 ] as const;
 
 export const ledgerAppendOutputSchema = v.variant("status", [
@@ -91,12 +186,16 @@ export const ledgerAppendOutputSchema = v.variant("status", [
     revision: v.number(),
     /** System-assigned record IDs, aligned with the submitted entries queue. */
     ids: v.array(v.string()),
-    /** USER messages so far, through the one this commit follows. */
+    /** USER turns so far, comment turns included, through the one this commit follows. */
     exchanges: v.optional(v.number()),
     /** Current open and conflicted claims after this commit. */
     openQuestions: v.optional(v.number()),
     /** Obligations no reflection has discharged yet; absent when none are owed. */
     owed: v.optional(v.array(v.object({ id: v.string(), text: v.string() }))),
+    /** The USER's comments no entry has resolved yet; absent when none are open. */
+    openComments: v.optional(
+      v.array(v.object({ id: v.string(), text: v.string() })),
+    ),
     /** Consequences of this commit the model should weigh; absent when there are none. */
     notes: v.optional(v.array(v.string())),
   }),
@@ -134,6 +233,7 @@ const emptyState = (): LedgerState => ({
   claims: [],
   reflections: [],
   obligations: [],
+  comments: [],
 });
 
 const highestAddress = (records: readonly { address: string }[]) =>
@@ -201,12 +301,6 @@ const reserveAddresses = (
   return next;
 };
 
-/** Statuses the map lists as questions, which need no entity to be shown. */
-const entityFreeClaimStatuses: ReadonlySet<string> = new Set([
-  "open",
-  "conflicted",
-]);
-
 /** Why a new claim would never be shown, if one would not. */
 const claimWithoutEntity = (
   entries: LedgerAppend["entries"],
@@ -215,7 +309,7 @@ const claimWithoutEntity = (
     if (
       route === "claim/create" &&
       payload.entities.length === 0 &&
-      !entityFreeClaimStatuses.has(payload.status)
+      !questionStatuses.has(payload.status)
     )
       return `Claim $${index} is ${payload.status} but names no entity, so the Ledger map would never show it. Reference the entities it is about, or record an unresolved gap as an open claim.`;
   return undefined;
@@ -234,9 +328,10 @@ type Derivation =
 const deriveBatch = (
   state: LedgerState,
   entries: LedgerAppend["entries"],
-  turn: string,
+  anchor: Turn | undefined,
   reserved: AddressCounters,
 ): Derivation => {
+  const turn = anchor?.id ?? "";
   const counters = { ...countersOf(state, reserved) };
   const addressed = entries.map((entry) => {
     const [route] = entry;
@@ -288,6 +383,14 @@ const deriveBatch = (
   const refusal = (message: string): Derivation => ({
     refusal: { code: "unknown-address", message },
   });
+
+  const sentComments = new Set(state.comments.map(({ id }) => id));
+  const resolvers = new Map<string, string>();
+  for (const { entry, address } of addressed)
+    for (const id of entry[1].resolves ?? []) {
+      if (!sentComments.has(id)) return refusal(`Unknown comment ${id}.`);
+      if (!resolvers.has(id)) resolvers.set(id, address);
+    }
 
   const entityUpdates = new Map<string, EntityRecord>();
   const newEntities: EntityRecord[] = [];
@@ -387,8 +490,9 @@ const deriveBatch = (
   }
 
   const turns =
-    turn !== "" && !state.turns.some((existing) => existing.id === turn)
-      ? [...state.turns, { id: turn, excerpt: "" }]
+    anchor !== undefined &&
+    !state.turns.some((existing) => existing.id === anchor.id)
+      ? [...state.turns, anchor]
       : state.turns;
 
   return {
@@ -405,6 +509,12 @@ const deriveBatch = (
       claims: [...state.claims, ...newClaims],
       reflections: [...state.reflections, ...newReflections],
       obligations: [...state.obligations, ...newObligations],
+      comments: state.comments.map((comment) => {
+        const resolvedBy = resolvers.get(comment.id);
+        return comment.resolvedBy === undefined && resolvedBy !== undefined
+          ? { ...comment, resolvedBy }
+          : comment;
+      }),
     },
   };
 };
@@ -425,7 +535,21 @@ const foldWithReservations = (
   let reserved = noReservedAddresses;
   const commits: AcceptedCommit[] = [];
   const rejected: string[] = [];
-  for (const call of ledgerCalls(history)) {
+  for (const event of ledgerEvents(history)) {
+    if (event.kind === "comments") {
+      state = {
+        ...state,
+        comments: [
+          ...state.comments,
+          ...event.comments.map((comment) => ({
+            ...comment,
+            turn: event.turn.id,
+          })),
+        ],
+      };
+      continue;
+    }
+    const call = event;
     if (call.part.toolCallId === before) break;
     if (call.part.state !== "output-available") continue;
     const output = v.safeParse(ledgerAppendOutputSchema, call.part.output);
@@ -436,14 +560,9 @@ const foldWithReservations = (
       recorded.commitId !== call.part.toolCallId
     )
       continue;
-    const input = v.safeParse(vLedgerAppend, call.part.input);
+    const input = v.safeParse(ledgerAppendSchema, call.part.input);
     const derived = input.success
-      ? deriveBatch(
-          state,
-          input.output.entries,
-          call.afterMessageId ?? "",
-          reserved,
-        )
+      ? deriveBatch(state, input.output.entries, call.turn, reserved)
       : undefined;
     const derivedIds =
       derived === undefined || "refusal" in derived ? undefined : derived.ids;
@@ -462,9 +581,7 @@ const foldWithReservations = (
     commits.push({
       commitId: call.part.toolCallId,
       revision: commits.length + 1,
-      ...(call.afterMessageId === undefined
-        ? {}
-        : { afterMessageId: call.afterMessageId }),
+      ...(call.turn === undefined ? {} : { afterMessageId: call.turn.id }),
       ids: derived.ids,
     });
     state = derived.state;
@@ -527,12 +644,22 @@ export const prepareAppend = (call: {
       message: unshownClaim,
       revision,
     };
-  const derived = deriveBatch(
-    state,
-    call.entries,
-    own.afterMessageId ?? "",
-    reserved,
-  );
+  // Refuse ambiguous references in new proposals without invalidating commits
+  // already recorded by an older browser that issued colliding numeric IDs.
+  const commentCounts = new Map<string, number>();
+  for (const { id } of state.comments)
+    commentCounts.set(id, (commentCounts.get(id) ?? 0) + 1);
+  for (const [, entry] of call.entries)
+    for (const id of entry.resolves ?? [])
+      if ((commentCounts.get(id) ?? 0) > 1)
+        return {
+          status: "refused",
+          applied: false,
+          code: "ambiguous-comment",
+          message: `Comment ${id} identifies more than one correction and cannot be resolved unambiguously. Ask the USER to resend those corrections as new comments.`,
+          revision,
+        };
+  const derived = deriveBatch(state, call.entries, own.turn, reserved);
   if ("refusal" in derived)
     return {
       status: "refused",
@@ -545,15 +672,20 @@ export const prepareAppend = (call: {
     id: address,
     text,
   }));
+  const stillOpen = openComments(derived.state).map(({ id, text }) => ({
+    id,
+    text,
+  }));
   const notes = accountDisplacements(derived.state, derived.ids);
   return {
     status: "recorded",
     commitId: call.toolCallId,
     revision: revision + 1,
     ids: derived.ids,
-    exchanges: exchangesThrough(call.history, own.afterMessageId),
+    exchanges: exchangesThrough(call.history, own.turn?.id),
     openQuestions: projectLedger(derived.state).questions.length,
     ...(owed.length > 0 ? { owed } : {}),
+    ...(stillOpen.length > 0 ? { openComments: stillOpen } : {}),
     ...(notes.length > 0 ? { notes } : {}),
   };
 };
@@ -564,10 +696,12 @@ const exchangesThrough = (
 ): number => {
   if (messageId === undefined) return 0;
   const end = history.messages.findIndex(({ id }) => id === messageId);
-  return history.messages.slice(0, end + 1).filter(isUserMessage).length;
+  return history.messages
+    .slice(0, end + 1)
+    .filter((message) => turnOpening(message) !== undefined).length;
 };
 
-const accountOrigins = new Set(["stated", "evidenced"]);
+const accountOrigins: ReadonlySet<Origin> = new Set(["stated", "evidenced"]);
 
 /** A claim of the agent's own superseding the account: the account leaves the map. */
 const accountDisplacements = (

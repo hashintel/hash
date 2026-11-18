@@ -9,6 +9,7 @@
 
 import {
   useContextProjection,
+  useDelivery,
   useInitialData,
   useTool,
   type AgentProps,
@@ -17,8 +18,10 @@ import { createAgentRouter } from "@flue/runtime/routing";
 import { createFlueClient } from "@flue/sdk";
 
 import {
-  browserToolMutatesDocument,
+  browserToolFacts,
   canonicalContent,
+  parsePetrinautUserMessageBody,
+  readPetrinautSubmissionContext,
   type SdcpnInitialData,
   sdcpnInitialDataSchema,
 } from "@hashintel/brunch-agent";
@@ -37,6 +40,7 @@ import {
 import { usePetrinautTools } from "../../shared/petrinaut-tools.ts";
 import { ping } from "../../shared/ping.ts";
 import { loadTestCompactionConfig } from "../../shared/test-compaction-config.ts";
+import { useWords } from "../../shared/words.ts";
 import { useGuidance } from "./guidance.ts";
 
 const CHAT_MODEL_SPECIFIER = selectChatModelSpecifier();
@@ -57,6 +61,19 @@ const netViewTracker = createNetViewTracker();
 
 export function PetrinautAgent({ id }: AgentProps) {
   const initialData = useInitialData<SdcpnInitialData>();
+  // Initial data is fixed when the conversation is created; the current user
+  // delivery carries the changing host context. An absent or malformed
+  // allowance means Off, and absent or malformed words an empty snapshot. A
+  // signal delivery, such as a turn of Ledger comments, carries neither: it
+  // sits outside the interview, and the kept words still apply.
+  const delivery = useDelivery();
+  const submitted =
+    delivery.kind === "user"
+      ? readPetrinautSubmissionContext(
+          parsePetrinautUserMessageBody(delivery.body),
+        )
+      : undefined;
+  const words = useWords(submitted?.words);
   useContextProjection(
     createBrunchContextProjection({
       observe: (entries) => netViewTracker.observe(id, entries),
@@ -78,6 +95,7 @@ export function PetrinautAgent({ id }: AgentProps) {
     CHAT_MODEL_SPECIFIER,
     chatModelOptions,
     history,
+    { interviewBudget: submitted?.interviewBudget, words },
   );
   usePetrinautTools(
     initialData
@@ -94,7 +112,7 @@ export function PetrinautAgent({ id }: AgentProps) {
             toolCallId,
             signal,
           }) => {
-            const expected = browserToolMutatesDocument(toolName)
+            const expected = browserToolFacts(toolName).requiresFreshView
               ? expectedNetRevision(
                   await history(),
                   toolCallId,
@@ -103,7 +121,8 @@ export function PetrinautAgent({ id }: AgentProps) {
               : undefined;
             if (expected && "refusal" in expected)
               throw new Error(expected.refusal);
-            const result = await issueBrowserCall({
+            return issueBrowserCall({
+              agentName: PetrinautAgent.agentName,
               instanceId: id,
               toolCallId,
               toolName,
@@ -114,7 +133,6 @@ export function PetrinautAgent({ id }: AgentProps) {
                 : { expectedRevision: expected.revision }),
               signal,
             });
-            return { output: result.output, metadata: result.metadata };
           },
         }
       : {},

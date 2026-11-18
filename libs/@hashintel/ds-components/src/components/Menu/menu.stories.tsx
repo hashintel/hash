@@ -1,11 +1,11 @@
 import { useCallback, useMemo, useState } from "react";
 
-import { getItemId } from "../../util/SelectableList/selectable-list-util";
+import { getItemId } from "../../primitives/SelectableList/selectable-list-util";
 import {
   defaultSelected,
   groupedItems,
   itemsWithSubActions,
-} from "../../util/SelectableList/selectable-list.fixtures";
+} from "../../primitives/SelectableList/selectable-list.fixtures";
 import { Button } from "../Button/button";
 import { EllipsisMenu as EllipsisMenuComponent } from "./ellipsis-menu";
 import { Menu, type MenuItem } from "./menu";
@@ -13,8 +13,8 @@ import { Menu, type MenuItem } from "./menu";
 import type {
   Item,
   ItemOrGroup,
-} from "../../util/SelectableList/selectable-list";
-import type { Story, StoryDefault } from "@ladle/react";
+} from "../../primitives/SelectableList/selectable-list";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 function prefixIds(
   entry: ItemOrGroup<Item>,
@@ -41,19 +41,27 @@ function prefixIds(
  * Recursively rewires items so that selecting any leaf (non-`href`,
  * non-`subItems` parent) toggles its id via the provided callback
  * and reflects the current selection state via the `selected` flag.
- * Sets `keepOpenOnSelect` so the demo shows the selection update
- * without the menu closing.
+ * Items close the menu on click as usual, except the "Selected" group's
+ * items (whose toggling the demo shows in place) and any item that sets
+ * `keepOpenOnSelect` itself.
  */
 function withSelection(
   entry: ItemOrGroup<Item>,
   selected: string[],
   toggle: (id: string) => void,
+  keepOpen = false,
 ): ItemOrGroup<MenuItem> {
   if ("items" in entry) {
     return {
       ...entry,
       items: entry.items.map(
-        (item) => withSelection(item, selected, toggle) as MenuItem,
+        (item) =>
+          withSelection(
+            item,
+            selected,
+            toggle,
+            keepOpen || entry.id.endsWith("group-selected"),
+          ) as MenuItem,
       ),
     };
   }
@@ -64,16 +72,18 @@ function withSelection(
   if (nested) {
     return {
       ...entry,
-      subItems: nested.map((child) => withSelection(child, selected, toggle)),
+      subItems: nested.map((child) =>
+        withSelection(child, selected, toggle, keepOpen),
+      ),
     } as unknown as MenuItem;
   }
   if ("href" in entry && entry.href) {
-    return entry as MenuItem;
+    return entry;
   }
   return {
     ...entry,
     onClick: toggle,
-    keepOpenOnSelect: true,
+    ...(keepOpen ? { keepOpenOnSelect: true } : {}),
     selected: selected.includes(getItemId(entry)),
   } as MenuItem;
 }
@@ -90,35 +100,19 @@ function useToggleSelection(initialSelected: string[] = defaultSelected) {
 
 type MenuProps = React.ComponentProps<typeof Menu>;
 
-const positions = [
-  "bottom",
-  "bottom-start",
-  "bottom-end",
-  "top",
-  "top-start",
-  "top-end",
-  "left",
-  "left-start",
-  "left-end",
-  "right",
-  "right-start",
-  "right-end",
-] as const;
-
-export default {
+const meta = {
   title: "Components/Menu",
-  argTypes: {
-    position: {
-      control: { type: "select" },
-      options: positions,
-    },
-  },
+  component: Menu,
   args: {
     position: "bottom-start",
   },
-} satisfies StoryDefault<MenuProps>;
+} satisfies Meta<MenuProps>;
 
-export const Default: Story<MenuProps> = (args) => {
+export default meta;
+
+type Story = StoryObj<MenuProps>;
+
+const DefaultDemo = (args: MenuProps) => {
   const { selected, toggle } = useToggleSelection();
   const items = useMemo(
     () => groupedItems.map((entry) => withSelection(entry, selected, toggle)),
@@ -133,7 +127,7 @@ export const Default: Story<MenuProps> = (args) => {
   );
 };
 
-export const Nested: Story<MenuProps> = (args) => {
+const NestedDemo = (args: MenuProps) => {
   const { selected, toggle } = useToggleSelection();
   const items = useMemo(
     () =>
@@ -151,7 +145,7 @@ export const Nested: Story<MenuProps> = (args) => {
   );
 };
 
-export const PlainButtonTrigger: Story<MenuProps> = (args) => {
+const PlainButtonTriggerDemo = (args: MenuProps) => {
   const { selected, toggle } = useToggleSelection();
   const items = useMemo(
     () => groupedItems.map((entry) => withSelection(entry, selected, toggle)),
@@ -166,7 +160,7 @@ export const PlainButtonTrigger: Story<MenuProps> = (args) => {
   );
 };
 
-export const LongHeaderAndFooter: Story<MenuProps> = (args) => {
+const LongHeaderAndFooterDemo = (args: MenuProps) => {
   const { selected, toggle } = useToggleSelection();
   const items = useMemo(
     () => groupedItems.map((entry) => withSelection(entry, selected, toggle)),
@@ -196,7 +190,59 @@ export const LongHeaderAndFooter: Story<MenuProps> = (args) => {
   );
 };
 
-export const EllipsisMenu: Story<MenuProps> = (args) => {
+const demoLabelStyle: React.CSSProperties = {
+  fontSize: 12,
+  fontWeight: 500,
+  color: "#666",
+};
+
+const LabeledDemo = ({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) => (
+  <div
+    style={{
+      display: "flex",
+      flexDirection: "column",
+      gap: 8,
+      alignItems: "flex-start",
+    }}
+  >
+    <span style={demoLabelStyle}>{label}</span>
+    {children}
+  </div>
+);
+
+export const Default: Story = {
+  render: (args) => (
+    <div
+      style={{
+        display: "flex",
+        gap: 32,
+        alignItems: "flex-start",
+        flexWrap: "wrap",
+      }}
+    >
+      <LabeledDemo label="Default">
+        <DefaultDemo {...args} />
+      </LabeledDemo>
+      <LabeledDemo label="Nested sub-actions">
+        <NestedDemo {...args} />
+      </LabeledDemo>
+      <LabeledDemo label="Plain button trigger">
+        <PlainButtonTriggerDemo {...args} />
+      </LabeledDemo>
+      <LabeledDemo label="Long header and footer">
+        <LongHeaderAndFooterDemo {...args} />
+      </LabeledDemo>
+    </div>
+  ),
+};
+
+const EllipsisMenuDemo = (args: MenuProps) => {
   const ellipsis = useToggleSelection(
     defaultSelected.map((id) => `ellipsis-${id}`),
   );
@@ -246,4 +292,8 @@ export const EllipsisMenu: Story<MenuProps> = (args) => {
       <EllipsisMenuComponent {...args} items={disabledItems} disabled />
     </div>
   );
+};
+
+export const EllipsisMenu: Story = {
+  render: (args) => <EllipsisMenuDemo {...args} />,
 };

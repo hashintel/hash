@@ -21,6 +21,7 @@ import { PetrinautNavigationProvider } from "../../../../../react/navigation";
 import { NotificationsProvider } from "../../../../../react/notifications/provider";
 import { PetrinautOptimizationContext } from "../../../../../react/optimization-context";
 import { OptimizationsProvider } from "../../../../../react/optimizations/provider";
+import { SimulatorsProvider } from "../../../../../react/simulators/provider";
 import {
   SDCPNContext,
   type SDCPNContextValue,
@@ -42,7 +43,7 @@ import type {
   ExperimentComputeBackend,
 } from "../../../../../react/experiments/context";
 import type { SimulateViewMode } from "../../../../../react/state/editor-context";
-import type { PetrinautOptimizationSource } from "@hashintel/petrinaut-core/optimization";
+import type { PetrinautConnectedOptimization } from "@hashintel/petrinaut-core/optimization";
 import type { PropsWithChildren } from "react";
 
 export type StoryExample = {
@@ -161,7 +162,7 @@ export const RunnableSimulateViewStory = ({
 }: PropsWithChildren<{
   example: StoryExample;
   initialSimulateViewMode?: SimulateViewMode;
-  optimization?: PetrinautOptimizationSource | null;
+  optimization?: PetrinautConnectedOptimization | null;
   /** Settings used by this story. */
   settings?: Partial<UserSettings>;
 }>) => {
@@ -183,13 +184,15 @@ export const RunnableSimulateViewStory = ({
                   <FakeEditorProvider
                     initialSimulateViewMode={initialSimulateViewMode}
                   >
-                    <ExperimentsProvider>
-                      <OptimizationsProvider>
-                        <SimulateViewStoryStage>
-                          {children}
-                        </SimulateViewStoryStage>
-                      </OptimizationsProvider>
-                    </ExperimentsProvider>
+                    <SimulatorsProvider>
+                      <ExperimentsProvider>
+                        <OptimizationsProvider>
+                          <SimulateViewStoryStage>
+                            {children}
+                          </SimulateViewStoryStage>
+                        </OptimizationsProvider>
+                      </ExperimentsProvider>
+                    </SimulatorsProvider>
                   </FakeEditorProvider>
                 </WithUserSettings>
               </UserSettingsProvider>

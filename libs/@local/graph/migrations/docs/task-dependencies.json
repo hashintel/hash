@@ -2,8 +2,9 @@
   "package": "hash-graph-migrations",
   "dependencies": [
     "error-stack",
+    "hash-crypto",
     "hash-graph-migrations-macros",
-    "hash-secret",
+    "hash-graph-postgres-store",
     "hash-telemetry"
   ],
   "tasks": {
@@ -26,6 +27,7 @@
         "GITHUB_EVENT_NAME"
       ],
       "affectedBy": [
+        "darwin-kperf-codegen",
         "error-stack-macros"
       ]
     },

@@ -94,6 +94,9 @@ const makeHarness = (
     setSelectedExperimentId: vi.fn(() => {
       calls.push("setSelectedExperimentId");
     }),
+    adoptExperiment: () => {
+      throw new Error("Nothing adopts an experiment here");
+    },
     cancelExperiment: () => {},
     setSweepSelection: () => {},
     navigateSweep: () => Promise.resolve(null),
@@ -176,11 +179,11 @@ describe("useCreateOptimizedExperiment", () => {
 
   it("removes the experiment, selects nothing and rethrows when the study cannot start", async () => {
     const { calls, actions, create } = makeHarness(() =>
-      Promise.reject(new Error("A sweep can only be optimized in the browser")),
+      Promise.reject(new Error("Optimization is unavailable")),
     );
 
     await expect(create(input, objective)).rejects.toThrow(
-      "A sweep can only be optimized in the browser",
+      "Optimization is unavailable",
     );
 
     expect(actions.removeExperiment).toHaveBeenCalledWith("experiment-created");

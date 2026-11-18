@@ -4,7 +4,10 @@
     "checkJs": true,
     "lib": ["ES2024"],
     "module": "ESNext",
-    "moduleResolution": "Bundler"
+    "moduleResolution": "Bundler",
+    // Implicit returns remain in src/ai/infer-entities-websocket/handle-infer-entities-request.ts,
+    // src/auth/oauth-consent-handlers.ts and src/graphql/resolvers/embed/index.ts (TS7030).
+    "noImplicitReturns": false
   },
   "include": ["src", "codegen.config.ts", "vitest.config.ts"]
 }

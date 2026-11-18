@@ -1093,6 +1093,13 @@ export type CityPropertyValue = TextDataType;
 export type CityPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
+ * When something closed, however it ended.
+ */
+export type ClosedAtPropertyValue = DateTimeDataType;
+
+export type ClosedAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
+
+/**
  * Comment associated with the issue.
  */
 export type Comment = {
@@ -2229,7 +2236,7 @@ export type FlowDefinitionPropertiesWithMetadata = {
  * An execution run of a flow.
  */
 export type FlowRun = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/flow-run/v/2"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/flow-run/v/3"];
   properties: FlowRunProperties;
   propertiesWithMetadata: FlowRunPropertiesWithMetadata;
 };
@@ -2248,9 +2255,12 @@ export type FlowRunOutgoingLinksByLinkEntityTypeId = {
  */
 export type FlowRunProperties = {
   "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValue;
+  "https://hash.ai/@h/types/property-type/closed-at/"?: ClosedAtPropertyValue;
   "https://hash.ai/@h/types/property-type/inputs/": InputsPropertyValue;
+  "https://hash.ai/@h/types/property-type/open-input-request/"?: OpenInputRequestPropertyValue[];
   "https://hash.ai/@h/types/property-type/outputs/"?: OutputsPropertyValue;
-  "https://hash.ai/@h/types/property-type/step/"?: StepPropertyValue;
+  "https://hash.ai/@h/types/property-type/started-at/"?: StartedAtPropertyValue;
+  "https://hash.ai/@h/types/property-type/status/"?: StatusPropertyValue;
   "https://hash.ai/@h/types/property-type/workflow-id/": WorkflowIDPropertyValue;
 };
 
@@ -2258,9 +2268,15 @@ export type FlowRunPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
   value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/closed-at/"?: ClosedAtPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/inputs/": InputsPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/open-input-request/"?: {
+      value: OpenInputRequestPropertyValueWithMetadata[];
+      metadata?: ArrayMetadata;
+    };
     "https://hash.ai/@h/types/property-type/outputs/"?: OutputsPropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/step/"?: StepPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/started-at/"?: StartedAtPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/status/"?: StatusPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/workflow-id/": WorkflowIDPropertyValueWithMetadata;
   };
 };
@@ -4606,6 +4622,14 @@ export type OfMaterialPropertiesWithMetadata = LinkPropertiesWithMetadata & {
 };
 
 /**
+ * A request for input from outside something, which hasn't been answered yet.
+ */
+export type OpenInputRequestPropertyValue = ObjectDataType;
+
+export type OpenInputRequestPropertyValueWithMetadata =
+  ObjectDataTypeWithMetadata;
+
+/**
  * The date on which an order or purchasing document was created.
  */
 export type OrderDatePropertyValue = DateDataType;
@@ -6326,6 +6350,13 @@ export type SquareMetresDataTypeMetadata = {
 };
 
 /**
+ * When something started.
+ */
+export type StartedAtPropertyValue = DateTimeDataType;
+
+export type StartedAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
+
+/**
  * A delivery date used for vendor evaluation or statistical reporting.
  */
 export type StatisticsRelevantDeliveryDatePropertyValue = DateDataType;
@@ -6347,16 +6378,6 @@ export type StepDefinitionPropertyValue = ObjectDataType;
 
 export type StepDefinitionPropertyValueWithMetadata =
   ObjectDataTypeWithMetadata;
-
-/**
- * A step in a flow run.
- */
-export type StepPropertyValue = ObjectDataType[];
-
-export type StepPropertyValueWithMetadata = {
-  value: ObjectDataTypeWithMetadata[];
-  metadata?: ArrayMetadata;
-};
 
 /**
  * Whether stock is increased or decreased.

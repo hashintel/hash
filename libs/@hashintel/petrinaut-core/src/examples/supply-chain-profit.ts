@@ -13,9 +13,8 @@ import type { SDCPN } from "../types/sdcpn";
  * batch size, selling price, expedited-shipping fraction, and marketing spend)
  * plus a market `demand_multiplier` feed a single `Profit` metric that nets
  * revenue against fulfilment, holding, backlog, stockout, and policy costs.
- * That makes this the example used to demonstrate parameter optimization (see
- * the Petrinaut CLI `supply-chain-profit-*` manifests); scenario defaults
- * are deliberately near — but not at — the profit optimum.
+ * That makes this the example used to demonstrate parameter optimization;
+ * scenario defaults are deliberately near — but not at — the profit optimum.
  *
  * Ships with four scenarios: baseline demand and a demand surge, each in a
  * variant that starts with stock on hand and one that starts empty.
@@ -36,7 +35,6 @@ export const supplyChainProfit: {
           "Raw-material stock on hand, replenished in batches by the reorder policy and consumed one unit per production run.",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         visualizerCode: ``,
         showAsInitialState: true,
         x: 400,
@@ -49,7 +47,6 @@ export const supplyChainProfit: {
           "Sellable stock produced from raw material; demand arriving while this is empty becomes a lost sale.",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         visualizerCode: ``,
         showAsInitialState: true,
         x: 960,
@@ -62,7 +59,6 @@ export const supplyChainProfit: {
           "Open customer orders waiting to be fulfilled from stock; each accrues a backlog cost in the profit metric until it is sold or lost.",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         visualizerCode: ``,
         showAsInitialState: true,
         x: 960,
@@ -75,7 +71,6 @@ export const supplyChainProfit: {
           "Cumulative count of orders fulfilled from stock; the revenue side of the profit metric.",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         visualizerCode: ``,
         showAsInitialState: true,
         x: 1520,
@@ -88,7 +83,6 @@ export const supplyChainProfit: {
           "Cumulative count of demand lost to stockouts; each carries a penalty cost in the profit metric.",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         visualizerCode: ``,
         showAsInitialState: true,
         x: 1520,

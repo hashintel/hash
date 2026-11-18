@@ -1,13 +1,13 @@
 import {
   automaticBrowserInferenceFlow,
   manualBrowserInferenceFlow,
-} from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
-import { inferMetadataFromDocumentFlow } from "@local/hash-isomorphic-utils/flows/file-flow-definitions";
+} from "@local/hash-isomorphic-utils/flows/definitions/browser-plugin-flow-definitions";
+import { inferMetadataFromDocumentFlow } from "@local/hash-isomorphic-utils/flows/definitions/file-flow-definitions";
 import {
   configureDashboardItemFlow,
   refineDashboardItemFlow,
-} from "@local/hash-isomorphic-utils/flows/frontend-flow-definitions";
-import { goalFlow } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
+} from "@local/hash-isomorphic-utils/flows/definitions/frontend-flow-definitions";
+import { goalFlow } from "@local/hash-isomorphic-utils/flows/definitions/goal-flow-definitions";
 
 import type { FlowDefinitionWithId } from "@local/hash-isomorphic-utils/flows/types";
 

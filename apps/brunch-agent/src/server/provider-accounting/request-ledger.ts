@@ -40,11 +40,11 @@ const flueIdentitySchema = v.object({
   operationId: id,
   turnId: id,
 });
-const identitySchema = v.union([
+const requestIdentitySchema = v.union([
   flueIdentitySchema,
   v.strictObject({ kind: v.literal("pi"), sessionId: id, requestId: id }),
 ]);
-export type RequestIdentity = v.InferOutput<typeof identitySchema>;
+export type RequestIdentity = v.InferOutput<typeof requestIdentitySchema>;
 const identityKey = (identity: RequestIdentity) =>
   "kind" in identity
     ? `pi:${identity.sessionId}:${identity.requestId}`
@@ -96,7 +96,7 @@ const callSchema = v.looseObject({
   accountingVersion: v.optional(v.literal(1)),
   journalPending: v.optional(v.boolean()),
   runId: v.optional(id),
-  identity: v.optional(identitySchema),
+  identity: v.optional(requestIdentitySchema),
   provider: v.optional(v.literal("anthropic")),
   model: v.optional(v.literal(STEP_A_MODEL_ID)),
   maxOutputTokens: v.optional(positiveCount),
@@ -363,9 +363,9 @@ export class RequestLedger {
     context: FlueExecutionContext | RequestIdentity | undefined,
     model: Model<Api>,
   ) {
-    let identity: v.InferOutput<typeof identitySchema>;
+    let identity: v.InferOutput<typeof requestIdentitySchema>;
     try {
-      identity = v.parse(identitySchema, context);
+      identity = v.parse(requestIdentitySchema, context);
     } catch {
       return fail();
     }

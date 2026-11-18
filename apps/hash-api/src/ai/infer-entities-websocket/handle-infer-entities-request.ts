@@ -1,14 +1,15 @@
 import { getFlowRuns } from "@local/hash-backend-utils/flows";
+import { getHashWebId } from "@local/hash-backend-utils/flows/shared/get-hash-web-id";
 import {
-  automaticBrowserInferenceFlow,
-  manualBrowserInferenceFlow,
-} from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
+  flowDefinitionIds,
+  generateHashFlowDefinitionEntityId,
+} from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 
 import { FlowRunStatus } from "../../graphql/api-types.gen";
 
 import type { User } from "../../graph/knowledge/system-types/user";
+import type { EntityUuid } from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
-import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
 import type { GraphApi } from "@local/hash-graph-client";
 import type {
   AutomaticInferenceWebsocketRequestMessage,
@@ -23,13 +24,11 @@ import type { Client } from "@temporalio/client";
 
 export const handleInferEntitiesRequest = async ({
   graphApiClient,
-  storageProvider,
   temporalClient,
   message,
   user,
 }: {
   graphApiClient: GraphApi;
-  storageProvider: FileStorageProvider;
   temporalClient: Client;
   message: DistributiveOmit<
     | ManualInferenceWebsocketRequestMessage
@@ -43,25 +42,30 @@ export const handleInferEntitiesRequest = async ({
     payload: { webId, ...flowInputs },
   } = message;
 
-  const { flowDefinitionId } =
+  const hashWebId = await getHashWebId(graphApiClient, {
+    actorId: user.accountId,
+  });
+
+  const flowDefinitionEntityId = generateHashFlowDefinitionEntityId(
+    hashWebId,
     message.type === "manual-inference-request"
-      ? manualBrowserInferenceFlow
-      : automaticBrowserInferenceFlow;
+      ? flowDefinitionIds.manualBrowserInference
+      : flowDefinitionIds.automaticBrowserInference,
+  );
 
   if (message.type === "automatic-inference-request") {
     const openFlowRuns = await getFlowRuns({
       authentication: { actorId: user.accountId },
       filters: {
         executionStatus: FlowRunStatus.Running,
-        flowDefinitionIds: [
-          automaticBrowserInferenceFlow.flowDefinitionId,
-          manualBrowserInferenceFlow.flowDefinitionId,
-        ],
+        flowDefinitionEntityIds: [
+          flowDefinitionIds.automaticBrowserInference,
+          flowDefinitionIds.manualBrowserInference,
+        ].map((flowDefinitionId) =>
+          generateHashFlowDefinitionEntityId(hashWebId, flowDefinitionId),
+        ),
       },
       graphApiClient,
-      includeDetails: true,
-      storageProvider,
-      temporalClient,
     });
 
     for (const flowRun of openFlowRuns.flowRuns) {
@@ -93,14 +97,16 @@ export const handleInferEntitiesRequest = async ({
             },
           },
         },
-        flowDefinitionId,
+        flowDefinitionEntityId,
         flowInputs,
+        /* So that the run's entity id can be worked out from the request, as the browser plugin does. */
+        flowRunEntityUuid: requestUuid as EntityUuid,
         userAuthentication: { actorId: user.accountId },
         webId,
       },
     ],
     memo: {
-      flowDefinitionId,
+      flowDefinitionEntityId,
       userAccountId: user.accountId,
       webId,
     },

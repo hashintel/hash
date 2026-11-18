@@ -16,15 +16,9 @@ if [[ $# -eq 0 ]]; then
   exit 64
 fi
 
-# The query cannot tell an unknown task from an unaffected one — both come
-# back empty, and the callers treat an empty matrix as "nothing to do".
-ROOT_TURBO_JSON="$(dirname "$0")/../../turbo.json"
-for task in "$@"; do
-  if ! grep -q "^    \"$task\":" "$ROOT_TURBO_JSON"; then
-    echo "task \"$task\" is not defined in the root turbo.json" >&2
-    exit 64
-  fi
-done
+# The query treats unknown tasks as unaffected. Validate with Turbo itself so
+# native tasks and package-scoped declarations need no empty root declarations.
+turbo run "$@" --dry=json > /dev/null
 
 TASKS=$(printf '%s\n' "$@" | jq --raw-input --slurp --compact-output 'split("\n") | map(select(length > 0))')
 

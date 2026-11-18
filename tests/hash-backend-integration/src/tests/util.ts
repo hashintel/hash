@@ -71,6 +71,11 @@ export const createTestImpureGraphContext = (): ImpureGraphContext<
           "File metadata fetching not implemented in tests. Override with mock to test.",
         );
       },
+      readFirstLine: () => {
+        throw new Error(
+          "File fetching not implemented in tests. Override with mock to test.",
+        );
+      },
       getFileEntityStorageKey: (_params) => {
         throw new Error(
           "File fetching not implemented in tests. Override with mock to test.",

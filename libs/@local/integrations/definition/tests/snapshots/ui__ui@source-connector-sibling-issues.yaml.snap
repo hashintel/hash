@@ -1,0 +1,16 @@
+---
+source: libs/@local/integrations/definition/tests/ui.rs
+expression: render(&text)
+input_file: libs/@local/integrations/definition/tests/ui/source-connector-sibling-issues.yaml
+---
+5:19: sources.database.postgres.connection: connection must be a valid PostgreSQL URI
+6:15: sources.database.postgres.schema: `${SCHEMA}` is not declared in `vars`
+7:14: sources.database.postgres.table: `${TABLE}` is not declared in `vars`
+10:17: sources.database.primaryKey: primary key has no columns
+13:19: sources.warehouse.redshift.connection: connection must be a valid PostgreSQL URI
+14:15: sources.warehouse.redshift.schema: `${SCHEMA}` is not declared in `vars`
+15:14: sources.warehouse.redshift.table: `${TABLE}` is not declared in `vars`
+18:17: sources.warehouse.primaryKey: primary key has no columns
+21:12: sources.api.rest.url: `${API}` is not declared in `vars`
+22:21: sources.api.rest.resultsField: `${RESULTS}` is not declared in `vars`
+23:17: sources.api.primaryKey: primary key has no columns

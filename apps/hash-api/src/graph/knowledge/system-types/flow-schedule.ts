@@ -39,10 +39,7 @@ const isEntityFlowScheduleEntity = (
   );
 
 export const createFlowSchedule: ImpureGraphFunction<
-  CreateFlowScheduleInput & {
-    /** The `Flow Definition` entity the schedule starts runs of. */
-    flowDefinitionEntityId: EntityId;
-  },
+  CreateFlowScheduleInput,
   Promise<HashEntity<FlowSchedule>>
 > = async (context, authentication, params) => {
   const {

@@ -45,6 +45,7 @@ const modelFileLoaders: Record<
   "gases-2-spn": () => import("./models/gases-2-spn.json"),
   "gases-3-cpn": () => import("./models/gases-3-cpn.json"),
   "gases-4-dcpn": () => import("./models/gases-4-dcpn.json"),
+  "inventory-purchasing": () => import("./models/inventory-purchasing.json"),
   "semiconductor-fab-drift": () =>
     import("./models/semiconductor-fab-drift.json"),
   "truck-fleet-predictive-maintenance": () =>
@@ -60,10 +61,16 @@ const runtimeLoaders: Record<ExampleSlug, () => Promise<{ default: unknown }>> =
     "gases-2-spn": () => import("./generated/gases-2-spn.json"),
     "gases-3-cpn": () => import("./generated/gases-3-cpn.json"),
     "gases-4-dcpn": () => import("./generated/gases-4-dcpn.json"),
+    "inventory-purchasing": () =>
+      import("./generated/inventory-purchasing.json"),
+    "planets-and-satellites": () =>
+      import("./generated/planets-and-satellites.json"),
     "probabilistic-satellite-launcher": () =>
       import("./generated/probabilistic-satellite-launcher.json"),
     "production-with-machine-failure": () =>
       import("./generated/production-with-machine-failure.json"),
+    "satellites-with-attraction": () =>
+      import("./generated/satellites-with-attraction.json"),
     "semiconductor-fab-drift": () =>
       import("./generated/semiconductor-fab-drift.json"),
     "sir-epidemic-model": () => import("./generated/sir-epidemic-model.json"),

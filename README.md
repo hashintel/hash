@@ -69,7 +69,7 @@ Install these on the host first:
 - **[Docker](https://docs.docker.com/get-docker/)** (≥ 20.10), including:
   - **[Docker Compose](https://docs.docker.com/compose/)** (≥ 2.17) — orchestrates the stack
   - **[Docker Buildx](https://docs.docker.com/build/install-buildx/)** (≥ 0.10) — builds the images
-- **[mise](https://mise.jdx.dev/)** (≥ 2026.6.13) — installs and pins Node, Rust, protoc and the other required tool versions
+- **[mise](https://mise.jdx.dev/)** (≥ 2026.10.17) — installs and pins Node, Rust, protoc and the other required tool versions
 
 Give Docker at least **8 GB RAM** (Preferences → Resources) and keep ~15 GB of disk free for build artefacts, images and volumes.
 
@@ -82,7 +82,7 @@ git --version            # ≥ 2.17
 docker --version         # ≥ 20.10
 docker compose version   # ≥ 2.17
 docker buildx version    # ≥ 0.10
-mise --version           # ≥ 2026.6.13
+mise --version           # ≥ 2026.10.17
 ```
 
 #### Setup
@@ -306,6 +306,7 @@ The Postgres information for the graph query layer is configured through:
 - `NOTIFICATION_POLL_INTERVAL`: the interval in milliseconds at which the frontend will poll for new notifications, or 0 for no polling. (default: `10_000`)
 - `HASH_INTEGRATION_QUEUE_NAME` The name of the Redis queue which updates to entities are published to
 - `API_ORIGIN`: The origin that the API service can be reached on (default: `http://localhost:5001`)
+- `HASH_BRUNCH_AGENT_ORIGIN`: The origin of the Brunch agent server, which the process editor's assistant calls directly with the user's session; Brunch must list the frontend's origin in `BRUNCH_HASH_CORS_ALLOWED_ORIGINS` and share the session cookie's domain. Unset, the process editor offers no assistant. (optional)
 - `SESSION_SECRET`: The secret used to sign sessions (default: `secret`)
 - `LOG_LEVEL`: the level of runtime logs that should be omitted, either set to `debug`, `info`, `warn`, `error` (default: `info`)
 - `BLOCK_PROTOCOL_API_KEY`: the api key for fetching blocks from the [Þ Hub](https://blockprotocol.org/hub). Generate a key at https://blockprotocol.org/settings/api-keys.

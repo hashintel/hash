@@ -14,7 +14,7 @@ use type_system::{
     knowledge::{
         Confidence,
         entity::{
-            Entity, LinkData,
+            Entity, Link,
             id::{EntityEditionId, EntityId, EntityUuid},
             metadata::EntityTypeIdDiff,
             provenance::ProvidedEntityEditionProvenance,
@@ -42,7 +42,8 @@ use crate::{
     },
     entity_type::{EntityTypeResolveDefinitions, IncludeEntityTypeOption},
     error::{
-        CheckPermissionError, ClusterError, DeletionError, InsertionError, QueryError, UpdateError,
+        CheckPermissionError, ClusterError, DeletionError, EntityCreationError, QueryError,
+        UpdateError,
     },
     filter::{Filter, SemanticDistance},
     subgraph::{
@@ -162,8 +163,8 @@ pub struct CreateEntityParams {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub confidence: Option<Confidence>,
     #[serde(default)]
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub link_data: Option<LinkData>,
+    #[cfg_attr(feature = "utoipa", schema(nullable = false, value_type = Option<LinkData>))]
+    pub link_data: Option<Link>,
     pub draft: bool,
     #[cfg_attr(feature = "utoipa", schema(value_type = Vec<Object>))]
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -185,8 +186,8 @@ pub struct ValidateEntityParams<'a> {
     #[serde(borrow)]
     pub properties: Cow<'a, PropertyObjectWithMetadata>,
     #[serde(borrow, default)]
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub link_data: Option<Cow<'a, LinkData>>,
+    #[cfg_attr(feature = "utoipa", schema(nullable = false, value_type = Option<LinkData>))]
+    pub link_data: Option<Cow<'a, Link>>,
     #[serde(default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub components: ValidateEntityComponents,
@@ -522,7 +523,7 @@ impl PatchEntityParams {
     /// only the confidence is updated without changing the archive-state, this is also considered
     /// an update. On the counterary, if only the confidence is updated along with an archive-state
     /// change, the confidence is used for the new entity edition.
-    // TODO(BE-224): Fix edge-case that the confidence could be updated by archiving/unarchiving.
+    // TODO(BE-250): Fix edge-case that the confidence could be updated by archiving/unarchiving.
     #[must_use]
     pub fn is_update(&self) -> bool {
         !self.entity_type_ids.is_empty()
@@ -757,20 +758,14 @@ pub struct DeletionSummary {
 pub trait EntityStore {
     /// Creates a new [`Entity`].
     ///
-    /// # Errors:
+    /// # Errors
     ///
-    /// - if the [`EntityType`] doesn't exist
-    /// - if the [`PropertyObjectWithMetadata`] is not valid with respect to the specified
-    ///   [`EntityType`]
-    /// - if the account referred to by `web_id` does not exist
-    /// - if an [`EntityUuid`] was supplied and already exists in the store
-    ///
-    /// [`EntityType`]: type_system::ontology::entity_type::EntityType
+    /// The same as [`create_entities`](Self::create_entities).
     fn create_entity(
         &mut self,
         actor_id: ActorId,
         params: CreateEntityParams,
-    ) -> impl Future<Output = Result<Entity, Report<InsertionError>>> + Send {
+    ) -> impl Future<Output = Result<Entity, Report<EntityCreationError>>> + Send {
         self.create_entities(actor_id, vec![params])
             .map_ok(|mut entities| {
                 let entity = entities.pop().expect("Expected a single entity");
@@ -779,12 +774,36 @@ pub trait EntityStore {
             })
     }
 
-    /// Creates new [`Entities`][Entity].
+    /// Creates new [`Entities`][Entity], either all of them or none.
+    ///
+    /// # Errors
+    ///
+    /// - [`UnknownEntityTypes`] if one of the entity types does not exist or the actor may not view
+    ///   it
+    /// - [`ArchivedEntityTypes`] if one of the entity types is archived
+    /// - [`InstantiationForbidden`] if the actor may not instantiate one of the entity types or a
+    ///   type it inherits from
+    /// - [`CreationForbidden`] if the actor may not create one of the entities
+    /// - [`IncompatibleEntityTypes`] if the entity types of an entity define a property differently
+    /// - [`InvalidProvenance`] if the provenance of an entity, its properties or its link breaks a
+    ///   rule
+    /// - [`InvalidEntities`] if an entity does not match its entity types
+    /// - [`Store`] if the store cannot create the entities, including when an entity type from
+    ///   another domain cannot be fetched
+    ///
+    /// [`UnknownEntityTypes`]: EntityCreationError::UnknownEntityTypes
+    /// [`ArchivedEntityTypes`]: EntityCreationError::ArchivedEntityTypes
+    /// [`InstantiationForbidden`]: EntityCreationError::InstantiationForbidden
+    /// [`CreationForbidden`]: EntityCreationError::CreationForbidden
+    /// [`IncompatibleEntityTypes`]: EntityCreationError::IncompatibleEntityTypes
+    /// [`InvalidProvenance`]: EntityCreationError::InvalidProvenance
+    /// [`InvalidEntities`]: EntityCreationError::InvalidEntities
+    /// [`Store`]: EntityCreationError::Store
     fn create_entities(
         &mut self,
         actor_id: ActorId,
         params: Vec<CreateEntityParams>,
-    ) -> impl Future<Output = Result<Vec<Entity>, Report<InsertionError>>> + Send;
+    ) -> impl Future<Output = Result<Vec<Entity>, Report<EntityCreationError>>> + Send;
 
     /// Validates an [`Entity`].
     ///
@@ -903,14 +922,26 @@ pub trait EntityStore {
 
     /// Get the latest edition of the [`Entity`], or the one live at the given timestamps.
     ///
-    /// [`None`] reads as the public actor.
+    /// An `actor_id` of [`None`] reads as the public actor. Reads a draft only when `entity_id`
+    /// names one. Returns [`None`] if the actor may not view the entity or no such edition is
+    /// live at `transaction_time` and `decision_time`, each of which defaults to now.
+    ///
+    /// Reads through [`query_entities`], so it masks protected properties the same way and runs
+    /// against a single consistent snapshot of the store. This requires mutable access to the
+    /// store.
+    ///
+    /// # Errors
+    ///
+    /// - [`QueryError`] if the store cannot be queried
+    ///
+    /// [`query_entities`]: Self::query_entities
     fn get_entity_by_id(
-        &self,
+        &mut self,
         actor_id: Option<ActorId>,
         entity_id: EntityId,
         transaction_time: Option<Timestamp<TransactionTime>>,
         decision_time: Option<Timestamp<DecisionTime>>,
-    ) -> impl Future<Output = Result<Entity, Report<QueryError>>> + Send;
+    ) -> impl Future<Output = Result<Option<Entity>, Report<QueryError>>> + Send;
 
     fn patch_entity(
         &mut self,
@@ -971,12 +1002,12 @@ pub trait EntityStore {
     ) -> impl Future<Output = Result<DeletionSummary, Report<DeletionError>>> + Send;
 
     fn diff_entity(
-        &self,
+        &mut self,
         actor_id: ActorId,
         params: DiffEntityParams,
     ) -> impl Future<Output = Result<DiffEntityResult<'static>, Report<QueryError>>> + Send
     where
-        Self: Sync,
+        Self: Send,
     {
         async move {
             let first_entity = self
@@ -986,7 +1017,13 @@ pub trait EntityStore {
                     params.first_transaction_time,
                     params.first_decision_time,
                 )
-                .await?;
+                .await?
+                .ok_or_else(|| {
+                    Report::new(QueryError).attach(format!(
+                        "entity `{}` is not visible",
+                        params.first_entity_id
+                    ))
+                })?;
             let second_entity = self
                 .get_entity_by_id(
                     Some(actor_id),
@@ -994,7 +1031,13 @@ pub trait EntityStore {
                     params.second_transaction_time,
                     params.second_decision_time,
                 )
-                .await?;
+                .await?
+                .ok_or_else(|| {
+                    Report::new(QueryError).attach(format!(
+                        "entity `{}` is not visible",
+                        params.second_entity_id
+                    ))
+                })?;
 
             let property_diff = first_entity
                 .properties

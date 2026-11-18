@@ -14,12 +14,10 @@ import {
 } from "@earendil-works/pi-ai";
 import { createFlueClient } from "@flue/sdk";
 
+import { agentOwnershipHeaders } from "@hashintel/brunch-agent";
 import { installFauxProvider } from "@local/pi-faux-providers/install-faux-provider";
 
-import {
-  agentOwnershipHeaders,
-  flueConversationIdFrom,
-} from "../../src/shared/conversation/identity.ts";
+import { flueConversationId } from "../../src/shared/conversation/identity.ts";
 import { loadBuiltBrunchApplication } from "../load-built-application.ts";
 
 import type { AgentSendResult, FlueConversationSnapshot } from "@flue/sdk";
@@ -41,7 +39,7 @@ assert(
 const dbPath = join(directory, "conversation.db");
 assert.equal(existsSync(dbPath), phase === "recover");
 const identity = {
-  principalKey: `a4-crash-${basename(directory)}`,
+  actorKey: `a4-crash-${basename(directory)}`,
   conversationId: `a4-crash-${basename(directory)}`,
 };
 const inspect = () => {
@@ -135,7 +133,7 @@ faux.setResponses(
 );
 const application = await loadBuiltBrunchApplication();
 const client = createFlueClient({
-  url: `http://a4.in-process/agents/petrinaut/${flueConversationIdFrom(identity)}`,
+  url: `http://a4.in-process/agents/petrinaut/${flueConversationId(identity)}`,
   headers: agentOwnershipHeaders(identity),
   fetch: async (input, init) =>
     application.fetch(

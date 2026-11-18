@@ -55,8 +55,8 @@ use type_system::{
     knowledge::{
         Confidence, Entity, Property,
         entity::{
-            EntityMetadata, LinkData,
-            id::{EntityEditionId, EntityId, EntityRecordId, EntityUuid},
+            EntityMetadata, Link,
+            id::{DraftId, EntityEditionId, EntityId, EntityRecordId, EntityUuid},
             metadata::{EntityTemporalMetadata, EntityTypeIdDiff},
             provenance::{
                 EntityDeletionProvenance, EntityEditionProvenance, EntityProvenance,
@@ -75,7 +75,10 @@ use type_system::{
         value::{ValueMetadata, metadata::ValueProvenance},
     },
     principal::actor::ActorType,
-    provenance::{Location, OriginProvenance, SourceProvenance, SourceType},
+    provenance::{
+        Location, OriginProvenance, SourceProvenance, SourceType,
+        validation::{ProvenanceOwner, ProvenanceRule, ProvenanceViolation},
+    },
 };
 
 use self::query::{
@@ -175,6 +178,7 @@ use crate::rest::legacy::{
             PropertyMetadata,
             EntityUuid,
             EntityId,
+            DraftId,
             EntityEditionId,
             EntityMetadata,
             EntityProvenance,
@@ -189,7 +193,7 @@ use crate::rest::legacy::{
             EntityRecordId,
             EntityTemporalMetadata,
             EntityQueryToken,
-            LinkData,
+            Link,
             EntityValidationReport,
             LinkedEntityError,
             LinkDataValidationReport,
@@ -201,6 +205,9 @@ use crate::rest::legacy::{
             MetadataValidationReport,
             EntityTypesError,
             PropertyMetadataValidationReport,
+            ProvenanceViolation,
+            ProvenanceOwner,
+            ProvenanceRule,
             ObjectPropertyValidationReport,
             JsonSchemaValueTypeMismatch,
             ArrayValidationReport,
@@ -282,7 +289,7 @@ impl EntityResource {
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The created entity", body = Entity),
-        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+        (status = 400, content_type = "application/json", description = "Provided request body is invalid", body = Status),
 
         (status = 404, description = "Entity Type URL was not found"),
         (status = 500, description = "Store error occurred"),
@@ -298,7 +305,7 @@ where
     S: StorePool + Send + Sync,
 {
     let params = CreateEntityParams::deserialize(&body)
-        .map_err(Report::from)
+        .attach_opaque(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
     let mut store = store_pool
@@ -323,7 +330,7 @@ where
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The created entities", body = [Entity]),
-        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+        (status = 400, content_type = "application/json", description = "Provided request body is invalid", body = Status),
 
         (status = 404, description = "Entity Type URL was not found"),
         (status = 500, description = "Store error occurred"),
@@ -339,7 +346,7 @@ where
     S: StorePool + Send + Sync,
 {
     let params = Vec::<CreateEntityParams>::deserialize(&body)
-        .map_err(Report::from)
+        .attach_opaque(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
     let mut store = store_pool
@@ -385,7 +392,7 @@ where
     }
 
     let params = ValidateEntityParams::deserialize(&body)
-        .map_err(Report::from)
+        .attach_opaque(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
     let store = store_pool
@@ -761,7 +768,7 @@ where
         query_logger.capture(Some(actor_id), OpenApiQuery::DiffEntity(&params));
     }
 
-    let store = store_pool
+    let mut store = store_pool
         .acquire(temporal_client.0)
         .await
         .map_err(report_to_response)?;

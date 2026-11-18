@@ -1,7 +1,9 @@
+import { execFile } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 
-import { execa } from "execa";
+const execFileAsync = promisify(execFile);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,13 +18,18 @@ type YarnWorkspaceInfo = {
 export const getWorkspaceInfoLookup = async (): Promise<
   Record<string, YarnWorkspaceInfo>
 > => {
-  const { stdout } = await execa("yarn", ["workspaces", "list", "--json"], {
-    env: { PATH: process.env.PATH },
-    extendEnv: false, // Avoid passing FORCE_COLOR to a sub-process
-  });
+  const { stdout } = await execFileAsync(
+    "yarn",
+    ["workspaces", "list", "--json"],
+    {
+      // Replaces the whole environment, to avoid passing FORCE_COLOR to a sub-process
+      env: { PATH: process.env.PATH },
+    },
+  );
 
   return Object.fromEntries(
     stdout
+      .trim()
       .split("\n")
       .map((line) => JSON.parse(line) as YarnWorkspaceInfo)
       .map((workspaceInfo) => [workspaceInfo.name, workspaceInfo] as const),

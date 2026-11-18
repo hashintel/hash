@@ -1,0 +1,391 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import { MenuItemDoc, MenuItemGroupDoc } from "../Menu/menu";
+import { RightClickMenu } from "./right-click-menu";
+
+<Meta title="Docs/RightClickMenu" />
+
+export const meta = {
+  title: "RightClickMenu",
+  description: "Opens a menu of actions where the user right-clicks.",
+  alternativeNames: ["ContextMenu", "ContextualMenu"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/RightClickMenu/right-click-menu.tsx",
+    stories:
+      "https://tokens.hash.design/?path=/story/components-rightclickmenu--default",
+  },
+  referenceLinks: {
+    apg: "https://www.w3.org/WAI/ARIA/apg/patterns/menu/",
+    ark: "https://ark-ui.com/docs/components/menu",
+  },
+  related: ["Menu", "EllipsisMenu", "Popover"],
+};
+
+export const noop = () => {};
+
+export const area = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: 300,
+  height: 112,
+  border: "1.5px dashed #94A3B8",
+  borderRadius: 8,
+  color: "#475569",
+  fontSize: 14,
+  textAlign: "center",
+};
+
+export const heroItems = [
+  { text: "Open entity", icon: "arrowUpRight", onClick: noop },
+  { text: "Copy entity ID", icon: "copy", suffix: "⌘C", onClick: noop },
+  { text: "Rename", icon: "pencil", onClick: noop },
+  {
+    id: "danger",
+    label: "",
+    items: [
+      { text: "Delete entity", icon: "trash", tone: "error", onClick: noop },
+    ],
+  },
+];
+
+export const basicItems = [
+  { text: "Open entity", onClick: noop },
+  { text: "Duplicate", onClick: noop },
+  { text: "Copy entity ID", onClick: noop },
+];
+
+export const groupedItems = [
+  {
+    id: "view",
+    label: "View",
+    items: [
+      { text: "Open entity", onClick: noop },
+      { text: "View history", onClick: noop },
+    ],
+  },
+  {
+    id: "organize",
+    label: "Organize",
+    items: [
+      { text: "Rename", onClick: noop },
+      { text: "Duplicate", onClick: noop },
+    ],
+  },
+];
+
+export const flowItems = [
+  { text: "Run flow", icon: "play", suffix: "⌘↵", onClick: noop },
+  { text: "Duplicate", icon: "copy", suffix: "⌘D", onClick: noop },
+  { text: "View run history", icon: "clockRotateLeft", onClick: noop },
+];
+
+export const propertyItems = [
+  { text: "Copy properties", onClick: noop },
+  { text: "Paste properties", disabled: true, onClick: noop },
+];
+
+export const archiveItems = [
+  { text: "Archive entity", onClick: noop },
+  {
+    id: "danger",
+    label: "",
+    items: [
+      { text: "Delete entity", icon: "trash", tone: "error", onClick: noop },
+    ],
+  },
+];
+
+export const moveItems = [
+  { text: "Open entity", onClick: noop },
+  {
+    text: "Move to workspace",
+    subItems: [
+      { text: "Acme Corp", onClick: noop },
+      { text: "Research", onClick: noop },
+      { text: "Personal", onClick: noop },
+    ],
+  },
+];
+
+export const linkItems = [
+  { id: "open-tab", text: "Open in new tab", href: "#", target: "_blank" },
+  { id: "type", text: "View entity type", href: "#" },
+];
+
+# RightClickMenu
+
+Opens a menu of actions where the user right-clicks.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+<Stage>
+  <RightClickMenu items={heroItems}>
+    <div style={area}>Right-click this entity</div>
+  </RightClickMenu>
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { RightClickMenu } from "@hashintel/ds-components";
+
+export const EntityCard = ({ entityId }: { entityId: string }) => (
+  <RightClickMenu
+    items={[
+      { text: "Open entity", onClick: () => openEntity(entityId) },
+      { text: "Duplicate", onClick: () => duplicateEntity(entityId) },
+    ]}
+  >
+    <article>{/* the right-clickable area */}</article>
+  </RightClickMenu>
+);
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use RightClickMenu as a shortcut to actions on a specific object — a table row, graph node, file, or canvas region.",
+    "Use it on large surfaces (canvases, editors) where a persistent toolbar for every object would add noise.",
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    "Avoid making it the only path to an action — right-click is invisible until tried, and many users never try.",
+    "Don't wrap text inputs or selectable prose — it suppresses the browser's native context menu (copy, paste, spell-check) and disables text selection in the area.",
+  ]}
+/>
+
+## Anatomy
+
+The wrapped children are the right-clickable area; `items` describes the menu
+rows using the same items model as Menu — actions, links, submenus, and
+labelled groups:
+
+```tsx
+<RightClickMenu
+  items={[
+    // an action — onClick receives the item's id (defaults to its text)
+    { text: "Open entity", onClick: openEntity },
+    // a link
+    { text: "Open in new tab", href: entityUrl, target: "_blank" },
+    // a group draws dividers; an empty label makes it a plain divider
+    {
+      id: "danger",
+      label: "",
+      items: [{ text: "Delete entity", tone: "error", onClick: confirmDelete }],
+    },
+  ]}
+>
+  <EntityCard /> {/* the right-clickable area */}
+</RightClickMenu>
+```
+
+## Examples
+
+### Basic
+
+Pass `items` with an `onClick` per action and wrap the area the menu belongs
+to. Right-click (or long-press on touch) anywhere inside it opens the menu at
+the pointer.
+
+<Stage>
+  <RightClickMenu items={basicItems}>
+    <div style={area}>Right-click for entity actions</div>
+  </RightClickMenu>
+</Stage>
+
+### Grouped actions
+
+Wrap related items in `{ id, label, items }` groups — dividers draw between
+groups automatically. Pass an empty `label` for a divider without a heading.
+
+<Stage>
+  <RightClickMenu items={groupedItems}>
+    <div style={area}>Right-click for grouped actions</div>
+  </RightClickMenu>
+</Stage>
+
+### Icons and shortcut hints
+
+An item's `icon` reinforces its label; `suffix` right-aligns extra content,
+conventionally the keyboard shortcut. The suffix only displays the hint — the
+shortcut itself must be registered elsewhere.
+
+<Stage>
+  <RightClickMenu items={flowItems}>
+    <div style={area}>Right-click this flow node</div>
+  </RightClickMenu>
+</Stage>
+
+### Disabled items
+
+Disable actions that don't currently apply instead of removing them — a stable
+list keeps the menu predictable between opens. Disabled items are skipped by
+keyboard navigation.
+
+<Stage>
+  <RightClickMenu items={propertyItems}>
+    <div style={area}>Right-click with nothing copied</div>
+  </RightClickMenu>
+</Stage>
+
+### Destructive actions
+
+Set `tone: "error"` on destructive items and keep them last, in a group of
+their own, so a slipped pointer doesn't land on them. Confirm irreversible
+actions before running them.
+
+<Stage>
+  <RightClickMenu items={archiveItems}>
+    <div style={area}>Right-click this entity</div>
+  </RightClickMenu>
+</Stage>
+
+### Submenus
+
+Give an item `subItems` to open a nested menu on hover or ArrowRight. Keep
+nesting to one level — deeper trees are hard to traverse with a pointer.
+
+<Stage>
+  <RightClickMenu items={moveItems}>
+    <div style={area}>Right-click to move this entity</div>
+  </RightClickMenu>
+</Stage>
+
+### Checkable view options
+
+Mark stateful rows with `selected` and `selectedStyle: "checkbox"`;
+`keepOpenOnSelect` keeps the menu up while the user toggles several. Rebuild
+`items` from state — the menu renders them fresh on every open.
+
+```tsx
+import { useState } from "react";
+
+import { RightClickMenu } from "@hashintel/ds-components";
+
+export const GraphCanvas = () => {
+  const [showGrid, setShowGrid] = useState(true);
+  const [snapToGrid, setSnapToGrid] = useState(false);
+  return (
+    <RightClickMenu
+      items={[
+        {
+          text: "Show grid",
+          selected: showGrid,
+          selectedStyle: "checkbox",
+          keepOpenOnSelect: true,
+          onClick: () => setShowGrid((previous) => !previous),
+        },
+        {
+          text: "Snap to grid",
+          selected: snapToGrid,
+          selectedStyle: "checkbox",
+          keepOpenOnSelect: true,
+          onClick: () => setSnapToGrid((previous) => !previous),
+        },
+      ]}
+    >
+      <section>{/* canvas */}</section>
+    </RightClickMenu>
+  );
+};
+```
+
+### Link items
+
+Items with `href` render real anchors — right for "Open in new tab" rows.
+`target: "_blank"` is the only target supported.
+
+<Stage>
+  <RightClickMenu items={linkItems}>
+    <div style={area}>Right-click this entity type</div>
+  </RightClickMenu>
+</Stage>
+
+### Placement
+
+The menu opens at the pointer; `position` sets the preferred side and
+alignment relative to it, and another placement is chosen when the preferred
+one doesn't fit.
+
+<Stage>
+  <RightClickMenu items={basicItems} position="right-start">
+    <div style={area}>position="right-start"</div>
+  </RightClickMenu>
+</Stage>
+
+## Behavior
+
+- The menu opens on right-click, or a long press from touch and
+  pen pointers. Opening suppresses the browser's native context menu inside
+  the area.
+- Menu contents mount on open and unmount on close, so `items` built from
+  current state are always fresh.
+
+## Content
+
+- Write item labels verb-first, 1–3 words, sentence case: "Rename",
+  "Copy entity ID", "Delete entity". No punctuation.
+- Show only actions relevant to the object, most-used first — a context menu
+  is a shortcut, not a command reference. Keep it under ~10 items per level,
+  grouping once you pass 5.
+- Keep group labels to one or two category words: "View", "Organize".
+
+## Accessibility
+
+RightClickMenu implements the
+[WAI-ARIA menu pattern](https://www.w3.org/WAI/ARIA/apg/patterns/menu/).
+
+### What RightClickMenu provides
+
+- Menu semantics, highlight-based arrow-key navigation, typeahead, and Escape
+  dismissal.
+- Long-press opening on touch and pen pointers, so the menu isn't mouse-only.
+
+### What you must do
+
+- Make the wrapped area focusable (or ensure it contains a focusable element)
+  so keyboard users can reach it and open the menu.
+
+## API reference
+
+### RightClickMenu
+
+<PropsTable of={RightClickMenu} defaults={{ position: '"bottom-start"' }} />
+
+### MenuItem
+
+The shape of `items` and `subItems` entries — the same items model as Menu.
+Each takes `text` plus exactly one of `onClick`, `href`, or `subItems` — or a
+lone `custom` node for a presentational row.
+
+<PropsTable of={MenuItemDoc} defaults={{ selectedStyle: '"highlight"' }} />
+
+### MenuItemGroup
+
+A labelled group of items, usable wherever items are: `{ id, label, items }`.
+
+<PropsTable of={MenuItemGroupDoc} />

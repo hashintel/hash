@@ -1,0 +1,478 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { useState } from "react";
+
+import { noop } from "../../util/noop";
+import { DemoState } from "../../../docs/blocks/demo-state";
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import { Radio } from "./radio";
+
+<Meta title="Docs/Radio" />
+
+export const meta = {
+  title: "Radio",
+  description:
+    "A single option in a choose-one set, usually composed into lists by RadioGroup.",
+  alternativeNames: ["RadioButton", "Option button"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/Radio/radio.tsx",
+    stories:
+      "https://tokens.hash.design/?path=/story/components-radio--default",
+  },
+  referenceLinks: {
+    apg: "https://www.w3.org/WAI/ARIA/apg/patterns/radio/",
+    mdn: "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/radio",
+  },
+  related: ["RadioGroup", "Checkbox"],
+};
+
+# Radio
+
+A single option in a choose-one set, usually composed into lists by RadioGroup.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+export const heroCode = `import { useState } from "react";
+
+import { Radio } from "@hashintel/ds-components";
+
+export const EntityScopePicker = () => {
+  const [scope, setScope] = useState("live");
+
+  return (
+    <>
+      <Radio
+        value={scope === "live"}
+        label="Live entities"
+        onChange={() => setScope("live")}
+      />
+      <Radio
+        value={scope === "all"}
+        tone="brand"
+        label="All versions"
+        onChange={() => setScope("all")}
+      />
+      <Radio
+        value={scope === "draft"}
+        label="Draft entities"
+        onChange={() => setScope("draft")}
+      />
+    </>
+  );
+};`;
+
+export const HeroDemo = () => {
+  const [scope, setScope] = useState("live");
+  return (
+    <>
+      <Radio
+        value={scope === "live"}
+        label="Live entities"
+        onChange={() => setScope("live")}
+      />
+      <Radio
+        value={scope === "all"}
+        tone="brand"
+        label="All versions"
+        onChange={() => setScope("all")}
+      />
+      <Radio
+        value={scope === "draft"}
+        label="Draft entities"
+        onChange={() => setScope("draft")}
+      />
+    </>
+  );
+};
+
+<Stage code={heroCode}>
+  <HeroDemo />
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { useState } from "react";
+
+import { Radio } from "@hashintel/ds-components";
+
+export const VisibilityPicker = () => {
+  const [visibility, setVisibility] = useState("workspace");
+
+  return (
+    <>
+      <Radio
+        label="Visible to workspace"
+        name="visibility"
+        value={visibility === "workspace"}
+        onChange={() => setVisibility("workspace")}
+      />
+      <Radio
+        label="Only me"
+        name="visibility"
+        value={visibility === "private"}
+        onChange={() => setVisibility("private")}
+      />
+    </>
+  );
+};
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use Radio to build a bespoke choose-one layout — options in table rows, cards, or a grid — that RadioGroup's layouts can't express.",
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    "Don't hand-wire a standard stack of options — use RadioGroup, which manages the shared value, group name, and option layout.",
+    "Don't use a lone radio for an on/off choice — once selected it can't be unselected; use Checkbox or Toggle.",
+    "Don't present long option lists as radios — beyond roughly 5 options use Select.",
+    "Don't use radios to switch views or filters that apply instantly — use SegmentedControl.",
+  ]}
+/>
+
+## Examples
+
+### Basic
+
+Radio is always controlled: `value` holds whether this option is selected and
+`onChange` reports selection (see Installation for the group wiring). The
+default is `md`-sized and `neutral`.
+
+export const basicCode = `import { useState } from "react";
+
+import { Radio } from "@hashintel/ds-components";
+
+export const EntityStatusPicker = () => {
+  const [status, setStatus] = useState("live");
+
+  return (
+    <>
+      <Radio
+        value={status === "live"}
+        label="Live entities"
+        onChange={() => setStatus("live")}
+      />
+      <Radio
+        value={status === "draft"}
+        label="Draft entities"
+        onChange={() => setStatus("draft")}
+      />
+    </>
+  );
+};`;
+
+export const BasicDemo = () => {
+  const [status, setStatus] = useState("live");
+  return (
+    <>
+      <Radio
+        value={status === "live"}
+        label="Live entities"
+        onChange={() => setStatus("live")}
+      />
+      <Radio
+        value={status === "draft"}
+        label="Draft entities"
+        onChange={() => setStatus("draft")}
+      />
+    </>
+  );
+};
+
+<Stage code={basicCode}>
+  <BasicDemo />
+</Stage>
+
+### Disabled
+
+A disabled radio keeps its selected state visible but can't be changed.
+Disable individual options the user's role or plan rules out, and explain the
+constraint nearby.
+
+<Stage>
+  <Radio disabled value label="Free plan (current)" onChange={noop} />
+  <Radio disabled value={false} label="Enterprise plan" onChange={noop} />
+</Stage>
+
+### Invalid
+
+Set `invalid` on the options of a group that failed validation — typically a
+required choice left unmade. Pair it with visible error text — the red ring
+alone doesn't say what's wrong.
+
+<Stage>
+  <DemoState data-harness>
+    <Radio invalid value={false} label="US East" onChange={noop} />
+  </DemoState>
+  <DemoState data-harness>
+    <Radio invalid value={false} label="EU West" onChange={noop} />
+  </DemoState>
+</Stage>
+
+### Tones
+
+`tone` colors the selected circle: `neutral` (default) for everyday forms,
+`brand` for primary flows such as onboarding, `success` for
+confirmation-flavored choices. Unselected radios look the same in every tone.
+
+<Stage>
+  <Radio value tone="neutral" label="Neutral" onChange={noop} />
+  <Radio value tone="brand" label="Brand" onChange={noop} />
+  <Radio value tone="success" label="Success" onChange={noop} />
+</Stage>
+
+### Sizes
+
+`md` is the default. Match the surrounding text — `xxs`–`sm` for dense chrome such as table rows and filter
+panels, `lg` for prominent choices.
+
+<Stage>
+  <Radio value size="xxs" label="xxs" onChange={noop} />
+  <Radio value size="xs" label="xs" onChange={noop} />
+  <Radio value size="sm" label="sm" onChange={noop} />
+  <Radio value size="md" label="md" onChange={noop} />
+  <Radio value size="lg" label="lg" onChange={noop} />
+</Stage>
+
+### Label placement
+
+`labelPlacement` puts the label `right` (default) or `left` of the circle.
+With `left`, the root also spreads label and circle to opposite edges once you
+give it a width via `className`. 
+
+<Stage>
+  <Radio
+    value
+    labelPlacement="right"
+    label="Label on the right"
+    onChange={noop}
+  />
+  <Radio
+    value
+    labelPlacement="left"
+    label="Label on the left"
+    onChange={noop}
+  />
+</Stage>
+
+### Label alignment
+
+`labelAlign` sets the circle against a label that wraps onto several lines:
+`top` (default) pins it to the first line, `center` centers it against the
+whole label.
+
+<Stage>
+  <div style={{ maxWidth: 260 }}>
+    <Radio
+      value
+      labelAlign="top"
+      label="Keep both versions and mark the conflicting entities for manual review"
+      onChange={noop}
+    />
+  </div>
+  <div style={{ maxWidth: 260 }}>
+    <Radio
+      value
+      labelAlign="center"
+      label="Keep both versions and mark the conflicting entities for manual review"
+      onChange={noop}
+    />
+  </div>
+</Stage>
+
+### Custom groups
+
+Give every option the same `name` and derive each `value` from one piece of
+state: the browser then enforces single selection and the arrow keys move both
+focus and selection. Prefer RadioGroup unless the layout demands this.
+
+export const mergeStrategyCode = `import { useState } from "react";
+
+import { Radio } from "@hashintel/ds-components";
+
+export const MergeStrategyPicker = () => {
+  const [strategy, setStrategy] = useState("merge");
+
+  return (
+    <>
+      <Radio
+        name="merge-strategy"
+        htmlValue="overwrite"
+        value={strategy === "overwrite"}
+        label="Overwrite the existing entity"
+        onChange={() => setStrategy("overwrite")}
+      />
+      <Radio
+        name="merge-strategy"
+        htmlValue="merge"
+        value={strategy === "merge"}
+        label="Merge properties, newest value wins"
+        onChange={() => setStrategy("merge")}
+      />
+      <Radio
+        name="merge-strategy"
+        htmlValue="skip"
+        value={strategy === "skip"}
+        label="Skip conflicting entities"
+        onChange={() => setStrategy("skip")}
+      />
+    </>
+  );
+};`;
+
+export const MergeStrategyDemo = () => {
+  const [strategy, setStrategy] = useState("merge");
+  return (
+    <>
+      <Radio
+        name="merge-strategy"
+        htmlValue="overwrite"
+        value={strategy === "overwrite"}
+        label="Overwrite the existing entity"
+        onChange={() => setStrategy("overwrite")}
+      />
+      <Radio
+        name="merge-strategy"
+        htmlValue="merge"
+        value={strategy === "merge"}
+        label="Merge properties, newest value wins"
+        onChange={() => setStrategy("merge")}
+      />
+      <Radio
+        name="merge-strategy"
+        htmlValue="skip"
+        value={strategy === "skip"}
+        label="Skip conflicting entities"
+        onChange={() => setStrategy("skip")}
+      />
+    </>
+  );
+};
+
+<Stage code={mergeStrategyCode}>
+  <MergeStrategyDemo />
+</Stage>
+
+### In forms
+
+The selected radio submits its `htmlValue` (default `"on"`) under `name`;
+nothing submits while the group is unselected. `required` blocks native
+submission until one option in the `name` group is chosen.
+
+```tsx
+import { useState } from "react";
+
+import { Button, Radio } from "@hashintel/ds-components";
+
+export const ExportScopeForm = () => {
+  const [scope, setScope] = useState<string | null>(null);
+
+  return (
+    <form action="/api/exports" method="post">
+      <Radio
+        label="Current view"
+        name="scope"
+        htmlValue="view"
+        required
+        value={scope === "view"}
+        onChange={() => setScope("view")}
+      />
+      <Radio
+        label="Entire workspace"
+        name="scope"
+        htmlValue="workspace"
+        required
+        value={scope === "workspace"}
+        onChange={() => setScope("workspace")}
+      />
+      <Button type="submit" tone="brand">
+        Start export
+      </Button>
+    </form>
+  );
+};
+```
+
+## Behavior
+
+- RadioGroup renders as one `<label>` wrapping a
+  hidden native radio, so clicking anywhere on it selects. Don't nest it inside
+  another label or interactive element.
+- Selection is one-way from the user's side: clicking a selected radio fires
+  nothing, and `onChange` only ever reports `true`. Clearing or switching
+  happens through your state, by selecting a different option.
+- Radios sharing a `name` get native arrow-key behavior, but each one stays
+  controlled.
+- Long labels wrap rather than truncate by default
+
+## Content
+
+- Name the option, not the action: “Entire workspace”, never “Select entire
+  workspace”. Sentence case, no terminal punctuation.
+- Phrase every option in a set with parallel structure — all nouns or all verb
+  phrases — so the differences stand out.
+- Keep labels under roughly 5 words and one line; move caveats into nearby
+  helper text.
+- For optional choices add a “None” option — a group can't be
+  returned to unselected once the user picks.
+
+## Accessibility
+
+Radio renders a native
+[`<input type="radio">`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/radio).
+Grouped under a shared `name`, and implements the
+[WAI-ARIA radio group pattern](https://www.w3.org/WAI/ARIA/apg/patterns/radio/)'s
+interaction model.
+
+### What Radio provides
+
+- A visually hidden native `<input type="radio">` inside a `<label>`.
+- With a shared `name`, the native inputs handle Tab and arrow keys.
+
+### What you must do
+
+- Always provide `label` — without it the input has no accessible name. When
+  the visible label lives elsewhere, pass `htmlForId` and point that label's
+  `htmlFor` at it.
+- Name the group as a whole: wrap custom groups in `role="radiogroup"` with an
+  `aria-label`, or a `<fieldset>` with a `<legend>`.
+- `invalid` is visual only — put error text next to the group, since nothing is
+  announced otherwise.
+- Use a shared `name` across the options so the browser groups the inputs for
+  arrow-key navigation and form submission.
+
+## API reference
+
+<PropsTable
+  of={Radio}
+  defaults={{
+    size: '"md"',
+    tone: '"neutral"',
+    labelPlacement: '"right"',
+    labelAlign: '"top"',
+    htmlValue: '"on"',
+  }}
+/>

@@ -77,7 +77,7 @@ export const GoalListSection = ({
           </Typography>
         </Box>
         {rows.map((row) => (
-          <GoalRow key={row.flowRunId} goalSummary={row} />
+          <GoalRow key={row.flowRunEntityId} goalSummary={row} />
         ))}
       </Box>
     </Stack>

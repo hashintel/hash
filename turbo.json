@@ -112,6 +112,10 @@
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/infra/compose/**"]
     },
     // Linting and formatting
+    // Patching writes node_modules, which an artifact cache cannot restore.
+    "prepare:oxlint": {
+      "cache": false
+    },
     "lint": {},
     // The clippy invocation differs between pull requests (`--all-features`) and other runs
     // such as the merge queue (`cargo hack --feature-powerset`), selected via
@@ -126,15 +130,11 @@
       "env": ["CHECK_TEMPORARILY_DISABLED_RULES"],
       "dependsOn": ["codegen", "^build", "@local/eslint#build"]
     },
-    "lint:tsc": {
+    "lint:oxlint": {
       "dependsOn": ["codegen", "^build"]
     },
-    // Python linting and type checking. `uv run` syncs the package's
-    // environment from its own lockfile. Ruff reads the sources as text, while
-    // type checking resolves the package's own generated modules.
-    "lint:ruff": {},
-    "lint:types": {
-      "dependsOn": ["codegen"]
+    "lint:tsc": {
+      "dependsOn": ["codegen", "^build"]
     },
     "fix:eslint": {
       "dependsOn": ["codegen", "^build", "@local/eslint#build"]
@@ -172,6 +172,7 @@
   "futureFlags": {
     "affectedUsingTaskInputs": true,
     "experimentalCargoWorkspaces": true,
+    "experimentalPythonWorkspaces": true,
     "experimentalTaskCommand": true
   }
 }

@@ -1,4 +1,4 @@
-/** Stable Flue instance id for one principal + panel conversation. */
+/** Stable Flue instance id for one actor key + panel conversation. */
 
 import { createHash, timingSafeEqual } from "node:crypto";
 
@@ -7,15 +7,8 @@ import {
   identityPayload,
 } from "@hashintel/brunch-agent";
 
-export { agentOwnershipHeaders } from "@hashintel/brunch-agent";
-export type { ConversationIdentity };
-
 export const flueConversationId = (identity: ConversationIdentity): string =>
   createHash("sha256").update(identityPayload(identity)).digest("hex");
-
-export const flueConversationIdFrom = (
-  identity: ConversationIdentity,
-): string => flueConversationId(identity);
 
 export const ownsFlueInstance = (
   identity: ConversationIdentity,

@@ -48,7 +48,7 @@ export function usePetrinautMutations(): PetrinautMutations {
       input: PetrinautMutationInput<Name>,
     ) => void;
     const wrapped = ((input: PetrinautMutationInput<Name>) => {
-      if (mutationBlockedBy(name, readOnlyReason) !== null) {
+      if (mutationBlockedBy(name, readOnlyReason, input) !== null) {
         notifyReadOnly();
         return;
       }

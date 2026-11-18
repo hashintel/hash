@@ -30,6 +30,10 @@ vi.mock("@hashintel/ds-components", () => {
 
 function makeLanguageClientValue(): LanguageClientContextValue {
   return {
+    netAnalysis: {
+      get: () => ({ metricShapes: {}, netClass: null }),
+      subscribe: () => () => {},
+    },
     requestDiagnostics: vi.fn(() =>
       Promise.resolve({ byUri: new Map(), total: 0, errorCount: 0 }),
     ),
@@ -57,6 +61,9 @@ function makeLanguageClientValue(): LanguageClientContextValue {
       }),
     ),
     requestFormatExpression: vi.fn(() => Promise.resolve(null)),
+    requestVisualizerHir: vi.fn(() =>
+      Promise.resolve({ ok: false as const, diagnostics: [] }),
+    ),
     requestHirArtifacts: vi.fn(() =>
       Promise.resolve({
         artifacts: {
