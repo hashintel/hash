@@ -500,6 +500,7 @@ export const KeyIcon = createIcon("key");
 export const RectangleIcon = createIcon("rectangle");
 export const EllipseIcon = createIcon("ellipse");
 export const DiamondIcon = createIcon("diamond");
+export const TriangleIcon = createIcon("triangle");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -685,6 +686,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  triangle: TriangleIcon,
   diamond: DiamondIcon,
   ellipse: EllipseIcon,
   rectangle: RectangleIcon,

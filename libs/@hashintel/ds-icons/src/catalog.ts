@@ -163,7 +163,7 @@ export const hashIconStudies = [
 }[];
 
 const categories = {
-  Canvas: ["diamond", "ellipse", "rectangle"],
+  Canvas: ["triangle", "diamond", "ellipse", "rectangle"],
   Interface: [
     "key",
     "paperclip",
