@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  aspectRatio: "Opposing corners inside a rectangle represent an aspect ratio.",
   frame: "Intersecting edge guides represent a frame or bounded canvas region.",
   roundedCorner: "A rounded bend represents a corner-radius setting.",
   splineCubic: "A curved segment between points represents a smooth connector.",

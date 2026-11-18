@@ -529,6 +529,7 @@ export const SplineLineIcon = createIcon("splineLine");
 export const SplineCubicIcon = createIcon("splineCubic");
 export const RoundedCornerIcon = createIcon("roundedCorner");
 export const FrameIcon = createIcon("frame");
+export const AspectRatioIcon = createIcon("aspectRatio");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -714,6 +715,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  aspectRatio: AspectRatioIcon,
   frame: FrameIcon,
   roundedCorner: RoundedCornerIcon,
   splineCubic: SplineCubicIcon,

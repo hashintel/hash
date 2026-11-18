@@ -11,6 +11,7 @@ import { arrowheadNoneGeometry } from "./library-geometry/arrowhead-none";
 import { arrowheadSquareGeometry } from "./library-geometry/arrowhead-square";
 import { arrowheadTriangleGeometry } from "./library-geometry/arrowhead-triangle";
 import { arrowheadTriangleInvertedGeometry } from "./library-geometry/arrowhead-triangle-inverted";
+import { aspectRatioGeometry } from "./library-geometry/aspect-ratio";
 import { blobGeometry } from "./library-geometry/blob";
 import { bookGeometry } from "./library-geometry/book";
 import { bookOpenGeometry } from "./library-geometry/book-open";
@@ -102,6 +103,7 @@ import { triangleGeometry } from "./library-geometry/triangle";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  aspectRatio: aspectRatioGeometry,
   frame: frameGeometry,
   roundedCorner: roundedCornerGeometry,
   splineCubic: splineCubicGeometry,
