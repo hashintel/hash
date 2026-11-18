@@ -164,6 +164,7 @@ export const hashIconStudies = [
 
 const categories = {
   Canvas: [
+    "highlighter",
     "eraser",
     "canvas",
     "aspectRatio",

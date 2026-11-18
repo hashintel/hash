@@ -67,6 +67,7 @@ import { frameGeometry } from "./library-geometry/frame";
 import { handwrittenDocsGeometry } from "./library-geometry/handwritten-docs";
 import { helpGeometry } from "./library-geometry/help";
 import { hexagonGeometry } from "./library-geometry/hexagon";
+import { highlighterGeometry } from "./library-geometry/highlighter";
 import { historyPagesGeometry } from "./library-geometry/history-pages";
 import { historyUserGeometry } from "./library-geometry/history-user";
 import { keyGeometry } from "./library-geometry/key";
@@ -105,6 +106,7 @@ import { triangleGeometry } from "./library-geometry/triangle";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  highlighter: highlighterGeometry,
   eraser: eraserGeometry,
   canvas: canvasGeometry,
   aspectRatio: aspectRatioGeometry,

@@ -532,6 +532,7 @@ export const FrameIcon = createIcon("frame");
 export const AspectRatioIcon = createIcon("aspectRatio");
 export const CanvasIcon = createIcon("canvas");
 export const EraserIcon = createIcon("eraser");
+export const HighlighterIcon = createIcon("highlighter");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -717,6 +718,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  highlighter: HighlighterIcon,
   eraser: EraserIcon,
   canvas: CanvasIcon,
   aspectRatio: AspectRatioIcon,
