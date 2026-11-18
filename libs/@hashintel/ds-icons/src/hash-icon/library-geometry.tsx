@@ -71,6 +71,7 @@ import { powerGeometry } from "./library-geometry/power";
 import { radioCheckedGeometry } from "./library-geometry/radio-checked";
 import { rectangleGeometry } from "./library-geometry/rectangle";
 import { redoGeometry } from "./library-geometry/redo";
+import { shapeArrowRightGeometry } from "./library-geometry/shape-arrow-right";
 import { shuffleGeometry } from "./library-geometry/shuffle";
 import { squareCloseGeometry } from "./library-geometry/square-close";
 import { squareMinusGeometry } from "./library-geometry/square-minus";
@@ -82,6 +83,7 @@ import { triangleGeometry } from "./library-geometry/triangle";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  shapeArrowRight: shapeArrowRightGeometry,
   blob: blobGeometry,
   trapezoid: trapezoidGeometry,
   parallelogram: parallelogramGeometry,
