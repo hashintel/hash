@@ -170,6 +170,7 @@ const categories = {
     "logicImplies",
     "logicEquivalent",
     "logicForAll",
+    "logicExists",
   ],
   Navigation: [
     "arrowUp",

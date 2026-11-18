@@ -200,6 +200,8 @@ export const descriptions = {
     "A bidirectional double arrow represents logical equivalence.",
   logicForAll:
     "A universal quantifier represents a condition holding for every member.",
+  logicExists:
+    "An existential quantifier represents at least one member satisfying a condition.",
   logicSignalBounded:
     "A waveform with a marked interval represents signal temporal logic over a bounded period.",
   logicSignalThreshold:
