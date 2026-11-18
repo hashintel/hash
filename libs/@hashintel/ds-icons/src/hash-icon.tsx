@@ -522,6 +522,7 @@ export const ArrowheadTriangleInvertedIcon = createIcon(
 );
 export const ArrowheadNoneIcon = createIcon("arrowheadNone");
 export const DashSolidIcon = createIcon("dashSolid");
+export const DashDashedIcon = createIcon("dashDashed");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -707,6 +708,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  dashDashed: DashDashedIcon,
   dashSolid: DashSolidIcon,
   arrowheadNone: ArrowheadNoneIcon,
   arrowheadTriangleInverted: ArrowheadTriangleInvertedIcon,
