@@ -733,6 +733,7 @@ export const BinocularsIcon = createIcon("binoculars");
 export const TelescopeIcon = createIcon("telescope");
 export const RocketIcon = createIcon("rocket");
 export const PaletteIcon = createIcon("palette");
+export const SwatchBookIcon = createIcon("swatchBook");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -918,6 +919,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  swatchBook: SwatchBookIcon,
   palette: PaletteIcon,
   rocket: RocketIcon,
   telescope: TelescopeIcon,

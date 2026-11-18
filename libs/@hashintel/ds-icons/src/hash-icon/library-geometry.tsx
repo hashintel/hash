@@ -270,6 +270,7 @@ import { stackVerticalGeometry } from "./library-geometry/stack-vertical";
 import { strikethroughGeometry } from "./library-geometry/strikethrough";
 import { sunGeometry } from "./library-geometry/sun";
 import { sunMoonGeometry } from "./library-geometry/sun-moon";
+import { swatchBookGeometry } from "./library-geometry/swatch-book";
 import { tagGeometry } from "./library-geometry/tag";
 import { telescopeGeometry } from "./library-geometry/telescope";
 import { testTubesGeometry } from "./library-geometry/test-tubes";
@@ -306,6 +307,7 @@ import { wavePulseGeometry } from "./library-geometry/wave-pulse";
 import { wavesGeometry } from "./library-geometry/waves";
 
 export const libraryGeometry = {
+  swatchBook: swatchBookGeometry,
   palette: paletteGeometry,
   rocket: rocketGeometry,
   telescope: telescopeGeometry,
