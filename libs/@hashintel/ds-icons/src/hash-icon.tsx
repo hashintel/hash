@@ -711,6 +711,7 @@ export const PresentationChartIcon = createIcon("presentationChart");
 export const GaugeIcon = createIcon("gauge");
 export const SunIcon = createIcon("sun");
 export const MoonIcon = createIcon("moon");
+export const SunMoonIcon = createIcon("sunMoon");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -896,6 +897,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  sunMoon: SunMoonIcon,
   moon: MoonIcon,
   sun: SunIcon,
   gauge: GaugeIcon,
