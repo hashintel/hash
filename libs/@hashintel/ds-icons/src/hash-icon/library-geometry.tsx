@@ -62,6 +62,7 @@ import { paperclipGeometry } from "./library-geometry/paperclip";
 import { pinGeometry } from "./library-geometry/pin";
 import { powerGeometry } from "./library-geometry/power";
 import { radioCheckedGeometry } from "./library-geometry/radio-checked";
+import { rectangleGeometry } from "./library-geometry/rectangle";
 import { redoGeometry } from "./library-geometry/redo";
 import { shuffleGeometry } from "./library-geometry/shuffle";
 import { squareCloseGeometry } from "./library-geometry/square-close";
@@ -72,6 +73,7 @@ import { toggleOnGeometry } from "./library-geometry/toggle-on";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  rectangle: rectangleGeometry,
   key: keyGeometry,
   paperclip: paperclipGeometry,
   keyboard: keyboardGeometry,

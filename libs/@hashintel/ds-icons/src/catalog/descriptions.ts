@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  rectangle: "A rectangular outline represents a rectangle shape.",
   key: "A key represents credentials, access, or an API secret.",
   paperclip: "A bent wire fastener represents an attachment.",
   keyboard: "Rows of keys represent a keyboard or keyboard input.",
