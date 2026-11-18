@@ -2897,6 +2897,42 @@ describe("Petrinaut core import actions", () => {
     ).toThrow("which is an interface itself");
   });
 
+  test("choosing a component of a library as an instance's implementation adds the import", () => {
+    const stage: Subnet = {
+      id: "stage",
+      name: "Stage",
+      interface: true,
+      places: [],
+      transitions: [],
+      types: [],
+      differentialEquations: [],
+      parameters: [],
+    };
+    const held = {
+      id: "stage-1",
+      name: "StageA",
+      subnetId: "stage",
+      parameterValues: {},
+      x: 0,
+      y: 0,
+    };
+
+    const placing = importing({ ...emptySDCPN, subnets: [stage] });
+    placing.mutations.addComponentInstance({ ...held, implementation: belt });
+    expect(placing.definition.get().imports).toEqual([{ id: logistics.id }]);
+
+    const choosing = importing({
+      ...emptySDCPN,
+      subnets: [stage],
+      componentInstances: [held],
+    });
+    choosing.mutations.updateComponentInstance({
+      instanceId: "stage-1",
+      update: { implementation: belt },
+    });
+    expect(choosing.definition.get().imports).toEqual([{ id: logistics.id }]);
+  });
+
   test("a transition keeps the code written for a port of a component whose library is not there to read", () => {
     const initial: SDCPN = {
       ...emptySDCPN,

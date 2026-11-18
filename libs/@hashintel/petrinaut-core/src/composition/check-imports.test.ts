@@ -147,13 +147,89 @@ describe("checkComposition with imports", () => {
     expect(checkComposition(wired, resolving)).toEqual([]);
   });
 
-  it("reports an import an instance names and nothing resolved", () => {
-    expect(checkComposition({ ...wired, imports: undefined })).toMatchObject([
-      {
-        kind: "import",
-        message:
-          "The import `@hashintel/logistics`, which 2 instances use, did not resolve. Nothing resolved it.",
-      },
+  it("reports a library the document names without importing it, once, whatever it resolved to", () => {
+    const unlisted = { ...wired, imports: undefined };
+    const problem = {
+      kind: "import",
+      importId: logistics.id,
+      severity: "error",
+      message:
+        "The document does not import `@hashintel/logistics`, which 2 instances use.",
+    };
+
+    expect(checkComposition(unlisted)).toMatchObject([problem]);
+    expect(
+      checkComposition(unlisted, resolved).filter(
+        ({ kind }) => kind === "import",
+      ),
+    ).toMatchObject([problem]);
+  });
+
+  it("counts an instance by the implementation that runs for it, its own choice or the document's default", () => {
+    const failed: ImportStates = new Map([
+      [logistics.id, { status: "failed", message: "The registry is offline." }],
+    ]);
+    const stage: Subnet = { ...handScale, id: "stage", interface: true };
+    const messages = (sdcpn: SDCPN) =>
+      checkComposition(sdcpn, failed).flatMap((problem) =>
+        problem.kind === "import" ? [problem.message] : [],
+      );
+
+    expect(
+      messages(
+        net({
+          subnets: [stage],
+          componentInstances: [instanceOf("stage-1", { id: "stage" }, belt)],
+        }),
+      ),
+    ).toEqual([
+      "The import `@hashintel/logistics`, which 1 instance uses, did not resolve. The registry is offline.",
+    ]);
+    expect(
+      messages(
+        net({
+          subnets: [stage],
+          componentInstances: [
+            instanceOf("stage-1", { id: "stage" }),
+            instanceOf("stage-2", { id: "stage" }),
+            instanceOf("stage-3", { id: "stage" }, { id: handScale.id }),
+          ],
+          implementations: [{ interface: { id: "stage" }, component: belt }],
+        }),
+      ),
+    ).toEqual([
+      "The import `@hashintel/logistics`, which 2 instances use, did not resolve. The registry is offline.",
+    ]);
+  });
+
+  it("reports a library only a binding names without the document importing it", () => {
+    const stage: Subnet = { ...handScale, id: "stage", interface: true };
+    const messages = (sdcpn: SDCPN) =>
+      checkComposition(sdcpn, resolved).flatMap((problem) =>
+        problem.kind === "import" ? [problem.message] : [],
+      );
+
+    expect(
+      messages(
+        net({
+          imports: undefined,
+          subnets: [stage],
+          componentInstances: [instanceOf("stage-1", { id: "stage" }, belt)],
+        }),
+      ),
+    ).toEqual([
+      "The document does not import `@hashintel/logistics`, which 1 instance uses.",
+    ]);
+    expect(
+      messages(
+        net({
+          imports: undefined,
+          subnets: [stage],
+          implementations: [{ interface: { id: "stage" }, component: belt }],
+        }),
+      ),
+    ).toEqual([
+      "The document does not import `@hashintel/logistics`, which no instance uses.",
     ]);
   });
 

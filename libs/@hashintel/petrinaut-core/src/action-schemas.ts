@@ -533,7 +533,7 @@ export const mutationActionInputSchemas = {
     .check(checkInstanceNamesOneComponent)
     .meta({
       description:
-        "Place an instance of a component in the root net or a subnet: a subnet of the document, named by `subnetId`, or a component of a library the application resolves, named by `component: { from, id }`. Placing the first instance from a library adds it to the document's `imports`.",
+        "Place an instance of a component in the root net or a subnet: a subnet of the document, named by `subnetId`, or a component of a library the application resolves, named by `component: { from, id }`. The first instance to name a library, for its `component` or for its `implementation`, adds it to the document's `imports`.",
     }),
   updateComponentInstance: z
     .strictObject({

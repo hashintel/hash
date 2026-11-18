@@ -493,7 +493,8 @@ const libraries = [logistics.id];
   `resolveImport` and listed in the Components panel, to place instances of
   its components. A document's own imports are resolved whether they are on
   offer or not. Placing the first instance from a library adds the import to
-  the document, and removing the last one leaves it there. A mutation can
+  the document, as does choosing one of its components as an instance's
+  implementation, and removing the last one leaves it there. A mutation can
   only name a component of a library that is on offer or already imported.
 - **A library is checked when it arrives.** Every id is required: the
   library's, which must be the import's, a component's, a port's, a
@@ -527,7 +528,9 @@ libraries with their components.
 While an import of the document resolves, the editor covers itself with a
 loader and the word "Resolving", and the checks say nothing about that import.
 One that fails is one error of `checkComposition`, of kind `import`, naming
-its id and how many instances use it; those instances draw as unresolved.
+its id and how many instances use it; those instances draw as unresolved. A
+library a reference names without the document importing it is one error of
+that kind too, whatever the host resolved it to.
 
 The simulator, the compiler and the language server take one net and no
 libraries. `inlineImports(sdcpn, libraries)` gives that net: each component

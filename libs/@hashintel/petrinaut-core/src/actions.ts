@@ -743,15 +743,19 @@ const assertImplementationChoice = (
   }
 };
 
-/** Lists the import an instance takes its component from, unless the document does already. */
-const ensureImport = (sdcpn: SDCPN, instance: ComponentInstance): void => {
-  const from = instance.component?.from;
-  if (from === undefined || sdcpn.imports?.some(({ id }) => id === from)) {
-    return;
+/**
+ * Lists the imports an instance names, for its component and for the
+ * implementation it chose, unless the document does already.
+ */
+const ensureImports = (sdcpn: SDCPN, instance: ComponentInstance): void => {
+  for (const reference of [instance.component, instance.implementation]) {
+    const from = reference?.from;
+    if (from !== undefined && !sdcpn.imports?.some(({ id }) => id === from)) {
+      const targetSdcpn = sdcpn;
+      targetSdcpn.imports ??= [];
+      targetSdcpn.imports.push({ id: from });
+    }
   }
-  const targetSdcpn = sdcpn;
-  targetSdcpn.imports ??= [];
-  targetSdcpn.imports.push({ id: from });
 };
 
 /**
@@ -1635,7 +1639,7 @@ export function createPetrinautActions(
         const libraries = readLibraries();
         assertComponentInstanceReferences(sdcpn, parsedInstance, libraries);
         assertImplementationChoice(sdcpn, parsedInstance, libraries);
-        ensureImport(sdcpn, parsedInstance);
+        ensureImports(sdcpn, parsedInstance);
         getComponentInstances(net).push(parsedInstance);
       });
     },
@@ -1672,7 +1676,7 @@ export function createPetrinautActions(
             if (update.implementation !== undefined) {
               assertImplementationChoice(sdcpn, instance, libraries);
             }
-            ensureImport(sdcpn, instance);
+            ensureImports(sdcpn, instance);
             break;
           }
         }

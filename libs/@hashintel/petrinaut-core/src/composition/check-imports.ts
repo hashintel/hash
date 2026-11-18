@@ -1,12 +1,19 @@
 /**
- * The check on a document's imports: each one resolved. An import that is
- * still resolving is not reported.
+ * The check on a document's imports: each one resolved, and every library
+ * the document names is one of them. An import that is still resolving is
+ * not reported.
  */
+
+import {
+  componentOf,
+  defaultImplementation,
+  indexDocument,
+} from "./interfaces";
 
 import type { SDCPN } from "../types/sdcpn";
 import type { ImportStates } from "./imports";
 
-/** An import that did not resolve. */
+/** An import that did not resolve, or a library the document names without importing it. */
 export type ImportProblem = {
   kind: "import";
   /** Always the root net: an import belongs to the document. */
@@ -24,37 +31,61 @@ const describeUses = (count: number): string => {
 };
 
 /**
- * One problem per import that failed, or that the host does not know, saying
- * how many instances use it. An import an instance names without the document
- * listing it counts as one that did not resolve.
+ * One problem per import that failed, or that the host does not know, and one
+ * per library the document names without importing it, whatever a host
+ * resolved that one to: another host has no reason to. Each says how many
+ * instances use the library: the ones whose component comes from it, or the
+ * implementation they chose, or else the document's default for them.
  */
 export const checkImports = (
   sdcpn: SDCPN,
   states: ImportStates,
 ): ImportProblem[] => {
-  const uses = new Map<string, number>(
-    (sdcpn.imports ?? []).map(({ id }) => [id, 0]),
-  );
+  const imported = new Set((sdcpn.imports ?? []).map(({ id }) => id));
+  const uses = new Map<string, number>([...imported].map((id) => [id, 0]));
+  const count = (from: string | undefined, instances: number): void => {
+    if (from !== undefined) {
+      uses.set(from, (uses.get(from) ?? 0) + instances);
+    }
+  };
+  // A default names its libraries, whether or not an instance runs it.
+  for (const { interface: iface, component } of sdcpn.implementations ?? []) {
+    count(iface.from, 0);
+    count(component.from, 0);
+  }
+  const { defaults } = indexDocument(sdcpn);
   for (const net of [sdcpn, ...(sdcpn.subnets ?? [])]) {
-    for (const { component } of net.componentInstances ?? []) {
-      if (component) {
-        uses.set(component.from, (uses.get(component.from) ?? 0) + 1);
+    for (const instance of net.componentInstances ?? []) {
+      const component = componentOf(instance);
+      const implementation =
+        instance.implementation ??
+        defaultImplementation(sdcpn, component, defaults);
+      // Once for the instance, whatever it takes from the library.
+      for (const from of new Set([component.from, implementation?.from])) {
+        count(from, 1);
       }
     }
   }
-  return [...uses].flatMap(([importId, count]) => {
+  return [...uses].flatMap(([importId, instances]) => {
+    const problem = (message: string): ImportProblem => ({
+      kind: "import",
+      subnetId: null,
+      importId,
+      severity: "error",
+      message,
+    });
+    const which = `\`${importId}\`, which ${describeUses(instances)}`;
+    if (!imported.has(importId)) {
+      return [problem(`The document does not import ${which}.`)];
+    }
     const state = states.get(importId);
     if (state?.status === "resolving" || state?.status === "resolved") {
       return [];
     }
     return [
-      {
-        kind: "import" as const,
-        subnetId: null,
-        importId,
-        severity: "error" as const,
-        message: `The import \`${importId}\`, which ${describeUses(count)}, did not resolve. ${state?.message ?? "Nothing resolved it."}`,
-      },
+      problem(
+        `The import ${which}, did not resolve. ${state?.message ?? "Nothing resolved it."}`,
+      ),
     ];
   });
 };
