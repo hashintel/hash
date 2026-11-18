@@ -171,6 +171,7 @@ import { messageDollarGeometry } from "./library-geometry/message-dollar";
 import { messageQuestionGeometry } from "./library-geometry/message-question";
 import { microchipGeometry } from "./library-geometry/microchip";
 import { mixedGeometry } from "./library-geometry/mixed";
+import { moneyTransferGeometry } from "./library-geometry/money-transfer";
 import { monitorGeometry } from "./library-geometry/monitor";
 import { newspaperGeometry } from "./library-geometry/newspaper";
 import { notePlusGeometry } from "./library-geometry/note-plus";
@@ -274,6 +275,7 @@ import { usersGeometry } from "./library-geometry/users";
 import { warehouseGeometry } from "./library-geometry/warehouse";
 
 export const libraryGeometry = {
+  moneyTransfer: moneyTransferGeometry,
   coins: coinsGeometry,
   dollar: dollarGeometry,
   towerControl: towerControlGeometry,
