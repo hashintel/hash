@@ -244,6 +244,7 @@ const categories = {
     "monitor",
   ],
   Science: [
+    "thermometer",
     "humidity",
     "vibration",
     "signal",
