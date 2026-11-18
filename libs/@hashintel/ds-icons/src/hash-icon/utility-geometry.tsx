@@ -192,8 +192,8 @@ export const utilityGeometry = {
       cutout={
         <>
           {" "}
-          <path d="M12 6.5v7" />
-          <PunctuationDot x={12} y={17.25} />{" "}
+          <path d="M12 8v4.75" />
+          <PunctuationDot x={12} y={16} />{" "}
         </>
       }
     >

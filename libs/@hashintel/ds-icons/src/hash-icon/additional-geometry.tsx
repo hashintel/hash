@@ -308,8 +308,8 @@ export const additionalGeometry = {
       cutout={
         <>
           {" "}
-          <path d="M12 10.5v7" />
-          <PunctuationDot x={12} y={6.75} />{" "}
+          <path d="M12 11v5.5" />
+          <PunctuationDot x={12} y={8} />{" "}
         </>
       }
     >
@@ -321,8 +321,8 @@ export const additionalGeometry = {
       cutout={
         <>
           {" "}
-          <path d="M12 6.5v7" />
-          <PunctuationDot x={12} y={17.25} />{" "}
+          <path d="M12 7.5v5.5" />
+          <PunctuationDot x={12} y={16} />{" "}
         </>
       }
     >
@@ -334,8 +334,8 @@ export const additionalGeometry = {
       cutout={
         <>
           {" "}
-          <path d="M12 8v6" />
-          <PunctuationDot x={12} y={17.5} />{" "}
+          <path d="M12 9.5v4.25" />
+          <PunctuationDot x={12} y={16.75} />{" "}
         </>
       }
     >
@@ -347,7 +347,7 @@ export const additionalGeometry = {
       cutout={
         <>
           {" "}
-          <path d="m7 12 3 3 7-7" />{" "}
+          <path d="m7.75 12.25 2.75 2.75 5.75-5.75" />{" "}
         </>
       }
     >
