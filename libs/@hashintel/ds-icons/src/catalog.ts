@@ -163,7 +163,15 @@ export const hashIconStudies = [
 }[];
 
 const categories = {
-  Objects: ["lighthouse", "hammer", "trophy", "gem", "swatchBook", "palette"],
+  Objects: [
+    "lifeRing",
+    "lighthouse",
+    "hammer",
+    "trophy",
+    "gem",
+    "swatchBook",
+    "palette",
+  ],
   Data: ["gauge", "presentationChart", "pieChart", "chartMixed"],
   Finance: [
     "chartRevenue",

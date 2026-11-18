@@ -164,6 +164,7 @@ import { keyGeometry } from "./library-geometry/key";
 import { keyboardGeometry } from "./library-geometry/keyboard";
 import { keycapKGeometry } from "./library-geometry/keycap-k";
 import { laptopGeometry } from "./library-geometry/laptop";
+import { lifeRingGeometry } from "./library-geometry/life-ring";
 import { lighthouseGeometry } from "./library-geometry/lighthouse";
 import { listCheckGeometry } from "./library-geometry/list-check";
 import { listOrderedGeometry } from "./library-geometry/list-ordered";
@@ -311,6 +312,7 @@ import { wavePulseGeometry } from "./library-geometry/wave-pulse";
 import { wavesGeometry } from "./library-geometry/waves";
 
 export const libraryGeometry = {
+  lifeRing: lifeRingGeometry,
   lighthouse: lighthouseGeometry,
   hammer: hammerGeometry,
   trophy: trophyGeometry,
