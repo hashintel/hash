@@ -163,7 +163,14 @@ export const hashIconStudies = [
 }[];
 
 const categories = {
-  Files: ["fileInvoice", "fileText", "fileDocument", "fileCode", "fileArchive"],
+  Files: [
+    "fileContract",
+    "fileInvoice",
+    "fileText",
+    "fileDocument",
+    "fileCode",
+    "fileArchive",
+  ],
   Logic: [
     "logicAnd",
     "logicOr",
