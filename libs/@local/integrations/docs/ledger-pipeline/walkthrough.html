@@ -1,0 +1,2532 @@
+<title>Ledger Run Walkthrough</title>
+<meta name="claude:viewport-fit-sides" content="cover" />
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600&display=swap"
+/>
+<style>
+  /* Layout: one flow map is the page. Three lanes: S3 status files on top, the pipeline in the middle,
+   S3 data at the bottom. Picking a stage lights up what it reads and writes; the panel below shows
+   the data it converts. Colors follow the overview diagram: blue Capture, purple Prepare, orange Send, green S3. */
+  :root {
+    --bg: #f6f7f9;
+    --surface: #fff;
+    --fg: #1f2a37;
+    --muted: #5d6b7a;
+    --line: #dde3ea;
+    --soft: #f1f4f7;
+    --green: #2c704b;
+    --green-bg: #eef6f1;
+    --green-line: #cbe2d4;
+    --blue: #2f5fae;
+    --blue-bg: #e9f1ff;
+    --purple: #7248ab;
+    --purple-bg: #f2ecfb;
+    --orange: #a4582a;
+    --orange-bg: #fff1e5;
+    --mark: #fff1b8;
+    --shadow: rgba(20, 30, 45, 0.16);
+    --ra: #0e8f8a;
+    --rb: #c07a12;
+    --rc: #7a5ad6;
+    --rd: #c7475d;
+    --rl: #5b6b7b;
+    --sans:
+      "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --display:
+      "Space Grotesk", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+      sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #16181b;
+      --surface: #1f2226;
+      --fg: #e6e8eb;
+      --muted: #a3abb5;
+      --line: #353b43;
+      --soft: #262a2f;
+      --green: #8fc7a5;
+      --green-bg: #1c2a22;
+      --green-line: #33503f;
+      --blue: #9dbdf6;
+      --blue-bg: #22304a;
+      --purple: #c6aef0;
+      --purple-bg: #2f2740;
+      --orange: #ecb48d;
+      --orange-bg: #3a2b20;
+      --mark: #4a4116;
+      --shadow: rgba(0, 0, 0, 0.5);
+      --ra: #4fd1cb;
+      --rb: #f0b454;
+      --rc: #ab95f2;
+      --rd: #f08a9b;
+      --rl: #a7b4c2;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #16181b;
+    --surface: #1f2226;
+    --fg: #e6e8eb;
+    --muted: #a3abb5;
+    --line: #353b43;
+    --soft: #262a2f;
+    --green: #8fc7a5;
+    --green-bg: #1c2a22;
+    --green-line: #33503f;
+    --blue: #9dbdf6;
+    --blue-bg: #22304a;
+    --purple: #c6aef0;
+    --purple-bg: #2f2740;
+    --orange: #ecb48d;
+    --orange-bg: #3a2b20;
+    --mark: #4a4116;
+    --shadow: rgba(0, 0, 0, 0.5);
+    --ra: #4fd1cb;
+    --rb: #f0b454;
+    --rc: #ab95f2;
+    --rd: #f08a9b;
+    --rl: #a7b4c2;
+    color-scheme: dark;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+  [hidden] {
+    display: none !important;
+  }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font: 14px/1.55 var(--sans);
+  }
+  .page {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding-block: 28px 48px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  h1,
+  h2,
+  h3,
+  p,
+  ul {
+    margin: 0;
+  }
+  h1 {
+    font: 600 26px/1.2 var(--display);
+    letter-spacing: -0.4px;
+    text-wrap: balance;
+  }
+  h2 {
+    font: 600 19px/1.25 var(--display);
+  }
+  h3 {
+    font: 600 11px var(--sans);
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .lede {
+    color: var(--muted);
+    max-width: 70ch;
+    font-size: 15px;
+  }
+  code,
+  pre {
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+  button {
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+  }
+  :focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 2px;
+  }
+  [data-tone="capture"] {
+    --tone: var(--blue);
+    --tint: var(--blue-bg);
+  }
+  [data-tone="prepare"] {
+    --tone: var(--purple);
+    --tint: var(--purple-bg);
+  }
+  [data-tone="send"] {
+    --tone: var(--orange);
+    --tint: var(--orange-bg);
+  }
+  [data-tone="s3"] {
+    --tone: var(--green);
+    --tint: var(--green-bg);
+  }
+
+  /* View switcher */
+  .bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+  .tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 4px;
+  }
+  .tab {
+    border: 0;
+    background: transparent;
+    border-radius: 7px;
+    padding: 7px 14px;
+    font-weight: 500;
+    color: var(--muted);
+    display: flex;
+    gap: 7px;
+    align-items: baseline;
+  }
+  .tab .n {
+    font: 600 11px var(--mono);
+    color: var(--tone, var(--muted));
+  }
+  .tab[aria-selected="true"] {
+    background: var(--tint, var(--soft));
+    color: var(--tone, var(--fg));
+    font-weight: 600;
+  }
+  .toggle {
+    margin-left: auto;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-weight: 500;
+  }
+  .toggle[aria-pressed="true"] {
+    background: var(--fg);
+    color: var(--bg);
+    border-color: var(--fg);
+  }
+
+  /* Flow map */
+  .map {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px;
+    overflow-x: auto;
+  }
+  .map svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    min-width: 680px;
+  }
+  .lane rect {
+    fill: var(--green-bg);
+    stroke: var(--green-line);
+  }
+  .lane-label {
+    font: 600 11px var(--sans);
+    letter-spacing: 0.07em;
+    fill: var(--green);
+  }
+  .node rect {
+    fill: var(--surface);
+    stroke: var(--line);
+    stroke-width: 1.2;
+  }
+  .node .t {
+    font: 600 13.5px var(--sans);
+    fill: var(--fg);
+  }
+  .node .s {
+    font: 11px var(--sans);
+    fill: var(--muted);
+  }
+  .node .m {
+    font: 600 12px var(--mono);
+    fill: var(--fg);
+  }
+  .stage {
+    cursor: pointer;
+  }
+  .stage rect {
+    fill: var(--tint);
+    stroke: var(--tone);
+    stroke-width: 1.6;
+  }
+  .stage .t {
+    font: 600 18px var(--display);
+    fill: var(--tone);
+  }
+  .stage .num {
+    font: 600 11px var(--mono);
+    fill: var(--tone);
+    text-anchor: end;
+  }
+  .file-outline {
+    fill: none;
+    stroke: var(--green-line);
+    stroke-dasharray: 4 4;
+  }
+  .seg rect {
+    fill: var(--surface);
+    stroke: var(--green-line);
+    stroke-width: 1.2;
+  }
+  .seg text {
+    font: 11.5px var(--mono);
+    fill: var(--fg);
+    text-anchor: middle;
+  }
+  .seg.empty rect {
+    fill: none;
+    stroke-dasharray: 3 3;
+    stroke: var(--line);
+  }
+  .seg.empty text {
+    fill: var(--muted);
+  }
+  .edge {
+    fill: none;
+    stroke: var(--tone);
+    stroke-width: 1.7;
+  }
+  .mk {
+    fill: var(--tone);
+  }
+  .elabel {
+    font: 500 11px var(--sans);
+    fill: var(--muted);
+  }
+  .badge {
+    font: 600 10.5px var(--sans);
+    fill: var(--tone);
+    text-anchor: end;
+    display: none;
+  }
+  svg[data-view="capture"] [data-s]:not([data-s~="capture"]):not(.seg),
+  svg[data-view="prepare"] [data-s]:not([data-s~="prepare"]):not(.seg),
+  svg[data-view="send"] [data-s]:not([data-s~="send"]):not(.seg) {
+    opacity: 0.22;
+  }
+  svg[data-view="capture"] .edge[data-s~="capture"],
+  svg[data-view="prepare"] .edge[data-s~="prepare"],
+  svg[data-view="send"] .edge[data-s~="send"] {
+    stroke-width: 2.6;
+    stroke-dasharray: 7 5;
+  }
+  svg[data-view="capture"] .store[data-s~="capture"] rect,
+  svg[data-view="prepare"] .store[data-s~="prepare"] rect,
+  svg[data-view="send"] .store[data-s~="send"] rect {
+    stroke: var(--view-tone);
+    stroke-width: 2;
+  }
+  svg[data-view="capture"] .seg[data-s~="capture"] rect,
+  svg[data-view="prepare"] .seg[data-s~="prepare"] rect,
+  svg[data-view="send"] .seg[data-s~="send"] rect {
+    fill: var(--view-tint);
+    stroke: var(--view-tone);
+    stroke-width: 2;
+  }
+  svg[data-view="capture"] .seg[data-s~="capture"] text,
+  svg[data-view="prepare"] .seg[data-s~="prepare"] text,
+  svg[data-view="send"] .seg[data-s~="send"] text {
+    fill: var(--view-tone);
+    font-weight: 600;
+  }
+  svg[data-view="capture"] {
+    --view-tone: var(--blue);
+    --view-tint: var(--blue-bg);
+  }
+  svg[data-view="prepare"] {
+    --view-tone: var(--purple);
+    --view-tint: var(--purple-bg);
+  }
+  svg[data-view="send"] {
+    --view-tone: var(--orange);
+    --view-tint: var(--orange-bg);
+  }
+  svg[data-view="capture"] .badge[data-b="capture"],
+  svg[data-view="prepare"] .badge[data-b="prepare"],
+  svg[data-view="send"] .badge[data-b="send"] {
+    display: inline;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    svg[data-view="capture"] .edge[data-s~="capture"],
+    svg[data-view="prepare"] .edge[data-s~="prepare"],
+    svg[data-view="send"] .edge[data-s~="send"] {
+      animation: flow 0.9s linear infinite;
+    }
+    @keyframes flow {
+      to {
+        stroke-dashoffset: -12;
+      }
+    }
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+    font-size: 12px;
+    color: var(--muted);
+    padding: 10px 4px 0;
+  }
+
+  /* Panels */
+  .panel {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .panel > header {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .panel > header h2 {
+    color: var(--tone, var(--fg));
+  }
+  .panel > header p {
+    color: var(--muted);
+    max-width: 80ch;
+  }
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr));
+    gap: 12px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+  }
+  .card.tone {
+    border-top: 3px solid var(--tone);
+  }
+  button.card {
+    text-align: left;
+  }
+  button.card:hover {
+    border-color: var(--tone);
+  }
+  .card h2 {
+    font-size: 17px;
+    color: var(--tone);
+  }
+  .card ul {
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+  }
+  .item b {
+    font-weight: 600;
+  }
+  .where {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .kv {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .mini {
+    margin: 0;
+    background: var(--soft);
+    border-radius: 8px;
+    padding: 8px 10px;
+    overflow-x: auto;
+    line-height: 1.5;
+  }
+  .scroll {
+    overflow-x: auto;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 12px;
+  }
+  th {
+    font: 600 11px var(--sans);
+    text-align: left;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  th,
+  td {
+    padding: 5px 8px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  td {
+    font-family: var(--mono);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  tr:last-child td {
+    border-bottom: 0;
+  }
+  .null {
+    color: var(--muted);
+    font-style: italic;
+  }
+  .hot {
+    background: var(--mark);
+  }
+
+  .strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    align-items: center;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px 18px;
+  }
+  .stat {
+    display: flex;
+    flex-direction: column;
+  }
+  .stat b {
+    font: 600 24px/1.1 var(--display);
+    font-variant-numeric: tabular-nums;
+    color: var(--tone, var(--fg));
+  }
+  .stat span {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .strip .to {
+    color: var(--muted);
+    font-size: 18px;
+  }
+
+  .rec {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font: 600 12px var(--mono);
+    border-radius: 5px;
+    padding: 0 4px;
+    white-space: nowrap;
+  }
+  .rec i {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--dot);
+  }
+  [data-rec~="A"] {
+    --dot: var(--ra);
+  }
+  [data-rec~="B"] {
+    --dot: var(--rb);
+  }
+  [data-rec~="C"] {
+    --dot: var(--rc);
+  }
+  [data-rec~="D"] {
+    --dot: var(--rd);
+  }
+  [data-rec="L"] {
+    --dot: var(--rl);
+  }
+  .op {
+    font: 600 11px var(--mono);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 0 5px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .convert {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .pair {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1.25fr);
+    gap: 8px;
+    align-items: center;
+    border-radius: 10px;
+    padding: 6px;
+  }
+  .pair .arrow {
+    text-align: center;
+    color: var(--tone);
+    font-size: 18px;
+  }
+  .cell {
+    background: var(--soft);
+    border-radius: 8px;
+    padding: 8px 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    align-items: center;
+    min-width: 0;
+  }
+  .pair .outs {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+  .cell.warn {
+    background: transparent;
+    border: 1px dashed var(--line);
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .heads {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1.25fr);
+    gap: 8px;
+    padding: 0 6px;
+  }
+  @media (max-width: 640px) {
+    .pair,
+    .heads {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .pair .arrow {
+      transform: rotate(90deg);
+    }
+    .heads h3:last-child {
+      display: none;
+    }
+  }
+
+  .batches {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    gap: 10px;
+  }
+  .bcard {
+    background: var(--soft);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    border-left: 3px solid var(--tone);
+  }
+  .bcard .bh {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: baseline;
+  }
+  .bcard .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+  .bchip {
+    font: 12px var(--mono);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: 1px 6px;
+    display: inline-flex;
+    gap: 5px;
+    align-items: center;
+    white-space: nowrap;
+  }
+  .bchip i {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--dot);
+  }
+  .why {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .more {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    border-top: 1px dashed var(--line);
+    padding-top: 14px;
+  }
+  .more .card {
+    gap: 8px;
+  }
+  details.body summary {
+    cursor: pointer;
+    font-weight: 500;
+  }
+  details.body pre {
+    margin: 6px 0 0;
+  }
+  .objects {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 12px;
+  }
+  .objects code {
+    overflow-wrap: anywhere;
+  }
+  .foot {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+    gap: 12px;
+  }
+  .foot ul {
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .foot li strong {
+    color: var(--fg);
+    font-weight: 600;
+  }
+
+  /* Arrow data on hover, store contents on click */
+  .hit {
+    fill: none;
+    stroke: transparent;
+    stroke-width: 18;
+    pointer-events: stroke;
+    cursor: help;
+  }
+  .hit:focus-visible {
+    outline: none;
+    stroke: var(--mark);
+    stroke-opacity: 0.7;
+  }
+  .pick {
+    cursor: pointer;
+  }
+  .pick:hover rect,
+  .pick:focus-visible rect {
+    stroke: var(--green);
+    stroke-width: 2;
+  }
+  .pick:focus-visible {
+    outline: none;
+  }
+  .pick.picked rect {
+    stroke: var(--fg);
+    stroke-width: 2.4;
+    stroke-dasharray: none;
+  }
+  .tip {
+    position: fixed;
+    z-index: 20;
+    max-width: min(600px, calc(100vw - 24px));
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: 0 8px 28px var(--shadow);
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    pointer-events: none;
+  }
+  .tip b {
+    font-weight: 600;
+  }
+  .tip td:last-child {
+    white-space: normal;
+  }
+  .tip pre {
+    margin: 0;
+  }
+  .inspect {
+    border-top: 3px solid var(--green);
+  }
+  .inspect > header {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+  .inspect h2 {
+    font-size: 17px;
+    color: var(--green);
+  }
+  .inspect .close {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 5px 12px;
+    font-weight: 500;
+  }
+  .inspect-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+  }
+  .empty {
+    color: var(--muted);
+    font-style: italic;
+  }
+</style>
+
+<div class="page">
+  <header class="panel">
+    <h1>Ledger pipeline: how one run moves data</h1>
+    <p class="lede">
+      Three stages take changed rows to the Graph. Every stage reads from S3,
+      writes its result to S3, and then records its completion in one status
+      file. Pick a stage to see what it touches.
+    </p>
+  </header>
+
+  <div class="bar">
+    <div class="tabs" role="tablist" aria-label="Stage">
+      <button
+        class="tab"
+        role="tab"
+        id="tab-overview"
+        data-go="overview"
+        aria-selected="true"
+      >
+        Overview
+      </button>
+      <button
+        class="tab"
+        role="tab"
+        id="tab-capture"
+        data-go="capture"
+        data-tone="capture"
+        aria-selected="false"
+      >
+        <span class="n">1</span>Capture
+      </button>
+      <button
+        class="tab"
+        role="tab"
+        id="tab-prepare"
+        data-go="prepare"
+        data-tone="prepare"
+        aria-selected="false"
+      >
+        <span class="n">2</span>Prepare
+      </button>
+      <button
+        class="tab"
+        role="tab"
+        id="tab-send"
+        data-go="send"
+        data-tone="send"
+        aria-selected="false"
+      >
+        <span class="n">3</span>Send
+      </button>
+    </div>
+    <button class="toggle" id="show-all" aria-pressed="false">
+      Show all details
+    </button>
+  </div>
+
+  <div class="map">
+    <svg
+      id="map"
+      viewBox="0 0 1040 480"
+      data-view="overview"
+      role="img"
+      aria-label="Flow map: changed rows go through Capture, Prepare and Send to the Graph API. Capture writes capture files, Prepare reads them and writes the sync table and the issues file, Send reads the sync table. Every stage writes its part of run.json, and Send updates current.json."
+    >
+      <defs>
+        <marker
+          id="arrow-capture"
+          data-tone="capture"
+          viewBox="0 0 10 10"
+          refX="9"
+          refY="5"
+          markerWidth="6.5"
+          markerHeight="6.5"
+          orient="auto"
+        >
+          <path class="mk" d="M0 0L10 5L0 10z" />
+        </marker>
+        <marker
+          id="arrow-prepare"
+          data-tone="prepare"
+          viewBox="0 0 10 10"
+          refX="9"
+          refY="5"
+          markerWidth="6.5"
+          markerHeight="6.5"
+          orient="auto"
+        >
+          <path class="mk" d="M0 0L10 5L0 10z" />
+        </marker>
+        <marker
+          id="arrow-send"
+          data-tone="send"
+          viewBox="0 0 10 10"
+          refX="9"
+          refY="5"
+          markerWidth="6.5"
+          markerHeight="6.5"
+          orient="auto"
+        >
+          <path class="mk" d="M0 0L10 5L0 10z" />
+        </marker>
+      </defs>
+
+      <g class="lane">
+        <rect x="4" y="4" width="1032" height="114" rx="12" />
+        <text class="lane-label" x="20" y="26">S3 · STATUS FILES</text>
+      </g>
+      <g class="lane">
+        <rect x="4" y="322" width="1032" height="154" rx="12" />
+        <text class="lane-label" x="20" y="345">S3 · DATA</text>
+      </g>
+
+      <!-- run.json and its parts -->
+      <rect class="file-outline" x="14" y="36" width="832" height="74" rx="9" />
+      <text class="node">
+        <tspan class="m" x="24" y="54">run.json</tspan>
+        <tspan class="s" dx="8">
+          one per run · the parts fill in as the stages complete
+        </tspan>
+      </text>
+      <g class="seg">
+        <rect x="22" y="62" width="84" height="38" rx="6" />
+        <text x="64" y="85">input</text>
+      </g>
+      <g class="seg">
+        <rect x="110" y="62" width="86" height="38" rx="6" />
+        <text x="153" y="85">batch</text>
+      </g>
+      <g class="seg" data-s="capture" data-order="1">
+        <rect x="206" y="62" width="170" height="38" rx="6" />
+        <text x="291" y="85">capture</text>
+      </g>
+      <g class="seg" data-s="prepare" data-order="2">
+        <rect x="436" y="62" width="170" height="38" rx="6" />
+        <text x="521" y="85">prepare</text>
+      </g>
+      <g class="seg" data-s="send" data-order="3">
+        <rect x="666" y="62" width="104" height="38" rx="6" />
+        <text x="718" y="85">send_progress</text>
+      </g>
+      <g class="seg" data-s="send" data-order="3">
+        <rect x="774" y="62" width="62" height="38" rx="6" />
+        <text x="805" y="85">send</text>
+      </g>
+      <g class="node store" data-s="send">
+        <rect x="896" y="62" width="132" height="38" rx="6" />
+        <text class="m" x="906" y="54">current.json</text>
+        <text class="s" x="906" y="85">active · last completed</text>
+        <text class="badge" data-tone="send" data-b="send" x="1028" y="54">
+          updated
+        </text>
+      </g>
+
+      <!-- pipeline -->
+      <g class="node" data-s="capture">
+        <rect x="12" y="188" width="134" height="60" rx="9" />
+        <text class="t" x="26" y="214">Changed rows</text>
+        <text class="s" x="26" y="232">local Parquet files</text>
+      </g>
+      <g
+        class="node stage"
+        data-s="capture"
+        data-tone="capture"
+        data-go="capture"
+        tabindex="0"
+        role="button"
+        aria-label="Show the Capture stage"
+      >
+        <rect x="206" y="176" width="170" height="84" rx="11" />
+        <text class="t" x="222" y="212">Capture</text>
+        <text class="s" x="222" y="234">stores the changed rows</text>
+        <text class="num" x="362" y="198">01</text>
+      </g>
+      <g
+        class="node stage"
+        data-s="prepare"
+        data-tone="prepare"
+        data-go="prepare"
+        tabindex="0"
+        role="button"
+        aria-label="Show the Prepare stage"
+      >
+        <rect x="436" y="176" width="170" height="84" rx="11" />
+        <text class="t" x="452" y="212">Prepare</text>
+        <text class="s" x="452" y="234">rows → entity changes</text>
+        <text class="num" x="592" y="198">02</text>
+      </g>
+      <g
+        class="node stage"
+        data-s="send"
+        data-tone="send"
+        data-go="send"
+        tabindex="0"
+        role="button"
+        aria-label="Show the Send stage"
+      >
+        <rect x="666" y="176" width="170" height="84" rx="11" />
+        <text class="t" x="682" y="212">Send</text>
+        <text class="s" x="682" y="234">changes → Graph requests</text>
+        <text class="num" x="822" y="198">03</text>
+      </g>
+      <g class="node" data-s="send">
+        <rect x="896" y="188" width="132" height="60" rx="9" />
+        <text class="t" x="910" y="214">Graph API</text>
+        <text class="s" x="910" y="232">/entities/bulk</text>
+      </g>
+
+      <!-- data stores -->
+      <g class="node store" data-s="capture prepare">
+        <rect x="321" y="358" width="170" height="56" rx="9" />
+        <text class="t" x="335" y="382">Capture files</text>
+        <text class="s" x="335" y="399">Parquet · one per source</text>
+        <text
+          class="badge"
+          data-tone="capture"
+          data-b="capture"
+          x="481"
+          y="375"
+        >
+          written
+        </text>
+        <text
+          class="badge"
+          data-tone="prepare"
+          data-b="prepare"
+          x="481"
+          y="375"
+        >
+          read
+        </text>
+      </g>
+      <g class="node store" data-s="prepare send">
+        <rect x="551" y="358" width="170" height="56" rx="9" />
+        <text class="t" x="565" y="382">Sync table</text>
+        <text class="s" x="565" y="399">entity changes · append-only</text>
+        <text
+          class="badge"
+          data-tone="prepare"
+          data-b="prepare"
+          x="711"
+          y="375"
+        >
+          appended
+        </text>
+        <text class="badge" data-tone="send" data-b="send" x="711" y="375">
+          read
+        </text>
+      </g>
+      <g class="node store" data-s="prepare">
+        <rect x="456" y="430" width="130" height="38" rx="8" />
+        <text class="t" x="468" y="447">Issues file</text>
+        <text class="s" x="468" y="461">if a conversion fails</text>
+      </g>
+
+      <!-- edges: Capture -->
+      <path
+        class="edge"
+        data-s="capture"
+        data-tone="capture"
+        marker-end="url(#arrow-capture)"
+        d="M146 218H203"
+      />
+      <text
+        class="elabel"
+        data-s="capture"
+        x="175"
+        y="209"
+        text-anchor="middle"
+      >
+        4 rows
+      </text>
+      <path
+        class="edge"
+        data-s="capture"
+        data-tone="capture"
+        marker-end="url(#arrow-capture)"
+        d="M291 260C291 312 372 304 372 355"
+      />
+      <text class="elabel" data-s="capture" x="282" y="300" text-anchor="end">
+        copies the file
+      </text>
+      <path
+        class="edge"
+        data-s="capture"
+        data-tone="capture"
+        marker-end="url(#arrow-capture)"
+        d="M291 176V103"
+      />
+      <!-- edges: Prepare -->
+      <path
+        class="edge"
+        data-s="prepare"
+        data-tone="prepare"
+        marker-end="url(#arrow-prepare)"
+        d="M440 356C440 304 487 312 487 263"
+      />
+      <text class="elabel" data-s="prepare" x="430" y="314" text-anchor="end">
+        reads
+      </text>
+      <path
+        class="edge"
+        data-s="prepare"
+        data-tone="prepare"
+        marker-end="url(#arrow-prepare)"
+        d="M555 260C555 312 602 304 602 355"
+      />
+      <text class="elabel" data-s="prepare" x="612" y="296" text-anchor="start">
+        5 changes
+      </text>
+      <path
+        class="edge"
+        data-s="prepare"
+        data-tone="prepare"
+        marker-end="url(#arrow-prepare)"
+        d="M521 260V427"
+      />
+      <path
+        class="edge"
+        data-s="prepare"
+        data-tone="prepare"
+        marker-end="url(#arrow-prepare)"
+        d="M521 176V103"
+      />
+      <!-- edges: Send -->
+      <path
+        class="edge"
+        data-s="send"
+        data-tone="send"
+        marker-end="url(#arrow-send)"
+        d="M670 356C670 304 717 312 717 263"
+      />
+      <text class="elabel" data-s="send" x="728" y="314" text-anchor="start">
+        reads
+      </text>
+      <path
+        class="edge"
+        data-s="send"
+        data-tone="send"
+        marker-end="url(#arrow-send)"
+        d="M836 218H893"
+      />
+      <text class="elabel" data-s="send" x="865" y="209" text-anchor="middle">
+        4 batches
+      </text>
+      <path
+        class="edge"
+        data-s="send"
+        data-tone="send"
+        marker-end="url(#arrow-send)"
+        d="M718 176V103"
+      />
+      <path
+        class="edge"
+        data-s="send"
+        data-tone="send"
+        marker-end="url(#arrow-send)"
+        d="M805 176V103"
+      />
+      <path
+        class="edge"
+        data-s="send"
+        data-tone="send"
+        marker-end="url(#arrow-send)"
+        d="M826 176C852 142 930 146 958 103"
+      />
+    </svg>
+    <div class="legend">
+      <span>Hover an arrow to see the data it carries.</span>
+      <span
+        >Click a box in a green lane, the changed rows or the Graph API to see
+        everything it holds at the selected stage.</span
+      >
+      <span>Both green lanes are the same S3 bucket, one per integration.</span>
+    </div>
+  </div>
+
+  <section class="card inspect" id="inspect" aria-live="polite" hidden>
+    <header>
+      <div class="item">
+        <h3 id="inspect-when"></h3>
+        <h2 id="inspect-title"></h2>
+        <span class="where" id="inspect-what"></span>
+      </div>
+      <button class="close" id="inspect-close">Close</button>
+    </header>
+    <div class="inspect-body" id="inspect-body"></div>
+  </section>
+  <div class="tip" id="tip" role="tooltip" hidden></div>
+
+  <!-- Overview -->
+  <section class="panel" id="panel-overview">
+    <div class="strip" aria-label="The example run in numbers">
+      <div class="stat" data-tone="capture">
+        <b>4</b><span>changed rows captured</span>
+      </div>
+      <span class="to" aria-hidden="true">→</span>
+      <div class="stat" data-tone="prepare">
+        <b>5</b><span>changes in the sync table</span>
+      </div>
+      <span class="to" aria-hidden="true">→</span>
+      <div class="stat" data-tone="send"><b>4</b><span>batches sent</span></div>
+      <span class="to" aria-hidden="true">→</span>
+      <div class="stat" data-tone="s3">
+        <b>3 · 1 · 1</b><span>created · updated · archived in the Graph</span>
+      </div>
+    </div>
+    <div class="cards">
+      <button
+        class="card tone"
+        id="card-capture"
+        data-tone="capture"
+        data-go="capture"
+      >
+        <h2>1 · Capture</h2>
+        <div class="item">
+          <h3>Reads</h3>
+          <span>Local Parquet files with the changed rows</span>
+        </div>
+        <div class="item">
+          <h3>Writes</h3>
+          <span
+            >The capture files, then the <code>capture</code> part of
+            <code>run.json</code></span
+          >
+        </div>
+      </button>
+      <button
+        class="card tone"
+        id="card-prepare"
+        data-tone="prepare"
+        data-go="prepare"
+      >
+        <h2>2 · Prepare</h2>
+        <div class="item">
+          <h3>Reads</h3>
+          <span>The capture files and the pinned definition</span>
+        </div>
+        <div class="item">
+          <h3>Writes</h3>
+          <span
+            >One row per change in the sync table, an issues file, then the
+            <code>prepare</code> part</span
+          >
+        </div>
+      </button>
+      <button class="card tone" id="card-send" data-tone="send" data-go="send">
+        <h2>3 · Send</h2>
+        <div class="item">
+          <h3>Reads</h3>
+          <span
+            >The run's rows in the sync table, the batch settings and its own
+            progress</span
+          >
+        </div>
+        <div class="item">
+          <h3>Writes</h3>
+          <span
+            >Requests to the Graph API, <code>send_progress</code> after each
+            batch, the <code>send</code> part, then
+            <code>current.json</code></span
+          >
+        </div>
+      </button>
+    </div>
+    <div class="card">
+      <h3>Three rules hold for every stage</h3>
+      <ul>
+        <li>
+          A stage writes its result to S3 first and its part of
+          <code>run.json</code> second.
+        </li>
+        <li>
+          A part that is present in <code>run.json</code> means that stage is
+          complete. A retry runs the stage again and reads
+          <code>run.json</code>.
+        </li>
+        <li>
+          The next run starts only after this run has completed all three
+          stages.
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Capture -->
+  <section class="panel" id="panel-capture" data-tone="capture" hidden>
+    <header>
+      <h2>1 · Capture</h2>
+      <p>
+        Stores the changed rows in S3, so that Prepare can run again without
+        asking the source. It reads no source system and changes no row.
+      </p>
+    </header>
+    <div class="cards">
+      <div class="card tone">
+        <h3>Reads</h3>
+        <div class="item">
+          <b>Local Parquet file <code>items</code></b
+          ><span class="where">one row per changed source record</span>
+        </div>
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>_op</th>
+                <th>id</th>
+                <th>name</th>
+                <th>weight</th>
+                <th>related_to</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr data-rec="A">
+                <td>insert</td>
+                <td>
+                  <span class="rec" data-rec="A"><i></i>A-1</span>
+                </td>
+                <td>Widget</td>
+                <td class="null">null</td>
+                <td>B-1</td>
+              </tr>
+              <tr data-rec="B">
+                <td>insert</td>
+                <td>
+                  <span class="rec" data-rec="B"><i></i>B-1</span>
+                </td>
+                <td>Gadget</td>
+                <td>heavy</td>
+                <td class="null">null</td>
+              </tr>
+              <tr data-rec="C">
+                <td>update</td>
+                <td>
+                  <span class="rec" data-rec="C"><i></i>C-1</span>
+                </td>
+                <td>Sprocket</td>
+                <td>2.5</td>
+                <td class="null">null</td>
+              </tr>
+              <tr data-rec="D">
+                <td>delete</td>
+                <td>
+                  <span class="rec" data-rec="D"><i></i>D-1</span>
+                </td>
+                <td class="null">null</td>
+                <td class="null">null</td>
+                <td class="null">null</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card tone">
+        <h3>Does</h3>
+        <ul>
+          <li>Copies each file to S3 unchanged.</li>
+          <li>Reads the row count from the Parquet footer.</li>
+          <li>Records the capture time.</li>
+        </ul>
+      </div>
+      <div class="card tone">
+        <h3>Writes</h3>
+        <div class="item">
+          <b>Capture file</b
+          ><span class="where">S3 data · the same 4 rows</span>
+        </div>
+        <div class="item">
+          <b><code>capture</code> part of <code>run.json</code></b
+          ><span class="where">S3 status · written last</span>
+          <pre class="mini">
+"capture": {
+  "captured_at": "2026-07-22T10:00:00Z",
+  "sources": { "items": { "file": …, "rows": 4 } }
+}</pre>
+        </div>
+      </div>
+    </div>
+    <div class="more" hidden>
+      <div class="cards">
+        <div class="card">
+          <h3>run.json after Capture</h3>
+          <pre class="mini" id="run-capture"></pre>
+        </div>
+        <div class="card">
+          <h3>Bucket after Capture</h3>
+          <ul class="objects" id="bucket-capture"></ul>
+          <p class="where">
+            The capture file also holds the labs columns <code>_key</code> (the
+            primary key as JSON) and <code>_before</code> (null).
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Prepare -->
+  <section class="panel" id="panel-prepare" data-tone="prepare" hidden>
+    <header>
+      <h2>2 · Prepare</h2>
+      <p>
+        Turns each captured row into the entity changes it stands for, and
+        appends them to the sync table. It computes no diff and reads no earlier
+        run.
+      </p>
+    </header>
+    <div class="card tone">
+      <div class="heads">
+        <h3>Captured row</h3>
+        <span></span>
+        <h3>Rows appended to the sync table</h3>
+      </div>
+      <div class="convert">
+        <div class="pair" data-rec="A">
+          <div class="cell">
+            <span class="op">insert</span
+            ><span class="rec" data-rec="A"><i></i>A-1</span
+            ><span class="kv">name Widget · related_to B-1</span>
+          </div>
+          <div class="arrow" aria-hidden="true">→</div>
+          <div class="outs">
+            <div class="cell">
+              <span class="op">create_entity</span
+              ><span class="rec" data-rec="A"><i></i>A-1</span
+              ><span class="kv">name = "Widget"</span>
+            </div>
+            <div class="cell" data-rec="L">
+              <span class="op">create_link</span
+              ><span class="rec" data-rec="L"><i></i>A-1 → B-1</span
+              ><span class="kv">from <code>related_to</code></span>
+            </div>
+          </div>
+        </div>
+        <div class="pair" data-rec="B">
+          <div class="cell">
+            <span class="op">insert</span
+            ><span class="rec" data-rec="B"><i></i>B-1</span
+            ><span class="kv">name Gadget · weight heavy</span>
+          </div>
+          <div class="arrow" aria-hidden="true">→</div>
+          <div class="outs">
+            <div class="cell">
+              <span class="op">create_entity</span
+              ><span class="rec" data-rec="B"><i></i>B-1</span
+              ><span class="kv">name = "Gadget"</span>
+            </div>
+            <div class="cell warn">
+              "heavy" is not a number. The weight is left out and listed in the
+              issues file. The row is still written.
+            </div>
+          </div>
+        </div>
+        <div class="pair" data-rec="C">
+          <div class="cell">
+            <span class="op">update</span
+            ><span class="rec" data-rec="C"><i></i>C-1</span
+            ><span class="kv">name Sprocket · weight 2.5</span>
+          </div>
+          <div class="arrow" aria-hidden="true">→</div>
+          <div class="outs">
+            <div class="cell">
+              <span class="op">update_entity</span
+              ><span class="rec" data-rec="C"><i></i>C-1</span
+              ><span class="kv">name = "Sprocket", weight = 2.5</span>
+            </div>
+          </div>
+        </div>
+        <div class="pair" data-rec="D">
+          <div class="cell">
+            <span class="op">delete</span
+            ><span class="rec" data-rec="D"><i></i>D-1</span>
+          </div>
+          <div class="arrow" aria-hidden="true">→</div>
+          <div class="outs">
+            <div class="cell">
+              <span class="op">archive_entity</span
+              ><span class="rec" data-rec="D"><i></i>D-1</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cards">
+      <div class="card tone">
+        <h3>Reads</h3>
+        <div class="item">
+          <b>Capture file <code>items</code></b
+          ><span class="where">S3 data · 4 rows</span>
+        </div>
+        <div class="item">
+          <b>The definition</b
+          ><span class="where"
+            >pinned in the <code>input</code> part of
+            <code>run.json</code></span
+          >
+        </div>
+      </div>
+      <div class="card tone">
+        <h3>Does</h3>
+        <ul>
+          <li>Runs the definition's pipelines on the captured rows.</li>
+          <li>
+            Derives each entity id from the namespace, the entity type and the
+            source id.
+          </li>
+          <li>Resolves the properties through the definition's mapping.</li>
+          <li>Takes the kind of change from <code>_op</code>.</li>
+        </ul>
+      </div>
+      <div class="card tone">
+        <h3>Writes</h3>
+        <div class="item">
+          <b>Sync table</b><span class="where">S3 data · 5 rows appended</span>
+        </div>
+        <div class="item">
+          <b>Issues file</b><span class="where">S3 data · 1 entry</span>
+        </div>
+        <div class="item">
+          <b><code>prepare</code> part of <code>run.json</code></b
+          ><span class="where">S3 status · written last</span>
+          <pre class="mini">
+"prepare": { "rows": 5, "issues": …, "issue_count": 1 }</pre>
+        </div>
+      </div>
+    </div>
+    <div class="more" hidden>
+      <div class="card">
+        <h3>Sync table: the 5 rows of this run, all columns</h3>
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>run_id</th>
+                <th>order_id</th>
+                <th>op</th>
+                <th>entity_id</th>
+                <th>entity_type</th>
+                <th>left_entity_id</th>
+                <th>right_entity_id</th>
+                <th>properties</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr data-rec="A">
+                <td>…0012</td>
+                <td>0</td>
+                <td>create_entity</td>
+                <td title="6ca9cc88-4fa6-5acf-bf59-eb22a504b891">6ca9cc88…</td>
+                <td>item/v/1</td>
+                <td class="null">null</td>
+                <td class="null">null</td>
+                <td>name = "Widget"</td>
+              </tr>
+              <tr data-rec="B">
+                <td>…0012</td>
+                <td>1</td>
+                <td>create_entity</td>
+                <td title="3a060105-8b02-5108-956e-fe52d3909e45">3a060105…</td>
+                <td>item/v/1</td>
+                <td class="null">null</td>
+                <td class="null">null</td>
+                <td>name = "Gadget"</td>
+              </tr>
+              <tr data-rec="C">
+                <td>…0012</td>
+                <td>2</td>
+                <td>update_entity</td>
+                <td title="493ab71e-0be5-5366-9d58-355ce40d531d">493ab71e…</td>
+                <td>item/v/1</td>
+                <td class="null">null</td>
+                <td class="null">null</td>
+                <td>name = "Sprocket", weight = 2.5</td>
+              </tr>
+              <tr data-rec="D">
+                <td>…0012</td>
+                <td>3</td>
+                <td>archive_entity</td>
+                <td title="49f3deaa-12bc-56c8-90fd-68a06612e01f">49f3deaa…</td>
+                <td>item/v/1</td>
+                <td class="null">null</td>
+                <td class="null">null</td>
+                <td class="null">null</td>
+              </tr>
+              <tr data-rec="L">
+                <td>…0012</td>
+                <td>4</td>
+                <td>create_link</td>
+                <td title="f81f487f-1011-583c-9bbc-c11d82d8e58e">f81f487f…</td>
+                <td>related/v/1</td>
+                <td title="6ca9cc88-4fa6-5acf-bf59-eb22a504b891">6ca9cc88…</td>
+                <td title="3a060105-8b02-5108-956e-fe52d3909e45">3a060105…</td>
+                <td>{}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="where">The physical format of the table is not decided.</p>
+      </div>
+      <div class="cards">
+        <div class="card">
+          <h3>Issues file</h3>
+          <div class="scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>target</th>
+                  <th>entity_id</th>
+                  <th>property</th>
+                  <th>reason</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr data-rec="B">
+                  <td>items-sink</td>
+                  <td title="3a060105-8b02-5108-956e-fe52d3909e45">
+                    3a060105…
+                  </td>
+                  <td>weight/v/1</td>
+                  <td>not a number</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Bucket after Prepare</h3>
+          <ul class="objects" id="bucket-prepare"></ul>
+        </div>
+      </div>
+      <div class="card">
+        <h3>run.json after Prepare</h3>
+        <pre class="mini" id="run-prepare"></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Send -->
+  <section class="panel" id="panel-send" data-tone="send" hidden>
+    <header>
+      <h2>3 · Send</h2>
+      <p>
+        Builds the Graph requests from the run's rows and sends them in batches.
+        The requests are not stored: the same rows always give the same batches,
+        so a retry needs only the number of confirmed batches.
+      </p>
+    </header>
+    <div class="card tone">
+      <h3>The 5 changes become 4 batches, sent in this order</h3>
+      <div class="batches">
+        <div class="bcard">
+          <div class="bh"><b>Batch 0</b><code>POST /entities/bulk</code></div>
+          <div class="chips">
+            <span class="bchip" data-rec="A"><i></i>create A-1</span
+            ><span class="bchip" data-rec="B"><i></i>create B-1</span>
+          </div>
+          <p class="why">Entity creates and updates are sent first.</p>
+        </div>
+        <div class="bcard">
+          <div class="bh"><b>Batch 1</b><code>PATCH /entities/bulk</code></div>
+          <div class="chips">
+            <span class="bchip" data-rec="C"><i></i>update C-1</span>
+          </div>
+          <p class="why">New batch: create switches to update.</p>
+        </div>
+        <div class="bcard">
+          <div class="bh"><b>Batch 2</b><code>POST /entities/bulk</code></div>
+          <div class="chips">
+            <span class="bchip" data-rec="L"><i></i>create link A-1 → B-1</span>
+          </div>
+          <p class="why">
+            New batch: links follow entities, so both endpoints exist.
+          </p>
+        </div>
+        <div class="bcard">
+          <div class="bh"><b>Batch 3</b><code>PATCH /entities/bulk</code></div>
+          <div class="chips">
+            <span class="bchip" data-rec="D"><i></i>archive D-1</span>
+          </div>
+          <p class="why">New batch: entity archives are sent last.</p>
+        </div>
+      </div>
+    </div>
+    <div class="cards">
+      <div class="card tone">
+        <h3>Reads</h3>
+        <div class="item">
+          <b>Sync table</b
+          ><span class="where">S3 data · the 5 rows of this run</span>
+        </div>
+        <div class="item">
+          <b><code>batch</code> part of <code>run.json</code></b
+          ><span class="where">at most 128 writes and 1.5 MB per batch</span>
+        </div>
+        <div class="item">
+          <b><code>send_progress</code> part of <code>run.json</code></b
+          ><span class="where">where to resume after a stop</span>
+        </div>
+      </div>
+      <div class="card tone">
+        <h3>Does</h3>
+        <ul>
+          <li>Sorts the rows by operation, then by <code>order_id</code>.</li>
+          <li>Encodes each row as a request body.</li>
+          <li>
+            Starts a new batch when the operation changes, when create switches
+            to update, at a limit, or when an entity is already in the batch.
+          </li>
+          <li>
+            Counts a create that the Graph answers with a conflict as done.
+          </li>
+        </ul>
+      </div>
+      <div class="card tone">
+        <h3>Writes</h3>
+        <div class="item">
+          <b>Graph API</b
+          ><span class="where"
+            >4 requests · 3 created, 1 updated, 1 archived</span
+          >
+        </div>
+        <div class="item">
+          <b><code>send_progress</code> part of <code>run.json</code></b
+          ><span class="where">S3 status · after each confirmed batch</span>
+        </div>
+        <div class="item">
+          <b><code>send</code> part of <code>run.json</code></b
+          ><span class="where">S3 status · after the last batch</span>
+        </div>
+        <div class="item">
+          <b><code>current.json</code></b
+          ><span class="where"
+            >S3 status · the run becomes the last completed run</span
+          >
+        </div>
+      </div>
+    </div>
+    <div class="more" hidden>
+      <div class="card">
+        <h3>Request bodies</h3>
+        <div class="convert" id="bodies"></div>
+      </div>
+      <div class="cards">
+        <div class="card">
+          <h3>send_progress after each batch</h3>
+          <div class="scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>after</th>
+                  <th>confirmed_batches</th>
+                  <th>created</th>
+                  <th>patched</th>
+                  <th>archived</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>batch 0</td>
+                  <td>1</td>
+                  <td>2</td>
+                  <td>0</td>
+                  <td>0</td>
+                </tr>
+                <tr>
+                  <td>batch 1</td>
+                  <td>2</td>
+                  <td>2</td>
+                  <td>1</td>
+                  <td>0</td>
+                </tr>
+                <tr>
+                  <td>batch 2</td>
+                  <td>3</td>
+                  <td>3</td>
+                  <td>1</td>
+                  <td>0</td>
+                </tr>
+                <tr>
+                  <td>batch 3</td>
+                  <td>4</td>
+                  <td>3</td>
+                  <td>1</td>
+                  <td>1</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="where">
+            A Send that stops after batch 1 resumes at batch 2 and reads the
+            counts from here.
+          </p>
+        </div>
+        <div class="card">
+          <h3>current.json</h3>
+          <p class="where">While the run is active</p>
+          <pre class="mini" id="current-before"></pre>
+          <p class="where">After Send completes</p>
+          <pre class="mini" id="current-after"></pre>
+        </div>
+      </div>
+      <div class="card">
+        <h3>run.json after Send</h3>
+        <pre class="mini" id="run-send"></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="foot">
+    <div class="card">
+      <h3>Still open</h3>
+      <ul>
+        <li>
+          <strong>Sync table format.</strong> Iceberg or plain Parquet per run,
+          and how a Prepare retry avoids writing rows twice.
+        </li>
+        <li>
+          <strong>Capture row shape.</strong> Source rows as shown here, or rows
+          already in the shape of the target.
+        </li>
+        <li>
+          <strong>Removing a property.</strong> An update sets the properties in
+          the row. Nothing removes one yet.
+        </li>
+        <li>
+          <strong>Link changes.</strong> When <code>related_to</code> changes or
+          a record is deleted, the old link has to be archived, and the row no
+          longer names it.
+        </li>
+        <li>
+          <strong>Refused writes.</strong> What happens when the Graph refuses a
+          write for a reason a retry does not fix.
+        </li>
+        <li>
+          <strong>Replayed writes.</strong> How the Graph answers a create,
+          update or archive that it has already applied.
+        </li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Where the example values come from</h3>
+      <ul>
+        <li>
+          <strong>Labs fixture.</strong> The ids of A-1, B-1 and the link, and
+          the create bodies of A-1 and the link, are the values in
+          <code>tests/golden/graph-delivery-v1.json</code> of the labs proof of
+          concept.
+        </li>
+        <li>
+          <strong>Same formula.</strong> The ids of C-1 and D-1 are computed
+          with the id formula that reproduces the three fixture ids.
+        </li>
+        <li>
+          <strong>Labs body shape.</strong> The update and archive bodies follow
+          <code>entity_patch_params</code> and <code>archive_params</code> in
+          labs.
+        </li>
+        <li>
+          <strong>Made up for this page.</strong> The
+          <code>weight</code> property, the run ids, the file hashes and sizes.
+        </li>
+      </ul>
+    </div>
+  </section>
+</div>
+
+<script>
+  (() => {
+    const web = "00000000-0000-4000-8000-000000000001";
+    const run = "00000000-0000-4000-8000-000000000012";
+    const previousRun = "00000000-0000-4000-8000-000000000011";
+    const item = "https://example.com/types/entity-type/item/v/1";
+    const related = "https://example.com/types/entity-type/related/v/1";
+    const nameUrl = "https://example.com/types/property-type/name/";
+    const weightUrl = "https://example.com/types/property-type/weight/";
+    const ids = {
+      A: "6ca9cc88-4fa6-5acf-bf59-eb22a504b891",
+      B: "3a060105-8b02-5108-956e-fe52d3909e45",
+      C: "493ab71e-0be5-5366-9d58-355ce40d531d",
+      D: "49f3deaa-12bc-56c8-90fd-68a06612e01f",
+      L: "f81f487f-1011-583c-9bbc-c11d82d8e58e",
+    };
+    const provenance = {
+      actorType: "machine",
+      origin: { type: "api" },
+      sources: [
+        {
+          type: "integration",
+          location: { name: "fixture" },
+          loadedAt: "2026-07-22T10:00:00Z",
+        },
+      ],
+    };
+    const value = (v) => ({ value: v, metadata: { dataTypeId: null } });
+    const createEntity = (uuid, name) => ({
+      webId: web,
+      entityTypeIds: [item],
+      properties: { value: { [nameUrl]: value(name) } },
+      draft: false,
+      provenance,
+      entityUuid: uuid,
+      readOnly: true,
+    });
+
+    const bodies = [
+      {
+        title: "Batch 0 · POST /entities/bulk · create A-1, create B-1",
+        recs: "A B",
+        body: [createEntity(ids.A, "Widget"), createEntity(ids.B, "Gadget")],
+      },
+      {
+        title: "Batch 1 · PATCH /entities/bulk · update C-1",
+        recs: "C",
+        body: [
+          {
+            entityId: `${web}~${ids.C}`,
+            provenance,
+            archived: false,
+            entityTypeIds: [item],
+            properties: [
+              { op: "add", path: [nameUrl], property: value("Sprocket") },
+              { op: "add", path: [weightUrl], property: value(2.5) },
+            ],
+          },
+        ],
+      },
+      {
+        title: "Batch 2 · POST /entities/bulk · create link A-1 → B-1",
+        recs: "L",
+        body: [
+          {
+            webId: web,
+            entityTypeIds: [related],
+            properties: { value: {} },
+            draft: false,
+            provenance,
+            entityUuid: ids.L,
+            linkData: {
+              leftEntityId: `${web}~${ids.A}`,
+              rightEntityId: `${web}~${ids.B}`,
+            },
+            readOnly: true,
+          },
+        ],
+      },
+      {
+        title: "Batch 3 · PATCH /entities/bulk · archive D-1",
+        recs: "D",
+        body: [{ entityId: `${web}~${ids.D}`, provenance, archived: true }],
+      },
+    ];
+
+    const captureFile = "artifacts/sha256/5e/5e1f…c9.parquet";
+    const issuesFile = "artifacts/sha256/b7/b702…4d.parquet";
+    const fileRef = (key, size) => ({
+      version: "v1",
+      value: { key, sha256: key.slice(20, -8), size, format: "parquet" },
+    });
+    const finalCounts = {
+      created: 3,
+      patched: 1,
+      archived: 1,
+      absent: 0,
+      rejected: 0,
+    };
+    const stageOrder = { overview: 3, capture: 1, prepare: 2, send: 3 };
+
+    const runJson = (order) => ({
+      input: {
+        run,
+        web,
+        connector: "connector",
+        actor: "00000000-0000-4000-8000-000000000002",
+        definition: "(the definition YAML)",
+        namespace: "connector",
+      },
+      batch: { max_writes: 128, max_bytes: 1500000 },
+      capture:
+        order >= 1
+          ? {
+              captured_at: "2026-07-22T10:00:00Z",
+              sources: { items: { file: fileRef(captureFile, 2140), rows: 4 } },
+            }
+          : null,
+      prepare:
+        order >= 2
+          ? { rows: 5, issues: fileRef(issuesFile, 1312), issue_count: 1 }
+          : null,
+      send_progress:
+        order >= 3 ? { confirmed_batches: 4, counts: finalCounts } : null,
+      send: order >= 3 ? { counts: finalCounts } : null,
+      failure: null,
+    });
+
+    const bucket = (order) =>
+      [
+        ["current.json", "the active run and the last completed run"],
+        [`runs/${run}/run.json`, "the status of this run"],
+        order >= 1 && [captureFile, "capture file items"],
+        order >= 2 && [
+          "sync table",
+          "5 rows of this run · path and format not decided",
+        ],
+        order >= 2 && [issuesFile, "issues file"],
+      ].filter(Boolean);
+
+    const element = (tag, className, text) => {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text !== undefined) node.textContent = text;
+      return node;
+    };
+    const pretty = (data) => JSON.stringify(data, null, 2);
+
+    for (const stage of ["capture", "prepare", "send"]) {
+      document.getElementById(`run-${stage}`).textContent = pretty(
+        runJson(stageOrder[stage]),
+      );
+    }
+    for (const stage of ["capture", "prepare"]) {
+      const list = document.getElementById(`bucket-${stage}`);
+      for (const [path, what] of bucket(stageOrder[stage])) {
+        const entry = element("li");
+        entry.append(
+          element("code", "", path),
+          document.createTextNode(` · ${what}`),
+        );
+        list.append(entry);
+      }
+    }
+    document.getElementById("current-before").textContent = pretty({
+      active: run,
+      last_completed: previousRun,
+    });
+    document.getElementById("current-after").textContent = pretty({
+      active: null,
+      last_completed: run,
+    });
+    const bodyList = document.getElementById("bodies");
+    for (const entry of bodies) {
+      const details = element("details", "body");
+      details.dataset.rec = entry.recs;
+      details.append(
+        element("summary", "", entry.title),
+        element("pre", "mini", pretty(entry.body)),
+      );
+      bodyList.append(details);
+    }
+
+    const map = document.getElementById("map");
+    const views = ["overview", "capture", "prepare", "send"];
+    let view = "overview";
+    let showAll = false;
+
+    function render() {
+      map.dataset.view = view;
+      for (const name of views) {
+        document.getElementById(`panel-${name}`).hidden = name !== view;
+        document
+          .getElementById(`tab-${name}`)
+          .setAttribute("aria-selected", String(name === view));
+      }
+      for (const segment of map.querySelectorAll(".seg[data-order]")) {
+        segment.classList.toggle(
+          "empty",
+          Number(segment.dataset.order) > stageOrder[view],
+        );
+      }
+      for (const block of document.querySelectorAll(".more"))
+        block.hidden = !showAll;
+      const toggle = document.getElementById("show-all");
+      toggle.setAttribute("aria-pressed", String(showAll));
+      toggle.textContent = showAll ? "Show the core only" : "Show all details";
+      toggle.hidden = view === "overview";
+      if (picked) inspect();
+    }
+
+    function go(name) {
+      view = name;
+      render();
+    }
+
+    for (const control of document.querySelectorAll("[data-go]")) {
+      control.addEventListener("click", () => go(control.dataset.go));
+      control.addEventListener("keydown", (event) => {
+        if (
+          control.tagName !== "BUTTON" &&
+          (event.key === "Enter" || event.key === " ")
+        ) {
+          event.preventDefault();
+          go(control.dataset.go);
+        }
+      });
+    }
+    document.getElementById("show-all").addEventListener("click", () => {
+      showAll = !showAll;
+      render();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.target.closest("summary, input, textarea")) return;
+      const index = views.indexOf(view);
+      if (event.key === "ArrowRight" && index < views.length - 1)
+        go(views[index + 1]);
+      if (event.key === "ArrowLeft" && index > 0) go(views[index - 1]);
+    });
+
+    // Pointing at a record marks it everywhere it appears in the open panel.
+    const marked = () =>
+      document.querySelectorAll(".page [data-rec]:not(.rec)");
+    for (const node of marked()) {
+      const records = node.dataset.rec.split(" ");
+      node.addEventListener("mouseenter", () => {
+        for (const other of marked()) {
+          other.classList.toggle(
+            "hot",
+            other.dataset.rec
+              .split(" ")
+              .some((record) => records.includes(record)),
+          );
+        }
+      });
+      node.addEventListener("mouseleave", () => {
+        for (const other of marked()) other.classList.remove("hot");
+      });
+    }
+
+    // The example data, used by the arrow hover cards and the store inspector.
+    const captureRows = [
+      ["insert", '{"id":"A-1"}', null, "A-1", "Widget", null, "B-1"],
+      ["insert", '{"id":"B-1"}', null, "B-1", "Gadget", "heavy", null],
+      ["update", '{"id":"C-1"}', null, "C-1", "Sprocket", "2.5", null],
+      ["delete", '{"id":"D-1"}', null, "D-1", null, null, null],
+    ];
+    const captureHead = [
+      "_op",
+      "_key",
+      "_before",
+      "id",
+      "name",
+      "weight",
+      "related_to",
+    ];
+    const changeRows = [
+      [
+        "…0012",
+        "0",
+        "create_entity",
+        ids.A,
+        "item/v/1",
+        null,
+        null,
+        'name = "Widget"',
+        "A-1",
+      ],
+      [
+        "…0012",
+        "1",
+        "create_entity",
+        ids.B,
+        "item/v/1",
+        null,
+        null,
+        'name = "Gadget"',
+        "B-1",
+      ],
+      [
+        "…0012",
+        "2",
+        "update_entity",
+        ids.C,
+        "item/v/1",
+        null,
+        null,
+        'name = "Sprocket", weight = 2.5',
+        "C-1",
+      ],
+      [
+        "…0012",
+        "3",
+        "archive_entity",
+        ids.D,
+        "item/v/1",
+        null,
+        null,
+        null,
+        "D-1",
+      ],
+      [
+        "…0012",
+        "4",
+        "create_link",
+        ids.L,
+        "related/v/1",
+        ids.A,
+        ids.B,
+        "{}",
+        "A-1 → B-1",
+      ],
+    ];
+    const changeHead = [
+      "run_id",
+      "order_id",
+      "op",
+      "entity_id",
+      "entity_type",
+      "left_entity_id",
+      "right_entity_id",
+      "properties",
+    ];
+    const sendOrder = [0, 1, 2, 4, 3];
+    const issueRows = [
+      [
+        "items-sink",
+        ids.B,
+        '{"id":"B-1"}',
+        "weight/v/1",
+        "the value cannot be read as a number",
+      ],
+    ];
+    const issueHead = ["target", "entity_id", "key", "property", "reason"];
+    const batchRows = [
+      ["0", "POST /entities/bulk", "create A-1, create B-1"],
+      ["1", "PATCH /entities/bulk", "update C-1"],
+      ["2", "POST /entities/bulk", "create link A-1 → B-1"],
+      ["3", "PATCH /entities/bulk", "archive D-1"],
+    ];
+    const progressRows = [
+      ["batch 0", "1", "2", "0", "0"],
+      ["batch 1", "2", "2", "1", "0"],
+      ["batch 2", "3", "3", "1", "0"],
+      ["batch 3", "4", "3", "1", "1"],
+    ];
+
+    const table = (head, rows) => {
+      const wrap = element("div", "scroll");
+      const grid = element("table");
+      const top = element("tr");
+      for (const name of head) top.append(element("th", "", name));
+      const header = element("thead");
+      header.append(top);
+      const body = element("tbody");
+      for (const row of rows) {
+        const line = element("tr");
+        for (const cell of row)
+          line.append(
+            cell === null
+              ? element("td", "null", "null")
+              : element("td", "", cell),
+          );
+        body.append(line);
+      }
+      grid.append(header, body);
+      wrap.append(grid);
+      return wrap;
+    };
+    const pick = (rows, columns) =>
+      rows.map((row) => columns.map((column) => row[column]));
+    const code = (data) => element("pre", "mini", pretty(data));
+    const empty = (text) => element("p", "empty", text);
+    const note = (text) => element("p", "where", text);
+    const captureShort = () =>
+      table(
+        ["_op", "id", "name", "weight", "related_to"],
+        pick(captureRows, [0, 3, 4, 5, 6]),
+      );
+    const changesShort = (order) =>
+      table(
+        ["order_id", "op", "entity", "properties"],
+        pick(
+          order.map((index) => changeRows[index]),
+          [1, 2, 8, 7],
+        ),
+      );
+    const requestBodies = () => {
+      const list = element("div", "convert");
+      for (const entry of bodies) {
+        const details = element("details", "body");
+        details.append(
+          element("summary", "", entry.title),
+          element("pre", "mini", pretty(entry.body)),
+        );
+        list.append(details);
+      }
+      return list;
+    };
+
+    // What each arrow carries, in the order the arrows appear in the map.
+    const flows = [
+      [
+        "Changed rows → Capture",
+        "The local Parquet file items: 4 changed rows.",
+        captureShort,
+      ],
+      [
+        "Capture → Capture files",
+        "The same 4 rows, copied to S3 unchanged.",
+        captureShort,
+      ],
+      [
+        "Capture → run.json",
+        "The capture part, written after the file is stored.",
+        () => code({ capture: runJson(1).capture }),
+      ],
+      [
+        "Capture files → Prepare",
+        "Prepare reads the 4 captured rows.",
+        captureShort,
+      ],
+      [
+        "Prepare → Sync table",
+        "5 rows appended, one per change.",
+        () => changesShort([0, 1, 2, 3, 4]),
+      ],
+      [
+        "Prepare → Issues file",
+        "One value could not be converted.",
+        () =>
+          table(
+            ["entity", "property", "reason"],
+            [["B-1", "weight/v/1", "not a number"]],
+          ),
+      ],
+      [
+        "Prepare → run.json",
+        "The prepare part, written after the rows are appended.",
+        () => code({ prepare: runJson(2).prepare }),
+      ],
+      [
+        "Sync table → Send",
+        "The 5 rows of this run, in the order Send sends them.",
+        () => changesShort(sendOrder),
+      ],
+      [
+        "Send → Graph API",
+        "4 requests, one per batch.",
+        () => table(["batch", "request", "writes"], batchRows),
+      ],
+      [
+        "Send → run.json",
+        "send_progress, written after each confirmed batch.",
+        () =>
+          table(
+            ["after", "confirmed_batches", "created", "patched", "archived"],
+            progressRows,
+          ),
+      ],
+      [
+        "Send → run.json",
+        "The send part, written once after the last batch.",
+        () => code({ send: runJson(3).send }),
+      ],
+      [
+        "Send → current.json",
+        "The run becomes the last completed run.",
+        () => code({ active: null, last_completed: run }),
+      ],
+    ];
+
+    const tip = document.getElementById("tip");
+    const place = (x, y) => {
+      tip.hidden = false;
+      const box = tip.getBoundingClientRect();
+      const left = Math.max(12, Math.min(x + 14, innerWidth - box.width - 12));
+      const below = y + 18;
+      const top =
+        below + box.height > innerHeight - 12
+          ? Math.max(12, y - box.height - 14)
+          : below;
+      tip.style.left = `${left}px`;
+      tip.style.top = `${top}px`;
+    };
+    map.querySelectorAll(".edge").forEach((edge, index) => {
+      const [title, text, build] = flows[index];
+      const hit = edge.cloneNode(false);
+      for (const name of ["class", "marker-end", "data-s", "data-tone"])
+        hit.removeAttribute(name);
+      hit.setAttribute("class", "hit");
+      hit.setAttribute("tabindex", "0");
+      hit.setAttribute("role", "img");
+      hit.setAttribute("aria-label", `${title}. ${text}`);
+      const fill = () =>
+        tip.replaceChildren(
+          element("b", "", title),
+          element("span", "where", text),
+          build(),
+        );
+      hit.addEventListener("mouseenter", (event) => {
+        fill();
+        place(event.clientX, event.clientY);
+      });
+      hit.addEventListener("mousemove", (event) =>
+        place(event.clientX, event.clientY),
+      );
+      hit.addEventListener("mouseleave", () => (tip.hidden = true));
+      hit.addEventListener("focus", () => {
+        fill();
+        const box = hit.getBoundingClientRect();
+        place(box.left + box.width / 2, box.top + box.height / 2);
+      });
+      hit.addEventListener("blur", () => (tip.hidden = true));
+      edge.after(hit);
+    });
+
+    // What each store holds once the stages up to `order` have completed.
+    const stores = {
+      source: [
+        "Changed rows",
+        "The local Parquet file items, given to Capture by the CLI",
+        () => [table(captureHead, captureRows)],
+      ],
+      "capture-files": [
+        "Capture files",
+        "S3 data · one Parquet file per source",
+        (order) =>
+          order >= 1
+            ? [note(`${captureFile} · 4 rows`), table(captureHead, captureRows)]
+            : [empty("Capture has not stored the file yet.")],
+      ],
+      sync: [
+        "Sync table",
+        "S3 data · append-only",
+        (order) =>
+          order >= 2
+            ? [
+                table(changeHead, pick(changeRows, [0, 1, 2, 3, 4, 5, 6, 7])),
+                note(
+                  "The rows of earlier runs stay in the table. Only the rows of this run are shown.",
+                ),
+              ]
+            : [empty("No rows from this run yet. Prepare appends them.")],
+      ],
+      issues: [
+        "Issues file",
+        "S3 data · written only when a conversion fails",
+        (order) =>
+          order >= 2
+            ? [note(`${issuesFile} · 1 entry`), table(issueHead, issueRows)]
+            : [empty("Not written yet.")],
+      ],
+      run: [
+        "run.json",
+        `S3 status · runs/${run}/run.json`,
+        (order) => [code(runJson(order))],
+      ],
+      current: [
+        "current.json",
+        "S3 status · one per integration",
+        (order) => [
+          code(
+            order >= 3 && view !== "capture" && view !== "prepare"
+              ? { active: null, last_completed: run }
+              : { active: run, last_completed: previousRun },
+          ),
+        ],
+      ],
+      graph: [
+        "Graph API",
+        "What the Graph has received from this run",
+        (order) =>
+          order >= 3 && view !== "capture" && view !== "prepare"
+            ? [
+                note("4 requests · 3 created, 1 updated, 1 archived"),
+                requestBodies(),
+              ]
+            : [empty("Nothing sent yet. Send sends the first request.")],
+      ],
+    };
+    const when = {
+      overview: "At the end of the run",
+      capture: "After Capture",
+      prepare: "After Prepare",
+      send: "After Send",
+    };
+    let picked = null;
+
+    function inspect() {
+      const [title, what, build] = stores[picked];
+      document.getElementById("inspect-when").textContent = when[view];
+      document.getElementById("inspect-title").textContent = title;
+      document.getElementById("inspect-what").textContent = what;
+      document
+        .getElementById("inspect-body")
+        .replaceChildren(...build(stageOrder[view]));
+      document.getElementById("inspect").hidden = false;
+      for (const node of map.querySelectorAll(".pick"))
+        node.classList.toggle("picked", node.dataset.store === picked);
+    }
+
+    const pickable = [
+      ...[...map.querySelectorAll(".seg")].map((node) => [node, "run"]),
+      ...[...map.querySelectorAll("g.node.store")].map((node, index) => [
+        node,
+        ["current", "capture-files", "sync", "issues"][index],
+      ]),
+      ...[...map.querySelectorAll("g.node:not(.stage):not(.store)")].map(
+        (node, index) => [node, ["source", "graph"][index]],
+      ),
+    ];
+    for (const [node, store] of pickable) {
+      node.classList.add("pick");
+      node.dataset.store = store;
+      node.setAttribute("tabindex", "0");
+      node.setAttribute("role", "button");
+      node.setAttribute("aria-label", `Show what ${stores[store][0]} holds`);
+      const open = () => {
+        picked = store;
+        inspect();
+        document
+          .getElementById("inspect")
+          .scrollIntoView({ block: "nearest", behavior: "smooth" });
+      };
+      node.addEventListener("click", open);
+      node.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          open();
+        }
+      });
+    }
+    document.getElementById("inspect-close").addEventListener("click", () => {
+      picked = null;
+      document.getElementById("inspect").hidden = true;
+      for (const node of map.querySelectorAll(".pick"))
+        node.classList.remove("picked");
+    });
+
+    render();
+  })();
+</script>

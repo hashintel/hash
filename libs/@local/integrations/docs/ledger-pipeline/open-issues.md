@@ -96,6 +96,25 @@ A relation between two records needs no join. It is a link, and an entity id is 
 - **Join in the data collection service.** The service has the full source and sends rows that are already joined. This is option B of "What a row of the incremental capture holds".
 - **Join in Prepare against the latest row per source key.** Prepare keeps a table of current source rows and joins the changed rows against it. Hash and diff needs the same table.
 
+### Removing a property with per-property updates
+
+**Stage:** Prepare and Send.
+
+An update carries one `add` operation per property of the row, and a property that is absent from the row stays unchanged in the Graph (Paul, 2026-11-17). `SinkRow::resolve` leaves a blank value out of the row. A value that becomes blank in the source is therefore never removed from the entity.
+
+The spec has to say how a removal is expressed: for example a `remove` operation for each mapped property that is blank in the row, or no removal in the first version.
+
+### Link changes in incremental runs
+
+**Stage:** Prepare.
+
+In labs a link is derived from a source row by a link pipeline, and its id is derived from its two endpoints. Labs finds changed links by comparing with the links of the previous run. An incremental run has no previous state to compare with. Two cases need the old endpoint:
+
+- **A row changes its foreign key.** A person moves from department A to department B. The new link to B can be created from the row. The old link to A has to be archived, and the row no longer holds A.
+- **A row is deleted.** The links of the deleted entity have to be archived as well.
+
+The labs capture format has a `_before` column for change streams. It could carry the old values of a changed or deleted row. Labs sets it to null and never reads it.
+
 ### How the Graph answers a replayed write
 
 **Stage:** Send and record.

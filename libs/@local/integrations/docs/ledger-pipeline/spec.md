@@ -77,18 +77,30 @@ A value that cannot be converted is left out, and the rest of the row is written
 - The table is append-only. A run adds rows and changes no existing row.
 - Each row belongs to one run and has a position in that run.
 - A row holds the new value its change carries. Prepare does not read earlier rows to complete it.
-- A row says whether it creates, updates or archives. The kind comes from the `_op` column of the capture. Send has no fallback between create and patch, so it cannot find the kind out from the Graph.
+- A row says whether it creates, updates or archives. The kind comes from the `_op` column of the capture, which holds `insert`, `update` or `delete`. Send has no fallback between create and patch, so it cannot find the kind out from the Graph.
 - The Graph writes of a run are derived from its rows. Request bodies and batch numbers are not stored.
 - The state of the integration at a run can be reconstructed by merging the rows of each entity up to that run.
 
-The physical format of the table and its column list are settled in Prepare planning. The format has to solve "Prepare retry appends the same rows twice" in the open issues.
+| Column                              | Content                                              |
+| ----------------------------------- | ---------------------------------------------------- |
+| `run_id`                            | The run that added the row                           |
+| `order_id`                          | The position of the row in its run                   |
+| `op`                                | Create, update or archive, of an entity or of a link |
+| `entity_id`                         | The id of the entity or link                         |
+| `entity_type`                       | The entity type or link type                         |
+| `left_entity_id`, `right_entity_id` | The two endpoints of a link. Empty for an entity.    |
+| `properties`                        | The new value: the properties the change carries     |
+
+The web, the actor and the provenance of a request come from `run.json` and have no column.
+
+The physical format of the table is settled in Prepare planning. The format has to solve "Prepare retry appends the same rows twice" in the open issues.
 
 ### Send
 
 Send turns the run's changes into Graph requests:
 
 1. It reads the run's rows, sorted by operation first and by position in the run second. The operations are sent in the order entity upserts, link upserts, link archives, entity archives.
-2. It encodes each row as a Graph request with the existing request encoders.
+2. It encodes each row as a Graph request. A create carries the properties of the row. An update carries one `add` operation per property of the row, and a property that is absent from the row stays unchanged in the Graph. An archive carries no properties.
 3. It cuts the sorted rows into batches. A new batch starts when the operation changes, when create switches to patch, at the write limit, at the byte limit, or when the entity is already in the open batch.
 4. It sends the batches in order, starting at the confirmed batch count in `run.json`. After each confirmed batch it writes the new batch count and the running counts to the Send progress part of `run.json`.
 
@@ -254,13 +266,59 @@ A stage takes the outputs of the stages before it and returns its own output, as
 
 The definition in `RunInput` names the local Parquet file of each source for Capture.
 
+## Crate layout
+
+The new pipeline is the crate `hash-integrations-ledger` in `libs/@local/integrations/ledger`. It follows [RUST_DESIGN_GUIDELINES.md](RUST_DESIGN_GUIDELINES.md).
+
+```text
+src/
+├── lib.rs            the three stage functions and the run types
+├── run/
+│   ├── mod.rs        Run, RunInput, BatchSettings, Failure, Stage
+│   ├── store.rs      read run.json, conditional write
+│   ├── current.rs    current.json
+│   ├── error.rs      StageError, Code
+│   └── serde.rs      text adapters for the names of the definition crate
+├── capture.rs        capture(), CaptureOutput, CapturedSource
+├── prepare/
+│   ├── mod.rs        prepare(), PrepareOutput
+│   ├── rows.rs       load the capture files, run the pipelines
+│   ├── ids.rs        entity and link ids
+│   ├── properties/   SinkRow::resolve and coercion
+│   └── issues.rs     the issues file
+├── sync_table/
+│   ├── mod.rs        the row type and the operation
+│   ├── write.rs      append the rows of a run
+│   └── read.rs       read the rows of a run in send order
+├── send/
+│   ├── mod.rs        send(), SendOutput, SendProgress, SendCounts
+│   ├── request.rs    encode a row as a request body
+│   ├── batch.rs      cut batches
+│   └── delivery.rs   send a batch, retry, conflicts
+└── graph/
+    ├── mod.rs        Graph trait, GraphResponse
+    ├── client.rs     HTTP client
+    └── fake.rs       FakeGraph for tests
+```
+
+- Each stage is one module at the top level. `run` and `sync_table` are the two modules the stages share.
+- The crate depends on `hash-integrations-engine` for `Workspace`, `ArtifactStorage`, `SourceCapture` and `derive_entity_id`. The previous refactor copied these modules.
+- `engine` has no conditional write. It is added to `engine` or lives in `run/store.rs`.
+- `Graph` is the only trait. It exists so that tests can use `FakeGraph`.
+
 ## Existing code
 
-The paths are in the previous refactor, [`libs/@local/integrations/pipeline/src`](../../pipeline/src).
+The crate of the previous refactor, [`libs/@local/integrations/pipeline`](../../pipeline/src), stays unchanged. Code that the new crate reuses is copied from it, and its tests stay available as a reference.
 
-| Used by   | Reused                                                                                                                                                                                      | No longer needed                                                                            |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| Capture   | `SourceCapture::copy_from` and `CapturedSource` (`capture.rs`, `sources/mod.rs`)                                                                                                            | The SQL, PostgreSQL and REST readers, the secret lookup, the binding file per source        |
-| Prepare   | `prepare_rows` and `ids::assign` (`stage/diff/rows`), `SinkRow::resolve` (`graph/property`)                                                                                                 | The hash table, the diff labels and the per-target change files (`stage/diff`)              |
-| Send      | The request encoders (`graph/plan/request.rs`), the batch cut rule (`stage/plan/write.rs`), the `Graph` trait and client (`graph`), the retry loop (`stage/send/delivery.rs`), `SendCounts` | `writes.parquet` and its reader, the fallback from create to patch and from patch to create |
-| Run state | Conditional writes (`storage/artifact/mutable`), the error codes (`run/error.rs`)                                                                                                           | The four `_done.json` markers, `input.json`, the `sending` list in `current.json`           |
+Expected values in tests come from the labs proof of concept (`pocs/integrations_rs` in the labs repository) and from the `engine` crate first. The tests of the previous refactor are the second choice.
+
+The update request follows labs: `entity_patch_params` in `src/graph/client.rs` builds one `add` operation per property.
+
+The paths below are in the previous refactor.
+
+| Used by   | Reused                                                                                                                                                                                                 | No longer needed                                                                                                                               |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Capture   | `SourceCapture::copy_from` and `CapturedSource` (`capture.rs`, `sources/mod.rs`)                                                                                                                       | The SQL, PostgreSQL and REST readers, the secret lookup, the binding file per source                                                           |
+| Prepare   | `prepare_rows` and `ids::assign` (`stage/diff/rows`), `SinkRow::resolve` (`graph/property`)                                                                                                            | The hash table, the diff labels and the per-target change files (`stage/diff`)                                                                 |
+| Send      | The create and archive encoders (`graph/plan/request.rs`), the batch cut rule (`stage/plan/write.rs`), the `Graph` trait and client (`graph`), the retry loop (`stage/send/delivery.rs`), `SendCounts` | `writes.parquet` and its reader, the fallback from create to patch and from patch to create, the patch that replaces the whole property object |
+| Run state | Conditional writes (`storage/artifact/mutable`), the error codes (`run/error.rs`)                                                                                                                      | The four `_done.json` markers, `input.json`, the `sending` list in `current.json`                                                              |
