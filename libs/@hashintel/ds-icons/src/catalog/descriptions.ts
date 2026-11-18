@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  waves: "Parallel waves represent flowing water or repeated oscillation.",
   sunMoon:
     "A sun beside a crescent represents switching between light and dark themes.",
   moon: "A crescent represents night or a dark theme.",
