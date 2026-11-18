@@ -22,6 +22,7 @@ import {
 
 import { PetrinautDocumentProvider } from "./petrinaut-provider-layers";
 import { UndoRedoContext } from "./state/undo-redo-context";
+import { constantStore, useStore } from "./use-store";
 
 // A history entry is told from the others by its timestamp, so each change
 // of a test is made at a time of its own.
@@ -105,17 +106,21 @@ const placeCount = (handle: PetrinautDocHandle) => handle.doc()?.places.length;
 const instanceCount = (handle: PetrinautDocHandle) =>
   handle.doc()?.componentInstances?.length ?? 0;
 
+const noHistory = constantStore({ entries: [], currentIndex: 0 });
+
 /** The history as the top bar reads it, with a control for each move. */
 const HistoryControls = () => {
   const undoRedo = use(UndoRedoContext);
+  const canUndo = useStore(undoRedo?.canUndo ?? constantStore(false));
+  const { entries, currentIndex } = useStore(undoRedo?.history ?? noHistory);
   if (!undoRedo) {
     return null;
   }
-  const { canUndo, currentIndex, history, undo, redo, goToIndex } = undoRedo;
+  const { undo, redo, goToIndex } = undoRedo;
   return (
     <>
       <output>
-        {`at ${currentIndex} of ${history.length}, ${canUndo ? "can" : "cannot"} undo`}
+        {`at ${currentIndex} of ${entries.length}, ${canUndo ? "can" : "cannot"} undo`}
       </output>
       <button type="button" onClick={undo}>
         Undo
@@ -126,7 +131,7 @@ const HistoryControls = () => {
       <button type="button" onClick={() => goToIndex(-1)}>
         Before the first
       </button>
-      {history.map((entry, index) => (
+      {entries.map((entry, index) => (
         <button
           key={entry.timestamp}
           type="button"

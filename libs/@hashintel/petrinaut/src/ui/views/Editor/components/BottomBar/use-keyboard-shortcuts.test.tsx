@@ -15,6 +15,7 @@ import { ActiveNetContext } from "../../../../../react/state/active-net-context"
 import { CompositionContext } from "../../../../../react/state/composition-context";
 import { EditorContext } from "../../../../../react/state/editor-context";
 import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
+import { constantStore } from "../../../../../react/use-store";
 import { useKeyboardShortcuts } from "./use-keyboard-shortcuts";
 
 const actions = vi.hoisted(() => ({
@@ -239,10 +240,9 @@ test("undoes in Simulate mode, where scenario and metric edits can be undone", (
       value={{
         undo: actions.undo,
         redo: vi.fn(),
-        canUndo: true,
-        canRedo: false,
-        history: [],
-        currentIndex: 0,
+        canUndo: constantStore(true),
+        canRedo: constantStore(false),
+        history: constantStore({ entries: [], currentIndex: 0 }),
         goToIndex: vi.fn(),
       }}
     >
