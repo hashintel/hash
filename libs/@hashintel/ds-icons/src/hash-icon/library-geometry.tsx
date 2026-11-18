@@ -134,6 +134,7 @@ import { pencilSlashGeometry } from "./library-geometry/pencil-slash";
 import { pentagonGeometry } from "./library-geometry/pentagon";
 import { percentGeometry } from "./library-geometry/percent";
 import { personGeometry } from "./library-geometry/person";
+import { personGreetingGeometry } from "./library-geometry/person-greeting";
 import { phoneGeometry } from "./library-geometry/phone";
 import { phoneOffGeometry } from "./library-geometry/phone-off";
 import { pinGeometry } from "./library-geometry/pin";
@@ -194,6 +195,7 @@ import { userTieGeometry } from "./library-geometry/user-tie";
 import { usersGeometry } from "./library-geometry/users";
 
 export const libraryGeometry = {
+  personGreeting: personGreetingGeometry,
   accessibility: accessibilityGeometry,
   person: personGeometry,
   userBountyHunter: userBountyHunterGeometry,
