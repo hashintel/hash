@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  stackVertical: "Adjacent panels represent stacking objects vertically.",
   stackHorizontal: "Adjacent panels represent stacking objects horizontally.",
   distributeVertical:
     "Evenly spaced bars between guides represent distributing objects vertically.",
