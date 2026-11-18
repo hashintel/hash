@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  chartHeatmap:
+    "Cells with different intensities represent a heatmap or matrix of values.",
   chartScatter:
     "Separate plotted points represent a scatter chart or distribution.",
   boxOpen:

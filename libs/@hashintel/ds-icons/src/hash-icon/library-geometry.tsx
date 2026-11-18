@@ -63,6 +63,7 @@ import { calendarWeekGeometry } from "./library-geometry/calendar-week";
 import { calendarsGeometry } from "./library-geometry/calendars";
 import { canvasGeometry } from "./library-geometry/canvas";
 import { cctvCameraGeometry } from "./library-geometry/cctv-camera";
+import { chartHeatmapGeometry } from "./library-geometry/chart-heatmap";
 import { chartMixedGeometry } from "./library-geometry/chart-mixed";
 import { chartNetworkGeometry } from "./library-geometry/chart-network";
 import { chartRevenueGeometry } from "./library-geometry/chart-revenue";
@@ -347,6 +348,7 @@ import { wavesGeometry } from "./library-geometry/waves";
 import { workflowGeometry } from "./library-geometry/workflow";
 
 export const libraryGeometry = {
+  chartHeatmap: chartHeatmapGeometry,
   chartScatter: chartScatterGeometry,
   boxOpen: boxOpenGeometry,
   cloud: cloudGeometry,

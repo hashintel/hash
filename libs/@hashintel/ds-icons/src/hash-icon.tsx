@@ -774,6 +774,7 @@ export const CircleTagIcon = createIcon("circleTag");
 export const CloudIcon = createIcon("cloud");
 export const BoxOpenIcon = createIcon("boxOpen");
 export const ChartScatterIcon = createIcon("chartScatter");
+export const ChartHeatmapIcon = createIcon("chartHeatmap");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -959,6 +960,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  chartHeatmap: ChartHeatmapIcon,
   chartScatter: ChartScatterIcon,
   boxOpen: BoxOpenIcon,
   cloud: CloudIcon,

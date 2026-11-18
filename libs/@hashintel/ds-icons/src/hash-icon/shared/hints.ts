@@ -20,6 +20,7 @@ export type HashIconHint =
   | "up";
 
 export const hashIconHints = {
+  chartHeatmap: "lift",
   chartScatter: "lift",
   boxOpen: "lift",
   cloud: "lift",
