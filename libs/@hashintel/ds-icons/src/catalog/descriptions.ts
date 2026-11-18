@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  newspaper:
+    "A page of columns and headlines represents news or a publication.",
   books:
     "Several bound volumes represent a library or collection of references.",
   bookOpen: "An open book represents reading, learning, or documentation.",
