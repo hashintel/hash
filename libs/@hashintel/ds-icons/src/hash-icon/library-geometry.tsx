@@ -144,6 +144,7 @@ import { redoGeometry } from "./library-geometry/redo";
 import { roundedCornerGeometry } from "./library-geometry/rounded-corner";
 import { rowsGeometry } from "./library-geometry/rows";
 import { searchCheckGeometry } from "./library-geometry/search-check";
+import { searchDollarGeometry } from "./library-geometry/search-dollar";
 import { searchEmptyGeometry } from "./library-geometry/search-empty";
 import { sendGeometry } from "./library-geometry/send";
 import { sendBackwardGeometry } from "./library-geometry/send-backward";
@@ -184,6 +185,7 @@ import { ungroupGeometry } from "./library-geometry/ungroup";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  searchDollar: searchDollarGeometry,
   searchEmpty: searchEmptyGeometry,
   searchCheck: searchCheckGeometry,
   speaker: speakerGeometry,
