@@ -4,6 +4,7 @@ import { arrowProgressGeometry } from "./library-geometry/arrow-progress";
 import { arrowTurnDownLeftGeometry } from "./library-geometry/arrow-turn-down-left";
 import { arrowTurnDownRightGeometry } from "./library-geometry/arrow-turn-down-right";
 import { arrowheadArrowGeometry } from "./library-geometry/arrowhead-arrow";
+import { arrowheadBarGeometry } from "./library-geometry/arrowhead-bar";
 import { blobGeometry } from "./library-geometry/blob";
 import { bookGeometry } from "./library-geometry/book";
 import { bookOpenGeometry } from "./library-geometry/book-open";
@@ -87,6 +88,7 @@ import { triangleGeometry } from "./library-geometry/triangle";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  arrowheadBar: arrowheadBarGeometry,
   arrowheadArrow: arrowheadArrowGeometry,
   shapeArrowUp: shapeArrowUpGeometry,
   shapeArrowLeft: shapeArrowLeftGeometry,

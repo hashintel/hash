@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  arrowheadBar: "A perpendicular bar represents a barred line ending.",
   arrowheadArrow: "An open arrowhead represents an arrow line ending.",
   shapeArrowUp: "A block arrow pointing up represents a directional shape.",
   shapeArrowLeft: "A block arrow pointing left represents a directional shape.",
