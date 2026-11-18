@@ -15283,7 +15283,8 @@
       "name": "OSIcon",
       "line": 5,
       "key": "os",
-      "classification": "brand"
+      "classification": "mapped",
+      "target": "openSourceInitiative"
     },
     {
       "repo": "sites",

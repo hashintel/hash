@@ -217,6 +217,7 @@ import { newspaperGeometry } from "./library-geometry/newspaper";
 import { notePlusGeometry } from "./library-geometry/note-plus";
 import { noteStickyGeometry } from "./library-geometry/note-sticky";
 import { octagonGeometry } from "./library-geometry/octagon";
+import { openSourceInitiativeGeometry } from "./library-geometry/open-source-initiative";
 import { orbitGeometry } from "./library-geometry/orbit";
 import { packGeometry } from "./library-geometry/pack";
 import { paletteGeometry } from "./library-geometry/palette";
@@ -355,6 +356,7 @@ import { windGeometry } from "./library-geometry/wind";
 import { workflowGeometry } from "./library-geometry/workflow";
 
 export const libraryGeometry = {
+  openSourceInitiative: openSourceInitiativeGeometry,
   toolbox: toolboxGeometry,
   tools: toolsGeometry,
   wind: windGeometry,

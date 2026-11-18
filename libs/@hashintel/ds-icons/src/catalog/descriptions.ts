@@ -463,6 +463,8 @@ export const descriptions = {
   fileDocument: "A document with a W represents a word-processing document.",
   fileCode: "A document with angle brackets represents a source code file.",
   fileArchive: "A document with a zipper represents a compressed archive.",
+  openSourceInitiative:
+    "The Open Source Initiative keyhole mark represents open-source software.",
   mcpServer:
     "The official Model Context Protocol mark represents an MCP server or connection.",
   differentialEquation:

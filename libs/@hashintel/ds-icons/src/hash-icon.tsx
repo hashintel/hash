@@ -911,6 +911,7 @@ export const InputPipeIcon = createIcon("inputPipe");
 export const LightbulbOnIcon = createIcon("lightbulbOn");
 export const ListTreeIcon = createIcon("listTree");
 export const MagicIcon = createIcon("magic");
+export const OpenSourceInitiativeIcon = createIcon("openSourceInitiative");
 export const McpServerIcon = createIcon("mcpServer");
 export const MemoCircleCheckIcon = createIcon("memoCircleCheck");
 export const MicroscopeIcon = createIcon("microscope");
@@ -967,6 +968,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  openSourceInitiative: OpenSourceInitiativeIcon,
   toolbox: ToolboxIcon,
   tools: ToolsIcon,
   wind: WindIcon,

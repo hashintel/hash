@@ -270,6 +270,7 @@ const categories = {
     "building",
   ],
   Technology: [
+    "openSourceInitiative",
     "toolbox",
     "tools",
     "cloud",

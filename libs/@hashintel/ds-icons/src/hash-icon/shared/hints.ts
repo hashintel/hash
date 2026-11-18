@@ -375,6 +375,7 @@ export const hashIconHints = {
   fileDocument: "lift",
   fileCode: "lift",
   fileArchive: "lift",
+  openSourceInitiative: "lift",
   mcpServer: "detail",
   infinity: "grow",
   arrowUp: "up",
