@@ -11,6 +11,8 @@ export {
 export {
   classicNodeDimensions,
   compactNodeDimensions,
+  componentInstanceFooterHeight,
+  componentInstanceHeaderHeight,
   getComponentInstanceHeight,
   layoutNodeDimensions,
   type NodeDimensions,

@@ -8,6 +8,7 @@
 
 import {
   effectivePortDirections,
+  resolveImplementation,
   generateArcId,
   getArcEndpoint,
   getArcEndpointKey,
@@ -15,6 +16,8 @@ import {
   getComponentInstanceHeight,
   getEffectiveTransitionLambdaType,
   getTransitionLogicAvailability,
+  indexById,
+  indexDocument,
 } from "@hashintel/petrinaut-core";
 
 import { fusionLinks, type FusionStatus } from "./fusion-links";
@@ -60,6 +63,8 @@ type CanvasNodeBase = {
 
 export type CanvasPlaceNode = CanvasNodeBase & {
   kind: "place";
+  /** The direction of the port this place is, `null` for a plain place. */
+  portDirection: PortDirection | null;
   dynamicsEnabled: boolean;
   hasColorType: boolean;
   /** Whether the place defines custom visualizer code. */
@@ -81,12 +86,37 @@ export type CanvasPort = {
   name: string;
   /** Which way tokens cross the port, as the component declares or uses it. */
   direction: PortDirection;
+  /** Display colour of the port's token type, when it has one. */
+  typeColor: string | undefined;
 };
+
+/**
+ * What an instance runs: its component, or the implementation bound to the
+ * interface it points at, `null` while nothing is bound.
+ */
+export type CanvasInstanceBinding =
+  | { kind: "component" }
+  | { kind: "interface"; implementationName: string | null };
+
+/** A component with more ports than this starts folded, its ports behind a toggle. */
+const foldThreshold = 4;
 
 export type CanvasComponentInstanceNode = CanvasNodeBase & {
   kind: "componentInstance";
+  /** The subnet the instance points at: its component or its interface. */
   subnetName: string;
+  binding: CanvasInstanceBinding;
   ports: CanvasPort[];
+  /** Whether the card can fold its ports away: it has more than the threshold. */
+  foldable: boolean;
+  /** Whether the ports show in rows, or fold into the card's base height. */
+  unfolded: boolean;
+  /**
+   * How far the card's centre sits below the position the document holds for
+   * it. A foldable card unfolds downward, its header staying where it is, so
+   * unfolding moves its centre by half of what it grew.
+   */
+  anchorOffset: number;
 };
 
 export type CanvasNode =
@@ -165,6 +195,8 @@ export type CanvasSceneInput = {
   /** Places whose state visualizer stays open without a hover. */
   keptOpenVisualizerIds: ReadonlySet<string>;
   activeVisualizerIds?: ReadonlySet<string>;
+  /** The foldable instances whose ports are unfolded. */
+  unfoldedInstanceIds: ReadonlySet<string>;
 };
 
 const positionOf = (
@@ -230,6 +262,7 @@ export const buildCanvasScene = ({
   focus,
   keptOpenVisualizerIds,
   activeVisualizerIds,
+  unfoldedInstanceIds,
 }: CanvasSceneInput): CanvasScene => {
   const interaction = (id: string) => ({
     selected: isSelected(id),
@@ -237,15 +270,22 @@ export const buildCanvasScene = ({
     focus: focus.nodeFocus(id),
   });
 
-  const typeOf = (colorId: string | null) =>
+  /** The token type `colorId` names among those of the net that holds it. */
+  const typeIn = (
+    scope: Pick<ActiveNetDefinition, "types">,
+    colorId: string | null,
+  ) =>
     extensions.colors && colorId
-      ? net.types.find((type) => type.id === colorId)
+      ? scope.types.find((type) => type.id === colorId)
       : undefined;
 
   const nodes: CanvasNode[] = [];
 
+  // The net's arcs are read once for the directions of all its own ports.
+  const ownPortDirections = effectivePortDirections(net);
+
   for (const place of net.places) {
-    const placeType = typeOf(place.colorId);
+    const placeType = typeIn(net, place.colorId);
     nodes.push({
       kind: "place",
       id: place.id,
@@ -253,6 +293,9 @@ export const buildCanvasScene = ({
       ...dimensions.place,
       ...positionOf(place, draggingStateByNodeId),
       ...interaction(place.id),
+      portDirection: place.isPort
+        ? (ownPortDirections.get(place.id) ?? "inout")
+        : null,
       dynamicsEnabled:
         extensions.colors && extensions.dynamics && place.dynamicsEnabled,
       hasColorType: (placeType?.elements.length ?? 0) > 0,
@@ -283,61 +326,93 @@ export const buildCanvasScene = ({
     });
   }
 
-  // The directions of a subnet's ports are worked out once, however many
-  // instances of it the net holds.
-  const directionsBySubnetId = new Map<
-    string,
-    ReadonlyMap<string, PortDirection>
-  >();
-  const portDirectionsOf = (subnet: Subnet) => {
-    const known = directionsBySubnetId.get(subnet.id);
+  // What a subnet's ports show is worked out once, however many instances of
+  // it the net holds: its arcs are read once for their directions, and its
+  // token types are looked up by id for their colours.
+  const portsBySubnetId = new Map<string, readonly CanvasPort[]>();
+  const portsOf = (subnet: Subnet): readonly CanvasPort[] => {
+    const known = portsBySubnetId.get(subnet.id);
     if (known) {
       return known;
     }
     const directions = effectivePortDirections(subnet);
-    directionsBySubnetId.set(subnet.id, directions);
-    return directions;
-  };
-
-  for (const instance of net.componentInstances) {
-    const subnet = (sdcpn.subnets ?? []).find(
-      ({ id }) => id === instance.subnetId,
-    );
-    const directions = subnet ? portDirectionsOf(subnet) : undefined;
-    const ports = (subnet?.places ?? [])
+    const types = indexById(subnet.types);
+    const ports = subnet.places
       .filter((place) => place.isPort)
       .map((place) => ({
         id: place.id,
         name: place.name,
-        direction: directions?.get(place.id) ?? ("inout" as const),
+        direction: directions.get(place.id) ?? "inout",
+        typeColor:
+          extensions.colors && place.colorId
+            ? types.get(place.colorId)?.displayColor
+            : undefined,
       }));
+    portsBySubnetId.set(subnet.id, ports);
+    return ports;
+  };
+
+  // The document's subnets and defaults, read once for every instance.
+  const index =
+    net.componentInstances.length > 0 ? indexDocument(sdcpn) : undefined;
+
+  // The ports of each instance by id, for the arcs that end at one.
+  const portsByInstanceId = new Map<string, ReadonlyMap<string, CanvasPort>>();
+
+  for (const instance of net.componentInstances) {
+    const resolved = resolveImplementation(sdcpn, instance, index);
+    // The subnet the instance points at: the ports it shows are that one's,
+    // whichever implementation runs behind them.
+    const subnet =
+      resolved?.kind === "component" ? resolved.subnet : resolved?.interface;
+    const ports: CanvasPort[] = subnet
+      ? portsOf(subnet).map((port) => ({ ...port }))
+      : [];
+    portsByInstanceId.set(instance.id, indexById(ports));
+    const binding: CanvasInstanceBinding =
+      resolved === null || resolved.kind === "component"
+        ? { kind: "component" }
+        : {
+            kind: "interface",
+            implementationName:
+              resolved.kind === "bound" ? resolved.implementation.name : null,
+          };
+    const foldable = ports.length > foldThreshold;
+    const unfolded = !foldable || unfoldedInstanceIds.has(instance.id);
+    const foldedHeight = dimensions.componentInstance.height;
+    const height = unfolded
+      ? getComponentInstanceHeight(dimensions, ports.length)
+      : foldedHeight;
+    const anchorOffset = foldable ? (height - foldedHeight) / 2 : 0;
+    const { position, dragging } = positionOf(instance, draggingStateByNodeId);
     nodes.push({
       kind: "componentInstance",
       id: instance.id,
       label: instance.name,
       width: dimensions.componentInstance.width,
-      height: getComponentInstanceHeight(dimensions, ports.length),
-      ...positionOf(instance, draggingStateByNodeId),
+      height,
+      position: { x: position.x, y: position.y + anchorOffset },
+      dragging,
+      anchorOffset,
       ...interaction(instance.id),
       subnetName: subnet?.name ?? "Unknown subnet",
+      binding,
       ports,
+      foldable,
+      unfolded,
     });
   }
 
+  const nodesById = new Map(nodes.map((node) => [node.id, node]));
+
+  /** The colour of the token type the place at an arc's end holds. */
   const endpointColor = (endpoint: ArcEndpoint): string | undefined => {
+    const node = nodesById.get(getArcEndpointNodeId(endpoint));
     if (endpoint.kind === "place") {
-      const place = net.places.find(({ id }) => id === endpoint.placeId);
-      return typeOf(place?.colorId ?? null)?.displayColor;
+      return node?.kind === "place" ? node.typeColor : undefined;
     }
-    const instance = net.componentInstances.find(
-      ({ id }) => id === endpoint.componentInstanceId,
-    );
-    const subnet = (sdcpn.subnets ?? []).find(
-      ({ id }) => id === instance?.subnetId,
-    );
-    const port = subnet?.places.find(({ id }) => id === endpoint.portPlaceId);
-    return extensions.colors && port?.colorId
-      ? subnet?.types.find((type) => type.id === port.colorId)?.displayColor
+    return node?.kind === "componentInstance"
+      ? portsByInstanceId.get(node.id)?.get(endpoint.portPlaceId)?.typeColor
       : undefined;
   };
 

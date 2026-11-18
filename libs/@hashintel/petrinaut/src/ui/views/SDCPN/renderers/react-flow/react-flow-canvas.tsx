@@ -85,14 +85,27 @@ const MIN_ZOOM_DEBOUNCE_MS = 100;
 const paneStyle = css({
   width: "[100%]",
   height: "[100%]",
+  "--canvas-fold-easing": "cubic-bezier(0.22, 1, 0.36, 1)",
   "&[data-animated=false]": {
     "--canvas-focus-duration": "0ms",
+    "--canvas-fold-duration": "0ms",
+  },
+  "@media (prefers-reduced-motion: reduce)": {
+    "--canvas-fold-duration": "0ms",
   },
   "& .react-flow__pane": {
     cursor: `var(--pane-cursor) !important`,
   },
   "& .react-flow__node, & .arc-strokes, & .minimap-shape": {
     transition: "[opacity var(--canvas-focus-duration, 200ms) ease]",
+    "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
+  },
+  // A component instance's height animates between folded and unfolded, so
+  // the card grows and shrinks rather than jumping. React Flow reads the pins
+  // again on every frame the node resizes, which keeps the links on them.
+  "& .react-flow__node.react-flow__node-componentInstance": {
+    transition:
+      "[opacity var(--canvas-focus-duration, 200ms) ease, height var(--canvas-fold-duration, 180ms) var(--canvas-fold-easing)]",
     "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
   },
   // A node outside the neighbourhood recedes from here, whole: card, label,

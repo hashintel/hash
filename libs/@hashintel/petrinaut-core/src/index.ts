@@ -102,11 +102,16 @@ export {
   hasBody,
   implementationsOf,
   implementsInterface,
+  indexById,
+  indexDocument,
   isInterface,
   resolveComponent,
   resolveImplementation,
 } from "./composition/interfaces";
-export type { ImplementationBinding } from "./composition/interfaces";
+export type {
+  DocumentIndex,
+  ImplementationBinding,
+} from "./composition/interfaces";
 export {
   describePortDirection,
   effectivePortDirection,
@@ -208,6 +213,8 @@ export {
   calculateGraphLayout,
   classicNodeDimensions,
   compactNodeDimensions,
+  componentInstanceFooterHeight,
+  componentInstanceHeaderHeight,
   getBoundsOfCenteredBoxes,
   getComponentInstanceHeight,
   getMinZoomForBounds,
