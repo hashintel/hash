@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  textAlignJustify: "Equal-width lines represent justified text.",
   textAlignCenter: "Centered lines represent centered text.",
   textAlignRight: "Lines sharing a right edge represent right-aligned text.",
   textAlignLeft: "Lines sharing a left edge represent left-aligned text.",
