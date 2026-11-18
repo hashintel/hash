@@ -114,6 +114,7 @@ export const hashIconHints = {
   logicAnd: "lift",
   logicOr: "lift",
   logicNot: "lift",
+  logicImplies: "right",
   logicSignalBounded: "lift",
   logicSignalThreshold: "lift",
   logicSignalClock: "lift",

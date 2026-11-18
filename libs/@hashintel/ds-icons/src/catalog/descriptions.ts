@@ -195,6 +195,7 @@ export const descriptions = {
     "A disjunction symbol represents a choice where at least one condition holds.",
   logicNot:
     "A negation symbol represents the opposite truth value of a condition.",
+  logicImplies: "A double arrow represents one condition implying another.",
   logicSignalBounded:
     "A waveform with a marked interval represents signal temporal logic over a bounded period.",
   logicSignalThreshold:

@@ -180,11 +180,12 @@ The Logic category includes the following operators and verification concepts.
 All use the shared weight scale and keep their strokes open in both styles.
 Filled dots mark states or events where that distinction carries meaning.
 
-| Name       | Meaning                       |
-| ---------- | ----------------------------- |
-| `logicAnd` | All conditions hold.          |
-| `logicOr`  | At least one condition holds. |
-| `logicNot` | Negates a condition.          |
+| Name           | Meaning                        |
+| -------------- | ------------------------------ |
+| `logicAnd`     | All conditions hold.           |
+| `logicOr`      | At least one condition holds.  |
+| `logicNot`     | Negates a condition.           |
+| `logicImplies` | One condition implies another. |
 
 ### Temporal logic
 
