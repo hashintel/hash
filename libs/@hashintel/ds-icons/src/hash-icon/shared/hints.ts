@@ -20,6 +20,7 @@ export type HashIconHint =
   | "up";
 
 export const hashIconHints = {
+  files: "lift",
   fileExport: "right",
   fileEdit: "lift",
   filePlus: "lift",

@@ -441,6 +441,7 @@ export const FileInvoiceDollarIcon = createIcon("fileInvoiceDollar");
 export const FilePlusIcon = createIcon("filePlus");
 export const FileEditIcon = createIcon("fileEdit");
 export const FileExportIcon = createIcon("fileExport");
+export const FilesIcon = createIcon("files");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -626,6 +627,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  files: FilesIcon,
   fileExport: FileExportIcon,
   fileEdit: FileEditIcon,
   filePlus: FilePlusIcon,

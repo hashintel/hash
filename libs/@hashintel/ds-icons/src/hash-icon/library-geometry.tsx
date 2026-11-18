@@ -14,8 +14,10 @@ import { filePlusGeometry } from "./library-geometry/file-plus";
 import { filePresentationGeometry } from "./library-geometry/file-presentation";
 import { fileTextGeometry } from "./library-geometry/file-text";
 import { fileVideoGeometry } from "./library-geometry/file-video";
+import { filesGeometry } from "./library-geometry/files";
 
 export const libraryGeometry = {
+  files: filesGeometry,
   fileExport: fileExportGeometry,
   fileEdit: fileEditGeometry,
   filePlus: filePlusGeometry,

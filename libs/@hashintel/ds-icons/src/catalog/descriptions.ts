@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  files: "Overlapping documents represent a collection of files.",
   fileExport: "An arrow leaving a document represents exporting a file.",
   fileEdit: "A document and pencil represent editing a file.",
   filePlus: "A document with a plus represents creating or adding a file.",
