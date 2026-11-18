@@ -186,10 +186,12 @@ import { ungroupGeometry } from "./library-geometry/ungroup";
 import { uploadGeometry } from "./library-geometry/upload";
 import { userLockGeometry } from "./library-geometry/user-lock";
 import { userSearchGeometry } from "./library-geometry/user-search";
+import { userTagGeometry } from "./library-geometry/user-tag";
 import { userTieGeometry } from "./library-geometry/user-tie";
 import { usersGeometry } from "./library-geometry/users";
 
 export const libraryGeometry = {
+  userTag: userTagGeometry,
   userSearch: userSearchGeometry,
   userLock: userLockGeometry,
   userTie: userTieGeometry,
