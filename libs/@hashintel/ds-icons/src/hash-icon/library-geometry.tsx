@@ -74,6 +74,7 @@ import { collapseVerticalGeometry } from "./library-geometry/collapse-vertical";
 import { columnsGeometry } from "./library-geometry/columns";
 import { commandGeometry } from "./library-geometry/command";
 import { compassGeometry } from "./library-geometry/compass";
+import { conveyorBeltGeometry } from "./library-geometry/conveyor-belt";
 import { creditCardGeometry } from "./library-geometry/credit-card";
 import { crosshairsGeometry } from "./library-geometry/crosshairs";
 import { dashDashedGeometry } from "./library-geometry/dash-dashed";
@@ -255,6 +256,7 @@ import { usersGeometry } from "./library-geometry/users";
 import { warehouseGeometry } from "./library-geometry/warehouse";
 
 export const libraryGeometry = {
+  conveyorBelt: conveyorBeltGeometry,
   shelves: shelvesGeometry,
   boxLocation: boxLocationGeometry,
   boxesPacking: boxesPackingGeometry,
