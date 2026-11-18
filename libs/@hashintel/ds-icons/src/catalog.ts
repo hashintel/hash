@@ -221,6 +221,7 @@ const categories = {
     "logicRobustness",
   ],
   Navigation: [
+    "expandDiagonal",
     "expandVertical",
     "expandHorizontal",
     "chevronsUpDown",
