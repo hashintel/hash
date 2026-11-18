@@ -207,24 +207,39 @@ const getAllMutableNets = (sdcpn: SDCPN): MutableNet[] => [
   ...(sdcpn.subnets ?? []),
 ];
 
-/** Removes the items `matches` picks, in place. */
+/** Removes the items `matches` picks, in place. Returns whether it picked any. */
 const removeWhere = <Item>(
   items: Item[],
   matches: (item: Item) => boolean,
-): void => {
+): boolean => {
+  let removed = false;
   for (let index = items.length - 1; index >= 0; index--) {
     if (matches(items[index]!)) {
       items.splice(index, 1);
+      removed = true;
     }
   }
+  return removed;
 };
 
-/** Drops fusions left with fewer than two members, and the list once it is empty. */
-const pruneFusions = (net: MutableNet): void => {
+/**
+ * Drops the fusions among `shrunk`, the ones an edit took a member from, that
+ * are left with fewer than two members, and the list once it is empty. A
+ * fusion the edit did not shrink stays whatever its size: a document can be
+ * loaded with a fusion of one member, which the checks report and an edit of
+ * that fusion repairs.
+ */
+const pruneFusions = (
+  net: MutableNet,
+  shrunk: ReadonlySet<Fusion> = new Set(),
+): void => {
   if (!net.fusions) {
     return;
   }
-  removeWhere(net.fusions, (fusion) => fusion.members.length < 2);
+  removeWhere(
+    net.fusions,
+    (fusion) => shrunk.has(fusion) && fusion.members.length < 2,
+  );
   if (net.fusions.length === 0) {
     const targetNet = net;
     delete targetNet.fusions;
@@ -245,10 +260,13 @@ const removeEndpointReferences = (
     removeWhere(transition.inputArcs, (arc) => matches(getArcEndpoint(arc)));
     removeWhere(transition.outputArcs, (arc) => matches(getArcEndpoint(arc)));
   }
+  const shrunk = new Set<Fusion>();
   for (const fusion of net.fusions ?? []) {
-    removeWhere(fusion.members, matches);
+    if (removeWhere(fusion.members, matches)) {
+      shrunk.add(fusion);
+    }
   }
-  pruneFusions(net);
+  pruneFusions(net, shrunk);
 };
 
 const removeReferencesToPlace = (net: MutableNet, placeId: string): void =>
@@ -1452,10 +1470,10 @@ export function createPetrinautActions(
         if (!fusion) {
           return;
         }
-        removeWhere(fusion.members, (member) =>
+        const shrunk = removeWhere(fusion.members, (member) =>
           arcEndpointsEqual(member, parsed.member),
         );
-        pruneFusions(net);
+        pruneFusions(net, new Set(shrunk ? [fusion] : []));
       });
     },
     deleteItemsByIds(input) {

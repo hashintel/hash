@@ -1555,6 +1555,124 @@ describe("Petrinaut core fusion actions", () => {
     });
   });
 
+  describe("a one-member fusion the document was loaded with", () => {
+    /**
+     * `Lone` holds `M1.In` alone. `Belt` fuses the buffer with `M2.In` and
+     * `M2.Out`. Nothing names the place `Store` or the instance `M3`.
+     */
+    const loaded = (): SDCPN => {
+      const definition = composed();
+      definition.places.push({
+        ...definition.places[0]!,
+        id: "store",
+        name: "Store",
+      });
+      definition.componentInstances!.push({
+        ...definition.componentInstances![0]!,
+        id: "m3",
+        name: "M3",
+      });
+      definition.fusions = [
+        { id: "lone", name: "Lone", members: [port("m1", "in")] },
+        {
+          id: "belt",
+          name: "Belt",
+          members: [
+            { kind: "place", placeId: "buffer" },
+            port("m2", "in"),
+            port("m2", "out"),
+          ],
+        },
+      ];
+      return definition;
+    };
+
+    type Mutations = ReturnType<typeof createInstance>["mutations"];
+    type Edit = (mutations: Mutations) => void;
+
+    const fusionIdsAfter = (edit: Edit) => {
+      const instance = createInstance(loaded());
+      edit(instance.mutations);
+      return instance.definition.get().fusions?.map(({ id }) => id);
+    };
+
+    test.each<[string, Edit]>([
+      [
+        "an unrelated place is removed",
+        (mutations) => mutations.removePlace({ placeId: "store" }),
+      ],
+      [
+        "an unrelated instance is removed",
+        (mutations) => mutations.removeComponentInstance({ instanceId: "m3" }),
+      ],
+      [
+        "unrelated items are deleted by id",
+        (mutations) =>
+          mutations.deleteItemsByIds({
+            items: [
+              { type: "place", id: "store" },
+              { type: "componentInstance", id: "m3" },
+            ],
+          }),
+      ],
+      [
+        "another fusion loses a member",
+        (mutations) =>
+          mutations.removeFusionMember({
+            fusionId: "belt",
+            member: port("m2", "out"),
+          }),
+      ],
+      [
+        "a member it does not hold is taken out of it",
+        (mutations) =>
+          mutations.removeFusionMember({
+            fusionId: "lone",
+            member: port("m2", "in"),
+          }),
+      ],
+    ])("stays when %s", (_case, edit) => {
+      expect(fusionIdsAfter(edit)).toEqual([idOf("lone"), idOf("belt")]);
+    });
+
+    test.each<[string, Edit]>([
+      [
+        "another fusion is removed",
+        (mutations) => mutations.removeFusion({ fusionId: "belt" }),
+      ],
+      [
+        "another fusion is deleted by id",
+        (mutations) =>
+          mutations.deleteItemsByIds({
+            items: [{ type: "fusion", id: "belt" }],
+          }),
+      ],
+      [
+        "an edit takes another fusion below two members",
+        (mutations) => mutations.removeComponentInstance({ instanceId: "m2" }),
+      ],
+    ])("stays alone when %s", (_case, edit) => {
+      expect(fusionIdsAfter(edit)).toEqual([idOf("lone")]);
+    });
+
+    test.each<[string, Edit]>([
+      [
+        "its member is taken out of it",
+        (mutations) =>
+          mutations.removeFusionMember({
+            fusionId: "lone",
+            member: port("m1", "in"),
+          }),
+      ],
+      [
+        "the instance of its member is removed",
+        (mutations) => mutations.removeComponentInstance({ instanceId: "m1" }),
+      ],
+    ])("goes when %s", (_case, edit) => {
+      expect(fusionIdsAfter(edit)).toEqual([idOf("belt")]);
+    });
+  });
+
   test("removing a place, an instance or a port takes it out of its fusions", () => {
     const instance = createInstance(composed());
     instance.mutations.addFusion({
