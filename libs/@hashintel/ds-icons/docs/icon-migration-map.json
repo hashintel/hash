@@ -7035,8 +7035,8 @@
       "source": "apps/hash-frontend/public/icons/icon/tool-media.svg",
       "name": "tool-media",
       "key": "toolmedia",
-      "target": null,
-      "classification": "unmapped"
+      "target": "image",
+      "classification": "mapped"
     },
     {
       "repo": "hash",
@@ -13583,8 +13583,8 @@
       "name": "BrowserMinimalIcon",
       "line": 5,
       "key": "browserminimal",
-      "target": null,
-      "classification": "unmapped"
+      "target": "browser",
+      "classification": "mapped"
     },
     {
       "repo": "sites",
@@ -16518,7 +16518,8 @@
       "line": 66,
       "key": "brandsidebar",
       "target": null,
-      "classification": "unmapped"
+      "classification": "brand",
+      "reason": "Renders the selected brand identity in site navigation."
     },
     {
       "repo": "sites",
@@ -17936,8 +17937,7 @@
       "source": "apps/hashdotdesign/public/brands/hash-symbol.svg",
       "name": "hash-symbol",
       "key": "hashsymbol",
-      "target": null,
-      "classification": "unmapped"
+      "classification": "brand"
     },
     {
       "repo": "sites",
@@ -17946,7 +17946,6 @@
       "source": "apps/hashdotdesign/public/brands/hgres/hgraph/hgraph-icon.svg",
       "name": "hgraph-icon",
       "key": "hgraphicon",
-      "target": null,
       "classification": "brand"
     },
     {
@@ -17956,8 +17955,7 @@
       "source": "apps/hashdotdesign/public/brands/semtype-glyph-light.svg",
       "name": "semtype-glyph-light",
       "key": "semtypeglyphlight",
-      "target": null,
-      "classification": "unmapped"
+      "classification": "brand"
     },
     {
       "repo": "sites",
@@ -17966,8 +17964,7 @@
       "source": "apps/hashdotdesign/public/brands/semtype-glyph-solid.svg",
       "name": "semtype-glyph-solid",
       "key": "semtypeglyphsolid",
-      "target": null,
-      "classification": "unmapped"
+      "classification": "brand"
     },
     {
       "repo": "sites",
@@ -17976,7 +17973,6 @@
       "source": "apps/hashdotdesign/public/brands/semtype-glyph.svg",
       "name": "semtype-glyph",
       "key": "semtypeglyph",
-      "target": null,
       "classification": "brand"
     },
     {
@@ -17986,8 +17982,7 @@
       "source": "apps/hashdotdesign/public/brands/semtype/brand_glyph-outline_dark-mode.svg",
       "name": "brand_glyph-outline_dark-mode",
       "key": "brandglyphoutlinedarkmode",
-      "target": null,
-      "classification": "unmapped"
+      "classification": "brand"
     },
     {
       "repo": "sites",
@@ -17996,8 +17991,7 @@
       "source": "apps/hashdotdesign/public/brands/semtype/brand_glyph-outline_light-mode.svg",
       "name": "brand_glyph-outline_light-mode",
       "key": "brandglyphoutlinelightmode",
-      "target": null,
-      "classification": "unmapped"
+      "classification": "brand"
     },
     {
       "repo": "sites",
@@ -18006,8 +18000,7 @@
       "source": "apps/hashdotdesign/public/brands/semtype/brand_glyph-solid_dark-mode.svg",
       "name": "brand_glyph-solid_dark-mode",
       "key": "brandglyphsoliddarkmode",
-      "target": null,
-      "classification": "unmapped"
+      "classification": "brand"
     },
     {
       "repo": "sites",
@@ -18016,8 +18009,7 @@
       "source": "apps/hashdotdesign/public/brands/semtype/brand_glyph-solid_light-mode.svg",
       "name": "brand_glyph-solid_light-mode",
       "key": "brandglyphsolidlightmode",
-      "target": null,
-      "classification": "unmapped"
+      "classification": "brand"
     },
     {
       "repo": "sites",
@@ -18259,8 +18251,7 @@
       "source": "apps/semtype/public/images/brand_glyph-outline.svg",
       "name": "brand_glyph-outline",
       "key": "brandglyphoutline",
-      "target": null,
-      "classification": "unmapped"
+      "classification": "brand"
     },
     {
       "repo": "sites",
@@ -18269,8 +18260,7 @@
       "source": "apps/semtype/public/images/brand_glyph-outline_dark-mode.svg",
       "name": "brand_glyph-outline_dark-mode",
       "key": "brandglyphoutlinedarkmode",
-      "target": null,
-      "classification": "unmapped"
+      "classification": "brand"
     },
     {
       "repo": "sites",
@@ -18279,8 +18269,7 @@
       "source": "apps/semtype/public/images/brand_glyph-outline_light-mode.svg",
       "name": "brand_glyph-outline_light-mode",
       "key": "brandglyphoutlinelightmode",
-      "target": null,
-      "classification": "unmapped"
+      "classification": "brand"
     },
     {
       "repo": "sites",
@@ -18289,8 +18278,7 @@
       "source": "apps/semtype/public/images/brand_glyph-solid_dark-mode.svg",
       "name": "brand_glyph-solid_dark-mode",
       "key": "brandglyphsoliddarkmode",
-      "target": null,
-      "classification": "unmapped"
+      "classification": "brand"
     },
     {
       "repo": "sites",
@@ -18299,8 +18287,7 @@
       "source": "apps/semtype/public/images/brand_glyph-solid_light-mode.svg",
       "name": "brand_glyph-solid_light-mode",
       "key": "brandglyphsolidlightmode",
-      "target": null,
-      "classification": "unmapped"
+      "classification": "brand"
     },
     {
       "repo": "sites",

@@ -1,7 +1,7 @@
 import { FilledShape } from "../filled-shape";
 
 export const boxOpenGeometry = (
-  <g fill="none">
+  <g fill="none" transform="translate(1.2 1.2) scale(.9)">
     <FilledShape
       cutout={
         <>
