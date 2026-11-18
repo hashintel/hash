@@ -196,6 +196,7 @@ import { octagonGeometry } from "./library-geometry/octagon";
 import { orbitGeometry } from "./library-geometry/orbit";
 import { packGeometry } from "./library-geometry/pack";
 import { paletteGeometry } from "./library-geometry/palette";
+import { palmTreeGeometry } from "./library-geometry/palm-tree";
 import { paperclipGeometry } from "./library-geometry/paperclip";
 import { parallelogramGeometry } from "./library-geometry/parallelogram";
 import { pencilRulerGeometry } from "./library-geometry/pencil-ruler";
@@ -312,6 +313,7 @@ import { wavePulseGeometry } from "./library-geometry/wave-pulse";
 import { wavesGeometry } from "./library-geometry/waves";
 
 export const libraryGeometry = {
+  palmTree: palmTreeGeometry,
   lifeRing: lifeRingGeometry,
   lighthouse: lighthouseGeometry,
   hammer: hammerGeometry,

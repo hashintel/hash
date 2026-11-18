@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  palmTree:
+    "A curved trunk and fronds represent a palm tree or tropical destination.",
   lifeRing: "A rescue ring represents help or support.",
   lighthouse: "A beacon tower represents guidance or navigation.",
   hammer: "A striking tool represents building, repair, or manual work.",
