@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  vibration: "Wavy marks beside a device represent vibration.",
   signal: "Vertical waveform bars represent a signal or audio activity.",
   wavePulse:
     "A sharply changing waveform represents a pulse or live measurement.",

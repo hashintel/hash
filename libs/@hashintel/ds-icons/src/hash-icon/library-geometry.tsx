@@ -283,11 +283,13 @@ import { userSearchGeometry } from "./library-geometry/user-search";
 import { userTagGeometry } from "./library-geometry/user-tag";
 import { userTieGeometry } from "./library-geometry/user-tie";
 import { usersGeometry } from "./library-geometry/users";
+import { vibrationGeometry } from "./library-geometry/vibration";
 import { warehouseGeometry } from "./library-geometry/warehouse";
 import { wavePulseGeometry } from "./library-geometry/wave-pulse";
 import { wavesGeometry } from "./library-geometry/waves";
 
 export const libraryGeometry = {
+  vibration: vibrationGeometry,
   signal: signalGeometry,
   wavePulse: wavePulseGeometry,
   waves: wavesGeometry,
