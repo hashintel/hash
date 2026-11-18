@@ -1239,6 +1239,40 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
       expect(elapsedMs).toBeLessThan(1_000);
     });
 
+    it("checks what runs once for the instances bound alike, however many", () => {
+      // Five thousand ports of one name on the interface, which all map onto
+      // the implementation's one: nothing but the check grows with them.
+      const wide = subnet("wide", {
+        interface: true,
+        places: Array.from({ length: 5_000 }, (_, index) =>
+          place(`wide_${index}`, { name: "In", isPort: true }),
+        ),
+      });
+      const narrow = subnet("narrow", {
+        implements: ["wide"],
+        places: [place("narrow_in", { name: "In", isPort: true })],
+      });
+      const instances = 2_000;
+      const definition = sdcpn({
+        componentInstances: Array.from({ length: instances }, (_, index) =>
+          componentInstance(`s${index}`, "wide"),
+        ),
+        subnets: [wide, narrow],
+        implementations: [
+          { interface: { id: "wide" }, component: { id: "narrow" } },
+        ],
+      });
+
+      const started = Date.now();
+      const result = flatten({ definition });
+      const elapsedMs = Date.now() - started;
+
+      expect(result.sdcpn.places).toHaveLength(instances);
+      // A check of the interface's ports for every instance takes several
+      // seconds.
+      expect(elapsedMs).toBeLessThan(1_000);
+    });
+
     it("reads an interface's token types once, however many instances of it run", () => {
       const size = 10_000;
       const weight = { elementId: "w", name: "weight", type: "real" } as const;

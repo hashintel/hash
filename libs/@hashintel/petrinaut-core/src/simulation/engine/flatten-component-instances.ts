@@ -6,6 +6,7 @@ import {
 import { checkImplementation } from "../../composition/check-interfaces";
 import { equationKey, fusionMemberIssues } from "../../composition/fusions";
 import {
+  bindingKey,
   describeUnboundInstance,
   indexDocument,
   resolveImplementation,
@@ -112,8 +113,11 @@ type FlattenContext = {
   fusionGroups: FusionGroup[];
   /** For each flat equation, the `equationKey` of the equation it is a copy of. */
   equationKeys: Map<ID, string>;
-  /** What runs for each instance, checked once: every arc and fusion at its ports asks. */
-  runningSubnets: Map<ComponentInstance, RunningSubnet>;
+  /**
+   * What runs for the instances with one `bindingKey`, checked once: every
+   * such instance asks, and every arc and fusion at its ports.
+   */
+  runningSubnets: Map<string, RunningSubnet>;
 };
 
 const assertUniqueFlatId = ({
@@ -150,7 +154,8 @@ const requireRunningSubnet = (
   ctx: FlattenContext,
   instance: ComponentInstance,
 ): RunningSubnet => {
-  const checked = ctx.runningSubnets.get(instance);
+  const key = bindingKey(instance);
+  const checked = ctx.runningSubnets.get(key);
   if (checked) {
     return checked;
   }
@@ -179,7 +184,7 @@ const requireRunningSubnet = (
     }
   }
   const running = runningSubnet(binding, ctx.index);
-  ctx.runningSubnets.set(instance, running);
+  ctx.runningSubnets.set(key, running);
   return running;
 };
 
