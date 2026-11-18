@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  alignRight:
+    "Two bars against an edge represent aligning objects to the right.",
   alignLeft: "Two bars against an edge represent aligning objects to the left.",
   sizeExtraLarge:
     "A extralarge square represents the corresponding drawing size.",

@@ -1,4 +1,5 @@
 import { alignLeftGeometry } from "./library-geometry/align-left";
+import { alignRightGeometry } from "./library-geometry/align-right";
 import { archiveGeometry } from "./library-geometry/archive";
 import { arrowPointerGeometry } from "./library-geometry/arrow-pointer";
 import { arrowProgressGeometry } from "./library-geometry/arrow-progress";
@@ -117,6 +118,7 @@ import { triangleGeometry } from "./library-geometry/triangle";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  alignRight: alignRightGeometry,
   alignLeft: alignLeftGeometry,
   sizeExtraLarge: sizeExtraLargeGeometry,
   sizeLarge: sizeLargeGeometry,
