@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  plugCheck: "A plug beside a check represents a successful connection.",
   targetArrow:
     "An arrow meeting a target represents an objective or precise action.",
   layerPlus: "Layers and a plus represent adding a layer.",

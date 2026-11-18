@@ -231,6 +231,7 @@ import { planeArrivalGeometry } from "./library-geometry/plane-arrival";
 import { planeDepartureGeometry } from "./library-geometry/plane-departure";
 import { planeTailGeometry } from "./library-geometry/plane-tail";
 import { planeUpGeometry } from "./library-geometry/plane-up";
+import { plugCheckGeometry } from "./library-geometry/plug-check";
 import { powerGeometry } from "./library-geometry/power";
 import { presentationChartGeometry } from "./library-geometry/presentation-chart";
 import { pullRequestGeometry } from "./library-geometry/pull-request";
@@ -334,6 +335,7 @@ import { wavesGeometry } from "./library-geometry/waves";
 import { workflowGeometry } from "./library-geometry/workflow";
 
 export const libraryGeometry = {
+  plugCheck: plugCheckGeometry,
   targetArrow: targetArrowGeometry,
   layerPlus: layerPlusGeometry,
   gridPlus: gridPlusGeometry,

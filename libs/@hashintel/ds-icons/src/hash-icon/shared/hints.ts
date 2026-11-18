@@ -20,6 +20,7 @@ export type HashIconHint =
   | "up";
 
 export const hashIconHints = {
+  plugCheck: "lift",
   targetArrow: "lift",
   layerPlus: "lift",
   gridPlus: "lift",
