@@ -134,6 +134,7 @@ import { globePointerGeometry } from "./library-geometry/globe-pointer";
 import { globeStandGeometry } from "./library-geometry/globe-stand";
 import { graduationCapGeometry } from "./library-geometry/graduation-cap";
 import { groupGeometry } from "./library-geometry/group";
+import { handDollarGeometry } from "./library-geometry/hand-dollar";
 import { handshakeGeometry } from "./library-geometry/handshake";
 import { handwrittenDocsGeometry } from "./library-geometry/handwritten-docs";
 import { hashtagGeometry } from "./library-geometry/hashtag";
@@ -275,6 +276,7 @@ import { usersGeometry } from "./library-geometry/users";
 import { warehouseGeometry } from "./library-geometry/warehouse";
 
 export const libraryGeometry = {
+  handDollar: handDollarGeometry,
   moneyTransfer: moneyTransferGeometry,
   coins: coinsGeometry,
   dollar: dollarGeometry,

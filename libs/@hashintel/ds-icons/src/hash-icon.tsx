@@ -702,6 +702,7 @@ export const TowerControlIcon = createIcon("towerControl");
 export const DollarIcon = createIcon("dollar");
 export const CoinsIcon = createIcon("coins");
 export const MoneyTransferIcon = createIcon("moneyTransfer");
+export const HandDollarIcon = createIcon("handDollar");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -887,6 +888,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  handDollar: HandDollarIcon,
   moneyTransfer: MoneyTransferIcon,
   coins: CoinsIcon,
   dollar: DollarIcon,

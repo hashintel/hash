@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  handDollar:
+    "An open hand beneath a currency mark represents a payment or donation.",
   moneyTransfer:
     "Opposed arrows around a currency mark represent a transfer of funds.",
   coins: "Stacked coins represent funds or accumulated value.",
