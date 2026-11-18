@@ -561,12 +561,20 @@ export const RulerIcon = createIcon("ruler");
 export const SortDownIcon = createIcon("sortDown");
 export const SortDownAlphabeticalIcon = createIcon("sortDownAlphabetical");
 export const SortDownBooleanIcon = createIcon("sortDownBoolean");
+export const SortDownDateIcon = createIcon("sortDownDate");
+export const SortDownDurationIcon = createIcon("sortDownDuration");
+export const SortDownEmptyValuesIcon = createIcon("sortDownEmptyValues");
+export const SortDownPriorityIcon = createIcon("sortDownPriority");
 export const SortDownNumericIcon = createIcon("sortDownNumeric");
 export const SortDownShapesIcon = createIcon("sortDownShapes");
 export const SortDownSizeIcon = createIcon("sortDownSize");
 export const SortUpIcon = createIcon("sortUp");
 export const SortUpAlphabeticalIcon = createIcon("sortUpAlphabetical");
 export const SortUpBooleanIcon = createIcon("sortUpBoolean");
+export const SortUpDateIcon = createIcon("sortUpDate");
+export const SortUpDurationIcon = createIcon("sortUpDuration");
+export const SortUpEmptyValuesIcon = createIcon("sortUpEmptyValues");
+export const SortUpPriorityIcon = createIcon("sortUpPriority");
 export const SortUpNumericIcon = createIcon("sortUpNumeric");
 export const SortUpShapesIcon = createIcon("sortUpShapes");
 export const SortUpSizeIcon = createIcon("sortUpSize");
@@ -613,12 +621,20 @@ export const hashIconPack = {
   sortDown: SortDownIcon,
   sortDownAlphabetical: SortDownAlphabeticalIcon,
   sortDownBoolean: SortDownBooleanIcon,
+  sortDownDate: SortDownDateIcon,
+  sortDownDuration: SortDownDurationIcon,
+  sortDownEmptyValues: SortDownEmptyValuesIcon,
+  sortDownPriority: SortDownPriorityIcon,
   sortDownNumeric: SortDownNumericIcon,
   sortDownShapes: SortDownShapesIcon,
   sortDownSize: SortDownSizeIcon,
   sortUp: SortUpIcon,
   sortUpAlphabetical: SortUpAlphabeticalIcon,
   sortUpBoolean: SortUpBooleanIcon,
+  sortUpDate: SortUpDateIcon,
+  sortUpDuration: SortUpDurationIcon,
+  sortUpEmptyValues: SortUpEmptyValuesIcon,
+  sortUpPriority: SortUpPriorityIcon,
   sortUpNumeric: SortUpNumericIcon,
   sortUpShapes: SortUpShapesIcon,
   sortUpSize: SortUpSizeIcon,

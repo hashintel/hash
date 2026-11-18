@@ -20,6 +20,47 @@ const sortDigitNine = (
 );
 const sortCheck = <path d="m12 3.5 3 3 5-6" />;
 const sortCross = <path d="m13 .5 6 6m0-6-6 6" />;
+const sortCalendar = (
+  <FilledShape
+    cutout={
+      <>
+        <path d="M10.5 10h11" />
+        <PunctuationDot
+          x={14}
+          y={13.5}
+          strokeWidth="calc(var(--hash-icon-stroke-width) * .85)"
+        />
+        <PunctuationDot
+          x={18}
+          y={13.5}
+          strokeWidth="calc(var(--hash-icon-stroke-width) * .85)"
+        />
+        <PunctuationDot
+          x={14}
+          y={17}
+          strokeWidth="calc(var(--hash-icon-stroke-width) * .85)"
+        />
+      </>
+    }
+  >
+    <rect x="10.5" y="5.5" width="11" height="15" rx=".5" />
+    <path fill="none" d="M13 3v5m6-5v5" />
+  </FilledShape>
+);
+const sortClock = (
+  <FilledShape cutout={<path d="M16 8v4l3 2" />}>
+    <circle cx="16" cy="12" r="6" />
+  </FilledShape>
+);
+const sortHighPriority = (
+  <>
+    <path d="M16 0v4.75" />
+    <PunctuationDot x={16} y={6.75} />
+  </>
+);
+const sortLowPriority = <path d="M13 3.5h6" />;
+const sortEmptyValue = <circle cx="16" cy="3.5" r="3" fill="none" />;
+const sortPresentValue = <circle cx="16" cy="3.5" r="3" fill="currentColor" />;
 const sortUpperTransform = "translate(16 6.5) scale(1.1) translate(-16 -3.5)";
 const sortLowerTransform = "translate(16 17.5) scale(.9) translate(-16 -3.5)";
 const sortCircle = (
@@ -324,6 +365,58 @@ export const utilityGeometry = {
         <g transform={sortUpperTransform}>{sortCheck}</g>
         <g transform={sortLowerTransform}>{sortCross}</g>
       </g>
+    </>
+  ),
+  sortDownDate: (
+    <>
+      <path d="M5 3v18m-3-3 3 3 3-3" />
+      {sortCalendar}
+    </>
+  ),
+  sortUpDate: (
+    <>
+      <path d="M5 21V3m-3 3 3-3 3 3" />
+      {sortCalendar}
+    </>
+  ),
+  sortDownDuration: (
+    <>
+      <path d="M5 3v18m-3-3 3 3 3-3" />
+      {sortClock}
+    </>
+  ),
+  sortUpDuration: (
+    <>
+      <path d="M5 21V3m-3 3 3-3 3 3" />
+      {sortClock}
+    </>
+  ),
+  sortDownPriority: (
+    <>
+      <path d="M5 3v18m-3-3 3 3 3-3" />
+      <g transform={sortUpperTransform}>{sortHighPriority}</g>
+      <g transform={sortLowerTransform}>{sortLowPriority}</g>
+    </>
+  ),
+  sortUpPriority: (
+    <>
+      <path d="M5 21V3m-3 3 3-3 3 3" />
+      <g transform={sortUpperTransform}>{sortLowPriority}</g>
+      <g transform={sortLowerTransform}>{sortHighPriority}</g>
+    </>
+  ),
+  sortDownEmptyValues: (
+    <>
+      <path d="M5 3v18m-3-3 3 3 3-3" />
+      <g transform={sortUpperTransform}>{sortEmptyValue}</g>
+      <g transform={sortLowerTransform}>{sortPresentValue}</g>
+    </>
+  ),
+  sortUpEmptyValues: (
+    <>
+      <path d="M5 21V3m-3 3 3-3 3 3" />
+      <g transform={sortUpperTransform}>{sortPresentValue}</g>
+      <g transform={sortLowerTransform}>{sortEmptyValue}</g>
     </>
   ),
   sortDownNumeric: (

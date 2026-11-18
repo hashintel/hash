@@ -48,6 +48,7 @@ The icons style themselves with Panda CSS. The package ships no stylesheet. Inst
 
 ```ts
 import { defineConfig } from "@pandacss/dev";
+
 import { dsIconsPandaPreset } from "@hashintel/ds-icons/panda-preset";
 
 export default defineConfig({
@@ -148,14 +149,19 @@ text should not be used as an individual icon's description.
 ### Sort-by icons
 
 The Editing category includes these paired sort indicators. Each pair reverses
-both the arrow direction and the order of the symbols or lines. Use an accessible
-label that names the actual order; arrow direction alone is ambiguous.
+the arrow direction; pairs with two symbols or varying line lengths also reverse
+their order. Use an accessible label that names the actual order; arrow direction
+alone is ambiguous.
 
 | Family              | Down variant                                      | Up variant                                     |
 | ------------------- | ------------------------------------------------- | ---------------------------------------------- |
 | General             | `sortDown`: three shortening lines                | `sortUp`: three lengthening lines              |
 | Alphabetical        | `sortDownAlphabetical`: A above Z                 | `sortUpAlphabetical`: Z above A                |
 | Boolean             | `sortDownBoolean`: cross above tick (false first) | `sortUpBoolean`: tick above cross (true first) |
+| Date                | `sortDownDate`: oldest first                      | `sortUpDate`: newest first                     |
+| Duration            | `sortDownDuration`: shortest first                | `sortUpDuration`: longest first                |
+| Priority            | `sortDownPriority`: high priority first           | `sortUpPriority`: low priority first           |
+| Empty values        | `sortDownEmptyValues`: missing first              | `sortUpEmptyValues`: populated first           |
 | Numeric             | `sortDownNumeric`: 1 above 9                      | `sortUpNumeric`: 9 above 1                     |
 | Shape / object type | `sortDownShapes`: circle above triangle           | `sortUpShapes`: triangle above circle          |
 | Size                | `sortDownSize`: four lines, largest first         | `sortUpSize`: four lines, smallest first       |

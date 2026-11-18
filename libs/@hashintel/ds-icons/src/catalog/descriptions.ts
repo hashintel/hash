@@ -255,6 +255,22 @@ export const descriptions = {
     "A downward arrow beside a cross above a tick for boolean order with false values first. It shifts downward on hover.",
   sortUpBoolean:
     "An upward arrow beside a tick above a cross for boolean order with true values first. It shifts upward on hover.",
+  sortDownDate:
+    "A calendar beside a downward arrow for sorting dates from oldest to newest.",
+  sortUpDate:
+    "A calendar beside an upward arrow for sorting dates from newest to oldest.",
+  sortDownDuration:
+    "A clock beside a downward arrow for sorting durations from shortest to longest.",
+  sortUpDuration:
+    "A clock beside an upward arrow for sorting durations from longest to shortest.",
+  sortDownPriority:
+    "An exclamation mark above a minus sign for sorting high-priority items first.",
+  sortUpPriority:
+    "A minus sign above an exclamation mark for sorting low-priority items first.",
+  sortDownEmptyValues:
+    "A hollow circle above a solid circle for placing missing values before populated values.",
+  sortUpEmptyValues:
+    "A solid circle above a hollow circle for placing populated values before missing values.",
   sortDownNumeric:
     "A downward arrow beside 1 and 9 for numeric order from low to high. It shifts downward on hover.",
   sortUpNumeric:
