@@ -9,13 +9,25 @@ const calendarFrame = (
 );
 const sortLetterA = <path d="M12.9 7 15.7 0h.6l2.8 7M13.8 4.75h4.4" />;
 const sortLetterZ = <path d="M13.4 0h5.2v.35l-5.2 6.3V7h5.2" />;
-const sortDigitOne = <path d="M16.5 0v7M13.75 1.75h1.75c.65 0 1-.35 1-1.1" />;
+const sortDigitOne = (
+  <path
+    d="M16.5-.15v7.3M13.5 1.75h2c.65 0 1-.35 1-1.1"
+    strokeWidth="calc(var(--hash-icon-stroke-width) * .9)"
+  />
+);
 const sortDigitNine = (
   <path d="M18.5 2.25c0 1.25-.95 2.25-2.5 2.25s-2.5-1-2.5-2.25S14.45 0 16 0s2.5 1 2.5 2.25c0 3.65-.5 4.75-2.5 4.75-1.35 0-2.1-.65-2.3-1.8" />
 );
+const sortUpperTransform = "translate(16 6.5) scale(1.1) translate(-16 -3.5)";
+const sortLowerTransform = "translate(16 17.5) scale(.9) translate(-16 -3.5)";
+const sortCircle = (
+  <FilledShape>
+    <circle cx="16" cy="3.5" r="3.5" />
+  </FilledShape>
+);
 const sortTriangle = (
   <FilledShape>
-    <path d="M4 0 0 7h8Z" />
+    <path d="M16 0 12 7h8Z" />
   </FilledShape>
 );
 
@@ -298,8 +310,8 @@ export const utilityGeometry = {
     <>
       <path d="M5 3v18m-3-3 3 3 3-3" />
       <g strokeWidth="calc(var(--hash-icon-stroke-width) * .8)">
-        <g transform="translate(0 3)">{sortDigitOne}</g>
-        <g transform="translate(0 14)">{sortDigitNine}</g>
+        <g transform={sortUpperTransform}>{sortDigitOne}</g>
+        <g transform={sortLowerTransform}>{sortDigitNine}</g>
       </g>
     </>
   ),
@@ -307,8 +319,8 @@ export const utilityGeometry = {
     <>
       <path d="M5 21V3m-3 3 3-3 3 3" />
       <g strokeWidth="calc(var(--hash-icon-stroke-width) * .8)">
-        <g transform="translate(0 3)">{sortDigitNine}</g>
-        <g transform="translate(0 14)">{sortDigitOne}</g>
+        <g transform={sortUpperTransform}>{sortDigitNine}</g>
+        <g transform={sortLowerTransform}>{sortDigitOne}</g>
       </g>
     </>
   ),
@@ -316,8 +328,8 @@ export const utilityGeometry = {
     <>
       <path d="M5 3v18m-3-3 3 3 3-3" />
       <g strokeWidth="calc(var(--hash-icon-stroke-width) * .8)">
-        <g transform="translate(0 3)">{sortLetterA}</g>
-        <g transform="translate(0 14)">{sortLetterZ}</g>
+        <g transform={sortUpperTransform}>{sortLetterA}</g>
+        <g transform={sortLowerTransform}>{sortLetterZ}</g>
       </g>
     </>
   ),
@@ -325,27 +337,23 @@ export const utilityGeometry = {
     <>
       <path d="M5 21V3m-3 3 3-3 3 3" />
       <g strokeWidth="calc(var(--hash-icon-stroke-width) * .8)">
-        <g transform="translate(0 3)">{sortLetterZ}</g>
-        <g transform="translate(0 14)">{sortLetterA}</g>
+        <g transform={sortUpperTransform}>{sortLetterZ}</g>
+        <g transform={sortLowerTransform}>{sortLetterA}</g>
       </g>
     </>
   ),
   sortDownShapes: (
     <>
       <path d="M5 3v18m-3-3 3 3 3-3" />
-      <FilledShape>
-        <circle cx="16" cy="6" r="3" />
-      </FilledShape>
-      <g transform="translate(12 13)">{sortTriangle}</g>
+      <g transform={sortUpperTransform}>{sortCircle}</g>
+      <g transform={sortLowerTransform}>{sortTriangle}</g>
     </>
   ),
   sortUpShapes: (
     <>
       <path d="M5 21V3m-3 3 3-3 3 3" />
-      <FilledShape>
-        <circle cx="16" cy="18" r="3" />
-      </FilledShape>
-      <g transform="translate(12 3)">{sortTriangle}</g>
+      <g transform={sortUpperTransform}>{sortTriangle}</g>
+      <g transform={sortLowerTransform}>{sortCircle}</g>
     </>
   ),
   sortDownSize: (
