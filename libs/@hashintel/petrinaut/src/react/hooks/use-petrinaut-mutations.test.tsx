@@ -374,6 +374,32 @@ describe("usePetrinautMutations", () => {
     });
   });
 
+  test("each mutation says whether it went through", () => {
+    const place = {
+      id: "p1",
+      name: "P1",
+      colorId: null,
+      dynamicsEnabled: false,
+      x: 0,
+      y: 0,
+    };
+    const added = (options: WrapperOptions) => {
+      const { Wrapper } = createWrapper(options);
+      const { result } = renderHook(usePetrinautMutations, {
+        wrapper: Wrapper,
+      });
+      let went: boolean | undefined;
+      act(() => {
+        went = result.current.addPlace(place);
+      });
+      return went;
+    };
+
+    expect(added({})).toBe(true);
+    expect(added({ readonly: true })).toBe(false);
+    expect(added({ rules: { edit: "compose" } })).toBe(false);
+  });
+
   describe("cascading deletes", () => {
     test("removePlace cascades to remove connected arcs", () => {
       const sdcpn = makeSDCPN({
@@ -446,7 +472,7 @@ test.each([
         </Wrapper>
       ),
     });
-    act(() =>
+    act(() => {
       result.current.addPlace({
         id: "blocked",
         name: "Blocked",
@@ -454,8 +480,8 @@ test.each([
         dynamicsEnabled: false,
         x: 0,
         y: 0,
-      }),
-    );
+      });
+    });
     expect(instance.definition.get().places).toHaveLength(0);
     expect(addNotification).toHaveBeenCalledWith(
       expect.objectContaining({ message, tone: "neutral" }),
@@ -477,15 +503,15 @@ test("allowed scenario mutations in Simulate stay quiet", () => {
       </Wrapper>
     ),
   });
-  act(() =>
+  act(() => {
     result.current.addScenario({
       id: "scenario",
       name: "Scenario",
       scenarioParameters: [],
       parameterOverrides: {},
       initialState: { type: "per_place", content: {} },
-    }),
-  );
+    });
+  });
   expect(instance.definition.get().scenarios).toHaveLength(1);
   expect(addNotification).not.toHaveBeenCalled();
 });
@@ -510,31 +536,31 @@ describe("visualizer edits during simulation", () => {
       const { result } = renderHook(usePetrinautMutations, {
         wrapper: Wrapper,
       });
-      act(() =>
+      act(() => {
         result.current.updatePlace({
           placeId: "p1",
           update: { visualizerCode: "edited" },
-        }),
-      );
+        });
+      });
       expect(instance.definition.get().places[0]?.visualizerCode).toBe(
         "edited",
       );
-      act(() =>
+      act(() => {
         result.current.updatePlace({
           placeId: "p1",
           update: { visualizerCode: "blocked", name: "Changed" },
-        }),
-      );
+        });
+      });
       expect(instance.definition.get().places[0]).toMatchObject({
         name: "Place",
         visualizerCode: "edited",
       });
-      act(() =>
+      act(() => {
         result.current.updatePlace({
           placeId: "p1",
           update: { visualizerCode: undefined },
-        }),
-      );
+        });
+      });
       expect(
         instance.definition.get().places[0]?.visualizerCode,
       ).toBeUndefined();
@@ -551,12 +577,12 @@ describe("visualizer edits during simulation", () => {
       const { result } = renderHook(usePetrinautMutations, {
         wrapper: Wrapper,
       });
-      act(() =>
+      act(() => {
         result.current.updatePlace({
           placeId: "p1",
           update: { visualizerCode: "edited" },
-        }),
-      );
+        });
+      });
       expect(instance.definition.get().places[0]?.visualizerCode).toBe(
         readonly ? "original" : "edited",
       );

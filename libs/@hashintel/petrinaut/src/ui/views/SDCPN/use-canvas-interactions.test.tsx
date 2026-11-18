@@ -85,6 +85,7 @@ const connection = (
 ): CanvasConnection => ({ sourceId, sourcePortId, targetId, targetPortId });
 
 const mutations = {
+  addPlace: vi.fn(),
   addComponentInstance: vi.fn(),
   addFusion: vi.fn(),
   addFusionMember: vi.fn(),
@@ -101,9 +102,16 @@ const dropPortEnd = (
   onto: nodeId === undefined ? null : { nodeId, portId },
 });
 const addNotification = vi.fn();
-const editor: { selection: SelectionMap; rules: PetrinautRules } = {
+const setEditionMode = vi.fn();
+const editor: {
+  selection: SelectionMap;
+  rules: PetrinautRules;
+  /** What the host's rules answer a mutation with. */
+  refusal: string | null;
+} = {
   selection: new Map(),
   rules: {},
+  refusal: null,
 };
 const libraries = new Map([
   [logisticsLibrary.id, resolveLibrary(logisticsLibrary.id, logisticsLibrary)],
@@ -113,11 +121,17 @@ beforeEach(() => {
   vi.clearAllMocks();
   editor.selection = new Map([[belt.id, { type: "fusion", id: belt.id }]]);
   editor.rules = {};
+  editor.refusal = null;
 });
 
 const Wrapper = ({ children }: { children: ReactNode }) => (
   <PetrinautInstanceContext
-    value={{ mutations, mutationRefusal: () => null } as unknown as Petrinaut}
+    value={
+      {
+        mutations,
+        mutationRefusal: () => editor.refusal,
+      } as unknown as Petrinaut
+    }
   >
     <SDCPNContext
       value={{
@@ -145,9 +159,15 @@ const Wrapper = ({ children }: { children: ReactNode }) => (
             <EditorContext
               value={{
                 ...use(EditorContext),
+                editionMode: "add-component",
+                componentToAdd: { id: "stage" },
+                setEditionMode,
                 setSelection: (next) => {
                   editor.selection =
                     typeof next === "function" ? next(editor.selection) : next;
+                },
+                selectItem: (item) => {
+                  editor.selection = new Map([[item.id, item]]);
                 },
               }}
             >
@@ -315,5 +335,38 @@ describe("useCanvasInteractions", () => {
       2,
       expect.objectContaining({ subnetId: "stage" }),
     );
+  });
+
+  it("selects the instance a click places and puts the tool down", () => {
+    const { interactions, selectedIds } = renderInteractions();
+
+    interactions.clickPane({ x: 40, y: 60 });
+
+    const [[placed]] = mutations.addComponentInstance.mock.calls as [
+      [{ id: string }],
+    ];
+    expect(selectedIds()).toEqual([placed.id]);
+    expect(setEditionMode).toHaveBeenCalledExactlyOnceWith("cursor");
+  });
+
+  it("keeps the selection and the tool as they were when the host's rules refuse what a click or a drop would add", () => {
+    editor.rules = { edit: "compose" };
+    editor.refusal =
+      "This editor only places and connects the components it is given.";
+    const { interactions, selectedIds } = renderInteractions();
+
+    interactions.clickPane({ x: 40, y: 60 });
+    interactions.dropNode("place", { x: 0, y: 0 });
+    interactions.connect(connection("store", null, "m2", "in"));
+
+    expect(mutations.addComponentInstance).not.toHaveBeenCalled();
+    expect(mutations.addPlace).not.toHaveBeenCalled();
+    expect(mutations.addFusion).not.toHaveBeenCalled();
+    expect(addNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "host-rules", message: editor.refusal }),
+    );
+    // Nothing was added: what was selected stays, and the tool stays armed.
+    expect(selectedIds()).toEqual([belt.id]);
+    expect(setEditionMode).not.toHaveBeenCalled();
   });
 });

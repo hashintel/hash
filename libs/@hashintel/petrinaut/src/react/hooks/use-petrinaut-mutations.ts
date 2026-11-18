@@ -16,6 +16,17 @@ type PetrinautMutationInput<Name extends keyof PetrinautMutations> = Parameters<
 >[0];
 
 /**
+ * The mutations as the editor calls them. Each answers whether it went to
+ * Core: `false` when the editor is read-only or the host's rules refuse it,
+ * for a caller with something to do only once the change is made.
+ */
+export type GuardedPetrinautMutations = {
+  [Name in keyof PetrinautMutations]: (
+    input: PetrinautMutationInput<Name>,
+  ) => boolean;
+};
+
+/**
  * React-facing bundle of atomic SDCPN mutations.
  *
  * Each helper is wrapped so that:
@@ -31,7 +42,7 @@ type PetrinautMutationInput<Name extends keyof PetrinautMutations> = Parameters<
  * the public `usePetrinautInstance()` return type narrows away the mutation
  * surface to keep the readonly guard centralised in this hook.
  */
-export function usePetrinautMutations(): PetrinautMutations {
+export function usePetrinautMutations(): GuardedPetrinautMutations {
   const instance = use(PetrinautInstanceContext);
   if (!instance) {
     throw new Error(
@@ -47,14 +58,14 @@ export function usePetrinautMutations(): PetrinautMutations {
   const withReadonlyGuard = <Name extends keyof PetrinautMutations>(
     name: Name,
     options?: { targetActiveSubnet?: boolean },
-  ): PetrinautMutations[Name] => {
+  ): GuardedPetrinautMutations[Name] => {
     const target = mutations[name] as (
       input: PetrinautMutationInput<Name>,
     ) => void;
     const wrapped = ((input: PetrinautMutationInput<Name>) => {
       if (mutationBlockedBy(name, readOnlyReason, input) !== null) {
         notifyReadOnly();
-        return;
+        return false;
       }
       const nextInput =
         options?.targetActiveSubnet === false
@@ -67,10 +78,11 @@ export function usePetrinautMutations(): PetrinautMutations {
       const refusal = instance.mutationRefusal(name, nextInput);
       if (refusal !== null) {
         notifyHostRules(refusal);
-        return;
+        return false;
       }
       target(nextInput);
-    }) as PetrinautMutations[Name];
+      return true;
+    }) as GuardedPetrinautMutations[Name];
     return wrapped;
   };
 
