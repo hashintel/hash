@@ -528,6 +528,47 @@ describe("buildCanvasScene", () => {
       });
     });
 
+    it("reads the arcs of the net it shows once for the directions of its own ports", () => {
+      // A thousand ports that declare no direction, under 20,000 arcs that
+      // consume from them.
+      const ports = Array.from({ length: 1000 }, (_, index) => ({
+        ...place(`port-${index}`, 0, 0),
+        isPort: true,
+      }));
+      const wide: Subnet = {
+        ...fast,
+        id: "wide",
+        name: "Wide",
+        places: ports,
+        transitions: Array.from({ length: 20 }, (_, index) => ({
+          ...transition(`take-${index}`, [], []),
+          inputArcs: ports.map(({ id }) => ({
+            placeId: id,
+            weight: 1,
+            type: "standard" as const,
+          })),
+        })),
+      };
+
+      const started = Date.now();
+      const { nodes } = buildCanvasScene({
+        ...input,
+        sdcpn: { ...sdcpn, subnets: [wide] },
+        net: { ...wide, componentInstances: [], fusions: [] },
+      });
+      const elapsed = Date.now() - started;
+
+      expect(
+        new Set(
+          nodes.flatMap((node) =>
+            node.kind === "place" ? [node.portDirection] : [],
+          ),
+        ),
+      ).toEqual(new Set(["in"]));
+      // Reading the arcs for each port takes several seconds.
+      expect(elapsed).toBeLessThan(1000);
+    });
+
     it("resolves many instances against a long list of defaults, with one read of the list", () => {
       const size = 30_000;
       const many: SDCPN = {

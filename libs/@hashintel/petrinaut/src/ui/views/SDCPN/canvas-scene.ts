@@ -7,7 +7,6 @@
  */
 
 import {
-  effectivePortDirection,
   effectivePortDirections,
   resolveImplementation,
   generateArcId,
@@ -281,6 +280,9 @@ export const buildCanvasScene = ({
 
   const nodes: CanvasNode[] = [];
 
+  // The net's arcs are read once for the directions of all its own ports.
+  const ownPortDirections = effectivePortDirections(net);
+
   for (const place of net.places) {
     const placeType = typeIn(net, place.colorId);
     nodes.push({
@@ -290,7 +292,9 @@ export const buildCanvasScene = ({
       ...dimensions.place,
       ...positionOf(place, draggingStateByNodeId),
       ...interaction(place.id),
-      portDirection: place.isPort ? effectivePortDirection(net, place) : null,
+      portDirection: place.isPort
+        ? (ownPortDirections.get(place.id) ?? "inout")
+        : null,
       dynamicsEnabled:
         extensions.colors && extensions.dynamics && place.dynamicsEnabled,
       hasColorType: (placeType?.elements.length ?? 0) > 0,
