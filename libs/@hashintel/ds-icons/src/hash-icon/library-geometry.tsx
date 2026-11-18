@@ -35,8 +35,10 @@ import { memoInfoGeometry } from "./library-geometry/memo-info";
 import { newspaperGeometry } from "./library-geometry/newspaper";
 import { notePlusGeometry } from "./library-geometry/note-plus";
 import { noteStickyGeometry } from "./library-geometry/note-sticky";
+import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  upload: uploadGeometry,
   historyUser: historyUserGeometry,
   historyPages: historyPagesGeometry,
   calendars: calendarsGeometry,
