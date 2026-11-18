@@ -100,6 +100,7 @@ import { shapeArrowLeftGeometry } from "./library-geometry/shape-arrow-left";
 import { shapeArrowRightGeometry } from "./library-geometry/shape-arrow-right";
 import { shapeArrowUpGeometry } from "./library-geometry/shape-arrow-up";
 import { shuffleGeometry } from "./library-geometry/shuffle";
+import { sizeMediumGeometry } from "./library-geometry/size-medium";
 import { sizeSmallGeometry } from "./library-geometry/size-small";
 import { splineCubicGeometry } from "./library-geometry/spline-cubic";
 import { splineLineGeometry } from "./library-geometry/spline-line";
@@ -113,6 +114,7 @@ import { triangleGeometry } from "./library-geometry/triangle";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  sizeMedium: sizeMediumGeometry,
   sizeSmall: sizeSmallGeometry,
   fillPattern: fillPatternGeometry,
   fillSemi: fillSemiGeometry,

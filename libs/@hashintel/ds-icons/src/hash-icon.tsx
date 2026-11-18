@@ -540,6 +540,7 @@ export const FillSolidIcon = createIcon("fillSolid");
 export const FillSemiIcon = createIcon("fillSemi");
 export const FillPatternIcon = createIcon("fillPattern");
 export const SizeSmallIcon = createIcon("sizeSmall");
+export const SizeMediumIcon = createIcon("sizeMedium");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -725,6 +726,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  sizeMedium: SizeMediumIcon,
   sizeSmall: SizeSmallIcon,
   fillPattern: FillPatternIcon,
   fillSemi: FillSemiIcon,
