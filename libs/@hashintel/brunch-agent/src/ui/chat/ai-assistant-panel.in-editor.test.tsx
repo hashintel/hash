@@ -294,6 +294,64 @@ test("shows the editor's selection on the composer and sends it with the message
   await waitFor(() => expect(screen.queryByText(/Asking about/)).toBeNull());
 });
 
+test("lists at most 50 selected elements on the composer, shortened, and says how many more", async () => {
+  let editor:
+    | Parameters<PluginHook<typeof SelectionTestPlugin>>[0]["editor"]
+    | undefined;
+  const selectionPlugin = SelectionTestPlugin((api) => {
+    editor = api.editor;
+    return {};
+  });
+  const places = Array.from({ length: 60 }, (_, index) => ({
+    id: `place${index}`,
+    name: `Place${index}${"X".repeat(100)}`,
+    colorId: null,
+    dynamicsEnabled: false,
+    x: index * 10,
+    y: 0,
+  }));
+  render(
+    <Petrinaut
+      handle={createJsonDocHandle({
+        initial: { places, transitions: [] },
+      })}
+      plugins={[
+        selectionPlugin,
+        chatPlugin({
+          transport: {
+            reconnectToStream: () => Promise.resolve(null),
+            sendMessages: () => Promise.reject(new Error("Not sent.")),
+          },
+        }),
+      ]}
+    />,
+  );
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Show AI assistant" }),
+  );
+  act(() =>
+    editor?.navigate((current) => ({
+      ...current,
+      selection: places.map(({ id }) => ({
+        type: "place" as const,
+        id: toPetrinautId(id),
+      })),
+    })),
+  );
+  const line = await screen.findByText(/^Asking about 60 elements: /);
+  expect(line.textContent).toMatch(/… and 10 more$/);
+  const tooltip = line.getAttribute("title")?.split("\n") ?? [];
+  expect(tooltip).toHaveLength(51);
+  expect(tooltip.at(-1)).toBe("and 10 more");
+  expect(
+    tooltip
+      .slice(0, 50)
+      .every(
+        (label) => label.startsWith("place: Place") && label.length === 80,
+      ),
+  ).toBe(true);
+});
+
 test("sends a Voice turn with the selection it finished with, and shows it in the dock", async () => {
   const bodies: unknown[] = [];
   let releaseFirst = () => {};

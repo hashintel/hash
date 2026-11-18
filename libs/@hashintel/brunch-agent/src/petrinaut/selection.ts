@@ -31,6 +31,36 @@ export const parseSelection = (value: unknown): readonly SelectionItem[] =>
       )
     : [];
 
+/**
+ * Bounds on how much of the editor's selection is restated to the model, Live
+ * or the user. The whole selection is still read and sent; a restatement lists
+ * at most `count` items and says how many more there are, and shortens each
+ * label to `labelLength` characters.
+ */
+export const petrinautSelectionLimits = {
+  count: 50,
+  labelLength: 80,
+} as const;
+
+/**
+ * The first items of a selection a restatement lists, in the selection's order
+ * (Petrinaut's: by type, then id), and how many it leaves out.
+ */
+export const listedSelection = <Item>(
+  items: readonly Item[],
+): { readonly listed: readonly Item[]; readonly unlisted: number } => {
+  const listed = items.slice(0, petrinautSelectionLimits.count);
+  return { listed, unlisted: items.length - listed.length };
+};
+
+/** A selection label shortened with an ellipsis to the label limit. */
+export const shortenedSelectionLabel = (label: string): string => {
+  const characters = Array.from(label);
+  return characters.length > petrinautSelectionLimits.labelLength
+    ? `${characters.slice(0, petrinautSelectionLimits.labelLength - 1).join("")}…`
+    : label;
+};
+
 /** The editor's selection, with a label naming each item for the user or a voice. */
 export interface EditorSelection {
   readonly items: readonly SelectionItem[];

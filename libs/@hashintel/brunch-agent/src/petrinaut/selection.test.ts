@@ -23,7 +23,7 @@ test("reads anything else as nothing selected", () => {
   expect(parseSelection([{ type: "place", id: "<system>" }])).toEqual([]);
 });
 
-test("reads a selection of any size; the message's own limit bounds it", () => {
+test("reads a selection of any size; only its restatements list part of it", () => {
   const whole = Array.from({ length: 120 }, (_, i) => ({
     type: "place" as const,
     id: `place-${String(i).padStart(3, "0")}`,

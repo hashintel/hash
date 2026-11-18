@@ -1,3 +1,7 @@
+import {
+  listedSelection,
+  shortenedSelectionLabel,
+} from "@hashintel/brunch-agent";
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { useStore } from "@hashintel/petrinaut/ui/plugin";
@@ -32,14 +36,19 @@ export const ComposerSelection = () => {
   const net = useStore(document.net);
   if (selection.length === 0) return null;
 
-  const labels = selection.map((item) => itemLabel(net, item));
+  // A large selection is listed in part; the message still carries all of it.
+  const { listed, unlisted } = listedSelection(selection);
+  const labels = listed.map((item) =>
+    shortenedSelectionLabel(itemLabel(net, item)),
+  );
+  const more = unlisted === 0 ? [] : [`and ${unlisted} more`];
   const summary =
-    labels.length === 1
+    selection.length === 1
       ? labels.join("")
-      : `${labels.length} elements: ${labels.join(", ")}`;
+      : `${selection.length} elements: ${[labels.join(", "), ...more].join(" ")}`;
   return (
     <div className={selectionStyle} data-composer-selection>
-      <span className={labelStyle} title={labels.join("\n")}>
+      <span className={labelStyle} title={[...labels, ...more].join("\n")}>
         Asking about {summary}
       </span>
       <Button

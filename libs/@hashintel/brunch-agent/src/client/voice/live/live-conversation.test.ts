@@ -1837,6 +1837,31 @@ test("Live's selection note quotes the names as data, so a name cannot add lines
   expect(note).not.toContain("\n");
 });
 
+test("Live's selection note names at most 50 elements, each shortened, and says how many more", () => {
+  const labels = Array.from(
+    { length: 400 },
+    (_, index) => `place: ${String(index).padStart(3, "0")} ${"x".repeat(100)}`,
+  );
+  const note = liveSelectionNote(labels);
+  const named = JSON.parse(
+    /\(JSON\): (\[.*?\])\. When/u.exec(note)?.[1] ?? "null",
+  ) as string[];
+  expect(named).toHaveLength(50);
+  expect(named[49]?.startsWith("place: 049 ")).toBe(true);
+  expect(named.every((label) => Array.from(label).length === 80)).toBe(true);
+  expect(named[0]?.endsWith("…")).toBe(true);
+  expect(note).toContain(
+    "Only the first 50 of the 400 selected are named here, in editor order, not by importance; if it matters which of the other 350 they mean, ask rather than guess.",
+  );
+  expect(note).toContain("Do not speak this note.");
+
+  // At the limit, every element is named and there is no summary.
+  const fifty = labels.slice(0, 50).map((label) => label.slice(0, 20));
+  const atLimit = liveSelectionNote(fifty);
+  expect(atLimit).toContain(JSON.stringify(fifty));
+  expect(atLimit).not.toContain("Only the first");
+});
+
 test("a failed pacing note is not retried and never interrupts speech", async () => {
   const fixture = setup();
   await connect(fixture);
