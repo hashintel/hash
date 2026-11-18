@@ -79,6 +79,7 @@ test("the resume notice points back to the original brief and forbids resending"
       helper: "/tmp/run/bin/persona",
       settlement: "aborted",
       reply: "",
+      questions: [],
     }),
     "utf8",
   );
@@ -88,4 +89,39 @@ test("the resume notice points back to the original brief and forbids resending"
   expect(notice).toContain("do not run `open`");
   expect(notice).toContain("settled as: aborted");
   expect(notice).toContain("No reply prose was retained.");
+});
+
+test("a resumed persona sees the pending questions in answer order", async () => {
+  const run = await temporaryRun();
+  const input = {
+    run,
+    helper: "/tmp/run/bin/persona",
+    settlement: "completed",
+    reply: "Two things to check.",
+    questions: [
+      {
+        kind: "confirm",
+        label: "Production demand",
+        text: "Is demand fixed for the week?",
+        options: [{ label: "Yes" }],
+      },
+      {
+        kind: "open",
+        label: "Late orders",
+        text: "How do you handle late orders?",
+      },
+    ],
+  };
+  const notice = await readFile(await writePersonaResumeBrief(input), "utf8");
+  expect(notice).toContain(
+    [
+      "Two things to check.",
+      "",
+      'Brunch asks 2 questions on its message box. Answer them together with `answer`, one quoted argument each in this order, "" to skip one:',
+      "1. Production demand: Is demand fixed for the week?",
+      "   Pick one by its label, or answer in your own words:",
+      "   - Yes",
+      "2. Late orders: How do you handle late orders?",
+    ].join("\n"),
+  );
 });

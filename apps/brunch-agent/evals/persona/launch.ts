@@ -695,6 +695,7 @@ const launchPersona = async ({
           helper,
           settlement: resumed.settlement,
           reply: resumed.reply,
+          questions: resumed.questions,
         })
       : await writePersonaBrief({ run, helper, objective, opening, pack });
     await save(join(run, "run.json"), {

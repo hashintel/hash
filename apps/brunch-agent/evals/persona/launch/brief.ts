@@ -3,6 +3,10 @@ import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { formatPersonaQuestions } from "../shared/format-persona-questions.ts";
+
+import type { PersonaQuestion } from "../rpc-protocol.ts";
+
 const systemPath = fileURLToPath(new URL("brief/system.md", import.meta.url));
 
 export const personaCommandGuide = (helper: string) =>
@@ -68,6 +72,7 @@ export const writePersonaResumeBrief = async (input: {
   readonly helper: string;
   readonly settlement: string;
   readonly reply: string;
+  readonly questions: readonly PersonaQuestion[];
 }) => {
   const path = join(input.run, "resume-brief.md");
   await writeFile(
@@ -81,6 +86,9 @@ export const writePersonaResumeBrief = async (input: {
       personaCommandGuide(input.helper),
       "### Brunch's latest reply (may be partial if it did not complete)",
       input.reply.trim() ? input.reply : "No reply prose was retained.",
+      ...(input.questions.length
+        ? [formatPersonaQuestions(input.questions)]
+        : []),
     ].join("\n\n") + "\n",
     { mode: 0o600 },
   );

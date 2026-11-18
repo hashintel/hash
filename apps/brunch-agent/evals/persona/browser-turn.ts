@@ -18,13 +18,12 @@ import {
   brunchHeaders,
   brunchRoutes,
   offerIn,
+  optionsFor,
   petrinautUserMessageText,
 } from "@hashintel/brunch-agent";
 
-import type {
-  ConversationIdentity,
-  OfferedQuestion,
-} from "@hashintel/brunch-agent";
+import type { PersonaQuestion } from "./rpc-protocol.ts";
+import type { ConversationIdentity } from "@hashintel/brunch-agent";
 
 /** A failed persona turn that still carries the admitted conversation's history. */
 export class PersonaBrowserTurnError extends Error {
@@ -130,7 +129,7 @@ export const allowDestructiveEdits = async (
 export const offeredQuestionsOf = (
   snapshot: FlueConversationSnapshot,
   submissionIds: readonly string[],
-): OfferedQuestion[] =>
+): PersonaQuestion[] =>
   offerIn(
     snapshot.messages
       .filter(
@@ -138,7 +137,10 @@ export const offeredQuestionsOf = (
           submissionId !== undefined && submissionIds.includes(submissionId),
       )
       .flatMap(({ parts }) => parts),
-  )?.questions ?? [];
+  )?.questions.map((question) => {
+    const options = optionsFor(question);
+    return options.length ? { ...question, options: [...options] } : question;
+  }) ?? [];
 
 /**
  * Give each docked question its answer the way a person would: a click on

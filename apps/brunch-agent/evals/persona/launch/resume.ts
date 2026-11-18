@@ -7,6 +7,7 @@ import * as v from "valibot";
 
 import { flueConversationId } from "../../../src/shared/conversation/identity.ts";
 import {
+  offeredQuestionsOf,
   personaConversationClient,
   type PersonaBrowserSession,
 } from "../browser-turn.ts";
@@ -133,5 +134,15 @@ export const reconcilePersonaResume = async (
       ),
     )
     .join("\n\n");
-  return { session, snapshot, settlement: settlement.outcome, reply };
+  const questions =
+    settlement.outcome === "completed"
+      ? offeredQuestionsOf(snapshot, [lastUser.submissionId])
+      : [];
+  return {
+    session,
+    snapshot,
+    settlement: settlement.outcome,
+    reply,
+    questions,
+  };
 };
