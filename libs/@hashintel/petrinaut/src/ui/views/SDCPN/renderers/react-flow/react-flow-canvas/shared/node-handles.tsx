@@ -49,15 +49,19 @@ const activateHandle = (event: KeyboardEvent<HTMLDivElement>) => {
   }
 };
 
-/** Whether an arc may run from a node of one kind to a node of the other. */
-const acceptsArc = (
+/**
+ * Whether a connection drawn from a node of one kind may end on a place or a
+ * transition: an arc between a place and a transition, or from an instance's
+ * port to a transition, and a fusion of an instance's port with a place.
+ */
+const acceptsConnection = (
   sourceKind: string | undefined,
   targetKind: string | undefined,
 ): boolean =>
   (sourceKind === "place" && targetKind === "transition") ||
   (sourceKind === "transition" && targetKind === "place") ||
-  // A component instance only starts an arc from one of its ports.
-  (sourceKind === "componentInstance" && targetKind === "transition");
+  // A component instance only starts a connection from one of its ports.
+  sourceKind === "componentInstance";
 
 /**
  * A place's or transition's two handles. Hovering the node reveals the
@@ -83,7 +87,7 @@ export const NodeHandles = ({ isConnectable }: { isConnectable: boolean }) => {
       state.connection.toNode?.id === nodeId,
   );
 
-  const canReceive = isConnectable && acceptsArc(sourceKind, nodeKind);
+  const canReceive = isConnectable && acceptsConnection(sourceKind, nodeKind);
 
   return (
     <>

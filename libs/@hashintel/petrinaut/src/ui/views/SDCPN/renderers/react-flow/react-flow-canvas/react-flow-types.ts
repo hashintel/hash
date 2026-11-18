@@ -1,15 +1,18 @@
 /**
- * React Flow's node and edge types for the canvas: the scene's nodes and arcs,
- * plus the simulation frame state React Flow components animate from.
+ * React Flow's node and edge types for the canvas: the scene's nodes, arcs
+ * and fusion links, plus the simulation frame state React Flow components
+ * animate from.
  */
 
 import type { SimulationFrameReader } from "../../../../../../react/simulation/context";
 import type {
   CanvasArc,
   CanvasComponentInstanceNode,
+  CanvasFusionLink,
   CanvasPlaceNode,
   CanvasTransitionNode,
 } from "../../../canvas-scene";
+import type { CanvasLinkItem } from "../../../use-canvas-interactions";
 import type { OutlineNode } from "./shared/outline-arcs";
 import type { Edge, Node } from "@xyflow/react";
 
@@ -51,4 +54,19 @@ export type ArcData = Pick<
   hasReverseArc: boolean;
 };
 
-export type ArcEdgeType = Edge<ArcData>;
+export type ArcEdgeType = Edge<ArcData, "default">;
+
+export type FusionEdgeData = Pick<
+  CanvasFusionLink,
+  "fusionId" | "name" | "focus" | "severity"
+>;
+
+export type FusionEdgeType = Edge<FusionEdgeData, "fusion">;
+
+export type CanvasEdgeType = ArcEdgeType | FusionEdgeType;
+
+/** The item an edge draws: an arc, or the fusion one of whose links it is. */
+export const linkItemOf = (edge: CanvasEdgeType): CanvasLinkItem =>
+  edge.type === "fusion" && edge.data
+    ? { type: "fusion", id: edge.data.fusionId }
+    : { type: "arc", id: edge.id };

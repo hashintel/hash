@@ -6,6 +6,7 @@
 import "@xyflow/react/dist/style.css";
 import {
   Background,
+  ConnectionMode,
   ReactFlow,
   ReactFlowProvider,
   SelectionMode,
@@ -40,10 +41,12 @@ import { Arc } from "./react-flow-canvas/arc";
 import { ClassicPlaceNode } from "./react-flow-canvas/classic-place-node";
 import { ClassicTransitionNode } from "./react-flow-canvas/classic-transition-node";
 import { ComponentInstanceNode } from "./react-flow-canvas/component-instance-node";
+import { FusionEdge } from "./react-flow-canvas/fusion-edge";
 import { MiniMap } from "./react-flow-canvas/mini-map";
 import { OutlineConnectionLine } from "./react-flow-canvas/outline-connection-line";
 import { PlaceNode } from "./react-flow-canvas/place-node";
 import { toCanvasConnection } from "./react-flow-canvas/port-handles";
+import { linkItemOf } from "./react-flow-canvas/react-flow-types";
 import {
   isMac,
   selectionKeyCode,
@@ -74,6 +77,7 @@ const CLASSIC_NODE_TYPES = {
 
 const REACTFLOW_EDGE_TYPES = {
   default: Arc,
+  fusion: FusionEdge,
 };
 
 const MIN_ZOOM_DEBOUNCE_MS = 100;
@@ -238,10 +242,15 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
           edgeTypes={REACTFLOW_EDGE_TYPES}
           onNodesChange={applyChanges}
           onEdgesChange={applyChanges}
+          // A port can be joined from either of its pins to either pin of
+          // another, so a connection may run between two handles of one kind.
+          connectionMode={ConnectionMode.Loose}
           connectionLineComponent={OutlineConnectionLine}
           isValidConnection={isValidConnection}
           onConnect={interactions.readonly ? undefined : connect}
-          onEdgeClick={(_event, edge) => interactions.selectArc(edge.id)}
+          onEdgeClick={(_event, edge) =>
+            interactions.selectLink(linkItemOf(edge))
+          }
           // Node click selection is handled by ReactFlow's internal
           // handleNodeClick, which fires select changes through
           // onNodesChange; an onNodeClick handler would conflict with it.
@@ -258,7 +267,9 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
               kind: node.type as CanvasNodeKind,
             })
           }
-          onEdgeMouseEnter={(_event, edge) => interactions.hoverArc(edge.id)}
+          onEdgeMouseEnter={(_event, edge) =>
+            interactions.hoverLink(linkItemOf(edge))
+          }
           onEdgeMouseLeave={interactions.clearHover}
           onSelectionStart={interactions.beginSelectionGesture}
           onSelectionEnd={interactions.endSelectionGesture}

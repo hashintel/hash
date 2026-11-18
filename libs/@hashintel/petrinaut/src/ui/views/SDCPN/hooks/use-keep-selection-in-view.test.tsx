@@ -30,6 +30,9 @@ const scene = {
     { id: "near-far", sourceId: "near", targetId: "far" },
     { id: "far-farther", sourceId: "far", targetId: "farther" },
   ],
+  fusions: [
+    { id: "belt:far", fusionId: "belt", sourceId: "far", targetId: "farther" },
+  ],
 } as unknown as CanvasScene;
 
 const select = (...ids: string[]) =>
@@ -118,6 +121,12 @@ describe("useKeepSelectionInView", () => {
     const { setViewport, changeSelection } = setup([]);
     changeSelection("far-farther");
     // 1500 scene pixels between the ends' outer edges, 900 uncovered.
+    expect(setViewport.mock.calls[0]![0].zoom).toBeCloseTo(0.6);
+  });
+
+  it("fits a fusion the same way, by the ends of its links", () => {
+    const { setViewport, changeSelection } = setup([]);
+    changeSelection("belt");
     expect(setViewport.mock.calls[0]![0].zoom).toBeCloseTo(0.6);
   });
 
