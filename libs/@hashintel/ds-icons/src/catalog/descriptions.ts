@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  searchEmpty: "A magnifier with a dash represents no search results.",
   searchCheck: "A magnifier with a check represents a confirmed search result.",
   speaker: "A speaker with sound waves represents audio output.",
   phoneOff: "A crossed handset represents ending or disabling a call.",

@@ -610,6 +610,7 @@ export const PhoneIcon = createIcon("phone");
 export const PhoneOffIcon = createIcon("phoneOff");
 export const SpeakerIcon = createIcon("speaker");
 export const SearchCheckIcon = createIcon("searchCheck");
+export const SearchEmptyIcon = createIcon("searchEmpty");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -795,6 +796,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  searchEmpty: SearchEmptyIcon,
   searchCheck: SearchCheckIcon,
   speaker: SpeakerIcon,
   phoneOff: PhoneOffIcon,
