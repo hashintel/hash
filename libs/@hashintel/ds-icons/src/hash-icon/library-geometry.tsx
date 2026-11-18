@@ -184,6 +184,7 @@ import { triangleGeometry } from "./library-geometry/triangle";
 import { underlineGeometry } from "./library-geometry/underline";
 import { ungroupGeometry } from "./library-geometry/ungroup";
 import { uploadGeometry } from "./library-geometry/upload";
+import { userBountyHunterGeometry } from "./library-geometry/user-bounty-hunter";
 import { userLockGeometry } from "./library-geometry/user-lock";
 import { userSearchGeometry } from "./library-geometry/user-search";
 import { userTagGeometry } from "./library-geometry/user-tag";
@@ -191,6 +192,7 @@ import { userTieGeometry } from "./library-geometry/user-tie";
 import { usersGeometry } from "./library-geometry/users";
 
 export const libraryGeometry = {
+  userBountyHunter: userBountyHunterGeometry,
   userTag: userTagGeometry,
   userSearch: userSearchGeometry,
   userLock: userLockGeometry,
