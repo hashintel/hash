@@ -63,6 +63,7 @@ import { notePlusGeometry } from "./library-geometry/note-plus";
 import { noteStickyGeometry } from "./library-geometry/note-sticky";
 import { octagonGeometry } from "./library-geometry/octagon";
 import { paperclipGeometry } from "./library-geometry/paperclip";
+import { parallelogramGeometry } from "./library-geometry/parallelogram";
 import { pentagonGeometry } from "./library-geometry/pentagon";
 import { pinGeometry } from "./library-geometry/pin";
 import { powerGeometry } from "./library-geometry/power";
@@ -79,6 +80,7 @@ import { triangleGeometry } from "./library-geometry/triangle";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  parallelogram: parallelogramGeometry,
   octagon: octagonGeometry,
   hexagon: hexagonGeometry,
   pentagon: pentagonGeometry,
