@@ -92,6 +92,7 @@ export type { PortProblem } from "./composition/check-ports";
 export {
   describePortDirection,
   effectivePortDirection,
+  effectivePortDirections,
   inferPortDirection,
   portDirections,
 } from "./composition/ports";

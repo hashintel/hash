@@ -63,7 +63,7 @@ export const endpointUsage = (
 };
 
 /** The part of a net a port's usage is read from. */
-type PortNet = Pick<Subnet, "transitions" | "fusions">;
+export type PortNet = Pick<Subnet, "transitions" | "fusions">;
 
 const untouched: PortUsage = {
   consumed: false,
@@ -127,15 +127,14 @@ export const portUsage = (net: PortNet, placeId: ID): PortUsage =>
   portUsages(net)(placeId);
 
 /**
- * The direction a net's arcs give one of its ports: `in` when only consumed
- * from, `out` when only produced into, `inout` when both. A port no arc
- * moves a token through is `inout`: it is whatever the outside makes of it.
+ * The direction a usage gives a port: `in` when only consumed from, `out`
+ * when only produced into, `inout` when both. A port no arc moves a token
+ * through is `inout`: it is whatever the outside makes of it.
  */
-export const inferPortDirection = (
-  net: PortNet,
-  placeId: ID,
-): PortDirection => {
-  const { consumed, produced } = portUsage(net, placeId);
+const directionOfUsage = ({
+  consumed,
+  produced,
+}: Pick<PortUsage, "consumed" | "produced">): PortDirection => {
   if (consumed && !produced) {
     return "in";
   }
@@ -145,11 +144,43 @@ export const inferPortDirection = (
   return "inout";
 };
 
-/** The direction a port declares, else the one its net's arcs give it. */
+/** The direction a net's arcs give one of its ports: see `directionOfUsage`. */
+export const inferPortDirection = (net: PortNet, placeId: ID): PortDirection =>
+  directionOfUsage(portUsage(net, placeId));
+
+/**
+ * The direction a port declares, else the one its net's arcs give it. Reads
+ * the net's arcs for a port that declares none: a caller with many ports of
+ * one net to ask about calls `effectivePortDirections` once.
+ */
 export const effectivePortDirection = (
   net: PortNet,
   place: Pick<Place, "id" | "portDirection">,
 ): PortDirection => place.portDirection ?? inferPortDirection(net, place.id);
+
+/**
+ * The direction of every port of a net, by the port's id: the one it
+ * declares, else the one the net's arcs give it. The arcs are read once, and
+ * not at all when every port declares its direction.
+ */
+export const effectivePortDirections = (
+  net: PortNet & Pick<Subnet, "places">,
+): Map<ID, PortDirection> => {
+  let usageOf: ((placeId: ID) => PortUsage) | undefined;
+  const directions = new Map<ID, PortDirection>();
+  for (const place of net.places) {
+    if (!place.isPort) {
+      continue;
+    }
+    if (place.portDirection !== undefined) {
+      directions.set(place.id, place.portDirection);
+      continue;
+    }
+    usageOf ??= portUsages(net);
+    directions.set(place.id, directionOfUsage(usageOf(place.id)));
+  }
+  return directions;
+};
 
 /** Whether the subnet's arcs keep the port's declared direction. */
 export const portUsageMatchesDirection = (

@@ -7,7 +7,7 @@
  */
 
 import {
-  effectivePortDirection,
+  effectivePortDirections,
   generateArcId,
   getArcEndpoint,
   getArcEndpointKey,
@@ -36,6 +36,7 @@ import type {
   ProblemSeverity,
   RenderNodeDimensions,
   SDCPN,
+  Subnet,
 } from "@hashintel/petrinaut-core";
 
 export type CanvasPoint = { x: number; y: number };
@@ -282,18 +283,33 @@ export const buildCanvasScene = ({
     });
   }
 
+  // The directions of a subnet's ports are worked out once, however many
+  // instances of it the net holds.
+  const directionsBySubnetId = new Map<
+    string,
+    ReadonlyMap<string, PortDirection>
+  >();
+  const portDirectionsOf = (subnet: Subnet) => {
+    const known = directionsBySubnetId.get(subnet.id);
+    if (known) {
+      return known;
+    }
+    const directions = effectivePortDirections(subnet);
+    directionsBySubnetId.set(subnet.id, directions);
+    return directions;
+  };
+
   for (const instance of net.componentInstances) {
     const subnet = (sdcpn.subnets ?? []).find(
       ({ id }) => id === instance.subnetId,
     );
+    const directions = subnet ? portDirectionsOf(subnet) : undefined;
     const ports = (subnet?.places ?? [])
       .filter((place) => place.isPort)
       .map((place) => ({
         id: place.id,
         name: place.name,
-        direction: subnet
-          ? effectivePortDirection(subnet, place)
-          : ("inout" as const),
+        direction: directions?.get(place.id) ?? ("inout" as const),
       }));
     nodes.push({
       kind: "componentInstance",

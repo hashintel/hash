@@ -2,11 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import {
   effectivePortDirection,
+  effectivePortDirections,
   inferPortDirection,
   portUsageMatchesDirection,
 } from "./ports";
 
-import type { Transition } from "../types/sdcpn";
+import type { Place, Transition } from "../types/sdcpn";
 
 const transition = (
   id: string,
@@ -48,6 +49,59 @@ describe("port directions", () => {
       effectivePortDirection(subnet, { id: "in", portDirection: "inout" }),
     ).toBe("inout");
     expect(effectivePortDirection(subnet, { id: "in" })).toBe("in");
+  });
+
+  it("answers every port of a net at once, declared or inferred, and no other place", () => {
+    const place = (id: string, overrides: Partial<Place> = {}): Place => ({
+      id,
+      name: id,
+      colorId: null,
+      dynamicsEnabled: false,
+      x: 0,
+      y: 0,
+      ...overrides,
+    });
+    const places = [
+      place("in", { isPort: true }),
+      place("out", { isPort: true }),
+      place("pool", { isPort: true, portDirection: "out" }),
+      place("untouched", { isPort: true }),
+      place("inside"),
+    ];
+
+    expect([...effectivePortDirections({ ...subnet, places })]).toEqual([
+      ["in", "in"],
+      ["out", "out"],
+      ["pool", "out"],
+      ["untouched", "inout"],
+    ]);
+    for (const port of places.filter(({ isPort }) => isPort)) {
+      expect(effectivePortDirections({ ...subnet, places }).get(port.id)).toBe(
+        effectivePortDirection(subnet, port),
+      );
+    }
+  });
+
+  it("reads no arc of a net whose ports all declare their direction", () => {
+    const unreadable = {
+      places: [
+        {
+          id: "in",
+          name: "in",
+          colorId: null,
+          dynamicsEnabled: false,
+          x: 0,
+          y: 0,
+          isPort: true,
+          portDirection: "in" as const,
+        },
+      ],
+      get transitions(): Transition[] {
+        throw new Error("The arcs were read.");
+      },
+    };
+
+    expect([...effectivePortDirections(unreadable)]).toEqual([["in", "in"]]);
   });
 
   it("holds a declared direction against the arcs", () => {
