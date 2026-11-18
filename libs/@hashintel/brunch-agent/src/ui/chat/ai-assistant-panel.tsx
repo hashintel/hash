@@ -54,6 +54,7 @@ import {
 
 import { hashPetrinautPrimaryOperation } from "../../hash/petrinaut-tools";
 import { browserToolFacts } from "../../petrinaut/browser-executed-tools";
+import { withRequestInputMode } from "../../shared/request-input-mode";
 import { useTemporaryEditRefusal } from "../temporary-editor-compat";
 import {
   AiAssistantContents,
@@ -590,18 +591,15 @@ interface AiAssistantPanelProps {
   aiAssistant: PetrinautAiAssistant;
   /** The Brunch plugin's `api`: the chat's only way into the editor. */
   api: AiAssistantEditorApi;
-  initialInteractionMode?: PetrinautAiInputMode | null;
+  /** Text from the empty-net prompt, sent as a typed message. */
   initialMessage?: string | null;
-  onInitialInteractionModeConsumed?: () => void;
   onInitialMessageConsumed?: () => void;
 }
 
 const ConversationAiAssistantPanel = ({
   aiAssistant,
   api,
-  initialInteractionMode,
   initialMessage,
-  onInitialInteractionModeConsumed,
   onInitialMessageConsumed,
 }: AiAssistantPanelProps) => {
   // The wrapped AI transport and language client read their latest host values
@@ -705,9 +703,6 @@ const ConversationAiAssistantPanel = ({
     wasOpenRef.current = isAiAssistantOpen;
   }, [isAiAssistantOpen]);
   const queuedVoiceInputRef = useRef<QueuedVoiceInput | null>(null);
-  const consumedInitialInteractionModeRef = useRef<PetrinautAiInputMode | null>(
-    null,
-  );
   const submittedInitialMessageRef = useRef<string | null>(null);
 
   const readDiagnosticsContext = useCallback(
@@ -731,13 +726,18 @@ const ConversationAiAssistantPanel = ({
       sendMessages: async (options) => {
         // The selection the text is about, so "this" in it names what was
         // selected: one captured when a spoken turn ended, else the selection
-        // as the user sends.
+        // as the user sends. Every send, automatic continuations included,
+        // carries the mode the panel holds as it sends.
         const stream = await hostTransportRef.current.sendMessages({
           ...options,
-          body: {
-            [selectionContextKey]: editorRef.current.navigation.get().selection,
-            ...options.body,
-          },
+          body: withRequestInputMode(
+            {
+              [selectionContextKey]:
+                editorRef.current.navigation.get().selection,
+              ...options.body,
+            },
+            interactionModeRef.current,
+          ),
         });
         // The host accepted the message, so a failure of its stream must not
         // offer the message for sending again.
@@ -2458,38 +2458,6 @@ const ConversationAiAssistantPanel = ({
 
   useEffect(() => {
     if (
-      initialInteractionMode === undefined ||
-      initialInteractionMode === null
-    ) {
-      consumedInitialInteractionModeRef.current = null;
-      return;
-    }
-
-    if (
-      !isAiAssistantOpen ||
-      consumedInitialInteractionModeRef.current === initialInteractionMode
-    ) {
-      return;
-    }
-
-    const nextMode =
-      initialInteractionMode === "voice" &&
-      aiAssistant.renderVoiceMode === undefined
-        ? "text"
-        : initialInteractionMode;
-    selectInteractionMode(nextMode);
-    consumedInitialInteractionModeRef.current = initialInteractionMode;
-    onInitialInteractionModeConsumed?.();
-  }, [
-    aiAssistant.renderVoiceMode,
-    initialInteractionMode,
-    isAiAssistantOpen,
-    onInitialInteractionModeConsumed,
-    selectInteractionMode,
-  ]);
-
-  useEffect(() => {
-    if (
       interactionMode === "voice" &&
       aiAssistant.renderVoiceMode === undefined
     ) {
@@ -2520,11 +2488,15 @@ const ConversationAiAssistantPanel = ({
     setStoppedAnchor(null);
     stopRequestedRef.current = false;
 
+    // The prompt is typed, so the panel returns to text. An active Voice
+    // session still ends before the message goes.
+    selectInteractionMode("text");
     submitUserText(trimmedInitialMessage);
   }, [
     initialMessage,
     isAiAssistantOpen,
     onInitialMessageConsumed,
+    selectInteractionMode,
     submitUserText,
   ]);
 

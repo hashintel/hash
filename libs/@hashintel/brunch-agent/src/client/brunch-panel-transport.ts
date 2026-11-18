@@ -11,13 +11,11 @@ import {
   FlueChatAdmissionError,
 } from "@local/flue-aisdk-transport";
 
+import { readRequestInputMode } from "../shared/request-input-mode";
 import { canonicalBrunchFlueAdapter } from "./brunch-flue-adapter";
 import { brunchSubmittedUserMessage } from "./brunch-panel-transport/submitted-user-message";
 
-import type {
-  PetrinautAiComposerSubmitText,
-  PetrinautAiInputMode,
-} from "../ui/chat/ai-assistant-composer-control";
+import type { PetrinautAiComposerSubmitText } from "../ui/chat/ai-assistant-composer-control";
 import type { PetrinautAiChatTransport } from "../ui/chat/petrinaut";
 import type { BrunchFlueAdapter } from "./brunch-flue-adapter";
 import type {
@@ -153,20 +151,6 @@ export class BrunchPanelConversationTracker {
     (event: FlueChatResponseMessageCompletedEvent) => void
   >();
   readonly #stopRequestedListeners = new Set<() => void>();
-  #inputMode: PetrinautAiInputMode | undefined;
-
-  /**
-   * The panel's input surface as reported by Voice, so a text turn sent
-   * during Voice gets the same allowance as the estimate. Undefined until
-   * Voice first mounts, so until then every submission is text.
-   */
-  public get inputMode(): PetrinautAiInputMode | undefined {
-    return this.#inputMode;
-  }
-
-  public recordInputMode(mode: PetrinautAiInputMode): void {
-    this.#inputMode = mode;
-  }
 
   public recordAdmission(admission: BrunchPanelAdmission): void {
     this.#admittedSubmissionIds.add(admission.admission.submissionId);
@@ -414,8 +398,9 @@ export const createBrunchPanelTransport = (
         const readSubmissionContext = (): PetrinautSubmissionContext => {
           const budget = getInterviewBudget(
             options?.interviewBudgetLevel ?? "off",
-            // Voice reports its mode when it mounts, before it can submit.
-            tracker.inputMode ?? "text",
+            // The panel's mode when it sent, so a text turn sent during Voice
+            // gets the same allowance as the estimate.
+            readRequestInputMode(sendOptions.body),
             options?.interviewRepliesAsked ?? 0,
           );
           // An empty context sends an ordinary message, which also clears

@@ -1273,7 +1273,6 @@ describe("assistant selection", () => {
         if (
           !isValidElement<{
             interviewBudgetLevel: string;
-            onInputModeChange?: (mode: "text" | "voice") => void;
           }>(voice)
         )
           throw new Error("Missing Voice control");

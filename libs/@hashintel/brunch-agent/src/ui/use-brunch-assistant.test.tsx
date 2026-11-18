@@ -59,9 +59,6 @@ const brunchFlueAdapterTools = vi.hoisted(() => ({
 const brunchPanelTransportOptions = vi.hoisted(() => ({
   current: undefined as Parameters<typeof createBrunchPanelTransport>[2],
 }));
-const brunchPanelTransportTracker = vi.hoisted(() => ({
-  current: null as BrunchPanelConversationTracker | null,
-}));
 const brunchPanelTransportSessions = vi.hoisted(
   () =>
     [] as {
@@ -112,7 +109,6 @@ vi.mock("../client/brunch-panel-transport", async (importOriginal) => {
       ...args: Parameters<typeof actual.createBrunchPanelTransport>
     ) => {
       brunchPanelTransportOptions.current = args[2];
-      brunchPanelTransportTracker.current = args[1];
       brunchPanelTransportSessions.push({ client: args[0], tracker: args[1] });
       return actual.createBrunchPanelTransport(...args);
     },
@@ -248,7 +244,6 @@ beforeEach(() => {
   mutationApprovalCoordinators.length = 0;
   brunchPanelTransportOptions.current = undefined;
   brunchFlueAdapterTools.current = undefined;
-  brunchPanelTransportTracker.current = null;
   vi.stubGlobal(
     "fetch",
     vi.fn<typeof fetch>(async () => Response.json({ available: false })),
@@ -1264,15 +1259,10 @@ test.each(["standard", "thorough", "off"] as const)(
       if (
         !isValidElement<{
           interviewBudgetLevel: string;
-          onInputModeChange?: (mode: "text" | "voice") => void;
         }>(voice)
       )
         throw new Error("Missing Voice control");
       expect(voice.props.interviewBudgetLevel).toBe(level);
-      voice.props.onInputModeChange?.("voice");
-      expect(brunchPanelTransportTracker.current?.inputMode).toBe("voice");
-      voice.props.onInputModeChange?.("text");
-      expect(brunchPanelTransportTracker.current?.inputMode).toBe("text");
     };
     expectBudget(false);
     rendered.rerender({

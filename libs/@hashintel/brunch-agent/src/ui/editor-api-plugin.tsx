@@ -118,10 +118,6 @@ const useBrunchPlugin: PluginHook<typeof BrunchPlugin> = (api) => {
               api={api}
               initialMessage={promptText}
               onInitialMessageConsumed={() => setPromptText(null)}
-              // Text from the prompt selects text, as the built-in chat's did,
-              // so it never reaches a Voice mode left from an earlier session.
-              initialInteractionMode={promptText === null ? null : "text"}
-              onInitialInteractionModeConsumed={() => setPromptText(null)}
             />
           )}
         </BrunchAssistantContent>

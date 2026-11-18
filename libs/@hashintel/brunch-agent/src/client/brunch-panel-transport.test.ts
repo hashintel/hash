@@ -14,6 +14,7 @@ import {
   FlueChatDisconnectError,
 } from "@local/flue-aisdk-transport";
 
+import { withRequestInputMode } from "../shared/request-input-mode";
 import { createBrunchFlueAdapter } from "./brunch-flue-adapter";
 import {
   BrunchPanelConversationTracker,
@@ -400,11 +401,9 @@ test.each(interviewBudgetLevels)(
     };
     for (const inputMode of ["text", "voice"] as const) {
       for (const asked of [0, 2, 9]) {
-        const tracker = new BrunchPanelConversationTracker();
-        tracker.recordInputMode(inputMode);
         const transport = createBrunchPanelTransport(
           Promise.resolve({ send } as unknown as FlueClient),
-          tracker,
+          new BrunchPanelConversationTracker(),
           {
             initialData,
             interviewBudgetLevel: level,
@@ -417,6 +416,7 @@ test.each(interviewBudgetLevels)(
             chatId: "conversation",
             messageId: undefined,
             abortSignal: undefined,
+            body: withRequestInputMode(undefined, inputMode),
             messages: [
               // Rendered messages can merge steps or include a wrap-up. They
               // are deliberately different from the host's canonical count.
@@ -484,11 +484,9 @@ test.each([
     const send = vi.fn<FlueClient["send"]>(async () => {
       throw new FlueApiError(503, "test admission unavailable");
     });
-    const tracker = new BrunchPanelConversationTracker();
-    tracker.recordInputMode(inputMode);
     const transport = createBrunchPanelTransport(
       Promise.resolve({ send } as unknown as FlueClient),
-      tracker,
+      new BrunchPanelConversationTracker(),
       { interviewBudgetLevel: "standard", interviewRepliesAsked: 1 },
     );
     await expect(
@@ -497,6 +495,7 @@ test.each([
         chatId: "conversation",
         messageId: undefined,
         abortSignal: undefined,
+        body: withRequestInputMode(undefined, inputMode),
         messages: [
           {
             id: "answer",

@@ -38,10 +38,7 @@ import type {
   VoiceProvider,
 } from "../../../shared/voice-settings";
 import type { VoiceWord } from "../../../shared/voice-words";
-import type {
-  PetrinautAiInputMode,
-  PetrinautAiVoiceModeContext,
-} from "../../chat/ai-assistant-composer-control";
+import type { PetrinautAiVoiceModeContext } from "../../chat/ai-assistant-composer-control";
 import type { AgentSendResult, FlueConversationState } from "@flue/sdk";
 import type { InterviewBudgetLevel } from "@hashintel/brunch-agent";
 
@@ -671,7 +668,6 @@ const PinnedVoiceInterviewControl = ({
   interviewBudgetLevel,
   readWords,
   mediationHistory,
-  onInputModeChange,
   toolApprovalState,
   resolveInputSubmission,
   resolveResponseSubmission,
@@ -688,8 +684,6 @@ const PinnedVoiceInterviewControl = ({
   readonly interviewBudgetLevel?: InterviewBudgetLevel;
   readonly readWords?: () => readonly VoiceWord[];
   readonly mediationHistory?: VoiceMediationHistory;
-  /** Mirrors the panel's input surface; reports `text` once Voice unmounts. */
-  readonly onInputModeChange?: (mode: PetrinautAiInputMode) => void;
   readonly toolApprovalState?: (toolCallId: string) => ToolApprovalState | null;
   readonly resolveInputSubmission?: ResolveSubmission;
   readonly resolveResponseSubmission?: ResolveSubmissions;
@@ -712,11 +706,6 @@ const PinnedVoiceInterviewControl = ({
     return pinnedWords.current;
   };
   const [sessionConfig, setSessionConfig] = useState(config);
-  useLayoutEffect(() => {
-    if (!onInputModeChange) return;
-    onInputModeChange(context.inputMode);
-    return () => onInputModeChange("text");
-  }, [context.inputMode, onInputModeChange]);
   if (
     context.inputMode === "text" &&
     (sessionConfig.provider !== config.provider ||
