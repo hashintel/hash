@@ -19,9 +19,9 @@ import {
   type DocumentIndex,
   type ImplementationBinding,
 } from "./interfaces";
-import { describePortDirection, effectivePortDirection } from "./ports";
+import { describePortDirection, effectivePortDirections } from "./ports";
 
-import type { ID, SDCPN, Subnet } from "../types/sdcpn";
+import type { ID, PortDirection, SDCPN, Subnet } from "../types/sdcpn";
 
 export type InterfaceProblemCode =
   | "interface-has-body"
@@ -68,10 +68,27 @@ const reporter =
     problems.push({ kind: "interface", ...on, code, severity, message });
   };
 
-/** Where `implementation` falls short of what `iface` declares. */
+/** `read`, called once at most: what it gives is kept for the calls that follow. */
+const once = <Value>(read: () => Value): (() => Value) => {
+  let kept: { value: Value } | undefined;
+  return () => {
+    kept ??= { value: read() };
+    return kept.value;
+  };
+};
+
+/**
+ * Where `implementation` falls short of what `iface` declares.
+ * `directionsOf` gives the directions of the implementation's ports: a caller
+ * that holds one implementation to many interfaces hands each call the same
+ * one, so the implementation's arcs are read once.
+ */
 export const checkImplementation = (
   implementation: Subnet,
   iface: Subnet,
+  directionsOf: () => ReadonlyMap<ID, PortDirection> = once(() =>
+    effectivePortDirections(implementation),
+  ),
 ): InterfaceProblem[] => {
   const problems: InterfaceProblem[] = [];
   const report = reporter(problems, { subnetId: implementation.id });
@@ -105,7 +122,8 @@ export const checkImplementation = (
     }
     // A port the interface declares two-way, or not at all, accepts any use.
     if (port.portDirection !== undefined && port.portDirection !== "inout") {
-      const effective = effectivePortDirection(implementation, match);
+      const effective =
+        match.portDirection ?? directionsOf().get(match.id) ?? "inout";
       if (effective !== port.portDirection) {
         report(
           "port-direction-mismatch",
@@ -209,10 +227,11 @@ const checkDeclarations = (
     // With no body to run, it is not held to what it says it implements.
     return problems;
   }
+  const directionsOf = once(() => effectivePortDirections(subnet));
   for (const interfaceId of implemented) {
     const iface = subnetsById.get(interfaceId);
     if (iface && isInterface(iface)) {
-      problems.push(...checkImplementation(subnet, iface));
+      problems.push(...checkImplementation(subnet, iface, directionsOf));
     } else {
       report(
         "unknown-interface",

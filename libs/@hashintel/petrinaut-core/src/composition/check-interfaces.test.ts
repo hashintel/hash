@@ -308,6 +308,71 @@ describe("checkInterfaces", () => {
   });
 });
 
+describe("the directions of an implementation's ports", () => {
+  // A thousand ports that declare no direction, under 20,000 arcs that
+  // consume from them.
+  const names = Array.from({ length: 1000 }, (_, index) => `port-${index}`);
+  const wide = (implemented: string[]) =>
+    subnet("wide", {
+      implements: implemented,
+      places: names.map((name) => place(name, { isPort: true })),
+      transitions: Array.from({ length: 20 }, (_, index) =>
+        transition(`take-${index}`, names, []),
+      ),
+    });
+  /** An interface that declares the given ports as inputs. */
+  const inputs = (id: string, ports: string[]) =>
+    subnet(id, {
+      interface: true,
+      places: ports.map((name) =>
+        place(`${id}_${name}`, { name, isPort: true, portDirection: "in" }),
+      ),
+    });
+
+  it("are read off its arcs once, however many ports its interface declares", () => {
+    const sdcpn = net({
+      subnets: [inputs("stage", names), wide(["stage"])],
+    });
+
+    const started = Date.now();
+    const problems = checkInterfaces(sdcpn);
+    const elapsed = Date.now() - started;
+
+    expect(problems).toEqual([]);
+    expect(elapsed).toBeLessThan(1_000);
+  });
+
+  it("are read off its arcs once, however many interfaces it implements", () => {
+    const stages = names.map((name) => inputs(`stage_${name}`, [name]));
+    const sdcpn = net({
+      subnets: [...stages, wide(stages.map(({ id }) => id))],
+    });
+
+    const started = Date.now();
+    const problems = checkInterfaces(sdcpn);
+    const elapsed = Date.now() - started;
+
+    expect(problems).toEqual([]);
+    expect(elapsed).toBeLessThan(1_000);
+  });
+
+  it("are held against what each interface declares", () => {
+    const outputs = subnet("outputs", {
+      interface: true,
+      places: [
+        place("out_0", { name: "port-0", isPort: true, portDirection: "out" }),
+      ],
+    });
+    const sdcpn = net({
+      subnets: [inputs("stage", names), outputs, wide(["stage", "outputs"])],
+    });
+
+    expect(checkInterfaces(sdcpn)).toMatchObject([
+      { subnetId: "wide", code: "port-direction-mismatch" },
+    ]);
+  });
+});
+
 describe("a component that runs inside itself", () => {
   it("is reported on the instance that closes the loop, through a binding or not", () => {
     // The decorator shape: an implementation that wraps an instance of its
