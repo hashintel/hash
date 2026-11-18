@@ -13923,7 +13923,7 @@
       "name": "CircleHalfStrokeIcon",
       "line": 5,
       "key": "circlehalfstroke",
-      "target": "pieChart",
+      "target": "circleHalf",
       "classification": "mapped"
     },
     {
@@ -14512,7 +14512,7 @@
       "name": "FireFlameCurved",
       "line": 5,
       "key": "fireflamecurved",
-      "target": "flag",
+      "target": "flame",
       "classification": "mapped",
       "reason": "Despite its old component name, the existing drawing is a notched flag."
     },
@@ -15971,7 +15971,7 @@
       "name": "ToolboxLightIcon",
       "line": 5,
       "key": "toolbox",
-      "target": "briefcase",
+      "target": "toolbox",
       "classification": "mapped"
     },
     {
@@ -15982,7 +15982,7 @@
       "name": "ToolsIcon",
       "line": 5,
       "key": "tools",
-      "target": "pencilRuler",
+      "target": "tools",
       "classification": "mapped"
     },
     {
@@ -16738,7 +16738,7 @@
       "name": "CircleHalfStrokeRegularIcon",
       "line": 5,
       "key": "circlehalfstroke",
-      "target": "pieChart",
+      "target": "circleHalf",
       "classification": "mapped"
     },
     {
@@ -16749,7 +16749,7 @@
       "name": "CircleThreeQuartersStrokeSolidIcon",
       "line": 5,
       "key": "circlethreequartersstroke",
-      "target": "pieChart",
+      "target": "circleThreeQuarters",
       "classification": "mapped"
     },
     {
@@ -16878,7 +16878,7 @@
       "name": "ScrewdriverWrenchLightIcon",
       "line": 5,
       "key": "screwdriverwrench",
-      "target": "pencilRuler",
+      "target": "tools",
       "classification": "mapped"
     },
     {
@@ -16944,7 +16944,7 @@
       "name": "WindLightIcon",
       "line": 5,
       "key": "wind",
-      "target": "waves",
+      "target": "wind",
       "classification": "mapped"
     },
     {
@@ -17385,8 +17385,8 @@
       "name": "BoxIcon",
       "line": 4,
       "key": "box",
-      "target": "box",
-      "classification": "mapped"
+      "classification": "brand",
+      "reason": "The Box service wordmark is an identity mark, not a package icon."
     },
     {
       "repo": "sites",
@@ -18334,6 +18334,1266 @@
       "key": "harpcicon",
       "target": null,
       "classification": "brand"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-down.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-down.svg",
+      "name": "arrow-down",
+      "classification": "mapped",
+      "target": "arrowDown"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-left.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-left.svg",
+      "name": "arrow-left",
+      "classification": "mapped",
+      "target": "arrowLeft"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-right.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-right.svg",
+      "name": "arrow-right",
+      "classification": "mapped",
+      "target": "arrowRight"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-trend-down.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-trend-down.svg",
+      "name": "arrow-trend-down",
+      "classification": "mapped",
+      "target": "arrowTrendDown"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-trend-up.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-trend-up.svg",
+      "name": "arrow-trend-up",
+      "classification": "mapped",
+      "target": "arrowTrendUp"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-up.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-up.svg",
+      "name": "arrow-up",
+      "classification": "mapped",
+      "target": "arrowUp"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-up-right.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-up-right.svg",
+      "name": "arrow-up-right",
+      "classification": "mapped",
+      "target": "arrowUpRight"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-right-arrow-left.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-right-arrow-left.svg",
+      "name": "arrow-right-arrow-left",
+      "classification": "mapped",
+      "target": "arrowsLeftRight"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/asterisk.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/asterisk.svg",
+      "name": "asterisk",
+      "classification": "mapped",
+      "target": "asterisk"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/at.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/at.svg",
+      "name": "at",
+      "classification": "mapped",
+      "target": "at"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/barcode.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/barcode.svg",
+      "name": "barcode",
+      "classification": "mapped",
+      "target": "barcode"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/bars.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/bars.svg",
+      "name": "bars",
+      "classification": "mapped",
+      "target": "menu"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/bell.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/bell.svg",
+      "name": "bell",
+      "classification": "mapped",
+      "target": "bell"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/brackets-curly.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/brackets-curly.svg",
+      "name": "brackets-curly",
+      "classification": "mapped",
+      "target": "bracketsCurly"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/brackets-square.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/brackets-square.svg",
+      "name": "brackets-square",
+      "classification": "mapped",
+      "target": "bracketsSquare"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/bug.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/bug.svg",
+      "name": "bug",
+      "classification": "mapped",
+      "target": "bug"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/light/bullseye.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/light/bullseye.svg",
+      "name": "bullseye",
+      "classification": "mapped",
+      "target": "bullseye"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/calendar.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/calendar.svg",
+      "name": "calendar",
+      "classification": "mapped",
+      "target": "calendar"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/calendar-clock.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/calendar-clock.svg",
+      "name": "calendar-clock",
+      "classification": "mapped",
+      "target": "calendarClock"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/caret-down.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/caret-down.svg",
+      "name": "caret-down",
+      "classification": "mapped",
+      "target": "chevronDown"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/chart-column.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/chart-column.svg",
+      "name": "chart-column",
+      "classification": "mapped",
+      "target": "chartBarSimple"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/chart-simple.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/chart-simple.svg",
+      "name": "chart-simple",
+      "classification": "mapped",
+      "target": "chartBarSimple"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/chart-line.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/chart-line.svg",
+      "name": "chart-line",
+      "classification": "mapped",
+      "target": "chartLine"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/check.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/check.svg",
+      "name": "check",
+      "classification": "mapped",
+      "target": "check"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/chevron-down.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/chevron-down.svg",
+      "name": "chevron-down",
+      "classification": "mapped",
+      "target": "chevronDown"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/chevron-down.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/chevron-down.svg",
+      "name": "chevron-down",
+      "classification": "mapped",
+      "target": "chevronDown"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/chevron-left.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/chevron-left.svg",
+      "name": "chevron-left",
+      "classification": "mapped",
+      "target": "chevronLeft"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/chevron-left.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/chevron-left.svg",
+      "name": "chevron-left",
+      "classification": "mapped",
+      "target": "chevronLeft"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/chevron-right.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/chevron-right.svg",
+      "name": "chevron-right",
+      "classification": "mapped",
+      "target": "chevronRight"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/chevron-right.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/chevron-right.svg",
+      "name": "chevron-right",
+      "classification": "mapped",
+      "target": "chevronRight"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/chevron-up.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/chevron-up.svg",
+      "name": "chevron-up",
+      "classification": "mapped",
+      "target": "chevronUp"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/chevron-up.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/chevron-up.svg",
+      "name": "chevron-up",
+      "classification": "mapped",
+      "target": "chevronUp"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/circle.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/circle.svg",
+      "name": "circle",
+      "classification": "mapped",
+      "target": "place"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/circle.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/circle.svg",
+      "name": "circle",
+      "classification": "mapped",
+      "target": "place"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/circle-check.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/circle-check.svg",
+      "name": "circle-check",
+      "classification": "mapped",
+      "target": "circleCheck"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/circle-x.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/circle-x.svg",
+      "name": "circle-x",
+      "classification": "mapped",
+      "target": "circleClose"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/circle-ellipsis.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/circle-ellipsis.svg",
+      "name": "circle-ellipsis",
+      "classification": "mapped",
+      "target": "circleEllipsis"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/circle-1.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/circle-1.svg",
+      "name": "circle-1",
+      "classification": "mapped",
+      "target": "circleOne"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/circle-plus.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/circle-plus.svg",
+      "name": "circle-plus",
+      "classification": "mapped",
+      "target": "addPlace"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/clock.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/clock.svg",
+      "name": "clock",
+      "classification": "mapped",
+      "target": "clock"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/clock-rotate-left.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/clock-rotate-left.svg",
+      "name": "clock-rotate-left",
+      "classification": "mapped",
+      "target": "clockRotateLeft"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/xmark.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/xmark.svg",
+      "name": "xmark",
+      "classification": "mapped",
+      "target": "close"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/code.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/code.svg",
+      "name": "code",
+      "classification": "mapped",
+      "target": "code"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-down-left-and-arrow-up-right-to-center.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-down-left-and-arrow-up-right-to-center.svg",
+      "name": "arrow-down-left-and-arrow-up-right-to-center",
+      "classification": "mapped",
+      "target": "collapse"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/copy.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/copy.svg",
+      "name": "copy",
+      "classification": "mapped",
+      "target": "copy"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/cube.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/cube.svg",
+      "name": "cube",
+      "classification": "mapped",
+      "target": "cube"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/cubes.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/cubes.svg",
+      "name": "cubes",
+      "classification": "mapped",
+      "target": "cubes"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-pointer.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-pointer.svg",
+      "name": "arrow-pointer",
+      "classification": "mapped",
+      "target": "cursor"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/minus.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/minus.svg",
+      "name": "minus",
+      "classification": "mapped",
+      "target": "minus"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/diagram-nested.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/diagram-nested.svg",
+      "name": "diagram-nested",
+      "classification": "mapped",
+      "target": "diagramNested"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/diagram-project.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/diagram-project.svg",
+      "name": "diagram-project",
+      "classification": "mapped",
+      "target": "diagramProject"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/diagram-subtask.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/diagram-subtask.svg",
+      "name": "diagram-subtask",
+      "classification": "mapped",
+      "target": "diagramSubtask"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/circle-nodes.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/circle-nodes.svg",
+      "name": "circle-nodes",
+      "classification": "mapped",
+      "target": "diagramNodes"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/diamond-exclamation.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/diamond-exclamation.svg",
+      "name": "diamond-exclamation",
+      "classification": "mapped",
+      "target": "diamondExclamation"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/download.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/download.svg",
+      "name": "download",
+      "classification": "mapped",
+      "target": "download"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/pen-to-square.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/pen-to-square.svg",
+      "name": "pen-to-square",
+      "classification": "mapped",
+      "target": "pencil"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/ellipsis.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/ellipsis.svg",
+      "name": "ellipsis",
+      "classification": "mapped",
+      "target": "ellipsis"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/ellipsis-vertical.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/ellipsis-vertical.svg",
+      "name": "ellipsis-vertical",
+      "classification": "mapped",
+      "target": "ellipsisVertical"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/empty-set.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/empty-set.svg",
+      "name": "empty-set",
+      "classification": "mapped",
+      "target": "emptySet"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/circle-exclamation.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/circle-exclamation.svg",
+      "name": "circle-exclamation",
+      "classification": "mapped",
+      "target": "error"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-up-right-and-arrow-down-left-from-center.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-up-right-and-arrow-down-left-from-center.svg",
+      "name": "arrow-up-right-and-arrow-down-left-from-center",
+      "classification": "mapped",
+      "target": "fitView"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-up-right-from-square.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-up-right-from-square.svg",
+      "name": "arrow-up-right-from-square",
+      "classification": "mapped",
+      "target": "externalLink"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/eye.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/eye.svg",
+      "name": "eye",
+      "classification": "mapped",
+      "target": "eye"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/eye-slash.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/eye-slash.svg",
+      "name": "eye-slash",
+      "classification": "mapped",
+      "target": "eyeSlash"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/feather.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/feather.svg",
+      "name": "feather",
+      "classification": "mapped",
+      "target": "feather"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/file.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/file.svg",
+      "name": "file",
+      "classification": "mapped",
+      "target": "file"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/file-lines.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/file-lines.svg",
+      "name": "file-lines",
+      "classification": "mapped",
+      "target": "fileLines"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/file-spreadsheet.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/file-spreadsheet.svg",
+      "name": "file-spreadsheet",
+      "classification": "mapped",
+      "target": "fileSpreadsheet"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/filter.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/filter.svg",
+      "name": "filter",
+      "classification": "mapped",
+      "target": "filter"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/flask.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/flask.svg",
+      "name": "flask",
+      "classification": "mapped",
+      "target": "flask"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/function.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/function.svg",
+      "name": "function",
+      "classification": "mapped",
+      "target": "function"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/gear.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/gear.svg",
+      "name": "gear",
+      "classification": "mapped",
+      "target": "settings"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/grid-2.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/grid-2.svg",
+      "name": "grid-2",
+      "classification": "mapped",
+      "target": "grid"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/grip-vertical.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/grip-vertical.svg",
+      "name": "grip-vertical",
+      "classification": "mapped",
+      "target": "gripVertical"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/hand.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/hand.svg",
+      "name": "hand",
+      "classification": "mapped",
+      "target": "hand"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/image.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/image.svg",
+      "name": "image",
+      "classification": "mapped",
+      "target": "image"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/infinity.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/infinity.svg",
+      "name": "infinity",
+      "classification": "mapped",
+      "target": "infinity"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/circle-info.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/circle-info.svg",
+      "name": "circle-info",
+      "classification": "mapped",
+      "target": "info"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/input-pipe.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/input-pipe.svg",
+      "name": "input-pipe",
+      "classification": "mapped",
+      "target": "inputPipe"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/lambda.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/lambda.svg",
+      "name": "lambda",
+      "classification": "mapped",
+      "target": "lambda"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/layer.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/layer.svg",
+      "name": "layer",
+      "classification": "mapped",
+      "target": "layer"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/lightbulb-on.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/lightbulb-on.svg",
+      "name": "lightbulb-on",
+      "classification": "mapped",
+      "target": "lightbulbOn"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/bolt.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/bolt.svg",
+      "name": "bolt",
+      "classification": "mapped",
+      "target": "lightning"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/list.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/list.svg",
+      "name": "list",
+      "classification": "mapped",
+      "target": "list"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/list-tree.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/list-tree.svg",
+      "name": "list-tree",
+      "classification": "mapped",
+      "target": "listTree"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/unlock-keyhole.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/unlock-keyhole.svg",
+      "name": "unlock-keyhole",
+      "classification": "mapped",
+      "target": "lockOpen"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/lock-keyhole.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/lock-keyhole.svg",
+      "name": "lock-keyhole",
+      "classification": "mapped",
+      "target": "lockClosed"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/wand-magic-sparkles.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/wand-magic-sparkles.svg",
+      "name": "wand-magic-sparkles",
+      "classification": "mapped",
+      "target": "magic"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/memo-circle-check.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/memo-circle-check.svg",
+      "name": "memo-circle-check",
+      "classification": "mapped",
+      "target": "memoCircleCheck"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/microscope.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/microscope.svg",
+      "name": "microscope",
+      "classification": "mapped",
+      "target": "microscope"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/100.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/100.svg",
+      "name": "100",
+      "classification": "mapped",
+      "target": "oneHundred"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/pause.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/pause.svg",
+      "name": "pause",
+      "classification": "mapped",
+      "target": "pause"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/pause.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/pause.svg",
+      "name": "pause",
+      "classification": "mapped",
+      "target": "pause"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/pen.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/pen.svg",
+      "name": "pen",
+      "classification": "mapped",
+      "target": "pencil"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/person-running.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/person-running.svg",
+      "name": "person-running",
+      "classification": "mapped",
+      "target": "personRunning"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/play.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/play.svg",
+      "name": "play",
+      "classification": "mapped",
+      "target": "play"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/play.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/play.svg",
+      "name": "play",
+      "classification": "mapped",
+      "target": "play"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/plug.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/plug.svg",
+      "name": "plug",
+      "classification": "mapped",
+      "target": "plug"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/plus.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/plus.svg",
+      "name": "plus",
+      "classification": "mapped",
+      "target": "plus"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/print.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/print.svg",
+      "name": "print",
+      "classification": "mapped",
+      "target": "print"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/puzzle-piece.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/puzzle-piece.svg",
+      "name": "puzzle-piece",
+      "classification": "mapped",
+      "target": "puzzlePiece"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrows-rotate.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrows-rotate.svg",
+      "name": "arrows-rotate",
+      "classification": "mapped",
+      "target": "rotate"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-right-to-line.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-right-to-line.svg",
+      "name": "arrow-right-to-line",
+      "classification": "mapped",
+      "target": "rightToLine"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/rotate.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/rotate.svg",
+      "name": "rotate",
+      "classification": "mapped",
+      "target": "rotate"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-rotate-left.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-rotate-left.svg",
+      "name": "arrow-rotate-left",
+      "classification": "mapped",
+      "target": "reset"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/ruler.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/ruler.svg",
+      "name": "ruler",
+      "classification": "mapped",
+      "target": "ruler"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/scribble.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/scribble.svg",
+      "name": "scribble",
+      "classification": "mapped",
+      "target": "scribble"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/magnifying-glass.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/magnifying-glass.svg",
+      "name": "magnifying-glass",
+      "classification": "mapped",
+      "target": "search"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/shapes.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/shapes.svg",
+      "name": "shapes",
+      "classification": "mapped",
+      "target": "shapes"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/sidebar.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/sidebar.svg",
+      "name": "sidebar",
+      "classification": "mapped",
+      "target": "sidebar"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/forward-step.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/forward-step.svg",
+      "name": "forward-step",
+      "classification": "mapped",
+      "target": "stepForward"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/forward-step.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/forward-step.svg",
+      "name": "forward-step",
+      "classification": "mapped",
+      "target": "stepForward"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/sliders.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/sliders.svg",
+      "name": "sliders",
+      "classification": "mapped",
+      "target": "parameter"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-down-wide-short.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-down-wide-short.svg",
+      "name": "arrow-down-wide-short",
+      "classification": "mapped",
+      "target": "sortDown"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/sort-alpha-asc.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/sort-alpha-asc.svg",
+      "name": "sort-alpha-asc",
+      "classification": "mapped",
+      "target": "sortDownAlphabetical"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/sort-numeric-asc.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/sort-numeric-asc.svg",
+      "name": "sort-numeric-asc",
+      "classification": "mapped",
+      "target": "sortDownNumeric"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-up-wide-short.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-up-wide-short.svg",
+      "name": "arrow-up-wide-short",
+      "classification": "mapped",
+      "target": "sortUp"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/sort-alpha-up.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/sort-alpha-up.svg",
+      "name": "sort-alpha-up",
+      "classification": "mapped",
+      "target": "sortUpAlphabetical"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/sort-numeric-up.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/sort-numeric-up.svg",
+      "name": "sort-numeric-up",
+      "classification": "mapped",
+      "target": "sortUpNumeric"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/sparkles.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/sparkles.svg",
+      "name": "sparkles",
+      "classification": "mapped",
+      "target": "sparkles"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/square.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/square.svg",
+      "name": "square",
+      "classification": "mapped",
+      "target": "transition"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/stop.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/stop.svg",
+      "name": "stop",
+      "classification": "mapped",
+      "target": "transition"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/square-check.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/square-check.svg",
+      "name": "square-check",
+      "classification": "mapped",
+      "target": "squareCheck"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/square-plus.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/square-plus.svg",
+      "name": "square-plus",
+      "classification": "mapped",
+      "target": "addTransition"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/star.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/star.svg",
+      "name": "star",
+      "classification": "mapped",
+      "target": "star"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/star.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/star.svg",
+      "name": "star",
+      "classification": "mapped",
+      "target": "star"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/light/table.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/light/table.svg",
+      "name": "table",
+      "classification": "mapped",
+      "target": "table"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/terminal.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/terminal.svg",
+      "name": "terminal",
+      "classification": "mapped",
+      "target": "terminal"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/text.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/text.svg",
+      "name": "text",
+      "classification": "mapped",
+      "target": "text"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/thought-bubble.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/thought-bubble.svg",
+      "name": "thought-bubble",
+      "classification": "mapped",
+      "target": "thoughtBubble"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/circles-overlap-3.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/circles-overlap-3.svg",
+      "name": "circles-overlap-3",
+      "classification": "mapped",
+      "target": "tokenType"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/trash-can.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/trash-can.svg",
+      "name": "trash-can",
+      "classification": "mapped",
+      "target": "trash"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/truck.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/truck.svg",
+      "name": "truck",
+      "classification": "mapped",
+      "target": "truck"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/user.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/user.svg",
+      "name": "user",
+      "classification": "mapped",
+      "target": "user"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/user-plus.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/user-plus.svg",
+      "name": "user-plus",
+      "classification": "mapped",
+      "target": "userPlus"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/triangle-exclamation.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/triangle-exclamation.svg",
+      "name": "triangle-exclamation",
+      "classification": "mapped",
+      "target": "warning"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/magnifying-glass-plus.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/magnifying-glass-plus.svg",
+      "name": "magnifying-glass-plus",
+      "classification": "mapped",
+      "target": "zoomIn"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/magnifying-glass-minus.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/magnifying-glass-minus.svg",
+      "name": "magnifying-glass-minus",
+      "classification": "mapped",
+      "target": "zoomOut"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/angle-right.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/angle-right.svg",
+      "name": "angle-right",
+      "classification": "mapped",
+      "target": "chevronRight"
+    },
+    {
+      "repo": "hash",
+      "kind": "asset",
+      "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/trash.svg",
+      "source": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/trash.svg",
+      "name": "trash",
+      "classification": "mapped",
+      "target": "trash"
     },
     {
       "repo": "hash",
