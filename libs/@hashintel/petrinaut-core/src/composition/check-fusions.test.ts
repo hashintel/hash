@@ -650,6 +650,41 @@ describe("token flow through fused ports", () => {
     expect(checkFusions(sdcpn)).toEqual([]);
   });
 
+  it("reads a subnet's arcs once for its fused ports that declare no direction, however many", () => {
+    // A thousand ports that declare no direction, under 20,000 arcs that
+    // consume from them.
+    const ports = Array.from({ length: 1000 }, (_, index) =>
+      place(`port-${index}`, { isPort: true }),
+    );
+    const portIds = ports.map(({ id }) => id);
+    const wide = subnet("wide", {
+      places: ports,
+      transitions: Array.from({ length: 20 }, (_, index) =>
+        transition(`take-${index}`, portIds, []),
+      ),
+    });
+    const sdcpn = net({
+      subnets: [wide],
+      componentInstances: [instance("w1", "wide"), instance("w2", "wide")],
+      fusions: portIds.map((id) => ({
+        id: `fusion-${id}`,
+        name: id,
+        members: [portOf("w1", id), portOf("w2", id)],
+      })),
+    });
+
+    const started = Date.now();
+    const problems = checkFusions(sdcpn);
+    const elapsed = Date.now() - started;
+
+    // Each fused place is consumed from on both sides, and never filled.
+    expect(problems).toHaveLength(portIds.length);
+    expect(new Set(problems.map(({ code }) => code))).toEqual(
+      new Set(["no-producer"]),
+    );
+    expect(elapsed).toBeLessThan(1000);
+  });
+
   it("tags fusion and port problems by kind", () => {
     const sdcpn = net({
       subnets: [

@@ -23,7 +23,12 @@ import {
   type FusionNet,
   type ResolvedFusionMember,
 } from "./fusions";
-import { endpointUsage, portUsage } from "./ports";
+import {
+  endpointUsage,
+  portUsages,
+  type PortNet,
+  type PortUsage,
+} from "./ports";
 
 import type {
   ArcEndpoint,
@@ -82,13 +87,42 @@ type CheckedNet = FusionNet & Pick<SDCPN, "types" | "transitions">;
 type TokenFlow = { produced: boolean; consumed: boolean };
 
 /**
+ * What a check of many fusions reads once, whatever their number. Without
+ * one, `checkFusion` reads it for the fusion it is given.
+ */
+export type FusionCheckPass = {
+  /**
+   * How a net's own transitions touch its ports. `netId` names the net: the
+   * id of a subnet, `null` for the root net. Of two subnets with one id the
+   * first asked about is read, as a search of the document finds it.
+   */
+  portUsagesOf: (netId: ID | null, net: PortNet) => (placeId: ID) => PortUsage;
+};
+
+export const fusionCheckPass = (): FusionCheckPass => {
+  const usagesByNetId = new Map<ID | null, (placeId: ID) => PortUsage>();
+  return {
+    portUsagesOf: (netId, net) => {
+      const known = usagesByNetId.get(netId);
+      if (known) {
+        return known;
+      }
+      const usageOf = portUsages(net);
+      usagesByNetId.set(netId, usageOf);
+      return usageOf;
+    },
+  };
+};
+
+/**
  * What a net does with one of its own ports: what the port declares, else
  * what the net's arcs move through it. A port no transition touches passes
  * tokens through, so it counts as both.
  */
 const ownPortFlow = (
-  net: Pick<Subnet, "transitions" | "fusions">,
   port: Pick<Place, "id" | "portDirection">,
+  /** How the port's net touches its ports: asked for a port that declares no direction. */
+  usagesOfNet: () => (placeId: ID) => PortUsage,
 ): TokenFlow => {
   if (port.portDirection !== undefined) {
     return {
@@ -96,7 +130,7 @@ const ownPortFlow = (
       consumed: port.portDirection !== "out",
     };
   }
-  const { touched, ...flow } = portUsage(net, port.id);
+  const { touched, ...flow } = usagesOfNet()(port.id);
   return touched ? flow : { produced: true, consumed: true };
 };
 
@@ -108,15 +142,21 @@ const ownPortFlow = (
  */
 const farSideFlow = (
   net: CheckedNet,
+  subnetId: ID | null,
   resolved: ResolvedFusionMember,
+  pass: FusionCheckPass,
 ): TokenFlow => {
   if (resolved.kind === "port") {
-    return ownPortFlow(resolved.subnet, resolved.place);
+    return ownPortFlow(resolved.place, () =>
+      pass.portUsagesOf(resolved.subnet.id, resolved.subnet),
+    );
   }
   if (!resolved.place.isPort) {
     return { produced: false, consumed: false };
   }
-  const own = ownPortFlow(net, resolved.place);
+  const own = ownPortFlow(resolved.place, () =>
+    pass.portUsagesOf(subnetId, net),
+  );
   return { produced: own.consumed, consumed: own.produced };
 };
 
@@ -133,6 +173,7 @@ const factsFor = (
   subnetId: ID | null,
   member: ArcEndpoint,
   resolved: ResolvedFusionMember,
+  pass: FusionCheckPass,
 ): Omit<MemberFacts, "label"> => {
   const { place } = resolved;
   const types = resolved.kind === "place" ? net.types : resolved.subnet.types;
@@ -141,7 +182,7 @@ const factsFor = (
     resolved.kind === "place" ? subnetId : resolved.subnet.id;
   const equationIds = getRunningEquationIds(place);
   const outside = endpointUsage(net.transitions, member);
-  const inside = farSideFlow(net, resolved);
+  const inside = farSideFlow(net, subnetId, resolved, pass);
   return {
     color: place.colorId
       ? types.find(({ id }) => id === place.colorId)
@@ -174,12 +215,16 @@ const transitionsReachingTwice = (
   });
 };
 
-/** The problems with one fusion of `net`. */
+/**
+ * The problems with one fusion of `net`. A caller that checks many fusions
+ * of one document hands each call the same `pass`.
+ */
 export const checkFusion = (
   sdcpn: Pick<SDCPN, "subnets">,
   net: CheckedNet,
   fusion: Fusion,
   subnetId: ID | null,
+  pass: FusionCheckPass = fusionCheckPass(),
 ): FusionProblem[] => {
   const problems: FusionProblem[] = [];
   const fusionName = `the fusion ${fusion.name}`;
@@ -226,7 +271,10 @@ export const checkFusion = (
       );
       continue;
     }
-    facts.push({ label, ...factsFor(net, subnetId, member, resolved) });
+    facts.push({
+      label,
+      ...factsFor(net, subnetId, member, resolved, pass),
+    });
   }
   if (multipleAnchors) {
     report(
@@ -295,18 +343,22 @@ const checkNetFusions = (
   sdcpn: SDCPN,
   net: SDCPN | Subnet,
   subnetId: ID | null,
+  pass: FusionCheckPass,
 ): FusionProblem[] =>
   (net.fusions ?? []).flatMap((fusion) =>
-    checkFusion(sdcpn, net, fusion, subnetId),
+    checkFusion(sdcpn, net, fusion, subnetId, pass),
   );
 
 /** The problems with every fusion of the document, root first. */
-export const checkFusions = (sdcpn: SDCPN): FusionProblem[] => [
-  ...checkNetFusions(sdcpn, sdcpn, null),
-  ...(sdcpn.subnets ?? []).flatMap((subnet) =>
-    checkNetFusions(sdcpn, subnet, subnet.id),
-  ),
-];
+export const checkFusions = (sdcpn: SDCPN): FusionProblem[] => {
+  const pass = fusionCheckPass();
+  return [
+    ...checkNetFusions(sdcpn, sdcpn, null, pass),
+    ...(sdcpn.subnets ?? []).flatMap((subnet) =>
+      checkNetFusions(sdcpn, subnet, subnet.id, pass),
+    ),
+  ];
+};
 
 export type CompositionProblem =
   | ({ kind: "fusion" } & FusionProblem)
