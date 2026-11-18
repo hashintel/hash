@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  telescope:
+    "An angled viewing tube represents distant observation or exploration.",
   binoculars: "Paired viewing lenses represent observation or discovery.",
   mortarPestle:
     "A grinding bowl and pestle represent pharmacy or material preparation.",

@@ -269,6 +269,7 @@ import { strikethroughGeometry } from "./library-geometry/strikethrough";
 import { sunGeometry } from "./library-geometry/sun";
 import { sunMoonGeometry } from "./library-geometry/sun-moon";
 import { tagGeometry } from "./library-geometry/tag";
+import { telescopeGeometry } from "./library-geometry/telescope";
 import { testTubesGeometry } from "./library-geometry/test-tubes";
 import { textAlignCenterGeometry } from "./library-geometry/text-align-center";
 import { textAlignJustifyGeometry } from "./library-geometry/text-align-justify";
@@ -303,6 +304,7 @@ import { wavePulseGeometry } from "./library-geometry/wave-pulse";
 import { wavesGeometry } from "./library-geometry/waves";
 
 export const libraryGeometry = {
+  telescope: telescopeGeometry,
   binoculars: binocularsGeometry,
   mortarPestle: mortarPestleGeometry,
   flaskVial: flaskVialGeometry,
