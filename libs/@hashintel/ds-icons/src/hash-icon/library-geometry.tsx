@@ -187,6 +187,7 @@ import { rectangleGeometry } from "./library-geometry/rectangle";
 import { rectanglesMixedGeometry } from "./library-geometry/rectangles-mixed";
 import { redoGeometry } from "./library-geometry/redo";
 import { roundedCornerGeometry } from "./library-geometry/rounded-corner";
+import { routeGeometry } from "./library-geometry/route";
 import { rowsGeometry } from "./library-geometry/rows";
 import { sadGeometry } from "./library-geometry/sad";
 import { scanLineGeometry } from "./library-geometry/scan-line";
@@ -246,6 +247,7 @@ import { usersGeometry } from "./library-geometry/users";
 import { warehouseGeometry } from "./library-geometry/warehouse";
 
 export const libraryGeometry = {
+  route: routeGeometry,
   globeStand: globeStandGeometry,
   globePointer: globePointerGeometry,
   globeNodes: globeNodesGeometry,

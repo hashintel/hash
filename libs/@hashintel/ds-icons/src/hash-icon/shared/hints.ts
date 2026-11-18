@@ -20,6 +20,7 @@ export type HashIconHint =
   | "up";
 
 export const hashIconHints = {
+  route: "lift",
   globeStand: "lift",
   globePointer: "lift",
   globeNodes: "lift",
