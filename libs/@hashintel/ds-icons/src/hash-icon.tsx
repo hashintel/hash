@@ -475,6 +475,7 @@ export const ExpandDiagonalIcon = createIcon("expandDiagonal");
 export const CollapseVerticalIcon = createIcon("collapseVertical");
 export const RedoIcon = createIcon("redo");
 export const ShuffleIcon = createIcon("shuffle");
+export const ArrowPointerIcon = createIcon("arrowPointer");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -660,6 +661,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  arrowPointer: ArrowPointerIcon,
   shuffle: ShuffleIcon,
   redo: RedoIcon,
   collapseVertical: CollapseVerticalIcon,

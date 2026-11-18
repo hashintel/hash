@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  arrowPointer: "A directional pointer represents a heading or location.",
   shuffle: "Crossing arrows represent shuffling or rearranging an order.",
   redo: "A returning arrow pointing right represents redoing an action.",
   collapseVertical:

@@ -1,4 +1,5 @@
 import { archiveGeometry } from "./library-geometry/archive";
+import { arrowPointerGeometry } from "./library-geometry/arrow-pointer";
 import { arrowProgressGeometry } from "./library-geometry/arrow-progress";
 import { arrowTurnDownLeftGeometry } from "./library-geometry/arrow-turn-down-left";
 import { arrowTurnDownRightGeometry } from "./library-geometry/arrow-turn-down-right";
@@ -50,6 +51,7 @@ import { shuffleGeometry } from "./library-geometry/shuffle";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  arrowPointer: arrowPointerGeometry,
   shuffle: shuffleGeometry,
   redo: redoGeometry,
   collapseVertical: collapseVerticalGeometry,
