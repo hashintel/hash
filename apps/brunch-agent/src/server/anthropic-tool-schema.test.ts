@@ -40,7 +40,7 @@ vi.mock("@flue/runtime", async (importOriginal) => ({
 }));
 
 /** A schema the former `{ type, properties, required }` collapse would truncate. */
-const placeSchema = {
+const placeJsonSchema = {
   type: "object",
   description: "Petri net places, by reference.",
   $defs: {
@@ -64,14 +64,14 @@ const placeSchema = {
 const construct: Tool = {
   name: "construct",
   description: "Construct places.",
-  parameters: placeSchema,
+  parameters: placeJsonSchema,
 };
 const constructRedefined: Tool = {
   name: "construct",
   description: "Construct places, with a label.",
   parameters: {
-    ...placeSchema,
-    properties: { ...placeSchema.properties, label: { type: "string" } },
+    ...placeJsonSchema,
+    properties: { ...placeJsonSchema.properties, label: { type: "string" } },
   },
 };
 const record: Tool = {

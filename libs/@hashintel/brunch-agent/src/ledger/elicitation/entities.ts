@@ -3,18 +3,18 @@ import * as v from "valibot";
 import {
   epistemicFieldsWith,
   resolveStatus,
-  vOrigin,
-  vStatus,
+  originSchema,
+  statusSchema,
 } from "../shared/epistemics";
 import { resolvesField } from "../shared/references";
 
-export const vEntityName = v.pipe(
+export const entityNameSchema = v.pipe(
   v.string(),
   v.minLength(1),
   v.description("A name for the entity in the USER's terms."),
 );
 
-export const vEntityKind = v.pipe(
+export const entityKindSchema = v.pipe(
   v.union([
     v.pipe(
       v.literal("thing"),
@@ -154,12 +154,12 @@ export const vEntityKind = v.pipe(
   ),
 );
 
-export const vEntityWith = (origin: typeof vOrigin) =>
+export const entitySchemaWith = ({ origin }: { origin: typeof originSchema }) =>
   v.pipe(
     v.strictObject({
-      name: vEntityName,
-      kind: vEntityKind,
-      ...epistemicFieldsWith(origin),
+      name: entityNameSchema,
+      kind: entityKindSchema,
+      ...epistemicFieldsWith({ origin }),
       ...resolvesField,
     }),
     resolveStatus(),
@@ -168,20 +168,24 @@ export const vEntityWith = (origin: typeof vOrigin) =>
     ),
   );
 
-export const vEntity = vEntityWith(vOrigin);
+export const entitySchema = entitySchemaWith({ origin: originSchema });
 
 /** An entity/update payload: it replaces every field, so no field defaults. */
-export const vEntityUpdateWith = (origin: typeof vOrigin) =>
+export const entityUpdateSchemaWith = ({
+  origin,
+}: {
+  origin: typeof originSchema;
+}) =>
   v.pipe(
     v.strictObject({
-      name: vEntityName,
-      kind: vEntityKind,
+      name: entityNameSchema,
+      kind: entityKindSchema,
       origin: v.pipe(
         origin,
         v.description("Where the entity's account now comes from. Required."),
       ),
       status: v.pipe(
-        vStatus,
+        statusSchema,
         v.description("Whether the USER now agrees to the entity. Required."),
       ),
       ...resolvesField,
@@ -191,10 +195,12 @@ export const vEntityUpdateWith = (origin: typeof vOrigin) =>
     ),
   );
 
-export const vEntityUpdate = vEntityUpdateWith(vOrigin);
+export const entityUpdateSchema = entityUpdateSchemaWith({
+  origin: originSchema,
+});
 
-export type EntityKind = v.InferOutput<typeof vEntityKind>;
-export type Entity = v.InferOutput<typeof vEntity>;
+export type EntityKind = v.InferOutput<typeof entityKindSchema>;
+export type Entity = v.InferOutput<typeof entitySchema>;
 
 export const entityStages = [
   "framing",

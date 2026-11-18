@@ -3,12 +3,12 @@ import * as v from "valibot";
 import { netElementKinds } from "../../petrinaut/petrinaut-tool-effects";
 import {
   resolvesField,
-  vClaimReference,
-  vEntityReference,
-  vObligationReference,
+  claimReferenceSchema,
+  entityReferenceSchema,
+  obligationReferenceSchema,
 } from "../shared/references";
 
-export const vNetElementAddress = v.pipe(
+export const netElementAddressSchema = v.pipe(
   v.strictObject({
     kind: v.pipe(
       v.picklist(netElementKinds),
@@ -25,7 +25,7 @@ export const vNetElementAddress = v.pipe(
   v.description("An address of an observed net element by kind and ID."),
 );
 
-export const vReflection = v.pipe(
+export const reflectionSchema = v.pipe(
   v.strictObject({
     text: v.pipe(
       v.string(),
@@ -36,7 +36,7 @@ export const vReflection = v.pipe(
     ),
     netElements: v.optional(
       v.pipe(
-        v.array(vNetElementAddress),
+        v.array(netElementAddressSchema),
         v.description(
           "Addresses of the observed net elements this reflection concerns.",
         ),
@@ -44,7 +44,7 @@ export const vReflection = v.pipe(
     ),
     claims: v.optional(
       v.pipe(
-        v.array(vClaimReference),
+        v.array(claimReferenceSchema),
         v.description(
           "References to the claims this reflection addresses: existing claim IDs or $index references to claim entries in this call.",
         ),
@@ -52,7 +52,7 @@ export const vReflection = v.pipe(
     ),
     entities: v.optional(
       v.pipe(
-        v.array(vEntityReference),
+        v.array(entityReferenceSchema),
         v.description(
           "References to the entities this reflection concerns that its claims do not already reach: existing entity IDs or $index references to entity entries in this call.",
         ),
@@ -60,7 +60,7 @@ export const vReflection = v.pipe(
     ),
     discharges: v.optional(
       v.pipe(
-        v.array(vObligationReference),
+        v.array(obligationReferenceSchema),
         v.description(
           "Obligations this reflection discharges: existing obligation IDs or $index references to obligation entries in this call. The text names the run, calculation or inspection that met each one, with its observed result, the USER's explicit waiver, or the model change that left no result resting on it.",
         ),
@@ -82,5 +82,5 @@ export const vReflection = v.pipe(
   ),
 );
 
-export type NetElementAddress = v.InferOutput<typeof vNetElementAddress>;
-export type Reflection = v.InferOutput<typeof vReflection>;
+export type NetElementAddress = v.InferOutput<typeof netElementAddressSchema>;
+export type Reflection = v.InferOutput<typeof reflectionSchema>;

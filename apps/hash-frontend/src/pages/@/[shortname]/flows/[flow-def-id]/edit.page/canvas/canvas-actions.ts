@@ -6,11 +6,7 @@ export type CanvasActions = {
   /** `null` on a canvas that can't be edited, such as a run's. */
   editing: {
     /** `null` adds after Start; `outputName` adds after one of the step's paths. */
-    openAddMenuAfter: (
-      anchor: Element,
-      stepId: string | null,
-      outputName?: string,
-    ) => void;
+    openAddMenuAfter: (stepId: string | null, outputName?: string) => void;
     removeConnection: (connection: FlowConnection) => void;
   } | null;
   toggleCollapsed: (stepId: string) => void;

@@ -5,7 +5,7 @@ import { commentIdGrammar } from "./shared/references";
 
 import type { DeliveredMessage } from "@flue/sdk";
 
-const vLedgerComment = v.strictObject({
+const ledgerCommentSchema = v.strictObject({
   id: v.pipe(
     v.string(),
     v.regex(new RegExp(`^${commentIdGrammar}$`)),
@@ -25,10 +25,10 @@ const vLedgerComment = v.strictObject({
   text: v.pipe(v.string(), v.minLength(1)),
 });
 
-export type LedgerComment = v.InferOutput<typeof vLedgerComment>;
+export type LedgerComment = v.InferOutput<typeof ledgerCommentSchema>;
 
-const vLedgerCommentsBody = v.strictObject({
-  comments: v.pipe(v.array(vLedgerComment), v.minLength(1)),
+const ledgerCommentsBodySchema = v.strictObject({
+  comments: v.pipe(v.array(ledgerCommentSchema), v.minLength(1)),
 });
 
 /** Comments the user sends on Ledger records, delivered as one turn of their own. */
@@ -51,6 +51,6 @@ export const parseLedgerComments = (
   } catch {
     return undefined;
   }
-  const parsed = v.safeParse(vLedgerCommentsBody, json);
+  const parsed = v.safeParse(ledgerCommentsBodySchema, json);
   return parsed.success ? parsed.output.comments : undefined;
 };

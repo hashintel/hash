@@ -17,13 +17,13 @@ import {
   prepareAppend,
   projectLedger,
   renderLedgerMarkdown,
-  vClaim,
-  vEntity,
-  vEntityKind,
-  vLedgerAppend,
-  vOrigin,
-  vReflection,
-  vStatus,
+  claimSchema,
+  entitySchema,
+  entityKindSchema,
+  ledgerAppendSchema,
+  originSchema,
+  reflectionSchema,
+  statusSchema,
 } from "@hashintel/brunch-agent";
 
 import { openaiProviderWithAddedModels } from "../../server/openai-provider.ts";
@@ -41,7 +41,7 @@ type Batch = LedgerAppend["entries"];
 
 /** Parses plain entry literals into the branded batch the schemas produce. */
 const toBatch = (entries: unknown): Batch =>
-  v.parse(vLedgerAppend, { entries }).entries;
+  v.parse(ledgerAppendSchema, { entries }).entries;
 
 interface MutableToolPart {
   type: "dynamic-tool";
@@ -238,9 +238,11 @@ test("entity routes split creation from full update of an addressed entity", asy
     { address: "e1", name: "Staffing horizon", origin: "stated" },
     { address: "e2", name: "investment-horizon", origin: "stated" },
   ]);
-  expect(v.safeParse(vEntity, { ...update, id: "e1" }).success).toBe(false);
+  expect(v.safeParse(entitySchema, { ...update, id: "e1" }).success).toBe(
+    false,
+  );
   expect(
-    v.safeParse(vLedgerAppend, {
+    v.safeParse(ledgerAppendSchema, {
       entries: [
         ["entity/update/e1", { name: update.name, status: update.status }],
       ],
@@ -252,13 +254,13 @@ test("entity routes split creation from full update of an addressed entity", asy
   const { status: _status, ...withoutStatus } = update;
   for (const payload of [withoutOrigin, withoutStatus])
     expect(
-      v.safeParse(vLedgerAppend, {
+      v.safeParse(ledgerAppendSchema, {
         entries: [["entity/update/e1", payload]],
       }).success,
     ).toBe(false);
   for (const route of ["entity/update", "entity/update/c1", "entity/update/$0"])
     expect(
-      v.safeParse(vLedgerAppend, { entries: [[route, update]] }).success,
+      v.safeParse(ledgerAppendSchema, { entries: [[route, update]] }).success,
     ).toBe(false);
 });
 
@@ -743,7 +745,7 @@ test("claims retain prior assertions when a later claim supersedes them", () => 
   const batch = {
     entries: claims.map((claim) => ["claim/create", claim]),
   };
-  expect(v.parse(vLedgerAppend, batch)).toEqual(batch);
+  expect(v.parse(ledgerAppendSchema, batch)).toEqual(batch);
 });
 
 test("a claim's source does not imply the person's agreement", () => {
@@ -753,7 +755,7 @@ test("a claim's source does not imply the person's agreement", () => {
     origin: "evidenced",
     status: "tentative",
   };
-  expect(v.parse(vClaim, claim)).toEqual(claim);
+  expect(v.parse(claimSchema, claim)).toEqual(claim);
 });
 
 test("only an entry stated without a status defaults to confirmed", () => {
@@ -761,24 +763,24 @@ test("only an entry stated without a status defaults to confirmed", () => {
     text: "Press 2 idles when its hopper is empty.",
     entities: ["e2"],
   };
-  expect(v.parse(vClaim, claim)).toEqual({
+  expect(v.parse(claimSchema, claim)).toEqual({
     ...claim,
     origin: "stated",
     status: "confirmed",
   });
-  expect(v.parse(vClaim, { ...claim, status: "tentative" })).toEqual({
+  expect(v.parse(claimSchema, { ...claim, status: "tentative" })).toEqual({
     ...claim,
     origin: "stated",
     status: "tentative",
   });
-  const inferred = v.safeParse(vClaim, { ...claim, origin: "inferred" });
+  const inferred = v.safeParse(claimSchema, { ...claim, origin: "inferred" });
   expect(inferred.success).toBe(false);
   expect(inferred.issues?.[0]?.message).toMatch(/origin is inferred/);
-  expect(v.parse(vEntity, { name: "Press 2", kind: "resource" })).toMatchObject(
-    { origin: "stated", status: "confirmed" },
-  );
   expect(
-    v.safeParse(vEntity, {
+    v.parse(entitySchema, { name: "Press 2", kind: "resource" }),
+  ).toMatchObject({ origin: "stated", status: "confirmed" });
+  expect(
+    v.safeParse(entitySchema, {
       name: "Press 2",
       kind: "resource",
       origin: "assumed",
@@ -797,21 +799,24 @@ test("claim and reflection requests exclude system-owned metadata", () => {
     text: "Approximated the fixed drying duration with a 20-minute mean; variability absent from the account is introduced.",
     claims: ["c45"],
   };
-  expect(v.parse(vClaim, claim)).toEqual(claim);
-  expect(v.parse(vReflection, reflection)).toEqual(reflection);
-  expect(v.safeParse(vClaim, { ...claim, id: "c46", turn: 2 }).success).toBe(
+  expect(v.parse(claimSchema, claim)).toEqual(claim);
+  expect(v.parse(reflectionSchema, reflection)).toEqual(reflection);
+  expect(
+    v.safeParse(claimSchema, { ...claim, id: "c46", turn: 2 }).success,
+  ).toBe(false);
+  expect(
+    v.safeParse(reflectionSchema, {
+      ...reflection,
+      revision: "revision-2",
+      turn: 2,
+    }).success,
+  ).toBe(false);
+  expect(v.safeParse(reflectionSchema, { text: reflection.text }).success).toBe(
     false,
   );
   expect(
-    v.safeParse(vReflection, { ...reflection, revision: "revision-2", turn: 2 })
-      .success,
+    v.safeParse(claimSchema, { ...claim, entities: ["c45"] }).success,
   ).toBe(false);
-  expect(v.safeParse(vReflection, { text: reflection.text }).success).toBe(
-    false,
-  );
-  expect(v.safeParse(vClaim, { ...claim, entities: ["c45"] }).success).toBe(
-    false,
-  );
 });
 
 test("local references check target kind, bounds and supersession order", () => {
@@ -828,7 +833,7 @@ test("local references check target kind, bounds and supersession order", () => 
     status: "confirmed",
   };
   expect(
-    v.safeParse(vLedgerAppend, {
+    v.safeParse(ledgerAppendSchema, {
       entries: [
         ["entity/create", entity],
         ["claim/create", { ...claim, entities: ["$1"] }],
@@ -836,12 +841,12 @@ test("local references check target kind, bounds and supersession order", () => 
     }).success,
   ).toBe(false);
   expect(
-    v.safeParse(vLedgerAppend, {
+    v.safeParse(ledgerAppendSchema, {
       entries: [["claim/create", { ...claim, entities: ["$9"] }]],
     }).success,
   ).toBe(false);
   expect(
-    v.safeParse(vLedgerAppend, {
+    v.safeParse(ledgerAppendSchema, {
       entries: [
         ["entity/create", entity],
         ["claim/create", { ...claim, supersedes: ["$1"] }],
@@ -854,14 +859,16 @@ test("local references check target kind, bounds and supersession order", () => 
       ["entity/create", entity],
     ],
   };
-  expect(v.parse(vLedgerAppend, forwardReference)).toEqual(forwardReference);
+  expect(v.parse(ledgerAppendSchema, forwardReference)).toEqual(
+    forwardReference,
+  );
   const updateTarget = {
     entries: [
       ["entity/update/e45", entity],
       ["claim/create", claim],
     ],
   };
-  expect(v.parse(vLedgerAppend, updateTarget)).toEqual(updateTarget);
+  expect(v.parse(ledgerAppendSchema, updateTarget)).toEqual(updateTarget);
 });
 
 test("a misdirected local reference names the entry, field and target", () => {
@@ -878,7 +885,7 @@ test("a misdirected local reference names the entry, field and target", () => {
     status: "confirmed",
   };
   // Run p7ZTaN: `$2` meant the third entity but named the claim between them.
-  const issue = v.safeParse(vLedgerAppend, {
+  const issue = v.safeParse(ledgerAppendSchema, {
     entries: [
       ["entity/create", entity],
       ["entity/create", { ...entity, name: "Level reading", kind: "signal" }],
@@ -891,7 +898,7 @@ test("a misdirected local reference names the entry, field and target", () => {
     "entries[4] (claim/create) entities references $2, which is entries[2] (claim/create); expected an entity. $index counts every entry in this queue, whatever its route.",
   );
   expect(
-    v.safeParse(vLedgerAppend, {
+    v.safeParse(ledgerAppendSchema, {
       entries: [["claim/create", { ...claim, entities: ["$9"] }]],
     }).issues?.[0]?.message,
   ).toBe(
@@ -1215,7 +1222,10 @@ const flueParameters = (schema: v.GenericSchema) => {
   return parameters;
 };
 
-type DescribedEnums = typeof vEntityKind | typeof vOrigin | typeof vStatus;
+type DescribedEnums =
+  | typeof entityKindSchema
+  | typeof originSchema
+  | typeof statusSchema;
 
 const literalsOf = (schema: DescribedEnums) =>
   schema.options.map((option) => ({
@@ -1224,7 +1234,7 @@ const literalsOf = (schema: DescribedEnums) =>
   }));
 
 test("each entity kind's description opens with its stage", () => {
-  for (const option of vEntityKind.options)
+  for (const option of entityKindSchema.options)
     expect(v.getDescription(option)?.toLowerCase()).toMatch(
       new RegExp(`^${entityKindStages[option.literal]}: `),
     );
@@ -1232,7 +1242,9 @@ test("each entity kind's description opens with its stage", () => {
 
 test("a restriction's kind asks when it must hold, and leaves unstated timing open", () => {
   const described = (kind: string) => {
-    const option = vEntityKind.options.find(({ literal }) => literal === kind);
+    const option = entityKindSchema.options.find(
+      ({ literal }) => literal === kind,
+    );
     return option === undefined ? "" : (v.getDescription(option) ?? "");
   };
   for (const kind of ["threshold", "target"]) {
@@ -1248,7 +1260,7 @@ test("a restriction's kind asks when it must hold, and leaves unstated timing op
 });
 
 test("Flue's tool schema carries entity kind, origin and status descriptions", () => {
-  const parameters = flueParameters(vLedgerAppend);
+  const parameters = flueParameters(ledgerAppendSchema);
   const anyOf = (schema: DescribedEnums) => ({
     description: v.getDescription(schema),
     anyOf: literalsOf(schema).map(({ literal, description }) => ({
@@ -1267,9 +1279,9 @@ test("Flue's tool schema carries entity kind, origin and status descriptions", (
                 { const: "entity/create" },
                 {
                   properties: {
-                    kind: anyOf(vEntityKind),
-                    origin: { ...anyOf(vOrigin), default: "stated" },
-                    status: anyOf(vStatus),
+                    kind: anyOf(entityKindSchema),
+                    origin: { ...anyOf(originSchema), default: "stated" },
+                    status: anyOf(statusSchema),
                   },
                   required: ["name", "kind"],
                 },
@@ -1300,8 +1312,8 @@ test("Flue's tool schema carries entity kind, origin and status descriptions", (
                         ],
                       },
                     },
-                    origin: { ...anyOf(vOrigin), default: "stated" },
-                    status: anyOf(vStatus),
+                    origin: { ...anyOf(originSchema), default: "stated" },
+                    status: anyOf(statusSchema),
                   },
                   required: ["text", "entities"],
                 },
@@ -1388,7 +1400,7 @@ describe.skipIf(!live).concurrent("kind enums with a live model", () => {
         {
           name: brunchTools.ledgerCommit,
           description: commitToolDescription,
-          parameters: flueParameters(vLedgerAppend),
+          parameters: flueParameters(ledgerAppendSchema),
         },
       ],
     };
@@ -1405,7 +1417,7 @@ describe.skipIf(!live).concurrent("kind enums with a live model", () => {
         `No ${brunchTools.ledgerCommit} call: ${response.stopReason}`,
       );
     expect(call.name).toBe(brunchTools.ledgerCommit);
-    const recorded = v.parse(vLedgerAppend, call.arguments);
+    const recorded = v.parse(ledgerAppendSchema, call.arguments);
     if (prior.length === 0)
       for (const [route] of recorded.entries)
         expect(route).not.toMatch(/\/update\//);

@@ -1,13 +1,11 @@
 import { Button } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { ActionIoTooltip } from "../../shared/action-io";
 import { countSteps } from "../../shared/step-display";
 import { StepIconTile } from "../../shared/step-icon-tile";
 
 import type { StepTone } from "../../shared/step-display";
 import type { IconName } from "@hashintel/ds-components";
-import type { FlowActionDefinitionId } from "@local/hash-isomorphic-utils/flows/types";
 import type { ReactNode } from "react";
 
 const indentPerDepth = 16;
@@ -20,7 +18,6 @@ const row = css({
   pr: "2",
 });
 const expanderSlot = css({ display: "flex", flexShrink: "0", width: "4" });
-const labelSlot = css({ display: "flex", flex: "1", minWidth: "0" });
 const rowLabel = css({
   flex: "1",
   justifyContent: "flex-start",
@@ -64,7 +61,6 @@ export const TreeRow = ({
   expander,
   stepCount,
   status,
-  actionDefinitionId,
   onClick,
 }: {
   depth: number;
@@ -78,8 +74,6 @@ export const TreeRow = ({
   stepCount?: number;
   /** Shown at the end of the row, e.g. the step's state in a run. */
   status?: ReactNode;
-  /** An action whose inputs and outputs show while the row is hovered or focused. */
-  actionDefinitionId?: FlowActionDefinitionId;
   onClick?: () => void;
 }) => {
   const iconTile = icon && (
@@ -106,16 +100,7 @@ export const TreeRow = ({
   return (
     <div className={row} style={{ paddingLeft: depth * indentPerDepth }}>
       <span className={expanderSlot}>{expander}</span>
-      {actionDefinitionId ? (
-        <ActionIoTooltip
-          actionDefinitionId={actionDefinitionId}
-          className={labelSlot}
-        >
-          {labelElement}
-        </ActionIoTooltip>
-      ) : (
-        labelElement
-      )}
+      {labelElement}
       {stepCount !== undefined && (
         <span className={stepCountLabel}>{countSteps(stepCount)}</span>
       )}

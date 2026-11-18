@@ -48,7 +48,7 @@ vi.mock("./place-state-tooltip/visualizer-window", () => ({
 }));
 vi.mock("../../../../shared/place-state-visualization", () => ({
   PlaceStateVisualization: ({ placeType }: { placeType: unknown }) => (
-    <div>{placeType ? "Picture" : "Place has no type set"}</div>
+    <div>{placeType ? "Picture" : "Picture of a count"}</div>
   ),
 }));
 
@@ -135,7 +135,7 @@ it.each(["", "return <Visualizer.Svg />;"])(
   "opens a temporary preview while editing a place without a type: %s",
   async (code) => {
     const { rerender } = render(<Harness focused code={code} />);
-    await screen.findByText("Place has no type set");
+    await screen.findByText("Picture of a count");
     expect(screen.getByRole("group").dataset).toMatchObject({
       editing: "true",
     });
@@ -146,13 +146,30 @@ it.each(["", "return <Visualizer.Svg />;"])(
 
 it("preserves the same preview when kept open through focus and blur", async () => {
   const { rerender } = render(<Harness focused />);
-  await screen.findByText("Place has no type set");
+  await screen.findByText("Picture of a count");
   const preview = screen.getByRole("group");
   rerender(<Harness focused keptOpen />);
   expect(screen.getByRole("group")).toBe(preview);
   rerender(<Harness keptOpen />);
   expect(screen.getByRole("group")).toBe(preview);
   expect(preview.dataset).toMatchObject({ editing: "false" });
+});
+
+it("shows the eye on a place without a type, and previews its count", async () => {
+  vi.useFakeTimers();
+  render(<Harness hovered />);
+  fireEvent.pointerEnter(
+    screen.getByRole("button", { name: "Show state visualizer" }),
+  );
+  await act(() => vi.advanceTimersByTimeAsync(15));
+  expect(screen.getByRole("group").textContent).toContain("Picture of a count");
+});
+
+it("shows no eye on a place whose visualizer is empty", () => {
+  render(<Harness hovered code="" />);
+  expect(
+    screen.queryByRole("button", { name: "Show state visualizer" }),
+  ).toBeNull();
 });
 
 it("previews after 15 ms, keeps the eye clickable, keeps the window open and closes", async () => {

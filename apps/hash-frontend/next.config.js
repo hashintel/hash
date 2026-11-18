@@ -152,6 +152,24 @@ export default withSentryConfig(
       async headers() {
         return [
           {
+            source: "/:path*",
+            headers: [
+              // `frame-ancestors` in the Content Security Policy supersedes
+              // this where supported; it covers routes the policy isn't set on.
+              { key: "X-Frame-Options", value: "SAMEORIGIN" },
+              { key: "X-Content-Type-Options", value: "nosniff" },
+              {
+                key: "Referrer-Policy",
+                value: "strict-origin-when-cross-origin",
+              },
+              {
+                key: "Permissions-Policy",
+                value:
+                  "camera=(), geolocation=(), display-capture=(), payment=()",
+              },
+            ],
+          },
+          {
             /**
              * allow fetching types as JSON from anywhere
              * see /src/middleware.page.ts for middleware which serves the JSON

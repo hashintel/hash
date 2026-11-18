@@ -5,7 +5,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { createStepShapeResolver } from "@local/hash-isomorphic-utils/flows/step-shapes";
 
 import { getStepName } from "../shared/find-step";
-import { getNameLabel } from "../shared/name-label";
+import { getNameLabel, getOutputLabel } from "../shared/name-label";
 import { RunGlyph } from "../shared/run-marks";
 import { PanelSection, PanelTitle, SidePanel } from "../shared/side-panel";
 import { getActionDefinition, getStepDisplay } from "../shared/step-display";
@@ -287,6 +287,9 @@ export const StepRunPanel = ({
     />
   );
 
+  const labelOutput = (outputName: string) =>
+    getOutputLabel(actionDefinition?.actionDefinitionId, outputName);
+
   const renderOutputValue = (outputName: string) => {
     if (perItem) {
       return null;
@@ -298,7 +301,7 @@ export const StepRunPanel = ({
 
     if (output) {
       return renderValue(
-        getNameLabel(outputName),
+        labelOutput(outputName),
         getValueDisplay(output.payload),
       );
     }
@@ -393,7 +396,7 @@ export const StepRunPanel = ({
             {outputNames.map((outputName) => (
               <OutputRow
                 key={outputName}
-                label={`${getNameLabel(outputName)} value`}
+                label={`${labelOutput(outputName)} value`}
                 onClose={() => {
                   if (getHighlightFrom(outputName) !== null) {
                     highlightFrom(outputName)(null);
@@ -401,7 +404,7 @@ export const StepRunPanel = ({
                 }}
                 name={
                   <ValueName
-                    name={getNameLabel(outputName)}
+                    name={labelOutput(outputName)}
                     shape={shapes.getStepOutputShape(step.stepId, outputName)}
                   />
                 }
