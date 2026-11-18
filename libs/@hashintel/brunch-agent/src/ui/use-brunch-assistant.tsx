@@ -670,6 +670,7 @@ export const useBrunchAssistant = ({
             },
             admit: createBrunchMutationAdmission(
               mutationApproval.coordinator,
+              () => editor?.handle.doc(),
               hostSave,
             ),
             acceptsRevision: (expected) =>
@@ -685,6 +686,7 @@ export const useBrunchAssistant = ({
       legacyActorHeader,
       hostFetch,
       hostSave,
+      editor,
     ],
   );
 

@@ -306,3 +306,25 @@ describe("normalizeSDCPN", () => {
     expect(isSDCPNEqual(normalizeSDCPN(complete), complete)).toBe(true);
   });
 });
+
+describe("normalizeSDCPN fusions", () => {
+  it("keeps fusions and canonicalizes the ids their members name", () => {
+    const result = normalizeSDCPN({
+      places: [{ id: "p", name: "P", x: 0, y: 0 }],
+      transitions: [],
+      subnets: [],
+      componentInstances: [],
+      fusions: [
+        { id: "f", name: "F", members: [{ kind: "place", placeId: "p" }] },
+      ],
+    });
+
+    expect(result.fusions).toEqual([
+      {
+        id: toPetrinautId("f"),
+        name: "F",
+        members: [{ kind: "place", placeId: toPetrinautId("p") }],
+      },
+    ]);
+  });
+});

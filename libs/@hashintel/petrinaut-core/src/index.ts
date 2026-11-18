@@ -72,6 +72,22 @@ export type {
   TransitionLogicAvailability,
 } from "./extensions";
 
+// --- Composition: place fusion ---
+export {
+  describeFusionMember,
+  findFusionWithMember,
+  fusionAnchor,
+  fusionHub,
+  resolveFusionMember,
+} from "./composition/fusions";
+export type { FusionNet, ResolvedFusionMember } from "./composition/fusions";
+export { checkFusion, checkFusions } from "./composition/check-fusions";
+export type {
+  FusionProblem,
+  FusionProblemCode,
+  ProblemSeverity,
+} from "./composition/check-fusions";
+
 // --- Command registry (palette commands) ---
 export {
   combineCommandRegistries,
@@ -139,7 +155,7 @@ export type {
   PetrinautOptimizationConstraintPolicy,
   PetrinautIntegerOptimizationDomain,
 } from "./optimization";
-export { createPetrinautActions } from "./actions";
+export { createPetrinautActions, updatePrunesReferences } from "./actions";
 export type {
   CreatePetrinautActionsOptions,
   MutationHelperFunctions,

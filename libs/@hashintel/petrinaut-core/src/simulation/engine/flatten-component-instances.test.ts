@@ -451,3 +451,456 @@ describe("flattenComponentInstancesForSimulation", () => {
     );
   });
 });
+
+describe("flattenComponentInstancesForSimulation with fusions", () => {
+  const machine = () =>
+    subnet("machine", {
+      places: [
+        place("in", { name: "In", isPort: true }),
+        place("out", { name: "Out", isPort: true }),
+      ],
+      transitions: [
+        transition("work", {
+          inputArcs: [{ placeId: "in", weight: 1, type: "standard" }],
+          outputArcs: [{ placeId: "out", weight: 1 }],
+        }),
+      ],
+    });
+
+  it("fuses a root place with an instance port, keeping the root place's id under the fusion's name", () => {
+    const definition = sdcpn({
+      places: [place("buffer", { name: "Buffer" })],
+      transitions: [
+        transition("feed", {
+          outputArcs: [{ placeId: "buffer", weight: 1 }],
+        }),
+      ],
+      componentInstances: [componentInstance("m1", "machine")],
+      subnets: [machine()],
+      fusions: [
+        {
+          id: "f1",
+          name: "Belt",
+          members: [
+            { kind: "place", placeId: "buffer" },
+            {
+              kind: "componentPort",
+              componentInstanceId: "m1",
+              portPlaceId: "in",
+            },
+          ],
+        },
+      ],
+    });
+
+    const result = flatten({ definition, initialMarking: { buffer: 2 } });
+
+    expect(result.sdcpn.places.map(({ id, name }) => [id, name])).toEqual([
+      ["buffer", "Belt"],
+      ["m1::out", "Out"],
+    ]);
+    expect(
+      result.sdcpn.transitions.find(({ id }) => id === "m1::work")!.inputArcs,
+    ).toEqual([{ placeId: "buffer", weight: 1, type: "standard" }]);
+    expect(result.initialMarking).toEqual({ buffer: 2 });
+    expect(result.placeParameterValues.has("m1::in")).toBe(false);
+  });
+
+  it("gives a fused place its anchor's marking over a merged port's, in either order", () => {
+    const definition = sdcpn({
+      places: [place("buffer")],
+      componentInstances: [componentInstance("m1", "machine")],
+      subnets: [machine()],
+      fusions: [
+        {
+          id: "f1",
+          name: "F1",
+          members: [
+            { kind: "place", placeId: "buffer" },
+            {
+              kind: "componentPort",
+              componentInstanceId: "m1",
+              portPlaceId: "in",
+            },
+          ],
+        },
+      ],
+    });
+    const markingOf = (initialMarking: InitialMarking) =>
+      flatten({ definition, initialMarking }).initialMarking;
+
+    expect(markingOf({ "m1::in": 5, buffer: 3 })).toEqual({ buffer: 3 });
+    expect(markingOf({ buffer: 3, "m1::in": 5 })).toEqual({ buffer: 3 });
+    // Without one on the anchor, the port's marking is the fused place's.
+    expect(markingOf({ "m1::in": 5 })).toEqual({ buffer: 5 });
+  });
+
+  it("fuses two instance ports into one shared place", () => {
+    const definition = sdcpn({
+      componentInstances: [
+        componentInstance("m1", "machine"),
+        componentInstance("m2", "machine"),
+      ],
+      subnets: [machine()],
+      fusions: [
+        {
+          id: "f1",
+          name: "Conveyor",
+          members: [
+            {
+              kind: "componentPort",
+              componentInstanceId: "m1",
+              portPlaceId: "out",
+            },
+            {
+              kind: "componentPort",
+              componentInstanceId: "m2",
+              portPlaceId: "in",
+            },
+          ],
+        },
+      ],
+    });
+
+    const result = flatten({ definition });
+
+    expect(result.sdcpn.places.map(({ id, name }) => [id, name])).toEqual([
+      ["m1::in", "In"],
+      ["m1::out", "Conveyor"],
+      ["m2::out", "Out"],
+    ]);
+    expect(
+      result.sdcpn.transitions.find(({ id }) => id === "m2::work")!.inputArcs,
+    ).toEqual([{ placeId: "m1::out", weight: 1, type: "standard" }]);
+  });
+
+  it("applies fusions declared inside a subnet to the nested instances", () => {
+    const definition = sdcpn({
+      componentInstances: [componentInstance("line", "line")],
+      subnets: [
+        machine(),
+        subnet("line", {
+          places: [place("feed", { name: "Feed", isPort: true })],
+          componentInstances: [componentInstance("m1", "machine")],
+          fusions: [
+            {
+              id: "f1",
+              name: "F1",
+              members: [
+                { kind: "place", placeId: "feed" },
+                {
+                  kind: "componentPort",
+                  componentInstanceId: "m1",
+                  portPlaceId: "in",
+                },
+              ],
+            },
+          ],
+        }),
+      ],
+    });
+
+    const result = flatten({ definition });
+
+    expect(result.sdcpn.places.map(({ id }) => id)).toEqual([
+      "line::feed",
+      "line::m1::out",
+    ]);
+    expect(
+      result.sdcpn.transitions.find(({ id }) => id === "line::m1::work")!
+        .inputArcs[0]!.placeId,
+    ).toBe("line::feed");
+  });
+
+  it("rejects a fusion member that is not a port", () => {
+    const definition = sdcpn({
+      places: [place("buffer")],
+      componentInstances: [componentInstance("m1", "machine")],
+      subnets: [
+        subnet("machine", { places: [place("hidden", { isPort: false })] }),
+      ],
+      fusions: [
+        {
+          id: "f1",
+          name: "F1",
+          members: [
+            { kind: "place", placeId: "buffer" },
+            {
+              kind: "componentPort",
+              componentInstanceId: "m1",
+              portPlaceId: "hidden",
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(() => flatten({ definition })).toThrow(
+      /Fusion `F1` references subnet place `hidden`, but only places marked `isPort`/,
+    );
+  });
+
+  it("rejects a fusion that holds two places of its net", () => {
+    const definition = sdcpn({
+      places: [place("first"), place("second")],
+      fusions: [
+        {
+          id: "f1",
+          name: "F1",
+          members: [
+            { kind: "place", placeId: "first" },
+            { kind: "place", placeId: "second" },
+          ],
+        },
+      ],
+      // An instance, so flattening does not take its shortcut.
+      componentInstances: [componentInstance("m1", "machine")],
+      subnets: [machine()],
+    });
+
+    expect(() => flatten({ definition })).toThrow(
+      /Fusion `F1` holds more than one place of its net/,
+    );
+  });
+
+  it("rejects a fusion of a net with no instance, which has nothing to take a shortcut past", () => {
+    const definition = sdcpn({
+      places: [place("first"), place("second")],
+      fusions: [
+        {
+          id: "f1",
+          name: "F1",
+          members: [
+            { kind: "place", placeId: "first" },
+            { kind: "place", placeId: "second" },
+          ],
+        },
+      ],
+    });
+
+    expect(() => flatten({ definition })).toThrow(
+      /Fusion `F1` holds more than one place of its net/,
+    );
+  });
+
+  it("rejects two fusions of one net that share a member", () => {
+    const port = {
+      kind: "componentPort" as const,
+      componentInstanceId: "m1",
+      portPlaceId: "in",
+    };
+    const definition = sdcpn({
+      places: [place("first"), place("second")],
+      componentInstances: [componentInstance("m1", "machine")],
+      subnets: [machine()],
+      fusions: [
+        {
+          id: "f1",
+          name: "F1",
+          members: [{ kind: "place", placeId: "first" }, port],
+        },
+        {
+          id: "f2",
+          name: "F2",
+          members: [{ kind: "place", placeId: "second" }, port],
+        },
+      ],
+    });
+
+    expect(() => flatten({ definition })).toThrow(
+      /Fusion `F2` shares a member with another fusion of its net/,
+    );
+  });
+
+  it("names an anchor inside a subnet after its fusion", () => {
+    const definition = sdcpn({
+      componentInstances: [componentInstance("line", "line")],
+      subnets: [
+        machine(),
+        subnet("line", {
+          places: [place("feed", { name: "Feed" })],
+          componentInstances: [componentInstance("m1", "machine")],
+          fusions: [
+            {
+              id: "f1",
+              name: "Belt",
+              members: [
+                { kind: "place", placeId: "feed" },
+                {
+                  kind: "componentPort",
+                  componentInstanceId: "m1",
+                  portPlaceId: "in",
+                },
+              ],
+            },
+          ],
+        }),
+      ],
+    });
+
+    const result = flatten({ definition });
+
+    expect(
+      result.sdcpn.places.find(({ id }) => id === "line::feed"),
+    ).toMatchObject({ name: "Belt" });
+  });
+
+  describe("dynamics on a fused port", () => {
+    /** A bath whose port cools at the bath's own rate. */
+    const bath = () =>
+      subnet("bath", {
+        types: [
+          {
+            id: "part",
+            name: "Part",
+            iconSlug: "circle",
+            displayColor: "#000",
+            elements: [{ elementId: "t", name: "temperature", type: "real" }],
+          },
+        ],
+        differentialEquations: [
+          { id: "cool", name: "Cool", colorId: "part", code: "", arity: 1 },
+        ],
+        parameters: [parameter("rate", { defaultValue: "2" })],
+        places: [
+          place("pool", {
+            name: "Pool",
+            isPort: true,
+            colorId: "part",
+            dynamicsEnabled: true,
+            dynamics: [{ differentialEquationId: "cool" }],
+          }),
+        ],
+      });
+    const poolOf = (instanceId: string) => ({
+      kind: "componentPort" as const,
+      componentInstanceId: instanceId,
+      portPlaceId: "pool",
+    });
+
+    it("runs a port's equations on the root place fused with it, with the instance's parameter values", () => {
+      const definition = sdcpn({
+        types: [
+          {
+            id: "part",
+            name: "Part",
+            iconSlug: "circle",
+            displayColor: "#000",
+            elements: [{ elementId: "t", name: "temperature", type: "real" }],
+          },
+        ],
+        places: [place("tank", { name: "Tank", colorId: "part" })],
+        componentInstances: [
+          componentInstance("b1", "bath", { parameterValues: { rate: "5" } }),
+        ],
+        subnets: [bath()],
+        fusions: [
+          {
+            id: "f1",
+            name: "F1",
+            members: [{ kind: "place", placeId: "tank" }, poolOf("b1")],
+          },
+        ],
+      });
+
+      const result = flatten({
+        definition,
+        rootParameterValues: { rate: 99 },
+      });
+
+      expect(result.sdcpn.places.find(({ id }) => id === "tank")).toMatchObject(
+        {
+          dynamicsEnabled: true,
+          dynamics: [{ differentialEquationId: "b1::cool" }],
+        },
+      );
+      expect(result.placeParameterValues.get("tank")).toEqual({ rate: 5 });
+    });
+
+    it("lets two instances of one component share a fused port that runs dynamics", () => {
+      const definition = sdcpn({
+        componentInstances: [
+          componentInstance("b1", "bath"),
+          componentInstance("b2", "bath"),
+        ],
+        subnets: [bath()],
+        fusions: [
+          { id: "f1", name: "F1", members: [poolOf("b1"), poolOf("b2")] },
+        ],
+      });
+
+      const result = flatten({ definition });
+
+      expect(result.sdcpn.places).toMatchObject([
+        { id: "b1::pool", dynamics: [{ differentialEquationId: "b1::cool" }] },
+      ]);
+    });
+
+    it("refuses the ports of two subnets that each define an equation under one id", () => {
+      const kiln: Subnet = {
+        ...bath(),
+        id: "kiln",
+        name: "kiln",
+        differentialEquations: [
+          {
+            id: "cool",
+            name: "Cool",
+            colorId: "part",
+            code: "return { temperature: 1 };",
+            arity: 1,
+          },
+        ],
+      };
+      const definition = sdcpn({
+        componentInstances: [
+          componentInstance("b1", "bath"),
+          componentInstance("k1", "kiln"),
+        ],
+        subnets: [bath(), kiln],
+        fusions: [
+          { id: "f1", name: "F1", members: [poolOf("b1"), poolOf("k1")] },
+        ],
+      });
+
+      expect(() => flatten({ definition })).toThrow(
+        /Fusion `F1` joins places `Pool` and `Pool` that run different differential equations/,
+      );
+    });
+
+    it("refuses a root place and a port whose subnet defines an equation under the id of the root's", () => {
+      const definition = sdcpn({
+        types: bath().types,
+        differentialEquations: [
+          {
+            id: "cool",
+            name: "Cool",
+            colorId: "part",
+            code: "return { temperature: 1 };",
+            arity: 1,
+          },
+        ],
+        places: [
+          place("tank", {
+            name: "Tank",
+            colorId: "part",
+            dynamicsEnabled: true,
+            dynamics: [{ differentialEquationId: "cool" }],
+          }),
+        ],
+        componentInstances: [componentInstance("b1", "bath")],
+        subnets: [bath()],
+        fusions: [
+          {
+            id: "f1",
+            name: "F1",
+            members: [{ kind: "place", placeId: "tank" }, poolOf("b1")],
+          },
+        ],
+      });
+
+      expect(() => flatten({ definition })).toThrow(
+        /Fusion `F1` joins places `Tank` and `Pool` that run different differential equations/,
+      );
+    });
+  });
+});

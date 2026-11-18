@@ -94,6 +94,7 @@ const netElements = (
   if (kind === "parameter") return net.parameters;
   if (kind === "differentialEquation") return net.differentialEquations;
   if (kind === "componentInstance") return net.componentInstances ?? [];
+  if (kind === "fusion") return net.fusions ?? [];
   if (kind === "typeElement")
     return net.types.flatMap((color) =>
       color.elements.map((element) => ({
@@ -101,6 +102,7 @@ const netElements = (
         name: element.name,
       })),
     );
+  kind satisfies "arc";
   // An arc is selected by its transition and endpoint, and identified by the ID Petrinaut generates from them.
   return net.transitions.flatMap((transition) => {
     const arcElements = (

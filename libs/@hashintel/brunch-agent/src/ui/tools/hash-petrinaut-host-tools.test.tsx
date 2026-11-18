@@ -337,7 +337,7 @@ test("a HASH remove waits on the destructive-edit card, which offers Always allo
   const input = { editor_id: hashProcessEditorId, placeId: "queue" };
   const { outcome } = await runIssuedCall("petrinaut_remove_place", input, {
     initial: servedNet,
-    admit: createBrunchMutationAdmission(coordinator),
+    admit: createBrunchMutationAdmission(coordinator, () => undefined),
   });
   await vi.waitFor(() => expect(coordinator.hasPending("call")).toBe(true));
   const Card = createBrunchMutationApprovalWidget(

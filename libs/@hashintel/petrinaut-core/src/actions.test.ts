@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 
+import { updatePrunesReferences } from "./actions";
 import { createJsonDocHandle } from "./handle";
 import { createPetrinaut } from "./instance";
 import { toPetrinautId } from "./petrinaut-id";
@@ -1294,5 +1295,598 @@ describe("Petrinaut core actions", () => {
         weight: 1,
       }),
     ).toThrow("Arc references place ID `queu` which does not exist");
+  });
+});
+
+describe("Petrinaut core fusion actions", () => {
+  const portPlace = (id: string, name: string) => ({
+    id,
+    name,
+    colorId: null,
+    dynamicsEnabled: false,
+    isPort: true,
+    x: 0,
+    y: 0,
+  });
+
+  const composed = (): SDCPN => ({
+    ...emptySDCPN,
+    places: [
+      {
+        id: "buffer",
+        name: "Buffer",
+        colorId: null,
+        dynamicsEnabled: false,
+        x: 0,
+        y: 0,
+      },
+    ],
+    subnets: [
+      {
+        id: "machine",
+        name: "Machine",
+        places: [portPlace("in", "In"), portPlace("out", "Out")],
+        transitions: [],
+        types: [],
+        differentialEquations: [],
+        parameters: [],
+      },
+    ],
+    componentInstances: [
+      {
+        id: "m1",
+        name: "M1",
+        subnetId: "machine",
+        parameterValues: {},
+        x: 0,
+        y: 0,
+      },
+      {
+        id: "m2",
+        name: "M2",
+        subnetId: "machine",
+        parameterValues: {},
+        x: 0,
+        y: 0,
+      },
+    ],
+  });
+
+  const port = (instanceId: string, portPlaceId: string) => ({
+    kind: "componentPort" as const,
+    componentInstanceId: idOf(instanceId),
+    portPlaceId: idOf(portPlaceId),
+  });
+
+  test("adds a fusion and merges fusions that share a member", () => {
+    const instance = createInstance(composed());
+
+    instance.mutations.addFusion({
+      id: "f1",
+      members: [{ kind: "place", placeId: "buffer" }, port("m1", "in")],
+    });
+    instance.mutations.addFusion({
+      id: "f2",
+      members: [port("m1", "in"), port("m2", "in")],
+    });
+
+    expect(instance.definition.get().fusions).toEqual([
+      {
+        id: idOf("f2"),
+        name: "Fusion 1",
+        members: [
+          port("m1", "in"),
+          port("m2", "in"),
+          { kind: "place", placeId: idOf("buffer") },
+        ],
+      },
+    ]);
+  });
+
+  test("names a fusion added without a name `Fusion N`, with the lowest number free in its net", () => {
+    const instance = createInstance(composed());
+    const names = () =>
+      instance.definition.get().fusions?.map(({ name }) => name);
+
+    instance.mutations.addFusion({
+      id: "f1",
+      members: [{ kind: "place", placeId: "buffer" }, port("m1", "in")],
+    });
+    instance.mutations.addFusion({
+      id: "f2",
+      members: [port("m1", "out"), port("m2", "in")],
+    });
+    expect(names()).toEqual(["Fusion 1", "Fusion 2"]);
+
+    instance.mutations.removeFusion({ fusionId: "f1" });
+    instance.mutations.addFusion({
+      id: "f3",
+      members: [{ kind: "place", placeId: "buffer" }, port("m2", "out")],
+    });
+    expect(names()).toEqual(["Fusion 2", "Fusion 1"]);
+  });
+
+  test("keeps the name a fusion is added with, and numbers around it", () => {
+    const instance = createInstance(composed());
+
+    instance.mutations.addFusion({
+      id: "f1",
+      name: "Fusion 1",
+      members: [{ kind: "place", placeId: "buffer" }, port("m1", "in")],
+    });
+    instance.mutations.addFusion({
+      id: "f2",
+      members: [port("m1", "out"), port("m2", "in")],
+    });
+
+    expect(instance.definition.get().fusions?.map(({ name }) => name)).toEqual([
+      "Fusion 1",
+      "Fusion 2",
+    ]);
+  });
+
+  test("adds and removes members, dropping a fusion left with one", () => {
+    const instance = createInstance(composed());
+
+    instance.mutations.addFusion({
+      id: "f1",
+      members: [port("m1", "out"), port("m2", "in")],
+    });
+    instance.mutations.addFusionMember({
+      fusionId: "f1",
+      member: { kind: "place", placeId: "buffer" },
+    });
+    expect(instance.definition.get().fusions?.[0]?.members).toHaveLength(3);
+
+    instance.mutations.removeFusionMember({
+      fusionId: "f1",
+      member: port("m2", "in"),
+    });
+    instance.mutations.removeFusionMember({
+      fusionId: "f1",
+      member: { kind: "place", placeId: "buffer" },
+    });
+    expect(instance.definition.get().fusions).toBeUndefined();
+  });
+
+  test("rejects a port that does not exist, a place that is not a port, a member twice and a second anchor", () => {
+    const definition = composed();
+    definition.places.push({ ...definition.places[0]!, id: "store" });
+    definition.subnets![0]!.places.push({
+      ...portPlace("hidden", "Hidden"),
+      isPort: false,
+    });
+    const instance = createInstance(definition);
+    const buffer = { kind: "place" as const, placeId: "buffer" };
+
+    expect(() =>
+      instance.mutations.addFusion({
+        id: "f1",
+        members: [buffer, port("m1", "missing")],
+      }),
+    ).toThrow(/Fusion references .* which does not exist/);
+    expect(() =>
+      instance.mutations.addFusion({
+        id: "f1",
+        members: [buffer, port("m1", "hidden")],
+      }),
+    ).toThrow(/isPort/);
+    expect(() =>
+      instance.mutations.addFusion({ id: "f1", members: [buffer, buffer] }),
+    ).toThrow(/names each place or port once/);
+    expect(() =>
+      instance.mutations.addFusion({
+        id: "f1",
+        members: [buffer, { kind: "place", placeId: "store" }],
+      }),
+    ).toThrow(/at most one place of its own net/);
+    expect(instance.definition.get().fusions).toBeUndefined();
+  });
+
+  test("renames a fusion and describes it, clears the description, and refuses to leave it unnamed", () => {
+    const instance = createInstance(composed());
+    instance.mutations.addFusion({
+      id: "f1",
+      members: [{ kind: "place", placeId: "buffer" }, port("m1", "in")],
+    });
+    const fusion = () => instance.definition.get().fusions?.[0];
+
+    instance.mutations.updateFusion({
+      fusionId: "f1",
+      update: { name: "Belt", description: "Between the two machines" },
+    });
+    expect(fusion()).toMatchObject({
+      name: "Belt",
+      description: "Between the two machines",
+    });
+
+    instance.mutations.updateFusion({
+      fusionId: "f1",
+      update: { description: undefined },
+    });
+    expect(fusion()).not.toHaveProperty("description");
+
+    for (const name of ["", "  "]) {
+      expect(() =>
+        instance.mutations.updateFusion({ fusionId: "f1", update: { name } }),
+      ).toThrow(/Name cannot be empty/);
+    }
+    expect(() =>
+      instance.mutations.updateFusion({
+        fusionId: "f1",
+        update: { name: undefined },
+      }),
+    ).toThrow(/expected string, received undefined/);
+    expect(fusion()?.name).toBe("Belt");
+  });
+
+  test("names a fusion the document was loaded with one member of", () => {
+    const instance = createInstance({
+      ...composed(),
+      fusions: [{ id: "f1", name: "F1", members: [port("m1", "in")] }],
+    });
+
+    instance.mutations.updateFusion({
+      fusionId: "f1",
+      update: { name: "Belt" },
+    });
+
+    expect(instance.definition.get().fusions?.[0]).toMatchObject({
+      name: "Belt",
+      members: [port("m1", "in")],
+    });
+  });
+
+  test("renames a subnet the document was loaded with a one-member fusion in", () => {
+    const definition = composed();
+    definition.subnets![0]!.fusions = [
+      { id: "f1", name: "F1", members: [{ kind: "place", placeId: "in" }] },
+    ];
+    const instance = createInstance(definition);
+
+    instance.mutations.updateSubnet({
+      subnetId: "machine",
+      update: { name: "Press" },
+    });
+
+    expect(instance.definition.get().subnets?.[0]).toMatchObject({
+      name: "Press",
+      fusions: [{ id: idOf("f1"), members: [{ placeId: idOf("in") }] }],
+    });
+  });
+
+  describe("a one-member fusion the document was loaded with", () => {
+    /**
+     * `Lone` holds `M1.In` alone. `Belt` fuses the buffer with `M2.In` and
+     * `M2.Out`. Nothing names the place `Store` or the instance `M3`.
+     */
+    const loaded = (): SDCPN => {
+      const definition = composed();
+      definition.places.push({
+        ...definition.places[0]!,
+        id: "store",
+        name: "Store",
+      });
+      definition.componentInstances!.push({
+        ...definition.componentInstances![0]!,
+        id: "m3",
+        name: "M3",
+      });
+      definition.fusions = [
+        { id: "lone", name: "Lone", members: [port("m1", "in")] },
+        {
+          id: "belt",
+          name: "Belt",
+          members: [
+            { kind: "place", placeId: "buffer" },
+            port("m2", "in"),
+            port("m2", "out"),
+          ],
+        },
+      ];
+      return definition;
+    };
+
+    type Mutations = ReturnType<typeof createInstance>["mutations"];
+    type Edit = (mutations: Mutations) => void;
+
+    const fusionIdsAfter = (edit: Edit) => {
+      const instance = createInstance(loaded());
+      edit(instance.mutations);
+      return instance.definition.get().fusions?.map(({ id }) => id);
+    };
+
+    test.each<[string, Edit]>([
+      [
+        "an unrelated place is removed",
+        (mutations) => mutations.removePlace({ placeId: "store" }),
+      ],
+      [
+        "an unrelated instance is removed",
+        (mutations) => mutations.removeComponentInstance({ instanceId: "m3" }),
+      ],
+      [
+        "unrelated items are deleted by id",
+        (mutations) =>
+          mutations.deleteItemsByIds({
+            items: [
+              { type: "place", id: "store" },
+              { type: "componentInstance", id: "m3" },
+            ],
+          }),
+      ],
+      [
+        "another fusion loses a member",
+        (mutations) =>
+          mutations.removeFusionMember({
+            fusionId: "belt",
+            member: port("m2", "out"),
+          }),
+      ],
+      [
+        "a member it does not hold is taken out of it",
+        (mutations) =>
+          mutations.removeFusionMember({
+            fusionId: "lone",
+            member: port("m2", "in"),
+          }),
+      ],
+    ])("stays when %s", (_case, edit) => {
+      expect(fusionIdsAfter(edit)).toEqual([idOf("lone"), idOf("belt")]);
+    });
+
+    test.each<[string, Edit]>([
+      [
+        "another fusion is removed",
+        (mutations) => mutations.removeFusion({ fusionId: "belt" }),
+      ],
+      [
+        "another fusion is deleted by id",
+        (mutations) =>
+          mutations.deleteItemsByIds({
+            items: [{ type: "fusion", id: "belt" }],
+          }),
+      ],
+      [
+        "an edit takes another fusion below two members",
+        (mutations) => mutations.removeComponentInstance({ instanceId: "m2" }),
+      ],
+    ])("stays alone when %s", (_case, edit) => {
+      expect(fusionIdsAfter(edit)).toEqual([idOf("lone")]);
+    });
+
+    test.each<[string, Edit]>([
+      [
+        "its member is taken out of it",
+        (mutations) =>
+          mutations.removeFusionMember({
+            fusionId: "lone",
+            member: port("m1", "in"),
+          }),
+      ],
+      [
+        "the instance of its member is removed",
+        (mutations) => mutations.removeComponentInstance({ instanceId: "m1" }),
+      ],
+    ])("goes when %s", (_case, edit) => {
+      expect(fusionIdsAfter(edit)).toEqual([idOf("belt")]);
+    });
+  });
+
+  test("removing a place, an instance or a port takes it out of its fusions", () => {
+    const instance = createInstance(composed());
+    instance.mutations.addFusion({
+      id: "f1",
+      members: [
+        { kind: "place", placeId: "buffer" },
+        port("m1", "in"),
+        port("m2", "in"),
+      ],
+    });
+
+    instance.mutations.removePlace({ placeId: "buffer" });
+    expect(instance.definition.get().fusions?.[0]?.members).toEqual([
+      port("m1", "in"),
+      port("m2", "in"),
+    ]);
+
+    instance.mutations.removeComponentInstance({ instanceId: "m2" });
+    expect(instance.definition.get().fusions).toBeUndefined();
+
+    instance.mutations.addFusion({
+      id: "f2",
+      members: [port("m1", "in"), port("m1", "out")],
+    });
+    instance.mutations.updatePlace({
+      placeId: "in",
+      targetSubnetId: "machine",
+      update: { isPort: false },
+    });
+    expect(instance.definition.get().fusions).toBeUndefined();
+  });
+
+  test("an instance pointed at another subnet leaves the fusions and arcs on its old ports", () => {
+    const definition = composed();
+    definition.subnets!.push({
+      ...definition.subnets![0]!,
+      id: "press",
+      name: "Press",
+      places: [portPlace("press_in", "In")],
+    });
+    definition.transitions.push({
+      id: "feed",
+      name: "Feed",
+      inputArcs: [],
+      outputArcs: [{ endpoint: port("m1", "in"), weight: 1 }],
+      lambdaType: "predicate",
+      lambdaCode: "",
+      transitionKernelCode: "",
+      x: 0,
+      y: 0,
+    });
+    const instance = createInstance(definition);
+    instance.mutations.addFusion({
+      id: "f1",
+      members: [{ kind: "place", placeId: "buffer" }, port("m1", "out")],
+    });
+
+    instance.mutations.updateComponentInstance({
+      instanceId: "m1",
+      update: { subnetId: "press" },
+    });
+
+    const document = instance.definition.get();
+    expect(document.fusions).toBeUndefined();
+    expect(document.transitions[0]?.outputArcs).toEqual([]);
+  });
+
+  test("deleting items by id removes fusions and their dangling members", () => {
+    const instance = createInstance(composed());
+    instance.mutations.addFusion({
+      id: "f1",
+      members: [{ kind: "place", placeId: "buffer" }, port("m1", "in")],
+    });
+    instance.mutations.addFusion({
+      id: "f2",
+      members: [port("m1", "out"), port("m2", "in")],
+    });
+
+    instance.mutations.deleteItemsByIds({
+      items: [
+        { type: "fusion", id: "f1" },
+        { type: "componentInstance", id: "m2" },
+      ],
+    });
+
+    expect(instance.definition.get().fusions).toBeUndefined();
+    expect(instance.definition.get().componentInstances).toHaveLength(1);
+  });
+
+  describe("updates that take arcs and fusion memberships with them", () => {
+    /** `M1.In` takes an arc and `M1.Out` is fused; nothing names a port of `M2`. */
+    const wired = (): SDCPN => {
+      const definition = composed();
+      definition.subnets!.push({
+        ...definition.subnets![0]!,
+        id: "press",
+        name: "Press",
+        places: [portPlace("press_in", "In")],
+      });
+      definition.transitions.push({
+        id: "feed",
+        name: "Feed",
+        inputArcs: [],
+        outputArcs: [{ endpoint: port("m1", "in"), weight: 1 }],
+        lambdaType: "predicate",
+        lambdaCode: "",
+        transitionKernelCode: "",
+        x: 0,
+        y: 0,
+      });
+      definition.fusions = [
+        {
+          id: "f1",
+          name: "F1",
+          members: [{ kind: "place", placeId: "buffer" }, port("m1", "out")],
+        },
+      ];
+      return definition;
+    };
+
+    const references = (document: SDCPN): number =>
+      document.transitions.reduce(
+        (count, { inputArcs, outputArcs }) =>
+          count + inputArcs.length + outputArcs.length,
+        0,
+      ) +
+      (document.fusions ?? []).reduce(
+        (count, { members }) => count + members.length,
+        0,
+      );
+
+    const unmark = (placeId: string, update: object = { isPort: false }) =>
+      ({
+        action: "updatePlace",
+        input: { placeId, targetSubnetId: "machine", update },
+      }) as const;
+    const repoint = (instanceId: string, update: object) =>
+      ({
+        action: "updateComponentInstance",
+        input: { instanceId, update },
+      }) as const;
+
+    test.each([
+      ["unmarking a port an arc reaches", unmark("in"), true],
+      ["unmarking a port a fusion holds", unmark("out"), true],
+      [
+        "clearing the mark of such a port",
+        unmark("in", { isPort: undefined }),
+        true,
+      ],
+      ["renaming such a port", unmark("in", { name: "Inlet" }), false],
+      ["marking it a port again", unmark("in", { isPort: true }), false],
+      [
+        "pointing a wired instance at another subnet",
+        repoint("m1", { subnetId: "press" }),
+        true,
+      ],
+      [
+        "pointing it at the subnet it has",
+        repoint("m1", { subnetId: "machine" }),
+        false,
+      ],
+      ["renaming a wired instance", repoint("m1", { name: "Mill" }), false],
+      [
+        "pointing an instance nothing names at another subnet",
+        repoint("m2", { subnetId: "press" }),
+        false,
+      ],
+    ])("%s", (_case, { action, input }, prunes) => {
+      const instance = createInstance(wired());
+      const before = instance.definition.get();
+
+      expect(updatePrunesReferences(before, action, input)).toBe(prunes);
+
+      // What the check says is what the mutation then does.
+      const mutate = instance.mutations[action] as (input: unknown) => void;
+      mutate(input);
+      expect(references(instance.definition.get()) < references(before)).toBe(
+        prunes,
+      );
+    });
+
+    test("unmarking a port nothing outside its subnet names takes nothing", () => {
+      const definition = wired();
+      definition.transitions = [];
+      delete definition.fusions;
+      const { action, input } = unmark("in");
+
+      expect(updatePrunesReferences(definition, action, input)).toBe(false);
+    });
+
+    test("an update of a place of the root net, or of what is not there, takes nothing", () => {
+      const document = createInstance(wired()).definition.get();
+
+      expect(
+        updatePrunesReferences(document, "updatePlace", {
+          placeId: "buffer",
+          update: { isPort: false },
+        }),
+      ).toBe(false);
+      expect(
+        updatePrunesReferences(document, "updatePlace", {
+          placeId: "in",
+          targetSubnetId: "missing",
+          update: { isPort: false },
+        }),
+      ).toBe(false);
+      expect(
+        updatePrunesReferences(document, "updateComponentInstance", {
+          instanceId: "missing",
+          update: { subnetId: "press" },
+        }),
+      ).toBe(false);
+      expect(updatePrunesReferences(document, "removePlace", {})).toBe(false);
+    });
   });
 });
