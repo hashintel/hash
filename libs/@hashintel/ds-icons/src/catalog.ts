@@ -276,6 +276,7 @@ const categories = {
     "rectangle",
   ],
   Interface: [
+    "searchCheck",
     "ballotCheck",
     "key",
     "paperclip",

@@ -143,6 +143,7 @@ import { rectanglesMixedGeometry } from "./library-geometry/rectangles-mixed";
 import { redoGeometry } from "./library-geometry/redo";
 import { roundedCornerGeometry } from "./library-geometry/rounded-corner";
 import { rowsGeometry } from "./library-geometry/rows";
+import { searchCheckGeometry } from "./library-geometry/search-check";
 import { sendGeometry } from "./library-geometry/send";
 import { sendBackwardGeometry } from "./library-geometry/send-backward";
 import { sendToBackGeometry } from "./library-geometry/send-to-back";
@@ -182,6 +183,7 @@ import { ungroupGeometry } from "./library-geometry/ungroup";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  searchCheck: searchCheckGeometry,
   speaker: speakerGeometry,
   phoneOff: phoneOffGeometry,
   phone: phoneGeometry,
