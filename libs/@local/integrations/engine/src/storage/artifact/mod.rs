@@ -2,6 +2,7 @@ mod binding;
 mod local;
 mod reference;
 mod s3;
+mod versioned;
 
 use alloc::sync::Arc;
 use std::{
@@ -19,7 +20,10 @@ use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
 use uuid::Uuid;
 
 pub(crate) use self::binding::Bound;
-pub use self::reference::{ArtifactRef, ArtifactRefV1, Format};
+pub use self::{
+    reference::{ArtifactRef, ArtifactRefV1, Format},
+    versioned::CasVersion,
+};
 use super::{ArtifactError, ArtifactKey, S3Bucket};
 
 /// How many bytes are read, hashed and uploaded at a time.
@@ -39,6 +43,8 @@ pub struct ArtifactStorage {
     staging: PathBuf,
     /// The local directory artifacts are kept or staged in.
     directory: PathBuf,
+    /// The directory of a local store, whose versioned writes are compared under a lock file.
+    local_root: Option<PathBuf>,
 }
 
 impl ArtifactStorage {
@@ -54,6 +60,7 @@ impl ArtifactStorage {
             store: Arc::new(local::open(root)?),
             staging,
             directory: root.to_owned(),
+            local_root: Some(root.to_owned()),
         })
     }
 
@@ -69,6 +76,7 @@ impl ArtifactStorage {
             store: s3::open(bucket)?,
             staging: staging.to_owned(),
             directory: staging.to_owned(),
+            local_root: None,
         })
     }
 
@@ -92,7 +100,8 @@ impl ArtifactStorage {
     ///
     /// Each call returns a different path, so a file left by a failed attempt never blocks the
     /// next one.
-    pub(crate) fn staging_file(staging: &Path, format: Format) -> PathBuf {
+    #[must_use]
+    pub fn staging_file(staging: &Path, format: Format) -> PathBuf {
         staging.join(format!("{}.{}", Uuid::new_v4(), format.extension()))
     }
 

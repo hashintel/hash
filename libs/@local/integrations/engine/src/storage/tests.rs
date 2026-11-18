@@ -14,8 +14,8 @@ use testcontainers_modules::minio::MinIO;
 use uuid::Uuid;
 
 use super::{
-    ArtifactError, ArtifactKey, ArtifactNamespace, ArtifactRef, ArtifactStorage, Bound, Format,
-    S3Bucket, artifact::CHUNK_SIZE,
+    ArtifactError, ArtifactKey, ArtifactNamespace, ArtifactRef, ArtifactStorage, Bound, CasVersion,
+    Format, S3Bucket, artifact::CHUNK_SIZE,
 };
 use crate::CaptureRun;
 
@@ -405,6 +405,16 @@ fn namespace_keys_are_stable() {
         format!("{root}/artifacts"),
         "the artifact prefix is a storage format"
     );
+    assert_eq!(
+        namespace.run(Uuid::from_u128(2)).to_string(),
+        format!("{root}/runs/00000000-0000-0000-0000-000000000002/run.json"),
+        "the run key is a storage format"
+    );
+    assert_eq!(
+        namespace.current().to_string(),
+        format!("{root}/current.json"),
+        "the current run key is a storage format"
+    );
     assert_ne!(
         ArtifactNamespace::new(web, &"linear".parse().expect("should be a connector ID")),
         namespace,
@@ -463,5 +473,179 @@ fn staging_files_are_unique() {
         ArtifactStorage::staging_file(directory.path(), Format::Parquet),
         ArtifactStorage::staging_file(directory.path(), Format::Parquet),
         "a file left by a failed attempt should not block the next attempt"
+    );
+}
+
+fn json_bytes(value: &Value) -> Vec<u8> {
+    serde_json::to_vec(value).expect("should serialize the value")
+}
+
+/// Reads the JSON value at `key` and its version.
+async fn read_json(storage: &ArtifactStorage, key: &ArtifactKey) -> (Value, CasVersion) {
+    let (bytes, version) = storage
+        .read_versioned(key)
+        .await
+        .expect("should read the file")
+        .expect("the file should exist");
+    (
+        serde_json::from_slice(&bytes).expect("should be JSON"),
+        version,
+    )
+}
+
+#[tokio::test]
+async fn replace_if_compare_and_swap() {
+    let directory = TempDir::new().expect("should create a directory");
+    let storage = storage(None, directory.path());
+    let key = namespace(Uuid::new_v4()).current();
+
+    assert!(
+        storage
+            .replace_if(&key, None, json_bytes(&json!({"run": 1})))
+            .await
+            .expect("should create the file"),
+        "the first create should write"
+    );
+    assert!(
+        !storage
+            .replace_if(&key, None, json_bytes(&json!({"run": 2})))
+            .await
+            .expect("should try to create the file"),
+        "a second create should conflict"
+    );
+    let (_, version) = read_json(&storage, &key).await;
+    assert!(
+        storage
+            .replace_if(&key, Some(&version), json_bytes(&json!({"run": 2})))
+            .await
+            .expect("should replace the file"),
+        "a replace with the current version should write"
+    );
+    assert!(
+        !storage
+            .replace_if(&key, Some(&version), json_bytes(&json!({"run": 3})))
+            .await
+            .expect("should try to replace the file"),
+        "a replace with a stale version should conflict"
+    );
+}
+
+#[tokio::test]
+async fn replace_if_local_handles() {
+    let directory = TempDir::new().expect("should create a directory");
+    let first = storage(None, directory.path());
+    let second = storage(None, directory.path());
+    let key = namespace(Uuid::new_v4()).current();
+
+    assert!(
+        first
+            .replace_if(&key, None, json_bytes(&json!({"generation": 1})))
+            .await
+            .expect("should create the file"),
+        "the create should write"
+    );
+    let (_, initial) = read_json(&first, &key).await;
+    let (_, current) = read_json(&second, &key).await;
+    assert!(
+        second
+            .replace_if(&key, Some(&current), json_bytes(&json!({"generation": 2})))
+            .await
+            .expect("should replace the file"),
+        "the second handle should replace the file it read"
+    );
+    assert!(
+        !first
+            .replace_if(&key, Some(&initial), json_bytes(&json!({"generation": 3})))
+            .await
+            .expect("should try to replace the file"),
+        "the first handle should see the other handle's write as a conflict"
+    );
+}
+
+#[rstest]
+#[case::local(false)]
+#[case::s3(true)]
+#[tokio::test]
+async fn replace_if_conditional_put(#[case] s3: bool) {
+    let directory = TempDir::new().expect("should create a directory");
+    let minio = if s3 { Some(minio().await) } else { None };
+    let port = minio.as_ref().map(|(_, port)| *port);
+    let storage = storage(port, directory.path());
+    let key = namespace(Uuid::new_v4()).current();
+    let first = json!({"generation": 1, "writer": "first"});
+    let second = json!({"generation": 2, "writer": "second"});
+
+    assert!(
+        storage
+            .replace_if(&key, None, json_bytes(&first))
+            .await
+            .expect("should create the file"),
+        "a create under a fresh key should write"
+    );
+    let (observed, version) = read_json(&storage, &key).await;
+    assert_eq!(observed, first, "the created value should be readable");
+    assert!(
+        !storage
+            .replace_if(&key, None, json_bytes(&second))
+            .await
+            .expect("should try to create the file"),
+        "a second create should conflict"
+    );
+    assert!(
+        storage
+            .replace_if(&key, Some(&version), json_bytes(&second))
+            .await
+            .expect("should replace the file"),
+        "a replace with the current version should write"
+    );
+    assert!(
+        !storage
+            .replace_if(&key, Some(&version), json_bytes(&first))
+            .await
+            .expect("should try to replace the file"),
+        "a replace with a stale version should conflict"
+    );
+    assert_eq!(
+        read_json(&storage, &key).await.0,
+        second,
+        "the conflict should keep the second writer's value"
+    );
+}
+
+#[tokio::test]
+async fn versioned_size_limit() {
+    let directory = TempDir::new().expect("should create a directory");
+    let storage = storage(None, directory.path());
+    let key = namespace(Uuid::new_v4()).current();
+    let bytes = vec![b' '; 1024 * 1024 + 1];
+
+    let error = storage
+        .replace_if(&key, None, bytes.clone())
+        .await
+        .expect_err("should refuse to write more than 1 MiB");
+    assert!(
+        matches!(error.current_context(), ArtifactError::Write),
+        "an oversized write should be a write error"
+    );
+    assert_eq!(
+        storage
+            .read_versioned(&key)
+            .await
+            .expect("should read the key"),
+        None,
+        "the refused write should leave the key missing"
+    );
+
+    let path = directory.path().join("artifacts").join(key.to_string());
+    fs::create_dir_all(path.parent().expect("the key should have a parent"))
+        .expect("should create the key's directory");
+    fs::write(&path, &bytes).expect("should write the file");
+    let error = storage
+        .read_versioned(&key)
+        .await
+        .expect_err("should refuse to read more than 1 MiB");
+    assert!(
+        matches!(error.current_context(), ArtifactError::Read),
+        "an oversized read should be a read error"
     );
 }

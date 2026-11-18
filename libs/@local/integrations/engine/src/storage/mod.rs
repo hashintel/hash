@@ -6,7 +6,7 @@ pub(crate) mod tests;
 
 pub(crate) use self::artifact::Bound;
 pub use self::{
-    artifact::{ArtifactRef, ArtifactRefV1, ArtifactStorage, Format},
+    artifact::{ArtifactRef, ArtifactRefV1, ArtifactStorage, CasVersion, Format},
     bucket::S3Bucket,
     namespace::ArtifactNamespace,
 };

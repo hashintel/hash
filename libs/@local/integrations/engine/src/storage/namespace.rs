@@ -41,4 +41,16 @@ impl ArtifactNamespace {
     pub fn artifacts(&self) -> ArtifactKey {
         ArtifactKey(format!("{}/artifacts", self.root).into())
     }
+
+    /// The key of the state of the run `run`.
+    #[must_use]
+    pub fn run(&self, run: Uuid) -> ArtifactKey {
+        ArtifactKey(format!("{}/runs/{run}/run.json", self.root).into())
+    }
+
+    /// The key that records the integration's active and last completed run.
+    #[must_use]
+    pub fn current(&self) -> ArtifactKey {
+        ArtifactKey(format!("{}/current.json", self.root).into())
+    }
 }
