@@ -211,6 +211,8 @@ export const descriptions = {
     "A bar above successive states represents a condition that holds throughout an execution.",
   logicCounterexample:
     "A trace ending in a cross represents an execution that violates a property.",
+  logicConstraint:
+    "A bracketed inequality represents a restriction on permitted values.",
   logicSignalBounded:
     "A waveform with a marked interval represents signal temporal logic over a bounded period.",
   logicSignalThreshold:

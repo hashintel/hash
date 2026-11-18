@@ -194,6 +194,7 @@ Filled dots mark states or events where that distinction carries meaning.
 | `logicBranching`      | A state has alternative possible futures.         |
 | `logicInvariant`      | The same condition holds across states.           |
 | `logicCounterexample` | A trace reaches a state that violates a property. |
+| `logicConstraint`     | An inequality restricts the permitted values.     |
 
 ### Temporal logic
 

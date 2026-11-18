@@ -573,6 +573,7 @@ export const LogicUntilIcon = createIcon("logicUntil");
 export const LogicBranchingIcon = createIcon("logicBranching");
 export const LogicInvariantIcon = createIcon("logicInvariant");
 export const LogicCounterexampleIcon = createIcon("logicCounterexample");
+export const LogicConstraintIcon = createIcon("logicConstraint");
 export const LogicSignalBoundedIcon = createIcon("logicSignalBounded");
 export const LogicSignalThresholdIcon = createIcon("logicSignalThreshold");
 export const LogicSignalClockIcon = createIcon("logicSignalClock");
@@ -651,6 +652,7 @@ export const hashIconPack = {
   logicBranching: LogicBranchingIcon,
   logicInvariant: LogicInvariantIcon,
   logicCounterexample: LogicCounterexampleIcon,
+  logicConstraint: LogicConstraintIcon,
   logicSignalBounded: LogicSignalBoundedIcon,
   logicSignalThreshold: LogicSignalThresholdIcon,
   logicSignalClock: LogicSignalClockIcon,

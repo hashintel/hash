@@ -96,6 +96,7 @@ describe("icon catalog metadata", () => {
     "logicBranching",
     "logicInvariant",
     "logicCounterexample",
+    "logicConstraint",
     "logicSignalBounded",
     "logicSignalThreshold",
     "logicSignalClock",
