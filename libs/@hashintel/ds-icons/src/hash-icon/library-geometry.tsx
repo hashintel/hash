@@ -213,6 +213,7 @@ import { shapeArrowRightGeometry } from "./library-geometry/shape-arrow-right";
 import { shapeArrowUpGeometry } from "./library-geometry/shape-arrow-up";
 import { shareGeometry } from "./library-geometry/share";
 import { shareNodesGeometry } from "./library-geometry/share-nodes";
+import { shelvesGeometry } from "./library-geometry/shelves";
 import { shieldAlertGeometry } from "./library-geometry/shield-alert";
 import { shieldCheckGeometry } from "./library-geometry/shield-check";
 import { shopGeometry } from "./library-geometry/shop";
@@ -254,6 +255,7 @@ import { usersGeometry } from "./library-geometry/users";
 import { warehouseGeometry } from "./library-geometry/warehouse";
 
 export const libraryGeometry = {
+  shelves: shelvesGeometry,
   boxLocation: boxLocationGeometry,
   boxesPacking: boxesPackingGeometry,
   pack: packGeometry,
