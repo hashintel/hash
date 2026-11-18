@@ -494,6 +494,7 @@ export const ToggleOnIcon = createIcon("toggleOn");
 export const ToggleOffIcon = createIcon("toggleOff");
 export const CommandIcon = createIcon("command");
 export const KeycapKIcon = createIcon("keycapK");
+export const KeyboardIcon = createIcon("keyboard");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -679,6 +680,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  keyboard: KeyboardIcon,
   keycapK: KeycapKIcon,
   command: CommandIcon,
   toggleOff: ToggleOffIcon,
