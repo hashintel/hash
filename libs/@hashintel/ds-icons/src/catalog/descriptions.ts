@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  hammer: "A striking tool represents building, repair, or manual work.",
   trophy: "A cup on a pedestal represents an award or achievement.",
   gem: "A faceted jewel represents value, rarity, or a premium item.",
   swatchBook: "Fanned color cards represent a set of swatches.",

@@ -143,6 +143,7 @@ import { globePointerGeometry } from "./library-geometry/globe-pointer";
 import { globeStandGeometry } from "./library-geometry/globe-stand";
 import { graduationCapGeometry } from "./library-geometry/graduation-cap";
 import { groupGeometry } from "./library-geometry/group";
+import { hammerGeometry } from "./library-geometry/hammer";
 import { handDollarGeometry } from "./library-geometry/hand-dollar";
 import { handshakeGeometry } from "./library-geometry/handshake";
 import { handwrittenDocsGeometry } from "./library-geometry/handwritten-docs";
@@ -309,6 +310,7 @@ import { wavePulseGeometry } from "./library-geometry/wave-pulse";
 import { wavesGeometry } from "./library-geometry/waves";
 
 export const libraryGeometry = {
+  hammer: hammerGeometry,
   trophy: trophyGeometry,
   gem: gemGeometry,
   swatchBook: swatchBookGeometry,
