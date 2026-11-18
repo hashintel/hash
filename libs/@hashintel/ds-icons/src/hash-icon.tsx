@@ -5,6 +5,7 @@ import { additionalGeometry } from "./hash-icon/additional-geometry";
 import { explorationGeometry } from "./hash-icon/exploration-geometry";
 import { FilledShape, IconFillContext } from "./hash-icon/filled-shape";
 import { IconInteraction } from "./hash-icon/interaction";
+import { libraryGeometry } from "./hash-icon/library-geometry";
 import { logicGeometry } from "./hash-icon/logic-geometry";
 import { McpServerGeometry } from "./hash-icon/mcp-server-geometry";
 import { modelingGeometry } from "./hash-icon/modeling-geometry";
@@ -87,6 +88,7 @@ const geometry = {
   ...utilityGeometry,
   ...explorationGeometry,
   ...logicGeometry,
+  ...libraryGeometry,
   mcpServer: <McpServerGeometry />,
   sidebar: null,
   menu: null,
@@ -423,6 +425,7 @@ const createIcon = (
   return IconComponent;
 };
 
+export const FileArchiveIcon = createIcon("fileArchive");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -608,6 +611,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  fileArchive: FileArchiveIcon,
   loadingSpinner: LoadingIcon,
   arrowTrendDown: ArrowTrendDownIcon,
   arrowTrendUp: ArrowTrendUpIcon,
