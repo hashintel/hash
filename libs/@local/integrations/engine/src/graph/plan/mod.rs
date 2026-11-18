@@ -25,6 +25,7 @@ use type_system::{
 use uuid::Uuid;
 
 use self::request::Delivery;
+pub(in crate::graph) use self::request::SavedRequests;
 use super::{
     ConversionFailure, EntityUpsert, GraphOperation, LinkEndpoint, LinkUpsert, OperationKind,
     ResolvedProperties, SinkRow,

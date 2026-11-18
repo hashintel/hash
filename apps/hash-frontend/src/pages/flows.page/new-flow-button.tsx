@@ -1,7 +1,5 @@
 import { Button } from "@hashintel/ds-components";
 
-import { DsComponentsScope } from "../shared/ds-components-scope";
-
 import type { CreateFlow } from "./use-create-flow";
 
 export const NewFlowButton = ({
@@ -9,18 +7,16 @@ export const NewFlowButton = ({
   creating,
   canCreate,
 }: CreateFlow) => (
-  <DsComponentsScope sx={{ display: "contents" }}>
-    <Button
-      variant="solid"
-      size="md"
-      iconName="plus"
-      loading={creating}
-      disabled={!canCreate || creating}
-      onClick={() => {
-        void createFlow();
-      }}
-    >
-      New flow
-    </Button>
-  </DsComponentsScope>
+  <Button
+    variant="solid"
+    size="sm"
+    iconName="plus"
+    loading={creating}
+    disabled={!canCreate || creating}
+    onClick={() => {
+      void createFlow();
+    }}
+  >
+    New flow
+  </Button>
 );

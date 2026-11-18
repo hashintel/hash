@@ -14,13 +14,13 @@ import * as v from "valibot";
 
 import {
   brunchTools,
-  vHashEntityReadInput,
-  vHashEntityReadResult,
-  vHashEntityTypeReadInput,
-  vHashEntityTypeReadResult,
-  vHashReadFailure,
-  vHashWebReadInput,
-  vHashWebReadResult,
+  hashEntityReadInputSchema,
+  hashEntityReadResultSchema,
+  hashEntityTypeReadInputSchema,
+  hashEntityTypeReadResultSchema,
+  hashReadFailureSchema,
+  hashWebReadInputSchema,
+  hashWebReadResultSchema,
 } from "@hashintel/brunch-agent";
 
 import {
@@ -30,7 +30,7 @@ import {
 
 /** What the model is shown of a read that failed in HASH's page. */
 const hashReadFailureForModel = (output: unknown) => {
-  const parsed = v.safeParse(vHashReadFailure, output);
+  const parsed = v.safeParse(hashReadFailureSchema, output);
   return parsed.success
     ? {
         error: parsed.output.error,
@@ -242,7 +242,7 @@ export const hashEntityReadForModel = (
   output: unknown,
   fullValuesFor: readonly string[] = [],
 ) => {
-  const parsed = v.safeParse(vHashEntityReadResult, output);
+  const parsed = v.safeParse(hashEntityReadResultSchema, output);
   if (!parsed.success)
     throw new Error("HASH's page returned an entity read in an unknown shape.");
   const { entities, propertyTypes, entityTypes, truncated } = parsed.output;
@@ -358,7 +358,7 @@ export const createHashEntityReadTool = (execute: BrowserToolExecutor) =>
   defineTool({
     name: brunchTools.hashQueryEntities,
     description: hashEntityReadDescription,
-    input: vHashEntityReadInput,
+    input: hashEntityReadInputSchema,
     run: ({ data, toolCallId, signal }) =>
       runHashRead(
         execute,
@@ -379,7 +379,7 @@ const hashEntityTypeReadEmptyNote =
 
 /** What the model is shown of a settled entity type read: compact text. */
 export const hashEntityTypeReadForModel = (output: unknown) => {
-  const parsed = v.safeParse(vHashEntityTypeReadResult, output);
+  const parsed = v.safeParse(hashEntityTypeReadResultSchema, output);
   if (!parsed.success)
     throw new Error(
       "HASH's page returned an entity type read in an unknown shape.",
@@ -437,7 +437,7 @@ export const createHashEntityTypeReadTool = (execute: BrowserToolExecutor) =>
   defineTool({
     name: brunchTools.hashQueryEntityTypes,
     description: hashEntityTypeReadDescription,
-    input: vHashEntityTypeReadInput,
+    input: hashEntityTypeReadInputSchema,
     run: ({ data, toolCallId, signal }) =>
       runHashRead(
         execute,
@@ -455,7 +455,7 @@ export const hashWebReadDescription = `List the signed-in user's own HASH web an
 
 /** What the model is shown of a settled web read: one line per web. */
 export const hashWebReadForModel = (output: unknown) => {
-  const parsed = v.safeParse(vHashWebReadResult, output);
+  const parsed = v.safeParse(hashWebReadResultSchema, output);
   if (!parsed.success)
     throw new Error("HASH's page returned a web read in an unknown shape.");
   const { webs } = parsed.output;
@@ -477,7 +477,7 @@ export const createHashWebReadTool = (execute: BrowserToolExecutor) =>
   defineTool({
     name: brunchTools.hashQueryWebs,
     description: hashWebReadDescription,
-    input: vHashWebReadInput,
+    input: hashWebReadInputSchema,
     run: ({ data, toolCallId, signal }) =>
       runHashRead(
         execute,

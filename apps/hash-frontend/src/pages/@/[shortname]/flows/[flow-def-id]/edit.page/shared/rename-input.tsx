@@ -3,7 +3,13 @@ import { useRef, useState } from "react";
 import { TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-const renameInput = css({ fontWeight: "medium", minWidth: "0" });
+const renameInput = css({
+  fontWeight: "medium",
+  minWidth: "0",
+  /* The name grows with its text, so a long one is cut with an ellipsis instead of overflowing its container. */
+  "& *": { maxWidth: "full" },
+  "& input": { textOverflow: "ellipsis" },
+});
 
 /**
  * A name edited in place: it reads as text with a pen icon, and is typed into when clicked. Escape, or leaving it

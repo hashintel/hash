@@ -4,6 +4,7 @@ import {
   withArticle,
 } from "../../shared/value-display";
 
+import type { EntityId } from "@blockprotocol/type-system";
 import type { FlowEditorState } from "@local/hash-isomorphic-utils/flows/flow-editor";
 import type {
   FlowInputDefinition,
@@ -12,19 +13,22 @@ import type {
   PayloadKind,
 } from "@local/hash-isomorphic-utils/flows/types";
 
-/** A value given to a flow input in the run form. A number not typed yet is `null`, and text or a date `""`. */
+/**
+ * A value given to a flow input in the run form. A number or an entity not given yet is `null`, text or a date `""`,
+ * and a list of entities `[]`.
+ */
 export type RunFormValue =
   | { kind: "Text"; value: string }
   | { kind: "Number"; value: number | null }
   | { kind: "Boolean"; value: boolean }
-  | { kind: "Date"; value: string };
+  | { kind: "Date"; value: string }
+  | { kind: "EntityId"; array: false; value: EntityId | null }
+  | { kind: "EntityId"; array: true; value: EntityId[] };
 
 /** The form's values, by the name of the input each is for. Inputs the form can't take have none. */
 export type RunFormValues = Record<string, RunFormValue>;
 
-/**
- * The value each kind starts with in the form, or `null` for a kind it can't take yet, e.g. an entity (FE-2184).
- */
+/** The value each kind starts with in the form, or `null` for a kind it can't take yet, e.g. a duration. */
 const emptyValues = {
   Text: { kind: "Text", value: "" },
   Number: { kind: "Number", value: null },
@@ -34,7 +38,7 @@ const emptyValues = {
   Aggregation: null,
   DateTime: null,
   Duration: null,
-  EntityId: null,
+  EntityId: { kind: "EntityId", array: false, value: null },
   EntityQuery: null,
   FailedEntityProposal: null,
   FilterCondition: null,
@@ -52,12 +56,19 @@ const emptyValues = {
   WebSearchResult: null,
 } satisfies Record<PayloadKind, RunFormValue | null>;
 
-/** The value an input starts with in the form, or `null` if the form can't take it, e.g. a list. */
+/** The value an input starts with in the form, or `null` if the form can't take it, e.g. a list of text. */
 const getEmptyValue = ({
   payloadKind,
   array,
-}: FlowInputDefinition): RunFormValue | null =>
-  array ? null : emptyValues[payloadKind];
+}: FlowInputDefinition): RunFormValue | null => {
+  if (!array) {
+    return emptyValues[payloadKind];
+  }
+
+  return payloadKind === "EntityId"
+    ? { kind: "EntityId", array: true, value: [] }
+    : null;
+};
 
 export const getInitialFormValues = (
   inputs: FlowInputDefinition[],
@@ -73,6 +84,79 @@ export const getInitialFormValues = (
   }
 
   return values;
+};
+
+/** A run's value as the form's value for its input, given the value the input starts with, or `null` if it isn't one. */
+const getRanFormValue = (
+  emptyValue: RunFormValue,
+  payload: Payload,
+): RunFormValue | null => {
+  const { value } = payload;
+
+  switch (emptyValue.kind) {
+    case "Text":
+    case "Date":
+      return typeof value === "string"
+        ? { kind: emptyValue.kind, value }
+        : null;
+    case "Number":
+      return typeof value === "number" ? { kind: "Number", value } : null;
+    case "Boolean":
+      return typeof value === "boolean" ? { kind: "Boolean", value } : null;
+    case "EntityId":
+      if (payload.kind !== "EntityId") {
+        return null;
+      }
+
+      if (emptyValue.array) {
+        return Array.isArray(payload.value) &&
+          payload.value.every(
+            (item): item is EntityId => typeof item === "string",
+          )
+          ? { kind: "EntityId", array: true, value: payload.value }
+          : null;
+      }
+
+      return typeof payload.value === "string"
+        ? { kind: "EntityId", array: false, value: payload.value }
+        : null;
+  }
+};
+
+/**
+ * The form's values to run the flow again with a run's inputs: each of the run's values fills in the input of the same
+ * name. `changedInputLabels` names the run's inputs whose values are left out, as the flow no longer has them or they
+ * now take another kind of value.
+ */
+export const getFormValuesFromRun = (
+  inputs: FlowInputDefinition[],
+  ranInputs: FlowInputValues,
+): { values: RunFormValues; changedInputLabels: string[] } => {
+  const values = getInitialFormValues(inputs);
+  const inputsByName = new Map(inputs.map((input) => [input.name, input]));
+  const changedInputLabels: string[] = [];
+
+  for (const [name, payload] of Object.entries(ranInputs)) {
+    const input = inputsByName.get(name);
+
+    if (
+      !input ||
+      input.payloadKind !== payload.kind ||
+      input.array !== Array.isArray(payload.value)
+    ) {
+      changedInputLabels.push(getFlowInputLabel(input ?? { name }));
+      continue;
+    }
+
+    const emptyValue = values[name];
+    const ranValue = emptyValue ? getRanFormValue(emptyValue, payload) : null;
+
+    if (ranValue) {
+      values[name] = ranValue;
+    }
+  }
+
+  return { values, changedInputLabels };
 };
 
 /**
@@ -109,7 +193,7 @@ export const getRunBlocker = ({
   return null;
 };
 
-/** The payload for a value, or `null` if it was left blank. */
+/** The payload for a value, or `null` if it was left blank. Text of only spaces is blank; a toggle never is. */
 const toPayload = (formValue: RunFormValue): Payload | null => {
   switch (formValue.kind) {
     case "Number":
@@ -119,8 +203,19 @@ const toPayload = (formValue: RunFormValue): Payload | null => {
     case "Boolean":
       return formValue;
     case "Text":
+      return formValue.value.trim() === "" ? null : formValue;
     case "Date":
       return formValue.value === "" ? null : formValue;
+    case "EntityId":
+      if (formValue.array) {
+        return formValue.value.length === 0
+          ? null
+          : { kind: "EntityId", value: formValue.value };
+      }
+
+      return formValue.value === null
+        ? null
+        : { kind: "EntityId", value: formValue.value };
   }
 };
 

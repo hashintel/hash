@@ -402,16 +402,6 @@
       "artworkLicense": null,
       "artworkAttribution": null,
       "collectionLicenseFiles": ["licenses/integrations-catalog-AGPL.txt"]
-    },
-    "linear-mark-light-8633e0639f85.svg": {
-      "brand": "linear",
-      "slug": "linear",
-      "variant": "mark-light",
-      "sha256": "8633e0639f85b750cb995aceee36e3dd102d4c3287515a140534b789a302ea5d",
-      "source": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/linear-icon.svg",
-      "artworkLicense": null,
-      "artworkAttribution": null,
-      "collectionLicenseFiles": ["licenses/logos-CC0.txt"]
     }
   },
   "sourceCommit": "f6a3ac1236510ab0d1411d1c152b53c5e3fa8274"

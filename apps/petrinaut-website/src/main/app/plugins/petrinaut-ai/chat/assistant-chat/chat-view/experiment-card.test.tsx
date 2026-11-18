@@ -187,6 +187,7 @@ it("opens only the matching record on explicit request, preferring the tool resu
     runCount: 8,
     seed: 1,
     dt: 1,
+    clock: "time",
     maxTime: 10,
     status: "complete",
     error: null,

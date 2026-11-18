@@ -210,8 +210,8 @@ export type HirScenarioCodeContext = {
 
 /**
  * Context for one place's visualizer: `tokens` carries the place's colour
- * attributes (`null` for an uncoloured place, which never draws), and
- * `parameters` the net's parameters.
+ * attributes (`null` for an uncoloured place, whose tokens carry none and
+ * can only be counted), and `parameters` the net's parameters.
  */
 export type HirVisualizerContext = {
   surface: "visualizer";

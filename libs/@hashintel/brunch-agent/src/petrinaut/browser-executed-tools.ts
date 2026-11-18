@@ -13,7 +13,7 @@ import {
 } from "../hash/graph-reads";
 import { hashPetrinautTools } from "../hash/petrinaut-tools";
 import { parseHashSaveInput } from "../hash/save";
-import { zDraftPetrinautExperimentInput } from "./draft-experiment";
+import { draftPetrinautExperimentInputSchema } from "./draft-experiment";
 import { netReaderToolNames, parseNetReaderInput } from "./net-readers";
 import {
   type NetElementKind,
@@ -129,7 +129,7 @@ const canonical = (name: PetrinautAiToolName): BrowserToolDescriptor => {
  */
 const hashPetrinaut = ({
   operations,
-  zInput,
+  inputSchema,
   parseCall,
 }: (typeof hashPetrinautTools)[keyof typeof hashPetrinautTools]): BrowserToolDescriptor => {
   const [first] = operations;
@@ -140,7 +140,7 @@ const hashPetrinaut = ({
     ...canonical(first),
     targets: [...new Set(effects.flatMap(({ targets }) => targets))],
     destructive: effects.some(({ destructive }) => destructive),
-    inputParser: zInput,
+    inputParser: inputSchema,
     canonicalCalls: (input) => parseCall(input).calls,
   };
 };
@@ -192,7 +192,7 @@ export const browserExecutedTools: ReadonlyMap<string, BrowserToolDescriptor> =
         // Prepared in editor memory through its own review card.
         automatic: false,
         runsOnNet: false,
-        inputParser: zDraftPetrinautExperimentInput,
+        inputParser: draftPetrinautExperimentInputSchema,
         canonicalCalls: noCanonicalCalls,
       },
     ],

@@ -52,7 +52,11 @@ const SpacingBar = ({ step }: { step: string }) => {
 };
 
 const DensityColumn = ({ density }: { density: Density }) => (
-  <VStack gap="0" alignItems="flex-start" className={css({ density })}>
+  <VStack
+    gap="0"
+    css={{ alignItems: "flex-start" }}
+    className={css({ density })}
+  >
     <span
       className={css({
         textStyle: "xs",
@@ -67,7 +71,7 @@ const DensityColumn = ({ density }: { density: Density }) => (
       {density}
     </span>
     {steps.map((step) => (
-      <HStack key={step} gap="1" alignItems="center" py="0.5">
+      <HStack key={step} gap="1" css={{ alignItems: "center", py: "0.5" }}>
         <span className={labelStyles}>{step}</span>
         <SpacingBar step={step} />
       </HStack>
@@ -76,8 +80,8 @@ const DensityColumn = ({ density }: { density: Density }) => (
 );
 
 export const SpacingDemo = () => (
-  <VStack gap="8" alignItems="flex-start" p="6">
-    <VStack gap="2" alignItems="flex-start">
+  <VStack gap="8" css={{ alignItems: "flex-start", p: "6" }}>
+    <VStack gap="2" css={{ alignItems: "flex-start" }}>
       <h1 className={css({ textStyle: "2xl", fontWeight: "semibold" })}>
         Spacing Tokens
       </h1>
@@ -107,7 +111,7 @@ export const SpacingDemo = () => (
       </p>
     </VStack>
 
-    <HStack gap="8" alignItems="flex-start" flexWrap="wrap">
+    <HStack gap="8" css={{ alignItems: "flex-start", flexWrap: "wrap" }}>
       {densityLevels.map((density) => (
         <DensityColumn key={density} density={density} />
       ))}

@@ -1,17 +1,29 @@
 import { useState } from "react";
 
-import { Button, Chip, Dialog, EllipsisMenu } from "@hashintel/ds-components";
+import {
+  Button,
+  Chip,
+  Dialog,
+  EllipsisMenu,
+  SegmentedControl,
+} from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { useSnackbar } from "../../../../../../components/hooks/use-snackbar";
+import { ArchiveFlowDialog } from "./shared/archive-flow-dialog";
 import { RenameInput } from "./shared/rename-input";
+import { RunActions } from "./top-bar/run-actions";
 import { RunFlow } from "./top-bar/run-flow";
+import { RunSwitcher } from "./top-bar/run-switcher";
+import { RunTime } from "./top-bar/run-time";
 
+import type { FlowRuns } from "./shared/use-flow-runs";
 import type { FlowSaveStatus } from "./use-autosaved-flow-editor";
+import type { EntityId, WebId } from "@blockprotocol/type-system";
 import type { FlowEditorState } from "@local/hash-isomorphic-utils/flows/flow-editor";
 import type { FlowInputValues } from "@local/hash-isomorphic-utils/flows/types";
 
 const topBar = css({
+  position: "relative",
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
@@ -29,6 +41,14 @@ const titleGroup = css({
   alignItems: "center",
   gap: "2",
   minWidth: "0",
+  /* Stops short of the view switch, which is centred over the bar. */
+  maxWidth: "[calc(50% - 5rem)]",
+});
+const viewSwitch = css({
+  position: "absolute",
+  top: "[50%]",
+  left: "[50%]",
+  transform: "[translate(-50%, -50%)]",
 });
 const dialogText = css({ textStyle: "sm" });
 
@@ -67,68 +87,6 @@ const SaveStatus = ({
   }
 };
 
-const ArchiveFlowDialog = ({
-  name,
-  onArchive,
-  onClose,
-  editsRefused,
-}: {
-  name: string;
-  onArchive: () => Promise<void>;
-  onClose: () => void;
-  editsRefused: boolean;
-}) => {
-  const { triggerSnackbar } = useSnackbar();
-  const [archiving, setArchiving] = useState(false);
-
-  const archive = async () => {
-    setArchiving(true);
-
-    try {
-      await onArchive();
-    } catch (error) {
-      triggerSnackbar.error(`Couldn't archive the flow: ${String(error)}`);
-      setArchiving(false);
-    }
-  };
-
-  return (
-    <Dialog
-      size="xs"
-      onClose={onClose}
-      shouldCloseOn={archiving ? "none" : "closeButtonAndOverlay"}
-    >
-      <Dialog.Header title="Archive flow" />
-      <Dialog.Body>
-        <p className={dialogText}>
-          “{name}” will no longer be listed, and its schedules will be paused.
-          Its past runs stay readable.
-          {editsRefused &&
-            " Its latest edits can't be saved, so they'll be dropped."}
-        </p>
-      </Dialog.Body>
-      <Dialog.Footer
-        actions={
-          <>
-            <Button variant="subtle" disabled={archiving} onClick={onClose}>
-              Cancel
-            </Button>
-            <Button
-              tone="error"
-              loading={archiving}
-              onClick={() => {
-                void archive();
-              }}
-            >
-              Archive flow
-            </Button>
-          </>
-        }
-      />
-    </Dialog>
-  );
-};
-
 const LeaveFlowDialog = ({
   onLeave,
   onClose,
@@ -158,12 +116,24 @@ const LeaveFlowDialog = ({
   </Dialog>
 );
 
+/** Whether the editor shows the flow, to edit it, or its runs. */
+export type FlowEditorView = "editor" | "logs";
+
 /**
- * The flow editor's top bar: back to the flows page, the flow's name, whether its edits are saved, Run, and its menu.
+ * The flow editor's top bar: back to the flows page, the flow's name, the switch between editing the flow and its
+ * runs, whether its edits are saved, Run, and its menu. Showing a run, it has the run switcher after the flow's name,
+ * and the run's time and Stop or Re-run for it in place of Run.
  */
 export const TopBar = ({
   editorKey,
+  webId,
   editorState,
+  flowDefinitionEntityId,
+  view,
+  flowRunEntityId,
+  flowRuns,
+  onViewChange,
+  onOpenRun,
   onRename,
   saveStatus,
   saveRefusedReason,
@@ -178,7 +148,18 @@ export const TopBar = ({
    * The rest of the bar keeps its state, e.g. the leave confirmation for a leave that the reload interrupted.
    */
   editorKey: number;
+  /** The web the flow is in. */
+  webId: WebId;
   editorState: FlowEditorState;
+  flowDefinitionEntityId: EntityId;
+  view: FlowEditorView;
+  /** The run shown, in the Logs view. */
+  flowRunEntityId: EntityId | null;
+  /** The flow's runs, for the run switcher. */
+  flowRuns: FlowRuns;
+  onViewChange: (view: FlowEditorView) => void;
+  /** Shows another of the flow's runs. */
+  onOpenRun: (flowRunEntityId: EntityId) => void;
   onRename: (name: string) => void;
   saveStatus: FlowSaveStatus;
   /** Why the API refused the latest edits, if it did. */
@@ -237,15 +218,56 @@ export const TopBar = ({
           ariaLabel="Flow name"
           onRename={onRename}
         />
+        {flowRunEntityId && (
+          <RunSwitcher
+            flowRunEntityId={flowRunEntityId}
+            flowDefinitionEntityId={flowDefinitionEntityId}
+            flowRuns={flowRuns}
+            onOpenRun={onOpenRun}
+            onAllRuns={() => onViewChange("logs")}
+          />
+        )}
+      </div>
+      <div className={viewSwitch}>
+        <SegmentedControl<FlowEditorView>
+          size="sm"
+          aria-label="Flow view"
+          items={[
+            { value: "editor", label: "Editor" },
+            { value: "logs", label: "Logs" },
+          ]}
+          value={view}
+          onChange={onViewChange}
+        />
       </div>
       <div className={barGroup}>
         <SaveStatus status={saveStatus} onRetry={onRetrySave} />
-        <RunFlow
-          key={editorKey}
-          editorState={editorState}
-          saveRefusedReason={saveRefusedReason}
-          onRun={onRun}
-        />
+        {flowRunEntityId && (
+          <RunTime
+            key={flowRunEntityId}
+            flowRunEntityId={flowRunEntityId}
+            flowDefinitionEntityId={flowDefinitionEntityId}
+          />
+        )}
+        {flowRunEntityId ? (
+          <RunActions
+            key={`${editorKey}:${flowRunEntityId}`}
+            webId={webId}
+            flowRunEntityId={flowRunEntityId}
+            flowDefinitionEntityId={flowDefinitionEntityId}
+            editorState={editorState}
+            saveRefusedReason={saveRefusedReason}
+            onRun={onRun}
+          />
+        ) : (
+          <RunFlow
+            key={editorKey}
+            webId={webId}
+            editorState={editorState}
+            saveRefusedReason={saveRefusedReason}
+            onRun={onRun}
+          />
+        )}
         <EllipsisMenu
           iconName="ellipsisVertical"
           size="md"

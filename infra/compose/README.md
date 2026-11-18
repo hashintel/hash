@@ -18,6 +18,7 @@ This directory contains external services used throughout HASH, including authen
 - **Ory Kratos** - Identity and user management service
 - **Ory Hydra** - OAuth2 and OpenID Connect server
 - **MailSlurper** - Development email testing server
+- **hash-api relay** - Forwards Kratos's registration hook to hash-api on the host, so Kratos calls a private address on every container engine
 
 ### Workflow Execution
 

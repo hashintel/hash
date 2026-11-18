@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { bicycleAssembly } from "../examples/bicycle-assembly";
 import { dronePatrol } from "../examples/drone-patrol";
 import { probabilisticSatellitesSDCPN } from "../examples/satellites-launcher";
 import { sirModel } from "../examples/sir-model";
@@ -226,6 +227,16 @@ describe("compileNetShader", () => {
     expect(result.shader.wgsl).toContain(
       "if (!any_fired && !any_enabled) { status = 1u; }",
     );
+  });
+
+  it("marks a run of an untimed net deadlocked as soon as nothing fired, at the frame limit too", () => {
+    const result = compileFor(bicycleAssembly.petriNetDefinition);
+    if (!result.ok) throw new Error(result.reason);
+    const { wgsl } = result.shader;
+
+    // The later assignment wins: the deadlock test follows the frame limit.
+    const deadlock = wgsl.indexOf("if (!any_fired) { status = 1u; }");
+    expect(deadlock).toBeGreaterThan(wgsl.indexOf("{ status = 2u; }"));
   });
 
   it.each([

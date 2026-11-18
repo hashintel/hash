@@ -5,6 +5,7 @@ import { checkDefinition } from "../../diagnostics";
 import { createJsonDocHandle } from "../../handle";
 import { createPetrinaut } from "../../instance";
 import { toPetrinautId } from "../../petrinaut-id";
+import { SOURCE_PREDICATE_IN_TIMED_NET_CODE } from "./check-net-timing";
 import { createSDCPN } from "./helper/create-sdcpn";
 
 import type { SDCPN } from "../../types/sdcpn";
@@ -152,12 +153,18 @@ describe("dependency changes invalidate untouched code", () => {
         }),
       ),
     );
+    const compilerErrors = errors.filter(
+      (error) => error.code !== SOURCE_PREDICATE_IN_TIMED_NET_CODE,
+    );
     // Without the arc the input type is `Record<string, never>`, so the read
     // of `input.Store` yields `never` and the error lands on `.level`.
-    expect(errors.length).toBeGreaterThanOrEqual(2);
-    expect(errors.every((error) => /Store|never/u.test(error.message))).toBe(
-      true,
-    );
+    expect(compilerErrors.length).toBeGreaterThanOrEqual(2);
+    expect(
+      compilerErrors.every((error) => /Store|never/u.test(error.message)),
+    ).toBe(true);
+    // The arc was the predicate's only input, and the net's dynamics make
+    // it timed, so the transition's shape is reported as well.
+    expect(errors).toHaveLength(compilerErrors.length + 1);
   });
 
   it("turning an input arc into an inhibitor removes its tokens from the input type", () => {

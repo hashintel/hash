@@ -18,6 +18,7 @@ import {
 import { defineSimulator } from "./simulator";
 import {
   experimentBackendOfSimulator,
+  experimentSamplePeriod,
   simulatorSamplePeriod,
 } from "./simulator-experiment-backend";
 
@@ -56,21 +57,31 @@ const poisson: SDCPN = {
   parameters: [],
 };
 
+/** An untimed net: a source that fires on every step into `sink`. */
+const emitter: SDCPN = {
+  ...poisson,
+  transitions: poisson.transitions.map((transition) => ({
+    ...transition,
+    lambdaType: "predicate",
+    lambdaCode: "",
+  })),
+};
+
 const buildRequest =
-  (dt: number) =>
+  (dt: number, sdcpn: SDCPN = poisson, maxTime = 2) =>
   ({ needsHirTrees }: { needsHirTrees: boolean }): Promise<ExperimentRequest> =>
     Promise.resolve({
-      sdcpn: poisson,
-      hirArtifacts: compileHirArtifacts(poisson, undefined, {
+      sdcpn,
+      hirArtifacts: compileHirArtifacts(sdcpn, undefined, {
         includeHir: needsHirTrees,
       }).artifacts,
       initialMarking: { sink: 0 },
       parameterValues: {},
       seed: 2,
       dt,
-      maxTime: 2,
+      maxTime,
       runCount: 120,
-      metricSpecs: placeCountMetricSpecs(poisson.places),
+      metricSpecs: placeCountMetricSpecs(sdcpn.places),
     });
 
 const neverUsed = () => {
@@ -131,6 +142,30 @@ describe("simulatorSamplePeriod", () => {
   });
 });
 
+describe("experimentSamplePeriod", () => {
+  it("is the simulator's own answer on a clock of time", () => {
+    expect(
+      experimentSamplePeriod("time", jsFixedStepSimulatorManifest, {
+        dt: 0.25,
+      }),
+    ).toBe(0.25);
+    expect(
+      experimentSamplePeriod("time", jsAdaptiveSimulatorManifest, {}),
+    ).toBeNull();
+  });
+
+  it("is one step on a clock of steps, whatever the simulator steps by", () => {
+    expect(
+      experimentSamplePeriod("steps", jsFixedStepSimulatorManifest, {
+        dt: 0.25,
+      }),
+    ).toBe(1);
+    expect(
+      experimentSamplePeriod("steps", jsAdaptiveSimulatorManifest, {}),
+    ).toBe(1);
+  });
+});
+
 describe("a simulator as an experiment backend", () => {
   it("computes the experiment the backend selection asks the adaptive simulator for", async () => {
     const selection = await selectExperimentBackend({
@@ -177,6 +212,51 @@ describe("a simulator as an experiment backend", () => {
       ),
     ).toHaveLength(5);
     selection.handle.dispose();
+  });
+
+  it.each([
+    ["fixed-step", fixedStep],
+    ["adaptive", adaptive],
+  ])(
+    "samples an untimed net at every step with the %s simulator",
+    async (_name, simulator) => {
+      const selection = await selectExperimentBackend({
+        registrations: [experimentBackendOfSimulator(simulator, {})],
+        buildRequest: buildRequest(1, emitter, 4),
+      });
+      if (!selection.ok) {
+        throw new Error(selection.declined[0]?.reason);
+      }
+      expect(await finished(selection.handle)).toBe("complete");
+      const reader = createExperimentReader(selection.handle.metrics);
+      // The start and four steps, each adding one token in every run.
+      expect(
+        reader
+          .metricFrames("place-count:sink")
+          .map((frame) => [
+            frame.time,
+            reader.placeCountAt("sink", frame.time)?.mean,
+          ]),
+      ).toEqual([
+        [0, 0],
+        [1, 1],
+        [2, 2],
+        [3, 3],
+        [4, 4],
+      ]);
+      selection.handle.dispose();
+    },
+  );
+
+  it("refuses to sample an untimed net at anything but a step", async () => {
+    const selection = await selectExperimentBackend({
+      registrations: [experimentBackendOfSimulator(adaptive, {})],
+      buildRequest: buildRequest(0.5, emitter),
+    });
+    expect(selection).toMatchObject({
+      ok: false,
+      declined: [{ reason: "An untimed net is sampled at every step" }],
+    });
   });
 
   it("refuses parameter values the simulator's spec rejects, naming the parameter", async () => {

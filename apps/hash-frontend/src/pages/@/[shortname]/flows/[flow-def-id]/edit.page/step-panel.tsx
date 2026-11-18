@@ -1,24 +1,29 @@
 import { useMemo, useState, useSyncExternalStore } from "react";
 
-import { Button, Form, Icon, TextInput } from "@hashintel/ds-components";
+import { Button, Form, TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { createStepShapeResolver } from "@local/hash-isomorphic-utils/flows/step-shapes";
 import { getOutputsAvailableToFlow } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
 
-import { getNameLabel } from "./shared/name-label";
-import { getStepDisplay, startDisplay } from "./shared/step-display";
+import { findStep } from "./shared/find-step";
+import { getOutputLabel } from "./shared/name-label";
+import { PanelSection, PanelTitle, SidePanel } from "./shared/side-panel";
+import {
+  getActionDefinition,
+  getStepDisplay,
+  startDisplay,
+} from "./shared/step-display";
+import { StepIconTile } from "./shared/step-icon-tile";
+import { indexValueUses } from "./shared/value-uses";
 import { getFieldProblems } from "./step-panel/field-problems";
 import { FlowInputCard } from "./step-panel/flow-input-card";
 import { InputField } from "./step-panel/input-field";
-import {
-  getActionDefinition,
-  getNewFlowInput,
-} from "./step-panel/input-sources";
+import { getNewFlowInput } from "./step-panel/input-sources";
 import { QueryField } from "./step-panel/query-field";
-import { findStep } from "./step-panel/shared/find-step";
 import { UsedByField } from "./step-panel/used-by-field";
-import { indexValueUses } from "./step-panel/value-uses";
 
+import type { StepTone } from "./shared/step-display";
+import type { FlowValue } from "./shared/value-uses";
 import type { IconName } from "@hashintel/ds-components";
 import type { ConnectionTarget } from "@local/hash-isomorphic-utils/flows/can-connect";
 import type {
@@ -32,7 +37,7 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { ReactNode } from "react";
 
-type StepsUsing = ReturnType<typeof indexValueUses>;
+type StepsUsing = (value: FlowValue) => StepDefinition<string>[];
 
 const takesEntityQuery = (input: InputDefinition) =>
   "oneOfPayloadKinds" in input &&
@@ -41,77 +46,51 @@ const takesEntityQuery = (input: InputDefinition) =>
 /** What the panel shows: the start step, or one step at any depth. */
 export type StepPanelSubject = { start: true } | { stepId: string };
 
-/** The panel floats over the canvas's right edge, so opening it doesn't resize the canvas or move what's on it. */
-export const stepPanelWidth = 384;
-
-const panel = css({
-  position: "absolute",
-  zIndex: "docked",
-  top: "0",
-  right: "0",
-  bottom: "0",
-  display: "flex",
-  flexDirection: "column",
-  gap: "8",
-  width: "[384px]",
-  p: "4",
-  bg: "bgSolid.min",
-  overflowY: "auto",
-  borderLeftWidth: "1px",
-  borderLeftStyle: "solid",
-  borderLeftColor: "bd.subtle",
-});
-const header = css({ display: "flex", alignItems: "flex-start", gap: "2" });
-const headerIcon = css({ display: "flex", color: "fg.body", pt: "0.5" });
+const header = css({ display: "flex", alignItems: "center", gap: "3" });
 const headerText = css({
   display: "flex",
   flexDirection: "column",
-  gap: "1",
   flex: "1",
   minWidth: "0",
 });
-const heading = css({
-  m: "0",
+const headerSubtitle = css({
+  display: "flex",
+  alignItems: "center",
   textStyle: "sm",
-  fontWeight: "medium",
-  color: "fg.heading",
+  color: "fg.muted",
 });
-const fixedDescription = css({ textStyle: "sm", color: "fg.body" });
-const section = css({ display: "flex", flexDirection: "column", gap: "2" });
+const headerGroup = css({ flexShrink: "0", whiteSpace: "pre" });
+const headerDescription = css({ flex: "1", minWidth: "0" });
 const empty = css({ textStyle: "sm", color: "fg.subtle" });
 const addInputButton = css({ alignSelf: "flex-start" });
 
+/** The step's tile in its hue, then its type, then "Group · description" with the description given as `children`. */
 const PanelHeader = ({
   icon,
+  tone,
   title,
+  group,
   children,
 }: {
   icon: IconName;
+  tone: StepTone;
   title: string;
+  /** Left out for what belongs to no group, such as Start. */
+  group?: string;
   children: ReactNode;
 }) => (
   <div className={header}>
-    <span className={headerIcon}>
-      <Icon name={icon} size="sm" />
-    </span>
+    <StepIconTile icon={icon} tone={tone} size="header" />
     <div className={headerText}>
-      <h2 className={heading}>{title}</h2>
-      {children}
+      <PanelTitle>{title}</PanelTitle>
+      <div className={headerSubtitle}>
+        {group !== undefined && (
+          <span className={headerGroup}>{`${group} · `}</span>
+        )}
+        <div className={headerDescription}>{children}</div>
+      </div>
     </div>
   </div>
-);
-
-const PanelSection = ({
-  title,
-  children,
-}: {
-  title: string;
-  children: ReactNode;
-}) => (
-  <section className={section}>
-    <h3 className={heading}>{title}</h3>
-    {children}
-  </section>
 );
 
 /** What "Add input" adds: a required text input, which any step input that takes text can use. */
@@ -160,9 +139,13 @@ const StartPanel = ({
   };
 
   return (
-    <aside className={panel} aria-label="Start">
-      <PanelHeader icon={startDisplay.icon} title={startDisplay.title}>
-        <span className={fixedDescription}>{startDisplay.description}</span>
+    <SidePanel label="Start">
+      <PanelHeader
+        icon={startDisplay.icon}
+        tone={startDisplay.tone}
+        title={startDisplay.title}
+      >
+        {startDisplay.description}
       </PanelHeader>
       <PanelSection title="Inputs">
         {inputs.length === 0 && <span className={empty}>No inputs yet</span>}
@@ -185,7 +168,7 @@ const StartPanel = ({
           Add input
         </Button>
       </PanelSection>
-    </aside>
+    </SidePanel>
   );
 };
 
@@ -207,7 +190,7 @@ const SelectedStepPanel = ({
   inner: boolean;
   onSelectStart: () => void;
 }) => {
-  const { title, icon } = getStepDisplay(step);
+  const { title, icon, tone, group } = getStepDisplay(step);
   const actionDefinition =
     step.kind === "action"
       ? getActionDefinition(step.actionDefinitionId)
@@ -237,8 +220,8 @@ const SelectedStepPanel = ({
   );
 
   return (
-    <aside className={panel} aria-label={title}>
-      <PanelHeader icon={icon} title={title}>
+    <SidePanel label={title}>
+      <PanelHeader icon={icon} tone={tone} title={title} group={group}>
         <TextInput
           variant="subtle"
           size="sm"
@@ -295,7 +278,10 @@ const SelectedStepPanel = ({
               return (
                 <UsedByField
                   key={outputName}
-                  name={getNameLabel(outputName)}
+                  name={getOutputLabel(
+                    actionDefinition?.actionDefinitionId,
+                    outputName,
+                  )}
                   shape={shapes.getStepOutputShape(step.stepId, outputName)}
                   usedBy={stepsUsing({
                     kind: "step-output",
@@ -320,7 +306,7 @@ const SelectedStepPanel = ({
           </Form.Section>
         </PanelSection>
       )}
-    </aside>
+    </SidePanel>
   );
 };
 
@@ -338,10 +324,11 @@ export const StepPanel = ({
     editor.subscribe,
     editor.getState,
   );
-  const stepsUsing = useMemo(
-    () => indexValueUses(flowDefinition.steps),
-    [flowDefinition.steps],
-  );
+  const stepsUsing = useMemo<StepsUsing>(() => {
+    const usesOf = indexValueUses(flowDefinition.steps);
+
+    return (value) => usesOf(value).map(({ step }) => step);
+  }, [flowDefinition.steps]);
 
   if ("start" in subject) {
     return (

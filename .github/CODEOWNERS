@@ -63,6 +63,9 @@ LICENSE* @hashintel/legal
 turbo.json @hashintel/infra
 task-dependencies.json @hashintel/infra
 
+# Yarn configuration
+/.yarnrc.yml @hashintel/infra
+
 # GitHub Actions and CI configuration
 /.github/workflows/ @hashintel/infra
 /.github/actions/ @hashintel/infra

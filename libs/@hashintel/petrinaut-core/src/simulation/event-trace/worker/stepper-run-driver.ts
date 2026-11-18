@@ -1,4 +1,4 @@
-import { createStepper, type StepperSelection } from "./steppers";
+import { createRunStepper, type StepperSelection } from "./steppers";
 
 import type { MonteCarloRunDriverFactory } from "../../monte-carlo/run-driver";
 
@@ -8,11 +8,14 @@ import type { MonteCarloRunDriverFactory } from "../../monte-carlo/run-driver";
  *
  * The stops are the samples of the experiment, so they are the same
  * whenever the experiment is computed, and so are the runs.
+ *
+ * A run of an untimed net is stepped in steps whichever simulator is
+ * selected, as a single run is.
  */
 export const createStepperRunDriverFactory =
   (selection: StepperSelection): MonteCarloRunDriverFactory =>
   (config, runConfig, index) => {
-    const stepper = createStepper(selection, {
+    const stepper = createRunStepper(selection, {
       sdcpn: config.sdcpn,
       ...(config.extensions === undefined
         ? {}

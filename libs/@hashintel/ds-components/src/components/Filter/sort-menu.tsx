@@ -13,6 +13,7 @@ import {
   readSavedSort,
   type SortDirection,
   writeSavedSort,
+  defaultDirectionOf,
   directionsOf,
   directionIcon,
   flipped,
@@ -131,7 +132,7 @@ export const SortMenu = <SortKey extends string = string>({
   const shownDirection = (sorter: Sorter<SortKey>): SortDirection =>
     value && value.sortKey === sorter.sortKey
       ? value.direction
-      : (directionsOf(sorter)[0] ?? "ASCENDING");
+      : defaultDirectionOf(sorter);
 
   const flipDirection = (sorter: Sorter<SortKey>) => {
     commit(sorter.sortKey, flipped(shownDirection(sorter)));

@@ -1,8 +1,8 @@
 import { Chip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { getStepName } from "../../shared/find-step";
 import { getStepDisplay } from "../../shared/step-display";
-import { getStepName } from "./find-step";
 
 import type { StepDefinition } from "@local/hash-isomorphic-utils/flows/types";
 

@@ -5,6 +5,7 @@
 //! later run addresses the same entities, and operations carry the Graph's own property and
 //! provenance types, so they convert to Graph requests without reshaping.
 
+mod client;
 mod plan;
 mod property;
 #[cfg(test)]
@@ -21,6 +22,7 @@ use type_system::{
 };
 
 pub use self::{
+    client::{Applied, GraphClient, GraphError},
     plan::{
         DuplicateWrite, FinishedPlan, GraphPlan, Payload, PlanIssue, PlannedWrite, Planner,
         UnencodableRequest,

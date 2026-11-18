@@ -1,3 +1,4 @@
+import { runEndOf } from "../../../../../../../react/simulation/run-end";
 import { visibleSimulatorParameters } from "../../../../../../components/simulator-parameter-input";
 
 import type { SimulationMode } from "../../../../../../../react/simulators/context";
@@ -6,6 +7,7 @@ import type { SimulationMode } from "../../../../../../../react/simulators/conte
  * the values a user set, in the order the popover lists them.
  */
 import type {
+  RunClock,
   SimulatorParameterSpec,
   SimulatorParameterSpecs,
   StoredSimulatorParameters,
@@ -49,28 +51,37 @@ const parameterDetail = (
 
 /**
  * The details after the simulator's name: one per parameter it shows, then
- * the run count and the end time of a Stochastic simulation.
+ * the run count and the end of a Stochastic simulation.
+ *
+ * On a clock of steps the simulator's parameters are not used, so the
+ * details say how the net is stepped in their place, and the end is a step.
  */
 export const summarizeRunSettings = ({
   mode,
+  clock,
   specs,
   parameters,
   runs,
   maxTime,
 }: {
   mode: SimulationMode;
+  clock: RunClock;
   specs: SimulatorParameterSpecs;
   parameters: StoredSimulatorParameters;
   runs: number;
   maxTime: number | null;
 }): string[] => {
-  const details = visibleSimulatorParameters(specs, parameters).flatMap(
-    ([key, spec]) => parameterDetail(spec, parameters[key]) ?? [],
-  );
+  const details =
+    clock === "steps"
+      ? ["step by step"]
+      : visibleSimulatorParameters(specs, parameters).flatMap(
+          ([key, spec]) => parameterDetail(spec, parameters[key]) ?? [],
+        );
   if (mode === "stochastic") {
     details.push(`${runs.toLocaleString("en-US")} runs`);
     if (maxTime !== null) {
-      details.push(`to ${formatSettingNumber(maxTime)} s`);
+      const end = formatSettingNumber(runEndOf(clock, maxTime));
+      details.push(clock === "steps" ? `to step ${end}` : `to ${end} s`);
     }
   }
   return details;

@@ -36,8 +36,6 @@ import { submitExternalInputResponse } from "./flows/submit-external-input-respo
 import { generateInverseResolver } from "./generation/generate-inverse";
 import { generatePluralResolver } from "./generation/generate-plural";
 import { isGenerationAvailableResolver } from "./generation/is-generation-available";
-import { getLinearOrganizationResolver } from "./integrations/linear/linear-organization";
-import { syncLinearIntegrationWithWebsMutation } from "./integrations/linear/sync-linear-integration-with-webs";
 import { blockCollectionContents } from "./knowledge/block-collection/block-collection-contents";
 import { updateBlockCollectionContents } from "./knowledge/block-collection/update-block-collection-contents";
 import { blocksResolver } from "./knowledge/block/block";
@@ -198,9 +196,6 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     queryEntitySubgraph: loggedInAndSignedUpMiddleware(
       queryEntitySubgraphResolver,
     ),
-    getLinearOrganization: loggedInAndSignedUpMiddleware(
-      getLinearOrganizationResolver,
-    ),
     checkUserPermissionsOnEntity: (_, { metadata }, context, info) =>
       checkUserPermissionsOnEntity({ metadata }, _, context, info),
     checkUserPermissionsOnEntityType: loggedInAndSignedUpMiddleware(
@@ -331,11 +326,6 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     ),
     archiveFlowSchedule: loggedInAndSignedUpMiddleware(
       archiveFlowScheduleResolver,
-    ),
-
-    // Integration
-    syncLinearIntegrationWithWebs: loggedInAndSignedUpMiddleware(
-      syncLinearIntegrationWithWebsMutation,
     ),
 
     // API tokens
