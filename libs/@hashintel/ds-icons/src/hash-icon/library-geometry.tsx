@@ -131,6 +131,7 @@ import { sizeMediumGeometry } from "./library-geometry/size-medium";
 import { sizeSmallGeometry } from "./library-geometry/size-small";
 import { splineCubicGeometry } from "./library-geometry/spline-cubic";
 import { splineLineGeometry } from "./library-geometry/spline-line";
+import { splitViewGeometry } from "./library-geometry/split-view";
 import { squareCloseGeometry } from "./library-geometry/square-close";
 import { squareMinusGeometry } from "./library-geometry/square-minus";
 import { stackHorizontalGeometry } from "./library-geometry/stack-horizontal";
@@ -144,6 +145,7 @@ import { ungroupGeometry } from "./library-geometry/ungroup";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  splitView: splitViewGeometry,
   rows: rowsGeometry,
   columns: columnsGeometry,
   rectanglesMixed: rectanglesMixedGeometry,

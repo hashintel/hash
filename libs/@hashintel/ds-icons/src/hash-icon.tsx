@@ -571,6 +571,7 @@ export const SendToBackIcon = createIcon("sendToBack");
 export const RectanglesMixedIcon = createIcon("rectanglesMixed");
 export const ColumnsIcon = createIcon("columns");
 export const RowsIcon = createIcon("rows");
+export const SplitViewIcon = createIcon("splitView");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -756,6 +757,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  splitView: SplitViewIcon,
   rows: RowsIcon,
   columns: ColumnsIcon,
   rectanglesMixed: RectanglesMixedIcon,
