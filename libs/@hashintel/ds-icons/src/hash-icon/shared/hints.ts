@@ -20,6 +20,7 @@ export type HashIconHint =
   | "up";
 
 export const hashIconHints = {
+  gem: "lift",
   swatchBook: "lift",
   palette: "lift",
   rocket: "lift",

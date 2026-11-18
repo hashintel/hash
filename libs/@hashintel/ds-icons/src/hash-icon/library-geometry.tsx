@@ -135,6 +135,7 @@ import { fontSerifGeometry } from "./library-geometry/font-serif";
 import { forkliftGeometry } from "./library-geometry/forklift";
 import { frameGeometry } from "./library-geometry/frame";
 import { gaugeGeometry } from "./library-geometry/gauge";
+import { gemGeometry } from "./library-geometry/gem";
 import { giftGeometry } from "./library-geometry/gift";
 import { globeGeometry } from "./library-geometry/globe";
 import { globeNodesGeometry } from "./library-geometry/globe-nodes";
@@ -307,6 +308,7 @@ import { wavePulseGeometry } from "./library-geometry/wave-pulse";
 import { wavesGeometry } from "./library-geometry/waves";
 
 export const libraryGeometry = {
+  gem: gemGeometry,
   swatchBook: swatchBookGeometry,
   palette: paletteGeometry,
   rocket: rocketGeometry,
