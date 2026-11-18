@@ -244,6 +244,7 @@ const categories = {
     "monitor",
   ],
   Science: [
+    "virus",
     "atom",
     "solarSystem",
     "orbit",

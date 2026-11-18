@@ -20,6 +20,7 @@ export type HashIconHint =
   | "up";
 
 export const hashIconHints = {
+  virus: "lift",
   atom: "lift",
   solarSystem: "lift",
   orbit: "lift",

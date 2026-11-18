@@ -292,11 +292,13 @@ import { userTagGeometry } from "./library-geometry/user-tag";
 import { userTieGeometry } from "./library-geometry/user-tie";
 import { usersGeometry } from "./library-geometry/users";
 import { vibrationGeometry } from "./library-geometry/vibration";
+import { virusGeometry } from "./library-geometry/virus";
 import { warehouseGeometry } from "./library-geometry/warehouse";
 import { wavePulseGeometry } from "./library-geometry/wave-pulse";
 import { wavesGeometry } from "./library-geometry/waves";
 
 export const libraryGeometry = {
+  virus: virusGeometry,
   atom: atomGeometry,
   solarSystem: solarSystemGeometry,
   orbit: orbitGeometry,
