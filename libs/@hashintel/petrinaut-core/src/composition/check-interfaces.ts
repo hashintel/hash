@@ -16,14 +16,15 @@ import {
   isInterface,
   mapInterfaceParameters,
   mapInterfacePorts,
+  once,
   resolveImplementation,
   type DocumentIndex,
   type ImplementationBinding,
   type SubnetIndex,
 } from "./interfaces";
-import { describePortDirection } from "./ports";
+import { describePortDirection, effectivePortDirections } from "./ports";
 
-import type { ID, SDCPN, Subnet } from "../types/sdcpn";
+import type { ID, PortDirection, SDCPN, Subnet } from "../types/sdcpn";
 
 export type InterfaceProblemCode =
   | "interface-has-body"
@@ -71,6 +72,23 @@ const reporter =
   };
 
 /**
+ * What the check reads of an implementation: its index, and the directions
+ * of its ports, read off its arcs once, when first asked for.
+ */
+type ImplementationIndex = SubnetIndex & {
+  directions: () => ReadonlyMap<ID, PortDirection>;
+};
+
+/** A caller that holds the implementation's index already hands it over as `index`. */
+export const indexImplementation = (
+  implementation: Subnet,
+  index: SubnetIndex = indexSubnet(implementation),
+): ImplementationIndex => ({
+  ...index,
+  directions: once(() => effectivePortDirections(implementation)),
+});
+
+/**
  * Where `implementation` falls short of what `iface` declares. A caller that
  * checks one subnet in many pairs hands each call that subnet's index, so its
  * lists and arcs are read once.
@@ -78,7 +96,7 @@ const reporter =
 export const checkImplementation = (
   implementation: Subnet,
   iface: Subnet,
-  index: SubnetIndex = indexSubnet(implementation),
+  index: ImplementationIndex = indexImplementation(implementation),
   interfaceIndex: SubnetIndex = indexSubnet(iface),
 ): InterfaceProblem[] => {
   const problems: InterfaceProblem[] = [];
@@ -218,7 +236,7 @@ const checkDeclarations = (
     // With no body to run, it is not held to what it says it implements.
     return problems;
   }
-  const own = index.subnetIndex(subnet);
+  const own = indexImplementation(subnet, index.subnetIndex(subnet));
   for (const interfaceId of implemented) {
     const iface = index.subnetsById.get(interfaceId);
     if (iface && isInterface(iface)) {

@@ -7,8 +7,6 @@
  * holds it to their ports and parameters.
  */
 
-import { effectivePortDirections } from "./ports";
-
 import type {
   Color,
   ComponentInstance,
@@ -16,7 +14,6 @@ import type {
   ID,
   Parameter,
   Place,
-  PortDirection,
   SDCPN,
   Subnet,
 } from "../types/sdcpn";
@@ -122,7 +119,7 @@ export const indexSubnets = (sdcpn: Pick<SDCPN, "subnets">): Map<ID, Subnet> =>
   indexById(sdcpn.subnets ?? []);
 
 /** `read`, called once at most: what it gives is kept for the calls that follow. */
-const once = <Value>(read: () => Value): (() => Value) => {
+export const once = <Value>(read: () => Value): (() => Value) => {
   let kept: { value: Value } | undefined;
   return () => {
     kept ??= { value: read() };
@@ -132,16 +129,15 @@ const once = <Value>(read: () => Value): (() => Value) => {
 
 /**
  * What the checks and the flattener read of a subnet that is an interface or
- * stands behind one: each of its lists by id, its ports and their
- * directions, and what an interface's ports and parameters are matched by.
- * Each is read once, when first asked for.
+ * stands behind one: each of its lists by id, its ports, and what an
+ * interface's ports and parameters are matched by. Each is read once, when
+ * first asked for.
  */
 export type SubnetIndex = {
   places: () => ReadonlyMap<ID, Place>;
   types: () => ReadonlyMap<ID, Color>;
   parameters: () => ReadonlyMap<ID, Parameter>;
   ports: () => readonly Place[];
-  directions: () => ReadonlyMap<ID, PortDirection>;
   /** The id of its port of each name: of two ports with one name, the last. */
   portIdsByName: () => ReadonlyMap<string, ID>;
   /** The id of its parameter of each variable name: of two with one, the last. */
@@ -155,7 +151,6 @@ export const indexSubnet = (subnet: Subnet): SubnetIndex => {
     types: once(() => indexById(subnet.types)),
     parameters: once(() => indexById(subnet.parameters)),
     ports,
-    directions: once(() => effectivePortDirections(subnet)),
     portIdsByName: once(
       () => new Map(ports().map(({ name, id }) => [name, id])),
     ),

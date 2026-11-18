@@ -3,7 +3,10 @@ import {
   applyFusions,
   type FusionGroup,
 } from "../../composition/apply-fusions";
-import { checkImplementation } from "../../composition/check-interfaces";
+import {
+  checkImplementation,
+  indexImplementation,
+} from "../../composition/check-interfaces";
 import { equationKey, fusionMemberIssues } from "../../composition/fusions";
 import {
   bindingKey,
@@ -174,7 +177,10 @@ const requireRunningSubnet = (
     const shortfall = checkImplementation(
       binding.implementation,
       binding.interface,
-      ctx.index.subnetIndex(binding.implementation),
+      indexImplementation(
+        binding.implementation,
+        ctx.index.subnetIndex(binding.implementation),
+      ),
       ctx.index.subnetIndex(binding.interface),
     ).find(({ severity }) => severity === "error");
     if (shortfall) {
