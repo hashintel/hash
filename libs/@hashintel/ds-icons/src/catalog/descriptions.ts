@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  cloudDownload:
+    "A cloud with a downward arrow represents downloading from cloud storage.",
   binary: "Ones and zeros represent binary data.",
   scanner: "An open scanning bed represents a document scanner.",
   scanLine: "A line across corner guides represents scanning content.",

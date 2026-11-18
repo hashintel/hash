@@ -650,6 +650,7 @@ export const MagneticMediaIcon = createIcon("magneticMedia");
 export const ScanLineIcon = createIcon("scanLine");
 export const ScannerIcon = createIcon("scanner");
 export const BinaryIcon = createIcon("binary");
+export const CloudDownloadIcon = createIcon("cloudDownload");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -835,6 +836,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  cloudDownload: CloudDownloadIcon,
   binary: BinaryIcon,
   scanner: ScannerIcon,
   scanLine: ScanLineIcon,
