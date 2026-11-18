@@ -265,6 +265,7 @@ import { shoppingBasketGeometry } from "./library-geometry/shopping-basket";
 import { shoppingCartGeometry } from "./library-geometry/shopping-cart";
 import { shuffleGeometry } from "./library-geometry/shuffle";
 import { signalGeometry } from "./library-geometry/signal";
+import { sitemapGeometry } from "./library-geometry/sitemap";
 import { sizeExtraLargeGeometry } from "./library-geometry/size-extra-large";
 import { sizeLargeGeometry } from "./library-geometry/size-large";
 import { sizeMediumGeometry } from "./library-geometry/size-medium";
@@ -322,6 +323,7 @@ import { wavePulseGeometry } from "./library-geometry/wave-pulse";
 import { wavesGeometry } from "./library-geometry/waves";
 
 export const libraryGeometry = {
+  sitemap: sitemapGeometry,
   diagramSankey: diagramSankeyGeometry,
   hexagonNodes: hexagonNodesGeometry,
   chartNetwork: chartNetworkGeometry,
