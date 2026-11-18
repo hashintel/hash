@@ -1,5 +1,6 @@
 import { archiveGeometry } from "./library-geometry/archive";
 import { bookGeometry } from "./library-geometry/book";
+import { bookOpenGeometry } from "./library-geometry/book-open";
 import { clipboardGeometry } from "./library-geometry/clipboard";
 import { clipboardCheckGeometry } from "./library-geometry/clipboard-check";
 import { clipboardListGeometry } from "./library-geometry/clipboard-list";
@@ -26,6 +27,7 @@ import { notePlusGeometry } from "./library-geometry/note-plus";
 import { noteStickyGeometry } from "./library-geometry/note-sticky";
 
 export const libraryGeometry = {
+  bookOpen: bookOpenGeometry,
   book: bookGeometry,
   archive: archiveGeometry,
   clipboardList: clipboardListGeometry,
