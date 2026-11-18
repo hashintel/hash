@@ -21,12 +21,14 @@ pointer up
 
 ## The parts
 
-| Part                                  | File                                                             | Job                                                                  |
-| ------------------------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------- |
-| `PanelSizes`, `createPanelSizes`      | `react/state/panel-sizes.ts`                                     | One store per size, in CSS pixels.                                   |
-| `PanelSizesProvider`, `usePanelSizes` | `react/state/panel-sizes-provider.tsx`, `panel-sizes-context.ts` | Creates the stores from the saved settings, once per editor.         |
-| `styleFromStores`                     | `ui/lib/style-from-stores.ts`                                    | A ref that writes an element's inline style from stores.             |
-| `ResizeHandle`                        | `ui/resize/resize-handle.tsx`                                    | Asks for the size when a drag starts, reports each move and the end. |
+| Part                                   | File                                                             | Job                                                                               |
+| -------------------------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `PanelSizes`, `createPanelSizes`       | `react/state/panel-sizes.ts`                                     | One store per size, in CSS pixels.                                                |
+| `PanelSizesProvider`, `usePanelSizes`  | `react/state/panel-sizes-provider.tsx`, `panel-sizes-context.ts` | Creates the stores from the saved settings, once per editor.                      |
+| `styleFromStores`, `bindStyleToStores` | `ui/lib/style-from-stores.ts`                                    | Writes an element's inline style from stores, as a ref or for an element in hand. |
+| `deriveStore`                          | `react/derive-store.ts`                                          | A store computed from other stores.                                               |
+| `useCanvasInsetsStore`                 | `ui/hooks/use-canvas-insets.ts`                                  | What the panels cover of the canvas, derived from the four sizes.                 |
+| `ResizeHandle`                         | `ui/resize/resize-handle.tsx`                                    | Asks for the size when a drag starts, reports each move and the end.              |
 
 The stores keep one identity for the editor's life. Reading `usePanelSizes()`
 never re-renders the reader.
@@ -35,11 +37,12 @@ never re-renders the reader.
 
 Pick the first row that fits.
 
-| The reader                                                | Reads with                              | Renders per pointer move |
-| --------------------------------------------------------- | --------------------------------------- | ------------------------ |
-| An element whose style is a function of one or more sizes | `ref={styleFromStores(sizes, toStyle)}` | No                       |
-| An event handler or an effect                             | `size.get()`, or `size.subscribe()`     | No                       |
-| A component that computes with the number while rendering | `useStore(size)`                        | Yes, that component      |
+| The reader                                                | Reads with                               | Renders per pointer move   |
+| --------------------------------------------------------- | ---------------------------------------- | -------------------------- |
+| An element whose style is a function of sizes or insets   | `ref={styleFromStores(stores, toStyle)}` | No                         |
+| An event handler or an effect                             | `store.get()`, or `store.subscribe()`    | No                         |
+| A component that needs a yes or no computed from them     | `useStoreSelector(store, select)`        | Only when the answer flips |
+| A component that computes with the number while rendering | `useStore(store)`                        | Yes, that component        |
 
 ```tsx
 const { propertiesPanelWidth, bottomPanelHeight } = usePanelSizes();
@@ -69,6 +72,24 @@ attached again and the style is written with the new value.
 `styleFromStores` must not set a property that the element's React `style`
 prop also sets: React would write its own value back on the next render.
 
+## Keeping clear of the panels
+
+The panels overlay the canvas, so whatever floats over the canvas keeps clear
+of them by the canvas insets. `useCanvasInsetsStore()` gives the insets as a
+store derived from the four sizes and from which panels are open.
+
+| Reader                    | How it follows a drag                                                                                                                 |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Viewport controls         | `styleFromStores` writes `right` and `bottom`.                                                                                        |
+| Minimap                   | React Flow's minimap takes no ref. A `display: contents` box around it carries the offset as a custom property.                       |
+| Bottom bar                | `bindStyleToStores` writes its `transform`. `useStoreSelector` says whether the bar still fits, so it renders only when that changes. |
+| Camera controller         | Reads `insets.get()` when it frames the scene.                                                                                        |
+| Keeping selection in view | Subscribes to the store and moves the camera on each change.                                                                          |
+| Visualizer windows        | `useCanvasInsets()`: they compute their bounds while rendering, so an open window renders on each move.                               |
+
+Opening or closing a panel changes a flag in React state. The readers render
+then, get a new insets store and bind to it again.
+
 ## Why the write goes to each element
 
 A custom property on the editor root looks like the simpler design: one write,
@@ -87,7 +108,9 @@ elements under the editor root (M1 Max, Chromium 145, production build):
 | `width` on the panel element         |               14 ms |       8.3 ms |
 
 Use a custom property for a value that changes rarely. For a value that
-changes per frame, write the property itself on the element that needs it.
+changes per frame, write the property itself on the element that needs it. The
+cost of a custom property grows with the number of elements below it. The
+minimap's box has only the minimap inside, so it can carry one.
 
 ## Saving
 
@@ -99,29 +122,32 @@ the drag nothing is saved.
 ## What a drag costs
 
 Sixty pointer moves on the Supply Chain example with the Visualizer editor
-open, medians of three runs, production build.
+open, medians of three runs, production build. Script time per pointer move:
 
-| Drag                   | Script per move, in editor state | In a store | Frames over 12 ms, in editor state | In a store |
-| ---------------------- | -------------------------------: | ---------: | ---------------------------------: | ---------: |
-| Properties panel width |                          23.8 ms |     4.7 ms |                          13 of 313 |   2 of 185 |
-| Bottom panel height    |                          25.2 ms |     4.7 ms |                          32 of 306 |   1 of 170 |
-| Left sidebar width     |                          25.9 ms |     6.2 ms |                          62 of 319 |   2 of 225 |
+| Drag                   | In editor state | Sizes in stores | Insets in stores too |
+| ---------------------- | --------------: | --------------: | -------------------: |
+| Properties panel width |         23.8 ms |          4.6 ms |               2.1 ms |
+| Bottom panel height    |         25.2 ms |          4.7 ms |               2.5 ms |
+| Left sidebar width     |         25.9 ms |          6.2 ms |               3.5 ms |
 
-On the profiling build, React render time for the Properties panel drag went
-from 1,026 ms to 119 ms. With a 4x CPU throttle its script per move went from
-120.8 ms to 16.3 ms, and the 95th-percentile frame from 107 ms to 25 ms.
+For comparison, a drag of the splitter between two sections of a panel, which
+never went through editor state, costs 1.8 ms per move.
 
-The frames over 12 ms that remain are the release, when the size is saved.
+Frames over 12 ms per drag went from 13, 32 and 62 to 1 or 2: the release,
+when the size is saved. Style recalculation and layout did not change. On the
+profiling build, React render time for the Properties panel drag went from
+1,026 ms to 50 ms. With a 4x CPU throttle its script per move went from
+120.8 ms to 6.8 ms.
 
 Reproduce with `benchmarks/monaco-performance/geometry.mjs`.
 
 :::danger[Readers that still render on each move]
 
-The canvas insets read the four sizes with `useStore`, so the minimap, the
-viewport controls, the bottom bar, the canvas and the visualizer windows
-render on each move: about three React commits per move remain. The assistant
-shell reads its width with `useStore` and renders with it. Moving the insets
-to stores of their own is tracked in
+About two React commits per move remain during a drag with a visualizer
+window open. The window reads the insets as a value, and it renders with the
+canvas viewport, which the camera moves while it keeps the selection in view.
+The assistant shell reads its width with `useStore` and renders with it.
+Tracked in
 [FE-2169](https://linear.app/hash/issue/FE-2169/prototype-faster-monaco-opening-and-typing-in-petrinaut).
 
 :::
