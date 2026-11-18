@@ -118,6 +118,7 @@ import { fontMonoGeometry } from "./library-geometry/font-mono";
 import { fontSansGeometry } from "./library-geometry/font-sans";
 import { fontSerifGeometry } from "./library-geometry/font-serif";
 import { frameGeometry } from "./library-geometry/frame";
+import { globeGeometry } from "./library-geometry/globe";
 import { groupGeometry } from "./library-geometry/group";
 import { handshakeGeometry } from "./library-geometry/handshake";
 import { handwrittenDocsGeometry } from "./library-geometry/handwritten-docs";
@@ -242,6 +243,7 @@ import { usersGeometry } from "./library-geometry/users";
 import { warehouseGeometry } from "./library-geometry/warehouse";
 
 export const libraryGeometry = {
+  globe: globeGeometry,
   crosshairs: crosshairsGeometry,
   compass: compassGeometry,
   mapPin: mapPinGeometry,
