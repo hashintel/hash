@@ -180,6 +180,7 @@ const categories = {
     "palette",
   ],
   Data: [
+    "diagramSankey",
     "hexagonNodes",
     "chartNetwork",
     "gauge",

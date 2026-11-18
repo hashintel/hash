@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  diagramSankey: "Bands splitting and joining represent a Sankey flow diagram.",
   hexagonNodes: "Six connected nodes represent a cyclic network.",
   chartNetwork: "Connected vertices represent a network or graph chart.",
   cctvCamera:

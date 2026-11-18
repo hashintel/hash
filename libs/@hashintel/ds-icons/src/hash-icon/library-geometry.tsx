@@ -93,6 +93,7 @@ import { dashDrawGeometry } from "./library-geometry/dash-draw";
 import { dashSolidGeometry } from "./library-geometry/dash-solid";
 import { databaseGeometry } from "./library-geometry/database";
 import { devicesGeometry } from "./library-geometry/devices";
+import { diagramSankeyGeometry } from "./library-geometry/diagram-sankey";
 import { diamondGeometry } from "./library-geometry/diamond";
 import { distributeHorizontalGeometry } from "./library-geometry/distribute-horizontal";
 import { distributeVerticalGeometry } from "./library-geometry/distribute-vertical";
@@ -321,6 +322,7 @@ import { wavePulseGeometry } from "./library-geometry/wave-pulse";
 import { wavesGeometry } from "./library-geometry/waves";
 
 export const libraryGeometry = {
+  diagramSankey: diagramSankeyGeometry,
   hexagonNodes: hexagonNodesGeometry,
   chartNetwork: chartNetworkGeometry,
   cctvCamera: cctvCameraGeometry,
