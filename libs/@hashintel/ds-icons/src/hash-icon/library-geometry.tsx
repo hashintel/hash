@@ -53,6 +53,7 @@ import { dashDottedGeometry } from "./library-geometry/dash-dotted";
 import { dashDrawGeometry } from "./library-geometry/dash-draw";
 import { dashSolidGeometry } from "./library-geometry/dash-solid";
 import { diamondGeometry } from "./library-geometry/diamond";
+import { distributeHorizontalGeometry } from "./library-geometry/distribute-horizontal";
 import { dotGeometry } from "./library-geometry/dot";
 import { ellipseGeometry } from "./library-geometry/ellipse";
 import { equalsGeometry } from "./library-geometry/equals";
@@ -131,6 +132,7 @@ import { triangleGeometry } from "./library-geometry/triangle";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  distributeHorizontal: distributeHorizontalGeometry,
   alignBottomRight: alignBottomRightGeometry,
   alignBottomCenter: alignBottomCenterGeometry,
   alignBottomLeft: alignBottomLeftGeometry,

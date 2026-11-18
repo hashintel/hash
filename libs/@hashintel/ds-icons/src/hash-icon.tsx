@@ -558,6 +558,7 @@ export const AlignCenterRightIcon = createIcon("alignCenterRight");
 export const AlignBottomLeftIcon = createIcon("alignBottomLeft");
 export const AlignBottomCenterIcon = createIcon("alignBottomCenter");
 export const AlignBottomRightIcon = createIcon("alignBottomRight");
+export const DistributeHorizontalIcon = createIcon("distributeHorizontal");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -743,6 +744,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  distributeHorizontal: DistributeHorizontalIcon,
   alignBottomRight: AlignBottomRightIcon,
   alignBottomCenter: AlignBottomCenterIcon,
   alignBottomLeft: AlignBottomLeftIcon,

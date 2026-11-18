@@ -164,6 +164,7 @@ export const hashIconStudies = [
 
 const categories = {
   Canvas: [
+    "distributeHorizontal",
     "alignBottomRight",
     "alignBottomCenter",
     "alignBottomLeft",
