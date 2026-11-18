@@ -1,5 +1,6 @@
 import { fileArchiveGeometry } from "./library-geometry/file-archive";
 import { fileAudioGeometry } from "./library-geometry/file-audio";
+import { fileBoxGeometry } from "./library-geometry/file-box";
 import { fileCodeGeometry } from "./library-geometry/file-code";
 import { fileContractGeometry } from "./library-geometry/file-contract";
 import { fileDocumentGeometry } from "./library-geometry/file-document";
@@ -11,6 +12,7 @@ import { fileTextGeometry } from "./library-geometry/file-text";
 import { fileVideoGeometry } from "./library-geometry/file-video";
 
 export const libraryGeometry = {
+  fileBox: fileBoxGeometry,
   fileImage: fileImageGeometry,
   fileVideo: fileVideoGeometry,
   fileAudio: fileAudioGeometry,
