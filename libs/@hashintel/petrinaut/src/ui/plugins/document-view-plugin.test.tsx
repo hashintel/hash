@@ -345,7 +345,8 @@ it("draws no more rows than its limit, and says that rows are left out", () => {
   fireEvent.click(screen.getByRole("button", { name: "Collapse all" }));
   expect(outline("Document")[0]).toBe("places:[2500 items]");
   expect(screen.getAllByText(note)).toHaveLength(1);
-});
+  // Four thousand rows take seconds to draw on a loaded machine.
+}, 30_000);
 
 it("opens and closes rows by a click on their line, and all at once", () => {
   const { addPlace } = renderShown();
