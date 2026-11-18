@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  timelineArrow:
+    "Timed events below an arrow represent progression along a timeline.",
   timeline: "Offset bars along a time axis represent a schedule or timeline.",
   workflow: "Connected steps represent a workflow or process.",
   sitemap:
