@@ -288,6 +288,7 @@ import { toggleOnGeometry } from "./library-geometry/toggle-on";
 import { towerControlGeometry } from "./library-geometry/tower-control";
 import { trapezoidGeometry } from "./library-geometry/trapezoid";
 import { triangleGeometry } from "./library-geometry/triangle";
+import { trophyGeometry } from "./library-geometry/trophy";
 import { truckContainerGeometry } from "./library-geometry/truck-container";
 import { truckFastGeometry } from "./library-geometry/truck-fast";
 import { truckPlaneGeometry } from "./library-geometry/truck-plane";
@@ -308,6 +309,7 @@ import { wavePulseGeometry } from "./library-geometry/wave-pulse";
 import { wavesGeometry } from "./library-geometry/waves";
 
 export const libraryGeometry = {
+  trophy: trophyGeometry,
   gem: gemGeometry,
   swatchBook: swatchBookGeometry,
   palette: paletteGeometry,

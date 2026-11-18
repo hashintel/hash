@@ -735,6 +735,7 @@ export const RocketIcon = createIcon("rocket");
 export const PaletteIcon = createIcon("palette");
 export const SwatchBookIcon = createIcon("swatchBook");
 export const GemIcon = createIcon("gem");
+export const TrophyIcon = createIcon("trophy");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -920,6 +921,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  trophy: TrophyIcon,
   gem: GemIcon,
   swatchBook: SwatchBookIcon,
   palette: PaletteIcon,
