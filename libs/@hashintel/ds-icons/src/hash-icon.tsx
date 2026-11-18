@@ -751,6 +751,7 @@ export const HexagonNodesIcon = createIcon("hexagonNodes");
 export const DiagramSankeyIcon = createIcon("diagramSankey");
 export const SitemapIcon = createIcon("sitemap");
 export const WorkflowIcon = createIcon("workflow");
+export const TimelineIcon = createIcon("timeline");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -936,6 +937,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  timeline: TimelineIcon,
   workflow: WorkflowIcon,
   sitemap: SitemapIcon,
   diagramSankey: DiagramSankeyIcon,

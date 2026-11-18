@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  timeline: "Offset bars along a time axis represent a schedule or timeline.",
   workflow: "Connected steps represent a workflow or process.",
   sitemap:
     "A parent box connected to children represents a hierarchy or site map.",

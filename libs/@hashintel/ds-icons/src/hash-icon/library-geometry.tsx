@@ -296,6 +296,7 @@ import { thermometerGeometry } from "./library-geometry/thermometer";
 import { thermometerColdGeometry } from "./library-geometry/thermometer-cold";
 import { thumbsDownGeometry } from "./library-geometry/thumbs-down";
 import { thumbsUpGeometry } from "./library-geometry/thumbs-up";
+import { timelineGeometry } from "./library-geometry/timeline";
 import { toggleOffGeometry } from "./library-geometry/toggle-off";
 import { toggleOnGeometry } from "./library-geometry/toggle-on";
 import { tombstoneGeometry } from "./library-geometry/tombstone";
@@ -324,6 +325,7 @@ import { wavesGeometry } from "./library-geometry/waves";
 import { workflowGeometry } from "./library-geometry/workflow";
 
 export const libraryGeometry = {
+  timeline: timelineGeometry,
   workflow: workflowGeometry,
   sitemap: sitemapGeometry,
   diagramSankey: diagramSankeyGeometry,
