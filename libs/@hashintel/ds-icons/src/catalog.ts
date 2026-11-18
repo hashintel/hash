@@ -163,7 +163,7 @@ export const hashIconStudies = [
 }[];
 
 const categories = {
-  Time: ["calendarWeek", "calendarDay"],
+  Time: ["calendarDays", "calendarWeek", "calendarDay"],
   Files: [
     "handwrittenDocs",
     "newspaper",

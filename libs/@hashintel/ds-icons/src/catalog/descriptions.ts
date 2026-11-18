@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  calendarDays: "A calendar of day cells represents dates or a schedule.",
   calendarWeek: "A calendar with highlighted rows represents a week.",
   calendarDay: "A calendar with one marked day represents a specific date.",
   handwrittenDocs:
