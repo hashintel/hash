@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  chevronsUpDown:
+    "Opposed chevrons represent increasing or decreasing a selection.",
   arrowProgress:
     "A stepped arrow represents progress through successive stages.",
   arrowTurnDownRight:

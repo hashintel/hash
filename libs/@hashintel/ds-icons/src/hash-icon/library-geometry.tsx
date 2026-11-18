@@ -10,6 +10,7 @@ import { calendarDayGeometry } from "./library-geometry/calendar-day";
 import { calendarDaysGeometry } from "./library-geometry/calendar-days";
 import { calendarWeekGeometry } from "./library-geometry/calendar-week";
 import { calendarsGeometry } from "./library-geometry/calendars";
+import { chevronsUpDownGeometry } from "./library-geometry/chevrons-up-down";
 import { clipboardGeometry } from "./library-geometry/clipboard";
 import { clipboardCheckGeometry } from "./library-geometry/clipboard-check";
 import { clipboardListGeometry } from "./library-geometry/clipboard-list";
@@ -43,6 +44,7 @@ import { noteStickyGeometry } from "./library-geometry/note-sticky";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  chevronsUpDown: chevronsUpDownGeometry,
   arrowProgress: arrowProgressGeometry,
   arrowTurnDownRight: arrowTurnDownRightGeometry,
   arrowTurnDownLeft: arrowTurnDownLeftGeometry,
