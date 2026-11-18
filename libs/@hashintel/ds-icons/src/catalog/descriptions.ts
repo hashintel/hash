@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  shieldCheck: "A shield with a check represents verified protection.",
   listTimeline:
     "Entries connected along a vertical line represent a chronological list.",
   listCheck: "Checked entries represent a task list.",
