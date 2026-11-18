@@ -706,6 +706,7 @@ export const HandDollarIcon = createIcon("handDollar");
 export const ReceiptIcon = createIcon("receipt");
 export const ChartRevenueIcon = createIcon("chartRevenue");
 export const ChartMixedIcon = createIcon("chartMixed");
+export const PieChartIcon = createIcon("pieChart");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -891,6 +892,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  pieChart: PieChartIcon,
   chartMixed: ChartMixedIcon,
   chartRevenue: ChartRevenueIcon,
   receipt: ReceiptIcon,

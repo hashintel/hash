@@ -163,7 +163,7 @@ export const hashIconStudies = [
 }[];
 
 const categories = {
-  Data: ["chartMixed"],
+  Data: ["pieChart", "chartMixed"],
   Finance: [
     "chartRevenue",
     "receipt",

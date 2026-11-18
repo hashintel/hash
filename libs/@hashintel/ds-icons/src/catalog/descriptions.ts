@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  pieChart:
+    "A circle divided into sectors represents proportions in a pie chart.",
   chartMixed:
     "Bars and a line represent a chart combining multiple data series.",
   chartRevenue:
