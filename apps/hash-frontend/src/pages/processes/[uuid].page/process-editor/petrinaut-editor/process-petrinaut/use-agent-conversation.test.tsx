@@ -18,8 +18,8 @@ import type {
 import type * as ApolloClient from "@apollo/client";
 import type { EntityId } from "@blockprotocol/type-system";
 
-const userId = "00000000-0000-4000-8000-0000000000aa";
-const otherUserId = "00000000-0000-4000-8000-0000000000bb";
+const accountId = "00000000-0000-4000-8000-0000000000aa";
+const otherAccountId = "00000000-0000-4000-8000-0000000000bb";
 const processWebId = "00000000-0000-4000-8000-000000000001";
 const otherWebId = "00000000-0000-4000-8000-000000000002";
 const processId =
@@ -79,7 +79,7 @@ vi.mock("@hashintel/petrinaut", async () => {
 });
 
 vi.mock("../../../../../shared/auth-info-context", () => ({
-  useAuthInfo: () => ({ authenticatedUser: { accountId: userId } }),
+  useAuthInfo: () => ({ authenticatedUser: { accountId } }),
 }));
 
 vi.mock("@apollo/client", async (importOriginal) => {
@@ -242,7 +242,7 @@ vi.mock("@apollo/client", async (importOriginal) => {
           conversationId: value[conversationIdUrl]?.value ?? "",
           agentId: value[agentIdUrl]?.value ?? "",
           contextEntityId: value[contextEntityIdUrl]?.value as EntityId,
-          createdById: userId,
+          createdById: accountId,
           createdAt: `2027-01-01T00:00:${String(graph.nextEntity).padStart(2, "0")}.000Z`,
           archived: false,
         });
@@ -303,7 +303,7 @@ const stored = (
   conversationId: `${name}-conversation`,
   agentId,
   contextEntityId: processId,
-  createdById: userId,
+  createdById: accountId,
   createdAt: "2026-11-10T00:00:00.000Z",
   archived: false,
   ...overrides,
@@ -367,13 +367,13 @@ test("another member's conversation on the same context, which a web admin's rea
     stored("mine", { createdAt: "2026-11-01T00:00:00.000Z" }),
     stored("theirs", {
       createdAt: "2026-11-02T00:00:00.000Z",
-      createdById: otherUserId,
+      createdById: otherAccountId,
     }),
   ];
   const { result } = renderConversation();
   expect(result.current.conversationId).toBe("mine-conversation");
 
-  graph.stored = [stored("theirs", { createdById: otherUserId })];
+  graph.stored = [stored("theirs", { createdById: otherAccountId })];
   const { result: reloaded } = reload();
   expect(reloaded.current.conversationId).toBeNull();
 });

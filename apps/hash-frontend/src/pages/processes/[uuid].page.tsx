@@ -7,7 +7,7 @@ import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { getLayoutWithSidebar } from "../../shared/layout";
 import { useAuthInfo } from "../shared/auth-info-context";
 import { useActiveWorkspace } from "../shared/workspace-context";
-import { draftPath, draftWebQueryParam } from "./[uuid].page/draft-path";
+import { draftRoute, draftWebQueryParam } from "./[uuid].page/draft-path";
 import {
   creatableWebIds,
   draftEntityIdFromQuery,
@@ -90,7 +90,7 @@ const ProcessRoutePage: NextPageWithLayout = () => {
       return;
     }
     void router.replace(
-      draftPath(
+      draftRoute(
         entityIdFromComponents(
           activeWorkspaceWebId,
           generateUuid() as EntityUuid,

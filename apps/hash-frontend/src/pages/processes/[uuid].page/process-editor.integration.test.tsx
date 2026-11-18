@@ -134,9 +134,28 @@ const router = vi.hoisted(() => {
       listener();
     }
   };
+  /**
+   * The URL a destination names. A structured one is resolved as Next does:
+   * `uuid` fills the `[uuid]` segment and the rest becomes the query.
+   */
+  const href = (
+    destination:
+      | string
+      | { pathname: string; query: Record<string, string> & { uuid: string } },
+  ) => {
+    if (typeof destination === "string") {
+      return destination;
+    }
+    const {
+      pathname,
+      query: { uuid, ...query },
+    } = destination;
+    const search = new URLSearchParams(query).toString();
+    return `${pathname.replace("[uuid]", uuid)}${search ? `?${search}` : ""}`;
+  };
   /** Next applies a navigation after the call returns. */
-  const navigate = (url: string) => {
-    queueMicrotask(() => go(url));
+  const navigate = (destination: Parameters<typeof href>[0]) => {
+    queueMicrotask(() => go(href(destination)));
     return Promise.resolve(true);
   };
   return {
@@ -1256,6 +1275,10 @@ const openDraft = () => {
 
 test("starting a draft keeps an example we have and drops any other value", async () => {
   await renderRoute("/processes/draft?example=sir-model");
+  expect(router.replace).toHaveBeenLastCalledWith({
+    pathname: "/processes/[uuid]",
+    query: { uuid: openDraft()?.uuid, draftWeb: webId, example: "sir-model" },
+  });
   expect(openDraft()?.query).toBe("&example=sir-model");
   expect(topBar().title).toBe(exampleTileBySlug.get("sir-model")?.title);
   cleanup();
