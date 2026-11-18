@@ -63,6 +63,10 @@ export {
 } from "./petrinaut/browser-executed-tools";
 export { CANONICAL_PETRINAUT_TOOL_NAMES } from "./petrinaut/construction-tool-names";
 export {
+  readRecordedCall,
+  recordedCanonicalCallsOf,
+} from "./petrinaut/recorded-calls";
+export {
   PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX,
   parsePetrinautUserMessageBody,
   petrinautContextualUserMessageBody,
