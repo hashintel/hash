@@ -472,6 +472,7 @@ export const ChevronsUpDownIcon = createIcon("chevronsUpDown");
 export const ExpandHorizontalIcon = createIcon("expandHorizontal");
 export const ExpandVerticalIcon = createIcon("expandVertical");
 export const ExpandDiagonalIcon = createIcon("expandDiagonal");
+export const CollapseVerticalIcon = createIcon("collapseVertical");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -657,6 +658,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  collapseVertical: CollapseVerticalIcon,
   expandDiagonal: ExpandDiagonalIcon,
   expandVertical: ExpandVerticalIcon,
   expandHorizontal: ExpandHorizontalIcon,

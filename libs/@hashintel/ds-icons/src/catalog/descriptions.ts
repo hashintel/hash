@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  collapseVertical:
+    "Arrows approaching a central line represent collapsing vertical space.",
   expandDiagonal: "Outward diagonal arrows represent enlarging an area.",
   expandVertical: "Outward vertical arrows represent expanding height.",
   expandHorizontal: "Outward horizontal arrows represent expanding width.",

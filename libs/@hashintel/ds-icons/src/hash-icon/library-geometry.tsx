@@ -14,6 +14,7 @@ import { chevronsUpDownGeometry } from "./library-geometry/chevrons-up-down";
 import { clipboardGeometry } from "./library-geometry/clipboard";
 import { clipboardCheckGeometry } from "./library-geometry/clipboard-check";
 import { clipboardListGeometry } from "./library-geometry/clipboard-list";
+import { collapseVerticalGeometry } from "./library-geometry/collapse-vertical";
 import { expandDiagonalGeometry } from "./library-geometry/expand-diagonal";
 import { expandHorizontalGeometry } from "./library-geometry/expand-horizontal";
 import { expandVerticalGeometry } from "./library-geometry/expand-vertical";
@@ -47,6 +48,7 @@ import { noteStickyGeometry } from "./library-geometry/note-sticky";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  collapseVertical: collapseVerticalGeometry,
   expandDiagonal: expandDiagonalGeometry,
   expandVertical: expandVerticalGeometry,
   expandHorizontal: expandHorizontalGeometry,
