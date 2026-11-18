@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  thumbsDown: "A lowered thumb represents disapproval or a negative reaction.",
   thumbsUp: "A raised thumb represents approval or a positive reaction.",
   hospitalUser:
     "A person beside a medical cross represents a patient or care recipient.",

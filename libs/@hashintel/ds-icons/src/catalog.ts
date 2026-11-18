@@ -164,6 +164,7 @@ export const hashIconStudies = [
 
 const categories = {
   People: [
+    "thumbsDown",
     "thumbsUp",
     "hospitalUser",
     "expertInterviews",
