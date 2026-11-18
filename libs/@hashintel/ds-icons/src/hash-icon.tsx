@@ -598,6 +598,7 @@ export const BadgeCheckIcon = createIcon("badgeCheck");
 export const BallotCheckIcon = createIcon("ballotCheck");
 export const MailIcon = createIcon("mail");
 export const MailUnreadIcon = createIcon("mailUnread");
+export const MessageIcon = createIcon("message");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -783,6 +784,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  message: MessageIcon,
   mailUnread: MailUnreadIcon,
   mail: MailIcon,
   ballotCheck: BallotCheckIcon,
