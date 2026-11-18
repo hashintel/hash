@@ -660,6 +660,7 @@ export const BuildingShieldIcon = createIcon("buildingShield");
 export const CityIcon = createIcon("city");
 export const HomeIcon = createIcon("home");
 export const BankIcon = createIcon("bank");
+export const FactoryIcon = createIcon("factory");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -845,6 +846,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  factory: FactoryIcon,
   bank: BankIcon,
   home: HomeIcon,
   city: CityIcon,
