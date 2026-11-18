@@ -484,6 +484,7 @@ export const SquareCloseIcon = createIcon("squareClose");
 export const SquareMinusIcon = createIcon("squareMinus");
 export const RadioCheckedIcon = createIcon("radioChecked");
 export const CheckDoubleIcon = createIcon("checkDouble");
+export const EqualsIcon = createIcon("equals");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -669,6 +670,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  equals: EqualsIcon,
   checkDouble: CheckDoubleIcon,
   radioChecked: RadioCheckedIcon,
   squareMinus: SquareMinusIcon,

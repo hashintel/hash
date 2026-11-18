@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  equals: "Two equal bars represent equality.",
   checkDouble:
     "Two check marks represent completed delivery or double confirmation.",
   radioChecked: "A dot inside a circle represents a selected radio option.",

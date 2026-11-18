@@ -329,6 +329,7 @@ const categories = {
     "bullseye",
   ],
   Math: [
+    "equals",
     "infinity",
     "lambda",
     "function",

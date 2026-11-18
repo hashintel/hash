@@ -20,6 +20,7 @@ export type HashIconHint =
   | "up";
 
 export const hashIconHints = {
+  equals: "lift",
   checkDouble: "lift",
   radioChecked: "lift",
   squareMinus: "lift",
