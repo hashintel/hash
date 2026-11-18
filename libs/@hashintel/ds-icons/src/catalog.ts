@@ -452,6 +452,7 @@ const categories = {
     "rectangle",
   ],
   Interface: [
+    "circleHalf",
     "flag",
     "circleFour",
     "circleThree",
