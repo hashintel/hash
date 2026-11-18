@@ -46,9 +46,11 @@ import { newspaperGeometry } from "./library-geometry/newspaper";
 import { notePlusGeometry } from "./library-geometry/note-plus";
 import { noteStickyGeometry } from "./library-geometry/note-sticky";
 import { redoGeometry } from "./library-geometry/redo";
+import { shuffleGeometry } from "./library-geometry/shuffle";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  shuffle: shuffleGeometry,
   redo: redoGeometry,
   collapseVertical: collapseVerticalGeometry,
   expandDiagonal: expandDiagonalGeometry,

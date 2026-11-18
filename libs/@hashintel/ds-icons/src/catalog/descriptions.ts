@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  shuffle: "Crossing arrows represent shuffling or rearranging an order.",
   redo: "A returning arrow pointing right represents redoing an action.",
   collapseVertical:
     "Arrows approaching a central line represent collapsing vertical space.",
