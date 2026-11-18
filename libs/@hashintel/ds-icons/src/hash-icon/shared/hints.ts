@@ -20,6 +20,7 @@ export type HashIconHint =
   | "up";
 
 export const hashIconHints = {
+  signal: "lift",
   wavePulse: "lift",
   waves: "lift",
   sunMoon: "lift",

@@ -241,6 +241,7 @@ import { shopGeometry } from "./library-geometry/shop";
 import { shoppingBasketGeometry } from "./library-geometry/shopping-basket";
 import { shoppingCartGeometry } from "./library-geometry/shopping-cart";
 import { shuffleGeometry } from "./library-geometry/shuffle";
+import { signalGeometry } from "./library-geometry/signal";
 import { sizeExtraLargeGeometry } from "./library-geometry/size-extra-large";
 import { sizeLargeGeometry } from "./library-geometry/size-large";
 import { sizeMediumGeometry } from "./library-geometry/size-medium";
@@ -287,6 +288,7 @@ import { wavePulseGeometry } from "./library-geometry/wave-pulse";
 import { wavesGeometry } from "./library-geometry/waves";
 
 export const libraryGeometry = {
+  signal: signalGeometry,
   wavePulse: wavePulseGeometry,
   waves: wavesGeometry,
   sunMoon: sunMoonGeometry,
