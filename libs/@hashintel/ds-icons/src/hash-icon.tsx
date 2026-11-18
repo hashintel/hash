@@ -607,6 +607,7 @@ export const ShareIcon = createIcon("share");
 export const ShareNodesIcon = createIcon("shareNodes");
 export const MegaphoneIcon = createIcon("megaphone");
 export const PhoneIcon = createIcon("phone");
+export const PhoneOffIcon = createIcon("phoneOff");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -792,6 +793,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  phoneOff: PhoneOffIcon,
   phone: PhoneIcon,
   megaphone: MegaphoneIcon,
   shareNodes: ShareNodesIcon,

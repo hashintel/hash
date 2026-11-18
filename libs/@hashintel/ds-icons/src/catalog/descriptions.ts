@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  phoneOff: "A crossed handset represents ending or disabling a call.",
   phone: "A telephone handset represents calling or telephone contact.",
   megaphone: "A horn represents an announcement or broadcast.",
   shareNodes:
