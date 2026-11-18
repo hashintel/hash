@@ -253,6 +253,7 @@ import { thumbsDownGeometry } from "./library-geometry/thumbs-down";
 import { thumbsUpGeometry } from "./library-geometry/thumbs-up";
 import { toggleOffGeometry } from "./library-geometry/toggle-off";
 import { toggleOnGeometry } from "./library-geometry/toggle-on";
+import { towerControlGeometry } from "./library-geometry/tower-control";
 import { trapezoidGeometry } from "./library-geometry/trapezoid";
 import { triangleGeometry } from "./library-geometry/triangle";
 import { truckContainerGeometry } from "./library-geometry/truck-container";
@@ -271,6 +272,7 @@ import { usersGeometry } from "./library-geometry/users";
 import { warehouseGeometry } from "./library-geometry/warehouse";
 
 export const libraryGeometry = {
+  towerControl: towerControlGeometry,
   truckPlane: truckPlaneGeometry,
   planeArrival: planeArrivalGeometry,
   planeDeparture: planeDepartureGeometry,

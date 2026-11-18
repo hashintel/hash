@@ -164,6 +164,7 @@ export const hashIconStudies = [
 
 const categories = {
   Transport: [
+    "towerControl",
     "truckPlane",
     "planeArrival",
     "planeDeparture",
