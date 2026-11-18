@@ -41,6 +41,7 @@ import { diamondGeometry } from "./library-geometry/diamond";
 import { dotGeometry } from "./library-geometry/dot";
 import { ellipseGeometry } from "./library-geometry/ellipse";
 import { equalsGeometry } from "./library-geometry/equals";
+import { eraserGeometry } from "./library-geometry/eraser";
 import { expandDiagonalGeometry } from "./library-geometry/expand-diagonal";
 import { expandHorizontalGeometry } from "./library-geometry/expand-horizontal";
 import { expandVerticalGeometry } from "./library-geometry/expand-vertical";
@@ -104,6 +105,7 @@ import { triangleGeometry } from "./library-geometry/triangle";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  eraser: eraserGeometry,
   canvas: canvasGeometry,
   aspectRatio: aspectRatioGeometry,
   frame: frameGeometry,

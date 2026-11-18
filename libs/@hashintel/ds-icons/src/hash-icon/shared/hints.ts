@@ -20,6 +20,7 @@ export type HashIconHint =
   | "up";
 
 export const hashIconHints = {
+  eraser: "lift",
   canvas: "lift",
   aspectRatio: "lift",
   frame: "lift",
