@@ -27,6 +27,7 @@ import { arrowheadSquareGeometry } from "./library-geometry/arrowhead-square";
 import { arrowheadTriangleGeometry } from "./library-geometry/arrowhead-triangle";
 import { arrowheadTriangleInvertedGeometry } from "./library-geometry/arrowhead-triangle-inverted";
 import { aspectRatioGeometry } from "./library-geometry/aspect-ratio";
+import { badgeCheckGeometry } from "./library-geometry/badge-check";
 import { blobGeometry } from "./library-geometry/blob";
 import { boldGeometry } from "./library-geometry/bold";
 import { bookGeometry } from "./library-geometry/book";
@@ -167,6 +168,7 @@ import { ungroupGeometry } from "./library-geometry/ungroup";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  badgeCheck: badgeCheckGeometry,
   shieldAlert: shieldAlertGeometry,
   shieldCheck: shieldCheckGeometry,
   listTimeline: listTimelineGeometry,
