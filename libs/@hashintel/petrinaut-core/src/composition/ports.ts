@@ -5,12 +5,18 @@
  * contract the checks hold the component and the composition to.
  */
 
-import { arcMatchesEndpoint, placeArcEndpoint } from "../arc-endpoints";
-import { findFusionWithMember } from "./fusions";
+import {
+  arcMatchesEndpoint,
+  getArcEndpoint,
+  getArcEndpointKey,
+  placeArcEndpoint,
+} from "../arc-endpoints";
 
 import type {
   ArcEndpoint,
   ID,
+  InputArc,
+  OutputArc,
   Place,
   PortDirection,
   Subnet,
@@ -59,22 +65,66 @@ export const endpointUsage = (
 /** The part of a net a port's usage is read from. */
 type PortNet = Pick<Subnet, "transitions" | "fusions">;
 
-/**
- * How a net's own transitions touch one of its ports, on the port itself or
- * on what the net fuses with it: fused, they are one place.
- */
-export const portUsage = (net: PortNet, placeId: ID): PortUsage => {
-  const port = placeArcEndpoint(placeId);
-  const members = findFusionWithMember(net, port)?.members ?? [port];
-  const usages = members.map((member) =>
-    endpointUsage(net.transitions, member),
-  );
-  return {
-    consumed: usages.some(({ consumed }) => consumed),
-    produced: usages.some(({ produced }) => produced),
-    touched: usages.some(({ touched }) => touched),
-  };
+const untouched: PortUsage = {
+  consumed: false,
+  produced: false,
+  touched: false,
 };
+
+/**
+ * How a net's own transitions touch each of its ports, on the port itself or
+ * on what the net fuses with it: fused, they are one place. The net's arcs
+ * are read once and each fusion once, so a caller with many ports to ask
+ * about calls this once and asks the function it returns.
+ */
+export const portUsages = (net: PortNet): ((placeId: ID) => PortUsage) => {
+  const byEndpoint = new Map<string, PortUsage>();
+  const record = (
+    arc: InputArc | OutputArc,
+    flow: Pick<PortUsage, "consumed" | "produced">,
+  ) => {
+    const key = getArcEndpointKey(getArcEndpoint(arc));
+    const known = byEndpoint.get(key) ?? untouched;
+    byEndpoint.set(key, {
+      consumed: known.consumed || flow.consumed,
+      produced: known.produced || flow.produced,
+      touched: true,
+    });
+  };
+  for (const { inputArcs, outputArcs } of net.transitions) {
+    for (const arc of inputArcs) {
+      record(arc, { consumed: arc.type === "standard", produced: false });
+    }
+    for (const arc of outputArcs) {
+      record(arc, { consumed: false, produced: true });
+    }
+  }
+  const usageOf = (endpoint: ArcEndpoint): PortUsage =>
+    byEndpoint.get(getArcEndpointKey(endpoint)) ?? untouched;
+
+  // Of two fusions that hold one place, the first gives its usage: the one
+  // a search of the net's fusions finds.
+  const byFusedPlace = new Map<ID, PortUsage>();
+  for (const { members } of net.fusions ?? []) {
+    const usages = members.map(usageOf);
+    const fused: PortUsage = {
+      consumed: usages.some(({ consumed }) => consumed),
+      produced: usages.some(({ produced }) => produced),
+      touched: usages.some(({ touched }) => touched),
+    };
+    for (const member of members) {
+      if (member.kind === "place" && !byFusedPlace.has(member.placeId)) {
+        byFusedPlace.set(member.placeId, fused);
+      }
+    }
+  }
+  return (placeId) =>
+    byFusedPlace.get(placeId) ?? usageOf(placeArcEndpoint(placeId));
+};
+
+/** How a net's own transitions touch one of its ports: see `portUsages`. */
+export const portUsage = (net: PortNet, placeId: ID): PortUsage =>
+  portUsages(net)(placeId);
 
 /**
  * The direction a net's arcs give one of its ports: `in` when only consumed

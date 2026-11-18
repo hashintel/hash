@@ -5,8 +5,8 @@
 
 import {
   describePortDirection,
-  portUsage,
   portUsageMatchesDirection,
+  portUsages,
 } from "./ports";
 
 import type { ID, SDCPN } from "../types/sdcpn";
@@ -21,12 +21,13 @@ export type PortProblem = {
 
 /** The ports whose declared direction their subnet's arcs contradict. */
 export const checkPorts = (sdcpn: SDCPN): PortProblem[] =>
-  (sdcpn.subnets ?? []).flatMap((subnet) =>
-    subnet.places.flatMap((place) => {
+  (sdcpn.subnets ?? []).flatMap((subnet) => {
+    const usageOf = portUsages(subnet);
+    return subnet.places.flatMap((place) => {
       if (!place.isPort || place.portDirection === undefined) {
         return [];
       }
-      const usage = portUsage(subnet, place.id);
+      const usage = usageOf(place.id);
       if (portUsageMatchesDirection(usage, place.portDirection)) {
         return [];
       }
@@ -40,5 +41,5 @@ export const checkPorts = (sdcpn: SDCPN): PortProblem[] =>
           message: `Port ${place.name} of ${subnet.name} is declared ${describePortDirection(place.portDirection)}, but a transition of ${subnet.name} ${against} it.`,
         },
       ];
-    }),
-  );
+    });
+  });

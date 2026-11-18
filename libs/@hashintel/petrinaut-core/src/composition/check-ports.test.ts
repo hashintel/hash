@@ -139,6 +139,33 @@ describe("checkPorts", () => {
     ]);
     expect(problems({ direction: "in", consumes: true })).toEqual([]);
   });
+
+  it("checks a thousand ports of one fusion without reading the arcs once per port", () => {
+    const size = 1000;
+    const ports = Array.from({ length: size }, (_, index) =>
+      place(`port-${index}`, { isPort: true, portDirection: "out" }),
+    );
+    const wide = subnet("wide", {
+      places: ports,
+      transitions: ports.map(({ id }) => transition(`take-${id}`, [id], [])),
+      fusions: [
+        {
+          id: "f1",
+          name: "F1",
+          members: ports.map(({ id }) => ({ kind: "place", placeId: id })),
+        },
+      ],
+    });
+
+    const started = Date.now();
+    const problems = checkPorts(net([wide]));
+    const elapsed = Date.now() - started;
+
+    // Fused, the ports are one place the subnet consumes from: each of them
+    // breaks its declaration.
+    expect(problems).toHaveLength(size);
+    expect(elapsed).toBeLessThan(1000);
+  });
 });
 
 describe("a port's direction, as inferred and as checked", () => {
