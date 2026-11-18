@@ -24,6 +24,7 @@ import type {
   Fusion,
   FusionMember,
   Petrinaut,
+  PetrinautRules,
   SelectionMap,
 } from "@hashintel/petrinaut-core";
 
@@ -84,6 +85,7 @@ const connection = (
 ): CanvasConnection => ({ sourceId, sourcePortId, targetId, targetPortId });
 
 const mutations = {
+  addPlace: vi.fn(),
   addComponentInstance: vi.fn(),
   addFusion: vi.fn(),
   addFusionMember: vi.fn(),
@@ -100,7 +102,17 @@ const dropPortEnd = (
   onto: nodeId === undefined ? null : { nodeId, portId },
 });
 const addNotification = vi.fn();
-const editor: { selection: SelectionMap } = { selection: new Map() };
+const setEditionMode = vi.fn();
+const editor: {
+  selection: SelectionMap;
+  rules: PetrinautRules;
+  /** What the host's rules answer a mutation with. */
+  refusal: string | null;
+} = {
+  selection: new Map(),
+  rules: {},
+  refusal: null,
+};
 const libraries = new Map([
   [logisticsLibrary.id, resolveLibrary(logisticsLibrary.id, logisticsLibrary)],
 ]);
@@ -108,10 +120,19 @@ const libraries = new Map([
 beforeEach(() => {
   vi.clearAllMocks();
   editor.selection = new Map([[belt.id, { type: "fusion", id: belt.id }]]);
+  editor.rules = {};
+  editor.refusal = null;
 });
 
 const Wrapper = ({ children }: { children: ReactNode }) => (
-  <PetrinautInstanceContext value={{ mutations } as unknown as Petrinaut}>
+  <PetrinautInstanceContext
+    value={
+      {
+        mutations,
+        mutationRefusal: () => editor.refusal,
+      } as unknown as Petrinaut
+    }
+  >
     <SDCPNContext
       value={{
         ...use(SDCPNContext),
@@ -128,13 +149,25 @@ const Wrapper = ({ children }: { children: ReactNode }) => (
         <NotificationsContext
           value={{ ...use(NotificationsContext), addNotification }}
         >
-          <CompositionContext value={{ ...use(CompositionContext), libraries }}>
+          <CompositionContext
+            value={{
+              ...use(CompositionContext),
+              libraries,
+              rules: editor.rules,
+            }}
+          >
             <EditorContext
               value={{
                 ...use(EditorContext),
+                editionMode: "add-component",
+                componentToAdd: { id: "stage" },
+                setEditionMode,
                 setSelection: (next) => {
                   editor.selection =
                     typeof next === "function" ? next(editor.selection) : next;
+                },
+                selectItem: (item) => {
+                  editor.selection = new Map([[item.id, item]]);
                 },
               }}
             >
@@ -187,6 +220,19 @@ describe("useCanvasInteractions", () => {
     expect(valid("buffer", null, "store", null)).toBe(false);
     // A place to a transition is an arc.
     expect(valid("buffer", null, "t", null)).toBe(true);
+  });
+
+  it("connects by fusion alone in an editor that only composes", () => {
+    editor.rules = { edit: "compose" };
+    const { interactions } = renderInteractions();
+    const valid = (...ends: Parameters<typeof connection>) =>
+      interactions.isValidConnection(connection(...ends));
+
+    expect(valid("m1", "out", "m2", "in")).toBe(true);
+    expect(valid("store", null, "m2", "in")).toBe(true);
+    // No arc is drawn, to a place or to a port.
+    expect(valid("buffer", null, "t", null)).toBe(false);
+    expect(valid("t", null, "m2", "in")).toBe(false);
   });
 
   it("adds a port to the fusion its other end is in, and refuses a second place", () => {
@@ -289,5 +335,38 @@ describe("useCanvasInteractions", () => {
       2,
       expect.objectContaining({ subnetId: "stage" }),
     );
+  });
+
+  it("selects the instance a click places and puts the tool down", () => {
+    const { interactions, selectedIds } = renderInteractions();
+
+    interactions.clickPane({ x: 40, y: 60 });
+
+    const [[placed]] = mutations.addComponentInstance.mock.calls as [
+      [{ id: string }],
+    ];
+    expect(selectedIds()).toEqual([placed.id]);
+    expect(setEditionMode).toHaveBeenCalledExactlyOnceWith("cursor");
+  });
+
+  it("keeps the selection and the tool as they were when the host's rules refuse what a click or a drop would add", () => {
+    editor.rules = { edit: "compose" };
+    editor.refusal =
+      "This editor only places and connects the components it is given.";
+    const { interactions, selectedIds } = renderInteractions();
+
+    interactions.clickPane({ x: 40, y: 60 });
+    interactions.dropNode("place", { x: 0, y: 0 });
+    interactions.connect(connection("store", null, "m2", "in"));
+
+    expect(mutations.addComponentInstance).not.toHaveBeenCalled();
+    expect(mutations.addPlace).not.toHaveBeenCalled();
+    expect(mutations.addFusion).not.toHaveBeenCalled();
+    expect(addNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "host-rules", message: editor.refusal }),
+    );
+    // Nothing was added: what was selected stays, and the tool stays armed.
+    expect(selectedIds()).toEqual([belt.id]);
+    expect(setEditionMode).not.toHaveBeenCalled();
   });
 });

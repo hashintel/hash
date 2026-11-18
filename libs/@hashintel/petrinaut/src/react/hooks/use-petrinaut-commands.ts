@@ -3,6 +3,7 @@ import { use } from "react";
 import { PetrinautInstanceContext } from "../instance-context";
 import { ActiveNetContext } from "../state/active-net-context";
 import { useIsReadOnly } from "../state/use-is-read-only";
+import { useHostRulesFeedback } from "./use-host-rules-feedback";
 import { useReadOnlyFeedback } from "./use-read-only-feedback";
 
 import type { PetrinautCommands } from "@hashintel/petrinaut-core";
@@ -13,8 +14,9 @@ import type { PetrinautCommands } from "@hashintel/petrinaut-core";
  *
  * Each command shows the read-only notice and returns a default-shaped result
  * when {@link useIsReadOnly} returns `true`, matching the behaviour of
- * {@link usePetrinautMutations}. Components MUST NOT reach for
- * `usePetrinautInstance().commands` directly.
+ * {@link usePetrinautMutations}. A paste into an editor that only composes
+ * says why it does nothing, where Core itself would throw. Components MUST
+ * NOT reach for `usePetrinautInstance().commands` directly.
  */
 export function usePetrinautCommands(): PetrinautCommands {
   const instance = use(PetrinautInstanceContext);
@@ -26,7 +28,17 @@ export function usePetrinautCommands(): PetrinautCommands {
   const isReadOnly = useIsReadOnly();
   const notifyReadOnly = useReadOnlyFeedback();
   const { activeSubnetId } = use(ActiveNetContext);
+  const notifyHostRules = useHostRulesFeedback();
   const { commands } = instance;
+
+  /** Says why the host's rules refuse a command, where Core itself would throw. */
+  const refused = (name: keyof PetrinautCommands, input: unknown): boolean => {
+    const refusal = instance.commandRefusal(name, input);
+    if (refusal !== null) {
+      notifyHostRules(refusal);
+    }
+    return refusal !== null;
+  };
 
   return {
     applyClipboardPaste(input) {
@@ -34,17 +46,20 @@ export function usePetrinautCommands(): PetrinautCommands {
         notifyReadOnly();
         return { newItemIds: [] };
       }
-      return commands.applyClipboardPaste({
-        ...input,
-        targetSubnetId: activeSubnetId,
-      });
+      const targeted = { ...input, targetSubnetId: activeSubnetId };
+      return refused("applyClipboardPaste", targeted)
+        ? { newItemIds: [] }
+        : commands.applyClipboardPaste(targeted);
     },
     async applyAutoLayout() {
       if (isReadOnly) {
         notifyReadOnly();
         return { commitCount: 0 };
       }
-      return commands.applyAutoLayout({ targetSubnetId: activeSubnetId });
+      const targeted = { targetSubnetId: activeSubnetId };
+      return refused("applyAutoLayout", targeted)
+        ? { commitCount: 0 }
+        : commands.applyAutoLayout(targeted);
     },
   };
 }

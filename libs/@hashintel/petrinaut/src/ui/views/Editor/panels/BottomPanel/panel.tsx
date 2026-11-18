@@ -9,6 +9,7 @@ import {
   type BottomPanelTab,
   EditorContext,
 } from "../../../../../react/state/editor-context";
+import { useComposesOnly } from "../../../../../react/state/use-composes-only";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { GlassPanel } from "../../../../components/glass-panel";
 import {
@@ -30,6 +31,7 @@ import {
 } from "../../../../constants/ui-subviews";
 import { usePluginBottomPanelViews } from "../../../../plugins/plugin-outlets";
 import { fallbackBottomPanelTab } from "./fallback-tab";
+import { diagnosticsSubView } from "./subviews/diagnostics";
 
 const glassPanelBaseStyle = css({
   position: "absolute",
@@ -95,21 +97,26 @@ const headerRightStyle = css({
 });
 
 const getBottomPanelSubViews = ({
+  composesOnly,
   isActualMode,
   isSimulationActive,
   showCompilationOutput,
 }: {
+  composesOnly: boolean;
   isActualMode: boolean;
   isSimulationActive: boolean;
   showCompilationOutput: boolean;
 }) =>
-  isActualMode
-    ? ACTUAL_BOTTOM_PANEL_SUBVIEWS
-    : [
-        ...BOTTOM_PANEL_SUBVIEWS,
-        ...(isSimulationActive ? SIMULATION_ONLY_SUBVIEWS : []),
-        ...(showCompilationOutput ? COMPILATION_SUBVIEWS : []),
-      ];
+  // An editor that only composes has problems to show and nothing to run.
+  composesOnly
+    ? [diagnosticsSubView]
+    : isActualMode
+      ? ACTUAL_BOTTOM_PANEL_SUBVIEWS
+      : [
+          ...BOTTOM_PANEL_SUBVIEWS,
+          ...(isSimulationActive ? SIMULATION_ONLY_SUBVIEWS : []),
+          ...(showCompilationOutput ? COMPILATION_SUBVIEWS : []),
+        ];
 
 /**
  * BottomPanel shows tabs for Diagnostics and Simulation Settings, then the
@@ -135,6 +142,7 @@ export const BottomPanel: React.FC = () => {
   } = use(EditorContext);
 
   const { keepPanelsMounted, showCompilationOutput } = use(UserSettingsContext);
+  const composesOnly = useComposesOnly();
 
   // Simulation state for conditional subviews
   const { state: simulationState } = use(SimulationContext);
@@ -157,6 +165,7 @@ export const BottomPanel: React.FC = () => {
 
   // Dynamically compute subviews based on available execution modes.
   const subViews = getBottomPanelSubViews({
+    composesOnly,
     isActualMode,
     isSimulationActive,
     showCompilationOutput,

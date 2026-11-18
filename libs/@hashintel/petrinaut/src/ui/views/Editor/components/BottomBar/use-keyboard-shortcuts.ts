@@ -4,11 +4,13 @@ import {
   usePetrinautMutations,
   usePetrinautCommands,
 } from "../../../../../react";
+import { useMutationRefusal } from "../../../../../react/hooks/use-mutation-refusal";
 import { useReadOnlyFeedback } from "../../../../../react/hooks/use-read-only-feedback";
 import { ActiveNetContext } from "../../../../../react/state/active-net-context";
 import { EditorContext } from "../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
+import { useComposesOnly } from "../../../../../react/state/use-composes-only";
 import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
 import { useReadOnlyReason } from "../../../../../react/state/use-read-only-reason";
 import {
@@ -44,7 +46,9 @@ export function useKeyboardShortcuts(
   const { petriNetId } = use(SDCPNContext);
   const { deleteItemsByIds } = usePetrinautMutations();
   const { applyClipboardPaste } = usePetrinautCommands();
+  const mutationRefusal = useMutationRefusal();
   const isReadonly = useIsReadOnly();
+  const composesOnly = useComposesOnly();
   // Undo stays available in Simulate mode, as the palette's Undo is: only a
   // read-only document has nothing to undo.
   const undoBlocked = useReadOnlyReason()?.kind === "host-readonly";
@@ -173,8 +177,13 @@ export function useKeyboardShortcuts(
         notifyReadOnly();
         return;
       }
-      deleteItemsByIds({ items: Array.from(selection.values()) });
-      clearSelection();
+      const input = { items: Array.from(selection.values()) };
+      // What the host's rules refuse stays in the document, and selected.
+      const refused = mutationRefusal("deleteItemsByIds", input) !== null;
+      deleteItemsByIds(input);
+      if (!refused) {
+        clearSelection();
+      }
       return;
     }
 
@@ -202,21 +211,19 @@ export function useKeyboardShortcuts(
         onEditionModeChange("cursor");
         break;
       case "n":
-        if (isReadonly) {
-          event.preventDefault();
-          notifyReadOnly();
-        } else if (mode === "edit") {
-          event.preventDefault();
-          onEditionModeChange("add-place");
-        }
-        break;
       case "t":
+        // An editor that only composes has no place or transition to add.
+        if (composesOnly) {
+          break;
+        }
         if (isReadonly) {
           event.preventDefault();
           notifyReadOnly();
         } else if (mode === "edit") {
           event.preventDefault();
-          onEditionModeChange("add-transition");
+          onEditionModeChange(
+            event.key.toLowerCase() === "n" ? "add-place" : "add-transition",
+          );
         }
         break;
     }

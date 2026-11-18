@@ -17,6 +17,7 @@ import {
   initialEditorState,
 } from "./editor-context";
 import { SDCPNContext } from "./sdcpn-context";
+import { useComposesOnly } from "./use-composes-only";
 import { useSyncEditorToSettings } from "./use-sync-editor-to-settings";
 import { UserSettingsContext } from "./user-settings-context";
 
@@ -46,6 +47,7 @@ const raiseVisualizer = (state: EditorState, placeId: string): EditorState =>
 
 export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const userSettings = use(UserSettingsContext);
+  const composesOnly = useComposesOnly();
   const actualMode = use(ActualModeContext);
   const navigation = usePetrinautNavigation();
   const { getItemType, petriNetDefinition } = use(SDCPNContext);
@@ -627,8 +629,15 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const selection = selectionFromNavigation(resolved.selection);
   const effectiveState: EditorState = {
     ...state,
-    globalMode: navigation.state.mode,
-    editViewMode: navigation.state.editView,
+    // An editor that only composes has one mode and one view of it, and no
+    // tool that draws a place or a transition: one left armed reads as the
+    // cursor. Placing a component is composing, so that tool stays.
+    globalMode: composesOnly ? "edit" : navigation.state.mode,
+    editViewMode: composesOnly ? "canvas" : navigation.state.editView,
+    editionMode:
+      composesOnly && state.editionMode !== "add-component"
+        ? "cursor"
+        : state.editionMode,
     simulateViewMode: navigation.state.simulateView,
     simulateDrawer: navigationResourceToSimulateDrawer(
       resolved.simulateResource,

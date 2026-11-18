@@ -405,6 +405,7 @@ full prop list, from `petrinaut/src/ui/petrinaut.tsx`:
 | `eventSimulationWorkerFactory`, `monteCarloWorkerFactory`, `lspWorkerFactory` | Worker construction for hosts consuming the published dist, typically via the bundler's `?worker` import. Omitted: inlined-blob workers. |
 | `plugins`                                                                     | Plugins that add buttons, top-bar items, commands, settings and UI. Define each at module scope.                                         |
 | `resolveImport`, `libraries`                                                  | The libraries of components the host offers, and how each import of a document is resolved. See Libraries and imports.                   |
+| `rules`                                                                       | What the host lets the editor do: `{ edit: "compose" }` keeps it to placing and wiring the components of `libraries`. See Rules.         |
 
 A plugin declares what it adds in a manifest and returns it from a hook the
 editor runs per document; see [Plugins](doc:ui.plugins/overview).
@@ -491,7 +492,8 @@ const libraries = [logistics.id];
   message is shown to the user.
 - **`libraries`** lists the ids on offer. Each is resolved through
   `resolveImport` and listed in the Components panel, to place instances of
-  its components. A document's own imports are resolved whether they are on
+  its components. The panel shows once the composition interface is on: see
+  Rules. A document's own imports are resolved whether they are on
   offer or not. Placing the first instance from a library adds the import to
   the document, as does choosing one of its components as an instance's
   implementation, and removing the last one leaves it there. A mutation can
@@ -565,6 +567,88 @@ A library that later drops or renames a component, a port or a parameter
 leaves the documents that named it with an instance or a fusion that no
 longer resolves.
 :::
+
+### Rules
+
+`rules`, on `<Petrinaut>` and on `createPetrinaut`, says what the host lets an
+editor do. It is an object with a key per rule, and a rule left out takes its
+default:
+
+| Rule   | Values               | Default |
+| ------ | -------------------- | ------- |
+| `edit` | `"all"`, `"compose"` | `"all"` |
+
+Nothing reads into the object: core answers for it. `composesOnly(rules)` says
+whether the rules keep an instance to composing, and
+`instance.mutationRefusal(name, input)` and
+`instance.commandRefusal(name, input)` say what they refuse. A rule added
+later is another key, answered by the same functions. `<Petrinaut>` reads the
+rules by what they say, so the object can be written inline: one that says the
+same as the last keeps the editor's instance.
+
+The editor's composition interface is the Nets panel, the component tool and
+the Components panel. It is off until the user switches **Net Components** on
+in the Labs settings, and `edit: "compose"` switches it on whatever the
+setting says. One hook decides it, `useIsCompositionInterfaceOn`. A document
+that already holds components draws and runs with the interface off.
+
+`edit: "compose"` makes an editor that composes the components of the
+libraries on offer and changes nothing else:
+
+```tsx
+<Petrinaut
+  handle={handle}
+  resolveImport={resolveImport}
+  libraries={libraries}
+  rules={{ edit: "compose" }}
+/>
+```
+
+The user places instances, names them and sets their parameters, fuses ports
+by dragging between pins, moves or detaches the ends of fusion links, deletes
+instances and fusions, and arranges the canvas. The editor offers no tool
+that draws a place or a transition, no Nets panel, no Definitions view, no
+Simulate mode and no playback, and the canvas connects ports by fusion alone.
+The left sidebar holds the Components panel, and the bottom panel the
+Diagnostics tab. The editor stays on the root net: a location that names a
+subnet, from the host's navigation or from a click on a diagnostic, resolves
+to the root net.
+
+Core holds the rule, so every caller meets it. An instance created with
+`edit: "compose"` composes its root net: a mutation that targets a subnet is
+refused. Of the others, these go through:
+
+| Mutation                                                                 | Allowed when                                                                                            |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| `addComponentInstance`                                                   | `component` names one of a library on offer, and so does an `implementation` it names.                  |
+| `updateComponentInstance`                                                | It names no `subnetId`, and a `component` or an `implementation` it names is one of a library on offer. |
+| `updateComponentInstancePosition`, `removeComponentInstance`             | Always.                                                                                                 |
+| `addFusion`, `updateFusion`, `removeFusion`                              | Always.                                                                                                 |
+| `addFusionMember`, `removeFusionMember`, `replaceFusionMember`           | Always.                                                                                                 |
+| `deleteItemsByIds`                                                       | Every item is a component instance or a fusion.                                                         |
+| `commitNodePositions`, `updatePlacePosition`, `updateTransitionPosition` | Always.                                                                                                 |
+
+Every other mutation throws one sentence, "This editor only places and
+connects the components it is given.", followed by the mutation's name.
+`instance.mutationRefusal(name, input)` gives the sentence without running
+the mutation, the React bindings show it as a notice, and a plugin's `edit`
+returns it as a refusal of kind `host-restriction`. `applyClipboardPaste`
+throws too, since the clipboard carries places and transitions, and so does
+`applyAutoLayout` on a subnet; `instance.commandRefusal(name, input)` gives
+either sentence, and the React bindings show it as a notice.
+
+A document that already holds places and transitions shows them. They can be
+moved and fused with ports, and nothing else of them changes. With no
+`libraries`, the editor places nothing and still wires what the document
+holds. The rule binds the instance's mutations and commands: code that holds
+the document handle can still change the document through `handle.change`.
+
+The editor's history starts where it took the handle. Undoing an earlier
+change would make a change the rule refuses, so an undo, or a jump from
+Recent changes, goes back no further than the entry `handle.history` was at
+when the editor was given the handle with `edit: "compose"`, and Recent
+changes lists the entries from that one on. The handle's own history is left
+whole: `handle.history` still moves through all of it.
 
 ## Capabilities
 

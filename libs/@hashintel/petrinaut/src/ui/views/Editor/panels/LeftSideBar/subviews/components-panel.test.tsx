@@ -62,6 +62,7 @@ const Wrapper = ({ children }: { children: ReactNode }) => (
         imports,
         libraries: resolvedLibraries(imports),
         offered: [logisticsLibrary.id, toolingLibrary.id, missingLibraryId],
+        rules: {},
       }}
     >
       <ActiveNetContext

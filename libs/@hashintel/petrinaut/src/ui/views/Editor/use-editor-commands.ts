@@ -4,6 +4,7 @@ import { usePetrinautCommands } from "../../../react";
 import { useCommand } from "../../../react/commands/command-registry";
 import { EditorContext } from "../../../react/state/editor-context";
 import { UndoRedoContext } from "../../../react/state/undo-redo-context";
+import { useComposesOnly } from "../../../react/state/use-composes-only";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 
 export const autoLayoutShortcut = "mod+shift+l";
@@ -37,6 +38,8 @@ const useEditorCommands = ({
   const isReadOnly = useIsReadOnly();
   const canEditNet =
     globalMode === "edit" && editViewMode === "canvas" && !isReadOnly;
+  const composesOnly = useComposesOnly();
+  const canDrawNet = canEditNet && !composesOnly;
   const runAutoLayout = () => {
     void (applyAutoLayoutAndFrame?.() ?? applyAutoLayout());
   };
@@ -153,7 +156,7 @@ const useEditorCommands = ({
       shortcut: "n",
       run: () => setEditionMode("add-place"),
     },
-    { when: canEditNet },
+    { when: canDrawNet },
   );
   useCommand(
     {
@@ -164,7 +167,7 @@ const useEditorCommands = ({
       shortcut: "t",
       run: () => setEditionMode("add-transition"),
     },
-    { when: canEditNet },
+    { when: canDrawNet },
   );
   useCommand(
     {

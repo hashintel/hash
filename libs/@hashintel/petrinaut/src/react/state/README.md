@@ -9,3 +9,9 @@ Read-only is the load-bearing piece: simulate mode locks editing except for an
 allow-list, and `use-is-read-only` is the single source of that answer.
 Components ask rather than working it out from mode flags, because a component
 that guesses will eventually guess differently from its neighbour.
+
+What a host's rules mean for the editor is asked the same way.
+`use-composes-only` says whether the host keeps the editor to composing, and
+`use-is-composition-interface-on` whether the tools that edit composition
+show: the Net Components setting switches them on, and so does a host that
+keeps the editor to composing.

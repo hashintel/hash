@@ -5,6 +5,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import {
   DEFAULT_TRANSITION_KERNEL_CODE,
   generateDefaultLambdaCode,
+  type ResolveImport,
   type Subnet,
 } from "@hashintel/petrinaut-core";
 import { sirModel } from "@hashintel/petrinaut-core/examples";
@@ -937,10 +938,48 @@ const ImportsRender = () => {
  * after a moment, and the editor says "Resolving" over a blurred backdrop
  * until it does. The third library fails: its instance is drawn unresolved,
  * the Components panel says why under its id, and Diagnostics reports it.
+ * The Components panel shows once Net Components is on in the Labs settings.
  */
 export const Imports: Story = {
   name: "Imports",
   render: () => <ImportsRender />,
+};
+
+// A library the host holds in memory: it resolves at once, with no loader.
+const resolveLogistics: ResolveImport = (id) =>
+  id === logisticsLibrary.id ? logisticsLibrary : undefined;
+const logisticsOnly = [logisticsLibrary.id];
+
+const CompositionOnlyRender = () => {
+  const handle = useMemo(
+    () => createJsonDocHandle({ id: "composed-net", initial: emptySDCPN }),
+    [],
+  );
+  const [title, setTitle] = useState("Composed line");
+
+  return (
+    <div style={{ height: "100vh", width: "100vw" }}>
+      <Petrinaut
+        handle={handle}
+        title={title}
+        setTitle={setTitle}
+        hideNetManagementControls="all"
+        resolveImport={resolveLogistics}
+        libraries={logisticsOnly}
+        rules={{ edit: "compose" }}
+      />
+    </div>
+  );
+};
+
+/**
+ * An empty net in an editor its host keeps to composing, over a library the
+ * host holds in memory. The Components panel shows whatever the Net
+ * Components setting says.
+ */
+export const CompositionOnly: Story = {
+  name: "Composition only",
+  render: () => <CompositionOnlyRender />,
 };
 
 /** A cell with seven ports: four feeds in, three results out. */

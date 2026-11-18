@@ -2,7 +2,7 @@
 
 Build a net from components: subnets drawn once and placed many times, joined to the net and to each other by **fusing** places. A fused set of places is one place when the net runs.
 
-Composition is experimental. Enable **User settings → Labs → Net Components** to see the Nets panel and the component tool.
+Composition is experimental. Enable **User settings → Labs → Net Components** to see the Nets panel, the component tool and the Components panel. A net that already holds components draws and runs with the setting off: only the tools that edit them are hidden.
 
 ## Components and instances
 
@@ -56,7 +56,7 @@ Wire the net against the interface: arcs and fusions attach to the interface's p
 
 ## Components from libraries
 
-An application that embeds Petrinaut can offer **libraries**: sets of components kept outside the document. Each library is listed in the **Components** panel on the left under its name, with its components beneath it. Click a component, then the canvas, to place an instance of it, or drag it from the panel onto the canvas. The panel shows without the Net Components setting, and places instances in the root net.
+An application that embeds Petrinaut can offer **libraries**: sets of components kept outside the document. Each library is listed in the **Components** panel on the left under its name, with its components beneath it. Click a component, then the canvas, to place an instance of it, or drag it from the panel onto the canvas. The panel shows once Net Components is on, and places instances in the root net.
 
 A document that uses a component of a library **imports** the library: it keeps the library's id and nothing else, and reads the components each time it is opened. Placing the first instance from a library adds the import, and so does choosing one of its components as an instance's implementation. Removing the last instance leaves it in place. A component of a library is not in the Nets panel and cannot be opened or changed. An instance's properties name the component and the library it comes from. Wire its ports as any others, with fusions and with arcs, and set its parameters on the instance.
 
@@ -71,3 +71,11 @@ An instance that names a component its library does not have draws the same way 
 To hand a document to someone without the libraries, export it with its imports inlined: **Export → YAML with imports inlined** or **JSON with imports inlined**, offered when the document imports a library. Each component the document uses becomes a subnet of the file, under ids of its own, and the file imports nothing.
 
 A library the net names without importing it, as a file edited by hand may, is one error under **Composition**. Choose the component or the implementation again to add the import.
+
+### Composing only
+
+An application can set Petrinaut up to compose the components of its libraries and nothing else. The editor then shows the canvas, the **Components** panel and the **Diagnostics** tab, whether Net Components is on or off. It has no tools that draw places or transitions, no Nets panel, no Definitions view and no simulator. It shows the root net only: a diagnostic or a link that points into a subnet opens the root net.
+
+What is left is composing: place instances, name them and set their parameters, fuse their ports by dragging from one pin to another, move or detach the ends of a fusion's line, delete instances and fusions, and arrange the canvas. An instance of an interface chooses its **Implementation** among the components of the application's libraries, or keeps the document's default. Anything else, a paste included, is refused with a notice.
+
+Undo goes back as far as where the editor started composing, and no further: what was done to the net before that stays. **Recent changes** lists the changes made since.

@@ -43,7 +43,11 @@ import type {
 import type { PetrinautExperimentHost } from "@hashintel/petrinaut-core/experiments";
 
 /** Why an edit did not apply. */
-export type EditRefusal = ReadOnlyReason | { readonly kind: "no-title-setter" };
+export type EditRefusal =
+  | ReadOnlyReason
+  | { readonly kind: "no-title-setter" }
+  /** The host's rules refuse the edit. `message` says why, for a user. */
+  | { readonly kind: "host-restriction"; readonly message: string };
 
 /** Whether an edit applied, with its value, or why it was refused. */
 export type EditResult<Value = undefined> =
@@ -51,10 +55,16 @@ export type EditResult<Value = undefined> =
   | { readonly applied: false; readonly reason: EditRefusal };
 
 /** A sentence explaining a refusal, e.g. for a toast or an AI tool's output. */
-export const describeRefusal = (reason: EditRefusal): string =>
-  reason.kind === "no-title-setter"
-    ? "The host application does not provide title editing."
-    : formatReadOnlyReason(reason);
+export const describeRefusal = (reason: EditRefusal): string => {
+  switch (reason.kind) {
+    case "no-title-setter":
+      return "The host application does not provide title editing.";
+    case "host-restriction":
+      return reason.message;
+    default:
+      return formatReadOnlyReason(reason);
+  }
+};
 
 /** Reports failures to the host's error tracker, tagged with the plugin's id. */
 export interface PluginErrors {
@@ -239,6 +249,11 @@ const readDocument = ({
 
 type MutationEdits = Omit<PluginEdits, "applyAutoLayout">;
 
+const hostRestriction = (message: string): EditResult<never> => ({
+  applied: false,
+  reason: { kind: "host-restriction", message },
+});
+
 const guardMutations = ({ instance, latest }: PluginEditorPorts) =>
   Object.fromEntries(
     Object.entries(instance.mutations).map(
@@ -252,6 +267,13 @@ const guardMutations = ({ instance, latest }: PluginEditorPorts) =>
           );
           if (reason !== null) {
             return { applied: false, reason };
+          }
+          const message = instance.mutationRefusal(
+            name as keyof PetrinautMutations,
+            input,
+          );
+          if (message !== null) {
+            return hostRestriction(message);
           }
           mutate(input);
 
@@ -276,9 +298,12 @@ const writeDocument = (
         if (readOnlyReason !== null) {
           return { applied: false, reason: readOnlyReason };
         }
-        const value = await instance.commands.applyAutoLayout({
-          targetSubnetId: activeSubnetId,
-        });
+        const targeted = { targetSubnetId: activeSubnetId };
+        const message = instance.commandRefusal("applyAutoLayout", targeted);
+        if (message !== null) {
+          return hostRestriction(message);
+        }
+        const value = await instance.commands.applyAutoLayout(targeted);
         await frameSceneAfterRender();
 
         return { applied: true, value };

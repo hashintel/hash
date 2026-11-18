@@ -21,15 +21,17 @@ export type ImplementationItem = {
 /**
  * The implementations of an interface as the items of a picker: the
  * document's own, and with `libraries` those of its imports, each under the
- * name of its library. A loaded document may bind a component that cannot
- * stand behind the interface: the chosen one stays listed under its name
- * until the choice changes.
+ * name of its library, without the ones `accepts` turns down. A loaded
+ * document may bind a component that cannot stand behind the interface, or
+ * one `accepts` turns down: the chosen one stays listed under its name until
+ * the choice changes.
  */
 export const implementationItems = (
   sdcpn: Pick<SDCPN, "subnets">,
   iface: ComponentReference,
   chosen: ComponentReference | undefined,
   libraries?: ResolvedLibraries,
+  accepts: (reference: ComponentReference) => boolean = () => true,
 ): ImplementationItem[] => {
   const libraryName = ({ from }: ComponentReference) =>
     from === undefined ? undefined : (libraries?.get(from)?.name ?? from);
@@ -41,9 +43,9 @@ export const implementationItems = (
       reference,
     };
   };
-  const items = implementationsOf(sdcpn, iface, libraries).map(
-    ({ reference, subnet }) => item(reference, subnet.name),
-  );
+  const items = implementationsOf(sdcpn, iface, libraries)
+    .filter(({ reference }) => accepts(reference))
+    .map(({ reference, subnet }) => item(reference, subnet.name));
   if (
     chosen === undefined ||
     items.some(({ reference }) => sameComponent(reference, chosen))

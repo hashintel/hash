@@ -9,6 +9,8 @@ import {
   type EditorState,
 } from "../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
+import { useComposesOnly } from "../../../../../react/state/use-composes-only";
+import { useIsCompositionInterfaceOn } from "../../../../../react/state/use-is-composition-interface-on";
 import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import {
@@ -68,7 +70,8 @@ const ComponentDropdown: React.FC<{
 
 /**
  * The tools that add nodes to the net. Nothing to offer on a read-only net,
- * where every one of them is refused.
+ * where every one of them is refused, nor in an editor that only composes:
+ * what it places comes from the Components panel.
  */
 export const EditionTools: React.FC<{
   editionMode: EditorEditionMode;
@@ -77,11 +80,11 @@ export const EditionTools: React.FC<{
   const isReadOnly = useIsReadOnly();
   const { activeSubnetId } = use(ActiveNetContext);
   const isRootNet = activeSubnetId === null;
-  const { extensions } = use(SDCPNContext);
-  const { enableNetComponents, enableExperimentalIconPack } =
-    use(UserSettingsContext);
+  const composesOnly = useComposesOnly();
+  const isCompositionInterfaceOn = useIsCompositionInterfaceOn();
+  const { enableExperimentalIconPack } = use(UserSettingsContext);
 
-  if (isReadOnly) {
+  if (isReadOnly || composesOnly) {
     return null;
   }
 
@@ -140,7 +143,7 @@ export const EditionTools: React.FC<{
           <Icon name="squarePlus" />
         )}
       </ToolbarButton>
-      {isRootNet && extensions.subnets && enableNetComponents && (
+      {isRootNet && isCompositionInterfaceOn && (
         <ComponentDropdown editionMode={editionMode} />
       )}
     </>

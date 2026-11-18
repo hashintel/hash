@@ -5,6 +5,7 @@ import { toPetrinautId } from "@hashintel/petrinaut-core";
 import { openPetrinautSubnet, usePetrinautNavigation } from "../navigation";
 import { ActiveNetContext } from "./active-net-context";
 import { SDCPNContext } from "./sdcpn-context";
+import { useComposesOnly } from "./use-composes-only";
 
 /**
  * Derives the active net from the full SDCPN. When a subnet is active, editor
@@ -15,11 +16,14 @@ import { SDCPNContext } from "./sdcpn-context";
  * by document, so uncontrolled locations reset when the active handle changes.
  * A requested subnet id resolves through `toPetrinautId`, and the location is
  * rewritten to the canonical id, or to the root net when no subnet matches.
+ * Every id resolves to the root net in an editor that only composes: it
+ * changes the root net alone, and has no panel that leads back from a subnet.
  */
 export const ActiveNetProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const { petriNetDefinition } = use(SDCPNContext);
+  const composesOnly = useComposesOnly();
   const navigation = usePetrinautNavigation();
   const requestedSubnetId = navigation.state.subnetId;
 
@@ -33,7 +37,7 @@ export const ActiveNetProvider: React.FC<{ children: ReactNode }> = ({
   const canonicalSubnetId =
     requestedSubnetId !== null ? toPetrinautId(requestedSubnetId) : null;
   const subnet =
-    canonicalSubnetId !== null
+    !composesOnly && canonicalSubnetId !== null
       ? petriNetDefinition.subnets?.find(({ id }) => id === canonicalSubnetId)
       : undefined;
 

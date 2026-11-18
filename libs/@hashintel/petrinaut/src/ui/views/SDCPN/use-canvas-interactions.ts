@@ -24,6 +24,7 @@ import { ActiveNetContext } from "../../../react/state/active-net-context";
 import { CompositionContext } from "../../../react/state/composition-context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
+import { useComposesOnly } from "../../../react/state/use-composes-only";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
 import { snapPositionToGrid } from "../../lib/snap-position-to-grid";
@@ -171,6 +172,7 @@ export const useCanvasInteractions = (
 ): CanvasInteractions => {
   const { petriNetDefinition, getItemType } = use(SDCPNContext);
   const { libraries } = use(CompositionContext);
+  const composesOnly = useComposesOnly();
   const { activeNet } = use(ActiveNetContext);
   const { addNotification } = use(NotificationsContext);
   const {
@@ -238,21 +240,24 @@ export const useCanvasInteractions = (
     const { sourceId, targetId } = connection;
     const first = memberOf(linkEnd(connection, "source"));
     const second = memberOf(linkEnd(connection, "target"));
-    if (first && kindOf(targetId) === "transition") {
-      return {
-        kind: "arc",
-        transitionId: targetId,
-        arcDirection: "input",
-        endpoint: first,
-      };
-    }
-    if (second && kindOf(sourceId) === "transition") {
-      return {
-        kind: "arc",
-        transitionId: sourceId,
-        arcDirection: "output",
-        endpoint: second,
-      };
+    // An editor that only composes draws no arc: ports connect by fusion.
+    if (!composesOnly) {
+      if (first && kindOf(targetId) === "transition") {
+        return {
+          kind: "arc",
+          transitionId: targetId,
+          arcDirection: "input",
+          endpoint: first,
+        };
+      }
+      if (second && kindOf(sourceId) === "transition") {
+        return {
+          kind: "arc",
+          transitionId: sourceId,
+          arcDirection: "output",
+          endpoint: second,
+        };
+      }
     }
     return first &&
       second &&
@@ -278,12 +283,13 @@ export const useCanvasInteractions = (
       return;
     }
     const id = plan.kind === "join" ? plan.fusionId : generatePetrinautId();
-    if (plan.kind === "join") {
-      addFusionMember({ fusionId: id, member: plan.member });
-    } else {
-      addFusion({ id, members: plan.members });
+    const fused =
+      plan.kind === "join"
+        ? addFusionMember({ fusionId: id, member: plan.member })
+        : addFusion({ id, members: plan.members });
+    if (fused) {
+      selectItem({ type: "fusion", id });
     }
-    selectItem({ type: "fusion", id });
   };
 
   const connect = (connection: CanvasConnection) => {
@@ -330,8 +336,9 @@ export const useCanvasInteractions = (
       removeFusionMember({ fusionId: plan.fusionId, member: plan.member });
     } else if (plan.kind === "replace") {
       const { fusionId, member, replacement } = plan;
-      replaceFusionMember({ fusionId, member, replacement });
-      selectItem({ type: "fusion", id: fusionId });
+      if (replaceFusionMember({ fusionId, member, replacement })) {
+        selectItem({ type: "fusion", id: fusionId });
+      }
     }
   };
 
@@ -344,8 +351,9 @@ export const useCanvasInteractions = (
     const itemNumber = scene.nodes.length + 1;
     const position = snap(rawPosition);
 
+    let added: boolean;
     if (kind === "place") {
-      addPlace({
+      added = addPlace({
         id,
         name: `Place${itemNumber}`,
         colorId: null,
@@ -354,7 +362,7 @@ export const useCanvasInteractions = (
         y: position.y,
       });
     } else {
-      addTransition({
+      added = addTransition({
         id,
         name: `Transition${itemNumber}`,
         inputArcs: [],
@@ -366,8 +374,11 @@ export const useCanvasInteractions = (
         y: position.y,
       });
     }
-    selectItem({ type: kind, id });
-    setEditionMode("cursor");
+    // A node that was refused is not there to select, and its tool stays up.
+    if (added) {
+      selectItem({ type: kind, id });
+      setEditionMode("cursor");
+    }
   };
 
   const createComponentInstanceAt = (
@@ -382,7 +393,7 @@ export const useCanvasInteractions = (
     const position = snap(rawPosition);
     const id = generatePetrinautId();
 
-    addComponentInstance({
+    const added = addComponentInstance({
       id,
       name: component ? toInstanceName(component.name) : "Instance",
       ...(reference.from === undefined
@@ -392,8 +403,10 @@ export const useCanvasInteractions = (
       x: position.x,
       y: position.y,
     });
-    selectItem({ type: "componentInstance", id });
-    setEditionMode("cursor");
+    if (added) {
+      selectItem({ type: "componentInstance", id });
+      setEditionMode("cursor");
+    }
   };
 
   const clickPane = (scenePosition: CanvasPoint) => {
