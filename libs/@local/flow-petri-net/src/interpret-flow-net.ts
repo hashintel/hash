@@ -411,7 +411,10 @@ export const startFlowNetRun = (
             ({ id }) => id === endpoint.componentInstanceId,
           )
         : undefined;
-    const subnet = instance ? subnetsById.get(instance.subnetId) : undefined;
+    const subnet =
+      instance?.subnetId === undefined
+        ? undefined
+        : subnetsById.get(instance.subnetId);
 
     if (!instance || !subnet) {
       throw new FlowNetInterpreterError(
