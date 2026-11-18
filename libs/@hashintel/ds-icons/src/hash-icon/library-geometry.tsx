@@ -117,6 +117,7 @@ import { rectangleGeometry } from "./library-geometry/rectangle";
 import { rectanglesMixedGeometry } from "./library-geometry/rectangles-mixed";
 import { redoGeometry } from "./library-geometry/redo";
 import { roundedCornerGeometry } from "./library-geometry/rounded-corner";
+import { rowsGeometry } from "./library-geometry/rows";
 import { sendBackwardGeometry } from "./library-geometry/send-backward";
 import { sendToBackGeometry } from "./library-geometry/send-to-back";
 import { shapeArrowDownGeometry } from "./library-geometry/shape-arrow-down";
@@ -143,6 +144,7 @@ import { ungroupGeometry } from "./library-geometry/ungroup";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  rows: rowsGeometry,
   columns: columnsGeometry,
   rectanglesMixed: rectanglesMixedGeometry,
   sendToBack: sendToBackGeometry,

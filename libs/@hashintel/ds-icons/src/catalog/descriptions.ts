@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  rows: "Two horizontal panels represent a row layout.",
   columns: "Two vertical panels represent a column layout.",
   rectanglesMixed:
     "Rectangles of different proportions represent a mixed layout.",
