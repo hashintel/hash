@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  planeTail:
+    "An upright tail fin represents an aircraft tail or aviation component.",
   jet: "A swept-wing aircraft represents a jet.",
   planeUp:
     "An upward-facing airplane represents an aircraft or flight heading.",
