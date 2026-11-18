@@ -164,6 +164,7 @@ export const hashIconStudies = [
 
 const categories = {
   Canvas: [
+    "columns",
     "rectanglesMixed",
     "sendToBack",
     "bringToFront",

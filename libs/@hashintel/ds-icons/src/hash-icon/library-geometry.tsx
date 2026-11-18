@@ -49,6 +49,7 @@ import { clipboardGeometry } from "./library-geometry/clipboard";
 import { clipboardCheckGeometry } from "./library-geometry/clipboard-check";
 import { clipboardListGeometry } from "./library-geometry/clipboard-list";
 import { collapseVerticalGeometry } from "./library-geometry/collapse-vertical";
+import { columnsGeometry } from "./library-geometry/columns";
 import { commandGeometry } from "./library-geometry/command";
 import { dashDashedGeometry } from "./library-geometry/dash-dashed";
 import { dashDottedGeometry } from "./library-geometry/dash-dotted";
@@ -142,6 +143,7 @@ import { ungroupGeometry } from "./library-geometry/ungroup";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  columns: columnsGeometry,
   rectanglesMixed: rectanglesMixedGeometry,
   sendToBack: sendToBackGeometry,
   bringToFront: bringToFrontGeometry,
