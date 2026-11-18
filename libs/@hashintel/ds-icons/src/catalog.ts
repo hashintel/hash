@@ -244,6 +244,7 @@ const categories = {
     "monitor",
   ],
   Science: [
+    "rocket",
     "telescope",
     "binoculars",
     "mortarPestle",

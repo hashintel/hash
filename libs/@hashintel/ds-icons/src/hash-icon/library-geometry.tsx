@@ -223,6 +223,7 @@ import { receiptGeometry } from "./library-geometry/receipt";
 import { rectangleGeometry } from "./library-geometry/rectangle";
 import { rectanglesMixedGeometry } from "./library-geometry/rectangles-mixed";
 import { redoGeometry } from "./library-geometry/redo";
+import { rocketGeometry } from "./library-geometry/rocket";
 import { roundedCornerGeometry } from "./library-geometry/rounded-corner";
 import { routeGeometry } from "./library-geometry/route";
 import { rowsGeometry } from "./library-geometry/rows";
@@ -304,6 +305,7 @@ import { wavePulseGeometry } from "./library-geometry/wave-pulse";
 import { wavesGeometry } from "./library-geometry/waves";
 
 export const libraryGeometry = {
+  rocket: rocketGeometry,
   telescope: telescopeGeometry,
   binoculars: binocularsGeometry,
   mortarPestle: mortarPestleGeometry,
