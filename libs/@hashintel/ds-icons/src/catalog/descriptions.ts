@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  palette: "A paint palette represents colors or artistic styling.",
   rocket: "A pointed craft with fins represents launching or rapid progress.",
   telescope:
     "An angled viewing tube represents distant observation or exploration.",
