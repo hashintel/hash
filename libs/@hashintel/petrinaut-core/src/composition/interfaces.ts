@@ -122,7 +122,7 @@ export const indexSubnets = (sdcpn: Pick<SDCPN, "subnets">): Map<ID, Subnet> =>
   indexById(sdcpn.subnets ?? []);
 
 /** `read`, called once at most: what it gives is kept for the calls that follow. */
-export const once = <Value>(read: () => Value): (() => Value) => {
+const once = <Value>(read: () => Value): (() => Value) => {
   let kept: { value: Value } | undefined;
   return () => {
     kept ??= { value: read() };
@@ -131,15 +131,16 @@ export const once = <Value>(read: () => Value): (() => Value) => {
 };
 
 /**
- * What the checks and the flattener read of a subnet that stands behind an
- * interface: each of its lists by id, the directions of its ports, and what
- * the interface's ports and parameters are matched by. Each is read once,
- * when first asked for.
+ * What the checks and the flattener read of a subnet that is an interface or
+ * stands behind one: each of its lists by id, its ports and their
+ * directions, and what an interface's ports and parameters are matched by.
+ * Each is read once, when first asked for.
  */
 export type SubnetIndex = {
   places: () => ReadonlyMap<ID, Place>;
   types: () => ReadonlyMap<ID, Color>;
   parameters: () => ReadonlyMap<ID, Parameter>;
+  ports: () => readonly Place[];
   directions: () => ReadonlyMap<ID, PortDirection>;
   /** The id of its port of each name: of two ports with one name, the last. */
   portIdsByName: () => ReadonlyMap<string, ID>;
@@ -147,26 +148,25 @@ export type SubnetIndex = {
   parameterIdsByVariableName: () => ReadonlyMap<string, ID>;
 };
 
-export const indexSubnet = (subnet: Subnet): SubnetIndex => ({
-  places: once(() => indexById(subnet.places)),
-  types: once(() => indexById(subnet.types)),
-  parameters: once(() => indexById(subnet.parameters)),
-  directions: once(() => effectivePortDirections(subnet)),
-  portIdsByName: once(
-    () =>
-      new Map(
-        subnet.places
-          .filter(({ isPort }) => isPort)
-          .map(({ name, id }) => [name, id]),
-      ),
-  ),
-  parameterIdsByVariableName: once(
-    () =>
-      new Map(
-        subnet.parameters.map(({ variableName, id }) => [variableName, id]),
-      ),
-  ),
-});
+export const indexSubnet = (subnet: Subnet): SubnetIndex => {
+  const ports = once(() => subnet.places.filter(({ isPort }) => isPort));
+  return {
+    places: once(() => indexById(subnet.places)),
+    types: once(() => indexById(subnet.types)),
+    parameters: once(() => indexById(subnet.parameters)),
+    ports,
+    directions: once(() => effectivePortDirections(subnet)),
+    portIdsByName: once(
+      () => new Map(ports().map(({ name, id }) => [name, id])),
+    ),
+    parameterIdsByVariableName: once(
+      () =>
+        new Map(
+          subnet.parameters.map(({ variableName, id }) => [variableName, id]),
+        ),
+    ),
+  };
+};
 
 /**
  * The document's subnets by id and its default implementation by the id of
@@ -186,7 +186,7 @@ export type DocumentIndex = {
   ) => boolean;
   /**
    * `indexSubnet` for a subnet of the document, whose lists are read once
-   * however many interfaces it is held to and instances it runs for. A
+   * however many subnets it is matched with and instances it runs for. A
    * subnet the document does not hold under its id is read for the call.
    */
   subnetIndex: (subnet: Subnet) => SubnetIndex;
@@ -318,18 +318,14 @@ const matchIds = <Item extends { id: ID }>(
 /**
  * The implementation's port for each of the interface's, matched by name. An
  * interface port without a match is absent, which `check-interfaces.ts`
- * reports. `implementation` is the implementation's index: a caller that
- * matches it to many interfaces hands each call the same one.
+ * reports. Each is given as its index: a caller that matches one with many
+ * hands each call the same one.
  */
 export const mapInterfacePorts = (
-  iface: Pick<Subnet, "places">,
+  iface: Pick<SubnetIndex, "ports">,
   implementation: Pick<SubnetIndex, "portIdsByName">,
 ): Map<ID, ID> =>
-  matchIds(
-    iface.places.filter(({ isPort }) => isPort),
-    implementation.portIdsByName(),
-    ({ name }) => name,
-  );
+  matchIds(iface.ports(), implementation.portIdsByName(), ({ name }) => name);
 
 /** The implementation's parameter for each of the interface's, matched by variable name. */
 export const mapInterfaceParameters = (
@@ -357,8 +353,8 @@ export type RunningSubnet = {
 
 /**
  * What runs for `binding`. `index` is `indexDocument(sdcpn)`, which saves a
- * read of the implementation's ports and parameters for each interface and
- * instance it runs for.
+ * read of the interface's places, and of the implementation's places and
+ * parameters, for each binding and instance that joins them.
  */
 export const runningSubnet = (
   binding: Exclude<ImplementationBinding, { kind: "unbound" }>,
@@ -373,10 +369,9 @@ export const runningSubnet = (
       parameterId: identity,
     };
   }
-  const implementation = (index?.subnetIndex ?? indexSubnet)(
-    binding.implementation,
-  );
-  const ports = mapInterfacePorts(binding.interface, implementation);
+  const indexOf = index?.subnetIndex ?? indexSubnet;
+  const implementation = indexOf(binding.implementation);
+  const ports = mapInterfacePorts(indexOf(binding.interface), implementation);
   const parameters = mapInterfaceParameters(binding.interface, implementation);
   return {
     declared: binding.interface,

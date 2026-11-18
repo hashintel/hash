@@ -439,6 +439,48 @@ describe("an implementation with many ports, token types and parameters", () => 
   });
 });
 
+describe("an interface with many token types and places that are not ports", () => {
+  it("is read once, however many implementations are held to it", () => {
+    const size = 10_000;
+    const typed = subnet("typed", {
+      interface: true,
+      types: Array.from({ length: size }, (_, index) =>
+        color(`type-${index}`, [
+          { elementId: "w", name: "weight", type: "real" },
+        ]),
+      ),
+      places: [
+        ...Array.from({ length: size }, (_, index) => place(`note-${index}`)),
+        place("typed_in", {
+          name: "In",
+          isPort: true,
+          colorId: `type-${size - 1}`,
+        }),
+      ],
+    });
+    const implementations = Array.from({ length: 5_000 }, (_, index) =>
+      subnet(`impl${index}`, {
+        implements: ["typed"],
+        types: [color("t", [{ elementId: "w", name: "weight", type: "real" }])],
+        places: [
+          place(`impl${index}_in`, { name: "In", isPort: true, colorId: "t" }),
+        ],
+      }),
+    );
+
+    const started = Date.now();
+    const problems = checkInterfaces(
+      net({ subnets: [typed, ...implementations] }),
+    );
+    const elapsed = Date.now() - started;
+
+    expect(problems).toEqual([]);
+    // A read of the interface's places and token types for every
+    // implementation takes several seconds.
+    expect(elapsed).toBeLessThan(1_000);
+  });
+});
+
 describe("the directions of an implementation's ports", () => {
   // A thousand ports that declare no direction, under 20,000 arcs that
   // consume from them.
@@ -707,7 +749,9 @@ describe("resolveImplementation", () => {
 
 describe("mapInterfacePorts", () => {
   it("maps the interface's ports onto the implementation's by name", () => {
-    expect([...mapInterfacePorts(stage, indexSubnet(fast))]).toEqual([
+    expect([
+      ...mapInterfacePorts(indexSubnet(stage), indexSubnet(fast)),
+    ]).toEqual([
       ["stage_in", "fast_in"],
       ["stage_out", "fast_out"],
     ]);
@@ -722,9 +766,9 @@ describe("mapInterfacePorts", () => {
       ],
     });
 
-    expect([...mapInterfacePorts(stage, indexSubnet(twice))]).toEqual([
-      ["stage_in", "last_in"],
-    ]);
+    expect([
+      ...mapInterfacePorts(indexSubnet(stage), indexSubnet(twice)),
+    ]).toEqual([["stage_in", "last_in"]]);
   });
 });
 

@@ -11,13 +11,11 @@ import { colorsStructurallyEqual } from "./fusions";
 import {
   describeUnboundInstance,
   hasBody,
-  indexById,
   indexDocument,
   indexSubnet,
   isInterface,
   mapInterfaceParameters,
   mapInterfacePorts,
-  once,
   resolveImplementation,
   type DocumentIndex,
   type ImplementationBinding,
@@ -74,23 +72,23 @@ const reporter =
 
 /**
  * Where `implementation` falls short of what `iface` declares. A caller that
- * holds one implementation to many interfaces hands each call the same
- * `index`, so the implementation's lists and arcs are read once.
+ * checks one subnet in many pairs hands each call that subnet's index, so its
+ * lists and arcs are read once.
  */
 export const checkImplementation = (
   implementation: Subnet,
   iface: Subnet,
   index: SubnetIndex = indexSubnet(implementation),
+  interfaceIndex: SubnetIndex = indexSubnet(iface),
 ): InterfaceProblem[] => {
   const problems: InterfaceProblem[] = [];
   const report = reporter(problems, { subnetId: implementation.id });
 
   // The pairs the flattener wires, so the check and the run cannot differ.
-  const ports = mapInterfacePorts(iface, index);
+  const ports = mapInterfacePorts(interfaceIndex, index);
   const parameters = mapInterfaceParameters(iface, index);
-  const interfaceTypes = once(() => indexById(iface.types));
 
-  for (const port of iface.places.filter((place) => place.isPort)) {
+  for (const port of interfaceIndex.ports()) {
     const matchId = ports.get(port.id);
     const match =
       matchId === undefined ? undefined : index.places().get(matchId);
@@ -102,7 +100,7 @@ export const checkImplementation = (
       continue;
     }
     const interfaceColor = port.colorId
-      ? interfaceTypes().get(port.colorId)
+      ? interfaceIndex.types().get(port.colorId)
       : undefined;
     const implementationColor = match.colorId
       ? index.types().get(match.colorId)
@@ -224,7 +222,9 @@ const checkDeclarations = (
   for (const interfaceId of implemented) {
     const iface = index.subnetsById.get(interfaceId);
     if (iface && isInterface(iface)) {
-      problems.push(...checkImplementation(subnet, iface, own));
+      problems.push(
+        ...checkImplementation(subnet, iface, own, index.subnetIndex(iface)),
+      );
     } else {
       report(
         "unknown-interface",

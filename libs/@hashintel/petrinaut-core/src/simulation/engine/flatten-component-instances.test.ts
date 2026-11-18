@@ -6,6 +6,7 @@ import {
 } from "./flatten-component-instances";
 
 import type {
+  Color,
   ComponentInstance,
   DifferentialEquation,
   Parameter,
@@ -1235,6 +1236,54 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
       expect(result.sdcpn.transitions[0]?.id).toBe("s0::fast_work");
       // One read of the list takes milliseconds; a search of it for every
       // instance takes several seconds.
+      expect(elapsedMs).toBeLessThan(1_000);
+    });
+
+    it("reads an interface's token types once, however many instances of it run", () => {
+      const size = 10_000;
+      const weight = { elementId: "w", name: "weight", type: "real" } as const;
+      const color = (id: string): Color => ({
+        id,
+        name: id,
+        iconSlug: "circle",
+        displayColor: "#000",
+        elements: [weight],
+      });
+      const typed = subnet("typed", {
+        interface: true,
+        types: Array.from({ length: size }, (_, index) =>
+          color(`type-${index}`),
+        ),
+        places: [
+          place("typed_in", {
+            name: "In",
+            isPort: true,
+            colorId: `type-${size - 1}`,
+          }),
+        ],
+      });
+      const small = subnet("small", {
+        implements: ["typed"],
+        types: [color("t")],
+        places: [place("small_in", { name: "In", isPort: true, colorId: "t" })],
+      });
+      const instances = 5_000;
+      const definition = sdcpn({
+        componentInstances: Array.from({ length: instances }, (_, index) =>
+          componentInstance(`s${index}`, "typed", {
+            implementation: { id: "small" },
+          }),
+        ),
+        subnets: [typed, small],
+      });
+
+      const started = Date.now();
+      const result = flatten({ definition });
+      const elapsedMs = Date.now() - started;
+
+      expect(result.sdcpn.places).toHaveLength(instances);
+      // A read of the interface's token types for every instance takes
+      // several seconds.
       expect(elapsedMs).toBeLessThan(1_000);
     });
   });

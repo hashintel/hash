@@ -170,6 +170,7 @@ const requireRunningSubnet = (
       binding.implementation,
       binding.interface,
       ctx.index.subnetIndex(binding.implementation),
+      ctx.index.subnetIndex(binding.interface),
     ).find(({ severity }) => severity === "error");
     if (shortfall) {
       throw new Error(
