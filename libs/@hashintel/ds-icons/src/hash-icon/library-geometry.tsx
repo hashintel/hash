@@ -72,6 +72,7 @@ import { circleArrowUpRightGeometry } from "./library-geometry/circle-arrow-up-r
 import { circleAsteriskGeometry } from "./library-geometry/circle-asterisk";
 import { circleFourGeometry } from "./library-geometry/circle-four";
 import { circlePlayGeometry } from "./library-geometry/circle-play";
+import { circleTagGeometry } from "./library-geometry/circle-tag";
 import { circleThreeGeometry } from "./library-geometry/circle-three";
 import { circleTwoGeometry } from "./library-geometry/circle-two";
 import { circleUpGeometry } from "./library-geometry/circle-up";
@@ -343,6 +344,7 @@ import { wavesGeometry } from "./library-geometry/waves";
 import { workflowGeometry } from "./library-geometry/workflow";
 
 export const libraryGeometry = {
+  circleTag: circleTagGeometry,
   circleAsterisk: circleAsteriskGeometry,
   flag: flagGeometry,
   diceD20: diceD20Geometry,
