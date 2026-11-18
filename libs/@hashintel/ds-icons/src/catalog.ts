@@ -163,7 +163,7 @@ export const hashIconStudies = [
 }[];
 
 const categories = {
-  People: ["users"],
+  People: ["userTie", "users"],
   Communication: [
     "speaker",
     "phoneOff",
