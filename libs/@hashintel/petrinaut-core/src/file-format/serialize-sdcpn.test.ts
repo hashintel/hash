@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { toPetrinautId } from "../petrinaut-id";
 import { parseSDCPNDocument, parseSDCPNFile } from "./parse-sdcpn-file";
 import { serializeSDCPN } from "./serialize-sdcpn";
 
@@ -280,6 +281,134 @@ describe("serializeSDCPN", () => {
       throw new Error(parsed.error);
     }
     expect(parsed.sdcpn.fusions?.[0]?.members).toHaveLength(1);
+  });
+
+  it("reads `interface: false` as a subnet that is no interface", () => {
+    const parsed = parseSDCPNFile({
+      ...sourceDocument,
+      subnets: sourceDocument.subnets.map((subnet) => ({
+        ...subnet,
+        interface: false,
+      })),
+    });
+
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.sdcpn.subnets?.[0]).not.toHaveProperty("interface");
+  });
+
+  it("writes an interface flag, an implements list and the document's bindings in their places", () => {
+    const sdcpn = parseFixture();
+    const iface = sdcpn.subnets![0]!;
+
+    const text = serializeSDCPN({
+      petriNetDefinition: {
+        ...sdcpn,
+        subnets: [
+          { ...iface, interface: true },
+          { ...iface, id: "fast", name: "Fast", implements: [iface.id] },
+        ],
+        implementations: [
+          { interface: { id: iface.id }, component: { id: "fast" } },
+        ],
+      },
+      title: "Test Net",
+      format: "json",
+    });
+    const document = JSON.parse(text) as {
+      implementations: unknown;
+      subnets: Record<string, unknown>[];
+    };
+
+    const keys = Object.keys(document);
+    expect(keys.indexOf("implementations")).toBe(keys.indexOf("subnets") + 1);
+    expect(document.implementations).toEqual([
+      { interface: { id: iface.id }, component: { id: "fast" } },
+    ]);
+    expect(Object.keys(document.subnets[0]!).slice(0, 5)).toEqual([
+      "id",
+      "name",
+      "description",
+      "metadata",
+      "interface",
+    ]);
+    expect(Object.keys(document.subnets[1]!).slice(0, 5)).toEqual([
+      "id",
+      "name",
+      "description",
+      "metadata",
+      "implements",
+    ]);
+  });
+
+  it("reads the document's bindings and an instance's choice as references, converting their ids", () => {
+    const parsed = parseSDCPNFile({
+      ...sourceDocument,
+      implementations: [
+        { interface: { id: "stage" }, component: { id: "fast-stage" } },
+      ],
+      componentInstances: [
+        {
+          id: "drill",
+          name: "Drill",
+          subnetId: "stage",
+          implementation: { id: "slow-stage" },
+        },
+      ],
+    });
+
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.sdcpn.implementations).toEqual([
+      {
+        interface: { id: toPetrinautId("stage") },
+        component: { id: toPetrinautId("fast-stage") },
+      },
+    ]);
+    expect(parsed.sdcpn.componentInstances?.[0]?.implementation).toEqual({
+      id: toPetrinautId("slow-stage"),
+    });
+  });
+
+  it("refuses bindings keyed by interface id, and an instance's choice given as a bare id", () => {
+    const keyed = parseSDCPNFile({
+      ...sourceDocument,
+      implementations: { stage: "fast-stage" },
+    });
+    expect(keyed.ok).toBe(false);
+    if (!keyed.ok) {
+      expect(keyed.error).toContain("implementations");
+    }
+
+    const bare = parseSDCPNFile({
+      ...sourceDocument,
+      componentInstances: [
+        {
+          id: "drill",
+          name: "Drill",
+          subnetId: "stage",
+          implementation: "slow-stage",
+        },
+      ],
+    });
+    expect(bare.ok).toBe(false);
+    if (!bare.ok) {
+      expect(bare.error).toContain("implementation");
+    }
+  });
+
+  it("refuses an instance's choice given as null: an update clears a choice that way, a file holds none", () => {
+    const parsed = parseSDCPNFile({
+      ...sourceDocument,
+      componentInstances: [
+        { id: "drill", name: "Drill", subnetId: "stage", implementation: null },
+      ],
+    });
+
+    expect(parsed.ok).toBe(false);
+    if (!parsed.ok) {
+      expect(parsed.error).toContain("implementation");
+    }
   });
 
   it("rejects text that is neither YAML nor JSON via parseSDCPNDocument", () => {

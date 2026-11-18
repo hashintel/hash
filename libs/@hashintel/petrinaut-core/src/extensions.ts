@@ -417,6 +417,9 @@ const cloneComponentInstances = (
   componentInstances?.map((instance) => ({
     ...instance,
     parameterValues: { ...instance.parameterValues },
+    ...(instance.implementation === undefined
+      ? {}
+      : { implementation: { ...instance.implementation } }),
   }));
 
 /** A copy that shares nothing with `place`; `dynamics` stays absent when absent. */
@@ -467,6 +470,14 @@ const cloneSubnet = (
     next.metadata = { ...subnet.metadata };
   }
 
+  if (subnet.interface) {
+    next.interface = true;
+  }
+
+  if (subnet.implements) {
+    next.implements = [...subnet.implements];
+  }
+
   if (subnet.componentInstances) {
     next.componentInstances = cloneComponentInstances(
       subnet.componentInstances,
@@ -484,13 +495,11 @@ const cloneSubnet = (
  * Produce a sanitized deep copy of an SDCPN with data for disabled extensions
  * stripped out.
  *
- * The optional keys (`description`, `metadata`, `scenarios`, `metrics`,
- * `subnets`, `componentInstances`, `fusions`) are only set when they are
- * present on the source. Writing them
- * unconditionally would leave them present with a value of `undefined`, which
- * is not the same shape as a definition loaded back from JSON — where absent
- * keys stay absent — and would make `isSDCPNEqual` report an untouched net as
- * changed.
+ * The optional keys are only set when they are present on the source. Writing
+ * them unconditionally would leave them present with a value of `undefined`,
+ * which is not the same shape as a definition loaded back from JSON — where
+ * absent keys stay absent — and would make `isSDCPNEqual` report an untouched
+ * net as changed.
  */
 export const sanitizeSDCPNForExtensions = (
   sdcpn: SDCPN,
@@ -566,11 +575,19 @@ export const sanitizeSDCPNForExtensions = (
     next.fusions = cloneFusions(sdcpn.fusions);
   }
 
+  if (sdcpn.implementations) {
+    next.implementations = sdcpn.implementations.map((entry) => ({
+      interface: { ...entry.interface },
+      component: { ...entry.component },
+    }));
+  }
+
   stripDisabledExtensionData(next, extensions);
 
   if (!extensions.subnets) {
     delete next.subnets;
     delete next.componentInstances;
+    delete next.implementations;
   }
 
   return next;

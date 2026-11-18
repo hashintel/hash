@@ -5,6 +5,7 @@ import {
   colorElementSchema as currentColorElementSchema,
   colorSchema as currentColorSchema,
   componentInstanceSchema as currentComponentInstanceSchema,
+  componentReferenceSchema,
   descriptionSchema,
   differentialEquationSchema as currentDifferentialEquationSchema,
   fusionSchema as currentFusionSchema,
@@ -171,19 +172,26 @@ const fusionSchema = z.object({
   members: z.array(currentFusionSchema.shape.members.element),
 });
 
-const subnetSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  description: descriptionSchema,
-  metadata: metadataSchema,
-  places: z.array(placeSchema),
-  transitions: z.array(transitionSchema),
-  types: z.array(colorSchema).default([]),
-  differentialEquations: z.array(differentialEquationSchema).default([]),
-  parameters: z.array(parameterSchema).default([]),
-  componentInstances: z.array(componentInstanceSchema).default([]),
-  fusions: z.array(fusionSchema).optional(),
-});
+const subnetSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    description: descriptionSchema,
+    metadata: metadataSchema,
+    interface: z.boolean().optional(),
+    implements: z.array(z.string()).optional(),
+    places: z.array(placeSchema),
+    transitions: z.array(transitionSchema),
+    types: z.array(colorSchema).default([]),
+    differentialEquations: z.array(differentialEquationSchema).default([]),
+    parameters: z.array(parameterSchema).default([]),
+    componentInstances: z.array(componentInstanceSchema).default([]),
+    fusions: z.array(fusionSchema).optional(),
+  })
+  // The flag is `true` or absent in a document: `false` reads as absent.
+  .transform(({ interface: isInterface, ...subnet }) =>
+    isInterface ? { ...subnet, interface: true as const } : subnet,
+  );
 
 export const sdcpnSchema = z.object({
   description: descriptionSchema,
@@ -200,6 +208,14 @@ export const sdcpnSchema = z.object({
   // A net without fusions carries no `fusions` key, here as in the editor, so
   // a file that never had one exports as it was read.
   fusions: z.array(fusionSchema).optional(),
+  implementations: z
+    .array(
+      z.object({
+        interface: componentReferenceSchema,
+        component: componentReferenceSchema,
+      }),
+    )
+    .optional(),
 });
 
 const fileMetaSchema = z.object({

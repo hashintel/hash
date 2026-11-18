@@ -13,6 +13,7 @@ import type { ID, SDCPN } from "../types/sdcpn";
 
 /** A port whose subnet uses it against the direction it declares. */
 export type PortProblem = {
+  kind: "port";
   subnetId: ID;
   placeId: ID;
   severity: "warning";
@@ -35,6 +36,7 @@ export const checkPorts = (sdcpn: SDCPN): PortProblem[] =>
         place.portDirection === "in" ? "produces into" : "consumes from";
       return [
         {
+          kind: "port" as const,
           subnetId: subnet.id,
           placeId: place.id,
           severity: "warning" as const,

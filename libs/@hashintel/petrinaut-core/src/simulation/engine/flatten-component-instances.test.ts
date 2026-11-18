@@ -6,6 +6,7 @@ import {
 } from "./flatten-component-instances";
 
 import type {
+  Color,
   ComponentInstance,
   DifferentialEquation,
   Parameter,
@@ -424,7 +425,7 @@ describe("flattenComponentInstancesForSimulation", () => {
     });
 
     expect(() => flatten({ definition })).toThrow(
-      "Component subnet cycle detected: outer-subnet -> inner-subnet -> outer-subnet",
+      "Component subnet cycle detected: `outer-subnet` -> `inner-subnet` -> `outer-subnet`",
     );
   });
 
@@ -901,6 +902,423 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
       expect(() => flatten({ definition })).toThrow(
         /Fusion `F1` joins places `Tank` and `Pool` that run different differential equations/,
       );
+    });
+  });
+
+  describe("interfaces", () => {
+    /** A stage signature: In consumed, Out produced, a rate parameter. */
+    const stage = subnet("stage", {
+      interface: true,
+      places: [
+        place("stage_in", { name: "In", isPort: true, portDirection: "in" }),
+        place("stage_out", { name: "Out", isPort: true, portDirection: "out" }),
+      ],
+      parameters: [parameter("stage_rate", { variableName: "rate" })],
+    });
+
+    /** An implementation of the stage, its ports and parameter under its own ids. */
+    const implementation = (id: string) =>
+      subnet(id, {
+        implements: ["stage"],
+        places: [
+          place(`${id}_in`, { name: "In", isPort: true }),
+          place(`${id}_out`, { name: "Out", isPort: true }),
+        ],
+        transitions: [
+          transition(`${id}_work`, {
+            inputArcs: [{ placeId: `${id}_in`, weight: 1, type: "standard" }],
+            outputArcs: [{ placeId: `${id}_out`, weight: 1 }],
+          }),
+        ],
+        parameters: [
+          parameter(`${id}_rate`, { variableName: "rate", defaultValue: "1" }),
+        ],
+      });
+
+    it("runs the document's default implementation for an instance of an interface", () => {
+      const definition = sdcpn({
+        transitions: [
+          transition("feed", {
+            outputArcs: [
+              {
+                endpoint: {
+                  kind: "componentPort",
+                  componentInstanceId: "s1",
+                  portPlaceId: "stage_in",
+                },
+                weight: 1,
+              },
+            ],
+          }),
+        ],
+        componentInstances: [componentInstance("s1", "stage")],
+        subnets: [stage, implementation("fast")],
+        implementations: [
+          { interface: { id: "stage" }, component: { id: "fast" } },
+        ],
+      });
+
+      const result = flatten({ definition });
+
+      expect(result.sdcpn.subnets).toEqual([]);
+      expect(result.sdcpn.places.map(({ id }) => id)).toEqual([
+        "s1::fast_in",
+        "s1::fast_out",
+      ]);
+      expect(result.sdcpn.transitions).toMatchObject([
+        { id: "feed", outputArcs: [{ placeId: "s1::fast_in", weight: 1 }] },
+        {
+          id: "s1::fast_work",
+          inputArcs: [{ placeId: "s1::fast_in", weight: 1, type: "standard" }],
+        },
+      ]);
+    });
+
+    it("lets an instance choose its implementation over the document's default", () => {
+      const definition = sdcpn({
+        componentInstances: [
+          componentInstance("s1", "stage"),
+          componentInstance("s2", "stage", { implementation: { id: "slow" } }),
+        ],
+        subnets: [stage, implementation("fast"), implementation("slow")],
+        implementations: [
+          { interface: { id: "stage" }, component: { id: "fast" } },
+        ],
+      });
+
+      const result = flatten({ definition });
+
+      expect(result.sdcpn.transitions.map(({ id }) => id)).toEqual([
+        "s1::fast_work",
+        "s2::slow_work",
+      ]);
+    });
+
+    it("throws for an instance of an interface with nothing bound", () => {
+      const definition = sdcpn({
+        componentInstances: [componentInstance("s1", "stage")],
+        subnets: [stage, implementation("fast")],
+      });
+
+      expect(() => flatten({ definition })).toThrow(/no implementation to run/);
+    });
+
+    it("fuses through an interface port onto the implementation's port of the same name", () => {
+      const definition = sdcpn({
+        places: [place("buffer")],
+        componentInstances: [componentInstance("s1", "stage")],
+        subnets: [stage, implementation("fast")],
+        implementations: [
+          { interface: { id: "stage" }, component: { id: "fast" } },
+        ],
+        fusions: [
+          {
+            id: "f1",
+            name: "F1",
+            members: [
+              { kind: "place", placeId: "buffer" },
+              {
+                kind: "componentPort",
+                componentInstanceId: "s1",
+                portPlaceId: "stage_in",
+              },
+            ],
+          },
+        ],
+      });
+
+      const result = flatten({ definition });
+
+      expect(result.sdcpn.places.map(({ id }) => id)).not.toContain(
+        "s1::fast_in",
+      );
+      expect(
+        result.sdcpn.transitions.find(({ id }) => id === "s1::fast_work")!
+          .inputArcs,
+      ).toEqual([{ placeId: "buffer", weight: 1, type: "standard" }]);
+    });
+
+    it("maps the interface's parameters onto the implementation's by variable name", () => {
+      const definition = sdcpn({
+        componentInstances: [
+          componentInstance("s1", "stage", {
+            parameterValues: { stage_rate: "5" },
+          }),
+        ],
+        subnets: [stage, implementation("fast")],
+        implementations: [
+          { interface: { id: "stage" }, component: { id: "fast" } },
+        ],
+      });
+
+      const result = flatten({ definition });
+
+      expect(result.sdcpn.parameters.map(({ id }) => id)).toEqual([
+        "s1::fast_rate",
+      ]);
+      expect(result.transitionParameterValues.get("s1::fast_work")).toEqual({
+        rate: 5,
+      });
+    });
+
+    it("runs an instance that sets no value at the interface's default, not the implementation's", () => {
+      const definition = sdcpn({
+        componentInstances: [componentInstance("s1", "stage")],
+        subnets: [
+          {
+            ...stage,
+            parameters: [
+              parameter("stage_rate", {
+                variableName: "rate",
+                defaultValue: "5",
+              }),
+            ],
+          },
+          implementation("fast"),
+        ],
+        implementations: [
+          { interface: { id: "stage" }, component: { id: "fast" } },
+        ],
+      });
+
+      expect(
+        flatten({ definition }).transitionParameterValues.get("s1::fast_work"),
+      ).toEqual({ rate: 5 });
+    });
+
+    it("throws when the implementation's port holds another token type than the interface's", () => {
+      const colour = (id: string, type: "real" | "integer") => ({
+        id,
+        name: id,
+        iconSlug: "circle",
+        displayColor: "#000",
+        elements: [{ elementId: `${id}_x`, name: "x", type }],
+      });
+      const typed = (base: Subnet, colorId: string, type: "real" | "integer") =>
+        subnet(base.id, {
+          ...base,
+          types: [colour(colorId, type)],
+          places: base.places.map((port) => ({ ...port, colorId })),
+        });
+      const definition = sdcpn({
+        componentInstances: [componentInstance("s1", "stage")],
+        subnets: [
+          typed(stage, "reals", "real"),
+          typed(implementation("fast"), "integers", "integer"),
+        ],
+        implementations: [
+          { interface: { id: "stage" }, component: { id: "fast" } },
+        ],
+      });
+
+      expect(() => flatten({ definition })).toThrow(
+        /`s1` cannot run `fast`: Port In of fast holds a different token type/,
+      );
+    });
+
+    it("throws when an implementation runs inside itself, naming the subnets", () => {
+      const nested = subnet("fast", {
+        ...implementation("fast"),
+        componentInstances: [componentInstance("again", "stage")],
+      });
+      const definition = sdcpn({
+        componentInstances: [componentInstance("s1", "stage")],
+        subnets: [stage, nested],
+        implementations: [
+          { interface: { id: "stage" }, component: { id: "fast" } },
+        ],
+      });
+
+      expect(() => flatten({ definition })).toThrow(
+        "Component subnet cycle detected: `fast` -> `fast`",
+      );
+    });
+
+    it("throws when the implementation lacks a port of the interface", () => {
+      const partial = subnet("partial", {
+        implements: ["stage"],
+        places: [place("partial_in", { name: "In", isPort: true })],
+      });
+      const definition = sdcpn({
+        transitions: [
+          transition("drain", {
+            inputArcs: [
+              {
+                endpoint: {
+                  kind: "componentPort",
+                  componentInstanceId: "s1",
+                  portPlaceId: "stage_out",
+                },
+                weight: 1,
+                type: "standard",
+              },
+            ],
+          }),
+        ],
+        componentInstances: [
+          componentInstance("s1", "stage", {
+            implementation: { id: "partial" },
+          }),
+        ],
+        subnets: [stage, partial],
+      });
+
+      expect(() => flatten({ definition })).toThrow(
+        /`s1` cannot run `partial`: partial has no port named Out/,
+      );
+    });
+
+    it("checks an implementation once for its instance, however many fusions reach its ports", () => {
+      const indices = Array.from({ length: 1000 }, (_, index) => index);
+      const ports = (subnetId: string) =>
+        indices.map((index) =>
+          place(`${subnetId}_${index}`, { name: `P${index}`, isPort: true }),
+        );
+      const definition = sdcpn({
+        places: indices.map((index) => place(`root_${index}`)),
+        componentInstances: [componentInstance("w1", "wide")],
+        subnets: [
+          subnet("wide", { interface: true, places: ports("wide") }),
+          subnet("impl", { implements: ["wide"], places: ports("impl") }),
+        ],
+        implementations: [
+          { interface: { id: "wide" }, component: { id: "impl" } },
+        ],
+        fusions: indices.map((index) => ({
+          id: `f${index}`,
+          name: `F${index}`,
+          members: [
+            { kind: "place", placeId: `root_${index}` },
+            {
+              kind: "componentPort",
+              componentInstanceId: "w1",
+              portPlaceId: `wide_${index}`,
+            },
+          ],
+        })),
+      });
+
+      const started = Date.now();
+      const result = flatten({ definition });
+      const elapsedMs = Date.now() - started;
+
+      expect(result.sdcpn.places.map(({ id }) => id)).toEqual(
+        indices.map((index) => `root_${index}`),
+      );
+      // One check takes milliseconds; one for every fusion takes several
+      // seconds.
+      expect(elapsedMs).toBeLessThan(2_000);
+    });
+
+    it("runs many instances off a long list of defaults, with one read of the list", () => {
+      const size = 10_000;
+      const definition = sdcpn({
+        componentInstances: Array.from({ length: size }, (_, index) =>
+          componentInstance(`s${index}`, "stage"),
+        ),
+        subnets: [stage, implementation("fast")],
+        implementations: [
+          ...Array.from({ length: 25 * size }, (_, index) => ({
+            interface: { id: `other${index}` },
+            component: { id: "fast" },
+          })),
+          { interface: { id: "stage" }, component: { id: "fast" } },
+          // Of two entries for one interface the first applies.
+          { interface: { id: "stage" }, component: { id: "gone" } },
+        ],
+      });
+
+      const started = Date.now();
+      const result = flatten({ definition });
+      const elapsedMs = Date.now() - started;
+
+      expect(result.sdcpn.transitions).toHaveLength(size);
+      expect(result.sdcpn.transitions[0]?.id).toBe("s0::fast_work");
+      // One read of the list takes milliseconds; a search of it for every
+      // instance takes several seconds.
+      expect(elapsedMs).toBeLessThan(1_000);
+    });
+
+    it("checks what runs once for the instances bound alike, however many", () => {
+      // Five thousand ports of one name on the interface, which all map onto
+      // the implementation's one: nothing but the check grows with them.
+      const wide = subnet("wide", {
+        interface: true,
+        places: Array.from({ length: 5_000 }, (_, index) =>
+          place(`wide_${index}`, { name: "In", isPort: true }),
+        ),
+      });
+      const narrow = subnet("narrow", {
+        implements: ["wide"],
+        places: [place("narrow_in", { name: "In", isPort: true })],
+      });
+      const instances = 2_000;
+      const definition = sdcpn({
+        componentInstances: Array.from({ length: instances }, (_, index) =>
+          componentInstance(`s${index}`, "wide"),
+        ),
+        subnets: [wide, narrow],
+        implementations: [
+          { interface: { id: "wide" }, component: { id: "narrow" } },
+        ],
+      });
+
+      const started = Date.now();
+      const result = flatten({ definition });
+      const elapsedMs = Date.now() - started;
+
+      expect(result.sdcpn.places).toHaveLength(instances);
+      // A check of the interface's ports for every instance takes several
+      // seconds.
+      expect(elapsedMs).toBeLessThan(1_000);
+    });
+
+    it("reads an interface's token types once, however many instances of it run", () => {
+      const size = 10_000;
+      const weight = { elementId: "w", name: "weight", type: "real" } as const;
+      const color = (id: string): Color => ({
+        id,
+        name: id,
+        iconSlug: "circle",
+        displayColor: "#000",
+        elements: [weight],
+      });
+      const typed = subnet("typed", {
+        interface: true,
+        types: Array.from({ length: size }, (_, index) =>
+          color(`type-${index}`),
+        ),
+        places: [
+          place("typed_in", {
+            name: "In",
+            isPort: true,
+            colorId: `type-${size - 1}`,
+          }),
+        ],
+      });
+      const small = subnet("small", {
+        implements: ["typed"],
+        types: [color("t")],
+        places: [place("small_in", { name: "In", isPort: true, colorId: "t" })],
+      });
+      const instances = 5_000;
+      const definition = sdcpn({
+        componentInstances: Array.from({ length: instances }, (_, index) =>
+          componentInstance(`s${index}`, "typed", {
+            implementation: { id: "small" },
+          }),
+        ),
+        subnets: [typed, small],
+      });
+
+      const started = Date.now();
+      const result = flatten({ definition });
+      const elapsedMs = Date.now() - started;
+
+      expect(result.sdcpn.places).toHaveLength(instances);
+      // A read of the interface's token types for every instance takes
+      // several seconds.
+      expect(elapsedMs).toBeLessThan(1_000);
     });
   });
 });

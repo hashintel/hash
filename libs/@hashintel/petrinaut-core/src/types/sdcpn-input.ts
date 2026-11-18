@@ -5,6 +5,7 @@ import type {
   ArcEndpoint,
   Color,
   ComponentInstance,
+  DefaultImplementation,
   DifferentialEquation,
   Fusion,
   ID,
@@ -54,6 +55,7 @@ export type SDCPNInput = {
   subnets?: Subnet[];
   componentInstances?: ComponentInstance[];
   fusions?: Fusion[];
+  implementations?: DefaultImplementation[];
 };
 
 export type SDCPNPlaceInput = {
@@ -140,7 +142,7 @@ function arcEndpointFields(arc: SDCPNArcEndpointInput): SDCPNArcEndpointInput {
  *
  * Optional output fields (`dynamics`, `capacity`, `isPort`, `portDirection`, `visualizerCode`,
  * `showAsInitialState`, arc `placeId`/`endpoint`, `scenarios`, `metrics`, `subnets`,
- * `componentInstances`, `fusions`) are only set when present on the input, so the result
+ * `componentInstances`, `fusions`, `implementations`) are only set when present on the input, so the result
  * matches the shape the editor itself produces (relevant for structural
  * dirty-tracking via `isSDCPNEqual`). Entity ids and the references to them
  * are converted to Petrinaut ids with {@link canonicalizePetrinautIds}.
@@ -236,6 +238,9 @@ export function normalizeSDCPN(rawInput: SDCPNInput): SDCPN {
   }
   if (input.fusions !== undefined) {
     result.fusions = input.fusions;
+  }
+  if (input.implementations !== undefined) {
+    result.implementations = input.implementations;
   }
 
   return canonicalizePetrinautIds(result);

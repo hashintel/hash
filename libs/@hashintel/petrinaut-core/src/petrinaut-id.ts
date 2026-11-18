@@ -18,6 +18,7 @@ import type {
   ArcEndpoint,
   Color,
   ComponentInstance,
+  ComponentReference,
   DifferentialEquation,
   Fusion,
   InputArc,
@@ -149,6 +150,11 @@ const canonicalizeDifferentialEquation = (
     colorId: toOptionalPetrinautId(equation.colorId),
   });
 
+const canonicalizeReference = (
+  reference: ComponentReference,
+): ComponentReference =>
+  assignChanged(reference, { id: toPetrinautId(reference.id) });
+
 const canonicalizeComponentInstance = (
   instance: ComponentInstance,
 ): ComponentInstance =>
@@ -156,6 +162,10 @@ const canonicalizeComponentInstance = (
     id: toPetrinautId(instance.id),
     subnetId: toPetrinautId(instance.subnetId),
     parameterValues: rekeyUnlessUnchanged(instance.parameterValues),
+    implementation:
+      instance.implementation === undefined
+        ? undefined
+        : canonicalizeReference(instance.implementation),
   });
 
 const canonicalizeFusion = (fusion: Fusion): Fusion =>
@@ -208,17 +218,20 @@ type PetrinautIdNet = Pick<
   Partial<
     Pick<
       SDCPN,
-      "componentInstances" | "scenarios" | "metrics" | "subnets" | "fusions"
+      | "componentInstances"
+      | "scenarios"
+      | "metrics"
+      | "subnets"
+      | "fusions"
+      | "implementations"
     >
   >;
 
 /**
  * Converts every entity id in `net` to a Petrinaut id, together with every
- * reference to it: arc endpoints, type and equation references, component
- * instances' subnets and parameter values, and the scenario overrides and
- * initial states keyed by id, at the root and inside subnets. Names, user
- * code, metadata and token values are left as they are. Returns `net` itself
- * when every id is already canonical.
+ * reference to one, at the root and inside subnets. Names, user code,
+ * metadata and token values are left as they are. Returns `net` itself when
+ * every id is already canonical.
  */
 export const canonicalizePetrinautIds = <Net extends PetrinautIdNet>(
   net: Net,
@@ -239,6 +252,12 @@ export const canonicalizePetrinautIds = <Net extends PetrinautIdNet>(
       canonicalizeComponentInstance,
     ),
     fusions: mapOptional(net.fusions, canonicalizeFusion),
+    implementations: mapOptional(net.implementations, (entry) =>
+      assignChanged(entry, {
+        interface: canonicalizeReference(entry.interface),
+        component: canonicalizeReference(entry.component),
+      }),
+    ),
     scenarios: mapOptional(net.scenarios, canonicalizeScenario),
     metrics: mapOptional(net.metrics, (metric) =>
       assignChanged(metric, { id: toPetrinautId(metric.id) }),
@@ -246,6 +265,7 @@ export const canonicalizePetrinautIds = <Net extends PetrinautIdNet>(
     subnets: mapOptional(net.subnets, (subnet) =>
       assignChanged(canonicalizePetrinautIds(subnet), {
         id: toPetrinautId(subnet.id),
+        implements: mapOptional(subnet.implements, toPetrinautId),
       }),
     ),
   }) as Net;

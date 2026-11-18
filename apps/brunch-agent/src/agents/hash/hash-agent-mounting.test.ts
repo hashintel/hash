@@ -283,6 +283,8 @@ test("a document binding mounts the guidance, the Ledger, HASH's graph reads and
       // A fusion's members are added and removed one at a time.
       "petrinaut_create_fusion_member",
       "petrinaut_remove_fusion_member",
+      // An interface's default implementation is set, never created or removed.
+      "petrinaut_set_implementation",
       ...[
         "place",
         "transition",

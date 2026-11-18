@@ -7,6 +7,7 @@ import {
   colorElementSchema,
   colorSchema,
   componentInstanceSchema,
+  componentReferenceSchema,
   differentialEquationSchema,
   fusionMemberSchema,
   fusionSchema,
@@ -119,9 +120,18 @@ export const metricUpdateSchema = simulationMetricSchema
       "Fields to assign to an existing metric. Omitted fields are left unchanged.",
   });
 
+// JSON has no `undefined` to clear a field with, so the two updates below
+// each take a value that says it. Only an update does: what is stored holds a
+// reference or `true`, or no key.
 export const componentInstanceUpdateSchema = componentInstanceSchema
   .omit({ id: true, x: true, y: true })
   .partial()
+  .extend({
+    implementation: componentReferenceSchema.nullable().optional().meta({
+      description:
+        "For an instance of an interface: the implementing subnet to run, as `{ id }`, or null to clear the instance's choice, so that it runs the document's default implementation for the interface. Omit to leave the choice as it is.",
+    }),
+  })
   .meta({
     description:
       "Fields to assign to an existing component instance. Omitted fields are left unchanged.",
@@ -139,6 +149,12 @@ export const subnetUpdateSchema = subnetSchema
     fusions: true,
   })
   .partial()
+  .extend({
+    interface: z.boolean().optional().meta({
+      description:
+        "true makes the subnet an interface: a signature of ports, types and parameters with no transitions, which implements no interface itself. false makes an interface an ordinary subnet again. Omit to leave it as it is.",
+    }),
+  })
   .meta({
     description:
       "Fields to assign to an existing subnet. Omitted fields are left unchanged.",
@@ -584,6 +600,20 @@ export const mutationActionInputSchemas = {
     .meta({
       description:
         "Take a place or an instance port out of a fusion. A fusion left with fewer than two members is removed.",
+    }),
+  setImplementation: z
+    .strictObject({
+      interfaceId: idSchema.meta({
+        description: "The interface subnet's ID.",
+      }),
+      implementationId: idSchema.nullable().meta({
+        description:
+          "The implementing subnet to run for instances of the interface that choose none themselves, or null to clear the document's default.",
+      }),
+    })
+    .meta({
+      description:
+        "Set or clear the document's default implementation for an interface.",
     }),
   deleteItemsByIds: z
     .strictObject({

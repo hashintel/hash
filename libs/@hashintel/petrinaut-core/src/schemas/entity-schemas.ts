@@ -20,6 +20,7 @@ import type {
   ArcEndpoint,
   Color,
   ComponentInstance,
+  ComponentReference,
   DifferentialEquation,
   Fusion,
   FusionMember,
@@ -415,6 +416,14 @@ export const parameterSchema = parameterObjectSchema
       "A net-level parameter available to executable SDCPN code and scenarios.",
   }) satisfies z.ZodType<Parameter>;
 
+export const componentReferenceSchema = z
+  .strictObject({
+    id: idSchema.meta({ description: "The component's subnet ID." }),
+  })
+  .meta({
+    description: "A reference to a component: a subnet of the document.",
+  }) satisfies z.ZodType<ComponentReference>;
+
 export const componentInstanceSchema = z
   .strictObject({
     id: idSchema,
@@ -431,6 +440,10 @@ export const componentInstanceSchema = z
     parameterValues: z.record(idSchema, z.string()).meta({
       description:
         "Per-instance parameter values keyed by parameter ID from the referenced subnet.",
+    }),
+    implementation: componentReferenceSchema.optional().meta({
+      description:
+        "For an instance of an interface: the implementing subnet to run, as `{ id }`. Omit to run the document's default implementation for the interface.",
     }),
     x: z.number().meta({
       description: "Horizontal canvas position.",
@@ -499,6 +512,14 @@ export const subnetSchema = z
     }),
     description: descriptionSchema,
     metadata: metadataSchema,
+    interface: z.literal(true).optional().meta({
+      description:
+        "When true, the subnet is an interface: a signature of ports, types and parameters with no transitions, which implements no interface itself. Instances of it run the implementation bound to them.",
+    }),
+    implements: z.array(idSchema).optional().meta({
+      description:
+        "IDs of the interface subnets this subnet implements: it has a port of the same name and token type for each of theirs, and a parameter of each variable name. Not for a subnet that is an interface: an interface cannot implement an interface.",
+    }),
     places: z.array(placeSchema).meta({
       description: "Places local to this subnet.",
     }),
