@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  fileEdit: "A document and pencil represent editing a file.",
   filePlus: "A document with a plus represents creating or adding a file.",
   fileInvoiceDollar:
     "An invoice with a currency symbol represents a bill or payment request.",
