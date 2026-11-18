@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  alignCenterHorizontal:
+    "Two centered bars represent aligning objects along a shared horizontal center.",
   alignBottom:
     "Two bars against an edge represent aligning objects to the bottom.",
   alignTop: "Two bars against an edge represent aligning objects to the top.",
