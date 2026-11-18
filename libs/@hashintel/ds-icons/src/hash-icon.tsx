@@ -743,6 +743,7 @@ export const PalmTreeIcon = createIcon("palmTree");
 export const PizzaIcon = createIcon("pizza");
 export const CookieIcon = createIcon("cookie");
 export const PartyHornIcon = createIcon("partyHorn");
+export const TeddyBearIcon = createIcon("teddyBear");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -928,6 +929,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  teddyBear: TeddyBearIcon,
   partyHorn: PartyHornIcon,
   cookie: CookieIcon,
   pizza: PizzaIcon,
