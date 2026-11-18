@@ -692,6 +692,7 @@ export const ShoppingCartIcon = createIcon("shoppingCart");
 export const ShoppingBasketIcon = createIcon("shoppingBasket");
 export const GiftIcon = createIcon("gift");
 export const PlaneIcon = createIcon("plane");
+export const PlaneUpIcon = createIcon("planeUp");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -877,6 +878,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  planeUp: PlaneUpIcon,
   plane: PlaneIcon,
   gift: GiftIcon,
   shoppingBasket: ShoppingBasketIcon,

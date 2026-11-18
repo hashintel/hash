@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  planeUp:
+    "An upward-facing airplane represents an aircraft or flight heading.",
   plane: "An airplane represents air travel or aviation.",
   gift: "A ribbon-wrapped box represents a gift or reward.",
   shoppingBasket: "A handled basket represents shopping or selected goods.",

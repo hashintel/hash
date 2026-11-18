@@ -191,6 +191,7 @@ import { phoneGeometry } from "./library-geometry/phone";
 import { phoneOffGeometry } from "./library-geometry/phone-off";
 import { pinGeometry } from "./library-geometry/pin";
 import { planeGeometry } from "./library-geometry/plane";
+import { planeUpGeometry } from "./library-geometry/plane-up";
 import { powerGeometry } from "./library-geometry/power";
 import { pullRequestGeometry } from "./library-geometry/pull-request";
 import { quoteGeometry } from "./library-geometry/quote";
@@ -265,6 +266,7 @@ import { usersGeometry } from "./library-geometry/users";
 import { warehouseGeometry } from "./library-geometry/warehouse";
 
 export const libraryGeometry = {
+  planeUp: planeUpGeometry,
   plane: planeGeometry,
   gift: giftGeometry,
   shoppingBasket: shoppingBasketGeometry,
