@@ -61,6 +61,7 @@ import { newspaperGeometry } from "./library-geometry/newspaper";
 import { notePlusGeometry } from "./library-geometry/note-plus";
 import { noteStickyGeometry } from "./library-geometry/note-sticky";
 import { paperclipGeometry } from "./library-geometry/paperclip";
+import { pentagonGeometry } from "./library-geometry/pentagon";
 import { pinGeometry } from "./library-geometry/pin";
 import { powerGeometry } from "./library-geometry/power";
 import { radioCheckedGeometry } from "./library-geometry/radio-checked";
@@ -76,6 +77,7 @@ import { triangleGeometry } from "./library-geometry/triangle";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  pentagon: pentagonGeometry,
   triangle: triangleGeometry,
   diamond: diamondGeometry,
   ellipse: ellipseGeometry,
