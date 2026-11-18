@@ -675,14 +675,24 @@ const joinFusion = (
   }
 };
 
+/**
+ * Throws when `instance` names a component that does not resolve, or gives a
+ * value for a parameter its component does not have. With `keepsComponent`,
+ * a component that does not resolve is let through, and nothing is asked of
+ * the values then: there are no parameters to hold them to.
+ */
 const assertComponentInstanceReferences = (
   sdcpn: SDCPN,
   instance: ComponentInstance,
   libraries: Libraries,
+  keepsComponent = false,
 ): void => {
   const reference = componentOf(instance);
   const subnet = resolveComponent(sdcpn, reference, libraries);
   if (!subnet) {
+    if (keepsComponent) {
+      return;
+    }
     throw new Error(
       `Component instance \`${instance.name}\` references ${describeMissingComponent(reference)}.`,
     );
@@ -1670,9 +1680,15 @@ export function createPetrinautActions(
             }
             assignUpdate(instance, update);
             componentInstanceSchema.parse(instance);
-            assertComponentInstanceReferences(sdcpn, instance, libraries);
-            // A choice the document was loaded with is left for the user to
-            // repair: only an update that makes one is held to the rule.
+            // A component or a choice the document was loaded with is left
+            // for the user to repair: only an update that names one is held
+            // to the rule.
+            assertComponentInstanceReferences(
+              sdcpn,
+              instance,
+              libraries,
+              update.subnetId === undefined && update.component === undefined,
+            );
             if (update.implementation !== undefined) {
               assertImplementationChoice(sdcpn, instance, libraries);
             }

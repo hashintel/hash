@@ -2725,6 +2725,67 @@ describe("Petrinaut core import actions", () => {
     ).toThrow("which is not available");
   });
 
+  test("an instance whose component is not there to read is still edited, and held to the rule once an update names one", () => {
+    const loaded = (component: { from: string; id: string }): SDCPN => ({
+      ...emptySDCPN,
+      imports: [{ id: logistics.id }],
+      componentInstances: [{ ...placed, component }],
+    });
+    const crane = { from: logistics.id, id: "crane" };
+
+    for (const [component, instance] of [
+      // An import that failed.
+      [belt, importing(loaded(belt), false)],
+      // A component its library does not have.
+      [crane, importing(loaded(crane))],
+    ] as const) {
+      instance.mutations.updateComponentInstance({
+        instanceId: "belt-1",
+        update: { name: "Renamed" },
+      });
+      instance.mutations.updateComponentInstancePosition({
+        instanceId: "belt-1",
+        position: { x: 40, y: 80 },
+      });
+      instance.mutations.updateComponentInstance({
+        instanceId: "belt-1",
+        update: { parameterValues: { rate: "4" } },
+      });
+      expect(instance.definition.get().componentInstances).toEqual([
+        {
+          id: idOf("belt-1"),
+          name: "Renamed",
+          component,
+          parameterValues: { [idOf("rate")]: "4" },
+          x: 40,
+          y: 80,
+        },
+      ]);
+
+      // Naming the component it already has is held to the rule.
+      expect(() =>
+        instance.mutations.updateComponentInstance({
+          instanceId: "belt-1",
+          update: { component },
+        }),
+      ).toThrow("which is not available");
+      expect(() =>
+        instance.mutations.updateComponentInstance({
+          instanceId: "belt-1",
+          update: { component: crane },
+        }),
+      ).toThrow(
+        "Component instance `Renamed` references component `crane` of the import `@hashintel/logistics`, which is not available.",
+      );
+      expect(() =>
+        instance.mutations.updateComponentInstance({
+          instanceId: "belt-1",
+          update: { subnetId: "nowhere" },
+        }),
+      ).toThrow("references subnet ID `nowhere` which does not exist");
+    }
+  });
+
   test("parameter values are keyed by the component's parameters", () => {
     const instance = importing();
 
