@@ -2,6 +2,7 @@ import { archiveGeometry } from "./library-geometry/archive";
 import { bookGeometry } from "./library-geometry/book";
 import { bookOpenGeometry } from "./library-geometry/book-open";
 import { booksGeometry } from "./library-geometry/books";
+import { calendarDayGeometry } from "./library-geometry/calendar-day";
 import { clipboardGeometry } from "./library-geometry/clipboard";
 import { clipboardCheckGeometry } from "./library-geometry/clipboard-check";
 import { clipboardListGeometry } from "./library-geometry/clipboard-list";
@@ -30,6 +31,7 @@ import { notePlusGeometry } from "./library-geometry/note-plus";
 import { noteStickyGeometry } from "./library-geometry/note-sticky";
 
 export const libraryGeometry = {
+  calendarDay: calendarDayGeometry,
   handwrittenDocs: handwrittenDocsGeometry,
   newspaper: newspaperGeometry,
   books: booksGeometry,

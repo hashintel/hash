@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  calendarDay: "A calendar with one marked day represents a specific date.",
   handwrittenDocs:
     "A document and pen represent handwritten notes or authored documentation.",
   newspaper:
