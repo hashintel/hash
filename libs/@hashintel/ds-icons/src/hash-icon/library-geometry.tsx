@@ -247,6 +247,7 @@ import { toggleOnGeometry } from "./library-geometry/toggle-on";
 import { trapezoidGeometry } from "./library-geometry/trapezoid";
 import { triangleGeometry } from "./library-geometry/triangle";
 import { truckContainerGeometry } from "./library-geometry/truck-container";
+import { truckFastGeometry } from "./library-geometry/truck-fast";
 import { underlineGeometry } from "./library-geometry/underline";
 import { ungroupGeometry } from "./library-geometry/ungroup";
 import { uploadGeometry } from "./library-geometry/upload";
@@ -259,6 +260,7 @@ import { usersGeometry } from "./library-geometry/users";
 import { warehouseGeometry } from "./library-geometry/warehouse";
 
 export const libraryGeometry = {
+  truckFast: truckFastGeometry,
   truckContainer: truckContainerGeometry,
   personDolly: personDollyGeometry,
   forklift: forkliftGeometry,
