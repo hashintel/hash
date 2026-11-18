@@ -183,6 +183,7 @@ import { mixedGeometry } from "./library-geometry/mixed";
 import { moneyTransferGeometry } from "./library-geometry/money-transfer";
 import { monitorGeometry } from "./library-geometry/monitor";
 import { moonGeometry } from "./library-geometry/moon";
+import { mortarPestleGeometry } from "./library-geometry/mortar-pestle";
 import { newspaperGeometry } from "./library-geometry/newspaper";
 import { notePlusGeometry } from "./library-geometry/note-plus";
 import { noteStickyGeometry } from "./library-geometry/note-sticky";
@@ -301,6 +302,7 @@ import { wavePulseGeometry } from "./library-geometry/wave-pulse";
 import { wavesGeometry } from "./library-geometry/waves";
 
 export const libraryGeometry = {
+  mortarPestle: mortarPestleGeometry,
   flaskVial: flaskVialGeometry,
   testTubes: testTubesGeometry,
   biohazard: biohazardGeometry,

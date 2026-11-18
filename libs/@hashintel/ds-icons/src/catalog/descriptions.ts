@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  mortarPestle:
+    "A grinding bowl and pestle represent pharmacy or material preparation.",
   flaskVial: "A flask beside a vial represents laboratory samples or reagents.",
   testTubes: "Two tilted sample tubes represent laboratory experiments.",
   biohazard: "Three interlocking lobes represent a biological hazard.",
