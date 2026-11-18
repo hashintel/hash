@@ -221,6 +221,7 @@ const categories = {
     "logicRobustness",
   ],
   Navigation: [
+    "circleArrowUpRight",
     "circleArrowRight",
     "arrowPointer",
     "shuffle",

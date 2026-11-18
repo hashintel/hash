@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  circleArrowUpRight:
+    "A diagonal arrow in a circle represents opening or navigating outward.",
   circleArrowRight:
     "A right arrow in a circle represents continuing to the next step.",
   arrowPointer: "A directional pointer represents a heading or location.",

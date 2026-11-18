@@ -477,6 +477,7 @@ export const RedoIcon = createIcon("redo");
 export const ShuffleIcon = createIcon("shuffle");
 export const ArrowPointerIcon = createIcon("arrowPointer");
 export const CircleArrowRightIcon = createIcon("circleArrowRight");
+export const CircleArrowUpRightIcon = createIcon("circleArrowUpRight");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -662,6 +663,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  circleArrowUpRight: CircleArrowUpRightIcon,
   circleArrowRight: CircleArrowRightIcon,
   arrowPointer: ArrowPointerIcon,
   shuffle: ShuffleIcon,
