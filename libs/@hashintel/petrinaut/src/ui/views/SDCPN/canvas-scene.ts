@@ -356,6 +356,9 @@ export const buildCanvasScene = ({
   const index =
     net.componentInstances.length > 0 ? indexDocument(sdcpn) : undefined;
 
+  // The ports of each instance by id, for the arcs that end at one.
+  const portsByInstanceId = new Map<string, ReadonlyMap<string, CanvasPort>>();
+
   for (const instance of net.componentInstances) {
     const resolved = resolveImplementation(sdcpn, instance, index);
     // The subnet the instance points at: the ports it shows are that one's,
@@ -365,6 +368,7 @@ export const buildCanvasScene = ({
     const ports: CanvasPort[] = subnet
       ? portsOf(subnet).map((port) => ({ ...port }))
       : [];
+    portsByInstanceId.set(instance.id, indexById(ports));
     const binding: CanvasInstanceBinding =
       resolved === null || resolved.kind === "component"
         ? { kind: "component" }
@@ -408,7 +412,7 @@ export const buildCanvasScene = ({
       return node?.kind === "place" ? node.typeColor : undefined;
     }
     return node?.kind === "componentInstance"
-      ? node.ports.find(({ id }) => id === endpoint.portPlaceId)?.typeColor
+      ? portsByInstanceId.get(node.id)?.get(endpoint.portPlaceId)?.typeColor
       : undefined;
   };
 

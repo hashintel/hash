@@ -641,6 +641,56 @@ describe("buildCanvasScene", () => {
       expect(portsOf("one")[0]).not.toBe(portsOf("two")[0]);
     });
 
+    it("finds the port at the end of each arc without a search of the instance's ports", () => {
+      // Ten thousand ports of one instance, each reached by ten arcs.
+      const names = Array.from(
+        { length: 10_000 },
+        (_, index) => `port-${index}`,
+      );
+      const wide: Subnet = {
+        ...fast,
+        id: "wide",
+        name: "Wide",
+        places: names.map((name) => ({
+          ...place(name, 0, 0),
+          isPort: true,
+          portDirection: "in" as const,
+          colorId: "tok",
+        })),
+      };
+      const wired: SDCPN = {
+        ...sdcpn,
+        subnets: [wide],
+        componentInstances: [instance("w1", "wide")],
+        transitions: Array.from({ length: 10 }, (_, index) => ({
+          ...transition(`feed-${index}`, [], []),
+          outputArcs: names.map((portPlaceId) => ({
+            endpoint: {
+              kind: "componentPort" as const,
+              componentInstanceId: "w1",
+              portPlaceId,
+            },
+            weight: 1,
+          })),
+        })),
+      };
+
+      const started = Date.now();
+      const { arcs } = buildCanvasScene({
+        ...input,
+        sdcpn: wired,
+        net: activeNet(wired),
+      });
+      const elapsed = Date.now() - started;
+
+      expect(arcs).toHaveLength(100_000);
+      expect(new Set(arcs.map(({ color }) => color))).toEqual(
+        new Set([arcStrokeColor("#ff0000")]),
+      );
+      // A search of the ports for each arc takes several seconds.
+      expect(elapsed).toBeLessThan(1000);
+    });
+
     it("resolves many instances against a long list of defaults, with one read of the list", () => {
       const size = 30_000;
       const many: SDCPN = {
