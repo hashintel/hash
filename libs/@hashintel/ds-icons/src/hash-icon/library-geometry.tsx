@@ -129,6 +129,7 @@ import { fontSansGeometry } from "./library-geometry/font-sans";
 import { fontSerifGeometry } from "./library-geometry/font-serif";
 import { forkliftGeometry } from "./library-geometry/forklift";
 import { frameGeometry } from "./library-geometry/frame";
+import { gaugeGeometry } from "./library-geometry/gauge";
 import { giftGeometry } from "./library-geometry/gift";
 import { globeGeometry } from "./library-geometry/globe";
 import { globeNodesGeometry } from "./library-geometry/globe-nodes";
@@ -281,6 +282,7 @@ import { usersGeometry } from "./library-geometry/users";
 import { warehouseGeometry } from "./library-geometry/warehouse";
 
 export const libraryGeometry = {
+  gauge: gaugeGeometry,
   presentationChart: presentationChartGeometry,
   pieChart: pieChartGeometry,
   chartMixed: chartMixedGeometry,

@@ -708,6 +708,7 @@ export const ChartRevenueIcon = createIcon("chartRevenue");
 export const ChartMixedIcon = createIcon("chartMixed");
 export const PieChartIcon = createIcon("pieChart");
 export const PresentationChartIcon = createIcon("presentationChart");
+export const GaugeIcon = createIcon("gauge");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -893,6 +894,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  gauge: GaugeIcon,
   presentationChart: PresentationChartIcon,
   pieChart: PieChartIcon,
   chartMixed: ChartMixedIcon,
