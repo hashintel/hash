@@ -266,6 +266,7 @@ const categories = {
     "building",
   ],
   Technology: [
+    "cloud",
     "pullRequest",
     "codeBranch",
     "codeEdit",

@@ -20,6 +20,7 @@ export type HashIconHint =
   | "up";
 
 export const hashIconHints = {
+  cloud: "lift",
   circleTag: "lift",
   circleAsterisk: "lift",
   flag: "lift",

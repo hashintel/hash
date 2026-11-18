@@ -80,6 +80,7 @@ import { cityGeometry } from "./library-geometry/city";
 import { clipboardGeometry } from "./library-geometry/clipboard";
 import { clipboardCheckGeometry } from "./library-geometry/clipboard-check";
 import { clipboardListGeometry } from "./library-geometry/clipboard-list";
+import { cloudGeometry } from "./library-geometry/cloud";
 import { cloudDownloadGeometry } from "./library-geometry/cloud-download";
 import { codeBranchGeometry } from "./library-geometry/code-branch";
 import { codeEditGeometry } from "./library-geometry/code-edit";
@@ -344,6 +345,7 @@ import { wavesGeometry } from "./library-geometry/waves";
 import { workflowGeometry } from "./library-geometry/workflow";
 
 export const libraryGeometry = {
+  cloud: cloudGeometry,
   circleTag: circleTagGeometry,
   circleAsterisk: circleAsteriskGeometry,
   flag: flagGeometry,

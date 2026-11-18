@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  cloud: "A cloud represents hosted services or remote computing.",
   circleTag: "A tag in a circle represents a label or categorized item.",
   circleAsterisk:
     "An asterisk in a circle represents a marked entity type or required item.",

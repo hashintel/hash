@@ -771,6 +771,7 @@ export const DiceD20Icon = createIcon("diceD20");
 export const FlagIcon = createIcon("flag");
 export const CircleAsteriskIcon = createIcon("circleAsterisk");
 export const CircleTagIcon = createIcon("circleTag");
+export const CloudIcon = createIcon("cloud");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -956,6 +957,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  cloud: CloudIcon,
   circleTag: CircleTagIcon,
   circleAsterisk: CircleAsteriskIcon,
   flag: FlagIcon,
