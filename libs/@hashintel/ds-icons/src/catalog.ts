@@ -164,6 +164,7 @@ export const hashIconStudies = [
 
 const categories = {
   Text: [
+    "textAlignCenter",
     "textAlignRight",
     "textAlignLeft",
     "percent",

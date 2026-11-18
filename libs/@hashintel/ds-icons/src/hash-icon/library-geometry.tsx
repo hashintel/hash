@@ -148,6 +148,7 @@ import { stackHorizontalGeometry } from "./library-geometry/stack-horizontal";
 import { stackVerticalGeometry } from "./library-geometry/stack-vertical";
 import { strikethroughGeometry } from "./library-geometry/strikethrough";
 import { tagGeometry } from "./library-geometry/tag";
+import { textAlignCenterGeometry } from "./library-geometry/text-align-center";
 import { textAlignLeftGeometry } from "./library-geometry/text-align-left";
 import { textAlignRightGeometry } from "./library-geometry/text-align-right";
 import { toggleOffGeometry } from "./library-geometry/toggle-off";
@@ -159,6 +160,7 @@ import { ungroupGeometry } from "./library-geometry/ungroup";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  textAlignCenter: textAlignCenterGeometry,
   textAlignRight: textAlignRightGeometry,
   textAlignLeft: textAlignLeftGeometry,
   percent: percentGeometry,
