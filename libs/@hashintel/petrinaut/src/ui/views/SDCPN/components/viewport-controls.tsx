@@ -8,7 +8,8 @@ import { EditorContext } from "../../../../react/state/editor-context";
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
 import { VIEWPORT_CONTROLS_OFFSET } from "../../../constants/ui";
 import { SettingsIcon } from "../../../experimental-icons";
-import { useCanvasInsets } from "../../../hooks/use-canvas-insets";
+import { useCanvasInsetsStore } from "../../../hooks/use-canvas-insets";
+import { styleFromStores } from "../../../lib/style-from-stores";
 import { PluginToolbarItems } from "../../../plugins/plugin-outlets";
 import { usePetrinautPresentation } from "../../shared/presentation-context";
 import { useCanvasController } from "../canvas-renderer";
@@ -51,16 +52,17 @@ export const ViewportControls: React.FC = () => {
   const { collapseAllPanels, isPanelAnimating } = use(EditorContext);
 
   // Unlike the bottom toolbar, this column fits above a collapsed Voice dock.
-  const insets = useCanvasInsets({ aboveCollapsedDock: true });
-  const rightOffset = VIEWPORT_CONTROLS_OFFSET + insets.right;
-  const bottomOffset = VIEWPORT_CONTROLS_OFFSET + insets.bottom;
+  const insets = useCanvasInsetsStore({ aboveCollapsedDock: true });
 
   return (
     <div
       className={`${containerStyle} ${animatingStyle({
         animating: isPanelAnimating,
       })}`}
-      style={{ right: rightOffset, bottom: bottomOffset }}
+      ref={styleFromStores({ insets }, (current) => ({
+        right: `${VIEWPORT_CONTROLS_OFFSET + current.insets.right}px`,
+        bottom: `${VIEWPORT_CONTROLS_OFFSET + current.insets.bottom}px`,
+      }))}
     >
       <Button
         size="xs"

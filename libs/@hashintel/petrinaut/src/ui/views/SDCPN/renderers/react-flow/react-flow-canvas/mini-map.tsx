@@ -4,7 +4,8 @@ import { use } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { EditorContext } from "../../../../../../react/state/editor-context";
-import { useCanvasInsets } from "../../../../../hooks/use-canvas-insets";
+import { useCanvasInsetsStore } from "../../../../../hooks/use-canvas-insets";
+import { styleFromStores } from "../../../../../lib/style-from-stores";
 import { miniMapFocusColor } from "../../../styles/focus";
 import { miniMapPlaceFillColor } from "../../../styles/type-colors";
 
@@ -108,30 +109,40 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({
  */
 export const MiniMap: React.FC<Omit<MiniMapProps, "style">> = (props) => {
   const { isPanelAnimating } = use(EditorContext);
-  const canvasInsets = useCanvasInsets();
+  const insets = useCanvasInsetsStore();
   // True inset from the canvas edges (react-flow's default 15px panel margin
   // is zeroed below) — matches the viewport controls' offset.
   const minimapOffset = 12;
 
   return (
-    <ReactFlowMiniMap
-      {...props}
-      ariaLabel=""
-      className={miniMapClassName}
-      style={{
-        margin: 0,
-        top: minimapOffset,
-        right: minimapOffset + canvasInsets.right,
-        bottom: "auto",
-        left: "auto",
-        width: 116,
-        height: 65,
-        transition: isPanelAnimating ? "right 150ms ease-in-out" : undefined,
-      }}
-      maskColor="rgba(0, 0, 0, 0.15)"
-      maskStrokeWidth={0}
-      nodeComponent={MiniMapNode}
-      offsetScale={2}
-    />
+    // React Flow's minimap takes no ref. This box lays nothing out; it
+    // carries the offset to the minimap as a custom property, which only the
+    // minimap's own elements inherit.
+    <div
+      style={{ display: "contents" }}
+      ref={styleFromStores({ insets }, (current) => ({
+        "--mini-map-right": `${minimapOffset + current.insets.right}px`,
+      }))}
+    >
+      <ReactFlowMiniMap
+        {...props}
+        ariaLabel=""
+        className={miniMapClassName}
+        style={{
+          margin: 0,
+          top: minimapOffset,
+          right: "var(--mini-map-right)",
+          bottom: "auto",
+          left: "auto",
+          width: 116,
+          height: 65,
+          transition: isPanelAnimating ? "right 150ms ease-in-out" : undefined,
+        }}
+        maskColor="rgba(0, 0, 0, 0.15)"
+        maskStrokeWidth={0}
+        nodeComponent={MiniMapNode}
+        offsetScale={2}
+      />
+    </div>
   );
 };
