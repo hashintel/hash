@@ -1,9 +1,15 @@
-import { BaseEdge, type EdgeProps, getBezierPath } from "@xyflow/react";
+import {
+  BaseEdge,
+  type EdgeProps,
+  getBezierPath,
+  useInternalNode,
+} from "@xyflow/react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
 import { problemStrokeColor } from "../../../../../constants/problem-severity";
 import { arcHaloColor } from "../../../styles/focus";
+import { fusionLoopPath } from "./fusion-loop-path";
 import { EdgeUnderlay } from "./shared/edge-underlay";
 
 import type { FusionEdgeType } from "./react-flow-types";
@@ -35,6 +41,8 @@ const labelBackgroundStyle = css({
  */
 export const FusionEdge: React.FC<EdgeProps<FusionEdgeType>> = ({
   id,
+  source,
+  target,
   sourceX,
   sourceY,
   targetX,
@@ -44,14 +52,25 @@ export const FusionEdge: React.FC<EdgeProps<FusionEdgeType>> = ({
   data,
   selected,
 }) => {
-  const [path, labelX, labelY] = getBezierPath({
-    sourceX,
-    sourceY,
-    sourcePosition,
-    targetX,
-    targetY,
-    targetPosition,
-  });
+  const card = useInternalNode(source);
+  // Two pins of one card: a curve between them would run under the card.
+  const [path, labelX, labelY] =
+    card && source === target
+      ? fusionLoopPath({
+          sourceX,
+          sourceY,
+          targetX,
+          targetY,
+          cardTop: card.internals.positionAbsolute.y,
+        })
+      : getBezierPath({
+          sourceX,
+          sourceY,
+          sourcePosition,
+          targetX,
+          targetY,
+          targetPosition,
+        });
   const strokeColor = problemStrokeColor(data?.severity) ?? fusionColor;
   const showName =
     data?.name !== undefined && (selected === true || data.focus !== "none");
