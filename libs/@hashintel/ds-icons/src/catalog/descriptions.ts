@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  workflow: "Connected steps represent a workflow or process.",
   sitemap:
     "A parent box connected to children represents a hierarchy or site map.",
   diagramSankey: "Bands splitting and joining represent a Sankey flow diagram.",

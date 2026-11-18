@@ -180,6 +180,7 @@ const categories = {
     "palette",
   ],
   Data: [
+    "workflow",
     "sitemap",
     "diagramSankey",
     "hexagonNodes",

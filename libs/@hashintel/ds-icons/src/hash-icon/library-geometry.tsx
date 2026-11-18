@@ -321,8 +321,10 @@ import { virusGeometry } from "./library-geometry/virus";
 import { warehouseGeometry } from "./library-geometry/warehouse";
 import { wavePulseGeometry } from "./library-geometry/wave-pulse";
 import { wavesGeometry } from "./library-geometry/waves";
+import { workflowGeometry } from "./library-geometry/workflow";
 
 export const libraryGeometry = {
+  workflow: workflowGeometry,
   sitemap: sitemapGeometry,
   diagramSankey: diagramSankeyGeometry,
   hexagonNodes: hexagonNodesGeometry,

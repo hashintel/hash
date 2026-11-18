@@ -20,6 +20,7 @@ export type HashIconHint =
   | "up";
 
 export const hashIconHints = {
+  workflow: "lift",
   sitemap: "lift",
   diagramSankey: "lift",
   hexagonNodes: "lift",
