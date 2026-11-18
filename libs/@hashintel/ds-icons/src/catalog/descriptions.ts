@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  specification:
+    "A document with a verification mark represents a specification.",
   plugCheck: "A plug beside a check represents a successful connection.",
   targetArrow:
     "An arrow meeting a target represents an objective or precise action.",

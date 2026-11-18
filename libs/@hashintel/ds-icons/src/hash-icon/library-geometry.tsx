@@ -279,6 +279,7 @@ import { sizeSmallGeometry } from "./library-geometry/size-small";
 import { smileGeometry } from "./library-geometry/smile";
 import { solarSystemGeometry } from "./library-geometry/solar-system";
 import { speakerGeometry } from "./library-geometry/speaker";
+import { specificationGeometry } from "./library-geometry/specification";
 import { splineCubicGeometry } from "./library-geometry/spline-cubic";
 import { splineLineGeometry } from "./library-geometry/spline-line";
 import { splitViewGeometry } from "./library-geometry/split-view";
@@ -335,6 +336,7 @@ import { wavesGeometry } from "./library-geometry/waves";
 import { workflowGeometry } from "./library-geometry/workflow";
 
 export const libraryGeometry = {
+  specification: specificationGeometry,
   plugCheck: plugCheckGeometry,
   targetArrow: targetArrowGeometry,
   layerPlus: layerPlusGeometry,
