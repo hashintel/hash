@@ -116,6 +116,7 @@ import { italicGeometry } from "./library-geometry/italic";
 import { keyGeometry } from "./library-geometry/key";
 import { keyboardGeometry } from "./library-geometry/keyboard";
 import { keycapKGeometry } from "./library-geometry/keycap-k";
+import { laptopGeometry } from "./library-geometry/laptop";
 import { listCheckGeometry } from "./library-geometry/list-check";
 import { listOrderedGeometry } from "./library-geometry/list-ordered";
 import { listTimelineGeometry } from "./library-geometry/list-timeline";
@@ -210,6 +211,7 @@ import { userTieGeometry } from "./library-geometry/user-tie";
 import { usersGeometry } from "./library-geometry/users";
 
 export const libraryGeometry = {
+  laptop: laptopGeometry,
   monitor: monitorGeometry,
   brain: brainGeometry,
   heart: heartGeometry,
