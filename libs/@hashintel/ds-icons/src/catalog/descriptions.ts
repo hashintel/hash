@@ -2,333 +2,295 @@ import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
   mcpServer:
-    "The official Model Context Protocol mark for an MCP server or connection. Its original paths and stroke proportions stay fixed across weights and variants.",
+    "The official Model Context Protocol mark represents an MCP server or connection.",
   differentialEquation:
-    "A derivative written as d/dt for rates of change. On hover, the numerator and denominator move apart around the fraction bar.",
+    "A derivative written as d/dt represents rates of change.",
   equationCurve:
-    "A solution curve on coordinate axes with a sample point. On hover, the curve changes shape and the sample point moves up and to the right.",
+    "A curve with a sample point represents the solution of an equation.",
   equationFlow:
-    "A solution path through a slope field. On hover, the path changes shape and the surrounding field tilts.",
-  parameter:
-    "Two sliders for adjustable model inputs. On hover, their knobs slide in opposite directions, then return.",
-  parameterDial:
-    "A calibration dial for an adjustable parameter. On hover, the needle turns around its pivot while the scale stays fixed.",
+    "A path through a slope field represents how a system changes over time.",
+  parameter: "Two sliders represent adjustable model inputs.",
+  parameterDial: "A calibration dial represents an adjustable parameter.",
   parameterRange:
-    "Paired markers for a parameter's lower and upper bounds. On hover, the bounds move inward and the value marker between them widens.",
-  variable:
-    "A curved x for a changing value. On hover, its two strokes skew in opposite directions, then settle back.",
+    "Paired markers represent a parameter's lower and upper bounds.",
+  variable: "A curved x represents a changing value.",
   variableBrackets:
-    "An x inside square brackets for a bound expression. On hover, the brackets open outward while the value lifts and contracts slightly.",
+    "An x inside square brackets represents a bound expression.",
   variableRegister:
-    "An x and a cursor inside a value register. On hover, the value lifts and contracts, and the cursor shortens inside the fixed frame.",
-  tokenType:
-    "Three circular tokens for a token family. On hover, the upper token lowers slightly and the two lower tokens shift outward and upward.",
-  tokenTypeStack:
-    "Stacked tokens for a typed collection. On hover, the upper layers lift apart while the bottom layer stays fixed.",
-  tokenTypeTag:
-    "A tag containing a circular token for a type label. On hover, the token contracts inside the fixed tag outline.",
-  cube: "A cube for a spatial module or encapsulated model. It turns in depth on hover, hiding rear edges; the action animation makes a quarter-turn.",
+    "A value and a cursor inside a frame represent a variable stored in a register.",
+  tokenType: "Three circular tokens represent a token family.",
+  tokenTypeStack: "Stacked tokens represent a typed collection.",
+  tokenTypeTag: "A tag containing a circular token represents a type label.",
+  cube: "A cube represents a spatial module or encapsulated model.",
   subnetNetwork:
-    "Two places connected to a transition inside a subnet boundary. On hover, the connections draw in and the place nodes lift slightly.",
-  subnetLayers:
-    "Overlapping module frames for nested subnets. On hover, the front module shifts down and left while the back frame stays fixed.",
-  sum: "A summation operator without bounds. On hover, the sigma makes a small sideways writing gesture.",
+    "Two places connected to a transition inside a boundary represent a Petri net subnet.",
+  subnetLayers: "Overlapping module frames represent nested subnets.",
+  sum: "A summation symbol represents adding a sequence of terms.",
   sumRange:
-    "A summation operator with upper and lower bounds. On hover, the sigma shifts slightly and the bounds spread vertically.",
+    "A summation symbol with limits represents adding terms over a specified range.",
   integral:
-    "An integral sign without bounds. On hover, the curve makes a small sideways writing gesture.",
+    "An integral sign represents accumulation over a continuous domain.",
   integralBounds:
-    "An integral sign with upper and lower limits. On hover, the curve shifts slightly and the limit marks spread vertically.",
-  matrix:
-    "Four individual values inside matrix brackets. On hover, the values contract together while the brackets stay fixed.",
+    "An integral sign with limits represents accumulation over a specified interval.",
+  matrix: "Individual values inside square brackets represent a matrix.",
   matrixGrid:
-    "Three rows of values inside matrix brackets. On hover, the rows shift slightly to the right within the fixed brackets.",
-  probability:
-    "A bell-shaped distribution above a baseline. On hover, the distribution leans sideways while the baseline stays fixed.",
-  probabilityDice:
-    "A die showing five pips for a discrete outcome. On hover, the pips contract toward the center within the fixed die outline.",
-  expression:
-    "An x between angle brackets for an inline expression. On hover, the brackets open outward and the x shifts slightly.",
+    "Rows of values inside square brackets represent a matrix organized by row.",
+  probability: "A bell-shaped curve represents a probability distribution.",
+  probabilityDice: "A die showing five pips represents a discrete outcome.",
+  expression: "An x between angle brackets represents an inline expression.",
   expressionTree:
-    "A circular root connected to two rectangular children for a syntax tree. On hover, the root contracts while the children and connections stay fixed.",
-  typeVariable:
-    "A T with a smaller x for a type variable. On hover, the T shifts slightly sideways and the x lifts.",
+    "A circular root connected to two rectangular children represents a syntax tree.",
+  typeVariable: "A T with a smaller x represents a type variable.",
   typeUnion:
-    "A circle and a rectangle separated by a vertical bar for a choice of types. On hover, the two shapes move apart around the fixed separator.",
+    "A circle and a rectangle separated by a vertical bar represents a choice of types.",
   breakpoint:
-    "An octagonal stop marker with a central dot for an execution breakpoint. On hover, the dot contracts within the fixed outline.",
+    "An octagonal stop marker with a central dot represents an execution breakpoint.",
   breakpointLine:
-    "A breakpoint marker beside lines of code. On hover, the marker contracts and the marked line shifts slightly to the right.",
+    "A stop marker beside code represents a breakpoint on a particular line.",
   testTube:
-    "A tilted test tube for an experiment or a test without a result. On hover, its liquid level shifts sideways.",
+    "A tilted test tube represents an experiment or a test without a result.",
   testTubeCheck:
-    "A tilted test tube with a checkmark for a successful test. On hover, its liquid level shifts sideways and the checkmark pulses briefly.",
-  testTubeCross:
-    "A tilted test tube with a cross for a failed test. On hover, its liquid level shifts sideways and the cross pulses briefly.",
-  testCheck:
-    "A clipboard with a checkmark for a validation result. On hover, the checkmark grows briefly inside the fixed clipboard.",
-  agent:
-    "A robot face for an agent. On hover, its eyes blink and its antenna turns slightly while the head stays fixed.",
+    "A tilted test tube with a checkmark represents a successful test.",
+  testTubeCross: "A tilted test tube with a cross represents a failed test.",
+  testCheck: "A clipboard with a checkmark represents a validation result.",
+  agent: "A robot face represents an agent.",
   agentOrbit:
-    "A central circle surrounded by orbiting nodes for an autonomous process. On hover, the outer orbit turns while the center stays fixed.",
-  context:
-    "Overlapping documents for supporting context. On hover, the rear page shifts down and right, and the text lines shift slightly.",
-  contextWindow:
-    "Text rows inside open brackets for a context window. On hover, the brackets spread outward and the rows shift to the right.",
-  reasoning:
-    "Three connected steps for a reasoning sequence. On hover, the middle node contracts and the connecting path shifts slightly.",
-  reasoningFork:
-    "A shared step branching to two alternatives. On hover, the right branch node contracts and the connecting path shifts slightly.",
-  embedding:
-    "Points on coordinate axes for an embedding space. On hover, the points contract toward the center while the axes stay fixed.",
+    "A central circle surrounded by orbiting nodes represents an autonomous process.",
+  context: "Overlapping documents represent supporting context.",
+  contextWindow: "Text rows inside open brackets represent a context window.",
+  reasoning: "Three connected steps represent a reasoning sequence.",
+  reasoningFork: "A branching path represents alternative lines of reasoning.",
+  embedding: "Points on coordinate axes represent an embedding space.",
   embeddingVector:
-    "A diagonal vector on coordinate axes. On hover, the arrow moves up and right and the reference marks shift slightly.",
+    "An arrow on coordinate axes represents a vector in an embedding space.",
 
   infinity:
-    "A continuous figure-eight loop for an unlimited value or repeated process. It grows slightly on hover.",
-  arrowUp:
-    "An upward arrow for moving up or increasing a value. It shifts upward on hover.",
-  arrowDown:
-    "A downward arrow for moving down or decreasing a value. It shifts downward on hover.",
-  arrowLeft:
-    "A left-pointing arrow for moving back or left. It shifts left on hover.",
-  arrowRight:
-    "A right-pointing arrow for moving forward or right. It shifts right on hover.",
+    "A continuous figure-eight loop represents an unlimited value or repeated process.",
+  arrowUp: "An upward arrow represents moving up or increasing a value.",
+  arrowDown: "A downward arrow represents moving down or decreasing a value.",
+  arrowLeft: "A left-pointing arrow represents moving back or left.",
+  arrowRight: "A right-pointing arrow represents moving forward or right.",
   arrowUpRight:
-    "A diagonal arrow for opening a destination or moving outward. It shifts up and right on hover.",
+    "A diagonal arrow represents opening a destination or moving outward.",
   arrowsLeftRight:
-    "Two opposed horizontal arrows for exchange or movement in both directions. They grow slightly together on hover.",
-  trash:
-    "A wastebasket for deleting an item. Its lid lifts and tilts on hover.",
-  pencil: "A pencil for editing or drawing. It tilts slightly on hover.",
-  copy: "Two overlapping sheets for copying an item. The front sheet shifts down and right on hover.",
-  download:
-    "An arrow entering a tray for downloading a file. The arrow moves downward on hover.",
-  link: "Two joined chain links for a hyperlink or section anchor. On hover, the links grow slightly together.",
+    "Two opposed horizontal arrows represent exchange or movement in both directions.",
+  trash: "A wastebasket represents deleting an item.",
+  pencil: "A pencil represents editing or drawing.",
+  copy: "Two overlapping sheets represent copying an item.",
+  download: "An arrow entering a tray represents downloading a file.",
+  link: "Two joined chain links represent a hyperlink or section anchor.",
   linkBroken:
-    "Two separated chain ends for a broken link or disconnected relationship. On hover, the chain ends grow slightly together.",
+    "Two separated chain ends represent a broken link or disconnected relationship.",
   externalLink:
-    "An arrow leaving a square for opening an external destination. The arrow shifts up and right on hover.",
-  ellipsis:
-    "Three horizontal dots for additional actions. The middle dot grows slightly on hover.",
+    "An arrow leaving a square represents opening an external destination.",
+  ellipsis: "Three horizontal dots represent additional actions.",
   ellipsisVertical:
-    "Three vertical dots for additional actions in a narrow space. The middle dot grows slightly on hover.",
+    "Three vertical dots represent additional actions in a narrow space.",
   circleEllipsis:
-    "Three dots inside a circle for a more-actions control. The circle and dots lift briefly in sequence on hover.",
-  collapse:
-    "Four inward-pointing arrows for reducing an expanded view. They contract toward the center on hover.",
-  lockOpen:
-    "An open padlock for an unlocked or editable state. Its shackle lifts slightly on hover.",
-  lockClosed:
-    "A closed padlock for a locked or restricted state. Its shackle lifts slightly on hover.",
-  eye: "An open eye for showing content or inspecting visibility. Its pupil grows slightly on hover.",
+    "Three dots inside a circle represent a more-actions control.",
+  collapse: "Four inward-pointing arrows represent reducing an expanded view.",
+  lockOpen: "An open padlock represents an unlocked or editable state.",
+  lockClosed: "A closed padlock represents a locked or restricted state.",
+  eye: "An open eye represents showing content or inspecting visibility.",
   eyeSlash:
-    "A crossed-out eye for hidden content or disabled visibility. Its pupil grows slightly behind the slash on hover.",
-  clock:
-    "A clock face for time or duration. Its hands turn slightly backward on hover.",
+    "A crossed-out eye represents hidden content or disabled visibility.",
+  clock: "A clock face represents time or duration.",
   clockRotateLeft:
-    "A clock inside a backward circular arrow for history or a previous state. The surrounding arrow and clock hands rotate backward on hover.",
+    "A clock inside a backward circular arrow represents history or a previous state.",
   rotate:
-    "Two curved arrows for rotating an object or refreshing a cycle. They turn slightly clockwise on hover.",
+    "Two curved arrows represent rotating an object or refreshing a cycle.",
   rightToLine:
-    "A right-pointing arrow meeting a vertical line for moving to an endpoint. The arrow advances toward the line on hover.",
-  flask:
-    "A flask containing liquid for an experiment or simulation. Its liquid ripples on hover, and selection raises the liquid level.",
-  layer:
-    "Three stacked planes for layers or levels. The upper and lower planes separate slightly on hover.",
-  chartBarSimple:
-    "Three vertical bars on axes for comparing quantities. The bars stretch upward on hover.",
-  chartLine:
-    "A connected line on axes for a trend or time series. The line lifts slightly on hover.",
-  filter:
-    "A funnel for narrowing a set of results. It contracts slightly on hover.",
-  bracketsCurly:
-    "A pair of curly braces for an object or code block. The braces grow and move apart on hover.",
+    "A right-pointing arrow meeting a vertical line represents moving to an endpoint.",
+  flask: "A flask containing liquid represents an experiment or simulation.",
+  layer: "Three stacked planes represent layers or levels.",
+  chartBarSimple: "Three vertical bars on axes represent comparing quantities.",
+  chartLine: "A connected line on axes represents a trend or time series.",
+  filter: "A funnel represents narrowing a set of results.",
+  bracketsCurly: "A pair of curly braces represents an object or code block.",
   lambda:
-    "The Greek letter lambda for a function or mathematical parameter. It lifts slightly on hover.",
-  lightning:
-    "A lightning bolt for a fast action, event, or energy. It lifts slightly on hover.",
-  code: "Angle brackets with a slash for source code. The brackets move apart on hover while the slash stays fixed.",
+    "The Greek letter lambda represents a function or mathematical parameter.",
+  lightning: "A lightning bolt represents a fast action, event, or energy.",
+  code: "Angle brackets with a slash represent source code.",
   diagramNested:
-    "A divided inner frame inside a larger frame for nested structure. The frames lift briefly in sequence on hover.",
+    "A divided inner frame inside a larger frame represents nested structure.",
   diagramProject:
-    "Three connected rectangular nodes for a project or dependency diagram. Its nodes and connections lift briefly in sequence on hover.",
-  shapes:
-    "A triangle, circle, square, and diamond for shape tools. On hover, the circle lifts and the other shapes turn; selection changes their arrangement.",
-  file: "A sheet with a folded corner for a file. It lifts slightly on hover.",
+    "Three connected rectangular nodes represent a project or dependency diagram.",
+  shapes: "A triangle, circle, square, and diamond represent shape tools.",
+  file: "A sheet with a folded corner represents a file.",
   fileLines:
-    "A folded-corner sheet with text lines for a text document. Its lines shift right on hover.",
-  list: "Three bulleted rows for a list view. The row lines shift right on hover while the bullets stay fixed.",
+    "A folded-corner sheet with text lines represents a text document.",
+  list: "Three bulleted rows represent a list view.",
   table:
-    "A rectangular grid with rows and a leading column for tabular data. Its frame and dividers lift briefly in sequence on hover.",
-  grid: "Four separate squares for a grid view. The squares lift briefly in sequence on hover.",
+    "A rectangular grid with rows and a leading column represents tabular data.",
+  grid: "Four separate squares represent a grid view.",
   bullseye:
-    "Concentric circles around a center point for a target or goal. The middle ring contracts slightly on hover.",
+    "Concentric circles around a center point represent a target or goal.",
   scribble:
-    "A loose curved path ending in an arrow for a freeform route or gesture. It shifts right on hover.",
+    "A loose curved path ending in an arrow represents a freeform route or gesture.",
   sparkles:
-    "A large sparkle with a smaller companion for an enhancement or generated result. The large sparkle grows and turns slightly on hover.",
-  info: "An information mark inside a circle for supporting information. Its parts lift briefly in sequence on hover.",
-  error:
-    "An exclamation mark inside a circle for an error state. Its parts lift briefly in sequence on hover.",
-  warning:
-    "An exclamation mark inside a triangle for a warning. Its parts lift briefly in sequence on hover.",
+    "A large sparkle with a smaller companion represents an enhancement or generated result.",
+  info: "An information mark inside a circle represents supporting information.",
+  error: "An exclamation mark inside a circle represents an error state.",
+  warning: "An exclamation mark inside a triangle represents a warning.",
   circleCheck:
-    "A checkmark inside a circle for a successful or completed state. Its parts lift briefly in sequence on hover.",
+    "A checkmark inside a circle represents a successful or completed state.",
   circleClose:
-    "A cross inside a circle for dismissal, cancellation, or a failed state. Its parts lift briefly in sequence on hover.",
+    "A cross inside a circle represents dismissal, cancellation, or a failed state.",
   terminal:
-    "A command prompt and cursor inside a window for a terminal. The prompt arrow shifts right on hover.",
-  text: "A capital T beside a smaller t for text or typography. The lettering lifts briefly on hover.",
-  user: "A person's head and shoulders for an account or person. The head lifts slightly on hover.",
-  voice:
-    "Five vertical waveform bars for voice or audio. The waveform compresses vertically on hover.",
-  transcription:
-    "Three horizontal text lines for a speech transcript. The lines shift right on hover.",
-  assistant:
-    "Four diamonds arranged around a center for an assistant. The group grows and turns slightly on hover.",
-  arrowTrendUp:
-    "A rising zigzag arrow for an upward trend. It shifts up and right on hover.",
-  arrowTrendDown:
-    "A falling zigzag arrow for a downward trend. It shifts downward on hover.",
-  asterisk:
-    "A six-spoked asterisk for a wildcard or annotation. It turns slightly clockwise on hover.",
-  at: "An at sign for a mention or address. It turns slightly clockwise on hover.",
+    "A command prompt and cursor inside a window represents a terminal.",
+  text: "A capital T beside a smaller t represents text or typography.",
+  user: "A person's head and shoulders represents an account or person.",
+  voice: "Five vertical waveform bars represent voice or audio.",
+  transcription: "Three horizontal text lines represent a speech transcript.",
+  assistant: "Four diamonds arranged around a center represent an assistant.",
+  arrowTrendUp: "A rising zigzag arrow represents an upward trend.",
+  arrowTrendDown: "A falling zigzag arrow represents a downward trend.",
+  asterisk: "A six-spoked asterisk represents a wildcard or annotation.",
+  at: "An at sign represents a mention or address.",
   barcode:
-    "Six vertical bars of varying spacing for a barcode or identifier. The bars pulse in height and opacity on hover.",
-  bell: "A bell for notifications or alerts. The bell tilts and its clapper shifts sideways on hover.",
+    "Six vertical bars of varying spacing represent a barcode or identifier.",
+  bell: "A bell represents notifications or alerts.",
   bracketsSquare:
-    "A pair of square brackets for an array or bounded expression. The brackets move apart on hover.",
-  bug: "A beetle-like bug for a defect or debugging. Its legs and antennae turn slightly around the body on hover.",
-  calendar:
-    "A calendar with one marked day for a date. The day marker grows slightly on hover.",
-  calendarClock:
-    "A calendar with a clock for a scheduled time. The clock hands turn slightly backward on hover.",
+    "A pair of square brackets represents an array or bounded expression.",
+  bug: "A beetle-like bug represents a defect or debugging.",
+  calendar: "A calendar with one marked day represents a date.",
+  calendarClock: "A calendar with a clock represents a scheduled time.",
   circleOne:
-    "The numeral one inside a circle for a first step or single item. Its parts lift briefly in sequence on hover.",
-  cubes:
-    "Three connected cubes for a collection of modules or objects. The cluster lifts briefly on hover.",
+    "The numeral one inside a circle represents a first step or single item.",
+  cubes: "Three connected cubes represent a collection of modules or objects.",
   diagramNodes:
-    "Four circular nodes joined diagonally for a graph or network. The nodes and connections lift briefly in sequence on hover.",
+    "Four circular nodes joined diagonally represent a graph or network.",
   diagramSubtask:
-    "Two rectangular tasks branching from a shared stem for subtasks. The diagram lifts briefly on hover.",
+    "Two rectangular tasks branching from a shared stem represent subtasks.",
   diamondExclamation:
-    "An exclamation mark inside a diamond for an alert or exception. Its parts lift briefly in sequence on hover.",
-  emptySet:
-    "A slashed circle for the mathematical empty set. It turns slightly clockwise on hover.",
+    "An exclamation mark inside a diamond represents an alert or exception.",
+  emptySet: "A slashed circle represents the mathematical empty set.",
   feather:
-    "A feather with a central quill for writing or lightweight editing. It tilts slightly on hover.",
+    "A feather with a central quill represents writing or lightweight editing.",
   fileSpreadsheet:
-    "A folded-corner sheet containing a table for a spreadsheet file. The document lifts briefly on hover.",
-  gripVertical:
-    "Two columns of three dots for a drag handle. The dots lift briefly in sequence on hover.",
-  image:
-    "A framed landscape with a sun for an image. The sun lifts slightly on hover.",
+    "A folded-corner sheet containing a table represents a spreadsheet file.",
+  gripVertical: "Two columns of three dots represent a drag handle.",
+  image: "A framed landscape with a sun represents an image.",
   inputPipe:
-    "A right-pointing arrow entering a bracket for an input or incoming data. It shifts right on hover.",
+    "A right-pointing arrow entering a bracket represents an input or incoming data.",
   lightbulbOn:
-    "A lightbulb with a visible filament for an idea or insight. The filament lifts slightly on hover.",
+    "A lightbulb with a visible filament represents an idea or insight.",
   listTree:
-    "Two list entries branching from a vertical stem for a hierarchy. The tree lifts briefly on hover.",
+    "Two list entries branching from a vertical stem represent a hierarchy.",
   magic:
-    "A wand surrounded by small sparks for an assisted or automated action. The sparks grow and turn slightly on hover.",
+    "A wand surrounded by small sparks represents an assisted or automated action.",
   memoCircleCheck:
-    "A note with a circled checkmark for a reviewed or completed document. Its parts lift briefly in sequence on hover.",
+    "A note with a circled checkmark represents a reviewed or completed document.",
   microscope:
-    "A microscope for examining details or investigating a result. It tilts slightly on hover.",
-  oneHundred:
-    "An underlined 100 for a complete score or percentage. Its parts lift briefly in sequence on hover.",
-  personRunning:
-    "A running person for activity or execution. Its limbs and body complete one running cycle on hover by default; the action animation adds a jump. Continuous animation is opt-in.",
-  plug: "An electrical plug for a connection or integration. Its pins shift downward on hover.",
-  print:
-    "A printer with an emerging sheet for printing. The lower sheet advances downward on hover.",
-  puzzlePiece:
-    "A puzzle piece for an extension or compatible part. It contracts slightly on hover.",
+    "A microscope represents examining details or investigating a result.",
+  oneHundred: "An underlined 100 represents a complete score or percentage.",
+  personRunning: "A running person represents activity or execution.",
+  plug: "An electrical plug represents a connection or integration.",
+  print: "A printer with an emerging sheet represents printing.",
+  puzzlePiece: "A puzzle piece represents an extension or compatible part.",
   ruler:
-    "A diagonal ruler with measurement marks for dimensions or spacing. It tilts slightly on hover.",
+    "A diagonal ruler with measurement marks represents dimensions or spacing.",
+  logicSignalBounded:
+    "A waveform with a marked interval represents signal temporal logic over a bounded period.",
+  logicSignalThreshold:
+    "A waveform crossing a threshold represents a predicate on a signal value in signal temporal logic.",
+  logicSignalClock:
+    "A waveform beside a clock represents time-based signal conditions in signal temporal logic.",
+  logicStateSequence:
+    "Connected states represent a linear execution path evaluated by linear temporal logic.",
+  logicTemporalOperators:
+    "Square and diamond operators above a timeline represent always and eventually in temporal logic.",
+  logicBooleanTrace:
+    "A stepped trace represents Boolean values over time for evaluation with linear temporal logic.",
   sortDown:
-    "A downward arrow beside shortening rows for descending size or value order. It shifts downward on hover.",
+    "A downward arrow beside shortening rows represents descending size or value order.",
   sortUp:
-    "An upward arrow beside lengthening rows for ascending size or value order. It shifts upward on hover.",
+    "An upward arrow beside lengthening rows represents ascending size or value order.",
+  sortDownBoolean:
+    "A downward arrow beside a cross above a tick represents boolean order with false values first.",
+  sortUpBoolean:
+    "An upward arrow beside a tick above a cross represents boolean order with true values first.",
+  sortDownDate:
+    "A calendar beside a downward arrow represents sorting dates from oldest to newest.",
+  sortUpDate:
+    "A calendar beside an upward arrow represents sorting dates from newest to oldest.",
+  sortDownDuration:
+    "A clock beside a downward arrow represents sorting durations from shortest to longest.",
+  sortUpDuration:
+    "A clock beside an upward arrow represents sorting durations from longest to shortest.",
+  sortDownPriority:
+    "An exclamation mark above a minus sign represents sorting high-priority items first.",
+  sortUpPriority:
+    "A minus sign above an exclamation mark represents sorting low-priority items first.",
+  sortDownEmptyValues:
+    "A hollow circle above a solid circle represents placing missing values before populated values.",
+  sortUpEmptyValues:
+    "A solid circle above a hollow circle represents placing populated values before missing values.",
   sortDownNumeric:
-    "A downward arrow beside 1 and 9 for numeric order from low to high. It shifts downward on hover.",
+    "A downward arrow beside 1 and 9 represents numeric order from low to high.",
   sortUpNumeric:
-    "An upward arrow beside 9 and 1 for numeric order from high to low. It shifts upward on hover.",
+    "An upward arrow beside 9 and 1 represents numeric order from high to low.",
   sortDownAlphabetical:
-    "A downward arrow beside A and Z for alphabetical order from A to Z. It shifts downward on hover.",
+    "A downward arrow beside A and Z represents alphabetical order from A to Z.",
   sortUpAlphabetical:
-    "An upward arrow beside Z and A for alphabetical order from Z to A. It shifts upward on hover.",
+    "An upward arrow beside Z and A represents alphabetical order from Z to A.",
   sortDownShapes:
-    "A downward arrow beside a circle above a pyramid for sorting by shape or object type. It shifts downward on hover.",
+    "A downward arrow beside a circle above a triangle represents sorting by shape or object type.",
   sortUpShapes:
-    "An upward arrow beside a pyramid above a circle for reversing shape or object-type order. It shifts upward on hover.",
+    "An upward arrow beside a triangle above a circle represents reversing shape or object-type order.",
   sortDownSize:
-    "A downward arrow beside four progressively shorter lines for sorting from largest to smallest. It shifts downward on hover.",
+    "A downward arrow beside four progressively shorter lines represents sorting from largest to smallest.",
   sortUpSize:
-    "An upward arrow beside four progressively longer lines for sorting from smallest to largest. It shifts upward on hover.",
+    "An upward arrow beside four progressively longer lines represents sorting from smallest to largest.",
   squareCheck:
-    "A checkmark inside a square for a checked item or selection. Its parts lift briefly in sequence on hover.",
-  star: "A five-pointed star for a favorite or rating. It tilts slightly on hover.",
+    "A checkmark inside a square represents a checked item or selection.",
+  star: "A five-pointed star represents a favorite or rating.",
   thoughtBubble:
-    "A cloud-shaped thought bubble with trailing dots for a thought or idea. The larger trailing dot grows slightly on hover.",
-  truck:
-    "A delivery truck for transport or shipment. It shifts right on hover.",
-  userPlus:
-    "A person with a plus sign for adding or inviting someone. The head lifts slightly on hover.",
-  sidebar:
-    "A window with a left panel for showing or hiding a sidebar. Hover nudges its divider; the collapsed state retracts the panel.",
-  menu: "Three horizontal lines for a menu. They contract slightly on hover and transform into a cross when the menu is open.",
-  microphone:
-    "A microphone for audio input. It lifts slightly on hover, and the muted state adds a diagonal slash.",
+    "A cloud-shaped thought bubble with trailing dots represents a thought or idea.",
+  truck: "A delivery truck represents transport or shipment.",
+  userPlus: "A person with a plus sign represents adding or inviting someone.",
+  sidebar: "A window with a left panel represents showing or hiding a sidebar.",
+  menu: "Three horizontal lines represent a menu.",
+  microphone: "A microphone represents audio input.",
   playback:
-    "A combined play and pause control for playback. It grows slightly on hover and changes from a triangle to pause bars when playing.",
+    "A control that switches between play and pause represents playback state.",
   diagnostics:
-    "A state-dependent mark for validation or diagnostics. Its strokes transform between a checkmark, exclamation mark, and cross as status changes.",
-  loading:
-    "A partial ring over a faint circle for a loading state. It turns slightly on hover; the LoadingIcon component enables a continuous spin by default.",
-  hand: "An open hand for panning or dragging a canvas. It lifts slightly on hover.",
-  cursor: "A pointer arrow for selecting objects. It tilts slightly on hover.",
-  place:
-    "A circle for a Petri-net place that can hold tokens. It grows slightly on hover.",
+    "A checkmark, exclamation mark, or cross represents a successful, warning, or error diagnostic result.",
+  loading: "A partial ring represents an operation in progress.",
+  hand: "An open hand represents panning or dragging a canvas.",
+  cursor: "A pointer arrow represents selecting objects.",
+  place: "A circle represents a Petri-net place that can hold tokens.",
   transition:
-    "A rounded square for a Petri-net transition that consumes and produces tokens. It grows slightly on hover.",
+    "A rounded square represents a Petri-net transition that consumes and produces tokens.",
   addPlace:
-    "A circular place with a plus badge for adding a Petri-net place. The badge appears on hover by default, and selection enlarges the place slightly.",
+    "A circular place with a plus badge represents adding a Petri-net place.",
   addTransition:
-    "A rounded-square transition with a plus badge for adding a Petri-net transition. The badge appears on hover by default, and selection enlarges the transition slightly.",
-  settings:
-    "A gear for settings or configuration. It turns when its open state changes.",
+    "A rounded-square transition with a plus badge represents adding a Petri-net transition.",
+  settings: "A gear represents settings or configuration.",
   function:
-    "A mathematical function symbol for a function or transformation. It lifts slightly on hover.",
-  play: "A right-pointing triangle for starting or resuming playback. It shifts right on hover.",
-  pause:
-    "Two vertical bars for pausing playback. They contract slightly together on hover.",
+    "A mathematical function symbol represents a function or transformation.",
+  play: "A right-pointing triangle represents starting or resuming playback.",
+  pause: "Two vertical bars represent pausing playback.",
   stepForward:
-    "A play triangle facing an endpoint for advancing one step. It shifts right on hover.",
-  stop: "A rounded square for stopping playback or execution. It contracts slightly on hover.",
-  reset:
-    "A backward circular arrow for returning to an initial state. The arrow rotates backward on hover.",
-  plus: "A plus sign for adding an item or increasing a value. It grows slightly on hover.",
-  minus:
-    "A minus sign for removing an item or decreasing a value. It contracts slightly on hover.",
-  close:
-    "A diagonal cross for closing or dismissing a view. It contracts slightly on hover.",
-  check:
-    "A checkmark for confirming an action or marking completion. It lifts slightly on hover.",
-  search: "A magnifying glass for finding content. It grows slightly on hover.",
+    "A play triangle facing an endpoint represents advancing one step.",
+  stop: "A rounded square represents stopping playback or execution.",
+  reset: "A backward circular arrow represents returning to an initial state.",
+  plus: "A plus sign represents adding an item or increasing a value.",
+  minus: "A minus sign represents removing an item or decreasing a value.",
+  close: "A diagonal cross represents closing or dismissing a view.",
+  check: "A checkmark represents confirming an action or marking completion.",
+  search: "A magnifying glass represents finding content.",
   zoomIn:
-    "A magnifying glass with a plus sign for increasing magnification. It grows slightly on hover.",
+    "A magnifying glass with a plus sign represents increasing magnification.",
   zoomOut:
-    "A magnifying glass with a minus sign for decreasing magnification. It contracts slightly on hover.",
-  fitView:
-    "Four open corners for fitting content into a viewport. They spread slightly outward on hover.",
+    "A magnifying glass with a minus sign represents decreasing magnification.",
+  fitView: "Four open corners represent fitting content into a viewport.",
   chevronUp:
-    "An upward chevron for expanding upward or moving to a previous item. It shifts upward on hover.",
+    "An upward chevron represents expanding upward or moving to a previous item.",
   chevronDown:
-    "A downward chevron for expanding downward or moving to a next item. It shifts downward on hover.",
+    "A downward chevron represents expanding downward or moving to a next item.",
   chevronLeft:
-    "A left-pointing chevron for moving backward through items. It shifts left on hover.",
+    "A left-pointing chevron represents moving backward through items.",
   chevronRight:
-    "A right-pointing chevron for moving forward through items. It shifts right on hover.",
+    "A right-pointing chevron represents moving forward through items.",
 } satisfies Record<HashIconName, string>;

@@ -2,7 +2,10 @@ import { FlowRunStatus } from "../../../../../../../graphql/api-types.gen";
 
 import type { FlowRunSummary } from "../../../../../../../graphql/api-types.gen";
 
-/** How the editor shows a run's status, finer than the API's where it helps, e.g. a run waiting on a person. */
+/**
+ * How the editor and the flows page show a run's status, finer than the API's where it helps, e.g. a run waiting on a
+ * person.
+ */
 export type RunState =
   | "running"
   | "needsReview"

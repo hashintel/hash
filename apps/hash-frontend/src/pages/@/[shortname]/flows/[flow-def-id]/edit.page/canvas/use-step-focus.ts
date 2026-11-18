@@ -4,6 +4,33 @@ import { useEffect, useRef } from "react";
 import { getStepNodeId } from "./flow-graph";
 import { stepCardSize } from "./sizes";
 
+import type { Viewport } from "@xyflow/react";
+
+/**
+ * Where to centre the view, at the same zoom, to bring a card wholly into the part of the canvas a panel doesn't cover;
+ * `null` when it's there already.
+ */
+export const getCenterToReveal = (
+  card: { x: number; y: number; width: number; height: number },
+  viewport: Viewport,
+  pane: { width: number; height: number },
+  /** How much of the canvas's right edge a panel covers, in pixels. */
+  coveredRight: number,
+) => {
+  const left = card.x * viewport.zoom + viewport.x;
+  const top = card.y * viewport.zoom + viewport.y;
+
+  return left < 0 ||
+    top < 0 ||
+    left + card.width * viewport.zoom > pane.width - coveredRight ||
+    top + card.height * viewport.zoom > pane.height
+    ? {
+        x: card.x + card.width / 2 + coveredRight / 2 / viewport.zoom,
+        y: card.y + card.height / 2,
+      }
+    : null;
+};
+
 /**
  * Pans to centre the step a focus request names, in the part of the canvas a panel doesn't cover. Retried as nodes
  * appear, until the step can be brought into view.
@@ -71,24 +98,23 @@ export const useSelectedStepInView = (
       return;
     }
 
-    const { x, y } = node.internals.positionAbsolute;
-    const width = node.measured.width ?? stepCardSize.width;
-    const height = node.measured.height ?? stepCardSize.height;
     const viewport = getViewport();
-    const left = x * viewport.zoom + viewport.x;
-    const top = y * viewport.zoom + viewport.y;
+    const center = getCenterToReveal(
+      {
+        ...node.internals.positionAbsolute,
+        width: node.measured.width ?? stepCardSize.width,
+        height: node.measured.height ?? stepCardSize.height,
+      },
+      viewport,
+      { width: paneWidth, height: paneHeight },
+      coveredRight,
+    );
 
-    if (
-      left < 0 ||
-      top < 0 ||
-      left + width * viewport.zoom > paneWidth - coveredRight ||
-      top + height * viewport.zoom > paneHeight
-    ) {
-      void setCenter(
-        x + width / 2 + coveredRight / 2 / viewport.zoom,
-        y + height / 2,
-        { zoom: viewport.zoom, duration: 300 },
-      );
+    if (center) {
+      void setCenter(center.x, center.y, {
+        zoom: viewport.zoom,
+        duration: 300,
+      });
     }
   }, [
     soleSelectedStepId,

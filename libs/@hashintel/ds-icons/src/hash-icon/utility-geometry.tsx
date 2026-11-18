@@ -1,25 +1,87 @@
 import { FilledShape } from "./filled-shape";
+import { PunctuationDot } from "./shared/punctuation-dot";
 
 const calendarFrame = (
   <>
-    <path d="M4 5h16v16H4Z" />
+    <rect x="4" y="5" width="16" height="16" rx="1" />
     <path fill="none" d="M8 3v4m8-4v4" />
   </>
 );
-const sortPyramid = (
-  <FilledShape cutout={<path d="M4 0v8" />}>
-    <path d="M4 0 0 7 4 8 8 7Z" />
+const sortLetterA = <path d="M12.9 7 15.7 0h.6l2.8 7M13.8 4.75h4.4" />;
+const sortLetterZ = <path d="M13.4 0h5.2v.35l-5.2 6.3V7h5.2" />;
+const sortDigitOne = (
+  <path
+    d="M16.5-.15v7.3M13.5 1.75h2c.65 0 1-.35 1-1.1"
+    strokeWidth="calc(var(--hash-icon-stroke-width) * .9)"
+  />
+);
+const sortDigitNine = (
+  <path d="M18.5 2.25c0 1.25-.95 2.25-2.5 2.25s-2.5-1-2.5-2.25S14.45 0 16 0s2.5 1 2.5 2.25c0 3.65-.5 4.75-2.5 4.75-1.35 0-2.1-.65-2.3-1.8" />
+);
+const sortCheck = <path d="m12 3.5 3 3 5-6" />;
+const sortCross = <path d="m13 .5 6 6m0-6-6 6" />;
+const sortCalendar = (
+  <FilledShape
+    cutout={
+      <>
+        <path d="M10.5 10h11" />
+        <PunctuationDot
+          x={14}
+          y={13.5}
+          strokeWidth="calc(var(--hash-icon-stroke-width) * .85)"
+        />
+        <PunctuationDot
+          x={18}
+          y={13.5}
+          strokeWidth="calc(var(--hash-icon-stroke-width) * .85)"
+        />
+        <PunctuationDot
+          x={14}
+          y={17}
+          strokeWidth="calc(var(--hash-icon-stroke-width) * .85)"
+        />
+      </>
+    }
+  >
+    <rect x="10.5" y="5.5" width="11" height="15" rx=".5" />
+    <path fill="none" d="M13 3v5m6-5v5" />
+  </FilledShape>
+);
+const sortClock = (
+  <FilledShape cutout={<path d="M16 8v4l3 2" />}>
+    <circle cx="16" cy="12" r="6" />
+  </FilledShape>
+);
+const sortHighPriority = (
+  <>
+    <path d="M16 0v4.75" />
+    <PunctuationDot x={16} y={6.75} />
+  </>
+);
+const sortLowPriority = <path d="M13 3.5h6" />;
+const sortEmptyValue = <circle cx="16" cy="3.5" r="3" fill="none" />;
+const sortPresentValue = <circle cx="16" cy="3.5" r="3" fill="currentColor" />;
+const sortUpperTransform = "translate(16 6.5) scale(1.1) translate(-16 -3.5)";
+const sortLowerTransform = "translate(16 17.5) scale(.9) translate(-16 -3.5)";
+const sortCircle = (
+  <FilledShape>
+    <circle cx="16" cy="3.5" r="3.5" />
+  </FilledShape>
+);
+const sortTriangle = (
+  <FilledShape>
+    <path d="M16 0 12 7h8Z" />
   </FilledShape>
 );
 
 export const utilityGeometry = {
-  arrowTrendUp: <path d="m3 17 6-6 4 4 8-10m-6 0h6v6" />,
-  arrowTrendDown: <path d="m3 7 6 6 4-4 8 10m-6 0h6v-6" />,
+  arrowTrendUp: <path d="m3.5 17 6-6 4 4 7-10M14 5h6.5v6.5" />,
+  arrowTrendDown: <path d="m3.5 7 6 6 4-4 7 10M14 19h6.5v-6.5" />,
   asterisk: <path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9" />,
   at: (
     <>
-      <circle cx="11" cy="12" r="4" />
-      <path d="M15 8v7c0 3 6 2 6-4a9 9 0 1 0-4 8.5" />
+      <path d="M8 9c.4-1.8 1.7-2.7 3.7-2.7 2.5 0 3.8 1.35 3.8 3.7v5.2c0 2.9 5.5 2.2 5.5-3.7C21 6.1 17.5 3 12.5 3 6.6 3 3 6.9 3 12.3 3 18 6.9 21 12.6 21h4.1" />
+      <path d="M15.5 10.75h-3.7c-2.7 0-4.1 1-4.1 3 0 1.8 1.25 2.9 3.3 2.9 2.75 0 4.5-1.7 4.5-4.1" />
     </>
   ),
   barcode: (
@@ -36,8 +98,8 @@ export const utilityGeometry = {
   ),
   bell: (
     <FilledShape>
-      <path d="M5 10a7 7 0 0 1 14 0v5l2 3H3l2-3Z" />
-      <path fill="none" data-icon-detail="bell-clapper" d="M9 21h6" />
+      <path d="M4 18c2-2 2.5-3 2.5-6V9a5.5 5.5 0 0 1 11 0v3c0 3 .5 4 2.5 6Z" />
+      <path fill="none" data-icon-detail="bell-clapper" d="M9.5 21h5" />
     </FilledShape>
   ),
   bracketsSquare: (
@@ -91,7 +153,7 @@ export const utilityGeometry = {
       cutout={
         <>
           {" "}
-          <path d="m10 9 2-2v10m-3 0h6" />{" "}
+          <path d="m9.5 9 3-2v10.5" />{" "}
         </>
       }
     >
@@ -111,20 +173,18 @@ export const utilityGeometry = {
     </FilledShape>
   ),
   diagramNodes: (
-    <>
-      <path d="m7 7 10 10M7 17 17 7" />
-      <g fill="currentColor" stroke="none">
-        <circle cx="5" cy="5" r="3" />
-        <circle cx="19" cy="5" r="3" />
-        <circle cx="5" cy="19" r="3" />
-        <circle cx="19" cy="19" r="3" />
-      </g>
-    </>
+    <FilledShape>
+      <path fill="none" d="m6.6 6.6 3.8 3.8m3.2 0 3.8-3.8M12 14.25v3" />
+      <circle cx="5" cy="5" r="2.25" />
+      <circle cx="19" cy="5" r="2.25" />
+      <circle cx="12" cy="12" r="2.25" />
+      <circle cx="12" cy="19.5" r="2.25" />
+    </FilledShape>
   ),
   diagramSubtask: (
     <FilledShape>
-      <path fill="none" d="M4 3v13h6M4 7h6" />
-      <path d="M10 4h11v6H10ZM10 13h11v6H10Z" />
+      <path fill="none" d="M4 3v14h6M4 7h6" />
+      <path d="M10 4h11v6H10ZM10 14h11v6H10Z" />
     </FilledShape>
   ),
   diamondExclamation: (
@@ -132,7 +192,8 @@ export const utilityGeometry = {
       cutout={
         <>
           {" "}
-          <path d="M12 7v6m0 4h.01" />{" "}
+          <path d="M12 8v4.75" />
+          <PunctuationDot x={12} y={16} />{" "}
         </>
       }
     >
@@ -146,16 +207,9 @@ export const utilityGeometry = {
     </>
   ),
   feather: (
-    <FilledShape
-      cutout={
-        <>
-          {" "}
-          <path d="M8 16 16 8M9 15h6" />{" "}
-        </>
-      }
-    >
-      <path d="M5 17C0 5 13 1 21 3c0 8-5 17-13 15" />
-      <path fill="none" d="M3 21 8 16" />
+    <FilledShape cutout={<path d="M7.5 16.5 17 7M11 13h5" />}>
+      <path d="M6.5 18C2 13 5 3 20.5 3.5c0 15.5-10 18.5-14 14.5Z" />
+      <path fill="none" d="M3 21l4.5-4.5" />
     </FilledShape>
   ),
   fileSpreadsheet: (
@@ -163,90 +217,77 @@ export const utilityGeometry = {
       cutout={
         <>
           {" "}
-          <path d="M14 3v5h5M8 11h8v7H8ZM8 14.5h8M12 11v7" />{" "}
+          <path d="M13.5 3.5v5h5M8.5 11.5h7v6h-7ZM8.5 14.5h7M12 11.5v6" />{" "}
         </>
       }
     >
-      <path d="M5 3h9l5 5v13H5Z" />
+      <path d="M5.5 3.5h8l5 5v12H5.5Z" />
     </FilledShape>
   ),
   gripVertical: (
     <g fill="currentColor" stroke="none">
-      <circle cx="9" cy="5" r="1.5" />
-      <circle cx="15" cy="5" r="1.5" />
-      <circle cx="9" cy="12" r="1.5" />
-      <circle cx="15" cy="12" r="1.5" />
-      <circle cx="9" cy="19" r="1.5" />
-      <circle cx="15" cy="19" r="1.5" />
+      <PunctuationDot x={9} y={5} />
+      <PunctuationDot x={15} y={5} />
+      <PunctuationDot x={9} y={12} />
+      <PunctuationDot x={15} y={12} />
+      <PunctuationDot x={9} y={19} />
+      <PunctuationDot x={15} y={19} />
     </g>
   ),
   image: (
     <FilledShape
       cutout={
         <>
-          {" "}
-          <circle data-icon-detail="filament" cx="8" cy="8" r="2" />
-          <path d="m4 19 6-6 3 3 4-5 4 6" />{" "}
+          <circle data-icon-detail="filament" cx="8" cy="8.5" r="1.5" />
+          <path d="m3.5 18 6-5.5 3.5 3 4-4.5 3.5 4" />
         </>
       }
     >
-      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <rect x="3.5" y="3.5" width="17" height="17" rx="1" />
     </FilledShape>
   ),
   inputPipe: <path d="M3 12h12m-4-4 4 4-4 4M18 3h3v18h-3" />,
   link: (
     <g fill="none">
-      <path d="M10 13a4 4 0 0 0 6 0l4-4a4 4 0 0 0-6-6l-2 2" />
-      <path d="M14 11a4 4 0 0 0-6 0l-4 4a4 4 0 0 0 6 6l2-2" />
+      <path d="m9.5 8.5 3.5-3.5a4.25 4.25 0 0 1 6 6l-3 3c-1.65 1.65-4.35 1.65-6 0" />
+      <path d="m14.5 15.5-3.5 3.5a4.25 4.25 0 0 1-6-6l3-3c1.65-1.65 4.35-1.65 6 0" />
     </g>
   ),
   linkBroken: (
     <g fill="none">
-      <path d="m12 7 2-2a4 4 0 0 1 6 6l-2 2" />
-      <path d="m12 17-2 2a4 4 0 0 1-6-6l2-2" />
+      <path d="M13.5 4.5a4.25 4.25 0 0 1 6 6L17 13M7 11l-2.5 2.5a4.25 4.25 0 0 0 6 6" />
+      <path d="M7 3v4H3m14 14v-4h4" />
     </g>
   ),
   lightbulbOn: (
     <FilledShape
-      cutout={
-        <>
-          {" "}
-          <path data-icon-detail="filament" d="M12 17v-6m-3-3 3 3 3-3" />{" "}
-        </>
-      }
+      cutout={<path data-icon-detail="filament" d="M12 17v-5m-3-3 3 3 3-3" />}
     >
-      <path d="M8 17c0-3-3-3-3-7a7 7 0 0 1 14 0c0 4-3 4-3 7Z" />
-      <path fill="none" d="M9 21h6" />
+      <path d="M8.5 17.5c0-3-3-3.5-3-8a6.5 6.5 0 0 1 13 0c0 4.5-3 5-3 8Z" />
+      <path fill="none" d="M8.5 20.5h7" />
     </FilledShape>
   ),
   listTree: (
     <FilledShape>
-      <path fill="none" d="M4 3v15h5M4 8h5" />
-      <path d="M9 5h12v6H9ZM9 15h12v6H9Z" />
+      <path fill="none" d="M4 3v15h5M4 7h5" />
+      <path d="M9 4h12v6H9ZM9 15h9v6H9Z" />
     </FilledShape>
   ),
   magic: (
-    <FilledShape
-      cutout={
-        <>
-          {" "}
-          <path d="m11 10 3 3" />{" "}
-        </>
-      }
-    >
-      <path d="m3 18 11-11 3 3L6 21Z" />
+    <FilledShape cutout={<path d="m11.5 10.5 3 3" />}>
+      <path d="M3.5 17.5 14 7l3 3L6.5 20.5Z" />
       <path
         fill="none"
         data-icon-detail="sparkle"
-        d="M6 3v4M4 5h4m10-3v4m-2-2h4m0 9v4m-2-2h4"
+        d="M6 2.5v5M3.5 5h5M19 2v6m-3-3h6M19 14v5m-2.5-2.5h5"
       />
     </FilledShape>
   ),
   memoCircleCheck: (
     <>
-      <path d="M9 21H4V3h14v6M7 7h8M7 11h3" />
-      <FilledShape cutout={<path d="m13 16 2 2 3-4" />}>
-        <circle cx="16" cy="16" r="6" />
+      <path d="M8.5 21H4V3h14v5M7 7h7M7 11h2.5" />
+      <FilledShape cutout={<path d="m12.5 16 2.5 2.5 4-4.5" />}>
+        <circle cx="16" cy="16" r="5.5" />
       </FilledShape>
     </>
   ),
@@ -255,15 +296,15 @@ export const utilityGeometry = {
       <path d="m9 3 5 3-4 7-5-3Z" />
       <path
         fill="none"
-        d="M7 12l-1 2m8-8c7 3 7 13-2 13H7m-3-4h8M12 19v2M5 21h14"
+        d="m6.5 12.5-1 1.5M14 6c7 3 6.5 12.5-1.5 12.5H7M3.5 15.5H12M12 18.5V21M4.5 21h15"
       />
     </FilledShape>
   ),
   oneHundred: (
     <>
-      <path d="m2 8 3-2v11M2 20h20" />
-      <rect x="9" y="6" width="5" height="11" rx="2.5" />
-      <rect x="17" y="6" width="5" height="11" rx="2.5" />
+      <path d="m2 8 2.5-2v11M2 20.5h20" />
+      <ellipse cx="11" cy="11.5" rx="2.5" ry="5.5" />
+      <ellipse cx="19" cy="11.5" rx="2.5" ry="5.5" />
     </>
   ),
   personRunning: (
@@ -280,16 +321,17 @@ export const utilityGeometry = {
   ),
   plug: (
     <FilledShape>
-      <path fill="none" data-icon-detail="down" d="M7 3v5m10-5v5" />
-      <path d="M5 8h14v3a7 7 0 0 1-14 0Z" />
-      <path fill="none" d="M12 18v4" />
+      <path fill="none" data-icon-detail="down" d="M8 3v5m8-5v5" />
+      <path d="M5.5 8h13v3a6.5 6.5 0 0 1-13 0Z" />
+      <path fill="none" d="M12 17.5V22" />
     </FilledShape>
   ),
   print: (
     <>
-      <path d="M7 8V3h10v5M7 17H3V8h18v9h-4m0-6h1" />
+      <path d="M7 8V3.5h10V8M6.5 17H3.5V8h17v9h-3" />
+      <PunctuationDot x={17} y={11} />
       <FilledShape>
-        <path data-icon-detail="down" d="M7 14h10v7H7Z" />
+        <path data-icon-detail="down" d="M6.5 14h11v6.5h-11Z" />
       </FilledShape>
     </>
   ),
@@ -300,46 +342,131 @@ export const utilityGeometry = {
   ),
   ruler: (
     <FilledShape
-      cutout={
-        <>
-          {" "}
-          <path d="m8 11 2 2m1-5 2 2m1-5 2 2M5 14l2 2" />{" "}
-        </>
-      }
+      cutout={<path d="m7.5 11.5 2 2m1-5 2 2m1-5 2 2M4.5 14.5l2 2" />}
     >
       <path d="m3 16 13-13 5 5L8 21Z" />
     </FilledShape>
   ),
   sortDown: <path d="M5 3v18m-3-3 3 3 3-3M11 5h10M11 10h7M11 15h4" />,
   sortUp: <path d="M5 21V3m-3 3 3-3 3 3M11 5h4M11 10h7M11 15h10" />,
+  sortDownBoolean: (
+    <>
+      <path d="M5 3v18m-3-3 3 3 3-3" />
+      <g strokeWidth="calc(var(--hash-icon-stroke-width) * .8)">
+        <g transform={sortUpperTransform}>{sortCross}</g>
+        <g transform={sortLowerTransform}>{sortCheck}</g>
+      </g>
+    </>
+  ),
+  sortUpBoolean: (
+    <>
+      <path d="M5 21V3m-3 3 3-3 3 3" />
+      <g strokeWidth="calc(var(--hash-icon-stroke-width) * .8)">
+        <g transform={sortUpperTransform}>{sortCheck}</g>
+        <g transform={sortLowerTransform}>{sortCross}</g>
+      </g>
+    </>
+  ),
+  sortDownDate: (
+    <>
+      <path d="M5 3v18m-3-3 3 3 3-3" />
+      {sortCalendar}
+    </>
+  ),
+  sortUpDate: (
+    <>
+      <path d="M5 21V3m-3 3 3-3 3 3" />
+      {sortCalendar}
+    </>
+  ),
+  sortDownDuration: (
+    <>
+      <path d="M5 3v18m-3-3 3 3 3-3" />
+      {sortClock}
+    </>
+  ),
+  sortUpDuration: (
+    <>
+      <path d="M5 21V3m-3 3 3-3 3 3" />
+      {sortClock}
+    </>
+  ),
+  sortDownPriority: (
+    <>
+      <path d="M5 3v18m-3-3 3 3 3-3" />
+      <g transform={sortUpperTransform}>{sortHighPriority}</g>
+      <g transform={sortLowerTransform}>{sortLowPriority}</g>
+    </>
+  ),
+  sortUpPriority: (
+    <>
+      <path d="M5 21V3m-3 3 3-3 3 3" />
+      <g transform={sortUpperTransform}>{sortLowPriority}</g>
+      <g transform={sortLowerTransform}>{sortHighPriority}</g>
+    </>
+  ),
+  sortDownEmptyValues: (
+    <>
+      <path d="M5 3v18m-3-3 3 3 3-3" />
+      <g transform={sortUpperTransform}>{sortEmptyValue}</g>
+      <g transform={sortLowerTransform}>{sortPresentValue}</g>
+    </>
+  ),
+  sortUpEmptyValues: (
+    <>
+      <path d="M5 21V3m-3 3 3-3 3 3" />
+      <g transform={sortUpperTransform}>{sortPresentValue}</g>
+      <g transform={sortLowerTransform}>{sortEmptyValue}</g>
+    </>
+  ),
   sortDownNumeric: (
-    <path d="M5 3v18m-3-3 3 3 3-3M13.5 5l2-2v6M17.5 16.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 1 1 5 0c0 3-1 4.5-3.5 4.5" />
+    <>
+      <path d="M5 3v18m-3-3 3 3 3-3" />
+      <g strokeWidth="calc(var(--hash-icon-stroke-width) * .8)">
+        <g transform={sortUpperTransform}>{sortDigitOne}</g>
+        <g transform={sortLowerTransform}>{sortDigitNine}</g>
+      </g>
+    </>
   ),
   sortUpNumeric: (
-    <path d="M5 21V3m-3 3 3-3 3 3M17.5 6.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 1 1 5 0c0 3-1 4.5-3.5 4.5M13.5 16l2-2v7" />
+    <>
+      <path d="M5 21V3m-3 3 3-3 3 3" />
+      <g strokeWidth="calc(var(--hash-icon-stroke-width) * .8)">
+        <g transform={sortUpperTransform}>{sortDigitNine}</g>
+        <g transform={sortLowerTransform}>{sortDigitOne}</g>
+      </g>
+    </>
   ),
   sortDownAlphabetical: (
-    <path d="M5 3v18m-3-3 3 3 3-3m3-9 4-6 4 6m-6-2h4m-6 7h8l-8 7h8" />
+    <>
+      <path d="M5 3v18m-3-3 3 3 3-3" />
+      <g strokeWidth="calc(var(--hash-icon-stroke-width) * .8)">
+        <g transform={sortUpperTransform}>{sortLetterA}</g>
+        <g transform={sortLowerTransform}>{sortLetterZ}</g>
+      </g>
+    </>
   ),
   sortUpAlphabetical: (
-    <path d="M5 21V3m-3 3 3-3 3 3m3-2h8l-8 7h8m-8 10 4-7 4 7m-6-2h4" />
+    <>
+      <path d="M5 21V3m-3 3 3-3 3 3" />
+      <g strokeWidth="calc(var(--hash-icon-stroke-width) * .8)">
+        <g transform={sortUpperTransform}>{sortLetterZ}</g>
+        <g transform={sortLowerTransform}>{sortLetterA}</g>
+      </g>
+    </>
   ),
   sortDownShapes: (
     <>
       <path d="M5 3v18m-3-3 3 3 3-3" />
-      <FilledShape>
-        <circle cx="16" cy="6" r="3" />
-      </FilledShape>
-      <g transform="translate(12 13)">{sortPyramid}</g>
+      <g transform={sortUpperTransform}>{sortCircle}</g>
+      <g transform={sortLowerTransform}>{sortTriangle}</g>
     </>
   ),
   sortUpShapes: (
     <>
       <path d="M5 21V3m-3 3 3-3 3 3" />
-      <FilledShape>
-        <circle cx="16" cy="18" r="3" />
-      </FilledShape>
-      <g transform="translate(12 3)">{sortPyramid}</g>
+      <g transform={sortUpperTransform}>{sortTriangle}</g>
+      <g transform={sortLowerTransform}>{sortCircle}</g>
     </>
   ),
   sortDownSize: (
@@ -355,35 +482,34 @@ export const utilityGeometry = {
         </>
       }
     >
-      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <rect x="3" y="3" width="18" height="18" rx="1" />
     </FilledShape>
   ),
   star: (
-    <path d="m12 2 3 6.5 7 .8-5.2 4.8 1.5 7-6.3-3.5-6.3 3.5 1.5-7L2 9.3l7-.8Z" />
+    <path d="m12 2.75 2.85 5.78 6.38.93-4.62 4.5 1.09 6.35L12 17.31l-5.7 3 1.09-6.35-4.62-4.5 6.38-.93Z" />
   ),
   thoughtBubble: (
     <FilledShape>
-      <>
-        <path d="M6 15a5 5 0 0 1-1-10 6 6 0 0 1 11-1 5 5 0 1 1 1 10H8" />
-        <circle data-icon-detail="dot" cx="6" cy="18" r="2" />
-        <circle cx="2.5" cy="22" r=".7" fill="currentColor" stroke="none" />
-      </>
+      <path d="M7 15.5a5 5 0 0 1-3-9 6 6 0 0 1 10.5-2.75A5.75 5.75 0 1 1 17 15.5Z" />
+      <circle data-icon-detail="dot" cx="6" cy="19" r="1.5" />
+      <circle cx="2.5" cy="22" r=".75" fill="currentColor" stroke="none" />
     </FilledShape>
   ),
   truck: (
     <FilledShape>
-      <path d="M5 18H3V5h11v13h-3" />
-      <path fill="none" d="M14 7h4l4 5v6h-2M14 12h8" />
-      <circle cx="8" cy="18" r="3" />
-      <circle cx="17" cy="18" r="3" />
+      <path d="M5.5 18H3V5h11v13H10.5" />
+      <path fill="none" d="M14 8h4l3 4v6h-2.5M14 12h7" />
+      <circle cx="8" cy="18" r="2.5" />
+      <circle cx="16" cy="18" r="2.5" />
     </FilledShape>
   ),
   userPlus: (
     <>
       <FilledShape>
-        <circle data-icon-detail="filament" cx="9" cy="7" r="4" />
+        <circle data-icon-detail="filament" cx="9" cy="6.75" r="3.75" />
+        <path fill="none" d="M2 21v-2.5c0-4 3-6 7-6 1.8 0 3.4.4 4.5 1.2" />
       </FilledShape>
-      <path d="M2 21v-2a7 7 0 0 1 11-5m5-2v10m-4-5h8" />
+      <path d="M18 12v9m-4.5-4.5h9" />
     </>
   ),
 } as const;

@@ -42,8 +42,8 @@ export const MenuGeometry = ({
 
 export const PauseGeometry = () => (
   <>
-    <rect x="5.5" y="4" width="4" height="16" rx="1" />
-    <rect x="14.5" y="4" width="4" height="16" rx="1" />
+    <rect x="5.5" y="4" width="4" height="16" rx=".5" />
+    <rect x="14.5" y="4" width="4" height="16" rx=".5" />
   </>
 );
 
@@ -57,7 +57,7 @@ export const PlaybackGeometry = ({
   <g fill="currentColor">
     <path
       data-icon-part="play"
-      d="M7 4.5 20 12 7 19.5Z"
+      d="M7 4.75 19.5 12 7 19.25Z"
       style={{
         opacity: playing ? 0 : 1,
         transform: playing ? "scale(0.85)" : "scale(1)",
@@ -123,6 +123,11 @@ export const DiagnosticsGeometry = ({
       <path
         key={stroke.id}
         data-icon-part="diagnostic-stroke"
+        strokeLinecap={
+          status === "warning" && stroke.id === "trailing"
+            ? "square"
+            : undefined
+        }
         d="M0 0h20"
         style={{
           transform: `translate(${stroke.x}px, ${stroke.y}px) rotate(${stroke.angle}deg)`,

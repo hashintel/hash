@@ -42,8 +42,8 @@ const ports = css({
 const outline = css({ borderWidth: "1px", borderStyle: "solid" });
 const unselectedOutline = css({ borderColor: "bd.subtle" });
 const selectedOutline = css({
-  borderColor: "blue.bd.strong",
-  boxShadow: "[inset 0 0 0 0.5px {colors.blue.bd.strong}]",
+  borderColor: "neutral.s110",
+  boxShadow: "[inset 0 0 0 0.5px {colors.neutral.s110}]",
 });
 
 const getOutline = (selected: boolean) =>
@@ -79,7 +79,7 @@ const PortAdd = ({ stepId }: { stepId: string | null }) => {
       aria-label={`Add a ${stepNoun.singular} after this`}
       onClick={(event) => {
         event.stopPropagation();
-        editing.openAddMenuAfter(event.currentTarget, stepId);
+        editing.openAddMenuAfter(stepId);
       }}
       /* Inline, as the design system's reset of buttons in its scope outranks classes. */
       style={{

@@ -7,6 +7,7 @@ import { CollapseButton } from "../shared/collapse-button";
 import { useRecentActions } from "../shared/recent-actions";
 import {
   addableActionGroups,
+  getActionTone,
   searchAddableActions,
   stepNoun,
 } from "../shared/step-display";
@@ -56,9 +57,8 @@ export const AddTab = ({
       key={action.actionDefinitionId}
       depth={depth}
       icon={action.icon}
-      tone={action.tone}
+      tone={getActionTone(action)}
       label={action.label}
-      actionDefinitionId={action.actionDefinitionId}
       onClick={() => {
         recordAddedAction(action.actionDefinitionId);
         onAddStep(action.actionDefinitionId);

@@ -6,7 +6,7 @@
 
 import * as v from "valibot";
 
-import { vBrowserToolResult } from "./browser-tool-result";
+import { browserToolResultSchema } from "./browser-tool-result";
 
 /** Why a claimed call ended without a result: never started, refused as stale, or failed. */
 const browserCallFailureDispositions = [
@@ -29,31 +29,33 @@ export interface BrowserCallClaim {
   readonly expectedRevision?: string;
 }
 
-export const vBrowserCallLeaseBody = v.object({
+export const browserCallLeaseBodySchema = v.object({
   capability: v.string(),
   binding: v.string(),
 });
 
 const outcomeEntries = {
-  ...vBrowserCallLeaseBody.entries,
+  ...browserCallLeaseBodySchema.entries,
   toolName: v.string(),
   canonicalInput: v.unknown(),
 };
 
-export const vBrowserCallResultBody = v.object({
+export const browserCallResultBodySchema = v.object({
   ...outcomeEntries,
-  ...vBrowserToolResult.entries,
+  ...browserToolResultSchema.entries,
 });
 
-export const vBrowserCallFailureBody = v.object({
+export const browserCallFailureBodySchema = v.object({
   ...outcomeEntries,
   disposition: v.picklist(browserCallFailureDispositions),
 });
 
-export type BrowserCallLeaseBody = v.InferOutput<typeof vBrowserCallLeaseBody>;
+export type BrowserCallLeaseBody = v.InferOutput<
+  typeof browserCallLeaseBodySchema
+>;
 export type BrowserCallResultBody = v.InferOutput<
-  typeof vBrowserCallResultBody
+  typeof browserCallResultBodySchema
 >;
 export type BrowserCallFailureBody = v.InferOutput<
-  typeof vBrowserCallFailureBody
+  typeof browserCallFailureBodySchema
 >;
