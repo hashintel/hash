@@ -147,6 +147,7 @@ import { shapeArrowDownGeometry } from "./library-geometry/shape-arrow-down";
 import { shapeArrowLeftGeometry } from "./library-geometry/shape-arrow-left";
 import { shapeArrowRightGeometry } from "./library-geometry/shape-arrow-right";
 import { shapeArrowUpGeometry } from "./library-geometry/shape-arrow-up";
+import { shareGeometry } from "./library-geometry/share";
 import { shieldAlertGeometry } from "./library-geometry/shield-alert";
 import { shieldCheckGeometry } from "./library-geometry/shield-check";
 import { shuffleGeometry } from "./library-geometry/shuffle";
@@ -176,6 +177,7 @@ import { ungroupGeometry } from "./library-geometry/ungroup";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  share: shareGeometry,
   send: sendGeometry,
   inbox: inboxGeometry,
   messageQuestion: messageQuestionGeometry,

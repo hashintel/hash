@@ -164,6 +164,7 @@ export const hashIconStudies = [
 
 const categories = {
   Communication: [
+    "share",
     "send",
     "inbox",
     "messageQuestion",
