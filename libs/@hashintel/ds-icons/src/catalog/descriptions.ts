@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  blob: "An irregular rounded outline represents a freeform shape.",
   trapezoid:
     "A quadrilateral with unequal parallel edges represents a trapezoid shape.",
   parallelogram: "A slanted quadrilateral represents a parallelogram shape.",

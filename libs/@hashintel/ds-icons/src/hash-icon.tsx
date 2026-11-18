@@ -506,6 +506,7 @@ export const HexagonIcon = createIcon("hexagon");
 export const OctagonIcon = createIcon("octagon");
 export const ParallelogramIcon = createIcon("parallelogram");
 export const TrapezoidIcon = createIcon("trapezoid");
+export const BlobIcon = createIcon("blob");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -691,6 +692,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  blob: BlobIcon,
   trapezoid: TrapezoidIcon,
   parallelogram: ParallelogramIcon,
   octagon: OctagonIcon,
