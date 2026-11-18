@@ -6,20 +6,33 @@ import { getFlowRunsResolver } from "./get-flow-runs";
 
 import type { FlowRunParent } from "./shared/get-record-of-flow-run";
 import type { EntityId } from "@blockprotocol/type-system";
+import type { FlowRunRecordHeader } from "@local/hash-isomorphic-utils/flows/run-record";
 
 const mocks = vi.hoisted(() => ({
   getFlowRuns: vi.fn(),
-  getRecordOfFlowRun: vi.fn(),
+  getFlowRunEntityById: vi.fn(),
+  getEndedFlowRunRecordHeader: vi.fn(),
+  getFlowRunRecord: vi.fn(),
+  correctFlowRunStatusFromRecord: vi.fn(),
   warn: vi.fn(),
 }));
 
 vi.mock("@local/hash-backend-utils/flows", () => ({
   getFlowRuns: mocks.getFlowRuns,
+  getFlowRunEntityById: mocks.getFlowRunEntityById,
 }));
 
-vi.mock("./shared/get-record-of-flow-run", () => ({
-  getRecordOfFlowRun: mocks.getRecordOfFlowRun,
+vi.mock("@local/hash-backend-utils/flows/run-record", () => ({
+  getEndedFlowRunRecordHeader: mocks.getEndedFlowRunRecordHeader,
+  getFlowRunRecord: mocks.getFlowRunRecord,
 }));
+
+vi.mock("@local/hash-backend-utils/flows/shared/save-flow-run-status", () => ({
+  correctFlowRunStatusFromRecord: mocks.correctFlowRunStatusFromRecord,
+}));
+
+const workflowIdProperty =
+  "https://hash.ai/@h/types/property-type/workflow-id/";
 
 const flowRun = (
   id: string,
@@ -35,11 +48,31 @@ const flowRun = (
     ...overrides,
   }) as FlowRunParent;
 
+/** The entity of the run `web~<id>`, whose workflow is `workflow-<id>`. */
+const flowRunEntity = (flowRunEntityId: string) => ({
+  properties: {
+    [workflowIdProperty]: flowRunEntityId.replace("web~", "workflow-"),
+  },
+});
+
+/** Ended runs' record headers by workflow id: a run without one is still running. */
+const givenEndedRuns = (
+  headers: Record<string, Partial<FlowRunRecordHeader>>,
+) =>
+  mocks.getEndedFlowRunRecordHeader.mockImplementation(
+    ({ workflowId }: { workflowId: string }) =>
+      Promise.resolve(headers[workflowId] ?? null),
+  );
+
 describe("getFlowRunsResolver", () => {
   beforeEach(() => {
-    mocks.getFlowRuns.mockReset();
-    mocks.getRecordOfFlowRun.mockReset();
-    mocks.warn.mockReset();
+    for (const mock of Object.values(mocks)) {
+      mock.mockReset();
+    }
+    mocks.getFlowRunEntityById.mockImplementation(
+      ({ flowRunEntityId }: { flowRunEntityId: string }) =>
+        Promise.resolve(flowRunEntity(flowRunEntityId)),
+    );
   });
 
   const resolve = async (args = {}) =>
@@ -48,48 +81,74 @@ describe("getFlowRunsResolver", () => {
       args,
       {
         authentication: { actorId: "user" },
-        dataSources: { graphApi: {} },
+        dataSources: { graphApi: {}, uploadProvider: {} },
         logger: { warn: mocks.warn },
+        temporal: {},
       } as never,
       {} as never,
     )) as { flowRuns: FlowRunParent[]; totalCount: number };
 
-  it("gives a run its entity says is running the status its record has, and reads no ended run's record", async () => {
+  it("keeps a run that's still running as its entity has it, without reading its history", async () => {
+    const going = flowRun("going");
+    mocks.getFlowRuns.mockResolvedValue({
+      flowRuns: [going],
+      totalCount: 1,
+      nextCursor: null,
+    });
+    givenEndedRuns({});
+
+    const { flowRuns } = await resolve();
+
+    expect(flowRuns).toStrictEqual([going]);
+    expect(mocks.getEndedFlowRunRecordHeader).toHaveBeenCalledWith(
+      expect.objectContaining({ workflowId: "workflow-going" }),
+    );
+    expect(mocks.getFlowRunRecord).not.toHaveBeenCalled();
+    expect(mocks.correctFlowRunStatusFromRecord).not.toHaveBeenCalled();
+  });
+
+  it("gives a run that ended without saving how the status and end time its record's header has, and corrects its entity", async () => {
+    const header = {
+      status: FlowRunStatus.Failed,
+      closedAt: "2026-11-17T10:02:00.000Z",
+    };
+    mocks.getFlowRuns.mockResolvedValue({
+      flowRuns: [flowRun("stuck")],
+      totalCount: 1,
+      nextCursor: null,
+    });
+    givenEndedRuns({ "workflow-stuck": header });
+
+    const { flowRuns } = await resolve();
+
+    expect(flowRuns).toStrictEqual([flowRun("stuck", header)]);
+    expect(
+      mocks.correctFlowRunStatusFromRecord,
+    ).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        flowRunEntity: flowRunEntity("web~stuck"),
+        header,
+      }),
+    );
+    expect(mocks.getFlowRunRecord).not.toHaveBeenCalled();
+  });
+
+  it("reads nothing about a run its entity says has ended", async () => {
     const ended = flowRun("ended", {
       status: FlowRunStatus.Completed,
       closedAt: "2026-11-17T10:01:00.000Z",
     });
     mocks.getFlowRuns.mockResolvedValue({
-      flowRuns: [flowRun("stuck"), flowRun("going"), ended],
-      totalCount: 3,
+      flowRuns: [ended],
+      totalCount: 1,
       nextCursor: null,
     });
-    mocks.getRecordOfFlowRun.mockImplementation((run: FlowRunParent) =>
-      Promise.resolve({
-        header:
-          run.flowRunEntityId === "web~stuck"
-            ? {
-                status: FlowRunStatus.Failed,
-                closedAt: "2026-11-17T10:02:00.000Z",
-              }
-            : { status: FlowRunStatus.Running },
-      }),
-    );
 
     const { flowRuns } = await resolve();
 
-    expect(
-      flowRuns.map(({ flowRunEntityId, status, closedAt }) => [
-        flowRunEntityId,
-        status,
-        closedAt,
-      ]),
-    ).toEqual([
-      ["web~stuck", FlowRunStatus.Failed, "2026-11-17T10:02:00.000Z"],
-      ["web~going", FlowRunStatus.Running, null],
-      ["web~ended", FlowRunStatus.Completed, "2026-11-17T10:01:00.000Z"],
-    ]);
-    expect(mocks.getRecordOfFlowRun).toHaveBeenCalledTimes(2);
+    expect(flowRuns).toStrictEqual([ended]);
+    expect(mocks.getFlowRunEntityById).not.toHaveBeenCalled();
+    expect(mocks.getEndedFlowRunRecordHeader).not.toHaveBeenCalled();
   });
 
   it("leaves out and stops counting a run that ended when asked for running runs only", async () => {
@@ -98,16 +157,9 @@ describe("getFlowRunsResolver", () => {
       totalCount: 5,
       nextCursor: "after-going",
     });
-    mocks.getRecordOfFlowRun.mockImplementation((run: FlowRunParent) =>
-      Promise.resolve({
-        header: {
-          status:
-            run.flowRunEntityId === "web~stuck"
-              ? FlowRunStatus.Terminated
-              : FlowRunStatus.Running,
-        },
-      }),
-    );
+    givenEndedRuns({
+      "workflow-stuck": { status: FlowRunStatus.Terminated },
+    });
 
     const { flowRuns, totalCount } = await resolve({
       executionStatus: FlowRunStatus.Running,
@@ -119,17 +171,21 @@ describe("getFlowRunsResolver", () => {
     expect(totalCount).toBe(4);
   });
 
-  it("keeps a running run as its entity has it when its record can't be read", async () => {
+  it("keeps a running run as its entity has it, and warns, when its record's header can't be read", async () => {
+    const unreadable = flowRun("unreadable");
     mocks.getFlowRuns.mockResolvedValue({
-      flowRuns: [flowRun("unreadable")],
+      flowRuns: [unreadable],
       totalCount: 1,
       nextCursor: null,
     });
-    mocks.getRecordOfFlowRun.mockRejectedValue(new Error("Temporal is down"));
+    mocks.getEndedFlowRunRecordHeader.mockRejectedValue(
+      new Error("Temporal is down"),
+    );
 
     const { flowRuns } = await resolve();
 
-    expect(flowRuns[0]?.status).toBe(FlowRunStatus.Running);
+    expect(flowRuns).toStrictEqual([unreadable]);
     expect(mocks.warn).toHaveBeenCalledOnce();
+    expect(mocks.correctFlowRunStatusFromRecord).not.toHaveBeenCalled();
   });
 });

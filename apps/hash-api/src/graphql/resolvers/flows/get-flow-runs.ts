@@ -2,7 +2,7 @@ import { getFlowRuns } from "@local/hash-backend-utils/flows";
 import { FlowRunStatus as RecordedFlowRunStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 
 import { FlowRunStatus } from "../../api-types.gen";
-import { getRecordOfFlowRun } from "./shared/get-record-of-flow-run";
+import { getEndedRecordHeaderOfFlowRun } from "./shared/get-record-of-flow-run";
 
 import type {
   PaginatedFlowRuns,
@@ -14,18 +14,14 @@ import type { FlowRunParent } from "./shared/get-record-of-flow-run";
 
 /**
  * A run as its record has it, if its entity says it's running. A run that ended without saving how, e.g. because it
- * was terminated, has its entity corrected as its record is read. One whose record can't be read stays as it is.
+ * was terminated, has its entity corrected. A run that's still running has none of its history read, and one whose
+ * record can't be read stays as it is.
  */
 const getFlowRunAsRecorded = async (
   flowRun: FlowRunParent,
   context: Pick<
     GraphQLContext,
-    | "authentication"
-    | "dataSources"
-    | "flowRunRecords"
-    | "logger"
-    | "runningFlowRunHistories"
-    | "temporal"
+    "authentication" | "dataSources" | "logger" | "temporal"
   >,
 ): Promise<FlowRunParent> => {
   if (flowRun.status !== FlowRunStatus.Running) {
@@ -33,9 +29,9 @@ const getFlowRunAsRecorded = async (
   }
 
   try {
-    const { header } = await getRecordOfFlowRun(flowRun, context);
+    const header = await getEndedRecordHeaderOfFlowRun(flowRun, context);
 
-    return header.status === RecordedFlowRunStatus.Running
+    return !header || header.status === RecordedFlowRunStatus.Running
       ? flowRun
       : {
           ...flowRun,
