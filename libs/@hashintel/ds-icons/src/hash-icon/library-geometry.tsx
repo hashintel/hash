@@ -70,6 +70,7 @@ import { columnsGeometry } from "./library-geometry/columns";
 import { commandGeometry } from "./library-geometry/command";
 import { compassGeometry } from "./library-geometry/compass";
 import { creditCardGeometry } from "./library-geometry/credit-card";
+import { crosshairsGeometry } from "./library-geometry/crosshairs";
 import { dashDashedGeometry } from "./library-geometry/dash-dashed";
 import { dashDottedGeometry } from "./library-geometry/dash-dotted";
 import { dashDrawGeometry } from "./library-geometry/dash-draw";
@@ -241,6 +242,7 @@ import { usersGeometry } from "./library-geometry/users";
 import { warehouseGeometry } from "./library-geometry/warehouse";
 
 export const libraryGeometry = {
+  crosshairs: crosshairsGeometry,
   compass: compassGeometry,
   mapPin: mapPinGeometry,
   map: mapGeometry,
