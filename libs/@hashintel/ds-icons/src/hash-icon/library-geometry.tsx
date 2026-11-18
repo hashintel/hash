@@ -123,6 +123,7 @@ import { fontDrawGeometry } from "./library-geometry/font-draw";
 import { fontMonoGeometry } from "./library-geometry/font-mono";
 import { fontSansGeometry } from "./library-geometry/font-sans";
 import { fontSerifGeometry } from "./library-geometry/font-serif";
+import { forkliftGeometry } from "./library-geometry/forklift";
 import { frameGeometry } from "./library-geometry/frame";
 import { globeGeometry } from "./library-geometry/globe";
 import { globeNodesGeometry } from "./library-geometry/globe-nodes";
@@ -256,6 +257,7 @@ import { usersGeometry } from "./library-geometry/users";
 import { warehouseGeometry } from "./library-geometry/warehouse";
 
 export const libraryGeometry = {
+  forklift: forkliftGeometry,
   conveyorBelt: conveyorBeltGeometry,
   shelves: shelvesGeometry,
   boxLocation: boxLocationGeometry,

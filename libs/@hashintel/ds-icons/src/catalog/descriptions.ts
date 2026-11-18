@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  forklift:
+    "A lifting vehicle represents warehouse handling or material movement.",
   conveyorBelt: "A carton above rollers represents a conveyor belt.",
   shelves: "Stored cartons on shelves represent stocked inventory.",
   boxLocation: "A carton with a map marker represents a package location.",
