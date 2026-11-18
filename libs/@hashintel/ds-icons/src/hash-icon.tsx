@@ -608,6 +608,7 @@ export const ShareNodesIcon = createIcon("shareNodes");
 export const MegaphoneIcon = createIcon("megaphone");
 export const PhoneIcon = createIcon("phone");
 export const PhoneOffIcon = createIcon("phoneOff");
+export const SpeakerIcon = createIcon("speaker");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -793,6 +794,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  speaker: SpeakerIcon,
   phoneOff: PhoneOffIcon,
   phone: PhoneIcon,
   megaphone: MegaphoneIcon,

@@ -159,6 +159,7 @@ import { sizeExtraLargeGeometry } from "./library-geometry/size-extra-large";
 import { sizeLargeGeometry } from "./library-geometry/size-large";
 import { sizeMediumGeometry } from "./library-geometry/size-medium";
 import { sizeSmallGeometry } from "./library-geometry/size-small";
+import { speakerGeometry } from "./library-geometry/speaker";
 import { splineCubicGeometry } from "./library-geometry/spline-cubic";
 import { splineLineGeometry } from "./library-geometry/spline-line";
 import { splitViewGeometry } from "./library-geometry/split-view";
@@ -181,6 +182,7 @@ import { ungroupGeometry } from "./library-geometry/ungroup";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  speaker: speakerGeometry,
   phoneOff: phoneOffGeometry,
   phone: phoneGeometry,
   megaphone: megaphoneGeometry,
