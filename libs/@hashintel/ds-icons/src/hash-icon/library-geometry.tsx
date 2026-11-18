@@ -254,6 +254,7 @@ import { squareMinusGeometry } from "./library-geometry/square-minus";
 import { stackHorizontalGeometry } from "./library-geometry/stack-horizontal";
 import { stackVerticalGeometry } from "./library-geometry/stack-vertical";
 import { strikethroughGeometry } from "./library-geometry/strikethrough";
+import { sunGeometry } from "./library-geometry/sun";
 import { tagGeometry } from "./library-geometry/tag";
 import { textAlignCenterGeometry } from "./library-geometry/text-align-center";
 import { textAlignJustifyGeometry } from "./library-geometry/text-align-justify";
@@ -282,6 +283,7 @@ import { usersGeometry } from "./library-geometry/users";
 import { warehouseGeometry } from "./library-geometry/warehouse";
 
 export const libraryGeometry = {
+  sun: sunGeometry,
   gauge: gaugeGeometry,
   presentationChart: presentationChartGeometry,
   pieChart: pieChartGeometry,
