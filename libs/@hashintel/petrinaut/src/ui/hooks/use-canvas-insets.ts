@@ -82,11 +82,16 @@ const NO_INSETS: CanvasInsets = { left: 0, right: 0, bottom: 0 };
 export const useCanvasInsets = (options?: CanvasInsetOptions): CanvasInsets => {
   const presentation = usePetrinautPresentation();
   const editor = use(EditorContext);
-  const propertiesPanelWidth = useStore(usePanelSizes().propertiesPanelWidth);
+  const panelSizes = usePanelSizes();
+  const leftSidebarWidth = useStore(panelSizes.leftSidebarWidth);
+  const propertiesPanelWidth = useStore(panelSizes.propertiesPanelWidth);
 
   // Where the panels sit beside the canvas rather than over it, the canvas is
   // already the space it occupies and there is nothing to keep clear of.
   return presentation.panelsOverlayCanvas
-    ? getCanvasInsets({ ...editor, propertiesPanelWidth }, options)
+    ? getCanvasInsets(
+        { ...editor, leftSidebarWidth, propertiesPanelWidth },
+        options,
+      )
     : NO_INSETS;
 };

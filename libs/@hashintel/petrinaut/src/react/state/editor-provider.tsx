@@ -65,7 +65,6 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     ...initialEditorState,
     cursorMode: userSettings.cursorMode,
     isLeftSidebarOpen: userSettings.isLeftSidebarOpen,
-    leftSidebarWidth: userSettings.leftSidebarWidth,
     isBottomPanelOpen: startsWithActualTimeline
       ? true
       : userSettings.isBottomPanelOpen,
@@ -402,10 +401,6 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         isLeftSidebarOpen: isOpen,
       }));
     },
-    setLeftSidebarWidth: (width) => {
-      panelSizes.leftSidebarWidth.set(width);
-      setState((prev) => ({ ...prev, leftSidebarWidth: width }));
-    },
     setAiAssistantWidth: (width) => {
       panelSizes.aiAssistantWidth.set(width);
       setState((prev) => ({ ...prev, aiAssistantWidth: width }));
@@ -623,7 +618,6 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   useSyncEditorToSettings({
     cursorMode: state.cursorMode,
     isLeftSidebarOpen: state.isLeftSidebarOpen,
-    leftSidebarWidth: state.leftSidebarWidth,
     isBottomPanelOpen: state.isBottomPanelOpen,
     bottomPanelHeight: state.bottomPanelHeight,
     activeBottomPanelTab: state.activeBottomPanelTab,

@@ -54,7 +54,6 @@ const editorContextValue = (
   setAddComponentMode: () => {},
   setCursorMode: () => {},
   setLeftSidebarOpen: () => {},
-  setLeftSidebarWidth: () => {},
   setAiAssistantWidth: () => {},
   setAiAssistantDockHeight: () => {},
   setAiAssistantPlacement: () => {},

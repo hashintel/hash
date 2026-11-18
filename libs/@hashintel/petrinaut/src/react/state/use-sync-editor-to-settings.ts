@@ -17,7 +17,6 @@ import type {
 export const useSyncEditorToSettings = (values: {
   cursorMode: CursorMode;
   isLeftSidebarOpen: boolean;
-  leftSidebarWidth: number;
   isBottomPanelOpen: boolean;
   bottomPanelHeight: number;
   activeBottomPanelTab: BottomPanelTab;
@@ -26,7 +25,6 @@ export const useSyncEditorToSettings = (values: {
   const {
     setCursorMode,
     setIsLeftSidebarOpen,
-    setLeftSidebarWidth,
     setIsBottomPanelOpen,
     setBottomPanelHeight,
     setActiveBottomPanelTab,
@@ -46,7 +44,6 @@ export const useSyncEditorToSettings = (values: {
     timerRef.current = setTimeout(() => {
       setCursorMode(values.cursorMode);
       setIsLeftSidebarOpen(values.isLeftSidebarOpen);
-      setLeftSidebarWidth(values.leftSidebarWidth);
       setIsBottomPanelOpen(values.isBottomPanelOpen);
       setBottomPanelHeight(values.bottomPanelHeight);
       setActiveBottomPanelTab(values.activeBottomPanelTab);
@@ -57,14 +54,12 @@ export const useSyncEditorToSettings = (values: {
   }, [
     values.cursorMode,
     values.isLeftSidebarOpen,
-    values.leftSidebarWidth,
     values.isBottomPanelOpen,
     values.bottomPanelHeight,
     values.activeBottomPanelTab,
     values.timelineChartType,
     setCursorMode,
     setIsLeftSidebarOpen,
-    setLeftSidebarWidth,
     setIsBottomPanelOpen,
     setBottomPanelHeight,
     setActiveBottomPanelTab,

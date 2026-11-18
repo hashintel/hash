@@ -9,6 +9,7 @@ import {
   type BottomPanelTab,
   EditorContext,
 } from "../../../../../react/state/editor-context";
+import { usePanelSizes } from "../../../../../react/state/panel-sizes-context";
 import { useComposesOnly } from "../../../../../react/state/use-composes-only";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { GlassPanel } from "../../../../components/glass-panel";
@@ -29,6 +30,7 @@ import {
   COMPILATION_SUBVIEWS,
   SIMULATION_ONLY_SUBVIEWS,
 } from "../../../../constants/ui-subviews";
+import { styleFromStores } from "../../../../lib/style-from-stores";
 import { usePluginBottomPanelViews } from "../../../../plugins/plugin-outlets";
 import { fallbackBottomPanelTab } from "./fallback-tab";
 import { diagnosticsSubView } from "./subviews/diagnostics";
@@ -131,7 +133,6 @@ export const BottomPanel: React.FC = () => {
     setBottomPanelOpen,
     isLeftSidebarOpen,
     isSearchOpen,
-    leftSidebarWidth,
     bottomPanelHeight: panelHeight,
     setBottomPanelHeight,
     activeBottomPanelTab: activeTab,
@@ -232,9 +233,7 @@ export const BottomPanel: React.FC = () => {
   // Calculate left position based on left sidebar visibility.
   // The sidebar is visible when explicitly opened OR when search is active.
   const isSidebarVisible = isLeftSidebarOpen || isSearchOpen;
-  const leftOffset = isSidebarVisible
-    ? leftSidebarWidth + PANEL_MARGIN * 2
-    : PANEL_MARGIN;
+  const { leftSidebarWidth } = usePanelSizes();
 
   if (!isOpen && !isPanelAnimating && !keepPanelsMounted) {
     return null;
@@ -246,9 +245,11 @@ export const BottomPanel: React.FC = () => {
         glassPanelBaseStyle,
         panelStyle({ open: isOpen, animating: isPanelAnimating }),
       )}
+      ref={styleFromStores({ leftSidebarWidth }, (sizes) => ({
+        left: `${isSidebarVisible ? sizes.leftSidebarWidth + PANEL_MARGIN * 2 : PANEL_MARGIN}px`,
+      }))}
       style={{
         bottom: PANEL_MARGIN,
-        left: leftOffset,
         right: PANEL_MARGIN,
         height: panelHeight,
       }}

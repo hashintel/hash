@@ -94,12 +94,14 @@ it("keeps horizontal placement unchanged when a panel moves a hover-expanded bar
   let editor = {
     ...defaults,
     isLeftSidebarOpen: true,
-    leftSidebarWidth: 220,
     hasSelection: true,
     isBottomPanelOpen: false,
     isPanelAnimating: false,
   };
-  const panelSizes = createPanelSizes({ propertiesPanelWidth: 600 });
+  const panelSizes = createPanelSizes({
+    leftSidebarWidth: 220,
+    propertiesPanelWidth: 600,
+  });
   const wrapper = ({ children }: { children: ReactNode }) => (
     <PanelSizesContext value={panelSizes}>
       <EditorContext value={editor}>{children}</EditorContext>

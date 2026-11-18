@@ -4,7 +4,9 @@ import { SegmentedControl } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import { EditorContext } from "../../../../react/state/editor-context";
+import { usePanelSizes } from "../../../../react/state/panel-sizes-context";
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
+import { styleFromStores } from "../../../lib/style-from-stores";
 
 const selectorStyle = css({
   display: "flex",
@@ -73,15 +75,12 @@ export const EditViewSelector = () => {
     setEditViewMode,
     isLeftSidebarOpen,
     isSearchOpen,
-    leftSidebarWidth,
     isPanelAnimating,
   } = use(EditorContext);
+  const { leftSidebarWidth } = usePanelSizes();
   const { showAnimations } = use(UserSettingsContext);
   const isCanvas = editViewMode === "canvas";
-  const left =
-    isCanvas && (isLeftSidebarOpen || isSearchOpen)
-      ? leftSidebarWidth + 12
-      : 12;
+  const besideSidebar = isCanvas && (isLeftSidebarOpen || isSearchOpen);
 
   return (
     <div
@@ -92,10 +91,10 @@ export const EditViewSelector = () => {
           animated: showAnimations && isPanelAnimating,
         }),
       )}
-      style={{
-        left: `min(${left}px, max(12px, calc(100% - var(--edit-view-selector-width) - 12px)))`,
-        top: isCanvas ? 12 : 10,
-      }}
+      ref={styleFromStores({ leftSidebarWidth }, (sizes) => ({
+        left: `min(${besideSidebar ? sizes.leftSidebarWidth + 12 : 12}px, max(12px, calc(100% - var(--edit-view-selector-width) - 12px)))`,
+      }))}
+      style={{ top: isCanvas ? 12 : 10 }}
     >
       <SegmentedControl
         className={controlStyle({

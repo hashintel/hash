@@ -4,6 +4,7 @@ import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import { CompositionContext } from "../../../../../react/state/composition-context";
 import { EditorContext } from "../../../../../react/state/editor-context";
+import { usePanelSizes } from "../../../../../react/state/panel-sizes-context";
 import { useComposesOnly } from "../../../../../react/state/use-composes-only";
 import { useIsCompositionInterfaceOn } from "../../../../../react/state/use-is-composition-interface-on";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
@@ -14,6 +15,7 @@ import {
   MIN_LEFT_SIDEBAR_WIDTH,
 } from "../../../../constants/ui";
 import { LEFT_SIDEBAR_SUBVIEWS } from "../../../../constants/ui-subviews";
+import { styleFromStores } from "../../../../lib/style-from-stores";
 import { FocusRoot, FocusStack } from "../../../../worksheet/focus-stack";
 import { searchSubView } from "./subviews/search-panel";
 
@@ -102,8 +104,6 @@ const contentLayerStyle = cva({
 export const LeftSideBar: React.FC = () => {
   const {
     isLeftSidebarOpen: isOpen,
-    leftSidebarWidth,
-    setLeftSidebarWidth,
     isPanelAnimating,
     isSearchOpen,
   } = use(EditorContext);
@@ -111,7 +111,9 @@ export const LeftSideBar: React.FC = () => {
   const composesOnly = useComposesOnly();
   const isCompositionInterfaceOn = useIsCompositionInterfaceOn();
 
-  const { keepPanelsMounted } = use(UserSettingsContext);
+  const { leftSidebarWidth } = usePanelSizes();
+  const { keepPanelsMounted, setLeftSidebarWidth: saveWidth } =
+    use(UserSettingsContext);
 
   // The sidebar is visible when explicitly opened OR when search is active
   const isVisible = isOpen || isSearchOpen;
@@ -141,11 +143,14 @@ export const LeftSideBar: React.FC = () => {
         glassPanelBaseStyle,
         panelStyle({ open: isVisible, animating: isPanelAnimating }),
       )}
-      style={{ width: leftSidebarWidth }}
+      ref={styleFromStores({ leftSidebarWidth }, (sizes) => ({
+        width: `${sizes.leftSidebarWidth}px`,
+      }))}
       resizable={{
         edge: "right",
-        getSize: () => leftSidebarWidth,
-        onResize: setLeftSidebarWidth,
+        getSize: () => leftSidebarWidth.get(),
+        onResize: (width) => leftSidebarWidth.set(width),
+        onResizeEnd: () => saveWidth(leftSidebarWidth.get()),
         minSize: MIN_LEFT_SIDEBAR_WIDTH,
         maxSize: MAX_LEFT_SIDEBAR_WIDTH,
       }}
