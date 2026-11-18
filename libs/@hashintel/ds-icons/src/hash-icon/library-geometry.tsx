@@ -32,6 +32,7 @@ import { handwrittenDocsGeometry } from "./library-geometry/handwritten-docs";
 import { historyPagesGeometry } from "./library-geometry/history-pages";
 import { historyUserGeometry } from "./library-geometry/history-user";
 import { loginGeometry } from "./library-geometry/login";
+import { logoutGeometry } from "./library-geometry/logout";
 import { memoInfoGeometry } from "./library-geometry/memo-info";
 import { newspaperGeometry } from "./library-geometry/newspaper";
 import { notePlusGeometry } from "./library-geometry/note-plus";
@@ -39,6 +40,7 @@ import { noteStickyGeometry } from "./library-geometry/note-sticky";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  logout: logoutGeometry,
   login: loginGeometry,
   upload: uploadGeometry,
   historyUser: historyUserGeometry,

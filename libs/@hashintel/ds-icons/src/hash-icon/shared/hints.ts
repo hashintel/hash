@@ -20,6 +20,7 @@ export type HashIconHint =
   | "up";
 
 export const hashIconHints = {
+  logout: "right",
   login: "right",
   upload: "lift",
   historyUser: "lift",

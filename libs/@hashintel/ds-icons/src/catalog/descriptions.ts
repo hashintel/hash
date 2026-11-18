@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  logout: "An arrow leaving a doorway represents signing out.",
   login: "An arrow entering a doorway represents signing in.",
   upload: "An upward arrow above a tray represents uploading content.",
   historyUser:

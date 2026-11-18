@@ -464,6 +464,7 @@ export const HistoryPagesIcon = createIcon("historyPages");
 export const HistoryUserIcon = createIcon("historyUser");
 export const UploadIcon = createIcon("upload");
 export const LoginIcon = createIcon("login");
+export const LogoutIcon = createIcon("logout");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -649,6 +650,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  logout: LogoutIcon,
   login: LoginIcon,
   upload: UploadIcon,
   historyUser: HistoryUserIcon,
