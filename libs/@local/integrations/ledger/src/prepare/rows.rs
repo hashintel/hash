@@ -33,8 +33,9 @@ pub(super) struct TargetRows {
 
 /// Builds one table per target from the capture files.
 ///
-/// Each capture file is staged first: staging adds `_key` and takes `_op` from the file's
-/// `_change` column. Each row of a table carries the `_op` of the captured row it was built from.
+/// Each capture file is staged first: staging adds `_key`, takes `_op` from the file's `_change`
+/// column and numbers the rows in file order in `_seq`. Each row of a table carries the `_op` and
+/// the `_seq` of the captured row it was built from.
 ///
 /// # Errors
 ///

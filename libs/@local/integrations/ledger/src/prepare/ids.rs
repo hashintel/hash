@@ -3,28 +3,27 @@
 use error_stack::Report;
 use hash_integrations_engine::Workspace;
 
-use super::rows::TargetRows;
+use super::{issues::Issue, rows::TargetRows};
 use crate::run::{RunContext, RunInput, StageError};
 
-/// Adds the entity id of every row to the table of `target`.
+/// Adds the entity id of every row to the table of `target` and returns the rows it left out.
 ///
 /// An entity id is derived from the web, the namespace, the entity type and the source id. A
-/// link also gets the ids of its two endpoints.
+/// link also gets the ids of its two endpoints. A row without a usable source id, or a link row
+/// without both endpoints, is left out of the table and returned as an [`Issue`]. Several rows
+/// may have the same entity id: an incremental capture can hold more than one change to an
+/// entity.
 ///
 /// # Errors
 ///
-/// - [`Code::RowKey`] if a row has no usable source id
-/// - [`Code::DuplicateEntityId`] if two rows have the same entity id
 /// - [`Code::WorkspaceUnavailable`] if the workspace cannot run a query
 ///
-/// [`Code::RowKey`]: crate::Code::RowKey
-/// [`Code::DuplicateEntityId`]: crate::Code::DuplicateEntityId
 /// [`Code::WorkspaceUnavailable`]: crate::Code::WorkspaceUnavailable
 pub(super) async fn assign(
     context: &RunContext,
     workspace: &Workspace,
     input: &RunInput,
     target: &TargetRows,
-) -> Result<(), Report<StageError>> {
+) -> Result<Vec<Issue>, Report<StageError>> {
     unimplemented!()
 }

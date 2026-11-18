@@ -10,6 +10,7 @@ use error_stack::Report;
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    capture::CaptureOutput,
     graph::Graph,
     prepare::PrepareOutput,
     run::{BatchSettings, RunContext, RunInput, StageError},
@@ -76,6 +77,7 @@ pub struct SendOutput {
 /// # Arguments
 ///
 /// * `batch` - The limits of one batch, pinned in `run.json`
+/// * `capture` - The capture part of the run, which holds the capture time every request carries
 /// * `prepare` - The prepare part of the run, which holds the number of rows to read
 /// * `progress` - The send progress of an earlier attempt, if `run.json` has one
 /// * `graph` - The Graph the requests are sent to
@@ -98,6 +100,7 @@ pub async fn send(
     context: &RunContext,
     input: &RunInput,
     batch: BatchSettings,
+    capture: &CaptureOutput,
     prepare: &PrepareOutput,
     progress: Option<&SendProgress>,
     graph: &impl Graph,

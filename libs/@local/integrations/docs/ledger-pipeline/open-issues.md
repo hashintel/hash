@@ -191,6 +191,8 @@ Both should be supported in the end (Paul, 2026-11-17).
 
 **Chosen for now:** send every change. A row holds only the new values of its change, so sending the last change only would require merging the rows of an entity first. Sending every change needs no merge. This choice was made by Claude on Paul's instruction to pick the easier option.
 
+The order of the changes to one entity is the order of their rows in the capture file (Paul, 2026-11-18). Prepare keeps it in `_seq` and turns it into `order_id`.
+
 Send sorts a run's rows by operation first and by their position in the run second (Paul, 2026-11-17). The operations are sent in the order entity upserts, link upserts, link archives, entity archives. Changes to one entity keep their order within one operation. Across operations they can swap. The known case: an entity that is archived and then created again in one run is sent as create, then archive, and ends up archived. The spec has to say whether Prepare refuses such a run, or whether the case is accepted.
 
 ## Kept for later
@@ -202,11 +204,11 @@ Send sorts a run's rows by operation first and by their position in the run seco
 The inventory of labs, `engine` and the `pipeline` crate is in [inventory/](inventory/). Section 5 of each file lists the questions it raises. These contradict the spec or the skeleton and need a decision before the stage that depends on them is specified:
 
 - **`engine` differed between this branch and `main`.** Resolved on 2026-11-18 by merging `main` into the branch: `engine` now has the storage module and the `graph` module. The storage module still comes from the open pull request hashintel/hash#10392, so the new crate builds only on a branch that has it.
-- **A conditional write cannot be built on `engine`'s public API.** The object store is a private field, `ArtifactKey` has no public constructor, and `bind` can create a key but never update it. The `pipeline` crate's copy of the storage module adds `read_versioned` and `replace_if`.
+- **A conditional write could not be built on `engine`'s public API.** Decided on 2026-11-18: it is added to `engine`'s storage module, by moving the `pipeline` crate's `storage/artifact/mutable` module there. See the crate layout in the spec.
 - **The sync table has no way to find its files.** `PrepareOutput` holds no file references, `engine` has no list operation, and `publish` names a file by its content.
-- **Send needs the capture time.** Every request body carries it as `loadedAt`. The Send contract in the spec takes no `CaptureOutput`.
+- **Send needs the capture time.** Decided on 2026-11-18: Send takes `CaptureOutput` as an input. Every request body carries the capture time as `loadedAt`.
 - **No code cuts a batch when an entity is already in it.** The existing `Batcher` cuts on the operation, on create or update, at 128 writes and at 1,500,000 bytes. `engine` on `main` refuses two writes to one entity.
-- **Nothing preserves the order of the captured rows.** `order_id` has no source when one entity changes several times in a run.
-- **The skeleton contradicts today's behaviour in three places.** It fails on a blank source id, where `pipeline` leaves the row out and lists it. It fails when two rows of a target share an entity id, which sending every change has to allow. Its issue type has two fields, where the issues file has seven columns.
+- **Nothing preserved the order of the captured rows.** Decided on 2026-11-18: the order is the position of a row in its capture file. Prepare numbers the rows in the internal column `_seq` when it stages a file, and `order_id` is assigned from the target and `_seq`. See the Prepare section of the spec.
+- **The skeleton contradicted today's behaviour in three places.** Decided on 2026-11-18: a row with a blank source id is left out and listed in the issues file; several rows of a target may share an entity id in the incremental variant; the issues file keeps the seven columns of the previous refactor. The spec's Prepare section has the rules.
 - **Labs and `pipeline` convert some values differently.** A blank boolean is `false` in labs and left out in `pipeline`. An unknown unit gives the bare amount in labs and a failure in `pipeline`. The spec takes expected values from labs first.
 - **`run.json` embeds the definition.** The existing conditional write refuses an object over 1 MiB.

@@ -34,11 +34,11 @@ local Parquet files → Capture → Prepare → Send → Graph
                       capture files   sync table
 ```
 
-| Stage   | Reads                                                                                   | Writes                                                                                                  |
-| ------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Capture | One local Parquet file of changed rows per source                                       | The capture files in S3, then its part of `run.json`                                                    |
-| Prepare | The capture files named in `run.json`, the pinned definition                            | The run's changes in the sync table, an issues file if a conversion failed, then its part of `run.json` |
-| Send    | The run's changes in the sync table, the batch settings and Send progress in `run.json` | Graph requests, Send progress after each batch, the Send part, then `current.json`                      |
+| Stage   | Reads                                                                                   | Writes                                                                                                                 |
+| ------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Capture | One local Parquet file of changed rows per source                                       | The capture files in S3, then its part of `run.json`                                                                   |
+| Prepare | The capture files named in `run.json`, the pinned definition                            | The run's changes in the sync table, an issues file if a row or a value could not be used, then its part of `run.json` |
+| Send    | The run's changes in the sync table, the batch settings and Send progress in `run.json` | Graph requests, Send progress after each batch, the Send part, then `current.json`                                     |
 
 Rules for every stage:
 
@@ -55,7 +55,7 @@ The CLI gives Capture one local Parquet file of changed rows per source of the d
 
 A retry copies every file again.
 
-A capture file holds the source's own rows, one row per changed source record. For an incremental source, the column `_change` says what happened to each record: `insert`, `update` or `delete`. The sender provides that column with the data.
+A capture file holds the source's own rows, one row per changed source record. For an incremental source, the column `_change` says what happened to each record: `insert`, `update` or `delete`. The sender provides that column with the data, and writes the rows in the order the changes happened.
 
 Capture adds no column and reads no row, and it is the same code for every variant of Prepare. The columns the pipelines need are added by Prepare. The row shape is still to be agreed within the team; see "What a row of the incremental capture holds" in the open issues.
 
@@ -63,12 +63,15 @@ Capture adds no column and reads no row, and it is the same code for every varia
 
 Prepare turns the captured rows into changes:
 
-1. It stages each capture file: it builds the table the pipelines read and adds the internal columns `_op` and `_key` that the pipelines need. `_op` is taken from `_change`, and `_key` is computed from the primary key.
+1. It stages each capture file: it builds the table the pipelines read and adds three internal columns. `_op` is taken from `_change`, `_key` is computed from the primary key, and `_seq` is the position of the row in the capture file.
 2. It runs the definition's pipelines to build one table per target (`prepare_rows`).
 3. It assigns the entity id of each row (`ids::assign`).
 4. It resolves the properties of each row through the definition's mapping (`SinkRow::resolve`).
 5. It maps the `_op` of each row to a Graph operation.
-6. It appends one change per row to the sync table.
+6. It assigns `order_id`: the rows sorted by target, in the order of the definition, and then by `_seq`.
+7. It appends one change per row to the sync table.
+
+A pipeline's SQL has to keep `_op`, `_key` and `_seq`. `engine` checks the first two after every step. Prepare checks `_seq` on each target table and fails the run when a pipeline dropped it. That loading a Parquet file keeps its row order is assumed and has to be confirmed by a test.
 
 Staging is the step a variant of Prepare replaces. Hash and diff stages every row as a snapshot row, as `stage_table` in `engine` does today, and it also replaces step 5, because it finds the operation by comparing with the previous state. The other steps are shared.
 
@@ -76,7 +79,14 @@ Prepare expects valid entity updates in the capture. It computes no diff and rea
 
 Prepare fails the run when a target reads more than one source. A capture holds only the rows that changed, so a pipeline that joins two sources can miss the row it joins to. The set of sources per target is already computed in `stage/diff/rows/pipelines.rs`. See "Joins and aggregations in incremental runs" in the open issues.
 
-A value that cannot be converted is left out, and the rest of the row is written. Prepare lists each such value in an issues file for the run. The file is written only when a conversion failed. `run.json` holds its reference and the number of entries.
+Prepare does not stop a run for one bad row or one bad value:
+
+- A row without a usable source id is left out. So is a link row without both endpoints.
+- A value that cannot be converted is left out, and the rest of the row is written.
+
+Both are listed in the issues file of the run. The file has the seven columns of the previous refactor: `kind`, `target`, `entity_id`, `key`, `issue`, `property` and `reason`. `issue` is `missing_id`, `missing_endpoint` or `property_unconverted`. `key` holds the primary key of the source row, so the file contains source values. The file is written only when there is an entry, and `run.json` holds its reference and the number of entries.
+
+Several rows of a target may have the same entity id, because an incremental capture can hold more than one change to an entity. The check that refuses this belongs to the hash and diff variant.
 
 ### Sync table
 
@@ -162,7 +172,7 @@ pub struct CapturedSource {
 pub struct PrepareOutput {
     /// The number of rows the run added to the sync table.
     pub rows: u64,
-    /// The issues file. Present when a conversion failed.
+    /// The issues file. Present when a row was left out or a value could not be converted.
     pub issues: Option<ArtifactRef>,
     pub issue_count: u64,
 }
@@ -264,13 +274,13 @@ The parts that are present give the status of a run:
 
 A stage takes the outputs of the stages before it and returns its own output, as the stages of the previous refactor do. A stage writes its part of `run.json` itself.
 
-| Stage   | Input                                                                   | Output          |
-| ------- | ----------------------------------------------------------------------- | --------------- |
-| Capture | `RunInput`                                                              | `CaptureOutput` |
-| Prepare | `RunInput`, `CaptureOutput`                                             | `PrepareOutput` |
-| Send    | `RunInput`, `BatchSettings`, `PrepareOutput`, `SendProgress` if present | `SendOutput`    |
+| Stage   | Input                                                                                    | Output          |
+| ------- | ---------------------------------------------------------------------------------------- | --------------- |
+| Capture | `RunInput`                                                                               | `CaptureOutput` |
+| Prepare | `RunInput`, `CaptureOutput`                                                              | `PrepareOutput` |
+| Send    | `RunInput`, `BatchSettings`, `CaptureOutput`, `PrepareOutput`, `SendProgress` if present | `SendOutput`    |
 
-The definition in `RunInput` names the local Parquet file of each source for Capture.
+The definition in `RunInput` names the local Parquet file of each source for Capture. Send takes `CaptureOutput` for the capture time, which every request carries as `loadedAt`.
 
 ## Crate layout
 
@@ -313,7 +323,7 @@ src/
 - `engine`'s `GraphClient` sends one write at a time and falls back from create to patch. Send needs bulk requests without a fallback, so the client and the batching are new code in this crate.
 - `engine` encodes the create, update and archive bodies of a write into one sealed `Payload`. Send needs them separately. This needs a small change to `engine` or a copy of `graph/plan/request.rs`.
 - The skeleton's `prepare/properties/` and `graph/client.rs` were written as copies from the previous refactor. They are replaced when the steps of Prepare and Send are specified.
-- `engine` has no conditional write, and its public API does not allow one to be built outside the crate. It is added to `engine`'s storage module. See "Raised by the code inventory" in the open issues.
+- The conditional write for `run.json` and `current.json` goes into `engine`'s storage module (Paul, 2026-11-18). The previous refactor's `storage/artifact/mutable` module moves there with its tests: `read_versioned` returns the bytes and a version, and `replace_if` writes only if the version still matches. `ArtifactNamespace` gets the two key names. A file is limited to 1 MiB, and `run.json` embeds the definition.
 - `Graph` is the only trait. It exists so that tests can use `FakeGraph`.
 
 ## Existing code

@@ -1301,7 +1301,10 @@
         <h3>Reads</h3>
         <div class="item">
           <b>Local Parquet file <code>items</code></b
-          ><span class="where">one row per changed source record</span>
+          ><span class="where"
+            >one row per changed source record, in the order the changes
+            happened</span
+          >
         </div>
         <div class="scroll">
           <table>
@@ -1504,8 +1507,9 @@
         <h3>Does</h3>
         <ul>
           <li>
-            Stages each file: adds the internal columns the pipelines need and
-            takes the kind of change from <code>_change</code>.
+            Stages each file: adds the internal columns the pipelines need,
+            takes the kind of change from <code>_change</code>, and numbers the
+            rows in file order.
           </li>
           <li>Runs the definition's pipelines on the staged rows.</li>
           <li>
@@ -1612,20 +1616,26 @@
             <table>
               <thead>
                 <tr>
+                  <th>kind</th>
                   <th>target</th>
                   <th>entity_id</th>
+                  <th>key</th>
+                  <th>issue</th>
                   <th>property</th>
                   <th>reason</th>
                 </tr>
               </thead>
               <tbody>
                 <tr data-rec="B">
+                  <td>entity</td>
                   <td>items-sink</td>
                   <td title="3a060105-8b02-5108-956e-fe52d3909e45">
                     3a060105…
                   </td>
+                  <td>{"id":"B-1"}</td>
+                  <td>property_unconverted</td>
                   <td>weight/v/1</td>
-                  <td>not a number</td>
+                  <td>coercion</td>
                 </tr>
               </tbody>
             </table>
@@ -1695,6 +1705,10 @@
         <div class="item">
           <b>Sync table</b
           ><span class="where">S3 data · the 5 rows of this run</span>
+        </div>
+        <div class="item">
+          <b><code>capture</code> part of <code>run.json</code></b
+          ><span class="where">the capture time every request carries</span>
         </div>
         <div class="item">
           <b><code>batch</code> part of <code>run.json</code></b
@@ -2210,14 +2224,24 @@
     const sendOrder = [0, 1, 2, 4, 3];
     const issueRows = [
       [
+        "entity",
         "items-sink",
         ids.B,
         '{"id":"B-1"}',
+        "property_unconverted",
         "weight/v/1",
-        "the value cannot be read as a number",
+        "coercion",
       ],
     ];
-    const issueHead = ["target", "entity_id", "key", "property", "reason"];
+    const issueHead = [
+      "kind",
+      "target",
+      "entity_id",
+      "key",
+      "issue",
+      "property",
+      "reason",
+    ];
     const batchRows = [
       ["0", "POST /entities/bulk", "create A-1, create B-1"],
       ["1", "PATCH /entities/bulk", "update C-1"],
@@ -2313,7 +2337,7 @@
         () =>
           table(
             ["entity", "property", "reason"],
-            [["B-1", "weight/v/1", "not a number"]],
+            [["B-1", "weight/v/1", "coercion"]],
           ),
       ],
       [
