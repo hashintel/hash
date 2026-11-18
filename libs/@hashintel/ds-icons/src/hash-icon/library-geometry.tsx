@@ -44,6 +44,7 @@ import { fileVideoGeometry } from "./library-geometry/file-video";
 import { filesGeometry } from "./library-geometry/files";
 import { folderGeometry } from "./library-geometry/folder";
 import { handwrittenDocsGeometry } from "./library-geometry/handwritten-docs";
+import { helpGeometry } from "./library-geometry/help";
 import { historyPagesGeometry } from "./library-geometry/history-pages";
 import { historyUserGeometry } from "./library-geometry/history-user";
 import { loginGeometry } from "./library-geometry/login";
@@ -60,6 +61,7 @@ import { squareMinusGeometry } from "./library-geometry/square-minus";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  help: helpGeometry,
   equals: equalsGeometry,
   checkDouble: checkDoubleGeometry,
   radioChecked: radioCheckedGeometry,
