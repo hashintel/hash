@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  layerPlus: "Layers and a plus represent adding a layer.",
   gridPlus: "Grid cells and a plus represent adding a view or item.",
   entityEdit: "An entity and pencil represent editing an entity.",
   entityPlus: "An entity with a plus represents creating a new entity.",

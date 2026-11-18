@@ -173,6 +173,7 @@ import { keyGeometry } from "./library-geometry/key";
 import { keyboardGeometry } from "./library-geometry/keyboard";
 import { keycapKGeometry } from "./library-geometry/keycap-k";
 import { laptopGeometry } from "./library-geometry/laptop";
+import { layerPlusGeometry } from "./library-geometry/layer-plus";
 import { lifeRingGeometry } from "./library-geometry/life-ring";
 import { lighthouseGeometry } from "./library-geometry/lighthouse";
 import { listCheckGeometry } from "./library-geometry/list-check";
@@ -332,6 +333,7 @@ import { wavesGeometry } from "./library-geometry/waves";
 import { workflowGeometry } from "./library-geometry/workflow";
 
 export const libraryGeometry = {
+  layerPlus: layerPlusGeometry,
   gridPlus: gridPlusGeometry,
   entityEdit: entityEditGeometry,
   entityPlus: entityPlusGeometry,
