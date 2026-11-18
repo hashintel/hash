@@ -163,6 +163,7 @@ export const hashIconStudies = [
 }[];
 
 const categories = {
+  Places: ["building"],
   Technology: [
     "pullRequest",
     "codeBranch",

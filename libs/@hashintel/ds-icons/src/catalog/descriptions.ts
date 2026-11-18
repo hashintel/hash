@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  building: "A multi-storey building represents an organization or office.",
   pullRequest:
     "A returning branch represents a pull request or proposed merge.",
   codeBranch: "A split line with endpoints represents a code branch.",

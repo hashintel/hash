@@ -41,6 +41,7 @@ import { brainGeometry } from "./library-geometry/brain";
 import { bringForwardGeometry } from "./library-geometry/bring-forward";
 import { bringToFrontGeometry } from "./library-geometry/bring-to-front";
 import { browserGeometry } from "./library-geometry/browser";
+import { buildingGeometry } from "./library-geometry/building";
 import { calculatorGeometry } from "./library-geometry/calculator";
 import { calendarCheckGeometry } from "./library-geometry/calendar-check";
 import { calendarDayGeometry } from "./library-geometry/calendar-day";
@@ -227,6 +228,7 @@ import { userTieGeometry } from "./library-geometry/user-tie";
 import { usersGeometry } from "./library-geometry/users";
 
 export const libraryGeometry = {
+  building: buildingGeometry,
   pullRequest: pullRequestGeometry,
   codeBranch: codeBranchGeometry,
   codeEdit: codeEditGeometry,
