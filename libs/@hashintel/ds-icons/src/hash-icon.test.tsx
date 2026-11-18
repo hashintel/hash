@@ -103,7 +103,7 @@ describe("HashIcon SVG API", () => {
     );
     const labelled = screen.getByRole("img", { name: "Place" });
     expect(labelled.getAttribute("width")).toBe("20");
-    expect(labelled.getAttribute("stroke-width")).toBe("3");
+    expect(labelled.getAttribute("stroke-width")).toBe("2.5");
     expect(labelled.getAttribute("color")).toBe("red");
     expect(labelled.hasAttribute("aria-hidden")).toBe(false);
     const decorative = container.querySelector('svg[aria-hidden="true"]');
@@ -141,9 +141,9 @@ describe("HashIcon SVG API", () => {
 
   it.each([
     [0, 1],
-    [800, 3],
-    [Number.NaN, 2],
-    [Number.POSITIVE_INFINITY, 2],
+    [800, 2.5],
+    [Number.NaN, 1.75],
+    [Number.POSITIVE_INFINITY, 1.75],
   ])(
     "keeps weight %s within the supported stroke range",
     (weight, strokeWidth) => {
@@ -841,7 +841,7 @@ describe("HashIcon motion", () => {
     );
     expect(animate).not.toHaveBeenCalled();
     expect(ref.current).toBe(screen.getByRole("img", { name: "Add place" }));
-    expect(ref.current?.getAttribute("stroke-width")).toBe("3");
+    expect(ref.current?.getAttribute("stroke-width")).toBe("2.5");
     const maskIds = Array.from(
       container.querySelectorAll("mask"),
       (mask) => mask.id,
@@ -876,7 +876,7 @@ describe("HashIcon motion", () => {
     const frame = container.querySelector('[data-icon-draw="frame"]');
     rerender(<HashIcon name="addTransition" selected />);
     expect(container.querySelector('[data-icon-draw="frame"]')).toBe(frame);
-    expect(frame?.getAttribute("rx")).toBe("2");
+    expect(frame?.getAttribute("rx")).toBe("1");
     expect(getHashIconEffects("addPlace")).toContain("draw");
     expect(getHashIconEffects("settings")).not.toContain("draw");
   });
@@ -1025,6 +1025,63 @@ describe("HashIcon motion", () => {
     expect(
       offsets.filter((transform) => transform === "translateX(-3px)"),
     ).toHaveLength(2);
+  });
+
+  it.each(["equationCurve", "equationFlow"] as const)(
+    "keeps the endpoints of %s fixed while the curve changes",
+    (name) => {
+      const { container } = render(
+        <button type="button">
+          <HashIcon name={name} />
+        </button>,
+      );
+      const curve = container.querySelector(
+        '[data-icon-detail="equation-curve"], [data-icon-detail="equation-solution"]',
+      );
+      const coordinates = (value: unknown) =>
+        String(value)
+          .match(/-?\d*\.?\d+/g)
+          ?.map(Number) ?? [];
+      const resting = coordinates(curve?.getAttribute("d"));
+      fireEvent.click(screen.getByRole("button"));
+      const frames =
+        animate.mock.calls[animate.mock.contexts.indexOf(curve)]?.[0];
+      expect(frames).toBeDefined();
+      for (const frame of frames ?? []) {
+        const values = coordinates(frame.d);
+        expect(values.slice(0, 2)).toEqual(resting.slice(0, 2));
+        expect(values.slice(-2)).toEqual(resting.slice(-2));
+      }
+    },
+  );
+
+  it("keeps the range value attached to both moving bounds", () => {
+    const { container } = render(
+      <button type="button">
+        <HashIcon name="parameterRange" />
+      </button>,
+    );
+    const left = container.querySelector('[data-icon-detail="range-left"]');
+    const right = container.querySelector('[data-icon-detail="range-right"]');
+    const value = container.querySelector('[data-icon-detail="range-value"]');
+    fireEvent.click(screen.getByRole("button"));
+    const peak = (element: Element | null) =>
+      animate.mock.calls[animate.mock.contexts.indexOf(element)]?.[0][1]
+        ?.transform;
+    const number = (input: unknown) =>
+      Number(String(input).match(/-?\d*\.?\d+/)?.[0]);
+    const start = number(value?.getAttribute("d"));
+    const end = start + number(value?.getAttribute("d")?.split("h")[1]);
+    const center = (start + end) / 2;
+    const scale = number(peak(value));
+    expect(center + (start - center) * scale).toBeCloseTo(
+      number(left?.querySelector("path")?.getAttribute("d")) +
+        number(peak(left)),
+    );
+    expect(center + (end - center) * scale).toBeCloseTo(
+      number(right?.querySelector("path")?.getAttribute("d")) +
+        number(peak(right)),
+    );
   });
 
   it("offers matching labels and drawable paths for every modeling alternative", () => {
