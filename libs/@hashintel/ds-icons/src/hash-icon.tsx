@@ -680,6 +680,7 @@ export const BoxIcon = createIcon("box");
 export const BoxesIcon = createIcon("boxes");
 export const PackIcon = createIcon("pack");
 export const BoxesPackingIcon = createIcon("boxesPacking");
+export const BoxLocationIcon = createIcon("boxLocation");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -865,6 +866,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  boxLocation: BoxLocationIcon,
   boxesPacking: BoxesPackingIcon,
   pack: PackIcon,
   boxes: BoxesIcon,

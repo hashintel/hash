@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  boxLocation: "A carton with a map marker represents a package location.",
   boxesPacking: "An open carton represents packing or unpacking goods.",
   pack: "A packed container represents a grouped shipment or bundle.",
   boxes: "Stacked cartons represent inventory or multiple packages.",

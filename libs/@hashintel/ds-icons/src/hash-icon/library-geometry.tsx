@@ -39,6 +39,7 @@ import { bookGeometry } from "./library-geometry/book";
 import { bookOpenGeometry } from "./library-geometry/book-open";
 import { booksGeometry } from "./library-geometry/books";
 import { boxGeometry } from "./library-geometry/box";
+import { boxLocationGeometry } from "./library-geometry/box-location";
 import { boxesGeometry } from "./library-geometry/boxes";
 import { boxesPackingGeometry } from "./library-geometry/boxes-packing";
 import { brainGeometry } from "./library-geometry/brain";
@@ -253,6 +254,7 @@ import { usersGeometry } from "./library-geometry/users";
 import { warehouseGeometry } from "./library-geometry/warehouse";
 
 export const libraryGeometry = {
+  boxLocation: boxLocationGeometry,
   boxesPacking: boxesPackingGeometry,
   pack: packGeometry,
   boxes: boxesGeometry,
