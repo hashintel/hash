@@ -163,7 +163,7 @@ export const hashIconStudies = [
 }[];
 
 const categories = {
-  Logic: ["logicAnd", "logicOr"],
+  Logic: ["logicAnd", "logicOr", "logicNot"],
   Navigation: [
     "arrowUp",
     "arrowDown",

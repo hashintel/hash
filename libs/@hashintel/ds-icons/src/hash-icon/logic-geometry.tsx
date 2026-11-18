@@ -40,4 +40,5 @@ export const logicGeometry = {
   ),
   logicAnd: <path d="M4.5 19 12 5l7.5 14" />,
   logicOr: <path d="M4.5 5 12 19l7.5-14" />,
+  logicNot: <path d="M4.5 8h15v9" />,
 } as const;

@@ -193,6 +193,8 @@ export const descriptions = {
   logicAnd: "A conjunction symbol represents conditions that must all hold.",
   logicOr:
     "A disjunction symbol represents a choice where at least one condition holds.",
+  logicNot:
+    "A negation symbol represents the opposite truth value of a condition.",
   logicSignalBounded:
     "A waveform with a marked interval represents signal temporal logic over a bounded period.",
   logicSignalThreshold:

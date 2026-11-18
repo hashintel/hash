@@ -184,6 +184,7 @@ Filled dots mark states or events where that distinction carries meaning.
 | ---------- | ----------------------------- |
 | `logicAnd` | All conditions hold.          |
 | `logicOr`  | At least one condition holds. |
+| `logicNot` | Negates a condition.          |
 
 ### Temporal logic
 

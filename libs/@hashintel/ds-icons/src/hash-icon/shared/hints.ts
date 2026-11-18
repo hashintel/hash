@@ -113,6 +113,7 @@ export const hashIconHints = {
   ruler: "tilt",
   logicAnd: "lift",
   logicOr: "lift",
+  logicNot: "lift",
   logicSignalBounded: "lift",
   logicSignalThreshold: "lift",
   logicSignalClock: "lift",
