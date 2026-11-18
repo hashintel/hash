@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  textAlignLeft: "Lines sharing a left edge represent left-aligned text.",
   percent: "A slash between two circles represents a percentage.",
   hashtag:
     "Crossed parallel strokes represent a hashtag or numbered identifier.",

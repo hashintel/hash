@@ -584,6 +584,7 @@ export const FontDrawIcon = createIcon("fontDraw");
 export const FontCaseIcon = createIcon("fontCase");
 export const HashtagIcon = createIcon("hashtag");
 export const PercentIcon = createIcon("percent");
+export const TextAlignLeftIcon = createIcon("textAlignLeft");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -769,6 +770,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  textAlignLeft: TextAlignLeftIcon,
   percent: PercentIcon,
   hashtag: HashtagIcon,
   fontCase: FontCaseIcon,
