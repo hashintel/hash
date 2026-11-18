@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  toolbox:
+    "A handled tool case represents a toolkit or collection of utilities.",
   tools:
     "A wrench and screwdriver represent tools, maintenance, or technical setup.",
   wind: "Curving air currents represent wind, airflow, or lightness.",

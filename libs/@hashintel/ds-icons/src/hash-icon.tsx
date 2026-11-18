@@ -780,6 +780,7 @@ export const CircleThreeQuartersIcon = createIcon("circleThreeQuarters");
 export const FlameIcon = createIcon("flame");
 export const WindIcon = createIcon("wind");
 export const ToolsIcon = createIcon("tools");
+export const ToolboxIcon = createIcon("toolbox");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -965,6 +966,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  toolbox: ToolboxIcon,
   tools: ToolsIcon,
   wind: WindIcon,
   flame: FlameIcon,

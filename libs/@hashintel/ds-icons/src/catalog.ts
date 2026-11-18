@@ -270,6 +270,7 @@ const categories = {
     "building",
   ],
   Technology: [
+    "toolbox",
     "tools",
     "cloud",
     "pullRequest",

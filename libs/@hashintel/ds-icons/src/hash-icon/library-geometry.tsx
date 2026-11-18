@@ -325,6 +325,7 @@ import { timelineArrowGeometry } from "./library-geometry/timeline-arrow";
 import { toggleOffGeometry } from "./library-geometry/toggle-off";
 import { toggleOnGeometry } from "./library-geometry/toggle-on";
 import { tombstoneGeometry } from "./library-geometry/tombstone";
+import { toolboxGeometry } from "./library-geometry/toolbox";
 import { toolsGeometry } from "./library-geometry/tools";
 import { towerControlGeometry } from "./library-geometry/tower-control";
 import { trapezoidGeometry } from "./library-geometry/trapezoid";
@@ -353,6 +354,7 @@ import { windGeometry } from "./library-geometry/wind";
 import { workflowGeometry } from "./library-geometry/workflow";
 
 export const libraryGeometry = {
+  toolbox: toolboxGeometry,
   tools: toolsGeometry,
   wind: windGeometry,
   flame: flameGeometry,
