@@ -164,6 +164,7 @@ export const hashIconStudies = [
 
 const categories = {
   Text: [
+    "listCheck",
     "listOrdered",
     "quote",
     "textAlignJustify",

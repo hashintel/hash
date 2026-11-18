@@ -106,6 +106,7 @@ import { italicGeometry } from "./library-geometry/italic";
 import { keyGeometry } from "./library-geometry/key";
 import { keyboardGeometry } from "./library-geometry/keyboard";
 import { keycapKGeometry } from "./library-geometry/keycap-k";
+import { listCheckGeometry } from "./library-geometry/list-check";
 import { listOrderedGeometry } from "./library-geometry/list-ordered";
 import { loginGeometry } from "./library-geometry/login";
 import { logoutGeometry } from "./library-geometry/logout";
@@ -163,6 +164,7 @@ import { ungroupGeometry } from "./library-geometry/ungroup";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  listCheck: listCheckGeometry,
   listOrdered: listOrderedGeometry,
   quote: quoteGeometry,
   textAlignJustify: textAlignJustifyGeometry,

@@ -590,6 +590,7 @@ export const TextAlignCenterIcon = createIcon("textAlignCenter");
 export const TextAlignJustifyIcon = createIcon("textAlignJustify");
 export const QuoteIcon = createIcon("quote");
 export const ListOrderedIcon = createIcon("listOrdered");
+export const ListCheckIcon = createIcon("listCheck");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -775,6 +776,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  listCheck: ListCheckIcon,
   listOrdered: ListOrderedIcon,
   quote: QuoteIcon,
   textAlignJustify: TextAlignJustifyIcon,
