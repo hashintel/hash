@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  redo: "A returning arrow pointing right represents redoing an action.",
   collapseVertical:
     "Arrows approaching a central line represent collapsing vertical space.",
   expandDiagonal: "Outward diagonal arrows represent enlarging an area.",
