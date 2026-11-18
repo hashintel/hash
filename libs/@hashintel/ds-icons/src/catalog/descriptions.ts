@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  expertInterviews:
+    "A person beside a speech bubble represents an expert interview.",
   peopleArrows:
     "People with opposing arrows represent exchange or collaboration.",
   family: "Adults and a child represent a family or household.",
