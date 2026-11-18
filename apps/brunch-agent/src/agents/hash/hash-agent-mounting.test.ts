@@ -305,7 +305,8 @@ test("a document binding mounts the guidance, the Ledger, HASH's graph reads and
   // Every HASH Petrinaut tool names the editor it acts on, which the system
   // prompt gives.
   const createPlace = mounted.inputs.get("petrinaut_create_place") as
-    StandardSchema | undefined;
+    | StandardSchema
+    | undefined;
   const validates = async (value: unknown) =>
     (await createPlace?.["~standard"].validate(value))?.issues === undefined;
   expect(await validates(place)).toBe(false);
