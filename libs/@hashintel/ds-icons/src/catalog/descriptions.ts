@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  thermometerCold:
+    "A thermometer beside a snowflake represents low temperature.",
   thermometer: "A graduated bulb represents temperature.",
   humidity: "A water droplet represents moisture or humidity.",
   vibration: "Wavy marks beside a device represent vibration.",

@@ -265,6 +265,7 @@ import { textAlignJustifyGeometry } from "./library-geometry/text-align-justify"
 import { textAlignLeftGeometry } from "./library-geometry/text-align-left";
 import { textAlignRightGeometry } from "./library-geometry/text-align-right";
 import { thermometerGeometry } from "./library-geometry/thermometer";
+import { thermometerColdGeometry } from "./library-geometry/thermometer-cold";
 import { thumbsDownGeometry } from "./library-geometry/thumbs-down";
 import { thumbsUpGeometry } from "./library-geometry/thumbs-up";
 import { toggleOffGeometry } from "./library-geometry/toggle-off";
@@ -291,6 +292,7 @@ import { wavePulseGeometry } from "./library-geometry/wave-pulse";
 import { wavesGeometry } from "./library-geometry/waves";
 
 export const libraryGeometry = {
+  thermometerCold: thermometerColdGeometry,
   thermometer: thermometerGeometry,
   humidity: humidityGeometry,
   vibration: vibrationGeometry,
