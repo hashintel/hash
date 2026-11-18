@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  mapPin: "A marker over a map represents locating a place.",
   map: "A folded map represents an area or geographic information.",
   locationCheck: "A map marker with a check represents a confirmed location.",
   location: "A map marker represents a location or address.",
