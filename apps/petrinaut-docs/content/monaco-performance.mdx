@@ -109,7 +109,7 @@ Browser verification passed for real typing and undo, completion suggestions,
 type-error markers, Canvas → Definitions → Canvas source preservation, and real
 pointer resizing. No page errors were reported. The updated unit suite passes
 1,427 tests across 178 files. It covers real document mutations, pending-update
-flush/cancellation, subnet edits, remote snapshots, retained sections, model
+flush/cancellation, component edits, remote snapshots, retained sections, model
 ownership, warmup cleanup, and panel transitions.
 
 Run the current prototype with:
@@ -121,6 +121,19 @@ mise x -- node benchmarks/monaco-performance/lifecycle.mjs mode=cold samples=4 v
 mise x -- node benchmarks/monaco-performance/lifecycle.mjs mode=memory samples=2 variants=prototype
 mise x -- node benchmarks/monaco-performance/verify.mjs variants=prototype
 ```
+
+## Panel geometry
+
+A width drag of the Properties panel used to set React state on every pointer
+move and re-render every reader of the editor context: 23.8 ms of script per
+move on Supply Chain with the Visualizer editor open. The width now lives in a
+store and is written straight onto the panel element: 4.7 ms per move, and 2
+frames over 12 ms where there were 13. The mechanism, its rules and the
+measurement that ruled out a custom property on the editor root are in
+[Panel sizes outside React state](doc:react.state/panel-sizes).
+
+`geometry.mjs` beside the other benchmark scripts measures panel drags and the
+maximize, restore, collapse and expand animations of a code section.
 
 ## What the baseline does when an editor opens
 
