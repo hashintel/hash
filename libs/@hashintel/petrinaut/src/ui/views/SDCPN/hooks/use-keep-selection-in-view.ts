@@ -2,6 +2,7 @@ import { use, useEffect, useEffectEvent, useRef } from "react";
 
 import {
   getBoundsOfCenteredBoxes,
+  type ReadableStore,
   type SelectionMap,
   type Size,
 } from "@hashintel/petrinaut-core";
@@ -87,23 +88,22 @@ export const useKeepSelectionInView = ({
   controller,
   scene,
   containerSize: { width, height },
-  insets: { left, right, bottom },
+  insets,
   minZoom,
 }: {
   controller: CanvasController;
   scene: CanvasScene;
   containerSize: Size;
-  insets: CanvasInsets;
+  /** A store, so a panel drag moves the camera without rendering the canvas. */
+  insets: ReadableStore<CanvasInsets>;
   minZoom: number;
 }) => {
   const { selection } = use(EditorContext);
   const target = usePanelTarget();
   const soleSelectedId = target.kind === "single" ? target.item.id : undefined;
 
-  const frame: Frame = { width, height, left, right, bottom };
-
   /** `visibleIn` limits the move to a selection in view within that frame. */
-  const reveal = useEffectEvent((visibleIn?: Frame) => {
+  const reveal = useEffectEvent((frame: Frame, visibleIn?: Frame) => {
     const bounds = getBoundsOfCenteredBoxes(selectedNodesOf(scene, selection));
     if (!bounds) {
       return;
@@ -131,19 +131,36 @@ export const useKeepSelectionInView = ({
     }
   });
 
-  // Starts from what the canvas opened with: the saved viewport already
-  // frames that selection as the user left it.
-  const lastRef = useRef({ soleSelectedId, frame });
-  useEffect(() => {
+  const lastRef = useRef<{
+    soleSelectedId: string | undefined;
+    frame: Frame;
+  } | null>(null);
+
+  /** Moves the camera for what changed since the last look. */
+  const follow = useEffectEvent(() => {
     const last = lastRef.current;
-    const current = { width, height, left, right, bottom };
-    lastRef.current = { soleSelectedId, frame: current };
+    const frame: Frame = { width, height, ...insets.get() };
+    lastRef.current = { soleSelectedId, frame };
+    // What the canvas opened with stays put: the saved viewport already
+    // frames that selection as the user left it.
+    if (last === null) {
+      return;
+    }
     if (soleSelectedId !== last.soleSelectedId) {
       if (soleSelectedId !== undefined) {
-        reveal();
+        reveal(frame);
       }
-    } else if (!sameFrame(current, last.frame)) {
-      reveal(last.frame);
+    } else if (!sameFrame(frame, last.frame)) {
+      reveal(frame, last.frame);
     }
-  }, [soleSelectedId, width, height, left, right, bottom]);
+  });
+
+  // A change React renders: the selection, the canvas size, or which panels
+  // are open, which gives a new insets store.
+  useEffect(() => {
+    follow();
+  }, [soleSelectedId, width, height, insets]);
+
+  // A panel drag: the insets change and nothing renders.
+  useEffect(() => insets.subscribe(() => follow()), [insets]);
 };

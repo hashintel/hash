@@ -3,6 +3,8 @@
 import { renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import { createReadableStore } from "@hashintel/petrinaut-core";
+
 import {
   EditorContext,
   type EditorContextValue,
@@ -57,14 +59,15 @@ const setup = (initialSelection: string[]) => {
   } as unknown as CanvasController;
 
   let selection = select(...initialSelection);
-  let frame = { width: 1200, right: 0 };
+  let width = 1200;
+  const insets = createReadableStore({ left: 200, right: 0, bottom: 0 });
   const { rerender } = renderHook(
     () =>
       useKeepSelectionInView({
         controller,
         scene,
-        containerSize: { width: frame.width, height: 600 },
-        insets: { left: 200, right: frame.right, bottom: 0 },
+        containerSize: { width, height: 600 },
+        insets,
         minZoom: 0.1,
       }),
     {
@@ -83,12 +86,12 @@ const setup = (initialSelection: string[]) => {
       selection = select(...ids);
       rerender();
     },
+    // A panel drag sets the store and renders nothing.
     setRightPanel: (right: number) => {
-      frame = { ...frame, right };
-      rerender();
+      insets.set({ left: 200, right, bottom: 0 });
     },
-    setCanvasWidth: (width: number) => {
-      frame = { ...frame, width };
+    setCanvasWidth: (next: number) => {
+      width = next;
       rerender();
     },
   };
