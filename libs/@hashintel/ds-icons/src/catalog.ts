@@ -243,7 +243,7 @@ const categories = {
     "laptop",
     "monitor",
   ],
-  Science: ["waves", "sunMoon", "moon", "sun", "brain"],
+  Science: ["wavePulse", "waves", "sunMoon", "moon", "sun", "brain"],
   People: [
     "heart",
     "sad",

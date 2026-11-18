@@ -713,6 +713,7 @@ export const SunIcon = createIcon("sun");
 export const MoonIcon = createIcon("moon");
 export const SunMoonIcon = createIcon("sunMoon");
 export const WavesIcon = createIcon("waves");
+export const WavePulseIcon = createIcon("wavePulse");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -898,6 +899,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  wavePulse: WavePulseIcon,
   waves: WavesIcon,
   sunMoon: SunMoonIcon,
   moon: MoonIcon,

@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  wavePulse:
+    "A sharply changing waveform represents a pulse or live measurement.",
   waves: "Parallel waves represent flowing water or repeated oscillation.",
   sunMoon:
     "A sun beside a crescent represents switching between light and dark themes.",

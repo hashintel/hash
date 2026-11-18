@@ -283,9 +283,11 @@ import { userTagGeometry } from "./library-geometry/user-tag";
 import { userTieGeometry } from "./library-geometry/user-tie";
 import { usersGeometry } from "./library-geometry/users";
 import { warehouseGeometry } from "./library-geometry/warehouse";
+import { wavePulseGeometry } from "./library-geometry/wave-pulse";
 import { wavesGeometry } from "./library-geometry/waves";
 
 export const libraryGeometry = {
+  wavePulse: wavePulseGeometry,
   waves: wavesGeometry,
   sunMoon: sunMoonGeometry,
   moon: moonGeometry,
