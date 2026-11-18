@@ -267,6 +267,7 @@ export const ProcessEditor = ({
             title: target.seed?.title ?? "Process",
             mode: { kind: "draft", seedKey: target.seedKey },
             savedSnapshot: null,
+            reason: "open",
           },
         };
       }
@@ -289,6 +290,7 @@ export const ProcessEditor = ({
             title: targetNet.title,
             decisionTime: targetNet.lastUpdated,
           },
+          reason: "open",
         },
       };
     },
@@ -460,6 +462,7 @@ export const ProcessEditor = ({
             title: revision.title,
             decisionTime: revision.decisionTime,
           },
+          reason: "revision",
         },
       });
     },

@@ -33,6 +33,7 @@
         "API_ORIGIN",
         "ENVIRONMENT",
         "GOOGLE_OAUTH_CLIENT_ID",
+        "HASH_BRUNCH_AGENT_ORIGIN",
         "NODE_ENV",
         "NOTIFICATION_POLL_INTERVAL",
         "SELF_HOSTED_HASH",
@@ -54,7 +55,9 @@
     },
     "dev": {
       "dependsOn": ["codegen", "^build"],
-      "passThroughEnv": ["PORT"]
+      // `next.config.js` reads `HASH_BRUNCH_AGENT_ORIGIN` to offer Brunch's
+      // assistant on the process page.
+      "passThroughEnv": ["HASH_BRUNCH_AGENT_ORIGIN", "PORT"]
     },
     "test:unit": {
       "dependsOn": ["codegen", "^build"]

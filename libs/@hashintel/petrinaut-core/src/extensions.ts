@@ -263,7 +263,7 @@ export const isSelectionTypeAvailableForExtensions = (
   if (type === "parameter") {
     return extensions.parameters;
   }
-  if (type === "componentInstance") {
+  if (type === "componentInstance" || type === "fusion") {
     return extensions.subnets;
   }
   return true;
@@ -279,15 +279,16 @@ export const sanitizePlaceForExtensions = <
     return place;
   }
 
-  return {
+  const sanitized: Place = {
     ...place,
     colorId: extensions.colors ? place.colorId : null,
     dynamicsEnabled: canUseDynamics(extensions) ? place.dynamicsEnabled : false,
-    differentialEquationId: canUseDynamics(extensions)
-      ? place.differentialEquationId
-      : null,
     visualizerCode: extensions.colors ? place.visualizerCode : undefined,
   };
+  if (!canUseDynamics(extensions)) {
+    delete sanitized.dynamics;
+  }
+  return sanitized;
 };
 
 export const sanitizeTransitionForExtensions = <
@@ -332,6 +333,7 @@ type SanitizableNet = Pick<
   "places" | "transitions" | "types" | "differentialEquations" | "parameters"
 > & {
   componentInstances?: SDCPN["componentInstances"];
+  fusions?: SDCPN["fusions"];
 };
 
 const stripDisabledExtensionDataFromNet = (
@@ -356,6 +358,14 @@ const stripDisabledExtensionDataFromNet = (
     if (!extensions.colors) {
       delete place.visualizerCode;
     }
+    if (!canUseDynamics(extensions)) {
+      delete place.dynamics;
+    }
+  }
+
+  if (!extensions.subnets && net.fusions !== undefined) {
+    const targetNet = net;
+    delete targetNet.fusions;
   }
 
   for (const transition of net.transitions) {
@@ -407,6 +417,25 @@ const cloneComponentInstances = (
   componentInstances?.map((instance) => ({
     ...instance,
     parameterValues: { ...instance.parameterValues },
+    ...(instance.implementation === undefined
+      ? {}
+      : { implementation: { ...instance.implementation } }),
+  }));
+
+/** A copy that shares nothing with `place`; `dynamics` stays absent when absent. */
+const clonePlace = (place: SDCPNPlace): SDCPNPlace => ({
+  ...place,
+  ...(place.dynamics === undefined
+    ? {}
+    : { dynamics: place.dynamics.map((term) => ({ ...term })) }),
+});
+
+const cloneFusions = (
+  fusions: NonNullable<SDCPN["fusions"]>,
+): NonNullable<SDCPN["fusions"]> =>
+  fusions.map((fusion) => ({
+    ...fusion,
+    members: fusion.members.map((member) => ({ ...member })),
   }));
 
 const cloneSubnet = (
@@ -415,7 +444,7 @@ const cloneSubnet = (
   const next: NonNullable<SDCPN["subnets"]>[number] = {
     id: subnet.id,
     name: subnet.name,
-    places: subnet.places.map((place) => ({ ...place })),
+    places: subnet.places.map(clonePlace),
     transitions: subnet.transitions.map((transition) => ({
       ...transition,
       inputArcs: transition.inputArcs.map((arc) => ({ ...arc })),
@@ -441,10 +470,22 @@ const cloneSubnet = (
     next.metadata = { ...subnet.metadata };
   }
 
+  if (subnet.interface) {
+    next.interface = true;
+  }
+
+  if (subnet.implements) {
+    next.implements = [...subnet.implements];
+  }
+
   if (subnet.componentInstances) {
     next.componentInstances = cloneComponentInstances(
       subnet.componentInstances,
     );
+  }
+
+  if (subnet.fusions) {
+    next.fusions = cloneFusions(subnet.fusions);
   }
 
   return next;
@@ -454,20 +495,18 @@ const cloneSubnet = (
  * Produce a sanitized deep copy of an SDCPN with data for disabled extensions
  * stripped out.
  *
- * The optional keys (`description`, `metadata`, `scenarios`, `metrics`,
- * `subnets`, `componentInstances`) are only set when they are present on the
- * source. Writing them
- * unconditionally would leave them present with a value of `undefined`, which
- * is not the same shape as a definition loaded back from JSON — where absent
- * keys stay absent — and would make `isSDCPNEqual` report an untouched net as
- * changed.
+ * The optional keys are only set when they are present on the source. Writing
+ * them unconditionally would leave them present with a value of `undefined`,
+ * which is not the same shape as a definition loaded back from JSON — where
+ * absent keys stay absent — and would make `isSDCPNEqual` report an untouched
+ * net as changed.
  */
 export const sanitizeSDCPNForExtensions = (
   sdcpn: SDCPN,
   extensions: PetrinautExtensionSettings,
 ): SDCPN => {
   const next: SDCPN = {
-    places: sdcpn.places.map((place) => ({ ...place })),
+    places: sdcpn.places.map(clonePlace),
     transitions: sdcpn.transitions.map((transition) => ({
       ...transition,
       inputArcs: transition.inputArcs.map((arc) => ({ ...arc })),
@@ -532,11 +571,23 @@ export const sanitizeSDCPNForExtensions = (
     next.componentInstances = cloneComponentInstances(sdcpn.componentInstances);
   }
 
+  if (sdcpn.fusions) {
+    next.fusions = cloneFusions(sdcpn.fusions);
+  }
+
+  if (sdcpn.implementations) {
+    next.implementations = sdcpn.implementations.map((entry) => ({
+      interface: { ...entry.interface },
+      component: { ...entry.component },
+    }));
+  }
+
   stripDisabledExtensionData(next, extensions);
 
   if (!extensions.subnets) {
     delete next.subnets;
     delete next.componentInstances;
+    delete next.implementations;
   }
 
   return next;

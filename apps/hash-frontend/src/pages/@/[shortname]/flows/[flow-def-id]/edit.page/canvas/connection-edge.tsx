@@ -25,7 +25,7 @@ export const ConnectionEdge = ({
   targetY,
   targetPosition,
 }: EdgeProps<ConnectionEdgeType>) => {
-  const { removeConnection } = useCanvasActions();
+  const removeConnection = useCanvasActions().editing?.removeConnection;
   const [hovered, setHovered] = useState(false);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -40,7 +40,8 @@ export const ConnectionEdge = ({
     targetPosition,
   });
 
-  const connection = data?.kind === "connection" ? data.connection : null;
+  const connection =
+    removeConnection && data?.kind === "connection" ? data.connection : null;
 
   const hover = connection
     ? {
@@ -73,7 +74,7 @@ export const ConnectionEdge = ({
           }}
         />
       </g>
-      {connection && hovered && (
+      {connection && removeConnection && hovered && (
         <EdgeLabelRenderer>
           <div
             className={cx(disconnect, "nodrag nopan")}

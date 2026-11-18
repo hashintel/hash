@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { MAX_DIFFERENTIAL_EQUATION_ARITY } from "../equation-arity";
 import { toPetrinautId } from "../petrinaut-id";
 import { parseSDCPNFile } from "./parse-sdcpn-file";
 
@@ -10,7 +11,6 @@ const minimalPlace = {
   name: "Place 1",
   colorId: null,
   dynamicsEnabled: false,
-  differentialEquationId: null,
   x: 100,
   y: 200,
 };
@@ -147,7 +147,6 @@ describe("parseSDCPNFile", () => {
                 name: "Port",
                 colorId: null,
                 dynamicsEnabled: false,
-                differentialEquationId: null,
                 isPort: true,
                 x: 0,
                 y: 0,
@@ -211,7 +210,6 @@ describe("parseSDCPNFile", () => {
                 name: "Port",
                 colorId: null,
                 dynamicsEnabled: false,
-                differentialEquationId: null,
                 isPort: true,
                 x: 0,
                 y: 0,
@@ -293,7 +291,6 @@ describe("parseSDCPNFile", () => {
       expect(result.sdcpn.places[0]).toMatchObject({
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
       });
     });
 
@@ -322,7 +319,7 @@ describe("parseSDCPNFile", () => {
       });
     });
 
-    it("preserves explicit place colour, dynamics and arc weight values", () => {
+    it("preserves explicit place colour and arc weights, migrating a legacy equation reference", () => {
       const result = parseSDCPNFile({
         version: 1,
         meta: { generator: "Petrinaut" },
@@ -334,6 +331,7 @@ describe("parseSDCPNFile", () => {
             colorId: "c1",
             dynamicsEnabled: true,
             differentialEquationId: "de1",
+            dynamics: [{ differentialEquationId: "de2" }],
             x: 100,
             y: 200,
           },
@@ -348,6 +346,7 @@ describe("parseSDCPNFile", () => {
         types: [{ id: "c1", name: "Colour 1", elements: [] }],
         differentialEquations: [
           { id: "de1", name: "Equation 1", colorId: "c1", code: "" },
+          { id: "de2", name: "Pairwise", colorId: "c1", code: "", arity: 2 },
         ],
       });
 
@@ -356,8 +355,18 @@ describe("parseSDCPNFile", () => {
       expect(result.sdcpn.places[0]).toMatchObject({
         colorId: idOf("c1"),
         dynamicsEnabled: true,
-        differentialEquationId: idOf("de1"),
+        dynamics: [
+          { differentialEquationId: idOf("de1") },
+          { differentialEquationId: idOf("de2") },
+        ],
       });
+      expect(result.sdcpn.places[0]).not.toHaveProperty(
+        "differentialEquationId",
+      );
+      expect(result.sdcpn.differentialEquations).toMatchObject([
+        { id: idOf("de1"), arity: 1 },
+        { id: idOf("de2"), arity: 2 },
+      ]);
       expect(result.sdcpn.transitions[0]?.inputArcs[0]).toMatchObject({
         weight: 3,
         type: "read",
@@ -365,6 +374,24 @@ describe("parseSDCPNFile", () => {
       expect(result.sdcpn.transitions[0]?.outputArcs[0]).toMatchObject({
         weight: 3,
       });
+    });
+
+    it("rejects an equation that couples more tokens than the bound", () => {
+      const withArity = (arity: number) =>
+        parseSDCPNFile({
+          version: 1,
+          meta: { generator: "Petrinaut" },
+          ...minimalSDCPN,
+          types: [{ id: "c1", name: "Colour 1", elements: [] }],
+          differentialEquations: [
+            { id: "de1", name: "Equation 1", colorId: "c1", code: "", arity },
+          ],
+        });
+      expect(withArity(MAX_DIFFERENTIAL_EQUATION_ARITY).ok).toBe(true);
+      const result = withArity(MAX_DIFFERENTIAL_EQUATION_ARITY + 1);
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.error).toContain("arity");
     });
 
     it("strips version and meta from the returned sdcpn", () => {

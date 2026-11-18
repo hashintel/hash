@@ -26,8 +26,9 @@ import {
   type TokenSlotLayout,
 } from "../simulation/engine/token-layout";
 import { foldHir } from "./analyze";
+import { walkHir } from "./hir";
 
-import type { HirExpr, HirFunction } from "./hir";
+import type { HirExpr, HirFunction, HirLetBinding } from "./hir";
 import type {
   HirArcSlot,
   HirInputPlaceCount,
@@ -1100,6 +1101,31 @@ export function emitBufferMetricJs(
   }
 }
 
+/** Whether `expr` reads any of `names` (over-approximate: shadowing counts). */
+function referencesLocal(expr: HirExpr, names: ReadonlySet<string>): boolean {
+  let found = false;
+  walkHir(expr, (node) => {
+    if (node.kind === "localRef" && names.has(node.name)) {
+      found = true;
+    }
+  });
+  return found;
+}
+
+/** Peels nested `let`s into one binding list over the innermost body. */
+function flattenLets(expr: HirExpr): {
+  bindings: HirLetBinding[];
+  body: HirExpr;
+} {
+  const bindings: HirLetBinding[] = [];
+  let body = expr;
+  while (body.kind === "let") {
+    bindings.push(...body.bindings);
+    body = body.body;
+  }
+  return { bindings, body };
+}
+
 /**
  * Compiles a dynamics function to the buffer-native v2 shape:
  *
@@ -1108,16 +1134,26 @@ export function emitBufferMetricJs(
  * Reads token attributes at packed-struct byte offsets through views created
  * once per call; derivatives are written flat as `numberOfTokens × realField`
  * in layout field order (matching `TokenSlotLayout.realFieldF64Offsets`).
- * References `__params` / `__pool`, bound at instantiation. Returns `null`
- * when the body doesn't fit the `tokens.map((token, index?) => ({ ... }))`
- * shape.
+ * References `__params` / `__pool`, bound at instantiation.
+ *
+ * The program is `arity` nested loops over token indices `i0 < i1 < …`, the
+ * body's result records added into `out` (`+=`) for the tokens of each
+ * combination, so the place's derivative is the sum over every combination.
+ * Arity 1 is one loop over the tokens. Bindings that read no token are
+ * hoisted out of the loops; the rest are evaluated once per combination.
+ *
+ * The body must be one derivative record (arity 1) or an array literal of
+ * `arity` records, possibly under `const` bindings. The engines have no
+ * interpreter for other shapes, so anything else is `null`, a compile
+ * failure, like every other surface.
  */
 export function emitBufferDynamicsJs(
   fn: HirFunction,
   elements: readonly HirTokenElementInfo[],
+  arity: number,
 ): string | null {
   const tokensParam = fn.params[0];
-  if (!tokensParam) {
+  if (!tokensParam || !Number.isInteger(arity) || arity < 1) {
     return null;
   }
   const layout = computeTokenSlotLayout(
@@ -1134,75 +1170,97 @@ export function emitBufferDynamicsJs(
     return null;
   }
 
-  let body = foldHir(fn.body);
-  let outerBindings: Extract<HirExpr, { kind: "let" }>["bindings"] = [];
-  if (body.kind === "let") {
-    outerBindings = body.bindings;
-    body = body.body;
-  }
-  if (
-    body.kind !== "arrayMap" ||
-    body.target.kind !== "localRef" ||
-    body.target.name !== tokensParam.name
-  ) {
-    return null;
-  }
-  const mapBody = body.body;
-  const innerBindings = mapBody.kind === "let" ? mapBody.bindings : [];
-  const record = mapBody.kind === "let" ? mapBody.body : mapBody;
-  if (record.kind !== "recordLit") {
+  const { bindings, body } = flattenLets(foldHir(fn.body));
+  const records =
+    arity === 1
+      ? body.kind === "recordLit"
+        ? [body]
+        : null
+      : body.kind === "arrayLit" && body.elements.length === arity
+        ? body.elements.map((element) =>
+            element.kind === "recordLit" ? element : null,
+          )
+        : null;
+  if (!records || records.some((record) => record === null)) {
     return null;
   }
 
   try {
     const emitter = new BufferEmitter([]);
+    const indexNames = Array.from({ length: arity }, (_, position) =>
+      emitter.names.allocate(`__i${position}`),
+    );
+    const baseNames = Array.from({ length: arity }, (_, position) =>
+      emitter.names.allocate(`__b${position}`),
+    );
     const env = new Map<string, Value>();
+    env.set(tokensParam.name, {
+      kind: "array",
+      items: baseNames.map((baseCode) => ({
+        kind: "token",
+        baseCode,
+        elements: [...elements],
+      })),
+    });
 
-    // Token-independent bindings, hoisted before the loop.
-    for (const binding of outerBindings) {
+    const tokenDependent = new Set([tokensParam.name]);
+    const hoisted: string[] = [];
+    const perCombination: string[] = [];
+    for (const binding of bindings) {
+      const dependent = referencesLocal(binding.value, tokenDependent);
+      if (dependent) {
+        tokenDependent.add(binding.name);
+      }
+      emitter.lines.length = 0;
       env.set(
         binding.name,
         emitter.hoist(binding.name, emitter.eval(binding.value, env)),
       );
+      (dependent ? perCombination : hoisted).push(...emitter.lines);
     }
-    const hoisted = [...emitter.lines];
     emitter.lines.length = 0;
 
-    const loopEnv = new Map(env);
-    loopEnv.set(body.param.name, {
-      kind: "token",
-      baseCode: "__b",
-      elements: [...elements],
-    });
-    if (body.indexParam) {
-      loopEnv.set(body.indexParam.name, { kind: "scalar", code: "__i" });
-    }
-    for (const binding of innerBindings) {
-      loopEnv.set(
-        binding.name,
-        emitter.hoist(binding.name, emitter.eval(binding.value, loopEnv)),
-      );
-    }
-
     const writes: string[] = [];
-    for (const [fieldIndex, field] of realFields.entries()) {
-      const entry = record.entries.find(
-        (candidate) => candidate.key === field.element.name,
-      );
-      // Missing real derivatives default to 0 (`out` is zero-initialised),
-      // matching the object adapter's `?? 0`.
-      if (!entry) {
-        continue;
+    for (const [position, record] of records.entries()) {
+      for (const [fieldIndex, field] of realFields.entries()) {
+        const entry = record!.entries.find(
+          (candidate) => candidate.key === field.element.name,
+        );
+        // A real attribute without a derivative contributes nothing.
+        if (!entry) {
+          continue;
+        }
+        const value = emitter.eval(entry.value, env);
+        if (value.kind !== "scalar") {
+          throw new BailError();
+        }
+        writes.push(
+          `out[${indexNames[position]} * ${realFields.length} + ${fieldIndex}] += ${value.code};`,
+        );
       }
-      const value = emitter.eval(entry.value, loopEnv);
-      if (value.kind !== "scalar") {
-        throw new BailError();
-      }
-      writes.push(
-        `    out[__i * ${realFields.length} + ${fieldIndex}] = ${value.code};`,
+    }
+    perCombination.push(...emitter.lines);
+
+    const indent = (depth: number): string => "  ".repeat(depth);
+    const loopLines: string[] = [];
+    for (const [position, indexName] of indexNames.entries()) {
+      const start = position === 0 ? "0" : `${indexNames[position - 1]} + 1`;
+      // Each loop stops where the tokens after it no longer fill the
+      // combination, so a place with fewer tokens than the arity runs none.
+      const stillToPick = arity - 1 - position;
+      const end =
+        stillToPick === 0
+          ? "numberOfTokens"
+          : `numberOfTokens - ${stillToPick}`;
+      loopLines.push(
+        `${indent(position + 1)}for (let ${indexName} = ${start}; ${indexName} < ${end}; ${indexName}++) {`,
+        `${indent(position + 2)}const ${baseNames[position]} = ${indexName} * ${layout.strideBytes};`,
       );
     }
-    const perIteration = emitter.lines;
+    const bodyIndent = indent(arity + 1);
+    const closing = indexNames.map(
+      (_, position) => `${indent(arity - position)}}`,
+    );
 
     return [
       `(placeBytes, numberOfTokens) => {`,
@@ -1212,11 +1270,10 @@ export function emitBufferDynamicsJs(
       `  const u8 = placeBytes;`,
       ...hoisted.map((line) => `  ${line}`),
       `  const out = new Float64Array(numberOfTokens * ${realFields.length});`,
-      `  for (let __i = 0; __i < numberOfTokens; __i++) {`,
-      `    const __b = __i * ${layout.strideBytes};`,
-      ...perIteration.map((line) => `    ${line}`),
-      ...writes,
-      `  }`,
+      ...loopLines,
+      ...perCombination.map((line) => `${bodyIndent}${line}`),
+      ...writes.map((line) => `${bodyIndent}${line}`),
+      ...closing,
       `  return out;`,
       `}`,
     ].join("\n");

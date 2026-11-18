@@ -34,3 +34,5 @@ export type {
   SignatureHelp,
   TextDocumentIdentifier,
 } from "vscode-languageserver-types";
+
+export type { NetAnalysis } from "./worker/protocol";

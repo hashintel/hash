@@ -193,7 +193,7 @@ const userTexts = (messages: PetrinautAiMessage[] | undefined) =>
 
 test("sends the empty-net prompt once through the chat's composer path in the editor's panel", async () => {
   const transport = transportOf([textReply("reply", "Drafted the queue.")]);
-  renderChat(() => ({ presentation: "brunch", transport }));
+  renderChat(() => ({ transport }));
 
   fireEvent.change(
     await screen.findByRole("textbox", {
@@ -224,7 +224,6 @@ test("runs automatic tools against the editor through refusal-aware plugin edits
     name: "Queue",
     colorId: null,
     dynamicsEnabled: false,
-    differentialEquationId: null,
     x: 0,
     y: 0,
   };
@@ -236,13 +235,12 @@ test("runs automatic tools against the editor through refusal-aware plugin edits
     const passthrough = { parse: (raw: unknown) => raw };
     const { handle } = renderChat(
       (documentHandle) => ({
-        presentation: "brunch",
         documentHandle,
         automaticTools: [
           {
             toolName: "hostAddPlace",
-            inputSchema: passthrough,
-            outputSchema: passthrough,
+            inputParser: passthrough,
+            outputParser: passthrough,
             execute: ({ edit, handle: boundHandle }) => {
               expect(boundHandle).toBe(documentHandle);
               return edit.addPlace(
@@ -296,7 +294,7 @@ test("refuses layout on a read-only net before asking for consent", async () => 
     }),
     textReply("done", "Layout refused."),
   ]);
-  renderChat(() => ({ presentation: "brunch", transport }), {
+  renderChat(() => ({ transport }), {
     readonly: true,
   });
 
@@ -325,7 +323,6 @@ test("refuses a static mutation on a read-only net before its host boundary runs
       name: "Queue",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     }),
@@ -334,10 +331,9 @@ test("refuses a static mutation on a read-only net before its host boundary runs
   const executeMutation = vi.fn<
     NonNullable<PetrinautAiAssistant["executeMutation"]>
   >(({ execute }) => execute());
-  const { handle } = renderChat(
-    () => ({ presentation: "brunch", transport, executeMutation }),
-    { readonly: true },
-  );
+  const { handle } = renderChat(() => ({ transport, executeMutation }), {
+    readonly: true,
+  });
 
   await sendFromComposer("Add a queue");
 
@@ -384,7 +380,6 @@ test("starts Voice from the composer in the editor's panel and pauses it when th
     );
   };
   renderChat(() => ({
-    presentation: "brunch",
     transport: transportOf([]),
     renderVoiceMode: (context) => <VoiceMode {...context} />,
   }));
@@ -424,7 +419,6 @@ test("a call claimed in one editor never runs in a replacement with identical co
     name: "Queue",
     colorId: null,
     dynamicsEnabled: false,
-    differentialEquationId: null,
     x: 0,
     y: 0,
   };
@@ -469,19 +463,18 @@ test("a call claimed in one editor never runs in a replacement with identical co
       client: Promise.resolve({
         url: "http://brunch.local/agents/petrinaut/instance",
       } as FlueClient),
-      ownerKey: "owner",
+      actorKey: "owner",
       fetch: brunchFetch,
       binding,
       metadataFor: () => undefined,
       prepareInput: () => {},
-      ...(history.waitForAdmission
-        ? { admit: () => admission.then(() => ({ admitted: true }) as const) }
-        : {}),
+      admit: history.waitForAdmission
+        ? () => admission.then(() => ({ admitted: true }) as const)
+        : async () => ({ admitted: true }),
       // The replacement holds the same content, so its revision matches.
       acceptsRevision: () => true,
     });
     return {
-      presentation: "brunch",
       conversationId: binding.conversationId,
       transport: history.transport,
       // Brunch's history arrives as followed messages.
@@ -491,8 +484,8 @@ test("a call claimed in one editor never runs in a replacement with identical co
       automaticTools: [
         {
           toolName: "addPlace",
-          inputSchema: passthrough,
-          outputSchema: passthrough,
+          inputParser: passthrough,
+          outputParser: passthrough,
           execute: ({ edit, handle }) => {
             ranOn.push(handle);
             return edit.addPlace(place as Parameters<typeof edit.addPlace>[0]);

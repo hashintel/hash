@@ -2,6 +2,11 @@ import { useMemo, useState, useEffect } from "react";
 
 import { Button, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import {
+  DEFAULT_TRANSITION_KERNEL_CODE,
+  generateDefaultLambdaCode,
+  type Subnet,
+} from "@hashintel/petrinaut-core";
 import { sirModel } from "@hashintel/petrinaut-core/examples";
 
 import {
@@ -40,7 +45,6 @@ const barePetriNet: SDCPN = {
       name: "Waiting",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 120,
       y: 180,
       showAsInitialState: true,
@@ -50,7 +54,6 @@ const barePetriNet: SDCPN = {
       name: "Processing",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 430,
       y: 180,
     },
@@ -59,7 +62,6 @@ const barePetriNet: SDCPN = {
       name: "Done",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 740,
       y: 180,
     },
@@ -124,7 +126,6 @@ const colouredTokenFlowNet: SDCPN = {
       name: "Queued",
       colorId: "type_ticket",
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 120,
       y: 180,
       showAsInitialState: true,
@@ -134,7 +135,6 @@ const colouredTokenFlowNet: SDCPN = {
       name: "Processed",
       colorId: "type_ticket",
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 520,
       y: 180,
     },
@@ -174,7 +174,7 @@ const colouredDynamicsNet: SDCPN = {
       name: "Heating",
       colorId: "type_batch",
       dynamicsEnabled: true,
-      differentialEquationId: "de_heat_up",
+      dynamics: [{ differentialEquationId: "de_heat_up" }],
       x: 120,
       y: 180,
       showAsInitialState: true,
@@ -184,7 +184,6 @@ const colouredDynamicsNet: SDCPN = {
       name: "Ready",
       colorId: "type_batch",
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 520,
       y: 180,
     },
@@ -221,7 +220,8 @@ const colouredDynamicsNet: SDCPN = {
       id: "de_heat_up",
       name: "Heat up",
       colorId: "type_batch",
-      code: `return tokens.map(() => ({ temperature: 5 }));`,
+      arity: 1,
+      code: `return { temperature: 5 };`,
     },
   ],
 };
@@ -233,7 +233,6 @@ const stochasticTimingNet: SDCPN = {
       name: "Queue",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 260,
       y: 180,
       showAsInitialState: true,
@@ -243,7 +242,6 @@ const stochasticTimingNet: SDCPN = {
       name: "Served",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 660,
       y: 180,
     },
@@ -618,6 +616,281 @@ export const SubnetsWithColors: Story = {
       capabilities={subnetsWithColorsCapabilities}
       initial={sirModel.petriNetDefinition}
       initialTitle={sirModel.title}
+    />
+  ),
+};
+
+const place = (
+  id: string,
+  name: string,
+  x: number,
+  y: number,
+  extra: Partial<SDCPN["places"][number]> = {},
+): SDCPN["places"][number] => ({
+  id,
+  name,
+  colorId: null,
+  dynamicsEnabled: false,
+  x,
+  y,
+  ...extra,
+});
+
+/** A stage with one input port and one output port, processing one token at a time. */
+const stageSubnet: Subnet = {
+  id: "stage",
+  name: "Stage",
+  places: [
+    place("stage_in", "In", 80, 160, { isPort: true, portDirection: "in" }),
+    place("stage_out", "Out", 440, 160, { isPort: true, portDirection: "out" }),
+  ],
+  transitions: [
+    {
+      id: "stage_process",
+      name: "Process",
+      inputArcs: [{ placeId: "stage_in", weight: 1, type: "standard" }],
+      outputArcs: [{ placeId: "stage_out", weight: 1 }],
+      lambdaType: "stochastic",
+      lambdaCode: generateDefaultLambdaCode("stochastic"),
+      transitionKernelCode: DEFAULT_TRANSITION_KERNEL_CODE,
+      x: 260,
+      y: 160,
+    },
+  ],
+  types: [],
+  differentialEquations: [],
+  parameters: [],
+};
+
+const port = (componentInstanceId: string, portPlaceId: string) => ({
+  kind: "componentPort" as const,
+  componentInstanceId,
+  portPlaceId,
+});
+
+/**
+ * Two stages of one component fused through the root's places: Parts feeds
+ * the cutter, the capacity-bounded Buffer sits between the stages, Finished
+ * collects the drill's output.
+ */
+const fusedLineNet: SDCPN = {
+  places: [
+    place("parts", "Parts", 100, 220, { showAsInitialState: true }),
+    place("buffer", "Buffer", 520, 220, { capacity: 5 }),
+    place("finished", "Finished", 940, 220),
+  ],
+  transitions: [],
+  types: [],
+  parameters: [],
+  differentialEquations: [],
+  subnets: [stageSubnet],
+  componentInstances: [
+    {
+      id: "cutter",
+      name: "Cutter",
+      subnetId: "stage",
+      parameterValues: {},
+      x: 310,
+      y: 220,
+    },
+    {
+      id: "drill",
+      name: "Drill",
+      subnetId: "stage",
+      parameterValues: {},
+      x: 730,
+      y: 220,
+    },
+  ],
+  fusions: [
+    {
+      id: "fuse_parts",
+      name: "Parts",
+      members: [
+        { kind: "place", placeId: "parts" },
+        port("cutter", "stage_in"),
+      ],
+    },
+    {
+      id: "fuse_buffer",
+      name: "Buffer",
+      members: [
+        { kind: "place", placeId: "buffer" },
+        port("cutter", "stage_out"),
+        port("drill", "stage_in"),
+      ],
+    },
+    {
+      id: "fuse_finished",
+      name: "Finished",
+      members: [
+        { kind: "place", placeId: "finished" },
+        port("drill", "stage_out"),
+      ],
+    },
+  ],
+};
+
+export const PlaceFusion: Story = {
+  name: "Place fusion",
+  render: () => (
+    <HandleSpikeRender
+      capabilities={subnetsWithColorsCapabilities}
+      initial={fusedLineNet}
+      initialTitle="Fused line"
+    />
+  ),
+};
+
+/** The stage as a signature alone: two ports, no transition. */
+const stageInterface: Subnet = {
+  id: "stage_interface",
+  name: "Stage",
+  interface: true,
+  places: [
+    place("iface_in", "In", 80, 160, { isPort: true, portDirection: "in" }),
+    place("iface_out", "Out", 440, 160, { isPort: true, portDirection: "out" }),
+  ],
+  transitions: [],
+  types: [],
+  differentialEquations: [],
+  parameters: [],
+};
+
+/**
+ * An implementation of the stage: one Process transition between its ports,
+ * or two with a half-done place between them for the slow variant.
+ */
+const stageImplementation = (
+  id: string,
+  name: string,
+  steps: 1 | 2,
+): Subnet => {
+  const stochastic = {
+    lambdaType: "stochastic" as const,
+    lambdaCode: generateDefaultLambdaCode("stochastic"),
+    transitionKernelCode: DEFAULT_TRANSITION_KERNEL_CODE,
+    y: 160,
+  };
+  return {
+    id,
+    name,
+    implements: ["stage_interface"],
+    places: [
+      place(`${id}_in`, "In", 80, 160, { isPort: true, portDirection: "in" }),
+      ...(steps === 2 ? [place(`${id}_half`, "HalfDone", 440, 160)] : []),
+      place(`${id}_out`, "Out", steps === 2 ? 800 : 440, 160, {
+        isPort: true,
+        portDirection: "out",
+      }),
+    ],
+    transitions:
+      steps === 1
+        ? [
+            {
+              id: `${id}_process`,
+              name: "Process",
+              inputArcs: [{ placeId: `${id}_in`, weight: 1, type: "standard" }],
+              outputArcs: [{ placeId: `${id}_out`, weight: 1 }],
+              x: 260,
+              ...stochastic,
+            },
+          ]
+        : [
+            {
+              id: `${id}_prepare`,
+              name: "Prepare",
+              inputArcs: [{ placeId: `${id}_in`, weight: 1, type: "standard" }],
+              outputArcs: [{ placeId: `${id}_half`, weight: 1 }],
+              x: 260,
+              ...stochastic,
+            },
+            {
+              id: `${id}_finish`,
+              name: "Finish",
+              inputArcs: [
+                { placeId: `${id}_half`, weight: 1, type: "standard" },
+              ],
+              outputArcs: [{ placeId: `${id}_out`, weight: 1 }],
+              x: 620,
+              ...stochastic,
+            },
+          ],
+    types: [],
+    differentialEquations: [],
+    parameters: [],
+  };
+};
+
+/**
+ * The fused line wired against the Stage interface: the document runs the
+ * fast stage by default, and the drill chooses the slow one for itself.
+ */
+const interfacedLineNet: SDCPN = {
+  ...fusedLineNet,
+  subnets: [
+    stageInterface,
+    stageImplementation("fast_stage", "Fast stage", 1),
+    stageImplementation("slow_stage", "Slow stage", 2),
+  ],
+  implementations: [
+    { interface: { id: "stage_interface" }, component: { id: "fast_stage" } },
+  ],
+  componentInstances: [
+    {
+      id: "cutter",
+      name: "Cutter",
+      subnetId: "stage_interface",
+      parameterValues: {},
+      x: 310,
+      y: 220,
+    },
+    {
+      id: "drill",
+      name: "Drill",
+      subnetId: "stage_interface",
+      implementation: { id: "slow_stage" },
+      parameterValues: {},
+      x: 730,
+      y: 220,
+    },
+  ],
+  fusions: [
+    {
+      id: "fuse_parts",
+      name: "Parts",
+      members: [
+        { kind: "place", placeId: "parts" },
+        port("cutter", "iface_in"),
+      ],
+    },
+    {
+      id: "fuse_buffer",
+      name: "Buffer",
+      members: [
+        { kind: "place", placeId: "buffer" },
+        port("cutter", "iface_out"),
+        port("drill", "iface_in"),
+      ],
+    },
+    {
+      id: "fuse_finished",
+      name: "Finished",
+      members: [
+        { kind: "place", placeId: "finished" },
+        port("drill", "iface_out"),
+      ],
+    },
+  ],
+};
+
+export const Interfaces: Story = {
+  name: "Interfaces",
+  render: () => (
+    <HandleSpikeRender
+      capabilities={subnetsWithColorsCapabilities}
+      initial={interfacedLineNet}
+      initialTitle="Interfaced line"
     />
   ),
 };

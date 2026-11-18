@@ -32,7 +32,7 @@ const detailTransforms: Record<string, string> = {
   "dial-needle": "rotate(40deg)",
   "range-left": "translateX(2px)",
   "range-right": "translateX(-2px)",
-  "range-value": "scaleX(1.4)",
+  "range-value": `scaleX(${2 / 3})`,
   "variable-left": "skewX(7deg)",
   "variable-right": "skewX(-7deg)",
   "variable-value": "translateY(-1px) scale(.9)",
@@ -165,8 +165,8 @@ export const playIconAction = (
       const original = detail.getAttribute("d");
       const wave =
         part === "equation-curve"
-          ? "M6 17C9 12 15 15 19 6"
-          : "M3 17C10 11 14 16 21 8";
+          ? "M6.5 17.5C9 12 15 15 20.5 5.5"
+          : "M3 16.5C10 11 14 16 20.5 8";
       animate(detail, [
         { d: previous.get(detail)?.path || `path('${original}')` },
         { d: `path('${wave}')`, offset: 0.4 },
@@ -179,9 +179,9 @@ export const playIconAction = (
       ]);
     } else if (part === "curve-sample") {
       animate(detail, [
-        { transform: "translate(0, 0)" },
-        { transform: "translate(3px, -3.7px)", offset: 0.45 },
-        { transform: "translate(0, 0)" },
+        { transform: previous.get(detail)?.transform ?? resting },
+        { transform: "translate(.75px, .9375px)", offset: 0.4 },
+        { transform: resting },
       ]);
     } else {
       const transform =

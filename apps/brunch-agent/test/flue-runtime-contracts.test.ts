@@ -35,8 +35,8 @@ import {
 import { toPetrinautId } from "@hashintel/petrinaut-core";
 
 import { createBrunchContextProjection } from "../src/shared/context-projection.ts";
+import { browserResultEnvelope } from "../src/shared/conversation/browser-tool-executor.ts";
 import { createDraftExperimentTool } from "../src/shared/petrinaut-tools/draft-experiment.ts";
-import { browserResultEnvelope } from "../src/shared/petrinaut-tools/petrinaut-construction.ts";
 
 type Step = (context: TranscriptContext) => AssistantMessage;
 

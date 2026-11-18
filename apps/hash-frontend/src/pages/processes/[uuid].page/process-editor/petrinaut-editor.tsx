@@ -21,22 +21,31 @@ import {
 } from "react";
 
 import {
-  canonicalizePetrinautIds,
   createJsonDocHandle,
   type ErrorTracker,
   ErrorTrackerContext,
   isSDCPNEqual,
+  normalizeSDCPN,
   type PetrinautDocHandle,
   type SDCPN,
 } from "@hashintel/petrinaut";
 
+import { createAgentSave } from "./petrinaut-editor/agent-save";
 import { ProcessPetrinaut } from "./petrinaut-editor/process-petrinaut";
+import {
+  agentSaveRefusal,
+  saveRefusal,
+} from "./petrinaut-editor/save-availability";
 import {
   type TopBarState,
   TopBarContext,
 } from "./petrinaut-editor/top-bar-context";
 
 import type { EntityId } from "@blockprotocol/type-system";
+import type {
+  ReadBrunchDocumentSaveState,
+  VersionLoad,
+} from "@hashintel/brunch-agent/ui";
 
 /**
  * Which net the editor holds: an unsaved draft (with the example it was
@@ -74,6 +83,11 @@ export type PetrinautEditorLoad = {
   title: string;
   mode: NetMode;
   savedSnapshot: SavedSnapshot;
+  /**
+   * Why the host loads it: opening a net, or the user picking one of the
+   * open net's saved revisions in the version picker.
+   */
+  reason: "open" | "revision";
 };
 
 /**
@@ -105,20 +119,52 @@ type EditorSession = {
   mode: NetMode;
   savedSnapshot: SavedSnapshot;
   savePending: boolean;
+  /**
+   * The latest load of another saved version of the open net, which the open
+   * net builds on, until the host opens a net. Saves leave it as it is: they
+   * build on the loaded version.
+   */
+  versionLoad: VersionLoad | undefined;
 };
 
 /**
- * The snapshot with its ids converted, as the handle holds the open net, so
- * dirty tracking compares like with like. Saved nets with legacy ids persist
- * the converted ids on their next save.
+ * The snapshot as the handle holds the open net, with the conversions a load
+ * applies, so dirty tracking compares like with like. A saved net in an
+ * older shape persists the converted one on its next save.
  */
-const withPetrinautIds = (snapshot: SavedSnapshot): SavedSnapshot =>
+const asLoaded = (snapshot: SavedSnapshot): SavedSnapshot =>
   snapshot === null
     ? null
-    : {
-        ...snapshot,
-        definition: canonicalizePetrinautIds(snapshot.definition),
-      };
+    : { ...snapshot, definition: normalizeSDCPN(snapshot.definition) };
+
+/**
+ * The version load `load` makes after `previous`: a new one, with a fresh id,
+ * when the user picks a revision of the open saved net other than the version
+ * it holds, so Brunch tells its agent about each pick once however many turns
+ * carry it; the previous one when the pick is of the version it holds; none
+ * once the host opens a net.
+ */
+const versionLoadAfter = (
+  load: PetrinautEditorLoad,
+  previous: EditorSession | null,
+): VersionLoad | undefined => {
+  if (
+    load.reason !== "revision" ||
+    load.mode.kind !== "saved" ||
+    previous?.mode.kind !== "saved" ||
+    previous.mode.entityId !== load.mode.entityId
+  ) {
+    return undefined;
+  }
+  const decisionTime = load.savedSnapshot?.decisionTime ?? null;
+  if (
+    decisionTime === null ||
+    decisionTime === (previous.savedSnapshot?.decisionTime ?? null)
+  ) {
+    return previous.versionLoad;
+  }
+  return { id: crypto.randomUUID(), decisionTime };
+};
 
 /**
  * A new handle, with no `id`, so each load gets a fresh one. A new handle
@@ -127,7 +173,10 @@ const withPetrinautIds = (snapshot: SavedSnapshot): SavedSnapshot =>
  * editor sent. An assistant action is never carried into an editor that
  * didn't send it.
  */
-const openSession = (load: PetrinautEditorLoad): EditorSession => {
+const openSession = (
+  load: PetrinautEditorLoad,
+  previous: EditorSession | null,
+): EditorSession => {
   const handle = createJsonDocHandle({ initial: load.definition });
   return {
     load,
@@ -135,8 +184,9 @@ const openSession = (load: PetrinautEditorLoad): EditorSession => {
     definition: handle.doc() ?? load.definition,
     title: load.title,
     mode: load.mode,
-    savedSnapshot: withPetrinautIds(load.savedSnapshot),
+    savedSnapshot: asLoaded(load.savedSnapshot),
     savePending: false,
+    versionLoad: versionLoadAfter(load, previous),
   };
 };
 
@@ -193,7 +243,7 @@ export const PetrinautEditor = ({
   const [session, setSession] = useState<EditorSession | null>(null);
 
   if (load !== (session?.load ?? null)) {
-    setSession(load === null ? null : openSession(load));
+    setSession(load === null ? null : openSession(load, session));
   }
 
   const handle = session?.handle;
@@ -264,8 +314,36 @@ export const PetrinautEditor = ({
     }
   }, [handle, isDirty, onDirtyChange]);
 
+  /**
+   * The agent's save waiting on the editor, for the load whose handle it
+   * names, until it settles. The agent's save of the same load is refused
+   * meanwhile, including after its host save resolved and before its
+   * snapshot commits.
+   */
+  const [agentSave] = useState(createAgentSave<PetrinautDocHandle>);
+
+  /**
+   * Settles the agent's save once its load commits its snapshot, with the
+   * dirty state committed then, and abandons it once another load commits.
+   */
+  useLayoutEffect(() => {
+    agentSave.committed(
+      session?.handle,
+      session?.savedSnapshot ?? null,
+      isDirty,
+    );
+  }, [agentSave, isDirty, session]);
+
+  useEffect(() => () => agentSave.abandon("closed"), [agentSave]);
+
   /** Read by Brunch's tools when they need the title. */
   const readTitle = useCallback(() => liveSessionRef.current?.title ?? "", []);
+
+  /** The host's latest `onSave` and readonly state, for saves that run later. */
+  const hostSaveRef = useRef({ onSave, readonly });
+  useLayoutEffect(() => {
+    hostSaveRef.current = { onSave, readonly };
+  }, [onSave, readonly]);
 
   const reportingRef = useRef<{ mode: NetMode; readonly: boolean } | null>(
     null,
@@ -314,52 +392,125 @@ export const PetrinautEditor = ({
   );
 
   /**
-   * Submits the net, title and identity as they are when called, for the
-   * load this render shows: once another load is open, or while a save of
-   * this one is pending, it does nothing. Its completion marks what it
-   * submitted as saved, so edits made meanwhile stay dirty, and applies only
-   * while the same load is open.
+   * Submits the open load's net, title and identity as they are when called,
+   * returning `null` when no save starts: with no load open, or while a save
+   * of it is pending. It submits the net the handle holds, or the session's
+   * mirror of it when the handle holds none, as the dirty check and the
+   * agent's save check judge it. Its completion marks what it submitted as
+   * saved, so edits made meanwhile stay dirty, and applies only while the
+   * same load is open. The promise settles when the host's save does,
+   * rejecting when it failed; `hostSaved` is called with the snapshot the
+   * load is about to hold, only while the load is still open.
    */
-  const save = useCallback(async (): Promise<void> => {
-    const live = liveSessionRef.current;
-    if (!live || live.handle !== handle || live.savePending) {
-      return;
-    }
-    const { handle: savedHandle, mode, title } = live;
-    const definition = savedHandle.doc();
-    if (!definition) {
-      return;
-    }
-    updateSession(savedHandle, (current) => ({
-      ...current,
-      savePending: true,
-    }));
-    try {
-      const saved = await onSave({
-        definition,
-        title,
-        entityId: mode.kind === "saved" ? mode.entityId : null,
-      });
+  const startSave = useCallback(
+    (
+      hostSaved?: (snapshot: NonNullable<SavedSnapshot>) => void,
+    ): Promise<void> | null => {
+      const live = liveSessionRef.current;
+      if (!live || live.savePending) {
+        return null;
+      }
+      const { handle: savedHandle, mode, title } = live;
+      const definition = savedHandle.doc() ?? live.definition;
       updateSession(savedHandle, (current) => ({
         ...current,
-        savePending: false,
-        mode: { kind: "saved", entityId: saved.entityId },
-        savedSnapshot: {
-          definition,
-          title,
-          decisionTime: saved.decisionTime,
-        },
+        savePending: true,
       }));
-    } catch (error) {
-      updateSession(savedHandle, (current) => ({
-        ...current,
-        savePending: false,
-      }));
-      throw error;
-    }
-  }, [handle, onSave, updateSession]);
+      return (async () => {
+        try {
+          const saved = await hostSaveRef.current.onSave({
+            definition,
+            title,
+            entityId: mode.kind === "saved" ? mode.entityId : null,
+          });
+          const snapshot = {
+            definition,
+            title,
+            decisionTime: saved.decisionTime,
+          };
+          if (liveSessionRef.current?.handle === savedHandle) {
+            hostSaved?.(snapshot);
+          }
+          updateSession(savedHandle, (current) => ({
+            ...current,
+            savePending: false,
+            mode: { kind: "saved", entityId: saved.entityId },
+            savedSnapshot: snapshot,
+          }));
+        } catch (error) {
+          updateSession(savedHandle, (current) => ({
+            ...current,
+            savePending: false,
+          }));
+          throw error;
+        }
+      })();
+    },
+    [updateSession],
+  );
 
-  if (!session) {
+  /**
+   * Why the agent's save of `documentId` can't start now, with the title and
+   * last save its approval card shows, judged from the open load as it is
+   * when called. It saves only from the load this render shows.
+   */
+  const readAgentSaveState = useCallback<ReadBrunchDocumentSaveState>(
+    (documentId) => {
+      const live = liveSessionRef.current;
+      return {
+        title: live?.title ?? "",
+        lastSavedTime: live?.savedSnapshot?.decisionTime ?? null,
+        refusal: agentSaveRefusal(
+          {
+            mode: live?.mode ?? null,
+            fromOpenLoad: live !== null && live.handle === handle,
+            readonly: hostSaveRef.current.readonly,
+            saving:
+              live !== null &&
+              (live.savePending || agentSave.occupies(live.handle)),
+            isDirty:
+              live !== null &&
+              computeIsDirty(
+                live.handle.doc() ?? live.definition,
+                live.title,
+                live.savedSnapshot,
+              ),
+          },
+          documentId,
+        ),
+      };
+    },
+    [agentSave, handle],
+  );
+
+  /**
+   * The editor's Save, for the agent once the user has approved it, bound to
+   * the load this render shows.
+   */
+  const hostSave = useMemo(
+    () =>
+      handle
+        ? agentSave.hostSaveFor(handle, {
+            read: readAgentSaveState,
+            start: startSave,
+          })
+        : null,
+    [agentSave, handle, readAgentSaveState, startSave],
+  );
+
+  /** The Save button's save, for the load this render shows only. */
+  const save = useCallback((): void => {
+    if (liveSessionRef.current?.handle !== handle) {
+      return;
+    }
+    /**
+     * A failed save leaves the net dirty and Save enabled to retry; the
+     * editor has no error UI for it.
+     */
+    startSave()?.catch(() => {});
+  }, [handle, startSave]);
+
+  if (!session || !hostSave) {
     /** The host covers the editor with a skeleton until it has a load. */
     return <Box sx={{ height: "100%" }} />;
   }
@@ -370,18 +521,17 @@ export const PetrinautEditor = ({
     readonly,
     isDirty,
     persistPending: session.savePending,
+    saveRefusal: saveRefusal({
+      readonly,
+      saving: session.savePending,
+      isDirty,
+    }),
     saveLabel:
       session.mode.kind === "saved" ? (isDirty ? "Save" : "Saved") : "Create",
     revisions,
     loadedRevisionTime: session.savedSnapshot?.decisionTime ?? null,
     onNavigateBack,
-    onSave: () => {
-      /**
-       * A failed save leaves the net dirty and Save enabled to retry; the
-       * editor has no error UI for it.
-       */
-      save().catch(() => {});
-    },
+    onSave: save,
     onLoadRevision: (revision) => onSelectRevision(revision.decisionTime),
   };
 
@@ -395,6 +545,8 @@ export const PetrinautEditor = ({
               session.mode.kind === "saved" ? session.mode.entityId : null
             }
             readTitle={readTitle}
+            hostSave={hostSave}
+            versionLoad={session.versionLoad}
             readonly={readonly}
             setTitle={setTitle}
             title={session.title}

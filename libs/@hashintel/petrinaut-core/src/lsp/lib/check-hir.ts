@@ -106,6 +106,7 @@ export const HIR_DIAGNOSTIC_CODES: Record<string, number> = {
   "hir:element-child": 99092,
   "hir:count-only-input": 99093,
   "hir:deprecated-length": 99094,
+  "hir:dynamics-arity": 99095,
 };
 
 /** Codes for syntax that still works but has a standard replacement: shown

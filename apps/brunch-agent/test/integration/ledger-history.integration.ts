@@ -161,7 +161,7 @@ const claim = (
 
 let application = await loadBuiltBrunchApplication();
 const identity = {
-  ownerKey: "ledger-owner",
+  actorKey: "ledger-owner",
   conversationId: `ledger-${crypto.randomUUID()}`,
 };
 const client = createFlueClient({

@@ -4,7 +4,11 @@ import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { Children, isValidElement, type ReactNode } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
-import { brunchTools, ledgerCommentsMessage } from "@hashintel/brunch-agent";
+import {
+  brunchTools,
+  hashPetrinautTools,
+  ledgerCommentsMessage,
+} from "@hashintel/brunch-agent";
 import {
   createExperimentToolName,
   createJsonDocHandle,
@@ -25,6 +29,7 @@ import {
 import { OpenAIRealtimeSession } from "../client/voice/realtime/openai-realtime-session";
 import { createTestEditorApi } from "./chat/testing/create-test-editor-api";
 import { InterviewBudgetControl } from "./interview-budget/interview-budget-control";
+import { documentRevisionOf } from "./tools/shared/document-revision";
 import { useBrunchAssistant } from "./use-brunch-assistant";
 
 import type { createBrunchFlueAdapter } from "../client/brunch-flue-adapter";
@@ -33,6 +38,10 @@ import type {
   createBrunchPanelTransport,
 } from "../client/brunch-panel-transport";
 import type { PetrinautAiAssistant } from "./chat/petrinaut";
+import type {
+  BrunchHostSave,
+  BrunchMutationApprovalCoordinator,
+} from "./tools/brunch-mutation-approval";
 import type { BrunchOpenDocument } from "./use-brunch-assistant";
 import type {
   AgentConversationObservationSnapshot,
@@ -137,7 +146,7 @@ const renderAssistant = (
   overrides: Partial<Parameters<typeof useBrunchAssistant>[0]> = {},
 ) => {
   const input: Parameters<typeof useBrunchAssistant>[0] = {
-    ownerKey: "test-owner",
+    actorKey: "test-owner",
     chatEndpoint: "/agents/petrinaut",
     selected: true,
     openDocument: openDocument(),
@@ -162,6 +171,17 @@ const renderAssistant = (
   };
 };
 
+test("empty-net suggestions are absent unless the host supplies them", () => {
+  const { assistant } = renderAssistant();
+  expect(assistant().starterChips).toBeUndefined();
+});
+
+test("passes host-owned starters to the panel configuration", () => {
+  const starterChips = [{ id: "demo", label: "Demo", prompt: "Build a demo" }];
+  const { assistant } = renderAssistant({ starterChips });
+  expect(assistant().starterChips).toBe(starterChips);
+});
+
 const executeAutomaticTool = (
   assistant: PetrinautAiAssistant,
   toolName: string,
@@ -174,8 +194,8 @@ const executeAutomaticTool = (
   );
   if (handle === undefined || tool === undefined)
     throw new Error("Missing bound automatic tool");
-  const edit = createTestEditorApi(createPetrinaut({ document: handle }))
-    .document.edit;
+  const api = createTestEditorApi(createPetrinaut({ document: handle }));
+  const { edit } = api.document;
   // Preserve the original tests' accepted no-op edits: the runner must report no document change.
   const acceptedNoOp = () => ({ applied: true as const, value: undefined });
   return tool.execute({
@@ -188,6 +208,8 @@ const executeAutomaticTool = (
       addTransition: acceptedNoOp,
       addArc: acceptedNoOp,
     },
+    document: api.document,
+    experiments: api.experiments,
     readDiagnosticsContext: async () => "",
     signal: new AbortController().signal,
   });
@@ -197,7 +219,6 @@ const placeInput = {
   name: "Queue",
   colorId: null,
   dynamicsEnabled: false,
-  differentialEquationId: null,
   x: 0,
   y: 0,
   targetSubnetId: null,
@@ -488,6 +509,171 @@ test("a destructive edit waiting for approval settles when the conversation is r
   }
 });
 
+/** The bound browser's side of one agent save: its claim, and what it posts back. */
+const stubSaveCall = (expectedRevision: string) => {
+  const posted: { readonly path: string; readonly body: unknown }[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn<typeof fetch>(async (url, init) => {
+      const target = new URL(url instanceof Request ? url.url : url);
+      if (!target.pathname.includes("/browser-calls/save-1"))
+        return new Response(null, { status: 404 });
+      if (init?.method === "POST") {
+        posted.push({
+          path: target.pathname,
+          body:
+            typeof init.body === "string" ? JSON.parse(init.body) : init.body,
+        });
+        return new Response(null, { status: 200 });
+      }
+      return Response.json({
+        capability: "capability",
+        binding: target.searchParams.get("binding"),
+        toolName: brunchTools.appSaveNet,
+        input: { documentId: netOneId },
+        expectedRevision,
+      });
+    }),
+  );
+  return posted;
+};
+
+const handEdit = (handle: PetrinautDocHandle) =>
+  act(() =>
+    handle.change((draft) => {
+      draft.places.push({
+        id: "hand-place",
+        name: "Hand place",
+        colorId: null,
+        dynamicsEnabled: false,
+        x: 0,
+        y: 0,
+      });
+    }),
+  );
+
+/** A bound assistant whose host can save, waiting on an issued save's card. */
+const renderSaveAwaitingCard = async (
+  expectedRevisionOf: (handle: PetrinautDocHandle) => string,
+  execute: (issuedInput: unknown) => Promise<unknown>,
+) => {
+  flueClientMock.current = {
+    url: "http://brunch.local/agents/hash/instance",
+    observe: () => ({
+      close: vi.fn(),
+      getSnapshot: () => ({
+        conversation: {
+          conversationId: "save-conversation",
+          settlements: [],
+          messages: [],
+        },
+        offset: "save-offset",
+        phase: "live",
+        error: undefined,
+      }),
+      refresh: vi.fn(),
+      subscribe: () => () => undefined,
+    }),
+  };
+  const document = openDocument();
+  const handle = document.editor?.handle;
+  if (handle === undefined) throw new Error("Missing document handle");
+  const posted = stubSaveCall(expectedRevisionOf(handle));
+  const rendered = renderAssistant({
+    openDocument: document,
+    hostSave: {
+      read: () => ({
+        title: "Net",
+        lastSavedTime: null,
+        refusal: null,
+      }),
+      save: vi.fn<BrunchHostSave["save"]>(),
+    },
+  });
+  await waitFor(() =>
+    expect(rendered.assistant().inBandBrowserTools).toBeDefined(),
+  );
+  // The history baseline is in, so an allowed call may start.
+  await waitFor(() =>
+    expect(() =>
+      executeAutomaticTool(
+        rendered.assistant(),
+        "getLatestNetDefinition",
+        "history-probe",
+        {},
+      ),
+    ).not.toThrow(),
+  );
+  const run = rendered.assistant().inBandBrowserTools?.run(
+    {
+      toolCallId: "save-1",
+      toolName: brunchTools.appSaveNet,
+      input: { documentId: netOneId },
+      signal: new AbortController().signal,
+    },
+    execute,
+  );
+  const coordinator = () =>
+    mutationApprovalCoordinators.at(-1) as BrunchMutationApprovalCoordinator;
+  await waitFor(() => expect(coordinator().hasPending("save-1")).toBe(true));
+  return { handle, posted, run, coordinator };
+};
+
+test("a save allowed after a hand edit of the net is refused as stale and never runs", async () => {
+  try {
+    const execute = vi.fn(async () => ({ saved: true }));
+    const { handle, posted, run, coordinator } = await renderSaveAwaitingCard(
+      (current) => documentRevisionOf(current.doc() ?? emptyDefinition),
+      execute,
+    );
+    handEdit(handle);
+    coordinator().resolve("save-1", "allow");
+
+    await expect(run).rejects.toThrow(
+      "The document changed by other means after the agent's last view of the net; the call was not started.",
+    );
+    expect(execute).not.toHaveBeenCalled();
+    expect(posted.map(({ path }) => path)).toEqual([
+      expect.stringMatching(/\/browser-calls\/save-1\/fail$/u),
+    ]);
+    expect(posted[0]?.body).toMatchObject({ disposition: "stale" });
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
+
+test("a hand edit while an allowed save is pending is not credited to the agent", async () => {
+  try {
+    const saved = {
+      saved: true,
+      decisionTime: "2026-10-24T01:00:00.000Z",
+      title: "Net",
+      stillDirty: true,
+    };
+    let editDuringSave = () => {};
+    const { handle, posted, run, coordinator } = await renderSaveAwaitingCard(
+      (current) => documentRevisionOf(current.doc() ?? emptyDefinition),
+      async () => {
+        editDuringSave();
+        return saved;
+      },
+    );
+    editDuringSave = () => handEdit(handle);
+    coordinator().resolve("save-1", "allow");
+
+    await run;
+    expect(handle.doc()?.places).toHaveLength(1);
+    expect(posted.map(({ path }) => path)).toEqual([
+      expect.stringMatching(/\/browser-calls\/save-1$/u),
+    ]);
+    expect(posted[0]?.body).toMatchObject({ output: saved });
+    // No revision edge or read-back: the edit isn't presented as the save's.
+    expect(posted[0]?.body).not.toHaveProperty("metadata");
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
+
 test("mounts document-bound Brunch with canonical overrides and the complete static catalogue", async () => {
   flueClientMock.current = {
     history: async () => ({
@@ -574,9 +760,112 @@ test("mounts document-bound Brunch with canonical overrides and the complete sta
       "readNetOutline",
       "readNetStructure",
       brunchTools.draftPetrinautExperiment,
+      brunchTools.hashQueryEntities,
+      brunchTools.hashQueryEntityTypes,
+      brunchTools.hashQueryWebs,
+      brunchTools.appSaveNet,
+      ...Object.keys(hashPetrinautTools),
     ].toSorted(),
   );
   expect(aiAssistant.inBandBrowserTools?.has("readNetOutline")).toBe(true);
+  // A host that can't save offers no save card.
+  expect(
+    aiAssistant.interactiveTools?.map(({ toolName }) => toolName),
+  ).not.toContain(brunchTools.appSaveNet);
+});
+
+test("a host's own tools run beside Brunch's while a document is bound", async () => {
+  flueClientMock.current = {
+    history: async () => ({
+      conversation: {
+        conversationId: ordinaryConstructionConversationIdFrom(netOneId),
+        settlements: [],
+        messages: [],
+      },
+      offset: "offset-0",
+    }),
+    observe: () => ({
+      close: vi.fn(),
+      getSnapshot: () => ({ phase: "absent" }),
+      refresh: vi.fn(),
+      subscribe: () => () => undefined,
+    }),
+  };
+  const hashRead = {
+    toolName: brunchTools.hashQueryEntities,
+    inputParser: { parse: (value: unknown) => value },
+    outputParser: { parse: (value: unknown) => value },
+    execute: async () => ({ entities: [] }),
+  };
+
+  const rendered = renderAssistant({ hostTools: [hashRead] });
+  await waitFor(() => expect(rendered.assistant()).toBeDefined());
+  const aiAssistant = rendered.assistant();
+
+  expect(aiAssistant.automaticTools?.at(-1)).toBe(hashRead);
+  expect(aiAssistant.automaticTools?.map(({ toolName }) => toolName)).toEqual(
+    expect.arrayContaining(["getLatestNetDefinition", "readNetOutline"]),
+  );
+  expect(
+    aiAssistant.inBandBrowserTools?.has(brunchTools.hashQueryEntities),
+  ).toBe(true);
+
+  rendered.rerender({ ...rendered.input, openDocument: null });
+  expect(rendered.result.current.assistant?.automaticTools ?? []).not.toContain(
+    hashRead,
+  );
+});
+
+test("a host that can save gives the agent's save, which runs the host's save of the net it names", async () => {
+  flueClientMock.current = {
+    history: async () => ({
+      conversation: {
+        conversationId: ordinaryConstructionConversationIdFrom(netOneId),
+        settlements: [],
+        messages: [],
+      },
+      offset: "offset-0",
+    }),
+    observe: () => ({
+      close: vi.fn(),
+      getSnapshot: () => ({ phase: "absent" }),
+      refresh: vi.fn(),
+      subscribe: () => () => undefined,
+    }),
+  };
+  const outcome = {
+    status: "saved",
+    decisionTime: "2026-10-24T01:00:00.000Z",
+    title: "Net",
+    stillDirty: false,
+  } as const;
+  const save = vi.fn<BrunchHostSave["save"]>(async () => outcome);
+  const rendered = renderAssistant({
+    hostSave: {
+      read: () => ({ title: "Net", lastSavedTime: null, refusal: null }),
+      save,
+    },
+  });
+  await waitFor(() => expect(rendered.assistant()).toBeDefined());
+
+  await expect(
+    executeAutomaticTool(rendered.assistant(), brunchTools.appSaveNet, "s1", {
+      documentId: netOneId,
+    }),
+  ).resolves.toEqual(outcome);
+  expect(save).toHaveBeenCalledExactlyOnceWith(
+    netOneId,
+    expect.any(AbortSignal),
+  );
+  await expect(
+    Promise.resolve().then(() =>
+      executeAutomaticTool(rendered.assistant(), brunchTools.appSaveNet, "s2", {
+        documentId: netOneId,
+        title: "Net",
+      }),
+    ),
+  ).rejects.toThrow(/Invalid key/u);
+  expect(save).toHaveBeenCalledOnce();
 });
 
 test("an absent replay baseline stays immutable when admission refresh publishes its live calls", async () => {
@@ -628,7 +917,6 @@ test("an absent replay baseline stays immutable when admission refresh publishes
     name: "CanonicalLive",
     colorId: null,
     dynamicsEnabled: false,
-    differentialEquationId: null,
     x: 0,
     y: 0,
     targetSubnetId: null,
@@ -766,7 +1054,6 @@ test("I does not execute a canonical write while history is loading", async () =
       name: "Blocked",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
       targetSubnetId: null,
@@ -782,7 +1069,6 @@ test("a pending bound mutation in history is not executed again after reload", a
     name: "Pending",
     colorId: null,
     dynamicsEnabled: false,
-    differentialEquationId: null,
     x: 0,
     y: 0,
     targetSubnetId: null,
@@ -860,7 +1146,6 @@ test("keeps one session across revisions and replaces one client/tracker pair wh
         name: "First place",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         x: 0,
         y: 0,
       });

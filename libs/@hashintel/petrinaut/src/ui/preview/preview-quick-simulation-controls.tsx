@@ -7,8 +7,8 @@ import { ExecutionFrameSourceContext } from "../../react/execution-frame/context
 import { SimulationContext } from "../../react/simulation/context";
 import { ActiveNetContext } from "../../react/state/active-net-context";
 import { UserSettingsContext } from "../../react/state/user-settings-context";
-import { SimulationControls } from "../views/Editor/components/BottomBar/simulation-controls";
-import { SimulationTimeline } from "../views/Editor/panels/BottomPanel/subviews/simulation-timeline/content";
+import { EventSimulationControls } from "../views/Editor/components/BottomBar/event-simulation-controls";
+import { EventTimeline } from "../views/Editor/panels/BottomPanel/subviews/event-timeline/content";
 import { SimulationScenarioControls } from "../views/shared/simulation-scenario-controls";
 
 import type { PetrinautPreviewQuickSimulation } from "./quick-simulation";
@@ -175,7 +175,7 @@ export const PreviewSimulationPlaybackControls = ({
     >
       <div className={playbackControlsScrollStyle}>
         <div className={playbackControlsRowStyle}>
-          <SimulationControls
+          <EventSimulationControls
             allowedPlaybackSpeeds={
               allowedPlaybackSpeeds?.length ? allowedPlaybackSpeeds : undefined
             }
@@ -193,7 +193,7 @@ export const PreviewSimulationPlaybackControls = ({
       >
         <div className={timelineClipStyle}>
           <div className={timelineStyle}>
-            <SimulationTimeline showLegend={false} />
+            <EventTimeline showLegend={false} />
           </div>
         </div>
       </div>

@@ -57,6 +57,7 @@
         "API_ORIGIN",
         "ENVIRONMENT",
         "GOOGLE_OAUTH_CLIENT_ID",
+        "HASH_BRUNCH_AGENT_ORIGIN",
         "NODE_ENV",
         "NOTIFICATION_POLL_INTERVAL",
         "SELF_HOSTED_HASH",

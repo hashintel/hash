@@ -11,19 +11,24 @@ import {
 import { brunchRoutes } from "@hashintel/brunch-agent";
 import {
   BrunchAssistantContext,
+  type BrunchHostSave,
   type BrunchOpenDocument,
   brunchPlugin,
+  hashPetrinautHostTools,
   type PetrinautAiAssistant,
+  type PetrinautAiAutomaticTool,
   useBrunchAssistant,
+  type VersionLoad,
 } from "@hashintel/brunch-agent/ui";
 import {
   ErrorTrackerContext,
   Petrinaut,
   type PetrinautDocHandle,
 } from "@hashintel/petrinaut";
-import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
+import { brunchAgentOrigin } from "../../../../../lib/public-env";
 import { useAuthInfo } from "../../../../shared/auth-info-context";
+import { useBrunchHashGraphReadTools } from "./process-petrinaut/brunch-hash-graph-reads";
 import { topBarPlugin } from "./process-petrinaut/top-bar-plugin";
 
 import type { EntityId, UserId } from "@blockprotocol/type-system";
@@ -31,15 +36,17 @@ import type { EntityId, UserId } from "@blockprotocol/type-system";
 const editorPlugins = [topBarPlugin];
 const editorPluginsWithBrunch = [topBarPlugin, brunchPlugin];
 
-/** Brunch's Petrinaut agent, reached through hash-api's Brunch route. */
-const brunchChatEndpoint = `${apiOrigin}/api/brunch${brunchRoutes.agents}/${brunchRoutes.petrinautAgent}`;
+/** Brunch's HASH agent, which the page calls directly. */
+const brunchChatEndpoint = (origin: string) =>
+  `${origin}${brunchRoutes.agents}/${brunchRoutes.hashAgent}`;
 
-/** Returns `{ ownerKey }` for the signed-in account. */
-const brunchIdentityEndpoint = `${apiOrigin}/api/brunch/identity`;
+/** Returns `{ actorKey }` for the signed-in account. */
+const brunchIdentityEndpoint = (origin: string) =>
+  `${origin}${brunchRoutes.hashIdentity}`;
 
 /**
- * Carries Brunch's requests to hash-api with the session cookie, which the
- * route turns into the conversation's owner key. Module-level, so its identity
+ * Carries Brunch's requests with the user's HASH session cookie, from which
+ * Brunch learns who they are from hash-api. Module-level, so its identity
  * never changes: a new one would recreate the conversation's client.
  */
 const brunchFetch: typeof fetch = (input, init) =>
@@ -61,32 +68,43 @@ const noNetSwitchingError = () => {
 };
 
 /**
- * The signed-in account's Brunch owner key, from hash-api, or `null` while
- * it loads, when nobody is signed in, when this deployment has no Brunch
- * (hash-api answers 503), or when the request failed. Requested again
+ * Brunch's origin and the signed-in account's actor key, from Brunch, or
+ * `null` while it loads, when nobody with a completed signup is signed in,
+ * when this deployment has no Brunch, when Brunch declines the session, or
+ * when the request failed; only a failure is reported. Requested again
  * whenever the signed-in account changes.
  */
-const useBrunchOwnerKey = (): string | null => {
+const useBrunchConnection = (): {
+  readonly origin: string;
+  readonly actorKey: string;
+} | null => {
   const { authenticatedUser } = useAuthInfo();
-  const accountId = authenticatedUser?.accountId ?? null;
+  const origin = brunchAgentOrigin;
+  const accountId = authenticatedUser?.accountSignupComplete
+    ? authenticatedUser.accountId
+    : null;
   const { captureException } = use(ErrorTrackerContext);
   const [identity, setIdentity] = useState<{
+    origin: string;
     accountId: UserId;
-    ownerKey: string;
+    actorKey: string;
   } | null>(null);
 
   useEffect(() => {
-    if (accountId === null) {
+    if (origin === null || accountId === null) {
       return;
     }
     const controller = new AbortController();
     void (async () => {
       try {
-        const response = await fetch(brunchIdentityEndpoint, {
+        const response = await fetch(brunchIdentityEndpoint(origin), {
+          cache: "no-store",
           credentials: "include",
           signal: controller.signal,
         });
-        if (response.status === 503) {
+        // Brunch declining this session is an answer, not a failure: the
+        // page just doesn't offer the assistant.
+        if (response.status === 401) {
           return;
         }
         if (!response.ok) {
@@ -94,12 +112,12 @@ const useBrunchOwnerKey = (): string | null => {
             `The Brunch identity request failed with status ${response.status}`,
           );
         }
-        const body = (await response.json()) as { ownerKey?: unknown };
-        if (typeof body.ownerKey !== "string") {
-          throw new Error("The Brunch identity response has no owner key");
+        const body = (await response.json()) as { actorKey?: unknown };
+        if (typeof body.actorKey !== "string") {
+          throw new Error("The Brunch identity response has no actor key");
         }
-        const { ownerKey } = body;
-        setIdentity({ accountId, ownerKey });
+        const { actorKey } = body;
+        setIdentity({ origin, accountId, actorKey });
       } catch (error) {
         if (!controller.signal.aborted) {
           captureException(error, { source: "brunch.identity" });
@@ -107,16 +125,18 @@ const useBrunchOwnerKey = (): string | null => {
       }
     })();
     return () => controller.abort();
-  }, [accountId, captureException]);
+  }, [origin, accountId, captureException]);
 
-  return identity !== null && identity.accountId === accountId
-    ? identity.ownerKey
+  return identity !== null &&
+    identity.origin === origin &&
+    identity.accountId === accountId
+    ? identity
     : null;
 };
 
 /**
  * Brunch's assistant for one saved net, mounted only while it is offered, so
- * the hook never runs without an owner key. Renders nothing: it hands the
+ * the hook never runs without an actor key. Renders nothing: it hands the
  * assistant to its parent, which keeps `<Petrinaut>` mounted whether or not
  * Brunch is offered. Unmounting withdraws it.
  *
@@ -126,26 +146,47 @@ const useBrunchOwnerKey = (): string | null => {
  */
 const BrunchSession = memo(
   ({
-    ownerKey,
+    actorKey,
+    chatEndpoint,
     openDocument,
     shown,
+    hostTools,
+    hostSave,
+    versionLoad,
     onChange,
   }: {
-    ownerKey: string;
+    actorKey: string;
+    /** Brunch's HASH agent. */
+    chatEndpoint: string;
     openDocument: BrunchOpenDocument;
     /** The editor shows Brunch's assistant. */
     shown: boolean;
+    /**
+     * Reads of the HASH graph, run here as the signed-in user, and the
+     * agent's Petrinaut tools, run on the editor.
+     */
+    hostTools: readonly PetrinautAiAutomaticTool[];
+    /** The editor's Save, which the agent runs once the user approves it. */
+    hostSave: BrunchHostSave;
+    /**
+     * Brunch tells its agent about a load once, on the next turn, and the
+     * Ledger marks reflections on elements the loaded version lacks.
+     */
+    versionLoad: VersionLoad | undefined;
     onChange: (assistant: PetrinautAiAssistant | null) => void;
   }) => {
     const { assistant } = useBrunchAssistant({
-      ownerKey,
-      chatEndpoint: brunchChatEndpoint,
+      actorKey,
+      chatEndpoint,
       fetch: brunchFetch,
       selected: shown,
       openDocument,
       voice: brunchVoice,
       interviewBudget: brunchInterviewBudget,
       words: brunchWords,
+      hostTools,
+      hostSave,
+      ...(versionLoad === undefined ? {} : { versionLoad }),
     });
 
     useLayoutEffect(() => {
@@ -159,7 +200,7 @@ const BrunchSession = memo(
 
 /**
  * The Petrinaut editor for the open net, with Brunch as its assistant while
- * the net is saved, the user may edit it, and the account's owner key is
+ * the net is saved, the user may edit it, and the account's actor key is
  * known. Rendered inside the editor's `ErrorTrackerContext`, so Brunch's
  * contained failures reach the same reporter as Petrinaut's.
  */
@@ -167,6 +208,8 @@ export const ProcessPetrinaut = ({
   handle,
   savedEntityId,
   readTitle,
+  hostSave,
+  versionLoad,
   readonly,
   setTitle,
   title,
@@ -176,12 +219,21 @@ export const ProcessPetrinaut = ({
   savedEntityId: EntityId | null;
   /** The editor's current title, read when Brunch's tools need it. */
   readTitle: () => string;
+  /** The editor's Save, for the agent: what it would do now, and running it. Stable for the handle. */
+  hostSave: BrunchHostSave;
+  /** The latest load of another saved version of the open net, while the open net builds on it. */
+  versionLoad: VersionLoad | undefined;
   /** The user may not edit or save this net. */
   readonly: boolean;
   setTitle: (title: string) => void;
   title: string;
 }) => {
-  const ownerKey = useBrunchOwnerKey();
+  const brunch = useBrunchConnection();
+  const graphReads = useBrunchHashGraphReadTools();
+  const hostTools = useMemo(
+    () => [...graphReads, ...hashPetrinautHostTools],
+    [graphReads],
+  );
   const [brunchAssistant, setBrunchAssistant] =
     useState<PetrinautAiAssistant | null>(null);
   // Brunch's panel content marks Brunch as shown while the editor mounts it.
@@ -210,11 +262,15 @@ export const ProcessPetrinaut = ({
 
   return (
     <>
-      {ownerKey !== null && openDocument !== null && (
+      {brunch !== null && openDocument !== null && (
         <BrunchSession
-          ownerKey={ownerKey}
+          actorKey={brunch.actorKey}
+          chatEndpoint={brunchChatEndpoint(brunch.origin)}
           openDocument={openDocument}
           shown={brunchShown}
+          hostTools={hostTools}
+          hostSave={hostSave}
+          versionLoad={versionLoad}
           onChange={setBrunchAssistant}
         />
       )}
@@ -229,7 +285,7 @@ export const ProcessPetrinaut = ({
           hideNetManagementControls="all"
           loadPetriNet={noNetSwitchingError}
           plugins={
-            ownerKey !== null && openDocument !== null
+            brunch !== null && openDocument !== null
               ? editorPluginsWithBrunch
               : editorPlugins
           }

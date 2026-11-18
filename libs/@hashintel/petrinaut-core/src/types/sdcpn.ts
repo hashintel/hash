@@ -53,6 +53,34 @@ export type ComponentPortArcEndpoint = {
 
 export type ArcEndpoint = PlaceArcEndpoint | ComponentPortArcEndpoint;
 
+/** How a component uses one of its ports; see `Place.portDirection`. */
+export type PortDirection = "in" | "out" | "inout";
+
+/**
+ * One member of a fusion: a place of the net the fusion belongs to, or a port
+ * of one of that net's component instances. The same shape an arc uses to
+ * name the place it touches, so the helpers in `arc-endpoints.ts` apply.
+ */
+export type FusionMember = ArcEndpoint;
+
+/**
+ * A fusion set: its members are one place when the net runs. A token put into
+ * any member is in every member, and a transition anywhere in the composition
+ * that reads or writes one of them reads or writes the fused place.
+ *
+ * At most one member is a place of the net itself, the anchor, which gives
+ * the fused place its id, initial marking and visualizer; the others are
+ * ports of the net's component instances. The fused place goes by the
+ * fusion's name. Members agree on their token type, capacity and dynamics,
+ * which `checkFusions` verifies.
+ */
+export type Fusion = {
+  id: ID;
+  name: string;
+  description?: string;
+  members: FusionMember[];
+};
+
 type ArcEndpointReference = {
   /**
    * Legacy shorthand for a normal place endpoint. New code should prefer
@@ -88,13 +116,27 @@ export type Transition = {
   y: number;
 };
 
+/** One term of a place's composed dynamics (see `Place.dynamics`). */
+export type PlaceDynamicsTerm = {
+  differentialEquationId: ID;
+};
+
 export type Place = {
   id: ID;
   name: string;
   description?: string;
   colorId: null | ID;
+  /** Whether the place's `dynamics` run; the list is kept while off. */
   dynamicsEnabled: boolean;
-  differentialEquationId: null | ID;
+  /**
+   * The differential equations composed into the place's dynamics, in
+   * application order, each over the place's colour. A token's derivative is
+   * the sum of every term's contribution: an equation of arity `n`
+   * contributes one record per unordered combination of `n` distinct tokens
+   * that contains the token (see `DifferentialEquation.arity`). Absent means
+   * no dynamics.
+   */
+  dynamics?: PlaceDynamicsTerm[];
   /**
    * Optional maximum number of tokens this place will hold.
    *
@@ -110,6 +152,14 @@ export type Place = {
   capacity?: number | null;
   /** When true, this place is exposed as a component port for subnet instances. */
   isPort?: boolean;
+  /**
+   * The direction a port promises, seen from the component: `in` is only
+   * consumed by the component's transitions, `out` only produced into, and
+   * `inout` both, as a shared resource pool is. Absent, the direction is read
+   * off the subnet's arcs. The checks report a port used against its promise,
+   * and a fusion that leaves a flow without a producer or a consumer.
+   */
+  portDirection?: PortDirection;
   visualizerCode?: string;
   showAsInitialState?: boolean;
   // UI positioning
@@ -143,6 +193,16 @@ export type DifferentialEquation = {
   name: string;
   colorId: ID | null;
   code: string;
+  /**
+   * How many tokens the equation couples, a positive integer `n`. With an
+   * arity of 1 the code sees that token as `token` and returns its
+   * derivative record. Above that it sees `tokens`, a tuple of exactly `n`
+   * tokens of the colour, and returns an array of `n` records, one per
+   * token in order. The simulator applies it to every
+   * unordered combination of `n` distinct tokens of the place, in index
+   * order, and sums the contributions.
+   */
+  arity: number;
 };
 
 // -- Ad-hoc scenario definitions ---------------------------------------------
@@ -340,6 +400,18 @@ export type Metric = {
   code: string;
 };
 
+/** A reference to a component: a subnet of the document, by its id. */
+export type ComponentReference = { id: ID };
+
+/**
+ * The component the document runs for the instances of an interface that
+ * choose none themselves.
+ */
+export type DefaultImplementation = {
+  interface: ComponentReference;
+  component: ComponentReference;
+};
+
 /**
  * An instance of a subnet placed inside another net.
  */
@@ -357,6 +429,11 @@ export type ComponentInstance = {
    * Keys are parameter IDs from the referenced subnet; values are expressions.
    */
   parameterValues: Record<ID, string>;
+  /**
+   * For an instance of an interface: the component that runs in its place.
+   * Absent, the document's default implementation for the interface applies.
+   */
+  implementation?: ComponentReference;
   // UI positioning
   x: number;
   y: number;
@@ -369,12 +446,25 @@ export type Subnet = {
   description?: string;
   /** Host-defined data, opaque to Petrinaut. */
   metadata?: Record<string, JsonValue>;
+  /**
+   * A signature: ports, types and parameters with no transition or instance.
+   * An instance of it runs the implementation bound to it, the instance's
+   * own choice or the document's default.
+   */
+  interface?: true;
+  /**
+   * The interfaces this subnet implements. For each, it has a port of the
+   * same name and token type and a parameter of each variable name.
+   */
+  implements?: ID[];
   places: Place[];
   transitions: Transition[];
   types: Color[];
   differentialEquations: DifferentialEquation[];
   parameters: Parameter[];
   componentInstances?: ComponentInstance[];
+  /** Fusions among this subnet's places and its instances' ports. */
+  fusions?: Fusion[];
 };
 
 export type SDCPN = {
@@ -390,6 +480,13 @@ export type SDCPN = {
   metrics?: Metric[];
   subnets?: Subnet[];
   componentInstances?: ComponentInstance[];
+  /** Fusions among the root net's places and its instances' ports. */
+  fusions?: Fusion[];
+  /**
+   * The component that runs for instances of each interface, unless an
+   * instance chooses its own: one entry per interface.
+   */
+  implementations?: DefaultImplementation[];
 };
 
 export type MinimalNetMetadata = {

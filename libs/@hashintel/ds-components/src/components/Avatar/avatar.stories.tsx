@@ -228,10 +228,14 @@ const svgAvatar = (body: string) =>
     `<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80">${body}</svg>`,
   )}`;
 
-// Undecodable payload — the browser fires `error`, falling back to the placeholder
-const brokenImage = "data:image/png;base64,thisisnotavalidpngpayload";
-// TEST-NET-1 (RFC 5737) never routes, so the request stays pending — shows the loading state
-const loadingImage = "https://192.0.2.1/avatar.png";
+// Valid base64 ("not a png") but undecodable as an image — the browser fires
+// `error`, falling back to the placeholder. Malformed base64 would instead be
+// an invalid URL, which Chromium reports as a console error.
+const brokenImage = "data:image/png;base64,bm90IGEgcG5n";
+// A dev-middleware endpoint (see .storybook/main.ts) that never responds, so
+// the request stays pending — shows the loading state. An unroutable address
+// would fail fast on some networks and log a console error.
+const loadingImage = "/__pending-image__.png";
 // Colored shape on a transparent canvas — the avatar fill shows through around it
 const transparentImage = svgAvatar(
   `<circle cx="40" cy="40" r="22" fill="#e5484d"/>`,

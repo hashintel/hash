@@ -87,7 +87,11 @@ impl<'heap, A: Allocator + Clone> StatementPlacement<'heap, A> for InterpreterSt
 
         match body.source {
             Source::GraphReadFilter(_) => {}
-            Source::Ctor(_) | Source::Closure(..) | Source::Thunk(..) | Source::Intrinsic(_) => {
+            Source::Ctor(_)
+            | Source::Closure(..)
+            | Source::Thunk(..)
+            | Source::Intrinsic(_)
+            | Source::Synthetic(_) => {
                 return (statement_costs, terminator_costs);
             }
         }

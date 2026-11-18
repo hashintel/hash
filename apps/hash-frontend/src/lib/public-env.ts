@@ -13,3 +13,12 @@ export const ENVIRONMENT =
 export const SENTRY_ENVIRONMENT =
   // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
   process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT || ENVIRONMENT;
+
+/**
+ * The Brunch server's origin, which the process page's assistant calls
+ * directly with the user's session cookie, or `null` when this deployment has
+ * no Brunch and the page offers no assistant.
+ */
+export const brunchAgentOrigin: string | null =
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- an empty value means unset
+  process.env.NEXT_PUBLIC_HASH_BRUNCH_AGENT_ORIGIN || null;

@@ -114,6 +114,7 @@ export const createTestEditorApi = (
     notifications: { add: notify },
     document: {
       id: instance.handle.id,
+      handle: instance.handle,
       net: instance.definition,
       title: titleStore,
       extensions: instance.extensions,

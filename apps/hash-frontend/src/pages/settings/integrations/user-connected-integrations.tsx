@@ -7,17 +7,29 @@ import {
   Typography,
 } from "@mui/material";
 
-import { LinearLogo } from "../../../shared/icons/linear-logo";
+import { IntegrationIconTile } from "../integrations.page/integration-icon-tile";
 import { SettingsTable } from "../shared/settings-table";
 import { SettingsTableCell } from "../shared/settings-table-cell";
-import { useLinearIntegrations } from "./linear/use-linear-integrations";
 import { UserIntegrationContextMenu } from "./user-connected-integrations/integration-context-menu";
 
-export const UserConnectedIntegrations = () => {
-  const { linearIntegrations, connectedLinearOrganizations } =
-    useLinearIntegrations();
+import type { EntityId } from "@blockprotocol/type-system";
 
-  if (!linearIntegrations.length) {
+export type UserConnectedIntegration = {
+  entityId: EntityId;
+  /** The integration's name in the integrations catalog. */
+  integrationName: string;
+  /** The path segment of the integration's page under `/settings/integrations`. */
+  integrationSlug: string;
+  sourceResource: { name: string; logoUrl?: string | null };
+  syncedWebNames: string[];
+};
+
+export const UserConnectedIntegrations = ({
+  integrations,
+}: {
+  integrations: UserConnectedIntegration[];
+}) => {
+  if (!integrations.length) {
     return null;
   }
 
@@ -36,45 +48,39 @@ export const UserConnectedIntegrations = () => {
           </TableRow>
         </TableHead>
         <TableBody>
-          {linearIntegrations.map((integration) => {
-            const linearOrg = connectedLinearOrganizations.find(
-              (org) =>
-                org.id ===
-                integration.entity.properties[
-                  "https://hash.ai/@h/types/property-type/linear-org-id/"
-                ],
-            );
-
-            return (
-              <TableRow key={integration.entity.entityId}>
-                <SettingsTableCell>
-                  <Stack direction="row" alignItems="center" gap={1}>
-                    <LinearLogo sx={{ fontSize: 16 }} /> Linear
-                  </Stack>
-                </SettingsTableCell>
-                <SettingsTableCell>
-                  <Stack direction="row" alignItems="center" gap={1}>
-                    {linearOrg?.logoUrl && (
-                      <Box
-                        component="img"
-                        src={linearOrg.logoUrl}
-                        sx={{ height: 18, width: 18, borderRadius: 1 }}
-                      />
-                    )}
-                    {linearOrg?.name}
-                  </Stack>
-                </SettingsTableCell>
-                <SettingsTableCell>
-                  {integration.syncedWithWebs
-                    .map((web) => web.webName)
-                    .join(", ")}
-                </SettingsTableCell>
-                <SettingsTableCell>
-                  <UserIntegrationContextMenu integrationType="linear" />
-                </SettingsTableCell>
-              </TableRow>
-            );
-          })}
+          {integrations.map((integration) => (
+            <TableRow key={integration.entityId}>
+              <SettingsTableCell>
+                <Stack direction="row" alignItems="center" gap={1}>
+                  <IntegrationIconTile
+                    name={integration.integrationName}
+                    tileSize={16}
+                  />{" "}
+                  {integration.integrationName}
+                </Stack>
+              </SettingsTableCell>
+              <SettingsTableCell>
+                <Stack direction="row" alignItems="center" gap={1}>
+                  {integration.sourceResource.logoUrl && (
+                    <Box
+                      component="img"
+                      src={integration.sourceResource.logoUrl}
+                      sx={{ height: 18, width: 18, borderRadius: 1 }}
+                    />
+                  )}
+                  {integration.sourceResource.name}
+                </Stack>
+              </SettingsTableCell>
+              <SettingsTableCell>
+                {integration.syncedWebNames.join(", ")}
+              </SettingsTableCell>
+              <SettingsTableCell>
+                <UserIntegrationContextMenu
+                  integrationSlug={integration.integrationSlug}
+                />
+              </SettingsTableCell>
+            </TableRow>
+          ))}
         </TableBody>
       </SettingsTable>
     </Box>

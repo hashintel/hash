@@ -1247,6 +1247,7 @@ export const Select = <TValue extends string>({
                 clearSelection();
                 internalRef.current?.focus();
               }}
+              data-hidden={!canClear || !hasSelection ? "" : undefined}
               className={cx(
                 classes.clear,
                 (!canClear || !hasSelection) && classes.hideClear,

@@ -11,6 +11,7 @@ import type {
 
 const dynamicsContext: HirDynamicsContext = {
   surface: "dynamics",
+  arity: 1,
   parameters: [{ name: "g", type: "real" }],
   elements: [
     { name: "x", type: "real" },
@@ -71,10 +72,8 @@ describe("lintHirUserCode", () => {
   it("returns no diagnostics for the default templates", () => {
     expect(
       codes(
-        `export default Dynamics((tokens, parameters) => {
-  return tokens.map(({ x, v }) => {
-    return { x: 1, v: 1 };
-  });
+        `export default Dynamics(({ x, v }, parameters) => {
+  return { x: 1, v: 1 };
 });`,
         dynamicsContext,
       ),
@@ -128,10 +127,8 @@ describe("lintHirUserCode", () => {
 
   describe("typecheck rules", () => {
     it("flags derivatives on discrete attributes with a friendly message", () => {
-      const code = `export default Dynamics((tokens, parameters) => {
-  return tokens.map(({ x }) => {
-    return { x: 1, count: 1 };
-  });
+      const code = `export default Dynamics(({ x }, parameters) => {
+  return { x: 1, count: 1 };
 });`;
       const result = lintHirUserCode(code, dynamicsContext);
       const diagnostic = result.diagnostics.find(
@@ -251,7 +248,7 @@ describe("lintHirUserCode", () => {
     it("reports buffer emission failures for every runtime surface", () => {
       expect(
         codes(
-          `export default Dynamics((tokens) => [{ x: 1, v: 1 }]);`,
+          `export default Dynamics((token) => (token.x > 0 ? { x: 1, v: 1 } : { x: 0, v: 0 }));`,
           dynamicsContext,
         ),
       ).toContainEqual(["hir:not-compilable", "error"]);

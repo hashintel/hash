@@ -985,6 +985,32 @@ test("classifies documented rejection and ambiguous admission without retrying",
   expect(ambiguousSend).toHaveBeenCalledOnce();
 });
 
+test.each([413, 429])(
+  "classifies a host limit's %i as rejected before admission",
+  async (status) => {
+    const send = vi.fn<FlueClient["send"]>(async () => {
+      throw new FlueApiError(status, "");
+    });
+    const transport = createFlueChatTransport({
+      client: { send } as Pick<FlueClient, "send"> as FlueClient,
+      clientToolNames: new Set(),
+    });
+
+    await expect(
+      transport.sendMessages(
+        sendOptions([
+          {
+            id: "user-limited",
+            role: "user",
+            parts: [{ type: "text", text: "Over the limit." }],
+          },
+        ]),
+      ),
+    ).rejects.toMatchObject({ failure: { kind: "rejected", status } });
+    expect(send).toHaveBeenCalledOnce();
+  },
+);
+
 test.each([
   ["server failure", new FlueApiError(500, "")],
   ["unknown response", new FlueApiError(418, "")],

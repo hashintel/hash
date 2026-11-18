@@ -180,6 +180,31 @@ describe("definePetrinautPlugin", () => {
     });
   });
 
+  it("requires a bottom panel view's content exactly when the manifest declares the view", () => {
+    const NotesPlugin = definePetrinautPlugin({
+      id: "test.notes",
+      name: "Notes",
+      bottomPanelViews: { notes: { title: "Notes" } },
+    });
+    const content = "Nothing noted";
+    const plugin = NotesPlugin({
+      bottomPanelViews: { notes: { content, when: false } },
+    });
+    // @ts-expect-error A declared view the contributions leave out.
+    NotesPlugin({});
+    // @ts-expect-error A view without its content.
+    NotesPlugin({ bottomPanelViews: { notes: {} } });
+    PalettePlugin({
+      buttons: { toggle: { icon: null, onClick: noop } },
+      // @ts-expect-error A view the manifest does not declare.
+      bottomPanelViews: { notes: { content } },
+    });
+
+    expect(plugin[pluginRuntime].hook(undefined as never)).toEqual({
+      bottomPanelViews: { notes: { content, when: false } },
+    });
+  });
+
   it("returns the plugin directly when given the implementation", () => {
     const contributions = { buttons: { help: { icon: null, onClick: noop } } };
     const manifest = {
@@ -315,6 +340,12 @@ describe("definePetrinautPlugin", () => {
       // @ts-expect-error A misspelt top-bar item key.
       topBarItems: { status: { place: "top-bar-end", lable: "Status" } },
     });
+    definePetrinautPlugin({
+      id: "test.typos",
+      name: "Typos",
+      // @ts-expect-error A misspelt bottom panel view key.
+      bottomPanelViews: { log: { title: "Log", tooltp: "What ran" } },
+    });
   });
 
   it("reserves the editor's command ids", () => {
@@ -330,6 +361,14 @@ describe("definePetrinautPlugin", () => {
         commands: { "a.b": { label: "A" } },
       }),
     ).toThrow('Plugin "test.dots" command "a.b" contains a dot.');
+    expect(() =>
+      definePetrinautPlugin({
+        id: "test.dots",
+        name: "Dots",
+        // @ts-expect-error A view key with a dot.
+        bottomPanelViews: { "a.b": { title: "A" } },
+      }),
+    ).toThrow('Plugin "test.dots" bottom panel view "a.b" contains a dot.');
   });
 
   it("keeps an enum setting's default among its options", () => {

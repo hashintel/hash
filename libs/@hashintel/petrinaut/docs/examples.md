@@ -61,7 +61,7 @@ A small service system: customers arrive, wait, are served by a limited staff po
 
 **Demonstrates:**
 
-- **GPU-ready modelling**: no typed tokens — create an experiment measuring **Waiting** or **Served** and the GPU switch works as shipped.
+- **GPU-ready modelling**: no typed tokens — create an experiment measuring **Waiting** or **Served** and the WebGPU simulator runs it as shipped.
 - Rate parameters (`arrival_rate`, `begin_rate`, `service_rate`) a sweep can range over: the **Morning Rush** scenario exposes `arrival_rate` and `service_rate` as scenario parameters wired straight to the net's rates, so a two-parameter sweep explores under- and over-staffed regimes.
 - A conserved staff pool (**FreeStaff** + **Serving** always totals the staff count).
 
@@ -200,3 +200,69 @@ An orbital mechanics simulation: satellites are continuously launched into orbit
 **Key concepts:** [dynamics](petri-net-extensions.md#differential-equations-dynamics), [visualizers](petri-net-extensions.md#visualizer), [source transitions](useful-patterns.md#source-transitions-exogenous-arrivals), [distributions and `.map()`](petri-net-extensions.md#distributions), [arc weight](useful-patterns.md#arc-weight-for-multi-token-operations), [scenarios](scenarios.md).
 
 <img width="1106" height="320" alt="probabilistic-satellites" src="https://github.com/user-attachments/assets/e696a4f7-f61a-4b8b-9b34-1598a7190376" />
+
+## Satellites with Attraction
+
+The [Probabilistic Satellite Launcher](#probabilistic-satellite-launcher) with one change: the satellites pull on each other. The Space place composes two equations, and the constellation drifts as every pair attracts.
+
+**Demonstrates:**
+
+- **An equation over two tokens** -- _Mutual Attraction_ couples every pair of satellites: `const [a, b] = tokens;` and an array of two derivative objects, one per satellite, so the pull is symmetric. The `attraction_constant` parameter sets its strength.
+- **Composed dynamics** -- the Space place lists the one-token orbit equation and the attraction after it; their derivatives are summed every step. See [composing equations](petri-net-extensions.md#composing-equations).
+- Everything else -- launches, collisions, crashes, the visualizer, the metrics and the five scenarios -- is the launcher's.
+
+**Suggested initial state:** pick **Pre-deployed Constellation** and press Play: the ring starts in circular orbits and the attraction draws neighbours together until pairs collide. Raise `attraction_constant` to see it sooner, or lower it toward 0 to recover the launcher's orbits. This net runs on the CPU: the GPU backend does not integrate composed dynamics.
+
+**Key concepts:** [equations over several tokens](petri-net-extensions.md#equations-over-several-tokens), [composing equations](petri-net-extensions.md#composing-equations), [visualizers](petri-net-extensions.md#visualizer), [scenarios](scenarios.md).
+
+## Planets and Satellites
+
+An n-body gravity simulation. A sun, planets of different masses and sizes, a moon and satellites are all tokens of one **Body** type in one **Space** place, and every body pulls on every other.
+
+**Demonstrates:**
+
+- **Two composed equations** -- _Motion_ couples one token and moves each body by its velocity; _Gravity_ couples two tokens and is Newton's law for the pair, `G · m / d²` toward each other, softened so a near miss stays finite. The simulator applies Gravity to every pair of bodies and sums, so the planets perturb each other and the moon follows its planet. See [composing equations](petri-net-extensions.md#composing-equations).
+- **Units that make the numbers meaningful** -- distances are canvas units, masses arbitrary units, and `gravitational_constant` scales the speeds: a circular orbit at distance `r` around mass `M` has speed `√(G · M / r)`, which the scenario and the launch kernel both use.
+- **Merging on contact** -- "Merge" consumes two bodies whose surfaces touch (arc weight 2) and produces one with their combined mass, the mass-weighted position, the momentum-conserving velocity and the volume-conserving radius (`∛(r₁³ + r₂³)`). The **Total mass** metric stays flat through merges while **Heaviest body** steps up.
+- **A read arc that picks a planet** -- "Launch" reads one body without consuming it and fires at `launch_rate` only for a body at least `planet_mass_threshold` heavy and lighter than `star_mass_threshold`; its kernel places a satellite at `launch_altitude` above the planet, in a random direction, at the circular-orbit speed on top of the planet's own velocity.
+- **Scenario variables doing the physics** -- _Sun, Two Planets and a Moon_ computes every orbital speed from `gravitational_constant` in the [ad-hoc scenario form](ad-hoc-scenarios.md)'s place variables, and gives the sun the recoil that keeps the system's total momentum at zero.
+- **A visualizer at scale** -- bodies are drawn at their radius, coloured as star, planet or satellite by mass, with a heading tick on the small ones.
+
+**Suggested initial state:** pick **Sun, Two Planets and a Moon**, set the playback speed to 10x or faster and press Play; select Space and open its visualizer to watch the planets circle the sun while the moon circles its planet and satellites appear. The orbits are slow in simulated time on purpose: the simulator integrates with a fixed step, and an orbit that turns through much more than a fraction of a degree per step spirals out. Even so the moon, on the fastest orbit, drifts off its planet after a few planet years; lower the time step for long runs. Raise `launch_rate` to crowd the orbits until satellites merge into each other or fall into a planet; lower `gravitational_constant` to loosen every orbit at once. This net runs on the CPU: the GPU backend takes one equation over one token per place.
+
+**Key concepts:** [equations over several tokens](petri-net-extensions.md#equations-over-several-tokens), [composing equations](petri-net-extensions.md#composing-equations), [read arcs](petri-net-extensions.md#read-arcs), [arc weight](useful-patterns.md#arc-weight-for-multi-token-operations), [scenarios](scenarios.md), [visualizers](petri-net-extensions.md#visualizer).
+
+## Bicycle Assembly
+
+An [untimed](simulation.md#timed-and-untimed-nets) net with plain tokens. A workshop turns a stock of rims, tyres, frames and saddles into bicycles on a few workstands. Every transition is a Predicate that always holds and no place has dynamics, so nothing takes time: the run is a sequence of [steps](simulation.md#steps).
+
+**Demonstrates:**
+
+- **A run in steps** -- the simulator capsule reads **Step by step**, the toolbar reads **Step 3 of 10** and the Timeline's axis counts steps. Each transition fires at most once per step and what a step produces arrives at its end, so a part moves one stage per step.
+- **Arc weight as a recipe** -- **FitWheels** takes two tokens from **Wheels** for one frame. **FitTyre** builds one wheel per step, so a bicycle is finished every other step.
+- **A shared resource** -- **MountFrame** takes a token from **FreeStands** and **Finish** puts it back, so the workstands bound the work in progress.
+- **The end of a run as the answer** -- the run ends at the first step in which nothing can fire. From **Morning Stock** that is after step 10, with 4 bicycles. What is left shows where the line stopped: one rim with no tyre, and a fifth frame holding a stand with one wheel and no saddle to come.
+- **No chance at all** -- the net draws nothing at random, so every run of a scenario is the same run. An [experiment](experiments.md) over the stock needs one run per point.
+- **A [visualizer](petri-net-extensions.md#visualizer) on every place, with no type** -- a place of this net holds a count and nothing else, so its visualizer draws that many of the part the place stands for: rims, tyres, wheels, frames, workstands, saddles, bicycles. A wheel is drawn as a tyre on a rim, and a bicycle with that frame, those wheels and that saddle, so a part can be followed into what it becomes. **OnStand** and **Rolling** show the frame lifted on its workstand, without wheels and then without a saddle. A stock that has run out says so in place of its parts.
+
+**Suggested initial state:** pick **Morning Stock**, point at a place and click its eye button to keep its visualizer open; **Tyres**, **Wheels**, **Rolling**, **Saddles** and **Bicycles** tell most of the story. Press Play, then drag the scrubber: it moves one step at a time. At the end **Tyres** reads **Out of tyres**, **Saddles** reads **Out of saddles**, and **Wheels** shows the one wheel a frame cannot use alone. Raise `saddles` to 5 in the scenario parameters and the run still ends with 4 bicycles: the fifth frame is one wheel short. Raise `tyres` to 10 as well and it builds 5. **One Workstand** builds the same 4 bicycles in 14 steps.
+
+**Key concepts:** [untimed nets](simulation.md#timed-and-untimed-nets), [predicates](petri-net-extensions.md#predicate), [arc weight](useful-patterns.md#arc-weight-for-multi-token-operations), [deadlock](simulation.md#deadlock), [visualizers](petri-net-extensions.md#visualizer), [scenarios](scenarios.md).
+
+## Wheel Truing
+
+An [untimed](simulation.md#timed-and-untimed-nets) net with typed tokens, whose runs differ from one seed to the next. A batch of freshly laced wheels goes over one truing stand until each wheel is within tolerance or has had its last pass. Each wheel is a **Wheel** token with its `runout`, the wobble of the rim in millimetres, and the `passes` it has had.
+
+**Demonstrates:**
+
+- **Chance without time** -- every transition is a Predicate, so the run is a sequence of [steps](simulation.md#steps). The chance is in a kernel: **TruingPass** draws the runout a pass leaves from `Distribution.Gaussian`, around a share of the runout the wheel came with, and clamps it with `.map()`.
+- **Predicates that sort tokens** -- **Accept**, **Retrue** and **Reject** all take from **Measured**, and each reads the wheel: within `tolerance`, still out with passes left, or still out after `max_passes`. Exactly one holds for any wheel.
+- **A loop that ends** -- **Retrue** sends a wheel back to **Laced** with its count of passes, and `max_passes` bounds the loop, so every run ends with each wheel in **Accepted** or **Rejected**.
+- **A Stochastic simulation in steps** -- one run is one batch. Many runs give the expected yield by step: with **Batch of Six**, about 5 of the 6 wheels are accepted on average, within 25 steps. **Tight Tolerance** accepts fewer than 4.
+- **A [visualizer](petri-net-extensions.md#visualizer) on every place** -- a wheel is drawn with the green ring its rim has to stay in. The ring is as wide as `tolerance` and centred on the hub, and the rim sits off the hub by the wheel's `runout`, so a wheel that is out of true looks it. Dots count the passes it has had. **Laced** shows the queue with the next wheel marked. **Measured** shows the wheel on the gauge, its runout on a scale against the tolerance, and which of Accept, Retrue and Reject takes it next. **Accepted** and **Rejected** show their racks, with the passes per wheel and the worst runout.
+- **Metrics over typed tokens** -- **Yield** reads two token counts, and **Passes per accepted wheel** averages an attribute over the tokens of **Accepted**.
+- **GPU-ready modelling** -- every place declares `capacity: 16`.
+
+**Suggested initial state:** pick **Batch of Six**, point at **Measured** and click the eye button above it to keep the gauge open, then press Play to follow one batch, wheel by wheel. Open the other three places the same way and drag the windows apart. A Quick simulation always uses the same seed, so it replays the same batch: it ends after step 22 with 3 wheels accepted and 3 rejected. Then switch the mode to **Stochastic** and press Play: the Timeline shows the mean of **Accepted** and **Rejected** by step across 100 batches. Create an experiment with a sweep over `tolerance` to see the yield fall as the check tightens.
+
+**Key concepts:** [untimed nets](simulation.md#timed-and-untimed-nets), [distributions](petri-net-extensions.md#distributions), [predicates](petri-net-extensions.md#predicate), [visualizers](petri-net-extensions.md#visualizer), [stochastic simulation](simulation.md#stochastic-simulation), [scenarios](scenarios.md).

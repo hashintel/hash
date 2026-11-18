@@ -35,7 +35,7 @@ return {
 1. **Count down** with a differential equation:
 
 ```ts
-return tokens.map(() => ({ remaining_time: -1 }));
+return { remaining_time: -1 };
 ```
 
 1. **Guard the completion transition** with a predicate:
@@ -88,7 +88,7 @@ Use an [inhibitor arc](petri-net-extensions.md#inhibitor-arcs) from a "busy" or 
 
 ## Source transitions (exogenous arrivals)
 
-A transition with **no input arcs** is always structurally enabled. Set a stochastic rate to model arrivals following a Poisson process.
+A transition with **no input arcs** is always structurally enabled. Set a stochastic rate to model arrivals following a Poisson process. A source transition left as a **Predicate** is an error in a [timed net](simulation.md#timed-and-untimed-nets), where it would fire without end at one instant; in an untimed net it fires once per step.
 
 ```ts
 return parameters.arrival_rate;

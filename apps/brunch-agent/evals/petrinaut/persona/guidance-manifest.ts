@@ -27,15 +27,13 @@ export const guidanceManifest = async () => {
   const directories = [
     `${agent}/prompts`,
     `${agent}/skills`,
-    `${agent}/tools`,
+    "apps/brunch-agent/src/agents/shared",
     // The Ledger lives in the library so the website can render it.
     `${library}/src/ledger`,
   ];
   const paths = [
     `${agent}/agent.ts`,
     `${agent}/guidance.ts`,
-    `${agent}/interview-budget-instruction.ts`,
-    `${agent}/words-instruction.ts`,
     `${library}/src/ledger.ts`,
     "apps/brunch-agent/src/shared/petrinaut-tools.ts",
     "yarn.lock",

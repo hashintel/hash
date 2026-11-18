@@ -211,7 +211,6 @@ describe("tryTranslateMetric", () => {
           name: "Target",
           colorId: "order",
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         },

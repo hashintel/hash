@@ -26,6 +26,7 @@ import type { PluginDocument, PluginEditor } from "./plugin-access";
 import type {
   Diagnostic,
   DiagnosticsSnapshot,
+  PetrinautPatch,
 } from "@hashintel/petrinaut-core";
 
 const place = {
@@ -33,7 +34,6 @@ const place = {
   name: "Place",
   colorId: null,
   dynamicsEnabled: false,
-  differentialEquationId: null,
   x: 0,
   y: 0,
 };
@@ -195,6 +195,27 @@ describe("plugin editor", () => {
       value: { commitCount: 2 },
     });
     expect(frame).toHaveBeenCalledOnce();
+  });
+
+  it("reads the handle's own net and its changes, also once the instance has let go of it", () => {
+    const { instance } = renderPlugins([documentPlugin], <Probe />);
+    const { handle } = documentOf();
+    const changes: (readonly PetrinautPatch[] | undefined)[] = [];
+    const unsubscribe = handle.subscribe((event) =>
+      changes.push(event.patches),
+    );
+    expect(handle.doc()).toBe(instance.handle.doc());
+
+    // What a strict-mode remount does: the instance's own stores then stop
+    // reporting, and the handle does not.
+    instance.dispose();
+    documentOf().edit.addPlace(place);
+
+    expect(handle.doc()?.places).toHaveLength(1);
+    expect(handle.doc()).toBe(instance.handle.doc());
+    expect(changes).toHaveLength(1);
+    expect(changes[0]?.[0]).toMatchObject({ op: "add", path: ["places", 0] });
+    unsubscribe();
   });
 
   it("returns the net it checked, which tells a caller the document changed meanwhile", async () => {

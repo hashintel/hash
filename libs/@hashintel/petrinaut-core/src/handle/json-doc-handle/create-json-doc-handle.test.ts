@@ -23,7 +23,7 @@ const coloured = (): SDCPN => ({
       name: "Place 1",
       colorId: "t1",
       dynamicsEnabled: true,
-      differentialEquationId: "d1",
+      dynamics: [{ differentialEquationId: "d1" }],
       visualizerCode: "return <Visualizer.Svg />;",
       x: 0,
       y: 0,
@@ -42,6 +42,7 @@ const coloured = (): SDCPN => ({
   parameters: [],
   differentialEquations: [
     {
+      arity: 1,
       id: "d1",
       name: "Dynamics 1",
       colorId: "t1",
@@ -92,7 +93,6 @@ describe("createJsonDocHandle", () => {
             name: "Capacity",
             colorId: null,
             dynamicsEnabled: false,
-            differentialEquationId: null,
             x: 1,
             y: 2,
             ...(capacity === undefined ? {} : { capacity }),
@@ -119,7 +119,6 @@ describe("createJsonDocHandle", () => {
         name: "Place 1",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         x: 0,
         y: 0,
       });
@@ -203,7 +202,6 @@ describe("createJsonDocHandle", () => {
         name: "Place 1",
         colorId: "t1",
         dynamicsEnabled: true,
-        differentialEquationId: null,
         x: 0,
         y: 0,
       });
@@ -392,7 +390,6 @@ describe("createPetrinaut", () => {
         {
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
         },
       ],
     });
@@ -488,6 +485,23 @@ describe("PetrinautDocHandle history", () => {
 
     expect(events).toHaveLength(3);
     expect(events.every((n) => n > 0)).toBe(true);
+  });
+
+  it("names the history entry an undo, a redo or a jump put the document at, and none on an edit", () => {
+    const handle = createJsonDocHandle({ initial: empty() });
+    const restored: (number | undefined)[] = [];
+    handle.subscribe((event) => restored.push(event.restored?.index));
+
+    handle.change(addType("c1"));
+    handle.change(addType("c2"));
+    handle.history?.undo();
+    handle.history?.undo();
+    handle.history?.redo();
+    handle.history?.goToIndex(2);
+    handle.change(addType("c3"));
+
+    expect(restored).toEqual([undefined, undefined, 1, 0, 1, 2, undefined]);
+    expect(handle.history?.currentIndex.get()).toBe(3);
   });
 
   it("supports goToIndex jumping forward and backward", () => {

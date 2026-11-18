@@ -25,7 +25,6 @@ const place: Place = {
   name: "Place 1",
   colorId: color.id,
   dynamicsEnabled: false,
-  differentialEquationId: null,
   x: 0,
   y: 0,
 };

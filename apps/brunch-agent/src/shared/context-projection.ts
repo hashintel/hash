@@ -1,6 +1,7 @@
 import {
   browserExecutedToolNames,
   browserToolEnvelopeOf,
+  browserToolFacts,
   parsePetrinautUserMessageBody,
   petrinautContextualUserMessageBody,
 } from "@hashintel/brunch-agent";
@@ -75,11 +76,18 @@ const projectInBandBrowserResult = (
       content: [
         {
           type: "text",
-          text: JSON.stringify(
-            readBack === undefined
+          // A tool whose result is rendered as text for the model reaches it
+          // as that text, not as a JSON string. Its failure, `{ error, note }`,
+          // is not rendered and is shown as JSON like any other output.
+          text:
+            browserToolFacts(entry.message.toolName).textResult &&
+            typeof envelope.output === "string"
               ? envelope.output
-              : { output: envelope.output, netAfterChanges: readBack },
-          ),
+              : JSON.stringify(
+                  readBack === undefined
+                    ? envelope.output
+                    : { output: envelope.output, netAfterChanges: readBack },
+                ),
         },
       ],
     },

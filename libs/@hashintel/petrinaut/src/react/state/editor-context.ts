@@ -22,13 +22,20 @@ type EditorEditionMode =
   | "add-transition"
   | "add-component";
 export type CursorMode = "select" | "pan";
+/**
+ * A tab a plugin adds to the bottom panel. Its id holds a dot, which the id
+ * of none of the editor's own tabs does.
+ */
+export type PluginBottomPanelTab = `${string}.${string}`;
+
 export type BottomPanelTab =
   | "compilation"
   | "diagnostics"
   | "simulation-settings"
   | "actual-events"
   | "actual-timeline"
-  | "simulation-timeline";
+  | "simulation-timeline"
+  | PluginBottomPanelTab;
 
 export type TimelineChartType = "run" | "stacked";
 
@@ -60,12 +67,16 @@ export type EditorNavigationTarget = {
  * - `per-transition`: a series per transition, plotting its cumulative
  *   firing count over time.
  * - `metric`: a single series computed by a user-authored metric function.
+ * - `solver-error`: a series per place with dynamics, the error the adaptive
+ *   solver has accumulated for it, recorded at the events of a run. Offered
+ *   only while the selected simulator can produce it.
  */
 export type TimelineView =
   | { kind: "per-place" }
   | { kind: "per-type" }
   | { kind: "per-transition" }
-  | { kind: "metric"; metricId: string };
+  | { kind: "metric"; metricId: string }
+  | { kind: "solver-error" };
 
 /**
  * The state values for the editor.

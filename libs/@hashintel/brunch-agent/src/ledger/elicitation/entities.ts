@@ -1,20 +1,20 @@
 import * as v from "valibot";
 
 import {
-  epistemicFields,
+  epistemicFieldsWith,
   resolveStatus,
-  vOrigin,
-  vStatus,
+  originSchema,
+  statusSchema,
 } from "../shared/epistemics";
 import { resolvesField } from "../shared/references";
 
-export const vEntityName = v.pipe(
+export const entityNameSchema = v.pipe(
   v.string(),
   v.minLength(1),
   v.description("A name for the entity in the USER's terms."),
 );
 
-export const vEntityKind = v.pipe(
+export const entityKindSchema = v.pipe(
   v.union([
     v.pipe(
       v.literal("thing"),
@@ -154,41 +154,53 @@ export const vEntityKind = v.pipe(
   ),
 );
 
-export const vEntity = v.pipe(
-  v.strictObject({
-    name: vEntityName,
-    kind: vEntityKind,
-    ...epistemicFields,
-    ...resolvesField,
-  }),
-  resolveStatus(),
-  v.description(
-    "An entity record. Origin and status describe its inclusion in the modelled account, independently of claims about it. The system assigns the ID.",
-  ),
-);
+export const entitySchemaWith = ({ origin }: { origin: typeof originSchema }) =>
+  v.pipe(
+    v.strictObject({
+      name: entityNameSchema,
+      kind: entityKindSchema,
+      ...epistemicFieldsWith({ origin }),
+      ...resolvesField,
+    }),
+    resolveStatus(),
+    v.description(
+      "An entity record. Origin and status describe its inclusion in the modelled account, independently of claims about it. The system assigns the ID.",
+    ),
+  );
+
+export const entitySchema = entitySchemaWith({ origin: originSchema });
 
 /** An entity/update payload: it replaces every field, so no field defaults. */
-export const vEntityUpdate = v.pipe(
-  v.strictObject({
-    name: vEntityName,
-    kind: vEntityKind,
-    origin: v.pipe(
-      vOrigin,
-      v.description("Where the entity's account now comes from. Required."),
+export const entityUpdateSchemaWith = ({
+  origin,
+}: {
+  origin: typeof originSchema;
+}) =>
+  v.pipe(
+    v.strictObject({
+      name: entityNameSchema,
+      kind: entityKindSchema,
+      origin: v.pipe(
+        origin,
+        v.description("Where the entity's account now comes from. Required."),
+      ),
+      status: v.pipe(
+        statusSchema,
+        v.description("Whether the USER now agrees to the entity. Required."),
+      ),
+      ...resolvesField,
+    }),
+    v.description(
+      "The addressed entity as it now stands. This payload replaces every field, origin and status included, and the entity keeps the turn it was created in. The Ledger's log keeps the earlier version; its map shows only the current one.",
     ),
-    status: v.pipe(
-      vStatus,
-      v.description("Whether the USER now agrees to the entity. Required."),
-    ),
-    ...resolvesField,
-  }),
-  v.description(
-    "The addressed entity as it now stands. This payload replaces every field, origin and status included, and the entity keeps the turn it was created in. The Ledger's log keeps the earlier version; its map shows only the current one.",
-  ),
-);
+  );
 
-export type EntityKind = v.InferOutput<typeof vEntityKind>;
-export type Entity = v.InferOutput<typeof vEntity>;
+export const entityUpdateSchema = entityUpdateSchemaWith({
+  origin: originSchema,
+});
+
+export type EntityKind = v.InferOutput<typeof entityKindSchema>;
+export type Entity = v.InferOutput<typeof entitySchema>;
 
 export const entityStages = [
   "framing",

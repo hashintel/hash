@@ -133,7 +133,7 @@ function canEmitBufferProgram(
 ): boolean {
   switch (context.surface) {
     case "dynamics":
-      return emitBufferDynamicsJs(fn, context.elements) !== null;
+      return emitBufferDynamicsJs(fn, context.elements, context.arity) !== null;
     case "lambda":
       return emitBufferLambdaJs(fn, context) !== null;
     case "kernel":
@@ -164,7 +164,11 @@ export function lintHirUserCode(
   const lowered =
     context.surface === "metric" && context.expected === "boolean"
       ? lowerStateConstraintToHir(code)
-      : lowerTypeScriptToHir(code, context.surface);
+      : lowerTypeScriptToHir(
+          code,
+          context.surface,
+          context.surface === "dynamics" ? { arity: context.arity } : {},
+        );
 
   if (!lowered.ok) {
     return {

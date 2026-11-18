@@ -10,20 +10,20 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { emptyAdHocValue } from "@hashintel/petrinaut-core";
 
 import { useFocusGrid } from "../../worksheet/use-focus-grid";
+import { FormSpreadsheet } from "../spreadsheet-kit/form-spreadsheet";
+import {
+  cellStyle,
+  dependencyHighlightStyle as highlightStyle,
+  staticNameCellStyle,
+  staticTypeCellStyle,
+} from "../spreadsheet-kit/form-table";
+import { OptimizeToggle } from "../spreadsheet-kit/optimize-toggle";
 import {
   AdHocFormContext,
   adHocIntervalSelection,
   adHocSelectionApplies,
   adHocSelectionText,
 } from "./form-context";
-import { FormSpreadsheet } from "./spreadsheet/form-spreadsheet";
-import {
-  cellStyle,
-  dependencyHighlightStyle as highlightStyle,
-  staticNameCellStyle,
-  staticTypeCellStyle,
-} from "./spreadsheet/form-table";
-import { OptimizeToggle } from "./spreadsheet/optimize-toggle";
 import { ValueEditor } from "./value-editor";
 
 import type { AdHocNetParameter } from "@hashintel/petrinaut-core";

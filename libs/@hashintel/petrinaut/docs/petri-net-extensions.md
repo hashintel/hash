@@ -8,9 +8,9 @@ Some embedded Petrinaut documents can disable one or more extensions. When an ex
 
 By default, places hold **untyped tokens** -- they only track a count. Tokens are indistinguishable from each other. This is sufficient for simple flow models.
 
-To give tokens structure, assign a **type** to a place. Each token then carries named dimensions (e.g. `x`, `y`, `velocity`), enabling dynamics, visualization, and data-dependent transition logic.
+To give tokens structure, assign a **type** to a place. Each token then carries named dimensions (e.g. `x`, `y`, `velocity`), enabling dynamics, data-dependent transition logic, and [visualizers](#visualizer) that draw each token from its values.
 
-Each dimension has one of five value types, chosen with the dropdown next to the dimension's name:
+Each dimension has one of five value types, chosen in the **Type** column of the **Dimensions** table:
 
 - **Real** -- a continuous number. This is the only kind of dimension that differential equations (dynamics) can update.
 - **Integer** -- a whole number. Values are rounded when stored, and are exact up to ±2^53 (about 9 quadrillion); beyond that they lose precision.
@@ -25,7 +25,7 @@ Integer, Boolean, UUID, and String dimensions are **discrete**: their values onl
 1. Open the **Token Types** group in the left sidebar.
 2. Click **+** to add a new type.
 3. Give it a **name** and **display colour**.
-4. Add dimensions, giving each a name and a value type.
+4. Add dimensions in the **Dimensions** table: click **Add a dimension…** on its last line, type the name (it becomes an identifier such as `position_x`), press Enter, then pick the type. Drag a row by its number, or focus one of its cells and press **Alt** with the up or down arrow, to reorder. The `⋯` menu on a row's number removes it; a type keeps at least one dimension.
 
 <img width="1707" height="1058" alt="token-type" src="https://github.com/user-attachments/assets/eb88fbc9-828e-4f12-842a-968fa86b2038" />
 
@@ -57,14 +57,14 @@ Kernel, firing rate/predicate, differential equation, visualizer, metric, and sc
 | --------------------------------------------------------- | ----------------------------------------- | ------------------------------------------------------- |
 | [Transition kernel](#transition-kernel)                   | `input`, `parameters`                     | tokens for each typed output place, keyed by place name |
 | [Firing rate / predicate](#firing-rate--predicate)        | `input`, `parameters`                     | `true`/`false` (predicate) or a rate (stochastic)       |
-| [Differential equation](#differential-equations-dynamics) | `tokens`, `parameters`                    | one derivative object per token                         |
+| [Differential equation](#differential-equations-dynamics) | `token` or `tokens`, `parameters`         | one derivative object per coupled token                 |
 | [Visualizer](#visualizer)                                 | `tokens`, `parameters`, `width`, `height` | one `<Visualizer.Svg>` element                          |
 | Metric (see [Experiments](experiments.md#metric-charts))  | `state`, `parameters`                     | a finite number                                         |
 | Scenario initial state (see [Scenarios](scenarios.md))    | `parameters`, `scenario`, `range`         | tokens or counts, keyed by place name                   |
 
-`input` holds one entry per input place of the transition, keyed by place name: the tokens it delivers and the place's token count (see [Reading input places](#reading-input-places)); `tokens` is the current tokens of the place a differential equation runs on; `state` exposes every place's tokens and counts to a metric.
+`input` holds one entry per input place of the transition, keyed by place name: the tokens it delivers and the place's token count (see [Reading input places](#reading-input-places)); `token` is the token a differential equation integrates, and an equation that couples several tokens sees them as the `tokens` tuple instead; `state` exposes every place's tokens and counts to a metric.
 
-Legacy `TransitionKernel(...)`, `Lambda(...)`, `Dynamics(...)`, and `Visualization(...)` exports still run. Deprecation hints explain how to migrate them to function bodies.
+Legacy `TransitionKernel(...)`, `Lambda(...)`, `Dynamics(...)` (one parameter per coupled token, then `parameters`), and `Visualization(...)` exports still run. Deprecation hints explain how to migrate them to function bodies.
 
 ### Migrating older code
 
@@ -82,6 +82,8 @@ return input.Queue[0].priority > parameters.threshold;
 
 If the callback renamed or destructured its arguments, keep equivalent local bindings using the ambient variables before the body. For example, replace a kernel parameter `{ Queue: queue }` with `const { Queue: queue } = input;`.
 
+Equations written before equations composed are converted when the net loads, whether from a file, from the browser's saved nets, or from HASH. The place's single equation becomes the first entry of its **Dynamics** list, the equation couples one token, and a body that ended in `return tokens.map(...)` over every token becomes the callback's own body reading `token`, comments included. A body the conversion cannot keep exact, because the callback reads the index or the code reads `tokens` elsewhere, is kept as written, and a diagnostic asks for the one-token form.
+
 For visualizers, replace the root `<svg>` and its closing tag with `<Visualizer.Svg>`. Move `style.backgroundColor` to the `backgroundColor` property, retain an explicit `viewBox` when the drawing needs fixed coordinates, and remove root `width`, `height`, `style`, `borderRadius`, and `preserveAspectRatio`. Move inherited paint or text styles such as `fill` and `fontSize` to a child `<g>`. Nested legacy SVG viewports retain their sizing and clipping; do not nest `Visualizer.Svg`.
 
 Use function bodies and `Visualizer.Svg` for new code, including AI-generated code. Preserve the drawing’s behavior when migrating older code.
@@ -93,22 +95,45 @@ Differential equations define how token data evolves continuously over time. The
 **Setup:**
 
 1. Create a differential equation in the **Differential Equations** group (left sidebar).
-2. Give it a name and associate it with a **type** (the equation applies to tokens of that type).
-3. Select a place, enable **Dynamics**, and choose an equation that matches the type assigned to the place. Click **View equation** below the dropdown to open its definition.
+2. Give it a name, associate it with a **type** (the equation applies to tokens of that type) and choose how many **Tokens** it couples (one, usually).
+3. Select a place of that type and add the equation from the **Add an equation…** line of its **Dynamics** section. The switch in the section header runs or pauses the place's dynamics. Click a listed equation to open its properties and code.
 
 **Function body:**
 
 ```ts
-return tokens.map(({ x, y }) => {
-  return { x: /* dx/dt */, y: /* dy/dt */ };
-});
+const { x, y } = token;
+return { x: /* dx/dt */, y: /* dy/dt */ };
 ```
 
-The code is a plain function body ending in `return`, with `tokens` (the current token values) and `parameters` (the global parameters) in scope. Older documents may wrap the same code as `export default Dynamics((tokens, parameters) => { ... })`; that form still works. It must return an array of derivative objects -- one per token, with entries for the type's **Real** dimensions only. Integer, Boolean, UUID, and String dimensions are discrete: dynamics leave them unchanged (they can be read from the input tokens, but returning a derivative for them is a type error). A type with no Real dimensions has no dynamics to run.
+The code is a plain function body ending in `return`, with `token` (the token being integrated) and `parameters` (the global parameters) in scope. It runs once per token in the place and returns one derivative object with entries for the type's **Real** dimensions only. Integer, Boolean, UUID, and String dimensions are discrete: dynamics leave them unchanged (they can be read from the token, but returning a derivative for them is a type error). A type with no Real dimensions has no dynamics to run. The module style declares the token as a parameter: `export default Dynamics((token, parameters) => ({ ... }))`.
 
 <img width="1707" height="1055" alt="diff-equations" src="https://github.com/user-attachments/assets/bb18dc15-e43c-4233-974a-70ff9a0c1978" />
 
-**Example:** in [Probabilistic Satellite Launcher](examples.md#probabilistic-satellite-launcher), the orbital dynamics equation computes gravitational acceleration to update satellite position and velocity each step.
+**Example:** in [Probabilistic Satellite Launcher](examples.md#probabilistic-satellite-launcher), the orbital dynamics equation computes gravitational acceleration to update a satellite's position and velocity each step.
+
+### Equations over several tokens
+
+The **Tokens** select in the equation's properties sets how many tokens the equation couples. With **2 tokens** and above, the body sees `tokens`, a tuple of that many distinct tokens, in place of `token`. It runs once per combination, taken in the place's order, and returns an array with one derivative object per token in the same order. The simulator adds every combination's contribution to each token's derivative, so a pairwise force written once pulls on both tokens of every pair. A place holding fewer tokens than the equation couples gets no contribution from it. The select offers one to four tokens. A file can set up to eight; a larger number is refused on import, and an equation that carries one shows a diagnostic and does not run.
+
+```ts
+// A mutual attraction over every pair of tokens
+const k = parameters.attraction_constant;
+const [a, b] = tokens;
+const dx = b.x - a.x;
+return [{ vx: k * dx }, { vx: -k * dx }];
+```
+
+Switching the number of tokens replaces the starting template; code you have edited is kept for you to adapt. In the module style the equation declares one parameter per token: `export default Dynamics((a, b, parameters) => [ ... ])`.
+
+### Composing equations
+
+A place can run several equations at once: its **Dynamics** section lists them in a table, in order. **Add an equation…** on the last line offers the type's equations not listed yet. Drag a row by its number, or focus one of its cells and press **Alt** with the up or down arrow, to reorder; the `⋯` menu on a row's number opens or removes the equation, and **Delete** on the number removes it too. Each step, every listed equation's derivatives are summed before the integration step, so an orbit equation over one token and an attraction over every pair combine into one motion. Removing an equation from the net removes it from every place that composed it, and changing a place's type clears its list.
+
+The [GPU backend](experiments.md#compute-backend) integrates one equation over one token per place; a net that composes several, or couples several tokens, runs on the CPU, and the backend names the place.
+
+**Example:** [Satellites with Attraction](examples.md#satellites-with-attraction) composes the one-token orbit equation with a two-token mutual attraction.
+
+Files saved by earlier versions, where a place named one equation and every equation covered the whole place at once, open with that equation as the place's only term, coupling one token, and with their `tokens.map(...)` bodies converted as described under [Differential equations](#differential-equations-dynamics).
 
 ## Visualizer
 
@@ -136,6 +161,31 @@ return (
 ```
 
 This example expects token coordinates between 0 and 1.
+
+A place with no type draws too. Its tokens carry no values, so `tokens.length` is the place's token count and `tokens.map((_, index) => ...)` draws one mark per token:
+
+```jsx
+return (
+  <Visualizer.Svg backgroundColor="#f8fafc">
+    <text x={12} y={20} fontSize="12">
+      {tokens.length} in stock
+    </text>
+    {tokens.map((_, index) => (
+      <rect
+        key={index}
+        x={12 + index * 18}
+        y={32}
+        width={14}
+        height={14}
+        rx={3}
+        fill="#2563eb"
+      />
+    ))}
+  </Visualizer.Svg>
+);
+```
+
+Reading a value off such a token is an error. A place of this kind that holds more than 1,000,000 tokens shows a message in place of its drawing.
 
 | Property          | Default      | Purpose                                                                     |
 | ----------------- | ------------ | --------------------------------------------------------------------------- |
@@ -250,6 +300,8 @@ Like kernels, lambda code is a plain function body with `input` and `parameters`
 
 Use predicates for deterministic guards based on token state.
 
+A predicate takes no time. A net of predicates alone, with no dynamics, is [untimed](simulation.md#timed-and-untimed-nets) and runs step by step. In a timed net a predicate needs at least one input place: see [Predicates in a timed net](simulation.md#predicates-in-a-timed-net).
+
 ### Stochastic rate
 
 The function returns a **number** representing the average firing rate per second:
@@ -292,11 +344,13 @@ Use read arcs when a transition needs to inspect shared state, permission tokens
 
 The **Diagnostics** tab in the bottom panel shows problems in your code (dynamics, firing rate, kernels, visualizers), grouped by entity. Click a diagnostic to select the relevant entity and see the problem in context.
 
+Above the problems, the tab reads [the class of the net](simulation.md#the-class-of-a-net): whether it is timed, how it is coloured and whether it is stochastic.
+
 Petrinaut only reports diagnostics for code surfaces that are active for the current document and graph shape. For example, a hidden firing-time editor or a transition with no coloured outputs will not produce lambda or kernel diagnostics.
 
 Diagnostics come in two flavours:
 
-- **Errors** (red) -- TypeScript type/syntax errors, plus code that falls outside Petrinaut's supported code subset (see below). These must be resolved before running a simulation: pressing Play with unresolved errors opens the Diagnostics tab instead of starting the simulation. The status indicator in the bottom toolbar shows a red cross while errors remain. Errors in a [visualizer](#visualizer) are the exception: they are listed under the place, but they never stop a run.
+- **Errors** (red) -- TypeScript type/syntax errors, code that falls outside Petrinaut's supported code subset (see below), and a [predicate with no input place in a timed net](simulation.md#predicates-in-a-timed-net), listed under the transition's firing rate. These must be resolved before running a simulation: pressing Play with unresolved errors opens the Diagnostics tab instead of starting the simulation. The status indicator in the bottom toolbar shows a red cross while errors remain. Errors in a [visualizer](#visualizer) are the exception: they are listed under the place, but they never stop a run.
 - **Warnings and hints** (amber indicator) -- semantic advice that does not block simulation. Examples: `Math.random()` makes runs non-reproducible (prefer `Distribution.Uniform`), a firing rate that is always 0 so the transition can never fire, a `const` binding that is never used, or one distribution feeding several output attributes (they all receive the same sampled value).
 
 ### Supported code subset

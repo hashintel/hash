@@ -7,29 +7,37 @@ import {
   syncLanguageServers,
 } from "../lsp/lib/language-servers";
 import {
+  bicycleAssembly,
   cafeQueue,
   deploymentPipelineSDCPN,
   dronePatrol,
+  planetsAndSatellites,
   probabilisticSatellitesSDCPN,
   productionMachines,
+  satellitesWithAttraction,
   sirMassActionModel,
   sirModel,
   supplyChainProfit,
   supplyChainWithDisruption,
   vaccinationCampaign,
+  wheelTruing,
 } from "./index";
 
 const EXAMPLES = [
+  bicycleAssembly,
   cafeQueue,
   deploymentPipelineSDCPN,
   dronePatrol,
+  planetsAndSatellites,
   probabilisticSatellitesSDCPN,
   productionMachines,
+  satellitesWithAttraction,
   sirMassActionModel,
   sirModel,
   supplyChainProfit,
   supplyChainWithDisruption,
   vaccinationCampaign,
+  wheelTruing,
 ];
 
 describe.each(EXAMPLES.map((example) => [example.title, example] as const))(

@@ -28,7 +28,6 @@ const createSDCPN = (
       name: "Input",
       colorId: place.colorId ?? "type-1",
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
       ...place,
@@ -121,7 +120,6 @@ const createComponentPortSDCPN = (
           name: "Port In",
           colorId: "type-1",
           dynamicsEnabled: false,
-          differentialEquationId: null,
           isPort: true,
           x: 0,
           y: 0,
@@ -131,7 +129,6 @@ const createComponentPortSDCPN = (
           name: "Port Out",
           colorId: "type-1",
           dynamicsEnabled: false,
-          differentialEquationId: null,
           isPort: true,
           x: 0,
           y: 0,
@@ -488,6 +485,83 @@ describe("transition logic availability", () => {
         persisted,
       ),
     ).toBe(true);
+  });
+
+  it("strips composed dynamics when the dynamics extension is disabled", () => {
+    const sdcpn = createSDCPN(
+      {},
+      {
+        dynamicsEnabled: true,
+        dynamics: [
+          { differentialEquationId: "equation-1" },
+          { differentialEquationId: "equation-2" },
+        ],
+      },
+    );
+
+    const sanitized = sanitizeSDCPNForExtensions(sdcpn, {
+      ...allEnabled,
+      dynamics: false,
+    });
+
+    expect(sanitized.places[0]).toMatchObject({
+      dynamicsEnabled: false,
+    });
+    expect(sanitized.places[0]).not.toHaveProperty("dynamics");
+    expect(sdcpn.places[0]!.dynamics).toHaveLength(2);
+  });
+
+  it("copies composed dynamics without sharing them with the source", () => {
+    const sdcpn = createSDCPN(
+      {},
+      {
+        dynamicsEnabled: true,
+        dynamics: [
+          { differentialEquationId: "equation-1" },
+          { differentialEquationId: "equation-2" },
+        ],
+      },
+    );
+
+    const sanitized = sanitizeSDCPNForExtensions(sdcpn, allEnabled);
+
+    expect(sanitized.places[0]!.dynamics).toEqual(sdcpn.places[0]!.dynamics);
+    expect(sanitized.places[0]!.dynamics).not.toBe(sdcpn.places[0]!.dynamics);
+    expect(sanitized.places[0]!.dynamics![0]).not.toBe(
+      sdcpn.places[0]!.dynamics![0],
+    );
+    expect(
+      sanitizeSDCPNForExtensions(createSDCPN(), allEnabled).places[0],
+    ).not.toHaveProperty("dynamics");
+  });
+
+  it("copies fusions without sharing them, and drops them when subnets are disabled", () => {
+    const sdcpn: SDCPN = {
+      ...createComponentPortSDCPN(),
+      places: createSDCPN().places,
+      fusions: [
+        {
+          id: "fusion-1",
+          name: "Fusion-1",
+          members: [
+            { kind: "place", placeId: "place-1" },
+            {
+              kind: "componentPort",
+              componentInstanceId: "instance-1",
+              portPlaceId: "port-1",
+            },
+          ],
+        },
+      ],
+    };
+
+    const sanitized = sanitizeSDCPNForExtensions(sdcpn, allEnabled);
+    expect(sanitized.fusions).toEqual(sdcpn.fusions);
+    expect(sanitized.fusions![0]!.members).not.toBe(sdcpn.fusions![0]!.members);
+
+    expect(
+      sanitizeSDCPNForExtensions(sdcpn, { ...allEnabled, subnets: false }),
+    ).not.toHaveProperty("fusions");
   });
 
   it("leaves a freshly loaded net comparing equal to its persisted form", () => {

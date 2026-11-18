@@ -17,7 +17,6 @@ const place = (id: string, x: number, y: number): Place => ({
   name: id,
   colorId: null,
   dynamicsEnabled: false,
-  differentialEquationId: null,
   x,
   y,
 });
@@ -56,15 +55,20 @@ const inputArcId = generateArcId({ inputId: placeKey("p1"), outputId: "t1" });
 const outputArcId = generateArcId({ inputId: "t1", outputId: placeKey("p2") });
 
 const input: CanvasSceneInput = {
-  net: { ...sdcpn, componentInstances: [] },
+  net: { ...sdcpn, componentInstances: [], fusions: [] },
   sdcpn,
+  fusionStatuses: new Map(),
   extensions: DEFAULT_PETRINAUT_EXTENSIONS,
   dimensions: compactNodeDimensions,
   draggingStateByNodeId: {},
   isSelected: () => false,
   hoveredId: null,
   focus: resolveCanvasFocus({
-    adjacency: buildNetAdjacency({ ...sdcpn, componentInstances: [] }),
+    adjacency: buildNetAdjacency({
+      ...sdcpn,
+      componentInstances: [],
+      fusions: [],
+    }),
     hoveredId: null,
     selectedIds: new Set(),
   }),
@@ -168,5 +172,153 @@ describe("buildCanvasScene", () => {
       kind: "standard",
       weight: 1,
     });
+  });
+
+  it("runs a fusion link between the sides of its ends that face each other", () => {
+    const stage = {
+      id: "stage",
+      name: "Stage",
+      places: [{ ...place("in", 0, 0), isPort: true }],
+      transitions: [],
+      types: [],
+      differentialEquations: [],
+      parameters: [],
+    };
+    const instance = (id: string, x: number) => ({
+      id,
+      name: id,
+      subnetId: "stage",
+      parameterValues: {},
+      x,
+      y: 0,
+    });
+    const fusionWith = (instanceId: string) => ({
+      id: `fusion-${instanceId}`,
+      name: `Belt ${instanceId}`,
+      members: [
+        { kind: "place" as const, placeId: "p1" },
+        {
+          kind: "componentPort" as const,
+          componentInstanceId: instanceId,
+          portPlaceId: "in",
+        },
+      ],
+    });
+    const composed: SDCPN = {
+      ...sdcpn,
+      subnets: [stage],
+      componentInstances: [instance("left", -400), instance("right", 900)],
+      fusions: [fusionWith("left"), fusionWith("right")],
+    };
+
+    const composedNet = {
+      ...composed,
+      componentInstances: composed.componentInstances ?? [],
+      fusions: composed.fusions ?? [],
+    };
+    const build = (overrides: Partial<CanvasSceneInput> = {}) =>
+      buildCanvasScene({
+        ...input,
+        sdcpn: composed,
+        net: composedNet,
+        fusionStatuses: new Map([["fusion-left", { severity: "warning" }]]),
+        ...overrides,
+      });
+    const { fusions } = build();
+
+    expect(fusions).toHaveLength(2);
+    // A link wears its fusion's name and worst problem, and no problem
+    // without a status.
+    expect(fusions.map(({ name, severity }) => [name, severity])).toEqual([
+      ["Belt left", "warning"],
+      ["Belt right", null],
+    ]);
+    // An instance dragged across the hub swaps the ends of its link.
+    expect(
+      build({
+        draggingStateByNodeId: {
+          right: { dragging: true, position: { x: -900, y: 0 } },
+        },
+      }).fusions.find((link) => link.fusionId === "fusion-right"),
+    ).toMatchObject({ sourceId: "right", targetId: "p1" });
+    expect(
+      fusions.find((link) => link.fusionId === "fusion-left"),
+    ).toMatchObject({
+      sourceId: "left",
+      sourcePortId: "in",
+      targetId: "p1",
+      targetPortId: null,
+    });
+    expect(
+      fusions.find((link) => link.fusionId === "fusion-right"),
+    ).toMatchObject({
+      sourceId: "p1",
+      sourcePortId: null,
+      targetId: "right",
+      targetPortId: "in",
+    });
+  });
+
+  it("reads a subnet's arcs once for the directions of its ports, however many ports and instances it has", () => {
+    // Two hundred ports that declare no direction, under 24,000 arcs: the
+    // even ones are consumed from and the odd ones produced into.
+    const ports = Array.from({ length: 200 }, (_, index) => ({
+      ...place(`port-${index}`, 0, 0),
+      isPort: true,
+    }));
+    const consumed = ports.filter((_, index) => index % 2 === 0);
+    const produced = ports.filter((_, index) => index % 2 === 1);
+    const wide = {
+      id: "wide",
+      name: "Wide",
+      places: ports,
+      transitions: Array.from({ length: 120 }, (_, index) => ({
+        ...transition(`work-${index}`, [], []),
+        inputArcs: consumed.map(({ id }) => ({
+          placeId: id,
+          weight: 1,
+          type: "standard" as const,
+        })),
+        outputArcs: produced.map(({ id }) => ({ placeId: id, weight: 1 })),
+      })),
+      types: [],
+      differentialEquations: [],
+      parameters: [],
+    };
+    const composed: SDCPN = {
+      ...sdcpn,
+      subnets: [wide],
+      componentInstances: Array.from({ length: 20 }, (_, index) => ({
+        id: `wide-${index}`,
+        name: `Wide ${index}`,
+        subnetId: "wide",
+        parameterValues: {},
+        x: 0,
+        y: index * 100,
+      })),
+    };
+
+    const started = Date.now();
+    const { nodes } = buildCanvasScene({
+      ...input,
+      sdcpn: composed,
+      net: {
+        ...composed,
+        componentInstances: composed.componentInstances ?? [],
+        fusions: [],
+      },
+    });
+    const elapsed = Date.now() - started;
+
+    const instances = nodes.filter((node) => node.kind === "componentInstance");
+    expect(instances).toHaveLength(20);
+    for (const instance of instances) {
+      expect(instance.ports).toHaveLength(200);
+      expect(instance.ports.slice(0, 2)).toEqual([
+        { id: "port-0", name: "port-0", direction: "in" },
+        { id: "port-1", name: "port-1", direction: "out" },
+      ]);
+    }
+    expect(elapsed).toBeLessThan(1000);
   });
 });

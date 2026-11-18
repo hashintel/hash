@@ -4,6 +4,8 @@
  * and graph explorer are drawn from.
  */
 
+import { getPlaceDynamicsEquationIds } from "@hashintel/petrinaut-core";
+
 import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
 import type {
   Color,
@@ -316,8 +318,8 @@ function buildDependencyEdges(net: ActiveNetDefinition): DependencyEdge[] {
     if (place.colorId !== null) {
       add(typeRefs.get(place.colorId), dependent);
     }
-    if (place.differentialEquationId !== null) {
-      add(equationRefs.get(place.differentialEquationId), dependent);
+    for (const equationId of getPlaceDynamicsEquationIds(place)) {
+      add(equationRefs.get(equationId), dependent);
     }
     addParameterEdges(dependent, place.visualizerCode);
   }

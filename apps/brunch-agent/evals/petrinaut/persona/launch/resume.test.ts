@@ -1,13 +1,16 @@
 import { expect, test } from "vitest";
 
-import { openRetainedPersonaBrowser } from "./resume.ts";
+import {
+  openRetainedPersonaBrowser,
+  personaSessionFileText,
+} from "./resume.ts";
 
 import type { PersonaBrowserSession } from "../browser-turn.ts";
 import type { Page } from "@playwright/test";
 
 const session: PersonaBrowserSession = {
   url: "https://panel.test/agents/petrinaut/conversation",
-  ownerKey: "TEST-owner",
+  actorKey: "TEST-owner",
   conversationId: "TEST-conversation",
   uid: "TEST-uid",
   initialData: {
@@ -40,7 +43,7 @@ const retainedPage = (documents: Record<string, unknown>) => {
       visited.push(url);
       return null;
     },
-    evaluate: async () => ({ ownerKey: session.ownerKey, documents }),
+    evaluate: async () => ({ actorKey: session.actorKey, documents }),
   };
   return { page: page as unknown as Page, visited };
 };
@@ -67,4 +70,12 @@ test("refuses to resume when the bound entry is not a net", async () => {
   await expect(
     openRetainedPersonaBrowser(page, "https://panel.test", "/", session),
   ).rejects.toThrow("Original browser document is not a net the website opens");
+});
+
+test("writes the actor key under its pre-rename field, as earlier runs hold it", () => {
+  const { ownerKey, ...rest } = JSON.parse(
+    personaSessionFileText(session),
+  ) as Record<string, unknown>;
+  expect(ownerKey).toBe(session.actorKey);
+  expect(rest).not.toHaveProperty("actorKey");
 });

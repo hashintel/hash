@@ -447,10 +447,10 @@ describe("SDCPNLanguageServer completions", () => {
       ],
     };
 
-    it("returns token properties after `tokens[0].`", () => {
+    it("returns token properties after the token parameter's dot", () => {
       const names = getCompletionNames(
         deSdcpn,
-        `export default Dynamics((tokens, parameters) => {\n  const t = tokens[0];\n  return t.${CURSOR};\n});`,
+        `export default Dynamics((token, parameters) => {\n  return token.${CURSOR};\n});`,
         { type: "differential-equation", deId: "de1" },
       );
 

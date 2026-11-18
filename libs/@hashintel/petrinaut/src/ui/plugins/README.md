@@ -10,22 +10,23 @@ describes the code.
 
 ## Files
 
-| File                                                  | Holds                                                                                                                    |
-| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `define-petrinaut-plugin.ts`                          | The public types (manifest, `api`, contributions, hook) and `definePetrinautPlugin`, `pluginService`, `pluginCommandId`. |
-| `plugin-access.ts`                                    | The `document`, `experiments` and `editor` families of `api`, at `read` and `write` levels, and `EditResult` refusals.   |
-| `plugin-editor.tsx`                                   | One plugin editor per core instance: the access families, `errors`, `notifications`, and the stores the actions read.    |
-| `plugin-editor/use-canvas-controller-registration.ts` | Where the canvas registers its controller, so `applyAutoLayout` can frame the net once drawn.                            |
-| `plugins-provider.tsx`                                | `PetrinautPluginsProvider`: one host per running plugin, the contributions store, and the hooks the view reads it with.  |
-| `plugin-commands.tsx`                                 | Registers a plugin's declared commands in the ambient command registry.                                                  |
-| `plugin-settings.ts`                                  | One plugin's settings: loaded from `localStorage`, checked against the manifest, persisted on `set`.                     |
-| `plugin-settings-rows.tsx`                            | The rows User settings renders for every running plugin's settings.                                                      |
-| `plugin-statuses.ts`                                  | Each plugin's status, `on`, `off` or `failed`, in the host's order.                                                      |
-| `plugin-contributions.ts`                             | What a manifest declares, as tags for the plugin's row in User settings.                                                 |
-| `plugin-outlets.tsx`                                  | Where the view renders buttons, top-bar items and roots.                                                                 |
-| `plugin-assistant.tsx`                                | The plugin that provides the AI assistant, its panel state and `AssistantPanelTitle`.                                    |
-| `plugin-boundary.tsx`                                 | Suspense plus an error boundary around each host and each contribution; reports failures to the error tracker.           |
-| `plugins-test-harness.tsx`                            | `renderPlugins`: renders plugins beside a view under the editor's providers, for tests.                                  |
+| File                                                  | Holds                                                                                                                            |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `define-petrinaut-plugin.ts`                          | The public types (manifest, `api`, contributions, hook) and `definePetrinautPlugin`, `pluginService`, `pluginCommandId`.         |
+| `plugin-access.ts`                                    | The `document`, `experiments` and `editor` families of `api`, at `read` and `write` levels, and `EditResult` refusals.           |
+| `plugin-editor.tsx`                                   | One plugin editor per core instance: the access families, `errors`, `notifications`, and the stores the actions read.            |
+| `plugin-editor/use-canvas-controller-registration.ts` | Where the canvas registers its controller, so `applyAutoLayout` can frame the net once drawn.                                    |
+| `plugins-provider.tsx`                                | `PetrinautPluginsProvider`: one host per running plugin, the contributions store, and the hooks the view reads it with.          |
+| `plugin-commands.tsx`                                 | Registers a plugin's declared commands in the ambient command registry.                                                          |
+| `plugin-settings.ts`                                  | One plugin's settings: loaded from `localStorage`, checked against the manifest, persisted on `set`.                             |
+| `plugin-settings-rows.tsx`                            | The rows User settings renders for every running plugin's settings.                                                              |
+| `plugin-statuses.ts`                                  | Each plugin's status, `on`, `off` or `failed`, in the host's order.                                                              |
+| `plugin-contributions.ts`                             | What a manifest declares, as tags for the plugin's row in User settings.                                                         |
+| `plugin-outlets.tsx`                                  | Where the view renders buttons, top-bar items, bottom panel views and roots.                                                     |
+| `plugin-assistant.tsx`                                | The plugin that provides the AI assistant, its panel state and `AssistantPanelTitle`.                                            |
+| `fps-counter-plugin.tsx`, `document-view-plugin.tsx`  | The plugins every editor carries: the browser FPS counter, and what the document's handle holds and reports in the bottom panel. |
+| `plugin-boundary.tsx`                                 | Suspense plus an error boundary around each host and each contribution; reports failures to the error tracker.                   |
+| `plugins-test-harness.tsx`                            | `renderPlugins`: renders plugins beside a view under the editor's providers, for tests.                                          |
 
 ## How a plugin reaches the editor
 
@@ -47,7 +48,7 @@ PetrinautPluginsProvider
                       contributions store ◄───┘
                               │
         PluginToolbarItems, PluginRoots, PluginSettingsRows,
-        usePluginAssistant                                    (the view's outlets)
+        usePluginBottomPanelViews, usePluginAssistant         (the view's outlets)
 ```
 
 `definePetrinautPlugin(manifest, implementation)` returns the same plugin in

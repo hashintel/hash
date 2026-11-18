@@ -1,6 +1,7 @@
 import { createFlueClient, type FlueClient } from "@flue/sdk";
 
 import {
+  type ActorHeaderOptions,
   agentOwnershipHeaders,
   flueConversationIdWeb,
 } from "@hashintel/brunch-agent";
@@ -11,12 +12,12 @@ import type { FlueChatTransportOptions } from "@local/flue-aisdk-transport";
 export type BrunchFetch = typeof globalThis.fetch;
 
 /** How the host reaches Brunch's server. */
-export interface BrunchConnection {
+export interface BrunchConnection extends ActorHeaderOptions {
   /**
    * With a conversation ID, names the conversation's Flue instance, and is
-   * sent as its ownership header.
+   * sent as its actor header.
    */
-  readonly ownerKey: string;
+  readonly actorKey: string;
   /** The chat mount, resolved against the page's origin; instance paths extend it. */
   readonly chatEndpoint: string;
   /**
@@ -33,25 +34,28 @@ export const createBrunchFlueClient = async (
   connection: BrunchConnection,
   conversationId: string,
 ): Promise<FlueClient> => {
-  const identity = { conversationId, ownerKey: connection.ownerKey };
+  const identity = { conversationId, actorKey: connection.actorKey };
   const instanceId = await flueConversationIdWeb(identity);
   const mountUrl = new URL(connection.chatEndpoint, window.location.origin);
   mountUrl.pathname = `${mountUrl.pathname.replace(/\/+$/u, "")}/${instanceId}`;
   return createFlueClient({
     url: mountUrl.href,
-    headers: () => agentOwnershipHeaders(identity),
+    headers: () => agentOwnershipHeaders(identity, connection),
     fetch: connection.fetch,
   });
 };
 
 /** The transport's live-tool stream options for one conversation. */
 export const brunchLiveToolStream = (
-  connection: Pick<BrunchConnection, "ownerKey" | "fetch">,
+  connection: Pick<
+    BrunchConnection,
+    "actorKey" | "legacyActorHeader" | "fetch"
+  >,
   conversationId: string,
 ): NonNullable<FlueChatTransportOptions["liveToolStream"]> => ({
-  headers: agentOwnershipHeaders({
-    conversationId,
-    ownerKey: connection.ownerKey,
-  }),
+  headers: agentOwnershipHeaders(
+    { conversationId, actorKey: connection.actorKey },
+    connection,
+  ),
   fetch: connection.fetch,
 });

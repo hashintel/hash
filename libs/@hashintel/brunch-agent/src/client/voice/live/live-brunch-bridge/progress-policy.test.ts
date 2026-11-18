@@ -312,3 +312,27 @@ test("input streaming does not count as executing, and a new turn resets gates",
   expect(policy.evaluate(77_000)?.speak).toBe(true);
   expect(commentary).toHaveBeenCalledOnce();
 });
+
+test.each([
+  ["petrinaut_create_place", "mutation"],
+  ["petrinaut_update_arc", "mutation"],
+  ["petrinaut_get_net", "read"],
+  ["petrinaut_layout_auto", "command"],
+  ["petrinaut_create_experiment", "experiment"],
+  ["addPlace", "mutation"],
+  ["getLatestNetDefinition", "read"],
+  ["createExperiment", "experiment"],
+  ["ledger_query", "other"],
+])("a %s call progresses as a %s", (name, phase) => {
+  const { policy, thinking } = setup();
+  policy.toolStarted("call", name, 1_000);
+  policy.evaluate(1_000);
+  expect(thinking.mock.calls.at(-1)?.[0].progress.phase).toBe(phase);
+});
+
+test("a HASH experiment speaks the comparison phrase as soon as it runs", () => {
+  const { policy, commentary } = setup();
+  policy.toolStarted("experiment", "petrinaut_create_experiment", 7_000);
+  expect(policy.evaluate(7_000)?.speak).toBe(true);
+  expect(commentary).toHaveBeenCalledWith("Setting up the comparison.");
+});

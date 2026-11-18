@@ -12,12 +12,12 @@ Drag the heading or empty space across the top of the settings window to move it
 
 Changes apply immediately and are saved as your preferences across nets. On hosts with app navigation enabled, opening or closing the dialog is part of Browser Back / Forward history. Switching settings sections updates the current history entry. Browser navigation leaves saved preferences in place.
 
-| Section      | Settings                                                                             |
-| ------------ | ------------------------------------------------------------------------------------ |
-| **General**  | Animations, panel loading, the code editor theme, the AI assistant, and browser FPS. |
-| **Viewport** | Minimap, Petricon, compact nodes, hover highlight, grid snapping, and selection.     |
-| **Plugins**  | The host's plugins: switch each on or off and see what it adds.                      |
-| **Labs**     | Experimental modeling views, code layouts, and developer tools.                      |
+| Section      | Settings                                                                                                |
+| ------------ | ------------------------------------------------------------------------------------------------------- |
+| **General**  | Animations, panel loading, the code editor theme, the AI assistant, browser FPS, and the document view. |
+| **Viewport** | Minimap, Petricon, compact nodes, hover highlight, grid snapping, and selection.                        |
+| **Plugins**  | The host's plugins: switch each on or off and see what it adds.                                         |
+| **Labs**     | Experimental modeling views, code layouts, and developer tools.                                         |
 
 Plugins can add their own settings to **General**, **Viewport** and **Labs**,
 in a group under the plugin's name after the built-in groups.
@@ -64,6 +64,53 @@ A browser stall appears in the next sample. Hidden tabs pause sampling and start
 fresh when shown again. FPS does not measure painted frames or identify which
 part of the page caused a delay. **Plugins → Browser FPS** disables the counter
 and its command and shortcut.
+
+### Document view
+
+Turn on **Show document view** under **General → Document view**. A
+**Document data** tab appears in the bottom panel, after the other tabs. It
+has two sides, and each follows your edits:
+
+- **Document** shows the net as the document holds it, as an outline: each
+  key with its value, and the entries of a map or the items of a list indented
+  under it. An item of a list goes under its place in the list, from 0.
+- **Changes** lists what each edit did to the document, latest first. The list
+  starts empty when the tab appears and keeps the last fifty changes. The
+  switch at its top right picks how the changes show:
+  - **Formatted**, the default, gives each patch two lines that never wrap.
+    The first says what the patch did (`add`, `replace` or `remove`) and
+    where. The second, smaller, is the value it put there. A line across the
+    list separates one change from the next. An undo, a redo or a jump to an
+    entry of **Recent changes** is no patch, and shows as one tinted
+    `restore` row: the entry of the history the document went to, then the
+    document that entry holds.
+  - **Raw** shows each change as the document reported it, as an outline like
+    the document's: its patches, each with its `op`, its `path` as a list and
+    its `value`, and where the change came from. A move through the history
+    also says which entry it restored.
+
+The document, and the changes shown as **Raw**, read the same way:
+
+- Click a line with an arrow to open or close it. A closed list shows its
+  items where they are a few plain values, and else how many it holds. A
+  closed map shows the entries that fit on its line, its name first, a list
+  among them as it would show closed.
+- Text of several lines, such as a transition's code, is closed at first and
+  opens as a block.
+- **Expand all** and **Collapse all**, at the right of the tab bar, open or
+  close every line at once.
+- An item of the document stays open while others are added, removed or moved
+  around it, and a change stays open while newer ones arrive above it.
+- Each side draws at most 2,000 rows, and says so under them when it leaves
+  rows out. Close rows above to reach the ones below.
+
+Each side is one stop of the Tab order. **Up** and **Down** move from line to
+line, or from patch to patch. **Right** opens a closed line and **Left** closes
+an open one, and **Enter** or **Space** does either. Where there is nothing to
+open or close, **Right** and **Left** cross to the other side.
+
+The document shows everything it holds, including the data of extensions that
+are switched off. **Plugins → Document view** removes the tab and the setting.
 
 ## Viewport
 
@@ -181,22 +228,24 @@ Controls selection box behavior in [Select mode](drawing-a-net.md#pan-and-select
 
 ## Plugins
 
-Hosts extend Petrinaut with plugins: extra buttons, top-bar items, settings
-and panels. The **Plugins** section lists every plugin the host gave this
+Hosts extend Petrinaut with plugins: extra buttons, top-bar items, tabs in
+the bottom panel, settings and panels. The **Plugins** section lists every plugin the host gave this
 editor, one line each with its name, its author and a switch. Click a line to
 read the plugin's description and what it adds. The header counts the plugins
 and how many of them run.
 
 - The **switch** runs the plugin, or not. Off, it adds nothing: its buttons,
-  items and settings disappear until you switch it back on. Your selection,
+  items, tabs and settings disappear until you switch it back on. Your selection,
   panels and open dialogs stay as they are. A plugin the host needs, such as
   its Save button, has no switch.
+- With a plugin's line focused, **Right** opens its description and tags and
+  **Left** closes them.
 - **Not running** marks a plugin that stopped on an error. Reload the page to
   start it again.
 - The tags under the description list what the plugin declares: the parts of
   the net it can read or change, its buttons and where they sit, its top-bar
-  items and settings, a service it offers other plugins, and whether it shows
-  something inside the editor.
+  items, its tabs in the bottom panel and its settings, a service it offers
+  other plugins, and whether it shows something inside the editor.
 - **Assistant** marks a plugin that provides the AI assistant. The assistant
   panel shows that plugin's content, such as its chat. When several plugins
   carry the tag, **General › AI assistant** chooses one, and the first running

@@ -59,8 +59,9 @@ export const useAutosavedFlowEditor = ({
   changedElsewhere: boolean;
   dismissChangedElsewhere: () => void;
   /**
-   * Saves any edits not saved yet, after the save in flight, if any. Resolves to whether every edit is saved. With
-   * `acceptRefusedEdits`, edits the API refuses count as saved, though they're still sent with the next save.
+   * Saves any edits not saved yet, after the save in flight, if any. Resolves to whether every edit is saved, so not if
+   * the flow changed elsewhere meanwhile and was reloaded without them. With `acceptRefusedEdits`, edits the API
+   * refuses count as saved, though they're still sent with the next save.
    */
   flush: (options?: { acceptRefusedEdits?: boolean }) => Promise<boolean>;
   /** Stops edits not saved yet from being sent, e.g. once the flow is archived. */
@@ -82,6 +83,8 @@ export const useAutosavedFlowEditor = ({
   /** Whether the API refused the last save. */
   const refusedRef = useRef(false);
   const saveInFlightRef = useRef<Promise<void> | null>(null);
+  /** How many times the flow has been reloaded after changing elsewhere, dropping the edits not saved yet. */
+  const reloadCountRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const saveFlowDefinitionRef = useRef(saveFlowDefinition);
@@ -130,6 +133,7 @@ export const useAutosavedFlowEditor = ({
       editorRef.current = reloadedEditor;
       editionIdRef.current = latest.editionId;
       unsavedRef.current = false;
+      reloadCountRef.current++;
 
       setEditor(reloadedEditor);
       setChangedElsewhere(true);
@@ -141,13 +145,14 @@ export const useAutosavedFlowEditor = ({
   const flush = useCallback(
     async ({ acceptRefusedEdits = false } = {}) => {
       clearTimeout(timerRef.current);
+      const reloadCount = reloadCountRef.current;
 
       while (saveInFlightRef.current) {
         await saveInFlightRef.current;
       }
 
       if (!unsavedRef.current) {
-        return true;
+        return reloadCountRef.current === reloadCount;
       }
 
       const saveInFlight = save();
@@ -157,6 +162,10 @@ export const useAutosavedFlowEditor = ({
         await saveInFlight;
       } finally {
         saveInFlightRef.current = null;
+      }
+
+      if (reloadCountRef.current !== reloadCount) {
+        return false;
       }
 
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- a failed save sets it again

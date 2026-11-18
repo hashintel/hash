@@ -31,6 +31,7 @@ import {
   useCollapsibleExpansion,
 } from "../../primitives/SelectableList/selectable-list-util";
 import { resolveAutoFocusProps } from "../../util/form-shared";
+import { isInteractiveTarget } from "../../util/interactive-target";
 import { hasCaretModifier, hasCommandModifier } from "../../util/keyboard";
 import { parkedPopperPositioner } from "../../util/popper-positioner";
 import { usePortalContainerRef } from "../../util/portal-container-context";
@@ -93,7 +94,14 @@ export const AllowNewValueOptionsDoc = (_props: AllowNewValueOptions): null =>
 
 type ComboboxBaseProps = Omit<
   React.ComponentProps<typeof TextInput>,
-  "autocomplete" | "onChange" | "value" | "clearable"
+  | "autocomplete"
+  | "onChange"
+  | "value"
+  | "clearable"
+  | "maxLength"
+  | "minLength"
+  | "pattern"
+  | "spellcheck"
 > & {
   /** Called as the input's text changes, whether typed or set by a selection */
   onChangeInput?: (value: string) => void;
@@ -408,7 +416,6 @@ export const Combobox = <TValue extends string>({
     showEditIcon: _showEditIcon,
     connectToLeftInput,
     connectToRightInput,
-    spellcheck,
     inputRef,
     ...forwardedInputAttrs
   } = inputProps;
@@ -1271,7 +1278,6 @@ export const Combobox = <TValue extends string>({
           "data-testid": testId,
           ...resolveAutoFocusProps(autoFocus),
           ...forwardedInputAttrs,
-          spellCheck: spellcheck,
           ref: inputRef,
         }
       : {}),
@@ -1370,7 +1376,7 @@ export const Combobox = <TValue extends string>({
       // commit via the close handler); handing it to the chip row too would
       // submit the draft a second time, and un-prevented it would submit a
       // surrounding form.
-      if (multiple && event.key === "Enter") {
+      if (multiple && event.key === "Enter" && !event.nativeEvent.isComposing) {
         event.preventDefault();
       }
       if (rejectsTypedText) {
@@ -1425,7 +1431,7 @@ export const Combobox = <TValue extends string>({
         <ArkCombobox.Positioner className={parkedPopperPositioner}>
           <SelectableList
             as="Combobox"
-            className={comboboxDropdownRecipe({ variant })}
+            className={comboboxDropdownRecipe({ variant, multi: !!multiple })}
             items={displayedDropdown.listItems}
             selected={selectedIds}
             size={size}
@@ -1489,19 +1495,18 @@ export const Combobox = <TValue extends string>({
             // collapsed truncate/summary row, focusing expands the row to
             // chips, and that remount detaches the pressed element so the
             // browser never dispatches the subsequent click. The exception is
-            // a chip's remove button, whose press only removes the value.
+            // an interactive element inside the field — a chip's remove or
+            // other buttons, an adornment button — whose press acts on its
+            // own: it neither opens the dropdown nor cedes focus.
             onPointerDown={(event) => {
               if (disabled) {
                 return;
               }
               const target = event.target;
               if (
-                target instanceof Element &&
-                (target.closest("[data-chip-segment='remove']") ||
-                  target.closest("[data-part='adornment-button']"))
+                target !== document.getElementById(multiInputId) &&
+                isInteractiveTarget(target, event.currentTarget)
               ) {
-                // A chip's remove button and interactive adornments act on
-                // their own; they neither open the dropdown nor cede focus.
                 return;
               }
               combobox.setOpen(true);
@@ -1517,10 +1522,14 @@ export const Combobox = <TValue extends string>({
               if (disabled) {
                 return;
               }
-              // Focus/open happen on pointerdown above; the click pass lands
-              // focus back on the input after a remove-button press (skipped
-              // there) and runs the consumer's handler.
-              document.getElementById(multiInputId)?.focus();
+              // Focus/open happen on pointerdown above. A click a chip
+              // handled stops propagating and never lands here; one that
+              // still bubbled from an interactive element stays that
+              // element's — only an unhandled click pulls focus back to the
+              // input.
+              if (!isInteractiveTarget(event.target, event.currentTarget)) {
+                document.getElementById(multiInputId)?.focus();
+              }
               onClick?.(event);
             }}
             onFocus={() => setRowFocused(true)}
@@ -1593,6 +1602,9 @@ export const Combobox = <TValue extends string>({
                     clearSelection();
                     document.getElementById(multiInputId)?.focus();
                   }}
+                  data-hidden={
+                    !clearable || !hasContentToClear ? "" : undefined
+                  }
                   className={cx(
                     multiClasses.clear,
                     (!clearable || !hasContentToClear) &&

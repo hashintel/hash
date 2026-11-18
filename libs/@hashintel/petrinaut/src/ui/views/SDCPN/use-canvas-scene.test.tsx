@@ -27,7 +27,6 @@ const net: ActiveNetDefinition = {
     name: id,
     colorId: null,
     dynamicsEnabled: false,
-    differentialEquationId: null,
     x: 0,
     y: 0,
   })),
@@ -48,6 +47,7 @@ const net: ActiveNetDefinition = {
   differentialEquations: [],
   parameters: [],
   componentInstances: [],
+  fusions: [],
 };
 
 const TestEditorUpdateContext = createContext<

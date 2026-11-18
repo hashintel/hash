@@ -35,6 +35,17 @@ export interface FocusEntry {
   from?: { row: number; column: number };
 }
 
+/**
+ * What the horizontal arrows do on something that folds, in place of moving:
+ * ArrowRight calls `expand` and ArrowLeft calls `collapse`. Give the one that
+ * applies now. A collapsed thing has only `expand`, so ArrowLeft on it is a
+ * move like any other, and ArrowRight is one on an expanded thing.
+ */
+export interface FocusFold {
+  expand?: () => void;
+  collapse?: () => void;
+}
+
 export interface FocusMemberHandle {
   /** The member's mounted element, for document-order sorting. */
   element: HTMLElement;
