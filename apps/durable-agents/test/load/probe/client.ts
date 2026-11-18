@@ -92,7 +92,8 @@ const routeOf = (method: string, url: string) =>
 const errorKind = (error: unknown): string => {
   if (!(error instanceof Error)) return String(error);
   const cause = error.cause as
-    { code?: unknown; message?: unknown } | undefined;
+    | { code?: unknown; message?: unknown }
+    | undefined;
   if (typeof cause?.code === "string") return cause.code;
   if (typeof cause?.message === "string")
     return `${error.message}: ${cause.message}`;

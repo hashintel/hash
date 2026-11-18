@@ -33,6 +33,18 @@ jobs:
         with:
           fetch-depth: 2
 
+      # Keep this cross-app check on the full checkout: Unit prunes out brunch-agent.
+      - name: Check HASH guidance copies until cutover
+        run: |
+          source=apps/brunch-agent/src/agents/hash
+          copies=apps/durable-agents/src/agent/hash-agent/guidance
+          diff -q -- "$source/prompts/system.md" "$copies/prompts/system.md"
+          diff -qr -- "$source/skills" "$copies/skills"
+          if [[ -z "$(find "$copies/skills" -type f -print -quit)" ]]; then
+            echo "No HASH skill files found under $copies/skills" >&2
+            exit 1
+          fi
+
       - name: Install tools
         uses: $/.github/actions/install-tools
         with:
