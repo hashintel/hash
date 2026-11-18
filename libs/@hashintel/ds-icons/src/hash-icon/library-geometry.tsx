@@ -163,6 +163,7 @@ import { phoneGeometry } from "./library-geometry/phone";
 import { phoneOffGeometry } from "./library-geometry/phone-off";
 import { pinGeometry } from "./library-geometry/pin";
 import { powerGeometry } from "./library-geometry/power";
+import { pullRequestGeometry } from "./library-geometry/pull-request";
 import { quoteGeometry } from "./library-geometry/quote";
 import { radioCheckedGeometry } from "./library-geometry/radio-checked";
 import { rectangleGeometry } from "./library-geometry/rectangle";
@@ -226,6 +227,7 @@ import { userTieGeometry } from "./library-geometry/user-tie";
 import { usersGeometry } from "./library-geometry/users";
 
 export const libraryGeometry = {
+  pullRequest: pullRequestGeometry,
   codeBranch: codeBranchGeometry,
   codeEdit: codeEditGeometry,
   cloudDownload: cloudDownloadGeometry,

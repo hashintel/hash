@@ -164,6 +164,7 @@ export const hashIconStudies = [
 
 const categories = {
   Technology: [
+    "pullRequest",
     "codeBranch",
     "codeEdit",
     "cloudDownload",

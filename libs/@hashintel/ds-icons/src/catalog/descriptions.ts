@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  pullRequest:
+    "A returning branch represents a pull request or proposed merge.",
   codeBranch: "A split line with endpoints represents a code branch.",
   codeEdit: "Code brackets beside a pencil represent editing source code.",
   cloudDownload:
