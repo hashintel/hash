@@ -57,6 +57,7 @@ import { memoInfoGeometry } from "./library-geometry/memo-info";
 import { newspaperGeometry } from "./library-geometry/newspaper";
 import { notePlusGeometry } from "./library-geometry/note-plus";
 import { noteStickyGeometry } from "./library-geometry/note-sticky";
+import { paperclipGeometry } from "./library-geometry/paperclip";
 import { pinGeometry } from "./library-geometry/pin";
 import { powerGeometry } from "./library-geometry/power";
 import { radioCheckedGeometry } from "./library-geometry/radio-checked";
@@ -70,6 +71,7 @@ import { toggleOnGeometry } from "./library-geometry/toggle-on";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  paperclip: paperclipGeometry,
   keyboard: keyboardGeometry,
   keycapK: keycapKGeometry,
   command: commandGeometry,
