@@ -58,6 +58,7 @@ import { clipboardGeometry } from "./library-geometry/clipboard";
 import { clipboardCheckGeometry } from "./library-geometry/clipboard-check";
 import { clipboardListGeometry } from "./library-geometry/clipboard-list";
 import { cloudDownloadGeometry } from "./library-geometry/cloud-download";
+import { codeBranchGeometry } from "./library-geometry/code-branch";
 import { codeEditGeometry } from "./library-geometry/code-edit";
 import { collapseVerticalGeometry } from "./library-geometry/collapse-vertical";
 import { columnsGeometry } from "./library-geometry/columns";
@@ -225,6 +226,7 @@ import { userTieGeometry } from "./library-geometry/user-tie";
 import { usersGeometry } from "./library-geometry/users";
 
 export const libraryGeometry = {
+  codeBranch: codeBranchGeometry,
   codeEdit: codeEditGeometry,
   cloudDownload: cloudDownloadGeometry,
   binary: binaryGeometry,

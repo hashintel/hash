@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  codeBranch: "A split line with endpoints represents a code branch.",
   codeEdit: "Code brackets beside a pencil represent editing source code.",
   cloudDownload:
     "A cloud with a downward arrow represents downloading from cloud storage.",

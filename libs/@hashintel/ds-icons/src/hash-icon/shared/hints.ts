@@ -20,6 +20,7 @@ export type HashIconHint =
   | "up";
 
 export const hashIconHints = {
+  codeBranch: "lift",
   codeEdit: "lift",
   cloudDownload: "lift",
   binary: "lift",
