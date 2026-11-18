@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  server: "Stacked equipment bays represent a server.",
   app: "A rounded application tile represents an app.",
   browser: "A window with a toolbar represents a web browser.",
   laptop: "A folding screen and keyboard represent a laptop computer.",

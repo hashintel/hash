@@ -168,6 +168,7 @@ import { searchEmptyGeometry } from "./library-geometry/search-empty";
 import { sendGeometry } from "./library-geometry/send";
 import { sendBackwardGeometry } from "./library-geometry/send-backward";
 import { sendToBackGeometry } from "./library-geometry/send-to-back";
+import { serverGeometry } from "./library-geometry/server";
 import { shapeArrowDownGeometry } from "./library-geometry/shape-arrow-down";
 import { shapeArrowLeftGeometry } from "./library-geometry/shape-arrow-left";
 import { shapeArrowRightGeometry } from "./library-geometry/shape-arrow-right";
@@ -213,6 +214,7 @@ import { userTieGeometry } from "./library-geometry/user-tie";
 import { usersGeometry } from "./library-geometry/users";
 
 export const libraryGeometry = {
+  server: serverGeometry,
   app: appGeometry,
   browser: browserGeometry,
   laptop: laptopGeometry,
