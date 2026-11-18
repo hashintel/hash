@@ -249,7 +249,6 @@ export const useCanvasInteractions = (
         name: `Place${itemNumber}`,
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         x: position.x,
         y: position.y,
       });

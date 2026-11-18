@@ -45,7 +45,7 @@ const faux = fauxProvider({ provider: "openai" });
 installFauxProvider(faux.provider);
 const application = await loadBuiltBrunchApplication();
 const identity = {
-  ownerKey: "rebinding-owner",
+  actorKey: "rebinding-owner",
   conversationId: `rebinding-${crypto.randomUUID()}`,
 };
 const bindingX = { conversationId: identity.conversationId, documentId: "X" };

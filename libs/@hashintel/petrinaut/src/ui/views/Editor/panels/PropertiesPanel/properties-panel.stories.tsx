@@ -46,6 +46,7 @@ const types: Color[] = [
 
 const differentialEquations: DifferentialEquation[] = [
   {
+    arity: 1,
     id: "eq-1",
     name: "Decay Equation",
     colorId: "type-1",
@@ -59,6 +60,7 @@ const differentialEquations: DifferentialEquation[] = [
     ].join("\n"),
   },
   {
+    arity: 1,
     id: "eq-2",
     name: "Growth Equation",
     colorId: "type-1",
@@ -79,7 +81,7 @@ const places: Place[] = [
     name: "PlantASupply",
     colorId: "type-1",
     dynamicsEnabled: true,
-    differentialEquationId: "eq-1",
+    dynamics: [{ differentialEquationId: "eq-1" }],
     x: 100,
     y: 100,
   },
@@ -88,7 +90,6 @@ const places: Place[] = [
     name: "Warehouse",
     colorId: "type-2",
     dynamicsEnabled: false,
-    differentialEquationId: null,
     x: 300,
     y: 100,
   },
@@ -97,7 +98,6 @@ const places: Place[] = [
     name: "Output",
     colorId: null,
     dynamicsEnabled: false,
-    differentialEquationId: null,
     x: 500,
     y: 100,
   },
@@ -131,7 +131,6 @@ const emptyPlace: Place = {
   name: "NewPlace",
   colorId: null,
   dynamicsEnabled: false,
-  differentialEquationId: null,
   x: 0,
   y: 0,
 };

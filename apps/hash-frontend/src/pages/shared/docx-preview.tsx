@@ -1,6 +1,12 @@
 import { Box, CircularProgress, Stack, Typography } from "@mui/material";
 import * as Sentry from "@sentry/nextjs";
-import { useEffect, useEffectEvent, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+} from "react";
 import { FullScreen, useFullScreenHandle } from "react-full-screen";
 
 import {
@@ -111,6 +117,13 @@ export const DocxPreview = ({
     setSelectedSearchHit(currentHitIndex);
   };
 
+  // TODO(FE-1978): remove this useCallback once React Compiler compiles this component.
+  const search = useCallback(
+    (text: string, ignoreCase: boolean) =>
+      controlsRef.current?.search(text, ignoreCase),
+    [],
+  );
+
   return (
     <FullScreen
       className="full-height-and-width-for-react-full-screen"
@@ -146,9 +159,7 @@ export const DocxPreview = ({
         <Box sx={{ position: "absolute", top: 20, left: 20, zIndex: 100 }}>
           <FilePreviewSearch
             closeSearch={() => setShowSearch(false)}
-            onSearch={(text, ignoreCase) =>
-              controlsRef.current?.search(text, ignoreCase)
-            }
+            onSearch={search}
             onSelectHit={(index) => controlsRef.current?.showHit(index)}
             selectedIndex={selectedSearchHit}
             showSearch={showSearch}

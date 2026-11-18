@@ -1,4 +1,4 @@
-import { use, useEffect, useState } from "react";
+import { use, useState } from "react";
 
 import { Button, SegmentedControl, Select } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -10,17 +10,18 @@ import {
 } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { ViewMetricDrawer } from "../../../SimulateView/metrics/view-metric-drawer";
+import { useMetricShapes } from "./use-metric-shapes";
+import {
+  useRunTimelineView,
+  useSolverErrorAvailable,
+} from "./use-run-timeline-view";
+
+import type { MetricShape } from "@hashintel/petrinaut-core";
 
 const CHART_TYPE_OPTIONS = [
   { value: "run", label: "Run" },
   { value: "stacked", label: "Stacked" },
 ];
-
-const headerActionsStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[8px]",
-});
 
 const metricPickerLabelStyle = css({
   fontSize: "[10px]",
@@ -40,6 +41,7 @@ const metricPickerLabelStyle = css({
 const PER_PLACE_VALUE = "__per_place__";
 const PER_TYPE_VALUE = "__per_type__";
 const PER_TRANSITION_VALUE = "__per_transition__";
+const SOLVER_ERROR_VALUE = "__solver_error__";
 
 function viewToSelectValue(view: TimelineView): string {
   switch (view.kind) {
@@ -49,6 +51,8 @@ function viewToSelectValue(view: TimelineView): string {
       return PER_TYPE_VALUE;
     case "per-transition":
       return PER_TRANSITION_VALUE;
+    case "solver-error":
+      return SOLVER_ERROR_VALUE;
     case "metric":
       return view.metricId;
   }
@@ -64,10 +68,13 @@ function selectValueToView(value: string): TimelineView {
   if (value === PER_TRANSITION_VALUE) {
     return { kind: "per-transition" };
   }
+  if (value === SOLVER_ERROR_VALUE) {
+    return { kind: "solver-error" };
+  }
   return { kind: "metric", metricId: value };
 }
 
-const TimelineChartTypeSelector: React.FC = () => {
+export const TimelineChartTypeSelector: React.FC = () => {
   const { timelineChartType: chartType, setTimelineChartType: setChartType } =
     use(EditorContext);
 
@@ -81,41 +88,70 @@ const TimelineChartTypeSelector: React.FC = () => {
   );
 };
 
-const TimelineViewPicker: React.FC = () => {
-  const { navigateTo, setSimulateDrawer, timelineView, setTimelineView } =
-    use(EditorContext);
+export const TimelineViewPicker: React.FC = () => {
+  const { navigateTo, setSimulateDrawer, setTimelineView } = use(EditorContext);
+  const timelineView = useRunTimelineView();
   const {
     extensions,
     petriNetDefinition: { metrics = [] },
   } = use(SDCPNContext);
   const colorsEnabled = extensions.colors;
+  const metricShapes = useMetricShapes();
+  const solverErrorAvailable = useSolverErrorAvailable();
 
   const [isViewOpen, setIsViewOpen] = useState(false);
-
-  useEffect(() => {
-    if (!colorsEnabled && timelineView.kind === "per-type") {
-      setTimelineView({ kind: "per-place" });
-    }
-  }, [colorsEnabled, setTimelineView, timelineView.kind]);
 
   const selectedMetric =
     timelineView.kind === "metric"
       ? metrics.find((m) => m.id === timelineView.metricId)
       : undefined;
 
+  // One group per kind of series: the native views, then the metrics by the
+  // shape their code gives them, with the not yet compiled ones on their own.
+  const metricsOfShape = (shape: MetricShape | null) =>
+    metrics
+      .filter((m) => (metricShapes[m.id] ?? null) === shape)
+      .map((m) => ({ value: m.id, text: m.name }));
+  const metricGroups = [
+    {
+      id: "discrete",
+      label: "Discrete metrics",
+      items: metricsOfShape("discrete"),
+    },
+    {
+      id: "continuous",
+      label: "Continuous metrics",
+      items: metricsOfShape("continuous"),
+    },
+    { id: "metrics", label: "Metrics", items: metricsOfShape(null) },
+  ].filter((group) => group.items.length > 0);
   const options = [
-    { value: PER_PLACE_VALUE, text: "Tokens per place" },
-    ...(colorsEnabled
-      ? [{ value: PER_TYPE_VALUE, text: "Tokens per type" }]
+    {
+      id: "tokens",
+      label: "Tokens",
+      items: [
+        { value: PER_PLACE_VALUE, text: "Tokens per place" },
+        ...(colorsEnabled
+          ? [{ value: PER_TYPE_VALUE, text: "Tokens per type" }]
+          : []),
+      ],
+    },
+    {
+      id: "transitions",
+      label: "Transitions",
+      items: [{ value: PER_TRANSITION_VALUE, text: "Transition firings" }],
+    },
+    ...metricGroups,
+    ...(solverErrorAvailable
+      ? [
+          {
+            id: "solver",
+            label: "Solver",
+            items: [{ value: SOLVER_ERROR_VALUE, text: "Accumulated error" }],
+          },
+        ]
       : []),
-    { value: PER_TRANSITION_VALUE, text: "Transition firings" },
-    ...metrics.map((m) => ({ value: m.id, text: m.name })),
   ];
-  const selectedValue =
-    colorsEnabled || timelineView.kind !== "per-type"
-      ? viewToSelectValue(timelineView)
-      : PER_PLACE_VALUE;
-
   return (
     <>
       <span className={metricPickerLabelStyle}>Metric</span>
@@ -123,7 +159,7 @@ const TimelineViewPicker: React.FC = () => {
         size="xs"
         required
         width="fitContent"
-        value={selectedValue}
+        value={viewToSelectValue(timelineView)}
         items={options}
         onChange={(value) => setTimelineView(selectValueToView(value))}
       />
@@ -170,10 +206,3 @@ const TimelineViewPicker: React.FC = () => {
     </>
   );
 };
-
-export const TimelineHeaderActions: React.FC = () => (
-  <div className={headerActionsStyle}>
-    <TimelineViewPicker />
-    <TimelineChartTypeSelector />
-  </div>
-);

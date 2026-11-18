@@ -145,7 +145,6 @@ export function makeTestFrame({
       name: placeId,
       colorId,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     };

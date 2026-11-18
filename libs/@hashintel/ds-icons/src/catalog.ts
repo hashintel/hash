@@ -6,6 +6,26 @@ import type { HashIconName } from "./hash-icon";
 
 export const hashIconStudies = [
   {
+    concept: "Signal Temporal Logic",
+    category: "Logic",
+    names: ["logicSignalBounded", "logicSignalThreshold", "logicSignalClock"],
+    variants: ["Bounded signal", "Signal threshold", "Signal clock"],
+    motion:
+      "The signal and its time or threshold marker lift briefly together.",
+  },
+  {
+    concept: "Linear Temporal Logic",
+    category: "Logic",
+    names: [
+      "logicStateSequence",
+      "logicTemporalOperators",
+      "logicBooleanTrace",
+    ],
+    variants: ["State sequence", "Temporal operators", "Boolean trace"],
+    motion:
+      "The sequence, operators, or trace shift briefly forward along time.",
+  },
+  {
     concept: "Differential equations",
     category: "Modeling",
     names: ["differentialEquation", "equationCurve", "equationFlow"],
@@ -97,8 +117,13 @@ export const hashIconStudies = [
   {
     concept: "Test",
     category: "Code",
-    names: ["testTube", "testCheck"],
-    variants: ["An experiment", "A validation result"],
+    names: ["testTube", "testTubeCheck", "testTubeCross", "testCheck"],
+    variants: [
+      "An experiment",
+      "A successful test",
+      "A failed test",
+      "A validation result",
+    ],
     motion: "The liquid shifts and the result gives a short pulse.",
   },
   {
@@ -152,6 +177,8 @@ const categories = {
     "chevronLeft",
     "chevronRight",
     "externalLink",
+    "link",
+    "linkBroken",
     "rightToLine",
     "sidebar",
     "menu",
@@ -179,6 +206,16 @@ const categories = {
     "sortDown",
     "sortUpAlphabetical",
     "sortDownAlphabetical",
+    "sortUpBoolean",
+    "sortDownBoolean",
+    "sortDownDate",
+    "sortUpDate",
+    "sortDownDuration",
+    "sortUpDuration",
+    "sortDownPriority",
+    "sortUpPriority",
+    "sortDownEmptyValues",
+    "sortUpEmptyValues",
     "sortUpNumeric",
     "sortDownNumeric",
     "sortUpShapes",
@@ -231,6 +268,7 @@ const categories = {
     "diagramSubtask",
   ],
   AI: [
+    "mcpServer",
     "assistant",
     "agent",
     "sparkles",
@@ -271,7 +309,10 @@ export const hashIconCatalog = hashIconNames.map((name) => {
   const words = name.replace(/([A-Z])/g, " $1");
   return {
     name,
-    label: words.charAt(0).toUpperCase() + words.slice(1),
+    label:
+      name === "mcpServer"
+        ? "MCP Server"
+        : words.charAt(0).toUpperCase() + words.slice(1),
     category,
     description: descriptions[name],
     related: hashIconNames.filter((candidate) =>

@@ -36,28 +36,37 @@ export const modelingGeometry = {
   differentialEquation: (
     <>
       <g data-icon-detail="derivative-top">
-        <Trace layer="numerator" d="M14 3v6m0-3a3 3 0 1 0 0 3" />
+        <Trace
+          layer="numerator"
+          d="M14.25 2.5v6.75M14.25 6.75a2.5 2.5 0 1 0-5 0 2.5 2.5 0 1 0 5 0"
+        />
       </g>
-      <Trace layer="fraction" d="M5 12h14" />
+      <Trace layer="fraction" d="M4.5 12h15" />
       <g data-icon-detail="derivative-bottom">
-        <Trace layer="denominator" d="M10 15v6m0-3a3 3 0 1 0 0 3" />
-        <Trace layer="time" d="M16 15v5q0 1 2 1m-4-4h5" />
+        <Trace
+          layer="denominator"
+          d="M10.5 14.75v6.75M10.5 19a2.5 2.5 0 1 0-5 0 2.5 2.5 0 1 0 5 0"
+        />
+        <Trace
+          layer="time"
+          d="M16 14.75V19.75c0 1.25.5 1.75 2 1.75h1M13.5 17.5H20"
+        />
       </g>
     </>
   ),
   equationCurve: (
     <>
-      <Trace layer="axes" d="M4 4v16h17" />
+      <Trace layer="axes" d="M3.5 3.5v17h17" />
       <Trace
         layer="curve"
         data-icon-detail="equation-curve"
-        d="M6 17C11 17 10 7 19 6"
+        d="M6.5 17.5C11 17.5 11 7 20.5 5.5"
       />
       <g data-icon-detail="curve-sample">
         <Ring
           layer="sample"
-          cx="12"
-          cy="11.5"
+          cx="11.625"
+          cy="12.0625"
           r="1.4"
           fill="currentColor"
           stroke="none"
@@ -70,24 +79,25 @@ export const modelingGeometry = {
       <g data-icon-detail="slope-field" opacity=".5">
         <Trace
           layer="field"
-          d="m4 6 2-1m4 2 2-2m5 1 1-2M4 13h2m4 0 2-1m5 0 2-2M4 20l2 1m4-1h2m5 0 2-1"
+          d="m4 5 2-1m5 3 2-2m5 0 2-2M4 20l2 1m5-2h2m5-2 2-1"
         />
       </g>
       <Trace
         layer="solution"
         data-icon-detail="equation-solution"
-        d="M3 17C9 19 12 10 21 8"
+        d="M3 16.5C10 18 12 9 20.5 8"
       />
+      <Trace layer="arrow" d="m17 5.5 3.5 2.5-2.5 3.5" />
     </>
   ),
   parameterDial: (
     <>
       <Trace
         layer="scale"
-        d="M5 19a9 9 0 1 1 14 0M12 3v2M4.2 7.5l1.7 1M19.8 7.5l-1.7 1"
+        d="M6 18a8.5 8.5 0 1 1 12 0M12 3.5v2M4.65 7.75l1.75 1M19.35 7.75l-1.75 1"
       />
       <g data-icon-detail="dial-needle">
-        <Trace layer="needle" d="M12 14l4-6" />
+        <Trace layer="needle" d="m12 14 4-6" />
       </g>
       <Ring layer="pivot" cx="12" cy="14" r="1.5" />
       <Trace layer="base" d="M9 21h6" />
@@ -95,23 +105,23 @@ export const modelingGeometry = {
   ),
   parameterRange: (
     <>
-      <Trace layer="track" d="M3 7h18M3 17h18" opacity=".35" />
+      <Trace layer="track" d="M3 12h18" opacity=".35" />
       <g data-icon-detail="range-left">
-        <Trace layer="lower" d="M7 4v6m0 4v6" />
+        <Trace layer="lower" d="M6 7v10" />
       </g>
       <g data-icon-detail="range-right">
-        <Trace layer="upper" d="M16 4v6m0 4v6" />
+        <Trace layer="upper" d="M18 7v10" />
       </g>
-      <Trace layer="value" data-icon-detail="range-value" d="M10 12h3" />
+      <Trace layer="value" data-icon-detail="range-value" d="M6 12h12" />
     </>
   ),
   variable: (
     <>
       <g data-icon-detail="variable-left">
-        <Trace layer="first-stroke" d="M6 6h1.5c3 0 4 12 7 12H18" />
+        <Trace layer="first-stroke" d="M7 5.5 17 18.5" />
       </g>
       <g data-icon-detail="variable-right">
-        <Trace layer="second-stroke" d="M18 6h-1.5c-3 0-4 12-7 12H6" />
+        <Trace layer="second-stroke" d="M17 5.5 7 18.5" />
       </g>
     </>
   ),
@@ -141,7 +151,7 @@ export const modelingGeometry = {
     >
       <Trace
         layer="container"
-        d="M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"
+        d="M4 4h16a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z"
       />
     </FilledShape>
   ),
@@ -194,25 +204,18 @@ export const modelingGeometry = {
   ),
   subnetNetwork: (
     <FilledShape>
-      {" "}
-      <>
-        <Trace
-          fill="none"
-          layer="boundary"
-          d="M7 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h2M17 3h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-2"
-        />
-        <Trace
-          fill="none"
-          layer="connections"
-          data-icon-detail="subnet-link"
-          d="m8.6 9.2 3.4 2.8 3.4-2.8M12 12v4"
-        />
-        <g data-icon-detail="subnet-node">
-          <Ring layer="places" cx="7" cy="8" r="2" />
-          <Ring layer="places" cx="17" cy="8" r="2" />
-        </g>
-        <Trace layer="transition" d="M10 16h4v4h-4Z" />
-      </>
+      <Trace fill="none" layer="boundary" d="M6 3H3v18h3M18 3h3v18h-3" />
+      <Trace
+        fill="none"
+        layer="connections"
+        data-icon-detail="subnet-link"
+        d="m8.5 9.5 3.5 3 3.5-3M12 12.5V16"
+      />
+      <g data-icon-detail="subnet-node">
+        <Ring layer="places" cx="7" cy="8" r="2" />
+        <Ring layer="places" cx="17" cy="8" r="2" />
+      </g>
+      <Trace layer="transition" d="M9.5 16h5v4.5h-5Z" />
     </FilledShape>
   ),
   subnetLayers: (

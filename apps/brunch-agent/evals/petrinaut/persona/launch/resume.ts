@@ -8,7 +8,7 @@ import * as v from "valibot";
 
 import {
   agentOwnershipHeaders,
-  brunchOwnerKeyStorageKey,
+  brunchActorKeyStorageKey,
   sdcpnInitialDataSchema,
 } from "@hashintel/brunch-agent";
 
@@ -22,7 +22,7 @@ import type { Page } from "@playwright/test";
 const text = v.pipe(v.string(), v.minLength(1));
 const netArray = v.array(v.unknown());
 /** The website opens only stored entries of this shape and skips the rest. */
-const storedNetSchema = (documentId: string) =>
+const storedNetSchemaWith = ({ documentId }: { documentId: string }) =>
   v.object({
     id: v.literal(documentId),
     title: v.string(),
@@ -54,13 +54,31 @@ const runSchema = v.pipe(
     ...roleSettingsFromRun(config),
   })),
 );
-const sessionSchema = v.object({
-  url: text,
-  ownerKey: text,
-  conversationId: text,
-  uid: text,
-  initialData: v.nonOptional(sdcpnInitialDataSchema),
-});
+/**
+ * `session.json` as run directories hold it. The actor key keeps its
+ * pre-rename field name on disk, so runs recorded before the rename still
+ * resume; in memory it is the session's `actorKey`.
+ */
+const sessionSchema = v.pipe(
+  v.object({
+    url: text,
+    ownerKey: text,
+    conversationId: text,
+    uid: text,
+    initialData: v.nonOptional(sdcpnInitialDataSchema),
+  }),
+  v.transform(({ ownerKey, ...session }) => ({
+    ...session,
+    actorKey: ownerKey,
+  })),
+);
+
+/** The `session.json` text for a session, in the shape `readPersonaResume` reads. */
+export const personaSessionFileText = ({
+  actorKey,
+  ...session
+}: PersonaBrowserSession): string =>
+  `${JSON.stringify({ ...session, ownerKey: actorKey }, null, 2)}\n`;
 export const readPersonaResume = async (directory: string) => {
   const run = resolve(directory);
   const config = v.parse(
@@ -103,26 +121,26 @@ export const openRetainedPersonaBrowser = async (
   await page.unroute(checkUrl);
   const saved = await page.evaluate(
     (storageKey) => ({
-      ownerKey: localStorage.getItem(storageKey),
+      actorKey: localStorage.getItem(storageKey),
       documents: JSON.parse(
         localStorage.getItem("petrinaut-sdcpn") ?? "{}",
       ) as unknown,
     }),
-    brunchOwnerKeyStorageKey,
+    brunchActorKeyStorageKey,
   );
   const data = v.parse(sdcpnInitialDataSchema, session.initialData);
   assert(data);
   const binding = data.binding;
   assert.equal(
-    saved.ownerKey,
-    session.ownerKey,
-    "Original browser owner key is missing or changed",
+    saved.actorKey,
+    session.actorKey,
+    "Original browser actor key is missing or changed",
   );
   const documents = v.parse(v.record(v.string(), v.unknown()), saved.documents);
   const stored = documents[binding.documentId];
   assert.ok(stored !== undefined, "Original browser document is missing");
   assert.ok(
-    v.is(storedNetSchema(binding.documentId), stored),
+    v.is(storedNetSchemaWith({ documentId: binding.documentId }), stored),
     "Original browser document is not a net the website opens",
   );
   await page.goto(new URL(route, origin).href);

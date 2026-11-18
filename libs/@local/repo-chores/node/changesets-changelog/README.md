@@ -3,11 +3,12 @@
 Formats the entries Changesets writes into each package's `CHANGELOG.md`:
 
 ```text
-- add arrow-right-arrow-left icon ([@CiaranMn](https://github.com/CiaranMn), [#8750](https://github.com/hashintel/hash/pull/8750))
+- add arrow-right-arrow-left icon ([#8750](https://github.com/hashintel/hash/pull/8750))
 ```
 
-Entries are attributed to the first assignee of the pull request the changeset
-arrived in, falling back to its author, then to the commit author.
+Entries link to the pull request the changeset arrived in. When no pull request is found, the entry contains just its description.
+The `pr` and `commit` overrides are supported; legacy `author` and `user` overrides
+are stripped from the summary and ignored.
 
 `.changeset/config.json` names this directory through the
 `@local/repo-chores/changesets-changelog` export, and
@@ -16,5 +17,6 @@ happens with no build step in front of it, so the sources here must stay plain
 CommonJS even though the rest of the package is ESM TypeScript run through
 `tsx`.
 
-Attribution needs `GITHUB_TOKEN` in the environment; without one
-`changeset version` fails rather than dropping the attribution.
+Resolving a commit to its pull request needs `GITHUB_TOKEN` in the environment;
+without one, `changeset version` fails rather than dropping the link. An explicit
+`pr` override needs no GitHub request or token.

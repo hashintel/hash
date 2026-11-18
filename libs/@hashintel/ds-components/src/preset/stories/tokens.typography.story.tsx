@@ -56,7 +56,7 @@ const sampleText = (style: TextStyle) => {
 type TextStyleName = TextStyle;
 
 const TextStyleDemo = ({ style }: { style: TextStyleName }) => (
-  <HStack gap="4" alignItems="baseline">
+  <HStack gap="4" css={{ alignItems: "baseline" }}>
     <span className={labelStyles}>{style}</span>
     <span className={css({ textStyle: style })}>
       The quick brown fox jumps over the lazy dog
@@ -65,7 +65,7 @@ const TextStyleDemo = ({ style }: { style: TextStyleName }) => (
 );
 
 const LeadingComparisonRow = ({ style }: { style: TextStyleName }) => (
-  <VStack gap="2" alignItems="flex-start" width="[100%]">
+  <VStack gap="2" css={{ alignItems: "flex-start", width: "[100%]" }}>
     <span
       className={css({
         textStyle: "sm",
@@ -75,14 +75,12 @@ const LeadingComparisonRow = ({ style }: { style: TextStyleName }) => (
     >
       textStyle: {style}
     </span>
-    <HStack gap="6" alignItems="flex-start" width="[100%]">
+    <HStack gap="6" css={{ alignItems: "flex-start", width: "[100%]" }}>
       {leadingValues.map((leading) => (
         <VStack
           key={leading}
           gap="1"
-          alignItems="flex-start"
-          flex="1"
-          minWidth="0"
+          css={{ alignItems: "flex-start", flex: "1", minWidth: "0" }}
         >
           <span className={valueStyles}>
             textStyle: {style} / leading: {leading}
@@ -109,7 +107,7 @@ const FontFamilyDemo = ({
   name: string;
   tokenPath: Token;
 }) => (
-  <HStack gap="4" alignItems="baseline">
+  <HStack gap="4" css={{ alignItems: "baseline" }}>
     <span className={labelStyles}>{name}</span>
     <span
       className={css({ fontSize: "xl" })}
@@ -121,7 +119,7 @@ const FontFamilyDemo = ({
 );
 
 const FontWeightDemo = ({ name, value }: { name: string; value: number }) => (
-  <HStack gap="4" alignItems="baseline">
+  <HStack gap="4" css={{ alignItems: "baseline" }}>
     <span className={labelStyles}>{name}</span>
     <span className={valueStyles}>{value}</span>
     <span className={css({ fontSize: "lg" })} style={{ fontWeight: value }}>
@@ -136,19 +134,19 @@ export const TypographyDemo = ({
   leadingFactor: Leading;
 }) => (
   <div className={css({ leading: leadingFactor })}>
-    <VStack gap="8" alignItems="flex-start" p="6">
+    <VStack gap="8" css={{ alignItems: "flex-start", p: "6" }}>
       <h1 className={css({ textStyle: "2xl", fontWeight: "semibold" })}>
         Typography
       </h1>
 
-      <VStack gap="4" alignItems="flex-start" width="[100%]">
+      <VStack gap="4" css={{ alignItems: "flex-start", width: "[100%]" }}>
         <h2 className={sectionTitleStyles}>Text Styles</h2>
         {textStyles.map((style) => (
           <TextStyleDemo key={style} style={style} />
         ))}
       </VStack>
 
-      <VStack gap="6" alignItems="flex-start" width="[100%]">
+      <VStack gap="6" css={{ alignItems: "flex-start", width: "[100%]" }}>
         <h2 className={sectionTitleStyles}>Leading Variants</h2>
         <p
           className={css({
@@ -165,14 +163,14 @@ export const TypographyDemo = ({
         ))}
       </VStack>
 
-      <VStack gap="4" alignItems="flex-start" width="[100%]">
+      <VStack gap="4" css={{ alignItems: "flex-start", width: "[100%]" }}>
         <h2 className={sectionTitleStyles}>Font Families</h2>
         <FontFamilyDemo name="display" tokenPath="fonts.display" />
         <FontFamilyDemo name="body" tokenPath="fonts.body" />
         <FontFamilyDemo name="mono" tokenPath="fonts.mono" />
       </VStack>
 
-      <VStack gap="4" alignItems="flex-start" width="[100%]">
+      <VStack gap="4" css={{ alignItems: "flex-start", width: "[100%]" }}>
         <h2 className={sectionTitleStyles}>Font Weights</h2>
         {fontWeightEntries.map(({ name, value }) => (
           <FontWeightDemo key={name} name={name} value={value} />

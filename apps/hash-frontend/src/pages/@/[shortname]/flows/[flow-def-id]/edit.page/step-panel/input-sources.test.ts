@@ -166,9 +166,14 @@ describe("getSourceOptions", () => {
 });
 
 describe("getNewFlowInput", () => {
-  it("names a new flow input after the input, apart from the flow's other inputs, in a kind the input takes", () => {
+  it("names a new flow input after the input, apart from the flow's other inputs and those steps still refer to, in a kind the input takes", () => {
     const flowDefinition: FlowDefinition<string> = {
-      ...flowWith([]),
+      /* `url3` was removed, but a step still refers to it. */
+      ...flowWith([
+        answer("ask", {
+          inputs: { question: { kind: "flow-input", inputName: "url3" } },
+        }),
+      ]),
       inputs: [
         { name: "url", payloadKind: "Text", array: false, required: true },
         { name: "url2", payloadKind: "Text", array: false, required: true },
@@ -182,8 +187,8 @@ describe("getNewFlowInput", () => {
         target: { oneOfPayloadKinds: ["Text"], array: false, required: true },
       }),
     ).toEqual({
-      name: "url3",
-      label: "Url 3",
+      name: "url4",
+      label: "Url 4",
       payloadKind: "Text",
       array: false,
       required: true,

@@ -103,6 +103,7 @@ export function makeCompiledTransition({
     kernelFn,
     placeBases: new Int32Array(coloredInputArcs.length),
     indices: new Int32Array(slotCount),
+    inputCounts: new Float64Array(inputPlaces.length),
     kernelStaging,
     kernelStagingViews: createTokenRegionViews(
       kernelStaging.buffer,

@@ -10,14 +10,14 @@ const labelsOf = (actions: { label: string }[]) =>
   actions.map(({ label }) => label);
 
 describe("addableActionGroups", () => {
-  it("lists the groups in order, leaving out People, which has no action that can be added yet", () => {
+  it("lists the groups in order, leaving out People and Messages, which have no action that can be added yet", () => {
     expect(
       addableActionGroups.map(({ label, actions }) => [
         label,
         labelsOf(actions),
       ]),
     ).toEqual([
-      ["Messages", ["Draft email"]],
+      ["AI", ["Draft email"]],
       ["Documents", ["Fetch file"]],
       ["Entities", ["Find entities", "Create entity", "Update entity"]],
       [

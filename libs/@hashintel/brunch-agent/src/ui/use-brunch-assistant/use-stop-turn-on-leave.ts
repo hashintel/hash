@@ -17,7 +17,7 @@ type SentSession = {
  * the turn the leaving session sent, if it is still running by its own
  * tracker and the conversation's latest snapshot.
  *
- * A session recreated for another reason (a new `fetch`, owner key or chat
+ * A session recreated for another reason (a new `fetch`, actor key or chat
  * endpoint) with the same handle and binding is not a leave, and stops
  * nothing.
  */

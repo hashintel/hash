@@ -1,5 +1,5 @@
 //@ run: pass
-//@ description: Closure with computation (binary op) is NOT a trivial thunk
+//@ description: Closure with computation (binary op) is NOT a trivial thunk, but a trivial closure
 [
   "let",
   "compute",

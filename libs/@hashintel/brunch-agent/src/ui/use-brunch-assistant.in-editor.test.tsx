@@ -71,7 +71,7 @@ const HookPanel = ({ handle }: { handle: PetrinautDocHandle }) => {
     [handle],
   );
   const brunch = useBrunchAssistant({
-    ownerKey: "test-owner",
+    actorKey: "test-owner",
     chatEndpoint: "/agents/petrinaut",
     selected: true,
     openDocument,
@@ -94,6 +94,42 @@ afterEach(() => {
   vi.restoreAllMocks();
   // A lazy language-server import may finish after unmount; retain the Worker
   // stand-in until Vitest disposes this isolated file's jsdom environment.
+});
+
+test("the shared Brunch hook and editor panel offer no demo starters by default", async () => {
+  vi.stubGlobal("Worker", InProcessLspWorker);
+  vi.stubGlobal("ResizeObserver", NoopResizeObserver);
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => Response.json({ available: false })),
+  );
+  fixture.client = {
+    observe: () => ({
+      close: vi.fn(),
+      getSnapshot: () => ({ phase: "absent" }),
+      refresh: vi.fn(),
+      subscribe: () => () => undefined,
+    }),
+  } as unknown as FlueClient;
+  const handle = createJsonDocHandle({
+    id: "document",
+    initial: {
+      places: [],
+      transitions: [],
+      types: [],
+      differentialEquations: [],
+    },
+  });
+  render(<HookPanel handle={handle} />);
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Show AI assistant" }),
+  );
+  const panel = await screen.findByRole("complementary", {
+    name: "AI assistant",
+  });
+  await screen.findByRole("textbox", { name: "Message AI assistant" });
+  expect(panel.querySelector("[data-prompt-chips]")).toBeNull();
+  expect(panel.textContent).not.toMatch(/Supply chain|Epidemic|Surprise me/u);
 });
 
 const definition: SDCPN = {
@@ -177,8 +213,10 @@ test.each(["Dismiss", "Run"] as const)(
       input: {},
       toolCallId: "read-1",
       handle,
-      // A read edits nothing.
+      // A read edits nothing, renames nothing and runs nothing.
       edit: {} as never,
+      document: {} as never,
+      experiments: {} as never,
       readDiagnosticsContext: async () => "",
       signal: new AbortController().signal,
     });

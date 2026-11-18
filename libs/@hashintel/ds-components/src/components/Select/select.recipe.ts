@@ -273,6 +273,13 @@ export const selectRecipe = sva({
         select: {
           "--base-input-border-hover-color": "var(--colors-neutral-a40)",
           "--base-input-background-color": "transparent",
+          "&:is(:hover, :focus-within, :has([data-part='trigger'][data-state='open'])):has([data-part='clear']:not([data-hidden])) [data-part='trigger']":
+            {
+              "--select-clear-mask-span":
+                "[calc(var(--select-icon-gap) + 0.05em - var(--base-input-padding-x) + var(--select-clear-size) + var(--select-clear-padding))]",
+              maskImage:
+                "[linear-gradient(to right, black, black calc(100% - var(--select-clear-mask-span) - 0.75em), transparent calc(100% - var(--select-clear-mask-span)))]",
+            },
           _before: {
             content: '""',
             position: "absolute",

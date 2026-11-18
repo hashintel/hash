@@ -16,6 +16,7 @@ import {
 } from "../extensions";
 import { emitBufferMetricJs } from "../hir/emit-buffer-js";
 import { walkHir } from "../hir/hir";
+import { inferMetricShape } from "../hir/metric-shape";
 import { buildMetricContext } from "../hir/surface-context";
 
 import type { HirExpr, HirFunction, HirNumberLit } from "../hir/hir";
@@ -65,16 +66,15 @@ export const compileStateConstraintIndicator = (
   sdcpn: SDCPN,
   extensions: PetrinautExtensionSettings = DEFAULT_PETRINAUT_EXTENSIONS,
 ): HirMetricArtifact | null => {
-  const context = buildMetricContext(
-    sanitizeSDCPNForExtensions(sdcpn, extensions),
-    extensions,
-    "boolean",
-  );
-  const program = emitBufferMetricJs(
-    wrapHirAsIndicator(constraint.hir),
-    context,
-  );
+  const sanitized = sanitizeSDCPNForExtensions(sdcpn, extensions);
+  const context = buildMetricContext(sanitized, extensions, "boolean");
+  const indicator = wrapHirAsIndicator(constraint.hir);
+  const program = emitBufferMetricJs(indicator, context);
   return program === null
     ? null
-    : { source: program.source, placeNames: program.placeNames };
+    : {
+        source: program.source,
+        placeNames: program.placeNames,
+        shape: inferMetricShape(indicator, sanitized.places, sanitized.types),
+      };
 };

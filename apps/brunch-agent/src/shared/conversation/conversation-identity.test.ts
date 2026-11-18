@@ -7,11 +7,11 @@ import {
 
 import { flueConversationId, ownsFlueInstance } from "./identity.ts";
 
-// Stored conversations are addressed by this hash, so it and the header names
-// must survive any rename of the identity's fields.
-test("a fixed owner key and conversation id keep their Flue instance id and headers", async () => {
+// Stored conversations are addressed by this hash, so it must survive any
+// rename of the identity's fields or headers; the header names are wire names.
+test("a fixed actor key and conversation id keep their Flue instance id and headers", async () => {
   const identity = {
-    ownerKey: "brunch-owner",
+    actorKey: "brunch-owner",
     conversationId: "conversation-1",
   };
   const pinnedInstanceId =
@@ -19,26 +19,30 @@ test("a fixed owner key and conversation id keep their Flue instance id and head
   expect(flueConversationId(identity)).toBe(pinnedInstanceId);
   expect(await flueConversationIdWeb(identity)).toBe(pinnedInstanceId);
   expect(agentOwnershipHeaders(identity)).toEqual({
+    "x-brunch-actor": "brunch-owner",
+    "x-brunch-conversation": "conversation-1",
+  });
+  expect(agentOwnershipHeaders(identity, { legacyActorHeader: true })).toEqual({
     "x-brunch-principal": "brunch-owner",
     "x-brunch-conversation": "conversation-1",
   });
 });
 
-test("the same owner key and conversation id always hash to the same Flue instance", () => {
+test("the same actor key and conversation id always hash to the same Flue instance", () => {
   const identity = {
-    ownerKey: "owner-a",
+    actorKey: "owner-a",
     conversationId: "conversation-1",
   };
   expect(flueConversationId(identity)).toBe(flueConversationId(identity));
 });
 
-test("a different owner key cannot address the same Flue instance", () => {
+test("a different actor key cannot address the same Flue instance", () => {
   const owned = flueConversationId({
-    ownerKey: "owner-a",
+    actorKey: "owner-a",
     conversationId: "conversation-1",
   });
   const foreign = flueConversationId({
-    ownerKey: "owner-b",
+    actorKey: "owner-b",
     conversationId: "conversation-1",
   });
   expect(owned).not.toBe(foreign);
@@ -46,15 +50,15 @@ test("a different owner key cannot address the same Flue instance", () => {
   expect(foreign).toMatch(/^[0-9a-f]{64}$/);
 });
 
-test("ownsFlueInstance admits only the owner key and conversation that hashed the id", () => {
+test("ownsFlueInstance admits only the actor key and conversation that hashed the id", () => {
   const identity = {
-    ownerKey: "owner-a",
+    actorKey: "owner-a",
     conversationId: "conversation-1",
   };
   const instanceId = flueConversationId(identity);
   expect(ownsFlueInstance(identity, instanceId)).toBe(true);
   expect(
-    ownsFlueInstance({ ...identity, ownerKey: "owner-b" }, instanceId),
+    ownsFlueInstance({ ...identity, actorKey: "owner-b" }, instanceId),
   ).toBe(false);
   expect(
     ownsFlueInstance(
@@ -67,7 +71,7 @@ test("ownsFlueInstance admits only the owner key and conversation that hashed th
 
 test("the browser hash matches the Node hash", async () => {
   const identity = {
-    ownerKey: "owner-a",
+    actorKey: "owner-a",
     conversationId: "conversation-1",
   };
   expect(await flueConversationIdWeb(identity)).toBe(

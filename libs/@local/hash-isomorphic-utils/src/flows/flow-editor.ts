@@ -36,6 +36,13 @@ export type FlowEditorState = {
   flowProblems: FlowDefinitionDiagnosticWithStepId[];
 };
 
+/**
+ * What can change about a flow input. Its name can't: steps refer to the input by it, so a rename changes the label.
+ */
+export type FlowInputChanges = Partial<
+  Pick<FlowInputDefinition, "label" | "payloadKind" | "array" | "required">
+>;
+
 /** A change to the state. It's an edit unless it came from `placeSteps`, which shouldn't be saved on its own. */
 export type FlowEditorChange = { edited: boolean };
 
@@ -168,7 +175,7 @@ const replaceStep = (
  * steps as they were, except for connections to a step that's removed or disconnected.
  *
  * Edits never fail because a step is half-built: its problems are listed instead. They throw only when what they
- * name isn't there: a top-level step, the connection to insert a step into, or an action step's inputs.
+ * name isn't there: a top-level step, the connection to insert a step into, an action step's inputs, or a flow input.
  */
 export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
   let state = checkFlowDefinition(flowDefinition);
@@ -200,6 +207,18 @@ export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
     }
 
     return step;
+  };
+
+  const getFlowInput = (name: string) => {
+    const input = state.flowDefinition.inputs.find(
+      (candidate) => candidate.name === name,
+    );
+
+    if (!input) {
+      throw new Error(`The flow has no input "${name}"`);
+    }
+
+    return input;
   };
 
   return {
@@ -280,6 +299,33 @@ export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
       });
     },
 
+    /**
+     * Changes a flow input's label, type or whether it's required. Steps that use it keep it, and one that can't take
+     * its new type lists that as a problem. A name repeated in a loaded flow changes every input with it.
+     */
+    updateFlowInput: (name: string, changes: FlowInputChanges) => {
+      getFlowInput(name);
+
+      setFlowDefinition({
+        ...state.flowDefinition,
+        inputs: state.flowDefinition.inputs.map((input) =>
+          input.name === name ? { ...input, ...changes } : input,
+        ),
+      });
+    },
+
+    /** Removes a flow input. Inputs that take its value keep their source, which is then a problem. */
+    removeFlowInput: (name: string) => {
+      getFlowInput(name);
+
+      setFlowDefinition({
+        ...state.flowDefinition,
+        inputs: state.flowDefinition.inputs.filter(
+          (input) => input.name !== name,
+        ),
+      });
+    },
+
     moveStep: (stepId: string, position: StepPosition) => {
       setSteps(
         replaceStep(state.flowDefinition.steps, {
@@ -313,18 +359,68 @@ export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
     },
 
     /**
-     * Removes a step, with every connection to and from it. Inputs that take a value from it keep their source,
-     * which is then a problem.
+     * Removes a step, with every connection to and from it and every flow output it or a step inside it gives. Inputs
+     * that take a value from it keep their source, which is then a problem.
      */
     removeStep: (stepId: string) => {
       const removedStepIds = new Set(getStepIds(getStep(stepId)));
 
-      setSteps(
-        removeConnectionsFrom(
+      setFlowDefinition({
+        ...state.flowDefinition,
+        steps: removeConnectionsFrom(
           state.flowDefinition.steps.filter((step) => step.stepId !== stepId),
           removedStepIds,
         ),
+        outputs: state.flowDefinition.outputs.filter(
+          (output) => !removedStepIds.has(output.stepId),
+        ),
+      });
+    },
+
+    /**
+     * Makes an output of a top-level step one of the flow's outputs, which a run gives back when it finishes. It's
+     * named after the output, and numbered if a flow output already has that name: "body", then "body 2". Does
+     * nothing if the output is already a flow output.
+     */
+    markFlowOutput: (stepId: string, outputName: string) => {
+      getStep(stepId);
+      const { outputs } = state.flowDefinition;
+
+      if (
+        outputs.some(
+          (output) =>
+            output.stepId === stepId && output.outputName === outputName,
+        )
+      ) {
+        return;
+      }
+
+      const takenNames = new Set(outputs.map(({ name }) => name));
+      let name = outputName;
+
+      for (let index = 2; takenNames.has(name); index++) {
+        name = `${outputName} ${index}`;
+      }
+
+      setFlowDefinition({
+        ...state.flowDefinition,
+        outputs: [...outputs, { name, stepId, outputName }],
+      });
+    },
+
+    /** Stops a step's output being a flow output. The step may not exist, e.g. if the output is a problem. */
+    unmarkFlowOutput: (stepId: string, outputName: string) => {
+      const { outputs } = state.flowDefinition;
+      const kept = outputs.filter(
+        (output) =>
+          output.stepId !== stepId || output.outputName !== outputName,
       );
+
+      if (kept.length === outputs.length) {
+        return;
+      }
+
+      setFlowDefinition({ ...state.flowDefinition, outputs: kept });
     },
 
     /** Sets where an input of an action step takes its value from, or clears it if `source` is `null`. */

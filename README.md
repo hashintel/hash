@@ -306,6 +306,7 @@ The Postgres information for the graph query layer is configured through:
 - `NOTIFICATION_POLL_INTERVAL`: the interval in milliseconds at which the frontend will poll for new notifications, or 0 for no polling. (default: `10_000`)
 - `HASH_INTEGRATION_QUEUE_NAME` The name of the Redis queue which updates to entities are published to
 - `API_ORIGIN`: The origin that the API service can be reached on (default: `http://localhost:5001`)
+- `HASH_BRUNCH_AGENT_ORIGIN`: The origin of the Brunch agent server, which the process editor's assistant calls directly with the user's session; Brunch must list the frontend's origin in `BRUNCH_HASH_CORS_ALLOWED_ORIGINS` and share the session cookie's domain. Unset, the process editor offers no assistant. (optional)
 - `SESSION_SECRET`: The secret used to sign sessions (default: `secret`)
 - `LOG_LEVEL`: the level of runtime logs that should be omitted, either set to `debug`, `info`, `warn`, `error` (default: `info`)
 - `BLOCK_PROTOCOL_API_KEY`: the api key for fetching blocks from the [Þ Hub](https://blockprotocol.org/hub). Generate a key at https://blockprotocol.org/settings/api-keys.

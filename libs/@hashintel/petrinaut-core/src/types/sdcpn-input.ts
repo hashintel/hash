@@ -1,3 +1,4 @@
+import { migrateLegacyDynamics } from "../migrate-legacy-dynamics";
 import { canonicalizePetrinautIds } from "../petrinaut-id";
 
 import type {
@@ -62,8 +63,12 @@ export type SDCPNPlaceInput = {
   colorId?: ID | null;
   /** @default false */
   dynamicsEnabled?: boolean;
-  /** @default null */
-  differentialEquationId?: ID | null;
+  dynamics?: Place["dynamics"];
+  /**
+   * A net saved before equations composed links one equation here; it
+   * loads as the first term of `dynamics`.
+   */
+  differentialEquationId?: string | null;
   capacity?: Place["capacity"];
   isPort?: boolean;
   visualizerCode?: string;
@@ -129,14 +134,19 @@ function arcEndpointFields(arc: SDCPNArcEndpointInput): SDCPNArcEndpointInput {
  * {@link SDCPN}. Idempotent: normalizing an already-complete `SDCPN` returns an
  * equivalent value.
  *
- * Optional output fields (`capacity`, `isPort`, `visualizerCode`, `showAsInitialState`,
- * arc `placeId`/`endpoint`, `scenarios`, `metrics`, `subnets`,
+ * Optional output fields (`dynamics`, `capacity`, `isPort`, `visualizerCode`,
+ * `showAsInitialState`, arc `placeId`/`endpoint`, `scenarios`, `metrics`, `subnets`,
  * `componentInstances`) are only set when present on the input, so the result
  * matches the shape the editor itself produces (relevant for structural
  * dirty-tracking via `isSDCPNEqual`). Entity ids and the references to them
  * are converted to Petrinaut ids with {@link canonicalizePetrinautIds}.
+ *
+ * A net saved before equations composed with an arity is brought to the
+ * current shape first ({@link migrateLegacyDynamics}): stored data may still
+ * link an equation from the place and omit the equation's arity.
  */
-export function normalizeSDCPN(input: SDCPNInput): SDCPN {
+export function normalizeSDCPN(rawInput: SDCPNInput): SDCPN {
+  const input = migrateLegacyDynamics(rawInput);
   const result: SDCPN = {
     places: input.places.map((place) => {
       const normalized: SDCPN["places"][number] = {
@@ -144,12 +154,14 @@ export function normalizeSDCPN(input: SDCPNInput): SDCPN {
         name: place.name,
         colorId: place.colorId ?? null,
         dynamicsEnabled: place.dynamicsEnabled ?? false,
-        differentialEquationId: place.differentialEquationId ?? null,
         x: place.x,
         y: place.y,
       };
       if (place.description !== undefined) {
         normalized.description = place.description;
+      }
+      if (place.dynamics !== undefined) {
+        normalized.dynamics = place.dynamics;
       }
       if (place.capacity !== undefined) {
         normalized.capacity = place.capacity;

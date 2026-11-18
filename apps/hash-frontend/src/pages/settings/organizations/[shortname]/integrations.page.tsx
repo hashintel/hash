@@ -12,16 +12,16 @@ import { NextSeo } from "next-seo";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
 
+import { extractBaseUrl } from "@blockprotocol/type-system";
 import { deserializeQueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { queryEntitiesQuery } from "../../../../graphql/queries/knowledge/entity.queries";
-import { LinearLogo } from "../../../../shared/icons/linear-logo";
 import { Link } from "../../../../shared/ui";
 import { useActors } from "../../../../shared/use-actors";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { getSettingsLayout } from "../../../shared/settings-layout";
+import { IntegrationIconTile } from "../../integrations.page/integration-icon-tile";
 import { SettingsPageContainer } from "../../shared/settings-page-container";
 import { SettingsTable } from "../../shared/settings-table";
 import { SettingsTableCell } from "../../shared/settings-table-cell";
@@ -32,6 +32,16 @@ import type {
   QueryEntitiesQueryVariables,
 } from "../../../../graphql/api-types.gen";
 import type { NextPageWithLayout } from "../../../../shared/layout";
+import type { BaseUrl } from "@blockprotocol/type-system";
+
+/**
+ * Link entity types that connect an integration to an organization's web,
+ * with the catalog name of the integration each one belongs to.
+ */
+const orgIntegrationLinkEntityTypes: {
+  linkEntityTypeBaseUrl: BaseUrl;
+  integrationName: string;
+}[] = [];
 
 const OrgIntegrationsPage: NextPageWithLayout = () => {
   const router = useRouter();
@@ -45,7 +55,7 @@ const OrgIntegrationsPage: NextPageWithLayout = () => {
   )?.org;
 
   const {
-    data: linearIntegrationSyncLinksData,
+    data: integrationLinksData,
     loading,
     refetch,
   } = useQuery<QueryEntitiesQuery, QueryEntitiesQueryVariables>(
@@ -56,14 +66,14 @@ const OrgIntegrationsPage: NextPageWithLayout = () => {
           filter: {
             all: [
               {
-                equal: [
-                  { path: ["type", "baseUrl"] },
-                  {
-                    parameter:
-                      systemLinkEntityTypes.syncLinearDataWith
-                        .linkEntityTypeBaseUrl,
-                  },
-                ],
+                any: orgIntegrationLinkEntityTypes.map(
+                  ({ linkEntityTypeBaseUrl }) => ({
+                    equal: [
+                      { path: ["type", "baseUrl"] },
+                      { parameter: linkEntityTypeBaseUrl },
+                    ],
+                  }),
+                ),
               },
               {
                 equal: [
@@ -90,33 +100,42 @@ const OrgIntegrationsPage: NextPageWithLayout = () => {
           includePermissions: true,
         },
       },
-      skip: !org,
+      skip: !org || orgIntegrationLinkEntityTypes.length === 0,
       fetchPolicy: "cache-and-network",
     },
   );
 
-  const linearIntegrationLinks = useMemo(() => {
-    if (!linearIntegrationSyncLinksData) {
+  const integrationLinks = useMemo(() => {
+    if (!integrationLinksData) {
       return [];
     }
 
     const { permissions, entities: links } = deserializeQueryEntitiesResponse(
-      linearIntegrationSyncLinksData.queryEntities,
+      integrationLinksData.queryEntities,
     );
 
     return links.map(({ metadata, entityId }) => {
       const canEdit = !!permissions?.[entityId]?.update;
 
+      const integrationName = orgIntegrationLinkEntityTypes.find(
+        ({ linkEntityTypeBaseUrl }) =>
+          metadata.entityTypeIds.some(
+            (entityTypeId) =>
+              extractBaseUrl(entityTypeId) === linkEntityTypeBaseUrl,
+          ),
+      )?.integrationName;
+
       return {
         createdById: metadata.provenance.createdById,
         entityId,
         canEdit,
+        integrationName,
       };
     });
-  }, [linearIntegrationSyncLinksData]);
+  }, [integrationLinksData]);
 
   const { actors } = useActors({
-    accountIds: linearIntegrationLinks.map(({ createdById }) => createdById),
+    accountIds: integrationLinks.map(({ createdById }) => createdById),
   });
 
   if (!org) {
@@ -132,7 +151,7 @@ const OrgIntegrationsPage: NextPageWithLayout = () => {
       <SettingsPageContainer
         heading={org.name}
         sectionLabel="Integrations"
-        disableContentWrapper={linearIntegrationLinks.length === 0}
+        disableContentWrapper={integrationLinks.length === 0}
       >
         {loading ? (
           <Stack p={1}>
@@ -140,7 +159,7 @@ const OrgIntegrationsPage: NextPageWithLayout = () => {
             <Skeleton sx={{ height: 40, transform: "none", mb: 1 }} />
             <Skeleton sx={{ height: 40, transform: "none" }} />
           </Stack>
-        ) : linearIntegrationLinks.length === 0 ? (
+        ) : integrationLinks.length === 0 ? (
           <Box py={2} px={3}>
             <Typography variant="smallTextParagraphs">
               No integrations found for {org.name} – install them{" "}
@@ -157,8 +176,8 @@ const OrgIntegrationsPage: NextPageWithLayout = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {linearIntegrationLinks.map(
-                ({ entityId, canEdit, createdById }) => {
+              {integrationLinks.map(
+                ({ entityId, canEdit, createdById, integrationName }) => {
                   const actor = actors?.find(
                     ({ accountId }) => accountId === createdById,
                   );
@@ -168,10 +187,15 @@ const OrgIntegrationsPage: NextPageWithLayout = () => {
                   return (
                     <TableRow key={entityId}>
                       <SettingsTableCell>
-                        <Stack direction="row" alignItems="center" gap={1}>
-                          <LinearLogo sx={{ fontSize: 14 }} />
-                          Linear
-                        </Stack>
+                        {integrationName && (
+                          <Stack direction="row" alignItems="center" gap={1}>
+                            <IntegrationIconTile
+                              name={integrationName}
+                              tileSize={16}
+                            />
+                            {integrationName}
+                          </Stack>
+                        )}
                       </SettingsTableCell>
                       <SettingsTableCell>
                         {isUser ? (

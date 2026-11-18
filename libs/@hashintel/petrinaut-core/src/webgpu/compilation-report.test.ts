@@ -108,12 +108,20 @@ describe("analyzeCompilation", () => {
       productionMachines: false,
       deploymentPipelineSDCPN: true,
       probabilisticSatellitesSDCPN: true,
+      // Composes a two-token attraction: the shader integrates one
+      // whole-place equation per place, so this one stays on the CPU.
+      satellitesWithAttraction: false,
+      // Its gravity equation couples two tokens, so it stays on the CPU too.
+      planetsAndSatellites: false,
       sirModel: true,
+      sirMassActionModel: true,
       cafeQueue: true,
       dronePatrol: true,
       supplyChainWithDisruption: true,
       supplyChainProfit: true,
       vaccinationCampaign: true,
+      bicycleAssembly: true,
+      wheelTruing: true,
     });
     const production = analyze(
       allExamples.productionMachines.petriNetDefinition,
@@ -121,6 +129,12 @@ describe("analyzeCompilation", () => {
     expect(production.shaderFailure).toMatch(
       /consumes typed tokens from 2 places/,
     );
+    const attraction = analyze(
+      allExamples.satellitesWithAttraction.petriNetDefinition,
+    );
+    expect(attraction.eligibilityReasons.map((reason) => reason.code)).toEqual([
+      "composed-dynamics",
+    ]);
   });
 
   it("reports the satellites example GPU-ready with derived capacities", () => {
@@ -321,7 +335,24 @@ describe("analyzeCompilation", () => {
         metric__average_orbital_radius: "gpu-ready",
         metric__average_orbital_speed: "gpu-ready",
       },
+      // Refused before emission for its composed dynamics, so no metric
+      // was tried.
+      satellitesWithAttraction: {
+        metric__satellites_in_orbit: "not-attempted",
+        metric__debris: "not-attempted",
+        metric__average_orbital_radius: "not-attempted",
+        metric__average_orbital_speed: "not-attempted",
+      },
+      planetsAndSatellites: {
+        metric__bodies: "not-attempted",
+        metric__total_mass: "not-attempted",
+        metric__heaviest_body: "not-attempted",
+      },
       sirModel: { metric__infected_fraction: "gpu-ready" },
+      sirMassActionModel: {
+        metric__infected: "gpu-ready",
+        metric__attack_rate: "gpu-ready",
+      },
       cafeQueue: {},
       dronePatrol: {},
       supplyChainWithDisruption: {
@@ -343,6 +374,14 @@ describe("analyzeCompilation", () => {
         metric__total_cost: "gpu-ready",
         metric__infected: "gpu-ready",
         metric__attack_rate: "gpu-ready",
+      },
+      bicycleAssembly: {
+        metric__bicycles: "gpu-ready",
+        metric__work_in_progress: "gpu-ready",
+      },
+      wheelTruing: {
+        metric__yield: "gpu-ready",
+        metric__passes_per_accepted_wheel: "gpu-ready",
       },
     });
 

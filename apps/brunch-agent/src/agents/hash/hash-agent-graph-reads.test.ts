@@ -1,0 +1,602 @@
+/**
+ * The HASH agent's graph reads through a real in-process Flue runtime and
+ * agent loop with a scripted model: the agent registers them, a call is issued
+ * to the bound browser as a read, and what the browser settles it with is what
+ * the model sees next. The test plays the browser through the real
+ * rendezvous. No provider is called.
+ */
+import {
+  type AssistantMessage,
+  fauxAssistantMessage,
+  fauxProvider,
+  fauxText,
+  fauxToolCall,
+  type Message,
+  type TranscriptContext,
+} from "@earendil-works/pi-ai";
+import { start } from "@flue/runtime/node";
+import { createAgentRouter } from "@flue/runtime/routing";
+import { createFlueClient } from "@flue/sdk";
+import { afterAll, beforeAll, expect, test, vi } from "vitest";
+
+import {
+  type BrowserCallClaim,
+  type ClientToolResult,
+  brunchTools,
+  canonicalContent,
+  hashProcessEditorId,
+} from "@hashintel/brunch-agent";
+
+import {
+  claimBrowserCall,
+  failBrowserCall,
+  settleBrowserCall,
+} from "../../shared/conversation/browser-call-rendezvous.ts";
+import { hashEntityReadEmptyNote } from "./tools/hash-graph-reads.ts";
+
+// Only the Flue build packages skills; the read doesn't depend on their content.
+vi.mock("./skills/eliciting/SKILL.md", () => ({
+  default: { name: "eliciting", description: "Eliciting.", instructions: "." },
+}));
+vi.mock("./skills/modelling/SKILL.md", () => ({
+  default: { name: "modelling", description: "Modelling.", instructions: "." },
+}));
+vi.mock("./skills/petrinaut/SKILL.md", () => ({
+  default: { name: "petrinaut", description: "Petrinaut.", instructions: "." },
+}));
+vi.mock("./skills/hash-graph/SKILL.md", () => ({
+  default: {
+    name: "hash-graph",
+    description: "HASH graph.",
+    instructions: ".",
+  },
+}));
+
+type Step = (context: TranscriptContext) => AssistantMessage;
+
+const faux = fauxProvider({ provider: "faux", models: [{ id: "faux-1" }] });
+const requests: TranscriptContext[] = [];
+const steps: Step[] = [];
+faux.setResponses(
+  Array.from({ length: 40 }, () => (context: TranscriptContext) => {
+    requests.push(structuredClone(context));
+    const step = steps.shift();
+    if (!step) throw new Error("The script ran out of scripted agent steps.");
+    return step(context);
+  }),
+);
+
+const toolResult = (context: TranscriptContext, toolCallId: string) =>
+  context.messages.find(
+    (message): message is Extract<Message, { role: "toolResult" }> =>
+      message.role === "toolResult" && message.toolCallId === toolCallId,
+  );
+const resultText = (context: TranscriptContext, toolCallId: string) =>
+  toolResult(context, toolCallId)
+    ?.content.flatMap((part) => (part.type === "text" ? [part.text] : []))
+    .join("");
+
+let hashAgent: typeof import("./agent.ts").HashAgent;
+let stopRuntime: () => Promise<void> = async () => {};
+beforeAll(async () => {
+  vi.stubEnv("BRUNCH_CHAT_MODEL", "faux/faux-1");
+  vi.stubEnv("BRUNCH_CHAT_THINKING", "");
+  const { HashAgent } = await import("./agent.ts");
+  hashAgent = HashAgent;
+  const flue = await start({ agents: [HashAgent], providers: [faux.provider] });
+  stopRuntime = () => flue.stop();
+});
+afterAll(async () => {
+  await stopRuntime();
+  vi.unstubAllEnvs();
+});
+
+/** A fresh document-bound conversation, with nothing read yet. */
+const conversation = () => {
+  const instanceId = crypto.randomUUID();
+  const binding = { conversationId: instanceId, documentId: "web~net" };
+  const router = createAgentRouter(hashAgent);
+  const client = createFlueClient({
+    url: `http://flue.test/${instanceId}`,
+    fetch: async (input, init) =>
+      router.fetch(input instanceof Request ? input : new Request(input, init)),
+  });
+  return {
+    instanceId,
+    binding,
+    send: async (body: string) =>
+      client.send({
+        initialData: { binding },
+        message: { kind: "user", body },
+      }),
+    wait: client.wait.bind(client),
+  };
+};
+
+/** Claims a call as the bound browser does, once the agent has issued it. */
+const claimed = async (
+  instanceId: string,
+  toolCallId: string,
+  binding: object,
+): Promise<BrowserCallClaim> => {
+  for (let attempt = 0; attempt < 200; attempt += 1) {
+    const claim = claimBrowserCall({
+      agentName: hashAgent.agentName,
+      instanceId,
+      toolCallId,
+      binding: canonicalContent(binding),
+    });
+    if (claim) return claim;
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  throw new Error(`Browser call ${toolCallId} was never issued.`);
+};
+
+const readInput = { entityTypes: ["Supplier"], traversalDepth: 1 };
+const supplier = {
+  entityId: "alice-web~supplier",
+  label: "Acme Parts",
+  editionId: "edition-1",
+  webId: "alice-web",
+  entityTypeIds: ["https://hash.ai/@alice/types/entity-type/supplier/v/1"],
+  properties: {
+    "https://hash.ai/@alice/types/property-type/name/": "Acme Parts",
+  },
+  draft: false,
+  matched: true,
+};
+const supplierRead = {
+  propertyTypes: [
+    {
+      baseUrl: "https://hash.ai/@alice/types/property-type/name/",
+      propertyTypeId: "https://hash.ai/@alice/types/property-type/name/v/1",
+      title: "Name",
+    },
+  ],
+  entityTypes: [
+    {
+      entityTypeId: "https://hash.ai/@alice/types/entity-type/supplier/v/1",
+      title: "Supplier",
+    },
+  ],
+  entities: [supplier],
+};
+/** What the model is shown of `supplierRead`. */
+const supplierText = [
+  "entities: 1",
+  "properties:",
+  "  name (https://hash.ai/@alice/types/property-type/name/v/1): Name",
+  "entity types:",
+  "  Supplier: https://hash.ai/@alice/types/entity-type/supplier/v/1",
+  "entities:",
+  '- Supplier "Acme Parts"',
+  "  entityId: alice-web~supplier",
+  "  editionId: edition-1",
+  '  name: "Acme Parts"',
+].join("\n");
+
+test("the agent offers the read, issues it as a read in a fresh conversation, and the model next sees what the page returned", async () => {
+  const chat = conversation();
+  let seen: string | undefined;
+  let declared: string[] = [];
+  steps.push(
+    (context) => {
+      const [lead] = context.messages;
+      declared =
+        lead?.role === "system"
+          ? (lead.toolsAdded ?? []).map(({ name }) => name)
+          : [];
+      return fauxAssistantMessage(
+        [fauxToolCall(brunchTools.hashQueryEntities, readInput, { id: "r1" })],
+        { stopReason: "toolUse" },
+      );
+    },
+    (context) => {
+      seen = resultText(context, "r1");
+      return fauxAssistantMessage([fauxText("Acme Parts is on record.")]);
+    },
+  );
+  const receipt = await chat.send("Who supplies us?");
+
+  // No net was read, yet the call is issued, with no revision to hold it to.
+  const claim = await claimed(chat.instanceId, "r1", chat.binding);
+  const { capability: _capability, ...issued } = claim;
+  expect(issued).toEqual({
+    toolName: brunchTools.hashQueryEntities,
+    input: readInput,
+    binding: canonicalContent(chat.binding),
+  });
+  expect(
+    settleBrowserCall({
+      agentName: hashAgent.agentName,
+      instanceId: chat.instanceId,
+      toolCallId: "r1",
+      capability: claim.capability,
+      binding: claim.binding,
+      toolName: brunchTools.hashQueryEntities,
+      canonicalInput: claim.input,
+      output: supplierRead,
+      metadata: { documentRevision: { before: "r1" } },
+    }),
+  ).toBe("settled");
+  await chat.wait(receipt, { signal: AbortSignal.timeout(10_000) });
+
+  expect(declared).toContain(brunchTools.hashQueryEntities);
+  // The model sees the page's entities as compact text, edition evidence
+  // included, and none of the browser sidecar.
+  expect(seen).toBe(supplierText);
+});
+
+test("a step proposing the read beside a net read issues both to the browser, and the model next sees both results", async () => {
+  const chat = conversation();
+  let seenEntities: string | undefined;
+  let seenNet: string | undefined;
+  steps.push(
+    () =>
+      fauxAssistantMessage(
+        [
+          fauxToolCall(brunchTools.hashQueryEntities, readInput, {
+            id: "m1",
+          }),
+          fauxToolCall(
+            "petrinaut_get_net",
+            { editor_id: hashProcessEditorId, detail: "outline" },
+            { id: "m2" },
+          ),
+        ],
+        { stopReason: "toolUse" },
+      ),
+    (context) => {
+      seenEntities = resultText(context, "m1");
+      seenNet = resultText(context, "m2");
+      return fauxAssistantMessage([fauxText("Read both.")]);
+    },
+  );
+  const receipt = await chat.send("Who supplies the net's inputs?");
+
+  const [entityClaim, netClaim] = await Promise.all([
+    claimed(chat.instanceId, "m1", chat.binding),
+    claimed(chat.instanceId, "m2", chat.binding),
+  ]);
+  expect(entityClaim.toolName).toBe(brunchTools.hashQueryEntities);
+  expect(netClaim.toolName).toBe("petrinaut_get_net");
+  const outline = {
+    title: "Supply",
+    definition: { places: [] },
+    extensions: {},
+  };
+  expect(
+    settleBrowserCall({
+      agentName: hashAgent.agentName,
+      instanceId: chat.instanceId,
+      toolCallId: "m2",
+      capability: netClaim.capability,
+      binding: netClaim.binding,
+      toolName: "petrinaut_get_net",
+      canonicalInput: netClaim.input,
+      output: outline,
+      metadata: { documentRevision: { before: "r1" } },
+    }),
+  ).toBe("settled");
+  expect(
+    settleBrowserCall({
+      agentName: hashAgent.agentName,
+      instanceId: chat.instanceId,
+      toolCallId: "m1",
+      capability: entityClaim.capability,
+      binding: entityClaim.binding,
+      toolName: brunchTools.hashQueryEntities,
+      canonicalInput: entityClaim.input,
+      output: supplierRead,
+      metadata: { documentRevision: { before: "r1" } },
+    }),
+  ).toBe("settled");
+  await chat.wait(receipt, { signal: AbortSignal.timeout(10_000) });
+
+  expect(seenEntities).toBe(supplierText);
+  expect(JSON.parse(seenNet ?? "null")).toEqual(outline);
+});
+
+test("a read that finds nothing the user may see shows the model the empty result as it is", async () => {
+  const chat = conversation();
+  let seen: string | undefined;
+  steps.push(
+    () =>
+      fauxAssistantMessage(
+        [
+          fauxToolCall(
+            brunchTools.hashQueryEntities,
+            { webIds: ["alice-web"] },
+            { id: "r2" },
+          ),
+        ],
+        { stopReason: "toolUse" },
+      ),
+    (context) => {
+      seen = resultText(context, "r2");
+      return fauxAssistantMessage([fauxText("Nothing there.")]);
+    },
+  );
+  const receipt = await chat.send("What's in Alice's web?");
+  const claim = await claimed(chat.instanceId, "r2", chat.binding);
+  settleBrowserCall({
+    agentName: hashAgent.agentName,
+    instanceId: chat.instanceId,
+    toolCallId: "r2",
+    capability: claim.capability,
+    binding: claim.binding,
+    toolName: brunchTools.hashQueryEntities,
+    canonicalInput: claim.input,
+    output: { propertyTypes: [], entityTypes: [], entities: [] },
+  });
+  await chat.wait(receipt, { signal: AbortSignal.timeout(10_000) });
+
+  expect(seen).toBe(hashEntityReadEmptyNote);
+});
+
+test("a read the page fails reaches the model as a tool error that left the document unchanged", async () => {
+  const chat = conversation();
+  let failed: Extract<Message, { role: "toolResult" }> | undefined;
+  steps.push(
+    () =>
+      fauxAssistantMessage(
+        [fauxToolCall(brunchTools.hashQueryEntities, readInput, { id: "r3" })],
+        { stopReason: "toolUse" },
+      ),
+    (context) => {
+      failed = toolResult(context, "r3");
+      return fauxAssistantMessage([fauxText("The read failed.")]);
+    },
+  );
+  const receipt = await chat.send("Who supplies us?");
+  const claim = await claimed(chat.instanceId, "r3", chat.binding);
+  expect(
+    failBrowserCall({
+      agentName: hashAgent.agentName,
+      instanceId: chat.instanceId,
+      toolCallId: "r3",
+      capability: claim.capability,
+      binding: claim.binding,
+      toolName: brunchTools.hashQueryEntities,
+      canonicalInput: claim.input,
+      disposition: "failed",
+    }),
+  ).toBe(true);
+  await chat.wait(receipt, { signal: AbortSignal.timeout(10_000) });
+
+  expect(failed?.isError).toBe(true);
+  expect(JSON.stringify(failed?.content)).toContain(
+    "The non-mutating browser call failed; the document is unchanged.",
+  );
+});
+
+/** Runs one read in a fresh conversation, settles it with `output`, and returns what the model saw next. */
+const readOnce = async (
+  toolName: string,
+  input: Parameters<typeof fauxToolCall>[1],
+  output: ClientToolResult["output"],
+): Promise<{
+  claim: BrowserCallClaim;
+  declared: string[];
+  seen: string | undefined;
+}> => {
+  const chat = conversation();
+  let seen: string | undefined;
+  let declared: string[] = [];
+  steps.push(
+    (context) => {
+      const [lead] = context.messages;
+      declared =
+        lead?.role === "system"
+          ? (lead.toolsAdded ?? []).map(({ name }) => name)
+          : [];
+      return fauxAssistantMessage(
+        [fauxToolCall(toolName, input, { id: "once" })],
+        { stopReason: "toolUse" },
+      );
+    },
+    (context) => {
+      seen = resultText(context, "once");
+      return fauxAssistantMessage([fauxText("Read.")]);
+    },
+  );
+  const receipt = await chat.send("What is in HASH?");
+  const claim = await claimed(chat.instanceId, "once", chat.binding);
+  expect(
+    settleBrowserCall({
+      agentName: hashAgent.agentName,
+      instanceId: chat.instanceId,
+      toolCallId: "once",
+      capability: claim.capability,
+      binding: claim.binding,
+      toolName,
+      canonicalInput: claim.input,
+      output,
+      metadata: { documentRevision: { before: "r1" } },
+    }),
+  ).toBe("settled");
+  await chat.wait(receipt, { signal: AbortSignal.timeout(10_000) });
+  return { claim, declared, seen };
+};
+
+const supplierType = {
+  entityTypeId: "https://hash.ai/@alice/types/entity-type/supplier/v/1",
+  title: "Supplier",
+  description: "Someone who supplies parts.",
+  properties: [
+    {
+      baseUrl: "https://hash.ai/@alice/types/property-type/name/",
+      title: "Name",
+    },
+  ],
+  links: [
+    {
+      linkEntityTypeId: "https://hash.ai/@alice/types/entity-type/supplies/v/1",
+      title: "Supplies",
+      destinationEntityTypeIds: [
+        "https://hash.ai/@alice/types/entity-type/product/v/1",
+      ],
+    },
+  ],
+};
+
+test("the entity type read is offered, issued as a read in a fresh conversation with the entities' type ids as given, and the model next sees the page's types", async () => {
+  const input = {
+    entityTypeIds: ["https://hash.ai/@alice/types/entity-type/supplier/v/2"],
+    webIds: ["alice-web"],
+  };
+  const { claim, declared, seen } = await readOnce(
+    brunchTools.hashQueryEntityTypes,
+    input,
+    { entityTypes: [supplierType] },
+  );
+  const { capability: _capability, ...issued } = claim;
+  expect(issued).toEqual({
+    toolName: brunchTools.hashQueryEntityTypes,
+    input,
+    binding: claim.binding,
+  });
+  expect(declared).toContain(brunchTools.hashQueryEntityTypes);
+  expect(seen).toBe(
+    [
+      "entity types: 1",
+      "- Supplier: https://hash.ai/@alice/types/entity-type/supplier/v/1",
+      "  description: Someone who supplies parts.",
+      "  properties:",
+      "    name: Name",
+      "  links:",
+      "    Supplies: https://hash.ai/@alice/types/entity-type/supplies/v/1 -> https://hash.ai/@alice/types/entity-type/product/v/1",
+    ].join("\n"),
+  );
+});
+
+test("the web read is offered, issued as a read in a fresh conversation, and the model next sees the page's webs", async () => {
+  const webs = [
+    { webId: "alice-web", kind: "user", shortname: "alice", name: "Alice" },
+    { webId: "org-web", kind: "organization", shortname: "acme", name: "Acme" },
+  ];
+  const { claim, declared, seen } = await readOnce(
+    brunchTools.hashQueryWebs,
+    {},
+    { webs },
+  );
+  const { capability: _capability, ...issued } = claim;
+  expect(issued).toEqual({
+    toolName: brunchTools.hashQueryWebs,
+    input: {},
+    binding: claim.binding,
+  });
+  expect(declared).toContain(brunchTools.hashQueryWebs);
+  expect(seen).toBe(
+    [
+      "webs: 2",
+      '- user "Alice" @alice webId: alice-web',
+      '- organization "Acme" @acme webId: org-web',
+    ].join("\n"),
+  );
+});
+
+test("an entity read asking for an entity's full values is issued as asked, and the model next sees the value in full", async () => {
+  const definitionUrl =
+    "https://hash.ai/@h/types/property-type/definition-object/";
+  const definition = {
+    places: Array.from({ length: 100 }, (_, index) => `place-${index}`),
+  };
+  const net = {
+    ...supplier,
+    entityId: "alice-web~net",
+    properties: { [definitionUrl]: definition },
+  };
+  const output = { propertyTypes: [], entityTypes: [], entities: [net] };
+  const input = { entityIds: [net.entityId], fullValuesFor: [net.entityId] };
+
+  const { claim, seen } = await readOnce(
+    brunchTools.hashQueryEntities,
+    input,
+    output,
+  );
+  expect(claim.input).toEqual(input);
+  expect(seen).toContain(`definition_object: ${JSON.stringify(definition)}`);
+
+  // Without asking, the same value is summarised.
+  const compact = await readOnce(
+    brunchTools.hashQueryEntities,
+    { entityIds: [net.entityId] },
+    output,
+  );
+  expect(compact.seen).toMatch(
+    /definition_object: <object, [\d.]+ KB: 100 places>/,
+  );
+});
+
+test.each([
+  [brunchTools.hashQueryEntities, readInput, supplierRead],
+  [brunchTools.hashQueryEntityTypes, {}, { entityTypes: [supplierType] }],
+])(
+  "%s settled as truncated tells the model more may match than it shows",
+  async (toolName, input, output) => {
+    const note = "More may match than shown; narrow the filter.";
+    const truncated = await readOnce(toolName, input, {
+      ...output,
+      truncated: true,
+    });
+    expect(truncated.seen?.split("\n")[1]).toBe(note);
+
+    const whole = await readOnce(toolName, input, output);
+    expect(whole.seen).not.toContain(note);
+  },
+);
+
+test.each([
+  [brunchTools.hashQueryEntities, readInput],
+  [brunchTools.hashQueryEntityTypes, {}],
+  [brunchTools.hashQueryWebs, {}],
+])(
+  "%s settled with the page's error reaches the model as a failed read it can read",
+  async (toolName, input) => {
+    const { seen } = await readOnce(toolName, input, {
+      error: "Response not successful: GraphQL error",
+    });
+    expect(JSON.parse(seen ?? "null")).toEqual({
+      error: "Response not successful: GraphQL error",
+      note: "The read failed; the document is unchanged.",
+    });
+  },
+);
+
+test.each([-1, 1.5, 4])(
+  "a traversal depth of %s never reaches the browser",
+  async (traversalDepth) => {
+    const chat = conversation();
+    let rejected: Extract<Message, { role: "toolResult" }> | undefined;
+    steps.push(
+      () =>
+        fauxAssistantMessage(
+          [
+            fauxToolCall(
+              brunchTools.hashQueryEntities,
+              { traversalDepth },
+              { id: "r4" },
+            ),
+          ],
+          { stopReason: "toolUse" },
+        ),
+      (context) => {
+        rejected = toolResult(context, "r4");
+        return fauxAssistantMessage([fauxText("Not a depth.")]);
+      },
+    );
+    const receipt = await chat.send("Read everything.");
+    await chat.wait(receipt, { signal: AbortSignal.timeout(10_000) });
+
+    expect(rejected?.isError).toBe(true);
+    expect(
+      claimBrowserCall({
+        agentName: hashAgent.agentName,
+        instanceId: chat.instanceId,
+        toolCallId: "r4",
+        binding: canonicalContent(chat.binding),
+      }),
+    ).toBeUndefined();
+  },
+);

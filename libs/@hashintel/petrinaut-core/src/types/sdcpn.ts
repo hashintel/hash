@@ -88,13 +88,27 @@ export type Transition = {
   y: number;
 };
 
+/** One term of a place's composed dynamics (see `Place.dynamics`). */
+export type PlaceDynamicsTerm = {
+  differentialEquationId: ID;
+};
+
 export type Place = {
   id: ID;
   name: string;
   description?: string;
   colorId: null | ID;
+  /** Whether the place's `dynamics` run; the list is kept while off. */
   dynamicsEnabled: boolean;
-  differentialEquationId: null | ID;
+  /**
+   * The differential equations composed into the place's dynamics, in
+   * application order, each over the place's colour. A token's derivative is
+   * the sum of every term's contribution: an equation of arity `n`
+   * contributes one record per unordered combination of `n` distinct tokens
+   * that contains the token (see `DifferentialEquation.arity`). Absent means
+   * no dynamics.
+   */
+  dynamics?: PlaceDynamicsTerm[];
   /**
    * Optional maximum number of tokens this place will hold.
    *
@@ -143,6 +157,16 @@ export type DifferentialEquation = {
   name: string;
   colorId: ID | null;
   code: string;
+  /**
+   * How many tokens the equation couples, a positive integer `n`. With an
+   * arity of 1 the code sees that token as `token` and returns its
+   * derivative record. Above that it sees `tokens`, a tuple of exactly `n`
+   * tokens of the colour, and returns an array of `n` records, one per
+   * token in order. The simulator applies it to every
+   * unordered combination of `n` distinct tokens of the place, in index
+   * order, and sums the contributions.
+   */
+  arity: number;
 };
 
 // -- Ad-hoc scenario definitions ---------------------------------------------

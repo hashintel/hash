@@ -123,7 +123,7 @@ test.each([false, true])(
   async (legacy) => {
     const run = await mkdtemp(join(tmpdir(), "TEST-persona-resume-"));
     const identity = {
-      ownerKey: "TEST-owner",
+      actorKey: "TEST-owner",
       conversationId: "TEST-conversation",
     };
     const config = {
@@ -167,7 +167,9 @@ test.each([false, true])(
         writeFile(
           join(run, "session.json"),
           JSON.stringify({
-            ...identity,
+            // A run directory keeps the actor key under its pre-rename name.
+            ownerKey: identity.actorKey,
+            conversationId: identity.conversationId,
             uid: "TEST-uid",
             url: `${config.panelOrigin}/agents/petrinaut/${flueConversationId(identity)}`,
             initialData: {
@@ -180,6 +182,7 @@ test.each([false, true])(
         ),
       ]);
       const resumed = await readPersonaResume(run);
+      expect(resumed.session.actorKey).toBe(identity.actorKey);
       expect(resumed.lastUtterance).toBe("Please continue.");
       expect(resumed.config.brunchModel).toBe("anthropic/claude-sonnet-4-6");
       expect(resumed.config.brunchThinking).toBe("medium");
@@ -247,7 +250,7 @@ test("root launch command resolves a caller-relative case before checking intera
 test("resume requires the bridge log that Pi-era runs lack", async () => {
   const run = await mkdtemp(join(tmpdir(), "TEST-persona-legacy-"));
   const identity = {
-    ownerKey: "TEST-owner",
+    actorKey: "TEST-owner",
     conversationId: "TEST-conversation",
   };
   const panelOrigin = "http://127.0.0.1:4926";
@@ -270,7 +273,8 @@ test("resume requires the bridge log that Pi-era runs lack", async () => {
       writeFile(
         join(run, "session.json"),
         JSON.stringify({
-          ...identity,
+          ownerKey: identity.actorKey,
+          conversationId: identity.conversationId,
           uid: "TEST-uid",
           url: `${panelOrigin}/agents/petrinaut/${flueConversationId(identity)}`,
           initialData: {

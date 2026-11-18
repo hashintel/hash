@@ -1,7 +1,7 @@
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { usePlaceTokenCount } from "../../../canvas-frame-store";
+import { usePlaceTokenLabel } from "../../../canvas-frame-store";
 import { nodeFocusStyle } from "../../../styles/focus";
 import { placeBorderColor, placeFillColor } from "../../../styles/type-colors";
 import {
@@ -43,6 +43,8 @@ const tokenCountBadgeStyle = css({
   padding: "[0 5px]",
   fontWeight: "semibold",
   fontVariantNumeric: "tabular-nums",
+  // A count across runs reads as a mean and its spread, on one line.
+  whiteSpace: "nowrap",
 });
 
 export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
@@ -52,7 +54,7 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
   selected,
 }: NodeProps<PlaceNodeType>) => {
   // A frame re-renders this place only when its own count moves.
-  const tokenCount = usePlaceTokenCount(id);
+  const tokenLabel = usePlaceTokenLabel(id);
 
   const showStateTooltip =
     data.hasVisualizer &&
@@ -93,8 +95,8 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
         title={data.label}
         subtitle={subtitle}
         badge={
-          tokenCount !== null ? (
-            <div className={tokenCountBadgeStyle}>{tokenCount}</div>
+          tokenLabel !== null ? (
+            <div className={tokenCountBadgeStyle}>{tokenLabel}</div>
           ) : undefined
         }
         isConnectable={isConnectable}

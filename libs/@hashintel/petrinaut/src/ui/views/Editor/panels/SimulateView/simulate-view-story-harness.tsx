@@ -21,6 +21,7 @@ import { PetrinautNavigationProvider } from "../../../../../react/navigation";
 import { NotificationsProvider } from "../../../../../react/notifications/provider";
 import { PetrinautOptimizationContext } from "../../../../../react/optimization-context";
 import { OptimizationsProvider } from "../../../../../react/optimizations/provider";
+import { SimulatorsProvider } from "../../../../../react/simulators/provider";
 import {
   SDCPNContext,
   type SDCPNContextValue,
@@ -183,13 +184,15 @@ export const RunnableSimulateViewStory = ({
                   <FakeEditorProvider
                     initialSimulateViewMode={initialSimulateViewMode}
                   >
-                    <ExperimentsProvider>
-                      <OptimizationsProvider>
-                        <SimulateViewStoryStage>
-                          {children}
-                        </SimulateViewStoryStage>
-                      </OptimizationsProvider>
-                    </ExperimentsProvider>
+                    <SimulatorsProvider>
+                      <ExperimentsProvider>
+                        <OptimizationsProvider>
+                          <SimulateViewStoryStage>
+                            {children}
+                          </SimulateViewStoryStage>
+                        </OptimizationsProvider>
+                      </ExperimentsProvider>
+                    </SimulatorsProvider>
                   </FakeEditorProvider>
                 </WithUserSettings>
               </UserSettingsProvider>

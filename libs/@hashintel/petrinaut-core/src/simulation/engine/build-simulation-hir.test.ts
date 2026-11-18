@@ -33,10 +33,9 @@ const sdcpn: SDCPN = {
       id: "de1",
       name: "Oscillator",
       colorId: "type1",
-      code: `export default Dynamics((tokens, parameters) => {
-  return tokens.map(({ x, v }) => {
-    return { x: v, v: -parameters.k * x };
-  });
+      arity: 1,
+      code: `export default Dynamics(({ x, v }, parameters) => {
+  return { x: v, v: -parameters.k * x };
 });`,
     },
   ],
@@ -62,7 +61,7 @@ const sdcpn: SDCPN = {
       name: "Source",
       colorId: "type1",
       dynamicsEnabled: true,
-      differentialEquationId: "de1",
+      dynamics: [{ differentialEquationId: "de1" }],
       x: 0,
       y: 0,
     },
@@ -71,7 +70,6 @@ const sdcpn: SDCPN = {
       name: "Target",
       colorId: "type1",
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     },

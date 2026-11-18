@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { act, renderHook } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useReactFlowController } from "./use-react-flow-controller";
 
@@ -30,12 +30,25 @@ const defaultProps = {
   bounds: { x: 0, y: 0, width: 100, height: 100 },
   containerSize: { width: 1000, height: 600 },
   insets: { left: 100, right: 300, bottom: 100 },
+  animated: false,
+};
+
+/** An animating camera whose frames never come, as in a hidden tab. */
+const stallFrames = () => {
+  vi.stubGlobal("requestAnimationFrame", () => 0);
+  vi.stubGlobal("cancelAnimationFrame", () => {});
+  vi.stubGlobal("matchMedia", () => ({ matches: false }));
 };
 
 describe("useReactFlowController", () => {
   beforeEach(() => {
     setViewport.mockClear();
     setViewport.mockResolvedValue(true);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
   it("frames once from the post-render bounds and settles the request", async () => {
@@ -50,7 +63,8 @@ describe("useReactFlowController", () => {
 
     let resultPromise: Promise<unknown> | undefined;
     await act(async () => {
-      resultPromise = rendered.result.current.frameSceneAfterRender();
+      resultPromise =
+        rendered.result.current.controller.frameSceneAfterRender();
       rendered.rerender({
         bounds: { x: 400, y: 200, width: 200, height: 100 },
       });
@@ -72,13 +86,13 @@ describe("useReactFlowController", () => {
         }),
       { initialProps: { bounds: defaultProps.bounds } },
     );
-    const registeredController = rendered.result.current;
+    const registeredController = rendered.result.current.controller;
 
     rendered.rerender({
       bounds: { x: 700, y: 300, width: 250, height: 150 },
     });
 
-    expect(rendered.result.current).toBe(registeredController);
+    expect(rendered.result.current.controller).toBe(registeredController);
     await act(async () => {
       await registeredController.fitView();
     });
@@ -93,20 +107,35 @@ describe("useReactFlowController", () => {
         bounds: null,
       }),
     );
-    await expect(result.current.fitView()).resolves.toBe("empty");
+    await expect(result.current.controller.fitView()).resolves.toBe("empty");
     expect(setViewport).not.toHaveBeenCalled();
   });
 
-  it("bounds an unresolved renderer move", async () => {
+  it("bounds a move whose frames never come", async () => {
     vi.useFakeTimers();
-    setViewport.mockReturnValue(new Promise<boolean>(() => {}));
-    const { result } = renderHook(() => useReactFlowController(defaultProps));
+    stallFrames();
+    const { result } = renderHook(() =>
+      useReactFlowController({ ...defaultProps, animated: true }),
+    );
 
-    const frame = result.current.frameSceneAfterRender();
+    const frame = result.current.controller.frameSceneAfterRender();
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1_500);
     });
     await expect(frame).resolves.toBe("timed-out");
-    vi.useRealTimers();
+  });
+
+  it("reports where a move under way will come to rest", () => {
+    stallFrames();
+    const { result } = renderHook(() =>
+      useReactFlowController({ ...defaultProps, animated: true }),
+    );
+    const { controller } = result.current;
+    const target = { x: 120, y: -40, zoom: 2 };
+
+    expect(controller.getRestViewport()).toEqual({ x: 0, y: 0, zoom: 1 });
+    controller.setViewport(target, { animate: true });
+    expect(controller.getRestViewport()).toEqual(target);
+    expect(setViewport).not.toHaveBeenCalled();
   });
 });

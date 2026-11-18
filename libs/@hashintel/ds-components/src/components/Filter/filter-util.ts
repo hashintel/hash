@@ -1,6 +1,6 @@
 import { createContext } from "react";
 
-import { type ItemOrGroup } from "../../util/SelectableList/selectable-list";
+import { type ItemOrGroup } from "../../primitives/SelectableList/selectable-list";
 
 import type { IconName } from "../Icon/icon";
 import type {

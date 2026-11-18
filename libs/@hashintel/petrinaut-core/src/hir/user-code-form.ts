@@ -6,8 +6,8 @@
  * - **module** — `export default <Ctor>((tokens, parameters) => …)`, the
  *   original authoring style;
  * - **body** — a bare function body ending in `return`, with the input
- *   (`tokens` / `input`) and `parameters` available ambiently, like
- *   metric and scenario code.
+ *   (`token` / `tokens` / `input`) and `parameters` available ambiently,
+ *   like metric and scenario code.
  *
  * The HIR lowering and the LSP's virtual-file wrapping must agree on which
  * form a given piece of code is in, so the decision lives here and nowhere
@@ -34,13 +34,25 @@ export type UserCodeForm = "module" | "body";
 /**
  * Ambient input-object names for the bare-body form — the names the docs
  * teach and the LSP's body wrapper declares. `parameters` is ambient in
- * every bare body.
+ * every bare body. An equation that couples one token sees `token` instead
+ * of the `tokens` tuple: see {@link dynamicsInputName}.
  */
 export const AMBIENT_INPUT_NAMES: Record<DualFormSurfaceKind, string> = {
   dynamics: "tokens",
   lambda: "input",
   kernel: "input",
 };
+
+/** The ambient name of the one token an equation of arity 1 couples. */
+export const SINGLE_TOKEN_INPUT_NAME = "token";
+
+/**
+ * The ambient input name of an equation's bare body: `token`, the token
+ * itself, for an equation that couples one; `tokens`, the tuple, for one
+ * that couples more.
+ */
+export const dynamicsInputName = (arity: number | undefined): string =>
+  arity === 1 ? SINGLE_TOKEN_INPUT_NAME : AMBIENT_INPUT_NAMES.dynamics;
 
 function isExportStatement(statement: ts.Statement): boolean {
   if (ts.isExportAssignment(statement) || ts.isExportDeclaration(statement)) {

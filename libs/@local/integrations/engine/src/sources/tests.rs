@@ -26,13 +26,13 @@ use crate::{
     storage::tests::{minio, s3_storage},
 };
 
-pub(super) struct Server {
+pub(crate) struct Server {
     url: String,
     task: JoinHandle<()>,
 }
 
 impl Server {
-    pub(super) fn url(&self) -> &str {
+    pub(crate) fn url(&self) -> &str {
         &self.url
     }
 }
@@ -43,7 +43,7 @@ impl Drop for Server {
     }
 }
 
-pub(super) async fn server(router: Router) -> Server {
+pub(crate) async fn server(router: Router) -> Server {
     let listener = TcpListener::bind("127.0.0.1:0")
         .await
         .expect("should bind the test server");

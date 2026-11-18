@@ -28,6 +28,13 @@ export interface ArchinautConfig {
   cacheDirectory: string;
   /** Base URL for source links in generated pages, including the git ref. */
   sourceUrlPrefix: string;
+  /**
+   * Decks the site serves beside the docs, one folder per deck: relative to
+   * `root`, or absolute for a folder outside the repository. Absent when the
+   * instance has no slides; `--slides <dir>` sets or overrides it. Decks are
+   * not part of the bundle.
+   */
+  slidesDirectory?: string;
   site: SiteConfig;
 }
 
@@ -37,8 +44,13 @@ export interface SiteConfig {
   description: string;
   /** The canonical URL, for sitemaps and absolute links. */
   url: string;
-  /** Repo-relative PNG shown beside the title. */
+  /** Repo-relative PNG shown beside the title, and in a slide's corner. */
   logo: string;
+  /**
+   * The logo's height in a slide's corner, as a ratio of the corner's
+   * height; 1 when absent. A deck's `logoScale` overrides it.
+   */
+  slideLogoScale?: number;
   /** Repo-relative favicon. */
   favicon: string;
 }

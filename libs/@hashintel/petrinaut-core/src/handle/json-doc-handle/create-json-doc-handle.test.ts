@@ -23,7 +23,7 @@ const coloured = (): SDCPN => ({
       name: "Place 1",
       colorId: "t1",
       dynamicsEnabled: true,
-      differentialEquationId: "d1",
+      dynamics: [{ differentialEquationId: "d1" }],
       visualizerCode: "return <Visualizer.Svg />;",
       x: 0,
       y: 0,
@@ -42,6 +42,7 @@ const coloured = (): SDCPN => ({
   parameters: [],
   differentialEquations: [
     {
+      arity: 1,
       id: "d1",
       name: "Dynamics 1",
       colorId: "t1",
@@ -92,7 +93,6 @@ describe("createJsonDocHandle", () => {
             name: "Capacity",
             colorId: null,
             dynamicsEnabled: false,
-            differentialEquationId: null,
             x: 1,
             y: 2,
             ...(capacity === undefined ? {} : { capacity }),
@@ -119,7 +119,6 @@ describe("createJsonDocHandle", () => {
         name: "Place 1",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         x: 0,
         y: 0,
       });
@@ -203,7 +202,6 @@ describe("createJsonDocHandle", () => {
         name: "Place 1",
         colorId: "t1",
         dynamicsEnabled: true,
-        differentialEquationId: null,
         x: 0,
         y: 0,
       });
@@ -392,7 +390,6 @@ describe("createPetrinaut", () => {
         {
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
         },
       ],
     });

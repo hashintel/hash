@@ -47,7 +47,6 @@ describe("Petrinaut core actions", () => {
       name: "Queue",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     });
@@ -68,7 +67,6 @@ describe("Petrinaut core actions", () => {
         name: "UpdatedQueue",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         x: 12,
         y: 24,
       },
@@ -84,7 +82,6 @@ describe("Petrinaut core actions", () => {
           name: "Input",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         },
@@ -93,7 +90,6 @@ describe("Petrinaut core actions", () => {
           name: "Output",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 100,
           y: 0,
         },
@@ -134,7 +130,6 @@ describe("Petrinaut core actions", () => {
           name: "Input",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         },
@@ -143,7 +138,6 @@ describe("Petrinaut core actions", () => {
           name: "Output",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 100,
           y: 0,
         },
@@ -152,7 +146,6 @@ describe("Petrinaut core actions", () => {
           name: "NewInput",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 100,
         },
@@ -161,7 +154,6 @@ describe("Petrinaut core actions", () => {
           name: "NewOutput",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 100,
           y: 100,
         },
@@ -209,7 +201,6 @@ describe("Petrinaut core actions", () => {
           name: "Input",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         },
@@ -218,7 +209,6 @@ describe("Petrinaut core actions", () => {
           name: "Output",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 100,
           y: 0,
         },
@@ -227,7 +217,6 @@ describe("Petrinaut core actions", () => {
           name: "RejectedOutput",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 200,
           y: 0,
         },
@@ -305,7 +294,6 @@ describe("Petrinaut core actions", () => {
           name: "Output",
           colorId: "type-1",
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 100,
           y: 0,
         },
@@ -377,7 +365,6 @@ describe("Petrinaut core actions", () => {
               name: "PortOutput",
               colorId: "type-1",
               dynamicsEnabled: false,
-              differentialEquationId: null,
               isPort: true,
               x: 100,
               y: 0,
@@ -442,7 +429,6 @@ describe("Petrinaut core actions", () => {
           name: "Output",
           colorId: "type-1",
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 100,
           y: 0,
         },
@@ -451,7 +437,6 @@ describe("Petrinaut core actions", () => {
           name: "OtherOutput",
           colorId: "type-1",
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 200,
           y: 0,
         },
@@ -519,7 +504,6 @@ describe("Petrinaut core actions", () => {
               name: "InputPort",
               colorId: null,
               dynamicsEnabled: false,
-              differentialEquationId: null,
               isPort: true,
               x: 0,
               y: 0,
@@ -529,7 +513,6 @@ describe("Petrinaut core actions", () => {
               name: "OutputPort",
               colorId: null,
               dynamicsEnabled: false,
-              differentialEquationId: null,
               isPort: true,
               x: 100,
               y: 0,
@@ -539,7 +522,6 @@ describe("Petrinaut core actions", () => {
               name: "Internal",
               colorId: null,
               dynamicsEnabled: false,
-              differentialEquationId: null,
               x: 200,
               y: 0,
             },
@@ -666,7 +648,7 @@ describe("Petrinaut core actions", () => {
           name: "Dynamic",
           colorId: "type-1",
           dynamicsEnabled: true,
-          differentialEquationId: "equation-1",
+          dynamics: [{ differentialEquationId: "equation-1" }],
           x: 0,
           y: 0,
         },
@@ -682,10 +664,11 @@ describe("Petrinaut core actions", () => {
       ],
       differentialEquations: [
         {
+          arity: 1,
           id: "equation-1",
           name: "Motion",
           colorId: "type-1",
-          code: "export default Dynamics(() => []);",
+          code: "export default Dynamics((token) => ({}));",
         },
       ],
     });
@@ -701,7 +684,98 @@ describe("Petrinaut core actions", () => {
     expect(definition.types).toEqual([]);
     expect(definition.differentialEquations).toEqual([]);
     expect(definition.places[0]!.colorId).toBeNull();
-    expect(definition.places[0]!.differentialEquationId).toBeNull();
+    expect(definition.places[0]!.dynamics).toEqual([]);
+  });
+
+  test("composes further equations into a place and validates their colour", () => {
+    const instance = createInstance();
+    instance.mutations.addType({
+      id: "type-1",
+      name: "Particle",
+      iconSlug: "circle",
+      displayColor: "#34a0fa",
+      elements: [{ elementId: "x", name: "x", type: "real" }],
+    });
+    instance.mutations.addType({
+      id: "type-2",
+      name: "Other",
+      iconSlug: "circle",
+      displayColor: "#000000",
+      elements: [{ elementId: "y", name: "y", type: "real" }],
+    });
+    instance.mutations.addDifferentialEquation({
+      id: "drift",
+      name: "Drift",
+      colorId: "type-1",
+      code: "return { x: 1 };",
+      arity: 1,
+    });
+    instance.mutations.addDifferentialEquation({
+      id: "pull",
+      name: "Pull",
+      colorId: "type-1",
+      code: "return [{ x: 1 }, { x: -1 }];",
+      arity: 2,
+    });
+    instance.mutations.addDifferentialEquation({
+      id: "other",
+      name: "Other",
+      colorId: "type-2",
+      code: "return [{ y: 1 }, { y: -1 }];",
+      arity: 2,
+    });
+    instance.mutations.addPlace({
+      id: "place-1",
+      name: "Space",
+      colorId: "type-1",
+      dynamicsEnabled: true,
+      dynamics: [
+        { differentialEquationId: "drift" },
+        { differentialEquationId: "pull" },
+      ],
+      x: 0,
+      y: 0,
+    });
+
+    expect(instance.definition.get().places[0]).toMatchObject({
+      dynamics: [
+        { differentialEquationId: idOf("drift") },
+        { differentialEquationId: idOf("pull") },
+      ],
+    });
+    expect(instance.definition.get().differentialEquations[1]).toMatchObject({
+      id: idOf("pull"),
+      arity: 2,
+    });
+
+    expect(() =>
+      instance.mutations.updatePlace({
+        placeId: "place-1",
+        update: { dynamics: [{ differentialEquationId: "other" }] },
+      }),
+    ).toThrow(/colorId/);
+    expect(() =>
+      instance.mutations.updatePlace({
+        placeId: "place-1",
+        update: { dynamics: [{ differentialEquationId: "missing" }] },
+      }),
+    ).toThrow(/does not exist/);
+    expect(() =>
+      instance.mutations.updateDifferentialEquation({
+        equationId: "pull",
+        update: { arity: 0 },
+      }),
+    ).toThrow();
+
+    instance.mutations.removeDifferentialEquation({ equationId: "pull" });
+    expect(instance.definition.get().places[0]).toMatchObject({
+      dynamics: [{ differentialEquationId: idOf("drift") }],
+    });
+
+    instance.mutations.removeDifferentialEquation({ equationId: "drift" });
+    expect(instance.definition.get().places[0]).toMatchObject({
+      dynamics: [],
+    });
   });
 
   test("does not mutate readonly instances", () => {
@@ -715,7 +789,6 @@ describe("Petrinaut core actions", () => {
       name: "Queue",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     });
@@ -746,17 +819,18 @@ describe("Petrinaut core actions", () => {
       elements: [],
     });
     instance.mutations.addDifferentialEquation({
+      arity: 1,
       id: "equation-1",
       name: "Motion",
       colorId: "type-1",
-      code: "export default Dynamics(() => []);",
+      code: "export default Dynamics((token) => ({}));",
     });
     instance.mutations.addPlace({
       id: "place-1",
       name: "Dynamic",
       colorId: "type-1",
       dynamicsEnabled: true,
-      differentialEquationId: "equation-1",
+      dynamics: [{ differentialEquationId: "equation-1" }],
       visualizerCode: "return <Visualizer.Svg />;",
       x: 0,
       y: 0,
@@ -787,7 +861,6 @@ describe("Petrinaut core actions", () => {
     expect(definition.places[0]).toMatchObject({
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
     });
     expect(definition.places[0]).not.toHaveProperty("visualizerCode");
     expect(definition.transitions[0]).toMatchObject({
@@ -819,7 +892,6 @@ describe("Petrinaut core actions", () => {
               name: "Input",
               colorId: "type-1",
               dynamicsEnabled: false,
-              differentialEquationId: null,
               x: 0,
               y: 0,
             },
@@ -860,7 +932,6 @@ describe("Petrinaut core actions", () => {
               name: "Input",
               colorId: null,
               dynamicsEnabled: false,
-              differentialEquationId: null,
               x: 0,
               y: 0,
             },
@@ -899,7 +970,6 @@ describe("Petrinaut core actions", () => {
         name: "Queue",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         x: 0,
         y: 0,
       }),
@@ -916,7 +986,6 @@ describe("Petrinaut core actions", () => {
       name: "Queue",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     });
@@ -1066,7 +1135,6 @@ describe("Petrinaut core actions", () => {
         name: "invalid place name",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         x: 0,
         y: 0,
       }),
@@ -1191,7 +1259,6 @@ describe("Petrinaut core actions", () => {
       name: "Input",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     });
@@ -1209,7 +1276,6 @@ describe("Petrinaut core actions", () => {
         name: "Input",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         isPort: true,
         x: 0,
         y: 0,

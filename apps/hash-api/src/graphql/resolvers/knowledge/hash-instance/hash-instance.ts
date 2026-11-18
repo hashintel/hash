@@ -27,6 +27,8 @@ export const hashInstanceSettingsResolver: ResolverFn<
   return {
     entity: entity.toJSON(),
     isUserAdmin,
-    enabledIntegrations,
+    enabledIntegrations: {
+      googleSheets: enabledIntegrations.googleSheets,
+    },
   };
 };

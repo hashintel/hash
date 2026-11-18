@@ -72,6 +72,7 @@ test("real panel keeps rejected comments and preserves composer text, then clear
     Promise.resolve({ send, wait } as unknown as FlueClient),
     tracker,
   );
+  let chatMessages: readonly { id: string; role: string }[] = [];
   const useHostPlugin: PluginHook<typeof HostAdmissionTestPlugin> = (api) => ({
     assistant: {
       content: (
@@ -80,32 +81,35 @@ test("real panel keeps rejected comments and preserves composer text, then clear
           aiAssistant={{
             conversationId: "comments",
             transport,
-            renderComposerControl: (context) => (
-              <>
-                <button
-                  type="button"
-                  onClick={() =>
-                    pendingCommentsFor(
-                      api.document.net,
-                      context.conversationId,
-                    ).add({ text: "Use nine agents", records: ["c1"] })
-                  }
-                >
-                  Queue comment
-                </button>
-                <BrunchLedgerCommentsBar
-                  net={api.document.net}
-                  context={{
-                    ...context,
-                    submitText: (input) =>
-                      tracker.submitTextWithAdmission(
-                        context.submitText,
-                        input,
-                      ),
-                  }}
-                />
-              </>
-            ),
+            renderComposerControl: (context) => {
+              chatMessages = context.messages;
+              return (
+                <>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      pendingCommentsFor(
+                        api.document.net,
+                        context.conversationId,
+                      ).add({ text: "Use nine agents", records: ["c1"] })
+                    }
+                  >
+                    Queue comment
+                  </button>
+                  <BrunchLedgerCommentsBar
+                    net={api.document.net}
+                    context={{
+                      ...context,
+                      submitText: (input) =>
+                        tracker.submitTextWithAdmission(
+                          context.submitText,
+                          input,
+                        ),
+                    }}
+                  />
+                </>
+              );
+            },
           }}
         />
       ),
@@ -145,7 +149,86 @@ test("real panel keeps rejected comments and preserves composer text, then clear
   await screen.findByText("Response failed after admission");
   expect(screen.queryByRole("group", { name: "Ledger comments" })).toBeNull();
   expect(send).toHaveBeenCalledTimes(2);
+  // Let the panel's 80ms message throttle publish the settled transcript.
+  await act(() => new Promise((resolve) => setTimeout(resolve, 200)));
+  // Retry sends under a fresh identity, so the refused copy must be gone.
+  const userMessageIds = chatMessages
+    .filter(({ role }) => role === "user")
+    .map(({ id }) => id);
+  expect(userMessageIds).toHaveLength(1);
+  expect(send.mock.calls[1]?.[0].idempotencyKey).toBe(
+    `ai-sdk:signal:${userMessageIds[0]}`,
+  );
 });
+
+test.each([
+  {
+    failure: "a definite refusal removes",
+    error: new FlueApiError(403, "Refused"),
+    kept: 0,
+  },
+  {
+    failure: "an ambiguous failure keeps",
+    error: new TypeError("Connection lost after request write"),
+    kept: 1,
+  },
+])(
+  "real panel: $failure the optimistic composer message",
+  async ({ error, kept }) => {
+    const send = vi.fn<FlueClient["send"]>().mockRejectedValue(error);
+    const transport = createBrunchPanelTransport(
+      Promise.resolve({ send } as unknown as FlueClient),
+      new BrunchPanelConversationTracker(),
+    );
+    let userMessages = 0;
+    // Declared outside the plugin hook so the compiler keeps its closure.
+    const renderComposerControl = (context: {
+      messages: readonly { role: string }[];
+    }) => {
+      userMessages = context.messages.filter(
+        ({ role }) => role === "user",
+      ).length;
+      return null;
+    };
+    const useHostPlugin: PluginHook<typeof HostAdmissionTestPlugin> = (
+      api,
+    ) => ({
+      assistant: {
+        content: (
+          <AiAssistantPanel
+            api={api}
+            aiAssistant={{
+              conversationId: "composer",
+              transport,
+              renderComposerControl,
+            }}
+          />
+        ),
+      },
+    });
+    render(
+      <Petrinaut
+        handle={createJsonDocHandle({
+          initial: { places: [], transitions: [] },
+        })}
+        plugins={[HostAdmissionTestPlugin(useHostPlugin)]}
+      />,
+    );
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Show AI assistant" }),
+    );
+    const composer = screen.getByRole<HTMLTextAreaElement>("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(composer, { target: { value: "Hello Brunch" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+    await waitFor(() => expect(composer.value).toBe("Hello Brunch"));
+    // Let the panel's 80ms message throttle publish the settled transcript.
+    await act(() => new Promise((resolve) => setTimeout(resolve, 200)));
+    expect(send).toHaveBeenCalledOnce();
+    expect(userMessages).toBe(kept);
+  },
+);
 
 test("real panel offers experiment delivery retry after ambiguous admission and never retries an admitted response failure", async () => {
   const response = Promise.withResolvers<void>();

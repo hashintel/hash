@@ -37,7 +37,6 @@ import { Logger } from "@local/hash-backend-utils/logger";
 import { runWorker } from "@local/hash-backend-utils/temporal/worker-bootstrap";
 
 import { createFlowActivities } from "./activities/flow-activities.js";
-import * as linearActivities from "./activities/linear-activities.js";
 import * as workflows from "./workflows.js";
 
 import type { WorkflowTypeMap } from "@local/hash-backend-utils/temporal-integration-workflow-types";
@@ -82,7 +81,6 @@ async function run() {
     taskQueue: "integration",
     healthCheckPort: 4300,
     activities: {
-      ...linearActivities.createLinearIntegrationActivities({ graphApiClient }),
       ...createFlowActivities({ graphApiClient }),
       ...createCommonFlowActivities({ graphApiClient }),
     },

@@ -31,6 +31,7 @@ export const getFlowRunById = gql`
       status
       startedAt
       closedAt
+      updatedAt
       flowInputs
       dataSources
       outputs {
@@ -40,6 +41,7 @@ export const getFlowRunById = gql`
       failure {
         message
       }
+      openInputRequests
     }
   }
 `;

@@ -1,12 +1,6 @@
 import { use, useState } from "react";
 
-import {
-  Banner,
-  Button,
-  Icon,
-  NumberInput,
-  Select,
-} from "@hashintel/ds-components";
+import { Banner, Button, Icon, Select } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   classicRunParameterValues,
@@ -28,12 +22,12 @@ import {
   FormSectionHeader,
 } from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
 import { OverlayScrollArea } from "../../../../../components/overlay-scroll-area";
-import { PointerHelpTooltip } from "../../../../../components/pointer-help-tooltip";
 import { StackedSections } from "../../../../../components/stacked-sections";
 import { FocusControls } from "../../../../../worksheet/focus-controls";
 import { FocusRoot, FocusStack } from "../../../../../worksheet/focus-stack";
 import { scenarioExpressions } from "../../../../shared/scenario-expressions";
 import { ViewScenarioDrawer } from "../../SimulateView/scenarios/view-scenario-drawer";
+import { RunSettingsPicker } from "./run-settings-picker";
 import {
   scenarioRunParameterValues,
   seedScenarioRunState,
@@ -62,7 +56,9 @@ const rootStyle = css({
 const scenarioRowStyle = css({
   display: "flex",
   alignItems: "center",
-  gap: "2",
+  // One line at any width: the run settings give way before anything wraps,
+  // so the columns below never move.
+  columnGap: "3",
   flexShrink: 0,
   // Small right inset so the row's controls don't hug the panel edge,
   // matching the form's columns below.
@@ -70,25 +66,16 @@ const scenarioRowStyle = css({
   marginBottom: "1.5",
 });
 
-// The picker reads as one control, not a full-panel bar; the Time Step
-// control fills the row's right edge.
+// The picker reads as one control, not a full-panel bar; the run settings
+// take the row's right edge.
 const scenarioPickerGroupStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "2",
   flex: "[1]",
-  minWidth: "[0]",
+  // Wide enough to read a scenario's name beside its buttons.
+  minWidth: "[240px]",
   maxWidth: "[420px]",
-});
-
-// Time Step sits inline on the picker row, pushed to the right edge — the
-// columns below keep the full panel width to themselves.
-const timeStepInlineStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "1.5",
-  marginLeft: "auto",
-  flexShrink: 0,
 });
 
 const scenarioLabelStyle = css({
@@ -112,8 +99,8 @@ const scenarioSelectWrapperStyle = css({
 });
 
 // The form's two columns: Variables and Parameters on the left, the wider
-// Initial state on the right. The scenario picker and Time Step sit above
-// the grid, so the columns keep the full panel width and their headers
+// Initial state on the right. The scenario picker and the run settings sit
+// above the grid, so the columns keep the full panel width and their headers
 // align.
 const containerStyle = css({
   display: "grid",
@@ -144,21 +131,6 @@ const adHocFormRootStyle = css({
 // matching the panel's disabled inputs.
 const lockedFormStyle = css({
   opacity: "[0.5]",
-});
-
-const labelStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "1",
-  whiteSpace: "nowrap",
-  fontSize: "xs",
-  fontWeight: "medium",
-  color: "neutral.fg.body",
-});
-
-const smallLabelStyle = css({
-  fontSize: "[10px]",
-  fontWeight: "normal",
 });
 
 const parametersListStyle = css({
@@ -243,7 +215,7 @@ const NO_SCENARIO = "__none__";
 
 /**
  * SimulationSettingsContent displays simulation settings in the BottomPanel:
- * a scenario picker, the Time Step, and the scenario form — editable with no
+ * a scenario picker, the run settings, and the scenario form — editable with no
  * scenario selected, in run mode for a saved scenario.
  */
 const SimulationSettingsContent: React.FC = () => {
@@ -255,8 +227,6 @@ const SimulationSettingsContent: React.FC = () => {
   const globalParameters = extensions.parameters ? parameters : [];
   const {
     state: simulationState,
-    dt,
-    setDt,
     selectedScenarioId: contextScenarioId,
     setSelectedScenarioId: setContextScenarioId,
     scenarioParameterValues,
@@ -521,32 +491,6 @@ const SimulationSettingsContent: React.FC = () => {
     { value: NO_SCENARIO, text: "No scenario" },
   ];
 
-  const timeStepControl = (
-    <div className={timeStepInlineStyle}>
-      <label htmlFor="time-step-input" className={labelStyle}>
-        <span>
-          Time Step <span className={smallLabelStyle}>(sec/frame)</span>
-        </span>
-        <PointerHelpTooltip content="Controls the resolution of the ODE solver. Smaller steps yield finer approximations but take longer to compute." />
-      </label>
-      <NumberInput
-        htmlForId="time-step-input"
-        size="xs"
-        width="xs"
-        min={0.001}
-        step={0.001}
-        hideStepper
-        value={dt}
-        onChange={(nextDt) => {
-          if (nextDt !== null && nextDt > 0) {
-            setDt(nextDt);
-          }
-        }}
-        disabled={isSimulationActive}
-      />
-    </div>
-  );
-
   return (
     <FocusRoot>
       <FocusStack axis="vertical">
@@ -557,9 +501,9 @@ const SimulationSettingsContent: React.FC = () => {
             scenario={selectedScenario}
           />
 
-          {/* The scenario picker and Time Step share the top row, so the form's
-          two columns below keep the full panel width and their headers
-          start at the same height. */}
+          {/* The scenario picker and the run settings share the top row, so
+          the form's two columns below keep the full panel width and their
+          headers start at the same height. */}
           <FocusControls axis="horizontal">
             <div className={scenarioRowStyle}>
               <div className={scenarioPickerGroupStyle}>
@@ -647,7 +591,7 @@ const SimulationSettingsContent: React.FC = () => {
                   />
                 </div>
               </div>
-              {timeStepControl}
+              <RunSettingsPicker locked={isSimulationActive} />
             </div>
           </FocusControls>
 

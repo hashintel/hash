@@ -1,3 +1,4 @@
+import { seconds, table } from "../../../src/server/telemetry-readback.ts";
 import { toolCategories } from "./tool-categories.ts";
 
 import type {
@@ -6,24 +7,11 @@ import type {
   RunPacket,
 } from "./build-run-packet.ts";
 
-const seconds = (ms: number | null): string =>
-  ms === null ? "–" : `${(ms / 1000).toFixed(ms < 10_000 ? 1 : 0)} s`;
-
 const share = (part: number | null, whole: number): string =>
   part === null || whole === 0 ? "–" : `${Math.round((100 * part) / whole)}%`;
 
 const distribution = ({ median, p90, max }: Distribution): string =>
   `median ${seconds(median)}, p90 ${seconds(p90)}, max ${seconds(max)}`;
-
-const table = (
-  header: readonly string[],
-  rows: readonly (readonly string[])[],
-) =>
-  [
-    `| ${header.join(" | ")} |`,
-    `| ${header.map(() => "---").join(" | ")} |`,
-    ...rows.map((row) => `| ${row.join(" | ")} |`),
-  ].join("\n");
 
 const toolMix = (exchange: PacketExchange): string =>
   toolCategories
@@ -33,6 +21,18 @@ const toolMix = (exchange: PacketExchange): string =>
         : [`${category} ${exchange.categories[category].calls}`],
     )
     .join(", ");
+
+const counted = (counts: Readonly<Record<string, number>>): string =>
+  Object.entries(counts)
+    .map(([name, count]) => `${name} ×${count}`)
+    .join(", ");
+
+const modelRequestsLine = ({ modelRequests }: RunPacket["summary"]): string =>
+  modelRequests === null
+    ? "- Model requests: unknown without a server-log chronology"
+    : `- Model requests: ${modelRequests.total} (${counted(modelRequests.byModel) || "none"}); ${modelRequests.retries} retries, ${modelRequests.failed} failed${
+        modelRequests.failed === 0 ? "" : ` (${counted(modelRequests.errors)})`
+      }`;
 
 const netCell = (exchange: PacketExchange): string =>
   exchange.netAfter === null
@@ -63,6 +63,13 @@ export const renderRunPacket = (packet: RunPacket): string => {
     [
       incomplete.unsettledExchanges,
       "never settled, left out of the time sums",
+      "exchange",
+    ],
+    [
+      packet.sources.chronology
+        ? summary.exchanges - summary.exchangesWithChronology
+        : 0,
+      "without a chronology line, left out of the argument-streaming and model-request totals",
       "exchange",
     ],
     [incomplete.cutOffMessages, "cut off before its message completed", "step"],
@@ -138,11 +145,8 @@ export const renderRunPacket = (packet: RunPacket): string => {
         ]),
     ),
     "",
-    `- Skill activations: ${
-      Object.entries(summary.skillActivations)
-        .map(([name, count]) => `${name} ×${count}`)
-        .join(", ") || "none"
-    }; resource reads: ${summary.skillResourceReads}`,
+    modelRequestsLine(summary),
+    `- Skill activations: ${counted(summary.skillActivations) || "none"}; resource reads: ${summary.skillResourceReads}`,
     `- Skill reloads: ${summary.skillReloads} (${summary.skillReloadsAfterCompaction} after a compaction); compactions: ${summary.compactions}`,
     `- Ledger: ${summary.ledgerCommits} commits (${summary.ledgerRefused} refused), ${summary.ledgerArgumentChars} argument chars`,
     `- Tool calls of ${seconds(30_000)} or more (likely approval waits): ${summary.longToolCalls}`,
@@ -170,6 +174,7 @@ export const renderRunPacket = (packet: RunPacket): string => {
         "Active",
         "First text",
         "Steps",
+        "Retries",
         "Before output",
         "Args",
         "Tools",
@@ -185,6 +190,13 @@ export const renderRunPacket = (packet: RunPacket): string => {
         seconds(exchange.activeMs),
         seconds(exchange.untilFirstTextMs),
         String(exchange.steps.length),
+        exchange.modelRequests === null
+          ? "–"
+          : String(
+              exchange.modelRequests.filter(
+                (request) => request.retryOf !== null,
+              ).length,
+            ),
         seconds(exchange.beforeOutputMs),
         seconds(exchange.argumentStreamingMs),
         seconds(exchange.toolPhaseMs),

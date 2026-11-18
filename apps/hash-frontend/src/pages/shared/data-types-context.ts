@@ -10,7 +10,9 @@ export type DataTypesContextValue = {
   dataTypes: Record<VersionedUrl, DataTypeWithMetadata> | null;
   latestDataTypes: Record<BaseUrl, DataTypeWithMetadata> | null;
   loading: boolean;
-  refetch: () => void;
+  error: Error | null;
+  refetch: () => Promise<void>;
+  onDataTypeSaved: (dataType: DataTypeWithMetadata) => void;
 };
 
 export const DataTypesContext = createContext<null | DataTypesContextValue>(

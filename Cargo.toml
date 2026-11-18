@@ -66,6 +66,7 @@ members         = [
     "tests/graph/benches",
     "tests/graph/integration",
     "tests/graph/test-data/rust",
+    "tests/integrations/graph",
 ]
 resolver        = "3"
 

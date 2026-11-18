@@ -3,14 +3,11 @@ import { describe, expect, test } from "vitest";
 import { readPetrinautDocToolName } from "@hashintel/petrinaut-core";
 
 import { definePetrinautAiInteractiveTool } from "../../ai-interactive-tool";
-import {
-  getChronologicalRenderItems,
-  getMessageRenderItems,
-} from "./get-message-render-items";
+import { getMessageRenderItems } from "./get-message-render-items";
 
 import type { PetrinautAiMessage } from "../types";
 
-describe("chronological reading", () => {
+describe("ordered work", () => {
   const inspect = (toolCallId: string, toolName = "inspect") =>
     ({
       type: "dynamic-tool",
@@ -21,7 +18,7 @@ describe("chronological reading", () => {
       output: "ok",
     }) as const;
 
-  test("keeps parts in streamed order, splitting tool runs at steps, text, reasoning and lookups", () => {
+  test("keeps tool order across steps and lookups while excluding hidden tools", () => {
     const message: PetrinautAiMessage = {
       id: "turn",
       role: "assistant",
@@ -42,28 +39,25 @@ describe("chronological reading", () => {
       ],
     };
 
-    const items = getChronologicalRenderItems(
+    const items = getMessageRenderItems(
       message,
       [],
       undefined,
       new Set(["secret"]),
     );
 
-    expect(
-      items.map((item) =>
-        item.type === "tools"
-          ? item.tools.map((tool) => tool.id)
-          : item.type === "experiment"
-            ? item.key
-            : item.part.text,
-      ),
-    ).toEqual([
-      "Checking the model.",
-      ["inspect-1", "inspect-2"],
-      ["inspect-3"],
-      ["doc-1"],
-      ["inspect-4"],
+    expect(items.work.tools.map((tool) => tool.id)).toEqual([
+      "inspect-1",
+      "inspect-2",
+      "inspect-3",
+      "doc-1",
+      "inspect-4",
+    ]);
+    expect(items.work.reasoning.map((item) => item.part.text)).toEqual([
       "Compare the capacities.",
+    ]);
+    expect(items.answers.map((item) => item.part.text)).toEqual([
+      "Checking the model.",
       "Here is the comparison.",
     ]);
   });
@@ -114,8 +108,8 @@ describe("conversation turn structure", () => {
     const draftTool = definePetrinautAiInteractiveTool({
       toolName: "draft",
       placement: "card",
-      inputSchema: { parse: (input: unknown) => input },
-      outputSchema: { parse: (output: unknown) => output },
+      inputParser: { parse: (input: unknown) => input },
+      outputParser: { parse: (output: unknown) => output },
       component: () => null,
     });
     const turn = getMessageRenderItems(

@@ -5,6 +5,7 @@
 
 import { z } from "zod";
 
+import { MAX_DIFFERENTIAL_EQUATION_ARITY } from "../equation-arity";
 import { getParameterValueError } from "../parameter-values";
 import { canonicalizeArcId, petrinautIdSchema } from "../petrinaut-id";
 import { COLOR_ELEMENT_TYPES } from "../simulation/engine/type-policies";
@@ -210,12 +211,22 @@ export const placeSchema = z
     }),
     dynamicsEnabled: z.boolean().meta({
       description:
-        "Whether tokens in this place are updated by a differential equation during simulation. Dynamics only run when this is true AND `differentialEquationId` is set AND `colorId` is set.",
+        "Whether the equations in `dynamics` update this place's tokens during simulation. Dynamics only run when this is true AND `dynamics` lists at least one equation AND `colorId` is set.",
     }),
-    differentialEquationId: idSchema.nullable().meta({
-      description:
-        "ID of the differential equation used for continuous dynamics, or null when dynamics are disabled. The referenced equation's `colorId` MUST match this place's `colorId`.",
-    }),
+    dynamics: z
+      .array(
+        z.strictObject({
+          differentialEquationId: idSchema.meta({
+            description:
+              "ID of a differential equation whose `colorId` matches this place's `colorId`.",
+          }),
+        }),
+      )
+      .optional()
+      .meta({
+        description:
+          "The differential equations composed into this place's dynamics, in order. A token's derivative is the SUM of every equation's contribution: an equation with `arity` n contributes to every unordered combination of n distinct tokens. Omit or leave empty for a place without dynamics.",
+      }),
     capacity: z.int().nonnegative().nullable().optional().meta({
       description:
         "Optional maximum number of tokens this place will hold. A transition whose firing would take this place past its capacity is NOT enabled, exactly like a transition without enough input tokens — so a full place blocks the transitions that feed it and the limit is never exceeded. The check uses the net change per firing, so a transition that both consumes from and produces into this place is not blocked by its own output. A capacity of 0 means the place can never receive tokens. Omit or set null for unbounded. The initial marking must not exceed it.",
@@ -334,21 +345,28 @@ export const differentialEquationSchema = z
     }),
     colorId: idSchema.nullable().meta({
       description:
-        "ID of the colour/type whose token attributes this dynamics function updates. MUST match the `colorId` of every place that references this equation via `differentialEquationId`.",
+        "ID of the colour/type whose token attributes this dynamics function updates. MUST match the `colorId` of every place that lists this equation in `dynamics`.",
     }),
     code: z.string().meta({
       description: [
-        "Function body ending in `return`, with `tokens` and `parameters` ambient (the legacy `export default Dynamics((tokens, parameters) => …)` module form is also accepted).",
-        "`tokens` is THIS place's current tokens only — NOT all places' tokens.",
-        "MUST return an array of the SAME LENGTH where each entry provides real-valued derivatives (i.e. dx/dt, NOT the new value).",
+        "Function body ending in `return`, with the input and `parameters` ambient (the module form `export default Dynamics((token, parameters) => …)`, with one parameter per coupled token, is also accepted).",
+        "With `arity` 1 the input is `token`, ONE token of THIS place (`return { level: -token.level };`), and `tokens` is NOT defined. With `arity` 2 and above the input is `tokens`, a tuple of exactly `arity` tokens of THIS place (`const [a, b] = tokens;`). Neither is all tokens of the place, and neither holds other places' tokens.",
+        "MUST return real-valued derivatives (i.e. dx/dt, NOT the new value): one record for arity 1, an array of `arity` records (one per token, in order) above that.",
         "Integer and boolean elements are discrete and remain unchanged by dynamics.",
         "`parameters` is keyed by each parameter's `variableName` value (lower_snake_case, e.g. `parameters.damage_per_second`).",
       ].join(" "),
     }),
+    arity: z
+      .int()
+      .positive()
+      .max(MAX_DIFFERENTIAL_EQUATION_ARITY)
+      .meta({
+        description: `How many tokens the equation couples, from 1 to ${MAX_DIFFERENTIAL_EQUATION_ARITY}. The simulator applies the code to every unordered combination of that many distinct tokens of the place, in index order, and sums the contributions into each token's derivative: 1 is a per-token equation (the usual case), 2 a pairwise interaction such as an attraction between every two tokens.`,
+      }),
   })
   .meta({
     description:
-      "A differential equation for continuous dynamics on coloured tokens. The `colorId` MUST match the colour of every place that references this equation via `differentialEquationId`, and returned derivatives only update that colour's real-valued elements.",
+      "A differential equation for continuous dynamics on coloured tokens. The `colorId` MUST match the colour of every place that lists this equation in `dynamics`, and returned derivatives only update that colour's real-valued elements.",
   }) satisfies z.ZodType<DifferentialEquation>;
 
 export const parameterObjectSchema = z.strictObject({

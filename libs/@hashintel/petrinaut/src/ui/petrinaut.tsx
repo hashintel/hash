@@ -14,6 +14,7 @@ import {
   type WorkerFactory,
   type MinimalNetMetadata,
   type SDCPN,
+  type SimulatorRegistration,
 } from "@hashintel/petrinaut-core";
 
 import {
@@ -23,6 +24,7 @@ import {
 import { PetrinautProvider } from "../react/petrinaut-provider";
 import { Stack } from "./components/stack";
 import { MonacoProvider } from "./monaco/provider";
+import { fpsCounterPlugin } from "./plugins/fps-counter-plugin";
 import { PetrinautPluginsProvider } from "./plugins/plugins-provider";
 import { EditorView } from "./views/Editor/editor-view";
 import {
@@ -76,23 +78,30 @@ export type PetrinautProps = {
    */
   slots?: PetrinautSlots;
   /**
-   * Optional simulation-worker factory. Provide this when the host bundler
-   * needs to own worker instantiation (e.g. when consuming the published
-   * dist) — typically via Vite's `?worker` directive against your own copy
-   * of the worker entry. When omitted, falls back to the bundled
-   * inlined-blob worker that ships with the library, which works for
-   * source-built consumers (storybook, dev) but not always for production
-   * dist consumers.
+   * Optional factory for the worker a Quick Simulation's run is stepped in:
+   * the event simulation worker of
+   * `@hashintel/petrinaut-core/workers/event-simulation`. Provide this when
+   * the host bundler needs to own worker instantiation (e.g. when consuming
+   * the published dist) — typically via Vite's `?worker` directive against
+   * your own copy of the worker entry. When omitted, falls back to the
+   * bundled inlined-blob worker that ships with the library, which works
+   * for source-built consumers (storybook, dev) but not always for
+   * production dist consumers.
    */
-  simulationWorkerFactory?: WorkerFactory;
+  eventSimulationWorkerFactory?: WorkerFactory;
   /**
    * Optional Monte Carlo worker factory. Hosts can provide this when they need
    * to own worker bundling for the Experiments tab.
    */
   monteCarloWorkerFactory?: WorkerFactory;
   /**
+   * Simulators the host adds to the built-in ones, for Quick Simulation,
+   * Stochastic mode and experiments alike. Define them at module scope.
+   */
+  simulators?: readonly SimulatorRegistration[];
+  /**
    * Optional language-server worker factory. Same intent as
-   * `simulationWorkerFactory` — host-supplied LSP worker, typically via
+   * `eventSimulationWorkerFactory` — host-supplied LSP worker, typically via
    * `?worker` against the host's own copy of the worker source.
    */
   lspWorkerFactory?: LspWorkerFactory;
@@ -128,8 +137,9 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   createNewNet = noop,
   loadPetriNet = noop,
   slots,
-  simulationWorkerFactory,
+  eventSimulationWorkerFactory,
   monteCarloWorkerFactory,
+  simulators,
   lspWorkerFactory,
   navigation,
   presentationProfile = "editor",
@@ -159,8 +169,9 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
       <PetrinautProvider
         instance={instance}
         netManagement={netManagement}
-        simulationWorkerFactory={simulationWorkerFactory}
+        eventSimulationWorkerFactory={eventSimulationWorkerFactory}
         monteCarloWorkerFactory={monteCarloWorkerFactory}
+        simulators={simulators}
         lspWorkerFactory={lspWorkerFactory}
         navigation={navigation}
       >
@@ -170,7 +181,9 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
               className={cx(editorRootStyle, "petrinaut-root")}
               ref={portalContainerRef}
             >
-              <PetrinautPluginsProvider plugins={plugins}>
+              <PetrinautPluginsProvider
+                plugins={[fpsCounterPlugin, ...plugins]}
+              >
                 <EditorView
                   hideNetManagementControls={hideNetManagementControls}
                   slots={slots}

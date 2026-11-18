@@ -4,7 +4,7 @@ import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { withLabelWrapPoints } from "../../../../../lib/label-wrap-points";
-import { usePlaceTokenCount } from "../../../canvas-frame-store";
+import { usePlaceTokenLabel } from "../../../canvas-frame-store";
 import {
   classicNodeBoxStyle,
   classicNodeLabelStyle,
@@ -71,7 +71,7 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
   selected,
 }: NodeProps<PlaceNodeType>) => {
   // A frame re-renders this place only when its own count moves.
-  const tokenCount = usePlaceTokenCount(id);
+  const tokenLabel = usePlaceTokenLabel(id);
 
   const showStateTooltip =
     data.hasVisualizer &&
@@ -106,8 +106,8 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
           {label}
         </div>
         <div className={`${classicNodeRowStyle} ${placeRowStyle}`}>
-          {tokenCount === null ? null : (
-            <div className={tokenCountBadgeStyle}>{tokenCount}</div>
+          {tokenLabel === null ? null : (
+            <div className={tokenCountBadgeStyle}>{tokenLabel}</div>
           )}
         </div>
       </div>

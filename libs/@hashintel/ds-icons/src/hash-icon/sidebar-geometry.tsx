@@ -45,7 +45,7 @@ export const SidebarGeometry = ({
     <IconMotionLayer name="panel">
       <path
         data-icon-part="panel"
-        d="M5 4h4v16H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"
+        d="M4 4h5v16H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z"
         fill="currentColor"
         stroke="none"
         style={{
@@ -68,7 +68,7 @@ export const SidebarGeometry = ({
       />
     </IconMotionLayer>
     <IconMotionLayer name="frame">
-      <rect x="3" y="4" width="18" height="16" rx="2" fill="none" />
+      <rect x="3" y="4" width="18" height="16" rx="1" fill="none" />
     </IconMotionLayer>
   </g>
 );
