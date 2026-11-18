@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  creditCard: "A card with a payment strip represents a credit or debit card.",
   microchip:
     "An integrated circuit represents processing hardware or computation.",
   database: "A cylindrical stack represents a database.",

@@ -58,6 +58,7 @@ import { clipboardListGeometry } from "./library-geometry/clipboard-list";
 import { collapseVerticalGeometry } from "./library-geometry/collapse-vertical";
 import { columnsGeometry } from "./library-geometry/columns";
 import { commandGeometry } from "./library-geometry/command";
+import { creditCardGeometry } from "./library-geometry/credit-card";
 import { dashDashedGeometry } from "./library-geometry/dash-dashed";
 import { dashDottedGeometry } from "./library-geometry/dash-dotted";
 import { dashDrawGeometry } from "./library-geometry/dash-draw";
@@ -216,6 +217,7 @@ import { userTieGeometry } from "./library-geometry/user-tie";
 import { usersGeometry } from "./library-geometry/users";
 
 export const libraryGeometry = {
+  creditCard: creditCardGeometry,
   microchip: microchipGeometry,
   database: databaseGeometry,
   server: serverGeometry,
