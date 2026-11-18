@@ -324,7 +324,7 @@ try {
         measurements.push(await type(page, session));
         if (surface !== "micro") {
           await page
-            .getByRole("button", { name: "Run simulation", exact: true })
+            .getByRole("button", { name: "Start Simulation", exact: true })
             .click();
           await sleep(page, 600);
           measurements.push({

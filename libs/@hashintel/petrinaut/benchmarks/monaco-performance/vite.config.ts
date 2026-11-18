@@ -5,6 +5,8 @@ import MagicString from "magic-string";
 import { defineConfig } from "vite";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
+// React's profiling bundle reports `<Profiler>` timings at production speed.
+const profiling = process.env.BENCH_REACT_PROFILING === "true";
 
 export default defineConfig({
   root,
@@ -50,8 +52,11 @@ export default defineConfig({
       },
     }),
   ],
+  resolve: {
+    alias: profiling ? { "react-dom/client": "react-dom/profiling" } : {},
+  },
   build: {
-    outDir: "benchmarks/monaco-performance/output",
+    outDir: `benchmarks/monaco-performance/output${profiling ? "-profiling" : ""}`,
     emptyOutDir: true,
     sourcemap: true,
     cssMinify: "esbuild",
@@ -60,5 +65,9 @@ export default defineConfig({
     },
   },
   server: { host: "127.0.0.1", port: 6026, strictPort: true },
-  preview: { host: "127.0.0.1", port: 6027, strictPort: true },
+  preview: {
+    host: "127.0.0.1",
+    port: profiling ? 6028 : 6027,
+    strictPort: true,
+  },
 });
