@@ -6,6 +6,7 @@ import { calendarCheckGeometry } from "./library-geometry/calendar-check";
 import { calendarDayGeometry } from "./library-geometry/calendar-day";
 import { calendarDaysGeometry } from "./library-geometry/calendar-days";
 import { calendarWeekGeometry } from "./library-geometry/calendar-week";
+import { calendarsGeometry } from "./library-geometry/calendars";
 import { clipboardGeometry } from "./library-geometry/clipboard";
 import { clipboardCheckGeometry } from "./library-geometry/clipboard-check";
 import { clipboardListGeometry } from "./library-geometry/clipboard-list";
@@ -34,6 +35,7 @@ import { notePlusGeometry } from "./library-geometry/note-plus";
 import { noteStickyGeometry } from "./library-geometry/note-sticky";
 
 export const libraryGeometry = {
+  calendars: calendarsGeometry,
   calendarCheck: calendarCheckGeometry,
   calendarDays: calendarDaysGeometry,
   calendarWeek: calendarWeekGeometry,

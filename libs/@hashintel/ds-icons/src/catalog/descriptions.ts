@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  calendars:
+    "Overlapping calendars represent multiple schedules or date ranges.",
   calendarCheck: "A calendar with a check represents a confirmed appointment.",
   calendarDays: "A calendar of day cells represents dates or a schedule.",
   calendarWeek: "A calendar with highlighted rows represents a week.",
