@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  browser: "A window with a toolbar represents a web browser.",
   laptop: "A folding screen and keyboard represent a laptop computer.",
   monitor: "A screen on a stand represents a desktop display.",
   brain: "Two connected lobes represent thought, intelligence, or cognition.",
