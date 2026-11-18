@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  bringForward:
+    "An overlapping foreground square represents moving an object forward one layer.",
   ungroup: "Separated shapes represent ungrouping objects.",
   group:
     "Corner brackets enclosing a shape represent grouping selected objects.",

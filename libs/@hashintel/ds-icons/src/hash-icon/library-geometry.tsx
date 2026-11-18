@@ -31,6 +31,7 @@ import { blobGeometry } from "./library-geometry/blob";
 import { bookGeometry } from "./library-geometry/book";
 import { bookOpenGeometry } from "./library-geometry/book-open";
 import { booksGeometry } from "./library-geometry/books";
+import { bringForwardGeometry } from "./library-geometry/bring-forward";
 import { calendarCheckGeometry } from "./library-geometry/calendar-check";
 import { calendarDayGeometry } from "./library-geometry/calendar-day";
 import { calendarDaysGeometry } from "./library-geometry/calendar-days";
@@ -137,6 +138,7 @@ import { ungroupGeometry } from "./library-geometry/ungroup";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  bringForward: bringForwardGeometry,
   ungroup: ungroupGeometry,
   group: groupGeometry,
   stackVertical: stackVerticalGeometry,
