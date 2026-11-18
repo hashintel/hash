@@ -764,6 +764,7 @@ export const TargetArrowIcon = createIcon("targetArrow");
 export const PlugCheckIcon = createIcon("plugCheck");
 export const SpecificationIcon = createIcon("specification");
 export const SurveyIcon = createIcon("survey");
+export const CircleTwoIcon = createIcon("circleTwo");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -949,6 +950,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  circleTwo: CircleTwoIcon,
   survey: SurveyIcon,
   specification: SpecificationIcon,
   plugCheck: PlugCheckIcon,

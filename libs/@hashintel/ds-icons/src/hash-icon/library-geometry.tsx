@@ -70,6 +70,7 @@ import { chevronsUpDownGeometry } from "./library-geometry/chevrons-up-down";
 import { circleArrowRightGeometry } from "./library-geometry/circle-arrow-right";
 import { circleArrowUpRightGeometry } from "./library-geometry/circle-arrow-up-right";
 import { circlePlayGeometry } from "./library-geometry/circle-play";
+import { circleTwoGeometry } from "./library-geometry/circle-two";
 import { circleUpGeometry } from "./library-geometry/circle-up";
 import { cityGeometry } from "./library-geometry/city";
 import { clipboardGeometry } from "./library-geometry/clipboard";
@@ -337,6 +338,7 @@ import { wavesGeometry } from "./library-geometry/waves";
 import { workflowGeometry } from "./library-geometry/workflow";
 
 export const libraryGeometry = {
+  circleTwo: circleTwoGeometry,
   survey: surveyGeometry,
   specification: specificationGeometry,
   plugCheck: plugCheckGeometry,
