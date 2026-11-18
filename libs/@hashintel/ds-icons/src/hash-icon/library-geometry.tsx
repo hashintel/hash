@@ -200,6 +200,7 @@ import { paletteGeometry } from "./library-geometry/palette";
 import { palmTreeGeometry } from "./library-geometry/palm-tree";
 import { paperclipGeometry } from "./library-geometry/paperclip";
 import { parallelogramGeometry } from "./library-geometry/parallelogram";
+import { partyHornGeometry } from "./library-geometry/party-horn";
 import { pencilRulerGeometry } from "./library-geometry/pencil-ruler";
 import { pencilSlashGeometry } from "./library-geometry/pencil-slash";
 import { pentagonGeometry } from "./library-geometry/pentagon";
@@ -315,6 +316,7 @@ import { wavePulseGeometry } from "./library-geometry/wave-pulse";
 import { wavesGeometry } from "./library-geometry/waves";
 
 export const libraryGeometry = {
+  partyHorn: partyHornGeometry,
   cookie: cookieGeometry,
   pizza: pizzaGeometry,
   palmTree: palmTreeGeometry,
