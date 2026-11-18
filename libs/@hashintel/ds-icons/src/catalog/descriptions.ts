@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  squareMinus: "A minus in a square represents removing or collapsing an item.",
   squareClose: "A cross in a square represents closing or rejecting an item.",
   circlePlay:
     "A play symbol in a circle represents starting media or an execution.",

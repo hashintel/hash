@@ -481,6 +481,7 @@ export const CircleArrowUpRightIcon = createIcon("circleArrowUpRight");
 export const CircleUpIcon = createIcon("circleUp");
 export const CirclePlayIcon = createIcon("circlePlay");
 export const SquareCloseIcon = createIcon("squareClose");
+export const SquareMinusIcon = createIcon("squareMinus");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -666,6 +667,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  squareMinus: SquareMinusIcon,
   squareClose: SquareCloseIcon,
   circlePlay: CirclePlayIcon,
   circleUp: CircleUpIcon,
