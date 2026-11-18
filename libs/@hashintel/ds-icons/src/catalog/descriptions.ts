@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  typeInheritance:
+    "A parent type connected to derived types represents inheritance.",
   tableTree: "Rows joined by branch lines represent a hierarchical table.",
   timelineArrow:
     "Timed events below an arrow represent progression along a timeline.",

@@ -20,6 +20,7 @@ export type HashIconHint =
   | "up";
 
 export const hashIconHints = {
+  typeInheritance: "lift",
   tableTree: "lift",
   timelineArrow: "lift",
   timeline: "lift",

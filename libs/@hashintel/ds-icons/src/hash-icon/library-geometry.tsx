@@ -310,6 +310,7 @@ import { truckContainerGeometry } from "./library-geometry/truck-container";
 import { truckFastGeometry } from "./library-geometry/truck-fast";
 import { truckPlaneGeometry } from "./library-geometry/truck-plane";
 import { truckRampGeometry } from "./library-geometry/truck-ramp";
+import { typeInheritanceGeometry } from "./library-geometry/type-inheritance";
 import { underlineGeometry } from "./library-geometry/underline";
 import { ungroupGeometry } from "./library-geometry/ungroup";
 import { uploadGeometry } from "./library-geometry/upload";
@@ -327,6 +328,7 @@ import { wavesGeometry } from "./library-geometry/waves";
 import { workflowGeometry } from "./library-geometry/workflow";
 
 export const libraryGeometry = {
+  typeInheritance: typeInheritanceGeometry,
   tableTree: tableTreeGeometry,
   timelineArrow: timelineArrowGeometry,
   timeline: timelineGeometry,
