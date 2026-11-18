@@ -7,6 +7,7 @@ import { arrowheadArrowGeometry } from "./library-geometry/arrowhead-arrow";
 import { arrowheadBarGeometry } from "./library-geometry/arrowhead-bar";
 import { arrowheadDiamondGeometry } from "./library-geometry/arrowhead-diamond";
 import { arrowheadDotGeometry } from "./library-geometry/arrowhead-dot";
+import { arrowheadNoneGeometry } from "./library-geometry/arrowhead-none";
 import { arrowheadSquareGeometry } from "./library-geometry/arrowhead-square";
 import { arrowheadTriangleGeometry } from "./library-geometry/arrowhead-triangle";
 import { arrowheadTriangleInvertedGeometry } from "./library-geometry/arrowhead-triangle-inverted";
@@ -93,6 +94,7 @@ import { triangleGeometry } from "./library-geometry/triangle";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  arrowheadNone: arrowheadNoneGeometry,
   arrowheadTriangleInverted: arrowheadTriangleInvertedGeometry,
   arrowheadTriangle: arrowheadTriangleGeometry,
   arrowheadSquare: arrowheadSquareGeometry,
