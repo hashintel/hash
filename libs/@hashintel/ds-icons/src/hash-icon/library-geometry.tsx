@@ -69,6 +69,7 @@ import { eraserGeometry } from "./library-geometry/eraser";
 import { expandDiagonalGeometry } from "./library-geometry/expand-diagonal";
 import { expandHorizontalGeometry } from "./library-geometry/expand-horizontal";
 import { expandVerticalGeometry } from "./library-geometry/expand-vertical";
+import { familyGeometry } from "./library-geometry/family";
 import { fileArchiveGeometry } from "./library-geometry/file-archive";
 import { fileAudioGeometry } from "./library-geometry/file-audio";
 import { fileBoxGeometry } from "./library-geometry/file-box";
@@ -198,6 +199,7 @@ import { userTieGeometry } from "./library-geometry/user-tie";
 import { usersGeometry } from "./library-geometry/users";
 
 export const libraryGeometry = {
+  family: familyGeometry,
   personBooth: personBoothGeometry,
   personPortal: personPortalGeometry,
   personSign: personSignGeometry,
