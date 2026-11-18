@@ -1916,8 +1916,8 @@
     "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M4 16v5h16v-5M12 16V3M7 8l5-5 5 5\"></path></g></g></g></g></g></g></g></g></g>"
   },
   "historyUser": {
-    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 14v-3h3m-3 0a8 8 0 1 1 1 7\"></path><circle cx=\"12\" cy=\"10\" r=\"2.5\"></circle><path d=\"M8 17a4 4 0 0 1 8 0\"></path></g></g></g></g></g></g></g></g></g>",
-    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 14v-3h3m-3 0a8 8 0 1 1 1 7\"></path><circle cx=\"12\" cy=\"10\" r=\"2.5\"></circle><path d=\"M8 17a4 4 0 0 1 8 0\"></path></g></g></g></g></g></g></g></g></g>"
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M5.636 5.636a9 9 0 1 1-2.329 8.693M5.636 2.136v3.5h3.5\"></path><circle cx=\"12\" cy=\"9\" r=\"2\"></circle><path d=\"M8.5 17.5a3.5 3.5 0 0 1 7 0\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M5.636 5.636a9 9 0 1 1-2.329 8.693M5.636 2.136v3.5h3.5\"></path><circle cx=\"12\" cy=\"9\" r=\"2\"></circle><path d=\"M8.5 17.5a3.5 3.5 0 0 1 7 0\"></path></g></g></g></g></g></g></g></g></g>"
   },
   "historyPages": {
     "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 14v-3h3m-3 0a8 8 0 1 1 1 7\"></path><rect x=\"8\" y=\"8\" width=\"7\" height=\"9\" rx=\"0.5\"></rect><path d=\"M11 6h6v8\"></path></g></g></g></g></g></g></g></g></g>",
