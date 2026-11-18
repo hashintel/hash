@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  toggleOff:
+    "A switch with its knob on the left represents a disabled setting.",
   toggleOn:
     "A switch with its knob on the right represents an enabled setting.",
   power: "A broken circle and vertical bar represent power or activation.",
