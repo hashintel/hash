@@ -672,6 +672,7 @@ export const CrosshairsIcon = createIcon("crosshairs");
 export const GlobeIcon = createIcon("globe");
 export const GlobeNodesIcon = createIcon("globeNodes");
 export const GlobePointerIcon = createIcon("globePointer");
+export const GlobeStandIcon = createIcon("globeStand");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -857,6 +858,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  globeStand: GlobeStandIcon,
   globePointer: GlobePointerIcon,
   globeNodes: GlobeNodesIcon,
   globe: GlobeIcon,
