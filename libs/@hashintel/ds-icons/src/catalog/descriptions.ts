@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  tombstone:
+    "A rounded memorial stone represents a tombstone or deleted record.",
   teddyBear: "A soft toy bear represents toys, childhood, or comfort.",
   partyHorn: "A cone with celebratory marks represents a party or celebration.",
   cookie: "A bitten biscuit represents a cookie or browser cookie setting.",

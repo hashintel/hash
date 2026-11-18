@@ -293,6 +293,7 @@ import { thumbsDownGeometry } from "./library-geometry/thumbs-down";
 import { thumbsUpGeometry } from "./library-geometry/thumbs-up";
 import { toggleOffGeometry } from "./library-geometry/toggle-off";
 import { toggleOnGeometry } from "./library-geometry/toggle-on";
+import { tombstoneGeometry } from "./library-geometry/tombstone";
 import { towerControlGeometry } from "./library-geometry/tower-control";
 import { trapezoidGeometry } from "./library-geometry/trapezoid";
 import { triangleGeometry } from "./library-geometry/triangle";
@@ -317,6 +318,7 @@ import { wavePulseGeometry } from "./library-geometry/wave-pulse";
 import { wavesGeometry } from "./library-geometry/waves";
 
 export const libraryGeometry = {
+  tombstone: tombstoneGeometry,
   teddyBear: teddyBearGeometry,
   partyHorn: partyHornGeometry,
   cookie: cookieGeometry,
