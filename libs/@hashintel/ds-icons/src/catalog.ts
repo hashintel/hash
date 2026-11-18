@@ -164,6 +164,7 @@ export const hashIconStudies = [
 
 const categories = {
   Logistics: [
+    "truckContainer",
     "personDolly",
     "forklift",
     "conveyorBelt",
