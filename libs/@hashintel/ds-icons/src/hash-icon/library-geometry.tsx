@@ -7,8 +7,10 @@ import { fileInvoiceGeometry } from "./library-geometry/file-invoice";
 import { filePdfGeometry } from "./library-geometry/file-pdf";
 import { filePresentationGeometry } from "./library-geometry/file-presentation";
 import { fileTextGeometry } from "./library-geometry/file-text";
+import { fileVideoGeometry } from "./library-geometry/file-video";
 
 export const libraryGeometry = {
+  fileVideo: fileVideoGeometry,
   fileAudio: fileAudioGeometry,
   filePdf: filePdfGeometry,
   filePresentation: filePresentationGeometry,
