@@ -113,6 +113,7 @@ import { pinGeometry } from "./library-geometry/pin";
 import { powerGeometry } from "./library-geometry/power";
 import { radioCheckedGeometry } from "./library-geometry/radio-checked";
 import { rectangleGeometry } from "./library-geometry/rectangle";
+import { rectanglesMixedGeometry } from "./library-geometry/rectangles-mixed";
 import { redoGeometry } from "./library-geometry/redo";
 import { roundedCornerGeometry } from "./library-geometry/rounded-corner";
 import { sendBackwardGeometry } from "./library-geometry/send-backward";
@@ -141,6 +142,7 @@ import { ungroupGeometry } from "./library-geometry/ungroup";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  rectanglesMixed: rectanglesMixedGeometry,
   sendToBack: sendToBackGeometry,
   bringToFront: bringToFrontGeometry,
   sendBackward: sendBackwardGeometry,

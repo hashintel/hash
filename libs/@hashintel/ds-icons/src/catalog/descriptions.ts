@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  rectanglesMixed:
+    "Rectangles of different proportions represent a mixed layout.",
   sendToBack:
     "A square beneath stacked outlines represents moving an object to the back.",
   bringToFront:
