@@ -54,6 +54,7 @@ import { memoInfoGeometry } from "./library-geometry/memo-info";
 import { newspaperGeometry } from "./library-geometry/newspaper";
 import { notePlusGeometry } from "./library-geometry/note-plus";
 import { noteStickyGeometry } from "./library-geometry/note-sticky";
+import { pinGeometry } from "./library-geometry/pin";
 import { radioCheckedGeometry } from "./library-geometry/radio-checked";
 import { redoGeometry } from "./library-geometry/redo";
 import { shuffleGeometry } from "./library-geometry/shuffle";
@@ -62,6 +63,7 @@ import { squareMinusGeometry } from "./library-geometry/square-minus";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  pin: pinGeometry,
   dot: dotGeometry,
   help: helpGeometry,
   equals: equalsGeometry,

@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  pin: "A pushpin represents keeping an item fixed or prominent.",
   dot: "A small dot represents a point, bullet, or status marker.",
   help: "A question mark in a circle represents help or an explanation.",
   equals: "Two equal bars represent equality.",
