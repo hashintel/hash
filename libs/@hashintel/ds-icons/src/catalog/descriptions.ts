@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  microchip:
+    "An integrated circuit represents processing hardware or computation.",
   database: "A cylindrical stack represents a database.",
   server: "Stacked equipment bays represent a server.",
   app: "A rounded application tile represents an app.",

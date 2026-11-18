@@ -132,6 +132,7 @@ import { memoInfoGeometry } from "./library-geometry/memo-info";
 import { messageGeometry } from "./library-geometry/message";
 import { messageDollarGeometry } from "./library-geometry/message-dollar";
 import { messageQuestionGeometry } from "./library-geometry/message-question";
+import { microchipGeometry } from "./library-geometry/microchip";
 import { mixedGeometry } from "./library-geometry/mixed";
 import { monitorGeometry } from "./library-geometry/monitor";
 import { newspaperGeometry } from "./library-geometry/newspaper";
@@ -215,6 +216,7 @@ import { userTieGeometry } from "./library-geometry/user-tie";
 import { usersGeometry } from "./library-geometry/users";
 
 export const libraryGeometry = {
+  microchip: microchipGeometry,
   database: databaseGeometry,
   server: serverGeometry,
   app: appGeometry,

@@ -20,6 +20,7 @@ export type HashIconHint =
   | "up";
 
 export const hashIconHints = {
+  microchip: "lift",
   database: "lift",
   server: "lift",
   app: "lift",
