@@ -656,6 +656,7 @@ export const CodeBranchIcon = createIcon("codeBranch");
 export const PullRequestIcon = createIcon("pullRequest");
 export const BuildingIcon = createIcon("building");
 export const BuildingSearchIcon = createIcon("buildingSearch");
+export const BuildingShieldIcon = createIcon("buildingShield");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -841,6 +842,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  buildingShield: BuildingShieldIcon,
   buildingSearch: BuildingSearchIcon,
   building: BuildingIcon,
   pullRequest: PullRequestIcon,

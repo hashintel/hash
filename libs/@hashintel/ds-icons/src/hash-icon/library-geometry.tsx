@@ -43,6 +43,7 @@ import { bringToFrontGeometry } from "./library-geometry/bring-to-front";
 import { browserGeometry } from "./library-geometry/browser";
 import { buildingGeometry } from "./library-geometry/building";
 import { buildingSearchGeometry } from "./library-geometry/building-search";
+import { buildingShieldGeometry } from "./library-geometry/building-shield";
 import { calculatorGeometry } from "./library-geometry/calculator";
 import { calendarCheckGeometry } from "./library-geometry/calendar-check";
 import { calendarDayGeometry } from "./library-geometry/calendar-day";
@@ -229,6 +230,7 @@ import { userTieGeometry } from "./library-geometry/user-tie";
 import { usersGeometry } from "./library-geometry/users";
 
 export const libraryGeometry = {
+  buildingShield: buildingShieldGeometry,
   buildingSearch: buildingSearchGeometry,
   building: buildingGeometry,
   pullRequest: pullRequestGeometry,
