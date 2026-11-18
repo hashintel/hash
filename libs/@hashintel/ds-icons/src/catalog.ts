@@ -175,6 +175,7 @@ const categories = {
     "logicUntil",
     "logicBranching",
     "logicInvariant",
+    "logicCounterexample",
   ],
   Navigation: [
     "arrowUp",

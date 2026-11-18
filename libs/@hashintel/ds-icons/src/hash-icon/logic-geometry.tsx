@@ -77,4 +77,12 @@ export const logicGeometry = {
       </g>
     </>
   ),
+  logicCounterexample: (
+    <g strokeWidth="calc(var(--hash-icon-stroke-width) * .8)">
+      <path d="M6 12h2m4.5 0H15" />
+      <circle cx="3.75" cy="12" r="2.25" />
+      <circle cx="10.25" cy="12" r="2.25" />
+      <path d="m17 9 4 6m0-6-4 6" />
+    </g>
+  ),
 } as const;

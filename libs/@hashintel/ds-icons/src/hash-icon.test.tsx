@@ -34,6 +34,7 @@ import {
   LogicUntilIcon,
   LogicBranchingIcon,
   LogicInvariantIcon,
+  LogicCounterexampleIcon,
   PlaceIcon,
   LoadingIcon,
   AddPlaceIcon,
@@ -96,6 +97,11 @@ describe("HashIcon SVG API", () => {
     {
       name: "logicInvariant",
       IconComponent: LogicInvariantIcon,
+      filledDots: 0,
+    },
+    {
+      name: "logicCounterexample",
+      IconComponent: LogicCounterexampleIcon,
       filledDots: 0,
     },
   ] as const)(
