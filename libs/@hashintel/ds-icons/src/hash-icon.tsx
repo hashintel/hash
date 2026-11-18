@@ -578,6 +578,7 @@ export const ItalicIcon = createIcon("italic");
 export const UnderlineIcon = createIcon("underline");
 export const StrikethroughIcon = createIcon("strikethrough");
 export const FontSansIcon = createIcon("fontSans");
+export const FontSerifIcon = createIcon("fontSerif");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -763,6 +764,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  fontSerif: FontSerifIcon,
   fontSans: FontSansIcon,
   strikethrough: StrikethroughIcon,
   underline: UnderlineIcon,

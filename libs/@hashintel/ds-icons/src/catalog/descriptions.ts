@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  fontSerif: "A bracketed A represents a serif typeface.",
   fontSans: "A plain A represents a sans-serif typeface.",
   strikethrough: "A struck-through S represents strikethrough formatting.",
   underline: "An underlined U represents underline formatting.",

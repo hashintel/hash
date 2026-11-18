@@ -163,7 +163,14 @@ export const hashIconStudies = [
 }[];
 
 const categories = {
-  Text: ["fontSans", "strikethrough", "underline", "italic", "bold"],
+  Text: [
+    "fontSerif",
+    "fontSans",
+    "strikethrough",
+    "underline",
+    "italic",
+    "bold",
+  ],
   Canvas: [
     "mixed",
     "splitView",
