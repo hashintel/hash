@@ -6,12 +6,14 @@ import { fileContractGeometry } from "./library-geometry/file-contract";
 import { fileDocumentGeometry } from "./library-geometry/file-document";
 import { fileImageGeometry } from "./library-geometry/file-image";
 import { fileInvoiceGeometry } from "./library-geometry/file-invoice";
+import { fileInvoiceDollarGeometry } from "./library-geometry/file-invoice-dollar";
 import { filePdfGeometry } from "./library-geometry/file-pdf";
 import { filePresentationGeometry } from "./library-geometry/file-presentation";
 import { fileTextGeometry } from "./library-geometry/file-text";
 import { fileVideoGeometry } from "./library-geometry/file-video";
 
 export const libraryGeometry = {
+  fileInvoiceDollar: fileInvoiceDollarGeometry,
   fileBox: fileBoxGeometry,
   fileImage: fileImageGeometry,
   fileVideo: fileVideoGeometry,
