@@ -134,6 +134,7 @@ import { pencilSlashGeometry } from "./library-geometry/pencil-slash";
 import { pentagonGeometry } from "./library-geometry/pentagon";
 import { percentGeometry } from "./library-geometry/percent";
 import { personGeometry } from "./library-geometry/person";
+import { personBoothGeometry } from "./library-geometry/person-booth";
 import { personGreetingGeometry } from "./library-geometry/person-greeting";
 import { personPortalGeometry } from "./library-geometry/person-portal";
 import { personSignGeometry } from "./library-geometry/person-sign";
@@ -197,6 +198,7 @@ import { userTieGeometry } from "./library-geometry/user-tie";
 import { usersGeometry } from "./library-geometry/users";
 
 export const libraryGeometry = {
+  personBooth: personBoothGeometry,
   personPortal: personPortalGeometry,
   personSign: personSignGeometry,
   personGreeting: personGreetingGeometry,
