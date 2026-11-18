@@ -176,6 +176,24 @@ alphabetical, and numeric exports remain available. Related-icon metadata links
 each opposite and alternative sort family. Sort icons use the same one-time
 hover feedback as the rest of the set; continuous effects remain opt-in.
 
+### Temporal logic
+
+The Logic category includes three Signal Temporal Logic representations and
+three Linear Temporal Logic representations:
+
+| Name                     | Representation                                 |
+| ------------------------ | ---------------------------------------------- |
+| `logicSignalBounded`     | A waveform with a marked time interval         |
+| `logicSignalThreshold`   | A waveform crossing a predicate threshold      |
+| `logicSignalClock`       | A waveform beside a clock                      |
+| `logicStateSequence`     | Successive states on one execution path        |
+| `logicTemporalOperators` | Always and eventually symbols above a timeline |
+| `logicBooleanTrace`      | True and false values stepping through time    |
+
+Each name also has a component such as `LogicSignalBoundedIcon` and an entry in
+`hashIconPack`. These are visual representations, so use an accessible label
+that identifies the logic or operation in context.
+
 ## Brand artwork
 
 Brand artwork is maintained separately in the private `@hashintel/salt-brands` package. This package contains symbol icons and does not include a brand catalogue or brand assets.

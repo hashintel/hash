@@ -6,6 +6,26 @@ import type { HashIconName } from "./hash-icon";
 
 export const hashIconStudies = [
   {
+    concept: "Signal Temporal Logic",
+    category: "Logic",
+    names: ["logicSignalBounded", "logicSignalThreshold", "logicSignalClock"],
+    variants: ["Bounded signal", "Signal threshold", "Signal clock"],
+    motion:
+      "The signal and its time or threshold marker lift briefly together.",
+  },
+  {
+    concept: "Linear Temporal Logic",
+    category: "Logic",
+    names: [
+      "logicStateSequence",
+      "logicTemporalOperators",
+      "logicBooleanTrace",
+    ],
+    variants: ["State sequence", "Temporal operators", "Boolean trace"],
+    motion:
+      "The sequence, operators, or trace shift briefly forward along time.",
+  },
+  {
     concept: "Differential equations",
     category: "Modeling",
     names: ["differentialEquation", "equationCurve", "equationFlow"],

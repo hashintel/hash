@@ -80,6 +80,17 @@ describe("icon catalog metadata", () => {
     },
   );
 
+  it.each([
+    "logicSignalBounded",
+    "logicSignalThreshold",
+    "logicSignalClock",
+    "logicStateSequence",
+    "logicTemporalOperators",
+    "logicBooleanTrace",
+  ] as const)("places %s in the Logic category", (name) => {
+    expect(entries.get(name)?.category).toBe("Logic");
+  });
+
   it("keeps study alternatives related without treating an entire category as related", () => {
     for (const { names } of hashIconStudies) {
       for (const name of names) {

@@ -5,6 +5,7 @@ import { additionalGeometry } from "./hash-icon/additional-geometry";
 import { explorationGeometry } from "./hash-icon/exploration-geometry";
 import { FilledShape, IconFillContext } from "./hash-icon/filled-shape";
 import { IconInteraction } from "./hash-icon/interaction";
+import { logicGeometry } from "./hash-icon/logic-geometry";
 import { McpServerGeometry } from "./hash-icon/mcp-server-geometry";
 import { modelingGeometry } from "./hash-icon/modeling-geometry";
 import {
@@ -85,6 +86,7 @@ const geometry = {
   ...additionalGeometry,
   ...utilityGeometry,
   ...explorationGeometry,
+  ...logicGeometry,
   mcpServer: <McpServerGeometry />,
   sidebar: null,
   menu: null,
@@ -391,6 +393,7 @@ export const HashIcon = ({
                       name in additionalGeometry ||
                       name in explorationGeometry ||
                       name in modelingGeometry ||
+                      name in logicGeometry ||
                       (name in utilityGeometry && name !== "star")
                         ? "none"
                         : undefined
@@ -558,6 +561,12 @@ export const PlugIcon = createIcon("plug");
 export const PrintIcon = createIcon("print");
 export const PuzzlePieceIcon = createIcon("puzzlePiece");
 export const RulerIcon = createIcon("ruler");
+export const LogicSignalBoundedIcon = createIcon("logicSignalBounded");
+export const LogicSignalThresholdIcon = createIcon("logicSignalThreshold");
+export const LogicSignalClockIcon = createIcon("logicSignalClock");
+export const LogicStateSequenceIcon = createIcon("logicStateSequence");
+export const LogicTemporalOperatorsIcon = createIcon("logicTemporalOperators");
+export const LogicBooleanTraceIcon = createIcon("logicBooleanTrace");
 export const SortDownIcon = createIcon("sortDown");
 export const SortDownAlphabeticalIcon = createIcon("sortDownAlphabetical");
 export const SortDownBooleanIcon = createIcon("sortDownBoolean");
@@ -618,6 +627,12 @@ export const hashIconPack = {
   print: PrintIcon,
   puzzlePiece: PuzzlePieceIcon,
   ruler: RulerIcon,
+  logicSignalBounded: LogicSignalBoundedIcon,
+  logicSignalThreshold: LogicSignalThresholdIcon,
+  logicSignalClock: LogicSignalClockIcon,
+  logicStateSequence: LogicStateSequenceIcon,
+  logicTemporalOperators: LogicTemporalOperatorsIcon,
+  logicBooleanTrace: LogicBooleanTraceIcon,
   sortDown: SortDownIcon,
   sortDownAlphabetical: SortDownAlphabeticalIcon,
   sortDownBoolean: SortDownBooleanIcon,

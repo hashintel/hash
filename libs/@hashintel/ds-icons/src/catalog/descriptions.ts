@@ -247,6 +247,18 @@ export const descriptions = {
     "A puzzle piece for an extension or compatible part. It contracts slightly on hover.",
   ruler:
     "A diagonal ruler with measurement marks for dimensions or spacing. It tilts slightly on hover.",
+  logicSignalBounded:
+    "A waveform with a marked interval represents signal temporal logic over a bounded period.",
+  logicSignalThreshold:
+    "A waveform crossing a threshold represents a predicate on a signal value.",
+  logicSignalClock:
+    "A waveform beside a clock represents time-based conditions on a signal.",
+  logicStateSequence:
+    "A connected sequence of states represents a linear execution path through time.",
+  logicTemporalOperators:
+    "The always and eventually symbols above a timeline represent temporal logic operators.",
+  logicBooleanTrace:
+    "A stepped trace above a timeline represents true and false values at successive times.",
   sortDown:
     "A downward arrow beside shortening rows for descending size or value order. It shifts downward on hover.",
   sortUp:
