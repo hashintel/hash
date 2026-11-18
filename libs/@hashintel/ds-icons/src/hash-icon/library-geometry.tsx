@@ -66,6 +66,7 @@ import { cctvCameraGeometry } from "./library-geometry/cctv-camera";
 import { chartMixedGeometry } from "./library-geometry/chart-mixed";
 import { chartNetworkGeometry } from "./library-geometry/chart-network";
 import { chartRevenueGeometry } from "./library-geometry/chart-revenue";
+import { chartScatterGeometry } from "./library-geometry/chart-scatter";
 import { checkDoubleGeometry } from "./library-geometry/check-double";
 import { chevronsUpDownGeometry } from "./library-geometry/chevrons-up-down";
 import { circleArrowRightGeometry } from "./library-geometry/circle-arrow-right";
@@ -346,6 +347,7 @@ import { wavesGeometry } from "./library-geometry/waves";
 import { workflowGeometry } from "./library-geometry/workflow";
 
 export const libraryGeometry = {
+  chartScatter: chartScatterGeometry,
   boxOpen: boxOpenGeometry,
   cloud: cloudGeometry,
   circleTag: circleTagGeometry,

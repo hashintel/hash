@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  chartScatter:
+    "Separate plotted points represent a scatter chart or distribution.",
   boxOpen:
     "An open box represents unpacking, contents, or an available package.",
   cloud: "A cloud represents hosted services or remote computing.",

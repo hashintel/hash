@@ -181,6 +181,7 @@ const categories = {
     "palette",
   ],
   Data: [
+    "chartScatter",
     "circleTag",
     "circleAsterisk",
     "survey",
