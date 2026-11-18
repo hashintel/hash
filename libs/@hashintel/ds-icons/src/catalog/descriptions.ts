@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  scanner: "An open scanning bed represents a document scanner.",
   scanLine: "A line across corner guides represents scanning content.",
   magneticMedia:
     "A tape cassette beside a disc represents magnetic and optical media.",

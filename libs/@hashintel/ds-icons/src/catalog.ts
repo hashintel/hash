@@ -164,6 +164,7 @@ export const hashIconStudies = [
 
 const categories = {
   Technology: [
+    "scanner",
     "scanLine",
     "magneticMedia",
     "devices",

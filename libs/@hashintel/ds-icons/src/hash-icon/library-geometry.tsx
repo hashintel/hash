@@ -168,6 +168,7 @@ import { roundedCornerGeometry } from "./library-geometry/rounded-corner";
 import { rowsGeometry } from "./library-geometry/rows";
 import { sadGeometry } from "./library-geometry/sad";
 import { scanLineGeometry } from "./library-geometry/scan-line";
+import { scannerGeometry } from "./library-geometry/scanner";
 import { searchChartGeometry } from "./library-geometry/search-chart";
 import { searchCheckGeometry } from "./library-geometry/search-check";
 import { searchDollarGeometry } from "./library-geometry/search-dollar";
@@ -221,6 +222,7 @@ import { userTieGeometry } from "./library-geometry/user-tie";
 import { usersGeometry } from "./library-geometry/users";
 
 export const libraryGeometry = {
+  scanner: scannerGeometry,
   scanLine: scanLineGeometry,
   magneticMedia: magneticMediaGeometry,
   devices: devicesGeometry,

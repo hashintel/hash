@@ -648,6 +648,7 @@ export const CalculatorIcon = createIcon("calculator");
 export const DevicesIcon = createIcon("devices");
 export const MagneticMediaIcon = createIcon("magneticMedia");
 export const ScanLineIcon = createIcon("scanLine");
+export const ScannerIcon = createIcon("scanner");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -833,6 +834,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  scanner: ScannerIcon,
   scanLine: ScanLineIcon,
   magneticMedia: MagneticMediaIcon,
   devices: DevicesIcon,
