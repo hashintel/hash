@@ -1208,5 +1208,34 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
       // seconds.
       expect(elapsedMs).toBeLessThan(2_000);
     });
+
+    it("runs many instances off a long list of defaults, with one read of the list", () => {
+      const size = 10_000;
+      const definition = sdcpn({
+        componentInstances: Array.from({ length: size }, (_, index) =>
+          componentInstance(`s${index}`, "stage"),
+        ),
+        subnets: [stage, implementation("fast")],
+        implementations: [
+          ...Array.from({ length: 25 * size }, (_, index) => ({
+            interface: { id: `other${index}` },
+            component: { id: "fast" },
+          })),
+          { interface: { id: "stage" }, component: { id: "fast" } },
+          // Of two entries for one interface the first applies.
+          { interface: { id: "stage" }, component: { id: "gone" } },
+        ],
+      });
+
+      const started = Date.now();
+      const result = flatten({ definition });
+      const elapsedMs = Date.now() - started;
+
+      expect(result.sdcpn.transitions).toHaveLength(size);
+      expect(result.sdcpn.transitions[0]?.id).toBe("s0::fast_work");
+      // One read of the list takes milliseconds; a search of it for every
+      // instance takes several seconds.
+      expect(elapsedMs).toBeLessThan(1_000);
+    });
   });
 });

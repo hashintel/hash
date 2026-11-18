@@ -280,6 +280,32 @@ describe("checkInterfaces", () => {
       }),
     ).toEqual([]);
   });
+
+  it("checks many instances against a long list of defaults, with one read of the list", () => {
+    const size = 50_000;
+    const sdcpn = net({
+      subnets: [stage, fast],
+      componentInstances: Array.from({ length: size }, (_, index) =>
+        instance(`s${index}`, "stage"),
+      ),
+      implementations: [
+        ...Array.from({ length: size }, (_, index) =>
+          defaultOf(`other${index}`, "fast"),
+        ),
+        defaultOf("stage", "fast"),
+        // Of two entries for one interface the first applies.
+        defaultOf("stage", "gone"),
+      ],
+    });
+
+    const started = Date.now();
+    expect(checkInterfaces(sdcpn)).toMatchObject([
+      { code: "duplicate-default" },
+    ]);
+    // One read of the list takes milliseconds; a search of it for every
+    // instance takes several seconds.
+    expect(Date.now() - started).toBeLessThan(1_000);
+  });
 });
 
 describe("a component that runs inside itself", () => {

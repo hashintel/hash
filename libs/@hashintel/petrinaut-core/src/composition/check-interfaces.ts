@@ -11,11 +11,12 @@ import { colorsStructurallyEqual } from "./fusions";
 import {
   describeUnboundInstance,
   hasBody,
-  indexSubnets,
+  indexDocument,
   isInterface,
   mapInterfaceParameters,
   mapInterfacePorts,
   resolveImplementation,
+  type DocumentIndex,
   type ImplementationBinding,
 } from "./interfaces";
 import { describePortDirection, effectivePortDirection } from "./ports";
@@ -252,7 +253,7 @@ const checkDefaults = (
  */
 const checkBindings = (
   sdcpn: SDCPN,
-  subnetsById: ReadonlyMap<ID, Subnet>,
+  index: DocumentIndex,
 ): InterfaceProblem[] => {
   // An instance of a subnet that does not exist is for other checks to report.
   const held = [
@@ -263,7 +264,7 @@ const checkBindings = (
     })),
   ].flatMap(({ netId, instances = [] }) =>
     instances.flatMap((instance) => {
-      const binding = resolveImplementation(sdcpn, instance, subnetsById);
+      const binding = resolveImplementation(sdcpn, instance, index);
       return binding === null ? [] : [{ netId, instance, binding }];
     }),
   );
@@ -307,12 +308,12 @@ const checkBindings = (
 
 /** The problems with the document's interfaces, their implementations and the instances bound to them. */
 export const checkInterfaces = (sdcpn: SDCPN): InterfaceProblem[] => {
-  const subnetsById = indexSubnets(sdcpn);
+  const index = indexDocument(sdcpn);
   return [
     ...(sdcpn.subnets ?? []).flatMap((subnet) =>
-      checkDeclarations(subnet, subnetsById),
+      checkDeclarations(subnet, index.subnetsById),
     ),
-    ...checkDefaults(sdcpn, subnetsById),
-    ...checkBindings(sdcpn, subnetsById),
+    ...checkDefaults(sdcpn, index.subnetsById),
+    ...checkBindings(sdcpn, index),
   ];
 };

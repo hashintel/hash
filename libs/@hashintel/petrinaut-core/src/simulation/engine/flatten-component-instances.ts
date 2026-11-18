@@ -7,8 +7,10 @@ import { checkImplementation } from "../../composition/check-interfaces";
 import { equationKey, fusionMemberIssues } from "../../composition/fusions";
 import {
   describeUnboundInstance,
+  indexDocument,
   resolveImplementation,
   runningSubnet,
+  type DocumentIndex,
   type RunningSubnet,
 } from "../../composition/interfaces";
 import { remapPlaceDynamics } from "../../place-dynamics";
@@ -95,6 +97,8 @@ type FlatIdSets = {
 
 type FlattenContext = {
   source: SDCPN;
+  /** The source's subnets and defaults, read once for every instance to resolve. */
+  index: DocumentIndex;
   target: MutableFlatSDCPN;
   parametersEnabled: boolean;
   flatIds: FlatIdSets;
@@ -147,7 +151,7 @@ const requireRunningSubnet = (
   if (checked) {
     return checked;
   }
-  const binding = resolveImplementation(ctx.source, instance);
+  const binding = resolveImplementation(ctx.source, instance, ctx.index);
   if (binding === null) {
     throw new Error(
       `Component instance \`${instance.name}\` references subnet ID \`${instance.subnetId}\` which does not exist.`,
@@ -572,6 +576,7 @@ export const flattenComponentInstancesForSimulation = ({
 
   const ctx: FlattenContext = {
     source: sdcpn,
+    index: indexDocument(sdcpn),
     target,
     parametersEnabled,
     flatIds: {

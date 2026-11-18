@@ -42,14 +42,18 @@ export const resolveComponent = (
 /**
  * The component the document runs for an interface whose instance chooses
  * none. Of two entries for one interface the first applies, and
- * `check-interfaces.ts` reports the pair.
+ * `check-interfaces.ts` reports the pair. `defaults` is
+ * `indexDocument(sdcpn).defaults`, which saves a search of the list.
  */
 export const defaultImplementation = (
   sdcpn: Pick<SDCPN, "implementations">,
   interfaceId: ID,
+  defaults?: DocumentIndex["defaults"],
 ): ComponentReference | undefined =>
-  sdcpn.implementations?.find((entry) => entry.interface.id === interfaceId)
-    ?.component;
+  defaults
+    ? defaults.get(interfaceId)
+    : sdcpn.implementations?.find((entry) => entry.interface.id === interfaceId)
+        ?.component;
 
 export const implementsInterface = (
   subnet: Pick<Subnet, "implements">,
@@ -110,21 +114,43 @@ export const indexSubnets = (
 };
 
 /**
+ * The document's subnets by id and its default implementation by the id of
+ * each interface, for a caller that resolves many instances. Of two defaults
+ * for one interface the first is kept, as a search of the list finds it.
+ */
+export type DocumentIndex = {
+  subnetsById: ReadonlyMap<ID, Subnet>;
+  defaults: ReadonlyMap<ID, ComponentReference>;
+};
+
+export const indexDocument = (
+  sdcpn: Pick<SDCPN, "subnets" | "implementations">,
+): DocumentIndex => {
+  const defaults = new Map<ID, ComponentReference>();
+  for (const entry of sdcpn.implementations ?? []) {
+    if (!defaults.has(entry.interface.id)) {
+      defaults.set(entry.interface.id, entry.component);
+    }
+  }
+  return { subnetsById: indexSubnets(sdcpn), defaults };
+};
+
+/**
  * The subnet that runs for `instance`: its own subnet when that is a
  * component; for an interface, the implementation the instance chose, else
  * the document's default. `null` when the instance's subnet does not exist.
- * `subnetsById` is `indexSubnets(sdcpn)`, which saves a search of the list
- * for each instance.
+ * `index` is `indexDocument(sdcpn)`, which saves a search of the document's
+ * subnets and of its defaults for each instance.
  */
 export const resolveImplementation = (
   sdcpn: Pick<SDCPN, "subnets" | "implementations">,
   instance: Pick<ComponentInstance, "subnetId" | "implementation">,
-  subnetsById?: ReadonlyMap<ID, Subnet>,
+  index?: DocumentIndex,
 ): ImplementationBinding | null => {
   const declared = resolveComponent(
     sdcpn,
     { id: instance.subnetId },
-    subnetsById,
+    index?.subnetsById,
   );
   if (!declared) {
     return null;
@@ -134,13 +160,14 @@ export const resolveImplementation = (
   }
   const unbound = { kind: "unbound", interface: declared } as const;
   const reference =
-    instance.implementation ?? defaultImplementation(sdcpn, declared.id);
+    instance.implementation ??
+    defaultImplementation(sdcpn, declared.id, index?.defaults);
   if (reference === undefined) {
     return { ...unbound, reason: "no-binding" };
   }
   const chosenBy =
     instance.implementation === undefined ? "document" : "instance";
-  const implementation = resolveComponent(sdcpn, reference, subnetsById);
+  const implementation = resolveComponent(sdcpn, reference, index?.subnetsById);
   if (!implementation) {
     return { ...unbound, chosenBy, reason: "missing", reference };
   }
