@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  box: "A sealed carton represents a package or inventory item.",
   graduationCap: "An academic cap represents education or achievement.",
   briefcase:
     "A handled case represents work, business, or a professional role.",

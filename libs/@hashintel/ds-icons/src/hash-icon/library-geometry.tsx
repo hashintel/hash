@@ -38,6 +38,7 @@ import { boldGeometry } from "./library-geometry/bold";
 import { bookGeometry } from "./library-geometry/book";
 import { bookOpenGeometry } from "./library-geometry/book-open";
 import { booksGeometry } from "./library-geometry/books";
+import { boxGeometry } from "./library-geometry/box";
 import { brainGeometry } from "./library-geometry/brain";
 import { briefcaseGeometry } from "./library-geometry/briefcase";
 import { bringForwardGeometry } from "./library-geometry/bring-forward";
@@ -249,6 +250,7 @@ import { usersGeometry } from "./library-geometry/users";
 import { warehouseGeometry } from "./library-geometry/warehouse";
 
 export const libraryGeometry = {
+  box: boxGeometry,
   graduationCap: graduationCapGeometry,
   briefcase: briefcaseGeometry,
   route: routeGeometry,

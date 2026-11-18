@@ -676,6 +676,7 @@ export const GlobeStandIcon = createIcon("globeStand");
 export const RouteIcon = createIcon("route");
 export const BriefcaseIcon = createIcon("briefcase");
 export const GraduationCapIcon = createIcon("graduationCap");
+export const BoxIcon = createIcon("box");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -861,6 +862,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  box: BoxIcon,
   graduationCap: GraduationCapIcon,
   briefcase: BriefcaseIcon,
   route: RouteIcon,
