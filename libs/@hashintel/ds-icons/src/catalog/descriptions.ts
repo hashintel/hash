@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  fileImage: "A document with a landscape represents an image file.",
   fileVideo: "A document with a play symbol represents a video file.",
   fileAudio: "A document with a musical note represents an audio file.",
   filePdf: "A document with a compact page mark represents a PDF file.",
