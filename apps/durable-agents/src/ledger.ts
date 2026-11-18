@@ -11,8 +11,8 @@ import * as v from "valibot";
 import {
   brunchTools,
   type LedgerAppend,
-  vLedgerAppend,
-  vLedgerAppendOutput,
+  ledgerAppendSchema,
+  ledgerAppendOutputSchema,
 } from "@hashintel/brunch-agent";
 
 import {
@@ -39,16 +39,17 @@ const commitToolDescription =
 export const ledgerCommitTool = defineTool({
   name: brunchTools.ledgerCommit,
   description: commitToolDescription,
-  parameters: typedJsonSchema<LedgerAppend>(vLedgerAppend),
-  structuredOutputSchema:
-    typedJsonSchema<LedgerAppendOutput>(vLedgerAppendOutput),
+  parameters: typedJsonSchema<LedgerAppend>(ledgerAppendSchema),
+  structuredOutputSchema: typedJsonSchema<LedgerAppendOutput>(
+    ledgerAppendOutputSchema,
+  ),
   // Idempotent per call: a rerun after a crash finds its commit in the Ledger and returns the same receipt.
   replay: "safe",
   // Each call folds onto the Ledger its predecessors in the round left.
   executionMode: "sequential",
   execute: async (args, api, context) => {
     // JSON Schema cannot carry the schema's reference checks and route transforms.
-    const { entries } = v.parse(vLedgerAppend, args);
+    const { entries } = v.parse(ledgerAppendSchema, args);
     // Its own commit: the tool API cannot write in the commit that records the result.
     const result = await api.commit(
       (tx) => appendToLedger(tx, api.conversationId, api.callId, { entries }),
