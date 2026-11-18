@@ -767,6 +767,7 @@ export const SurveyIcon = createIcon("survey");
 export const CircleTwoIcon = createIcon("circleTwo");
 export const CircleThreeIcon = createIcon("circleThree");
 export const CircleFourIcon = createIcon("circleFour");
+export const DiceD20Icon = createIcon("diceD20");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -952,6 +953,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  diceD20: DiceD20Icon,
   circleFour: CircleFourIcon,
   circleThree: CircleThreeIcon,
   circleTwo: CircleTwoIcon,

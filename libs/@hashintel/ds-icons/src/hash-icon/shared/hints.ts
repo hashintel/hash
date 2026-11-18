@@ -20,6 +20,7 @@ export type HashIconHint =
   | "up";
 
 export const hashIconHints = {
+  diceD20: "lift",
   circleFour: "lift",
   circleThree: "lift",
   circleTwo: "lift",

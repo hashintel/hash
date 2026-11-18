@@ -98,6 +98,7 @@ import { databaseGeometry } from "./library-geometry/database";
 import { devicesGeometry } from "./library-geometry/devices";
 import { diagramSankeyGeometry } from "./library-geometry/diagram-sankey";
 import { diamondGeometry } from "./library-geometry/diamond";
+import { diceD20Geometry } from "./library-geometry/dice-d20";
 import { distributeHorizontalGeometry } from "./library-geometry/distribute-horizontal";
 import { distributeVerticalGeometry } from "./library-geometry/distribute-vertical";
 import { dollarGeometry } from "./library-geometry/dollar";
@@ -340,6 +341,7 @@ import { wavesGeometry } from "./library-geometry/waves";
 import { workflowGeometry } from "./library-geometry/workflow";
 
 export const libraryGeometry = {
+  diceD20: diceD20Geometry,
   circleFour: circleFourGeometry,
   circleThree: circleThreeGeometry,
   circleTwo: circleTwoGeometry,

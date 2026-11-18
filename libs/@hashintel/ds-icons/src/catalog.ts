@@ -164,6 +164,7 @@ export const hashIconStudies = [
 
 const categories = {
   Objects: [
+    "diceD20",
     "cctvCamera",
     "tombstone",
     "teddyBear",

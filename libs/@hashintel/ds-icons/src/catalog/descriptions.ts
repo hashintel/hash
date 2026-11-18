@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  diceD20:
+    "A faceted twenty-sided die represents randomness or a tabletop game.",
   circleFour: "The numeral four in a circle represents a fourth step or item.",
   circleThree: "The numeral three in a circle represents a third step or item.",
   circleTwo: "The numeral two in a circle represents a second step or item.",
