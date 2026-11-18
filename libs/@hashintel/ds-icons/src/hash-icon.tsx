@@ -740,6 +740,7 @@ export const HammerIcon = createIcon("hammer");
 export const LighthouseIcon = createIcon("lighthouse");
 export const LifeRingIcon = createIcon("lifeRing");
 export const PalmTreeIcon = createIcon("palmTree");
+export const PizzaIcon = createIcon("pizza");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -925,6 +926,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  pizza: PizzaIcon,
   palmTree: PalmTreeIcon,
   lifeRing: LifeRingIcon,
   lighthouse: LighthouseIcon,

@@ -214,6 +214,7 @@ import { phoneGeometry } from "./library-geometry/phone";
 import { phoneOffGeometry } from "./library-geometry/phone-off";
 import { pieChartGeometry } from "./library-geometry/pie-chart";
 import { pinGeometry } from "./library-geometry/pin";
+import { pizzaGeometry } from "./library-geometry/pizza";
 import { planeGeometry } from "./library-geometry/plane";
 import { planeArrivalGeometry } from "./library-geometry/plane-arrival";
 import { planeDepartureGeometry } from "./library-geometry/plane-departure";
@@ -313,6 +314,7 @@ import { wavePulseGeometry } from "./library-geometry/wave-pulse";
 import { wavesGeometry } from "./library-geometry/waves";
 
 export const libraryGeometry = {
+  pizza: pizzaGeometry,
   palmTree: palmTreeGeometry,
   lifeRing: lifeRingGeometry,
   lighthouse: lighthouseGeometry,
