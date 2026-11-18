@@ -35,6 +35,7 @@ import { badgeCheckGeometry } from "./library-geometry/badge-check";
 import { ballotCheckGeometry } from "./library-geometry/ballot-check";
 import { bankGeometry } from "./library-geometry/bank";
 import { binaryGeometry } from "./library-geometry/binary";
+import { binocularsGeometry } from "./library-geometry/binoculars";
 import { biohazardGeometry } from "./library-geometry/biohazard";
 import { blobGeometry } from "./library-geometry/blob";
 import { boldGeometry } from "./library-geometry/bold";
@@ -302,6 +303,7 @@ import { wavePulseGeometry } from "./library-geometry/wave-pulse";
 import { wavesGeometry } from "./library-geometry/waves";
 
 export const libraryGeometry = {
+  binoculars: binocularsGeometry,
   mortarPestle: mortarPestleGeometry,
   flaskVial: flaskVialGeometry,
   testTubes: testTubesGeometry,

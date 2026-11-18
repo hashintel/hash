@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  binoculars: "Paired viewing lenses represent observation or discovery.",
   mortarPestle:
     "A grinding bowl and pestle represent pharmacy or material preparation.",
   flaskVial: "A flask beside a vial represents laboratory samples or reagents.",

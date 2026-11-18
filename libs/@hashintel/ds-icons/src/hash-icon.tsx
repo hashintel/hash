@@ -729,6 +729,7 @@ export const BiohazardIcon = createIcon("biohazard");
 export const TestTubesIcon = createIcon("testTubes");
 export const FlaskVialIcon = createIcon("flaskVial");
 export const MortarPestleIcon = createIcon("mortarPestle");
+export const BinocularsIcon = createIcon("binoculars");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -914,6 +915,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  binoculars: BinocularsIcon,
   mortarPestle: MortarPestleIcon,
   flaskVial: FlaskVialIcon,
   testTubes: TestTubesIcon,

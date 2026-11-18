@@ -20,6 +20,7 @@ export type HashIconHint =
   | "up";
 
 export const hashIconHints = {
+  binoculars: "lift",
   mortarPestle: "lift",
   flaskVial: "lift",
   testTubes: "lift",
