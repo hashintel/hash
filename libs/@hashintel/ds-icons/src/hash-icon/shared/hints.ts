@@ -20,6 +20,7 @@ export type HashIconHint =
   | "up";
 
 export const hashIconHints = {
+  bank: "lift",
   home: "lift",
   city: "lift",
   buildingShield: "lift",

@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  bank: "A columned building represents a bank or public institution.",
   home: "A roofed house represents home or a main landing page.",
   city: "Several buildings represent a city or urban area.",
   buildingShield:
