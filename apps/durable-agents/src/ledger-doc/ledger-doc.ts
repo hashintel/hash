@@ -22,11 +22,11 @@ import {
   foldCommits,
   type LedgerAppend,
   prepareAppend,
-  vLedgerAppendOutput,
+  ledgerAppendOutputSchema,
 } from "@hashintel/brunch-agent";
 
 /** `ledger_commit`'s result: recorded or refused. The lib exports the schema, not the type. */
-export type LedgerAppendOutput = v.InferOutput<typeof vLedgerAppendOutput>;
+export type LedgerAppendOutput = v.InferOutput<typeof ledgerAppendOutputSchema>;
 
 /** A USER message the Ledger's turns anchor to, by its `pi.user` entry ID. */
 type LedgerTurn = { id: string; role: "user"; parts: [] };
@@ -131,7 +131,7 @@ export const appendToLedger = async (
       message.role === "assistant" && message.parts[0].toolCallId === callId,
   );
   if (recorded?.role === "assistant")
-    return v.parse(vLedgerAppendOutput, recorded.parts[0].output);
+    return v.parse(ledgerAppendOutputSchema, recorded.parts[0].output);
 
   const lastTurn = ledger.messages.findLast(({ role }) => role === "user");
   const turns = await turnsBefore(tx, conversationId, callId, lastTurn?.id);
