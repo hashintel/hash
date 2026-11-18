@@ -80,7 +80,7 @@ export const hashIconHints = {
   atom: "lift",
   solarSystem: "lift",
   orbit: "lift",
-  radar: "lift",
+  radar: "detail",
   antenna: "lift",
   thermometerCold: "lift",
   thermometerHot: "lift",

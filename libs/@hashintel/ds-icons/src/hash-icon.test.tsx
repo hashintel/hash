@@ -997,6 +997,32 @@ describe("HashIcon motion", () => {
     expect(cancel).toHaveBeenCalledTimes(4);
   });
 
+  it.each(["outline", "filled"] as const)(
+    "sweeps %s Radar once and stops when reduced motion is requested",
+    (variant) => {
+      const { container } = render(
+        <HashIcon name="radar" variant={variant} effect="action" />,
+      );
+      const sweep = container.querySelector('[data-icon-detail="radar-sweep"]');
+      expect(sweep?.querySelector("path")).not.toBeNull();
+      expect(animate).toHaveBeenCalledTimes(1);
+      expect(animate.mock.contexts[0]).toBe(sweep);
+      expect(animate.mock.calls[0]).toEqual([
+        [
+          { transform: "rotate(0deg)", transformOrigin: "12px 12px" },
+          { transform: "rotate(360deg)", transformOrigin: "12px 12px" },
+        ],
+        expect.objectContaining({ iterations: 1, easing: "linear" }),
+      ]);
+      act(() => {
+        reducedMotion = true;
+        mediaListeners.forEach((listener) => listener());
+      });
+      expect(cancel).toHaveBeenCalledTimes(1);
+      expect(animate).toHaveBeenCalledTimes(1);
+    },
+  );
+
   it("jumps on click without replacing the runner's independent gait", () => {
     const { container, unmount } = render(
       <button type="button">
