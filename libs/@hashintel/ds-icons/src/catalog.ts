@@ -164,6 +164,7 @@ export const hashIconStudies = [
 
 const categories = {
   Places: [
+    "briefcase",
     "route",
     "globeStand",
     "globePointer",

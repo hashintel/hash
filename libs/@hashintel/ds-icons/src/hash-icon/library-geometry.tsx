@@ -39,6 +39,7 @@ import { bookGeometry } from "./library-geometry/book";
 import { bookOpenGeometry } from "./library-geometry/book-open";
 import { booksGeometry } from "./library-geometry/books";
 import { brainGeometry } from "./library-geometry/brain";
+import { briefcaseGeometry } from "./library-geometry/briefcase";
 import { bringForwardGeometry } from "./library-geometry/bring-forward";
 import { bringToFrontGeometry } from "./library-geometry/bring-to-front";
 import { browserGeometry } from "./library-geometry/browser";
@@ -247,6 +248,7 @@ import { usersGeometry } from "./library-geometry/users";
 import { warehouseGeometry } from "./library-geometry/warehouse";
 
 export const libraryGeometry = {
+  briefcase: briefcaseGeometry,
   route: routeGeometry,
   globeStand: globeStandGeometry,
   globePointer: globePointerGeometry,
