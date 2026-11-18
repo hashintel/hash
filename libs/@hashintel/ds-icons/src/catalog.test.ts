@@ -62,6 +62,7 @@ describe("icon catalog metadata", () => {
   it.each([
     ["sortDown", "sortUp"],
     ["sortDownAlphabetical", "sortUpAlphabetical"],
+    ["sortDownBoolean", "sortUpBoolean"],
     ["sortDownNumeric", "sortUpNumeric"],
     ["sortDownShapes", "sortUpShapes"],
     ["sortDownSize", "sortUpSize"],

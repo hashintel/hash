@@ -18,6 +18,8 @@ const sortDigitOne = (
 const sortDigitNine = (
   <path d="M18.5 2.25c0 1.25-.95 2.25-2.5 2.25s-2.5-1-2.5-2.25S14.45 0 16 0s2.5 1 2.5 2.25c0 3.65-.5 4.75-2.5 4.75-1.35 0-2.1-.65-2.3-1.8" />
 );
+const sortCheck = <path d="m12 3.5 3 3 5-6" />;
+const sortCross = <path d="m13 .5 6 6m0-6-6 6" />;
 const sortUpperTransform = "translate(16 6.5) scale(1.1) translate(-16 -3.5)";
 const sortLowerTransform = "translate(16 17.5) scale(.9) translate(-16 -3.5)";
 const sortCircle = (
@@ -306,6 +308,24 @@ export const utilityGeometry = {
   ),
   sortDown: <path d="M5 3v18m-3-3 3 3 3-3M11 5h10M11 10h7M11 15h4" />,
   sortUp: <path d="M5 21V3m-3 3 3-3 3 3M11 5h4M11 10h7M11 15h10" />,
+  sortDownBoolean: (
+    <>
+      <path d="M5 3v18m-3-3 3 3 3-3" />
+      <g strokeWidth="calc(var(--hash-icon-stroke-width) * .8)">
+        <g transform={sortUpperTransform}>{sortCross}</g>
+        <g transform={sortLowerTransform}>{sortCheck}</g>
+      </g>
+    </>
+  ),
+  sortUpBoolean: (
+    <>
+      <path d="M5 21V3m-3 3 3-3 3 3" />
+      <g strokeWidth="calc(var(--hash-icon-stroke-width) * .8)">
+        <g transform={sortUpperTransform}>{sortCheck}</g>
+        <g transform={sortLowerTransform}>{sortCross}</g>
+      </g>
+    </>
+  ),
   sortDownNumeric: (
     <>
       <path d="M5 3v18m-3-3 3 3 3-3" />

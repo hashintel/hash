@@ -113,6 +113,8 @@ export const hashIconHints = {
   ruler: "tilt",
   sortDown: "down",
   sortUp: "up",
+  sortDownBoolean: "down",
+  sortUpBoolean: "up",
   sortDownNumeric: "down",
   sortUpNumeric: "up",
   sortDownAlphabetical: "down",

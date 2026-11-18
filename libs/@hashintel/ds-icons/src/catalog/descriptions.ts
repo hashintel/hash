@@ -251,6 +251,10 @@ export const descriptions = {
     "A downward arrow beside shortening rows for descending size or value order. It shifts downward on hover.",
   sortUp:
     "An upward arrow beside lengthening rows for ascending size or value order. It shifts upward on hover.",
+  sortDownBoolean:
+    "A downward arrow beside a cross above a tick for boolean order with false values first. It shifts downward on hover.",
+  sortUpBoolean:
+    "An upward arrow beside a tick above a cross for boolean order with true values first. It shifts upward on hover.",
   sortDownNumeric:
     "A downward arrow beside 1 and 9 for numeric order from low to high. It shifts downward on hover.",
   sortUpNumeric:
@@ -260,9 +264,9 @@ export const descriptions = {
   sortUpAlphabetical:
     "An upward arrow beside Z and A for alphabetical order from Z to A. It shifts upward on hover.",
   sortDownShapes:
-    "A downward arrow beside a circle above a pyramid for sorting by shape or object type. It shifts downward on hover.",
+    "A downward arrow beside a circle above a triangle for sorting by shape or object type. It shifts downward on hover.",
   sortUpShapes:
-    "An upward arrow beside a pyramid above a circle for reversing shape or object-type order. It shifts upward on hover.",
+    "An upward arrow beside a triangle above a circle for reversing shape or object-type order. It shifts upward on hover.",
   sortDownSize:
     "A downward arrow beside four progressively shorter lines for sorting from largest to smallest. It shifts downward on hover.",
   sortUpSize:

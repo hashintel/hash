@@ -20,12 +20,14 @@ export const relatedGroups = [
   ["ellipsis", "ellipsisVertical", "circleEllipsis"],
   ["play", "pause", "playback", "stepForward", "stop", "reset"],
   ["sortUp", "sortDown"],
+  ["sortUpBoolean", "sortDownBoolean"],
   ["sortUpNumeric", "sortDownNumeric"],
   ["sortUpAlphabetical", "sortDownAlphabetical"],
   ["sortUpShapes", "sortDownShapes"],
   ["sortUpSize", "sortDownSize"],
   [
     "sortUp",
+    "sortUpBoolean",
     "sortUpNumeric",
     "sortUpAlphabetical",
     "sortUpShapes",
@@ -33,6 +35,7 @@ export const relatedGroups = [
   ],
   [
     "sortDown",
+    "sortDownBoolean",
     "sortDownNumeric",
     "sortDownAlphabetical",
     "sortDownShapes",

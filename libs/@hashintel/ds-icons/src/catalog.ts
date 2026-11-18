@@ -186,6 +186,8 @@ const categories = {
     "sortDown",
     "sortUpAlphabetical",
     "sortDownAlphabetical",
+    "sortUpBoolean",
+    "sortDownBoolean",
     "sortUpNumeric",
     "sortDownNumeric",
     "sortUpShapes",

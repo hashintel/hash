@@ -151,13 +151,18 @@ The Editing category includes these paired sort indicators. Each pair reverses
 both the arrow direction and the order of the symbols or lines. Use an accessible
 label that names the actual order; arrow direction alone is ambiguous.
 
-| Family              | Down variant                              | Up variant                               |
-| ------------------- | ----------------------------------------- | ---------------------------------------- |
-| General             | `sortDown`: three shortening lines        | `sortUp`: three lengthening lines        |
-| Alphabetical        | `sortDownAlphabetical`: A above Z         | `sortUpAlphabetical`: Z above A          |
-| Numeric             | `sortDownNumeric`: 1 above 9              | `sortUpNumeric`: 9 above 1               |
-| Shape / object type | `sortDownShapes`: circle above pyramid    | `sortUpShapes`: pyramid above circle     |
-| Size                | `sortDownSize`: four lines, largest first | `sortUpSize`: four lines, smallest first |
+| Family              | Down variant                                      | Up variant                                     |
+| ------------------- | ------------------------------------------------- | ---------------------------------------------- |
+| General             | `sortDown`: three shortening lines                | `sortUp`: three lengthening lines              |
+| Alphabetical        | `sortDownAlphabetical`: A above Z                 | `sortUpAlphabetical`: Z above A                |
+| Boolean             | `sortDownBoolean`: cross above tick (false first) | `sortUpBoolean`: tick above cross (true first) |
+| Numeric             | `sortDownNumeric`: 1 above 9                      | `sortUpNumeric`: 9 above 1                     |
+| Shape / object type | `sortDownShapes`: circle above triangle           | `sortUpShapes`: triangle above circle          |
+| Size                | `sortDownSize`: four lines, largest first         | `sortUpSize`: four lines, smallest first       |
+
+The upper symbol is larger than the lower one to emphasize the starting value.
+For booleans, use labels such as “False first” and “True first” rather than
+relying on the arrow to communicate the order.
 
 Every name also has a named component, such as `SortDownShapesIcon` or
 `SortUpSizeIcon`, and an entry in `hashIconPack`. The existing general,
