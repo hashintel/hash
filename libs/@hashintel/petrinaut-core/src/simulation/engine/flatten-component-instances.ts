@@ -3,7 +3,7 @@ import {
   applyFusions,
   type FusionGroup,
 } from "../../composition/apply-fusions";
-import { fusionMemberIssues } from "../../composition/fusions";
+import { equationKey, fusionMemberIssues } from "../../composition/fusions";
 import { remapPlaceDynamics } from "../../place-dynamics";
 import { createUserKeyedRecord, getOwn } from "../../validation/record-keys";
 import { scopedId, scopeSeparator } from "./scoped-id";
@@ -96,6 +96,8 @@ type FlattenContext = {
   arcPlaceNameOverrides: Map<string, string>;
   /** Every fusion of every net, as flat place ids, applied once flattening is done. */
   fusionGroups: FusionGroup[];
+  /** For each flat equation, the `equationKey` of the equation it is a copy of. */
+  equationKeys: Map<ID, string>;
 };
 
 const assertUniqueFlatId = ({
@@ -330,6 +332,8 @@ const flattenNet = ({
   activeSubnetIds: readonly ID[];
   parameterValues: ParameterValues;
 }): void => {
+  // The net being flattened: the subnet entered last, `null` for the root net.
+  const netId = activeSubnetIds.at(-1) ?? null;
   const typeIdMap = new Map<ID, ID>();
   const equationIdMap = new Map<ID, ID>();
   const placeIdMap = new Map<ID, ID>();
@@ -349,6 +353,7 @@ const flattenNet = ({
     const id = scopedId(path, equation.id);
     assertUniqueFlatId({ ctx, kind: "differentialEquations", id });
     equationIdMap.set(equation.id, id);
+    ctx.equationKeys.set(id, equationKey(netId, equation.id));
     ctx.target.differentialEquations.push({
       ...equation,
       id,
@@ -526,6 +531,7 @@ export const flattenComponentInstancesForSimulation = ({
     placeParameterValues: new Map(),
     arcPlaceNameOverrides: new Map(),
     fusionGroups: [],
+    equationKeys: new Map(),
   };
 
   flattenNet({
@@ -539,6 +545,7 @@ export const flattenComponentInstancesForSimulation = ({
   const { aliases: fusedPlaceAliases, dynamicsDonors } = applyFusions(
     target,
     ctx.fusionGroups,
+    ctx.equationKeys,
   );
   // Equations a fused place took from a merged place read that place's
   // parameter values, not the fused place's own.

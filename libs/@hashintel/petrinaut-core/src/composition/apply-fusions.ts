@@ -6,7 +6,7 @@
 
 /* eslint-disable no-param-reassign -- the flat net is merged in place. */
 import { getRunningEquationIds } from "../place-dynamics";
-import { scopeDepth, sourceItemId } from "../simulation/engine/scoped-id";
+import { scopeDepth } from "../simulation/engine/scoped-id";
 import { colorsStructurallyEqual } from "./fusions";
 
 import type {
@@ -94,13 +94,28 @@ const mergedPlaceAliases = (groups: readonly FusionGroup[]): Map<ID, ID> => {
   return aliases;
 };
 
-/** Whether two places run the same equations: each instance of a component scopes the same ones under its own id. */
-const sameEquations = (left: ID[], right: ID[]): boolean =>
-  left.length === right.length &&
-  left.every(
-    (equationId, index) =>
-      sourceItemId(equationId) === sourceItemId(right[index] ?? ""),
+/**
+ * For each flat equation, the `equationKey` of the equation it is a copy of:
+ * each instance of a component scopes the same ones under its own id. An
+ * equation without one is taken for its own.
+ */
+type EquationKeys = ReadonlyMap<ID, string>;
+
+/** Whether two places run the same equations, in order. */
+const sameEquations = (
+  left: ID[],
+  right: ID[],
+  equationKeys: EquationKeys,
+): boolean => {
+  const keyOf = (equationId: ID) => equationKeys.get(equationId) ?? equationId;
+  return (
+    left.length === right.length &&
+    left.every((equationId, index) => {
+      const other = right[index];
+      return other !== undefined && keyOf(equationId) === keyOf(other);
+    })
   );
+};
 
 /**
  * Gives `fused` what `member` declares and throws where the two disagree.
@@ -111,6 +126,7 @@ const reconcile = (
   fused: Place,
   member: Place,
   fusionName: string,
+  equationKeys: EquationKeys,
 ): boolean => {
   const disagree = (on: string) =>
     new Error(
@@ -141,7 +157,7 @@ const reconcile = (
   }
   const fusedEquations = getRunningEquationIds(fused);
   if (fusedEquations.length > 0) {
-    if (!sameEquations(fusedEquations, memberEquations)) {
+    if (!sameEquations(fusedEquations, memberEquations, equationKeys)) {
       throw disagree("that run different differential equations");
     }
     return false;
@@ -191,11 +207,13 @@ const redirectArcs = <Arc extends InputArc | OutputArc>(
  *
  * `groups` lists a net's fusions after those of its instances: a place that
  * is fused inside its component and again in the net above goes by the name
- * of the outer fusion.
+ * of the outer fusion. `equationKeys` says which flat equations are copies
+ * of one definition, which fused places may both run.
  */
 export const applyFusions = (
   net: FlatNet,
   groups: readonly FusionGroup[],
+  equationKeys: EquationKeys = new Map(),
 ): AppliedFusions => {
   const aliases = mergedPlaceAliases(groups);
   const dynamicsDonors = new Map<ID, ID>();
@@ -213,7 +231,7 @@ export const applyFusions = (
           `Fusion \`${group.name}\` names a place that is not in the flattened net.`,
         );
       }
-      if (reconcile(net, fused, member, group.name)) {
+      if (reconcile(net, fused, member, group.name, equationKeys)) {
         dynamicsDonors.set(fusedId, id);
       }
     }

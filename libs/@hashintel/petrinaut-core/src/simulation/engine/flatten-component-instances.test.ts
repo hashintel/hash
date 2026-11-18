@@ -835,5 +835,72 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
         { id: "b1::pool", dynamics: [{ differentialEquationId: "b1::cool" }] },
       ]);
     });
+
+    it("refuses the ports of two subnets that each define an equation under one id", () => {
+      const kiln: Subnet = {
+        ...bath(),
+        id: "kiln",
+        name: "kiln",
+        differentialEquations: [
+          {
+            id: "cool",
+            name: "Cool",
+            colorId: "part",
+            code: "return { temperature: 1 };",
+            arity: 1,
+          },
+        ],
+      };
+      const definition = sdcpn({
+        componentInstances: [
+          componentInstance("b1", "bath"),
+          componentInstance("k1", "kiln"),
+        ],
+        subnets: [bath(), kiln],
+        fusions: [
+          { id: "f1", name: "F1", members: [poolOf("b1"), poolOf("k1")] },
+        ],
+      });
+
+      expect(() => flatten({ definition })).toThrow(
+        /Fusion `F1` joins places `Pool` and `Pool` that run different differential equations/,
+      );
+    });
+
+    it("refuses a root place and a port whose subnet defines an equation under the id of the root's", () => {
+      const definition = sdcpn({
+        types: bath().types,
+        differentialEquations: [
+          {
+            id: "cool",
+            name: "Cool",
+            colorId: "part",
+            code: "return { temperature: 1 };",
+            arity: 1,
+          },
+        ],
+        places: [
+          place("tank", {
+            name: "Tank",
+            colorId: "part",
+            dynamicsEnabled: true,
+            dynamics: [{ differentialEquationId: "cool" }],
+          }),
+        ],
+        componentInstances: [componentInstance("b1", "bath")],
+        subnets: [bath()],
+        fusions: [
+          {
+            id: "f1",
+            name: "F1",
+            members: [{ kind: "place", placeId: "tank" }, poolOf("b1")],
+          },
+        ],
+      });
+
+      expect(() => flatten({ definition })).toThrow(
+        /Fusion `F1` joins places `Tank` and `Pool` that run different differential equations/,
+      );
+    });
   });
 });

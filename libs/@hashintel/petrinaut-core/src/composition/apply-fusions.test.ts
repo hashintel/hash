@@ -257,14 +257,42 @@ describe("applyFusions", () => {
       types: [],
     };
 
-    const { dynamicsDonors } = applyFusions(net, [
-      { name: "f1", placeIds: ["a::bath", "b::bath"] },
-    ]);
+    const { dynamicsDonors } = applyFusions(
+      net,
+      [{ name: "f1", placeIds: ["a::bath", "b::bath"] }],
+      new Map([
+        ["a::cool", "bath/cool"],
+        ["b::cool", "bath/cool"],
+      ]),
+    );
 
     expect(net.places).toMatchObject([
       { id: "a::bath", dynamics: [{ differentialEquationId: "a::cool" }] },
     ]);
     expect(dynamicsDonors.size).toBe(0);
+  });
+
+  it("throws on members that run equations two nets each define under one id", () => {
+    const cooled = (id: string, instance: string) =>
+      place(id, {
+        dynamicsEnabled: true,
+        dynamics: [{ differentialEquationId: `${instance}::cool` }],
+      });
+
+    expect(() =>
+      applyFusions(
+        {
+          places: [cooled("a::bath", "a"), cooled("b::bath", "b")],
+          transitions: [],
+          types: [],
+        },
+        [{ name: "f1", placeIds: ["a::bath", "b::bath"] }],
+        new Map([
+          ["a::cool", "bath/cool"],
+          ["b::cool", "kiln/cool"],
+        ]),
+      ),
+    ).toThrow(/different differential equations/);
   });
 
   it("throws on members that run different equations, or hold different capacities", () => {

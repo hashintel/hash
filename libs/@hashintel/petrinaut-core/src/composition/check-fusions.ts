@@ -15,6 +15,7 @@ import { getRunningEquationIds } from "../place-dynamics";
 import {
   colorsStructurallyEqual,
   describeResolvedMember,
+  equationKey,
   fusionHolds,
   fusionMemberIssues,
   resolveFusionMember,
@@ -125,20 +126,21 @@ type MemberFacts = TokenFlow & {
   label: string;
   color: Color | undefined;
   capacity: number | null;
-  /**
-   * The equations the member runs, in order. The simulator knows an equation
-   * by its id alone, whichever net declares it.
-   */
+  /** The equations the member runs, in order, each by its `equationKey`. */
   dynamicsKey: string | null;
 };
 
 const factsFor = (
   net: CheckedNet,
+  subnetId: ID | null,
   member: ArcEndpoint,
   resolved: ResolvedFusionMember,
 ): Omit<MemberFacts, "label"> => {
   const { place } = resolved;
   const types = resolved.kind === "place" ? net.types : resolved.subnet.types;
+  // A place runs equations of its own net.
+  const equationNetId =
+    resolved.kind === "place" ? subnetId : resolved.subnet.id;
   const equationIds = getRunningEquationIds(place);
   const outside = flowThrough(net.transitions, member);
   // What is on the far side of the member from this net's transitions: the
@@ -155,7 +157,12 @@ const factsFor = (
       ? types.find(({ id }) => id === place.colorId)
       : undefined,
     capacity: place.capacity ?? null,
-    dynamicsKey: equationIds.length > 0 ? JSON.stringify(equationIds) : null,
+    dynamicsKey:
+      equationIds.length > 0
+        ? JSON.stringify(
+            equationIds.map((id) => equationKey(equationNetId, id)),
+          )
+        : null,
     produced: outside.produced || inside.produced,
     consumed: outside.consumed || inside.consumed,
   };
@@ -229,7 +236,7 @@ export const checkFusion = (
       );
       continue;
     }
-    facts.push({ label, ...factsFor(net, member, resolved) });
+    facts.push({ label, ...factsFor(net, subnetId, member, resolved) });
   }
   if (multipleAnchors) {
     report(

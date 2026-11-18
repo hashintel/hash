@@ -216,6 +216,71 @@ describe("checkFusions", () => {
     ).toEqual([]);
   });
 
+  describe("an equation id that two nets each define", () => {
+    const fluid = color("fluid", [
+      { elementId: "l", name: "level", type: "real" },
+    ]);
+    const cool = (code: string) => ({
+      id: "cool",
+      name: "Cool",
+      colorId: "fluid",
+      code,
+      arity: 1,
+    });
+    const cooled = (id: string, overrides: Partial<Place> = {}) =>
+      place(id, {
+        colorId: "fluid",
+        dynamicsEnabled: true,
+        dynamics: [{ differentialEquationId: "cool" }],
+        ...overrides,
+      });
+    /** A subnet whose port runs the equation the subnet defines as `cool`. */
+    const cooler = (id: string, code: string) =>
+      subnet(id, {
+        types: [fluid],
+        differentialEquations: [cool(code)],
+        places: [cooled("in", { isPort: true })],
+      });
+    const errorCodes = (sdcpn: SDCPN) =>
+      checkFusions(sdcpn)
+        .filter(({ severity }) => severity === "error")
+        .map(({ code }) => code);
+
+    it("reports the ports of two subnets", () => {
+      const sdcpn = net({
+        subnets: [
+          cooler("bath", "return { level: -1 };"),
+          cooler("kiln", "return { level: 1 };"),
+        ],
+        componentInstances: [instance("b1", "bath"), instance("k1", "kiln")],
+        fusions: [
+          { id: "f1", name: "F1", members: [partIn("b1"), partIn("k1")] },
+        ],
+      });
+
+      expect(errorCodes(sdcpn)).toEqual(["dynamics-conflict"]);
+    });
+
+    it("reports a root place and the port of a subnet", () => {
+      const sdcpn = net({
+        types: [fluid],
+        differentialEquations: [cool("return { level: 1 };")],
+        places: [cooled("tank")],
+        subnets: [cooler("bath", "return { level: -1 };")],
+        componentInstances: [instance("b1", "bath")],
+        fusions: [
+          {
+            id: "f1",
+            name: "F1",
+            members: [{ kind: "place", placeId: "tank" }, partIn("b1")],
+          },
+        ],
+      });
+
+      expect(errorCodes(sdcpn)).toEqual(["dynamics-conflict"]);
+    });
+  });
+
   it("reports duplicate members, a second anchor and a lone member", () => {
     const sdcpn = net({
       places: [place("a"), place("b")],

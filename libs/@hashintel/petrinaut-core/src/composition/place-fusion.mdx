@@ -95,8 +95,10 @@ fused place twice, and the three disagreements:
   beside unbounded members bounds the fused place.
 - **Dynamics**: two members whose dynamics compose different equations. One
   member's dynamics drive the fused place; two instances of one subnet share
-  their equations and agree. The fused place runs them once, with the
-  parameter values of the first member that has them.
+  their equations and agree. An equation is the one its own net defines, so
+  two nets that each define an equation under one id disagree. The fused
+  place runs them once, with the parameter values of the first member that
+  has them.
 
 A transition's code addresses its arcs by position, so two arcs of one kind
 from one transition onto members of one fusion cannot be folded into a

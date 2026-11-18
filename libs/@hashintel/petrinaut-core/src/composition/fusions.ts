@@ -113,6 +113,16 @@ export const colorsStructurallyEqual = (
   );
 };
 
+/**
+ * A string two equations share exactly when they are one definition: the
+ * same id in the net that defines it, `null` for the root net. An id alone
+ * does not say it, since two nets can each define an equation under one id.
+ * The fusion check and the flattener both compare fused places' equations by
+ * this key.
+ */
+export const equationKey = (netId: ID | null, equationId: ID): string =>
+  JSON.stringify([netId, equationId]);
+
 /** What a member names, once resolved against the document. */
 export type ResolvedFusionMember =
   | { kind: "place"; place: Place }
