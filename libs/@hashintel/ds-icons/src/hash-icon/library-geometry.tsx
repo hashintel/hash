@@ -114,6 +114,7 @@ import { radioCheckedGeometry } from "./library-geometry/radio-checked";
 import { rectangleGeometry } from "./library-geometry/rectangle";
 import { redoGeometry } from "./library-geometry/redo";
 import { roundedCornerGeometry } from "./library-geometry/rounded-corner";
+import { sendBackwardGeometry } from "./library-geometry/send-backward";
 import { shapeArrowDownGeometry } from "./library-geometry/shape-arrow-down";
 import { shapeArrowLeftGeometry } from "./library-geometry/shape-arrow-left";
 import { shapeArrowRightGeometry } from "./library-geometry/shape-arrow-right";
@@ -138,6 +139,7 @@ import { ungroupGeometry } from "./library-geometry/ungroup";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  sendBackward: sendBackwardGeometry,
   bringForward: bringForwardGeometry,
   ungroup: ungroupGeometry,
   group: groupGeometry,

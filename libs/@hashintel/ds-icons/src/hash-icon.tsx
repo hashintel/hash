@@ -565,6 +565,7 @@ export const StackVerticalIcon = createIcon("stackVertical");
 export const GroupIcon = createIcon("group");
 export const UngroupIcon = createIcon("ungroup");
 export const BringForwardIcon = createIcon("bringForward");
+export const SendBackwardIcon = createIcon("sendBackward");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -750,6 +751,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  sendBackward: SendBackwardIcon,
   bringForward: BringForwardIcon,
   ungroup: UngroupIcon,
   group: GroupIcon,
