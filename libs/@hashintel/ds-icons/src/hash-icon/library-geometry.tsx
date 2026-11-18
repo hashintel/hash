@@ -63,6 +63,7 @@ import { fileTextGeometry } from "./library-geometry/file-text";
 import { fileVideoGeometry } from "./library-geometry/file-video";
 import { filesGeometry } from "./library-geometry/files";
 import { fillNoneGeometry } from "./library-geometry/fill-none";
+import { fillPatternGeometry } from "./library-geometry/fill-pattern";
 import { fillSemiGeometry } from "./library-geometry/fill-semi";
 import { fillSolidGeometry } from "./library-geometry/fill-solid";
 import { folderGeometry } from "./library-geometry/folder";
@@ -111,6 +112,7 @@ import { triangleGeometry } from "./library-geometry/triangle";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  fillPattern: fillPatternGeometry,
   fillSemi: fillSemiGeometry,
   fillSolid: fillSolidGeometry,
   fillNone: fillNoneGeometry,
