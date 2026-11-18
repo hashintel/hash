@@ -573,6 +573,7 @@ export const ColumnsIcon = createIcon("columns");
 export const RowsIcon = createIcon("rows");
 export const SplitViewIcon = createIcon("splitView");
 export const MixedIcon = createIcon("mixed");
+export const BoldIcon = createIcon("bold");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -758,6 +759,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  bold: BoldIcon,
   mixed: MixedIcon,
   splitView: SplitViewIcon,
   rows: RowsIcon,

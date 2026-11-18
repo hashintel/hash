@@ -28,6 +28,7 @@ import { arrowheadTriangleGeometry } from "./library-geometry/arrowhead-triangle
 import { arrowheadTriangleInvertedGeometry } from "./library-geometry/arrowhead-triangle-inverted";
 import { aspectRatioGeometry } from "./library-geometry/aspect-ratio";
 import { blobGeometry } from "./library-geometry/blob";
+import { boldGeometry } from "./library-geometry/bold";
 import { bookGeometry } from "./library-geometry/book";
 import { bookOpenGeometry } from "./library-geometry/book-open";
 import { booksGeometry } from "./library-geometry/books";
@@ -146,6 +147,7 @@ import { ungroupGeometry } from "./library-geometry/ungroup";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  bold: boldGeometry,
   mixed: mixedGeometry,
   splitView: splitViewGeometry,
   rows: rowsGeometry,
