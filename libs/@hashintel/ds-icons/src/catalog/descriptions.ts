@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  moon: "A crescent represents night or a dark theme.",
   sun: "A radiating disc represents sunlight or a light theme.",
   gauge: "A dial with a needle represents a measured level or performance.",
   presentationChart: "A chart on an easel represents presenting data.",

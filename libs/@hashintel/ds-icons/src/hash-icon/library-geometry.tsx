@@ -177,6 +177,7 @@ import { microchipGeometry } from "./library-geometry/microchip";
 import { mixedGeometry } from "./library-geometry/mixed";
 import { moneyTransferGeometry } from "./library-geometry/money-transfer";
 import { monitorGeometry } from "./library-geometry/monitor";
+import { moonGeometry } from "./library-geometry/moon";
 import { newspaperGeometry } from "./library-geometry/newspaper";
 import { notePlusGeometry } from "./library-geometry/note-plus";
 import { noteStickyGeometry } from "./library-geometry/note-sticky";
@@ -283,6 +284,7 @@ import { usersGeometry } from "./library-geometry/users";
 import { warehouseGeometry } from "./library-geometry/warehouse";
 
 export const libraryGeometry = {
+  moon: moonGeometry,
   sun: sunGeometry,
   gauge: gaugeGeometry,
   presentationChart: presentationChartGeometry,
