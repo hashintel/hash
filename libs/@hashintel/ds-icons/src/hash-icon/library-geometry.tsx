@@ -1,5 +1,6 @@
 import { alignBottomGeometry } from "./library-geometry/align-bottom";
 import { alignCenterHorizontalGeometry } from "./library-geometry/align-center-horizontal";
+import { alignCenterLeftGeometry } from "./library-geometry/align-center-left";
 import { alignCenterVerticalGeometry } from "./library-geometry/align-center-vertical";
 import { alignLeftGeometry } from "./library-geometry/align-left";
 import { alignRightGeometry } from "./library-geometry/align-right";
@@ -125,6 +126,7 @@ import { triangleGeometry } from "./library-geometry/triangle";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  alignCenterLeft: alignCenterLeftGeometry,
   alignTopRight: alignTopRightGeometry,
   alignTopCenter: alignTopCenterGeometry,
   alignTopLeft: alignTopLeftGeometry,
