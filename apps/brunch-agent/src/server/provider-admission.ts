@@ -362,6 +362,12 @@ class AdmittedStream extends AssistantMessageEventStream {
       }
       const message = await Promise.race([upstream.result(), interrupted]);
       count(message);
+      // A length stop fails the turn, with or without tool calls. Without this,
+      // Flue counts it as a completed response, and pi-agent-core fails the
+      // calls of a truncated message and asks the model to re-issue them. A
+      // call cut off by the limit is likely cut off again, and each attempt
+      // reserves the full output budget. Completed calls are still buffered
+      // here, so none of them is admitted or runs.
       if (message.stopReason === "length") {
         idleRecovery?.onOutputLimit?.({
           provider: this.#model.provider,

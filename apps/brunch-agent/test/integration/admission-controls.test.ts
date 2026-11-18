@@ -4,6 +4,7 @@ import { beforeAll, expect, test } from "vitest";
 import { brunchTools } from "@hashintel/brunch-agent";
 import { createFlueUiStream } from "@local/flue-aisdk-transport";
 
+import { outputLimitMarker } from "../../src/server/telemetry-readback/shared/records.ts";
 import {
   runAdmissionControls,
   type AdmissionControlsResult,
@@ -65,8 +66,12 @@ test("production rejects every mixed proposal outside the allowlist before publi
   }
 });
 
-test("a response stopped at the output limit fails the turn, with or without text", () => {
-  expect(result.outputLimits).toHaveLength(2);
+test("a response stopped at the output limit fails the turn, with or without text and mid tool call, and the next message still works", () => {
+  expect(result.outputLimits.map(({ caseId }) => caseId)).toEqual([
+    "length-with-text",
+    "length-without-text",
+    "length-mid-tool-call",
+  ]);
   for (const limited of result.outputLimits) {
     const { submissionId } = limited.attempt.receipt;
     expect(limited.attempt.error).toContain("model_output_limit");
@@ -76,7 +81,7 @@ test("a response stopped at the output limit fails the turn, with or without tex
         .split("\n")
         .filter(
           (line) =>
-            line.includes("[brunch] provider.output-limit") &&
+            line.includes(outputLimitMarker) &&
             line.includes(`"submissionId":"${submissionId}"`),
         ),
     ).toHaveLength(1);
@@ -98,6 +103,28 @@ test("a response stopped at the output limit fails the turn, with or without tex
     expect(errorTexts).toHaveLength(1);
     expect(errorTexts[0]).toContain("model_output_limit");
     expect(uiChunks.some((chunk) => chunk.type === "finish")).toBe(false);
+    // A call cut off by the limit is never published, recorded or run.
+    expect(uiChunks.filter((chunk) => chunk.type.startsWith("tool-"))).toEqual(
+      [],
+    );
+    expect(
+      limited.history.messages
+        .filter((message) => message.submissionId === submissionId)
+        .flatMap((message) => message.parts)
+        .filter((part) => part.type !== "text"),
+    ).toEqual([]);
+    // The next message settles normally, with no call left without a result.
+    expect(limited.followUp.error).toBeNull();
+    expect(limited.followUpHistory.settlements).toContainEqual(
+      expect.objectContaining({
+        submissionId: limited.followUp.receipt.submissionId,
+        outcome: "completed",
+      }),
+    );
+    const followUpContext = JSON.stringify(limited.followUpContext);
+    expect(followUpContext).toContain("Synthetic follow-up");
+    expect(followUpContext).not.toContain('"type":"toolCall"');
+    expect(followUpContext).not.toContain('"role":"toolResult"');
   }
   const withText = result.outputLimits.find(
     ({ caseId }) => caseId === "length-with-text",
