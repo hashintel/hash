@@ -104,6 +104,7 @@ import { hexagonGeometry } from "./library-geometry/hexagon";
 import { highlighterGeometry } from "./library-geometry/highlighter";
 import { historyPagesGeometry } from "./library-geometry/history-pages";
 import { historyUserGeometry } from "./library-geometry/history-user";
+import { inboxGeometry } from "./library-geometry/inbox";
 import { italicGeometry } from "./library-geometry/italic";
 import { keyGeometry } from "./library-geometry/key";
 import { keyboardGeometry } from "./library-geometry/keyboard";
@@ -174,6 +175,7 @@ import { ungroupGeometry } from "./library-geometry/ungroup";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  inbox: inboxGeometry,
   messageQuestion: messageQuestionGeometry,
   messageDollar: messageDollarGeometry,
   message: messageGeometry,
