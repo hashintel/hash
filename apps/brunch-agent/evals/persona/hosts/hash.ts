@@ -8,6 +8,7 @@
 import assert from "node:assert/strict";
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { isDeepStrictEqual } from "node:util";
 
 import { parseSDCPNFile } from "@hashintel/petrinaut-core";
 
@@ -149,7 +150,7 @@ const createProcess = async (
 
 /**
  * The process's latest saved version, in the shape the website stores a net,
- * which the run packet reads.
+ * which the run packet reads; `undefined` once the process is archived.
  */
 const readProcess = async (page: Page, entityUuid: string) => {
   const data = await hashGraphql(
@@ -157,7 +158,12 @@ const readProcess = async (page: Page, entityUuid: string) => {
     "query queryEntities($request: QueryEntitiesRequest!) { queryEntities(request: $request) }",
     {
       request: {
-        filter: { equal: [{ path: ["uuid"] }, { parameter: entityUuid }] },
+        filter: {
+          all: [
+            { equal: [{ path: ["uuid"] }, { parameter: entityUuid }] },
+            { equal: [{ path: ["archived"] }, { parameter: false }] },
+          ],
+        },
         temporalAxes: {
           pinned: { axis: "transactionTime", timestamp: null },
           variable: {
@@ -172,7 +178,8 @@ const readProcess = async (page: Page, entityUuid: string) => {
   );
   const [entity] =
     (data.queryEntities as { entities?: unknown[] }).entities ?? [];
-  const { properties, metadata } = (entity ?? {}) as {
+  if (entity === undefined) return undefined;
+  const { properties, metadata } = entity as {
     properties?: Record<string, unknown>;
     metadata?: {
       temporalVersioning?: { decisionTime?: { start?: { limit?: string } } };
@@ -270,7 +277,7 @@ const emptyNet = {
 export const hashHost = (): PersonaHost => ({
   name: "hash",
   guidance: hashAgentGuidance,
-  prepare: async ({ environment, retained, signal }) => {
+  prepare: async ({ environment, run, retained, signal }) => {
     await checkHashStack(signal);
     let entityUuid =
       typeof retained?.entityUuid === "string"
@@ -325,6 +332,35 @@ export const hashHost = (): PersonaHost => ({
           await signIn(page);
           await page.goto(processUrl(processOf()));
         }
+        // Both refusals come before Brunch starts recovering the turn.
+        if ((await readProcess(page, processOf())) === undefined)
+          throw new Error(
+            `The run's HASH process ${processOf()} no longer exists; it cannot resume.`,
+          );
+        // The editor opens the saved process, so edits the run left unsaved
+        // exist only in the retained live net.
+        const retainedNet = await readFile(
+          join(run, "evidence", "net.json"),
+          "utf8",
+        ).then(
+          (text) => JSON.parse(text) as { title?: unknown; sdcpn?: unknown },
+          (error: unknown) => {
+            if ((error as NodeJS.ErrnoException).code === "ENOENT")
+              return undefined;
+            throw error;
+          },
+        );
+        if (retainedNet === undefined) return;
+        const reopened = await exportLiveNet(page, processOf());
+        if (
+          !isDeepStrictEqual(
+            { title: reopened.title, sdcpn: reopened.sdcpn },
+            { title: retainedNet.title, sdcpn: retainedNet.sdcpn },
+          )
+        )
+          throw new Error(
+            `The run's last live net (evidence/net.json) differs from HASH process ${processOf()} as saved, so the run left edits unsaved that reopening cannot restore; it cannot resume.`,
+          );
       },
       reload: (page) => showAssistant(page, () => page.reload()),
       capture: async (page, _session, evidenceDirectory) => {
@@ -333,6 +369,7 @@ export const hashHost = (): PersonaHost => ({
           exportLiveNet(page, entityUuid),
           readProcess(page, entityUuid),
         ]);
+        assert(saved, `HASH process ${entityUuid} no longer exists`);
         const json = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
         await Promise.all([
           writeFile(join(evidenceDirectory, "net.json"), json(live)),
