@@ -102,7 +102,7 @@ const geometry = {
       <path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V4a1.5 1.5 0 0 1 3 0v1.5a1.5 1.5 0 0 1 3 0v2a1.5 1.5 0 0 1 3 0V14c0 4.5-2.5 7-6.5 7h-.75c-2 0-3.75-.8-5.25-2.25L3.75 14a1.5 1.5 0 0 1 2.1-2.1L8 14.1Z" />
     </FilledShape>
   ),
-  cursor: <path d="M6 3v17.5l4-4 3 5 2.5-1.5-3-5H18Z" />,
+  cursor: <path d="M6 3.5v17l4-4 3 5 2.5-1.5-3-5H18Z" strokeMiterlimit={3} />,
   place: <circle cx="12" cy="12" r="8" />,
   transition: <rect x="4" y="4" width="16" height="16" rx="1" />,
   addPlace: null,
