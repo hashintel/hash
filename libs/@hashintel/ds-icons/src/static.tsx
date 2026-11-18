@@ -40,9 +40,13 @@ export const HashIconArtwork = ({
   name,
   variant = "outline",
   weight = 400,
-}: Pick<StaticHashIconProps, "name" | "variant" | "weight">) => {
+  strokeWidth: explicitStrokeWidth,
+}: Pick<
+  StaticHashIconProps,
+  "name" | "variant" | "weight" | "strokeWidth"
+>) => {
   const id = useId();
-  const strokeWidth = getHashIconStrokeWidth(weight);
+  const strokeWidth = explicitStrokeWidth ?? getHashIconStrokeWidth(weight);
   return (
     <g
       fill={variant === "filled" ? "currentColor" : "none"}
@@ -74,6 +78,7 @@ export const StaticHashIcon = ({
   variant,
   weight,
   size = "1em",
+  strokeWidth,
   ...props
 }: StaticHashIconProps) => {
   const labelled = Boolean(props["aria-label"] || props["aria-labelledby"]);
@@ -88,7 +93,12 @@ export const StaticHashIcon = ({
       focusable="false"
       {...props}
     >
-      <HashIconArtwork name={name} variant={variant} weight={weight} />
+      <HashIconArtwork
+        name={name}
+        variant={variant}
+        weight={weight}
+        strokeWidth={strokeWidth}
+      />
     </svg>
   );
 };

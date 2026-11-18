@@ -7035,8 +7035,8 @@
       "source": "apps/hash-frontend/public/icons/icon/tool-media.svg",
       "name": "tool-media",
       "key": "toolmedia",
-      "target": "image",
-      "classification": "mapped"
+      "target": null,
+      "classification": "unmapped"
     },
     {
       "repo": "hash",
@@ -9454,7 +9454,8 @@
       "name": "ArrowUpRight",
       "line": 1,
       "key": "arrowupright",
-      "classification": "brand"
+      "target": "arrowUpRight",
+      "classification": "mapped"
     },
     {
       "repo": "sites",
@@ -9464,7 +9465,8 @@
       "name": "Check",
       "line": 1,
       "key": "check",
-      "classification": "brand"
+      "target": "check",
+      "classification": "mapped"
     },
     {
       "repo": "sites",
@@ -9474,7 +9476,8 @@
       "name": "X",
       "line": 1,
       "key": "x",
-      "classification": "brand"
+      "target": "close",
+      "classification": "mapped"
     },
     {
       "repo": "sites",
@@ -11167,7 +11170,8 @@
       "name": "ArrowUpRight",
       "line": 2,
       "key": "arrowupright",
-      "classification": "brand"
+      "target": "arrowUpRight",
+      "classification": "mapped"
     },
     {
       "repo": "sites",
@@ -11177,7 +11181,8 @@
       "name": "FileArchive",
       "line": 2,
       "key": "filearchive",
-      "classification": "brand"
+      "target": "fileArchive",
+      "classification": "mapped"
     },
     {
       "repo": "sites",
@@ -11187,7 +11192,8 @@
       "name": "FileBox",
       "line": 2,
       "key": "filebox",
-      "classification": "brand"
+      "target": "fileBox",
+      "classification": "mapped"
     },
     {
       "repo": "sites",
@@ -11197,7 +11203,8 @@
       "name": "FileCode",
       "line": 2,
       "key": "filecode",
-      "classification": "brand"
+      "target": "fileCode",
+      "classification": "mapped"
     },
     {
       "repo": "sites",
@@ -11207,7 +11214,8 @@
       "name": "FileImage",
       "line": 2,
       "key": "fileimage",
-      "classification": "brand"
+      "target": "fileImage",
+      "classification": "mapped"
     },
     {
       "repo": "sites",
@@ -11217,7 +11225,8 @@
       "name": "Focus",
       "line": 2,
       "key": "focus",
-      "classification": "brand"
+      "target": "fitView",
+      "classification": "mapped"
     },
     {
       "repo": "sites",
@@ -11227,7 +11236,8 @@
       "name": "Pause",
       "line": 2,
       "key": "pause",
-      "classification": "brand"
+      "target": "pause",
+      "classification": "mapped"
     },
     {
       "repo": "sites",
@@ -11237,7 +11247,8 @@
       "name": "Play",
       "line": 2,
       "key": "play",
-      "classification": "brand"
+      "target": "play",
+      "classification": "mapped"
     },
     {
       "repo": "sites",
@@ -11247,7 +11258,8 @@
       "name": "RotateCcw",
       "line": 2,
       "key": "rotateccw",
-      "classification": "brand"
+      "target": "reset",
+      "classification": "mapped"
     },
     {
       "repo": "sites",
@@ -11257,7 +11269,8 @@
       "name": "Waves",
       "line": 2,
       "key": "waves",
-      "classification": "brand"
+      "target": "waves",
+      "classification": "mapped"
     },
     {
       "repo": "sites",
@@ -11867,6 +11880,28 @@
     },
     {
       "repo": "sites",
+      "kind": "fontawesome-definition",
+      "file": "apps/blockprotocol/src/components/icons/fa/binary.ts",
+      "source": "apps/blockprotocol/src/components/icons/fa/binary.ts#faBinary",
+      "name": "faBinary",
+      "line": 3,
+      "key": "binary",
+      "target": "binary",
+      "classification": "mapped"
+    },
+    {
+      "repo": "sites",
+      "kind": "fontawesome-definition",
+      "file": "apps/blockprotocol/src/components/icons/fa/boxes-stacked.ts",
+      "source": "apps/blockprotocol/src/components/icons/fa/boxes-stacked.ts#faBoxesStacked",
+      "name": "faBoxesStacked",
+      "line": 7,
+      "key": "boxesstacked",
+      "target": "boxes",
+      "classification": "mapped"
+    },
+    {
+      "repo": "sites",
       "kind": "component",
       "file": "apps/blockprotocol/src/components/icons/flask-vial-icon.tsx",
       "source": "apps/blockprotocol/src/components/icons/flask-vial-icon.tsx#FlaskVialIcon",
@@ -12135,6 +12170,347 @@
       "line": 5,
       "key": "peoplearrows",
       "target": "peopleArrows",
+      "classification": "mapped"
+    },
+    {
+      "repo": "sites",
+      "kind": "fontawesome-definition",
+      "file": "apps/blockprotocol/src/components/icons/pro/fa-bolt.tsx",
+      "source": "apps/blockprotocol/src/components/icons/pro/fa-bolt.tsx#faBolt",
+      "name": "faBolt",
+      "line": 3,
+      "key": "bolt",
+      "target": "lightning",
+      "classification": "mapped"
+    },
+    {
+      "repo": "sites",
+      "kind": "fontawesome-definition",
+      "file": "apps/blockprotocol/src/components/icons/pro/fa-box-open-full.tsx",
+      "source": "apps/blockprotocol/src/components/icons/pro/fa-box-open-full.tsx#faBoxOpenFull",
+      "name": "faBoxOpenFull",
+      "line": 3,
+      "key": "boxopenfull",
+      "target": "boxOpen",
+      "classification": "mapped"
+    },
+    {
+      "repo": "sites",
+      "kind": "fontawesome-definition",
+      "file": "apps/blockprotocol/src/components/icons/pro/fa-check-double.tsx",
+      "source": "apps/blockprotocol/src/components/icons/pro/fa-check-double.tsx#faCheckDouble",
+      "name": "faCheckDouble",
+      "line": 3,
+      "key": "checkdouble",
+      "target": "checkDouble",
+      "classification": "mapped"
+    },
+    {
+      "repo": "sites",
+      "kind": "fontawesome-definition",
+      "file": "apps/blockprotocol/src/components/icons/pro/fa-cloud.tsx",
+      "source": "apps/blockprotocol/src/components/icons/pro/fa-cloud.tsx#faCloud",
+      "name": "faCloud",
+      "line": 3,
+      "key": "cloud",
+      "target": "cloud",
+      "classification": "mapped"
+    },
+    {
+      "repo": "sites",
+      "kind": "fontawesome-definition",
+      "file": "apps/blockprotocol/src/components/icons/pro/fa-coins.tsx",
+      "source": "apps/blockprotocol/src/components/icons/pro/fa-coins.tsx#faCoins",
+      "name": "faCoins",
+      "line": 3,
+      "key": "coins",
+      "target": "coins",
+      "classification": "mapped"
+    },
+    {
+      "repo": "sites",
+      "kind": "fontawesome-definition",
+      "file": "apps/blockprotocol/src/components/icons/pro/fa-cubes.tsx",
+      "source": "apps/blockprotocol/src/components/icons/pro/fa-cubes.tsx#faCubes",
+      "name": "faCubes",
+      "line": 3,
+      "key": "cubes",
+      "target": "cubes",
+      "classification": "mapped"
+    },
+    {
+      "repo": "sites",
+      "kind": "fontawesome-definition",
+      "file": "apps/blockprotocol/src/components/icons/pro/fa-envelope.tsx",
+      "source": "apps/blockprotocol/src/components/icons/pro/fa-envelope.tsx#faEnvelope",
+      "name": "faEnvelope",
+      "line": 3,
+      "key": "envelope",
+      "target": "mail",
+      "classification": "mapped"
+    },
+    {
+      "repo": "sites",
+      "kind": "fontawesome-definition",
+      "file": "apps/blockprotocol/src/components/icons/pro/fa-eye.tsx",
+      "source": "apps/blockprotocol/src/components/icons/pro/fa-eye.tsx#faEye",
+      "name": "faEye",
+      "line": 3,
+      "key": "eye",
+      "target": "eye",
+      "classification": "mapped"
+    },
+    {
+      "repo": "sites",
+      "kind": "fontawesome-definition",
+      "file": "apps/blockprotocol/src/components/icons/pro/fa-flask-vial.tsx",
+      "source": "apps/blockprotocol/src/components/icons/pro/fa-flask-vial.tsx#faFlaskVial",
+      "name": "faFlaskVial",
+      "line": 3,
+      "key": "flaskvial",
+      "target": "flaskVial",
+      "classification": "mapped"
+    },
+    {
+      "repo": "sites",
+      "kind": "fontawesome-definition",
+      "file": "apps/blockprotocol/src/components/icons/pro/fa-hammer.tsx",
+      "source": "apps/blockprotocol/src/components/icons/pro/fa-hammer.tsx#faHammer",
+      "name": "faHammer",
+      "line": 3,
+      "key": "hammer",
+      "target": "hammer",
+      "classification": "mapped"
+    },
+    {
+      "repo": "sites",
+      "kind": "fontawesome-definition",
+      "file": "apps/blockprotocol/src/components/icons/pro/fa-hand.tsx",
+      "source": "apps/blockprotocol/src/components/icons/pro/fa-hand.tsx#faHand",
+      "name": "faHand",
+      "line": 3,
+      "key": "hand",
+      "target": "hand",
+      "classification": "mapped"
+    },
+    {
+      "repo": "sites",
+      "kind": "fontawesome-definition",
+      "file": "apps/blockprotocol/src/components/icons/pro/fa-image-polaroid.tsx",
+      "source": "apps/blockprotocol/src/components/icons/pro/fa-image-polaroid.tsx#faImagePolaroid",
+      "name": "faImagePolaroid",
+      "line": 3,
+      "key": "imagepolaroid",
+      "target": "image",
+      "classification": "mapped"
+    },
+    {
+      "repo": "sites",
+      "kind": "fontawesome-definition",
+      "file": "apps/blockprotocol/src/components/icons/pro/fa-image.tsx",
+      "source": "apps/blockprotocol/src/components/icons/pro/fa-image.tsx#faImage",
+      "name": "faImage",
+      "line": 3,
+      "key": "image",
+      "target": "image",
+      "classification": "mapped"
+    },
+    {
+      "repo": "sites",
+      "kind": "fontawesome-definition",
+      "file": "apps/blockprotocol/src/components/icons/pro/fa-jet-fighter-up.tsx",
+      "source": "apps/blockprotocol/src/components/icons/pro/fa-jet-fighter-up.tsx#faJetFighterUp",
+      "name": "faJetFighterUp",
+      "line": 3,
+      "key": "jetfighterup",
+      "target": "jet",
+      "classification": "mapped"
+    },
+    {
+      "repo": "sites",
+      "kind": "fontawesome-definition",
+      "file": "apps/blockprotocol/src/components/icons/pro/fa-location-arrow.tsx",
+      "source": "apps/blockprotocol/src/components/icons/pro/fa-location-arrow.tsx#faLocationArrow",
+      "name": "faLocationArrow",
+      "line": 3,
+      "key": "locationarrow",
+      "target": "arrowPointer",
+      "classification": "mapped"
+    },
+    {
+      "repo": "sites",
+      "kind": "fontawesome-definition",
+      "file": "apps/blockprotocol/src/components/icons/pro/fa-location-dot.tsx",
+      "source": "apps/blockprotocol/src/components/icons/pro/fa-location-dot.tsx#faLocationDot",
+      "name": "faLocationDot",
+      "line": 3,
+      "key": "locationdot",
+      "target": "location",
+      "classification": "mapped"
+    },
+    {
+      "repo": "sites",
+      "kind": "fontawesome-definition",
+      "file": "apps/blockprotocol/src/components/icons/pro/fa-location-pin.tsx",
+      "source": "apps/blockprotocol/src/components/icons/pro/fa-location-pin.tsx#faLocationPin",
+      "name": "faLocationPin",
+      "line": 3,
+      "key": "locationpin",
+      "target": "location",
+      "classification": "mapped"
+    },
+    {
+      "repo": "sites",
+      "kind": "fontawesome-definition",
+      "file": "apps/blockprotocol/src/components/icons/pro/fa-location.tsx",
+      "source": "apps/blockprotocol/src/components/icons/pro/fa-location.tsx#faLocationCrosshairs",
+      "name": "faLocationCrosshairs",
+      "line": 3,
+      "key": "locationcrosshairs",
+      "target": "crosshairs",
+      "classification": "mapped"
+    },
+    {
+      "repo": "sites",
+      "kind": "fontawesome-definition",
+      "file": "apps/blockprotocol/src/components/icons/pro/fa-lock.tsx",
+      "source": "apps/blockprotocol/src/components/icons/pro/fa-lock.tsx#faLock",
+      "name": "faLock",
+      "line": 3,
+      "key": "lock",
+      "target": "lockClosed",
+      "classification": "mapped"
+    },
+    {
+      "repo": "sites",
+      "kind": "fontawesome-definition",
+      "file": "apps/blockprotocol/src/components/icons/pro/fa-map-location-dot.tsx",
+      "source": "apps/blockprotocol/src/components/icons/pro/fa-map-location-dot.tsx#faMapLocationDot",
+      "name": "faMapLocationDot",
+      "line": 3,
+      "key": "maplocationdot",
+      "target": "mapPin",
+      "classification": "mapped"
+    },
+    {
+      "repo": "sites",
+      "kind": "fontawesome-definition",
+      "file": "apps/blockprotocol/src/components/icons/pro/fa-map.tsx",
+      "source": "apps/blockprotocol/src/components/icons/pro/fa-map.tsx#faMap",
+      "name": "faMap",
+      "line": 3,
+      "key": "map",
+      "target": "map",
+      "classification": "mapped"
+    },
+    {
+      "repo": "sites",
+      "kind": "fontawesome-definition",
+      "file": "apps/blockprotocol/src/components/icons/pro/fa-microphone.tsx",
+      "source": "apps/blockprotocol/src/components/icons/pro/fa-microphone.tsx#faMicrophone",
+      "name": "faMicrophone",
+      "line": 3,
+      "key": "microphone",
+      "target": "microphone",
+      "classification": "mapped"
+    },
+    {
+      "repo": "sites",
+      "kind": "fontawesome-definition",
+      "file": "apps/blockprotocol/src/components/icons/pro/fa-people-arrows.tsx",
+      "source": "apps/blockprotocol/src/components/icons/pro/fa-people-arrows.tsx#faPeopleArrows",
+      "name": "faPeopleArrows",
+      "line": 3,
+      "key": "peoplearrows",
+      "target": "peopleArrows",
+      "classification": "mapped"
+    },
+    {
+      "repo": "sites",
+      "kind": "fontawesome-definition",
+      "file": "apps/blockprotocol/src/components/icons/pro/fa-rocket-launch.tsx",
+      "source": "apps/blockprotocol/src/components/icons/pro/fa-rocket-launch.tsx#faRocketLaunch",
+      "name": "faRocketLaunch",
+      "line": 3,
+      "key": "rocketlaunch",
+      "target": "rocket",
+      "classification": "mapped"
+    },
+    {
+      "repo": "sites",
+      "kind": "fontawesome-definition",
+      "file": "apps/blockprotocol/src/components/icons/pro/fa-server.tsx",
+      "source": "apps/blockprotocol/src/components/icons/pro/fa-server.tsx#faServer",
+      "name": "faServer",
+      "line": 3,
+      "key": "server",
+      "target": "server",
+      "classification": "mapped"
+    },
+    {
+      "repo": "sites",
+      "kind": "fontawesome-definition",
+      "file": "apps/blockprotocol/src/components/icons/pro/fa-tag.tsx",
+      "source": "apps/blockprotocol/src/components/icons/pro/fa-tag.tsx#faTag",
+      "name": "faTag",
+      "line": 3,
+      "key": "tag",
+      "target": "tag",
+      "classification": "mapped"
+    },
+    {
+      "repo": "sites",
+      "kind": "fontawesome-definition",
+      "file": "apps/blockprotocol/src/components/icons/pro/fa-text.tsx",
+      "source": "apps/blockprotocol/src/components/icons/pro/fa-text.tsx#faText",
+      "name": "faText",
+      "line": 3,
+      "key": "text",
+      "target": "text",
+      "classification": "mapped"
+    },
+    {
+      "repo": "sites",
+      "kind": "fontawesome-definition",
+      "file": "apps/blockprotocol/src/components/icons/pro/fa-trophy-star.tsx",
+      "source": "apps/blockprotocol/src/components/icons/pro/fa-trophy-star.tsx#faTrophyStar",
+      "name": "faTrophyStar",
+      "line": 3,
+      "key": "trophystar",
+      "target": "trophy",
+      "classification": "mapped"
+    },
+    {
+      "repo": "sites",
+      "kind": "fontawesome-definition",
+      "file": "apps/blockprotocol/src/components/icons/pro/fa-trophy.tsx",
+      "source": "apps/blockprotocol/src/components/icons/pro/fa-trophy.tsx#faTrophy",
+      "name": "faTrophy",
+      "line": 3,
+      "key": "trophy",
+      "target": "trophy",
+      "classification": "mapped"
+    },
+    {
+      "repo": "sites",
+      "kind": "fontawesome-definition",
+      "file": "apps/blockprotocol/src/components/icons/pro/fa-upload.tsx",
+      "source": "apps/blockprotocol/src/components/icons/pro/fa-upload.tsx#faUpload",
+      "name": "faUpload",
+      "line": 3,
+      "key": "upload",
+      "target": "upload",
+      "classification": "mapped"
+    },
+    {
+      "repo": "sites",
+      "kind": "fontawesome-definition",
+      "file": "apps/blockprotocol/src/components/icons/pro/fa-window.tsx",
+      "source": "apps/blockprotocol/src/components/icons/pro/fa-window.tsx#faWindow",
+      "name": "faWindow",
+      "line": 3,
+      "key": "window",
+      "target": "browser",
       "classification": "mapped"
     },
     {
@@ -13207,8 +13583,8 @@
       "name": "BrowserMinimalIcon",
       "line": 5,
       "key": "browserminimal",
-      "target": "browser",
-      "classification": "mapped"
+      "target": null,
+      "classification": "unmapped"
     },
     {
       "repo": "sites",
@@ -16141,7 +16517,8 @@
       "name": "BrandSidebarIcon",
       "line": 66,
       "key": "brandsidebar",
-      "classification": "brand"
+      "target": null,
+      "classification": "unmapped"
     },
     {
       "repo": "sites",
@@ -17559,7 +17936,8 @@
       "source": "apps/hashdotdesign/public/brands/hash-symbol.svg",
       "name": "hash-symbol",
       "key": "hashsymbol",
-      "classification": "brand"
+      "target": null,
+      "classification": "unmapped"
     },
     {
       "repo": "sites",
@@ -17568,6 +17946,7 @@
       "source": "apps/hashdotdesign/public/brands/hgres/hgraph/hgraph-icon.svg",
       "name": "hgraph-icon",
       "key": "hgraphicon",
+      "target": null,
       "classification": "brand"
     },
     {
@@ -17577,7 +17956,8 @@
       "source": "apps/hashdotdesign/public/brands/semtype-glyph-light.svg",
       "name": "semtype-glyph-light",
       "key": "semtypeglyphlight",
-      "classification": "brand"
+      "target": null,
+      "classification": "unmapped"
     },
     {
       "repo": "sites",
@@ -17586,7 +17966,8 @@
       "source": "apps/hashdotdesign/public/brands/semtype-glyph-solid.svg",
       "name": "semtype-glyph-solid",
       "key": "semtypeglyphsolid",
-      "classification": "brand"
+      "target": null,
+      "classification": "unmapped"
     },
     {
       "repo": "sites",
@@ -17595,6 +17976,7 @@
       "source": "apps/hashdotdesign/public/brands/semtype-glyph.svg",
       "name": "semtype-glyph",
       "key": "semtypeglyph",
+      "target": null,
       "classification": "brand"
     },
     {
@@ -17604,7 +17986,8 @@
       "source": "apps/hashdotdesign/public/brands/semtype/brand_glyph-outline_dark-mode.svg",
       "name": "brand_glyph-outline_dark-mode",
       "key": "brandglyphoutlinedarkmode",
-      "classification": "brand"
+      "target": null,
+      "classification": "unmapped"
     },
     {
       "repo": "sites",
@@ -17613,7 +17996,8 @@
       "source": "apps/hashdotdesign/public/brands/semtype/brand_glyph-outline_light-mode.svg",
       "name": "brand_glyph-outline_light-mode",
       "key": "brandglyphoutlinelightmode",
-      "classification": "brand"
+      "target": null,
+      "classification": "unmapped"
     },
     {
       "repo": "sites",
@@ -17622,7 +18006,8 @@
       "source": "apps/hashdotdesign/public/brands/semtype/brand_glyph-solid_dark-mode.svg",
       "name": "brand_glyph-solid_dark-mode",
       "key": "brandglyphsoliddarkmode",
-      "classification": "brand"
+      "target": null,
+      "classification": "unmapped"
     },
     {
       "repo": "sites",
@@ -17631,7 +18016,8 @@
       "source": "apps/hashdotdesign/public/brands/semtype/brand_glyph-solid_light-mode.svg",
       "name": "brand_glyph-solid_light-mode",
       "key": "brandglyphsolidlightmode",
-      "classification": "brand"
+      "target": null,
+      "classification": "unmapped"
     },
     {
       "repo": "sites",
@@ -17873,7 +18259,8 @@
       "source": "apps/semtype/public/images/brand_glyph-outline.svg",
       "name": "brand_glyph-outline",
       "key": "brandglyphoutline",
-      "classification": "brand"
+      "target": null,
+      "classification": "unmapped"
     },
     {
       "repo": "sites",
@@ -17882,7 +18269,8 @@
       "source": "apps/semtype/public/images/brand_glyph-outline_dark-mode.svg",
       "name": "brand_glyph-outline_dark-mode",
       "key": "brandglyphoutlinedarkmode",
-      "classification": "brand"
+      "target": null,
+      "classification": "unmapped"
     },
     {
       "repo": "sites",
@@ -17891,7 +18279,8 @@
       "source": "apps/semtype/public/images/brand_glyph-outline_light-mode.svg",
       "name": "brand_glyph-outline_light-mode",
       "key": "brandglyphoutlinelightmode",
-      "classification": "brand"
+      "target": null,
+      "classification": "unmapped"
     },
     {
       "repo": "sites",
@@ -17900,7 +18289,8 @@
       "source": "apps/semtype/public/images/brand_glyph-solid_dark-mode.svg",
       "name": "brand_glyph-solid_dark-mode",
       "key": "brandglyphsoliddarkmode",
-      "classification": "brand"
+      "target": null,
+      "classification": "unmapped"
     },
     {
       "repo": "sites",
@@ -17909,7 +18299,8 @@
       "source": "apps/semtype/public/images/brand_glyph-solid_light-mode.svg",
       "name": "brand_glyph-solid_light-mode",
       "key": "brandglyphsolidlightmode",
-      "classification": "brand"
+      "target": null,
+      "classification": "unmapped"
     },
     {
       "repo": "sites",
@@ -17956,6 +18347,1210 @@
       "key": "harpcicon",
       "target": null,
       "classification": "brand"
+    },
+    {
+      "repo": "hash",
+      "kind": "inline",
+      "file": "apps/hash-frontend/src/pages/@/[shortname]/flows/[flow-def-id]/edit.page/shared/run-marks.tsx",
+      "source": "apps/hash-frontend/src/pages/@/[shortname]/flows/[flow-def-id]/edit.page/shared/run-marks.tsx#RunGlyph",
+      "name": "RunGlyph",
+      "classification": "mapped",
+      "targets": [
+        "place",
+        "loading",
+        "error",
+        "check",
+        "close",
+        "stepForward"
+      ],
+      "reason": "Interface glyphs in an inline renderer."
+    },
+    {
+      "repo": "hash",
+      "kind": "inline",
+      "file": "apps/hash-frontend/src/pages/dashboards.page/dashboard-preview.tsx",
+      "source": "apps/hash-frontend/src/pages/dashboards.page/dashboard-preview.tsx#ChartGlyph",
+      "name": "ChartGlyph",
+      "classification": "mapped",
+      "targets": [
+        "chartBarSimple",
+        "chartLine",
+        "pieChart",
+        "chartScatter",
+        "chartHeatmap",
+        "globe",
+        "list"
+      ],
+      "reason": "Interface glyphs in an inline renderer."
+    },
+    {
+      "repo": "hash",
+      "kind": "inline",
+      "file": "apps/hash-frontend/src/pages/shared/link-label-with-source-and-destination.tsx",
+      "source": "apps/hash-frontend/src/pages/shared/link-label-with-source-and-destination.tsx#LinkLabelWithSourceAndDestination",
+      "name": "LinkLabelWithSourceAndDestination",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "hash",
+      "kind": "inline",
+      "file": "apps/hash-frontend/src/pages/supply-chain/supply-chain-data-shell/opportunity/brief-charts.tsx",
+      "source": "apps/hash-frontend/src/pages/supply-chain/supply-chain-data-shell/opportunity/brief-charts.tsx#BriefBoxPlot",
+      "name": "BriefBoxPlot",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "hash",
+      "kind": "inline",
+      "file": "apps/hash-frontend/src/pages/supply-chain/supply-chain-data-shell/opportunity/brief-charts.tsx",
+      "source": "apps/hash-frontend/src/pages/supply-chain/supply-chain-data-shell/opportunity/brief-charts.tsx#BriefHistogram",
+      "name": "BriefHistogram",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "hash",
+      "kind": "inline",
+      "file": "apps/hash-frontend/src/pages/supply-chain/supply-chain-data-shell/opportunity/brief-charts.tsx",
+      "source": "apps/hash-frontend/src/pages/supply-chain/supply-chain-data-shell/opportunity/brief-charts.tsx#BriefSparkline",
+      "name": "BriefSparkline",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "hash",
+      "kind": "inline",
+      "file": "apps/hash-frontend/src/pages/supply-chain/supply-chain-data-shell/product/category-view.tsx",
+      "source": "apps/hash-frontend/src/pages/supply-chain/supply-chain-data-shell/product/category-view.tsx#SortButton",
+      "name": "SortButton",
+      "classification": "mapped",
+      "targets": [
+        "chevronDown",
+        "chevronUp"
+      ],
+      "reason": "Interface glyphs in an inline renderer."
+    },
+    {
+      "repo": "hash",
+      "kind": "inline",
+      "file": "apps/hash-frontend/src/pages/supply-chain/supply-chain-data-shell/product/shared/pipeline-waterfall.tsx",
+      "source": "apps/hash-frontend/src/pages/supply-chain/supply-chain-data-shell/product/shared/pipeline-waterfall.tsx#PipelineBar",
+      "name": "PipelineBar",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "hash",
+      "kind": "inline",
+      "file": "apps/hash-frontend/src/pages/supply-chain/supply-chain-data-shell/site/shared/sort-header.tsx",
+      "source": "apps/hash-frontend/src/pages/supply-chain/supply-chain-data-shell/site/shared/sort-header.tsx#caretSvg",
+      "name": "caretSvg",
+      "classification": "mapped",
+      "targets": [
+        "chevronDown",
+        "chevronUp"
+      ],
+      "reason": "Interface glyphs in an inline renderer."
+    },
+    {
+      "repo": "hash",
+      "kind": "inline",
+      "file": "libs/@hashintel/brunch-agent/src/ui/chat/ai-assistant-panel/ai-assistant-contents/chat-tab-mark.tsx",
+      "source": "libs/@hashintel/brunch-agent/src/ui/chat/ai-assistant-panel/ai-assistant-contents/chat-tab-mark.tsx#ChatTabMark",
+      "name": "ChatTabMark",
+      "classification": "mapped",
+      "targets": [
+        "message"
+      ],
+      "reason": "Interface glyphs in an inline renderer."
+    },
+    {
+      "repo": "hash",
+      "kind": "inline",
+      "file": "libs/@hashintel/brunch-agent/src/ui/chat/ai-assistant-panel/ai-assistant-contents/voice-dock/audio-popover/settings.tsx",
+      "source": "libs/@hashintel/brunch-agent/src/ui/chat/ai-assistant-panel/ai-assistant-contents/voice-dock/audio-popover/settings.tsx#AudioSettings",
+      "name": "AudioSettings",
+      "classification": "mapped",
+      "targets": [
+        "signal"
+      ],
+      "reason": "Interface glyphs in an inline renderer."
+    },
+    {
+      "repo": "hash",
+      "kind": "inline",
+      "file": "libs/@hashintel/ds-components/src/components/Checkbox/checkbox.tsx",
+      "source": "libs/@hashintel/ds-components/src/components/Checkbox/checkbox.tsx#Checkbox",
+      "name": "Checkbox",
+      "classification": "mapped",
+      "targets": [
+        "check",
+        "minus"
+      ],
+      "reason": "Interface glyphs in an inline renderer."
+    },
+    {
+      "repo": "hash",
+      "kind": "inline",
+      "file": "libs/@hashintel/ds-components/src/components/Loading/loading-spinner.tsx",
+      "source": "libs/@hashintel/ds-components/src/components/Loading/loading-spinner.tsx#LoadingSpinner",
+      "name": "LoadingSpinner",
+      "classification": "mapped",
+      "targets": [
+        "loading"
+      ],
+      "reason": "Interface glyphs in an inline renderer."
+    },
+    {
+      "repo": "hash",
+      "kind": "inline",
+      "file": "libs/@hashintel/ds-components/src/components/Select/select.tsx",
+      "source": "libs/@hashintel/ds-components/src/components/Select/select.tsx#Select",
+      "name": "Select",
+      "classification": "mapped",
+      "targets": [
+        "close"
+      ],
+      "reason": "Interface glyphs in an inline renderer."
+    },
+    {
+      "repo": "hash",
+      "kind": "inline",
+      "file": "libs/@hashintel/ds-components/src/components/TextInput/input-connector.tsx",
+      "source": "libs/@hashintel/ds-components/src/components/TextInput/input-connector.tsx#InputConnector",
+      "name": "InputConnector",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "hash",
+      "kind": "inline",
+      "file": "libs/@hashintel/petrinaut/src/ui/lib/render-visualizer-hir/visualizer-svg.tsx",
+      "source": "libs/@hashintel/petrinaut/src/ui/lib/render-visualizer-hir/visualizer-svg.tsx#VisualizerSvg",
+      "name": "VisualizerSvg",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "hash",
+      "kind": "inline",
+      "file": "libs/@hashintel/petrinaut/src/ui/views/Notebook/connection-lines.tsx",
+      "source": "libs/@hashintel/petrinaut/src/ui/views/Notebook/connection-lines.tsx#ConnectionLines",
+      "name": "ConnectionLines",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "hash",
+      "kind": "inline",
+      "file": "libs/@hashintel/petrinaut/src/ui/views/Notebook/net-graph.tsx",
+      "source": "libs/@hashintel/petrinaut/src/ui/views/Notebook/net-graph.tsx#NetGraphView",
+      "name": "NetGraphView",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "hash",
+      "kind": "inline",
+      "file": "libs/@hashintel/petrinaut/src/ui/views/Notebook/notebook-cell.tsx",
+      "source": "libs/@hashintel/petrinaut/src/ui/views/Notebook/notebook-cell.tsx#NotebookCell",
+      "name": "NotebookCell",
+      "classification": "mapped",
+      "targets": [
+        "play"
+      ],
+      "reason": "Interface glyphs in an inline renderer."
+    },
+    {
+      "repo": "hash",
+      "kind": "inline",
+      "file": "libs/@hashintel/petrinaut/src/ui/views/SDCPN/renderers/react-flow/react-flow-canvas/place-state-tooltip/visualizer-window.tsx",
+      "source": "libs/@hashintel/petrinaut/src/ui/views/SDCPN/renderers/react-flow/react-flow-canvas/place-state-tooltip/visualizer-window.tsx#VisualizerWindow",
+      "name": "VisualizerWindow",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "hash",
+      "kind": "inline",
+      "file": "libs/@hashintel/refractive/src/components/filter.tsx",
+      "source": "libs/@hashintel/refractive/src/components/filter.tsx#Filter",
+      "name": "Filter",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "hash",
+      "kind": "inline",
+      "file": "libs/@local/archinaut/site/examples/tsx/3-state.tsx",
+      "source": "libs/@local/archinaut/site/examples/tsx/3-state.tsx#State",
+      "name": "State",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "hash",
+      "kind": "inline",
+      "file": "libs/@local/archinaut/site/src/shell/header.tsx",
+      "source": "libs/@local/archinaut/site/src/shell/header.tsx#SidebarToggle",
+      "name": "SidebarToggle",
+      "classification": "mapped",
+      "targets": [
+        "sidebar"
+      ],
+      "reason": "Interface glyphs in an inline renderer."
+    },
+    {
+      "repo": "hash",
+      "kind": "inline",
+      "file": "libs/@local/archinaut/site/src/shell/header.tsx",
+      "source": "libs/@local/archinaut/site/src/shell/header.tsx#ThemeSelect",
+      "name": "ThemeSelect",
+      "classification": "mapped",
+      "targets": [
+        "chevronDown"
+      ],
+      "reason": "Interface glyphs in an inline renderer."
+    },
+    {
+      "repo": "hash",
+      "kind": "inline",
+      "file": "libs/@local/archinaut/site/src/slides/deck/hash-logo.tsx",
+      "source": "libs/@local/archinaut/site/src/slides/deck/hash-logo.tsx#HashLogo",
+      "name": "HashLogo",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/brunch/src/app/components/brunch-mark.tsx",
+      "source": "apps/brunch/src/app/components/brunch-mark.tsx#BrunchMark",
+      "name": "BrunchMark",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/brunch/src/app/components/media-frame.tsx",
+      "source": "apps/brunch/src/app/components/media-frame.tsx#PlaceholderGlyph",
+      "name": "PlaceholderGlyph",
+      "classification": "mapped",
+      "targets": [
+        "circlePlay",
+        "image"
+      ],
+      "reason": "Interface glyphs in an inline renderer."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotai/src/app/cases/components/amway-logo.tsx",
+      "source": "apps/hashdotai/src/app/cases/components/amway-logo.tsx#AmwayLogo",
+      "name": "AmwayLogo",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotai/src/app/cases/components/vmasc-logo.tsx",
+      "source": "apps/hashdotai/src/app/cases/components/vmasc-logo.tsx#VmascLogo",
+      "name": "VmascLogo",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotai/src/app/features/components/illustrations/features-hero.tsx",
+      "source": "apps/hashdotai/src/app/features/components/illustrations/features-hero.tsx#FeaturesHeroIllustration",
+      "name": "FeaturesHeroIllustration",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotai/src/app/home/components/hero-section/hero-section-video/interactive-video-thumbnail.tsx",
+      "source": "apps/hashdotai/src/app/home/components/hero-section/hero-section-video/interactive-video-thumbnail.tsx#InteractiveVideoThumbnail",
+      "name": "InteractiveVideoThumbnail",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotai/src/app/home/components/optimize-section/automation-grid.tsx",
+      "source": "apps/hashdotai/src/app/home/components/optimize-section/automation-grid.tsx#Shape",
+      "name": "Shape",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotai/src/app/layout/footer/color-mode-toggle.tsx",
+      "source": "apps/hashdotai/src/app/layout/footer/color-mode-toggle.tsx#ColorModeToggle",
+      "name": "ColorModeToggle",
+      "classification": "mapped",
+      "targets": [
+        "sun",
+        "moon"
+      ],
+      "reason": "Interface glyphs in an inline renderer."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotai/src/app/shared/hash-logo-colored.tsx",
+      "source": "apps/hashdotai/src/app/shared/hash-logo-colored.tsx#HashLogoColored",
+      "name": "HashLogoColored",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotai/src/app/shared/hash-logo.tsx",
+      "source": "apps/hashdotai/src/app/shared/hash-logo.tsx#HashLogo",
+      "name": "HashLogo",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotai/src/app/shared/hash-rainbow.tsx",
+      "source": "apps/hashdotai/src/app/shared/hash-rainbow.tsx#HashRainbow",
+      "name": "HashRainbow",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotai/src/app/shared/icons/facebook-icon-gray.tsx",
+      "source": "apps/hashdotai/src/app/shared/icons/facebook-icon-gray.tsx#FacebookIconGray",
+      "name": "FacebookIconGray",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotai/src/app/shared/icons/github-icon-transparent.tsx",
+      "source": "apps/hashdotai/src/app/shared/icons/github-icon-transparent.tsx#GithubIconTransparent",
+      "name": "GithubIconTransparent",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotai/src/app/shared/icons/instagram-icon-gray.tsx",
+      "source": "apps/hashdotai/src/app/shared/icons/instagram-icon-gray.tsx#InstagramIconGray",
+      "name": "InstagramIconGray",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotai/src/app/shared/icons/linkedin-icon-gray.tsx",
+      "source": "apps/hashdotai/src/app/shared/icons/linkedin-icon-gray.tsx#LinkedinIconGray",
+      "name": "LinkedinIconGray",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotai/src/app/shared/icons/reddit-icon-gray.tsx",
+      "source": "apps/hashdotai/src/app/shared/icons/reddit-icon-gray.tsx#RedditIconGray",
+      "name": "RedditIconGray",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotai/src/app/shared/logos/chrome-logo.tsx",
+      "source": "apps/hashdotai/src/app/shared/logos/chrome-logo.tsx#ChromeLogo",
+      "name": "ChromeLogo",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotai/src/app/shared/logos/figma-logo.tsx",
+      "source": "apps/hashdotai/src/app/shared/logos/figma-logo.tsx#FigmaLogo",
+      "name": "FigmaLogo",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotai/src/app/shared/logos/firefox-logo.tsx",
+      "source": "apps/hashdotai/src/app/shared/logos/firefox-logo.tsx#FirefoxLogo",
+      "name": "FirefoxLogo",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotai/src/app/shared/logos/ray-cast-logo.tsx",
+      "source": "apps/hashdotai/src/app/shared/logos/ray-cast-logo.tsx#RayCastLogo",
+      "name": "RayCastLogo",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotai/src/app/shared/logos/safari-logo.tsx",
+      "source": "apps/hashdotai/src/app/shared/logos/safari-logo.tsx#SafariLogo",
+      "name": "SafariLogo",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotai/src/app/shared/logos/vercel-logo.tsx",
+      "source": "apps/hashdotai/src/app/shared/logos/vercel-logo.tsx#VercelLogo",
+      "name": "VercelLogo",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotai/src/app/shared/logos/zendesk-logo.tsx",
+      "source": "apps/hashdotai/src/app/shared/logos/zendesk-logo.tsx#ZendeskLogo",
+      "name": "ZendeskLogo",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdesign/src/app/not-found.tsx",
+      "source": "apps/hashdotdesign/src/app/not-found.tsx#NotFound",
+      "name": "NotFound",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdesign/src/components/mdx/code-copy-button.tsx",
+      "source": "apps/hashdotdesign/src/components/mdx/code-copy-button.tsx#CodeCopyButton",
+      "name": "CodeCopyButton",
+      "classification": "mapped",
+      "targets": [
+        "copy"
+      ],
+      "reason": "Interface glyphs in an inline renderer."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdesign/src/directories/components-artwork.tsx",
+      "source": "apps/hashdotdesign/src/directories/components-artwork.tsx#componentsArtwork",
+      "name": "componentsArtwork",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdesign/src/directories/foundation-artwork.tsx",
+      "source": "apps/hashdotdesign/src/directories/foundation-artwork.tsx#foundationArtwork",
+      "name": "foundationArtwork",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdesign/src/home/component-showcase.tsx",
+      "source": "apps/hashdotdesign/src/home/component-showcase.tsx#illustrations",
+      "name": "illustrations",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdesign/src/home/home-artwork.tsx",
+      "source": "apps/hashdotdesign/src/home/home-artwork.tsx#introArtwork",
+      "name": "introArtwork",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdesign/src/home/home-artwork.tsx",
+      "source": "apps/hashdotdesign/src/home/home-artwork.tsx#foundationArtwork",
+      "name": "foundationArtwork",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdesign/src/home/home-artwork.tsx",
+      "source": "apps/hashdotdesign/src/home/home-artwork.tsx#patternArtwork",
+      "name": "patternArtwork",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdesign/src/home/home-artwork.tsx",
+      "source": "apps/hashdotdesign/src/home/home-artwork.tsx#layerDefinitions",
+      "name": "layerDefinitions",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdesign/src/home/home-artwork.tsx",
+      "source": "apps/hashdotdesign/src/home/home-artwork.tsx#agentArtwork",
+      "name": "agentArtwork",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdesign/src/home/homepage-interactions.tsx",
+      "source": "apps/hashdotdesign/src/home/homepage-interactions.tsx#HeroPreview",
+      "name": "HeroPreview",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdesign/src/home/homepage-interactions.tsx",
+      "source": "apps/hashdotdesign/src/home/homepage-interactions.tsx#LayerStack",
+      "name": "LayerStack",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdesign/src/patterns/pattern-scene.tsx",
+      "source": "apps/hashdotdesign/src/patterns/pattern-scene.tsx#PatternScene",
+      "name": "PatternScene",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdesign/src/responsiveness/responsive-explorer.tsx",
+      "source": "apps/hashdotdesign/src/responsiveness/responsive-explorer.tsx#LayoutDrawing",
+      "name": "LayoutDrawing",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdesign/src/shadows/shadow-explorer.tsx",
+      "source": "apps/hashdotdesign/src/shadows/shadow-explorer.tsx#ShadowExplorer",
+      "name": "ShadowExplorer",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdesign/src/shadows/shadows.tsx",
+      "source": "apps/hashdotdesign/src/shadows/shadows.tsx#ToolbarScene",
+      "name": "ToolbarScene",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdesign/src/shared/brand-artwork.tsx",
+      "source": "apps/hashdotdesign/src/shared/brand-artwork.tsx#brandDrawings",
+      "name": "brandDrawings",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdesign/src/shared/brand-artwork.tsx",
+      "source": "apps/hashdotdesign/src/shared/brand-artwork.tsx#BrandArtwork",
+      "name": "BrandArtwork",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdesign/src/spacing/density-explorer.tsx",
+      "source": "apps/hashdotdesign/src/spacing/density-explorer.tsx#Dimension",
+      "name": "Dimension",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdesign/src/spacing/density-explorer.tsx",
+      "source": "apps/hashdotdesign/src/spacing/density-explorer.tsx#DensityExplorer",
+      "name": "DensityExplorer",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdesign/src/tone-and-voice/tone-voice-artwork.tsx",
+      "source": "apps/hashdotdesign/src/tone-and-voice/tone-voice-artwork.tsx#ToneVoiceArtwork",
+      "name": "ToneVoiceArtwork",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdesign/src/typography/glyph-explorer.tsx",
+      "source": "apps/hashdotdesign/src/typography/glyph-explorer.tsx#GlyphPreview",
+      "name": "GlyphPreview",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdev/src/app/docs/callout.tsx",
+      "source": "apps/hashdotdev/src/app/docs/callout.tsx#Callout",
+      "name": "Callout",
+      "classification": "mapped",
+      "targets": [
+        "info",
+        "warning",
+        "error",
+        "circleCheck"
+      ],
+      "reason": "Interface glyphs in an inline renderer."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdev/src/app/docs/icons.tsx",
+      "source": "apps/hashdotdev/src/app/docs/icons.tsx#Glyph",
+      "name": "Glyph",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdev/src/components/fumadocs/accordion/ui.tsx",
+      "source": "apps/hashdotdev/src/components/fumadocs/accordion/ui.tsx#AccordionTrigger",
+      "name": "AccordionTrigger",
+      "classification": "mapped",
+      "targets": [
+        "chevronDown"
+      ],
+      "reason": "Interface glyphs in an inline renderer."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdev/src/components/fumadocs/ai/page-actions.tsx",
+      "source": "apps/hashdotdev/src/components/fumadocs/ai/page-actions.tsx#items",
+      "name": "items",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdev/src/components/icons/hash-dot-dev-logo.tsx",
+      "source": "apps/hashdotdev/src/components/icons/hash-dot-dev-logo.tsx#HashDotDevLogo",
+      "name": "HashDotDevLogo",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdev/src/components/mdx/blog/vec2slug/plot-system.tsx",
+      "source": "apps/hashdotdev/src/components/mdx/blog/vec2slug/plot-system.tsx#LineDotSwatch",
+      "name": "LineDotSwatch",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdev/src/components/mdx/blog/vec2slug/plot-system.tsx",
+      "source": "apps/hashdotdev/src/components/mdx/blog/vec2slug/plot-system.tsx#OpenSquareSwatch",
+      "name": "OpenSquareSwatch",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdev/src/components/mdx/blog/vec2slug/primitives.tsx",
+      "source": "apps/hashdotdev/src/components/mdx/blog/vec2slug/primitives.tsx#FlowArrow",
+      "name": "FlowArrow",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdev/src/components/mdx/blog/vec2slug/primitives.tsx",
+      "source": "apps/hashdotdev/src/components/mdx/blog/vec2slug/primitives.tsx#DocumentBlock",
+      "name": "DocumentBlock",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdev/src/components/mdx/blog/vec2slug/primitives.tsx",
+      "source": "apps/hashdotdev/src/components/mdx/blog/vec2slug/primitives.tsx#EmbeddingVector",
+      "name": "EmbeddingVector",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdev/src/components/mdx/blog/vec2slug/primitives.tsx",
+      "source": "apps/hashdotdev/src/components/mdx/blog/vec2slug/primitives.tsx#DecoderGraph",
+      "name": "DecoderGraph",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdev/src/components/mdx/blog/vec2slug/primitives.tsx",
+      "source": "apps/hashdotdev/src/components/mdx/blog/vec2slug/primitives.tsx#SlugPictogram",
+      "name": "SlugPictogram",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdev/src/components/mdx/brunch/dags.tsx",
+      "source": "apps/hashdotdev/src/components/mdx/brunch/dags.tsx#MiniDag",
+      "name": "MiniDag",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdev/src/components/mdx/brunch/join-subnet.tsx",
+      "source": "apps/hashdotdev/src/components/mdx/brunch/join-subnet.tsx#JoinSubnet",
+      "name": "JoinSubnet",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdev/src/components/mdx/brunch/petri-net.tsx",
+      "source": "apps/hashdotdev/src/components/mdx/brunch/petri-net.tsx#NetRun",
+      "name": "NetRun",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdev/src/components/mdx/brunch/problem-scatter.tsx",
+      "source": "apps/hashdotdev/src/components/mdx/brunch/problem-scatter.tsx#ProblemScatter",
+      "name": "ProblemScatter",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdev/src/components/mdx/brunch/tests-vs-spec.tsx",
+      "source": "apps/hashdotdev/src/components/mdx/brunch/tests-vs-spec.tsx#TestsVsSpec",
+      "name": "TestsVsSpec",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hgres/src/components/compiler-pipeline.tsx",
+      "source": "apps/hgres/src/components/compiler-pipeline.tsx#Overview",
+      "name": "Overview",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hgres/src/components/compiler-pipeline.tsx",
+      "source": "apps/hgres/src/components/compiler-pipeline.tsx#AstDetail",
+      "name": "AstDetail",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hgres/src/components/compiler-pipeline.tsx",
+      "source": "apps/hgres/src/components/compiler-pipeline.tsx#HirDetail",
+      "name": "HirDetail",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hgres/src/components/compiler-pipeline.tsx",
+      "source": "apps/hgres/src/components/compiler-pipeline.tsx#MirDetail",
+      "name": "MirDetail",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hgres/src/components/compiler-pipeline.tsx",
+      "source": "apps/hgres/src/components/compiler-pipeline.tsx#ExecDetail",
+      "name": "ExecDetail",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hgres/src/components/compiler-terminators.tsx",
+      "source": "apps/hgres/src/components/compiler-terminators.tsx#CompilerTerminators",
+      "name": "CompilerTerminators",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hgres/src/components/execution-dispatch.tsx",
+      "source": "apps/hgres/src/components/execution-dispatch.tsx#ExecutionDispatch",
+      "name": "ExecutionDispatch",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hgres/src/components/execution-runtime.tsx",
+      "source": "apps/hgres/src/components/execution-runtime.tsx#ExecutionRuntime",
+      "name": "ExecutionRuntime",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hgres/src/components/matrix-stars.tsx",
+      "source": "apps/hgres/src/components/matrix-stars.tsx#MatrixStars",
+      "name": "MatrixStars",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hgres/src/components/pattern.tsx",
+      "source": "apps/hgres/src/components/pattern.tsx#Pattern",
+      "name": "Pattern",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hgres/src/components/placement-block-splitting.tsx",
+      "source": "apps/hgres/src/components/placement-block-splitting.tsx#PlacementBlockSplitting",
+      "name": "PlacementBlockSplitting",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hgres/src/components/placement-three-forces.tsx",
+      "source": "apps/hgres/src/components/placement-three-forces.tsx#PlacementThreeForces",
+      "name": "PlacementThreeForces",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hgres/src/components/temporal-graph/subgraph.tsx",
+      "source": "apps/hgres/src/components/temporal-graph/subgraph.tsx#Subgraph",
+      "name": "Subgraph",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hgres/src/components/type-system-inference.tsx",
+      "source": "apps/hgres/src/components/type-system-inference.tsx#TypeSystemInference",
+      "name": "TypeSystemInference",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hgres/src/components/type-system-lattice.tsx",
+      "source": "apps/hgres/src/components/type-system-lattice.tsx#TypeSystemLattice",
+      "name": "TypeSystemLattice",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hgres/src/components/type-system-lattice.tsx",
+      "source": "apps/hgres/src/components/type-system-lattice.tsx#TypeSystemStructWidth",
+      "name": "TypeSystemStructWidth",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hgres/src/components/type-system-lattice.tsx",
+      "source": "apps/hgres/src/components/type-system-lattice.tsx#TypeSystemNominal",
+      "name": "TypeSystemNominal",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hgres/src/components/type-system-lattice.tsx",
+      "source": "apps/hgres/src/components/type-system-lattice.tsx#TypeSystemClosures",
+      "name": "TypeSystemClosures",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hgres/src/components/type-system-lattice.tsx",
+      "source": "apps/hgres/src/components/type-system-lattice.tsx#TypeSystemVariance",
+      "name": "TypeSystemVariance",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hgres/src/components/type-system-lattice.tsx",
+      "source": "apps/hgres/src/components/type-system-lattice.tsx#TypeSystemUnionIntersection",
+      "name": "TypeSystemUnionIntersection",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/petrinaut/src/app/components/petri-net-diagram.tsx",
+      "source": "apps/petrinaut/src/app/components/petri-net-diagram.tsx#PetriNetDiagram",
+      "name": "PetriNetDiagram",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/semtype/src/app/[locale]/page.tsx",
+      "source": "apps/semtype/src/app/[locale]/page.tsx#HomePage",
+      "name": "HomePage",
+      "classification": "mapped",
+      "targets": [
+        "asterisk",
+        "tag",
+        "inputPipe"
+      ],
+      "reason": "Interface glyphs in an inline renderer."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/semtype/src/app/components/semantic-graph-visual.tsx",
+      "source": "apps/semtype/src/app/components/semantic-graph-visual.tsx#SemanticGraphVisual",
+      "name": "SemanticGraphVisual",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "packages/petrinaut-helmet-studio/src/components/LayersPanel.tsx",
+      "source": "packages/petrinaut-helmet-studio/src/components/LayersPanel.tsx#LayerRow",
+      "name": "LayerRow",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "packages/petrinaut-helmet-studio/src/components/ReferenceFit.tsx",
+      "source": "packages/petrinaut-helmet-studio/src/components/ReferenceFit.tsx#ReferenceFit",
+      "name": "ReferenceFit",
+      "classification": "illustration",
+      "targets": [],
+      "reason": "Brand artwork, data visualization, component illustration, or structural SVG; not an interface icon."
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdev/src/app/docs/icons.tsx",
+      "source": "apps/hashdotdev/src/app/docs/icons.tsx#CodeIcon",
+      "name": "CodeIcon",
+      "classification": "mapped",
+      "target": "code"
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdev/src/app/docs/icons.tsx",
+      "source": "apps/hashdotdev/src/app/docs/icons.tsx#PaletteIcon",
+      "name": "PaletteIcon",
+      "classification": "mapped",
+      "target": "palette"
+    },
+    {
+      "repo": "sites",
+      "kind": "inline",
+      "file": "apps/hashdotdev/src/app/docs/icons.tsx",
+      "source": "apps/hashdotdev/src/app/docs/icons.tsx#MaterialCheckIcon",
+      "name": "MaterialCheckIcon",
+      "classification": "mapped",
+      "target": "check"
     }
   ]
 }
