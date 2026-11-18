@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  fileText: "A document with a T represents a plain text file.",
   fileDocument: "A document with a W represents a word-processing document.",
   fileCode: "A document with angle brackets represents a source code file.",
   fileArchive: "A document with a zipper represents a compressed archive.",
