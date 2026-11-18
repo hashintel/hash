@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  person: "A standing figure represents a person.",
   userBountyHunter:
     "A helmeted figure represents a bounty hunter or specialist investigator.",
   userTag: "A person and tag represent a user role or label.",

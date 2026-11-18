@@ -619,6 +619,7 @@ export const UserLockIcon = createIcon("userLock");
 export const UserSearchIcon = createIcon("userSearch");
 export const UserTagIcon = createIcon("userTag");
 export const UserBountyHunterIcon = createIcon("userBountyHunter");
+export const PersonIcon = createIcon("person");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -804,6 +805,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  person: PersonIcon,
   userBountyHunter: UserBountyHunterIcon,
   userTag: UserTagIcon,
   userSearch: UserSearchIcon,
