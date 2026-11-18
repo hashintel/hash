@@ -163,7 +163,7 @@ export const hashIconStudies = [
 }[];
 
 const categories = {
-  Communication: ["message", "mailUnread", "mail"],
+  Communication: ["messageDollar", "message", "mailUnread", "mail"],
   Security: ["badgeCheck", "shieldAlert", "shieldCheck"],
   Text: [
     "listCheck",

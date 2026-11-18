@@ -117,6 +117,7 @@ import { mailGeometry } from "./library-geometry/mail";
 import { mailUnreadGeometry } from "./library-geometry/mail-unread";
 import { memoInfoGeometry } from "./library-geometry/memo-info";
 import { messageGeometry } from "./library-geometry/message";
+import { messageDollarGeometry } from "./library-geometry/message-dollar";
 import { mixedGeometry } from "./library-geometry/mixed";
 import { newspaperGeometry } from "./library-geometry/newspaper";
 import { notePlusGeometry } from "./library-geometry/note-plus";
@@ -172,6 +173,7 @@ import { ungroupGeometry } from "./library-geometry/ungroup";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  messageDollar: messageDollarGeometry,
   message: messageGeometry,
   mailUnread: mailUnreadGeometry,
   mail: mailGeometry,
