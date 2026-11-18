@@ -139,6 +139,7 @@ import { squareCloseGeometry } from "./library-geometry/square-close";
 import { squareMinusGeometry } from "./library-geometry/square-minus";
 import { stackHorizontalGeometry } from "./library-geometry/stack-horizontal";
 import { stackVerticalGeometry } from "./library-geometry/stack-vertical";
+import { strikethroughGeometry } from "./library-geometry/strikethrough";
 import { tagGeometry } from "./library-geometry/tag";
 import { toggleOffGeometry } from "./library-geometry/toggle-off";
 import { toggleOnGeometry } from "./library-geometry/toggle-on";
@@ -149,6 +150,7 @@ import { ungroupGeometry } from "./library-geometry/ungroup";
 import { uploadGeometry } from "./library-geometry/upload";
 
 export const libraryGeometry = {
+  strikethrough: strikethroughGeometry,
   underline: underlineGeometry,
   italic: italicGeometry,
   bold: boldGeometry,

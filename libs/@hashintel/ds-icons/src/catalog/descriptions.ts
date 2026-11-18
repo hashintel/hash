@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  strikethrough: "A struck-through S represents strikethrough formatting.",
   underline: "An underlined U represents underline formatting.",
   italic: "A slanted I represents italic text formatting.",
   bold: "A bold B represents bold text formatting.",
