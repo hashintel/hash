@@ -149,6 +149,7 @@ import { globeNodesGeometry } from "./library-geometry/globe-nodes";
 import { globePointerGeometry } from "./library-geometry/globe-pointer";
 import { globeStandGeometry } from "./library-geometry/globe-stand";
 import { graduationCapGeometry } from "./library-geometry/graduation-cap";
+import { gridPlusGeometry } from "./library-geometry/grid-plus";
 import { groupGeometry } from "./library-geometry/group";
 import { hammerGeometry } from "./library-geometry/hammer";
 import { handDollarGeometry } from "./library-geometry/hand-dollar";
@@ -331,6 +332,7 @@ import { wavesGeometry } from "./library-geometry/waves";
 import { workflowGeometry } from "./library-geometry/workflow";
 
 export const libraryGeometry = {
+  gridPlus: gridPlusGeometry,
   entityEdit: entityEditGeometry,
   entityPlus: entityPlusGeometry,
   entity: entityGeometry,
