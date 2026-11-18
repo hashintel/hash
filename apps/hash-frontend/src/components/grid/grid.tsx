@@ -50,7 +50,7 @@ import type {
   Instance as PopperInstance,
   VirtualElement,
 } from "@popperjs/core";
-import type { MutableRefObject, Ref } from "react";
+import type { MutableRefObject, ReactNode, Ref } from "react";
 
 export type { ConversionTargetsByColumnKey };
 
@@ -99,6 +99,11 @@ export type GridProps<
    */
   initialSort?: GridSort<Sortable>;
   noResultsMessage?: { title: string; description?: string };
+  /**
+   * Replaces the default "No results found" message, and can hold controls
+   * the user interacts with.
+   */
+  noResultsContent?: ReactNode;
   onConversionTargetSelected?: ({
     columnKey,
     dataTypeId,
@@ -169,6 +174,7 @@ export const Grid = <
   gridRef,
   highlightRegions,
   initialSort,
+  noResultsContent,
   noResultsMessage,
   onConversionTargetSelected,
   onSearchClose,
@@ -900,6 +906,8 @@ export const Grid = <
                   </Typography>
                 </Stack>
               </Fade>
+            ) : noResultsContent ? (
+              <Box sx={{ pointerEvents: "auto" }}>{noResultsContent}</Box>
             ) : (
               <Stack sx={{ alignItems: "center" }}>
                 <Typography

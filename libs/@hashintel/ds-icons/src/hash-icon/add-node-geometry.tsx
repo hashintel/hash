@@ -32,7 +32,7 @@ export const AddNodeGeometry = ({
   const id = useId();
   const cutoutId = `${id}-cutout`;
   const revealId = `${id}-reveal`;
-  const frameStyle = { rx: kind === "place" ? "8px" : "2px", transition };
+  const frameStyle = { rx: kind === "place" ? "8px" : "1px", transition };
   const symbolStyle = {
     opacity: "var(--add-icon-badge-opacity)",
     transform: "scale(var(--add-icon-badge-scale))",
@@ -90,7 +90,7 @@ export const AddNodeGeometry = ({
               y="4"
               width="16"
               height="16"
-              rx={kind === "place" ? 8 : 2}
+              rx={kind === "place" ? 8 : 1}
               style={{ ...frameStyle, opacity: filled ? 0 : 1 }}
               fill="none"
               pathLength="1"
@@ -102,7 +102,7 @@ export const AddNodeGeometry = ({
                 y="4"
                 width="16"
                 height="16"
-                rx={kind === "place" ? 8 : 2}
+                rx={kind === "place" ? 8 : 1}
                 style={frameStyle}
                 fill="currentColor"
                 stroke="none"

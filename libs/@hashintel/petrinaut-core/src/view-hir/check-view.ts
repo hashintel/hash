@@ -41,8 +41,8 @@ type Env = ReadonlyMap<string, HirType>;
 
 /**
  * The component's props include tokens, parameters, and viewport dimensions. An uncoloured place
- * carries black tokens with no attributes; its visualizer is never drawn,
- * so its tokens stay unknown.
+ * carries black tokens with no attributes: its visualizer counts them and
+ * draws one mark per token, so what a token holds stays unknown.
  */
 function propsType(context: HirVisualizerContext): HirType {
   return {

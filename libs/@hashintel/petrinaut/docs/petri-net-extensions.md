@@ -8,7 +8,7 @@ Some embedded Petrinaut documents can disable one or more extensions. When an ex
 
 By default, places hold **untyped tokens** -- they only track a count. Tokens are indistinguishable from each other. This is sufficient for simple flow models.
 
-To give tokens structure, assign a **type** to a place. Each token then carries named dimensions (e.g. `x`, `y`, `velocity`), enabling dynamics, visualization, and data-dependent transition logic.
+To give tokens structure, assign a **type** to a place. Each token then carries named dimensions (e.g. `x`, `y`, `velocity`), enabling dynamics, data-dependent transition logic, and [visualizers](#visualizer) that draw each token from its values.
 
 Each dimension has one of five value types, chosen in the **Type** column of the **Dimensions** table:
 
@@ -162,6 +162,31 @@ return (
 
 This example expects token coordinates between 0 and 1.
 
+A place with no type draws too. Its tokens carry no values, so `tokens.length` is the place's token count and `tokens.map((_, index) => ...)` draws one mark per token:
+
+```jsx
+return (
+  <Visualizer.Svg backgroundColor="#f8fafc">
+    <text x={12} y={20} fontSize="12">
+      {tokens.length} in stock
+    </text>
+    {tokens.map((_, index) => (
+      <rect
+        key={index}
+        x={12 + index * 18}
+        y={32}
+        width={14}
+        height={14}
+        rx={3}
+        fill="#2563eb"
+      />
+    ))}
+  </Visualizer.Svg>
+);
+```
+
+Reading a value off such a token is an error. A place of this kind that holds more than 1,000,000 tokens shows a message in place of its drawing.
+
 | Property          | Default      | Purpose                                                                     |
 | ----------------- | ------------ | --------------------------------------------------------------------------- |
 | `backgroundColor` | Transparent  | Fill the whole window.                                                      |
@@ -275,6 +300,8 @@ Like kernels, lambda code is a plain function body with `input` and `parameters`
 
 Use predicates for deterministic guards based on token state.
 
+A predicate takes no time. A net of predicates alone, with no dynamics, is [untimed](simulation.md#timed-and-untimed-nets) and runs step by step. In a timed net a predicate needs at least one input place: see [Predicates in a timed net](simulation.md#predicates-in-a-timed-net).
+
 ### Stochastic rate
 
 The function returns a **number** representing the average firing rate per second:
@@ -317,11 +344,13 @@ Use read arcs when a transition needs to inspect shared state, permission tokens
 
 The **Diagnostics** tab in the bottom panel shows problems in your code (dynamics, firing rate, kernels, visualizers), grouped by entity. Click a diagnostic to select the relevant entity and see the problem in context.
 
+Above the problems, the tab reads [the class of the net](simulation.md#the-class-of-a-net): whether it is timed, how it is coloured and whether it is stochastic.
+
 Petrinaut only reports diagnostics for code surfaces that are active for the current document and graph shape. For example, a hidden firing-time editor or a transition with no coloured outputs will not produce lambda or kernel diagnostics.
 
 Diagnostics come in two flavours:
 
-- **Errors** (red) -- TypeScript type/syntax errors, plus code that falls outside Petrinaut's supported code subset (see below). These must be resolved before running a simulation: pressing Play with unresolved errors opens the Diagnostics tab instead of starting the simulation. The status indicator in the bottom toolbar shows a red cross while errors remain. Errors in a [visualizer](#visualizer) are the exception: they are listed under the place, but they never stop a run.
+- **Errors** (red) -- TypeScript type/syntax errors, code that falls outside Petrinaut's supported code subset (see below), and a [predicate with no input place in a timed net](simulation.md#predicates-in-a-timed-net), listed under the transition's firing rate. These must be resolved before running a simulation: pressing Play with unresolved errors opens the Diagnostics tab instead of starting the simulation. The status indicator in the bottom toolbar shows a red cross while errors remain. Errors in a [visualizer](#visualizer) are the exception: they are listed under the place, but they never stop a run.
 - **Warnings and hints** (amber indicator) -- semantic advice that does not block simulation. Examples: `Math.random()` makes runs non-reproducible (prefer `Distribution.Uniform`), a firing rate that is always 0 so the transition can never fire, a `const` binding that is never used, or one distribution feeding several output attributes (they all receive the same sampled value).
 
 ### Supported code subset

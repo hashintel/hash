@@ -6,7 +6,7 @@ import {
   canonicalContent,
 } from "@hashintel/brunch-agent";
 
-import { vBrowserToolResult } from "../../client-tools/browser-tool-result";
+import { browserToolResultSchema } from "../../client-tools/browser-tool-result";
 import {
   browserExecutedTools,
   browserToolFacts,
@@ -191,7 +191,7 @@ export const createInBandBrowserCalls = (
         clearInterval(lease);
         if (call.signal.aborted) return;
         const metadata = input.metadataFor(call.toolCallId, output);
-        const result = v.parse(vBrowserToolResult, {
+        const result = v.parse(browserToolResultSchema, {
           output,
           ...(metadata === undefined ? {} : { metadata }),
         });

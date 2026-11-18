@@ -45,6 +45,8 @@ With a scenario selected, the Scenario section shows it through the same form: t
 | **Sample every** | `0.1` | Shown for a simulator that chooses its own steps, such as **JS adaptive**: the simulated seconds between two samples of the metrics. A fixed-step simulator samples at its time step. |
 | **Max time (seconds)** | `180` | Each run advances until simulation time reaches this value, then completes. |
 
+For an [untimed net](simulation.md#timed-and-untimed-nets) the runs count steps, not seconds. **Max time** reads **End at step** and takes a whole number: each run fires step by step until that step, or ends earlier at a step in which nothing fires. Every step is sampled, so **Sample every** and the simulator's own parameters do not show. The simulator still decides where the runs are computed.
+
 The model used is a snapshot of the current net at the time you press **Run**. Later runs and optimization use that snapshot, even if you edit the net afterwards.
 
 > Currently, an experiment can only run against one scenario at a time. To compare scenarios, create one experiment per scenario.
@@ -183,7 +185,7 @@ The **Compute** badge in Details names the simulator that computed the runs, suc
 
 The bar along the header's bottom edge follows sampling progress for a sweep, optimization steps while a study drives it, and simulation time for a plain experiment. Errors appear directly below the header. Scrolling the results condenses the header to one line; hovering over it or focusing a control expands it again.
 
-**Simulation time** is time within the model. **Elapsed time** and **Duration** measure wall-clock time spent simulating. Compilation and worker startup happen before that clock starts. An experiment that fails before simulation begins shows `—` for its elapsed time.
+**Simulation time** is time within the model. For an untimed net the detail reads **Step**: the step the runs have reached, of the step they end at. **Elapsed time** and **Duration** measure wall-clock time spent simulating. Compilation and worker startup happen before that clock starts. An experiment that fails before simulation begins shows `—` for its elapsed time.
 
 ### Metric charts
 

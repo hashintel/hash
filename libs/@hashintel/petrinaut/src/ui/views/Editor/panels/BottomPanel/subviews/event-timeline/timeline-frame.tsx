@@ -4,6 +4,7 @@ import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { EventPlaybackContext } from "../../../../../../../react/event-playback/context";
+import { SimulationContext } from "../../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { TimelineLegend } from "../simulation-timeline/legend";
 import { chartAreaStyle, containerStyle } from "../simulation-timeline/styles";
@@ -83,6 +84,7 @@ export const TimelineFrame: React.FC<{
     hiddenTimelineSeriesIds: hiddenSeries,
     setHiddenTimelineSeriesIds: setHiddenSeries,
   } = use(EditorContext);
+  const { clock } = use(SimulationContext);
   const {
     coveredTime,
     playbackStore,
@@ -148,6 +150,7 @@ export const TimelineFrame: React.FC<{
               </Button>
             )}
             <EventTimelineChart
+              clock={clock}
               className={chartAreaStyle}
               data={chartData}
               firings={firings}

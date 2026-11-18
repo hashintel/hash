@@ -3,6 +3,7 @@ mod validation;
 use alloc::collections::BTreeSet;
 use core::ptr;
 
+pub(crate) use self::validation::VALUE_DATA_TYPE_ID;
 pub use self::{
     closed::{ClosedDataType, DataTypeResolveData, ResolveClosedDataTypeError},
     validation::{DataTypeValidator, ValidateDataTypeError},

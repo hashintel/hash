@@ -25,6 +25,7 @@ import type {
   MonteCarloMetricSpec,
   MonteCarloUserDefinedMetricFrame,
   MonteCarloWorkerProgress,
+  RunClock,
   Scenario,
   SDCPN,
   PetrinautExtensionSettings,
@@ -137,6 +138,11 @@ export type ExperimentRecord = {
   scenarioName: string | null;
   runCount: number;
   seed: number;
+  /**
+   * What the experiment's positions count: simulated seconds, or the steps
+   * of an untimed net. `dt` and `maxTime` are in its unit.
+   */
+  clock: RunClock;
   dt: number;
   maxTime: number;
   status: ExperimentStatus;
@@ -282,7 +288,9 @@ export type AdoptExperimentInput = {
   scenarioName: string | null;
   runCount: number;
   seed: number;
-  /** The spacing of its samples, in simulated seconds. */
+  /** What its positions count: simulated seconds, or steps. */
+  clock: RunClock;
+  /** The spacing of its samples, in simulated seconds or steps. */
   dt: number;
   maxTime: number;
   metricSpecs: readonly ExperimentMetricSpecInput[];

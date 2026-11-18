@@ -1,82 +1,77 @@
 import { FilledShape } from "./filled-shape";
+import { PunctuationDot } from "./shared/punctuation-dot";
 
-const documentFrame = <path d="M6 3h8l4 4v14H6Z" />;
-const documentFold = <path d="M14 3v5h4" />;
+const documentFrame = <path d="M5.5 3.5h8l5 5v12H5.5Z" />;
+const documentFold = <path d="M13.5 3.5v5h5" />;
 const clockFace = <circle cx="12" cy="12" r="8" />;
-const eyeFrame = <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" />;
+const eyeFrame = (
+  <path d="M2.75 12C5 8.25 8 6 12 6s7 2.25 9.25 6C19 15.75 16 18 12 18S5 15.75 2.75 12Z" />
+);
 
 export const additionalGeometry = {
   infinity: (
-    <path d="M12 12c-3-3-4-4-6-4a4 4 0 0 0 0 8c2 0 3-1 6-4s4-4 6-4a4 4 0 0 1 0 8c-2 0-3-1-6-4Z" />
+    <path d="M12 12c-2.5-3-4.1-4.5-6.1-4.5a4.5 4.5 0 0 0 0 9c2 0 3.6-1.5 6.1-4.5s4.1-4.5 6.1-4.5a4.5 4.5 0 0 1 0 9c-2 0-3.6-1.5-6.1-4.5Z" />
   ),
-  arrowUp: <path d="M12 20V4m-6 6 6-6 6 6" />,
-  arrowDown: <path d="M12 4v16m-6-6 6 6 6-6" />,
-  arrowLeft: <path d="M20 12H4m6-6-6 6 6 6" />,
-  arrowRight: <path d="M4 12h16m-6-6 6 6-6 6" />,
-  arrowUpRight: <path d="M5 19 19 5H8m11 0v11" />,
-  arrowsLeftRight: <path d="M4 8h16m-4-4 4 4-4 4M20 16H4m4-4-4 4 4 4" />,
+  arrowUp: <path d="M12 20V4M7 9l5-5 5 5" />,
+  arrowDown: <path d="M12 4v16m-5-5 5 5 5-5" />,
+  arrowLeft: <path d="M20 12H4m5-5-5 5 5 5" />,
+  arrowRight: <path d="M4 12h16m-5-5 5 5-5 5" />,
+  arrowUpRight: <path d="M5 19 19 5M9 5h10v10" />,
+  arrowsLeftRight: (
+    <path d="M3.5 7.5h17m-4-4 4 4-4 4M20.5 16.5h-17m4-4-4 4 4 4" />
+  ),
   trash: (
-    <FilledShape
-      cutout={
-        <>
-          {" "}
-          <path d="M9 10v7m6-7v7" />{" "}
-        </>
-      }
-    >
-      <path d="m5 7 1 14h12l1-14" />
-      <path fill="none" data-icon-detail="lid" d="M3 6h18M9 6V3h6v3" />
+    <FilledShape cutout={<path d="M9.5 10v7m5-7v7" />}>
+      <path d="m5.5 7.5 1 13h11l1-13" />
+      <path
+        fill="none"
+        data-icon-detail="lid"
+        d="M3.5 5.5h17M8.5 5.5V3h7v2.5"
+      />
     </FilledShape>
   ),
   pencil: (
-    <FilledShape
-      cutout={
-        <>
-          {" "}
-          <path d="M13 6l5 5M4 15l5 5" />{" "}
-        </>
-      }
-    >
-      <path d="m4 15 11-11a2.1 2.1 0 0 1 3 0l2 2a2.1 2.1 0 0 1 0 3L9 20l-6 1Z" />
+    <FilledShape cutout={<path d="m13.5 5.5 5 5M4.5 14.5l5 5" />}>
+      <path d="M4.5 14.5 15 4a2.1 2.1 0 0 1 3 0l2 2a2.1 2.1 0 0 1 0 3L9.5 19.5l-6 1Z" />
     </FilledShape>
   ),
   copy: (
     <FilledShape>
-      <path fill="none" d="M7 16H3V3h13v4" />
+      <path fill="none" d="M6 16H3.5V3.5H16V6" />
       <rect
         data-icon-detail="sheet"
         x="8"
         y="8"
-        width="13"
-        height="13"
-        rx="1.5"
+        width="12.5"
+        height="12.5"
+        rx="1"
       />
     </FilledShape>
   ),
   download: (
     <>
-      <path d="M4 16v5h16v-5" />
-      <path data-icon-detail="down" d="M12 3v12m-5-5 5 5 5-5" />
+      <path d="M4 15.5v5h16v-5" />
+      <path data-icon-detail="down" d="M12 3v12m-4.5-4.5L12 15l4.5-4.5" />
     </>
   ),
   externalLink: (
     <>
-      <path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" />
-      <path data-icon-detail="out" d="M15 3h6v6M10 14 21 3" />
+      <path d="M10 4H4v16h16v-6" />
+      <path data-icon-detail="out" d="M14 3.5h6.5V10M10 14 20.5 3.5" />
     </>
   ),
   ellipsis: (
     <g fill="currentColor" stroke="none">
-      <circle cx="5" cy="12" r="1.5" />
-      <circle data-icon-detail="dot" cx="12" cy="12" r="1.5" />
-      <circle cx="19" cy="12" r="1.5" />
+      <PunctuationDot x={5} y={12} />
+      <PunctuationDot data-icon-detail="dot" x={12} y={12} />
+      <PunctuationDot x={19} y={12} />
     </g>
   ),
   ellipsisVertical: (
     <g fill="currentColor" stroke="none">
-      <circle cx="12" cy="5" r="1.5" />
-      <circle data-icon-detail="dot" cx="12" cy="12" r="1.5" />
-      <circle cx="12" cy="19" r="1.5" />
+      <PunctuationDot x={12} y={5} />
+      <PunctuationDot data-icon-detail="dot" x={12} y={12} />
+      <PunctuationDot x={12} y={19} />
     </g>
   ),
   circleEllipsis: (
@@ -84,7 +79,9 @@ export const additionalGeometry = {
       cutout={
         <>
           {" "}
-          <path d="M7 12h.01M12 12h.01M17 12h.01" strokeWidth="3" />{" "}
+          <PunctuationDot x={7} y={12} />
+          <PunctuationDot x={12} y={12} />
+          <PunctuationDot x={17} y={12} />{" "}
         </>
       }
     >
@@ -92,36 +89,26 @@ export const additionalGeometry = {
     </FilledShape>
   ),
   collapse: (
-    <path d="m3 3 6 6M4 9h5V4m12-1-6 6m5 0h-5V4M3 21l6-6m-5 0h5v5m12 1-6-6m5 0h-5v5" />
+    <path d="m3.5 3.5 5 5M3.5 8.5h5v-5m12 0-5 5m5 0h-5v-5M3.5 20.5l5-5m-5 0h5v5m12 0-5-5m5 0h-5v5" />
   ),
   lockOpen: (
-    <FilledShape
-      cutout={
-        <>
-          {" "}
-          <path d="M12 15v2" />{" "}
-        </>
-      }
-    >
-      <path fill="none" data-icon-detail="shackle" d="M8 11V7a4 4 0 0 1 8 0" />
-      <rect x="5" y="11" width="14" height="10" rx="2" />
-    </FilledShape>
-  ),
-  lockClosed: (
-    <FilledShape
-      cutout={
-        <>
-          {" "}
-          <path d="M12 15v2" />{" "}
-        </>
-      }
-    >
+    <FilledShape cutout={<path d="M12 14v3.5" />}>
       <path
         fill="none"
         data-icon-detail="shackle"
-        d="M8 11V7a4 4 0 0 1 8 0v4"
+        d="M8 10.5V7a4 4 0 0 1 8 0"
       />
-      <rect x="5" y="11" width="14" height="10" rx="2" />
+      <rect x="5" y="10.5" width="14" height="10" rx="1" />
+    </FilledShape>
+  ),
+  lockClosed: (
+    <FilledShape cutout={<path d="M12 14v3.5" />}>
+      <path
+        fill="none"
+        data-icon-detail="shackle"
+        d="M8 10.5V7a4 4 0 0 1 8 0v3.5"
+      />
+      <rect x="5" y="10.5" width="14" height="10" rx="1" />
     </FilledShape>
   ),
   eye: (
@@ -182,67 +169,63 @@ export const additionalGeometry = {
   layer: null,
   chartBarSimple: (
     <>
-      <path d="M3 3v18h18" />
-      <path data-icon-detail="bars" d="M7 17v-5m5 5V6m5 11V9" strokeWidth="3" />
+      <path d="M3.5 3.5v17h17" />
+      <path
+        data-icon-detail="bars"
+        style={{ transformOrigin: "12px 17px" }}
+        d="M8 17v-6m5 6V6m5 11V9"
+        strokeWidth="var(--hash-icon-detail-stroke)"
+      />
     </>
   ),
   chartLine: (
     <>
-      <path d="M3 3v18h18" />
-      <path data-icon-detail="line-chart" d="m6 15 4-5 4 3 6-8" />
+      <path d="M3.5 3.5v17h17" />
+      <path data-icon-detail="line-chart" d="m6.5 15 4-5 4 3 6-7" />
     </>
   ),
   filter: (
     <FilledShape>
-      <path d="M3 4h18l-7 8v7l-4 2v-9Z" />
+      <path d="M3.5 4.5h17l-6.5 8v6L10 21v-8.5Z" />
     </FilledShape>
   ),
   bracketsCurly: (
     <>
       <path
         data-icon-detail="open-left"
-        d="M8 3H6c-1 0-2 1-2 2v4c0 2-2 3-2 3s2 1 2 3v4c0 1 1 2 2 2h2"
+        d="M8.5 3H7c-1.75 0-2.5 1-2.5 3v3c0 1.75-.75 3-2.5 3 1.75 0 2.5 1.25 2.5 3v3c0 2 .75 3 2.5 3h1.5"
       />
       <path
         data-icon-detail="open-right"
-        d="M16 3h2c1 0 2 1 2 2v4c0 2 2 3 2 3s-2 1-2 3v4c0 1-1 2-2 2h-2"
+        d="M15.5 3H17c1.75 0 2.5 1 2.5 3v3c0 1.75.75 3 2.5 3-1.75 0-2.5 1.25-2.5 3v3c0 2-.75 3-2.5 3h-1.5"
       />
     </>
   ),
   lambda: <path d="M5 4h3l9 16h3M12 11 6 20" />,
   lightning: (
     <FilledShape>
-      <path d="m14 2-11 12h8l-1 8 11-12h-8Z" />
+      <path d="M13.5 2.5 4 13h7l-.5 8.5L20 11h-7Z" />
     </FilledShape>
   ),
   code: (
     <>
-      <path data-icon-detail="open-left" d="m8 6-6 6 6 6" />
-      <path data-icon-detail="open-right" d="m16 6 6 6-6 6" />
-      <path d="M14 3l-4 18" />
+      <path data-icon-detail="open-left" d="m7.5 6.5-5 5.5 5 5.5" />
+      <path data-icon-detail="open-right" d="m16.5 6.5 5 5.5-5 5.5" />
+      <path d="m14 3-4 18" />
     </>
   ),
   cube: <path d="m12 2 9 5v10l-9 5-9-5V7Z M3 7l9 5 9-5M12 12v10" />,
   diagramNested: (
-    <FilledShape
-      cutout={
-        <>
-          {" "}
-          <path d="M7 7v10h10V7ZM7 12h10" />{" "}
-        </>
-      }
-    >
-      <rect x="3" y="3" width="18" height="18" rx="2" />
+    <FilledShape cutout={<path d="M8 8h9v9H8Z" />}>
+      <rect x="3" y="3" width="18" height="18" rx="1" />
     </FilledShape>
   ),
   diagramProject: (
     <FilledShape>
-      <>
-        <rect x="3" y="3" width="6" height="6" rx="1" />
-        <rect x="15" y="3" width="6" height="6" rx="1" />
-        <rect x="9" y="15" width="6" height="6" rx="1" />
-        <path fill="none" d="M9 6h6M6 9v3h6v3" />
-      </>
+      <path fill="none" d="M12 8v4M6 16v-4h12v4" />
+      <rect x="9" y="3" width="6" height="5" rx=".5" />
+      <rect x="3" y="16" width="6" height="5" rx=".5" />
+      <rect x="15" y="16" width="6" height="5" rx=".5" />
     </FilledShape>
   ),
   shapes: null,
@@ -264,8 +247,10 @@ export const additionalGeometry = {
   ),
   list: (
     <>
-      <path data-icon-detail="lines" d="M8 5h13M8 12h13M8 19h13" />
-      <path d="M3 5h.01M3 12h.01M3 19h.01" strokeWidth="3" />
+      <path data-icon-detail="lines" d="M9 5h12M9 12h12M9 19h12" />
+      <PunctuationDot x={4} y={5} />
+      <PunctuationDot x={4} y={12} />
+      <PunctuationDot x={4} y={19} />
     </>
   ),
   table: (
@@ -277,7 +262,7 @@ export const additionalGeometry = {
         </>
       }
     >
-      <rect x="3" y="3" width="18" height="18" rx="1.5" />
+      <rect x="3" y="3" width="18" height="18" rx="1" />
     </FilledShape>
   ),
   grid: (
@@ -305,19 +290,17 @@ export const additionalGeometry = {
   ),
   scribble: (
     <>
-      <path d="M3 18c2-17 10-17 8-6S18 21 21 5" />
-      <path d="m16 7 5-2 1 5" />
+      <path d="M3.5 17.5C5 4 11 3 10 12s6 10 10-6" />
+      <path d="m15.5 7 4.5-1 1 4.5" />
     </>
   ),
   sparkles: (
     <FilledShape>
-      <>
-        <path
-          data-icon-detail="sparkle"
-          d="m10 3 2.5 6.5L18 12l-5.5 2.5L10 21l-2.5-6.5L2 12l5.5-2.5Z"
-        />
-        <path d="m19 3 .75 2.25L22 6l-2.25.75L19 9l-.75-2.25L16 6l2.25-.75Z" />
-      </>
+      <path
+        data-icon-detail="sparkle"
+        d="M9.5 3.5c1.1 5.2 2.8 7 7.5 8.5-4.7 1.5-6.4 3.3-7.5 8.5C8.4 15.3 6.7 13.5 2 12c4.7-1.5 6.4-3.3 7.5-8.5Z"
+      />
+      <path fill="none" d="M19 2.5v7m-3.5-3.5h7" />
     </FilledShape>
   ),
   info: (
@@ -325,7 +308,8 @@ export const additionalGeometry = {
       cutout={
         <>
           {" "}
-          <path d="M12 11v6m0-10h.01" />{" "}
+          <path d="M12 11v5.5" />
+          <PunctuationDot x={12} y={8} />{" "}
         </>
       }
     >
@@ -337,7 +321,8 @@ export const additionalGeometry = {
       cutout={
         <>
           {" "}
-          <path d="M12 7v6m0 4h.01" />{" "}
+          <path d="M12 7.5v5.5" />
+          <PunctuationDot x={12} y={16} />{" "}
         </>
       }
     >
@@ -349,7 +334,8 @@ export const additionalGeometry = {
       cutout={
         <>
           {" "}
-          <path d="M12 9v5m0 3h.01" />{" "}
+          <path d="M12 9.5v4.25" />
+          <PunctuationDot x={12} y={16.75} />{" "}
         </>
       }
     >
@@ -361,7 +347,7 @@ export const additionalGeometry = {
       cutout={
         <>
           {" "}
-          <path d="m7 12 3 3 7-7" />{" "}
+          <path d="m7.75 12.25 2.75 2.75 5.75-5.75" />{" "}
         </>
       }
     >
@@ -384,32 +370,34 @@ export const additionalGeometry = {
     <FilledShape
       cutout={
         <>
-          {" "}
-          <path data-icon-detail="right" d="m6 8 4 4-4 4" />
-          <path d="M13 16h5" />{" "}
+          <path data-icon-detail="right" d="m6.5 8 4 4-4 4" />
+          <path d="M13.5 16h4" />
         </>
       }
     >
-      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <rect x="3" y="4" width="18" height="16" rx="1" />
     </FilledShape>
   ),
-  text: <path d="M3 5h18M7 5v14m-3 0h6m6-7h5m-5-3v8c0 2 1 2 3 2" />,
+  text: (
+    <path d="M3 4h12M9 4v16M14.5 10h7M17 6.5v10.75c0 1.85.8 2.75 2.6 2.75h1.9" />
+  ),
   user: (
     <FilledShape>
-      <>
-        <circle data-icon-detail="filament" cx="12" cy="7" r="4" />
-        <path d="M4 21v-2a8 8 0 0 1 16 0v2" />
-      </>
+      <circle data-icon-detail="filament" cx="12" cy="6.75" r="3.75" />
+      <path d="M4.5 21v-2.5c0-4 3.1-6 7.5-6s7.5 2 7.5 6V21" />
     </FilledShape>
   ),
   voice: (
-    <path data-icon-detail="wave" d="M3 10v4m4-8v12m5-15v18m5-14v10m4-7v4" />
+    <path
+      data-icon-detail="wave"
+      d="M3 10v4m4.5-7.5v11m4.5-14v17m4.5-14v11M21 10v4"
+    />
   ),
   transcription: <path data-icon-detail="lines" d="M4 6h16M4 12h16M4 18h10" />,
   assistant: (
     <FilledShape>
       <g data-icon-detail="sparkle">
-        <path d="m12 2 4 4-4 4-4-4Zm6 6 4 4-4 4-4-4Zm-6 6 4 4-4 4-4-4ZM6 8l4 4-4 4-4-4Z" />
+        <path d="m12 2.5 3.5 3.5-3.5 3.5L8.5 6Zm6 6 3.5 3.5-3.5 3.5-3.5-3.5Zm-6 6 3.5 3.5-3.5 3.5L8.5 18Zm-6-6L9.5 12 6 15.5 2.5 12Z" />
       </g>
     </FilledShape>
   ),

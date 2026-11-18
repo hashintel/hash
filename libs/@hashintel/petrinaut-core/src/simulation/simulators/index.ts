@@ -44,6 +44,7 @@ export {
 export type { ExperimentBackendStepping } from "./experiment-backend-simulator";
 export {
   experimentBackendOfSimulator,
+  experimentSamplePeriod,
   simulatorSamplePeriod,
 } from "./simulator-experiment-backend";
 export {

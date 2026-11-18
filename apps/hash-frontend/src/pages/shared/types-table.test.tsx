@@ -11,6 +11,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { theme } from "@hashintel/design-system/theme";
+import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 
 import { TypesTable } from "./types-table";
 
@@ -42,7 +43,7 @@ vi.mock("../../components/grid/grid", () => ({
     if (rowsRef) {
       rowsRef.current = props.rows ?? [];
     }
-    return null;
+    return props.rows?.length ? null : props.noResultsContent;
   },
   gridHeaderHeightWithBorder: 40,
   gridHorizontalScrollbarHeight: 16,
@@ -195,6 +196,50 @@ describe("hierarchical type table", () => {
   afterEach(() => {
     cleanup();
     vi.unstubAllGlobals();
+  });
+
+  it("reserves room for the empty state, then sizes the table to visible tree rows", () => {
+    render(
+      <ThemeProvider theme={theme}>
+        <TypesTable kind="data-type" allTypes={types} types={types} />
+      </ThemeProvider>,
+    );
+    expect(screen.getByRole("heading", { name: "No types yet" })).toBeTruthy();
+    expect(state.grid?.height).toContain(`(5 * ${gridRowHeight}px)`);
+    expect(
+      screen
+        .getByRole("link", { name: "Create an entity type" })
+        .getAttribute("href"),
+    ).toMatch(/\/new\/types\/entity-type$/);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Show all public types" }),
+    );
+    expect(screen.queryByRole("heading", { name: "No types yet" })).toBeNull();
+    expect(visibleRows().map(({ title }) => title)).toEqual(["number"]);
+    expect(state.grid?.height).toContain(`(1 * ${gridRowHeight}px)`);
+    toggle("number");
+    expect(state.grid?.height).toContain(`(3 * ${gridRowHeight}px)`);
+    toggle("distance");
+    expect(state.grid?.height).toContain(`(4 * ${gridRowHeight}px)`);
+    toggle("number");
+    expect(state.grid?.height).toContain(`(1 * ${gridRowHeight}px)`);
+    fireEvent.click(screen.getByRole("button", { name: "Flat List" }));
+    expect(state.grid?.height).toContain(`(5 * ${gridRowHeight}px)`);
+  });
+
+  it("reserves room for the filtered empty state when the full catalogue is unavailable", () => {
+    render(
+      <ThemeProvider theme={theme}>
+        <TypesTable kind="data-type" allTypes={null} types={types} />
+      </ThemeProvider>,
+    );
+    expect(
+      screen.getByRole("heading", { name: "No data types in your webs" }),
+    ).toBeTruthy();
+    expect(state.grid?.height).toContain(`(3 * ${gridRowHeight}px)`);
+    expect(
+      screen.queryByRole("link", { name: "Create an entity type" }),
+    ).toBeNull();
   });
 
   it("exports all filtered types once regardless of expansion", () => {

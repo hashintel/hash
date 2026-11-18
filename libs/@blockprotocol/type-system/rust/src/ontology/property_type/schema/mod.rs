@@ -750,6 +750,35 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn value_data_type() {
+        assert!(matches!(
+            ensure_failed_validation::<PropertyType, _>(
+                json!({
+                  "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                  "kind": "propertyType",
+                  "$id": "https://blockprotocol.org/@alice/types/property-type/values/v/1",
+                  "title": "Values",
+                  "description": "A list of values.",
+                  "oneOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "oneOf": [
+                          { "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/value/v/1" }
+                        ]
+                      }
+                    }
+                  ]
+                }),
+                PropertyTypeValidator,
+                JsonEqualityCheck::Yes
+            )
+            .await,
+            PropertyTypeValidationError::ValueDataTypeReference
+        ));
+    }
+
+    #[tokio::test]
     async fn invalid_property_object() {
         let key = BaseUrl::new(
             "https://blockprotocol.org/@alice/types/property-type/phone-numbers/".to_owned(),

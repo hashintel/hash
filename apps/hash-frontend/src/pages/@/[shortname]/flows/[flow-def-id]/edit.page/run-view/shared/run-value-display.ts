@@ -21,6 +21,14 @@ export type ValueDisplay =
   /** Only by what it is, e.g. "An entity query", where its value means little to read. */
   | { kind: "described"; text: string };
 
+export type ListDisplay = Exclude<ValueDisplay, { kind: "described" }>;
+
+export const getListLength = (list: ListDisplay) =>
+  list.kind === "inline" ? list.values.length : list.entityIds.length;
+
+export const countItems = (count: number) =>
+  `${count} ${count === 1 ? "item" : "items"}`;
+
 const formatDate = (value: string, pattern: string) => {
   const date = parseISO(value);
 
@@ -102,7 +110,7 @@ export const getValueDisplay = ({ kind, value }: Payload): ValueDisplay => {
         ? upperFirst(
             withArticle(getKindLabel({ payloadKind: kind, array: false })),
           )
-        : `${count} ${count === 1 ? "item" : "items"}`,
+        : countItems(count),
   };
 };
 
@@ -116,6 +124,14 @@ const longTextLines = 12;
  */
 export const isLongText = (text: string) =>
   text.length > longTextCharacters || text.split("\n").length > longTextLines;
+
+const peekLength = 5;
+
+/** How many of a list's values the panel or the column shows, and the "Show all N" after them, if any. */
+export const getListPeek = (length: number) => ({
+  shown: Math.min(length, peekLength),
+  showAll: length > peekLength ? length : null,
+});
 
 /** A value's kind, and whether it's a list, as the editor names a value's type. */
 export const getPayloadShape = ({ kind, value }: Payload) => ({

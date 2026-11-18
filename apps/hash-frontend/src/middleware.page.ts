@@ -1,7 +1,7 @@
 import { get } from "@vercel/edge-config";
 import { type NextRequest, NextResponse } from "next/server";
 
-import { buildCspHeader } from "./lib/csp";
+import { buildCspHeader, buildReportingEndpointsHeader } from "./lib/csp";
 import {
   returnTypeAsJson,
   versionedUrlRegExp,
@@ -24,18 +24,23 @@ const generateNonce = (): string => {
  */
 const applyCspHeaders = (
   response: NextResponse,
-  cspHeader: string,
+  cspHeaders: [name: string, value: string | null][],
 ): NextResponse => {
-  response.headers.set("Content-Security-Policy", cspHeader);
+  for (const [name, value] of cspHeaders) {
+    if (value !== null) {
+      response.headers.set(name, value);
+    }
+  }
   return response;
 };
 
 export const middleware = async (request: NextRequest) => {
   const nonce = generateNonce();
-  const cspHeader = buildCspHeader({
-    nonce,
-    pathname: request.nextUrl.pathname,
-  });
+  const { pathname } = request.nextUrl;
+  const cspHeaders: [name: string, value: string | null][] = [
+    ["Content-Security-Policy", buildCspHeader({ nonce, pathname })],
+    ["Reporting-Endpoints", buildReportingEndpointsHeader()],
+  ];
 
   // Forward the nonce to server-side rendering via a request header so that
   // _document.page.tsx can read it and apply it to <Head> / <NextScript>.
@@ -60,7 +65,7 @@ export const middleware = async (request: NextRequest) => {
           new URL(maintenanceRoute, request.url),
           { request: { headers: requestHeaders } },
         );
-        return applyCspHeaders(response, cspHeader);
+        return applyCspHeaders(response, cspHeaders);
       }
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -104,7 +109,7 @@ export const middleware = async (request: NextRequest) => {
   const response = NextResponse.next({
     request: { headers: requestHeaders },
   });
-  return applyCspHeaders(response, cspHeader);
+  return applyCspHeaders(response, cspHeaders);
 };
 
 export const config = {
