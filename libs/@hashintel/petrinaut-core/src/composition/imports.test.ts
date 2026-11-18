@@ -10,6 +10,7 @@ import {
   type ImportStates,
   type ResolveImport,
 } from "./imports";
+import { resolveLibrary } from "./libraries";
 import { logistics } from "./libraries.test-helpers";
 
 import type { SDCPN } from "../types/sdcpn";
@@ -111,6 +112,63 @@ describe("describeImports", () => {
           "The application does not know the library `@hashintel/unknown`.",
       },
     ]);
+  });
+
+  it("reads a component's arcs once for the directions of its ports, however many", () => {
+    // A thousand ports that the library leaves to the body's arcs, 20,000
+    // of them.
+    const names = Array.from({ length: 1000 }, (_, index) => `Port${index}`);
+    const wide: Library = {
+      id: "@hashintel/wide",
+      name: "Wide",
+      components: [
+        {
+          id: "sink",
+          name: "Sink",
+          ports: names.map((name) => ({ id: name, name })),
+          body: {
+            places: names.map((name) => ({
+              id: name,
+              name,
+              colorId: null,
+              dynamicsEnabled: false,
+              x: 0,
+              y: 0,
+            })),
+            transitions: Array.from({ length: 20 }, (_, index) => ({
+              id: `take-${index}`,
+              name: `Take${index}`,
+              inputArcs: names.map((placeId) => ({
+                placeId,
+                weight: 1,
+                type: "standard" as const,
+              })),
+              outputArcs: [],
+              lambdaType: "predicate" as const,
+              lambdaCode: "",
+              transitionKernelCode: "",
+              x: 0,
+              y: 0,
+            })),
+          },
+        },
+      ],
+    };
+    const states: ImportStates = new Map([
+      [wide.id, { status: "resolved", library: resolveLibrary(wide.id, wide) }],
+    ]);
+
+    const started = Date.now();
+    const [summary] = describeImports(states);
+    const elapsed = Date.now() - started;
+
+    const ports =
+      summary?.status === "resolved" ? summary.components[0]?.ports : [];
+    expect(ports).toHaveLength(names.length);
+    expect(new Set(ports?.map(({ direction }) => direction))).toEqual(
+      new Set(["in"]),
+    );
+    expect(elapsed).toBeLessThan(1_000);
   });
 });
 

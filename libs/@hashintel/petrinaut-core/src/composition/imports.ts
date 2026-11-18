@@ -12,7 +12,7 @@ import {
   type ResolvedLibraries,
   type ResolvedLibrary,
 } from "./libraries";
-import { effectivePortDirection } from "./ports";
+import { effectivePortDirections } from "./ports";
 
 import type { ReadableStore } from "../store";
 import type { ID, Parameter, PortDirection, SDCPN } from "../types/sdcpn";
@@ -89,22 +89,26 @@ export const describeImports = (states: ImportStates): ImportSummary[] =>
           id,
           status: state.status,
           name: state.library.name,
-          components: state.library.components.map((component) => ({
-            id: component.id,
-            name: component.name,
-            ...(component.description === undefined
-              ? {}
-              : { description: component.description }),
-            interface: isInterface(component),
-            ports: component.places
-              .filter((place) => place.isPort)
-              .map((place) => ({
-                id: place.id,
-                name: place.name,
-                direction: effectivePortDirection(component, place),
-              })),
-            parameters: component.parameters,
-          })),
+          components: state.library.components.map((component) => {
+            // One reading of the component's arcs gives every port's.
+            const directions = effectivePortDirections(component);
+            return {
+              id: component.id,
+              name: component.name,
+              ...(component.description === undefined
+                ? {}
+                : { description: component.description }),
+              interface: isInterface(component),
+              ports: component.places
+                .filter((place) => place.isPort)
+                .map((place) => ({
+                  id: place.id,
+                  name: place.name,
+                  direction: directions.get(place.id) ?? "inout",
+                })),
+              parameters: component.parameters,
+            };
+          }),
         }
       : { id, ...state },
   );
