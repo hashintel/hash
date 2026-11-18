@@ -16,8 +16,10 @@ import { fileTextGeometry } from "./library-geometry/file-text";
 import { fileVideoGeometry } from "./library-geometry/file-video";
 import { filesGeometry } from "./library-geometry/files";
 import { folderGeometry } from "./library-geometry/folder";
+import { noteStickyGeometry } from "./library-geometry/note-sticky";
 
 export const libraryGeometry = {
+  noteSticky: noteStickyGeometry,
   folder: folderGeometry,
   files: filesGeometry,
   fileExport: fileExportGeometry,

@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  noteSticky: "A page with a folded corner represents a sticky note.",
   folder: "A folder represents a collection of files or resources.",
   files: "Overlapping documents represent a collection of files.",
   fileExport: "An arrow leaving a document represents exporting a file.",

@@ -20,6 +20,7 @@ export type HashIconHint =
   | "up";
 
 export const hashIconHints = {
+  noteSticky: "lift",
   folder: "lift",
   files: "lift",
   fileExport: "right",
