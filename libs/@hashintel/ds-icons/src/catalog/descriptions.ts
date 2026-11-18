@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  userSearch: "A person and magnifier represent finding or inspecting a user.",
   userLock: "A person and padlock represent restricted account access.",
   userTie:
     "A person wearing a tie represents a professional or account representative.",

@@ -616,6 +616,7 @@ export const SearchChartIcon = createIcon("searchChart");
 export const UsersIcon = createIcon("users");
 export const UserTieIcon = createIcon("userTie");
 export const UserLockIcon = createIcon("userLock");
+export const UserSearchIcon = createIcon("userSearch");
 export const PlaceIcon = createIcon("place");
 export const SidebarIcon = createIcon("sidebar");
 export const MenuIcon = createIcon("menu");
@@ -801,6 +802,7 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  userSearch: UserSearchIcon,
   userLock: UserLockIcon,
   userTie: UserTieIcon,
   users: UsersIcon,
