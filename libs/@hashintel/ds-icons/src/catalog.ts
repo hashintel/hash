@@ -163,7 +163,7 @@ export const hashIconStudies = [
 }[];
 
 const categories = {
-  Transport: ["planeTail", "jet", "planeUp", "plane"],
+  Transport: ["planeDeparture", "planeTail", "jet", "planeUp", "plane"],
   Logistics: [
     "gift",
     "shoppingBasket",

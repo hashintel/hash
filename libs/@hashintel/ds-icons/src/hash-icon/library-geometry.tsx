@@ -192,6 +192,7 @@ import { phoneGeometry } from "./library-geometry/phone";
 import { phoneOffGeometry } from "./library-geometry/phone-off";
 import { pinGeometry } from "./library-geometry/pin";
 import { planeGeometry } from "./library-geometry/plane";
+import { planeDepartureGeometry } from "./library-geometry/plane-departure";
 import { planeTailGeometry } from "./library-geometry/plane-tail";
 import { planeUpGeometry } from "./library-geometry/plane-up";
 import { powerGeometry } from "./library-geometry/power";
@@ -268,6 +269,7 @@ import { usersGeometry } from "./library-geometry/users";
 import { warehouseGeometry } from "./library-geometry/warehouse";
 
 export const libraryGeometry = {
+  planeDeparture: planeDepartureGeometry,
   planeTail: planeTailGeometry,
   jet: jetGeometry,
   planeUp: planeUpGeometry,
