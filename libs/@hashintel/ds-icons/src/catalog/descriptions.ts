@@ -1,6 +1,7 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  plane: "An airplane represents air travel or aviation.",
   gift: "A ribbon-wrapped box represents a gift or reward.",
   shoppingBasket: "A handled basket represents shopping or selected goods.",
   shoppingCart: "A wheeled basket represents purchases or a shopping cart.",
