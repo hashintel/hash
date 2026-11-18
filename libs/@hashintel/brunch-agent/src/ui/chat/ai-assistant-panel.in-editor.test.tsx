@@ -449,7 +449,7 @@ test("sends a Voice turn with the selection it finished with, and shows it in th
       selection: [{ type: "place", id: "queue" }],
     })),
   );
-  const queue = [{ type: "place", id: toPetrinautId("queue") }];
+  const queue = [{ type: "place" as const, id: toPetrinautId("queue") }];
   // The Voice dock names the selection a spoken turn will carry.
   expect(await screen.findByText("Asking about place: Queue")).toBeTruthy();
   expect(voice?.readSelection()).toEqual({
@@ -469,7 +469,10 @@ test("sends a Voice turn with the selection it finished with, and shows it in th
   // finished with though the editor's selection changes before it is sent.
   let queued: Promise<unknown> | undefined;
   act(() => {
-    queued = voice?.submitVoiceInput({ text: "Why is this here?" });
+    queued = voice?.submitVoiceInput({
+      text: "Why is this here?",
+      selection: queue,
+    });
   });
   await waitFor(() => expect(voice?.canAcceptVoiceInput).toBe(false));
   act(() => editor?.navigate((current) => ({ ...current, selection: [] })));

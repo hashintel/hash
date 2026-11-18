@@ -80,7 +80,7 @@ interface CarriedInput {
   readonly inputId: string;
   readonly text: string;
   readonly history: VoiceMediationHistory;
-  readonly selection?: FinalizedInput["selection"];
+  readonly selection: FinalizedInput["selection"];
 }
 
 type Submit = ConstructorParameters<
@@ -371,9 +371,7 @@ export class LiveBrunchBridge {
             inputId: turn.inputId,
             text: turn.inputText,
             history,
-            ...(turn.input.selection === undefined
-              ? {}
-              : { selection: turn.input.selection }),
+            selection: turn.input.selection,
           });
         withdrew = true;
       }
@@ -701,7 +699,7 @@ export class LiveBrunchBridge {
       input: {
         ...input,
         text: texts.join(mergeSeparator),
-        ...(selection === undefined ? {} : { selection }),
+        selection,
       },
       carried,
     };
@@ -744,7 +742,7 @@ export class LiveBrunchBridge {
     const input: FinalizedInput = {
       ...newest.input,
       text: batch.map((queued) => queued.input.text).join(mergeSeparator),
-      ...(selection === undefined ? {} : { selection }),
+      selection,
     };
     if (batch.length > 1)
       logLiveDiagnostic("input.merged", {
@@ -760,6 +758,7 @@ export class LiveBrunchBridge {
         inputId: queued.inputId,
         text: queued.input.text,
         history: queued.history,
+        selection: queued.input.selection,
       })),
     ).run();
   }
@@ -897,9 +896,7 @@ export class LiveBrunchBridge {
         const result = await this.#dependencies.submit({
           id: input.id,
           text,
-          ...(input.selection === undefined
-            ? {}
-            : { selection: input.selection }),
+          selection: input.selection,
           admissionTarget: { kind: "user", messageId: input.id },
           signal: this.#abort.signal,
           onAdmission: (submissionId) => {

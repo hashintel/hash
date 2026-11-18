@@ -174,8 +174,13 @@ export type PetrinautAiVoiceModeContext = PetrinautAiComposerControlContext & {
   submitVoiceInput: (
     params: Omit<
       Parameters<PetrinautAiComposerControlContext["submitText"]>[0],
-      "source"
+      "source" | "selection"
     > & {
+      /**
+       * The editor's selection as the person finished speaking; empty when
+       * nothing was selected. A queued turn keeps it until it is sent.
+       */
+      readonly selection: readonly SelectionItem[];
       /**
        * Withdraws a retained turn that has not been submitted yet, for example
        * when the Voice session ends while chat is still busy. A turn already

@@ -44,20 +44,4 @@ test("a follow-up with nothing selected keeps the earlier selection", () => {
 
 test("every utterance selecting nothing selects nothing", () => {
   expect(newestNonEmptySelection([[], []])).toEqual([]);
-  expect(newestNonEmptySelection([[], undefined])).toEqual([]);
-});
-
-test("no utterance carrying a selection carries none", () => {
-  expect(newestNonEmptySelection([undefined, undefined])).toBeUndefined();
-  expect(newestNonEmptySelection([])).toBeUndefined();
-});
-
-test("utterances without a selection neither replace nor clear one", () => {
-  expect(newestNonEmptySelection([queue, undefined])).toEqual(queue);
-  expect(newestNonEmptySelection([undefined, queue, undefined, []])).toEqual(
-    queue,
-  );
-  expect(newestNonEmptySelection([queue, undefined, serve, undefined])).toEqual(
-    serve,
-  );
 });

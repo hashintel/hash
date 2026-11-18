@@ -75,7 +75,7 @@ type SubmitInterviewAnswerResult =
 
 interface RealtimeBrunchBridgeDependencies {
   /** The editor's selection now; read when the person finishes speaking. */
-  readonly readSelection: () => NonNullable<Selection>;
+  readonly readSelection: () => Selection;
   readonly reportDiagnostic?: VoiceDiagnosticReporter;
   readonly session: RealtimeBridgeSession;
   readonly submitInterviewAnswer: (
@@ -100,9 +100,11 @@ type TerminalTranscriptEvent =
 
 interface PendingInputItem {
   readonly ordinaryAcceptedWhileReady: boolean;
-  /** Taken when speech stopped: the turn carries it however long it waits. */
-  selection?: Selection;
-  stopped: boolean;
+  /**
+   * Taken when speech stopped, null until then: the turn carries it however
+   * long it waits.
+   */
+  selectionAtSpeechStop: Selection | null;
 }
 
 interface ActiveSubmission {
@@ -518,7 +520,7 @@ export class RealtimeBrunchBridge {
           this.#pendingInputItems.set(event.itemId, {
             ordinaryAcceptedWhileReady:
               !event.interruptionBySpeaking && this.#canSubmitAnswerNow(),
-            stopped: false,
+            selectionAtSpeechStop: null,
           });
           this.#inputItemOrder.push(event.itemId);
         }
@@ -528,8 +530,7 @@ export class RealtimeBrunchBridge {
     if (event.type === "input-speech-stopped") {
       const pendingInput = this.#pendingInputItems.get(event.itemId);
       if (this.#acceptedInputItemIds.has(event.itemId) && pendingInput) {
-        pendingInput.stopped = true;
-        pendingInput.selection = this.#readSelection();
+        pendingInput.selectionAtSpeechStop = this.#readSelection();
       }
       return;
     }
@@ -677,9 +678,8 @@ export class RealtimeBrunchBridge {
 
     const deliveryId = createRealtimeSubmissionId(event.key);
     // Read now only if speech-stopped was never reported for this item.
-    const selection = pendingInput?.stopped
-      ? pendingInput.selection
-      : this.#readSelection();
+    const selection =
+      pendingInput?.selectionAtSpeechStop ?? this.#readSelection();
     if (this.#pendingInterruption) {
       this.#rejectTranscript(event.key.itemId, "pending");
       return;
@@ -701,7 +701,8 @@ export class RealtimeBrunchBridge {
     const pendingInput = this.#pendingInputItems.get(itemId);
     return Boolean(
       pendingInput?.ordinaryAcceptedWhileReady &&
-      (pendingInput.stopped || this.#completedInputEvents.has(itemId)),
+      (pendingInput.selectionAtSpeechStop !== null ||
+        this.#completedInputEvents.has(itemId)),
     );
   }
 
@@ -840,7 +841,7 @@ export class RealtimeBrunchBridge {
             type: "submission-admitted",
           });
         },
-        ...(selection === undefined ? {} : { selection }),
+        selection,
         signal: activeAtSubmission.abortController.signal,
         text: answer,
       });

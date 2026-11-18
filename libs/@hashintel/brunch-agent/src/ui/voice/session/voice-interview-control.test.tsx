@@ -256,6 +256,7 @@ describe("voice interview control", () => {
     });
     const resultPromise = submitVoiceInputWithAdmission({
       input: {
+        selection: [],
         admissionTarget: {
           kind: "user",
           messageId: "voice-answer",
@@ -292,6 +293,7 @@ describe("voice interview control", () => {
     const unsubscribe = vi.fn();
     const resultPromise = submitVoiceInputWithAdmission({
       input: {
+        selection: [],
         admissionTarget: {
           kind: "user",
           messageId: "voice-answer",
@@ -324,6 +326,7 @@ describe("voice interview control", () => {
     const unsubscribeFromFailure = vi.fn();
     const resultPromise = submitVoiceInputWithAdmission({
       input: {
+        selection: [],
         admissionTarget: { kind: "user", messageId: "voice-turn-1" },
         id: "voice-turn-1",
         onAdmission: vi.fn(),

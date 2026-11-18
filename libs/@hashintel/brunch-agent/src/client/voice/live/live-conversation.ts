@@ -60,8 +60,8 @@ export interface FinalizedInput {
   readonly liveOutputText?: string;
   /** The transcript's lowest per-token log probability, when any were returned. */
   readonly minLogprob?: number;
-  /** The editor's selection when the person finished speaking. */
-  readonly selection?: readonly SelectionItem[];
+  /** The editor's selection when the person finished speaking; empty when nothing was selected. */
+  readonly selection: readonly SelectionItem[];
 }
 
 /**
@@ -145,7 +145,7 @@ export const createLiveConversation = (
     string,
     Omit<
       FinalizedInput,
-      "startedDuringOutput" | "liveOutputText" | "minLogprob"
+      "startedDuringOutput" | "liveOutputText" | "minLogprob" | "selection"
     >
   >();
   const confidence = new Map<string, TranscriptionConfidence>();

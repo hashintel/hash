@@ -73,11 +73,9 @@ export interface EditorSelection {
  * one" corrects an earlier "this". An utterance that ended with nothing
  * selected leaves an earlier selection standing, so a follow-up spoken after
  * clicking empty canvas still means it. Empty when every utterance selected
- * nothing; undefined when none carried a selection.
+ * nothing.
  */
 export const newestNonEmptySelection = (
-  selections: readonly (readonly SelectionItem[] | undefined)[],
-): readonly SelectionItem[] | undefined => {
-  const present = selections.filter((selection) => selection !== undefined);
-  return present.findLast((selection) => selection.length > 0) ?? present[0];
-};
+  selections: readonly (readonly SelectionItem[])[],
+): readonly SelectionItem[] =>
+  selections.findLast((selection) => selection.length > 0) ?? [];

@@ -381,7 +381,12 @@ const AvailableVoiceInterviewControl = ({
       bridge,
       onLatencyEvent: recordLatency,
       session,
-      submitText: (input) => latestSubmitVoiceInput(input),
+      // A typed correction is about the selection as it is sent.
+      submitText: (input) =>
+        latestSubmitVoiceInput({
+          ...input,
+          selection: latestReadSelection().items,
+        }),
     });
     controller.setInterruptionBySpeaking(
       readInterruptionBySpeakingPreference(),

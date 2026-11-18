@@ -2188,13 +2188,7 @@ const ConversationAiAssistantPanel = ({
   const submitVoiceInput = useCallback<
     PetrinautAiVoiceModeContext["submitVoiceInput"]
   >(
-    (spokenInput) => {
-      // The selection as the person finished speaking, not as a queued turn
-      // is finally sent.
-      const voiceInput = {
-        ...spokenInput,
-        selection: spokenInput.selection ?? readSelection().items,
-      };
+    (voiceInput) => {
       if (queuedVoiceInputRef.current) {
         return Promise.reject(
           new Error("The previous voice input is still being submitted."),
@@ -2236,7 +2230,7 @@ const ConversationAiAssistantPanel = ({
         };
       });
     },
-    [composerSubmissionStateRef, readSelection, submitText],
+    [composerSubmissionStateRef, submitText],
   );
 
   useEffect(() => {

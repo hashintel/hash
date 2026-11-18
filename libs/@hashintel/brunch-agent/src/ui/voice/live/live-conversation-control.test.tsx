@@ -171,6 +171,7 @@ test.each(["log", undefined] as const)(
           id: "one",
           text: "PRIVATE OKAY",
           startedDuringOutput: false,
+          selection: [],
         }),
       );
       await waitFor(() =>
@@ -249,6 +250,7 @@ test("streams a display-only user bubble, then prepares and admits only correcte
       id: "final",
       text: "Compare seven agents",
       startedDuringOutput: false,
+      selection: [],
     }),
   );
   expect(history.project([])).toHaveLength(1);
@@ -343,6 +345,7 @@ test("writes Live previews and briefs to the current conversation's history afte
       id: "final",
       text: "Compare seven agents",
       startedDuringOutput: false,
+      selection: [],
     }),
   );
   expect(second.project([]).map((message) => message.id)).toEqual(["final"]);
@@ -389,6 +392,7 @@ test("captions a Live turn in the history it began in after a switch", async () 
       id: "final",
       text: "Compare seven agents",
       startedDuringOutput: false,
+      selection: [],
     }),
   );
   switchConversation();
@@ -443,7 +447,12 @@ test("progress accepted after the person speaks again does not hide the new repl
       startMs: 100,
       endMs: 300,
     });
-    call[2]({ id: "first", text: "Compare four", startedDuringOutput: false });
+    call[2]({
+      id: "first",
+      text: "Compare four",
+      startedDuringOutput: false,
+      selection: [],
+    });
     call[4]({ ...progress, status: "unknown" });
     call[6]?.started();
     call[6]?.input({
@@ -456,6 +465,7 @@ test("progress accepted after the person speaks again does not hide the new repl
       id: "second",
       text: "Make it seven",
       startedDuringOutput: false,
+      selection: [],
     });
     call[4]({ ...progress, status: "accepted", startMs: 1300 });
     call[6]?.output({
@@ -560,6 +570,7 @@ test("a delayed superseded final never replaces the newer Live input preview", a
       text: "Four agents",
       superseded: true,
       startedDuringOutput: false,
+      selection: [],
     }),
   );
   expect(
@@ -1413,6 +1424,7 @@ const offerSettledWrapUp = async () => {
       id: "utterance-1",
       text: "Seven reviewers, not four.",
       startedDuringOutput: false,
+      selection: [],
     }),
   );
   await waitFor(() => expect(props.submitVoiceInput).toHaveBeenCalledOnce());
@@ -1535,6 +1547,7 @@ test("the prepared brief enters the real admission helper and only its settled c
       id: "late",
       text: "Late transcription",
       startedDuringOutput: false,
+      selection: [],
     }),
   );
   await waitFor(() => expect(props.submitVoiceInput).toHaveBeenCalledTimes(2));
@@ -1628,6 +1641,7 @@ test("Stop sends the partial answer to Live quietly and Continue admits one new 
       id: "original",
       text: "Use sensible defaults",
       startedDuringOutput: false,
+      selection: [],
     }),
   );
   await waitFor(() => expect(props.submitVoiceInput).toHaveBeenCalledOnce());
@@ -1691,10 +1705,20 @@ test("Stop sends the partial answer to Live quietly and Continue admits one new 
     call[3]("resume-delegation");
   });
   await act(async () =>
-    call[2]({ id: "resume", text: "Continue", startedDuringOutput: false }),
+    call[2]({
+      id: "resume",
+      text: "Continue",
+      startedDuringOutput: false,
+      selection: [],
+    }),
   );
   await act(async () =>
-    call[2]({ id: "resume", text: "Continue", startedDuringOutput: false }),
+    call[2]({
+      id: "resume",
+      text: "Continue",
+      startedDuringOutput: false,
+      selection: [],
+    }),
   );
   await waitFor(() => expect(props.submitVoiceInput).toHaveBeenCalledTimes(2));
   expect(vi.mocked(props.submitVoiceInput).mock.calls[1]?.[0].text).toContain(
@@ -1879,6 +1903,7 @@ test.each(["answer", "folded-answer"])(
         id: "utterance",
         text: "Seven, not four",
         startedDuringOutput: false,
+        selection: [],
       }),
     );
     rerender(
@@ -2087,6 +2112,7 @@ test("Live progress observes the host approval gate and stays out of written voi
         id: "voice-input",
         text: "Remove that place",
         startedDuringOutput: false,
+        selection: [],
       });
     });
     await act(async () => {
