@@ -5,7 +5,7 @@
  * - `?icons=ds`: the HASH set (`hashIconPack`, @hashintel/ds-icons) at its default weight 400, a 2-unit stroke on
  *   its 24 grid that scales with the icon (1.33 px at 16 px, 1 px at 12 px).
  * - `?icons=ds-thin`: the HASH set held at an absolute 1.25 px stroke, today's weight, for a fair comparison.
- * - `?icons=fa`: no provider, so the DS falls back to its own Font Awesome SVGs.
+ * - `?icons=fa`: the DS falls back to its Font Awesome SVGs for standard icons.
  * - Default (`?menushadow=figma`): menus get the Figma DS Menu: `shadow-lg` (0 10 15 -3 and 0 4 6 -4, black 10 %), a 1 px
  *   border-subtle hairline (13 %) and radius 10. The shadow is already Figma's inside `.petrinaut-root`, whose
  *   preset defines `--shadows-lg`; this adds radius 10 and the Select's 13 % border (was 8 and 20 %).
@@ -17,7 +17,7 @@ import { hashIconPack } from "@hashintel/ds-icons";
 import type { IconProvider } from "@hashintel/ds-components";
 import type { ComponentType, SVGProps } from "react";
 
-import { thinIcons } from "./thin-icons";
+import { prototypeIconFallbacks, thinIcons } from "./thin-icons";
 
 type IconPack = React.ComponentProps<typeof IconProvider>["icons"];
 
@@ -52,11 +52,11 @@ const thinHash = (): IconPack => {
 
 export const iconPackTake: IconPack =
   iconsTake === "ds"
-    ? (hashIconPack as IconPack)
+    ? { ...hashIconPack, ...prototypeIconFallbacks }
     : iconsTake === "ds-thin"
-      ? thinHash()
+      ? { ...thinHash(), ...prototypeIconFallbacks }
       : iconsTake === "fa"
-        ? {}
+        ? prototypeIconFallbacks
         : thinIcons;
 
 const figmaMenuShadow =

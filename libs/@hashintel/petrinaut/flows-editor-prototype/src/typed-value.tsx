@@ -541,7 +541,7 @@ export const TypedValue = ({
         (candidate) => candidate.baseUrl === entityTypeBaseUrl,
       );
       return (
-        <Select
+        <Select<string>
           size="sm"
           searchable
           items={mockEntities
@@ -563,7 +563,7 @@ export const TypedValue = ({
     }
     case "VersionedUrl":
       return (
-        <Select
+        <Select<string>
           size="sm"
           searchable
           items={mockEntityTypes.map((type) => ({

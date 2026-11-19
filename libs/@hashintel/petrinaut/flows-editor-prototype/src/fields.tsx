@@ -1731,7 +1731,7 @@ export const PropertyField = ({ step, input }: FieldProps) => {
     );
 
   return (
-    <Select
+    <Select<string>
       size="sm"
       searchable
       items={groups}

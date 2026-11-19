@@ -538,7 +538,8 @@ const StepSettings = ({
     >
       <Select
         size="sm"
-        items={[{ value: "stop", text: selectedLabel("Stop the run", true) }]}
+        items={[{ value: "stop", text: "Stop the run" }]}
+        renderItem={() => selectedLabel("Stop the run", true)}
         value="stop"
         onChange={() => {}}
       />
@@ -1706,7 +1707,7 @@ const RunFormFields = () => {
           {input.payloadKind === "EntityId" ? (
             <div className={inputFieldStyle}>
               <span className={inputLabelStyle}>Entity type</span>
-              <Select
+              <Select<string>
                 size="sm"
                 items={mockEntityTypes.map((type) => ({
                   value: type.baseUrl,
@@ -1978,7 +1979,7 @@ const EntitySettings = ({ trigger }: { trigger: TriggerNode }) => {
         required
         hover="The kind of entity to watch"
       >
-        <Select
+        <Select<string>
           size="sm"
           prefix={type ? { iconName: "cube" } : undefined}
           items={mockEntityTypes.map((candidate) => ({
@@ -2018,7 +2019,7 @@ const EntitySettings = ({ trigger }: { trigger: TriggerNode }) => {
           wrapLabel
           hover="Only start when one of these changes. Empty means any change."
         >
-          <Select
+          <Select<string>
             size="sm"
             multiple
             items={(type?.properties ?? []).map((property) => ({

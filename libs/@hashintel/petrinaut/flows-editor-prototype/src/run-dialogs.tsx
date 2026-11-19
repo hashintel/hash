@@ -85,7 +85,7 @@ const InputControl = ({
           placeholder={`Choose ${findEntityType(typeBaseUrl)?.pluralTitle.toLowerCase() ?? "entities"}`}
         />
       ) : (
-        <Select
+        <Select<string>
           size="sm"
           searchable
           items={items}

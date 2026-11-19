@@ -1,6 +1,7 @@
 {
   "extends": "../tsconfig.json",
   "compilerOptions": {
+    "rootDir": "../../../..",
     "paths": {
       "@local/hash-isomorphic-utils/*": [
         "../../../@local/hash-isomorphic-utils/src/*"

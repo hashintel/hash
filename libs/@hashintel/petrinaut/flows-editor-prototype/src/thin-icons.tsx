@@ -84,7 +84,6 @@ import {
   SlidersHorizontal,
   Sparkles,
   Square,
-  SquarePlus,
   Star,
   Table,
   Terminal,
@@ -127,6 +126,11 @@ const thin = (Lucide: LucideIcon) => {
   );
   return ThinIcon;
 };
+
+export const prototypeIconFallbacks = {
+  memoCircleCheck: BookOpen,
+  squarePlus: Grid2x2Plus,
+} satisfies IconPack;
 
 export const thinIcons: IconPack = {
   arrowDown: thin(ArrowDown),
@@ -209,9 +213,8 @@ export const thinIcons: IconPack = {
   sortDown: thin(ArrowDownWideNarrow),
   sparkles: thin(Sparkles),
   square: thin(Square),
-  squarePlus: thin(SquarePlus),
-  bookOpen: thin(BookOpen),
-  grid2x2Plus: thin(Grid2x2Plus),
+  memoCircleCheck: thin(BookOpen),
+  squarePlus: thin(Grid2x2Plus),
   star: thin(Star),
   stop: thin(Square),
   table: thin(Table),

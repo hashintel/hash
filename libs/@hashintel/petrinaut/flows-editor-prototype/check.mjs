@@ -5,8 +5,9 @@
 // Token guard: no native date or time inputs; text and borders use the DS semantic tokens (neutral.fg.*, neutral.bd.*, blue.fg.*, …) and type uses
 // DS text styles, never raw scale steps or arbitrary font sizes. A line may opt out with a trailing
 // `// token-guard: allow <reason>`; the reason is required.
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -65,29 +66,31 @@ if (problems.length > 0) {
 console.log(`Token guard: ${files.length} files clean.`);
 
 // Type check, reporting only the prototype's own files: the repo's unbuilt dependencies add unrelated errors.
-let output = "";
-try {
-  output = execFileSync(
-    process.execPath,
-    [
-      join(
-        here,
-        "../../../../node_modules/@typescript/native-preview/bin/tsgo.js",
-      ),
-      "--noEmit",
-      "-p",
-      join(here, "tsconfig.json"),
-    ],
-    { encoding: "utf8", stdio: "pipe", cwd: here },
+const require = createRequire(import.meta.url);
+const compiler = join(
+  dirname(require.resolve("typescript/package.json")),
+  "bin/tsc",
+);
+const result = spawnSync(
+  process.execPath,
+  [compiler, "--noEmit", "--pretty", "false", "-p", join(here, "tsconfig.json")],
+  { encoding: "utf8", cwd: here },
+);
+if (
+  result.error ||
+  result.signal ||
+  result.stderr ||
+  (result.status && !result.stdout)
+) {
+  console.error(
+    result.error ?? (result.stderr || result.signal || result.status),
   );
-} catch (error) {
-  output = `${error.stdout ?? ""}${error.stderr ?? ""}`;
+  process.exit(1);
 }
-const own = output
+const own = result.stdout
   .split(/\r?\n/)
-  .filter(
-    (line) =>
-      /^(src|main\.tsx)/.test(line) && !line.startsWith("src/mock-graph.ts"),
+  .filter((line) =>
+    /^(src\/|main\.tsx\(|vite\.config\.ts\(|panda\.config\.ts\(|tsconfig\.json\()/.test(line),
   );
 if (own.length > 0) {
   console.error(
@@ -95,9 +98,7 @@ if (own.length > 0) {
   );
   process.exit(1);
 }
-console.log(
-  "Type check: the prototype's own files are clean (mock-graph.ts waits on built @blockprotocol/type-system).",
-);
+console.log("Type check: the prototype's own files are clean.");
 
 // Task grading: the success predicates have their own tests (tasks.test.ts).
 try {

@@ -728,7 +728,7 @@ export const groupHues: { group: string; hue: string; icons: string[] }[] = [
   {
     group: "Entities",
     hue: "green",
-    icons: ["search", "bookOpen", "grid2x2Plus", "pencil"],
+    icons: ["search", "memoCircleCheck", "squarePlus", "pencil"],
   },
   {
     group: "Flow control",

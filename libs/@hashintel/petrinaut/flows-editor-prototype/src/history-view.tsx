@@ -673,16 +673,16 @@ const detailOf = (
   }
   const titles: Record<string, [string, IconName, string, [string, React.ReactNode][]]> =
     {
-      readName: ["Read entity", "bookOpen", "read", [["Property", propertyPathOf("Supplier", "Name")]]],
+      readName: ["Read entity", "memoCircleCheck", "read", [["Property", propertyPathOf("Supplier", "Name")]]],
       readEmail: [
         "Read entity",
-        "bookOpen",
+        "memoCircleCheck",
         "read",
         [["Property", propertyPathOf("Supplier", "Contact email")]],
       ],
       readCertificateLink: [
         "Read entity",
-        "bookOpen",
+        "memoCircleCheck",
         "read",
         [["Property", propertyPathOf("Supplier", "Certificate link")]],
       ],

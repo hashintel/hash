@@ -116,11 +116,11 @@ const presentation: Record<string, Presentation> = {
     category: "Entities",
     icon: "search",
   },
-  readEntity: { title: "Read entity", category: "Entities", icon: "bookOpen" },
+  readEntity: { title: "Read entity", category: "Entities", icon: "memoCircleCheck" },
   createEntity: {
     title: "Create entity",
     category: "Entities",
-    icon: "grid2x2Plus",
+    icon: "squarePlus",
   },
   updateEntity: {
     title: "Update entity",
