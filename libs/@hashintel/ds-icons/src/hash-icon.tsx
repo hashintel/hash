@@ -5,6 +5,7 @@ import { additionalGeometry } from "./hash-icon/additional-geometry";
 import { explorationGeometry } from "./hash-icon/exploration-geometry";
 import { FilledShape, IconFillContext } from "./hash-icon/filled-shape";
 import { IconInteraction } from "./hash-icon/interaction";
+import { keycapGeometry } from "./hash-icon/keycap-geometry";
 import { libraryGeometry } from "./hash-icon/library-geometry";
 import { logicGeometry } from "./hash-icon/logic-geometry";
 import { McpServerGeometry } from "./hash-icon/mcp-server-geometry";
@@ -89,6 +90,7 @@ const geometry = {
   ...explorationGeometry,
   ...logicGeometry,
   ...libraryGeometry,
+  ...keycapGeometry,
   mcpServer: <McpServerGeometry />,
   sidebar: null,
   menu: null,
@@ -534,7 +536,115 @@ export const PowerIcon = createIcon("power");
 export const ToggleOnIcon = createIcon("toggleOn");
 export const ToggleOffIcon = createIcon("toggleOff");
 export const CommandIcon = createIcon("command");
+export const KeycapAIcon = createIcon("keycapA");
+export const KeycapBIcon = createIcon("keycapB");
+export const KeycapCIcon = createIcon("keycapC");
+export const KeycapDIcon = createIcon("keycapD");
+export const KeycapEIcon = createIcon("keycapE");
+export const KeycapFIcon = createIcon("keycapF");
+export const KeycapGIcon = createIcon("keycapG");
+export const KeycapHIcon = createIcon("keycapH");
+export const KeycapIIcon = createIcon("keycapI");
+export const KeycapJIcon = createIcon("keycapJ");
 export const KeycapKIcon = createIcon("keycapK");
+export const KeycapLIcon = createIcon("keycapL");
+export const KeycapMIcon = createIcon("keycapM");
+export const KeycapNIcon = createIcon("keycapN");
+export const KeycapOIcon = createIcon("keycapO");
+export const KeycapPIcon = createIcon("keycapP");
+export const KeycapQIcon = createIcon("keycapQ");
+export const KeycapRIcon = createIcon("keycapR");
+export const KeycapSIcon = createIcon("keycapS");
+export const KeycapTIcon = createIcon("keycapT");
+export const KeycapUIcon = createIcon("keycapU");
+export const KeycapVIcon = createIcon("keycapV");
+export const KeycapWIcon = createIcon("keycapW");
+export const KeycapXIcon = createIcon("keycapX");
+export const KeycapYIcon = createIcon("keycapY");
+export const KeycapZIcon = createIcon("keycapZ");
+export const Keycap0Icon = createIcon("keycap0");
+export const Keycap1Icon = createIcon("keycap1");
+export const Keycap2Icon = createIcon("keycap2");
+export const Keycap3Icon = createIcon("keycap3");
+export const Keycap4Icon = createIcon("keycap4");
+export const Keycap5Icon = createIcon("keycap5");
+export const Keycap6Icon = createIcon("keycap6");
+export const Keycap7Icon = createIcon("keycap7");
+export const Keycap8Icon = createIcon("keycap8");
+export const Keycap9Icon = createIcon("keycap9");
+export const KeycapBacktickIcon = createIcon("keycapBacktick");
+export const KeycapTildeIcon = createIcon("keycapTilde");
+export const KeycapExclamationIcon = createIcon("keycapExclamation");
+export const KeycapAtIcon = createIcon("keycapAt");
+export const KeycapHashIcon = createIcon("keycapHash");
+export const KeycapDollarIcon = createIcon("keycapDollar");
+export const KeycapPercentIcon = createIcon("keycapPercent");
+export const KeycapCaretIcon = createIcon("keycapCaret");
+export const KeycapAmpersandIcon = createIcon("keycapAmpersand");
+export const KeycapAsteriskIcon = createIcon("keycapAsterisk");
+export const KeycapParenLeftIcon = createIcon("keycapParenLeft");
+export const KeycapParenRightIcon = createIcon("keycapParenRight");
+export const KeycapMinusIcon = createIcon("keycapMinus");
+export const KeycapUnderscoreIcon = createIcon("keycapUnderscore");
+export const KeycapPlusIcon = createIcon("keycapPlus");
+export const KeycapEqualsIcon = createIcon("keycapEquals");
+export const KeycapBracketLeftIcon = createIcon("keycapBracketLeft");
+export const KeycapBracketRightIcon = createIcon("keycapBracketRight");
+export const KeycapBraceLeftIcon = createIcon("keycapBraceLeft");
+export const KeycapBraceRightIcon = createIcon("keycapBraceRight");
+export const KeycapBackslashIcon = createIcon("keycapBackslash");
+export const KeycapPipeIcon = createIcon("keycapPipe");
+export const KeycapSemicolonIcon = createIcon("keycapSemicolon");
+export const KeycapColonIcon = createIcon("keycapColon");
+export const KeycapQuoteIcon = createIcon("keycapQuote");
+export const KeycapDoubleQuoteIcon = createIcon("keycapDoubleQuote");
+export const KeycapCommaIcon = createIcon("keycapComma");
+export const KeycapPeriodIcon = createIcon("keycapPeriod");
+export const KeycapSlashIcon = createIcon("keycapSlash");
+export const KeycapQuestionIcon = createIcon("keycapQuestion");
+export const KeycapLessThanIcon = createIcon("keycapLessThan");
+export const KeycapGreaterThanIcon = createIcon("keycapGreaterThan");
+export const KeycapF1Icon = createIcon("keycapF1");
+export const KeycapF2Icon = createIcon("keycapF2");
+export const KeycapF3Icon = createIcon("keycapF3");
+export const KeycapF4Icon = createIcon("keycapF4");
+export const KeycapF5Icon = createIcon("keycapF5");
+export const KeycapF6Icon = createIcon("keycapF6");
+export const KeycapF7Icon = createIcon("keycapF7");
+export const KeycapF8Icon = createIcon("keycapF8");
+export const KeycapF9Icon = createIcon("keycapF9");
+export const KeycapF10Icon = createIcon("keycapF10");
+export const KeycapF11Icon = createIcon("keycapF11");
+export const KeycapF12Icon = createIcon("keycapF12");
+export const KeycapEscapeIcon = createIcon("keycapEscape");
+export const KeycapAltIcon = createIcon("keycapAlt");
+export const KeycapFnIcon = createIcon("keycapFn");
+export const KeycapInsertIcon = createIcon("keycapInsert");
+export const KeycapPrintScreenIcon = createIcon("keycapPrintScreen");
+export const KeycapCommandIcon = createIcon("keycapCommand");
+export const KeycapShiftIcon = createIcon("keycapShift");
+export const KeycapControlIcon = createIcon("keycapControl");
+export const KeycapOptionIcon = createIcon("keycapOption");
+export const KeycapWindowsIcon = createIcon("keycapWindows");
+export const KeycapTabIcon = createIcon("keycapTab");
+export const KeycapEnterIcon = createIcon("keycapEnter");
+export const KeycapBackspaceIcon = createIcon("keycapBackspace");
+export const KeycapDeleteIcon = createIcon("keycapDelete");
+export const KeycapSpaceIcon = createIcon("keycapSpace");
+export const KeycapCapsLockIcon = createIcon("keycapCapsLock");
+export const KeycapArrowUpIcon = createIcon("keycapArrowUp");
+export const KeycapArrowDownIcon = createIcon("keycapArrowDown");
+export const KeycapArrowLeftIcon = createIcon("keycapArrowLeft");
+export const KeycapArrowRightIcon = createIcon("keycapArrowRight");
+export const KeycapHomeIcon = createIcon("keycapHome");
+export const KeycapEndIcon = createIcon("keycapEnd");
+export const KeycapPageUpIcon = createIcon("keycapPageUp");
+export const KeycapPageDownIcon = createIcon("keycapPageDown");
+export const KeycapPauseIcon = createIcon("keycapPause");
+export const KeycapNumLockIcon = createIcon("keycapNumLock");
+export const KeycapScrollLockIcon = createIcon("keycapScrollLock");
+export const KeycapMenuIcon = createIcon("keycapMenu");
+export const KeycapEjectIcon = createIcon("keycapEject");
 export const KeyboardIcon = createIcon("keyboard");
 export const PaperclipIcon = createIcon("paperclip");
 export const KeyIcon = createIcon("key");
@@ -1335,7 +1445,115 @@ export const hashIconPack = {
   key: KeyIcon,
   paperclip: PaperclipIcon,
   keyboard: KeyboardIcon,
+  keycapA: KeycapAIcon,
+  keycapB: KeycapBIcon,
+  keycapC: KeycapCIcon,
+  keycapD: KeycapDIcon,
+  keycapE: KeycapEIcon,
+  keycapF: KeycapFIcon,
+  keycapG: KeycapGIcon,
+  keycapH: KeycapHIcon,
+  keycapI: KeycapIIcon,
+  keycapJ: KeycapJIcon,
   keycapK: KeycapKIcon,
+  keycapL: KeycapLIcon,
+  keycapM: KeycapMIcon,
+  keycapN: KeycapNIcon,
+  keycapO: KeycapOIcon,
+  keycapP: KeycapPIcon,
+  keycapQ: KeycapQIcon,
+  keycapR: KeycapRIcon,
+  keycapS: KeycapSIcon,
+  keycapT: KeycapTIcon,
+  keycapU: KeycapUIcon,
+  keycapV: KeycapVIcon,
+  keycapW: KeycapWIcon,
+  keycapX: KeycapXIcon,
+  keycapY: KeycapYIcon,
+  keycapZ: KeycapZIcon,
+  keycap0: Keycap0Icon,
+  keycap1: Keycap1Icon,
+  keycap2: Keycap2Icon,
+  keycap3: Keycap3Icon,
+  keycap4: Keycap4Icon,
+  keycap5: Keycap5Icon,
+  keycap6: Keycap6Icon,
+  keycap7: Keycap7Icon,
+  keycap8: Keycap8Icon,
+  keycap9: Keycap9Icon,
+  keycapBacktick: KeycapBacktickIcon,
+  keycapTilde: KeycapTildeIcon,
+  keycapExclamation: KeycapExclamationIcon,
+  keycapAt: KeycapAtIcon,
+  keycapHash: KeycapHashIcon,
+  keycapDollar: KeycapDollarIcon,
+  keycapPercent: KeycapPercentIcon,
+  keycapCaret: KeycapCaretIcon,
+  keycapAmpersand: KeycapAmpersandIcon,
+  keycapAsterisk: KeycapAsteriskIcon,
+  keycapParenLeft: KeycapParenLeftIcon,
+  keycapParenRight: KeycapParenRightIcon,
+  keycapMinus: KeycapMinusIcon,
+  keycapUnderscore: KeycapUnderscoreIcon,
+  keycapPlus: KeycapPlusIcon,
+  keycapEquals: KeycapEqualsIcon,
+  keycapBracketLeft: KeycapBracketLeftIcon,
+  keycapBracketRight: KeycapBracketRightIcon,
+  keycapBraceLeft: KeycapBraceLeftIcon,
+  keycapBraceRight: KeycapBraceRightIcon,
+  keycapBackslash: KeycapBackslashIcon,
+  keycapPipe: KeycapPipeIcon,
+  keycapSemicolon: KeycapSemicolonIcon,
+  keycapColon: KeycapColonIcon,
+  keycapQuote: KeycapQuoteIcon,
+  keycapDoubleQuote: KeycapDoubleQuoteIcon,
+  keycapComma: KeycapCommaIcon,
+  keycapPeriod: KeycapPeriodIcon,
+  keycapSlash: KeycapSlashIcon,
+  keycapQuestion: KeycapQuestionIcon,
+  keycapLessThan: KeycapLessThanIcon,
+  keycapGreaterThan: KeycapGreaterThanIcon,
+  keycapF1: KeycapF1Icon,
+  keycapF2: KeycapF2Icon,
+  keycapF3: KeycapF3Icon,
+  keycapF4: KeycapF4Icon,
+  keycapF5: KeycapF5Icon,
+  keycapF6: KeycapF6Icon,
+  keycapF7: KeycapF7Icon,
+  keycapF8: KeycapF8Icon,
+  keycapF9: KeycapF9Icon,
+  keycapF10: KeycapF10Icon,
+  keycapF11: KeycapF11Icon,
+  keycapF12: KeycapF12Icon,
+  keycapEscape: KeycapEscapeIcon,
+  keycapAlt: KeycapAltIcon,
+  keycapFn: KeycapFnIcon,
+  keycapInsert: KeycapInsertIcon,
+  keycapPrintScreen: KeycapPrintScreenIcon,
+  keycapCommand: KeycapCommandIcon,
+  keycapShift: KeycapShiftIcon,
+  keycapControl: KeycapControlIcon,
+  keycapOption: KeycapOptionIcon,
+  keycapWindows: KeycapWindowsIcon,
+  keycapTab: KeycapTabIcon,
+  keycapEnter: KeycapEnterIcon,
+  keycapBackspace: KeycapBackspaceIcon,
+  keycapDelete: KeycapDeleteIcon,
+  keycapSpace: KeycapSpaceIcon,
+  keycapCapsLock: KeycapCapsLockIcon,
+  keycapArrowUp: KeycapArrowUpIcon,
+  keycapArrowDown: KeycapArrowDownIcon,
+  keycapArrowLeft: KeycapArrowLeftIcon,
+  keycapArrowRight: KeycapArrowRightIcon,
+  keycapHome: KeycapHomeIcon,
+  keycapEnd: KeycapEndIcon,
+  keycapPageUp: KeycapPageUpIcon,
+  keycapPageDown: KeycapPageDownIcon,
+  keycapPause: KeycapPauseIcon,
+  keycapNumLock: KeycapNumLockIcon,
+  keycapScrollLock: KeycapScrollLockIcon,
+  keycapMenu: KeycapMenuIcon,
+  keycapEject: KeycapEjectIcon,
   command: CommandIcon,
   toggleOff: ToggleOffIcon,
   toggleOn: ToggleOnIcon,

@@ -205,7 +205,6 @@ import { italicGeometry } from "./library-geometry/italic";
 import { jetGeometry } from "./library-geometry/jet";
 import { keyGeometry } from "./library-geometry/key";
 import { keyboardGeometry } from "./library-geometry/keyboard";
-import { keycapKGeometry } from "./library-geometry/keycap-k";
 import { laptopGeometry } from "./library-geometry/laptop";
 import { layerPlusGeometry } from "./library-geometry/layer-plus";
 import { lifeRingGeometry } from "./library-geometry/life-ring";
@@ -720,7 +719,6 @@ export const libraryGeometry = {
   key: keyGeometry,
   paperclip: paperclipGeometry,
   keyboard: keyboardGeometry,
-  keycapK: keycapKGeometry,
   command: commandGeometry,
   toggleOff: toggleOffGeometry,
   toggleOn: toggleOnGeometry,

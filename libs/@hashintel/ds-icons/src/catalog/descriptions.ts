@@ -440,7 +440,172 @@ export const descriptions = {
   key: "A key represents credentials, access, or an API secret.",
   paperclip: "A bent wire fastener represents an attachment.",
   keyboard: "Rows of keys represent a keyboard or keyboard input.",
-  keycapK: "A K inside a keycap represents the K keyboard shortcut.",
+  keycapA:
+    "The A legend inside a keycap represents the A key in a keyboard shortcut.",
+  keycapB:
+    "The B legend inside a keycap represents the B key in a keyboard shortcut.",
+  keycapC:
+    "The C legend inside a keycap represents the C key in a keyboard shortcut.",
+  keycapD:
+    "The D legend inside a keycap represents the D key in a keyboard shortcut.",
+  keycapE:
+    "The E legend inside a keycap represents the E key in a keyboard shortcut.",
+  keycapF:
+    "The F legend inside a keycap represents the F key in a keyboard shortcut.",
+  keycapG:
+    "The G legend inside a keycap represents the G key in a keyboard shortcut.",
+  keycapH:
+    "The H legend inside a keycap represents the H key in a keyboard shortcut.",
+  keycapI:
+    "The I legend inside a keycap represents the I key in a keyboard shortcut.",
+  keycapJ:
+    "The J legend inside a keycap represents the J key in a keyboard shortcut.",
+  keycapK:
+    "The K legend inside a keycap represents the K key in a keyboard shortcut.",
+  keycapL:
+    "The L legend inside a keycap represents the L key in a keyboard shortcut.",
+  keycapM:
+    "The M legend inside a keycap represents the M key in a keyboard shortcut.",
+  keycapN:
+    "The N legend inside a keycap represents the N key in a keyboard shortcut.",
+  keycapO:
+    "The O legend inside a keycap represents the O key in a keyboard shortcut.",
+  keycapP:
+    "The P legend inside a keycap represents the P key in a keyboard shortcut.",
+  keycapQ:
+    "The Q legend inside a keycap represents the Q key in a keyboard shortcut.",
+  keycapR:
+    "The R legend inside a keycap represents the R key in a keyboard shortcut.",
+  keycapS:
+    "The S legend inside a keycap represents the S key in a keyboard shortcut.",
+  keycapT:
+    "The T legend inside a keycap represents the T key in a keyboard shortcut.",
+  keycapU:
+    "The U legend inside a keycap represents the U key in a keyboard shortcut.",
+  keycapV:
+    "The V legend inside a keycap represents the V key in a keyboard shortcut.",
+  keycapW:
+    "The W legend inside a keycap represents the W key in a keyboard shortcut.",
+  keycapX:
+    "The X legend inside a keycap represents the X key in a keyboard shortcut.",
+  keycapY:
+    "The Y legend inside a keycap represents the Y key in a keyboard shortcut.",
+  keycapZ:
+    "The Z legend inside a keycap represents the Z key in a keyboard shortcut.",
+  keycap0:
+    "The 0 legend inside a keycap represents the 0 key in a keyboard shortcut.",
+  keycap1:
+    "The 1 legend inside a keycap represents the 1 key in a keyboard shortcut.",
+  keycap2:
+    "The 2 legend inside a keycap represents the 2 key in a keyboard shortcut.",
+  keycap3:
+    "The 3 legend inside a keycap represents the 3 key in a keyboard shortcut.",
+  keycap4:
+    "The 4 legend inside a keycap represents the 4 key in a keyboard shortcut.",
+  keycap5:
+    "The 5 legend inside a keycap represents the 5 key in a keyboard shortcut.",
+  keycap6:
+    "The 6 legend inside a keycap represents the 6 key in a keyboard shortcut.",
+  keycap7:
+    "The 7 legend inside a keycap represents the 7 key in a keyboard shortcut.",
+  keycap8:
+    "The 8 legend inside a keycap represents the 8 key in a keyboard shortcut.",
+  keycap9:
+    "The 9 legend inside a keycap represents the 9 key in a keyboard shortcut.",
+  keycapBacktick:
+    "A keycap with a backtick legend represents the backtick key.",
+  keycapTilde: "A keycap with a tilde legend represents the tilde key.",
+  keycapExclamation:
+    "A keycap with a exclamation mark legend represents the exclamation mark key.",
+  keycapAt: "A keycap with a at sign legend represents the at sign key.",
+  keycapHash: "A keycap with a hash sign legend represents the hash sign key.",
+  keycapDollar:
+    "A keycap with a dollar sign legend represents the dollar sign key.",
+  keycapPercent: "A keycap with a percent legend represents the percent key.",
+  keycapCaret: "A keycap with a caret legend represents the caret key.",
+  keycapAmpersand:
+    "A keycap with a ampersand legend represents the ampersand key.",
+  keycapAsterisk:
+    "A keycap with a asterisk legend represents the asterisk key.",
+  keycapParenLeft:
+    "A keycap with a left parenthesis legend represents the left parenthesis key.",
+  keycapParenRight:
+    "A keycap with a right parenthesis legend represents the right parenthesis key.",
+  keycapMinus: "A keycap with a minus legend represents the minus key.",
+  keycapUnderscore:
+    "A keycap with a underscore legend represents the underscore key.",
+  keycapPlus: "A keycap with a plus legend represents the plus key.",
+  keycapEquals: "A keycap with a equals legend represents the equals key.",
+  keycapBracketLeft:
+    "A keycap with a left square bracket legend represents the left square bracket key.",
+  keycapBracketRight:
+    "A keycap with a right square bracket legend represents the right square bracket key.",
+  keycapBraceLeft:
+    "A keycap with a left brace legend represents the left brace key.",
+  keycapBraceRight:
+    "A keycap with a right brace legend represents the right brace key.",
+  keycapBackslash:
+    "A keycap with a backslash legend represents the backslash key.",
+  keycapPipe: "A keycap with a pipe legend represents the pipe key.",
+  keycapSemicolon:
+    "A keycap with a semicolon legend represents the semicolon key.",
+  keycapColon: "A keycap with a colon legend represents the colon key.",
+  keycapQuote:
+    "A keycap with a single quote legend represents the single quote key.",
+  keycapDoubleQuote:
+    "A keycap with a double quote legend represents the double quote key.",
+  keycapComma: "A keycap with a comma legend represents the comma key.",
+  keycapPeriod: "A keycap with a period legend represents the period key.",
+  keycapSlash: "A keycap with a slash legend represents the slash key.",
+  keycapQuestion:
+    "A keycap with a question mark legend represents the question mark key.",
+  keycapLessThan:
+    "A keycap with a less-than sign legend represents the less-than sign key.",
+  keycapGreaterThan:
+    "A keycap with a greater-than sign legend represents the greater-than sign key.",
+  keycapF1: "An F1 legend inside a keycap represents the F1 function key.",
+  keycapF2: "An F2 legend inside a keycap represents the F2 function key.",
+  keycapF3: "An F3 legend inside a keycap represents the F3 function key.",
+  keycapF4: "An F4 legend inside a keycap represents the F4 function key.",
+  keycapF5: "An F5 legend inside a keycap represents the F5 function key.",
+  keycapF6: "An F6 legend inside a keycap represents the F6 function key.",
+  keycapF7: "An F7 legend inside a keycap represents the F7 function key.",
+  keycapF8: "An F8 legend inside a keycap represents the F8 function key.",
+  keycapF9: "An F9 legend inside a keycap represents the F9 function key.",
+  keycapF10: "An F10 legend inside a keycap represents the F10 function key.",
+  keycapF11: "An F11 legend inside a keycap represents the F11 function key.",
+  keycapF12: "An F12 legend inside a keycap represents the F12 function key.",
+  keycapEscape: "A labeled keycap represents the Escape key.",
+  keycapAlt: "A labeled keycap represents the Alt key.",
+  keycapFn: "A labeled keycap represents the Fn key.",
+  keycapInsert: "A labeled keycap represents the Insert key.",
+  keycapPrintScreen:
+    "A keycap with a Print Screen legend represents the Print Screen key.",
+  keycapCommand: "A symbol inside a keycap represents the Command modifier.",
+  keycapShift: "A symbol inside a keycap represents the Shift modifier.",
+  keycapControl: "A symbol inside a keycap represents the Control modifier.",
+  keycapOption: "A symbol inside a keycap represents the Option modifier.",
+  keycapWindows: "A symbol inside a keycap represents the Windows modifier.",
+  keycapTab: "A symbol inside a keycap represents the Tab key.",
+  keycapEnter: "A symbol inside a keycap represents the Enter or Return key.",
+  keycapBackspace: "A symbol inside a keycap represents the Backspace key.",
+  keycapDelete: "A symbol inside a keycap represents the forward Delete key.",
+  keycapSpace: "A symbol inside a keycap represents the Space key.",
+  keycapCapsLock: "A symbol inside a keycap represents the Caps Lock key.",
+  keycapArrowUp: "A symbol inside a keycap represents the Up Arrow key.",
+  keycapArrowDown: "A symbol inside a keycap represents the Down Arrow key.",
+  keycapArrowLeft: "A symbol inside a keycap represents the Left Arrow key.",
+  keycapArrowRight: "A symbol inside a keycap represents the Right Arrow key.",
+  keycapHome: "A symbol inside a keycap represents the Home key.",
+  keycapEnd: "A symbol inside a keycap represents the End key.",
+  keycapPageUp: "A symbol inside a keycap represents the Page Up key.",
+  keycapPageDown: "A symbol inside a keycap represents the Page Down key.",
+  keycapPause: "A symbol inside a keycap represents the Pause key.",
+  keycapNumLock: "A NUM legend inside a keycap represents the Num Lock key.",
+  keycapScrollLock:
+    "A SCR legend inside a keycap represents the Scroll Lock key.",
+  keycapMenu: "A symbol inside a keycap represents the context Menu key.",
+  keycapEject: "A symbol inside a keycap represents the Eject key.",
   command:
     "A looped command symbol represents a keyboard modifier or shortcut.",
   toggleOff:
