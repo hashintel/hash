@@ -170,6 +170,61 @@ through Motion's `animate` measured the same and added 22 kB of gzipped code.
 Expanding a collapsed section still resizes it, and lays the editor out on
 every frame.
 
+## Opening, docking and floating a panel
+
+Floating or docking the AI assistant took about 255 ms of main-thread work
+for an animation of 150 ms, and the browser drew four of its frames.
+`assistant-dock.mjs` measures the four toggles of that panel, the render
+counter says what rendered, and a trace says what each frame laid out. Three
+causes:
+
+| Cause                                                                                                                                                                                                       | What it cost per toggle                                                                                            | Now                                                                                                                     |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| The editor context changed two or three times. The panels' animating flag, set for a toggle and cleared half a second later, and the assistant's placement were fields of the editor's state.               | 4,900 to 7,600 component renders, about 60 ms of script, and two style recalculations of 4,300 and 7,800 elements. | `PanelAnimatingContext` and `AssistantPlacementContext` hold them. A dock or float renders about 480 components.        |
+| The room the docked panel takes beside the editor eased over 150 ms, and each frame of that laid the whole editor out.                                                                                      | About 35 ms per frame, so four frames where nine fit.                                                              | The room changes in one step: at once when the panel leaves, and after the panel has covered it when the panel arrives. |
+| The panels' animating variant set `transitionProperty`, `transitionDuration` and `transitionTimingFunction`. Panda writes each with a custom property beside it, which every element in the panel inherits. | 16 ms of style recalculation for the left sidebar, at the start and at the end of the animation of any panel.      | One `transition`, which sets no custom property.                                                                        |
+
+Main-thread work per toggle on Supply Chain, production build, script, style
+and layout together:
+
+| Editor state             | Toggle | Before |    Now |
+| ------------------------ | ------ | -----: | -----: |
+| Canvas only              | Float  | 254 ms |  64 ms |
+| Canvas only              | Dock   | 254 ms |  59 ms |
+| Canvas only              | Open   | 312 ms | 128 ms |
+| Canvas only              | Close  | 255 ms | 133 ms |
+| Code editor open         | Float  | 335 ms | 113 ms |
+| Code editor open         | Dock   | 297 ms | 105 ms |
+| Simulation Settings open | Float  | 275 ms |  70 ms |
+| Simulation Settings open | Dock   | 272 ms |  66 ms |
+
+Frames over 20 ms per toggle went from between five and seven to one or two.
+The one that remains is the frame in which the editor's width changes.
+
+The scenario form in Simulation Settings was not a cause of its own. It
+rendered with every other reader of the editor context, and a dock with it
+open cost 272 ms against 254 ms without. It no longer renders for a dock or a
+float.
+
+A panel that docks covers the minimap, the viewport controls and the
+Properties panel while it animates. They show again beside it once the editor
+has given up the room, where they used to slide with the editor's edge.
+
+:::danger[What a panel toggle still costs]
+
+- One layout of the whole editor when its width changes, about 31 ms. Half of
+  it is the left sidebar: 3,500 elements for 90 rows, laid out again though
+  its size does not change.
+- Opening or closing any panel sets a field of the editor's state, so every
+  reader of the editor context renders once.
+- With a code editor open in the Properties panel, a dock or float still
+  renders about 2,900 components.
+
+Tracked in
+[FE-2169](https://linear.app/hash/issue/FE-2169/prototype-faster-monaco-opening-and-typing-in-petrinaut).
+
+:::
+
 ## Typing
 
 A count of component renders per commit (`render-counts.mjs`) showed what a

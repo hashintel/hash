@@ -23,6 +23,11 @@ undoes never renders for an edit, and the version history menu subscribes
 while it is open. The panel sizes follow the same rule, described in
 [Panel sizes outside React state](doc:react.state/panel-sizes).
 
+The editor context is read by almost every component too, so what only the
+panels need is kept out of it: `PanelAnimatingContext` says that a panel is
+opening, closing, docking or floating, and `AssistantPlacementContext` where
+the AI assistant sits.
+
 What the host owns is not in the document context either. Its title, its
 nets and its callbacks are in `NetManagementContext`, the action of the
 read-only notice in `ReadOnlyActionContext`, and what it passes as `slots`
