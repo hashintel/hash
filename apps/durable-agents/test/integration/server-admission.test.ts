@@ -3,19 +3,27 @@
  * compose Postgres): only a `POST /chat` with a valid document binding
  * creates a conversation, every other route finds an unknown one absent
  * without creating its schema, and a known conversation refuses a malformed
- * binding (400) and a different one (409). The HASH agent's Save names the
+ * binding (400) and a different one (409), and, while unbound, a request
+ * without one (409). The HASH agent's Save names the
  * bound document on the first request and after another process reopens the
  * conversation, and the history route answers through the same app.
  */
 import { randomUUID } from "node:crypto";
 
+import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
 import { getCurrentTools } from "@earendil-works/pi-ai/utils/transcript";
+import { createRegistry, Harness } from "@earendil-works/pi-durable";
 import { Pool } from "pg";
 import { afterAll, expect, test } from "vitest";
 
 import { brunchTools, hashSaveDescription } from "@hashintel/brunch-agent";
 
-import { conversationSchema } from "../../src/server/conversation-storage";
+import { createHashAgent } from "../../src/agent/hash-agent";
+import { createHostBinding } from "../../src/agent/host-binding";
+import {
+  conversationSchema,
+  postgresConversationStorage,
+} from "../../src/server/conversation-storage";
 import {
   browserCallsPrefix,
   startDurableAgentsServer,
@@ -26,6 +34,7 @@ import { fauxAssistantMessage, scriptedModel } from "../scripted-model";
 import type { Message } from "@earendil-works/pi-ai";
 import type { BrowserContext } from "@hashintel/brunch-agent";
 
+const context = BACKGROUND_CONTEXT;
 const poolConfig = postgresConfigFromEnvironment();
 const admin = new Pool({ ...poolConfig, max: 1 });
 afterAll(() => admin.end());
@@ -54,6 +63,23 @@ const startServer = async (answers: string[]) => {
     models,
     model,
   });
+  /** A conversation created as before a creation bound it: the HASH agent's root, with no binding. */
+  const createUnbound = async (chatId: string) => {
+    const { agent, extensions } = createHashAgent();
+    const registry = createRegistry();
+    for (const extension of extensions(createHostBinding()))
+      registry.install(extension);
+    const harness = await Harness.open(
+      await postgresConversationStorage(pool)(chatId),
+      { models, registry },
+      context,
+    );
+    try {
+      await harness.root(context, { agent: { ...agent, model } });
+    } finally {
+      await harness.close(context);
+    }
+  };
   const origin = `http://127.0.0.1:${server.port}`;
   const post = (path: string, body: unknown) =>
     fetch(`${origin}${path}`, {
@@ -64,6 +90,7 @@ const startServer = async (answers: string[]) => {
   return {
     origin,
     post,
+    createUnbound,
     /** A chat request as `DefaultChatTransport` sends it, with `extra` beside the messages. */
     chat: async (
       chatId: string,
@@ -186,6 +213,33 @@ test("a known conversation refuses a malformed binding with 400 and a different 
     expect(same.status).toBe(200);
     expect(same.text).toContain("Second answer.");
     expect(server.modelRequests()).toBe(2);
+  } finally {
+    await server.close();
+    await admin.query(
+      `DROP SCHEMA IF EXISTS "${conversationSchema(chatId)}" CASCADE`,
+    );
+  }
+});
+
+test("an existing unbound conversation refuses a chat request without a binding with 409, and a binding binds it", async () => {
+  const chatId = `unbound-${randomUUID()}`;
+  const binding = bindingFor(chatId);
+  const server = await startServer(["Bound now.", "Still bound."]);
+  try {
+    await server.createUnbound(chatId);
+    expect(await server.chat(chatId, "user-1", {})).toEqual({
+      status: 409,
+      text: "The conversation is unbound; a document binding binds it.",
+    });
+    expect(server.modelRequests()).toBe(0);
+
+    const bound = await server.chat(chatId, "user-1", { binding });
+    expect(bound.status).toBe(200);
+    expect(bound.text).toContain("Bound now.");
+    // Bound now, a request without a binding leaves it as it is.
+    const unchanged = await server.chat(chatId, "user-2", {});
+    expect(unchanged.status).toBe(200);
+    expect(unchanged.text).toContain("Still bound.");
   } finally {
     await server.close();
     await admin.query(

@@ -7,7 +7,9 @@
  * ownership back) when it does not, since routing sent the request here.
  *
  * Only an acquisition that asks to create one creates a conversation; any
- * other finds an unknown ID absent without creating its storage.
+ * other finds an unknown ID absent without creating its storage. A creation
+ * given a document binding binds the conversation to it in the commit that
+ * creates its root, so no crash leaves it unbound and `afterBind` sees it bound.
  *
  * Opening a conversation, before its scheduling starts: its host binding is
  * bound to the new Harness, its agent gets the request-slot gate and the turn
@@ -28,7 +30,10 @@ import {
 } from "@earendil-works/pi-durable";
 
 import { createHostBinding, type HostBinding } from "../../agent/host-binding";
-import { recoverBrowserCallWakes } from "../../browser-call/browser-call";
+import {
+  bindBrowserDocument,
+  recoverBrowserCallWakes,
+} from "../../browser-call/browser-call";
 import {
   type CrashLoopAbort,
   guardCrashLoops,
@@ -41,6 +46,7 @@ import type {
 } from "../conversation-storage";
 import type { RequestSlots } from "./request-slots";
 import type { Context } from "@earendil-works/chord/context";
+import type { BrowserContext } from "@hashintel/brunch-agent";
 
 export type { CrashLoopAbort } from "./conversation-registry/crash-loop-guard";
 export type { CrashLoopingTask } from "./shared/crash-loop-entry";
@@ -88,6 +94,12 @@ export type ConversationLimits = {
     conversationId: string,
     crashLoop: CrashLoopAbort | undefined,
   ) => void;
+};
+
+/** What a new conversation starts with, written in the commit that creates it. */
+export type ConversationSeed = {
+  /** The editor binding its browser calls are issued to (`BrowserBindingDoc`); unbound when absent. */
+  readonly binding?: BrowserContext["binding"];
 };
 
 /** A conversation as this process serves it. */
@@ -159,12 +171,13 @@ export const createConversationRegistry = (
   const pending = new Map<string, Promise<unknown>>();
   let closed = false;
 
+  /** Opens the conversation; with `seed`, creating it from the seed when it does not exist. */
   const open = async (
     conversationId: string,
-    create: boolean,
+    seed: ConversationSeed | undefined,
     onRecoveringInput?: (input: SubmissionId | undefined) => void,
   ): Promise<Opened | undefined> => {
-    if (!create && !(await options.storageExists(conversationId)))
+    if (seed === undefined && !(await options.storageExists(conversationId)))
       return undefined;
     const storage = await options.openStorage(conversationId);
     const gate = limits.requestSlots.gate();
@@ -184,14 +197,22 @@ export const createConversationRegistry = (
     // Open schedules nothing, so no tool, hook or section runs before this.
     host.bind(harness);
     try {
-      const root = create
-        ? await harness.root(context, {
-            agent: {
-              ...withGate(options.agent, gate.extension),
-              maxTurns: limits.maxTurns,
-            },
-          })
-        : await harness.conversation(ROOT_CONVERSATION_ID, context);
+      const binding = seed?.binding;
+      const root =
+        seed === undefined
+          ? await harness.conversation(ROOT_CONVERSATION_ID, context)
+          : await harness.root(context, {
+              agent: {
+                ...withGate(options.agent, gate.extension),
+                maxTurns: limits.maxTurns,
+              },
+              ...(binding === undefined
+                ? {}
+                : {
+                    init: (tx, rootId) =>
+                      bindBrowserDocument(tx, rootId, binding),
+                  }),
+            });
       if (root === undefined) {
         await harness.close(context);
         return undefined;
@@ -235,7 +256,7 @@ export const createConversationRegistry = (
 
   const acquireNow = async (
     conversationId: string,
-    create: boolean,
+    seed: ConversationSeed | undefined,
     onRecoveringInput?: (input: SubmissionId | undefined) => void,
   ): Promise<Opened | undefined> => {
     if (closed) throw new Error("The conversation registry is closed.");
@@ -252,7 +273,7 @@ export const createConversationRegistry = (
       // Its commits already fail at the fence; closing ends its tasks and the streams that follow it.
       void current.harness.close(context).catch(() => {});
     }
-    const next = await open(conversationId, create, onRecoveringInput);
+    const next = await open(conversationId, seed, onRecoveringInput);
     if (next !== undefined) opened.set(conversationId, next);
     return next;
   };
@@ -284,13 +305,19 @@ export const createConversationRegistry = (
     onRecoveringInput?: (input: SubmissionId | undefined) => void,
   ): Promise<OpenConversation | undefined> =>
     serialized(conversationId, () =>
-      acquireNow(conversationId, false, onRecoveringInput),
+      acquireNow(conversationId, undefined, onRecoveringInput),
     );
 
-  /** As `acquire`, creating the conversation, its storage and root, when it does not exist. */
-  const create = (conversationId: string): Promise<OpenConversation> =>
+  /**
+   * As `acquire`, creating the conversation, its storage and root from
+   * `seed`, when it does not exist. An existing conversation ignores `seed`.
+   */
+  const create = (
+    conversationId: string,
+    seed: ConversationSeed = {},
+  ): Promise<OpenConversation> =>
     serialized(conversationId, async () => {
-      const conversation = await acquireNow(conversationId, true);
+      const conversation = await acquireNow(conversationId, seed);
       if (conversation === undefined)
         throw new Error(`Conversation ${conversationId} was not created.`);
       return conversation;
