@@ -26,6 +26,7 @@ import {
   defineTool,
   type Harness,
   LiveDoc,
+  type TaskInspection,
 } from "@earendil-works/pi-durable";
 import { obj } from "@earendil-works/pi-schema";
 import {
@@ -187,6 +188,29 @@ const eventually = async <T>(
     // eslint-disable-next-line no-await-in-loop
     await sleep(20);
   }
+};
+
+/**
+ * Whether a takeover now cuts off exactly `tools` running `pi.tool` tasks
+ * and nothing else: the browser call waits on its doorbell, which sleeps. A
+ * doorbell runs only to commit its sleep, and one taken over then is cut
+ * off too, which a crash-loop limit of 1 counts.
+ */
+const onlyToolsRun = (tasks: readonly TaskInspection[], tools: number) => {
+  const running = tasks.filter(({ state }) => state.kind === "running");
+  return (
+    running.length === tools &&
+    running.every(({ record }) => record.kind === "pi.tool") &&
+    tasks.some(
+      ({ record, state }) =>
+        record.kind === "brunch.browser-call" && state.kind === "waiting",
+    ) &&
+    tasks.some(
+      ({ record, state }) =>
+        record.kind === "brunch.browser-call.doorbell" &&
+        state.kind === "sleeping",
+    )
+  );
 };
 
 const openConversation = async (instance: Instance, chatId: string) => {
@@ -358,17 +382,13 @@ test("the crash-loop guard aborts a task a crash cut off too often, visibly", as
   });
   try {
     void drain(await send(first, chatId)).catch(() => {});
-    // The tool task is running.
+    // Both tool tasks are running, and nothing else is.
     await eventually(async () => {
       const { harness, root } = await openConversation(first, chatId);
       const call = (await harness.snapshot(BrowserCallsDoc, root.id, context))
         ?.calls["browser-1"];
       const { tasks } = await harness.inspect(context);
-      return call?.status === "pending" &&
-        tasks.filter(
-          ({ record, state }) =>
-            record.kind === "pi.tool" && state.kind === "running",
-        ).length === 2
+      return call?.status === "pending" && onlyToolsRun(tasks, 2)
         ? true
         : undefined;
     });
@@ -509,12 +529,7 @@ test("the crash-loop guard spares a tool call waiting on a browser", async () =>
     await eventually(async () => {
       const { harness } = await openConversation(first, chatId);
       const { tasks } = await harness.inspect(context);
-      return tasks.some(
-        ({ record, state }) =>
-          record.kind === "brunch.browser-call" && state.kind === "waiting",
-      )
-        ? true
-        : undefined;
+      return onlyToolsRun(tasks, 1) ? true : undefined;
     });
 
     const reattached = await second.transport.reconnectToStream({ chatId });
@@ -636,11 +651,7 @@ const answerAfterWaiting = async (
       const opened = await openConversation(instance, chatId);
       const { tasks } = await opened.harness.inspect(context);
       const tool = tasks.find(({ record }) => record.kind === "pi.tool");
-      const browser = tasks.find(
-        ({ record }) => record.kind === "brunch.browser-call",
-      );
-      if (tool?.state.kind !== "running" || browser?.state.kind !== "waiting")
-        return undefined;
+      if (tool === undefined || !onlyToolsRun(tasks, 1)) return undefined;
       expect(tool.record.restarts ?? 0).toBe(expectedRestarts);
       expect((await answeredCall(opened))?.status).toBe("pending");
       expect(instance.crashLoops).toEqual([]);
