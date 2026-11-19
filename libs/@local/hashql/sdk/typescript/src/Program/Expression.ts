@@ -561,6 +561,8 @@ export const assume =
  *
  * The result has the asserted type and keeps the expression's input requirements. The HashQL compiler checks the assertion rather than the SDK, and accepts one that keeps the expression's type or widens it to a supertype, never one that narrows it. Unlike {@link assume}, which changes only the SDK's type, `as` puts the assertion into the program. Call it as `as(expression, type)`, or as `as(type)` inside a `pipe`.
  *
+ * A construction failure already stored in `expression` or `type` passes through.
+ *
  * @example <caption>Widen an Integer to a Number.</caption>
  * ```ts
  * import assert from "node:assert/strict";
@@ -596,7 +598,6 @@ export const as = Function.dual<
       { value: toNode(expression), type: type[TAST.Node] },
       Result.all,
       Result.map(({ value, type }) => new AST.As(value, type)),
-      Result.flatMap(AST.validate),
       fromResult<T, Value.Inputs<E>>,
     ),
 );
@@ -704,11 +705,11 @@ export function input<T extends Type.Any>(
     const ident = yield* AST.decodeInputName(name);
     const node = yield* type[TAST.Node];
     if (defaultValue === undefined) {
-      return yield* AST.validate(new AST.Input(ident, node, undefined));
+      return new AST.Input(ident, node, undefined);
     }
 
     const value = yield* toNode(defaultValue);
-    return yield* AST.validate(new AST.Input(ident, node, value));
+    return new AST.Input(ident, node, value);
   }).pipe(fromResult<T, never>);
 }
 

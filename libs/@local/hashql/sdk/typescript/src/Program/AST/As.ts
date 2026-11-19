@@ -38,7 +38,7 @@ export class As
     return [this.type];
   }
 
-  // oxlint-disable-next-line eslint/class-methods-use-this -- `Node.Of` requires the method, and a call needs only its children's syntax
+  // oxlint-disable-next-line eslint/class-methods-use-this -- `Node.Of` requires the method, and an assertion needs only its type's and value's syntax
   toExpr(
     [type]: readonly [JExpr.Type.Type],
     [value]: readonly [JExpr.Expression],
