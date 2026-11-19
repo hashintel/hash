@@ -566,6 +566,7 @@ export const QueryField = (props: ComponentProps<typeof InputField>) => {
         errors={limitErrors.length > 0 ? limitErrors : undefined}
       >
         <NumberInput
+          width="xs"
           value={form.limit ?? null}
           min={1}
           max={maxEntitiesPerStep}

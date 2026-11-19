@@ -360,9 +360,14 @@ export const InputField = ({
           )
         }
       >
+        {/*
+         * Widths are Salt's presets. A number takes the narrowest, as steps take counts of a few digits. Text keeps the
+         * full width, as the menu it replaces had: the panel's column is narrower than Salt's other presets anyway.
+         */}
         {typedInKind === "Number" ? (
           <NumberInput
             {...fieldProps}
+            width="xs"
             clearable={clearable}
             value={typedConstant ? Number(typedConstant.text) : null}
             min={-Number.MAX_VALUE}
