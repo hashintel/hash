@@ -1,7 +1,8 @@
 /**
  * Brunch's HASH agent on Pi Durable (`hash-agent-port.md` §1–§3): HASH's
  * prompt and skills, the Ledger, HASH's browser tools and Save, the read-back
- * pruning hook, the basis query and the `net_view` section. The only agent
+ * pruning hook, the basis query and the `net_view` and `version_load`
+ * sections. The only agent
  * the server builds (HA-1).
  *
  * A server installs `extensions(host)` in each Harness's registry, over that
@@ -43,6 +44,7 @@ import { netViewSectionExtension } from "./hash-agent/net-view-section";
 import { hashPromptExtension, hashSystemPrompt } from "./hash-agent/prompt";
 import { readBackPruningExtension } from "./hash-agent/read-back-pruning";
 import { hashSkillsExtension } from "./hash-agent/skills";
+import { versionLoadSectionExtension } from "./hash-agent/version-load-section";
 import { createHostBinding, type HostBinding } from "./host-binding";
 
 import type { Context } from "@earendil-works/chord/context";
@@ -83,11 +85,16 @@ export type HashAgent = {
 /**
  * The extensions a conversation selects, over its Harness's host binding, in
  * order: the prompt and the skill catalogue lead the sections, `net_view`
- * follows them. Each model request is the stored effective context plus
- * these sections: no hook rewrites a request or refuses a call. The pruning
- * hook writes the read-back pruning after each tool round; the `net_view`
- * section restores the model's last view in the baseline Pi writes after a
- * compaction.
+ * follows them and `version_load` comes last. Each model request is the
+ * stored effective context plus these sections: no hook rewrites a request or
+ * refuses a call. The pruning hook writes the read-back pruning after each
+ * tool round; the `net_view` section restores the model's last view in the
+ * baseline Pi writes after a compaction; `version_load` states the user's
+ * last version load.
+ *
+ * `version_load` stays last: it first appears between baselines, and Pi
+ * appends a section new since the last baseline as a patch only when it is
+ * last in order, otherwise removing and re-adding every section.
  */
 const selectedExtensions = (host: HostBinding): readonly Extension[] => [
   hashPromptExtension,
@@ -98,6 +105,7 @@ const selectedExtensions = (host: HostBinding): readonly Extension[] => [
   readBackPruningExtension(host),
   queryBasisExtension(host, { name: brunchTools.ledgerQueryBasis }),
   netViewSectionExtension(host),
+  versionLoadSectionExtension,
 ];
 
 /** The bound document's ID, from the conversation's committed binding; none while unbound. */

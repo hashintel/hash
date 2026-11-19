@@ -43,6 +43,7 @@ import { netViewSectionKey } from "../net-state/visible-net-view";
 import { createHashAgent } from "./hash-agent";
 import { hashSystemSectionKey } from "./hash-agent/prompt";
 import { hashSkillsSectionKey } from "./hash-agent/skills";
+import { versionLoadSectionKey } from "./hash-agent/version-load-section";
 import { createHostBinding } from "./host-binding";
 
 import type { Message } from "@earendil-works/pi-ai";
@@ -83,7 +84,12 @@ describe("what the HASH agent selects and installs", () => {
       agent.extensions.flatMap(({ sections = [] }) =>
         sections.map(({ key }) => key),
       ),
-    ).toEqual([hashSystemSectionKey, hashSkillsSectionKey, netViewSectionKey]);
+    ).toEqual([
+      hashSystemSectionKey,
+      hashSkillsSectionKey,
+      netViewSectionKey,
+      versionLoadSectionKey,
+    ]);
     expect(
       agent.extensions.flatMap(({ hooks = [] }) =>
         hooks.map(({ task, handlers }) => [task, Object.keys(handlers)]),

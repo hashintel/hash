@@ -21,12 +21,17 @@ import {
   MemoryStorage,
   ProviderDoc,
   type Storage,
+  type SubmissionId,
 } from "@earendil-works/pi-durable";
 import { Pool } from "pg";
 import { afterAll, describe, expect, test } from "vitest";
 
 import { canonicalContent } from "@hashintel/brunch-agent";
 
+import {
+  type RecordedVersionLoad,
+  VersionLoadsDoc,
+} from "../../../src/agent/hash-agent/version-load-section";
 import {
   BrowserBindingDoc,
   BrowserCallsDoc,
@@ -36,7 +41,6 @@ import {
 } from "../../../src/browser-call/browser-call";
 import { LedgerDoc } from "../../../src/ledger-doc/ledger-doc";
 import { createRequestSlots } from "../../../src/server/durable-agents-server/request-slots";
-import { VersionLoadDoc } from "../../../src/server/durable-agents-server/version-load";
 import { postgresConfigFromEnvironment } from "../../../src/storage/postgres/postgres-config";
 import { openPostgresStorage } from "../../../src/storage/postgres/postgres-storage";
 import { loadModelStep } from "../../load/probe/workload";
@@ -61,6 +65,13 @@ const OwnerDoc = defineDoc<{ userId?: string }>({
   fork: "initial",
   initial: () => ({}),
   checkpointWhen: () => false,
+});
+
+/** A load recorded as admission records it, keyed by a stand-in submission. */
+const recordedLoad = (id: string, submission: number): RecordedVersionLoad => ({
+  id,
+  decisionTime: "2026-11-12T09:30:00.000Z",
+  submission: submission as SubmissionId,
 });
 
 const allEntries = async (conversation: Conversation) => {
@@ -169,8 +180,8 @@ describe.each(cases)("fork to a new owner on $name", (storageCase) => {
           role: "user",
           parts: [{ type: "text", text: "" }],
         });
-        const versionLoad = await tx.doc(VersionLoadDoc, source.id);
-        versionLoad.announced = "version-1";
+        const versionLoads = await tx.doc(VersionLoadsDoc, source.id);
+        versionLoads.loads.push(recordedLoad("version-1", 1));
       }, context);
 
       // Turn 1 reads the net first: the call waits for the browser.
@@ -195,8 +206,8 @@ describe.each(cases)("fork to a new owner on $name", (storageCase) => {
           role: "user",
           parts: [{ type: "text", text: "" }],
         });
-        const versionLoad = await tx.doc(VersionLoadDoc, source.id);
-        versionLoad.announced = "version-2";
+        const versionLoads = await tx.doc(VersionLoadsDoc, source.id);
+        versionLoads.loads.push(recordedLoad("version-2", 2));
       }, context);
 
       const sourceBefore = await allEntries(source);
@@ -263,10 +274,12 @@ describe.each(cases)("fork to a new owner on $name", (storageCase) => {
         "ledger-after-fork-point",
       ]);
       expect(await ledger(fork.id)).toEqual(["ledger-before-fork"]);
-      // VersionLoadDoc: latest, `current`: the fork takes the source's newest, announced after its fork point.
+      // VersionLoadsDoc: rewindable, `asOf` the fork entry: the load after the fork point is not the fork's.
       expect(
-        (await harness.snapshot(VersionLoadDoc, fork.id, context))?.announced,
-      ).toBe("version-2");
+        (await harness.snapshot(VersionLoadsDoc, fork.id, context))?.loads.map(
+          ({ id }) => id,
+        ),
+      ).toEqual(["version-1"]);
       // BrowserBindingDoc: latest, `current`: the fork is bound to the source's document.
       expect(
         (await harness.snapshot(BrowserBindingDoc, fork.id, context))?.binding,

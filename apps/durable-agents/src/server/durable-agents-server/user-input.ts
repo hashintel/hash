@@ -40,7 +40,7 @@ export type LedgerCommentsData = {
   readonly comments: LedgerComment[];
 };
 
-/** An input `POST /chat` admits, before the version-load note. */
+/** An input `POST /chat` admits. */
 export type ChatInput = {
   readonly content: string;
   readonly entry:
