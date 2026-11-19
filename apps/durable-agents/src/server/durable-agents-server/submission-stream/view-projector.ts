@@ -23,6 +23,7 @@ import {
   crashLoopErrorText,
   stoppedByCrashLoop,
 } from "../shared/crash-loop-entry";
+import { isInputEntry } from "../shared/input-entry";
 
 import type {
   AssistantMessage,
@@ -411,10 +412,14 @@ export const projectResponseEntries = (
   };
 };
 
-/** Committed entries a view's window skipped: those after `after`, through `through`. */
+/**
+ * Committed entries a view's window skipped: those after `after`, through `through`, or through the first input
+ * after `after` when `endsAtInput`, as a stopped submission's response ends there.
+ */
 export type UnseenEntries = {
   readonly after: EntryId;
   readonly through: EntryId;
+  readonly endsAtInput: boolean;
 };
 
 export const createViewProjector = (
@@ -444,7 +449,13 @@ export const createViewProjector = (
     if (finished || input === undefined || view.before === undefined)
       return undefined;
     const after = seenThrough ?? input;
-    return view.before > after ? { after, through: view.before } : undefined;
+    return view.before > after
+      ? {
+          after,
+          through: view.before,
+          endsAtInput: submission.status === "unanswered",
+        }
+      : undefined;
   };
 
   /**
@@ -504,6 +515,8 @@ export const createViewProjector = (
       ...view.entries.filter(({ id }) => id > input),
     ];
     for (const entry of entries) {
+      // A stopped submission's response ends at the next input; what follows is a later run's.
+      if (submission.status === "unanswered" && isInputEntry(entry)) break;
       writer.projectEntry(entry, responseId);
       if (submission.status === "done" && entry.id === submission.answer) break;
     }

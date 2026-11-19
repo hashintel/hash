@@ -389,6 +389,62 @@ test("a stop during running tool calls streams the error results history shows",
   expect(toolOutcomes(await reduce(chunks))).toEqual(shown);
 });
 
+test.each([
+  ["within one window", 2],
+  // Each round is two entries, so more than 100 follow the stopped turn.
+  ["past a window, read page by page", 60],
+])(
+  "a stopped turn resent after a later turn %s streams only its own entries and ends with its abort",
+  async (_, rounds) => {
+    const reached = Promise.withResolvers<void>();
+    const pings = Array.from(
+      { length: rounds },
+      (__, round) => `ping-${round}`,
+    );
+    const { server, transport } = openChat({
+      responses: [
+        toolRound("hold", "hold"),
+        ...pings.map((id) => toolRound("ping", id)),
+        fauxAssistantMessage("Later."),
+      ],
+      extensions: [
+        defineExtension({
+          name: "test.tools",
+          // Never released: the stop ends it.
+          tools: [pingTool, holdTool(reached, new Promise(() => {}))],
+        }),
+      ],
+    });
+    const message = userMessage("user-stopped");
+    const first = drain(await send(transport, message), "the stopped stream");
+    await within("the run to reach its hold", reached.promise);
+    const stopped = await server.app.request(`${origin}/chat/${chatId}/abort`, {
+      method: "POST",
+    });
+    expect(stopped.status).toBe(204);
+    const followed = await first;
+
+    const later = await drain(
+      await send(transport, userMessage("user-later")),
+      "the later stream",
+    );
+    expect(toolInputIds(later)).toEqual(pings);
+    expect(textOf(later)).toBe("Later.");
+
+    const resent = await drain(
+      await send(transport, message),
+      "the resent stream",
+    );
+    expect(toolInputIds(resent)).toEqual(["hold"]);
+    expect(textOf(resent)).toBe("");
+    expect(resent).toEqual(followed);
+    expect(resent.at(-1)).toEqual({
+      type: "abort",
+      reason: "The chat turn aborted.",
+    });
+  },
+);
+
 test("a follow-up withdrawn while queued ends its stream, though it never reached the run", async () => {
   const reached = Promise.withResolvers<void>();
   const { server, transport } = openChat({
