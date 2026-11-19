@@ -1,8 +1,9 @@
 /**
  * Abandoned turns: a conversation's running turn that no client stream (a
  * `POST /chat` answer or a reconnect) has followed for `timeoutMs` is
- * aborted, unless a browser holds one of its calls. A held call is checked
- * again until its browser answers or it expires. Every conversation this process opens
+ * aborted, unless one of its calls is held (`isHeld`): a browser holds it
+ * before it expires, or its outcome is committed and not yet delivered. A
+ * held call is checked again until it is not. Every conversation this process opens
  * starts unwatched; the clock restarts whenever its last stream ends.
  *
  * Only a conversation this process still owns is checked: another owner
@@ -13,6 +14,7 @@ import { LiveDoc } from "@earendil-works/pi-durable";
 
 import {
   BrowserCallsDoc,
+  isHeld,
   withBrowserClaimDecision,
 } from "../../browser-call/browser-call";
 
@@ -31,7 +33,7 @@ export type AbandonedTurnsOptions = {
 
 /**
  * What an unwatched conversation's check finds: nothing to do, a turn
- * aborted, or a claimed call to check again.
+ * aborted, or a held call to check again.
  */
 type Check =
   | { readonly kind: "idle" }
@@ -44,13 +46,15 @@ const check = async (
   context: Context,
   stillDue: () => boolean,
   signal: AbortSignal,
+  now: () => number,
 ): Promise<Check> => {
   const live = await harness.snapshot(LiveDoc, root.id, context);
   if (live?.run === undefined || !stillDue()) return { kind: "idle" };
   const calls =
     (await harness.snapshot(BrowserCallsDoc, root.id, context))?.calls ?? {};
   if (!stillDue()) return { kind: "idle" };
-  if (Object.values(calls).some(({ status }) => status === "claimed"))
+  const at = now();
+  if (Object.values(calls).some((record) => isHeld(record, at)))
     return { kind: "held" };
   await root.abort(withAbortSignal(signal, context));
   return { kind: "aborted" };
@@ -116,7 +120,7 @@ export const createAbandonedTurns = (options: AbandonedTurnsOptions) => {
       if (!stillDue() || conversation === undefined) return;
       const found = await withBrowserClaimDecision(conversation.harness, () =>
         stillDue()
-          ? check(conversation, options.context, stillDue, token.signal)
+          ? check(conversation, options.context, stillDue, token.signal, now)
           : Promise.resolve({ kind: "idle" as const }),
       );
       if (found.kind === "held" && stillDue())

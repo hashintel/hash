@@ -110,9 +110,11 @@ export type BrowserCallStatus =
   | "failed"
   /** The task delivered the result to the tool. */
   | "settled"
+  /** The task delivered the failure to the tool. */
+  | "failure-settled"
   /** No result before `expiresAt`. */
   | "expired"
-  /** The call was aborted, for example by a conversation abort. */
+  /** The call was aborted, or its wait ended before `expiresAt` without an outcome. */
   | "stopped";
 
 export type BrowserCallRecord = {
@@ -243,6 +245,7 @@ const Doorbell = defineTask<{ until: number }, DoorbellState, "expired">({
 export type BrowserCallOutcome =
   | { status: "settled"; output: JsonValue; metadata: JsonValue }
   | { status: "expired"; claimed: boolean }
+  | { status: "stopped"; claimed: boolean }
   | { status: "failed"; disposition: BrowserCallFailureDisposition };
 
 type BrowserCallState = { phase: "arm" } | { phase: "collect" };
@@ -251,11 +254,14 @@ type BrowserCallState = { phase: "arm" } | { phase: "collect" };
 const mayHaveStarted = (record: BrowserCallRecord) =>
   record.started ?? record.claimed;
 
-/** The model-facing error for a call that expired without a result, as Brunch words it. */
-export const unfinishedError = (record: BrowserCallRecord) =>
+/** The model-facing error for a call that expired or stopped without a result, as Brunch words it. */
+export const unfinishedError = (
+  record: BrowserCallRecord,
+  cause: "expired" | "stopped",
+) =>
   mayHaveStarted(record)
     ? browserCallEndedWithoutResult(
-        "expired",
+        cause,
         !browserToolFacts(record.toolName).effectUnknownOnFailure,
       )
     : browserCallUnstartedRefusal;
@@ -273,9 +279,33 @@ const failureError = (
   );
 };
 
-/** Whether an outcome is committed but not yet collected (a failed call retains its status). */
-const answered = (record: BrowserCallRecord) =>
+// The lifecycle's categories. Every reader of a call's status asks these,
+// so a new status is placed in each category here, once.
+
+/** No outcome yet: issued, or held by a browser. */
+export const isAwaitingBrowser = (record: BrowserCallRecord) =>
+  record.status === "pending" || record.status === "claimed";
+
+/** The browser's outcome is committed and the task has not delivered it yet. */
+export const isAnsweredUncollected = (record: BrowserCallRecord) =>
   record.status === "finished" || record.status === "failed";
+
+/** The task delivered the browser's outcome, a result or a failure, to the tool. */
+export const isDelivered = (record: BrowserCallRecord) =>
+  record.status === "settled" || record.status === "failure-settled";
+
+/** Whether a browser may still claim, start, renew or answer the call at `now`. */
+export const isAdmittable = (record: BrowserCallRecord, now: number) =>
+  isAwaitingBrowser(record) && now < record.expiresAt;
+
+/**
+ * Whether an outcome may still reach the call's turn, so aborting the turn
+ * would discard it: a browser holds the call before it expires, or its
+ * outcome is committed and not yet delivered.
+ */
+export const isHeld = (record: BrowserCallRecord, now: number) =>
+  (record.status === "claimed" && now < record.expiresAt) ||
+  isAnsweredUncollected(record);
 
 const BrowserCall = defineTask<
   { conversationId: ConversationId; toolCallId: string },
@@ -293,7 +323,7 @@ const BrowserCall = defineTask<
         ).calls[task.input.toolCallId];
         if (record === undefined) throw new Error("Browser call not issued.");
         // Answered before this phase ran: nothing to wait for.
-        if (answered(record))
+        if (isAnsweredUncollected(record))
           return { status: "running", checkpoint: { phase: "collect" } };
         const doorbell = await tx.createTask(
           Doorbell,
@@ -329,7 +359,8 @@ const BrowserCall = defineTask<
             },
           };
         }
-        if (record.status === "failed")
+        if (record.status === "failed") {
+          record.status = "failure-settled";
           return {
             status: "terminal",
             outcome: {
@@ -340,13 +371,16 @@ const BrowserCall = defineTask<
               },
             },
           };
-        record.status = "expired";
+        }
+        // No outcome: the doorbell expired, or ended early without a ring.
+        const cause = runtime.now() < record.expiresAt ? "stopped" : "expired";
+        record.status = cause;
         record.capability = null;
         return {
           status: "terminal",
           outcome: {
             status: "completed",
-            result: { status: "expired", claimed: record.claimed },
+            result: { status: cause, claimed: record.claimed },
           },
         };
       }, context),
@@ -355,11 +389,7 @@ const BrowserCall = defineTask<
     runtime.commit(async (tx) => {
       const record = (await tx.doc(BrowserCallsDoc, task.input.conversationId))
         .calls[task.input.toolCallId];
-      if (
-        record !== undefined &&
-        !answered(record) &&
-        record.status !== "settled"
-      ) {
+      if (record !== undefined && isAwaitingBrowser(record)) {
         record.status = "stopped";
         record.capability = null;
       }
@@ -609,13 +639,13 @@ export const defineWaitingBrowserTool = <
           ? mayHaveRunError(text)
           : errorResult(text);
       }
-      if (result.status === "expired") {
+      if (result.status === "expired" || result.status === "stopped") {
         const record = (await api.snapshot(
           BrowserCallsDoc,
           conversationId,
           context,
         ))!.calls[callId]!;
-        const text = unfinishedError(record);
+        const text = unfinishedError(record, result.status);
         return mayHaveStarted(record)
           ? mayHaveRunError(text)
           : errorResult(text);
@@ -696,8 +726,9 @@ const claimOf = (record: BrowserCallRecord, capability: string) => ({
     : { expectedRevision: record.expectedRevision }),
 });
 
-// The sweep cannot put its claim read in Pi's abort transaction. Keep the
-// claim commit and that check/abort decision in order on this fenced Harness.
+// The sweep cannot put its read of the calls in Pi's abort transaction. Keep
+// claim and outcome commits and that check/abort decision in order on this
+// fenced Harness.
 const claimDecisions = new WeakMap<Harness, Promise<unknown>>();
 export const withBrowserClaimDecision = <Result>(
   harness: Harness,
@@ -731,7 +762,7 @@ export const claimBrowserCall = (
       const record = (await tx.doc(BrowserCallsDoc, conversationId)).calls[
         toolCallId
       ];
-      if (record?.status !== "pending" || now() >= record.expiresAt)
+      if (record?.status !== "pending" || !isAdmittable(record, now()))
         return undefined;
       record.status = "claimed";
       record.claimed = true;
@@ -787,11 +818,7 @@ export const claimBrowserCallAs = (
       if (record.binding === undefined || record.binding === null)
         return { status: "wrong-binding" };
       if (record.binding !== binding) return { status: "wrong-binding" };
-      if (
-        now() >= record.expiresAt ||
-        (record.status !== "pending" && record.status !== "claimed")
-      )
-        return { status: "ended" };
+      if (!isAdmittable(record, now())) return { status: "ended" };
       if (record.status === "claimed") {
         // A single-shot claim (`started` absent) has no start step: it counts as started.
         if (record.started !== false) return { status: "started" };
@@ -841,7 +868,8 @@ export const startBrowserCall = (
     const record = (await tx.doc(BrowserCallsDoc, conversationId)).calls[
       toolCallId
     ];
-    if (!heldCall(record, proof) || now() >= record.expiresAt) return "refused";
+    if (!heldCall(record, proof) || !isAdmittable(record, now()))
+      return "refused";
     record.started = true;
     return "started";
   }, context);
@@ -861,7 +889,7 @@ export const renewBrowserCall = async (
   const record = (
     await harness.snapshot(BrowserCallsDoc, conversationId, context)
   )?.calls[toolCallId];
-  return heldCall(record, proof) && now() < record.expiresAt;
+  return heldCall(record, proof) && isAdmittable(record, now());
 };
 
 /** A browser's result for a call it claimed, as Brunch's panel posts it. */
@@ -920,7 +948,7 @@ export const recoverBrowserCallWakes = async (
     {};
   await Promise.all(
     Object.values(calls).flatMap((record) =>
-      answered(record) && record.doorbell !== null
+      isAnsweredUncollected(record) && record.doorbell !== null
         ? [ring(harness, record.doorbell as TaskId, context)]
         : [],
     ),
@@ -970,21 +998,22 @@ export const finishBrowserCall = async (
   context: Context,
   now = Date.now,
 ): Promise<"settled" | "not-issued"> => {
-  const doorbell = await harness.commit(async (tx) => {
-    const record = (await tx.doc(BrowserCallsDoc, result.conversationId)).calls[
-      result.toolCallId
-    ];
-    if (!carriesClaim(record, result)) return undefined;
-    if (record.status === "settled") return null;
-    if (record.status === "claimed" && now() < record.expiresAt) {
-      record.status = "finished";
-      record.output = (result.output ?? null) as JsonValue;
-      record.metadata = (result.metadata ?? null) as JsonValue;
-      const owner = await ownerAtOutcome(tx, record);
-      if (owner !== undefined) record.ownerAtOutcome = owner;
-    }
-    return record.status === "finished" ? record.doorbell : undefined;
-  }, context);
+  const doorbell = await withBrowserClaimDecision(harness, () =>
+    harness.commit(async (tx) => {
+      const record = (await tx.doc(BrowserCallsDoc, result.conversationId))
+        .calls[result.toolCallId];
+      if (!carriesClaim(record, result)) return undefined;
+      if (record.status === "settled") return null;
+      if (record.status === "claimed" && isAdmittable(record, now())) {
+        record.status = "finished";
+        record.output = (result.output ?? null) as JsonValue;
+        record.metadata = (result.metadata ?? null) as JsonValue;
+        const owner = await ownerAtOutcome(tx, record);
+        if (owner !== undefined) record.ownerAtOutcome = owner;
+      }
+      return record.status === "finished" ? record.doorbell : undefined;
+    }, context),
+  );
   if (doorbell === undefined) return "not-issued";
   await ringAfterCommit(harness, doorbell, context);
   return "settled";
@@ -1009,21 +1038,24 @@ export const failBrowserCall = async (
   context: Context,
   now = Date.now,
 ): Promise<"failed" | "not-issued"> => {
-  const doorbell = await harness.commit(async (tx) => {
-    const record = (await tx.doc(BrowserCallsDoc, failure.conversationId))
-      .calls[failure.toolCallId];
-    if (!carriesClaim(record, failure)) return undefined;
-    if (record.status === "claimed" && now() < record.expiresAt) {
-      record.status = "failed";
-      record.failure =
-        record.started === true && failure.disposition !== "failed"
-          ? "failed"
-          : failure.disposition;
-      const owner = await ownerAtOutcome(tx, record);
-      if (owner !== undefined) record.ownerAtOutcome = owner;
-    }
-    return record.status === "failed" ? record.doorbell : undefined;
-  }, context);
+  const doorbell = await withBrowserClaimDecision(harness, () =>
+    harness.commit(async (tx) => {
+      const record = (await tx.doc(BrowserCallsDoc, failure.conversationId))
+        .calls[failure.toolCallId];
+      if (!carriesClaim(record, failure)) return undefined;
+      if (record.status === "failure-settled") return null;
+      if (record.status === "claimed" && isAdmittable(record, now())) {
+        record.status = "failed";
+        record.failure =
+          record.started === true && failure.disposition !== "failed"
+            ? "failed"
+            : failure.disposition;
+        const owner = await ownerAtOutcome(tx, record);
+        if (owner !== undefined) record.ownerAtOutcome = owner;
+      }
+      return record.status === "failed" ? record.doorbell : undefined;
+    }, context),
+  );
   if (doorbell === undefined) return "not-issued";
   await ringAfterCommit(harness, doorbell, context);
   return "failed";

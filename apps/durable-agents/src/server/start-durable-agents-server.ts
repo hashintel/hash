@@ -178,6 +178,7 @@ export const startDurableAgentsServer = async (
     createBrowserCallRouter({
       resolveHarness: async (conversationId) =>
         (await server.conversations.acquire(conversationId))?.harness,
+      now: server.now,
     }),
   );
   /**

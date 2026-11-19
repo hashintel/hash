@@ -208,8 +208,10 @@ export const createDurableAgentsServer = (
   const context = options.context ?? BACKGROUND_CONTEXT;
   const limits = { ...defaultServerLimits, ...options.limits };
   const requestSlots = createRequestSlots(limits.maxConcurrentRequests);
+  const now = options.now ?? Date.now;
   const turns = createAbandonedTurns({
     timeoutMs: limits.abandonedTurnMs,
+    now,
     // Only called once a conversation is open, after the registry exists.
     ifOwned: (conversationId) => conversations.ifOwned(conversationId),
     context,
@@ -397,6 +399,8 @@ export const createDurableAgentsServer = (
   return {
     app,
     conversations,
+    /** The Harness clock, for the browser-call routes mounted beside the app. */
+    now,
     requestSlots: { state: requestSlots.state },
     close: async () => {
       turns.close();

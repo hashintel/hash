@@ -17,6 +17,7 @@ import {
   BrowserCallsDoc,
   callTtlMs,
   carriesClaim,
+  isAwaitingBrowser,
   setNetTitleDefinition,
   unfinishedError,
 } from "./browser-call";
@@ -93,10 +94,7 @@ const BrowserCallExpiry = defineTask<
         const record = (
           await tx.doc(BrowserCallsDoc, task.input.conversationId)
         ).calls[task.input.toolCallId];
-        if (
-          record === undefined ||
-          (record.status !== "pending" && record.status !== "claimed")
-        )
+        if (record === undefined || !isAwaitingBrowser(record))
           return {
             status: "terminal",
             outcome: { status: "completed", result: "answered" },
@@ -106,7 +104,7 @@ const BrowserCallExpiry = defineTask<
           resultInput(
             record,
             "expired",
-            `Browser call ${record.toolCallId} (${record.toolName}): ${unfinishedError(record)}`,
+            `Browser call ${record.toolCallId} (${record.toolName}): ${unfinishedError(record, "expired")}`,
           ),
         );
         record.status = "expired";
