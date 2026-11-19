@@ -389,29 +389,40 @@ export const projectResponseEntries = (
   };
 };
 
+/** Committed entries a view's window skipped: those after `after`, through `through`. */
+export type UnseenEntries = {
+  readonly after: EntryId;
+  readonly through: EntryId;
+};
+
 export const createViewProjector = (
   options: ProjectionOptions,
   write: (chunk: UIMessageChunk) => void,
 ) => {
   let finished = false;
-  let anchorSeen = false;
+  /** The newest entry of the response projected or skipped so far; the window may drop anything up to it. */
+  let seenThrough: EntryId | undefined;
   const writer = createResponseWriter(options, write);
 
-  /** Where the submission's response starts in `view`, and its input entry; undefined when not placed yet. */
-  const responseStart = (
-    submission: SubmissionRecord,
-    view: ConversationView,
-  ): { readonly start: number; readonly input: EntryId } | undefined => {
-    if (submission.type !== "input" || submission.entry === undefined)
+  /** The submission's input entry; undefined when not placed yet. */
+  const inputOf = (submission: SubmissionRecord): EntryId | undefined =>
+    submission.type === "input" ? submission.entry : undefined;
+
+  /**
+   * The response's entries `view` does not hold and the projector has not
+   * seen: a window starts at the input only when few enough entries follow
+   * it, and later drops its oldest entries, so a fresh or folded view may
+   * start past entries of the response.
+   */
+  const unseen = ({
+    submission,
+    view,
+  }: ViewFrame): UnseenEntries | undefined => {
+    const input = inputOf(submission);
+    if (finished || input === undefined || view.before === undefined)
       return undefined;
-    const input = submission.entry;
-    const anchor = view.entries.findIndex(({ id }) => id === input);
-    if (anchor !== -1) {
-      anchorSeen = true;
-      return { start: anchor + 1, input };
-    }
-    // The window drops its oldest entries in one splice; once the anchor was seen, all that is left follows it.
-    return anchorSeen ? { start: 0, input } : undefined;
+    const after = seenThrough ?? input;
+    return view.before > after ? { after, through: view.before } : undefined;
   };
 
   /** A user's stop ends in `abort`; the crash-loop guard's, which the transcript records, and any failure in `error`. */
@@ -428,22 +439,33 @@ export const createViewProjector = (
     else write({ type: "abort", reason: "The chat turn aborted." });
   };
 
-  const accept = (frame: ViewFrame): void => {
+  /** Project `frame`, after `skipped`, the entries `unseen(frame)` named, read from the conversation. */
+  const accept = (
+    frame: ViewFrame,
+    skipped: readonly EntryRecord[] = [],
+  ): void => {
     if (finished) return;
     const { submission, view } = frame;
-    const response = responseStart(submission, view);
-    if (response === undefined) {
+    const input = inputOf(submission);
+    if (input === undefined) {
       // Withdrawn while queued: it never reached the transcript.
       if (submission.status === "unanswered")
         settleUnanswered(submission, view);
       return;
     }
-    const responseId = responseMessageId(response.input);
+    const responseId = responseMessageId(input);
 
-    for (const entry of view.entries.slice(response.start)) {
+    const after = seenThrough ?? input;
+    const entries = [
+      ...skipped.filter(({ id }) => id > after),
+      ...view.entries.filter(({ id }) => id > input),
+    ];
+    for (const entry of entries) {
       writer.projectEntry(entry, responseId);
       if (submission.status === "done" && entry.id === submission.answer) break;
     }
+    const newest = entries.at(-1)?.id;
+    if (newest !== undefined && newest > after) seenThrough = newest;
 
     const live = view.docs["pi.live"] as LiveState | undefined;
     const generation = live?.generation;
@@ -470,5 +492,5 @@ export const createViewProjector = (
     }
   };
 
-  return { accept, isFinished: () => finished };
+  return { unseen, accept, isFinished: () => finished };
 };
