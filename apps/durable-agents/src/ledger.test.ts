@@ -427,7 +427,7 @@ test.each([
     placed: [CompactionEntry.kind, "test.omit"],
   },
 ] as const)(
-  "a reply a context edit omitted does not end the turn (compaction: $compaction)",
+  "a reply a context edit omitted still ends the turn: the run's history keeps it (compaction: $compaction)",
   async ({ compaction, placed }) => {
     const compact = compaction !== "none";
     const run = await repairAfterDeliveredReply(
@@ -452,7 +452,7 @@ test.each([
       ),
     ).toEqual(placed);
     expect(replyInRequest(run.requests[2])).toBe(false);
-    expect(run.requests).toHaveLength(4);
+    expect(run.requests).toHaveLength(3);
   },
   15_000,
 );
@@ -466,6 +466,49 @@ test("an earlier exchange's reply is not this exchange's", async () => {
   try {
     expect((await turn("Hi.")).status).toBe("done");
     expect((await turn("We have a dryer.")).status).toBe("done");
+    expect(requests).toHaveLength(3);
+  } finally {
+    await harness.close(context);
+  }
+});
+
+test("a failed model attempt sent no reply, whatever text it streamed: the turn stays open", async () => {
+  const { models, model, requests } = recordingModel([
+    fauxAssistantMessage("Noted.", {
+      stopReason: "error",
+      errorMessage: "overloaded",
+    }),
+    response(undefined, commit("commit-1", recordable, true)),
+    response("Noted the dryer."),
+  ]);
+  const host = createHostBinding();
+  const extensions = extensionsOver(host);
+  const registry = createRegistry();
+  for (const extension of extensions) registry.install(extension);
+  const harness = await Harness.open(
+    new MemoryStorage(),
+    { models, registry, settings: { retry: { baseDelayMs: 1 } } },
+    context,
+  );
+  host.bind(harness);
+  try {
+    const root = await harness.root(context, { agent: { model, extensions } });
+    const submission = await root.submit(
+      { type: "input", content: "We have a dryer." },
+      context,
+    );
+    expect((await submission.wait(context)).status).toBe("done");
+    // The failed attempt is in the run's history, with its text.
+    expect(
+      (await allEntries(root)).some((entry) =>
+        entry.model?.some(
+          (message) =>
+            message.role === "assistant" &&
+            message.stopReason === "error" &&
+            textOf(message) === "Noted.",
+        ),
+      ),
+    ).toBe(true);
     expect(requests).toHaveLength(3);
   } finally {
     await harness.close(context);
