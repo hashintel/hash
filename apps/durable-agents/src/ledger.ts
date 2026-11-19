@@ -48,6 +48,7 @@ import {
 
 import type { HostBinding } from "./agent/host-binding";
 import type { Context } from "@earendil-works/chord/context";
+import type { StopReason } from "@earendil-works/pi-ai";
 import type { Schema } from "@earendil-works/pi-schema";
 
 export { foldLedger, LedgerDoc } from "./ledger-doc/ledger-doc";
@@ -69,7 +70,7 @@ export const hashLedgerAppendSchema = ledgerAppendSchemaWith({
 export const ledgerExtensionName = "brunch.ledger";
 
 /** The stop reasons of model attempts Pi leaves out of every context: no reply was sent. */
-const unsentStopReasons: ReadonlySet<string> = new Set([
+const unsentStopReasons: ReadonlySet<StopReason> = new Set([
   "aborted",
   "error",
   "deferred",
