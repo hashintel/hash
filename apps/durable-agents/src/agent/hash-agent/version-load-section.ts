@@ -3,9 +3,8 @@
  * loaded, and so which version saves build on.
  *
  * Admission records each new load in `VersionLoadsDoc`, keyed by the
- * submission that carried it (`version-load.ts` in the server). The section
- * renders the newest load whose submission is at or below the newest input of
- * the running run. Pi commits a follow-up's load at admission, while the
+ * submission that carried it. The section renders the newest load whose
+ * submission is at or below the newest input of the running run. Pi commits a follow-up's load at admission, while the
  * earlier run is still preparing requests; the bound keeps that load out of
  * the earlier run, so it first shows in the run its input starts.
  *
@@ -16,41 +15,23 @@
  * a load renders none.
  */
 import {
-  defineDoc,
   defineExtension,
   type Extension,
   LiveDoc,
   type PromptInput,
   section,
-  type SubmissionId,
 } from "@earendil-works/pi-durable";
 
+import { versionLoadSectionText } from "@hashintel/brunch-agent";
+
 import {
-  type VersionLoad,
-  versionLoadSectionText,
-} from "@hashintel/brunch-agent";
+  type RecordedVersionLoad,
+  VersionLoadsDoc,
+} from "../../shared/version-loads-doc";
 
 import type { Context } from "@earendil-works/chord/context";
 
 export const versionLoadSectionKey = "version_load";
-
-/** A load the user made, recorded with the submission whose input carried it. */
-export type RecordedVersionLoad = {
-  readonly id: VersionLoad["id"];
-  readonly decisionTime: VersionLoad["decisionTime"];
-  readonly submission: SubmissionId;
-};
-
-/** Each new load, in admission order, so in ascending submission order. */
-export const VersionLoadsDoc = defineDoc<{ loads: RecordedVersionLoad[] }>({
-  kind: "brunch.version-loads",
-  version: 1,
-  scope: "conversation",
-  history: "rewindable",
-  fork: "asOf",
-  initial: () => ({ loads: [] }),
-  checkpointWhen: () => false,
-});
 
 /** The newest load admitted with one of the running run's inputs, or before them. */
 const loadInContext = async (

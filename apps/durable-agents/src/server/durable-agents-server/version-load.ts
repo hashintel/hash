@@ -22,7 +22,7 @@ import {
   type Tx,
 } from "@earendil-works/pi-durable";
 
-import { VersionLoadsDoc } from "../../agent/hash-agent/version-load-section";
+import { VersionLoadsDoc } from "../../shared/version-loads-doc";
 
 import type { ChatInput } from "./user-input";
 

@@ -23,18 +23,16 @@ import {
 import { describe, expect, test } from "vitest";
 
 import {
-  petrinautContextualUserMessageBody,
   type VersionLoad,
   versionLoadSectionText,
 } from "@hashintel/brunch-agent";
 
 import { context, textOf } from "../../../test/platform/support";
-import { brunchUserInput } from "../../server/durable-agents-server/user-input";
-import { recordVersionLoad } from "../../server/durable-agents-server/version-load";
+import { brunchUserKind } from "../../shared/brunch-user-entry";
+import { VersionLoadsDoc } from "../../shared/version-loads-doc";
 import {
   versionLoadSectionExtension,
   versionLoadSectionKey,
-  VersionLoadsDoc,
 } from "./version-load-section";
 
 import type { Message } from "@earendil-works/pi-ai";
@@ -119,28 +117,29 @@ const open = async () => {
     agent: { model: model.model, extensions: [versionLoadSectionExtension] },
   });
 
-  /** Admit `words` in `conversation` as `POST /chat` does, with `load` if given, and wait for its answer; returns its request. */
+  /**
+   * Admit `words` in `conversation` and wait for its answer; returns its request. Like `POST /chat`, the admitting
+   * commit records `load`, if given and not the newest load recorded.
+   */
   const ask = async (
     conversation: Conversation,
     words: string,
     load?: VersionLoad,
   ) => {
-    const input = brunchUserInput(
-      load === undefined
-        ? words
-        : petrinautContextualUserMessageBody({
-            userText: words,
-            diagnosticsContext: "",
-            submissionContext: { versionLoad: load },
-          }),
-    );
     const id = await conversation.commit(async (tx) => {
       const submitted = await conversation.submit(tx, {
         type: "input",
-        content: input.content,
-        entry: input.entry,
+        content: words,
+        entry: {
+          kind: brunchUserKind,
+          data: { body: "ordinary", userText: words },
+        },
       });
-      await recordVersionLoad(tx, conversation.id, input, submitted);
+      if (load !== undefined) {
+        const { loads } = await tx.doc(VersionLoadsDoc, conversation.id);
+        if (loads.at(-1)?.id !== load.id)
+          loads.push({ ...load, submission: submitted });
+      }
       return submitted;
     }, context);
     const submission = await harness.submission(id, context);
