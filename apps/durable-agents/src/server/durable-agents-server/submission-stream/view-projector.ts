@@ -32,17 +32,39 @@ import type {
   ConversationView,
   EntryId,
   EntryRecord,
+  InboxState,
   LiveState,
+  SubmissionId,
   SubmissionRecord,
   ToolDiagnostic,
 } from "@earendil-works/pi-durable";
 import type { UIMessageChunk } from "ai";
 
-/** One view of the conversation and the followed submission's record read after it. */
+/**
+ * One view of the conversation and the followed submission's record as last
+ * read, which may be older or newer than the view: the view decides whether
+ * the submission still waits or runs, and the record what became of it.
+ */
 export type ViewFrame = {
   readonly submission: SubmissionRecord;
   readonly view: ConversationView;
 };
+
+/** Where `view` shows the submission: queued in the inbox, held by the run, or neither, as once settled. */
+const placeIn = (
+  view: ConversationView,
+  submission: SubmissionId,
+): "queued" | "running" | "settled" => {
+  const live = view.docs["pi.live"] as LiveState | undefined;
+  if (live?.run?.inputs.includes(submission) === true) return "running";
+  const inbox = view.docs["pi.inbox"] as InboxState | undefined;
+  if (inbox?.items.some(({ id }) => id === submission) === true)
+    return "queued";
+  return "settled";
+};
+
+const isSettled = (submission: SubmissionRecord) =>
+  submission.status === "done" || submission.status === "unanswered";
 
 export type ProjectionOptions = {
   /** Tools the browser runs: their input chunks omit `providerExecuted`, so `onToolCall` fires. */
@@ -425,32 +447,53 @@ export const createViewProjector = (
     return view.before > after ? { after, through: view.before } : undefined;
   };
 
+  /**
+   * Whether the record must be read again before `frame` can be projected:
+   * the view shows the submission placed while the record has no input entry,
+   * or settled while the record is not. Pi settles a run's inputs in the
+   * commit that removes them from `pi.live.run.inputs`, and a queued one in
+   * the commit that removes its inbox item, so a record read then is settled.
+   */
+  const isStale = ({ submission, view }: ViewFrame): boolean => {
+    if (finished || isSettled(submission)) return false;
+    const place = placeIn(view, submission.id);
+    return (
+      place === "settled" ||
+      (place === "running" && inputOf(submission) === undefined)
+    );
+  };
+
   /** A user's stop ends in `abort`; the crash-loop guard's, which the transcript records, and any failure in `error`. */
   const settleUnanswered = (
     submission: Extract<SubmissionRecord, { status: "unanswered" }>,
-    view: ConversationView,
+    entries: readonly EntryRecord[],
   ) => {
     writer.finishStep();
     finished = true;
     if (submission.reason !== "aborted")
       write({ type: "error", errorText: runErrorText(submission) });
-    else if (stoppedByCrashLoop(view.entries, submission.id))
+    else if (stoppedByCrashLoop(entries, submission.id))
       write({ type: "error", errorText: crashLoopErrorText });
     else write({ type: "abort", reason: "The chat turn aborted." });
   };
 
-  /** Project `frame`, after `skipped`, the entries `unseen(frame)` named, read from the conversation. */
+  /**
+   * Project `frame`, after `skipped`, the entries `unseen(frame)` named, read
+   * from the conversation. It ends only on a view that shows the submission
+   * settled, which holds everything the settling commit wrote.
+   */
   const accept = (
     frame: ViewFrame,
     skipped: readonly EntryRecord[] = [],
   ): void => {
     if (finished) return;
     const { submission, view } = frame;
+    const place = placeIn(view, submission.id);
     const input = inputOf(submission);
     if (input === undefined) {
       // Withdrawn while queued: it never reached the transcript.
-      if (submission.status === "unanswered")
-        settleUnanswered(submission, view);
+      if (place === "settled" && submission.status === "unanswered")
+        settleUnanswered(submission, view.entries);
       return;
     }
     const responseId = responseMessageId(input);
@@ -467,20 +510,20 @@ export const createViewProjector = (
     const newest = entries.at(-1)?.id;
     if (newest !== undefined && newest > after) seenThrough = newest;
 
-    const live = view.docs["pi.live"] as LiveState | undefined;
-    const generation = live?.generation;
-    const partial = generation?.message;
-    if (
-      generation !== undefined &&
-      partial !== undefined &&
-      live?.run?.inputs.includes(submission.id) === true
-    ) {
-      writer.projectPartial(
-        partial.content as AssistantMessage["content"],
-        generation.attempt,
-        responseId,
-      );
+    if (place === "running") {
+      const generation = (view.docs["pi.live"] as LiveState | undefined)
+        ?.generation;
+      const partial = generation?.message;
+      if (generation !== undefined && partial !== undefined) {
+        writer.projectPartial(
+          partial.content as AssistantMessage["content"],
+          generation.attempt,
+          responseId,
+        );
+      }
+      return;
     }
+    if (place !== "settled") return;
 
     if (submission.type === "input" && submission.status === "done") {
       if (!writer.isProcessed(submission.answer)) return;
@@ -488,9 +531,9 @@ export const createViewProjector = (
       finished = true;
       write({ type: "finish", finishReason: "stop" });
     } else if (submission.status === "unanswered") {
-      settleUnanswered(submission, view);
+      settleUnanswered(submission, [...skipped, ...view.entries]);
     }
   };
 
-  return { unseen, accept, isFinished: () => finished };
+  return { isStale, unseen, accept, isFinished: () => finished };
 };

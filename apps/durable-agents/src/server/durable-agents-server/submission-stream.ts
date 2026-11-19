@@ -169,11 +169,14 @@ export const followSubmission = async (
       const projector = createViewProjector(options, (chunk) => {
         if (!ended) controller.enqueue(chunk);
       });
+      let latest = record;
       const accept = async (view: ConversationView) => {
         if (isEnded()) return;
-        const status = await submission.status(context);
-        if (isEnded()) return;
-        const frame = { submission: status, view };
+        if (projector.isStale({ submission: latest, view })) {
+          latest = await submission.status(context);
+          if (isEnded()) return;
+        }
+        const frame = { submission: latest, view };
         const unseen = projector.unseen(frame);
         const skipped =
           unseen === undefined
