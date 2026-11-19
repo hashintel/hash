@@ -182,6 +182,11 @@ describe("getItemCount", () => {
     );
   });
 
+  it("keeps how far a step stopped part way got, unless none of its items finished", () => {
+    expect(count("skipped", { done: 1, notReached: 2 })).toBe("1 of 3");
+    expect(count("skipped", { notReached: 2 })).toBeNull();
+  });
+
   it("has no count for a step whose items all went well, waits on a person, or has none", () => {
     expect(count("done", { done: 20 })).toBeNull();
     expect(count("needsReview", { done: 3, needsReview: 1 })).toBeNull();
