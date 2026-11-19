@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import {
   Button,
@@ -46,6 +46,7 @@ import type {
   FlowDefinitionDiagnosticCode,
   FlowDefinitionDiagnosticWithStepId,
 } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
+import type { FocusEvent } from "react";
 
 /** Problems with a value whose source no longer exists. */
 const goneSourceCodes = new Set<FlowDefinitionDiagnosticCode>([
@@ -288,6 +289,8 @@ export const InputField = ({
   const [typing, setTyping] = useState(false);
   /* Whether a medium text has been given a line of its own. */
   const [expanded, setExpanded] = useState(false);
+  const textArea = useRef<HTMLTextAreaElement>(null);
+  const expandButton = useRef<HTMLButtonElement>(null);
 
   const label = getNameLabel(input.name);
   const target = getInputTarget({
@@ -328,7 +331,17 @@ export const InputField = ({
       readonly: readOnly,
       invalid: errors.length > 0,
       autoFocus: typing,
-      onBlur: () => setTyping(false),
+      /* Moving between a text and its Expand button doesn't leave the field. */
+      onBlur: ({ relatedTarget }: FocusEvent) => {
+        const staysInField =
+          relatedTarget !== null &&
+          (relatedTarget === textArea.current ||
+            relatedTarget === expandButton.current);
+
+        if (!staysInField) {
+          setTyping(false);
+        }
+      },
     };
     const clearable = !readOnly && {
       onClear: () => {
@@ -350,14 +363,20 @@ export const InputField = ({
           size === "medium" &&
           !readOnly && (
             <Button
+              ref={expandButton}
               variant="ghost"
               size="xs"
               iconName={expanded ? "collapse" : "expand"}
               aria-label={`${expanded ? "Collapse" : "Expand"} ${label}`}
               tooltip={expanded ? "Collapse" : "Expand"}
-              /* Keeps the text focused, as leaving an empty field puts the menu back before the click lands. */
+              /* A click leaves focus in the text, as Safari doesn't move it to a clicked button. */
               onMouseDown={(event) => event.preventDefault()}
-              onClick={() => setExpanded(!expanded)}
+              onBlur={fieldProps.onBlur}
+              /* The text is laid out anew, so it takes focus back once it is. */
+              onClick={() => {
+                setExpanded(!expanded);
+                setTyping(true);
+              }}
             />
           )
         }
@@ -388,6 +407,7 @@ export const InputField = ({
         ) : (
           <TextArea
             {...fieldProps}
+            inputRef={textArea}
             rows={ownLine ? ownLineRows : besideLabelRows}
             autoResize={ownLine}
             value={typedConstant?.text ?? ""}
