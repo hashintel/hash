@@ -21,7 +21,8 @@ export interface NominalBinding {
   readonly valueReference: Referential.ReferenceId<"value">;
 }
 
-/** Adds structural argument normalization without losing the nominal identity on relocation.
+/**
+ * Adds structural argument normalization without losing the nominal identity on relocation.
  *
  * @internal
  */
