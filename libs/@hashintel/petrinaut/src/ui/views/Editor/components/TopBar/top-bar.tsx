@@ -13,6 +13,7 @@ import {
   type EditorState,
 } from "../../../../../react/state/editor-context";
 import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
+import { useComposesOnly } from "../../../../../react/state/use-composes-only";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { MenuIcon, SidebarIcon } from "../../../../experimental-icons";
 import { PluginToolbarItems } from "../../../../plugins/plugin-outlets";
@@ -93,6 +94,7 @@ export const TopBar: React.FC<TopBarProps> = ({
     use(EditorContext);
   const undoRedo = use(UndoRedoContext);
   const { enableExperimentalIconPack } = use(UserSettingsContext);
+  const composesOnly = useComposesOnly();
 
   return (
     <div className={topBarStyle}>
@@ -151,12 +153,14 @@ export const TopBar: React.FC<TopBarProps> = ({
         )}
       </div>
 
-      {/* Center section - mode switcher */}
-      <ModeSelector
-        actualModeAvailable={actualModeAvailable}
-        mode={mode}
-        onChange={onModeChange}
-      />
+      {/* Center section - mode switcher. An editor that only composes has one mode. */}
+      {composesOnly ? null : (
+        <ModeSelector
+          actualModeAvailable={actualModeAvailable}
+          mode={mode}
+          onChange={onModeChange}
+        />
+      )}
 
       <div className={rightSectionStyle}>
         <RunningExperimentsPopover

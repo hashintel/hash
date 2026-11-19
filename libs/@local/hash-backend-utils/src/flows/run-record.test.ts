@@ -18,6 +18,7 @@ import { getFlowRunRecordStorageKey } from "../file-storage.js";
 import { parseHistoryItemPayload } from "../temporal/parse-history-item-payload.js";
 import { createRunningFlowRunHistoryCache } from "./run-events/running-flow-run-history-cache.js";
 import {
+  getEndedFlowRunRecordHeader,
   getFlowRunRecord,
   getFlowRunRecordFromHistory,
   getStoredFlowRunRecordKey,
@@ -424,6 +425,103 @@ describe("getStoredFlowRunRecordKey", () => {
         workflowId,
       }),
     ).resolves.toBe(key);
+  });
+});
+
+describe("getEndedFlowRunRecordHeader", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("has no header for a running run, without reading its history", async () => {
+    const { temporalClient, getWorkflowExecutionHistory } =
+      createTemporalClient(loadFixture("in-progress"));
+    const { storageProvider, readStoredRecord } = createStorageProvider();
+
+    await expect(
+      getEndedFlowRunRecordHeader({
+        temporalClient,
+        storageProvider,
+        workflowId,
+      }),
+    ).resolves.toBeNull();
+    expect(getWorkflowExecutionHistory).not.toHaveBeenCalled();
+    expect(readStoredRecord()).toBeUndefined();
+  });
+
+  it("gives the header of the record a run wrote as it ended, before its workflow closes", async () => {
+    const fixture = loadFixture("succeeds");
+    const { temporalClient, getWorkflowExecutionHistory } =
+      createTemporalClient({
+        ...fixture,
+        describe: { ...fixture.describe, status: "RUNNING", closeTime: null },
+      });
+    const storedRecord = getFlowRunRecordFromHistory(fixture, { workflowId });
+    const { storageProvider } = createStorageProvider(storedRecord);
+
+    await expect(
+      getEndedFlowRunRecordHeader({
+        temporalClient,
+        storageProvider,
+        workflowId,
+      }),
+    ).resolves.toStrictEqual(storedRecord.header);
+    expect(getWorkflowExecutionHistory).not.toHaveBeenCalled();
+  });
+
+  it("gives the header of a closed run's stored record without reading its history or downloading it", async () => {
+    const fixture = loadFixture("succeeds");
+    const { temporalClient, getWorkflowExecutionHistory } =
+      createTemporalClient(fixture);
+    const storedRecord = getFlowRunRecordFromHistory(fixture, { workflowId });
+    const { storageProvider, downloadDirect } =
+      createStorageProvider(storedRecord);
+
+    await expect(
+      getEndedFlowRunRecordHeader({
+        temporalClient,
+        storageProvider,
+        workflowId,
+      }),
+    ).resolves.toStrictEqual(storedRecord.header);
+    expect(getWorkflowExecutionHistory).not.toHaveBeenCalled();
+    expect(downloadDirect).not.toHaveBeenCalled();
+  });
+
+  it("stores the record of a closed run that has none, and gives its header", async () => {
+    const fixture = loadFixture("reset-base-run");
+    const { temporalClient } = createTemporalClient(fixture);
+    const { storageProvider, readStoredRecord } = createStorageProvider();
+
+    const header = await getEndedFlowRunRecordHeader({
+      temporalClient,
+      storageProvider,
+      workflowId,
+    });
+
+    expect(header?.status).toBe(FlowRunStatus.Terminated);
+    expect(readStoredRecord()).toStrictEqual(
+      getFlowRunRecordFromHistory(fixture, { workflowId }),
+    );
+  });
+
+  it("gives the header of a closed run whose record can't be stored, and warns", async () => {
+    const fixture = loadFixture("succeeds");
+    const { temporalClient } = createTemporalClient(fixture);
+    const { storageProvider } = createStorageProvider();
+    storageProvider.uploadDirect = () => Promise.reject(new Error("No access"));
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    await expect(
+      getEndedFlowRunRecordHeader({
+        temporalClient,
+        storageProvider,
+        workflowId,
+      }),
+    ).resolves.toStrictEqual(
+      getFlowRunRecordFromHistory(fixture, { workflowId }).header,
+    );
+    expect(warn).toHaveBeenCalledOnce();
   });
 });
 

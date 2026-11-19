@@ -1,0 +1,201 @@
+/**
+ * @layerRoot core.composition
+ * @role Place fusion: how a net's places and its component instances' ports become one place, the checks on a fusion, and how flattening merges them
+ *
+ * A fusion names places the way an arc endpoint does, so the endpoint helpers
+ * apply to its members. This module resolves members to the places they name
+ * and finds the fusion a member belongs to; `check-fusions.ts` verifies a
+ * fusion's members agree, and `apply-fusions.ts` merges them once the net is
+ * flattened for simulation.
+ */
+
+import { arcEndpointsEqual, getArcEndpointKey } from "../arc-endpoints";
+import { componentOf, resolveComponent } from "./interfaces";
+
+import type {
+  ColorElementType,
+  ComponentInstance,
+  Fusion,
+  FusionMember,
+  ID,
+  Place,
+  PlaceArcEndpoint,
+  SDCPN,
+  Subnet,
+} from "../types/sdcpn";
+import type { ResolvedLibraries } from "./libraries";
+
+/** The net a fusion belongs to: the document's root or one of its subnets. */
+export type FusionNet = Pick<
+  SDCPN,
+  "places" | "componentInstances" | "fusions"
+>;
+
+/** Whether `fusion` lists `member`. */
+export const fusionHolds = (
+  fusion: Pick<Fusion, "members">,
+  member: FusionMember,
+): boolean => fusion.members.some((held) => arcEndpointsEqual(held, member));
+
+/** The fusion of `net` that holds `member`, if any. */
+export const findFusionWithMember = (
+  net: Pick<FusionNet, "fusions">,
+  member: FusionMember,
+): Fusion | undefined =>
+  (net.fusions ?? []).find((fusion) => fusionHolds(fusion, member));
+
+/** `Fusion N`, with the lowest number no fusion in `fusions` goes by. */
+export const nextFusionName = (
+  fusions: readonly Pick<Fusion, "name">[],
+): string => {
+  const taken = new Set(fusions.map(({ name }) => name));
+  for (let index = 1; ; index++) {
+    const name = `Fusion ${index}`;
+    if (!taken.has(name)) {
+      return name;
+    }
+  }
+};
+
+/** The member that is a place of the fusion's own net, if any. */
+export const fusionAnchor = (
+  fusion: Pick<Fusion, "members">,
+): PlaceArcEndpoint | undefined =>
+  fusion.members.find((member) => member.kind === "place");
+
+/**
+ * The member that stands for the fused place: the anchor, else the first
+ * member. The canvas links the other members to it.
+ */
+export const fusionHub = (
+  fusion: Pick<Fusion, "members">,
+): FusionMember | undefined => fusionAnchor(fusion) ?? fusion.members[0];
+
+/**
+ * What is wrong with a member list on its own: the positions of the members
+ * listed a second time, and whether it holds more than one place of the net.
+ */
+export const fusionMemberIssues = (
+  members: readonly FusionMember[],
+): { duplicates: number[]; multipleAnchors: boolean } => {
+  const seen = new Set<string>();
+  const duplicates: number[] = [];
+  const anchors = new Set<ID>();
+  for (const [index, member] of members.entries()) {
+    const key = getArcEndpointKey(member);
+    if (seen.has(key)) {
+      duplicates.push(index);
+    }
+    seen.add(key);
+    if (member.kind === "place") {
+      anchors.add(member.placeId);
+    }
+  }
+  return { duplicates, multipleAnchors: anchors.size > 1 };
+};
+
+/** The part of a token type that says what its tokens are. */
+type TokenShape = {
+  elements: readonly { name: string; type: ColorElementType }[];
+};
+
+/**
+ * Whether two token types describe the same tokens: the same elements, in
+ * the same order, under the same names and value types. The types' own names
+ * and colours do not matter.
+ */
+export const colorsStructurallyEqual = (
+  left: TokenShape | undefined,
+  right: TokenShape | undefined,
+): boolean => {
+  if (left === undefined || right === undefined) {
+    return left === right;
+  }
+  return (
+    left.elements.length === right.elements.length &&
+    left.elements.every((element, index) => {
+      const other = right.elements[index];
+      return other?.name === element.name && other.type === element.type;
+    })
+  );
+};
+
+/**
+ * A string two equations share exactly when they are one definition: the
+ * same id in the net that defines it. `netKey` names that net: the
+ * `componentKey` of a component, `null` for the root net. An id alone does
+ * not say it, since two nets can each define an equation under one id. The
+ * fusion check and the flattener both compare fused places' equations by
+ * this key.
+ */
+export const equationKey = (netKey: string | null, equationId: ID): string =>
+  JSON.stringify([netKey, equationId]);
+
+/** What a member names, once resolved against the document. */
+export type ResolvedFusionMember =
+  | { kind: "place"; place: Place }
+  | {
+      kind: "port";
+      instance: ComponentInstance;
+      subnet: Subnet;
+      /** The port place inside `subnet`. */
+      place: Place;
+    };
+
+/**
+ * Resolves a member to the place it names: a place of `net`, or a port place
+ * inside the component one of `net`'s instances instantiates. `null` when the
+ * place, the instance, its component or the port does not exist, or when the
+ * place is not marked as a port.
+ */
+export const resolveFusionMember = (
+  sdcpn: Pick<SDCPN, "subnets">,
+  net: FusionNet,
+  member: FusionMember,
+  libraries?: ResolvedLibraries,
+): ResolvedFusionMember | null => {
+  if (member.kind === "place") {
+    const place = net.places.find(({ id }) => id === member.placeId);
+    return place ? { kind: "place", place } : null;
+  }
+  const instance = (net.componentInstances ?? []).find(
+    ({ id }) => id === member.componentInstanceId,
+  );
+  const subnet = instance
+    ? resolveComponent(sdcpn, componentOf(instance), libraries)
+    : undefined;
+  const place = subnet?.places.find(({ id }) => id === member.portPlaceId);
+  return instance && subnet && place && place.isPort
+    ? { kind: "port", instance, subnet, place }
+    : null;
+};
+
+/**
+ * `Place` for a place of the net, `Instance.Port` for an instance port, and
+ * the member's ids when it did not resolve.
+ */
+export const describeResolvedMember = (
+  member: FusionMember,
+  resolved: ResolvedFusionMember | null,
+): string => {
+  if (resolved === null) {
+    return member.kind === "place"
+      ? `place ${member.placeId}`
+      : `${member.componentInstanceId}.${member.portPlaceId}`;
+  }
+  return resolved.kind === "place"
+    ? resolved.place.name
+    : `${resolved.instance.name}.${resolved.place.name}`;
+};
+
+/** `Place` for a place of the net, `Instance.Port` for an instance port. */
+export const describeFusionMember = (
+  sdcpn: Pick<SDCPN, "subnets">,
+  net: FusionNet,
+  member: FusionMember,
+  libraries?: ResolvedLibraries,
+): string =>
+  describeResolvedMember(
+    member,
+    resolveFusionMember(sdcpn, net, member, libraries),
+  );

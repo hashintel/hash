@@ -4,14 +4,20 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { brunchTools, canonicalContent } from "@hashintel/brunch-agent";
+import {
+  brunchTools,
+  canonicalContent,
+  hashProcessEditorId,
+} from "@hashintel/brunch-agent";
 import {
   createJsonDocHandle,
   createPetrinaut,
   generateArcId,
   toPetrinautId,
+  type SDCPN,
   type SDCPNInput,
 } from "@hashintel/petrinaut-core";
+import { pruningUpdateActions } from "@hashintel/petrinaut-core/ai";
 
 import { createInBandBrowserCalls } from "../../client/tools/in-band-browser-call";
 import {
@@ -59,8 +65,91 @@ const destructiveInput = {
 const netWith = (initial: SDCPNInput) =>
   createPetrinaut({ document: createJsonDocHandle({ initial }) }).definition;
 
+const machinePort = {
+  id: "in",
+  name: "In",
+  colorId: null,
+  dynamicsEnabled: false,
+  isPort: true,
+  x: 0,
+  y: 0,
+};
+const machine = {
+  id: "machine",
+  name: "Machine",
+  places: [machinePort],
+  transitions: [],
+  types: [],
+  differentialEquations: [],
+  parameters: [],
+};
+const instanceOfMachine = (id: string, name: string) => ({
+  id,
+  name,
+  subnetId: "machine",
+  parameterValues: {},
+  x: 0,
+  y: 0,
+});
+/** Feed puts tokens into `M1.In`; nothing names a port of `M2`. */
+const wiredNet: SDCPNInput = {
+  places: [],
+  transitions: [
+    {
+      id: "feed",
+      name: "Feed",
+      inputArcs: [],
+      outputArcs: [
+        {
+          endpoint: {
+            kind: "componentPort",
+            componentInstanceId: "m1",
+            portPlaceId: "in",
+          },
+        },
+      ],
+      x: 0,
+      y: 0,
+    },
+  ],
+  subnets: [machine, { ...machine, id: "press", name: "Press", places: [] }],
+  componentInstances: [
+    instanceOfMachine("m1", "M1"),
+    instanceOfMachine("m2", "M2"),
+  ],
+};
+const unmarkPort = (update: object = { isPort: false }) => ({
+  placeId: "in",
+  targetSubnetId: "machine",
+  update,
+});
+const repoint = (instanceId: string) => ({
+  instanceId,
+  update: { subnetId: "press" },
+});
+const inPortOf = (componentInstanceId: string) =>
+  ({ kind: "componentPort", componentInstanceId, portPlaceId: "in" }) as const;
+/** The fusion Line makes the root place Belt and `M1.In` one place. */
+const fusedNet: SDCPNInput = {
+  ...wiredNet,
+  places: [{ id: "belt", name: "Belt", x: 0, y: 0 }],
+  fusions: [
+    {
+      id: "line",
+      name: "Line",
+      members: [{ kind: "place", placeId: "belt" }, inPortOf("m1")],
+    },
+  ],
+};
+/** Moves Line from `M1.In` to `M2.In`. */
+const moveLine = {
+  fusionId: "line",
+  member: inPortOf("m1"),
+  replacement: inPortOf("m2"),
+};
+
 describe("Brunch destructive edit approval", () => {
-  test("covers every destructive canonical tool and no constructive one", () => {
+  test("covers every destructive canonical tool, the updates that can prune, and no other", () => {
     const toolNames = createBrunchMutationApprovalInteractiveTools(
       createBrunchMutationApprovalComponents(
         createBrunchMutationApprovalCoordinator(),
@@ -69,8 +158,109 @@ describe("Brunch destructive edit approval", () => {
     ).map(({ toolName }) => toolName);
     expect(toolNames).toContain("deleteItemsByIds");
     expect(toolNames).toContain("removeArc");
+    expect(toolNames).toEqual(
+      expect.arrayContaining([
+        ...pruningUpdateActions,
+        "petrinaut_update_place",
+        "petrinaut_update_component",
+      ]),
+    );
     expect(toolNames).not.toContain("addPlace");
-    expect(toolNames).not.toContain("updatePlace");
+    expect(toolNames).not.toContain("updateTransition");
+  });
+
+  // Keyed by core's list, so an update that starts pruning needs a row here.
+  const prunedRows: Record<
+    (typeof pruningUpdateActions)[number],
+    { input: unknown; row: string }
+  > = {
+    updatePlace: {
+      input: unmarkPort(),
+      row: "Remove arcs and fusion memberships on port — In",
+    },
+    updateComponentInstance: {
+      input: repoint("m1"),
+      row: "Remove arcs and fusion memberships on component instance — M1",
+    },
+  };
+
+  test.each(pruningUpdateActions)(
+    "says what an %s that prunes takes with it",
+    (toolName) => {
+      const ApprovalWidget = createBrunchMutationApprovalWidget(
+        createBrunchMutationApprovalCoordinator(),
+        toolName,
+      );
+      render(
+        <ApprovalWidget
+          input={prunedRows[toolName].input}
+          net={netWith(wiredNet)}
+          state="awaiting"
+          submit={vi.fn()}
+          submitAndWait={vi.fn()}
+          toolCallId="update-1"
+        />,
+      );
+
+      expect(screen.getByText(prunedRows[toolName].row)).not.toBeNull();
+    },
+  );
+
+  test("names a removed fusion by its own name, not a member's", () => {
+    const ApprovalWidget = createBrunchMutationApprovalWidget(
+      createBrunchMutationApprovalCoordinator(),
+      "removeFusion",
+    );
+    render(
+      <ApprovalWidget
+        input={{ fusionId: "belt" }}
+        net={netWith({
+          ...wiredNet,
+          places: [{ id: "buffer", name: "Buffer", x: 0, y: 0 }],
+          fusions: [
+            {
+              id: "belt",
+              name: "Belt",
+              members: [
+                { kind: "place", placeId: "buffer" },
+                {
+                  kind: "componentPort",
+                  componentInstanceId: "m1",
+                  portPlaceId: "in",
+                },
+              ],
+            },
+          ],
+        })}
+        state="awaiting"
+        submit={vi.fn()}
+        submitAndWait={vi.fn()}
+        toolCallId="remove-1"
+      />,
+    );
+
+    expect(screen.getByText("Remove fusion — Belt")).not.toBeNull();
+  });
+
+  test("names the member a fusion replacement takes out, and the one that joins", () => {
+    const ApprovalWidget = createBrunchMutationApprovalWidget(
+      createBrunchMutationApprovalCoordinator(),
+      "replaceFusionMember",
+    );
+    render(
+      <ApprovalWidget
+        input={moveLine}
+        net={netWith(fusedNet)}
+        state="awaiting"
+        submit={vi.fn()}
+        submitAndWait={vi.fn()}
+        toolCallId="replace-1"
+      />,
+    );
+
+    expect(
+      screen.getByText("Replace fusion member — Line / M1 / In with M2 / In"),
+    ).not.toBeNull();
   });
 
   test("renders itemized removals and resolves Allow without submitting a tool result", async () => {
@@ -249,7 +439,10 @@ describe("Brunch destructive edit approval", () => {
     const coordinator = createBrunchMutationApprovalCoordinator();
     const request = vi.spyOn(coordinator, "request");
     await expect(
-      createBrunchMutationAdmission(coordinator)({
+      createBrunchMutationAdmission(
+        coordinator,
+        () => undefined,
+      )({
         toolCallId: "remove-1",
         toolName: "removePlace",
         input: {},
@@ -334,7 +527,7 @@ describe("Brunch save approval card", () => {
     const coordinator = createBrunchMutationApprovalCoordinator();
     const request = vi.spyOn(coordinator, "request");
     await expect(
-      createBrunchMutationAdmission(coordinator, {
+      createBrunchMutationAdmission(coordinator, () => undefined, {
         read: () => ({ title: "Net", lastSavedTime: null, refusal: null }),
         save: vi.fn<BrunchHostSave["save"]>(),
       })({
@@ -374,6 +567,8 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
     toolName: string,
     input: unknown,
     hostSave?: BrunchHostSave,
+    /** The open document, as the admission reads it. */
+    definition?: SDCPN,
   ) => {
     const posted: unknown[] = [];
     vi.stubGlobal(
@@ -403,7 +598,11 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
       binding,
       metadataFor: () => undefined,
       prepareInput,
-      admit: createBrunchMutationAdmission(coordinator, hostSave),
+      admit: createBrunchMutationAdmission(
+        coordinator,
+        () => definition,
+        hostSave,
+      ),
       acceptsRevision: () => true,
     });
     return { calls, coordinator, posted, prepareInput };
@@ -660,6 +859,37 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
     expect(allowed.prepareInput).toHaveBeenCalledOnce();
   });
 
+  test.each([
+    ["replaceFusionMember", moveLine],
+    [
+      "petrinaut_replace_fusion_member",
+      { editor_id: hashProcessEditorId, ...moveLine },
+    ],
+  ])(
+    "%s waits for approval, as taking the member out alone does",
+    async (toolName, input) => {
+      const { calls, coordinator } = issuedCalls(toolName, input);
+      const execute = vi.fn(async () => ({ applied: true }));
+      const run = calls.run(
+        {
+          toolCallId: "replace-1",
+          toolName,
+          input,
+          signal: new AbortController().signal,
+        },
+        execute,
+      );
+      await vi.waitFor(() =>
+        expect(coordinator.hasPending("replace-1")).toBe(true),
+      );
+      expect(execute).not.toHaveBeenCalled();
+      coordinator.resolve("replace-1", "allow");
+
+      await run;
+      expect(execute).toHaveBeenCalledOnce();
+    },
+  );
+
   test("a constructive call runs without asking", async () => {
     const input = {
       id: "place",
@@ -684,6 +914,94 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
     );
     expect(request).not.toHaveBeenCalled();
     expect(execute).toHaveBeenCalledOnce();
+  });
+
+  describe("an update of a port or a component instance", () => {
+    const runUpdate = (toolName: string, input: unknown) => {
+      const { calls, coordinator } = issuedCalls(
+        toolName,
+        input,
+        undefined,
+        netWith(wiredNet).get(),
+      );
+      const execute = vi.fn(async () => ({ applied: true }));
+      const run = calls.run(
+        {
+          toolCallId: "update-1",
+          toolName,
+          input,
+          signal: new AbortController().signal,
+        },
+        execute,
+      );
+      return { coordinator, execute, run };
+    };
+    const forHash = (input: object) => ({
+      editor_id: hashProcessEditorId,
+      ...input,
+    });
+
+    test.each([
+      ["updatePlace", unmarkPort()],
+      ["updateComponentInstance", repoint("m1")],
+      ["petrinaut_update_place", forHash(unmarkPort())],
+      ["petrinaut_update_component", forHash(repoint("m1"))],
+    ])(
+      "%s waits for approval when it would take arcs or fusion memberships",
+      async (toolName, input) => {
+        const { coordinator, execute, run } = runUpdate(toolName, input);
+        await vi.waitFor(() =>
+          expect(coordinator.hasPending("update-1")).toBe(true),
+        );
+        expect(execute).not.toHaveBeenCalled();
+        coordinator.resolve("update-1", "allow");
+
+        await run;
+        expect(execute).toHaveBeenCalledOnce();
+      },
+    );
+
+    test.each([
+      ["updatePlace", unmarkPort({ name: "Inlet" })],
+      ["updateComponentInstance", repoint("m2")],
+      ["petrinaut_update_place", forHash(unmarkPort({ name: "Inlet" }))],
+      ["petrinaut_update_component", forHash(repoint("m2"))],
+    ])(
+      "%s runs without asking when it takes nothing",
+      async (toolName, input) => {
+        const { coordinator, execute, run } = runUpdate(toolName, input);
+        const request = vi.spyOn(coordinator, "request");
+
+        await run;
+        expect(request).not.toHaveBeenCalled();
+        expect(execute).toHaveBeenCalledOnce();
+      },
+    );
+
+    const clearChoice = { instanceId: "m1", update: { implementation: null } };
+    const unmarkInterface = {
+      subnetId: "machine",
+      update: { interface: false },
+    };
+
+    // Neither removes what the user built, as clearing the document's default
+    // with `setImplementation` does not.
+    test.each([
+      ["updateComponentInstance", clearChoice],
+      ["petrinaut_update_component", forHash(clearChoice)],
+      ["updateSubnet", unmarkInterface],
+      ["petrinaut_update_subnet", forHash(unmarkInterface)],
+    ])(
+      "%s runs without asking when it clears a choice or an interface flag",
+      async (toolName, input) => {
+        const { coordinator, execute, run } = runUpdate(toolName, input);
+        const request = vi.spyOn(coordinator, "request");
+
+        await run;
+        expect(request).not.toHaveBeenCalled();
+        expect(execute).toHaveBeenCalledOnce();
+      },
+    );
   });
 
   test("Stop before approval reports nothing and never runs", async () => {

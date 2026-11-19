@@ -135,6 +135,43 @@ Declare `root: true` and return a `root` for dialogs, overlays and tours,
 behind the plugin's error boundary. Return `overlay: true` while the root
 covers the editor: it holds back the empty-canvas assistant prompt.
 
+## Add a tab to the bottom panel
+
+Declare a view under `bottomPanelViews` with its tab's `title`, and return
+its `content` under the same key. The tab comes after the editor's own, and
+the content renders behind the plugin's error boundary while the tab is the
+active one.
+
+```tsx
+const LogPlugin = definePetrinautPlugin({
+  id: "example.log",
+  name: "Log",
+  bottomPanelViews: { log: { title: "Log", tooltip: "What the plugin saw." } },
+});
+
+const useLogPlugin: PluginHook<typeof LogPlugin> = () => {
+  const [lines, setLines] = useState<readonly string[]>([]);
+
+  return {
+    bottomPanelViews: {
+      log: {
+        content: <LogLines lines={lines} />,
+        headerAction: <ClearButton onClick={() => setLines([])} />,
+        when: lines.length > 0,
+      },
+    },
+  };
+};
+
+export const logPlugin = LogPlugin(useLogPlugin);
+```
+
+`headerAction` sits at the right of the tab bar while the tab is the active
+one, where the editor's own tabs put their controls. State the content and
+the header action share lives in the hook, as `lines` does here. `when: false`
+withholds the tab; when it was the active one, the panel returns to its first
+tab.
+
 ## Add an action to the read-only notice
 
 On a document the host made read-only, a blocked edit shows a notice that

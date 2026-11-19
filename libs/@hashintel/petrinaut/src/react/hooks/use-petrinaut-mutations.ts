@@ -6,6 +6,7 @@ import {
   mutationBlockedBy,
   useReadOnlyReason,
 } from "../state/use-read-only-reason";
+import { useHostRulesFeedback } from "./use-host-rules-feedback";
 import { useReadOnlyFeedback } from "./use-read-only-feedback";
 
 import type { PetrinautMutations } from "@hashintel/petrinaut-core";
@@ -13,6 +14,17 @@ import type { PetrinautMutations } from "@hashintel/petrinaut-core";
 type PetrinautMutationInput<Name extends keyof PetrinautMutations> = Parameters<
   PetrinautMutations[Name]
 >[0];
+
+/**
+ * The mutations as the editor calls them. Each answers whether it went to
+ * Core: `false` when the editor is read-only or the host's rules refuse it,
+ * for a caller with something to do only once the change is made.
+ */
+export type GuardedPetrinautMutations = {
+  [Name in keyof PetrinautMutations]: (
+    input: PetrinautMutationInput<Name>,
+  ) => boolean;
+};
 
 /**
  * React-facing bundle of atomic SDCPN mutations.
@@ -23,12 +35,14 @@ type PetrinautMutationInput<Name extends keyof PetrinautMutations> = Parameters<
  *   {@link mutationBlockedBy} names a reason, the rule the AI
  *   tool dispatcher applies too: scenario and metric mutations stay
  *   available in simulate mode, where the Simulate panel manages them.
+ * - It shows the sentence and does nothing where the host's rules refuse the
+ *   mutation, which Core itself would throw.
  *
  * Components MUST NOT reach for `usePetrinautInstance().mutations` directly;
  * the public `usePetrinautInstance()` return type narrows away the mutation
  * surface to keep the readonly guard centralised in this hook.
  */
-export function usePetrinautMutations(): PetrinautMutations {
+export function usePetrinautMutations(): GuardedPetrinautMutations {
   const instance = use(PetrinautInstanceContext);
   if (!instance) {
     throw new Error(
@@ -38,19 +52,20 @@ export function usePetrinautMutations(): PetrinautMutations {
   const { activeSubnetId } = use(ActiveNetContext);
   const readOnlyReason = useReadOnlyReason();
   const notifyReadOnly = useReadOnlyFeedback();
+  const notifyHostRules = useHostRulesFeedback();
   const { mutations } = instance;
 
   const withReadonlyGuard = <Name extends keyof PetrinautMutations>(
     name: Name,
     options?: { targetActiveSubnet?: boolean },
-  ): PetrinautMutations[Name] => {
+  ): GuardedPetrinautMutations[Name] => {
     const target = mutations[name] as (
       input: PetrinautMutationInput<Name>,
     ) => void;
     const wrapped = ((input: PetrinautMutationInput<Name>) => {
       if (mutationBlockedBy(name, readOnlyReason, input) !== null) {
         notifyReadOnly();
-        return;
+        return false;
       }
       const nextInput =
         options?.targetActiveSubnet === false
@@ -59,8 +74,15 @@ export function usePetrinautMutations(): PetrinautMutations {
               ...input,
               targetSubnetId: activeSubnetId,
             } as PetrinautMutationInput<Name>);
+      // Asked of the input as it goes out, with the net it targets.
+      const refusal = instance.mutationRefusal(name, nextInput);
+      if (refusal !== null) {
+        notifyHostRules(refusal);
+        return false;
+      }
       target(nextInput);
-    }) as PetrinautMutations[Name];
+      return true;
+    }) as GuardedPetrinautMutations[Name];
     return wrapped;
   };
 
@@ -120,6 +142,15 @@ export function usePetrinautMutations(): PetrinautMutations {
       "updateComponentInstancePosition",
     ),
     removeComponentInstance: withReadonlyGuard("removeComponentInstance"),
+    addFusion: withReadonlyGuard("addFusion"),
+    updateFusion: withReadonlyGuard("updateFusion"),
+    removeFusion: withReadonlyGuard("removeFusion"),
+    addFusionMember: withReadonlyGuard("addFusionMember"),
+    removeFusionMember: withReadonlyGuard("removeFusionMember"),
+    replaceFusionMember: withReadonlyGuard("replaceFusionMember"),
+    setImplementation: withReadonlyGuard("setImplementation", {
+      targetActiveSubnet: false,
+    }),
     deleteItemsByIds: withReadonlyGuard("deleteItemsByIds"),
     commitNodePositions: withReadonlyGuard("commitNodePositions"),
   };

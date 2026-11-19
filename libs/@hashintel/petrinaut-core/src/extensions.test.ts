@@ -448,6 +448,30 @@ describe("transition logic availability", () => {
     expect(Object.hasOwn(sanitized.subnets![0]!, "metadata")).toBe(false);
   });
 
+  it("keeps a subnet's icon and colour", () => {
+    const iconSvg = '<svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/></svg>';
+    const sdcpn: SDCPN = {
+      ...createSDCPN(),
+      subnets: [
+        {
+          id: "subnet-1",
+          name: "Subnet 1",
+          iconSvg,
+          displayColor: "#3b82f6",
+          places: [],
+          transitions: [],
+          types: [],
+          differentialEquations: [],
+          parameters: [],
+        },
+      ],
+    };
+
+    expect(
+      sanitizeSDCPNForExtensions(sdcpn, allEnabled).subnets?.[0],
+    ).toMatchObject({ iconSvg, displayColor: "#3b82f6" });
+  });
+
   it("keeps the description and metadata of the net and its subnets", () => {
     const sdcpn: SDCPN = {
       ...createSDCPN(),
@@ -533,6 +557,35 @@ describe("transition logic availability", () => {
     expect(
       sanitizeSDCPNForExtensions(createSDCPN(), allEnabled).places[0],
     ).not.toHaveProperty("dynamics");
+  });
+
+  it("copies fusions without sharing them, and drops them when subnets are disabled", () => {
+    const sdcpn: SDCPN = {
+      ...createComponentPortSDCPN(),
+      places: createSDCPN().places,
+      fusions: [
+        {
+          id: "fusion-1",
+          name: "Fusion-1",
+          members: [
+            { kind: "place", placeId: "place-1" },
+            {
+              kind: "componentPort",
+              componentInstanceId: "instance-1",
+              portPlaceId: "port-1",
+            },
+          ],
+        },
+      ],
+    };
+
+    const sanitized = sanitizeSDCPNForExtensions(sdcpn, allEnabled);
+    expect(sanitized.fusions).toEqual(sdcpn.fusions);
+    expect(sanitized.fusions![0]!.members).not.toBe(sdcpn.fusions![0]!.members);
+
+    expect(
+      sanitizeSDCPNForExtensions(sdcpn, { ...allEnabled, subnets: false }),
+    ).not.toHaveProperty("fusions");
   });
 
   it("leaves a freshly loaded net comparing equal to its persisted form", () => {

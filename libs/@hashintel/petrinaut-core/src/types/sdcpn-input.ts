@@ -5,14 +5,18 @@ import type {
   ArcEndpoint,
   Color,
   ComponentInstance,
+  DefaultImplementation,
   DifferentialEquation,
+  Fusion,
   ID,
+  Import,
   InputArc,
   InputArcType,
   Metric,
   OutputArc,
   Parameter,
   Place,
+  PortDirection,
   Scenario,
   SDCPN,
   Subnet,
@@ -49,8 +53,11 @@ export type SDCPNInput = {
   differentialEquations?: DifferentialEquation[];
   scenarios?: Scenario[];
   metrics?: Metric[];
+  imports?: Import[];
   subnets?: Subnet[];
   componentInstances?: ComponentInstance[];
+  fusions?: Fusion[];
+  implementations?: DefaultImplementation[];
 };
 
 export type SDCPNPlaceInput = {
@@ -71,6 +78,7 @@ export type SDCPNPlaceInput = {
   differentialEquationId?: string | null;
   capacity?: Place["capacity"];
   isPort?: boolean;
+  portDirection?: PortDirection;
   visualizerCode?: string;
   showAsInitialState?: boolean;
 };
@@ -134,9 +142,9 @@ function arcEndpointFields(arc: SDCPNArcEndpointInput): SDCPNArcEndpointInput {
  * {@link SDCPN}. Idempotent: normalizing an already-complete `SDCPN` returns an
  * equivalent value.
  *
- * Optional output fields (`dynamics`, `capacity`, `isPort`, `visualizerCode`,
+ * Optional output fields (`dynamics`, `capacity`, `isPort`, `portDirection`, `visualizerCode`,
  * `showAsInitialState`, arc `placeId`/`endpoint`, `scenarios`, `metrics`, `subnets`,
- * `componentInstances`) are only set when present on the input, so the result
+ * `componentInstances`, `fusions`, `implementations`, `imports`) are only set when present on the input, so the result
  * matches the shape the editor itself produces (relevant for structural
  * dirty-tracking via `isSDCPNEqual`). Entity ids and the references to them
  * are converted to Petrinaut ids with {@link canonicalizePetrinautIds}.
@@ -168,6 +176,9 @@ export function normalizeSDCPN(rawInput: SDCPNInput): SDCPN {
       }
       if (place.isPort !== undefined) {
         normalized.isPort = place.isPort;
+      }
+      if (place.portDirection !== undefined) {
+        normalized.portDirection = place.portDirection;
       }
       if (place.visualizerCode !== undefined) {
         normalized.visualizerCode = place.visualizerCode;
@@ -221,11 +232,20 @@ export function normalizeSDCPN(rawInput: SDCPNInput): SDCPN {
   if (input.metrics !== undefined) {
     result.metrics = input.metrics;
   }
+  if (input.imports !== undefined) {
+    result.imports = input.imports;
+  }
   if (input.subnets !== undefined) {
     result.subnets = input.subnets;
   }
   if (input.componentInstances !== undefined) {
     result.componentInstances = input.componentInstances;
+  }
+  if (input.fusions !== undefined) {
+    result.fusions = input.fusions;
+  }
+  if (input.implementations !== undefined) {
+    result.implementations = input.implementations;
   }
 
   return canonicalizePetrinautIds(result);

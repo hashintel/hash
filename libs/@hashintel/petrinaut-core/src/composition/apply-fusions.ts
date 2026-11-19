@@ -1,0 +1,265 @@
+/**
+ * Merges fused places once a composition is flattened: every member of a
+ * fusion group becomes one place, the arcs that touched any member touch the
+ * fused place, and the members' attributes are reconciled.
+ */
+
+/* eslint-disable no-param-reassign -- the flat net is merged in place. */
+import { getRunningEquationIds } from "../place-dynamics";
+import { scopeDepth } from "../simulation/engine/scoped-id";
+import { colorsStructurallyEqual } from "./fusions";
+
+import type {
+  Color,
+  ID,
+  InputArc,
+  OutputArc,
+  Place,
+  Transition,
+} from "../types/sdcpn";
+
+/** One fusion, as flat place ids. */
+export type FusionGroup = {
+  /** The fusion's name, which the fused place takes. */
+  name: string;
+  placeIds: ID[];
+};
+
+type FlatNet = {
+  places: Place[];
+  transitions: Transition[];
+  types: Color[];
+};
+
+type AppliedFusions = {
+  /** The flat place that stands for each flat place merged away. */
+  aliases: ReadonlyMap<ID, ID>;
+  /**
+   * For each fused place that took its dynamics from a merged place, that
+   * merged place: the parameter values its equations read are that place's.
+   */
+  dynamicsDonors: ReadonlyMap<ID, ID>;
+};
+
+/**
+ * For each place merged away, the place that leads its set: a union-find over
+ * the groups' place ids. A set is led by its outermost place, the one nearest
+ * the root net: it keeps its name, so a root place fused with ports keeps the
+ * name metrics and scenarios refer to.
+ */
+const mergedPlaceAliases = (groups: readonly FusionGroup[]): Map<ID, ID> => {
+  const parent = new Map<ID, ID>();
+  const find = (id: ID): ID => {
+    let root = id;
+    for (
+      let next = parent.get(root);
+      next !== undefined && next !== root;
+      next = parent.get(root)
+    ) {
+      root = next;
+    }
+    return root;
+  };
+  const union = (left: ID, right: ID) => {
+    const leftRoot = find(left);
+    const rightRoot = find(right);
+    if (leftRoot === rightRoot) {
+      return;
+    }
+    // The shallower id leads; the first seen wins a tie.
+    const [leader, follower] =
+      scopeDepth(rightRoot) < scopeDepth(leftRoot)
+        ? [rightRoot, leftRoot]
+        : [leftRoot, rightRoot];
+    parent.set(follower, leader);
+  };
+  for (const group of groups) {
+    for (const id of group.placeIds) {
+      parent.set(id, parent.get(id) ?? id);
+    }
+    const [first, ...rest] = group.placeIds;
+    if (first !== undefined) {
+      for (const id of rest) {
+        union(first, id);
+      }
+    }
+  }
+  const aliases = new Map<ID, ID>();
+  for (const id of parent.keys()) {
+    const root = find(id);
+    if (root !== id) {
+      aliases.set(id, root);
+    }
+  }
+  return aliases;
+};
+
+/**
+ * For each flat equation, the `equationKey` of the equation it is a copy of:
+ * each instance of a component scopes the same ones under its own id. An
+ * equation without one is taken for its own.
+ */
+type EquationKeys = ReadonlyMap<ID, string>;
+
+/** Whether two places run the same equations, in order. */
+const sameEquations = (
+  left: ID[],
+  right: ID[],
+  equationKeys: EquationKeys,
+): boolean => {
+  const keyOf = (equationId: ID) => equationKeys.get(equationId) ?? equationId;
+  return (
+    left.length === right.length &&
+    left.every((equationId, index) => {
+      const other = right[index];
+      return other !== undefined && keyOf(equationId) === keyOf(other);
+    })
+  );
+};
+
+/**
+ * Gives `fused` what `member` declares and throws where the two disagree.
+ * Returns whether `fused` took on `member`'s dynamics.
+ */
+const reconcile = (
+  net: FlatNet,
+  fused: Place,
+  member: Place,
+  fusionName: string,
+  equationKeys: EquationKeys,
+): boolean => {
+  const disagree = (on: string) =>
+    new Error(
+      `Fusion \`${fusionName}\` joins places \`${fused.name}\` and \`${member.name}\` ${on}.`,
+    );
+  const typeOf = (place: Place) =>
+    place.colorId
+      ? net.types.find(({ id }) => id === place.colorId)
+      : undefined;
+  if (!colorsStructurallyEqual(typeOf(fused), typeOf(member))) {
+    throw disagree("of different token types");
+  }
+  if (member.capacity != null) {
+    if (fused.capacity != null && fused.capacity !== member.capacity) {
+      throw disagree("of different capacities");
+    }
+    fused.capacity = member.capacity;
+  }
+  if (member.showAsInitialState) {
+    fused.showAsInitialState = true;
+  }
+  if (fused.visualizerCode === undefined && member.visualizerCode) {
+    fused.visualizerCode = member.visualizerCode;
+  }
+  const memberEquations = getRunningEquationIds(member);
+  if (memberEquations.length === 0) {
+    return false;
+  }
+  const fusedEquations = getRunningEquationIds(fused);
+  if (fusedEquations.length > 0) {
+    if (!sameEquations(fusedEquations, memberEquations, equationKeys)) {
+      throw disagree("that run different differential equations");
+    }
+    return false;
+  }
+  fused.dynamicsEnabled = true;
+  fused.dynamics = memberEquations.map((differentialEquationId) => ({
+    differentialEquationId,
+  }));
+  return true;
+};
+
+/**
+ * A transition's arcs, off the places merged away. Its code addresses its
+ * arcs by position, so two arcs of one kind that now reach the same fused
+ * place cannot be folded into one: that is an error.
+ */
+const redirectArcs = <Arc extends InputArc | OutputArc>(
+  transition: Transition,
+  arcs: Arc[],
+  aliases: ReadonlyMap<ID, ID>,
+): Arc[] => {
+  // For each kind of arc and place an arc already reaches: whether a merge
+  // sent it there.
+  const reached = new Map<string, boolean>();
+  return arcs.map((arc) => {
+    const fusedId =
+      arc.placeId === undefined ? undefined : aliases.get(arc.placeId);
+    const placeId = fusedId ?? arc.placeId;
+    const key = `${"type" in arc ? arc.type : "output"}:${placeId}`;
+    const merged = fusedId !== undefined;
+    const earlier = reached.get(key);
+    // Two arcs that shared a place before any merge are not the fusion's doing.
+    if (earlier !== undefined && (earlier || merged)) {
+      throw new Error(
+        `Transition \`${transition.name}\` reaches one fused place through two arcs of the same kind. Keep one of them.`,
+      );
+    }
+    reached.set(key, merged);
+    return { ...arc, placeId };
+  });
+};
+
+/**
+ * Applies the fusion groups to a flat net in place: merged places leave
+ * `net.places`, arcs move to the fused place, and the fused place takes on
+ * what its members declare and its fusion's name.
+ *
+ * `groups` lists a net's fusions after those of its instances: a place that
+ * is fused inside its component and again in the net above goes by the name
+ * of the outer fusion. `equationKeys` says which flat equations are copies
+ * of one definition, which fused places may both run.
+ */
+export const applyFusions = (
+  net: FlatNet,
+  groups: readonly FusionGroup[],
+  equationKeys: EquationKeys = new Map(),
+): AppliedFusions => {
+  const aliases = mergedPlaceAliases(groups);
+  const dynamicsDonors = new Map<ID, ID>();
+  const placeById = new Map(net.places.map((place) => [place.id, place]));
+  for (const group of groups) {
+    for (const id of group.placeIds) {
+      const fusedId = aliases.get(id);
+      if (fusedId === undefined) {
+        continue;
+      }
+      const fused = placeById.get(fusedId);
+      const member = placeById.get(id);
+      if (!fused || !member) {
+        throw new Error(
+          `Fusion \`${group.name}\` names a place that is not in the flattened net.`,
+        );
+      }
+      if (reconcile(net, fused, member, group.name, equationKeys)) {
+        dynamicsDonors.set(fusedId, id);
+      }
+    }
+  }
+  // A fusion names the fused place when that place is one of its own
+  // members, not a place fused in from the net above.
+  for (const { name, placeIds } of groups) {
+    const [first] = placeIds;
+    const fused =
+      first === undefined
+        ? undefined
+        : placeById.get(aliases.get(first) ?? first);
+    if (fused && placeIds.includes(fused.id)) {
+      fused.name = name;
+    }
+  }
+  net.places = net.places.filter((place) => !aliases.has(place.id));
+  for (const transition of net.transitions) {
+    transition.inputArcs = redirectArcs(
+      transition,
+      transition.inputArcs,
+      aliases,
+    );
+    transition.outputArcs = redirectArcs(
+      transition,
+      transition.outputArcs,
+      aliases,
+    );
+  }
+  return { aliases, dynamicsDonors };
+};

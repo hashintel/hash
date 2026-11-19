@@ -11,6 +11,7 @@ import { getOutlineArcPath } from "./shared/outline-arcs";
 import { useReactFlowElements } from "./use-react-flow-elements";
 
 import type { CanvasArc, CanvasNode, CanvasScene } from "../../../canvas-scene";
+import type { ArcEdgeType, CanvasEdgeType } from "./react-flow-types";
 
 afterEach(cleanup);
 
@@ -29,6 +30,7 @@ const nodes: CanvasNode[] = [
     ...nodeBase,
     id: "place",
     kind: "place",
+    portDirection: null,
     dynamicsEnabled: false,
     hasColorType: false,
     hasVisualizer: false,
@@ -51,7 +53,15 @@ const nodes: CanvasNode[] = [
     kind: "componentInstance",
     position: { x: 600, y: 0 },
     subnetName: "Subnet",
-    ports: [{ id: "port", name: "Port" }],
+    binding: { kind: "component" },
+    icon: null,
+    color: null,
+    ports: [
+      { id: "port", name: "Port", direction: "inout", typeColor: undefined },
+    ],
+    foldable: false,
+    unfolded: true,
+    anchorOffset: 0,
   },
 ];
 const arcBase: Omit<CanvasArc, "id" | "sourceId" | "targetId"> = {
@@ -66,6 +76,7 @@ const arcBase: Omit<CanvasArc, "id" | "sourceId" | "targetId"> = {
 };
 const scene: CanvasScene = {
   nodes,
+  fusions: [],
   dimensions: compactNodeDimensions,
   focusActive: false,
   arcs: [
@@ -93,6 +104,48 @@ const scene: CanvasScene = {
     },
   ],
 };
+
+/** The arcs among the hook's edges, which also carry the fusion links. */
+const arcEdges = (edges: CanvasEdgeType[]): ArcEdgeType[] =>
+  edges.filter((edge): edge is ArcEdgeType => edge.type === "default");
+
+describe("fusion links", () => {
+  it("offers the ends the scene says can move", () => {
+    const linkBase = {
+      fusionId: "belt",
+      name: "Belt",
+      sourceId: "place",
+      targetId: "subnet",
+      sourcePortId: null,
+      targetPortId: "port",
+      selected: false,
+      severity: null,
+      focus: "none" as const,
+    };
+    const { result } = renderHook(() =>
+      useReactFlowElements({
+        ...scene,
+        fusions: [
+          { ...linkBase, id: "two", movableEnds: "both" },
+          { ...linkBase, id: "three", movableEnds: "target" },
+        ],
+      }),
+    );
+
+    expect(
+      result.current.edges
+        .filter((edge) => edge.type === "fusion")
+        .map(({ id, reconnectable, targetHandle }) => [
+          id,
+          reconnectable,
+          targetHandle,
+        ]),
+    ).toEqual([
+      ["two", true, "port-in-port"],
+      ["three", "target", "port-in-port"],
+    ]);
+  });
+});
 
 describe("arc rendering", () => {
   it.each([false, true])(
@@ -126,7 +179,7 @@ describe("arc rendering", () => {
         }),
       );
 
-      const data = result.current.edges.find(
+      const data = arcEdges(result.current.edges).find(
         (edge) => edge.id === "input",
       )?.data;
       if (!data?.sourceOutline || !data.targetOutline) {
@@ -145,7 +198,9 @@ describe("arc rendering", () => {
 
   it("attaches arcs to node outlines and subnet port arcs to the port's handle", () => {
     const { result } = renderHook(() => useReactFlowElements(scene));
-    const edges = new Map(result.current.edges.map((edge) => [edge.id, edge]));
+    const edges = new Map(
+      arcEdges(result.current.edges).map((edge) => [edge.id, edge]),
+    );
 
     for (const id of ["input", "output"]) {
       expect(edges.get(id)?.data?.sourceOutline).not.toBeNull();
@@ -174,8 +229,9 @@ describe("arc rendering", () => {
       (input: CanvasScene) => useReactFlowElements(input),
       { initialProps: scene },
     );
-    const previous = result.current.edges.find((edge) => edge.id === "input")
-      ?.data?.targetOutline;
+    const previous = arcEdges(result.current.edges).find(
+      (edge) => edge.id === "input",
+    )?.data?.targetOutline;
     rerender({
       ...scene,
       nodes: nodes.map((node) =>
@@ -185,7 +241,7 @@ describe("arc rendering", () => {
       ),
     });
     expect(
-      result.current.edges.find((edge) => edge.id === "input")?.data
+      arcEdges(result.current.edges).find((edge) => edge.id === "input")?.data
         ?.targetOutline,
     ).not.toEqual(previous);
     expect(scene).toEqual(snapshot);
@@ -221,8 +277,8 @@ describe("arc rendering", () => {
         expect(node).toBe(original);
       }
     }
-    for (const edge of result.current.edges) {
-      const original = previous.edges.find(
+    for (const edge of arcEdges(result.current.edges)) {
+      const original = arcEdges(previous.edges).find(
         (candidate) => candidate.id === edge.id,
       );
       if (edge.id === "input") {
@@ -234,5 +290,19 @@ describe("arc rendering", () => {
         expect(edge).toBe(original);
       }
     }
+  });
+});
+
+describe("node placement", () => {
+  it("hangs a component instance from its top edge, other nodes from their centre", () => {
+    const { result } = renderHook(() => useReactFlowElements(scene));
+    const byId = new Map(result.current.nodes.map((node) => [node.id, node]));
+
+    // Centred at (600, 0) and 100 high in the scene.
+    expect(byId.get("subnet")?.origin).toEqual([0.5, 0]);
+    expect(byId.get("subnet")?.position).toEqual({ x: 600, y: -50 });
+
+    expect(byId.get("place")?.origin).toBeUndefined();
+    expect(byId.get("place")?.position).toEqual({ x: 0, y: 0 });
   });
 });

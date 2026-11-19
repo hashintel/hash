@@ -484,6 +484,7 @@ export const hashPetrinautTools = {
   petrinaut_create_subnet: mapped("addSubnet"),
   petrinaut_update_subnet: mapped("updateSubnet"),
   petrinaut_remove_subnet: mapped("removeSubnet"),
+  petrinaut_set_implementation: mapped("setImplementation"),
   petrinaut_create_component: mapped("addComponentInstance"),
   petrinaut_update_component: mergedNodeUpdate(
     "updateComponentInstance",
@@ -492,10 +493,16 @@ export const hashPetrinautTools = {
     "Update fields on an existing component instance, its canvas position, or both.",
   ),
   petrinaut_remove_component: mapped("removeComponentInstance"),
+  petrinaut_create_fusion: mapped("addFusion"),
+  petrinaut_update_fusion: mapped("updateFusion"),
+  petrinaut_remove_fusion: mapped("removeFusion"),
+  petrinaut_create_fusion_member: mapped("addFusionMember"),
+  petrinaut_remove_fusion_member: mapped("removeFusionMember"),
+  petrinaut_replace_fusion_member: mapped("replaceFusionMember"),
   petrinaut_get_net: standIn({
     operation: "getLatestNetDefinition",
     description:
-      "Read the net open in the editor at one level of detail. Returns { title, definition, extensions }: the user-visible net title, the net, and the extension capabilities enabled for this document.",
+      "Read the net open in the editor at one level of detail. Returns { title, definition, extensions }: the user-visible net title, the net, and the extension capabilities enabled for this document. Where the net imports libraries or the editor offers some, also `imports`: each library with its `status` and, once `resolved`, its `name` and `components`, each with its `id`, whether it is an `interface`, its `ports` and its `parameters`. Place an instance of one with `petrinaut_create_component` and `component: { from: <library id>, id: <component id> }`.",
     shape: {
       detail: netDetailSchema.meta({
         description:

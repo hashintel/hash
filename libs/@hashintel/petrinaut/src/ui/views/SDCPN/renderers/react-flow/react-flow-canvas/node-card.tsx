@@ -4,7 +4,7 @@ import { NodeHandles } from "./shared/node-handles";
 
 import type { ReactNode } from "react";
 
-const containerStyle = css({
+export const nodeContainerStyle = css({
   position: "relative",
   height: "full",
 });
@@ -62,14 +62,14 @@ export const iconBadgeStyle = css({
   justifyContent: "center",
 });
 
-const textAreaStyle = css({
+export const nodeTextAreaStyle = css({
   display: "flex",
   flexDirection: "column",
   minWidth: "0",
   overflow: "hidden",
 });
 
-const titleStyle = css({
+export const nodeTitleStyle = css({
   fontSize: "sm",
   fontWeight: "medium",
   lineHeight: "[1.2]",
@@ -78,7 +78,7 @@ const titleStyle = css({
   whiteSpace: "nowrap",
 });
 
-const subtitleStyle = css({
+export const nodeSubtitleStyle = css({
   fontSize: "xs",
   color: "neutral.a90",
   lineHeight: "[1.2]",
@@ -117,12 +117,12 @@ export const NodeCard: React.FC<NodeCardProps> = ({
   isConnectable,
 }) => {
   return (
-    <div className={containerStyle}>
+    <div className={nodeContainerStyle}>
       <div ref={cardRef} className={cardClassName} style={cardStyle}>
         {iconContainer}
-        <div className={textAreaStyle}>
-          <div className={titleStyle}>{title}</div>
-          <div className={subtitleStyle}>{subtitle}</div>
+        <div className={nodeTextAreaStyle}>
+          <div className={nodeTitleStyle}>{title}</div>
+          <div className={nodeSubtitleStyle}>{subtitle}</div>
         </div>
         {badge}
       </div>

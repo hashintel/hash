@@ -306,3 +306,38 @@ describe("normalizeSDCPN", () => {
     expect(isSDCPNEqual(normalizeSDCPN(complete), complete)).toBe(true);
   });
 });
+
+describe("normalizeSDCPN composition fields", () => {
+  it("keeps fusions and port directions, canonicalizing the ids members name", () => {
+    const result = normalizeSDCPN({
+      places: [
+        { id: "p", name: "P", x: 0, y: 0, isPort: true, portDirection: "in" },
+      ],
+      transitions: [],
+      subnets: [],
+      componentInstances: [],
+      fusions: [
+        { id: "f", name: "F", members: [{ kind: "place", placeId: "p" }] },
+      ],
+      implementations: [
+        { interface: { id: "stage" }, component: { id: "fast" } },
+      ],
+    });
+
+    expect(result.implementations).toEqual([
+      {
+        interface: { id: toPetrinautId("stage") },
+        component: { id: toPetrinautId("fast") },
+      },
+    ]);
+
+    expect(result.places[0]?.portDirection).toBe("in");
+    expect(result.fusions).toEqual([
+      {
+        id: toPetrinautId("f"),
+        name: "F",
+        members: [{ kind: "place", placeId: toPetrinautId("p") }],
+      },
+    ]);
+  });
+});

@@ -13,6 +13,7 @@ import {
   createCanonicalPetrinautHostTools,
   issuedCanonicalCallsFromHistory,
   EMPTY_CANONICAL_PETRINAUT_REPLAY,
+  netReadOutput,
 } from "./brunch-petrinaut-tools";
 import { documentRevisionOf } from "./shared/document-revision";
 
@@ -348,5 +349,54 @@ describe("net freshness", () => {
     const { adapter } = setup(replay);
     expect(adapter.acceptsRevision("r-seen")).toBe(true);
     expect(adapter.acceptsRevision("r-other")).toBe(false);
+  });
+});
+
+describe("a read of the net", () => {
+  const read = (libraries: readonly string[]) => {
+    const instance = createPetrinaut({
+      document: createJsonDocHandle({
+        id: "document",
+        initial: structuredClone(emptyNet),
+      }),
+      resolveImport: (id) => ({
+        id,
+        name: "Logistics",
+        components: [
+          { id: "scale", name: "Scale", ports: [{ id: "in", name: "In" }] },
+        ],
+      }),
+      libraries,
+    });
+    return netReadOutput({
+      handle: instance.handle,
+      title: "Line",
+      detail: "full",
+      imports: instance.imports.get(),
+    });
+  };
+
+  test("lists the libraries on offer with their components, for the agent to place", () => {
+    expect(read(["@hashintel/logistics"])).toMatchObject({
+      title: "Line",
+      imports: [
+        {
+          id: "@hashintel/logistics",
+          status: "resolved",
+          name: "Logistics",
+          components: [
+            {
+              id: "scale",
+              interface: true,
+              ports: [{ id: toPetrinautId("in"), name: "In" }],
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  test("says nothing of imports where there are none", () => {
+    expect(read([])).not.toHaveProperty("imports");
   });
 });

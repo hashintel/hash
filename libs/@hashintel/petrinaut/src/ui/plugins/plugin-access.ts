@@ -6,6 +6,8 @@
  * from that table, so the `api` type and the runtime object cannot drift.
  */
 
+import { inlineImports, resolvedLibraries } from "@hashintel/petrinaut-core";
+
 import { petrinautNavigationStatesMatch } from "../../react/navigation";
 import {
   formatReadOnlyReason,
@@ -29,8 +31,10 @@ import type { AddNotificationInput } from "../../react/notifications/context";
 import type {
   ApplyAutoLayoutResult,
   DiagnosticsSnapshot,
+  ImportStates,
   LanguageClient,
   Petrinaut,
+  PetrinautDocHandle,
   PetrinautExtensionSettings,
   PetrinautMutations,
   ReadableStore,
@@ -39,7 +43,11 @@ import type {
 import type { PetrinautExperimentHost } from "@hashintel/petrinaut-core/experiments";
 
 /** Why an edit did not apply. */
-export type EditRefusal = ReadOnlyReason | { readonly kind: "no-title-setter" };
+export type EditRefusal =
+  | ReadOnlyReason
+  | { readonly kind: "no-title-setter" }
+  /** The host's rules refuse the edit. `message` says why, for a user. */
+  | { readonly kind: "host-restriction"; readonly message: string };
 
 /** Whether an edit applied, with its value, or why it was refused. */
 export type EditResult<Value = undefined> =
@@ -47,10 +55,16 @@ export type EditResult<Value = undefined> =
   | { readonly applied: false; readonly reason: EditRefusal };
 
 /** A sentence explaining a refusal, e.g. for a toast or an AI tool's output. */
-export const describeRefusal = (reason: EditRefusal): string =>
-  reason.kind === "no-title-setter"
-    ? "The host application does not provide title editing."
-    : formatReadOnlyReason(reason);
+export const describeRefusal = (reason: EditRefusal): string => {
+  switch (reason.kind) {
+    case "no-title-setter":
+      return "The host application does not provide title editing.";
+    case "host-restriction":
+      return reason.message;
+    default:
+      return formatReadOnlyReason(reason);
+  }
+};
 
 /** Reports failures to the host's error tracker, tagged with the plugin's id. */
 export interface PluginErrors {
@@ -73,12 +87,30 @@ interface PluginBaseApi {
 /** What `diagnose()` resolves to: the diagnostics of the net it checked, and that net. */
 export type PluginDiagnostics = DiagnosticsSnapshot & { readonly net: SDCPN };
 
+/**
+ * The document's handle, read: `doc()` is the net as the handle holds it,
+ * `undefined` until it is ready, and `subscribe` reports each change with
+ * its patches. Unlike `net`, it keeps the data of disabled extensions.
+ */
+export type PluginDocumentHandle = Pick<
+  PetrinautDocHandle,
+  "doc" | "subscribe"
+>;
+
 /** The document, read: `access: { document: "read" }`. */
 export interface PluginDocumentReader {
   /** The handle's id; plugins remount for each document. */
   readonly id: string;
+  /** What the handle holds and reports; see {@link PluginDocumentHandle}. */
+  readonly handle: PluginDocumentHandle;
   /** The net without the data of disabled extensions; an empty net until the handle is ready. */
   readonly net: ReadableStore<SDCPN>;
+  /**
+   * The state of each import of the net and of each library the host offers,
+   * by its id: resolving, resolved with its library, or failed with the
+   * reason. `describeImports` lists them for a reader.
+   */
+  readonly imports: ReadableStore<ImportStates>;
   /** The title the host passed, or "Untitled" when it passes none. */
   readonly title: ReadableStore<string>;
   readonly extensions: PetrinautExtensionSettings;
@@ -190,21 +222,37 @@ const readDocument = ({
   diagnostics,
 }: PluginEditorPorts): PluginDocumentReader => ({
   id: instance.handle.id,
+  // Only what a reader may call: the handle itself also holds `change` and
+  // `history`.
+  handle: {
+    doc: () => instance.handle.doc(),
+    subscribe: (listener) => instance.handle.subscribe(listener),
+  },
   net: instance.definition,
+  imports: instance.imports,
   title,
   extensions: instance.extensions,
   diagnostics,
   diagnose: async () => {
     const net = instance.definition.get();
+    // Checked as it runs, with the components of its imports inlined.
     const checked = await latest
       .get()
-      .requestDiagnostics(net, instance.extensions);
+      .requestDiagnostics(
+        inlineImports(net, resolvedLibraries(instance.imports.get())),
+        instance.extensions,
+      );
 
     return { ...checked, net };
   },
 });
 
 type MutationEdits = Omit<PluginEdits, "applyAutoLayout">;
+
+const hostRestriction = (message: string): EditResult<never> => ({
+  applied: false,
+  reason: { kind: "host-restriction", message },
+});
 
 const guardMutations = ({ instance, latest }: PluginEditorPorts) =>
   Object.fromEntries(
@@ -219,6 +267,13 @@ const guardMutations = ({ instance, latest }: PluginEditorPorts) =>
           );
           if (reason !== null) {
             return { applied: false, reason };
+          }
+          const message = instance.mutationRefusal(
+            name as keyof PetrinautMutations,
+            input,
+          );
+          if (message !== null) {
+            return hostRestriction(message);
           }
           mutate(input);
 
@@ -243,9 +298,12 @@ const writeDocument = (
         if (readOnlyReason !== null) {
           return { applied: false, reason: readOnlyReason };
         }
-        const value = await instance.commands.applyAutoLayout({
-          targetSubnetId: activeSubnetId,
-        });
+        const targeted = { targetSubnetId: activeSubnetId };
+        const message = instance.commandRefusal("applyAutoLayout", targeted);
+        if (message !== null) {
+          return hostRestriction(message);
+        }
+        const value = await instance.commands.applyAutoLayout(targeted);
         await frameSceneAfterRender();
 
         return { applied: true, value };

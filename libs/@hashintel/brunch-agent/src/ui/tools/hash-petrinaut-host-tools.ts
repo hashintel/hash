@@ -113,6 +113,7 @@ const standIns: Partial<
       handle,
       title: document.title.get(),
       detail: netDetailSchema.parse(input.detail),
+      imports: document.imports.get(),
     }),
   petrinaut_get_diagnostics: (_input, { readDiagnosticsContext }) =>
     readDiagnosticsContext(),

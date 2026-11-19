@@ -2,17 +2,26 @@ import "@fontsource-variable/inter";
 import "@fontsource-variable/inter-tight";
 import "@fontsource-variable/jetbrains-mono";
 import "./index.css";
-import { type FunctionComponent, useEffect, useMemo, useRef } from "react";
+import {
+  type FunctionComponent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { PortalContainerContext } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   createPetrinaut,
+  sameRules,
   type PetrinautDocHandle,
   type Petrinaut as Instance,
   type LspWorkerFactory,
   type WorkerFactory,
   type MinimalNetMetadata,
+  type PetrinautRules,
+  type ResolveImport,
   type SDCPN,
   type SimulatorRegistration,
 } from "@hashintel/petrinaut-core";
@@ -22,8 +31,10 @@ import {
   useCommandRegistry,
 } from "../react/commands/command-registry";
 import { PetrinautProvider } from "../react/petrinaut-provider";
+import { ResolvingOverlay } from "./components/resolving-overlay";
 import { Stack } from "./components/stack";
 import { MonacoProvider } from "./monaco/provider";
+import { documentViewPlugin } from "./plugins/document-view-plugin";
 import { fpsCounterPlugin } from "./plugins/fps-counter-plugin";
 import { PetrinautPluginsProvider } from "./plugins/plugins-provider";
 import { EditorView } from "./views/Editor/editor-view";
@@ -59,6 +70,32 @@ export type PetrinautProps = {
   title?: string;
   setTitle?: (title: string) => void;
   readonly?: boolean;
+  /**
+   * Resolves an import of the document to its library: a promise of the
+   * whole library, the library itself when it is in memory, or `undefined`
+   * for one the host does not know. Keep it the same function from one
+   * render to the next, at module scope for instance: a new one creates a
+   * new editor instance, which resolves every import again.
+   */
+  resolveImport?: ResolveImport;
+  /**
+   * The ids of the libraries on offer. Each is resolved through
+   * `resolveImport`, and its components are listed in the Components panel
+   * to place instances of. The panel shows once the user switches Net
+   * Components on, or where `rules` keep the editor to composing. Define the
+   * list at module scope.
+   */
+  libraries?: readonly string[];
+  /**
+   * What the host lets the editor do: everything, when left out.
+   * `{ edit: "compose" }` keeps it to composing the components of
+   * `libraries`: the user places instances of them, wires their ports and
+   * arranges the canvas. The tools that draw a net, the Definitions view and
+   * the simulator are not offered, and Core refuses every other change to
+   * the document. The rules are read by what they say, so an object written
+   * inline is fine.
+   */
+  rules?: PetrinautRules;
   /**
    * Controls visibility of net-management UI in the editor's top bar and
    * burger menu.
@@ -117,6 +154,7 @@ export type PetrinautProps = {
 
 const noop = () => {};
 const noPlugins: readonly PetrinautPlugin[] = [];
+const noRules: PetrinautRules = {};
 
 /**
  * Handle-driven entry point. Creates a Core {@link Instance} from the given
@@ -132,6 +170,9 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   title = "Untitled",
   setTitle,
   readonly = false,
+  resolveImport,
+  libraries,
+  rules = noRules,
   hideNetManagementControls,
   existingNets = [],
   createNewNet = noop,
@@ -146,9 +187,22 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
 }) => {
   const titleEditable = setTitle !== undefined;
   const portalContainerRef = useRef<HTMLDivElement>(null);
+  // Held for as long as the rules say the same: `rules={{ edit: "compose" }}`
+  // is a new object on every render, and must not create a new instance.
+  const [heldRules, setHeldRules] = useState(rules);
+  if (!sameRules(heldRules, rules)) {
+    setHeldRules(rules);
+  }
   const instance = useMemo<Instance>(
-    () => createPetrinaut({ document: handle, readonly }),
-    [handle, readonly],
+    () =>
+      createPetrinaut({
+        document: handle,
+        readonly,
+        resolveImport,
+        libraries,
+        rules: heldRules,
+      }),
+    [handle, readonly, resolveImport, libraries, heldRules],
   );
 
   useEffect(() => () => instance.dispose(), [instance]);
@@ -182,7 +236,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
               ref={portalContainerRef}
             >
               <PetrinautPluginsProvider
-                plugins={[fpsCounterPlugin, ...plugins]}
+                plugins={[fpsCounterPlugin, documentViewPlugin, ...plugins]}
               >
                 <EditorView
                   hideNetManagementControls={hideNetManagementControls}
@@ -190,6 +244,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
                   titleEditable={titleEditable}
                 />
               </PetrinautPluginsProvider>
+              <ResolvingOverlay />
             </Stack>
           </MonacoProvider>
         </PetrinautPresentationProvider>

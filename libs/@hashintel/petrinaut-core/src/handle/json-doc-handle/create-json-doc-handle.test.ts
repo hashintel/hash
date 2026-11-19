@@ -487,6 +487,23 @@ describe("PetrinautDocHandle history", () => {
     expect(events.every((n) => n > 0)).toBe(true);
   });
 
+  it("names the history entry an undo, a redo or a jump put the document at, and none on an edit", () => {
+    const handle = createJsonDocHandle({ initial: empty() });
+    const restored: (number | undefined)[] = [];
+    handle.subscribe((event) => restored.push(event.restored?.index));
+
+    handle.change(addType("c1"));
+    handle.change(addType("c2"));
+    handle.history?.undo();
+    handle.history?.undo();
+    handle.history?.redo();
+    handle.history?.goToIndex(2);
+    handle.change(addType("c3"));
+
+    expect(restored).toEqual([undefined, undefined, 1, 0, 1, 2, undefined]);
+    expect(handle.history?.currentIndex.get()).toBe(3);
+  });
+
   it("supports goToIndex jumping forward and backward", () => {
     const handle = createJsonDocHandle({ initial: empty() });
     handle.change(addType("c1"));

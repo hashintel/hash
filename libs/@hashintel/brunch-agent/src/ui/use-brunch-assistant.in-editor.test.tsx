@@ -213,9 +213,10 @@ test.each(["Dismiss", "Run"] as const)(
       input: {},
       toolCallId: "read-1",
       handle,
-      // A read edits nothing, renames nothing and runs nothing.
+      // A read edits nothing, renames nothing and runs nothing: of the
+      // document it takes the imports alone, and this one has none.
       edit: {} as never,
-      document: {} as never,
+      document: { imports: { get: () => new Map() } } as never,
       experiments: {} as never,
       readDiagnosticsContext: async () => "",
       signal: new AbortController().signal,

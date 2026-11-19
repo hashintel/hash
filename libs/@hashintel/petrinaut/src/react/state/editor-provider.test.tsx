@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   toPetrinautId,
+  type PetrinautRules,
   type SDCPN,
   type SelectionMap,
 } from "@hashintel/petrinaut-core";
@@ -19,6 +20,7 @@ import {
   type PetrinautNavigationState,
 } from "../navigation";
 import { ActiveNetContext } from "./active-net-context";
+import { CompositionContext } from "./composition-context";
 import { EditorContext, type EditorContextValue } from "./editor-context";
 import { EditorProvider } from "./editor-provider";
 import { SDCPNContext, type SDCPNContextValue } from "./sdcpn-context";
@@ -228,6 +230,14 @@ describe("EditorProvider selection gestures", () => {
     expect(editor.focusedVisualizerPlaceId).toBeNull();
   });
 
+  it("unfolds and folds one component instance at a time", () => {
+    act(() => editor.toggleComponentInstanceFold("m1"));
+    act(() => editor.toggleComponentInstanceFold("m2"));
+    expect([...editor.unfoldedComponentInstanceIds]).toEqual(["m1", "m2"]);
+    act(() => editor.toggleComponentInstanceFold("m1"));
+    expect([...editor.unfoldedComponentInstanceIds]).toEqual(["m2"]);
+  });
+
   it("leaves hover preview dismissal to its grace period when crossing another place", () => {
     act(() => editor.openPlaceVisualizer("place-a"));
     act(() => editor.setHoveredItem({ type: "place", id: "place-b" }));
@@ -361,6 +371,54 @@ describe("EditorProvider selection gestures", () => {
   });
 });
 
+describe("EditorProvider in an editor that only composes", () => {
+  let editor: EditorContextValue;
+
+  const view = (rules: PetrinautRules) => (
+    <SDCPNContext value={makeSdcpnContextValue(() => "place")}>
+      <CompositionContext
+        value={{
+          imports: new Map(),
+          libraries: new Map(),
+          offered: [],
+          rules,
+        }}
+      >
+        <TestHost recorded={[]}>
+          <EditorProvider>
+            <EditorContextGrabber
+              onContextValue={(value) => {
+                editor = value;
+              }}
+            />
+          </EditorProvider>
+        </TestHost>
+      </CompositionContext>
+    </SDCPNContext>
+  );
+
+  it.each(["add-place", "add-transition"] as const)(
+    "reads an armed %s tool as the cursor once the host restricts the editor",
+    (tool) => {
+      const { rerender } = render(view({}));
+      act(() => editor.setEditionMode(tool));
+      expect(editor.editionMode).toBe(tool);
+
+      rerender(view({ edit: "compose" }));
+      expect(editor.editionMode).toBe("cursor");
+    },
+  );
+
+  it("keeps the tool that places a component, which is composing", () => {
+    render(view({ edit: "compose" }));
+    const packer = { from: "@hashintel/warehouse", id: "packer" };
+    act(() => editor.setAddComponentMode(packer));
+
+    expect(editor.editionMode).toBe("add-component");
+    expect(editor.componentToAdd).toEqual(packer);
+  });
+});
+
 describe("EditorProvider deep-link normalization", () => {
   it("strips unknown resources and stale selection items once, via replace", async () => {
     const recorded: RecordedNavigation[] = [];
@@ -460,6 +518,7 @@ describe("EditorProvider deep-link normalization", () => {
       differentialEquations: [],
       parameters: [],
       componentInstances: [],
+      fusions: [],
     };
 
     // The editor view's selection cleanup runs its effect before the provider's.

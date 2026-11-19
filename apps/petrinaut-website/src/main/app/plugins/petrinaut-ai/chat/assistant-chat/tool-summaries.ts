@@ -1,8 +1,10 @@
 import {
+  componentOf,
   generateArcId,
   getArcEndpointKey,
   mutationActionInputSchemas,
   placeArcEndpoint,
+  resolveComponent,
   type ArcEndpoint,
   type PetrinautAiCommandToolInput,
   type PetrinautAiCommandToolName,
@@ -173,9 +175,12 @@ const componentPortName = (
   const instance = definition?.componentInstances?.find(
     ({ id }) => id === endpoint.componentInstanceId,
   );
-  const subnet = definition?.subnets?.find(
-    ({ id }) => id === instance?.subnetId,
-  );
+  // A port of a component of an import is named by its id: its library is
+  // not among what a summary reads.
+  const subnet =
+    definition && instance
+      ? resolveComponent(definition, componentOf(instance))
+      : undefined;
   const port = subnet?.places.find(
     (place) => place.id === endpoint.portPlaceId,
   );

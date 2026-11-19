@@ -27,6 +27,7 @@ import {
 import { NotificationsContext } from "../notifications/context";
 import { findSimulator, SimulatorsContext } from "../simulators/context";
 import { SDCPNContext } from "../state/sdcpn-context";
+import { useExecutableDefinition } from "../state/use-executable-definition";
 import {
   type CreateExperimentOptions,
   type ExperimentRecord,
@@ -89,7 +90,8 @@ const fail: (message: string) => never = (message) => {
 export const ExperimentsProvider: React.FC<React.PropsWithChildren> = ({
   children,
 }) => {
-  const { extensions, petriNetDefinition } = use(SDCPNContext);
+  const { extensions } = use(SDCPNContext);
+  const petriNetDefinition = useExecutableDefinition();
   const languageClient = use(LanguageClientContext);
   const { addNotification } = use(NotificationsContext);
   const simulatorsRef = useLatest(use(SimulatorsContext));

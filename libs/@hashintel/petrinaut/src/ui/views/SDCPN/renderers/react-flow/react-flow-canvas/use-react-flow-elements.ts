@@ -2,11 +2,24 @@ import { MarkerType } from "@xyflow/react";
 
 import { arcHaloColor } from "../../../styles/focus";
 import { useStableItems } from "../../../use-stable-items";
+import { instanceFlowOrigin, instanceFlowPosition } from "./instance-anchor";
 import { portInHandleId, portOutHandleId } from "./port-handles";
 import { getOutlineNode } from "./shared/outline-arcs";
 
-import type { CanvasArc, CanvasNode, CanvasScene } from "../../../canvas-scene";
-import type { ArcData, ArcEdgeType, NodeType } from "./react-flow-types";
+import type {
+  CanvasArc,
+  CanvasFusionLink,
+  CanvasLinkEnds,
+  CanvasNode,
+  CanvasScene,
+} from "../../../canvas-scene";
+import type {
+  ArcData,
+  ArcEdgeType,
+  CanvasEdgeType,
+  FusionEdgeType,
+  NodeType,
+} from "./react-flow-types";
 
 const ARC_STROKE_WIDTH = 2;
 const ARC_MARKER_SIZE = 20;
@@ -30,11 +43,33 @@ const toReactFlowNode = (node: CanvasNode): NodeType => {
     case "transition":
       return { ...common, type: "transition", data: node };
     case "componentInstance":
-      return { ...common, type: "componentInstance", data: node };
+      return {
+        ...common,
+        position: instanceFlowPosition(node),
+        origin: instanceFlowOrigin,
+        type: "componentInstance",
+        data: node,
+      };
   }
 };
 
-const toReactFlowEdge = (
+/** What every edge takes from the line it draws: its ends, and its focus class. */
+const edgeBase = (link: CanvasLinkEnds & Pick<CanvasArc, "id" | "focus">) => ({
+  id: link.id,
+  source: link.sourceId,
+  target: link.targetId,
+  sourceHandle: link.sourcePortId
+    ? portOutHandleId(link.sourcePortId)
+    : undefined,
+  targetHandle: link.targetPortId
+    ? portInHandleId(link.targetPortId)
+    : undefined,
+  // Only an edge carrying a role is marked, so the pane can mute the rest
+  // without touching them.
+  className: link.focus === "none" ? undefined : "canvas-focus-role",
+});
+
+const toArcEdge = (
   arc: CanvasArc,
   attachments: Pick<
     ArcData,
@@ -47,17 +82,8 @@ const toReactFlowEdge = (
   // stopping at a grey one.
   const headColor = arcHaloColor(arc.focus) ?? color;
   return {
-    id: arc.id,
-    source: arc.sourceId,
-    target: arc.targetId,
-    sourceHandle: arc.sourcePortId
-      ? portOutHandleId(arc.sourcePortId)
-      : undefined,
-    targetHandle: arc.targetPortId
-      ? portInHandleId(arc.targetPortId)
-      : undefined,
+    ...edgeBase(arc),
     type: "default",
-    className: arc.focus === "none" ? undefined : "canvas-focus-role",
     selected: arc.selected,
     markerEnd: {
       type: MarkerType.ArrowClosed,
@@ -79,6 +105,19 @@ const toReactFlowEdge = (
   };
 };
 
+const toFusionEdge = (link: CanvasFusionLink): FusionEdgeType => ({
+  ...edgeBase(link),
+  type: "fusion",
+  selected: link.selected,
+  reconnectable: link.movableEnds === "both" ? true : link.movableEnds,
+  data: {
+    fusionId: link.fusionId,
+    name: link.name,
+    focus: link.focus,
+    severity: link.severity,
+  },
+});
+
 /**
  * The scene as React Flow nodes and edges. Each arc carries the outlines of
  * the nodes it joins; a component instance has none, so an arc at a subnet
@@ -88,7 +127,7 @@ const toReactFlowEdge = (
  */
 export const useReactFlowElements = (
   scene: CanvasScene,
-): { nodes: NodeType[]; edges: ArcEdgeType[] } => {
+): { nodes: NodeType[]; edges: CanvasEdgeType[] } => {
   const nodesById = new Map(scene.nodes.map((node) => [node.id, node]));
   const outlineOf = (nodeId: string) => {
     const node = nodesById.get(nodeId);
@@ -104,9 +143,9 @@ export const useReactFlowElements = (
   // nothing changed, so React Flow re-renders only what a hover touched.
   return {
     nodes: useStableItems(scene.nodes.map(toReactFlowNode)),
-    edges: useStableItems(
-      scene.arcs.map((arc) =>
-        toReactFlowEdge(arc, {
+    edges: useStableItems<CanvasEdgeType>([
+      ...scene.arcs.map((arc): ArcEdgeType =>
+        toArcEdge(arc, {
           sourceOutline: outlineOf(arc.sourceId),
           targetOutline: outlineOf(arc.targetId),
           hasReverseArc: connections.has(
@@ -114,6 +153,7 @@ export const useReactFlowElements = (
           ),
         }),
       ),
-    ),
+      ...scene.fusions.map(toFusionEdge),
+    ]),
   };
 };

@@ -55,6 +55,8 @@ const elementIds = (net: SDCPN, kind: NetElementAddress["kind"]): string[] => {
       return nets.flatMap(({ componentInstances }) =>
         (componentInstances ?? []).map(({ id }) => id),
       );
+    case "fusion":
+      return nets.flatMap(({ fusions }) => (fusions ?? []).map(({ id }) => id));
     case "scenario":
       return (net.scenarios ?? []).map(({ id }) => id);
     case "metric":

@@ -7,6 +7,7 @@ import {
   mutationActionInputSchemas,
   parseArcEndpointKey,
   parseArcId,
+  updatePrunesReferences,
   type ArcEndpoint,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
@@ -231,12 +232,18 @@ export const createBrunchMutationApprovalCoordinator =
     };
   };
 
-/** Every tool the server issues whose calls remove what the user built. */
-const destructiveToolNames: readonly string[] = [
+/**
+ * Every tool the server issues with calls the user approves first: one whose
+ * calls remove what the user built, and an update that prunes on some inputs.
+ */
+const approvalToolNames: readonly string[] = [
   ...browserExecutedToolNames,
-].filter((toolName) => browserToolFacts(toolName).destructive);
+].filter((toolName) => {
+  const { destructive, prunes } = browserToolFacts(toolName);
+  return destructive || prunes;
+});
 
-/** A destructive call's input, parsed by its tool's own schema; throws on one it doesn't accept. */
+/** A call's input, parsed by its tool's own schema; throws on one it doesn't accept. */
 const parseIssuedInput = (toolName: string, input: unknown): unknown => {
   const tool = browserExecutedTools.get(toolName);
   if (tool === undefined)
@@ -244,8 +251,27 @@ const parseIssuedInput = (toolName: string, input: unknown): unknown => {
   return tool.inputParser.parse(input);
 };
 
-const requiresBrunchMutationApproval = (toolName: string): boolean =>
-  browserToolFacts(toolName).destructive;
+/**
+ * Whether the user approves a call first: every call of a tool that removes
+ * what the user built, and a call of an update that would take arcs or fusion
+ * memberships off `definition`, the open document. With none open there is
+ * nothing to take.
+ */
+const requiresBrunchMutationApproval = (
+  toolName: string,
+  input: unknown,
+  definition: SDCPN | undefined,
+): boolean => {
+  const { destructive, prunes } = browserToolFacts(toolName);
+  return (
+    destructive ||
+    (prunes &&
+      definition !== undefined &&
+      canonicalCallsOf(toolName, input).some((call) =>
+        updatePrunesReferences(definition, call.toolName, call.input),
+      ))
+  );
+};
 
 const spacedWords = (camelCase: string) =>
   camelCase.replace(/[A-Z]/gu, (letter) => ` ${letter.toLowerCase()}`);
@@ -260,6 +286,7 @@ type NetItems = Pick<
   | "differentialEquations"
   | "parameters"
   | "componentInstances"
+  | "fusions"
 >;
 
 const namedNetItemsOf = (net: NetItems): NamedItem[] => [
@@ -272,6 +299,7 @@ const namedNetItemsOf = (net: NetItems): NamedItem[] => [
   ...net.differentialEquations,
   ...net.parameters,
   ...(net.componentInstances ?? []),
+  ...(net.fusions ?? []),
 ];
 
 /** The document's named items, subnets included. Ids are UUIDs, so names describe removals. */
@@ -326,12 +354,23 @@ const isDestructiveOperation = (
   petrinautToolEffects[toolName as keyof typeof petrinautToolEffects]
     .destructive;
 
-/** What one canonical removal removes, in the card's words; nothing for any other call. */
+/**
+ * What one canonical removal removes, in the card's words, and what an update
+ * the card shows takes with it; nothing for any other call.
+ */
 const canonicalRemovalDescriptions = (
   toolName: string,
   input: unknown,
   nameOf: (id: string) => string,
 ): readonly string[] => {
+  if (toolName === "updatePlace")
+    return [
+      `Remove arcs and fusion memberships on port — ${nameOf(mutationActionInputSchemas.updatePlace.parse(input).placeId)}`,
+    ];
+  if (toolName === "updateComponentInstance")
+    return [
+      `Remove arcs and fusion memberships on component instance — ${nameOf(mutationActionInputSchemas.updateComponentInstance.parse(input).instanceId)}`,
+    ];
   if (!isDestructiveOperation(toolName)) return [];
   switch (toolName) {
     case "removePlace":
@@ -386,6 +425,24 @@ const canonicalRemovalDescriptions = (
       return [
         `Remove component instance — ${nameOf(mutationActionInputSchemas.removeComponentInstance.parse(input).instanceId)}`,
       ];
+    case "removeFusion":
+      return [
+        `Remove fusion — ${nameOf(mutationActionInputSchemas.removeFusion.parse(input).fusionId)}`,
+      ];
+    case "removeFusionMember": {
+      const { fusionId, member } =
+        mutationActionInputSchemas.removeFusionMember.parse(input);
+      return [
+        `Remove fusion member — ${nameOf(fusionId)} / ${endpointName(member, nameOf)}`,
+      ];
+    }
+    case "replaceFusionMember": {
+      const { fusionId, member, replacement } =
+        mutationActionInputSchemas.replaceFusionMember.parse(input);
+      return [
+        `Replace fusion member — ${nameOf(fusionId)} / ${endpointName(member, nameOf)} with ${endpointName(replacement, nameOf)}`,
+      ];
+    }
     case "deleteItemsByIds":
       return mutationActionInputSchemas.deleteItemsByIds
         .parse(input)
@@ -401,7 +458,7 @@ const canonicalRemovalDescriptions = (
   }
 };
 
-/** What a call of a destructive tool removes, through the canonical removals it makes. */
+/** What a call the card shows removes, through the canonical calls it makes. */
 const removalDescriptions = (
   toolName: string,
   input: unknown,
@@ -424,11 +481,14 @@ const saveNotStarted = (reason: string): HashSaveOutcome => ({
 /**
  * Later calls stay queued behind a waiting approval; a denial settles as not
  * applied. A save asks every time, after the host's own refusals, which
- * settle the same way without a card.
+ * settle the same way without a card. `readDefinition` reads the open
+ * document as the call's turn finds it, which says what an update would take
+ * with it.
  */
 export const createBrunchMutationAdmission =
   (
     approval: BrunchMutationApprovalCoordinator,
+    readDefinition: () => SDCPN | undefined,
     hostSave?: BrunchHostSave,
   ): InBandBrowserCallAdmission =>
   async ({ toolCallId, toolName, input, signal }) => {
@@ -445,7 +505,8 @@ export const createBrunchMutationAdmission =
         ? { admitted: true }
         : { admitted: false, output: saveNotStarted(decision.reason) };
     }
-    if (!requiresBrunchMutationApproval(toolName)) return { admitted: true };
+    if (!requiresBrunchMutationApproval(toolName, input, readDefinition()))
+      return { admitted: true };
     // An approval row renders only for inputs its schema accepts.
     parseIssuedInput(toolName, input);
     const decision = await approval.request({ toolCallId, toolName, signal });
@@ -608,16 +669,16 @@ export type BrunchMutationApprovalComponents = Readonly<
 >;
 
 /**
- * One approval widget per destructive tool, and the save card when the host
- * can save. Create once per coordinator and reuse across snapshots, so a
- * waiting approval re-renders instead of remounting.
+ * One approval widget per tool with calls to approve, and the save card when
+ * the host can save. Create once per coordinator and reuse across snapshots,
+ * so a waiting approval re-renders instead of remounting.
  */
 export const createBrunchMutationApprovalComponents = (
   coordinator: BrunchMutationApprovalCoordinator,
   hostSave?: BrunchHostSave,
 ): BrunchMutationApprovalComponents => ({
   ...(Object.fromEntries(
-    destructiveToolNames.map((toolName) => {
+    approvalToolNames.map((toolName) => {
       const Widget = createBrunchMutationApprovalWidget(coordinator, toolName);
       const component: ApprovalComponent = (props) => (
         <WithBrunchEditorApi>
@@ -647,7 +708,7 @@ export const createBrunchMutationApprovalInteractiveTools = (
 ): readonly PetrinautAiInteractiveTool[] => {
   const saveComponent = components[saveToolName];
   return [
-    ...destructiveToolNames.flatMap((toolName) => {
+    ...approvalToolNames.flatMap((toolName) => {
       const component = components[toolName];
       return component === undefined
         ? []

@@ -185,6 +185,32 @@ describe("Petrinaut AI core exports", () => {
     ).toMatchObject({ type: "string" });
   });
 
+  test("the update tools tell a model how to clear an instance's choice and an interface flag", () => {
+    type JsonSchemaNode = {
+      type?: unknown;
+      description?: string;
+      properties?: Record<string, JsonSchemaNode>;
+      anyOf?: JsonSchemaNode[];
+    };
+    const updateOf = (schema: z.ZodType) =>
+      (z.toJSONSchema(schema) as JsonSchemaNode).properties?.update
+        ?.properties ?? {};
+
+    const { implementation } = updateOf(
+      petrinautAiTools.updateComponentInstance.inputSchema,
+    );
+    // Beside the two ways to name a component.
+    expect(implementation?.anyOf).toContainEqual({ type: "null" });
+    expect(implementation?.description).toMatch(/null to clear/u);
+    expect(implementation?.description).toMatch(/Omit to leave/u);
+
+    const { interface: flag } = updateOf(
+      petrinautAiTools.updateSubnet.inputSchema,
+    );
+    expect(flag).toMatchObject({ type: "boolean" });
+    expect(flag?.description).toMatch(/false/u);
+  });
+
   test("converts invented entity ids so references and arc ids resolve", () => {
     const instance = createInstance();
     const { mutations } = instance;

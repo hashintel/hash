@@ -4,10 +4,15 @@ import {
   arcEndpointSchema,
   arcDirectionSchema,
   arcIdSchema,
+  checkInstanceNamesOneComponent,
   colorElementSchema,
   colorSchema,
+  componentInstanceObjectSchema,
   componentInstanceSchema,
+  componentReferenceSchema,
   differentialEquationSchema,
+  fusionMemberSchema,
+  fusionSchema,
   idSchema,
   inputArcSchema,
   nodePositionCommitSchema,
@@ -30,6 +35,7 @@ export {
   colorSchema,
   componentInstanceSchema,
   differentialEquationSchema,
+  fusionSchema,
   idSchema,
   nodePositionCommitSchema,
   parameterSchema,
@@ -116,9 +122,18 @@ export const metricUpdateSchema = simulationMetricSchema
       "Fields to assign to an existing metric. Omitted fields are left unchanged.",
   });
 
-export const componentInstanceUpdateSchema = componentInstanceSchema
+// JSON has no `undefined` to clear a field with, so the two updates below
+// each take a value that says it. Only an update does: what is stored holds a
+// reference or `true`, or no key.
+export const componentInstanceUpdateSchema = componentInstanceObjectSchema
   .omit({ id: true, x: true, y: true })
   .partial()
+  .extend({
+    implementation: componentReferenceSchema.nullable().optional().meta({
+      description:
+        "For an instance of an interface: the component to run, as `{ id }` for a subnet of the document or `{ from, id }` for a component of an import, or null to clear the instance's choice, so that it runs the document's default implementation for the interface. Omit to leave the choice as it is.",
+    }),
+  })
   .meta({
     description:
       "Fields to assign to an existing component instance. Omitted fields are left unchanged.",
@@ -133,11 +148,28 @@ export const subnetUpdateSchema = subnetSchema
     differentialEquations: true,
     parameters: true,
     componentInstances: true,
+    fusions: true,
   })
   .partial()
+  .extend({
+    interface: z.boolean().optional().meta({
+      description:
+        "true makes the subnet an interface: a signature of ports, types and parameters with no transitions, which implements no interface itself. false makes an interface an ordinary subnet again. Omit to leave it as it is.",
+    }),
+  })
   .meta({
     description:
       "Fields to assign to an existing subnet. Omitted fields are left unchanged.",
+  });
+
+export const fusionUpdateSchema = fusionSchema
+  .omit({ id: true, members: true })
+  .partial()
+  // A fusion always has a name: an update changes it or leaves it out.
+  .extend({ name: fusionSchema.shape.name.exactOptional() })
+  .meta({
+    description:
+      "Fields to assign to an existing fusion. Members change through `addFusionMember`, `removeFusionMember` and `replaceFusionMember`.",
   });
 
 const targetSubnetIdSchema = idSchema.nullable().optional().meta({
@@ -223,6 +255,7 @@ export const itemTypeAndIdSchema = z
     z.strictObject({ type: z.literal("transition"), id: idSchema }),
     z.strictObject({ type: z.literal("arc"), id: arcIdSchema }),
     z.strictObject({ type: z.literal("componentInstance"), id: idSchema }),
+    z.strictObject({ type: z.literal("fusion"), id: idSchema }),
     z.strictObject({ type: z.literal("type"), id: idSchema }),
     z.strictObject({ type: z.literal("differentialEquation"), id: idSchema }),
     z.strictObject({ type: z.literal("parameter"), id: idSchema }),
@@ -495,11 +528,12 @@ export const mutationActionInputSchemas = {
     description:
       "Remove a subnet definition and component instances that reference it.",
   }),
-  addComponentInstance: componentInstanceSchema
+  addComponentInstance: componentInstanceObjectSchema
     .extend({ targetSubnetId: targetSubnetIdSchema })
+    .check(checkInstanceNamesOneComponent)
     .meta({
       description:
-        "Place an instance of an existing subnet in the root net or another subnet.",
+        "Place an instance of a component in the root net or a subnet: a subnet of the document, named by `subnetId`, or a component of a library the application resolves, named by `component: { from, id }`. The first instance to name a library, for its `component` or for its `implementation`, adds it to the document's `imports`.",
     }),
   updateComponentInstance: z
     .strictObject({
@@ -523,6 +557,82 @@ export const mutationActionInputSchemas = {
       targetSubnetId: targetSubnetIdSchema,
     })
     .meta({ description: "Remove a component instance." }),
+  addFusion: fusionSchema
+    .extend({
+      name: fusionSchema.shape.name.optional(),
+      targetSubnetId: targetSubnetIdSchema,
+    })
+    .meta({
+      description:
+        "Fuse a place of the net with ports of its component instances, or ports with each other, so they are one place in simulation. Without a `name`, the fusion is named `Fusion N`, with the lowest number no fusion of the net uses. A member already in another fusion of the same net brings that fusion's members along, and that fusion is removed.",
+    }),
+  updateFusion: z
+    .strictObject({
+      fusionId: idSchema,
+      update: fusionUpdateSchema,
+      targetSubnetId: targetSubnetIdSchema,
+    })
+    .meta({
+      description:
+        "Rename a fusion or change its description. A fusion keeps a name: an empty one is refused.",
+    }),
+  removeFusion: z
+    .strictObject({
+      fusionId: idSchema,
+      targetSubnetId: targetSubnetIdSchema,
+    })
+    .meta({
+      description: "Remove a fusion. Its members become separate places again.",
+    }),
+  addFusionMember: z
+    .strictObject({
+      fusionId: idSchema,
+      member: fusionMemberSchema,
+      targetSubnetId: targetSubnetIdSchema,
+    })
+    .meta({
+      description:
+        "Add a place or an instance port to a fusion. A member already in another fusion of the same net brings that fusion's members along, and that fusion is removed.",
+    }),
+  removeFusionMember: z
+    .strictObject({
+      fusionId: idSchema,
+      member: fusionMemberSchema,
+      targetSubnetId: targetSubnetIdSchema,
+    })
+    .meta({
+      description:
+        "Take a place or an instance port out of a fusion. A fusion left with fewer than two members is removed.",
+    }),
+  replaceFusionMember: z
+    .strictObject({
+      fusionId: idSchema,
+      member: fusionMemberSchema.meta({
+        description: "The member that leaves the fusion.",
+      }),
+      replacement: fusionMemberSchema.meta({
+        description: "The place or instance port that joins in its stead.",
+      }),
+      targetSubnetId: targetSubnetIdSchema,
+    })
+    .meta({
+      description:
+        "Move a fusion from one place or instance port to another, in one step. A replacement already in another fusion of the same net brings that fusion's members along, and that fusion is removed. The replacement must not be a member of this fusion already: use `removeFusionMember` to take a member out.",
+    }),
+  setImplementation: z
+    .strictObject({
+      interfaceId: idSchema.meta({
+        description: "The interface subnet's ID.",
+      }),
+      implementationId: idSchema.nullable().meta({
+        description:
+          "The implementing subnet to run for instances of the interface that choose none themselves, or null to clear the document's default.",
+      }),
+    })
+    .meta({
+      description:
+        "Set or clear the document's default implementation for an interface.",
+    }),
   deleteItemsByIds: z
     .strictObject({
       items: z.array(itemTypeAndIdSchema).meta({
@@ -555,9 +665,19 @@ export type ScenarioInput = z.infer<typeof simulationScenarioSchema>;
 export type MetricInput = z.infer<typeof simulationMetricSchema>;
 export type ComponentInstanceInput = z.infer<typeof componentInstanceSchema>;
 export type SubnetInput = z.infer<typeof subnetSchema>;
+export type FusionInput = z.infer<typeof fusionSchema>;
 export type NodePositionCommitInput = z.infer<typeof nodePositionCommitSchema>;
 
 export type MutationActionName = keyof typeof mutationActionInputSchemas;
 export type MutationActionInput<Name extends MutationActionName> = z.infer<
   (typeof mutationActionInputSchemas)[Name]
 >;
+
+/**
+ * The updates that, on some inputs, drop arcs and fusion memberships:
+ * `updatePrunesReferences` says whether a call would.
+ */
+export const pruningUpdateActions = [
+  "updatePlace",
+  "updateComponentInstance",
+] as const satisfies readonly MutationActionName[];
