@@ -7231,6 +7231,7 @@ __metadata:
     jsdom: "npm:24.1.3"
     magic-string: "npm:0.30.21"
     monaco-editor: "npm:0.55.1"
+    motion: "npm:14.12.0"
     oxc-transform-react: "npm:0.152.0"
     oxlint: "catalog:"
     oxlint-tsgolint: "catalog:"
@@ -26987,6 +26988,28 @@ __metadata:
   languageName: node
   linkType: hard
 
+"framer-motion@npm:14.12.0":
+  version: 14.12.0
+  resolution: "framer-motion@npm:14.12.0"
+  dependencies:
+    motion-dom: "npm:14.12.0"
+    motion-utils: "npm:14.7.0"
+    tslib: "npm:^2.4.0"
+  peerDependencies:
+    react: ^18.0.0 || ^19.0.0
+    react-dom: ^18.0.0 || ^19.0.0
+    remix: ^3.1.0
+  peerDependenciesMeta:
+    react:
+      optional: true
+    react-dom:
+      optional: true
+    remix:
+      optional: true
+  checksum: 10c0/ee971f8000721c29404331e47ca01ecb3a800d15f111604c13f4f54e1dd9f973f5a00ec6fbcb438ca36b1eb92566a346dd9e633af7f817bef852553364abf9c4
+  languageName: node
+  linkType: hard
+
 "fresh@npm:^2.0.0":
   version: 2.0.0
   resolution: "fresh@npm:2.0.0"
@@ -32724,6 +32747,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"motion-dom@npm:14.12.0":
+  version: 14.12.0
+  resolution: "motion-dom@npm:14.12.0"
+  dependencies:
+    motion-utils: "npm:14.7.0"
+  checksum: 10c0/f1266899afe5e1fb87d273db2236ffac7fa7915b7fe0e31bd8dc284d3e9127d4fa201a610568afa7ef4f4e5f073ce239a5ef0b20490fc8dbfa6e4edb19b6f145
+  languageName: node
+  linkType: hard
+
 "motion-dom@npm:^11.18.1":
   version: 11.18.1
   resolution: "motion-dom@npm:11.18.1"
@@ -32733,10 +32765,38 @@ __metadata:
   languageName: node
   linkType: hard
 
+"motion-utils@npm:14.7.0":
+  version: 14.7.0
+  resolution: "motion-utils@npm:14.7.0"
+  checksum: 10c0/99f4fff3c164998a053ae698f171858735631d4da980d27de67817899a708b2d6ba7246a8fb007b1d883dfd90ee06cfaa1dcfb55abb00511c8e169eb0bd14769
+  languageName: node
+  linkType: hard
+
 "motion-utils@npm:^11.18.1":
   version: 11.18.1
   resolution: "motion-utils@npm:11.18.1"
   checksum: 10c0/dac083bdeb6e433a277ac4362211b0fdce59ff09d6f7897f0f49d1e3561209c6481f676876daf99a33485054bc7e4b1d1b8d1de16f7b1e5c6f117fe76358ca00
+  languageName: node
+  linkType: hard
+
+"motion@npm:14.12.0":
+  version: 14.12.0
+  resolution: "motion@npm:14.12.0"
+  dependencies:
+    framer-motion: "npm:14.12.0"
+    tslib: "npm:^2.4.0"
+  peerDependencies:
+    react: ^18.0.0 || ^19.0.0
+    react-dom: ^18.0.0 || ^19.0.0
+    remix: ^3.1.0
+  peerDependenciesMeta:
+    react:
+      optional: true
+    react-dom:
+      optional: true
+    remix:
+      optional: true
+  checksum: 10c0/98780277cbaed1803375039e0dae4ebdf06ae5d3392aae4f19b6b5a308fcaae75d6e36fd040da62469e9459980d453d8e7274e3ffbc7c462042de9ad45263834
   languageName: node
   linkType: hard
 
