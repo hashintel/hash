@@ -377,7 +377,8 @@ vi.mock("@hashintel/brunch-agent/ui", async (importOriginal) => ({
 /** Apollo's hooks over the fake graph; documents and SDK stay real. */
 vi.mock("@apollo/client", async (importOriginal) => {
   const original = await importOriginal<typeof ApolloClient>();
-  const { useCallback, useSyncExternalStore } = await import("react");
+  const { useCallback, useEffect, useState, useSyncExternalStore } =
+    await import("react");
 
   const queryKey = ({
     request: { filter },
@@ -475,11 +476,33 @@ vi.mock("@apollo/client", async (importOriginal) => {
     {
       skip,
       variables,
-    }: { skip?: boolean; variables: QueryEntitySubgraphQueryVariables },
+      fetchPolicy,
+    }: {
+      skip?: boolean;
+      variables: QueryEntitySubgraphQueryVariables;
+      fetchPolicy?: string;
+    },
   ) => {
-    useSyncExternalStore(graph.subscribe, graph.getVersion);
+    const version = useSyncExternalStore(graph.subscribe, graph.getVersion);
     const key = skip ? null : queryKey(variables);
     const data = key === null ? undefined : read(key);
+    // As Apollo's `cache-and-network` does: what the cache holds is given at
+    // once, and the query is loading until the graph answers it afresh.
+    const asksGraph = fetchPolicy === "cache-and-network";
+    const [answeredKey, setAnsweredKey] = useState<string | null>(null);
+    useEffect(() => {
+      if (!asksGraph || key === null || answeredKey === key) {
+        return;
+      }
+      if (key === "nets" && graph.listPending) {
+        return;
+      }
+      queueMicrotask(() => {
+        graph.cache.set(key, answer(key));
+        setAnsweredKey(key);
+        graph.notify();
+      });
+    }, [answeredKey, asksGraph, key, version]);
     const refetch = useCallback(() => {
       const refetched = key ?? queryKey(variables);
       const refetchFailure = graph.refetchFailures.shift();
@@ -493,7 +516,13 @@ vi.mock("@apollo/client", async (importOriginal) => {
       // Stable while the key is, as Apollo's is.
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [key]);
-    return { data, loading: key !== null && data === undefined, refetch };
+    return {
+      data,
+      loading:
+        key !== null &&
+        (data === undefined || (asksGraph && answeredKey !== key)),
+      refetch,
+    };
   };
 
   /** The client Brunch's graph reads use; these tests make no reads. */
@@ -1266,7 +1295,33 @@ test("a draft's URL opens the saved net once a net exists under its id", async (
   expect(graph.writes.map(({ kind }) => kind)).toEqual(["update"]);
 });
 
-/** The draft URL `url()` holds, or `null` when it holds none. */
+test("a draft's or saved net's URL is resolved against the graph's nets, not a list cached before the net was saved", async () => {
+  // An earlier visit leaves the nets list cached.
+  await renderRoute(`/processes/${uuidA}`);
+  cleanup();
+  observed.editor = null;
+  // Another tab then saves the draft.
+  graph.nets.set(createdId, graphNet(createdId, "Saved elsewhere"));
+
+  await renderRoute(draftUrl);
+  expect(topBar()).toMatchObject({
+    title: "Saved elsewhere",
+    saveLabel: "Saved",
+  });
+  pressSave();
+  await settle();
+  expect(graph.writes.map(({ kind }) => kind)).toEqual(["update"]);
+  cleanup();
+  observed.editor = null;
+
+  // A saved net the cached list lacks opens too.
+  const uuidLater = "00000000-0000-4000-8000-00000000000d";
+  const laterId = `${webId}~${uuidLater}` as EntityId;
+  graph.nets.set(laterId, graphNet(laterId, "Later"));
+
+  await renderRoute(`/processes/${uuidLater}`);
+  expect(topBar()).toMatchObject({ title: "Later", saveLabel: "Saved" });
+});
 const openDraft = () => {
   const [, uuid, web, query] =
     /^\/processes\/([0-9a-f-]{36})\?draftWeb=([^&]+)(.*)$/u.exec(url()) ?? [];
