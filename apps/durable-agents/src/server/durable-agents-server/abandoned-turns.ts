@@ -123,6 +123,10 @@ export const createAbandonedTurns = (options: AbandonedTurnsOptions) => {
           ? check(conversation, options.context, stillDue, token.signal, now)
           : Promise.resolve({ kind: "idle" as const }),
       );
+      // An idle conversation is not checked again until something schedules
+      // it: a run starts only from a turn, whose stream schedules a check when
+      // it detaches, or from recovery on open, which calls `opened`. A
+      // hand-edit report starts no run.
       if (found.kind === "held" && stillDue())
         schedule(conversationId, recheckMs);
     } catch {
