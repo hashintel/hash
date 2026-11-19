@@ -1,34 +1,15 @@
 import {
-  type ArcElement,
-  type CanonicalPetrinautCall,
-  type NetElementAddress,
   browserToolEnvelopeOf,
   browserToolFacts,
-  generatedArcId,
-  namesId,
   parseClientToolResultMetadata,
   readRecordedCall,
-  recordedCanonicalCallsOf,
-  type NetStructure,
 } from "@hashintel/brunch-agent";
 import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core/ai";
 
-import { netResultView } from "./net-view.ts";
-
 import type { FlueConversationSnapshot } from "@flue/sdk";
-import type { SDCPN } from "@hashintel/petrinaut-core";
+import type { NetCallCore } from "@hashintel/brunch-agent";
 
-export type NetElement = NetElementAddress & { readonly arc?: ArcElement };
-
-export interface NetCall {
-  readonly toolCallId: string;
-  readonly toolName: string;
-  readonly input: unknown;
-  readonly output: unknown;
-  readonly revisionBefore?: string;
-  readonly revisionAfter?: string;
-  /** The browser's host-only metadata, as recorded. */
-  readonly metadata: unknown;
+export interface NetCall extends NetCallCore {
   readonly messageIndex: number;
   readonly partIndex: number;
 }
@@ -70,84 +51,6 @@ export const netCalls = (snapshot: FlueConversationSnapshot): NetCall[] =>
       : [],
   );
 
-export const isAppliedChange = (call: NetCall): boolean =>
-  call.revisionAfter !== undefined &&
-  !(
-    typeof call.output === "object" &&
-    call.output !== null &&
-    "applied" in call.output &&
-    call.output.applied === false
-  );
-
-/** Only values under an id key (`id` or `...Id`) are converted; names and code compare exactly. */
-const hasId = (value: unknown, id: string, underIdKey = false): boolean => {
-  if (underIdKey ? namesId(value, id) : value === id) return true;
-  if (Array.isArray(value))
-    return value.some((item) => hasId(item, id, underIdKey));
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    Object.entries(value).some(([key, item]) =>
-      hasId(item, id, key === "id" || key.endsWith("Id")),
-    )
-  );
-};
-
-/**
- * Arcs have no standalone ID: the arc actions identify their transition,
- * direction and endpoint, and a batch deletion uses the generated arc ID.
- * Judged on each canonical call a call makes, so a merged arc update counts as
- * the calls it runs.
- */
-const canonicalCallMatchesArc = (
-  { toolName, input }: CanonicalPetrinautCall,
-  arc: ArcElement,
-): boolean => {
-  if (toolName === "deleteItemsByIds") return hasId(input, generatedArcId(arc));
-  if (!browserToolFacts(toolName).targets.includes("arc")) return false;
-  if (typeof input !== "object" || input === null) return false;
-  if (
-    !("transitionId" in input) ||
-    !namesId(input.transitionId, arc.transitionId)
-  )
-    return false;
-  const direction = "arcDirection" in input ? input.arcDirection : "input";
-  if (direction !== arc.arcDirection) return false;
-  if (toolName === "updateArcPlace")
-    return (
-      ("newPlaceId" in input && namesId(input.newPlaceId, arc.placeId)) ||
-      ("newEndpoint" in input && hasId(input.newEndpoint, arc.placeId))
-    );
-  return (
-    ("placeId" in input && namesId(input.placeId, arc.placeId)) ||
-    ("endpoint" in input && hasId(input.endpoint, arc.placeId))
-  );
-};
-
-export const callsForElement = (
-  snapshot: FlueConversationSnapshot,
-  element: NetElement,
-): NetCall[] =>
-  netCalls(snapshot).filter((call) => {
-    if (!isAppliedChange(call)) return false;
-    // A recorded call that no tool of today takes yields no canonical call,
-    // and so is credited to no element.
-    const canonicalCalls = recordedCanonicalCallsOf(call.toolName, call.input);
-    const { arc } = element;
-    return arc
-      ? canonicalCalls.some((canonical) =>
-          canonicalCallMatchesArc(canonical, arc),
-        )
-      : canonicalCalls.some(
-          (canonical) =>
-            browserToolFacts(canonical.toolName).targets.includes(
-              element.kind,
-            ) &&
-            (hasId(canonical.input, element.id) ||
-              hasId(call.output, element.id)),
-        );
-  });
-
 /** Where an assistant tool call sits in the conversation, by message and part index. */
 const toolCallPosition = (
   snapshot: FlueConversationSnapshot,
@@ -184,26 +87,4 @@ export const latestCanonicalNetReadBefore = (
         (call.messageIndex === position.messageIndex &&
           call.partIndex < position.partIndex)),
   );
-};
-
-/**
- * The net as the latest result that shows it: a net read, or a change that
- * carries the net read back.
- */
-export const latestNetDefinition = (
-  snapshot: FlueConversationSnapshot,
-):
-  | { readonly definition: NetStructure; readonly call: NetCall }
-  | undefined => {
-  const call = netCalls(snapshot).findLast(
-    (entry) => netResultView(entry.toolName, entry.metadata) !== undefined,
-  );
-  if (!call) return undefined;
-  const view = netResultView(call.toolName, call.metadata);
-  if (view?.kind === "change") return { definition: view.readBack, call };
-  return typeof call.output === "object" &&
-    call.output !== null &&
-    "definition" in call.output
-    ? { definition: call.output.definition as SDCPN, call }
-    : undefined;
 };
