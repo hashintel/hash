@@ -69,6 +69,7 @@ const getOutline = (selected: boolean, dashed = false) =>
   );
 
 /** Something that can start the flow rather than a step of it: dashed, and fainter while off. */
+const ghost = css({ cursor: "pointer", _hover: { opacity: "[0.8]" } });
 const onGhost = css({ opacity: "[0.5]" });
 const offGhost = css({ opacity: "[0.25]" });
 
@@ -279,6 +280,7 @@ const Card = ({
       ports,
       card,
       getOutline(selected, ghostOn !== undefined),
+      ghostOn !== undefined && ghost,
       ghostOn === true && onGhost,
       ghostOn === false && offGhost,
     )}
@@ -314,7 +316,8 @@ export const TriggerNode = ({
     selected={selected}
     problems={[]}
     run={undefined}
-    ghostOn={on}
+    /* Selected, it's drawn in full, as a step is. */
+    ghostOn={selected ? undefined : on}
   >
     <Handle type="source" position={Position.Right} isConnectable={false} />
   </Card>

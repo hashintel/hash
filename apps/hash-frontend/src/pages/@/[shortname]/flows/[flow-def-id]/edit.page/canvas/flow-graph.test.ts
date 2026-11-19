@@ -271,7 +271,6 @@ describe("getFlowGraph", () => {
         draggable: false,
         deletable: false,
         connectable: false,
-        selectable: false,
       },
       {
         id: getTriggerNodeId("schedule"),
@@ -281,7 +280,6 @@ describe("getFlowGraph", () => {
         draggable: false,
         deletable: false,
         connectable: false,
-        selectable: false,
       },
     ]);
     expect(

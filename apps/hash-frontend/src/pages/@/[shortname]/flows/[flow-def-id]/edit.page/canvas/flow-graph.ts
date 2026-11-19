@@ -158,7 +158,6 @@ export const getFlowGraph = ({
       draggable: false,
       deletable: false,
       connectable: false,
-      selectable: false,
     })),
     {
       id: startNodeId,

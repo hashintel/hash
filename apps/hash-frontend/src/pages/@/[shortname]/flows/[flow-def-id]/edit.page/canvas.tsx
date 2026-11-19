@@ -57,7 +57,7 @@ import type {
   ForEachLayout,
   TriggerCard,
 } from "./canvas/flow-graph";
-import type { TriggerRow } from "./shared/flow-triggers";
+import type { TriggerKind, TriggerRow } from "./shared/flow-triggers";
 import type { FlowEditor } from "@local/hash-isomorphic-utils/flows/flow-editor";
 import type {
   Connection,
@@ -123,13 +123,20 @@ export type CanvasHandle = {
   addStepInView: (actionDefinitionId: string) => void;
 };
 
+export type CanvasSelection = {
+  stepIds: string[];
+  start: boolean;
+  trigger: TriggerKind | null;
+};
+
 type CanvasProps = {
   ref?: Ref<CanvasHandle>;
   editor: FlowEditor;
   selectedStepIds: string[];
   /** Whether the start step is selected, which opens its panel. */
   startSelected: boolean;
-  onSelectionChange: (selection: { stepIds: string[]; start: boolean }) => void;
+  selectedTrigger: TriggerKind | null;
+  onSelectionChange: (selection: CanvasSelection) => void;
   /** A new object each time, so the same step can be focused twice. */
   focusRequest: { stepId: string } | null;
   collapsedStepIds: Set<string>;
@@ -145,6 +152,7 @@ const FlowCanvas = ({
   editor,
   selectedStepIds,
   startSelected,
+  selectedTrigger,
   onSelectionChange,
   focusRequest,
   collapsedStepIds,
@@ -327,13 +335,15 @@ const FlowCanvas = ({
       const stepId = getNodeStepId(node);
 
       const selected =
-        node.type === "start"
-          ? startSelected
-          : stepId !== null && selectedStepIdSet.has(stepId);
+        node.type === "trigger"
+          ? node.data.kind === selectedTrigger
+          : node.type === "start"
+            ? startSelected
+            : stepId !== null && selectedStepIdSet.has(stepId);
 
       return selected ? { ...node, selected: true } : node;
     });
-  }, [measuredNodes, selectedStepIds, startSelected]);
+  }, [measuredNodes, selectedStepIds, startSelected, selectedTrigger]);
   const nodes = useMemo(
     () =>
       selectionNodes.map((node) => {
@@ -374,7 +384,7 @@ const FlowCanvas = ({
 
   const selectStep = useCallback(
     (stepId: string) => {
-      onSelectionChange({ stepIds: [stepId], start: false });
+      onSelectionChange({ stepIds: [stepId], start: false, trigger: null });
       setSelectedEdgeIds(new Set());
     },
     [onSelectionChange],
@@ -555,6 +565,7 @@ const FlowCanvas = ({
     const nextDragPositions = new Map(dragPositions);
     const nextSelected = new Set(selectedStepIds);
     let nextStartSelected = startSelected;
+    let nextTrigger = selectedTrigger;
     let measurementsChanged = false;
     let dragPositionsChanged = false;
     let selectionChanged = false;
@@ -581,7 +592,15 @@ const FlowCanvas = ({
         const node = graphNodesById.get(change.id);
         const stepId = node ? getNodeStepId(node) : null;
 
-        if (change.id === startNodeId) {
+        if (node?.type === "trigger") {
+          selectionChanged = true;
+
+          if (change.selected) {
+            nextTrigger = node.data.kind;
+          } else if (nextTrigger === node.data.kind) {
+            nextTrigger = null;
+          }
+        } else if (change.id === startNodeId) {
           selectionChanged = true;
           nextStartSelected = change.selected;
         } else if (stepId !== null) {
@@ -609,6 +628,7 @@ const FlowCanvas = ({
       onSelectionChange({
         stepIds: [...nextSelected],
         start: nextStartSelected,
+        trigger: nextTrigger,
       });
     }
   };
@@ -742,6 +762,7 @@ const FlowCanvas = ({
     onSelectionChange({
       stepIds: selectedStepIds.filter((stepId) => !removedStepIds.has(stepId)),
       start: startSelected,
+      trigger: selectedTrigger,
     });
     setSelectedEdgeIds(new Set());
 

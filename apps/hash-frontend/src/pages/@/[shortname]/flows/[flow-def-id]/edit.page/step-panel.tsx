@@ -24,7 +24,9 @@ import { getNewFlowInput } from "./step-panel/input-sources";
 import { OutputField } from "./step-panel/output-field";
 import { PathsField } from "./step-panel/paths-field";
 import { QueryField } from "./step-panel/query-field";
+import { TriggersPanelBody } from "./step-panel/triggers-panel";
 
+import type { TriggerRow } from "./shared/flow-triggers";
 import type { StepTone } from "./shared/step-display";
 import type { FlowValue, ValueUse } from "./shared/value-uses";
 import type { IconName } from "@hashintel/ds-components";
@@ -46,8 +48,11 @@ const takesEntityQuery = (input: InputDefinition) =>
   "oneOfPayloadKinds" in input &&
   input.oneOfPayloadKinds.includes("EntityQuery");
 
-/** What the panel shows: the start step, or one step at any depth. */
-export type StepPanelSubject = { start: true } | { stepId: string };
+/** What the panel shows: the flow's triggers, the start step, or one step at any depth. */
+export type StepPanelSubject =
+  | { triggers: true }
+  | { start: true }
+  | { stepId: string };
 
 const header = css({ display: "flex", alignItems: "center", gap: "3" });
 const headerText = css({
@@ -346,11 +351,14 @@ const SelectedStepPanel = ({
 export const StepPanel = ({
   editor,
   subject,
+  schedules,
   onSelectStart,
   onSelectStep,
 }: {
   editor: FlowEditor;
   subject: StepPanelSubject;
+  /** The flow's schedules, or `null` while they load. */
+  schedules: TriggerRow[] | null;
   onSelectStart: () => void;
   /** Selects a step that uses a value, picked from "Used in". */
   onSelectStep: (stepId: string) => void;
@@ -363,6 +371,17 @@ export const StepPanel = ({
     () => indexValueUses(flowDefinition.steps),
     [flowDefinition.steps],
   );
+
+  if ("triggers" in subject) {
+    return (
+      <SidePanel label="Triggers">
+        <PanelHeader icon="lightning" tone="neutral" title="Triggers">
+          What can start this flow
+        </PanelHeader>
+        <TriggersPanelBody schedules={schedules} />
+      </SidePanel>
+    );
+  }
 
   if ("start" in subject) {
     return (
