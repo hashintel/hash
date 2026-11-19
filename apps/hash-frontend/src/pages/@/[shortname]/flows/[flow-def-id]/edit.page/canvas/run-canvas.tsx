@@ -50,7 +50,7 @@ const canvas = css({ position: "relative", width: "full", height: "full" });
 /* While a step is highlighted, the rest fade back, so it stands out where it is, and fade in again after. */
 const dimmable = css({ transition: "opacity", transitionDuration: "fast" });
 const dimmed = css({ opacity: "0.4" });
-/* On the node around the card, so the card's own styles, and its status bar, stay as they are. */
+/* React Flow puts a node's class on the wrapper around its card. */
 const highlighted = css({
   "& > div": {
     bg: "neutral.bgSolid.surface",
@@ -74,7 +74,6 @@ type RunCanvasProps = {
   flowDefinition: FlowDefinition<string>;
   /** Each step's mark in the run, by step id. A step with none is not reached. */
   marks: Map<string, StepRunMark>;
-  /** Whether the run is still going. */
   live: boolean;
   selectedStepIds: string[];
   onSelectionChange: (stepIds: string[]) => void;

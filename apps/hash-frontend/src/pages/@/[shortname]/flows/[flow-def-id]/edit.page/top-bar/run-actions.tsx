@@ -26,7 +26,6 @@ import type { FlowInputValues } from "@local/hash-isomorphic-utils/flows/types";
 const dialogText = css({ textStyle: "sm" });
 const runMenu = css({ minWidth: "[208px]" });
 
-/** The run's ⋮ menu, after Stop or Re-run. */
 const RunMenu = ({
   shortname,
   flowDefinitionEntityId,

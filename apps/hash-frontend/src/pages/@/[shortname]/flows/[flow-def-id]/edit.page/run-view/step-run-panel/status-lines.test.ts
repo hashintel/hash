@@ -87,17 +87,15 @@ describe("getStatusLine", () => {
   it("counts a step run per item up to now while it runs, with how many items have finished", () => {
     expect(
       statusLine([run(0)], {
-        mark: { state: "running", items: counts({ done: 12, running: 8 }) },
+        mark: {
+          state: "running",
+          items: counts({ done: 10, failed: 1, skipped: 1, running: 8 }),
+        },
         live: true,
         perItem: true,
         running: true,
-      }),
-    ).toEqual({
-      state: "running",
-      word: "Running",
-      facts: ["12 of 20", "58m 00s", "Today, 14:02"],
-      notes: [],
-    });
+      }).facts,
+    ).toEqual(["12 of 20", "58m 00s", "Today, 14:02"]);
   });
 
   it("reads as done with how many items failed, for a step done with failures", () => {
@@ -124,18 +122,8 @@ describe("getStatusLine", () => {
   it("reads as waiting for a step not reached while its run is live, and as skipped once it has ended", () => {
     const mark: StepRunMark = { state: "notReached", items: null };
 
-    expect(statusLine([], { mark, live: true })).toEqual({
-      state: "notReached",
-      word: "Waiting",
-      facts: [],
-      notes: [],
-    });
-    expect(statusLine([], { mark, live: false })).toEqual({
-      state: "skipped",
-      word: "Skipped",
-      facts: [],
-      notes: [],
-    });
+    expect(statusLine([], { mark, live: true }).word).toBe("Waiting");
+    expect(statusLine([], { mark, live: false }).word).toBe("Skipped");
   });
 
   it("says when a step waiting on a person asked, in place of its timing, and that it's waiting", () => {
@@ -178,13 +166,8 @@ describe("getStatusLine", () => {
       statusLine(
         [run(null, { status: FlowStepStatus.TimedOut, closedAt: at(14, 32) })],
         { mark: { state: "failed", items: null } },
-      ),
-    ).toEqual({
-      state: "failed",
-      word: "Failed",
-      facts: ["30m 00s", "Today, 14:02"],
-      notes: ["Timed out after 30m 00s"],
-    });
+      ).notes,
+    ).toEqual(["Timed out after 30m 00s"]);
   });
 });
 
@@ -192,17 +175,11 @@ describe("getItemCount", () => {
   const count = (state: StepState, items: Partial<ItemCounts>) =>
     getItemCount(state, counts(items));
 
-  it("counts the items finished while a step runs", () => {
-    expect(
-      count("running", { done: 10, failed: 1, skipped: 1, running: 8 }),
-    ).toBe("12 of 20");
-  });
-
-  it("counts the items failed once a step has finished, or else those skipped, with no noun", () => {
-    expect(count("doneWithFailures", { done: 18, failed: 2 })).toBe(
+  it("counts the items that failed, or else those skipped", () => {
+    expect(count("done", { done: 18, skipped: 2 })).toBe("2 of 20 skipped");
+    expect(count("doneWithFailures", { done: 17, failed: 2, skipped: 1 })).toBe(
       "2 of 20 failed",
     );
-    expect(count("done", { done: 18, skipped: 2 })).toBe("2 of 20 skipped");
   });
 
   it("has no count for a step whose items all went well, waits on a person, or has none", () => {

@@ -47,13 +47,8 @@ const stepsHeader = css({
 });
 const stepCount = css({ textStyle: "xs", color: "fg.subtle" });
 
-/** The run the steps show their states in. */
-type StepsRun = {
-  /** Each step's mark in the run, by step id. A step with none is not reached. */
-  marks: Map<string, StepRunMark>;
-  /** Whether the run is still going. */
-  live: boolean;
-};
+/** The run the steps show their states in: each step's mark by step id, and whether the run is still going. */
+type StepsRun = { marks: Map<string, StepRunMark>; live: boolean };
 
 const StepsTree = ({
   tree,
@@ -230,7 +225,6 @@ export const RunLeftPanel = ({
 }: StepsSectionProps & {
   /** Each step's mark in the run, by step id. A step with none is not reached. */
   runMarks: Map<string, StepRunMark>;
-  /** Whether the run is still going. */
   live: boolean;
 }) => (
   <div className={panel}>

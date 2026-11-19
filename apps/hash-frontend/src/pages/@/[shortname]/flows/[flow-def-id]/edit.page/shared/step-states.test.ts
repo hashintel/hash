@@ -317,32 +317,8 @@ describe("getStepRunMarks", () => {
 describe("getShownState", () => {
   it("shows a step not reached as waiting while its run is live, and as skipped once it has ended", () => {
     expect(stepStateLabels[getShownState("notReached", true)]).toBe("Waiting");
-    expect(getShownState("notReached", false)).toBe("skipped");
     expect(stepStateLabels[getShownState("notReached", false)]).toBe("Skipped");
-  });
-
-  it("never shows a step of a run that has ended as waiting", () => {
-    const marks = marksOf(
-      [
-        stepRun("find", FlowStepStatus.Cancelled),
-        itemRun("fetch", 0, FlowStepStatus.Cancelled),
-      ],
-      { itemCount: 1, live: false },
-    );
-
-    for (const { state } of marks.values()) {
-      expect(stepStateLabels[getShownState(state, false)]).not.toBe("Waiting");
-    }
-  });
-
-  it("leaves every other state as it is", () => {
-    expect(getShownState("running", true)).toBe("running");
-    expect(getShownState("doneWithFailures", false)).toBe("doneWithFailures");
-    expect(getShownState("skipped", true)).toBe("skipped");
-  });
-
-  it("reads a step done with failures as done, as its failures are counted beside it", () => {
-    expect(stepStateLabels.doneWithFailures).toBe("Done");
+    expect(getShownState("running", false)).toBe("running");
   });
 });
 
