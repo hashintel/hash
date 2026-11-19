@@ -9,7 +9,8 @@
  * - `POST …/start` says the holder is executing it, with the lease body;
  * - `POST …/lease`, `…/result` and `…/fail` take the library's bodies;
  * - `GET <id>/browser-calls` reads every call's committed record, without its
- *   capability: what a panel replays after a reload;
+ *   capability, with its expiry and whether a browser may still act on it:
+ *   what a panel replays after a reload;
  * - `POST <id>/browser-calls/hand-edits` admits a panel's hand-edit report,
  *   with `handEditReportBodySchema`, as a stored note the model reads
  *   (`reportHandEdit`); a wrong binding is refused with 409. It answers with
@@ -43,6 +44,7 @@ import {
   claimBrowserCallAs,
   failBrowserCall,
   finishBrowserCall,
+  isAdmittable,
   renewBrowserCall,
   startBrowserCall,
 } from "./browser-call";
@@ -138,18 +140,26 @@ export type BrowserCallView = Pick<
   | "metadata"
   | "issuedEntry"
   | "callIndex"
->;
+  | "expiresAt"
+> & {
+  /** Whether a browser may still claim, start, renew or answer it (`isAdmittable`). */
+  readonly admittable: boolean;
+};
 
-const viewOf = ({
-  toolCallId,
-  toolName,
-  input,
-  status,
-  output,
-  metadata,
-  issuedEntry,
-  callIndex,
-}: BrowserCallRecord): BrowserCallView => ({
+const viewOf = (
+  {
+    toolCallId,
+    toolName,
+    input,
+    status,
+    output,
+    metadata,
+    issuedEntry,
+    callIndex,
+    expiresAt,
+  }: BrowserCallRecord,
+  admittable: boolean,
+): BrowserCallView => ({
   toolCallId,
   toolName,
   input,
@@ -158,6 +168,8 @@ const viewOf = ({
   metadata,
   ...(issuedEntry === undefined ? {} : { issuedEntry }),
   ...(callIndex === undefined ? {} : { callIndex }),
+  expiresAt,
+  admittable,
 });
 
 /** The browser-call routes over the Harness `resolveHarness` names; calls live in its root conversation. */
@@ -202,11 +214,12 @@ export const createBrowserCallRouter = ({
       const calls =
         (await harness.snapshot(BrowserCallsDoc, conversationId, context))
           ?.calls ?? {};
+      const at = now();
       return request.json({
         calls: Object.fromEntries(
           Object.entries(calls).map(([toolCallId, record]) => [
             toolCallId,
-            viewOf(record),
+            viewOf(record, isAdmittable(record, at)),
           ]),
         ),
       });

@@ -1,5 +1,6 @@
 import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
 import {
+  type Conversation,
   createRegistry,
   defineExtension,
   defineTool,
@@ -16,8 +17,11 @@ import {
   scriptedModel,
 } from "../../../test/scripted-model";
 import {
+  bindBrowserDocument,
+  browserCallExtension,
   BrowserCallsDoc,
   type BrowserCallStatus,
+  claimBrowserCall,
 } from "../../browser-call/browser-call";
 import { createAbandonedTurns } from "./abandoned-turns";
 import { createConversationRegistry } from "./conversation-registry";
@@ -53,12 +57,53 @@ const attachCases = [
 ];
 
 /**
+ * An earlier turn of the conversation whose `setNetTitle` call the browser
+ * answered without ringing the doorbell (a crash between the outcome commit
+ * and the ring), then aborted before its task collected the outcome.
+ */
+const runDiscardingTurn = async (harness: Harness, root: Conversation) => {
+  await harness.commit(
+    (tx) =>
+      bindBrowserDocument(tx, root.id, {
+        conversationId: chatId,
+        documentId: "net-1",
+      }),
+    context,
+  );
+  const submission = await root.submit(
+    { type: "input", content: "Title it." },
+    context,
+  );
+  const record = async () =>
+    (await harness.snapshot(BrowserCallsDoc, root.id, context))?.calls[
+      discardedCallId
+    ];
+  await vi.waitFor(async () => {
+    expect(typeof (await record())?.doorbell).toBe("number");
+  });
+  await claimBrowserCall(harness, root.id, discardedCallId, context);
+  await harness.commit(async (tx) => {
+    const call = (await tx.doc(BrowserCallsDoc, root.id)).calls[
+      discardedCallId
+    ]!;
+    call.status = "finished";
+    call.output = { applied: true };
+  }, context);
+  await root.abort(context);
+  expect((await submission.wait(context)).status).toBe("unanswered");
+  expect((await record())?.status).toBe("discarded");
+};
+
+const discardedCallId = "discarded-call";
+
+/**
  * A conversation from the production registry on MemoryStorage whose turn is
  * running a real tool that waits for its abort. Only the storage's ownership
  * read and, on request, the monitor's snapshot reads are controlled; the
- * monitor's clock and timers are faked once the tool has started.
+ * monitor's clock and timers are faked once the tool has started. With
+ * `afterDiscardingTurn`, the turn follows one that `runDiscardingTurn` ran.
  */
-const openWaitingTurn = async () => {
+const openWaitingTurn = async ({ afterDiscardingTurn = false } = {}) => {
   let toolEntered = false;
   let ownershipChecks = 0;
   let readOwner: () => Promise<boolean> = async () => true;
@@ -91,6 +136,18 @@ const openWaitingTurn = async () => {
   });
   const extension = defineExtension({ name: "test.hold", tools: [hold] });
   const { models, model } = scriptedModel([
+    ...(afterDiscardingTurn
+      ? [
+          fauxAssistantMessage(
+            fauxToolCall(
+              "setNetTitle",
+              { title: "Net" },
+              { id: discardedCallId },
+            ),
+            { stopReason: "toolUse" },
+          ),
+        ]
+      : []),
     fauxAssistantMessage(fauxToolCall("hold", {}), { stopReason: "toolUse" }),
   ]);
   const conversations = createConversationRegistry(
@@ -101,10 +158,11 @@ const openWaitingTurn = async () => {
       createRegistry: () => {
         const registry = createRegistry();
         registry.install(extension);
+        registry.install(browserCallExtension);
         return registry;
       },
       models,
-      agent: { model, extensions: [extension] },
+      agent: { model, extensions: [extension, browserCallExtension] },
     },
     {
       maxTurns: 100,
@@ -115,6 +173,7 @@ const openWaitingTurn = async () => {
   );
   try {
     const { harness, root } = await conversations.create(chatId);
+    if (afterDiscardingTurn) await runDiscardingTurn(harness, root);
     await root.submit({ type: "input", content: "Wait." }, context);
     await vi.waitFor(() => expect(toolEntered).toBe(true));
     expect(
@@ -212,6 +271,7 @@ test.each([
   { status: "failed", expiresInMs: 0, aborted: false },
   { status: "settled", expiresInMs: 60_000, aborted: true },
   { status: "failure-settled", expiresInMs: 60_000, aborted: true },
+  { status: "discarded", expiresInMs: 60_000, aborted: true },
   { status: "expired", expiresInMs: 0, aborted: true },
   { status: "stopped", expiresInMs: 60_000, aborted: true },
 ] as const)(
@@ -228,6 +288,20 @@ test.each([
     }
   },
 );
+
+test("an unwatched turn after one aborted with an answered call is still aborted", async () => {
+  const fixture = await openWaitingTurn({ afterDiscardingTurn: true });
+  try {
+    fixture.turns.opened(chatId);
+    await vi.advanceTimersByTimeAsync(timeoutMs * 4);
+    expect(await fixture.outcome()).toEqual({
+      running: false,
+      failure: "aborted",
+    });
+  } finally {
+    await fixture.close();
+  }
+});
 
 test("a continuously watched turn is not checked or aborted", async () => {
   const fixture = await openWaitingTurn();

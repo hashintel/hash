@@ -112,6 +112,11 @@ export type BrowserCallStatus =
   | "settled"
   /** The task delivered the failure to the tool. */
   | "failure-settled"
+  /**
+   * The browser's outcome was committed, but its turn was aborted before the
+   * task delivered it. Keeps the outcome: `output` and `metadata`, or `failure`.
+   */
+  | "discarded"
   /** No result before `expiresAt`. */
   | "expired"
   /** The call was aborted, or its wait ended before `expiresAt` without an outcome. */
@@ -304,6 +309,11 @@ export const isHeld = (record: BrowserCallRecord, now: number) =>
   (record.status === "claimed" && now < record.expiresAt) ||
   isAnsweredUncollected(record);
 
+/** The browser committed a result, whether or not its turn received it. */
+export const hasCommittedResult = (record: BrowserCallRecord) =>
+  record.status === "settled" ||
+  (record.status === "discarded" && record.failure === undefined);
+
 const BrowserCall = defineTask<
   { conversationId: ConversationId; toolCallId: string },
   BrowserCallState,
@@ -389,6 +399,10 @@ const BrowserCall = defineTask<
       if (record !== undefined && isAwaitingBrowser(record)) {
         record.status = "stopped";
         record.capability = null;
+      } else if (record !== undefined && isAnsweredUncollected(record)) {
+        // The capability stays, as on a delivered outcome, for retried receipts.
+        if (record.status === "failed") record.failure ??= "failed";
+        record.status = "discarded";
       }
       return { status: "terminal", outcome: { status: "aborted" } };
     }, context),
@@ -1000,7 +1014,7 @@ export const finishBrowserCall = async (
       const record = (await tx.doc(BrowserCallsDoc, result.conversationId))
         .calls[result.toolCallId];
       if (!carriesClaim(record, result)) return undefined;
-      if (record.status === "settled") return null;
+      if (hasCommittedResult(record)) return null;
       if (record.status === "claimed" && isAdmittable(record, now())) {
         record.status = "finished";
         record.output = (result.output ?? null) as JsonValue;
@@ -1040,7 +1054,11 @@ export const failBrowserCall = async (
       const record = (await tx.doc(BrowserCallsDoc, failure.conversationId))
         .calls[failure.toolCallId];
       if (!carriesClaim(record, failure)) return undefined;
-      if (record.status === "failure-settled") return null;
+      if (
+        record.status === "failure-settled" ||
+        (record.status === "discarded" && record.failure !== undefined)
+      )
+        return null;
       if (record.status === "claimed" && isAdmittable(record, now())) {
         record.status = "failed";
         record.failure =

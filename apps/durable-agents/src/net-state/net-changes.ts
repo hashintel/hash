@@ -19,9 +19,12 @@ import {
   recordedCanonicalCallsOf,
 } from "@hashintel/brunch-agent";
 
+import {
+  type BrowserCallRecord,
+  hasCommittedResult,
+} from "../browser-call/browser-call";
 import { netResultView } from "./net-view";
 
-import type { BrowserCallRecord } from "../browser-call/browser-call";
 import type { EntryId } from "@earendil-works/pi-durable";
 
 export type NetElement = NetElementAddress & { readonly arc?: ArcElement };
@@ -50,10 +53,11 @@ export const issuedBefore = (
   (left.issuedEntry === right.issuedEntry && left.callIndex < right.callIndex);
 
 /**
- * The browser's settled net calls, in issue order. A call recorded without
- * its issue position, before positions were recorded, is left out. Each call
- * is under the tool of today that takes it, and in that tool's keys: a
- * conversation may have recorded it under older ones.
+ * The net calls the browser committed a result for, in issue order: an
+ * aborted turn's result is never delivered, but the browser applied it. A
+ * call recorded without its issue position, before positions were recorded,
+ * is left out. Each call is under the tool of today that takes it, and in
+ * that tool's keys: a conversation may have recorded it under older ones.
  */
 export const netCalls = (
   calls: Readonly<Record<string, BrowserCallRecord>>,
@@ -66,7 +70,7 @@ export const netCalls = (
         record.input,
       );
       if (
-        record.status !== "settled" ||
+        !hasCommittedResult(record) ||
         !browserToolFacts(toolName).runsOnNet ||
         issuedEntry === undefined ||
         callIndex === undefined

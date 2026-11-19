@@ -53,7 +53,10 @@ import {
   claimBrowserCall,
   finishBrowserCall,
 } from "./browser-call";
-import { createBrowserCallRouter } from "./browser-call-router";
+import {
+  type BrowserCallView,
+  createBrowserCallRouter,
+} from "./browser-call-router";
 import { handEditsRoute } from "./hand-edit";
 import { createHashBrowserToolsExtension } from "./hash-browser-tools";
 
@@ -522,7 +525,9 @@ describe("browser-call router: early claims and committed records", () => {
     });
     expect(Object.keys(calls[toolCallId] ?? {}).toSorted()).toEqual(
       [
+        "admittable",
         "callIndex",
+        "expiresAt",
         "input",
         "issuedEntry",
         "metadata",
@@ -540,6 +545,45 @@ describe("browser-call router: early claims and committed records", () => {
       ).status,
     ).toBe(404);
     await harness.close(context);
+  });
+
+  test("each call's view carries its expiry and whether a browser may still act on it, on the router's clock", async () => {
+    let time = 100_000;
+    const { harness, root, app } = await openConversation({ now: () => time });
+    const browser = browserOf(app);
+    const views = async () =>
+      (
+        (await (
+          await app.request(
+            `${brunchRoutes.agents}/${brunchRoutes.petrinautAgent}/${routeConversationId}/${brunchRoutes.browserCalls}`,
+          )
+        ).json()) as { calls: Record<string, BrowserCallView> }
+      ).calls;
+    try {
+      const issued = (await harness.snapshot(
+        BrowserCallsDoc,
+        root.id,
+        context,
+      ))!.calls[toolCallId]!;
+      await claimOf(await browser.claim("tab-a"));
+      time = issued.expiresAt - 1;
+      expect(await views()).toMatchObject({
+        [toolCallId]: {
+          status: "claimed",
+          expiresAt: issued.expiresAt,
+          admittable: true,
+        },
+        [readCallId]: { status: "settled", admittable: false },
+      });
+      time += 1;
+      expect((await views())[toolCallId]).toMatchObject({
+        status: "claimed",
+        expiresAt: issued.expiresAt,
+        admittable: false,
+      });
+    } finally {
+      await harness.close(context);
+    }
   });
 });
 

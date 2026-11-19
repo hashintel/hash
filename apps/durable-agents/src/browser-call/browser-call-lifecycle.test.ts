@@ -1,8 +1,9 @@
 /**
  * The browser-call lifecycle as one table: each status, before and after its
  * deadline, against each browser event, with what the event returns and the
- * status it leaves. Then the task's own events: collecting a failed call, and
- * a wait that ends before the deadline without an outcome.
+ * status it leaves. Then the task's own events: collecting a failed call, a
+ * wait that ends before the deadline without an outcome, and an abort after
+ * the browser's outcome committed.
  */
 import { setTimeout as sleep } from "node:timers/promises";
 
@@ -27,6 +28,7 @@ import {
   fauxToolCall,
   scriptedModel,
 } from "../../test/scripted-model";
+import { guardCrashLoops } from "../server/durable-agents-server/conversation-registry/crash-loop-guard";
 import {
   bindBrowserDocument,
   browserCallExtension,
@@ -37,6 +39,7 @@ import {
   claimBrowserCallAs,
   failBrowserCall,
   finishBrowserCall,
+  hasCommittedResult,
   isAdmittable,
   isAnsweredUncollected,
   isAwaitingBrowser,
@@ -199,6 +202,15 @@ const live: Record<BrowserCallStatus, Expected> = {
     finish: ["not-issued", "failure-settled"],
     fail: ["failed", "failure-settled"],
   },
+  // A discarded result; a discarded failure's receipts are proved on a real turn below.
+  discarded: {
+    claim: [false, "discarded"],
+    claimAs: ["ended", "discarded"],
+    start: ["refused", "discarded"],
+    renew: [false, "discarded"],
+    finish: ["settled", "discarded"],
+    fail: ["not-issued", "discarded"],
+  },
   expired: {
     claim: [false, "expired"],
     claimAs: ["ended", "expired"],
@@ -269,7 +281,10 @@ test.each(statuses)("%s falls in the categories its readers ask", (status) => {
     answeredUncollected: isAnsweredUncollected(record),
     admittable: [isAdmittable(record, 0), isAdmittable(record, expiresAt)],
     held: [isHeld(record, 0), isHeld(record, expiresAt)],
+    committedResult: hasCommittedResult(record),
   }).toEqual({
+    // `recordIn` sets no `failure`, so a discarded record here is a discarded result.
+    committedResult: status === "settled" || status === "discarded",
     awaiting: status === "pending" || status === "claimed",
     answeredUncollected: status === "finished" || status === "failed",
     admittable: [status === "pending" || status === "claimed", false],
@@ -281,7 +296,7 @@ test.each(statuses)("%s falls in the categories its readers ask", (status) => {
 });
 
 /** A turn whose one `setNetTitle` call waits for the browser. */
-const openWaitingCall = async () => {
+const openWaitingCall = async (storage = new MemoryStorage()) => {
   const { models, model } = scriptedModel([
     fauxAssistantMessage(
       fauxToolCall("setNetTitle", input, { id: toolCallId }),
@@ -293,11 +308,7 @@ const openWaitingCall = async () => {
   ]);
   const registry = createRegistry();
   registry.install(browserCallExtension);
-  const harness = await Harness.open(
-    new MemoryStorage(),
-    { models, registry },
-    context,
-  );
+  const harness = await Harness.open(storage, { models, registry }, context);
   const root = await harness.root(context, {
     agent: { model, extensions: [browserCallExtension] },
   });
@@ -332,8 +343,139 @@ const openWaitingCall = async () => {
         )
       : undefined;
   };
-  return { harness, root, submission, record, resultText };
+  return { harness, root, submission, record, resultText, models };
 };
+
+/**
+ * Claim the waiting call and commit the browser's outcome without ringing
+ * the doorbell, as a crash between the outcome commit and the ring leaves it.
+ */
+const answerWithoutRing = async (
+  harness: Harness,
+  conversationId: ConversationId,
+  outcome: "finished" | "failed",
+) => {
+  const claimed = await claimBrowserCall(
+    harness,
+    conversationId,
+    toolCallId,
+    context,
+  );
+  await harness.commit(async (tx) => {
+    const record = (await tx.doc(BrowserCallsDoc, conversationId)).calls[
+      toolCallId
+    ]!;
+    record.status = outcome;
+    if (outcome === "finished") {
+      record.output = { applied: true };
+      record.metadata = { verified: true };
+    } else {
+      record.failure = "failed";
+    }
+  }, context);
+  return {
+    conversationId,
+    toolCallId,
+    toolName: "setNetTitle",
+    capability: claimed!.capability,
+    canonicalInput: claimed!.input,
+  };
+};
+
+/** What an aborted turn must leave of an answered call: terminal, not held, its outcome and capability kept. */
+const expectDiscarded = (
+  record: BrowserCallRecord | undefined,
+  outcome: "finished" | "failed",
+  capabilityHeld: string,
+) => {
+  expect(record).toMatchObject({
+    status: "discarded",
+    capability: capabilityHeld,
+    ...(outcome === "finished"
+      ? { output: { applied: true }, metadata: { verified: true } }
+      : { failure: "failed" }),
+  });
+  expect(isHeld(record!, 0)).toBe(false);
+  expect(isAnsweredUncollected(record!)).toBe(false);
+};
+
+/** A browser's retry of the outcome it already reported. */
+const retryOutcome = (
+  harness: Harness,
+  proofOf: Awaited<ReturnType<typeof answerWithoutRing>>,
+  outcome: "finished" | "failed",
+) =>
+  outcome === "finished"
+    ? finishBrowserCall(
+        harness,
+        { ...proofOf, output: { applied: true } },
+        context,
+      )
+    : failBrowserCall(harness, { ...proofOf, disposition: "failed" }, context);
+
+describe.each(["finished", "failed"] as const)(
+  "a %s call whose turn is aborted before it is collected",
+  (outcome) => {
+    test("ends discarded on a conversation abort, and a retried report still gets its receipt", async () => {
+      const { harness, root, record } = await openWaitingCall();
+      try {
+        const proofOf = await answerWithoutRing(harness, root.id, outcome);
+        await root.abort(context);
+        await vi.waitFor(async () => {
+          expect((await record())?.status).toBe("discarded");
+        });
+        expectDiscarded(await record(), outcome, proofOf.capability);
+
+        expect(await retryOutcome(harness, proofOf, outcome)).toBe(
+          outcome === "finished" ? "settled" : "failed",
+        );
+        expect((await record())?.status).toBe("discarded");
+      } finally {
+        await harness.close(context);
+      }
+    });
+
+    test("ends discarded when the crash-loop guard aborts it on reopen", async () => {
+      // A second owner opens the storage while the first still holds the
+      // tool task's invocation, as after a crash; the first is idle until
+      // its doorbell, a day away.
+      const storage = Object.assign(new MemoryStorage(), {
+        close: async () => {},
+      });
+      const first = await openWaitingCall(storage);
+      const proofOf = await answerWithoutRing(
+        first.harness,
+        first.root.id,
+        outcome,
+      );
+
+      const registry = createRegistry();
+      registry.install(browserCallExtension);
+      const harness = await Harness.open(
+        storage,
+        { models: first.models, registry },
+        context,
+      );
+      try {
+        const root = await harness.conversation(first.root.id, context);
+        const aborted = await guardCrashLoops(harness, root!, 1, context);
+        expect(aborted?.tasks).toEqual([
+          expect.objectContaining({ kind: "pi.tool" }),
+        ]);
+        const record = async () =>
+          (await harness.snapshot(BrowserCallsDoc, first.root.id, context))
+            ?.calls[toolCallId];
+        await vi.waitFor(async () => {
+          expect((await record())?.status).toBe("discarded");
+        });
+        expectDiscarded(await record(), outcome, proofOf.capability);
+      } finally {
+        await harness.close(context);
+        await first.harness.close(context);
+      }
+    });
+  },
+);
 
 test("a collected failure is delivered once: a retried report is acknowledged without a second wake", async () => {
   const { harness, root, submission, record, resultText } =
