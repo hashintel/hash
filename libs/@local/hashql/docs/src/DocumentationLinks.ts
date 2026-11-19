@@ -47,11 +47,33 @@ const commentedOf = (part: Parts.Part): readonly Commented[] => [
   ...part.calls,
 ];
 
-/** The comments an export's page shows: its namespace's, its declarations' and calls', and its members'. */
+/** A comment a page shows, with the public name below which its names resolve, or none for a comment no export's page shows. */
+interface Owned {
+  readonly owner: Option.Option<Catalogue.Name>;
+  readonly documentation: AST.Documentation.Documentation;
+}
+
+/** A comment of an export, with the public name of the page that shows it. */
+interface Shown {
+  readonly owner: Catalogue.Name;
+  readonly documentation: AST.Documentation.Interned;
+}
+
+/** The comments of `commented`, which the page of `owner` shows. */
+const shownBy =
+  (owner: Catalogue.Name) =>
+  (commented: readonly Commented[]): readonly Shown[] =>
+    Array.flatMap(commented, ({ documentation }) =>
+      Option.toArray(
+        Option.map(documentation, (id) => ({ owner, documentation: id })),
+      ),
+    );
+
+/** The comments an export's pages show, which are those of its namespace, its declarations, their calls and its members. */
 const commentsOf = (
   catalogue: Catalogue.Catalogue,
   entry: Catalogue.Entry,
-): readonly AST.Documentation.Documentation[] => {
+): readonly Owned[] => {
   const { ast } = catalogue;
   const parts = Parts.of(ast, entry);
 
@@ -59,16 +81,26 @@ const commentsOf = (
     ast.get(entry.id).namespace,
     Option.map(ast.get),
     Option.toArray<Commented>,
-    Array.appendAll(Array.flatMap(parts, commentedOf)),
+    shownBy(entry.name),
+    Array.appendAll(
+      Array.flatMap(parts, (part) =>
+        shownBy(
+          LinkLookup.ownerOf(catalogue, { entry, node: part.source.node }),
+        )(commentedOf(part)),
+      ),
+    ),
     Array.appendAll(
       pipe(
         Parts.members(parts, { ast, entry }),
         Array.flatMap((member) => Array.flatMap(member.parts, commentedOf)),
+        shownBy(entry.name),
       ),
     ),
-    Array.flatMap(({ documentation }) => Option.toArray(documentation)),
     Array.dedupe,
-    Array.map(ast.get),
+    Array.map(({ owner, documentation }) => ({
+      owner: Option.some(owner),
+      documentation: ast.get(documentation),
+    })),
   );
 };
 
@@ -133,15 +165,10 @@ export const check = (
 ): Result.Result<void, DocumentationError.DocumentationError> => {
   const owned = pipe(
     catalogue.entries,
-    Array.flatMap((entry) =>
-      Array.map(commentsOf(catalogue, entry), (documentation) => ({
-        owner: Option.some(entry.name),
-        documentation,
-      })),
-    ),
+    Array.flatMap((entry) => commentsOf(catalogue, entry)),
     Array.appendAll(
-      Array.map(privateTraits(catalogue), (documentation) => ({
-        owner: Option.none<Catalogue.Name>(),
+      Array.map(privateTraits(catalogue), (documentation): Owned => ({
+        owner: Option.none(),
         documentation,
       })),
     ),
