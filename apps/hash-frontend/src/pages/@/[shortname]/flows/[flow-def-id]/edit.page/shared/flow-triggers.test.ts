@@ -142,12 +142,12 @@ describe("getRunTrigger", () => {
     ).toEqual({ kind: "schedule", line: "Monthly review" });
   });
 
-  it("leaves out the name of a schedule that isn't one of the flow's, or before they've loaded", () => {
+  it("leaves out the name of a schedule that isn't one of the flow's, or while they aren't known", () => {
     expect(getRunTrigger(scheduleUuid, [otherSchedule])).toEqual({
       kind: "schedule",
       line: "",
     });
-    expect(getRunTrigger(scheduleUuid, null)).toEqual({
+    expect(getRunTrigger(scheduleUuid, "unavailable")).toEqual({
       kind: "schedule",
       line: "",
     });

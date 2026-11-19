@@ -62,6 +62,7 @@ import type {
 import type { NextPageWithLayout } from "../../../../../shared/layout";
 import type { FlowDefinitionToEdit } from "../../../../shared/use-flow-definitions";
 import type { CanvasHandle, CanvasSelection } from "./edit.page/canvas";
+import type { FlowSchedules } from "./edit.page/shared/flow-triggers";
 import type { StepPanelSubject } from "./edit.page/step-panel";
 import type { FlowEditorView } from "./edit.page/top-bar";
 import type { JsonObject } from "@blockprotocol/core";
@@ -218,16 +219,22 @@ const FlowEditor = ({
   const editorState = useSyncExternalStore(editor.subscribe, editor.getState);
   const { flowDefinition } = editorState;
 
-  const { schedulesByEntityUuid, loading: schedulesLoading } = useFlowSchedules(
-    { flowDefinitionEntityId },
-  );
-  /* `null` until they first load, so the flow isn't shown as having none before that's known. */
+  const {
+    schedulesByEntityUuid,
+    loading: schedulesLoading,
+    error: schedulesError,
+  } = useFlowSchedules({ flowDefinitionEntityId });
+  /* A flow isn't shown as having no schedules before that's known. */
   const schedules = useMemo(
-    () =>
-      schedulesLoading && schedulesByEntityUuid.size === 0
-        ? null
-        : Array.from(schedulesByEntityUuid.values(), toScheduleTriggerRow),
-    [schedulesLoading, schedulesByEntityUuid],
+    (): FlowSchedules =>
+      schedulesByEntityUuid.size > 0
+        ? Array.from(schedulesByEntityUuid.values(), toScheduleTriggerRow)
+        : schedulesError
+          ? "unavailable"
+          : schedulesLoading
+            ? "loading"
+            : [],
+    [schedulesByEntityUuid, schedulesError, schedulesLoading],
   );
 
   /*

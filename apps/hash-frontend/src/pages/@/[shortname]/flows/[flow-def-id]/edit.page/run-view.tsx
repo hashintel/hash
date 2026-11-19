@@ -22,7 +22,7 @@ import { sidePanelWidth } from "./shared/side-panel";
 import { notReachedMark, startMark } from "./shared/step-states";
 
 import type { TriggerCard } from "./canvas/flow-graph";
-import type { TriggerRow } from "./shared/flow-triggers";
+import type { FlowSchedules } from "./shared/flow-triggers";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 
@@ -89,8 +89,8 @@ export const RunView = ({
   flowDefinitionEntityId: EntityId;
   /** The flow as it is now. */
   currentDefinition: FlowDefinition<string>;
-  /** The flow's schedules, or `null` while they load, to name the one that started the run. */
-  schedules: TriggerRow[] | null;
+  /** The flow's schedules, to name the one that started the run. */
+  schedules: FlowSchedules;
   onBackToLogs: () => void;
 }) => {
   const run = useRun({
