@@ -225,7 +225,7 @@ try {
         await session.send("Emulation.setCPUThrottlingRate", {
           rate: Number(args.cpu),
         });
-      const url = `${origin}/benchmarks/monaco-performance/bench.html?surface=${surface}&model=${model}&variant=${variant}`;
+      const url = `${origin}/benchmarks/monaco-performance/bench.html?surface=${surface}&model=${model}&variant=${variant}${args.host ? `&host=${args.host}` : ""}`;
       try {
         await page.goto(url);
         if (surface === "micro")
@@ -374,7 +374,7 @@ try {
         };
         rows.push(row);
         await writeFile(
-          `${output}/${surface}-${model}-${new URL(origin).port}${args.cpu ? `-cpu${args.cpu}` : ""}.json`,
+          `${output}/${surface}-${model}-${new URL(origin).port}${args.host ? `-${args.host}` : ""}${args.cpu ? `-cpu${args.cpu}` : ""}.json`,
           JSON.stringify(rows),
         );
         console.log(

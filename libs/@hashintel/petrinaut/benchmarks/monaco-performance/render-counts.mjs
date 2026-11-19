@@ -1,5 +1,6 @@
 // Lists which React components render, and how often, while typing 20
-// characters in the Visualizer editor.
+// characters in the Visualizer editor. `host=website` mounts the editor in a
+// host whose net list, callbacks and slots change on every edit.
 //
 // Needs an unminified build with React's profiling bundle, so component names
 // survive and fibers carry timings:
@@ -26,7 +27,7 @@ try {
   page.setDefaultTimeout(10000);
   await page.addInitScript(instrument);
   await page.goto(
-    `${origin}/benchmarks/monaco-performance/bench.html?surface=full&model=${model}&variant=prototype`,
+    `${origin}/benchmarks/monaco-performance/bench.html?surface=full&model=${model}&variant=prototype${args.host ? `&host=${args.host}` : ""}`,
   );
   await page.getByRole("button", { name: "Fit view", exact: true }).waitFor();
   await page.waitForFunction(
@@ -83,6 +84,17 @@ try {
     `model=${model} commits=${snapshot.react.length} component renders=${total} distinct=${snapshot.renders.length}`,
   );
   for (const [name, count] of snapshot.renders.slice(0, Number(args.top ?? 45)))
+    console.log(`${String(count).padStart(6)}  ${name}`);
+  // Where to look first: what rendered though the component above it did not,
+  // and which contexts changed value.
+  console.log("started by their own state or a context they read:");
+  for (const [name, count] of snapshot.renderStarts.slice(
+    0,
+    Number(args.starts ?? 25),
+  ))
+    console.log(`${String(count).padStart(6)}  ${name}`);
+  console.log("new context values:");
+  for (const [name, count] of snapshot.newContextValues)
     console.log(`${String(count).padStart(6)}  ${name}`);
   await context.close();
 } finally {

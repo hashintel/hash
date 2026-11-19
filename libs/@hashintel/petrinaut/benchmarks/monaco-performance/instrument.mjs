@@ -45,10 +45,22 @@ export const instrument = () => {
       animationFrames.push(...list.getEntries().map((entry) => entry.toJSON())),
     ).observe({ type: "long-animation-frame", buffered: true });
   }
-  // Which components rendered in each commit. React reports commits to this
-  // hook when it is present at startup. Fibers carry timings only in React's
+  // Which components rendered in each commit, which of them started it (those
+  // that rendered while the component above them did not, so by their own
+  // state or by a context they read), and which providers handed out a new
+  // context value. React reports commits to this hook
+  // when it is present at startup. Fibers carry timings only in React's
   // profiling bundle, so the list stays empty on the production build.
   const commits = [];
+  const totalsOf = (field, since) => {
+    const totals = new Map();
+    for (const commit of commits) {
+      if (commit.time < since) continue;
+      for (const [name, count] of commit[field])
+        totals.set(name, (totals.get(name) ?? 0) + count);
+    }
+    return [...totals].sort((left, right) => right[1] - left[1]);
+  };
   const componentName = (type) =>
     type?.displayName ??
     type?.name ??
@@ -70,21 +82,47 @@ export const instrument = () => {
     onPostCommitFiberRoot() {},
     onCommitFiberRoot(_id, root) {
       const rendered = new Map();
-      const visit = (fiber) => {
+      const started = new Map();
+      const newContextValues = new Map();
+      const visit = (fiber, componentAboveRendered, componentAbove) => {
         for (let node = fiber; node; node = node.sibling) {
           // A fiber this commit left alone keeps its older start time.
           if (node.actualStartTime >= lastCommit) {
+            const name = componentName(node.type);
+            // Tag 10 is a context provider. One that hands out a new value
+            // renders every reader of its context, wherever they are.
+            if (
+              node.tag === 10 &&
+              node.alternate &&
+              node.alternate.memoizedProps.value !== node.memoizedProps.value
+            ) {
+              const provider = `context provided by ${componentAbove}`;
+              newContextValues.set(
+                provider,
+                (newContextValues.get(provider) ?? 0) + 1,
+              );
+            }
             // React keeps a fiber's flags as a bit field; 1 says it rendered.
             // oxlint-disable-next-line no-bitwise
-            const name = (node.flags & 1) !== 0 && componentName(node.type);
-            if (name) rendered.set(name, (rendered.get(name) ?? 0) + 1);
-            visit(node.child);
+            const didRender = (node.flags & 1) !== 0;
+            if (name && didRender) {
+              rendered.set(name, (rendered.get(name) ?? 0) + 1);
+              if (!componentAboveRendered) {
+                started.set(name, (started.get(name) ?? 0) + 1);
+              }
+            }
+            visit(
+              node.child,
+              name ? didRender : componentAboveRendered,
+              name ?? componentAbove,
+            );
           }
         }
       };
-      visit(root.current);
+      visit(root.current, false, "the root");
       const time = performance.now();
-      if (rendered.size > 0) commits.push({ time, rendered });
+      if (rendered.size > 0)
+        commits.push({ time, rendered, started, newContextValues });
       lastCommit = time;
     },
   };
@@ -270,15 +308,11 @@ export const instrument = () => {
           )
           .map((entry) => entry.toJSON()),
         // Renders per component over the window, most rendered first.
-        renders: (() => {
-          const totals = new Map();
-          for (const commit of commits) {
-            if (commit.time < since) continue;
-            for (const [name, count] of commit.rendered)
-              totals.set(name, (totals.get(name) ?? 0) + count);
-          }
-          return [...totals].sort((left, right) => right[1] - left[1]);
-        })(),
+        renders: totalsOf("rendered", since),
+        // The same for the components that started a commit's renders.
+        renderStarts: totalsOf("started", since),
+        // And for the providers that handed out a new context value.
+        newContextValues: totalsOf("newContextValues", since),
         workers,
         editors: instances.size,
         models: api?.editor.getModels().length ?? 0,

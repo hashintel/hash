@@ -1,6 +1,7 @@
-import { Profiler, useState } from "react";
+import { Profiler, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 
+import { createJsonDocHandle } from "@hashintel/petrinaut-core";
 import {
   probabilisticSatellitesSDCPN,
   supplyChainWithDisruption,
@@ -8,6 +9,7 @@ import {
 
 import { CodeEditor } from "../../src/ui/monaco/code-editor";
 import { MonacoProvider } from "../../src/ui/monaco/provider";
+import { Petrinaut } from "../../src/ui/petrinaut";
 import { PetrinautStoryProvider } from "../../src/ui/petrinaut-story-provider";
 
 const query = new URLSearchParams(location.search);
@@ -95,15 +97,62 @@ const Micro = () => {
   );
 };
 
+/**
+ * A host that does what the website does, at its worst (`host=website`). It
+ * saves a new last-updated time for the open net on every edit, so the net
+ * list it passes says something new on every key. Nothing in it is memoized,
+ * so its callbacks and its `slots` are new objects on every render too.
+ */
+const WebsiteLikeHost = () => {
+  "use no memo"; // The benchmark is of a host that memoizes nothing.
+  const [handle] = useState(() =>
+    createJsonDocHandle({
+      id: "benchmark-net",
+      initial: example.petriNetDefinition,
+    }),
+  );
+  const [title, setTitle] = useState(example.title);
+  const [edits, setEdits] = useState(0);
+  useEffect(
+    () => handle.subscribe(() => setEdits((count) => count + 1)),
+    [handle],
+  );
+
+  return (
+    <Petrinaut
+      handle={handle}
+      title={title}
+      setTitle={(next) => setTitle(next)}
+      existingNets={[
+        {
+          netId: handle.id,
+          title,
+          lastUpdated: new Date(edits * 1000).toISOString(),
+        },
+      ]}
+      createNewNet={() => {}}
+      loadPetriNet={() => {}}
+      slots={{ settingsLabs: <span>Host settings</span> }}
+    />
+  );
+};
+
+const FullEditor = () =>
+  query.get("host") === "website" ? (
+    <WebsiteLikeHost />
+  ) : (
+    <PetrinautStoryProvider
+      initialTitle={example.title}
+      initialDefinition={example.petriNetDefinition}
+    />
+  );
+
 const App = () =>
   query.get("surface") === "micro" ? (
     <Micro />
   ) : (
     <div style={{ height: "100vh", width: "100vw" }}>
-      <PetrinautStoryProvider
-        initialTitle={example.title}
-        initialDefinition={example.petriNetDefinition}
-      />
+      <FullEditor />
     </div>
   );
 
