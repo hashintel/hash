@@ -769,6 +769,28 @@ test("mounts document-bound Brunch with canonical overrides and the complete sta
   ).not.toContain(brunchTools.appSaveNet);
 });
 
+test("reports a send that met a submission conflict to the host's error tracker", async () => {
+  captureException.mockClear();
+  const rendered = renderAssistant();
+  await waitFor(() => expect(rendered.assistant()).toBeDefined());
+  const transportOptions = brunchPanelTransportOptions.current as {
+    readonly onSubmissionConflict?: (conflict: {
+      readonly messageId: string;
+      readonly submissionId: string;
+    }) => void;
+  };
+
+  transportOptions.onSubmissionConflict?.({
+    messageId: "comments",
+    submissionId: "admitted-first",
+  });
+
+  expect(captureException).toHaveBeenCalledExactlyOnceWith(expect.any(Error), {
+    source: "brunch.submission-conflict",
+    tags: { messageId: "comments", submissionId: "admitted-first" },
+  });
+});
+
 test("a host's own tools run beside Brunch's while a document is bound", async () => {
   flueClientMock.current = {
     history: async () => ({

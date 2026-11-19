@@ -42,7 +42,7 @@ const sendResults = (
       drafts.update(draft.toolCallId, {
         followUp:
           error instanceof FlueChatAdmissionError &&
-          admissionOutcome(error.failure) !== "not-admitted"
+          admissionOutcome(error.failure) === "maybe-admitted"
             ? "unconfirmed"
             : "failed",
       }),

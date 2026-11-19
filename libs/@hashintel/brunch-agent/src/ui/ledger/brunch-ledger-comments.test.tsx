@@ -93,15 +93,13 @@ test("keeps a rejected batch editable and sends its current text on retry", asyn
   await vi.waitFor(() => expect(comments.get().comments).toEqual([]));
 });
 
+// A submission conflict never arrives here: the transport records it as the
+// message's admission.
 test.each<[FlueChatAdmissionFailure, "failed" | "uncertain"]>([
   [{ kind: "rejected", status: 403 }, "failed"],
   [{ kind: "aborted", requestSent: false }, "failed"],
   [{ kind: "aborted", requestSent: true }, "uncertain"],
   [{ kind: "ambiguous" }, "uncertain"],
-  [
-    { kind: "submission-conflict", status: 409, submissionId: "existing" },
-    "uncertain",
-  ],
 ])("a batch whose send fails with %o is %s", async (failure, sending) => {
   const comments = pendingCommentsFor({}, "conversation");
   comments.add(onCrew);

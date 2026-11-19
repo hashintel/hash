@@ -91,7 +91,7 @@ const createPendingComments = () => {
         (error: unknown) => {
           const uncertain =
             error instanceof FlueChatAdmissionError &&
-            admissionOutcome(error.failure) !== "not-admitted";
+            admissionOutcome(error.failure) === "maybe-admitted";
           if (!uncertain) attempt = undefined;
           publish({ ...state, sending: uncertain ? "uncertain" : "failed" });
         },

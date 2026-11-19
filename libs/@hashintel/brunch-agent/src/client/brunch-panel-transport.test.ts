@@ -86,6 +86,7 @@ test("a send that meets a submission conflict is delivered: its admission is rec
   });
   const tracker = new BrunchPanelConversationTracker();
   const onAdmission = vi.fn();
+  const onSubmissionConflict = vi.fn();
   const failureListener = vi.fn();
   tracker.subscribeToAdmissionFailure(
     { kind: "user", messageId: "host" },
@@ -101,7 +102,7 @@ test("a send that meets a submission conflict is delivered: its admission is rec
     transport: createBrunchPanelTransport(
       Promise.resolve({ send } as unknown as FlueClient),
       tracker,
-      { onAdmission },
+      { onAdmission, onSubmissionConflict },
     ),
   });
 
@@ -126,6 +127,12 @@ test("a send that meets a submission conflict is delivered: its admission is rec
     }),
   );
   expect(onAdmission).toHaveBeenCalledWith({ submissionId: "admitted-first" });
+  // A retry resends its first payload, so a conflict means that payload was
+  // lost: whatever changed since did not reach the agent.
+  expect(onSubmissionConflict).toHaveBeenCalledExactlyOnceWith({
+    messageId: "host",
+    submissionId: "admitted-first",
+  });
   expect(tracker.submissionForInput("host")).toBe("admitted-first");
   // Leaving the editor stops the turn until history shows it settled.
   expect(tracker.hasUnsettledTurn(undefined)).toBe(true);

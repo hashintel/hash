@@ -381,6 +381,16 @@ export const createBrunchPanelTransport = (
      * and a continuation after client tool results are no new turn.
      */
     readonly onSubmission?: (messageId: string) => void;
+    /**
+     * A send met a submission conflict: Flue admitted this message earlier
+     * with another payload. A retry resends the payload pinned for it, so the
+     * pin was lost (a new tracker, a reload) and whatever changed since did
+     * not reach the agent. The send still counts as delivered.
+     */
+    readonly onSubmissionConflict?: (conflict: {
+      readonly messageId: string;
+      readonly submissionId: AgentSendResult["submissionId"];
+    }) => void;
     readonly liveToolStream?: FlueChatTransportOptions["liveToolStream"];
     readonly onToolOutputError?: FlueChatTransportOptions["onToolOutputError"];
     readonly onReattach?: FlueChatTransportOptions["onReattach"];
@@ -474,6 +484,10 @@ export const createBrunchPanelTransport = (
               admission: { submissionId: error.failure.submissionId },
               kind: submitted.message.kind,
               messageId: submitted.messageId,
+            });
+            options?.onSubmissionConflict?.({
+              messageId: submitted.messageId,
+              submissionId: error.failure.submissionId,
             });
             return new ReadableStream<UIMessageChunk>({
               start: (controller) => controller.close(),

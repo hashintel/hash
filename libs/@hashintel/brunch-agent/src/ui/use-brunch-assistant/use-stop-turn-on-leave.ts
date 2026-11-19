@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-import { requestFlueStop } from "../../client/request-flue-stop";
+import { requestFlueStopIfStillWanted } from "../../client/request-flue-stop";
 
 import type { BrunchPanelConversationTracker } from "../../client/brunch-panel-transport";
 import type { FlueClient, FlueConversationState } from "@flue/sdk";
@@ -62,7 +62,7 @@ export const useStopTurnOnLeave = ({
         .hasUnsettledTurnAfterSettling(snapshot)
         .then((unsettled) =>
           unsettled && nothingSentSince()
-            ? requestFlueStop(client, tracker, nothingSentSince)
+            ? requestFlueStopIfStillWanted(client, tracker, nothingSentSince)
             : undefined,
         )
         .catch((error: unknown) => reportError.current(error));

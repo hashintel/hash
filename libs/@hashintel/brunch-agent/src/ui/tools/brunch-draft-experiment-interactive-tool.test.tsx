@@ -1350,15 +1350,13 @@ describe("BrunchDraftExperimentWidget", () => {
     ).toBeTruthy();
   });
 
+  // A submission conflict never arrives here: the transport records it as
+  // the message's admission.
   it.each<[FlueChatAdmissionFailure, "failed" | "unconfirmed"]>([
     [{ kind: "rejected", status: 403 }, "failed"],
     [{ kind: "aborted", requestSent: false }, "failed"],
     [{ kind: "aborted", requestSent: true }, "unconfirmed"],
     [{ kind: "ambiguous" }, "unconfirmed"],
-    [
-      { kind: "submission-conflict", status: 409, submissionId: "existing" },
-      "unconfirmed",
-    ],
   ])(
     "marks a summary whose send fails with %o as %s",
     async (failure, followUp) => {
