@@ -342,6 +342,7 @@ const AvailableVoiceInterviewControl = ({
     // bridge, so these callbacks read what the layout effect below installs
     // rather than what was captured here.
     let latestSubmitVoiceInput = context.submitVoiceInput;
+    let latestReadSelection = context.readSelection;
     let latestResolveInputSubmission = resolveInputSubmission;
     let latestSubscribeToAdmission = subscribeToAdmission;
     let latestSubscribeToAdmissionFailure = subscribeToAdmissionFailure;
@@ -365,6 +366,7 @@ const AvailableVoiceInterviewControl = ({
         globalThis.requestAnimationFrame(callback),
     });
     const bridge = new RealtimeBrunchBridge({
+      readSelection: () => latestReadSelection().items,
       session,
       submitInterviewAnswer: (input) =>
         submitVoiceInputWithAdmission({
@@ -379,7 +381,12 @@ const AvailableVoiceInterviewControl = ({
       bridge,
       onLatencyEvent: recordLatency,
       session,
-      submitText: (input) => latestSubmitVoiceInput(input),
+      // A typed correction is about the selection as it is sent.
+      submitText: (input) =>
+        latestSubmitVoiceInput({
+          ...input,
+          selection: latestReadSelection().items,
+        }),
     });
     controller.setInterruptionBySpeaking(
       readInterruptionBySpeakingPreference(),
@@ -419,8 +426,10 @@ const AvailableVoiceInterviewControl = ({
         nextSubscribeToAdmissionFailure:
           | SubscribeToAdmissionFailure
           | undefined,
+        nextReadSelection: PetrinautAiVoiceModeContext["readSelection"],
       ) => {
         latestSubmitVoiceInput = nextSubmitVoiceInput;
+        latestReadSelection = nextReadSelection;
         latestResolveInputSubmission = nextResolveInputSubmission;
         latestSubscribeToAdmission = nextSubscribeToAdmission;
         latestSubscribeToAdmissionFailure = nextSubscribeToAdmissionFailure;
@@ -480,6 +489,7 @@ const AvailableVoiceInterviewControl = ({
       resolveInputSubmission,
       subscribeToAdmission,
       subscribeToAdmissionFailure,
+      context.readSelection,
     );
     const canonicalSpeech = selectCanonicalSpeech(context.messages);
     const correlateSegment = (segment: CanonicalSpeechSegment) => {
@@ -501,6 +511,7 @@ const AvailableVoiceInterviewControl = ({
   }, [
     context.canAcceptVoiceInput,
     context.messages,
+    context.readSelection,
     context.status,
     context.stopped,
     context.submitVoiceInput,

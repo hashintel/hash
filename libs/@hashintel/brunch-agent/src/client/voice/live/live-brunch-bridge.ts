@@ -1,5 +1,7 @@
 import { getToolName, isToolUIPart } from "ai";
 
+import { newestNonEmptySelection } from "@hashintel/brunch-agent";
+
 import {
   maxUtteranceTextLength,
   shouldWithholdUtterance,
@@ -78,6 +80,7 @@ interface CarriedInput {
   readonly inputId: string;
   readonly text: string;
   readonly history: VoiceMediationHistory;
+  readonly selection: FinalizedInput["selection"];
 }
 
 type Submit = ConstructorParameters<
@@ -368,6 +371,7 @@ export class LiveBrunchBridge {
             inputId: turn.inputId,
             text: turn.inputText,
             history,
+            selection: turn.input.selection,
           });
         withdrew = true;
       }
@@ -686,7 +690,19 @@ export class LiveBrunchBridge {
       mergedInputIds: carried.map((entry) => entry.inputId).join(","),
       reason: "speech-started",
     });
-    return { input: { ...input, text: texts.join(mergeSeparator) }, carried };
+    // The newest utterance that selected something says what "this" means.
+    const selection = newestNonEmptySelection([
+      ...carried.map((entry) => entry.selection),
+      input.selection,
+    ]);
+    return {
+      input: {
+        ...input,
+        text: texts.join(mergeSeparator),
+        selection,
+      },
+      carried,
+    };
   }
 
   /**
@@ -718,9 +734,15 @@ export class LiveBrunchBridge {
           queued.delegationId,
         );
     }
+    // The newest utterance that selected something says what "this" means: a
+    // later selection corrects an earlier one, and nothing selected keeps it.
+    const selection = newestNonEmptySelection(
+      batch.map((queued) => queued.input.selection),
+    );
     const input: FinalizedInput = {
       ...newest.input,
       text: batch.map((queued) => queued.input.text).join(mergeSeparator),
+      selection,
     };
     if (batch.length > 1)
       logLiveDiagnostic("input.merged", {
@@ -736,6 +758,7 @@ export class LiveBrunchBridge {
         inputId: queued.inputId,
         text: queued.input.text,
         history: queued.history,
+        selection: queued.input.selection,
       })),
     ).run();
   }
@@ -873,6 +896,7 @@ export class LiveBrunchBridge {
         const result = await this.#dependencies.submit({
           id: input.id,
           text,
+          selection: input.selection,
           admissionTarget: { kind: "user", messageId: input.id },
           signal: this.#abort.signal,
           onAdmission: (submissionId) => {

@@ -3,12 +3,14 @@ import {
   parseInterviewBudget,
   type InterviewBudget,
 } from "./interview-budget";
+import { parseSelection, selectionContextKey } from "./selection";
 import { parseWordSpellings, wordsContextKey } from "./words";
 
 import type {
   PetrinautUserMessageBody,
   SubmissionContext,
 } from "./contextual-user-message";
+import type { SelectionItem } from "@hashintel/petrinaut-core/selection";
 
 /**
  * The host's latest load of another saved version of the open net: a fresh
@@ -40,6 +42,11 @@ export interface PetrinautSubmissionContext {
   readonly words?: readonly string[];
   /** The host's latest version load, while the version it loaded is the base of the open net. */
   readonly versionLoad?: VersionLoad;
+  /**
+   * The editor's selection when the user sent the turn; absent or empty means
+   * nothing selected. It applies to that turn only.
+   */
+  readonly selection?: readonly SelectionItem[];
 }
 
 /**
@@ -50,8 +57,12 @@ export const petrinautSubmissionContext = ({
   interviewBudget,
   words,
   versionLoad,
+  selection,
 }: PetrinautSubmissionContext): SubmissionContext | undefined =>
-  interviewBudget === undefined && !words?.length && versionLoad === undefined
+  interviewBudget === undefined &&
+  !words?.length &&
+  versionLoad === undefined &&
+  !selection?.length
     ? undefined
     : {
         ...(interviewBudget === undefined
@@ -61,16 +72,21 @@ export const petrinautSubmissionContext = ({
         ...(versionLoad === undefined
           ? {}
           : { [versionLoadContextKey]: versionLoad }),
+        ...(selection?.length ? { [selectionContextKey]: selection } : {}),
       };
 
 /**
  * Read the host context from a parsed user message. An absent or invalid
- * allowance reads as Off, absent or invalid words as an empty snapshot, and
- * an absent or invalid version load as none.
+ * allowance reads as Off, absent or invalid words as an empty snapshot, an
+ * absent or invalid version load as none, and an absent or invalid selection
+ * as nothing selected.
  */
 export const readPetrinautSubmissionContext = (
   body: PetrinautUserMessageBody,
-): PetrinautSubmissionContext & { readonly words: readonly string[] } => {
+): PetrinautSubmissionContext & {
+  readonly words: readonly string[];
+  readonly selection: readonly SelectionItem[];
+} => {
   const context =
     body.kind === "contextual" ? body.submissionContext : undefined;
   const interviewBudget = parseInterviewBudget(
@@ -81,5 +97,6 @@ export const readPetrinautSubmissionContext = (
     ...(interviewBudget === undefined ? {} : { interviewBudget }),
     words: parseWordSpellings(context?.[wordsContextKey]),
     ...(versionLoad === undefined ? {} : { versionLoad }),
+    selection: parseSelection(context?.[selectionContextKey]),
   };
 };

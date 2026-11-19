@@ -3258,6 +3258,7 @@ describe("AiAssistantPanel composer submissions", () => {
                 void (context.status === "ready"
                   ? context.submitText({ text: "Begin" })
                   : context.submitVoiceInput({
+                      selection: [],
                       text: "Queued voice input",
                     }));
               }}
@@ -3304,6 +3305,7 @@ describe("AiAssistantPanel composer submissions", () => {
     ).toBe(false);
 
     void latestVoiceContext?.submitVoiceInput({
+      selection: [],
       text: "Next voice input",
     });
     await waitFor(() =>
@@ -3363,6 +3365,7 @@ describe("AiAssistantPanel composer submissions", () => {
     let queuedAnswer: Promise<unknown> | undefined;
     act(() => {
       queuedAnswer = latestVoiceContext?.submitVoiceInput({
+        selection: [],
         target: "message",
         text: "Queued voice input",
       });
@@ -5791,6 +5794,7 @@ describe("AiAssistantPanel composer submissions", () => {
 
     const withdrawal = new AbortController();
     const retained = latestVoiceContext!.submitVoiceInput({
+      selection: [],
       signal: withdrawal.signal,
       text: "Stale voice input",
     });
@@ -6194,6 +6198,7 @@ describe("AiAssistantPanel composer submissions", () => {
             type="button"
             onClick={() => {
               void submitVoiceInput({
+                selection: [],
                 id: "voice-realtime:3:call-2",
                 text: "The shift lead",
               });
