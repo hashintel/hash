@@ -7,6 +7,7 @@ import * as Placement from "../Placement.js";
 import * as Tree from "../Tree/index.js";
 
 import type * as ExternalTarget from "../ExternalTarget.js";
+import type * as Usage from "../Usage.js";
 
 type Row = Tree.Row.Row;
 type Local = AST.Interned.Interned<AST.Target.Local>;
@@ -201,10 +202,14 @@ export const row = (
   context: Context,
 ): ((target: Local) => Option.Option<Row>) => read(context, "type");
 
-/** A row for a public declaration or member whose calls use another declaration. What makes calls is a value, so a declaration's row is its value's where its type is declared apart. */
-export const user = (
-  context: Context,
-): ((target: Local) => Option.Option<Row>) => read(context, "value");
+/** A row for a public declaration or member whose calls use another declaration. Where its type and its value are declared apart, the row is the export of the one whose calls they are. */
+export const user =
+  (context: Context) =>
+  ({ target, meaning }: Usage.User): Option.Option<Row> =>
+    read(
+      context,
+      Option.getOrElse(meaning, () => "value"),
+    )(target);
 
 /** One export a namespace lists: a name the namespace exports, and an export that documents the name's declaration. */
 export interface Listed {

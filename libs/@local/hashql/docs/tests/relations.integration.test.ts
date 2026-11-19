@@ -328,6 +328,22 @@ export { Box, Input };`,
     );
 
     it.effect(
+      "type_calls_apart",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const reference = yield* Reference.success({
+          source: `interface Make { (input: Input): void }
+declare const Make: number;
+interface Input {}
+export { Make, Input };`,
+        });
+        expect(
+          targetsOf(exportOf(reference, "Input").related.acceptedBy),
+        ).toStrictEqual([declared(reference, "Make")]);
+      }),
+    );
+
+    it.effect(
       "usage_identity",
       Effect.fnUntraced(function* () {
         expect.hasAssertions();
