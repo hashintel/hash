@@ -530,6 +530,7 @@ describe("P2: reaching context() from tool code, and what it costs", () => {
         });
         await tx.appendEntry(conversation.id, {
           kind: "pi.tool-result",
+          data: { diagnostics: [] },
           model: [
             {
               role: "toolResult",

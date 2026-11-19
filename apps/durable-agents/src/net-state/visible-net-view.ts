@@ -13,7 +13,8 @@
  *   later events override it.
  * - A successful net-showing tool result with complete net content is a
  *   view: a `read`, or a change's `read-back`. A result Pi's output bound
- *   cut is not one, so the earlier view stays.
+ *   cut is not one, so the earlier view stays; its entry's structured
+ *   diagnostics say so (code `truncated`), whatever their rendered wording.
  * - A hand-edit note after a view records its revision; the latest note
  *   decides: the view is stale exactly when it names another revision.
  *   Revisions are content hashes with no order, so only the latest counts.
@@ -21,6 +22,8 @@
  *
  * `pruneEdits` decides the read-back pruning write over the same view.
  */
+import { ToolResultEntry } from "@earendil-works/pi-durable";
+
 import { browserToolFacts, mayShowNet } from "@hashintel/brunch-agent";
 
 import {
@@ -88,8 +91,10 @@ export type VisibleNetView =
       readonly message: Message;
     };
 
-/** Pi's diagnostics follow a result's output as their own text part. */
-const truncationDiagnostic = /^<harness>\n[\s\S]*Output truncated/u;
+/** Whether Pi's output bound cut the result `entry` stored: its diagnostics hold one with code `truncated`. */
+const isCut = (entry: EntryRecord | undefined) =>
+  ToolResultEntry.is(entry) &&
+  entry.data.diagnostics.some(({ code }) => code === "truncated");
 
 const textParts = (message: Message): string[] =>
   typeof message.content === "string"
@@ -98,12 +103,15 @@ const textParts = (message: Message): string[] =>
         part.type === "text" ? [part.text] : [],
       );
 
-/** A successful net-showing tool result whose net content is complete, parsed. */
-const toolView = (message: ToolResultMessage) => {
-  if (message.isError || !mayShowNet(message.toolName)) return undefined;
-  const [first, ...rest] = textParts(message);
+/** A successful net-showing tool result, which `entry` contributed, whose net content is complete, parsed. */
+const toolView = (
+  message: ToolResultMessage,
+  entry: EntryRecord | undefined,
+) => {
+  if (message.isError || !mayShowNet(message.toolName) || isCut(entry))
+    return undefined;
+  const [first] = textParts(message);
   if (first === undefined) return undefined;
-  if (rest.some((text) => truncationDiagnostic.test(text))) return undefined;
   const parsed = parseNetResultText(first);
   if (parsed === undefined) return undefined;
   if (browserToolFacts(message.toolName).observesNet)
@@ -121,10 +129,10 @@ const toolView = (message: ToolResultMessage) => {
     : undefined;
 };
 
-/** What `message` says about the net; `entryKind` is the kind of the entry that contributed it. */
+/** What `message`, which `entry` contributed, says about the net. */
 export const netEventOf = (
   message: Message,
-  entryKind: string | undefined,
+  entry: EntryRecord | undefined,
 ): NetEvent | undefined => {
   switch (message.role) {
     case "system": {
@@ -134,7 +142,7 @@ export const netEventOf = (
       return section && { type: "view", kind: "section", ...section };
     }
     case "toolResult": {
-      const view = toolView(message);
+      const view = toolView(message, entry);
       return (
         view && {
           type: "view",
@@ -145,7 +153,7 @@ export const netEventOf = (
       );
     }
     case "user": {
-      if (entryKind !== handEditEntryKind) return undefined;
+      if (entry?.kind !== handEditEntryKind) return undefined;
       const revision = parseHandEditNote(textParts(message).join(""));
       return revision === undefined ? undefined : { type: "note", revision };
     }
@@ -199,7 +207,7 @@ export const visibleNetView = (
   let note: string | undefined;
   for (const message of view.messages) {
     if (message.role === "system" && message !== section) continue;
-    const event = netEventOf(message, entries.get(message)?.kind);
+    const event = netEventOf(message, entries.get(message));
     if (event === undefined) continue;
     if (event.type === "view") {
       latest = { ...event, message };
@@ -238,8 +246,8 @@ export const pruneEdits = (
   const entries = entriesByMessage(view);
   return view.messages.flatMap((message): ContextEdit[] => {
     if (message === latest.message || message.role !== "toolResult") return [];
-    const shown = toolView(message);
     const target = entries.get(message);
+    const shown = toolView(message, target);
     if (shown?.kind !== "read-back" || target === undefined) return [];
     const pruned = renderPlainResult(shown.parsed.output);
     let replaced = false;

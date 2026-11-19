@@ -1,3 +1,4 @@
+import { type EntryId, ROOT_CONVERSATION_ID } from "@earendil-works/pi-durable";
 import * as v from "valibot";
 import { describe, expect, test } from "vitest";
 
@@ -53,7 +54,12 @@ describe("hand-edit report", () => {
     });
     if (write.type !== "write") throw new Error("Not a write.");
     const [message] = write.entry.model ?? [];
-    expect(message && netEventOf(message, write.entry.kind)).toEqual({
+    const entry = {
+      id: 1 as EntryId,
+      conversationId: ROOT_CONVERSATION_ID,
+      kind: write.entry.kind,
+    };
+    expect(message && netEventOf(message, entry)).toEqual({
       type: "note",
       revision: "revision-2",
     });

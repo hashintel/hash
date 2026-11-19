@@ -61,8 +61,7 @@ const tailDecides = (view: ContextView, head: EntryId): boolean => {
       (baseline === undefined || entry.id < baseline.id) &&
       (view.contributions[index] ?? []).some(
         (message) =>
-          message.role !== "system" &&
-          netEventOf(message, entry.kind) !== undefined,
+          message.role !== "system" && netEventOf(message, entry) !== undefined,
       ),
   );
 };
