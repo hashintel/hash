@@ -15,13 +15,14 @@
  *
  * A chat request carries its browser's document binding beside the messages
  * (`body: { binding }` on the transport, Brunch's `BrowserContext["binding"]`).
- * Only a request with a valid binding creates a conversation, bound to it
- * before the submission, so the calls its turn issues are claimable by that
- * binding; a malformed binding is refused with 400, a different binding
- * later with 409, and a request without one leaves its conversation as it
- * is (and creates none: 404). Save's description names the bound document:
- * the agent's bound Save is installed on every open, before scheduling
- * resumes, and right after the binding's commit, before the submission.
+ * Only a request with a valid binding creates a conversation, bound to it in
+ * the commit that creates it, so the calls its turn issues are claimable by
+ * that binding; a malformed binding is refused with 400, a different binding
+ * later with 409, and a request without one leaves a bound conversation as
+ * it is, is refused with 409 by an unbound one (which a binding binds), and
+ * creates none (404). Save's description names the bound document: the
+ * agent's bound Save is installed on every open, before scheduling resumes,
+ * and right after a binding's own commit, before the submission.
  *
  * Limits come from the environment (`limitsFromEnvironment`) unless given.
  * A request that cannot get a pool connection within the pool's
@@ -55,6 +56,7 @@ import {
 } from "./conversation-storage";
 import {
   type ChatRefusal,
+  type ConversationSeed,
   createDurableAgentsServer,
   type DurableAgentsServerLimits,
   type DurableAgentsServerOptions,
@@ -102,10 +104,15 @@ const malformedBinding: ChatRefusal = {
   error: "Expected a Brunch document binding.",
 };
 
-/** A new conversation needs the binding its browser calls are issued to. */
+const unboundConversation: ChatRefusal = {
+  status: 409,
+  error: "The conversation is unbound; a document binding binds it.",
+};
+
+/** A new conversation needs the binding its browser calls are issued to, which its creating commit writes. */
 const admitNewConversation = (
   body: Readonly<Record<string, unknown>>,
-): ChatRefusal | undefined => {
+): ChatRefusal | ConversationSeed => {
   const binding = bindingOf(body);
   if (binding === "invalid") return malformedBinding;
   if (binding === undefined)
@@ -113,12 +120,13 @@ const admitNewConversation = (
       status: 404,
       error: "Unknown conversation; a document binding creates one.",
     };
-  return undefined;
+  return { binding };
 };
 
 /**
  * Bind an unbound conversation to the request's binding, then install the
- * bound Save before the submission; refuse a different binding.
+ * bound Save before the submission; refuse a different binding, and a
+ * request without one while the conversation is unbound.
  */
 const admitBinding = async (
   conversation: OpenConversation,
@@ -127,8 +135,15 @@ const admitBinding = async (
 ): Promise<ChatRefusal | undefined> => {
   const { harness, root } = conversation;
   const binding = bindingOf(body);
-  if (binding === undefined) return undefined;
   if (binding === "invalid") return malformedBinding;
+  if (binding === undefined) {
+    const stored = (
+      await harness.snapshot(BrowserBindingDoc, root.id, BACKGROUND_CONTEXT)
+    )?.binding;
+    return stored === undefined || stored === null
+      ? unboundConversation
+      : undefined;
+  }
   const bound = await harness.commit(async (tx) => {
     const current = (await tx.doc(BrowserBindingDoc, root.id)).binding;
     if (current === null) {

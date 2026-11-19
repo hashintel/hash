@@ -45,6 +45,7 @@ import { HTTPException } from "hono/http-exception";
 import { createAbandonedTurns } from "./durable-agents-server/abandoned-turns";
 import {
   type ConversationRegistryOptions,
+  type ConversationSeed,
   type CrashLoopingTask,
   createConversationRegistry,
   type OpenConversation,
@@ -62,6 +63,7 @@ import {
 import { contentWithVersionLoadNote } from "./durable-agents-server/version-load";
 
 export type {
+  ConversationSeed,
   CrashLoopingTask,
   OpenConversation,
 } from "./durable-agents-server/conversation-registry";
@@ -100,12 +102,13 @@ export type DurableAgentsServerOptions = ConversationRegistryOptions & {
   /**
    * Runs on a `POST /chat` that names a conversation that does not exist,
    * before anything is created, with the request's whole body. A refusal
-   * answers the request and creates nothing. Absent, every chat request
-   * creates its conversation.
+   * answers the request and creates nothing; a seed is written in the commit
+   * that creates the conversation. Absent, every chat request creates its
+   * conversation.
    */
   readonly admitNewConversation?: (
     body: Readonly<Record<string, unknown>>,
-  ) => ChatRefusal | undefined;
+  ) => ChatRefusal | ConversationSeed | undefined;
   /**
    * Runs on every `POST /chat` before its submission, with the request's
    * whole body, so a host can check or record what its client sends beside
@@ -282,10 +285,10 @@ export const createDurableAgentsServer = (
     try {
       let conversation = await conversations.acquire(body.id);
       if (conversation === undefined) {
-        const refusal = options.admitNewConversation?.(body);
-        if (refusal !== undefined)
-          return ctx.text(refusal.error, refusal.status);
-        conversation = await conversations.create(body.id);
+        const admission = options.admitNewConversation?.(body);
+        if (admission !== undefined && "error" in admission)
+          return ctx.text(admission.error, admission.status);
+        conversation = await conversations.create(body.id, admission);
       }
       const refusal = await options.admitChat?.(conversation, body);
       if (refusal !== undefined) return ctx.text(refusal.error, refusal.status);
