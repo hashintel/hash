@@ -141,7 +141,47 @@ export const playIconAction = (
   for (const detail of details) {
     const part = detail.getAttribute("data-icon-detail") ?? "";
     const resting = getComputedStyle(detail).transform;
-    if (part === "radar-sweep") {
+    if (part === "dash-line" || part === "dash-wave") {
+      const original = `path('${detail.getAttribute("d")}')`;
+      const bends =
+        part === "dash-line"
+          ? ["M3 12C9 9 15 15 21 12", "M3 12C9 15 15 9 21 12"]
+          : ["M3 13c3 6 6-7 9-1s6-6 9-2", "M3 13c3-5 6 4 9-1s6 5 9-2"];
+      animate(
+        detail,
+        [
+          { d: previous.get(detail)?.path || original },
+          { d: `path('${bends[0]}')`, offset: 0.3 },
+          { d: `path('${bends[1]}')`, offset: 0.65 },
+          { d: original },
+        ],
+        "ease-in-out",
+      );
+    } else if (part === "dash-dot" || part === "dash-segment") {
+      const index = Array.from(details)
+        .filter((item) => item.getAttribute("data-icon-detail") === part)
+        .indexOf(detail);
+      const peak = 0.2 + index * 0.12;
+      const rest =
+        part === "dash-segment" ? { opacity: 1 } : { transform: resting };
+      const accent =
+        part === "dash-segment"
+          ? { opacity: 0.25 }
+          : {
+              transform: "translateY(-1.6px)",
+            };
+      animate(
+        detail,
+        [
+          { ...rest, transformOrigin: "12px 12px" },
+          { ...rest, transformOrigin: "12px 12px", offset: peak - 0.15 },
+          { ...accent, transformOrigin: "12px 12px", offset: peak },
+          { ...rest, transformOrigin: "12px 12px", offset: peak + 0.15 },
+          { ...rest, transformOrigin: "12px 12px" },
+        ],
+        "linear",
+      );
+    } else if (part === "radar-sweep") {
       animate(
         detail,
         [

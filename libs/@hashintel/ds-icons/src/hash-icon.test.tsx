@@ -1023,6 +1023,50 @@ describe("HashIcon motion", () => {
     },
   );
 
+  it.each(["dashDashed", "dashDotted"] as const)(
+    "staggers %s details within one seamless cycle and stops for reduced motion",
+    (name) => {
+      render(
+        <HashIcon name={name} effect="action" animationMode="continuous" />,
+      );
+      const peaks = animate.mock.calls.map(([frames, options]) => {
+        expect(options.iterations).toBe(Infinity);
+        expect(frames[0]).toEqual(frames.at(-1));
+        const peak = frames.find(
+          (frame) =>
+            frame.opacity === 0.25 ||
+            frame.transform === "translateY(-1.6px)" ||
+            frame.transform === "scaleY(.45)",
+        );
+        expect(peak?.offset).toBeGreaterThan(0);
+        expect(peak?.offset).toBeLessThan(1);
+        return peak!.offset!;
+      });
+      expect(peaks.length).toBeGreaterThan(1);
+      expect(new Set(peaks).size).toBe(peaks.length);
+      expect(peaks).toEqual([...peaks].sort((left, right) => left - right));
+      act(() => {
+        reducedMotion = true;
+        mediaListeners.forEach((listener) => listener());
+      });
+      expect(cancel).toHaveBeenCalledTimes(peaks.length);
+      expect(animate).toHaveBeenCalledTimes(peaks.length);
+    },
+  );
+
+  it.each(["dashSolid", "dashDraw"] as const)(
+    "wiggles %s along its path and returns to its original shape",
+    (name) => {
+      const { container } = render(<HashIcon name={name} effect="action" />);
+      const path = container.querySelector("[data-icon-detail]");
+      expect(animate).toHaveBeenCalledTimes(1);
+      const frames = animate.mock.calls[0]![0];
+      expect(frames[0]?.d).toBe(`path('${path?.getAttribute("d")}')`);
+      expect(frames.at(-1)?.d).toBe(frames[0]?.d);
+      expect(new Set(frames.map((frame) => frame.d)).size).toBe(3);
+    },
+  );
+
   it("jumps on click without replacing the runner's independent gait", () => {
     const { container, unmount } = render(
       <button type="button">
