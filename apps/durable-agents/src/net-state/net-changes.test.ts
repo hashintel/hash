@@ -114,3 +114,31 @@ test("a change written with the model's own ids is attributed to the converted e
   // Only values under id keys convert, so the element type `real` names no type.
   expect(attributed("type", toPetrinautId("real"))).toEqual([]);
 });
+
+test("a change the browser applied is attributed though its aborted turn never received it; a discarded failure is not", () => {
+  const place = applied(0, "place", "petrinaut_create_place", {
+    editor_id: "process-editor",
+    id: "queue",
+    name: "Queue",
+    colorId: null,
+    dynamicsEnabled: false,
+    x: 0,
+    y: 0,
+  });
+  const discarded = netCalls({
+    applied: { ...place, toolCallId: "applied", status: "discarded" },
+    failed: {
+      ...place,
+      toolCallId: "failed",
+      callIndex: 1,
+      status: "discarded",
+      failure: "failed",
+    },
+  });
+  expect(
+    callsForElement(discarded, {
+      kind: "place",
+      id: toPetrinautId("queue"),
+    }).map(({ toolCallId }) => toolCallId),
+  ).toEqual(["applied"]);
+});
