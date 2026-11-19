@@ -22,13 +22,18 @@ import { ResizeHandle } from "../../../resize/resize-handle";
 import { FloatingResizeHandles } from "../../shared/floating-resize-handles";
 import { useFloatingPanel } from "../shared/use-floating-panel";
 
+// The room the docked panel takes beside the editor. It changes in one step:
+// a width that eases makes the browser lay the whole editor out on every
+// frame, which is slower than a frame. The room is given up at once, so the
+// editor already shows under a panel that is leaving, and it is taken only
+// when the panel that is arriving has covered it.
 const dockSpaceStyle = css({
   flexShrink: 0,
   minWidth: "[0]",
   maxWidth: "[100%]",
   pointerEvents: "none",
-  '&[data-animating="true"]': {
-    transition: "[width 150ms ease-in-out]",
+  '&[data-animating="true"][data-occupied="true"]': {
+    transition: "[width 0s linear 150ms]",
     "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
   },
 });
@@ -277,6 +282,7 @@ export const PluginAssistantPanel = ({
   });
   const panelWidth = `min(${aiAssistantWidth}px, 100cqw)`;
   const animating = isPanelAnimating && !isInteracting;
+  const takesDockSpace = isOpen && !isFloating;
   const placementLabel = isFloating
     ? "Dock AI assistant"
     : "Float AI assistant";
@@ -312,7 +318,8 @@ export const PluginAssistantPanel = ({
           aria-hidden="true"
           className={dockSpaceStyle}
           data-animating={animating}
-          style={{ width: isOpen && !isFloating ? panelWidth : 0 }}
+          data-occupied={takesDockSpace}
+          style={{ width: takesDockSpace ? panelWidth : 0 }}
         />
         <aside
           ref={panelRef}
