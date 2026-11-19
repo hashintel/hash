@@ -6,7 +6,8 @@
  * - `POST /chat` takes `DefaultChatTransport`'s body (`id`, `messages`,
  *   `trigger`, `messageId`), submits the last user message once per message id
  *   as a `brunch.user` or `brunch.ledger-comments` input (`brunchUserInput`),
- *   with the version-load note when it carries a new load, and answers with
+ *   recording a new version load it carries for the `version_load` section
+ *   in the same commit (`version-load.ts`), and answers with
  *   that submission's UI message stream; 409 when the message id is the
  *   request ID of a submission other than an input. It is the only
  *   route that creates a conversation, and only when `admitNewConversation`
@@ -63,7 +64,7 @@ import {
   brunchUserInput,
   type ChatInput,
 } from "./durable-agents-server/user-input";
-import { contentWithVersionLoadNote } from "./durable-agents-server/version-load";
+import { versionLoadRecorder } from "./durable-agents-server/version-load";
 
 export type {
   ConversationSeed,
@@ -301,20 +302,28 @@ export const createDurableAgentsServer = (
       const refusal = await options.admitChat?.(conversation, body);
       if (refusal !== undefined) return ctx.text(refusal.error, refusal.status);
       const { harness, root } = conversation;
-      // A repeated message id finds its original submission and cannot move the version-load document back.
+      const recordVersionLoad = await versionLoadRecorder(
+        harness,
+        root.id,
+        input,
+        context,
+      );
+      // A repeated message id finds its original submission and records no version load.
       // Admission deliberately does not use the response's cancellation signal.
       const submissionId = await root.commit(async (tx) => {
         const existing = await tx.submissionByRequest(root.id, input.requestId);
         // Pi refuses a request ID of another submission type with an untyped error; this is its check.
         if (existing !== undefined)
           return existing.type === "input" ? existing.id : undefined;
-        return root.submit(tx, {
+        const submitted = await root.submit(tx, {
           type: "input",
-          content: await contentWithVersionLoadNote(tx, root.id, input),
+          content: input.content,
           entry: input.entry,
           requestId: input.requestId,
           whenBusy: "followUp",
         });
+        await recordVersionLoad(tx, submitted);
+        return submitted;
       }, context);
       if (submissionId === undefined)
         return ctx.text(

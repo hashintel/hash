@@ -29,14 +29,20 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 
 import {
   petrinautContextualUserMessageBody,
-  versionLoadNote,
+  versionLoadSectionText,
 } from "@hashintel/brunch-agent";
 
+import { holdTool, textOf } from "../../test/platform/support";
 import {
   fauxAssistantMessage,
   fauxToolCall,
   scriptedModel,
 } from "../../test/scripted-model";
+import {
+  versionLoadSectionExtension,
+  versionLoadSectionKey,
+  VersionLoadsDoc,
+} from "../agent/hash-agent/version-load-section";
 import {
   browserCallExtension,
   BrowserCallsDoc,
@@ -51,12 +57,12 @@ import {
   type DurableAgentsServerOptions,
 } from "./durable-agents-server";
 import { brunchUserInput } from "./durable-agents-server/user-input";
-import { VersionLoadDoc } from "./durable-agents-server/version-load";
+import { AnnouncedVersionLoadDoc } from "./durable-agents-server/version-load";
 import { browserCallsPrefix } from "./start-durable-agents-server";
 import { serveNode } from "./start-durable-agents-server/serve-node";
 
 import type { OwnedStorage } from "./conversation-storage";
-import type { Message } from "@earendil-works/pi-ai";
+import type { AssistantMessage, Message } from "@earendil-works/pi-ai";
 
 const context = BACKGROUND_CONTEXT;
 const origin = "http://durable.test";
@@ -752,7 +758,7 @@ describe("POST /chat admits Ledger comments", () => {
   });
 });
 
-describe("POST /chat announces a version load once (fold 2c)", () => {
+describe("POST /chat records a version load for the version_load section (fold 2c)", () => {
   const load1 = { id: "version-1", decisionTime: "2026-11-12T09:30:00.000Z" };
   const load2 = { id: "version-2", decisionTime: "2026-11-12T10:45:00.000Z" };
   const loadMessage = (
@@ -774,9 +780,28 @@ describe("POST /chat announces a version load once (fold 2c)", () => {
     ],
   });
 
-  test("the first input with a load carries the note, the next with it none, a new load the note; a late retry writes nothing", async () => {
+  const section = (load: typeof load1) =>
+    `<${versionLoadSectionKey}>\n${versionLoadSectionText(load)}\n</${versionLoadSectionKey}>`;
+
+  /** Each request's messages by shape, a `version_load` delta by the load it states. */
+  const withLoads = (requests: readonly Message[][]) =>
+    requests.map((messages) =>
+      messages.flatMap((message) => {
+        if (message.role === "user") return [`user:${textOf(message)}`];
+        if (message.role !== "system") return [];
+        const value = message.sections?.[versionLoadSectionKey];
+        if (value === section(load1)) return ["version_load:1"];
+        if (value === section(load2)) return ["version_load:2"];
+        return value === undefined ? [] : [`version_load:${String(value)}`];
+      }),
+    );
+
+  test("the first input with a load shows the section once, the next with it nothing, a new load one delta; the content stays the user's; a late retry writes nothing", async () => {
     const { requests, responses } = recordedAnswers(3);
-    const { server, transport } = openChat({ responses });
+    const { server, transport } = openChat({
+      responses,
+      extensions: [versionLoadSectionExtension],
+    });
     const first = loadMessage("user-1", "Add a dryer.", load1);
     const firstStream = recorder(await send(transport, { message: first }));
     await firstStream.drain();
@@ -791,20 +816,37 @@ describe("POST /chat announces a version load once (fold 2c)", () => {
       }),
     ).drain();
 
-    const note1 = `${versionLoadNote(load1)}\n\nAdd a dryer.`;
-    const note2 = `${versionLoadNote(load2)}\n\nNow a press.`;
-    expect(versionLoadNote(load1)).toBe(
-      "Host note: The user loaded the version saved at 2026-11-12T09:30:00.000Z; later saves build on it.",
-    );
-    expect(userTexts(requests)).toEqual([
-      [note1],
-      [note1, "And a washer."],
-      [note1, "And a washer.", note2],
+    // Pi moves the conversation's first system message to the front; a later delta follows its input. The second request adds none.
+    expect(withLoads(requests)).toEqual([
+      ["version_load:1", "user:Add a dryer."],
+      ["version_load:1", "user:Add a dryer.", "user:And a washer."],
+      [
+        "version_load:1",
+        "user:Add a dryer.",
+        "user:And a washer.",
+        "user:Now a press.",
+        "version_load:2",
+      ],
     ]);
     const { harness, root } = await openConversation(server);
-    expect(await harness.snapshot(VersionLoadDoc, root.id, context)).toEqual({
-      announced: load2.id,
+    const submissions = await Promise.all(
+      ["user-1", "user-3"].map((requestId) =>
+        root.commit(
+          (tx) => tx.submissionByRequest(root.id, requestId),
+          context,
+        ),
+      ),
+    );
+    const recorded = [
+      { ...load1, submission: submissions[0]?.id },
+      { ...load2, submission: submissions[1]?.id },
+    ];
+    expect(await harness.snapshot(VersionLoadsDoc, root.id, context)).toEqual({
+      loads: recorded,
     });
+    expect(
+      await harness.snapshot(AnnouncedVersionLoadDoc, root.id, context),
+    ).toBeUndefined();
 
     // A late retry of the first message, after the newer load: its first submission, and no write.
     const late = recorder(await send(transport, { message: first }));
@@ -813,8 +855,8 @@ describe("POST /chat announces a version load once (fold 2c)", () => {
       startMessageId(firstStream.chunks),
     );
     expect(requests).toHaveLength(3);
-    expect(await harness.snapshot(VersionLoadDoc, root.id, context)).toEqual({
-      announced: load2.id,
+    expect(await harness.snapshot(VersionLoadsDoc, root.id, context)).toEqual({
+      loads: recorded,
     });
     const entries = await root.entries(
       { order: "ascending" },
@@ -840,6 +882,99 @@ describe("POST /chat announces a version load once (fold 2c)", () => {
         submissionContext: { versionLoad: load2 },
       },
     ]);
+  });
+
+  test("a load admitted while another run is busy shows in its own run, not in the busy run's next request (V1)", async () => {
+    const hold = holdTool();
+    const requests: Message[][] = [];
+    const recorded =
+      (message: AssistantMessage): FauxResponseStep =>
+      (requestContext) => {
+        requests.push(structuredClone(requestContext.messages));
+        return message;
+      };
+    const { transport } = openChat({
+      responses: [
+        recorded(
+          fauxAssistantMessage(
+            fauxToolCall(hold.tool.name, {}, { id: "hold-1" }),
+            { stopReason: "toolUse" },
+          ),
+        ),
+        recorded(fauxAssistantMessage("Held.")),
+        recorded(fauxAssistantMessage("Pressed.")),
+      ],
+      extensions: [
+        versionLoadSectionExtension,
+        defineExtension({ name: "probe.hold", tools: [hold.tool] }),
+      ],
+    });
+    const busy = recorder(
+      await send(transport, {
+        message: loadMessage("user-1", "Add a dryer.", load1),
+      }),
+    );
+    await hold.started;
+    // Queued behind the held run: its load commits now, before that run's next request.
+    const followUp = recorder(
+      await send(transport, {
+        message: loadMessage("user-2", "Now a press.", load2),
+      }),
+    );
+    hold.release();
+    await Promise.all([busy.drain(), followUp.drain()]);
+
+    expect(withLoads(requests)).toEqual([
+      ["version_load:1", "user:Add a dryer."],
+      ["version_load:1", "user:Add a dryer."],
+      [
+        "version_load:1",
+        "user:Add a dryer.",
+        "user:Now a press.",
+        "version_load:2",
+      ],
+    ]);
+  });
+
+  test("a conversation that announced a load in its content before the section records that load no more, and the next one as new", async () => {
+    const { requests, responses } = recordedAnswers(3);
+    const { server, transport } = openChat({
+      responses,
+      extensions: [versionLoadSectionExtension],
+    });
+    await recorder(
+      await send(transport, {
+        message: { ...userMessage, id: "user-0" },
+      }),
+    ).drain();
+    const { harness, root } = await openConversation(server);
+    await root.commit(async (tx) => {
+      const announced = await tx.doc(AnnouncedVersionLoadDoc, root.id);
+      announced.announced = load1.id;
+    }, context);
+
+    await recorder(
+      await send(transport, {
+        message: loadMessage("user-1", "Add a dryer.", load1),
+      }),
+    ).drain();
+    await recorder(
+      await send(transport, {
+        message: loadMessage("user-2", "Now a press.", load2),
+      }),
+    ).drain();
+
+    expect(withLoads(requests).at(-1)).toEqual([
+      "user:Call the net Laundry line.",
+      "user:Add a dryer.",
+      "user:Now a press.",
+      "version_load:2",
+    ]);
+    expect(
+      (await harness.snapshot(VersionLoadsDoc, root.id, context))?.loads.map(
+        ({ id }) => id,
+      ),
+    ).toEqual([load2.id]);
   });
 });
 
