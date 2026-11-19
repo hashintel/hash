@@ -1238,6 +1238,21 @@ test("a save pending for an earlier load neither blocks the next load's save nor
   expect(topBar().revisions.map(({ title }) => title)).toEqual(["B2", "B"]);
 });
 
+test("a Create whose move to the net's URL Next cancels leaves the editor following the URL", async () => {
+  await renderRoute(draftUrl);
+  // Next resolves a cancelled navigation with `false`, leaving the URL.
+  router.replace.mockImplementationOnce(() => Promise.resolve(false));
+
+  pressSave();
+  await settle();
+
+  expect(url()).toBe(draftUrl);
+  expect(topBar()).toMatchObject({ saveLabel: "Saved", isDirty: false });
+
+  await navigate(`/processes/${uuidA}`);
+  expect(topBar()).toMatchObject({ title: "A", saveLabel: "Saved" });
+});
+
 test("a failed Create stays on the draft, and its retry creates the net and moves the URL", async () => {
   await renderRoute(draftUrl);
   const draft = editor().handle;

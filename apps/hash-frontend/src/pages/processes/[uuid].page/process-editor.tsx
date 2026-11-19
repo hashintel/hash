@@ -243,13 +243,6 @@ export const ProcessEditor = ({
     null,
   );
 
-  /**
-   * UUID of the entity we just saved a draft into and are now navigating
-   * to via `router.replace`. While set, the reconciliation effect ignores
-   * the stale draft `view` until Next.js's router catches up to the new URL.
-   */
-  const expectedSavedUuidRef = useRef<string | null>(null);
-
   const { revisions, refetch: refetchRevisions } =
     usePetriNetRevisions(selectedNetId);
 
@@ -370,22 +363,8 @@ export const ProcessEditor = ({
       return;
     }
 
-    if (expectedSavedUuidRef.current !== null) {
-      if (
-        view.kind === "saved" &&
-        view.entityUuid === expectedSavedUuidRef.current
-      ) {
-        // URL has caught up — proceed normally (and `viewMatchesLoaded`
-        // below will short-circuit since the loaded view was already set in
-        // sync with the save).
-        expectedSavedUuidRef.current = null;
-      } else {
-        // Still waiting for `router.replace` to settle; don't react to the
-        // transient mismatch.
-        return;
-      }
-    }
-
+    // A draft's URL still showing after Create, until (or unless) the move
+    // to the saved net's URL lands, matches the net it saved.
     if (viewMatchesLoaded(view, loaded.view)) {
       return;
     }
@@ -520,7 +499,6 @@ export const ProcessEditor = ({
       /** The draft is now the saved net `savedEntityId`, under its URL. */
       const becomeSaved = (savedEntityId: EntityId) => {
         const savedUuid = extractEntityUuidFromEntityId(savedEntityId);
-        expectedSavedUuidRef.current = savedUuid;
         setLoaded((current) =>
           current
             ? { ...current, view: { kind: "saved", entityId: savedEntityId } }
