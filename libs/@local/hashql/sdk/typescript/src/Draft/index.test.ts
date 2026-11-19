@@ -313,6 +313,48 @@ describe("program", () => {
     );
   });
 
+  test("structural_constructors", () => {
+    expect.hasAssertions();
+    const result = Draft.program({ count: BigInt }, ($, { count }) => {
+      const { tuple } = $;
+      const pair = $.let("pair", tuple([count, "two"]));
+      return $.if(true, {
+        then: (branch) =>
+          branch.struct({
+            pair,
+            items: branch.list(BigInt, [count]),
+            names: branch.dict(String, BigInt, { one: 1n }),
+          }),
+      });
+    });
+    const input = call(
+      "::kernel::special_form::input",
+      "count",
+      "::kernel::type::Integer",
+    );
+    expect(syntax(result)).toStrictEqual(
+      call(
+        "::kernel::special_form::let",
+        "pair",
+        { "#tuple": [input, literal("two")] },
+        call("::kernel::special_form::if", literal(true), {
+          "#struct": {
+            pair: "pair",
+            items: {
+              "#list": [input],
+              "#type": "::kernel::type::List<::kernel::type::Integer>",
+            },
+            names: {
+              "#dict": [[literal("one"), literal(1)]],
+              "#type":
+                "::kernel::type::Dict<::kernel::type::String, ::kernel::type::Integer>",
+            },
+          },
+        }),
+      ),
+    );
+  });
+
   test("construction_failures", () => {
     expect.hasAssertions();
     for (const result of [

@@ -287,19 +287,18 @@ Use TypeScript branching when you deliberately want to choose which program to c
 
 **Cause:** structural shorthand interprets a host array as a tuple with fixed positions. It does not infer a HashQL list from repeated element types. A host record likewise denotes a struct unless you explicitly construct a dictionary.
 
-**Fix:** use `Program.Structural.list` or `Program.Structural.dict` for dynamic collections, including when they are nested:
+**Fix:** use `$.list` or `$.dict` for dynamic collections, including when they are nested:
 
 ```ts data-example="collection-shapes"
-import { Program } from "@local/hashql";
 import * as Draft from "@local/hashql/Draft";
 
-const built = Draft.program({}, () =>
-  Program.Structural.struct({
+const built = Draft.program({}, ($) =>
+  $.struct({
     pair: ["open", 1n],
-    labels: Program.Structural.list(String, ["open", "blocked"]),
-    counts: Program.Structural.dict(String, BigInt, { open: 1n }),
-    noLabels: Program.Structural.list(String, []),
-    noCounts: Program.Structural.dict(String, BigInt, {}),
+    labels: $.list(String, ["open", "blocked"]),
+    counts: $.dict(String, BigInt, { open: 1n }),
+    noLabels: $.list(String, []),
+    noCounts: $.dict(String, BigInt, {}),
   }),
 );
 ```
