@@ -12,9 +12,11 @@ export const getShortRunId = (flowRunEntityId: EntityId) =>
     .slice(-runIdLength)
     .toUpperCase();
 
-/** How a short run ID is set wherever it shows: in the Logs table and the top bar's run switcher. */
+/**
+ * How a short run ID is set wherever it shows, in JetBrains Mono from `globals.scss`. Not the `mono` token, whose Geist
+ * Mono the frontend doesn't load.
+ */
 export const shortRunIdFont = css({
-  /* The `mono` token starts with Geist Mono's variable, which the frontend doesn't define, so it falls back to Inter. */
-  fontFamily: "[ui-monospace, SFMono-Regular, monospace]",
+  fontFamily: "['JetBrains Mono', ui-monospace, SFMono-Regular, monospace]",
   fontSize: "[13px]",
 });
