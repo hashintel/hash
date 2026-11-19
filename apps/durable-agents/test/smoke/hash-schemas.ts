@@ -1,13 +1,13 @@
 /**
  * HASH port unit H0c (`hash-agent-port.md` §6): does OpenAI accept the HASH
- * agent's 48 tool definitions on `openai/gpt-6.1-sol`?
+ * agent's tool definitions on `openai/gpt-6.1-sol`?
  *
  * The definitions are Brunch's HASH agent's own, converted to JSON Schema as
  * Flue converts them (`toolInputToJsonSchema` in `@flue/runtime`'s schema
  * module: a Valibot schema through `@valibot/to-json-schema`, any other
  * Standard Schema through its own `jsonSchema.input`, draft 2020-12):
  *
- * - the 39 `petrinaut_*` tools from `hashPetrinautTools`;
+ * - the `petrinaut_*` tools from `hashPetrinautTools`;
  * - the 3 graph reads, `app_save_net`, `ledger_commit` (with HASH's
  *   `evidenced` wording), `ledger_query` and `ledger_query_basis`, loaded at
  *   run time from Brunch's sources under `apps/brunch-agent/src/agents/`;
@@ -142,7 +142,7 @@ const toolInputToJsonSchema = (input: unknown): JsonSchemaObject => {
   return structuredClone(v.parse(vObjectSchema, exported));
 };
 
-// ─── The 48 definitions ──────────────────────────────────────────────────────
+// ─── The definitions ─────────────────────────────────────────────────────────
 
 type Definition = {
   readonly name: string;

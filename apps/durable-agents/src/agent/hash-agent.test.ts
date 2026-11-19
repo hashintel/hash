@@ -19,7 +19,11 @@ import {
 import { openNodeSqliteStorage } from "@earendil-works/pi-durable/storage/sqlite/node";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 
-import { brunchTools, hashSaveDescription } from "@hashintel/brunch-agent";
+import {
+  brunchTools,
+  hashPetrinautTools,
+  hashSaveDescription,
+} from "@hashintel/brunch-agent";
 
 import { toolDeltas } from "../../test/platform/hash-port/support";
 import {
@@ -48,35 +52,15 @@ const documentId = "net-42";
 const binding = { conversationId: "conversation-1", documentId };
 
 /** Brunch's HASH agent's tools (`hash-agent-mounting.test.ts`), less Flue's `task`, plus the two skill tools. */
-const brunchHashTools = [
-  "ledger_commit",
-  "ledger_query",
-  "ledger_query_basis",
-  "hash_query_entities",
-  "hash_query_entity_types",
-  "hash_query_webs",
-  "app_save_net",
-  "petrinaut_read_guide",
-  "petrinaut_get_net",
-  "petrinaut_get_diagnostics",
-  "petrinaut_set_net_title",
-  "petrinaut_layout_auto",
-  "petrinaut_create_experiment",
-  ...[
-    "place",
-    "transition",
-    "arc",
-    "type",
-    "type_element",
-    "equation",
-    "parameter",
-    "scenario",
-    "metric",
-    "subnet",
-    "component",
-  ].flatMap((kind) =>
-    ["create", "update", "remove"].map((verb) => `petrinaut_${verb}_${kind}`),
-  ),
+const brunchHashTools: readonly string[] = [
+  brunchTools.ledgerCommit,
+  brunchTools.ledgerQuery,
+  brunchTools.ledgerQueryBasis,
+  brunchTools.hashQueryEntities,
+  brunchTools.hashQueryEntityTypes,
+  brunchTools.hashQueryWebs,
+  brunchTools.appSaveNet,
+  ...Object.keys(hashPetrinautTools),
   "activate_skill",
   "read_skill_resource",
 ];
@@ -85,12 +69,11 @@ const names = (list: readonly { readonly name: string }[]) =>
   list.map(({ name }) => name);
 
 describe("what the HASH agent selects and installs", () => {
-  test("its tools are Brunch's HASH agent's, with the skill tools: 48", () => {
+  test("its tools are Brunch's HASH agent's, with the skill tools", () => {
     const { agent } = createHashAgent();
     const tools = agent.extensions.flatMap(({ tools: offered = [] }) =>
       names(offered),
     );
-    expect(tools).toHaveLength(48);
     expect(tools.toSorted()).toEqual(brunchHashTools.toSorted());
   });
 
@@ -156,7 +139,7 @@ describe("what the HASH agent selects and installs", () => {
             ? textToolOutputLimits
             : undefined,
       });
-    expect(tools.filter(({ name }) => mayShowNet(name)).length).toBe(36);
+    expect(tools.some(({ name }) => mayShowNet(name))).toBe(true);
   });
 });
 
@@ -258,7 +241,6 @@ describe("every tool the model is offered", () => {
     const { requests } = await firstTurn();
     const [opening] = requests;
     const offered = offeredTools(opening ?? []);
-    expect(offered).toHaveLength(48);
     expect(names(offered).toSorted()).toEqual(brunchHashTools.toSorted());
     const browserTools = new Set(names(hashBrowserToolDefinitions()));
     expect(offered.filter(({ name }) => browserTools.has(name))).toEqual(

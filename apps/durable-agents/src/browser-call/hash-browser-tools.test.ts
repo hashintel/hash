@@ -252,7 +252,7 @@ const recordOf = async (
   ];
 
 describe("the catalogue", () => {
-  test("43 tools from the library's table, in order: the Petrinaut tools, the graph reads, then Save naming the document", () => {
+  test("the library's table, in order: the Petrinaut tools, the graph reads, then Save naming the document", () => {
     const definitions = hashBrowserToolDefinitions(documentId);
     expect(definitions.map(({ name }) => name)).toEqual([
       ...Object.keys(hashPetrinautTools),
@@ -261,7 +261,6 @@ describe("the catalogue", () => {
       brunchTools.hashQueryWebs,
       brunchTools.appSaveNet,
     ]);
-    expect(definitions).toHaveLength(43);
     expect(definitions.at(-1)?.description).toBe(
       hashSaveDescription(documentId),
     );
@@ -272,7 +271,7 @@ describe("the catalogue", () => {
       createHashBrowserToolsExtension(createHostBinding()).tools?.map(
         ({ name }) => name,
       ),
-    ).toEqual(definitions.slice(0, 42).map(({ name }) => name));
+    ).toEqual(definitions.slice(0, -1).map(({ name }) => name));
   });
 
   test("graph reads get 256 KiB with the line limit raised to match; the net tools keep theirs, Save Pi's default", () => {

@@ -51,7 +51,9 @@ const writeResponse = async (
   outgoing: ServerResponse,
   signal: AbortSignal,
 ): Promise<void> => {
-  const reader = response.body?.getReader();
+  // Named: without DOM types, Node's `Response.body` reads `any` chunks.
+  const reader: ReadableStreamDefaultReader<Uint8Array> | undefined =
+    response.body?.getReader();
   const disconnected = () => signal.aborted || outgoing.destroyed;
   const cancel = () => {
     void reader?.cancel().catch(() => {});

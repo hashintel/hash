@@ -544,6 +544,7 @@
                                 "transition",
                                 "arc",
                                 "componentInstance",
+                                "fusion",
                                 "type",
                                 "differentialEquation",
                                 "parameter",
@@ -816,6 +817,15 @@
           "description": "When true, this place is exposed as a component port on instances of the subnet that contains it.",
           "type": "boolean"
         },
+        "portDirection": {
+          "description": "For a port: the direction the component promises. `\"in\"`: the component's transitions only consume from the port. `\"out\"`: they only produce into it. `\"inout\"`: both. A read or an inhibitor arc moves no token and counts as neither. Omit to infer it from the subnet's arcs on the port and on what the subnet fuses it with.",
+          "type": "string",
+          "enum": [
+            "in",
+            "out",
+            "inout"
+          ]
+        },
         "visualizerCode": {
           "description": "Optional JavaScript function body with JSX returning one `<Visualizer.Svg>…</Visualizer.Svg>`. `tokens` holds this place's current tokens; `parameters` is keyed by each parameter's `variableName`. Ambient `width` and `height` are the drawable window dimensions. Optional root properties: `origin` (\"top-left\" or \"center\"), `viewBox` (instead of origin), and `navigation` (\"none\" or \"pan-zoom\"). Native `<svg>` is forbidden. No function wrapper or export is needed. Use `backgroundColor=\"#eff6ff\"` for the background; Petrinaut controls the SVG size and window corners. SVG elements only; no imports, hooks or event handlers. Legacy `export default Visualization(({ tokens, parameters }) => …)` wrappers remain supported.",
           "type": "string"
@@ -936,6 +946,15 @@
             "isPort": {
               "description": "When true, this place is exposed as a component port on instances of the subnet that contains it.",
               "type": "boolean"
+            },
+            "portDirection": {
+              "description": "For a port: the direction the component promises. `\"in\"`: the component's transitions only consume from the port. `\"out\"`: they only produce into it. `\"inout\"`: both. A read or an inhibitor arc moves no token and counts as neither. Omit to infer it from the subnet's arcs on the port and on what the subnet fuses it with.",
+              "type": "string",
+              "enum": [
+                "in",
+                "out",
+                "inout"
+              ]
             },
             "visualizerCode": {
               "description": "Optional JavaScript function body with JSX returning one `<Visualizer.Svg>…</Visualizer.Svg>`. `tokens` holds this place's current tokens; `parameters` is keyed by each parameter's `variableName`. Ambient `width` and `height` are the drawable window dimensions. Optional root properties: `origin` (\"top-left\" or \"center\"), `viewBox` (instead of origin), and `navigation` (\"none\" or \"pan-zoom\"). Native `<svg>` is forbidden. No function wrapper or export is needed. Use `backgroundColor=\"#eff6ff\"` for the background; Petrinaut controls the SVG size and window corners. SVG elements only; no imports, hooks or event handlers. Legacy `export default Visualization(({ tokens, parameters }) => …)` wrappers remain supported.",
@@ -4862,6 +4881,31 @@
             "$ref": "#/$defs/__schema0"
           }
         },
+        "iconSvg": {
+          "description": "SVG markup for the component's icon. Its shape is drawn in one colour on the component's instances, in place of the default cube. Keep it small: one `<svg>` with a `viewBox` that holds only `g`, `path`, `rect`, `circle`, `ellipse`, `line`, `polyline` and `polygon` elements. Any other element is refused.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 16384
+        },
+        "displayColor": {
+          "description": "CSS colour string for the component's icon and its tile, e.g. `\"#1E90FF\"`. Omit for the default glyph colour.",
+          "type": "string",
+          "minLength": 1
+        },
+        "interface": {
+          "description": "When true, the subnet is an interface: a signature of ports, types and parameters with no transitions, which implements no interface itself. Instances of it run the implementation bound to them.",
+          "type": "boolean",
+          "const": true
+        },
+        "implements": {
+          "description": "IDs of the interface subnets this subnet implements: it has a port of the same name and token type for each of theirs, and a parameter of each variable name. Not for a subnet that is an interface: an interface cannot implement an interface.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Stable identifier for an SDCPN entity, a UUID. Use unique IDs within the net. Any other string is converted to a stable UUID, so the same string always names the same entity."
+          }
+        },
         "places": {
           "type": "array",
           "items": {
@@ -4931,6 +4975,15 @@
               "isPort": {
                 "description": "When true, this place is exposed as a component port on instances of the subnet that contains it.",
                 "type": "boolean"
+              },
+              "portDirection": {
+                "description": "For a port: the direction the component promises. `\"in\"`: the component's transitions only consume from the port. `\"out\"`: they only produce into it. `\"inout\"`: both. A read or an inhibitor arc moves no token and counts as neither. Omit to infer it from the subnet's arcs on the port and on what the subnet fuses it with.",
+                "type": "string",
+                "enum": [
+                  "in",
+                  "out",
+                  "inout"
+                ]
               },
               "visualizerCode": {
                 "description": "Optional JavaScript function body with JSX returning one `<Visualizer.Svg>…</Visualizer.Svg>`. `tokens` holds this place's current tokens; `parameters` is keyed by each parameter's `variableName`. Ambient `width` and `height` are the drawable window dimensions. Optional root properties: `origin` (\"top-left\" or \"center\"), `viewBox` (instead of origin), and `navigation` (\"none\" or \"pan-zoom\"). Native `<svg>` is forbidden. No function wrapper or export is needed. Use `backgroundColor=\"#eff6ff\"` for the background; Petrinaut controls the SVG size and window corners. SVG elements only; no imports, hooks or event handlers. Legacy `export default Visualization(({ tokens, parameters }) => …)` wrappers remain supported.",
@@ -5388,9 +5441,30 @@
                 }
               },
               "subnetId": {
+                "description": "ID of the subnet of the document this component instantiates, a UUID. Any other string is converted to a stable UUID. Give this or `component`, never both.",
                 "type": "string",
-                "minLength": 1,
-                "description": "ID of the subnet definition this component instantiates, a UUID. Any other string is converted to a stable UUID."
+                "minLength": 1
+              },
+              "component": {
+                "description": "The component of an import this instance instantiates, as `{ from, id }`. Give this or `subnetId`, never both.",
+                "type": "object",
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "The ID of the import the component comes from."
+                  },
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "The component's ID inside that library, as the library writes it."
+                  }
+                },
+                "required": [
+                  "from",
+                  "id"
+                ],
+                "additionalProperties": false
               },
               "parameterValues": {
                 "type": "object",
@@ -5402,7 +5476,47 @@
                 "additionalProperties": {
                   "type": "string"
                 },
-                "description": "Per-instance parameter values keyed by parameter ID from the referenced subnet."
+                "description": "Per-instance parameter values keyed by parameter ID from the referenced component."
+              },
+              "implementation": {
+                "description": "For an instance of an interface: the component to run, as `{ id }` for a subnet of the document or `{ from, id }` for a component of an import. Omit to run the document's default implementation for the interface.",
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "The component's subnet ID."
+                      }
+                    },
+                    "required": [
+                      "id"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "from": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "The ID of the import the component comes from."
+                      },
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "The component's ID inside that library, as the library writes it."
+                      }
+                    },
+                    "required": [
+                      "from",
+                      "id"
+                    ],
+                    "additionalProperties": false,
+                    "description": "A reference to a component of an import."
+                  }
+                ]
               },
               "x": {
                 "type": "number",
@@ -5416,13 +5530,95 @@
             "required": [
               "id",
               "name",
-              "subnetId",
               "parameterValues",
               "x",
               "y"
             ],
             "additionalProperties": false,
-            "description": "A placed instance of a subnet. Parent nets connect to exposed subnet ports with transition arcs."
+            "description": "A placed instance of a component: a subnet of the document, or a component of an import. Parent nets connect to its ports with fusions and transition arcs."
+          }
+        },
+        "fusions": {
+          "description": "Fusions among this subnet's places and its nested instances' ports.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Stable identifier for an SDCPN entity, a UUID. Use unique IDs within the net. Any other string is converted to a stable UUID, so the same string always names the same entity."
+              },
+              "name": {
+                "type": "string",
+                "description": "Human-readable fusion name."
+              },
+              "description": {
+                "description": "Optional human-readable summary shown to users.",
+                "type": "string"
+              },
+              "members": {
+                "minItems": 2,
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "place"
+                        },
+                        "placeId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "ID of a place in the same net as the transition."
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "placeId"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "componentPort"
+                        },
+                        "componentInstanceId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "ID of a component instance in the same net as the transition."
+                        },
+                        "portPlaceId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "ID of a place marked `isPort: true` in the component instance's referenced subnet."
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "componentInstanceId",
+                        "portPlaceId"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ],
+                  "description": "A fusion member: `kind: \"place\"` names a place of the net the fusion belongs to; `kind: \"componentPort\"` names a port of one of that net's component instances."
+                },
+                "description": "The places and ports that are one place when the net runs: at most one place of the net itself, plus ports of its component instances. At least two members."
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "members"
+            ],
+            "additionalProperties": false,
+            "description": "A fusion set: a place of the net and ports of its component instances that act as one place in simulation."
           }
         },
         "editor_id": {
@@ -5508,6 +5704,30 @@
               "additionalProperties": {
                 "$ref": "#/$defs/__schema0"
               }
+            },
+            "iconSvg": {
+              "description": "SVG markup for the component's icon. Its shape is drawn in one colour on the component's instances, in place of the default cube. Keep it small: one `<svg>` with a `viewBox` that holds only `g`, `path`, `rect`, `circle`, `ellipse`, `line`, `polyline` and `polygon` elements. Any other element is refused.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 16384
+            },
+            "displayColor": {
+              "description": "CSS colour string for the component's icon and its tile, e.g. `\"#1E90FF\"`. Omit for the default glyph colour.",
+              "type": "string",
+              "minLength": 1
+            },
+            "interface": {
+              "description": "true makes the subnet an interface: a signature of ports, types and parameters with no transitions, which implements no interface itself. false makes an interface an ordinary subnet again. Omit to leave it as it is.",
+              "type": "boolean"
+            },
+            "implements": {
+              "description": "IDs of the interface subnets this subnet implements: it has a port of the same name and token type for each of theirs, and a parameter of each variable name. Not for a subnet that is an interface: an interface cannot implement an interface.",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Stable identifier for an SDCPN entity, a UUID. Use unique IDs within the net. Any other string is converted to a stable UUID, so the same string always names the same entity."
+              }
             }
           },
           "additionalProperties": false,
@@ -5584,8 +5804,46 @@
     }
   },
   {
+    "name": "petrinaut_set_implementation",
+    "description": "Set or clear the document's default implementation for an interface.",
+    "parameters": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "interfaceId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The interface subnet's ID."
+        },
+        "implementationId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "description": "Stable identifier for an SDCPN entity, a UUID. Use unique IDs within the net. Any other string is converted to a stable UUID, so the same string always names the same entity."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The implementing subnet to run for instances of the interface that choose none themselves, or null to clear the document's default."
+        },
+        "editor_id": {
+          "type": "string",
+          "description": "The editor to act on, as your instructions name it."
+        }
+      },
+      "required": [
+        "interfaceId",
+        "implementationId",
+        "editor_id"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
     "name": "petrinaut_create_component",
-    "description": "Place an instance of an existing subnet in the root net or another subnet.",
+    "description": "Place an instance of a component in the root net or a subnet: a subnet of the document, named by `subnetId`, or a component of a library the application resolves, named by `component: { from, id }`. The first instance to name a library, for its `component` or for its `implementation`, adds it to the document's `imports`.",
     "parameters": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
@@ -5614,9 +5872,30 @@
           }
         },
         "subnetId": {
+          "description": "ID of the subnet of the document this component instantiates, a UUID. Any other string is converted to a stable UUID. Give this or `component`, never both.",
           "type": "string",
-          "minLength": 1,
-          "description": "ID of the subnet definition this component instantiates, a UUID. Any other string is converted to a stable UUID."
+          "minLength": 1
+        },
+        "component": {
+          "description": "The component of an import this instance instantiates, as `{ from, id }`. Give this or `subnetId`, never both.",
+          "type": "object",
+          "properties": {
+            "from": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The ID of the import the component comes from."
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The component's ID inside that library, as the library writes it."
+            }
+          },
+          "required": [
+            "from",
+            "id"
+          ],
+          "additionalProperties": false
         },
         "parameterValues": {
           "type": "object",
@@ -5628,7 +5907,47 @@
           "additionalProperties": {
             "type": "string"
           },
-          "description": "Per-instance parameter values keyed by parameter ID from the referenced subnet."
+          "description": "Per-instance parameter values keyed by parameter ID from the referenced component."
+        },
+        "implementation": {
+          "description": "For an instance of an interface: the component to run, as `{ id }` for a subnet of the document or `{ from, id }` for a component of an import. Omit to run the document's default implementation for the interface.",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The component's subnet ID."
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "from": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The ID of the import the component comes from."
+                },
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The component's ID inside that library, as the library writes it."
+                }
+              },
+              "required": [
+                "from",
+                "id"
+              ],
+              "additionalProperties": false,
+              "description": "A reference to a component of an import."
+            }
+          ]
         },
         "x": {
           "type": "number",
@@ -5659,7 +5978,6 @@
       "required": [
         "id",
         "name",
-        "subnetId",
         "parameterValues",
         "x",
         "y",
@@ -5735,9 +6053,30 @@
               }
             },
             "subnetId": {
+              "description": "ID of the subnet of the document this component instantiates, a UUID. Any other string is converted to a stable UUID. Give this or `component`, never both.",
               "type": "string",
-              "minLength": 1,
-              "description": "ID of the subnet definition this component instantiates, a UUID. Any other string is converted to a stable UUID."
+              "minLength": 1
+            },
+            "component": {
+              "description": "The component of an import this instance instantiates, as `{ from, id }`. Give this or `subnetId`, never both.",
+              "type": "object",
+              "properties": {
+                "from": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The ID of the import the component comes from."
+                },
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The component's ID inside that library, as the library writes it."
+                }
+              },
+              "required": [
+                "from",
+                "id"
+              ],
+              "additionalProperties": false
             },
             "parameterValues": {
               "type": "object",
@@ -5749,7 +6088,55 @@
               "additionalProperties": {
                 "type": "string"
               },
-              "description": "Per-instance parameter values keyed by parameter ID from the referenced subnet."
+              "description": "Per-instance parameter values keyed by parameter ID from the referenced component."
+            },
+            "implementation": {
+              "description": "For an instance of an interface: the component to run, as `{ id }` for a subnet of the document or `{ from, id }` for a component of an import, or null to clear the instance's choice, so that it runs the document's default implementation for the interface. Omit to leave the choice as it is.",
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "The component's subnet ID."
+                        }
+                      },
+                      "required": [
+                        "id"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "from": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "The ID of the import the component comes from."
+                        },
+                        "id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "The component's ID inside that library, as the library writes it."
+                        }
+                      },
+                      "required": [
+                        "from",
+                        "id"
+                      ],
+                      "additionalProperties": false,
+                      "description": "A reference to a component of an import."
+                    }
+                  ],
+                  "description": "A reference to a component: `{ id }` names a subnet of the document, `{ from, id }` a component of an import."
+                },
+                {
+                  "type": "null"
+                }
+              ]
             }
           },
           "additionalProperties": false,
@@ -5870,8 +6257,509 @@
     }
   },
   {
+    "name": "petrinaut_create_fusion",
+    "description": "Fuse a place of the net with ports of its component instances, or ports with each other, so they are one place in simulation. Without a `name`, the fusion is named `Fusion N`, with the lowest number no fusion of the net uses. A member already in another fusion of the same net brings that fusion's members along, and that fusion is removed.",
+    "parameters": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable identifier for an SDCPN entity, a UUID. Use unique IDs within the net. Any other string is converted to a stable UUID, so the same string always names the same entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-readable fusion name."
+        },
+        "description": {
+          "description": "Optional human-readable summary shown to users.",
+          "type": "string"
+        },
+        "members": {
+          "minItems": 2,
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "place"
+                  },
+                  "placeId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "ID of a place in the same net as the transition."
+                  }
+                },
+                "required": [
+                  "kind",
+                  "placeId"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "componentPort"
+                  },
+                  "componentInstanceId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "ID of a component instance in the same net as the transition."
+                  },
+                  "portPlaceId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "ID of a place marked `isPort: true` in the component instance's referenced subnet."
+                  }
+                },
+                "required": [
+                  "kind",
+                  "componentInstanceId",
+                  "portPlaceId"
+                ],
+                "additionalProperties": false
+              }
+            ],
+            "description": "A fusion member: `kind: \"place\"` names a place of the net the fusion belongs to; `kind: \"componentPort\"` names a port of one of that net's component instances."
+          },
+          "description": "The places and ports that are one place when the net runs: at most one place of the net itself, plus ports of its component instances. At least two members."
+        },
+        "targetSubnetId": {
+          "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "description": "Stable identifier for an SDCPN entity, a UUID. Use unique IDs within the net. Any other string is converted to a stable UUID, so the same string always names the same entity."
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "editor_id": {
+          "type": "string",
+          "description": "The editor to act on, as your instructions name it."
+        }
+      },
+      "required": [
+        "id",
+        "members",
+        "editor_id"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "petrinaut_update_fusion",
+    "description": "Rename a fusion or change its description. A fusion keeps a name: an empty one is refused.",
+    "parameters": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "fusionId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable identifier for an SDCPN entity, a UUID. Use unique IDs within the net. Any other string is converted to a stable UUID, so the same string always names the same entity."
+        },
+        "update": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Human-readable fusion name."
+            },
+            "description": {
+              "description": "Optional human-readable summary shown to users.",
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "description": "Fields to assign to an existing fusion. Members change through `addFusionMember`, `removeFusionMember` and `replaceFusionMember`."
+        },
+        "targetSubnetId": {
+          "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "description": "Stable identifier for an SDCPN entity, a UUID. Use unique IDs within the net. Any other string is converted to a stable UUID, so the same string always names the same entity."
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "editor_id": {
+          "type": "string",
+          "description": "The editor to act on, as your instructions name it."
+        }
+      },
+      "required": [
+        "fusionId",
+        "update",
+        "editor_id"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "petrinaut_remove_fusion",
+    "description": "Remove a fusion. Its members become separate places again.",
+    "parameters": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "fusionId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable identifier for an SDCPN entity, a UUID. Use unique IDs within the net. Any other string is converted to a stable UUID, so the same string always names the same entity."
+        },
+        "targetSubnetId": {
+          "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "description": "Stable identifier for an SDCPN entity, a UUID. Use unique IDs within the net. Any other string is converted to a stable UUID, so the same string always names the same entity."
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "editor_id": {
+          "type": "string",
+          "description": "The editor to act on, as your instructions name it."
+        }
+      },
+      "required": [
+        "fusionId",
+        "editor_id"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "petrinaut_create_fusion_member",
+    "description": "Add a place or an instance port to a fusion. A member already in another fusion of the same net brings that fusion's members along, and that fusion is removed.",
+    "parameters": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "fusionId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable identifier for an SDCPN entity, a UUID. Use unique IDs within the net. Any other string is converted to a stable UUID, so the same string always names the same entity."
+        },
+        "member": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "place"
+                },
+                "placeId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "ID of a place in the same net as the transition."
+                }
+              },
+              "required": [
+                "kind",
+                "placeId"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "componentPort"
+                },
+                "componentInstanceId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "ID of a component instance in the same net as the transition."
+                },
+                "portPlaceId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "ID of a place marked `isPort: true` in the component instance's referenced subnet."
+                }
+              },
+              "required": [
+                "kind",
+                "componentInstanceId",
+                "portPlaceId"
+              ],
+              "additionalProperties": false
+            }
+          ],
+          "description": "A fusion member: `kind: \"place\"` names a place of the net the fusion belongs to; `kind: \"componentPort\"` names a port of one of that net's component instances."
+        },
+        "targetSubnetId": {
+          "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "description": "Stable identifier for an SDCPN entity, a UUID. Use unique IDs within the net. Any other string is converted to a stable UUID, so the same string always names the same entity."
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "editor_id": {
+          "type": "string",
+          "description": "The editor to act on, as your instructions name it."
+        }
+      },
+      "required": [
+        "fusionId",
+        "member",
+        "editor_id"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "petrinaut_remove_fusion_member",
+    "description": "Take a place or an instance port out of a fusion. A fusion left with fewer than two members is removed.",
+    "parameters": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "fusionId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable identifier for an SDCPN entity, a UUID. Use unique IDs within the net. Any other string is converted to a stable UUID, so the same string always names the same entity."
+        },
+        "member": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "place"
+                },
+                "placeId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "ID of a place in the same net as the transition."
+                }
+              },
+              "required": [
+                "kind",
+                "placeId"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "componentPort"
+                },
+                "componentInstanceId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "ID of a component instance in the same net as the transition."
+                },
+                "portPlaceId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "ID of a place marked `isPort: true` in the component instance's referenced subnet."
+                }
+              },
+              "required": [
+                "kind",
+                "componentInstanceId",
+                "portPlaceId"
+              ],
+              "additionalProperties": false
+            }
+          ],
+          "description": "A fusion member: `kind: \"place\"` names a place of the net the fusion belongs to; `kind: \"componentPort\"` names a port of one of that net's component instances."
+        },
+        "targetSubnetId": {
+          "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "description": "Stable identifier for an SDCPN entity, a UUID. Use unique IDs within the net. Any other string is converted to a stable UUID, so the same string always names the same entity."
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "editor_id": {
+          "type": "string",
+          "description": "The editor to act on, as your instructions name it."
+        }
+      },
+      "required": [
+        "fusionId",
+        "member",
+        "editor_id"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "petrinaut_replace_fusion_member",
+    "description": "Move a fusion from one place or instance port to another, in one step. A replacement already in another fusion of the same net brings that fusion's members along, and that fusion is removed. The replacement must not be a member of this fusion already: use `removeFusionMember` to take a member out.",
+    "parameters": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "fusionId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable identifier for an SDCPN entity, a UUID. Use unique IDs within the net. Any other string is converted to a stable UUID, so the same string always names the same entity."
+        },
+        "member": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "place"
+                },
+                "placeId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "ID of a place in the same net as the transition."
+                }
+              },
+              "required": [
+                "kind",
+                "placeId"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "componentPort"
+                },
+                "componentInstanceId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "ID of a component instance in the same net as the transition."
+                },
+                "portPlaceId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "ID of a place marked `isPort: true` in the component instance's referenced subnet."
+                }
+              },
+              "required": [
+                "kind",
+                "componentInstanceId",
+                "portPlaceId"
+              ],
+              "additionalProperties": false
+            }
+          ],
+          "description": "The member that leaves the fusion."
+        },
+        "replacement": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "place"
+                },
+                "placeId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "ID of a place in the same net as the transition."
+                }
+              },
+              "required": [
+                "kind",
+                "placeId"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "componentPort"
+                },
+                "componentInstanceId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "ID of a component instance in the same net as the transition."
+                },
+                "portPlaceId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "ID of a place marked `isPort: true` in the component instance's referenced subnet."
+                }
+              },
+              "required": [
+                "kind",
+                "componentInstanceId",
+                "portPlaceId"
+              ],
+              "additionalProperties": false
+            }
+          ],
+          "description": "The place or instance port that joins in its stead."
+        },
+        "targetSubnetId": {
+          "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "description": "Stable identifier for an SDCPN entity, a UUID. Use unique IDs within the net. Any other string is converted to a stable UUID, so the same string always names the same entity."
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "editor_id": {
+          "type": "string",
+          "description": "The editor to act on, as your instructions name it."
+        }
+      },
+      "required": [
+        "fusionId",
+        "member",
+        "replacement",
+        "editor_id"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
     "name": "petrinaut_get_net",
-    "description": "Read the net open in the editor at one level of detail. Returns { title, definition, extensions }: the user-visible net title, the net, and the extension capabilities enabled for this document.",
+    "description": "Read the net open in the editor at one level of detail. Returns { title, definition, extensions }: the user-visible net title, the net, and the extension capabilities enabled for this document. Where the net imports libraries or the editor offers some, also `imports`: each library with its `status` and, once `resolved`, its `name` and `components`, each with its `id`, whether it is an `interface`, its `ports` and its `parameters`. Place an instance of one with `petrinaut_create_component` and `component: { from: <library id>, id: <component id> }`.",
     "parameters": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
@@ -6144,6 +7032,7 @@
             "drawing-a-net",
             "petri-net-extensions",
             "useful-patterns",
+            "composition",
             "simulation",
             "scenarios",
             "ad-hoc-scenarios",
@@ -6300,6 +7189,7 @@
                 "transition",
                 "arc",
                 "componentInstance",
+                "fusion",
                 "type",
                 "differentialEquation",
                 "parameter",
