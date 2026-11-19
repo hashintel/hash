@@ -11,13 +11,8 @@
  * supersedes. The rewindable `LedgerDoc` keeps every revision, so
  * `snapshotAsOf` still reads any entry; it stores a base every 128 changes
  * and replays at most 127 deltas from the newest base before the entry.
- *
- * Rows, bytes and timings are printed (`checkpoints …` lines): commit time,
- * and a first read after reopening, at the latest point and, for the Ledger,
- * as of an entry halfway through.
  */
 import { randomUUID } from "node:crypto";
-import { performance } from "node:perf_hooks";
 
 import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
 import {
@@ -54,22 +49,6 @@ const ledgerMaxReplayedDeltas = 127;
 const browserCalls = 100;
 const ledgerCommits = 500;
 
-const round = (value: number) => Math.round(value * 100) / 100;
-
-const print = (line: string) => process.stdout.write(`checkpoints ${line}\n`);
-
-const summary = (durations: number[]) => {
-  const sorted = durations.toSorted((left, right) => left - right);
-  const total = sorted.reduce((sum, duration) => sum + duration, 0);
-  return `mean ${round(total / sorted.length)} ms, p95 ${round(sorted[Math.floor(sorted.length * 0.95)] ?? 0)} ms, max ${round(sorted.at(-1) ?? 0)} ms`;
-};
-
-const timed = async <T>(run: () => Promise<T>) => {
-  const started = performance.now();
-  const value = await run();
-  return { value, ms: round(performance.now() - started) };
-};
-
 const openOn = async (schema: string) =>
   openHarness(
     await openPostgresStorage({ pool: poolConfig, schema }),
@@ -82,11 +61,9 @@ const revisions = async (schema: string, kind: string) => {
   const { rows } = await admin.query<{
     bases: string;
     deltas: string;
-    bytes: string;
   }>(
     `SELECT count(*) FILTER (WHERE r.kind = 'base') AS bases,
-        count(*) FILTER (WHERE r.kind = 'delta') AS deltas,
-        coalesce(sum(length(r.content)), 0) AS bytes
+        count(*) FILTER (WHERE r.kind = 'delta') AS deltas
       FROM "${schema}".documents d JOIN "${schema}".document_revisions r ON r.document_id = d.id
       WHERE d.kind = $1`,
     [JSON.stringify(kind)],
@@ -95,7 +72,6 @@ const revisions = async (schema: string, kind: string) => {
   return {
     bases: Number(row?.bases),
     deltas: Number(row?.deltas),
-    bytes: Number(row?.bytes),
   };
 };
 
@@ -161,11 +137,9 @@ const callStages = (index: number): Partial<BrowserCallRecord>[] => [
 
 const runBrowserCalls = async (harness: Harness) => {
   const root = await harness.root(context);
-  const durations: number[] = [];
   for (let index = 0; index < browserCalls; index++) {
     const toolCallId = `call-${index}`;
     for (const stage of callStages(index)) {
-      const started = performance.now();
       // eslint-disable-next-line no-await-in-loop -- Each update is its own commit, as a call's are.
       await root.commit(async (tx) => {
         const { calls } = await tx.doc(BrowserCallsDoc, root.id);
@@ -187,18 +161,15 @@ const runBrowserCalls = async (harness: Harness) => {
           ...stage,
         };
       }, context);
-      durations.push(performance.now() - started);
     }
   }
-  return { conversationId: root.id, durations };
+  return root.id;
 };
 
 const runLedgerCommits = async (harness: Harness) => {
   const root = await harness.root(context);
-  const durations: number[] = [];
   const entries: EntryId[] = [];
   for (let index = 0; index < ledgerCommits; index++) {
-    const started = performance.now();
     // eslint-disable-next-line no-await-in-loop -- Each Ledger commit is its own commit, as a turn's are.
     const entry = await root.commit(async (tx) => {
       const ledger = await tx.doc(LedgerDoc, root.id);
@@ -236,16 +207,15 @@ const runLedgerCommits = async (harness: Harness) => {
       });
       return tx.appendEntry(root.id, { kind: "test.mark" });
     }, context);
-    durations.push(performance.now() - started);
     entries.push(entry.id);
   }
-  return { conversationId: root.id, durations, entries };
+  return { conversationId: root.id, entries };
 };
 
 test(`BrowserCallsDoc keeps at most ${browserCallsMaxRevisions} revisions across ${browserCalls} calls`, async () => {
   await withSchema(async (schema) => {
     const harness = await openOn(schema);
-    const { conversationId, durations } = await runBrowserCalls(harness);
+    const conversationId = await runBrowserCalls(harness);
     await harness.close(context);
 
     const stored = await revisions(schema, BrowserCallsDoc.definition.kind);
@@ -254,37 +224,30 @@ test(`BrowserCallsDoc keeps at most ${browserCallsMaxRevisions} revisions across
       schema,
       readOnly: true,
     });
-    const replay = await timed(() =>
-      replayedDeltas(
-        storage,
-        BrowserCallsDoc.definition.kind,
-        conversationId,
-        "current",
-      ),
+    const replay = await replayedDeltas(
+      storage,
+      BrowserCallsDoc.definition.kind,
+      conversationId,
+      "current",
     );
     await storage.close(context);
     const reopened = await openOn(schema);
     try {
-      const snapshot = await timed(() =>
-        reopened.snapshot(BrowserCallsDoc, conversationId, context),
+      const snapshot = await reopened.snapshot(
+        BrowserCallsDoc,
+        conversationId,
+        context,
       );
-      print(
-        `browser-calls: ${durations.length} commits (${summary(durations)}); ` +
-          `${stored.bases} bases + ${stored.deltas} deltas, ${stored.bytes} bytes; ` +
-          `storage read replays ${replay.value} deltas in ${replay.ms} ms; reopened snapshot ${snapshot.ms} ms`,
-      );
-      expect(Object.values(snapshot.value?.calls ?? {})).toHaveLength(
-        browserCalls,
-      );
+      expect(Object.values(snapshot?.calls ?? {})).toHaveLength(browserCalls);
       expect(
-        Object.values(snapshot.value?.calls ?? {}).every(
+        Object.values(snapshot?.calls ?? {}).every(
           ({ status }) => status === "settled",
         ),
       ).toBe(true);
       expect(stored.bases + stored.deltas).toBeLessThanOrEqual(
         browserCallsMaxRevisions,
       );
-      expect(replay.value).toBeLessThan(browserCallsMaxRevisions);
+      expect(replay).toBeLessThan(browserCallsMaxRevisions);
     } finally {
       await reopened.close(context);
     }
@@ -294,8 +257,7 @@ test(`BrowserCallsDoc keeps at most ${browserCallsMaxRevisions} revisions across
 test(`LedgerDoc replays at most ${ledgerMaxReplayedDeltas} deltas across ${ledgerCommits} commits, and still reads every entry`, async () => {
   await withSchema(async (schema) => {
     const harness = await openOn(schema);
-    const { conversationId, durations, entries } =
-      await runLedgerCommits(harness);
+    const { conversationId, entries } = await runLedgerCommits(harness);
     await harness.close(context);
 
     const stored = await revisions(schema, LedgerDoc.definition.kind);
@@ -309,46 +271,41 @@ test(`LedgerDoc replays at most ${ledgerMaxReplayedDeltas} deltas across ${ledge
     });
     const middleSeq = (await storage.entry(middleEntry, context))?.commitSeq;
     if (middleSeq === undefined) throw new Error(`No entry ${middleEntry}.`);
-    const latestReplay = await timed(() =>
-      replayedDeltas(
-        storage,
-        LedgerDoc.definition.kind,
-        conversationId,
-        "current",
-      ),
+    const latestReplay = await replayedDeltas(
+      storage,
+      LedgerDoc.definition.kind,
+      conversationId,
+      "current",
     );
-    const middleReplay = await timed(() =>
-      replayedDeltas(
-        storage,
-        LedgerDoc.definition.kind,
-        conversationId,
-        middleSeq,
-      ),
+    const middleReplay = await replayedDeltas(
+      storage,
+      LedgerDoc.definition.kind,
+      conversationId,
+      middleSeq,
     );
     await storage.close(context);
     const reopened = await openOn(schema);
     try {
-      const latest = await timed(() =>
-        reopened.snapshotAsOf(LedgerDoc, conversationId, latestEntry, context),
+      const latest = await reopened.snapshotAsOf(
+        LedgerDoc,
+        conversationId,
+        latestEntry,
+        context,
       );
-      const atMiddle = await timed(() =>
-        reopened.snapshotAsOf(LedgerDoc, conversationId, middleEntry, context),
+      const atMiddle = await reopened.snapshotAsOf(
+        LedgerDoc,
+        conversationId,
+        middleEntry,
+        context,
       );
-      print(
-        `ledger: ${durations.length} commits (${summary(durations)}); ` +
-          `${stored.bases} bases + ${stored.deltas} deltas, ${stored.bytes} bytes; ` +
-          `storage read replays ${latestReplay.value} deltas in ${latestReplay.ms} ms at the latest, ` +
-          `${middleReplay.value} in ${middleReplay.ms} ms halfway; ` +
-          `reopened snapshotAsOf ${latest.ms} ms at the latest, ${atMiddle.ms} ms halfway`,
-      );
-      expect(latest.value?.messages).toHaveLength(ledgerCommits);
-      expect(atMiddle.value?.messages).toHaveLength(middle + 1);
+      expect(latest?.messages).toHaveLength(ledgerCommits);
+      expect(atMiddle?.messages).toHaveLength(middle + 1);
       // Rewindable: every revision stays addressable.
       expect(stored.bases + stored.deltas).toBeGreaterThanOrEqual(
         ledgerCommits,
       );
-      expect(latestReplay.value).toBeLessThanOrEqual(ledgerMaxReplayedDeltas);
-      expect(middleReplay.value).toBeLessThanOrEqual(ledgerMaxReplayedDeltas);
+      expect(latestReplay).toBeLessThanOrEqual(ledgerMaxReplayedDeltas);
+      expect(middleReplay).toBeLessThanOrEqual(ledgerMaxReplayedDeltas);
       // Bases bound replay; a never-checkpointing Ledger stores one, at its creation.
       expect(stored.bases).toBeGreaterThan(1);
     } finally {
