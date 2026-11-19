@@ -47,10 +47,13 @@ use crate::DatabaseTestWrapper;
 const AGENT_CONVERSATION_TYPE: &str = "https://hash.ai/@h/types/entity-type/agent-conversation/v/1";
 const CONVERSATION_ID_TYPE: &str = "https://hash.ai/@h/types/property-type/conversation-id/v/1";
 const CONVERSATION_ID: &str = "https://hash.ai/@h/types/property-type/conversation-id/";
+/// A type sharing the conversation's property, so an entity can move between the two.
+const NOTE_TYPE: &str = "https://hash.ai/@h/types/entity-type/conversation-test-note/v/1";
 
 /// An organization web holding one agent conversation, and the users whose access to it differs.
 struct Fixture<'pool> {
     store: PostgresStore<Transaction<'pool>, InTransaction>,
+    web_id: WebId,
     /// Member of the web who created the conversation.
     creator: UserId,
     /// Member of the web who did not create the conversation.
@@ -147,6 +150,22 @@ async fn create_agent_conversation_types(
                 conflict_behavior: ConflictBehavior::Skip,
                 provenance: ontology_provenance(),
                 fetched_from_origin: false,
+            }, CreateEntityTypeParams {
+                schema: serde_json::from_value::<EntityType>(json!({
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+                    "kind": "entityType",
+                    "$id": NOTE_TYPE,
+                    "type": "object",
+                    "title": "Conversation Test Note",
+                    "description": "A note that records a conversation id.",
+                    "properties": {
+                        CONVERSATION_ID: { "$ref": CONVERSATION_ID_TYPE }
+                    }
+                }))?,
+                ownership: OntologyOwnership::Local { web_id },
+                conflict_behavior: ConflictBehavior::Skip,
+                provenance: ontology_provenance(),
+                fetched_from_origin: false,
             }],
         )
         .await?;
@@ -228,6 +247,7 @@ async fn setup_with_creator_role(
 
     Ok(Fixture {
         store,
+        web_id,
         creator,
         member,
         administrator,
@@ -274,6 +294,66 @@ impl Fixture<'_> {
                     properties: Vec::new(),
                     draft: None,
                     archived: Some(true),
+                    confidence: None,
+                    provenance: entity_provenance(),
+                },
+            )
+            .await
+    }
+
+    /// Creates a note in the web as `user`, recording a conversation id.
+    async fn create_note(&mut self, user: UserId) -> Result<EntityId, Box<dyn Error>> {
+        Ok(self
+            .store
+            .create_entity(
+                ActorId::User(user),
+                CreateEntityParams {
+                    web_id: self.web_id,
+                    entity_uuid: None,
+                    decision_time: None,
+                    entity_type_ids: HashSet::from([VersionedUrl::from_str(NOTE_TYPE)?]),
+                    properties: PropertyObjectWithMetadata::from_parts(
+                        serde_json::from_value::<PropertyObject>(json!({
+                            CONVERSATION_ID: "note-conversation"
+                        }))?,
+                        None,
+                    )?,
+                    confidence: None,
+                    link_data: None,
+                    draft: false,
+                    policies: Vec::new(),
+                    provenance: entity_provenance(),
+                    read_only: false,
+                },
+            )
+            .await?
+            .metadata
+            .record_id
+            .entity_id)
+    }
+
+    /// Replaces the types of `entity` with `entity_types`, as `user`.
+    async fn reclassify(
+        &mut self,
+        user: UserId,
+        entity: EntityId,
+        entity_types: &[&str],
+    ) -> Result<Entity, Report<UpdateError>> {
+        self.store
+            .patch_entity(
+                ActorId::User(user),
+                PatchEntityParams {
+                    entity_id: entity,
+                    decision_time: None,
+                    entity_type_ids: entity_types
+                        .iter()
+                        .map(|entity_type| {
+                            VersionedUrl::from_str(entity_type).expect("should parse type URL")
+                        })
+                        .collect(),
+                    properties: Vec::new(),
+                    draft: None,
+                    archived: None,
                     confidence: None,
                     provenance: entity_provenance(),
                 },
@@ -472,6 +552,43 @@ async fn archive_other_member() -> Result<(), Box<dyn Error>> {
         status(&report),
         Some(StatusCode::PermissionDenied),
         "archive should be refused for lack of permission: {report:?}"
+    );
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn declassify_creator() -> Result<(), Box<dyn Error>> {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut fixture = setup(&mut database).await?;
+
+    let report = fixture
+        .reclassify(fixture.creator, fixture.conversation, &[NOTE_TYPE])
+        .await
+        .expect_err("creator should not remove the Agent Conversation type");
+    assert_eq!(
+        status(&report),
+        Some(StatusCode::PermissionDenied),
+        "removing the type should be refused: {report:?}"
+    );
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn classify_shared_entity_member() -> Result<(), Box<dyn Error>> {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut fixture = setup(&mut database).await?;
+    let note = fixture.create_note(fixture.member).await?;
+
+    let report = fixture
+        .reclassify(fixture.member, note, &[NOTE_TYPE, AGENT_CONVERSATION_TYPE])
+        .await
+        .expect_err("member should not add the Agent Conversation type to an existing entity");
+    assert_eq!(
+        status(&report),
+        Some(StatusCode::PermissionDenied),
+        "adding the type should be refused: {report:?}"
     );
 
     Ok(())
