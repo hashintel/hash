@@ -4,22 +4,26 @@ import "@fontsource-variable/jetbrains-mono";
 import "./index.css";
 import {
   type FunctionComponent,
-  type ReactNode,
   useEffect,
   useMemo,
   useRef,
+  useState,
 } from "react";
 
 import { PortalContainerContext } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   createPetrinaut,
+  sameRules,
   type PetrinautDocHandle,
   type Petrinaut as Instance,
   type LspWorkerFactory,
   type WorkerFactory,
   type MinimalNetMetadata,
+  type PetrinautRules,
+  type ResolveImport,
   type SDCPN,
+  type SimulatorRegistration,
 } from "@hashintel/petrinaut-core";
 
 import {
@@ -27,8 +31,11 @@ import {
   useCommandRegistry,
 } from "../react/commands/command-registry";
 import { PetrinautProvider } from "../react/petrinaut-provider";
+import { ResolvingOverlay } from "./components/resolving-overlay";
 import { Stack } from "./components/stack";
 import { MonacoProvider } from "./monaco/provider";
+import { documentViewPlugin } from "./plugins/document-view-plugin";
+import { fpsCounterPlugin } from "./plugins/fps-counter-plugin";
 import { PetrinautPluginsProvider } from "./plugins/plugins-provider";
 import { EditorView } from "./views/Editor/editor-view";
 import {
@@ -47,194 +54,6 @@ const editorRootStyle = css({
   backgroundColor: "neutral.s25",
 });
 
-import type {
-  PetrinautAiComposerControl,
-  PetrinautAiInputMode,
-  PetrinautAiVoiceMode,
-} from "./types/ai-assistant-composer-control";
-import type { PetrinautAiAutomaticTool } from "./types/ai-automatic-tool";
-import type { PetrinautAiInteractiveTool } from "./types/ai-interactive-tool";
-import type {
-  PetrinautAiMessage,
-  PetrinautAiTransport,
-} from "./views/Editor/panels/ai-assistant-panel";
-import type { PetrinautAiMutationExecutor } from "./views/Editor/panels/ai-assistant-panel/types";
-
-/**
- * @deprecated Part of the built-in AI chat. Provide the assistant with a
- * plugin that declares `assistant`, which renders its own chat.
- */
-export type PetrinautAiChatTransport = PetrinautAiTransport;
-
-/**
- * @deprecated Part of the built-in AI chat. Provide the assistant with a
- * plugin that declares `assistant`, which renders its own chat.
- */
-export type PetrinautAiStopResult = "already-settled" | "stop-requested";
-
-/**
- * @deprecated Part of the built-in AI chat. Provide the assistant with a
- * plugin that declares `assistant`, which renders its own chat.
- */
-export type PetrinautAiAssistantPresentation = "stock" | "brunch";
-
-/**
- * @deprecated Part of the built-in AI chat. Provide the assistant with a
- * plugin that declares `assistant`, which renders its own chat.
- */
-export type PetrinautAiToolPresentationState = "pending" | "success" | "error";
-
-/**
- * @deprecated Part of the built-in AI chat. Provide the assistant with a
- * plugin that declares `assistant`, which renders its own chat.
- */
-export type PetrinautAiToolPresentationTone =
-  | "danger"
-  | "info"
-  | "neutral"
-  | "pending"
-  | "success";
-
-/**
- * @deprecated Part of the built-in AI chat. Provide the assistant with a
- * plugin that declares `assistant`, which renders its own chat.
- */
-export type PetrinautAiToolPresentationContext = {
-  toolName: string;
-  state: PetrinautAiToolPresentationState;
-  input: unknown;
-  output: unknown;
-  error: string | undefined;
-};
-
-/**
- * @deprecated Part of the built-in AI chat. Provide the assistant with a
- * plugin that declares `assistant`, which renders its own chat.
- */
-export type PetrinautAiToolPresentation = {
-  title: string;
-  detail?: string;
-  tone?: PetrinautAiToolPresentationTone;
-  items?: readonly string[];
-};
-
-/**
- * @deprecated Part of the built-in AI chat. Provide the assistant with a
- * plugin that declares `assistant`, which renders its own chat.
- */
-export type PetrinautAiToolPresentationResolver = (
-  context: PetrinautAiToolPresentationContext,
-) => PetrinautAiToolPresentation | undefined;
-
-/**
- * @deprecated Part of the built-in AI chat. Provide the assistant with a
- * plugin that declares `assistant`, which renders its own chat.
- */
-export type PetrinautAiAssistant = {
-  /** Selects the assistant's visual presentation. Defaults to "stock". */
-  presentation?: PetrinautAiAssistantPresentation;
-  /** Optional host controls alongside the assistant header. */
-  headerActions?: React.ReactNode;
-  /** Restrict header actions to this input mode. Omitted: both modes. */
-  actionsInputMode?: PetrinautAiInputMode;
-  /**
-   * Host-owned content beside the AI transcript in the panel's tab bar.
-   * Switching tabs keeps both bodies mounted and the composer/Voice controls
-   * available. Omitted: the stock assistant has its unchanged single view.
-   */
-  additionalTab?: {
-    label: string;
-    content: React.ReactNode;
-    /**
-     * Opaque, stable identities for host activity represented by this tab.
-     * `undefined` means history is not ready; the first defined collection is
-     * baseline hydration and does not attract attention.
-     */
-    activityIdentities?: readonly (number | string)[];
-  };
-  /** Label for the transcript tab/header. Defaults to "AI". */
-  primaryLabel?: string;
-  /** Status shown while a turn is submitted or streaming. */
-  workingLabel?: string;
-  /** Resolve host tool cards from their identity, lifecycle and payload. */
-  resolveToolPresentation?: PetrinautAiToolPresentationResolver;
-  /** Whether the panel may clear this conversation. Defaults to true. */
-  canClearMessages?: boolean;
-  /** Optional host-owned identity; `useChat` generates one when omitted. */
-  conversationId?: string;
-  /**
-   * Optional synchronous boundary around canonical mutations. Hosts can inspect
-   * their bound document before/after `execute()` or refuse without executing.
-   * The panel still owns output insertion, continuation, and cancellation.
-   * Not called for read-only refusals, schema failures, title changes or commands.
-   */
-  executeMutation?: PetrinautAiMutationExecutor;
-  /**
-   * Host-run tool calls whose results the host returns itself while the
-   * response is still streaming. Omitted for Stock and legacy Flue modes.
-   */
-  inBandBrowserTools?: {
-    has: (toolName: string) => boolean;
-    /**
-     * Run one call at its turn in same-document order. The host decides
-     * whether it may start, calls `execute` at most once with the input to
-     * run, and reports the resolved output or the failure itself. `signal`
-     * aborts on Stop. Later calls wait until this promise settles, except
-     * behind an experiment, which yields once it has captured its source.
-     */
-    run: (
-      call: {
-        toolCallId: string;
-        toolName: string;
-        input: unknown;
-        signal: AbortSignal;
-      },
-      execute: (input: unknown) => Promise<unknown>,
-    ) => Promise<void>;
-  };
-  /** Host-owned dynamic tools executed automatically against the mounted editor. */
-  automaticTools?: readonly PetrinautAiAutomaticTool[];
-  /** Host-owned dynamic tools that render inline in the AI conversation. */
-  interactiveTools?: readonly PetrinautAiInteractiveTool[];
-  messages?: PetrinautAiMessage[];
-  /**
-   * Pure presentation projection, for example host-owned voice captions.
-   * Never changes transport input, tool execution, persisted history, or the
-   * messages supplied to composer and Voice controls. Do not mutate the input.
-   */
-  mapMessagesForDisplay?: (
-    messages: PetrinautAiMessage[],
-  ) => PetrinautAiMessage[];
-  /**
-   * Render display-only system-note content; return undefined for the default
-   * note. Only `presentation: "brunch"` shows system messages as notes.
-   */
-  renderSystemMessage?: (message: PetrinautAiMessage) => ReactNode;
-  /**
-   * Opt into following host history while locally idle. The predicate must
-   * describe the exact snapshot supplied in `messages`, including settlement
-   * of every local admission; message IDs alone cannot prove catch-up.
-   * Observed tools are display-only, including after reload. Only tools from
-   * this panel's own response stream may execute in this mode.
-   * Omitted: messages retain their initial-hydration/recovery behavior.
-   */
-  followMessages?: { canReplace: () => boolean };
-  onClearMessages?: () => void;
-  onMessages?: (messages: PetrinautAiMessage[]) => void;
-  /**
-   * Requests a host-owned durable stop. When omitted, Stop only cancels the
-   * panel's local response stream.
-   */
-  requestStop?: () => Promise<PetrinautAiStopResult>;
-  /** Render a host-owned control inside the assistant composer. */
-  renderComposerControl?: PetrinautAiComposerControl;
-  /** Render host-owned status above the text composer or Voice dock. */
-  renderComposerStatus?: PetrinautAiComposerControl;
-  /** Render one persistent, provider-neutral Voice mode. */
-  renderVoiceMode?: PetrinautAiVoiceMode;
-  transport: PetrinautAiTransport;
-};
-
 import type { PetrinautNavigationController } from "../react/navigation";
 import type { NetManagement } from "../react/net-management-context";
 import type { PetrinautPlugin } from "./plugins/define-petrinaut-plugin";
@@ -252,6 +71,32 @@ export type PetrinautProps = {
   setTitle?: (title: string) => void;
   readonly?: boolean;
   /**
+   * Resolves an import of the document to its library: a promise of the
+   * whole library, the library itself when it is in memory, or `undefined`
+   * for one the host does not know. Keep it the same function from one
+   * render to the next, at module scope for instance: a new one creates a
+   * new editor instance, which resolves every import again.
+   */
+  resolveImport?: ResolveImport;
+  /**
+   * The ids of the libraries on offer. Each is resolved through
+   * `resolveImport`, and its components are listed in the Components panel
+   * to place instances of. The panel shows once the user switches Net
+   * Components on, or where `rules` keep the editor to composing. Define the
+   * list at module scope.
+   */
+  libraries?: readonly string[];
+  /**
+   * What the host lets the editor do: everything, when left out.
+   * `{ edit: "compose" }` keeps it to composing the components of
+   * `libraries`: the user places instances of them, wires their ports and
+   * arranges the canvas. The tools that draw a net, the Definitions view and
+   * the simulator are not offered, and Core refuses every other change to
+   * the document. The rules are read by what they say, so an object written
+   * inline is fine.
+   */
+  rules?: PetrinautRules;
+  /**
    * Controls visibility of net-management UI in the editor's top bar and
    * burger menu.
    *
@@ -266,33 +111,34 @@ export type PetrinautProps = {
   createNewNet?: (params: { petriNetDefinition: SDCPN; title: string }) => void;
   loadPetriNet?: (petriNetId: string) => void;
   /**
-   * @deprecated Provide the assistant with a plugin that declares
-   * `assistant`, which renders its own chat. While such a plugin runs, the
-   * editor ignores this prop.
-   */
-  aiAssistant?: PetrinautAiAssistant;
-  /**
    * Host-supplied components to inject at specific locations in the editor.
    */
   slots?: PetrinautSlots;
   /**
-   * Optional simulation-worker factory. Provide this when the host bundler
-   * needs to own worker instantiation (e.g. when consuming the published
-   * dist) — typically via Vite's `?worker` directive against your own copy
-   * of the worker entry. When omitted, falls back to the bundled
-   * inlined-blob worker that ships with the library, which works for
-   * source-built consumers (storybook, dev) but not always for production
-   * dist consumers.
+   * Optional factory for the worker a Quick Simulation's run is stepped in:
+   * the event simulation worker of
+   * `@hashintel/petrinaut-core/workers/event-simulation`. Provide this when
+   * the host bundler needs to own worker instantiation (e.g. when consuming
+   * the published dist) — typically via Vite's `?worker` directive against
+   * your own copy of the worker entry. When omitted, falls back to the
+   * bundled inlined-blob worker that ships with the library, which works
+   * for source-built consumers (storybook, dev) but not always for
+   * production dist consumers.
    */
-  simulationWorkerFactory?: WorkerFactory;
+  eventSimulationWorkerFactory?: WorkerFactory;
   /**
    * Optional Monte Carlo worker factory. Hosts can provide this when they need
    * to own worker bundling for the Experiments tab.
    */
   monteCarloWorkerFactory?: WorkerFactory;
   /**
+   * Simulators the host adds to the built-in ones, for Quick Simulation,
+   * Stochastic mode and experiments alike. Define them at module scope.
+   */
+  simulators?: readonly SimulatorRegistration[];
+  /**
    * Optional language-server worker factory. Same intent as
-   * `simulationWorkerFactory` — host-supplied LSP worker, typically via
+   * `eventSimulationWorkerFactory` — host-supplied LSP worker, typically via
    * `?worker` against the host's own copy of the worker source.
    */
   lspWorkerFactory?: LspWorkerFactory;
@@ -308,6 +154,7 @@ export type PetrinautProps = {
 
 const noop = () => {};
 const noPlugins: readonly PetrinautPlugin[] = [];
+const noRules: PetrinautRules = {};
 
 /**
  * Handle-driven entry point. Creates a Core {@link Instance} from the given
@@ -323,23 +170,39 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   title = "Untitled",
   setTitle,
   readonly = false,
+  resolveImport,
+  libraries,
+  rules = noRules,
   hideNetManagementControls,
   existingNets = [],
   createNewNet = noop,
   loadPetriNet = noop,
-  aiAssistant,
   slots,
-  simulationWorkerFactory,
+  eventSimulationWorkerFactory,
   monteCarloWorkerFactory,
+  simulators,
   lspWorkerFactory,
   navigation,
   presentationProfile = "editor",
 }) => {
   const titleEditable = setTitle !== undefined;
   const portalContainerRef = useRef<HTMLDivElement>(null);
+  // Held for as long as the rules say the same: `rules={{ edit: "compose" }}`
+  // is a new object on every render, and must not create a new instance.
+  const [heldRules, setHeldRules] = useState(rules);
+  if (!sameRules(heldRules, rules)) {
+    setHeldRules(rules);
+  }
   const instance = useMemo<Instance>(
-    () => createPetrinaut({ document: handle, readonly }),
-    [handle, readonly],
+    () =>
+      createPetrinaut({
+        document: handle,
+        readonly,
+        resolveImport,
+        libraries,
+        rules: heldRules,
+      }),
+    [handle, readonly, resolveImport, libraries, heldRules],
   );
 
   useEffect(() => () => instance.dispose(), [instance]);
@@ -360,8 +223,9 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
       <PetrinautProvider
         instance={instance}
         netManagement={netManagement}
-        simulationWorkerFactory={simulationWorkerFactory}
+        eventSimulationWorkerFactory={eventSimulationWorkerFactory}
         monteCarloWorkerFactory={monteCarloWorkerFactory}
+        simulators={simulators}
         lspWorkerFactory={lspWorkerFactory}
         navigation={navigation}
       >
@@ -371,14 +235,16 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
               className={cx(editorRootStyle, "petrinaut-root")}
               ref={portalContainerRef}
             >
-              <PetrinautPluginsProvider plugins={plugins}>
+              <PetrinautPluginsProvider
+                plugins={[fpsCounterPlugin, documentViewPlugin, ...plugins]}
+              >
                 <EditorView
-                  aiAssistant={aiAssistant}
                   hideNetManagementControls={hideNetManagementControls}
                   slots={slots}
                   titleEditable={titleEditable}
                 />
               </PetrinautPluginsProvider>
+              <ResolvingOverlay />
             </Stack>
           </MonacoProvider>
         </PetrinautPresentationProvider>

@@ -5,6 +5,7 @@ use criterion::{BatchSize, BenchmarkId, Criterion};
 use criterion_macro::criterion;
 use either::Either;
 use error_stack::Report;
+use hash_crypto::Secret;
 use hash_graph_api::rest::legacy::{
     ApiConfig,
     entity::query::{QueryEntitiesRequest, QueryEntitySubgraphRequest},
@@ -19,12 +20,10 @@ use hash_graph_postgres_store::{
 use hash_graph_store::{
     entity::EntityStore, pool::StorePool as _, subgraph::edges::SubgraphTraversalParams,
 };
-use hash_secret::Secret;
 use itertools::{Itertools as _, iproduct};
 use serde::{Deserialize as _, Serialize as _};
 use serde_json::Value as JsonValue;
 use tokio::runtime::Runtime;
-use tokio_postgres::NoTls;
 use type_system::principal::actor::ActorId;
 use uuid::Uuid;
 use walkdir::WalkDir;
@@ -396,7 +395,6 @@ fn bench_json_queries(crit: &mut Criterion) {
             env::var("HASH_GRAPH_PG_DATABASE").unwrap_or_else(|_| "graph".to_owned()),
         ),
         &DatabasePoolConfig::default(),
-        NoTls,
         PostgresStoreSettings::default(),
     )
     .expect("pool should be able to be created");

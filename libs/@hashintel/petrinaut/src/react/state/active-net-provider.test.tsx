@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   toPetrinautId,
+  type PetrinautRules,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
@@ -20,6 +21,7 @@ import {
 } from "../navigation";
 import { ActiveNetContext } from "./active-net-context";
 import { ActiveNetProvider } from "./active-net-provider";
+import { CompositionContext } from "./composition-context";
 import { SDCPNContext, type SDCPNContextValue } from "./sdcpn-context";
 
 afterEach(cleanup);
@@ -70,9 +72,11 @@ const ActiveSubnet = () => (
 const TestHost = ({
   requestedSubnetId,
   recorded,
+  rules = {},
 }: {
   requestedSubnetId: string;
   recorded: RecordedNavigation[];
+  rules?: PetrinautRules;
 }) => {
   const [state, setState] = useState<PetrinautNavigationState>({
     ...defaultPetrinautNavigationState,
@@ -88,11 +92,13 @@ const TestHost = ({
   };
   return (
     <SDCPNContext value={sdcpnContextValue}>
-      <PetrinautNavigationProvider controller={controller}>
-        <ActiveNetProvider>
-          <ActiveSubnet />
-        </ActiveNetProvider>
-      </PetrinautNavigationProvider>
+      <CompositionContext value={{ ...use(CompositionContext), rules }}>
+        <PetrinautNavigationProvider controller={controller}>
+          <ActiveNetProvider>
+            <ActiveSubnet />
+          </ActiveNetProvider>
+        </PetrinautNavigationProvider>
+      </CompositionContext>
     </SDCPNContext>
   );
 };
@@ -117,6 +123,20 @@ describe("ActiveNetProvider", () => {
 
     expect(screen.getByRole("status").textContent).toBe(subnetId);
     expect(recorded).toEqual([]);
+  });
+
+  it("stays on the root net in an editor that only composes", () => {
+    const recorded: RecordedNavigation[] = [];
+    render(
+      <TestHost
+        requestedSubnetId={subnetId}
+        recorded={recorded}
+        rules={{ edit: "compose" }}
+      />,
+    );
+
+    expect(screen.getByRole("status").textContent).toBe("root");
+    expect(recorded).toEqual([normalizationTo(null)]);
   });
 
   it("falls back to the root net for an unknown subnet id", () => {

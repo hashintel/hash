@@ -18,15 +18,14 @@ use std::{fs, sync::Mutex, time::Instant};
 
 use error_stack::Report;
 use futures::FutureExt as _;
+use hash_crypto::Secret;
 use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStorePool,
     PostgresStoreSettings,
 };
-use hash_secret::Secret;
 use hashql_core::id::Id as _;
 use rand::{SeedableRng as _, rngs::StdRng};
 use tokio::sync::oneshot;
-use tokio_postgres::NoTls;
 use tokio_util::sync::CancellationToken;
 
 use super::{
@@ -274,7 +273,6 @@ fn pool() -> Arc<PostgresStorePool> {
             &DatabasePoolConfig {
                 max_connections: nz!(1),
             },
-            NoTls,
             PostgresStoreSettings::default(),
         )
         .expect("should construct an unconnected pool"),

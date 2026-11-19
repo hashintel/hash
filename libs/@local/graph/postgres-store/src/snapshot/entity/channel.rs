@@ -11,8 +11,10 @@ use futures::{
 };
 use hash_graph_store::subgraph::edges::{EdgeDirection, EntityTraversalEdgeKind};
 use type_system::{
-    knowledge::{Entity, property::metadata::PropertyProvenance},
+    Valid, Validator as _,
+    knowledge::{Entity, entity::Link},
     ontology::{InheritanceDepth, entity_type::EntityTypeUuid},
+    provenance::validation::ProvenanceValidator,
 };
 
 use crate::{
@@ -71,7 +73,20 @@ impl Sink<Entity> for EntitySender {
 
     #[expect(clippy::too_many_lines)]
     fn start_send(mut self: Pin<&mut Self>, entity: Entity) -> Result<(), Self::Error> {
-        let stored_provenance = SqlEntityProvenance::from(entity.metadata.provenance);
+        let entity_id = entity.metadata.record_id.entity_id;
+        let stored_provenance = SqlEntityProvenance::try_from(entity.metadata.provenance)
+            .change_context(SnapshotRestoreError::Validation)
+            .attach(entity_id)?;
+        let property_metadata = ProvenanceValidator
+            .validate(entity.metadata.properties)
+            .change_context(SnapshotRestoreError::Validation)
+            .attach(entity_id)?;
+        let link = entity
+            .link_data
+            .map(|link| ProvenanceValidator.validate(link))
+            .transpose()
+            .change_context(SnapshotRestoreError::Validation)
+            .attach(entity_id)?;
         self.id
             .start_send_unpin(EntityIdRow {
                 web_id: entity.metadata.record_id.entity_id.web_id,
@@ -116,7 +131,7 @@ impl Sink<Entity> for EntitySender {
                 confidence: entity.metadata.confidence,
                 created_by_id: stored_provenance.edition.created_by_id,
                 provenance: stored_provenance.edition.json,
-                property_metadata: entity.metadata.properties,
+                property_metadata,
             })
             .change_context(SnapshotRestoreError::Read)
             .attach("could not send entity edition")?;
@@ -144,15 +159,17 @@ impl Sink<Entity> for EntitySender {
             .change_context(SnapshotRestoreError::Read)
             .attach("could not send entity temporal metadata")?;
 
-        if let Some(link_data) = entity.link_data {
+        if let Some(link) = link {
+            let (source_provenance, target_provenance) = link.endpoint_provenance();
+            let Link::Directed { source, target } = &*link;
             self.entity_edge
                 .start_send_unpin(EntityEdgeRow {
                     source_web_id: entity.metadata.record_id.entity_id.web_id,
                     source_entity_uuid: entity.metadata.record_id.entity_id.entity_uuid,
-                    target_web_id: link_data.left_entity_id.web_id,
-                    target_entity_uuid: link_data.left_entity_id.entity_uuid,
-                    confidence: link_data.left_entity_confidence,
-                    provenance: link_data.left_entity_provenance,
+                    target_web_id: source.entity_id.web_id,
+                    target_entity_uuid: source.entity_id.entity_uuid,
+                    confidence: source.confidence,
+                    provenance: source_provenance.clone(),
                     kind: EntityTraversalEdgeKind::HasLeftEntity,
                     direction: EdgeDirection::Outgoing,
                 })
@@ -160,12 +177,12 @@ impl Sink<Entity> for EntitySender {
                 .attach("could not send outgoing entity edge for left link")?;
             self.entity_edge
                 .start_send_unpin(EntityEdgeRow {
-                    source_web_id: link_data.left_entity_id.web_id,
-                    source_entity_uuid: link_data.left_entity_id.entity_uuid,
+                    source_web_id: source.entity_id.web_id,
+                    source_entity_uuid: source.entity_id.entity_uuid,
                     target_web_id: entity.metadata.record_id.entity_id.web_id,
                     target_entity_uuid: entity.metadata.record_id.entity_id.entity_uuid,
                     confidence: None,
-                    provenance: PropertyProvenance::default(),
+                    provenance: Valid::default(),
                     kind: EntityTraversalEdgeKind::HasLeftEntity,
                     direction: EdgeDirection::Incoming,
                 })
@@ -176,10 +193,10 @@ impl Sink<Entity> for EntitySender {
                 .start_send_unpin(EntityEdgeRow {
                     source_web_id: entity.metadata.record_id.entity_id.web_id,
                     source_entity_uuid: entity.metadata.record_id.entity_id.entity_uuid,
-                    target_web_id: link_data.right_entity_id.web_id,
-                    target_entity_uuid: link_data.right_entity_id.entity_uuid,
-                    confidence: link_data.right_entity_confidence,
-                    provenance: link_data.right_entity_provenance,
+                    target_web_id: target.entity_id.web_id,
+                    target_entity_uuid: target.entity_id.entity_uuid,
+                    confidence: target.confidence,
+                    provenance: target_provenance.clone(),
                     kind: EntityTraversalEdgeKind::HasRightEntity,
                     direction: EdgeDirection::Outgoing,
                 })
@@ -187,12 +204,12 @@ impl Sink<Entity> for EntitySender {
                 .attach("could not send outgoing entity edge for right link")?;
             self.entity_edge
                 .start_send_unpin(EntityEdgeRow {
-                    source_web_id: link_data.right_entity_id.web_id,
-                    source_entity_uuid: link_data.right_entity_id.entity_uuid,
+                    source_web_id: target.entity_id.web_id,
+                    source_entity_uuid: target.entity_id.entity_uuid,
                     target_web_id: entity.metadata.record_id.entity_id.web_id,
                     target_entity_uuid: entity.metadata.record_id.entity_id.entity_uuid,
                     confidence: None,
-                    provenance: PropertyProvenance::default(),
+                    provenance: Valid::default(),
                     kind: EntityTraversalEdgeKind::HasRightEntity,
                     direction: EdgeDirection::Incoming,
                 })

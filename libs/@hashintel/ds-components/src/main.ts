@@ -10,7 +10,6 @@ export {
 } from "./components/Breadcrumbs/breadcrumbs";
 export { Button, type ButtonProps } from "./components/Button/button";
 export { ButtonGroup } from "./components/ButtonGroup/button-group";
-export { CharacterCount } from "./components/CharacterCount/character-count";
 export { maxZoomForNodeMinDistance } from "./components/Chart/NetworkGraph/max-zoom";
 export {
   NetworkGraph,
@@ -77,6 +76,10 @@ export { NumberInput } from "./components/NumberInput/number-input";
 export { Popover } from "./components/Popover/popover";
 export { Radio } from "./components/Radio/radio";
 export { RadioGroup } from "./components/RadioGroup/radio-group";
+export {
+  ReorderableList,
+  type ReorderableListItem,
+} from "./components/ReorderableList/reorderable-list";
 export { RightClickMenu } from "./components/RightClickMenu/right-click-menu";
 export {
   SegmentedControl,
@@ -92,18 +95,24 @@ export {
   type SliderProps,
   type SliderVariant,
 } from "./components/Slider/slider";
+export { type TabItem, Tabs } from "./components/Tabs/tabs";
+export { TagsInput } from "./components/TagsInput/tags-input";
 export { TextArea } from "./components/TextArea/text-area";
 export { TextInput } from "./components/TextInput/text-input";
 export { TextMark } from "./components/TextMark/text-mark";
 export { Toggle } from "./components/Toggle/toggle";
 export { BaseTooltip, type Position } from "./components/Tooltip/base-tooltip";
 export { Tooltip } from "./components/Tooltip/tooltip";
+export { CharacterCount } from "./primitives/CharacterCount/character-count";
+export type {
+  Item,
+  ItemOrGroup,
+} from "./primitives/SelectableList/selectable-list";
+export { SelectableListSearch } from "./primitives/SelectableList/selectable-list-search";
 export { brandmarkScale } from "./util/color-scales";
 export {
   PortalContainerContext,
   usePortalContainerRef,
 } from "./util/portal-container-context";
-export type { Item, ItemOrGroup } from "./util/SelectableList/selectable-list";
-export { SelectableListSearch } from "./util/SelectableList/selectable-list-search";
 export { useAvoidScrollWidthChange } from "./util/use-avoid-scroll-width-change";
 export { useScrollLock } from "./util/use-scroll-lock";

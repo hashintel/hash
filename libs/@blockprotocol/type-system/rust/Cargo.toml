@@ -48,6 +48,7 @@ hash-graph-test-data = { workspace = true }
 insta                = { workspace = true }
 pretty_assertions    = { workspace = true }
 tokio                = { workspace = true, features = ["macros", "rt"] }
+uuid                 = { workspace = true, features = ["v7"] }
 
 [[test]]
 name              = "codegen"

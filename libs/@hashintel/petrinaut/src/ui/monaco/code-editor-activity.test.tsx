@@ -141,7 +141,6 @@ afterEach(() => {
   cleanup();
   models.clear();
   instances.length = 0;
-  vi.clearAllMocks();
 });
 
 it("disposes the hidden editor and ignores stale hidden values while typing", async () => {

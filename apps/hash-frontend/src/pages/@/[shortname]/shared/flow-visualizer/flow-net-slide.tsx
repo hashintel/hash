@@ -6,6 +6,7 @@ import { isGoalFlowDefinitionEntityId } from "@local/hash-isomorphic-utils/flows
 import { FlowNetView } from "./flow-net-view";
 import { Topbar } from "./topbar";
 
+import type { FlowNetViewRun } from "./flow-net-view";
 import type { EntityId } from "@blockprotocol/type-system";
 import type {
   FlowActionDefinitionId,
@@ -17,6 +18,7 @@ type FlowNetSlideProps = {
   onClose: () => void;
   selectedFlowDefinition: FlowDefinition<FlowActionDefinitionId>;
   flowDefinitionEntityId: EntityId;
+  flowRun: FlowNetViewRun;
 };
 
 export const FlowNetSlide = ({
@@ -24,6 +26,7 @@ export const FlowNetSlide = ({
   onClose,
   selectedFlowDefinition,
   flowDefinitionEntityId,
+  flowRun,
 }: FlowNetSlideProps) => {
   const isGoal = isGoalFlowDefinitionEntityId(flowDefinitionEntityId);
 
@@ -71,7 +74,12 @@ export const FlowNetSlide = ({
             </IconButton>
           </Stack>
           <Box sx={{ flex: 1, minHeight: 0, p: 3 }}>
-            <FlowNetView flowDefinition={selectedFlowDefinition} />
+            <FlowNetView
+              flowDefinition={selectedFlowDefinition}
+              flowDefinitionEntityId={flowDefinitionEntityId}
+              /* A run's events are only read while its net is shown. */
+              flowRun={open ? flowRun : undefined}
+            />
           </Box>
         </Box>
       </Slide>

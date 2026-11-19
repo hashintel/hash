@@ -171,8 +171,12 @@ export const Topbar = ({
   const { flowDefinitions, selectedFlowDefinitionEntityId } =
     useFlowDefinitionsContext();
 
-  const { flowRuns, selectedFlowRunEntityId, selectedFlowRun } =
-    useFlowRunsContext();
+  const {
+    flowRuns,
+    selectedFlowRunEntityId,
+    selectedFlowRun,
+    selectedFlowRunEventsFailure,
+  } = useFlowRunsContext();
 
   const [cancelFlow] = useMutation<
     CancelFlowMutation,
@@ -262,7 +266,7 @@ export const Topbar = ({
         <Box mr={1}>
           {readonly ? (
             <Typography sx={typographySx} variant="smallTextParagraphs">
-              {selectedFlowDefinition?.flowDefinition.name}
+              {selectedFlowDefinition?.name}
             </Typography>
           ) : (
             <Select
@@ -284,7 +288,7 @@ export const Topbar = ({
                   key={flow.flowDefinitionEntityId}
                   value={flow.flowDefinitionEntityId}
                 >
-                  {flow.flowDefinition.name}
+                  {flow.name}
                 </MenuItem>
               ))}
             </Select>
@@ -345,6 +349,15 @@ export const Topbar = ({
               </Select>
             )}
           </>
+        )}
+        {selectedFlowRun && selectedFlowRunEventsFailure && (
+          <Typography
+            title={selectedFlowRunEventsFailure}
+            variant="smallTextParagraphs"
+            sx={({ palette }) => ({ color: palette.red[80], ml: 2 })}
+          >
+            Couldn't check for new events, trying again
+          </Typography>
         )}
       </Stack>
       {selectedFlowRun && !selectedFlowRun.closedAt ? (

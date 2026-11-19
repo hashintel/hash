@@ -153,6 +153,10 @@ export const RunFlowModal = ({
   const isMissingGoogleAuth =
     hideGoogleInputs && googleInputs.some((input) => input.required);
 
+  const requiredInputsNotTaken = inputs.filter(
+    (input) => input.required && !isSupportedPayloadKind(input.payloadKind),
+  );
+
   const [pending, setPending] = useState(false);
 
   const [isScheduleMode, setIsScheduleMode] = useState(false);
@@ -178,26 +182,28 @@ export const RunFlowModal = ({
         continue;
       }
 
-      if (typeof payload.value !== "undefined") {
-        if (Array.isArray(payload.value) && payload.value.length === 0) {
-          continue;
-        }
+      if (
+        typeof payload.value === "undefined" ||
+        isPayloadValueMissing(payload) ||
+        (Array.isArray(payload.value) && payload.value.length === 0)
+      ) {
+        continue;
+      }
 
-        if (payload.kind === "VersionedUrl") {
-          flowInputs[inputName] = {
-            kind: payload.kind,
-            value: Array.isArray(payload.value)
-              ? payload.value.map((entityType) => entityType.schema.$id)
-              : payload.value.schema.$id,
-          };
-        } else {
-          const assertedPayload = {
-            kind: payload.kind satisfies LocalPayload["kind"],
-            value: payload.value satisfies LocalPayload["value"],
-          } as Payload; // this is necessary because TS isn't inferring that payload.value is not undefined
+      if (payload.kind === "VersionedUrl") {
+        flowInputs[inputName] = {
+          kind: payload.kind,
+          value: Array.isArray(payload.value)
+            ? payload.value.map((entityType) => entityType.schema.$id)
+            : payload.value.schema.$id,
+        };
+      } else {
+        const assertedPayload = {
+          kind: payload.kind satisfies LocalPayload["kind"],
+          value: payload.value satisfies LocalPayload["value"],
+        } as Payload; // this is necessary because TS isn't inferring that payload.value is not undefined
 
-          flowInputs[inputName] = assertedPayload;
-        }
+        flowInputs[inputName] = assertedPayload;
       }
     }
     return flowInputs;
@@ -387,9 +393,24 @@ export const RunFlowModal = ({
             </Callout>
           )}
 
+          {requiredInputsNotTaken.length > 0 && (
+            <Callout type="warning" sx={{ mb: 2.5 }}>
+              This flow needs inputs that can't be given here (
+              {requiredInputsNotTaken
+                .map((input) => `“${input.label ?? input.name}”`)
+                .join(", ")}
+              ), so it can't be run from this page.
+            </Callout>
+          )}
+
           {inputs.map((inputDefinition) => {
+            /*
+             * Left out rather than thrown on, as the modal renders on the page of every run of the flow, which the
+             * editor can start with inputs this form can't take, e.g. an entity. A required one keeps Run disabled,
+             * which the callout above explains.
+             */
             if (!isSupportedPayloadKind(inputDefinition.payloadKind)) {
-              throw new Error("Unsupported input kind");
+              return null;
             }
 
             if (

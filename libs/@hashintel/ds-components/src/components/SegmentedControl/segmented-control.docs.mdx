@@ -1,0 +1,463 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+import { noop } from "../../util/noop";
+import { DemoState } from "../../../docs/blocks/demo-state";
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import {
+  SegmentedControl,
+  SegmentedControlItemDoc,
+} from "./segmented-control";
+
+<Meta title="Docs/SegmentedControl" />
+
+export const meta = {
+  title: "SegmentedControl",
+  description:
+    "Pick one of a few closely related options and apply it immediately.",
+  alternativeNames: ["SegmentGroup", "SegmentedButton", "ContentSwitcher"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/SegmentedControl/segmented-control.tsx",
+    stories:
+      "https://tokens.hash.design/?path=/story/components-segmentedcontrol--default",
+  },
+  referenceLinks: {
+    apg: "https://www.w3.org/WAI/ARIA/apg/patterns/radio/",
+    ark: "https://ark-ui.com/docs/components/segment-group",
+  },
+  related: ["ButtonGroup", "RadioGroup", "Select", "Toggle"],
+};
+
+# SegmentedControl
+
+Pick one of a few closely related options and apply it immediately.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+<Stage>
+  <DemoState data-harness>
+    <SegmentedControl
+      aria-label="Entity view"
+      value="table"
+      onChange={noop}
+      items={[
+        { label: "Table", value: "table" },
+        { label: "Graph", value: "graph" },
+        { label: "Grid", value: "grid" },
+      ]}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <SegmentedControl
+      aria-label="Chart view"
+      value="list"
+      onChange={noop}
+      items={[
+        { iconName: "list", value: "list", tooltip: "List view" },
+        { iconName: "grid", value: "grid", tooltip: "Grid view" },
+        { iconName: "chartBar", value: "chart", tooltip: "Chart view" },
+      ]}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <SegmentedControl
+      variant="embossed"
+      aria-label="Schema editor mode"
+      value="builder"
+      onChange={noop}
+      items={[
+        { label: "Builder", value: "builder" },
+        { label: "JSON", value: "json" },
+      ]}
+    />
+  </DemoState>
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { useState } from "react";
+
+import { SegmentedControl } from "@hashintel/ds-components";
+
+export const RunHistoryRange = () => {
+  const [range, setRange] = useState("7d");
+
+  return (
+    <SegmentedControl
+      aria-label="Time range"
+      value={range}
+      onChange={setRange}
+      items={[
+        { label: "24h", value: "24h" },
+        { label: "7d", value: "7d" },
+        { label: "30d", value: "30d" },
+      ]}
+    />
+  );
+};
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use SegmentedControl to pick one of 2–5 closely related options that applies immediately: a view mode, a time range, a display density.",
+    "Use it to switch between alternate views of the same data — a table, graph, or grid of the same entities.",
+    "Use icon-only segments with tooltips in dense chrome such as toolbars and panel headers.",
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    "Don't use it in forms where the choice needs validation or applies on submit — use RadioGroup, which supports required and invalid states.",
+    "Don't use it to switch a single setting on or off — use Toggle.",
+    "Don't use it for more than 5 options, or options with long labels — use Select.",
+    "Don't use it to trigger actions — use Button, or ButtonGroup for a set of related actions.",
+  ]}
+/>
+
+## Examples
+
+### Basic
+
+The control is always controlled: pass the selected `value` and update it from
+`onChange` — there is no internal state or `defaultValue`. Each item pairs a
+visible `label` with the `value` your state stores.
+
+<Stage>
+  <DemoState data-harness>
+    <SegmentedControl
+      aria-label="Entity view"
+      value="table"
+      onChange={noop}
+      items={[
+        { label: "Table", value: "table" },
+        { label: "Graph", value: "graph" },
+        { label: "Grid", value: "grid" },
+      ]}
+    />
+  </DemoState>
+</Stage>
+
+### Disabled
+
+Set `disabled` on the control to lock the whole choice, or on one item to
+remove a single option while the rest stay selectable. When you must disable a
+segment, say why in its `tooltip` — a greyed option without explanation looks
+broken.
+
+<Stage>
+  <SegmentedControl
+    disabled
+    aria-label="Entity view"
+    value="table"
+    onChange={noop}
+    items={[
+      { label: "Table", value: "table" },
+      { label: "Graph", value: "graph" },
+      { label: "Grid", value: "grid" },
+    ]}
+  />
+  <DemoState data-harness>
+    <SegmentedControl
+      aria-label="Chart view"
+      value="line"
+      onChange={noop}
+      items={[
+        { label: "Line", value: "line" },
+        { label: "Bar", value: "bar" },
+        {
+          label: "Map",
+          value: "map",
+          disabled: true,
+          tooltip: "No location data",
+        },
+      ]}
+    />
+  </DemoState>
+</Stage>
+
+### Variants
+
+`default` fills the track and rings it with a hairline; `embossed` recesses the
+track with an inset shadow and subtly raises the selected segment out of it.
+Consider `embossed` inside dialogs and panels where the filled track adds too
+much chrome.
+
+<Stage>
+  <DemoState data-harness>
+    <SegmentedControl
+      variant="default"
+      aria-label="Entity view"
+      value="table"
+      onChange={noop}
+      items={[
+        { label: "Table", value: "table" },
+        { label: "Graph", value: "graph" },
+        { label: "Grid", value: "grid" },
+      ]}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <SegmentedControl
+      variant="embossed"
+      aria-label="Schema editor mode"
+      value="builder"
+      onChange={noop}
+      items={[
+        { label: "Builder", value: "builder" },
+        { label: "JSON", value: "json" },
+      ]}
+    />
+  </DemoState>
+</Stage>
+
+### Sizes
+
+`md` is the default. Use `xxs`–`sm` in dense chrome such as toolbars and panel
+headers, and `lg` where the switch is the main control on the page.
+
+<Stage>
+  <DemoState data-harness>
+    <SegmentedControl
+      size="xxs"
+      aria-label="Entity view"
+      value="table"
+      onChange={noop}
+      items={[
+        { label: "Table", value: "table" },
+        { label: "Graph", value: "graph" },
+        { label: "Grid", value: "grid" },
+      ]}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <SegmentedControl
+      size="xs"
+      aria-label="Entity view"
+      value="table"
+      onChange={noop}
+      items={[
+        { label: "Table", value: "table" },
+        { label: "Graph", value: "graph" },
+        { label: "Grid", value: "grid" },
+      ]}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <SegmentedControl
+      size="sm"
+      aria-label="Entity view"
+      value="table"
+      onChange={noop}
+      items={[
+        { label: "Table", value: "table" },
+        { label: "Graph", value: "graph" },
+        { label: "Grid", value: "grid" },
+      ]}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <SegmentedControl
+      size="md"
+      aria-label="Entity view"
+      value="table"
+      onChange={noop}
+      items={[
+        { label: "Table", value: "table" },
+        { label: "Graph", value: "graph" },
+        { label: "Grid", value: "grid" },
+      ]}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <SegmentedControl
+      size="lg"
+      aria-label="Entity view"
+      value="table"
+      onChange={noop}
+      items={[
+        { label: "Table", value: "table" },
+        { label: "Graph", value: "graph" },
+        { label: "Grid", value: "grid" },
+      ]}
+    />
+  </DemoState>
+</Stage>
+
+### Vertical layout
+
+Set `layout="vertical"` to stack segments when the control lives in a narrow
+column, such as a properties panel.
+
+<Stage>
+  <DemoState data-harness>
+    <SegmentedControl
+      layout="vertical"
+      aria-label="Entity panel"
+      value="properties"
+      onChange={noop}
+      items={[
+        { label: "Properties", value: "properties" },
+        { label: "Links", value: "links" },
+        { label: "History", value: "history" },
+      ]}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <SegmentedControl
+      layout="vertical"
+      aria-label="Chart view"
+      value="list"
+      onChange={noop}
+      items={[
+        { iconName: "list", value: "list", tooltip: "List view" },
+        { iconName: "grid", value: "grid", tooltip: "Grid view" },
+        { iconName: "chartBar", value: "chart", tooltip: "Chart view" },
+      ]}
+    />
+  </DemoState>
+</Stage>
+
+### With icons
+
+Add `iconName` beside a label when the icon aids recognition. Give every
+segment one or none — a mixed row reads unevenly.
+
+<Stage>
+  <DemoState data-harness>
+    <SegmentedControl
+      aria-label="Entity view"
+      value="list"
+      onChange={noop}
+      items={[
+        { iconName: "list", label: "List", value: "list" },
+        { iconName: "diagramProject", label: "Graph", value: "graph" },
+        { iconName: "grid", label: "Grid", value: "grid" },
+      ]}
+    />
+  </DemoState>
+</Stage>
+
+### Icon-only segments
+
+Omit `label` to render an icon alone — right for tight toolbars. Every
+icon-only segment needs a `tooltip`: it names the option on hover and focus,
+and doubles as its accessible label.
+
+<Stage>
+  <DemoState data-harness>
+    <SegmentedControl
+      aria-label="Chart view"
+      value="list"
+      onChange={noop}
+      items={[
+        { iconName: "list", value: "list", tooltip: "List view" },
+        { iconName: "grid", value: "grid", tooltip: "Grid view" },
+        { iconName: "chartBar", value: "chart", tooltip: "Chart view" },
+      ]}
+    />
+  </DemoState>
+</Stage>
+
+### Tooltips
+
+Any segment can take a `tooltip` for context beyond its label, with
+`tooltipOptions` adjusting placement and timing. Tooltips open on hover and
+keyboard focus after a slow delay, and stay open while arrow keys move the
+selection.
+
+<Stage>
+  <DemoState data-harness>
+    <SegmentedControl
+      aria-label="Type diff view"
+      value="split"
+      onChange={noop}
+      items={[
+        { label: "Split", value: "split", tooltip: "Changes side by side" },
+        {
+          label: "Unified",
+          value: "unified",
+          tooltip: "Changes in one column",
+        },
+      ]}
+    />
+  </DemoState>
+</Stage>
+
+## Behavior
+
+- The control is `width: fit-content` by default. Widen it via `className` and
+  segments share the extra space equally; constrain it and labels ellipsize
+  while icon-only segments stay square.
+- There is no deselection: `onChange` only ever fires with a segment's value,
+  so clicking the selected segment never empties the choice.
+
+## Content
+
+- Name the resulting view or option with nouns, 1–2 words: "Table", "Graph",
+  "30d". Segments show state — they don't perform actions.
+- Keep labels similar lengths so segments read as equal peers — one long label
+  unbalances the whole control.
+- Use one content type per control: all text, all icons, or all icon + text.
+- Write icon-only tooltips as option names ("Line chart"), not instructions
+  ("Switch to line chart").
+
+## Accessibility
+
+SegmentedControl implements the
+[WAI-ARIA radio group pattern](https://www.w3.org/WAI/ARIA/apg/patterns/radio/):
+Tab moves into and out of the group, arrow keys move the selection.
+
+### What SegmentedControl provides
+
+- Each segment is a label wrapping a hidden radio input, so form association
+  (`name`) and keyboard behavior are native.
+- Icon-only segments take their accessible name from `tooltip`, falling back to
+  the item's `value`.
+
+### What you must do
+
+- Label the group: pass `aria-label` — the segment labels alone don't say what the choice is.
+- Give every icon-only segment a `tooltip`; the fallback accessible name is the
+  raw `value` string, which rarely reads well.
+
+## API reference
+
+### SegmentedControl
+
+<PropsTable
+  of={SegmentedControl}
+  defaults={{
+    layout: '"horizontal"',
+    variant: '"default"',
+    size: '"md"',
+    items: "[]",
+  }}
+/>
+
+### SegmentedControlItem
+
+The shape of `items` entries. Each takes a `label`, an `iconName`, or both —
+give icon-only segments a `tooltip`, which doubles as their accessible name.
+
+<PropsTable of={SegmentedControlItemDoc} />

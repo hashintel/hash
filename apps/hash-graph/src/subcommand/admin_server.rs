@@ -3,6 +3,7 @@ use core::{fmt, net::SocketAddr, num::NonZero, pin::Pin, str::FromStr as _, time
 
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
+use hash_crypto::Secret;
 use hash_graph_api::rest::authentication::{
     AuthenticationMetrics, CloudflareAccessConfig, JwtValidatorConfig, KratosAdminConfig,
     api_token::ApiTokenRejection, build_environment_provider, build_explicit_providers,
@@ -11,13 +12,11 @@ use hash_graph_postgres_store::{
     snapshot::SnapshotEntry,
     store::{DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings},
 };
-use hash_secret::Secret;
 use hash_telemetry::Telemetry;
 use jsonwebtoken::Algorithm;
 use opentelemetry::metrics::Meter;
 use reqwest::{Client, Url};
 use tokio::{net::TcpListener, signal, time::timeout};
-use tokio_postgres::NoTls;
 use tokio_util::sync::CancellationToken;
 
 use crate::{
@@ -436,7 +435,6 @@ pub async fn admin_server(
     let pool = PostgresStorePool::new(
         &args.db_info,
         &args.pool_config,
-        NoTls,
         PostgresStoreSettings::default(),
     )
     .change_context(GraphError)
@@ -513,7 +511,7 @@ pub async fn healthcheck(address: AdminAddress) -> Result<(), Report<Healthcheck
 
 #[cfg(test)]
 mod tests {
-    use hash_secret::Secret;
+    use hash_crypto::Secret;
     use rstest::rstest;
 
     use super::require_service_secret;

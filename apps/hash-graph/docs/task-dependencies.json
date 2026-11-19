@@ -5,6 +5,7 @@
     "harpc-codec",
     "harpc-server",
     "hash-codec",
+    "hash-crypto",
     "hash-graph-api",
     "hash-graph-atlas",
     "hash-graph-authorization",
@@ -12,7 +13,6 @@
     "hash-graph-postgres-store",
     "hash-graph-store",
     "hash-graph-type-fetcher",
-    "hash-secret",
     "hash-telemetry",
     "hash-temporal-client",
     "type-system"

@@ -1,8 +1,12 @@
 import * as v from "valibot";
 
-import { vClaimReference, vEntityReference } from "../shared/references";
+import {
+  resolvesField,
+  claimReferenceSchema,
+  entityReferenceSchema,
+} from "../shared/references";
 
-export const vObligation = v.pipe(
+export const obligationSchema = v.pipe(
   v.strictObject({
     text: v.pipe(
       v.string(),
@@ -13,7 +17,7 @@ export const vObligation = v.pipe(
     ),
     claims: v.optional(
       v.pipe(
-        v.array(vClaimReference),
+        v.array(claimReferenceSchema),
         v.description(
           "References to the claims the check tests or a result rests on: existing claim IDs or $index references to claim entries in this call.",
         ),
@@ -21,12 +25,13 @@ export const vObligation = v.pipe(
     ),
     entities: v.optional(
       v.pipe(
-        v.array(vEntityReference),
+        v.array(entityReferenceSchema),
         v.description(
           "References to the entities the check concerns, such as the case to reproduce: existing entity IDs or $index references to entity entries in this call.",
         ),
       ),
     ),
+    ...resolvesField,
   }),
   v.check(
     (obligation) =>
@@ -38,4 +43,4 @@ export const vObligation = v.pipe(
   ),
 );
 
-export type Obligation = v.InferOutput<typeof vObligation>;
+export type Obligation = v.InferOutput<typeof obligationSchema>;

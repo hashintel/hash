@@ -29,7 +29,7 @@ export const useLayout = () => {
 
     forceAtlasLayout.start();
 
-    setInterval(() => {
+    const stopTimeout = setTimeout(() => {
       /**
        * The layout process will stop automatically if the algorithm has converged, but this is not guaranteed to happen.
        * A few seconds seems sufficient for graphs of ~10k items (nodes and edges).
@@ -38,6 +38,7 @@ export const useLayout = () => {
     }, 2_000);
 
     return () => {
+      clearTimeout(stopTimeout);
       forceAtlasLayout.kill();
     };
   }, [sigma]);

@@ -19,6 +19,10 @@ import {
 import * as GraphQLError from "../../error";
 import { graphQLContextToImpureGraphContext } from "../util";
 import { assertClientFlowInputs } from "./shared/assert-client-flow-inputs";
+import {
+  getFlowScheduleProblems,
+  getScheduledFlowRun,
+} from "./shared/get-flow-schedule-problems";
 import { getRunnableFlowDefinition } from "./shared/get-runnable-flow-definition";
 
 import type {
@@ -31,7 +35,9 @@ import type {
   ResolverFn,
 } from "../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../context";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { RunFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
+import type { FlowSchedule } from "@local/hash-isomorphic-utils/system-types/flowschedule";
 
 export const createFlowScheduleResolver: ResolverFn<
   Promise<Mutation["createFlowSchedule"]>,
@@ -45,7 +51,7 @@ export const createFlowScheduleResolver: ResolverFn<
 
   const { flowDefinitionEntityId } = input;
 
-  const { flowType } = await getRunnableFlowDefinition(
+  const { flowDefinition, flowType } = await getRunnableFlowDefinition(
     graphQLContext,
     flowDefinitionEntityId,
   );
@@ -54,7 +60,7 @@ export const createFlowScheduleResolver: ResolverFn<
     throw GraphQLError.badRequest("Data sources are required for AI flows");
   }
 
-  assertClientFlowInputs(input.flowInputs);
+  assertClientFlowInputs({ flowDefinition, flowInputs: input.flowInputs });
 
   const schedule = await createFlowScheduleEntity(
     context,
@@ -209,13 +215,90 @@ export const updateFlowScheduleResolver: ResolverFn<
   return true;
 };
 
+/**
+ * Pauses an active schedule: marks its entity paused, then pauses its Temporal schedule, marking the entity active
+ * again if that fails.
+ */
+export const pauseActiveFlowSchedule = async (
+  graphQLContext: LoggedInGraphQLContext,
+  {
+    schedule: activeSchedule,
+    note,
+  }: { schedule: HashEntity<FlowSchedule>; note?: string },
+) => {
+  const { temporal, authentication } = graphQLContext;
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
+
+  const schedule = await pauseFlowScheduleEntity(context, authentication, {
+    existingEntity: activeSchedule,
+    note,
+  });
+
+  const scheduleEntityId = schedule.metadata.recordId.entityId;
+
+  try {
+    const handle = temporal.schedule.getHandle(
+      extractEntityUuidFromEntityId(scheduleEntityId),
+    );
+    await handle.pause(note);
+  } catch (err) {
+    await revertFlowSchedulePause(context, authentication, {
+      pausedEntity: schedule,
+    });
+
+    throw GraphQLError.internal(
+      `Failed to pause Temporal schedule for schedule entity ${scheduleEntityId}: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+
+  return schedule;
+};
+
+/**
+ * Resumes a paused schedule: marks its entity active, then unpauses its Temporal schedule, marking the entity paused
+ * again if that fails.
+ */
+export const resumePausedFlowSchedule = async (
+  graphQLContext: LoggedInGraphQLContext,
+  { schedule: pausedSchedule }: { schedule: HashEntity<FlowSchedule> },
+) => {
+  const { temporal, authentication } = graphQLContext;
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
+
+  const { schedulePauseState } = simplifyProperties(pausedSchedule.properties);
+
+  const schedule = await resumeFlowScheduleEntity(context, authentication, {
+    existingEntity: pausedSchedule,
+    hasSchedulePauseState: schedulePauseState !== undefined,
+  });
+
+  const scheduleEntityId = schedule.metadata.recordId.entityId;
+
+  try {
+    const handle = temporal.schedule.getHandle(
+      extractEntityUuidFromEntityId(scheduleEntityId),
+    );
+    await handle.unpause();
+  } catch (err) {
+    await revertFlowScheduleResume(context, authentication, {
+      resumedEntity: schedule,
+      previousPauseState: schedulePauseState,
+    });
+
+    throw GraphQLError.internal(
+      `Failed to resume Temporal schedule for schedule entity ${scheduleEntityId}: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+
+  return schedule;
+};
+
 export const pauseFlowScheduleResolver: ResolverFn<
   Promise<Mutation["pauseFlowSchedule"]>,
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationPauseFlowScheduleArgs
 > = async (_, { scheduleEntityId, note }, graphQLContext) => {
-  const { temporal } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
   const { authentication } = graphQLContext;
 
@@ -231,28 +314,10 @@ export const pauseFlowScheduleResolver: ResolverFn<
     return true;
   }
 
-  const schedule = await pauseFlowScheduleEntity(context, authentication, {
-    existingEntity: existingSchedule,
+  await pauseActiveFlowSchedule(graphQLContext, {
+    schedule: existingSchedule,
     note: note ?? undefined,
   });
-
-  // Pause the Temporal schedule
-  const scheduleId = extractEntityUuidFromEntityId(
-    schedule.metadata.recordId.entityId,
-  );
-
-  try {
-    const handle = temporal.schedule.getHandle(scheduleId);
-    await handle.pause(note ?? undefined);
-  } catch (err) {
-    await revertFlowSchedulePause(context, authentication, {
-      pausedEntity: schedule,
-    });
-
-    throw GraphQLError.internal(
-      `Failed to pause Temporal schedule for schedule entity ${scheduleEntityId}: ${err instanceof Error ? err.message : String(err)}`,
-    );
-  }
 
   return true;
 };
@@ -263,7 +328,6 @@ export const resumeFlowScheduleResolver: ResolverFn<
   LoggedInGraphQLContext,
   MutationResumeFlowScheduleArgs
 > = async (_, { scheduleEntityId }, graphQLContext) => {
-  const { temporal } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
   const { authentication } = graphQLContext;
 
@@ -273,38 +337,38 @@ export const resumeFlowScheduleResolver: ResolverFn<
     { scheduleEntityId },
   );
 
-  const { scheduleStatus, schedulePauseState } = simplifyProperties(
-    existingSchedule.properties,
-  );
+  const { scheduleStatus } = simplifyProperties(existingSchedule.properties);
 
   if (scheduleStatus === "active") {
     return true;
   }
 
-  const schedule = await resumeFlowScheduleEntity(context, authentication, {
-    existingEntity: existingSchedule,
-    hasSchedulePauseState: schedulePauseState !== undefined,
-  });
-
-  // Resume the Temporal schedule
-  const scheduleId = extractEntityUuidFromEntityId(
-    schedule.metadata.recordId.entityId,
+  /* The flow may have been changed or archived while the schedule was paused. */
+  const { taskQueue, params } = await getScheduledFlowRun(
+    graphQLContext,
+    existingSchedule,
   );
 
-  try {
-    const handle = temporal.schedule.getHandle(scheduleId);
-    await handle.unpause();
-  } catch (err) {
-    // Revert the entity update if Temporal operation fails
-    await revertFlowScheduleResume(context, authentication, {
-      resumedEntity: schedule,
-      previousPauseState: schedulePauseState,
-    });
+  const { flowDefinition } = await getRunnableFlowDefinition(
+    graphQLContext,
+    params.flowDefinitionEntityId,
+  );
 
-    throw GraphQLError.internal(
-      `Failed to resume Temporal schedule for schedule entity ${scheduleEntityId}: ${err instanceof Error ? err.message : String(err)}`,
+  const problems = getFlowScheduleProblems({
+    flowDefinition,
+    schedule: existingSchedule,
+    scheduledFlowType: taskQueue,
+  });
+
+  if (problems.length > 0) {
+    throw GraphQLError.badRequest(
+      `This schedule can't be resumed, because it can't run its flow:\n${problems.map((problem) => `- ${problem}`).join("\n")}`,
     );
   }
+
+  await resumePausedFlowSchedule(graphQLContext, {
+    schedule: existingSchedule,
+  });
 
   return true;
 };

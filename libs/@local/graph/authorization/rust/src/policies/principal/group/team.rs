@@ -59,7 +59,7 @@ mod tests {
     };
     #[test]
     fn constraint() -> Result<(), Box<dyn Error>> {
-        let team_id = TeamId::new(ActorGroupEntityUuid::new(Uuid::new_v4()));
+        let team_id = TeamId::new(ActorGroupEntityUuid::new(Uuid::now_v7()));
         check_principal(
             PrincipalConstraint::ActorGroup {
                 actor_type: None,
@@ -91,7 +91,7 @@ mod tests {
             json!({
                 "type": "actorGroup",
                 "actorGroupType": "team",
-                "id": Uuid::new_v4(),
+                "id": Uuid::now_v7(),
                 "additional": "unexpected",
             }),
             "unknown field `additional`",

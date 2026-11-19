@@ -1,6 +1,6 @@
 use error_stack::{Report, ResultExt as _};
+use hash_crypto::digest::Sha256Digest;
 use serde::{Deserialize, Serialize, Serializer};
-use sha2::{Digest as _, Sha256};
 
 use super::DomainEvent;
 use crate::{
@@ -56,7 +56,7 @@ impl PartitionKey {
     /// Routing-v1 uses byte 7 of the SHA-256 digest to select the partition's journal.
     #[must_use]
     pub fn shard(&self) -> Shard {
-        let digest: [u8; 32] = Sha256::digest(self.0.as_bytes()).into();
+        let digest = Sha256Digest::of(self.0.as_bytes()).to_bytes();
         let [_, _, _, _, _, _, _, shard, ..] = digest;
         Shard::from_u8(shard)
     }

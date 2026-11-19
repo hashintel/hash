@@ -1,4 +1,5 @@
 /* eslint-disable no-param-reassign -- Monte Carlo run state owns mutable frame buffers. */
+import { netTimeOf } from "../../net-class";
 import { buildSimulation } from "../engine/build-simulation";
 import { readEngineFrame } from "../frames/internal-frame";
 import {
@@ -19,11 +20,11 @@ import type {
 } from "./types";
 
 /**
- * Derives a deterministic seed for a run when the caller did not provide an
- * explicit per-run seed.
+ * Derives a deterministic seed for a run from the experiment's base seed and
+ * the run's global index.
  *
  * This keeps runs reproducible while avoiding identical RNG streams across the
- * default run set. The CLI's optimization protocol reuses this derivation for
+ * default run set. `deriveOptimizationTrialSeeds` reuses this derivation for
  * a trial's non-first replicate seeds (its first replicate keeps the base
  * seed itself).
  */
@@ -85,9 +86,10 @@ export function createRunState(
 ): MonteCarloRunState {
   // Seeds derive from the run's *global* index so that sharding an experiment
   // across workers reassigns runs without changing which seeds run.
-  const seed =
-    runConfig?.seed ??
-    deriveRunSeed(config.seed ?? 1, (config.runIndexOffset ?? 0) + index);
+  const seed = deriveRunSeed(
+    config.seed ?? 1,
+    (config.runIndexOffset ?? 0) + index,
+  );
   const initialMarking = runConfig?.initialMarking ?? config.initialMarking;
   const inputParameterValues = {
     ...config.parameterValues,
@@ -143,6 +145,7 @@ export function createRunState(
     parameterValues: simulation.parameterValues,
     frameNumber: 0,
     maxFrameNumber: getMaxFrameNumber(config.maxTime, config.dt),
+    endsWhenIdle: netTimeOf(config.sdcpn, config.extensions) === "untimed",
     rngState: seed,
     completionReason: null,
     error: null,

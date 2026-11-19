@@ -1,13 +1,23 @@
 {
   "package": "@hashintel/brunch-agent",
   "dependencies": [
+    "@hashintel/ds-components",
+    "@hashintel/ds-helpers",
+    "@hashintel/ds-icons",
+    "@hashintel/petrinaut",
     "@hashintel/petrinaut-core",
+    "@local/flue-aisdk-transport",
     "@local/tsconfig"
   ],
   "tasks": {
     "build": {
       "dependsOn": [
-        "@hashintel/petrinaut-core#build"
+        "@hashintel/ds-components#build",
+        "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
+        "@hashintel/petrinaut#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/flue-aisdk-transport#build"
       ],
       "affectedBy": [
         "petrinaut-optimizer-core"
@@ -15,30 +25,43 @@
     },
     "fix:eslint": {
       "dependsOn": [
+        "@hashintel/ds-components#build",
+        "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
+        "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
-        "@local/eslint#build"
+        "@local/eslint#build",
+        "@local/flue-aisdk-transport#build"
       ],
       "affectedBy": [
-        "@local/eslint",
         "petrinaut-optimizer-core"
       ]
     },
     "lint:eslint": {
       "dependsOn": [
+        "@hashintel/ds-components#build",
+        "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
+        "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
-        "@local/eslint#build"
+        "@local/eslint#build",
+        "@local/flue-aisdk-transport#build"
       ],
       "env": [
         "CHECK_TEMPORARILY_DISABLED_RULES"
       ],
       "affectedBy": [
-        "@local/eslint",
         "petrinaut-optimizer-core"
       ]
     },
     "lint:tsc": {
       "dependsOn": [
-        "@hashintel/petrinaut-core#build"
+        "@hashintel/ds-components#build",
+        "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
+        "@hashintel/petrinaut#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/flue-aisdk-transport#build"
       ],
       "affectedBy": [
         "petrinaut-optimizer-core"
@@ -46,7 +69,12 @@
     },
     "test:unit": {
       "dependsOn": [
-        "@hashintel/petrinaut-core#build"
+        "@hashintel/ds-components#build",
+        "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
+        "@hashintel/petrinaut#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/flue-aisdk-transport#build"
       ],
       "env": [
         "TEST_COVERAGE"

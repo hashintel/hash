@@ -34,10 +34,12 @@ const stackPreStyle = css({
 });
 
 interface Props {
+  resetKey?: string;
   children: ReactNode;
 }
 
 interface State {
+  resetKey?: string;
   hasError: boolean;
   error: Error | null;
   errorInfo: ErrorInfo | null;
@@ -46,7 +48,26 @@ interface State {
 export class VisualizerErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, error: null, errorInfo: null };
+    this.state = {
+      hasError: false,
+      error: null,
+      errorInfo: null,
+      resetKey: props.resetKey,
+    };
+  }
+
+  static getDerivedStateFromProps(
+    props: Props,
+    state: State,
+  ): Partial<State> | null {
+    return props.resetKey !== state.resetKey
+      ? {
+          resetKey: props.resetKey,
+          hasError: false,
+          error: null,
+          errorInfo: null,
+        }
+      : null;
   }
 
   static getDerivedStateFromError(error: Error): Partial<State> {

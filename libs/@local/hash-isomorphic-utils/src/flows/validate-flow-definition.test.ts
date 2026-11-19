@@ -2,12 +2,16 @@ import { describe, expect, it } from "vitest";
 
 import { ftseInvestorsFlow } from "./definitions/ftse-investors-flow-definition.js";
 import { goalFlow } from "./definitions/goal-flow-definitions.js";
+import { linkEndsMessage, noEntityChangesMessage } from "./entity-steps.js";
+import { maxEntitiesPerStep } from "./limits.js";
 import {
+  addStepIdsToDiagnostics,
   type FlowDefinitionDiagnostic,
+  getOutputsAvailableToFlow,
   validateFlowDefinition,
 } from "./validate-flow-definition.js";
 
-import type { FlowDefinition } from "./types.js";
+import type { EntityQuery, FlowDefinition } from "./types.js";
 
 const baseDefinition = {
   name: "Test",
@@ -147,18 +151,13 @@ describe("validateFlowDefinition", () => {
       },
       {
         severity: "error",
-        code: "mixedWorkers",
-        path: ["steps", 1, "actionDefinitionId"],
+        code: "missingInput",
+        path: ["steps", 1, "inputs", "airportIcao"],
       },
       {
         severity: "error",
         code: "missingInput",
-        path: ["steps", 1, "inputs"],
-      },
-      {
-        severity: "error",
-        code: "missingInput",
-        path: ["steps", 1, "inputs"],
+        path: ["steps", 1, "inputs", "date"],
       },
       {
         severity: "error",
@@ -199,6 +198,44 @@ describe("validateFlowDefinition", () => {
         code: "incompatibleConnection",
         message: "A FormattedText value cannot feed an input that accepts Text",
         path: ["steps", 1, "inputs", "question"],
+      },
+    ]);
+  });
+
+  it("rejects a constant that isn't a valid value of its kind, with the path to the problem", () => {
+    const { diagnostics } = validateFlowDefinition({
+      ...baseDefinition,
+      steps: [
+        {
+          kind: "action",
+          stepId: "first",
+          actionDefinitionId: "takeFirst",
+          description: "",
+          inputs: {
+            items: {
+              kind: "constant",
+              payload: {
+                kind: "Duration",
+                value: [
+                  { amount: 1, unit: "days" },
+                  { amount: 1, unit: "years" },
+                ],
+              },
+            },
+            count: { kind: "constant", payload: { kind: "Number", value: 1 } },
+          },
+        },
+      ],
+    });
+
+    expect(diagnostics.filter(({ severity }) => severity === "error")).toEqual([
+      {
+        severity: "error",
+        code: "invalidConstant",
+        message: expect.stringMatching(
+          /^A Duration constant is invalid at \[1\]\.unit: /,
+        ) as string,
+        path: ["steps", 0, "inputs", "items", "payload", "value"],
       },
     ]);
   });
@@ -246,6 +283,85 @@ describe("validateFlowDefinition", () => {
         ],
       }),
     ).toEqual([{ severity: "error", code: "cycle", path: ["steps", 0] }]);
+
+    expect(
+      diagnosticsOf({
+        ...baseDefinition,
+        steps: [
+          { ...answerStep("a"), runAfter: [{ stepId: "b" }] },
+          { ...answerStep("b"), runAfter: [{ stepId: "a" }] },
+        ],
+      }),
+    ).toEqual([{ severity: "error", code: "cycle", path: ["steps", 0] }]);
+  });
+
+  it("reports unnamed inputs and outputs, without rejecting the definition", () => {
+    const result = validateFlowDefinition({
+      ...baseDefinition,
+      inputs: [
+        { name: "", payloadKind: "Text", array: false, required: true },
+        { name: "", payloadKind: "Text", array: false, required: true },
+      ],
+      steps: [
+        answerStep("answer", {
+          question: { kind: "flow-input", inputName: "" },
+        }),
+      ],
+      outputs: [{ name: "", stepId: "answer", outputName: "answer" }],
+    });
+
+    expect(result.flowDefinition).not.toBeNull();
+    expect(
+      result.diagnostics.map(({ code, path }) => ({ code, path })),
+    ).toEqual([
+      { code: "unnamedInput", path: ["inputs", 0, "name"] },
+      { code: "unnamedInput", path: ["inputs", 1, "name"] },
+      { code: "unnamedOutput", path: ["outputs", 0, "name"] },
+    ]);
+  });
+
+  it("accepts steps that run after others, and keeps their positions", () => {
+    const flowDefinition = {
+      ...baseDefinition,
+      steps: [
+        { ...answerStep("first"), position: { x: 0, y: 0 } },
+        {
+          ...answerStep("second"),
+          position: { x: 240, y: -80.5 },
+          runAfter: [{ stepId: "first" }],
+        },
+      ],
+    };
+
+    const result = validateFlowDefinition(flowDefinition);
+
+    expect(result.diagnostics).toEqual([]);
+    expect(result.flowDefinition).toEqual(flowDefinition);
+  });
+
+  it("reports a step run after that doesn't exist, or is the step itself", () => {
+    expect(
+      diagnosticsOf({
+        ...baseDefinition,
+        steps: [
+          {
+            ...answerStep("answer"),
+            runAfter: [{ stepId: "missing" }, { stepId: "answer" }],
+          },
+        ],
+      }),
+    ).toEqual([
+      {
+        severity: "error",
+        code: "unknownStep",
+        path: ["steps", 0, "runAfter", 0, "stepId"],
+      },
+      {
+        severity: "error",
+        code: "selfReference",
+        path: ["steps", 0, "runAfter", 1, "stepId"],
+      },
+    ]);
   });
 
   describe("for-each steps", () => {
@@ -291,6 +407,44 @@ describe("validateFlowDefinition", () => {
 
     it("accepts a valid for-each step", () => {
       expect(diagnosticsOf(forEachDefinition({}))).toEqual([]);
+    });
+
+    it("reports a collected output with no name yet", () => {
+      expect(
+        diagnosticsOf(
+          forEachDefinition({
+            collect: { stepId: "answer", outputName: "explanation", as: "" },
+          }),
+        ),
+      ).toEqual([
+        {
+          severity: "error",
+          code: "unnamedOutput",
+          path: ["steps", 1, "collect", "as"],
+        },
+      ]);
+    });
+
+    it("only lets steps inside a for-each step run after steps inside it", () => {
+      expect(
+        diagnosticsOf(
+          forEachDefinition({
+            after: [
+              {
+                ...answerStep("afterAnswer"),
+                runAfter: [{ stepId: "answer" }],
+              },
+              { ...answerStep("afterEach"), runAfter: [{ stepId: "each" }] },
+            ],
+          }),
+        ),
+      ).toEqual([
+        {
+          severity: "error",
+          code: "stepNotInScope",
+          path: ["steps", 2, "runAfter", 0, "stepId"],
+        },
+      ]);
     });
 
     it("rejects iterating over a singular value", () => {
@@ -638,6 +792,24 @@ describe("validateFlowDefinition", () => {
       },
     );
 
+    it("rejects a step on one of an otherwise runnable if's paths, as runs don't follow paths yet", () => {
+      expect(
+        diagnosticsOf(
+          definition(conditionStep("if", constantCondition(scoreAbove(8))), {
+            ...conditionStep("filterList", constantCondition(scoreAbove(8))),
+            stepId: "onNo",
+            runAfter: [{ stepId: "if", outputName: "false" }],
+          }),
+        ).filter(({ severity }) => severity === "error"),
+      ).toEqual([
+        {
+          severity: "error",
+          code: "pathNotRunnable",
+          path: ["steps", 1, "runAfter", 0, "outputName"],
+        },
+      ]);
+    });
+
     it.each(["filterList", "find", "if"] as const)(
       "rejects a %s condition that doesn't fit the kind it's given",
       (actionDefinitionId) => {
@@ -859,12 +1031,19 @@ describe("validateFlowDefinition", () => {
       expect(errorsOf(properties)).toEqual([]);
     });
 
-    it.each([
+    it.each<{
+      name: string;
+      value: unknown;
+      message: string;
+      constantMessage?: string;
+    }>([
       {
         name: "properties without metadata",
         value: { [nameUrl]: "Ada" },
         message:
           "Properties must be an object whose value is keyed by property type base URL.",
+        constantMessage:
+          "A PropertyObjectWithMetadata constant is invalid at value: Invalid input: expected record, received undefined",
       },
       {
         name: "a property type versioned URL rather than a base URL",
@@ -889,8 +1068,18 @@ describe("validateFlowDefinition", () => {
         },
         message: `Property ${emailUrl} must give the data type ID of each of its values.`,
       },
-    ])("rejects $name", ({ value, message }) => {
+    ])("rejects $name", ({ value, message, constantMessage }) => {
       expect(errorsOf(constant(value))).toEqual([
+        ...(constantMessage
+          ? [
+              {
+                severity: "error",
+                code: "invalidConstant",
+                message: constantMessage,
+                path: ["steps", 0, "inputs", "properties", "payload", "value"],
+              },
+            ]
+          : []),
         {
           severity: "error",
           code: "invalidInput",
@@ -901,12 +1090,94 @@ describe("validateFlowDefinition", () => {
     });
   });
 
+  describe("link ends of createEntity steps", () => {
+    const errorsOf = (linkInputs: Record<string, unknown>) =>
+      validateFlowDefinition({
+        ...baseDefinition,
+        inputs: [
+          {
+            name: "company",
+            payloadKind: "EntityId",
+            array: false,
+            required: true,
+          },
+          {
+            name: "person",
+            payloadKind: "EntityId",
+            array: false,
+            required: true,
+          },
+        ],
+        steps: [
+          {
+            kind: "action",
+            stepId: "create",
+            actionDefinitionId: "createEntity",
+            description: "",
+            inputs: {
+              entityTypeIds: {
+                kind: "constant",
+                payload: {
+                  kind: "VersionedUrl",
+                  value: [
+                    "https://example.com/types/entity-type/works-for/v/1",
+                  ],
+                },
+              },
+              properties: {
+                kind: "constant",
+                payload: {
+                  kind: "PropertyObjectWithMetadata",
+                  value: { value: {} },
+                },
+              },
+              ...linkInputs,
+            },
+          },
+        ],
+      }).diagnostics.filter(({ severity }) => severity === "error");
+
+    const person = { kind: "flow-input", inputName: "person" };
+    const company = { kind: "flow-input", inputName: "company" };
+
+    it("accepts both ends", () => {
+      expect(
+        errorsOf({ leftEntityId: person, rightEntityId: company }),
+      ).toEqual([]);
+    });
+
+    it.each([
+      {
+        name: "the entity a link links from without the one it links to",
+        linkInputs: { leftEntityId: person },
+        missing: "rightEntityId",
+      },
+      {
+        name: "the entity a link links to without the one it links from",
+        linkInputs: { rightEntityId: company },
+        missing: "leftEntityId",
+      },
+    ])("rejects $name", ({ linkInputs, missing }) => {
+      expect(errorsOf(linkInputs)).toEqual([
+        {
+          severity: "error",
+          code: "invalidInput",
+          message: linkEndsMessage,
+          path: ["steps", 0, "inputs", missing],
+        },
+      ]);
+    });
+  });
+
   describe("property patches of updateEntity steps", () => {
     const nameUrl = "https://example.com/types/property-type/name/";
     const emailUrl = "https://example.com/types/property-type/email/";
     const text = { dataTypeId: "https://example.com/types/data-type/text/v/1" };
 
-    const errorsOf = (propertyPatches: unknown) =>
+    const errorsOf = (
+      propertyPatches: unknown,
+      otherInputs: Record<string, unknown> = {},
+    ) =>
       validateFlowDefinition({
         ...baseDefinition,
         inputs: [
@@ -922,6 +1193,12 @@ describe("validateFlowDefinition", () => {
             array: true,
             required: true,
           },
+          {
+            name: "types",
+            payloadKind: "VersionedUrl",
+            array: true,
+            required: true,
+          },
         ],
         steps: [
           {
@@ -931,11 +1208,14 @@ describe("validateFlowDefinition", () => {
             description: "",
             inputs: {
               entityId: { kind: "flow-input", inputName: "person" },
-              propertyPatches,
+              ...(propertyPatches === undefined ? {} : { propertyPatches }),
+              ...otherInputs,
             },
           },
         ],
       }).diagnostics.filter(({ severity }) => severity === "error");
+
+    const types = { kind: "flow-input", inputName: "types" };
 
     const constant = (value: unknown) => ({
       kind: "constant",
@@ -966,20 +1246,44 @@ describe("validateFlowDefinition", () => {
         name: "a flow input, which is checked when the step runs",
         propertyPatches: { kind: "flow-input", inputName: "patches" },
       },
-    ])("accepts $name", ({ propertyPatches }) => {
-      expect(errorsOf(propertyPatches)).toEqual([]);
+      {
+        name: "types with no patches",
+        propertyPatches: constant([]),
+        otherInputs: { entityTypeIds: types },
+      },
+    ])("accepts $name", ({ propertyPatches, otherInputs }) => {
+      expect(errorsOf(propertyPatches, otherInputs)).toEqual([]);
     });
 
-    it.each([
+    it("rejects types without patches, so that the step is skipped when connected patches are missing", () => {
+      expect(errorsOf(undefined, { entityTypeIds: types })).toEqual([
+        {
+          severity: "error",
+          code: "missingInput",
+          message:
+            'Required input "propertyPatches" of action "updateEntity" is not connected',
+          path: ["steps", 0, "inputs", "propertyPatches"],
+        },
+      ]);
+    });
+
+    it.each<{
+      name: string;
+      value: unknown;
+      message: string;
+      constantMessage?: string;
+    }>([
       {
-        name: "no patches",
+        name: "no patches, without types",
         value: [],
-        message: "Give at least one property patch.",
+        message: noEntityChangesMessage,
       },
       {
         name: "an op the graph doesn't have",
         value: [{ op: "move", path: [nameUrl] }],
         message: "Property patch 1 must have an op of add, remove, replace.",
+        constantMessage:
+          "A PropertyPatch constant is invalid at [0].op: Invalid discriminator value. Expected 'add' | 'replace' | 'remove'",
       },
       {
         name: "a path of a property type versioned URL",
@@ -1018,8 +1322,25 @@ describe("validateFlowDefinition", () => {
         ],
         message: `Property ${nameUrl} must give the data type ID of each of its values.`,
       },
-    ])("rejects $name", ({ value, message }) => {
+    ])("rejects $name", ({ value, message, constantMessage }) => {
       expect(errorsOf(constant(value))).toEqual([
+        ...(constantMessage
+          ? [
+              {
+                severity: "error",
+                code: "invalidConstant",
+                message: constantMessage,
+                path: [
+                  "steps",
+                  0,
+                  "inputs",
+                  "propertyPatches",
+                  "payload",
+                  "value",
+                ],
+              },
+            ]
+          : []),
         {
           severity: "error",
           code: "invalidInput",
@@ -1174,5 +1495,183 @@ describe("validateFlowDefinition", () => {
         ]);
       },
     );
+  });
+
+  describe("queries of queryEntities steps", () => {
+    const queryEntitiesDefinition = (query?: EntityQuery) => ({
+      ...baseDefinition,
+      inputs: [],
+      steps: [
+        {
+          kind: "action",
+          stepId: "find",
+          actionDefinitionId: "queryEntities",
+          description: "",
+          inputs: query
+            ? {
+                query: {
+                  kind: "constant",
+                  payload: { kind: "EntityQuery", value: query },
+                },
+              }
+            : {},
+        },
+      ],
+    });
+
+    it("accepts a step without a query, which matches every entity by default", () => {
+      expect(diagnosticsOf(queryEntitiesDefinition())).toEqual([]);
+    });
+
+    it.each([1, maxEntitiesPerStep])("accepts a limit of %s", (limit) => {
+      expect(
+        diagnosticsOf(queryEntitiesDefinition({ filter: { all: [] }, limit })),
+      ).toEqual([]);
+    });
+
+    it.each([0, maxEntitiesPerStep + 1])(
+      "rejects a limit of %s at the limit",
+      (limit) => {
+        expect(
+          validateFlowDefinition(
+            queryEntitiesDefinition({ filter: { all: [] }, limit }),
+          ).diagnostics,
+        ).toEqual([
+          {
+            severity: "error",
+            code: "invalidInput",
+            message: "The limit must be a whole number from 1 to 100,000.",
+            path: ["steps", 0, "inputs", "query", "payload", "value", "limit"],
+          },
+        ]);
+      },
+    );
+  });
+});
+
+describe("addStepIdsToDiagnostics", () => {
+  it("gives each problem the id of the innermost step it's in, and none to a problem outside every step", () => {
+    const flowDefinition = {
+      ...baseDefinition,
+      inputs: [
+        ...baseDefinition.inputs,
+        { ...baseDefinition.inputs[0], name: "unused" },
+      ],
+      steps: [
+        answerStep("first"),
+        {
+          kind: "for-each",
+          stepId: "each",
+          description: "",
+          over: { kind: "flow-input", inputName: "question" },
+          collect: {
+            stepId: "inner",
+            outputName: "explanation",
+            as: "explanations",
+          },
+          steps: [
+            answerStep("inner", {
+              question: { kind: "flow-input", inputName: "missing" },
+            }),
+          ],
+        },
+      ],
+    };
+
+    const { diagnostics } = validateFlowDefinition(flowDefinition);
+
+    expect(
+      addStepIdsToDiagnostics(flowDefinition, diagnostics).map(
+        ({ code, stepId }) => ({ code, stepId }),
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        { code: "overNotArray", stepId: "each" },
+        { code: "unknownFlowInput", stepId: "inner" },
+        { code: "unusedFlowInput", stepId: undefined },
+      ]),
+    );
+  });
+});
+
+describe("getOutputsAvailableToFlow", () => {
+  /** `first`, then `each`, a for-each step over `questions` with `answer` inside it, collected as `explanations`. */
+  const flowDefinition: FlowDefinition<string> = {
+    ...baseDefinition,
+    inputs: [
+      ...baseDefinition.inputs,
+      { name: "questions", payloadKind: "Text", array: true, required: true },
+    ],
+    steps: [
+      {
+        kind: "action",
+        stepId: "first",
+        actionDefinitionId: "answerQuestion",
+        description: "",
+        inputs: { question: { kind: "flow-input", inputName: "question" } },
+      },
+      {
+        kind: "for-each",
+        stepId: "each",
+        description: "",
+        over: { kind: "flow-input", inputName: "questions" },
+        collect: {
+          stepId: "answer",
+          outputName: "explanation",
+          as: "explanations",
+        },
+        steps: [
+          {
+            kind: "action",
+            stepId: "answer",
+            actionDefinitionId: "answerQuestion",
+            description: "",
+            inputs: { question: { kind: "item" } },
+          },
+        ],
+      },
+    ],
+  };
+
+  it("offers the outputs a run has when it finishes: a for-each step's collected output, not those inside it", () => {
+    expect(
+      getOutputsAvailableToFlow(flowDefinition, "first", ["explanation"]),
+    ).toEqual(["explanation"]);
+    expect(
+      getOutputsAvailableToFlow(flowDefinition, "each", [
+        "explanation",
+        "explanations",
+      ]),
+    ).toEqual(["explanations"]);
+    expect(
+      getOutputsAvailableToFlow(flowDefinition, "answer", ["explanation"]),
+    ).toEqual([]);
+  });
+
+  it("leaves out an output the step doesn't have, and every output of a step that isn't there", () => {
+    expect(
+      getOutputsAvailableToFlow(flowDefinition, "first", [
+        "explanation",
+        "missing",
+      ]),
+    ).toEqual(["explanation"]);
+    expect(
+      getOutputsAvailableToFlow(flowDefinition, "gone", ["explanation"]),
+    ).toEqual([]);
+  });
+
+  it("offers an output whose name a flow output already has, as marking it numbers the name", () => {
+    expect(
+      getOutputsAvailableToFlow(
+        {
+          ...flowDefinition,
+          outputs: [
+            { name: "explanation", stepId: "each", outputName: "explanations" },
+          ],
+        },
+        "first",
+        ["explanation"],
+      ),
+    ).toEqual(["explanation"]);
   });
 });

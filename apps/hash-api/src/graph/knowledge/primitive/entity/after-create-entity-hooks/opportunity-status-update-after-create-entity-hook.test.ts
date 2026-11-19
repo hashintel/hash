@@ -51,7 +51,6 @@ const user = (accountId: string) =>
 
 describe("opportunity status update after-create hook", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mocks.deliverMentionNotifications.mockResolvedValue(undefined);
     mocks.deliverStatusParticipationNotifications.mockResolvedValue(undefined);
     mocks.getMentionedUsersInTextualContent.mockResolvedValue([

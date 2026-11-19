@@ -4,6 +4,7 @@ use alloc::sync::Arc;
 use core::pin::Pin;
 
 use axum::{Extension, Router};
+use hash_crypto::Secret;
 use hash_graph_authorization::policies::store::{PolicyStore, PrincipalStore};
 use hash_graph_embeddings::OpenAiEmbeddingClient;
 use hash_graph_postgres_store::store::postgres::PostgresClient;
@@ -11,7 +12,6 @@ use hash_graph_store::{
     api_token::ApiTokenStore, filter::protection::PropertyProtectionFilterConfig, pool::StorePool,
 };
 use hash_middleware::{authentication::AuthenticationMetrics, rate_limit::RateLimiters};
-use hash_secret::Secret;
 use hash_temporal_client::TemporalClient;
 use opentelemetry::metrics::Meter;
 use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
@@ -19,8 +19,9 @@ use tower::ServiceBuilder;
 use type_system::ontology::json_schema::DomainValidator;
 
 use super::{
-    ApiState,
+    ApiState, PublicApiConfig,
     authentication::{self, api_token::ApiTokenRejection},
+    cors::CorsConfig,
     documentation,
     legacy::{self, ApiConfig, QueryLogger, RestApiStore, entity::ClusteringContext, hashql},
     middleware::{self, Middleware},
@@ -34,10 +35,12 @@ pub struct Dependencies<S> {
     pub domain_regex: DomainValidator,
     pub query_logger: Option<QueryLogger>,
     pub api_config: ApiConfig,
+    pub public_api_config: PublicApiConfig,
     pub session_auth: authentication::KratosSessionConfig,
     pub service_secret: Pin<Arc<Secret<str>>>,
     pub api_tokens: Option<Arc<authentication::api_token::ApiTokenIssuer>>,
     pub rate_limit: rate_limit::RateLimitConfig,
+    pub cors: CorsConfig,
     pub meter: Meter,
     pub compiler: Arc<hashql::CompilerContext>,
     pub filter_protection: Arc<PropertyProtectionFilterConfig<'static>>,
@@ -85,11 +88,13 @@ where
         service_secret: dependencies.service_secret,
         authentication_metrics: Arc::new(AuthenticationMetrics::new(&dependencies.meter)),
         rate_limiters: RateLimiters::start(&rate_limit_config, &dependencies.meter),
+        cors: dependencies.cors,
     };
 
     let state = ApiState::new(
         Arc::clone(&dependencies.store),
         dependencies.temporal_client.clone(),
+        dependencies.public_api_config,
     );
     let apis = super::apis::<S>()
         .map(|api| api.with_state(state.clone()))

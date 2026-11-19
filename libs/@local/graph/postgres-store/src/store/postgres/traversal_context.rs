@@ -448,14 +448,14 @@ mod tests {
     }
 
     fn make_entity_id() -> EntityEditionId {
-        EntityEditionId::new(Uuid::new_v4())
+        EntityEditionId::new(Uuid::now_v7())
     }
 
     fn make_vertex_id() -> EntityVertexId {
         EntityVertexId {
             base_id: EntityId {
-                web_id: WebId::new(Uuid::new_v4()),
-                entity_uuid: EntityUuid::new(Uuid::new_v4()),
+                web_id: WebId::new(Uuid::now_v7()),
+                entity_uuid: EntityUuid::new(Uuid::now_v7()),
                 draft_id: None,
             },
             revision_id: Timestamp::now(),

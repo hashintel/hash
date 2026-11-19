@@ -2,16 +2,13 @@ pub mod core;
 pub mod graph;
 mod kernel;
 
-use ::core::{iter, num::NonZero};
+use ::core::{alloc::Allocator, iter, mem, mem::MaybeUninit, num::NonZero};
 
-use super::{ModuleId, ModuleRegistry, item::IntrinsicItem, locals::TypeDef};
+use super::{Module, ModuleId, PartialModuleRegistry, item::IntrinsicItem, locals::TypeDef};
 use crate::{
-    collections::SmallVec,
-    heap::Heap,
-    module::{
-        PartialModule,
-        item::{ConstructorItem, Item, ItemKind},
-    },
+    heap::BumpAllocator as _,
+    id::{Id as _, bit_vec::FiniteBitSet},
+    module::item::{ConstructorItem, Item, ItemKind},
     symbol::Symbol,
     r#type::{
         TypeBuilder, TypeId,
@@ -74,17 +71,27 @@ impl<'heap> ModuleEntry<'heap> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct ModuleDef<'heap>(SmallVec<ModuleEntry<'heap>>);
+struct ModuleDef<'heap, S: Allocator> {
+    entries: Vec<ModuleEntry<'heap>, S>,
+    /// The number of items that will be emitted when this module is built.
+    ///
+    /// This differs from `entries.len()` because `Newtype` entries emit two items (a constructor
+    /// and a type), while other entries emit one.
+    emitted_len: usize,
+}
 
-impl<'heap> ModuleDef<'heap> {
-    const fn new() -> Self {
-        Self(SmallVec::new())
+impl<'heap, S: Allocator> ModuleDef<'heap, S> {
+    fn new_in(alloc: S) -> Self {
+        Self {
+            entries: Vec::with_capacity_in(16, alloc),
+            emitted_len: 0,
+        }
     }
 
     fn push(&mut self, name: Symbol<'heap>, def: ItemDef<'heap>) -> usize {
-        let index = self.0.len();
-        self.0.push(ModuleEntry::new(name, def));
+        let index = self.entries.len();
+        self.emitted_len += def.emitted_len();
+        self.entries.push(ModuleEntry::new(name, def));
         index
     }
 
@@ -96,7 +103,7 @@ impl<'heap> ModuleDef<'heap> {
     ) {
         let names = names.into_iter();
 
-        self.0.reserve(names.size_hint().0);
+        self.entries.reserve(names.size_hint().0);
 
         for name in names {
             self.push(name, def);
@@ -104,15 +111,16 @@ impl<'heap> ModuleDef<'heap> {
     }
 
     fn alias(&mut self, index: usize, alias: Symbol<'heap>) -> usize {
-        let item = self.0[index].alias(alias);
+        let item = self.entries[index].alias(alias);
+        self.emitted_len += item.def.emitted_len();
 
-        let index = self.0.len();
-        self.0.push(item);
+        let index = self.entries.len();
+        self.entries.push(item);
         index
     }
 
     fn find(&self, name: Symbol<'heap>) -> Option<ModuleEntry<'heap>> {
-        self.0.iter().find(|item| item.name == name).copied()
+        self.entries.iter().find(|item| item.name == name).copied()
     }
 
     #[track_caller]
@@ -137,138 +145,281 @@ impl<'heap> ModuleDef<'heap> {
     }
 }
 
-pub(super) struct StandardLibrary<'env, 'heap> {
-    heap: &'heap Heap,
-    instantiate: InstantiateEnvironment<'env, 'heap>,
-    registry: &'env ModuleRegistry<'heap>,
-    ty: TypeBuilder<'env, 'heap>,
-    modules: SmallVec<(::core::any::TypeId, ModuleDef<'heap>)>,
+impl ItemDef<'_> {
+    /// Returns the number of items emitted when building this definition.
+    ///
+    /// `Newtype` emits both a constructor and a type; other variants emit one item.
+    const fn emitted_len(self) -> usize {
+        match self {
+            Self::Newtype(_) => 2,
+            Self::Type(_) | Self::Intrinsic(_) => 1,
+        }
+    }
 }
 
-impl<'env, 'heap> StandardLibrary<'env, 'heap> {
-    pub(super) fn new(
-        environment: &'env Environment<'heap>,
-        registry: &'env ModuleRegistry<'heap>,
-    ) -> Self {
+/// Index into the `ModuleCache` entries array.
+///
+/// Variants are listed in preorder traversal of the module tree (parent before children, left
+/// before right). Adding a new stdlib module requires adding a variant here in the correct
+/// position.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, hashql_macros::Id)]
+#[id(const, crate = crate)]
+enum CacheId {
+    Core,
+    CoreBits,
+    CoreBool,
+    CoreCmp,
+    CoreJson,
+    CoreMath,
+    CoreOption,
+    CoreResult,
+    CoreUrl,
+    CoreUuid,
+    Kernel,
+    KernelSpecialForm,
+    KernelType,
+    Graph,
+    GraphTemporal,
+    GraphHead,
+    GraphBody,
+    GraphTail,
+    GraphEntity,
+    GraphTmp,
+    GraphTypes,
+    GraphTypesKnowledge,
+    GraphTypesKnowledgeEntity,
+    GraphTypesOntology,
+    GraphTypesOntologyEntityType,
+    GraphTypesPrincipal,
+    GraphTypesPrincipalActorGroup,
+    GraphTypesPrincipalActorGroupWeb,
+}
+
+struct StandardLibraryContext<'env, 'heap, S: Allocator> {
+    pub instantiate: InstantiateEnvironment<'env, 'heap>,
+    pub registry: &'env mut PartialModuleRegistry<'heap, S>,
+    pub ty: TypeBuilder<'env, 'heap>,
+    pub alloc: S,
+}
+
+struct ModuleCache<'heap, S: Allocator> {
+    entries: Box<[MaybeUninit<ModuleDef<'heap, S>>], S>,
+    /// Tracks which cache entries have been initialized.
+    ///
+    /// Bit `i` is set when `entries[i]` has been written. The stdlib has fewer than 64 modules, so
+    /// a `u64`-backed `FiniteBitSet` suffices.
+    occupied: FiniteBitSet<CacheId, u64>,
+}
+
+#[expect(unsafe_code)]
+impl<'heap, S: Allocator> ModuleCache<'heap, S> {
+    fn new_in(count: u32, alloc: S) -> Self {
         Self {
-            heap: environment.heap,
-            instantiate: InstantiateEnvironment::new(environment),
-            registry,
-            ty: TypeBuilder::synthetic(environment),
-            modules: SmallVec::new(),
+            entries: Box::new_uninit_slice_in(count as usize, alloc),
+            occupied: FiniteBitSet::new_empty(count),
         }
     }
 
-    fn define_cached<M>(&mut self) -> usize
+    fn request<T: StandardLibraryModule<'heap>>(
+        &mut self,
+        context: &mut StandardLibraryContext<'_, 'heap, S>,
+    ) -> &ModuleDef<'heap, S>
     where
-        M: StandardLibraryModule<'heap>,
+        S: Clone,
     {
-        let module_id = ::core::any::TypeId::of::<M>();
-        if let Some(position) = self.modules.iter().position(|&(id, _)| id == module_id) {
-            position
-        } else {
-            let contents = M::define(self);
+        let id = T::CACHE_ID;
 
-            let position = self.modules.len();
-            self.modules.push((module_id, contents));
-
-            position
+        if self.occupied.contains(id) {
+            // SAFETY: the bit is set only after the entry has been initialized.
+            return unsafe { self.entries[id.as_usize()].assume_init_ref() };
         }
+
+        let module = T::define(context, self);
+        let value = self.entries[id.as_usize()].write(module);
+        self.occupied.insert(id);
+        value
     }
 
-    fn manifest<M>(&mut self) -> &ModuleDef<'heap>
+    fn build<T>(
+        &mut self,
+        context: &mut StandardLibraryContext<'_, 'heap, S>,
+        depth: NonZero<u32>,
+        parent: ModuleId,
+    ) -> ModuleId
     where
-        M: StandardLibraryModule<'heap>,
+        T: StandardLibraryModule<'heap>,
+        S: Clone,
     {
-        let index = self.define_cached::<M>();
+        let id = context.registry.provision_module();
 
-        &self.modules[index].1
-    }
+        let def = self.request::<T>(context);
 
-    fn build<M>(&mut self, depth: NonZero<u32>, parent: ModuleId) -> ModuleId
-    where
-        M: StandardLibraryModule<'heap>,
-    {
-        self.registry.intern_module(|id| {
-            let items = &self.manifest::<M>().0;
+        let heap = context.registry.heap;
+        let output = heap.allocate_slice_uninit(def.emitted_len + T::Children::LENGTH);
 
-            let mut output = SmallVec::with_capacity(items.capacity() + M::Children::LENGTH);
-
-            for &ModuleEntry { name, def: kind } in items {
-                let items = match kind {
-                    ItemDef::Intrinsic(intrinsic) => [Some(ItemKind::Intrinsic(intrinsic)), None],
-                    ItemDef::Type(def) => [Some(ItemKind::Type(def)), None],
-                    ItemDef::Newtype(def) => [
-                        Some(ItemKind::Constructor(ConstructorItem { r#type: def })),
-                        Some(ItemKind::Type(def)),
-                    ],
-                };
-
-                for kind in items.into_iter().flatten() {
-                    output.push(Item {
-                        module: id.value(),
+        let mut cursor = 0;
+        for &ModuleEntry { name, def } in &def.entries {
+            match def {
+                ItemDef::Intrinsic(intrinsic) => {
+                    output[cursor].write(Item {
+                        module: id,
                         name,
-                        kind,
+                        kind: ItemKind::Intrinsic(intrinsic),
                     });
+                    cursor += 1;
+                }
+                ItemDef::Type(typedef) => {
+                    output[cursor].write(Item {
+                        module: id,
+                        name,
+                        kind: ItemKind::Type(typedef),
+                    });
+                    cursor += 1;
+                }
+                ItemDef::Newtype(typedef) => {
+                    output[cursor].write(Item {
+                        module: id,
+                        name,
+                        kind: ItemKind::Constructor(ConstructorItem { r#type: typedef }),
+                    });
+                    cursor += 1;
+
+                    output[cursor].write(Item {
+                        module: id,
+                        name,
+                        kind: ItemKind::Type(typedef),
+                    });
+                    cursor += 1;
                 }
             }
+        }
 
-            // create all the child modules
-            let children_names = M::Children::names();
-            let children_modules = M::Children::modules(self, depth.saturating_add(1), id.value());
-
-            for (name, module) in children_names.into_iter().zip(children_modules) {
-                output.push(Item {
-                    module: id.value(),
+        let remaining = &mut output[cursor..];
+        let (_, remaining) = remaining.write_iter(
+            T::Children::names()
+                .into_iter()
+                .zip(T::Children::modules(
+                    context,
+                    self,
+                    depth.saturating_add(1),
+                    id,
+                ))
+                .map(|(name, child)| Item {
+                    module: id,
                     name,
-                    kind: ItemKind::Module(module),
-                });
-            }
+                    kind: ItemKind::Module(child),
+                }),
+        );
 
-            PartialModule {
-                name: M::name(),
-                parent,
-                depth,
-                items: self.registry.intern_items(&output),
+        assert!(remaining.is_empty());
+
+        let module = Module {
+            id,
+            name: T::name(),
+            parent,
+            depth,
+            // SAFETY: assertion ensures that the output buffer is fully initialized before reading.
+            items: unsafe { output.assume_init_ref() },
+        };
+
+        context.registry.insert_module(module);
+        module.id
+    }
+}
+
+#[expect(unsafe_code)]
+impl<S: Allocator> Drop for ModuleCache<'_, S> {
+    fn drop(&mut self) {
+        for index in &self.occupied {
+            // SAFETY: the bit is set only after the entry has been initialized.
+            unsafe {
+                self.entries[index.as_usize()].assume_init_drop();
             }
-        })
+        }
+    }
+}
+
+pub(super) struct StandardLibrary<'env, 'heap, S: Allocator> {
+    context: StandardLibraryContext<'env, 'heap, S>,
+}
+
+impl<'env, 'heap, S: Allocator> StandardLibrary<'env, 'heap, S> {
+    pub(super) fn new(
+        environment: &'env Environment<'heap>,
+        registry: &'env mut PartialModuleRegistry<'heap, S>,
+        alloc: S,
+    ) -> Self {
+        Self {
+            context: StandardLibraryContext {
+                registry,
+                instantiate: InstantiateEnvironment::new(environment),
+                ty: TypeBuilder::synthetic(environment),
+                alloc,
+            },
+        }
     }
 
-    pub(super) fn register(&mut self) {
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "module count is less than u32::MAX"
+    )]
+    pub(super) fn register(&mut self)
+    where
+        S: Clone,
+    {
         type Root = (self::core::Core, self::kernel::Kernel, self::graph::Graph);
         const ONE: NonZero<u32> = NonZero::new(1).unwrap();
+        const MODULE_COUNT: usize = mem::variant_count::<CacheId>();
 
-        let roots: smallvec::SmallVec<_, 3> = Root::modules(self, ONE, ModuleId::ROOT)
+        debug_assert_eq!(
+            Root::ITEMS,
+            MODULE_COUNT,
+            "CacheId variant count does not match module tree size",
+        );
+
+        let alloc = self.context.alloc.clone();
+
+        let mut cache = ModuleCache::new_in(MODULE_COUNT as u32, alloc);
+
+        let mut output = [ModuleId::ROOT; Root::LENGTH];
+        for (module, output) in Root::modules(&mut self.context, &mut cache, ONE, ModuleId::ROOT)
             .into_iter()
-            .collect();
+            .zip(&mut output)
+        {
+            *output = module;
+        }
 
-        for id in roots {
-            self.registry.register(id);
+        for module in output {
+            self.context.registry.register(module);
         }
     }
 }
 
 trait Submodules<'heap> {
     const LENGTH: usize;
+    const ITEMS: usize;
 
     fn names() -> impl IntoIterator<Item = Symbol<'heap>>;
 
-    fn modules(
-        lib: &mut StandardLibrary<'_, 'heap>,
+    fn modules<S: Allocator + Clone>(
+        context: &mut StandardLibraryContext<'_, 'heap, S>,
+        cache: &mut ModuleCache<'heap, S>,
         depth: NonZero<u32>,
         parent: ModuleId,
     ) -> impl IntoIterator<Item = ModuleId>;
 }
 
 impl<'heap> Submodules<'heap> for () {
+    const ITEMS: usize = 0;
     const LENGTH: usize = 0;
 
     fn names() -> impl IntoIterator<Item = Symbol<'heap>> {
         iter::empty()
     }
 
-    fn modules(
-        _: &mut StandardLibrary<'_, 'heap>,
+    fn modules<S: Allocator + Clone>(
+        _: &mut StandardLibraryContext<'_, 'heap, S>,
+        _: &mut ModuleCache<'heap, S>,
         _: NonZero<u32>,
         _: ModuleId,
     ) -> impl IntoIterator<Item = ModuleId> {
@@ -295,6 +446,7 @@ macro_rules! impl_submodules {
             $($item: StandardLibraryModule<'heap>,)*
         {
             const LENGTH: usize = ${count($item)};
+            const ITEMS: usize = ${count($item)} $(+ <$item::Children as Submodules<'heap>>::ITEMS)*;
 
             fn names() -> impl IntoIterator<Item = Symbol<'heap>> {
                 $(let $item = $item::name();)*
@@ -302,12 +454,13 @@ macro_rules! impl_submodules {
                 [$($item),*]
             }
 
-            fn modules(
-                lib: &mut StandardLibrary<'_, 'heap>,
+            fn modules<S: Allocator + Clone>(
+                context: &mut StandardLibraryContext<'_, 'heap, S>,
+                cache: &mut ModuleCache<'heap, S>,
                 depth: NonZero<u32>,
                 parent: ModuleId,
             ) -> impl IntoIterator<Item = ModuleId> {
-                $(let $item = lib.build::<$item>(depth, parent);)*
+                $(let $item = cache.build::<$item>(context, depth, parent);)*
 
                 [$($item),*]
             }
@@ -318,11 +471,20 @@ macro_rules! impl_submodules {
 impl_submodules!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P);
 
 trait StandardLibraryModule<'heap>: 'static {
+    /// Unique index for this module in the `ModuleCache` entries array.
+    ///
+    /// Assigned in preorder traversal of the module tree (parent before children, left before
+    /// right). IDs must be unique across all stdlib modules and less than 64.
+    const CACHE_ID: CacheId;
+
     type Children: Submodules<'heap>;
 
     fn name() -> Symbol<'heap>;
 
-    fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap>;
+    fn define<S: Allocator + Clone>(
+        context: &mut StandardLibraryContext<'_, 'heap, S>,
+        cache: &mut ModuleCache<'heap, S>,
+    ) -> ModuleDef<'heap, S>;
 }
 
 /// Declares a generic function type with parameters and return type.
@@ -358,7 +520,11 @@ macro_rules! decl {
 
         TypeDef {
             id: closure,
-            arguments: $lib.ty.env.intern_generic_argument_references(&[$(${concat($generic, _ref)}),*]),
+            arguments: if ${count($generic)} > 0 {
+                $lib.ty.env.intern_generic_argument_references(&[$(${concat($generic, _ref)}),*])
+            } else {
+                crate::intern::Interned::empty()
+            },
         }
     }};
 }

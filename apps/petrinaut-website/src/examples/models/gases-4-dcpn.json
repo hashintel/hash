@@ -6,7 +6,6 @@
       "description": "Tankers parked at the depot and free to be dispatched, each carrying its product, payload, and whether it is a spot hire.",
       "colorId": "type__tanker",
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": true,
       "x": 2190,
       "y": 1875
@@ -17,7 +16,6 @@
       "description": "Cumulative count of tanker deliveries unloaded at a customer.",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": 1890,
       "y": 2100
@@ -28,10 +26,14 @@
       "description": "Tankers on the empty run back to the depot; the returning dynamics count their journey clock down to zero.",
       "colorId": "type__tanker",
       "dynamicsEnabled": true,
-      "differentialEquationId": "de__returning",
       "showAsInitialState": false,
       "x": 1725,
-      "y": 1875
+      "y": 1875,
+      "dynamics": [
+        {
+          "differentialEquationId": "de__returning"
+        }
+      ]
     },
     {
       "id": "place__open_orders",
@@ -39,7 +41,6 @@
       "description": "Count of orders currently open across all customers. Hiring a tanker needs at least three; releasing a hired one needs none.",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": 2160,
       "y": 2580
@@ -50,7 +51,6 @@
       "description": "Cumulative count of spot-hired tankers.",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": 2880,
       "y": 2010
@@ -61,7 +61,6 @@
       "description": "Single token for the air separation plant that fills the tankers: up is 1 while producing and 0 during an outage. Dispatch reads it to pick the normal or re-sourced route.",
       "colorId": "type__plant",
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": true,
       "x": 1755,
       "y": 2565
@@ -72,7 +71,6 @@
       "description": "Cumulative count of plant trips.",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": 2115,
       "y": 2760
@@ -83,7 +81,6 @@
       "description": "An open order from the steady nitrogen customer, waiting for a tanker. At most one is open at a time because raising an order also takes the order permit.",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": 2100,
       "y": 2325
@@ -94,7 +91,6 @@
       "description": "The single permit that lets the steady nitrogen customer have one order open at a time. Raising an order takes it; unloading the delivery hands it back.",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": true,
       "x": 1545,
       "y": 2190
@@ -105,10 +101,14 @@
       "description": "A tanker on its way to the steady nitrogen customer. Its journey clock counts down under the on-route dynamics and the delivery unloads when it reaches zero.",
       "colorId": "type__tanker",
       "dynamicsEnabled": true,
-      "differentialEquationId": "de__on_route",
       "showAsInitialState": false,
       "x": 2940,
-      "y": 2310
+      "y": 2310,
+      "dynamics": [
+        {
+          "differentialEquationId": "de__on_route"
+        }
+      ]
     },
     {
       "id": "place__s1_vented",
@@ -116,7 +116,6 @@
       "description": "Cumulative count of relief-valve openings at the tank of the steady nitrogen customer, each losing vent_loss units.",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": 1440,
       "y": 1845
@@ -127,7 +126,6 @@
       "description": "Marker token present while the production line of the steady nitrogen customer is running on gas from the tank.",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": true,
       "x": 615,
       "y": 2565
@@ -138,7 +136,6 @@
       "description": "Marker token present while the line of the steady nitrogen customer is stopped because the tank is empty.",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": 1170,
       "y": 2700
@@ -149,7 +146,6 @@
       "description": "Cumulative count of times the tank of the steady nitrogen customer ran dry and stopped the line.",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": 1170,
       "y": 2415
@@ -160,10 +156,14 @@
       "description": "The cryogenic tank of the steady nitrogen customer as a single token. Its level and pressure evolve continuously under the Tank dynamics; the ordering, venting, and line transitions read them and fire on threshold crossings (trigger_1 for ordering).",
       "colorId": "type__tank",
       "dynamicsEnabled": true,
-      "differentialEquationId": "de__tank",
       "showAsInitialState": true,
       "x": 615,
-      "y": 2010
+      "y": 2010,
+      "dynamics": [
+        {
+          "differentialEquationId": "de__tank"
+        }
+      ]
     },
     {
       "id": "place__s2_order_placed",
@@ -171,7 +171,6 @@
       "description": "An open order from the slow-drawing nitrogen customer, waiting for a tanker. At most one is open at a time because raising an order also takes the order permit.",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": 2100,
       "y": 3540
@@ -182,7 +181,6 @@
       "description": "The single permit that lets the slow-drawing nitrogen customer have one order open at a time. Raising an order takes it; unloading the delivery hands it back.",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": true,
       "x": 1530,
       "y": 3375
@@ -193,10 +191,14 @@
       "description": "A tanker on its way to the slow-drawing nitrogen customer. Its journey clock counts down under the on-route dynamics and the delivery unloads when it reaches zero.",
       "colorId": "type__tanker",
       "dynamicsEnabled": true,
-      "differentialEquationId": "de__on_route",
       "showAsInitialState": false,
       "x": 2955,
-      "y": 3540
+      "y": 3540,
+      "dynamics": [
+        {
+          "differentialEquationId": "de__on_route"
+        }
+      ]
     },
     {
       "id": "place__s2_vented",
@@ -204,7 +206,6 @@
       "description": "Cumulative count of relief-valve openings at the tank of the slow-drawing nitrogen customer, each losing vent_loss units.",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": 1455,
       "y": 2970
@@ -215,7 +216,6 @@
       "description": "Marker token present while the production line of the slow-drawing nitrogen customer is running on gas from the tank.",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": true,
       "x": 600,
       "y": 3720
@@ -226,7 +226,6 @@
       "description": "Marker token present while the line of the slow-drawing nitrogen customer is stopped because the tank is empty.",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": 1185,
       "y": 3855
@@ -237,7 +236,6 @@
       "description": "Cumulative count of times the tank of the slow-drawing nitrogen customer ran dry and stopped the line.",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": 1185,
       "y": 3570
@@ -248,10 +246,14 @@
       "description": "The cryogenic tank of the slow-drawing nitrogen customer as a single token. Its level and pressure evolve continuously under the Tank dynamics; the ordering, venting, and line transitions read them and fire on threshold crossings (trigger_2 for ordering).",
       "colorId": "type__tank",
       "dynamicsEnabled": true,
-      "differentialEquationId": "de__tank",
       "showAsInitialState": true,
       "x": 585,
-      "y": 3165
+      "y": 3165,
+      "dynamics": [
+        {
+          "differentialEquationId": "de__tank"
+        }
+      ]
     },
     {
       "id": "place__s3_order_placed",
@@ -259,7 +261,6 @@
       "description": "An open order from the oxygen customer, a metals plant for which supply is critical, waiting for a tanker. At most one is open at a time because raising an order also takes the order permit.",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": 2115,
       "y": 1350
@@ -270,7 +271,6 @@
       "description": "The single permit that lets the oxygen customer, a metals plant for which supply is critical have one order open at a time. Raising an order takes it; unloading the delivery hands it back.",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": true,
       "x": 1545,
       "y": 1245
@@ -281,10 +281,14 @@
       "description": "A tanker on its way to the oxygen customer, a metals plant for which supply is critical. Its journey clock counts down under the on-route dynamics and the delivery unloads when it reaches zero.",
       "colorId": "type__tanker",
       "dynamicsEnabled": true,
-      "differentialEquationId": "de__on_route",
       "showAsInitialState": false,
       "x": 2955,
-      "y": 1335
+      "y": 1335,
+      "dynamics": [
+        {
+          "differentialEquationId": "de__on_route"
+        }
+      ]
     },
     {
       "id": "place__s3_vented",
@@ -292,7 +296,6 @@
       "description": "Cumulative count of relief-valve openings at the tank of the oxygen customer, a metals plant for which supply is critical, each losing vent_loss units.",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": 1455,
       "y": 780
@@ -303,7 +306,6 @@
       "description": "Marker token present while the production line of the oxygen customer, a metals plant for which supply is critical is running on gas from the tank.",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": true,
       "x": 615,
       "y": 1440
@@ -314,7 +316,6 @@
       "description": "Marker token present while the line of the oxygen customer, a metals plant for which supply is critical is stopped because the tank is empty.",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": 1170,
       "y": 1575
@@ -325,7 +326,6 @@
       "description": "Cumulative count of times the tank of the oxygen customer, a metals plant for which supply is critical ran dry and stopped the line.",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": 1170,
       "y": 1290
@@ -336,10 +336,14 @@
       "description": "The cryogenic tank of the oxygen customer, a metals plant for which supply is critical as a single token. Its level and pressure evolve continuously under the Tank dynamics; the ordering, venting, and line transitions read them and fire on threshold crossings (trigger_3 for ordering).",
       "colorId": "type__tank",
       "dynamicsEnabled": true,
-      "differentialEquationId": "de__tank",
       "showAsInitialState": true,
       "x": 645,
-      "y": 960
+      "y": 960,
+      "dynamics": [
+        {
+          "differentialEquationId": "de__tank"
+        }
+      ]
     }
   ],
   "transitions": [
@@ -1312,19 +1316,22 @@
       "id": "de__tank",
       "name": "Tank",
       "colorId": "type__tank",
-      "code": "// The rung the whole domain is built for. Level falls from the customer's draw\n// and from boil-off together, and stops at empty so Euler cannot drive it\n// negative. Pressure rises as boil-off gas fills whatever ullage is left, so a\n// nearly full tank pressurises fastest, and falls as liquid is drawn off. Empty\n// stops the customer's line and full opens the relief valve, so the safe region\n// is an interval and \"hold more stock\" is not a safe default.\nexport default Dynamics((tokens, parameters) => {\n  return tokens.map((unit) => ({\n    level: unit.level > 0 ? -(unit.draw + parameters.boiloff_rate) : 0, pressure: Math.max(parameters.pressure_gain * parameters.boiloff_rate / Math.max(unit.capacity - unit.level, 1) - parameters.pressure_vented_by_draw * unit.draw, unit.pressure > 1 ? -1 : 0), capacity: 0, draw: 0, drawn: unit.level > 0 ? unit.draw : 0, boiled: unit.level > 0 ? parameters.boiloff_rate : 0, spilled: 0\n  }));\n});"
+      "code": "// The rung the whole domain is built for. Level falls from the customer's draw\n// and from boil-off together, and stops at empty so Euler cannot drive it\n// negative. Pressure rises as boil-off gas fills whatever ullage is left, so a\n// nearly full tank pressurises fastest, and falls as liquid is drawn off. Empty\n// stops the customer's line and full opens the relief valve, so the safe region\n// is an interval and \"hold more stock\" is not a safe default.\nexport default Dynamics((unit, parameters) => ({\n    level: unit.level > 0 ? -(unit.draw + parameters.boiloff_rate) : 0, pressure: Math.max(parameters.pressure_gain * parameters.boiloff_rate / Math.max(unit.capacity - unit.level, 1) - parameters.pressure_vented_by_draw * unit.draw, unit.pressure > 1 ? -1 : 0), capacity: 0, draw: 0, drawn: unit.level > 0 ? unit.draw : 0, boiled: unit.level > 0 ? parameters.boiloff_rate : 0, spilled: 0\n  }));",
+      "arity": 1
     },
     {
       "id": "de__on_route",
       "name": "Journey clock (on route)",
       "colorId": "type__tanker",
-      "code": "export default Dynamics((tokens) => {\n  return tokens.map(() => ({ remaining: -1, payload: 0 }));\n});"
+      "code": "export default Dynamics((token) => ({ remaining: -1, payload: 0 }));",
+      "arity": 1
     },
     {
       "id": "de__returning",
       "name": "Journey clock (returning)",
       "colorId": "type__tanker",
-      "code": "export default Dynamics((tokens) => {\n  return tokens.map(() => ({ remaining: -1, payload: 0 }));\n});"
+      "code": "export default Dynamics((token) => ({ remaining: -1, payload: 0 }));",
+      "arity": 1
     }
   ],
   "parameters": [

@@ -74,6 +74,7 @@ const TypeDefinition = ({
   entityTypeBaseUrl,
   isFile,
   isImage,
+  latestVersion,
   onNavigateToType,
   readonly,
 }: {
@@ -90,6 +91,7 @@ const TypeDefinition = ({
   entityTypeBaseUrl: BaseUrl | null;
   isFile: boolean;
   isImage: boolean;
+  latestVersion: OntologyTypeVersion | null;
   onNavigateToType: (
     kind: "entityType" | "dataType",
     url: VersionedUrl,
@@ -104,6 +106,8 @@ const TypeDefinition = ({
         entityTypeAndPropertyTypes ? (
           <DefinitionTab
             entityTypeAndPropertyTypes={entityTypeAndPropertyTypes}
+            entityTypeBaseUrl={entityTypeBaseUrl}
+            latestVersion={latestVersion}
             onNavigateToType={onNavigateToType}
             readonly={readonly}
           />
@@ -277,7 +281,9 @@ export const EntityType = ({
       return;
     }
 
-    const { schema: entityTypeSchema } = getEntityTypeFromFormData(data);
+    const { schema: entityTypeSchema } = getEntityTypeFromFormData(data, {
+      isLinkType: isLink,
+    });
 
     if (draftEntityType) {
       await publishDraft({
@@ -387,7 +393,7 @@ export const EntityType = ({
 
     setShowDependencyUpgradeModal(false);
 
-    const { schema } = getEntityTypeFromFormData(data);
+    const { schema } = getEntityTypeFromFormData(data, { isLinkType: true });
 
     /**
      * Rewrite schemas of the type and any types dependent on it that the user has choosen to upgrade,
@@ -483,6 +489,7 @@ export const EntityType = ({
                               key={entityType.schema.$id}
                               convertToLinkType={convertToLinkType}
                               disabled={isDirty}
+                              hasLinks={watch("links").length > 0}
                               typeTitle={entityType.schema.title}
                             />,
                           ]
@@ -587,6 +594,7 @@ export const EntityType = ({
                   entityTypeAndPropertyTypes={entityTypeAndPropertyTypes}
                   isFile={isFile}
                   isImage={isImage}
+                  latestVersion={latestVersion}
                   onNavigateToType={onNavigateToType}
                   readonly={isReadonly}
                 />

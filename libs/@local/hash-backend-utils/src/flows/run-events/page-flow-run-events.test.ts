@@ -48,7 +48,7 @@ describe("pageFlowRunEvents", () => {
       after: first.endCursor,
       first: 3,
     });
-    expect(positionsOf(second.events)).toStrictEqual(["37.0", "47.0", "48.0"]);
+    expect(positionsOf(second.events)).toStrictEqual(["41.0", "51.0", "52.0"]);
     expect(second.hasNextPage).toBe(true);
 
     const last = pageFlowRunEvents({
@@ -56,7 +56,7 @@ describe("pageFlowRunEvents", () => {
       after: second.endCursor,
       first: 3,
     });
-    expect(positionsOf(last.events)).toStrictEqual(["49.0", "70.0"]);
+    expect(positionsOf(last.events)).toStrictEqual(["57.0", "78.0"]);
     expect(last.hasNextPage).toBe(false);
 
     const afterLast = pageFlowRunEvents({ ...run, after: last.endCursor });
@@ -133,14 +133,14 @@ describe("pageFlowRunEvents", () => {
     it("carries on from a cursor at the last event the reset kept", () => {
       const page = pageFlowRunEvents({
         ...resetRun,
-        after: baseRunCursorAt("36.0"),
+        after: baseRunCursorAt("40.0"),
       });
 
       expect(positionsOf(page.events)).toStrictEqual([
-        "39.0",
         "43.0",
-        "44.0",
-        "65.0",
+        "47.0",
+        "49.0",
+        "70.0",
       ]);
       expect(page).toMatchObject({
         runId: resetRun.runId,
@@ -152,26 +152,26 @@ describe("pageFlowRunEvents", () => {
     it("carries on from a cursor before it", () => {
       const page = pageFlowRunEvents({
         ...resetRun,
-        after: baseRunCursorAt("35.0"),
+        after: baseRunCursorAt("36.0"),
         first: 2,
       });
 
-      expect(positionsOf(page.events)).toStrictEqual(["36.0", "39.0"]);
+      expect(positionsOf(page.events)).toStrictEqual(["40.0", "43.0"]);
       expect(page.restarted).toBe(false);
     });
 
     it("restarts after the last kept event for a cursor past the reset point", () => {
       const page = pageFlowRunEvents({
         ...resetRun,
-        after: baseRunCursorAt("40.0"),
+        after: baseRunCursorAt("44.0"),
         first: 2,
       });
 
-      expect(positionsOf(page.events)).toStrictEqual(["39.0", "43.0"]);
-      expect(page).toMatchObject({ restarted: true, keptUpTo: "36.0" });
+      expect(positionsOf(page.events)).toStrictEqual(["43.0", "47.0"]);
+      expect(page).toMatchObject({ restarted: true, keptUpTo: "40.0" });
 
       const next = pageFlowRunEvents({ ...resetRun, after: page.endCursor });
-      expect(positionsOf(next.events)).toStrictEqual(["44.0", "65.0"]);
+      expect(positionsOf(next.events)).toStrictEqual(["49.0", "70.0"]);
       expect(next.restarted).toBe(false);
     });
   });

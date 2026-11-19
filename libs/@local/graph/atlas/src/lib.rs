@@ -123,7 +123,6 @@
     integer_casts,
     iter_map_windows,
     iterator_try_collect,
-    nonpoison_mutex,
     nonpoison_rwlock,
     option_into_flat_iter,
     pointer_is_aligned_to,
@@ -138,7 +137,7 @@
     variant_count,
 )]
 #![cfg_attr(feature = "cli", feature(exitcode_exit_method))]
-#![cfg_attr(test, feature(iter_intersperse))]
+#![cfg_attr(test, feature(iter_intersperse, nonpoison_mutex))]
 #![cfg_attr(feature = "test-utils", feature(async_fn_track_caller))]
 #![expect(
     unsafe_code,

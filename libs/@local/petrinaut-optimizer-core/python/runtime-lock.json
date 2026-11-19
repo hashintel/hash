@@ -2,7 +2,7 @@
   "pyodide": "314.0.6",
   "python": "3.14.2",
   "packages": {
-    "optuna": "4.9.0",
+    "optuna": "5.0.0",
     "colorlog": "6.10.1"
   },
   "pyodideDistributionPackages": ["numpy", "packaging", "pyyaml", "tqdm"]

@@ -122,7 +122,6 @@
         "TEST_COVERAGE"
       ],
       "affectedBy": [
-        "@hashintel/petrinaut-cli",
         "darwin-kperf",
         "darwin-kperf-codegen",
         "darwin-kperf-criterion",
@@ -140,6 +139,7 @@
         "harpc-wire-protocol",
         "hash-codec",
         "hash-codegen",
+        "hash-crypto",
         "hash-graph-api",
         "hash-graph-authentication",
         "hash-graph-authorization",
@@ -152,7 +152,6 @@
         "hash-graph-types",
         "hash-graph-validation",
         "hash-middleware",
-        "hash-secret",
         "hash-status",
         "hash-telemetry",
         "hash-temporal-client",
@@ -164,9 +163,7 @@
         "hashql-macros",
         "hashql-mir",
         "hashql-syntax-jexpr",
-        "petrinaut-optimization",
         "petrinaut-optimizer-core",
-        "petrinaut-python",
         "problematic",
         "type-system"
       ]

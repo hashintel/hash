@@ -2,16 +2,21 @@ import { z } from "zod";
 
 import { getParameterValueError } from "../parameter-values";
 import {
+  checkInstanceNamesOneComponent,
   colorElementSchema as currentColorElementSchema,
   colorSchema as currentColorSchema,
   componentInstanceSchema as currentComponentInstanceSchema,
+  componentReferenceSchema,
   descriptionSchema,
   differentialEquationSchema as currentDifferentialEquationSchema,
+  fusionSchema as currentFusionSchema,
+  importSchema,
   inputArcSchema as currentInputArcSchema,
   metadataSchema,
   outputArcSchema as currentOutputArcSchema,
   parameterSchema as currentParameterSchema,
   placeSchema as currentPlaceSchema,
+  subnetSchema as currentSubnetSchema,
   transitionSchema as currentTransitionSchema,
 } from "../schemas/entity-schemas";
 import { metricSchema as currentMetricSchema } from "../schemas/metric-schema";
@@ -51,9 +56,11 @@ const placeSchema = z.object({
   dynamicsEnabled: currentPlaceSchema.shape.dynamicsEnabled
     .optional()
     .default(false),
-  differentialEquationId: currentPlaceSchema.shape.differentialEquationId
-    .optional()
-    .default(null),
+  /**
+   * Files written before equations composed carried one equation here; the
+   * parser moves it to the front of `dynamics`.
+   */
+  differentialEquationId: z.string().nullable().optional(),
   x: z.number().optional(),
   y: z.number().optional(),
 });
@@ -95,6 +102,13 @@ const differentialEquationSchema = z.object({
   id: z.string(),
   name: z.string(),
   colorId: z.string().nullable(),
+  /**
+   * Files written before equations had an arity hold whole-place
+   * `tokens.map(...)` code; they import as one-token equations, and the
+   * import rewrites that code to the one-token form where the rewrite is
+   * exact (`migrateLegacyDynamics`).
+   */
+  arity: currentDifferentialEquationSchema.shape.arity.optional().default(1),
 });
 
 const parameterSchema = z
@@ -141,27 +155,50 @@ const metricSchema = z.object({
   code: z.string().default(""),
 });
 
-const componentInstanceSchema = z.object({
-  ...currentComponentInstanceSchema.shape,
+const componentInstanceSchema = z
+  .object({
+    ...currentComponentInstanceSchema.shape,
+    id: z.string(),
+    name: z.string(),
+    parameterValues: z.record(z.string(), z.string()).default({}),
+    x: z.number().optional(),
+    y: z.number().optional(),
+  })
+  .check(checkInstanceNamesOneComponent);
+
+/**
+ * Any list of members loads: the checks report a fusion of one, a member
+ * listed twice and a second place of the net, where the editor's own
+ * mutations refuse them.
+ */
+const fusionSchema = z.object({
+  ...currentFusionSchema.shape,
   id: z.string(),
-  name: z.string(),
-  parameterValues: z.record(z.string(), z.string()).default({}),
-  x: z.number().optional(),
-  y: z.number().optional(),
+  members: z.array(currentFusionSchema.shape.members.element),
 });
 
-const subnetSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  description: descriptionSchema,
-  metadata: metadataSchema,
-  places: z.array(placeSchema),
-  transitions: z.array(transitionSchema),
-  types: z.array(colorSchema).default([]),
-  differentialEquations: z.array(differentialEquationSchema).default([]),
-  parameters: z.array(parameterSchema).default([]),
-  componentInstances: z.array(componentInstanceSchema).default([]),
-});
+const subnetSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    description: descriptionSchema,
+    metadata: metadataSchema,
+    interface: z.boolean().optional(),
+    implements: z.array(z.string()).optional(),
+    iconSvg: currentSubnetSchema.shape.iconSvg,
+    displayColor: currentSubnetSchema.shape.displayColor,
+    places: z.array(placeSchema),
+    transitions: z.array(transitionSchema),
+    types: z.array(colorSchema).default([]),
+    differentialEquations: z.array(differentialEquationSchema).default([]),
+    parameters: z.array(parameterSchema).default([]),
+    componentInstances: z.array(componentInstanceSchema).default([]),
+    fusions: z.array(fusionSchema).optional(),
+  })
+  // The flag is `true` or absent in a document: `false` reads as absent.
+  .transform(({ interface: isInterface, ...subnet }) =>
+    isInterface ? { ...subnet, interface: true as const } : subnet,
+  );
 
 export const sdcpnSchema = z.object({
   description: descriptionSchema,
@@ -173,8 +210,21 @@ export const sdcpnSchema = z.object({
   parameters: z.array(parameterSchema).default([]),
   scenarios: z.array(scenarioSchema).default([]),
   metrics: z.array(metricSchema).default([]),
+  // Absent in a net that imports nothing, as `fusions` is.
+  imports: z.array(importSchema).optional(),
   subnets: z.array(subnetSchema).default([]),
   componentInstances: z.array(componentInstanceSchema).default([]),
+  // A net without fusions carries no `fusions` key, here as in the editor, so
+  // a file that never had one exports as it was read.
+  fusions: z.array(fusionSchema).optional(),
+  implementations: z
+    .array(
+      z.object({
+        interface: componentReferenceSchema,
+        component: componentReferenceSchema,
+      }),
+    )
+    .optional(),
 });
 
 const fileMetaSchema = z.object({

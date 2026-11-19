@@ -14,7 +14,7 @@ import {
 } from "./kratos-endpoint-allowlist";
 
 import type { Logger } from "@local/hash-backend-utils/logger";
-import type { NextFunction, Request, RequestHandler, Response } from "express";
+import type { Request, Response } from "express";
 import type { AddressInfo } from "node:net";
 
 vi.mock("@sentry/node", () => ({ captureMessage: vi.fn() }));
@@ -325,7 +325,7 @@ describe("guardKratosProxy", () => {
 
     const guarded = guardKratosProxy({
       logger: { error } as unknown as Logger,
-      proxy: proxy as unknown as RequestHandler,
+      proxy,
     });
 
     const call = (
@@ -341,7 +341,7 @@ describe("guardKratosProxy", () => {
           ip,
         } as unknown as Request,
         { sendStatus } as unknown as Response,
-        next as unknown as NextFunction,
+        next,
       );
     };
 

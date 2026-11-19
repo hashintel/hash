@@ -1,33 +1,21 @@
 import { temporalNamespace } from "../../temporal.js";
 
-import type {
-  Client as TemporalClient,
-  WorkflowExecutionDescription,
-} from "@temporalio/client";
+import type { Client as TemporalClient } from "@temporalio/client";
 import type proto from "@temporalio/proto";
 
-type FlowRunHistory = {
-  workflow: WorkflowExecutionDescription;
-  history: proto.temporal.api.history.v1.IHistoryEvent[];
-};
-
 /**
- * Histories being read or already read, by workflow id, so the fields of one GraphQL request read each run's history
- * once. Create one per request: a history goes stale as the run goes on.
+ * The whole history of one run of a flow's workflow. Read by run id, so a reset while it's read can't mix the events
+ * of two runs.
  */
-export type FlowRunHistoriesByWorkflowId = Map<string, Promise<FlowRunHistory>>;
-
-const readFlowRunHistory = async ({
+export const readFlowRunHistoryEvents = async ({
   temporalClient,
   workflowId,
+  runId,
 }: {
   temporalClient: TemporalClient;
   workflowId: string;
-}): Promise<FlowRunHistory> => {
-  const workflow = await temporalClient.workflow
-    .getHandle(workflowId)
-    .describe();
-
+  runId: string;
+}): Promise<proto.temporal.api.history.v1.IHistoryEvent[]> => {
   /**
    * we need to paginate manually because the event history size can be larger than the 4MB gRPC message limit,
    * which is not configurable in Temporal.
@@ -38,10 +26,7 @@ const readFlowRunHistory = async ({
   do {
     const response =
       await temporalClient.workflowService.getWorkflowExecutionHistory({
-        execution: {
-          workflowId,
-          runId: workflow.runId,
-        },
+        execution: { workflowId, runId },
         maximumPageSize: 100,
         namespace: temporalNamespace,
         nextPageToken,
@@ -57,31 +42,5 @@ const readFlowRunHistory = async ({
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   } while (nextPageToken?.length);
 
-  return { workflow, history };
-};
-
-/**
- * The current run of a flow's workflow, and its whole history. The history is read by run id, so a reset while it's
- * read can't mix the events of two runs. With `historiesByWorkflowId`, a history already read there is reused.
- */
-export const getFlowRunHistory = ({
-  temporalClient,
-  workflowId,
-  historiesByWorkflowId,
-}: {
-  temporalClient: TemporalClient;
-  workflowId: string;
-  historiesByWorkflowId?: FlowRunHistoriesByWorkflowId;
-}): Promise<FlowRunHistory> => {
-  const existingHistory = historiesByWorkflowId?.get(workflowId);
-
-  if (existingHistory) {
-    return existingHistory;
-  }
-
-  const flowRunHistory = readFlowRunHistory({ temporalClient, workflowId });
-
-  historiesByWorkflowId?.set(workflowId, flowRunHistory);
-
-  return flowRunHistory;
+  return history;
 };

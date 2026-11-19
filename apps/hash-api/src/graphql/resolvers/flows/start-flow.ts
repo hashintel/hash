@@ -31,12 +31,12 @@ export const startFlow: ResolverFn<
   /*
    * Checked here so that a bad request fails before a run starts: the run loads the definition again when it does.
    */
-  const { flowType } = await getRunnableFlowDefinition(
+  const { flowDefinition, flowType } = await getRunnableFlowDefinition(
     graphQLContext,
     flowDefinitionEntityId,
   );
 
-  assertClientFlowInputs(flowInputs);
+  assertClientFlowInputs({ flowDefinition, flowInputs });
 
   const workflowId = generateUuid() as EntityUuid;
 

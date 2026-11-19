@@ -18,7 +18,8 @@ import type { EntityId } from "@blockprotocol/type-system";
 export type GoalSummary = {
   flowRunEntityId: EntityId;
   openInputRequests: number;
-  lastEventTimestamp: string;
+  startedAt: string;
+  endedAt?: string;
   name: string;
   status: SimpleFlowRunStatus;
   web: {
@@ -31,7 +32,8 @@ export type GoalSummary = {
 export const GoalRow = memo(({ goalSummary }: { goalSummary: GoalSummary }) => {
   const {
     name,
-    lastEventTimestamp,
+    startedAt,
+    endedAt,
     openInputRequests,
     web,
     flowRunEntityId,
@@ -83,8 +85,8 @@ export const GoalRow = memo(({ goalSummary }: { goalSummary: GoalSummary }) => {
         mr={2.5}
         sx={{ fontSize: 14, color: ({ palette }) => palette.gray[80] }}
       >
-        last event{" "}
-        {formatDistance(new Date(lastEventTimestamp), new Date(), {
+        {endedAt ? "ended" : "started"}{" "}
+        {formatDistance(new Date(endedAt ?? startedAt), new Date(), {
           addSuffix: true,
         })}
       </Typography>

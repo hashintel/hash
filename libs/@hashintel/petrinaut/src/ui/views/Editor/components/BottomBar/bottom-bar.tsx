@@ -11,21 +11,20 @@ import {
   EditorContext,
   type EditorState,
 } from "../../../../../react/state/editor-context";
+import { useComposesOnly } from "../../../../../react/state/use-composes-only";
 import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
 import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
+import { BOTTOM_BAR_GAP } from "../../../../constants/ui";
 import { BottomBarCollapseContext } from "./collapse-context";
 import { CollapsibleGroup } from "./collapsible-group";
 import { CursorModeDropdown } from "./cursor-mode-dropdown";
 import { DiagnosticsIndicator } from "./diagnostics-indicator";
 import { EditionTools } from "./edition-tools";
-import { SimulationControls } from "./simulation-controls";
+import { EventSimulationControls } from "./event-simulation-controls";
 import { ToolbarButton } from "./toolbar-button";
 import { ToolbarDivider } from "./toolbar-divider";
 import { useBottomBarLayout } from "./use-bottom-bar-layout";
 import { useKeyboardShortcuts } from "./use-keyboard-shortcuts";
-
-/** Gap between the bar and whatever is below it, canvas or bottom panel. */
-const BOTTOM_BAR_GAP = 24;
 
 const glassPanelStyle = css({
   padding: "1",
@@ -123,6 +122,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
   const { activeSubnetId } = use(ActiveNetContext);
   const isInSubnet = activeSubnetId !== null;
   const isReadOnly = useIsReadOnly();
+  const composesOnly = useComposesOnly();
 
   const showDiagnostics = () => {
     setBottomPanelOpen(true);
@@ -252,11 +252,16 @@ export const BottomBar: React.FC<BottomBarProps> = ({
                     onClick={showDiagnostics}
                     isExpanded={isBottomPanelOpen}
                   />
-                  <ToolbarDivider />
-                  <SimulationControls
-                    disabled={hasDiagnostics}
-                    inSubnet={isInSubnet}
-                  />
+                  {/* An editor that only composes runs nothing. */}
+                  {composesOnly ? null : (
+                    <>
+                      <ToolbarDivider />
+                      <EventSimulationControls
+                        disabled={hasDiagnostics}
+                        inSubnet={isInSubnet}
+                      />
+                    </>
+                  )}
                 </>
               )}
             </div>

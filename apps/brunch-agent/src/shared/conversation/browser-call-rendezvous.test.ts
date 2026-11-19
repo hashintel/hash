@@ -19,6 +19,7 @@ it("accepts one issued, bound result and refuses unsolicited, forged, conflictin
     documentId: "d",
   });
   const call = {
+    agentName: "agent",
     instanceId: "owner",
     toolCallId: crypto.randomUUID(),
     toolName: "addPlace",
@@ -27,19 +28,19 @@ it("accepts one issued, bound result and refuses unsolicited, forged, conflictin
     verify,
   };
   const result = issueBrowserCall(call);
-  expect(claimBrowserCall("other", call.toolCallId, binding)).toBeUndefined();
-  expect(claimBrowserCall("owner", "not-issued", binding)).toBeUndefined();
+  expect(claimBrowserCall({ ...call, instanceId: "other" })).toBeUndefined();
+  expect(
+    claimBrowserCall({ ...call, toolCallId: "not-issued" }),
+  ).toBeUndefined();
   expect(
     failBrowserCall({ ...call, capability: "forged", disposition: "failed" }),
   ).toBe(false);
   expect(
-    claimBrowserCall(call.instanceId, call.toolCallId, "wrong-document"),
+    claimBrowserCall({ ...call, binding: "wrong-document" }),
   ).toBeUndefined();
-  const issued = claimBrowserCall(call.instanceId, call.toolCallId, binding);
+  const issued = claimBrowserCall(call);
   expect(issued?.input).toEqual(call.canonicalInput);
-  expect(
-    claimBrowserCall(call.instanceId, call.toolCallId, binding),
-  ).toBeUndefined();
+  expect(claimBrowserCall(call)).toBeUndefined();
   const reply = {
     ...call,
     output: { applied: true },
@@ -75,6 +76,7 @@ it("accepts one issued, bound result and refuses unsolicited, forged, conflictin
 
 it("settles a claimed failure promptly, without fabricating a canonical output or poisoning an independent read", async () => {
   const mutation = {
+    agentName: "agent",
     instanceId: "owner",
     toolCallId: crypto.randomUUID(),
     toolName: "addPlace",
@@ -91,16 +93,8 @@ it("settles a claimed failure promptly, without fabricating a canonical output o
   const readResult = issueBrowserCall(read);
   const mutationRejection = expect(mutationResult).rejects.toThrow(/unknown/);
   const readRejection = expect(readResult).rejects.toThrow(/unchanged/);
-  const mutationCapability = claimBrowserCall(
-    mutation.instanceId,
-    mutation.toolCallId,
-    mutation.binding,
-  )?.capability;
-  const readCapability = claimBrowserCall(
-    read.instanceId,
-    read.toolCallId,
-    read.binding,
-  )?.capability;
+  const mutationCapability = claimBrowserCall(mutation)?.capability;
+  const readCapability = claimBrowserCall(read)?.capability;
   expect(
     failBrowserCall({
       ...mutation,
@@ -128,6 +122,7 @@ it("settles a claimed failure promptly, without fabricating a canonical output o
 it("settles a stopped call and refuses late results without replaying it", async () => {
   const controller = new AbortController();
   const call = {
+    agentName: "agent",
     instanceId: "owner",
     toolCallId: crypto.randomUUID(),
     toolName: "addPlace",
@@ -137,11 +132,7 @@ it("settles a stopped call and refuses late results without replaying it", async
     signal: controller.signal,
   };
   const result = issueBrowserCall(call);
-  const issued = claimBrowserCall(
-    call.instanceId,
-    call.toolCallId,
-    call.binding,
-  );
+  const issued = claimBrowserCall(call);
   controller.abort();
   await expect(result).rejects.toThrow(/unknown/);
   expect(
@@ -151,14 +142,13 @@ it("settles a stopped call and refuses late results without replaying it", async
       output: { applied: true },
     }),
   ).toBe("not-issued");
-  expect(
-    claimBrowserCall(call.instanceId, call.toolCallId, call.binding),
-  ).toBeUndefined();
+  expect(claimBrowserCall(call)).toBeUndefined();
 });
 
 it("classifies an unclaimed Stop or expiry as unstarted, never as an attempted write", async () => {
   const controller = new AbortController();
   const call = {
+    agentName: "agent",
     instanceId: "owner",
     toolCallId: crypto.randomUUID(),
     toolName: "addPlace",
@@ -173,9 +163,7 @@ it("classifies an unclaimed Stop or expiry as unstarted, never as an attempted w
   );
   controller.abort();
   await stoppedRejection;
-  expect(
-    claimBrowserCall(call.instanceId, call.toolCallId, call.binding),
-  ).toBeUndefined();
+  expect(claimBrowserCall(call)).toBeUndefined();
 
   vi.useFakeTimers();
   const expiredCall = {
@@ -193,6 +181,7 @@ it("classifies an unclaimed Stop or expiry as unstarted, never as an attempted w
 
 it("a bound negative result marks an explicitly skipped sibling as unstarted", async () => {
   const call = {
+    agentName: "agent",
     instanceId: "owner",
     toolCallId: crypto.randomUUID(),
     toolName: "addPlace",
@@ -204,11 +193,7 @@ it("a bound negative result marks an explicitly skipped sibling as unstarted", a
   const rejection = expect(result).rejects.toThrow(
     BROWSER_CALL_UNSTARTED_ERROR,
   );
-  const issued = claimBrowserCall(
-    call.instanceId,
-    call.toolCallId,
-    call.binding,
-  );
+  const issued = claimBrowserCall(call);
   expect(
     failBrowserCall({
       ...call,
@@ -229,6 +214,7 @@ it("a bound negative result marks an explicitly skipped sibling as unstarted", a
 it("a silent browser must renew its bounded lease; silence is not an instantaneous disconnect", async () => {
   vi.useFakeTimers();
   const call = {
+    agentName: "agent",
     instanceId: "owner",
     toolCallId: crypto.randomUUID(),
     toolName: "getLatestNetDefinition",
@@ -245,16 +231,8 @@ it("a silent browser must renew its bounded lease; silence is not an instantaneo
   const siblingRejection = expect(siblingResult).rejects.toThrow(
     "Browser call lease expired; the document is unchanged.",
   );
-  const issued = claimBrowserCall(
-    call.instanceId,
-    call.toolCallId,
-    call.binding,
-  );
-  const siblingIssued = claimBrowserCall(
-    sibling.instanceId,
-    sibling.toolCallId,
-    sibling.binding,
-  );
+  const issued = claimBrowserCall(call);
+  const siblingIssued = claimBrowserCall(sibling);
   await vi.advanceTimersByTimeAsync(25_001);
   await Promise.all([rejection, siblingRejection]);
   expect(renewBrowserCall({ ...call, capability: issued!.capability })).toBe(
@@ -272,6 +250,7 @@ it("a silent browser must renew its bounded lease; silence is not an instantaneo
 it("a renewal keeps calls queued behind it on the same document claimable", async () => {
   vi.useFakeTimers();
   const running = {
+    agentName: "agent",
     instanceId: "owner",
     toolCallId: crypto.randomUUID(),
     toolName: "applyAutoLayout",
@@ -290,22 +269,14 @@ it("a renewal keeps calls queued behind it on the same document claimable", asyn
   const otherDocumentRejection = expect(
     issueBrowserCall(otherDocument),
   ).rejects.toThrow(BROWSER_CALL_UNSTARTED_ERROR);
-  const issued = claimBrowserCall(
-    running.instanceId,
-    running.toolCallId,
-    running.binding,
-  );
+  const issued = claimBrowserCall(running);
   await vi.advanceTimersByTimeAsync(20_000);
   expect(renewBrowserCall({ ...running, capability: issued!.capability })).toBe(
     true,
   );
   await vi.advanceTimersByTimeAsync(20_000);
   await otherDocumentRejection;
-  const queuedIssued = claimBrowserCall(
-    queued.instanceId,
-    queued.toolCallId,
-    queued.binding,
-  );
+  const queuedIssued = claimBrowserCall(queued);
   expect(queuedIssued?.input).toEqual({});
   expect(
     settleBrowserCall({
@@ -320,6 +291,7 @@ it("a renewal keeps calls queued behind it on the same document claimable", asyn
 it("classifies a claimed call that cannot change the document as unchanged when stopped or expired, and a claimed write as unknown", async () => {
   const controller = new AbortController();
   const base = {
+    agentName: "agent",
     instanceId: "owner",
     canonicalInput: {},
     binding: "document-binding",
@@ -335,7 +307,7 @@ it("classifies a claimed call that cannot change the document as unchanged when 
   const stoppedRejection = expect(stoppedDraft).rejects.toThrow(
     "Browser call stopped; the document is unchanged.",
   );
-  claimBrowserCall(draft.instanceId, draft.toolCallId, draft.binding);
+  claimBrowserCall(draft);
   controller.abort();
   await stoppedRejection;
 
@@ -349,7 +321,7 @@ it("classifies a claimed call that cannot change the document as unchanged when 
   const expiredRejection = expect(expiredWrite).rejects.toThrow(
     "Browser call lease expired; an attempted document effect is unknown.",
   );
-  claimBrowserCall(write.instanceId, write.toolCallId, write.binding);
+  claimBrowserCall(write);
   await vi.advanceTimersByTimeAsync(25_001);
   await expiredRejection;
 });
@@ -357,6 +329,7 @@ it("classifies a claimed call that cannot change the document as unchanged when 
 it("hands the browser the expected revision and reports a stale document without starting the call", async () => {
   const binding = JSON.stringify({ conversationId: "c", documentId: "d" });
   const call = {
+    agentName: "agent",
     instanceId: "owner",
     toolCallId: crypto.randomUUID(),
     toolName: "addPlace",
@@ -365,7 +338,7 @@ it("hands the browser the expected revision and reports a stale document without
     expectedRevision: "r7",
   };
   const result = issueBrowserCall(call);
-  const issued = claimBrowserCall(call.instanceId, call.toolCallId, binding);
+  const issued = claimBrowserCall(call);
   expect(issued?.expectedRevision).toBe("r7");
   expect(
     failBrowserCall({
@@ -375,4 +348,30 @@ it("hands the browser the expected revision and reports a stale document without
     }),
   ).toBe(true);
   await expect(result).rejects.toThrow(BROWSER_CALL_STALE_ERROR);
+});
+
+it("addresses a call only through the agent that issued it, even under the same instance and call ids", async () => {
+  const call = {
+    agentName: "issuing-agent",
+    instanceId: "owner",
+    toolCallId: crypto.randomUUID(),
+    toolName: "addPlace",
+    canonicalInput: {},
+    binding: "document-binding",
+  };
+  const other = { ...call, agentName: "other-agent" };
+  const result = issueBrowserCall(call);
+  expect(claimBrowserCall(other)).toBeUndefined();
+  const issued = claimBrowserCall(call);
+  const proof = { capability: issued!.capability };
+  expect(renewBrowserCall({ ...other, ...proof })).toBe(false);
+  expect(failBrowserCall({ ...other, ...proof, disposition: "failed" })).toBe(
+    false,
+  );
+  expect(settleBrowserCall({ ...other, ...proof, output: {} })).toBe(
+    "not-issued",
+  );
+  expect(renewBrowserCall({ ...call, ...proof })).toBe(true);
+  expect(settleBrowserCall({ ...call, ...proof, output: {} })).toBe("settled");
+  await expect(result).resolves.toMatchObject({ output: {} });
 });

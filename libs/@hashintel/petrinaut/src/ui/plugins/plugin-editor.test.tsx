@@ -17,6 +17,7 @@ import {
   pluginService,
   type PluginHook,
 } from "./define-petrinaut-plugin";
+import { describeRefusal } from "./plugin-access";
 import { useCanvasRegistration } from "./plugin-editor";
 import { usePluginService } from "./plugins-provider";
 import { renderPlugins } from "./plugins-test-harness";
@@ -26,6 +27,7 @@ import type { PluginDocument, PluginEditor } from "./plugin-access";
 import type {
   Diagnostic,
   DiagnosticsSnapshot,
+  PetrinautPatch,
 } from "@hashintel/petrinaut-core";
 
 const place = {
@@ -33,7 +35,6 @@ const place = {
   name: "Place",
   colorId: null,
   dynamicsEnabled: false,
-  differentialEquationId: null,
   x: 0,
   y: 0,
 };
@@ -137,6 +138,31 @@ describe("plugin editor", () => {
     expect(instance.definition.get().scenarios).toHaveLength(1);
   });
 
+  it("refuses an edit beyond composing, in an editor that only composes", () => {
+    const { instance } = renderPlugins([documentPlugin], <Probe />, {
+      rules: { edit: "compose" },
+    });
+
+    const refused = documentOf().edit.addPlace(place);
+
+    expect(refused).toEqual({
+      applied: false,
+      reason: {
+        kind: "host-restriction",
+        message:
+          "This editor only places and connects the components it is given.",
+      },
+    });
+    expect(refused.applied ? "" : describeRefusal(refused.reason)).toContain(
+      "only places and connects",
+    );
+    expect(documentOf().edit.commitNodePositions({ commits: [] })).toEqual({
+      applied: true,
+      value: undefined,
+    });
+    expect(instance.definition.get().places).toHaveLength(0);
+  });
+
   it("refuses a title without a host setter, or while the editor is read-only", () => {
     renderPlugins([documentPlugin], <Probe />);
     expect(documentOf().setTitle("Renamed")).toEqual({
@@ -195,6 +221,27 @@ describe("plugin editor", () => {
       value: { commitCount: 2 },
     });
     expect(frame).toHaveBeenCalledOnce();
+  });
+
+  it("reads the handle's own net and its changes, also once the instance has let go of it", () => {
+    const { instance } = renderPlugins([documentPlugin], <Probe />);
+    const { handle } = documentOf();
+    const changes: (readonly PetrinautPatch[] | undefined)[] = [];
+    const unsubscribe = handle.subscribe((event) =>
+      changes.push(event.patches),
+    );
+    expect(handle.doc()).toBe(instance.handle.doc());
+
+    // What a strict-mode remount does: the instance's own stores then stop
+    // reporting, and the handle does not.
+    instance.dispose();
+    documentOf().edit.addPlace(place);
+
+    expect(handle.doc()?.places).toHaveLength(1);
+    expect(handle.doc()).toBe(instance.handle.doc());
+    expect(changes).toHaveLength(1);
+    expect(changes[0]?.[0]).toMatchObject({ op: "add", path: ["places", 0] });
+    unsubscribe();
   });
 
   it("returns the net it checked, which tells a caller the document changed meanwhile", async () => {

@@ -30,7 +30,9 @@ type GroupButtonProps = DistributedOmit<
   "children" | "iconName" | "iconPosition" | "prefix" | "suffix"
 >;
 
-const AddFilter = ({
+// AddFilter/ClearFilters are exported so react-docgen-typescript documents
+// them for the docs prop tables.
+export const AddFilter = ({
   size = "sm",
   variant = "ghost",
   renderAs = "plus",
@@ -53,8 +55,9 @@ const AddFilter = ({
     ) : undefined}
   </Button>
 );
+AddFilter.displayName = "FilterGroup.AddFilter";
 
-const ClearFilters = ({
+export const ClearFilters = ({
   size = "sm",
   variant = "ghost",
   className,
@@ -69,6 +72,7 @@ const ClearFilters = ({
     <span className={actionLabel({ size })}>Clear</span>
   </Button>
 );
+ClearFilters.displayName = "FilterGroup.ClearFilters";
 
 /** A `Filter` chip's root element, as rendered anywhere inside the group. */
 const chipSelector = '[role="group"][data-property]';
@@ -168,6 +172,8 @@ const FilterGroupRoot = ({
     </FilterGroupAbandonmentContext.Provider>
   );
 };
+
+FilterGroupRoot.displayName = "FilterGroup";
 
 export const FilterGroup = Object.assign(FilterGroupRoot, {
   AddFilter,

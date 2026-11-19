@@ -148,7 +148,7 @@ export const LinkedEntitySelector = ({
             ] ??
             "File";
 
-          onSelect(upload.createdEntities.fileEntity as HashEntity, label);
+          onSelect(upload.createdEntities.fileEntity, label);
         },
         webId: activeWorkspaceWebId,
         /**
@@ -190,6 +190,7 @@ export const LinkedEntitySelector = ({
     <FileCreationContext.Provider value={fileCreationContextValue}>
       <EntitySelector
         entityIdsToFilterOut={entityIdsToFilterOut}
+        excludeLinkEntities
         expectedEntityTypes={expectedEntityTypes}
         includeDrafts={includeDrafts}
         multiple={false}

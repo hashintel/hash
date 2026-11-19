@@ -6,7 +6,7 @@
  * fields and TLS/authentication requirements.
  */
 
-import { brunchEnv } from "@hashintel/brunch-agent";
+import { brunchEnv } from "../env.ts";
 
 interface SqliteDatabaseConfig {
   readonly kind: "sqlite";

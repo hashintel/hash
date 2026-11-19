@@ -14,7 +14,6 @@ const place = (id: string, name: string): Place => ({
   description: undefined,
   colorId: null,
   dynamicsEnabled: false,
-  differentialEquationId: null,
   x: 0,
   y: 0,
 });
@@ -113,6 +112,22 @@ describe("hashPetrinautDocument", () => {
     expect(hashPetrinautDocument(changed)).not.toBe(hashPetrinautDocument(net));
     expect(hashPetrinautDocument(changed, { exclude: [part] })).toBe(
       hashPetrinautDocument(net, { exclude: [part] }),
+    );
+  });
+
+  it("counts a subnet's icon and colour as appearance", () => {
+    const styled: SDCPN = {
+      ...net,
+      subnets: net.subnets?.map((subnet) => ({
+        ...subnet,
+        iconSvg: "<svg/>",
+        displayColor: "#00FF00",
+      })),
+    };
+
+    expect(hashPetrinautDocument(styled)).not.toBe(hashPetrinautDocument(net));
+    expect(hashPetrinautDocument(styled, { exclude: ["appearance"] })).toBe(
+      hashPetrinautDocument(net, { exclude: ["appearance"] }),
     );
   });
 });

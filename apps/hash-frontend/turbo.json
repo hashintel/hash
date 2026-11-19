@@ -4,9 +4,10 @@
     "codegen": {
       "outputs": ["./src/**/*.gen.*", ".next/types/**", "next-env.d.ts"],
       // graphql-codegen loads its config from the isomorphic utils' dist, and the Panda
-      // config loads both presets from their packages' dist.
+      // config loads both presets and the build info it compiles from their packages' dist.
       "dependsOn": [
         "@local/hash-isomorphic-utils#build",
+        "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-icons#build",
         "@hashintel/petrinaut#build"
@@ -32,6 +33,7 @@
         "API_ORIGIN",
         "ENVIRONMENT",
         "GOOGLE_OAUTH_CLIENT_ID",
+        "HASH_BRUNCH_AGENT_ORIGIN",
         "NODE_ENV",
         "NOTIFICATION_POLL_INTERVAL",
         "SELF_HOSTED_HASH",
@@ -53,7 +55,9 @@
     },
     "dev": {
       "dependsOn": ["codegen", "^build"],
-      "passThroughEnv": ["PORT"]
+      // `next.config.js` reads `HASH_BRUNCH_AGENT_ORIGIN` to offer Brunch's
+      // assistant on the process page.
+      "passThroughEnv": ["HASH_BRUNCH_AGENT_ORIGIN", "PORT"]
     },
     "test:unit": {
       "dependsOn": ["codegen", "^build"]

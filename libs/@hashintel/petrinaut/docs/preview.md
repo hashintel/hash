@@ -43,13 +43,13 @@ the preview never starts it automatically. The same bar lets you pause, reset,
 choose from the playback speeds allowed by the embed, and scrub through the
 run. It reads out the elapsed time and the run's total time.
 
-As soon as frames arrive, the compact bar expands upward to show a small
+As soon as the run starts, the compact bar expands upward to show a small
 timeline. The timeline follows playback, lets you hover to inspect a series,
-and supports clicking or dragging to scrub the canvas to another frame. It
+and supports clicking or dragging to scrub the canvas to another time. It
 collapses again when you reset the simulation. This expansion is animated when
 Petrinaut animations are enabled and reduced-motion is not requested.
 
-Quick Simulation uses a fixed time step and time horizon selected by the embed.
+Quick Simulation uses the time step and time horizon selected by the embed.
 It intentionally does not expose the full Simulate workspace, timeline-series
 configuration, metric authoring, or controls for changing those run settings.
 Scenario parameters are limited to the safe ranges chosen for that embedded

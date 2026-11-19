@@ -1,5 +1,7 @@
 /** The app's route map — one ownership-guarded Flue conversation door. */
 
+// Installs telemetry before anything else evaluates; the named import below only reads its shutdown.
+// oxlint-disable-next-line import/no-duplicates
 import "./server/telemetry-bootstrap.ts";
 import { readFile } from "node:fs/promises";
 
@@ -7,13 +9,13 @@ import { anthropicProvider } from "@earendil-works/pi-ai/providers/anthropic";
 import { instrument, setProvider } from "@flue/runtime";
 import { createAgentRouter } from "@flue/runtime/routing";
 import { Hono } from "hono";
+import { bodyLimit } from "hono/body-limit";
 
 import {
   browserExecutedToolNames,
-  brunchEnv,
+  browserToolFacts,
   brunchRoutes,
   brunchTools,
-  netReaderToolNames,
 } from "@hashintel/brunch-agent";
 import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core";
 import {
@@ -24,6 +26,11 @@ import {
 } from "@local/flue-aisdk-transport/server";
 
 import { agents } from "./agents/index.ts";
+import { brunchEnv } from "./env.ts";
+import {
+  ChatModelConfigurationError,
+  verifyChatModel,
+} from "./server/chat-model-configuration.ts";
 import { healthHandler } from "./server/health.ts";
 import { assetHandler } from "./server/http/assets.ts";
 import { createBrowserCallRouter } from "./server/http/browser-calls.ts";
@@ -31,9 +38,18 @@ import {
   createAgentCors,
   parseCorsAllowedOrigins,
 } from "./server/http/cors.ts";
+import { hashSessionActor } from "./server/http/hash-session-actor.ts";
+import {
+  hashTurnLimit,
+  type TurnWindows,
+} from "./server/http/hash-turn-limit.ts";
 import { agentOwnershipGuard } from "./server/http/ownership.ts";
 import { logger } from "./server/logger.ts";
-import { createTurnChronologyObserver } from "./server/observe-turn-chronology.ts";
+import { createModelCallScope } from "./server/model-call-scope.ts";
+import {
+  chronologyLogMessage,
+  createTurnChronologyObserver,
+} from "./server/observe-turn-chronology.ts";
 import { openaiProviderWithAddedModels } from "./server/openai-provider.ts";
 import { openrouterProviderWithAddedModels } from "./server/openrouter-provider.ts";
 import { createStepARequestAccounting } from "./server/provider-accounting.ts";
@@ -44,6 +60,8 @@ import {
   withBufferedToolAdmission,
 } from "./server/provider-admission.ts";
 import { diagnostics } from "./server/runtime-diagnostics.ts";
+import { shutdownBrunchTelemetry } from "./server/telemetry-bootstrap.ts";
+import { recordOperationalFailure } from "./server/telemetry.ts";
 
 import type { Provider } from "@earendil-works/pi-ai";
 
@@ -56,8 +74,13 @@ instrument({
   interceptor: (_operation, _context, next) => next(),
   dispose() {},
 });
+const production = process.env.NODE_ENV === "production";
 const mountedAgents = agents.filter(
-  ({ devOnly }) => devOnly !== true || process.env.NODE_ENV !== "production",
+  ({ devOnly, productionSwitch }) =>
+    !production ||
+    (devOnly !== true &&
+      (productionSwitch === undefined ||
+        process.env[productionSwitch] === "true")),
 );
 const mountedAgentNames = new Set(
   mountedAgents.map(({ agent }) => agent.agentName),
@@ -86,8 +109,7 @@ const liveToolBroadcasters = new Map(
 for (const { agent } of mountedAgents) {
   const turnChronologyObserver = createTurnChronologyObserver(
     agent.agentName,
-    (chronology) =>
-      logger.info("[brunch] flue.submission chronology", chronology),
+    (chronology) => logger.info(chronologyLogMessage, chronology),
   );
   instrument({
     key: Symbol.for(`brunch.turn-chronology:${agent.agentName}`),
@@ -99,6 +121,13 @@ for (const { agent } of mountedAgents) {
 // Scope follows the runtime's submission execution, not the HTTP request that
 // merely queues it. It is ephemeral attempt policy, never a proposal/state ledger.
 const admissionScope = modelAdmissionScope;
+// Honoured only under `NODE_ENV=test`, so these stay out of `brunchEnv`.
+const modelStreamTimeoutEnv = {
+  cancellationMs: "BRUNCH_MODEL_STREAM_CANCELLATION_TIMEOUT_MS",
+  firstEventMs: "BRUNCH_MODEL_STREAM_FIRST_EVENT_TIMEOUT_MS",
+  idleMs: "BRUNCH_MODEL_STREAM_IDLE_TIMEOUT_MS",
+  reasoningStartMs: "BRUNCH_MODEL_STREAM_REASONING_START_TIMEOUT_MS",
+} as const;
 const modelStreamTimeout = (environmentName: string, productionMs: number) => {
   if (process.env.NODE_ENV !== "test") return productionMs;
   const configured = process.env[environmentName];
@@ -110,21 +139,30 @@ const modelStreamTimeout = (environmentName: string, productionMs: number) => {
   return milliseconds;
 };
 const modelStreamIdleTimeoutMs = modelStreamTimeout(
-  brunchEnv.modelStreamIdleTimeoutMs,
+  modelStreamTimeoutEnv.idleMs,
   modelStreamIdleTimeoutDefaults.idleTimeoutMs,
 );
 const modelStreamFirstEventTimeoutMs = modelStreamTimeout(
-  brunchEnv.modelStreamFirstEventTimeoutMs,
+  modelStreamTimeoutEnv.firstEventMs,
   modelStreamIdleTimeoutDefaults.firstEventTimeoutMs,
 );
 const modelStreamReasoningStartTimeoutMs = modelStreamTimeout(
-  brunchEnv.modelStreamReasoningStartTimeoutMs,
+  modelStreamTimeoutEnv.reasoningStartMs,
   modelStreamIdleTimeoutDefaults.reasoningStartTimeoutMs,
 );
 const modelStreamCancellationTimeoutMs = modelStreamTimeout(
-  brunchEnv.modelStreamCancellationTimeoutMs,
+  modelStreamTimeoutEnv.cancellationMs,
   modelStreamIdleTimeoutDefaults.cancellationTimeoutMs,
 );
+// The model call a provider stream belongs to, so its timeout line can be
+// joined to the submission's chronology line.
+const modelCallScope = createModelCallScope();
+instrument({
+  key: Symbol.for("brunch.model-call-scope"),
+  observe() {},
+  interceptor: modelCallScope.interceptor,
+  dispose() {},
+});
 instrument({
   key: Symbol.for("brunch.buffered-tool-admission"),
   observe() {},
@@ -159,18 +197,24 @@ const mixedToolNames = new Set([
   ...browserExecutedToolNames,
   brunchTools.ping,
   brunchTools.ledgerCommit,
+  // The Ledger map and the basis query under each agent's name.
   brunchTools.ledgerCompile,
+  brunchTools.ledgerQuery,
   brunchTools.activateSkill,
   brunchTools.readSkillResource,
   brunchTools.queryBasis,
+  brunchTools.ledgerQueryBasis,
 ]);
+/** Every read of the net, whichever agent's. */
+const netReadToolNames = [...browserExecutedToolNames].filter(
+  (toolName) => browserToolFacts(toolName).observesNet,
+);
 // Running these beside their dependency would answer from the previous result.
 const dependentToolNames = new Map([
-  [
-    brunchTools.queryBasis,
-    [getLatestNetDefinitionToolName, ...Object.values(netReaderToolNames)],
-  ],
+  [brunchTools.queryBasis, netReadToolNames],
+  [brunchTools.ledgerQueryBasis, netReadToolNames],
   [brunchTools.ledgerCompile, [brunchTools.ledgerCommit]],
+  [brunchTools.ledgerQuery, [brunchTools.ledgerCommit]],
   [brunchTools.draftPetrinautExperiment, [getLatestNetDefinitionToolName]],
 ]);
 const registerAdmittedProvider = (provider: Provider) => {
@@ -190,36 +234,123 @@ const registerAdmittedProvider = (provider: Provider) => {
         firstEventTimeoutMs: modelStreamFirstEventTimeoutMs,
         idleTimeoutMs: modelStreamIdleTimeoutMs,
         reasoningStartTimeoutMs: modelStreamReasoningStartTimeoutMs,
+        onIdleTimeout: (timeout) =>
+          diagnostics.note("provider.timeout", {
+            ...modelCallScope.current(),
+            ...timeout,
+          }),
       },
     ),
   );
 };
-registerAdmittedProvider(anthropicProvider());
-registerAdmittedProvider(openaiProviderWithAddedModels());
-registerAdmittedProvider(openrouterProviderWithAddedModels());
+const chatProviders = [
+  anthropicProvider(),
+  openaiProviderWithAddedModels(),
+  openrouterProviderWithAddedModels(),
+];
+for (const provider of chatProviders) registerAdmittedProvider(provider);
+
+// Production refuses to start without a usable chat model, as it does without
+// database configuration; otherwise every chat fails at its first model call.
+// A provider outage only warns, so it cannot keep replacement tasks down.
+if (process.env.NODE_ENV === "production") {
+  try {
+    const verification = await verifyChatModel(chatProviders);
+    if (!verification.verified) {
+      diagnostics.note("model.configuration", {
+        verified: false,
+        reason: verification.reason,
+      });
+    } else if (verification.shutdownDate) {
+      diagnostics.note("model.configuration", {
+        verified: true,
+        shutdownDate: verification.shutdownDate,
+      });
+    }
+  } catch (error) {
+    diagnostics.report("model.configuration", error);
+    // The process exits right after this, so flush the failure span first.
+    await recordOperationalFailure("model_configuration", error);
+    try {
+      await shutdownBrunchTelemetry();
+    } catch {
+      // The model configuration failure remains the authoritative startup cause.
+    }
+    // Node prints an uncaught error's message, stack and cause to stderr, and
+    // an error from other code may quote the credential it was handed.
+    throw error instanceof ChatModelConfigurationError
+      ? error
+      : new Error(
+          "Chat model verification failed; the model.configuration diagnostic records its type.",
+        );
+  }
+}
 
 const app = new Hono();
 
-app.use(
-  `${brunchRoutes.agents}/*`,
-  createAgentCors(
-    parseCorsAllowedOrigins(process.env[brunchEnv.corsAllowedOrigins]),
-  ),
+// The website's agents answer its browsers' JavaScript without credentials;
+// the HASH agent answers only HASH's origins, which send the user's session.
+const agentCors = createAgentCors(
+  parseCorsAllowedOrigins(process.env[brunchEnv.corsAllowedOrigins]),
 );
+const hashCors = createAgentCors(
+  parseCorsAllowedOrigins(process.env[brunchEnv.hashCorsAllowedOrigins], {
+    variable: brunchEnv.hashCorsAllowedOrigins,
+    wildcards: false,
+  }),
+  { sessionCredentials: true },
+);
+// One session cache for the HASH agent's routes and the identity route.
+const resolveSessionActor = hashSessionActor({
+  apiOrigin: process.env[brunchEnv.apiOrigin],
+});
+const hashTurnWindows: TurnWindows = new Map();
+// The signed-in user's actor key, which the page needs to address their
+// conversations and which tells it Brunch will serve them. It sits under the
+// HASH agent's mount, so the ingress rule for the agents covers it, and is
+// registered before that mount: its ownership guard would read `identity` as
+// a conversation instance.
+if (mountedAgents.some(({ route }) => route === brunchRoutes.hashAgent)) {
+  app.use(brunchRoutes.hashIdentity, hashCors, resolveSessionActor);
+  app.get(brunchRoutes.hashIdentity, (context) => {
+    // The answer names the session's user, so no cache may keep it.
+    context.header("Cache-Control", "no-store");
+    return context.json({ actorKey: context.get("hashSessionActorKey") });
+  });
+}
+// A request body is held whole before any route reads it: the ownership
+// guard and the browser-call routes parse it before the turn limit counts it.
+// The hash-api hop the HASH route replaced applied the same limit.
+const agentBodyLimit = bodyLimit({
+  maxSize: 16 * 1024 * 1024,
+  onError: (context) => context.json({ error: "request too large" }, 413),
+});
 for (const { route, aliases = [], agent } of mountedAgents) {
   const broadcaster = liveToolBroadcasters.get(agent.agentName);
   if (broadcaster === undefined)
     throw new Error(`No live-tool channel for ${agent.agentName}.`);
+  const sessionActor = route === brunchRoutes.hashAgent;
   for (const segment of [route, ...aliases]) {
     const mount = `${brunchRoutes.agents}/${segment}`;
-    app.use(`${mount}/*`, agentOwnershipGuard(`${mount}/`, agent.agentName));
+    app.use(`${mount}/*`, sessionActor ? hashCors : agentCors);
+    app.use(`${mount}/*`, agentBodyLimit);
+    if (sessionActor) app.use(`${mount}/*`, resolveSessionActor);
+    app.use(
+      `${mount}/*`,
+      agentOwnershipGuard(`${mount}/`, agent.agentName, { sessionActor }),
+    );
+    if (sessionActor)
+      app.use(
+        `${mount}/*`,
+        hashTurnLimit({ mountPrefix: `${mount}/`, windows: hashTurnWindows }),
+      );
     app.get(`${mount}/:id/${liveToolRouteSegment}`, (context) =>
       liveToolResponse(broadcaster, {
         instanceId: context.req.param("id"),
         request: context.req.raw,
       }),
     );
-    app.route(mount, createBrowserCallRouter());
+    app.route(mount, createBrowserCallRouter(agent.agentName));
     app.route(mount, createAgentRouter(agent));
   }
 }

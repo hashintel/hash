@@ -17,6 +17,14 @@ export const generateFlowDefinitionPath = ({
   `/@${shortname.replace(/^@/, "")}/flows/${extractEntityUuidFromEntityId(flowDefinitionEntityId)}`;
 
 /**
+ * The page that edits a flow definition.
+ */
+export const generateFlowEditorPath = (params: {
+  shortname: string;
+  flowDefinitionEntityId: EntityId;
+}) => `${generateFlowDefinitionPath(params)}/edit`;
+
+/**
  * The page of a flow run. The shortname names the run's web, so the path only needs the uuid of its entity.
  */
 export const generateWorkerRunPath = ({

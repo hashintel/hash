@@ -1,8 +1,8 @@
 # Simulation Architecture
 
 > For the deep-dive (memory model, frame format, protocols, Monte Carlo), see
-> the architecture docs, added by #9205 under
-> `libs/@local/petrinaut-arch-docs/content/simulation/`.
+> the `.mdx` guides beside the code in this folder, rendered in the
+> architecture docs.
 
 The simulation module is split into five boundaries:
 

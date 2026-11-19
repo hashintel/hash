@@ -101,15 +101,15 @@ const getTotalUsage = ({ flowRunEntityId }: { flowRunEntityId: EntityId }) =>
   });
 
 const generateDurationString = ({
-  executedAt,
+  startedAt,
   closedAt,
 }: {
-  executedAt: string;
+  startedAt: string;
   closedAt?: string | null;
 }) =>
   formatDuration(
     intervalToDuration({
-      start: new Date(executedAt),
+      start: new Date(startedAt),
       // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string
       end: new Date(closedAt || Date.now()),
     }),
@@ -124,19 +124,17 @@ export const FlowMetadataCellContents = ({
 }) => {
   const [usage, setUsage] = useState<TotalUsage | null>(null);
 
-  const { executedAt, closedAt } = flowRun;
+  const { startedAt, closedAt } = flowRun;
 
   const [timeElapsed, setTimeElapsed] = useState(() =>
-    executedAt
-      ? generateDurationString({ executedAt, closedAt })
-      : "Pending...",
+    generateDurationString({ startedAt, closedAt }),
   );
 
   useEffect(() => {});
 
   useEffect(() => {
-    if (visible && executedAt) {
-      const timeElapsedNow = generateDurationString({ executedAt, closedAt });
+    if (visible) {
+      const timeElapsedNow = generateDurationString({ startedAt, closedAt });
 
       /**
        * Stop the interval if we have a closedAt time and we've already calculated the final elapsed duration
@@ -145,7 +143,7 @@ export const FlowMetadataCellContents = ({
         setTimeout(() => {
           setTimeElapsed(
             generateDurationString({
-              executedAt,
+              startedAt,
               closedAt,
             }),
           );

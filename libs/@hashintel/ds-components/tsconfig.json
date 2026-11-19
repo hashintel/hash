@@ -11,14 +11,16 @@
     "types": ["node"],
     "verbatimModuleSyntax": true
   },
-  "exclude": ["node_modules", "dist"],
+  "exclude": ["node_modules", "dist", "docs/demos"],
   "extends": ["@tsconfig/bases/strictest", "@local/tsconfig/policy.json"],
   "include": [
     "src/**/*",
+    "docs/**/*",
     ".storybook/**/*",
     "tests/**/*",
     "scripts/**/*",
     "panda.config.ts",
+    "panda.docs.config.ts",
     "panda.local.config.ts",
     "playwright.config.ts",
     "tsup.config.ts",

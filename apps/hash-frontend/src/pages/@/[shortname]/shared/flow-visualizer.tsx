@@ -36,6 +36,7 @@ import { NotFound } from "../../../shared/not-found";
 import { useFlowDefinitionAtTime } from "../../../shared/use-flow-definitions";
 import { useFlowSchedules } from "../../../shared/use-flow-schedules";
 import { ActivityLog } from "./flow-visualizer/activity-log";
+import { FlowDefinitionProblems } from "./flow-visualizer/flow-definition-problems";
 import { FlowNetSlide } from "./flow-visualizer/flow-net-slide";
 import { FlowNetView } from "./flow-visualizer/flow-net-view";
 import { FlowRunSidebar } from "./flow-visualizer/flow-run-sidebar";
@@ -67,6 +68,7 @@ import type {
   FlowDefinition as FlowDefinitionType,
   PersistedEntityMetadata,
   FlowInputValues,
+  ResolvedStepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
 
 /** Every step, including those inside a `forEach`, for the run sidebar's list of steps. */
@@ -226,8 +228,9 @@ export const FlowVisualizer = () => {
       { logs: LocalProgressLog[]; level: number; thread?: LogThread }
     > = {};
 
-    for (const step of selectedFlowRun.steps) {
-      const outputs = step.outputs?.[0]?.contents[0]?.outputs ?? [];
+    for (const step of selectedFlowRun.stepRuns) {
+      /* The API resolves stored payloads in the events step runs are built from. */
+      const outputs = (step.outputs ?? []) as ResolvedStepOutput[];
 
       for (const log of step.logs) {
         if (
@@ -380,7 +383,7 @@ export const FlowVisualizer = () => {
     if (selectedFlowRun.closedAt) {
       progressLogs.push({
         level: 1,
-        message: `Flow run closed: ${selectedFlowRun.failureMessage?.toLowerCase() ?? selectedFlowRun.status.toLowerCase()}`,
+        message: `Flow run closed: ${selectedFlowRun.failure?.message.toLowerCase() ?? selectedFlowRun.status.toLowerCase()}`,
         recordedAt: selectedFlowRun.closedAt,
         stepId: "closure",
         type: "StateChange",
@@ -566,7 +569,7 @@ export const FlowVisualizer = () => {
     setShowRunModal(true);
   }, [runFlow, selectedFlowRun]);
 
-  if (!selectedFlow || !selectedFlowDefinition) {
+  if (!selectedFlow) {
     if (flowDefinitionsLoading || flowOfSelectedRunLoading) {
       return <FlowRunVisualizerSkeleton />;
     }
@@ -578,17 +581,20 @@ export const FlowVisualizer = () => {
     throw new Error("Is this possible?");
   }
 
-  const flowDefinitionStateKey = `${selectedFlowDefinition.name} ?? "loading`;
+  const flowDefinitionStateKey = selectedFlow.flowDefinitionEntityId;
   const flowRunStateKey = `${flowDefinitionStateKey}-${
     selectedFlowRun?.flowRunEntityId ?? "definition"
   }`;
 
-  const isRunnableFromHere = !unrunnableDefinitionIds.some((flowDefinitionId) =>
-    isHashFlowDefinitionEntityId(
-      selectedFlow.flowDefinitionEntityId,
-      flowDefinitionId,
-    ),
-  );
+  /* A flow saved before it was valid can't run until its problems are fixed. */
+  const isRunnableFromHere =
+    !!selectedFlowDefinition &&
+    !unrunnableDefinitionIds.some((flowDefinitionId) =>
+      isHashFlowDefinitionEntityId(
+        selectedFlow.flowDefinitionEntityId,
+        flowDefinitionId,
+      ),
+    );
 
   const isGoal = isGoalFlowDefinitionEntityId(
     selectedFlow.flowDefinitionEntityId,
@@ -596,12 +602,17 @@ export const FlowVisualizer = () => {
 
   return (
     <>
-      {selectedFlowRun && (
+      {selectedFlowRun && selectedFlowDefinition && (
         <FlowNetSlide
           open={showFlowNet}
           onClose={() => setShowFlowNet(false)}
           selectedFlowDefinition={selectedFlowDefinition}
           flowDefinitionEntityId={selectedFlow.flowDefinitionEntityId}
+          flowRun={{
+            flowRunEntityId: selectedFlowRun.flowRunEntityId,
+            name: selectedFlowRun.name,
+            live: !selectedFlowRun.closedAt,
+          }}
         />
       )}
       <Stack sx={{ height: containerHeight }}>
@@ -671,10 +682,15 @@ export const FlowVisualizer = () => {
                 proposedEntities={proposedEntities}
                 relevantEntityIds={relevantEntityIds}
               />
-            ) : (
+            ) : selectedFlowDefinition ? (
               <Box key={flowDefinitionStateKey} sx={{ flex: 1, minHeight: 0 }}>
-                <FlowNetView flowDefinition={selectedFlowDefinition} />
+                <FlowNetView
+                  flowDefinition={selectedFlowDefinition}
+                  flowDefinitionEntityId={selectedFlow.flowDefinitionEntityId}
+                />
               </Box>
+            ) : (
+              <FlowDefinitionProblems diagnostics={selectedFlow.diagnostics} />
             )}
           </Stack>
         </Stack>

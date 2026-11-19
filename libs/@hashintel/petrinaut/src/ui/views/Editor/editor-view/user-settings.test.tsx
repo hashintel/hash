@@ -28,7 +28,8 @@ import type {
   PetrinautNavigationState,
   PetrinautSettingsSection,
 } from "../../../../react/navigation";
-import type { PetrinautOptimizationSource } from "../../../../react/optimization-context";
+import type { PetrinautConnectedOptimization } from "../../../../react/optimization-context";
+import type { PetrinautPlugin } from "../../../plugins/define-petrinaut-plugin";
 import type { ReactNode } from "react";
 
 beforeEach(() => {
@@ -55,7 +56,7 @@ afterEach(() => {
 
 const renderSettings = (
   initialState: Partial<PetrinautNavigationState> = {},
-  optimization: PetrinautOptimizationSource | null = null,
+  optimization: PetrinautConnectedOptimization | null = null,
   settingsLabs?: ReactNode,
 ) => {
   const registry = createCommandRegistry();
@@ -91,7 +92,7 @@ const voicePlugin = definePetrinautPlugin({
 
 const renderPluginSettings = (
   section: PetrinautSettingsSection,
-  plugins = [voicePlugin],
+  plugins: readonly PetrinautPlugin[] = [voicePlugin],
 ) =>
   renderPlugins(
     plugins,
@@ -373,7 +374,7 @@ describe("user settings", () => {
     expect(document.activeElement).toBe(animations);
   });
 
-  it("keeps one content panel and lets dropdowns own their open keyboard interaction", async () => {
+  it("keeps one content panel and walks a section from the top", async () => {
     renderSettings({ overlay: { type: "user-settings" } });
     const viewport = await screen.findByRole("tab", { name: "Viewport" });
     screen.getByRole("tabpanel").scrollTop = 200;
@@ -390,41 +391,14 @@ describe("user settings", () => {
     );
     fireEvent.keyDown(document.activeElement!, { key: "ArrowDown" });
     fireEvent.keyDown(document.activeElement!, { key: "ArrowDown" });
-    expect(document.activeElement).toBe(
-      screen.getByRole("checkbox", { name: "Petricon" }),
-    );
-    fireEvent.keyDown(document.activeElement!, { key: "ArrowDown" });
-    expect(document.activeElement).toBe(
-      screen.getByRole("checkbox", {
-        name: "Automatic arc connections",
-      }),
-    );
-    fireEvent.keyDown(document.activeElement!, { key: "ArrowDown" });
-    const arcs = screen.getByRole("combobox", { name: "Arc rendering" });
-    expect(document.activeElement).toBe(arcs);
-    fireEvent.keyDown(arcs, { key: "ArrowDown" });
+    const iconPack = screen.getByRole("checkbox", { name: "Petricon" });
+    expect(document.activeElement).toBe(iconPack);
+    fireEvent.keyDown(iconPack, { key: "ArrowDown" });
     expect(document.activeElement).toBe(
       screen.getByRole("checkbox", { name: "Highlight on hover" }),
     );
     fireEvent.keyDown(document.activeElement!, { key: "ArrowUp" });
-    expect(document.activeElement).toBe(arcs);
-    fireEvent.keyDown(arcs, { key: "Enter" });
-    await waitFor(() =>
-      expect(arcs.getAttribute("aria-expanded")).toBe("true"),
-    );
-    await waitFor(() =>
-      expect(document.activeElement).toBe(screen.getByRole("listbox")),
-    );
-    fireEvent.keyDown(document.activeElement!, { key: "ArrowDown" });
-    expect(screen.getByRole("listbox")).toBeTruthy();
-    expect(document.activeElement).not.toBe(
-      screen.getByRole("checkbox", { name: "Highlight on hover" }),
-    );
-    fireEvent.keyDown(document.activeElement!, { key: "Escape" });
-    await waitFor(() =>
-      expect(arcs.getAttribute("aria-expanded")).toBe("false"),
-    );
-    expect(screen.getByRole("dialog", { name: "User settings" })).toBeTruthy();
+    expect(document.activeElement).toBe(iconPack);
   });
 
   it("ignores modified shortcuts and unregisters when unmounted", async () => {
@@ -568,6 +542,64 @@ describe("Labs settings", () => {
   });
 });
 
+describe("AI assistant settings", () => {
+  const assistantPlugin = (id: string, name: string) =>
+    definePetrinautPlugin({ id, name, assistant: true })({
+      assistant: { content: null },
+    });
+  const chat = assistantPlugin("test.chat", "Chat");
+  const composer = assistantPlugin("test.composer", "Composer");
+
+  it("offers no choice while one plugin provides an assistant", async () => {
+    renderPluginSettings("general", [chat]);
+    await screen.findByRole("heading", { name: "General" });
+    expect(screen.queryByRole("combobox", { name: "Assistant" })).toBeNull();
+  });
+
+  it("lists the assistants in General and keeps the one chosen", async () => {
+    renderPluginSettings("general", [chat, composer]);
+    const picker = await screen.findByRole("combobox", { name: "Assistant" });
+    expect(picker.textContent).toContain("Chat");
+
+    fireEvent.click(picker);
+    fireEvent.click(await screen.findByRole("option", { name: "Composer" }));
+
+    await waitFor(() => expect(picker.textContent).toContain("Composer"));
+    expect(
+      JSON.parse(localStorage.getItem("petrinaut:user-settings") ?? "{}"),
+    ).toMatchObject({ assistantPluginId: "test.composer" });
+  });
+
+  it("lets the picker own its keyboard interaction while it is open", async () => {
+    renderPluginSettings("general", [chat, composer]);
+    const picker = await screen.findByRole("combobox", { name: "Assistant" });
+    const panels = screen.getByRole("checkbox", {
+      name: "Keep panels mounted",
+    });
+    act(() => panels.focus());
+    fireEvent.keyDown(panels, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(picker);
+    fireEvent.keyDown(picker, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(panels);
+    fireEvent.keyDown(panels, { key: "ArrowDown" });
+    fireEvent.keyDown(picker, { key: "Enter" });
+    await waitFor(() =>
+      expect(picker.getAttribute("aria-expanded")).toBe("true"),
+    );
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByRole("listbox")),
+    );
+    fireEvent.keyDown(document.activeElement!, { key: "ArrowUp" });
+    expect(screen.getByRole("listbox")).toBeTruthy();
+    expect(document.activeElement).not.toBe(panels);
+    fireEvent.keyDown(document.activeElement!, { key: "Escape" });
+    await waitFor(() =>
+      expect(picker.getAttribute("aria-expanded")).toBe("false"),
+    );
+    expect(screen.getByRole("dialog", { name: "User settings" })).toBeTruthy();
+  });
+});
+
 describe("Plugins settings", () => {
   it("lists plugins with what they contribute and switches one off", async () => {
     renderPluginSettings("plugins");
@@ -635,8 +667,8 @@ describe("WebGPU availability", () => {
   });
 });
 
-describe("combined UX settings", () => {
-  it("keeps Petricon and automatic arc settings across remounts", async () => {
+describe("Viewport settings", () => {
+  it("keeps Petricon across remounts and offers no arc settings", async () => {
     const first = renderSettings({
       overlay: { type: "user-settings", section: "viewport" },
     });
@@ -647,18 +679,7 @@ describe("combined UX settings", () => {
     expect(
       screen.getByText("Petricon", { exact: true }).parentElement?.textContent,
     ).toBe("Petricon");
-    expect(
-      screen.getByText("Automatic arc connections", { exact: true })
-        .parentElement?.textContent,
-    ).toBe("Automatic arc connections");
     await act(async () => fireEvent.click(iconPack));
-    await act(async () =>
-      fireEvent.click(
-        screen.getByRole("checkbox", {
-          name: "Automatic arc connections",
-        }),
-      ),
-    );
     first.unmount();
     renderSettings({ overlay: { type: "user-settings", section: "viewport" } });
     expect(
@@ -669,12 +690,8 @@ describe("combined UX settings", () => {
       ).checked,
     ).toBe(false);
     expect(
-      (
-        screen.getByRole("checkbox", {
-          name: "Automatic arc connections",
-        }) as HTMLInputElement
-      ).checked,
-    ).toBe(true);
+      screen.queryByRole("checkbox", { name: "Automatic arc connections" }),
+    ).toBeNull();
     expect(
       screen.queryByRole("combobox", { name: "Arc rendering" }),
     ).toBeNull();

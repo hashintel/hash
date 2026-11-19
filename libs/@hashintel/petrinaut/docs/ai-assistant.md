@@ -7,8 +7,10 @@ Petrinaut has an in-app AI assistant that can build a net from a natural-languag
 Open the assistant in any of these ways:
 
 1. **AI button** in the bottom toolbar (Edit mode only). Click it to open the panel; click again to close. The tooltip is "Show AI assistant" / "Hide AI assistant".
-2. **First-run prompt**. When you load Petrinaut against an empty net, a centred prompt appears. Type a description and its trailing action becomes **Send**; select it to open the panel with your message already in flight. When the host provides Voice mode, the empty prompt instead shows a waveform action titled **Start voice mode**. It opens the same assistant without creating an empty text message. Dismiss the prompt with the **X**, by clicking outside it, or by pressing **Escape**; it is hidden for the rest of the session once dismissed.
-3. **Command palette**. Choose **Toggle AI assistant**, or press **Cmd/Ctrl+Shift+K** directly. This opens the assistant and focuses the message field, or closes it when already visible, including compact Voice mode. Reopening preserves the conversation and docked or floating layout. The command keeps you in your current view. This command is available when the host provides an AI assistant.
+2. **First-run prompt**. When you load Petrinaut against an empty net, a centred prompt appears. Type a description and select **Send** to open the panel with your message already in flight; **Send** stays disabled while the field is blank. Dismiss the prompt with the **X**, by clicking outside it, or by pressing **Escape**; it is hidden for the rest of the session once dismissed.
+3. **Command palette**. Choose **Toggle AI assistant**, or press **Cmd/Ctrl+Shift+K** directly. This opens the assistant and focuses the message field, or closes it when already visible. Reopening preserves the conversation and docked or floating layout. The command keeps you in your current view. This command is available when the host provides an AI assistant.
+
+When the host offers several assistants, switch between them from the arrow beside the assistant icon in the panel's title bar, in **User settings › General › AI assistant**, or with **Use … as the AI assistant** in the Command Palette. Switching hides the other assistant. Whether its conversation is kept depends on that assistant.
 
 The assistant stays available across **Edit** (Canvas or Definitions), **Simulate**, and **Actual** modes. Switching views preserves your conversation, draft, and active response. The panel resizes by dragging its left edge. Text and voice share the primary transcript. Hosts can name that tab and add a second tab for related content. Select a tab to switch views, or use the left/right arrow keys while a tab is focused. Switching does not end a response, clear your draft or interrupt Voice; the composer and active controls remain available.
 
@@ -65,7 +67,9 @@ Timing is shown when supplied or observed during this session; unavailable tool
 durations show a dash. Disclosure icons are neutral; status dots distinguish
 pending, completed, and failed tools.
 
-Before Brunch removes model elements, an approval lists the requested removals. Associated arcs or references may also be removed. **Allow** applies that removal; **Deny** withholds that call and tells Brunch nothing was changed. Brunch's later calls in the same response wait until you answer, then continue to run. **Always allow** permits later removals only in the current mounted conversation, until you leave or reload. It does not grant permission for another conversation or browser session. Stop cancels a pending approval. Auto-layout asks separately; see `applyAutoLayout` below.
+Before Brunch removes model elements, an approval lists the requested removals. Associated arcs or references may also be removed. An update that would itself remove arcs or fusion memberships asks the same way: unmarking a component port that something outside its subnet uses, or pointing a component instance at another subnet or at another component of a library. So does moving a fusion from one place or port to another, which takes the first out of the fusion. **Allow** applies that removal; **Deny** withholds that call and tells Brunch nothing was changed. Brunch's later calls in the same response wait until you answer, then continue to run. **Always allow** permits later removals only in the current mounted conversation, until you leave or reload. It does not grant permission for another conversation or browser session. Stop cancels a pending approval. Auto-layout asks separately; see `applyAutoLayout` below.
+
+Where the application offers libraries of components, Brunch reads which ones the net imports and which are on offer, with the components, ports and parameters of each. It places instances of those components and wires their ports as it does any others. It cannot open or change a component of a library, and a library that is still being fetched, or that failed, has nothing for it to place yet.
 
 When the host supplies them, Voice also shows a collapsed brief directly under your message, an immediate spoken-agent reply before the work, and a wrap-up after the produced cards. The brief says **Preparing request** while its fields are being prepared, **Sending request** once the fields are ready but not yet accepted, and **Request sent** after acceptance. Expand a prepared brief to see **Prepared from what you said** and its right-aligned fields. Missing excerpts display **Still open**; that placeholder is not sent as an extracted fact. If preparation fails, your original words are sent without prepared fields: the brief says **Sending without preparation**, then **Sent without preparation** after acceptance. These optional parts are absent in hosts that do not provide them. In Chat, a small neutral voice-bars icon marks user messages sent using Voice; typed messages have no icon. In Voice, those per-message icons are hidden.
 
@@ -106,16 +110,10 @@ Brunch changes the net only from a current view of it. If you edit the net yours
 ### Voice mode
 
 When the Brunch voice preview is enabled and available, an empty composer shows a waveform action
-titled **Start voice mode**. Typing non-whitespace text replaces it with **Send**. The same dynamic
-action appears in the first-run prompt and the assistant panel; if voice is unavailable, the empty
-composer retains a disabled **Send** action. Starting Voice mode keeps the transcript in place and
-opens the existing one-time disclosure. Voice selected from the first-run prompt starts compact: the
-disclosure and microphone check appear in a card immediately above a **Voice setup** dock, while the
-AI header, transcript, and composer stay hidden. The card opens without shifting the dock or viewport
-controls, and scrolls within the available screen height. It uses one bordered surface, with **Start voice**
-and **Test microphone** together and **Cancel** on the right. Setup does not show **Connecting** before
-you start. Select **Expand voice setup** to restore the full
-panel. Voice started from the composer keeps that full panel visible. Review that OpenAI processes
+titled **Start voice mode**. Typing non-whitespace text replaces it with **Send**. If voice is
+unavailable, the empty composer retains a disabled **Send** action. The first-run prompt only sends
+text, so start Voice from the composer. Starting Voice mode keeps the transcript in place and
+opens the existing one-time disclosure. Review that OpenAI processes
 live audio and speaks the interviewer's words while Petrinaut keeps finalized answers in the
 conversation rather than the audio. You can check your microphone before confirming that you
 understand and selecting **Start voice mode**. Petrinaut remembers that acknowledgement in this
@@ -180,18 +178,11 @@ capture, and playback. A connection error never retries automatically.
 While Voice runs, the composer is replaced by a compact dock at the foot of the
 panel. It shows one short state -- **Connecting**, **Listening**, **Muted**,
 **Thinking**, **Speaking**, **Paused**, or **Voice interrupted** -- and keeps
-the controls available without covering the transcript. Select **Hide
-conversation** to leave only the dock visible, and **Show conversation** to
-restore the AI header, transcript, and host Voice region. These controls change
-visibility only: they do not pause, stop, or end Voice. A floating panel also minimizes to the
-bottom-right dock; expanding restores its previous position and size. Ending Voice while the
-conversation is hidden also closes the AI panel; ending it while the
-conversation is visible returns to the text composer.
+the controls available without covering the transcript. Ending Voice returns to
+the text composer.
 When space is tight, the dock keeps the waveform and action buttons usable and
 truncates only the visible status with an ellipsis. Screen readers still
 announce the complete, untruncated status.
-When the conversation is hidden, the zoom and fullscreen controls remain above
-the compact dock at the right edge.
 
 The microphone action stays directly in the dock. **Mute microphone** becomes
 **Unmute microphone** and remains pressed while input is muted. Mute is
@@ -416,7 +407,7 @@ disappears and the result remains under **Simulate → Experiments**.
 
 **Dismiss** retains the proposal as a **Dismissed** record. After **Run**, the
 draft is replaced in place by the same blue simulation or purple optimization
-card used by the built-in assistant: **Validating**, steps and runs, then
+card used by the stock assistant: **Validating**, steps and runs, then
 **Finished** with metrics. **Cancel**
 leaves a **Cancelled** record. A failed run offers **Retry run**; model changes
 still require review before retrying. Drafting and starting a run keep your

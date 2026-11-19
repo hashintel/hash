@@ -1,9 +1,26 @@
 import { JSONObjectResolver } from "graphql-scalars";
 
+import {
+  createApiTokenResolver,
+  myApiTokensResolver,
+  revokeApiTokenResolver,
+} from "./api-token";
 import { getBlockProtocolBlocksResolver } from "./blockprotocol/get-block";
 import { embedCode } from "./embed";
 import { cancelFlow } from "./flows/cancel-flow";
+import {
+  archiveFlowDefinitionResolver,
+  createFlowDefinitionResolver,
+  updateFlowDefinitionResolver,
+} from "./flows/flow-definition";
+import { flowRunDataSourcesResolver } from "./flows/flow-run-data-sources";
+import {
+  flowRunFailureResolver,
+  flowRunOutputsResolver,
+  flowRunStepErrorsResolver,
+} from "./flows/flow-run-ending";
 import { flowRunEventsResolver } from "./flows/flow-run-events";
+import { flowRunOpenInputRequestsResolver } from "./flows/flow-run-open-input-requests";
 import {
   archiveFlowScheduleResolver,
   createFlowScheduleResolver,
@@ -19,8 +36,6 @@ import { submitExternalInputResponse } from "./flows/submit-external-input-respo
 import { generateInverseResolver } from "./generation/generate-inverse";
 import { generatePluralResolver } from "./generation/generate-plural";
 import { isGenerationAvailableResolver } from "./generation/is-generation-available";
-import { getLinearOrganizationResolver } from "./integrations/linear/linear-organization";
-import { syncLinearIntegrationWithWebsMutation } from "./integrations/linear/sync-linear-integration-with-webs";
 import { blockCollectionContents } from "./knowledge/block-collection/block-collection-contents";
 import { updateBlockCollectionContents } from "./knowledge/block-collection/update-block-collection-contents";
 import { blocksResolver } from "./knowledge/block/block";
@@ -80,6 +95,7 @@ import { getWaitlistPositionResolver } from "./knowledge/user/get-waitlist-posit
 import { hasAccessToHashResolver } from "./knowledge/user/has-access-to-hash";
 import { isShortnameTakenResolver } from "./knowledge/user/is-shortname-taken";
 import { meResolver } from "./knowledge/user/me";
+import { sessionAccountResolver } from "./knowledge/user/session-account";
 import { submitEarlyAccessFormResolver } from "./knowledge/user/submit-early-access-form";
 import { loggedInMiddleware } from "./middlewares/logged-in";
 import { loggedInAndSignedUpMiddleware } from "./middlewares/logged-in-and-signed-up";
@@ -150,6 +166,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
 
     /** Logged in users (who may not have completed signup) */
     me: loggedInMiddleware(meResolver),
+    sessionAccount: loggedInMiddleware(sessionAccountResolver),
     getWaitlistPosition: loggedInMiddleware(getWaitlistPositionResolver),
     getMyPendingInvitations: loggedInMiddleware(
       getMyPendingInvitationsResolver,
@@ -179,9 +196,6 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     queryEntitySubgraph: loggedInAndSignedUpMiddleware(
       queryEntitySubgraphResolver,
     ),
-    getLinearOrganization: loggedInAndSignedUpMiddleware(
-      getLinearOrganizationResolver,
-    ),
     checkUserPermissionsOnEntity: (_, { metadata }, context, info) =>
       checkUserPermissionsOnEntity({ metadata }, _, context, info),
     checkUserPermissionsOnEntityType: loggedInAndSignedUpMiddleware(
@@ -195,6 +209,8 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     generatePlural: loggedInAndSignedUpMiddleware(generatePluralResolver),
     isGenerationAvailable: isGenerationAvailableResolver,
     validateEntity: loggedInAndSignedUpMiddleware(validateEntityResolver),
+
+    myApiTokens: loggedInAndSignedUpMiddleware(myApiTokensResolver),
   },
 
   Mutation: {
@@ -288,6 +304,16 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
       submitExternalInputResponse,
     ),
 
+    createFlowDefinition: loggedInAndSignedUpMiddleware(
+      createFlowDefinitionResolver,
+    ),
+    updateFlowDefinition: loggedInAndSignedUpMiddleware(
+      updateFlowDefinitionResolver,
+    ),
+    archiveFlowDefinition: loggedInAndSignedUpMiddleware(
+      archiveFlowDefinitionResolver,
+    ),
+
     createFlowSchedule: loggedInAndSignedUpMiddleware(
       createFlowScheduleResolver,
     ),
@@ -302,10 +328,9 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
       archiveFlowScheduleResolver,
     ),
 
-    // Integration
-    syncLinearIntegrationWithWebs: loggedInAndSignedUpMiddleware(
-      syncLinearIntegrationWithWebsMutation,
-    ),
+    // API tokens
+    createApiToken: loggedInAndSignedUpMiddleware(createApiTokenResolver),
+    revokeApiToken: loggedInAndSignedUpMiddleware(revokeApiTokenResolver),
   },
 
   JSONObject: JSONObjectResolver,
@@ -334,8 +359,17 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     blockChildEntity: blockChildEntityResolver,
   },
 
+  FlowRunSummary: {
+    openInputRequests: flowRunOpenInputRequestsResolver,
+  },
+
   FlowRun: {
+    dataSources: flowRunDataSourcesResolver,
     events: flowRunEventsResolver,
+    outputs: flowRunOutputsResolver,
+    failure: flowRunFailureResolver,
+    stepErrors: flowRunStepErrorsResolver,
+    openInputRequests: flowRunOpenInputRequestsResolver,
   },
 
   EntityAuthorizationSubject: {

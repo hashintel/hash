@@ -17,10 +17,10 @@ type AvatarProps = {
   className?: string;
   /** Image source URL */
   src?: string;
-  /** For ex: "Firstname Lastname", "Organization", "Shortname (online)" */
+  /** Accessible description of the image, e.g. `"Firstname Lastname"`, `"Organization"`, `"Shortname (online)"`. */
   alt: string;
   size?: AvatarSize;
-  /** What to show when no image is loaded or defined. Initials will be truncated to up to 2 characters max */
+  /** Content shown when no image is loaded or defined: `initials` (truncated to two characters), a named `icon`, or `custom` content. */
   placeholder:
     | { initials: string }
     | { icon: IconName }
@@ -139,27 +139,23 @@ export const Avatar = ({
   };
 
   if (asLink) {
-    return (
-      <a {...(sharedProps as React.AnchorHTMLAttributes<HTMLAnchorElement>)}>
-        {content}
-      </a>
-    );
+    return <a {...sharedProps}>{content}</a>;
   }
 
   if (asButton) {
     return (
-      <button
-        {...(sharedProps as React.ButtonHTMLAttributes<HTMLButtonElement>)}
-        type="button"
-      >
+      <button {...sharedProps} type="button">
         {content}
       </button>
     );
   }
 
   return (
-    <div {...(sharedProps as React.HTMLAttributes<HTMLDivElement>)} role="img">
+    <div {...sharedProps} role="img">
       {content}
     </div>
   );
 };
+
+// Stable name for the docs Stage code serializer under minification
+Avatar.displayName = "Avatar";

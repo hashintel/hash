@@ -6,6 +6,7 @@ import {
   flowDefinitionIds,
   generateHashFlowDefinitionEntityId,
 } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
 
 import { FlowRunStatus } from "../../graphql/api-types.gen";
@@ -332,7 +333,7 @@ export const inferEntities = async (
 
   const { createAs, entityTypeIds, model, webId, sourceWebPage } = message;
 
-  const requestUuid = uuid() as EntityUuid;
+  const requestUuid = generateUuid() as EntityUuid;
 
   const basePayload = {
     webId,
@@ -388,10 +389,9 @@ export const inferEntities = async (
       flowDefinitionEntityId,
       flowRunEntityId: entityIdFromComponents(webId, requestUuid),
       closedAt: null,
-      executedAt: new Date().toISOString(),
+      startedAt: new Date().toISOString(),
       persistedEntities: [],
       webId,
-      inputRequests: [],
       flowInputs: {},
       webPage: basePayload.visitedWebPage.value,
       status: FlowRunStatus.Running,

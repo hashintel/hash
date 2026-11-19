@@ -1,36 +1,26 @@
 import { getFlowRunById } from "@local/hash-backend-utils/flows";
 
 import * as Error from "../../error";
-import { wereDetailedFieldsRequested } from "./shared/were-detailed-fields-requested";
 
 import type {
-  FlowRun,
+  FlowRunSummary,
   QueryGetFlowRunByIdArgs,
   ResolverFn,
 } from "../../api-types.gen";
 import type { GraphQLContext } from "../../context";
-import type { SparseFlowRun } from "@local/hash-isomorphic-utils/flows/types";
 
+/** The run as its entity describes it. Its other fields have resolvers of their own, which read its record. */
 export const getFlowRunByIdResolver: ResolverFn<
-  FlowRun | SparseFlowRun,
+  FlowRunSummary,
   Record<string, never>,
-  Pick<
-    GraphQLContext,
-    "authentication" | "dataSources" | "flowRunHistories" | "temporal"
-  >,
+  Pick<GraphQLContext, "authentication" | "dataSources">,
   QueryGetFlowRunByIdArgs
-> = async (_parent, args, context, info) => {
+> = async (_parent, args, context) => {
   const { flowRunEntityId } = args;
-
-  const includeDetails = wereDetailedFieldsRequested(info);
 
   const flowRun = await getFlowRunById({
     flowRunEntityId,
     graphApiClient: context.dataSources.graphApi,
-    historiesByWorkflowId: context.flowRunHistories,
-    includeDetails,
-    storageProvider: context.dataSources.uploadProvider,
-    temporalClient: context.temporal,
     userAuthentication: context.authentication,
   });
 

@@ -35,3 +35,14 @@ export const getHashClientTypeFromRequest = (
 
   return header;
 };
+
+/**
+ * The most characters the Graph accepts in a text field of an edition's origin.
+ */
+const maxOriginTextLength = 255;
+
+/**
+ * The `User-Agent` header of `request`, cut to the length the Graph accepts.
+ */
+export const getUserAgentFromRequest = (request: Request): string | undefined =>
+  request.headers["user-agent"]?.slice(0, maxOriginTextLength);

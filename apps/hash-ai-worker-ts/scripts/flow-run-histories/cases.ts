@@ -53,6 +53,11 @@ export type RecordingCase = {
   }) => Promise<void>;
   /** The fixture to write the closed run's history to, if not the case's name. */
   closedFixtureName?: string;
+  /**
+   * Whether the actions don't signal their attempts. Every case's actions signal them (`signalStepAttempts`), as the
+   * workers' actions do, except one that stands for signals that didn't get through.
+   */
+  withoutAttemptSignals?: true;
 };
 
 export const answeringUserId = "00000000-0000-4000-8000-0000000000a1" as UserId;
@@ -352,6 +357,21 @@ export const recordingCases: Record<string, (client: Client) => RecordingCase> =
       },
     }),
 
+    "retried-with-signals-lost": () => ({
+      flow: takeFirstFlow,
+      flowInputs: numbers,
+      withoutAttemptSignals: true,
+      actions: {
+        takeFirstAction: (params) => {
+          const { attempt } = getActivityRun();
+          if (attempt < 3) {
+            throw errorWithoutStack(`Flaky failure on attempt ${attempt}`);
+          }
+          return takeFirst(params);
+        },
+      },
+    }),
+
     "gives-up": () => ({
       flow: takeFirstFlow,
       flowInputs: numbers,
@@ -360,6 +380,20 @@ export const recordingCases: Record<string, (client: Client) => RecordingCase> =
           throw errorWithoutStack(
             `Failure on attempt ${getActivityRun().attempt}`,
           );
+        },
+      },
+    }),
+
+    "attempt-timed-out": () => ({
+      flow: researchFlow,
+      flowInputs: prompt,
+      actions: {
+        researchEntitiesAction: async () => {
+          if (getActivityRun().attempt === 1) {
+            /* Stops heartbeating, so the attempt times out without throwing. */
+            await sleep(15_000);
+          }
+          return researched;
         },
       },
     }),
@@ -497,7 +531,10 @@ export const recordingCases: Record<string, (client: Client) => RecordingCase> =
         flowInputs: prompt,
         actions: {
           researchEntitiesAction: async () => {
-            const { activityId } = getActivityRun();
+            const { activityId, attempt } = getActivityRun();
+            if (attempt === 1) {
+              throw errorWithoutStack("Flaky failure on attempt 1");
+            }
             await sendLogs(client, [
               planLog(activityId, "CreatedPlan", "Search the web"),
             ]);
@@ -506,6 +543,7 @@ export const recordingCases: Record<string, (client: Client) => RecordingCase> =
           },
         },
         steer: async ({ handle, record }) => {
+          /* Sent by the second attempt, after it has signalled its start. */
           await waitForSignalInHistory(handle, "logProgress");
           await record("in-progress");
           finish.resolve();
@@ -533,6 +571,12 @@ export const recordingCases: Record<string, (client: Client) => RecordingCase> =
             baseRunId = runId;
             checkpointId = generateUuid();
 
+            /*
+             * As a real action checkpoints after some work: a checkpoint signalled while the workflow handles this
+             * attempt's start signal isn't followed by a workflow task's start two events later, which is where the
+             * run's events put its reset point.
+             */
+            await sleep(1_000);
             await client.workflow
               .getHandle(workflowId, runId)
               .signal(researchActionCheckpointSignal, {

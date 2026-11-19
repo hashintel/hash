@@ -11,16 +11,10 @@ import {
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import {
-  assertBrowserExecutedToolConformance,
-  assertPetrinautToolCatalogueConformance,
-  canonicalPetrinautToolCatalogue,
-  brunchToolCatalogue,
-} from "../../shared/tool-catalogue.ts";
-import {
   commitToolDescription,
   compileToolDescription,
-} from "./tools/ledger.ts";
-import { queryBasisToolDescription } from "./tools/query-basis.ts";
+} from "../shared/ledger-tools.ts";
+import { queryBasisToolDescription } from "../shared/query-basis.ts";
 
 const mounted = vi.hoisted(() => ({
   initialData: undefined as unknown,
@@ -76,7 +70,6 @@ const systemPrompt = async () =>
   ).trim();
 beforeEach(() => {
   vi.resetModules();
-  vi.clearAllMocks();
   vi.stubEnv("BRUNCH_CHAT_MODEL", "claude-sonnet-4-6");
   vi.stubEnv("NODE_ENV", "test");
   mounted.initialData = undefined;
@@ -108,6 +101,14 @@ test("a document binding mounts the guidance, the complete canonical catalogue, 
       ...Object.keys(petrinautAiTools),
     ]),
   );
+  // HASH's graph reads and save belong to the HASH agent alone.
+  for (const name of [
+    brunchTools.hashQueryEntities,
+    brunchTools.hashQueryEntityTypes,
+    brunchTools.hashQueryWebs,
+    brunchTools.appSaveNet,
+  ])
+    expect(mounted.tools).not.toContain(name);
   // Petrinaut, runtime, experiment and query_basis guidance live in the
   // skills and tool descriptions, so no instruction is mounted.
   expect(mounted.instructions).toEqual([]);
@@ -229,34 +230,4 @@ test("the current submission's words reach the prompt as one instruction and an 
   mounted.body = "Four agents";
   renderAgent({ id: "words" });
   expect(mounted.instructions).toEqual([]);
-});
-
-test("the Brunch catalogue classifies every canonical tool", () => {
-  const canonicalNames = Object.keys(petrinautAiTools);
-  expect(canonicalPetrinautToolCatalogue.map(({ name }) => name)).toEqual(
-    canonicalNames,
-  );
-  expect(brunchToolCatalogue.map(({ name }) => name)).toEqual(
-    expect.arrayContaining(canonicalNames),
-  );
-  expect(brunchToolCatalogue.map(({ name }) => name)).toContain(
-    brunchTools.draftPetrinautExperiment,
-  );
-  expect(() =>
-    assertPetrinautToolCatalogueConformance([
-      ...canonicalNames,
-      "newCanonicalStockTool",
-    ]),
-  ).toThrow(/unclassified/u);
-});
-
-test("the catalogue's website-executed tools are the library's browser-executed tools", () => {
-  expect(() => assertBrowserExecutedToolConformance()).not.toThrow();
-  expect(() =>
-    assertBrowserExecutedToolConformance(
-      brunchToolCatalogue.filter(
-        ({ name }) => name !== brunchTools.draftPetrinautExperiment,
-      ),
-    ),
-  ).toThrow(/missing: draft_petrinaut_experiment/u);
 });

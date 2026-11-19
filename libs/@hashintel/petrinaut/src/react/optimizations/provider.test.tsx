@@ -7,7 +7,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE,
-  type PetrinautOptimization,
   type PetrinautOptimizationEvent,
   type PetrinautOptimizationInput,
 } from "@hashintel/petrinaut-core";
@@ -309,7 +308,7 @@ const renderProvider = ({
   source,
   navigateSweep = createNavigateSweep(),
 }: {
-  source: PetrinautConnectedOptimization | PetrinautOptimization | null;
+  source: PetrinautConnectedOptimization | null;
   navigateSweep?: ExperimentsActionsValue["navigateSweep"];
 }) => {
   let latest: OptimizationsContextValue | null = null;
@@ -365,22 +364,6 @@ describe("OptimizationsProvider and its source", () => {
     await expect(
       getValue().createOptimization(input, { sweep }),
     ).rejects.toThrow("Optimization is unavailable");
-    expect(getValue().optimizations).toHaveLength(0);
-  });
-
-  it("refuses a remote source: a sweep can only be optimized in the browser", async () => {
-    const capability: PetrinautOptimization = {
-      createOptimizationRun: () => Promise.resolve({ runId: "run-remote" }),
-      async *attachOptimizationRun() {
-        yield { type: "started", requestedTrials: 2, seq: 1 };
-      },
-      cancelOptimizationRun: () => Promise.resolve(),
-    };
-    const { getValue } = renderProvider({ source: capability });
-
-    await expect(
-      getValue().createOptimization(input, { sweep }),
-    ).rejects.toThrow("A sweep can only be optimized in the browser");
     expect(getValue().optimizations).toHaveLength(0);
   });
 

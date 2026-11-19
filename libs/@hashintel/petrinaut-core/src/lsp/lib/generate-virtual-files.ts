@@ -1,4 +1,8 @@
+import ts from "@typescript/typescript6";
+
 import { getArcEndpoint } from "../../arc-endpoints";
+import { componentOf, resolveComponent } from "../../composition/interfaces";
+import { isSupportedArity } from "../../equation-arity";
 import {
   createArcPlaceResolver,
   DEFAULT_PETRINAUT_EXTENSIONS,
@@ -8,6 +12,8 @@ import {
 } from "../../extensions";
 import {
   AMBIENT_INPUT_NAMES,
+  buildLambdaContext,
+  dynamicsInputName,
   getStateConstraintExpression,
   type DualFormSurfaceKind,
 } from "../../hir";
@@ -21,7 +27,7 @@ import {
 import { SCENARIO_HELPER_TYPE_DECLARATIONS } from "../../simulation/authoring/scenario/helpers";
 import { TYPE_POLICIES } from "../../simulation/engine/type-policies";
 import { applyFormWrapper } from "./create-language-service-host";
-import { getItemFilePath } from "./file-paths";
+import { getItemFilePath, VISUALIZER_JSX_PACKAGE } from "./file-paths";
 
 import type { ConstraintSpace } from "../../constraint/constraint";
 import type {
@@ -128,13 +134,15 @@ function dualFormCodeFile(options: {
   modulePrefixLines: string[];
   /** Import lines for the types the body wrapper's signature references. */
   bodyImportLines: string[];
+  /** Name of the ambient input object, when it is not the surface's usual one. */
+  inputName?: string;
   /** TypeScript type of the ambient input object. */
   inputType: string;
   /** Declared return type of the body. */
   returnType: string;
   parametersDefsPath: string;
 }): VirtualFile {
-  const inputName = AMBIENT_INPUT_NAMES[options.surface];
+  const inputName = options.inputName ?? AMBIENT_INPUT_NAMES[options.surface];
   return applyFormWrapper({
     content: options.content,
     formWrappers: {
@@ -161,6 +169,18 @@ function dualFormCodeFile(options: {
 const SCOPE_SEPARATOR = "::";
 
 /**
+ * The part of `input.<Place>` every input place has, declared once in the
+ * lambda and kernel definition files.
+ */
+const INPUT_COUNT_TYPE_DECLARATION = [
+  `/** An input place of this transition, named so editor messages say which. */`,
+  `type InputCount<_Place extends string> = {`,
+  `  /** How many tokens the place holds when the transition is evaluated, including the ones this firing would consume. */`,
+  `  readonly count: number;`,
+  `};`,
+].join("\n");
+
+/**
  * Gets the display name for a place referenced by an arc, using scoped names for component ports.
  * For component port arcs: returns "InstanceName::PlaceName"
  * For regular place arcs: returns the place name as-is
@@ -182,7 +202,7 @@ function getPlaceDisplayNameForArc(
     (i) => i.id === endpoint.componentInstanceId,
   );
   const subnet = instance
-    ? sdcpn.subnets?.find((s) => s.id === instance.subnetId)
+    ? resolveComponent(sdcpn, componentOf(instance))
     : undefined;
   const portPlace = subnet?.places.find(
     (p) => p.id === endpoint.portPlaceId && p.isPort,
@@ -194,6 +214,45 @@ function getPlaceDisplayNameForArc(
 
   // Fallback to place ID if we can't resolve the place
   return endpoint.componentInstanceId + SCOPE_SEPARATOR + endpoint.portPlaceId;
+}
+
+/**
+ * Every colour a place can carry: the root net's and all subnets', so port
+ * places whose colour is subnet-local still resolve. Deduplicated by id (the
+ * last definition wins). Empty when the colours extension is off.
+ */
+function collectColors(
+  sdcpn: SDCPN,
+  extensions: PetrinautExtensionSettings,
+): Map<string, Color> {
+  const allColors = extensions.colors
+    ? [
+        ...sdcpn.types,
+        ...(sdcpn.subnets ?? []).flatMap((subnet) => subnet.types),
+      ]
+    : [];
+  return new Map(allColors.map((color) => [color.id, color]));
+}
+
+/** The net's parameters as the `Parameters` record type. */
+function parametersDefsFile(
+  sdcpn: SDCPN,
+  extensions: PetrinautExtensionSettings,
+): VirtualFile {
+  const parametersProperties = (extensions.parameters ? sdcpn.parameters : [])
+    .map((param) => `  "${param.variableName}": ${toTsType(param.type)};`)
+    .join("\n");
+  return { content: `export type Parameters = {\n${parametersProperties}\n};` };
+}
+
+/** A colour's token record as the `Color_<id>` type. */
+function colorDefsFile(color: Color): VirtualFile {
+  const properties = color.elements
+    .map((el) => `  ${el.name}: ${toTsType(el.type)};`)
+    .join("\n");
+  return {
+    content: `export type Color_${sanitizeColorId(color.id)} = {\n${properties}\n}`,
+  };
 }
 
 /**
@@ -228,40 +287,21 @@ export function generateVirtualFiles(
     ].join("\n"),
   });
 
-  // Build lookup maps for places and types.
-  // Colors are collected from the root net AND all subnets so that port places
-  // whose colorId references a subnet-local type are still resolvable.
-  const allColors = extensions.colors
-    ? [
-        ...sdcpn.types,
-        ...(sdcpn.subnets ?? []).flatMap((subnet) => subnet.types),
-      ]
-    : [];
-  // Deduplicate by ID (last definition wins if the same ID appears in multiple subnets).
-  const colorById = new Map(allColors.map((color) => [color.id, color]));
+  const colorById = collectColors(sdcpn, extensions);
   const resolveArcPlace = createArcPlaceResolver(sdcpn, sdcpn, {
     componentPortsEnabled: extensions.subnets,
   });
 
-  // Generate parameters type definition
-  const parametersProperties = (extensions.parameters ? sdcpn.parameters : [])
-    .map((param) => `  "${param.variableName}": ${toTsType(param.type)};`)
-    .join("\n");
+  files.set(
+    getItemFilePath("parameters-defs"),
+    parametersDefsFile(sdcpn, extensions),
+  );
 
-  files.set(getItemFilePath("parameters-defs"), {
-    content: `export type Parameters = {\n${parametersProperties}\n};`,
-  });
-
-  // Generate type definitions for each color (root + all subnets, deduplicated)
   for (const color of colorById.values()) {
-    const sanitizedColorId = sanitizeColorId(color.id);
-    const properties = color.elements
-      .map((el) => `  ${el.name}: ${toTsType(el.type)};`)
-      .join("\n");
-
-    files.set(getItemFilePath("color-defs", { colorId: color.id }), {
-      content: `export type Color_${sanitizedColorId} = {\n${properties}\n}`,
-    });
+    files.set(
+      getItemFilePath("color-defs", { colorId: color.id }),
+      colorDefsFile(color),
+    );
   }
 
   // Generate files for each differential equation
@@ -283,7 +323,25 @@ export function generateVirtualFiles(
         })
       : null;
 
-    // Type definitions file
+    // Type definitions file. The equation sees `tokens` as a tuple of
+    // `arity` tokens and returns one record (arity 1) or a tuple of records;
+    // its module form declares one parameter per token.
+    const tokenType = sanitizedColorId ? `Color_${sanitizedColorId}` : "number";
+    const tuple = (element: string, count: number): string =>
+      `[${Array.from({ length: count }, () => element).join(", ")}]`;
+    // A net from a host can carry any number here; the checker reports an
+    // arity outside the supported range, and these types stay small.
+    const arity = isSupportedArity(de.arity) ? de.arity : 1;
+    const tokensType = tuple("Token", arity);
+    const derivativesType =
+      arity === 1 ? "Derivative" : tuple("Derivative", arity);
+    const dynamicsFunctionParameters = [
+      ...Array.from(
+        { length: arity },
+        (_, position) => `token${position}: Token`,
+      ),
+      "parameters: Parameters",
+    ].join(", ");
     files.set(deDefsPath, {
       content: [
         `import type { Parameters } from "${parametersDefsPath}";`,
@@ -291,17 +349,19 @@ export function generateVirtualFiles(
           ? `import type { Color_${sanitizedColorId} } from "${colorDefsPath}";`
           : "",
         ``,
-        sanitizedColorId
-          ? `export type Tokens = Array<Color_${sanitizedColorId}>;`
-          : `export type Tokens = Array<number>;`,
+        `export type Token = ${tokenType};`,
+        `export type Tokens = ${tokensType};`,
         color
           ? `export type Derivative = ${toDynamicsDerivativeType(color)};`
           : `export type Derivative = Record<string, never>;`,
-        `export type Dynamics = (fn: (tokens: Tokens, parameters: Parameters) => Derivative[]) => void;`,
+        `export type Derivatives = ${derivativesType};`,
+        `export type Dynamics = (fn: (${dynamicsFunctionParameters}) => Derivatives) => void;`,
       ].join("\n"),
     });
 
-    // User code file, wrapped according to its authoring form
+    // User code file, wrapped according to its authoring form. A body over
+    // one token sees it as `token`; over more, the `tokens` tuple.
+    const inputName = dynamicsInputName(arity);
     files.set(
       deCodePath,
       dualFormCodeFile({
@@ -309,13 +369,15 @@ export function generateVirtualFiles(
         surface: "dynamics",
         modulePrefixLines: [
           `import type { Dynamics } from "${deDefsPath}";`,
+          `/** @deprecated Write the function body directly; ${inputName} and parameters are already available. Remove export default Dynamics(...) and keep its body. */`,
           `declare const Dynamics: Dynamics;`,
         ],
         bodyImportLines: [
-          `import type { Derivative, Tokens } from "${deDefsPath}";`,
+          `import type { Derivatives, Token, Tokens } from "${deDefsPath}";`,
         ],
-        inputType: "Tokens",
-        returnType: "Derivative[]",
+        inputName,
+        inputType: arity === 1 ? "Token" : "Tokens",
+        returnType: "Derivatives",
         parametersDefsPath,
       }),
     );
@@ -343,41 +405,38 @@ export function generateVirtualFiles(
       transitionId: transition.id,
     });
 
-    // Build input type: { [placeName]: [Token, Token, ...] } based on input arcs.
-    // resolveArcPlace handles both regular place arcs and componentPort arcs.
+    // Build the input type from the same context the HIR checks against:
+    // one property per input-arc place. A place that delivers tokens is a
+    // tuple of the arc's weight plus `.count`; any other (uncoloured, or
+    // joined by an inhibitor arc) exposes `.count` alone.
     const inputTypeImports: string[] = [];
     const inputTypeProperties: string[] = [];
+    const lambdaContext = buildLambdaContext(sdcpn, transition, extensions);
+    const inputBindings = new Map(
+      lambdaContext.inputPlaces.map((binding) => [binding.name, binding]),
+    );
 
-    for (const arc of transition.inputArcs) {
-      // Inhibitor arcs never deliver tokens to the transition, so they should
-      // not contribute to the input type. Read arcs do deliver tokens and are
-      // typed like standard input arcs.
-      if (arc.type === "inhibitor") {
+    for (const { name } of lambdaContext.inputCounts) {
+      const binding = inputBindings.get(name);
+      if (!binding) {
+        inputTypeProperties.push(`  "${name}": InputCount<"${name}">;`);
         continue;
       }
-      const place = resolveArcPlace(arc);
-      if (!extensions.colors || !place?.colorId) {
-        continue;
-      }
-      const color = colorById.get(place.colorId);
-      if (!color) {
-        continue;
-      }
-
-      const sanitizedColorId = sanitizeColorId(color.id);
+      const sanitizedColorId = sanitizeColorId(binding.colorId);
       const colorDefsPath = getItemFilePath("color-defs", {
-        colorId: color.id,
+        colorId: binding.colorId,
       });
       // Only add import if not already present (multiple arcs may share the same color)
       const importStatement = `import type { Color_${sanitizedColorId} } from "${colorDefsPath}";`;
       if (!inputTypeImports.includes(importStatement)) {
         inputTypeImports.push(importStatement);
       }
-      const tokenTuple = Array.from({ length: arc.weight })
+      const tokenTuple = Array.from({ length: binding.tokenCount })
         .fill(`Color_${sanitizedColorId}`)
         .join(", ");
-      const placeDisplayName = getPlaceDisplayNameForArc(arc, sdcpn);
-      inputTypeProperties.push(`  "${placeDisplayName}": [${tokenTuple}];`);
+      inputTypeProperties.push(
+        `  "${name}": [${tokenTuple}] & InputCount<"${name}">;`,
+      );
     }
 
     // Build output type: { [placeName]: [Token, Token, ...] } based on output arcs.
@@ -447,6 +506,7 @@ export function generateVirtualFiles(
           `import type { Parameters } from "${parametersDefsPath}";`,
           ...allImports,
           ``,
+          INPUT_COUNT_TYPE_DECLARATION,
           `export type Input = ${inputType};`,
           `export type Lambda = (fn: (input: Input, parameters: Parameters) => ${lambdaReturnType}) => void;`,
         ].join("\n"),
@@ -460,6 +520,7 @@ export function generateVirtualFiles(
           surface: "lambda",
           modulePrefixLines: [
             `import type { Lambda } from "${lambdaDefsPath}";`,
+            `/** @deprecated Write the function body directly; input and parameters are already available. Remove export default Lambda(...) and keep its body. */`,
             `declare const Lambda: Lambda;`,
           ],
           bodyImportLines: [`import type { Input } from "${lambdaDefsPath}";`],
@@ -478,6 +539,7 @@ export function generateVirtualFiles(
           ...allImports,
           ``,
           ...outputTokenTypeAliases.values(),
+          INPUT_COUNT_TYPE_DECLARATION,
           `export type Input = ${inputType};`,
           `export type Output = ${outputType};`,
           `export type TransitionKernel = (fn: (input: Input, parameters: Parameters) => Output) => void;`,
@@ -492,6 +554,7 @@ export function generateVirtualFiles(
           surface: "kernel",
           modulePrefixLines: [
             `import type { TransitionKernel } from "${kernelDefsPath}";`,
+            `/** @deprecated Write the function body directly; input and parameters are already available. Remove export default TransitionKernel(...) and keep its body. */`,
             `declare const TransitionKernel: TransitionKernel;`,
           ],
           bodyImportLines: [
@@ -503,6 +566,111 @@ export function generateVirtualFiles(
         }),
       );
     }
+  }
+
+  return files;
+}
+
+/**
+ * Generates the virtual files of the visualizer language service: the
+ * parameters and colour types the SDCPN service also has, and for every
+ * root-net place with a visualizer a `defs.d.ts` declaring `Visualization`
+ * over the place's token type and a `code.jsx` holding the user's code.
+ *
+ * The user file is JavaScript: TypeScript checks it with `checkJs`, so the
+ * types are inferred and any annotation is an error, and the injected
+ * prefix types `Visualization` through JSDoc for the same reason.
+ *
+ * Visualizers belong to the colours extension; with it off there is nothing
+ * to check. An uncoloured place carries black tokens, so its `tokens` are
+ * `never[]` and reading an attribute off one is a type error.
+ */
+export function generateVisualizerVirtualFiles(
+  sdcpn: SDCPN,
+  extensions: PetrinautExtensionSettings = DEFAULT_PETRINAUT_EXTENSIONS,
+): Map<string, VirtualFile> {
+  const files = new Map<string, VirtualFile>();
+  if (!extensions.colors) {
+    return files;
+  }
+
+  const colorById = collectColors(sdcpn, extensions);
+  const parametersDefsPath = getItemFilePath("parameters-defs");
+  files.set(parametersDefsPath, parametersDefsFile(sdcpn, extensions));
+  for (const color of colorById.values()) {
+    files.set(
+      getItemFilePath("color-defs", { colorId: color.id }),
+      colorDefsFile(color),
+    );
+  }
+
+  for (const place of sdcpn.places) {
+    if (place.visualizerCode === undefined) {
+      continue;
+    }
+    const color = place.colorId ? colorById.get(place.colorId) : undefined;
+    const sanitizedColorId = color ? sanitizeColorId(color.id) : null;
+    const defsPath = getItemFilePath("place-visualizer-defs", {
+      placeId: place.id,
+    });
+
+    files.set(defsPath, {
+      content: [
+        `import type { ReactElement } from "${VISUALIZER_JSX_PACKAGE}";`,
+        `import type { Parameters } from "${parametersDefsPath}";`,
+        color
+          ? `import type { Color_${sanitizedColorId} } from "${getItemFilePath("color-defs", { colorId: color.id })}";`
+          : "",
+        ``,
+        `export type Tokens = readonly ${sanitizedColorId ? `Color_${sanitizedColorId}` : "never"}[];`,
+        `export type Visualizer = { Svg: (props: import("${VISUALIZER_JSX_PACKAGE}/jsx-runtime").VisualizerSvgProps) => ReactElement };`,
+        `export type VisualizerProps = { tokens: Tokens; parameters: Parameters; width: number; height: number };`,
+        `export type VisualizerComponent = (props: VisualizerProps) => ReactElement;`,
+        `export type Visualization = (component: VisualizerComponent) => VisualizerComponent;`,
+      ].join("\n"),
+    });
+
+    // The defs module is imported without its extension: a JSDoc import
+    // type resolves it like a module specifier. `export {}` keeps an empty
+    // or export-less file a module, so its `Visualization` binding never
+    // collides with another place's in the script scope.
+    const defsModule = defsPath.replace(/\.d\.ts$/u, "");
+    const ambientPrefix = [
+      `const Visualizer = /** @type {import("${defsModule}").Visualizer} */ (/** @type {unknown} */ (undefined));`,
+      `/** @type {number} */ const width = 0;`,
+      `/** @type {number} */ const height = 0;`,
+    ];
+    files.set(
+      getItemFilePath("place-visualizer-code", { placeId: place.id }),
+      applyFormWrapper({
+        content: place.visualizerCode,
+        formWrappers: {
+          scriptKind: ts.ScriptKind.TSX,
+          module: {
+            suffix: "",
+            prefix: [
+              `export {};`,
+              ...ambientPrefix,
+              `/** @deprecated Write the function body directly; tokens, parameters, width and height are already available. Remove export default Visualization(...) and keep its body. */`,
+              `const Visualization = /** @type {import("${defsModule}").Visualization} */ (`,
+              `  /** @type {unknown} */ (undefined)`,
+              `);`,
+              ``,
+            ].join("\n"),
+          },
+          body: {
+            prefix: [
+              `export {};`,
+              ...ambientPrefix,
+              `/** @type {import("${defsModule}").VisualizerComponent} */`,
+              `const __visualizer = ({ tokens, parameters }) => {`,
+              ``,
+            ].join("\n"),
+            suffix: `\nreturn /** @type {never} */ (undefined);\n};`,
+          },
+        },
+      }),
+    );
   }
 
   return files;

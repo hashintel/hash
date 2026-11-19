@@ -15,7 +15,7 @@ import { useSweepOptimizer } from "./sweep-optimizer";
 
 import type { ExperimentRecord } from "../../../../../../react/experiments/context";
 import type { OptimizationRecord } from "../../../../../../react/optimizations/context";
-import type { PetrinautOptimizationSource } from "@hashintel/petrinaut-core/optimization";
+import type { PetrinautConnectedOptimization } from "@hashintel/petrinaut-core/optimization";
 import type { ReactNode } from "react";
 
 afterEach(cleanup);
@@ -24,7 +24,7 @@ const experiment = {
   ...makeParameterSweepExperiment(),
   scenario: sweepFixtureScenario,
 };
-const connectedSource: PetrinautOptimizationSource = {
+const connectedSource: PetrinautConnectedOptimization = {
   kind: "connected",
   connect: () => {
     throw new Error("The hook does not connect the optimizer");
@@ -52,7 +52,7 @@ const renderOptimizer = ({
 }: {
   record?: ExperimentRecord;
   study?: OptimizationRecord | null;
-  source?: PetrinautOptimizationSource | null;
+  source?: PetrinautConnectedOptimization | null;
 } = {}) => {
   const createOptimization = vi.fn(() => Promise.resolve("new-study"));
   const removeOptimization = vi.fn();

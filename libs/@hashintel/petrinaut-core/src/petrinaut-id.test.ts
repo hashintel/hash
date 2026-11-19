@@ -96,7 +96,20 @@ const legacyNet = (): SDCPN => ({
     },
   ],
   differentialEquations: [
-    { id: "decay", name: "Decay", colorId: "colour", code: "return 0;" },
+    {
+      id: "decay",
+      name: "Decay",
+      colorId: "colour",
+      code: "return { weight: 0 };",
+      arity: 1,
+    },
+    {
+      id: "drift",
+      name: "Drift",
+      colorId: "colour",
+      code: "return { weight: 1 };",
+      arity: 1,
+    },
   ],
   parameters: [
     {
@@ -113,7 +126,10 @@ const legacyNet = (): SDCPN => ({
       name: "Waiting",
       colorId: "colour",
       dynamicsEnabled: true,
-      differentialEquationId: "decay",
+      dynamics: [
+        { differentialEquationId: "decay" },
+        { differentialEquationId: "drift" },
+      ],
       x: 0,
       y: 0,
     },
@@ -122,7 +138,6 @@ const legacyNet = (): SDCPN => ({
       name: "Done",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     },
@@ -162,7 +177,6 @@ const legacyNet = (): SDCPN => ({
           name: "Port",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           isPort: true,
           x: 0,
           y: 0,
@@ -278,13 +292,16 @@ describe("canonicalizePetrinautIds", () => {
     expect(canonical.places[0]).toMatchObject({
       id: idOf("waiting"),
       colorId: idOf("colour"),
-      differentialEquationId: idOf("decay"),
+      dynamics: [
+        { differentialEquationId: idOf("decay") },
+        { differentialEquationId: idOf("drift") },
+      ],
     });
     expect(canonical.places[1]).toMatchObject({
       id: idOf("done"),
       colorId: null,
-      differentialEquationId: null,
     });
+    expect(canonical.places[1]).not.toHaveProperty("dynamics");
     expect(canonical.transitions[0]).toMatchObject({
       id: idOf("serve"),
       inputArcs: [{ placeId: idOf("waiting") }],
@@ -351,6 +368,42 @@ describe("canonicalizePetrinautIds", () => {
     expect(canonical.transitions[0]?.metadata).toEqual({ source: "waiting" });
     expect(canonical.scenarios?.[0]?.scenarioParameters).toEqual([
       { type: "real", identifier: "load", default: 1 },
+    ]);
+  });
+
+  it("keeps an import's id and what names a component of an import as written", () => {
+    const scale = { from: "@hashintel/logistics", id: "scale" };
+    const net = canonicalizePetrinautIds({
+      places: [],
+      transitions: [],
+      types: [],
+      differentialEquations: [],
+      parameters: [],
+      imports: [{ id: "@hashintel/logistics" }],
+      componentInstances: [
+        {
+          id: "scale-1",
+          name: "ScaleA",
+          component: scale,
+          parameterValues: { rate: "2" },
+          implementation: { from: "@hashintel/logistics", id: "belt" },
+          x: 0,
+          y: 0,
+        },
+      ],
+      implementations: [{ interface: scale, component: { id: "own-scale" } }],
+    });
+
+    expect(net.imports).toEqual([{ id: "@hashintel/logistics" }]);
+    expect(net.componentInstances[0]).toMatchObject({
+      id: idOf("scale-1"),
+      component: scale,
+      parameterValues: { [idOf("rate")]: "2" },
+      implementation: { from: "@hashintel/logistics", id: "belt" },
+    });
+    expect(net.componentInstances[0]).not.toHaveProperty("subnetId");
+    expect(net.implementations).toEqual([
+      { interface: scale, component: { id: idOf("own-scale") } },
     ]);
   });
 

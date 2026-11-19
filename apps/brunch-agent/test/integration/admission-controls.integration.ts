@@ -37,6 +37,7 @@ if (process.env.A2_OUTPUT_DIRECTORY !== undefined) {
   mkdirSync(directory, { recursive: true });
 }
 process.env.BRUNCH_DEV_DB_PATH = join(directory, "conversation.db");
+process.env.BRUNCH_CHAT_MODEL = "openai/gpt-5.5-2026-04-23";
 const save = (name: string, value: unknown) =>
   writeFileSync(join(directory, name), `${JSON.stringify(value, null, 2)}\n`);
 const timeline: unknown[] = [];
@@ -108,7 +109,7 @@ const run = async () => {
   const application = await loadBuiltBrunchApplication();
   const clientFor = () => {
     const identity = {
-      principalKey: "admission-synthetic",
+      actorKey: "admission-synthetic",
       conversationId: `${crypto.randomUUID()}-${caseId}`,
     };
     const initialData = {

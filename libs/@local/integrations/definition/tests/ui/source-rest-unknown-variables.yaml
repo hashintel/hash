@@ -1,0 +1,16 @@
+connector: demo
+sources:
+  api:
+    rest:
+      url: ${API}
+      params:
+        ${PARAM}: ${VALUE}
+      auth:
+        type: header
+        name: ${HEADER}
+        secretEntityUuid: 22222222-2222-4222-8222-222222222222
+      resultsField: ${RESULTS}
+      pagination:
+        type: next-link
+        field: ${NEXT}
+    primaryKey: [id]

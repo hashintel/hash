@@ -2,29 +2,42 @@ import { describe, expect, it } from "vitest";
 
 import { compileHirArtifacts } from "../hir";
 import { checkSDCPN } from "../lsp/lib/checker";
-import { SDCPNLanguageServer } from "../lsp/lib/create-sdcpn-language-service";
 import {
+  createLanguageServers,
+  syncLanguageServers,
+} from "../lsp/lib/language-servers";
+import {
+  bicycleAssembly,
   cafeQueue,
   deploymentPipelineSDCPN,
   dronePatrol,
+  planetsAndSatellites,
   probabilisticSatellitesSDCPN,
   productionMachines,
+  satellitesWithAttraction,
+  sirMassActionModel,
   sirModel,
   supplyChainProfit,
   supplyChainWithDisruption,
   vaccinationCampaign,
+  wheelTruing,
 } from "./index";
 
 const EXAMPLES = [
+  bicycleAssembly,
   cafeQueue,
   deploymentPipelineSDCPN,
   dronePatrol,
+  planetsAndSatellites,
   probabilisticSatellitesSDCPN,
   productionMachines,
+  satellitesWithAttraction,
+  sirMassActionModel,
   sirModel,
   supplyChainProfit,
   supplyChainWithDisruption,
   vaccinationCampaign,
+  wheelTruing,
 ];
 
 describe.each(EXAMPLES.map((example) => [example.title, example] as const))(
@@ -41,9 +54,9 @@ describe.each(EXAMPLES.map((example) => [example.title, example] as const))(
     });
 
     it("passes the LSP check with no diagnostics", () => {
-      const server = new SDCPNLanguageServer();
-      server.syncFiles(example.petriNetDefinition);
-      const result = checkSDCPN(example.petriNetDefinition, server);
+      const servers = createLanguageServers();
+      syncLanguageServers(servers, example.petriNetDefinition);
+      const result = checkSDCPN(example.petriNetDefinition, servers);
       expect(
         result.itemDiagnostics.map((item) => ({
           itemId: item.itemId,

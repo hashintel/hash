@@ -3,10 +3,16 @@ import { promisify } from "node:util";
 
 import KeyvRedis from "@keyv/redis";
 import * as Sentry from "@sentry/node";
-import bodyParser from "body-parser";
 import cors from "cors";
-import { Effect, Exit, Layer, Logger, LogLevel, ManagedRuntime } from "effect";
-import { RuntimeException } from "effect/Cause";
+import {
+  Cause,
+  Effect,
+  Exit,
+  Layer,
+  Logger,
+  ManagedRuntime,
+  References,
+} from "effect";
 import express, { raw } from "express";
 import { create as handlebarsCreate } from "express-handlebars";
 import { ipKeyGenerator, rateLimit } from "express-rate-limit";
@@ -27,7 +33,6 @@ import { RequestIdProducer } from "@local/harpc-client/wire-protocol";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import {
   getRequiredEnv,
-  realtimeSyncEnabled,
   waitOnResource,
 } from "@local/hash-backend-utils/environment";
 import { HEALTH_PATH } from "@local/hash-backend-utils/opentelemetry";
@@ -39,6 +44,7 @@ import { EchoSubsystem } from "@local/hash-graph-sdk/harpc";
 import { isUserHashInstanceAdmin } from "@local/hash-graph-sdk/principal/hash-instance-admins";
 import {
   getHashClientTypeFromRequest,
+  getUserAgentFromRequest,
   hashClientHeaderKey,
 } from "@local/hash-isomorphic-utils/http-requests";
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
@@ -65,17 +71,15 @@ import { hydraPublicUrl } from "./auth/ory-hydra";
 import { kratosPublicUrl } from "./auth/ory-kratos";
 import { setupBlockProtocolExternalServiceMethodProxy } from "./block-protocol-external-service-method-proxy";
 import { createEmailTransporter } from "./email/create-email-transporter";
+import { setupFlowRunRecordHandler } from "./flows/setup-flow-run-record-handler";
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
 import { ensureHashSystemAccountExists } from "./graph/system-account";
 import { createApolloServer } from "./graphql/create-apollo-server";
 import { otelSetup } from "./instrument.mjs";
-import { enabledIntegrations } from "./integrations/enabled-integrations";
 import { checkGoogleAccessToken } from "./integrations/google/check-access-token";
 import { getGoogleAccessToken } from "./integrations/google/get-access-token";
 import { googleOAuthCallback } from "./integrations/google/oauth-callback";
-import { oAuthLinear, oAuthLinearCallback } from "./integrations/linear/oauth";
-import { linearWebhook } from "./integrations/linear/webhook";
-import { createIntegrationSyncBackWatcher } from "./integrations/sync-back-watcher";
+import { clientIpFromHeader } from "./lib/client-ip";
 import {
   CORS_CONFIG,
   getEnvStorageType,
@@ -83,17 +87,13 @@ import {
   LOCAL_FILE_UPLOAD_PATH,
 } from "./lib/config";
 import {
+  clientIpSource,
   isDevEnv,
-  isProdEnv,
   isStatsDEnabled,
   isTestEnv,
   port,
 } from "./lib/env-config";
 import { logger } from "./logger";
-import {
-  getPetrinautOptimizerOrigin,
-  setupPetrinautOptimizerHandler,
-} from "./petrinaut-optimizer/setup-petrinaut-optimizer-handler";
 import { seedOrgsAndUsers } from "./seed-data";
 import {
   setupFileDownloadProxyHandler,
@@ -410,15 +410,19 @@ const main = async () => {
     res.type("application/health+json").status(200).send({ status: "pass" });
   });
 
-  if (isProdEnv && !isSelfHostedInstance) {
+  if (clientIpSource !== "connect-info") {
     /**
-     * In production, hosted HASH, take the client IP from the Cloudflare-set header.
+     * When the header holds no usable address, falls back to the connection
+     * address, which is what Express reads without this override.
      */
     Object.defineProperty(app.request, "ip", {
       configurable: true,
       enumerable: true,
-      get() {
-        return this.get("cf-connecting-ip");
+      get(this: Request) {
+        return (
+          clientIpFromHeader(this.get(clientIpSource)) ??
+          this.socket.remoteAddress
+        );
       },
     });
   }
@@ -608,7 +612,7 @@ const main = async () => {
 
   app.use(express.static("public"));
 
-  const jsonParser = bodyParser.json({
+  const jsonParser = express.json({
     // default is 100kb
     limit: "16mb",
   });
@@ -700,7 +704,7 @@ const main = async () => {
     if (req.ip) {
       /**
        * Sentry has its own logic to attach an IP to requests, which will favour X-Forwarded-For headers.
-       * We additionally attach our req.ip as context (which comes from cf-connecting-ip in production).
+       * We additionally attach our req.ip as context; `HASH_API_CLIENT_IP_SOURCE` sets where it is read from.
        * Both can be spoofed, but X-Forwarded-For is a bit easier to spoof, as it just involves adding an entry to that header with whatever.
        */
       scope.setContext("request", { ip: req.ip });
@@ -754,7 +758,7 @@ const main = async () => {
       actorType: "user",
       origin: {
         type: getHashClientTypeFromRequest(req) ?? "api",
-        userAgent: req.headers["user-agent"],
+        userAgent: getUserAgentFromRequest(req),
       },
     };
 
@@ -795,12 +799,9 @@ const main = async () => {
 
   setupFileDownloadProxyHandler(app, keyv);
 
-  setupAnalysisHandler(app, keyv);
+  setupFlowRunRecordHandler(app);
 
-  setupPetrinautOptimizerHandler(app, {
-    logger,
-    origin: getPetrinautOptimizerOrigin(),
-  });
+  setupAnalysisHandler(app, keyv);
 
   setupTelemetryHandler(app);
   shutdown.addCleanup("Rudderstack Telemetry", async () => telemetry.flush());
@@ -821,7 +822,7 @@ const main = async () => {
         RequestIdProducer.layer,
         JsonDecoder.layer,
         JsonEncoder.layer,
-        Logger.pretty,
+        Logger.layer([Logger.consolePretty(), Logger.tracerLogger]),
       ),
     );
 
@@ -863,7 +864,7 @@ const main = async () => {
       const effect = Effect.gen(function* () {
         const textQueryParam = req.query.text;
         if (typeof textQueryParam !== "string") {
-          return yield* new RuntimeException(
+          return yield* new Cause.IllegalArgumentError(
             "text query parameter is required",
           );
         }
@@ -876,7 +877,7 @@ const main = async () => {
             Transport.multiaddr(`/dns/${rpcHost}/tcp/${rpcPort}`),
           ),
         ),
-        Logger.withMinimumLogLevel(LogLevel.Trace),
+        Effect.provideService(References.MinimumLogLevel, "Trace"),
       );
 
       runtime.runCallback(effect, {
@@ -903,10 +904,6 @@ const main = async () => {
   });
 
   // Integrations
-  app.get("/oauth/linear", authRouteRateLimiter, oAuthLinear);
-  app.get("/oauth/linear/callback", authRouteRateLimiter, oAuthLinearCallback);
-  app.post("/webhooks/linear", linearWebhook);
-
   app.post("/oauth/google/callback", authRouteRateLimiter, googleOAuthCallback);
   app.post("/oauth/google/token", authRouteRateLimiter, getGoogleAccessToken);
   app.post(
@@ -959,7 +956,6 @@ const main = async () => {
     context: machineActorContext,
     httpServer,
     logger,
-    storageProvider: uploadProvider,
     temporalClient,
   });
 
@@ -998,29 +994,6 @@ const main = async () => {
     //   "Unverified email cleanup job",
     //   unverifiedEmailCleanupJob.stop,
     // );
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (realtimeSyncEnabled && enabledIntegrations.linear) {
-    if (!vaultClient) {
-      throw new Error(
-        "Vault client is required for realtime sync and was not created (check preceding logs)",
-      );
-    }
-
-    const integrationSyncBackWatcher = await createIntegrationSyncBackWatcher({
-      graphApi,
-      redis,
-      logger,
-      vaultClient,
-    });
-
-    void integrationSyncBackWatcher.start();
-
-    shutdown.addCleanup(
-      "Integration sync back watcher",
-      integrationSyncBackWatcher.stop,
-    );
   }
 };
 

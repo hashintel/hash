@@ -144,7 +144,10 @@ const errorType = (error: unknown): string =>
  * telemetry.
  */
 export async function recordOperationalFailure(
-  stage: "database_configuration" | "database_operation",
+  stage:
+    | "database_configuration"
+    | "database_operation"
+    | "model_configuration",
   error: unknown,
 ): Promise<void> {
   const span = trace

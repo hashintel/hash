@@ -2,13 +2,13 @@ import { Menu as ArkMenu } from "@ark-ui/react/menu";
 import { Portal } from "@ark-ui/react/portal";
 import { useMemo } from "react";
 
-import { parkedPopperPositioner } from "../../util/popper-positioner";
-import { usePortalContainerRef } from "../../util/portal-container-context";
 import {
   SelectableList,
   type ItemOrGroup,
-} from "../../util/SelectableList/selectable-list";
-import { useLoopSelection } from "../../util/SelectableList/selectable-list-util";
+} from "../../primitives/SelectableList/selectable-list";
+import { loopSelectionKeyDown } from "../../primitives/SelectableList/selectable-list-util";
+import { parkedPopperPositioner } from "../../util/popper-positioner";
+import { usePortalContainerRef } from "../../util/portal-container-context";
 import { type MenuItem } from "../Menu/menu";
 import { collectSelectedIds } from "../Menu/menu-util";
 import { type Position } from "../Tooltip/tooltip";
@@ -21,8 +21,8 @@ export const RightClickMenu = ({
 }: {
   items: Array<ItemOrGroup<MenuItem>>;
   /**
-   * Preferred placement of the menu relative to the pointer position it opens
-   * at. As with `Menu`, another placement may be chosen for a better fit.
+   * The preferred position of the menu relative to the pointer it opens at;
+   * another may be chosen for a better fit.
    */
   position?: Position;
   /** Applied to the menu content, as with `Menu`. */
@@ -34,7 +34,6 @@ export const RightClickMenu = ({
   children: React.ReactNode;
 }) => {
   const portalContainerRef = usePortalContainerRef();
-  const handleLoopKeyDown = useLoopSelection(items);
   const selected = useMemo(() => collectSelectedIds(items), [items]);
 
   if (items.length === 0) {
@@ -57,7 +56,7 @@ export const RightClickMenu = ({
             <Portal container={portalContainerRef}>
               <ArkMenu.Positioner
                 className={parkedPopperPositioner}
-                onKeyDownCapture={(event) => handleLoopKeyDown(event, menu)}
+                onKeyDownCapture={(event) => loopSelectionKeyDown(event, menu)}
               >
                 <SelectableList
                   items={items}
@@ -73,3 +72,6 @@ export const RightClickMenu = ({
     </ArkMenu.Root>
   );
 };
+
+// Stable name for the docs Stage code serializer under minification
+RightClickMenu.displayName = "RightClickMenu";

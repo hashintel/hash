@@ -1,5 +1,5 @@
 import { describe, it } from "@effect/vitest";
-import { Chunk, Effect, pipe, Predicate, Stream } from "effect";
+import { Effect, pipe, Predicate, Stream } from "effect";
 
 import { Request } from "../../src/net/index.js";
 import {
@@ -66,11 +66,7 @@ describe.concurrent("Request", () => {
     Effect.gen(function* () {
       const request = yield* makeRequest(Stream.empty);
 
-      const items = yield* pipe(
-        Request.encode(request),
-        Stream.runCollect,
-        Effect.map(Chunk.toReadonlyArray),
-      );
+      const items = yield* pipe(Request.encode(request), Stream.runCollect);
 
       cx.expect(items.length).toBe(1);
       assertBody(cx, items[0]!, RequestBody.isBegin, 0);
@@ -87,11 +83,7 @@ describe.concurrent("Request", () => {
         ]),
       );
 
-      const items = yield* pipe(
-        Request.encode(request),
-        Stream.runCollect,
-        Effect.map(Chunk.toReadonlyArray),
-      );
+      const items = yield* pipe(Request.encode(request), Stream.runCollect);
 
       cx.expect(items.length).toBe(1);
       assertBody(cx, items[0]!, RequestBody.isBegin, "hello").assertEnd();
@@ -104,11 +96,7 @@ describe.concurrent("Request", () => {
 
       const request = yield* makeRequest(Stream.fromIterable([array.buffer]));
 
-      const items = yield* pipe(
-        Request.encode(request),
-        Stream.runCollect,
-        Effect.map(Chunk.toReadonlyArray),
-      );
+      const items = yield* pipe(Request.encode(request), Stream.runCollect);
 
       cx.expect(items.length).toBe(2);
       assertBody(cx, items[0]!, RequestBody.isBegin, Payload.MAX_SIZE);
@@ -127,11 +115,7 @@ describe.concurrent("Request", () => {
         ]),
       );
 
-      const items = yield* pipe(
-        Request.encode(request),
-        Stream.runCollect,
-        Effect.map(Chunk.toReadonlyArray),
-      );
+      const items = yield* pipe(Request.encode(request), Stream.runCollect);
 
       cx.expect(items.length).toBe(2);
       assertBody(cx, items[0]!, RequestBody.isBegin, Payload.MAX_SIZE);
@@ -145,11 +129,7 @@ describe.concurrent("Request", () => {
 
       const request = yield* makeRequest(Stream.fromIterable([array.buffer]));
 
-      const items = yield* pipe(
-        Request.encode(request),
-        Stream.runCollect,
-        Effect.map(Chunk.toReadonlyArray),
-      );
+      const items = yield* pipe(Request.encode(request), Stream.runCollect);
 
       cx.expect(items.length).toBe(3);
       assertBody(cx, items[0]!, RequestBody.isBegin, Payload.MAX_SIZE);
@@ -169,11 +149,7 @@ describe.concurrent("Request", () => {
         ]),
       );
 
-      const items = yield* pipe(
-        Request.encode(request),
-        Stream.runCollect,
-        Effect.map(Chunk.toReadonlyArray),
-      );
+      const items = yield* pipe(Request.encode(request), Stream.runCollect);
 
       cx.expect(items.length).toBe(1);
       assertBody(cx, items[0]!, RequestBody.isBegin, "helloworld").assertEnd();
@@ -189,7 +165,6 @@ describe.concurrent("Request - noDelay", () => {
       const items = yield* pipe(
         Request.encode(request, { noDelay: true }),
         Stream.runCollect,
-        Effect.map(Chunk.toReadonlyArray),
       );
 
       cx.expect(items.length).toBe(1);
@@ -210,7 +185,6 @@ describe.concurrent("Request - noDelay", () => {
       const items = yield* pipe(
         Request.encode(request, { noDelay: true }),
         Stream.runCollect,
-        Effect.map(Chunk.toReadonlyArray),
       );
 
       cx.expect(items.length).toBe(1);
@@ -227,7 +201,6 @@ describe.concurrent("Request - noDelay", () => {
       const items = yield* pipe(
         Request.encode(request, { noDelay: true }),
         Stream.runCollect,
-        Effect.map(Chunk.toReadonlyArray),
       );
 
       cx.expect(items.length).toBe(2);
@@ -245,7 +218,6 @@ describe.concurrent("Request - noDelay", () => {
       const items = yield* pipe(
         Request.encode(request, { noDelay: true }),
         Stream.runCollect,
-        Effect.map(Chunk.toReadonlyArray),
       );
 
       cx.expect(items.length).toBe(3);
@@ -269,7 +241,6 @@ describe.concurrent("Request - noDelay", () => {
       const items = yield* pipe(
         Request.encode(request, { noDelay: true }),
         Stream.runCollect,
-        Effect.map(Chunk.toReadonlyArray),
       );
 
       cx.expect(items.length).toBe(2);

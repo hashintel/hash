@@ -1,13 +1,12 @@
-import { Fragment, type ReactNode } from "react";
-
 import { css } from "@hashintel/ds-helpers/css";
 
 import { formInputSizes } from "../../util/form-shared";
 import { Avatar } from "./avatar";
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { ReactNode } from "react";
 
-const sampleImage = "https://avatars.githubusercontent.com/u/1846056?v=4";
+const sampleImage = "https://avatars.githubusercontent.com/u/2991143?v=4";
 
 const noop = () => {};
 
@@ -51,15 +50,13 @@ const rowLabelClass = css({
   whiteSpace: "nowrap",
 });
 
-type GridRow = { label: string; cells: ReactNode[] };
-
 /** A grid of avatars with a header row of column labels and a leading label per row */
 const LabeledGrid = ({
   columnLabels,
-  rows,
+  children,
 }: {
   columnLabels: string[];
-  rows: GridRow[];
+  children: ReactNode;
 }) => (
   <div
     className={grid}
@@ -71,13 +68,24 @@ const LabeledGrid = ({
         {label}
       </span>
     ))}
-    {rows.map((gridRow) => (
-      <Fragment key={gridRow.label}>
-        <span className={rowLabelClass}>{gridRow.label}</span>
-        {gridRow.cells}
-      </Fragment>
-    ))}
+    {children}
   </div>
+);
+
+// Row cells flow as children, never inside a plain-object prop: Storybook's
+// docs source serializer deep-walks object props, and in dev it escapes via an
+// element's _owner fiber into the live React tree and freezes the page.
+const GridRow = ({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) => (
+  <>
+    <span className={rowLabelClass}>{label}</span>
+    {children}
+  </>
 );
 
 const placeholderColumns = [
@@ -99,9 +107,9 @@ const defaultCells = (
     {...args}
     shape={shape}
     tone={tone}
-    alt="Christian Busch"
+    alt="Chris Feijoo"
     src={sampleImage}
-    placeholder={{ initials: "CB" }}
+    placeholder={{ initials: "CF" }}
     onClick={noop}
   />,
   <Avatar
@@ -109,7 +117,7 @@ const defaultCells = (
     {...args}
     shape={shape}
     tone={tone}
-    alt="Christian"
+    alt="Chris"
     placeholder={{ initials: "C" }}
     onClick={noop}
   />,
@@ -118,8 +126,8 @@ const defaultCells = (
     {...args}
     shape={shape}
     tone={tone}
-    alt="Christian Busch"
-    placeholder={{ initials: "CB" }}
+    alt="Chris Feijoo"
+    placeholder={{ initials: "CF" }}
     onClick={noop}
   />,
   <Avatar
@@ -127,7 +135,7 @@ const defaultCells = (
     {...args}
     shape={shape}
     tone={tone}
-    alt="Christian Busch"
+    alt="Chris Feijoo"
     placeholder={{ icon: "user" }}
     onClick={noop}
   />,
@@ -145,30 +153,24 @@ const defaultCells = (
     {...args}
     shape={shape}
     tone={tone}
-    alt="Christian Busch"
-    placeholder={{ initials: "CB" }}
+    alt="Chris Feijoo"
+    placeholder={{ initials: "CF" }}
   />,
 ];
 
 export const Default: Story = {
   render: (args: AvatarArgs) => (
-    <LabeledGrid
-      columnLabels={placeholderColumns}
-      rows={[
-        {
-          label: "Circle · neutral",
-          cells: defaultCells(args, "circle", "neutral"),
-        },
-        {
-          label: "Square · neutral",
-          cells: defaultCells(args, "square", "neutral"),
-        },
-        {
-          label: "Circle · brand",
-          cells: defaultCells(args, "circle", "brand"),
-        },
-      ]}
-    />
+    <LabeledGrid columnLabels={placeholderColumns}>
+      <GridRow label="Circle · neutral">
+        {defaultCells(args, "circle", "neutral")}
+      </GridRow>
+      <GridRow label="Square · neutral">
+        {defaultCells(args, "square", "neutral")}
+      </GridRow>
+      <GridRow label="Circle · brand">
+        {defaultCells(args, "circle", "brand")}
+      </GridRow>
+    </LabeledGrid>
   ),
 };
 
@@ -182,7 +184,7 @@ const sizeCells = (
   args: AvatarArgs,
   shape: AvatarProps["shape"],
   placeholder: AvatarProps["placeholder"],
-  alt = "Christian Busch",
+  alt = "Chris Feijoo",
 ): ReactNode[] => [
   ...formInputSizes.map((size) => (
     <Avatar
@@ -207,23 +209,17 @@ const sizeCells = (
 
 export const Sizes: Story = {
   render: (args: AvatarArgs) => (
-    <LabeledGrid
-      columnLabels={[...formInputSizes, "Custom"]}
-      rows={[
-        {
-          label: "Circle",
-          cells: sizeCells(args, "circle", { initials: "CB" }),
-        },
-        {
-          label: "Square",
-          cells: sizeCells(args, "square", { initials: "CB" }),
-        },
-        {
-          label: "Circle · icon",
-          cells: sizeCells(args, "circle", { icon: "user" }, "Christian Busch"),
-        },
-      ]}
-    />
+    <LabeledGrid columnLabels={[...formInputSizes, "Custom"]}>
+      <GridRow label="Circle">
+        {sizeCells(args, "circle", { initials: "CF" })}
+      </GridRow>
+      <GridRow label="Square">
+        {sizeCells(args, "square", { initials: "CF" })}
+      </GridRow>
+      <GridRow label="Circle · icon">
+        {sizeCells(args, "circle", { icon: "user" }, "Chris Feijoo")}
+      </GridRow>
+    </LabeledGrid>
   ),
 };
 
@@ -232,10 +228,14 @@ const svgAvatar = (body: string) =>
     `<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80">${body}</svg>`,
   )}`;
 
-// Undecodable payload — the browser fires `error`, falling back to the placeholder
-const brokenImage = "data:image/png;base64,thisisnotavalidpngpayload";
-// TEST-NET-1 (RFC 5737) never routes, so the request stays pending — shows the loading state
-const loadingImage = "https://192.0.2.1/avatar.png";
+// Valid base64 ("not a png") but undecodable as an image — the browser fires
+// `error`, falling back to the placeholder. Malformed base64 would instead be
+// an invalid URL, which Chromium reports as a console error.
+const brokenImage = "data:image/png;base64,bm90IGEgcG5n";
+// A dev-middleware endpoint (see .storybook/main.ts) that never responds, so
+// the request stays pending — shows the loading state. An unroutable address
+// would fail fast on some networks and log a console error.
+const loadingImage = "/__pending-image__.png";
 // Colored shape on a transparent canvas — the avatar fill shows through around it
 const transparentImage = svgAvatar(
   `<circle cx="40" cy="40" r="22" fill="#e5484d"/>`,
@@ -270,7 +270,7 @@ const imageCells = (
     size="lg"
     alt="Failed to load"
     src={brokenImage}
-    placeholder={{ initials: "CB" }}
+    placeholder={{ initials: "CF" }}
     onClick={noop}
   />,
   <Avatar
@@ -281,7 +281,7 @@ const imageCells = (
     size="lg"
     alt="Loading"
     src={loadingImage}
-    placeholder={{ initials: "CB" }}
+    placeholder={{ initials: "CF" }}
     onClick={noop}
   />,
   <Avatar
@@ -292,7 +292,7 @@ const imageCells = (
     size="lg"
     alt="Transparent image"
     src={transparentImage}
-    placeholder={{ initials: "CB" }}
+    placeholder={{ initials: "CF" }}
     onClick={noop}
   />,
   <Avatar
@@ -303,7 +303,7 @@ const imageCells = (
     size="lg"
     alt="White background image"
     src={whiteImage}
-    placeholder={{ initials: "CB" }}
+    placeholder={{ initials: "CF" }}
     onClick={noop}
   />,
   <Avatar
@@ -314,29 +314,23 @@ const imageCells = (
     size="lg"
     alt="Dark green background image"
     src={darkGreenImage}
-    placeholder={{ initials: "CB" }}
+    placeholder={{ initials: "CF" }}
     onClick={noop}
   />,
 ];
 
 export const Images: Story = {
   render: (args: AvatarArgs) => (
-    <LabeledGrid
-      columnLabels={imageColumns}
-      rows={[
-        {
-          label: "Circle · neutral",
-          cells: imageCells(args, "circle", "neutral"),
-        },
-        {
-          label: "Square · neutral",
-          cells: imageCells(args, "square", "neutral"),
-        },
-        {
-          label: "Circle · brand",
-          cells: imageCells(args, "circle", "brand"),
-        },
-      ]}
-    />
+    <LabeledGrid columnLabels={imageColumns}>
+      <GridRow label="Circle · neutral">
+        {imageCells(args, "circle", "neutral")}
+      </GridRow>
+      <GridRow label="Square · neutral">
+        {imageCells(args, "square", "neutral")}
+      </GridRow>
+      <GridRow label="Circle · brand">
+        {imageCells(args, "circle", "brand")}
+      </GridRow>
+    </LabeledGrid>
   ),
 };

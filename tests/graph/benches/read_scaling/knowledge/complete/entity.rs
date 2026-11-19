@@ -23,7 +23,7 @@ use tokio::runtime::Runtime;
 use type_system::{
     knowledge::{
         Entity,
-        entity::{LinkData, provenance::ProvidedEntityEditionProvenance},
+        entity::{Link, LinkEndpoint, provenance::ProvidedEntityEditionProvenance},
         property::{PropertyObject, PropertyObjectWithMetadata, metadata::PropertyProvenance},
     },
     ontology::entity_type::EntityType,
@@ -175,13 +175,17 @@ async fn seed_db(
                         )
                         .expect("could not create property with metadata object"),
                         confidence: None,
-                        link_data: Some(LinkData {
-                            left_entity_id: entity_a.metadata.record_id.entity_id,
-                            right_entity_id: entity_b.metadata.record_id.entity_id,
-                            left_entity_confidence: None,
-                            left_entity_provenance: PropertyProvenance::default(),
-                            right_entity_confidence: None,
-                            right_entity_provenance: PropertyProvenance::default(),
+                        link_data: Some(Link::Directed {
+                            source: LinkEndpoint {
+                                entity_id: entity_a.metadata.record_id.entity_id,
+                                confidence: None,
+                                provenance: PropertyProvenance::default(),
+                            },
+                            target: LinkEndpoint {
+                                entity_id: entity_b.metadata.record_id.entity_id,
+                                confidence: None,
+                                provenance: PropertyProvenance::default(),
+                            },
                         }),
                         draft: false,
                         policies: Vec::new(),

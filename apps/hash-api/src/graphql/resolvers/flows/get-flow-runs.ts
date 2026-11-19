@@ -1,46 +1,63 @@
 import { getFlowRuns } from "@local/hash-backend-utils/flows";
+import { FlowRunStatus as RecordedFlowRunStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 
-import * as Error from "../../error";
-import {
-  getRequestedFlowRunFieldNames,
-  wereDetailedFieldsRequested,
-} from "./shared/were-detailed-fields-requested";
+import { FlowRunStatus } from "../../api-types.gen";
+import { getEndedRecordHeaderOfFlowRun } from "./shared/get-record-of-flow-run";
 
 import type {
-  FlowRun,
+  PaginatedFlowRuns,
   QueryGetFlowRunsArgs,
   ResolverFn,
 } from "../../api-types.gen";
 import type { GraphQLContext } from "../../context";
-import type { SparseFlowRun } from "@local/hash-isomorphic-utils/flows/types";
+import type { FlowRunParent } from "./shared/get-record-of-flow-run";
 
-export const getFlowRunsResolver: ResolverFn<
-  {
-    flowRuns: FlowRun[] | SparseFlowRun[];
-    totalCount: number;
-    nextCursor: string | null;
-  },
-  Record<string, never>,
-  Pick<
+/**
+ * A run as its record has it, if its entity says it's running. A run that ended without saving how, e.g. because it
+ * was terminated, has its entity corrected. A run that's still running has none of its history read, and one whose
+ * record can't be read stays as it is.
+ */
+const getFlowRunAsRecorded = async (
+  flowRun: FlowRunParent,
+  context: Pick<
     GraphQLContext,
-    "authentication" | "dataSources" | "flowRunHistories" | "temporal"
+    "authentication" | "dataSources" | "logger" | "temporal"
   >,
-  QueryGetFlowRunsArgs
-> = async (_parent, args, context, info) => {
-  /** Each run's events are read from its whole history, so a list would read every listed run's. */
-  if (getRequestedFlowRunFieldNames(info).includes("events")) {
-    throw Error.badRequest(
-      "`events` can only be requested for a single run, with `getFlowRunById`",
-    );
+): Promise<FlowRunParent> => {
+  if (flowRun.status !== FlowRunStatus.Running) {
+    return flowRun;
   }
 
-  const includeDetails = wereDetailedFieldsRequested(info);
+  try {
+    const header = await getEndedRecordHeaderOfFlowRun(flowRun, context);
 
-  const { authentication, dataSources, flowRunHistories, temporal } = context;
+    return !header || header.status === RecordedFlowRunStatus.Running
+      ? flowRun
+      : {
+          ...flowRun,
+          status: header.status,
+          closedAt: header.closedAt ?? null,
+        };
+  } catch (error) {
+    context.logger.warn(
+      `Could not read the record of running flow run ${flowRun.flowRunEntityId}: ${(error as Error).message}`,
+    );
+
+    return flowRun;
+  }
+};
+
+export const getFlowRunsResolver: ResolverFn<
+  PaginatedFlowRuns,
+  Record<string, never>,
+  GraphQLContext,
+  QueryGetFlowRunsArgs
+> = async (_parent, args, context) => {
+  const { authentication, dataSources } = context;
 
   const { flowDefinitionEntityIds, executionStatus, cursor, limit } = args;
 
-  return await getFlowRuns({
+  const page = await getFlowRuns({
     authentication,
     filters: {
       flowDefinitionEntityIds,
@@ -49,9 +66,19 @@ export const getFlowRunsResolver: ResolverFn<
       limit,
     },
     graphApiClient: dataSources.graphApi,
-    historiesByWorkflowId: flowRunHistories,
-    includeDetails,
-    storageProvider: dataSources.uploadProvider,
-    temporalClient: temporal,
   });
+
+  const flowRuns = await Promise.all(
+    page.flowRuns.map((flowRun) => getFlowRunAsRecorded(flowRun, context)),
+  );
+  /* The runs were filtered and counted by the status their entities had before any was corrected. */
+  const matching = executionStatus
+    ? flowRuns.filter(({ status }) => status === executionStatus)
+    : flowRuns;
+
+  return {
+    ...page,
+    flowRuns: matching,
+    totalCount: page.totalCount - (flowRuns.length - matching.length),
+  };
 };

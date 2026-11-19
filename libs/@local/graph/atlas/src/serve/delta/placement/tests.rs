@@ -10,14 +10,13 @@ use core::{
 
 use error_stack::Report;
 use futures::FutureExt as _;
+use hash_crypto::Secret;
 use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStorePool,
     PostgresStoreSettings,
 };
-use hash_secret::Secret;
 use hashql_core::id::Id as _;
 use tokio::{sync::mpsc, time::Instant};
-use tokio_postgres::NoTls;
 use type_system::{
     knowledge::entity::EntityId,
     principal::actor::{ActorId, ActorType},
@@ -86,7 +85,6 @@ fn task() -> DeltaPlacementTask {
         &DatabasePoolConfig {
             max_connections: nz!(1),
         },
-        NoTls,
         PostgresStoreSettings::default(),
     )
     .expect("should construct an unconnected pool");

@@ -12,9 +12,9 @@ const meta = {
   title: "Components/HelpTooltip",
   component: HelpTooltip,
   args: {
+    "aria-label": "Information",
     variant: "dark",
     position: "right",
-    disableTooltip: false,
     openDelay: "medium",
     closeDelay: "medium",
     gapX: 8,

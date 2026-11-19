@@ -1,13 +1,12 @@
 #[cfg(feature = "postgres")]
 use core::error::Error;
 
-#[cfg(feature = "postgres")]
-use bytes::BytesMut;
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 #[cfg(feature = "postgres")]
-use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
+use postgres_types::{FromSql, Json, Type};
 
 use crate::{
+    knowledge::entity::id::DraftId,
     principal::actor::{ActorEntityUuid, ActorType},
     provenance::{OriginProvenance, SourceProvenance},
 };
@@ -21,6 +20,10 @@ pub struct EntityEditionProvenance {
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub archived_by_id: Option<ActorEntityUuid>,
+    /// The draft whose publication created this edition.
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_from_draft_id: Option<DraftId>,
     #[serde(flatten)]
     pub provided: ProvidedEntityEditionProvenance,
 }
@@ -33,22 +36,6 @@ impl<'a> FromSql<'a> for EntityEditionProvenance {
 
     fn accepts(ty: &Type) -> bool {
         <Json<Self> as FromSql>::accepts(ty)
-    }
-}
-
-#[cfg(feature = "postgres")]
-impl ToSql for EntityEditionProvenance {
-    postgres_types::to_sql_checked!();
-
-    fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>>
-    where
-        Self: Sized,
-    {
-        Json(self).to_sql(ty, out)
-    }
-
-    fn accepts(ty: &Type) -> bool {
-        <Json<Self> as ToSql>::accepts(ty)
     }
 }
 
@@ -196,11 +183,11 @@ mod tests {
     #[test]
     fn entity_provenance_roundtrip_without_deletion() {
         let json = serde_json::json!({
-            "createdById": Uuid::new_v4(),
+            "createdById": Uuid::now_v7(),
             "createdAtTransactionTime": Timestamp::<TransactionTime>::now(),
             "createdAtDecisionTime": Timestamp::<DecisionTime>::now(),
             "edition": {
-                "createdById": Uuid::new_v4(),
+                "createdById": Uuid::now_v7(),
                 "actorType": "user",
                 "origin": { "type": "api" },
             },
@@ -221,16 +208,16 @@ mod tests {
         use alloc::collections::BTreeSet;
 
         let json = serde_json::json!({
-            "createdById": Uuid::new_v4(),
+            "createdById": Uuid::now_v7(),
             "createdAtTransactionTime": Timestamp::<TransactionTime>::now(),
             "createdAtDecisionTime": Timestamp::<DecisionTime>::now(),
             "firstNonDraftCreatedAtTransactionTime": Timestamp::<TransactionTime>::now(),
             "firstNonDraftCreatedAtDecisionTime": Timestamp::<DecisionTime>::now(),
-            "deletedById": Uuid::new_v4(),
+            "deletedById": Uuid::now_v7(),
             "deletedAtTransactionTime": Timestamp::<TransactionTime>::now(),
             "deletedAtDecisionTime": Timestamp::<DecisionTime>::now(),
             "edition": {
-                "createdById": Uuid::new_v4(),
+                "createdById": Uuid::now_v7(),
                 "actorType": "user",
                 "origin": { "type": "api" },
             },
@@ -257,14 +244,14 @@ mod tests {
     #[test]
     fn entity_provenance_roundtrip_with_deletion() {
         let json = serde_json::json!({
-            "createdById": Uuid::new_v4(),
+            "createdById": Uuid::now_v7(),
             "createdAtTransactionTime": Timestamp::<TransactionTime>::now(),
             "createdAtDecisionTime": Timestamp::<DecisionTime>::now(),
-            "deletedById": Uuid::new_v4(),
+            "deletedById": Uuid::now_v7(),
             "deletedAtTransactionTime": Timestamp::<TransactionTime>::now(),
             "deletedAtDecisionTime": Timestamp::<DecisionTime>::now(),
             "edition": {
-                "createdById": Uuid::new_v4(),
+                "createdById": Uuid::now_v7(),
                 "actorType": "user",
                 "origin": { "type": "api" },
             },

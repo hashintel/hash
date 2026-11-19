@@ -17,7 +17,6 @@ use axum::{
 };
 use error_stack::Report;
 use hash_graph_store::filter::Filter;
-use rand::TryCryptoRng;
 use serde_json::value::RawValue;
 use type_system::knowledge::Entity;
 
@@ -103,18 +102,15 @@ fn sealed_offset(
 /// filter the store cannot compile or convert, `visibility-unavailable` where the store cannot
 /// answer, `unauthorized` where the actor resolves to no scope. Binding the delivery schedule,
 /// encoding the document and issuing the token each answer `internal` after that.
-pub(super) async fn handler<R>(
-    State(state): State<AppState<R>>,
+pub(super) async fn handler(
+    State(state): State<AppState>,
     Renewal {
         observation,
         actor,
         carried,
     }: Renewal,
     body: Bytes,
-) -> Result<Response, ProblemResponse<'static>>
-where
-    R: TryCryptoRng + Send + 'static,
-{
+) -> Result<Response, ProblemResponse<'static>> {
     let filter = if body.is_empty() {
         None
     } else {
@@ -169,9 +165,7 @@ where
                     k: offset,
                 },
             )
-            .map_err(|error| {
-                Problem::internal_message(&error, "issuing the authority token failed")
-            })?;
+            .map_err(|error| Problem::internal(&error, "issuing the authority token failed"))?;
 
         let mut response = DocumentResponse::new(bytes, envelope.content_type()).into_response();
         response.headers_mut().insert(

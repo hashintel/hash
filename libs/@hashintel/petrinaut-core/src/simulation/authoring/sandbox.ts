@@ -1,11 +1,6 @@
 /**
- * Shared hardening helpers for evaluating user-authored JavaScript with
- * `new Function`. Two consumers: the place visualizer
- * (`compile-visualizer.ts` in the UI package) and the ad-hoc form's
- * constant evaluation (`evaluateConstant` in `ad-hoc-scenario.ts`, for
- * bounds, exposed defaults, and place totals). Every other user-code
- * surface — dynamics, lambdas, kernels, metrics, and scenario code —
- * compiles through the HIR and never executes raw user text.
+ * Best-effort hardening for raw JavaScript evaluated with `new Function`.
+ * Expressions share the host realm; these helpers provide no isolation.
  *
  * @layerRoot core.simulation.authoring
  * @role Compiles the code users write inside a net and hardens the surfaces that evaluate it as raw JavaScript
@@ -16,10 +11,7 @@
  * they become `undefined` in scope, preventing the expression from
  * reaching browser/environment APIs by name.
  *
- * Note: `eval` cannot be shadowed via `var` in strict mode (SyntaxError).
- * It is mitigated by shadowing `Function` (blocks eval construction) and
- * `globalThis` (blocks `globalThis.eval`). Direct `eval()` in strict mode
- * cannot leak scope, and without access to globals it has limited power.
+ * Strict mode forbids shadowing `eval`; indirect eval can reach host globals.
  */
 export const SHADOWED_GLOBALS = [
   "window",

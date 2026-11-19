@@ -9,7 +9,9 @@ export default defineConfig({
     ...(coreConfig.include ?? []),
     "./src/preset/**/*.{ts,tsx}",
     "./.storybook/**/*.{ts,tsx}",
+    "./docs/**/*.{ts,tsx}",
   ],
+  exclude: [],
   staticCss: {
     css: [
       {

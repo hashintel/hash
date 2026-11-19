@@ -8,9 +8,10 @@ version.workspace = true
 
 [dev-dependencies]
 # Private workspace dependencies
-error-stack              = { workspace = true, features = ["spantrace"] }
-hash-codec               = { workspace = true, features = ["numeric"] }
-hash-graph-authorization = { workspace = true }
+error-stack                    = { workspace = true, features = ["spantrace"] }
+hash-codec                     = { workspace = true, features = ["numeric"] }
+hash-crypto                    = { workspace = true }
+hash-graph-authorization       = { workspace = true }
 # `test-utils` enables the `BeginReadOnlyTransaction` impl for `InTransaction` stores, which the
 # rollback-isolation harness in `postgres/lib.rs` relies on. See `TODO(BE-688)`.
 hash-graph-postgres-store      = { workspace = true, features = ["test-utils"] }
@@ -18,7 +19,6 @@ hash-graph-store               = { workspace = true }
 hash-graph-temporal-versioning = { workspace = true }
 hash-graph-test-data           = { workspace = true }
 hash-graph-types               = { workspace = true }
-hash-secret                    = { workspace = true }
 hash-status                    = { workspace = true }
 hash-telemetry                 = { workspace = true }
 type-system                    = { workspace = true }
@@ -31,7 +31,7 @@ time               = { workspace = true }
 tokio              = { workspace = true, default-features = false, features = ["macros"] }
 tokio-postgres     = { workspace = true, default-features = false }
 tracing-subscriber = { workspace = true, features = ["env-filter"] }
-uuid               = { workspace = true, features = ["v4", "serde"] }
+uuid               = { workspace = true, features = ["serde", "std", "v7"] }
 
 [lints]
 workspace = true

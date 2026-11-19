@@ -39,7 +39,7 @@ export const Checkbox = ({
   labelAlign?: "top" | "center";
   /** The tone applied when the checkbox is checked */
   tone?: Exclude<Tone, "error" | "warning">;
-  /** Render the box in the indeterminate ("partially checked") state */
+  /** Whether the box renders the indeterminate ("partially checked") state. */
   indeterminate?: boolean;
   /** An optional value used for native form submissions */
   htmlValue?: string;
@@ -105,3 +105,6 @@ export const Checkbox = ({
     </BaseCheckbox.Root>
   );
 };
+
+// Stable name for the docs Stage code serializer under minification
+Checkbox.displayName = "Checkbox";

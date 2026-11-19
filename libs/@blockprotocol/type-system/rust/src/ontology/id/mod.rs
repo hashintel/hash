@@ -226,6 +226,25 @@ impl ToSchema<'_> for BaseUrl {
     }
 }
 
+#[cfg(feature = "schemars")]
+impl JsonSchema for BaseUrl {
+    fn schema_name() -> Cow<'static, str> {
+        Cow::Borrowed("BaseUrl")
+    }
+
+    fn json_schema(_: &mut SchemaGenerator) -> Schema {
+        json_schema!({
+            "type": "string",
+            "title": "Base URL",
+            "description": "The base URL of a SemType ontology type (the $id of the schema without \
+                            the versioned suffix). It must end with a trailing slash.",
+            "format": "uri",
+            "maxLength": 2048,
+            "pattern": "/$",
+        })
+    }
+}
+
 #[cfg(feature = "postgres")]
 impl<'a> FromSql<'a> for BaseUrl {
     fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {

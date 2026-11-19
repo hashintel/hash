@@ -20,8 +20,7 @@ const PUBLIC_REFERENCE_PATH: &str = "/";
 /// # Panics
 ///
 /// Panics if a document or a source list cannot be serialized, route paths overlap, the Scalar
-/// bundle is missing or not UTF-8, the embedded Scalar configuration is invalid, or the Scalar
-/// optional-auth correction does not match exactly once.
+/// bundle is missing, or the embedded Scalar configuration is invalid.
 pub(crate) fn routes(apis: &[Api]) -> Router {
     let legacy_path = format!("{}/legacy", internal::PREFIX);
     let legacy_document_path = format!("{legacy_path}/openapi.json");

@@ -58,12 +58,12 @@ impl Visibility {
     }
 }
 
-impl<R: Send> FromRequestParts<AppState<R>> for Visibility {
+impl FromRequestParts<AppState> for Visibility {
     type Rejection = ProblemResponse<'static>;
 
     async fn from_request_parts(
         parts: &mut Parts,
-        state: &AppState<R>,
+        state: &AppState,
     ) -> Result<Self, Self::Rejection> {
         let AuthorityScope { observation, scope } =
             AuthorityScope::from_request_parts(parts, state).await?;
@@ -97,8 +97,8 @@ impl OperationInput for Visibility {
 ///
 /// Returns [`ProblemResponse`] when the store cannot compile or answer the filter, or when the
 /// store resolves no scope for `actor`.
-pub(super) async fn resolve<R>(
-    state: &AppState<R>,
+pub(super) async fn resolve(
+    state: &AppState,
     observation: &Observation,
     actor: ActorId,
     filter: Option<FilterDigest>,

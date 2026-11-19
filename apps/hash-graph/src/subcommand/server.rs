@@ -15,9 +15,10 @@ use futures::{StreamExt as _, channel::mpsc};
 use harpc_codec::json::JsonCodec;
 use harpc_server::Server;
 use hash_codec::bytes::JsonLinesEncoder;
+use hash_crypto::Secret;
 use hash_graph_api::{
     rest::{
-        self,
+        self, CorsConfig, PublicApiConfig,
         authentication::{
             KratosSessionConfig, SessionCacheConfig,
             api_token::{self, ApiTokenEncryptionKey, ApiTokenIssuer},
@@ -42,7 +43,6 @@ use hash_graph_store::{
     pool::StorePool,
 };
 use hash_graph_type_fetcher::FetchingPool;
-use hash_secret::Secret;
 use hash_telemetry::Telemetry;
 use hash_temporal_client::{TemporalClient, TemporalClientConfig};
 use multiaddr::{Multiaddr, Protocol};
@@ -50,7 +50,7 @@ use opentelemetry::metrics::Meter;
 use regex::Regex;
 use reqwest::{Client, Url};
 use tokio::{io, net::TcpListener, signal, time::timeout};
-use tokio_postgres::{Client as PostgresClient, NoTls};
+use tokio_postgres::Client as PostgresClient;
 use tokio_util::{codec::FramedWrite, sync::CancellationToken};
 use type_system::ontology::json_schema::DomainValidator;
 use uuid::Uuid;
@@ -443,7 +443,13 @@ pub struct ServerConfig {
     pub api_config: ApiConfig,
 
     #[clap(flatten)]
+    pub public_api_config: PublicApiConfig,
+
+    #[clap(flatten)]
     pub rate_limit: RateLimitConfig,
+
+    #[clap(flatten)]
+    pub cors: CorsConfig,
 
     #[clap(flatten)]
     pub session_auth: KratosSessionAuthConfig,
@@ -726,10 +732,12 @@ where
         domain_regex: DomainValidator::new(config.allowed_url_domain),
         query_logger,
         api_config: config.api_config,
+        public_api_config: config.public_api_config,
         session_auth: authentication.session_auth,
         service_secret: authentication.service_secret,
         api_tokens: authentication.api_tokens,
         rate_limit: config.rate_limit,
+        cors: config.cors,
         meter,
         compiler,
         clustering: Arc::new(ClusteringContext::new(config.clustering_concurrency_limit)),
@@ -763,7 +771,6 @@ pub async fn server(mut args: ServerArgs, telemetry: &Telemetry) -> Result<(), R
     let pool = PostgresStorePool::new(
         &args.db_info,
         &args.db_pool_config,
-        NoTls,
         PostgresStoreSettings {
             validate_links: !args.config.skip_link_validation,
             skip_embedding_creation: args.config.skip_embedding_creation,
@@ -942,11 +949,11 @@ pub async fn healthcheck(address: HttpAddress) -> Result<(), Report<HealthcheckE
 mod tests {
     use core::{num::NonZero, pin::Pin};
 
+    use hash_crypto::Secret;
     use hash_graph_api::rest::authentication::api_token::{
         ApiTokenEncryptionKey, Environment, HashedApiToken, IssuedApiToken,
     };
     use hash_graph_store::api_token::{ApiTokenEncryptionKeyId, ApiTokenName};
-    use hash_secret::Secret;
     use reqwest::Url;
     use rstest::rstest;
     use type_system::principal::{
@@ -1025,7 +1032,7 @@ mod tests {
                 ApiTokenName::new("ci".to_owned()).expect("the name should be valid"),
                 None,
             )
-            .expect("the random number generator should provide bytes");
+            .expect("the API token should be issued");
 
         let hashed = HashedApiToken::from(&token);
         assert_eq!(
@@ -1037,14 +1044,14 @@ mod tests {
             params.encryption_key_id, key_id,
             "the token should record the configured key ID"
         );
-        assert_eq!(
+        assert!(
             ApiTokenEncryptionKey::new(key_id, &key())
-                .decrypt(
+                .matches(
                     params.encrypted_secret_hash,
                     &hashed.associated_data(ActorEntityUuid::from(user_id), WebId::from(user_id)),
+                    hashed.secret_hash(),
                 )
                 .expect("the configured key should decrypt the secret hash"),
-            hashed.secret_hash(),
             "the token should be encrypted with the configured key"
         );
     }

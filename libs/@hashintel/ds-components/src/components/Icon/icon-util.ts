@@ -1,5 +1,3 @@
-import { BookOpen, Grid2x2Plus } from "lucide-react";
-
 import Bullseye from "./svgs/light/bullseye.svg";
 import Table from "./svgs/light/table.svg";
 import OneHundred from "./svgs/regular/100.svg";
@@ -45,6 +43,7 @@ import CircleExclamation from "./svgs/regular/circle-exclamation.svg";
 import CircleInfo from "./svgs/regular/circle-info.svg";
 import CircleNodes from "./svgs/regular/circle-nodes.svg";
 import CirclePlus from "./svgs/regular/circle-plus.svg";
+import CircleX from "./svgs/regular/circle-x.svg";
 import Circle from "./svgs/regular/circle.svg";
 import ThreeCircles from "./svgs/regular/circles-overlap-3.svg";
 import ClockRotateLeft from "./svgs/regular/clock-rotate-left.svg";
@@ -174,6 +173,7 @@ export const IconMap = {
   circle: Circle,
   circleFilled: CircleSolid,
   circleCheck: CircleCheck,
+  circleClose: CircleX,
   circleEllipsis: CircleEllipsis,
   circleOne: CircleOne,
   circlePlus: CirclePlus,
@@ -262,8 +262,6 @@ export const IconMap = {
   squareFilled: Stop,
   squareCheck: SquareCheck,
   squarePlus: SquarePlus,
-  bookOpen: BookOpen as unknown as typeof SquarePlus,
-  grid2x2Plus: Grid2x2Plus as unknown as typeof SquarePlus,
   star: Star,
   starFilled: StarSolid,
   stop: Square,

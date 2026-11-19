@@ -29,7 +29,7 @@ export const GoalsList = () => {
         continue;
       }
 
-      const { webId, flowRunEntityId, executedAt, closedAt } = run;
+      const { webId, flowRunEntityId, startedAt, closedAt } = run;
 
       let web: GoalSummary["web"] | undefined = webByWebId[webId];
 
@@ -62,35 +62,15 @@ export const GoalsList = () => {
         webByWebId[webId] = web;
       }
 
-      let lastEventTimestamp = closedAt ?? executedAt ?? "";
-      for (const step of run.steps) {
-        for (const log of step.logs) {
-          if (log.recordedAt > lastEventTimestamp) {
-            lastEventTimestamp = log.recordedAt;
-          }
-        }
-      }
-
       const status = flowRunStatusToStatusText(run.status);
-
-      let openInputRequests = 0;
-      if (status === "Running") {
-        for (const inputRequest of run.inputRequests) {
-          const lastInputEvent =
-            inputRequest.resolvedAt ?? inputRequest.raisedAt;
-          if (lastInputEvent > lastEventTimestamp) {
-            lastEventTimestamp = lastInputEvent;
-          }
-          if (!inputRequest.resolvedAt && inputRequest.type === "human-input") {
-            openInputRequests++;
-          }
-        }
-      }
 
       const goalRun = {
         flowRunEntityId,
-        lastEventTimestamp,
-        openInputRequests,
+        startedAt,
+        endedAt: closedAt ?? undefined,
+        openInputRequests: run.openInputRequests.filter(
+          ({ type }) => type === "human-input",
+        ).length,
         /**
          * @todo H-2722 – decide how to store an informative name per goal / flow run
          */

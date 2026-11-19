@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use super::{
     super::{
-        LINK_ROOT_BASE_URL,
+        LINK_ENTITY_TYPE_BASE_URL,
         sql::{MAPPING, Mapping, json_field, json_text, type_mapping},
     },
     DESCRIPTION_KEY, ID_KEY, OwnedType, RelationFacts, TITLE_KEY, fact_at,
@@ -188,7 +188,7 @@ fn ancestor_statement(types: &(impl ToSql + Sync)) -> BoundStatement<'_, Ancesto
 
     let mut binder = Binder::default();
     let types_placeholder = binder.bind(types);
-    let link_root = binder.bind(&LINK_ROOT_BASE_URL);
+    let link_root = binder.bind(&LINK_ENTITY_TYPE_BASE_URL);
 
     let schema = || TYPES.column(&EntityTypes::Schema);
     let ancestor = || INHERITS.column(&EntityTypeInheritsFrom::TargetEntityTypeOntologyId);

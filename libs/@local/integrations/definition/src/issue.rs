@@ -144,6 +144,8 @@ pub enum IssueKind {
         value: Box<str>,
         reason: ParseVersionedUrlError,
     },
+    #[display("{reason}")]
+    InvalidSource { reason: &'static str },
     #[display("SQL query is empty")]
     EmptySql,
     #[display("{reason}")]

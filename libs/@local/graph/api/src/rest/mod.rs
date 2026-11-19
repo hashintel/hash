@@ -1,5 +1,6 @@
 pub mod authentication;
 mod caller;
+mod cors;
 mod credentials;
 mod documentation;
 mod extract;
@@ -23,8 +24,12 @@ use axum::Router;
 use hash_graph_store::pool::StorePool;
 use hash_middleware::authentication::Challenge;
 
-pub use self::router::{Dependencies, router};
 pub(crate) use self::state::ApiState;
+pub use self::{
+    cors::CorsConfig,
+    public::PublicApiConfig,
+    router::{Dependencies, router},
+};
 
 /// The callers an API admits, which selects the provider chain authenticating its requests.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

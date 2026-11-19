@@ -3,6 +3,7 @@ mod validation;
 use alloc::collections::BTreeSet;
 use core::ptr;
 
+pub(crate) use self::validation::VALUE_DATA_TYPE_ID;
 pub use self::{
     closed::{ClosedDataType, DataTypeResolveData, ResolveClosedDataTypeError},
     validation::{DataTypeValidator, ValidateDataTypeError},
@@ -692,6 +693,28 @@ mod tests {
               "type": "array",
               "abstract": false,
               "items": { "type": "number" },
+            }),
+            DataTypeValidator,
+            JsonEqualityCheck::Yes,
+        )
+        .await;
+    }
+
+    #[tokio::test]
+    async fn array_length() {
+        ensure_validation::<DataType, _>(
+            json!({
+              "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+              "kind": "dataType",
+              "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/array/v/1",
+              "title": "Number List",
+              "description": "A list of two to five numbers",
+              "allOf": [{ "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/list/v/1" }],
+              "type": "array",
+              "abstract": false,
+              "items": { "type": "number" },
+              "minItems": 2,
+              "maxItems": 5,
             }),
             DataTypeValidator,
             JsonEqualityCheck::Yes,

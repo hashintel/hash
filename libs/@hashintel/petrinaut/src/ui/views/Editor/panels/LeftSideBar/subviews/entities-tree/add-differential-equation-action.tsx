@@ -50,6 +50,7 @@ export const AddDifferentialEquationAction: React.FC = () => {
           name,
           colorId: types.length > 0 ? types[0]!.id : null,
           code: DEFAULT_DIFFERENTIAL_EQUATION_CODE,
+          arity: 1,
         });
         selectItem({ type: "differentialEquation", id });
       }}

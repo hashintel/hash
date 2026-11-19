@@ -18,7 +18,7 @@ import { createAgentRouter } from "@flue/runtime/routing";
 import { createFlueClient } from "@flue/sdk";
 
 import {
-  browserToolMutatesDocument,
+  browserToolFacts,
   canonicalContent,
   parsePetrinautUserMessageBody,
   readPetrinautSubmissionContext,
@@ -63,7 +63,9 @@ export function PetrinautAgent({ id }: AgentProps) {
   const initialData = useInitialData<SdcpnInitialData>();
   // Initial data is fixed when the conversation is created; the current user
   // delivery carries the changing host context. An absent or malformed
-  // allowance means Off, and absent or malformed words an empty snapshot.
+  // allowance means Off, and absent or malformed words an empty snapshot. A
+  // signal delivery, such as a turn of Ledger comments, carries neither: it
+  // sits outside the interview, and the kept words still apply.
   const delivery = useDelivery();
   const submitted =
     delivery.kind === "user"
@@ -93,7 +95,11 @@ export function PetrinautAgent({ id }: AgentProps) {
     CHAT_MODEL_SPECIFIER,
     chatModelOptions,
     history,
-    { interviewBudget: submitted?.interviewBudget, words },
+    {
+      interviewBudget: submitted?.interviewBudget,
+      words,
+      selection: submitted?.selection,
+    },
   );
   usePetrinautTools(
     initialData
@@ -110,7 +116,7 @@ export function PetrinautAgent({ id }: AgentProps) {
             toolCallId,
             signal,
           }) => {
-            const expected = browserToolMutatesDocument(toolName)
+            const expected = browserToolFacts(toolName).requiresFreshView
               ? expectedNetRevision(
                   await history(),
                   toolCallId,
@@ -120,6 +126,7 @@ export function PetrinautAgent({ id }: AgentProps) {
             if (expected && "refusal" in expected)
               throw new Error(expected.refusal);
             return issueBrowserCall({
+              agentName: PetrinautAgent.agentName,
               instanceId: id,
               toolCallId,
               toolName,

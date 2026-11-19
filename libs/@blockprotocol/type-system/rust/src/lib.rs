@@ -346,7 +346,6 @@ pub mod principal;
 pub mod provenance;
 mod utils;
 
-use alloc::sync::Arc;
 #[cfg(feature = "postgres")]
 use core::error::Error;
 use core::{borrow::Borrow, fmt::Debug, ops::Deref, ptr};
@@ -414,22 +413,6 @@ pub trait Validator<V>: Sync {
     fn validate(&self, value: V) -> Result<Valid<V>, Self::Error> {
         self.validate_ref(&value)?;
         Ok(Valid { value })
-    }
-}
-
-impl<V, T> Validator<Arc<V>> for T
-where
-    V: Send + Sync,
-    T: Validator<V> + Sync,
-{
-    type Error = T::Error;
-
-    fn validate_ref<'v>(&self, value: &'v Arc<V>) -> Result<&'v Valid<Arc<V>>, Self::Error>
-    where
-        V: Sync,
-    {
-        self.validate_ref(value.as_ref())?;
-        Ok(Valid::new_ref_unchecked(value))
     }
 }
 

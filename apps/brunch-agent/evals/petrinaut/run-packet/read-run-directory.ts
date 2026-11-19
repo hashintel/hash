@@ -8,8 +8,8 @@ import {
   type LedgerHistoryMessage,
 } from "@hashintel/brunch-agent";
 
+import { parseBrunchLog } from "../../../src/server/telemetry-readback.ts";
 import { netSizeOf } from "./build-run-packet.ts";
-import { parseChronologyLog } from "./parse-chronology-log.ts";
 
 import type {
   FinalLedgerSummary,
@@ -193,17 +193,17 @@ export const readRunDirectory = async (
   ]);
   const { submissions, events, skippedBatches, skippedEvents } =
     readConversationDb(databasePath);
-  const { entries: chronology, skippedLines } = parseChronologyLog(log);
+  const { chronologies, skipped } = parseBrunchLog(log);
   return {
     label: basename(directory),
     metadata,
     submissions,
     events,
-    chronology,
+    chronology: chronologies,
     skipped: {
       batches: skippedBatches,
       events: skippedEvents,
-      chronologyLines: skippedLines,
+      chronologyLines: skipped.chronologyLines,
     },
     finalLedger: finalLedgerOf(snapshot ?? history),
     finalNet: finalNetOf(net),

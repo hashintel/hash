@@ -6,7 +6,8 @@ import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import {
   InProcessLspWorker,
   preloadLanguageServer,
-} from "../../shared/petrinaut-jsdom";
+} from "@hashintel/brunch-agent/testing/petrinaut-jsdom";
+
 import { renderEditorWith } from "../_shared/testing/render-editor-with";
 import { petrinautAiPlugin } from "./plugin";
 
@@ -14,7 +15,7 @@ import type { PetrinautAiMessage } from "./chat/ai-message";
 
 await vi.hoisted(async () => {
   const { installPetrinautDomShims } =
-    await import("../../shared/petrinaut-jsdom");
+    await import("@hashintel/brunch-agent/testing/petrinaut-jsdom");
   installPetrinautDomShims();
 });
 
@@ -54,7 +55,6 @@ test("the empty-net prompt starts a chat that edits the net, saving the transcri
             name: "Queue",
             colorId: null,
             dynamicsEnabled: false,
-            differentialEquationId: null,
             x: 0,
             y: 0,
           },

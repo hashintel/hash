@@ -9,7 +9,7 @@ version.workspace = true
 [dependencies]
 # Public workspace dependencies
 error-stack = { workspace = true, public = true }
-hash-secret = { workspace = true, public = true }
+hash-crypto = { workspace = true, public = true }
 problematic = { workspace = true, public = true, features = ["axum"] }
 type-system = { workspace = true, public = true }
 
@@ -46,7 +46,7 @@ opentelemetry_sdk  = { workspace = true, features = ["metrics", "testing"] }
 tokio              = { workspace = true, features = ["macros", "rt-multi-thread", "test-util"] }
 tower              = { workspace = true, features = ["util"] }
 tracing-subscriber = { workspace = true, features = ["registry"] }
-uuid               = { workspace = true, features = ["v4"] }
+uuid               = { workspace = true, features = ["std", "v7"] }
 
 [features]
 aide       = ["dep:aide", "problematic/aide"]

@@ -13,12 +13,13 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
+import { useAssistantChoice } from "../../../../plugins/plugin-assistant";
 import { PluginSettingsRows } from "../../../../plugins/plugin-settings-rows";
 import { FocusControls } from "../../../../worksheet/focus-controls";
 import { focusLands } from "../../../../worksheet/focus-flow";
 import { FocusRoot, FocusStack } from "../../../../worksheet/focus-stack";
 import { useFocusMember } from "../../../../worksheet/use-focus-member";
-import { FloatingResizeHandles } from "../../shared/floating-resize-handles";
+import { FloatingResizeHandles } from "../../../shared/floating-resize-handles";
 import { useFloatingPanel } from "../../shared/use-floating-panel";
 import { PluginsSection } from "./user-settings-dialog/plugins-section";
 import { SettingsHeading } from "./user-settings-dialog/settings-heading";
@@ -321,6 +322,38 @@ const SettingToggle = ({
 
 const pluginRowComponents = { Group: SettingsGroup, Row: SettingRow };
 
+const selectStyle = css({ width: "[156px]", maxWidth: "[100%]" });
+
+/** Which plugin's assistant the editor shows, once several provide one. */
+const AssistantGroup = () => {
+  const { assistants, shownId, choose } = useAssistantChoice();
+
+  return assistants.length > 1 && shownId !== undefined ? (
+    <SettingsGroup title="AI assistant">
+      <SettingRow
+        label="Assistant"
+        description="Choose which assistant answers in the AI assistant panel."
+        wideControl
+      >
+        {(aria) => (
+          <Select
+            {...aria}
+            size="sm"
+            className={selectStyle}
+            required
+            value={shownId}
+            onChange={choose}
+            items={assistants.map(({ id, name }) => ({
+              value: id,
+              text: name,
+            }))}
+          />
+        )}
+      </SettingRow>
+    </SettingsGroup>
+  ) : null;
+};
+
 const SettingsTabs = () => {
   const elementRef = useRef<HTMLDivElement>(null);
   const member = useFocusMember(() =>
@@ -484,6 +517,7 @@ export const UserSettingsDialog = ({
                           onChange={settings.setKeepPanelsMounted}
                         />
                       </SettingsGroup>
+                      <AssistantGroup />
                       <PluginSettingsRows
                         section="general"
                         components={pluginRowComponents}
@@ -511,38 +545,6 @@ export const UserSettingsDialog = ({
                           value={settings.enableExperimentalIconPack}
                           onChange={settings.setEnableExperimentalIconPack}
                         />
-                        <SettingToggle
-                          label="Automatic arc connections"
-                          description="Connect node outlines and choose attachment directions automatically."
-                          value={settings.enableAutomaticArcConnections}
-                          onChange={settings.setEnableAutomaticArcConnections}
-                        />
-                        {!settings.enableAutomaticArcConnections && (
-                          <SettingRow
-                            label="Arc rendering"
-                            description="Choose the shape of connections between nodes."
-                            wideControl
-                          >
-                            {(aria) => (
-                              <Select
-                                {...aria}
-                                size="sm"
-                                className={css({
-                                  width: "[156px]",
-                                  maxWidth: "[100%]",
-                                })}
-                                required
-                                value={settings.arcRendering}
-                                onChange={settings.setArcRendering}
-                                items={[
-                                  { value: "smoothstep", text: "Square" },
-                                  { value: "bezier", text: "Bezier" },
-                                  { value: "custom", text: "Adaptive Bezier" },
-                                ]}
-                              />
-                            )}
-                          </SettingRow>
-                        )}
                       </SettingsGroup>
                       <SettingsGroup title="Interaction">
                         <SettingToggle

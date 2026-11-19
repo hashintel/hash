@@ -17,6 +17,7 @@ import {
   initialEditorState,
 } from "./editor-context";
 import { SDCPNContext } from "./sdcpn-context";
+import { useComposesOnly } from "./use-composes-only";
 import { useSyncEditorToSettings } from "./use-sync-editor-to-settings";
 import { UserSettingsContext } from "./user-settings-context";
 
@@ -31,8 +32,22 @@ const selectionFromNavigation = (
 const selectionToNavigation = (selection: SelectionMap) =>
   Array.from(selection.values());
 
+const raiseVisualizer = (state: EditorState, placeId: string): EditorState =>
+  state.visualizerStack.at(-1) === placeId
+    ? state
+    : {
+        ...state,
+        visualizerStack: [
+          ...state.visualizerStack.filter(
+            (visualizerPlaceId) => visualizerPlaceId !== placeId,
+          ),
+          placeId,
+        ],
+      };
+
 export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const userSettings = use(UserSettingsContext);
+  const composesOnly = useComposesOnly();
   const actualMode = use(ActualModeContext);
   const navigation = usePetrinautNavigation();
   const { getItemType, petriNetDefinition } = use(SDCPNContext);
@@ -368,14 +383,13 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       setState((prev) => ({
         ...prev,
         editionMode: mode,
-        componentSubnetId:
-          mode === "add-component" ? prev.componentSubnetId : null,
+        componentToAdd: mode === "add-component" ? prev.componentToAdd : null,
       })),
-    setAddComponentMode: (subnetId) =>
+    setAddComponentMode: (component) =>
       setState((prev) => ({
         ...prev,
         editionMode: "add-component",
-        componentSubnetId: subnetId,
+        componentToAdd: component,
       })),
     setCursorMode: (mode) =>
       setState((prev) => ({ ...prev, cursorMode: mode })),
@@ -451,32 +465,74 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         return selection;
       }),
     clearSelection: () => setSelection(new Map()),
-    // An opened visualizer belongs to the hover that opened it, so both of
-    // these drop it as soon as the pointer is somewhere else.
     setHoveredItem: (item: SelectionItem) =>
       setState((prev) => ({
         ...prev,
         hoveredItem: item,
-        openVisualizerPlaceId:
-          prev.openVisualizerPlaceId === item.id
-            ? prev.openVisualizerPlaceId
-            : null,
       })),
     clearHoveredItem: () =>
       setState((prev) => ({
         ...prev,
         hoveredItem: null,
-        openVisualizerPlaceId: null,
       })),
-    openPlaceVisualizer: (placeId: string) =>
+    openPlaceVisualizer: (placeId: string | null) =>
       setState((prev) => ({ ...prev, openVisualizerPlaceId: placeId })),
-    toggleVisualizerPin: (placeId: string) =>
+    setVisualizerEditorFocus: (placeId: string, focused: boolean) =>
+      setState((previous) => ({
+        ...(focused ? raiseVisualizer(previous, placeId) : previous),
+        focusedVisualizerPlaceId: focused
+          ? placeId
+          : previous.focusedVisualizerPlaceId === placeId
+            ? null
+            : previous.focusedVisualizerPlaceId,
+      })),
+    bringVisualizerToFront: (placeId) =>
+      setState((previous) => raiseVisualizer(previous, placeId)),
+    keepPlaceVisualizerOpen: (placeId: string) =>
+      setState((previous) => {
+        if (previous.keptOpenVisualizerPlaceIds.has(placeId)) return previous;
+        const keptOpenVisualizerPlaceIds = new Set(
+          previous.keptOpenVisualizerPlaceIds,
+        );
+        keptOpenVisualizerPlaceIds.add(placeId);
+        return {
+          ...raiseVisualizer(previous, placeId),
+          keptOpenVisualizerPlaceIds,
+        };
+      }),
+    closePlaceVisualizer: (placeId: string) =>
+      setState((previous) => {
+        const keptOpenVisualizerPlaceIds = new Set(
+          previous.keptOpenVisualizerPlaceIds,
+        );
+        keptOpenVisualizerPlaceIds.delete(placeId);
+        return {
+          ...previous,
+          keptOpenVisualizerPlaceIds,
+          visualizerStack: previous.visualizerStack.filter(
+            (visualizerPlaceId) => visualizerPlaceId !== placeId,
+          ),
+          openVisualizerPlaceId:
+            previous.openVisualizerPlaceId === placeId
+              ? null
+              : previous.openVisualizerPlaceId,
+          focusedVisualizerPlaceId:
+            previous.focusedVisualizerPlaceId === placeId
+              ? null
+              : previous.focusedVisualizerPlaceId,
+          hoveredItem:
+            previous.hoveredItem?.id === placeId ? null : previous.hoveredItem,
+        };
+      }),
+    toggleComponentInstanceFold: (instanceId: string) =>
       setState((prev) => {
-        const pinnedVisualizerPlaceIds = new Set(prev.pinnedVisualizerPlaceIds);
-        if (!pinnedVisualizerPlaceIds.delete(placeId)) {
-          pinnedVisualizerPlaceIds.add(placeId);
+        const unfoldedComponentInstanceIds = new Set(
+          prev.unfoldedComponentInstanceIds,
+        );
+        if (!unfoldedComponentInstanceIds.delete(instanceId)) {
+          unfoldedComponentInstanceIds.add(instanceId);
         }
-        return { ...prev, pinnedVisualizerPlaceIds };
+        return { ...prev, unfoldedComponentInstanceIds };
       }),
     setDraggingStateByNodeId: (draggingState: DraggingStateByNodeId) =>
       setState((prev) => ({ ...prev, draggingStateByNodeId: draggingState })),
@@ -573,8 +629,15 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const selection = selectionFromNavigation(resolved.selection);
   const effectiveState: EditorState = {
     ...state,
-    globalMode: navigation.state.mode,
-    editViewMode: navigation.state.editView,
+    // An editor that only composes has one mode and one view of it, and no
+    // tool that draws a place or a transition: one left armed reads as the
+    // cursor. Placing a component is composing, so that tool stays.
+    globalMode: composesOnly ? "edit" : navigation.state.mode,
+    editViewMode: composesOnly ? "canvas" : navigation.state.editView,
+    editionMode:
+      composesOnly && state.editionMode !== "add-component"
+        ? "cursor"
+        : state.editionMode,
     simulateViewMode: navigation.state.simulateView,
     simulateDrawer: navigationResourceToSimulateDrawer(
       resolved.simulateResource,

@@ -2,10 +2,14 @@
   "extends": ["@tsconfig/bases/node22", "@local/tsconfig/policy.json"],
   "compilerOptions": {
     "isolatedModules": true,
-    "lib": ["ESNext"],
+    "jsx": "react-jsx",
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "module": "preserve",
     "moduleResolution": "bundler",
-    "noEmit": true
+    "noEmit": true,
+    "types": ["node", "vite/client"],
+    // Implicit returns remain in src/server/voice/voice-request-guard.ts, src/ui/chat/ai-assistant-panel.tsx and src/ui/chat/ai-assistant-panel/tool-summaries.ts (TS7030).
+    "noImplicitReturns": false
   },
   "include": ["src"]
 }

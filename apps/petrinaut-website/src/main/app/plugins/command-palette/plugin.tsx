@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useState } from "react";
+import { useState } from "react";
 import { MdKeyboardCommandKey } from "react-icons/md";
 
 import {
@@ -32,26 +32,9 @@ const CommandPalettePlugin = definePetrinautPlugin({
   root: true,
 });
 
-/** Holds whether the palette is open, and binds ⌘K / Ctrl+K to the toggle. */
 const useCommandPalettePlugin: PluginHook<typeof CommandPalettePlugin> = () => {
   const [isOpen, setOpen] = useState(false);
   const toggle = () => setOpen((open) => !open);
-
-  const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
-    if (
-      !event.shiftKey &&
-      !event.altKey &&
-      (event.metaKey || event.ctrlKey) &&
-      event.key.toLowerCase() === "k"
-    ) {
-      event.preventDefault();
-      toggle();
-    }
-  });
-  useEffect(() => {
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
 
   return {
     commands: { toggle: { run: toggle } },

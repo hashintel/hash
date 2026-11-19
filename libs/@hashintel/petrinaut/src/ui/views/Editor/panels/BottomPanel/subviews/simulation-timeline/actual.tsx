@@ -40,8 +40,13 @@ export const ActualTimeline: React.FC<{
   const { currentFrameIndex, scrubToFrame, totalFrames } = source;
   const lastFrameIndex = Math.max(0, totalFrames - 1);
 
+  // An execution reported by the host carries token counts only: no metric
+  // is evaluated on it, and no solver recorded an error.
   useEffect(() => {
-    if (timelineView.kind === "metric") {
+    if (
+      timelineView.kind === "metric" ||
+      timelineView.kind === "solver-error"
+    ) {
       setTimelineView({ kind: "per-place" });
     }
   }, [setTimelineView, timelineView.kind]);

@@ -1,7 +1,7 @@
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { usePlaceTokenCount } from "../../../canvas-frame-store";
+import { usePlaceTokenLabel } from "../../../canvas-frame-store";
 import { nodeFocusStyle } from "../../../styles/focus";
 import { placeBorderColor, placeFillColor } from "../../../styles/type-colors";
 import {
@@ -11,6 +11,7 @@ import {
   nodeCardStyle,
 } from "./node-card";
 import { PlaceStateTooltip } from "./place-state-tooltip";
+import { portPlaceLabels, PortPins } from "./port-pin";
 
 import type { PlaceNodeType } from "./react-flow-types";
 import type { NodeProps } from "@xyflow/react";
@@ -43,6 +44,8 @@ const tokenCountBadgeStyle = css({
   padding: "[0 5px]",
   fontWeight: "semibold",
   fontVariantNumeric: "tabular-nums",
+  // A count across runs reads as a mean and its spread, on one line.
+  whiteSpace: "nowrap",
 });
 
 export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
@@ -52,24 +55,19 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
   selected,
 }: NodeProps<PlaceNodeType>) => {
   // A frame re-renders this place only when its own count moves.
-  const tokenCount = usePlaceTokenCount(id);
+  const tokenLabel = usePlaceTokenLabel(id);
 
-  // Show the visualizer on hover for places that define one, and keep it up
-  // for as long as it is pinned. Before a run it draws the initial marking,
-  // so a net still being built is worth pointing at too.
   const showStateTooltip =
-    data.hasColorType &&
     data.hasVisualizer &&
-    // Dragging the place would carry the box along over the canvas it is
-    // being dropped on, and redraw the visualizer every frame of the drag.
-    !data.dragging &&
-    (data.hovered || data.visualizerPinned);
+    (data.visualizerKeptOpen || data.visualizerActive || selected);
 
   // React Flow marks a node selected as a drag-selection is drawn, before the
   // change reaches the editor's own selection.
   const focus = selected ? "focused" : data.focus;
 
-  const subtitle = data.dynamicsEnabled ? "Place (Dynamics)" : "Place";
+  const kind =
+    data.portDirection === null ? "Place" : portPlaceLabels[data.portDirection];
+  const subtitle = data.dynamicsEnabled ? `${kind} (Dynamics)` : kind;
 
   const typeColorBorder = placeBorderColor(data.typeColor);
 
@@ -100,9 +98,17 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
         title={data.label}
         subtitle={subtitle}
         badge={
-          tokenCount !== null ? (
-            <div className={tokenCountBadgeStyle}>{tokenCount}</div>
-          ) : undefined
+          <>
+            {tokenLabel !== null ? (
+              <div className={tokenCountBadgeStyle}>{tokenLabel}</div>
+            ) : null}
+            {data.portDirection === null ? null : (
+              <PortPins
+                direction={data.portDirection}
+                typeColor={data.typeColor}
+              />
+            )}
+          </>
         }
         isConnectable={isConnectable}
       />

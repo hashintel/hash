@@ -31,7 +31,7 @@ const initialPlace: Place = {
   name: "Orders",
   colorId: "type-1",
   dynamicsEnabled: true,
-  differentialEquationId: "equation-1",
+  dynamics: [{ differentialEquationId: "equation-1" }],
   x: 0,
   y: 0,
 };
@@ -77,7 +77,8 @@ const Harness = ({
                   id: "equation-1",
                   name: "Order aging",
                   colorId: "type-1",
-                  code: "return [];",
+                  code: "return {};",
+                  arity: 1,
                 },
               ],
             },
@@ -158,7 +159,7 @@ describe("Place properties", () => {
   });
 
   it.each([false, true])(
-    "opens the assigned type and equation (read-only: %s)",
+    "opens the assigned type (read-only: %s)",
     (readOnly) => {
       const selectItem = vi.fn();
       render(<Harness readOnly={readOnly} selectItem={selectItem} />);
@@ -166,14 +167,6 @@ describe("Place properties", () => {
       expect(selectItem).toHaveBeenLastCalledWith({
         type: "type",
         id: "type-1",
-      });
-      fireEvent.click(screen.getByRole("button", { name: /View equation/ }));
-      expect(
-        screen.queryByRole("button", { name: "Open equation code" }),
-      ).toBeNull();
-      expect(selectItem).toHaveBeenLastCalledWith({
-        type: "differentialEquation",
-        id: "equation-1",
       });
     },
   );

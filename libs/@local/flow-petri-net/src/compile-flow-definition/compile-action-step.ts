@@ -53,9 +53,7 @@ export const compileActionStep = ({
   const actionDefinition = getActionDefinition(step);
   const subnetName = steps.getSubnetName(step);
 
-  const inputArcs: InputArc[] = [
-    inputArc(placeEndpoint(generatePendingPlaceKey(step.stepId))),
-  ];
+  const valueArcs: (InputArc & { endpoint: ArcEndpoint })[] = [];
 
   const constants: Record<string, JsonValue> = {};
 
@@ -86,7 +84,7 @@ export const compileActionStep = ({
       const arc = values.stepInputArc(step.stepId, inputName);
 
       if (arc) {
-        inputArcs.push(arc);
+        valueArcs.push(arc);
         inputSources[inputName] = connectedValue(arc, source);
       }
     }
@@ -118,6 +116,8 @@ export const compileActionStep = ({
     }
   }
 
+  const runAfterArcs = values.runAfterArcs(step, valueArcs);
+
   const startStepKey = generateStepTransitionKey("startStep", step.stepId);
 
   net.markAbsentInputPorts(startStepKey, absentInputPortIds);
@@ -127,8 +127,23 @@ export const compileActionStep = ({
       id: startStepKey,
       name: `Start ${step.stepId}`,
       description: `Starts step ${step.stepId} once its inputs are available, feeding every input of ${step.actionDefinitionId}: connected values, constants, and absent values for unconnected optional inputs.`,
-      metadata: { role: "startStep", stepId: step.stepId, inputSources },
-      inputArcs,
+      metadata: {
+        role: "startStep",
+        stepId: step.stepId,
+        inputSources,
+        ...(runAfterArcs.length > 0
+          ? {
+              runAfter: runAfterArcs.map(({ endpoint }) =>
+                toPetrinautEndpoint(endpoint),
+              ),
+            }
+          : {}),
+      },
+      inputArcs: [
+        inputArc(placeEndpoint(generatePendingPlaceKey(step.stepId))),
+        ...valueArcs,
+        ...runAfterArcs,
+      ],
       outputArcs: inputPortIds.map((portId) =>
         outputArc(portEndpoint(generateInstanceKey(step.stepId), portId)),
       ),

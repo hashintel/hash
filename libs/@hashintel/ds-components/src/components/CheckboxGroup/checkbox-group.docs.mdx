@@ -1,0 +1,401 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { Fragment } from "react";
+
+import { noop } from "../../util/noop";
+import { DemoState } from "../../../docs/blocks/demo-state";
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import { Form } from "../Form/form";
+import { CheckboxGroup } from "./checkbox-group";
+
+<Meta title="Docs/CheckboxGroup" />
+
+export const meta = {
+  title: "CheckboxGroup",
+  description: "Lets users select any number of options from a visible list.",
+  alternativeNames: ["Checkboxes", "ChoiceList"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/CheckboxGroup/checkbox-group.tsx",
+    stories:
+      "https://tokens.hash.design/?path=/story/components-checkboxgroup--default",
+  },
+  referenceLinks: {
+    apg: "https://www.w3.org/WAI/ARIA/apg/patterns/checkbox/",
+    ark: "https://ark-ui.com/docs/components/checkbox",
+  },
+  related: ["Checkbox", "RadioGroup", "Combobox", "Form"],
+};
+
+# CheckboxGroup
+
+Lets users select any number of options from a visible list.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+<Stage>
+  <DemoState data-harness>
+    <CheckboxGroup
+      aria-label="Entity types to include"
+      items={[
+        { value: "person", label: "Person" },
+        { value: "company", label: "Company" },
+        { value: "project", label: "Project" },
+      ]}
+      value={["person", "company"]}
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <CheckboxGroup
+      aria-label="Notify me about"
+      layout="blockWithBorder"
+      items={[
+        { value: "flow-runs", label: "Flow runs" },
+        { value: "mentions", label: "Mentions and comments" },
+        { value: "type-updates", label: "Entity type updates" },
+      ]}
+      value={["flow-runs", "mentions"]}
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { useState } from "react";
+
+import { CheckboxGroup } from "@hashintel/ds-components";
+
+export const EntityTypeFilter = () => {
+  const [value, setValue] = useState<("person" | "company" | "project")[]>([
+    "person",
+  ]);
+
+  return (
+    <CheckboxGroup
+      aria-label="Entity types"
+      items={[
+        { value: "person", label: "Person" },
+        { value: "company", label: "Company" },
+        { value: "project", label: "Project" },
+      ]}
+      value={value}
+      onChange={setValue}
+    />
+  );
+};
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use CheckboxGroup when users can select any number of options — zero, one, or several — from a visible list.",
+    "Use it for choices that apply on submit or an explicit confirmation or other scenarios where every option should stay visible so that users can review before committing.",
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    "Don't use it when exactly one option must be chosen — use RadioGroup.",
+    "Don't use it for a single on/off choice — use Checkbox alone, or Toggle when the change applies immediately.",
+    <Fragment key="0">
+      Avoid using it for long lists — beyond roughly 7 options, prefer Combobox or Select with{" "}
+      <code>multiple</code>, which scale with search.
+    </Fragment>,
+  ]}
+/>
+
+## Examples
+
+### Basic
+
+CheckboxGroup is controlled: `value` holds the selected option values and `onChange` receives the full next array — there is no uncontrolled mode. Each item takes a unique `value` plus any Checkbox props, such as `label`, `disabled`, or `tone`.
+
+<Stage>
+  <DemoState data-harness>
+    <CheckboxGroup
+      aria-label="Notification channels"
+      items={[
+        { value: "in-app", label: "In-app" },
+        { value: "email", label: "Email" },
+        { value: "slack", label: "Slack" },
+      ]}
+      value={["in-app"]}
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Disabled
+
+Set `disabled` on the group to lock every option, or `disabled: true` on an item to lock just that one. Explain why in nearby text or a tooltip.
+
+<Stage>
+  <CheckboxGroup
+    disabled
+    aria-label="Entity types"
+    items={[
+      { value: "person", label: "Person" },
+      { value: "company", label: "Company" },
+      { value: "project", label: "Project" },
+    ]}
+    value={["person"]}
+    onChange={noop}
+  />
+  <DemoState data-harness>
+    <CheckboxGroup
+      aria-label="Teammate permissions"
+      items={[
+        { value: "view", label: "View entities" },
+        { value: "edit", label: "Edit entities" },
+        { value: "manage-types", label: "Manage types", disabled: true },
+      ]}
+      value={["view"]}
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Invalid
+
+Set `invalid` when validation fails — for example, nothing checked where at least one option is needed. Pair it with an error message; the red border alone doesn't say what's wrong.
+
+<Stage>
+  <DemoState data-harness>
+    <CheckboxGroup
+      invalid
+      aria-label="Entity types to sync"
+      items={[
+        { value: "person", label: "Person" },
+        { value: "company", label: "Company" },
+        { value: "project", label: "Project" },
+      ]}
+      value={[]}
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Layouts
+
+`block` (the default) stacks options for easy scanning. Use `blockWithBorder` for settings-style lists where each option reads as a row, and `inline` for 2–3 short options where vertical space is tight.
+
+<Stage>
+  <DemoState data-harness>
+    <CheckboxGroup
+      layout="block"
+      aria-label="Entity types"
+      items={[
+        { value: "person", label: "Person" },
+        { value: "company", label: "Company" },
+        { value: "project", label: "Project" },
+      ]}
+      value={["person"]}
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <CheckboxGroup
+      layout="blockWithBorder"
+      aria-label="Notify me about"
+      items={[
+        { value: "flow-runs", label: "Flow runs" },
+        { value: "mentions", label: "Mentions and comments" },
+        { value: "type-updates", label: "Entity type updates" },
+      ]}
+      value={["flow-runs"]}
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <CheckboxGroup
+      layout="inline"
+      aria-label="Entity status"
+      items={[
+        { value: "draft", label: "Draft" },
+        { value: "published", label: "Published" },
+        { value: "archived", label: "Archived" },
+      ]}
+      value={["draft", "published"]}
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Sizes
+
+`size` scales the boxes, labels, and spacing together, from `xxs` to `lg`; `md` is the default. Match the size of the surrounding form inputs.
+
+<Stage>
+  <DemoState data-harness>
+    <CheckboxGroup
+      size="xxs"
+      aria-label="xxs"
+      items={[{ value: "xxs", label: "xxs" }]}
+      value={["xxs"]}
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <CheckboxGroup
+      size="xs"
+      aria-label="xs"
+      items={[{ value: "xs", label: "xs" }]}
+      value={["xs"]}
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <CheckboxGroup
+      size="sm"
+      aria-label="sm"
+      items={[{ value: "sm", label: "sm" }]}
+      value={["sm"]}
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <CheckboxGroup
+      size="md"
+      aria-label="md"
+      items={[{ value: "md", label: "md" }]}
+      value={["md"]}
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <CheckboxGroup
+      size="lg"
+      aria-label="lg"
+      items={[{ value: "lg", label: "lg" }]}
+      value={["lg"]}
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Label placement
+
+Set `labelPlacement: "left"` on items to put the label before the box.
+
+<Stage>
+  <DemoState data-harness>
+    <CheckboxGroup
+      layout="blockWithBorder"
+      aria-label="Notification settings"
+      items={[
+        { value: "flow-runs", label: "Flow runs", labelPlacement: "left" },
+        {
+          value: "mentions",
+          label: "Mentions and comments",
+          labelPlacement: "left",
+        },
+        { value: "digest", label: "Weekly digest", labelPlacement: "left" },
+      ]}
+      value={["flow-runs"]}
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Max selectable
+
+`maxSelectable` caps how many options can be checked. At the cap, unchecked options disable; checked ones stay enabled so users can swap a selection. State the limit in the group's description — disabled boxes don't explain themselves.
+
+<Stage>
+  <DemoState data-harness>
+    <CheckboxGroup
+      aria-label="Pinned workspaces"
+      maxSelectable={2}
+      items={[
+        { value: "research", label: "Acme research" },
+        { value: "ops", label: "Acme operations" },
+        { value: "personal", label: "Personal" },
+        { value: "sandbox", label: "Sandbox" },
+      ]}
+      value={["research", "personal"]}
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Required
+
+Set `required` to block native form submission until at least one option is checked: while the selection is empty every option is marked required and the group gets `aria-required`; checking any option clears the constraint.
+
+### With a group label
+
+Wrap the group in `Form.Field` with `as="legend"` to give it a visible label, description, and error messages — `as="legend"` names the whole group rather than a single input.
+
+<Stage>
+  <Form.Field
+    as="legend"
+    label="Notify me about"
+    description="Select all that apply"
+  >
+    <DemoState data-harness>
+      <CheckboxGroup
+        items={[
+          { value: "flow-runs", label: "Flow runs" },
+          { value: "mentions", label: "Mentions and comments" },
+          { value: "type-updates", label: "Entity type updates" },
+        ]}
+        value={["flow-runs"]}
+        onChange={noop}
+      />
+    </DemoState>
+  </Form.Field>
+</Stage>
+
+## Behavior
+
+- `onFocus` and `onBlur` fire only when focus enters or leaves the group as a whole — moving between options doesn't retrigger them.
+- Options share one `name` for form submission, auto-generated unless you pass one. In a native form post, read the selection with `formData.getAll(name)`.
+- `autoFocus` focuses the first option on mount; `"never"` also opts the group out of a containing dialog's or popover's initial focus.
+
+## Content
+
+- Write option labels as short, parallel phrases — sentence case, under 4 words, and with no end punctuation.
+- Phrase options positively — "Send weekly digest", never "Don't send weekly digest" — unchecking a negative is a double-negative.
+- Order options by likely frequency of use, or alphabetically when there's no natural order.
+- When multi-selection isn't obvious, say so in the group's description: "Select all that apply".
+
+## Accessibility
+
+Each option implements the [WAI-ARIA checkbox pattern](https://www.w3.org/WAI/ARIA/apg/patterns/checkbox/), grouped under a single `role="group"` container. Every option is a native checkbox input wrapped in its label, so label clicks toggle them.
+
+### What you must do
+
+- Always name the group: a visible label via `Form.Field` with `as="legend"`, or `aria-label` when the surrounding context already says what the list is.
+- Explain selection caps and disabled options in nearby text — a disabled checkbox doesn't say why it's unusable.
+- Pair `invalid` with an error message, e.g. `Form.Field`'s `errors` — the red border alone isn't perceivable by everyone.
+
+## API reference
+
+<PropsTable
+  of={CheckboxGroup}
+  defaults={{
+    layout: '"block"',
+    size: '"md"',
+  }}
+/>

@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { act, renderHook } from "@testing-library/react";
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 
 import {
   canonicalizePetrinautIds,
@@ -58,7 +58,6 @@ const drawnNet: SDCPN = {
       name: "Susceptible",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     },
@@ -182,6 +181,50 @@ describe("startEmptyNetInStorage", () => {
       [drawnNetId, "net-foreign", net.id].sort(),
     );
     expect(nets["net-foreign"]).toStrictEqual(foreignEntry);
+  });
+
+  test("keeps an entry whose net this version cannot read, without listing it", () => {
+    // A place another version of the editor wrote, with a dynamics term that
+    // names no equation: canonicalizing its ids throws on the missing field.
+    const foreignVersionNet = {
+      ...drawnNet,
+      places: [
+        {
+          id: "p-foreign",
+          name: "Foreign",
+          colorId: null,
+          dynamicsEnabled: false,
+          dynamics: [{}],
+          x: 0,
+          y: 0,
+        },
+      ],
+    } as unknown as SDCPN;
+    const foreignVersionEntry = {
+      id: "net-foreign-version",
+      title: "From another version",
+      lastUpdated: "2030-01-01T00:00:00.000Z",
+      sdcpn: foreignVersionNet,
+    };
+    const storage = createStorage(
+      JSON.stringify({
+        ...Object.fromEntries([storedNet(drawnNetId, drawnNet)]),
+        "net-foreign-version": foreignVersionEntry,
+      }),
+    );
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    // Latest by date, yet never opened: the drawn net is what `/` opens.
+    expect(latestOrNewNetInStorage(storage).id).toBe(drawnNetId);
+    const net = startEmptyNetInStorage(storage);
+
+    const nets = readNets(storage);
+    expect(Object.keys(nets).sort()).toStrictEqual(
+      [drawnNetId, "net-foreign-version", net.id].sort(),
+    );
+    expect(nets["net-foreign-version"]).toStrictEqual(foreignVersionEntry);
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
   });
 
   test("replaces content it cannot parse", () => {

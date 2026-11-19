@@ -7,7 +7,11 @@ import {
   DEFAULT_PROPERTIES_PANEL_WIDTH,
 } from "./panel-defaults";
 
-import type { SelectionItem, SelectionMap } from "@hashintel/petrinaut-core";
+import type {
+  ComponentReference,
+  SelectionItem,
+  SelectionMap,
+} from "@hashintel/petrinaut-core";
 
 export type DraggingStateByNodeId = Record<
   string,
@@ -22,13 +26,20 @@ type EditorEditionMode =
   | "add-transition"
   | "add-component";
 export type CursorMode = "select" | "pan";
+/**
+ * A tab a plugin adds to the bottom panel. Its id holds a dot, which the id
+ * of none of the editor's own tabs does.
+ */
+export type PluginBottomPanelTab = `${string}.${string}`;
+
 export type BottomPanelTab =
   | "compilation"
   | "diagnostics"
   | "simulation-settings"
   | "actual-events"
   | "actual-timeline"
-  | "simulation-timeline";
+  | "simulation-timeline"
+  | PluginBottomPanelTab;
 
 export type TimelineChartType = "run" | "stacked";
 
@@ -60,12 +71,16 @@ export type EditorNavigationTarget = {
  * - `per-transition`: a series per transition, plotting its cumulative
  *   firing count over time.
  * - `metric`: a single series computed by a user-authored metric function.
+ * - `solver-error`: a series per place with dynamics, the error the adaptive
+ *   solver has accumulated for it, recorded at the events of a run. Offered
+ *   only while the selected simulator can produce it.
  */
 export type TimelineView =
   | { kind: "per-place" }
   | { kind: "per-type" }
   | { kind: "per-transition" }
-  | { kind: "metric"; metricId: string };
+  | { kind: "metric"; metricId: string }
+  | { kind: "solver-error" };
 
 /**
  * The state values for the editor.
@@ -90,25 +105,25 @@ export type EditorState = {
   aiAssistantPlacement: "docked" | "floating";
   isAiAssistantCollapsed: boolean;
   activeBottomPanelTab: BottomPanelTab;
-  componentSubnetId: string | null;
+  /** The component the next click on the canvas places an instance of. */
+  componentToAdd: ComponentReference | null;
   selection: SelectionMap;
   /** Whether any items are currently selected. */
   hasSelection: boolean;
   /** The item currently being hovered, if any. */
   hoveredItem: SelectionItem | null;
+  /** Windows explicitly kept open, independently of their positioning mode. */
+  keptOpenVisualizerPlaceIds: Set<string>;
+  /** Visualizer place IDs ordered from back to front. */
+  visualizerStack: string[];
   /**
-   * Places whose state visualizer is pinned open on the canvas. A pinned
-   * visualizer stays up when the pointer leaves the place, so it can be
-   * watched while the timeline is scrubbed or the initial state edited.
+   * Component instances whose ports are unfolded on the canvas. A component
+   * with many ports starts folded, its wires meeting the card's edges.
    */
-  pinnedVisualizerPlaceIds: Set<string>;
-  /**
-   * The place whose state visualizer has been opened from the button that
-   * pointing at a place offers. It belongs to that hover: moving the pointer
-   * to another place, or off the canvas, closes it again. Pinning is what
-   * outlasts a hover.
-   */
+  unfoldedComponentInstanceIds: Set<string>;
+  /** The temporary hover or keyboard preview. */
   openVisualizerPlaceId: string | null;
+  focusedVisualizerPlaceId: string | null;
   draggingStateByNodeId: DraggingStateByNodeId;
   timelineChartType: TimelineChartType;
   /**
@@ -155,7 +170,7 @@ export type EditorActions = {
   toggleBottomPanel: () => void;
   setBottomPanelHeight: (height: number) => void;
   setActiveBottomPanelTab: (tab: BottomPanelTab) => void;
-  setAddComponentMode: (subnetId: string) => void;
+  setAddComponentMode: (component: ComponentReference) => void;
   /** Check whether a given ID is in the current selection. */
   isSelected: (id: string) => boolean;
   setSelection: (
@@ -169,10 +184,14 @@ export type EditorActions = {
   clearSelection: () => void;
   setHoveredItem: (item: SelectionItem) => void;
   clearHoveredItem: () => void;
-  /** Pin a place's state visualizer open, or release it. */
-  toggleVisualizerPin: (placeId: string) => void;
-  /** Open a place's state visualizer for the hover it is part of. */
-  openPlaceVisualizer: (placeId: string) => void;
+  keepPlaceVisualizerOpen: (placeId: string) => void;
+  closePlaceVisualizer: (placeId: string) => void;
+  bringVisualizerToFront: (placeId: string) => void;
+  /** Unfold a component instance's ports on the canvas, or fold them again. */
+  toggleComponentInstanceFold: (instanceId: string) => void;
+  /** Show or dismiss a temporary preview. */
+  openPlaceVisualizer: (placeId: string | null) => void;
+  setVisualizerEditorFocus: (placeId: string, focused: boolean) => void;
   setDraggingStateByNodeId: (state: DraggingStateByNodeId) => void;
   updateDraggingStateByNodeId: (
     updater: (state: DraggingStateByNodeId) => DraggingStateByNodeId,
@@ -211,12 +230,15 @@ export const initialEditorState: EditorState = {
   aiAssistantPlacement: "docked",
   isAiAssistantCollapsed: false,
   activeBottomPanelTab: "diagnostics",
-  componentSubnetId: null,
+  componentToAdd: null,
   selection: new Map(),
   hasSelection: false,
   hoveredItem: null,
-  pinnedVisualizerPlaceIds: new Set<string>(),
+  keptOpenVisualizerPlaceIds: new Set<string>(),
+  visualizerStack: [],
+  unfoldedComponentInstanceIds: new Set<string>(),
   openVisualizerPlaceId: null,
+  focusedVisualizerPlaceId: null,
   draggingStateByNodeId: {},
   timelineChartType: "run",
   timelineView: { kind: "per-place" },
@@ -256,8 +278,12 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   clearSelection: () => {},
   setHoveredItem: () => {},
   clearHoveredItem: () => {},
-  toggleVisualizerPin: () => {},
+  keepPlaceVisualizerOpen: () => {},
+  closePlaceVisualizer: () => {},
+  bringVisualizerToFront: () => {},
+  toggleComponentInstanceFold: () => {},
   openPlaceVisualizer: () => {},
+  setVisualizerEditorFocus: () => {},
   setDraggingStateByNodeId: () => {},
   updateDraggingStateByNodeId: () => {},
   resetDraggingState: () => {},

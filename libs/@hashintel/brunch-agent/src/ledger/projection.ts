@@ -5,7 +5,11 @@
  * it as a document.
  */
 
-export type { LedgerState, ReflectionRecord } from "./projection/records";
+export type {
+  CommentRecord,
+  LedgerState,
+  ReflectionRecord,
+} from "./projection/records";
 export {
   projectLedger,
   type LedgerProjection,

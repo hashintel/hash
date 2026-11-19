@@ -58,7 +58,7 @@ export const make = Effect.fn("make")(function* <E, R>(
     subsystem,
     procedure,
     body,
-  }) as Request<E, R>;
+  });
 });
 
 interface Scratch {
@@ -124,13 +124,14 @@ const pack = <E, R>(
     if (noDelay) {
       return pipe(
         stream,
-        Stream.mapConcat((buffer) => {
+        Stream.map((buffer) => {
           const [remaining, output] = splitBuffer(makeScratch(), buffer);
 
           output.push(remaining.buffer.slice(0, remaining.length));
 
           return output;
         }),
+        Stream.flattenIterable,
       );
     }
 
@@ -138,7 +139,7 @@ const pack = <E, R>(
 
     return pipe(
       stream,
-      Stream.mapConcatEffect((buffer) =>
+      Stream.mapEffect((buffer) =>
         Effect.gen(function* () {
           const [newScratch, output] = splitBuffer(
             yield* Ref.get(scratch),
@@ -150,6 +151,7 @@ const pack = <E, R>(
           return output;
         }),
       ),
+      Stream.flattenIterable,
       Stream.concat(
         Stream.fromIterableEffect(
           Effect.suspend(() =>

@@ -155,7 +155,7 @@ interface Captured {
 /** Stubs global fetch with canned routes, recording each path and JSON body. */
 const stubTransport = (routes: Record<string, () => Response>): Captured[] => {
   const captured: Captured[] = [];
-  vi.stubGlobal("fetch", ((url: string, init?: RequestInit) => {
+  vi.stubGlobal("fetch", (url: string, init?: RequestInit) => {
     const path = new URL(url, BASE).pathname;
     captured.push({
       path,
@@ -166,7 +166,7 @@ const stubTransport = (routes: Record<string, () => Response>): Captured[] => {
     });
     const route = routes[path];
     return Promise.resolve(route === undefined ? notFound() : route());
-  }) as typeof fetch);
+  });
   return captured;
 };
 

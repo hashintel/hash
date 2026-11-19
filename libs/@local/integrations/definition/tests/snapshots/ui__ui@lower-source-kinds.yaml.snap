@@ -1,5 +1,6 @@
 ---
 source: libs/@local/integrations/definition/tests/ui.rs
+assertion_line: 34
 expression: render(&text)
 input_file: libs/@local/integrations/definition/tests/ui/lower-source-kinds.yaml
 ---
@@ -11,8 +12,8 @@ input_file: libs/@local/integrations/definition/tests/ui/lower-source-kinds.yaml
 7:3: sources.both_unresolved: `sql`, `checkpoint` cannot be used together
 9:17: sources.both_unresolved.checkpoint: `${UNKNOWN}` is not declared in `vars`
 10:17: sources.both_unresolved.primaryKey: primary key has no columns
-11:3: sources.neither_invalid: needs one of `sql`, `checkpoint`
+11:3: sources.neither_invalid: needs one of `sql`, `checkpoint`, `local`, `postgres`, `redshift`, `rest`
 12:17: sources.neither_invalid.primaryKey: primary key lists `id` more than once
 12:22: sources.neither_invalid.primaryKey[1]: `` is not a valid name: name is empty
-13:3: sources.neither_empty: needs one of `sql`, `checkpoint`
+13:3: sources.neither_empty: needs one of `sql`, `checkpoint`, `local`, `postgres`, `redshift`, `rest`
 14:17: sources.neither_empty.primaryKey: primary key has no columns

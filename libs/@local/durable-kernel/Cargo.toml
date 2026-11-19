@@ -27,12 +27,12 @@ time            = { workspace = true, public = true, features = ["formatting", "
 tokio           = { workspace = true, public = true, features = ["macros", "rt", "sync", "time"] }
 
 # Private workspace dependencies
+hash-crypto = { workspace = true }
 
 # Private third-party dependencies
 derive_more    = { workspace = true, features = ["display", "error"] }
 futures-util   = { workspace = true }
 opendata-log   = { workspace = true }
-sha2           = { workspace = true }
 simple-mermaid = { workspace = true }
 slatedb        = { workspace = true }
 tokio-util     = { workspace = true, features = ["rt"] }

@@ -33,6 +33,12 @@ const getDiagnosticEntityLabel = (uri: string, definition: SDCPN) => {
     return `Differential Equation: ${differentialEquation?.name ?? parsed.itemId}`;
   }
 
+  if (parsed.itemType === "place-visualizer") {
+    const place = definition.places.find((item) => item.id === parsed.itemId);
+
+    return `Place: ${place?.name ?? parsed.itemId} visualizer`;
+  }
+
   const transition = definition.transitions.find(
     (item) => item.id === parsed.itemId,
   );

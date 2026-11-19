@@ -12,7 +12,6 @@ const externalDependencies = [
   /^react(\/.*)?$/,
   /^react-dom(\/.*)?$/,
   "@xyflow/react",
-  "@babel/standalone",
   // Pure-CJS dep pulled in transitively by @tanstack/react-form →
   // @tanstack/react-store. Rolldown can't safely transform its
   // `require("react")` when react is external, so it falls back to a
@@ -53,13 +52,7 @@ export default defineConfig(({ command }) => ({
       formats: ["es"],
     },
     rolldownOptions: {
-      external: (id, importer) =>
-        isExternalDependency(id) ||
-        // Keep the AI SDK's transitive declaration graph out of Petrinaut's
-        // bundled types without externalizing its runtime JavaScript.
-        (id === "ai" &&
-          importer !== undefined &&
-          declarationFilePattern.test(importer)),
+      external: (id) => isExternalDependency(id),
     },
     sourcemap: true,
     minify: true,

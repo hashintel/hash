@@ -1,6 +1,8 @@
 import { getArcEndpoint } from "./arc-endpoints";
+import { componentOf, resolveComponent } from "./composition/interfaces";
 import { cloneAdHocScenarioState } from "./simulation/authoring/scenario/ad-hoc/ad-hoc-actions";
 
+import type { ResolvedLibraries } from "./composition/libraries";
 import type {
   ComponentInstance,
   InputArc,
@@ -117,12 +119,14 @@ type NetWithComponentInstances = {
 
 type ArcPlaceResolverOptions = {
   componentPortsEnabled?: boolean;
+  /** The libraries the document's imports resolved to: the ports of their components resolve too. */
+  libraries?: ResolvedLibraries;
 };
 
 export const createArcPlaceResolver = (
   sdcpn: SDCPN,
   net: NetWithComponentInstances = sdcpn,
-  { componentPortsEnabled = true }: ArcPlaceResolverOptions = {},
+  { componentPortsEnabled = true, libraries }: ArcPlaceResolverOptions = {},
 ): ((arc: InputArc | OutputArc) => SDCPNPlace | undefined) => {
   const placeById = new Map(net.places.map((place) => [place.id, place]));
   const subnetById = new Map(
@@ -143,7 +147,9 @@ export const createArcPlaceResolver = (
     }
 
     const instance = instanceById.get(endpoint.componentInstanceId);
-    const subnet = instance ? subnetById.get(instance.subnetId) : undefined;
+    const subnet = instance
+      ? resolveComponent(sdcpn, componentOf(instance), libraries, subnetById)
+      : undefined;
 
     return subnet?.places.find(
       (place) => place.id === endpoint.portPlaceId && place.isPort,
@@ -154,6 +160,33 @@ export const createArcPlaceResolver = (
 const isComponentPortArc = (arc: InputArc | OutputArc): boolean =>
   getArcEndpoint(arc).kind === "componentPort";
 
+/**
+ * A test for an arc that reaches a port of a component of an import that is
+ * not among `libraries`. What such a port carries cannot be told, so it
+ * counts as typed: code written for it is kept until its library is read.
+ */
+const createUnreadPortTest = (
+  net: NetWithComponentInstances,
+  { componentPortsEnabled = true, libraries }: ArcPlaceResolverOptions = {},
+): ((arc: InputArc | OutputArc) => boolean) => {
+  const unreadInstanceIds = new Set(
+    (net.componentInstances ?? [])
+      .filter(
+        ({ component }) =>
+          component !== undefined && libraries?.has(component.from) !== true,
+      )
+      .map(({ id }) => id),
+  );
+  return (arc) => {
+    const endpoint = getArcEndpoint(arc);
+    return (
+      componentPortsEnabled &&
+      endpoint.kind === "componentPort" &&
+      unreadInstanceIds.has(endpoint.componentInstanceId)
+    );
+  };
+};
+
 export const hasTypedNonInhibitorInputPlace = (
   transition: SDCPN["transitions"][number],
   sdcpn: SDCPN,
@@ -161,13 +194,14 @@ export const hasTypedNonInhibitorInputPlace = (
   options?: ArcPlaceResolverOptions,
 ): boolean => {
   const resolveArcPlace = createArcPlaceResolver(sdcpn, net, options);
+  const isUnreadPort = createUnreadPortTest(net, options);
 
   return transition.inputArcs.some((arc) => {
     if (arc.type === "inhibitor") {
       return false;
     }
 
-    return resolveArcPlace(arc)?.colorId != null;
+    return resolveArcPlace(arc)?.colorId != null || isUnreadPort(arc);
   });
 };
 
@@ -178,9 +212,10 @@ const hasTypedOutputPlace = (
   options?: ArcPlaceResolverOptions,
 ): boolean => {
   const resolveArcPlace = createArcPlaceResolver(sdcpn, net, options);
+  const isUnreadPort = createUnreadPortTest(net, options);
 
   return transition.outputArcs.some(
-    (arc) => resolveArcPlace(arc)?.colorId != null,
+    (arc) => resolveArcPlace(arc)?.colorId != null || isUnreadPort(arc),
   );
 };
 
@@ -189,11 +224,13 @@ export const isTransitionLambdaAvailable = (
   sdcpn: SDCPN,
   extensions: PetrinautExtensionSettings,
   net: NetWithComponentInstances = sdcpn,
+  libraries?: ResolvedLibraries,
 ): boolean =>
   extensions.stochasticity ||
   (extensions.colors &&
     hasTypedNonInhibitorInputPlace(transition, sdcpn, net, {
       componentPortsEnabled: extensions.subnets,
+      libraries,
     }));
 
 export const isTransitionKernelAvailable = (
@@ -201,23 +238,32 @@ export const isTransitionKernelAvailable = (
   sdcpn: SDCPN,
   extensions: PetrinautExtensionSettings,
   net: NetWithComponentInstances = sdcpn,
+  libraries?: ResolvedLibraries,
 ): boolean =>
   extensions.colors &&
   hasTypedOutputPlace(transition, sdcpn, net, {
     componentPortsEnabled: extensions.subnets,
+    libraries,
   });
 
+/**
+ * Which of a transition's code a user can write. `libraries` are the ones
+ * the document's imports resolved to: without them, a port of a component of
+ * an import counts as no place.
+ */
 export const getTransitionLogicAvailability = (
   transition: SDCPN["transitions"][number],
   sdcpn: SDCPN,
   extensions: PetrinautExtensionSettings,
   net: NetWithComponentInstances = sdcpn,
+  libraries?: ResolvedLibraries,
 ): TransitionLogicAvailability => {
   const predicateLambda =
     extensions.stochasticity ||
     (extensions.colors &&
       hasTypedNonInhibitorInputPlace(transition, sdcpn, net, {
         componentPortsEnabled: extensions.subnets,
+        libraries,
       }));
   const stochasticLambda = extensions.stochasticity;
 
@@ -230,6 +276,7 @@ export const getTransitionLogicAvailability = (
       sdcpn,
       extensions,
       net,
+      libraries,
     ),
   };
 };
@@ -263,7 +310,7 @@ export const isSelectionTypeAvailableForExtensions = (
   if (type === "parameter") {
     return extensions.parameters;
   }
-  if (type === "componentInstance") {
+  if (type === "componentInstance" || type === "fusion") {
     return extensions.subnets;
   }
   return true;
@@ -279,15 +326,16 @@ export const sanitizePlaceForExtensions = <
     return place;
   }
 
-  return {
+  const sanitized: Place = {
     ...place,
     colorId: extensions.colors ? place.colorId : null,
     dynamicsEnabled: canUseDynamics(extensions) ? place.dynamicsEnabled : false,
-    differentialEquationId: canUseDynamics(extensions)
-      ? place.differentialEquationId
-      : null,
     visualizerCode: extensions.colors ? place.visualizerCode : undefined,
   };
+  if (!canUseDynamics(extensions)) {
+    delete sanitized.dynamics;
+  }
+  return sanitized;
 };
 
 export const sanitizeTransitionForExtensions = <
@@ -297,12 +345,14 @@ export const sanitizeTransitionForExtensions = <
   sdcpn: SDCPN,
   extensions: PetrinautExtensionSettings,
   net: NetWithComponentInstances = sdcpn,
+  libraries?: ResolvedLibraries,
 ): Transition => {
   const availability = getTransitionLogicAvailability(
     transition,
     sdcpn,
     extensions,
     net,
+    libraries,
   );
   const lambdaType = getEffectiveTransitionLambdaType(transition, availability);
 
@@ -332,6 +382,7 @@ type SanitizableNet = Pick<
   "places" | "transitions" | "types" | "differentialEquations" | "parameters"
 > & {
   componentInstances?: SDCPN["componentInstances"];
+  fusions?: SDCPN["fusions"];
 };
 
 const stripDisabledExtensionDataFromNet = (
@@ -356,6 +407,14 @@ const stripDisabledExtensionDataFromNet = (
     if (!extensions.colors) {
       delete place.visualizerCode;
     }
+    if (!canUseDynamics(extensions)) {
+      delete place.dynamics;
+    }
+  }
+
+  if (!extensions.subnets && net.fusions !== undefined) {
+    const targetNet = net;
+    delete targetNet.fusions;
   }
 
   for (const transition of net.transitions) {
@@ -407,6 +466,28 @@ const cloneComponentInstances = (
   componentInstances?.map((instance) => ({
     ...instance,
     parameterValues: { ...instance.parameterValues },
+    ...(instance.component === undefined
+      ? {}
+      : { component: { ...instance.component } }),
+    ...(instance.implementation === undefined
+      ? {}
+      : { implementation: { ...instance.implementation } }),
+  }));
+
+/** A copy that shares nothing with `place`; `dynamics` stays absent when absent. */
+const clonePlace = (place: SDCPNPlace): SDCPNPlace => ({
+  ...place,
+  ...(place.dynamics === undefined
+    ? {}
+    : { dynamics: place.dynamics.map((term) => ({ ...term })) }),
+});
+
+const cloneFusions = (
+  fusions: NonNullable<SDCPN["fusions"]>,
+): NonNullable<SDCPN["fusions"]> =>
+  fusions.map((fusion) => ({
+    ...fusion,
+    members: fusion.members.map((member) => ({ ...member })),
   }));
 
 const cloneSubnet = (
@@ -415,7 +496,7 @@ const cloneSubnet = (
   const next: NonNullable<SDCPN["subnets"]>[number] = {
     id: subnet.id,
     name: subnet.name,
-    places: subnet.places.map((place) => ({ ...place })),
+    places: subnet.places.map(clonePlace),
     transitions: subnet.transitions.map((transition) => ({
       ...transition,
       inputArcs: transition.inputArcs.map((arc) => ({ ...arc })),
@@ -441,10 +522,30 @@ const cloneSubnet = (
     next.metadata = { ...subnet.metadata };
   }
 
+  if (subnet.interface) {
+    next.interface = true;
+  }
+
+  if (subnet.implements) {
+    next.implements = [...subnet.implements];
+  }
+
+  if (subnet.iconSvg !== undefined) {
+    next.iconSvg = subnet.iconSvg;
+  }
+
+  if (subnet.displayColor !== undefined) {
+    next.displayColor = subnet.displayColor;
+  }
+
   if (subnet.componentInstances) {
     next.componentInstances = cloneComponentInstances(
       subnet.componentInstances,
     );
+  }
+
+  if (subnet.fusions) {
+    next.fusions = cloneFusions(subnet.fusions);
   }
 
   return next;
@@ -454,20 +555,18 @@ const cloneSubnet = (
  * Produce a sanitized deep copy of an SDCPN with data for disabled extensions
  * stripped out.
  *
- * The optional keys (`description`, `metadata`, `scenarios`, `metrics`,
- * `subnets`, `componentInstances`) are only set when they are present on the
- * source. Writing them
- * unconditionally would leave them present with a value of `undefined`, which
- * is not the same shape as a definition loaded back from JSON — where absent
- * keys stay absent — and would make `isSDCPNEqual` report an untouched net as
- * changed.
+ * The optional keys are only set when they are present on the source. Writing
+ * them unconditionally would leave them present with a value of `undefined`,
+ * which is not the same shape as a definition loaded back from JSON — where
+ * absent keys stay absent — and would make `isSDCPNEqual` report an untouched
+ * net as changed.
  */
 export const sanitizeSDCPNForExtensions = (
   sdcpn: SDCPN,
   extensions: PetrinautExtensionSettings,
 ): SDCPN => {
   const next: SDCPN = {
-    places: sdcpn.places.map((place) => ({ ...place })),
+    places: sdcpn.places.map(clonePlace),
     transitions: sdcpn.transitions.map((transition) => ({
       ...transition,
       inputArcs: transition.inputArcs.map((arc) => ({ ...arc })),
@@ -524,6 +623,10 @@ export const sanitizeSDCPNForExtensions = (
     next.metrics = sdcpn.metrics.map((metric) => ({ ...metric }));
   }
 
+  if (sdcpn.imports) {
+    next.imports = sdcpn.imports.map((entry) => ({ ...entry }));
+  }
+
   if (sdcpn.subnets) {
     next.subnets = sdcpn.subnets.map(cloneSubnet);
   }
@@ -532,11 +635,24 @@ export const sanitizeSDCPNForExtensions = (
     next.componentInstances = cloneComponentInstances(sdcpn.componentInstances);
   }
 
+  if (sdcpn.fusions) {
+    next.fusions = cloneFusions(sdcpn.fusions);
+  }
+
+  if (sdcpn.implementations) {
+    next.implementations = sdcpn.implementations.map((entry) => ({
+      interface: { ...entry.interface },
+      component: { ...entry.component },
+    }));
+  }
+
   stripDisabledExtensionData(next, extensions);
 
   if (!extensions.subnets) {
+    delete next.imports;
     delete next.subnets;
     delete next.componentInstances;
+    delete next.implementations;
   }
 
   return next;

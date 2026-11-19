@@ -13,25 +13,31 @@ import {
 
 import { cx } from "@hashintel/ds-helpers/css";
 
-import { resolveAutoFocusProps } from "../../util/form-shared";
-import { OverflowRow } from "../../util/OverflowRow/overflow-row";
-import { parkedPopperPositioner } from "../../util/popper-positioner";
-import { usePortalContainerRef } from "../../util/portal-container-context";
-import { hasMultiItemSuffix } from "../../util/SelectableList/has-multi-item-suffix";
+import { OverflowRow } from "../../primitives/OverflowRow/overflow-row";
+import { hasMultiItemSuffix } from "../../primitives/SelectableList/has-multi-item-suffix";
 import {
   SelectableList,
   type Item,
   type ItemOrGroup,
-} from "../../util/SelectableList/selectable-list";
-import { MultiItemSuffix } from "../../util/SelectableList/selectable-list-multi-suffix";
-import { SelectableListSearch } from "../../util/SelectableList/selectable-list-search";
-import { searchEmpty } from "../../util/SelectableList/selectable-list-search.recipe";
-import { SelectableListSelectionSummary } from "../../util/SelectableList/selectable-list-selection-summary";
+} from "../../primitives/SelectableList/selectable-list";
+import { MultiItemSuffix } from "../../primitives/SelectableList/selectable-list-multi-suffix";
+import { SelectableListSearch } from "../../primitives/SelectableList/selectable-list-search";
+import { searchEmpty } from "../../primitives/SelectableList/selectable-list-search.recipe";
+import { SelectableListSelectionSummary } from "../../primitives/SelectableList/selectable-list-selection-summary";
 import {
+  type CollapsibleExpansion,
+  type CollapsibleFolder,
+  type NotCollapsible,
+  collectSelectedAncestorIds,
+  flattenVisibleItems,
   getItemId,
   getVisibleTabbables,
-  isCustomItem,
-} from "../../util/SelectableList/selectable-list-util";
+  useCollapsibleExpansion,
+} from "../../primitives/SelectableList/selectable-list-util";
+import { resolveAutoFocusProps } from "../../util/form-shared";
+import { hasCaretModifier, hasCommandModifier } from "../../util/keyboard";
+import { parkedPopperPositioner } from "../../util/popper-positioner";
+import { usePortalContainerRef } from "../../util/portal-container-context";
 import { useFieldId } from "../Form/field-id-context";
 import { Icon } from "../Icon/icon";
 import { LoadingSpinner } from "../Loading/loading-spinner";
@@ -45,14 +51,33 @@ import type {
 } from "../../util/form-shared";
 import type { IconName } from "../Icon/icon";
 
-export type SelectItem<TValue extends string = string> = {
+type SelectItemBase<TValue extends string> = {
+  /** Identifies the option; reported to `onChange` when selected */
   value: TValue;
-  text: string; // Visible label
+  /** The option's visible label — shown in the trigger while selected, and matched by search and typeahead */
+  text: string;
+  /** Prevents selecting the option */
   disabled?: boolean;
 };
 
+export type SelectItem<TValue extends string = string> =
+  SelectItemBase<TValue> &
+    (NotCollapsible | CollapsibleFolder<SelectItem<TValue>>);
+
+// Docs-only markers: render nothing, exist so react-docgen can surface the
+// `items` entry shapes in the docs prop tables.
+export const SelectItemDoc = (_props: SelectItem): null => null;
+export const SelectGroupDoc = (_props: {
+  /** Identifies the group */
+  id: string;
+  /** Rendered as an uppercase label above the group's options; an empty string draws a plain divider */
+  label: React.ReactNode;
+  /** The group's options; groups don't nest */
+  items: SelectItem[];
+}): null => null;
+
 export type MultiSelectItem<TValue extends string = string> =
-  SelectItem<TValue> & {
+  SelectItemBase<TValue> & {
     /** Optional content aligned to the right of the item in the dropdown */
     suffix?: React.ReactNode;
     /** Show an "Only" button while the item is hovered, which sets the selection to just this item. It renders in the suffix position, replacing `suffix` while visible. */
@@ -61,28 +86,30 @@ export type MultiSelectItem<TValue extends string = string> =
     // to `checkbox`; selectedTone: the indicator's tone (checkbox fill, tick
     // or highlight color), defaulting to `neutral`. Named after the list
     // `Item` fields they map onto, matching MultiComboboxItem.
-  } & Pick<Item, "selectedStyle" | "selectedTone">;
+  } & Pick<Item, "selectedStyle" | "selectedTone"> &
+    (NotCollapsible | CollapsibleFolder<MultiSelectItem<TValue>>);
+
+export const MultiSelectItemDoc = (_props: MultiSelectItem): null => null;
 
 type SelectBaseProps<TValue extends string> = {
-  /** An optional placeholder shown when no value is selected */
   placeholder?: string;
-  /** Disable editing of the input. Unlike disabled this strips the input styles and displays the value as text */
+  /** Whether editing is disabled. Unlike `disabled`, strips the input styles and renders the value as plain text. */
   readonly?: boolean;
-  /** Whether the input is in a loading state */
+  /** Whether a loading spinner is shown inside the input. */
   loading?: boolean;
-  /** subtle inputs have no border and display similarly to inline text; naked inputs strip all input chrome — no border, padding, hover or focus styles — and inherit the surrounding text styles regardless of `size` (which still sizes the dropdown list). The host is responsible for any focus affordance around a naked select. */
+  /** The input's visual style: `subtle` removes the border so it reads as inline text; `naked` strips all input chrome and inherits the surrounding text styles (`size` then only affects the dropdown). */
   variant?: "default" | "subtle" | "naked";
-  /** set the alignment of the text in the input */
+  /** The alignment of the text inside the input. */
   align?: "left" | "center" | "right";
   /** A set of standard widths to choose for the input. You can also set the width with css when aligning with other inputs is not required. */
   width?: FormInputWidth;
   /** Hide the dropdown arrow */
   hideArrow?: boolean;
-  /** Optional element or button to include at the beginning of an input */
+  /** Element rendered at the start of the input. */
   prefix?: Prefix;
-  /** Show the input as connected to another input. To connect 2 inputs, both connectToLeftInput and connectToRightInput should be enabled on both connected inputs. subtle inputs + readonly inputs will not be connected */
+  /** Whether this input renders as connected to the input on its left. Set the matching prop on both inputs; `subtle` and `readonly` inputs are never connected. */
   connectToLeftInput?: boolean;
-  /** Show the input as connected to another input. To connect 2 inputs, both connectToLeftInput and connectToRightInput should be enabled on both connected inputs. subtle inputs + readonly inputs will not be connected */
+  /** Whether this input renders as connected to the input on its right. Set the matching prop on both inputs; `subtle` and `readonly` inputs are never connected. */
   connectToRightInput?: boolean;
   onClick?: React.MouseEventHandler<Element>;
   onKeyDown?: React.KeyboardEventHandler<Element>;
@@ -113,7 +140,7 @@ type SelectSearchable = {
 };
 
 type SelectSingleProps<TValue extends string> = {
-  /** Set to allow selecting multiple values */
+  /** Whether multiple values can be selected. */
   multiple?: false;
   maxItems?: never;
   overflow?: never;
@@ -124,45 +151,48 @@ type SelectSingleProps<TValue extends string> = {
         hideCount?: never;
         hideSelectAllToggle?: never;
       });
+  /** The options to pick from */
   items: ReadonlyArray<ItemOrGroup<SelectItem<TValue>>>;
-  /** Custom renderer for the selected value in the trigger. Defaults to `renderItem`, or the item's `text` if neither is provided. Note that if connectToLeftInput or connectToRightInput the height of the rendered selected item is clamped to the default height of select so that it correctly aligns. */
+  /** Custom renderer for the selected value in the trigger. Defaults to `renderItem`, or the item's `text` if neither is provided. */
   renderSelectedItem?: (value: TValue) => React.ReactNode;
   renderSelectedAll?: never;
 } & (
   | {
       required: true;
-      /** Set to let a required select be cleared too. It then shows the clear button, and `onChange` can be called with `null`. Pass `invalid` to show the empty field's error state. */
+      /** Whether a required select can be cleared, showing the clear button. */
       clearable?: false;
+      /** The current selection, `null`/`undefined` while empty */
       value: NoInfer<TValue>;
       onChange: (value: NoInfer<TValue>) => void;
     }
   | {
       required: true;
-      /** Set to let a required select be cleared too. It then shows the clear button, and `onChange` can be called with `null`. Pass `invalid` to show the empty field's error state. */
+      /** Whether a required select can be cleared, showing the clear button. */
       clearable: true;
+      /** The current selection, `null`/`undefined` while empty */
       value: NoInfer<TValue> | null | undefined;
       onChange: (value: NoInfer<TValue> | null) => void;
     }
   | {
       required?: false;
-      /** A select that is not `required` is always clearable */
       clearable?: never;
+      /** The current selection, `null`/`undefined` while empty */
       value: NoInfer<TValue> | null | undefined;
-      /** Called with the selected value — `null` when the selection is cleared. `value` stays wider (`undefined` allowed in) for consumers holding optional data. */
+      /** Called with the selected value — `null` when the selection is cleared. */
       onChange: (value: NoInfer<TValue> | null) => void;
     }
 );
 
 type SelectMultipleProps<TValue extends string> = {
-  /** Set to allow selecting multiple values. The dropdown stays open while toggling items with clicks, Space or Enter. Items indicate selection with a checkbox unless they set their own `selectedStyle`. Closing the dropdown with Escape reverts the selection to what it was when the dropdown opened (`onChange` fires with the reverted values). */
+  /** Whether multiple values can be selected. */
   multiple: true;
   /** The maximum number of values that can be selected. Once reached, unselected items are disabled until a value is deselected. */
   maxItems?: number;
-  /** Set to allow the input to be cleared. `true` clears by calling `onChange` with `[]`; pass `{ onClear }` to control clearing yourself. `false` disables clearing while still reserving the clear button's space. */
+  /** Whether a required select can be cleared, showing the clear button. */
   clearable?: boolean | { onClear: () => void };
-  /** How the selected values render in the trigger when no `renderSelectedAll` is given: a row that scrolls horizontally (the default), truncates with a "+X" badge, or summarises the names (falling back to "X of Y" once they no longer fit). */
+  /** How the selected values render in the trigger when no `renderSelectedAll` is given: a row that scrolls horizontally, truncates with a "+X" badge, or summarises the names (falling back to "X of Y" once they no longer fit). */
   overflow?: "scroll" | "truncate" | "summary";
-  /** Set to add a search field to the dropdown that filters the items by their text. onSearch is called as the search value changes, including with "" when the dropdown closes and the search resets. A searchable multi select also renders a selection summary (an "x of y" selected count and a "Select all" / "Clear all" toggle, both spanning every option regardless of the active search filter) beneath the options — hide its parts with `hideCount` / `hideSelectAllToggle`. */
+  /** Set to add a search field to the dropdown that filters the items by their text. onSearch is called as the search value changes, including with "" when the dropdown closes and the search resets. */
   searchable?:
     | boolean
     | (SelectSearchable & {
@@ -172,15 +202,17 @@ type SelectMultipleProps<TValue extends string> = {
         hideCount?: boolean;
         /** Hide the "Select all" / "Clear all" toggle in the selection
          * summary. It is also hidden when `maxItems` puts selecting every
-         * option out of reach. */
+         * enabled option out of reach. */
         hideSelectAllToggle?: boolean;
       });
+  /** The options to pick from */
   items: ReadonlyArray<ItemOrGroup<MultiSelectItem<TValue>>>;
-  /** Custom renderer for each selected value in the trigger's row. Defaults to `renderItem` (or the item's `text`); values render comma-separated with the `overflow` behaviour. A plain-string result also supplies the `summary` overflow's text for that value. Note that if connectToLeftInput or connectToRightInput the height of the rendered selected items is clamped to the default height of select so that it correctly aligns. */
+  /** Custom renderer for the selected value in the trigger. Defaults to `renderItem`, or the item's `text` if neither is provided. */
   renderSelectedItem?: (value: TValue) => React.ReactNode;
   /** Custom renderer for the trigger's entire selection, replacing the per-value row and with it the `overflow` behaviour (and `renderSelectedItem`). */
   renderSelectedAll?: (values: TValue[]) => React.ReactNode;
   required?: boolean;
+  /** The current selection, `null`/`undefined` while empty */
   value: ReadonlyArray<NoInfer<TValue>>;
   onChange: (value: Array<NoInfer<TValue>>) => void;
 };
@@ -233,6 +265,34 @@ function renderPrefix(
   );
 }
 
+/**
+ * Flattens groups and collapsible folders into the depth-first list of every
+ * option, folders included and regardless of their expansion state.
+ */
+function flattenSelectOptions<TItem extends SelectItem<string>>(
+  items: ReadonlyArray<ItemOrGroup<TItem>>,
+): TItem[] {
+  const result: TItem[] = [];
+  const visitItem = (item: TItem) => {
+    result.push(item);
+    if (item.subItems) {
+      for (const child of item.subItems as ReadonlyArray<TItem>) {
+        visitItem(child);
+      }
+    }
+  };
+  for (const entry of items) {
+    if ("items" in entry) {
+      for (const item of entry.items) {
+        visitItem(item);
+      }
+    } else {
+      visitItem(entry);
+    }
+  }
+  return result;
+}
+
 function findSelectItem<TValue extends string>(
   items: ReadonlyArray<ItemOrGroup<SelectItem<TValue>>>,
   value: TValue | null | undefined,
@@ -240,17 +300,7 @@ function findSelectItem<TValue extends string>(
   if (value == null) {
     return undefined;
   }
-  for (const entry of items) {
-    if ("items" in entry) {
-      const found = entry.items.find((it) => it.value === value);
-      if (found) {
-        return found;
-      }
-    } else if (entry.value === value) {
-      return entry;
-    }
-  }
-  return undefined;
+  return flattenSelectOptions(items).find((it) => it.value === value);
 }
 
 function mapToMenuItems<TValue extends string>(
@@ -262,6 +312,8 @@ function mapToMenuItems<TValue extends string>(
     selectableValues: ReadonlySet<string> | undefined;
     /** Sets the selection to just the given value — backs the per-item "Only" button */
     selectOnly: (value: TValue) => void;
+    /** Whether the option set contains collapsible folders — a single select then marks its selection with a trailing radio, keeping the leading chevron column clean */
+    hasCollapsibleFolders: boolean;
   },
 ): Array<ItemOrGroup<Item>> {
   const toSuffix = (it: MultiSelectItem<TValue>): React.ReactNode =>
@@ -274,19 +326,41 @@ function mapToMenuItems<TValue extends string>(
         onSelectOnly={() => options.selectOnly(it.value)}
       />
     ) : undefined;
-  const toItem = (it: MultiSelectItem<TValue>): Item => ({
-    id: it.value,
-    text: renderItem(it.value),
-    disabled:
+  const toItem = (it: MultiSelectItem<TValue>): Item => {
+    const disabled =
       it.disabled ||
       (options.selectableValues !== undefined &&
-        !options.selectableValues.has(it.value)),
-    selectedStyle: it.selectedStyle ?? (options.multiple ? "checkbox" : "tick"),
-    selectedTone: it.selectedTone,
-    suffix: toSuffix(it),
-    subItems: undefined,
-    onClick: () => {},
-  });
+        !options.selectableValues.has(it.value));
+    const selectedStyle = options.multiple
+      ? (it.selectedStyle ?? "checkbox")
+      : options.hasCollapsibleFolders
+        ? ("radio" as const)
+        : ("tick" as const);
+    // An option with subItems is a collapsible folder — a selectable option
+    // like any other; only its chevron button toggles expansion.
+    if (it.subItems) {
+      return {
+        id: it.value,
+        text: renderItem(it.value),
+        disabled,
+        selectedStyle,
+        selectedTone: it.selectedTone,
+        suffix: toSuffix(it),
+        collapsible: true,
+        subItems: it.subItems.map(toItem),
+      };
+    }
+    return {
+      id: it.value,
+      text: renderItem(it.value),
+      disabled,
+      selectedStyle,
+      selectedTone: it.selectedTone,
+      suffix: toSuffix(it),
+      subItems: undefined,
+      onClick: () => {},
+    };
+  };
   return items.map((entry) =>
     "items" in entry
       ? { id: entry.id, label: entry.label, items: entry.items.map(toItem) }
@@ -354,19 +428,6 @@ const SearchHighlightSync = ({
 
   return null;
 };
-
-/** Flattens groups and drops custom rows (e.g. the empty-search note), which must not enter the collection as selectable options */
-function flattenItems(items: Array<ItemOrGroup<Item>>): Item[] {
-  const flat: Item[] = [];
-  for (const entry of items) {
-    if ("items" in entry) {
-      flat.push(...entry.items);
-    } else if (!isCustomItem(entry)) {
-      flat.push(entry);
-    }
-  }
-  return flat;
-}
 
 export const Select = <TValue extends string>({
   placeholder,
@@ -454,6 +515,23 @@ export const Select = <TValue extends string>({
     return [...orphans, ...items];
   }, [items, orphans, loading]);
 
+  // The collapsible options' values (those with subItems), wherever they
+  // nest — the set held open while searching, and the rows
+  // ArrowRight/ArrowLeft can toggle.
+  const folderValues = useMemo<ReadonlySet<string>>(
+    () =>
+      new Set(
+        flattenSelectOptions(effectiveItems)
+          .filter((it) => it.subItems !== undefined)
+          .map((it) => it.value),
+      ),
+    [effectiveItems],
+  );
+  // Expansion state lives late in the component (it derives from the mapped
+  // list items), while the keyboard handlers below close over it — the ref
+  // bridges the ordering.
+  const expansionRef = useRef<CollapsibleExpansion | null>(null);
+
   // A multi select's Escape reverts the selection to its state at dropdown
   // open (per-toggle onChange commits are treated as a cancellable session).
   // Ark dismisses on Escape from a native document-capture listener — before
@@ -482,7 +560,11 @@ export const Select = <TValue extends string>({
   const lastKeyWasListNavRef = useRef(false);
   const handleSearchSpaceKeyDown = (event: React.KeyboardEvent): boolean => {
     const api = selectApiRef.current;
-    if (!api?.open || event.nativeEvent.isComposing) {
+    if (
+      !api?.open ||
+      event.nativeEvent.isComposing ||
+      hasCommandModifier(event)
+    ) {
       return false;
     }
     const target = event.target as Element;
@@ -508,7 +590,43 @@ export const Select = <TValue extends string>({
     return true;
   };
 
+  // ArrowRight expands and ArrowLeft collapses the highlighted collapsible
+  // option — activation (Enter, Space, click) selects it, so the horizontal
+  // arrows carry the keyboard toggle. Skipped for keys owned by the search
+  // field's caret, and while searching (every folder is held open then).
+  const handleCollapsibleArrowKeyDown = (event: React.KeyboardEvent) => {
+    const api = selectApiRef.current;
+    const expansion = expansionRef.current;
+    if (!api?.open || !expansion || hasCaretModifier(event)) {
+      return;
+    }
+    const { target } = event;
+    if (
+      target instanceof Element &&
+      target.closest("[data-selectable-list-custom]")
+    ) {
+      return;
+    }
+    if (showSearch && search.trim() !== "") {
+      return;
+    }
+    const highlighted = api.highlightedValue;
+    if (highlighted === null || !folderValues.has(highlighted)) {
+      return;
+    }
+    const isExpanded = expansion.expandedIds.has(highlighted);
+    if (event.key === "ArrowRight" ? isExpanded : !isExpanded) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    expansion.onToggle(highlighted);
+  };
+
   const [highlightNavigated, setHighlightNavigated] = useState(false);
+  // Reactive mirror of the machine's open state, for the dropdown freeze
+  // below — `isOpenRef` serves the event handlers, not renders.
+  const [isOpen, setIsOpen] = useState(!!defaultOpen);
 
   // Tab while open moves through the dropdown's own tabbables (search field,
   // custom rows, footer buttons) and past the edge closes the dropdown,
@@ -517,7 +635,7 @@ export const Select = <TValue extends string>({
   // so zag never sees the key; all movement is programmatic.
   const handleTabKeyDown = (event: React.KeyboardEvent) => {
     const api = selectApiRef.current;
-    if (!api?.open) {
+    if (!api?.open || hasCommandModifier(event)) {
       return;
     }
     event.preventDefault();
@@ -604,13 +722,14 @@ export const Select = <TValue extends string>({
     let spaceToggled = false;
     if (event.key === "Tab") {
       handleTabKeyDown(event);
-    } else if (
-      (event.key === "ArrowLeft" || event.key === "ArrowRight") &&
-      !selectApiRef.current?.open
-    ) {
-      // zag changes a closed select's selection on Left/Right — swallow the
-      // key before it reaches the trigger so the selection stays put.
-      event.stopPropagation();
+    } else if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+      if (selectApiRef.current?.open) {
+        handleCollapsibleArrowKeyDown(event);
+      } else {
+        // zag changes a closed select's selection on Left/Right — swallow the
+        // key before it reaches the trigger so the selection stays put.
+        event.stopPropagation();
+      }
     } else if (event.key === " " && showSearch) {
       spaceToggled = handleSearchSpaceKeyDown(event);
     }
@@ -655,15 +774,30 @@ export const Select = <TValue extends string>({
       const label = it.text.toLowerCase();
       return searchTerms.every((term) => label.includes(term));
     };
+    // A matching folder keeps its whole subtree; otherwise it stays visible
+    // only while a descendant matches, trimmed to the matching ones.
+    const filterItems = (
+      entries: ReadonlyArray<MultiSelectItem<TValue>>,
+    ): Array<MultiSelectItem<TValue>> =>
+      entries.flatMap((it): Array<MultiSelectItem<TValue>> => {
+        if (it.subItems) {
+          if (matches(it)) {
+            return [it];
+          }
+          const children = filterItems(it.subItems);
+          return children.length > 0 ? [{ ...it, subItems: children }] : [];
+        }
+        return matches(it) ? [it] : [];
+      });
     const filtered: Array<ItemOrGroup<MultiSelectItem<TValue>>> = [];
     for (const entry of effectiveItems) {
       if ("items" in entry) {
-        const children = entry.items.filter(matches);
+        const children = filterItems(entry.items);
         if (children.length > 0) {
           filtered.push({ ...entry, items: children });
         }
-      } else if (matches(entry)) {
-        filtered.push(entry);
+      } else {
+        filtered.push(...filterItems([entry]));
       }
     }
     return filtered;
@@ -676,22 +810,26 @@ export const Select = <TValue extends string>({
     [renderItem, effectiveItems],
   );
 
-  // Every option's value, disabled options included — the total behind the
-  // selection summary and the `summary` overflow row, and the value set that
-  // "Select all" selects.
-  const optionValues = useMemo<TValue[]>(() => {
-    const values: TValue[] = [];
-    for (const entry of effectiveItems) {
-      if ("items" in entry) {
-        for (const it of entry.items) {
-          values.push(it.value);
-        }
-      } else {
-        values.push(entry.value);
+  // Every option's value, disabled options and collapsible folders included
+  // (folders are selectable options too) — the total behind the selection
+  // summary and the `summary` overflow row.
+  const optionValues = useMemo<TValue[]>(
+    () => flattenSelectOptions(effectiveItems).map((it) => it.value),
+    [effectiveItems],
+  );
+
+  // The value set "Select all" sets: the current selection plus every enabled
+  // option, wherever it nests. Disabled options are skipped, and nothing
+  // already selected (e.g. a disabled orphan) is dropped.
+  const selectAllValues = useMemo<TValue[]>(() => {
+    const values = new Set<TValue>(selectedValues);
+    for (const it of flattenSelectOptions(effectiveItems)) {
+      if (!it.disabled) {
+        values.add(it.value);
       }
     }
-    return values;
-  }, [effectiveItems]);
+    return [...values];
+  }, [effectiveItems, selectedValues]);
 
   const overflowMode =
     multiple && !renderSelectedAll ? (overflow ?? "scroll") : undefined;
@@ -752,23 +890,23 @@ export const Select = <TValue extends string>({
 
   // The first search match the highlight can land on — must apply the same
   // effective-disabled rule as the collection (explicit `disabled` plus rows
-  // disabled by `maxItems`), or Enter would target an unselectable row
+  // disabled by `maxItems`), or Enter would target an unselectable row. The
+  // visible tree also keeps non-matching rows for context (a matching row's
+  // folder ancestors, a matching folder's children), which must not take the
+  // highlight — Enter targets the first actual match.
   const firstVisibleValue = useMemo<TValue | undefined>(() => {
-    const isEnabled = (it: MultiSelectItem<TValue>) =>
-      !it.disabled &&
-      (selectableAtMaxSet === undefined || selectableAtMaxSet.has(it.value));
-    for (const entry of visibleItems) {
-      if ("items" in entry) {
-        const first = entry.items.find(isEnabled);
-        if (first) {
-          return first.value;
-        }
-      } else if (isEnabled(entry)) {
-        return entry.value;
+    const isEnabledMatch = (it: MultiSelectItem<TValue>) => {
+      if (
+        it.disabled ||
+        (selectableAtMaxSet !== undefined && !selectableAtMaxSet.has(it.value))
+      ) {
+        return false;
       }
-    }
-    return undefined;
-  }, [visibleItems, selectableAtMaxSet]);
+      const label = it.text.toLowerCase();
+      return searchTerms.every((term) => label.includes(term));
+    };
+    return flattenSelectOptions(visibleItems).find(isEnabledMatch)?.value;
+  }, [visibleItems, selectableAtMaxSet, searchTerms]);
 
   const selectOnly = useCallback(
     (val: TValue) => {
@@ -777,14 +915,12 @@ export const Select = <TValue extends string>({
     [onChange],
   );
 
-  // The selection summary of a searchable multi select. Its counts and its
-  // "Select all" span the whole option set — disabled options included, so
-  // "Select all" always reaches "X of X" — not the current search filter.
+  // The selection summary of a searchable multi select. Its counts span the
+  // whole option set — not the current search filter — and its "Select all"
+  // selects every enabled option, leaving disabled options as they are.
   const selectAll = useCallback(() => {
-    (onChange as (value: TValue[]) => void)([
-      ...new Set([...selectedValues, ...optionValues]),
-    ]);
-  }, [onChange, selectedValues, optionValues]);
+    (onChange as (value: TValue[]) => void)([...selectAllValues]);
+  }, [onChange, selectAllValues]);
   const clearAll = useCallback(() => {
     (onChange as (value: TValue[]) => void)([]);
   }, [onChange]);
@@ -805,7 +941,7 @@ export const Select = <TValue extends string>({
   const hideSummaryCount = !!searchableOptions?.hideCount || !!loading;
   const hideSummaryToggle =
     !!searchableOptions?.hideSelectAllToggle ||
-    (maxItems !== undefined && maxItems < optionValues.length);
+    (maxItems !== undefined && maxItems < selectAllValues.length);
 
   const selectionSummary =
     showSearch && multiple && !(hideSummaryCount && hideSummaryToggle) ? (
@@ -814,6 +950,9 @@ export const Select = <TValue extends string>({
         hideSelectAllToggle={hideSummaryToggle}
         selectedCount={selectedValues.length}
         totalCount={optionValues.length}
+        allSelected={
+          hasSelection && selectAllValues.length === selectedValues.length
+        }
         onSelectAll={selectAll}
         onClearAll={clearAll}
       />
@@ -828,6 +967,7 @@ export const Select = <TValue extends string>({
         multiple: !!multiple,
         selectableValues: selectableAtMaxSet,
         selectOnly,
+        hasCollapsibleFolders: folderValues.size > 0,
       },
     );
     const searching = searchTerms.length > 0;
@@ -851,23 +991,72 @@ export const Select = <TValue extends string>({
     multiple,
     selectableAtMaxSet,
     selectOnly,
+    folderValues,
     showSearch,
     searchTerms,
     resolvedEmptyState,
   ]);
+  // Expansion state of collapsible folders. Ancestors of the selection start
+  // expanded (and re-expand on open, below) so the selection is visible.
+  // While searching, every folder on the way to a match must be open for the
+  // match to be reachable, so the user's expansion state is overridden (and
+  // resumes when the search clears).
+  const expansion = useCollapsibleExpansion(
+    menuItems,
+    new Set<string>(selectedValues),
+  );
+  useEffect(() => {
+    expansionRef.current = expansion;
+  });
+  const effectiveExpansion = useMemo<CollapsibleExpansion>(
+    () =>
+      searchTerms.length > 0
+        ? // Toggling is a no-op while every folder is held open: on screen
+          // nothing would change, but the write would silently flip the
+          // underlying state, surprising once the search clears.
+          { expandedIds: folderValues, onToggle: () => {} }
+        : expansion,
+    [searchTerms, folderValues, expansion],
+  );
+
+  // The dropdown exits over an animation (see the selectable-list recipe),
+  // and closing is also what resets the search — re-filtering on that reset
+  // would resize the list mid-exit, and dropping the all-folders-open search
+  // override would collapse the folders the rows still paint. While open the
+  // dropdown renders live values, mirrored here render-adjusted; a closed
+  // (exiting) dropdown keeps rendering the last open ones, the search
+  // field's text included.
+  const [displayedDropdown, setDisplayedDropdown] = useState({
+    menuItems,
+    search,
+    expansion: effectiveExpansion,
+  });
+  if (
+    isOpen &&
+    (displayedDropdown.menuItems !== menuItems ||
+      displayedDropdown.search !== search ||
+      displayedDropdown.expansion !== effectiveExpansion)
+  ) {
+    setDisplayedDropdown({ menuItems, search, expansion: effectiveExpansion });
+  }
+
   const collection = useMemo(() => {
     const valueToText = new Map<string, string>();
-    for (const entry of effectiveItems) {
-      if ("items" in entry) {
-        for (const it of entry.items) {
-          valueToText.set(it.value, it.text);
-        }
-      } else {
-        valueToText.set(entry.value, entry.text);
-      }
+    for (const it of flattenSelectOptions(effectiveItems)) {
+      valueToText.set(it.value, it.text);
     }
     return createListCollection<Item>({
-      items: flattenItems(menuItems),
+      // Open: the rows currently rendered, in visual order — folders count
+      // (they are highlightable, and Enter toggles them), collapsed children
+      // and custom rows don't, keeping arrow navigation on what is on
+      // screen. Closed: every option, collapsed children included — the
+      // closed trigger's typeahead must reach them, and the hidden select
+      // renders its form options from the collection, which must cover the
+      // selection wherever it hides.
+      items: flattenVisibleItems(
+        menuItems,
+        isOpen ? effectiveExpansion.expandedIds : folderValues,
+      ),
       itemToValue: (item) => getItemId(item),
       itemToString: (item) => {
         const id = getItemId(item);
@@ -875,7 +1064,7 @@ export const Select = <TValue extends string>({
       },
       isItemDisabled: (item) => !!item.disabled,
     });
-  }, [menuItems, effectiveItems]);
+  }, [menuItems, effectiveItems, effectiveExpansion, isOpen, folderValues]);
 
   const classes = selectRecipe({
     variant,
@@ -941,11 +1130,17 @@ export const Select = <TValue extends string>({
       }}
       onOpenChange={({ open }) => {
         isOpenRef.current = open;
+        setIsOpen(open);
         if (open) {
           escapedRef.current = false;
           valueAtOpenRef.current = selectedValues;
           lastKeyWasListNavRef.current = false;
           setHighlightNavigated(false);
+          // Reveal the selection: its collapsed ancestors open with the
+          // dropdown, so the selected options are visible from the start.
+          expansion.expand?.(
+            collectSelectedAncestorIds(menuItems, new Set(selectedValues)),
+          );
         } else {
           if (multiple && escapedRef.current) {
             escapedRef.current = false;
@@ -1014,7 +1209,7 @@ export const Select = <TValue extends string>({
           <ArkSelect.Trigger
             id={inputId}
             {...resolveAutoFocusProps(autoFocus)}
-            ref={internalRef as React.Ref<HTMLButtonElement>}
+            ref={internalRef}
             className={classes.trigger}
             data-part="trigger"
             data-testid={testId}
@@ -1052,6 +1247,7 @@ export const Select = <TValue extends string>({
                 clearSelection();
                 internalRef.current?.focus();
               }}
+              data-hidden={!canClear || !hasSelection ? "" : undefined}
               className={cx(
                 classes.clear,
                 (!canClear || !hasSelection) && classes.hideClear,
@@ -1093,15 +1289,16 @@ export const Select = <TValue extends string>({
           <SelectableList
             as="Select"
             className={classes.list}
-            items={menuItems}
+            items={displayedDropdown.menuItems}
             selected={selectedValues}
             size={size}
+            expansion={displayedDropdown.expansion}
             highlightNavigated={highlightNavigated}
             emptyState={resolvedEmptyState}
             header={
               showSearch ? (
                 <SelectableListSearch
-                  value={search}
+                  value={displayedDropdown.search}
                   onChange={handleSearchChange}
                   aria-label="Search options"
                 />
@@ -1115,3 +1312,6 @@ export const Select = <TValue extends string>({
     </ArkSelect.Root>
   );
 };
+
+// Stable name for the docs Stage code serializer under minification
+Select.displayName = "Select";

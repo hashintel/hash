@@ -18,6 +18,7 @@ This directory contains external services used throughout HASH, including authen
 - **Ory Kratos** - Identity and user management service
 - **Ory Hydra** - OAuth2 and OpenID Connect server
 - **MailSlurper** - Development email testing server
+- **hash-api relay** - Forwards Kratos's registration hook to hash-api on the host, so Kratos calls a private address on every container engine
 
 ### Workflow Execution
 
@@ -65,6 +66,10 @@ Each service includes health checks and proper dependency management. Services w
 - `loki/loki.yaml` - Loki log aggregation configuration
 - `mimir/mimir.yml` - Mimir metrics collection configuration
 - `grafana/provisioning/` - Grafana data source and dashboard provisioning
+
+### Temporal Configuration
+
+- `temporal/dynamicconfig.yaml` - Temporal server dynamic configuration
 
 ### Authentication Configuration
 

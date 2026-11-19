@@ -42,6 +42,7 @@ use error_stack::Report;
 use futures::TryStreamExt as _;
 #[cfg(feature = "unsafe-dev-endpoints")]
 use hash_codec::bytes::JsonLinesDecoder;
+use hash_crypto::Secret;
 #[cfg(feature = "unsafe-dev-endpoints")]
 use hash_graph_postgres_store::snapshot::SnapshotStore;
 use hash_graph_postgres_store::store::PostgresStorePool;
@@ -55,7 +56,6 @@ use hash_middleware::authentication::ServiceSecretLayer;
 use hash_middleware::authentication::{
     AuthenticationLayer, Challenge, provider::AuthenticationProvider,
 };
-use hash_secret::Secret;
 use hash_status::{Status, StatusCode};
 use serde::Deserialize as _;
 #[cfg(feature = "unsafe-dev-endpoints")]

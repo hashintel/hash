@@ -4,8 +4,7 @@ import { join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseEnv } from "node:util";
 
-import { brunchEnv } from "@hashintel/brunch-agent";
-
+import { brunchEnv } from "../env.ts";
 import { selectChatModelSpecifier } from "../shared/chat-model.ts";
 
 const envFiles = [

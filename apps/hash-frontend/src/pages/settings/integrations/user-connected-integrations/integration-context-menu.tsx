@@ -10,9 +10,9 @@ import { ContextButton } from "../../shared/context-menu";
 import { contextMenuProps } from "../../shared/context-menu-props";
 
 export const UserIntegrationContextMenu = ({
-  integrationType,
+  integrationSlug,
 }: {
-  integrationType: "linear";
+  integrationSlug: string;
 }) => {
   const popupState = usePopupState({
     variant: "popover",
@@ -24,7 +24,7 @@ export const UserIntegrationContextMenu = ({
       <ContextButton {...bindTrigger(popupState)}>...</ContextButton>
 
       <Menu {...bindMenu(popupState)} {...contextMenuProps}>
-        <MenuItem href={`/settings/integrations/${integrationType}`}>
+        <MenuItem href={`/settings/integrations/${integrationSlug}`}>
           <ListItemText primary="Edit integration" />
         </MenuItem>
       </Menu>

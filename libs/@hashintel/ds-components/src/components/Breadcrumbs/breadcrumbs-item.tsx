@@ -13,7 +13,10 @@ import {
 } from "./breadcrumbs-item-util";
 
 import type { FormInputSize } from "../../util/form-shared";
-import type { BreadcrumbItem } from "./breadcrumbs-item-util";
+import type {
+  BreadcrumbItem,
+  BreadcrumbSubItem,
+} from "./breadcrumbs-item-util";
 import type { styles } from "./breadcrumbs.recipe";
 
 export type {
@@ -31,6 +34,10 @@ export type Classes = ReturnType<typeof styles>;
  */
 export const Item = (_props: BreadcrumbItem): null => null;
 Item.displayName = "BreadCrumbs.Item";
+
+// Docs-only marker: renders nothing, exists so react-docgen can surface the
+// shape of a crumb's `subItems` entries in the docs prop tables.
+export const BreadcrumbSubItemDoc = (_props: BreadcrumbSubItem): null => null;
 
 /**
  * Whether `children` renders as plain text and can take the truncating

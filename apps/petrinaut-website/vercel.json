@@ -60,10 +60,6 @@
   ],
   "rewrites": [
     {
-      "source": "/flows-editor-prototype/:path*",
-      "destination": "/flows-editor-prototype/index.html"
-    },
-    {
       "source": "/((?!api(?:/|$)).*)",
       "destination": "/"
     }

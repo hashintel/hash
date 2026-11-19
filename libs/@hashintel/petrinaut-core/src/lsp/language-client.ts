@@ -1,5 +1,6 @@
 import { DiagnosticSeverity } from "vscode-languageserver-types";
 
+import { parseDocumentUri } from "./lib/document-uris";
 import {
   createWorkerLspTransport,
   type LspTransport,
@@ -15,9 +16,11 @@ import type { PetrinautExtensionSettings } from "../extensions";
 // Type-only: must not pull the compiler (`typescript`) into client bundles.
 import type { HirCompileResult, ScenarioHir } from "../hir";
 import type { CompileHirArtifactsOptions } from "../hir/compile";
+import type { HirVisualizerContext } from "../hir/surface-context";
 import type { AdHocSynthesisContext } from "../simulation/authoring/scenario/ad-hoc/ad-hoc-scenario";
 import type { ReadableStore } from "../store";
 import type { Scenario, SDCPN } from "../types/sdcpn";
+import type { VisualizerHir } from "../view-hir";
 import type {
   AdHocSessionParams,
   ClientMessage,
@@ -25,6 +28,7 @@ import type {
   MetricSessionParams,
   PublishDiagnosticsParams,
   ScenarioSessionParams,
+  NetAnalysis,
 } from "./worker/protocol";
 import type {
   CompletionList,
@@ -39,9 +43,11 @@ export type DiagnosticsSnapshot = {
   byUri: Map<DocumentUri, Diagnostic[]>;
   total: number;
   /**
-   * Error-severity diagnostics only. Use this (not `total`) to decide whether
-   * the net is simulatable — warnings/hints (e.g. HIR semantic lints) don't
-   * block running.
+   * Error-severity diagnostics in the documents that gate a run. Use this
+   * (not `total`) to decide whether the net is simulatable — warnings/hints
+   * (e.g. HIR semantic lints) don't block running, and neither does a place
+   * visualizer's error: a broken picture draws nothing, it never stops a
+   * simulation. `total` and `byUri` carry the visualizer's diagnostics.
    */
   errorCount: number;
 };
@@ -55,6 +61,8 @@ export type DiagnosticsSnapshot = {
 export interface LanguageClient {
   /** Per-URI diagnostics pushed from the server, plus a total count. */
   readonly diagnostics: ReadableStore<DiagnosticsSnapshot>;
+  /** What the server learned about the net beyond diagnostics, pushed with them. */
+  readonly netAnalysis: ReadableStore<NetAnalysis>;
 
   // --- Notifications (fire-and-forget) ---
   initialize(
@@ -160,6 +168,18 @@ export interface LanguageClient {
   ): Promise<LowerConstraintResult>;
 
   /**
+   * Lowers one place visualizer's module to HIR (in the worker) and checks
+   * it against the place's colour and the net's parameters. The result is
+   * interpreted and rendered in the editor; nothing from the module runs as
+   * JavaScript.
+   */
+  requestVisualizerHir(
+    this: void,
+    code: string,
+    context: HirVisualizerContext,
+  ): Promise<VisualizerHir>;
+
+  /**
    * Tear down the transport. Pending requests reject with "Worker terminated".
    * Idempotent.
    */
@@ -169,6 +189,19 @@ export interface LanguageClient {
 export type CreateLanguageClientConfig =
   | { createWorker: LspWorkerFactory; transport?: never }
   | { transport: LspTransport; createWorker?: never };
+
+const EMPTY_NET_ANALYSIS: NetAnalysis = { metricShapes: {}, netClass: null };
+
+const sameNetAnalysis = (left: NetAnalysis, right: NetAnalysis): boolean => {
+  const leftIds = Object.keys(left.metricShapes);
+  return (
+    left.netClass?.time === right.netClass?.time &&
+    left.netClass?.coloring === right.netClass?.coloring &&
+    left.netClass?.chance === right.netClass?.chance &&
+    leftIds.length === Object.keys(right.metricShapes).length &&
+    leftIds.every((id) => left.metricShapes[id] === right.metricShapes[id])
+  );
+};
 
 const EMPTY_DIAGNOSTICS: DiagnosticsSnapshot = {
   byUri: new Map(),
@@ -232,6 +265,9 @@ function buildSnapshot(
         : param.diagnostics,
     );
     total += param.diagnostics.length;
+    if (parseDocumentUri(param.uri)?.itemType === "place-visualizer") {
+      continue;
+    }
     for (const diagnostic of param.diagnostics) {
       if (diagnostic.severity === DiagnosticSeverity.Error) {
         errorCount += 1;
@@ -291,6 +327,7 @@ export function createLanguageClient(
 
   const diagnostics =
     createReadableStore<DiagnosticsSnapshot>(EMPTY_DIAGNOSTICS);
+  const netAnalysis = createReadableStore<NetAnalysis>(EMPTY_NET_ANALYSIS);
 
   transport.onMessage((msg) => {
     if ("id" in msg) {
@@ -303,6 +340,10 @@ export function createLanguageClient(
         entry.reject(new Error(msg.error.message));
       } else {
         entry.resolve(msg.result as never);
+      }
+    } else if (msg.method === "sdcpn/netAnalysis") {
+      if (!sameNetAnalysis(netAnalysis.get(), msg.params)) {
+        netAnalysis.set(msg.params);
       }
     } else if ("method" in msg) {
       const previous = diagnostics.get();
@@ -344,6 +385,7 @@ export function createLanguageClient(
 
   return {
     diagnostics,
+    netAnalysis,
 
     initialize(sdcpn, extensions) {
       sendNotification({
@@ -499,6 +541,12 @@ export function createLanguageClient(
     requestConstraint(source, context) {
       return sendRequest<LowerConstraintResult>("sdcpn/lowerConstraint", {
         source,
+        context,
+      });
+    },
+    requestVisualizerHir(code, context) {
+      return sendRequest<VisualizerHir>("sdcpn/lowerVisualizer", {
+        code,
         context,
       });
     },

@@ -9,11 +9,13 @@ import {
   storePayload,
 } from "@local/hash-backend-utils/flows/payload-storage";
 import { getHistoricalArrivalEntities } from "@local/hash-backend-utils/integrations/aviation";
-import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import {
+  getSimplifiedFlowActionInputs,
+  typedActionDefinitions,
+} from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { StatusCode } from "@local/status";
 
-import { heartbeatTimeoutSeconds } from "../../../shared/heartbeats.js";
 import { getFlowContext } from "../shared/get-integration-flow-context.js";
 import { aviationProposedEntityToFlowProposedEntity } from "./get-scheduled-flights-action.js";
 
@@ -57,7 +59,9 @@ const validateDateRange = (startDate: string, endDate: string): void => {
 export const getHistoricalFlightArrivalsAction: FlowActionActivity<
   "getHistoricalFlightArrivals"
 > = async ({ inputs }) => {
-  const secondsBetweenHeartbeats = heartbeatTimeoutSeconds - 5;
+  const secondsBetweenHeartbeats =
+    typedActionDefinitions.getHistoricalFlightArrivals.activitySettings
+      .heartbeatTimeoutSeconds - 5;
 
   const heartbeatInterval = setInterval(() => {
     Context.current().heartbeat();

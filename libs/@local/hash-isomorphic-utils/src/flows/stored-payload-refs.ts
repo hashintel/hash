@@ -1,8 +1,11 @@
+import {
+  describePayloadValueProblem,
+  validateStoredPayloadRef,
+} from "./payload-schemas.js";
 import { isStoredPayloadRef } from "./types.js";
 
 import type {
   ArrayStoredPayloadRef,
-  FlowInputValues,
   StorablePayloadKind,
   StoredConcatRef,
   StoredItemRef,
@@ -14,48 +17,39 @@ import type {
  */
 
 /**
- * Checks inputs given to a flow from outside it, e.g. by a user, a schedule or a trigger. Only activities create
- * stored payload references, and a run only resolves references to its own outputs, so one given as an input can
- * never resolve.
- *
- * @throws naming the input whose value, or an item of it, is a stored payload reference.
- */
-export const assertNoStoredPayloadRefsInFlowInputs = (
-  flowInputs: FlowInputValues,
-): void => {
-  /* Inputs from outside aren't validated yet, so a payload may not be an object. */
-  for (const [inputName, payload] of Object.entries<{ value?: unknown } | null>(
-    flowInputs,
-  )) {
-    const value = payload?.value;
-    const items: unknown[] = Array.isArray(value) ? value : [value];
-
-    if (items.some(isStoredPayloadRef)) {
-      throw new Error(
-        `Flow input "${inputName}" contains a stored payload reference, which only the flow's own steps can create`,
-      );
-    }
-  }
-};
-
-/**
  * A reference to each item of a stored array, in order. An item of a concatenation points at the part that holds
  * it, with its index within that part.
+ *
+ * @throws if the reference isn't a valid reference to a stored array (see `validateStoredPayloadRef`), e.g. its
+ *   `length` isn't a non-negative safe integer, before making any item references from it.
  */
 export const getStoredItemRefs = <K extends StorablePayloadKind>(
   ref: ArrayStoredPayloadRef<K>,
 ): StoredItemRef<K>[] => {
-  if ("parts" in ref) {
-    return ref.parts.flatMap((part) => getStoredItemRefs(part));
+  const problem = validateStoredPayloadRef({
+    kind: ref.kind,
+    array: true,
+    ref,
+  });
+
+  if (problem) {
+    throw new Error(
+      `Invalid reference to a stored array${describePayloadValueProblem(problem)}`,
+    );
   }
 
-  return Array.from({ length: ref.length }, (_, index): StoredItemRef<K> => ({
-    __stored: true,
-    kind: ref.kind,
-    array: false,
-    of: ref,
-    index,
-  }));
+  return ("parts" in ref ? ref.parts : [ref]).flatMap((storedArray) =>
+    Array.from(
+      { length: storedArray.length },
+      (_, index): StoredItemRef<K> => ({
+        __stored: true,
+        kind: ref.kind,
+        array: false,
+        of: storedArray,
+        index,
+      }),
+    ),
+  );
 };
 
 /**

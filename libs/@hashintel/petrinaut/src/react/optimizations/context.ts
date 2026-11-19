@@ -148,10 +148,7 @@ export type OptimizationsContextValue = {
    * the sweep record a study would drive.
    */
   optimizationUnavailableReason?: string | null;
-  /**
-   * Starts a study driving a sweep. Rejects when no in-browser optimizer is
-   * connected: a sweep can only be optimized in the browser.
-   */
+  /** Starts a study driving a sweep. Rejects when the host supplies no optimizer. */
   createOptimization: (
     input: PetrinautOptimizationInput,
     options: CreateOptimizationOptions,

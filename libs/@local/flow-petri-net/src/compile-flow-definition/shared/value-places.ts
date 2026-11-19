@@ -4,6 +4,7 @@ import {
   generateCopyKey,
   generateCopyOutputTransitionKey,
   generateCopyPlaceKey,
+  generateDonePortKey,
   generateInputConsumerKey,
   generateInputValueKey,
   generateInstanceKey,
@@ -12,7 +13,7 @@ import {
   generateOutputValueKey,
   generateValuePlaceKey,
 } from "../../flow-net-keys.js";
-import { getActionDefinition } from "./flow-steps.js";
+import { getActionDefinition, getRunAfterStepIds } from "./flow-steps.js";
 import {
   createTransition,
   inputArc,
@@ -23,9 +24,14 @@ import {
 
 import type { FlowSteps, ValueShape } from "./flow-steps.js";
 import type { NetBuilder } from "./net-builder.js";
-import type { ArcEndpoint, OutputArc } from "@hashintel/petrinaut-core";
+import type {
+  ArcEndpoint,
+  InputArc,
+  OutputArc,
+} from "@hashintel/petrinaut-core";
 import type {
   FlowDefinition,
+  StepDefinition,
   StepInputSource,
 } from "@local/hash-isomorphic-utils/flows/types";
 
@@ -51,6 +57,8 @@ type Value = {
     | { kind: "placed" };
   consumers: Consumer[];
   isFlowOutput: boolean;
+  /** Read by a step that runs after the value's step, to tell that it has finished. */
+  isWaitedOn: boolean;
 };
 
 /**
@@ -91,6 +99,13 @@ const itemValueKeyIn = (scope: string[]) => {
 export const consumes = (source: StepInputSource) =>
   source.kind !== "constant" && source.access === "consume";
 
+const isSameEndpoint = (endpoint: ArcEndpoint, other: ArcEndpoint) =>
+  endpoint.kind === "place"
+    ? other.kind === "place" && other.placeId === endpoint.placeId
+    : other.kind === "componentPort" &&
+      other.componentInstanceId === endpoint.componentInstanceId &&
+      other.portPlaceId === endpoint.portPlaceId;
+
 /**
  * The arcs to and from the places every value is held in.
  */
@@ -117,8 +132,15 @@ export const placeValues = ({
 }) => {
   const values = new Map<string, Value>();
 
-  const addValue = (value: Omit<Value, "consumers" | "isFlowOutput">) => {
-    values.set(value.key, { ...value, consumers: [], isFlowOutput: false });
+  const addValue = (
+    value: Omit<Value, "consumers" | "isFlowOutput" | "isWaitedOn">,
+  ) => {
+    values.set(value.key, {
+      ...value,
+      consumers: [],
+      isFlowOutput: false,
+      isWaitedOn: false,
+    });
   };
 
   for (const input of flowDefinition.inputs) {
@@ -223,6 +245,34 @@ export const placeValues = ({
     }
   }
 
+  /*
+   * A step waits for a step it runs after by reading one of its outputs, which a step produces all at once. An action
+   * with no outputs has none, so `runAfterArcs` reads its `Done` port instead.
+   */
+  const completionValueKey = (stepId: string): string | null => {
+    const { step } = steps.getStep(stepId);
+
+    if (step.kind === "for-each") {
+      return generateOutputValueKey(stepId, step.collect.as);
+    }
+
+    const [firstOutput] = getActionDefinition(step).outputs;
+
+    return firstOutput
+      ? generateOutputValueKey(stepId, firstOutput.name)
+      : null;
+  };
+
+  for (const { step } of steps.entries) {
+    for (const beforeStepId of getRunAfterStepIds(step)) {
+      const valueKey = completionValueKey(beforeStepId);
+
+      if (valueKey) {
+        getValue(valueKey).isWaitedOn = true;
+      }
+    }
+  }
+
   for (const output of flowDefinition.outputs) {
     getValue(
       generateOutputValueKey(output.stepId, output.outputName),
@@ -235,7 +285,9 @@ export const placeValues = ({
     const colorId = net.registerPayloadColor(value.shape);
     const takers = value.consumers.filter(({ consumes: taken }) => taken);
     const isShared =
-      value.isFlowOutput || takers.length < value.consumers.length;
+      value.isFlowOutput ||
+      value.isWaitedOn ||
+      takers.length < value.consumers.length;
 
     if (value.producer.kind === "port") {
       const port = portEndpoint(
@@ -381,6 +433,44 @@ export const placeValues = ({
       }
 
       return arc;
+    },
+
+    /** The read arcs a step waits on the steps it runs after through, except any it already has from `valueArcs`. */
+    runAfterArcs: (
+      step: StepDefinition,
+      valueArcs: { endpoint: ArcEndpoint }[],
+    ): (InputArc & { endpoint: ArcEndpoint })[] => {
+      const arcs: (InputArc & { endpoint: ArcEndpoint })[] = [];
+
+      for (const beforeStepId of getRunAfterStepIds(step)) {
+        const { step: before } = steps.getStep(beforeStepId);
+        const valueKey = completionValueKey(beforeStepId);
+
+        const waitedOn = valueKey
+          ? getValueLocation(valueKey).shared
+          : before.kind === "action"
+            ? portEndpoint(
+                generateInstanceKey(beforeStepId),
+                generateDonePortKey(steps.getSubnetName(before)),
+              )
+            : null;
+
+        if (!waitedOn) {
+          throw new Error(`Step "${beforeStepId}" has nothing to wait on`);
+        }
+
+        const arc = inputArc(waitedOn, "read");
+
+        if (
+          ![...valueArcs, ...arcs].some(({ endpoint }) =>
+            isSameEndpoint(endpoint, arc.endpoint),
+          )
+        ) {
+          arcs.push(arc);
+        }
+      }
+
+      return arcs;
     },
 
     /** Arcs putting a for-each step's item where each step inside it takes it from. */

@@ -89,7 +89,6 @@ const textualContent: TextToken[] = [
 
 describe("deliverMentionNotifications", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mocks.checkPermissionsOnEntity.mockResolvedValue({ view: true });
     mocks.getMentionNotification.mockResolvedValue(null);
     mocks.getWebShortname.mockResolvedValue("workspace");

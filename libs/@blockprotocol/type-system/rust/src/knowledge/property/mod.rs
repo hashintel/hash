@@ -12,6 +12,8 @@ use core::{cmp::Ordering, fmt, iter, mem};
 use std::{collections::HashMap, io};
 
 use error_stack::{Report, ResultExt as _};
+#[cfg(feature = "schemars")]
+use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
 
 use self::metadata::{
     ArrayMetadata, ObjectMetadata, PropertyArrayMetadata, PropertyMetadata, PropertyObjectMetadata,
@@ -83,6 +85,44 @@ pub enum Property {
     ///
     /// Values represent the atomic units of data in the property system.
     Value(PropertyValue),
+}
+
+#[cfg(feature = "schemars")]
+impl JsonSchema for Property {
+    fn schema_name() -> Cow<'static, str> {
+        Cow::Borrowed("Property")
+    }
+
+    fn json_schema(generator: &mut SchemaGenerator) -> Schema {
+        json_schema!({
+            "description": "A list of properties, properties keyed by the base URL of their \
+                            property type, or a value of a data type.",
+            "anyOf": [
+                generator.subschema_for::<PropertyArray>(),
+                generator.subschema_for::<PropertyObject>(),
+                generator.subschema_for::<PropertyValue>(),
+            ],
+        })
+    }
+}
+
+/// The schema of [`Property::Array`], which documents it as a component of its own.
+#[cfg(feature = "schemars")]
+struct PropertyArray;
+
+#[cfg(feature = "schemars")]
+impl JsonSchema for PropertyArray {
+    fn schema_name() -> Cow<'static, str> {
+        Cow::Borrowed("PropertyArray")
+    }
+
+    fn json_schema(generator: &mut SchemaGenerator) -> Schema {
+        json_schema!({
+            "type": "array",
+            "description": "A list of properties.",
+            "items": generator.subschema_for::<Property>(),
+        })
+    }
 }
 
 /// Property data combined with its corresponding metadata.

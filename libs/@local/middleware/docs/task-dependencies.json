@@ -2,7 +2,7 @@
   "package": "hash-middleware",
   "dependencies": [
     "error-stack",
-    "hash-secret",
+    "hash-crypto",
     "problematic",
     "type-system"
   ],

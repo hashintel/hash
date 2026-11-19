@@ -4,6 +4,7 @@ use core::fmt::{self, Display};
 
 use camino::Utf8PathBuf;
 use clap::{Args, ValueHint};
+use error_stack::{Report, ResultExt as _};
 
 use super::ReportError;
 use crate::{cli::RootArgs, file::generation::GenerationId, salt::ladder::report::LadderReport};
@@ -154,7 +155,7 @@ impl LadderArgs {
     /// This panics when the run cannot open the generation or its artifacts, or when the rebuilt
     /// canonical frame does not reproduce the published coordinate column. A report run has no
     /// recovery path, and the error is the diagnosis.
-    pub(super) fn run(self) -> Result<LadderVerdict, ReportError> {
+    pub(super) fn run(self) -> Result<LadderVerdict, Report<ReportError>> {
         let report = LadderReport::compile(
             &self.root.root,
             self.generation,
@@ -163,7 +164,9 @@ impl LadderArgs {
 
         let bundle =
             serde_json::to_vec_pretty(&report).expect("the report bundle serializes to JSON");
-        std::fs::write(&self.output, bundle).map_err(ReportError::Io)?;
+        std::fs::write(&self.output, bundle)
+            .change_context(ReportError::Write)
+            .attach_with(|| self.output.clone())?;
 
         Ok(LadderVerdict {
             report,

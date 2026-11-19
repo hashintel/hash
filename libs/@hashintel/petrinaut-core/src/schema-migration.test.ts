@@ -18,7 +18,6 @@ const makePlace = (id: string, colorId: string | null): Place => ({
   name: `Place${id.replaceAll(/[^a-zA-Z0-9]/g, "")}`,
   colorId,
   dynamicsEnabled: false,
-  differentialEquationId: null,
   x: 0,
   y: 0,
 });

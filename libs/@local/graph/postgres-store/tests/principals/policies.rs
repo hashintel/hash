@@ -447,7 +447,7 @@ async fn global_policies() -> Result<(), Box<dyn Error>> {
         .collect::<HashSet<_>>();
     let nonexisting_policies = client
         .resolve_policies_for_actor(
-            ActorId::User(UserId::new(Uuid::new_v4())).into(),
+            ActorId::User(UserId::new(Uuid::now_v7())).into(),
             ResolvePoliciesParams {
                 actions: Cow::Borrowed(&[ActionName::All]),
             },
@@ -525,7 +525,7 @@ async fn actor_type_policies() -> Result<(), Box<dyn Error>> {
         .collect::<HashSet<_>>();
     let nonexisting_machine_policies = client
         .resolve_policies_for_actor(
-            ActorId::Machine(MachineId::new(Uuid::new_v4())).into(),
+            ActorId::Machine(MachineId::new(Uuid::now_v7())).into(),
             ResolvePoliciesParams {
                 actions: Cow::Owned(ActionName::all().collect()),
             },
@@ -606,7 +606,7 @@ async fn specific_actor_policies() -> Result<(), Box<dyn Error>> {
         .collect::<HashSet<_>>();
     let nonexisting_user_policies = client
         .resolve_policies_for_actor(
-            ActorId::User(UserId::new(Uuid::new_v4())).into(),
+            ActorId::User(UserId::new(Uuid::now_v7())).into(),
             ResolvePoliciesParams {
                 actions: Cow::Owned(ActionName::all().collect()),
             },
@@ -766,7 +766,7 @@ async fn policy_count_and_content() -> Result<(), Box<dyn Error>> {
 
     let env = setup_policy_test_environment(&mut client, actor_id).await?;
 
-    let nonexistent_id = UserId::new(Uuid::new_v4());
+    let nonexistent_id = UserId::new(Uuid::now_v7());
 
     let user1_policies = client
         .resolve_policies_for_actor(
