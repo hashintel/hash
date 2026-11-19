@@ -39,11 +39,11 @@ export const hashEntityIdSchema = v.pipe(
   v.string(),
   v.regex(
     new RegExp(`^${uuidGrammar}~${uuidGrammar}(?:~${uuidGrammar})?$`),
-    "An entity id is webId~entityUuid, or webId~entityUuid~draftId for a draft; copy it whole from a read.",
+    "An entity id is webId~entityUuid, or webId~entityUuid~draftId for a draft. Copy it from a read; an id a table wrote as ~entityUuid needs the web id its header gives in front.",
   ),
   v.brand("HashEntityId"),
   v.description(
-    "An entity id exactly as a read returned it: webId~entityUuid, or webId~entityUuid~draftId for a draft. Copy it whole; never shorten or build one.",
+    "An entity id as a read gave it: webId~entityUuid, or webId~entityUuid~draftId for a draft. Copy it whole, never shortening one; an id a table wrote as ~entityUuid takes the web id its header gives in front.",
   ),
 );
 
