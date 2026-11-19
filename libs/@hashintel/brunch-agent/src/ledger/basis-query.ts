@@ -48,11 +48,12 @@ export type BasisQuerySelector = v.InferOutput<
 
 /** The basis query's description. */
 export const queryBasisToolDescription =
-  "Use when the USER asks why a visible net element exists or is modelled as it is, instead of answering from memory. Finds the element in the latest net read, or in the net read back after a later change, and returns its recorded basis: the reflections that name the element and, behind them, the claims, entities and discharged obligations they rest on, each with its ID, and the conversation turns those records came from, each with its ID and the opening of the USER's words. Answer from that basis and cite its record IDs. Cite every returned turn too, by quoting the opening of the USER's words, never by its ID, so the USER can see what they said that the answer rests on. A claim under `superseded` was later replaced: say so, and give its replacement. It also lists the canonical calls that changed the element, with their document and Ledger revisions. A basis-absent disposition means no reflection names the element: say plainly that its basis was not recorded rather than reconstructing one. You may point to related records, but do not offer a rationale of your own for it. A stale-read disposition means the latest net view, a read or a change's read-back, is out of date: the net changed after it without a later read-back, the USER changed the net in the editor after it, or it is no longer in your context. Read the net again, then query.";
+  "Use when the USER asks why a visible net element exists or is modelled as it is, instead of answering from memory. Finds the element in the latest net read, or in the net read back after a later change, and returns its recorded basis: the reflections that name the element and, behind them, the claims, entities and discharged obligations they rest on, each with its ID, and the conversation turns those records came from, each with its ID and the opening of the USER's words. Answer from that basis and cite its record IDs. Cite every returned turn too, by quoting the opening of the USER's words, never by its ID, so the USER can see what they said that the answer rests on. A claim under `superseded` was later replaced: say so, and give its replacement. It also lists the canonical calls that changed the element, with their document and Ledger revisions. A basis-absent disposition means no reflection names the element: say plainly that its basis was not recorded rather than reconstructing one. You may point to related records, but do not offer a rationale of your own for it. A stale-read disposition means the net changed after the latest net view, a read or a change's read-back, without a later read-back: read it again, then query.";
 
 /**
- * The reason the basis query's result gives for each disposition, keyed by
- * disposition; the `stale-read` disposition has one reason per cause.
+ * The reasons the basis query's result gives, keyed by reason. Each
+ * disposition has its own reason; `stale-hand-edit` and `no-current-view`
+ * are further causes answered with the `stale-read` disposition.
  */
 export const basisQueryReasons = {
   "stale-read":
