@@ -68,6 +68,7 @@
     "lint:oxlint": {
       "dependsOn": [
         "@local/oxlint#build",
+        "build",
         "codegen"
       ],
       "affectedBy": [
