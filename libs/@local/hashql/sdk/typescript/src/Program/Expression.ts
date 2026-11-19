@@ -556,6 +556,28 @@ export const assume =
   <E extends Value.Any>(expression: E): Expression<T, Value.Inputs<E>> =>
     pipe(expression, toNode, fromResult<T, Value.Inputs<E>>);
 
+/**
+ * Asserts that an expression has the type `type`, which emits the `as` special form.
+ *
+ * The result has the asserted type and keeps the expression's input requirements. The HashQL compiler checks the assertion rather than the SDK, and accepts one that keeps the expression's type or widens it to a supertype, never one that narrows it. Unlike {@link assume}, which changes only the SDK's type, `as` puts the assertion into the program. Call it as `as(expression, type)`, or as `as(type)` inside a `pipe`.
+ *
+ * @example <caption>Widen an Integer to a Number.</caption>
+ * ```ts
+ * import assert from "node:assert/strict";
+ * import { JExpr, Program } from "@local/hashql";
+ * import { Result } from "effect";
+ *
+ * const { Expression, Structural } = Program;
+ * const number = Result.getOrThrow(Structural.type(Number));
+ * assert.equal(
+ *   JExpr.compile(Result.getOrThrow(Expression.toJExpr(Expression.as(2n, number)))),
+ *   '["::kernel::special_form::as",{"#literal":2},"::kernel::type::Number"]',
+ * );
+ * ```
+ *
+ * @category Combinators
+ * @since 0.1.0
+ */
 export const as = Function.dual<
   <T extends Type.Any>(
     type: TypeExpression.TypeExpression<T>,

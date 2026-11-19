@@ -355,6 +355,31 @@ describe("program", () => {
     );
   });
 
+  test("type_assertion", () => {
+    expect.hasAssertions();
+    const result = Draft.program({}, ($) => {
+      const { Number: NumberType } = $.prelude();
+      const foo = $.let("foo", $.as(2n, NumberType));
+      return $.if(true, { then: (branch) => branch.as(foo, NumberType) });
+    });
+    expect(syntax(result)).toStrictEqual(
+      call(
+        "::kernel::special_form::let",
+        "foo",
+        call(
+          "::kernel::special_form::as",
+          literal(2),
+          "::kernel::type::Number",
+        ),
+        call(
+          "::kernel::special_form::if",
+          literal(true),
+          call("::kernel::special_form::as", "foo", "::kernel::type::Number"),
+        ),
+      ),
+    );
+  });
+
   test("construction_failures", () => {
     expect.hasAssertions();
     for (const result of [
