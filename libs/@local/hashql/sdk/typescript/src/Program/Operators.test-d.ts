@@ -85,6 +85,26 @@ describe("operator_types", () => {
     Operators.eq(id, "id");
   });
 
+  test("structural_operands", () => {
+    const count = Expression.input("count", integerType);
+    const other = Expression.input("other", integerType);
+    expectTypeOf(Operators.eq({ count }, { count: other })).toEqualTypeOf<
+      Operators.Predicate<{
+        readonly count: Type.PrimitiveInteger;
+        readonly other: Type.PrimitiveInteger;
+      }>
+    >();
+    expectTypeOf(pipe({ count }, Operators.ne({ count: 1n }))).toEqualTypeOf<
+      Operators.Predicate<{ readonly count: Type.PrimitiveInteger }>
+    >();
+    // @ts-expect-error A record operand must not hide an extra field.
+    Operators.eq({ count }, { count: 1n, extra: true });
+    // @ts-expect-error A piped record operand must not hide an extra field.
+    pipe({ count: 1n, extra: true }, Operators.eq({ count }));
+    // @ts-expect-error Field descriptors must match exactly.
+    Operators.eq({ count }, { count: 1 });
+  });
+
   test("defaults_and_operations", () => {
     const count = Expression.input("count", integerType, 1n);
     const enabled = Expression.input("enabled", booleanType);

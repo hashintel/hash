@@ -88,13 +88,16 @@ export type Option<T extends Type.Any> = Type.Union<
  */
 export type Conditional<
   C extends Expression.Value<Type.PrimitiveBoolean>,
-  T extends Expression.Value.Any,
-  E extends Expression.Value.Any,
+  T extends Structural.Value.Any,
+  E extends Structural.Value.Any,
 > = Expression.Expression<
-  Expression.Conditional<Expression.Value.Type<T>, Expression.Value.Type<E>>,
+  Expression.Conditional<Structural.Value.Type<T>, Structural.Value.Type<E>>,
   Inputs.Merge<
     Expression.Value.Inputs<C>,
-    Inputs.Merge<Expression.Value.Inputs<T>, Expression.Value.Inputs<E>>
+    Inputs.Merge<
+      Structural.Value.Requirements<T>,
+      Structural.Value.Requirements<E>
+    >
   >
 >;
 
@@ -106,10 +109,10 @@ export type Conditional<
  */
 export type Optional<
   C extends Expression.Value<Type.PrimitiveBoolean>,
-  T extends Expression.Value.Any,
+  T extends Structural.Value.Any,
 > = Expression.Expression<
-  Option<Expression.Value.Type<T>>,
-  Inputs.Merge<Expression.Value.Inputs<C>, Expression.Value.Inputs<T>>
+  Option<Structural.Value.Type<T>>,
+  Inputs.Merge<Expression.Value.Inputs<C>, Structural.Value.Requirements<T>>
 >;
 
 /**
@@ -232,18 +235,18 @@ export interface Context<S extends Scope.Scope.Any>
   /**
    * Binds a value to a HashQL name and returns a reference to the binding.
    *
-   * Pass `type`, a type expression or structural shorthand as {@link "type" | `$.type`} takes it, to annotate the binding as in `let name: type = value`. The reference then has the annotation's type, which widens the value's. Draft does not check the value against the annotation, as with {@link assume}, and the HashQL compiler does.
+   * `value` is an expression or structural shorthand, such as a host primitive or a record of values, and the reference keeps its semantic type and input requirements. Pass `type`, a type expression or structural shorthand as {@link "type" | `$.type`} takes it, to annotate the binding as in `let name: type = value`. The reference then has the annotation's type, which widens the value's. Draft does not check the value against the annotation, as with {@link assume}, and the HashQL compiler does.
    */
   readonly let: {
-    <const E extends Expression.Value.Any>(
+    <const E extends Structural.Value.Any>(
       name: string,
       value: E,
     ): Expression.Expression<
-      Expression.Value.Type<E>,
-      Expression.Value.Inputs<E>
+      Structural.Value.Type<E>,
+      Structural.Value.Requirements<E>
     >;
     <
-      const E extends Expression.Value.Any,
+      const E extends Structural.Value.Any,
       const D extends Structural.Definition,
     >(
       name: string,
@@ -251,7 +254,7 @@ export interface Context<S extends Scope.Scope.Any>
       type: D,
     ): Expression.Expression<
       Structural.Definition.Type<D>,
-      Expression.Value.Inputs<E>
+      Structural.Value.Requirements<E>
     >;
   };
 
@@ -281,13 +284,13 @@ export interface Context<S extends Scope.Scope.Any>
   /**
    * Constructs a HashQL conditional from a Boolean condition and a record of branch callbacks.
    *
-   * The callbacks run immediately, `then` first, whatever the condition's value. Every declaration made while a callback runs stays inside its branch, including one made through a captured outer `$` of the same program. Without `else`, the conditional is an {@link Option}: `Some` of the `then` branch when the condition holds, and `None` otherwise. An exception thrown by a callback becomes a `CallbackException` failure on the returned expression and does not interrupt the enclosing callback.
+   * The callbacks run immediately, `then` first, whatever the condition's value, and each returns an expression or structural shorthand. Every declaration made while a callback runs stays inside its branch, including one made through a captured outer `$` of the same program. Without `else`, the conditional is an {@link Option}: `Some` of the `then` branch when the condition holds, and `None` otherwise. An exception thrown by a callback becomes a `CallbackException` failure on the returned expression and does not interrupt the enclosing callback.
    */
   readonly if: {
     <
       const C extends Expression.Value<Type.PrimitiveBoolean>,
-      const T extends Expression.Value.Any,
-      const E extends Expression.Value.Any,
+      const T extends Structural.Value.Any,
+      const E extends Structural.Value.Any,
     >(
       condition: C,
       branches: {
@@ -297,7 +300,7 @@ export interface Context<S extends Scope.Scope.Any>
     ): Conditional<C, T, E>;
     <
       const C extends Expression.Value<Type.PrimitiveBoolean>,
-      const T extends Expression.Value.Any,
+      const T extends Structural.Value.Any,
     >(
       condition: C,
       branches: { readonly then: ($: Context<S>) => T },

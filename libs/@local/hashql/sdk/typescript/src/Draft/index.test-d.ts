@@ -218,6 +218,45 @@ describe("program", () => {
     Draft.withPrelude({ values: { [key]: Expression.integer(1) } });
   });
 
+  test("structural_values", () => {
+    const result = Draft.program({ count: BigInt }, ($, { count }) => {
+      const row = $.let("row", { count, pair: [1n, "x"] });
+      expectTypeOf(row).toEqualTypeOf<
+        Program.Expression.Expression<
+          Type.Struct<{
+            readonly count: Type.PrimitiveInteger;
+            readonly pair: Type.Tuple<
+              readonly [Type.PrimitiveInteger, Type.PrimitiveString]
+            >;
+          }>,
+          { readonly count: Type.PrimitiveInteger }
+        >
+      >();
+      // @ts-expect-error a record field reads an input the schema does not declare
+      $.let("escaped", { outside });
+      $.if(true, {
+        // @ts-expect-error a branch's record reads an input the schema does not declare
+        then: () => ({ outside }),
+        else: () => ({ outside: 1n }),
+      });
+      return { total: row.count, ready: true };
+    });
+    expectTypeOf(Result.getOrThrow(result)).toEqualTypeOf<
+      Program.Expression.Expression<
+        Type.Struct<{
+          readonly total: Type.PrimitiveInteger;
+          readonly ready: Type.PrimitiveBoolean;
+        }>,
+        { readonly count: Type.PrimitiveInteger }
+      >
+    >();
+    expectTypeOf(Result.getOrThrow(Draft.program({}, () => 1n))).toEqualTypeOf<
+      Program.Expression.Expression<Type.PrimitiveInteger, Program.Inputs.Empty>
+    >();
+    // @ts-expect-error a record root reads an input the schema does not declare
+    Draft.program({}, () => ({ outside }));
+  });
+
   test("nominal_identity", () => {
     Draft.program({ count: integer }, ($, inputs) => {
       const Foo = $.newtype("Foo", { foo: BigInt });

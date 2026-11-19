@@ -176,6 +176,20 @@ describe("operators", () => {
     expect(failure.reason._tag).toBe("InvalidExpression");
   });
 
+  test("structural_operands", () => {
+    expect.hasAssertions();
+    const count = Expression.input("count", BigInt);
+    const expected =
+      '["::core::cmp::eq",{"#struct":{"count":["::kernel::special_form::input","count","::kernel::type::Integer"]}},{"#struct":{"count":{"#literal":1}}}]';
+    expect(compile(Operators.eq({ count }, { count: 1n }))).toBe(expected);
+    expect(compile(pipe({ count }, Operators.eq({ count: 1n })))).toBe(
+      expected,
+    );
+    expect(compile(Operators.ne([count, "x"], [1n, "x"]))).toBe(
+      '["::core::cmp::ne",{"#tuple":[["::kernel::special_form::input","count","::kernel::type::Integer"],{"#literal":"x"}]},{"#tuple":[{"#literal":1},{"#literal":"x"}]}]',
+    );
+  });
+
   test("none_comparison", () => {
     expect.hasAssertions();
     const count = Expression.fromJExpr<OptionalCount, Inputs.Empty>("count");

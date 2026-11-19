@@ -1,7 +1,7 @@
 /**
  * Structural shorthand for HashQL types and values.
  *
- * {@link "type"} normalizes host constructors, tuples and records into type syntax. {@link struct} and {@link tuple} infer their fields and positions from values. {@link list} and {@link dict} take explicit type definitions, including for empty collections. {@link input} accepts the same type shorthand.
+ * {@link "type"} normalizes host constructors, tuples and records into type syntax. {@link struct} and {@link tuple} infer their fields and positions from values. {@link list} and {@link dict} take explicit type definitions, including for empty collections. {@link @local/hashql#Program.Expression.input | `Expression.input`} accepts the same type shorthand.
  *
  * {@link value} accepts a structural value only when its semantic descriptor matches the requested type. Value construction combines input requirements from every possible host-side alternative. Nested host arrays denote tuples and records denote structs. Construct a nested list or dictionary explicitly before placing it inside another value.
  *
@@ -100,11 +100,11 @@ export declare namespace Value {
   /**
    * Retains the input requirements of every possible host value.
    *
-   * A TypeScript union represents a host-side choice between values. Both arms may have the same HashQL type while carrying different inputs. Construction can choose either arm, so the resulting expression must require the inputs of both arms. Tuple and record recursion also includes inputs hidden inside structural values.
+   * A TypeScript union represents a host-side choice between values. Both arms may have the same HashQL type while carrying different inputs. Construction can choose either arm, so the resulting expression must require the inputs of both arms. Tuple and record recursion also includes inputs hidden inside structural values. {@link Any} itself cannot show which inputs its values need, so its requirements are {@link Inputs.Erased}.
    */
-  export type Requirements<V extends Any> = Inputs.Conservative<
-    RequirementAlternatives<V>
-  >;
+  export type Requirements<V extends Any> = [Any] extends [V]
+    ? Inputs.Erased
+    : Inputs.Conservative<RequirementAlternatives<V>>;
 
   /** The semantic descriptor of a structural host value, without implicit widening. */
   export type Type<V extends Any> = V extends Expression.Value.Any
@@ -566,71 +566,5 @@ export const dict = <
     Expression.fromResult<
       Type.Dict<Definition.Type<K>, Definition.Type<D>>,
       Value.Requirements<E>
-    >,
-  );
-
-type InputArguments =
-  | readonly []
-  | readonly [defaultValue: Value.Any | undefined];
-
-/** Checks each defined alternative without rejecting an explicitly absent default. */
-type ExactDefault<T extends Type.Any, V> = V extends undefined
-  ? V
-  : V extends Value.Any
-    ? Value.Exact<T, V>
-    : never;
-
-type ExactDefaults<T extends Type.Any, D extends InputArguments> = {
-  readonly [K in keyof D]: ExactDefault<T, D[K]>;
-};
-
-type InputRequirements<
-  Name extends string,
-  T extends Type.Any,
-  D extends InputArguments,
-> = [D[0]] extends [undefined]
-  ? Readonly<Record<Name, T>>
-  : Inputs.Merge<
-      undefined extends D[0]
-        ? Readonly<Record<Name, T>>
-        : Readonly<Partial<Record<Name, T>>>,
-      Value.Requirements<Exclude<D[0], undefined>>
-    >;
-
-/**
- * Declares an input using type shorthand and an optional structural default.
- *
- * A definitely present default makes this occurrence optional and contributes its own requirements. An omitted or possibly undefined default keeps the input required. Defaults must match the definition exactly, including nested fields and tuple positions. Use constructed expressions for list, dictionary and nominal defaults. Failure handling follows {@link value}.
- *
- * @category Constructors
- * @since 0.1.0
- */
-export const input = <
-  const Name extends string,
-  const D extends Definition,
-  const Defaults extends InputArguments,
->(
-  name: Name,
-  definition: D,
-  ...defaults: Defaults & ExactDefaults<NoInfer<Definition.Type<D>>, Defaults>
-): Expression.Expression<
-  Definition.Type<D>,
-  InputRequirements<Name, Definition.Type<D>, Defaults>
-> =>
-  Result.gen(function* () {
-    const ident = yield* AST.decodeInputName(name);
-    const type = yield* StructuralSyntax.typeNode(definition);
-    const [defaultValue] = defaults;
-
-    if (defaultValue === undefined) {
-      return new AST.Input(ident, type, undefined);
-    }
-
-    const fallback = yield* StructuralSyntax.valueNode(defaultValue);
-    return new AST.Input(ident, type, fallback);
-  }).pipe(
-    Expression.fromResult<
-      Definition.Type<D>,
-      InputRequirements<Name, Definition.Type<D>, Defaults>
     >,
   );
