@@ -20,6 +20,7 @@ conversion expressions and the same version-aware migration helper.
 | Fuel economy              | Litres per 100 kilometers, kilometers per litre, miles per US and imperial gallon                                                     |
 | Light                     | Foot-lambert                                                                                                                          |
 | Sound and signal          | Bel, decibel, dBW, dBm, unweighted dB SPL, A-weighted and C-weighted sound pressure levels                                            |
+| Temperature differences   | Kelvin Difference, Celsius Difference, Fahrenheit Difference, Rankine Difference                                                      |
 
 Migration 034 already includes inches, feet, yards, miles, acres, square feet,
 litres, regional gallons and fluid ounces, petroleum barrels, pounds, ounces,
@@ -28,9 +29,9 @@ atmospheres, watt-hours, kilowatt-hours, British thermal unit variants,
 mechanical horsepower, BTU/hour, Fahrenheit, Rankine, degrees, pound-force,
 and foot-candles. Those definitions are retained.
 
-The combined catalogue has 1,053 concrete units, 72 quantity parents, and 121
-system subgroups. This migration adds 57 units to the production ontology,
-8 quantity parents, and 13 system subgroups. It also versions the existing
+The combined catalogue has 1,057 concrete units, 73 quantity parents, and 123
+system subgroups. This migration adds 61 units to the production ontology,
+9 quantity parents, and 15 system subgroups. It also versions the existing
 Percentage type. Development instances reuse their existing Knots base URL.
 Units with distinct regional definitions retain separate Imperial and US
 Customary groups beneath a common quantity parent.
@@ -67,8 +68,15 @@ Customary groups beneath a common quantity parent.
 - Sound pressure levels explicitly use the 20 micropascal reference. A-weighted,
   C-weighted, and unweighted levels have no conversion paths between them:
   converting a measured level requires its frequency spectrum.
-- Fahrenheit and Rankine retain the temperature-reading semantics from migration 034. They cannot safely type temperature differences until conversions can
-  distinguish points from intervals.
+- Temperature Difference is a separate abstract group with Metric and Imperial
+  subgroups. Kelvin Difference and Celsius Difference convert one-to-one;
+  Fahrenheit Difference and Rankine Difference convert to Kelvin Difference by
+  multiplying by 5/9, and back by 9/5. These conversions have no offsets. For
+  example, a rise of 10 °C is a rise of 18 °F, and zero difference stays zero.
+  Differences accept signed fractional values without absolute-zero bounds.
+  They have no conversion paths to the temperature readings in migration 034,
+  whose affine conversions and absolute-zero bounds are retained. Properties
+  describe what changed and can restrict the permitted difference types.
 
 Reusable linear units accept signed fractional numbers; properties can select
 constrained descendants when a measurement needs a narrower domain. Logarithmic
@@ -94,6 +102,8 @@ and its [definition footnotes](https://www.nist.gov/pml/special-publication-811/
   Angle and luminance formulas store a floating-point approximation of π.
 - Ratio units follow the quantity/unit distinction in section 5.3.7 of the
   [BIPM SI Brochure](https://www.bipm.org/en/publications/si-brochure).
+- Temperature intervals follow [NIST SP 330 section 2](https://www.nist.gov/pml/special-publication-330/sp-330-section-2)
+  and the Fahrenheit/Rankine interval factors in [NIST SP 811 Appendix B.8](https://www.nist.gov/pml/special-publication-811/nist-guide-si-appendix-b-conversion-factors/nist-guide-si-appendix-b8).
 - Logarithmic levels follow [NIST SP 811 chapter 8](https://www.nist.gov/pml/special-publication-811/nist-guide-si-chapter-8)
   and the dBm/dBW definitions in [NTIA TN 89-2](https://its.ntia.gov/publications/download/tn_89-2.pdf).
   Sound pressure uses the [NPL reference definition](https://resource.npl.co.uk/acoustics/techguides/concepts/spl.html).
