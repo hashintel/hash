@@ -2728,14 +2728,16 @@ export const systemDataTypes = {
     dataTypeId: "https://hash.ai/@h/types/data-type/arcminutes/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/arcminutes/" as BaseUrl,
-    title: "Arcminutes",
+    title: "Arcminute",
+    titlePlural: "Arcminutes",
     description: "A unit of plane angle equal to 1/60 of a degree.",
   },
   arcseconds: {
     dataTypeId: "https://hash.ai/@h/types/data-type/arcseconds/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/arcseconds/" as BaseUrl,
-    title: "Arcseconds",
+    title: "Arcsecond",
+    titlePlural: "Arcseconds",
     description: "A unit of plane angle equal to 1/3600 of a degree.",
   },
   area: {
@@ -3072,7 +3074,8 @@ export const systemDataTypes = {
   bels: {
     dataTypeId: "https://hash.ai/@h/types/data-type/bels/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/bels/" as BaseUrl,
-    title: "Bels",
+    title: "Bel",
+    titlePlural: "Bels",
     description:
       "A logarithmic unit equal to ten decibels; the property specifies the ratio convention and reference.",
   },
@@ -3297,7 +3300,8 @@ export const systemDataTypes = {
     dataTypeId: "https://hash.ai/@h/types/data-type/calories-it/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/calories-it/" as BaseUrl,
-    title: "Calories (IT)",
+    title: "Calorie (IT)",
+    titlePlural: "Calories (IT)",
     description: "A unit of energy equal to exactly 4.1868 joules.",
   },
   caloriesThermochemical: {
@@ -3305,7 +3309,8 @@ export const systemDataTypes = {
       "https://hash.ai/@h/types/data-type/calories-thermochemical/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/calories-thermochemical/" as BaseUrl,
-    title: "Calories (Thermochemical)",
+    title: "Calorie (Thermochemical)",
+    titlePlural: "Calories (Thermochemical)",
     description: "A unit of energy equal to exactly 4.184 joules.",
   },
   candelas: {
@@ -3420,6 +3425,7 @@ export const systemDataTypes = {
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/celsius-difference/" as BaseUrl,
     title: "Celsius Difference",
+    titlePlural: "Celsius Differences",
     description:
       "A temperature difference expressed in degrees Celsius. One degree Celsius of difference equals one kelvin of difference, with no offset.",
   },
@@ -3596,7 +3602,8 @@ export const systemDataTypes = {
     dataTypeId: "https://hash.ai/@h/types/data-type/centipoises/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/centipoises/" as BaseUrl,
-    title: "Centipoises",
+    title: "Centipoise",
+    titlePlural: "Centipoises",
     description: "A unit of dynamic viscosity equal to 0.001 pascal seconds.",
   },
   centiradians: {
@@ -3644,6 +3651,7 @@ export const systemDataTypes = {
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/centistokes/" as BaseUrl,
     title: "Centistokes",
+    titlePlural: "Centistokes",
     description:
       "A unit of kinematic viscosity equal to 1e-06 square meters per second.",
   },
@@ -3842,7 +3850,8 @@ export const systemDataTypes = {
     dataTypeId: "https://hash.ai/@h/types/data-type/cubic-feet-per-minute/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/cubic-feet-per-minute/" as BaseUrl,
-    title: "Cubic Feet per Minute",
+    title: "Cubic Foot per Minute",
+    titlePlural: "Cubic Feet per Minute",
     description:
       "A unit of volume flow rate at the measurement conditions; one unit equals 0.028316846592/60 cubic meters per second.",
   },
@@ -3906,7 +3915,8 @@ export const systemDataTypes = {
     dataTypeId: "https://hash.ai/@h/types/data-type/cubic-meters-per-hour/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/cubic-meters-per-hour/" as BaseUrl,
-    title: "Cubic Meters per Hour",
+    title: "Cubic Meter per Hour",
+    titlePlural: "Cubic Meters per Hour",
     description:
       "A unit of volume flow rate at the measurement conditions; one unit equals 1/3600 cubic meters per second.",
   },
@@ -3924,7 +3934,8 @@ export const systemDataTypes = {
       "https://hash.ai/@h/types/data-type/cubic-meters-per-second/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/cubic-meters-per-second/" as BaseUrl,
-    title: "Cubic Meters per Second",
+    title: "Cubic Meter per Second",
+    titlePlural: "Cubic Meters per Second",
     description:
       "The coherent SI unit of volume flow rate at the measurement conditions.",
   },
@@ -4065,7 +4076,8 @@ export const systemDataTypes = {
   curies: {
     dataTypeId: "https://hash.ai/@h/types/data-type/curies/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/curies/" as BaseUrl,
-    title: "Curies",
+    title: "Curie",
+    titlePlural: "Curies",
     description:
       "A unit of radionuclide activity equal to exactly 37 billion becquerels.",
   },
@@ -4400,14 +4412,16 @@ export const systemDataTypes = {
     dataTypeId: "https://hash.ai/@h/types/data-type/decibel-milliwatts/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/decibel-milliwatts/" as BaseUrl,
-    title: "Decibel Milliwatts",
+    title: "Decibel Milliwatt",
+    titlePlural: "Decibel Milliwatts",
     description:
       "A power level equal to 10 log₁₀(P / 1 milliwatt), numerically 30 above its value in dBW.",
   },
   decibels: {
     dataTypeId: "https://hash.ai/@h/types/data-type/decibels/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/decibels/" as BaseUrl,
-    title: "Decibels",
+    title: "Decibel",
+    titlePlural: "Decibels",
     description:
       "A logarithmic unit equal to one tenth of a bel; the property specifies the ratio convention and reference.",
   },
@@ -4416,7 +4430,8 @@ export const systemDataTypes = {
       "https://hash.ai/@h/types/data-type/decibels-a-weighted-sound-pressure/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/decibels-a-weighted-sound-pressure/" as BaseUrl,
-    title: "Decibels (A-Weighted Sound Pressure)",
+    title: "Decibel (A-Weighted Sound Pressure)",
+    titlePlural: "Decibels (A-Weighted Sound Pressure)",
     description:
       "An A-weighted sound pressure level referenced to 20 micropascals. Conversion to another weighting requires the sound spectrum.",
   },
@@ -4425,7 +4440,8 @@ export const systemDataTypes = {
       "https://hash.ai/@h/types/data-type/decibels-c-weighted-sound-pressure/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/decibels-c-weighted-sound-pressure/" as BaseUrl,
-    title: "Decibels (C-Weighted Sound Pressure)",
+    title: "Decibel (C-Weighted Sound Pressure)",
+    titlePlural: "Decibels (C-Weighted Sound Pressure)",
     description:
       "A C-weighted sound pressure level referenced to 20 micropascals. Conversion to another weighting requires the sound spectrum.",
   },
@@ -4434,7 +4450,8 @@ export const systemDataTypes = {
       "https://hash.ai/@h/types/data-type/decibels-sound-pressure/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/decibels-sound-pressure/" as BaseUrl,
-    title: "Decibels (Sound Pressure)",
+    title: "Decibel (Sound Pressure)",
+    titlePlural: "Decibels (Sound Pressure)",
     description:
       "An unweighted sound pressure level equal to 20 log₁₀(pᵣₘₛ / 20 micropascals).",
   },
@@ -4442,7 +4459,8 @@ export const systemDataTypes = {
     dataTypeId: "https://hash.ai/@h/types/data-type/decibel-watts/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/decibel-watts/" as BaseUrl,
-    title: "Decibel Watts",
+    title: "Decibel Watt",
+    titlePlural: "Decibel Watts",
     description:
       "A power level equal to 10 log₁₀(P / 1 watt). Negative levels represent power below one watt.",
   },
@@ -4709,6 +4727,7 @@ export const systemDataTypes = {
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/dimensionless-ratio/" as BaseUrl,
     title: "Dimensionless Ratio",
+    titlePlural: "Dimensionless Ratios",
     description:
       "A numerical ratio whose numerator and denominator have the same quantity kind; the property specifies the basis.",
   },
@@ -4718,6 +4737,7 @@ export const systemDataTypes = {
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/dimensionless-ratio-metric/" as BaseUrl,
     title: "Dimensionless Ratio (Metric)",
+    titlePlural: "Dimensionless Ratios (Metric)",
     description:
       "Dimensionless Ratio expressed in metric units, including SI units and their accepted companions.",
   },
@@ -5005,7 +5025,8 @@ export const systemDataTypes = {
     dataTypeId: "https://hash.ai/@h/types/data-type/electronvolts/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/electronvolts/" as BaseUrl,
-    title: "Electronvolts",
+    title: "Electronvolt",
+    titlePlural: "Electronvolts",
     description:
       "A unit of energy equal to exactly 1.602176634 × 10⁻¹⁹ joules.",
   },
@@ -5073,6 +5094,7 @@ export const systemDataTypes = {
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/energy-us-customary/" as BaseUrl,
     title: "Energy (US Customary)",
+    titlePlural: "Energies (US Customary)",
     description: "Energy expressed in US customary units.",
   },
   ern: {
@@ -5344,6 +5366,7 @@ export const systemDataTypes = {
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/fahrenheit-difference/" as BaseUrl,
     title: "Fahrenheit Difference",
+    titlePlural: "Fahrenheit Differences",
     description:
       "A temperature difference expressed in degrees Fahrenheit. One degree Fahrenheit of difference equals exactly 5/9 kelvin of difference, with no offset.",
   },
@@ -5727,7 +5750,8 @@ export const systemDataTypes = {
     dataTypeId: "https://hash.ai/@h/types/data-type/foot-lamberts/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/foot-lamberts/" as BaseUrl,
-    title: "Foot-Lamberts",
+    title: "Foot-Lambert",
+    titlePlural: "Foot-Lamberts",
     description: "A unit of luminance equal to 1/π candela per square foot.",
   },
   footPoundsForce: {
@@ -5794,6 +5818,7 @@ export const systemDataTypes = {
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/fuel-consumption/" as BaseUrl,
     title: "Fuel Consumption",
+    titlePlural: "Fuel Consumptions",
     description: "The volume of fuel consumed per distance traveled.",
   },
   fuelConsumptionMetric: {
@@ -5802,6 +5827,7 @@ export const systemDataTypes = {
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/fuel-consumption-metric/" as BaseUrl,
     title: "Fuel Consumption (Metric)",
+    titlePlural: "Fuel Consumptions (Metric)",
     description:
       "Fuel Consumption expressed in metric units, including SI units and their accepted companions.",
   },
@@ -5810,6 +5836,7 @@ export const systemDataTypes = {
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/fuel-economy/" as BaseUrl,
     title: "Fuel Economy",
+    titlePlural: "Fuel Economies",
     description: "The distance traveled per volume of fuel consumed.",
   },
   fuelEconomyImperial: {
@@ -5817,6 +5844,7 @@ export const systemDataTypes = {
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/fuel-economy-imperial/" as BaseUrl,
     title: "Fuel Economy (Imperial)",
+    titlePlural: "Fuel Economies (Imperial)",
     description:
       "Fuel Economy expressed in imperial units, including units shared with US customary measurement.",
   },
@@ -5825,6 +5853,7 @@ export const systemDataTypes = {
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/fuel-economy-metric/" as BaseUrl,
     title: "Fuel Economy (Metric)",
+    titlePlural: "Fuel Economies (Metric)",
     description:
       "Fuel Economy expressed in metric units, including SI units and their accepted companions.",
   },
@@ -5834,6 +5863,7 @@ export const systemDataTypes = {
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/fuel-economy-us-customary/" as BaseUrl,
     title: "Fuel Economy (US Customary)",
+    titlePlural: "Fuel Economies (US Customary)",
     description: "Fuel Economy expressed in US customary units.",
   },
   furlongs: {
@@ -6162,7 +6192,8 @@ export const systemDataTypes = {
     dataTypeId: "https://hash.ai/@h/types/data-type/grams-per-litre/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/grams-per-litre/" as BaseUrl,
-    title: "Grams per Litre",
+    title: "Gram per Litre",
+    titlePlural: "Grams per Litre",
     description:
       "A unit of mass per volume equal to one kilogram per cubic meter; used for mass concentration.",
   },
@@ -6261,7 +6292,8 @@ export const systemDataTypes = {
   hectares: {
     dataTypeId: "https://hash.ai/@h/types/data-type/hectares/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/hectares/" as BaseUrl,
-    title: "Hectares",
+    title: "Hectare",
+    titlePlural: "Hectares",
     description: "A unit of area equal to 10000 square meters.",
   },
   hectoampereHours: {
@@ -6651,7 +6683,8 @@ export const systemDataTypes = {
       "https://hash.ai/@h/types/data-type/imperial-gallons-per-minute/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/imperial-gallons-per-minute/" as BaseUrl,
-    title: "Imperial Gallons per Minute",
+    title: "Imperial Gallon per Minute",
+    titlePlural: "Imperial Gallons per Minute",
     description:
       "A unit of volume flow rate at the measurement conditions; one unit equals 0.00454609/60 cubic meters per second.",
   },
@@ -6716,7 +6749,8 @@ export const systemDataTypes = {
       "https://hash.ai/@h/types/data-type/inches-of-water-conventional/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/inches-of-water-conventional/" as BaseUrl,
-    title: "Inches of Water (Conventional)",
+    title: "Inch of Water (Conventional)",
+    titlePlural: "Inches of Water (Conventional)",
     description:
       "A conventional pressure unit equal to 249.08891 pascals, using water density 1000 kilograms per cubic meter and standard gravity.",
   },
@@ -6924,6 +6958,7 @@ export const systemDataTypes = {
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/kelvin-difference/" as BaseUrl,
     title: "Kelvin Difference",
+    titlePlural: "Kelvin Differences",
     description:
       "A temperature difference expressed in kelvins. Negative values represent a decrease; zero represents no change.",
   },
@@ -6988,7 +7023,8 @@ export const systemDataTypes = {
     dataTypeId: "https://hash.ai/@h/types/data-type/kilocalories-it/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/kilocalories-it/" as BaseUrl,
-    title: "Kilocalories (IT)",
+    title: "Kilocalorie (IT)",
+    titlePlural: "Kilocalories (IT)",
     description:
       "A unit of energy equal to exactly 4186.8 joules. A nutritional Calorie under this definition is one kilocalorie.",
   },
@@ -6997,7 +7033,8 @@ export const systemDataTypes = {
       "https://hash.ai/@h/types/data-type/kilocalories-thermochemical/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/kilocalories-thermochemical/" as BaseUrl,
-    title: "Kilocalories (Thermochemical)",
+    title: "Kilocalorie (Thermochemical)",
+    titlePlural: "Kilocalories (Thermochemical)",
     description:
       "A unit of energy equal to exactly 4184 joules. A nutritional Calorie under this definition is one kilocalorie.",
   },
@@ -7036,7 +7073,8 @@ export const systemDataTypes = {
     dataTypeId: "https://hash.ai/@h/types/data-type/kilograms-force/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/kilograms-force/" as BaseUrl,
-    title: "Kilograms-Force",
+    title: "Kilogram-Force",
+    titlePlural: "Kilograms-Force",
     description:
       "The force exerted on one kilogram under standard gravity, equal to exactly 9.80665 newtons.",
   },
@@ -7160,7 +7198,8 @@ export const systemDataTypes = {
     dataTypeId: "https://hash.ai/@h/types/data-type/kilometers-per-litre/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/kilometers-per-litre/" as BaseUrl,
-    title: "Kilometers per Litre",
+    title: "Kilometer per Litre",
+    titlePlural: "Kilometers per Litre",
     description: "A distance of one kilometer traveled per litre of fuel.",
   },
   kilomoles: {
@@ -7272,6 +7311,7 @@ export const systemDataTypes = {
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/kinematic-viscosity/" as BaseUrl,
     title: "Kinematic Viscosity",
+    titlePlural: "Kinematic Viscosities",
     description: "A measure of dynamic viscosity divided by mass density.",
   },
   kinematicViscosityMetric: {
@@ -7280,6 +7320,7 @@ export const systemDataTypes = {
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/kinematic-viscosity-metric/" as BaseUrl,
     title: "Kinematic Viscosity (Metric)",
+    titlePlural: "Kinematic Viscosities (Metric)",
     description:
       "Kinematic Viscosity expressed in metric units, including SI units and their accepted companions.",
   },
@@ -7406,14 +7447,16 @@ export const systemDataTypes = {
       "https://hash.ai/@h/types/data-type/litres-per-100-kilometers/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/litres-per-100-kilometers/" as BaseUrl,
-    title: "Litres per 100 Kilometers",
+    title: "Litre per 100 Kilometers",
+    titlePlural: "Litres per 100 Kilometers",
     description: "A fuel consumption of one litre per 100 kilometers.",
   },
   litresPerMinute: {
     dataTypeId: "https://hash.ai/@h/types/data-type/litres-per-minute/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/litres-per-minute/" as BaseUrl,
-    title: "Litres per Minute",
+    title: "Litre per Minute",
+    titlePlural: "Litres per Minute",
     description:
       "A unit of volume flow rate at the measurement conditions; one unit equals 0.001/60 cubic meters per second.",
   },
@@ -7421,7 +7464,8 @@ export const systemDataTypes = {
     dataTypeId: "https://hash.ai/@h/types/data-type/litres-per-second/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/litres-per-second/" as BaseUrl,
-    title: "Litres per Second",
+    title: "Litre per Second",
+    titlePlural: "Litres per Second",
     description:
       "A unit of volume flow rate at the measurement conditions; one unit equals 0.001/1 cubic meters per second.",
   },
@@ -7436,6 +7480,7 @@ export const systemDataTypes = {
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/logarithmic-ratio/" as BaseUrl,
     title: "Logarithmic Ratio",
+    titlePlural: "Logarithmic Ratios",
     description:
       "A logarithmic ratio whose property specifies whether it compares power or field quantities and identifies any reference.",
   },
@@ -7445,6 +7490,7 @@ export const systemDataTypes = {
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/logarithmic-ratio-metric/" as BaseUrl,
     title: "Logarithmic Ratio (Metric)",
+    titlePlural: "Logarithmic Ratios (Metric)",
     description:
       "Logarithmic Ratio expressed in metric units, including SI units and their accepted companions.",
   },
@@ -8034,7 +8080,8 @@ export const systemDataTypes = {
     dataTypeId: "https://hash.ai/@h/types/data-type/metric-carats/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/metric-carats/" as BaseUrl,
-    title: "Metric Carats",
+    title: "Metric Carat",
+    titlePlural: "Metric Carats",
     description: "A unit of mass for gemstones equal to exactly 0.2 grams.",
   },
   metricHorsepower: {
@@ -8042,6 +8089,7 @@ export const systemDataTypes = {
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/metric-horsepower/" as BaseUrl,
     title: "Metric Horsepower",
+    titlePlural: "Metric Horsepower",
     description:
       "A unit of power equal to 75 kilogram-force meters per second, or exactly 735.49875 watts.",
   },
@@ -8346,7 +8394,8 @@ export const systemDataTypes = {
       "https://hash.ai/@h/types/data-type/miles-per-imperial-gallon/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/miles-per-imperial-gallon/" as BaseUrl,
-    title: "Miles per Imperial Gallon",
+    title: "Mile per Imperial Gallon",
+    titlePlural: "Miles per Imperial Gallon",
     description:
       "A distance in international miles per imperial gallon (4.54609 litres).",
   },
@@ -8354,7 +8403,8 @@ export const systemDataTypes = {
     dataTypeId: "https://hash.ai/@h/types/data-type/miles-per-us-gallon/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/miles-per-us-gallon/" as BaseUrl,
-    title: "Miles per US Gallon",
+    title: "Mile per US Gallon",
+    titlePlural: "Miles per US Gallon",
     description:
       "A distance in international miles per US liquid gallon (3.785411784 litres).",
   },
@@ -8377,7 +8427,8 @@ export const systemDataTypes = {
   millibars: {
     dataTypeId: "https://hash.ai/@h/types/data-type/millibars/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/millibars/" as BaseUrl,
-    title: "Millibars",
+    title: "Millibar",
+    titlePlural: "Millibars",
     description: "A unit of pressure equal to 100 pascals.",
   },
   millibecquerels: {
@@ -8434,7 +8485,8 @@ export const systemDataTypes = {
       "https://hash.ai/@h/types/data-type/milligrams-per-decilitre/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/milligrams-per-decilitre/" as BaseUrl,
-    title: "Milligrams per Decilitre",
+    title: "Milligram per Decilitre",
+    titlePlural: "Milligrams per Decilitre",
     description:
       "A unit of mass per volume equal to 0.01 kilograms per cubic meter; used for mass concentration.",
   },
@@ -8442,7 +8494,8 @@ export const systemDataTypes = {
     dataTypeId: "https://hash.ai/@h/types/data-type/milligrams-per-litre/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/milligrams-per-litre/" as BaseUrl,
-    title: "Milligrams per Litre",
+    title: "Milligram per Litre",
+    titlePlural: "Milligrams per Litre",
     description:
       "A unit of mass per volume equal to 0.001 kilograms per cubic meter; used for mass concentration.",
   },
@@ -8532,7 +8585,8 @@ export const systemDataTypes = {
       "https://hash.ai/@h/types/data-type/millimeters-of-mercury-conventional/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/millimeters-of-mercury-conventional/" as BaseUrl,
-    title: "Millimeters of Mercury (Conventional)",
+    title: "Millimeter of Mercury (Conventional)",
+    titlePlural: "Millimeters of Mercury (Conventional)",
     description:
       "A conventional pressure unit equal to 133.322387415 pascals, using mercury density 13595.1 kilograms per cubic meter and standard gravity.",
   },
@@ -9095,7 +9149,8 @@ export const systemDataTypes = {
     dataTypeId: "https://hash.ai/@h/types/data-type/nautical-miles/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/nautical-miles/" as BaseUrl,
-    title: "Nautical Miles",
+    title: "Nautical Mile",
+    titlePlural: "Nautical Miles",
     description:
       "The international nautical mile, equal to exactly 1852 meters.",
   },
@@ -9179,6 +9234,7 @@ export const systemDataTypes = {
     dataTypeId: "https://hash.ai/@h/types/data-type/one/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/one/" as BaseUrl,
     title: "One",
+    titlePlural: "Ones",
     description:
       "The unit for a dimensionless ratio; the property specifies the compared quantities and their basis.",
   },
@@ -9232,7 +9288,8 @@ export const systemDataTypes = {
     dataTypeId: "https://hash.ai/@h/types/data-type/parts-per-billion/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/parts-per-billion/" as BaseUrl,
-    title: "Parts per Billion",
+    title: "Part per Billion",
+    titlePlural: "Parts per Billion",
     description:
       "A dimensionless ratio scaled by one billion (10⁹); the property specifies the ratio basis.",
   },
@@ -9240,7 +9297,8 @@ export const systemDataTypes = {
     dataTypeId: "https://hash.ai/@h/types/data-type/parts-per-million/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/parts-per-million/" as BaseUrl,
-    title: "Parts per Million",
+    title: "Part per Million",
+    titlePlural: "Parts per Million",
     description:
       "A dimensionless ratio scaled by one million; the property specifies whether the ratio is by mass, volume, amount, or another basis.",
   },
@@ -9840,7 +9898,8 @@ export const systemDataTypes = {
   poises: {
     dataTypeId: "https://hash.ai/@h/types/data-type/poises/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/poises/" as BaseUrl,
-    title: "Poises",
+    title: "Poise",
+    titlePlural: "Poises",
     description: "A CGS unit of dynamic viscosity equal to 0.1 pascal seconds.",
   },
   poundals: {
@@ -10040,6 +10099,7 @@ export const systemDataTypes = {
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/power-level/" as BaseUrl,
     title: "Power Level",
+    titlePlural: "Power Levels",
     description: "A logarithmic power level with a specified reference power.",
   },
   powerLevelMetric: {
@@ -10047,6 +10107,7 @@ export const systemDataTypes = {
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/power-level-metric/" as BaseUrl,
     title: "Power Level (Metric)",
+    titlePlural: "Power Levels (Metric)",
     description:
       "Power Level expressed in metric units, including SI units and their accepted companions.",
   },
@@ -10711,7 +10772,8 @@ export const systemDataTypes = {
   rads: {
     dataTypeId: "https://hash.ai/@h/types/data-type/rads/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/rads/" as BaseUrl,
-    title: "Rads",
+    title: "Rad",
+    titlePlural: "Rads",
     description: "A unit of absorbed radiation dose equal to 0.01 gray.",
   },
   rankineDifference: {
@@ -10719,6 +10781,7 @@ export const systemDataTypes = {
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/rankine-difference/" as BaseUrl,
     title: "Rankine Difference",
+    titlePlural: "Rankine Differences",
     description:
       "A temperature difference expressed in degrees Rankine. One degree Rankine of difference equals exactly 5/9 kelvin of difference, with no offset.",
   },
@@ -10749,21 +10812,24 @@ export const systemDataTypes = {
   rems: {
     dataTypeId: "https://hash.ai/@h/types/data-type/rems/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/rems/" as BaseUrl,
-    title: "Rems",
+    title: "Rem",
+    titlePlural: "Rems",
     description: "A unit of dose equivalent equal to 0.01 sievert.",
   },
   revolutions: {
     dataTypeId: "https://hash.ai/@h/types/data-type/revolutions/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/revolutions/" as BaseUrl,
-    title: "Revolutions",
+    title: "Revolution",
+    titlePlural: "Revolutions",
     description: "A complete turn, equal to 360 degrees.",
   },
   revolutionsPerMinute: {
     dataTypeId: "https://hash.ai/@h/types/data-type/revolutions-per-minute/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/revolutions-per-minute/" as BaseUrl,
-    title: "Revolutions per Minute",
+    title: "Revolution per Minute",
+    titlePlural: "Revolutions per Minute",
     description:
       "An angular velocity of one full turn per minute, equal to π/30 radians per second.",
   },
@@ -10771,7 +10837,8 @@ export const systemDataTypes = {
     dataTypeId: "https://hash.ai/@h/types/data-type/revolutions-per-second/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/revolutions-per-second/" as BaseUrl,
-    title: "Revolutions per Second",
+    title: "Revolution per Second",
+    titlePlural: "Revolutions per Second",
     description:
       "An angular velocity of one full turn per second, equal to 2π radians per second.",
   },
@@ -11455,6 +11522,7 @@ export const systemDataTypes = {
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/sound-pressure-level/" as BaseUrl,
     title: "Sound Pressure Level",
+    titlePlural: "Sound Pressure Levels",
     description:
       "A logarithmic sound pressure level referenced to 20 micropascals, with the frequency weighting specified by the concrete type.",
   },
@@ -11464,6 +11532,7 @@ export const systemDataTypes = {
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/sound-pressure-level-metric/" as BaseUrl,
     title: "Sound Pressure Level (Metric)",
+    titlePlural: "Sound Pressure Levels (Metric)",
     description:
       "Sound Pressure Level expressed in metric units, including SI units and their accepted companions.",
   },
@@ -11680,7 +11749,8 @@ export const systemDataTypes = {
       "https://hash.ai/@h/types/data-type/square-meters-per-second/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/square-meters-per-second/" as BaseUrl,
-    title: "Square Meters per Second",
+    title: "Square Meter per Second",
+    titlePlural: "Square Meters per Second",
     description: "The coherent SI unit of kinematic viscosity.",
   },
   squareMetres: {
@@ -11714,7 +11784,8 @@ export const systemDataTypes = {
       "https://hash.ai/@h/types/data-type/square-millimeters-per-second/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/square-millimeters-per-second/" as BaseUrl,
-    title: "Square Millimeters per Second",
+    title: "Square Millimeter per Second",
+    titlePlural: "Square Millimeters per Second",
     description:
       "A unit of kinematic viscosity equal to 1e-06 square meters per second.",
   },
@@ -11856,7 +11927,8 @@ export const systemDataTypes = {
     dataTypeId: "https://hash.ai/@h/types/data-type/standard-gravities/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/standard-gravities/" as BaseUrl,
-    title: "Standard Gravities",
+    title: "Standard Gravity",
+    titlePlural: "Standard Gravities",
     description:
       "A unit of acceleration equal to the standard acceleration of free fall, exactly 9.80665 meters per second squared.",
   },
@@ -11886,6 +11958,7 @@ export const systemDataTypes = {
     dataTypeId: "https://hash.ai/@h/types/data-type/stokes/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/stokes/" as BaseUrl,
     title: "Stokes",
+    titlePlural: "Stokes",
     description:
       "A unit of kinematic viscosity equal to 0.0001 square meters per second.",
   },
@@ -12011,6 +12084,7 @@ export const systemDataTypes = {
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/temperature-difference/" as BaseUrl,
     title: "Temperature Difference",
+    titlePlural: "Temperature Differences",
     description:
       "A signed difference between two temperatures, converted by scale alone without temperature-reading offsets.",
   },
@@ -12020,6 +12094,7 @@ export const systemDataTypes = {
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/temperature-difference-imperial/" as BaseUrl,
     title: "Temperature Difference (Imperial)",
+    titlePlural: "Temperature Differences (Imperial)",
     description:
       "Temperature Difference expressed in imperial units, including units shared with US customary measurement.",
   },
@@ -12029,6 +12104,7 @@ export const systemDataTypes = {
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/temperature-difference-metric/" as BaseUrl,
     title: "Temperature Difference (Metric)",
+    titlePlural: "Temperature Differences (Metric)",
     description:
       "Temperature Difference expressed in metric units, including SI units and their accepted companions.",
   },
@@ -12349,13 +12425,15 @@ export const systemDataTypes = {
   thermsEc: {
     dataTypeId: "https://hash.ai/@h/types/data-type/therms-ec/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/therms-ec/" as BaseUrl,
-    title: "Therms (EC)",
+    title: "Therm (EC)",
+    titlePlural: "Therms (EC)",
     description: "The EC therm, equal to exactly 105506000 joules.",
   },
   thermsUs: {
     dataTypeId: "https://hash.ai/@h/types/data-type/therms-us/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/therms-us/" as BaseUrl,
-    title: "Therms (US)",
+    title: "Therm (US)",
+    titlePlural: "Therms (US)",
     description: "The US therm, equal to exactly 105480400 joules.",
   },
   thousandthsOfAnInch: {
@@ -12428,6 +12506,7 @@ export const systemDataTypes = {
     dataTypeId: "https://hash.ai/@h/types/data-type/torr/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/torr/" as BaseUrl,
     title: "Torr",
+    titlePlural: "Torrs",
     description:
       "A unit of pressure equal to exactly 1/760 of a standard atmosphere.",
   },
@@ -12563,7 +12642,8 @@ export const systemDataTypes = {
     dataTypeId: "https://hash.ai/@h/types/data-type/us-gallons-per-minute/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/us-gallons-per-minute/" as BaseUrl,
-    title: "US Gallons per Minute",
+    title: "US Gallon per Minute",
+    titlePlural: "US Gallons per Minute",
     description:
       "A unit of volume flow rate at the measurement conditions; one unit equals 0.003785411784/60 cubic meters per second.",
   },
@@ -12677,6 +12757,7 @@ export const systemDataTypes = {
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/volume-flow-rate/" as BaseUrl,
     title: "Volume Flow Rate",
+    titlePlural: "Volume Flow Rates",
     description:
       "A volume passing through a surface per unit time at the measurement conditions.",
   },
@@ -12686,6 +12767,7 @@ export const systemDataTypes = {
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/volume-flow-rate-imperial/" as BaseUrl,
     title: "Volume Flow Rate (Imperial)",
+    titlePlural: "Volume Flow Rates (Imperial)",
     description:
       "Volume Flow Rate expressed in imperial units, including units shared with US customary measurement.",
   },
@@ -12695,6 +12777,7 @@ export const systemDataTypes = {
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/volume-flow-rate-metric/" as BaseUrl,
     title: "Volume Flow Rate (Metric)",
+    titlePlural: "Volume Flow Rates (Metric)",
     description:
       "Volume Flow Rate expressed in metric units, including SI units and their accepted companions.",
   },
@@ -12704,6 +12787,7 @@ export const systemDataTypes = {
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/volume-flow-rate-us-customary/" as BaseUrl,
     title: "Volume Flow Rate (US Customary)",
+    titlePlural: "Volume Flow Rates (US Customary)",
     description: "Volume Flow Rate expressed in US customary units.",
   },
   volumeImperial: {

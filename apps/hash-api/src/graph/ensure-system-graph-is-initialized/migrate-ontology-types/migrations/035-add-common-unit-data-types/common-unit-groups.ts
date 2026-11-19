@@ -14,7 +14,9 @@ import type {
 const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
   "Radionuclide Activity": [
     {
-      title: "Curies",
+      dataTypeBaseUrl: systemDataTypes.curies.dataTypeBaseUrl,
+      title: "Curie",
+      titlePlural: "Curies",
       symbol: "Ci",
       description:
         "A unit of radionuclide activity equal to exactly 37 billion becquerels.",
@@ -28,7 +30,9 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
   ],
   "Absorbed Dose": [
     {
-      title: "Rads",
+      dataTypeBaseUrl: systemDataTypes.rads.dataTypeBaseUrl,
+      title: "Rad",
+      titlePlural: "Rads",
       symbol: "rad",
       description: "A unit of absorbed radiation dose equal to 0.01 gray.",
       conversions: {
@@ -41,7 +45,9 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
   ],
   "Dose Equivalent": [
     {
-      title: "Rems",
+      dataTypeBaseUrl: systemDataTypes.rems.dataTypeBaseUrl,
+      title: "Rem",
+      titlePlural: "Rems",
       symbol: "rem",
       description: "A unit of dose equivalent equal to 0.01 sievert.",
       conversions: {
@@ -54,7 +60,9 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
   ],
   Length: [
     {
-      title: "Nautical Miles",
+      dataTypeBaseUrl: systemDataTypes.nauticalMiles.dataTypeBaseUrl,
+      title: "Nautical Mile",
+      titlePlural: "Nautical Miles",
       symbol: "nmi",
       description:
         "The international nautical mile, equal to exactly 1852 meters.",
@@ -69,7 +77,9 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
   ],
   Area: [
     {
-      title: "Hectares",
+      dataTypeBaseUrl: systemDataTypes.hectares.dataTypeBaseUrl,
+      title: "Hectare",
+      titlePlural: "Hectares",
       symbol: "ha",
       description: "A unit of area equal to 10000 square meters.",
       conversions: {
@@ -82,7 +92,9 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
   ],
   Mass: [
     {
-      title: "Metric Carats",
+      dataTypeBaseUrl: systemDataTypes.metricCarats.dataTypeBaseUrl,
+      title: "Metric Carat",
+      titlePlural: "Metric Carats",
       symbol: "ct",
       description: "A unit of mass for gemstones equal to exactly 0.2 grams.",
       conversions: {
@@ -110,7 +122,9 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
   ],
   Pressure: [
     {
-      title: "Millibars",
+      dataTypeBaseUrl: systemDataTypes.millibars.dataTypeBaseUrl,
+      title: "Millibar",
+      titlePlural: "Millibars",
       symbol: "mbar",
       description: "A unit of pressure equal to 100 pascals.",
       conversions: {
@@ -121,7 +135,9 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       },
     },
     {
+      dataTypeBaseUrl: systemDataTypes.torr.dataTypeBaseUrl,
       title: "Torr",
+      titlePlural: "Torrs",
       symbol: "Torr",
       description:
         "A unit of pressure equal to exactly 1/760 of a standard atmosphere.",
@@ -133,7 +149,10 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       },
     },
     {
-      title: "Millimeters of Mercury (Conventional)",
+      dataTypeBaseUrl:
+        systemDataTypes.millimetersOfMercuryConventional.dataTypeBaseUrl,
+      title: "Millimeter of Mercury (Conventional)",
+      titlePlural: "Millimeters of Mercury (Conventional)",
       symbol: "mmHg",
       description:
         "A conventional pressure unit equal to 133.322387415 pascals, using mercury density 13595.1 kilograms per cubic meter and standard gravity.",
@@ -145,7 +164,10 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       },
     },
     {
-      title: "Inches of Water (Conventional)",
+      dataTypeBaseUrl:
+        systemDataTypes.inchesOfWaterConventional.dataTypeBaseUrl,
+      title: "Inch of Water (Conventional)",
+      titlePlural: "Inches of Water (Conventional)",
       symbol: "inH₂O",
       description:
         "A conventional pressure unit equal to 249.08891 pascals, using water density 1000 kilograms per cubic meter and standard gravity.",
@@ -160,7 +182,9 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
   ],
   Energy: [
     {
-      title: "Electronvolts",
+      dataTypeBaseUrl: systemDataTypes.electronvolts.dataTypeBaseUrl,
+      title: "Electronvolt",
+      titlePlural: "Electronvolts",
       symbol: "eV",
       description:
         "A unit of energy equal to exactly 1.602176634 × 10⁻¹⁹ joules.",
@@ -184,7 +208,9 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       },
     },
     {
-      title: "Calories (Thermochemical)",
+      dataTypeBaseUrl: systemDataTypes.caloriesThermochemical.dataTypeBaseUrl,
+      title: "Calorie (Thermochemical)",
+      titlePlural: "Calories (Thermochemical)",
       symbol: "cal (th)",
       description: "A unit of energy equal to exactly 4.184 joules.",
       conversions: {
@@ -195,7 +221,10 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       },
     },
     {
-      title: "Kilocalories (Thermochemical)",
+      dataTypeBaseUrl:
+        systemDataTypes.kilocaloriesThermochemical.dataTypeBaseUrl,
+      title: "Kilocalorie (Thermochemical)",
+      titlePlural: "Kilocalories (Thermochemical)",
       symbol: "kcal (th)",
       description:
         "A unit of energy equal to exactly 4184 joules. A nutritional Calorie under this definition is one kilocalorie.",
@@ -207,7 +236,9 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       },
     },
     {
-      title: "Calories (IT)",
+      dataTypeBaseUrl: systemDataTypes.caloriesIt.dataTypeBaseUrl,
+      title: "Calorie (IT)",
+      titlePlural: "Calories (IT)",
       symbol: "cal (IT)",
       description: "A unit of energy equal to exactly 4.1868 joules.",
       conversions: {
@@ -218,7 +249,9 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       },
     },
     {
-      title: "Kilocalories (IT)",
+      dataTypeBaseUrl: systemDataTypes.kilocaloriesIt.dataTypeBaseUrl,
+      title: "Kilocalorie (IT)",
+      titlePlural: "Kilocalories (IT)",
       symbol: "kcal (IT)",
       description:
         "A unit of energy equal to exactly 4186.8 joules. A nutritional Calorie under this definition is one kilocalorie.",
@@ -230,7 +263,9 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       },
     },
     {
-      title: "Therms (US)",
+      dataTypeBaseUrl: systemDataTypes.thermsUs.dataTypeBaseUrl,
+      title: "Therm (US)",
+      titlePlural: "Therms (US)",
       symbol: "therm (US)",
       description: "The US therm, equal to exactly 105480400 joules.",
       systems: ["US Customary"],
@@ -242,7 +277,9 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       },
     },
     {
-      title: "Therms (EC)",
+      dataTypeBaseUrl: systemDataTypes.thermsEc.dataTypeBaseUrl,
+      title: "Therm (EC)",
+      titlePlural: "Therms (EC)",
       symbol: "therm (EC)",
       description: "The EC therm, equal to exactly 105506000 joules.",
       systems: ["Imperial"],
@@ -256,7 +293,9 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
   ],
   Power: [
     {
+      dataTypeBaseUrl: systemDataTypes.metricHorsepower.dataTypeBaseUrl,
       title: "Metric Horsepower",
+      titlePlural: "Metric Horsepower",
       symbol: "PS",
       description:
         "A unit of power equal to 75 kilogram-force meters per second, or exactly 735.49875 watts.",
@@ -270,7 +309,9 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
   ],
   Angle: [
     {
-      title: "Arcminutes",
+      dataTypeBaseUrl: systemDataTypes.arcminutes.dataTypeBaseUrl,
+      title: "Arcminute",
+      titlePlural: "Arcminutes",
       symbol: "′",
       description: "A unit of plane angle equal to 1/60 of a degree.",
       conversions: {
@@ -281,7 +322,9 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       },
     },
     {
-      title: "Arcseconds",
+      dataTypeBaseUrl: systemDataTypes.arcseconds.dataTypeBaseUrl,
+      title: "Arcsecond",
+      titlePlural: "Arcseconds",
       symbol: "″",
       description: "A unit of plane angle equal to 1/3600 of a degree.",
       conversions: {
@@ -292,7 +335,9 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       },
     },
     {
-      title: "Revolutions",
+      dataTypeBaseUrl: systemDataTypes.revolutions.dataTypeBaseUrl,
+      title: "Revolution",
+      titlePlural: "Revolutions",
       symbol: "rev",
       description: "A complete turn, equal to 360 degrees.",
       conversions: {
@@ -305,7 +350,9 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
   ],
   "Angular Velocity": [
     {
-      title: "Revolutions per Second",
+      dataTypeBaseUrl: systemDataTypes.revolutionsPerSecond.dataTypeBaseUrl,
+      title: "Revolution per Second",
+      titlePlural: "Revolutions per Second",
       symbol: "rev/s",
       description:
         "An angular velocity of one full turn per second, equal to 2π radians per second.",
@@ -316,7 +363,9 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       },
     },
     {
-      title: "Revolutions per Minute",
+      dataTypeBaseUrl: systemDataTypes.revolutionsPerMinute.dataTypeBaseUrl,
+      title: "Revolution per Minute",
+      titlePlural: "Revolutions per Minute",
       symbol: "rpm",
       description:
         "An angular velocity of one full turn per minute, equal to π/30 radians per second.",
@@ -330,7 +379,9 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
   ],
   Acceleration: [
     {
-      title: "Standard Gravities",
+      dataTypeBaseUrl: systemDataTypes.standardGravities.dataTypeBaseUrl,
+      title: "Standard Gravity",
+      titlePlural: "Standard Gravities",
       symbol: "g₀",
       description:
         "A unit of acceleration equal to the standard acceleration of free fall, exactly 9.80665 meters per second squared.",
@@ -342,7 +393,9 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
   ],
   Force: [
     {
-      title: "Kilograms-Force",
+      dataTypeBaseUrl: systemDataTypes.kilogramsForce.dataTypeBaseUrl,
+      title: "Kilogram-Force",
+      titlePlural: "Kilograms-Force",
       symbol: "kgf",
       description:
         "The force exerted on one kilogram under standard gravity, equal to exactly 9.80665 newtons.",
@@ -356,7 +409,9 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
   ],
   "Dynamic Viscosity": [
     {
-      title: "Poises",
+      dataTypeBaseUrl: systemDataTypes.poises.dataTypeBaseUrl,
+      title: "Poise",
+      titlePlural: "Poises",
       symbol: "P",
       description:
         "A CGS unit of dynamic viscosity equal to 0.1 pascal seconds.",
@@ -368,7 +423,9 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       },
     },
     {
-      title: "Centipoises",
+      dataTypeBaseUrl: systemDataTypes.centipoises.dataTypeBaseUrl,
+      title: "Centipoise",
+      titlePlural: "Centipoises",
       symbol: "cP",
       description: "A unit of dynamic viscosity equal to 0.001 pascal seconds.",
       conversions: {
@@ -381,7 +438,9 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
   ],
   "Mass Density": [
     {
-      title: "Milligrams per Decilitre",
+      dataTypeBaseUrl: systemDataTypes.milligramsPerDecilitre.dataTypeBaseUrl,
+      title: "Milligram per Decilitre",
+      titlePlural: "Milligrams per Decilitre",
       symbol: "mg/dL",
       description:
         "A unit of mass per volume equal to 0.01 kilograms per cubic meter; used for mass concentration.",
@@ -391,7 +450,9 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       },
     },
     {
-      title: "Milligrams per Litre",
+      dataTypeBaseUrl: systemDataTypes.milligramsPerLitre.dataTypeBaseUrl,
+      title: "Milligram per Litre",
+      titlePlural: "Milligrams per Litre",
       symbol: "mg/L",
       description:
         "A unit of mass per volume equal to 0.001 kilograms per cubic meter; used for mass concentration.",
@@ -401,7 +462,9 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       },
     },
     {
-      title: "Grams per Litre",
+      dataTypeBaseUrl: systemDataTypes.gramsPerLitre.dataTypeBaseUrl,
+      title: "Gram per Litre",
+      titlePlural: "Grams per Litre",
       symbol: "g/L",
       description:
         "A unit of mass per volume equal to one kilogram per cubic meter; used for mass concentration.",
@@ -413,7 +476,9 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
   ],
   Luminance: [
     {
-      title: "Foot-Lamberts",
+      dataTypeBaseUrl: systemDataTypes.footLamberts.dataTypeBaseUrl,
+      title: "Foot-Lambert",
+      titlePlural: "Foot-Lamberts",
       symbol: "fL",
       description: "A unit of luminance equal to 1/π candela per square foot.",
       systems: ["Imperial"],
@@ -442,17 +507,22 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
 const additionalGroups: SiUnitGroup[] = [
   {
     title: "Temperature Difference",
+    titlePlural: "Temperature Differences",
     description:
       "A signed difference between two temperatures, converted by scale alone without temperature-reading offsets.",
     units: [
       {
+        dataTypeBaseUrl: systemDataTypes.kelvinDifference.dataTypeBaseUrl,
         title: "Kelvin Difference",
+        titlePlural: "Kelvin Differences",
         symbol: "K",
         description:
           "A temperature difference expressed in kelvins. Negative values represent a decrease; zero represents no change.",
       },
       {
+        dataTypeBaseUrl: systemDataTypes.celsiusDifference.dataTypeBaseUrl,
         title: "Celsius Difference",
+        titlePlural: "Celsius Differences",
         symbol: "°C",
         description:
           "A temperature difference expressed in degrees Celsius. One degree Celsius of difference equals one kelvin of difference, with no offset.",
@@ -463,7 +533,9 @@ const additionalGroups: SiUnitGroup[] = [
         },
       },
       {
+        dataTypeBaseUrl: systemDataTypes.fahrenheitDifference.dataTypeBaseUrl,
         title: "Fahrenheit Difference",
+        titlePlural: "Fahrenheit Differences",
         systems: ["Imperial"],
         symbol: "°F",
         description:
@@ -476,7 +548,9 @@ const additionalGroups: SiUnitGroup[] = [
         },
       },
       {
+        dataTypeBaseUrl: systemDataTypes.rankineDifference.dataTypeBaseUrl,
         title: "Rankine Difference",
+        titlePlural: "Rankine Differences",
         systems: ["Imperial"],
         symbol: "°R",
         description:
@@ -492,15 +566,21 @@ const additionalGroups: SiUnitGroup[] = [
   },
   {
     title: "Kinematic Viscosity",
+    titlePlural: "Kinematic Viscosities",
     description: "A measure of dynamic viscosity divided by mass density.",
     units: [
       {
-        title: "Square Meters per Second",
+        dataTypeBaseUrl: systemDataTypes.squareMetersPerSecond.dataTypeBaseUrl,
+        title: "Square Meter per Second",
+        titlePlural: "Square Meters per Second",
         symbol: "m²/s",
         description: "The coherent SI unit of kinematic viscosity.",
       },
       {
-        title: "Square Millimeters per Second",
+        dataTypeBaseUrl:
+          systemDataTypes.squareMillimetersPerSecond.dataTypeBaseUrl,
+        title: "Square Millimeter per Second",
+        titlePlural: "Square Millimeters per Second",
         symbol: "mm²/s",
         description:
           "A unit of kinematic viscosity equal to 1e-06 square meters per second.",
@@ -510,7 +590,9 @@ const additionalGroups: SiUnitGroup[] = [
         },
       },
       {
+        dataTypeBaseUrl: systemDataTypes.stokes.dataTypeBaseUrl,
         title: "Stokes",
+        titlePlural: "Stokes",
         symbol: "St",
         description:
           "A unit of kinematic viscosity equal to 0.0001 square meters per second.",
@@ -520,7 +602,9 @@ const additionalGroups: SiUnitGroup[] = [
         },
       },
       {
+        dataTypeBaseUrl: systemDataTypes.centistokes.dataTypeBaseUrl,
         title: "Centistokes",
+        titlePlural: "Centistokes",
         symbol: "cSt",
         description:
           "A unit of kinematic viscosity equal to 1e-06 square meters per second.",
@@ -533,11 +617,14 @@ const additionalGroups: SiUnitGroup[] = [
   },
   {
     title: "Dimensionless Ratio",
+    titlePlural: "Dimensionless Ratios",
     description:
       "A numerical ratio whose numerator and denominator have the same quantity kind; the property specifies the basis.",
     units: [
       {
+        dataTypeBaseUrl: systemDataTypes.one.dataTypeBaseUrl,
         title: "One",
+        titlePlural: "Ones",
         symbol: "1",
         description:
           "The unit for a dimensionless ratio; the property specifies the compared quantities and their basis.",
@@ -554,7 +641,9 @@ const additionalGroups: SiUnitGroup[] = [
         },
       },
       {
-        title: "Parts per Million",
+        dataTypeBaseUrl: systemDataTypes.partsPerMillion.dataTypeBaseUrl,
+        title: "Part per Million",
+        titlePlural: "Parts per Million",
         symbol: "ppm",
         description:
           "A dimensionless ratio scaled by one million; the property specifies whether the ratio is by mass, volume, amount, or another basis.",
@@ -566,7 +655,9 @@ const additionalGroups: SiUnitGroup[] = [
         },
       },
       {
-        title: "Parts per Billion",
+        dataTypeBaseUrl: systemDataTypes.partsPerBillion.dataTypeBaseUrl,
+        title: "Part per Billion",
+        titlePlural: "Parts per Billion",
         symbol: "ppb",
         description:
           "A dimensionless ratio scaled by one billion (10⁹); the property specifies the ratio basis.",
@@ -581,17 +672,22 @@ const additionalGroups: SiUnitGroup[] = [
   },
   {
     title: "Volume Flow Rate",
+    titlePlural: "Volume Flow Rates",
     description:
       "A volume passing through a surface per unit time at the measurement conditions.",
     units: [
       {
-        title: "Cubic Meters per Second",
+        dataTypeBaseUrl: systemDataTypes.cubicMetersPerSecond.dataTypeBaseUrl,
+        title: "Cubic Meter per Second",
+        titlePlural: "Cubic Meters per Second",
         symbol: "m³/s",
         description:
           "The coherent SI unit of volume flow rate at the measurement conditions.",
       },
       {
-        title: "Cubic Meters per Hour",
+        dataTypeBaseUrl: systemDataTypes.cubicMetersPerHour.dataTypeBaseUrl,
+        title: "Cubic Meter per Hour",
+        titlePlural: "Cubic Meters per Hour",
         symbol: "m³/h",
         description:
           "A unit of volume flow rate at the measurement conditions; one unit equals 1/3600 cubic meters per second.",
@@ -601,7 +697,9 @@ const additionalGroups: SiUnitGroup[] = [
         },
       },
       {
-        title: "Litres per Second",
+        dataTypeBaseUrl: systemDataTypes.litresPerSecond.dataTypeBaseUrl,
+        title: "Litre per Second",
+        titlePlural: "Litres per Second",
         symbol: "L/s",
         description:
           "A unit of volume flow rate at the measurement conditions; one unit equals 0.001/1 cubic meters per second.",
@@ -611,7 +709,9 @@ const additionalGroups: SiUnitGroup[] = [
         },
       },
       {
-        title: "Litres per Minute",
+        dataTypeBaseUrl: systemDataTypes.litresPerMinute.dataTypeBaseUrl,
+        title: "Litre per Minute",
+        titlePlural: "Litres per Minute",
         symbol: "L/min",
         description:
           "A unit of volume flow rate at the measurement conditions; one unit equals 0.001/60 cubic meters per second.",
@@ -621,7 +721,9 @@ const additionalGroups: SiUnitGroup[] = [
         },
       },
       {
-        title: "US Gallons per Minute",
+        dataTypeBaseUrl: systemDataTypes.usGallonsPerMinute.dataTypeBaseUrl,
+        title: "US Gallon per Minute",
+        titlePlural: "US Gallons per Minute",
         symbol: "US gal/min",
         description:
           "A unit of volume flow rate at the measurement conditions; one unit equals 0.003785411784/60 cubic meters per second.",
@@ -632,7 +734,10 @@ const additionalGroups: SiUnitGroup[] = [
         },
       },
       {
-        title: "Imperial Gallons per Minute",
+        dataTypeBaseUrl:
+          systemDataTypes.imperialGallonsPerMinute.dataTypeBaseUrl,
+        title: "Imperial Gallon per Minute",
+        titlePlural: "Imperial Gallons per Minute",
         symbol: "imp gal/min",
         description:
           "A unit of volume flow rate at the measurement conditions; one unit equals 0.00454609/60 cubic meters per second.",
@@ -643,7 +748,9 @@ const additionalGroups: SiUnitGroup[] = [
         },
       },
       {
-        title: "Cubic Feet per Minute",
+        dataTypeBaseUrl: systemDataTypes.cubicFeetPerMinute.dataTypeBaseUrl,
+        title: "Cubic Foot per Minute",
+        titlePlural: "Cubic Feet per Minute",
         symbol: "ft³/min",
         description:
           "A unit of volume flow rate at the measurement conditions; one unit equals 0.028316846592/60 cubic meters per second.",
@@ -657,10 +764,13 @@ const additionalGroups: SiUnitGroup[] = [
   },
   {
     title: "Fuel Consumption",
+    titlePlural: "Fuel Consumptions",
     description: "The volume of fuel consumed per distance traveled.",
     units: [
       {
-        title: "Litres per 100 Kilometers",
+        dataTypeBaseUrl: systemDataTypes.litresPer100Kilometers.dataTypeBaseUrl,
+        title: "Litre per 100 Kilometers",
+        titlePlural: "Litres per 100 Kilometers",
         symbol: "L/100 km",
         description: "A fuel consumption of one litre per 100 kilometers.",
         minimum: 0,
@@ -669,16 +779,21 @@ const additionalGroups: SiUnitGroup[] = [
   },
   {
     title: "Fuel Economy",
+    titlePlural: "Fuel Economies",
     description: "The distance traveled per volume of fuel consumed.",
     units: [
       {
-        title: "Kilometers per Litre",
+        dataTypeBaseUrl: systemDataTypes.kilometersPerLitre.dataTypeBaseUrl,
+        title: "Kilometer per Litre",
+        titlePlural: "Kilometers per Litre",
         symbol: "km/L",
         description: "A distance of one kilometer traveled per litre of fuel.",
         minimum: 0,
       },
       {
-        title: "Miles per US Gallon",
+        dataTypeBaseUrl: systemDataTypes.milesPerUsGallon.dataTypeBaseUrl,
+        title: "Mile per US Gallon",
+        titlePlural: "Miles per US Gallon",
         symbol: "mpg (US)",
         description:
           "A distance in international miles per US liquid gallon (3.785411784 litres).",
@@ -690,7 +805,9 @@ const additionalGroups: SiUnitGroup[] = [
         },
       },
       {
-        title: "Miles per Imperial Gallon",
+        dataTypeBaseUrl: systemDataTypes.milesPerImperialGallon.dataTypeBaseUrl,
+        title: "Mile per Imperial Gallon",
+        titlePlural: "Miles per Imperial Gallon",
         symbol: "mpg (imp)",
         description:
           "A distance in international miles per imperial gallon (4.54609 litres).",
@@ -705,17 +822,22 @@ const additionalGroups: SiUnitGroup[] = [
   },
   {
     title: "Logarithmic Ratio",
+    titlePlural: "Logarithmic Ratios",
     description:
       "A logarithmic ratio whose property specifies whether it compares power or field quantities and identifies any reference.",
     units: [
       {
-        title: "Bels",
+        dataTypeBaseUrl: systemDataTypes.bels.dataTypeBaseUrl,
+        title: "Bel",
+        titlePlural: "Bels",
         symbol: "B",
         description:
           "A logarithmic unit equal to ten decibels; the property specifies the ratio convention and reference.",
       },
       {
-        title: "Decibels",
+        dataTypeBaseUrl: systemDataTypes.decibels.dataTypeBaseUrl,
+        title: "Decibel",
+        titlePlural: "Decibels",
         symbol: "dB",
         description:
           "A logarithmic unit equal to one tenth of a bel; the property specifies the ratio convention and reference.",
@@ -730,16 +852,21 @@ const additionalGroups: SiUnitGroup[] = [
   },
   {
     title: "Power Level",
+    titlePlural: "Power Levels",
     description: "A logarithmic power level with a specified reference power.",
     units: [
       {
-        title: "Decibel Watts",
+        dataTypeBaseUrl: systemDataTypes.decibelWatts.dataTypeBaseUrl,
+        title: "Decibel Watt",
+        titlePlural: "Decibel Watts",
         symbol: "dBW",
         description:
           "A power level equal to 10 log₁₀(P / 1 watt). Negative levels represent power below one watt.",
       },
       {
-        title: "Decibel Milliwatts",
+        dataTypeBaseUrl: systemDataTypes.decibelMilliwatts.dataTypeBaseUrl,
+        title: "Decibel Milliwatt",
+        titlePlural: "Decibel Milliwatts",
         symbol: "dBm",
         description:
           "A power level equal to 10 log₁₀(P / 1 milliwatt), numerically 30 above its value in dBW.",
@@ -753,23 +880,32 @@ const additionalGroups: SiUnitGroup[] = [
   },
   {
     title: "Sound Pressure Level",
+    titlePlural: "Sound Pressure Levels",
     description:
       "A logarithmic sound pressure level referenced to 20 micropascals, with the frequency weighting specified by the concrete type.",
     units: [
       {
-        title: "Decibels (Sound Pressure)",
+        dataTypeBaseUrl: systemDataTypes.decibelsSoundPressure.dataTypeBaseUrl,
+        title: "Decibel (Sound Pressure)",
+        titlePlural: "Decibels (Sound Pressure)",
         symbol: "dB SPL",
         description:
           "An unweighted sound pressure level equal to 20 log₁₀(pᵣₘₛ / 20 micropascals).",
       },
       {
-        title: "Decibels (A-Weighted Sound Pressure)",
+        dataTypeBaseUrl:
+          systemDataTypes.decibelsAWeightedSoundPressure.dataTypeBaseUrl,
+        title: "Decibel (A-Weighted Sound Pressure)",
+        titlePlural: "Decibels (A-Weighted Sound Pressure)",
         symbol: "dBA",
         description:
           "An A-weighted sound pressure level referenced to 20 micropascals. Conversion to another weighting requires the sound spectrum.",
       },
       {
-        title: "Decibels (C-Weighted Sound Pressure)",
+        dataTypeBaseUrl:
+          systemDataTypes.decibelsCWeightedSoundPressure.dataTypeBaseUrl,
+        title: "Decibel (C-Weighted Sound Pressure)",
+        titlePlural: "Decibels (C-Weighted Sound Pressure)",
         symbol: "dBC",
         description:
           "A C-weighted sound pressure level referenced to 20 micropascals. Conversion to another weighting requires the sound spectrum.",

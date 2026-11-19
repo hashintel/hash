@@ -142,6 +142,65 @@ describe("common measurement units", () => {
     }
   });
 
+  it("provides plural titles while leaving historical seeded names unchanged", () => {
+    for (const { schema } of seeded.values()) {
+      const historic = [systemDataTypes.knots, systemDataTypes.percentage].find(
+        ({ dataTypeBaseUrl }) => schema.$id.startsWith(dataTypeBaseUrl),
+      );
+      if (historic) {
+        expect(schema.title).toBe(historic.title);
+        expect(schema).not.toHaveProperty("titlePlural");
+      } else {
+        expect(schema.titlePlural, schema.title).toBeTruthy();
+        expect(
+          Object.values(systemDataTypes).find(({ dataTypeBaseUrl }) =>
+            schema.$id.startsWith(dataTypeBaseUrl),
+          ),
+        ).toMatchObject({
+          title: schema.title,
+          titlePlural: schema.titlePlural,
+        });
+      }
+    }
+    expect(systemDataTypes.knots.title).toBe("Knots");
+    expect(systemDataTypes.percentage.title).toBe("Percentage");
+    expect(systemDataTypes.knots).not.toHaveProperty("titlePlural");
+    expect(systemDataTypes.percentage).not.toHaveProperty("titlePlural");
+  });
+
+  it.each([
+    ["Curies", "Curie", "Curies"],
+    ["Celsius Difference", "Celsius Difference", "Celsius Differences"],
+    ["Standard Gravities", "Standard Gravity", "Standard Gravities"],
+    [
+      "Inches of Water (Conventional)",
+      "Inch of Water (Conventional)",
+      "Inches of Water (Conventional)",
+    ],
+    ["Stokes", "Stokes", "Stokes"],
+    ["Centistokes", "Centistokes", "Centistokes"],
+    ["Parts per Million", "Part per Million", "Parts per Million"],
+    [
+      "Litres per 100 Kilometers",
+      "Litre per 100 Kilometers",
+      "Litres per 100 Kilometers",
+    ],
+    [
+      "Energy (US Customary)",
+      "Energy (US Customary)",
+      "Energies (US Customary)",
+    ],
+  ])(
+    "preserves the %s identifier with singular and plural names",
+    (identifierTitle, title, titlePlural) => {
+      expect(getSeeded(identifierTitle).schema).toMatchObject({
+        $id: `${baseUrl(identifierTitle)}v/1`,
+        title,
+        titlePlural,
+      });
+    },
+  );
+
   it.each([
     ["Curies", "Becquerels", 37e9],
     ["Rads", "Grays", 0.01],
