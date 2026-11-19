@@ -19,10 +19,10 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       description:
         "A unit of radionuclide activity equal to exactly 37 billion becquerels.",
       conversions: {
-        [systemDataTypes.becquerels.dataTypeBaseUrl]: scaledConversion(
-          37000000000,
-          1,
-        ),
+        [systemDataTypes.becquerels.dataTypeBaseUrl]: scaledConversion({
+          factor: 37000000000,
+          divisor: 1,
+        }),
       },
     },
   ],
@@ -32,7 +32,10 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       symbol: "rad",
       description: "A unit of absorbed radiation dose equal to 0.01 gray.",
       conversions: {
-        [systemDataTypes.grays.dataTypeBaseUrl]: scaledConversion(0.01, 1),
+        [systemDataTypes.grays.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.01,
+          divisor: 1,
+        }),
       },
     },
   ],
@@ -42,7 +45,10 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       symbol: "rem",
       description: "A unit of dose equivalent equal to 0.01 sievert.",
       conversions: {
-        [systemDataTypes.sieverts.dataTypeBaseUrl]: scaledConversion(0.01, 1),
+        [systemDataTypes.sieverts.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.01,
+          divisor: 1,
+        }),
       },
     },
   ],
@@ -54,7 +60,10 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
         "The international nautical mile, equal to exactly 1852 meters.",
       systems: ["Metric", "Imperial"],
       conversions: {
-        [systemDataTypes.meters.dataTypeBaseUrl]: scaledConversion(1852, 1),
+        [systemDataTypes.meters.dataTypeBaseUrl]: scaledConversion({
+          factor: 1852,
+          divisor: 1,
+        }),
       },
     },
   ],
@@ -64,10 +73,10 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       symbol: "ha",
       description: "A unit of area equal to 10000 square meters.",
       conversions: {
-        [systemDataTypes.squareMetres.dataTypeBaseUrl]: scaledConversion(
-          10000,
-          1,
-        ),
+        [systemDataTypes.squareMetres.dataTypeBaseUrl]: scaledConversion({
+          factor: 10000,
+          divisor: 1,
+        }),
       },
     },
   ],
@@ -77,10 +86,10 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       symbol: "ct",
       description: "A unit of mass for gemstones equal to exactly 0.2 grams.",
       conversions: {
-        [systemDataTypes.kilograms.dataTypeBaseUrl]: scaledConversion(
-          0.0002,
-          1,
-        ),
+        [systemDataTypes.kilograms.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.0002,
+          divisor: 1,
+        }),
       },
     },
   ],
@@ -92,10 +101,10 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
         "A speed of one international nautical mile per hour, equal to 1852/3600 meters per second.",
       systems: ["Metric", "Imperial"],
       conversions: {
-        [systemDataTypes.metersPerSecond.dataTypeBaseUrl]: scaledConversion(
-          1852,
-          3600,
-        ),
+        [systemDataTypes.metersPerSecond.dataTypeBaseUrl]: scaledConversion({
+          factor: 1852,
+          divisor: 3600,
+        }),
       },
     },
   ],
@@ -105,7 +114,10 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       symbol: "mbar",
       description: "A unit of pressure equal to 100 pascals.",
       conversions: {
-        [systemDataTypes.pascals.dataTypeBaseUrl]: scaledConversion(100, 1),
+        [systemDataTypes.pascals.dataTypeBaseUrl]: scaledConversion({
+          factor: 100,
+          divisor: 1,
+        }),
       },
     },
     {
@@ -114,10 +126,10 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       description:
         "A unit of pressure equal to exactly 1/760 of a standard atmosphere.",
       conversions: {
-        [systemDataTypes.pascals.dataTypeBaseUrl]: scaledConversion(
-          101325,
-          760,
-        ),
+        [systemDataTypes.pascals.dataTypeBaseUrl]: scaledConversion({
+          factor: 101325,
+          divisor: 760,
+        }),
       },
     },
     {
@@ -126,10 +138,10 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       description:
         "A conventional pressure unit equal to 133.322387415 pascals, using mercury density 13595.1 kilograms per cubic meter and standard gravity.",
       conversions: {
-        [systemDataTypes.pascals.dataTypeBaseUrl]: scaledConversion(
-          133.322387415,
-          1,
-        ),
+        [systemDataTypes.pascals.dataTypeBaseUrl]: scaledConversion({
+          factor: 133.322387415,
+          divisor: 1,
+        }),
       },
     },
     {
@@ -139,10 +151,10 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
         "A conventional pressure unit equal to 249.08891 pascals, using water density 1000 kilograms per cubic meter and standard gravity.",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.pascals.dataTypeBaseUrl]: scaledConversion(
-          249.08891,
-          1,
-        ),
+        [systemDataTypes.pascals.dataTypeBaseUrl]: scaledConversion({
+          factor: 249.08891,
+          divisor: 1,
+        }),
       },
     },
   ],
@@ -176,7 +188,10 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       symbol: "cal (th)",
       description: "A unit of energy equal to exactly 4.184 joules.",
       conversions: {
-        [systemDataTypes.joules.dataTypeBaseUrl]: scaledConversion(4.184, 1),
+        [systemDataTypes.joules.dataTypeBaseUrl]: scaledConversion({
+          factor: 4.184,
+          divisor: 1,
+        }),
       },
     },
     {
@@ -185,7 +200,10 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       description:
         "A unit of energy equal to exactly 4184 joules. A nutritional Calorie under this definition is one kilocalorie.",
       conversions: {
-        [systemDataTypes.joules.dataTypeBaseUrl]: scaledConversion(4184, 1),
+        [systemDataTypes.joules.dataTypeBaseUrl]: scaledConversion({
+          factor: 4184,
+          divisor: 1,
+        }),
       },
     },
     {
@@ -193,7 +211,10 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       symbol: "cal (IT)",
       description: "A unit of energy equal to exactly 4.1868 joules.",
       conversions: {
-        [systemDataTypes.joules.dataTypeBaseUrl]: scaledConversion(4.1868, 1),
+        [systemDataTypes.joules.dataTypeBaseUrl]: scaledConversion({
+          factor: 4.1868,
+          divisor: 1,
+        }),
       },
     },
     {
@@ -202,7 +223,10 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       description:
         "A unit of energy equal to exactly 4186.8 joules. A nutritional Calorie under this definition is one kilocalorie.",
       conversions: {
-        [systemDataTypes.joules.dataTypeBaseUrl]: scaledConversion(4186.8, 1),
+        [systemDataTypes.joules.dataTypeBaseUrl]: scaledConversion({
+          factor: 4186.8,
+          divisor: 1,
+        }),
       },
     },
     {
@@ -211,10 +235,10 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       description: "The US therm, equal to exactly 105480400 joules.",
       systems: ["US Customary"],
       conversions: {
-        [systemDataTypes.joules.dataTypeBaseUrl]: scaledConversion(
-          105480400,
-          1,
-        ),
+        [systemDataTypes.joules.dataTypeBaseUrl]: scaledConversion({
+          factor: 105480400,
+          divisor: 1,
+        }),
       },
     },
     {
@@ -223,10 +247,10 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       description: "The EC therm, equal to exactly 105506000 joules.",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.joules.dataTypeBaseUrl]: scaledConversion(
-          105506000,
-          1,
-        ),
+        [systemDataTypes.joules.dataTypeBaseUrl]: scaledConversion({
+          factor: 105506000,
+          divisor: 1,
+        }),
       },
     },
   ],
@@ -237,7 +261,10 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       description:
         "A unit of power equal to 75 kilogram-force meters per second, or exactly 735.49875 watts.",
       conversions: {
-        [systemDataTypes.watts.dataTypeBaseUrl]: scaledConversion(735.49875, 1),
+        [systemDataTypes.watts.dataTypeBaseUrl]: scaledConversion({
+          factor: 735.49875,
+          divisor: 1,
+        }),
       },
     },
   ],
@@ -247,7 +274,10 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       symbol: "′",
       description: "A unit of plane angle equal to 1/60 of a degree.",
       conversions: {
-        [systemDataTypes.degree.dataTypeBaseUrl]: scaledConversion(1, 60),
+        [systemDataTypes.degree.dataTypeBaseUrl]: scaledConversion({
+          factor: 1,
+          divisor: 60,
+        }),
       },
     },
     {
@@ -255,7 +285,10 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       symbol: "″",
       description: "A unit of plane angle equal to 1/3600 of a degree.",
       conversions: {
-        [systemDataTypes.degree.dataTypeBaseUrl]: scaledConversion(1, 3600),
+        [systemDataTypes.degree.dataTypeBaseUrl]: scaledConversion({
+          factor: 1,
+          divisor: 3600,
+        }),
       },
     },
     {
@@ -263,7 +296,10 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       symbol: "rev",
       description: "A complete turn, equal to 360 degrees.",
       conversions: {
-        [systemDataTypes.degree.dataTypeBaseUrl]: scaledConversion(360, 1),
+        [systemDataTypes.degree.dataTypeBaseUrl]: scaledConversion({
+          factor: 360,
+          divisor: 1,
+        }),
       },
     },
   ],
@@ -274,9 +310,9 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       description:
         "An angular velocity of one full turn per second, equal to 2π radians per second.",
       conversions: {
-        [systemDataTypes.radiansPerSecond.dataTypeBaseUrl]: scaledConversion(
-          2 * Math.PI,
-        ),
+        [systemDataTypes.radiansPerSecond.dataTypeBaseUrl]: scaledConversion({
+          factor: 2 * Math.PI,
+        }),
       },
     },
     {
@@ -285,10 +321,10 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       description:
         "An angular velocity of one full turn per minute, equal to π/30 radians per second.",
       conversions: {
-        [systemDataTypes.radiansPerSecond.dataTypeBaseUrl]: scaledConversion(
-          Math.PI,
-          30,
-        ),
+        [systemDataTypes.radiansPerSecond.dataTypeBaseUrl]: scaledConversion({
+          factor: Math.PI,
+          divisor: 30,
+        }),
       },
     },
   ],
@@ -300,7 +336,7 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
         "A unit of acceleration equal to the standard acceleration of free fall, exactly 9.80665 meters per second squared.",
       conversions: {
         [systemDataTypes.metersPerSecondSquared.dataTypeBaseUrl]:
-          scaledConversion(9.80665, 1),
+          scaledConversion({ factor: 9.80665, divisor: 1 }),
       },
     },
   ],
@@ -311,7 +347,10 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       description:
         "The force exerted on one kilogram under standard gravity, equal to exactly 9.80665 newtons.",
       conversions: {
-        [systemDataTypes.newtons.dataTypeBaseUrl]: scaledConversion(9.80665, 1),
+        [systemDataTypes.newtons.dataTypeBaseUrl]: scaledConversion({
+          factor: 9.80665,
+          divisor: 1,
+        }),
       },
     },
   ],
@@ -322,10 +361,10 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       description:
         "A CGS unit of dynamic viscosity equal to 0.1 pascal seconds.",
       conversions: {
-        [systemDataTypes.pascalSeconds.dataTypeBaseUrl]: scaledConversion(
-          0.1,
-          1,
-        ),
+        [systemDataTypes.pascalSeconds.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.1,
+          divisor: 1,
+        }),
       },
     },
     {
@@ -333,10 +372,10 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
       symbol: "cP",
       description: "A unit of dynamic viscosity equal to 0.001 pascal seconds.",
       conversions: {
-        [systemDataTypes.pascalSeconds.dataTypeBaseUrl]: scaledConversion(
-          0.001,
-          1,
-        ),
+        [systemDataTypes.pascalSeconds.dataTypeBaseUrl]: scaledConversion({
+          factor: 0.001,
+          divisor: 1,
+        }),
       },
     },
   ],
@@ -348,7 +387,7 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
         "A unit of mass per volume equal to 0.01 kilograms per cubic meter; used for mass concentration.",
       conversions: {
         [systemDataTypes.kilogramsPerCubicMeter.dataTypeBaseUrl]:
-          scaledConversion(0.01, 1),
+          scaledConversion({ factor: 0.01, divisor: 1 }),
       },
     },
     {
@@ -358,7 +397,7 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
         "A unit of mass per volume equal to 0.001 kilograms per cubic meter; used for mass concentration.",
       conversions: {
         [systemDataTypes.kilogramsPerCubicMeter.dataTypeBaseUrl]:
-          scaledConversion(0.001, 1),
+          scaledConversion({ factor: 0.001, divisor: 1 }),
       },
     },
     {
@@ -368,7 +407,7 @@ const additionalUnits: Partial<Record<string, SiUnitDefinition[]>> = {
         "A unit of mass per volume equal to one kilogram per cubic meter; used for mass concentration.",
       conversions: {
         [systemDataTypes.kilogramsPerCubicMeter.dataTypeBaseUrl]:
-          scaledConversion(1, 1),
+          scaledConversion({ factor: 1, divisor: 1 }),
       },
     },
   ],
@@ -418,8 +457,9 @@ const additionalGroups: SiUnitGroup[] = [
         description:
           "A temperature difference expressed in degrees Celsius. One degree Celsius of difference equals one kelvin of difference, with no offset.",
         conversions: {
-          [systemDataTypes.kelvinDifference.dataTypeBaseUrl]:
-            scaledConversion(1),
+          [systemDataTypes.kelvinDifference.dataTypeBaseUrl]: scaledConversion({
+            factor: 1,
+          }),
         },
       },
       {
@@ -429,10 +469,10 @@ const additionalGroups: SiUnitGroup[] = [
         description:
           "A temperature difference expressed in degrees Fahrenheit. One degree Fahrenheit of difference equals exactly 5/9 kelvin of difference, with no offset.",
         conversions: {
-          [systemDataTypes.kelvinDifference.dataTypeBaseUrl]: scaledConversion(
-            5,
-            9,
-          ),
+          [systemDataTypes.kelvinDifference.dataTypeBaseUrl]: scaledConversion({
+            factor: 5,
+            divisor: 9,
+          }),
         },
       },
       {
@@ -442,10 +482,10 @@ const additionalGroups: SiUnitGroup[] = [
         description:
           "A temperature difference expressed in degrees Rankine. One degree Rankine of difference equals exactly 5/9 kelvin of difference, with no offset.",
         conversions: {
-          [systemDataTypes.kelvinDifference.dataTypeBaseUrl]: scaledConversion(
-            5,
-            9,
-          ),
+          [systemDataTypes.kelvinDifference.dataTypeBaseUrl]: scaledConversion({
+            factor: 5,
+            divisor: 9,
+          }),
         },
       },
     ],
@@ -466,7 +506,7 @@ const additionalGroups: SiUnitGroup[] = [
           "A unit of kinematic viscosity equal to 1e-06 square meters per second.",
         conversions: {
           [systemDataTypes.squareMetersPerSecond.dataTypeBaseUrl]:
-            scaledConversion(1e-6, 1),
+            scaledConversion({ factor: 1e-6, divisor: 1 }),
         },
       },
       {
@@ -476,7 +516,7 @@ const additionalGroups: SiUnitGroup[] = [
           "A unit of kinematic viscosity equal to 0.0001 square meters per second.",
         conversions: {
           [systemDataTypes.squareMetersPerSecond.dataTypeBaseUrl]:
-            scaledConversion(0.0001, 1),
+            scaledConversion({ factor: 0.0001, divisor: 1 }),
         },
       },
       {
@@ -486,7 +526,7 @@ const additionalGroups: SiUnitGroup[] = [
           "A unit of kinematic viscosity equal to 1e-06 square meters per second.",
         conversions: {
           [systemDataTypes.squareMetersPerSecond.dataTypeBaseUrl]:
-            scaledConversion(1e-6, 1),
+            scaledConversion({ factor: 1e-6, divisor: 1 }),
         },
       },
     ],
@@ -507,7 +547,10 @@ const additionalGroups: SiUnitGroup[] = [
         symbol: "%",
         description: "A measure of the proportion of a whole.",
         conversions: {
-          [systemDataTypes.one.dataTypeBaseUrl]: scaledConversion(0.01, 1),
+          [systemDataTypes.one.dataTypeBaseUrl]: scaledConversion({
+            factor: 0.01,
+            divisor: 1,
+          }),
         },
       },
       {
@@ -516,7 +559,10 @@ const additionalGroups: SiUnitGroup[] = [
         description:
           "A dimensionless ratio scaled by one million; the property specifies whether the ratio is by mass, volume, amount, or another basis.",
         conversions: {
-          [systemDataTypes.one.dataTypeBaseUrl]: scaledConversion(1e-6, 1),
+          [systemDataTypes.one.dataTypeBaseUrl]: scaledConversion({
+            factor: 1e-6,
+            divisor: 1,
+          }),
         },
       },
       {
@@ -525,7 +571,10 @@ const additionalGroups: SiUnitGroup[] = [
         description:
           "A dimensionless ratio scaled by one billion (10⁹); the property specifies the ratio basis.",
         conversions: {
-          [systemDataTypes.one.dataTypeBaseUrl]: scaledConversion(1e-9, 1),
+          [systemDataTypes.one.dataTypeBaseUrl]: scaledConversion({
+            factor: 1e-9,
+            divisor: 1,
+          }),
         },
       },
     ],
@@ -548,7 +597,7 @@ const additionalGroups: SiUnitGroup[] = [
           "A unit of volume flow rate at the measurement conditions; one unit equals 1/3600 cubic meters per second.",
         conversions: {
           [systemDataTypes.cubicMetersPerSecond.dataTypeBaseUrl]:
-            scaledConversion(1, 3600),
+            scaledConversion({ factor: 1, divisor: 3600 }),
         },
       },
       {
@@ -558,7 +607,7 @@ const additionalGroups: SiUnitGroup[] = [
           "A unit of volume flow rate at the measurement conditions; one unit equals 0.001/1 cubic meters per second.",
         conversions: {
           [systemDataTypes.cubicMetersPerSecond.dataTypeBaseUrl]:
-            scaledConversion(0.001, 1),
+            scaledConversion({ factor: 0.001, divisor: 1 }),
         },
       },
       {
@@ -568,7 +617,7 @@ const additionalGroups: SiUnitGroup[] = [
           "A unit of volume flow rate at the measurement conditions; one unit equals 0.001/60 cubic meters per second.",
         conversions: {
           [systemDataTypes.cubicMetersPerSecond.dataTypeBaseUrl]:
-            scaledConversion(0.001, 60),
+            scaledConversion({ factor: 0.001, divisor: 60 }),
         },
       },
       {
@@ -579,7 +628,7 @@ const additionalGroups: SiUnitGroup[] = [
         systems: ["US Customary"],
         conversions: {
           [systemDataTypes.cubicMetersPerSecond.dataTypeBaseUrl]:
-            scaledConversion(0.003785411784, 60),
+            scaledConversion({ factor: 0.003785411784, divisor: 60 }),
         },
       },
       {
@@ -590,7 +639,7 @@ const additionalGroups: SiUnitGroup[] = [
         systems: ["Imperial"],
         conversions: {
           [systemDataTypes.cubicMetersPerSecond.dataTypeBaseUrl]:
-            scaledConversion(0.00454609, 60),
+            scaledConversion({ factor: 0.00454609, divisor: 60 }),
         },
       },
       {
@@ -601,7 +650,7 @@ const additionalGroups: SiUnitGroup[] = [
         systems: ["Imperial", "US Customary"],
         conversions: {
           [systemDataTypes.cubicMetersPerSecond.dataTypeBaseUrl]:
-            scaledConversion(0.028316846592, 60),
+            scaledConversion({ factor: 0.028316846592, divisor: 60 }),
         },
       },
     ],
@@ -637,7 +686,7 @@ const additionalGroups: SiUnitGroup[] = [
         minimum: 0,
         conversions: {
           [systemDataTypes.kilometersPerLitre.dataTypeBaseUrl]:
-            scaledConversion(1.609344, 3.785411784),
+            scaledConversion({ factor: 1.609344, divisor: 3.785411784 }),
         },
       },
       {
@@ -649,7 +698,7 @@ const additionalGroups: SiUnitGroup[] = [
         minimum: 0,
         conversions: {
           [systemDataTypes.kilometersPerLitre.dataTypeBaseUrl]:
-            scaledConversion(1.609344, 4.54609),
+            scaledConversion({ factor: 1.609344, divisor: 4.54609 }),
         },
       },
     ],
@@ -671,7 +720,10 @@ const additionalGroups: SiUnitGroup[] = [
         description:
           "A logarithmic unit equal to one tenth of a bel; the property specifies the ratio convention and reference.",
         conversions: {
-          [systemDataTypes.bels.dataTypeBaseUrl]: scaledConversion(0.1, 1),
+          [systemDataTypes.bels.dataTypeBaseUrl]: scaledConversion({
+            factor: 0.1,
+            divisor: 1,
+          }),
         },
       },
     ],
