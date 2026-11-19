@@ -71,7 +71,11 @@ const upgradedUnits = new Set(
 
 const seeded = new Map<
   string,
-  { schema: DataType; conversions: Record<BaseUrl, Conversions> }
+  {
+    schema: DataType;
+    conversions: Record<BaseUrl, Conversions>;
+    webShortname: string;
+  }
 >();
 
 beforeAll(async () => {
@@ -79,11 +83,11 @@ beforeAll(async () => {
     async (
       _context,
       _authentication,
-      { dataTypeDefinition, dataTypeBaseUrl, conversions },
+      { dataTypeDefinition, dataTypeBaseUrl, conversions, webShortname },
     ) => {
       const baseUrl =
         dataTypeBaseUrl ??
-        (`https://hash.ai/@h/types/data-type/${slugifyTypeTitle(dataTypeDefinition.title)}/` as BaseUrl);
+        (`https://hash.ai/@${webShortname}/types/data-type/${slugifyTypeTitle(dataTypeDefinition.title)}/` as BaseUrl);
       const schema: DataType = {
         ...dataTypeDefinition,
         $schema:
@@ -94,7 +98,7 @@ beforeAll(async () => {
       expect(seeded.has(baseUrl), `Duplicate identifier: ${baseUrl}`).toBe(
         false,
       );
-      seeded.set(baseUrl, { schema, conversions });
+      seeded.set(baseUrl, { schema, conversions, webShortname });
       return {
         schema,
         metadata: { recordId: { baseUrl } },
@@ -113,15 +117,18 @@ beforeAll(async () => {
   });
 });
 
-const hasSeeded = (identifierTitle: string) =>
-  seeded.has(
-    `https://hash.ai/@h/types/data-type/${slugifyTypeTitle(identifierTitle)}/`,
+const findSeeded = (identifierTitle: string) => {
+  const slug = slugifyTypeTitle(identifierTitle);
+  return (
+    seeded.get(`https://hash.ai/@bipm/types/data-type/${slug}/`) ??
+    seeded.get(`https://hash.ai/@h/types/data-type/${slug}/`)
   );
+};
+
+const hasSeeded = (identifierTitle: string) => !!findSeeded(identifierTitle);
 
 const getSeeded = (identifierTitle: string) => {
-  const dataType = seeded.get(
-    `https://hash.ai/@h/types/data-type/${slugifyTypeTitle(identifierTitle)}/`,
-  );
+  const dataType = findSeeded(identifierTitle);
   if (!dataType) {
     throw new Error(`Missing seeded data type: ${identifierTitle}`);
   }
@@ -141,6 +148,76 @@ const getConversion = (source: string, target: string) => {
 };
 
 describe("default SI data types", () => {
+  it("seeds new SI units in BIPM with matching identifiers and ownership", () => {
+    const bipmTypes = [...seeded.values()].filter(
+      ({ webShortname }) => webShortname === "bipm",
+    );
+    expect(bipmTypes).toHaveLength(765);
+    for (const { schema, webShortname } of seeded.values()) {
+      expect(schema.$id).toContain(`/@${webShortname}/types/data-type/`);
+      if (schema.abstract) {
+        expect(webShortname).toBe("h");
+      }
+    }
+    for (const title of [
+      "Amperes",
+      "Kelvins",
+      "Moles",
+      "Candelas",
+      "Radians",
+      "Steradians",
+      "Degrees Celsius",
+      "Newtons",
+      "Kilohms",
+      "Megohms",
+      "Henries per Meter",
+      "Grays per Second",
+      "Micrometers",
+      "Quettasecond",
+      "Square Millimetres",
+      "Grams per Cubic Centimeter",
+    ]) {
+      expect(getSeeded(title).webShortname, title).toBe("bipm");
+    }
+  });
+
+  it("keeps historical identifiers and non-SI units in HASH", () => {
+    for (const baseUrl of upgradedUnits) {
+      expect(seeded.get(baseUrl)?.webShortname, baseUrl).toBe("h");
+    }
+    for (const title of [
+      "Feet",
+      "Degrees Fahrenheit",
+      "Bars",
+      "Standard Atmospheres",
+      "Degree",
+      "Watt Hours",
+      "Quettawatt Hours",
+      "Ampere Hours",
+      "Milliampere Hours",
+      "Litres",
+      "Quettalitres",
+      "Moles per Litre",
+      "Darcies",
+      "Kilometers per Hour",
+    ]) {
+      expect(getSeeded(title).webShortname, title).toBe("h");
+    }
+  });
+
+  it("preserves conversions between HASH and BIPM units", () => {
+    for (const [source, target] of [
+      ["Millimeters", "Meters"],
+      ["Micrometers", "Meters"],
+      ["Degrees Fahrenheit", "Kelvins"],
+      ["Bars", "Pascals"],
+      ["Ampere Hours", "Coulombs"],
+      ["Radians", "Degree"],
+    ] as const) {
+      expect(getConversion(source, target)).toBeDefined();
+    }
+  });
+
   it("has a unique migration number so every migration runs", async () => {
     const migrationFiles = (
       await readdir(new URL(".", import.meta.url))
@@ -380,8 +457,6 @@ describe("default SI data types", () => {
       "Millimeters",
       "Kilometers",
       "Kilograms",
-      "Kilohms",
-      "Megohms",
       "Square Centimetres",
       "Cubic Metres",
       "Millilitres",
@@ -512,7 +587,7 @@ describe("default SI data types", () => {
   ])("keeps %s separate from %s", (left, right) => {
     const leftType = getSeeded(left);
     expect(leftType.conversions).not.toHaveProperty(
-      `https://hash.ai/@h/types/data-type/${slugifyTypeTitle(right)}/`,
+      getSeeded(right).schema.$id.replace(/v\/\d+$/, ""),
     );
     if (hasSeeded(right)) {
       expect(leftType.schema.allOf).not.toEqual(getSeeded(right).schema.allOf);

@@ -19,7 +19,12 @@ import type {
 
 export type SchemaKind = "data-type" | "property-type" | "entity-type";
 
-export const systemTypeWebShortnames = ["h", "google", "linear"] as const;
+export const systemTypeWebShortnames = [
+  "h",
+  "bipm",
+  "google",
+  "linear",
+] as const;
 export type SystemTypeWebShortname = (typeof systemTypeWebShortnames)[number];
 
 /**

@@ -42,6 +42,11 @@ export const owningWebs: Record<
     name: "HASH",
     websiteUrl: "https://hash.ai",
   },
+  bipm: {
+    enabled: true,
+    name: "Bureau International des Poids et Mesures",
+    websiteUrl: "https://www.bipm.org/en/",
+  },
   google: {
     enabled: enabledIntegrations.googleSheets,
     name: "Google",
@@ -137,6 +142,9 @@ export const ensureSystemWebEntitiesExist = async ({
     switch (webShortname) {
       case "h":
         displayName = "HASH";
+        break;
+      case "bipm":
+        displayName = "BIPM";
         break;
       case "google":
         displayName = "Google Integration";
