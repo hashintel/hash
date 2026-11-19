@@ -5,10 +5,12 @@
  * the browser refuses it if the document has since moved by other means.
  */
 
-import { mayShowNet, noNetViewRefusalNaming } from "@hashintel/brunch-agent";
+import {
+  mayShowNet,
+  netResultView,
+  noNetViewRefusalNaming,
+} from "@hashintel/brunch-agent";
 import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core";
-
-import { netResultView } from "./net-view.ts";
 
 import type { ContextProjectionEntry } from "@flue/runtime";
 import type { FlueConversationSnapshot } from "@flue/sdk";

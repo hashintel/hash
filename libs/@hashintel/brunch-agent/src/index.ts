@@ -136,6 +136,21 @@ export {
   type ArcElement,
 } from "./petrinaut/net-element-ids";
 export {
+  callsForElement,
+  isAppliedChange,
+  latestNetDefinition,
+  netResultView,
+  type NetCallCore,
+  type NetElement,
+  type NetResultView,
+} from "./petrinaut/net-changes";
+export {
+  basisQueryTarget,
+  basisTraceForModel,
+  namesBasisQueryTarget,
+  type BasisQueryTarget,
+} from "./petrinaut/basis-query-answer";
+export {
   netElementKinds,
   petrinautToolEffects,
   type PetrinautToolCapability,
