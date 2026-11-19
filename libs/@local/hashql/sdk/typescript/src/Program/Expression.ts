@@ -596,6 +596,7 @@ export const as = Function.dual<
       { value: toNode(expression), type: type[TAST.Node] },
       Result.all,
       Result.map(({ value, type }) => new AST.As(value, type)),
+      Result.flatMap(AST.validate),
       fromResult<T, Value.Inputs<E>>,
     ),
 );

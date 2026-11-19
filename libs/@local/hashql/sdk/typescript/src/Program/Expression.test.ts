@@ -11,6 +11,7 @@ import * as JExpr from "../JExpr/index.js";
 import * as Expression from "./Expression.js";
 import * as Module from "./Module.js";
 import * as Structural from "./Structural.js";
+import * as TypeExpression from "./TypeExpression.js";
 
 import type * as Type from "../Type.js";
 import type * as Inputs from "./Inputs.js";
@@ -302,6 +303,19 @@ describe("expression", () => {
       Result.flip(Expression.toJExpr(Expression.as(Number.NaN, numberType))),
     );
     expect(failure.reason._tag).toBe("InvalidExpression");
+  });
+
+  test("unchecked_assertion", () => {
+    expect.hasAssertions();
+    const unchecked = TypeExpression.fromType<Type.PrimitiveNumber>({
+      _tag: "Struct",
+      members: [[{ _tag: "Lexical", value: "first name" }, { _tag: "Infer" }]],
+    });
+    expect(
+      Result.getOrThrow(
+        Result.flip(Expression.toJExpr(Expression.as(2n, unchecked))),
+      ).reason._tag,
+    ).toBe("InvalidExpression");
   });
 
   describe("adapted", () => {
