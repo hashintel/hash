@@ -34,19 +34,9 @@ export const conversationSchema = (conversationId: string): string =>
 
 /** Each conversation in its own schema, every one opened on the process's shared `pool`. */
 export const postgresConversationStorage =
-  (
-    pool: Pool,
-    options: Pick<
-      Parameters<typeof openPostgresStorage>[0],
-      "transientRetryMs"
-    > = {},
-  ): OpenConversationStorage =>
+  (pool: Pool): OpenConversationStorage =>
   (conversationId) =>
-    openPostgresStorage({
-      pool,
-      schema: conversationSchema(conversationId),
-      ...options,
-    });
+    openPostgresStorage({ pool, schema: conversationSchema(conversationId) });
 
 /** Whether a conversation's schema exists: one catalog read, without creating it. */
 export const postgresConversationExists =

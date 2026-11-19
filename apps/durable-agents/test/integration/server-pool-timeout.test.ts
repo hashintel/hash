@@ -46,7 +46,6 @@ import { afterAll, expect, test } from "vitest";
 import {
   conversationSchema,
   postgresConversationExists,
-  postgresConversationStorage,
 } from "../../src/server/conversation-storage";
 import { createDurableAgentsServer } from "../../src/server/durable-agents-server";
 import {
@@ -57,6 +56,7 @@ import {
   isPoolConnectTimeout,
   postgresConfigFromEnvironment,
 } from "../../src/storage/postgres/postgres-config";
+import { openPostgresStorage } from "../../src/storage/postgres/postgres-storage";
 import { scriptedModel } from "../scripted-model";
 
 const context = BACKGROUND_CONTEXT;
@@ -233,10 +233,12 @@ const startInstance = (
   models.setProvider(faux.provider);
   const extension = defineExtension({ name: "probe", tools: [...tools] });
   const server = createDurableAgentsServer({
-    openStorage: postgresConversationStorage(
-      pool,
-      transientRetryMs === undefined ? {} : { transientRetryMs },
-    ),
+    openStorage: (conversationId) =>
+      openPostgresStorage({
+        pool,
+        schema: conversationSchema(conversationId),
+        transientRetryMs,
+      }),
     storageExists: postgresConversationExists(pool),
     createRegistry: () => {
       const registry = createRegistry();
