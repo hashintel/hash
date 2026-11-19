@@ -90,10 +90,13 @@ const writeResponse = async (
   }
 };
 
-/** Listen on `port` (0 for any free one) and serve `handler`; resolves once listening. */
+/** Listen on `port` (0 for any free one) and serve `handler`, on loopback unless `hostname` says otherwise; resolves once listening. */
 export const serveNode = async (
   handler: FetchHandler,
-  { port, hostname }: { readonly port: number; readonly hostname?: string },
+  {
+    port,
+    hostname = "127.0.0.1",
+  }: { readonly port: number; readonly hostname?: string },
 ) => {
   const server = createServer((incoming, outgoing) => {
     const aborted = new AbortController();
@@ -123,8 +126,10 @@ export const serveNode = async (
       resolve();
     });
   });
+  const { address, port: boundPort } = server.address() as AddressInfo;
   return {
-    port: (server.address() as AddressInfo).port,
+    address,
+    port: boundPort,
     /** Stop listening and end open connections, streams included. */
     close: () =>
       new Promise<void>((resolve, reject) => {

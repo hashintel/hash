@@ -73,6 +73,7 @@ export const browserCallsPrefix = "/conversations";
 export type StartDurableAgentsServerOptions = {
   /** 0 listens on any free port; the result says which. */
   readonly port: number;
+  /** Loopback when absent: the server takes no outside traffic before H7. */
   readonly hostname?: string;
   /** The process's one pool; every conversation's schema is opened on it. */
   readonly pool: Pool;
