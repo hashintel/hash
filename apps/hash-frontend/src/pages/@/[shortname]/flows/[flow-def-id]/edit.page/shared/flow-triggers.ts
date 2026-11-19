@@ -11,6 +11,9 @@ import type { FlowSchedule } from "@local/hash-isomorphic-utils/system-types/flo
 /** What can start a run of a flow. Every flow can be run by hand, so Manual is always on. */
 export type TriggerKind = "manual" | "schedule";
 
+/** The flow's schedules, or why they aren't known yet: still loading, or failed to load (they're fetched again). */
+export type FlowSchedules = TriggerRow[] | "loading" | "unavailable";
+
 /** One of the flow's schedules, as the triggers panel lists it. */
 export type TriggerRow = {
   entityId: EntityId;
@@ -73,14 +76,14 @@ export const filterTriggerRows = (
  */
 export const getRunTrigger = (
   flowScheduleId: EntityUuid | null,
-  schedules: TriggerRow[] | null,
+  schedules: FlowSchedules,
 ): { kind: TriggerKind; line: string } =>
   flowScheduleId === null
     ? { kind: "manual", line: "" }
     : {
         kind: "schedule",
         line:
-          schedules?.find(
+          (Array.isArray(schedules) ? schedules : []).find(
             ({ entityId }) =>
               extractEntityUuidFromEntityId(entityId) === flowScheduleId,
           )?.text ?? "",

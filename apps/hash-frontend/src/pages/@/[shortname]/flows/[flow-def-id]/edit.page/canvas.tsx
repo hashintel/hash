@@ -56,7 +56,7 @@ import type {
   ForEachLayout,
   TriggerCard,
 } from "./canvas/flow-graph";
-import type { TriggerKind, TriggerRow } from "./shared/flow-triggers";
+import type { FlowSchedules, TriggerKind } from "./shared/flow-triggers";
 import type { FlowEditor } from "@local/hash-isomorphic-utils/flows/flow-editor";
 import type {
   Connection,
@@ -142,8 +142,7 @@ type CanvasProps = {
   onToggleCollapsed: (stepId: string) => void;
   /** How much of the canvas's right edge a panel covers, in pixels. Steps are centred and fitted in the rest. */
   coveredRight: number;
-  /** The flow's schedules, or `null` while they load. */
-  schedules: TriggerRow[] | null;
+  schedules: FlowSchedules;
 };
 
 const FlowCanvas = ({
@@ -272,8 +271,12 @@ const FlowCanvas = ({
       { kind: "manual", line: "On", on: true },
       {
         kind: "schedule",
-        line: schedules ? getScheduleSummary(schedules) : "Loading…",
-        on: schedules?.some(({ on }) => on) ?? false,
+        line: Array.isArray(schedules)
+          ? getScheduleSummary(schedules)
+          : schedules === "loading"
+            ? "Loading…"
+            : "Couldn't load",
+        on: Array.isArray(schedules) && schedules.some(({ on }) => on),
       },
     ],
     [schedules],

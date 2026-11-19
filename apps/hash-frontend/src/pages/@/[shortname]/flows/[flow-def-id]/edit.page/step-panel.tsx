@@ -25,7 +25,7 @@ import { PathsField } from "./step-panel/paths-field";
 import { QueryField } from "./step-panel/query-field";
 import { TriggersPanelBody } from "./step-panel/triggers-panel";
 
-import type { TriggerRow } from "./shared/flow-triggers";
+import type { FlowSchedules } from "./shared/flow-triggers";
 import type { StepTone } from "./shared/step-display";
 import type { FlowValue, ValueUse } from "./shared/value-uses";
 import type { IconName } from "@hashintel/ds-components";
@@ -345,8 +345,7 @@ export const StepPanel = ({
 }: {
   editor: FlowEditor;
   subject: StepPanelSubject;
-  /** The flow's schedules, or `null` while they load. */
-  schedules: TriggerRow[] | null;
+  schedules: FlowSchedules;
   onSelectStart: () => void;
   /** Selects a step that uses a value, picked from "Used in". */
   onSelectStep: (stepId: string) => void;

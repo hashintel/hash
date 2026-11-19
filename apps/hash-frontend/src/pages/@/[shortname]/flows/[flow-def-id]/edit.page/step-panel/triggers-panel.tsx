@@ -12,7 +12,11 @@ import { css } from "@hashintel/ds-helpers/css";
 import { ShowAllButton } from "../run-view/shared/show-all-button";
 import { filterTriggerRows } from "../shared/flow-triggers";
 
-import type { TriggerRow, TriggerState } from "../shared/flow-triggers";
+import type {
+  FlowSchedules,
+  TriggerRow,
+  TriggerState,
+} from "../shared/flow-triggers";
 
 /** How many of a kind's triggers the panel lists, unless searching, before "Show all N". */
 const shownPerKind = 4;
@@ -65,8 +69,7 @@ const TriggerRows = ({ rows }: { rows: TriggerRow[] }) =>
 export const TriggersPanelBody = ({
   schedules,
 }: {
-  /** `null` while they load. */
-  schedules: TriggerRow[] | null;
+  schedules: FlowSchedules;
 }) => {
   const [state, setState] = useState<TriggerState>("all");
   const [searching, setSearching] = useState(false);
@@ -74,7 +77,7 @@ export const TriggersPanelBody = ({
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const shown = filterTriggerRows(
-    (schedules ?? []).toSorted((left, right) =>
+    (Array.isArray(schedules) ? schedules : []).toSorted((left, right) =>
       left.text.localeCompare(right.text),
     ),
     { state, search },
@@ -146,8 +149,10 @@ export const TriggersPanelBody = ({
             </>
           )}
         </div>
-        {schedules === null ? (
+        {schedules === "loading" ? (
           <span className={groupLabel}>Loading schedules…</span>
+        ) : schedules === "unavailable" ? (
+          <span className={groupLabel}>Couldn't load the schedules</span>
         ) : shown.length === 0 ? (
           <span className={groupLabel}>
             {schedules.length === 0 ? "No schedules" : "No triggers match"}

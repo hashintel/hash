@@ -16,6 +16,7 @@ import type {
   QueryEntitySubgraphQuery,
   QueryEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
+import type { ApolloError } from "@apollo/client";
 import type { EntityRootType } from "@blockprotocol/graph";
 import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
@@ -24,6 +25,7 @@ import type { FlowSchedule } from "@local/hash-isomorphic-utils/system-types/flo
 
 type UseFlowSchedulesResult = {
   loading: boolean;
+  error: ApolloError | undefined;
   refetch: () => Promise<unknown>;
   schedulesByEntityUuid: Map<EntityUuid, Simplified<HashEntity<FlowSchedule>>>;
 };
@@ -58,7 +60,7 @@ export const useFlowSchedules = ({
   /** The flow whose schedules to fetch, if only one flow's. */
   flowDefinitionEntityId?: EntityId;
 } = {}): UseFlowSchedulesResult => {
-  const { data, loading, refetch } = useQuery<
+  const { data, loading, error, refetch } = useQuery<
     QueryEntitySubgraphQuery,
     QueryEntitySubgraphQueryVariables
   >(queryEntitySubgraphQuery, {
@@ -153,6 +155,7 @@ export const useFlowSchedules = ({
 
   return {
     loading,
+    error,
     refetch,
     schedulesByEntityUuid,
   };
