@@ -30,7 +30,7 @@ import {
 
 import { context, textOf } from "../../../test/platform/support";
 import { brunchUserInput } from "../../server/durable-agents-server/user-input";
-import { versionLoadRecorder } from "../../server/durable-agents-server/version-load";
+import { recordVersionLoad } from "../../server/durable-agents-server/version-load";
 import {
   versionLoadSectionExtension,
   versionLoadSectionKey,
@@ -134,19 +134,13 @@ const open = async () => {
             submissionContext: { versionLoad: load },
           }),
     );
-    const record = await versionLoadRecorder(
-      harness,
-      conversation.id,
-      input,
-      context,
-    );
     const id = await conversation.commit(async (tx) => {
       const submitted = await conversation.submit(tx, {
         type: "input",
         content: input.content,
         entry: input.entry,
       });
-      await record(tx, submitted);
+      await recordVersionLoad(tx, conversation.id, input, submitted);
       return submitted;
     }, context);
     const submission = await harness.submission(id, context);
