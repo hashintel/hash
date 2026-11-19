@@ -85,6 +85,12 @@ describe("toRunRow", () => {
     ).toBe("running");
   });
 
+  it("shows a run that timed out as failed", () => {
+    expect(row("aaaaaa", { status: FlowRunStatus.TimedOut }).state).toBe(
+      "failed",
+    );
+  });
+
   it("shows a cancelled or terminated run as cancelled", () => {
     expect(
       [FlowRunStatus.Cancelled, FlowRunStatus.Terminated].map(
@@ -154,9 +160,7 @@ describe("filterRuns", () => {
     ];
 
     expect(
-      idsOf(
-        filterRuns(rows, { states: ["failed", "timedOut"], trigger: "manual" }),
-      ),
+      idsOf(filterRuns(rows, { states: ["failed"], trigger: "manual" })),
     ).toEqual(["000001", "000003"]);
     expect(idsOf(filterRuns(rows, { states: [], trigger: null }))).toEqual(
       idsOf(rows),

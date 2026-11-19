@@ -1,15 +1,15 @@
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
-import { Button, Icon, Tooltip } from "@hashintel/ds-components";
+import { Button, Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { useSnackbar } from "../../../../../../../../components/hooks/use-snackbar";
 import { Link } from "../../../../../../../../shared/ui/link";
 import { shortRunIdFont } from "../../shared/run-id";
-import { runStates } from "../../shared/run-state";
+import { RunGlyph } from "../../shared/run-marks";
+import { runStates, runStateMarks } from "../../shared/run-state";
 
 import type { RunState } from "../../shared/run-state";
 import type { RunRow } from "../run-list";
-import type { IconName } from "@hashintel/ds-components";
 
 const idCell = css({ display: "flex", alignItems: "center", gap: "1" });
 const shortId = css({
@@ -81,65 +81,27 @@ const statusCell = css({
   display: "inline-flex",
   alignItems: "center",
   gap: "1.5",
+  /* Centres a mark with no text beside it. */
+  verticalAlign: "middle",
 });
 const statusText = css({ color: "fg.muted" });
 
-/** Each state's glyph, and whether its name shows beside it: only where the glyph alone says too little. */
-const stateGlyphs: Record<
-  RunState,
-  { iconName: IconName; className: string; named: boolean }
-> = {
-  running: {
-    iconName: "circleEllipsis",
-    className: css({ color: "blue.s80" }),
-    named: false,
-  },
-  needsReview: {
-    iconName: "hand",
-    className: css({ color: "orange.s80" }),
-    named: true,
-  },
-  completed: {
-    iconName: "circleCheck",
-    className: css({ color: "green.s80" }),
-    named: false,
-  },
-  failed: {
-    iconName: "circleClose",
-    className: css({ color: "red.s85" }),
-    named: false,
-  },
-  timedOut: {
-    iconName: "clock",
-    className: css({ color: "red.s85" }),
-    named: true,
-  },
-  cancelled: {
-    iconName: "circleClose",
-    className: css({ color: "neutral.s70" }),
-    named: true,
-  },
-  unknown: {
-    iconName: "circle",
-    className: css({ color: "neutral.s70" }),
-    named: true,
-  },
-};
+/** The states whose name shows beside their mark: only where the mark alone says too little. */
+const namedStates: RunState[] = ["needsReview", "cancelled", "unknown"];
 
 export const StatusCell = ({ state }: { state: RunState }) => {
-  const { iconName, className, named } = stateGlyphs[state];
   const { label } = runStates[state];
+  const mark = <RunGlyph state={runStateMarks[state]} label={label} />;
 
-  return named ? (
+  return namedStates.includes(state) ? (
     <span className={statusCell}>
-      <Icon name={iconName} size="sm" className={className} />
+      {/* Its state is named beside it. */}
+      <span aria-hidden>{mark}</span>
       <span className={statusText}>{label}</span>
     </span>
   ) : (
     <Tooltip content={label}>
-      <span className={statusCell}>
-        <Icon name={iconName} size="sm" className={className} alt={label} />
-      </span>
+      <span className={statusCell}>{mark}</span>
     </Tooltip>
   );
 };

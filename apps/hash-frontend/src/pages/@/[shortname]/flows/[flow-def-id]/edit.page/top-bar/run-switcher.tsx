@@ -7,7 +7,7 @@ import { getFlowRunById } from "@local/hash-isomorphic-utils/graphql/queries/flo
 
 import { getShortRunId, shortRunIdFont } from "../shared/run-id";
 import { RunGlyph } from "../shared/run-marks";
-import { getRunState, runStates } from "../shared/run-state";
+import { getRunState, runStates, runStateMarks } from "../shared/run-state";
 import { formatRunTime } from "../shared/run-times";
 import { getArrowKeyRun, getSwitcherRuns } from "./run-switcher/switcher-runs";
 
@@ -15,22 +15,9 @@ import type {
   GetFlowRunByIdQuery,
   GetFlowRunByIdQueryVariables,
 } from "../../../../../../../graphql/api-types.gen";
-import type { RunState } from "../shared/run-state";
-import type { StepState } from "../shared/step-states";
 import type { FlowRuns } from "../shared/use-flow-runs";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { ItemOrGroup, MenuItem } from "@hashintel/ds-components";
-
-/** A run's mark, from the same set as its steps'. It has none of its own for a cancelled run, so takes skipped's. */
-const runStateMarks: Record<RunState, StepState> = {
-  running: "running",
-  needsReview: "needsReview",
-  completed: "done",
-  failed: "failed",
-  timedOut: "failed",
-  cancelled: "skipped",
-  unknown: "notReached",
-};
 
 const switcher = css({
   display: "flex",
