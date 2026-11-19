@@ -943,7 +943,10 @@ export class PostgresStorage implements Storage {
         this.pool,
         `SELECT owner_token FROM ${this.tables.durableMetadata} WHERE singleton = 1`,
       );
-      return metadata?.owner_token === ownerToken;
+      if (metadata === undefined) {
+        throw new Error("Durable Postgres metadata is missing");
+      }
+      return metadata.owner_token === ownerToken;
     });
   }
 
