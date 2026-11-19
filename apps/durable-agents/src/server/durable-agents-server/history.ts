@@ -33,10 +33,7 @@ import { readUIMessageStream, type UIMessage, type UIMessageChunk } from "ai";
 import { brunchSignals } from "@hashintel/brunch-agent";
 
 import { handEditEntryKind } from "../../net-state/visible-net-view";
-import {
-  brunchUserKind,
-  brunchUserWords,
-} from "../../shared/brunch-user-entry";
+import { brunchUserKind, userWords } from "../../shared/brunch-user-entry";
 import {
   handEditPartId,
   handEditPartType,
@@ -64,17 +61,6 @@ const inputKinds: ReadonlySet<string> = new Set([
 /** Entries read per page. */
 const pageSize = 500;
 
-/** The text of an input entry's user message, as the model read it. */
-const modelText = (entry: EntryRecord): string => {
-  const message = entry.model?.[0];
-  if (message?.role !== "user") return "";
-  return typeof message.content === "string"
-    ? message.content
-    : message.content
-        .flatMap((part) => (part.type === "text" ? [part.text] : []))
-        .join("");
-};
-
 const inputMessage = (entry: EntryRecord): UIMessage => {
   const id = userMessageId(entry.id);
   if (entry.kind === brunchSignals.ledgerComments)
@@ -90,7 +76,7 @@ const inputMessage = (entry: EntryRecord): UIMessage => {
       {
         type: "text",
         // A `brunch.user` envelope that did not parse was admitted, and is shown, as sent.
-        text: brunchUserWords(entry) ?? modelText(entry),
+        text: userWords(entry),
         state: "done",
       },
     ],

@@ -489,6 +489,11 @@ describe("the Ledger as a rewindable document (proof 2)", () => {
       const ledger = foldLedger(stored);
       expect(ledger.state.entities[0]?.turn).toBe(idsOf("pi.user")[0]);
       expect(ledger.state.claims[0]?.turn).toBe(idsOf("brunch.user")[0]);
+      // Each turn's excerpt is the USER's words, as Brunch folds a USER message.
+      expect(ledger.state.turns).toEqual([
+        { id: idsOf("pi.user")[0], excerpt: "We have a dryer." },
+        { id: idsOf("brunch.user")[0], excerpt: "One dryer." },
+      ]);
       expectAgreement(entries, ledger);
     } finally {
       await harness.close(context);

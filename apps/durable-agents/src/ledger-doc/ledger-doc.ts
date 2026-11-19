@@ -30,7 +30,7 @@ import {
   ledgerAppendOutputSchema,
 } from "@hashintel/brunch-agent";
 
-import { brunchUserKind } from "../shared/brunch-user-entry";
+import { brunchUserKind, userWords } from "../shared/brunch-user-entry";
 
 /** `ledger_commit`'s result: recorded or refused. The lib exports the schema, not the type. */
 export type LedgerAppendOutput = v.InferOutput<typeof ledgerAppendOutputSchema>;
@@ -45,8 +45,15 @@ const userTurnKinds: ReadonlySet<string> = new Set([
   UserEntry.kind,
 ]);
 
-/** A USER message the Ledger's turns anchor to, by its user input entry ID. */
-type LedgerUserTurn = { id: string; role: "user"; parts: [] };
+/**
+ * A USER message the Ledger's turns anchor to, by its user input entry ID,
+ * with the USER's words its turn excerpt is folded from.
+ */
+type LedgerUserTurn = {
+  id: string;
+  role: "user";
+  parts: [{ type: "text"; text: string }];
+};
 
 /**
  * The USER's Ledger comments, by their `brunch.ledger-comments` entry ID,
@@ -123,7 +130,12 @@ const issuesCall = (entry: EntryRecord, callId: string) =>
  */
 const turnOf = (entry: EntryRecord): LedgerTurn | undefined => {
   const id = String(entry.id);
-  if (userTurnKinds.has(entry.kind)) return { id, role: "user", parts: [] };
+  if (userTurnKinds.has(entry.kind))
+    return {
+      id,
+      role: "user",
+      parts: [{ type: "text", text: userWords(entry) }],
+    };
   if (entry.kind !== brunchSignals.ledgerComments) return undefined;
   const { data } = entry;
   const body = JSON.stringify({

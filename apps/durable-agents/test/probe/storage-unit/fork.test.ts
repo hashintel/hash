@@ -167,7 +167,7 @@ describe.each(cases)("fork to a new owner on $name", (storageCase) => {
         ledgerDoc.messages.push({
           id: "ledger-before-fork",
           role: "user",
-          parts: [],
+          parts: [{ type: "text", text: "" }],
         });
         const versionLoad = await tx.doc(VersionLoadDoc, source.id);
         versionLoad.announced = "version-1";
@@ -193,7 +193,7 @@ describe.each(cases)("fork to a new owner on $name", (storageCase) => {
         ledgerDoc.messages.push({
           id: "ledger-after-fork-point",
           role: "user",
-          parts: [],
+          parts: [{ type: "text", text: "" }],
         });
         const versionLoad = await tx.doc(VersionLoadDoc, source.id);
         versionLoad.announced = "version-2";
