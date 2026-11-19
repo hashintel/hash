@@ -61,8 +61,8 @@ const brunchHashTools: readonly string[] = [
   brunchTools.hashQueryWebs,
   brunchTools.appSaveNet,
   ...Object.keys(hashPetrinautTools),
-  "activate_skill",
-  "read_skill_resource",
+  brunchTools.activateSkill,
+  brunchTools.readSkillResource,
 ];
 
 const names = (list: readonly { readonly name: string }[]) =>

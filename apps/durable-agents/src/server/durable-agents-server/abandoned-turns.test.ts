@@ -212,6 +212,8 @@ test.each([
   { status: "failed", expiresInMs: 0, aborted: false },
   { status: "settled", expiresInMs: 60_000, aborted: true },
   { status: "failure-settled", expiresInMs: 60_000, aborted: true },
+  { status: "expired", expiresInMs: 0, aborted: true },
+  { status: "stopped", expiresInMs: 60_000, aborted: true },
 ] as const)(
   "a $status call expiring in $expiresInMs ms leaves the unwatched turn aborted=$aborted",
   async ({ status, expiresInMs, aborted }) => {

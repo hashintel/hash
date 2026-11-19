@@ -7,7 +7,7 @@ import type { EntryRecord } from "@earendil-works/pi-durable";
 const entry = (
   kind: string,
   data?: BrunchUserData | null | string[],
-  said?: string,
+  said?: readonly string[],
 ): Pick<EntryRecord, "kind" | "data" | "model"> => ({
   kind,
   ...(data === undefined ? {} : { data }),
@@ -17,10 +17,7 @@ const entry = (
         model: [
           {
             role: "user",
-            content: [
-              { type: "text", text: said },
-              { type: "text", text: "Today." },
-            ],
+            content: said.map((text) => ({ type: "text", text })),
             timestamp: 0,
           },
         ],
@@ -43,13 +40,16 @@ test.each([
         diagnosticsContext: "Net check: 2 warnings.",
         submissionContext: { interviewBudget: { questions: 3 } },
       },
-      "<context>Net check: 2 warnings.</context> Add a dryer.",
+      ["<context>Net check: 2 warnings.</context> Add a dryer."],
     ),
     "Add a dryer.",
   ],
   [
     "a brunch.user entry whose envelope did not parse, by its message",
-    entry("brunch.user", { body: "invalid-contextual" }, "<context"),
+    entry("brunch.user", { body: "invalid-contextual" }, [
+      "<context",
+      "Today.",
+    ]),
     "<context Today.",
   ],
   ["a brunch.user entry without data or message", entry("brunch.user"), ""],
@@ -61,7 +61,7 @@ test.each([
   ],
   [
     "an older pi.user entry, by its message",
-    entry("pi.user", undefined, "Add a dryer."),
+    entry("pi.user", undefined, ["Add a dryer.", "Today."]),
     "Add a dryer. Today.",
   ],
   [

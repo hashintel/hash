@@ -29,7 +29,7 @@ test("a request aborted after its slot is granted, before the hook resumes, free
   );
   // The slot was free, so it is granted at once; the hook resumes a microtask later.
   abort.abort(new Error("stopped"));
-  await waiting.catch(() => {});
+  await expect(waiting).rejects.toThrow("stopped");
   expect(slots.state()).toEqual({ inFlight: 0, waiting: 0 });
 });
 

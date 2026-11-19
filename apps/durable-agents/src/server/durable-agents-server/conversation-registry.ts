@@ -62,7 +62,7 @@ export type ConversationRegistryOptions = {
    * on; `Date.now` when omitted. The browser-call routes and the abandoned
    * turn sweep compare expiries on the same clock.
    */
-  readonly now?: () => number;
+  readonly now?: HarnessOptions["now"];
   /**
    * Runs on every open, once the host binding is bound and the root is known,
    * before scheduling resumes: where a host installs into the Harness's
