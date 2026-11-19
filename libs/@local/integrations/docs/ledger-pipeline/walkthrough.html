@@ -1347,7 +1347,6 @@
         <ul>
           <li>Uploads each file to S3 unchanged, without a local copy.</li>
           <li>Reads the row count from the Parquet footer.</li>
-          <li>Records the capture time.</li>
         </ul>
       </div>
       <div class="card tone">
@@ -1579,7 +1578,7 @@
               </tr>
               <tr data-rec="L">
                 <td>…0012</td>
-                <td>4</td>
+                <td>0</td>
                 <td>create_link</td>
                 <td title="f81f487f-1011-583c-9bbc-c11d82d8e58e">f81f487f…</td>
                 <td>related/v/1</td>
@@ -1602,26 +1601,26 @@
             <table>
               <thead>
                 <tr>
+                  <th>seq</th>
                   <th>kind</th>
-                  <th>target</th>
+                  <th>entity_type</th>
                   <th>entity_id</th>
-                  <th>key</th>
-                  <th>issue</th>
-                  <th>property</th>
+                  <th>name</th>
                   <th>reason</th>
+                  <th>value</th>
                 </tr>
               </thead>
               <tbody>
                 <tr data-rec="B">
-                  <td>entity</td>
-                  <td>items-sink</td>
+                  <td>1</td>
+                  <td>property</td>
+                  <td>item/v/1</td>
                   <td title="3a060105-8b02-5108-956e-fe52d3909e45">
                     3a060105…
                   </td>
-                  <td>{"id":"B-1"}</td>
-                  <td>property_unconverted</td>
                   <td>weight/v/1</td>
                   <td>coercion</td>
+                  <td>heavy</td>
                 </tr>
               </tbody>
             </table>
@@ -2148,7 +2147,7 @@
       ],
       [
         "…0012",
-        "4",
+        "0",
         "create_link",
         ids.L,
         "related/v/1",
@@ -2170,24 +2169,16 @@
     ];
     const sendOrder = [0, 1, 2, 4, 3];
     const issueRows = [
-      [
-        "entity",
-        "items-sink",
-        ids.B,
-        '{"id":"B-1"}',
-        "property_unconverted",
-        "weight/v/1",
-        "coercion",
-      ],
+      ["1", "property", "item/v/1", ids.B, "weight/v/1", "coercion", "heavy"],
     ];
     const issueHead = [
+      "seq",
       "kind",
-      "target",
+      "entity_type",
       "entity_id",
-      "key",
-      "issue",
-      "property",
+      "name",
       "reason",
+      "value",
     ];
     const batchRows = [
       ["0", "POST /entities/bulk", "create A-1, create B-1"],
