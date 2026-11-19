@@ -6,9 +6,11 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { PinIcon } from "../../../../../../components/pin-icon";
 import { useCanvasInsets } from "../../../../../../hooks/use-canvas-insets";
+import { VisualizerFrame } from "../../../../../../shared/visualizer-frame";
 import { FloatingResizeHandles } from "../../../../../shared/floating-resize-handles";
 import { useVisualizerLayout } from "./visualizer-window/use-visualizer-layout";
-import { getVisualizerConnector } from "./visualizer-window/visualizer-layout";
+import { getVisualizerBubble } from "./visualizer-window/visualizer-bubble";
+import { getVisualizerAnchor } from "./visualizer-window/visualizer-layout";
 
 import type { PointerEventHandler, ReactNode } from "react";
 
@@ -16,28 +18,19 @@ const panelStyle = css({
   position: "absolute",
   display: "flex",
   flexDirection: "column",
-  backgroundColor: "neutral.s00",
-  border: "[1px solid {colors.neutral.bd.subtle}]",
+  padding: "[1px]",
   borderRadius: "[14px]",
-  boxShadow: "[0 8px 24px rgba(0, 0, 0, 0.16)]",
   pointerEvents: "auto",
   cursor: "grab",
   touchAction: "none",
   userSelect: "none",
-  transition: "[box-shadow 140ms ease, filter 140ms ease]",
-  _hover: { boxShadow: "[0 9px 26px rgba(0, 0, 0, 0.18)]" },
-  "&[data-editing='true']": {
-    outline: "[2px solid {colors.blue.s80}]",
-    outlineOffset: "[3px]",
-  },
+  transition: "[filter 140ms ease]",
   "&[data-muted='true']:not(:hover)": { filter: "[grayscale(0.35)]" },
   "&[data-dragging='true']": {
     cursor: "grabbing",
-    boxShadow: "[0 11px 28px rgba(0, 0, 0, 0.2)]",
   },
   "&[data-animated='true']": {
-    transition:
-      "[transform 140ms ease, box-shadow 140ms ease, filter 140ms ease]",
+    transition: "[transform 140ms ease, filter 140ms ease]",
     _hover: { transform: "[scale(1.003)]" },
     "&[data-dragging='true']": { transform: "[translateY(-1px) scale(1.006)]" },
     "@media (prefers-reduced-motion: reduce)": {
@@ -93,7 +86,7 @@ const dragHandleStyle = css({
   touchAction: "none",
   userSelect: "none",
   _active: { cursor: "grabbing" },
-  _focusVisible: { outline: "[2px solid {colors.blue.s80}]" },
+  _focusVisible: { outline: "[none]" },
 });
 
 const contentStyle = css({
@@ -101,17 +94,7 @@ const contentStyle = css({
   flex: "1",
   minHeight: "[0]",
   overflow: "auto",
-  borderRadius: "[inherit]",
-});
-
-const connectorStyle = css({
-  position: "absolute",
-  top: "[0]",
-  left: "[0]",
-  zIndex: "[1000]",
-  overflow: "visible",
-  pointerEvents: "none",
-  color: "neutral.s110",
+  borderRadius: "[13px]",
 });
 
 export const VisualizerWindow = ({
@@ -172,79 +155,83 @@ export const VisualizerWindow = ({
       },
       onKeepOpen,
     );
-  const connector = getVisualizerConnector(nodeBounds, {
+  const anchor = getVisualizerAnchor(nodeBounds, {
     ...layout.position,
     ...layout.size,
   });
 
+  const visibleAnchor =
+    anchor.x >= left &&
+    anchor.x <= canvasWidth - insets.right &&
+    anchor.y >= top &&
+    anchor.y <= canvasHeight - insets.bottom;
+  const localAnchor = visibleAnchor
+    ? {
+        x: anchor.x - layout.position.x,
+        y: anchor.y - layout.position.y,
+      }
+    : null;
+  const marker =
+    localAnchor &&
+    Math.hypot(
+      Math.max(-localAnchor.x, 0, localAnchor.x - layout.size.width),
+      Math.max(-localAnchor.y, 0, localAnchor.y - layout.size.height),
+    ) <= 8
+      ? localAnchor
+      : null;
+  const bubble = getVisualizerBubble(layout.size, marker ? null : localAnchor);
+
   if (!container) return null;
 
   return createPortal(
-    <>
-      {connector && (
-        <svg className={connectorStyle} width={1} height={1} aria-hidden="true">
-          <line
-            x1={connector.start.x}
-            y1={connector.start.y}
-            x2={connector.end.x}
-            y2={connector.end.y}
-            stroke="currentColor"
-            strokeWidth={1.5}
-          />
-          <circle
-            cx={connector.start.x}
-            cy={connector.start.y}
-            r={3}
-            fill="currentColor"
-          />
-        </svg>
-      )}
-      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- Drag the picture while keeping control events from reaching the source node. */}
-      <div
-        className={`${panelStyle} nodrag nopan nowheel`}
-        style={{
-          zIndex: 1001 + stackIndex,
-          left: layout.position.x,
-          top: layout.position.y,
-          width: layout.size.width,
-          height: layout.size.height,
-        }}
-        data-editing={editing}
-        data-muted={muted}
-        data-dragging={dragging}
-        data-animated={animated}
-        data-fixed={fixed}
-        role="group"
-        tabIndex={-1}
-        aria-label={`${name} state visualizer`}
-        {...getHandleProps("move")}
-        onFocusCapture={onActivate}
-        onPointerDownCapture={(event) => {
-          if (event.button === 0) {
-            onActivate();
-            if (
-              event.target instanceof Element &&
-              event.target.closest("[data-visualizer-content]")
-            )
-              onKeepOpen();
-          }
-        }}
-        onPointerEnter={onPointerEnter}
-        onPointerLeave={onPointerLeave}
-        onMouseDown={(event) => event.stopPropagation()}
-        onClick={(event) => event.stopPropagation()}
-        onKeyDown={(event) => {
-          event.stopPropagation();
-          getHandleProps("move").onKeyDown?.(event);
-          if (event.key !== "Escape") return;
-          event.preventDefault();
-          event.stopPropagation();
-          onClose();
-          [...container.querySelectorAll<HTMLElement>(".react-flow__node")]
-            .find((element) => element.dataset.id === nodeId)
-            ?.focus({ preventScroll: true });
-        }}
-      >
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- Drag the picture while keeping control events from reaching the source node.
+    <div
+      className={`${panelStyle} nodrag nopan nowheel`}
+      style={{
+        zIndex: 1001 + stackIndex,
+        left: layout.position.x,
+        top: layout.position.y,
+        width: layout.size.width,
+        height: layout.size.height,
+      }}
+      data-visualizer-window
+      data-editing={editing}
+      data-muted={muted}
+      data-dragging={dragging}
+      data-animated={animated}
+      data-fixed={fixed}
+      role="group"
+      tabIndex={-1}
+      aria-label={`${name} state visualizer`}
+      {...getHandleProps("move")}
+      onFocusCapture={onActivate}
+      onPointerDownCapture={(event) => {
+        if (event.button === 0) {
+          onActivate();
+          if (
+            event.target instanceof Element &&
+            event.target.closest("[data-visualizer-content]")
+          )
+            onKeepOpen();
+        }
+      }}
+      onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave}
+      onMouseDown={(event) => event.stopPropagation()}
+      onClick={(event) => event.stopPropagation()}
+      onKeyDown={(event) => {
+        event.stopPropagation();
+        getHandleProps("move").onKeyDown?.(event);
+        if (event.key !== "Escape") return;
+        event.preventDefault();
+        event.stopPropagation();
+        onClose();
+        [...container.querySelectorAll<HTMLElement>(".react-flow__node")]
+          .find((element) => element.dataset.id === nodeId)
+          ?.focus({ preventScroll: true });
+      }}
+    >
+      <VisualizerFrame path={bubble} marker={marker}>
         <button
           type="button"
           className={dragHandleStyle}
@@ -305,8 +292,8 @@ export const VisualizerWindow = ({
             ...getHandleProps(direction),
           })}
         />
-      </div>
-    </>,
+      </VisualizerFrame>
+    </div>,
     container,
   );
 };

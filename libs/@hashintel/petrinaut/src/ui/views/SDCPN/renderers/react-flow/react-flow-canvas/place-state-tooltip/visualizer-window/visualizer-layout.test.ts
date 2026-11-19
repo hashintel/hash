@@ -3,7 +3,7 @@ import { expect, it } from "vitest";
 import {
   constrainVisualizerLayout,
   createVisualizerLayout,
-  getVisualizerConnector,
+  getVisualizerAnchor,
   updateVisualizerLayout,
 } from "./visualizer-layout";
 
@@ -67,17 +67,25 @@ it("fits into a smaller viewport without changing the preferred layout", () => {
   expect(constrainVisualizerLayout(layout, viewport)).toEqual(layout);
 });
 
-it("connects the place and panel outlines and hides the line when they overlap", () => {
+it("keeps the attachment on the visible part of an overlapping place", () => {
   const node = { x: 0, y: 0, width: 100, height: 100 };
   expect(
-    getVisualizerConnector(node, { x: 200, y: 0, width: 100, height: 100 }),
+    getVisualizerAnchor(node, { x: 200, y: 0, width: 100, height: 100 }),
   ).toEqual({
-    start: { x: 100, y: 50 },
-    end: { x: 200, y: 50 },
+    x: 100,
+    y: 50,
   });
+  const overlapping = getVisualizerAnchor(node, {
+    x: 50,
+    y: 0,
+    width: 100,
+    height: 100,
+  });
+  expect(overlapping.x).toBeCloseTo(40, 2);
+  expect(overlapping.y).toBeCloseTo(50, 2);
   expect(
-    getVisualizerConnector(node, { x: 50, y: 0, width: 100, height: 100 }),
-  ).toBeNull();
+    getVisualizerAnchor(node, { x: -10, y: -10, width: 200, height: 200 }),
+  ).toEqual({ x: 50, y: 50 });
 });
 
 it.each([
