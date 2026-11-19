@@ -1,7 +1,10 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import { createConversionFunction } from "@local/hash-isomorphic-utils/data-types";
-import { systemDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  blockProtocolDataTypes,
+  systemDataTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { slugifyTypeTitle } from "@local/hash-isomorphic-utils/slugify-type-title";
 
 import { ensureUnitDataType } from "./034-add-si-unit-data-types/ensure-unit-data-type";
@@ -98,8 +101,8 @@ beforeAll(async () => {
 
 describe("common measurement units", () => {
   it("preserves the earlier catalogue and registers every type", () => {
-    expect(seeded.size).toBe(1246);
-    expect(commonUnitGroups).toHaveLength(72);
+    expect(seeded.size).toBe(1253);
+    expect(commonUnitGroups).toHaveLength(73);
     const registry = new Map<string, BaseUrl>(
       Object.values(systemDataTypes).map((entry) => [
         entry.title,
@@ -258,6 +261,92 @@ describe("common measurement units", () => {
     expect(convert("Decibel Milliwatts", "Decibel Watts", 0)).toBe(-30);
     expect(convert("Decibel Watts", "Decibel Milliwatts", 0)).toBe(30);
     expect(convert("Decibel Milliwatts", "Decibel Watts", -90)).toBe(-120);
+  });
+
+  describe("temperature differences", () => {
+    const units = [
+      { title: "Kelvin Difference", system: "Metric", kelvins: 1 },
+      { title: "Celsius Difference", system: "Metric", kelvins: 1 },
+      { title: "Fahrenheit Difference", system: "Imperial", kelvins: 5 / 9 },
+      { title: "Rankine Difference", system: "Imperial", kelvins: 5 / 9 },
+    ];
+
+    it.each(
+      units.flatMap((source) =>
+        units
+          .filter((target) => target.title !== source.title)
+          .map((target) => ({ source, target })),
+      ),
+    )(
+      "converts $source.title to $target.title without offsets",
+      ({ source, target }) => {
+        for (const value of [-1000, -18, 0, 0.125, 18]) {
+          const result = convert(source.title, target.title, value);
+          expect(result).toBeCloseTo(
+            (value * source.kelvins) / target.kelvins,
+            10,
+          );
+          expect(convert(target.title, source.title, result)).toBeCloseTo(
+            value,
+            10,
+          );
+        }
+        expect(convert(source.title, target.title, 0)).toBe(0);
+      },
+    );
+
+    it("uses separate abstract groups and permits signed fractional differences", () => {
+      expect(getSeeded("Temperature Difference").schema).toMatchObject({
+        abstract: true,
+        type: "number",
+        allOf: [{ $ref: blockProtocolDataTypes.number.dataTypeId }],
+      });
+      for (const system of ["Metric", "Imperial"]) {
+        expect(
+          getSeeded(`Temperature Difference (${system})`).schema,
+        ).toMatchObject({
+          abstract: true,
+          allOf: [{ $ref: `${baseUrl("Temperature Difference")}v/1` }],
+        });
+      }
+      for (const { title, system } of units) {
+        const { schema } = getSeeded(title);
+        expect(schema).toMatchObject({
+          type: "number",
+          allOf: [
+            { $ref: `${baseUrl(`Temperature Difference (${system})`)}v/1` },
+          ],
+        });
+        expect(schema.abstract).not.toBe(true);
+        for (const bound of [
+          "minimum",
+          "maximum",
+          "exclusiveMinimum",
+          "exclusiveMaximum",
+          "multipleOf",
+        ]) {
+          expect(schema).not.toHaveProperty(bound);
+        }
+      }
+    });
+
+    it("does not convert differences to temperature readings", () => {
+      const readings = commonUnitGroups.find(
+        ({ title }) => title === "Temperature",
+      )?.units;
+      expect(readings?.length).toBeGreaterThan(0);
+      for (const { title: difference } of units) {
+        for (const { title: reading } of readings ?? []) {
+          expect(conversionPath(difference, reading)).toBeUndefined();
+          expect(conversionPath(reading, difference)).toBeUndefined();
+        }
+      }
+      expect(convert("Degrees Celsius", "Kelvins", 0)).toBe(273.15);
+      expect(convert("Degrees Fahrenheit", "Kelvins", 32)).toBe(273.15);
+      expect(convert("Celsius Difference", "Fahrenheit Difference", 10)).toBe(
+        18,
+      );
+    });
   });
 
   it("bounds fuel quantities without rejecting zero", () => {
