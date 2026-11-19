@@ -52,11 +52,11 @@ import { brunchUserInput } from "../server/durable-agents-server/user-input";
 import { netCalls } from "./net-changes";
 import {
   createQueryBasisTool,
+  type QueryBasisInput,
   queryBasis,
   queryBasisExtension,
 } from "./query-basis";
 
-import type { VisibleNetView } from "./visible-net-view";
 import type { JsonValue } from "@earendil-works/chord/json";
 import type { FauxResponseStep } from "@earendil-works/pi-ai/providers/faux";
 
@@ -243,7 +243,10 @@ const queueReflection = committed(
 const query = (
   steps: readonly Step[],
   selector: BasisQuerySelector,
-  netView: VisibleNetView["state"] = "current",
+  netView: QueryBasisInput["netView"] = {
+    state: "current",
+    revision: "revision-2",
+  },
 ) => {
   const calls: Record<string, BrowserCallRecord> = {};
   const ledger: { entry: number; message: LedgerHistoryMessage }[] = [];
@@ -519,10 +522,11 @@ describe("query_basis", () => {
       },
     );
     expect(
-      await query([user, commit, add, read, addDryer], {
-        kind: "place",
-        name: "Dryer",
-      }),
+      await query(
+        [user, commit, add, read, addDryer],
+        { kind: "place", name: "Dryer" },
+        { state: "current", revision: "revision-3" },
+      ),
     ).toMatchObject({
       disposition: "basis-absent",
       target: { id: "dryer" },
@@ -570,7 +574,7 @@ describe("query_basis", () => {
   test("reports a stale read when the model's view is stale, as freshness decides it (H8)", async () => {
     const queue = { kind: "place", name: "Queue" } as const;
     expect(
-      await query([user, commit, add, read], queue, "stale"),
+      await query([user, commit, add, read], queue, { state: "stale" }),
     ).toMatchObject({
       disposition: "stale-read",
       target: undefined,
@@ -578,9 +582,25 @@ describe("query_basis", () => {
       basis: undefined,
       changes: [],
     });
+    expect(await query([user, commit, add, read], queue)).toMatchObject({
+      disposition: "basis-absent",
+    });
+  });
+
+  test("a current view at another revision cannot vouch for the recorded definition", async () => {
     expect(
-      await query([user, commit, add, read], queue, "current"),
-    ).toMatchObject({ disposition: "basis-absent" });
+      await query(
+        [user, commit, add, read, queueReflection],
+        { kind: "place", name: "Queue" },
+        { state: "current", revision: "revision-1" },
+      ),
+    ).toMatchObject({
+      disposition: "stale-read",
+      readToolCallId: "read-queue",
+      target: undefined,
+      basis: undefined,
+      changes: [],
+    });
   });
 
   test("attributes a HASH merged arc update to the arc it retargeted, per canonical call (§3.1)", async () => {

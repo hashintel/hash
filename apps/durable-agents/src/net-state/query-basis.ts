@@ -12,10 +12,10 @@
  *   the stored Ledger history does not keep: a `brunch.user` entry's
  *   `data.userText`, or an older `pi.user` entry's message text, so the
  *   trace's turn excerpts are Brunch's;
- * - a hand edit after the model's view also answers `stale-read` (Lu's H8):
- *   the tool folds the conversation's current effective context with
- *   `visibleNetView`, the same staleness net freshness refuses on, so a note
- *   naming the revision a later view already saw is ignored.
+ * - the selected definition needs a matching current revision in the
+ *   effective context (`visibleNetView`). An edit can outlive the view it
+ *   invalidated, or both can be summarized away. Neither the absence of a
+ *   visible note nor the settled record alone proves freshness.
  *
  * It runs sequentially (fold 3b): one sequential tool serializes its whole
  * round in call order, so it answers from the net reads issued before it in
@@ -164,8 +164,10 @@ export type QueryBasisInput = {
   readonly query: BasisQuerySelector;
   /** The Ledger revision as of the entry that issued a call. */
   readonly ledgerRevisionAt: (call: NetCall) => Promise<number | undefined>;
-  /** The model's view now, from its effective context (`visibleNetView`'s state). */
-  readonly netView: VisibleNetView["state"];
+  /** The model's view now, from its effective context (`visibleNetView`). */
+  readonly netView:
+    | Pick<Extract<VisibleNetView, { state: "current" }>, "state" | "revision">
+    | Pick<Exclude<VisibleNetView, { state: "current" }>, "state">;
 };
 
 export const queryBasis = async (input: QueryBasisInput) => {
@@ -173,33 +175,36 @@ export const queryBasis = async (input: QueryBasisInput) => {
   // after it carried none.
   const latest = latestNetDefinition(input.calls);
   const view = latest?.call;
-  if (input.netView === "stale")
-    return {
-      binding: input.binding,
-      disposition: "stale-read" as const,
-      reason:
-        "The USER changed the net in the editor after the latest net view; read it again, then query.",
-      target: undefined,
-      readToolCallId: view?.toolCallId,
-      basis: undefined,
-      changes: [],
-    };
+  const staleRead = (reason: string) => ({
+    binding: input.binding,
+    disposition: "stale-read" as const,
+    reason,
+    target: undefined,
+    readToolCallId: view?.toolCallId,
+    basis: undefined,
+    changes: [],
+  });
+  if (input.netView.state === "stale")
+    return staleRead(
+      "The USER changed the net in the editor after the latest net view; read it again, then query.",
+    );
   if (
     view &&
     input.calls.some(
       (call) => isAppliedChange(call) && issuedBefore(view, call),
     )
   )
-    return {
-      binding: input.binding,
-      disposition: "stale-read" as const,
-      reason:
-        "The net changed after the latest net view without a subsequent read-back; read it again, then query.",
-      target: undefined,
-      readToolCallId: view.toolCallId,
-      basis: undefined,
-      changes: [],
-    };
+    return staleRead(
+      "The net changed after the latest net view without a subsequent read-back; read it again, then query.",
+    );
+  if (
+    latest &&
+    (input.netView.state !== "current" ||
+      input.netView.revision !== latest.revision)
+  )
+    return staleRead(
+      "The latest recorded net definition has no matching current view; read it again, then query.",
+    );
   const candidates = latest
     ? elements(latest.definition, input.query.kind).filter(
         (element) =>
@@ -331,7 +336,7 @@ const netViewNow = async (
 ) =>
   visibleNetView(
     await (await host.conversation(conversationId, context)).context(context),
-  ).state;
+  );
 
 /** What an agent mounts the basis query as: its tool name and description. */
 export type QueryBasisToolOptions = {

@@ -244,6 +244,7 @@ const openServer = () => {
     conversation,
     reportHandEdit,
     compact,
+    compaction,
   };
 };
 
@@ -254,14 +255,23 @@ type BrowserAnswer = {
   readonly metadata: JsonValue;
 };
 
-const definitionAt = (revision: string) => ({
-  places: [{ id: "place-dryer", name: "Dryer" }],
+const definitionAt = (revision: string, name = "Dryer") => ({
+  places: [
+    {
+      id: "place-dryer",
+      name,
+      colorId: null,
+      dynamicsEnabled: false,
+      x: 0,
+      y: 0,
+    },
+  ],
   transitions: [],
   revision,
 });
 
-const read = (revision: string): BrowserAnswer => ({
-  output: { title: "Laundry", definition: definitionAt(revision) },
+const read = (revision: string, name?: string): BrowserAnswer => ({
+  output: { title: "Laundry", definition: definitionAt(revision, name) },
   metadata: { documentRevision: { before: revision } },
 });
 const changed = (before: string, after: string): BrowserAnswer => ({
@@ -642,3 +652,120 @@ test("I1 and I2 hold for every request: reads and changes, a pruning round, a ha
   ).toBe(false);
   expect(callIdsOf(answersOf(entries).at(-4)!)).toEqual(["c6"]);
 });
+
+test.each([
+  { cut: "summarizes the hand edit", keepsEdit: false },
+  {
+    cut: "keeps the hand edit but summarizes its preceding read",
+    keepsEdit: true,
+  },
+])(
+  "ledger_query_basis asks for a reread when compaction $cut",
+  async ({ keepsEdit }) => {
+    const { server, model, ask, reportHandEdit, compact, compaction } =
+      openServer();
+    const { harness, root } = await server.conversations.create(chatId);
+    await harness.commit(
+      (tx) => bindBrowserDocument(tx, root.id, binding),
+      context,
+    );
+    const browser = scriptedBrowser(
+      harness,
+      root.id,
+      new Map([
+        ["old-read", read("R1")],
+        ["reread", read("R2", "Drying station")],
+      ]),
+    );
+    try {
+      const query = (id: string) =>
+        calls([
+          brunchTools.ledgerQueryBasis,
+          id,
+          { selector: { kind: "place", id: "place-dryer" } },
+        ]);
+      const resultOf = async (id: string) => {
+        const { messages } = await root.context(context);
+        const result = messages.find(
+          (message) =>
+            message.role === "toolResult" && message.toolCallId === id,
+        );
+        expect(result).toMatchObject({ isError: false });
+        return JSON.parse(textOf(result)) as unknown;
+      };
+      model.script(
+        calls(readNet("old-read")),
+        calls([
+          brunchTools.ledgerCommit,
+          "record-basis",
+          {
+            entries: [
+              [
+                "reflection/create",
+                {
+                  text: "The drying station represents drying capacity.",
+                  netElements: [{ kind: "place", id: "place-dryer" }],
+                },
+              ],
+            ],
+          },
+        ]),
+        query("original-basis"),
+        fauxAssistantMessage(keepsEdit ? filler("Noted.") : "Noted."),
+      );
+      await ask("Read the net and record why the dryer is there.");
+      expect(await resultOf("original-basis")).toMatchObject({
+        disposition: "basis-declared",
+        readToolCallId: "old-read",
+        target: { id: "place-dryer", name: "Dryer" },
+        basis: { reflections: [{ id: "r1" }] },
+      });
+      await reportHandEdit("R2", "rename-dryer");
+      model.script(fauxAssistantMessage("OK."));
+      await ask("Continue.");
+      compaction.keepRecentTokens = keepsEdit ? 300 : 1;
+      await compact();
+      const { head, messages, entries } = await root.context(context);
+      expect(CompactionEntry.is(head)).toBe(true);
+      expect(
+        messages.some(
+          (message) =>
+            message.role === "toolResult" && message.toolCallId === "old-read",
+        ),
+      ).toBe(false);
+      expect(entries.some(({ kind }) => kind === "brunch.hand-edit")).toBe(
+        keepsEdit,
+      );
+      model.script(query("compacted-basis"), fauxAssistantMessage("Done."));
+      await ask("Why is that place there?");
+      const refused = await resultOf("compacted-basis");
+      expect(refused).toMatchObject({
+        binding,
+        disposition: "stale-read",
+        readToolCallId: "old-read",
+        changes: [],
+      });
+      expect(refused).toHaveProperty(
+        "reason",
+        expect.stringContaining("read it again"),
+      );
+      expect(refused).not.toHaveProperty("basis");
+      expect(refused).not.toHaveProperty("target");
+
+      model.script(
+        calls(readNet("reread")),
+        query("fresh-basis"),
+        fauxAssistantMessage("Done."),
+      );
+      await ask("Read the net again, then query the basis.");
+      expect(await resultOf("fresh-basis")).toMatchObject({
+        disposition: "basis-declared",
+        readToolCallId: "reread",
+        target: { id: "place-dryer", name: "Drying station" },
+        basis: { reflections: [{ id: "r1" }] },
+      });
+    } finally {
+      await browser.stop();
+    }
+  },
+);
