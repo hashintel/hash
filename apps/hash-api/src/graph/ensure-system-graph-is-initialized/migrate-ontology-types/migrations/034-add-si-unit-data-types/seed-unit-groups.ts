@@ -9,7 +9,7 @@ import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
 export const seedUnitGroups = async (
   { context, authentication, migrationState }: Parameters<MigrationFunction>[0],
   groups: SiUnitGroup[],
-) => {
+): ReturnType<MigrationFunction> => {
   const unitDefinitions = new Map(
     groups.flatMap((group) =>
       group.units.map(
@@ -84,7 +84,7 @@ export const seedUnitGroups = async (
     }
   }
 
-  const seededUnitBaseUrls = new Set<BaseUrl>(Object.keys(migrationState.dataTypeVersions) as BaseUrl[]);
+  const seededUnitBaseUrls = new Set<BaseUrl>();
   for (const unit of unitDefinitions.values()) {
     for (const target of Object.keys(unit.conversions ?? {})) {
       if (!seededUnitBaseUrls.has(target as BaseUrl)) {
@@ -94,11 +94,11 @@ export const seedUnitGroups = async (
 
     const dataType = await ensureUnitDataType(context, authentication, {
       dataTypeDefinition: {
-        allOf: [
-          ...(unitParents.get(unit.dataTypeBaseUrl ?? unit.title) ?? []),
-        ].map(($ref) => ({
-          $ref,
-        })),
+        allOf: [...(unitParents.get(unit.dataTypeBaseUrl ?? unit.title) ?? [])]
+          .sort()
+          .map(($ref) => ({
+            $ref,
+          })),
         title: unit.title,
         ...(unit.titlePlural === undefined
           ? {}
