@@ -12,10 +12,10 @@
  *   lets the request.
  * - `GET /chat/:id/stream` (the transport's `reconnectToStream`) answers 204
  *   when the conversation is idle, else the running input's stream from the
- *   committed view on; 404 for an unknown conversation. The first one after
- *   the crash-loop guard ended a run, while that is still the conversation's
- *   last run, follows the ended input instead, so the client sees its turn
- *   end in an `error`.
+ *   committed view on. A reconnect that reopens an owner can follow work it
+ *   recovered even if it settled during open; 404 for an unknown conversation.
+ *   If the last run ended in a crash loop, reconnect replays that failed input
+ *   under the same message ID, until a newer run starts.
  * - `POST /chat/:id/abort` stops the conversation; AI SDK's `stop()` only
  *   drops the client's fetch, so a client calls it itself. 404 for an unknown
  *   conversation.
@@ -51,7 +51,10 @@ import {
 } from "./durable-agents-server/conversation-registry";
 import { historyHandler } from "./durable-agents-server/history";
 import { createRequestSlots } from "./durable-agents-server/request-slots";
-import { followSubmission } from "./durable-agents-server/submission-stream";
+import {
+  followSubmission,
+  replayCrashLoop,
+} from "./durable-agents-server/submission-stream";
 import {
   brunchUserInput,
   type ChatInput,
@@ -219,17 +222,12 @@ export const createDurableAgentsServer = (
       requestSlots,
       onOpen: (conversationId, crashLoop) => {
         turns.opened(conversationId);
-        crashLoopEnded.delete(conversationId);
-        if (crashLoop === undefined) return;
-        if (crashLoop.running !== undefined)
-          crashLoopEnded.set(conversationId, crashLoop.running);
-        options.onCrashLoop?.(conversationId, crashLoop.tasks);
+        if (crashLoop !== undefined)
+          options.onCrashLoop?.(conversationId, crashLoop.tasks);
       },
     },
     context,
   );
-  /** Per conversation, the input its crash-loop guard ended on open here, until a reconnect follows it. */
-  const crashLoopEnded = new Map<string, SubmissionId>();
   const projection = {
     clientToolNames: options.clientToolNames,
     dynamicClientToolNames: options.dynamicClientToolNames,
@@ -250,26 +248,21 @@ export const createDurableAgentsServer = (
 
   /** A client stream of `submission`, counted as watching the conversation until it ends. */
   const follow = async (
-    conversationId: string,
     { root }: OpenConversation,
     submission: Parameters<typeof followSubmission>[1],
-  ) => {
-    const detach = turns.attach(conversationId);
-    try {
-      return createUIMessageStreamResponse({
-        stream: await followSubmission(
-          root,
-          submission,
-          projection,
-          context,
-          detach,
-        ),
-      });
-    } catch (error) {
-      detach();
-      throw error;
-    }
-  };
+    signal: AbortSignal,
+    detach: () => void,
+  ) =>
+    createUIMessageStreamResponse({
+      stream: await followSubmission(
+        root,
+        submission,
+        projection,
+        context,
+        detach,
+        signal,
+      ),
+    });
 
   /** Admit the last user message, once per message id, and stream its answer. */
   app.post("/chat", async (ctx) => {
@@ -282,55 +275,109 @@ export const createDurableAgentsServer = (
     }
     const input = userInput(body.messages);
     if ("error" in input) return ctx.text(input.error, input.status);
-    let conversation = await conversations.acquire(body.id);
-    if (conversation === undefined) {
-      const refusal = options.admitNewConversation?.(body);
+    const detach = turns.attach(body.id);
+    let following = false;
+    try {
+      let conversation = await conversations.acquire(body.id);
+      if (conversation === undefined) {
+        const refusal = options.admitNewConversation?.(body);
+        if (refusal !== undefined)
+          return ctx.text(refusal.error, refusal.status);
+        conversation = await conversations.create(body.id);
+      }
+      const refusal = await options.admitChat?.(conversation, body);
       if (refusal !== undefined) return ctx.text(refusal.error, refusal.status);
-      conversation = await conversations.create(body.id);
+      const { harness, root } = conversation;
+      // A repeated message id finds its original submission and cannot move the version-load document back.
+      // Admission deliberately does not use the response's cancellation signal.
+      const submissionId = await root.commit(async (tx) => {
+        const existing = await tx.submissionByRequest(root.id, input.requestId);
+        if (existing !== undefined) return existing.id;
+        return root.submit(tx, {
+          type: "input",
+          content: await contentWithVersionLoadNote(tx, root.id, input),
+          entry: input.entry,
+          requestId: input.requestId,
+          whenBusy: "followUp",
+        });
+      }, context);
+      const submission = await harness.submission(submissionId, context);
+      if (submission === undefined)
+        throw new Error(`Submission ${submissionId} is missing.`);
+      const response = await follow(
+        conversation,
+        submission,
+        ctx.req.raw.signal,
+        detach,
+      );
+      following = true;
+      return response;
+    } finally {
+      if (!following) detach();
     }
-    const refusal = await options.admitChat?.(conversation, body);
-    if (refusal !== undefined) return ctx.text(refusal.error, refusal.status);
-    const { harness, root } = conversation;
-    // A repeated message id finds the submission it made the first time and writes nothing, so a late retry
-    // cannot move the version-load document back.
-    const submissionId = await root.commit(async (tx) => {
-      const existing = await tx.submissionByRequest(root.id, input.requestId);
-      if (existing !== undefined) return existing.id;
-      return root.submit(tx, {
-        type: "input",
-        content: await contentWithVersionLoadNote(tx, root.id, input),
-        entry: input.entry,
-        requestId: input.requestId,
-        whenBusy: "followUp",
-      });
-    }, context);
-    const submission = await harness.submission(submissionId, context);
-    if (submission === undefined)
-      throw new Error(`Submission ${submissionId} is missing.`);
-    return follow(body.id, conversation, submission);
   });
 
   /** Follow the input the running run answers, from the committed view; 204 when idle. */
   app.get("/chat/:id/stream", async (ctx) => {
     const conversationId = ctx.req.param("id");
-    const conversation = await conversations.acquire(conversationId);
-    if (conversation === undefined) return ctx.text(unknownConversation, 404);
-    const { harness, root } = conversation;
-    const live = await harness.snapshot(LiveDoc, root.id, context);
-    const ended = crashLoopEnded.get(conversationId);
-    crashLoopEnded.delete(conversationId);
-    // Idle after a crash-loop abort that is still the last run's end: follow the input it ended, once.
-    const followed =
-      live?.run?.inputs.at(0) ??
-      (ended !== undefined && live?.runFailure?.inputs.includes(ended) === true
-        ? ended
-        : undefined);
-    const submission =
-      followed === undefined
-        ? undefined
-        : await harness.submission(followed, context);
-    if (submission === undefined) return ctx.body(null, 204);
-    return follow(conversationId, conversation, submission);
+    // A reconnect invalidates an abandonment check before starting its own reads.
+    const detach = turns.attach(conversationId);
+    let following = false;
+    try {
+      let recoveringInput: SubmissionId | undefined;
+      const conversation = await conversations.acquire(
+        conversationId,
+        (input) => {
+          recoveringInput = input;
+        },
+      );
+      if (conversation === undefined) return ctx.text(unknownConversation, 404);
+      const { harness, root } = conversation;
+      // The opening reconnect has already selected its input. Other requests
+      // select independently and do not inherit that owner's recovery result.
+      const live =
+        recoveringInput === undefined
+          ? await harness.snapshot(LiveDoc, root.id, context)
+          : undefined;
+      const failure =
+        live?.run === undefined && live?.runFailure?.reason === "aborted"
+          ? live.runFailure
+          : undefined;
+      const followed =
+        recoveringInput ?? live?.run?.inputs.at(0) ?? failure?.inputs.at(0);
+      if (followed === undefined) return ctx.body(null, 204);
+      const submission = await harness.submission(followed, context);
+      if (submission === undefined) return ctx.body(null, 204);
+      if (failure !== undefined) {
+        const stream = await replayCrashLoop(
+          root,
+          submission,
+          failure.taskId,
+          projection,
+          context,
+        );
+        if (stream === undefined) return ctx.body(null, 204);
+        const current = await harness.snapshot(LiveDoc, root.id, context);
+        if (
+          current?.run !== undefined ||
+          current?.runFailure?.taskId !== failure.taskId
+        ) {
+          await stream.cancel();
+          return ctx.body(null, 204);
+        }
+        return createUIMessageStreamResponse({ stream });
+      }
+      const response = await follow(
+        conversation,
+        submission,
+        ctx.req.raw.signal,
+        detach,
+      );
+      following = true;
+      return response;
+    } finally {
+      if (!following) detach();
+    }
   });
 
   /** Stop the conversation: withdraw queued inputs and abort its current work. */

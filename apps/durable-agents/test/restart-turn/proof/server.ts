@@ -11,10 +11,12 @@
  * Reports `listening` with its port; on SIGTERM it closes, then reports
  * `stopped` with how many model requests it made.
  */
+import { Harness, ROOT_CONVERSATION_ID } from "@earendil-works/pi-durable";
 import { Pool } from "pg";
 
 import { hashProcessEditorId } from "@hashintel/brunch-agent";
 
+import { BrowserCallsDoc } from "../../../src/browser-call/browser-call";
 import { startDurableAgentsServer } from "../../../src/server/start-durable-agents-server";
 import { postgresConfigFromEnvironment } from "../../../src/storage/postgres/postgres-config";
 import { report } from "../../browser-call/proof/server-process";
@@ -40,6 +42,7 @@ export const placeInput = {
 };
 
 export const answer = "I added the Washer place to the net.";
+export const failedAnswer = "I could not confirm the Washer place was added.";
 
 /** The net read before the change, and what the browser answers it with. */
 export const readToolName = "petrinaut_get_net";
@@ -57,11 +60,44 @@ const responses: Record<string, FauxResponseStep[]> = {
     }),
   ],
   answer: [fauxAssistantMessage(answer)],
+  "answer-failure": [fauxAssistantMessage(failedAnswer)],
 };
 
 export const serve = async (role: string) => {
-  const script = responses[role];
+  const atCommit = role === "issue-at-commit";
+  const script = responses[atCommit ? "issue" : role];
   if (script === undefined) throw new Error(`Unknown server role ${role}.`);
+  if (atCommit) {
+    // This process is test-owned. Pause the real HTTP result/fail path after
+    // its outcome commit has returned, but before the scheduler marks the wake.
+    const open = Harness.open.bind(Harness);
+    Harness.open = async (...args) => {
+      const harness = await open(...args);
+      const abortTask = harness.abortTask.bind(harness);
+      harness.abortTask = async (id, context) => {
+        const record = Object.values(
+          (
+            await harness.snapshot(
+              BrowserCallsDoc,
+              ROOT_CONVERSATION_ID,
+              context,
+            )
+          )?.calls ?? {},
+        ).find((call) => call.toolName === toolName && call.doorbell === id);
+        if (record !== undefined) {
+          const task = await harness.getTask(id, context);
+          report("before-wake", {
+            status: record.status,
+            task: task?.state.status,
+            marked: task?.abortRequested ?? false,
+          });
+          await new Promise<never>(() => {});
+        }
+        return abortTask(id, context);
+      };
+      return harness;
+    };
+  }
   const { models, model, state } = scriptedModel(script);
   const pool = new Pool(postgresConfigFromEnvironment());
   const server = await startDurableAgentsServer({

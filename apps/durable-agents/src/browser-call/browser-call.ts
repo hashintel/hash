@@ -29,6 +29,7 @@
  * reruns it instead of answering `interrupted`.
  */
 import { randomBytes } from "node:crypto";
+import { setTimeout as sleep } from "node:timers/promises";
 
 import { copyJson, type JsonValue } from "@earendil-works/chord/json";
 import {
@@ -277,7 +278,7 @@ const failureError = (
     : "The non-mutating browser call failed; the document is unchanged.";
 };
 
-/** Whether the browser's outcome is committed and the doorbell rung (or due). */
+/** Whether an outcome is committed but not yet collected (a failed call retains its status). */
 const answered = (record: BrowserCallRecord) =>
   record.status === "finished" || record.status === "failed";
 
@@ -318,7 +319,7 @@ const BrowserCall = defineTask<
           await tx.doc(BrowserCallsDoc, task.input.conversationId)
         ).calls[task.input.toolCallId];
         if (record === undefined) throw new Error("Browser call not issued.");
-        record.capability = null;
+        // Keep the capability on answered calls solely to authenticate result receipts.
         if (record.status === "finished") {
           record.status = "settled";
           return {
@@ -345,6 +346,7 @@ const BrowserCall = defineTask<
             },
           };
         record.status = "expired";
+        record.capability = null;
         return {
           status: "terminal",
           outcome: {
@@ -358,7 +360,11 @@ const BrowserCall = defineTask<
     runtime.commit(async (tx) => {
       const record = (await tx.doc(BrowserCallsDoc, task.input.conversationId))
         .calls[task.input.toolCallId];
-      if (record !== undefined) {
+      if (
+        record !== undefined &&
+        !answered(record) &&
+        record.status !== "settled"
+      ) {
         record.status = "stopped";
         record.capability = null;
       }
@@ -695,6 +701,24 @@ const claimOf = (record: BrowserCallRecord, capability: string) => ({
     : { expectedRevision: record.expectedRevision }),
 });
 
+// The sweep cannot put its claim read in Pi's abort transaction. Keep the
+// claim commit and that check/abort decision in order on this fenced Harness.
+const claimDecisions = new WeakMap<Harness, Promise<unknown>>();
+export const withBrowserClaimDecision = <Result>(
+  harness: Harness,
+  decide: () => Promise<Result>,
+) => {
+  const previous = claimDecisions.get(harness) ?? Promise.resolve();
+  const decision = previous.catch(() => {}).then(decide);
+  claimDecisions.set(harness, decision);
+  const release = () => {
+    if (claimDecisions.get(harness) === decision)
+      claimDecisions.delete(harness);
+  };
+  void decision.then(release, release);
+  return decision;
+};
+
 /**
  * Claim an issued, unclaimed call: the browser half of Brunch's
  * `claimBrowserCall`. Returns the one-use capability the result must carry.
@@ -705,22 +729,26 @@ export const claimBrowserCall = (
   conversationId: ConversationId,
   toolCallId: string,
   context: Context,
+  now = Date.now,
 ) =>
-  harness.commit(async (tx) => {
-    const record = (await tx.doc(BrowserCallsDoc, conversationId)).calls[
-      toolCallId
-    ];
-    if (record?.status !== "pending") return undefined;
-    record.status = "claimed";
-    record.claimed = true;
-    record.capability = randomBytes(32).toString("base64url");
-    // Copies: the draft is unusable once the commit settles.
-    return {
-      capability: record.capability,
-      toolName: record.toolName,
-      input: copyJson(record.input) as JsonObject,
-    };
-  }, context);
+  withBrowserClaimDecision(harness, () =>
+    harness.commit(async (tx) => {
+      const record = (await tx.doc(BrowserCallsDoc, conversationId)).calls[
+        toolCallId
+      ];
+      if (record?.status !== "pending" || now() >= record.expiresAt)
+        return undefined;
+      record.status = "claimed";
+      record.claimed = true;
+      record.capability = randomBytes(32).toString("base64url");
+      // Copies: the draft is unusable once the commit settles.
+      return {
+        capability: record.capability,
+        toolName: record.toolName,
+        input: copyJson(record.input) as JsonObject,
+      };
+    }, context),
+  );
 
 /** Who claims a call: one ID per browser tab, and the tab's canonical editor binding. */
 export type BrowserCallClaimant = {
@@ -753,30 +781,39 @@ export const claimBrowserCallAs = (
   toolCallId: string,
   { claimant, binding }: BrowserCallClaimant,
   context: Context,
+  now = Date.now,
 ) =>
-  harness.commit(async (tx): Promise<BrowserCallClaimOutcome> => {
-    const record = (await tx.doc(BrowserCallsDoc, conversationId)).calls[
-      toolCallId
-    ];
-    if (record === undefined) return { status: "not-issued" };
-    if (record.binding === undefined || record.binding === null)
-      return { status: "wrong-binding" };
-    if (record.binding !== binding) return { status: "wrong-binding" };
-    if (record.status !== "pending" && record.status !== "claimed")
-      return { status: "ended" };
-    if (record.status === "claimed") {
-      // A single-shot claim (`started` absent) has no start step: it counts as started.
-      if (record.started !== false) return { status: "started" };
-      if (record.claimant === claimant && record.capability !== null)
-        return { status: "claimed", claim: claimOf(record, record.capability) };
-    }
-    record.status = "claimed";
-    record.claimed = true;
-    record.started = false;
-    record.claimant = claimant;
-    record.capability = randomBytes(32).toString("base64url");
-    return { status: "claimed", claim: claimOf(record, record.capability) };
-  }, context);
+  withBrowserClaimDecision(harness, () =>
+    harness.commit(async (tx): Promise<BrowserCallClaimOutcome> => {
+      const record = (await tx.doc(BrowserCallsDoc, conversationId)).calls[
+        toolCallId
+      ];
+      if (record === undefined) return { status: "not-issued" };
+      if (record.binding === undefined || record.binding === null)
+        return { status: "wrong-binding" };
+      if (record.binding !== binding) return { status: "wrong-binding" };
+      if (
+        now() >= record.expiresAt ||
+        (record.status !== "pending" && record.status !== "claimed")
+      )
+        return { status: "ended" };
+      if (record.status === "claimed") {
+        // A single-shot claim (`started` absent) has no start step: it counts as started.
+        if (record.started !== false) return { status: "started" };
+        if (record.claimant === claimant && record.capability !== null)
+          return {
+            status: "claimed",
+            claim: claimOf(record, record.capability),
+          };
+      }
+      record.status = "claimed";
+      record.claimed = true;
+      record.started = false;
+      record.claimant = claimant;
+      record.capability = randomBytes(32).toString("base64url");
+      return { status: "claimed", claim: claimOf(record, record.capability) };
+    }, context),
+  );
 
 /** What proves a request comes from the claim's holder: Brunch's lease body. */
 export type BrowserCallProof = {
@@ -803,12 +840,13 @@ export const startBrowserCall = (
   toolCallId: string,
   proof: BrowserCallProof,
   context: Context,
+  now = Date.now,
 ) =>
   harness.commit(async (tx): Promise<"started" | "refused"> => {
     const record = (await tx.doc(BrowserCallsDoc, conversationId)).calls[
       toolCallId
     ];
-    if (!heldCall(record, proof)) return "refused";
+    if (!heldCall(record, proof) || now() >= record.expiresAt) return "refused";
     record.started = true;
     return "started";
   }, context);
@@ -823,13 +861,13 @@ export const renewBrowserCall = async (
   toolCallId: string,
   proof: BrowserCallProof,
   context: Context,
-) =>
-  heldCall(
-    (await harness.snapshot(BrowserCallsDoc, conversationId, context))?.calls[
-      toolCallId
-    ],
-    proof,
-  );
+  now = Date.now,
+) => {
+  const record = (
+    await harness.snapshot(BrowserCallsDoc, conversationId, context)
+  )?.calls[toolCallId];
+  return heldCall(record, proof) && now() < record.expiresAt;
+};
 
 /** A browser's result for a call it claimed, as Brunch's panel posts it. */
 export type BrowserCallResult = ClientToolResult & {
@@ -866,12 +904,64 @@ const ownerAtOutcome = async (
 };
 
 /** Ring a call's doorbell, if `arm` has created one; before then `arm` finds the call answered. */
-const ring = async (
+const ring = async (harness: Harness, doorbell: TaskId, context: Context) => {
+  const task = await harness.getTask(doorbell, context);
+  if (
+    task !== undefined &&
+    task.state.status !== "terminal" &&
+    !task.abortRequested
+  )
+    await harness.abortTask(doorbell, context);
+};
+
+/** Commit only the wake, never run the browser effect or replace its outcome. */
+export const recoverBrowserCallWakes = async (
+  harness: Harness,
+  conversationId: ConversationId,
+  context: Context,
+) => {
+  const calls =
+    (await harness.snapshot(BrowserCallsDoc, conversationId, context))?.calls ??
+    {};
+  await Promise.all(
+    Object.values(calls).flatMap((record) =>
+      answered(record) && record.doorbell !== null
+        ? [ring(harness, record.doorbell as TaskId, context)]
+        : [],
+    ),
+  );
+};
+
+/** Return the committed receipt even if the wake needs another attempt. */
+const ringAfterCommit = async (
   harness: Harness,
   doorbell: number | null,
   context: Context,
 ) => {
-  if (doorbell !== null) await harness.abortTask(doorbell as TaskId, context);
+  if (doorbell === null) return;
+  const id = doorbell as TaskId;
+  try {
+    await ring(harness, id, context);
+  } catch {
+    // A failed storage commit ends the Harness; its replacement recovers on
+    // open. If it stayed live, retry just this wake, not the outcome commit.
+    const stop = new AbortController();
+    const retry = async () => {
+      while (!stop.signal.aborted) {
+        try {
+          // eslint-disable-next-line no-await-in-loop -- Retry only after the last attempt failed.
+          await sleep(250, undefined, { ref: false, signal: stop.signal });
+          stop.signal.throwIfAborted();
+          // eslint-disable-next-line no-await-in-loop
+          await ring(harness, id, context);
+          return;
+        } catch {
+          // The storage commit still meets the ownership fence on every attempt.
+        }
+      }
+    };
+    void Promise.race([retry(), harness.closed]).then(() => stop.abort());
+  }
 };
 
 /**
@@ -883,13 +973,15 @@ export const finishBrowserCall = async (
   harness: Harness,
   result: BrowserCallResult,
   context: Context,
+  now = Date.now,
 ): Promise<"settled" | "not-issued"> => {
   const doorbell = await harness.commit(async (tx) => {
     const record = (await tx.doc(BrowserCallsDoc, result.conversationId)).calls[
       result.toolCallId
     ];
     if (!carriesClaim(record, result)) return undefined;
-    if (record.status === "claimed") {
+    if (record.status === "settled") return null;
+    if (record.status === "claimed" && now() < record.expiresAt) {
       record.status = "finished";
       record.output = (result.output ?? null) as JsonValue;
       record.metadata = (result.metadata ?? null) as JsonValue;
@@ -899,7 +991,7 @@ export const finishBrowserCall = async (
     return record.status === "finished" ? record.doorbell : undefined;
   }, context);
   if (doorbell === undefined) return "not-issued";
-  await ring(harness, doorbell, context);
+  await ringAfterCommit(harness, doorbell, context);
   return "settled";
 };
 
@@ -920,12 +1012,13 @@ export const failBrowserCall = async (
   harness: Harness,
   failure: BrowserCallFailure,
   context: Context,
+  now = Date.now,
 ): Promise<"failed" | "not-issued"> => {
   const doorbell = await harness.commit(async (tx) => {
     const record = (await tx.doc(BrowserCallsDoc, failure.conversationId))
       .calls[failure.toolCallId];
     if (!carriesClaim(record, failure)) return undefined;
-    if (record.status === "claimed") {
+    if (record.status === "claimed" && now() < record.expiresAt) {
       record.status = "failed";
       record.failure =
         record.started === true && failure.disposition !== "failed"
@@ -937,6 +1030,6 @@ export const failBrowserCall = async (
     return record.status === "failed" ? record.doorbell : undefined;
   }, context);
   if (doorbell === undefined) return "not-issued";
-  await ring(harness, doorbell, context);
+  await ringAfterCommit(harness, doorbell, context);
   return "failed";
 };

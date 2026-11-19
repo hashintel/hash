@@ -21,11 +21,14 @@ import {
   Harness,
   type HarnessOptions,
   type HarnessSettings,
+  LiveDoc,
   type Registry,
   ROOT_CONVERSATION_ID,
+  type SubmissionId,
 } from "@earendil-works/pi-durable";
 
 import { createHostBinding, type HostBinding } from "../../agent/host-binding";
+import { recoverBrowserCallWakes } from "../../browser-call/browser-call";
 import {
   type CrashLoopAbort,
   guardCrashLoops,
@@ -153,6 +156,7 @@ export const createConversationRegistry = (
   const open = async (
     conversationId: string,
     create: boolean,
+    onRecoveringInput?: (input: SubmissionId | undefined) => void,
   ): Promise<Opened | undefined> => {
     if (!create && !(await options.storageExists(conversationId)))
       return undefined;
@@ -194,6 +198,13 @@ export const createConversationRegistry = (
         limits.crashLoopRestarts,
         context,
       );
+      // Only the request opening this owner gets the input it is about to resume.
+      if (onRecoveringInput !== undefined) {
+        const live = await harness.snapshot(LiveDoc, root.id, context);
+        onRecoveringInput(live?.run?.inputs.at(0));
+      }
+      // The storage fence applies to every recovered wake's abort mark.
+      await recoverBrowserCallWakes(harness, root.id, context);
       // Continue whatever run the conversation's previous owner left unfinished.
       harness.resume();
       const entry: Opened = {
@@ -218,6 +229,7 @@ export const createConversationRegistry = (
   const acquireNow = async (
     conversationId: string,
     create: boolean,
+    onRecoveringInput?: (input: SubmissionId | undefined) => void,
   ): Promise<Opened | undefined> => {
     if (closed) throw new Error("The conversation registry is closed.");
     const current = opened.get(conversationId);
@@ -233,7 +245,7 @@ export const createConversationRegistry = (
       // Its commits already fail at the fence; closing ends its tasks and the streams that follow it.
       void current.harness.close(context).catch(() => {});
     }
-    const next = await open(conversationId, create);
+    const next = await open(conversationId, create, onRecoveringInput);
     if (next !== undefined) opened.set(conversationId, next);
     return next;
   };
@@ -257,12 +269,16 @@ export const createConversationRegistry = (
   /**
    * The conversation's open Harness, owning its storage at the time of the
    * check; `undefined` for a conversation that does not exist, whose storage
-   * this does not create.
+   * this does not create. `onRecoveringInput` runs only if this acquisition
+   * opens an owner, before it wakes or resumes that owner's unfinished work.
    */
   const acquire = (
     conversationId: string,
+    onRecoveringInput?: (input: SubmissionId | undefined) => void,
   ): Promise<OpenConversation | undefined> =>
-    serialized(conversationId, () => acquireNow(conversationId, false));
+    serialized(conversationId, () =>
+      acquireNow(conversationId, false, onRecoveringInput),
+    );
 
   /** As `acquire`, creating the conversation, its storage and root, when it does not exist. */
   const create = (conversationId: string): Promise<OpenConversation> =>
@@ -278,8 +294,10 @@ export const createConversationRegistry = (
     conversationId: string,
   ): Promise<OpenConversation | undefined> => {
     const current = opened.get(conversationId);
-    if (current === undefined || current.failed) return undefined;
-    return (await current.storage.isOwner().catch(() => false))
+    if (current === undefined) return undefined;
+    const stillCurrent = () =>
+      !closed && !current.failed && opened.get(conversationId) === current;
+    return stillCurrent() && (await current.storage.isOwner()) && stillCurrent()
       ? current
       : undefined;
   };

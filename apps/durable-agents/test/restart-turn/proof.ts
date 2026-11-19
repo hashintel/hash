@@ -27,6 +27,7 @@
  * the same kill; its rendezvous is an in-memory map with a 25 s lease.
  */
 import { randomUUID } from "node:crypto";
+import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import { isDeepStrictEqual } from "node:util";
 
@@ -66,6 +67,7 @@ import { print } from "../browser-call/proof/server-process";
 import { scriptedModel } from "../scripted-model";
 import {
   answer,
+  failedAnswer,
   placeInput,
   readMetadata,
   readOutput,
@@ -187,7 +189,7 @@ const readStored = async (chatId: string) => {
   }
 };
 
-const drive = async () => {
+const drive = async (outcome?: "success" | "failure") => {
   const chatId = `restart-turn-${randomUUID()}`;
   const binding: BrowserContext["binding"] = {
     conversationId: chatId,
@@ -243,7 +245,10 @@ const drive = async () => {
     print(`Conversation ${chatId}, schema ${conversationSchema(chatId)}\n`);
 
     print("(1) Server 1: the client sends the user message");
-    const first = await start("server-1", "issue");
+    const first = await start(
+      "server-1",
+      outcome === undefined ? "issue" : "issue-at-commit",
+    );
     const sent = recorder(
       await first.client().sendMessages({
         trigger: "submit-message",
@@ -323,6 +328,109 @@ const drive = async () => {
       claim: { ...claim, capability: "<capability>" },
       start: started,
     });
+
+    if (outcome !== undefined) {
+      const failed = outcome === "failure";
+      const result = first
+        .post(first.callUrl(callId, failed ? "/fail" : "/result"), {
+          ...proofOfClaim,
+          toolName: claim.toolName,
+          canonicalInput: claim.input,
+          ...(failed ? { disposition: "failed" } : { output: browserOutput }),
+        })
+        .catch(() => undefined);
+      const checkpoint = await Promise.race([
+        first.server.next("before-wake"),
+        result.then(() => {
+          throw new Error("Result request ended before the wake checkpoint.");
+        }),
+        sleep(5_000, undefined, { ref: false }).then(() => {
+          throw new Error("No wake checkpoint.");
+        }),
+      ]);
+      print(`Kill after committed ${outcome}, before wake`);
+      first.server.kill("SIGKILL");
+      const killed = await first.server.exited;
+      await Promise.all([result, sent.drain()]);
+      const before = await readStored(chatId);
+      const storedCall = before.calls.find(
+        (call) => call.toolCallId === callId,
+      );
+      if (
+        killed.signal !== "SIGKILL" ||
+        !isDeepStrictEqual(checkpoint, {
+          status: failed ? "failed" : "finished",
+          task: "sleeping",
+          marked: false,
+        }) ||
+        storedCall?.status !== (failed ? "failed" : "finished") ||
+        before.transcript.some((entry) => entry.toolCallId === callId)
+      ) {
+        throw new Error(
+          `Missed the durable commit/wake gap: ${JSON.stringify(checkpoint)}`,
+        );
+      }
+      const second = await start(
+        "server-2",
+        failed ? "answer-failure" : "answer",
+      );
+      const stream = await second.client().reconnectToStream({ chatId });
+      if (stream === null)
+        throw new Error("Original input was not reconnectable.");
+      const recovered = recorder(stream);
+      await Promise.race([
+        recovered.drain(),
+        sleep(5_000, undefined, { ref: false }).then(() => {
+          throw new Error("Committed outcome did not wake without a retry.");
+        }),
+      ]);
+      second.server.kill("SIGTERM");
+      const { requests } = await second.server.next<{ requests: number }>(
+        "stopped",
+      );
+      await second.server.exited;
+      const after = await readStored(chatId);
+      const results = after.transcript.filter(
+        (entry) => entry.toolCallId === callId,
+      );
+      const chunks = recovered.chunks.filter(
+        (chunk) =>
+          (chunk.type === "tool-output-available" ||
+            chunk.type === "tool-output-error") &&
+          chunk.toolCallId === callId,
+      );
+      if (
+        recovered.types().at(-1) !== "finish" ||
+        startOf(sent.chunks) === undefined ||
+        startOf(recovered.chunks) !== startOf(sent.chunks) ||
+        requests !== 1 ||
+        !after.transcript.some(
+          ({ kind, text }) =>
+            kind === "pi.assistant" &&
+            text === (failed ? failedAnswer : answer),
+        ) ||
+        results.length !== 1 ||
+        results[0]?.isError !== failed ||
+        chunks.length !== 1 ||
+        (failed
+          ? chunks[0]?.type !== "tool-output-error" ||
+            !chunks[0].errorText.includes(
+              "attempted document effect is unknown",
+            )
+          : chunks[0]?.type !== "tool-output-available" ||
+            !isDeepStrictEqual(chunks[0].output, browserOutput)) ||
+        after.transcript.filter((entry) => entry.kind === "brunch.user")
+          .length !== 1
+      ) {
+        throw new Error(
+          `Original input did not settle once with committed ${outcome}.`,
+        );
+      }
+      print(
+        `PASS  Committed ${outcome} wakes promptly after restart without another browser request`,
+      );
+      return;
+    }
 
     print("\n(3) SIGKILL server 1 mid-call: claimed, started, no result");
     first.server.kill("SIGKILL");
@@ -488,5 +596,8 @@ const drive = async () => {
 };
 
 const [role] = process.argv.slice(2);
-if (role === undefined) await drive();
-else await serve(role);
+if (role === undefined) {
+  await drive();
+  await drive("success");
+  await drive("failure");
+} else await serve(role);

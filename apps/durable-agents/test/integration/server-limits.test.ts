@@ -28,7 +28,13 @@ import {
   LiveDoc,
 } from "@earendil-works/pi-durable";
 import { obj } from "@earendil-works/pi-schema";
-import { DefaultChatTransport, type UIMessage, type UIMessageChunk } from "ai";
+import {
+  AbstractChat,
+  type ChatState,
+  DefaultChatTransport,
+  type UIMessage,
+  type UIMessageChunk,
+} from "ai";
 import { Pool } from "pg";
 import { afterAll, expect, test, vi } from "vitest";
 
@@ -40,6 +46,7 @@ import {
   claimBrowserCall,
   failBrowserCall,
   finishBrowserCall,
+  recoverBrowserCallWakes,
 } from "../../src/browser-call/browser-call";
 import {
   conversationSchema,
@@ -331,28 +338,66 @@ test("the crash-loop guard aborts a task a crash cut off too often, visibly", as
   const chatId = `crash-loop-${randomUUID()}`;
   const first = startInstance(
     [
-      fauxAssistantMessage(fauxToolCall("hang", {}, { id: "hang-1" }), {
-        stopReason: "toolUse",
-      }),
+      fauxAssistantMessage(
+        [
+          fauxToolCall("hang", {}, { id: "hang-1" }),
+          fauxToolCall(
+            browserToolName,
+            { title: "Dryer" },
+            { id: "browser-1" },
+          ),
+        ],
+        { stopReason: "toolUse" },
+      ),
     ],
     { crashLoopRestarts: 1 },
   );
   const second = startInstance([], { crashLoopRestarts: 1 });
+  const reopened = startInstance([fauxAssistantMessage("A newer answer.")], {
+    crashLoopRestarts: 1,
+  });
   try {
     void drain(await send(first, chatId)).catch(() => {});
     // The tool task is running.
     await eventually(async () => {
       const { harness, root } = await openConversation(first, chatId);
-      const live = await harness.snapshot(LiveDoc, root.id, context);
-      return Object.keys(live?.tools ?? {}).length > 0 ? true : undefined;
+      const call = (await harness.snapshot(BrowserCallsDoc, root.id, context))
+        ?.calls["browser-1"];
+      const { tasks } = await harness.inspect(context);
+      return call?.status === "pending" &&
+        tasks.filter(
+          ({ record, state }) =>
+            record.kind === "pi.tool" && state.kind === "running",
+        ).length === 2
+        ? true
+        : undefined;
     });
 
-    // The second instance opens it: the tool task was cut off once, which reaches the lowered limit.
-    // The client reconnecting to its turn sees it end in an error, not a stop.
+    // The second instance opens it and records the abort. The first response never reaches a consumer.
+    const lost = await second.transport.reconnectToStream({ chatId });
+    expect(lost).not.toBeNull();
+    await lost!.cancel();
+    // Another reconnect to the same owner still observes that outcome.
     const reconnected = await second.transport.reconnectToStream({ chatId });
     expect(reconnected).not.toBeNull();
     const stopped = await drain(reconnected!);
-    expect(stopped.map(({ type }) => type)).toContain("tool-input-available");
+    expect(stopped).toContainEqual(
+      expect.objectContaining({
+        type: "tool-input-available",
+        toolCallId: "browser-1",
+        providerExecuted: true,
+      }),
+    );
+    expect(stopped.filter(({ type }) => type === "tool-output-error")).toEqual([
+      expect.objectContaining({
+        toolCallId: "hang-1",
+        errorText: "Tool hang was aborted",
+      }),
+      expect.objectContaining({
+        toolCallId: "browser-1",
+        errorText: "Tool setNetTitle was aborted",
+      }),
+    ]);
     expect(stopped.at(-1)).toEqual({
       type: "error",
       errorText: crashLoopErrorText,
@@ -363,9 +408,47 @@ test("the crash-loop guard aborts a task a crash cut off too often, visibly", as
         tasks: [expect.objectContaining({ kind: "pi.tool", restarts: 1 })],
       },
     ]);
-    // Only the first reconnect follows the ended turn; the conversation is idle.
-    expect(await second.transport.reconnectToStream({ chatId })).toBeNull();
-    const { harness, root } = await openConversation(second, chatId);
+    const originalStart = stopped.find((chunk) => chunk.type === "start");
+    const messageId =
+      originalStart?.type === "start" ? originalStart.messageId : undefined;
+    expect(messageId).toBeDefined();
+    // Reopening persisted state also replays it; drive the same reducer used by useChat.
+    await second.close();
+    const state: ChatState<UIMessage> = {
+      messages: [
+        { id: "user-1", role: "user", parts: [{ type: "text", text: "Go." }] },
+      ],
+      status: "ready",
+      error: undefined,
+      pushMessage: (message) => {
+        state.messages.push(message);
+      },
+      popMessage: () => {
+        state.messages.pop();
+      },
+      replaceMessage: (index, message) => {
+        state.messages[index] = message;
+      },
+      snapshot: (value) => structuredClone(value),
+    };
+    const errors: string[] = [];
+    const browserCalls: string[] = [];
+    const chat = new (class extends AbstractChat<UIMessage> {})({
+      id: chatId,
+      state,
+      transport: reopened.transport,
+      onError: (error) => errors.push(error.message),
+      onToolCall: ({ toolCall }) => {
+        browserCalls.push(toolCall.toolCallId);
+      },
+    });
+    await chat.resumeStream();
+    await chat.resumeStream();
+    expect(errors).toEqual([crashLoopErrorText, crashLoopErrorText]);
+    expect(state.messages.map(({ id }) => id)).toEqual(["user-1", messageId]);
+    expect(browserCalls).toEqual([]);
+    expect(reopened.crashLoops).toEqual([]);
+    const { harness, root } = await openConversation(reopened, chatId);
     const live = await harness.snapshot(LiveDoc, root.id, context);
     expect(live?.run).toBeUndefined();
     expect(live?.runFailure?.reason).toBe("aborted");
@@ -378,15 +461,30 @@ test("the crash-loop guard aborts a task a crash cut off too often, visibly", as
       tasks: [expect.objectContaining({ kind: "pi.tool", restarts: 1 })],
     });
     expect(records[0]?.model).toBeUndefined();
-    // The client's retry of its message finds the run ended the same way.
-    const retried = await drain(await send(second, chatId));
-    expect(retried.at(-1)).toEqual({
-      type: "error",
-      errorText: crashLoopErrorText,
+    const cleanup = entries.filter(
+      (entry) => entry.model?.[0]?.role === "toolResult",
+    );
+    expect(cleanup).toHaveLength(2);
+    expect(cleanup.every((entry) => entry.id > records[0]!.id)).toBe(true);
+    // The follower of the settled submission projects the same ordered cleanup
+    // and terminal reason. Only replay forces the browser tool input display-only.
+    const retried = await drain(await send(reopened, chatId));
+    const browserInput = (chunk: UIMessageChunk) =>
+      chunk.type === "tool-input-available" &&
+      chunk.toolName === browserToolName;
+    expect(retried.find(browserInput)).toMatchObject({
+      toolCallId: "browser-1",
     });
-    expect(second.modelRequests()).toBe(0);
+    expect(stopped.filter((chunk) => !browserInput(chunk))).toEqual(
+      retried.filter((chunk) => !browserInput(chunk)),
+    );
+    expect(reopened.modelRequests()).toBe(0);
+    const newer = await drain(await send(reopened, chatId, "user-2"));
+    expect(textOf(newer)).toBe("A newer answer.");
+    expect(await reopened.transport.reconnectToStream({ chatId })).toBeNull();
+    expect(reopened.modelRequests()).toBe(1);
   } finally {
-    await Promise.allSettled([first.close(), second.close()]);
+    await Promise.allSettled([first.close(), second.close(), reopened.close()]);
     await dropSchemas([chatId]);
   }
 });
@@ -520,17 +618,6 @@ const takeovers = () => {
   };
 };
 
-/** The live tool call once `instance` has opened the conversation and resumed it. */
-const runningTool = (instance: Instance, chatId: string) =>
-  eventually(async () => {
-    const opened = await openConversation(instance, chatId);
-    const { tasks } = await opened.harness.inspect(context);
-    const tool = tasks.find(({ record }) => record.kind === "pi.tool");
-    return tool?.state.kind === "running"
-      ? { opened, tool: tool.record }
-      : undefined;
-  });
-
 /**
  * Issue the browser call, take the conversation over `waitingRestarts`
  * times while it waits, then commit the browser's `outcome`. The owner dies
@@ -590,15 +677,11 @@ const answerAfterWaiting = async (
   };
   const ring = vi
     .spyOn(opened.harness, "abortTask")
-    .mockRejectedValueOnce(new Error("Interrupted before the ring."));
-  try {
-    await expect(
-      browserOutcomes[outcome].commit(opened.harness, proof),
-    ).rejects.toThrow("Interrupted before the ring.");
-    expect(ring).toHaveBeenCalledTimes(1);
-  } finally {
-    ring.mockRestore();
-  }
+    .mockRejectedValue(new Error("Interrupted before the ring."));
+  expect(await browserOutcomes[outcome].commit(opened.harness, proof)).toBe(
+    browserOutcomes[outcome].retried,
+  );
+  expect(ring).toHaveBeenCalled();
   const call = await answeredCall(opened);
   expect(call?.status).toBe(browserOutcomes[outcome].status);
   // Every restart the tool call had when the outcome committed was a wait.
@@ -607,7 +690,7 @@ const answerAfterWaiting = async (
     restarts: waitingRestarts,
   });
   expect(await answeredToolResults(opened)).toEqual([]);
-  return { opened, proof };
+  return { opened, ring };
 };
 
 test.each([
@@ -621,7 +704,7 @@ test.each([
     const chatId = `crash-loop-answered-${randomUUID()}`;
     const { start, close } = takeovers();
     try {
-      const { proof } = await answerAfterWaiting(
+      const { opened, ring } = await answerAfterWaiting(
         start,
         chatId,
         waitingRestarts,
@@ -629,15 +712,70 @@ test.each([
       );
 
       // One interruption after the answer, below the limit.
-      const replacement = start([fauxAssistantMessage("Renamed.")]);
-      const stream = await replacement.transport.reconnectToStream({ chatId });
+      const newerStarted = Promise.withResolvers<void>();
+      const answerNewer = Promise.withResolvers<void>();
+      const replacement = start([
+        fauxAssistantMessage("Renamed."),
+        async () => {
+          newerStarted.resolve();
+          await answerNewer.promise;
+          return fauxAssistantMessage("A newer answer.");
+        },
+      ]);
+      const conversations = replacement.server.conversations;
+      const acquire = conversations.acquire;
+      const settled = Promise.withResolvers<void>();
+      const release = Promise.withResolvers<void>();
+      // Hold only the opening reconnect after ownership/recovery, until the real
+      // resumed run has committed its answer. No timing assumptions about the stub.
+      vi.spyOn(conversations, "acquire").mockImplementationOnce(
+        async (...args) => {
+          try {
+            const conversation = await acquire(...args);
+            await conversation?.root.waitForIdle(context);
+            settled.resolve();
+            await release.promise;
+            return conversation;
+          } catch (error) {
+            settled.reject(error);
+            throw error;
+          }
+        },
+      );
+      const reconnect = replacement.transport.reconnectToStream({ chatId });
+      await settled.promise;
+      try {
+        // Another reconnect to the now-idle owner gets no replay, even while
+        // the original request is still in flight.
+        expect(
+          await replacement.transport.reconnectToStream({ chatId }),
+        ).toBeNull();
+        const newer = await send(replacement, chatId, "user-2");
+        await newerStarted.promise;
+        const followedNewer = await replacement.transport.reconnectToStream({
+          chatId,
+        });
+        answerNewer.resolve();
+        expect(textOf(await drain(followedNewer!))).toBe("A newer answer.");
+        await drain(newer);
+      } finally {
+        answerNewer.resolve();
+        release.resolve();
+      }
+      const stream = await reconnect;
       expect(stream).not.toBeNull();
       expect(replacement.crashLoops).toEqual([]);
-      // The browser's retry rings the doorbell the interruption left unrung.
+      // No browser retry: reopening recovers the original committed answer.
       const recovered = await openConversation(replacement, chatId);
-      expect(
-        await browserOutcomes[outcome].commit(recovered.harness, proof),
-      ).toBe(browserOutcomes[outcome].retried);
+      ring.mockRestore();
+      await expect(
+        recoverBrowserCallWakes(opened.harness, opened.root.id, context),
+      ).rejects.toThrow(/owned by a storage opened later|session/i);
+      await recoverBrowserCallWakes(
+        recovered.harness,
+        recovered.root.id,
+        context,
+      );
       const chunks = await drain(stream!);
       expect(textOf(chunks)).toBe("Renamed.");
       expect(chunks.at(-1)).toEqual({ type: "finish", finishReason: "stop" });
@@ -649,35 +787,21 @@ test.each([
   },
 );
 
-test.each([0, 3])(
-  "a tool call answered after %i waiting restarts is a crash loop once it restarts as often again as the limit",
-  async (waitingRestarts) => {
-    const chatId = `crash-loop-after-answer-${randomUUID()}`;
+test.each(["finish", "fail"] as const)(
+  "a transient wake failure after %s is retried by the same owner without another browser request",
+  async (outcome) => {
+    const chatId = `browser-wake-retry-${randomUUID()}`;
     const { start, close } = takeovers();
     try {
-      await answerAfterWaiting(start, chatId, waitingRestarts, "finish");
-      // Nobody retries the answer: the doorbell stays unrung, and every takeover cuts the tool call off again.
-      for (let restart = 1; restart < answeredLimit; restart++) {
-        const instance = start();
-        // Each takeover waits for the one before.
-        // eslint-disable-next-line no-await-in-loop
-        const { tool } = await runningTool(instance, chatId);
-        expect(tool.restarts).toBe(waitingRestarts + restart);
-        expect(instance.crashLoops).toEqual([]);
-      }
-      const last = start();
-      await openConversation(last, chatId);
-      expect(last.crashLoops).toEqual([
-        {
-          conversationId: chatId,
-          tasks: [
-            expect.objectContaining({
-              kind: "pi.tool",
-              restarts: waitingRestarts + answeredLimit,
-            }),
-          ],
-        },
-      ]);
+      const { opened, ring } = await answerAfterWaiting(
+        start,
+        chatId,
+        0,
+        outcome,
+      );
+      ring.mockRestore();
+      await eventually(async () => (await answeredToolResults(opened)).at(0));
+      expect(await answeredToolResults(opened)).toHaveLength(1);
     } finally {
       await close();
       await dropSchemas([chatId]);

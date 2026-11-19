@@ -41,6 +41,55 @@ const get = (port: number) =>
       .end();
   });
 
+test.each(["before response", "while streaming"] as const)(
+  "a client closing %s cancels the response body",
+  async (when) => {
+    const entered = Promise.withResolvers<AbortSignal>();
+    const release = Promise.withResolvers<void>();
+    const cancelled = Promise.withResolvers<void>();
+    const listener = await serveNode(
+      async ({ signal }) => {
+        entered.resolve(signal);
+        if (when === "before response") await release.promise;
+        const body = new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.enqueue(new Uint8Array([1]));
+          },
+          cancel() {
+            cancelled.resolve();
+          },
+        });
+        return new Response(body);
+      },
+      { port: 0, hostname: "127.0.0.1" },
+    );
+    listeners.push(listener);
+    const seen = Promise.withResolvers<void>();
+    const request = httpRequest(
+      { host: "127.0.0.1", port: listener.port, path: "/" },
+      (response) => {
+        response.once("data", () => seen.resolve());
+      },
+    )
+      .on("error", () => {})
+      .end();
+    try {
+      const signal = await entered.promise;
+      const closed = new Promise<void>((resolve) =>
+        signal.addEventListener("abort", () => resolve(), { once: true }),
+      );
+      if (when === "while streaming") await seen.promise;
+      request.destroy();
+      await closed;
+      release.resolve();
+      await expect(cancelled.promise).resolves.toBeUndefined();
+    } finally {
+      request.destroy();
+      release.resolve();
+    }
+  },
+);
+
 test("a slow reader holds the response stream back instead of the server buffering it", async () => {
   const { counter, body } = countedBody();
   const listener = await serveNode(() => new Response(body), {

@@ -207,7 +207,13 @@ const runTurn = async (instance: Instance, chatId: string) => {
     ],
     abortSignal: undefined,
   });
-  const first = await drain(stream);
+  const first: UIMessageChunk[] = [];
+  let interruption: unknown;
+  try {
+    for await (const chunk of stream) first.push(chunk);
+  } catch (error) {
+    interruption = error;
+  }
   const end = await instance.harnessEnds.at(0);
   await sleep(holdMs);
   // Any request reopens the failed conversation, which resumes its run.
@@ -224,7 +230,7 @@ const runTurn = async (instance: Instance, chatId: string) => {
     undefined,
     context,
   );
-  return { first, end, second, live, entries };
+  return { first, interruption, end, second, live, entries };
 };
 
 test("a model step's commit that gets no connection fails the Harness; a reopen asks the model again and answers once", async () => {
@@ -245,7 +251,7 @@ test("a model step's commit that gets no connection fails the Harness; a reopen 
     [],
   );
   try {
-    const { first, end, second, live, entries } = await runTurn(
+    const { first, interruption, end, second, live, entries } = await runTurn(
       instance,
       chatId,
     );
@@ -253,7 +259,9 @@ test("a model step's commit that gets no connection fails the Harness; a reopen 
     expect(String((end as { error?: unknown }).error)).toContain(
       "timeout exceeded when trying to connect",
     );
-    // The stream ends with nothing committed, and no `finish`: the client reconnects.
+    expect(String(interruption)).toContain(
+      "chat stream ended before the turn settled",
+    );
     expect(first).toEqual([]);
     expect(second?.at(-1)).toEqual({ type: "finish", finishReason: "stop" });
     expect(live?.runFailure).toBeUndefined();
@@ -290,13 +298,16 @@ test("a tool result's commit that gets no connection fails the Harness; a reopen
     [tool],
   );
   try {
-    const { first, end, second, live, entries } = await runTurn(
+    const { first, interruption, end, second, live, entries } = await runTurn(
       instance,
       chatId,
     );
     expect(end).toMatchObject({ kind: "failed" });
     expect(String((end as { error?: unknown }).error)).toContain(
       "timeout exceeded when trying to connect",
+    );
+    expect(String(interruption)).toContain(
+      "chat stream ended before the turn settled",
     );
     expect(first.map(({ type }) => type)).toEqual([
       "start",

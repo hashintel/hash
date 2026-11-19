@@ -1,19 +1,22 @@
 /**
  * Abandoned turns: a conversation's running turn that no client stream (a
  * `POST /chat` answer or a reconnect) has followed for `timeoutMs` is
- * aborted, unless a browser has claimed one of its calls, which keeps it
- * alive until that call's own expiry. Every conversation this process opens
+ * aborted, unless a browser holds one of its calls. A held call is checked
+ * again until its browser answers or it expires. Every conversation this process opens
  * starts unwatched; the clock restarts whenever its last stream ends.
  *
  * Only a conversation this process still owns is checked: another owner
  * runs its own clock, and this one must not reopen it to abort it.
  */
+import { withAbortSignal, type Context } from "@earendil-works/chord/context";
 import { LiveDoc } from "@earendil-works/pi-durable";
 
-import { BrowserCallsDoc } from "../../browser-call/browser-call";
+import {
+  BrowserCallsDoc,
+  withBrowserClaimDecision,
+} from "../../browser-call/browser-call";
 
 import type { OpenConversation } from "./conversation-registry";
-import type { Context } from "@earendil-works/chord/context";
 
 export type AbandonedTurnsOptions = {
   readonly timeoutMs: number;
@@ -28,41 +31,36 @@ export type AbandonedTurnsOptions = {
 
 /**
  * What an unwatched conversation's check finds: nothing to do, a turn
- * aborted, or a claimed call to wait for until `at`.
+ * aborted, or a claimed call to check again.
  */
 type Check =
   | { readonly kind: "idle" }
   | { readonly kind: "aborted" }
-  | { readonly kind: "held"; readonly at: number };
+  | { readonly kind: "held" };
 
 /** `stillDue` says, after every read, whether the turn may still be aborted. */
 const check = async (
   { harness, root }: OpenConversation,
   context: Context,
   stillDue: () => boolean,
+  signal: AbortSignal,
 ): Promise<Check> => {
   const live = await harness.snapshot(LiveDoc, root.id, context);
-  if (live?.run === undefined) return { kind: "idle" };
+  if (live?.run === undefined || !stillDue()) return { kind: "idle" };
   const calls =
     (await harness.snapshot(BrowserCallsDoc, root.id, context))?.calls ?? {};
-  const claimed = Object.values(calls).filter(
-    ({ status }) => status === "claimed",
-  );
-  if (claimed.length > 0)
-    return {
-      kind: "held",
-      at: Math.max(...claimed.map(({ expiresAt }) => expiresAt)),
-    };
   if (!stillDue()) return { kind: "idle" };
-  await root.abort(context);
+  if (Object.values(calls).some(({ status }) => status === "claimed"))
+    return { kind: "held" };
+  await root.abort(withAbortSignal(signal, context));
   return { kind: "aborted" };
 };
 
 /** The longest timeout Node's `setTimeout` takes. */
 const maxTimeoutMs = 2 ** 31 - 1;
 
-/** How soon a turn held by a call claimed past its expiry is checked again. */
-const heldRecheckMs = 1_000;
+/** Bound the delay after a held call settles or a check fails transiently. */
+const recheckMs = 1_000;
 
 export const createAbandonedTurns = (options: AbandonedTurnsOptions) => {
   const now = options.now ?? Date.now;
@@ -75,7 +73,11 @@ export const createAbandonedTurns = (options: AbandonedTurnsOptions) => {
    * check already past it; a check whose token is gone neither aborts nor
    * reschedules.
    */
-  const checks = new Map<string, symbol>();
+  const checks = new Map<string, AbortController>();
+  const invalidate = (conversationId: string) => {
+    checks.get(conversationId)?.abort();
+    checks.delete(conversationId);
+  };
   let closed = false;
 
   const clear = (conversationId: string) => {
@@ -106,20 +108,22 @@ export const createAbandonedTurns = (options: AbandonedTurnsOptions) => {
 
   const run = async (conversationId: string) => {
     if (closed || watched(conversationId)) return;
-    const token = Symbol(conversationId);
+    const token = new AbortController();
     checks.set(conversationId, token);
     const stillDue = () => checks.get(conversationId) === token;
     try {
       const conversation = await options.ifOwned(conversationId);
-      if (conversation === undefined) return;
-      const found = await check(conversation, options.context, stillDue).catch(
-        () => undefined,
+      if (!stillDue() || conversation === undefined) return;
+      const found = await withBrowserClaimDecision(conversation.harness, () =>
+        stillDue()
+          ? check(conversation, options.context, stillDue, token.signal)
+          : Promise.resolve({ kind: "idle" as const }),
       );
-      if (found?.kind === "held" && stillDue()) {
-        // After the call expires, the turn has been unwatched for longer than the timeout already. A call still
-        // claimed past its expiry is about to expire; look again shortly rather than spin.
-        schedule(conversationId, Math.max(found.at - now(), heldRecheckMs));
-      }
+      if (found.kind === "held" && stillDue())
+        schedule(conversationId, recheckMs);
+    } catch {
+      // An unknown outcome is not an idle conversation or confirmed ownership loss.
+      if (stillDue()) schedule(conversationId, recheckMs);
     } finally {
       if (stillDue()) checks.delete(conversationId);
     }
@@ -130,7 +134,7 @@ export const createAbandonedTurns = (options: AbandonedTurnsOptions) => {
     attach: (conversationId: string) => {
       streams.set(conversationId, (streams.get(conversationId) ?? 0) + 1);
       clear(conversationId);
-      checks.delete(conversationId);
+      invalidate(conversationId);
       let detached = false;
       return () => {
         if (detached) return;
@@ -146,12 +150,13 @@ export const createAbandonedTurns = (options: AbandonedTurnsOptions) => {
     },
     /** The conversation was opened here: unwatched from now, unless a stream follows it already. */
     opened: (conversationId: string) => {
+      invalidate(conversationId);
       if (!watched(conversationId)) schedule(conversationId, options.timeoutMs);
     },
     close: () => {
       closed = true;
       for (const conversationId of timers.keys()) clear(conversationId);
-      checks.clear();
+      for (const conversationId of checks.keys()) invalidate(conversationId);
     },
   };
 };

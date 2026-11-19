@@ -164,10 +164,13 @@ const viewOf = ({
 export const createBrowserCallRouter = ({
   resolveHarness,
   issueWaitMs = defaultIssueWaitMs,
+  now = Date.now,
 }: {
   readonly resolveHarness: ResolveHarness;
   /** How long a claim for a call not yet issued waits for it; `defaultIssueWaitMs` when omitted. */
   readonly issueWaitMs?: number;
+  /** The same clock passed to the Harness (wall clock in production). */
+  readonly now?: () => number;
 }): Hono => {
   const router = new Hono();
   const conversationId = ROOT_CONVERSATION_ID;
@@ -243,6 +246,7 @@ export const createBrowserCallRouter = ({
         target.toolCallId,
         target.body,
         context,
+        now,
       );
     let outcome = await claim();
     if (outcome.status === "not-issued" && issueWaitMs > 0) {
@@ -272,6 +276,7 @@ export const createBrowserCallRouter = ({
       target.toolCallId,
       target.body,
       context,
+      now,
     )) === "started"
       ? request.json({ started: true })
       : request.json({ error: "not-claimed" }, 409);
@@ -286,6 +291,7 @@ export const createBrowserCallRouter = ({
       target.toolCallId,
       target.body,
       context,
+      now,
     ))
       ? request.json({ renewed: true })
       : request.json({ error: "not-issued" }, 409);
@@ -304,6 +310,7 @@ export const createBrowserCallRouter = ({
         canonicalInput: canonicalInput as JsonObject,
       },
       context,
+      now,
     )) === "settled"
       ? request.json({ settled: true })
       : request.json({ error: "not-issued" }, 409);
@@ -322,6 +329,7 @@ export const createBrowserCallRouter = ({
         canonicalInput: canonicalInput as JsonObject,
       },
       context,
+      now,
     )) === "failed"
       ? request.json({ failed: true })
       : request.json({ error: "not-issued" }, 409);

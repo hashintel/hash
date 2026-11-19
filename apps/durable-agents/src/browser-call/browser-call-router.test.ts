@@ -94,7 +94,12 @@ const readCallId = "read-1";
 const openConversation = async ({
   issueWaitMs = 50,
   issued = true,
-}: { readonly issueWaitMs?: number; readonly issued?: boolean } = {}) => {
+  now = Date.now,
+}: {
+  readonly issueWaitMs?: number;
+  readonly issued?: boolean;
+  readonly now?: () => number;
+} = {}) => {
   const { models, model } = scriptedModel([
     fauxAssistantMessage(
       fauxToolCall("petrinaut_get_net", getNet, { id: readCallId }),
@@ -117,7 +122,7 @@ const openConversation = async ({
   registry.install(browserTools);
   const harness = await Harness.open(
     new MemoryStorage(),
-    { models, registry },
+    { models, registry, now },
     context,
   );
   host.bind(harness);
@@ -138,6 +143,7 @@ const openConversation = async ({
       resolveHarness: (conversationId) =>
         conversationId === routeConversationId ? harness : undefined,
       issueWaitMs,
+      now,
     }),
   );
   const submission = await root.submit(
@@ -151,7 +157,13 @@ const openConversation = async ({
         ?.calls;
       expect(calls?.[readCallId]?.status).toBe("pending");
     });
-    const claim = await claimBrowserCall(harness, root.id, readCallId, context);
+    const claim = await claimBrowserCall(
+      harness,
+      root.id,
+      readCallId,
+      context,
+      now,
+    );
     await finishBrowserCall(
       harness,
       {
@@ -164,6 +176,7 @@ const openConversation = async ({
         metadata: readMetadata,
       },
       context,
+      now,
     );
   };
   if (issued) {
@@ -316,6 +329,81 @@ describe("browser-call router", () => {
     expect((await submission.wait(context)).status).toBe("done");
     await harness.close(context);
   });
+
+  test("new browser work is refused exactly at the deadline", async () => {
+    let time = 100_000;
+    const { harness, root, app } = await openConversation({ now: () => time });
+    const browser = browserOf(app);
+    try {
+      const issued = (await harness.snapshot(
+        BrowserCallsDoc,
+        root.id,
+        context,
+      ))!.calls[toolCallId]!;
+      time = issued.expiresAt - 1;
+      const claim = await claimOf(await browser.claim("tab-a"));
+      time += 1;
+      expect((await browser.claim("tab-a")).status).toBe(409);
+      expect((await browser.claim("tab-b")).status).toBe(409);
+      expect((await browser.start(claim.capability)).status).toBe(409);
+      expect((await browser.lease(claim.capability)).status).toBe(409);
+      expect(
+        (await browser.result(claim.capability, { applied: true })).status,
+      ).toBe(409);
+      expect((await browser.fail(claim.capability, "unstarted")).status).toBe(
+        409,
+      );
+    } finally {
+      await harness.close(context);
+    }
+  });
+
+  test.each(["result", "fail"] as const)(
+    "deadline and receipt for %s",
+    async (outcome) => {
+      let time = 100_000;
+      const { harness, root, submission, app } = await openConversation({
+        now: () => time,
+      });
+      const browser = browserOf(app);
+      try {
+        const issued = (await harness.snapshot(
+          BrowserCallsDoc,
+          root.id,
+          context,
+        ))!.calls[toolCallId]!;
+        time = issued.expiresAt - 1;
+        const claim = await claimOf(await browser.claim("tab-a"));
+        expect((await browser.start(claim.capability)).status).toBe(200);
+        expect((await browser.lease(claim.capability)).status).toBe(200);
+        const original =
+          outcome === "result"
+            ? await browser.result(claim.capability, { applied: true })
+            : await browser.fail(claim.capability, "failed");
+        expect(original.status).toBe(200);
+        expect((await submission.wait(context)).status).toBe("done");
+        const prior = await toolResultOf(root);
+        time += 1;
+        const retried =
+          outcome === "result"
+            ? await browser.result(claim.capability, { applied: false })
+            : await browser.fail(claim.capability, "stale");
+        expect(retried.status).toBe(200);
+        expect(await retried.json()).toEqual(await original.json());
+        expect((await browser.start(claim.capability)).status).toBe(409);
+        expect((await browser.lease(claim.capability)).status).toBe(409);
+        expect((await browser.claim("tab-a")).status).toBe(409);
+        const wrongKind =
+          outcome === "result"
+            ? await browser.fail(claim.capability, "failed")
+            : await browser.result(claim.capability, { applied: true });
+        expect(wrongKind.status).toBe(409);
+        expect(await toolResultOf(root)).toEqual(prior);
+      } finally {
+        await harness.close(context);
+      }
+    },
+  );
 
   test("an unstarted failure tells the model nothing ran", async () => {
     const { harness, root, submission, app } = await openConversation();
