@@ -787,28 +787,6 @@ test.each([
   },
 );
 
-test.each(["finish", "fail"] as const)(
-  "a transient wake failure after %s is retried by the same owner without another browser request",
-  async (outcome) => {
-    const chatId = `browser-wake-retry-${randomUUID()}`;
-    const { start, close } = takeovers();
-    try {
-      const { opened, ring } = await answerAfterWaiting(
-        start,
-        chatId,
-        0,
-        outcome,
-      );
-      ring.mockRestore();
-      await eventually(async () => (await answeredToolResults(opened)).at(0));
-      expect(await answeredToolResults(opened)).toHaveLength(1);
-    } finally {
-      await close();
-      await dropSchemas([chatId]);
-    }
-  },
-);
-
 test("a browser answer recorded without its tool call's restart count charges every restart", async () => {
   const chatId = `crash-loop-answered-unrecorded-${randomUUID()}`;
   const { start, close } = takeovers();

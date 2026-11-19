@@ -29,7 +29,6 @@
  * reruns it instead of answering `interrupted`.
  */
 import { randomBytes } from "node:crypto";
-import { setTimeout as sleep } from "node:timers/promises";
 
 import { copyJson, type JsonValue } from "@earendil-works/chord/json";
 import {
@@ -968,36 +967,19 @@ export const recoverBrowserCallWakes = async (
   );
 };
 
-/** Return the committed receipt even if the wake needs another attempt. */
+/**
+ * Return the committed receipt even if the wake fails. Every failure here has
+ * failed the Session (Pi exempts only reads, and `ring` reads nothing that
+ * can throw a `StorageRequestError`), so the next owner's
+ * `recoverBrowserCallWakes` rings again.
+ */
 const ringAfterCommit = async (
   harness: Harness,
   doorbell: number | null,
   context: Context,
 ) => {
   if (doorbell === null) return;
-  const id = doorbell as TaskId;
-  try {
-    await ring(harness, id, context);
-  } catch {
-    // A failed storage commit ends the Harness; its replacement recovers on
-    // open. If it stayed live, retry just this wake, not the outcome commit.
-    const stop = new AbortController();
-    const retry = async () => {
-      while (!stop.signal.aborted) {
-        try {
-          // eslint-disable-next-line no-await-in-loop -- Retry only after the last attempt failed.
-          await sleep(250, undefined, { ref: false, signal: stop.signal });
-          stop.signal.throwIfAborted();
-          // eslint-disable-next-line no-await-in-loop
-          await ring(harness, id, context);
-          return;
-        } catch {
-          // The storage commit still meets the ownership fence on every attempt.
-        }
-      }
-    };
-    void Promise.race([retry(), harness.closed]).then(() => stop.abort());
-  }
+  await ring(harness, doorbell as TaskId, context).catch(() => {});
 };
 
 /**
