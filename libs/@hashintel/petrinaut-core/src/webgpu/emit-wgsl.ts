@@ -50,7 +50,9 @@ export type WgslValue =
   | { kind: "f32"; code: string }
   | { kind: "bool"; code: string }
   | { kind: "record"; fields: Map<string, WgslValue> }
-  | { kind: "array"; elements: WgslValue[] }
+  /** `count`, when present, is a transition input place's live token count
+   * (`input.<name>.count`). */
+  | { kind: "array"; elements: WgslValue[]; count?: WgslValue }
   /** One token's field accessors, resolved lazily on field access. */
   | { kind: "token"; read: WgslTokenReader }
   /**
@@ -349,6 +351,14 @@ export class WgslEmitter {
         const target = this.emit(expr.target, env);
         if (target.kind === "token") {
           return target.read(expr.field);
+        }
+        if (target.kind === "array" && expr.field === "count") {
+          if (!target.count) {
+            throw new WgslBailError(
+              "`.count` is only available on a transition input place",
+            );
+          }
+          return target.count;
         }
         if (target.kind === "record") {
           const field = target.fields.get(expr.field);

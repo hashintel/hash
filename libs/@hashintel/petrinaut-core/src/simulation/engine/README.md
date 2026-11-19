@@ -33,7 +33,7 @@ SimulationInstance (frame 0)
 computeNextFrame(simulation)
        │
        ├─► Check if maxTime reached → "maxTime" completion
-       ├─► Apply differential equations
+       ├─► Apply each place's composed differential equations
        ├─► For each transition: check enablement, sample firing, execute kernel
        ├─► Build new EngineFrame
        └─► Check deadlock → "deadlock" completion

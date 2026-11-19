@@ -34,6 +34,7 @@
     iter_intersperse,
     iter_map_windows,
     iter_next_chunk,
+    maybe_uninit_fill,
     nonpoison_mutex,
     slice_partition_dedup,
     slice_swap_unchecked,

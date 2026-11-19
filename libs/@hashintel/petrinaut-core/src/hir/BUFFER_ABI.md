@@ -39,6 +39,7 @@ Runtime arguments:
 ```ts
 placeBases: Int32Array; // one byte offset per colored input arc
 indices: Int32Array; // one selected token index per input token slot
+inputCounts: Float64Array; // live token count per input arc, all arc types
 ```
 
 An attribute read compiles to:
@@ -50,6 +51,15 @@ read view at base + fieldByteOffset
 
 Dynamic indexes into transition input tokens are rejected. Static `.map(...)`
 over transition token tuples is unrolled.
+
+`input.<Place>.count` compiles to `inputCounts[arc]`. Unlike the slots,
+`inputCounts` covers every input arc in declaration order, inhibitor and
+uncoloured ones included, so `arc` is the index in `transition.inputArcs`
+(the last arc with that place name, as for slots). The engine fills it once
+per evaluation, before the combinations: a count does not depend on which
+tokens are selected, so a lambda that reads only counts and parameters keeps
+the first-combination fast path. The kernel receives the same counts, taken
+before the firing removes its input tokens.
 
 ## Transition outputs
 
@@ -69,6 +79,7 @@ Kernel signature:
   placeBases, indices,
   outF64, outU64, outU8,
   sink,
+  inputCounts,
 ) => void
 ```
 

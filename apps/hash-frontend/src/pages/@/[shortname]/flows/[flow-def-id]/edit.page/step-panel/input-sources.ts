@@ -1,11 +1,13 @@
 import { typedKeys } from "@local/advanced-types/typed-entries";
-import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { canConnect } from "@local/hash-isomorphic-utils/flows/can-connect";
 import { createStepShapeResolver } from "@local/hash-isomorphic-utils/flows/step-shapes";
 
-import { getNameLabel } from "../shared/name-label";
+import { findStep, getStepName } from "../shared/find-step";
+import { getNameLabel, getOutputLabel } from "../shared/name-label";
+import { getActionDefinition } from "../shared/step-display";
 import { getStepsBefore } from "../shared/step-order";
-import { findStep, getStepName } from "./shared/find-step";
+import { getFlowInputLabel } from "../shared/value-display";
+import { indexValueUses } from "../shared/value-uses";
 
 import type {
   ConnectionSource,
@@ -22,14 +24,6 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/types";
 
 export const flowInputsLabel = "Flow inputs";
-
-/** A definition may name an action that doesn't exist. */
-export const getActionDefinition = (actionDefinitionId: string) =>
-  (
-    actionDefinitions as Partial<
-      Record<string, ActionDefinition<FlowActionDefinitionId>>
-    >
-  )[actionDefinitionId];
 
 /**
  * What can feed an input of a step: the kinds it accepts, and whether it's an array and required. An input that takes
@@ -144,7 +138,7 @@ export const getSourceOptions = ({
         ? [
             {
               source: { kind: "flow-input", inputName: name },
-              label: label ?? getNameLabel(name),
+              label: getFlowInputLabel({ label, name }),
               from: `Start · ${flowInputsLabel}`,
               shape,
             },
@@ -181,7 +175,10 @@ export const getSourceOptions = ({
                   stepId: step.stepId,
                   outputName,
                 },
-                label: getNameLabel(outputName),
+                label: getOutputLabel(
+                  step.kind === "action" ? step.actionDefinitionId : undefined,
+                  outputName,
+                ),
                 from: getStepName(step),
                 shape,
               },
@@ -205,13 +202,20 @@ export const getSourceLabel = (
         ({ name }) => name === source.inputName,
       );
 
-      return `${flowInputsLabel} › ${flowInput?.label ?? getNameLabel(source.inputName)}`;
+      return `${flowInputsLabel} › ${flowInput ? getFlowInputLabel(flowInput) : getNameLabel(source.inputName)}`;
     }
 
     case "step-output": {
       const found = findStep(flowDefinition.steps, source.stepId);
 
-      return `${found ? getStepName(found.step) : source.stepId} › ${getNameLabel(source.outputName)}`;
+      const outputLabel = getOutputLabel(
+        found?.step.kind === "action"
+          ? found.step.actionDefinitionId
+          : undefined,
+        source.outputName,
+      );
+
+      return `${found ? getStepName(found.step) : source.stepId} › ${outputLabel}`;
     }
 
     case "item":
@@ -255,6 +259,15 @@ const canBeTyped = {
 } satisfies Record<PayloadKind, boolean>;
 
 const typedKinds = typedKeys(canBeTyped).filter((kind) => canBeTyped[kind]);
+
+/**
+ * The types a flow input can be given on Start: one value of a kind that can be typed. Not a list of them, which the
+ * Run flow form can't take yet.
+ */
+export const flowInputTypes = typedKinds.map((payloadKind) => ({
+  payloadKind,
+  array: false,
+}));
 
 /** A fixed value that can be typed in its field, as it reads there: one text, number or date. */
 export const getTypedConstant = (
@@ -300,10 +313,15 @@ export const getNewFlowInput = ({
     return null;
   }
 
+  /* A name a step still refers to, e.g. that of a removed input, is taken too: the step would take the new input. */
   const takenNames = new Set(flowDefinition.inputs.map(({ name }) => name));
+  const stepsUsing = indexValueUses(flowDefinition.steps);
+  const isTaken = (name: string) =>
+    takenNames.has(name) ||
+    stepsUsing({ kind: "flow-input", inputName: name }).length > 0;
   let name = inputName;
 
-  for (let index = 2; takenNames.has(name); index++) {
+  for (let index = 2; isTaken(name); index++) {
     name = `${inputName}${index}`;
   }
 

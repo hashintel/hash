@@ -33,7 +33,6 @@ import { RequestIdProducer } from "@local/harpc-client/wire-protocol";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import {
   getRequiredEnv,
-  realtimeSyncEnabled,
   waitOnResource,
 } from "@local/hash-backend-utils/environment";
 import { HEALTH_PATH } from "@local/hash-backend-utils/opentelemetry";
@@ -77,13 +76,9 @@ import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-i
 import { ensureHashSystemAccountExists } from "./graph/system-account";
 import { createApolloServer } from "./graphql/create-apollo-server";
 import { otelSetup } from "./instrument.mjs";
-import { enabledIntegrations } from "./integrations/enabled-integrations";
 import { checkGoogleAccessToken } from "./integrations/google/check-access-token";
 import { getGoogleAccessToken } from "./integrations/google/get-access-token";
 import { googleOAuthCallback } from "./integrations/google/oauth-callback";
-import { oAuthLinear, oAuthLinearCallback } from "./integrations/linear/oauth";
-import { linearWebhook } from "./integrations/linear/webhook";
-import { createIntegrationSyncBackWatcher } from "./integrations/sync-back-watcher";
 import {
   CORS_CONFIG,
   getEnvStorageType,
@@ -93,6 +88,7 @@ import {
 import {
   isDevEnv,
   isProdEnv,
+  isStagingEnv,
   isStatsDEnabled,
   isTestEnv,
   port,
@@ -414,9 +410,10 @@ const main = async () => {
     res.type("application/health+json").status(200).send({ status: "pass" });
   });
 
-  if (isProdEnv && !isSelfHostedInstance) {
+  if ((isProdEnv || isStagingEnv) && !isSelfHostedInstance) {
     /**
-     * In production, hosted HASH, take the client IP from the Cloudflare-set header.
+     * Hosted production and staging sit behind Cloudflare, so take the client
+     * IP from the Cloudflare-set header.
      */
     Object.defineProperty(app.request, "ip", {
       configurable: true,
@@ -704,7 +701,7 @@ const main = async () => {
     if (req.ip) {
       /**
        * Sentry has its own logic to attach an IP to requests, which will favour X-Forwarded-For headers.
-       * We additionally attach our req.ip as context (which comes from cf-connecting-ip in production).
+       * We additionally attach our req.ip as context (which comes from cf-connecting-ip in hosted production and staging).
        * Both can be spoofed, but X-Forwarded-For is a bit easier to spoof, as it just involves adding an entry to that header with whatever.
        */
       scope.setContext("request", { ip: req.ip });
@@ -904,10 +901,6 @@ const main = async () => {
   });
 
   // Integrations
-  app.get("/oauth/linear", authRouteRateLimiter, oAuthLinear);
-  app.get("/oauth/linear/callback", authRouteRateLimiter, oAuthLinearCallback);
-  app.post("/webhooks/linear", linearWebhook);
-
   app.post("/oauth/google/callback", authRouteRateLimiter, googleOAuthCallback);
   app.post("/oauth/google/token", authRouteRateLimiter, getGoogleAccessToken);
   app.post(
@@ -998,29 +991,6 @@ const main = async () => {
     //   "Unverified email cleanup job",
     //   unverifiedEmailCleanupJob.stop,
     // );
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (realtimeSyncEnabled && enabledIntegrations.linear) {
-    if (!vaultClient) {
-      throw new Error(
-        "Vault client is required for realtime sync and was not created (check preceding logs)",
-      );
-    }
-
-    const integrationSyncBackWatcher = await createIntegrationSyncBackWatcher({
-      graphApi,
-      redis,
-      logger,
-      vaultClient,
-    });
-
-    void integrationSyncBackWatcher.start();
-
-    shutdown.addCleanup(
-      "Integration sync back watcher",
-      integrationSyncBackWatcher.stop,
-    );
   }
 };
 

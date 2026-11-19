@@ -1,4 +1,8 @@
-import { brunchTools, petrinautToolEffects } from "@hashintel/brunch-agent";
+import {
+  brunchTools,
+  hashPetrinautPrimaryOperation,
+  petrinautToolEffects,
+} from "@hashintel/brunch-agent";
 
 import type { PetrinautToolCapability } from "@hashintel/brunch-agent";
 
@@ -31,6 +35,10 @@ const capabilityOf = (name: string): Capability => {
       petrinautToolEffects[name as keyof typeof petrinautToolEffects];
     return petrinautCapabilities[capability];
   }
+  // One of HASH's Petrinaut tools does what its canonical operation does.
+  const operation = hashPetrinautPrimaryOperation(name);
+  if (operation !== undefined)
+    return petrinautCapabilities[petrinautToolEffects[operation].capability];
   // Ledger, explanation, diagnostic and unknown tools share a generic phrase,
   // but must not inherit substrate's immediate running gate.
   return "other";

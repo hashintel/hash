@@ -2,22 +2,23 @@ import { brunchHeaders } from "./constants";
 
 export interface ConversationIdentity {
   readonly conversationId: string;
-  readonly ownerKey: string;
+  /** Who acts in the conversation; with its ID, names the conversation's instance. */
+  readonly actorKey: string;
 }
 
 export const identityPayload = ({
-  ownerKey,
+  actorKey,
   conversationId,
 }: ConversationIdentity): Uint8Array => {
   const encoder = new TextEncoder();
-  const ownerKeyBytes = encoder.encode(ownerKey);
+  const actorKeyBytes = encoder.encode(actorKey);
   const conversationBytes = encoder.encode(conversationId);
   const payload = new Uint8Array(
-    ownerKeyBytes.length + 1 + conversationBytes.length,
+    actorKeyBytes.length + 1 + conversationBytes.length,
   );
-  payload.set(ownerKeyBytes, 0);
-  payload[ownerKeyBytes.length] = 0;
-  payload.set(conversationBytes, ownerKeyBytes.length + 1);
+  payload.set(actorKeyBytes, 0);
+  payload[actorKeyBytes.length] = 0;
+  payload.set(conversationBytes, actorKeyBytes.length + 1);
   return payload;
 };
 
@@ -39,9 +40,21 @@ export const flueConversationIdWeb = async (
   return sha256Hex(identityPayload(identity));
 };
 
+/** How a client names the actor on the wire. */
+export interface ActorHeaderOptions {
+  /**
+   * Sends the actor under the header's former name, for a host whose browser
+   * may reach a Brunch that predates the actor header. Temporary: remove once
+   * the Petrinaut website sends the actor header from its own server-side hop.
+   */
+  readonly legacyActorHeader?: boolean;
+}
+
 export const agentOwnershipHeaders = (
   identity: ConversationIdentity,
+  { legacyActorHeader = false }: ActorHeaderOptions = {},
 ): Record<string, string> => ({
-  [brunchHeaders.ownerKey]: identity.ownerKey,
+  [legacyActorHeader ? brunchHeaders.legacyPrincipal : brunchHeaders.actor]:
+    identity.actorKey,
   [brunchHeaders.conversation]: identity.conversationId,
 });

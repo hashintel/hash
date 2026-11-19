@@ -4,6 +4,7 @@
     "@blockprotocol/graph",
     "@blockprotocol/type-system",
     "@hashintel/block-design-system",
+    "@hashintel/brunch-agent",
     "@hashintel/design-system",
     "@hashintel/ds-components",
     "@hashintel/ds-helpers",
@@ -26,6 +27,7 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
+        "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
         "@hashintel/ds-icons#build",
@@ -55,6 +57,7 @@
         "API_ORIGIN",
         "ENVIRONMENT",
         "GOOGLE_OAUTH_CLIENT_ID",
+        "HASH_BRUNCH_AGENT_ORIGIN",
         "NODE_ENV",
         "NOTIFICATION_POLL_INTERVAL",
         "SELF_HOSTED_HASH",
@@ -132,6 +135,7 @@
     },
     "codegen": {
       "dependsOn": [
+        "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-icons#build",
         "@hashintel/petrinaut#build",
@@ -158,6 +162,7 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
+        "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
         "@hashintel/ds-icons#build",
@@ -195,6 +200,7 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
+        "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
         "@hashintel/ds-icons#build",
@@ -230,6 +236,7 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
+        "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
         "@hashintel/ds-icons#build",
@@ -268,6 +275,7 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
+        "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
         "@hashintel/ds-icons#build",
@@ -361,6 +369,7 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
+        "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
         "@hashintel/ds-icons#build",

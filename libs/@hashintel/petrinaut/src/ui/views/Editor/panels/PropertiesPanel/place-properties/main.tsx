@@ -9,6 +9,7 @@ import { VerticalSubViewsContainer } from "../../../../../components/sub-view/ve
 import { usePetrinautPresentation } from "../../../../shared/presentation-context";
 import { PlacePropertiesProvider } from "./context";
 import { placeMainContentSubView } from "./subviews/main";
+import { placeDynamicsSubView } from "./subviews/place-dynamics/subview";
 import { placeInitialStateSubView } from "./subviews/place-initial-state/subview";
 
 import type { PetrinautMutations } from "../../../../../../react";
@@ -66,6 +67,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
       ...placeMainContentSubView,
       title: `${placeMainContentSubView.title} ${place.name}`,
     },
+    ...(extensions.colors && extensions.dynamics ? [placeDynamicsSubView] : []),
     placeInitialStateSubView,
   ];
   const subViews =

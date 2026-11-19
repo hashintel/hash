@@ -1,15 +1,20 @@
 import { describe, expect, it } from "vitest";
 
+import { MAX_DIFFERENTIAL_EQUATION_ARITY } from "../equation-arity";
 import { walkHir } from "./hir";
 import { lowerTypeScriptToHir } from "./lower-typescript";
 
 import type { HirExpr } from "./hir";
 
+/** Dynamics modules need an arity; one token unless a test says otherwise. */
+const dynamicsOptions = (surface: string, arity = 1) =>
+  surface === "dynamics" ? { arity } : {};
+
 function lowerOk(
   code: string,
   surface: "dynamics" | "lambda" | "kernel" | "metric",
 ) {
-  const result = lowerTypeScriptToHir(code, surface);
+  const result = lowerTypeScriptToHir(code, surface, dynamicsOptions(surface));
   if (!result.ok) {
     throw new Error(
       `Expected lowering to succeed, got: ${result.diagnostics
@@ -24,7 +29,7 @@ function lowerErr(
   code: string,
   surface: "dynamics" | "lambda" | "kernel" | "metric",
 ) {
-  const result = lowerTypeScriptToHir(code, surface);
+  const result = lowerTypeScriptToHir(code, surface, dynamicsOptions(surface));
   if (result.ok) {
     throw new Error("Expected lowering to fail");
   }
@@ -33,21 +38,31 @@ function lowerErr(
 
 describe("lowerTypeScriptToHir", () => {
   describe("module shape", () => {
-    it("lowers the default dynamics template", () => {
+    it("lowers a one-token dynamics module", () => {
       const fn = lowerOk(
-        `export default Dynamics((tokens, parameters) => {
-  return tokens.map(({ x, y }) => {
-    return { x: 1, y: 1 };
-  });
+        `export default Dynamics((token, parameters) => {
+  return { x: token.y, y: 1 };
 });`,
         "dynamics",
       );
       expect(fn.surface).toBe("dynamics");
       expect(fn.params.map((parameter) => parameter.name)).toEqual([
-        "tokens",
+        "__tokens",
         "parameters",
       ]);
-      expect(fn.body.kind).toBe("arrayMap");
+      expect(fn.body).toMatchObject({
+        kind: "let",
+        bindings: [{ name: "token" }],
+        body: { kind: "recordLit" },
+      });
+    });
+
+    it("binds no token parameter the body never reads", () => {
+      const fn = lowerOk(
+        `export default Dynamics((token, parameters) => ({ x: 1 }));`,
+        "dynamics",
+      );
+      expect(fn.body.kind).toBe("recordLit");
     });
 
     it("rejects non-default exports on the module path", () => {
@@ -136,8 +151,8 @@ export default Lambda((input, parameters) => x);`,
 
     it("desugars destructured map params to field accesses", () => {
       const fn = lowerOk(
-        `export default Dynamics((tokens, parameters) => tokens.map(({ x }) => ({ x: x * 2 })));`,
-        "dynamics",
+        `export default TransitionKernel((input, parameters) => input.Pool.map(({ x }) => ({ x: x * 2 })));`,
+        "kernel",
       );
       const mapNode = fn.body as Extract<HirExpr, { kind: "arrayMap" }>;
       const record = mapNode.body as Extract<HirExpr, { kind: "recordLit" }>;
@@ -153,8 +168,8 @@ export default Lambda((input, parameters) => x);`,
 
     it("supports .length and index parameters", () => {
       const fn = lowerOk(
-        `export default Dynamics((tokens) => tokens.map((token, index) => ({ x: index / tokens.length })));`,
-        "dynamics",
+        `export default TransitionKernel((input) => input.Pool.map((token, index) => ({ x: index / input.Pool.length })));`,
+        "kernel",
       );
       const mapNode = fn.body as Extract<HirExpr, { kind: "arrayMap" }>;
       expect(mapNode.indexParam?.name).toBe("index");
@@ -582,19 +597,39 @@ export default Lambda((input, parameters) => x);`,
       expect(fn.body.kind).toBe("recordLit");
     });
 
-    it("lowers a dynamics body with ambient tokens", () => {
+    it("lowers a one-token dynamics body with the ambient token", () => {
       const fn = lowerOk(
-        `return tokens.map(({ x }) => {
-  return { x: -x * parameters.decay };
-});`,
+        `return { x: -token.x * parameters.decay };`,
         "dynamics",
       );
       expect(fn.surface).toBe("dynamics");
       expect(fn.params.map((parameter) => parameter.name)).toEqual([
-        "tokens",
+        "__tokens",
         "parameters",
       ]);
-      expect(fn.body.kind).toBe("arrayMap");
+      expect(fn.body).toMatchObject({
+        kind: "let",
+        bindings: [
+          {
+            name: "token",
+            value: {
+              kind: "indexAccess",
+              target: { kind: "localRef", name: "__tokens" },
+              index: { kind: "numberLit", value: 0 },
+            },
+          },
+        ],
+        body: { kind: "recordLit" },
+      });
+    });
+
+    it("binds no ambient token a one-token dynamics body never reads", () => {
+      const fn = lowerOk(`return { x: parameters.decay };`, "dynamics");
+      expect(fn.params.map((parameter) => parameter.name)).toEqual([
+        "__tokens",
+        "parameters",
+      ]);
+      expect(fn.body.kind).toBe("recordLit");
     });
 
     it("lowers the same HIR body as the equivalent module form", () => {
@@ -679,6 +714,183 @@ return total;`;
       const [diagnostic] = lowerErr(code, "kernel");
       expect(diagnostic!.code).toBe("hir:parse-error");
       expect(diagnostic!.span.start).toBe(code.indexOf(";"));
+    });
+  });
+
+  describe("arity dynamics", () => {
+    it("binds the module form's token parameters from the tuple", () => {
+      const result = lowerTypeScriptToHir(
+        `export default Dynamics((a, b, parameters) => [
+  { x: b.x - a.x },
+  { x: a.x - b.x },
+]);`,
+        "dynamics",
+        { arity: 2 },
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.fn.params.map((parameter) => parameter.name)).toEqual([
+        "__tokens",
+        "parameters",
+      ]);
+      expect(result.fn.body).toMatchObject({
+        kind: "let",
+        bindings: [
+          {
+            name: "a",
+            value: {
+              kind: "indexAccess",
+              target: { kind: "localRef", name: "__tokens" },
+              index: { kind: "numberLit", value: 0 },
+            },
+          },
+          {
+            name: "b",
+            value: {
+              kind: "indexAccess",
+              target: { kind: "localRef", name: "__tokens" },
+              index: { kind: "numberLit", value: 1 },
+            },
+          },
+        ],
+        body: { kind: "arrayLit" },
+      });
+    });
+
+    it("accepts a module form without a parameters parameter", () => {
+      const result = lowerTypeScriptToHir(
+        `export default Dynamics((token) => ({ x: token.v }));`,
+        "dynamics",
+        { arity: 1 },
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.fn.params.map((parameter) => parameter.name)).toEqual([
+        "__tokens",
+      ]);
+    });
+
+    it("rejects an arity outside the supported range before lowering", () => {
+      for (const arity of [0, 1.5, 100_000_000]) {
+        const result = lowerTypeScriptToHir("return { x: 1 };", "dynamics", {
+          arity,
+        });
+        expect(result.ok).toBe(false);
+        if (result.ok) return;
+        expect(result.diagnostics[0]?.code).toBe("hir:dynamics-arity");
+        expect(result.diagnostics[0]?.message).toContain(
+          `between 1 and ${MAX_DIFFERENTIAL_EQUATION_ARITY} tokens`,
+        );
+      }
+    });
+
+    it("rejects a module form with fewer token parameters than the arity", () => {
+      const code = `export default Dynamics((a, parameters) => [{ x: 1 }, { x: 2 }]);`;
+      const result = lowerTypeScriptToHir(code, "dynamics", { arity: 2 });
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.diagnostics[0]?.code).toBe("hir:dynamics-arity");
+      expect(result.diagnostics[0]?.message).toContain("2 token parameters");
+      const { start, length } = result.diagnostics[0]!.span;
+      expect(code.slice(start, start + length)).toBe("(a, parameters) => ");
+    });
+
+    it("rejects a module form with more parameters than the arity allows", () => {
+      const result = lowerTypeScriptToHir(
+        `export default Dynamics((a, b, c, parameters) => [{ x: 1 }, { x: 2 }]);`,
+        "dynamics",
+        { arity: 2 },
+      );
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.diagnostics[0]!.code).toBe("hir:too-many-parameters");
+    });
+
+    it("leaves a bare body over two tokens to the ambient tuple", () => {
+      const result = lowerTypeScriptToHir(
+        `const [a, b] = tokens;
+return [{ x: b.x - a.x }, { x: a.x - b.x }];`,
+        "dynamics",
+        { arity: 2 },
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.fn.params.map((parameter) => parameter.name)).toEqual([
+        "tokens",
+        "parameters",
+      ]);
+      expect(result.fn.body.kind).toBe("let");
+    });
+
+    it("gives a bare body over two tokens the tuple and no ambient token", () => {
+      // The read of `tokens` comes first and resolves; `token` does not.
+      const code = `return [{ x: tokens[1].x }, { x: token.x }];`;
+      const result = lowerTypeScriptToHir(code, "dynamics", { arity: 2 });
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.diagnostics[0]?.code).toBe("hir:unknown-identifier");
+      expect(result.diagnostics[0]?.message).toContain("`token`");
+      const { start, length } = result.diagnostics[0]!.span;
+      expect(code.slice(start, start + length)).toBe("token");
+    });
+
+    it("gives a one-token bare body no ambient tuple", () => {
+      const code = `return { x: tokens[0].v };`;
+      const result = lowerTypeScriptToHir(code, "dynamics", { arity: 1 });
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.diagnostics[0]?.code).toBe("hir:unknown-identifier");
+      expect(result.diagnostics[0]?.message).toContain("`tokens`");
+      const { start, length } = result.diagnostics[0]!.span;
+      expect(code.slice(start, start + length)).toBe("tokens");
+    });
+
+    it("says which name to read when a bare body reads the other arity's", () => {
+      const single = lowerTypeScriptToHir(
+        `return { x: tokens[0].v };`,
+        "dynamics",
+        { arity: 1 },
+      );
+      expect(single.ok).toBe(false);
+      if (single.ok) return;
+      expect(single.diagnostics[0]?.message).toBe(
+        "Unknown identifier `tokens`. An equation over one token reads it as `token`.",
+      );
+
+      const coupled = lowerTypeScriptToHir(
+        `return [{ x: token.x }, { x: 0 }];`,
+        "dynamics",
+        { arity: 2 },
+      );
+      expect(coupled.ok).toBe(false);
+      if (coupled.ok) return;
+      expect(coupled.diagnostics[0]?.message).toBe(
+        "Unknown identifier `token`. An equation over several tokens reads them as `tokens`.",
+      );
+    });
+
+    it("says nothing more for another unknown name or in the module form", () => {
+      const otherName = lowerTypeScriptToHir(
+        `return { x: speed };`,
+        "dynamics",
+        { arity: 1 },
+      );
+      expect(otherName.ok).toBe(false);
+      if (otherName.ok) return;
+      expect(otherName.diagnostics[0]?.message).toBe(
+        "Unknown identifier `speed`.",
+      );
+
+      const moduleForm = lowerTypeScriptToHir(
+        `export default Dynamics((particle, parameters) => ({ x: tokens[0].v }));`,
+        "dynamics",
+        { arity: 1 },
+      );
+      expect(moduleForm.ok).toBe(false);
+      if (moduleForm.ok) return;
+      expect(moduleForm.diagnostics[0]?.message).toBe(
+        "Unknown identifier `tokens`.",
+      );
     });
   });
 

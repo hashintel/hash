@@ -14,15 +14,20 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 import {
+  bicycleAssembly,
   cafeQueue,
   deploymentPipelineSDCPN,
   dronePatrol,
+  planetsAndSatellites,
   probabilisticSatellitesSDCPN,
   productionMachines,
+  satellitesWithAttraction,
+  sirMassActionModel,
   sirModel,
   supplyChainWithDisruption,
   supplyChainProfit,
   vaccinationCampaign,
+  wheelTruing,
 } from "@hashintel/petrinaut-core/examples";
 
 import { usePetrinautCommands } from "../../../react";
@@ -403,6 +408,14 @@ const EditorViewContent = ({
                 },
               },
               {
+                id: "load-example-sir-mass-action",
+                text: "SIR Mass-Action Model",
+                onClick: () => {
+                  createNewNet(sirMassActionModel);
+                  clearSelection();
+                },
+              },
+              {
                 id: "load-example-cafe-queue",
                 text: "Café Queue",
                 onClick: () => {
@@ -451,6 +464,22 @@ const EditorViewContent = ({
                 },
               },
               {
+                id: "load-example-satellites-attraction",
+                text: "Satellites with Attraction",
+                onClick: () => {
+                  createNewNet(satellitesWithAttraction);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-planets-and-satellites",
+                text: "Planets and Satellites",
+                onClick: () => {
+                  createNewNet(planetsAndSatellites);
+                  clearSelection();
+                },
+              },
+              {
                 id: "load-example-supply-chain-profit",
                 text: "Supply Chain Profit",
                 onClick: () => {
@@ -463,6 +492,22 @@ const EditorViewContent = ({
                 text: "Vaccination Campaign",
                 onClick: () => {
                   createNewNet(vaccinationCampaign);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-bicycle-assembly",
+                text: "Bicycle Assembly",
+                onClick: () => {
+                  createNewNet(bicycleAssembly);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-wheel-truing",
+                text: "Wheel Truing",
+                onClick: () => {
+                  createNewNet(wheelTruing);
                   clearSelection();
                 },
               },

@@ -5,6 +5,7 @@ import type { InitialMarking } from "../api";
 import type { SimulationCompletionReason } from "../engine/compute-next-frame";
 import type { ParameterValues } from "../engine/types";
 import type { MonteCarloFrameMetric } from "./metrics/types";
+import type { MonteCarloRunDriverFactory } from "./run-driver";
 
 export type MonteCarloRunStatus = "ready" | "running" | "complete" | "error";
 
@@ -41,6 +42,12 @@ export type MonteCarloSimulatorConfig = {
   /** Initial token region capacity per run, in bytes. */
   initialTokenByteCapacity?: number;
   metrics?: readonly MonteCarloFrameMetric[];
+  /**
+   * Advances each run between samples in place of the fixed step. `dt` is
+   * then the spacing of the samples alone: how a run steps is its driver's
+   * business.
+   */
+  createRunDriver?: MonteCarloRunDriverFactory;
 };
 
 export type MonteCarloRunSummary = {

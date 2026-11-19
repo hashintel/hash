@@ -5,6 +5,7 @@
 
 import { getArcEndpointPlaceId } from "../arc-endpoints";
 import { generatePetrinautId } from "../petrinaut-id";
+import { remapPlaceDynamics } from "../place-dynamics";
 import { deduplicateName } from "./deduplicate-name";
 
 import type { SDCPN, Subnet } from "../types/sdcpn";
@@ -129,11 +130,10 @@ export function pastePayloadIntoSDCPN(
         place.colorId !== null
           ? (idMap.get(place.colorId) ?? place.colorId)
           : null,
-      differentialEquationId:
-        place.differentialEquationId !== null
-          ? (idMap.get(place.differentialEquationId) ??
-            place.differentialEquationId)
-          : null,
+      ...remapPlaceDynamics(
+        place,
+        (equationId) => idMap.get(equationId) ?? equationId,
+      ),
     });
     newItemIds.push({ type: "place", id: newId });
   }

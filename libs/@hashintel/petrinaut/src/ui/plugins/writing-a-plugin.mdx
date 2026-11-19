@@ -74,7 +74,7 @@ shortcut. `onClick` runs first.
 
 Declare each command under `commands` with what the palette shows: its
 `label`, and optionally a `category` (the plugin's name by default),
-`keywords` and a `shortcut` to display. Return what it does from the hook
+`keywords` and a `shortcut` to bind and display. Return what it does from the hook
 under the same key: `run`, and `when` to withhold it while a condition does
 not hold.
 
@@ -112,9 +112,21 @@ The editor registers each command as `<plugin id>.<key>`
 (`example.history.show`) while the plugin runs and `when` holds, and keeps the
 registration pointed at the latest `run`. A palette, from the host or from
 another plugin, lists it with the editor's own commands; see
-[Commands and the palette](doc:core.command-registry/usage-manual). `shortcut` is display
-only: a plugin that wants the keys bound listens for them itself and runs the
-same handler, or calls `useCommandRegistry()?.execute(pluginCommandId(id, key))`.
+[Commands and the palette](doc:core.command-registry/usage-manual).
+
+The Plugin API binds `shortcut` to the same `run` handler while the command is
+available, including in hosts without a command registry. Declare a key with
+optional `+`-separated modifiers: `mod`, `ctrl`, `meta`, `alt`, and `shift`.
+`mod` accepts either Command or Control; all other modifiers must match exactly.
+Choose either `mod` or explicit `ctrl`/`meta` modifiers.
+Key names are case-insensitive and use `KeyboardEvent.key`, with `space` for the
+space bar. For example, `mod+shift+f` requires Command or Control plus Shift and F.
+
+The binding ignores held-key repeats, text composition, and events another
+handler has consumed. Shortcuts without Command, Control, or Alt are ignored
+inside editable fields. Withholding a command with `when: false` or stopping
+the plugin removes its binding. Plugins declare shortcuts through `commands`;
+the host owns the key listener.
 
 ## Render UI inside the editor
 

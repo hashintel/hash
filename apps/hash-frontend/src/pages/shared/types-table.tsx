@@ -10,6 +10,7 @@ import {
   isExternalOntologyElementMetadata,
   type PropertyTypeWithMetadata,
   type VersionedUrl,
+  type WebId,
 } from "@blockprotocol/type-system";
 import { SortMenu } from "@hashintel/ds-components";
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
@@ -59,6 +60,7 @@ import {
   getTypeKind,
   pruneTypeFiltersForKind,
 } from "./types-table/shared/type-filters";
+import { TypesEmptyState } from "./types-table/types-empty-state";
 import { visualizerViewIcons } from "./visualizer-views";
 
 import type { CustomIcon } from "../../components/grid/utils/custom-grid-icons";
@@ -121,6 +123,39 @@ const typesTablesToTitle: Record<TypesTableKind, string> = {
 
 const firstColumnLeftPadding = 16;
 
+const createEntityTypeHref = "/new/types/entity-type";
+
+type TypesTableType =
+  | EntityTypeWithMetadata
+  | PropertyTypeWithMetadata
+  | DataTypeWithMetadata;
+
+const getInternalWebId = (
+  type: TypesTableType,
+  internalWebIds: WebId[],
+): WebId | undefined =>
+  !isExternalOntologyElementMetadata(type.metadata) &&
+  internalWebIds.includes(type.metadata.webId)
+    ? type.metadata.webId
+    : undefined;
+
+const isInWebFilter = (
+  type: TypesTableType,
+  webFilter: WebFilterState,
+  internalWebIds: WebId[],
+) => {
+  const internalWebId = getInternalWebId(type, internalWebIds);
+
+  return internalWebId
+    ? webFilter.selectedInternalWebIds.has(internalWebId)
+    : webFilter.includeOtherWebs;
+};
+
+const getDefaultWebFilter = (internalWebIds: WebId[]): WebFilterState => ({
+  selectedInternalWebIds: new Set(internalWebIds),
+  includeOtherWebs: false,
+});
+
 const defaultTypesTableSort: GridSort<TypesTableColumnId> = {
   columnKey: "title",
   direction: "asc",
@@ -151,16 +186,24 @@ const sortTypesTableRows = (
     return comparison;
   });
 
-export const TypesTable: FunctionComponent<{
-  loading?: boolean;
-  onlyOneWeb?: boolean;
-  types?: (
-    | EntityTypeWithMetadata
-    | PropertyTypeWithMetadata
-    | DataTypeWithMetadata
-  )[];
-  kind: TypesTableKind;
-}> = ({ types, kind, onlyOneWeb, loading = false }) => {
+export const TypesTable: FunctionComponent<
+  {
+    loading?: boolean;
+    types?: TypesTableType[];
+    kind: TypesTableKind;
+  } & (
+    | { onlyOneWeb: true; allTypes?: never }
+    | {
+        onlyOneWeb?: false;
+        /**
+         * The types of every kind, whichever kind the table shows, to tell
+         * whether the user's webs have any types at all. `undefined` while
+         * they load, and `null` if some of them could not be loaded.
+         */
+        allTypes: TypesTableType[] | null | undefined;
+      }
+  )
+> = ({ types, allTypes, kind, onlyOneWeb, loading = false }) => {
   const router = useRouter();
 
   const [view, _setView] = useState<VisualizerView>("Table");
@@ -178,10 +221,9 @@ export const TypesTable: FunctionComponent<{
 
   const internalWebs = useInternalWebs();
 
-  const [webFilter, setWebFilter] = useState<WebFilterState>(() => ({
-    selectedInternalWebIds: new Set(internalWebs.map(({ webId }) => webId)),
-    includeOtherWebs: false,
-  }));
+  const [webFilter, setWebFilter] = useState<WebFilterState>(() =>
+    getDefaultWebFilter(internalWebs.map(({ webId }) => webId)),
+  );
 
   const [typeFilters, setTypeFilters] = useState<TypeFilter[]>([]);
 
@@ -305,11 +347,7 @@ export const TypesTable: FunctionComponent<{
   );
 
   const filteredTypes = useMemo(() => {
-    const filtered: ((
-      | EntityTypeWithMetadata
-      | PropertyTypeWithMetadata
-      | DataTypeWithMetadata
-    ) & {
+    const filtered: (TypesTableType & {
       isExternal: boolean;
       webShortname?: string;
       archived: boolean;
@@ -317,9 +355,7 @@ export const TypesTable: FunctionComponent<{
     })[] = [];
 
     for (const type of types ?? []) {
-      const isExternal = isExternalOntologyElementMetadata(type.metadata)
-        ? true
-        : !internalWebIds.includes(type.metadata.webId);
+      const isExternal = !getInternalWebId(type, internalWebIds);
 
       const namespaceWebId = isExternalOntologyElementMetadata(type.metadata)
         ? undefined
@@ -333,9 +369,7 @@ export const TypesTable: FunctionComponent<{
 
       const webAllowed = onlyOneWeb
         ? true
-        : !isExternal && namespaceWebId !== undefined
-          ? webFilter.selectedInternalWebIds.has(namespaceWebId)
-          : webFilter.includeOtherWebs;
+        : isInWebFilter(type, webFilter, internalWebIds);
 
       if (
         webAllowed &&
@@ -362,6 +396,69 @@ export const TypesTable: FunctionComponent<{
     onlyOneWeb,
     typeFilterPredicate,
     isSpecialEntityTypeLookup,
+  ]);
+
+  const emptyState = useMemo(() => {
+    if (
+      onlyOneWeb ||
+      !types ||
+      allTypes === undefined ||
+      filteredTypes.length > 0
+    ) {
+      return undefined;
+    }
+
+    const hasNoOwnTypes =
+      allTypes !== null &&
+      !allTypes.some(
+        (type) =>
+          getInternalWebId(type, internalWebIds) !== undefined &&
+          !isTypeArchived(type),
+      );
+
+    const filtersNarrowResults =
+      typeFilters.length > 0 ||
+      internalWebIds.some(
+        (webId) => !webFilter.selectedInternalWebIds.has(webId),
+      );
+
+    const defaultWebFilter = getDefaultWebFilter(internalWebIds);
+
+    const clearingFiltersShowsTypes =
+      filtersNarrowResults &&
+      types.some(
+        (type) =>
+          isInWebFilter(type, defaultWebFilter, internalWebIds) &&
+          !isTypeArchived(type),
+      );
+
+    const widenedWebFilter = { ...webFilter, includeOtherWebs: true };
+
+    const includingPublicTypesShowsTypes =
+      !webFilter.includeOtherWebs &&
+      types.some(
+        (type) =>
+          isInWebFilter(type, widenedWebFilter, internalWebIds) &&
+          (includeArchived || !isTypeArchived(type)) &&
+          typeFilterPredicate(type),
+      );
+
+    return {
+      hasNoOwnTypes,
+      filtersNarrowResults,
+      clearingFiltersShowsTypes,
+      includingPublicTypesShowsTypes,
+    };
+  }, [
+    onlyOneWeb,
+    types,
+    allTypes,
+    filteredTypes,
+    internalWebIds,
+    typeFilters,
+    webFilter,
+    includeArchived,
+    typeFilterPredicate,
   ]);
 
   const filteredRows = useMemo<TypesTableRow[] | undefined>(
@@ -609,7 +706,52 @@ export const TypesTable: FunctionComponent<{
         }px + ${theme.spacing(2)} + ${theme.spacing(5)})`
   })`;
 
-  const displayedRowCount = Math.max(filteredRows?.length ?? 1, 1);
+  const emptyStateRowCount = emptyState
+    ? emptyState.hasNoOwnTypes
+      ? 5
+      : 3
+    : 1;
+
+  const displayedRowCount =
+    filteredRows && filteredRows.length > 0
+      ? filteredRows.length
+      : emptyStateRowCount;
+
+  const includePublicTypes =
+    emptyState?.includingPublicTypesShowsTypes === true
+      ? () =>
+          setWebFilter((prev) => ({
+            ...prev,
+            includeOtherWebs: true,
+          }))
+      : undefined;
+
+  const emptyStateContent =
+    !emptyState ? undefined : emptyState.hasNoOwnTypes ? (
+      <TypesEmptyState
+        title="No types yet"
+        description="Create an entity type to describe the things you want to store, such as people or projects."
+        createEntityTypeHref={createEntityTypeHref}
+        onIncludePublicTypes={includePublicTypes}
+      />
+    ) : (
+      <TypesEmptyState
+        title={
+          emptyState.filtersNarrowResults || webFilter.includeOtherWebs
+            ? "No types match your filters"
+            : `No ${typesTablesToTitle[kind].toLowerCase()} in your webs`
+        }
+        onClearFilters={
+          emptyState.clearingFiltersShowsTypes
+            ? () => {
+                setTypeFilters([]);
+                setWebFilter(getDefaultWebFilter(internalWebIds));
+              }
+            : undefined
+        }
+        onIncludePublicTypes={includePublicTypes}
+      />
+    );
 
   const currentlyDisplayedRowsRef = useRef<TypesTableRow[] | null>(null);
 
@@ -780,10 +922,17 @@ export const TypesTable: FunctionComponent<{
               createRenderTextIconCell({ firstColumnLeftPadding }),
               createRenderChipCell({ firstColumnLeftPadding }),
             ]}
-            dataLoading={!types || loading}
+            dataLoading={
+              !types ||
+              loading ||
+              (!onlyOneWeb &&
+                allTypes === undefined &&
+                filteredTypes.length === 0)
+            }
             enableCheckboxSelection
             firstColumnLeftPadding={firstColumnLeftPadding}
             freezeColumns={1}
+            noResultsContent={emptyStateContent}
             height={`min(
                 ${maxTableHeight},
                 calc(

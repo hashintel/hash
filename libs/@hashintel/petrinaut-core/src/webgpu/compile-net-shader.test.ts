@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { bicycleAssembly } from "../examples/bicycle-assembly";
 import { dronePatrol } from "../examples/drone-patrol";
 import { probabilisticSatellitesSDCPN } from "../examples/satellites-launcher";
 import { sirModel } from "../examples/sir-model";
@@ -228,6 +229,16 @@ describe("compileNetShader", () => {
     );
   });
 
+  it("marks a run of an untimed net deadlocked as soon as nothing fired, at the frame limit too", () => {
+    const result = compileFor(bicycleAssembly.petriNetDefinition);
+    if (!result.ok) throw new Error(result.reason);
+    const { wgsl } = result.shader;
+
+    // The later assignment wins: the deadlock test follows the frame limit.
+    const deadlock = wgsl.indexOf("if (!any_fired) { status = 1u; }");
+    expect(deadlock).toBeGreaterThan(wgsl.indexOf("{ status = 2u; }"));
+  });
+
   it.each([
     ["euler", 1],
     ["rk2", 2],
@@ -251,7 +262,7 @@ describe("compileNetShader", () => {
           colorId: "c",
           capacity: 4,
           dynamicsEnabled: true,
-          differentialEquationId: "eq",
+          dynamics: [{ differentialEquationId: "eq" }],
           x: 0,
           y: 0,
         },
@@ -274,7 +285,8 @@ describe("compileNetShader", () => {
           id: "eq",
           name: "decay",
           colorId: "c",
-          code: "export default Dynamics((tokens) => tokens.map((token) => ({ v: -token.v })));",
+          arity: 1,
+          code: "export default Dynamics((token) => ({ v: -token.v }));",
         },
       ],
       parameters: [],

@@ -1,6 +1,7 @@
 import { SDCPNItemError } from "../../errors";
 import {
   executeBufferKernel,
+  fillInputCounts,
   fillPlaceBases,
   fillTokenIndices,
 } from "../engine/buffer-transition";
@@ -102,6 +103,8 @@ export function computeTransitionEffect(
     );
   }
 
+  fillInputCounts(transition.inputCounts, inputPlaces);
+
   for (const tokenCombinationIndices of tokenCombinations) {
     if (!fillTokenIndices(transition.indices, tokenCombinationIndices)) {
       throw new SDCPNItemError(
@@ -118,6 +121,7 @@ export function computeTransitionEffect(
         frame.tokenViews.u8,
         transition.placeBases,
         transition.indices,
+        transition.inputCounts,
       );
     } catch (error) {
       throw new SDCPNItemError(

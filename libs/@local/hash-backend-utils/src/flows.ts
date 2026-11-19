@@ -71,6 +71,7 @@ const getFlowRunSummary = ({
     status: statusFields.status,
     startedAt: statusFields.startedAt,
     closedAt: statusFields.closedAt ?? null,
+    updatedAt: entity.metadata.temporalVersioning.decisionTime.start.limit,
     flowInputs: mapInputsPropertyToFlowInputValues(
       properties["https://hash.ai/@h/types/property-type/inputs/"],
     ),

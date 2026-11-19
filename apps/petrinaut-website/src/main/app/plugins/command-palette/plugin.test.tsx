@@ -40,6 +40,13 @@ test.each(["metaKey", "ctrlKey"])(
     expect(
       within(palette).getByText("Toggle the command palette"),
     ).toBeTruthy();
+    fireEvent.keyDown(within(palette).getByPlaceholderText("Type a command…"), {
+      key: "k",
+      [modifier]: true,
+    });
+    expect(
+      screen.queryByRole("dialog", { name: "Command palette" }),
+    ).toBeNull();
   },
 );
 

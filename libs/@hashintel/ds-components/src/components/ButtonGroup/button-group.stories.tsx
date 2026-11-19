@@ -1,5 +1,6 @@
 import { css } from "@hashintel/ds-helpers/css";
 
+import { ResizeExample } from "../../../docs/blocks/resize-example";
 import { type FormInputSize, formInputSizes } from "../../util/form-shared";
 import { Button } from "../Button/button";
 import { ButtonGroup } from "./button-group";
@@ -95,16 +96,6 @@ const labelClass = css({
   color: "neutral.s80",
 });
 
-// Fixed-width dashed frame: exposes the group's full width and is narrow enough
-// that the six-button examples wrap onto two lines.
-const frameClass = css({
-  width: "[300px]",
-  border: "[1px dashed]",
-  borderColor: "neutral.s40",
-  borderRadius: "[8px]",
-  padding: "[12px]",
-});
-
 const shortLabels = ["One", "Two", "Three"];
 const manyLabels = ["Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta"];
 
@@ -130,7 +121,9 @@ const Example = ({
 }) => (
   <div className={exampleClass}>
     <span className={labelClass}>{label}</span>
-    {framed ? <div className={frameClass}>{children}</div> : children}
+    {/* 300px exposes the group's full width and is narrow enough that the
+        six-button examples wrap onto two lines; drag to watch them re-wrap. */}
+    {framed ? <ResizeExample width={300}>{children}</ResizeExample> : children}
   </div>
 );
 

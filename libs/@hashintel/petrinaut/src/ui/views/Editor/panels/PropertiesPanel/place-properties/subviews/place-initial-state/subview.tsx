@@ -3,7 +3,7 @@ import { use } from "react";
 import { Form, Icon, NumberInput, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { PlaybackContext } from "../../../../../../../../react/playback/context";
+import { ExecutionFrameSourceContext } from "../../../../../../../../react/execution-frame/context";
 import { SimulationContext } from "../../../../../../../../react/simulation/context";
 import { usePlacePropertiesContext } from "../../context";
 import { InitialStateEditor } from "./initial-state-editor";
@@ -41,7 +41,7 @@ const StateHeaderAction: React.FC = () => {
 const PlaceInitialStateContent: React.FC = () => {
   const { place, placeType } = usePlacePropertiesContext();
   const { initialMarking } = use(SimulationContext);
-  const { currentFrameReader, totalFrames } = use(PlaybackContext);
+  const { currentFrameReader, totalFrames } = use(ExecutionFrameSourceContext);
   const hasSimulationFrames = totalFrames > 0;
 
   if (placeType && placeType.elements.length > 0) {

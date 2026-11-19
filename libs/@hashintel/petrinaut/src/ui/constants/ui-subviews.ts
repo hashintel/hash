@@ -8,9 +8,9 @@
 import { actualEventsSubView } from "../views/Editor/panels/BottomPanel/subviews/actual-events";
 import { compilationSubView } from "../views/Editor/panels/BottomPanel/subviews/compilation";
 import { diagnosticsSubView } from "../views/Editor/panels/BottomPanel/subviews/diagnostics";
+import { eventTimelineSubView } from "../views/Editor/panels/BottomPanel/subviews/event-timeline/main";
 import { simulationSettingsSubView } from "../views/Editor/panels/BottomPanel/subviews/simulation-settings";
 import { actualTimelineSubView } from "../views/Editor/panels/BottomPanel/subviews/simulation-timeline/actual";
-import { simulationTimelineSubView } from "../views/Editor/panels/BottomPanel/subviews/simulation-timeline/main";
 import { entitiesTreeSubView } from "../views/Editor/panels/LeftSideBar/subviews/entities-tree";
 import { netsListSubView } from "../views/Editor/panels/LeftSideBar/subviews/nets-list";
 
@@ -35,7 +35,7 @@ export const ACTUAL_BOTTOM_PANEL_SUBVIEWS = [
 
 // Subviews only visible when simulation is running/paused
 export const SIMULATION_ONLY_SUBVIEWS = [
-  simulationTimelineSubView,
+  eventTimelineSubView,
 ] as const satisfies SubView[];
 
 // Subviews gated behind a user setting rather than editor state.

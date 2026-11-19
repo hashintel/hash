@@ -5,15 +5,15 @@ expression: "(_, _, _)"
 info:
   kind: Ok
 ---
-Type#4294967040@8
+Type#4294967040@6
   TypeKind (Tuple)
-    TupleType#4294967040@8
+    TupleType#4294967040@6
       TupleField#4294967040@1
         Type#4294967040@1
           TypeKind (Infer)
       TupleField#4294967040@3
         Type#4294967040@2
           TypeKind (Infer)
-      TupleField#4294967040@7
-        Type#4294967040@6
+      TupleField#4294967040@5
+        Type#4294967040@4
           TypeKind (Infer)

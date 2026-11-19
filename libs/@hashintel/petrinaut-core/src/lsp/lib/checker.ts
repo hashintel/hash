@@ -1,18 +1,30 @@
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   getTransitionLogicAvailability,
+  sanitizeSDCPNForExtensions,
   type PetrinautExtensionSettings,
 } from "../../extensions";
 import {
   buildDynamicsContext,
   buildKernelContext,
   buildLambdaContext,
+  buildMetricContext,
   buildVisualizerContext,
 } from "../../hir";
+import { classifyNet } from "../../hir/classify-net";
+import { lowerAndCheck } from "../../hir/compile";
+import { inferMetricShape } from "../../hir/metric-shape";
+import { isSourcePredicate, netTimeOf } from "../../net-class";
 import { getHirDiagnosticsForItem } from "./check-hir";
+import {
+  sourcePredicateDiagnostic,
+  TS_CATEGORY_ERROR,
+} from "./check-net-timing";
 import { getItemFilePath } from "./file-paths";
 
 import type { HirSurfaceContext } from "../../hir";
+import type { MetricShape } from "../../hir/metric-shape";
+import type { NetClass } from "../../net-class";
 import type { SDCPN } from "../../types/sdcpn";
 import type { LanguageServers } from "./language-servers";
 import type { VirtualFileLanguageServer } from "./virtual-file-language-server";
@@ -44,11 +56,15 @@ export type SDCPNCheckResult = {
   isValid: boolean;
   /** All diagnostics grouped by item */
   itemDiagnostics: SDCPNDiagnostic[];
+  /**
+   * The shape of every metric whose code lowers, by metric id. Metrics are
+   * lowered here for what the net's consumers learn from their code; their
+   * diagnostics are the metric editing session's.
+   */
+  metricShapes: Record<string, MetricShape>;
+  /** The class of the net, whatever its diagnostics. */
+  netClass: NetClass;
 };
-
-/** TS `DiagnosticCategory.Error` (kept numeric — `typescript` is imported
- * type-only here). */
-const TS_CATEGORY_ERROR = 1;
 
 /**
  * Collects TS diagnostics for one code file and, when TypeScript found no
@@ -105,7 +121,7 @@ export function checkSDCPN(
     const allDiagnostics = collectItemDiagnostics(
       server,
       filePath,
-      de.colorId ? buildDynamicsContext(sdcpn, de.colorId, extensions) : null,
+      buildDynamicsContext(sdcpn, de, extensions),
     );
 
     if (allDiagnostics.length > 0) {
@@ -118,6 +134,8 @@ export function checkSDCPN(
     }
   }
 
+  const timed = netTimeOf(sdcpn, extensions) === "timed";
+
   // Check all functions in transitions (both lambda and kernel)
   for (const transition of sdcpn.transitions) {
     const availability = getTransitionLogicAvailability(
@@ -126,25 +144,36 @@ export function checkSDCPN(
       extensions,
     );
 
-    if (availability.lambda) {
-      // Check Lambda code
-      const lambdaFilePath = getItemFilePath("transition-lambda-code", {
-        transitionId: transition.id,
-      });
-      const lambdaDiagnostics = collectItemDiagnostics(
-        server,
-        lambdaFilePath,
-        buildLambdaContext(sdcpn, transition, extensions),
-      );
+    // The lambda's file carries the transition's firing diagnostics, the
+    // structural one included, which holds whether or not the code is shown.
+    const lambdaFilePath = getItemFilePath("transition-lambda-code", {
+      transitionId: transition.id,
+    });
+    const lambdaDiagnostics = [
+      ...(timed && isSourcePredicate(transition, extensions)
+        ? [
+            sourcePredicateDiagnostic(
+              transition,
+              server.getUserContent(lambdaFilePath) ?? "",
+            ),
+          ]
+        : []),
+      ...(availability.lambda
+        ? collectItemDiagnostics(
+            server,
+            lambdaFilePath,
+            buildLambdaContext(sdcpn, transition, extensions),
+          )
+        : []),
+    ];
 
-      if (lambdaDiagnostics.length > 0) {
-        itemDiagnostics.push({
-          itemId: transition.id,
-          itemType: "transition-lambda",
-          filePath: lambdaFilePath,
-          diagnostics: lambdaDiagnostics,
-        });
-      }
+    if (lambdaDiagnostics.length > 0) {
+      itemDiagnostics.push({
+        itemId: transition.id,
+        itemType: "transition-lambda",
+        filePath: lambdaFilePath,
+        diagnostics: lambdaDiagnostics,
+      });
     }
 
     if (availability.transitionKernel) {
@@ -193,7 +222,26 @@ export function checkSDCPN(
     }
   }
 
+  const sanitized = sanitizeSDCPNForExtensions(sdcpn, extensions);
+  const metricContext = buildMetricContext(sanitized, extensions);
+  const metricShapes: Record<string, MetricShape> = {};
+  for (const metric of sanitized.metrics ?? []) {
+    if (metric.code.trim() === "") {
+      continue;
+    }
+    const item = lowerAndCheck(metric.code, "metric", metricContext);
+    if (item.ok) {
+      metricShapes[metric.id] = inferMetricShape(
+        item.fn,
+        sanitized.places,
+        sanitized.types,
+      );
+    }
+  }
+
   return {
+    metricShapes,
+    netClass: classifyNet(sdcpn, extensions),
     isValid: !itemDiagnostics.some(
       (item) =>
         item.itemType !== "place-visualizer" &&

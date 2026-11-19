@@ -33,7 +33,7 @@ import {
 } from "../../canvas-renderer";
 import { getInitialViewport } from "../../canvas-viewport";
 import { ViewportControls } from "../../components/viewport-controls";
-import { useRecenterOnPanelOpen } from "../../hooks/use-recenter-on-panel-open";
+import { useKeepSelectionInView } from "../../hooks/use-keep-selection-in-view";
 import { useDebouncedValue } from "../../hooks/util/use-debounced-value";
 import { useCanvasInteractions } from "../../use-canvas-interactions";
 import { Arc } from "./react-flow-canvas/arc";
@@ -51,6 +51,7 @@ import {
 } from "./react-flow-canvas/selection-keys";
 import { TransitionNode } from "./react-flow-canvas/transition-node";
 import { useApplyNodeChanges } from "./react-flow-canvas/use-apply-node-changes";
+import { useEscapeCancelsConnection } from "./react-flow-canvas/use-escape-cancels-connection";
 import { useMonacoKeyboardIsolation } from "./react-flow-canvas/use-monaco-keyboard-isolation";
 import { useReactFlowController } from "./react-flow-canvas/use-react-flow-controller";
 import { useReactFlowElements } from "./react-flow-canvas/use-react-flow-elements";
@@ -120,13 +121,8 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
   registerController,
 }) => {
   const presentation = usePetrinautPresentation();
-  const {
-    compactNodes,
-    showMinimap,
-    showAnimations,
-    partialSelection,
-    enableAutomaticArcConnections,
-  } = use(UserSettingsContext);
+  const { compactNodes, showMinimap, showAnimations, partialSelection } =
+    use(UserSettingsContext);
   const { globalMode } = use(EditorContext);
   const { savedViewport, rememberViewport } = use(CanvasViewportContext);
   const isActualMode = globalMode === "actual";
@@ -142,56 +138,23 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
   const applyChanges = useApplyNodeChanges(interactions);
   const insets = useCanvasInsets();
 
-  useEffect(() => {
-    const cancel = () => {
-      flowStore.getState().cancelConnection();
-      flowStore.setState({ connectionClickStartHandle: null });
-    };
-    cancel();
-    if (!enableAutomaticArcConnections) {
-      return;
-    }
-    const onKeyDown = (event: KeyboardEvent) => {
-      const { connection, connectionClickStartHandle } = flowStore.getState();
-      if (
-        event.key === "Escape" &&
-        (connection.inProgress || connectionClickStartHandle)
-      ) {
-        event.preventDefault();
-        event.stopPropagation();
-        cancel();
-      }
-    };
-    window.addEventListener("keydown", onKeyDown, true);
-    return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, [enableAutomaticArcConnections, flowStore]);
-
-  const isValidOutlineConnection: IsValidConnection = (connection) => {
-    const canvasConnection = toCanvasConnection(connection);
-    return (
-      !canvasConnection.sourcePortId &&
-      !canvasConnection.targetPortId &&
-      interactions.isValidConnection(canvasConnection)
-    );
-  };
+  const isValidConnection: IsValidConnection = (connection) =>
+    interactions.isValidConnection(toCanvasConnection(connection));
 
   const connect = (connection: Connection) => {
     const { connection: gesture, connectionClickStartHandle } =
       flowStore.getState();
-    if (
-      (!gesture.inProgress && !connectionClickStartHandle) ||
-      (enableAutomaticArcConnections && !isValidOutlineConnection(connection))
-    ) {
-      return;
+    if (gesture.inProgress || connectionClickStartHandle) {
+      interactions.connect(toCanvasConnection(connection));
     }
-    interactions.connect(toCanvasConnection(connection));
   };
 
   const bounds = getBoundsOfCenteredBoxes(scene.nodes);
-  const controller = useReactFlowController({
+  const { controller, camera } = useReactFlowController({
     bounds,
     containerSize,
     insets,
+    animated: showAnimations,
   });
 
   useEffect(() => {
@@ -199,7 +162,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
     return () => registerController(null);
   }, [controller, registerController]);
 
-  useRecenterOnPanelOpen(controller, containerSize, scene.nodes, insets);
+  useEscapeCancelsConnection();
   useMonacoKeyboardIsolation();
   useMultiSelectionModifier(isMac);
 
@@ -230,6 +193,14 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
     Math.min(boundsMinZoom, zoomBelowBoundsMinZoom ?? boundsMinZoom),
     MIN_ZOOM_DEBOUNCE_MS,
   );
+
+  useKeepSelectionInView({
+    controller,
+    scene,
+    containerSize,
+    insets,
+    minZoom,
+  });
 
   const scenePositionOf = (event: { clientX: number; clientY: number }) =>
     controller.screenToScene({ x: event.clientX, y: event.clientY });
@@ -267,12 +238,8 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
           edgeTypes={REACTFLOW_EDGE_TYPES}
           onNodesChange={applyChanges}
           onEdgesChange={applyChanges}
-          connectionLineComponent={
-            enableAutomaticArcConnections ? OutlineConnectionLine : undefined
-          }
-          isValidConnection={
-            enableAutomaticArcConnections ? isValidOutlineConnection : undefined
-          }
+          connectionLineComponent={OutlineConnectionLine}
+          isValidConnection={isValidConnection}
           onConnect={interactions.readonly ? undefined : connect}
           onEdgeClick={(_event, edge) => interactions.selectArc(edge.id)}
           // Node click selection is handled by ReactFlow's internal
@@ -298,7 +265,18 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
           onPaneClick={(event) =>
             interactions.clickPane(scenePositionOf(event))
           }
-          onMoveEnd={(_event, viewport) => rememberViewport(viewport)}
+          // A gesture takes the camera back from any move under way. Frames
+          // of the camera's own moves are not remembered, only where it stops.
+          onMoveStart={(event) => {
+            if (event) {
+              camera.cancel();
+            }
+          }}
+          onMoveEnd={(_event, viewport) => {
+            if (!camera.isAnimating()) {
+              rememberViewport(viewport);
+            }
+          }}
           onDrop={interactions.readonly ? undefined : onDrop}
           onDragOver={interactions.readonly ? undefined : onDragOver}
           defaultViewport={savedViewport ?? initialViewport}

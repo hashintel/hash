@@ -15,8 +15,10 @@ export const exampleSlugs = [
   "gases-3-cpn",
   "gases-4-dcpn",
   "inventory-purchasing",
+  "planets-and-satellites",
   "probabilistic-satellite-launcher",
   "production-with-machine-failure",
+  "satellites-with-attraction",
   "semiconductor-fab-drift",
   "sir-epidemic-model",
   "supply-chain-profit-model",
@@ -137,6 +139,12 @@ const catalog = [
     },
   },
   {
+    slug: "planets-and-satellites",
+    title: "Planets and Satellites",
+    source: coreExample("planetsAndSatellites"),
+    parameterBounds: {},
+  },
+  {
     slug: "probabilistic-satellite-launcher",
     title: "Probabilistic Satellite Launcher",
     source: coreExample("probabilisticSatellitesSDCPN"),
@@ -156,6 +164,18 @@ const catalog = [
       initial_machine_damage: { min: 0, max: 1, step: 0.05 },
       machines_count: { min: 1, max: 10, step: 1 },
       raw_material: { min: 1, max: 50, step: 1 },
+    },
+  },
+  {
+    slug: "satellites-with-attraction",
+    title: "Satellites with Attraction",
+    source: coreExample("satellitesWithAttraction"),
+    parameterBounds: {
+      initial_altitude: { min: 5, max: 100, step: 1 },
+      launch_rate: { min: 0.05, max: 1, step: 0.05 },
+      number_of_satellites: { min: 1, max: 20, step: 1 },
+      satellite_initial_altitude: { min: 5, max: 100, step: 1 },
+      satellite_initial_velocity: { min: 1, max: 250, step: 1 },
     },
   },
   {

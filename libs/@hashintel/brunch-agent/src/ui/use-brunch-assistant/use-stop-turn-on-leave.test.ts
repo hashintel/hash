@@ -261,7 +261,7 @@ test("a session recreated for the same editor and binding is not a leave", async
   };
   const { rerender } = renderLeaving(props);
 
-  // As when the host passes a new `fetch`, owner key or chat endpoint.
+  // As when the host passes a new `fetch`, actor key or chat endpoint.
   rerender({ ...props, sent: after });
   await new Promise((resolve) => setTimeout(resolve, 10));
   expect(before.abort).not.toHaveBeenCalled();

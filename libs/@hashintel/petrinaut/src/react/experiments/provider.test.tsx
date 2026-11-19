@@ -13,12 +13,18 @@ import { describe, expect, it, vi } from "vitest";
 import {
   type AdHocScenarioState,
   type CompileHirArtifactsOptions,
+  createJsAdaptiveSimulator,
+  createJsFixedStepSimulator,
+  createWebGpuFixedStepSimulator,
+  FIXED_STEP_SIMULATOR_ID,
+  type MonteCarloExperiment,
   type MonteCarloUserDefinedMetricFrame,
   DEFAULT_PETRINAUT_EXTENSIONS,
   type PetrinautExtensionSettings,
   type SDCPN,
   type WorkerLike,
 } from "@hashintel/petrinaut-core";
+import { createReusableWorkerFactory } from "@hashintel/petrinaut-core/experiments";
 import {
   compileHirArtifacts,
   lowerScenarioToHir,
@@ -33,6 +39,11 @@ import {
   NotificationsContext,
   type AddNotificationInput,
 } from "../notifications/context";
+import {
+  SimulatorsContext,
+  type SimulatorsContextValue,
+} from "../simulators/context";
+import { SimulatorsProvider } from "../simulators/provider";
 import { SDCPNContext, type SDCPNContextValue } from "../state/sdcpn-context";
 import {
   type CreateExperimentInput,
@@ -57,6 +68,24 @@ const EMPTY_SDCPN: SDCPN = {
   types: [],
   parameters: [],
   differentialEquations: [],
+};
+
+/** A net with a rate in it: its experiments are sampled over time. */
+const TIMED_SDCPN: SDCPN = {
+  ...EMPTY_SDCPN,
+  transitions: [
+    {
+      id: "arrive",
+      name: "Arrive",
+      inputArcs: [],
+      outputArcs: [],
+      lambdaType: "stochastic",
+      lambdaCode: "",
+      transitionKernelCode: "",
+      x: 0,
+      y: 0,
+    },
+  ],
 };
 
 const CONSTANT_METRIC_SPEC = [
@@ -277,6 +306,63 @@ const NavigationContextConsumer = ({
   return null;
 };
 
+/**
+ * The simulators the editor registers, their experiments split across one
+ * shard that is the fake worker: a single fake worker stands in for the
+ * whole experiment. Sharding itself is covered in petrinaut-core.
+ */
+const simulatorsByWorker = new WeakMap<
+  FakeMonteCarloWorker,
+  SimulatorsContextValue
+>();
+
+const simulatorsOver = (
+  worker: FakeMonteCarloWorker,
+): SimulatorsContextValue => {
+  const known = simulatorsByWorker.get(worker);
+  if (known) {
+    return known;
+  }
+  const workers = {
+    createRunWorker: () => {
+      throw new Error("No single run is started here");
+    },
+    // Pooled, as the simulators provider pools them: a finished batch hands
+    // its worker back instead of ending it.
+    createExperimentWorker: createReusableWorkerFactory(() =>
+      Promise.resolve(
+        worker as WorkerLike<
+          MonteCarloToWorkerMessage,
+          MonteCarloToMainMessage
+        >,
+      ),
+    ),
+    shardCount: 1,
+  };
+  const simulators: SimulatorsContextValue = {
+    registrations: [
+      createJsFixedStepSimulator(workers),
+      createJsAdaptiveSimulator(workers),
+      createWebGpuFixedStepSimulator({
+        loadBackend: async (options) => {
+          const { createWebGpuExperimentBackend } =
+            await import("@hashintel/petrinaut-core/webgpu");
+          return createWebGpuExperimentBackend(options);
+        },
+      }),
+    ],
+    defaultSelections: {
+      quick: { simulatorId: FIXED_STEP_SIMULATOR_ID },
+      stochastic: {
+        simulatorId: FIXED_STEP_SIMULATOR_ID,
+        parameters: { dt: 0.1 },
+      },
+    },
+  };
+  simulatorsByWorker.set(worker, simulators);
+  return simulators;
+};
+
 const TestWrapper = ({
   addNotification,
   requestHirArtifacts,
@@ -310,19 +396,11 @@ const TestWrapper = ({
       <LanguageClientOverride requestHirArtifacts={requestHirArtifacts}>
         <PetrinautNavigationProvider initialState={initialNavigationState}>
           <NavigationContextConsumer onNavigationState={onNavigationState} />
-          <ExperimentsProvider
-            workerFactory={() =>
-              worker as WorkerLike<
-                MonteCarloToWorkerMessage,
-                MonteCarloToMainMessage
-              >
-            }
-            // One shard, so a single fake worker stands in for the whole
-            // experiment. Sharding itself is covered in petrinaut-core.
-            experimentShardCount={1}
-          >
-            <ExperimentsContextConsumer onContextValue={onContextValue} />
-          </ExperimentsProvider>
+          <SimulatorsContext value={simulatorsOver(worker)}>
+            <ExperimentsProvider>
+              <ExperimentsContextConsumer onContextValue={onContextValue} />
+            </ExperimentsProvider>
+          </SimulatorsContext>
         </PetrinautNavigationProvider>
       </LanguageClientOverride>
     </SDCPNContext.Provider>
@@ -924,16 +1002,20 @@ describe("ExperimentsProvider", () => {
       >
         <SDCPNContext.Provider value={sdcpnContextValue}>
           <LanguageClientOverride requestHirArtifacts={undefined}>
-            <ExperimentsProvider
-              workerFactory={createAutoAckWorker}
+            {/* The pool is the simulators provider's: the experiments
+                provider leases from it through the simulator. */}
+            <SimulatorsProvider
+              experimentWorkerFactory={createAutoAckWorker}
               experimentShardCount={1}
             >
-              <ExperimentsContextConsumer
-                onContextValue={(value) => {
-                  valueHolder.current = value;
-                }}
-              />
-            </ExperimentsProvider>
+              <ExperimentsProvider>
+                <ExperimentsContextConsumer
+                  onContextValue={(value) => {
+                    valueHolder.current = value;
+                  }}
+                />
+              </ExperimentsProvider>
+            </SimulatorsProvider>
           </LanguageClientOverride>
         </SDCPNContext.Provider>
       </NotificationsContext>,
@@ -1066,7 +1148,6 @@ describe("ExperimentsProvider", () => {
           name: "Queue",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         },
@@ -1613,10 +1694,217 @@ describe("ExperimentsProvider", () => {
         // And the reason reached the user rather than being swallowed.
         expect(
           notifications.some((notification) =>
-            /running on the CPU/i.test(notification.message),
+            /running on JS fixed step/i.test(notification.message),
           ),
         ).toBe(true);
       });
+    } finally {
+      renderResult.unmount();
+    }
+  });
+
+  it("runs an experiment on the simulator it names, sampled as asked, and records the simulator", async () => {
+    const worker = new FakeMonteCarloWorker();
+    const { getValue, renderResult } = renderExperimentsProvider(worker, {
+      petriNetDefinition: TIMED_SDCPN,
+    });
+
+    try {
+      await act(async () => {
+        const createPromise = createSelectedExperiment(getValue, {
+          name: "Adaptive experiment",
+          scenarioId: null,
+          scenarioParameterValues: {},
+          runCount: 1,
+          seed: 42,
+          dt: 0.5,
+          maxTime: 10,
+          metricSpecs: CONSTANT_METRIC_SPEC,
+          simulator: {
+            simulatorId: "js-adaptive",
+            parameters: { tolerance: 1e-4 },
+          },
+        });
+        await flushWorkerSetup();
+        worker.emit({ type: "ready" });
+        await createPromise;
+      });
+
+      expect(getValue().selectedExperiment).toMatchObject({
+        simulatorLabel: "JS adaptive",
+        computeBackend: "cpu",
+        computeBackendFallbackReason: null,
+        clock: "time",
+        dt: 0.5,
+        status: "running",
+      });
+      // The shard worker is told which simulator advances its runs.
+      expect(worker.sent[0]).toMatchObject({
+        type: "init",
+        dt: 0.5,
+        simulator: { id: "js-adaptive", parameters: { tolerance: 1e-4 } },
+      });
+    } finally {
+      renderResult.unmount();
+    }
+  });
+
+  it("samples an untimed net at every step, whatever the simulator and the spacing asked for", async () => {
+    const worker = new FakeMonteCarloWorker();
+    const { getValue, renderResult } = renderExperimentsProvider(worker);
+
+    try {
+      await act(async () => {
+        const createPromise = createSelectedExperiment(getValue, {
+          name: "Untimed experiment",
+          scenarioId: null,
+          scenarioParameterValues: {},
+          runCount: 1,
+          seed: 42,
+          dt: 0.5,
+          maxTime: 9.5,
+          metricSpecs: CONSTANT_METRIC_SPEC,
+          simulator: {
+            simulatorId: "js-adaptive",
+            parameters: { tolerance: 1e-4 },
+          },
+        });
+        await flushWorkerSetup();
+        worker.emit({ type: "ready" });
+        await createPromise;
+      });
+
+      // The runs count steps, and stop at the first one at or past the end.
+      expect(getValue().selectedExperiment).toMatchObject({
+        simulatorLabel: "JS adaptive",
+        clock: "steps",
+        dt: 1,
+        maxTime: 10,
+        status: "running",
+      });
+      expect(worker.sent[0]).toMatchObject({ type: "init", dt: 1 });
+    } finally {
+      renderResult.unmount();
+    }
+  });
+
+  it("samples a fixed-step simulator at its time step, whatever spacing is asked for", async () => {
+    const worker = new FakeMonteCarloWorker();
+    const { getValue, renderResult } = renderExperimentsProvider(worker, {
+      petriNetDefinition: TIMED_SDCPN,
+    });
+
+    try {
+      await act(async () => {
+        const createPromise = createSelectedExperiment(getValue, {
+          name: "Fixed-step experiment",
+          scenarioId: null,
+          scenarioParameterValues: {},
+          runCount: 1,
+          seed: 42,
+          dt: 1,
+          maxTime: 10,
+          metricSpecs: CONSTANT_METRIC_SPEC,
+          simulator: {
+            simulatorId: "js-fixed-step",
+            parameters: { dt: 0.25 },
+          },
+        });
+        await flushWorkerSetup();
+        worker.emit({ type: "ready" });
+        await createPromise;
+      });
+
+      expect(getValue().selectedExperiment).toMatchObject({
+        simulatorLabel: "JS fixed step",
+        dt: 0.25,
+        status: "running",
+      });
+      expect(worker.sent[0]).toMatchObject({ type: "init", dt: 0.25 });
+    } finally {
+      renderResult.unmount();
+    }
+  });
+
+  it("falls back to the default simulator when the GPU simulator declines the net", async () => {
+    const worker = new FakeMonteCarloWorker();
+    const notifications: AddNotificationInput[] = [];
+    const { getValue, renderResult } = renderExperimentsProvider(worker, {
+      addNotification: (notification) => {
+        notifications.push(notification);
+        return "";
+      },
+    });
+
+    try {
+      await withWebGpuAvailable(async () => {
+        await act(async () => {
+          const createPromise = createSelectedExperiment(getValue, {
+            name: "GPU experiment",
+            scenarioId: null,
+            scenarioParameterValues: {},
+            runCount: 1,
+            seed: 42,
+            dt: 1,
+            maxTime: 10,
+            metricSpecs: CONSTANT_METRIC_SPEC,
+            simulator: {
+              simulatorId: "webgpu-fixed-step",
+              parameters: { dt: 0.5 },
+            },
+          });
+          await waitFor(() => {
+            expect(worker.sent.map((message) => message.type)).toContain(
+              "init",
+            );
+          });
+          worker.emit({ type: "ready" });
+          await createPromise;
+        });
+
+        // A net with no transitions is untimed, so either simulator samples
+        // it at every step. The fallback at a time step is covered with
+        // `experimentSimulatorBackends`.
+        expect(getValue().selectedExperiment).toMatchObject({
+          simulatorLabel: "JS fixed step",
+          computeBackend: "cpu",
+          clock: "steps",
+          dt: 1,
+        });
+        expect(
+          getValue().selectedExperiment?.computeBackendFallbackReason,
+        ).toMatch(/no transitions/i);
+        expect(worker.sent[0]).toMatchObject({ type: "init", dt: 1 });
+        expect(
+          notifications.some((notification) =>
+            /running on JS fixed step/i.test(notification.message),
+          ),
+        ).toBe(true);
+      });
+    } finally {
+      renderResult.unmount();
+    }
+  });
+
+  it("rejects an experiment that names a simulator nobody registered", async () => {
+    const worker = new FakeMonteCarloWorker();
+    const { getValue, renderResult } = renderExperimentsProvider(worker);
+
+    try {
+      await expect(
+        getValue().createExperiment({
+          name: "Elsewhere",
+          scenarioId: null,
+          scenarioParameterValues: {},
+          runCount: 1,
+          seed: 42,
+          dt: 1,
+          maxTime: 10,
+          metricSpecs: CONSTANT_METRIC_SPEC,
+          simulator: { simulatorId: "elsewhere", parameters: {} },
+        }),
+      ).rejects.toThrow('Simulator "elsewhere" is not registered');
+      expect(getValue().experiments).toEqual([]);
     } finally {
       renderResult.unmount();
     }
@@ -1887,7 +2175,6 @@ describe("compileExperimentScenario with an ad-hoc definition", () => {
         name: "Queue",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         x: 0,
         y: 0,
       },
@@ -1951,5 +2238,124 @@ describe("compileExperimentScenario with an ad-hoc definition", () => {
     expect(compiled.axes).toEqual([]);
     expect(compiled.sweptCompiler).toBeNull();
     expect(compiled.initialMarking["place-queue"]).toBe(4);
+  });
+});
+
+describe("adoptExperiment", () => {
+  /** An experiment something else started, reporting what it is told to. */
+  const makeStartedExperiment = (initial: "Running" | "Complete") => {
+    let status: "Running" | "Complete" = initial;
+    const statusListeners = new Set<(status: string) => void>();
+    const eventListeners = new Set<(event: { type: "complete" }) => void>();
+    const frame = { metricId: "tokens", frameNumber: 0, time: 0 };
+    const handle = {
+      status: {
+        get: () => status,
+        subscribe: (listener: (status: string) => void) => {
+          statusListeners.add(listener);
+          return () => statusListeners.delete(listener);
+        },
+      },
+      progress: { get: () => null, subscribe: () => () => {} },
+      metrics: {
+        get: () => ({ frames: [frame], latestByMetricId: { tokens: frame } }),
+        subscribe: () => () => {},
+      },
+      events: {
+        subscribe: (listener: (event: { type: "complete" }) => void) => {
+          eventListeners.add(listener);
+          return () => eventListeners.delete(listener);
+        },
+      },
+      start: vi.fn(),
+      cancel: vi.fn(),
+      dispose: vi.fn(),
+    };
+    return {
+      handle: handle as unknown as MonteCarloExperiment & typeof handle,
+      frame,
+      complete: () => {
+        status = "Complete";
+        for (const listener of statusListeners) {
+          listener(status);
+        }
+        for (const listener of eventListeners) {
+          listener({ type: "complete" });
+        }
+      },
+    };
+  };
+
+  const adoption = (handle: MonteCarloExperiment) => ({
+    name: "Seasonal Flu, 100 runs",
+    handle,
+    definition: EMPTY_SDCPN,
+    scenarioId: null,
+    scenarioName: null,
+    runCount: 100,
+    seed: 7,
+    clock: "time" as const,
+    dt: 0.1,
+    maxTime: 60,
+    metricSpecs: CONSTANT_METRIC_SPEC,
+    computeBackend: "cpu" as const,
+  });
+
+  it("lists an experiment that is already computing and follows it to its end", () => {
+    const { getValue, renderResult } = renderExperimentsProvider(
+      new FakeMonteCarloWorker(),
+    );
+    const started = makeStartedExperiment("Running");
+
+    try {
+      let record!: ExperimentRecord;
+      act(() => {
+        record = getValue().adoptExperiment(adoption(started.handle));
+      });
+
+      expect(getValue().experiments).toEqual([
+        expect.objectContaining({
+          id: record.id,
+          name: "Seasonal Flu, 100 runs",
+          status: "running",
+          runCount: 100,
+          seed: 7,
+          dt: 0.1,
+          maxTime: 60,
+          computeBackend: "cpu",
+          metricFrames: [started.frame],
+        }),
+      ]);
+      // It was started by its previous owner, and is not started again.
+      expect(started.handle.start).not.toHaveBeenCalled();
+
+      act(() => started.complete());
+      expect(getValue().experiments[0]?.status).toBe("complete");
+      // Its end releases the handle, as for an experiment created here.
+      expect(started.handle.dispose).toHaveBeenCalledTimes(1);
+    } finally {
+      renderResult.unmount();
+    }
+  });
+
+  it("releases the handle of an experiment that had already finished, keeping its frames", () => {
+    const { getValue, renderResult } = renderExperimentsProvider(
+      new FakeMonteCarloWorker(),
+    );
+    const finished = makeStartedExperiment("Complete");
+
+    try {
+      act(() => {
+        getValue().adoptExperiment(adoption(finished.handle));
+      });
+
+      expect(getValue().experiments[0]).toMatchObject({
+        status: "complete",
+        metricFrames: [finished.frame],
+      });
+      expect(finished.handle.dispose).toHaveBeenCalledTimes(1);
+    } finally {
+      renderResult.unmount();
+    }
   });
 });

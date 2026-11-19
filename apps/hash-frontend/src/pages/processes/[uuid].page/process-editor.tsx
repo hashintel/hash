@@ -1,22 +1,30 @@
 import { Box, Skeleton, Stack } from "@mui/material";
-import * as Sentry from "@sentry/nextjs";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { AlertModal } from "@hashintel/design-system";
-import { type SDCPN } from "@hashintel/petrinaut";
 
-import {
-  type HostNetMode,
-  type RevisionSummary,
-  type SavedSnapshot,
-} from "../shared/messages";
-import { useHostBridge } from "../shared/use-host-bridge";
 import { useProcessSaveAndLoad } from "./process-editor/use-process-save-and-load";
 import { usePetriNetRevisions } from "./process-editor/use-process-save-and-load/use-petri-net-revisions";
+import { useStringEvaluationGate } from "./process-editor/use-string-evaluation-gate";
 
+import type {
+  NetMode,
+  PetrinautEditorLoad,
+  PetrinautEditorSave,
+  RevisionSummary,
+} from "./process-editor/petrinaut-editor";
+import type { PetriNetRevision } from "./process-editor/use-process-save-and-load/use-petri-net-revisions";
 import type { EntityId } from "@blockprotocol/type-system";
+import type { SDCPN } from "@hashintel/petrinaut";
 
 const emptySDCPN: SDCPN = {
   places: [],
@@ -27,85 +35,7 @@ const emptySDCPN: SDCPN = {
 };
 
 /**
- * URL the iframe is mounted at. Stable across the editor's lifetime — the
- * actual net being edited is driven entirely by `init`/`load` messages over
- * the postMessage bridge, so we don't need to remount the iframe (or recreate
- * its workers) just because the user navigated to a different net.
- *
- * `/processes/draft/embed` matches the `[uuid]/embed.page.tsx` route with
- * `uuid` set to the literal string "draft"; the embed page doesn't read the
- * URL parameter so any value would work, but a constant keeps the network
- * tab tidy.
- */
-const PETRINAUT_EMBED_SRC = "/processes/draft/embed";
-
-/**
- * URL-derived view that the editor renders. The host page resolves this from
- * `router.query` and passes it in; the editor reconciles its internal state
- * whenever the view changes.
- */
-export type ProcessEditorView =
-  | {
-      kind: "draft";
-      /**
-       * Stable identifier for the seed — the example slug, or `null` for a
-       * blank draft. Used by the editor to detect when the URL switches
-       * from one example to another.
-       */
-      seedKey: string | null;
-      seed?: { title: string; petriNetDefinition: SDCPN };
-    }
-  | { kind: "saved"; entityUuid: string };
-
-type LoadedView =
-  | { kind: "draft"; seedKey: string | null }
-  | { kind: "saved"; entityId: EntityId };
-
-const draftPathForSeedKey = (seedKey: string | null): string =>
-  seedKey === null ? "/processes/draft" : `/processes/draft?example=${seedKey}`;
-
-const pathForLoadedView = (loadedView: LoadedView): string => {
-  if (loadedView.kind === "draft") {
-    return draftPathForSeedKey(loadedView.seedKey);
-  }
-  return `/processes/${extractEntityUuidFromEntityId(loadedView.entityId)}`;
-};
-
-const viewMatchesLoaded = (
-  view: ProcessEditorView,
-  loadedView: LoadedView,
-): boolean => {
-  if (view.kind === "draft" && loadedView.kind === "draft") {
-    return view.seedKey === loadedView.seedKey;
-  }
-  if (view.kind === "saved" && loadedView.kind === "saved") {
-    return (
-      view.entityUuid === extractEntityUuidFromEntityId(loadedView.entityId)
-    );
-  }
-  return false;
-};
-
-/**
- * Resolved content for the active view: the SDCPN + title to load into the
- * iframe, the `HostNetMode` describing it, and the `SavedSnapshot` the
- * iframe should compare against for dirty-tracking.
- */
-type ResolvedView = {
-  loadedView: LoadedView;
-  definition: SDCPN;
-  title: string;
-  mode: HostNetMode;
-  savedSnapshot: SavedSnapshot;
-};
-
-const buildRevisionSummaries = (
-  revisions: ReadonlyArray<{ decisionTime: string; title: string }>,
-): RevisionSummary[] =>
-  revisions.map(({ decisionTime, title }) => ({ decisionTime, title }));
-
-/**
- * Loading-state overlay rendered above the still-warming iframe. Mirrors
+ * Loading-state overlay rendered above the still-loading editor. Mirrors
  * Petrinaut's broad layout (top bar with menu buttons / breadcrumb / title /
  * version-picker / save, plus a left rail and the canvas) so the transition
  * into the real editor doesn't cause a visible reflow.
@@ -157,10 +87,81 @@ const ProcessEditorLoadingSkeleton = () => (
 );
 
 /**
- * Process editor host. Mounts a sandboxed null-origin iframe at
- * {@link PETRINAUT_EMBED_SRC} so user-provided code (visualizers,
- * metrics, scenarios) runs with `'unsafe-eval'` allowed but contained
- * away from the parent HASH origin's cookies, storage, and APIs.
+ * The Petrinaut editor, mounted once for the page's lifetime: the net being
+ * edited is driven by its `load` prop, so navigating to a different net
+ * doesn't remount it (or recreate its workers). Client-only, because
+ * Petrinaut needs browser APIs (workers, canvas, Monaco) at import.
+ */
+const PetrinautEditor = dynamic(
+  () =>
+    import("./process-editor/petrinaut-editor").then(
+      (mod) => mod.PetrinautEditor,
+    ),
+  { ssr: false, loading: () => <ProcessEditorLoadingSkeleton /> },
+);
+
+/**
+ * URL-derived view that the editor renders. The host page resolves this from
+ * `router.query` and passes it in; the editor reconciles its internal state
+ * whenever the view changes.
+ */
+export type ProcessEditorView =
+  | {
+      kind: "draft";
+      /**
+       * Stable identifier for the seed — the example slug, or `null` for a
+       * blank draft. Used by the editor to detect when the URL switches
+       * from one example to another.
+       */
+      seedKey: string | null;
+      seed?: { title: string; petriNetDefinition: SDCPN };
+    }
+  | { kind: "saved"; entityUuid: string };
+
+/**
+ * What the editor holds: the view it materialises, and the load that put
+ * it there. The view can change without a new load, when Create turns the
+ * draft into a saved net.
+ */
+type Loaded = {
+  view: NetMode;
+  load: PetrinautEditorLoad;
+};
+
+const draftPathForSeedKey = (seedKey: string | null): string =>
+  seedKey === null ? "/processes/draft" : `/processes/draft?example=${seedKey}`;
+
+const pathForLoadedView = (loadedView: NetMode): string => {
+  if (loadedView.kind === "draft") {
+    return draftPathForSeedKey(loadedView.seedKey);
+  }
+  return `/processes/${extractEntityUuidFromEntityId(loadedView.entityId)}`;
+};
+
+const viewMatchesLoaded = (
+  view: ProcessEditorView,
+  loadedView: NetMode,
+): boolean => {
+  if (view.kind === "draft" && loadedView.kind === "draft") {
+    return view.seedKey === loadedView.seedKey;
+  }
+  if (view.kind === "saved" && loadedView.kind === "saved") {
+    return (
+      view.entityUuid === extractEntityUuidFromEntityId(loadedView.entityId)
+    );
+  }
+  return false;
+};
+
+const buildRevisionSummaries = (
+  revisions: ReadonlyArray<PetriNetRevision>,
+): RevisionSummary[] =>
+  revisions.map(({ decisionTime, title }) => ({ decisionTime, title }));
+
+/**
+ * Process editor host. Renders the Petrinaut editor
+ * (`./process-editor/petrinaut-editor`) in this page and drives it through
+ * its props.
  *
  * The host owns:
  * - URL routing and the discard-changes modal
@@ -168,43 +169,56 @@ const ProcessEditorLoadingSkeleton = () => (
  * - Reads/writes to the graph (persisted net list + create/update mutations,
  *   revision history)
  *
- * The iframe owns:
+ * The editor owns:
  * - The doc handle, title, panels, simulation/Monte-Carlo workers, Monaco
- * - Dirty tracking (live SDCPN/title vs the `savedSnapshot` we last sent)
+ * - Dirty tracking (live SDCPN/title vs the saved snapshot of its load or
+ *   last save)
  *
- * Dirty status flows host -> iframe via `savedSnapshot`, iframe -> host via
- * `dirtyChanged` (cached here for the modal + `beforeunload`).
+ * The host caches the editor's dirty state, reported through
+ * `onDirtyChange`, for the modal and `beforeunload`.
  */
 export const ProcessEditor = ({
   view,
 }: {
   /**
    * Resolved URL view. `null` while we're still waiting on `router.isReady`
-   * — in that state the editor still renders its iframe element (so the
-   * iframe bundle starts downloading immediately) but the bridge effects
-   * stay dormant until a non-null view arrives.
+   * — in that state the editor still renders (so its bundle starts
+   * downloading immediately) but nothing is loaded into it until a non-null
+   * view arrives.
    */
   view: ProcessEditorView | null;
 }) => {
   const router = useRouter();
 
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+  /**
+   * Petrinaut needs this route's string-evaluation allowance, which a
+   * document reached by client-side navigation lacks; the gate reloads such
+   * a document before Petrinaut mounts. The skeleton shows meanwhile.
+   */
+  const canRenderPetrinaut = useStringEvaluationGate();
 
   const [selectedNetId, setSelectedNetId] = useState<EntityId | null>(null);
 
   /**
-   * Cached dirty flag mirrored from the iframe's `dirtyChanged` events. The
-   * host doesn't compute this — only stores it for the discard modal +
-   * `beforeunload` guard.
+   * Cached dirty flag reported by the editor. The host doesn't compute this
+   * — only stores it for the discard modal + `beforeunload` guard.
    */
   const [isDirty, setIsDirty] = useState(false);
 
   /**
-   * Tracks which {@link ProcessEditorView} is currently materialised inside
-   * the iframe. Compared against the incoming `view` prop on every render
-   * to decide whether to (re)apply it.
+   * What the editor currently holds. Compared against the incoming `view`
+   * prop on every render to decide whether to load it.
    */
-  const [loadedView, setLoadedView] = useState<LoadedView | null>(null);
+  const [loaded, setLoaded] = useState<Loaded | null>(null);
+
+  /** The committed load, or null after leaving, for save completion. */
+  const loadedRef = useRef(loaded);
+  useLayoutEffect(() => {
+    loadedRef.current = loaded;
+    return () => {
+      loadedRef.current = null;
+    };
+  }, [loaded]);
 
   /**
    * Pending view-change waiting on user confirmation, set when the URL
@@ -234,27 +248,27 @@ export const ProcessEditor = ({
     userEditable,
   } = useProcessSaveAndLoad({
     refetchRevisions,
-    selectedNetId,
     setSelectedNetId,
   });
 
   /**
-   * Resolve the incoming `view` prop into the data the iframe needs (SDCPN,
-   * title, mode, savedSnapshot). Returns `null` while we're still waiting
-   * for `persistedNets` to load (saved view) — which the reconciliation
-   * effect treats as a "not yet ready" signal.
+   * Resolve the incoming `view` prop into what the editor holds for it.
+   * Returns `null` while we're still waiting for `persistedNets` to load
+   * (saved view) — which the reconciliation effect treats as a "not yet
+   * ready" signal. Every result is a new load.
    */
   const resolveView = useCallback(
-    (target: ProcessEditorView): ResolvedView | null => {
+    (target: ProcessEditorView): Loaded | null => {
       if (target.kind === "draft") {
-        const seedTitle = target.seed?.title ?? "Process";
-        const seedDefinition = target.seed?.petriNetDefinition ?? emptySDCPN;
         return {
-          loadedView: { kind: "draft", seedKey: target.seedKey },
-          definition: seedDefinition,
-          title: seedTitle,
-          mode: { kind: "draft", seedKey: target.seedKey },
-          savedSnapshot: null,
+          view: { kind: "draft", seedKey: target.seedKey },
+          load: {
+            definition: target.seed?.petriNetDefinition ?? emptySDCPN,
+            title: target.seed?.title ?? "Process",
+            mode: { kind: "draft", seedKey: target.seedKey },
+            savedSnapshot: null,
+            reason: "open",
+          },
         };
       }
 
@@ -266,130 +280,31 @@ export const ProcessEditor = ({
         return null;
       }
       return {
-        loadedView: { kind: "saved", entityId: targetNet.entityId },
-        definition: targetNet.definition,
-        title: targetNet.title,
-        mode: {
-          kind: "saved",
-          entityId: targetNet.entityId,
-          userEditable: targetNet.userEditable,
-        },
-        savedSnapshot: {
+        view: { kind: "saved", entityId: targetNet.entityId },
+        load: {
           definition: targetNet.definition,
           title: targetNet.title,
-          decisionTime: targetNet.lastUpdated,
+          mode: { kind: "saved", entityId: targetNet.entityId },
+          savedSnapshot: {
+            definition: targetNet.definition,
+            title: targetNet.title,
+            decisionTime: targetNet.lastUpdated,
+          },
+          reason: "open",
         },
       };
     },
     [persistedNets],
   );
 
-  const bridge = useHostBridge({
-    iframeRef,
-    handlers: {
-      onDirtyChanged: setIsDirty,
-      onRequestNavigateBack: () => {
-        void router.push("/processes");
-      },
-      onRequestRevision: (decisionTime) => {
-        const revision = revisions.find(
-          (rev) => rev.decisionTime === decisionTime,
-        );
-        if (!revision || !loadedView || loadedView.kind !== "saved") {
-          return;
-        }
-        bridge.send({
-          kind: "load",
-          definition: revision.definition,
-          title: revision.title,
-          mode: {
-            kind: "saved",
-            entityId: loadedView.entityId,
-            userEditable,
-          },
-          savedSnapshot: {
-            definition: revision.definition,
-            title: revision.title,
-            decisionTime: revision.decisionTime,
-          },
-          revisions: buildRevisionSummaries(revisions),
-        });
-      },
-      onReportError: ({ source, name, message, stack, mode, tags }) => {
-        /**
-         * Reconstruct an Error from the iframe's serialised payload so
-         * Sentry's stack-trace processing has something to chew on. The
-         * synthetic Error's stack is replaced with the iframe's own,
-         * which Sentry will resolve against the same source maps as the
-         * embed-page bundle (uploaded as part of the host's release).
-         */
-        const reconstructed = Object.assign(new Error(message), {
-          name,
-          stack,
-        });
-        Sentry.captureException(reconstructed, {
-          tags: {
-            ...tags,
-            "petrinaut.source": source,
-            "petrinaut.mode": mode?.kind ?? "unknown",
-          },
-          contexts: {
-            petrinaut: { mode },
-          },
-        });
-      },
-      onRequestSave: ({ requestId, definition, title }) => {
-        const wasCreate = selectedNetId === null;
-        void persistDefinition(definition, title)
-          .then((result) => {
-            if (wasCreate) {
-              const savedUuid = extractEntityUuidFromEntityId(result.entityId);
-              expectedSavedUuidRef.current = savedUuid;
-              setLoadedView({ kind: "saved", entityId: result.entityId });
-              void router.replace(`/processes/${savedUuid}`);
-            }
-            bridge.send({
-              kind: "saveResult",
-              requestId,
-              result: {
-                ok: true,
-                mode: {
-                  kind: "saved",
-                  entityId: result.entityId,
-                  userEditable: result.userEditable,
-                },
-                savedSnapshot: {
-                  definition,
-                  title,
-                  decisionTime: result.decisionTime,
-                },
-                revisions: buildRevisionSummaries(revisions),
-              },
-            });
-          })
-          .catch((error: unknown) => {
-            bridge.send({
-              kind: "saveResult",
-              requestId,
-              result: {
-                ok: false,
-                error: error instanceof Error ? error.message : String(error),
-              },
-            });
-          });
-      },
-    },
-  });
-
   /**
-   * Apply a resolved view: mirror local host state used by the save flow,
-   * record the new `loadedView`. Returns the resolved view so the caller
-   * can issue the matching `init` / `load` message.
+   * Load a resolved view into the editor, and mirror the host state the save
+   * flow and revision history use.
    */
   const adoptResolvedView = useCallback(
-    (resolved: ResolvedView) => {
-      if (resolved.loadedView.kind === "saved") {
-        const entityId = resolved.loadedView.entityId;
+    (resolved: Loaded) => {
+      if (resolved.view.kind === "saved") {
+        const entityId = resolved.view.entityId;
         const targetNet = persistedNets.find(
           (net) => net.entityId === entityId,
         );
@@ -400,46 +315,18 @@ export const ProcessEditor = ({
         setSelectedNetId(null);
         setUserEditable(true);
       }
-      setLoadedView(resolved.loadedView);
+      setLoaded(resolved);
     },
     [loadPersistedNet, persistedNets, setUserEditable],
   );
 
   /**
-   * Bootstrap: on the first render where the iframe is ready, the view has
-   * resolved from the URL, and we have all the data we need to materialise
-   * it, push `init`. Subsequent view changes (including URL navigation)
-   * flow through the reconciliation effect below as `load`.
-   */
-  useEffect(() => {
-    if (!bridge.isReady || loadedView !== null || view === null) {
-      return;
-    }
-    const resolved = resolveView(view);
-    if (!resolved) {
-      return;
-    }
-    adoptResolvedView(resolved);
-
-    bridge.send({
-      kind: "init",
-      initialDefinition: resolved.definition,
-      initialTitle: resolved.title,
-      readonly:
-        resolved.mode.kind === "saved" ? !resolved.mode.userEditable : false,
-      mode: resolved.mode,
-      savedSnapshot: resolved.savedSnapshot,
-      revisions: buildRevisionSummaries(revisions),
-    });
-  }, [adoptResolvedView, bridge, loadedView, resolveView, revisions, view]);
-
-  /**
-   * Reconciles the incoming `view` prop with the editor's `loadedView` for
-   * subsequent navigations.
+   * Reconciles the incoming `view` prop with what the editor holds.
    *
-   * Three outcomes:
+   * Outcomes:
+   *  - Nothing loaded yet: load the view.
    *  - Already loaded: no-op.
-   *  - Mismatch and not dirty: send `load` immediately.
+   *  - Mismatch and not dirty: load the view immediately.
    *  - Mismatch and dirty: stash as `pendingView` and surface the discard
    *    modal. If the user cancels, the URL is reverted to the loaded view.
    *
@@ -447,7 +334,15 @@ export const ProcessEditor = ({
    * for the next render once the query resolves.
    */
   useEffect(() => {
-    if (!bridge.isReady || loadedView === null || view === null) {
+    if (view === null) {
+      return;
+    }
+
+    if (loaded === null) {
+      const resolved = resolveView(view);
+      if (resolved) {
+        adoptResolvedView(resolved);
+      }
       return;
     }
 
@@ -457,7 +352,7 @@ export const ProcessEditor = ({
         view.entityUuid === expectedSavedUuidRef.current
       ) {
         // URL has caught up — proceed normally (and `viewMatchesLoaded`
-        // below will short-circuit since `loadedView` was already set in
+        // below will short-circuit since the loaded view was already set in
         // sync with the save).
         expectedSavedUuidRef.current = null;
       } else {
@@ -467,7 +362,7 @@ export const ProcessEditor = ({
       }
     }
 
-    if (viewMatchesLoaded(view, loadedView)) {
+    if (viewMatchesLoaded(view, loaded.view)) {
       return;
     }
     if (view.kind === "saved" && persistedNetsLoading) {
@@ -493,51 +388,15 @@ export const ProcessEditor = ({
       return;
     }
     adoptResolvedView(resolved);
-
-    bridge.send({
-      kind: "load",
-      definition: resolved.definition,
-      title: resolved.title,
-      mode: resolved.mode,
-      savedSnapshot: resolved.savedSnapshot,
-      revisions: buildRevisionSummaries(revisions),
-    });
   }, [
     adoptResolvedView,
-    bridge,
     isDirty,
-    loadedView,
+    loaded,
     persistedNets,
     persistedNetsLoading,
     resolveView,
-    revisions,
     view,
   ]);
-
-  /**
-   * Whenever the host's revision list refreshes (via Apollo's cache) push
-   * it down to the iframe so the version picker stays current.
-   */
-  useEffect(() => {
-    if (!bridge.isReady || loadedView === null) {
-      return;
-    }
-    bridge.send({
-      kind: "revisionsList",
-      revisions: buildRevisionSummaries(revisions),
-    });
-  }, [bridge, loadedView, revisions]);
-
-  /**
-   * Mirror updated `userEditable` permission to the iframe (e.g. the
-   * persisted-net record was refreshed and permissions changed).
-   */
-  useEffect(() => {
-    if (!bridge.isReady || loadedView === null) {
-      return;
-    }
-    bridge.send({ kind: "setReadonly", readonly: !userEditable });
-  }, [bridge, loadedView, userEditable]);
 
   /**
    * Browser-level dirty guard: warns when the user tries to close the tab,
@@ -573,34 +432,76 @@ export const ProcessEditor = ({
       adoptResolvedView(resolved);
 
       // Drop the dirty flag eagerly so the modal doesn't immediately retrigger
-      // before the iframe's `dirtyChanged` flushes after the new load.
+      // before the editor reports the new load's dirty state.
       setIsDirty(false);
+    },
+    [adoptResolvedView, resolveView],
+  );
 
-      bridge.send({
-        kind: "load",
-        definition: resolved.definition,
-        title: resolved.title,
-        mode: resolved.mode,
-        savedSnapshot: resolved.savedSnapshot,
-        revisions: buildRevisionSummaries(revisions),
+  const navigateBack = useCallback(() => {
+    void router.push("/processes");
+  }, [router]);
+
+  /** Loads a saved revision of the open net, fetched with its history. */
+  const selectRevision = useCallback(
+    (decisionTime: string) => {
+      const revision = revisions.find(
+        (rev) => rev.decisionTime === decisionTime,
+      );
+      if (!revision || loaded?.view.kind !== "saved") {
+        return;
+      }
+      setLoaded({
+        view: loaded.view,
+        load: {
+          definition: revision.definition,
+          title: revision.title,
+          mode: { kind: "saved", entityId: loaded.view.entityId },
+          savedSnapshot: {
+            definition: revision.definition,
+            title: revision.title,
+            decisionTime: revision.decisionTime,
+          },
+          reason: "revision",
+        },
       });
     },
-    [adoptResolvedView, bridge, resolveView, revisions],
+    [loaded, revisions],
   );
 
   /**
-   * Show the skeleton until the iframe has signalled `ready` AND we've
-   * pushed the bootstrap `init` message (i.e. the iframe is rendering
-   * Petrinaut against the right SDCPN). There's a small visual gap
-   * between sending `init` and Petrinaut actually painting its panels;
-   * we accept that flash rather than introducing an extra
-   * "editor-painted" handshake message.
+   * Persists what the editor submitted to the net it names. Its result
+   * applies to the host only while the load it was submitted from is still
+   * open: a save finishing after another load changes neither the selection
+   * nor the URL.
    */
-  const isLoading = !bridge.isReady || loadedView === null;
+  const save = useCallback(
+    async ({ definition, title, entityId }: PetrinautEditorSave) => {
+      const submittedFrom = loadedRef.current?.load;
+      const result = await persistDefinition(definition, title, entityId);
+      if (loadedRef.current?.load !== submittedFrom) {
+        return result;
+      }
+      setSelectedNetId(result.entityId);
+      setUserEditable(result.userEditable);
+      if (entityId === null) {
+        const savedUuid = extractEntityUuidFromEntityId(result.entityId);
+        expectedSavedUuidRef.current = savedUuid;
+        setLoaded((current) =>
+          current
+            ? { ...current, view: { kind: "saved", entityId: result.entityId } }
+            : current,
+        );
+        void router.replace(`/processes/${savedUuid}`);
+      }
+      return result;
+    },
+    [persistDefinition, router, setUserEditable],
+  );
 
   return (
     <Stack sx={{ height: "100%" }}>
-      {pendingView && loadedView && (
+      {pendingView && loaded && (
         <AlertModal
           callback={() => {
             const target = pendingView;
@@ -615,7 +516,7 @@ export const ProcessEditor = ({
           header="Discard unsaved changes?"
           open
           close={() => {
-            const revertPath = pathForLoadedView(loadedView);
+            const revertPath = pathForLoadedView(loaded.view);
             setPendingView(null);
             // Restore the URL to the editor's loaded view so URL and
             // editor stay in sync.
@@ -626,32 +527,21 @@ export const ProcessEditor = ({
       )}
 
       <Box sx={{ height: "100%", position: "relative" }}>
-        <Box
-          component="iframe"
-          ref={iframeRef}
-          src={PETRINAUT_EMBED_SRC}
-          /**
-           * `allow-scripts` (without `allow-same-origin`) gives the iframe a
-           * unique opaque origin: it can't read HASH cookies / localStorage /
-           * IndexedDB, can't reach HASH's API as the user (CORS + no
-           * cookies), and can't touch the parent DOM. The route's CSP
-           * additionally restricts what the iframe can do with the
-           * `'unsafe-eval'` we grant it (no `connect-src` to anywhere
-           * outside `'self'`, which is itself unreachable cross-origin).
-           */
-          sandbox="allow-scripts"
-          allow="clipboard-read *; clipboard-write *"
-          referrerPolicy="no-referrer"
-          title="Process editor"
-          sx={{
-            width: "100%",
-            height: "100%",
-            border: 0,
-            display: "block",
-          }}
-        />
+        {canRenderPetrinaut && (
+          <PetrinautEditor
+            load={loaded?.load ?? null}
+            readonly={!userEditable}
+            revisions={buildRevisionSummaries(revisions)}
+            onDirtyChange={setIsDirty}
+            onNavigateBack={navigateBack}
+            onSelectRevision={selectRevision}
+            onSave={save}
+          />
+        )}
 
-        {isLoading && <ProcessEditorLoadingSkeleton />}
+        {(loaded === null || !canRenderPetrinaut) && (
+          <ProcessEditorLoadingSkeleton />
+        )}
       </Box>
     </Stack>
   );

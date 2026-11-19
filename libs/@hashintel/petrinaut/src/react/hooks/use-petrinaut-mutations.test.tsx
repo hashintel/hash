@@ -16,7 +16,11 @@ import {
 
 import { PetrinautInstanceContext } from "../instance-context";
 import { NotificationsContext } from "../notifications/context";
-import { SimulationContext, type SimulationState } from "../simulation/context";
+import {
+  SimulationContext,
+  type SimulationState,
+  DEFAULT_SIMULATION_CONTEXT,
+} from "../simulation/context";
 import {
   EditorContext,
   type EditorContextValue,
@@ -126,38 +130,7 @@ const createWrapper = (options: WrapperOptions = {}) => {
     <PetrinautInstanceContext value={instance}>
       <SDCPNContext value={sdcpnContextValue}>
         <SimulationContext
-          value={{
-            state: simulationState,
-            error: null,
-            errorItemId: null,
-            parameterValues: {},
-            initialMarking: {},
-            selectedScenarioId: null,
-            scenarioParameterValues: {},
-            compiledScenarioResult: null,
-            scenarioCompilationErrors: null,
-            adHocScenario: null,
-            adHocNetParameters: [],
-            setAdHocScenario: () => {},
-            dt: 0.01,
-            maxTime: null,
-            totalFrames: 0,
-            getFrame: () => Promise.resolve(null),
-            getAllFrames: () => Promise.resolve([]),
-            getFramesInRange: () => Promise.resolve([]),
-            setSelectedScenarioId: () => {},
-            setScenarioParameterValue: () => {},
-            setInitialMarking: () => {},
-            setParameterValue: () => {},
-            setDt: () => {},
-            setMaxTime: () => {},
-            initialize: () => Promise.resolve(),
-            run: () => {},
-            pause: () => {},
-            reset: () => {},
-            setBackpressure: () => {},
-            ack: () => {},
-          }}
+          value={{ ...DEFAULT_SIMULATION_CONTEXT, state: simulationState }}
         >
           <EditorContext value={editorContextValue(globalMode)}>
             {children}
@@ -184,7 +157,6 @@ describe("usePetrinautMutations", () => {
           name: "Place1",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         });
@@ -203,7 +175,6 @@ describe("usePetrinautMutations", () => {
             name: "P1",
             colorId: null,
             dynamicsEnabled: false,
-            differentialEquationId: null,
             x: 0,
             y: 0,
           },
@@ -240,7 +211,6 @@ describe("usePetrinautMutations", () => {
           name: "P1",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         });
@@ -261,7 +231,6 @@ describe("usePetrinautMutations", () => {
           name: "P1",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         });
@@ -283,7 +252,6 @@ describe("usePetrinautMutations", () => {
             name: "P1",
             colorId: null,
             dynamicsEnabled: false,
-            differentialEquationId: null,
             x: 0,
             y: 0,
           });
@@ -341,7 +309,6 @@ describe("usePetrinautMutations", () => {
             name: "P1",
             colorId: null,
             dynamicsEnabled: false,
-            differentialEquationId: null,
             x: 0,
             y: 0,
           },
@@ -350,7 +317,6 @@ describe("usePetrinautMutations", () => {
             name: "P2",
             colorId: null,
             dynamicsEnabled: false,
-            differentialEquationId: null,
             x: 100,
             y: 0,
           },
@@ -412,7 +378,6 @@ test.each([
         name: "Blocked",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         x: 0,
         y: 0,
       }),
@@ -457,7 +422,6 @@ describe("visualizer edits during simulation", () => {
     name: "Place",
     colorId: null,
     dynamicsEnabled: false,
-    differentialEquationId: null,
     x: 0,
     y: 0,
     visualizerCode: "original",

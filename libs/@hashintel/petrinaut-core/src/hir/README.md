@@ -60,7 +60,7 @@ transition outputs.
 
 | User-code surface                                     | Compiled through HIR | Compilation and execution path                                                                                                                                                                                                                                                                           |
 | ----------------------------------------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Differential equations (dynamics)                     | Yes                  | Compiled in the LSP worker; buffer program runs in simulation workers.                                                                                                                                                                                                                                   |
+| Differential equations (dynamics)                     | Yes                  | Compiled in the LSP worker; buffer program runs in simulation workers. An equation compiles to nested loops over every combination of `arity` tokens, summing each combination's records into the tokens' derivatives.                                                                                   |
 | Transition firing rates and predicates (lambdas)      | Yes                  | Compiled in the LSP worker; buffer program runs during transition enablement checks.                                                                                                                                                                                                                     |
 | Transition kernels                                    | Yes                  | Compiled in the LSP worker; buffer program writes kernel staging bytes and defers seeded operations through the engine sink.                                                                                                                                                                             |
 | Timeline and Monte-Carlo expression metrics           | Yes                  | Compiled in the LSP worker; buffer program reads packed frame views in the timeline or Monte-Carlo worker.                                                                                                                                                                                               |
@@ -92,7 +92,7 @@ outside the supported HIR subset is a blocking diagnostic.
 {
   version: 4,
   fingerprint: string,
-  dynamics: Record<string, { source: string }>,
+  dynamics: Record<string, { source: string; arity: number }>,
   lambdas: Record<string, { source: string; inputSlotCount: number }>,
   kernels: Record<string, {
     source: string;

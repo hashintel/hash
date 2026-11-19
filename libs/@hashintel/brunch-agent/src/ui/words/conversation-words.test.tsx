@@ -14,7 +14,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-test("conversation and owner key scope isolate lists and reload restores entries", () => {
+test("conversation and actor key scope isolate lists and reload restores entries", () => {
   const hook = renderHook(
     ({ conversation }) => useConversationWords("person", conversation),
     { initialProps: { conversation: "one" } },
@@ -78,10 +78,10 @@ test("quota failure keeps usable tab-local words and discloses the failure", () 
   expect(hook.result.current.notice).toContain("Available in this tab");
 });
 
-test("cross-tab updates refresh only the bound conversation and an owner key switch never inherits words", () => {
+test("cross-tab updates refresh only the bound conversation and an actor key switch never inherits words", () => {
   const hook = renderHook(
-    ({ ownerKey }) => useConversationWords(ownerKey, "one"),
-    { initialProps: { ownerKey: "person" } },
+    ({ actorKey }) => useConversationWords(actorKey, "one"),
+    { initialProps: { actorKey: "person" } },
   );
   const key = conversationWordsKey("person", "one");
   localStorage.setItem(
@@ -103,7 +103,7 @@ test("cross-tab updates refresh only the bound conversation and an owner key swi
     );
   });
   expect(hook.result.current.entries[0]?.spelling).toBe("Café");
-  hook.rerender({ ownerKey: "another" });
+  hook.rerender({ actorKey: "another" });
   expect(hook.result.current.entries).toEqual([]);
 });
 

@@ -9,8 +9,10 @@ import {
   cafeQueue,
   deploymentPipelineSDCPN,
   dronePatrol,
+  planetsAndSatellites,
   probabilisticSatellitesSDCPN,
   productionMachines,
+  satellitesWithAttraction,
   sirModel,
   supplyChainWithDisruption,
   supplyChainProfit,
@@ -28,6 +30,8 @@ const EXAMPLES: [string, SDCPN][] = [
   ["production-with-machine-failure", productionMachines.petriNetDefinition],
   ["deployment-pipeline", deploymentPipelineSDCPN.petriNetDefinition],
   ["satellites-launcher", probabilisticSatellitesSDCPN.petriNetDefinition],
+  ["satellites-attraction", satellitesWithAttraction.petriNetDefinition],
+  ["planets-and-satellites", planetsAndSatellites.petriNetDefinition],
   ["sir-model", sirModel.petriNetDefinition],
   ["cafe-queue", cafeQueue.petriNetDefinition],
   ["drone-patrol", dronePatrol.petriNetDefinition],
@@ -147,5 +151,84 @@ describe("compileHirArtifacts on example models", () => {
       hirArtifacts: artifacts,
     });
     expect(simulation.compiledTransitions.size).toBeGreaterThan(0);
+  });
+});
+
+describe("compileHirArtifacts with arity dynamics", () => {
+  const net = (code: string, arity: number): SDCPN => ({
+    types: [
+      {
+        id: "body",
+        name: "Body",
+        iconSlug: "circle",
+        displayColor: "#000000",
+        elements: [
+          { elementId: "x", name: "x", type: "real" },
+          { elementId: "v", name: "v", type: "real" },
+        ],
+      },
+    ],
+    differentialEquations: [
+      { id: "pull", name: "Pull", colorId: "body", code, arity },
+    ],
+    parameters: [],
+    places: [
+      {
+        id: "space",
+        name: "Space",
+        colorId: "body",
+        dynamicsEnabled: true,
+        dynamics: [{ differentialEquationId: "pull" }],
+        x: 0,
+        y: 0,
+      },
+    ],
+    transitions: [],
+  });
+
+  it("carries the arity on the artifact", () => {
+    const { artifacts, failures } = compileHirArtifacts(
+      net(
+        `const [a, b] = tokens;
+return [{ v: b.x - a.x }, { v: a.x - b.x }];`,
+        2,
+      ),
+    );
+    expect(failures).toEqual([]);
+    expect(artifacts.dynamics.pull).toMatchObject({ arity: 2 });
+    expect(artifacts.dynamics.pull?.source).toContain("for (");
+  });
+
+  it("rejects a result with the wrong number of records", () => {
+    const { failures } = compileHirArtifacts(
+      net(
+        `const [a, b] = tokens;
+return [{ v: b.x - a.x }];`,
+        2,
+      ),
+    );
+    expect(failures).toMatchObject([
+      { itemId: "pull", diagnostics: [{ code: "hir:dynamics-return" }] },
+    ]);
+    expect(failures[0]?.diagnostics[0]?.message).toContain(
+      "2 derivative records",
+    );
+  });
+
+  it("rejects an arity-1 result that is an array", () => {
+    const { failures } = compileHirArtifacts(
+      net(`return [{ v: token.x }];`, 1),
+    );
+    expect(failures[0]?.diagnostics[0]?.code).toBe("hir:dynamics-return");
+    expect(failures[0]?.diagnostics[0]?.message).toContain(
+      "one derivative record",
+    );
+  });
+
+  it("rejects an index past the tuple", () => {
+    const { failures } = compileHirArtifacts(
+      net(`return [{ v: tokens[2].x }, { v: 0 }];`, 2),
+    );
+    expect(failures[0]?.diagnostics[0]?.code).toBe("hir:index-out-of-bounds");
   });
 });

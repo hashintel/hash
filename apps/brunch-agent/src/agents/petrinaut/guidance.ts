@@ -1,13 +1,13 @@
 import { useInstruction, useModel, useSkill, useTool } from "@flue/runtime";
 
-import { interviewBudgetInstruction } from "./interview-budget-instruction.ts";
+import { interviewBudgetInstruction } from "../shared/interview-budget-instruction.ts";
+import { createLedgerTools } from "../shared/ledger-tools.ts";
+import { createQueryBasisTool } from "../shared/query-basis.ts";
+import { wordsInstruction } from "../shared/words-instruction.ts";
 import system from "./prompts/system.md?raw";
 import eliciting from "./skills/eliciting/SKILL.md";
 import modelling from "./skills/modelling/SKILL.md";
 import petrinaut from "./skills/petrinaut/SKILL.md";
-import { createLedgerTools } from "./tools/ledger.ts";
-import { createQueryBasisTool } from "./tools/query-basis.ts";
-import { wordsInstruction } from "./words-instruction.ts";
 
 import type {
   LedgerHistory,

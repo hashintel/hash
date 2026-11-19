@@ -30,8 +30,8 @@ const model = (legacy: boolean) =>
         id: "dynamics",
         colorId: "color",
         code: legacy
-          ? "export default Dynamics((tokens) => tokens.map(() => ({ x: 0 })));"
-          : "return tokens.map(() => ({ x: 0 }));",
+          ? "export default Dynamics((token) => ({ x: 0 }));"
+          : "return { x: 0 };",
       },
     ],
     transitions: [

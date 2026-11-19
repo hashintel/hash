@@ -2,7 +2,7 @@ import { use, useMemo } from "react";
 
 import { defaultTokenAttributeValue, toUuid } from "@hashintel/petrinaut-core";
 
-import { PlaybackContext } from "../../../../../../../../react/playback/context";
+import { ExecutionFrameSourceContext } from "../../../../../../../../react/execution-frame/context";
 import { SimulationContext } from "../../../../../../../../react/simulation/context";
 import { Spreadsheet } from "../../../../../../../components/spreadsheet";
 
@@ -66,7 +66,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
   readOnly = false,
 }) => {
   const { initialMarking, setInitialMarking } = use(SimulationContext);
-  const { currentFrameReader, totalFrames } = use(PlaybackContext);
+  const { currentFrameReader, totalFrames } = use(ExecutionFrameSourceContext);
 
   const hasSimulation = totalFrames > 0;
 

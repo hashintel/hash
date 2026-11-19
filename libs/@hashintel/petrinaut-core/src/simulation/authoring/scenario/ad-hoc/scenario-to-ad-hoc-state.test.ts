@@ -1,15 +1,18 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  bicycleAssembly,
   cafeQueue,
   deploymentPipelineSDCPN,
   dronePatrol,
   probabilisticSatellitesSDCPN,
   productionMachines,
+  sirMassActionModel,
   sirModel,
   supplyChainProfit,
   supplyChainWithDisruption,
   vaccinationCampaign,
+  wheelTruing,
 } from "../../../../examples/index";
 import { lowerScenarioToHir } from "../../../../hir/scenario";
 import { compileScenario } from "../compile-scenario";
@@ -35,7 +38,6 @@ const place = (id: string, name: string, colorId: string | null): Place => ({
   name,
   colorId,
   dynamicsEnabled: false,
-  differentialEquationId: null,
   x: 0,
   y: 0,
 });
@@ -370,15 +372,18 @@ describe("adHocStateFromScenario", () => {
 type Example = { title: string; petriNetDefinition: SDCPN };
 
 const EXAMPLES: Example[] = [
+  bicycleAssembly,
   cafeQueue,
   deploymentPipelineSDCPN,
   dronePatrol,
   probabilisticSatellitesSDCPN,
   productionMachines,
+  sirMassActionModel,
   sirModel,
   supplyChainProfit,
   supplyChainWithDisruption,
   vaccinationCampaign,
+  wheelTruing,
 ];
 
 const exampleScenarios = (
@@ -444,7 +449,7 @@ describe("adHocStateFromScenario over the core examples", () => {
   it("stores every example scenario in the editable ad-hoc format", () => {
     expect(exampleScenarios("per_place")).toHaveLength(0);
     expect(exampleScenarios("code")).toHaveLength(0);
-    expect(exampleScenarios("adhoc")).toHaveLength(24);
+    expect(exampleScenarios("adhoc")).toHaveLength(30);
   });
 
   it.each(exampleScenarios("adhoc"))(

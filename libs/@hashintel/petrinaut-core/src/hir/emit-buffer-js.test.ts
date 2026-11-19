@@ -32,7 +32,11 @@ function lower(
   code: string,
   surface: "lambda" | "kernel" | "dynamics" | "metric",
 ) {
-  const result = lowerTypeScriptToHir(code, surface);
+  const result = lowerTypeScriptToHir(
+    code,
+    surface,
+    surface === "dynamics" ? { arity: 1 } : {},
+  );
   if (!result.ok) {
     throw new Error(result.diagnostics[0]?.message);
   }
@@ -72,8 +76,12 @@ const lambdaContext: HirLambdaContext = {
   ],
   inputPlaces: [(({ slotStart: _s, ...binding }) => binding)(poolSlot)],
   inputSlots: [poolSlot],
+  inputCounts: [{ name: "Pool", arcIndex: 0 }],
   lambdaType: "stochastic",
 };
+
+/** The Pool place's live count, passed as the `inputCounts` argument. */
+const POOL_COUNTS = new Float64Array([5]);
 
 // A frame region with two Pool tokens, back to back. `placeBases` has one
 // entry per input arc (the Pool arc's place region starts at byte 0);
@@ -118,9 +126,9 @@ describe("emitBufferLambdaJs (token format v2)", () => {
       `export default Lambda((input, parameters) => input.Pool[0].alive ? input.Pool[0].x + input.Pool[1].v : 0);`,
       pool,
     );
-    expect(fn(views.f64, views.u64, views.u8, placeBases, indices)).toBe(
-      1.5 + 8,
-    );
+    expect(
+      fn(views.f64, views.u64, views.u8, placeBases, indices, POOL_COUNTS),
+    ).toBe(1.5 + 8);
   });
 
   it("resolves interned strings through the pool", () => {
@@ -130,7 +138,9 @@ describe("emitBufferLambdaJs (token format v2)", () => {
       `export default Lambda((input, parameters) => input.Pool[0].status === "shipped" && input.Pool[1].status.startsWith("q"));`,
       pool,
     );
-    expect(fn(views.f64, views.u64, views.u8, placeBases, indices)).toBe(true);
+    expect(
+      fn(views.f64, views.u64, views.u8, placeBases, indices, POOL_COUNTS),
+    ).toBe(true);
   });
 
   it("assembles uuid attributes as bigints from the two u64 lanes", () => {
@@ -140,7 +150,9 @@ describe("emitBufferLambdaJs (token format v2)", () => {
       `export default Lambda((input, parameters) => input.Pool[0].id === input.Pool[1].id ? 1 : 0.5);`,
       pool,
     );
-    expect(fn(views.f64, views.u64, views.u8, placeBases, indices)).toBe(0.5);
+    expect(
+      fn(views.f64, views.u64, views.u8, placeBases, indices, POOL_COUNTS),
+    ).toBe(0.5);
     void uuid;
   });
 
@@ -158,7 +170,70 @@ describe("emitBufferLambdaJs (token format v2)", () => {
       pool,
       { rate: 2, threshold: 1 },
     );
-    expect(fn(views.f64, views.u64, views.u8, placeBases, indices)).toBe(3);
+    expect(
+      fn(views.f64, views.u64, views.u8, placeBases, indices, POOL_COUNTS),
+    ).toBe(3);
+  });
+});
+
+describe("emitBufferLambdaJs input place counts", () => {
+  // Pool delivers tokens (arc 0); Gate delivers none (arc 1: uncoloured, or
+  // an inhibitor arc), so only its `.count` is readable.
+  const countContext: HirLambdaContext = {
+    ...lambdaContext,
+    inputCounts: [
+      { name: "Pool", arcIndex: 0 },
+      { name: "Gate", arcIndex: 1 },
+    ],
+  };
+
+  it("reads `.count` from the inputCounts argument, by input arc", () => {
+    const pool = new StringPool();
+    const { views, placeBases, indices } = makeRegion(pool);
+    const program = emitBufferLambdaJs(
+      lower(
+        `return parameters.rate * input.Pool.count * input.Gate.count;`,
+        "lambda",
+      ),
+      countContext,
+    );
+    expect(program).not.toBeNull();
+    const fn = instantiateHirBufferLambda(program!.source, { rate: 2 }, pool);
+    expect(
+      fn(
+        views.f64,
+        views.u64,
+        views.u8,
+        placeBases,
+        indices,
+        new Float64Array([5, 3]),
+      ),
+    ).toBe(30);
+  });
+
+  it("mixes counts with token attributes", () => {
+    const pool = new StringPool();
+    const { views, placeBases, indices } = makeRegion(pool);
+    const program = emitBufferLambdaJs(
+      lower(
+        `const { Pool: tokens } = input;
+return tokens[0].x / tokens.count;`,
+        "lambda",
+      ),
+      countContext,
+    );
+    expect(program).not.toBeNull();
+    const fn = instantiateHirBufferLambda(program!.source, {}, pool);
+    expect(
+      fn(
+        views.f64,
+        views.u64,
+        views.u8,
+        placeBases,
+        indices,
+        new Float64Array([3, 0]),
+      ),
+    ).toBe(0.5);
   });
 });
 
@@ -188,6 +263,7 @@ describe("emitBufferKernelJs (token format v2)", () => {
     parameters: [],
     inputPlaces: lambdaContext.inputPlaces,
     inputSlots: lambdaContext.inputSlots,
+    inputCounts: lambdaContext.inputCounts,
     outputPlaces: [
       { name: "Out", colorId: "c2", elements: outElements, tokenCount: 2 },
     ],
@@ -228,6 +304,7 @@ describe("emitBufferKernelJs (token format v2)", () => {
       stagingViews.u64,
       stagingViews.u8,
       (kind, index, payload) => sinkCalls.push({ kind, index, payload }),
+      POOL_COUNTS,
     );
     return { program: program!, stagingViews, sinkCalls };
   }
@@ -347,6 +424,7 @@ describe("emitBufferKernelJs (token format v2)", () => {
       stagingViews.u64,
       stagingViews.u8,
       (kind, index, payload) => sinkCalls.push({ kind, index, payload }),
+      POOL_COUNTS,
     );
 
     const stride = poolLayout.strideBytes;
@@ -371,16 +449,17 @@ describe("emitBufferDynamicsJs (token format v2)", () => {
     const { views } = makeRegion(pool);
     const source = emitBufferDynamicsJs(
       lower(
-        `export default Dynamics((tokens, parameters) => {
+        `export default Dynamics(({ x, v, alive }, parameters) => {
   const g = parameters.g;
-  return tokens.map(({ x, v, alive }) => ({
+  return {
     x: alive ? v : 0,
     v: -g * x,
-  }));
+  };
 });`,
         "dynamics",
       ),
       poolElements,
+      1,
     );
     expect(source).not.toBeNull();
     const fn = instantiateHirBufferDynamics(source!, { g: 2 }, pool);
@@ -395,23 +474,94 @@ describe("emitBufferDynamicsJs (token format v2)", () => {
     const { views } = makeRegion(pool);
     const source = emitBufferDynamicsJs(
       lower(
-        `export default Dynamics((tokens) => tokens.map(({ v, status }) => ({
+        `export default Dynamics(({ v, status }) => ({
   x: status === "shipped" ? v : 0,
-})));`,
+}));`,
         "dynamics",
       ),
       poolElements,
+      1,
     );
     expect(source).not.toBeNull();
     const fn = instantiateHirBufferDynamics(source!, {}, pool);
     expect([...fn(views.u8, 2)]).toEqual([-2, 0, 0, 0]);
   });
 
-  it("bails to null when the body is not a token map", () => {
+  it("sums an arity-2 equation over every pair of tokens", () => {
+    const pool = new StringPool();
+    const { views } = makeRegion(pool);
+    const lowered = lowerTypeScriptToHir(
+      `const k = parameters.k;
+const [a, b] = tokens;
+const d = b.x - a.x;
+return [
+  { v: k * d },
+  { v: -k * d },
+];`,
+      "dynamics",
+      { arity: 2 },
+    );
+    if (!lowered.ok) throw new Error(lowered.diagnostics[0]?.message);
+    const source = emitBufferDynamicsJs(lowered.fn, poolElements, 2);
+    expect(source).not.toBeNull();
+    // The outer loop leaves room for the second token of a pair, so it
+    // starts no pair it cannot finish.
+    expect(source).toContain("i0 < numberOfTokens - 1;");
+    expect(source).toContain("< numberOfTokens;");
+    // The parameter read is hoisted out of the pair loops; the difference
+    // is not.
+    expect(source!.indexOf("const k = ")).toBeLessThan(
+      source!.indexOf("for ("),
+    );
+    expect(source!.indexOf("const d = ")).toBeGreaterThan(
+      source!.lastIndexOf("for ("),
+    );
+    const fn = instantiateHirBufferDynamics(source!, { k: 2 }, pool);
+    // One pair (A, B): d = 4 - 1.5 = 2.5, so A gains v' = 5 and B v' = -5;
+    // x has no derivative.
+    expect([...fn(views.u8, 2)]).toEqual([0, 5, 0, -5]);
+    // A single token has no pair, so nothing moves.
+    expect([...fn(views.u8.subarray(0, poolLayout.strideBytes), 1)]).toEqual([
+      0, 0,
+    ]);
+  });
+
+  it("runs an arity-1 equation once per token, like the whole-place form", () => {
+    const pool = new StringPool();
+    const { views } = makeRegion(pool);
+    const lowered = lowerTypeScriptToHir(
+      `export default Dynamics((token, parameters) => ({
+  x: token.v,
+  v: -parameters.g * token.x,
+}));`,
+      "dynamics",
+      { arity: 1 },
+    );
+    if (!lowered.ok) throw new Error(lowered.diagnostics[0]?.message);
+    const source = emitBufferDynamicsJs(lowered.fn, poolElements, 1);
+    expect(source).not.toBeNull();
+    expect(source!.match(/for \(/g)).toHaveLength(1);
+    const fn = instantiateHirBufferDynamics(source!, { g: 2 }, pool);
+    expect([...fn(views.u8, 2)]).toEqual([-2, -3, 8, -8]);
+  });
+
+  it("bails to null when an arity equation's result is not a static record", () => {
+    const lowered = lowerTypeScriptToHir(
+      `const [a, b] = tokens;
+return a.x > b.x ? [{ v: 1 }, { v: -1 }] : [{ v: -1 }, { v: 1 }];`,
+      "dynamics",
+      { arity: 2 },
+    );
+    if (!lowered.ok) throw new Error(lowered.diagnostics[0]?.message);
+    expect(emitBufferDynamicsJs(lowered.fn, poolElements, 2)).toBeNull();
+  });
+
+  it("bails to null when a one-token equation returns an array", () => {
     expect(
       emitBufferDynamicsJs(
-        lower(`export default Dynamics((tokens) => [{ x: 1 }]);`, "dynamics"),
+        lower(`export default Dynamics((token) => [{ x: 1 }]);`, "dynamics"),
         poolElements,
+        1,
       ),
     ).toBeNull();
   });

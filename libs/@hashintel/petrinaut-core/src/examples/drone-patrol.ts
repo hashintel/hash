@@ -35,7 +35,6 @@ export const dronePatrol: {
           "Drones on the ground ready to launch, each carrying its battery level; landing resets it to a full charge. Holds up to 16 drones.",
         colorId: "type__drone",
         dynamicsEnabled: false,
-        differentialEquationId: null,
         capacity: 16,
         x: 1 * GRID_SIZE,
         y: 6 * GRID_SIZE,
@@ -47,7 +46,7 @@ export const dronePatrol: {
           "Drones on patrol. The Flight Battery Drain dynamics lower each drone's battery at drain_rate while its cruise altitude holds. Holds up to 16 drones.",
         colorId: "type__drone",
         dynamicsEnabled: true,
-        differentialEquationId: "de__flight_battery_drain",
+        dynamics: [{ differentialEquationId: "de__flight_battery_drain" }],
         capacity: 16,
         x: 21 * GRID_SIZE,
         y: 6 * GRID_SIZE,
@@ -152,12 +151,12 @@ return {
         id: "de__flight_battery_drain",
         colorId: "type__drone",
         name: "Flight Battery Drain",
+        arity: 1,
         code: `// Airborne drones drain charge at a constant rate; cruise altitude holds.
-
-return tokens.map((drone) => ({
+return {
   battery: -parameters.drain_rate,
   altitude: 0,
-}));`,
+};`,
       },
     ],
     parameters: [

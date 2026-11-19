@@ -43,7 +43,6 @@ const place = {
   name: "Queue",
   colorId: null,
   dynamicsEnabled: false,
-  differentialEquationId: null,
   x: 0,
   y: 0,
   targetSubnetId: null,
@@ -60,7 +59,8 @@ const setup = (
     }),
   });
   // The plugin's refusal-aware edits over the same instance the handle backs.
-  const { edit } = createTestEditorApi(instance, { refusal }).document;
+  const api = createTestEditorApi(instance, { refusal });
+  const { edit } = api.document;
   const adapter = createCanonicalPetrinautHostTools({
     handle: instance.handle,
     readTitle: () => "Untitled",
@@ -81,6 +81,8 @@ const setup = (
     toolCallId,
     handle: instance.handle,
     edit,
+    document: api.document,
+    experiments: api.experiments,
     readDiagnosticsContext: async () => "No diagnostics",
     signal: new AbortController().signal,
   });
@@ -123,7 +125,6 @@ describe("canonical browser revision attribution", () => {
             name: "Queue",
             colorId: null,
             dynamicsEnabled: false,
-            differentialEquationId: null,
           },
         ],
       },
@@ -240,7 +241,7 @@ describe("net freshness", () => {
       documentRevision: { before },
     });
     expect(() =>
-      tool("readNetStructure").inputSchema.parse({ extra: 1 }),
+      tool("readNetStructure").inputParser.parse({ extra: 1 }),
     ).toThrow();
   });
 
@@ -273,6 +274,56 @@ describe("net freshness", () => {
     });
     expect(instance.handle.doc()?.places[0]).toMatchObject({ x: 120, y: 80 });
     expect(adapter.acceptsRevision(seen)).toBe(true);
+  });
+
+  test.each<{
+    part: string;
+    change: (definition: SDCPN) => void;
+  }>([
+    {
+      part: "descriptions",
+      change: (definition) => {
+        Object.assign(definition, {
+          description: "An updated explanation of the operation.",
+        });
+      },
+    },
+    {
+      part: "appearance",
+      change: (definition) => {
+        for (const netPlace of definition.places) {
+          netPlace.visualizerCode = "return 'Updated appearance';";
+        }
+      },
+    },
+    {
+      part: "metadata",
+      change: (definition) => {
+        Object.assign(definition, {
+          metadata: { lastSavedTime: "2026-10-24T01:00:00.000Z" },
+        });
+      },
+    },
+  ])("changing $part by hand leaves the model's view current", ({ change }) => {
+    const { adapter, instance, revision } = setup();
+    instance.mutations.addPlace(place);
+    const before = instance.handle.doc();
+    const seen = revision();
+    instance.handle.change(change);
+    expect(instance.handle.doc()).not.toEqual(before);
+    expect(adapter.acceptsRevision(seen)).toBe(true);
+  });
+
+  test("renaming an element by hand makes the model's view stale", () => {
+    const { adapter, instance, revision } = setup();
+    instance.mutations.addPlace(place);
+    const seen = revision();
+    instance.mutations.updatePlace({
+      placeId: toPetrinautId("queue"),
+      update: { name: "RenamedQueue" },
+      targetSubnetId: null,
+    });
+    expect(adapter.acceptsRevision(seen)).toBe(false);
   });
 
   test("the chain survives a reload through the settled revisions in history", () => {

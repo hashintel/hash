@@ -46,6 +46,7 @@ export {
   createSimulation,
   createWorkerTransport,
   isSDCPNEqual,
+  normalizeSDCPN,
   type BackpressureConfig,
   type Color,
   type Command,

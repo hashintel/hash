@@ -20,9 +20,9 @@ describe("browserToolEnvelopeOf", () => {
     });
     const bare = browserToolEnvelopeOf({
       brunchBrowserResult: true,
-      output: undefined,
+      output: null,
     });
-    expect(bare).toEqual({ brunchBrowserResult: true, output: undefined });
+    expect(bare).toEqual({ brunchBrowserResult: true, output: null });
     expect(bare && "metadata" in bare).toBe(false);
   });
 
@@ -33,6 +33,9 @@ describe("browserToolEnvelopeOf", () => {
     ).toBeUndefined();
     expect(
       browserToolEnvelopeOf({ brunchBrowserResult: true }),
+    ).toBeUndefined();
+    expect(
+      browserToolEnvelopeOf({ brunchBrowserResult: true, output: undefined }),
     ).toBeUndefined();
     expect(browserToolEnvelopeOf(null)).toBeUndefined();
     expect(browserToolEnvelopeOf("text")).toBeUndefined();

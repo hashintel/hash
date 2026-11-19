@@ -5,10 +5,7 @@ import { atLeastOne } from "@blockprotocol/type-system";
 import { LoadingSpinner } from "@hashintel/design-system";
 import { SortMenu } from "@hashintel/ds-components";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import {
-  type EntityTableSummary,
-  getClosedMultiEntityTypeFromMap,
-} from "@local/hash-graph-sdk/entity";
+import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
 import {
   systemEntityTypes,
   systemPropertyTypes,
@@ -57,6 +54,7 @@ import type {
 } from "./entities-visualizer/entities-table-data";
 import type { EntitiesFilterState } from "./entities-visualizer/shared/filter-state";
 import type { TypeColorOverrides } from "./entities-visualizer/shared/type-colors";
+import type { ScopedEntityTableSummary } from "./entities-visualizer/use-entities-table-query";
 import type { EntityEditorProps } from "./entity/entity-editor";
 import type { VisualizerView } from "./visualizer-views";
 import type {
@@ -295,16 +293,15 @@ export const EntitiesVisualizer: FunctionComponent<{
    * needs its resolved pins) derive the filter chips from it without a fetch
    * of its own.
    */
-  const [tableSummary, setTableSummary] = useState<{
-    summary: EntityTableSummary;
-    scopeKey: string;
-  } | null>(null);
+  const [tableSummary, setTableSummary] =
+    useState<ScopedEntityTableSummary | null>(null);
   const [tableSummaryError, setTableSummaryError] = useState<Error>();
 
   /**
    * What a table summary describes. The endpoint spans its type maps over the
    * scope rather than the narrowed filter, so a type selection or a re-sort
-   * leaves a summary still answering — only these three change what it covers.
+   * leaves a summary still answering. Only the webs, archived entities and a
+   * pinned type change what it covers: a pin lifts the system-type exclusions.
    *
    * Kept in step with the scope the table query sends.
    */
@@ -314,8 +311,9 @@ export const EntitiesVisualizer: FunctionComponent<{
         filterState.web.includeOtherWebs,
         [...filterState.web.selectedInternalWebIds].toSorted(),
         filterState.includeArchived,
+        isTypePinned,
       ]),
-    [filterState.web, filterState.includeArchived],
+    [filterState.web, filterState.includeArchived, isTypePinned],
   );
 
   /**
@@ -384,6 +382,7 @@ export const EntitiesVisualizer: FunctionComponent<{
     limit: 500,
     resolvedPinnedEntityTypeIds: pinnedEntityTypeIds,
     sort: tableSort,
+    summaryScopeKey,
   });
 
   const entitiesData = useEntitiesVisualizerData({
@@ -402,12 +401,9 @@ export const EntitiesVisualizer: FunctionComponent<{
 
   useEffect(() => {
     if (tableQuery.summary) {
-      setTableSummary({
-        summary: tableQuery.summary,
-        scopeKey: summaryScopeKey,
-      });
+      setTableSummary(tableQuery.summary);
     }
-  }, [tableQuery.summary, summaryScopeKey]);
+  }, [tableQuery.summary]);
 
   useEffect(() => {
     setTableSummaryError(tableQuery.error);

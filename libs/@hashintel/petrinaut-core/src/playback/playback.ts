@@ -157,7 +157,7 @@ function createReadableStore<T>(initial: T): ReadableStore<T> & {
  * Create a {@link Playback} handle. Pure timing model: tracks playback state,
  * frame index, speed, and mode, and advances frame index on `tick()`. Does
  * **not** know about simulations or `requestAnimationFrame` — those concerns
- * live in the consumer (e.g. the React {@link import("../../react/playback").PlaybackProvider}).
+ * live in the consumer.
  */
 export function createPlayback(initial?: Partial<PlaybackSnapshot>): Playback {
   const store = createReadableStore<PlaybackSnapshot>({

@@ -1,8 +1,8 @@
 ---
-source: libs/@local/hashql/mir/src/pass/transform/cp/tests.rs
+source: libs/@local/hashql/mir/src/pass/transform/copy_propagation/tests.rs
 expression: value
 ---
-fn {intrinsic#4294967040}(%0: ?) -> Boolean {
+fn {closure@4294967040}(%0: ?) -> Boolean {
     let %1: Integer
     let %2: Boolean
 
@@ -24,7 +24,7 @@ fn {intrinsic#4294967040}(%0: ?) -> Boolean {
 
 ================== Changed: No ===================
 
-fn {intrinsic#4294967040}(%0: ?) -> Boolean {
+fn {closure@4294967040}(%0: ?) -> Boolean {
     let %1: Integer
     let %2: Boolean
 

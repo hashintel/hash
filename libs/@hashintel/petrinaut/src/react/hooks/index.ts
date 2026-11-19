@@ -46,6 +46,7 @@ export {
   usePlaybackMode,
   usePlaybackSpeed,
   usePlaybackState,
+  usePlaybackTime,
   type PlaybackActionsBundle,
   type PlaybackSpeed,
   type PlaybackState,

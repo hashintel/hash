@@ -11,6 +11,7 @@ import { cloneUserKeyedRecord } from "../validation/record-keys";
 
 import type { RuntimeDistribution } from "../simulation/authoring/user-code/distribution";
 import type { HirFunction } from "./hir";
+import type { MetricShape } from "./metric-shape";
 
 export type HirParameterValues = Record<string, number | boolean>;
 
@@ -55,6 +56,8 @@ export type HirCompiledBufferLambda = (
   u8: Uint8Array,
   placeBases: Int32Array,
   indices: Int32Array,
+  /** Live token count of each input arc's place, in input-arc order. */
+  inputCounts: Float64Array,
 ) => number | boolean;
 
 /**
@@ -83,6 +86,8 @@ export type HirCompiledBufferKernel = (
   outU64: BigUint64Array,
   outU8: Uint8Array,
   sink: HirKernelSink,
+  /** Live token count of each input arc's place, in input-arc order. */
+  inputCounts: Float64Array,
 ) => void;
 
 export type HirLambdaArtifact = {
@@ -121,6 +126,9 @@ export type HirKernelArtifact = {
 
 export type HirDynamicsArtifact = {
   source: string;
+  /** The equation's arity: the program sums its result over every
+   * combination of that many tokens. */
+  arity: number;
   /** The lowered HIR the program was emitted from — see `HirLambdaArtifact.hir`. */
   hir?: HirFunction;
 };
@@ -129,6 +137,8 @@ export type HirMetricArtifact = {
   source: string;
   /** Places referenced by the program, in `__places` ordinal order. */
   placeNames: string[];
+  /** Whether the value moves only at events or between them, from the reads the code makes. */
+  shape: MetricShape;
   /** The lowered HIR the program was emitted from — see `HirLambdaArtifact.hir`. */
   hir?: HirFunction;
 };

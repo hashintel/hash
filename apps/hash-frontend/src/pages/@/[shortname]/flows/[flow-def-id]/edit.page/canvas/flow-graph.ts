@@ -1,6 +1,7 @@
 import { getStepsBefore } from "../shared/step-order";
 import { collapsedForEachSize, stepCardSize, stepGap } from "./sizes";
 
+import type { StepRunMark } from "../shared/step-states";
 import type {
   FlowConnection,
   FlowEditorState,
@@ -24,13 +25,21 @@ export const startNodeId = "start";
 
 export const getStepNodeId = (stepId: string) => `step:${stepId}`;
 
+/** How a card shows its step in the run a canvas shows. */
+export type CardRun = {
+  mark: StepRunMark;
+  /** Whether one of the step's outputs is one of the flow's, which show in its runs' results. */
+  featured: boolean;
+};
+
 type StepNodeDataBase = {
   problems: FlowDefinitionDiagnosticWithStepId[];
   /** Inside a for-each step, so read-only. */
   inner: boolean;
+  run?: CardRun;
 };
 
-export type StartNode = Node<Record<string, never>, "start">;
+export type StartNode = Node<{ run?: CardRun }, "start">;
 
 export type ActionStepNode = Node<
   StepNodeDataBase & { step: ActionStepDefinition<string> },

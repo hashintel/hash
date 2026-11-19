@@ -1,11 +1,11 @@
 import { useCallback, useMemo, useState } from "react";
 
-import { getItemId } from "../../util/SelectableList/selectable-list-util";
+import { getItemId } from "../../primitives/SelectableList/selectable-list-util";
 import {
   defaultSelected,
   groupedItems,
   itemsWithSubActions,
-} from "../../util/SelectableList/selectable-list.fixtures";
+} from "../../primitives/SelectableList/selectable-list.fixtures";
 import { Button } from "../Button/button";
 import { EllipsisMenu as EllipsisMenuComponent } from "./ellipsis-menu";
 import { Menu, type MenuItem } from "./menu";
@@ -13,7 +13,7 @@ import { Menu, type MenuItem } from "./menu";
 import type {
   Item,
   ItemOrGroup,
-} from "../../util/SelectableList/selectable-list";
+} from "../../primitives/SelectableList/selectable-list";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 function prefixIds(
