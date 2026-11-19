@@ -7,8 +7,11 @@ import {
   isCallOrNewExpression,
   isClassDeclaration,
   isEnumDeclaration,
+  isExportDeclaration,
   isExpressionWithTypeArguments,
+  isFunctionDeclaration,
   isHeritageClause,
+  isIdentifier,
   isImportDeclaration,
   isImportEqualsDeclaration,
   isImportTypeNode,
@@ -17,6 +20,7 @@ import {
   isLabeledStatement,
   isModuleBlock,
   isModuleDeclaration,
+  isNamedExports,
   isNamedTupleMember,
   isParameterDeclaration,
   isPropertyAccessExpression,
@@ -26,6 +30,7 @@ import {
   isTypeAliasDeclaration,
   isTypeReferenceNode,
   isVariableDeclarationList,
+  isVariableStatement,
 } from "typescript/ast";
 
 import * as Node from "../TypeScript/Node.js";
@@ -36,6 +41,7 @@ import type {
   ExpressionWithTypeArguments,
   Identifier,
   ModuleDeclaration,
+  Statement,
 } from "typescript/ast";
 
 /**
@@ -45,32 +51,113 @@ import type {
  */
 export type Meaning = "value" | "type" | "namespace" | "any";
 
-/** Whether the declarations of `module` leave a value behind at run time, which makes its name a value as well as a namespace. */
-const isInstantiated = (module: ModuleDeclaration): boolean => {
-  const { body } = module;
-  if (body === undefined) {
+/** Whether `statement` declares `name`, by its own name or as one of its variables. */
+const declares = (statement: Statement, name: string): boolean => {
+  if (isVariableStatement(statement)) {
+    return statement.declarationList.declarations.some(
+      (declaration) =>
+        isIdentifier(declaration.name) && declaration.name.text === name,
+    );
+  }
+
+  const declared =
+    isFunctionDeclaration(statement) ||
+    isClassDeclaration(statement) ||
+    isInterfaceDeclaration(statement) ||
+    isTypeAliasDeclaration(statement) ||
+    isEnumDeclaration(statement) ||
+    isModuleDeclaration(statement) ||
+    isImportEqualsDeclaration(statement)
+      ? statement.name
+      : undefined;
+
+  return (
+    declared !== undefined && isIdentifier(declared) && declared.text === name
+  );
+};
+
+/** The statements of the innermost module or file at or around `scope` that declare `name`, which an export of `name` there exports. */
+const declarationsOf = (
+  scope: Node.Node,
+  name: string,
+): readonly Statement[] => {
+  if (isModuleBlock(scope) || isSourceFile(scope)) {
+    const found = scope.statements.filter((statement) =>
+      declares(statement, name),
+    );
+
+    if (found.length > 0 || isSourceFile(scope)) {
+      return found;
+    }
+  }
+
+  return declarationsOf(scope.parent, name);
+};
+
+/**
+ * Whether `statement` leaves a value behind at run time, as the compiler counts it. A module leaves one where a statement in it does, which makes its name a value as well as a namespace.
+ *
+ * An export of local names leaves one where something it exports does. The compiler counts an exported or re-exported import alias and a name it cannot find as values, and a module it meets again while reading that module, which `visiting` holds, as none.
+ */
+const leavesValue = (
+  statement: Statement,
+  visiting: readonly ModuleDeclaration[],
+): boolean => {
+  if (
+    isInterfaceDeclaration(statement) ||
+    isTypeAliasDeclaration(statement) ||
+    isImportDeclaration(statement)
+  ) {
     return false;
   }
 
-  if (!isModuleBlock(body)) {
-    return isModuleDeclaration(body) && isInstantiated(body);
+  if (isImportEqualsDeclaration(statement)) {
+    return Node.hasModifier(statement, ModifierFlags.Export);
   }
 
-  return body.statements.some((statement) => {
-    if (
-      isInterfaceDeclaration(statement) ||
-      isTypeAliasDeclaration(statement) ||
-      isImportDeclaration(statement) ||
-      isImportEqualsDeclaration(statement)
-    ) {
+  if (isEnumDeclaration(statement)) {
+    return !Node.hasModifier(statement, ModifierFlags.Const);
+  }
+
+  if (isModuleDeclaration(statement)) {
+    const { body } = statement;
+    if (body === undefined || visiting.includes(statement)) {
       return false;
     }
 
-    if (isEnumDeclaration(statement)) {
-      return !Node.hasModifier(statement, ModifierFlags.Const);
+    const inner = [...visiting, statement];
+    if (!isModuleBlock(body)) {
+      return isModuleDeclaration(body) && leavesValue(body, inner);
     }
 
-    return !isModuleDeclaration(statement) || isInstantiated(statement);
+    return body.statements.some((member) => leavesValue(member, inner));
+  }
+
+  if (
+    !isExportDeclaration(statement) ||
+    statement.moduleSpecifier !== undefined ||
+    statement.exportClause === undefined ||
+    !isNamedExports(statement.exportClause)
+  ) {
+    return true;
+  }
+
+  return statement.exportClause.elements.some((specifier) => {
+    const name = specifier.propertyName ?? specifier.name;
+    if (!isIdentifier(name)) {
+      return true;
+    }
+
+    const declarations = declarationsOf(statement.parent, name.text);
+
+    return (
+      declarations.length === 0 ||
+      declarations.some(
+        (declaration) =>
+          isImportEqualsDeclaration(declaration) ||
+          leavesValue(declaration, visiting),
+      )
+    );
   });
 };
 
@@ -110,7 +197,7 @@ const declared = (declaration: Node.Node): Option.Option<Meaning> => {
 
   // A module declared by its specifier is a value, as is a namespace that holds one.
   const typesOnly =
-    !isStringLiteral(declaration.name) && !isInstantiated(declaration);
+    !isStringLiteral(declaration.name) && !leavesValue(declaration, []);
 
   return Option.some(typesOnly ? "namespace" : "any");
 };
