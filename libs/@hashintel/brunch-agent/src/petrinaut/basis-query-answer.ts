@@ -7,9 +7,11 @@ import { migrateLegacyComponentKeys } from "@hashintel/petrinaut-core";
 
 import { generatedArcId, namesId, type ArcElement } from "./net-element-ids";
 
-import type { BasisQuerySelector } from "../ledger/basis-query";
-import type { NetElementAddress } from "../ledger/construction/reflections";
-import type { LedgerTrace } from "../ledger/trace";
+import type {
+  BasisQuerySelector,
+  LedgerTrace,
+  NetElementAddress,
+} from "../ledger";
 import type { NetElement } from "./net-changes";
 import type { NetStructure } from "./net-readers";
 
