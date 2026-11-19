@@ -1,9 +1,8 @@
 /**
  * The durable entry a user's chat message is placed as: its kind, what its
  * data keeps, and how a reader gets the user's own words back from it.
- * `POST /chat` admission writes it; the Ledger anchors a USER turn on it, and
- * the history route and `query_basis` read its words. Each reader decides for
- * itself what an entry without words stands for.
+ * `POST /chat` admission writes it; the Ledger anchors a USER turn on it and
+ * keeps its words, and the history route reads them.
  */
 import type { EntryRecord, JsonObject } from "@earendil-works/pi-durable";
 
@@ -24,19 +23,27 @@ export type BrunchUserData =
   | { readonly body: "invalid-contextual" };
 
 /**
- * The user's own words a `brunch.user` entry keeps, without the context the
- * panel sent with them: its `data.userText`. Any other entry, and one whose
- * envelope did not parse, keeps none.
+ * The user's own words an input entry keeps. A `brunch.user` entry keeps them
+ * without the context the panel sent: its `data.userText`. An older `pi.user`
+ * entry, or a `brunch.user` entry whose envelope did not parse, keeps them as
+ * the text of its user message. Any other entry keeps none.
  */
-export const brunchUserWords = (
-  entry: Pick<EntryRecord, "kind" | "data"> | undefined,
-): string | undefined => {
-  if (entry?.kind !== brunchUserKind) return undefined;
-  const { data } = entry;
-  return typeof data === "object" &&
+export const userWords = (
+  entry: Pick<EntryRecord, "kind" | "data" | "model"> | undefined,
+): string => {
+  const data = entry?.kind === brunchUserKind ? entry.data : undefined;
+  if (
+    typeof data === "object" &&
     data !== null &&
     !Array.isArray(data) &&
     typeof data.userText === "string"
-    ? data.userText
-    : undefined;
+  )
+    return data.userText;
+  const message = entry?.model?.[0];
+  if (message?.role !== "user") return "";
+  return typeof message.content === "string"
+    ? message.content
+    : message.content
+        .flatMap((part) => (part.type === "text" ? [part.text] : []))
+        .join(" ");
 };

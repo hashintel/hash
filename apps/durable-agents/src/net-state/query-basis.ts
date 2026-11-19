@@ -8,10 +8,6 @@
  *   (`net-changes.ts`), not settled tool parts in message order;
  * - a change's Ledger revision is the `LedgerDoc` as of the assistant entry
  *   that issued it (`snapshotAsOf`), not a fold of history cut at its part;
- * - the Ledger's turns get the USER's words from their input entries, which
- *   the stored Ledger history does not keep: a `brunch.user` entry's
- *   `data.userText`, or an older `pi.user` entry's message text, so the
- *   trace's turn excerpts are Brunch's;
  * - the selected definition needs a matching current revision in the
  *   effective context (`visibleNetView`). An edit can outlive the view it
  *   invalidated, or both can be summarized away. Neither the absence of a
@@ -25,8 +21,6 @@ import {
   type ConversationId,
   defineExtension,
   defineTool,
-  type EntryId,
-  type ToolExecutionApi,
 } from "@earendil-works/pi-durable";
 import { toJsonSchema } from "@valibot/to-json-schema";
 import * as v from "valibot";
@@ -53,7 +47,6 @@ import {
   BrowserCallsDoc,
 } from "../browser-call/browser-call";
 import { foldLedger, LedgerDoc } from "../ledger";
-import { brunchUserWords } from "../shared/brunch-user-entry";
 import {
   callsForElement,
   isAppliedChange,
@@ -259,65 +252,6 @@ export const queryBasis = async (input: QueryBasisInput) => {
   };
 };
 
-/** The USER's words of an older `pi.user` entry's message. */
-const userText = (content: string | readonly { type: string }[]) =>
-  typeof content === "string"
-    ? content
-    : content
-        .flatMap((part) =>
-          part.type === "text" &&
-          "text" in part &&
-          typeof part.text === "string"
-            ? [part.text]
-            : [],
-        )
-        .join(" ");
-
-/**
- * The conversation's Ledger history, its turns given the USER's words from
- * their entries: a `brunch.user` entry's words, else the entry's message text,
- * as an older `pi.user` entry or a `brunch.user` envelope that did not parse
- * keeps them.
- */
-const ledgerWithWords = async (
-  api: ToolExecutionApi,
-  conversationId: ConversationId,
-  context: Context,
-): Promise<LedgerHistory> => {
-  const stored = await api.snapshot(LedgerDoc, conversationId, context);
-  const messages = stored?.messages ?? [];
-  const words = await api.commit(
-    async (tx) =>
-      new Map(
-        await Promise.all(
-          messages
-            .filter(({ role }) => role === "user")
-            .map(async ({ id }) => {
-              const entry = await tx.entry(Number(id) as EntryId);
-              const message = entry?.model?.[0];
-              return [
-                id,
-                brunchUserWords(entry) ??
-                  (message?.role === "user" ? userText(message.content) : ""),
-              ] as const;
-            }),
-        ),
-      ),
-    context,
-  );
-  return {
-    messages: messages.map((message) =>
-      message.role === "user"
-        ? {
-            id: message.id,
-            role: message.role,
-            parts: [{ type: "text", text: words.get(message.id) ?? "" }],
-          }
-        : message,
-    ),
-  };
-};
-
 /** The binding Brunch reports: `BrowserContext["binding"]`, stored as its canonical JSON. */
 const bindingOf = (binding: string | null | undefined): unknown =>
   binding === null || binding === undefined ? null : JSON.parse(binding);
@@ -370,13 +304,13 @@ export const createQueryBasisTool = (
       const [records, bound, ledger, netView] = await Promise.all([
         api.snapshot(BrowserCallsDoc, conversationId, context),
         api.snapshot(BrowserBindingDoc, conversationId, context),
-        ledgerWithWords(api, conversationId, context),
+        api.snapshot(LedgerDoc, conversationId, context),
         netViewNow(host, conversationId, context),
       ]);
       const result = await queryBasis({
         netView,
         calls: netCalls(records?.calls ?? {}),
-        ledger,
+        ledger: ledger ?? { messages: [] },
         binding: bindingOf(bound?.binding),
         query: selector,
         ledgerRevisionAt: async ({ issuedEntry }) =>
