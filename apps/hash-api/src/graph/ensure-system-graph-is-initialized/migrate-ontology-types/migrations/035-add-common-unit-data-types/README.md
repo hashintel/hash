@@ -4,6 +4,8 @@ Migration 035 adds common units to the catalogue from migration 034, reusing
 existing units and their conversion references. It uses the same native SemType
 conversion expressions and the same version-aware migration helper.
 
+New data types use singular `title` values and explicit `titlePlural` values, with irregular or invariant forms such as `Curie`/`Curies` and `Stokes`/`Stokes`. Existing base URLs and conversions remain stable. The historical `Knots` and `Percentage` types retain their existing names and metadata.
+
 ## Coverage
 
 | Area                      | Added units                                                                                                                           |
