@@ -1,4 +1,5 @@
 export * from "./Access.js";
+export * from "./As.js";
 export * from "../Binding.js";
 export * from "./Call.js";
 export * from "./Closure.js";
@@ -16,4 +17,3 @@ export * from "./Struct.js";
 export * from "./Subscript.js";
 export * from "./Tuple.js";
 export * from "./Type.js";
-export * from "./As.js";

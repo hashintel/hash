@@ -6,6 +6,7 @@ import * as JExpr from "../../JExpr/index.js";
 import type { TypeNode } from "../TAST/TypeNode.js";
 import type { Node } from "./Node.js";
 
+/** A value asserted to have a type, which emits the `as` special form. */
 export class As
   extends Pipeable.Class
   implements

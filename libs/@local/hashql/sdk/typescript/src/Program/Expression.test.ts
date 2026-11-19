@@ -290,6 +290,20 @@ describe("expression", () => {
     );
   });
 
+  test("type_assertion", () => {
+    expect.hasAssertions();
+    const expected =
+      '["::kernel::special_form::as",{"#literal":2},"::kernel::type::Number"]';
+    expect(compile(Expression.as(2n, numberType))).toBe(expected);
+    expect(
+      compile(pipe(Expression.literal(2n), Expression.as(numberType))),
+    ).toBe(expected);
+    const failure = Result.getOrThrow(
+      Result.flip(Expression.toJExpr(Expression.as(Number.NaN, numberType))),
+    );
+    expect(failure.reason._tag).toBe("InvalidExpression");
+  });
+
   describe("adapted", () => {
     const lookup = Expression.fromJExpr<
       Type.Function<readonly [Type.PrimitiveString], Type.PrimitiveString>,
