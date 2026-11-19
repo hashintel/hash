@@ -15,6 +15,7 @@ import {
   createRegistry,
   defineExtension,
   defineTool,
+  type EntryId,
   type Extension,
   type Harness,
   MemoryStorage,
@@ -34,6 +35,10 @@ import {
   fauxAssistantMessage,
   fauxToolCall,
 } from "../../../test/scripted-model";
+import {
+  pruneEntryKind,
+  pruneRequestId,
+} from "../../agent/hash-agent/read-back-pruning";
 import {
   browserCallExtension,
   browserToolName,
@@ -450,4 +455,37 @@ test("a follow-up queued behind a run that fails ends its stream with an error",
   );
   expect(await queued).toEqual([{ type: "error", errorText: "run_failed" }]);
   expect(faux.state.callCount).toBe(1);
+});
+
+test("a chat whose message ID is a write's request ID is refused, not followed", async () => {
+  const { server, transport } = openChat({
+    responses: [fauxAssistantMessage("Answered.")],
+  });
+  await drain(
+    await send(transport, userMessage("user-first")),
+    "the first stream",
+  );
+  const conversation = await server.conversations.acquire(chatId);
+  if (conversation === undefined) throw new Error("No conversation.");
+  const requestId = pruneRequestId(1 as EntryId);
+  await conversation.root.submit(
+    {
+      type: "write",
+      requestId,
+      entry: { kind: pruneEntryKind, data: { assistant: 1 }, edits: [] },
+    },
+    context,
+  );
+
+  const response = await server.app.request(`${origin}/chat`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      id: chatId,
+      messages: [userMessage(requestId)],
+      trigger: "submit-message",
+    }),
+  });
+  await response.body?.cancel();
+  expect(response.status).toBe(409);
 });
