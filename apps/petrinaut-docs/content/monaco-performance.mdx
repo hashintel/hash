@@ -136,6 +136,40 @@ are in [Panel sizes outside React state](doc:react.state/panel-sizes).
 `geometry.mjs` beside the other benchmark scripts measures panel drags and the
 maximize, restore, collapse and expand animations of a code section.
 
+## Section animations
+
+Maximizing or restoring a code section used to animate the section's `top` and
+`height`, with CSS transitions on the editor's bottom padding and side margin
+beside it. Each of the three resized the editor, so it was laid out on every
+frame: 22 times per animation.
+
+The section is now laid out once, at the container's size, for the whole
+animation in both directions. The animation changes only how it is drawn: a
+`transform` moves it down to where it shows and a `clip-path` cuts it to the
+height that shows (`use-sub-view-maximization.ts`). The editor's padding and
+margin change at the start of the animation, not over its length.
+
+Supply Chain with the Visualizer editor open, production build:
+
+| Measurement                      |  Before |    Now |
+| -------------------------------- | ------: | -----: |
+| Editor layouts, maximize         |      22 |      1 |
+| Editor layouts, restore          |      22 |      2 |
+| Style and layout, maximize       |  108 ms |  36 ms |
+| Style and layout, restore        |  114 ms |  42 ms |
+| Frame time P95, maximize         | 16.4 ms | 9.2 ms |
+| Frames drawn at 4× CPU, maximize |      23 |     45 |
+| Frames drawn at 4× CPU, restore  |      19 |     35 |
+
+The longest frame of a maximize stays at 41 ms. It is the first one, where
+React commits and the editor is laid out at its final size.
+
+The browser's `element.animate` runs the two keyframes. The same keyframes
+through Motion's `animate` measured the same and added 22 kB of gzipped code.
+
+Expanding a collapsed section still resizes it, and lays the editor out on
+every frame.
+
 ## Typing
 
 A count of component renders per commit (`render-counts.mjs`) showed what a
