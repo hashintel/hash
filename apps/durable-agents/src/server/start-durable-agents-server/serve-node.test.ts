@@ -90,6 +90,12 @@ test.each(["before response", "while streaming"] as const)(
   },
 );
 
+test("an omitted hostname listens on loopback only", async () => {
+  const listener = await serveNode(() => new Response("ok"), { port: 0 });
+  listeners.push(listener);
+  expect(listener.address).toBe("127.0.0.1");
+});
+
 test("a slow reader holds the response stream back instead of the server buffering it", async () => {
   const { counter, body } = countedBody();
   const listener = await serveNode(() => new Response(body), {
