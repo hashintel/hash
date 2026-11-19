@@ -702,6 +702,21 @@ describe("primitive", () => {
     expectTypeOf(
       pipe({ total: count }, as({ total: Number })),
     ).toEqualTypeOf<Widened>();
+    type Pair = Expression<
+      Type.Tuple<readonly [Type.PrimitiveInteger, Type.PrimitiveString]>,
+      Inputs.Empty
+    >;
+    expectTypeOf(as([1n, "a"], [BigInt, String])).toEqualTypeOf<Pair>();
+    expectTypeOf(
+      pipe([1n, "a"] as const, as([BigInt, String])),
+    ).toEqualTypeOf<Pair>();
+    const labels: readonly string[] = ["a"];
+    // @ts-expect-error an asserted array needs a statically known length
+    as(labels, [String]);
+    // @ts-expect-error a piped array needs a statically known length
+    pipe(labels, as([String]));
+    // @ts-expect-error a nested array needs a statically known length
+    as({ labels }, { labels: [String] });
   });
 });
 

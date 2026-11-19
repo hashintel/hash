@@ -240,7 +240,7 @@ export interface Context<S extends Scope.Scope.Any>
   readonly let: {
     <const E extends Structural.Value.Any>(
       name: string,
-      value: E,
+      value: E & Structural.Value.FixedLength<E>,
     ): Expression.Expression<
       Structural.Value.Type<E>,
       Structural.Value.Requirements<E>
@@ -250,7 +250,7 @@ export interface Context<S extends Scope.Scope.Any>
       const D extends Structural.Definition,
     >(
       name: string,
-      value: E,
+      value: E & Structural.Value.FixedLength<E>,
       type: D,
     ): Expression.Expression<
       Structural.Definition.Type<D>,
@@ -294,8 +294,8 @@ export interface Context<S extends Scope.Scope.Any>
     >(
       condition: C,
       branches: {
-        readonly then: ($: Context<S>) => T;
-        readonly else: ($: Context<S>) => E;
+        readonly then: ($: Context<S>) => T & Structural.Value.FixedLength<T>;
+        readonly else: ($: Context<S>) => E & Structural.Value.FixedLength<E>;
       },
     ): Conditional<C, T, E>;
     <
@@ -303,7 +303,9 @@ export interface Context<S extends Scope.Scope.Any>
       const T extends Structural.Value.Any,
     >(
       condition: C,
-      branches: { readonly then: ($: Context<S>) => T },
+      branches: {
+        readonly then: ($: Context<S>) => T & Structural.Value.FixedLength<T>;
+      },
     ): Optional<C, T>;
   };
 

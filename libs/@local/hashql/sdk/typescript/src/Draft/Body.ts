@@ -121,11 +121,12 @@ export type Check<S, I> = [I] extends [never]
       unknown
     : never;
 
-/** Checks the inputs the value `E` requires against the schema record `I`, as {@link Check} does. */
+/** Checks the inputs the value `E` requires against the schema record `I`, as {@link Check} does. Every array in `E` also needs a statically known length, as {@link Structural.Value.FixedLength} requires. */
 type Accept<I, E extends Structural.Value.Any> = Check<
   I,
   Structural.Value.Requirements<E>
->;
+> &
+  Structural.Value.FixedLength<E>;
 
 /**
  * A graph query in a program callback, whose predicates must fit the program's schema `I`. Otherwise it is {@link Construction.Query | `Context.Query`}.
@@ -301,7 +302,9 @@ export type Body<
 > = (
   $: Context<S, Requirements<I>>,
   inputs: Handles<I>,
-) => O & Check<NoInfer<Requirements<I>>, Structural.Value.Requirements<O>>;
+) => O &
+  Check<NoInfer<Requirements<I>>, Structural.Value.Requirements<O>> &
+  Structural.Value.FixedLength<O>;
 
 /**
  * A {@link Body} with its input handles already supplied.

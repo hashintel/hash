@@ -228,6 +228,26 @@ describe("structural_value_types", () => {
     Structural.tuple(optional);
   });
 
+  test("fixed_length", () => {
+    type Pair = readonly [bigint, { readonly labels: readonly [string] }];
+    expectTypeOf<Structural.Value.FixedLength<Pair>>().toBeUnknown();
+    expectTypeOf<Structural.Value.FixedLength<readonly []>>().toBeUnknown();
+    expectTypeOf<
+      Structural.Value.FixedLength<Structural.Value.Any>
+    >().toBeUnknown();
+    expectTypeOf<Structural.Value.FixedLength<readonly string[]>>().toBeNever();
+    expectTypeOf<
+      Structural.Value.FixedLength<Pair | readonly bigint[]>
+    >().toBeNever();
+    const labels: readonly string[] = ["a"];
+    // @ts-expect-error A struct field needs a statically known length.
+    Structural.struct({ labels });
+    // @ts-expect-error A tuple member needs a statically known length.
+    Structural.tuple([1n, labels]);
+    // @ts-expect-error A nested field needs a statically known length.
+    Structural.struct({ row: { pair: [1n, labels] } });
+  });
+
   test("annotations", () => {
     const count = Expression.input("count", BigInt);
     const row = Structural.struct({ count, label: "x" }, { count: Number });

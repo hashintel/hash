@@ -112,7 +112,7 @@ type ComparisonRequirements<
 /** Direct and data-last comparison forms, checking the second supplied operand against the first operand's semantic descriptor. */
 interface Comparison {
   <const R extends Structural.Value.Any>(
-    right: R,
+    right: R & Structural.Value.FixedLength<R>,
   ): <const L extends Structural.Value.Any>(
     left: L &
       Structural.Value.Exact<
@@ -121,7 +121,7 @@ interface Comparison {
       >,
   ) => Predicate<ComparisonRequirements<L, R>>;
   <const L extends Structural.Value.Any, const R extends Structural.Value.Any>(
-    left: L,
+    left: L & Structural.Value.FixedLength<L>,
     right: R &
       Structural.Value.Exact<
         ExpressionType.Normalize<Structural.Value.Type<L>>,

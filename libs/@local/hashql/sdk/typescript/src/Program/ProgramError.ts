@@ -53,7 +53,7 @@ export const Reason = Schema.TaggedUnion({
   UnsupportedTypeConstructor: { name: Schema.String },
   /** A generic type constructor lacks its type arguments. */
   UnspecializedTypeConstructor: {},
-  /** An authoring body returned something other than an expression handle. */
+  /** An authoring body returned something other than an expression or structural shorthand. */
   InvalidBodyResult: {},
   /** A program uses a handle from a binding where its name means another binding: a later binding of the name shadows it, or the binding belongs to another program or to a branch that does not enclose the use. `name` is the name as HashQL spells it. */
   StaleReference: { name: Schema.String },
@@ -196,7 +196,7 @@ export class Construction extends Schema.TaggedError<Construction>()(
     });
   }
 
-  /** Reports a body result that is not an expression handle. */
+  /** Reports a body result that is neither an expression nor structural shorthand. */
   static invalidBodyResult(): Construction {
     return Construction.make({
       reason: Reason.make({ _tag: "InvalidBodyResult" }),
@@ -253,7 +253,7 @@ export class Construction extends Schema.TaggedError<Construction>()(
       UnspecializedTypeConstructor: () =>
         "A generic type must be specialized before use",
       InvalidBodyResult: () =>
-        "An expression callback must return a HashQL expression",
+        "An expression callback must return a HashQL expression or structural shorthand",
       StaleReference: ({ name }) =>
         `${JSON.stringify(name)} does not refer to the binding this handle came from`,
     });

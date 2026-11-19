@@ -329,6 +329,21 @@ describe("expression", () => {
     );
   });
 
+  test("host_objects", () => {
+    expect.hasAssertions();
+    // @ts-expect-error exercise an unchecked JavaScript caller
+    const asserted = Expression.as(Promise.resolve(2n), numberType);
+    const row = { at: new Map() };
+    // @ts-expect-error exercise an unchecked JavaScript caller
+    const defaulted = Expression.input("row", { at: String }, row);
+    for (const expression of [asserted, defaulted]) {
+      expect(
+        Result.getOrThrow(Result.flip(Expression.toJExpr(expression))).reason
+          ._tag,
+      ).toBe("InvalidExpression");
+    }
+  });
+
   test("input_failures", () => {
     expect.hasAssertions();
     const bad = Expression.number(Number.NaN);

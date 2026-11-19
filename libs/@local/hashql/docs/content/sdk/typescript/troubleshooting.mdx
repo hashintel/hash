@@ -285,7 +285,7 @@ Use TypeScript branching when you deliberately want to choose which program to c
 
 ### I wrote an array but got a tuple
 
-**Cause:** structural shorthand interprets a host array as a tuple with fixed positions. It does not infer a HashQL list from repeated element types. A host record likewise denotes a struct unless you explicitly construct a dictionary.
+**Cause:** structural shorthand interprets a host array as a tuple with fixed positions. It does not infer a HashQL list from repeated element types. A host record likewise denotes a struct unless you explicitly construct a dictionary. An array whose length TypeScript does not know, such as a `string[]` variable, has no fixed positions, and shorthand rejects it with a type error.
 
 **Fix:** use [`$.list`][draft-context-list] or [`$.dict`][draft-context-dict] for dynamic collections, including when they are nested:
 

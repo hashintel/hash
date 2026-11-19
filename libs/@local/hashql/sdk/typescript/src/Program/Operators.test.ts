@@ -188,6 +188,11 @@ describe("operators", () => {
     expect(compile(Operators.ne([count, "x"], [1n, "x"]))).toBe(
       '["::core::cmp::ne",{"#tuple":[["::kernel::special_form::input","count","::kernel::type::Integer"],{"#literal":"x"}]},{"#tuple":[{"#literal":1},{"#literal":"x"}]}]',
     );
+    // @ts-expect-error exercise an unchecked JavaScript caller
+    const mapped = Operators.eq(new Map(), 1n);
+    expect(
+      Result.getOrThrow(Result.flip(Expression.toJExpr(mapped))).reason._tag,
+    ).toBe("InvalidExpression");
   });
 
   test("none_comparison", () => {

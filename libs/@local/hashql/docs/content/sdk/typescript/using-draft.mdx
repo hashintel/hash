@@ -219,7 +219,7 @@ console.log(compile(summarizeTask));
 
 </details>
 
-A record of field expressions creates a struct value, as [`$.struct`] does explicitly. HashQL operates in three "universes": modules, types and values. Whereas [`Program.Structural.type`] constructs a struct type, a record of values constructs a struct value. We can then use standard JavaScript property access notation to access the fields of these struct values, with each access returning an expression handle.
+A record of field expressions creates a struct value, as [`$.struct`] does explicitly. HashQL operates in three "universes": modules, types and values. Whereas [`Program.Structural.type`] constructs a struct type, a record of values constructs a struct value. On the handle that `$.let` or [`$.struct`] returns, or on an input handle such as `task`, standard JavaScript property access reads a field and returns an expression handle.
 
 <Callout>
 

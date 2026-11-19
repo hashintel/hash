@@ -103,6 +103,13 @@ describe("operator_types", () => {
     pipe({ count: 1n, extra: true }, Operators.eq({ count }));
     // @ts-expect-error Field descriptors must match exactly.
     Operators.eq({ count }, { count: 1 });
+    const labels: readonly string[] = ["a"];
+    // @ts-expect-error An array operand needs a statically known length.
+    Operators.eq(labels, labels);
+    // @ts-expect-error A piped array operand needs a statically known length.
+    pipe(labels, Operators.ne(labels));
+    // @ts-expect-error A nested array needs a statically known length.
+    Operators.eq({ labels }, { labels });
   });
 
   test("defaults_and_operations", () => {
