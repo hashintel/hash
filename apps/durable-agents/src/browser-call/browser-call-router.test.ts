@@ -851,6 +851,7 @@ describe("browser-call router: hand-edit reports", () => {
         {},
         { ...valid, binding: undefined },
         { ...valid, episode: "" },
+        { ...valid, episode: "e".repeat(129) },
         { ...valid, seq: -1 },
         { ...valid, seq: 1.5 },
         { ...valid, seq: "0" },

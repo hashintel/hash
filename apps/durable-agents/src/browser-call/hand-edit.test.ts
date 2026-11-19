@@ -59,11 +59,18 @@ describe("hand-edit report", () => {
     });
   });
 
-  test("the body needs a binding, a non-empty episode and revision, and a non-negative integer seq", () => {
+  test("the body needs a binding, an episode of 1 to 128 characters, a non-empty revision, and a non-negative integer seq", () => {
     expect(v.safeParse(handEditReportBodySchema, report).success).toBe(true);
+    expect(
+      v.safeParse(handEditReportBodySchema, {
+        ...report,
+        episode: "e".repeat(128),
+      }).success,
+    ).toBe(true);
     for (const body of [
       { ...report, binding: undefined },
       { ...report, episode: "" },
+      { ...report, episode: "e".repeat(129) },
       { ...report, seq: -1 },
       { ...report, seq: 0.5 },
       { ...report, revision: "" },

@@ -126,10 +126,12 @@ export const handEditEntryKind = "brunch.hand-edit";
 
 /** The note's model-facing text (H5: a short note naming the revision). */
 export const renderHandEditNote = (revision: string): string =>
-  `<hand-edit revision="${revision}">The user changed the net in the editor; it is now at revision ${revision}. A net view of yours at another revision is out of date: read the net before changing it.</hand-edit>`;
+  `<hand-edit revision="${escapeXmlAttribute(revision)}">The user changed the net in the editor; it is now at revision ${escapeXmlText(revision)}. A net view of yours at another revision is out of date: read the net before changing it.</hand-edit>`;
 
 const handEditPattern = /<hand-edit revision="([^"]+)">/u;
 
-/** The revision a note names. */
-export const parseHandEditNote = (text: string): string | undefined =>
-  handEditPattern.exec(text)?.[1];
+/** The revision a note names. Stored notes before escaping hold hex revisions, which decode unchanged. */
+export const parseHandEditNote = (text: string): string | undefined => {
+  const revision = handEditPattern.exec(text)?.[1];
+  return revision === undefined ? undefined : unescapeXml(revision);
+};

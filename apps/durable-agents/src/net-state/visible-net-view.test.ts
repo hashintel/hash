@@ -24,6 +24,7 @@ import {
 import {
   handEditEntryKind,
   netViewSectionKey,
+  parseHandEditNote,
   parseNetResultText,
   parseNetViewSection,
   pruneEdits,
@@ -169,6 +170,27 @@ describe("the model-facing renderings", () => {
       body,
     });
   });
+  test("the hand-edit note escapes its revision and reads it back exactly", () => {
+    const revision = 'R1" onload="x" <b>&amp;';
+    const rendered = renderHandEditNote(revision);
+    expect(rendered).not.toContain(revision);
+    const tag = /^<hand-edit revision="([^"]*)">([\s\S]*)<\/hand-edit>$/u.exec(
+      rendered,
+    );
+    expect(tag?.[1]).toBe("R1&quot; onload=&quot;x&quot; &lt;b&gt;&amp;amp;");
+    expect(tag?.[2]).toContain('revision R1" onload="x" &lt;b&gt;&amp;amp;.');
+    expect(tag?.[2]).not.toMatch(/<|&(?!amp;|lt;|gt;)/u);
+    expect(parseHandEditNote(rendered)).toBe(revision);
+  });
+
+  test("a hand-edit note as stored before escaping parses unchanged", () => {
+    const revision =
+      "3f1c0a9e5b7d2c4f6a8e0b1d3c5f7a9e2b4d6f8a0c1e3b5d7f9a2c4e6b8d0f1a";
+    const stored = `<hand-edit revision="${revision}">The user changed the net in the editor; it is now at revision ${revision}. A net view of yours at another revision is out of date: read the net before changing it.</hand-edit>`;
+    expect(parseHandEditNote(stored)).toBe(revision);
+    expect(renderHandEditNote(revision)).toBe(stored);
+  });
+
   test("a read with a revision, a change with its read-back, and everything else bare", () => {
     expect(
       renderBrowserResult(
