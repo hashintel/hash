@@ -94,23 +94,25 @@ export const readNaming = (result: HashEntityReadResult) => {
     const shownBaseUrls = new Set(baseUrls);
     const definitions = new Map<
       string,
-      { title: string; description?: string }[]
+      { id: string; title: string; description?: string }[]
     >();
-    for (const { baseUrl, title, description } of result.propertyTypes) {
+    for (const {
+      baseUrl,
+      propertyTypeId,
+      title,
+      description,
+    } of result.propertyTypes) {
       if (!shownBaseUrls.has(baseUrl)) continue;
       const known = definitions.get(baseUrl) ?? [];
-      const definition = {
-        title: oneLine(title),
-        ...(description ? { description: oneLine(description) } : {}),
-      };
-      if (
-        !known.some(
-          (other) =>
-            other.title === definition.title &&
-            other.description === definition.description,
-        )
-      )
-        definitions.set(baseUrl, [...known, definition]);
+      if (known.some((other) => other.id === propertyTypeId)) continue;
+      definitions.set(baseUrl, [
+        ...known,
+        {
+          id: propertyTypeId,
+          title: oneLine(title),
+          ...(description ? { description: oneLine(description) } : {}),
+        },
+      ]);
     }
     return {
       types: Object.fromEntries(
@@ -126,15 +128,17 @@ export const readNaming = (result: HashEntityReadResult) => {
       ),
       properties: Object.fromEntries(
         [...shownBaseUrls].map((baseUrl) => {
-          const [first, ...alternatives] = definitions.get(baseUrl) ?? [];
+          const versions = definitions.get(baseUrl) ?? [];
+          // A key matches every version of its property type, so each candidate
+          // definition keeps its versioned id: a unit can be cited to the
+          // definition that states it.
           return [
             propertyName(baseUrl),
-            {
-              ...first,
-              baseUrl,
-              // Key matches select candidate definitions; when versions disagree, show each.
-              ...(alternatives.length === 0 ? {} : { alternatives }),
-            },
+            versions.length === 0
+              ? { baseUrl }
+              : versions.length === 1
+                ? versions[0]
+                : { baseUrl, versions },
           ];
         }),
       ),

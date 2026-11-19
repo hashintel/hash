@@ -212,6 +212,52 @@ test("details shows editions and links in both directions, and names ids it didn
   expect(details.read.notes[0]).toContain(`Not returned: ${id(9)}`);
 });
 
+test("the legend keeps each property's versioned id, listing every version a read matched", () => {
+  const view = renderHashEntityDetails(
+    {
+      ...read,
+      propertyTypes: [
+        ...read.propertyTypes,
+        {
+          baseUrl: property("order-quantity"),
+          propertyTypeId: `${property("order-quantity")}v/2`,
+          title: "Order Quantity",
+          description: "How many cases were ordered, 12 units each",
+        },
+      ],
+      entities: read.entities.map((each) => ({
+        ...each,
+        matched: each.entityId === id(1) || each.entityId === id(2),
+      })),
+    },
+    parseHashEntityDetailsInput({ entityIds: [id(1), id(2)] }),
+  );
+  const { legend } = decode(view.text) as {
+    legend: { properties: Record<string, unknown> };
+  };
+  expect(legend.properties).toEqual({
+    order_number: {
+      id: `${property("order-number")}v/1`,
+      title: "Order Number",
+    },
+    order_quantity: {
+      baseUrl: property("order-quantity"),
+      versions: [
+        {
+          id: `${property("order-quantity")}v/1`,
+          title: "Order Quantity",
+          description: "How many units were ordered",
+        },
+        {
+          id: `${property("order-quantity")}v/2`,
+          title: "Order Quantity",
+          description: "How many cases were ordered, 12 units each",
+        },
+      ],
+    },
+  });
+});
+
 test("details refuses more ids than it reads, and full values for ids it wasn't given, saying what to do", () => {
   const ids = Array.from(
     { length: hashEntityDetailsMaxEntities + 1 },
