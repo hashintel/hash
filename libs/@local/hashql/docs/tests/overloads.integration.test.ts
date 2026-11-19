@@ -83,6 +83,8 @@ export namespace B {
 }
 /** Optional. @param input - An input. */
 export function optional(input?: Value): void;
+/** Destructured. @param options - The options. */
+export function destructured({ value }: Value): void;
 /** Duplicate failures.
  * @throws \`Failure\` One cause.
  * @throws \`Failure\` Another cause.
@@ -243,6 +245,24 @@ layer(Reference.layer({ source, configuration: "render-tsdoc.json" }), {
       expect([typeParameter.name, descriptions(typeParameter)]).toStrictEqual([
         "T",
         [applied("The payload.", [1])],
+      ]);
+    }),
+  );
+
+  it.effect(
+    "destructured_parameter",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.Fixture;
+      const parameter = at(collect(reference, "destructured").parameters, 0);
+      expect([
+        parameter.name,
+        types(parameter),
+        descriptions(parameter),
+      ]).toStrictEqual([
+        "options",
+        [applied("Value", [1])],
+        [applied("The options.", [1])],
       ]);
     }),
   );

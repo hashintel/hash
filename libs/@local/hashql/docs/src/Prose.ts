@@ -32,6 +32,7 @@ export class ProseError extends Schema.TaggedError<ProseError>()("ProseError", {
   reason: Schema.TaggedUnion({
     MissingTarget: { reference: Schema.String },
     UnsupportedScheme: { url: Schema.String },
+    UnsupportedInCode: { kind: Schema.String },
   }),
 }) {}
 
@@ -153,14 +154,42 @@ const linkOf = (
     })),
   );
 
-const textOfNode: (node: Node) => string = Match.type<Node>().pipe(
-  Match.discriminators("kind")({
-    [DocNodeKind.PlainText]: (node) => node.text,
-    [DocNodeKind.EscapedText]: (node) => node.decodedText,
-    [DocNodeKind.SoftBreak]: () => "\n",
-  }),
-  Match.orElse(() => ""),
-);
+/** The code a node inside a `<code>` element adds. A code span adds its code without its backticks, and a node that is not text fails. */
+const codeOf: (node: Node) => Result.Result<string, ProseError> =
+  Match.type<Node>().pipe(
+    Match.withReturnType<Result.Result<string, ProseError>>(),
+    Match.discriminators("kind")({
+      [DocNodeKind.PlainText]: (node) => Result.succeed(node.text),
+      [DocNodeKind.EscapedText]: (node) => Result.succeed(node.decodedText),
+      [DocNodeKind.SoftBreak]: () => Result.succeed("\n"),
+      [DocNodeKind.CodeSpan]: (node) => Result.succeed(node.code),
+    }),
+    Match.orElse((node) =>
+      Result.fail(
+        ProseError.make({
+          reason: { _tag: "UnsupportedInCode", kind: node.kind },
+        }),
+      ),
+    ),
+  );
+
+/** `link` inside a `<code>` element, with its whole label as code. */
+const codeLink = (link: Tree.Prose.Link): Tree.Prose.Link =>
+  Struct.evolve(link, {
+    children: (children): Tree.Prose.InlineCode[] => [
+      {
+        type: "inlineCode",
+        value: pipe(
+          children,
+          Array.map(({ value }) => value),
+          Array.join(""),
+        ),
+        origin: link.origin,
+      },
+    ],
+  });
+
+const hasCode = (code: Tree.Prose.InlineCode): boolean => code.value !== "";
 
 const phrasingOf = (
   context: Context,
@@ -189,7 +218,7 @@ const phrasingOf = (
 /**
  * Prose from the nodes of a paragraph or a caption.
  *
- * A `<code>` element reads as code whose origin is its opening tag. Each other node keeps its own origin, so adjacent text stays in the pieces TSDoc parsed.
+ * A `<code>` element reads as code whose origin is its opening tag. A link inside it splits the code around a link whose label is code, and a piece with no code adds nothing. Each other node keeps its own origin, so adjacent text stays in the pieces TSDoc parsed.
  */
 export const phrasing: {
   (
@@ -209,13 +238,19 @@ export const phrasing: {
     for (const node of Array.filter(nodes, isNode)) {
       if (Option.isSome(code)) {
         if (node.kind === DocNodeKind.HtmlEndTag && node.name === "code") {
-          output.push(code.value);
+          output.push(...Option.toArray(Option.filter(code, hasCode)));
           code = Option.none();
+        } else if (node.kind === DocNodeKind.LinkTag) {
+          const link = yield* linkOf(context, node);
+          output.push(
+            ...Option.toArray(Option.filter(code, hasCode)),
+            codeLink(link),
+          );
+          code = Option.some(Struct.evolve(code.value, { value: () => "" }));
         } else {
+          const added = yield* codeOf(node);
           code = Option.some(
-            Struct.evolve(code.value, {
-              value: (value) => value + textOfNode(node),
-            }),
+            Struct.evolve(code.value, { value: (value) => value + added }),
           );
         }
       } else if (
@@ -229,7 +264,7 @@ export const phrasing: {
       }
     }
 
-    output.push(...Option.toArray(code));
+    output.push(...Option.toArray(Option.filter(code, hasCode)));
     return output;
   }),
 );

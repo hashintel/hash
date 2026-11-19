@@ -1637,6 +1637,11 @@ export interface Options { readonly body: number }`,
         "UnknownParameter",
         "input",
       ],
+      [
+        "/** @param options - Nothing. */ export declare function make(input: string, { a }: { readonly a: string }): void;",
+        "UnknownParameter",
+        "options",
+      ],
     ] as const)(
       "unknown_name_%#",
       Effect.fnUntraced(function* ([source, reason, name]: readonly [
@@ -1680,6 +1685,7 @@ export interface Options { readonly body: number }`,
       "/** @typeParam T - The held type. */ export interface Box<T> { readonly value: T }",
       "/** @typeParam T - The held type. */ export declare class Box<T> { readonly value: T }",
       "/** @typeParam T - The held type. */ export type Box<T> = readonly T[];",
+      "/** @param input - The input. @param options - The options. */ export declare function make(input: string, { a }: { readonly a: string }): void;",
     ])(
       "known_names_%#",
       Effect.fnUntraced(function* (source: string) {

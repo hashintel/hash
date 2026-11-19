@@ -117,6 +117,23 @@ const parameterSymbols = Effect.fnUntraced(function* (
   return symbols;
 });
 
+/** The name a comment documents a parameter by. A destructured parameter has no name of its own, so it takes the name of the `@param` that TypeScript gives it, the one at its position, or keeps its pattern when there is none. */
+const parameterName = (node: Syntax.ParameterDeclaration): string => {
+  if (Syntax.isIdentifier(node.name)) {
+    return node.name.text;
+  }
+
+  return pipe(
+    Syntax.getAllJSDocTags(node, Syntax.isJSDocParameterTag),
+    Array.map(({ name }) => name),
+    Array.findFirst(Syntax.isIdentifier),
+    Option.match({
+      onNone: () => node.name.getText(),
+      onSome: ({ text }) => text,
+    }),
+  );
+};
+
 const parameterNode =
   (node: Syntax.ParameterDeclaration) => (): Parsed<AST.Parameter.Parameter> =>
     Effect.all({
@@ -126,7 +143,7 @@ const parameterNode =
       Effect.map((fields) =>
         AST.Parameter.make({
           node,
-          name: node.name.getText(),
+          name: parameterName(node),
           optional:
             node.questionToken !== undefined || node.initializer !== undefined,
           rest: node.dotDotDotToken !== undefined,

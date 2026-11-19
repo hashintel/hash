@@ -232,6 +232,80 @@ describe("prose", () => {
   );
 
   it.effect(
+    "html_code_link",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const { reference, blocks } = yield* described(
+        "/** Before <code>a {@link Box} b</code> after. */",
+      );
+      expect(shapeOf(blocks)).toStrictEqual([
+        [
+          "paragraph",
+          [
+            ["text", "Before "],
+            ["inlineCode", "a "],
+            ["link", Reference.id(reference, ["Box"]), [["inlineCode", "Box"]]],
+            ["inlineCode", " b"],
+            ["text", " after."],
+          ],
+        ],
+      ]);
+    }),
+  );
+
+  it.effect(
+    "html_code_label",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const { reference, blocks } = yield* described(
+        "/** <code>{@link Box | its `value`}</code> */",
+      );
+      expect(shapeOf(blocks)).toStrictEqual([
+        [
+          "paragraph",
+          [
+            [
+              "link",
+              Reference.id(reference, ["Box"]),
+              [["inlineCode", "its value"]],
+            ],
+          ],
+        ],
+      ]);
+    }),
+  );
+
+  it.effect(
+    "html_code_span",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const { blocks } = yield* described("/** <code>a `b` c</code> */");
+      expect(shapeOf(blocks)).toStrictEqual([
+        ["paragraph", [["inlineCode", "a b c"]]],
+      ]);
+    }),
+  );
+
+  it.effect(
+    "unsupported_in_code",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      expect(
+        yield* Reference.run({
+          source:
+            "/** <code><caption>x</caption></code> */ export interface Box {}",
+        }),
+      ).toMatchObject({
+        _tag: "Failure",
+        failure: {
+          _tag: "ProseError",
+          reason: { _tag: "UnsupportedInCode", kind: "HtmlStartTag" },
+        },
+      });
+    }),
+  );
+
+  it.effect(
     "fenced_bytes",
     Effect.fnUntraced(function* () {
       expect.hasAssertions();
