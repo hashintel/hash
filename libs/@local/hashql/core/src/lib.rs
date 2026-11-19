@@ -18,11 +18,14 @@
     binary_heap_into_iter_sorted,
     bound_copied,
     clone_from_ref,
+    clone_to_uninit,
     const_cmp,
     const_convert,
     const_destruct,
+    const_index,
     const_ops,
     const_range,
+    const_range_bounds,
     const_trait_impl,
     extend_one,
     extern_types,
@@ -38,9 +41,11 @@
     sync_nonpoison,
     try_trait_v2,
     variant_count,
-    const_range_bounds,
-    const_index,
-    clone_to_uninit
+    vec_repeat
+)]
+#![cfg_attr(
+    feature = "zerocopy",
+    expect(uncommon_codepoints, reason = "used by the zerocopy derive")
 )]
 
 extern crate alloc;

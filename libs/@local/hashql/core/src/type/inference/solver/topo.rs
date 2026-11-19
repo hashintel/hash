@@ -53,7 +53,7 @@ where
     A: Allocator + Clone,
 {
     // Calculate in-degree (number of incoming edges) for each node
-    let mut indegree = alloc::vec::from_elem_in(0_u32, graph.node_count(), allocator.clone());
+    let mut indegree = Vec::repeat_in(0_u32, graph.node_count(), allocator.clone());
     for source in 0..graph.node_count() {
         for target in graph.outgoing_edges_by_index(kind, source) {
             indegree[target] += 1;
