@@ -115,7 +115,8 @@ export type OpenConversation = {
 
 type Opened = OpenConversation & {
   readonly storage: OwnedStorage;
-  failed: boolean;
+  /** Its close has begun, a failed storage call's included: never handed out again. */
+  closing: boolean;
 };
 
 /**
@@ -169,6 +170,8 @@ export const createConversationRegistry = (
   const opened = new Map<string, Opened>();
   /** Per conversation, the acquisition in progress: acquisitions of one conversation run one at a time. */
   const pending = new Map<string, Promise<unknown>>();
+  /** Closes of Harnesses evicted for lost ownership, until each settles. */
+  const evictions = new Set<Promise<void>>();
   let closed = false;
 
   /** Opens the conversation; with `seed`, creating it from the seed when it does not exist. */
@@ -233,19 +236,20 @@ export const createConversationRegistry = (
       }
       // The storage fence applies to every recovered wake's abort mark.
       await recoverBrowserCallWakes(harness, root.id, context);
-      // Continue whatever run the conversation's previous owner left unfinished.
-      harness.resume();
       const entry: Opened = {
         harness,
         root,
         registry,
         host,
         storage,
-        failed: false,
+        closing: false,
       };
-      void harness.closed.then((end) => {
-        if (end.kind === "failed") entry.failed = true;
+      // `closed` settles only once running task code returns, which may ignore its signal.
+      harness.subscribeClose(() => {
+        entry.closing = true;
       });
+      // Continue whatever run the conversation's previous owner left unfinished.
+      harness.resume();
       limits.onOpen?.(conversationId, crashLoop);
       return entry;
     } catch (error) {
@@ -263,7 +267,7 @@ export const createConversationRegistry = (
     const current = opened.get(conversationId);
     if (
       current !== undefined &&
-      !current.failed &&
+      !current.closing &&
       (await current.storage.isOwner())
     ) {
       return current;
@@ -271,7 +275,9 @@ export const createConversationRegistry = (
     if (current !== undefined) {
       opened.delete(conversationId);
       // Its commits already fail at the fence; closing ends its tasks and the streams that follow it.
-      void current.harness.close(context).catch(() => {});
+      const eviction = current.harness.close(context).catch(() => {});
+      evictions.add(eviction);
+      void eviction.finally(() => evictions.delete(eviction));
     }
     const next = await open(conversationId, seed, onRecoveringInput);
     if (next !== undefined) opened.set(conversationId, next);
@@ -330,7 +336,7 @@ export const createConversationRegistry = (
     const current = opened.get(conversationId);
     if (current === undefined) return undefined;
     const stillCurrent = () =>
-      !closed && !current.failed && opened.get(conversationId) === current;
+      !closed && !current.closing && opened.get(conversationId) === current;
     return stillCurrent() && (await current.storage.isOwner()) && stillCurrent()
       ? current
       : undefined;
@@ -341,9 +347,10 @@ export const createConversationRegistry = (
     await Promise.allSettled(pending.values());
     const harnesses = [...opened.values()].map(({ harness }) => harness);
     opened.clear();
-    await Promise.all(
-      harnesses.map((harness) => harness.close(context).catch(() => {})),
-    );
+    await Promise.all([
+      ...harnesses.map((harness) => harness.close(context).catch(() => {})),
+      ...evictions,
+    ]);
   };
 
   return { acquire, create, ifOwned, close };

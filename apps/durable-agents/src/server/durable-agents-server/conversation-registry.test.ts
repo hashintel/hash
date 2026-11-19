@@ -1,3 +1,5 @@
+import { setTimeout as sleep } from "node:timers/promises";
+
 import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
 import { createRegistry, MemoryStorage } from "@earendil-works/pi-durable";
 import { expect, test } from "vitest";
@@ -95,6 +97,59 @@ test("a conversation created with a binding is bound in the commit that creates 
       bound.conversations.close(),
     ]);
   }
+});
+
+test("closing the registry waits for a Harness it evicted for lost ownership to close", async () => {
+  const releaseClose = Promise.withResolvers<void>();
+  /** Each open's storage; the first loses ownership, and its close waits for `releaseClose`. */
+  const storages: { owner: boolean }[] = [];
+  const { models, model } = scriptedModel([]);
+  const conversations = createConversationRegistry(
+    {
+      openStorage: async () => {
+        const storage = Object.assign(new MemoryStorage(), { owner: true });
+        if (storages.length === 0) {
+          const close = storage.close.bind(storage);
+          storage.close = async (closeContext) => {
+            await releaseClose.promise;
+            return close(closeContext);
+          };
+        }
+        storages.push(storage);
+        return Object.assign(storage, {
+          isOwner: async () => storage.owner,
+        });
+      },
+      storageExists: async () => storages.length > 0,
+      createRegistry: () => createRegistry(),
+      models,
+      agent: { model },
+    },
+    {
+      maxTurns: 8,
+      crashLoopRestarts: Infinity,
+      requestSlots: createRequestSlots(1),
+    },
+    context,
+  );
+  const first = await conversations.create(chatId);
+  const [firstStorage] = storages;
+  if (firstStorage === undefined) throw new Error("No storage opened.");
+  firstStorage.owner = false;
+  const second = await conversations.create(chatId);
+  expect(second.harness).not.toBe(first.harness);
+
+  let registryClosed = false;
+  const closing = conversations.close().then(() => {
+    registryClosed = true;
+  });
+  await second.harness.closed;
+  await sleep(20);
+  expect(registryClosed).toBe(false);
+
+  releaseClose.resolve();
+  await closing;
+  expect(await first.harness.closed).toEqual({ kind: "closed" });
 });
 
 test("creating a conversation that already exists leaves its binding as it is", async () => {

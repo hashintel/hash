@@ -174,12 +174,12 @@ const startInstance = (
   });
   /** Each Harness's end, once a commit took the connection away from it. */
   const harnessEnds: Promise<SessionEnd>[] = [];
-  /** Hold the pool's only connection for `holdMs`, from inside the running turn. */
-  const holdConnection = async (chatId: string) => {
+  /** Hold the pool's only connection for `holdFor`, from inside the running turn. */
+  const holdConnection = async (chatId: string, holdFor = holdMs) => {
     const open = await server.conversations.ifOwned(chatId);
     if (open !== undefined) harnessEnds.push(open.harness.closed);
     const client = await pool.connect();
-    void sleep(holdMs).then(() => client.release());
+    void sleep(holdFor).then(() => client.release());
   };
   return {
     server,
@@ -328,6 +328,83 @@ test("a tool result's commit that gets no connection fails the Harness; a reopen
     });
     expect(entries.filter((entry) => AssistantEntry.is(entry))).toHaveLength(2);
     expect(instance.modelRequests()).toBe(2);
+  } finally {
+    await instance.close();
+    await dropSchema(chatId);
+  }
+});
+
+test("a request right after a commit fails the Harness, while its close still waits on a tool, is served by a fresh Harness", async () => {
+  const chatId = `pool-timeout-closing-${randomUUID()}`;
+  /** Outlasts the failed commit's wait, so the next request gets the connection soon after the failure. */
+  const holdFor = waitMs + 200;
+  /** Keeps the failed Harness's `closed` pending well past the next request. */
+  const lingerMs = holdFor + 3000;
+  let workRuns = 0;
+  let instance: Instance | undefined;
+  const work = defineTool({
+    name: "work",
+    description: "Works.",
+    parameters: obj({}),
+    execute: async () => {
+      workRuns += 1;
+      if (workRuns === 1) await instance?.holdConnection(chatId, holdFor);
+      return { output: [{ type: "text" as const, text: "done" }] };
+    },
+  });
+  const linger = defineTool({
+    name: "linger",
+    description: "Lingers, ignoring its abort signal.",
+    parameters: obj({}),
+    execute: async () => {
+      await sleep(lingerMs);
+      return { output: [{ type: "text" as const, text: "lingered" }] };
+    },
+  });
+  instance = startInstance(
+    [
+      fauxAssistantMessage(
+        [
+          fauxToolCall("work", {}, { id: "work-1" }),
+          fauxToolCall("linger", {}, { id: "linger-1" }),
+        ],
+        { stopReason: "toolUse" },
+      ),
+      fauxAssistantMessage("Worked."),
+    ],
+    [work, linger],
+  );
+  try {
+    const stream = await instance.transport.sendMessages({
+      trigger: "submit-message",
+      chatId,
+      messageId: undefined,
+      messages: [
+        { id: "user-1", role: "user", parts: [{ type: "text", text: "Go." }] },
+      ],
+      abortSignal: undefined,
+    });
+    await expect(drain(stream)).rejects.toThrow(
+      "chat stream ended before the turn settled",
+    );
+    const [failedEnd] = instance.harnessEnds;
+    let failedClosed = false;
+    void failedEnd?.then(() => {
+      failedClosed = true;
+    });
+
+    // The failed Harness is closing, not closed: the next request must not get it.
+    const next = await instance.server.app.request(
+      `http://durable.test/chat/${chatId}/stream`,
+    );
+    expect(failedClosed).toBe(false);
+    expect(next.status).toBe(200);
+    const body = await next.text();
+    expect(body).toContain("Worked.");
+    expect(body).toContain('"type":"finish"');
+
+    expect(await failedEnd).toMatchObject({ kind: "failed" });
+    expect(workRuns).toBe(1);
   } finally {
     await instance.close();
     await dropSchema(chatId);
