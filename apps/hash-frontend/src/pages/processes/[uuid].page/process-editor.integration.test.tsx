@@ -158,6 +158,8 @@ const router = vi.hoisted(() => {
     queueMicrotask(() => go(href(destination)));
     return Promise.resolve(true);
   };
+  type Handler = (...args: unknown[]) => void;
+  const handlers = new Map<string, Set<Handler>>();
   return {
     state,
     go,
@@ -167,7 +169,20 @@ const router = vi.hoisted(() => {
     },
     push: vi.fn(navigate),
     replace: vi.fn(navigate),
-    events: { on: vi.fn(), off: vi.fn() },
+    /** Route events, which a test emits as Next would. */
+    events: {
+      on: (event: string, handler: Handler) => {
+        handlers.set(event, (handlers.get(event) ?? new Set()).add(handler));
+      },
+      off: (event: string, handler: Handler) => {
+        handlers.get(event)?.delete(handler);
+      },
+      emit: (event: string, ...args: unknown[]) => {
+        for (const handler of handlers.get(event) ?? []) {
+          handler(...args);
+        }
+      },
+    },
   };
 });
 
@@ -1342,6 +1357,40 @@ const openDraft = () => {
     /^\/processes\/([0-9a-f-]{36})\?draftWeb=([^&]+)(.*)$/u.exec(url()) ?? [];
   return uuid && web ? { uuid, web, query } : null;
 };
+
+test("starting a draft waits for a navigation already under way, and starts only if Next cancels it", async () => {
+  // The page mounts before the router is ready, so the start isn't due yet.
+  await renderRoute(null);
+  // The user leaves for another net; then the start becomes due.
+  router.events.emit("routeChangeStart", `/processes/${uuidA}`);
+  act(() => router.go("/processes/draft"));
+  await settle();
+  expect(router.replace).not.toHaveBeenCalled();
+
+  act(() => {
+    router.events.emit("routeChangeError", { cancelled: true });
+  });
+  await settle();
+  expect(router.replace).toHaveBeenCalledOnce();
+  expect(openDraft()).toMatchObject({ web: webId });
+  cleanup();
+  observed.editor = null;
+  router.replace.mockClear();
+  router.state.current = { isReady: false, asPath: "", query: {} };
+
+  // A navigation that lands takes the user where they were going.
+  await renderRoute(null);
+  router.events.emit("routeChangeStart", `/processes/${uuidA}`);
+  act(() => router.go("/processes/draft"));
+  await settle();
+  act(() => {
+    router.go(`/processes/${uuidA}`);
+    router.events.emit("routeChangeComplete", `/processes/${uuidA}`);
+  });
+  await settle();
+  expect(router.replace).not.toHaveBeenCalled();
+  expect(topBar()).toMatchObject({ title: "A" });
+});
 
 test("starting a draft keeps an example we have and drops any other value", async () => {
   await renderRoute("/processes/draft?example=sir-model");

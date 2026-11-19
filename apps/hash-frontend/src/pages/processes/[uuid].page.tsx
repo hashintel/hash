@@ -1,5 +1,5 @@
 import { useRouter } from "next/router";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
@@ -85,8 +85,30 @@ const ProcessRoutePage: NextPageWithLayout = () => {
    * check names none that could be saved: give it one and go there.
    */
   const startsDraft = uuidParam === "draft" || draftEntityId === null;
+
+  /**
+   * A navigation is under way. Next cancels an earlier navigation for a
+   * later one, so a start that becomes due while the user is leaving (once
+   * the router or workspace is ready) would take them to a new draft
+   * instead. It waits: a navigation that lands leaves this URL, and one Next
+   * cancels lets it start.
+   */
+  const [navigating, setNavigating] = useState(false);
   useEffect(() => {
-    if (!startsDraft || !activeWorkspaceWebId) {
+    const start = () => setNavigating(true);
+    const end = () => setNavigating(false);
+    router.events.on("routeChangeStart", start);
+    router.events.on("routeChangeComplete", end);
+    router.events.on("routeChangeError", end);
+    return () => {
+      router.events.off("routeChangeStart", start);
+      router.events.off("routeChangeComplete", end);
+      router.events.off("routeChangeError", end);
+    };
+  }, [router.events]);
+
+  useEffect(() => {
+    if (!startsDraft || !activeWorkspaceWebId || navigating) {
       return;
     }
     void router.replace(
@@ -98,7 +120,7 @@ const ProcessRoutePage: NextPageWithLayout = () => {
         exampleSlug,
       ),
     );
-  }, [activeWorkspaceWebId, exampleSlug, router, startsDraft]);
+  }, [activeWorkspaceWebId, exampleSlug, navigating, router, startsDraft]);
 
   const view = useMemo<ProcessEditorView | null>(() => {
     if (!uuidParam || startsDraft) {
