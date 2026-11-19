@@ -11,9 +11,9 @@
 // oxlint-disable max-lines -- type and value shorthand share one definition vocabulary with its guards and normalization
 import { Predicate, Result, Struct, Tuple, pipe } from "effect";
 
+import * as Expression from "../internal/expression.js";
 import * as StructuralSyntax from "../internal/structural.js";
 import * as AST from "./AST/index.js";
-import * as Expression from "./Expression.js";
 import * as TypeExpression from "./TypeExpression.js";
 
 import type * as Relocation from "../internal/relocation.js";

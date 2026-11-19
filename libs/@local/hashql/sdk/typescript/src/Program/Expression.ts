@@ -11,41 +11,27 @@
  * @module
  */
 // oxlint-disable max-lines -- expression constructors and their API examples belong with the private handle metadata and proxy machinery
-import {
-  Function,
-  Pipeable,
-  Predicate,
-  Result,
-  Schema,
-  SchemaIssue,
-  SchemaParser,
-  Struct,
-  identity,
-  pipe,
-} from "effect";
+// oxlint-disable max-dependencies -- expression constructors are tightly coupled with private handle metadata and proxy machinery
+import { Function, Pipeable, Result, Struct, pipe } from "effect";
 
-import { Relocate, head } from "../internal/relocation.js";
+import * as internal from "../internal/expression.js";
+import { Relocate } from "../internal/relocation.js";
 import * as JExpr from "../JExpr/index.js";
 import * as AST from "./AST/index.js";
-import * as ProgramError from "./ProgramError.js";
 import * as Structural from "./Structural.js";
 import * as TAST from "./TAST/index.js";
 
+import type { Binding, TypeId } from "../internal/expression.js";
 import type { Bound, Relocatable } from "../internal/relocation.js";
 import type * as Type from "../Type.js";
-import type {
-  Accessors,
-  Arguments,
-  Callable,
-  Conditional,
-} from "./ExpressionType.js";
+import type { Accessors, Callable, Conditional } from "./ExpressionType.js";
 import type * as Input from "./Inputs.js";
+import type * as ProgramError from "./ProgramError.js";
 import type { Types } from "effect";
 import type { ReadonlyRecord } from "effect/Record";
 
 export type { Conditional } from "./ExpressionType.js";
 
-const TypeId = "~hashql/Expression";
 /**
  * The string key that marks an expression handle, which {@link isExpression} checks.
  *
@@ -54,9 +40,7 @@ const TypeId = "~hashql/Expression";
  */
 export type TypeId = typeof TypeId;
 
-const Binding: unique symbol = Symbol("~hashql/Expression");
-
-interface Variance<T, Inputs> {
+export interface Variance<T, Inputs> {
   readonly _T: Types.Invariant<T>;
   readonly _Inputs: Types.Contravariant<Inputs>;
 }
@@ -126,25 +110,6 @@ export declare namespace Value {
 
   /** The semantic input descriptors required by every host-side alternative, with defaults marked optional. */
   export type Inputs<E> = Input.Conservative<InputAlternatives<E>>;
-}
-
-class ExpressionImpl<T extends Type.Any, Inputs> {
-  readonly [TypeId]: Variance<T, Inputs>;
-
-  readonly #expr: Result.Result<AST.Node.Any, ProgramError.Construction>;
-
-  constructor(expr: Result.Result<AST.Node.Any, ProgramError.Construction>) {
-    this.#expr = expr;
-    this[TypeId] = {
-      _T: identity,
-      // oxlint-disable-next-line typescript/strict-void-return -- only used for type variance
-      _Inputs: identity,
-    };
-  }
-
-  get [Binding](): Result.Result<AST.Node.Any, ProgramError.Construction> {
-    return this.#expr;
-  }
 }
 
 /**
@@ -219,18 +184,8 @@ export declare namespace Expression {
  * @since 0.1.0
  */
 // oxlint-disable-next-line typescript/no-restricted-types -- the guard accepts unchecked host values
-export const isExpression = (value: unknown): value is Expression.Any =>
-  Predicate.hasProperty(value, TypeId);
-
-const jexprParser = SchemaParser.decodeResult(Schema.toType(JExpr.Schema));
-
-const parseNode = (
-  expression: JExpr.Expression,
-): Result.Result<AST.Node.Any, ProgramError.Construction> =>
-  Result.mapBoth(jexprParser(expression), {
-    onSuccess: (syntax) => new AST.Expr(syntax),
-    onFailure: (cause) => ProgramError.Construction.invalidExpression(cause),
-  });
+export const isExpression: (value: unknown) => value is Expression.Any =
+  internal.isExpression;
 
 /**
  * Extracts a handle's stored AST result or validates a host literal into an AST node.
@@ -240,27 +195,9 @@ const parseNode = (
  * @category Conversions
  * @since 0.1.0
  */
-export const toNode = (
+export const toNode: (
   value: Value.Any,
-): Result.Result<AST.Node.Any, ProgramError.Construction> => {
-  if (isExpression(value)) {
-    if (Predicate.hasProperty(value, Binding)) {
-      return value[Binding];
-    }
-
-    // The marker is a string key, so a data record can carry it. Only a handle stores a result.
-    return Result.fail(
-      ProgramError.Construction.invalidExpression(
-        new SchemaIssue.InvalidValue(
-          { message: `A record with the "${TypeId}" key is not an expression` },
-          value,
-        ),
-      ),
-    );
-  }
-
-  return parseNode(JExpr.literal(value));
-};
+) => Result.Result<AST.Node.Any, ProgramError.Construction> = internal.toNode;
 
 /**
  * Extracts J-Expr syntax without evaluating the represented value.
@@ -275,131 +212,6 @@ export const toJExpr = (
 ): Result.Result<JExpr.Expression, ProgramError.Construction> =>
   pipe(value, toNode, Result.map(AST.compile));
 
-const projectionKey = (
-  key: string | number,
-): Result.Result<string | number, ProgramError.Construction> => {
-  if (typeof key === "string") {
-    return Result.succeed(key);
-  }
-
-  // `JExpr.access` writes a numeric key as an Integer literal without checking it. Parsing that literal stores a fraction or a non-finite number as a failure, as an `$index` key does.
-  return pipe(
-    key,
-    JExpr.integer,
-    parseNode,
-    Result.map(() => key),
-  );
-};
-
-const access = (
-  value: Result.Result<AST.Node.Any, ProgramError.Construction>,
-  key: string | number,
-): Result.Result<AST.Node.Any, ProgramError.Construction> =>
-  pipe(
-    { value, key: projectionKey(key) },
-    Result.all,
-    Result.map(({ value, key }) => new AST.Access(value, key)),
-  );
-
-const make = <T extends Type.Any, Inputs>(
-  impl: ExpressionImpl<T, Inputs>,
-): Expression<T, Inputs> => {
-  const target: Expression.Handle<T, Inputs> = Object.assign(
-    (...args: Arguments.Any) =>
-      make(
-        new ExpressionImpl(
-          pipe(
-            {
-              callee: impl[Binding],
-              arguments: Result.all(args.map(toNode)),
-            },
-            Result.all,
-            Result.map(
-              ({ callee, arguments: arguments_ }) =>
-                new AST.Call(callee, arguments_),
-            ),
-          ),
-        ),
-      ),
-    {
-      [TypeId]: impl[TypeId],
-      [Binding]: impl[Binding],
-      [Relocate]: (
-        path: JExpr.Path.Path,
-        bound?: Bound,
-      ): Result.Result<Expression<T, Inputs>, ProgramError.Construction> =>
-        impl[Binding].pipe(
-          Result.map(() =>
-            make(
-              new ExpressionImpl<T, Inputs>(
-                Result.succeed(new AST.Path(path, head(path, "value", bound))),
-              ),
-            ),
-          ),
-        ),
-      ...Pipeable.Prototype,
-    },
-  );
-
-  const proxy = new Proxy(target, {
-    get(
-      target,
-      property,
-      receiver,
-    ): // oxlint-disable-next-line typescript/no-restricted-types -- proxy property reads may return arbitrary host values
-    unknown {
-      if (property === "pipe") {
-        return Reflect.get(target, property, receiver);
-      }
-
-      if (property === "$index" || property === "$indexUnsafe") {
-        return (key: Value.Any) => {
-          const expr = pipe(
-            { value: target[Binding], key: toNode(key) },
-            Result.all,
-            Result.map(({ value, key }) => new AST.Subscript(value, key)),
-          );
-          const impl = new ExpressionImpl(expr);
-          return make(impl);
-        };
-      }
-
-      if (property === "$project" || property === "$projectUnsafe") {
-        return (key: string | number) =>
-          make(new ExpressionImpl(access(target[Binding], key)));
-      }
-
-      if (property === Binding) {
-        return target[Binding];
-      }
-
-      if (property === TypeId) {
-        return target[TypeId];
-      }
-
-      if (property in target && !Object.hasOwn(target, property)) {
-        return Reflect.get(target, property, receiver);
-      }
-
-      if (typeof property === "string" && /^\d+$/u.test(property)) {
-        return make(
-          new ExpressionImpl(access(target[Binding], Number(property))),
-        );
-      }
-
-      if (typeof property === "string") {
-        return make(new ExpressionImpl(access(target[Binding], property)));
-      }
-
-      return Reflect.get(target, property, receiver);
-    },
-  });
-
-  // SAFETY: the handle retains T and Inputs. The traps supply their type-directed operations.
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- TypeScript cannot derive conditional accessors and call signatures from proxy traps
-  return proxy as Expression<T, Inputs>;
-};
-
 /**
  * Wraps an AST construction result while retaining either its node or its failure.
  *
@@ -408,9 +220,9 @@ const make = <T extends Type.Any, Inputs>(
  * @category Conversions
  * @since 0.1.0
  */
-export const fromResult = <T extends Type.Any, Inputs>(
+export const fromResult: <T extends Type.Any, Inputs>(
   node: Result.Result<AST.Node.Any, ProgramError.Construction>,
-): Expression<T, Inputs> => make(new ExpressionImpl<T, Inputs>(node));
+) => Expression<T, Inputs> = internal.fromResult;
 
 /**
  * Ascribes a semantic type to syntax supplied by a declaration or another trusted builder.
@@ -422,7 +234,8 @@ export const fromResult = <T extends Type.Any, Inputs>(
  */
 export const fromJExpr = <T extends Type.Any, Inputs>(
   expression: JExpr.Expression,
-): Expression<T, Inputs> => pipe(expression, parseNode, fromResult<T, Inputs>);
+): Expression<T, Inputs> =>
+  pipe(expression, internal.parseNode, fromResult<T, Inputs>);
 
 /**
  * Wraps an already constructed AST node without validation, using caller-supplied semantic metadata as in {@link fromResult}.
@@ -511,8 +324,8 @@ export const adaptCallable: {
     const callable = ((...args: never[]) => adapted(...args)) as C;
 
     return Object.assign(callable, {
-      [TypeId]: self[TypeId],
-      [Binding]: self[Binding],
+      [internal.TypeId]: self[internal.TypeId],
+      [internal.Binding]: self[internal.Binding],
       [Relocate]: (
         path: JExpr.Path.Path,
         bound?: Bound,

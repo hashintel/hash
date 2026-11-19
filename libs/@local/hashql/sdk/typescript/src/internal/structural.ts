@@ -20,10 +20,10 @@ import {
 
 import * as JExpr from "../JExpr/index.js";
 import * as AST from "../Program/AST/index.js";
-import * as Expression from "../Program/Expression.js";
 import * as ProgramError from "../Program/ProgramError.js";
 import * as TAST from "../Program/TAST/index.js";
 import * as TypeExpression from "../Program/TypeExpression.js";
+import * as Expression from "./expression.js";
 import { Relocate } from "./relocation.js";
 
 import type * as Structural from "../Program/Structural.js";
