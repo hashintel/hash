@@ -6084,7 +6084,7 @@ __metadata:
 
 "@glideapps/glide-data-grid@patch:@glideapps/glide-data-grid@npm%3A6.0.3#~/.yarn/patches/@glideapps-glide-data-grid-npm-6.0.3-f71d586425.patch":
   version: 6.0.3
-  resolution: "@glideapps/glide-data-grid@patch:@glideapps/glide-data-grid@npm%3A6.0.3#~/.yarn/patches/@glideapps-glide-data-grid-npm-6.0.3-f71d586425.patch::version=6.0.3&hash=589b85"
+  resolution: "@glideapps/glide-data-grid@patch:@glideapps/glide-data-grid@npm%3A6.0.3#~/.yarn/patches/@glideapps-glide-data-grid-npm-6.0.3-f71d586425.patch::version=6.0.3&hash=02531c"
   dependencies:
     "@linaria/react": "npm:^4.5.3"
     canvas-hypertxt: "npm:^1.0.3"
@@ -6095,7 +6095,7 @@ __metadata:
     react: ^16.12.0 || 17.x || 18.x
     react-dom: ^16.12.0 || 17.x || 18.x
     react-responsive-carousel: ^3.2.7
-  checksum: 10c0/f00a37240b5c9bf2d0b1811c8c61e38c38b937e3044577571b2c47ac6b1b5d4613790b1eb26e986e0ddbd05a589f880ebb89240cd30b4e098127761cb92d5670
+  checksum: 10c0/75948c0d543550b6e808e83f82349828e2f079ca94c9d451dfc103fbdac9379c174767b8c49378e11b808d4a4301fba04cb21d796d6e106dabeb7108ea0a2c15
   languageName: node
   linkType: hard
 
