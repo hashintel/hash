@@ -5,13 +5,12 @@ import {
 
 import type { PoolConfig } from "pg";
 
-/** Brunch's Postgres variables (`apps/brunch-agent/src/env.ts`), which a library can't import. */
-const brunchPostgresEnv = {
-  host: "BRUNCH_POSTGRES_HOST",
-  port: "BRUNCH_POSTGRES_PORT",
-  user: "BRUNCH_POSTGRES_USER",
-  password: "BRUNCH_POSTGRES_PASSWORD",
-  database: "BRUNCH_POSTGRES_DATABASE",
+const postgresVariables = {
+  host: "DURABLE_AGENTS_POSTGRES_HOST",
+  port: "DURABLE_AGENTS_POSTGRES_PORT",
+  user: "DURABLE_AGENTS_POSTGRES_USER",
+  password: "DURABLE_AGENTS_POSTGRES_PASSWORD",
+  database: "DURABLE_AGENTS_POSTGRES_DATABASE",
 } as const;
 
 /** What `pg-pool` rejects with when no connection comes within `connectionTimeoutMillis`: none freed, or none opened. */
@@ -42,26 +41,26 @@ export const isPoolConnectTimeout = (error: unknown): boolean => {
 };
 
 /**
- * Connection to the compose Postgres (`infra/compose`) unless Brunch's `BRUNCH_POSTGRES_*` variables, then compose's
+ * Connection to the compose Postgres (`infra/compose`) unless the `DURABLE_AGENTS_POSTGRES_*` variables, then compose's
  * `POSTGRES_*` variables, say otherwise. No TLS: this is for local runs, not Brunch's deployed configuration.
  */
 export const postgresConfigFromEnvironment = (
   environment: NodeJS.ProcessEnv = process.env,
 ): PoolConfig => ({
   application_name: "durable-agents",
-  host: environment[brunchPostgresEnv.host] ?? "localhost",
+  host: environment[postgresVariables.host] ?? "localhost",
   port: Number(
-    environment[brunchPostgresEnv.port] ?? environment.POSTGRES_PORT ?? 5432,
+    environment[postgresVariables.port] ?? environment.POSTGRES_PORT ?? 5432,
   ),
   user:
-    environment[brunchPostgresEnv.user] ??
+    environment[postgresVariables.user] ??
     environment.POSTGRES_USER ??
     "postgres",
   password:
-    environment[brunchPostgresEnv.password] ??
+    environment[postgresVariables.password] ??
     environment.POSTGRES_PASSWORD ??
     "postgres",
-  database: environment[brunchPostgresEnv.database] ?? "postgres",
+  database: environment[postgresVariables.database] ?? "postgres",
 });
 
 /** The pool's limits, as `pg` names them. */
