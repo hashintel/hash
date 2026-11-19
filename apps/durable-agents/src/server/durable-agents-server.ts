@@ -7,7 +7,8 @@
  *   `trigger`, `messageId`), submits the last user message once per message id
  *   as a `brunch.user` or `brunch.ledger-comments` input (`brunchUserInput`),
  *   with the version-load note when it carries a new load, and answers with
- *   that submission's UI message stream. It is the only
+ *   that submission's UI message stream; 409 when the message id is the
+ *   request ID of a submission other than an input. It is the only
  *   route that creates a conversation, and only when `admitNewConversation`
  *   lets the request.
  * - `GET /chat/:id/stream` (the transport's `reconnectToStream`) answers 204
@@ -304,7 +305,9 @@ export const createDurableAgentsServer = (
       // Admission deliberately does not use the response's cancellation signal.
       const submissionId = await root.commit(async (tx) => {
         const existing = await tx.submissionByRequest(root.id, input.requestId);
-        if (existing !== undefined) return existing.id;
+        // Pi refuses a request ID of another submission type with an untyped error; this is its check.
+        if (existing !== undefined)
+          return existing.type === "input" ? existing.id : undefined;
         return root.submit(tx, {
           type: "input",
           content: await contentWithVersionLoadNote(tx, root.id, input),
@@ -313,6 +316,11 @@ export const createDurableAgentsServer = (
           whenBusy: "followUp",
         });
       }, context);
+      if (submissionId === undefined)
+        return ctx.text(
+          "The message id already names a submission that is not a chat message.",
+          409,
+        );
       const submission = await harness.submission(submissionId, context);
       if (submission === undefined)
         throw new Error(`Submission ${submissionId} is missing.`);
