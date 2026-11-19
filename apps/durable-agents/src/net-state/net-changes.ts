@@ -173,17 +173,24 @@ export const callsForElement = (
 export const latestNetDefinition = (
   calls: readonly NetCall[],
 ):
-  | { readonly definition: NetStructure; readonly call: NetCall }
+  | {
+      readonly definition: NetStructure;
+      readonly call: NetCall;
+      readonly revision: string | undefined;
+    }
   | undefined => {
   const call = calls.findLast(
     (entry) => netResultView(entry.toolName, entry.metadata) !== undefined,
   );
   if (!call) return undefined;
   const view = netResultView(call.toolName, call.metadata);
-  if (view?.kind === "change") return { definition: view.readBack, call };
+  if (view === undefined) return undefined;
+  const { revision } = view;
+  if (view.kind === "change")
+    return { definition: view.readBack, call, revision };
   return typeof call.output === "object" &&
     call.output !== null &&
     "definition" in call.output
-    ? { definition: call.output.definition as NetStructure, call }
+    ? { definition: call.output.definition as NetStructure, call, revision }
     : undefined;
 };
