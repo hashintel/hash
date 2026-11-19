@@ -81,10 +81,9 @@ const findListQuery = (
 };
 
 /**
- * What one item of a for-each's list is called, as in "For each supplier". Nothing stores it, so it comes from the
- * list: a Find entities query limited to one type, or a list taken from one, gives that type's title in lower case,
- * any other list of entities
- * gives "entity", and anything else "item".
+ * What one item of a for-each's list is called, as in "For each Supplier". Nothing stores it, so it comes from the
+ * list: a Find entities query limited to one type, or a list taken from one, gives that type's title as written, so
+ * "PDF Document" keeps its capitals, any other list of entities gives "entity", and anything else "item".
  */
 export const getItemName = ({
   flowDefinition,
@@ -111,7 +110,7 @@ export const getItemName = ({
       : undefined;
 
   if (title) {
-    return title.toLowerCase();
+    return title;
   }
 
   const kind = createStepShapeResolver(flowDefinition).getSourceShape(

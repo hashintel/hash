@@ -192,7 +192,7 @@ export const getSourceOptions = ({
 };
 
 /**
- * How a picked value reads in its field, e.g. "Flow inputs › Entity type" or "For each › supplier". `forEach` is the
+ * How a picked value reads in its field, e.g. "Flow inputs › Entity type" or "For each › Supplier". `forEach` is the
  * for-each the step is in and what one item of its list is called.
  */
 export const getSourceLabel = (
@@ -223,7 +223,7 @@ export const getSourceLabel = (
     }
 
     /* Named after its for-each as a step's output is after its step, so a described one reads "Check suppliers ›
-       supplier". */
+       Supplier". */
     case "item": {
       const found = forEach && findStep(flowDefinition.steps, forEach.stepId);
 

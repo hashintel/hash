@@ -50,7 +50,7 @@ export type ForEachStepNode = Node<
   StepNodeDataBase & {
     step: ForEachStepDefinition<string>;
     collapsed: boolean;
-    /** What one item of its list is called, e.g. "supplier". */
+    /** What one item of its list is called, e.g. "Supplier". */
     itemName: string;
   },
   "forEach"

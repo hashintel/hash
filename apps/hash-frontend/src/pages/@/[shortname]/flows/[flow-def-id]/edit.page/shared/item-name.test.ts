@@ -58,7 +58,7 @@ describe("getItemName", () => {
       entityTypeBaseUrls: [supplierType],
     });
 
-    expect(itemNameIn(overFound(query))).toBe("supplier");
+    expect(itemNameIn(overFound(query))).toBe("Supplier");
   });
 
   it("follows the list through steps that pass on some of its items", () => {
@@ -93,7 +93,7 @@ describe("getItemName", () => {
       }),
     ]);
 
-    expect(itemNameIn(flowDefinition)).toBe("supplier");
+    expect(itemNameIn(flowDefinition)).toBe("Supplier");
   });
 
   it("still reads the type when the query's conditions can't be read back", () => {
@@ -115,7 +115,7 @@ describe("getItemName", () => {
       },
     };
 
-    expect(itemNameIn(overFound(query))).toBe("certificate");
+    expect(itemNameIn(overFound(query))).toBe("Certificate");
   });
 
   it("calls any other list of entities an entity", () => {

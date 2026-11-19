@@ -228,13 +228,13 @@ describe("getSourceLabel", () => {
         },
       ]);
     const item = { kind: "item" as const };
-    const scope = { stepId: "each", itemName: "supplier" };
+    const scope = { stepId: "each", itemName: "Supplier" };
 
     expect(getSourceLabel(forEach("Check suppliers"), item, scope)).toBe(
-      "Check suppliers › supplier",
+      "Check suppliers › Supplier",
     );
     expect(getSourceLabel(forEach(""), item, scope)).toBe(
-      "For each › supplier",
+      "For each › Supplier",
     );
   });
 });
