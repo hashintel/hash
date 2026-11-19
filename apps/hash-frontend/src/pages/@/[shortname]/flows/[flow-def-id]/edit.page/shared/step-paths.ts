@@ -1,3 +1,4 @@
+import type { FlowEditor } from "@local/hash-isomorphic-utils/flows/flow-editor";
 import type {
   FlowActionDefinitionId,
   StepDefinition,
@@ -34,6 +35,24 @@ const actionPaths: Partial<Record<string, StepPath[]>> = {
 /** An action's paths, with their default names; none for an action that doesn't branch. */
 export const getActionPaths = (actionDefinitionId: string): StepPath[] =>
   actionPaths[actionDefinitionId] ?? [];
+
+/**
+ * Makes `to` run after `from`, a step just added: on its first path if it has paths, such as an If's Yes, which is the
+ * port the line is drawn from.
+ */
+export const connectFromNewStep = (
+  editor: FlowEditor,
+  from: { stepId: string; actionDefinitionId: string },
+  to: string,
+) => {
+  const [firstPath] = getActionPaths(from.actionDefinitionId);
+
+  if (firstPath) {
+    editor.setPathTarget(from.stepId, firstPath.outputName, to);
+  } else {
+    editor.addConnection({ from: from.stepId, to });
+  }
+};
 
 /** A step's paths, with the names given to them; none for a step that doesn't branch. */
 export const getStepPaths = (step: StepDefinition<string>): StepPath[] =>

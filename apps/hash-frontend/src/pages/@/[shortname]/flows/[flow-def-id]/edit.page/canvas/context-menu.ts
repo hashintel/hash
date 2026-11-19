@@ -1,4 +1,5 @@
 import { stepNoun } from "../shared/step-display";
+import { connectFromNewStep } from "../shared/step-paths";
 
 import type { MenuItem } from "@hashintel/ds-components";
 import type {
@@ -126,14 +127,20 @@ export const getContextMenuItems = ({
           icon: "plug",
           onClick: () => editor.removeConnection(connection),
         },
-        insertStepHere((actionDefinitionId, position) =>
-          selectStep(
-            editor.addStep(actionDefinitionId, {
-              into: connection,
-              position,
-            }),
-          ),
-        ),
+        insertStepHere((actionDefinitionId, position) => {
+          const stepId = editor.addStep(actionDefinitionId, {
+            into: connection,
+            position,
+          });
+
+          /* `into` puts the step that followed on no path of the new step. */
+          connectFromNewStep(
+            editor,
+            { stepId, actionDefinitionId },
+            connection.to,
+          );
+          selectStep(stepId);
+        }),
       ];
     }
     case "start-line": {
@@ -144,7 +151,7 @@ export const getContextMenuItems = ({
         insertStepHere((actionDefinitionId, position) => {
           const stepId = editor.addStep(actionDefinitionId, { position });
 
-          editor.addConnection({ from: stepId, to });
+          connectFromNewStep(editor, { stepId, actionDefinitionId }, to);
           selectStep(stepId);
         }),
       ];

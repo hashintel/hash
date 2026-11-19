@@ -39,7 +39,7 @@ import {
   useSelectedStepInView,
   useStepFocus,
 } from "./canvas/use-step-focus";
-import { getActionPaths } from "./shared/step-paths";
+import { connectFromNewStep, getActionPaths } from "./shared/step-paths";
 
 import type { CanvasActions } from "./canvas/canvas-actions";
 import type { CanvasTool } from "./canvas/canvas-toolbar";
@@ -669,7 +669,11 @@ const FlowCanvas = ({
         } else {
           const stepId = editor.addStep(actionDefinitionId, { position });
 
-          editor.addConnection({ from: stepId, to: fromStepId });
+          connectFromNewStep(
+            editor,
+            { stepId, actionDefinitionId },
+            fromStepId,
+          );
           selectStep(stepId);
         }
       },
