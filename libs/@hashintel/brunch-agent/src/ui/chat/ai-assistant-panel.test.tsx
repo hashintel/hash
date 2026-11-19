@@ -4870,6 +4870,43 @@ describe("AiAssistantPanel composer submissions", () => {
     },
   );
 
+  // The server ends a turn on a repaired commit by the reply written beside
+  // the refused one, since its history keeps one assistant message per turn.
+  test("does not show a missing-reply notice when a repaired server tool ends a response that replied before the refused one", async () => {
+    expect(
+      await runServerToolThenFollowUp(
+        [
+          { type: "start-step" },
+          {
+            type: "tool-input-available",
+            dynamic: true,
+            providerExecuted: true,
+            toolCallId: "outline-2",
+            toolName: "readNetOutline",
+            input: {},
+          },
+          {
+            type: "tool-output-available",
+            dynamic: true,
+            providerExecuted: true,
+            toolCallId: "outline-2",
+            output: { places: 1 },
+          },
+        ],
+        {
+          toolStep: [
+            ...textChunks("reply", "Recorded the reservoir."),
+            ...serverToolChunks({
+              type: "tool-output-error",
+              errorText: "The batch was refused.",
+            }),
+          ],
+        },
+      ),
+    ).toEqual({ ...serverEndedWithoutReply, noReplyNotices: 0 });
+    expect(screen.getByText("Recorded the reservoir.")).not.toBeNull();
+  });
+
   test("shows a missing-reply notice when the only reply text precedes a browser tool whose follow-up is empty", async () => {
     expect(
       await runBrowserToolThenFollowUp(
