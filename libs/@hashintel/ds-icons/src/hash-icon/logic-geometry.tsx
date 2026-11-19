@@ -49,7 +49,7 @@ export const logicGeometry = {
     <g strokeWidth="calc(var(--hash-icon-stroke-width) * .8)">
       <path d="M7.5 12h7m-3-3 3 3-3 3" />
       <circle cx="4.5" cy="12" r="3" />
-      <circle cx="17.5" cy="12" r="3" fill="currentColor" />
+      <circle cx="17.5" cy="12" r="3" fill="currentColor" stroke="none" />
     </g>
   ),
   logicUntil: (

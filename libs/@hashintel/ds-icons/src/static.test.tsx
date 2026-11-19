@@ -18,6 +18,37 @@ describe("static artwork", () => {
     { renderer: "main", IconComponent: HashIcon },
     { renderer: "static", IconComponent: StaticHashIcon },
   ])(
+    "keeps filled logic state markers unstroked in the $renderer renderer",
+    ({ IconComponent }) => {
+      for (const name of [
+        "logicNext",
+        "logicUntil",
+        "logicBranching",
+        "logicStateSequence",
+      ] as const) {
+        for (const variant of ["outline", "filled"] as const) {
+          for (const weight of [100, 400, 700]) {
+            const { container, unmount } = render(
+              <IconComponent name={name} variant={variant} weight={weight} />,
+            );
+            const markers = container.querySelectorAll(
+              'circle[fill="currentColor"]',
+            );
+            expect(markers).toHaveLength(1);
+            expect(
+              markers[0]?.closest("[stroke]")?.getAttribute("stroke"),
+            ).toBe("none");
+            unmount();
+          }
+        }
+      }
+    },
+  );
+
+  it.each([
+    { renderer: "main", IconComponent: HashIcon },
+    { renderer: "static", IconComponent: StaticHashIcon },
+  ])(
     "preserves open and closed arrowhead meanings in the $renderer renderer",
     ({ IconComponent }) => {
       for (const variant of ["outline", "filled"] as const) {
