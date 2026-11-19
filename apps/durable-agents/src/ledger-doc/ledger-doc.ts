@@ -31,6 +31,7 @@ import {
 } from "@hashintel/brunch-agent";
 
 import { brunchUserKind, userWords } from "../shared/brunch-user-entry";
+import { checkpointEvery } from "../shared/checkpoint-when";
 
 /** `ledger_commit`'s result: recorded or refused. The lib exports the schema, not the type. */
 export type LedgerAppendOutput = v.InferOutput<typeof ledgerAppendOutputSchema>;
@@ -103,7 +104,8 @@ export const LedgerDoc = defineDoc<LedgerHistoryDoc>({
   history: "rewindable",
   fork: "asOf",
   initial: emptyHistory,
-  checkpointWhen: () => false,
+  // Rewindable history keeps every base, each a full copy of the history; replaying a delta costs far less.
+  checkpointWhen: checkpointEvery({ changes: 128 }),
 });
 
 /** The Ledger a stored history folds to; a conversation with no commits yet has none stored. */
