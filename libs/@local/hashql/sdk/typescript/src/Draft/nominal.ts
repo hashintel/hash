@@ -5,15 +5,15 @@
  */
 import { Result, pipe } from "effect";
 
+import * as StructuralSyntax from "../internal/structural.js";
 import * as AST from "../Program/AST/index.js";
 import * as Expression from "../Program/Expression.js";
-import * as StructuralSyntax from "./structural.js";
 
-import type * as Context from "../Draft/Context.js";
+import type * as Referential from "../internal/referential.js";
 import type * as Inputs from "../Program/Inputs.js";
 import type * as Structural from "../Program/Structural.js";
 import type * as Type from "../Type.js";
-import type * as Referential from "./referential.js";
+import type * as Context from "./Context.js";
 
 /** A newtype's binding and the id of its constructor. */
 export interface NominalBinding {
