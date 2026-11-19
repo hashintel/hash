@@ -212,6 +212,89 @@ test("details shows editions and links in both directions, and names ids it didn
   expect(details.read.notes[0]).toContain(`Not returned: ${id(9)}`);
 });
 
+test("details reads part of a large value by path, outlining a part still too large", () => {
+  const definition = {
+    parameters: Array.from({ length: 40 }, (_, index) => ({
+      name: `parameter ${index}`,
+      variableName: `rate_${index}`,
+      defaultValue: String(index / 1000),
+    })),
+    scenarios: Array.from({ length: 30 }, (_, index) => ({
+      name: `scenario ${index}`,
+      parameterOverrides: Object.fromEntries(
+        Array.from({ length: 60 }, (__, inner) => [
+          `rate_${inner}`,
+          `${index}.${inner}`,
+        ]),
+      ),
+    })),
+  };
+  const net = {
+    ...read,
+    propertyTypes: [
+      {
+        baseUrl: property("definition"),
+        propertyTypeId: `${property("definition")}v/1`,
+        title: "Definition",
+      },
+    ],
+    entities: [
+      entity(5, [type("petri-net")], { [property("definition")]: definition }),
+    ],
+  };
+  const detailsOf = (fullValuesFor?: unknown[]) =>
+    decode(
+      renderHashEntityDetails(
+        net,
+        parseHashEntityDetailsInput({
+          entityIds: [id(5)],
+          ...(fullValuesFor ? { fullValuesFor } : {}),
+        }),
+      ).text,
+    ) as {
+      entities: {
+        properties: { definition: string };
+        values?: Record<string, unknown>;
+      }[];
+      read: { notes: string[] };
+    };
+
+  const summary = detailsOf();
+  expect(summary.entities[0]?.properties.definition).toMatch(
+    /^<object, [\d.]+ KB: scenarios [\d.]+ KB, parameters [\d.]+ KB>$/u,
+  );
+
+  const parameters = detailsOf([
+    { entityId: id(5), path: ["definition", "parameters"] },
+  ]);
+  expect(parameters.entities[0]?.values?.["definition.parameters"]).toEqual(
+    definition.parameters,
+  );
+
+  const scenarios = detailsOf([
+    { entityId: id(5), path: ["definition", "scenarios"] },
+  ]);
+  const outlined = scenarios.entities[0]?.values?.[
+    "definition.scenarios"
+  ] as unknown[];
+  expect(outlined).toHaveLength(30);
+  expect(outlined[0]).toMatch(
+    /^<object, [\d.]+ KB: parameterOverrides [\d.]+ KB, name>$/u,
+  );
+  const oneScenario = detailsOf([
+    { entityId: id(5), path: ["definition", "scenarios", "0"] },
+  ]);
+  expect(oneScenario.entities[0]?.values?.["definition.scenarios.0"]).toEqual(
+    definition.scenarios[0],
+  );
+  expect(scenarios.read.notes.join(" ")).toContain("outlined one level down");
+
+  const wrong = detailsOf([
+    { entityId: id(5), path: ["definition", "params"] },
+  ]);
+  expect(wrong.read.notes.join(" ")).toContain("nothing at definition.params");
+});
+
 test("the legend keeps each property's versioned id, listing every version a read matched", () => {
   const view = renderHashEntityDetails(
     {

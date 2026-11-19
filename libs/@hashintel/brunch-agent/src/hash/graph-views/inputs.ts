@@ -168,17 +168,33 @@ export const hashEntityDetailsInputSchema = v.pipe(
     ),
     properties: propertiesField,
     fullValuesFor: listOf(
-      hashEntityIdSchema,
-      "Entities, also listed in entityIds, whose summarised property values to show in full.",
+      v.union([
+        hashEntityIdSchema,
+        v.strictObject({
+          entityId: hashEntityIdSchema,
+          path: v.pipe(
+            v.array(v.pipe(v.string(), v.minLength(1))),
+            v.minLength(1),
+            v.description(
+              'Where the value is: the property\'s name as the legend gives it, then the keys or array positions inside it, such as ["definition_object", "parameters"].',
+            ),
+          ),
+        }),
+      ]),
+      "Summarised values to show in full, for entities also listed in entityIds: an entity id shows all of that entity's values; { entityId, path } shows one value or part of one. A part too large to show comes back outlined one level further down, so narrow the path.",
     ),
     includeDrafts: filterFields.includeDrafts,
   }),
   v.rawCheck(({ dataset, addIssue }) => {
     if (!dataset.typed) return;
     const named = new Set(dataset.value.entityIds);
-    const unnamed = (dataset.value.fullValuesFor ?? []).filter(
-      (entityId) => !named.has(entityId),
-    );
+    const unnamed = [
+      ...new Set(
+        (dataset.value.fullValuesFor ?? []).map((entry) =>
+          typeof entry === "string" ? entry : entry.entityId,
+        ),
+      ),
+    ].filter((entityId) => !named.has(entityId));
     if (unnamed.length > 0)
       addIssue({
         message: `fullValuesFor names ${unnamed.join(", ")}, which entityIds doesn't; add ${unnamed.length === 1 ? "it" : "them"} to entityIds to read ${unnamed.length === 1 ? "its" : "their"} full values.`,
