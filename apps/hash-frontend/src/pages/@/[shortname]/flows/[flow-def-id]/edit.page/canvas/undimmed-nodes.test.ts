@@ -52,8 +52,8 @@ describe("getUndimmedNodeIds", () => {
     expect(undimmed(["each"])).toEqual(nodeIds("each", "fetch", "save"));
   });
 
-  it("keeps a step inside a for-each step without the for-each step or the steps beside it", () => {
-    expect(undimmed(["fetch"])).toEqual(nodeIds("fetch"));
+  it("keeps a step inside a for-each step with the for-each step around it, but not the steps beside it", () => {
+    expect(undimmed(["fetch"])).toEqual(nodeIds("each", "fetch"));
   });
 
   it("keeps a collapsed for-each step for a step inside it, which isn't drawn", () => {

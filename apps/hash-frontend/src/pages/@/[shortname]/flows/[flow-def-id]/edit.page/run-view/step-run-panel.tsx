@@ -11,16 +11,12 @@ import { RunGlyph } from "../shared/run-marks";
 import { PanelSection, PanelTitle, SidePanel } from "../shared/side-panel";
 import { getActionDefinition, getStepDisplay } from "../shared/step-display";
 import { StepIconTile } from "../shared/step-icon-tile";
-import { stepStateLabels } from "../shared/step-states";
 import { ValueName } from "../shared/value-name";
 import { indexValueUses } from "../shared/value-uses";
 import { getPayloadShape, getValueDisplay } from "./shared/run-value-display";
 import { OutputUses } from "./step-run-panel/output-uses";
 import { RunValue } from "./step-run-panel/run-value";
-import {
-  getItemCountsLine,
-  getStatusLines,
-} from "./step-run-panel/status-lines";
+import { getItemTotal, getStatusLine } from "./step-run-panel/status-lines";
 import { StepRunError } from "./step-run-panel/step-run-error";
 import {
   getCommonInputs,
@@ -41,7 +37,7 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { ReactNode } from "react";
 
-const header = css({ display: "flex", alignItems: "flex-start", gap: "2" });
+const header = css({ display: "flex", alignItems: "center", gap: "2" });
 const headerText = css({
   display: "flex",
   flexDirection: "column",
@@ -49,16 +45,26 @@ const headerText = css({
   flex: "1",
   minWidth: "0",
 });
-const state = css({
+const status = css({ display: "flex", flexDirection: "column", gap: "2" });
+const statusLines = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "0.5",
+  minWidth: "0",
+});
+const firstLine = css({
   display: "flex",
   alignItems: "center",
   gap: "1",
+  minWidth: "0",
   textStyle: "sm",
   color: "fg.body",
+  whiteSpace: "nowrap",
 });
-const status = css({ display: "flex", flexDirection: "column", gap: "2" });
-const statusLines = css({ display: "flex", flexDirection: "column" });
-const statusLine = css({ textStyle: "sm", color: "fg.muted" });
+/* The glyphs are drawn inset in their box: this starts the mark's ink at the text edge, where the quiet lines start. */
+const flushMark = css({ display: "flex", ml: "-1" });
+const firstLineText = css({ minWidth: "0", truncate: true });
+const stateWord = css({ color: "fg.heading" });
 const note = css({ textStyle: "sm", color: "fg.subtle" });
 const answerLink = css({ alignSelf: "flex-start" });
 const values = css({ display: "flex", flexDirection: "column", gap: "4" });
@@ -98,34 +104,53 @@ const useNow = (ticking: boolean) => {
 };
 
 /**
- * The lines under a step's state: its items' counts, then its timing, attempts and whether it waits on a person. The
- * clock ticks in here, so that a step still going re-renders these lines each second and not the values under them.
+ * A step's status: one line of its mark, its word, its items' count and its timing, then a quiet line for each reason
+ * there is, such as its retries. The clock ticks in here, so that a step still going re-renders these lines each second
+ * and not the values under them.
  */
 const StatusLines = ({
-  itemCountsLine,
+  mark,
+  live,
   runs,
   perItem,
   running,
-  waitingOnPerson,
+  askedAt,
 }: {
-  itemCountsLine: string | null;
+  mark: StepRunMark;
+  live: boolean;
   runs: ItemRun[];
   perItem: boolean;
   running: boolean;
-  waitingOnPerson: boolean;
+  askedAt: string | null;
 }) => {
   const now = useNow(running);
+  const { state, word, facts, notes } = getStatusLine({
+    mark,
+    live,
+    runs,
+    perItem,
+    running,
+    askedAt,
+    now,
+  });
 
   return (
     <div className={statusLines}>
-      {itemCountsLine && <span className={statusLine}>{itemCountsLine}</span>}
-      {getStatusLines({ runs, perItem, running, waitingOnPerson, now }).map(
-        (line) => (
-          <span key={line} className={statusLine}>
-            {line}
-          </span>
-        ),
-      )}
+      <span className={firstLine}>
+        {/* Its word names it. */}
+        <span aria-hidden className={flushMark}>
+          <RunGlyph state={state} />
+        </span>
+        <span className={firstLineText}>
+          <span className={stateWord}>{word}</span>
+          {facts.map((fact) => ` · ${fact}`).join("")}
+        </span>
+      </span>
+      {notes.map((line) => (
+        <span key={line} className={note}>
+          {line}
+        </span>
+      ))}
     </div>
   );
 };
@@ -208,7 +233,8 @@ export const StepRunPanel = ({
   flowDefinition: FlowDefinition<string>;
   mark: StepRunMark;
   stepRuns: Map<string, FlowRunStepRunState>;
-  waitingOnPerson: Set<string>;
+  /** When each step run waiting on a person asked its questions, by step run id. */
+  waitingOnPerson: Map<string, string>;
   live: boolean;
   /** The run's page outside the editor, where a person can answer a step's questions, once its path is known. */
   runPageHref: string | null;
@@ -220,9 +246,11 @@ export const StepRunPanel = ({
 }) => {
   const runs = useMemo(() => getRunsOfStep(step, stepRuns), [step, stepRuns]);
   const perItem = inner || step.kind === "for-each";
-  const waiting = runs.some(({ stepRun }) =>
-    waitingOnPerson.has(stepRun.stepId),
-  );
+  /* The first of its runs to ask, for a step that runs per item. */
+  const askedAt =
+    runs
+      .flatMap(({ stepRun }) => waitingOnPerson.get(stepRun.stepId) ?? [])
+      .toSorted()[0] ?? null;
   /*
    * Timed up to now while it's still going: running, or waiting on a person, which outranks running items. A step run
    * per item is still going while items are yet to be scheduled, though every run so far has closed.
@@ -240,8 +268,7 @@ export const StepRunPanel = ({
     setHighlightingOutput(stepId === null ? null : outputName);
     onHighlightStep(stepId);
   };
-  const itemCountsLine =
-    perItem && mark.items ? getItemCountsLine(mark.items) : null;
+  const hasItems = perItem && !!mark.items && getItemTotal(mark.items) > 0;
 
   const usesOf = useMemo(
     () => indexValueUses(flowDefinition.steps),
@@ -327,47 +354,42 @@ export const StepRunPanel = ({
         <StepIconTile icon={icon} tone={tone} size="large" />
         <div className={headerText}>
           <PanelTitle>{name}</PanelTitle>
-          <span className={state}>
-            <RunGlyph state={mark.state} />
-            {stepStateLabels[mark.state]}
-          </span>
         </div>
       </div>
-      {(runs.length > 0 || itemCountsLine) && (
-        <div className={status}>
-          <StatusLines
-            itemCountsLine={itemCountsLine}
-            runs={runs}
-            perItem={perItem}
-            running={running}
-            waitingOnPerson={waiting}
+      <div className={status}>
+        <StatusLines
+          mark={mark}
+          live={live}
+          runs={runs}
+          perItem={perItem}
+          running={running}
+          askedAt={askedAt}
+        />
+        {lastError && (
+          <StepRunError
+            message={lastError.error.message}
+            context={lastError.context ?? undefined}
           />
-          {lastError && (
-            <StepRunError
-              message={lastError.error.message}
-              context={lastError.context ?? undefined}
-            />
-          )}
-          {waiting && runPageHref && (
-            <Button
-              variant="subtle"
-              size="sm"
-              href={runPageHref}
-              target="_blank"
-              iconName="externalLink"
-              iconPosition="right"
-              className={answerLink}
-            >
-              Answer on the run's page
-            </Button>
-          )}
-          {itemCountsLine && (
-            <span className={note}>
-              Each item has its own values, which aren't shown here.
-            </span>
-          )}
-        </div>
-      )}
+        )}
+        {askedAt && runPageHref && (
+          <Button
+            variant="subtle"
+            size="sm"
+            href={runPageHref}
+            target="_blank"
+            iconName="externalLink"
+            iconPosition="right"
+            className={answerLink}
+          >
+            Answer on the run's page
+          </Button>
+        )}
+        {hasItems && (
+          <span className={note}>
+            Each item has its own values, which aren't shown here.
+          </span>
+        )}
+      </div>
       {(inputs.length > 0 || varying.length > 0) && (
         <PanelSection title="Inputs">
           <div className={values}>

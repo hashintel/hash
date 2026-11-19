@@ -4,7 +4,12 @@ import { generateStepRunId } from "@local/hash-isomorphic-utils/flows/step-run-i
 import { FlowStepStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 
 import { actionStep } from "./step-fixtures";
-import { getBarSegments, getStepRunMarks } from "./step-states";
+import {
+  getBarSegments,
+  getShownState,
+  getStepRunMarks,
+  stepStateLabels,
+} from "./step-states";
 
 import type { ItemCounts } from "./step-states";
 import type { FlowRunEvent } from "@local/hash-isomorphic-utils/flows/run-events";
@@ -306,6 +311,38 @@ describe("getStepRunMarks", () => {
 
     expect(marks.get("eachSupplier")?.state).toBe("done");
     expect(marks.get("fetch")?.state).toBe("skipped");
+  });
+});
+
+describe("getShownState", () => {
+  it("shows a step not reached as waiting while its run is live, and as skipped once it has ended", () => {
+    expect(stepStateLabels[getShownState("notReached", true)]).toBe("Waiting");
+    expect(getShownState("notReached", false)).toBe("skipped");
+    expect(stepStateLabels[getShownState("notReached", false)]).toBe("Skipped");
+  });
+
+  it("never shows a step of a run that has ended as waiting", () => {
+    const marks = marksOf(
+      [
+        stepRun("find", FlowStepStatus.Cancelled),
+        itemRun("fetch", 0, FlowStepStatus.Cancelled),
+      ],
+      { itemCount: 1, live: false },
+    );
+
+    for (const { state } of marks.values()) {
+      expect(stepStateLabels[getShownState(state, false)]).not.toBe("Waiting");
+    }
+  });
+
+  it("leaves every other state as it is", () => {
+    expect(getShownState("running", true)).toBe("running");
+    expect(getShownState("doneWithFailures", false)).toBe("doneWithFailures");
+    expect(getShownState("skipped", true)).toBe("skipped");
+  });
+
+  it("reads a step done with failures as done, as its failures are counted beside it", () => {
+    expect(stepStateLabels.doneWithFailures).toBe("Done");
   });
 });
 

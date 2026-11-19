@@ -4,9 +4,29 @@ import { getStepNodeId } from "./flow-graph";
 import type { FlowNode } from "./flow-graph";
 import type { StepDefinition } from "@local/hash-isomorphic-utils/flows/types";
 
+/** The node a step is drawn as. A step in a collapsed for-each step isn't drawn, so the for-each step stands for it. */
+export const getDrawnNodeId = ({
+  stepId,
+  steps,
+  collapsedStepIds,
+}: {
+  stepId: string;
+  steps: StepDefinition<string>[];
+  collapsedStepIds: Set<string>;
+}) => {
+  const collapsedParent = steps.find(
+    (step) =>
+      step.kind === "for-each" &&
+      collapsedStepIds.has(step.stepId) &&
+      findStep(step.steps, stepId),
+  );
+
+  return getStepNodeId(collapsedParent?.stepId ?? stepId);
+};
+
 /**
- * The nodes that stay as they are while the rest of a canvas is dimmed: those of the steps in `stepIds`, and of the
- * steps drawn inside them. A step in a collapsed for-each step isn't drawn, so the for-each step stands for it.
+ * The nodes that stay as they are while the rest of a canvas is dimmed: those of the steps in `stepIds`, of the steps
+ * drawn inside them, and of the for-each steps they're drawn inside, so that they read as inside them.
  */
 export const getUndimmedNodeIds = ({
   stepIds,
@@ -19,23 +39,28 @@ export const getUndimmedNodeIds = ({
   collapsedStepIds: Set<string>;
   nodes: Pick<FlowNode, "id" | "parentId">[];
 }): Set<string> => {
-  const undimmed = new Set(
-    stepIds.map((stepId) => {
-      const collapsedParent = steps.find(
-        (step) =>
-          step.kind === "for-each" &&
-          collapsedStepIds.has(step.stepId) &&
-          findStep(step.steps, stepId),
-      );
-
-      return getStepNodeId(collapsedParent?.stepId ?? stepId);
-    }),
+  const stepNodeIds = stepIds.map((stepId) =>
+    getDrawnNodeId({ stepId, steps, collapsedStepIds }),
   );
+  const undimmed = new Set(stepNodeIds);
 
   /* A for-each step's node comes before those of the steps inside it. */
   for (const { id, parentId } of nodes) {
     if (parentId !== undefined && undimmed.has(parentId)) {
       undimmed.add(id);
+    }
+  }
+
+  /* Only the for-each steps around them, not the other steps inside those. */
+  const parentIds = new Map(nodes.map(({ id, parentId }) => [id, parentId]));
+
+  for (const nodeId of stepNodeIds) {
+    for (
+      let parentId = parentIds.get(nodeId);
+      parentId !== undefined;
+      parentId = parentIds.get(parentId)
+    ) {
+      undimmed.add(parentId);
     }
   }
 

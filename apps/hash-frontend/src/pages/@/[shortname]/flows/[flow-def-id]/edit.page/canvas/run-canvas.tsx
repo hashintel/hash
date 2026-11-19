@@ -22,7 +22,7 @@ import { ConnectionEdge } from "./connection-edge";
 import { getFlowGraph } from "./flow-graph";
 import { ForEachNode, StartNode, StepNode } from "./flow-nodes";
 import { layOutFlow } from "./layout";
-import { getUndimmedNodeIds } from "./undimmed-nodes";
+import { getDrawnNodeId, getUndimmedNodeIds } from "./undimmed-nodes";
 import { useSelectedStepInView, useStepFocus } from "./use-step-focus";
 
 import type { StepRunMark } from "../shared/step-states";
@@ -49,9 +49,14 @@ const edgeTypes = { connection: ConnectionEdge };
 const canvas = css({ position: "relative", width: "full", height: "full" });
 /* While a step is highlighted, the rest fade back, so it stands out where it is, and fade in again after. */
 const dimmable = css({ transition: "opacity", transitionDuration: "fast" });
-const dimmed = css({ opacity: "0.3" });
-
-const startRun: CardRun = { mark: startMark, featured: false };
+const dimmed = css({ opacity: "0.4" });
+/* On the node around the card, so the card's own styles, and its status bar, stay as they are. */
+const highlighted = css({
+  "& > div": {
+    bg: "neutral.bgSolid.surface",
+    boxShadow: "[0 0 0 1.5px {colors.neutral.bd.solid.hover}]",
+  },
+});
 
 const withRun = (node: FlowNode, run: CardRun): FlowNode => {
   switch (node.type) {
@@ -69,6 +74,8 @@ type RunCanvasProps = {
   flowDefinition: FlowDefinition<string>;
   /** Each step's mark in the run, by step id. A step with none is not reached. */
   marks: Map<string, StepRunMark>;
+  /** Whether the run is still going. */
+  live: boolean;
   selectedStepIds: string[];
   onSelectionChange: (stepIds: string[]) => void;
   /** A new object each time, so the same step can be focused twice. */
@@ -76,8 +83,8 @@ type RunCanvasProps = {
   collapsedStepIds: Set<string>;
   onToggleCollapsed: (stepId: string) => void;
   /**
-   * A step to show apart from the rest, e.g. one using the selected step's output: every other step is dimmed but
-   * those selected.
+   * A step to show apart from the rest, e.g. one using the selected step's output: it's ringed, and every other step
+   * is dimmed but those selected.
    */
   highlightedStepId: string | null;
   /** How much of the canvas's right edge a panel covers, in pixels. */
@@ -87,6 +94,7 @@ type RunCanvasProps = {
 const FlowRunCanvas = ({
   flowDefinition,
   marks,
+  live,
   selectedStepIds,
   onSelectionChange,
   focusRequest,
@@ -199,6 +207,15 @@ const FlowRunCanvas = ({
     ],
   );
 
+  const highlightedNodeId =
+    highlightedStepId === null
+      ? null
+      : getDrawnNodeId({
+          stepId: highlightedStepId,
+          steps: flowDefinition.steps,
+          collapsedStepIds,
+        });
+
   const nodes = useMemo(() => {
     const selectedStepIdSet = new Set(selectedStepIds);
 
@@ -210,10 +227,11 @@ const FlowRunCanvas = ({
         ...withRun(
           node,
           stepId === null
-            ? startRun
+            ? { mark: startMark, featured: false, live }
             : {
                 mark: marks.get(stepId) ?? notReachedMark,
                 featured: featuredStepIds.has(stepId),
+                live,
               },
         ),
         draggable: false,
@@ -222,6 +240,7 @@ const FlowRunCanvas = ({
         selected: stepId !== null && selectedStepIdSet.has(stepId),
         className: cx(
           dimmable,
+          node.id === highlightedNodeId && highlighted,
           undimmedNodeIds !== null && !undimmedNodeIds.has(node.id) && dimmed,
         ),
         ...(measured && { measured }),
@@ -230,8 +249,10 @@ const FlowRunCanvas = ({
   }, [
     graph.nodes,
     marks,
+    live,
     featuredStepIds,
     selectedStepIds,
+    highlightedNodeId,
     undimmedNodeIds,
     measurements,
   ]);

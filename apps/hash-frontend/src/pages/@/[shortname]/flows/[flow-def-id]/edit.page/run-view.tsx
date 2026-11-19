@@ -203,6 +203,7 @@ export const RunView = ({
       <RunLeftPanel
         flowDefinition={flowDefinition}
         runMarks={marks}
+        live={live}
         selectedStepIds={selectedStepIds}
         onStepClick={(stepId) => {
           selectSteps([stepId]);
@@ -245,6 +246,7 @@ export const RunView = ({
         <RunCanvas
           flowDefinition={flowDefinition}
           marks={marks}
+          live={live}
           selectedStepIds={selectedStepIds}
           onSelectionChange={selectSteps}
           focusRequest={focusRequest}
