@@ -6,6 +6,7 @@ import { FlowStepStatus } from "@local/hash-isomorphic-utils/graphql/api-types.g
 import { actionStep } from "./step-fixtures";
 import {
   getBarSegments,
+  getCardStateText,
   getShownState,
   getStepRunMarks,
   stepStateLabels,
@@ -319,6 +320,14 @@ describe("getShownState", () => {
     expect(stepStateLabels[getShownState("notReached", true)]).toBe("Waiting");
     expect(stepStateLabels[getShownState("notReached", false)]).toBe("Skipped");
     expect(getShownState("running", false)).toBe("running");
+  });
+});
+
+describe("getCardStateText", () => {
+  it("says a step done with failures had them, where its label reads as done", () => {
+    expect(stepStateLabels.doneWithFailures).toBe("Done");
+    expect(getCardStateText("doneWithFailures")).toBe("Done with failures");
+    expect(getCardStateText("done")).toBe("Done");
   });
 });
 
