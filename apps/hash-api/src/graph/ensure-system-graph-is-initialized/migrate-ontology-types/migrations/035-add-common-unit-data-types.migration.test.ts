@@ -32,7 +32,9 @@ const seeded = new Map<
 const baseUrl = (title: string) =>
   `https://hash.ai/@h/types/data-type/${slugifyTypeTitle(title)}/` as BaseUrl;
 const getSeeded = (title: string) => {
-  const unit = seeded.get(title);
+  const unit =
+    seeded.get(baseUrl(title)) ??
+    [...seeded.values()].find(({ schema }) => schema.title === title);
   if (!unit) {
     throw new Error(`Missing seeded type: ${title}`);
   }
@@ -44,11 +46,13 @@ const conversionPath = (
 ): ConversionDefinition[] | undefined => {
   const from = getSeeded(source).conversions;
   const to = getSeeded(target).conversions;
-  const direct = from[baseUrl(target)];
+  const direct =
+    from[getSeeded(target).schema.$id.replace(/v\/[^/]+$/, "") as BaseUrl];
   if (direct) {
     return [direct.to];
   }
-  const reverse = to[baseUrl(source)];
+  const reverse =
+    to[getSeeded(source).schema.$id.replace(/v\/[^/]+$/, "") as BaseUrl];
   if (reverse) {
     return [reverse.from];
   }
@@ -71,8 +75,12 @@ const convert = (source: string, target: string, value: number): number => {
 
 beforeAll(async () => {
   vi.mocked(ensureUnitDataType).mockImplementation(
-    async (_context, _authentication, { dataTypeDefinition, conversions }) => {
-      const url = baseUrl(dataTypeDefinition.title);
+    async (
+      _context,
+      _authentication,
+      { dataTypeDefinition, dataTypeBaseUrl, conversions },
+    ) => {
+      const url = dataTypeBaseUrl ?? baseUrl(dataTypeDefinition.title);
       const schema: DataType = {
         ...dataTypeDefinition,
         $id: `${url}v/1`,
@@ -80,8 +88,8 @@ beforeAll(async () => {
           "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
         kind: "dataType",
       };
-      expect(seeded.has(schema.title), schema.title).toBe(false);
-      seeded.set(schema.title, { schema, conversions });
+      expect(seeded.has(url), schema.title).toBe(false);
+      seeded.set(url, { schema, conversions });
       return {
         schema,
         metadata: { recordId: { baseUrl: url } },
@@ -103,17 +111,18 @@ describe("common measurement units", () => {
   it("preserves the earlier catalogue and registers every type", () => {
     expect(seeded.size).toBe(1253);
     expect(commonUnitGroups).toHaveLength(73);
-    const registry = new Map<string, BaseUrl>(
+    const registry = new Map<BaseUrl, string>(
       Object.values(systemDataTypes).map((entry) => [
-        entry.title,
         entry.dataTypeBaseUrl,
+        entry.title,
       ]),
     );
-    const seededBaseUrls = new Set([...seeded.keys()].map(baseUrl));
+    const seededBaseUrls = new Set(seeded.keys());
     for (const { schema, conversions } of seeded.values()) {
-      expect(registry.get(schema.title), schema.title).toBe(
-        baseUrl(schema.title),
-      );
+      expect(
+        registry.get(schema.$id.replace(/v\/[^/]+$/, "") as BaseUrl),
+        schema.title,
+      ).toBe(schema.title);
       for (const target of Object.keys(conversions)) {
         expect(seededBaseUrls.has(target as BaseUrl), target).toBe(true);
       }
@@ -125,7 +134,9 @@ describe("common measurement units", () => {
       expect(current?.description).toBe(previous.description);
       for (const unit of previous.units) {
         expect(
-          current?.units.find(({ title }) => title === unit.title),
+          current?.units.find(
+            ({ dataTypeBaseUrl }) => dataTypeBaseUrl === unit.dataTypeBaseUrl,
+          ),
         ).toEqual(unit);
       }
     }
