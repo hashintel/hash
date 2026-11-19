@@ -54,6 +54,8 @@ const startRun: CardRun = { mark: startMark, featured: false };
 
 const withRun = (node: FlowNode, run: CardRun): FlowNode => {
   switch (node.type) {
+    case "trigger":
+      return node;
     case "start":
       return { ...node, data: { ...node.data, run }, selectable: false };
     case "step":
@@ -168,6 +170,7 @@ const FlowRunCanvas = ({
       problemsByStepId: new Map(),
       forEachLayouts: layout.forEachLayouts,
       collapsedStepIds,
+      triggers: [],
     });
   }, [flowDefinition, layout, collapsedStepIds]);
 
@@ -200,7 +203,10 @@ const FlowRunCanvas = ({
     const selectedStepIdSet = new Set(selectedStepIds);
 
     return graph.nodes.map((node) => {
-      const stepId = node.type === "start" ? null : node.data.step.stepId;
+      const stepId =
+        node.type === "start" || node.type === "trigger"
+          ? null
+          : node.data.step.stepId;
       const measured = measurements.get(node.id);
 
       return {
@@ -273,7 +279,7 @@ const FlowRunCanvas = ({
       } else if (change.type === "select") {
         const node = graph.nodes.find(({ id }) => id === change.id);
 
-        if (node && node.type !== "start") {
+        if (node && node.type !== "start" && node.type !== "trigger") {
           selectionChanged = true;
 
           if (change.selected) {
