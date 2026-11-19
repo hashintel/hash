@@ -5,6 +5,7 @@ import {
   defaultPoolLimits,
   isPoolConnectTimeout,
   poolLimitsFromEnvironment,
+  postgresConfigFromEnvironment,
 } from "./postgres-config";
 
 test("a pool connect timeout is found through a failed Session's cause", () => {
@@ -13,6 +14,42 @@ test("a pool connect timeout is found through a failed Session's cause", () => {
   expect(
     isPoolConnectTimeout(new SessionFailed(new Error("Session is closed"))),
   ).toBe(false);
+});
+
+test("the connection takes durable agents' own variables, then compose's, then the compose defaults", () => {
+  expect(postgresConfigFromEnvironment({})).toMatchObject({
+    host: "localhost",
+    port: 5432,
+    user: "postgres",
+    password: "postgres",
+    database: "postgres",
+  });
+  const compose = {
+    POSTGRES_PORT: "5433",
+    POSTGRES_USER: "compose-user",
+    POSTGRES_PASSWORD: "compose-password",
+  };
+  expect(postgresConfigFromEnvironment(compose)).toMatchObject({
+    port: 5433,
+    user: "compose-user",
+    password: "compose-password",
+  });
+  expect(
+    postgresConfigFromEnvironment({
+      ...compose,
+      DURABLE_AGENTS_POSTGRES_HOST: "db",
+      DURABLE_AGENTS_POSTGRES_PORT: "6543",
+      DURABLE_AGENTS_POSTGRES_USER: "durable",
+      DURABLE_AGENTS_POSTGRES_PASSWORD: "secret",
+      DURABLE_AGENTS_POSTGRES_DATABASE: "durable_agents",
+    }),
+  ).toMatchObject({
+    host: "db",
+    port: 6543,
+    user: "durable",
+    password: "secret",
+    database: "durable_agents",
+  });
 });
 
 const poolVariables = [

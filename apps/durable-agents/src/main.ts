@@ -28,13 +28,13 @@
  *   - `DURABLE_AGENTS_PG_POOL_WAIT_MS` (10000): how long a query waits for
  *     a connection, `pg`'s `connectionTimeoutMillis`. An HTTP request that
  *     waits longer is answered 503 with `Retry-After`.
- * - The Postgres connection (`postgresConfigFromEnvironment`), each Brunch's
- *   variable first, then compose's, then the compose default:
- *   - `BRUNCH_POSTGRES_HOST` (`localhost`).
- *   - `BRUNCH_POSTGRES_PORT`, then `POSTGRES_PORT` (5432).
- *   - `BRUNCH_POSTGRES_USER`, then `POSTGRES_USER` (`postgres`).
- *   - `BRUNCH_POSTGRES_PASSWORD`, then `POSTGRES_PASSWORD` (`postgres`).
- *   - `BRUNCH_POSTGRES_DATABASE` (`postgres`).
+ * - The Postgres connection (`postgresConfigFromEnvironment`), each durable
+ *   agents' variable first, then compose's, then the compose default:
+ *   - `DURABLE_AGENTS_POSTGRES_HOST` (`localhost`).
+ *   - `DURABLE_AGENTS_POSTGRES_PORT`, then `POSTGRES_PORT` (5432).
+ *   - `DURABLE_AGENTS_POSTGRES_USER`, then `POSTGRES_USER` (`postgres`).
+ *   - `DURABLE_AGENTS_POSTGRES_PASSWORD`, then `POSTGRES_PASSWORD` (`postgres`).
+ *   - `DURABLE_AGENTS_POSTGRES_DATABASE` (`postgres`).
  *
  * Each of these is logged as one JSON line on stderr:
  *
