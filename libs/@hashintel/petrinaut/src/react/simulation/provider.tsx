@@ -3,7 +3,7 @@
  * @role Owns the run configuration, starts runs and experiments on the selected simulator, and mirrors their handles into React
  */
 
-import { use, useEffect, useRef, useState } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   assessSimulator,
@@ -1120,22 +1120,47 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   // generated here and never persisted. The panel's parameter inputs stay
   // the owner of parameter values, so the net parameters are tweaked to the
   // panel's values before expressions read them.
-  const adHocNetParameters = extensions.parameters
-    ? petriNetDefinition.parameters.map((parameter) => ({
-        ...parameter,
-        defaultValue:
-          stateValues.parameterValues[parameter.variableName] ??
-          parameter.defaultValue,
-      }))
-    : [];
-  const adHocSynthesized =
-    !selectedScenario && stateValues.adHocScenario
-      ? synthesizeAdHocScenario(stateValues.adHocScenario, {
-          netParameters: adHocNetParameters,
-          places: petriNetDefinition.places,
-          types: petriNetDefinition.types,
-        })
-      : null;
+  //
+  // `useMemo` on these two, where the compiler memoizes everything else in
+  // this component: both are handed to `compileScenario` after
+  // `useScenarioHir` has run, and the compiler does not cache a value across
+  // a hook call when a later call could still change it. Left to it, both
+  // are new on every render, the scenario is compiled again on every render,
+  // and the context value below changes for every reader each time this
+  // provider renders.
+  const adHocNetParameters = useMemo(
+    () =>
+      extensions.parameters
+        ? petriNetDefinition.parameters.map((parameter) => ({
+            ...parameter,
+            defaultValue:
+              stateValues.parameterValues[parameter.variableName] ??
+              parameter.defaultValue,
+          }))
+        : [],
+    [
+      extensions.parameters,
+      petriNetDefinition.parameters,
+      stateValues.parameterValues,
+    ],
+  );
+  const adHocDefinition = selectedScenario ? null : stateValues.adHocScenario;
+  const adHocSynthesized = useMemo(
+    () =>
+      adHocDefinition
+        ? synthesizeAdHocScenario(adHocDefinition, {
+            netParameters: adHocNetParameters,
+            places: petriNetDefinition.places,
+            types: petriNetDefinition.types,
+          })
+        : null,
+    [
+      adHocDefinition,
+      adHocNetParameters,
+      petriNetDefinition.places,
+      petriNetDefinition.types,
+    ],
+  );
 
   // Scenario code is lowered to HIR in the language worker (async, keyed on
   // the scenario's code); type checking and interpretation run synchronously
