@@ -4,18 +4,19 @@
  * the record by `toolCallId` in place of the settled tool part, and the
  * call's issue position (its assistant entry, then its index there) in place
  * of the message and part indexes. A change is attributed per canonical call
- * (`canonicalCallsOf`), as Brunch's is.
+ * (`recordedCanonicalCallsOf`), as Brunch's is.
  */
 import {
   type ArcElement,
   browserToolFacts,
   type CanonicalPetrinautCall,
-  canonicalCallsOf,
   generatedArcId,
   namesId,
   type NetElementAddress,
   type NetStructure,
   parseClientToolResultMetadata,
+  readRecordedCall,
+  recordedCanonicalCallsOf,
 } from "@hashintel/brunch-agent";
 
 import { netResultView } from "./net-view";
@@ -50,7 +51,9 @@ export const issuedBefore = (
 
 /**
  * The browser's settled net calls, in issue order. A call recorded without
- * its issue position, before positions were recorded, is left out.
+ * its issue position, before positions were recorded, is left out. Each call
+ * is under the tool of today that takes it, and in that tool's keys: a
+ * conversation may have recorded it under older ones.
  */
 export const netCalls = (
   calls: Readonly<Record<string, BrowserCallRecord>>,
@@ -58,9 +61,13 @@ export const netCalls = (
   Object.values(calls)
     .flatMap((record) => {
       const { issuedEntry, callIndex } = record;
+      const { toolName, input } = readRecordedCall(
+        record.toolName,
+        record.input,
+      );
       if (
         record.status !== "settled" ||
-        !browserToolFacts(record.toolName).runsOnNet ||
+        !browserToolFacts(toolName).runsOnNet ||
         issuedEntry === undefined ||
         callIndex === undefined
       )
@@ -69,8 +76,8 @@ export const netCalls = (
       return [
         {
           toolCallId: record.toolCallId,
-          toolName: record.toolName,
-          input: record.input,
+          toolName,
+          input,
           output: record.output,
           revisionBefore: metadata?.documentRevision.before,
           revisionAfter: metadata?.documentRevision.after,
@@ -150,7 +157,9 @@ export const callsForElement = (
 ): NetCall[] =>
   calls.filter((call) => {
     if (!isAppliedChange(call)) return false;
-    const canonicalCalls = canonicalCallsOf(call.toolName, call.input);
+    // A recorded call that no tool of today takes yields no canonical call,
+    // and so is credited to no element.
+    const canonicalCalls = recordedCanonicalCallsOf(call.toolName, call.input);
     const { arc } = element;
     return arc
       ? canonicalCalls.some((canonical) =>

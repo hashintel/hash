@@ -302,13 +302,13 @@ const fakeBrowser = () => {
         stochasticity: true,
         dynamics: true,
         parameters: true,
-        subnets: true,
+        components: true,
       },
     };
   };
   const answer = (toolName: string, input: unknown): unknown => {
     const {
-      targetSubnetId: _subnet,
+      targetComponentId: _component,
       editor_id: _editor,
       ...fields
     }: Record<string, unknown> = typeof input === "object" && input !== null

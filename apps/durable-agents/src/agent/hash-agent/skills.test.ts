@@ -41,7 +41,7 @@ describe("HASH's skills", () => {
     expect(hashSkills.map(({ id }) => id)).toEqual([
       "skill:eliciting:17fa6b7ae9872d86",
       "skill:modelling:58721049949230ef",
-      "skill:petrinaut:9f13e866ca63ab9d",
+      "skill:petrinaut:b208f67acdaee19e",
       "skill:hash-graph:d0aee672e09c5792",
     ]);
   });
@@ -62,9 +62,9 @@ describe("HASH's skills", () => {
         "",
         "Supporting skill resources are available but are not loaded into context unless needed:",
         "<skill_resources>",
-        "- references/docs.md → read_skill_resource /.flue/packaged-skills/skill%3Apetrinaut%3A9f13e866ca63ab9d/references/docs.md",
-        "- references/examples.md → read_skill_resource /.flue/packaged-skills/skill%3Apetrinaut%3A9f13e866ca63ab9d/references/examples.md",
-        "- references/experiments.md → read_skill_resource /.flue/packaged-skills/skill%3Apetrinaut%3A9f13e866ca63ab9d/references/experiments.md",
+        "- references/docs.md → read_skill_resource /.flue/packaged-skills/skill%3Apetrinaut%3Ab208f67acdaee19e/references/docs.md",
+        "- references/examples.md → read_skill_resource /.flue/packaged-skills/skill%3Apetrinaut%3Ab208f67acdaee19e/references/examples.md",
+        "- references/experiments.md → read_skill_resource /.flue/packaged-skills/skill%3Apetrinaut%3Ab208f67acdaee19e/references/experiments.md",
         "</skill_resources>",
       ].join("\n"),
     );

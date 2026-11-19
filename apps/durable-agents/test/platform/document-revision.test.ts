@@ -32,7 +32,7 @@ const place: Place = {
   y: 0,
 };
 
-/** A small net with a type, a component instance and a subnet, each with one edit applied. */
+/** A small net with a type, a component instance and a component, each with one edit applied. */
 const net = (overrides: Overrides = {}): SDCPN => ({
   places: [{ ...place, ...overrides.place }],
   transitions: [],
@@ -52,16 +52,16 @@ const net = (overrides: Overrides = {}): SDCPN => ({
     {
       id: "instance-1",
       name: "Line",
-      subnetId: "subnet-1",
+      component: { id: "component-1" },
       parameterValues: {},
       x: 0,
       y: 0,
       ...overrides.instance,
     },
   ],
-  subnets: [
+  components: [
     {
-      id: "subnet-1",
+      id: "component-1",
       name: "Line",
       places: [{ ...place, id: "place-inner", ...overrides.innerPlace }],
       transitions: [],
@@ -76,7 +76,7 @@ const net = (overrides: Overrides = {}): SDCPN => ({
 const edits: Record<string, Overrides> = {
   "move a place": { place: { x: 120 } },
   "move a component instance": { instance: { y: 80 } },
-  "move a place inside a subnet": { innerPlace: { x: 40 } },
+  "move a place inside a component": { innerPlace: { x: 40 } },
   "recolour a type": { type: { displayColor: "#00FF00" } },
   "change a type's icon": { type: { iconSlug: "square" } },
   "add a place visualiser": {
@@ -101,7 +101,7 @@ describe("P9: the panel's revision under visual-only edits", () => {
     expect(moved).toEqual({
       "move a place": false,
       "move a component instance": false,
-      "move a place inside a subnet": false,
+      "move a place inside a component": false,
       "recolour a type": true,
       "change a type's icon": true,
       "add a place visualiser": true,
