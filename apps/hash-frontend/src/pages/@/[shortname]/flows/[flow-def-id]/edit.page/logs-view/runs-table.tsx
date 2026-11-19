@@ -87,7 +87,7 @@ const columns: Column[] = [
 
 const noFilters: RunFilters = { states: [], trigger: null };
 
-const tabCount = css({ color: "fg.subtle", ml: "1.5" });
+const tabCount = css({ color: "fg.subtle" });
 const filterBar = css({ mt: "3" });
 const table = css({
   mt: "3",
