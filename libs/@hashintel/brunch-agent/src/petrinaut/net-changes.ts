@@ -10,7 +10,7 @@ import { parseClientToolResultMetadata } from "./browser-metadata";
 import { generatedArcId, namesId, type ArcElement } from "./net-element-ids";
 import { recordedCanonicalCallsOf } from "./recorded-calls";
 
-import type { NetElementAddress } from "../ledger/construction/reflections";
+import type { NetElementAddress } from "../ledger";
 import type { CanonicalPetrinautCall } from "./browser-executed-tools";
 import type { NetStructure } from "./net-readers";
 
