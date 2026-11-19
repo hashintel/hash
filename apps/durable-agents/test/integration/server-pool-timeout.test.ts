@@ -70,8 +70,11 @@ const waitMs = 1000;
 const briefHoldMs = 3000;
 /** The retry window of the instances whose commits outlast it. */
 const shortRetryMs = 1500;
-/** Past `shortRetryMs` and the commit's last pool wait, and long enough for one more request to wait out the pool. */
-const longHoldMs = shortRetryMs + 2 * waitMs + 1000;
+/**
+ * Past the commit's first pool wait, `shortRetryMs` and its last pool wait, and long enough for one more request to
+ * wait out the pool.
+ */
+const longHoldMs = waitMs + shortRetryMs + 2 * waitMs + 500;
 
 const dropSchema = (chatId: string) =>
   admin.query(`DROP SCHEMA IF EXISTS "${conversationSchema(chatId)}" CASCADE`);
@@ -532,7 +535,7 @@ test("a tool result's commit that gets no connection within the retry window fai
 test("a request right after a commit fails the Harness, while its close still waits on a tool, is served by a fresh Harness", async () => {
   const chatId = `pool-timeout-closing-${randomUUID()}`;
   /** Outlasts the failed commit's retries, so the next request gets the connection soon after the failure. */
-  const holdFor = shortRetryMs + waitMs + 200;
+  const holdFor = waitMs + shortRetryMs + waitMs + 200;
   /** Keeps the failed Harness's `closed` pending well past the next request. */
   const lingerMs = holdFor + 3000;
   let workRuns = 0;
