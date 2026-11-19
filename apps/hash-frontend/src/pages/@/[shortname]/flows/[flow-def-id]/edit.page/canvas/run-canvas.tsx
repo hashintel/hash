@@ -19,7 +19,7 @@ import { CanvasActionsContext } from "./canvas-actions";
 import { CanvasToolbar } from "./canvas-toolbar";
 import { ConnectionEdge } from "./connection-edge";
 import { getFlowGraph } from "./flow-graph";
-import { ForEachNode, StartNode, StepNode } from "./flow-nodes";
+import { ForEachNode, StartNode, StepNode, TriggerNode } from "./flow-nodes";
 import { layOutFlow } from "./layout";
 import { getUndimmedNodeIds } from "./undimmed-nodes";
 import { useSelectedStepInView, useStepFocus } from "./use-step-focus";
@@ -32,12 +32,14 @@ import type {
   ConnectionEdge as ConnectionEdgeType,
   FlowNode,
   ForEachLayout,
+  TriggerCard,
 } from "./flow-graph";
 import type { StepPosition } from "@local/hash-isomorphic-utils/flows/flow-editor";
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 import type { NodeChange } from "@xyflow/react";
 
 const nodeTypes = {
+  trigger: TriggerNode,
   start: StartNode,
   step: StepNode,
   forEach: ForEachNode,
@@ -54,8 +56,9 @@ const startRun: CardRun = { mark: startMark, featured: false };
 
 const withRun = (node: FlowNode, run: CardRun): FlowNode => {
   switch (node.type) {
+    /* A trigger's card already carries its run. */
     case "trigger":
-      return node;
+      return { ...node, selectable: false };
     case "start":
       return { ...node, data: { ...node.data, run }, selectable: false };
     case "step":
@@ -83,6 +86,8 @@ type RunCanvasProps = {
   highlightedStepId: string | null;
   /** How much of the canvas's right edge a panel covers, in pixels. */
   coveredRight: number;
+  /** The trigger that started the run. */
+  trigger: TriggerCard;
 };
 
 const FlowRunCanvas = ({
@@ -95,6 +100,7 @@ const FlowRunCanvas = ({
   onToggleCollapsed,
   highlightedStepId,
   coveredRight,
+  trigger,
 }: RunCanvasProps) => {
   const { fitView } = useReactFlow<FlowNode, ConnectionEdgeType>();
   const nodesInitialized = useNodesInitialized();
@@ -170,9 +176,9 @@ const FlowRunCanvas = ({
       problemsByStepId: new Map(),
       forEachLayouts: layout.forEachLayouts,
       collapsedStepIds,
-      triggers: [],
+      triggers: [trigger],
     });
-  }, [flowDefinition, layout, collapsedStepIds]);
+  }, [flowDefinition, layout, collapsedStepIds, trigger]);
 
   const featuredStepIds = useMemo(
     () => new Set(flowDefinition.outputs.map(({ stepId }) => stepId)),

@@ -286,16 +286,36 @@ describe("getFlowGraph", () => {
     ).toMatchObject([
       {
         source: getTriggerNodeId("manual"),
-        data: { kind: "trigger" },
+        data: { kind: "trigger", ghost: true },
         deletable: false,
         selectable: false,
       },
       {
         source: getTriggerNodeId("schedule"),
-        data: { kind: "trigger" },
+        data: { kind: "trigger", ghost: true },
         deletable: false,
         selectable: false,
       },
     ]);
+  });
+
+  it("draws the trigger that started a run with a solid line into Start", () => {
+    const graph = graphOf(
+      [actionStep("first", { position: { x: 500, y: 100 } })],
+      new Map(),
+      new Set(),
+      [
+        {
+          kind: "schedule",
+          line: "Monthly review",
+          on: true,
+          run: { mark: { state: "done", items: null }, featured: false },
+        },
+      ],
+    );
+
+    expect(
+      graph.edges.find(({ target }) => target === startNodeId)?.data,
+    ).toEqual({ kind: "trigger", ghost: false });
   });
 });

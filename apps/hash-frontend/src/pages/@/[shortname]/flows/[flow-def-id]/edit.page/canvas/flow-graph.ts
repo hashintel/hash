@@ -46,12 +46,16 @@ type StepNodeDataBase = {
 
 export type StartNode = Node<{ run?: CardRun }, "start">;
 
-/** A kind of trigger, in the card's ghost look: one that's on, or one that's off, e.g. with every schedule paused. */
+/**
+ * A kind of trigger, in the card's ghost look: one that's on, or one that's off, e.g. with every schedule paused. In a
+ * run, the trigger that started it, drawn as a step that ran.
+ */
 export type TriggerCard = {
   kind: TriggerKind;
   /** What the card says under the kind, e.g. "2 on · 1 paused". */
   line: string;
   on: boolean;
+  run?: CardRun;
 };
 
 export type TriggerNode = Node<TriggerCard, "trigger">;
@@ -80,8 +84,8 @@ export type FlowNode =
 
 type ConnectionEdgeData =
   | { kind: "connection"; connection: FlowConnection }
-  /** From a trigger to Start; not stored. */
-  | { kind: "trigger" }
+  /** From a trigger to Start; not stored. Dashed from a ghost. */
+  | { kind: "trigger"; ghost: boolean }
   /** From Start to a top-level step with nothing before it; not stored. */
   | { kind: "start"; stepId: string }
   /** Between steps inside a for-each step; read-only. */
@@ -164,12 +168,12 @@ export const getFlowGraph = ({
       deletable: false,
     },
   ];
-  const edges: ConnectionEdge[] = triggers.map(({ kind }) => ({
+  const edges: ConnectionEdge[] = triggers.map(({ kind, run }) => ({
     id: `trigger-start:${kind}`,
     type: "connection",
     source: getTriggerNodeId(kind),
     target: startNodeId,
-    data: { kind: "trigger" },
+    data: { kind: "trigger", ghost: run === undefined },
     deletable: false,
     selectable: false,
     focusable: false,

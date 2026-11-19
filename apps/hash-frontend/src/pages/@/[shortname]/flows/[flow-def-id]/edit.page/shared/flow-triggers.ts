@@ -1,6 +1,8 @@
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
+
 import { formatScheduleSpec } from "../../../../../../shared/use-flow-schedules";
 
-import type { EntityId } from "@blockprotocol/type-system";
+import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { ScheduleSpec } from "@local/hash-isomorphic-utils/flows/schedule-types";
 import type { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
@@ -64,3 +66,22 @@ export const filterTriggerRows = (
       row.text.toLowerCase().includes(term),
   );
 };
+
+/**
+ * What started a run, for its card: Manual, as a run doesn't record who started it, or the schedule that did, by its
+ * text. That's left out for a schedule that's no longer one of the flow's, e.g. one archived since.
+ */
+export const getRunTrigger = (
+  flowScheduleId: EntityUuid | null,
+  schedules: TriggerRow[] | null,
+): { kind: TriggerKind; line: string } =>
+  flowScheduleId === null
+    ? { kind: "manual", line: "" }
+    : {
+        kind: "schedule",
+        line:
+          schedules?.find(
+            ({ entityId }) =>
+              extractEntityUuidFromEntityId(entityId) === flowScheduleId,
+          )?.text ?? "",
+      };
