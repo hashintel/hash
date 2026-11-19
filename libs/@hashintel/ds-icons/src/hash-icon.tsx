@@ -425,6 +425,47 @@ const createIcon = (
   return IconComponent;
 };
 
+export const MonitoringInstrumentIcon = createIcon("monitoringInstrument");
+export const SensorIcon = createIcon("sensor");
+export const MethaneIcon = createIcon("methane");
+export const CarbonDioxideIcon = createIcon("carbonDioxide");
+export const OxygenIcon = createIcon("oxygen");
+export const CarbonMonoxideIcon = createIcon("carbonMonoxide");
+export const HydrogenSulfideIcon = createIcon("hydrogenSulfide");
+export const SulfurDioxideIcon = createIcon("sulfurDioxide");
+export const OrganicCompoundIcon = createIcon("organicCompound");
+export const RadiationIcon = createIcon("radiation");
+export const WaterLevelIcon = createIcon("waterLevel");
+export const WaterSplashIcon = createIcon("waterSplash");
+export const ParticulateMatter1Icon = createIcon("particulateMatter1");
+export const ParticulateMatter2Point5Icon = createIcon(
+  "particulateMatter2Point5",
+);
+export const ParticulateMatter10Icon = createIcon("particulateMatter10");
+export const ParticulateMatterTotalIcon = createIcon("particulateMatterTotal");
+export const PressureDifferentialIcon = createIcon("pressureDifferential");
+export const FluidFlowIcon = createIcon("fluidFlow");
+export const DewPointIcon = createIcon("dewPoint");
+export const CloudRainIcon = createIcon("cloudRain");
+export const BatteryIcon = createIcon("battery");
+export const BatteryLowIcon = createIcon("batteryLow");
+export const BatteryLevelIcon = createIcon("batteryLevel");
+export const BatteryBoltIcon = createIcon("batteryBolt");
+export const SignalStrengthIcon = createIcon("signalStrength");
+export const BookmarkIcon = createIcon("bookmark");
+export const CloudLightningIcon = createIcon("cloudLightning");
+export const CloudSunIcon = createIcon("cloudSun");
+export const ContactCardIcon = createIcon("contactCard");
+export const FolderOpenIcon = createIcon("folderOpen");
+export const GhostIcon = createIcon("ghost");
+export const HardDriveIcon = createIcon("hardDrive");
+export const HeartPulseIcon = createIcon("heartPulse");
+export const ImagePlusIcon = createIcon("imagePlus");
+export const LocationPlusIcon = createIcon("locationPlus");
+export const RouterIcon = createIcon("router");
+export const CloudUploadIcon = createIcon("cloudUpload");
+export const MoveIcon = createIcon("move");
+
 export const FileArchiveIcon = createIcon("fileArchive");
 export const FileCodeIcon = createIcon("fileCode");
 export const FileDocumentIcon = createIcon("fileDocument");
@@ -968,6 +1009,45 @@ export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
 export const hashIconPack = {
+  monitoringInstrument: MonitoringInstrumentIcon,
+  sensor: SensorIcon,
+  methane: MethaneIcon,
+  carbonDioxide: CarbonDioxideIcon,
+  oxygen: OxygenIcon,
+  carbonMonoxide: CarbonMonoxideIcon,
+  hydrogenSulfide: HydrogenSulfideIcon,
+  sulfurDioxide: SulfurDioxideIcon,
+  organicCompound: OrganicCompoundIcon,
+  radiation: RadiationIcon,
+  waterLevel: WaterLevelIcon,
+  waterSplash: WaterSplashIcon,
+  particulateMatter1: ParticulateMatter1Icon,
+  particulateMatter2Point5: ParticulateMatter2Point5Icon,
+  particulateMatter10: ParticulateMatter10Icon,
+  particulateMatterTotal: ParticulateMatterTotalIcon,
+  pressureDifferential: PressureDifferentialIcon,
+  fluidFlow: FluidFlowIcon,
+  dewPoint: DewPointIcon,
+  cloudRain: CloudRainIcon,
+  battery: BatteryIcon,
+  batteryLow: BatteryLowIcon,
+  batteryLevel: BatteryLevelIcon,
+  batteryBolt: BatteryBoltIcon,
+  signalStrength: SignalStrengthIcon,
+  bookmark: BookmarkIcon,
+  cloudLightning: CloudLightningIcon,
+  cloudSun: CloudSunIcon,
+  contactCard: ContactCardIcon,
+  folderOpen: FolderOpenIcon,
+  ghost: GhostIcon,
+  hardDrive: HardDriveIcon,
+  heartPulse: HeartPulseIcon,
+  imagePlus: ImagePlusIcon,
+  locationPlus: LocationPlusIcon,
+  router: RouterIcon,
+  cloudUpload: CloudUploadIcon,
+  move: MoveIcon,
+
   openSourceInitiative: OpenSourceInitiativeIcon,
   toolbox: ToolboxIcon,
   tools: ToolsIcon,

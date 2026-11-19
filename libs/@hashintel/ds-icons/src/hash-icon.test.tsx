@@ -1069,6 +1069,24 @@ describe("HashIcon motion", () => {
     },
   );
 
+  it.each(["outline", "filled"] as const)(
+    "moves the upload arrow into its stationary cloud in the %s variant",
+    (variant) => {
+      const { container } = render(
+        <HashIcon name="cloudUpload" variant={variant} effect="action" />,
+      );
+      const arrow = container.querySelector('[data-icon-detail="up"]');
+      expect(arrow).not.toBeNull();
+      expect(animate).toHaveBeenCalledTimes(1);
+      expect(animate.mock.contexts[0]).toBe(arrow);
+      const frames = animate.mock.calls[0]![0];
+      expect(frames).toContainEqual(
+        expect.objectContaining({ transform: "translateY(-2px)" }),
+      );
+      expect(frames.at(-1)?.transform).toBe(frames[0]?.transform);
+    },
+  );
+
   it.each(["dashDashed", "dashDotted", "signal"] as const)(
     "staggers %s details within one seamless cycle and stops for reduced motion",
     (name) => {

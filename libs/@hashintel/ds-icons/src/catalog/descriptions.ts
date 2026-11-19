@@ -1,6 +1,74 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  monitoringInstrument:
+    "A screen, controls, and antenna represent a field monitoring instrument.",
+  sensor:
+    "A probe with a sensing element represents a sensor or measurement transducer.",
+  methane:
+    "A central atom joined to four smaller atoms represents methane (CH4).",
+  carbonDioxide:
+    "A central atom double-bonded to two outer atoms represents carbon dioxide (CO2).",
+  oxygen:
+    "Two matching atoms joined by a double bond represent molecular oxygen (O2).",
+  carbonMonoxide:
+    "Two different-sized atoms joined by three bonds represent carbon monoxide (CO).",
+  hydrogenSulfide:
+    "A central atom bonded to two smaller atoms in a bent arrangement represents hydrogen sulfide (H2S).",
+  sulfurDioxide:
+    "A bent three-atom structure with paired bonds represents sulfur dioxide (SO2).",
+  organicCompound:
+    "Nested molecular rings represent organic compounds or VOC measurements.",
+  radiation:
+    "A radiation trefoil represents ionizing radiation or radon monitoring.",
+  waterLevel:
+    "Waves beside a graduated scale and depth arrow represent water level.",
+  waterSplash:
+    "A splash and droplets represent surface wetness or splashing water.",
+  particulateMatter1:
+    "The PM1 mark identifies a particulate-matter size class.",
+  particulateMatter2Point5:
+    "The PM2.5 mark identifies a particulate-matter size class.",
+  particulateMatter10:
+    "The PM10 mark identifies a particulate-matter size class.",
+  particulateMatterTotal:
+    "The TSP mark surrounded by particles represents total suspended particulates.",
+  pressureDifferential:
+    "Opposing arrows across a divider represent a pressure difference.",
+  fluidFlow: "An arrow between parallel pipe walls represents fluid flow.",
+  dewPoint: "A droplet beside a thermometer represents dew point.",
+  cloudRain: "A cloud with falling rain represents rainfall or precipitation.",
+  battery:
+    "A battery case and terminal represent a battery or portable power source.",
+  batteryLow:
+    "A battery with one short charge bar represents a low battery level.",
+  batteryLevel:
+    "A battery with three charge bars represents battery level or remaining charge.",
+  batteryBolt:
+    "A lightning bolt inside a battery represents voltage, electrical power, or charging.",
+  signalStrength: "Four ascending bars represent received signal strength.",
+  bookmark:
+    "A ribbon-shaped bookmark represents saved content or quick access.",
+  cloudLightning: "A cloud with a lightning bolt represents a thunderstorm.",
+  cloudSun:
+    "A sun emerging behind a cloud represents weather conditions or a weather data feed.",
+  contactCard:
+    "A portrait and contact lines on a card represent a contact record.",
+  folderOpen:
+    "An open folder represents browsing or opening a collection of files.",
+  ghost: "A ghost represents a hidden presence or impersonation mode.",
+  hardDrive: "A drive enclosure and status lights represent local storage.",
+  heartPulse:
+    "A heartbeat trace inside a heart represents health or system vitality.",
+  imagePlus:
+    "An image frame with a plus represents adding or uploading an image.",
+  locationPlus: "A map marker containing a plus represents adding a location.",
+  router:
+    "An antenna-equipped hub with status lights represents a router or telemetry hub.",
+  cloudUpload:
+    "An upward arrow entering a cloud represents uploading data to a remote service.",
+  move: "Four cardinal arrows represent moving or panning in any direction.",
+
   toolbox:
     "A handled tool case represents a toolkit or collection of utilities.",
   tools:

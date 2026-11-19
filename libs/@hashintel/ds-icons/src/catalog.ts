@@ -163,7 +163,14 @@ export const hashIconStudies = [
 }[];
 
 const categories = {
-  Nature: ["wind", "flame"],
+  Nature: [
+    "waterSplash",
+    "cloudRain",
+    "cloudLightning",
+    "cloudSun",
+    "wind",
+    "flame",
+  ],
   Objects: [
     "diceD20",
     "cctvCamera",
@@ -246,6 +253,8 @@ const categories = {
     "box",
   ],
   Places: [
+    "locationPlus",
+
     "graduationCap",
     "briefcase",
     "route",
@@ -270,6 +279,17 @@ const categories = {
     "building",
   ],
   Technology: [
+    "monitoringInstrument",
+    "sensor",
+    "battery",
+    "batteryLow",
+    "batteryLevel",
+    "batteryBolt",
+    "signalStrength",
+    "hardDrive",
+    "router",
+    "cloudUpload",
+
     "openSourceInitiative",
     "toolbox",
     "tools",
@@ -294,6 +314,24 @@ const categories = {
     "monitor",
   ],
   Science: [
+    "methane",
+    "carbonDioxide",
+    "oxygen",
+    "carbonMonoxide",
+    "hydrogenSulfide",
+    "sulfurDioxide",
+    "organicCompound",
+    "radiation",
+    "waterLevel",
+    "particulateMatter1",
+    "particulateMatter2Point5",
+    "particulateMatter10",
+    "particulateMatterTotal",
+    "pressureDifferential",
+    "fluidFlow",
+    "dewPoint",
+    "heartPulse",
+
     "rocket",
     "telescope",
     "binoculars",
@@ -321,6 +359,9 @@ const categories = {
     "brain",
   ],
   People: [
+    "contactCard",
+    "ghost",
+
     "heart",
     "sad",
     "smile",
@@ -457,6 +498,7 @@ const categories = {
     "rectangle",
   ],
   Interface: [
+    "bookmark",
     "circleThreeQuarters",
     "circleHalf",
     "flag",
@@ -497,6 +539,9 @@ const categories = {
     "calendarDay",
   ],
   Files: [
+    "folderOpen",
+    "imagePlus",
+
     "handwrittenDocs",
     "newspaper",
     "books",
@@ -584,6 +629,8 @@ const categories = {
     "inputPipe",
   ],
   Editing: [
+    "move",
+
     "hand",
     "cursor",
     "shapes",
@@ -695,6 +742,14 @@ for (const group of [
   }
 }
 
+const labels: Partial<Record<HashIconName, string>> = {
+  mcpServer: "MCP Server",
+  particulateMatter1: "Particulate matter PM1",
+  particulateMatter2Point5: "Particulate matter PM2.5",
+  particulateMatter10: "Particulate matter PM10",
+  particulateMatterTotal: "Total suspended particulates",
+};
+
 export const hashIconCatalog = hashIconNames.map((name) => {
   const study = hashIconStudies.find((candidate) =>
     candidate.names.some((variant) => variant === name),
@@ -708,10 +763,7 @@ export const hashIconCatalog = hashIconNames.map((name) => {
   const words = name.replace(/([A-Z])/g, " $1");
   return {
     name,
-    label:
-      name === "mcpServer"
-        ? "MCP Server"
-        : words.charAt(0).toUpperCase() + words.slice(1),
+    label: labels[name] ?? words.charAt(0).toUpperCase() + words.slice(1),
     category,
     description: descriptions[name],
     related: hashIconNames.filter((candidate) =>

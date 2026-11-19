@@ -25,6 +25,7 @@ const translations: Record<string, string> = {
 };
 
 const detailTransforms: Record<string, string> = {
+  up: "translateY(-2px)",
   "file-code-left": "translateX(-.45px)",
   "file-code-right": "translateX(.45px)",
   "rewind-ring": "rotate(-18deg)",
