@@ -2,7 +2,6 @@ import { use, useEffect, useEffectEvent, useRef } from "react";
 
 import {
   getBoundsOfCenteredBoxes,
-  type ReadableStore,
   type SelectionMap,
   type Size,
 } from "@hashintel/petrinaut-core";
@@ -15,12 +14,16 @@ import {
   VIEWPORT_CONTROLS_CLEARANCE,
 } from "../../../constants/ui";
 import {
+  sameInsets,
+  type CanvasInsets,
+} from "../../../hooks/use-canvas-insets";
+import { watch } from "../../../lib/readings";
+import {
   isScenePointInView,
   revealBounds,
   type CanvasViewportInsets,
 } from "../canvas-viewport";
 
-import type { CanvasInsets } from "../../../hooks/use-canvas-insets";
 import type { CanvasController } from "../canvas-renderer";
 import type { CanvasScene } from "../canvas-scene";
 
@@ -94,8 +97,8 @@ export const useKeepSelectionInView = ({
   controller: CanvasController;
   scene: CanvasScene;
   containerSize: Size;
-  /** A store, so a panel drag moves the camera without rendering the canvas. */
-  insets: ReadableStore<CanvasInsets>;
+  /** A reading of the panel sizes, so a panel drag moves the camera without rendering the canvas. */
+  insets: () => CanvasInsets;
   minZoom: number;
 }) => {
   const { selection } = use(EditorContext);
@@ -139,7 +142,7 @@ export const useKeepSelectionInView = ({
   /** Moves the camera for what changed since the last look. */
   const follow = useEffectEvent(() => {
     const last = lastRef.current;
-    const frame: Frame = { width, height, ...insets.get() };
+    const frame: Frame = { width, height, ...insets() };
     lastRef.current = { soleSelectedId, frame };
     // What the canvas opened with stays put: the saved viewport already
     // frames that selection as the user left it.
@@ -156,11 +159,11 @@ export const useKeepSelectionInView = ({
   });
 
   // A change React renders: the selection, the canvas size, or which panels
-  // are open, which gives a new insets store.
+  // are open, which gives a new insets function.
   useEffect(() => {
     follow();
   }, [soleSelectedId, width, height, insets]);
 
   // A panel drag: the insets change and nothing renders.
-  useEffect(() => insets.subscribe(() => follow()), [insets]);
+  useEffect(() => watch(insets, () => follow(), sameInsets), [insets]);
 };

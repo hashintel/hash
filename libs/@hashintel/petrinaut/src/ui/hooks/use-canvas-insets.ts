@@ -1,13 +1,10 @@
 import { use } from "react";
 
-import { deriveStore } from "../../react/derive-store";
 import { EditorContext } from "../../react/state/editor-context";
 import { usePanelSizes } from "../../react/state/panel-sizes-context";
-import { useStore } from "../../react/use-store";
 import { PANEL_MARGIN } from "../constants/ui";
+import { useReading } from "../lib/readings";
 import { usePetrinautPresentation } from "../views/shared/presentation-context";
-
-import type { ReadableStore } from "@hashintel/petrinaut-core";
 
 /** How much of the canvas each edge's panels cover, in CSS pixels. */
 export interface CanvasInsets {
@@ -75,22 +72,27 @@ export const getCanvasInsets = (
 
 const NO_INSETS: CanvasInsets = { left: 0, right: 0, bottom: 0 };
 
-const sameInsets = (previous: CanvasInsets, next: CanvasInsets) =>
+export const sameInsets = (previous: CanvasInsets, next: CanvasInsets) =>
   previous.left === next.left &&
   previous.right === next.right &&
   previous.bottom === next.bottom;
 
 /**
- * What the docked panels take out of the canvas, as a store: for whatever
- * floats over the canvas and has to keep clear of them, without rendering on
- * each pointer move of a panel drag.
+ * What the docked panels take out of the canvas, as a function that works it
+ * out from the panel sizes when it is called: for whatever floats over the
+ * canvas and has to keep clear of them, without rendering on each pointer
+ * move of a panel drag.
+ *
+ * It is a reading. A style bound with `styleRef`, an effect that calls
+ * `watch` and a component that calls `useReading` follow the panel sizes
+ * through it, and code that needs the insets once calls it.
  *
  * The panels overlay the canvas rather than shrinking it, so a floating
  * control cannot read this off its own layout.
  */
-export const useCanvasInsetsStore = (
+export const useCanvasInsetsReader = (
   options?: CanvasInsetOptions,
-): ReadableStore<CanvasInsets> => {
+): (() => CanvasInsets) => {
   const presentation = usePetrinautPresentation();
   const {
     isLeftSidebarOpen,
@@ -108,33 +110,39 @@ export const useCanvasInsetsStore = (
   // already the space it occupies and there is nothing to keep clear of.
   const overlaid = presentation.panelsOverlayCanvas;
 
-  return deriveStore(
-    panelSizes,
-    (sizes) =>
-      overlaid
-        ? getCanvasInsets(
-            {
-              isLeftSidebarOpen,
-              isSearchOpen,
-              hasSelection,
-              isAiAssistantOpen,
-              aiAssistantDockHeight,
-              aiAssistantPlacement,
-              isAiAssistantCollapsed,
-              isBottomPanelOpen,
-              ...sizes,
-            },
-            { aboveCollapsedDock },
-          )
-        : NO_INSETS,
-    sameInsets,
-  );
+  return () => {
+    // Every size is read before any condition, so whatever follows this
+    // function follows all four.
+    const sizes = {
+      leftSidebarWidth: panelSizes.leftSidebarWidth.get(),
+      propertiesPanelWidth: panelSizes.propertiesPanelWidth.get(),
+      bottomPanelHeight: panelSizes.bottomPanelHeight.get(),
+      aiAssistantWidth: panelSizes.aiAssistantWidth.get(),
+    };
+
+    return overlaid
+      ? getCanvasInsets(
+          {
+            isLeftSidebarOpen,
+            isSearchOpen,
+            hasSelection,
+            isAiAssistantOpen,
+            aiAssistantDockHeight,
+            aiAssistantPlacement,
+            isAiAssistantCollapsed,
+            isBottomPanelOpen,
+            ...sizes,
+          },
+          { aboveCollapsedDock },
+        )
+      : NO_INSETS;
+  };
 };
 
 /**
  * The insets as a value, for a component that computes with them while
  * rendering. It renders on every pointer move of a panel drag: an element
- * that only positions itself follows {@link useCanvasInsetsStore} instead.
+ * that only positions itself follows {@link useCanvasInsetsReader} instead.
  */
 export const useCanvasInsets = (options?: CanvasInsetOptions): CanvasInsets =>
-  useStore(useCanvasInsetsStore(options));
+  useReading(useCanvasInsetsReader(options), sameInsets);

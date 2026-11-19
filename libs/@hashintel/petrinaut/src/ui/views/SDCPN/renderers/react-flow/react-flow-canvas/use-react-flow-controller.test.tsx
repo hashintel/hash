@@ -3,7 +3,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { constantStore } from "../../../../../../react/use-store";
 import { useReactFlowController } from "./use-react-flow-controller";
 
 import type { CanvasViewport } from "../../../../../../react/state/canvas-viewport-context";
@@ -30,7 +29,7 @@ vi.mock("@xyflow/react", () => ({
 const defaultProps = {
   bounds: { x: 0, y: 0, width: 100, height: 100 },
   containerSize: { width: 1000, height: 600 },
-  insets: constantStore({ left: 100, right: 300, bottom: 100 }),
+  insets: () => ({ left: 100, right: 300, bottom: 100 }),
   animated: false,
 };
 

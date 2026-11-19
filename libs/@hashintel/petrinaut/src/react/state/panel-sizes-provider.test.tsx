@@ -31,7 +31,7 @@ it("starts the sizes from the saved settings", () => {
   expect(sizes.aiAssistantWidth.get()).toBe(DEFAULT_AI_ASSISTANT_WIDTH);
 });
 
-it("keeps the same stores across renders", () => {
+it("keeps the same values across renders", () => {
   const { result, rerender } = renderHook(() => usePanelSizes(), {
     wrapper: PanelSizesProvider,
   });

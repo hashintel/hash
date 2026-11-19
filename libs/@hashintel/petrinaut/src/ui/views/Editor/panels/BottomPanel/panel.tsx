@@ -30,7 +30,7 @@ import {
   COMPILATION_SUBVIEWS,
   SIMULATION_ONLY_SUBVIEWS,
 } from "../../../../constants/ui-subviews";
-import { styleFromStores } from "../../../../lib/style-from-stores";
+import { styleRef } from "../../../../lib/readings";
 import { usePluginBottomPanelViews } from "../../../../plugins/plugin-outlets";
 import { fallbackBottomPanelTab } from "./fallback-tab";
 import { diagnosticsSubView } from "./subviews/diagnostics";
@@ -247,13 +247,13 @@ export const BottomPanel: React.FC = () => {
         glassPanelBaseStyle,
         panelStyle({ open: isOpen, animating: isPanelAnimating }),
       )}
-      ref={styleFromStores(
-        { leftSidebarWidth, bottomPanelHeight },
-        (sizes) => ({
-          left: `${isSidebarVisible ? sizes.leftSidebarWidth + PANEL_MARGIN * 2 : PANEL_MARGIN}px`,
-          height: `${sizes.bottomPanelHeight}px`,
-        }),
-      )}
+      ref={styleRef({
+        left: () =>
+          isSidebarVisible
+            ? leftSidebarWidth.get() + PANEL_MARGIN * 2
+            : PANEL_MARGIN,
+        height: bottomPanelHeight,
+      })}
       style={{ bottom: PANEL_MARGIN, right: PANEL_MARGIN }}
       contentClassName={panelContainerStyle}
       resizable={{

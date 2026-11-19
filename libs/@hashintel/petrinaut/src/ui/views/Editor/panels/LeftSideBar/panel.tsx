@@ -15,7 +15,7 @@ import {
   MIN_LEFT_SIDEBAR_WIDTH,
 } from "../../../../constants/ui";
 import { LEFT_SIDEBAR_SUBVIEWS } from "../../../../constants/ui-subviews";
-import { styleFromStores } from "../../../../lib/style-from-stores";
+import { styleRef } from "../../../../lib/readings";
 import { FocusRoot, FocusStack } from "../../../../worksheet/focus-stack";
 import { searchSubView } from "./subviews/search-panel";
 
@@ -143,9 +143,7 @@ export const LeftSideBar: React.FC = () => {
         glassPanelBaseStyle,
         panelStyle({ open: isVisible, animating: isPanelAnimating }),
       )}
-      ref={styleFromStores({ leftSidebarWidth }, (sizes) => ({
-        width: `${sizes.leftSidebarWidth}px`,
-      }))}
+      ref={styleRef({ width: leftSidebarWidth })}
       resizable={{
         edge: "right",
         getSize: () => leftSidebarWidth.get(),

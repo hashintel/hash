@@ -1,13 +1,12 @@
 import { useCallback, useLayoutEffect, useState } from "react";
 
 import { useElementSize } from "../../../../../react/hooks/use-element-size";
-import { useStoreSelector } from "../../../../../react/use-store";
 import { VIEWPORT_CONTROLS_CLEARANCE } from "../../../../constants/ui";
 import {
-  useCanvasInsetsStore,
+  useCanvasInsetsReader,
   type CanvasInsets,
 } from "../../../../hooks/use-canvas-insets";
-import { bindStyleToStores } from "../../../../lib/style-from-stores";
+import { bindStyle, useReading } from "../../../../lib/readings";
 import { fitsWithinBounds, getBottomBarOffset } from "./bottom-bar-placement";
 import { type CollapsibleGroupWidth } from "./collapse-context";
 
@@ -101,23 +100,24 @@ export const useBottomBarLayout = (
     [],
   );
 
-  const insets = useCanvasInsetsStore();
+  const readInsets = useCanvasInsetsReader();
 
   useLayoutEffect(() => {
     const bar = barRef.current;
     return bar
-      ? bindStyleToStores(bar, { insets }, (current) => {
-          const bounds = boundsWithin(
-            current.insets,
-            containerWidth,
-            hasViewportControls,
-          );
-          return {
-            transform: `translate(${getBottomBarOffset(bounds)}, ${-current.insets.bottom}px)`,
-          };
+      ? bindStyle(bar, {
+          transform: () => {
+            const insets = readInsets();
+            const bounds = boundsWithin(
+              insets,
+              containerWidth,
+              hasViewportControls,
+            );
+            return `translate(${getBottomBarOffset(bounds)}, ${-insets.bottom}px)`;
+          },
         })
       : undefined;
-  }, [barRef, insets, containerWidth, hasViewportControls]);
+  }, [barRef, readInsets, containerWidth, hasViewportControls]);
 
   let hiddenWidth = 0;
   for (const width of groupWidths.values()) {
@@ -127,11 +127,10 @@ export const useBottomBarLayout = (
   // What the bar would take with every control shown. Its two terms move
   // together while a group folds, so the sum holds still throughout.
   const expandedWidth = barWidth + hiddenWidth;
-  const isCollapsed = useStoreSelector(
-    insets,
-    (current) =>
+  const isCollapsed = useReading(
+    () =>
       !fitsWithinBounds(
-        boundsWithin(current, containerWidth, hasViewportControls),
+        boundsWithin(readInsets(), containerWidth, hasViewportControls),
         expandedWidth,
       ),
   );

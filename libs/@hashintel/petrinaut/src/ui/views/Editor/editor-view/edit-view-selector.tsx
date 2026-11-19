@@ -6,7 +6,7 @@ import { css, cva, cx } from "@hashintel/ds-helpers/css";
 import { EditorContext } from "../../../../react/state/editor-context";
 import { usePanelSizes } from "../../../../react/state/panel-sizes-context";
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
-import { styleFromStores } from "../../../lib/style-from-stores";
+import { styleRef } from "../../../lib/readings";
 
 const selectorStyle = css({
   display: "flex",
@@ -91,9 +91,10 @@ export const EditViewSelector = () => {
           animated: showAnimations && isPanelAnimating,
         }),
       )}
-      ref={styleFromStores({ leftSidebarWidth }, (sizes) => ({
-        left: `min(${besideSidebar ? sizes.leftSidebarWidth + 12 : 12}px, max(12px, calc(100% - var(--edit-view-selector-width) - 12px)))`,
-      }))}
+      ref={styleRef({
+        left: () =>
+          `min(${besideSidebar ? leftSidebarWidth.get() + 12 : 12}px, max(12px, calc(100% - var(--edit-view-selector-width) - 12px)))`,
+      })}
       style={{ top: isCanvas ? 12 : 10 }}
     >
       <SegmentedControl

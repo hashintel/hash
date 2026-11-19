@@ -6,7 +6,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { EditorContext } from "../../../../react/state/editor-context";
 import { usePanelSizes } from "../../../../react/state/panel-sizes-context";
 import { AiAssistantIcon } from "../../../components/ai-assistant-icon";
-import { styleFromStores } from "../../../lib/style-from-stores";
+import { styleRef } from "../../../lib/readings";
 
 const aiCtaModalLayerStyle = css({
   position: "absolute",
@@ -136,9 +136,9 @@ export const AiCtaModal = ({
     <div
       className={aiCtaModalLayerStyle}
       // The layer ends where an open bottom panel starts.
-      ref={styleFromStores({ bottomPanelHeight }, (sizes) => ({
-        bottom: `${isBottomPanelOpen ? sizes.bottomPanelHeight : 0}px`,
-      }))}
+      ref={styleRef({
+        bottom: () => (isBottomPanelOpen ? bottomPanelHeight.get() : 0),
+      })}
     >
       <form
         ref={formRef}

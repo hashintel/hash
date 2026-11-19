@@ -1,9 +1,8 @@
 // @vitest-environment jsdom
 
 import { renderHook } from "@testing-library/react";
+import { motionValue } from "motion";
 import { describe, expect, it, vi } from "vitest";
-
-import { createReadableStore } from "@hashintel/petrinaut-core";
 
 import {
   EditorContext,
@@ -60,14 +59,15 @@ const setup = (initialSelection: string[]) => {
 
   let selection = select(...initialSelection);
   let width = 1200;
-  const insets = createReadableStore({ left: 200, right: 0, bottom: 0 });
+  const insets = motionValue({ left: 200, right: 0, bottom: 0 });
+  const readInsets = () => insets.get();
   const { rerender } = renderHook(
     () =>
       useKeepSelectionInView({
         controller,
         scene,
         containerSize: { width, height: 600 },
-        insets,
+        insets: readInsets,
         minZoom: 0.1,
       }),
     {
@@ -86,9 +86,13 @@ const setup = (initialSelection: string[]) => {
       selection = select(...ids);
       rerender();
     },
-    // A panel drag sets the store and renders nothing.
-    setRightPanel: (right: number) => {
+    // A panel drag sets the value and renders nothing. The camera follows
+    // once per frame.
+    setRightPanel: async (right: number) => {
       insets.set({ left: 200, right, bottom: 0 });
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => resolve());
+      });
     },
     setCanvasWidth: (next: number) => {
       width = next;
@@ -148,17 +152,17 @@ describe("useKeepSelectionInView", () => {
     expect(towardsNear).toBeGreaterThan(towardsFar!);
   });
 
-  it("moves a selection in view clear of a panel that opens over it", () => {
+  it("moves a selection in view clear of a panel that opens over it", async () => {
     const { targets, setRightPanel } = setup(["near"]);
-    setRightPanel(500);
+    await setRightPanel(500);
     expect(targets()).toEqual([-18]);
   });
 
-  it("keeps following a panel that outruns the camera", () => {
+  it("keeps following a panel that outruns the camera", async () => {
     const { targets, setRightPanel } = setup(["near"]);
-    setRightPanel(500);
-    setRightPanel(700);
-    setRightPanel(800);
+    await setRightPanel(500);
+    await setRightPanel(700);
+    await setRightPanel(800);
     expect(targets()).toEqual([-18, -218, -318]);
   });
 
@@ -168,9 +172,9 @@ describe("useKeepSelectionInView", () => {
     expect(targets()).toEqual([-18]);
   });
 
-  it("leaves a selection out of view alone when a panel opens", () => {
+  it("leaves a selection out of view alone when a panel opens", async () => {
     const { setViewport, setRightPanel } = setup(["far"]);
-    setRightPanel(500);
+    await setRightPanel(500);
     expect(setViewport).not.toHaveBeenCalled();
   });
 });

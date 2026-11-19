@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import {
   ZOOM_PADDING,
   getMinZoomForBounds,
-  type ReadableStore,
   type Rect,
   type Size,
 } from "@hashintel/petrinaut-core";
@@ -29,8 +28,8 @@ const frameRequestTimeoutMs = 1_500;
 type FrameState = {
   bounds: Rect | null;
   containerSize: Size;
-  /** Read when the camera frames the scene, so a panel drag renders nothing here. */
-  insets: ReadableStore<CanvasViewportInsets>;
+  /** Called when the camera frames the scene, so a panel drag renders nothing here. */
+  insets: () => CanvasViewportInsets;
 };
 
 const fitScene = async (
@@ -47,7 +46,7 @@ const fitScene = async (
       getMinZoomForBounds(bounds, containerSize),
       MAX_FIT_ZOOM,
       ZOOM_PADDING,
-      insets.get(),
+      insets(),
     ),
   );
   return "framed";

@@ -14,7 +14,7 @@ import {
   MIN_PROPERTIES_PANEL_WIDTH,
   PANEL_MARGIN,
 } from "../../../../constants/ui";
-import { styleFromStores } from "../../../../lib/style-from-stores";
+import { styleRef } from "../../../../lib/readings";
 import { SelectedItemProperties } from "./selected-item-properties";
 
 const glassPanelStyle = css({
@@ -80,13 +80,11 @@ export const PropertiesPanel: React.FC = () => {
       )}
       // The box follows both drags by direct writes, with no render. The gap
       // to the bottom panel matches the one beside the left sidebar.
-      ref={styleFromStores(
-        { propertiesPanelWidth, bottomPanelHeight },
-        (sizes) => ({
-          width: `${sizes.propertiesPanelWidth}px`,
-          bottom: `${isBottomPanelOpen ? sizes.bottomPanelHeight + PANEL_MARGIN : 0}px`,
-        }),
-      )}
+      ref={styleRef({
+        width: propertiesPanelWidth,
+        bottom: () =>
+          isBottomPanelOpen ? bottomPanelHeight.get() + PANEL_MARGIN : 0,
+      })}
       style={{ padding: PANEL_MARGIN }}
       contentClassName={glassPanelContentStyle}
       resizable={{

@@ -25,7 +25,7 @@ import { CanvasViewportContext } from "../../../../../react/state/canvas-viewpor
 import { EditorContext } from "../../../../../react/state/editor-context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { SNAP_GRID_SIZE } from "../../../../constants/ui";
-import { useCanvasInsetsStore } from "../../../../hooks/use-canvas-insets";
+import { useCanvasInsetsReader } from "../../../../hooks/use-canvas-insets";
 import {
   readDraggedComponent,
   readDraggedNodeKind,
@@ -158,7 +158,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
   });
   const { nodes, edges } = useReactFlowElements(scene);
   const applyChanges = useApplyNodeChanges(interactions);
-  const insets = useCanvasInsetsStore();
+  const insets = useCanvasInsetsReader();
 
   const { isValidConnection, reconnectProps, isRewiring } = useLinkRewiring(
     interactions,
@@ -194,8 +194,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
   // net. Bounds and container changes must not recompute it. The saved
   // viewport also restores the camera when the canvas resumes from Activity.
   const [initialViewport] = useState(
-    () =>
-      savedViewport ?? getInitialViewport(bounds, containerSize, insets.get()),
+    () => savedViewport ?? getInitialViewport(bounds, containerSize, insets()),
   );
 
   // The min zoom (ie the max you can zoom out to) keeps the net at a readable

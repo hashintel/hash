@@ -13,8 +13,8 @@ it("notifies the readers of the size that changed, and no other", () => {
   const sizes = createPanelSizes();
   const onPropertiesWidth = vi.fn();
   const onBottomHeight = vi.fn();
-  sizes.propertiesPanelWidth.subscribe(onPropertiesWidth);
-  sizes.bottomPanelHeight.subscribe(onBottomHeight);
+  sizes.propertiesPanelWidth.on("change", onPropertiesWidth);
+  sizes.bottomPanelHeight.on("change", onBottomHeight);
 
   sizes.propertiesPanelWidth.set(520);
 
@@ -25,7 +25,7 @@ it("notifies the readers of the size that changed, and no other", () => {
 it("stays silent when a size is set to the value it has", () => {
   const sizes = createPanelSizes();
   const listener = vi.fn();
-  sizes.bottomPanelHeight.subscribe(listener);
+  sizes.bottomPanelHeight.on("change", listener);
 
   sizes.bottomPanelHeight.set(sizes.bottomPanelHeight.get());
 
