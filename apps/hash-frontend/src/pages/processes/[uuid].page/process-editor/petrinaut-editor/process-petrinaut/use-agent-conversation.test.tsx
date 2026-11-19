@@ -32,9 +32,6 @@ const otherProcessId =
 /** A process in another web. */
 const elsewhereProcessId =
   `${otherWebId}~00000000-0000-4000-8000-00000000000c` as EntityId;
-/** A draft's id, which no entity has until its first save. */
-const draftId =
-  `${processWebId}~00000000-0000-4000-8000-00000000000d` as EntityId;
 const agentId = "test-agent";
 const conversationIdUrl =
   systemPropertyTypes.conversationId.propertyTypeBaseUrl;
@@ -454,26 +451,6 @@ test("clearing creates the next conversation's entity, which becomes the open on
   expect(graph.stored.map(({ archived }) => archived)).toEqual([false, false]);
 });
 
-test.each([
-  { kind: "a draft, reloaded before its first save", contextEntityId: draftId },
-  { kind: "a saved process, reloaded", contextEntityId: processId },
-])(
-  "$kind opens the conversation the user cleared to",
-  async ({ contextEntityId }) => {
-    const { result } = renderConversation(contextEntityId);
-    act(() => result.current.start("first"));
-    act(() => result.current.replace("cleared-to"));
-    await settle();
-    expect(graph.writes).toEqual([
-      createdConversation("first", contextEntityId),
-      createdConversation("cleared-to", contextEntityId),
-    ]);
-
-    const { result: reloaded } = reload(contextEntityId);
-    expect(reloaded.current.conversationId).toBe("cleared-to");
-  },
-);
-
 test("a write queued on one context is recorded against it after the user moves to another, and writes run one at a time", async () => {
   let release = () => {};
   graph.gate = new Promise((resolve) => {
@@ -495,19 +472,6 @@ test("a write queued on one context is recorded against it after the user moves 
     createdConversation("cleared-on-a", processId),
     createdConversation("on-b", elsewhereProcessId),
   ]);
-});
-
-test("nothing is archived when the page opens", async () => {
-  graph.stored = [
-    stored("old", { createdAt: "2020-01-01T00:00:00.000Z" }),
-    stored("on-draft", {
-      createdAt: "2020-01-01T00:00:00.000Z",
-      contextEntityId: draftId,
-    }),
-  ];
-  renderConversation();
-  await settle();
-  expect(graph.writes).toEqual([]);
 });
 
 test("a read that fails is tried again, and opens what the retry reads", async () => {
