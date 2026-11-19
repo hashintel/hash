@@ -1782,7 +1782,7 @@ foo.value
 </div>
 </SideBySide>
 
-A missing field is a compile-time type error in HashQL. Python's dictionary raises `KeyError` only when the lookup runs. Draft's `$.let` needs `$.struct` here, not a plain object.
+A missing field is a compile-time type error in HashQL. Python's dictionary raises `KeyError` only when the lookup runs. Draft's `$.let` needs [`$.struct`][draft-context-struct] here, not a plain object.
 
 #### Read a tuple position [#access-tuple]
 
@@ -2957,6 +2957,7 @@ The closure reads `flagged` from the input without receiving it as an argument. 
 [newtype]: #newtype
 [program-structural-definition]: /docs/hashql/sdk/typescript/reference/hashql/Program/Structural#Definition
 [draft-context-prelude]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Context#Context.prelude
+[draft-context-struct]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Context#Context.struct
 [access-struct]: #access-struct
 [access-tuple]: #access-tuple
 [read-a-task]: #read-a-task

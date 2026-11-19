@@ -9,7 +9,6 @@
 // oxlint-disable import/max-dependencies -- the collector composes every construction module
 import { Cause, Data, Option, Pipeable, Result, pipe } from "effect";
 
-import { nominalValue } from "../internal/draft-scribe.js";
 import * as Referential from "../internal/referential.js";
 import * as StructuralSyntax from "../internal/structural.js";
 import * as AST from "../Program/AST/index.js";
@@ -22,14 +21,15 @@ import * as Query from "../Program/Query.js";
 import * as Structural from "../Program/Structural.js";
 import * as TAST from "../Program/TAST/index.js";
 import * as TypeExpression from "../Program/TypeExpression.js";
+import { nominalValue } from "./nominal.js";
 
-import type { NominalBinding } from "../internal/draft-scribe.js";
 import type * as Inputs from "../Program/Inputs.js";
 import type * as Module from "../Program/Module.js";
 import type * as Scope from "../Program/Scope.js";
 import type * as Type from "../Type.js";
 import type * as Body from "./Body.js";
 import type * as Context from "./Context.js";
+import type { NominalBinding } from "./nominal.js";
 
 type Wrap = (child: AST.Node.Any) => AST.Node.Any;
 
