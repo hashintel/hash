@@ -37,13 +37,7 @@ import type {
 import type { ReactNode } from "react";
 
 const header = css({ display: "flex", alignItems: "center", gap: "2" });
-const headerText = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "1",
-  flex: "1",
-  minWidth: "0",
-});
+const headerText = css({ flex: "1", minWidth: "0" });
 const status = css({ display: "flex", flexDirection: "column", gap: "2" });
 const statusLines = css({
   display: "flex",
@@ -103,9 +97,8 @@ const useNow = (ticking: boolean) => {
 };
 
 /**
- * A step's status: one line of its mark, its word, its items' count and its timing, then a quiet line for each reason
- * there is, such as its retries. The clock ticks in here, so that a step still going re-renders these lines each second
- * and not the values under them.
+ * A step's status line and the quiet lines under it. The clock ticks in here, so that a step still going re-renders
+ * these lines each second and not the values under them.
  */
 const StatusLines = ({
   mark,

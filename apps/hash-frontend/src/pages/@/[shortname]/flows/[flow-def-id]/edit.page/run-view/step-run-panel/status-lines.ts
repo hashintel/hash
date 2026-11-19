@@ -11,13 +11,12 @@ import type {
 } from "../../shared/step-states";
 import type { ItemRun } from "./step-runs";
 
-/** A step's status in its run's panel: one line of its mark, its word and the facts after it, then quiet lines. */
+/** A step's status in its run's panel: a line of its mark, its word and the facts after it, then quiet lines. */
 export type StatusLine = {
   state: StepState;
   word: string;
-  /** Its items' count, then how long it took and when it started, or when it asked a person. */
   facts: string[];
-  /** Only for a reason: it was retried, it's waiting on a person, or why it failed. */
+  /** Only when there's a reason: retries, waiting on a person, or a timeout. */
   notes: string[];
 };
 
@@ -25,9 +24,8 @@ export const getItemTotal = (items: ItemCounts) =>
   Object.values(items).reduce((sum, count) => sum + count, 0);
 
 /**
- * How a step's items have gone, beside its word: how many have finished while it runs, e.g. "12 of 20", and once it
- * has, how many failed, or else were skipped, e.g. "2 of 20 failed". With no noun, so its line fits the panel. `null`
- * when there's nothing to count.
+ * A step's items' count beside its word: those finished while it runs ("12 of 20"), then those that failed, or else
+ * were skipped ("2 of 20 failed"). It has no noun, so the line fits the panel.
  */
 export const getItemCount = (
   state: StepState,
@@ -64,7 +62,6 @@ export const getStatusLine = ({
   now,
 }: {
   mark: StepRunMark;
-  /** Whether its run is still going. */
   live: boolean;
   runs: ItemRun[];
   perItem: boolean;

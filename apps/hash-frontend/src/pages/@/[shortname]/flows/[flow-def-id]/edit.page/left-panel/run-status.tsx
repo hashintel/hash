@@ -30,7 +30,6 @@ export const RunStatus = ({
   live,
 }: {
   mark: StepRunMark;
-  /** Whether the run is still going. */
   live: boolean;
 }) => (
   <span className={status}>
