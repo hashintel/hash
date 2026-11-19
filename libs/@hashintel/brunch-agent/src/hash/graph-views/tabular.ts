@@ -67,6 +67,19 @@ export const projectEntityTabular = (
     );
 
   const matched = result.entities.filter((entity) => entity.matched);
+  /**
+   * Ids repeat in every row and link column, and a UUID costs many tokens, so
+   * ids in the web most matches belong to are written `~entityUuid`; the
+   * header says which web completes them.
+   */
+  const webTally = [...groupBy(matched, ({ webId }) => webId)].sort(
+    ([, left], [, right]) => right.length - left.length,
+  );
+  const homeWebId = webTally[0]?.[0];
+  const short = (entityId: string) =>
+    homeWebId !== undefined && entityId.startsWith(`${homeWebId}~`)
+      ? entityId.slice(homeWebId.length)
+      : entityId;
   const anyDraft = matched.some(({ draft }) => draft);
   const tables: [string, Record<string, Cell>[]][] = [];
   /** Links that carry properties: a table of their own rather than a column. */
@@ -97,15 +110,15 @@ export const projectEntityTabular = (
         for (const entityTypeId of link.entityTypeIds)
           shownTypeIds.add(entityTypeId);
       return {
-        id: entity.entityId,
+        id: short(entity.entityId),
         editionId: entity.editionId,
         label: entity.label ?? null,
         ...(anyDraft ? { draft: entity.draft } : {}),
         ...(entity.linkData === undefined
           ? {}
           : {
-              from: entity.linkData.leftEntityId,
-              to: entity.linkData.rightEntityId,
+              from: short(entity.linkData.leftEntityId),
+              to: short(entity.linkData.rightEntityId),
             }),
         ...propertyCells(entity, baseUrls),
         ...Object.fromEntries(
@@ -113,7 +126,7 @@ export const projectEntityTabular = (
             linkType,
             bare
               .get(linkType)
-              ?.map((link) => link.linkData!.rightEntityId)
+              ?.map((link) => short(link.linkData!.rightEntityId))
               .join(" ") ?? null,
           ]),
         ),
@@ -127,10 +140,10 @@ export const projectEntityTabular = (
     tables.push([
       kind,
       links.map((link) => ({
-        id: link.entityId,
+        id: short(link.entityId),
         editionId: link.editionId,
-        from: link.linkData!.leftEntityId,
-        to: link.linkData!.rightEntityId,
+        from: short(link.linkData!.leftEntityId),
+        to: short(link.linkData!.rightEntityId),
         ...propertyCells(link, baseUrls),
       })),
     ]);
@@ -144,6 +157,11 @@ export const projectEntityTabular = (
     read: {
       view: "tabular",
       matched: matched.length,
+      ...(homeWebId === undefined
+        ? {}
+        : {
+            ids: `Ids written ~entityUuid are in web ${homeWebId}: the full id, to read or cite one, is ${homeWebId}~entityUuid.`,
+          }),
       ...readFacts(result),
       notes: [
         "One table per kind of entity. Link columns hold the ids linked to, space-separated; read those entities by entityIds to see them. Links with properties have tables of their own.",

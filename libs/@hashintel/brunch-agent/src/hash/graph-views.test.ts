@@ -1,11 +1,12 @@
 import { decode } from "@toon-format/toon";
+import { encode as o200kTokens } from "gpt-tokenizer/encoding/o200k_base";
 import Papa from "papaparse";
 import { expect, test } from "vitest";
 
 import {
   hashEntityDetailsMaxEntities,
   hashEntityProfileListUpTo,
-  hashGraphViewMaxBytes,
+  hashGraphViewMaxTokens,
   parseHashEntityDetailsInput,
   parseHashEntityTabularInput,
   renderHashEntityDetails,
@@ -13,12 +14,15 @@ import {
   renderHashEntitySurvey,
   renderHashEntityTabular,
 } from "./graph-views";
+import { estimateTokens } from "./graph-views/size";
 
 import type { HashEntityReadResult } from "./graph-reads";
 
 const web = "00000000-0000-4000-8000-000000000001";
 const id = (n: number) =>
   `${web}~00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+/** An id as a table writes it when it is in the table's web. */
+const short = (n: number) => id(n).slice(web.length);
 const type = (slug: string, version = 1) =>
   `https://hash.ai/@h/types/entity-type/${slug}/v/${version}`;
 const property = (slug: string) =>
@@ -118,16 +122,39 @@ const tablesOf = (text: string): Record<string, unknown[]> =>
   );
 
 test("tabular makes rows of matched entities only, with outgoing links as id columns", () => {
-  const view = renderHashEntityTabular(read, {});
+  const elsewhere =
+    "00000000-0000-4000-8000-000000000002~00000000-0000-4000-8000-000000000099";
+  const view = renderHashEntityTabular(
+    {
+      ...read,
+      entities: [
+        ...read.entities,
+        entity(
+          13,
+          [type("has-vendor")],
+          {},
+          {
+            matched: false,
+            linkData: { leftEntityId: id(1), rightEntityId: elsewhere },
+          },
+        ),
+      ],
+    },
+    {},
+  );
   expect(view.refused).toBe(false);
+  expect(view.text).toContain(
+    `# ids: Ids written ~entityUuid are in web ${web}: the full id, to read or cite one, is ${web}~entityUuid.`,
+  );
   expect(tablesOf(view.text)).toEqual({
     purchase_order: [
       {
-        id: id(1),
+        id: short(1),
         editionId: "edition-1",
         label: "PO 4500",
         order_number: "4500",
-        has_line_item: id(2),
+        has_line_item: short(2),
+        has_vendor: elsewhere,
       },
     ],
   });
@@ -149,10 +176,10 @@ test("tabular gives links with properties a table of their own, and reports what
   );
   expect(tablesOf(view.text).stored_at).toEqual([
     {
-      id: id(12),
+      id: short(12),
       editionId: "edition-12",
-      from: id(3),
-      to: id(4),
+      from: short(3),
+      to: short(4),
       quantity: "7",
     },
   ]);
@@ -288,11 +315,40 @@ test("a view too large to return is refused with its shape, and returns none of 
   const view = renderHashEntityTabular({ ...read, entities: rows }, {});
   expect(view.refused).toBe(true);
   expect(view.text).toMatch(
-    /^refused: This read would be \d+ KB, over the 64 KB/u,
+    /^refused: This read would be about [\d,]+ tokens, over the 20,000/u,
   );
   expect(view.text).toContain("material 800 rows × 4 columns");
-  expect(view.text).not.toContain(id(100));
-  expect(new TextEncoder().encode(view.text).length).toBeLessThan(
-    hashGraphViewMaxBytes,
-  );
+  expect(view.text).not.toContain(short(100));
+  expect(estimateTokens(view.text)).toBeLessThan(hashGraphViewMaxTokens);
+});
+
+test("the token estimate errs high, by little, against o200k on the views' kinds of text", () => {
+  const samples = {
+    rows: renderHashEntityTabular(
+      {
+        ...read,
+        entities: Array.from({ length: 50 }, (_, index) =>
+          entity(index + 100, [type("material")], {
+            [property("order-number")]: `45000${index}`,
+            [property("order-quantity")]: index * 7.5,
+          }),
+        ),
+      },
+      {},
+    ).text,
+    details: renderHashEntityDetails(
+      read,
+      parseHashEntityDetailsInput({ entityIds: [id(1), id(2), id(3)] }),
+    ).text,
+    prose:
+      "The planned lead time to procure or deliver an item, in days. A purchase order records what was ordered from a vendor, and when.",
+  };
+  for (const [kind, text] of Object.entries(samples)) {
+    const ratio = estimateTokens(text) / o200kTokens(text).length;
+    expect({ kind, high: ratio >= 1, close: ratio < 1.3 }).toEqual({
+      kind,
+      high: true,
+      close: true,
+    });
+  }
 });
