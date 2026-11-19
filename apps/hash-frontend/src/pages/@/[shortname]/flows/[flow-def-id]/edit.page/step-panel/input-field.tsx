@@ -355,6 +355,8 @@ export const InputField = ({
               iconName={expanded ? "collapse" : "expand"}
               aria-label={`${expanded ? "Collapse" : "Expand"} ${label}`}
               tooltip={expanded ? "Collapse" : "Expand"}
+              /* Keeps the text focused, as leaving an empty field puts the menu back before the click lands. */
+              onMouseDown={(event) => event.preventDefault()}
               onClick={() => setExpanded(!expanded)}
             />
           )
