@@ -2,6 +2,7 @@ import { getStepsBefore } from "../shared/step-order";
 import { getStepPaths } from "../shared/step-paths";
 import { collapsedForEachSize, stepCardSize, stepGap } from "./sizes";
 
+import type { TriggerKind } from "../shared/flow-triggers";
 import type { StepPath } from "../shared/step-paths";
 import type { StepRunMark } from "../shared/step-states";
 import type {
@@ -27,6 +28,8 @@ export const startNodeId = "start";
 
 export const getStepNodeId = (stepId: string) => `step:${stepId}`;
 
+export const getTriggerNodeId = (kind: TriggerKind) => `trigger:${kind}`;
+
 /** How a card shows its step in the run a canvas shows. */
 export type CardRun = {
   mark: StepRunMark;
@@ -42,6 +45,16 @@ type StepNodeDataBase = {
 };
 
 export type StartNode = Node<{ run?: CardRun }, "start">;
+
+/** A kind of trigger, in the card's ghost look: one that's on, or one that's off, e.g. with every schedule paused. */
+export type TriggerCard = {
+  kind: TriggerKind;
+  /** What the card says under the kind, e.g. "2 on · 1 paused". */
+  line: string;
+  on: boolean;
+};
+
+export type TriggerNode = Node<TriggerCard, "trigger">;
 
 /** A path of a step, and whether a line leaves it. */
 export type CardPath = StepPath & { connected: boolean };
@@ -61,10 +74,16 @@ export type ForEachStepNode = Node<
   "forEach"
 >;
 
-export type FlowNode = StartNode | ActionStepNode | ForEachStepNode;
+export type FlowNode =
+  | TriggerNode
+  | StartNode
+  | ActionStepNode
+  | ForEachStepNode;
 
 type ConnectionEdgeData =
   | { kind: "connection"; connection: FlowConnection }
+  /** From a trigger to Start; not stored. */
+  | { kind: "trigger" }
   /** From Start to a top-level step with nothing before it; not stored. */
   | { kind: "start"; stepId: string }
   /** Between steps inside a for-each step; read-only. */
@@ -102,6 +121,9 @@ export const getStartPosition = (
     : { x: 0, y: 0 };
 };
 
+/** The space between trigger cards, which stack in a column centred on Start. */
+const triggerGap = 16;
+
 /**
  * A for-each step's inner steps go where `forEachLayouts` puts them; unsaved positions are drawn at the origin. A
  * top-level for-each step in `collapsedStepIds` is drawn without its steps.
@@ -112,22 +134,51 @@ export const getFlowGraph = ({
   forEachLayouts,
   collapsedStepIds,
   getItemName,
+  triggers,
 }: Pick<FlowEditorState, "flowDefinition" | "problemsByStepId"> & {
   forEachLayouts: Map<string, ForEachLayout>;
   collapsedStepIds: Set<string>;
   getItemName: (forEachStepId: string) => string;
+  /** Drawn a gap to the left of Start, leading into it. */
+  triggers: TriggerCard[];
 }): { nodes: FlowNode[]; edges: ConnectionEdge[] } => {
+  const startPosition = getStartPosition(flowDefinition.steps);
   const nodes: FlowNode[] = [
+    ...triggers.map((trigger, index): TriggerNode => ({
+      id: getTriggerNodeId(trigger.kind),
+      type: "trigger",
+      position: {
+        x: startPosition.x - stepCardSize.width - stepGap,
+        y:
+          startPosition.y +
+          (index - (triggers.length - 1) / 2) *
+            (stepCardSize.height + triggerGap),
+      },
+      data: trigger,
+      draggable: false,
+      deletable: false,
+      connectable: false,
+      selectable: false,
+    })),
     {
       id: startNodeId,
       type: "start",
-      position: getStartPosition(flowDefinition.steps),
+      position: startPosition,
       data: {},
       draggable: false,
       deletable: false,
     },
   ];
-  const edges: ConnectionEdge[] = [];
+  const edges: ConnectionEdge[] = triggers.map(({ kind }) => ({
+    id: `trigger-start:${kind}`,
+    type: "connection",
+    source: getTriggerNodeId(kind),
+    target: startNodeId,
+    data: { kind: "trigger" },
+    deletable: false,
+    selectable: false,
+    focusable: false,
+  }));
 
   const addSteps = (
     steps: StepDefinition<string>[],

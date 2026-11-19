@@ -1,6 +1,12 @@
 import { ApolloError, useMutation } from "@apollo/client";
 import { useRouter } from "next/router";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 
 import {
   entityIdFromComponents,
@@ -25,6 +31,7 @@ import {
   flowDefinitionsQuery,
   useFlowDefinitionToEdit,
 } from "../../../../shared/use-flow-definitions";
+import { useFlowSchedules } from "../../../../shared/use-flow-schedules";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
 import { Canvas } from "./edit.page/canvas";
 import { FlowNotEditable } from "./edit.page/flow-not-editable";
@@ -33,6 +40,7 @@ import { LogsView } from "./edit.page/logs-view";
 import { generateRunViewPath, parseRunParam } from "./edit.page/run-path";
 import { RunView } from "./edit.page/run-view";
 import { findStep } from "./edit.page/shared/find-step";
+import { toScheduleTriggerRow } from "./edit.page/shared/flow-triggers";
 import { sidePanelWidth } from "./edit.page/shared/side-panel";
 import { useFlowRuns } from "./edit.page/shared/use-flow-runs";
 import { StepPanel } from "./edit.page/step-panel";
@@ -203,6 +211,18 @@ const FlowEditor = ({
 
   const editorState = useSyncExternalStore(editor.subscribe, editor.getState);
   const { flowDefinition } = editorState;
+
+  const { schedulesByEntityUuid, loading: schedulesLoading } = useFlowSchedules(
+    { flowDefinitionEntityId },
+  );
+  /* `null` until they first load, so the flow isn't shown as having none before that's known. */
+  const schedules = useMemo(
+    () =>
+      schedulesLoading && schedulesByEntityUuid.size === 0
+        ? null
+        : Array.from(schedulesByEntityUuid.values(), toScheduleTriggerRow),
+    [schedulesLoading, schedulesByEntityUuid],
+  );
 
   /*
    * Replacing the editor after a conflict remounts the run form and the canvas, e.g. closing a run form filled in for
@@ -484,6 +504,7 @@ const FlowEditor = ({
               collapsedStepIds={collapsedStepIds}
               onToggleCollapsed={toggleCollapsed}
               coveredRight={panelSubject ? sidePanelWidth : 0}
+              schedules={schedules}
             />
             {panelSubject && (
               <StepPanel

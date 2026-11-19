@@ -31,7 +31,12 @@ import { CanvasToolbar } from "./canvas/canvas-toolbar";
 import { ConnectionEdge } from "./canvas/connection-edge";
 import { getContextMenuItems } from "./canvas/context-menu";
 import { getFlowGraph, getStepNodeId, startNodeId } from "./canvas/flow-graph";
-import { ForEachNode, StartNode, StepNode } from "./canvas/flow-nodes";
+import {
+  ForEachNode,
+  StartNode,
+  StepNode,
+  TriggerNode,
+} from "./canvas/flow-nodes";
 import { getFreePosition, layOutFlow } from "./canvas/layout";
 import { getStepCardSize, stepCardSize, stepGap } from "./canvas/sizes";
 import {
@@ -39,6 +44,7 @@ import {
   useSelectedStepInView,
   useStepFocus,
 } from "./canvas/use-step-focus";
+import { getScheduleSummary } from "./shared/flow-triggers";
 import { useItemNames } from "./shared/item-name";
 import { connectFromNewStep, getActionPaths } from "./shared/step-paths";
 
@@ -49,7 +55,9 @@ import type {
   ConnectionEdge as ConnectionEdgeType,
   FlowNode,
   ForEachLayout,
+  TriggerCard,
 } from "./canvas/flow-graph";
+import type { TriggerRow } from "./shared/flow-triggers";
 import type { FlowEditor } from "@local/hash-isomorphic-utils/flows/flow-editor";
 import type {
   Connection,
@@ -68,6 +76,7 @@ import type {
 } from "react";
 
 const nodeTypes = {
+  trigger: TriggerNode,
   start: StartNode,
   step: StepNode,
   forEach: ForEachNode,
@@ -89,7 +98,9 @@ const ghostCard = css({
 });
 
 const getNodeStepId = (node: FlowNode) =>
-  node.type === "start" ? null : node.data.step.stepId;
+  node.type === "trigger" || node.type === "start"
+    ? null
+    : node.data.step.stepId;
 
 type AddMenuState = {
   /** Where the picked step will land, shown as a ghost card the menu opens beside. */
@@ -125,6 +136,8 @@ type CanvasProps = {
   onToggleCollapsed: (stepId: string) => void;
   /** How much of the canvas's right edge a panel covers, in pixels. Steps are centred and fitted in the rest. */
   coveredRight: number;
+  /** The flow's schedules, or `null` while they load. */
+  schedules: TriggerRow[] | null;
 };
 
 const FlowCanvas = ({
@@ -137,6 +150,7 @@ const FlowCanvas = ({
   collapsedStepIds,
   onToggleCollapsed,
   coveredRight,
+  schedules,
 }: CanvasProps) => {
   const { flowDefinition, problemsByStepId } = useSyncExternalStore(
     editor.subscribe,
@@ -247,6 +261,17 @@ const FlowCanvas = ({
   useSelectedStepInView(selectedStepIds, coveredRight);
 
   const getItemName = useItemNames(flowDefinition);
+  const triggers = useMemo(
+    (): TriggerCard[] => [
+      { kind: "manual", line: "On", on: true },
+      {
+        kind: "schedule",
+        line: schedules ? getScheduleSummary(schedules) : "Loading…",
+        on: schedules?.some(({ on }) => on) ?? false,
+      },
+    ],
+    [schedules],
+  );
   const graph = useMemo(
     () =>
       forEachLayouts
@@ -256,6 +281,7 @@ const FlowCanvas = ({
             forEachLayouts,
             collapsedStepIds,
             getItemName,
+            triggers,
           })
         : { nodes: [], edges: [] },
     [
@@ -264,6 +290,7 @@ const FlowCanvas = ({
       forEachLayouts,
       collapsedStepIds,
       getItemName,
+      triggers,
     ],
   );
   /* Connections removed other than by Delete (hover, right-click or a side panel) are no longer selected. */
@@ -300,7 +327,9 @@ const FlowCanvas = ({
       const stepId = getNodeStepId(node);
 
       const selected =
-        stepId === null ? startSelected : selectedStepIdSet.has(stepId);
+        node.type === "start"
+          ? startSelected
+          : stepId !== null && selectedStepIdSet.has(stepId);
 
       return selected ? { ...node, selected: true } : node;
     });
