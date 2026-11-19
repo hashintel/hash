@@ -464,15 +464,15 @@ describe("query_basis", () => {
     });
   });
 
-  test("finds an element inside a subnet and the call that added it there", async () => {
-    const intoSubnet = netCall(
+  test("finds an element inside a component and the call that added it there", async () => {
+    const intoComponent = netCall(
       "add-triage",
       "addPlace",
-      { id: "triage", name: "Triage", targetSubnetId: "intake" },
+      { id: "triage", name: "Triage", targetComponentId: "intake" },
       { title: "Added place Triage", applied: true },
       { documentRevision: { before: "revision-1", after: "revision-2" } },
     );
-    const readWithSubnet = netCall(
+    const readWithComponent = netCall(
       "read-queue",
       "getLatestNetDefinition",
       {},
@@ -480,7 +480,7 @@ describe("query_basis", () => {
         title: "Queue",
         definition: {
           ...definition,
-          subnets: [
+          components: [
             {
               id: "intake",
               name: "Intake",
@@ -496,7 +496,7 @@ describe("query_basis", () => {
       { documentRevision: { before: "revision-2" } },
     );
     expect(
-      await query([user, commit, intoSubnet, readWithSubnet], {
+      await query([user, commit, intoComponent, readWithComponent], {
         kind: "place",
         name: "Triage",
       }),
@@ -506,6 +506,100 @@ describe("query_basis", () => {
       changes: [
         { toolCallId: "add-triage", petrinautRevisionId: "revision-2" },
       ],
+    });
+  });
+
+  test("finds a component and what is inside it in a view recorded with `subnets` and `subnetId`", async () => {
+    const instanceOf = (id: string, name: string, componentId: string) => ({
+      id,
+      name,
+      subnetId: componentId,
+      parameterValues: {},
+      x: 0,
+      y: 0,
+    });
+    const readWithOldKeys = netCall(
+      "read-queue",
+      "getLatestNetDefinition",
+      {},
+      {
+        title: "Queue",
+        definition: {
+          ...definition,
+          componentInstances: [instanceOf("intake-1", "Intake1", "intake")],
+          subnets: [
+            {
+              id: "intake",
+              name: "Intake",
+              places: [{ ...queue, id: "triage", name: "Triage" }],
+              transitions: [],
+              types: [],
+              parameters: [],
+              differentialEquations: [],
+              componentInstances: [instanceOf("desk-1", "Desk1", "desk")],
+            },
+          ],
+        },
+      },
+      { documentRevision: { before: "revision-2" } },
+    );
+    const find = (selector: BasisQuerySelector) =>
+      query([user, commit, add, readWithOldKeys], selector);
+
+    expect(await find({ kind: "component", name: "Intake" })).toMatchObject({
+      disposition: "basis-absent",
+      target: { id: "intake" },
+    });
+    expect(await find({ kind: "place", name: "Triage" })).toMatchObject({
+      disposition: "basis-absent",
+      target: { id: "triage" },
+    });
+    expect(
+      await find({ kind: "componentInstance", name: "Desk1" }),
+    ).toMatchObject({
+      disposition: "basis-absent",
+      target: { id: "desk-1" },
+    });
+  });
+
+  test("credits a component with the call that defined it under the subnet tool's name", async () => {
+    const net = {
+      places: [],
+      transitions: [],
+      types: [],
+      parameters: [],
+      differentialEquations: [],
+    };
+    const defineDesk = netCall(
+      "define-desk",
+      "addSubnet",
+      { id: "desk", name: "Desk", ...net },
+      { title: "Added component Desk", applied: true },
+      { documentRevision: { before: "revision-2", after: "revision-3" } },
+    );
+    const readWithDesk = netCall(
+      "read-desk",
+      "getLatestNetDefinition",
+      {},
+      {
+        title: "Queue",
+        definition: {
+          ...definition,
+          components: [{ id: "desk", name: "Desk", ...net }],
+        },
+      },
+      { documentRevision: { before: "revision-3" } },
+    );
+    expect(
+      await query(
+        [user, commit, add, defineDesk, readWithDesk],
+        { kind: "component", id: "desk" },
+        { state: "current", revision: "revision-3" },
+      ),
+    ).toMatchObject({
+      disposition: "basis-absent",
+      target: { id: "desk" },
+      changes: [{ toolCallId: "define-desk" }],
     });
   });
 

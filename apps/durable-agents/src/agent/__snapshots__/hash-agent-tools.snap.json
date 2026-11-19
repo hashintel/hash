@@ -551,7 +551,7 @@
                                 "typeElement",
                                 "scenario",
                                 "metric",
-                                "subnet"
+                                "component"
                               ],
                               "type": "string",
                               "description": "The kind of the observed net element."
@@ -814,11 +814,11 @@
           ]
         },
         "isPort": {
-          "description": "When true, this place is exposed as a component port on instances of the subnet that contains it.",
+          "description": "When true, this place is exposed as a component port on instances of the component that contains it.",
           "type": "boolean"
         },
         "portDirection": {
-          "description": "For a port: the direction the component promises. `\"in\"`: the component's transitions only consume from the port. `\"out\"`: they only produce into it. `\"inout\"`: both. A read or an inhibitor arc moves no token and counts as neither. Omit to infer it from the subnet's arcs on the port and on what the subnet fuses it with.",
+          "description": "For a port: the direction the component promises. `\"in\"`: the component's transitions only consume from the port. `\"out\"`: they only produce into it. `\"inout\"`: both. A read or an inhibitor arc moves no token and counts as neither. Omit to infer it from the component's arcs on the port and on what the component fuses it with.",
           "type": "string",
           "enum": [
             "in",
@@ -842,8 +842,8 @@
           "type": "number",
           "description": "Vertical canvas position."
         },
-        "targetSubnetId": {
-          "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+        "targetComponentId": {
+          "description": "Optional ID of the component to mutate. Omit or pass null to mutate the root net.",
           "anyOf": [
             {
               "type": "string",
@@ -944,11 +944,11 @@
               ]
             },
             "isPort": {
-              "description": "When true, this place is exposed as a component port on instances of the subnet that contains it.",
+              "description": "When true, this place is exposed as a component port on instances of the component that contains it.",
               "type": "boolean"
             },
             "portDirection": {
-              "description": "For a port: the direction the component promises. `\"in\"`: the component's transitions only consume from the port. `\"out\"`: they only produce into it. `\"inout\"`: both. A read or an inhibitor arc moves no token and counts as neither. Omit to infer it from the subnet's arcs on the port and on what the subnet fuses it with.",
+              "description": "For a port: the direction the component promises. `\"in\"`: the component's transitions only consume from the port. `\"out\"`: they only produce into it. `\"inout\"`: both. A read or an inhibitor arc moves no token and counts as neither. Omit to infer it from the component's arcs on the port and on what the component fuses it with.",
               "type": "string",
               "enum": [
                 "in",
@@ -987,8 +987,8 @@
           "additionalProperties": false,
           "description": "Canvas position for a place or transition."
         },
-        "targetSubnetId": {
-          "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+        "targetComponentId": {
+          "description": "Optional ID of the component to mutate. Omit or pass null to mutate the root net.",
           "anyOf": [
             {
               "type": "string",
@@ -1024,8 +1024,8 @@
           "minLength": 1,
           "description": "Stable identifier for an SDCPN entity, a UUID. Use unique IDs within the net. Any other string is converted to a stable UUID, so the same string always names the same entity."
         },
-        "targetSubnetId": {
-          "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+        "targetComponentId": {
+          "description": "Optional ID of the component to mutate. Omit or pass null to mutate the root net.",
           "anyOf": [
             {
               "type": "string",
@@ -1126,7 +1126,7 @@
                       "portPlaceId": {
                         "type": "string",
                         "minLength": 1,
-                        "description": "ID of a place marked `isPort: true` in the component instance's referenced subnet."
+                        "description": "ID of a place marked `isPort: true` in the component the instance instantiates."
                       }
                     },
                     "required": [
@@ -1209,7 +1209,7 @@
                       "portPlaceId": {
                         "type": "string",
                         "minLength": 1,
-                        "description": "ID of a place marked `isPort: true` in the component instance's referenced subnet."
+                        "description": "ID of a place marked `isPort: true` in the component the instance instantiates."
                       }
                     },
                     "required": [
@@ -1259,8 +1259,8 @@
           "type": "number",
           "description": "Vertical canvas position."
         },
-        "targetSubnetId": {
-          "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+        "targetComponentId": {
+          "description": "Optional ID of the component to mutate. Omit or pass null to mutate the root net.",
           "anyOf": [
             {
               "type": "string",
@@ -1397,8 +1397,8 @@
           "additionalProperties": false,
           "description": "Canvas position for a place or transition."
         },
-        "targetSubnetId": {
-          "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+        "targetComponentId": {
+          "description": "Optional ID of the component to mutate. Omit or pass null to mutate the root net.",
           "anyOf": [
             {
               "type": "string",
@@ -1467,8 +1467,8 @@
           "minLength": 1,
           "description": "Stable identifier for an SDCPN entity, a UUID. Use unique IDs within the net. Any other string is converted to a stable UUID, so the same string always names the same entity."
         },
-        "targetSubnetId": {
-          "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+        "targetComponentId": {
+          "description": "Optional ID of the component to mutate. Omit or pass null to mutate the root net.",
           "anyOf": [
             {
               "type": "string",
@@ -1518,7 +1518,7 @@
           "minLength": 1
         },
         "endpoint": {
-          "description": "Arc endpoint. Use `kind: \"componentPort\"` to connect the transition to a port on a subnet instance.",
+          "description": "Arc endpoint. Use `kind: \"componentPort\"` to connect the transition to a port on a component instance.",
           "oneOf": [
             {
               "type": "object",
@@ -1554,7 +1554,7 @@
                 "portPlaceId": {
                   "type": "string",
                   "minLength": 1,
-                  "description": "ID of a place marked `isPort: true` in the component instance's referenced subnet."
+                  "description": "ID of a place marked `isPort: true` in the component the instance instantiates."
                 }
               },
               "required": [
@@ -1580,8 +1580,8 @@
             "read"
           ]
         },
-        "targetSubnetId": {
-          "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+        "targetComponentId": {
+          "description": "Optional ID of the component to mutate. Omit or pass null to mutate the root net.",
           "anyOf": [
             {
               "type": "string",
@@ -1633,7 +1633,7 @@
           "minLength": 1
         },
         "endpoint": {
-          "description": "Arc endpoint. Use `kind: \"componentPort\"` to connect the transition to a port on a subnet instance.",
+          "description": "Arc endpoint. Use `kind: \"componentPort\"` to connect the transition to a port on a component instance.",
           "oneOf": [
             {
               "type": "object",
@@ -1669,7 +1669,7 @@
                 "portPlaceId": {
                   "type": "string",
                   "minLength": 1,
-                  "description": "ID of a place marked `isPort: true` in the component instance's referenced subnet."
+                  "description": "ID of a place marked `isPort: true` in the component the instance instantiates."
                 }
               },
               "required": [
@@ -1723,7 +1723,7 @@
                 "portPlaceId": {
                   "type": "string",
                   "minLength": 1,
-                  "description": "ID of a place marked `isPort: true` in the component instance's referenced subnet."
+                  "description": "ID of a place marked `isPort: true` in the component the instance instantiates."
                 }
               },
               "required": [
@@ -1749,8 +1749,8 @@
           "exclusiveMinimum": 0,
           "description": "Replacement token multiplicity for the arc."
         },
-        "targetSubnetId": {
-          "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+        "targetComponentId": {
+          "description": "Optional ID of the component to mutate. Omit or pass null to mutate the root net.",
           "anyOf": [
             {
               "type": "string",
@@ -1801,7 +1801,7 @@
           "minLength": 1
         },
         "endpoint": {
-          "description": "Arc endpoint. Use `kind: \"componentPort\"` to connect the transition to a port on a subnet instance.",
+          "description": "Arc endpoint. Use `kind: \"componentPort\"` to connect the transition to a port on a component instance.",
           "oneOf": [
             {
               "type": "object",
@@ -1837,7 +1837,7 @@
                 "portPlaceId": {
                   "type": "string",
                   "minLength": 1,
-                  "description": "ID of a place marked `isPort: true` in the component instance's referenced subnet."
+                  "description": "ID of a place marked `isPort: true` in the component the instance instantiates."
                 }
               },
               "required": [
@@ -1849,8 +1849,8 @@
             }
           ]
         },
-        "targetSubnetId": {
-          "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+        "targetComponentId": {
+          "description": "Optional ID of the component to mutate. Omit or pass null to mutate the root net.",
           "anyOf": [
             {
               "type": "string",
@@ -1941,8 +1941,8 @@
           },
           "description": "Typed token attributes available on tokens of this colour/type. Element order matters: coloured initial state in scenario per_place mode supplies rows in this order."
         },
-        "targetSubnetId": {
-          "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+        "targetComponentId": {
+          "description": "Optional ID of the component to mutate. Omit or pass null to mutate the root net.",
           "anyOf": [
             {
               "type": "string",
@@ -2007,8 +2007,8 @@
           "additionalProperties": false,
           "description": "Fields to assign to an existing colour/type. Omitted fields are left unchanged."
         },
-        "targetSubnetId": {
-          "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+        "targetComponentId": {
+          "description": "Optional ID of the component to mutate. Omit or pass null to mutate the root net.",
           "anyOf": [
             {
               "type": "string",
@@ -2045,8 +2045,8 @@
           "minLength": 1,
           "description": "Stable identifier for an SDCPN entity, a UUID. Use unique IDs within the net. Any other string is converted to a stable UUID, so the same string always names the same entity."
         },
-        "targetSubnetId": {
-          "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+        "targetComponentId": {
+          "description": "Optional ID of the component to mutate. Omit or pass null to mutate the root net.",
           "anyOf": [
             {
               "type": "string",
@@ -2114,8 +2114,8 @@
           "additionalProperties": false,
           "description": "One typed attribute on a coloured token."
         },
-        "targetSubnetId": {
-          "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+        "targetComponentId": {
+          "description": "Optional ID of the component to mutate. Omit or pass null to mutate the root net.",
           "anyOf": [
             {
               "type": "string",
@@ -2185,8 +2185,8 @@
           "maximum": 9007199254740991,
           "description": "Destination index for the element within the type."
         },
-        "targetSubnetId": {
-          "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+        "targetComponentId": {
+          "description": "Optional ID of the component to mutate. Omit or pass null to mutate the root net.",
           "anyOf": [
             {
               "type": "string",
@@ -2228,8 +2228,8 @@
           "minLength": 1,
           "description": "Stable identifier for an SDCPN entity, a UUID. Use unique IDs within the net. Any other string is converted to a stable UUID, so the same string always names the same entity."
         },
-        "targetSubnetId": {
-          "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+        "targetComponentId": {
+          "description": "Optional ID of the component to mutate. Omit or pass null to mutate the root net.",
           "anyOf": [
             {
               "type": "string",
@@ -2293,8 +2293,8 @@
           "maximum": 8,
           "description": "How many tokens the equation couples, from 1 to 8. The simulator applies the code to every unordered combination of that many distinct tokens of the place, in index order, and sums the contributions into each token's derivative: 1 is a per-token equation (the usual case), 2 a pairwise interaction such as an attraction between every two tokens."
         },
-        "targetSubnetId": {
-          "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+        "targetComponentId": {
+          "description": "Optional ID of the component to mutate. Omit or pass null to mutate the root net.",
           "anyOf": [
             {
               "type": "string",
@@ -2368,8 +2368,8 @@
           "additionalProperties": false,
           "description": "Fields to assign to an existing differential equation. Omitted fields are left unchanged."
         },
-        "targetSubnetId": {
-          "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+        "targetComponentId": {
+          "description": "Optional ID of the component to mutate. Omit or pass null to mutate the root net.",
           "anyOf": [
             {
               "type": "string",
@@ -2406,8 +2406,8 @@
           "minLength": 1,
           "description": "Stable identifier for an SDCPN entity, a UUID. Use unique IDs within the net. Any other string is converted to a stable UUID, so the same string always names the same entity."
         },
-        "targetSubnetId": {
-          "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+        "targetComponentId": {
+          "description": "Optional ID of the component to mutate. Omit or pass null to mutate the root net.",
           "anyOf": [
             {
               "type": "string",
@@ -2464,8 +2464,8 @@
           "type": "string",
           "description": "Default parameter value as a plain string: numeric for real/integer parameters (e.g. `\"3\"`, `\"0.05\"`) and `\"true\"` or `\"false\"` for booleans. Expressions are NOT supported here — use scenario `parameterOverrides` for expressions."
         },
-        "targetSubnetId": {
-          "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+        "targetComponentId": {
+          "description": "Optional ID of the component to mutate. Omit or pass null to mutate the root net.",
           "anyOf": [
             {
               "type": "string",
@@ -2533,8 +2533,8 @@
           "additionalProperties": false,
           "description": "Fields to assign to an existing parameter. Omitted fields are left unchanged."
         },
-        "targetSubnetId": {
-          "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+        "targetComponentId": {
+          "description": "Optional ID of the component to mutate. Omit or pass null to mutate the root net.",
           "anyOf": [
             {
               "type": "string",
@@ -2571,8 +2571,8 @@
           "minLength": 1,
           "description": "Stable identifier for an SDCPN entity, a UUID. Use unique IDs within the net. Any other string is converted to a stable UUID, so the same string always names the same entity."
         },
-        "targetSubnetId": {
-          "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+        "targetComponentId": {
+          "description": "Optional ID of the component to mutate. Omit or pass null to mutate the root net.",
           "anyOf": [
             {
               "type": "string",
@@ -4852,8 +4852,8 @@
     }
   },
   {
-    "name": "petrinaut_create_subnet",
-    "description": "Add a reusable subnet definition. Mark subnet places with `isPort: true` to expose them as component ports.",
+    "name": "petrinaut_create_component",
+    "description": "Add a component: a net of its own that instances reuse. Mark its places with `isPort: true` to expose them as ports.",
     "parameters": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
@@ -4865,7 +4865,7 @@
         },
         "name": {
           "type": "string",
-          "description": "Human-readable subnet name."
+          "description": "Human-readable component name."
         },
         "description": {
           "description": "Optional human-readable summary shown to users.",
@@ -4893,12 +4893,12 @@
           "minLength": 1
         },
         "interface": {
-          "description": "When true, the subnet is an interface: a signature of ports, types and parameters with no transitions, which implements no interface itself. Instances of it run the implementation bound to them.",
+          "description": "When true, the component is an interface: a signature of ports, types and parameters with no transitions, which implements no interface itself. Instances of it run the implementation bound to them.",
           "type": "boolean",
           "const": true
         },
         "implements": {
-          "description": "IDs of the interface subnets this subnet implements: it has a port of the same name and token type for each of theirs, and a parameter of each variable name. Not for a subnet that is an interface: an interface cannot implement an interface.",
+          "description": "IDs of the interface components this component implements: it has a port of the same name and token type for each of theirs, and a parameter of each variable name. Not for a component that is an interface: an interface cannot implement an interface.",
           "type": "array",
           "items": {
             "type": "string",
@@ -4973,11 +4973,11 @@
                 ]
               },
               "isPort": {
-                "description": "When true, this place is exposed as a component port on instances of the subnet that contains it.",
+                "description": "When true, this place is exposed as a component port on instances of the component that contains it.",
                 "type": "boolean"
               },
               "portDirection": {
-                "description": "For a port: the direction the component promises. `\"in\"`: the component's transitions only consume from the port. `\"out\"`: they only produce into it. `\"inout\"`: both. A read or an inhibitor arc moves no token and counts as neither. Omit to infer it from the subnet's arcs on the port and on what the subnet fuses it with.",
+                "description": "For a port: the direction the component promises. `\"in\"`: the component's transitions only consume from the port. `\"out\"`: they only produce into it. `\"inout\"`: both. A read or an inhibitor arc moves no token and counts as neither. Omit to infer it from the component's arcs on the port and on what the component fuses it with.",
                 "type": "string",
                 "enum": [
                   "in",
@@ -5013,7 +5013,7 @@
             "additionalProperties": false,
             "description": "A Petri net place. Places store tokens and may optionally use colours and continuous dynamics."
           },
-          "description": "Places local to this subnet."
+          "description": "Places local to this component."
         },
         "transitions": {
           "type": "array",
@@ -5090,7 +5090,7 @@
                             "portPlaceId": {
                               "type": "string",
                               "minLength": 1,
-                              "description": "ID of a place marked `isPort: true` in the component instance's referenced subnet."
+                              "description": "ID of a place marked `isPort: true` in the component the instance instantiates."
                             }
                           },
                           "required": [
@@ -5173,7 +5173,7 @@
                             "portPlaceId": {
                               "type": "string",
                               "minLength": 1,
-                              "description": "ID of a place marked `isPort: true` in the component instance's referenced subnet."
+                              "description": "ID of a place marked `isPort: true` in the component the instance instantiates."
                             }
                           },
                           "required": [
@@ -5238,7 +5238,7 @@
             "additionalProperties": false,
             "description": "A Petri net transition. Transitions connect places and define firing logic."
           },
-          "description": "Transitions local to this subnet."
+          "description": "Transitions local to this component."
         },
         "types": {
           "type": "array",
@@ -5315,7 +5315,7 @@
             "additionalProperties": false,
             "description": "A coloured-token type. Coloured places store token objects with these attributes."
           },
-          "description": "Token types local to this subnet."
+          "description": "Token types local to this component."
         },
         "differentialEquations": {
           "type": "array",
@@ -5365,7 +5365,7 @@
             "additionalProperties": false,
             "description": "A differential equation for continuous dynamics on coloured tokens. The `colorId` MUST match the colour of every place that lists this equation in `dynamics`, and returned derivatives only update that colour's real-valued elements."
           },
-          "description": "Differential equations local to this subnet."
+          "description": "Differential equations local to this component."
         },
         "parameters": {
           "type": "array",
@@ -5409,10 +5409,10 @@
             "additionalProperties": false,
             "description": "A net-level parameter available to executable SDCPN code and scenarios."
           },
-          "description": "Parameters local to this subnet."
+          "description": "Parameters local to this component."
         },
         "componentInstances": {
-          "description": "Nested component instances local to this subnet.",
+          "description": "Component instances placed inside this component.",
           "type": "array",
           "items": {
             "type": "object",
@@ -5440,46 +5440,7 @@
                   "$ref": "#/$defs/__schema0"
                 }
               },
-              "subnetId": {
-                "description": "ID of the subnet of the document this component instantiates, a UUID. Any other string is converted to a stable UUID. Give this or `component`, never both.",
-                "type": "string",
-                "minLength": 1
-              },
               "component": {
-                "description": "The component of an import this instance instantiates, as `{ from, id }`. Give this or `subnetId`, never both.",
-                "type": "object",
-                "properties": {
-                  "from": {
-                    "type": "string",
-                    "minLength": 1,
-                    "description": "The ID of the import the component comes from."
-                  },
-                  "id": {
-                    "type": "string",
-                    "minLength": 1,
-                    "description": "The component's ID inside that library, as the library writes it."
-                  }
-                },
-                "required": [
-                  "from",
-                  "id"
-                ],
-                "additionalProperties": false
-              },
-              "parameterValues": {
-                "type": "object",
-                "propertyNames": {
-                  "type": "string",
-                  "minLength": 1,
-                  "description": "Stable identifier for an SDCPN entity, a UUID. Use unique IDs within the net. Any other string is converted to a stable UUID, so the same string always names the same entity."
-                },
-                "additionalProperties": {
-                  "type": "string"
-                },
-                "description": "Per-instance parameter values keyed by parameter ID from the referenced component."
-              },
-              "implementation": {
-                "description": "For an instance of an interface: the component to run, as `{ id }` for a subnet of the document or `{ from, id }` for a component of an import. Omit to run the document's default implementation for the interface.",
                 "anyOf": [
                   {
                     "type": "object",
@@ -5487,7 +5448,7 @@
                       "id": {
                         "type": "string",
                         "minLength": 1,
-                        "description": "The component's subnet ID."
+                        "description": "The ID of a component of the document, a UUID. Any other string is converted to a stable UUID."
                       }
                     },
                     "required": [
@@ -5513,8 +5474,59 @@
                       "from",
                       "id"
                     ],
-                    "additionalProperties": false,
-                    "description": "A reference to a component of an import."
+                    "additionalProperties": false
+                  }
+                ],
+                "description": "The component this instance instantiates, as `{ id }` for a component of the document or `{ from, id }` for a component of an import."
+              },
+              "parameterValues": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Stable identifier for an SDCPN entity, a UUID. Use unique IDs within the net. Any other string is converted to a stable UUID, so the same string always names the same entity."
+                },
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "Per-instance parameter values keyed by parameter ID from the referenced component."
+              },
+              "implementation": {
+                "description": "For an instance of an interface: the component to run, as `{ id }` for a component of the document or `{ from, id }` for a component of an import. Omit to run the document's default implementation for the interface.",
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "The ID of a component of the document, a UUID. Any other string is converted to a stable UUID."
+                      }
+                    },
+                    "required": [
+                      "id"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "from": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "The ID of the import the component comes from."
+                      },
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "The component's ID inside that library, as the library writes it."
+                      }
+                    },
+                    "required": [
+                      "from",
+                      "id"
+                    ],
+                    "additionalProperties": false
                   }
                 ]
               },
@@ -5530,16 +5542,17 @@
             "required": [
               "id",
               "name",
+              "component",
               "parameterValues",
               "x",
               "y"
             ],
             "additionalProperties": false,
-            "description": "A placed instance of a component: a subnet of the document, or a component of an import. Parent nets connect to its ports with fusions and transition arcs."
+            "description": "A placed instance of a component: a component of the document, or a component of an import. Parent nets connect to its ports with fusions and transition arcs."
           }
         },
         "fusions": {
-          "description": "Fusions among this subnet's places and its nested instances' ports.",
+          "description": "Fusions among this component's places and the ports of the instances inside it.",
           "type": "array",
           "items": {
             "type": "object",
@@ -5596,7 +5609,7 @@
                         "portPlaceId": {
                           "type": "string",
                           "minLength": 1,
-                          "description": "ID of a place marked `isPort: true` in the component instance's referenced subnet."
+                          "description": "ID of a place marked `isPort: true` in the component the instance instantiates."
                         }
                       },
                       "required": [
@@ -5673,13 +5686,13 @@
     }
   },
   {
-    "name": "petrinaut_update_subnet",
-    "description": "Update fields on an existing subnet.",
+    "name": "petrinaut_update_component",
+    "description": "Update fields on an existing component.",
     "parameters": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
       "properties": {
-        "subnetId": {
+        "componentId": {
           "type": "string",
           "minLength": 1,
           "description": "Stable identifier for an SDCPN entity, a UUID. Use unique IDs within the net. Any other string is converted to a stable UUID, so the same string always names the same entity."
@@ -5689,7 +5702,7 @@
           "properties": {
             "name": {
               "type": "string",
-              "description": "Human-readable subnet name."
+              "description": "Human-readable component name."
             },
             "description": {
               "description": "Optional human-readable summary shown to users.",
@@ -5717,11 +5730,11 @@
               "minLength": 1
             },
             "interface": {
-              "description": "true makes the subnet an interface: a signature of ports, types and parameters with no transitions, which implements no interface itself. false makes an interface an ordinary subnet again. Omit to leave it as it is.",
+              "description": "true makes the component an interface: a signature of ports, types and parameters with no transitions, which implements no interface itself. false makes an interface an ordinary component again. Omit to leave it as it is.",
               "type": "boolean"
             },
             "implements": {
-              "description": "IDs of the interface subnets this subnet implements: it has a port of the same name and token type for each of theirs, and a parameter of each variable name. Not for a subnet that is an interface: an interface cannot implement an interface.",
+              "description": "IDs of the interface components this component implements: it has a port of the same name and token type for each of theirs, and a parameter of each variable name. Not for a component that is an interface: an interface cannot implement an interface.",
               "type": "array",
               "items": {
                 "type": "string",
@@ -5731,7 +5744,7 @@
             }
           },
           "additionalProperties": false,
-          "description": "Fields to assign to an existing subnet. Omitted fields are left unchanged."
+          "description": "Fields to assign to an existing component. Omitted fields are left unchanged."
         },
         "editor_id": {
           "type": "string",
@@ -5739,7 +5752,7 @@
         }
       },
       "required": [
-        "subnetId",
+        "componentId",
         "update",
         "editor_id"
       ],
@@ -5780,13 +5793,13 @@
     }
   },
   {
-    "name": "petrinaut_remove_subnet",
-    "description": "Remove a subnet definition and component instances that reference it.",
+    "name": "petrinaut_remove_component",
+    "description": "Remove a component and the component instances that reference it.",
     "parameters": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
       "properties": {
-        "subnetId": {
+        "componentId": {
           "type": "string",
           "minLength": 1,
           "description": "Stable identifier for an SDCPN entity, a UUID. Use unique IDs within the net. Any other string is converted to a stable UUID, so the same string always names the same entity."
@@ -5797,7 +5810,7 @@
         }
       },
       "required": [
-        "subnetId",
+        "componentId",
         "editor_id"
       ],
       "additionalProperties": false
@@ -5813,7 +5826,7 @@
         "interfaceId": {
           "type": "string",
           "minLength": 1,
-          "description": "The interface subnet's ID."
+          "description": "The ID of the interface, a component of the document."
         },
         "implementationId": {
           "anyOf": [
@@ -5826,7 +5839,7 @@
               "type": "null"
             }
           ],
-          "description": "The implementing subnet to run for instances of the interface that choose none themselves, or null to clear the document's default."
+          "description": "The ID of the component to run for instances of the interface that choose none themselves, or null to clear the document's default."
         },
         "editor_id": {
           "type": "string",
@@ -5842,8 +5855,8 @@
     }
   },
   {
-    "name": "petrinaut_create_component",
-    "description": "Place an instance of a component in the root net or a subnet: a subnet of the document, named by `subnetId`, or a component of a library the application resolves, named by `component: { from, id }`. The first instance to name a library, for its `component` or for its `implementation`, adds it to the document's `imports`.",
+    "name": "petrinaut_create_component_instance",
+    "description": "Place an instance of a component in the root net or in another component: a component of the document, named by `component: { id }`, or a component of a library the application resolves, named by `component: { from, id }`. The first instance to name a library, for its `component` or for its `implementation`, adds it to the document's `imports`.",
     "parameters": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
@@ -5871,46 +5884,7 @@
             "$ref": "#/$defs/__schema0"
           }
         },
-        "subnetId": {
-          "description": "ID of the subnet of the document this component instantiates, a UUID. Any other string is converted to a stable UUID. Give this or `component`, never both.",
-          "type": "string",
-          "minLength": 1
-        },
         "component": {
-          "description": "The component of an import this instance instantiates, as `{ from, id }`. Give this or `subnetId`, never both.",
-          "type": "object",
-          "properties": {
-            "from": {
-              "type": "string",
-              "minLength": 1,
-              "description": "The ID of the import the component comes from."
-            },
-            "id": {
-              "type": "string",
-              "minLength": 1,
-              "description": "The component's ID inside that library, as the library writes it."
-            }
-          },
-          "required": [
-            "from",
-            "id"
-          ],
-          "additionalProperties": false
-        },
-        "parameterValues": {
-          "type": "object",
-          "propertyNames": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Stable identifier for an SDCPN entity, a UUID. Use unique IDs within the net. Any other string is converted to a stable UUID, so the same string always names the same entity."
-          },
-          "additionalProperties": {
-            "type": "string"
-          },
-          "description": "Per-instance parameter values keyed by parameter ID from the referenced component."
-        },
-        "implementation": {
-          "description": "For an instance of an interface: the component to run, as `{ id }` for a subnet of the document or `{ from, id }` for a component of an import. Omit to run the document's default implementation for the interface.",
           "anyOf": [
             {
               "type": "object",
@@ -5918,7 +5892,7 @@
                 "id": {
                   "type": "string",
                   "minLength": 1,
-                  "description": "The component's subnet ID."
+                  "description": "The ID of a component of the document, a UUID. Any other string is converted to a stable UUID."
                 }
               },
               "required": [
@@ -5944,8 +5918,59 @@
                 "from",
                 "id"
               ],
-              "additionalProperties": false,
-              "description": "A reference to a component of an import."
+              "additionalProperties": false
+            }
+          ],
+          "description": "The component this instance instantiates, as `{ id }` for a component of the document or `{ from, id }` for a component of an import."
+        },
+        "parameterValues": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Stable identifier for an SDCPN entity, a UUID. Use unique IDs within the net. Any other string is converted to a stable UUID, so the same string always names the same entity."
+          },
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Per-instance parameter values keyed by parameter ID from the referenced component."
+        },
+        "implementation": {
+          "description": "For an instance of an interface: the component to run, as `{ id }` for a component of the document or `{ from, id }` for a component of an import. Omit to run the document's default implementation for the interface.",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The ID of a component of the document, a UUID. Any other string is converted to a stable UUID."
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "from": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The ID of the import the component comes from."
+                },
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The component's ID inside that library, as the library writes it."
+                }
+              },
+              "required": [
+                "from",
+                "id"
+              ],
+              "additionalProperties": false
             }
           ]
         },
@@ -5957,8 +5982,8 @@
           "type": "number",
           "description": "Vertical canvas position."
         },
-        "targetSubnetId": {
-          "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+        "targetComponentId": {
+          "description": "Optional ID of the component to mutate. Omit or pass null to mutate the root net.",
           "anyOf": [
             {
               "type": "string",
@@ -5978,6 +6003,7 @@
       "required": [
         "id",
         "name",
+        "component",
         "parameterValues",
         "x",
         "y",
@@ -6020,7 +6046,7 @@
     }
   },
   {
-    "name": "petrinaut_update_component",
+    "name": "petrinaut_update_component_instance",
     "description": "Update fields on an existing component instance, its canvas position, or both.",
     "parameters": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -6052,31 +6078,44 @@
                 "$ref": "#/$defs/__schema0"
               }
             },
-            "subnetId": {
-              "description": "ID of the subnet of the document this component instantiates, a UUID. Any other string is converted to a stable UUID. Give this or `component`, never both.",
-              "type": "string",
-              "minLength": 1
-            },
             "component": {
-              "description": "The component of an import this instance instantiates, as `{ from, id }`. Give this or `subnetId`, never both.",
-              "type": "object",
-              "properties": {
-                "from": {
-                  "type": "string",
-                  "minLength": 1,
-                  "description": "The ID of the import the component comes from."
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "The ID of a component of the document, a UUID. Any other string is converted to a stable UUID."
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ],
+                  "additionalProperties": false
                 },
-                "id": {
-                  "type": "string",
-                  "minLength": 1,
-                  "description": "The component's ID inside that library, as the library writes it."
+                {
+                  "type": "object",
+                  "properties": {
+                    "from": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "The ID of the import the component comes from."
+                    },
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "The component's ID inside that library, as the library writes it."
+                    }
+                  },
+                  "required": [
+                    "from",
+                    "id"
+                  ],
+                  "additionalProperties": false
                 }
-              },
-              "required": [
-                "from",
-                "id"
               ],
-              "additionalProperties": false
+              "description": "The component this instance instantiates, as `{ id }` for a component of the document or `{ from, id }` for a component of an import."
             },
             "parameterValues": {
               "type": "object",
@@ -6091,7 +6130,7 @@
               "description": "Per-instance parameter values keyed by parameter ID from the referenced component."
             },
             "implementation": {
-              "description": "For an instance of an interface: the component to run, as `{ id }` for a subnet of the document or `{ from, id }` for a component of an import, or null to clear the instance's choice, so that it runs the document's default implementation for the interface. Omit to leave the choice as it is.",
+              "description": "For an instance of an interface: the component to run, as `{ id }` for a component of the document or `{ from, id }` for a component of an import, or null to clear the instance's choice, so that it runs the document's default implementation for the interface. Omit to leave the choice as it is.",
               "anyOf": [
                 {
                   "anyOf": [
@@ -6101,7 +6140,7 @@
                         "id": {
                           "type": "string",
                           "minLength": 1,
-                          "description": "The component's subnet ID."
+                          "description": "The ID of a component of the document, a UUID. Any other string is converted to a stable UUID."
                         }
                       },
                       "required": [
@@ -6127,11 +6166,10 @@
                         "from",
                         "id"
                       ],
-                      "additionalProperties": false,
-                      "description": "A reference to a component of an import."
+                      "additionalProperties": false
                     }
                   ],
-                  "description": "A reference to a component: `{ id }` names a subnet of the document, `{ from, id }` a component of an import."
+                  "description": "A reference to a component: `{ id }` names a component of the document, `{ from, id }` a component of an import."
                 },
                 {
                   "type": "null"
@@ -6161,8 +6199,8 @@
           "additionalProperties": false,
           "description": "Canvas position for a place or transition."
         },
-        "targetSubnetId": {
-          "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+        "targetComponentId": {
+          "description": "Optional ID of the component to mutate. Omit or pass null to mutate the root net.",
           "anyOf": [
             {
               "type": "string",
@@ -6220,7 +6258,7 @@
     }
   },
   {
-    "name": "petrinaut_remove_component",
+    "name": "petrinaut_remove_component_instance",
     "description": "Remove a component instance.",
     "parameters": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -6231,8 +6269,8 @@
           "minLength": 1,
           "description": "Stable identifier for an SDCPN entity, a UUID. Use unique IDs within the net. Any other string is converted to a stable UUID, so the same string always names the same entity."
         },
-        "targetSubnetId": {
-          "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+        "targetComponentId": {
+          "description": "Optional ID of the component to mutate. Omit or pass null to mutate the root net.",
           "anyOf": [
             {
               "type": "string",
@@ -6315,7 +6353,7 @@
                   "portPlaceId": {
                     "type": "string",
                     "minLength": 1,
-                    "description": "ID of a place marked `isPort: true` in the component instance's referenced subnet."
+                    "description": "ID of a place marked `isPort: true` in the component the instance instantiates."
                   }
                 },
                 "required": [
@@ -6330,8 +6368,8 @@
           },
           "description": "The places and ports that are one place when the net runs: at most one place of the net itself, plus ports of its component instances. At least two members."
         },
-        "targetSubnetId": {
-          "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+        "targetComponentId": {
+          "description": "Optional ID of the component to mutate. Omit or pass null to mutate the root net.",
           "anyOf": [
             {
               "type": "string",
@@ -6383,8 +6421,8 @@
           "additionalProperties": false,
           "description": "Fields to assign to an existing fusion. Members change through `addFusionMember`, `removeFusionMember` and `replaceFusionMember`."
         },
-        "targetSubnetId": {
-          "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+        "targetComponentId": {
+          "description": "Optional ID of the component to mutate. Omit or pass null to mutate the root net.",
           "anyOf": [
             {
               "type": "string",
@@ -6421,8 +6459,8 @@
           "minLength": 1,
           "description": "Stable identifier for an SDCPN entity, a UUID. Use unique IDs within the net. Any other string is converted to a stable UUID, so the same string always names the same entity."
         },
-        "targetSubnetId": {
-          "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+        "targetComponentId": {
+          "description": "Optional ID of the component to mutate. Omit or pass null to mutate the root net.",
           "anyOf": [
             {
               "type": "string",
@@ -6494,7 +6532,7 @@
                 "portPlaceId": {
                   "type": "string",
                   "minLength": 1,
-                  "description": "ID of a place marked `isPort: true` in the component instance's referenced subnet."
+                  "description": "ID of a place marked `isPort: true` in the component the instance instantiates."
                 }
               },
               "required": [
@@ -6507,8 +6545,8 @@
           ],
           "description": "A fusion member: `kind: \"place\"` names a place of the net the fusion belongs to; `kind: \"componentPort\"` names a port of one of that net's component instances."
         },
-        "targetSubnetId": {
-          "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+        "targetComponentId": {
+          "description": "Optional ID of the component to mutate. Omit or pass null to mutate the root net.",
           "anyOf": [
             {
               "type": "string",
@@ -6581,7 +6619,7 @@
                 "portPlaceId": {
                   "type": "string",
                   "minLength": 1,
-                  "description": "ID of a place marked `isPort: true` in the component instance's referenced subnet."
+                  "description": "ID of a place marked `isPort: true` in the component the instance instantiates."
                 }
               },
               "required": [
@@ -6594,8 +6632,8 @@
           ],
           "description": "A fusion member: `kind: \"place\"` names a place of the net the fusion belongs to; `kind: \"componentPort\"` names a port of one of that net's component instances."
         },
-        "targetSubnetId": {
-          "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+        "targetComponentId": {
+          "description": "Optional ID of the component to mutate. Omit or pass null to mutate the root net.",
           "anyOf": [
             {
               "type": "string",
@@ -6668,7 +6706,7 @@
                 "portPlaceId": {
                   "type": "string",
                   "minLength": 1,
-                  "description": "ID of a place marked `isPort: true` in the component instance's referenced subnet."
+                  "description": "ID of a place marked `isPort: true` in the component the instance instantiates."
                 }
               },
               "required": [
@@ -6717,7 +6755,7 @@
                 "portPlaceId": {
                   "type": "string",
                   "minLength": 1,
-                  "description": "ID of a place marked `isPort: true` in the component instance's referenced subnet."
+                  "description": "ID of a place marked `isPort: true` in the component the instance instantiates."
                 }
               },
               "required": [
@@ -6730,8 +6768,8 @@
           ],
           "description": "The place or instance port that joins in its stead."
         },
-        "targetSubnetId": {
-          "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+        "targetComponentId": {
+          "description": "Optional ID of the component to mutate. Omit or pass null to mutate the root net.",
           "anyOf": [
             {
               "type": "string",
@@ -6759,7 +6797,7 @@
   },
   {
     "name": "petrinaut_get_net",
-    "description": "Read the net open in the editor at one level of detail. Returns { title, definition, extensions }: the user-visible net title, the net, and the extension capabilities enabled for this document. Where the net imports libraries or the editor offers some, also `imports`: each library with its `status` and, once `resolved`, its `name` and `components`, each with its `id`, whether it is an `interface`, its `ports` and its `parameters`. Place an instance of one with `petrinaut_create_component` and `component: { from: <library id>, id: <component id> }`.",
+    "description": "Read the net open in the editor at one level of detail. Returns { title, definition, extensions }: the user-visible net title, the net, and the extension capabilities enabled for this document. Where the net imports libraries or the editor offers some, also `imports`: each library with its `status` and, once `resolved`, its `name` and `components`, each with its `id`, whether it is an `interface`, its `ports` and its `parameters`. Place an instance of one with `petrinaut_create_component_instance` and `component: { from: <library id>, id: <component id> }`.",
     "parameters": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
@@ -6771,7 +6809,7 @@
             "structure",
             "full"
           ],
-          "description": "`outline`: ids, names and core properties of places, transitions with their input and output arcs, token types, parameters, equations, scenarios, metrics, subnets and component instances; code and expressions (lambda, kernel, equation and metric code, parameter overrides, component parameter values, scenario initial states other than the shape of an ad-hoc one), canvas positions, visual settings and host metadata are left out. `structure`: every core property, code and expressions included; canvas positions, visualizer code, icons, colours and host metadata left out. `full`: the complete definition, positions and visualizer code included."
+          "description": "`outline`: ids, names and core properties of places, transitions with their input and output arcs, token types, parameters, equations, scenarios, metrics, components and component instances; code and expressions (lambda, kernel, equation and metric code, parameter overrides, component parameter values, scenario initial states other than the shape of an ad-hoc one), canvas positions, visual settings and host metadata are left out. `structure`: every core property, code and expressions included; canvas positions, visualizer code, icons, colours and host metadata left out. `full`: the complete definition, positions and visualizer code included."
         },
         "editor_id": {
           "type": "string",
@@ -7196,7 +7234,7 @@
                 "typeElement",
                 "scenario",
                 "metric",
-                "subnet"
+                "component"
               ],
               "type": "string"
             },
