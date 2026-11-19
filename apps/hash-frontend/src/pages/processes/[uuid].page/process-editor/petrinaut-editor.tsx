@@ -98,12 +98,14 @@ export type PetrinautEditorLoad = {
 
 /**
  * What the editor submits on Save: the net and title as they were when Save
- * was pressed, and the net they are saved to, or `null` to create one.
+ * was pressed, and the net they are saved to.
  */
 export type PetrinautEditorSave = {
   definition: SDCPN;
   title: string;
-  entityId: EntityId | null;
+  entityId: EntityId;
+  /** Whether the net exists; a draft's doesn't until its first save. */
+  exists: boolean;
 };
 
 /** The persisted net and the decision-time of the revision a save wrote. */
@@ -429,7 +431,8 @@ export const PetrinautEditor = ({
           const saved = await hostSaveRef.current.onSave({
             definition,
             title,
-            entityId: mode.kind === "saved" ? mode.entityId : null,
+            entityId: mode.entityId,
+            exists: mode.kind === "saved",
           });
           const snapshot = {
             definition,

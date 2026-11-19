@@ -294,6 +294,7 @@ test("a save writes to the net the editor names, and resolves once its revision 
       definition: saved.definition,
       title: saved.title,
       entityId: netAId,
+      exists: true,
     }),
   );
 
@@ -327,7 +328,8 @@ test("Create moves the URL to the new net without reloading the editor, and read
     editor().onSave({
       definition: definition("new"),
       title: "New",
-      entityId: null,
+      entityId: createdId,
+      exists: false,
     }),
   );
 
@@ -360,7 +362,8 @@ test("a Create finishing after another net loads leaves that net, its URL and it
     create = editor().onSave({
       definition: definition("new"),
       title: "New",
-      entityId: null,
+      entityId: createdId,
+      exists: false,
     });
   });
   await discardAndNavigate(navigate, savedView(uuidB));
@@ -392,7 +395,8 @@ test("a Create finishing after leaving the editor does not navigate back to it",
     create = editor().onSave({
       definition: definition("new"),
       title: "New",
-      entityId: null,
+      entityId: createdId,
+      exists: false,
     });
   });
   cleanup();
@@ -417,6 +421,7 @@ test("a save finishing after another net loads keeps that net selected for its o
       definition: definition("a2"),
       title: "A",
       entityId: netAId,
+      exists: true,
     });
   });
   await discardAndNavigate(navigate, savedView(uuidB));
@@ -436,6 +441,7 @@ test("a save finishing after another net loads keeps that net selected for its o
       definition: definition("b2"),
       title: "B",
       entityId: netBId,
+      exists: true,
     }),
   );
   expect(updatedEntityIds()).toEqual([netAId, netBId]);

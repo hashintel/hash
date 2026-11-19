@@ -296,10 +296,7 @@ export const useProcessSaveAndLoad = ({
         });
 
         if (!createdEntityData.data?.createEntity) {
-          throw await createRefusal(
-            entityId,
-            new Error("Failed to create petri net"),
-          );
+          throw new Error("Failed to create petri net");
         }
 
         const createdEntity = new HashEntity(

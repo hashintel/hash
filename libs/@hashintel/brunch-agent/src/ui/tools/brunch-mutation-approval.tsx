@@ -572,36 +572,37 @@ export const createBrunchSaveApprovalWidget = (
     const { title, lastSavedTime } = readSaveState(
       saveInputParser.parse(input).documentId,
     );
-    if (lastSavedTime === null) {
-      return (
-        <section
-          className={containerStyle}
-          aria-label="Approve creating the net"
-        >
-          <strong>Create ‘{title}’?</strong>
-          <p className={css({ fontSize: "sm" })}>
-            This net hasn&apos;t been saved yet. Creating it saves everything in
-            the editor, yours and the assistant&apos;s, as its first version.
-          </p>
-          <ApprovalActions
-            coordinator={coordinator}
-            toolCallId={toolCallId}
-            toolName={saveToolName}
-          />
-        </section>
-      );
-    }
+    const creates = lastSavedTime === null;
     return (
-      <section className={containerStyle} aria-label="Approve saving the net">
-        <strong>Save ‘{title}’ as a new version?</strong>
+      <section
+        className={containerStyle}
+        aria-label={
+          creates ? "Approve creating the net" : "Approve saving the net"
+        }
+      >
+        <strong>
+          {creates ? `Create ‘${title}’?` : `Save ‘${title}’ as a new version?`}
+        </strong>
         <p className={css({ fontSize: "sm" })}>
-          It saves every unsaved edit in the editor, yours and the
-          assistant&apos;s. Others who can see this net will see it as the
-          latest version.
+          {creates ? (
+            <>
+              This net hasn&apos;t been saved yet. Creating it saves everything
+              in the editor, yours and the assistant&apos;s, as its first
+              version.
+            </>
+          ) : (
+            <>
+              It saves every unsaved edit in the editor, yours and the
+              assistant&apos;s. Others who can see this net will see it as the
+              latest version.
+            </>
+          )}
         </p>
-        <p className={css({ fontSize: "xs", color: "neutral.s90" })}>
-          Last saved {new Date(lastSavedTime).toLocaleString()}
-        </p>
+        {lastSavedTime !== null && (
+          <p className={css({ fontSize: "xs", color: "neutral.s90" })}>
+            Last saved {new Date(lastSavedTime).toLocaleString()}
+          </p>
+        )}
         <ApprovalActions
           coordinator={coordinator}
           toolCallId={toolCallId}

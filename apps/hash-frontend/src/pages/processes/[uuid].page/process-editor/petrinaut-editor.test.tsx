@@ -407,6 +407,7 @@ test("Save submits the net as it was pressed once, and marks only that as saved"
     definition: handle?.doc(),
     title: "Net (edited)",
     entityId: savedEntityId,
+    exists: true,
   });
   expect(lastTopBar()?.persistPending).toBe(true);
 
@@ -531,8 +532,8 @@ test("a Save kept from before Create, called once Create resolves but before the
   });
 
   expect(onSave.mock.calls.map(([save]) => save)).toMatchObject([
-    { title: "Draft", entityId: null },
-    { title: "Renamed", entityId: createdEntityId },
+    { title: "Draft", entityId: "web~draft", exists: false },
+    { title: "Renamed", entityId: createdEntityId, exists: true },
   ]);
   await waitFor(() =>
     expect(lastTopBar()).toMatchObject({
@@ -560,7 +561,11 @@ test("Create turns the draft into the saved net in the same editor, which then o
   });
 
   expect(onSave).toHaveBeenCalledWith(
-    expect.objectContaining({ title: "Draft", entityId: null }),
+    expect.objectContaining({
+      title: "Draft",
+      entityId: "web~draft",
+      exists: false,
+    }),
   );
   await waitFor(() =>
     expect(lastBrunchInput()?.openDocument?.documentId).toBe(createdEntityId),
@@ -654,6 +659,7 @@ test("the agent's save runs the Save button's one save and settles once saved, s
     definition: captured,
     title: "Net",
     entityId: savedEntityId,
+    exists: true,
   });
   await waitFor(() => expect(lastTopBar()?.persistPending).toBe(true));
   editNet("after-save");

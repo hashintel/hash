@@ -12,12 +12,9 @@ import {
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { AlertModal } from "@hashintel/design-system";
 
-import { draftPath } from "./draft-path";
+import { draftRoute } from "./draft-path";
 import { NetExistsError } from "./process-editor/net-exists-error";
-import {
-  type PersistTarget,
-  useProcessSaveAndLoad,
-} from "./process-editor/use-process-save-and-load";
+import { useProcessSaveAndLoad } from "./process-editor/use-process-save-and-load";
 import { usePetriNetRevisions } from "./process-editor/use-process-save-and-load/use-petri-net-revisions";
 import { useStringEvaluationGate } from "./process-editor/use-string-evaluation-gate";
 
@@ -138,12 +135,10 @@ type Loaded = {
   load: PetrinautEditorLoad;
 };
 
-const pathForLoadedView = (loadedView: NetMode): string => {
-  if (loadedView.kind === "draft") {
-    return draftPath(loadedView.entityId, loadedView.seedKey);
-  }
-  return `/processes/${extractEntityUuidFromEntityId(loadedView.entityId)}`;
-};
+const routeForLoadedView = (loadedView: NetMode) =>
+  loadedView.kind === "draft"
+    ? draftRoute(loadedView.entityId, loadedView.seedKey)
+    : `/processes/${extractEntityUuidFromEntityId(loadedView.entityId)}`;
 
 const viewMatchesLoaded = (
   view: ProcessEditorView,
@@ -481,20 +476,8 @@ export const ProcessEditor = ({
    * leaving the editor's edits unsaved.
    */
   const save = useCallback(
-    async ({ definition, title, entityId }: PetrinautEditorSave) => {
+    async ({ definition, title, entityId, exists }: PetrinautEditorSave) => {
       const submittedFrom = loadedRef.current?.load;
-      const openView = loadedRef.current?.view;
-      // The editor names no net when it saves a draft; the draft's own id is
-      // the one its first save creates.
-      const target: PersistTarget | null =
-        entityId !== null
-          ? { entityId, exists: true }
-          : openView?.kind === "draft"
-            ? { entityId: openView.entityId, exists: false }
-            : null;
-      if (target === null) {
-        throw new Error("A net with no id can be saved only from a draft");
-      }
 
       /** The draft is now the saved net `savedEntityId`, under its URL. */
       const becomeSaved = (savedEntityId: EntityId) => {
@@ -507,26 +490,27 @@ export const ProcessEditor = ({
         void router.replace(`/processes/${savedUuid}`);
       };
 
-      const result = await persistDefinition(definition, title, target).catch(
-        (error: unknown) => {
-          if (
-            error instanceof NetExistsError &&
-            entityId === null &&
-            loadedRef.current?.load === submittedFrom
-          ) {
-            setSelectedNetId(error.entityId);
-            setUserEditable(error.userEditable);
-            becomeSaved(error.entityId);
-          }
-          throw error;
-        },
-      );
+      const result = await persistDefinition(definition, title, {
+        entityId,
+        exists,
+      }).catch((error: unknown) => {
+        if (
+          error instanceof NetExistsError &&
+          !exists &&
+          loadedRef.current?.load === submittedFrom
+        ) {
+          setSelectedNetId(error.entityId);
+          setUserEditable(error.userEditable);
+          becomeSaved(error.entityId);
+        }
+        throw error;
+      });
       if (loadedRef.current?.load !== submittedFrom) {
         return result;
       }
       setSelectedNetId(result.entityId);
       setUserEditable(result.userEditable);
-      if (entityId === null) {
+      if (!exists) {
         becomeSaved(result.entityId);
       }
       return result;
@@ -551,11 +535,11 @@ export const ProcessEditor = ({
           header="Discard unsaved changes?"
           open
           close={() => {
-            const revertPath = pathForLoadedView(loaded.view);
+            const revertRoute = routeForLoadedView(loaded.view);
             setPendingView(null);
             // Restore the URL to the editor's loaded view so URL and
             // editor stay in sync.
-            void router.replace(revertPath);
+            void router.replace(revertRoute);
           }}
           type="warning"
         />
