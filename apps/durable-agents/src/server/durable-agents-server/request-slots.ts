@@ -115,6 +115,11 @@ export const createRequestSlots = (limit: number) => {
               releaseSlot();
               return undefined;
             }
+            // An abort after the grant, before this resumed, fired no listener.
+            if (context.abortSignal?.aborted === true) {
+              releaseSlot();
+              context.abortSignal.throwIfAborted();
+            }
             held.set(api.taskId, releaseSlot);
             context.abortSignal?.addEventListener(
               "abort",
