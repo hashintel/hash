@@ -42,10 +42,12 @@ const panelStyle = cva({
     },
     animating: {
       true: {
-        transitionProperty:
-          "[width, opacity, height, top, left, right, bottom, transform]",
-        transitionDuration: "[150ms]",
-        transitionTimingFunction: "[cubic-bezier(0.16, 1, 0.3, 1)]",
+        // One `transition`, not the three properties it stands for: Panda
+        // writes each of those with a custom property beside it, which every
+        // element in the panel inherits. Switching this variant on or off
+        // then restyles the whole panel.
+        transition:
+          "[width 150ms cubic-bezier(0.16, 1, 0.3, 1), opacity 150ms cubic-bezier(0.16, 1, 0.3, 1), height 150ms cubic-bezier(0.16, 1, 0.3, 1), top 150ms cubic-bezier(0.16, 1, 0.3, 1), left 150ms cubic-bezier(0.16, 1, 0.3, 1), right 150ms cubic-bezier(0.16, 1, 0.3, 1), bottom 150ms cubic-bezier(0.16, 1, 0.3, 1), transform 150ms cubic-bezier(0.16, 1, 0.3, 1)]",
       },
     },
   },
