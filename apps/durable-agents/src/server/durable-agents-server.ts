@@ -22,6 +22,8 @@
  * - `GET /chat/:id/messages` answers the conversation's history as AI SDK
  *   `UIMessage[]` (`historyHandler`), projected with the live stream's own
  *   options; 404 for an unknown conversation.
+ * - Any `HEAD` request is answered 405, on these routes and on any mounted
+ *   on `app` later.
  *
  * Each conversation is its own Harness on its own storage (see
  * `createConversationRegistry`), checked to still own that storage before
@@ -238,6 +240,11 @@ export const createDurableAgentsServer = (
     dynamicClientToolNames: options.dynamicClientToolNames,
   };
   const app = new Hono();
+
+  // Hono answers HEAD with the GET route, which would follow a turn or open a conversation; no HEAD route matches.
+  app.use("*", async (ctx, next) =>
+    ctx.req.method === "HEAD" ? ctx.body(null, 405) : next(),
+  );
 
   // Hono's own handler, but a request the server could not serve for now is a 503 the client may retry.
   app.onError((error, ctx) => {
