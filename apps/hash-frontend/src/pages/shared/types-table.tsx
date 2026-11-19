@@ -99,6 +99,8 @@ import type {
 import type { Sorter } from "@hashintel/ds-components";
 import type { FunctionComponent } from "react";
 
+export type { TypesTableTypeKind } from "./types-table/shared/type-filters";
+
 export type TypesTableColumnId =
   | "title"
   | "kind"
@@ -219,6 +221,7 @@ export const TypesTable: FunctionComponent<
     loading?: boolean;
     types?: TypesTableType[];
     kind: TypesTableKind;
+    initialKindFilter?: TypesTableTypeKind;
   } & (
     | { onlyOneWeb: true; allTypes?: never }
     | {
@@ -231,7 +234,14 @@ export const TypesTable: FunctionComponent<
         allTypes: TypesTableType[] | null | undefined;
       }
   )
-> = ({ types, allTypes, kind, onlyOneWeb, loading = false }) => {
+> = ({
+  types,
+  allTypes,
+  kind,
+  onlyOneWeb,
+  loading = false,
+  initialKindFilter,
+}) => {
   const router = useRouter();
   const gridRef = useRef<DataEditorRef>(null);
   const { tooltipElement, showTooltip } = useGridTooltip(gridRef);
@@ -272,7 +282,18 @@ export const TypesTable: FunctionComponent<
     getDefaultWebFilter(internalWebs.map(({ webId }) => webId)),
   );
 
-  const [typeFilters, setTypeFilters] = useState<TypeFilter[]>([]);
+  const [typeFilters, setTypeFilters] = useState<TypeFilter[]>(() =>
+    initialKindFilter
+      ? [
+          {
+            id: "initial-kind",
+            field: "kind",
+            operator: "anyOf",
+            values: [initialKindFilter],
+          },
+        ]
+      : [],
+  );
 
   const { entityTypes, isSpecialEntityTypeLookup } =
     useEntityTypesContextRequired();
