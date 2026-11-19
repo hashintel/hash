@@ -628,6 +628,21 @@ describe("references", () => {
     expect(reason(result)).toStrictEqual(stale("inner"));
   });
 
+  test("outer_context", () => {
+    expect.hasAssertions();
+    // The outer `$` declares inside the branch being built.
+    const result = Draft.program({}, ($) =>
+      $.if(true, { then: () => $.let("inner", 1n) }),
+    );
+    expect(syntax(result)).toStrictEqual(
+      call(
+        "::kernel::special_form::if",
+        literal(true),
+        call("::kernel::special_form::let", "inner", literal(1), "inner"),
+      ),
+    );
+  });
+
   test("embedded_program", () => {
     expect.hasAssertions();
     // A program's root carries its own bindings, so its references resolve inside another program too.
@@ -1450,9 +1465,9 @@ describe("query", () => {
     );
   });
 
-  test("predicate_escape", () => {
+  test("outer_context", () => {
     expect.hasAssertions();
-    // The outer `$` emits its `let` outside the closure, where `vertex` names nothing.
+    // The outer `$` declares inside the predicate being built, where `vertex` is in scope.
     const result = Draft.withPrelude(graph).program({}, ($) =>
       $.query($.prelude().entities(1n))
         .filter("vertex", (_, vertex) =>
@@ -1460,7 +1475,9 @@ describe("query", () => {
         )
         .collect(),
     );
-    expect(reason(result)).toStrictEqual(stale("vertex"));
+    expect(text(result)).toBe(
+      '["::graph::tail::collect",["::graph::body::filter",["::example::graph::entities",{"#literal":1}],["::kernel::special_form::fn",{"#tuple":[]},{"#struct":{"vertex":"_"}},"_",["::kernel::special_form::let","enabled",["::core::cmp::eq",["::kernel::special_form::access","vertex","enabled"],{"#literal":true}],"enabled"]]]]',
+    );
   });
 
   test("parameter_shadows", () => {
@@ -1671,6 +1688,43 @@ describe("exception", () => {
           reason: { _tag: "CallbackException", cause: { cause: thrown } },
         },
       });
+    }
+  });
+
+  test("failed_body_declarations", () => {
+    expect.hasAssertions();
+    // Each program discards a failed callback's result, so none of its declarations may reach the root.
+    const results = [
+      Draft.program({}, ($) => {
+        $.if(true, {
+          then: (branch) => {
+            branch.let("leaked", 1n);
+            throw new Error("branch callback");
+          },
+        });
+        return $.literal(true);
+      }),
+      Draft.program({}, ($) => {
+        $.if(true, {
+          // @ts-expect-error exercise an unchecked JavaScript caller
+          // oxlint-disable-next-line typescript/promise-function-async -- this branch supplies a Promise where the synchronous API rejects one
+          then: (branch) => {
+            branch.let("leaked", 1n);
+            return asynchronousBody();
+          },
+        });
+        return $.literal(true);
+      }),
+      Draft.withPrelude(graph).program({}, ($) => {
+        $.query($.prelude().entities(1n)).filter("vertex", (predicate) => {
+          predicate.let("leaked", 1n);
+          throw new Error("predicate callback");
+        });
+        return $.literal(true);
+      }),
+    ];
+    for (const result of results) {
+      expect(syntax(result)).toStrictEqual(literal(true));
     }
   });
 });
