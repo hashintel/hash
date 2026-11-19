@@ -18,6 +18,8 @@
  */
 import {
   type AgentChange,
+  AgentDoc,
+  type AgentState,
   type Conversation,
   type Extension,
   Harness,
@@ -155,17 +157,53 @@ const withGate = (agent: AgentChange, gate: Extension): AgentChange => {
   };
 };
 
-/** Bring a conversation's stored agent up to the server's limits: the gate selected, the turn limit set. */
+/**
+ * A stored extension selection as a change that writes it back as it is;
+ * `configure` keeps only each extension's name. The default selection is an
+ * empty edit of itself.
+ */
+const storedSelection = (
+  selection: AgentState["extensions"],
+): NonNullable<AgentChange["extensions"]> => {
+  const handles = (names: readonly string[]) =>
+    names.map((name): Extension => ({ name }));
+  if (selection === undefined) return {};
+  if (Array.isArray(selection)) return handles(selection);
+  return {
+    ...(selection.add === undefined ? {} : { add: handles(selection.add) }),
+    ...(selection.remove === undefined
+      ? {}
+      : { remove: handles(selection.remove) }),
+  };
+};
+
+/**
+ * Bring a conversation's stored agent up to the server's limits: the gate
+ * selected, the turn limit set. `configure` replaces the stored selection
+ * whole, and an `{ add, remove }` edit applies to the host default, so the
+ * gate goes into a copy of the stored selection.
+ */
 const enforceAgent = async (
+  harness: Harness,
   root: Conversation,
   gate: Extension,
   maxTurns: number,
   context: Context,
 ) => {
-  const agent = await root.agent(context);
+  const [agent, stored] = await Promise.all([
+    root.agent(context),
+    harness.snapshot(AgentDoc, root.id, context),
+  ]);
   const gated = agent.extensions.some(({ name }) => name === gate.name);
   const change: AgentChange = {
-    ...(gated ? {} : { extensions: { add: [gate] } }),
+    ...(gated
+      ? {}
+      : {
+          extensions: withGate(
+            { extensions: storedSelection(stored?.extensions) },
+            gate,
+          ).extensions,
+        }),
     ...(agent.maxTurns === maxTurns ? {} : { maxTurns }),
   };
   if (Object.keys(change).length > 0) await root.configure(change, context);
@@ -230,7 +268,13 @@ export const createConversationRegistry = (
         await harness.close(context);
         return undefined;
       }
-      await enforceAgent(root, gate.extension, limits.maxTurns, context);
+      await enforceAgent(
+        harness,
+        root,
+        gate.extension,
+        limits.maxTurns,
+        context,
+      );
       await options.afterBind?.({ harness, root, registry, host }, context);
       await gate.attach(harness, context);
       const crashLoop = await guardCrashLoops(
