@@ -1,7 +1,7 @@
 import { use, useEffect, useRef } from "react";
 
 import { Icon } from "@hashintel/ds-components";
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
 import { refractive } from "@hashintel/refractive";
 
 import { LanguageClientContext } from "../../../../../react/lsp/context";
@@ -11,7 +11,6 @@ import {
   EditorContext,
   type EditorState,
 } from "../../../../../react/state/editor-context";
-import { useIsPanelAnimating } from "../../../../../react/state/panel-animation-context";
 import { useComposesOnly } from "../../../../../react/state/use-composes-only";
 import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
 import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
@@ -74,18 +73,6 @@ const bottomBarStyle = css({
   flexShrink: 0,
 });
 
-/** Keep the bar's vertical movement in step with the panel beneath it. */
-const barAnimatingStyle = cva({
-  base: {},
-  variants: {
-    animating: {
-      true: {
-        transition: "[transform 150ms cubic-bezier(0.16, 1, 0.3, 1)]",
-      },
-    },
-  },
-});
-
 type EditorMode = EditorState["globalMode"];
 type EditorEditionMode = EditorState["editionMode"];
 
@@ -114,7 +101,6 @@ export const BottomBar: React.FC<BottomBarProps> = ({
     isAiAssistantOpen,
     toggleAiAssistant,
   } = use(EditorContext);
-  const isPanelAnimating = useIsPanelAnimating();
 
   // Only error-severity diagnostics block simulation — warnings and hints
   // (e.g. HIR semantic lints) are informational.
@@ -156,11 +142,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
       className={bottomBarLaneStyle}
       style={{ bottom: BOTTOM_BAR_GAP }}
     >
-      <div
-        ref={barRef}
-        data-bottom-bar
-        className={`${bottomBarStyle} ${barAnimatingStyle({ animating: isPanelAnimating })}`}
-      >
+      <div ref={barRef} data-bottom-bar className={bottomBarStyle}>
         <BottomBarCollapseContext
           value={{
             isCollapsed: layout.isCollapsed,

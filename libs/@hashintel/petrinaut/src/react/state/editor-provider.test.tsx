@@ -27,7 +27,6 @@ import {
 import { CompositionContext } from "./composition-context";
 import { EditorContext, type EditorContextValue } from "./editor-context";
 import { EditorProvider } from "./editor-provider";
-import { useIsPanelAnimating } from "./panel-animation-context";
 import { SDCPNContext, type SDCPNContextValue } from "./sdcpn-context";
 import { useSelectionCleanup } from "./use-selection-cleanup";
 import {
@@ -73,15 +72,13 @@ const EditorContextGrabber = ({
 
 type Panels = {
   editor: EditorContextValue;
-  isPanelAnimating: boolean;
   assistant: AssistantPlacementContextValue;
 };
 
-/** The editor context with the two contexts kept out of it for the panels. */
+/** The editor context with the placement that is kept out of it. */
 const PanelsGrabber = ({ onValue }: { onValue: (value: Panels) => void }) => {
   onValue({
     editor: use(EditorContext),
-    isPanelAnimating: useIsPanelAnimating(),
     assistant: useAssistantPlacement(),
   });
   return null;
@@ -130,67 +127,6 @@ describe("EditorProvider assistant animation", () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 
-  it.each([true, false])(
-    "coordinates assistant layout changes with animations enabled: %s",
-    (showAnimations) => {
-      let panels: Panels;
-      const { unmount } = render(
-        <UserSettingsContext
-          value={{ ...defaultUserSettingsContextValue, showAnimations }}
-        >
-          <SDCPNContext value={makeSdcpnContextValue(() => "place")}>
-            <TestHost recorded={[]}>
-              <EditorProvider>
-                <PanelsGrabber
-                  onValue={(value) => {
-                    panels = value;
-                  }}
-                />
-              </EditorProvider>
-            </TestHost>
-          </SDCPNContext>
-        </UserSettingsContext>,
-      );
-
-      const transitions = [
-        {
-          run: () => panels.editor.setAiAssistantOpen(true),
-          shows: () => panels.editor.isAiAssistantOpen,
-        },
-        {
-          run: () => panels.assistant.setPlacement("floating"),
-          shows: () => panels.assistant.placement === "floating",
-        },
-        {
-          run: () => panels.assistant.setPlacement("docked"),
-          shows: () => panels.assistant.placement === "docked",
-        },
-        {
-          run: () => panels.editor.setAiAssistantOpen(false),
-          shows: () => !panels.editor.isAiAssistantOpen,
-        },
-        {
-          run: () => panels.editor.toggleAiAssistant(),
-          shows: () => panels.editor.isAiAssistantOpen,
-        },
-        {
-          run: () => panels.editor.toggleAiAssistant(),
-          shows: () => !panels.editor.isAiAssistantOpen,
-        },
-      ];
-      for (const transition of transitions) {
-        act(transition.run);
-        expect(transition.shows()).toBe(true);
-        expect(panels!.isPanelAnimating).toBe(showAnimations);
-        act(() => {
-          vi.advanceTimersByTime(500);
-        });
-        expect(panels!.isPanelAnimating).toBe(false);
-      }
-      unmount();
-    },
-  );
-
   it("renders no reader of the editor context when the assistant docks or floats", () => {
     // Counted from inside the reader: a `Profiler` around it misses a render
     // that a context starts.
@@ -224,10 +160,6 @@ describe("EditorProvider assistant animation", () => {
     onEditorReaderRender.mockClear();
 
     act(() => panels.assistant.setPlacement("floating"));
-    // The panels' transitions are switched off again.
-    act(() => {
-      vi.advanceTimersByTime(500);
-    });
 
     expect(panels!.assistant.placement).toBe("floating");
     expect(onEditorReaderRender).not.toHaveBeenCalled();

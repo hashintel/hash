@@ -11,12 +11,7 @@ import { Profiler } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { styleRef, useReading, watch } from "./readings";
-
-/** Motion writes styles and works computed readings out once per frame. */
-const nextFrame = () =>
-  new Promise<void>((resolve) => {
-    requestAnimationFrame(() => resolve());
-  });
+import { nextFrame } from "./readings.test-helpers";
 
 const width = motionValue(450);
 const height = motionValue(180);

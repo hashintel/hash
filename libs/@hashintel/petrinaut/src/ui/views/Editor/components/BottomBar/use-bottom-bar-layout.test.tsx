@@ -3,12 +3,22 @@ import { act, cleanup, renderHook } from "@testing-library/react";
 import { createRef, use, type ReactNode } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
-import { EditorContext } from "../../../../../react/state/editor-context";
+import {
+  EditorContext,
+  type EditorContextValue,
+} from "../../../../../react/state/editor-context";
+import { PanelPresenceProvider } from "../../../../../react/state/panel-presence-provider";
 import {
   createPanelSizes,
   defaultPanelSizes,
+  type PanelSizes,
 } from "../../../../../react/state/panel-sizes";
 import { PanelSizesContext } from "../../../../../react/state/panel-sizes-context";
+import {
+  defaultUserSettingsContextValue,
+  UserSettingsContext,
+} from "../../../../../react/state/user-settings-context";
+import { nextFrame } from "../../../../lib/readings.test-helpers";
 import { useBottomBarLayout } from "./use-bottom-bar-layout";
 
 const laneRef = createRef<HTMLDivElement>();
@@ -27,12 +37,36 @@ const placement = () =>
 const offsetX = () => placement()[1];
 const liftY = () => 0 - Number(placement()[2]);
 
+/**
+ * The editor as the hook finds it: the panels are where `editor` puts them,
+ * moved there in one step, which the bar follows on the next frame.
+ */
+const EditorWith = ({
+  editor,
+  panelSizes,
+  children,
+}: {
+  editor: EditorContextValue;
+  panelSizes: PanelSizes;
+  children: ReactNode;
+}) => (
+  <UserSettingsContext
+    value={{ ...defaultUserSettingsContextValue, showAnimations: false }}
+  >
+    <PanelSizesContext value={panelSizes}>
+      <EditorContext value={editor}>
+        <PanelPresenceProvider>{children}</PanelPresenceProvider>
+      </EditorContext>
+    </PanelSizesContext>
+  </UserSettingsContext>
+);
+
 beforeEach(() => {
   barRef.current = document.createElement("div");
 });
 afterEach(cleanup);
 
-it("centers in the available main view as sibling panels resize it", () => {
+it("centers in the available main view as sibling panels resize it", async () => {
   const { propertiesPanelWidth } = defaultPanelSizes;
   const defaults = renderHook(() => use(EditorContext)).result.current;
   let editor = {
@@ -45,9 +79,9 @@ it("centers in the available main view as sibling panels resize it", () => {
   };
   const panelSizes = createPanelSizes();
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <PanelSizesContext value={panelSizes}>
-      <EditorContext value={editor}>{children}</EditorContext>
-    </PanelSizesContext>
+    <EditorWith editor={editor} panelSizes={panelSizes}>
+      {children}
+    </EditorWith>
   );
   const { result, rerender } = renderHook(
     () =>
@@ -62,6 +96,7 @@ it("centers in the available main view as sibling panels resize it", () => {
   editor = { ...editor, isAiAssistantOpen: true };
   laneWidth = 1580;
   rerender();
+  await nextFrame();
   expect(offsetX()).toBe(
     `max(calc(${12 - laneWidth / 2}px + 50%), min(0px, calc(${laneWidth / 2 - (editor.hasSelection ? propertiesPanelWidth : 0) - 12}px - 50%)))`,
   );
@@ -70,6 +105,7 @@ it("centers in the available main view as sibling panels resize it", () => {
   editor = { ...editor, hasSelection: true };
   laneWidth = 1200;
   rerender();
+  await nextFrame();
   expect(offsetX()).toBe(
     "max(calc(-588px + 50%), min(0px, calc(138px - 50%)))",
   );
@@ -77,6 +113,7 @@ it("centers in the available main view as sibling panels resize it", () => {
   editor = { ...editor };
   laneWidth = 2000;
   rerender();
+  await nextFrame();
   expect(offsetX()).toBe(
     `max(calc(${12 - laneWidth / 2}px + 50%), min(0px, calc(${laneWidth / 2 - (editor.hasSelection ? propertiesPanelWidth : 0) - 12}px - 50%)))`,
   );
@@ -85,17 +122,19 @@ it("centers in the available main view as sibling panels resize it", () => {
   act(() => panelSizes.aiAssistantWidth.set(1000));
   laneWidth = 1000;
   rerender();
+  await nextFrame();
   expect(result.current.isCollapsed).toBe(true);
   editor = { ...editor, isAiAssistantOpen: false };
   laneWidth = 2000;
   rerender();
+  await nextFrame();
   expect(offsetX()).toBe(
     `max(calc(${12 - laneWidth / 2}px + 50%), min(0px, calc(${laneWidth / 2 - (editor.hasSelection ? propertiesPanelWidth : 0) - 12}px - 50%)))`,
   );
   expect(result.current.isCollapsed).toBe(false);
 });
 
-it("keeps horizontal placement unchanged when a panel moves a hover-expanded bar vertically", () => {
+it("keeps horizontal placement unchanged when a panel moves a hover-expanded bar vertically", async () => {
   laneWidth = 1000;
   const defaults = renderHook(() => use(EditorContext)).result.current;
   let editor = {
@@ -109,9 +148,9 @@ it("keeps horizontal placement unchanged when a panel moves a hover-expanded bar
     propertiesPanelWidth: 600,
   });
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <PanelSizesContext value={panelSizes}>
-      <EditorContext value={editor}>{children}</EditorContext>
-    </PanelSizesContext>
+    <EditorWith editor={editor} panelSizes={panelSizes}>
+      {children}
+    </EditorWith>
   );
   const { result, rerender } = renderHook(
     () => useBottomBarLayout(laneRef, barRef, { hasViewportControls: true }),
@@ -128,12 +167,14 @@ it("keeps horizontal placement unchanged when a panel moves a hover-expanded bar
   for (const isBottomPanelOpen of [true, false]) {
     editor = { ...editor, isBottomPanelOpen };
     rerender();
+    await nextFrame();
     expect(offsetX()).toBe(offset);
     expect(liftY()).toBe(
       isBottomPanelOpen ? defaultPanelSizes.bottomPanelHeight : 0,
     );
     editor = { ...editor };
     rerender();
+    await nextFrame();
     expect(offsetX()).toBe(offset);
   }
 });

@@ -2,9 +2,8 @@ import { MiniMap as ReactFlowMiniMap, useStore } from "@xyflow/react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { useIsPanelAnimating } from "../../../../../../react/state/panel-animation-context";
 import { useCanvasInsetsReader } from "../../../../../hooks/use-canvas-insets";
-import { styleRef } from "../../../../../lib/readings";
+import { bindStyle } from "../../../../../lib/readings";
 import { miniMapFocusColor } from "../../../styles/focus";
 import { miniMapPlaceFillColor } from "../../../styles/type-colors";
 
@@ -107,21 +106,26 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({
  * Positions at the top right, clear of panels over the canvas.
  */
 export const MiniMap: React.FC<Omit<MiniMapProps, "style">> = (props) => {
-  const isPanelAnimating = useIsPanelAnimating();
   const readInsets = useCanvasInsetsReader();
   // True inset from the canvas edges (react-flow's default 15px panel margin
   // is zeroed below) — matches the viewport controls' offset.
   const minimapOffset = 12;
 
   return (
-    // React Flow's minimap takes no ref. This box lays nothing out; it
-    // carries the offset to the minimap as a custom property, which only the
-    // minimap's own elements inherit.
+    // React Flow's minimap takes no ref, so this box, which lays nothing out,
+    // finds it. The offset is written on the minimap's own element: as a
+    // custom property on this box it would restyle every shape in the map on
+    // each frame of a panel's slide.
     <div
       style={{ display: "contents" }}
-      ref={styleRef({
-        "--mini-map-right": () => `${minimapOffset + readInsets().right}px`,
-      })}
+      ref={(box) => {
+        const miniMap = box?.firstElementChild;
+        return miniMap instanceof HTMLElement
+          ? bindStyle(miniMap, {
+              right: () => minimapOffset + readInsets().right,
+            })
+          : undefined;
+      }}
     >
       <ReactFlowMiniMap
         {...props}
@@ -130,12 +134,10 @@ export const MiniMap: React.FC<Omit<MiniMapProps, "style">> = (props) => {
         style={{
           margin: 0,
           top: minimapOffset,
-          right: "var(--mini-map-right)",
           bottom: "auto",
           left: "auto",
           width: 116,
           height: 65,
-          transition: isPanelAnimating ? "right 150ms ease-in-out" : undefined,
         }}
         maskColor="rgba(0, 0, 0, 0.15)"
         maskStrokeWidth={0}

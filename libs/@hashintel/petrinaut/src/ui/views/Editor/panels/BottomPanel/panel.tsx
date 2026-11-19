@@ -9,7 +9,7 @@ import {
   type BottomPanelTab,
   EditorContext,
 } from "../../../../../react/state/editor-context";
-import { useIsPanelAnimating } from "../../../../../react/state/panel-animation-context";
+import { usePanelPresence } from "../../../../../react/state/panel-presence-context";
 import { usePanelSizes } from "../../../../../react/state/panel-sizes-context";
 import { useComposesOnly } from "../../../../../react/state/use-composes-only";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
@@ -31,8 +31,9 @@ import {
   COMPILATION_SUBVIEWS,
   SIMULATION_ONLY_SUBVIEWS,
 } from "../../../../constants/ui-subviews";
-import { styleRef } from "../../../../lib/readings";
+import { styleRef, useReading } from "../../../../lib/readings";
 import { usePluginBottomPanelViews } from "../../../../plugins/plugin-outlets";
+import { slideFromEdge } from "../../shared/slide-from-edge";
 import { fallbackBottomPanelTab } from "./fallback-tab";
 import { diagnosticsSubView } from "./subviews/diagnostics";
 
@@ -48,19 +49,10 @@ const panelStyle = cva({
   variants: {
     open: {
       true: {},
+      // Where the panel is comes from its presence value; this is only what
+      // a closed panel must not do.
       false: {
-        transform: "translateY(100%)",
         pointerEvents: "none",
-      },
-    },
-    animating: {
-      true: {
-        // One `transition`, not the three properties it stands for: Panda
-        // writes each of those with a custom property beside it, which every
-        // element in the panel inherits. Switching this variant on or off
-        // then restyles the whole panel.
-        transition:
-          "[width 150ms cubic-bezier(0.16, 1, 0.3, 1), opacity 150ms cubic-bezier(0.16, 1, 0.3, 1), height 150ms cubic-bezier(0.16, 1, 0.3, 1), top 150ms cubic-bezier(0.16, 1, 0.3, 1), left 150ms cubic-bezier(0.16, 1, 0.3, 1), right 150ms cubic-bezier(0.16, 1, 0.3, 1), bottom 150ms cubic-bezier(0.16, 1, 0.3, 1), transform 150ms cubic-bezier(0.16, 1, 0.3, 1)]",
       },
     },
   },
@@ -134,14 +126,14 @@ export const BottomPanel: React.FC = () => {
   const {
     isBottomPanelOpen: isOpen,
     setBottomPanelOpen,
-    isLeftSidebarOpen,
-    isSearchOpen,
     activeBottomPanelTab: activeTab,
     setActiveBottomPanelTab: setActiveTab,
     toggleBottomPanel,
     globalMode,
   } = use(EditorContext);
-  const isPanelAnimating = useIsPanelAnimating();
+  const { shown } = usePanelPresence();
+  // Still sliding out, where a closed panel is not kept mounted.
+  const isInView = useReading(() => shown.bottomPanel.get() > 0);
 
   const {
     keepPanelsMounted,
@@ -235,27 +227,22 @@ export const BottomPanel: React.FC = () => {
     setActiveTab(tabId as BottomPanelTab);
   };
 
-  // Calculate left position based on left sidebar visibility.
-  // The sidebar is visible when explicitly opened OR when search is active.
-  const isSidebarVisible = isLeftSidebarOpen || isSearchOpen;
   const { leftSidebarWidth, bottomPanelHeight } = usePanelSizes();
 
-  if (!isOpen && !isPanelAnimating && !keepPanelsMounted) {
+  if (!isOpen && !isInView && !keepPanelsMounted) {
     return null;
   }
 
   return (
     <GlassPanel
-      className={cx(
-        glassPanelBaseStyle,
-        panelStyle({ open: isOpen, animating: isPanelAnimating }),
-      )}
+      className={cx(glassPanelBaseStyle, panelStyle({ open: isOpen }))}
+      // The panel starts beside the left sidebar, as far as that is in view.
       ref={styleRef({
         left: () =>
-          isSidebarVisible
-            ? leftSidebarWidth.get() + PANEL_MARGIN * 2
-            : PANEL_MARGIN,
+          PANEL_MARGIN +
+          shown.leftSidebar.get() * (leftSidebarWidth.get() + PANEL_MARGIN),
         height: bottomPanelHeight,
+        transform: () => slideFromEdge("bottom", shown.bottomPanel.get()),
       })}
       style={{ bottom: PANEL_MARGIN, right: PANEL_MARGIN }}
       contentClassName={panelContainerStyle}

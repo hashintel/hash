@@ -909,7 +909,6 @@ export function FakeEditorProvider({
     setHiddenTimelineSeriesIds: () => {},
     setSimulateViewMode,
     setSearchOpen: () => {},
-    triggerPanelAnimation: () => {},
     searchInputRef,
   };
 

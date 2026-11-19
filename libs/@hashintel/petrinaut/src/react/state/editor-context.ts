@@ -184,7 +184,6 @@ export type EditorActions = {
   setSearchOpen: (isOpen: boolean) => void;
   setAiAssistantOpen: (isOpen: boolean) => void;
   toggleAiAssistant: () => void;
-  triggerPanelAnimation: () => void;
 };
 
 export type EditorContextValue = EditorState &
@@ -264,7 +263,6 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   setAiAssistantOpen: () => {},
   toggleAiAssistant: () => {},
   searchInputRef: createRef<HTMLInputElement | null>(),
-  triggerPanelAnimation: () => {},
 };
 
 export const EditorContext = createContext<EditorContextValue>(

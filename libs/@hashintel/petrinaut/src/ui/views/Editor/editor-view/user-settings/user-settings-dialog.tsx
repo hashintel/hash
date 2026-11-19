@@ -1,4 +1,5 @@
 import { Tabs } from "@ark-ui/react/tabs";
+import { motionValue } from "motion";
 import {
   use,
   useId,
@@ -423,11 +424,10 @@ export const UserSettingsDialog = ({
   const item =
     sections.find((candidate) => candidate.id === section) ?? sections[0];
   const headingRef = useRef<HTMLElement>(null);
-  const [width, setWidth] = useState(760);
-  const { panelRef, handleProps, getResizeHandleProps, style } =
+  const [width] = useState(() => motionValue(760));
+  const { bindPanel, handleProps, getResizeHandleProps, box } =
     useFloatingPanel<HTMLDivElement>({
       width,
-      onWidthChange: setWidth,
       initialHeight: 480,
       initialPosition: "center",
       limits: { minWidth: 520, maxWidth: Infinity, gap: 20 },
@@ -435,8 +435,8 @@ export const UserSettingsDialog = ({
 
   return (
     <Dialog
-      ref={panelRef}
-      style={style}
+      ref={bindPanel()}
+      style={box}
       size="lg"
       aria-label="User settings"
       className={settingsDialogStyle}

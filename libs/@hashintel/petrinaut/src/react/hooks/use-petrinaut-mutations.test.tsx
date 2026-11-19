@@ -91,7 +91,6 @@ const editorContextValue = (
   setAiAssistantOpen: () => {},
   toggleAiAssistant: () => {},
   searchInputRef: { current: null },
-  triggerPanelAnimation: () => {},
 });
 
 type WrapperOptions = {

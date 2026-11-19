@@ -20,6 +20,7 @@ import { CommandRegistryProvider } from "../../../../react/commands/command-regi
 import { PetrinautNavigationProvider } from "../../../../react/navigation";
 import { PetrinautOptimizationContext } from "../../../../react/optimization-context";
 import { UserSettingsProvider } from "../../../../react/state/user-settings-provider";
+import { nextFrame } from "../../../lib/readings.test-helpers";
 import { definePetrinautPlugin } from "../../../plugins/define-petrinaut-plugin";
 import { renderPlugins } from "../../../plugins/plugins-test-harness";
 import { PetrinautSlotsContext } from "../../../slots-context";
@@ -143,6 +144,7 @@ describe("user settings", () => {
         clientY: 150,
       });
       fireEvent.pointerMove(handle, { clientX: 250, clientY: 170 });
+      await nextFrame();
       expect(dialog.style.getPropertyValue("--floating-panel-right")).toContain(
         "474px",
       );
@@ -150,6 +152,7 @@ describe("user settings", () => {
         "120px",
       );
       fireEvent.pointerMove(handle, { clientX: -1000, clientY: -1000 });
+      await nextFrame();
       expect(dialog.style.getPropertyValue("--floating-panel-right")).toContain(
         "604px",
       );
@@ -158,6 +161,7 @@ describe("user settings", () => {
       );
       fireEvent.pointerUp(handle);
       fireEvent.pointerMove(handle, { clientX: 300, clientY: 300 });
+      await nextFrame();
       expect(dialog.style.getPropertyValue("--floating-panel-right")).toContain(
         "604px",
       );
@@ -228,6 +232,7 @@ describe("user settings", () => {
       fireEvent.pointerDown(handle, { button: 0, clientX: 200, clientY: 100 });
       fireEvent.pointerMove(handle, { clientX: 260, clientY: 140 });
       fireEvent.pointerUp(handle);
+      await nextFrame();
       expect(dialog.style.getPropertyValue("--floating-panel-width")).toContain(
         `${width}px`,
       );
@@ -251,6 +256,7 @@ describe("user settings", () => {
       );
       fireEvent.click(screen.getByRole("tab", { name: "Viewport" }));
       await screen.findByRole("heading", { name: "Viewport" });
+      await nextFrame();
       expect(
         sizeProperties.map((property) =>
           dialog.style.getPropertyValue(property),

@@ -3,16 +3,16 @@ import { describe, expect, it } from "vitest";
 import { getCanvasInsets, type PanelLayoutState } from "./use-canvas-insets";
 
 const closed: PanelLayoutState = {
-  isLeftSidebarOpen: false,
-  isSearchOpen: false,
+  leftSidebarShown: 0,
   leftSidebarWidth: 320,
-  hasSelection: false,
+  propertiesPanelShown: 0,
   propertiesPanelWidth: 450,
+  aiAssistantCover: 0,
   isAiAssistantOpen: false,
   aiAssistantWidth: 500,
   aiAssistantDockHeight: null,
   isAiAssistantCollapsed: false,
-  isBottomPanelOpen: false,
+  bottomPanelShown: 0,
   bottomPanelHeight: 180,
 };
 
@@ -21,16 +21,34 @@ describe("getCanvasInsets", () => {
     expect(getCanvasInsets(closed)).toEqual({ left: 0, right: 0, bottom: 0 });
   });
 
-  it("counts the left sidebar whether the toggle or search opened it", () => {
-    expect(getCanvasInsets({ ...closed, isLeftSidebarOpen: true }).left).toBe(
-      320,
+  it("counts a panel as far as it has slid in", () => {
+    expect(getCanvasInsets({ ...closed, leftSidebarShown: 1 }).left).toBe(320);
+    expect(getCanvasInsets({ ...closed, leftSidebarShown: 0.5 }).left).toBe(
+      160,
     );
-    expect(getCanvasInsets({ ...closed, isSearchOpen: true }).left).toBe(320);
+    expect(getCanvasInsets({ ...closed, bottomPanelShown: 0.25 }).bottom).toBe(
+      45,
+    );
   });
 
-  it("counts the properties panel only against a selection", () => {
+  it("counts the properties panel only while it is in view", () => {
     expect(getCanvasInsets(closed).right).toBe(0);
-    expect(getCanvasInsets({ ...closed, hasSelection: true }).right).toBe(450);
+    expect(getCanvasInsets({ ...closed, propertiesPanelShown: 1 }).right).toBe(
+      450,
+    );
+  });
+
+  it("counts what a docking assistant covers, on top of the properties panel it moves in", () => {
+    expect(getCanvasInsets({ ...closed, aiAssistantCover: 200 }).right).toBe(
+      200,
+    );
+    expect(
+      getCanvasInsets({
+        ...closed,
+        aiAssistantCover: 200,
+        propertiesPanelShown: 1,
+      }).right,
+    ).toBe(650);
   });
 
   it("leaves the docked assistant's separate column out of the canvas insets", () => {
@@ -40,7 +58,7 @@ describe("getCanvasInsets", () => {
     expect(
       getCanvasInsets({
         ...closed,
-        hasSelection: true,
+        propertiesPanelShown: 1,
         isAiAssistantOpen: true,
       }).right,
     ).toBe(450);
@@ -50,12 +68,12 @@ describe("getCanvasInsets", () => {
     const floating = {
       ...closed,
       isAiAssistantOpen: true,
-      hasSelection: false,
+      propertiesPanelShown: 0,
     };
     expect(getCanvasInsets(floating).right).toBe(0);
-    expect(getCanvasInsets({ ...floating, hasSelection: true }).right).toBe(
-      450,
-    );
+    expect(
+      getCanvasInsets({ ...floating, propertiesPanelShown: 1 }).right,
+    ).toBe(450);
     expect(
       getCanvasInsets({ ...floating, isAiAssistantOpen: false }).right,
     ).toBe(0);
@@ -77,7 +95,7 @@ describe("getCanvasInsets", () => {
     expect(
       getCanvasInsets({
         ...compact,
-        hasSelection: true,
+        propertiesPanelShown: 1,
         propertiesPanelWidth: 600,
       }).right,
     ).toBe(600);
@@ -87,7 +105,7 @@ describe("getCanvasInsets", () => {
     expect(
       getCanvasInsets({
         ...closed,
-        isBottomPanelOpen: true,
+        bottomPanelShown: 1,
         bottomPanelHeight: 240,
       }).bottom,
     ).toBe(240);
@@ -112,13 +130,13 @@ describe("getCanvasInsets", () => {
     });
     expect(
       getCanvasInsets(
-        { ...compact, hasSelection: true, isBottomPanelOpen: true },
+        { ...compact, propertiesPanelShown: 1, bottomPanelShown: 1 },
         { aboveCollapsedDock: true },
       ),
     ).toEqual({ left: 0, right: 450, bottom: 180 });
     expect(
       getCanvasInsets(
-        { ...compact, aiAssistantDockHeight: 320, isBottomPanelOpen: true },
+        { ...compact, aiAssistantDockHeight: 320, bottomPanelShown: 1 },
         { aboveCollapsedDock: true },
       ),
     ).toEqual({ left: 0, right: 0, bottom: 332 });

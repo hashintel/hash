@@ -4,7 +4,7 @@ import { SegmentedControl } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import { EditorContext } from "../../../../react/state/editor-context";
-import { useIsPanelAnimating } from "../../../../react/state/panel-animation-context";
+import { usePanelPresence } from "../../../../react/state/panel-presence-context";
 import { usePanelSizes } from "../../../../react/state/panel-sizes-context";
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
 import { styleRef } from "../../../lib/readings";
@@ -60,37 +60,24 @@ const placementStyle = cva({
         backdropFilter: "[blur(8px)]",
       },
     },
-    animated: {
-      true: {
-        transition:
-          "[left 150ms cubic-bezier(0.16, 1, 0.3, 1), top 150ms cubic-bezier(0.16, 1, 0.3, 1)]",
-        "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
-      },
-    },
   },
 });
 
 export const EditViewSelector = () => {
-  const { editViewMode, setEditViewMode, isLeftSidebarOpen, isSearchOpen } =
-    use(EditorContext);
-  const isPanelAnimating = useIsPanelAnimating();
+  const { editViewMode, setEditViewMode } = use(EditorContext);
   const { leftSidebarWidth } = usePanelSizes();
+  const { shown } = usePanelPresence();
   const { showAnimations } = use(UserSettingsContext);
   const isCanvas = editViewMode === "canvas";
-  const besideSidebar = isCanvas && (isLeftSidebarOpen || isSearchOpen);
 
   return (
     <div
-      className={cx(
-        selectorStyle,
-        placementStyle({
-          floating: isCanvas,
-          animated: showAnimations && isPanelAnimating,
-        }),
-      )}
+      className={cx(selectorStyle, placementStyle({ floating: isCanvas }))}
+      // Over the canvas the selector sits beside the left sidebar, as far as
+      // that is in view.
       ref={styleRef({
         left: () =>
-          `min(${besideSidebar ? leftSidebarWidth.get() + 12 : 12}px, max(12px, calc(100% - var(--edit-view-selector-width) - 12px)))`,
+          `min(${12 + (isCanvas ? shown.leftSidebar.get() * leftSidebarWidth.get() : 0)}px, max(12px, calc(100% - var(--edit-view-selector-width) - 12px)))`,
       })}
       style={{ top: isCanvas ? 12 : 10 }}
     >

@@ -1,7 +1,6 @@
 import { use, useEffect, useRef, useState } from "react";
 
 import { ActualModeContext } from "../actual-mode-context";
-import { useLatest } from "../hooks/use-latest";
 import {
   navigationResourceToSimulateDrawer,
   simulateDrawerToNavigationOverlay,
@@ -21,7 +20,7 @@ import {
   type EditorState,
   initialEditorState,
 } from "./editor-context";
-import { PanelAnimatingContext } from "./panel-animation-context";
+import { PanelPresenceProvider } from "./panel-presence-provider";
 import { SDCPNContext } from "./sdcpn-context";
 import { useComposesOnly } from "./use-composes-only";
 import { useSyncEditorToSettings } from "./use-sync-editor-to-settings";
@@ -125,11 +124,6 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     scenarios,
   ]);
 
-  const latestState = useLatest(state);
-  const animationTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
-    undefined,
-  );
-  useEffect(() => () => clearTimeout(animationTimerRef.current), []);
   const selectionGestureRef = useRef({ active: false, hasNavigated: false });
   const selectionNavigationMountedRef = useRef(true);
   const pendingSelectionNavigationRef = useRef<{
@@ -138,26 +132,10 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const selectionNavigationScheduledRef = useRef(false);
   const flushPendingSelectionNavigationRef = useRef<(() => void) | null>(null);
 
-  // Neither is part of `state`: a change to `state` renders every reader of
-  // the editor context, and these two concern the panels alone.
-  const [isPanelAnimating, setPanelAnimating] = useState(false);
+  // Not part of `state`: a change to `state` renders every reader of the
+  // editor context, and the placement concerns the assistant panel alone.
   const [assistantPlacement, setAssistantPlacement] =
     useState<AssistantPlacement>("docked");
-
-  /**
-   * Switches the panels' CSS transitions on for one change of layout, and off
-   * again once they have run. Called beside the state change that moves a
-   * panel, so both land in one commit and the transitions are active before
-   * the panel's state flips.
-   */
-  const animatePanels = () => {
-    if (!userSettings.showAnimations) {
-      return;
-    }
-    setPanelAnimating(true);
-    clearTimeout(animationTimerRef.current);
-    animationTimerRef.current = setTimeout(() => setPanelAnimating(false), 500);
-  };
 
   const setSelection = (
     selectionOrUpdater: SelectionMap | ((prev: SelectionMap) => SelectionMap),
@@ -167,14 +145,6 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       typeof selectionOrUpdater === "function"
         ? selectionOrUpdater
         : () => selectionOrUpdater;
-    if (!(options && "cause" in options)) {
-      const current = selectionFromNavigation(navigation.state.selection);
-      const preview = selectionUpdate(current);
-      if (current.size > 0 !== preview.size > 0) {
-        animatePanels();
-      }
-    }
-
     const navigateSelection = (
       updates: Array<(selection: SelectionMap) => SelectionMap>,
       intent:
@@ -287,7 +257,6 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   }, []);
 
   const navigateTo: EditorActions["navigateTo"] = (target) => {
-    const hasSelection = target.selection !== undefined;
     const drawerChangesOverlay =
       target.simulateDrawer !== undefined &&
       simulateDrawerToNavigationOverlay(
@@ -355,15 +324,8 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       },
     );
 
-    // Mode, view, and drawer flow back in through `effectiveState`, which
-    // derives them from navigation state on every render. A selection that
-    // appears or goes opens or closes the Properties panel.
-    const animateSelection =
-      hasSelection &&
-      navigation.state.selection.length > 0 !== target.selection!.size > 0;
-    if (animateSelection) {
-      animatePanels();
-    }
+    // Mode, view, drawer and selection flow back in through `effectiveState`,
+    // which derives them from navigation state on every render.
   };
 
   const actions: Omit<EditorActions, "isSelected"> = {
@@ -385,7 +347,6 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     setCursorMode: (mode) =>
       setState((prev) => ({ ...prev, cursorMode: mode })),
     setLeftSidebarOpen: (isOpen) => {
-      animatePanels();
       setState((prev) => ({
         ...prev,
         isLeftSidebarOpen: isOpen,
@@ -398,21 +359,18 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
           : { ...prev, aiAssistantDockHeight: height },
       ),
     setAiAssistantCollapsed: (collapsed) => {
-      animatePanels();
       setState((prev) => ({
         ...prev,
         isAiAssistantCollapsed: collapsed,
       }));
     },
     setBottomPanelOpen: (isOpen) => {
-      animatePanels();
       setState((prev) => ({
         ...prev,
         isBottomPanelOpen: isOpen,
       }));
     },
     toggleBottomPanel: () => {
-      animatePanels();
       setState((prev) => ({
         ...prev,
         isBottomPanelOpen: !prev.isBottomPanelOpen,
@@ -515,7 +473,6 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     resetDraggingState: () =>
       setState((prev) => ({ ...prev, draggingStateByNodeId: {} })),
     collapseAllPanels: () => {
-      animatePanels();
       navigation.navigate(
         { selection: [] },
         { cause: "user", action: "selection" },
@@ -547,33 +504,20 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         { cause: "user", action: "simulation-view" },
       ),
     setSimulateDrawer: (drawer) => navigateTo({ simulateDrawer: drawer }),
-    setSearchOpen: (isOpen) => {
-      // Animate when search visibility changes the sidebar appearance
-      // (sidebar becomes visible due to search, or hides when search closes
-      // and sidebar was not explicitly open)
-      const { isLeftSidebarOpen, isSearchOpen } = latestState.current;
-      if (
-        (isLeftSidebarOpen || isSearchOpen) !== (isLeftSidebarOpen || isOpen)
-      ) {
-        animatePanels();
-      }
-      setState((prev) => ({ ...prev, isSearchOpen: isOpen }));
-    },
+    setSearchOpen: (isOpen) =>
+      setState((prev) => ({ ...prev, isSearchOpen: isOpen })),
     setAiAssistantOpen: (isOpen) => {
-      animatePanels();
       setState((prev) => ({
         ...prev,
         isAiAssistantOpen: isOpen,
       }));
     },
     toggleAiAssistant: () => {
-      animatePanels();
       setState((prev) => ({
         ...prev,
         isAiAssistantOpen: !prev.isAiAssistantOpen,
       }));
     },
-    triggerPanelAnimation: animatePanels,
   };
 
   useSyncEditorToSettings({
@@ -615,21 +559,18 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     searchInputRef,
   };
 
+  // The panels open, close, dock and float by this state. `PanelPresenceProvider`
+  // reads it and has Motion animate them.
   return (
-    <PanelAnimatingContext value={isPanelAnimating}>
-      <AssistantPlacementContext
-        value={{
-          placement: assistantPlacement,
-          setPlacement: (placement) => {
-            animatePanels();
-            setAssistantPlacement(placement);
-          },
-        }}
-      >
-        <EditorContext.Provider value={contextValue}>
-          {children}
-        </EditorContext.Provider>
-      </AssistantPlacementContext>
-    </PanelAnimatingContext>
+    <AssistantPlacementContext
+      value={{
+        placement: assistantPlacement,
+        setPlacement: setAssistantPlacement,
+      }}
+    >
+      <EditorContext.Provider value={contextValue}>
+        <PanelPresenceProvider>{children}</PanelPresenceProvider>
+      </EditorContext.Provider>
+    </AssistantPlacementContext>
   );
 };

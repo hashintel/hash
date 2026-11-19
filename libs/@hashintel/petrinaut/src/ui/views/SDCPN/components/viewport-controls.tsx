@@ -1,11 +1,10 @@
 import { use } from "react";
 
 import { Button } from "@hashintel/ds-components";
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
 
 import { usePetrinautNavigation } from "../../../../react/navigation";
 import { EditorContext } from "../../../../react/state/editor-context";
-import { useIsPanelAnimating } from "../../../../react/state/panel-animation-context";
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
 import { VIEWPORT_CONTROLS_OFFSET } from "../../../constants/ui";
 import { SettingsIcon } from "../../../experimental-icons";
@@ -21,17 +20,6 @@ const containerStyle = css({
   flexDirection: "column",
   gap: "[2px]",
   zIndex: "[900]",
-});
-
-const animatingStyle = cva({
-  base: {},
-  variants: {
-    animating: {
-      true: {
-        transition: "[right 150ms ease-in-out, bottom 150ms ease-in-out]",
-      },
-    },
-  },
 });
 
 const blurredBackground = css({ backdropFilter: "[blur(10px)]" });
@@ -51,16 +39,13 @@ export const ViewportControls: React.FC = () => {
   // renderer's own API.
   const { fitView, zoomIn, zoomOut } = useCanvasController();
   const { collapseAllPanels } = use(EditorContext);
-  const isPanelAnimating = useIsPanelAnimating();
 
   // Unlike the bottom toolbar, this column fits above a collapsed Voice dock.
   const readInsets = useCanvasInsetsReader({ aboveCollapsedDock: true });
 
   return (
     <div
-      className={`${containerStyle} ${animatingStyle({
-        animating: isPanelAnimating,
-      })}`}
+      className={containerStyle}
       ref={styleRef({
         right: () => VIEWPORT_CONTROLS_OFFSET + readInsets().right,
         bottom: () => VIEWPORT_CONTROLS_OFFSET + readInsets().bottom,
