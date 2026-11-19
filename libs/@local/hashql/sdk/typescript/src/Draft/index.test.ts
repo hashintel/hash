@@ -1693,18 +1693,20 @@ describe("exception", () => {
 
   test("failed_body_declarations", () => {
     expect.hasAssertions();
-    // Each program discards a failed callback's result, so none of its declarations may reach the root.
+    // Each program discards a failed callback's result, so none of its declarations may reach the root, and the root keeps the declaration it made before the callback ran.
     const results = [
       Draft.program({}, ($) => {
+        const kept = $.let("kept", 0n);
         $.if(true, {
           then: (branch) => {
             branch.let("leaked", 1n);
             throw new Error("branch callback");
           },
         });
-        return $.literal(true);
+        return kept;
       }),
       Draft.program({}, ($) => {
+        const kept = $.let("kept", 0n);
         $.if(true, {
           // @ts-expect-error exercise an unchecked JavaScript caller
           // oxlint-disable-next-line typescript/promise-function-async -- this branch supplies a Promise where the synchronous API rejects one
@@ -1713,18 +1715,21 @@ describe("exception", () => {
             return asynchronousBody();
           },
         });
-        return $.literal(true);
+        return kept;
       }),
       Draft.withPrelude(graph).program({}, ($) => {
+        const kept = $.let("kept", 0n);
         $.query($.prelude().entities(1n)).filter("vertex", (predicate) => {
           predicate.let("leaked", 1n);
           throw new Error("predicate callback");
         });
-        return $.literal(true);
+        return kept;
       }),
     ];
     for (const result of results) {
-      expect(syntax(result)).toStrictEqual(literal(true));
+      expect(syntax(result)).toStrictEqual(
+        call("::kernel::special_form::let", "kept", literal(0), "kept"),
+      );
     }
   });
 });
