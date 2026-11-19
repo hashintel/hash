@@ -2,17 +2,13 @@ import { FilledShape } from "../filled-shape";
 
 export const mapPinGeometry = (
   <g fill="none">
-    <path d="m3 10 6-2 5 2v11l-5-2-6 2Zm6-2v11m5-9 7-2v13l-7-2" />
-    <g transform="translate(10 1) scale(.5)">
-      <FilledShape
-        cutout={
-          <>
-            <circle cx="12" cy="9" r="2.5" />
-          </>
-        }
-      >
-        <path d="M19 9c0 6-7 12-7 12S5 15 5 9a7 7 0 0 1 14 0Z" />
-      </FilledShape>
-    </g>
+    <path d="M11 8.7 9 8l-6 2v11l6-2 5 2 7-2v-6M9 8v11m5-3v5" />
+    <FilledShape
+      cutout={
+        <circle cx="17" cy="6.5" r="1" fill="currentColor" stroke="none" />
+      }
+    >
+      <path d="M20.5 6.5c0 3.2-3.5 6.5-3.5 6.5s-3.5-3.3-3.5-6.5a3.5 3.5 0 0 1 7 0Z" />
+    </FilledShape>
   </g>
 );

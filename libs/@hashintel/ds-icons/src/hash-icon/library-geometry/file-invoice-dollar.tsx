@@ -6,7 +6,10 @@ export const fileInvoiceDollarGeometry = (
       cutout={
         <>
           <path d="M13.5 3.5v5h5" />
-          <path d="M14.5 12.5c-4-2-6 2-2 2.5s2 4-2 2.5M12 11v8" />
+          <path
+            strokeWidth="calc(var(--hash-icon-stroke-width) * .6)"
+            d="M14.5 12.5c-4-2-6 2-2 2.5s2 4-2 2.5M12 11v8"
+          />
         </>
       }
     >

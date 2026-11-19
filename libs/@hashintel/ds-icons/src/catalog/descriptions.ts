@@ -186,7 +186,7 @@ export const descriptions = {
   planeArrival: "An aircraft approaching a runway represents arrival.",
   planeDeparture: "An aircraft lifting from a runway represents departure.",
   planeTail:
-    "An upright tail fin represents an aircraft tail or aviation component.",
+    "A rear view of an aircraft tail shows its vertical fin and horizontal stabilizers.",
   jet: "A swept-wing aircraft represents a jet.",
   planeUp:
     "An upward-facing airplane represents an aircraft or flight heading.",
