@@ -43,7 +43,7 @@ import {
   valueTiles,
 } from "./menu-rows";
 import { OpenMenu } from "./open-menu";
-import { kindIcon } from "./kind-icon";
+import { entityIcon, kindIcon } from "./kind-icon";
 import { acceptedKinds, type SourceOption, sourceOptions } from "./shapes";
 import { iconStroke } from "./thin-icons";
 import { treeTileColor } from "./status-colors";
@@ -694,7 +694,7 @@ export const SourceMenu = ({
           ...row,
           description: undefined,
           // The item itself is an entity: the entity type's icon, as its outputs show it.
-          icon: iconsEverywhere ? ("cube" as const) : undefined,
+          icon: iconsEverywhere ? entityIcon : undefined,
         })),
         ...propertyItems,
       ];
@@ -739,7 +739,7 @@ export const SourceMenu = ({
                 ? typedGroupLabel === "People"
                   ? undefined
                   : kinds.includes("EntityId")
-                    ? ("cube" as const)
+                    ? entityIcon
                     : ("list" as const)
                 : undefined,
               selected: choice.selected,

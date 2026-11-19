@@ -101,6 +101,7 @@ import {
   getSourceShape,
 } from "./shapes";
 import { SourceMenu } from "./source-menu";
+import { selectedLabel } from "./menu-rows";
 import { firstAndMore, TimeField, TypedValue } from "./typed-value";
 import {
   descriptionInputStyle,
@@ -368,6 +369,90 @@ const sizeTakeStyle = css({
   "&[data-labelsize='14'] [data-field-label]": { fontSize: "sm" },
 });
 
+/**
+ * Inputs and Settings of an action step, label left and control right on one line (Dei, 18 Nov; Paper board L1T-TIGHT):
+ * the label column is the panel's longest label plus 12 px (`--label-col`, measured by `fitLabelColumn`), no icon sits
+ * before a label, controls end on the panel's right padding edge, and a multi-line field keeps its label above.
+ * `?layout=stack` brings back the stacked rows from before. Outputs and the Used in list are left as they were.
+ */
+const stackLayout = sizeQuery.get("layout") === "stack";
+const sideRows = "&[class][class] section:not(:has([data-output]))";
+const labelCol = "[var(--label-col, 104px)]";
+const sideLayoutStyle = css({
+  [`${sideRows} > div[class*='grid-tc_']`]: {
+    gridTemplateColumns: "[var(--label-col, 104px) minmax(0, 1fr)]",
+    columnGap: "0",
+    alignItems: "start",
+  },
+  [`${sideRows} [data-row].d_contents > span[data-scope=tooltip]:first-child, ${sideRows} [data-row].d_contents > [data-property-name], ${sideRows} [data-row].d_contents > span[data-scope=tooltip] > [data-property-name]`]:
+    { paddingLeft: "0" },
+  [`${sideRows} [data-row].d_contents > span[data-scope=tooltip]:first-child + div, ${sideRows} [data-row].d_contents > [data-property-name] + div`]:
+    { marginLeft: "0", marginRight: "0", marginTop: "0" },
+  [`${sideRows} [data-property-name] > [data-input-icon]`]: { display: "none" },
+  "&[class][class] [data-condition-builder] [data-joiner] > [data-input-icon]": { display: "none" },
+  [`${sideRows} [data-row].d_contents > span[data-scope=tooltip]:has(+ div > [data-multiline]), ${sideRows} [data-row].d_contents > [data-property-name]:has(+ div > [data-multiline])`]:
+    { gridColumn: "1 / -1" },
+  [`${sideRows} [data-row].d_contents > div:has(> [data-multiline])`]: {
+    gridColumn: "1 / -1",
+    marginTop: "[-8px]",
+  },
+  "&[class][class] [data-condition-builder]": { "--flows-label-column": labelCol },
+  "&[class][class] [data-condition-builder] div:has(> [data-joiner])": {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: "0",
+  },
+  "&[class][class] [data-condition-builder] [data-joiner]": {
+    width: labelCol,
+    flexShrink: 0,
+    paddingLeft: "0",
+  },
+  "&[class][class] [data-condition-builder] [data-condition-row]": {
+    marginLeft: "0",
+    marginRight: "0",
+    marginTop: "0",
+    alignSelf: "auto",
+    flex: "1",
+    minWidth: "[0]",
+  },
+  "&[class][class] [data-condition-builder] > div:last-child > button": {
+    paddingLeft: "[calc(var(--label-col, 104px) + 2px)]",
+  },
+});
+
+/** Sets `--label-col` on the panel: its widest label (a name and its marks, or "Where") plus 12 px. */
+const fitLabelColumn = (panel: HTMLElement) => {
+  const fit = () => {
+    if (!panel.isConnected) return;
+    let widest = 0;
+    for (const label of panel.querySelectorAll(
+      "[data-property-name], [data-joiner='where'] [data-field-label]",
+    )) {
+      const range = globalThis.document.createRange();
+      range.selectNodeContents(label);
+      widest = Math.max(widest, range.getBoundingClientRect().width);
+    }
+    if (widest > 0) {
+      panel.style.setProperty("--label-col", `${Math.ceil(widest) + 12}px`);
+    }
+  };
+  fit();
+  void globalThis.document.fonts.ready.then(fit);
+  const mutations = new MutationObserver(fit);
+  mutations.observe(panel, { childList: true, subtree: true, characterData: true });
+  return () => mutations.disconnect();
+};
+
+const panelRef = (panel: HTMLElement | null) => {
+  if (!panel) return;
+  const stopAlign = alignPanelRowIcons(panel);
+  const stopFit = stackLayout ? undefined : fitLabelColumn(panel);
+  return () => {
+    stopAlign();
+    stopFit?.();
+  };
+};
+
 /** The panel's content, inside Petrinaut's thin overlay scrollbar (no native scrollbars). */
 const panelBodyStyle = css({
   display: "flex",
@@ -453,7 +538,7 @@ const StepSettings = ({
     >
       <Select
         size="sm"
-        items={[{ value: "stop", text: "Stop the run" }]}
+        items={[{ value: "stop", text: selectedLabel("Stop the run", true) }]}
         value="stop"
         onChange={() => {}}
       />
@@ -515,7 +600,7 @@ const ExpandableTextRow = ({
   );
   return (
     <PropertyRow label={label} icon={icon} hover={hover} required={required} invalid={invalid}>
-      <div className={cx(expandWrapStyle, expanded && expandedBoxStyle)}>
+      <div className={cx(expandWrapStyle, expanded && expandedBoxStyle)} data-multiline>
         {children}
         {control}
       </div>
@@ -972,7 +1057,13 @@ const ActionSections = ({
         }
         invalid={validation.mockFields.has(`${step.stepId}.${input.name}`)}
       >
-        {fieldFor(document, step, input)}
+        {input.name === "body" ? (
+          <div className={css({ display: "contents" })} data-multiline>
+            {fieldFor(document, step, input)}
+          </div>
+        ) : (
+          fieldFor(document, step, input)
+        )}
       </PropertyRow>
     );
   };
@@ -2427,8 +2518,13 @@ export const PropertiesPanel = () => {
   const ghost = ghostKindOf(ui.selectedId);
   return (
     <aside
-      ref={alignPanelRowIcons}
-      className={cx(panelStyle, sizeTakeStyle, compactPanelStyle)}
+      ref={panelRef}
+      className={cx(
+        panelStyle,
+        sizeTakeStyle,
+        compactPanelStyle,
+        !stackLayout && found?.step.kind === "action" && !trigger && sideLayoutStyle,
+      )}
       data-fieldsize={fieldSizeTake}
       data-labelsize={labelSizeTake}
       aria-label="Properties"

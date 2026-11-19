@@ -16,6 +16,7 @@
  *
  * MOCK: the three open requests and two answered ones on the Monthly supplier review's waiting run (`?at=200&pin`).
  */
+import { entityIcon } from "./kind-icon";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -756,7 +757,7 @@ const ContextView = ({
               borderBottomColor: "neutral.bd.subtle",
             })}
           >
-            <RowTile icon="cube" twoLine={false} />
+            <RowTile icon={entityIcon} twoLine={false} />
             <span className={css({ flex: "1", minWidth: "[0]" })}>
               <span className={lineOne}>{row.name}</span>
             </span>

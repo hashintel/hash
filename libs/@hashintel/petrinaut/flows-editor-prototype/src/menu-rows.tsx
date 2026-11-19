@@ -152,6 +152,8 @@ const sourceTileStyle = css({
   "& svg": { width: "[16px]", height: "[16px]", "--icon-size": "16px" },
   // A two-line row's icon is 18 px (G77, 11 Nov); a one-line row keeps 16.
   "&[data-two-line] svg": { width: "[18px]", height: "[18px]", "--icon-size": "18px" },
+  // A two-line row's tile top is 5 px below the title line's top, as the Add step results measure (17 Nov, TODAY-KEPT-CAPTOP).
+  "&[data-two-line]": { alignSelf: "flex-start", marginTop: "[5px]" },
 });
 
 /** A person's avatar stands where the tile would: 32 px, centred on the row, no tile behind it. */
@@ -226,7 +228,8 @@ const tileStyle = cva({
       step: {
         width: "[32px]",
         height: "[32px]",
-        marginTop: "[3px]",
+        marginTop: "[5px]",
+        borderRadius: "[6px]",
         "& svg": { width: "[18px]", height: "[18px]", "--icon-size": "18px" },
       },
     },

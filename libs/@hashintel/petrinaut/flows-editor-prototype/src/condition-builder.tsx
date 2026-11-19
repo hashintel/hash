@@ -1328,11 +1328,6 @@ const footerStyle = css({
   alignSelf: "stretch",
 });
 
-/** The builder's own footer: Add filter in the value column, under the chips (the line's 8 px gap after the label column). */
-const valueColumnFooterStyle = css({
-  paddingLeft: "[calc(var(--flows-label-column) + 8px)]",
-});
-
 /**
  * A row's joiner. "Where" on the first row stays plain text. Then AND / OR is a small chip with a menu, so it reads as
  * part of one long filter, not as an input label (26 Oct sync: Ciarán, Dora; uppercase, the team's own logic words).
@@ -1601,9 +1596,14 @@ export const ConditionBuilder = ({
     // J2.2: with the type left at Any there is nothing to filter on yet; Add filter first asks for a type.
     return (
       <div
-        className={labelColumnStyle}
+        className={cx(
+          builderStyle,
+          labelColumnStyle,
+          conditionLayout === "c" && takeColumnStyle,
+        )}
+        data-condition-builder
       >
-        <div className={valueColumnFooterStyle}>
+        <div className={footerStyle}>
           <Button
             size="sm"
             variant="subtle"

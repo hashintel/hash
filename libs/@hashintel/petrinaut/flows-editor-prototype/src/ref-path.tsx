@@ -4,6 +4,7 @@
  * Chips in text and the To list carry the step icon in grey, then the same `Step › Output`. In a run the value comes
  * first, with the tile and the path under it, muted. Type icons stay out (parked 11 Nov).
  */
+import { entityIcon } from "./kind-icon";
 import { Icon, type IconName } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
@@ -42,7 +43,7 @@ export const refLook = (
   if (source.kind === "step-output") {
     const step = findStep(document, source.stepId)?.step;
     if (!step) {
-      return { icon: "cube", step: source.stepId, output: humanize(source.outputName) };
+      return { icon: entityIcon, step: source.stepId, output: humanize(source.outputName) };
     }
     const entry =
       step.kind === "action" ? getCatalogEntry(step.actionDefinitionId) : undefined;
@@ -50,7 +51,7 @@ export const refLook = (
       (candidate) => candidate.name === source.outputName,
     );
     return {
-      icon: (step.kind === "for-each" ? "rotate" : (entry?.icon ?? "cube")) as IconName,
+      icon: (step.kind === "for-each" ? "rotate" : (entry?.icon ?? entityIcon)) as IconName,
       step: stepLabel(step),
       output: output?.label ?? humanize(source.outputName),
     };

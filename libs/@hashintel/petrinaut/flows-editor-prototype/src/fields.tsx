@@ -1,4 +1,5 @@
-import { Box } from "lucide-react";
+import { Asterisk, Box } from "lucide-react";
+import { entityIcon } from "./kind-icon";
 import { useEffect, useRef, useState } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
@@ -1498,7 +1499,7 @@ const EntityTypeField = ({
       .map((type) => ({
         id: `type:${type.baseUrl}`,
         text: type.title,
-        icon: "cube" as const,
+        icon: entityIcon,
         selected: !source && type.baseUrl === draft.entityTypeBaseUrl,
         selectedStyle: "highlight" as const,
         onClick: () => pickType(type.baseUrl),
@@ -1568,7 +1569,7 @@ const EntityTypeField = ({
             gap: "1.5",
           })}
         >
-          {!sourceLook && selected ? <Icon name="cube" size="xs" /> : null}
+          {!sourceLook && selected ? <Icon name={entityIcon} size="xs" /> : null}
           {source && sourceLook ? (
             <RefField source={source} stepId={step.stepId} />
           ) : null}
@@ -1648,7 +1649,7 @@ export const QueryField = ({
       {mode === "query" ? (
         <PropertyRow
           label="Entity type"
-          icon={<Box size={16} strokeWidth={1.25} />}
+          icon={entityIcon === "cube" ? <Box size={16} strokeWidth={1.25} /> : <Asterisk size={16} strokeWidth={1.25} />}
           hover="Entity type · the kind of entity to find. At least one of Webs, Entity type or Query."
         >
           <EntityTypeField

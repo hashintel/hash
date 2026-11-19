@@ -141,8 +141,20 @@ export const usesMatching = (
           add(step.stepId, inputLabel(document, step.stepId, name));
         }
       }
-    } else if (match(step.over)) {
-      add(step.stepId, "List");
+    } else {
+      if (match(step.over)) {
+        add(step.stepId, "List");
+      }
+      if (
+        step.collect &&
+        match({
+          kind: "step-output",
+          stepId: step.collect.stepId,
+          outputName: step.collect.outputName,
+        })
+      ) {
+        add(step.stepId, "Collect");
+      }
     }
   }
   const keyed = (key: string) => {
@@ -1954,7 +1966,22 @@ const RestBlock = ({
       <div
         className={headStyle}
         data-row
-        style={take === "r3" && count > 0 ? { alignItems: "flex-start", paddingTop: 10, paddingBottom: 6 } : undefined}
+        data-expandable={count > 0 || undefined}
+        onClick={
+          count > 0
+            ? (event) => {
+                // The whole row opens the list; the star, the name and the Used in control keep their own clicks.
+                if ((event.target as HTMLElement).closest("button, input, textarea, [contenteditable='true']")) {
+                  return;
+                }
+                toggle();
+              }
+            : undefined
+        }
+        style={{
+          ...(take === "r3" && count > 0 ? { alignItems: "flex-start", paddingTop: 10, paddingBottom: 6 } : null),
+          ...(count > 0 ? { cursor: "pointer" } : null),
+        }}
       >
         <span data-type-icon style={take === "r3" && count > 0 ? { marginTop: 2 } : undefined}>
           <Icon name={typeIcon} size="sm" />

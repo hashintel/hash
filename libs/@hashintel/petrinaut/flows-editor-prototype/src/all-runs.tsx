@@ -33,7 +33,7 @@ import {
   statusText,
   triggerLabel,
 } from "./run-history";
-import { runId, RunIdsIn, RunIdText, runLabel } from "./run-id";
+import { runId, RunIdsIn, runLabel } from "./run-id";
 import { clockText } from "./run-time";
 import { selectedLabel } from "./menu-rows";
 import { ShowAllRow } from "./show-all-row";
@@ -126,20 +126,17 @@ const grammarCellOf = (
   const facts = factsOf(run, now);
   const progress = runProgress(run, now);
   const word = outcomeLabel[outcome];
-  const ofTotal = progress ? ` · ${progress.done} of ${progress.total}` : "";
   if (outcome === "error" || facts.find === "failed") {
     const at = `Failed at ${failedAtStep(run, now)}`;
     return { state, text: at, detail: `${timeoutReason(run)} · ${at}` };
   }
   switch (outcome) {
     case "running":
-      return facts.find === "running"
-        ? { state, text: `${word} at Find active suppliers` }
-        : { state, progress, text: `${word}${ofTotal}` };
+      return { state, progress, text: `${word} · ${progress?.done ?? 0} of ${facts.n}` };
     case "needsReview":
       return { state, text: `${word} at Quality sign-off` };
     case "abandoned":
-      return { state, progress, text: `${word}${ofTotal}` };
+      return { state, text: word };
     case "warnings":
       return {
         state,
@@ -761,7 +758,7 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
                       color: "neutral.fg.heading",
                     })}
                   >
-                    <RunIdText run={run} prefix /> · {run.when}
+                    Run <span className={css({ fontFamily: "mono" })}>{runId(run, "b")}</span> · {run.when}
                   </td>
                 )}
                 <td>

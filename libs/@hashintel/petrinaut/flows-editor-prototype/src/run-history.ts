@@ -489,6 +489,18 @@ export const outcomeOf = (run: RunRecord, now: number): RunOutcome => {
   return liveFacts(run, now).signOff === "waiting" ? "needsReview" : "running";
 };
 
+export const stepMarkOf = (
+  status: StepRun | undefined,
+  run: RunRecord | null,
+  now: number,
+): StepRun => {
+  const mark = status ?? { state: "notReached" };
+  const outcome = run ? outcomeOf(run, now) : "running";
+  return mark.state === "notReached" && outcome !== "running" && outcome !== "needsReview"
+    ? { ...mark, state: "skipped", count: "Skipped" }
+    : mark;
+};
+
 /** A run's items, for its partly done mark: how far its For each got. */
 export const runProgress = (run: RunRecord, now: number) =>
   stepRuns(factsOf(run, now))[forEachId]?.progress;

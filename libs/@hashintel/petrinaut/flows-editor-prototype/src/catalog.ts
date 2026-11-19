@@ -8,6 +8,7 @@ import {
   isMockActionDefinitionId,
   mockActionDefinitions,
 } from "./mock-action-definitions";
+import { entityIcon } from "./kind-icon";
 import { findPropertyType, mockSenders } from "./mock-graph";
 import { prdBlocks, type PrdSource } from "./mock-prd-ports";
 import { switchPorts, switchTake } from "./switch-flags";
@@ -378,7 +379,7 @@ export const stepGroups: Array<{
   { name: "Documents", icon: "download", ids: ["getFileFromUrl"] },
   {
     name: "Entities",
-    icon: "cube",
+    icon: entityIcon,
     ids: ["queryEntities", "readEntity", "createEntity", "updateEntity"],
   },
   {

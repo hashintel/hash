@@ -1,5 +1,6 @@
 import { useLayoutEffect, useState } from "react";
 
+import { entityIcon } from "./kind-icon";
 import {
   Banner,
   Button,
@@ -69,7 +70,7 @@ const InputControl = ({
           renderSelectedAll={(values: string[]) =>
             values.length === 0 ? null : (
               <span className={pickedStyle}>
-                <Icon name="cube" size="xs" />
+                <Icon name={entityIcon} size="xs" />
                 <span>
                   {values
                     .map(

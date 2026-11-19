@@ -633,7 +633,7 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
         </div>
         <span className={css({ textStyle: "sm", color: "neutral.fg.heading" })}>
           <span style={{ color: statusTone }}>{statusWord}</span>
-          {facts.n > 0 ? ` · ${reached} of ${facts.n} suppliers` : ""}
+          {outcome !== "abandoned" && facts.n > 0 ? ` · ${reached} of ${facts.n} suppliers` : ""}
         </span>
         <span className={css({ textStyle: "sm" })}>
           <span className={mutedStyle}>

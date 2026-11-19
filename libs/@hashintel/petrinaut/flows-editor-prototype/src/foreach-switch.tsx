@@ -43,6 +43,7 @@ import {
   type BarSegment,
   factsOf,
   forEachId,
+  stepMarkOf,
   type RunFacts,
   type StepRun,
   type StepState,
@@ -547,7 +548,7 @@ const RunLikeSwitch = ({
   const menuTrigger = useRef<HTMLSpanElement>(null);
   const menuOpen = useRef(false);
   const wasOpen = useRef(false);
-  const loop = history.steps?.[forEachId];
+  const loop = stepMarkOf(history.steps?.[forEachId], history.run, history.now);
   const failed = facts.failures.length;
   const total = names.length;
   // The status grammar: mark · word · how many, the count naming what went wrong.

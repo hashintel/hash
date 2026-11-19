@@ -37,6 +37,7 @@ import { ReviewR2Side } from "./needs-review-r2";
 import { PropertiesPanel } from "./properties-panel";
 import { navigate, routePath, setQuery, useLocation } from "./router";
 import { RunForm } from "./run-dialogs";
+import { stepMarkOf } from "./run-history";
 import { RunLogPanel } from "./run-log-panel";
 import { RunTopBar, runBackTake } from "./run-top-bar";
 import { validateDocument } from "./shapes";
@@ -746,7 +747,7 @@ export const Editor = ({
                   {openRun && history ? (
                     <LeftPanel
                       statusFor={(stepId) =>
-                        history.steps?.[stepId] ?? { state: "notReached" }
+                        stepMarkOf(history.steps?.[stepId], history.run, history.now)
                       }
                     />
                   ) : inHistory ? null : (

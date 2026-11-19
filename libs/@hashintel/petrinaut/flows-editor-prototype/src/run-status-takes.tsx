@@ -91,8 +91,6 @@ export const runStatusOf = (run: RunRecord, now: number): RunStatus => {
       return {
         state,
         word: "Cancelled",
-        detail: run.trigger.kind === "manual" ? `by ${run.trigger.by}` : undefined,
-        count,
       };
     case "warnings":
       return {

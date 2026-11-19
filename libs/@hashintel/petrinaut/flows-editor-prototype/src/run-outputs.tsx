@@ -4134,12 +4134,10 @@ const cellStyle = css({
   flexWrap: "nowrap",
   whiteSpace: "nowrap",
   alignItems: "center",
-  columnGap: "1.5",
+  columnGap: "4",
   rowGap: "0.5",
   color: "neutral.fg.heading",
 });
-
-const dotStyle = css({ color: "neutral.fg.muted" });
 
 /** The Logs cell keeps one line (11 Nov, inbox conv-overflow): up to three counts show; past that, two and "+N". */
 const cellFits = 3;
@@ -4318,9 +4316,8 @@ export const RunOutputsCell = ({
         <>
           {parts
             .slice(0, parts.length > cellFits ? cellParts : cellFits)
-            .map((part, index) => (
+            .map((part) => (
             <Fragment key={part.key}>
-              {index > 0 ? <span className={dotStyle}>·</span> : null}
               <button
                 type="button"
                 className={linkStyle}

@@ -12,11 +12,13 @@ import { useState } from "react";
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { fieldKey } from "./document";
+import { fieldKey, findStep } from "./document";
 import { useEditor } from "./editor-context";
 import { InlineChip } from "./inline-chips";
 import { lastRunCount, ListSourceBlock } from "./list-source";
 import { RunOutputRow } from "./outputs";
+import { UsedInList, usesOf } from "./used-in";
+import { getCatalogEntry } from "./catalog";
 import { propertyPathOf } from "./property-path";
 import { RefChipText, RefPath, refLook, RunRefValue } from "./ref-path";
 import {
@@ -396,6 +398,17 @@ export const ParitySections = ({
         <Outputs>
           <RunOutputRow stepId={stepId} outputName="entityId" label="Entity" kind="Entity" count={made(updated)}>
             {body("entityId")}
+            <UsedInList
+              uses={usesOf(document, stepId, "entityId")}
+              iconOf={(userId) => {
+                const user = findStep(document, userId)?.step;
+                return user?.kind === "for-each"
+                  ? "rotate"
+                  : user?.kind === "action"
+                    ? getCatalogEntry(user.actionDefinitionId)?.icon ?? "cube"
+                    : "cube";
+              }}
+            />
           </RunOutputRow>
         </Outputs>
       </>

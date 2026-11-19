@@ -86,6 +86,7 @@ import {
 import { flashLogRows } from "./run-log-panel";
 import {
   barOf,
+  stepMarkOf,
   type RunRecord,
   type StepRun,
   type StepState,
@@ -1716,7 +1717,9 @@ const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
   const entry = getCatalogEntry(step.actionDefinitionId);
   // A run draws the editor's own card (Aakarsh, 4 Nov): same size, rows and type; only the bar is added.
   const ports = portRows(step);
-  const mark = runView?.steps?.[id];
+  const mark = runView
+    ? stepMarkOf(runView.steps?.[id], runView.run, runView.now)
+    : undefined;
   // B2 (6 Nov, ?runstars=a|b): in a run, a filled read-only star on a card that holds a featured output.
   const starred =
     Boolean(runView) &&
@@ -2590,7 +2593,9 @@ const GroupNodeView = ({ id, selected }: NodeProps<StepNode>) => {
   }
   const over = step.over ? describeSource(document, step.over, id) : null;
   const folded = ui.collapsed?.includes(id) ?? false;
-  const mark = runView?.steps?.[id];
+  const mark = runView
+    ? stepMarkOf(runView.steps?.[id], runView.run, runView.now)
+    : undefined;
   return (
     <div
       ref={enterRef}

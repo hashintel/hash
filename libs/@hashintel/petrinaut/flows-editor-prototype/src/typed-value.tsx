@@ -84,6 +84,48 @@ const timeSlots = Array.from({ length: 48 }, (_, index) => {
 });
 
 /**
+ * WORKAROUND: the DS Select has no prop, class or slot for one list's max height (its list is capped only by
+ * `--available-height`, set by the popper). So the lists of the time Selects (the only ones holding the 23:30 option)
+ * get their scroll area capped at 8 rows of 28 px plus the list's own padding.
+ */
+const timeListSheetId = "flows-time-list-cap";
+if (!globalThis.document.getElementById(timeListSheetId)) {
+  const sheet = globalThis.document.createElement("style");
+  sheet.id = timeListSheetId;
+  sheet.textContent =
+    '[role="listbox"]:has([id$=":option:23:30"]) [data-selectable-list-scroll] { max-height: calc(8 * 28px + 2 * var(--selectable-list-item-padding-y)); }';
+  globalThis.document.head.append(sheet);
+}
+
+/**
+ * WORKAROUND: the DS Select does not scroll its selected option into view on open. On open, once the list has
+ * mounted, this centres the selected time in the capped time list's scroll area (by `scrollTop`, so no ancestor scrolls).
+ */
+export const centreSelectedTime = (open: boolean) => {
+  if (!open) {
+    return;
+  }
+  const centre = (triesLeft: number) => {
+    const scroll = globalThis.document.querySelector<HTMLElement>(
+      '[role="listbox"]:has([id$=":option:23:30"]) [data-selectable-list-scroll]',
+    );
+    const selected = scroll?.querySelector<HTMLElement>(
+      '[aria-selected="true"], [data-state="checked"], [data-selected]',
+    );
+    if (!scroll || !selected) {
+      if (triesLeft > 0) {
+        globalThis.requestAnimationFrame(() => centre(triesLeft - 1));
+      }
+      return;
+    }
+    const area = scroll.getBoundingClientRect();
+    const row = selected.getBoundingClientRect();
+    scroll.scrollTop += row.top - area.top - (area.height - row.height) / 2;
+  };
+  globalThis.requestAnimationFrame(() => centre(20));
+};
+
+/**
  * A time of day (the schedule's "At"): the DS searchable Select over half-hour slots with a clock prefix, as the
  * `datePicker` showTimeSingle row picks a time. Never the browser's native time box.
  */
@@ -107,6 +149,7 @@ export const TimeField = ({
     }
     value={value}
     aria-label={label}
+    onOpenChange={centreSelectedTime}
     onChange={(next) => onChange(next ?? value)}
   />
 );
@@ -245,6 +288,7 @@ const DateField = ({
                     items={timeSlots}
                     value={time}
                     aria-label={`${label} time`}
+                    onOpenChange={centreSelectedTime}
                     onChange={(next) =>
                       onChange(`${iso ?? "2026-10-21"}T${next ?? "09:00"}:00Z`)
                     }
