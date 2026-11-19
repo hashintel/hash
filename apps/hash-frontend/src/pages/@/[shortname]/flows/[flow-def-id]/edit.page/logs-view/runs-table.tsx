@@ -1,7 +1,7 @@
 import { useRouter } from "next/router";
 import { useState } from "react";
 
-import { Icon, SortMenu, Tabs } from "@hashintel/ds-components";
+import { Icon, SortMenu, Tabs, TextInput } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import {
@@ -16,6 +16,7 @@ import {
   defaultRunSort,
   filterRuns,
   isInTab,
+  matchesSearch,
   sortRuns,
 } from "./run-list";
 import { IdCell, StatusCell } from "./runs-table/run-cells";
@@ -88,6 +89,7 @@ const columns: Column[] = [
 const noFilters: RunFilters = { states: [], trigger: null };
 
 const tabCount = css({ color: "fg.subtle" });
+const search = css({ width: "[200px]" });
 const filterBar = css({ mt: "3" });
 const table = css({
   mt: "3",
@@ -156,7 +158,7 @@ const SortHeader = ({
   );
 };
 
-/** The flow's runs, by status tab, with Sort and Filter. A row opens its run. */
+/** The flow's runs, by status tab, with Sort, Filter and Search. A row opens its run. */
 export const RunsTable = ({
   rows,
   now,
@@ -170,12 +172,15 @@ export const RunsTable = ({
   const [tab, setTab] = useState<RunTab>("all");
   const [sort, setSort] = useState<RunSort>(defaultRunSort);
   const [filters, setFilters] = useState<RunFilters>(noFilters);
+  const [searchText, setSearchText] = useState("");
   const [shownFilters, setShownFilters] = useState<RunFilterProperty[]>([]);
   const [addedFilter, setAddedFilter] = useState<RunFilterProperty | null>(
     null,
   );
 
-  const filtered = filterRuns(rows, filters);
+  const filtered = filterRuns(rows, filters).filter((row) =>
+    matchesSearch(row, searchText, now),
+  );
   const counts = countRunsByTab(filtered);
   const shown = sortRuns(
     filtered.filter((row) => isInTab(row, tab)),
@@ -214,6 +219,17 @@ export const RunsTable = ({
                   setAddedFilter(property);
                 }}
               />
+              <span className={search}>
+                <TextInput
+                  size="sm"
+                  value={searchText}
+                  onChange={setSearchText}
+                  placeholder="Search runs…"
+                  aria-label="Search runs"
+                  prefix={{ iconName: "search", variant: "subtle" }}
+                  clearable
+                />
+              </span>
             </>
           }
         />

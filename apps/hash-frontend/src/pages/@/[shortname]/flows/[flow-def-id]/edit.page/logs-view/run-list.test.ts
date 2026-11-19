@@ -6,6 +6,7 @@ import {
   countRunsByTab,
   filterRuns,
   isInTab,
+  matchesSearch,
   sortRuns,
   toRunRow,
 } from "./run-list";
@@ -208,5 +209,51 @@ describe("sortRuns", () => {
     expect(
       idsOf(sortRuns(rows, { key: "status", direction: "ASCENDING" }, now)),
     ).toEqual(["000003", "000002", "000001"]);
+  });
+});
+
+describe("matchesSearch", () => {
+  /* Local times, so "Today" holds in any time zone. */
+  const localNow = new Date(2026, 10, 9, 14, 30);
+  const scheduled = toRunRow(
+    summary("7a6a11", {
+      flowScheduleId: "5c1e" as EntityUuid,
+      startedAt: new Date(2026, 10, 9, 9, 5).toISOString(),
+    }),
+    "acme",
+  );
+  const manual = toRunRow(
+    summary("c0ffee", {
+      startedAt: new Date(2026, 10, 2, 16, 20).toISOString(),
+    }),
+    null,
+  );
+  const matching = (search: string) =>
+    idsOf(
+      [scheduled, manual].filter((each) =>
+        matchesSearch(each, search, localNow),
+      ),
+    );
+
+  it("matches the run's ID in any case", () => {
+    expect(matching("7a6a")).toEqual(["7A6A11"]);
+    expect(matching("C0FFEE")).toEqual(["C0FFEE"]);
+  });
+
+  it("matches when the run started as the table shows it", () => {
+    expect(matching("today, 09:05")).toEqual(["7A6A11"]);
+    expect(matching("2 Nov")).toEqual(["C0FFEE"]);
+  });
+
+  it("matches the run's trigger and web by their names", () => {
+    expect(matching("schedule")).toEqual(["7A6A11"]);
+    expect(matching("manual")).toEqual(["C0FFEE"]);
+    expect(matching("@acme")).toEqual(["7A6A11"]);
+  });
+
+  it("matches every run when empty or blank, and none when nothing matches", () => {
+    expect(matching("  ")).toEqual(["7A6A11", "C0FFEE"]);
+    expect(matching(" 7a6a11 ")).toEqual(["7A6A11"]);
+    expect(matching("failed")).toEqual([]);
   });
 });

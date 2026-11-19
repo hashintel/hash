@@ -1,6 +1,7 @@
 import { Button, Filter, FilterGroup, Menu } from "@hashintel/ds-components";
 
 import { runStates, runStatesByUrgency } from "../../shared/run-state";
+import { runTriggerLabels } from "../run-list";
 
 import type { RunState } from "../../shared/run-state";
 import type { RunFilters, RunTrigger } from "../run-list";
@@ -35,10 +36,10 @@ const triggerOperators: FilterOperator<{ is: RunTrigger }>[] = [
     label: "is",
     input: {
       type: "select",
-      items: [
-        { value: "manual", text: "Manual" },
-        { value: "scheduled", text: "Schedule" },
-      ],
+      items: (["manual", "scheduled"] as const).map((trigger) => ({
+        value: trigger,
+        text: runTriggerLabels[trigger],
+      })),
     },
   },
 ];
