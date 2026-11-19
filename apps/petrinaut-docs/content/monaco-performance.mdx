@@ -197,13 +197,49 @@ Two changes:
   The top bar and the bottom bar no longer render for an edit, and the version
   history menu reads the list only while it is open.
 
-:::danger[A host whose net list changes on every edit]
+### A host that changes on every edit
 
 Holding the list helps only while it says the same. The website saves a new
-`lastUpdated` for the open net on every edit, so its list changes on every
-key and the whole editor still renders, as read from its code and not
-measured. The document context has to stop carrying the host's net list
-before that host gains what the benchmark shows. Tracked in
+last-updated time for the open net on every edit, so the list it passes says
+something new on every key. A host built without the React Compiler also
+passes new callbacks and a new `slots` object on every render. `host=website`
+gives the benchmark app a host that does all three.
+
+Under that host the whole editor rendered on every key, by three paths:
+
+| What the host changed | How it reached the whole editor                                                                                                                                                       | Now                                                                                                                                                         |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The list of nets      | It was part of the document context, which almost every component reads.                                                                                                              | The document context holds nothing of the host's. The title and the list are read from `NetManagementContext`.                                              |
+| The list of nets      | The notice for a blocked edit took its action from `NetManagementContext`, and every component that edits asks for that notice.                                                       | The action has a context of its own, `ReadOnlyActionContext`.                                                                                               |
+| `slots`               | It was a prop of the editor view, so a new object made a new child for every provider above the view. They all rendered, and the simulation provider gives out a new value each time. | `Petrinaut` provides them through `PetrinautSlotsContext`, from above the providers. The settings dialog reads what the host added to it where it shows it. |
+
+The icon provider moved out of the editor view as well, into a component
+above it. It gives every icon a new context value each time it renders, and
+the view renders on every change to the document.
+
+Twenty characters typed in the Visualizer editor on Supply Chain:
+
+| Measurement                     | That host, before | That host, now | Benchmark's own host |
+| ------------------------------- | ----------------: | -------------: | -------------------: |
+| Component renders               |            53,761 |          2,889 |                2,554 |
+| React commits                   |                57 |             24 |                   24 |
+| Key to second frame, production |           37.4 ms |        17.2 ms |              16.6 ms |
+| Main-thread script, production  |            640 ms |         186 ms |               156 ms |
+
+`render-counts.mjs` lists two more things for each run: the components that
+started a commit's renders, which rendered while the component above them did
+not, and the providers that gave out a new context value. The second list
+named the simulation provider and the icon provider, after two guesses from
+reading the code had changed nothing.
+
+:::danger[Providers that give out a new value on every render]
+
+`SimulationProvider` and the icon provider of `@hashintel/ds-icons` build
+their context value anew each time they render. One render of either renders
+every reader of its context, which for the simulation context is almost the
+whole editor. Neither renders on a keystroke now, because nothing above them
+changes then. A parent that starts rendering one of them again brings the
+cost back, so each should hold its value while it says the same. Tracked in
 [FE-2169](https://linear.app/hash/issue/FE-2169/prototype-faster-monaco-opening-and-typing-in-petrinaut).
 
 :::

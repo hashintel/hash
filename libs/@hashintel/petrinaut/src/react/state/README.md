@@ -22,3 +22,9 @@ actions and hands out its flags and its list as stores: a reader that only
 undoes never renders for an edit, and the version history menu subscribes
 while it is open. The panel sizes follow the same rule, described in
 [Panel sizes outside React state](doc:react.state/panel-sizes).
+
+What the host owns is not in the document context either. Its title, its
+nets and its callbacks are in `NetManagementContext`, the action of the
+read-only notice in `ReadOnlyActionContext`, and what it passes as `slots`
+in `PetrinautSlotsContext`. A host may hand over new ones on every edit, and
+`SDCPNContext` is read by almost every part of the editor.
