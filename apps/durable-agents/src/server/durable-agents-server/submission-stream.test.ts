@@ -418,3 +418,36 @@ test("a follow-up withdrawn while queued ends its stream, though it never reache
     reason: "The chat turn aborted.",
   });
 });
+
+test("a follow-up queued behind a run that fails ends its stream with an error", async () => {
+  const reached = Promise.withResolvers<void>();
+  const release = Promise.withResolvers<void>();
+  const { transport, faux } = openChat({
+    responses: [toolRound("hold", "hold")],
+    extensions: [
+      defineExtension({
+        name: "test.tools",
+        tools: [holdTool(reached, release.promise)],
+      }),
+    ],
+    // The first tool round fails the run.
+    limits: { maxTurns: 1 },
+  });
+  const first = drain(
+    await send(transport, userMessage("user-failing")),
+    "the failing stream",
+  );
+  await within("the run to reach its hold", reached.promise);
+  const queued = drain(
+    await send(transport, userMessage("user-behind")),
+    "the queued stream",
+  );
+  release.resolve();
+
+  const failed = (await first).at(-1);
+  expect(failed?.type === "error" ? failed.errorText : failed).toContain(
+    "1 turn",
+  );
+  expect(await queued).toEqual([{ type: "error", errorText: "run_failed" }]);
+  expect(faux.state.callCount).toBe(1);
+});
