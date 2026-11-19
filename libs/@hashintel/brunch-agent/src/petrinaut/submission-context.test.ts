@@ -80,6 +80,32 @@ test("round trips a version load on its own, and reads an invalid one as none", 
   ).toEqual({ words: [], selection: [] });
 });
 
+test("reads a version load's decision time only in ISO 8601, as HASH's graph writes it", () => {
+  const read = (decisionTime: string) =>
+    readPetrinautSubmissionContext(
+      submitted(
+        petrinautSubmissionContext({
+          versionLoad: { id: "load-1", decisionTime },
+        }),
+      ),
+    ).versionLoad?.decisionTime;
+  for (const decisionTime of [
+    "2026-10-24T01:00:00.123456789Z",
+    "2026-10-24T01:00:00.000Z",
+    "2026-10-24T01:00:00Z",
+    "2026-10-24T03:00:00+02:00",
+  ])
+    expect(read(decisionTime)).toBe(decisionTime);
+  for (const decisionTime of [
+    "2026-10-24",
+    "2026-10-24T01:00Z",
+    "2026-10-24T01:00:00",
+    "Oct 24, 2026 01:00:00 GMT",
+    "2026-13-24T01:00:00Z",
+  ])
+    expect(read(decisionTime)).toBeUndefined();
+});
+
 test("reads an ordinary message, an invalid allowance, invalid words and an invalid selection as Off and empty", () => {
   expect(
     readPetrinautSubmissionContext(parsePetrinautUserMessageBody("Hi")),

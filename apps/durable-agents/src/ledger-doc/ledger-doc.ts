@@ -25,6 +25,7 @@ import {
   foldCommits,
   type LedgerAppend,
   type LedgerHistory,
+  ledgerCommentsMessage,
   parseLedgerComments,
   prepareAppend,
   ledgerAppendOutputSchema,
@@ -140,19 +141,21 @@ const turnOf = (entry: EntryRecord): LedgerTurn | undefined => {
     };
   if (entry.kind !== brunchSignals.ledgerComments) return undefined;
   const { data } = entry;
-  const body = JSON.stringify({
-    comments:
-      typeof data === "object" && data !== null && "comments" in data
-        ? data.comments
-        : null,
-  });
-  return parseLedgerComments(body) === undefined
+  const comments = parseLedgerComments(
+    JSON.stringify({
+      comments:
+        typeof data === "object" && data !== null && "comments" in data
+          ? data.comments
+          : null,
+    }),
+  );
+  return comments === undefined
     ? undefined
     : {
         id,
         role: "system",
         signal: { tagName: brunchSignals.ledgerComments },
-        parts: [{ type: "text", text: body }],
+        parts: [{ type: "text", text: ledgerCommentsMessage(comments).body }],
       };
 };
 
