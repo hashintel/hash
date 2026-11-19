@@ -21,7 +21,9 @@ import {
 } from "./run-list";
 import { IdCell, StatusCell } from "./runs-table/run-cells";
 import { AddRunFilter, RunFilterBar } from "./runs-table/run-filters";
+import { RunMenu } from "./runs-table/run-menu";
 
+import type { FlowRunner } from "../shared/run-flow";
 import type { RunTab } from "../shared/run-state";
 import type { RunFilters, RunRow, RunSort, RunSortKey } from "./run-list";
 import type { RunFilterProperty } from "./runs-table/run-filters";
@@ -90,6 +92,7 @@ const noFilters: RunFilters = { states: [], trigger: null };
 
 const tabCount = css({ color: "fg.subtle" });
 const search = css({ width: "[200px]" });
+const menuColumn = css({ width: "[48px]" });
 const filterBar = css({ mt: "3" });
 const table = css({
   mt: "3",
@@ -158,15 +161,17 @@ const SortHeader = ({
   );
 };
 
-/** The flow's runs, by status tab, with Sort, Filter and Search. A row opens its run. */
+/** The flow's runs, by status tab, with Sort, Filter and Search. A row opens its run, and its ⋮ re-runs it. */
 export const RunsTable = ({
   rows,
   now,
   getRunPath,
+  runner,
 }: {
   rows: RunRow[];
   now: Date;
   getRunPath: (flowRunEntityId: EntityId) => string;
+  runner: FlowRunner;
 }) => {
   const router = useRouter();
   const [tab, setTab] = useState<RunTab>("all");
@@ -269,12 +274,16 @@ export const RunsTable = ({
                 onSort={setSort}
               />
             ))}
+            <th className={menuColumn} aria-label="Actions" />
           </tr>
         </thead>
         <tbody>
           {shown.map((row) => {
             const runPath = getRunPath(row.flowRunEntityId);
             const duration = getRunDuration(row, now);
+            const openRun = () => {
+              void router.push(runPath, undefined, { shallow: true });
+            };
 
             return (
               <tr
@@ -295,7 +304,7 @@ export const RunsTable = ({
                     return;
                   }
 
-                  void router.push(runPath, undefined, { shallow: true });
+                  openRun();
                 }}
               >
                 <td>
@@ -322,12 +331,21 @@ export const RunsTable = ({
                     formatDuration(duration)
                   )}
                 </td>
+                <td>
+                  <span
+                    role="presentation"
+                    /* So the menu and its form don't open the run. */
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <RunMenu row={row} runner={runner} onOpen={openRun} />
+                  </span>
+                </td>
               </tr>
             );
           })}
           {shown.length === 0 && (
             <tr>
-              <td colSpan={columns.length} className={noMatches}>
+              <td colSpan={columns.length + 1} className={noMatches}>
                 No runs match
               </td>
             </tr>

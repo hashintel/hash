@@ -12,16 +12,16 @@ import {
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { getFlowInputLabel, getKindLabel } from "../shared/value-display";
 import { EntityInput } from "./run-flow/entity-input";
 import {
   getFlowInputValues,
   getFormValuesFromRun,
   getInitialFormValues,
   getRunBlocker,
-} from "./run-flow/run-form";
+} from "./run-form";
+import { getFlowInputLabel, getKindLabel } from "./value-display";
 
-import type { RunFormValue, RunFormValues } from "./run-flow/run-form";
+import type { RunFormValue, RunFormValues } from "./run-form";
 import type { WebId } from "@blockprotocol/type-system";
 import type { FlowEditorState } from "@local/hash-isomorphic-utils/flows/flow-editor";
 import type {
@@ -135,7 +135,7 @@ const InputField = ({
   </Form.Field>
 );
 
-const RunFlowDialog = ({
+export const RunFlowDialog = ({
   webId,
   name,
   inputs,
@@ -262,22 +262,11 @@ const RunFlowDialog = ({
   );
 };
 
-/**
- * Runs the flow: a button that opens a form for the flow's inputs, disabled while the flow can't be run, saying why.
- * Given a run's inputs, it re-runs the flow, and the form starts with them.
- */
-export const RunFlow = ({
-  webId,
-  editorState,
-  ranInputs = null,
-  saveRefusedReason,
-  onRun,
-}: {
+/** What running the flow takes, from Run, Re-run, or a run's menu in Logs. */
+export type FlowRunner = {
   /** The web the flow is in, which the run is in too, and whose entities the form offers. */
   webId: WebId;
   editorState: FlowEditorState;
-  /** The inputs of the run to run again, if this re-runs one. */
-  ranInputs?: FlowInputValues | null;
   /**
    * Why the API refused the latest edits, if it did. A prop rather than part of the error `onRun` throws, as the save
    * that sets it happens inside `onRun`, which only knows that it failed.
@@ -288,6 +277,21 @@ export const RunFlow = ({
    * couldn't be saved or the run didn't start.
    */
   onRun: (flowInputs: FlowInputValues) => Promise<void>;
+};
+
+/**
+ * Runs the flow: a button that opens a form for the flow's inputs, disabled while the flow can't be run, saying why.
+ * Given a run's inputs, it re-runs the flow, and the form starts with them.
+ */
+export const RunFlow = ({
+  webId,
+  editorState,
+  ranInputs = null,
+  saveRefusedReason,
+  onRun,
+}: FlowRunner & {
+  /** The inputs of the run to run again, if this re-runs one. */
+  ranInputs?: FlowInputValues | null;
 }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const blocker = getRunBlocker(editorState);
