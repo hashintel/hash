@@ -119,9 +119,13 @@ try {
         await prepare[state](page);
         await page.waitForTimeout(900);
 
-        const press = (name) => () =>
-          click(page.getByRole("button", { name, exact: true }));
         const measure = async (label, name) => {
+          // The button is found before the measurement starts: finding it by
+          // role makes Playwright read the style of every candidate, which
+          // would be counted as the toggle's work.
+          const button = await page
+            .getByRole("button", { name, exact: true })
+            .elementHandle();
           await page.evaluate(() => {
             globalThis.__resizes.callbacks = 0;
             globalThis.__resizes.entries = 0;
@@ -130,7 +134,7 @@ try {
             page,
             session,
             label,
-            press(name),
+            () => button.evaluate((element) => element.click()),
             600,
           );
           return {
