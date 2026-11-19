@@ -53,8 +53,15 @@ const collect = Effect.fnUntraced(function* (
   });
   const index = Usage.collect(reference.document.catalogue);
   const labels = labelsOf(reference);
-  const label = (target: AST.Node.Interned): string =>
-    HashMap.get(labels, target).pipe(Option.getOrThrow);
+  /** A user's label, with its meaning before it where its type and its value are declared apart. */
+  const label = ({ target, meaning }: Usage.User): string => {
+    const name = HashMap.get(labels, target).pipe(Option.getOrThrow);
+
+    return Option.match(meaning, {
+      onNone: () => name,
+      onSome: (half) => `${half} ${name}`,
+    });
+  };
 
   const usersIn =
     (exports: Document.Document["entries"]) =>
@@ -246,13 +253,36 @@ describe("usage", () => {
       export declare function Loop(): typeof Loop;
     `);
       expect([users("Run"), valueUsers("Run")]).toStrictEqual([
-        { accepted: ["Run"], returned: ["Run"] },
+        { accepted: ["value Run"], returned: ["value Run"] },
         { accepted: [], returned: [] },
       ]);
       // The value names itself, which is no use of it.
       expect([users("Loop"), valueUsers("Loop")]).toStrictEqual([
         { accepted: [], returned: [] },
         { accepted: [], returned: [] },
+      ]);
+    }),
+  );
+
+  it.effect(
+    "type_calls_apart",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const { users, valueUsers } = yield* collect(`
+      export interface A {} export interface B {}
+      export interface Make { (value: A): B }
+      export declare const Make: (value: B) => A;
+      export interface Self { (value: Self): typeof Self }
+      export declare const Self: number;
+    `);
+      expect(Array.map(["A", "B"], users)).toStrictEqual([
+        { accepted: ["type Make"], returned: ["value Make"] },
+        { accepted: ["value Make"], returned: ["type Make"] },
+      ]);
+      // The type's call names the type, which is no use of it. Its result is the value, which the type does use.
+      expect([users("Self"), valueUsers("Self")]).toStrictEqual([
+        { accepted: [], returned: [] },
+        { accepted: [], returned: ["type Self"] },
       ]);
     }),
   );

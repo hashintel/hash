@@ -20,7 +20,6 @@ import type * as AST from "./AST/index.js";
 import type * as Catalogue from "./Catalogue.js";
 
 type Row = Tree.Row.Row;
-type Local = AST.Interned.Interned<AST.Target.Local>;
 
 /** The reference's pages as documentation trees, before any output. The output reads the placement and the entries to decide where each page and each anchor goes. */
 export interface Document {
@@ -64,9 +63,9 @@ const traitRow = (trait: Relations.Described): Row => ({
 const labelOf = ({ label }: Row): string => label.join(".");
 
 /** The row of each target, which `row` reads as a declaration or as something that uses one. */
-const rowsOf = (
-  targets: readonly Local[],
-  row: (target: Local) => Option.Option<Row>,
+const rowsOf = <Target>(
+  targets: readonly Target[],
+  row: (target: Target) => Option.Option<Row>,
 ): readonly Row[] =>
   pipe(
     targets,

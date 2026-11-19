@@ -1,4 +1,12 @@
-import { Array, Function, HashMap, MutableHashMap, Option, pipe } from "effect";
+import {
+  Array,
+  Equal,
+  Function,
+  HashMap,
+  MutableHashMap,
+  Option,
+  pipe,
+} from "effect";
 
 import * as AST from "./AST/index.js";
 import * as ExternalTarget from "./ExternalTarget.js";
@@ -10,8 +18,11 @@ import * as Node from "./TypeScript/Node.js";
 import type * as Catalogue from "./Catalogue.js";
 import type * as Tree from "./Tree/index.js";
 
-/** A public declaration or member whose calls mention another declaration. */
-type User = AST.Interned.Interned<AST.Target.Local>;
+/** A public declaration or member whose calls mention another declaration. A type and a value declared apart under one name make their own calls, and `meaning` says whose they are. */
+export interface User {
+  readonly target: AST.Interned.Interned<AST.Target.Local>;
+  readonly meaning: Option.Option<Tree.Export.Meaning>;
+}
 
 /** Public functions, methods and accessors that mention a declaration in each part of their calls. */
 export interface Usage {
@@ -36,6 +47,11 @@ interface Note extends Use {
   readonly role: keyof Usage;
 }
 
+interface Caller {
+  readonly user: User;
+  readonly parts: readonly Parts.Part[];
+}
+
 /** The uses of each declaration in `role`, without repeats, in the order the notes name them. */
 const usesOf = (
   notes: readonly Note[],
@@ -50,7 +66,9 @@ const usesOf = (
       if (Option.isNone(known)) {
         MutableHashMap.set(uses, id, [{ user, meaning }]);
       } else if (
-        !known.value.some((use) => use.user === user && use.meaning === meaning)
+        !known.value.some(
+          (use) => Equal.equals(use.user, user) && use.meaning === meaning,
+        )
       ) {
         known.value.push({ user, meaning });
       }
@@ -69,6 +87,36 @@ const signaturesOf = ({
     onSome: (call): readonly AST.Signature.Signature[] => [call],
     onNone: () => calls,
   });
+
+/** An entry's declaration and its members, each with the parts whose calls it makes. A type and a value declared apart make calls of their own. */
+const callersOf = (
+  ast: AST.Store["Service"],
+  entry: Catalogue.Entry,
+): readonly Caller[] =>
+  Array.appendAll(
+    Parts.matchDocumented(Parts.documented(ast, entry), {
+      Whole: ({ parts }): readonly Caller[] => [
+        { user: { target: entry.id, meaning: Option.none() }, parts },
+      ],
+      Apart: ({ type, value }): readonly Caller[] => [
+        {
+          user: { target: entry.id, meaning: Option.some("type") },
+          parts: type,
+        },
+        {
+          user: { target: entry.id, meaning: Option.some("value") },
+          parts: value,
+        },
+      ],
+    }),
+    Array.map(
+      Parts.members(Parts.of(ast, entry), { ast, entry }),
+      (member): Caller => ({
+        user: { target: member.id, meaning: Option.none() },
+        parts: member.parts,
+      }),
+    ),
+  );
 
 /** Reads the references in every public call's parameters, type parameters and result, including type-parameter constraints and defaults. */
 export const collect = (catalogue: Catalogue.Catalogue): Index => {
@@ -101,15 +149,7 @@ export const collect = (catalogue: Catalogue.Catalogue): Index => {
     );
 
   const notes = Array.flatMap(catalogue.entries, (entry) => {
-    const parts = Parts.of(ast, entry);
-    const apart = Parts.documented(ast, entry)._tag === "Apart";
-    const callers = Array.prepend(
-      Array.map(Parts.members(parts, { ast, entry }), (member) => ({
-        user: member.id,
-        parts: member.parts,
-      })),
-      { user: entry.id, parts },
-    );
+    const callers = callersOf(ast, entry);
 
     return Array.flatMap(callers, ({ user, parts: own }) =>
       Array.flatMap(own, (part) =>
@@ -148,9 +188,11 @@ export const collect = (catalogue: Catalogue.Catalogue): Index => {
                 user,
               })),
             ),
-            // A declaration whose own calls name it does not use itself, as a function that returns `typeof` itself. A value declared apart from its type does use that type.
+            // A declaration whose own calls name it in the meaning that makes them does not use itself, as a function that returns `typeof` itself. A type and a value declared apart do use each other.
             Array.filter(
-              ({ id, meaning }) => user !== id || (apart && meaning === "type"),
+              ({ id, meaning }) =>
+                user.target !== id ||
+                Option.exists(user.meaning, (half) => half !== meaning),
             ),
           );
         }),
