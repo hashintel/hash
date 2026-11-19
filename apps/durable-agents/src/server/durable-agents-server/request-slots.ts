@@ -4,7 +4,10 @@
  * slot, first come first served, and the slot frees once that request's
  * response is in (`afterResponse`). Nothing is refused or held outside Pi
  * Durable: the waiting request belongs to a stored run, so a restart that cuts
- * the wait off resumes the run, which waits again.
+ * the wait off resumes the run, which waits again. That restart costs the
+ * generation a model attempt (`retry.maxRetries`): `beforeRequest` runs in
+ * Pi's `request` phase, and a restart there is a failed attempt, as if the
+ * request had been in flight.
  *
  * A request can also end without `afterResponse`: an abort or close (the
  * hook context's signal), a deferred response, or a thrown phase. Each
