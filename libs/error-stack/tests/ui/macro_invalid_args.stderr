@@ -82,5 +82,12 @@ error[E0308]: mismatched types
 note: associated function defined here
   --> $RUST/core/src/convert/mod.rs
    |
+   | pub const trait From<T>: Sized {
+...
    |     fn from(value: T) -> Self;
    |        ^^^^
+note: associated function provided through this blanket `impl`
+  --> $RUST/core/src/convert/mod.rs
+   |
+   | const impl<T> From<T> for T {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^

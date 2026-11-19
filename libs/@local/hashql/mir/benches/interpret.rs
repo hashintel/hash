@@ -1,4 +1,5 @@
 #![expect(clippy::min_ident_chars, clippy::significant_drop_tightening)]
+#![feature(allocator_ext)]
 
 extern crate alloc;
 

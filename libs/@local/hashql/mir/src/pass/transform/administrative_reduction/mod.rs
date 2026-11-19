@@ -58,7 +58,10 @@ mod kind;
 mod offset;
 mod visitor;
 
-use core::{alloc::Allocator, cmp, mem};
+use core::{
+    alloc::{Allocator, AllocatorNightly},
+    cmp, mem,
+};
 
 use hashql_core::{
     graph::{Successors as _, Traverse as _},
@@ -266,7 +269,7 @@ struct AdministrativeReductionPass<'ctx, 'slice, 'heap, A: Allocator> {
     scratch: &'ctx mut ScratchMemory<'heap, A>,
 }
 
-impl<'env, 'heap, A: Allocator> TransformPass<'env, 'heap>
+impl<'env, 'heap, A: Allocator + AllocatorNightly> TransformPass<'env, 'heap>
     for AdministrativeReductionPass<'_, '_, 'heap, A>
 {
     fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) -> Changed {

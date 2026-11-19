@@ -193,7 +193,6 @@ fn fit_recovers_the_parameters_of_an_exact_affinity_target() {
 }
 
 /// Compares fitted parameters under a rescaling of distances.
-
 #[test]
 fn fit_scales_equivariantly_with_distance() {
     // In real arithmetic, replacing each distance d by sd gives a · s^(−2b) · (sd)^(2b) = a ·
@@ -434,7 +433,6 @@ fn fit_recovers_parameters_orders_of_magnitude_from_the_start() {
 }
 
 /// Terminates a fit to a target extending above the affinity range.
-
 #[test]
 fn solver_terminates_a_creep_along_the_domain_boundary() {
     // The target approaches 30 near zero, while the curve cannot exceed one. For positive
