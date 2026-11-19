@@ -173,11 +173,9 @@ const panelContentStyle = css({
   "--subview-content-inline-padding": "[16px]",
   px: "[var(--subview-content-inline-padding)]",
   pb: "3",
+  // The padding changes at once: a transition on it would resize the code
+  // editor on every frame of a section's animation.
   "[data-subview-full-width-code] &": { paddingBottom: "0" },
-  "[data-subview-animate] &": {
-    transition: "[padding-bottom 240ms cubic-bezier(0.22, 1, 0.36, 1)]",
-    "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
-  },
 });
 
 const SHADOW_HEIGHT = 7;

@@ -463,7 +463,7 @@ it.each([
   },
 );
 
-it("animates the section bounds in both directions and can reverse an unfinished expansion", async () => {
+it("animates how the section is drawn in both directions and can reverse an unfinished expansion", async () => {
   const animations = mockAnimations();
   render(<Harness />);
   const code = screen.getByRole("textbox", { name: "Code" });
@@ -471,10 +471,17 @@ it("animates the section bounds in both directions and can reverse an unfinished
   const expansion = animations.find((animation) =>
     animation.element.hasAttribute("data-subview-section"),
   );
-  expect(expansion?.frames).toEqual([
-    { top: "200px", left: "0px", width: "450px", height: "250px" },
-    { top: "0px", left: "0px", width: "450px", height: "656px" },
-  ]);
+  // The section is laid out at the container's 656 px from the first frame,
+  // moved to where it was and clipped to the 250 px it had.
+  const stacked = {
+    transform: "translateY(200px)",
+    clipPath: "inset(0px 0px 406px 0px)",
+  };
+  const maximized = {
+    transform: "translateY(0px)",
+    clipPath: "inset(0px 0px 0px 0px)",
+  };
+  expect(expansion?.frames).toEqual([stacked, maximized]);
   expect(expansion?.options.fill).toBe("none");
   fireEvent.click(
     screen.getByRole("button", { name: "Back to Transition Collision" }),
@@ -485,10 +492,7 @@ it("animates the section bounds in both directions and can reverse an unfinished
       animation.element.hasAttribute("data-subview-section"),
     )
     .at(-1);
-  expect(restoration?.frames).toEqual([
-    { top: "0px", left: "0px", width: "450px", height: "656px" },
-    { top: "200px", left: "0px", width: "450px", height: "250px" },
-  ]);
+  expect(restoration?.frames).toEqual([maximized, stacked]);
   expect(restoration?.options.fill).toBe("forwards");
   const expandedAtCleanup: boolean[] = [];
   restoration?.cancel.mockImplementation(() => {
