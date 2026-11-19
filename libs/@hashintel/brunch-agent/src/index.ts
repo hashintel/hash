@@ -44,6 +44,7 @@ export {
   parseHashSaveInput,
   parseHashSaveOutcome,
   versionLoadNote,
+  versionLoadSectionText,
   type HashSaveForModel,
   type HashSaveOutcome,
 } from "./hash/save";
