@@ -39,6 +39,10 @@ import {
   shapeOf,
 } from "../../../test/platform/support";
 import {
+  expectedNetRevision,
+  staleNetViewRefusal,
+} from "../../net-state/net-freshness";
+import {
   handEditEntryKind,
   netViewSectionKey,
   renderHandEditNote,
@@ -59,7 +63,7 @@ const changeTool = "setNetTitle";
 
 const structureAt = (revision: string) => ({
   revision,
-  places: [{ id: "place-dryer", name: "Dryer" }],
+  places: [{ id: "place-dryer", name: "Wash & Dry" }],
 });
 
 /** The section as a request shows it, restoring a read at `revision`. */
@@ -611,10 +615,13 @@ describe("the net_view section", () => {
     }
   });
 
-  test("8: visibleNetView counts the restored section as the view at the head, and a later note makes it stale", async () => {
+  test("8: a restored section gives the same freshness proof as its read; a later note invalidates it", async () => {
     const probe = await open();
     try {
       await readThenChat(probe);
+      expect(expectedNetRevision(await probe.root.context(context))).toEqual({
+        revision: "R1",
+      });
       await probe.compact();
       await askOnce(probe, "Add a dryer.");
       const view = await probe.root.context(context);
@@ -629,11 +636,10 @@ describe("the net_view section", () => {
       expect(restoredView.state === "current" && restoredView.message).toBe(
         view.messages[0],
       );
+      expect(expectedNetRevision(view)).toEqual({ revision: "R1" });
       await handEdit(probe.root, "R2");
-      expect(visibleNetView(await probe.root.context(context))).toMatchObject({
-        state: "stale",
-        seen: "R1",
-        edited: "R2",
+      expect(expectedNetRevision(await probe.root.context(context))).toEqual({
+        refusal: staleNetViewRefusal,
       });
     } finally {
       await probe.close();
