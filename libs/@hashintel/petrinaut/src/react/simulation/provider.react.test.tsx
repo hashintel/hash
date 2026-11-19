@@ -41,7 +41,7 @@ const makeSdcpn = (scenarios: Scenario[]): SDCPN => ({
   types: [],
   parameters: [],
   differentialEquations: [],
-  subnets: [],
+  components: [],
   componentInstances: [],
   scenarios,
 });

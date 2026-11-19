@@ -2,6 +2,7 @@ import {
   createExperimentToolName,
   getLatestNetDefinitionToolName,
   petrinautAiTools,
+  pruningUpdateActions,
   type PetrinautAiToolName,
 } from "@hashintel/petrinaut-core/ai";
 
@@ -45,6 +46,11 @@ interface BrowserToolFacts {
   /** It removes what the user built, so the user approves each call first. */
   readonly destructive: boolean;
   /**
+   * On some inputs it drops the arcs and fusion memberships on what it
+   * changes, so the user approves those calls first.
+   */
+  readonly prunes: boolean;
+  /**
    * Once started it has read what it needs of the net, so later calls in the
    * same step needn't wait for it to finish; a started run still reports a
    * failure after Stop.
@@ -80,6 +86,7 @@ const reads: BrowserToolFacts = {
   textResult: false,
   targets: [],
   destructive: false,
+  prunes: false,
   releasesDocumentLane: false,
 };
 
@@ -101,6 +108,9 @@ const unknownTool: BrowserToolFacts = {
   runsOnNet: false,
 };
 
+const isPruningUpdate = (name: PetrinautAiToolName): boolean =>
+  (pruningUpdateActions as readonly string[]).includes(name);
+
 const canonical = (name: PetrinautAiToolName): BrowserToolDescriptor => {
   const { capability, targets, destructive } = petrinautToolEffects[name];
   return {
@@ -113,6 +123,7 @@ const canonical = (name: PetrinautAiToolName): BrowserToolDescriptor => {
     releasesDocumentLane: name === createExperimentToolName,
     targets,
     destructive,
+    prunes: isPruningUpdate(name),
     inputParser: petrinautAiTools[name].inputSchema,
     canonicalCalls: (input) => [{ toolName: name, input }],
   };
@@ -140,6 +151,7 @@ const hashPetrinaut = ({
     ...canonical(first),
     targets: [...new Set(effects.flatMap(({ targets }) => targets))],
     destructive: effects.some(({ destructive }) => destructive),
+    prunes: operations.some(isPruningUpdate),
     inputParser: inputSchema,
     canonicalCalls: (input) => parseCall(input).calls,
   };

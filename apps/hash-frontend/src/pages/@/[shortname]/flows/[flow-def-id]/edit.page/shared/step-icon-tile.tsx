@@ -26,14 +26,23 @@ const tile = css({
 });
 const tileSizes = {
   small: css({ width: "[14px]", height: "[14px]", borderRadius: "[3px]" }),
+  stack: css({ width: "4", height: "4", borderRadius: "sm" }),
+  row: css({ width: "5", height: "5", borderRadius: "sm" }),
   large: css({ width: "6", height: "6", borderRadius: "sm" }),
   header: css({ width: "10", height: "10", borderRadius: "lg" }),
 };
-const iconSizes = { small: "xxs", large: "xs", header: "sm" } as const;
+const iconSizes = {
+  small: "xxs",
+  stack: "xxs",
+  row: "xs",
+  large: "xs",
+  header: "sm",
+} as const;
 
 /**
- * A rounded square in the step's hue: small in the Steps and Add tabs, large on canvas cards, and the panel header's
- * 40px tile. Figma's icons are 10px, 14px and 20px, which `Icon` has no sizes for, so the nearest smaller ones are used.
+ * A rounded square in the step's hue: small in the Steps and Add tabs, stack and row in "Used in" at rest and open,
+ * large on canvas cards, and the panel header's 40px tile. Figma's icons are 10px, 14px and 20px, which `Icon` has no
+ * sizes for, so the nearest smaller ones are used.
  */
 export const StepIconTile = ({
   icon,

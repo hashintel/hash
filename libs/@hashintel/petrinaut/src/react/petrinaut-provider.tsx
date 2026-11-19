@@ -56,7 +56,7 @@ export type PetrinautProviderProps = {
   /**
    * Optional host-owned app location. This keeps Petrinaut router-neutral
    * while allowing URLs and Back / Forward to control workspaces, resources,
-   * subnets, complete selection, and supported overlays.
+   * components, complete selection, and supported overlays.
    */
   navigation?: PetrinautNavigationController;
   children: ReactNode;

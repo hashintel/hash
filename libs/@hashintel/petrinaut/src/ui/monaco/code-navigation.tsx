@@ -7,6 +7,7 @@ import {
 
 import { usePetrinautNavigation } from "../../react/navigation";
 import { ActiveNetContext } from "../../react/state/active-net-context";
+import { CompositionContext } from "../../react/state/composition-context";
 import { EditorContext } from "../../react/state/editor-context";
 import { SDCPNContext } from "../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../react/state/user-settings-context";
@@ -49,6 +50,7 @@ export const CodeNavigationProvider = ({ children }: PropsWithChildren) => {
   );
   const { activeNet } = use(ActiveNetContext);
   const { petriNetDefinition, extensions } = use(SDCPNContext);
+  const { libraries } = use(CompositionContext);
   const { selectItem } = use(EditorContext);
   const { subViewPanels, updateSubViewSection } = use(UserSettingsContext);
   const { showSourceCode: enabled } = usePetrinautPresentation();
@@ -59,6 +61,7 @@ export const CodeNavigationProvider = ({ children }: PropsWithChildren) => {
         petriNetDefinition,
         extensions,
         activeNet,
+        libraries,
       );
       const lambdaType = getEffectiveTransitionLambdaType(
         transition,

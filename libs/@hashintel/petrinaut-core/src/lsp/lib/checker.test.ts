@@ -567,7 +567,7 @@ return [{ v: b.x - a.x }];`),
         stochasticity: false,
         dynamics: true,
         parameters: true,
-        subnets: true,
+        components: true,
       });
 
       expect(result.isValid).toBe(true);
@@ -596,7 +596,7 @@ return [{ v: b.x - a.x }];`),
         stochasticity: false,
         dynamics: true,
         parameters: true,
-        subnets: true,
+        components: true,
       });
 
       expect(result.isValid).toBe(false);
@@ -635,20 +635,20 @@ return [{ v: b.x - a.x }];`),
           {
             id: "instance-1",
             name: "Instance 1",
-            subnetId: "subnet-1",
+            component: { id: "component-1" },
             parameterValues: {},
             x: 0,
             y: 0,
           },
         ],
-        subnets: [
+        components: [
           {
-            id: "subnet-1",
-            name: "Subnet 1",
+            id: "component-1",
+            name: "Component 1",
             types: [
               {
-                id: "subnet-color",
-                name: "Subnet Color",
+                id: "component-color",
+                name: "Component Color",
                 iconSlug: "circle",
                 displayColor: "#ff0000",
                 elements: [{ elementId: "x", name: "x", type: "real" }],
@@ -658,7 +658,7 @@ return [{ v: b.x - a.x }];`),
               {
                 id: "port-in",
                 name: "PortIn",
-                colorId: "subnet-color",
+                colorId: "component-color",
                 dynamicsEnabled: false,
                 isPort: true,
                 x: 0,
@@ -678,7 +678,7 @@ return [{ v: b.x - a.x }];`),
         stochasticity: false,
         dynamics: true,
         parameters: true,
-        subnets: true,
+        components: true,
       });
 
       expect(result.isValid).toBe(false);
@@ -742,7 +742,7 @@ return [{ v: b.x - a.x }];`),
         stochasticity: false,
         dynamics: true,
         parameters: true,
-        subnets: true,
+        components: true,
       });
 
       expect(result.isValid).toBe(true);
@@ -832,7 +832,7 @@ return [{ v: b.x - a.x }];`),
         stochasticity: false,
         dynamics: true,
         parameters: true,
-        subnets: true,
+        components: true,
       });
 
       expect(result.isValid).toBe(false);
@@ -1109,20 +1109,20 @@ return [{ v: b.x - a.x }];`),
           {
             id: "instance-1",
             name: "Instance 1",
-            subnetId: "subnet-1",
+            component: { id: "component-1" },
             parameterValues: {},
             x: 0,
             y: 0,
           },
         ],
-        subnets: [
+        components: [
           {
-            id: "subnet-1",
-            name: "Subnet 1",
+            id: "component-1",
+            name: "Component 1",
             types: [
               {
-                id: "subnet-color",
-                name: "Subnet Color",
+                id: "component-color",
+                name: "Component Color",
                 iconSlug: "circle",
                 displayColor: "#ff0000",
                 elements: [{ elementId: "x", name: "x", type: "real" }],
@@ -1132,7 +1132,7 @@ return [{ v: b.x - a.x }];`),
               {
                 id: "port-out",
                 name: "PortOut",
-                colorId: "subnet-color",
+                colorId: "component-color",
                 dynamicsEnabled: false,
                 isPort: true,
                 x: 0,
@@ -1152,7 +1152,7 @@ return [{ v: b.x - a.x }];`),
         stochasticity: false,
         dynamics: true,
         parameters: true,
-        subnets: true,
+        components: true,
       });
 
       expect(result.isValid).toBe(false);
@@ -1269,7 +1269,7 @@ return [{ v: b.x - a.x }];`),
         stochasticity: false,
         dynamics: true,
         parameters: true,
-        subnets: true,
+        components: true,
       });
 
       expect(result.isValid).toBe(true);

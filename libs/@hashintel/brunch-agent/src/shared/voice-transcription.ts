@@ -2,7 +2,7 @@ import type { VoiceWord } from "./voice-words.js";
 
 /** Shared by provider configuration and local completed-transcript admission. */
 export const voiceTranscriptionPrompt =
-  "Expect English process-modeling vocabulary including SDCPN, stochastic Petri net, place, transition, arc, token, marking, guard, rate, distribution, parameter, subnet, scenario, and metric.";
+  "Expect English process-modeling vocabulary including SDCPN, stochastic Petri net, place, transition, arc, token, marking, guard, rate, distribution, parameter, component, scenario, and metric.";
 
 /**
  * The transcriber reads `prompt` as prior transcript context, not as

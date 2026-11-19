@@ -1,4 +1,5 @@
 import { useQuery } from "@apollo/client";
+import { useEffect } from "react";
 
 import { Button, Menu } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -8,7 +9,7 @@ import { getShortRunId, shortRunIdFont } from "../shared/run-id";
 import { RunGlyph } from "../shared/run-marks";
 import { getRunState, runStates } from "../shared/run-state";
 import { formatRunTime } from "../shared/run-times";
-import { getSwitcherRuns } from "./run-switcher/switcher-runs";
+import { getArrowKeyRun, getSwitcherRuns } from "./run-switcher/switcher-runs";
 
 import type {
   GetFlowRunByIdQuery,
@@ -51,10 +52,11 @@ const RunName = ({ flowRunEntityId }: { flowRunEntityId: EntityId }) => (
 );
 
 /**
- * The run shown, in the top bar: ‹ and › open the flow's next older and newer run, and its name opens a menu of the
- * flow's newest runs, and the way back to all of them in Logs. Until the flow's runs have loaded, or if the run isn't
- * among them, e.g. one of another flow, it names the run with the arrows off. It reads the run that the run view polls,
- * so a run just started is among them before they're read again.
+ * The run shown, in the top bar: ‹ and › open the flow's next older and newer run, as ↓ and ↑ do, and its name, which
+ * says when the run started on hover, opens a menu of the flow's newest runs, and the way back to all of them in Logs.
+ * Until the flow's runs have loaded, or if the run isn't among them, e.g. one of another flow, it names the run with
+ * the arrows off. It reads the run that the run view polls, so a run just started is among them before they're read
+ * again.
  */
 export const RunSwitcher = ({
   flowRunEntityId,
@@ -88,6 +90,21 @@ export const RunSwitcher = ({
   const listed = menuRuns.some(
     (run) => run.flowRunEntityId === flowRunEntityId,
   );
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const run = getArrowKeyRun(event, { older, newer });
+
+      if (run) {
+        event.preventDefault();
+        onOpenRun(run.flowRunEntityId);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [older, newer, onOpenRun]);
 
   /* A disabled arrow says why. */
   const disabledReason = (direction: "older" | "newer") => {
@@ -166,7 +183,8 @@ export const RunSwitcher = ({
         variant="ghost"
         size="sm"
         iconName="chevronLeft"
-        tooltip={older ? "Older run" : disabledReason("older")}
+        aria-label={older ? "Older run" : disabledReason("older")}
+        tooltip={older ? "Older run · ↓" : disabledReason("older")}
         disabled={!older}
         onClick={() => older && onOpenRun(older.flowRunEntityId)}
       />
@@ -178,6 +196,11 @@ export const RunSwitcher = ({
             size="sm"
             iconName="chevronDown"
             iconPosition="right"
+            tooltip={
+              openRun
+                ? `Started ${formatRunTime(new Date(openRun.startedAt), new Date())}`
+                : undefined
+            }
           >
             <RunName flowRunEntityId={flowRunEntityId} />
           </Button>
@@ -187,7 +210,8 @@ export const RunSwitcher = ({
         variant="ghost"
         size="sm"
         iconName="chevronRight"
-        tooltip={newer ? "Newer run" : disabledReason("newer")}
+        aria-label={newer ? "Newer run" : disabledReason("newer")}
+        tooltip={newer ? "Newer run · ↑" : disabledReason("newer")}
         disabled={!newer}
         onClick={() => newer && onOpenRun(newer.flowRunEntityId)}
       />

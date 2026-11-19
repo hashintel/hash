@@ -6,12 +6,14 @@ import {
   getArcEndpoint,
   getArcEndpointKey,
   getArcEndpointPlaceId,
+  resolveComponent,
   type ArcEndpoint,
   validateDisplayName,
 } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../../react";
 import { ActiveNetContext } from "../../../../../../../react/state/active-net-context";
+import { CompositionContext } from "../../../../../../../react/state/composition-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import {
   ArcItem,
@@ -49,6 +51,7 @@ const TransitionMainContent: React.FC = () => {
   } = useTransitionPropertiesContext();
   const { activeNet } = use(ActiveNetContext);
   const { petriNetDefinition: fullSdcpn } = use(SDCPNContext);
+  const { libraries } = use(CompositionContext);
 
   const toPlaceOption = (pl: (typeof places)[number]): PlaceOption => ({
     id: pl.id,
@@ -99,14 +102,14 @@ const TransitionMainContent: React.FC = () => {
     const instance = activeNet.componentInstances.find(
       ({ id }) => id === endpoint.componentInstanceId,
     );
-    const subnet = (fullSdcpn.subnets ?? []).find(
-      ({ id }) => id === instance?.subnetId,
-    );
-    const port = subnet?.places.find(
+    const component = instance
+      ? resolveComponent(fullSdcpn, instance.component, libraries)
+      : undefined;
+    const port = component?.places.find(
       (place) => place.id === endpoint.portPlaceId,
     );
     const color = port?.colorId
-      ? subnet?.types.find((type) => type.id === port.colorId)?.displayColor
+      ? component?.types.find((type) => type.id === port.colorId)?.displayColor
       : undefined;
     return {
       id: getArcEndpointKey(endpoint),

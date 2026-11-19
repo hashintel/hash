@@ -33,7 +33,7 @@ const sdcpn: SDCPN = {
   types: [],
   parameters: [],
   differentialEquations: [],
-  subnets: [],
+  components: [],
   componentInstances: [],
   scenarios: [],
 };

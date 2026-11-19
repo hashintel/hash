@@ -63,6 +63,10 @@ export {
 } from "./petrinaut/browser-executed-tools";
 export { CANONICAL_PETRINAUT_TOOL_NAMES } from "./petrinaut/construction-tool-names";
 export {
+  readRecordedCall,
+  recordedCanonicalCallsOf,
+} from "./petrinaut/recorded-calls";
+export {
   PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX,
   parsePetrinautUserMessageBody,
   petrinautContextualUserMessageBody,
@@ -70,6 +74,15 @@ export {
   type SubmissionContext,
 } from "./petrinaut/contextual-user-message";
 export { type InterviewBudget } from "./petrinaut/interview-budget";
+export {
+  type EditorSelection,
+  listedSelection,
+  newestNonEmptySelection,
+  parseSelection,
+  petrinautSelectionLimits,
+  selectionContextKey,
+  shortenedSelectionLabel,
+} from "./petrinaut/selection";
 export {
   petrinautSubmissionContext,
   readPetrinautSubmissionContext,

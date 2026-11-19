@@ -9,10 +9,18 @@ export const netElementKinds = [
   "typeElement",
   "scenario",
   "metric",
-  "subnet",
+  "component",
 ] as const;
 
 export type NetElementKind = (typeof netElementKinds)[number];
+
+/**
+ * A net element kind as a conversation recorded it, under the name the kind
+ * has today: a component was recorded as a `subnet`. Any other value is
+ * returned as it is.
+ */
+export const readRecordedNetElementKind = (kind: unknown): unknown =>
+  kind === "subnet" ? ("component" satisfies NetElementKind) : kind;
 
 /**
  * A read or experiment leaves the bound document unchanged; a mutation or
@@ -44,7 +52,12 @@ const removal = (...targets: readonly NetElementKind[]) =>
 /** Positions are layout, which is not part of what an element means, so no element is credited with a layout change. */
 const layout = mutation();
 
-/** What each canonical Petrinaut tool does to the bound document. */
+/**
+ * What each canonical Petrinaut tool does to the bound document. An effect
+ * is what the tool is asked to do: what a change takes with it, such as the
+ * arcs and fusions on a place that stops being a port, does not make it a
+ * removal. The user approves a call that would take any all the same.
+ */
 export const petrinautToolEffects = {
   addPlace: mutation("place"),
   updatePlace: mutation("place"),
@@ -79,13 +92,21 @@ export const petrinautToolEffects = {
   addMetric: mutation("metric"),
   updateMetric: mutation("metric"),
   removeMetric: removal("metric"),
-  addSubnet: mutation("subnet"),
-  updateSubnet: mutation("subnet"),
-  removeSubnet: removal("subnet"),
+  addComponent: mutation("component"),
+  updateComponent: mutation("component"),
+  removeComponent: removal("component"),
   addComponentInstance: mutation("componentInstance"),
   updateComponentInstance: mutation("componentInstance"),
   updateComponentInstancePosition: layout,
   removeComponentInstance: removal("componentInstance"),
+  addFusion: mutation("fusion"),
+  updateFusion: mutation("fusion"),
+  removeFusion: removal("fusion"),
+  addFusionMember: mutation("fusion"),
+  removeFusionMember: removal("fusion"),
+  // The member it replaces leaves the fusion, as `removeFusionMember` takes one out.
+  replaceFusionMember: removal("fusion"),
+  setImplementation: mutation("component"),
   deleteItemsByIds: removal(...selectionItemTypes),
   commitNodePositions: layout,
   setNetTitle: mutation(),

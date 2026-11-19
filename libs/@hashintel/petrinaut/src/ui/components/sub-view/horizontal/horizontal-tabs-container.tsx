@@ -294,6 +294,22 @@ export const HorizontalTabsHeaderAction: React.FC<{
   return <>{activeSubView.renderHeaderAction()}</>;
 };
 
+/** The panel a tab controls: scrolled, and padded unless told otherwise. */
+export const HorizontalTabPanel: React.FC<{
+  tabId: string;
+  padded?: boolean;
+  children: React.ReactNode;
+}> = ({ tabId, padded = true, children }) => (
+  <div
+    id={`tabpanel-${tabId}`}
+    className={contentStyle({ padded })}
+    role="tabpanel"
+    aria-labelledby={`tab-${tabId}`}
+  >
+    {children}
+  </div>
+);
+
 /**
  * Renders just the content portion of the horizontal tabs.
  * Useful when you need to compose the content separately from the tabs header.
@@ -311,17 +327,9 @@ export const HorizontalTabsContent: React.FC<{
 
   const Component = activeSubView.component;
 
-  const tabpanelId = `tabpanel-${activeTabId}`;
-  const tabId = `tab-${activeTabId}`;
-
   return (
-    <div
-      id={tabpanelId}
-      className={contentStyle({ padded: !activeSubView.noPadding })}
-      role="tabpanel"
-      aria-labelledby={tabId}
-    >
+    <HorizontalTabPanel tabId={activeTabId} padded={!activeSubView.noPadding}>
       <Component />
-    </div>
+    </HorizontalTabPanel>
   );
 };

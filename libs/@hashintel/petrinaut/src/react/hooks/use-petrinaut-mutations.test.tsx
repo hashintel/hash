@@ -11,11 +11,15 @@ import {
   createPetrinaut,
   toPetrinautId,
   type Petrinaut,
+  type PetrinautRules,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
 import { PetrinautInstanceContext } from "../instance-context";
-import { NotificationsContext } from "../notifications/context";
+import {
+  NotificationsContext,
+  type AddNotificationInput,
+} from "../notifications/context";
 import {
   SimulationContext,
   type SimulationState,
@@ -75,6 +79,7 @@ const editorContextValue = (
   clearHoveredItem: () => {},
   keepPlaceVisualizerOpen: () => {},
   closePlaceVisualizer: () => {},
+  toggleComponentInstanceFold: () => {},
   openPlaceVisualizer: () => {},
   setVisualizerEditorFocus: () => {},
   bringVisualizerToFront: () => {},
@@ -97,6 +102,7 @@ const editorContextValue = (
 type WrapperOptions = {
   sdcpn?: SDCPN;
   readonly?: boolean;
+  rules?: PetrinautRules;
   globalMode?: "edit" | "simulate";
   simulationState?: SimulationState;
 };
@@ -105,12 +111,14 @@ const createWrapper = (options: WrapperOptions = {}) => {
   const {
     sdcpn: initialSdcpn = EMPTY_SDCPN,
     readonly = false,
+    rules,
     globalMode = "edit",
     simulationState = "NotRun",
   } = options;
 
   const instance: Petrinaut = createPetrinaut({
     document: createJsonDocHandle({ initial: structuredClone(initialSdcpn) }),
+    rules,
   });
 
   const sdcpnContextValue: SDCPNContextValue = {
@@ -300,6 +308,98 @@ describe("usePetrinautMutations", () => {
     });
   });
 
+  describe("in an editor that only composes", () => {
+    test("a mutation beyond composing shows the reason and does nothing", () => {
+      const addNotification = vi.fn((_notice: AddNotificationInput) => "");
+      const { Wrapper, instance } = createWrapper({
+        rules: { edit: "compose" },
+      });
+      const { result } = renderHook(usePetrinautMutations, {
+        wrapper: ({ children }: { children: ReactNode }) => (
+          <NotificationsContext
+            value={{ addNotification, dismissNotification: () => {} }}
+          >
+            <Wrapper>{children}</Wrapper>
+          </NotificationsContext>
+        ),
+      });
+
+      act(() => {
+        result.current.addPlace({
+          id: "p1",
+          name: "P1",
+          colorId: null,
+          dynamicsEnabled: false,
+          x: 0,
+          y: 0,
+        });
+      });
+
+      expect(instance.definition.get().places).toHaveLength(0);
+      expect(addNotification.mock.calls[0]?.[0].message).toBe(
+        "This editor only places and connects the components it is given.",
+      );
+    });
+
+    test("a mutation that composes goes through", () => {
+      const sdcpn = makeSDCPN({
+        places: [
+          {
+            id: "p1",
+            name: "P1",
+            colorId: null,
+            dynamicsEnabled: false,
+            x: 0,
+            y: 0,
+          },
+        ],
+      });
+      const { Wrapper, instance } = createWrapper({
+        sdcpn,
+        rules: { edit: "compose" },
+      });
+      const { result } = renderHook(usePetrinautMutations, {
+        wrapper: Wrapper,
+      });
+
+      act(() => {
+        result.current.commitNodePositions({
+          commits: [
+            { id: "p1", itemType: "place", position: { x: 100, y: 200 } },
+          ],
+        });
+      });
+
+      expect(instance.definition.get().places[0]!.x).toBe(100);
+    });
+  });
+
+  test("each mutation says whether it went through", () => {
+    const place = {
+      id: "p1",
+      name: "P1",
+      colorId: null,
+      dynamicsEnabled: false,
+      x: 0,
+      y: 0,
+    };
+    const added = (options: WrapperOptions) => {
+      const { Wrapper } = createWrapper(options);
+      const { result } = renderHook(usePetrinautMutations, {
+        wrapper: Wrapper,
+      });
+      let went: boolean | undefined;
+      act(() => {
+        went = result.current.addPlace(place);
+      });
+      return went;
+    };
+
+    expect(added({})).toBe(true);
+    expect(added({ readonly: true })).toBe(false);
+    expect(added({ rules: { edit: "compose" } })).toBe(false);
+  });
+
   describe("cascading deletes", () => {
     test("removePlace cascades to remove connected arcs", () => {
       const sdcpn = makeSDCPN({
@@ -372,7 +472,7 @@ test.each([
         </Wrapper>
       ),
     });
-    act(() =>
+    act(() => {
       result.current.addPlace({
         id: "blocked",
         name: "Blocked",
@@ -380,8 +480,8 @@ test.each([
         dynamicsEnabled: false,
         x: 0,
         y: 0,
-      }),
-    );
+      });
+    });
     expect(instance.definition.get().places).toHaveLength(0);
     expect(addNotification).toHaveBeenCalledWith(
       expect.objectContaining({ message, tone: "neutral" }),
@@ -403,15 +503,15 @@ test("allowed scenario mutations in Simulate stay quiet", () => {
       </Wrapper>
     ),
   });
-  act(() =>
+  act(() => {
     result.current.addScenario({
       id: "scenario",
       name: "Scenario",
       scenarioParameters: [],
       parameterOverrides: {},
       initialState: { type: "per_place", content: {} },
-    }),
-  );
+    });
+  });
   expect(instance.definition.get().scenarios).toHaveLength(1);
   expect(addNotification).not.toHaveBeenCalled();
 });
@@ -436,31 +536,31 @@ describe("visualizer edits during simulation", () => {
       const { result } = renderHook(usePetrinautMutations, {
         wrapper: Wrapper,
       });
-      act(() =>
+      act(() => {
         result.current.updatePlace({
           placeId: "p1",
           update: { visualizerCode: "edited" },
-        }),
-      );
+        });
+      });
       expect(instance.definition.get().places[0]?.visualizerCode).toBe(
         "edited",
       );
-      act(() =>
+      act(() => {
         result.current.updatePlace({
           placeId: "p1",
           update: { visualizerCode: "blocked", name: "Changed" },
-        }),
-      );
+        });
+      });
       expect(instance.definition.get().places[0]).toMatchObject({
         name: "Place",
         visualizerCode: "edited",
       });
-      act(() =>
+      act(() => {
         result.current.updatePlace({
           placeId: "p1",
           update: { visualizerCode: undefined },
-        }),
-      );
+        });
+      });
       expect(
         instance.definition.get().places[0]?.visualizerCode,
       ).toBeUndefined();
@@ -477,12 +577,12 @@ describe("visualizer edits during simulation", () => {
       const { result } = renderHook(usePetrinautMutations, {
         wrapper: Wrapper,
       });
-      act(() =>
+      act(() => {
         result.current.updatePlace({
           placeId: "p1",
           update: { visualizerCode: "edited" },
-        }),
-      );
+        });
+      });
       expect(instance.definition.get().places[0]?.visualizerCode).toBe(
         readonly ? "original" : "edited",
       );

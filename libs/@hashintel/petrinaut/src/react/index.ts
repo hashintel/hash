@@ -38,8 +38,8 @@ export type {
 export {
   defaultPetrinautNavigationHistoryPolicy,
   defaultPetrinautNavigationState,
+  openPetrinautComponent,
   openPetrinautSimulationResource,
-  openPetrinautSubnet,
   PetrinautNavigationProvider,
   petrinautNavigationStatesMatch,
   usePetrinautNavigation,

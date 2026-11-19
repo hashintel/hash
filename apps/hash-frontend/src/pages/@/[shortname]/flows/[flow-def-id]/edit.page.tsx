@@ -274,6 +274,28 @@ const FlowEditor = ({
       return next;
     });
 
+  /* Selects one step and brings it into view on the canvas. A step in a collapsed for-each step isn't drawn, so the
+   * for-each step is expanded first. */
+  const selectAndFocusStep = (stepId: string) => {
+    const collapsedParent = flowDefinition.steps.find(
+      (step) =>
+        step.kind === "for-each" &&
+        collapsedStepIds.has(step.stepId) &&
+        findStep(step.steps, stepId),
+    );
+
+    if (collapsedParent) {
+      toggleCollapsed(collapsedParent.stepId);
+    }
+
+    setSession((current) => ({
+      ...current,
+      selectedStepIds: [stepId],
+      startSelected: false,
+      focusRequest: { stepId },
+    }));
+  };
+
   /* The web the flow is in, which the editor's path names. */
   const webId = extractWebIdFromEntityId(flowDefinitionEntityId);
   const getRunPath = (flowRunEntityId: EntityId) =>
@@ -409,14 +431,7 @@ const FlowEditor = ({
           <LeftPanel
             flowDefinition={flowDefinition}
             selectedStepIds={selectedStepIds}
-            onStepClick={(stepId) =>
-              setSession((current) => ({
-                ...current,
-                selectedStepIds: [stepId],
-                startSelected: false,
-                focusRequest: { stepId },
-              }))
-            }
+            onStepClick={selectAndFocusStep}
             collapsedGroupIds={collapsedStepIds}
             onToggleGroup={toggleCollapsed}
             onCollapseAll={(stepIds) => setCollapsedStepIds(new Set(stepIds))}
@@ -475,6 +490,7 @@ const FlowEditor = ({
                 editor={editor}
                 subject={panelSubject}
                 onSelectStart={() => setSelection({ stepIds: [], start: true })}
+                onSelectStep={selectAndFocusStep}
               />
             )}
           </div>

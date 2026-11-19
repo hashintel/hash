@@ -15,16 +15,18 @@ import {
   startDisplay,
 } from "./shared/step-display";
 import { StepIconTile } from "./shared/step-icon-tile";
+import { getStepPaths } from "./shared/step-paths";
 import { indexValueUses } from "./shared/value-uses";
 import { getFieldProblems } from "./step-panel/field-problems";
 import { FlowInputCard } from "./step-panel/flow-input-card";
 import { InputField } from "./step-panel/input-field";
 import { getNewFlowInput } from "./step-panel/input-sources";
+import { OutputField } from "./step-panel/output-field";
+import { PathsField } from "./step-panel/paths-field";
 import { QueryField } from "./step-panel/query-field";
-import { UsedByField } from "./step-panel/used-by-field";
 
 import type { StepTone } from "./shared/step-display";
-import type { FlowValue } from "./shared/value-uses";
+import type { FlowValue, ValueUse } from "./shared/value-uses";
 import type { IconName } from "@hashintel/ds-components";
 import type { ConnectionTarget } from "@local/hash-isomorphic-utils/flows/can-connect";
 import type {
@@ -38,7 +40,7 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { ReactNode } from "react";
 
-type StepsUsing = (value: FlowValue) => StepDefinition<string>[];
+type UsesOf = (value: FlowValue) => ValueUse[];
 
 const takesEntityQuery = (input: InputDefinition) =>
   "oneOfPayloadKinds" in input &&
@@ -108,11 +110,13 @@ const newInputTarget: ConnectionTarget = {
 const StartPanel = ({
   editor,
   flowDefinition,
-  stepsUsing,
+  usesOf,
+  onSelectStep,
 }: {
   editor: FlowEditor;
   flowDefinition: FlowDefinition<string>;
-  stepsUsing: StepsUsing;
+  usesOf: UsesOf;
+  onSelectStep: (stepId: string) => void;
 }) => {
   /* The input "Add input" added last, whose label is ready to type in. */
   const [addedName, setAddedName] = useState<string | null>(null);
@@ -159,8 +163,9 @@ const StartPanel = ({
             key={key}
             editor={editor}
             input={input}
-            usedBy={stepsUsing({ kind: "flow-input", inputName: input.name })}
+            valueUses={usesOf({ kind: "flow-input", inputName: input.name })}
             autoFocus={input.name === addedName}
+            onSelectStep={onSelectStep}
           />
         ))}
         <Button
@@ -181,22 +186,25 @@ const SelectedStepPanel = ({
   editor,
   flowDefinition,
   problemsByStepId,
-  stepsUsing,
+  usesOf,
   step,
   inner,
   onSelectStart,
+  onSelectStep,
 }: {
   editor: FlowEditor;
   flowDefinition: FlowDefinition<string>;
   problemsByStepId: FlowEditorState["problemsByStepId"];
-  stepsUsing: StepsUsing;
+  usesOf: UsesOf;
   step: StepDefinition<string>;
   /** Inside a for-each step, so read-only (FE-1915). */
   inner: boolean;
   onSelectStart: () => void;
+  onSelectStep: (stepId: string) => void;
 }) => {
   const { title, icon, tone, group } = getStepDisplay(step);
   const getItemName = useItemNames(flowDefinition);
+  const paths = getStepPaths(step);
   const actionDefinition =
     step.kind === "action"
       ? getActionDefinition(step.actionDefinitionId)
@@ -276,6 +284,17 @@ const SelectedStepPanel = ({
           </Form.Section>
         </PanelSection>
       )}
+      {paths.length > 0 && (
+        <PanelSection title="Paths">
+          <PathsField
+            editor={editor}
+            flowDefinition={flowDefinition}
+            step={step}
+            paths={paths}
+            readOnly={inner}
+          />
+        </PanelSection>
+      )}
       {/* TODO(FE-1915): edit a for-each step's list and what it collects */}
       {outputNames.length > 0 && (
         <PanelSection title="Outputs">
@@ -288,14 +307,14 @@ const SelectedStepPanel = ({
               );
 
               return (
-                <UsedByField
+                <OutputField
                   key={outputName}
                   name={getOutputLabel(
                     actionDefinition?.actionDefinitionId,
                     outputName,
                   )}
                   shape={shapes.getStepOutputShape(step.stepId, outputName)}
-                  usedBy={stepsUsing({
+                  valueUses={usesOf({
                     kind: "step-output",
                     stepId: step.stepId,
                     outputName,
@@ -312,6 +331,7 @@ const SelectedStepPanel = ({
                         }
                       : undefined
                   }
+                  onSelectStep={onSelectStep}
                 />
               );
             })}
@@ -327,27 +347,30 @@ export const StepPanel = ({
   editor,
   subject,
   onSelectStart,
+  onSelectStep,
 }: {
   editor: FlowEditor;
   subject: StepPanelSubject;
   onSelectStart: () => void;
+  /** Selects a step that uses a value, picked from "Used in". */
+  onSelectStep: (stepId: string) => void;
 }) => {
   const { flowDefinition, problemsByStepId } = useSyncExternalStore(
     editor.subscribe,
     editor.getState,
   );
-  const stepsUsing = useMemo<StepsUsing>(() => {
-    const usesOf = indexValueUses(flowDefinition.steps);
-
-    return (value) => usesOf(value).map(({ step }) => step);
-  }, [flowDefinition.steps]);
+  const usesOf = useMemo(
+    () => indexValueUses(flowDefinition.steps),
+    [flowDefinition.steps],
+  );
 
   if ("start" in subject) {
     return (
       <StartPanel
         editor={editor}
         flowDefinition={flowDefinition}
-        stepsUsing={stepsUsing}
+        usesOf={usesOf}
+        onSelectStep={onSelectStep}
       />
     );
   }
@@ -361,10 +384,11 @@ export const StepPanel = ({
       editor={editor}
       flowDefinition={flowDefinition}
       problemsByStepId={problemsByStepId}
-      stepsUsing={stepsUsing}
+      usesOf={usesOf}
       step={found.step}
       inner={found.inner}
       onSelectStart={onSelectStart}
+      onSelectStep={onSelectStep}
     />
   ) : null;
 };

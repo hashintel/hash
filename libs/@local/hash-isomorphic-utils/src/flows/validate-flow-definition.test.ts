@@ -792,6 +792,24 @@ describe("validateFlowDefinition", () => {
       },
     );
 
+    it("rejects a step on one of an otherwise runnable if's paths, as runs don't follow paths yet", () => {
+      expect(
+        diagnosticsOf(
+          definition(conditionStep("if", constantCondition(scoreAbove(8))), {
+            ...conditionStep("filterList", constantCondition(scoreAbove(8))),
+            stepId: "onNo",
+            runAfter: [{ stepId: "if", outputName: "false" }],
+          }),
+        ).filter(({ severity }) => severity === "error"),
+      ).toEqual([
+        {
+          severity: "error",
+          code: "pathNotRunnable",
+          path: ["steps", 1, "runAfter", 0, "outputName"],
+        },
+      ]);
+    });
+
     it.each(["filterList", "find", "if"] as const)(
       "rejects a %s condition that doesn't fit the kind it's given",
       (actionDefinitionId) => {

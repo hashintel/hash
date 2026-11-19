@@ -106,7 +106,7 @@ describe("isSDCPNEqual", () => {
       ...sampleNet,
       scenarios: undefined,
       metrics: undefined,
-      subnets: undefined,
+      components: undefined,
       componentInstances: undefined,
     };
 

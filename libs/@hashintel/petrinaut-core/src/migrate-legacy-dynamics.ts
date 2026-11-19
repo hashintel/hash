@@ -18,14 +18,14 @@ type LegacyDifferentialEquation = {
   code: string;
 };
 
-/** The places and equations of a net or of one of its subnets. */
+/** The places and equations of a net or of one of its components. */
 type LegacyDynamicsItems = {
   places: object[];
   differentialEquations?: LegacyDifferentialEquation[];
 };
 
 type LegacyDynamicsNet = LegacyDynamicsItems & {
-  subnets?: LegacyDynamicsItems[];
+  components?: LegacyDynamicsItems[];
 };
 
 /**
@@ -87,7 +87,7 @@ export const migrateLegacyDynamics = <Net extends LegacyDynamicsNet>(
   net: Net,
 ): Net => ({
   ...migrateNetItems(net),
-  ...(net.subnets === undefined
+  ...(net.components === undefined
     ? {}
-    : { subnets: net.subnets.map(migrateNetItems) }),
+    : { components: net.components.map(migrateNetItems) }),
 });

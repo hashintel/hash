@@ -58,7 +58,7 @@ const emptySDCPN: SDCPN = {
   types: [],
   parameters: [],
   differentialEquations: [],
-  subnets: [],
+  components: [],
   componentInstances: [],
 };
 

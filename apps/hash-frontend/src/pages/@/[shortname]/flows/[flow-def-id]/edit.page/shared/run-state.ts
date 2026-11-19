@@ -34,6 +34,10 @@ const stateOfStatus: Record<FlowRunStatus, RunState> = {
   [FlowRunStatus.Unspecified]: "unknown",
 };
 
+/** Whether the run is still going, so more of its steps will run and its status will change. */
+export const isRunGoing = (status: FlowRunStatus) =>
+  stateOfStatus[status] === "running";
+
 export const getRunState = ({
   status,
   openInputRequests,

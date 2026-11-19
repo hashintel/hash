@@ -1,15 +1,15 @@
 import type {
   Color,
+  Component,
   ComponentInstance,
   Place,
   SDCPN,
-  Subnet,
   Transition,
 } from "../types/sdcpn";
 
-type NetWithoutVisualInfo<Net extends SDCPN | Subnet> = Omit<
+type NetWithoutVisualInfo<Net extends SDCPN | Component> = Omit<
   Net,
-  "places" | "transitions" | "types" | "componentInstances" | "subnets"
+  "places" | "transitions" | "types" | "componentInstances" | "components"
 > & {
   places: Array<Omit<Place, "x" | "y">>;
   transitions: Array<Omit<Transition, "x" | "y">>;
@@ -17,12 +17,15 @@ type NetWithoutVisualInfo<Net extends SDCPN | Subnet> = Omit<
   componentInstances: Array<Omit<ComponentInstance, "x" | "y">>;
 };
 
-type SubnetWithoutVisualInfo = NetWithoutVisualInfo<Subnet>;
+type ComponentWithoutVisualInfo = Omit<
+  NetWithoutVisualInfo<Component>,
+  "iconSvg" | "displayColor"
+>;
 type SDCPNWithoutVisualInfo = NetWithoutVisualInfo<SDCPN> & {
-  subnets: SubnetWithoutVisualInfo[];
+  components: ComponentWithoutVisualInfo[];
 };
 
-const stripVisualFromNet = <Net extends SDCPN | Subnet>(
+const stripVisualFromNet = <Net extends SDCPN | Component>(
   net: Net,
 ): NetWithoutVisualInfo<Net> => ({
   ...net,
@@ -46,6 +49,9 @@ const stripVisualFromNet = <Net extends SDCPN | Subnet>(
 export function removeVisualInformation(sdcpn: SDCPN): SDCPNWithoutVisualInfo {
   return {
     ...stripVisualFromNet(sdcpn),
-    subnets: (sdcpn.subnets ?? []).map((subnet) => stripVisualFromNet(subnet)),
+    components: (sdcpn.components ?? []).map(
+      ({ iconSvg: _iconSvg, displayColor: _displayColor, ...component }) =>
+        stripVisualFromNet(component),
+    ),
   };
 }

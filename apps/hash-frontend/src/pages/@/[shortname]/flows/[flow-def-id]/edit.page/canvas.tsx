@@ -33,13 +33,14 @@ import { getContextMenuItems } from "./canvas/context-menu";
 import { getFlowGraph, getStepNodeId, startNodeId } from "./canvas/flow-graph";
 import { ForEachNode, StartNode, StepNode } from "./canvas/flow-nodes";
 import { getFreePosition, layOutFlow } from "./canvas/layout";
-import { stepCardSize, stepGap } from "./canvas/sizes";
+import { getStepCardSize, stepCardSize, stepGap } from "./canvas/sizes";
 import {
   getCenterToReveal,
   useSelectedStepInView,
   useStepFocus,
 } from "./canvas/use-step-focus";
 import { useItemNames } from "./shared/item-name";
+import { connectFromNewStep, getActionPaths } from "./shared/step-paths";
 
 import type { CanvasActions } from "./canvas/canvas-actions";
 import type { CanvasTool } from "./canvas/canvas-toolbar";
@@ -362,6 +363,18 @@ const FlowCanvas = ({
     [getNodes],
   );
 
+  /** `position`, or below it if a new step's card would cover another card there. The ghost card is sized as a
+   * step without paths, so a step with paths is moved further down if its taller card wouldn't fit. */
+  const getNewStepPosition = useCallback(
+    (actionDefinitionId: string, position: XYPosition) =>
+      getFreePosition(
+        position,
+        getStepCardSize(getActionPaths(actionDefinitionId).length),
+        getTakenPlaces(),
+      ),
+    [getTakenPlaces],
+  );
+
   /** Where a step added in the middle of the view lands. */
   const getPositionInView = () => {
     const bounds = containerRef.current?.getBoundingClientRect();
@@ -380,6 +393,7 @@ const FlowCanvas = ({
         x: Math.round(center.x - stepCardSize.width / 2),
         y: Math.round(center.y - stepCardSize.height / 2),
       },
+      stepCardSize,
       getTakenPlaces(),
     );
   };
@@ -389,7 +403,11 @@ const FlowCanvas = ({
     position = getPositionInView(),
   ) => {
     if (position) {
-      selectStep(editor.addStep(actionDefinitionId, { position }));
+      selectStep(
+        editor.addStep(actionDefinitionId, {
+          position: getNewStepPosition(actionDefinitionId, position),
+        }),
+      );
     }
   };
 
@@ -430,7 +448,7 @@ const FlowCanvas = ({
   const canvasActions = useMemo<CanvasActions>(
     () => ({
       editing: {
-        openAddMenuAfter: (stepId) => {
+        openAddMenuAfter: (stepId, outputName) => {
           const node = getInternalNode(
             stepId === null ? startNodeId : getStepNodeId(stepId),
           );
@@ -439,7 +457,7 @@ const FlowCanvas = ({
             return;
           }
 
-          const position = getFreePosition(
+          const ghostPosition = getFreePosition(
             {
               x:
                 node.position.x +
@@ -447,18 +465,27 @@ const FlowCanvas = ({
                 stepGap,
               y: node.position.y,
             },
+            stepCardSize,
             getTakenPlaces(),
           );
 
           openAddMenu({
-            position,
-            addStep: (actionDefinitionId) =>
+            position: ghostPosition,
+            addStep: (actionDefinitionId) => {
+              const position = getNewStepPosition(
+                actionDefinitionId,
+                ghostPosition,
+              );
+
               selectStep(
                 editor.addStep(
                   actionDefinitionId,
-                  stepId === null ? { position } : { after: stepId, position },
+                  stepId === null
+                    ? { position }
+                    : { after: stepId, outputName, position },
                 ),
-              ),
+              );
+            },
           });
         },
         removeConnection: editor.removeConnection,
@@ -468,6 +495,7 @@ const FlowCanvas = ({
     [
       editor,
       getInternalNode,
+      getNewStepPosition,
       getTakenPlaces,
       openAddMenu,
       selectStep,
@@ -479,12 +507,17 @@ const FlowCanvas = ({
     const point = contextPointRef.current;
     const position = getFreePosition(
       cardBeside(screenToFlowPosition(point), "right"),
+      stepCardSize,
       getTakenPlaces(),
     );
 
     openAddMenu({
       position,
-      addStep: (actionDefinitionId) => addStep(actionDefinitionId, position),
+      addStep: (actionDefinitionId) =>
+        addStep(
+          actionDefinitionId,
+          getNewStepPosition(actionDefinitionId, position),
+        ),
     });
   };
 
@@ -618,30 +651,38 @@ const FlowCanvas = ({
     }
 
     const fromOutput = fromHandle.type === "source";
-    const position = getFreePosition(
+    const ghostPosition = getFreePosition(
       cardBeside(
         screenToFlowPosition({ x: point.clientX, y: point.clientY }),
         fromOutput ? "right" : "left",
       ),
+      stepCardSize,
       getTakenPlaces(),
     );
 
     openAddMenu({
-      position,
+      position: ghostPosition,
       addStep: (actionDefinitionId) => {
+        const position = getNewStepPosition(actionDefinitionId, ghostPosition);
+
         if (fromStepId === null) {
           selectStep(editor.addStep(actionDefinitionId, { position }));
         } else if (fromOutput) {
           selectStep(
             editor.addStep(actionDefinitionId, {
               after: fromStepId,
+              outputName: fromHandle.id ?? undefined,
               position,
             }),
           );
         } else {
           const stepId = editor.addStep(actionDefinitionId, { position });
 
-          editor.addConnection({ from: stepId, to: fromStepId });
+          connectFromNewStep(
+            editor,
+            { stepId, actionDefinitionId },
+            fromStepId,
+          );
           selectStep(stepId);
         }
       },
@@ -753,6 +794,7 @@ const FlowCanvas = ({
               kind: "port",
               stepId,
               side: handle.classList.contains("source") ? "output" : "input",
+              outputName: handle.getAttribute("data-handleid") ?? undefined,
             }
           : { kind: "step", stepId },
       );
@@ -823,12 +865,16 @@ const FlowCanvas = ({
               savePositions(draggedNodes)
             }
             isValidConnection={isValidConnection}
-            onConnect={({ source, target }) => {
+            onConnect={({ source, sourceHandle, target }) => {
               const from = getTopLevelStepId(source);
               const to = getTopLevelStepId(target);
 
               if (from !== null && to !== null) {
-                editor.addConnection({ from, to });
+                editor.addConnection({
+                  from,
+                  to,
+                  outputName: sourceHandle ?? undefined,
+                });
               }
             }}
             onConnectEnd={onConnectEnd}

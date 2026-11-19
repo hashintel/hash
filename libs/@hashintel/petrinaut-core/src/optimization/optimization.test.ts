@@ -25,7 +25,7 @@ const definition = {
   types: [],
   differentialEquations: [],
   parameters: [],
-  subnets: [],
+  components: [],
   componentInstances: [],
   scenarios: [scenario],
   metrics: [{ id: toPetrinautId("profit"), name: "Profit", code: "return 1;" }],

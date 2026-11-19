@@ -5,9 +5,9 @@ import { getOpenInputRequests } from "@local/hash-isomorphic-utils/flows/run-eve
 import { getStepRunsFromEvents } from "@local/hash-isomorphic-utils/flows/step-runs";
 import { getFlowRunById } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
 
-import { FlowRunStatus } from "../../../../../../../graphql/api-types.gen";
 import { useFlowDefinitionAtTime } from "../../../../../../shared/use-flow-definitions";
 import { useFlowRunEvents } from "../../../../../../shared/use-flow-run-events";
+import { isRunGoing } from "../shared/run-state";
 import { getStepRunMarks } from "../shared/step-states";
 
 import type {
@@ -75,7 +75,7 @@ export const useRun = ({
   });
 
   const run = data?.getFlowRunById;
-  const live = run?.status === FlowRunStatus.Running;
+  const live = !!run && isRunGoing(run.status);
 
   const [lookedLongEnough, setLookedLongEnough] = useState(false);
   const [lookCount, setLookCount] = useState(0);

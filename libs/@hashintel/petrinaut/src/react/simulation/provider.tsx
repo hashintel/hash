@@ -51,6 +51,7 @@ import {
   type SimulatorSelection,
 } from "../simulators/context";
 import { SDCPNContext } from "../state/sdcpn-context";
+import { useExecutableDefinition } from "../state/use-executable-definition";
 import { constantStore, selectStore, useStore } from "../use-store";
 import {
   type InitialMarking,
@@ -462,7 +463,10 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   const activeCompiler: SimulationCompiler = compiler ?? languageClient;
   const { requestHirArtifacts, requestScenarioHir } = activeCompiler;
   const navigation = usePetrinautNavigation();
-  const { extensions, petriNetDefinition } = sdcpnContext;
+  const { extensions } = sdcpnContext;
+  // A run takes one net: the document with the components of its imports
+  // inlined. Its root places, parameters and scenarios are the document's.
+  const petriNetDefinition = useExecutableDefinition();
   const { addNotification } = use(NotificationsContext);
 
   const petriNetDefinitionRef = useLatest(petriNetDefinition);

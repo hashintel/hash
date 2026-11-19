@@ -11,6 +11,7 @@ import {
   focusLands,
   type FocusDirection,
   type FocusEntry,
+  type FocusFold,
 } from "./focus-flow";
 
 export interface FocusMember {
@@ -59,14 +60,10 @@ export interface FocusHeader {
 }
 
 /**
- * A single-element member for a section or place header. Left/Right drive
- * its collapse state when handlers are given — a header that owns
- * horizontal keys never emits horizontal moves.
+ * A single-element member for a section or place header. Left/Right fold it
+ * as `FocusFold` says; the arrow with no handler leaves horizontally.
  */
-export function useFocusHeader(options: {
-  collapse?: () => void;
-  expand?: () => void;
-}): FocusHeader {
+export function useFocusHeader(options: FocusFold): FocusHeader {
   const [element, setElement] = useState<HTMLButtonElement | null>(null);
   const member = useFocusMember(() => focusLands(element));
 

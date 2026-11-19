@@ -6,6 +6,6 @@ export const emptyPetriNetDefinition: SDCPN = {
   types: [],
   differentialEquations: [],
   parameters: [],
-  subnets: [],
+  components: [],
   componentInstances: [],
 };

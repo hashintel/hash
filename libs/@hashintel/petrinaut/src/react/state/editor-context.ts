@@ -7,7 +7,11 @@ import {
   DEFAULT_PROPERTIES_PANEL_WIDTH,
 } from "./panel-defaults";
 
-import type { SelectionItem, SelectionMap } from "@hashintel/petrinaut-core";
+import type {
+  ComponentReference,
+  SelectionItem,
+  SelectionMap,
+} from "@hashintel/petrinaut-core";
 
 export type DraggingStateByNodeId = Record<
   string,
@@ -22,13 +26,20 @@ type EditorEditionMode =
   | "add-transition"
   | "add-component";
 export type CursorMode = "select" | "pan";
+/**
+ * A tab a plugin adds to the bottom panel. Its id holds a dot, which the id
+ * of none of the editor's own tabs does.
+ */
+export type PluginBottomPanelTab = `${string}.${string}`;
+
 export type BottomPanelTab =
   | "compilation"
   | "diagnostics"
   | "simulation-settings"
   | "actual-events"
   | "actual-timeline"
-  | "simulation-timeline";
+  | "simulation-timeline"
+  | PluginBottomPanelTab;
 
 export type TimelineChartType = "run" | "stacked";
 
@@ -94,7 +105,8 @@ export type EditorState = {
   aiAssistantPlacement: "docked" | "floating";
   isAiAssistantCollapsed: boolean;
   activeBottomPanelTab: BottomPanelTab;
-  componentSubnetId: string | null;
+  /** The component the next click on the canvas places an instance of. */
+  componentToAdd: ComponentReference | null;
   selection: SelectionMap;
   /** Whether any items are currently selected. */
   hasSelection: boolean;
@@ -104,6 +116,11 @@ export type EditorState = {
   keptOpenVisualizerPlaceIds: Set<string>;
   /** Visualizer place IDs ordered from back to front. */
   visualizerStack: string[];
+  /**
+   * Component instances whose ports are unfolded on the canvas. A component
+   * with many ports starts folded, its wires meeting the card's edges.
+   */
+  unfoldedComponentInstanceIds: Set<string>;
   /** The temporary hover or keyboard preview. */
   openVisualizerPlaceId: string | null;
   focusedVisualizerPlaceId: string | null;
@@ -153,7 +170,7 @@ export type EditorActions = {
   toggleBottomPanel: () => void;
   setBottomPanelHeight: (height: number) => void;
   setActiveBottomPanelTab: (tab: BottomPanelTab) => void;
-  setAddComponentMode: (subnetId: string) => void;
+  setAddComponentMode: (component: ComponentReference) => void;
   /** Check whether a given ID is in the current selection. */
   isSelected: (id: string) => boolean;
   setSelection: (
@@ -170,6 +187,8 @@ export type EditorActions = {
   keepPlaceVisualizerOpen: (placeId: string) => void;
   closePlaceVisualizer: (placeId: string) => void;
   bringVisualizerToFront: (placeId: string) => void;
+  /** Unfold a component instance's ports on the canvas, or fold them again. */
+  toggleComponentInstanceFold: (instanceId: string) => void;
   /** Show or dismiss a temporary preview. */
   openPlaceVisualizer: (placeId: string | null) => void;
   setVisualizerEditorFocus: (placeId: string, focused: boolean) => void;
@@ -211,12 +230,13 @@ export const initialEditorState: EditorState = {
   aiAssistantPlacement: "docked",
   isAiAssistantCollapsed: false,
   activeBottomPanelTab: "diagnostics",
-  componentSubnetId: null,
+  componentToAdd: null,
   selection: new Map(),
   hasSelection: false,
   hoveredItem: null,
   keptOpenVisualizerPlaceIds: new Set<string>(),
   visualizerStack: [],
+  unfoldedComponentInstanceIds: new Set<string>(),
   openVisualizerPlaceId: null,
   focusedVisualizerPlaceId: null,
   draggingStateByNodeId: {},
@@ -261,6 +281,7 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   keepPlaceVisualizerOpen: () => {},
   closePlaceVisualizer: () => {},
   bringVisualizerToFront: () => {},
+  toggleComponentInstanceFold: () => {},
   openPlaceVisualizer: () => {},
   setVisualizerEditorFocus: () => {},
   setDraggingStateByNodeId: () => {},

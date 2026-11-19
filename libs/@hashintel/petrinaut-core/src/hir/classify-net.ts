@@ -49,7 +49,7 @@ const chanceOf = (
     return "stochastic";
   }
   const sanitized = sanitizeSDCPNForExtensions(sdcpn, extensions);
-  const nets = [sanitized, ...(sanitized.subnets ?? [])];
+  const nets = [sanitized, ...(sanitized.components ?? [])];
   const types = nets.flatMap((net) => net.types);
 
   const drawn = nets.flatMap((net) => [

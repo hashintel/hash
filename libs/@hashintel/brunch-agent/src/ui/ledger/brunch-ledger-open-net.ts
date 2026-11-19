@@ -27,9 +27,9 @@ const arcIdsOf = (transition: Transition): string[] => [
   ),
 ];
 
-/** The stored IDs of the net's elements of one kind, in the root net and its subnets. */
+/** The stored IDs of the net's elements of one kind, in the root net and its components. */
 const elementIds = (net: SDCPN, kind: NetElementAddress["kind"]): string[] => {
-  const nets = [net, ...(net.subnets ?? [])];
+  const nets = [net, ...(net.components ?? [])];
   switch (kind) {
     case "place":
       return nets.flatMap(({ places }) => places.map(({ id }) => id));
@@ -55,12 +55,14 @@ const elementIds = (net: SDCPN, kind: NetElementAddress["kind"]): string[] => {
       return nets.flatMap(({ componentInstances }) =>
         (componentInstances ?? []).map(({ id }) => id),
       );
+    case "fusion":
+      return nets.flatMap(({ fusions }) => (fusions ?? []).map(({ id }) => id));
     case "scenario":
       return (net.scenarios ?? []).map(({ id }) => id);
     case "metric":
       return (net.metrics ?? []).map(({ id }) => id);
-    case "subnet":
-      return (net.subnets ?? []).map(({ id }) => id);
+    case "component":
+      return (net.components ?? []).map(({ id }) => id);
   }
 };
 

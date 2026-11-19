@@ -12,7 +12,7 @@ import { toPetrinautId, type SDCPN } from "@hashintel/petrinaut-core";
 import {
   submitPersonaBrowserTurn,
   type PersonaAllowedEdit,
-} from "../../evals/petrinaut/persona/browser-turn.ts";
+} from "../../evals/persona/browser-turn.ts";
 import {
   isAppliedChange,
   netCalls,
@@ -88,7 +88,7 @@ const currentApproval = async () => {
     toolCall("getLatestNetDefinition", {}, "current-read"),
     toolCall(
       "removePlace",
-      { placeId: "victim", targetSubnetId: null },
+      { placeId: "victim", targetComponentId: null },
       "current-remove",
     ),
     fauxAssistantMessage([fauxText("Current edit completed.")]),
@@ -110,7 +110,9 @@ const currentApproval = async () => {
       },
     },
   );
-  assert.deepEqual(allowed, [{ items: ["Remove place — Victim"] }]);
+  assert.deepEqual(allowed, [
+    { kind: "destructive-edit", items: ["Remove place — Victim"] },
+  ]);
   const removal = netCalls(result.snapshot).find(
     ({ toolCallId }) => toolCallId === openaiCallId("current-remove"),
   );
@@ -141,7 +143,7 @@ const staleApprovalAfterDisconnect = async () => {
     toolCall("getLatestNetDefinition", {}, "stale-read"),
     toolCall(
       "removePlace",
-      { placeId: "victim", targetSubnetId: null },
+      { placeId: "victim", targetComponentId: null },
       "stale-remove",
     ),
   ]);

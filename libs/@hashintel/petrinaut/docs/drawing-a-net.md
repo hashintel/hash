@@ -51,7 +51,7 @@ Spans the full editor width and has three sections.
 **Left**
 
 - **Sidebar toggle** -- collapses or expands the left sidebar.
-- **Menu** (hamburger icon) -- file operations: **Export** (YAML or JSON, each with or without visual info, or TikZ), **Layout** (apply auto-layout), and **Docs**. **Layout** is not offered on a read-only net, because it moves nodes. A standalone embed of Petrinaut may additionally show **New**, **Open**, **Import**, and **Load example**.
+- **Menu** (hamburger icon) -- file operations: **Export** (YAML or JSON, each with or without visual info, or with imports inlined when the net imports a library, or TikZ), **Layout** (apply auto-layout), and **Docs**. **Layout** is not offered on a read-only net, because it moves nodes. A standalone embed of Petrinaut may additionally show **New**, **Open**, **Import**, and **Load example**.
 - The host application, or its plugins, may add buttons or items before the title.
 - **Net title** -- inline title for the current net. The host application decides whether the title is editable or read-only, and may hide it entirely.
 
@@ -139,16 +139,18 @@ Petri nets are bipartite: you cannot connect a place to another place or a trans
 
 ## Component ports
 
-Subnets can expose selected places as ports. If you don't see subnet or component controls, enable **User settings → Labs → Net Components** first.
+Components can expose selected places as ports. If you don't see the component controls, enable **User settings → Labs → Net Components** first.
 
-Open the subnet, select a boundary place, and enable **Component port** in the place properties panel.
+Open the component, select a boundary place, and enable **Component port** in the place properties panel.
 
-When you instantiate that subnet as a component, each port appears as a handle on the component instance:
+When you place an instance of that component, each port appears as a handle on the component instance:
 
 - Drag a transition's outgoing handle onto a component port to create an output arc into that port.
 - Drag from a component port onto a transition to create an input arc from that port.
 
 A port arc meets the component at its port rather than at its outline. Port arcs behave like ordinary transition arcs: they have weights, input arcs can be Standard, Read, or Inhibitor, and simulation treats the port as the corresponding place inside that component instance.
+
+Ports can also be **fused** with a place of the net, or with each other, so the fused places are one place: see [Composition](composition.md#fusing-places).
 
 ## Arc weight
 
@@ -229,7 +231,7 @@ The left sidebar holds **Entities**, one tree of everything in the net, in these
 | **Differential Equations** | ODE definitions for continuous dynamics. Click **+** to create.      |
 | **Parameters**             | Global parameters available in all user code. Click **+** to create. |
 
-A group appears only when the net's [extensions](petri-net-extensions.md) allow it: Token Types needs colours, Differential Equations needs colours and dynamics, Parameters needs parameters. A net with subnets gets a **Subnets** panel below the tree, once **Net Components** is switched on in [visual settings](visual-settings.md); that setting is off by default.
+A group appears only when the net's [extensions](petri-net-extensions.md) allow it: Token Types needs colours, Differential Equations needs colours and dynamics, Parameters needs parameters. A net with components gets a **Components** panel below the tree, once **Net Components** is switched on in [visual settings](visual-settings.md); that setting is off by default.
 
 Toggle the sidebar with the button in the top-left corner.
 
@@ -246,7 +248,7 @@ ArrowDown moves from the search input into the results; arrows then walk the res
 On hosts with app navigation enabled, Browser **Back** and **Forward** move
 through the app locations you visited. This includes switching global
 modes or Simulate sections, opening an existing scenario, metric or
-experiment, opening or closing their creation drawers, changing subnet,
+experiment, opening or closing their creation drawers, switching nets,
 committing a selection, and opening or closing Viewport Settings. Creation
 drawers opened from Simulation Settings or the timeline are included too. A
 drag-selection gesture creates one location after you finish drawing the
@@ -296,6 +298,7 @@ From the top-bar menu (hamburger icon), under **Export**:
 - **YAML** -- the full SDCPN: places, transitions, arcs, types, dynamics, parameters, scenarios, metrics, **and** canvas positions / display colours. This is the default format, and the one other Petrinaut instances re-import faithfully. It is easier to read and hand-edit than JSON: multi-line code fields (transition kernels, metrics) appear as indented blocks rather than escaped one-line strings.
 - **YAML without visual info** -- the same payload minus node positions and type display colours. Useful when only the logical structure matters (sharing for review, embedding in another tool, comparing two nets without layout noise). On import, the receiving editor applies auto-layout to fill in positions.
 - **JSON** / **JSON without visual info** -- the same two payloads encoded as JSON, for tools that expect it.
+- **YAML with imports inlined** / **JSON with imports inlined** -- offered when the net imports a library. Each component the net takes from a library is written into the file as a component of its own, so the file reads without the libraries. See [Composition](composition.md).
 - **TikZ** -- a `.tex` file with a structural diagram. This is a simplified view: only the place / transition / arc structure is included. Token types, dynamics, read/inhibitor arcs, scenarios, and metrics are **not** encoded. Intended for papers and presentations.
 
 **Import**: loads a net from a `.yaml`, `.yml`, or `.json` file -- the format is detected from the content, so files exported by any Petrinaut version load the same way. If node positions are missing, an automatic layout is applied on load.
