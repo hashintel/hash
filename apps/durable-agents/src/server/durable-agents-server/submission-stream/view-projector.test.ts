@@ -17,6 +17,7 @@ import {
   Harness,
   MemoryStorage,
   type SubmissionId,
+  type SubmissionRecord,
 } from "@earendil-works/pi-durable";
 import { obj } from "@earendil-works/pi-schema";
 import { expect, test, vi } from "vitest";
@@ -370,6 +371,78 @@ test("the response is named by its input entry; a note inside it is a data part 
   expect(history.chunks).toEqual(live.slice(0, -1));
   expect(history.notesBefore.map(({ id }) => id)).toEqual([2]);
   expect(history.notesAfter.map(({ id }) => id)).toEqual([8]);
+});
+
+test("a settled record read ahead of the view ends the stream only once the view shows the settling commit", () => {
+  const submission = {
+    id: 7 as SubmissionId,
+    conversationId,
+    type: "input",
+    status: "unanswered",
+    reason: "aborted",
+    entry: entryId(1),
+  } satisfies SubmissionRecord;
+  const call = assistant(
+    2,
+    fauxAssistantMessage(fauxToolCall("server_json", {}, { id: "json" }), {
+      stopReason: "toolUse",
+    }),
+  );
+  const aborted = entry(3, {
+    kind: "pi.tool-result",
+    data: { diagnostics: [] },
+    model: [
+      {
+        role: "toolResult",
+        toolCallId: "json",
+        toolName: "server_json",
+        content: [{ type: "text", text: "Tool server_json was aborted" }],
+        isError: true,
+        timestamp: 0,
+      },
+    ],
+  });
+  const chunks: UIMessageChunk[] = [];
+  const projector = createViewProjector(
+    { clientToolNames: new Set() },
+    (chunk) => chunks.push(chunk),
+  );
+  // The run still holds the input: the stop's commit, with the aborted result, is not in this view.
+  projector.accept({
+    submission,
+    view: {
+      conversation: { id: conversationId },
+      entries: [input(1), call],
+      docs: {
+        "pi.live": { run: { taskId: 9, inputs: [submission.id], turns: 1 } },
+      },
+    },
+  });
+  expect(projector.isFinished()).toBe(false);
+  expect(chunks.map(({ type }) => type)).not.toContain("abort");
+
+  projector.accept({
+    submission,
+    view: {
+      conversation: { id: conversationId },
+      entries: [input(1), call, aborted],
+      docs: {
+        "pi.live": {
+          runFailure: { taskId: 9, inputs: [submission.id], reason: "aborted" },
+        },
+      },
+    },
+  });
+  expect(projector.isFinished()).toBe(true);
+  expect(chunks.slice(-2)).toEqual([
+    {
+      type: "tool-output-error",
+      toolCallId: "json",
+      errorText: "Tool server_json was aborted",
+      providerExecuted: true,
+    },
+    { type: "abort", reason: "The chat turn aborted." },
+  ]);
 });
 
 test("a browser envelope's output is shown exactly, null and JSON-looking strings included, whatever the model read; a result without the envelope shows its text, as JSON when it is JSON", () => {

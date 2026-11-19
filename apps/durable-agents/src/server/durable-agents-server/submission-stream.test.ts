@@ -16,12 +16,15 @@ import {
   defineExtension,
   defineTool,
   type Extension,
+  type Harness,
   MemoryStorage,
+  type Submission,
 } from "@earendil-works/pi-durable";
 import { obj } from "@earendil-works/pi-schema";
 import {
   type ChatTransport,
   DefaultChatTransport,
+  readUIMessageStream,
   type UIMessage,
   type UIMessageChunk,
 } from "ai";
@@ -38,6 +41,7 @@ import {
 import {
   createDurableAgentsServer,
   type DurableAgentsServerLimits,
+  type DurableAgentsServerOptions,
 } from "../durable-agents-server";
 
 import type { OwnedStorage } from "../conversation-storage";
@@ -55,8 +59,7 @@ type ChatOptions = {
   readonly responses: FauxResponseStep[];
   readonly extensions?: readonly Extension[];
   readonly limits?: Partial<DurableAgentsServerLimits>;
-  /** Wraps each conversation's storage as it is created. */
-  readonly wrapStorage?: (storage: OwnedStorage) => OwnedStorage;
+  readonly afterBind?: DurableAgentsServerOptions["afterBind"];
 };
 
 /** A server on in-memory storage with a scripted model, and AI SDK's own client calling it in-process. */
@@ -64,7 +67,7 @@ const openChat = ({
   responses,
   extensions = [],
   limits,
-  wrapStorage = (storage) => storage,
+  afterBind,
 }: ChatOptions) => {
   const faux = fauxProvider({ tokensPerSecond: 2_000 });
   faux.setResponses(responses);
@@ -75,9 +78,9 @@ const openChat = ({
     openStorage: async (conversationId) => {
       const existing = stores.get(conversationId);
       if (existing !== undefined) return existing;
-      const storage = wrapStorage(
-        Object.assign(new MemoryStorage(), { isOwner: async () => true }),
-      );
+      const storage = Object.assign(new MemoryStorage(), {
+        isOwner: async () => true,
+      });
       stores.set(conversationId, storage);
       return storage;
     },
@@ -95,6 +98,7 @@ const openChat = ({
     settings: { progress: { partialIntervalMs: 5, outputIntervalMs: 5 } },
     clientToolNames: new Set([browserToolName]),
     limits,
+    afterBind,
     context,
   });
   servers.push(server);
@@ -162,6 +166,19 @@ const drain = async (stream: ReadableStream<UIMessageChunk>, what: string) => {
   }
 };
 
+/** The message AI SDK's own reducer builds from `chunks`. */
+const reduce = async (chunks: readonly UIMessageChunk[]) => {
+  let message: UIMessage | undefined;
+  const stream = new ReadableStream<UIMessageChunk>({
+    start(controller) {
+      for (const chunk of chunks) controller.enqueue(chunk);
+      controller.close();
+    },
+  });
+  for await (const next of readUIMessageStream({ stream })) message = next;
+  return message;
+};
+
 const toolInputIds = (chunks: readonly UIMessageChunk[]) =>
   chunks.flatMap((chunk) =>
     chunk.type === "tool-input-available" ? [chunk.toolCallId] : [],
@@ -180,7 +197,7 @@ const pingTool = defineTool({
   execute: async () => ({ output: [{ type: "text", text: "pong" }] }),
 });
 
-/** A server tool that answers once `release` resolves, telling `reached` when it starts. */
+/** A server tool that answers once `release` resolves, or fails once aborted, telling `reached` when it starts. */
 const holdTool = (
   reached: PromiseWithResolvers<void>,
   release: Promise<void>,
@@ -189,9 +206,15 @@ const holdTool = (
     name: "hold",
     description: "Answers when released.",
     parameters: obj({}),
-    execute: async () => {
+    execute: async (_args, _api, callContext) => {
       reached.resolve();
-      await release;
+      const aborted = Promise.withResolvers<never>();
+      callContext.abortSignal?.addEventListener(
+        "abort",
+        () => aborted.reject(new Error("Aborted.")),
+        { once: true },
+      );
+      await Promise.race([release, aborted.promise]);
       return { output: [{ type: "text", text: "released" }] };
     },
   });
@@ -245,4 +268,153 @@ test("a turn with more than a window of entries after its input streams from its
   expect(toolInputIds(resent)).toEqual([...pings, "hold"]);
   expect(textOf(resent)).toBe("Done.");
   expect(resent.at(-1)).toEqual({ type: "finish", finishReason: "stop" });
+});
+
+/**
+ * Count each `status()` read of a submission handle the Harness gives out.
+ * Storage is the wrong place to count: the Session answers them from its
+ * cache, but each is still a job on its mutation line.
+ */
+const countStatusReads = () => {
+  const reads = { count: 0 };
+  const afterBind: ChatOptions["afterBind"] = async ({ harness }) => {
+    const handleOf = harness.submission.bind(harness);
+    Object.assign(harness, {
+      submission: async (...args: Parameters<Harness["submission"]>) => {
+        const handle = await handleOf(...args);
+        if (handle === undefined) return handle;
+        const status = handle.status.bind(handle);
+        return Object.assign(handle, {
+          status: (...statusArgs: Parameters<Submission["status"]>) => {
+            reads.count += 1;
+            return status(...statusArgs);
+          },
+        });
+      },
+    });
+  };
+  return { reads, afterBind };
+};
+
+test("a streamed turn reads its submission's record a bounded number of times, not once per view", async () => {
+  const answer = "A long answer, streamed in many partials. ".repeat(60);
+  const { reads, afterBind } = countStatusReads();
+  const { transport } = openChat({
+    responses: [fauxAssistantMessage(answer)],
+    afterBind,
+  });
+  const chunks = await drain(
+    await send(transport, userMessage("user-reads")),
+    "the stream",
+  );
+  expect(textOf(chunks)).toBe(answer);
+  // Each partial is its own view.
+  expect(
+    chunks.filter(({ type }) => type === "text-delta").length,
+  ).toBeGreaterThan(20);
+  // Once as the stream starts, once when the view shows the run settled it.
+  expect(reads.count).toBeLessThanOrEqual(2);
+});
+
+/** A server tool that writes output until its call is aborted. */
+const tickerTool = defineTool({
+  name: "ticker",
+  description: "Ticks until stopped.",
+  parameters: obj({}),
+  execute: async (_args, api, callContext) => {
+    for (;;) {
+      api.output("tick\n");
+      // Each tick waits for the one before.
+      // eslint-disable-next-line no-await-in-loop
+      await sleep(2, undefined, { signal: callContext.abortSignal });
+    }
+  },
+});
+
+/** Each tool call's outcome in `message`: its state, and its error text when it failed. */
+const toolOutcomes = (message: UIMessage | undefined) =>
+  Object.fromEntries(
+    (message?.parts ?? []).flatMap((part) =>
+      "toolCallId" in part && "state" in part
+        ? [
+            [
+              part.toolCallId,
+              {
+                state: part.state,
+                errorText: "errorText" in part ? part.errorText : undefined,
+              },
+            ],
+          ]
+        : [],
+    ),
+  );
+
+test("a stop during running tool calls streams the error results history shows", async () => {
+  const { server, transport } = openChat({
+    responses: [
+      fauxAssistantMessage(
+        [
+          fauxToolCall("ticker", {}, { id: "tick-1" }),
+          fauxToolCall("ticker", {}, { id: "tick-2" }),
+        ],
+        { stopReason: "toolUse" },
+      ),
+    ],
+    extensions: [defineExtension({ name: "test.tools", tools: [tickerTool] })],
+  });
+  const stream = drain(
+    await send(transport, userMessage("user-stop")),
+    "the stream",
+  );
+  await sleep(100);
+  const stopped = await server.app.request(`${origin}/chat/${chatId}/abort`, {
+    method: "POST",
+  });
+  expect(stopped.status).toBe(204);
+  const chunks = await stream;
+  expect(chunks.at(-1)).toEqual({
+    type: "abort",
+    reason: "The chat turn aborted.",
+  });
+
+  const history = await server.app.request(`${origin}/chat/${chatId}/messages`);
+  const messages = (await history.json()) as UIMessage[];
+  const shown = toolOutcomes(messages.at(-1));
+  expect(Object.keys(shown)).toEqual(["tick-1", "tick-2"]);
+  expect(toolOutcomes(await reduce(chunks))).toEqual(shown);
+});
+
+test("a follow-up withdrawn while queued ends its stream, though it never reached the run", async () => {
+  const reached = Promise.withResolvers<void>();
+  const { server, transport } = openChat({
+    responses: [toolRound("hold", "hold")],
+    extensions: [
+      defineExtension({
+        name: "test.tools",
+        // Never released: the stop ends it.
+        tools: [holdTool(reached, new Promise(() => {}))],
+      }),
+    ],
+  });
+  const first = drain(
+    await send(transport, userMessage("user-first")),
+    "the first stream",
+  );
+  await within("the run to reach its hold", reached.promise);
+  const queued = drain(
+    await send(transport, userMessage("user-queued")),
+    "the queued stream",
+  );
+
+  const stopped = await server.app.request(`${origin}/chat/${chatId}/abort`, {
+    method: "POST",
+  });
+  expect(stopped.status).toBe(204);
+  expect(await queued).toEqual([
+    { type: "abort", reason: "The chat turn aborted." },
+  ]);
+  expect((await first).at(-1)).toEqual({
+    type: "abort",
+    reason: "The chat turn aborted.",
+  });
 });
