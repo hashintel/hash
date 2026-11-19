@@ -27,6 +27,7 @@ import {
   createViewProjector,
   projectResponseEntries,
   type ProjectionOptions,
+  type UnseenEntries,
 } from "./submission-stream/view-projector";
 
 import type { UIMessageChunk } from "ai";
@@ -38,6 +39,30 @@ export {
   projectResponseEntries,
   responseMessageId,
 } from "./submission-stream/view-projector";
+
+/** The conversation's committed entries after `after`, through `through`, page by page. */
+const entriesBetween = async (
+  conversation: Conversation,
+  { after, through }: UnseenEntries,
+  context: Context,
+): Promise<EntryRecord[]> => {
+  const entries: EntryRecord[] = [];
+  let cursor: Cursor | undefined;
+  do {
+    // eslint-disable-next-line no-await-in-loop -- Each page starts at the previous cursor.
+    const page = await conversation.entries(
+      { minEntryId: after, maxEntryId: through, order: "ascending" },
+      100,
+      cursor,
+      context,
+    );
+    for (const entry of page.items) {
+      if (entry.id !== after) entries.push(entry);
+    }
+    cursor = page.next;
+  } while (cursor !== undefined);
+  return entries;
+};
 
 /** Replay the failed input's committed response, including abort cleanup, without a live watch or browser work. */
 export const replayCrashLoop = async (
@@ -66,21 +91,11 @@ export const replayCrashLoop = async (
   }, context);
   if (last === undefined) return undefined;
 
-  const entries: EntryRecord[] = [];
-  let cursor: Cursor | undefined;
-  do {
-    // eslint-disable-next-line no-await-in-loop -- Each page starts at the previous cursor.
-    const page = await root.entries(
-      { minEntryId: input, maxEntryId: last, order: "ascending" },
-      100,
-      cursor,
-      context,
-    );
-    for (const entry of page.items) {
-      if (entry.id !== input) entries.push(entry);
-    }
-    cursor = page.next;
-  } while (cursor !== undefined);
+  const entries = await entriesBetween(
+    root,
+    { after: input, through: last },
+    context,
+  );
   // The marker classifies the failure, but Pi can commit partial output
   // and tool results after it while aborting the run.
   if (!stoppedByCrashLoop(entries, record.id)) return undefined;
@@ -120,7 +135,7 @@ export const followSubmission = async (
     return detached();
   }
   const record = await submission.status(context);
-  // From the input on, so a long transcript does not push the anchor out of the first window.
+  // The first window starts at the input only when at most Pi's window maximum follows it; the projector reads what it skips.
   const watch = await conversation.watch(
     signal === undefined ? context : withAbortSignal(signal, context),
     record.type === "input" && record.entry !== undefined
@@ -158,7 +173,14 @@ export const followSubmission = async (
         if (isEnded()) return;
         const status = await submission.status(context);
         if (isEnded()) return;
-        projector.accept({ submission: status, view });
+        const frame = { submission: status, view };
+        const unseen = projector.unseen(frame);
+        const skipped =
+          unseen === undefined
+            ? []
+            : await entriesBetween(conversation, unseen, context);
+        if (isEnded()) return;
+        projector.accept(frame, skipped);
         if (projector.isFinished()) end();
       };
       try {
