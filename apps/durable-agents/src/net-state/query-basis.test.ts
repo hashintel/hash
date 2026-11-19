@@ -19,6 +19,7 @@ import {
 import { describe, expect, test, vi } from "vitest";
 
 import {
+  basisQueryReasons,
   type BasisQuerySelector,
   brunchTools,
   foldCommits,
@@ -671,6 +672,7 @@ describe("query_basis", () => {
       await query([user, commit, add, read], queue, { state: "stale" }),
     ).toMatchObject({
       disposition: "stale-read",
+      reason: basisQueryReasons["stale-hand-edit"],
       target: undefined,
       readToolCallId: "read-queue",
       basis: undefined,
@@ -690,10 +692,26 @@ describe("query_basis", () => {
       ),
     ).toMatchObject({
       disposition: "stale-read",
+      reason: basisQueryReasons["no-current-view"],
       readToolCallId: "read-queue",
       target: undefined,
       basis: undefined,
       changes: [],
+    });
+  });
+
+  test("a recorded definition whose view was summarized away answers stale-read", async () => {
+    expect(
+      await query(
+        [user, commit, add, read, queueReflection],
+        { kind: "place", name: "Queue" },
+        { state: "none" },
+      ),
+    ).toMatchObject({
+      disposition: "stale-read",
+      reason: basisQueryReasons["no-current-view"],
+      readToolCallId: "read-queue",
+      target: undefined,
     });
   });
 
