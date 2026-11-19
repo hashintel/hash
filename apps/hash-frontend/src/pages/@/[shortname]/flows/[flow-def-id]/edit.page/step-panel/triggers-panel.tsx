@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import {
   Button,
@@ -22,6 +22,11 @@ import type {
 const shownPerKind = 4;
 
 const block = css({ display: "flex", flexDirection: "column" });
+const sheetContent = css({
+  display: "flex",
+  flexDirection: "column",
+  outline: "none",
+});
 const manualRow = css({ display: "flex", alignItems: "center", gap: "3" });
 const manualText = css({
   display: "flex",
@@ -75,6 +80,8 @@ export const TriggersPanelBody = ({
   const [searching, setSearching] = useState(false);
   const [search, setSearch] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
+  /* Takes Esc from the start, rather than "Show all" under the sheet, whose tooltip would take the first Esc. */
+  const sheetContentRef = useRef<HTMLDivElement>(null);
 
   const shown = filterTriggerRows(
     (Array.isArray(schedules) ? schedules : []).toSorted((left, right) =>
@@ -181,6 +188,7 @@ export const TriggersPanelBody = ({
           variant="plain"
           showBackdrop={false}
           shouldCloseOn="none"
+          initialFocusRef={sheetContentRef}
           aria-label={groupTitle}
           onKeyDown={(event) => {
             if (event.key === "Escape") {
@@ -205,7 +213,7 @@ export const TriggersPanelBody = ({
             }
           />
           <Drawer.Body>
-            <div className={block}>
+            <div ref={sheetContentRef} tabIndex={-1} className={sheetContent}>
               <TriggerRows rows={shown} />
             </div>
           </Drawer.Body>
