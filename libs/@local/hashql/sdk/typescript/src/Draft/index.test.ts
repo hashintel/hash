@@ -382,6 +382,15 @@ describe("program", () => {
     );
   });
 
+  test("host_objects", () => {
+    expect.hasAssertions();
+    const result = Draft.program({}, ($) =>
+      // @ts-expect-error exercise an unchecked JavaScript caller
+      $.let("row", { at: new Map() }),
+    );
+    expect(reason(result)._tag).toBe("InvalidExpression");
+  });
+
   test("type_assertion", () => {
     expect.hasAssertions();
     const result = Draft.program({}, ($) => {

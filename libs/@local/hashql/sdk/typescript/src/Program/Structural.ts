@@ -124,9 +124,36 @@ export declare namespace Value {
       ? V
       : never
     : never;
+
+  /**
+   * Accepts a structural value when every array in it has a statically known length.
+   *
+   * A tuple's descriptor has one type per position. A host array such as `readonly string[]` has no positions to describe. `FixedLength` evaluates to `unknown`, which leaves an intersection unchanged, when every array in `V` is a tuple, at any depth and in every host-side alternative. Otherwise it evaluates to `never`, which rejects the value it constrains. It accepts {@link Any} itself, which cannot show the arrays its values hold.
+   */
+  export type FixedLength<V extends Any> = [OpenArray<V>] extends [false]
+    ? // oxlint-disable-next-line typescript/no-restricted-types -- unknown is the identity of an accepted intersection constraint
+      unknown
+    : never;
 }
 
 interface FieldValues extends Record.ReadonlyRecord<string, Value.Any> {}
+
+/** Whether `V` holds an array whose length TypeScript does not know, in any host-side alternative and at any depth. */
+type OpenArray<V extends Value.Any> = [Value.Any] extends [V]
+  ? false
+  : V extends Expression.Value.Any
+    ? false
+    : V extends readonly Value.Any[]
+      ? number extends V["length"]
+        ? true
+        : OpenArrays<V>[number]
+      : V extends FieldValues
+        ? { readonly [K in keyof V]: OpenArray<V[K]> }[keyof V]
+        : false;
+
+type OpenArrays<V extends readonly Value.Any[]> = {
+  readonly [K in keyof V]: OpenArray<V[K]>;
+};
 
 type RequirementAlternatives<V extends Value.Any> =
   V extends Expression.Value.Any
@@ -151,27 +178,6 @@ type RequirementAlternatives<V extends Value.Any> =
           : Inputs.Empty;
 
 /**
- * Accepts arrays and objects whose prototype is `Object.prototype` or `null`.
- *
- * Records compile from their enumerable own string keys. A `Map` or `Date` keeps its contents outside those keys and would compile to an empty struct.
- */
-// oxlint-disable-next-line typescript/no-restricted-types -- the dispatch checks pass arbitrary host values, and `Object.values` reads any object
-const isTupleOrRecord = (value: unknown): value is object => {
-  if (Array.isArray(value)) {
-    return true;
-  }
-
-  if (!Predicate.isObject(value)) {
-    return false;
-  }
-
-  return (
-    Object.getPrototypeOf(value) === Object.prototype ||
-    Object.getPrototypeOf(value) === null
-  );
-};
-
-/**
  * Recognizes recursive type shorthand without confusing primitive values with constructors.
  *
  * This dispatch check examines enumerable own string-keyed values and the SDK type marker. It does not validate field names or stored type syntax. Empty records and arrays qualify, and other objects such as a `Map` do not. Host objects must be acyclic.
@@ -194,7 +200,7 @@ export const isDefinition = (value: unknown): value is Definition => {
     return true;
   }
 
-  if (!isTupleOrRecord(value)) {
+  if (!StructuralSyntax.isTupleOrRecord(value)) {
     return false;
   }
 
@@ -230,7 +236,7 @@ export const isValue = (value: unknown): value is Value.Any => {
     return true;
   }
 
-  if (!isTupleOrRecord(value)) {
+  if (!StructuralSyntax.isTupleOrRecord(value)) {
     return false;
   }
 
@@ -411,7 +417,7 @@ type Annotated<V extends Value.Any, A extends Annotation> = A extends readonly [
 /**
  * Infers a struct's field descriptors and combines their input requirements.
  *
- * Nested records and arrays follow {@link value}. Invalid field names, two keys that decode to the same name and nested construction failures remain in the returned expression.
+ * Nested records and arrays follow {@link value}, and every array needs a statically known length, as in {@link tuple}. Invalid field names, two keys that decode to the same name and nested construction failures remain in the returned expression.
  *
  * Pass `type`, a type expression or structural shorthand as {@link "type"} takes it, to annotate the struct with `#type`. The expression then has the annotation's type, which widens the fields' types. Nothing here checks the fields against it, as with {@link Expression.assume}, and the HashQL compiler does.
  *
@@ -433,7 +439,7 @@ type Annotated<V extends Value.Any, A extends Annotation> = A extends readonly [
  * @since 0.1.0
  */
 export const struct = <const V extends FieldValues, const A extends Annotation>(
-  fields: V,
+  fields: V & Value.FixedLength<V>,
   ...[type]: A
 ): Expression.Expression<Annotated<V, A>, Value.Requirements<V>> =>
   pipe(
@@ -445,7 +451,7 @@ export const struct = <const V extends FieldValues, const A extends Annotation>(
 /**
  * Infers a fixed-length tuple without merging its positional descriptors.
  *
- * The argument must have a statically known length and required positions. Use {@link list} for a variable-length array. Nested values and failures follow {@link value}. A `type` annotates the tuple as it does a {@link struct}.
+ * The argument and every array nested in it must have a statically known length and required positions. Use {@link list} for a variable-length array. Nested values and failures follow {@link value}. A `type` annotates the tuple as it does a {@link struct}.
  *
  * @category Constructors
  * @since 0.1.0
@@ -454,7 +460,7 @@ export const tuple = <
   const V extends readonly Value.Any[],
   const A extends Annotation,
 >(
-  members: V & { readonly length: number extends V["length"] ? never : number },
+  members: V & Value.FixedLength<V>,
   ...[type]: A
 ): Expression.Expression<Annotated<V, A>, Value.Requirements<V>> =>
   pipe(

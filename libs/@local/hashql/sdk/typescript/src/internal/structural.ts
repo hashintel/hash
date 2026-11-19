@@ -206,15 +206,32 @@ export const structNode = (
     ),
   );
 
-/** Tests for an expression first, because a predicate is a plain object that carries the expression markers rather than fields. */
+/**
+ * Accepts arrays and objects whose prototype is `Object.prototype` or `null`.
+ *
+ * Records compile from their enumerable own string keys. A `Map` or `Date` keeps its contents outside those keys and would compile to an empty struct.
+ */
+// oxlint-disable-next-line typescript/no-restricted-types -- the dispatch checks pass arbitrary host values, and `Object.values` reads any object
+export const isTupleOrRecord = (value: unknown): value is object => {
+  if (Array.isArray(value)) {
+    return true;
+  }
+
+  if (!Predicate.isObject(value)) {
+    return false;
+  }
+
+  return (
+    Object.getPrototypeOf(value) === Object.prototype ||
+    Object.getPrototypeOf(value) === null
+  );
+};
+
+/** Tests for an expression first, because a predicate is a plain object that carries the expression markers rather than fields. Any other value that is not a tuple or a record lowers as an expression. */
 export const valueNode = (
   value: Structural.Value.Any,
 ): Result.Result<AST.Node.Any, ProgramError.Construction> => {
-  if (
-    Expression.isExpression(value) ||
-    value === null ||
-    typeof value !== "object"
-  ) {
+  if (Expression.isExpression(value) || !isTupleOrRecord(value)) {
     return Expression.toNode(value);
   }
 

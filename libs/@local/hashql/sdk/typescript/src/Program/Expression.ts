@@ -10,8 +10,8 @@
  * @since 0.1.0
  * @module
  */
-// oxlint-disable max-lines -- expression constructors and their API examples belong with the private handle metadata and proxy machinery
-// oxlint-disable max-dependencies -- expression constructors are tightly coupled with private handle metadata and proxy machinery
+// oxlint-disable max-lines -- expression constructors and their API examples belong in one module
+// oxlint-disable max-dependencies -- the constructors lower host values, structural shorthand and type definitions into syntax and AST nodes
 import { Function, Pipeable, Result, Struct, pipe } from "effect";
 
 import * as internal from "../internal/expression.js";
@@ -41,7 +41,7 @@ export type { Conditional } from "./ExpressionType.js";
  */
 export type TypeId = typeof TypeId;
 
-export interface Variance<T, Inputs> {
+interface Variance<T, Inputs> {
   readonly _T: Types.Invariant<T>;
   readonly _Inputs: Types.Contravariant<Inputs>;
 }
@@ -395,23 +395,24 @@ export const assume =
  * @category Combinators
  * @since 0.1.0
  */
-export const as = Function.dual<
-  <T extends Structural.Definition>(
+export const as: (<const T extends Structural.Definition>(
+  type: T,
+) => <const E extends Structural.Value.Any>(
+  expression: E & Structural.Value.FixedLength<E>,
+) => Expression<
+  Structural.Definition.Type<T>,
+  Structural.Value.Requirements<E>
+>) &
+  (<
+    const E extends Structural.Value.Any,
+    const T extends Structural.Definition,
+  >(
+    expression: E & Structural.Value.FixedLength<E>,
     type: T,
-  ) => <const E extends Structural.Value.Any>(
-    expression: E,
   ) => Expression<
     Structural.Definition.Type<T>,
     Structural.Value.Requirements<E>
-  >,
-  <const E extends Structural.Value.Any, T extends Structural.Definition>(
-    expression: E,
-    type: T,
-  ) => Expression<
-    Structural.Definition.Type<T>,
-    Structural.Value.Requirements<E>
-  >
->(
+  >) = Function.dual(
   2,
   <E extends Structural.Value.Any, T extends Structural.Definition>(
     expression: E,

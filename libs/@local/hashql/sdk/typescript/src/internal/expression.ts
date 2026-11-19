@@ -14,7 +14,7 @@ import * as AST from "../Program/AST/index.js";
 import * as ProgramError from "../Program/ProgramError.js";
 import * as Relocation from "./relocation.js";
 
-import type { Expression, Value, Variance } from "../Program/Expression.js";
+import type { Expression, Value } from "../Program/Expression.js";
 import type { Arguments } from "../Program/ExpressionType.js";
 import type * as Type from "../Type.js";
 
@@ -27,7 +27,7 @@ export const TypeId = "~hashql/Expression";
 export const Binding: unique symbol = Symbol("~hashql/Expression");
 
 class ExpressionImpl<T extends Type.Any, Inputs> {
-  readonly [TypeId]: Variance<T, Inputs>;
+  readonly [TypeId]: Expression.Handle<T, Inputs>[typeof TypeId];
 
   readonly #expr: Result.Result<AST.Node.Any, ProgramError.Construction>;
 
@@ -45,6 +45,45 @@ class ExpressionImpl<T extends Type.Any, Inputs> {
   }
 }
 
+/** @internal */
+// oxlint-disable-next-line typescript/no-restricted-types -- type guard
+export const isExpression = (value: unknown): value is Expression.Any =>
+  Predicate.hasProperty(value, TypeId);
+
+const jexprParser = SchemaParser.decodeResult(Schema.toType(JExpr.Schema));
+
+/** @internal */
+export const parseNode = (
+  expression: JExpr.Expression,
+): Result.Result<AST.Node.Any, ProgramError.Construction> =>
+  Result.mapBoth(jexprParser(expression), {
+    onSuccess: (syntax) => new AST.Expr(syntax),
+    onFailure: (cause) => ProgramError.Construction.invalidExpression(cause),
+  });
+
+/** @internal */
+export const toNode = (
+  value: Value.Any,
+): Result.Result<AST.Node.Any, ProgramError.Construction> => {
+  if (isExpression(value)) {
+    if (Predicate.hasProperty(value, Binding)) {
+      return value[Binding];
+    }
+
+    // The marker is a string key, so a data record can carry it. Only a handle stores a result.
+    return Result.fail(
+      ProgramError.Construction.invalidExpression(
+        new SchemaIssue.InvalidValue(
+          { message: `A record with the "${TypeId}" key is not an expression` },
+          value,
+        ),
+      ),
+    );
+  }
+
+  return parseNode(JExpr.literal(value));
+};
+
 const projectionKey = (
   key: string | number,
 ): Result.Result<string | number, ProgramError.Construction> => {
@@ -56,7 +95,6 @@ const projectionKey = (
   return pipe(
     key,
     JExpr.integer,
-    // oxlint-disable-next-line no-use-before-define -- make is defined before any exports
     parseNode,
     Result.map(() => key),
   );
@@ -82,7 +120,6 @@ const make = <T extends Type.Any, Inputs>(
           pipe(
             {
               callee: impl[Binding],
-              // oxlint-disable-next-line no-use-before-define -- `make` is right next to the expression impl it guards
               arguments: Result.all(args.map(toNode)),
             },
             Result.all,
@@ -129,7 +166,6 @@ const make = <T extends Type.Any, Inputs>(
       if (property === "$index" || property === "$indexUnsafe") {
         return (key: Value.Any) => {
           const expr = pipe(
-            // oxlint-disable-next-line no-use-before-define -- `make` is right next to the expression impl it guards
             { value: target[Binding], key: toNode(key) },
             Result.all,
             Result.map(({ value, key }) => new AST.Subscript(value, key)),
@@ -173,45 +209,6 @@ const make = <T extends Type.Any, Inputs>(
   // SAFETY: the handle retains T and Inputs. The traps supply their type-directed operations.
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- TypeScript cannot derive conditional accessors and call signatures from proxy traps
   return proxy as Expression<T, Inputs>;
-};
-
-/** @internal */
-// oxlint-disable-next-line typescript/no-restricted-types -- type guard
-export const isExpression = (value: unknown): value is Expression.Any =>
-  Predicate.hasProperty(value, TypeId);
-
-const jexprParser = SchemaParser.decodeResult(Schema.toType(JExpr.Schema));
-
-/** @internal */
-export const parseNode = (
-  expression: JExpr.Expression,
-): Result.Result<AST.Node.Any, ProgramError.Construction> =>
-  Result.mapBoth(jexprParser(expression), {
-    onSuccess: (syntax) => new AST.Expr(syntax),
-    onFailure: (cause) => ProgramError.Construction.invalidExpression(cause),
-  });
-
-/** @internal */
-export const toNode = (
-  value: Value.Any,
-): Result.Result<AST.Node.Any, ProgramError.Construction> => {
-  if (isExpression(value)) {
-    if (Predicate.hasProperty(value, Binding)) {
-      return value[Binding];
-    }
-
-    // The marker is a string key, so a data record can carry it. Only a handle stores a result.
-    return Result.fail(
-      ProgramError.Construction.invalidExpression(
-        new SchemaIssue.InvalidValue(
-          { message: `A record with the "${TypeId}" key is not an expression` },
-          value,
-        ),
-      ),
-    );
-  }
-
-  return parseNode(JExpr.literal(value));
 };
 
 /** @internal */
