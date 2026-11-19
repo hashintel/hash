@@ -11,6 +11,7 @@ import {
   EditorContext,
   type EditorState,
 } from "../../../../../react/state/editor-context";
+import { useIsPanelAnimating } from "../../../../../react/state/panel-animation-context";
 import { useComposesOnly } from "../../../../../react/state/use-composes-only";
 import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
 import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
@@ -111,9 +112,9 @@ export const BottomBar: React.FC<BottomBarProps> = ({
     setBottomPanelOpen,
     setActiveBottomPanelTab,
     isAiAssistantOpen,
-    isPanelAnimating,
     toggleAiAssistant,
   } = use(EditorContext);
+  const isPanelAnimating = useIsPanelAnimating();
 
   // Only error-severity diagnostics block simulation — warnings and hints
   // (e.g. HIR semantic lints) are informational.

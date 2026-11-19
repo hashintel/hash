@@ -1,9 +1,8 @@
 import { MiniMap as ReactFlowMiniMap, useStore } from "@xyflow/react";
-import { use } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { EditorContext } from "../../../../../../react/state/editor-context";
+import { useIsPanelAnimating } from "../../../../../../react/state/panel-animation-context";
 import { useCanvasInsetsReader } from "../../../../../hooks/use-canvas-insets";
 import { styleRef } from "../../../../../lib/readings";
 import { miniMapFocusColor } from "../../../styles/focus";
@@ -108,7 +107,7 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({
  * Positions at the top right, clear of panels over the canvas.
  */
 export const MiniMap: React.FC<Omit<MiniMapProps, "style">> = (props) => {
-  const { isPanelAnimating } = use(EditorContext);
+  const isPanelAnimating = useIsPanelAnimating();
   const readInsets = useCanvasInsetsReader();
   // True inset from the canvas edges (react-flow's default 15px panel margin
   // is zeroed below) — matches the viewport controls' offset.

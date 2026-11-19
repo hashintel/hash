@@ -42,7 +42,6 @@ it("centers in the available main view as sibling panels resize it", () => {
     hasSelection: false,
     isAiAssistantOpen: false,
     isAiAssistantCollapsed: false,
-    aiAssistantPlacement: "docked" as "docked" | "floating",
   };
   const panelSizes = createPanelSizes();
   const wrapper = ({ children }: { children: ReactNode }) => (
@@ -75,14 +74,14 @@ it("centers in the available main view as sibling panels resize it", () => {
     "max(calc(-588px + 50%), min(0px, calc(138px - 50%)))",
   );
 
-  editor = { ...editor, aiAssistantPlacement: "floating" };
+  editor = { ...editor };
   laneWidth = 2000;
   rerender();
   expect(offsetX()).toBe(
     `max(calc(${12 - laneWidth / 2}px + 50%), min(0px, calc(${laneWidth / 2 - (editor.hasSelection ? propertiesPanelWidth : 0) - 12}px - 50%)))`,
   );
 
-  editor = { ...editor, aiAssistantPlacement: "docked" };
+  editor = { ...editor };
   act(() => panelSizes.aiAssistantWidth.set(1000));
   laneWidth = 1000;
   rerender();
@@ -104,7 +103,6 @@ it("keeps horizontal placement unchanged when a panel moves a hover-expanded bar
     isLeftSidebarOpen: true,
     hasSelection: true,
     isBottomPanelOpen: false,
-    isPanelAnimating: false,
   };
   const panelSizes = createPanelSizes({
     leftSidebarWidth: 220,
@@ -128,13 +126,13 @@ it("keeps horizontal placement unchanged when a panel moves a hover-expanded bar
   expect(result.current.isCollapsed).toBe(true);
   const offset = offsetX();
   for (const isBottomPanelOpen of [true, false]) {
-    editor = { ...editor, isBottomPanelOpen, isPanelAnimating: true };
+    editor = { ...editor, isBottomPanelOpen };
     rerender();
     expect(offsetX()).toBe(offset);
     expect(liftY()).toBe(
       isBottomPanelOpen ? defaultPanelSizes.bottomPanelHeight : 0,
     );
-    editor = { ...editor, isPanelAnimating: false };
+    editor = { ...editor };
     rerender();
     expect(offsetX()).toBe(offset);
   }

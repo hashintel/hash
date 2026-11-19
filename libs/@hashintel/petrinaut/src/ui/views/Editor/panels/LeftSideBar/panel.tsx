@@ -4,6 +4,7 @@ import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import { CompositionContext } from "../../../../../react/state/composition-context";
 import { EditorContext } from "../../../../../react/state/editor-context";
+import { useIsPanelAnimating } from "../../../../../react/state/panel-animation-context";
 import { usePanelSizes } from "../../../../../react/state/panel-sizes-context";
 import { useComposesOnly } from "../../../../../react/state/use-composes-only";
 import { useIsCompositionInterfaceOn } from "../../../../../react/state/use-is-composition-interface-on";
@@ -102,11 +103,8 @@ const contentLayerStyle = cva({
  * Resizable from the right edge.
  */
 export const LeftSideBar: React.FC = () => {
-  const {
-    isLeftSidebarOpen: isOpen,
-    isPanelAnimating,
-    isSearchOpen,
-  } = use(EditorContext);
+  const { isLeftSidebarOpen: isOpen, isSearchOpen } = use(EditorContext);
+  const isPanelAnimating = useIsPanelAnimating();
   const { offered } = use(CompositionContext);
   const composesOnly = useComposesOnly();
   const isCompositionInterfaceOn = useIsCompositionInterfaceOn();

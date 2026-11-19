@@ -23,7 +23,6 @@ export interface PanelLayoutState {
   readonly isAiAssistantOpen: boolean;
   readonly aiAssistantWidth: number;
   readonly aiAssistantDockHeight: number | null;
-  readonly aiAssistantPlacement: "docked" | "floating";
   readonly isAiAssistantCollapsed: boolean;
   readonly isBottomPanelOpen: boolean;
   readonly bottomPanelHeight: number;
@@ -100,7 +99,6 @@ export const useCanvasInsetsReader = (
     hasSelection,
     isAiAssistantOpen,
     aiAssistantDockHeight,
-    aiAssistantPlacement,
     isAiAssistantCollapsed,
     isBottomPanelOpen,
   } = use(EditorContext);
@@ -128,7 +126,6 @@ export const useCanvasInsetsReader = (
             hasSelection,
             isAiAssistantOpen,
             aiAssistantDockHeight,
-            aiAssistantPlacement,
             isAiAssistantCollapsed,
             isBottomPanelOpen,
             ...sizes,

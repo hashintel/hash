@@ -9,6 +9,7 @@ import {
   type BottomPanelTab,
   EditorContext,
 } from "../../../../../react/state/editor-context";
+import { useIsPanelAnimating } from "../../../../../react/state/panel-animation-context";
 import { usePanelSizes } from "../../../../../react/state/panel-sizes-context";
 import { useComposesOnly } from "../../../../../react/state/use-composes-only";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
@@ -136,9 +137,9 @@ export const BottomPanel: React.FC = () => {
     activeBottomPanelTab: activeTab,
     setActiveBottomPanelTab: setActiveTab,
     toggleBottomPanel,
-    isPanelAnimating,
     globalMode,
   } = use(EditorContext);
+  const isPanelAnimating = useIsPanelAnimating();
 
   const {
     keepPanelsMounted,

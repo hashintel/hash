@@ -4,6 +4,7 @@ import { SegmentedControl } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import { EditorContext } from "../../../../react/state/editor-context";
+import { useIsPanelAnimating } from "../../../../react/state/panel-animation-context";
 import { usePanelSizes } from "../../../../react/state/panel-sizes-context";
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
 import { styleRef } from "../../../lib/readings";
@@ -70,13 +71,9 @@ const placementStyle = cva({
 });
 
 export const EditViewSelector = () => {
-  const {
-    editViewMode,
-    setEditViewMode,
-    isLeftSidebarOpen,
-    isSearchOpen,
-    isPanelAnimating,
-  } = use(EditorContext);
+  const { editViewMode, setEditViewMode, isLeftSidebarOpen, isSearchOpen } =
+    use(EditorContext);
+  const isPanelAnimating = useIsPanelAnimating();
   const { leftSidebarWidth } = usePanelSizes();
   const { showAnimations } = use(UserSettingsContext);
   const isCanvas = editViewMode === "canvas";

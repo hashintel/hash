@@ -1,6 +1,7 @@
 import { use, useEffect, useRef, useState } from "react";
 
 import { ActualModeContext } from "../actual-mode-context";
+import { useLatest } from "../hooks/use-latest";
 import {
   navigationResourceToSimulateDrawer,
   simulateDrawerToNavigationOverlay,
@@ -9,6 +10,10 @@ import {
 } from "../navigation";
 import { resolveNavigatedItems } from "../navigation/resolve-navigated-ids";
 import {
+  type AssistantPlacement,
+  AssistantPlacementContext,
+} from "./assistant-placement-context";
+import {
   type DraggingStateByNodeId,
   type EditorActions,
   EditorContext,
@@ -16,6 +21,7 @@ import {
   type EditorState,
   initialEditorState,
 } from "./editor-context";
+import { PanelAnimatingContext } from "./panel-animation-context";
 import { SDCPNContext } from "./sdcpn-context";
 import { useComposesOnly } from "./use-composes-only";
 import { useSyncEditorToSettings } from "./use-sync-editor-to-settings";
@@ -119,6 +125,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     scenarios,
   ]);
 
+  const latestState = useLatest(state);
   const animationTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   );
@@ -131,30 +138,25 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const selectionNavigationScheduledRef = useRef(false);
   const flushPendingSelectionNavigationRef = useRef<(() => void) | null>(null);
 
-  /**
-   * Returns state patch to enable panel animation. Must be spread into the
-   * same setState call as the layout change so CSS transitions are active
-   * before the panel's open/close state flips.
-   */
-  const animationPatch = (): Partial<EditorState> => {
-    if (!userSettings.showAnimations) {
-      return {};
-    }
-    return { isPanelAnimating: true };
-  };
+  // Neither is part of `state`: a change to `state` renders every reader of
+  // the editor context, and these two concern the panels alone.
+  const [isPanelAnimating, setPanelAnimating] = useState(false);
+  const [assistantPlacement, setAssistantPlacement] =
+    useState<AssistantPlacement>("docked");
 
   /**
-   * Schedule clearing the animation flag after transitions complete.
-   * Called outside setState updaters to keep them pure.
+   * Switches the panels' CSS transitions on for one change of layout, and off
+   * again once they have run. Called beside the state change that moves a
+   * panel, so both land in one commit and the transitions are active before
+   * the panel's state flips.
    */
-  const scheduleAnimationEnd = () => {
+  const animatePanels = () => {
     if (!userSettings.showAnimations) {
       return;
     }
+    setPanelAnimating(true);
     clearTimeout(animationTimerRef.current);
-    animationTimerRef.current = setTimeout(() => {
-      setState((prev) => ({ ...prev, isPanelAnimating: false }));
-    }, 500);
+    animationTimerRef.current = setTimeout(() => setPanelAnimating(false), 500);
   };
 
   const setSelection = (
@@ -169,8 +171,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       const current = selectionFromNavigation(navigation.state.selection);
       const preview = selectionUpdate(current);
       if (current.size > 0 !== preview.size > 0) {
-        scheduleAnimationEnd();
-        setState((prev) => ({ ...prev, ...animationPatch() }));
+        animatePanels();
       }
     }
 
@@ -293,13 +294,6 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         target.simulateDrawer,
         navigation.state.overlay,
       )?.type !== navigation.state.overlay?.type;
-    if (hasSelection) {
-      const selection = selectionFromNavigation(navigation.state.selection);
-      if (selection.size > 0 !== target.selection!.size > 0) {
-        scheduleAnimationEnd();
-      }
-    }
-
     navigation.navigate(
       (current) => ({
         ...current,
@@ -362,13 +356,13 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     );
 
     // Mode, view, and drawer flow back in through `effectiveState`, which
-    // derives them from navigation state on every render; only the selection
-    // animation flag lives in local state.
+    // derives them from navigation state on every render. A selection that
+    // appears or goes opens or closes the Properties panel.
     const animateSelection =
       hasSelection &&
       navigation.state.selection.length > 0 !== target.selection!.size > 0;
     if (animateSelection) {
-      setState((prev) => ({ ...prev, ...animationPatch() }));
+      animatePanels();
     }
   };
 
@@ -391,10 +385,9 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     setCursorMode: (mode) =>
       setState((prev) => ({ ...prev, cursorMode: mode })),
     setLeftSidebarOpen: (isOpen) => {
-      scheduleAnimationEnd();
+      animatePanels();
       setState((prev) => ({
         ...prev,
-        ...animationPatch(),
         isLeftSidebarOpen: isOpen,
       }));
     },
@@ -405,34 +398,23 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
           : { ...prev, aiAssistantDockHeight: height },
       ),
     setAiAssistantCollapsed: (collapsed) => {
-      scheduleAnimationEnd();
+      animatePanels();
       setState((prev) => ({
         ...prev,
-        ...animationPatch(),
         isAiAssistantCollapsed: collapsed,
       }));
     },
-    setAiAssistantPlacement: (placement) => {
-      scheduleAnimationEnd();
-      setState((prev) => ({
-        ...prev,
-        ...animationPatch(),
-        aiAssistantPlacement: placement,
-      }));
-    },
     setBottomPanelOpen: (isOpen) => {
-      scheduleAnimationEnd();
+      animatePanels();
       setState((prev) => ({
         ...prev,
-        ...animationPatch(),
         isBottomPanelOpen: isOpen,
       }));
     },
     toggleBottomPanel: () => {
-      scheduleAnimationEnd();
+      animatePanels();
       setState((prev) => ({
         ...prev,
-        ...animationPatch(),
         isBottomPanelOpen: !prev.isBottomPanelOpen,
       }));
     },
@@ -533,14 +515,13 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     resetDraggingState: () =>
       setState((prev) => ({ ...prev, draggingStateByNodeId: {} })),
     collapseAllPanels: () => {
-      scheduleAnimationEnd();
+      animatePanels();
       navigation.navigate(
         { selection: [] },
         { cause: "user", action: "selection" },
       );
       setState((prev) => ({
         ...prev,
-        ...animationPatch(),
         isLeftSidebarOpen: false,
         isSearchOpen: false,
         isBottomPanelOpen: false,
@@ -567,41 +548,32 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       ),
     setSimulateDrawer: (drawer) => navigateTo({ simulateDrawer: drawer }),
     setSearchOpen: (isOpen) => {
-      scheduleAnimationEnd();
-      setState((prev) => {
-        // Animate when search visibility changes the sidebar appearance
-        // (sidebar becomes visible due to search, or hides when search closes
-        // and sidebar was not explicitly open)
-        const sidebarWasVisible = prev.isLeftSidebarOpen || prev.isSearchOpen;
-        const sidebarWillBeVisible = prev.isLeftSidebarOpen || isOpen;
-        const animate = sidebarWasVisible !== sidebarWillBeVisible;
-        return {
-          ...prev,
-          ...(animate ? animationPatch() : {}),
-          isSearchOpen: isOpen,
-        };
-      });
+      // Animate when search visibility changes the sidebar appearance
+      // (sidebar becomes visible due to search, or hides when search closes
+      // and sidebar was not explicitly open)
+      const { isLeftSidebarOpen, isSearchOpen } = latestState.current;
+      if (
+        (isLeftSidebarOpen || isSearchOpen) !== (isLeftSidebarOpen || isOpen)
+      ) {
+        animatePanels();
+      }
+      setState((prev) => ({ ...prev, isSearchOpen: isOpen }));
     },
     setAiAssistantOpen: (isOpen) => {
-      scheduleAnimationEnd();
+      animatePanels();
       setState((prev) => ({
         ...prev,
-        ...animationPatch(),
         isAiAssistantOpen: isOpen,
       }));
     },
     toggleAiAssistant: () => {
-      scheduleAnimationEnd();
+      animatePanels();
       setState((prev) => ({
         ...prev,
-        ...animationPatch(),
         isAiAssistantOpen: !prev.isAiAssistantOpen,
       }));
     },
-    triggerPanelAnimation: () => {
-      scheduleAnimationEnd();
-      setState((prev) => ({ ...prev, ...animationPatch() }));
-    },
+    triggerPanelAnimation: animatePanels,
   };
 
   useSyncEditorToSettings({
@@ -644,8 +616,20 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   };
 
   return (
-    <EditorContext.Provider value={contextValue}>
-      {children}
-    </EditorContext.Provider>
+    <PanelAnimatingContext value={isPanelAnimating}>
+      <AssistantPlacementContext
+        value={{
+          placement: assistantPlacement,
+          setPlacement: (placement) => {
+            animatePanels();
+            setAssistantPlacement(placement);
+          },
+        }}
+      >
+        <EditorContext.Provider value={contextValue}>
+          {children}
+        </EditorContext.Provider>
+      </AssistantPlacementContext>
+    </PanelAnimatingContext>
   );
 };

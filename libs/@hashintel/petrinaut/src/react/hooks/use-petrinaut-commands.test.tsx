@@ -55,7 +55,6 @@ const editorContextValue = (
   setCursorMode: () => {},
   setLeftSidebarOpen: () => {},
   setAiAssistantDockHeight: () => {},
-  setAiAssistantPlacement: () => {},
   setAiAssistantCollapsed: () => {},
   setBottomPanelOpen: () => {},
   toggleBottomPanel: () => {},

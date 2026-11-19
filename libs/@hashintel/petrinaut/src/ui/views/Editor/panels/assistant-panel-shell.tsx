@@ -1,9 +1,10 @@
-import { type ReactNode, use, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 import { Button, Icon, Menu } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
-import { EditorContext } from "../../../../react/state/editor-context";
+import { useAssistantPlacement } from "../../../../react/state/assistant-placement-context";
+import { useIsPanelAnimating } from "../../../../react/state/panel-animation-context";
 import { usePanelSizes } from "../../../../react/state/panel-sizes-context";
 import { AiAssistantIcon } from "../../../components/ai-assistant-icon";
 import {
@@ -251,8 +252,8 @@ export const PluginAssistantPanel = ({
   focusRequest: number;
   children: ReactNode;
 }) => {
-  const { aiAssistantPlacement, isPanelAnimating, setAiAssistantPlacement } =
-    use(EditorContext);
+  const { placement, setPlacement } = useAssistantPlacement();
+  const isPanelAnimating = useIsPanelAnimating();
   // The width shapes the dock, the shell and the floating window at once, so
   // the shell renders with it. Nothing else does.
   const panelSizes = usePanelSizes();
@@ -261,7 +262,7 @@ export const PluginAssistantPanel = ({
     panelSizes.aiAssistantWidth.set(width);
   const { isOpen, close } = panel;
 
-  const isFloating = aiAssistantPlacement === "floating";
+  const isFloating = placement === "floating";
   const HeaderLabel = isFloating ? "button" : "div";
   const iconMotionAllowed = useExperimentalIconMotionAllowed();
   const {
@@ -320,7 +321,7 @@ export const PluginAssistantPanel = ({
           tabIndex={-1}
           inert={!isOpen}
           className={shellStyle({ open: isOpen, floating: isFloating })}
-          data-placement={aiAssistantPlacement}
+          data-placement={placement}
           data-animating={animating}
           style={{
             width: panelWidth,
@@ -369,9 +370,7 @@ export const PluginAssistantPanel = ({
                 variant="ghost"
                 className={buttonStyle}
                 aria-label={placementLabel}
-                onClick={() =>
-                  setAiAssistantPlacement(isFloating ? "docked" : "floating")
-                }
+                onClick={() => setPlacement(isFloating ? "docked" : "floating")}
                 prefix={
                   <ExperimentalIcon
                     name={isFloating ? "sidebar" : "externalLink"}

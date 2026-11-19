@@ -87,7 +87,6 @@ export type EditorState = {
   isBottomPanelOpen: boolean;
   /** Rendered compact dock height; null when expanded or closed. */
   aiAssistantDockHeight: number | null;
-  aiAssistantPlacement: "docked" | "floating";
   isAiAssistantCollapsed: boolean;
   activeBottomPanelTab: BottomPanelTab;
   /** The component the next click on the canvas places an instance of. */
@@ -129,7 +128,6 @@ export type EditorState = {
    */
   simulateViewMode: SimulateViewMode;
   simulateDrawer: SimulateDrawerState;
-  isPanelAnimating: boolean;
   isSearchOpen: boolean;
   isAiAssistantOpen: boolean;
 };
@@ -146,7 +144,6 @@ export type EditorActions = {
   setCursorMode: (mode: CursorMode) => void;
   setLeftSidebarOpen: (isOpen: boolean) => void;
   setAiAssistantDockHeight: (height: number | null) => void;
-  setAiAssistantPlacement: (placement: "docked" | "floating") => void;
   setAiAssistantCollapsed: (collapsed: boolean) => void;
   setBottomPanelOpen: (isOpen: boolean) => void;
   toggleBottomPanel: () => void;
@@ -204,7 +201,6 @@ export const initialEditorState: EditorState = {
   isLeftSidebarOpen: true,
   isBottomPanelOpen: false,
   aiAssistantDockHeight: null,
-  aiAssistantPlacement: "docked",
   isAiAssistantCollapsed: false,
   activeBottomPanelTab: "diagnostics",
   componentToAdd: null,
@@ -222,7 +218,6 @@ export const initialEditorState: EditorState = {
   hiddenTimelineSeriesIds: new Set(),
   simulateViewMode: "experiments",
   simulateDrawer: { type: "closed" },
-  isPanelAnimating: false,
   isSearchOpen: false,
   isAiAssistantOpen: false,
 };
@@ -236,7 +231,6 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   setCursorMode: () => {},
   setLeftSidebarOpen: () => {},
   setAiAssistantDockHeight: () => {},
-  setAiAssistantPlacement: () => {},
   setAiAssistantCollapsed: () => {},
   setBottomPanelOpen: () => {},
   toggleBottomPanel: () => {},

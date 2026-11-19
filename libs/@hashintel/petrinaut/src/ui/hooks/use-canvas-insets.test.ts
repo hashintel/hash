@@ -11,7 +11,6 @@ const closed: PanelLayoutState = {
   isAiAssistantOpen: false,
   aiAssistantWidth: 500,
   aiAssistantDockHeight: null,
-  aiAssistantPlacement: "docked",
   isAiAssistantCollapsed: false,
   isBottomPanelOpen: false,
   bottomPanelHeight: 180,
@@ -50,7 +49,6 @@ describe("getCanvasInsets", () => {
   it("reserves no canvas edge for the movable floating assistant", () => {
     const floating = {
       ...closed,
-      aiAssistantPlacement: "floating" as const,
       isAiAssistantOpen: true,
       hasSelection: false,
     };

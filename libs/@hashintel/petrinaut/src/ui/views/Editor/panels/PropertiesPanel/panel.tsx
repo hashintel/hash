@@ -4,6 +4,7 @@ import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import { ActiveNetContext } from "../../../../../react/state/active-net-context";
 import { EditorContext } from "../../../../../react/state/editor-context";
+import { useIsPanelAnimating } from "../../../../../react/state/panel-animation-context";
 import { usePanelSizes } from "../../../../../react/state/panel-sizes-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { usePanelTarget } from "../../../../../react/state/use-selection";
@@ -56,7 +57,8 @@ const glassPanelContentStyle = css({
  * PropertiesPanel displays properties and controls for the selected node/edge.
  */
 export const PropertiesPanel: React.FC = () => {
-  const { isBottomPanelOpen, isPanelAnimating } = use(EditorContext);
+  const { isBottomPanelOpen } = use(EditorContext);
+  const isPanelAnimating = useIsPanelAnimating();
   const { propertiesPanelWidth, bottomPanelHeight } = usePanelSizes();
 
   const { petriNetId } = use(SDCPNContext);

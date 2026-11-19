@@ -5,6 +5,7 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { usePetrinautNavigation } from "../../../../react/navigation";
 import { EditorContext } from "../../../../react/state/editor-context";
+import { useIsPanelAnimating } from "../../../../react/state/panel-animation-context";
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
 import { VIEWPORT_CONTROLS_OFFSET } from "../../../constants/ui";
 import { SettingsIcon } from "../../../experimental-icons";
@@ -49,7 +50,8 @@ export const ViewportControls: React.FC = () => {
   // controls sit above the renderer contract and must not reach for a
   // renderer's own API.
   const { fitView, zoomIn, zoomOut } = useCanvasController();
-  const { collapseAllPanels, isPanelAnimating } = use(EditorContext);
+  const { collapseAllPanels } = use(EditorContext);
+  const isPanelAnimating = useIsPanelAnimating();
 
   // Unlike the bottom toolbar, this column fits above a collapsed Voice dock.
   const readInsets = useCanvasInsetsReader({ aboveCollapsedDock: true });
