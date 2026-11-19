@@ -2,7 +2,7 @@
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { hashIconNames } from "./hash-icon";
+import { HashIcon, hashIconNames } from "./hash-icon";
 import {
   getHashIconArtwork,
   getHashIconStrokeWidth,
@@ -14,6 +14,52 @@ import type { HashIconName, HashIconVariant } from "./hash-icon";
 afterEach(cleanup);
 
 describe("static artwork", () => {
+  it.each([
+    { renderer: "main", IconComponent: HashIcon },
+    { renderer: "static", IconComponent: StaticHashIcon },
+  ])(
+    "preserves open and closed arrowhead meanings in the $renderer renderer",
+    ({ IconComponent }) => {
+      for (const variant of ["outline", "filled"] as const) {
+        for (const weight of [100, 400, 700]) {
+          const { getByRole, unmount } = render(
+            <>
+              <IconComponent
+                name="arrowheadArrow"
+                variant={variant}
+                weight={weight}
+                aria-label="Open arrowhead"
+              />
+              <IconComponent
+                name="arrowheadTriangle"
+                variant={variant}
+                weight={weight}
+                aria-label="Closed arrowhead"
+              />
+            </>,
+          );
+          const openPaths = getByRole("img", {
+            name: "Open arrowhead",
+          }).querySelectorAll("path");
+          expect(openPaths.length).toBeGreaterThan(0);
+          for (const path of openPaths) {
+            expect(path.closest("[fill]")?.getAttribute("fill")).toBe("none");
+          }
+          const closedPaths = getByRole("img", {
+            name: "Closed arrowhead",
+          }).querySelectorAll("path");
+          expect(
+            [...closedPaths].some(
+              (path) =>
+                path.closest("[fill]")?.getAttribute("fill") === "currentColor",
+            ),
+          ).toBe(variant === "filled");
+          unmount();
+        }
+      }
+    },
+  );
+
   it("includes both styles of every canonical icon without animation classes", () => {
     for (const name of hashIconNames)
       for (const variant of ["outline", "filled"] as const) {

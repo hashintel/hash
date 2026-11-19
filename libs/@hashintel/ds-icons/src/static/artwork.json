@@ -1721,7 +1721,7 @@
   },
   "arrowheadArrow": {
     "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 12h17\"></path><path d=\"m15 7 5 5-5 5\"></path></g></g></g></g></g></g></g></g></g>",
-    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 12h17\"></path><g fill=\"currentColor\"><path d=\"m15 7 5 5-5 5\"></path></g></g></g></g></g></g></g></g></g></g>"
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 12h17\"></path><path d=\"m15 7 5 5-5 5\"></path></g></g></g></g></g></g></g></g></g>"
   },
   "shapeArrowUp": {
     "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><g transform=\"rotate(270 12 12)\"><path d=\"M3 8h10V3l8 9-8 9v-5H3Z\"></path></g></g></g></g></g></g></g></g></g></g>",
