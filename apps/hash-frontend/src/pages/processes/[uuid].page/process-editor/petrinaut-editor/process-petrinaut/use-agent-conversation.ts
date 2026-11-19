@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@apollo/client";
-import { use, useCallback, useEffect, useMemo, useRef } from "react";
+import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
@@ -13,6 +13,7 @@ import {
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 
 import {
   createEntityMutation,
@@ -27,13 +28,15 @@ import type {
   QueryEntitySubgraphQueryVariables,
 } from "../../../../../../graphql/api-types.gen";
 import type { EntityId } from "@blockprotocol/type-system";
+import type { BrunchConversationPointer } from "@hashintel/brunch-agent/ui";
 import type { AgentConversation } from "@local/hash-isomorphic-utils/system-types/agentconversation";
 
-const conversationIdBaseUrl =
-  systemPropertyTypes.conversationId.propertyTypeBaseUrl;
 const agentIdBaseUrl = systemPropertyTypes.agentId.propertyTypeBaseUrl;
 const contextEntityIdBaseUrl =
   systemPropertyTypes.contextEntityId.propertyTypeBaseUrl;
+
+/** How long each retry of a failed read waits. */
+export const readRetryDelaysMs = [1_000, 2_000, 4_000] as const;
 
 /**
  * The signed-in user's conversations with one agent that were started on one
@@ -50,8 +53,9 @@ const contextEntityIdBaseUrl =
  *   this page already knows one for it.
  * - Clearing creates the next conversation's entity, before any message, so
  *   another browser opens it. The earlier one stays as it is.
- * - A draft has its final entity id, and so its web, from the start, so its
- *   conversations are recorded exactly as a saved process's are.
+ * - A read that fails is tried again {@link readRetryDelaysMs}`.length`
+ *   times. If none succeeds, the context has no open conversation, so its
+ *   next message starts one rather than leaving the agent unusable.
  *
  * Each write records the agent, web and context as they were when it was
  * asked for, and writes run one at a time.
@@ -66,20 +70,13 @@ export const useAgentConversation = ({
   agentId: string;
   /** The entity the conversation is started on, such as the open process. */
   contextEntityId: EntityId;
-}): {
-  /** `undefined` while it is read, `null` when the context has none open. */
-  conversationId: string | null | undefined;
-  /** A message was sent in this conversation. */
-  start: (conversationId: string) => void;
-  /** The user cleared the chat: this conversation is now the open one. */
-  replace: (conversationId: string) => void;
-} => {
+}): BrunchConversationPointer => {
   const { authenticatedUser } = useAuthInfo();
   const userId = authenticatedUser?.accountId ?? null;
   const webId = extractWebIdFromEntityId(contextEntityId);
   const { captureException } = use(ErrorTrackerContext);
 
-  const { data, error } = useQuery<
+  const { data, error, refetch } = useQuery<
     QueryEntitySubgraphQuery,
     QueryEntitySubgraphQueryVariables
   >(queryEntitySubgraphQuery, {
@@ -123,35 +120,60 @@ export const useAgentConversation = ({
     fetchPolicy: "network-only",
   });
 
+  /** The failed reads of this context: the first and each retry. */
+  const readKey = `${userId}/${agentId}/${contextEntityId}`;
+  const [readFailures, setReadFailures] = useState({ readKey, count: 0 });
+  const failedReads = readFailures.readKey === readKey ? readFailures.count : 0;
+
   useEffect(() => {
-    if (error) {
+    if (error && failedReads === 0) {
       captureException(error, { source: "agent-conversation.read" });
+      setReadFailures({ readKey, count: 1 });
     }
-  }, [error, captureException]);
+  }, [error, failedReads, readKey, captureException]);
+
+  useEffect(() => {
+    const delayMs = readRetryDelaysMs[failedReads - 1];
+    if (delayMs === undefined) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      refetch().catch((retryError: unknown) => {
+        captureException(retryError, { source: "agent-conversation.read" });
+        setReadFailures({ readKey, count: failedReads + 1 });
+      });
+    }, delayMs);
+    return () => clearTimeout(timer);
+  }, [failedReads, readKey, refetch, captureException]);
 
   /** The conversation ids read, newest first. */
   const readConversationIds = useMemo(() => {
     if (!data) {
       return undefined;
     }
-    const { subgraph } = deserializeQueryEntitySubgraphResponse(
-      data.queryEntitySubgraph,
-    );
+    const { subgraph } =
+      deserializeQueryEntitySubgraphResponse<AgentConversation>(
+        data.queryEntitySubgraph,
+      );
     return getRoots(subgraph)
       .toSorted((left, right) =>
         right.metadata.provenance.createdAtDecisionTime.localeCompare(
           left.metadata.provenance.createdAtDecisionTime,
         ),
       )
-      .flatMap((conversation) => {
-        const conversationId = conversation.properties[conversationIdBaseUrl];
-        return typeof conversationId === "string" ? [conversationId] : [];
-      });
+      .map(
+        (conversation) =>
+          simplifyProperties(conversation.properties).conversationId,
+      );
   }, [data]);
 
+  const unreadable =
+    readConversationIds === undefined && failedReads > readRetryDelaysMs.length;
+
   // Newest first, so two entities on one context (two tabs) read as the newest.
-  const openConversationId =
-    readConversationIds === undefined
+  const openConversationId = unreadable
+    ? null
+    : readConversationIds === undefined
       ? undefined
       : (readConversationIds[0] ?? null);
 

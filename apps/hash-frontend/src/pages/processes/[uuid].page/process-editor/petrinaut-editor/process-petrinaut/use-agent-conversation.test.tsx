@@ -9,7 +9,10 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { useAgentConversation } from "./use-agent-conversation";
+import {
+  readRetryDelaysMs,
+  useAgentConversation,
+} from "./use-agent-conversation";
 
 import type {
   QueryEntitySubgraphQuery,
@@ -59,6 +62,10 @@ const graph = vi.hoisted(() => ({
   stored: [] as StoredConversation[],
   /** The read is in flight. */
   reading: false,
+  /** How many of the next reads, first or retried, fail. */
+  failingReads: 0,
+  /** The reads whose last attempt failed. */
+  failed: new Set<string>(),
   /** The answers this page has had, by read, as Apollo keeps them. */
   answers: new Map<string, unknown>(),
   queries: [] as { skip: boolean; variables: unknown }[],
@@ -84,6 +91,7 @@ vi.mock("../../../../../shared/auth-info-context", () => ({
 
 vi.mock("@apollo/client", async (importOriginal) => {
   const original = await importOriginal<typeof ApolloClient>();
+  const { useReducer } = await import("react");
 
   type Clause = {
     all?: Clause[];
@@ -199,13 +207,31 @@ vi.mock("@apollo/client", async (importOriginal) => {
       variables,
     }: { skip?: boolean; variables: QueryEntitySubgraphQueryVariables },
   ) => {
+    const [, rerender] = useReducer((count: number) => count + 1, 0);
     graph.queries.push({ skip: skip ?? false, variables });
+    const key = JSON.stringify(variables);
+    const refetch = async () => {
+      if (graph.failingReads > 0) {
+        graph.failingReads--;
+        throw new Error("The read failed again");
+      }
+      graph.failed.delete(key);
+      rerender();
+    };
     if (skip || graph.reading) {
-      return { data: undefined, error: undefined };
+      return { data: undefined, error: undefined, refetch };
+    }
+    if (!graph.answers.has(key) && !graph.failed.has(key)) {
+      if (graph.failingReads > 0) {
+        graph.failingReads--;
+        graph.failed.add(key);
+      }
+    }
+    if (graph.failed.has(key)) {
+      return { data: undefined, error: readError, refetch };
     }
     // Answered once per read, and the same object after, as Apollo's is: a
     // write isn't seen until the page reads again.
-    const key = JSON.stringify(variables);
     if (!graph.answers.has(key)) {
       const filter = variables.request.filter as Clause;
       graph.answers.set(
@@ -215,8 +241,9 @@ vi.mock("@apollo/client", async (importOriginal) => {
         ),
       );
     }
-    return { data: graph.answers.get(key), error: undefined };
+    return { data: graph.answers.get(key), error: undefined, refetch };
   };
+  const readError = new Error("The read failed");
 
   // One mutate function per mutation, stable across renders, as Apollo's is.
   const mutations = new Map<string, unknown[]>();
@@ -270,6 +297,8 @@ vi.mock("@apollo/client", async (importOriginal) => {
 beforeEach(() => {
   graph.stored = [];
   graph.reading = false;
+  graph.failingReads = 0;
+  graph.failed.clear();
   graph.answers.clear();
   graph.queries.length = 0;
   graph.writes.length = 0;
@@ -479,6 +508,49 @@ test("nothing is archived when the page opens", async () => {
   renderConversation();
   await settle();
   expect(graph.writes).toEqual([]);
+});
+
+test("a read that fails is tried again, and opens what the retry reads", async () => {
+  vi.useFakeTimers();
+  try {
+    graph.stored = [stored("open")];
+    graph.failingReads = 2;
+    const { result } = renderConversation();
+    expect(result.current.conversationId).toBeUndefined();
+
+    await act(() => vi.advanceTimersByTimeAsync(readRetryDelaysMs[0]));
+    expect(result.current.conversationId).toBeUndefined();
+
+    await act(() => vi.advanceTimersByTimeAsync(readRetryDelaysMs[1]));
+    expect(result.current.conversationId).toBe("open-conversation");
+    expect(graph.captureException).toHaveBeenCalledTimes(2);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+test("when every retry fails the context has no open conversation, and its first message creates one", async () => {
+  vi.useFakeTimers();
+  try {
+    graph.stored = [stored("unreachable")];
+    graph.failingReads = 1 + readRetryDelaysMs.length;
+    const { result } = renderConversation();
+
+    for (const delayMs of readRetryDelaysMs) {
+      expect(result.current.conversationId).toBeUndefined();
+      await act(() => vi.advanceTimersByTimeAsync(delayMs));
+    }
+    expect(result.current.conversationId).toBeNull();
+    expect(graph.captureException).toHaveBeenCalledTimes(
+      1 + readRetryDelaysMs.length,
+    );
+
+    act(() => result.current.start("fresh"));
+    await act(() => vi.runAllTimersAsync());
+    expect(graph.writes).toEqual([createdConversation("fresh")]);
+  } finally {
+    vi.useRealTimers();
+  }
 });
 
 test("the result keeps its identity while the open conversation, as read, is unchanged", () => {
