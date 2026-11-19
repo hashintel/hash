@@ -16,6 +16,8 @@
  * committed output after it, so a note after the response's last output
  * (at its `final` boundary, or between turns) is never part of it.
  */
+import { InboxDoc, LiveDoc } from "@earendil-works/pi-durable";
+
 import { browserToolEnvelopeOf } from "@hashintel/brunch-agent";
 
 import { handEditEntryKind } from "../../../net-state/visible-net-view";
@@ -56,9 +58,9 @@ const placeIn = (
   view: ConversationView,
   submission: SubmissionId,
 ): "queued" | "running" | "settled" => {
-  const live = view.docs["pi.live"] as LiveState | undefined;
+  const live = view.docs[LiveDoc.definition.kind] as LiveState | undefined;
   if (live?.run?.inputs.includes(submission) === true) return "running";
-  const inbox = view.docs["pi.inbox"] as InboxState | undefined;
+  const inbox = view.docs[InboxDoc.definition.kind] as InboxState | undefined;
   if (inbox?.items.some(({ id }) => id === submission) === true)
     return "queued";
   return "settled";
@@ -524,8 +526,9 @@ export const createViewProjector = (
     if (newest !== undefined && newest > after) seenThrough = newest;
 
     if (place === "running") {
-      const generation = (view.docs["pi.live"] as LiveState | undefined)
-        ?.generation;
+      const generation = (
+        view.docs[LiveDoc.definition.kind] as LiveState | undefined
+      )?.generation;
       const partial = generation?.message;
       if (generation !== undefined && partial !== undefined) {
         writer.projectPartial(
