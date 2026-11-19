@@ -47,7 +47,7 @@ export type ComponentPortArcEndpoint = {
   kind: "componentPort";
   /** ID of the component instance in the net containing the transition. */
   componentInstanceId: ID;
-  /** ID of a port place inside the component instance's referenced subnet. */
+  /** ID of a port place inside the component the instance instantiates. */
   portPlaceId: ID;
 };
 
@@ -150,14 +150,14 @@ export type Place = {
    * `null` or absent means unbounded.
    */
   capacity?: number | null;
-  /** When true, this place is exposed as a component port for subnet instances. */
+  /** When true, this place is a port on the instances of its component. */
   isPort?: boolean;
   /**
    * The direction a port promises, seen from the component: `in` is only
    * consumed by the component's transitions, `out` only produced into, and
    * `inout` both, as a shared resource pool is. Absent, the direction is read
-   * off the subnet's arcs. The checks report a port used against its promise,
-   * and a fusion that leaves a flow without a producer or a consumer.
+   * off the component's arcs. The checks report a port used against its
+   * promise, and a fusion that leaves a flow without a producer or a consumer.
    */
   portDirection?: PortDirection;
   visualizerCode?: string;
@@ -408,14 +408,11 @@ export type Metric = {
 export type Import = { id: string };
 
 /**
- * A reference to a component. Without `from` it names a subnet of the
+ * A reference to a component. Without `from` it names a component of the
  * document by its id. With `from` it names a component of the import of that
  * id, by the id the component has in its library, kept as written.
  */
 export type ComponentReference = { from?: string; id: ID };
-
-/** A reference to a component of an import. */
-export type ImportedComponentReference = { from: string; id: string };
 
 /**
  * The component the document runs for the instances of an interface that
@@ -426,10 +423,7 @@ export type DefaultImplementation = {
   component: ComponentReference;
 };
 
-/**
- * An instance of a component placed inside a net. It has exactly one of
- * `subnetId` and `component`: read either through `componentOf`.
- */
+/** An instance of a component placed inside a net. */
 export type ComponentInstance = {
   id: ID;
   /** Display name for this instance. */
@@ -437,10 +431,8 @@ export type ComponentInstance = {
   description?: string;
   /** Host-defined data, opaque to Petrinaut. */
   metadata?: Record<string, JsonValue>;
-  /** ID of the subnet of the document this instance instantiates, a lowercase UUID. */
-  subnetId?: ID;
-  /** The component of an import this instance instantiates. */
-  component?: ImportedComponentReference;
+  /** The component this instance instantiates: one of the document or of an import. */
+  component: ComponentReference;
   /**
    * Concrete values for the component's parameters.
    * Keys are parameter IDs from the referenced component; values are expressions.
@@ -456,8 +448,8 @@ export type ComponentInstance = {
   y: number;
 };
 
-export type Subnet = {
-  /** Subnet id, a lowercase UUID (see `isPetrinautId`). */
+export type Component = {
+  /** Component id, a lowercase UUID (see `isPetrinautId`). */
   id: ID;
   name: string;
   description?: string;
@@ -478,7 +470,7 @@ export type Subnet = {
    */
   interface?: true;
   /**
-   * The interfaces this subnet implements. For each, it has a port of the
+   * The interfaces this component implements. For each, it has a port of the
    * same name and token type and a parameter of each variable name.
    */
   implements?: ID[];
@@ -488,7 +480,7 @@ export type Subnet = {
   differentialEquations: DifferentialEquation[];
   parameters: Parameter[];
   componentInstances?: ComponentInstance[];
-  /** Fusions among this subnet's places and its instances' ports. */
+  /** Fusions among this component's places and its instances' ports. */
   fusions?: Fusion[];
 };
 
@@ -505,7 +497,7 @@ export type SDCPN = {
   metrics?: Metric[];
   /** The libraries the document's instances and bindings take components from. */
   imports?: Import[];
-  subnets?: Subnet[];
+  components?: Component[];
   componentInstances?: ComponentInstance[];
   /** Fusions among the root net's places and its instances' ports. */
   fusions?: Fusion[];

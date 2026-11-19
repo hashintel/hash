@@ -2,11 +2,11 @@ import { z } from "zod";
 
 import { getParameterValueError } from "../parameter-values";
 import {
-  checkInstanceNamesOneComponent,
   colorElementSchema as currentColorElementSchema,
   colorSchema as currentColorSchema,
   componentInstanceSchema as currentComponentInstanceSchema,
   componentReferenceSchema,
+  componentSchema as currentComponentSchema,
   descriptionSchema,
   differentialEquationSchema as currentDifferentialEquationSchema,
   fusionSchema as currentFusionSchema,
@@ -16,7 +16,6 @@ import {
   outputArcSchema as currentOutputArcSchema,
   parameterSchema as currentParameterSchema,
   placeSchema as currentPlaceSchema,
-  subnetSchema as currentSubnetSchema,
   transitionSchema as currentTransitionSchema,
 } from "../schemas/entity-schemas";
 import { metricSchema as currentMetricSchema } from "../schemas/metric-schema";
@@ -155,16 +154,14 @@ const metricSchema = z.object({
   code: z.string().default(""),
 });
 
-const componentInstanceSchema = z
-  .object({
-    ...currentComponentInstanceSchema.shape,
-    id: z.string(),
-    name: z.string(),
-    parameterValues: z.record(z.string(), z.string()).default({}),
-    x: z.number().optional(),
-    y: z.number().optional(),
-  })
-  .check(checkInstanceNamesOneComponent);
+const componentInstanceSchema = z.object({
+  ...currentComponentInstanceSchema.shape,
+  id: z.string(),
+  name: z.string(),
+  parameterValues: z.record(z.string(), z.string()).default({}),
+  x: z.number().optional(),
+  y: z.number().optional(),
+});
 
 /**
  * Any list of members loads: the checks report a fusion of one, a member
@@ -177,7 +174,7 @@ const fusionSchema = z.object({
   members: z.array(currentFusionSchema.shape.members.element),
 });
 
-const subnetSchema = z
+const componentSchema = z
   .object({
     id: z.string(),
     name: z.string(),
@@ -185,8 +182,8 @@ const subnetSchema = z
     metadata: metadataSchema,
     interface: z.boolean().optional(),
     implements: z.array(z.string()).optional(),
-    iconSvg: currentSubnetSchema.shape.iconSvg,
-    displayColor: currentSubnetSchema.shape.displayColor,
+    iconSvg: currentComponentSchema.shape.iconSvg,
+    displayColor: currentComponentSchema.shape.displayColor,
     places: z.array(placeSchema),
     transitions: z.array(transitionSchema),
     types: z.array(colorSchema).default([]),
@@ -196,8 +193,8 @@ const subnetSchema = z
     fusions: z.array(fusionSchema).optional(),
   })
   // The flag is `true` or absent in a document: `false` reads as absent.
-  .transform(({ interface: isInterface, ...subnet }) =>
-    isInterface ? { ...subnet, interface: true as const } : subnet,
+  .transform(({ interface: isInterface, ...component }) =>
+    isInterface ? { ...component, interface: true as const } : component,
   );
 
 export const sdcpnSchema = z.object({
@@ -212,7 +209,7 @@ export const sdcpnSchema = z.object({
   metrics: z.array(metricSchema).default([]),
   // Absent in a net that imports nothing, as `fusions` is.
   imports: z.array(importSchema).optional(),
-  subnets: z.array(subnetSchema).default([]),
+  components: z.array(componentSchema).default([]),
   componentInstances: z.array(componentInstanceSchema).default([]),
   // A net without fusions carries no `fusions` key, here as in the editor, so
   // a file that never had one exports as it was read.

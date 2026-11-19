@@ -83,7 +83,7 @@ const scale = { from: logistics.id, id: "scale" };
 
 /**
  * Opens the Implementation picker of an instance of `scale`, in a document
- * with a subnet of its own, `Bench`, that has the ports of `scale`, and gives
+ * with a component of its own, `Bench`, that has the ports of `scale`, and gives
  * what the picker lists.
  */
 const listedImplementations = async ({
@@ -102,7 +102,7 @@ const listedImplementations = async ({
         differentialEquations: [],
         parameters: [],
         imports: [{ id: logistics.id }, { id: surplus.id }],
-        subnets: [
+        components: [
           {
             id: "bench",
             name: "Bench",
@@ -161,7 +161,7 @@ const listedImplementations = async ({
   render(
     <ComponentInstanceProperties
       instance={placed}
-      subnet={resolveComponent(sdcpn, scale, libraries) ?? null}
+      component={resolveComponent(sdcpn, scale, libraries) ?? null}
       updateComponentInstance={instance.mutations.updateComponentInstance}
     />,
     { wrapper: Wrapper },

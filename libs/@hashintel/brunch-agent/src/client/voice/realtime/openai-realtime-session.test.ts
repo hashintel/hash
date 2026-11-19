@@ -343,7 +343,7 @@ describe("OpenAIRealtimeSession", () => {
 
   test.each([
     [
-      "SDCPN, stochastic Petri net, place, transition, arc, token, marking, guard, rate, distribution, parameter, subnet, scenario, and metric.",
+      "SDCPN, stochastic Petri net, place, transition, arc, token, marking, guard, rate, distribution, parameter, component, scenario, and metric.",
       "prompt-regurgitation",
     ],
     [

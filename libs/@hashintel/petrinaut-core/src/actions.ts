@@ -8,7 +8,7 @@ import {
   mutationActionInputSchemas,
   placeSchema,
   scenarioSchema,
-  subnetSchema,
+  componentSchema,
   transitionSchema,
   type MutationActionInput,
 } from "./action-schemas";
@@ -18,7 +18,7 @@ import {
   createArcEndpointReference,
   getArcEndpoint,
   getArcEndpointKey,
-  getComponentPortEndpointSubnet,
+  getComponentPortEndpointComponent,
   placeArcEndpoint,
 } from "./arc-endpoints";
 import { generateArcId } from "./arc-id";
@@ -28,7 +28,6 @@ import {
   nextFusionName,
 } from "./composition/fusions";
 import {
-  componentOf,
   describeMissingComponent,
   describeUnboundInstance,
   isInterface,
@@ -58,6 +57,7 @@ import type { ResolvedLibraries } from "./composition/libraries";
 import type {
   ArcEndpoint,
   Color,
+  Component,
   ComponentInstance,
   ComponentReference,
   DefaultImplementation,
@@ -67,7 +67,6 @@ import type {
   InputArc,
   OutputArc,
   SDCPN,
-  Subnet,
 } from "./types/sdcpn";
 
 export type MutationHelperFunctions = {
@@ -94,7 +93,7 @@ export type CreatePetrinautActionsOptions = {
 type Libraries = ResolvedLibraries | undefined;
 
 type TargetableInput = {
-  targetSubnetId?: string | null;
+  targetComponentId?: string | null;
 };
 
 type MutableNet = Pick<
@@ -111,11 +110,14 @@ type TransitionTemplateArc = {
   weight: number;
 };
 
-const splitTargetSubnetId = <Input extends TargetableInput>(
+const splitTargetComponentId = <Input extends TargetableInput>(
   input: Input,
-): [targetSubnetId: string | null, payload: Omit<Input, "targetSubnetId">] => {
-  const { targetSubnetId = null, ...payload } = input;
-  return [targetSubnetId, payload];
+): [
+  targetComponentId: string | null,
+  payload: Omit<Input, "targetComponentId">,
+] => {
+  const { targetComponentId = null, ...payload } = input;
+  return [targetComponentId, payload];
 };
 
 const getTypeById = (
@@ -129,7 +131,7 @@ const getTypeById = (
         components.flatMap((component) => component.types),
       ),
       ...sdcpn.types,
-      ...(sdcpn.subnets ?? []).flatMap((subnet) => subnet.types),
+      ...(sdcpn.components ?? []).flatMap((component) => component.types),
       ...net.types,
     ].map((type) => [type.id, type]),
   );
@@ -151,7 +153,7 @@ const getTransitionTemplateArcs = ({
   outputs: TransitionTemplateArc[];
 } => {
   const resolveArcPlace = createArcPlaceResolver(sdcpn, net, {
-    componentPortsEnabled: extensions.subnets,
+    componentPortsEnabled: extensions.components,
     libraries,
   });
   const typeById = getTypeById(sdcpn, net, libraries);
@@ -186,18 +188,20 @@ const getTransitionTemplateArcs = ({
 
 const resolveTargetNet = (
   sdcpn: SDCPN,
-  targetSubnetId: string | null | undefined,
+  targetComponentId: string | null | undefined,
 ): MutableNet => {
-  if (!targetSubnetId) {
+  if (!targetComponentId) {
     return sdcpn;
   }
 
-  const subnet = sdcpn.subnets?.find(({ id }) => id === targetSubnetId);
-  if (!subnet) {
-    throw new Error(`Subnet ID \`${targetSubnetId}\` does not exist.`);
+  const component = sdcpn.components?.find(
+    ({ id }) => id === targetComponentId,
+  );
+  if (!component) {
+    throw new Error(`Component ID \`${targetComponentId}\` does not exist.`);
   }
 
-  return subnet;
+  return component;
 };
 
 const getComponentInstances = (net: MutableNet): ComponentInstance[] => {
@@ -236,7 +240,7 @@ const assignUpdate = <Target extends object>(
 
 const getAllMutableNets = (sdcpn: SDCPN): MutableNet[] => [
   sdcpn,
-  ...(sdcpn.subnets ?? []),
+  ...(sdcpn.components ?? []),
 ];
 
 /** Removes the items `matches` picks, in place. Returns whether it picked any. */
@@ -328,18 +332,24 @@ const removeReferencesToComponentInstance = (
   componentInstanceId: string,
 ): void => removeEndpointReferences(net, onInstance(componentInstanceId));
 
+/** Whether `instance` instantiates the document's own component `componentId`. */
+const instantiates = (
+  instance: ComponentInstance,
+  componentId: string,
+): boolean => sameComponent(instance.component, { id: componentId });
+
 /**
- * Picks `portPlaceId` on the instances of `subnetId` that `net` holds; `null`
- * when it holds none.
+ * Picks `portPlaceId` on the instances of `componentId` that `net` holds;
+ * `null` when it holds none.
  */
-const onSubnetPort = (
+const onComponentPort = (
   net: MutableNet,
-  subnetId: string,
+  componentId: string,
   portPlaceId: string,
 ): EndpointTest | null => {
   const instanceIds = new Set(
     (net.componentInstances ?? [])
-      .filter((instance) => instance.subnetId === subnetId)
+      .filter((instance) => instantiates(instance, componentId))
       .map((instance) => instance.id),
   );
   return instanceIds.size === 0
@@ -350,14 +360,14 @@ const onSubnetPort = (
         instanceIds.has(endpoint.componentInstanceId);
 };
 
-/** Drops what names `portPlaceId` on an instance of `subnetId`, in every net. */
-const removeReferencesToSubnetPort = (
+/** Drops what names `portPlaceId` on an instance of `componentId`, in every net. */
+const removeReferencesToComponentPort = (
   sdcpn: SDCPN,
-  subnetId: string,
+  componentId: string,
   portPlaceId: string,
 ): void => {
   for (const net of getAllMutableNets(sdcpn)) {
-    const matches = onSubnetPort(net, subnetId, portPlaceId);
+    const matches = onComponentPort(net, componentId, portPlaceId);
     if (matches) {
       removeEndpointReferences(net, matches);
     }
@@ -367,18 +377,18 @@ const removeReferencesToSubnetPort = (
 /** Whether an update of `instance` points it at a component other than its own. */
 const namesAnotherComponent = (
   instance: ComponentInstance,
-  update: Pick<Partial<ComponentInstance>, "subnetId" | "component">,
+  update: Pick<Partial<ComponentInstance>, "component">,
 ): boolean =>
-  (update.subnetId !== undefined || update.component !== undefined) &&
-  !sameComponent(componentOf(update), componentOf(instance));
+  update.component !== undefined &&
+  !sameComponent(update.component, instance.component);
 
 /**
- * Whether a call of `action` with `input` would drop arcs or fusion
- * memberships from `sdcpn`: an `updatePlace` that unmarks a port something
- * outside its subnet still names, or an `updateComponentInstance` that points
- * an instance at another component while something names its ports. A caller
- * that asks before a removal asks before such an update. Throws on an input
- * the action does not accept.
+ * Whether a call of `action` with `input` would drop arcs or fusion memberships
+ * from `sdcpn`: an `updatePlace` that unmarks a port something outside its
+ * component still names, or an `updateComponentInstance` that points an
+ * instance at another component while something names its ports. A caller that
+ * asks before a removal asks before such an update. Throws on an input the
+ * action does not accept.
  */
 export const updatePrunesReferences = (
   sdcpn: SDCPN,
@@ -386,29 +396,29 @@ export const updatePrunesReferences = (
   input: unknown,
 ): boolean => {
   if (action === "updatePlace") {
-    const { placeId, update, targetSubnetId } =
+    const { placeId, update, targetComponentId } =
       mutationActionInputSchemas.updatePlace.parse(input);
-    if (!targetSubnetId) {
+    if (!targetComponentId) {
       return false;
     }
-    const place = sdcpn.subnets
-      ?.find(({ id }) => id === targetSubnetId)
+    const place = sdcpn.components
+      ?.find(({ id }) => id === targetComponentId)
       ?.places.find(({ id }) => id === placeId);
-    // As `updatePlace` runs: a place of a subnet that stops being a port.
+    // As `updatePlace` runs: a place of a component that stops being a port.
     return (
       place?.isPort === true &&
       { ...place, ...update }.isPort !== true &&
       getAllMutableNets(sdcpn).some((net) => {
-        const matches = onSubnetPort(net, targetSubnetId, placeId);
+        const matches = onComponentPort(net, targetComponentId, placeId);
         return matches !== null && hasEndpointReferences(net, matches);
       })
     );
   }
   if (action === "updateComponentInstance") {
-    const { instanceId, update, targetSubnetId } =
+    const { instanceId, update, targetComponentId } =
       mutationActionInputSchemas.updateComponentInstance.parse(input);
-    const net: MutableNet | undefined = targetSubnetId
-      ? sdcpn.subnets?.find(({ id }) => id === targetSubnetId)
+    const net: MutableNet | undefined = targetComponentId
+      ? sdcpn.components?.find(({ id }) => id === targetComponentId)
       : sdcpn;
     const instance = net?.componentInstances?.find(
       ({ id }) => id === instanceId,
@@ -491,18 +501,18 @@ const withArcEndpoint = <Arc extends InputArc | OutputArc>(
   return { ...rest, ...createArcEndpointReference(endpoint) } as Arc;
 };
 
-const removeComponentInstancesReferencingSubnet = (
+const removeComponentInstancesReferencingComponent = (
   sdcpn: SDCPN,
-  subnetId: string,
+  componentId: string,
 ): void => {
   for (const net of getAllMutableNets(sdcpn)) {
     const instances = net.componentInstances ?? [];
     for (const instance of instances) {
-      if (instance.subnetId === subnetId) {
+      if (instantiates(instance, componentId)) {
         removeReferencesToComponentInstance(net, instance.id);
       }
     }
-    removeWhere(instances, (instance) => instance.subnetId === subnetId);
+    removeWhere(instances, (instance) => instantiates(instance, componentId));
   }
 };
 
@@ -535,22 +545,28 @@ const assertEndpointReferences = (
     );
   }
 
-  const subnet = getComponentPortEndpointSubnet(sdcpn, instance, libraries);
-  if (!subnet) {
+  const component = getComponentPortEndpointComponent(
+    sdcpn,
+    instance,
+    libraries,
+  );
+  if (!component) {
     throw new Error(
-      `${referrer} references component instance \`${instance.name}\`, which names ${describeMissingComponent(componentOf(instance))}.`,
+      `${referrer} references component instance \`${instance.name}\`, which names ${describeMissingComponent(instance.component)}.`,
     );
   }
 
-  const port = subnet.places.find((place) => place.id === endpoint.portPlaceId);
+  const port = component.places.find(
+    (place) => place.id === endpoint.portPlaceId,
+  );
   if (!port) {
     throw new Error(
-      `${referrer} references subnet port place ID \`${endpoint.portPlaceId}\` which does not exist in subnet \`${subnet.name}\`.`,
+      `${referrer} references component port place ID \`${endpoint.portPlaceId}\` which does not exist in component \`${component.name}\`.`,
     );
   }
   if (!port.isPort) {
     throw new Error(
-      `${referrer} references subnet place \`${port.name}\`, but only places marked \`isPort\` can be used as component ports.`,
+      `${referrer} references component place \`${port.name}\`, but only places marked \`isPort\` can be used as component ports.`,
     );
   }
 };
@@ -571,26 +587,27 @@ const dropImplementations = (
 };
 
 /**
- * Drops the instance choices and document defaults that name `subnetId`, as
+ * Drops the instance choices and document defaults that name `componentId`, as
  * the interface or as the implementation, and do not resolve.
  */
 const pruneImplementationBindings = (
   sdcpn: SDCPN,
-  subnetId: ID,
+  componentId: ID,
   libraries: Libraries,
 ): void => {
-  const subnet: ComponentReference = { id: subnetId };
+  const component: ComponentReference = { id: componentId };
   const broken = (
     iface: ComponentReference,
     implementation: ComponentReference,
   ) =>
-    (sameComponent(iface, subnet) || sameComponent(implementation, subnet)) &&
+    (sameComponent(iface, component) ||
+      sameComponent(implementation, component)) &&
     resolveBinding(sdcpn, iface, implementation, libraries)?.kind !== "bound";
   for (const net of getAllMutableNets(sdcpn)) {
     for (const instance of net.componentInstances ?? []) {
       if (
         instance.implementation !== undefined &&
-        broken(componentOf(instance), instance.implementation)
+        broken(instance.component, instance.implementation)
       ) {
         delete instance.implementation;
       }
@@ -601,46 +618,46 @@ const pruneImplementationBindings = (
   );
 };
 
-/** Throws when `subnet` says it implements something that is no interface of the document. */
+/** Throws when `component` says it implements something that is no interface of the document. */
 const assertImplementsReferences = (
   sdcpn: SDCPN,
-  subnet: Pick<Subnet, "name" | "implements">,
+  component: Pick<Component, "name" | "implements">,
 ): void => {
-  for (const interfaceId of subnet.implements ?? []) {
-    const iface = sdcpn.subnets?.find(({ id }) => id === interfaceId);
+  for (const interfaceId of component.implements ?? []) {
+    const iface = sdcpn.components?.find(({ id }) => id === interfaceId);
     if (!iface) {
       throw new Error(
-        `Subnet \`${subnet.name}\` implements subnet ID \`${interfaceId}\` which does not exist.`,
+        `Component \`${component.name}\` implements component ID \`${interfaceId}\` which does not exist.`,
       );
     }
     if (!isInterface(iface)) {
       throw new Error(
-        `Subnet \`${subnet.name}\` implements \`${iface.name}\`, which is not an interface.`,
+        `Component \`${component.name}\` implements \`${iface.name}\`, which is not an interface.`,
       );
     }
   }
 };
 
-/** Throws when `subnet` is an interface that says it implements one. */
+/** Throws when `component` is an interface that says it implements one. */
 const assertInterfaceImplementsNone = (
-  subnet: Pick<Subnet, "name" | "interface" | "implements">,
+  component: Pick<Component, "name" | "interface" | "implements">,
 ): void => {
-  if (isInterface(subnet) && (subnet.implements?.length ?? 0) > 0) {
+  if (isInterface(component) && (component.implements?.length ?? 0) > 0) {
     throw new Error(
-      `Subnet \`${subnet.name}\` is an interface, and an interface cannot implement an interface.`,
+      `Component \`${component.name}\` is an interface, and an interface cannot implement an interface.`,
     );
   }
 };
 
-/** Takes `subnetId` out of every `implements` list that names it. */
-const removeFromImplementsLists = (sdcpn: SDCPN, subnetId: ID): void => {
-  for (const subnet of sdcpn.subnets ?? []) {
-    if (subnet.implements?.includes(subnetId)) {
-      const remaining = subnet.implements.filter((id) => id !== subnetId);
+/** Takes `componentId` out of every `implements` list that names it. */
+const removeFromImplementsLists = (sdcpn: SDCPN, componentId: ID): void => {
+  for (const component of sdcpn.components ?? []) {
+    if (component.implements?.includes(componentId)) {
+      const remaining = component.implements.filter((id) => id !== componentId);
       if (remaining.length > 0) {
-        subnet.implements = remaining;
+        component.implements = remaining;
       } else {
-        delete subnet.implements;
+        delete component.implements;
       }
     }
   }
@@ -687,9 +704,9 @@ const assertComponentInstanceReferences = (
   libraries: Libraries,
   keepsComponent = false,
 ): void => {
-  const reference = componentOf(instance);
-  const subnet = resolveComponent(sdcpn, reference, libraries);
-  if (!subnet) {
+  const reference = instance.component;
+  const component = resolveComponent(sdcpn, reference, libraries);
+  if (!component) {
     if (keepsComponent) {
       return;
     }
@@ -698,12 +715,14 @@ const assertComponentInstanceReferences = (
     );
   }
 
-  const subnetParameterIds = new Set(subnet.parameters.map(({ id }) => id));
+  const componentParameterIds = new Set(
+    component.parameters.map(({ id }) => id),
+  );
 
   for (const parameterId of Object.keys(instance.parameterValues)) {
-    if (!subnetParameterIds.has(parameterId)) {
+    if (!componentParameterIds.has(parameterId)) {
       throw new Error(
-        `Component instance \`${instance.name}\` provides a value for unknown subnet parameter ID \`${parameterId}\`.`,
+        `Component instance \`${instance.name}\` provides a value for unknown component parameter ID \`${parameterId}\`.`,
       );
     }
   }
@@ -728,7 +747,7 @@ const assertBindingRuns = (
   }
   if (resolved.kind === "component") {
     throw new Error(
-      `${subject} names an implementation, but \`${resolved.subnet.name}\` is not an interface.`,
+      `${subject} names an implementation, but \`${resolved.component.name}\` is not an interface.`,
     );
   }
   if (resolved.kind === "unbound") {
@@ -745,7 +764,7 @@ const assertImplementationChoice = (
   if (instance.implementation !== undefined) {
     assertBindingRuns(
       sdcpn,
-      componentOf(instance),
+      instance.component,
       instance.implementation,
       `Component instance \`${instance.name}\``,
       libraries,
@@ -924,7 +943,7 @@ export function createPetrinautActions(
   return withWrittenIdsInErrors({
     addPlace(input) {
       const parsed = mutationActionInputSchemas.addPlace.parse(input);
-      const [targetSubnetId, place] = splitTargetSubnetId(parsed);
+      const [targetComponentId, place] = splitTargetComponentId(parsed);
       const parsedPlace = sanitizePlaceForExtensions(
         placeSchema.parse(place),
         extensions,
@@ -934,7 +953,7 @@ export function createPetrinautActions(
         delete parsedPlace.portDirection;
       }
       mutateWithExtensionGuards((sdcpn) => {
-        const net = resolveTargetNet(sdcpn, targetSubnetId);
+        const net = resolveTargetNet(sdcpn, targetComponentId);
         assertPlaceDynamicsReferences(parsedPlace, net.differentialEquations);
         net.places.push(parsedPlace);
       });
@@ -942,7 +961,7 @@ export function createPetrinautActions(
     updatePlace(input) {
       const parsed = mutationActionInputSchemas.updatePlace.parse(input);
       mutateWithExtensionGuards((sdcpn) => {
-        const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
+        const net = resolveTargetNet(sdcpn, parsed.targetComponentId);
         for (const place of net.places) {
           if (place.id === parsed.placeId) {
             const wasPort = place.isPort === true;
@@ -955,11 +974,11 @@ export function createPetrinautActions(
             placeSchema.parse(place);
             assertPlaceDynamicsReferences(place, net.differentialEquations);
             // A place that stops being a port can no longer be reached from
-            // outside its subnet: the arcs and fusions on it go with it.
-            if (wasPort && place.isPort !== true && parsed.targetSubnetId) {
-              removeReferencesToSubnetPort(
+            // outside its component: the arcs and fusions on it go with it.
+            if (wasPort && place.isPort !== true && parsed.targetComponentId) {
+              removeReferencesToComponentPort(
                 sdcpn,
-                parsed.targetSubnetId,
+                parsed.targetComponentId,
                 place.id,
               );
             }
@@ -973,7 +992,7 @@ export function createPetrinautActions(
       const parsed =
         mutationActionInputSchemas.updatePlacePosition.parse(input);
       mutateWithExtensionGuards((sdcpn) => {
-        const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
+        const net = resolveTargetNet(sdcpn, parsed.targetComponentId);
         for (const place of net.places) {
           if (place.id === parsed.placeId) {
             place.x = parsed.position.x;
@@ -986,16 +1005,16 @@ export function createPetrinautActions(
     removePlace(input) {
       const parsed = mutationActionInputSchemas.removePlace.parse(input);
       mutateWithExtensionGuards((sdcpn) => {
-        const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
+        const net = resolveTargetNet(sdcpn, parsed.targetComponentId);
         for (const [placeIndex, place] of net.places.entries()) {
           if (place.id === parsed.placeId) {
             net.places.splice(placeIndex, 1);
 
             removeReferencesToPlace(net, parsed.placeId);
-            if (parsed.targetSubnetId) {
-              removeReferencesToSubnetPort(
+            if (parsed.targetComponentId) {
+              removeReferencesToComponentPort(
                 sdcpn,
-                parsed.targetSubnetId,
+                parsed.targetComponentId,
                 parsed.placeId,
               );
             }
@@ -1007,10 +1026,10 @@ export function createPetrinautActions(
     },
     addTransition(input) {
       const parsed = mutationActionInputSchemas.addTransition.parse(input);
-      const [targetSubnetId, transition] = splitTargetSubnetId(parsed);
+      const [targetComponentId, transition] = splitTargetComponentId(parsed);
       const parsedTransition = transitionSchema.parse(transition);
       mutateWithExtensionGuards((sdcpn) => {
-        const net = resolveTargetNet(sdcpn, targetSubnetId);
+        const net = resolveTargetNet(sdcpn, targetComponentId);
         sanitizeTransition(parsedTransition, net, sdcpn, {
           loadDefaultKernelWhenEmpty: true,
         });
@@ -1020,7 +1039,7 @@ export function createPetrinautActions(
     updateTransition(input) {
       const parsed = mutationActionInputSchemas.updateTransition.parse(input);
       mutateWithExtensionGuards((sdcpn) => {
-        const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
+        const net = resolveTargetNet(sdcpn, parsed.targetComponentId);
         for (const transition of net.transitions) {
           if (transition.id === parsed.transitionId) {
             Object.assign(transition, parsed.update);
@@ -1035,7 +1054,7 @@ export function createPetrinautActions(
       const parsed =
         mutationActionInputSchemas.updateTransitionPosition.parse(input);
       mutateWithExtensionGuards((sdcpn) => {
-        const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
+        const net = resolveTargetNet(sdcpn, parsed.targetComponentId);
         for (const transition of net.transitions) {
           if (transition.id === parsed.transitionId) {
             transition.x = parsed.position.x;
@@ -1048,7 +1067,7 @@ export function createPetrinautActions(
     removeTransition(input) {
       const parsed = mutationActionInputSchemas.removeTransition.parse(input);
       mutateWithExtensionGuards((sdcpn) => {
-        const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
+        const net = resolveTargetNet(sdcpn, parsed.targetComponentId);
         for (const [index, transition] of net.transitions.entries()) {
           if (transition.id === parsed.transitionId) {
             net.transitions.splice(index, 1);
@@ -1060,7 +1079,7 @@ export function createPetrinautActions(
     addArc(input) {
       const parsed = mutationActionInputSchemas.addArc.parse(input);
       mutateWithExtensionGuards((sdcpn) => {
-        const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
+        const net = resolveTargetNet(sdcpn, parsed.targetComponentId);
         const endpoint = normalizeArcEndpointInput(parsed);
         assertEndpointReferences(sdcpn, net, endpoint, "Arc", readLibraries());
         const transition = net.transitions.find(
@@ -1105,7 +1124,7 @@ export function createPetrinautActions(
     removeArc(input) {
       const parsed = mutationActionInputSchemas.removeArc.parse(input);
       mutateWithExtensionGuards((sdcpn) => {
-        const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
+        const net = resolveTargetNet(sdcpn, parsed.targetComponentId);
         const endpoint = normalizeArcEndpointInput(parsed);
         for (const transition of net.transitions) {
           if (transition.id === parsed.transitionId) {
@@ -1128,7 +1147,7 @@ export function createPetrinautActions(
     updateArcWeight(input) {
       const parsed = mutationActionInputSchemas.updateArcWeight.parse(input);
       mutateWithExtensionGuards((sdcpn) => {
-        const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
+        const net = resolveTargetNet(sdcpn, parsed.targetComponentId);
         const endpoint = normalizeArcEndpointInput(parsed);
         for (const transition of net.transitions) {
           if (transition.id === parsed.transitionId) {
@@ -1150,7 +1169,7 @@ export function createPetrinautActions(
     updateArcType(input) {
       const parsed = mutationActionInputSchemas.updateArcType.parse(input);
       mutateWithExtensionGuards((sdcpn) => {
-        const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
+        const net = resolveTargetNet(sdcpn, parsed.targetComponentId);
         const endpoint = normalizeArcEndpointInput(parsed);
         for (const transition of net.transitions) {
           if (transition.id === parsed.transitionId) {
@@ -1171,7 +1190,7 @@ export function createPetrinautActions(
     updateArcPlace(input) {
       const parsed = mutationActionInputSchemas.updateArcPlace.parse(input);
       mutateWithExtensionGuards((sdcpn) => {
-        const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
+        const net = resolveTargetNet(sdcpn, parsed.targetComponentId);
         const { oldEndpoint, newEndpoint } =
           normalizeArcEndpointReplacementInput(parsed);
         assertEndpointReferences(
@@ -1203,13 +1222,13 @@ export function createPetrinautActions(
     },
     addType(input) {
       const parsed = mutationActionInputSchemas.addType.parse(input);
-      const [targetSubnetId, type] = splitTargetSubnetId(parsed);
+      const [targetComponentId, type] = splitTargetComponentId(parsed);
       const parsedType = colorSchema.parse(type);
       if (!canUseColors) {
         return;
       }
       mutateWithExtensionGuards((sdcpn) => {
-        resolveTargetNet(sdcpn, targetSubnetId).types.push(parsedType);
+        resolveTargetNet(sdcpn, targetComponentId).types.push(parsedType);
       });
     },
     updateType(input) {
@@ -1218,7 +1237,7 @@ export function createPetrinautActions(
         return;
       }
       mutateWithExtensionGuards((sdcpn) => {
-        const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
+        const net = resolveTargetNet(sdcpn, parsed.targetComponentId);
         for (const type of net.types) {
           if (type.id === parsed.typeId) {
             Object.assign(type, parsed.update);
@@ -1234,7 +1253,7 @@ export function createPetrinautActions(
         return;
       }
       mutateWithExtensionGuards((sdcpn) => {
-        const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
+        const net = resolveTargetNet(sdcpn, parsed.targetComponentId);
         for (const type of net.types) {
           if (type.id === parsed.typeId) {
             type.elements.push(parsed.element);
@@ -1254,7 +1273,7 @@ export function createPetrinautActions(
         return;
       }
       mutateWithExtensionGuards((sdcpn) => {
-        const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
+        const net = resolveTargetNet(sdcpn, parsed.targetComponentId);
         for (const type of net.types) {
           if (type.id === parsed.typeId) {
             for (const [index, element] of type.elements.entries()) {
@@ -1286,7 +1305,7 @@ export function createPetrinautActions(
         return;
       }
       mutateWithExtensionGuards((sdcpn) => {
-        const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
+        const net = resolveTargetNet(sdcpn, parsed.targetComponentId);
         for (const type of net.types) {
           if (type.id === parsed.typeId) {
             for (const [index, element] of type.elements.entries()) {
@@ -1311,7 +1330,7 @@ export function createPetrinautActions(
         return;
       }
       mutateWithExtensionGuards((sdcpn) => {
-        const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
+        const net = resolveTargetNet(sdcpn, parsed.targetComponentId);
         for (const type of net.types) {
           if (type.id === parsed.typeId) {
             const fromIndex = type.elements.findIndex(
@@ -1348,7 +1367,7 @@ export function createPetrinautActions(
         return;
       }
       mutateWithExtensionGuards((sdcpn) => {
-        const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
+        const net = resolveTargetNet(sdcpn, parsed.targetComponentId);
         for (const [index, type] of net.types.entries()) {
           if (type.id === parsed.typeId) {
             net.types.splice(index, 1);
@@ -1371,13 +1390,13 @@ export function createPetrinautActions(
     addDifferentialEquation(input) {
       const parsed =
         mutationActionInputSchemas.addDifferentialEquation.parse(input);
-      const [targetSubnetId, equation] = splitTargetSubnetId(parsed);
+      const [targetComponentId, equation] = splitTargetComponentId(parsed);
       const parsedEquation = differentialEquationSchema.parse(equation);
       if (!canUseDynamics) {
         return;
       }
       mutateWithExtensionGuards((sdcpn) => {
-        const net = resolveTargetNet(sdcpn, targetSubnetId);
+        const net = resolveTargetNet(sdcpn, targetComponentId);
         net.differentialEquations.push(parsedEquation);
         for (const place of net.places) {
           if (placeUsesDifferentialEquation(place, parsedEquation.id)) {
@@ -1393,7 +1412,7 @@ export function createPetrinautActions(
         return;
       }
       mutateWithExtensionGuards((sdcpn) => {
-        const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
+        const net = resolveTargetNet(sdcpn, parsed.targetComponentId);
         for (const equation of net.differentialEquations) {
           if (equation.id === parsed.equationId) {
             Object.assign(equation, parsed.update);
@@ -1415,7 +1434,7 @@ export function createPetrinautActions(
         return;
       }
       mutateWithExtensionGuards((sdcpn) => {
-        const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
+        const net = resolveTargetNet(sdcpn, parsed.targetComponentId);
         for (const [index, equation] of net.differentialEquations.entries()) {
           if (equation.id === parsed.equationId) {
             net.differentialEquations.splice(index, 1);
@@ -1430,13 +1449,13 @@ export function createPetrinautActions(
     },
     addParameter(input) {
       const parsed = mutationActionInputSchemas.addParameter.parse(input);
-      const [targetSubnetId, parameter] = splitTargetSubnetId(parsed);
+      const [targetComponentId, parameter] = splitTargetComponentId(parsed);
       const parsedParameter = parameterSchema.parse(parameter);
       if (!canUseParameters) {
         return;
       }
       mutateWithExtensionGuards((sdcpn) => {
-        resolveTargetNet(sdcpn, targetSubnetId).parameters.push(
+        resolveTargetNet(sdcpn, targetComponentId).parameters.push(
           parsedParameter,
         );
       });
@@ -1447,7 +1466,7 @@ export function createPetrinautActions(
         return;
       }
       mutateWithExtensionGuards((sdcpn) => {
-        const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
+        const net = resolveTargetNet(sdcpn, parsed.targetComponentId);
         for (const parameter of net.parameters) {
           if (parameter.id === parsed.parameterId) {
             Object.assign(parameter, parsed.update);
@@ -1463,7 +1482,7 @@ export function createPetrinautActions(
         return;
       }
       mutateWithExtensionGuards((sdcpn) => {
-        const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
+        const net = resolveTargetNet(sdcpn, parsed.targetComponentId);
         for (const [index, parameter] of net.parameters.entries()) {
           if (parameter.id === parsed.parameterId) {
             net.parameters.splice(index, 1);
@@ -1546,66 +1565,67 @@ export function createPetrinautActions(
         }
       });
     },
-    addSubnet(subnet) {
-      const parsedSubnet = subnetSchema.parse(subnet);
+    addComponent(component) {
+      const parsedComponent = componentSchema.parse(component);
       mutateWithExtensionGuards((sdcpn) => {
-        assertInterfaceImplementsNone(parsedSubnet);
-        assertImplementsReferences(sdcpn, parsedSubnet);
+        assertInterfaceImplementsNone(parsedComponent);
+        assertImplementsReferences(sdcpn, parsedComponent);
         const targetSdcpn = sdcpn;
-        targetSdcpn.subnets ??= [];
-        const subnets = targetSdcpn.subnets;
-        subnets.push(parsedSubnet);
+        targetSdcpn.components ??= [];
+        const components = targetSdcpn.components;
+        components.push(parsedComponent);
       });
     },
-    updateSubnet(input) {
-      const parsed = mutationActionInputSchemas.updateSubnet.parse(input);
-      // The flag is `true` or absent on a subnet: `false` clears it.
+    updateComponent(input) {
+      const parsed = mutationActionInputSchemas.updateComponent.parse(input);
+      // The flag is `true` or absent on a component: `false` clears it.
       const { interface: flag, ...fields } = parsed.update;
-      const update: Partial<Subnet> =
+      const update: Partial<Component> =
         "interface" in parsed.update
           ? { ...fields, interface: flag === true ? true : undefined }
           : fields;
       mutateWithExtensionGuards((sdcpn) => {
-        for (const subnet of sdcpn.subnets ?? []) {
-          if (subnet.id === parsed.subnetId) {
-            const wasInterface = isInterface(subnet);
-            assignUpdate(subnet, update);
+        for (const component of sdcpn.components ?? []) {
+          if (component.id === parsed.componentId) {
+            const wasInterface = isInterface(component);
+            assignUpdate(component, update);
             // Without its fusions, which an update leaves alone: a loaded
             // document can hold one the mutations refuse, for the checks to
             // report.
-            subnetSchema.parse({ ...subnet, fusions: undefined });
+            componentSchema.parse({ ...component, fusions: undefined });
             if (update.implements !== undefined) {
-              assertImplementsReferences(sdcpn, subnet);
+              assertImplementsReferences(sdcpn, component);
             }
-            // A subnet that stops being an interface is implemented by none.
-            if (wasInterface && !isInterface(subnet)) {
-              removeFromImplementsLists(sdcpn, subnet.id);
+            // A component that stops being an interface is implemented by none.
+            if (wasInterface && !isInterface(component)) {
+              removeFromImplementsLists(sdcpn, component.id);
             }
             // Only a change to what bindings rest on is held to the rule, and
             // drops the bindings it leaves unresolved: what a document was
             // loaded with outlives any other update, for the user to repair.
             if ("interface" in update || "implements" in update) {
-              assertInterfaceImplementsNone(subnet);
-              pruneImplementationBindings(sdcpn, subnet.id, readLibraries());
+              assertInterfaceImplementsNone(component);
+              pruneImplementationBindings(sdcpn, component.id, readLibraries());
             }
             break;
           }
         }
       });
     },
-    removeSubnet(input) {
-      const { subnetId } = mutationActionInputSchemas.removeSubnet.parse(input);
+    removeComponent(input) {
+      const { componentId } =
+        mutationActionInputSchemas.removeComponent.parse(input);
       mutateWithExtensionGuards((sdcpn) => {
-        const subnets = sdcpn.subnets;
-        if (!subnets) {
+        const components = sdcpn.components;
+        if (!components) {
           return;
         }
-        for (const [index, subnet] of subnets.entries()) {
-          if (subnet.id === subnetId) {
-            subnets.splice(index, 1);
-            removeComponentInstancesReferencingSubnet(sdcpn, subnetId);
-            removeFromImplementsLists(sdcpn, subnetId);
-            pruneImplementationBindings(sdcpn, subnetId, readLibraries());
+        for (const [index, component] of components.entries()) {
+          if (component.id === componentId) {
+            components.splice(index, 1);
+            removeComponentInstancesReferencingComponent(sdcpn, componentId);
+            removeFromImplementsLists(sdcpn, componentId);
+            pruneImplementationBindings(sdcpn, componentId, readLibraries());
             break;
           }
         }
@@ -1642,10 +1662,10 @@ export function createPetrinautActions(
     addComponentInstance(input) {
       const parsed =
         mutationActionInputSchemas.addComponentInstance.parse(input);
-      const [targetSubnetId, instance] = splitTargetSubnetId(parsed);
+      const [targetComponentId, instance] = splitTargetComponentId(parsed);
       const parsedInstance = componentInstanceSchema.parse(instance);
       mutateWithExtensionGuards((sdcpn) => {
-        const net = resolveTargetNet(sdcpn, targetSubnetId);
+        const net = resolveTargetNet(sdcpn, targetComponentId);
         const libraries = readLibraries();
         assertComponentInstanceReferences(sdcpn, parsedInstance, libraries);
         assertImplementationChoice(sdcpn, parsedInstance, libraries);
@@ -1663,7 +1683,7 @@ export function createPetrinautActions(
           ? { ...fields, implementation: implementation ?? undefined }
           : fields;
       mutateWithExtensionGuards((sdcpn) => {
-        const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
+        const net = resolveTargetNet(sdcpn, parsed.targetComponentId);
         for (const instance of net.componentInstances ?? []) {
           if (instance.id === parsed.instanceId) {
             const libraries = readLibraries();
@@ -1674,9 +1694,6 @@ export function createPetrinautActions(
               // Nor its choice of implementation, unless the update makes
               // one.
               delete instance.implementation;
-              // It names its component one way: the update's.
-              delete instance.subnetId;
-              delete instance.component;
             }
             assignUpdate(instance, update);
             componentInstanceSchema.parse(instance);
@@ -1687,7 +1704,7 @@ export function createPetrinautActions(
               sdcpn,
               instance,
               libraries,
-              update.subnetId === undefined && update.component === undefined,
+              update.component === undefined,
             );
             if (update.implementation !== undefined) {
               assertImplementationChoice(sdcpn, instance, libraries);
@@ -1702,7 +1719,7 @@ export function createPetrinautActions(
       const parsed =
         mutationActionInputSchemas.updateComponentInstancePosition.parse(input);
       mutateWithExtensionGuards((sdcpn) => {
-        const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
+        const net = resolveTargetNet(sdcpn, parsed.targetComponentId);
         for (const instance of net.componentInstances ?? []) {
           if (instance.id === parsed.instanceId) {
             instance.x = parsed.position.x;
@@ -1716,7 +1733,7 @@ export function createPetrinautActions(
       const parsed =
         mutationActionInputSchemas.removeComponentInstance.parse(input);
       mutateWithExtensionGuards((sdcpn) => {
-        const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
+        const net = resolveTargetNet(sdcpn, parsed.targetComponentId);
         const instances = net.componentInstances;
         if (!instances) {
           return;
@@ -1732,9 +1749,10 @@ export function createPetrinautActions(
     },
     addFusion(input) {
       const parsed = mutationActionInputSchemas.addFusion.parse(input);
-      const [targetSubnetId, { name, ...given }] = splitTargetSubnetId(parsed);
+      const [targetComponentId, { name, ...given }] =
+        splitTargetComponentId(parsed);
       mutateWithExtensionGuards((sdcpn) => {
-        const net = resolveTargetNet(sdcpn, targetSubnetId);
+        const net = resolveTargetNet(sdcpn, targetComponentId);
         for (const member of given.members) {
           assertEndpointReferences(
             sdcpn,
@@ -1766,7 +1784,7 @@ export function createPetrinautActions(
     updateFusion(input) {
       const parsed = mutationActionInputSchemas.updateFusion.parse(input);
       mutateWithExtensionGuards((sdcpn) => {
-        const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
+        const net = resolveTargetNet(sdcpn, parsed.targetComponentId);
         for (const fusion of net.fusions ?? []) {
           if (fusion.id === parsed.fusionId) {
             assignUpdate(fusion, parsed.update);
@@ -1778,7 +1796,7 @@ export function createPetrinautActions(
     removeFusion(input) {
       const parsed = mutationActionInputSchemas.removeFusion.parse(input);
       mutateWithExtensionGuards((sdcpn) => {
-        const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
+        const net = resolveTargetNet(sdcpn, parsed.targetComponentId);
         removeWhere(net.fusions ?? [], ({ id }) => id === parsed.fusionId);
         pruneFusions(net);
       });
@@ -1786,7 +1804,7 @@ export function createPetrinautActions(
     addFusionMember(input) {
       const parsed = mutationActionInputSchemas.addFusionMember.parse(input);
       mutateWithExtensionGuards((sdcpn) => {
-        const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
+        const net = resolveTargetNet(sdcpn, parsed.targetComponentId);
         const fusion = requireFusion(net, parsed.fusionId);
         joinFusion(sdcpn, net, fusion, parsed.member, readLibraries());
         fusionSchema.parse(fusion);
@@ -1795,7 +1813,7 @@ export function createPetrinautActions(
     removeFusionMember(input) {
       const parsed = mutationActionInputSchemas.removeFusionMember.parse(input);
       mutateWithExtensionGuards((sdcpn) => {
-        const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
+        const net = resolveTargetNet(sdcpn, parsed.targetComponentId);
         const fusion = (net.fusions ?? []).find(
           ({ id }) => id === parsed.fusionId,
         );
@@ -1812,7 +1830,7 @@ export function createPetrinautActions(
       const parsed =
         mutationActionInputSchemas.replaceFusionMember.parse(input);
       mutateWithExtensionGuards((sdcpn) => {
-        const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
+        const net = resolveTargetNet(sdcpn, parsed.targetComponentId);
         const fusion = requireFusion(net, parsed.fusionId);
         const holds = (member: FusionMember) =>
           fusion.members.some((held) => arcEndpointsEqual(held, member));
@@ -1836,7 +1854,7 @@ export function createPetrinautActions(
     deleteItemsByIds(input) {
       const parsed = mutationActionInputSchemas.deleteItemsByIds.parse(input);
       mutateWithExtensionGuards((sdcpn) => {
-        const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
+        const net = resolveTargetNet(sdcpn, parsed.targetComponentId);
         const placeIds = new Set<string>();
         const transitionIds = new Set<string>();
         const arcIds = new Set<string>();
@@ -1912,11 +1930,11 @@ export function createPetrinautActions(
               ? placeIds.has(endpoint.placeId)
               : componentInstanceIds.has(endpoint.componentInstanceId),
           );
-          if (parsed.targetSubnetId) {
+          if (parsed.targetComponentId) {
             for (const placeId of placeIds) {
-              removeReferencesToSubnetPort(
+              removeReferencesToComponentPort(
                 sdcpn,
-                parsed.targetSubnetId,
+                parsed.targetComponentId,
                 placeId,
               );
             }
@@ -1966,7 +1984,7 @@ export function createPetrinautActions(
       const parsed =
         mutationActionInputSchemas.commitNodePositions.parse(input);
       mutateWithExtensionGuards((sdcpn) => {
-        const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
+        const net = resolveTargetNet(sdcpn, parsed.targetComponentId);
         for (const { id, itemType, position } of parsed.commits) {
           if (itemType === "place") {
             for (const place of net.places) {

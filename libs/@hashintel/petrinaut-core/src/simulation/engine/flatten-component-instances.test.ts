@@ -7,12 +7,12 @@ import {
 
 import type {
   Color,
+  Component,
   ComponentInstance,
   DifferentialEquation,
   Parameter,
   Place,
   SDCPN,
-  Subnet,
   Transition,
 } from "../../types/sdcpn";
 import type { InitialMarking } from "../api";
@@ -58,19 +58,22 @@ const parameter = (
 
 const componentInstance = (
   id: string,
-  subnetId: string,
+  componentId: string,
   overrides: Partial<ComponentInstance> = {},
 ): ComponentInstance => ({
   id,
   name: id,
-  subnetId,
+  component: { id: componentId },
   parameterValues: {},
   x: 0,
   y: 0,
   ...overrides,
 });
 
-const subnet = (id: string, overrides: Partial<Subnet> = {}): Subnet => ({
+const component = (
+  id: string,
+  overrides: Partial<Component> = {},
+): Component => ({
   id,
   name: id,
   places: [],
@@ -174,8 +177,8 @@ describe("flattenComponentInstancesForSimulation", () => {
       componentInstances: [
         componentInstance("worker", "processor", { name: "Worker" }),
       ],
-      subnets: [
-        subnet("processor", {
+      components: [
+        component("processor", {
           types: [color],
           differentialEquations: [equation, pairwise],
           places: [
@@ -205,7 +208,7 @@ describe("flattenComponentInstancesForSimulation", () => {
     });
 
     expect(result.sdcpn.componentInstances).toEqual([]);
-    expect(result.sdcpn.subnets).toEqual([]);
+    expect(result.sdcpn.components).toEqual([]);
     expect(result.sdcpn.types.map(({ id }) => id)).toEqual(["worker::token"]);
     expect(result.sdcpn.differentialEquations).toMatchObject([
       { id: "worker::flow", colorId: "worker::token" },
@@ -245,7 +248,7 @@ describe("flattenComponentInstancesForSimulation", () => {
     ).toBe("Worker::Port In");
   });
 
-  it("flattens multiple instances of the same subnet with distinct parameter values", () => {
+  it("flattens multiple instances of the same component with distinct parameter values", () => {
     const definition = sdcpn({
       componentInstances: [
         componentInstance("fast", "worker", {
@@ -253,8 +256,8 @@ describe("flattenComponentInstancesForSimulation", () => {
         }),
         componentInstance("slow", "worker"),
       ],
-      subnets: [
-        subnet("worker", {
+      components: [
+        component("worker", {
           places: [place("slot")],
           transitions: [transition("tick")],
           parameters: [
@@ -304,13 +307,13 @@ describe("flattenComponentInstancesForSimulation", () => {
 
   it("flattens nested component instances into nested scoped IDs", () => {
     const definition = sdcpn({
-      componentInstances: [componentInstance("outer", "outer-subnet")],
-      subnets: [
-        subnet("outer-subnet", {
+      componentInstances: [componentInstance("outer", "outer-component")],
+      components: [
+        component("outer-component", {
           places: [place("outer-place")],
-          componentInstances: [componentInstance("inner", "inner-subnet")],
+          componentInstances: [componentInstance("inner", "inner-component")],
         }),
-        subnet("inner-subnet", {
+        component("inner-component", {
           places: [place("leaf")],
           transitions: [transition("leaf-transition")],
         }),
@@ -328,13 +331,13 @@ describe("flattenComponentInstancesForSimulation", () => {
     ]);
   });
 
-  it("throws when an instance references a missing subnet", () => {
+  it("throws when an instance references a missing component", () => {
     const definition = sdcpn({
-      componentInstances: [componentInstance("missing", "missing-subnet")],
+      componentInstances: [componentInstance("missing", "missing-component")],
     });
 
     expect(() => flatten({ definition })).toThrow(
-      "references subnet ID `missing-subnet` which does not exist",
+      "references component ID `missing-component` which does not exist",
     );
   });
 
@@ -361,7 +364,7 @@ describe("flattenComponentInstancesForSimulation", () => {
     );
   });
 
-  it("throws when a component-port arc references a missing subnet port", () => {
+  it("throws when a component-port arc references a missing component port", () => {
     const definition = sdcpn({
       transitions: [
         transition("send", {
@@ -377,8 +380,8 @@ describe("flattenComponentInstancesForSimulation", () => {
           ],
         }),
       ],
-      componentInstances: [componentInstance("worker", "worker-subnet")],
-      subnets: [subnet("worker-subnet", { places: [place("port")] })],
+      componentInstances: [componentInstance("worker", "worker-component")],
+      components: [component("worker-component", { places: [place("port")] })],
     });
 
     expect(() => flatten({ definition })).toThrow(
@@ -402,8 +405,10 @@ describe("flattenComponentInstancesForSimulation", () => {
           ],
         }),
       ],
-      componentInstances: [componentInstance("worker", "worker-subnet")],
-      subnets: [subnet("worker-subnet", { places: [place("internal")] })],
+      componentInstances: [componentInstance("worker", "worker-component")],
+      components: [
+        component("worker-component", { places: [place("internal")] }),
+      ],
     });
 
     expect(() => flatten({ definition })).toThrow(
@@ -411,28 +416,30 @@ describe("flattenComponentInstancesForSimulation", () => {
     );
   });
 
-  it("throws when subnet references form a cycle", () => {
+  it("throws when component references form a cycle", () => {
     const definition = sdcpn({
-      componentInstances: [componentInstance("outer", "outer-subnet")],
-      subnets: [
-        subnet("outer-subnet", {
-          componentInstances: [componentInstance("inner", "inner-subnet")],
+      componentInstances: [componentInstance("outer", "outer-component")],
+      components: [
+        component("outer-component", {
+          componentInstances: [componentInstance("inner", "inner-component")],
         }),
-        subnet("inner-subnet", {
-          componentInstances: [componentInstance("again", "outer-subnet")],
+        component("inner-component", {
+          componentInstances: [componentInstance("again", "outer-component")],
         }),
       ],
     });
 
     expect(() => flatten({ definition })).toThrow(
-      "Component subnet cycle detected: `outer-subnet` -> `inner-subnet` -> `outer-subnet`",
+      "Component cycle detected: `outer-component` -> `inner-component` -> `outer-component`",
     );
   });
 
   it("throws when IDs contain the component scope separator", () => {
     const definition = sdcpn({
-      componentInstances: [componentInstance("worker::one", "worker-subnet")],
-      subnets: [subnet("worker-subnet", { places: [place("slot")] })],
+      componentInstances: [
+        componentInstance("worker::one", "worker-component"),
+      ],
+      components: [component("worker-component", { places: [place("slot")] })],
     });
 
     expect(() => flatten({ definition })).toThrow("scope separator `::`");
@@ -441,10 +448,10 @@ describe("flattenComponentInstancesForSimulation", () => {
   it("throws when duplicate component instance IDs produce duplicate flattened IDs", () => {
     const definition = sdcpn({
       componentInstances: [
-        componentInstance("worker", "worker-subnet"),
-        componentInstance("worker", "worker-subnet"),
+        componentInstance("worker", "worker-component"),
+        componentInstance("worker", "worker-component"),
       ],
-      subnets: [subnet("worker-subnet", { places: [place("slot")] })],
+      components: [component("worker-component", { places: [place("slot")] })],
     });
 
     expect(() => flatten({ definition })).toThrow(
@@ -455,7 +462,7 @@ describe("flattenComponentInstancesForSimulation", () => {
 
 describe("flattenComponentInstancesForSimulation with fusions", () => {
   const machine = () =>
-    subnet("machine", {
+    component("machine", {
       places: [
         place("in", { name: "In", isPort: true }),
         place("out", { name: "Out", isPort: true }),
@@ -477,7 +484,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
         }),
       ],
       componentInstances: [componentInstance("m1", "machine")],
-      subnets: [machine()],
+      components: [machine()],
       fusions: [
         {
           id: "f1",
@@ -511,7 +518,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
     const definition = sdcpn({
       places: [place("buffer")],
       componentInstances: [componentInstance("m1", "machine")],
-      subnets: [machine()],
+      components: [machine()],
       fusions: [
         {
           id: "f1",
@@ -542,7 +549,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
         componentInstance("m1", "machine"),
         componentInstance("m2", "machine"),
       ],
-      subnets: [machine()],
+      components: [machine()],
       fusions: [
         {
           id: "f1",
@@ -575,12 +582,12 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
     ).toEqual([{ placeId: "m1::out", weight: 1, type: "standard" }]);
   });
 
-  it("applies fusions declared inside a subnet to the nested instances", () => {
+  it("applies fusions declared inside a component to the nested instances", () => {
     const definition = sdcpn({
       componentInstances: [componentInstance("line", "line")],
-      subnets: [
+      components: [
         machine(),
-        subnet("line", {
+        component("line", {
           places: [place("feed", { name: "Feed", isPort: true })],
           componentInstances: [componentInstance("m1", "machine")],
           fusions: [
@@ -617,8 +624,8 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
     const definition = sdcpn({
       places: [place("buffer")],
       componentInstances: [componentInstance("m1", "machine")],
-      subnets: [
-        subnet("machine", { places: [place("hidden", { isPort: false })] }),
+      components: [
+        component("machine", { places: [place("hidden", { isPort: false })] }),
       ],
       fusions: [
         {
@@ -637,7 +644,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
     });
 
     expect(() => flatten({ definition })).toThrow(
-      /Fusion `F1` references subnet place `hidden`, but only places marked `isPort`/,
+      /Fusion `F1` references component place `hidden`, but only places marked `isPort`/,
     );
   });
 
@@ -656,7 +663,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
       ],
       // An instance, so flattening does not take its shortcut.
       componentInstances: [componentInstance("m1", "machine")],
-      subnets: [machine()],
+      components: [machine()],
     });
 
     expect(() => flatten({ definition })).toThrow(
@@ -693,7 +700,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
     const definition = sdcpn({
       places: [place("first"), place("second")],
       componentInstances: [componentInstance("m1", "machine")],
-      subnets: [machine()],
+      components: [machine()],
       fusions: [
         {
           id: "f1",
@@ -713,12 +720,12 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
     );
   });
 
-  it("names an anchor inside a subnet after its fusion", () => {
+  it("names an anchor inside a component after its fusion", () => {
     const definition = sdcpn({
       componentInstances: [componentInstance("line", "line")],
-      subnets: [
+      components: [
         machine(),
-        subnet("line", {
+        component("line", {
           places: [place("feed", { name: "Feed" })],
           componentInstances: [componentInstance("m1", "machine")],
           fusions: [
@@ -749,7 +756,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
   describe("dynamics on a fused port", () => {
     /** A bath whose port cools at the bath's own rate. */
     const bath = () =>
-      subnet("bath", {
+      component("bath", {
         types: [
           {
             id: "part",
@@ -794,7 +801,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
         componentInstances: [
           componentInstance("b1", "bath", { parameterValues: { rate: "5" } }),
         ],
-        subnets: [bath()],
+        components: [bath()],
         fusions: [
           {
             id: "f1",
@@ -824,7 +831,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
           componentInstance("b1", "bath"),
           componentInstance("b2", "bath"),
         ],
-        subnets: [bath()],
+        components: [bath()],
         fusions: [
           { id: "f1", name: "F1", members: [poolOf("b1"), poolOf("b2")] },
         ],
@@ -837,8 +844,8 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
       ]);
     });
 
-    it("refuses the ports of two subnets that each define an equation under one id", () => {
-      const kiln: Subnet = {
+    it("refuses the ports of two components that each define an equation under one id", () => {
+      const kiln: Component = {
         ...bath(),
         id: "kiln",
         name: "kiln",
@@ -857,7 +864,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
           componentInstance("b1", "bath"),
           componentInstance("k1", "kiln"),
         ],
-        subnets: [bath(), kiln],
+        components: [bath(), kiln],
         fusions: [
           { id: "f1", name: "F1", members: [poolOf("b1"), poolOf("k1")] },
         ],
@@ -868,7 +875,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
       );
     });
 
-    it("refuses a root place and a port whose subnet defines an equation under the id of the root's", () => {
+    it("refuses a root place and a port whose component defines an equation under the id of the root's", () => {
       const definition = sdcpn({
         types: bath().types,
         differentialEquations: [
@@ -889,7 +896,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
           }),
         ],
         componentInstances: [componentInstance("b1", "bath")],
-        subnets: [bath()],
+        components: [bath()],
         fusions: [
           {
             id: "f1",
@@ -907,7 +914,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
 
   describe("interfaces", () => {
     /** A stage signature: In consumed, Out produced, a rate parameter. */
-    const stage = subnet("stage", {
+    const stage = component("stage", {
       interface: true,
       places: [
         place("stage_in", { name: "In", isPort: true, portDirection: "in" }),
@@ -918,7 +925,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
 
     /** An implementation of the stage, its ports and parameter under its own ids. */
     const implementation = (id: string) =>
-      subnet(id, {
+      component(id, {
         implements: ["stage"],
         places: [
           place(`${id}_in`, { name: "In", isPort: true }),
@@ -952,7 +959,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
           }),
         ],
         componentInstances: [componentInstance("s1", "stage")],
-        subnets: [stage, implementation("fast")],
+        components: [stage, implementation("fast")],
         implementations: [
           { interface: { id: "stage" }, component: { id: "fast" } },
         ],
@@ -960,7 +967,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
 
       const result = flatten({ definition });
 
-      expect(result.sdcpn.subnets).toEqual([]);
+      expect(result.sdcpn.components).toEqual([]);
       expect(result.sdcpn.places.map(({ id }) => id)).toEqual([
         "s1::fast_in",
         "s1::fast_out",
@@ -980,7 +987,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
           componentInstance("s1", "stage"),
           componentInstance("s2", "stage", { implementation: { id: "slow" } }),
         ],
-        subnets: [stage, implementation("fast"), implementation("slow")],
+        components: [stage, implementation("fast"), implementation("slow")],
         implementations: [
           { interface: { id: "stage" }, component: { id: "fast" } },
         ],
@@ -997,7 +1004,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
     it("throws for an instance of an interface with nothing bound", () => {
       const definition = sdcpn({
         componentInstances: [componentInstance("s1", "stage")],
-        subnets: [stage, implementation("fast")],
+        components: [stage, implementation("fast")],
       });
 
       expect(() => flatten({ definition })).toThrow(/no implementation to run/);
@@ -1007,7 +1014,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
       const definition = sdcpn({
         places: [place("buffer")],
         componentInstances: [componentInstance("s1", "stage")],
-        subnets: [stage, implementation("fast")],
+        components: [stage, implementation("fast")],
         implementations: [
           { interface: { id: "stage" }, component: { id: "fast" } },
         ],
@@ -1045,7 +1052,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
             parameterValues: { stage_rate: "5" },
           }),
         ],
-        subnets: [stage, implementation("fast")],
+        components: [stage, implementation("fast")],
         implementations: [
           { interface: { id: "stage" }, component: { id: "fast" } },
         ],
@@ -1064,7 +1071,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
     it("runs an instance that sets no value at the interface's default, not the implementation's", () => {
       const definition = sdcpn({
         componentInstances: [componentInstance("s1", "stage")],
-        subnets: [
+        components: [
           {
             ...stage,
             parameters: [
@@ -1094,15 +1101,19 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
         displayColor: "#000",
         elements: [{ elementId: `${id}_x`, name: "x", type }],
       });
-      const typed = (base: Subnet, colorId: string, type: "real" | "integer") =>
-        subnet(base.id, {
+      const typed = (
+        base: Component,
+        colorId: string,
+        type: "real" | "integer",
+      ) =>
+        component(base.id, {
           ...base,
           types: [colour(colorId, type)],
           places: base.places.map((port) => ({ ...port, colorId })),
         });
       const definition = sdcpn({
         componentInstances: [componentInstance("s1", "stage")],
-        subnets: [
+        components: [
           typed(stage, "reals", "real"),
           typed(implementation("fast"), "integers", "integer"),
         ],
@@ -1116,26 +1127,26 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
       );
     });
 
-    it("throws when an implementation runs inside itself, naming the subnets", () => {
-      const nested = subnet("fast", {
+    it("throws when an implementation runs inside itself, naming the components", () => {
+      const nested = component("fast", {
         ...implementation("fast"),
         componentInstances: [componentInstance("again", "stage")],
       });
       const definition = sdcpn({
         componentInstances: [componentInstance("s1", "stage")],
-        subnets: [stage, nested],
+        components: [stage, nested],
         implementations: [
           { interface: { id: "stage" }, component: { id: "fast" } },
         ],
       });
 
       expect(() => flatten({ definition })).toThrow(
-        "Component subnet cycle detected: `fast` -> `fast`",
+        "Component cycle detected: `fast` -> `fast`",
       );
     });
 
     it("throws when the implementation lacks a port of the interface", () => {
-      const partial = subnet("partial", {
+      const partial = component("partial", {
         implements: ["stage"],
         places: [place("partial_in", { name: "In", isPort: true })],
       });
@@ -1160,7 +1171,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
             implementation: { id: "partial" },
           }),
         ],
-        subnets: [stage, partial],
+        components: [stage, partial],
       });
 
       expect(() => flatten({ definition })).toThrow(
@@ -1170,16 +1181,16 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
 
     it("checks an implementation once for its instance, however many fusions reach its ports", () => {
       const indices = Array.from({ length: 1000 }, (_, index) => index);
-      const ports = (subnetId: string) =>
+      const ports = (componentId: string) =>
         indices.map((index) =>
-          place(`${subnetId}_${index}`, { name: `P${index}`, isPort: true }),
+          place(`${componentId}_${index}`, { name: `P${index}`, isPort: true }),
         );
       const definition = sdcpn({
         places: indices.map((index) => place(`root_${index}`)),
         componentInstances: [componentInstance("w1", "wide")],
-        subnets: [
-          subnet("wide", { interface: true, places: ports("wide") }),
-          subnet("impl", { implements: ["wide"], places: ports("impl") }),
+        components: [
+          component("wide", { interface: true, places: ports("wide") }),
+          component("impl", { implements: ["wide"], places: ports("impl") }),
         ],
         implementations: [
           { interface: { id: "wide" }, component: { id: "impl" } },
@@ -1216,7 +1227,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
         componentInstances: Array.from({ length: size }, (_, index) =>
           componentInstance(`s${index}`, "stage"),
         ),
-        subnets: [stage, implementation("fast")],
+        components: [stage, implementation("fast")],
         implementations: [
           ...Array.from({ length: 25 * size }, (_, index) => ({
             interface: { id: `other${index}` },
@@ -1242,13 +1253,13 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
     it("checks what runs once for the instances bound alike, however many", () => {
       // Five thousand ports of one name on the interface, which all map onto
       // the implementation's one: nothing but the check grows with them.
-      const wide = subnet("wide", {
+      const wide = component("wide", {
         interface: true,
         places: Array.from({ length: 5_000 }, (_, index) =>
           place(`wide_${index}`, { name: "In", isPort: true }),
         ),
       });
-      const narrow = subnet("narrow", {
+      const narrow = component("narrow", {
         implements: ["wide"],
         places: [place("narrow_in", { name: "In", isPort: true })],
       });
@@ -1257,7 +1268,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
         componentInstances: Array.from({ length: instances }, (_, index) =>
           componentInstance(`s${index}`, "wide"),
         ),
-        subnets: [wide, narrow],
+        components: [wide, narrow],
         implementations: [
           { interface: { id: "wide" }, component: { id: "narrow" } },
         ],
@@ -1283,7 +1294,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
         displayColor: "#000",
         elements: [weight],
       });
-      const typed = subnet("typed", {
+      const typed = component("typed", {
         interface: true,
         types: Array.from({ length: size }, (_, index) =>
           color(`type-${index}`),
@@ -1296,7 +1307,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
           }),
         ],
       });
-      const small = subnet("small", {
+      const small = component("small", {
         implements: ["typed"],
         types: [color("t")],
         places: [place("small_in", { name: "In", isPort: true, colorId: "t" })],
@@ -1308,7 +1319,7 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
             implementation: { id: "small" },
           }),
         ),
-        subnets: [typed, small],
+        components: [typed, small],
       });
 
       const started = Date.now();

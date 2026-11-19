@@ -46,7 +46,7 @@ const place = {
   dynamicsEnabled: false,
   x: 0,
   y: 0,
-  targetSubnetId: null,
+  targetComponentId: null,
 };
 const setup = (
   replay = EMPTY_CANONICAL_PETRINAUT_REPLAY,
@@ -271,7 +271,7 @@ describe("net freshness", () => {
     instance.mutations.updatePlacePosition({
       placeId: toPetrinautId("queue"),
       position: { x: 120, y: 80 },
-      targetSubnetId: null,
+      targetComponentId: null,
     });
     expect(instance.handle.doc()?.places[0]).toMatchObject({ x: 120, y: 80 });
     expect(adapter.acceptsRevision(seen)).toBe(true);
@@ -322,7 +322,7 @@ describe("net freshness", () => {
     instance.mutations.updatePlace({
       placeId: toPetrinautId("queue"),
       update: { name: "RenamedQueue" },
-      targetSubnetId: null,
+      targetComponentId: null,
     });
     expect(adapter.acceptsRevision(seen)).toBe(false);
   });

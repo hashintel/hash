@@ -11,21 +11,21 @@ const popoverWidthStyle = css({
   width: "[min(320px, calc(100vw - 24px))]",
 });
 
-/** Compact host for the editor's shared root/subnet navigation list. */
+/** Compact host for the editor's shared root/component navigation list. */
 export const PreviewNetNavigation: React.FC = () => {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
-  const { activeSubnetId } = use(ActiveNetContext);
+  const { activeComponentId } = use(ActiveNetContext);
   const {
-    petriNetDefinition: { subnets },
+    petriNetDefinition: { components },
   } = use(SDCPNContext);
 
-  if (!subnets?.length) {
+  if (!components?.length) {
     return null;
   }
 
   const activeNetName =
-    subnets.find(({ id }) => id === activeSubnetId)?.name ?? "Root";
+    components.find(({ id }) => id === activeComponentId)?.name ?? "Root";
 
   return (
     <>

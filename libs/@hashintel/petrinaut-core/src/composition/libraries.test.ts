@@ -5,7 +5,7 @@ import { isInterface, resolveComponent } from "./interfaces";
 import { resolveLibrary, type Library } from "./libraries";
 import { gateLibrary, logistics, tankLibrary } from "./libraries.test-helpers";
 
-import type { Subnet } from "../types/sdcpn";
+import type { Component } from "../types/sdcpn";
 
 const [scale, belt] = logistics.components;
 
@@ -19,7 +19,7 @@ const resolving = (library: unknown) => () =>
   resolveLibrary(logistics.id, library);
 
 describe("resolveLibrary", () => {
-  it("gives each component as a subnet under the id the library gives it", () => {
+  it("gives each component in the shape of a document's own, under the id the library gives it", () => {
     const library = resolveLibrary(logistics.id, logistics);
 
     expect(library).toMatchObject({ id: logistics.id, name: "Logistics" });
@@ -150,7 +150,7 @@ describe("resolveLibrary", () => {
     );
   });
 
-  it("gives the same subnets each time it reads the same library", () => {
+  it("gives the same components each time it reads the same library", () => {
     expect(resolveLibrary(logistics.id, logistics)).toEqual(
       resolveLibrary(logistics.id, logistics),
     );
@@ -165,10 +165,10 @@ describe("resolveLibrary", () => {
       name: "count",
       type: "integer",
     });
-    const tankOf = (library: Library): Subnet =>
+    const tankOf = (library: Library): Component =>
       resolveLibrary(library.id, library).components[0]!;
     /** The ids of what only the body can name: all but its port. */
-    const internalIds = (tank: Subnet): string[] => [
+    const internalIds = (tank: Component): string[] => [
       ...tank.types.flatMap((type) => [
         type.id,
         ...type.elements.map(({ elementId }) => elementId),
@@ -353,7 +353,7 @@ describe("resolveLibrary", () => {
     );
   });
 
-  it("holds a component to what a document accepts of a subnet", () => {
+  it("holds a component to what a document accepts of its own", () => {
     const library = withComponents([
       { ...scale!, iconSvg: "<svg><script>alert(1)</script></svg>" },
     ]);

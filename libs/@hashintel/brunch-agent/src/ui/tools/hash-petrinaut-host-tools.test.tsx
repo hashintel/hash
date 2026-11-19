@@ -75,7 +75,7 @@ const placeNamed = (id: string, name: string) => ({
   x: 0,
   y: 0,
 });
-const place = { ...placeNamed("queue", "Queue"), targetSubnetId: null };
+const place = { ...placeNamed("queue", "Queue"), targetComponentId: null };
 /** Two places and a transition taking one token from the first. */
 const servedNet: SDCPN = {
   ...emptyNet,

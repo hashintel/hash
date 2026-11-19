@@ -46,7 +46,7 @@ const restingNavigation: PetrinautNavigationState = {
   simulateView: "experiments",
   simulateResource: null,
   scenarioId: undefined,
-  subnetId: null,
+  componentId: null,
   selection: [],
   expandedSubView: null,
   overlay: null,

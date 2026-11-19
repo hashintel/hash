@@ -296,8 +296,8 @@ test("a document binding mounts the guidance, the Ledger, HASH's graph reads and
         "parameter",
         "scenario",
         "metric",
-        "subnet",
         "component",
+        "component_instance",
         "fusion",
       ].flatMap((kind) =>
         ["create", "update", "remove"].map(

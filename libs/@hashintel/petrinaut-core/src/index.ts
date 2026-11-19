@@ -102,7 +102,6 @@ export type {
 } from "./composition/check-interfaces";
 export {
   componentKey,
-  componentOf,
   defaultImplementation,
   describeUnboundInstance,
   hasBody,
@@ -266,6 +265,7 @@ export {
 export {
   colorSchema,
   componentInstanceSchema,
+  componentSchema,
   createExperimentToolName,
   differentialEquationSchema,
   getLatestNetDefinitionToolName,
@@ -285,7 +285,6 @@ export {
   scenarioSchema,
   setNetTitleToolInputSchema,
   setNetTitleToolName,
-  subnetSchema,
   transitionSchema,
 } from "./ai";
 export type {
@@ -517,6 +516,7 @@ export type {
 // --- Domain types ---
 export type * from "./types/sdcpn";
 export { normalizeSDCPN } from "./types/sdcpn-input";
+export { migrateLegacyComponentKeys } from "./migrate-legacy-component-keys";
 export type {
   SDCPNInput,
   SDCPNInputArcInput,
@@ -558,7 +558,7 @@ export {
   getArcEndpointKey,
   getArcEndpointNodeId,
   getArcEndpointPlaceId,
-  getComponentPortEndpointSubnet,
+  getComponentPortEndpointComponent,
   parseArcEndpointKey,
   placeArcEndpoint,
 } from "./arc-endpoints";
@@ -858,7 +858,7 @@ export {
 } from "./view-hir/visualizer-svg";
 export type { MetricShape } from "./hir/metric-shape";
 export {
-  describeDisallowedSubnetIconElement,
-  disallowedSubnetIconElement,
-  maxSubnetIconLength,
+  describeDisallowedComponentIconElement,
+  disallowedComponentIconElement,
+  maxComponentIconLength,
 } from "./schemas/entity-schemas";

@@ -6,7 +6,7 @@ import {
   sameComponent,
   type ComponentReference,
   type ImportState,
-  type Subnet,
+  type Component,
 } from "@hashintel/petrinaut-core";
 
 import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
@@ -111,7 +111,7 @@ const noteStyle = css({
  */
 const ComponentRow: React.FC<{
   reference: ComponentReference;
-  component: Subnet;
+  component: Component;
   canPlace: boolean;
 }> = ({ reference, component, canPlace }) => {
   const { editionMode, componentToAdd, setAddComponentMode, setEditionMode } =
@@ -201,9 +201,9 @@ const LibraryGroup: React.FC<{
  */
 const ComponentsPanel: React.FC = () => {
   const { imports, offered } = use(CompositionContext);
-  const { activeSubnetId } = use(ActiveNetContext);
+  const { activeComponentId } = use(ActiveNetContext);
   const isReadOnly = useIsReadOnly();
-  const canPlace = !isReadOnly && activeSubnetId === null;
+  const canPlace = !isReadOnly && activeComponentId === null;
 
   return (
     <div className={panelStyle}>

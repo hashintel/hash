@@ -2,7 +2,11 @@ import * as v from "valibot";
 
 import { brunchSignals, brunchTools } from "../constants";
 import { petrinautUserMessageText } from "../petrinaut/contextual-user-message";
-import { ledgerAppendSchema, type LedgerAppend } from "./append";
+import {
+  ledgerAppendSchema,
+  readRecordedLedgerAppend,
+  type LedgerAppend,
+} from "./append";
 import { parseLedgerComments, type LedgerComment } from "./comments";
 import {
   openComments,
@@ -560,7 +564,10 @@ const foldWithReservations = (
       recorded.commitId !== call.part.toolCallId
     )
       continue;
-    const input = v.safeParse(ledgerAppendSchema, call.part.input);
+    const input = v.safeParse(
+      ledgerAppendSchema,
+      readRecordedLedgerAppend(call.part.input),
+    );
     const derived = input.success
       ? deriveBatch(state, input.output.entries, call.turn, reserved)
       : undefined;

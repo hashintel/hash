@@ -60,16 +60,15 @@ const composing: {
   // The implementation an instance chooses runs in its place: it is a
   // component of a library on offer as well.
   addComponentInstance: ({ component, implementation }, isOffered) =>
-    component !== undefined &&
-    isOffered(component.from) &&
+    isOfLibraryOnOffer(component, isOffered) &&
     (implementation === undefined ||
       isOfLibraryOnOffer(implementation, isOffered)),
   // An update may rename the instance or set its parameters; where it names
   // a component or an implementation, that is one of a library on offer too.
   // One that clears its choice names none.
   updateComponentInstance: ({ update }, isOffered) =>
-    update.subnetId === undefined &&
-    (update.component === undefined || isOffered(update.component.from)) &&
+    (update.component === undefined ||
+      isOfLibraryOnOffer(update.component, isOffered)) &&
     (update.implementation == null ||
       isOfLibraryOnOffer(update.implementation, isOffered)),
   updateComponentInstancePosition: true,
@@ -103,7 +102,7 @@ const composes = (
   const allowed = composing[name];
   if (
     allowed === undefined ||
-    typeof fieldOf(input, "targetSubnetId") === "string"
+    typeof fieldOf(input, "targetComponentId") === "string"
   ) {
     return false;
   }
@@ -122,7 +121,7 @@ const composingOnlyNotice =
  * Why the rules refuse a mutation, as a sentence a user can read, or `null`
  * when they allow it. `libraries` are the ids of the libraries on offer. An
  * instance kept to composing refuses every mutation that does not compose,
- * and every one aimed at a subnet.
+ * and every one aimed at a component.
  */
 export const mutationRefusal = (
   rules: PetrinautRules,
@@ -151,7 +150,7 @@ export const commandRefusal = (
   if (name === "applyClipboardPaste") {
     return `${composingOnlyNotice}: nothing can be pasted into it.`;
   }
-  return typeof fieldOf(input, "targetSubnetId") === "string"
+  return typeof fieldOf(input, "targetComponentId") === "string"
     ? `${composingOnlyNotice}.`
     : null;
 };

@@ -36,7 +36,7 @@ const emptySdcpn: SDCPN = {
   types: [],
   parameters: [],
   differentialEquations: [],
-  subnets: [],
+  components: [],
   componentInstances: [],
   scenarios: [],
 };
@@ -529,8 +529,8 @@ describe("EditorProvider deep-link normalization", () => {
         <ActiveNetContext.Provider
           value={{
             activeNet,
-            activeSubnetId: null,
-            setActiveSubnetId: () => {},
+            activeComponentId: null,
+            setActiveComponentId: () => {},
           }}
         >
           <TestHost

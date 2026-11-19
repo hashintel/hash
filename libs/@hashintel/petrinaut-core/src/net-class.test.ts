@@ -43,9 +43,9 @@ const net = (overrides: Partial<SDCPN> = {}): SDCPN => ({
   ...overrides,
 });
 
-const subnet = (overrides: Partial<SDCPN>) => ({
-  id: "subnet",
-  name: "Subnet",
+const component = (overrides: Partial<SDCPN>) => ({
+  id: "component",
+  name: "Component",
   places: [],
   transitions: [],
   types: [],
@@ -103,12 +103,12 @@ describe("netTimeOf", () => {
     );
   });
 
-  it("counts a subnet's rates", () => {
+  it("counts a component's rates", () => {
     const nested = net({
-      subnets: [subnet({ transitions: rated.transitions })],
+      components: [component({ transitions: rated.transitions })],
     });
     expect(netTimeOf(nested)).toBe("timed");
-    expect(netTimeOf(nested, without("subnets"))).toBe("untimed");
+    expect(netTimeOf(nested, without("components"))).toBe("untimed");
   });
 });
 
@@ -165,10 +165,10 @@ describe("netColoringOf", () => {
     expect(netTimeOf(typed("integer"))).toBe("untimed");
   });
 
-  it("counts a subnet's places", () => {
-    const nested = net({ subnets: [subnet({ places: [movingPlace] })] });
+  it("counts a component's places", () => {
+    const nested = net({ components: [component({ places: [movingPlace] })] });
     expect(netColoringOf(nested)).toBe("dynamic");
-    expect(netColoringOf(nested, without("subnets"))).toBe("none");
+    expect(netColoringOf(nested, without("components"))).toBe("none");
   });
 });
 

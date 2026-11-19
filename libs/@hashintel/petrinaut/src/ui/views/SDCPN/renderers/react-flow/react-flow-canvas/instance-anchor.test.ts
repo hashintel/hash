@@ -20,7 +20,7 @@ const card = (
   selected: false,
   hovered: false,
   focus: "none",
-  subnetName: "Cell",
+  componentName: "Cell",
   binding: { kind: "component" },
   icon: null,
   color: null,

@@ -9,10 +9,18 @@ export const netElementKinds = [
   "typeElement",
   "scenario",
   "metric",
-  "subnet",
+  "component",
 ] as const;
 
 export type NetElementKind = (typeof netElementKinds)[number];
+
+/**
+ * A net element kind as a conversation recorded it, under the name the kind
+ * has today: a component was recorded as a `subnet`. Any other value is
+ * returned as it is.
+ */
+export const readRecordedNetElementKind = (kind: unknown): unknown =>
+  kind === "subnet" ? ("component" satisfies NetElementKind) : kind;
 
 /**
  * A read or experiment leaves the bound document unchanged; a mutation or
@@ -84,9 +92,9 @@ export const petrinautToolEffects = {
   addMetric: mutation("metric"),
   updateMetric: mutation("metric"),
   removeMetric: removal("metric"),
-  addSubnet: mutation("subnet"),
-  updateSubnet: mutation("subnet"),
-  removeSubnet: removal("subnet"),
+  addComponent: mutation("component"),
+  updateComponent: mutation("component"),
+  removeComponent: removal("component"),
   addComponentInstance: mutation("componentInstance"),
   updateComponentInstance: mutation("componentInstance"),
   updateComponentInstancePosition: layout,
@@ -98,7 +106,7 @@ export const petrinautToolEffects = {
   removeFusionMember: removal("fusion"),
   // The member it replaces leaves the fusion, as `removeFusionMember` takes one out.
   replaceFusionMember: removal("fusion"),
-  setImplementation: mutation("subnet"),
+  setImplementation: mutation("component"),
   deleteItemsByIds: removal(...selectionItemTypes),
   commitNodePositions: layout,
   setNetTitle: mutation(),

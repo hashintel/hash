@@ -6,12 +6,12 @@ import type {
   AdHocRow,
   AdHocScenarioState,
   AdHocValue,
+  Component,
   ComponentInstance,
   DifferentialEquation,
   Metric,
   Scenario,
   SDCPN,
-  Subnet,
   Transition,
 } from "@hashintel/petrinaut-core";
 
@@ -30,7 +30,7 @@ export const parseNetReaderInput = (value: unknown) =>
 
 export const netReaderDescriptions: Record<NetReaderLevel, string> = {
   outline:
-    "Read a compact outline of the current net: ids, names and core properties of places, transitions with their input and output arcs, token types, parameters, equations, scenarios, metrics, subnets and component instances. Code and expressions are left out: lambda, kernel, equation and metric code, parameter overrides, component parameter values, and scenario initial states other than the shape of an ad-hoc one. Canvas positions, visual settings and host metadata are left out too. Returns { title, definition, extensions }.",
+    "Read a compact outline of the current net: ids, names and core properties of places, transitions with their input and output arcs, token types, parameters, equations, scenarios, metrics, components and component instances. Code and expressions are left out: lambda, kernel, equation and metric code, parameter overrides, component parameter values, and scenario initial states other than the shape of an ad-hoc one. Canvas positions, visual settings and host metadata are left out too. Returns { title, definition, extensions }.",
   structure:
     "Read the current net's structure with every core property, including lambda, kernel, equation, scenario and metric code. Canvas positions, visualizer code, icons, colours and host metadata are left out. Returns { title, definition, extensions }.",
 };
@@ -97,11 +97,11 @@ const presentationalFields = [
   "iconSvg",
   "displayColor",
   "metadata",
-] as const satisfies readonly KeyOf<SDCPN | Subnet | NetItem>[];
+] as const satisfies readonly KeyOf<SDCPN | Component | NetItem>[];
 
 type PresentationalField = (typeof presentationalFields)[number];
 
-const presentationalRules = omitAll<SDCPN | Subnet | NetItem>(
+const presentationalRules = omitAll<SDCPN | Component | NetItem>(
   presentationalFields,
 );
 
@@ -157,7 +157,7 @@ const initialStateOutline = (state: unknown) => {
   }
 };
 
-/** Item collections of a net or subnet, apart from `subnets` themselves. */
+/** Item collections of a net or component, apart from `components` themselves. */
 const itemCollections = [
   "places",
   "transitions",
@@ -198,7 +198,7 @@ type CollectionsOf<Net> = Pick<Net, ItemCollection & keyof Net>;
 
 type StructureOf<Net> = Omit<
   Net,
-  PresentationalField | ItemCollection | "subnets"
+  PresentationalField | ItemCollection | "components"
 > & {
   [Collection in keyof CollectionsOf<Net>]: ItemsWithoutPresentation<
     CollectionsOf<Net>[Collection]
@@ -207,21 +207,21 @@ type StructureOf<Net> = Omit<
 
 /** A net at the `structure` level: every core field, without presentational ones. */
 export type NetStructure = StructureOf<SDCPN> & {
-  subnets?: StructureOf<Subnet>[];
+  components?: StructureOf<Component>[];
 };
 
 /**
- * Drop presentational fields from the net, its subnets and the items of their
- * collections; the outline also drops code and expressions. Fields are matched
- * by their place in the net, so user-named keys such as an ad-hoc scenario's
- * shared columns are never mistaken for them, and fields not named here pass
- * through, so new core fields appear without changes here.
+ * Drop presentational fields from the net, its components and the items of
+ * their collections; the outline also drops code and expressions. Fields are
+ * matched by their place in the net, so user-named keys such as an ad-hoc
+ * scenario's shared columns are never mistaken for them, and fields not named
+ * here pass through, so new core fields appear without changes here.
  */
 export const projectNetDefinition = (
   value: unknown,
   level: NetReaderLevel,
 ): unknown =>
-  projectObject<SDCPN | Subnet>(value, {
+  projectObject<SDCPN | Component>(value, {
     ...presentationalRules,
     ...Object.fromEntries(
       itemCollections.map((collection) => {
@@ -232,7 +232,7 @@ export const projectNetDefinition = (
         return [collection, eachItem((item) => projectObject(item, itemRules))];
       }),
     ),
-    subnets: eachItem((subnet) => projectNetDefinition(subnet, level)),
+    components: eachItem((component) => projectNetDefinition(component, level)),
   });
 
 /** The net's structure, as `readNetStructure` and a change's read-back show it. */

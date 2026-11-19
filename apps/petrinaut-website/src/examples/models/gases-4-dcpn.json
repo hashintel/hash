@@ -3762,7 +3762,7 @@
       "code": "return state.places.Outages.count;"
     }
   ],
-  "subnets": [],
+  "components": [],
   "componentInstances": [],
   "version": 1,
   "meta": {

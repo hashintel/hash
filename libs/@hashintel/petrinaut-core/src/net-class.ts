@@ -94,18 +94,21 @@ export const hasRunningDynamics = (
 };
 
 /** What the inferences below read of a net. */
-type NetContent = Pick<SDCPN, "places" | "transitions" | "types" | "subnets">;
+type NetContent = Pick<
+  SDCPN,
+  "places" | "transitions" | "types" | "components"
+>;
 
 /**
- * The net and its subnets. Subnets count whether or not an instance uses
+ * The net and its components. Components count whether or not an instance uses
  * them, so an inference does not depend on flattening the net.
  */
 const netsOf = (
   sdcpn: NetContent,
-  extensions: Pick<PetrinautExtensionSettings, "subnets">,
+  extensions: Pick<PetrinautExtensionSettings, "components">,
 ): Pick<SDCPN, "places" | "transitions" | "types">[] => [
   sdcpn,
-  ...(extensions.subnets ? (sdcpn.subnets ?? []) : []),
+  ...(extensions.components ? (sdcpn.components ?? []) : []),
 ];
 
 /** Whether a transition of the net fires at a rate. */

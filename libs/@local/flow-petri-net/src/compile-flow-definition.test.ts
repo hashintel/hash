@@ -85,7 +85,9 @@ const colorAt = (
   const instance = sdcpn.componentInstances?.find(
     ({ id }) => id === endpoint.componentInstanceId,
   );
-  const subnet = sdcpn.subnets?.find(({ id }) => id === instance?.subnetId);
+  const subnet = sdcpn.components?.find(
+    ({ id }) => id === instance?.component.id,
+  );
   const port = subnet?.places.find(({ id }) => id === endpoint.portPlaceId);
 
   return subnet?.types.find(({ id }) => id === port?.colorId);
@@ -96,7 +98,9 @@ const inputPortColor = (sdcpn: SDCPN, stepId: string, inputName: string) => {
   const instance = sdcpn.componentInstances?.find(
     byKey(generateInstanceKey(stepId)),
   );
-  const subnet = sdcpn.subnets?.find(({ id }) => id === instance?.subnetId);
+  const subnet = sdcpn.components?.find(
+    ({ id }) => id === instance?.component.id,
+  );
   const port = subnet?.places.find(
     ({ isPort, name }) => isPort && name === inputName,
   );

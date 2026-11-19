@@ -19,5 +19,5 @@ export const useIsCompositionInterfaceOn = (): boolean => {
   const { enableNetComponents } = use(UserSettingsContext);
   const composesOnly = useComposesOnly();
 
-  return extensions.subnets && (enableNetComponents || composesOnly);
+  return extensions.components && (enableNetComponents || composesOnly);
 };

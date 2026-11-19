@@ -63,7 +63,7 @@ export const PropertiesPanel: React.FC = () => {
   } = use(EditorContext);
 
   const { petriNetId } = use(SDCPNContext);
-  const { activeSubnetId } = use(ActiveNetContext);
+  const { activeComponentId } = use(ActiveNetContext);
   const panelTarget = usePanelTarget();
 
   const isOpen = panelTarget.kind !== "none";
@@ -99,7 +99,7 @@ export const PropertiesPanel: React.FC = () => {
       }}
     >
       <SelectedItemProperties
-        key={JSON.stringify([petriNetId, activeSubnetId])}
+        key={JSON.stringify([petriNetId, activeComponentId])}
       />
     </GlassPanel>
   );

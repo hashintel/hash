@@ -136,7 +136,7 @@ const MemberRow = ({ member }: { member: FusionMember }) => {
   );
   const kindLabel =
     resolved?.kind === "port"
-      ? `${describePortDirection(effectivePortDirection(resolved.subnet, resolved.place))} port`
+      ? `${describePortDirection(effectivePortDirection(resolved.component, resolved.place))} port`
       : member.kind === "place"
         ? "place of this net"
         : "instance port";
@@ -181,7 +181,7 @@ const MemberRow = ({ member }: { member: FusionMember }) => {
 const FusionMainContent: React.FC = () => {
   const fusion = useFusion();
   const { petriNetDefinition } = use(SDCPNContext);
-  const { activeNet, activeSubnetId } = use(ActiveNetContext);
+  const { activeNet, activeComponentId } = use(ActiveNetContext);
   const { updateFusion } = usePetrinautMutations();
   const isDisabled = useIsReadOnly();
   const readOnlyTooltip = isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined;
@@ -190,7 +190,7 @@ const FusionMainContent: React.FC = () => {
     petriNetDefinition,
     activeNet,
     fusion,
-    activeSubnetId,
+    activeComponentId,
     libraries,
   );
 

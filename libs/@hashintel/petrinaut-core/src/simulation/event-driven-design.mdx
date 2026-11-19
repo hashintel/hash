@@ -205,7 +205,7 @@ the net and never stored:
   stochasticity extension is on, or when a place runs dynamics: colours and
   dynamics are on, the place has a colour with a `real` attribute, its
   switch is on and it lists an equation.
-- Every other net is **untimed**. A subnet counts whether or not an instance
+- Every other net is **untimed**. A component counts whether or not an instance
   uses it.
 
 `netTimeOf` in `net-class.ts` reads the structure alone and compiles no
@@ -363,7 +363,7 @@ The eighth is an untimed uncoloured net with a predicate that calls
 
 Other properties of a net decide who can compute a run, and how fast, and
 change nothing in how it reads: whether its places are bounded, whether it
-has subnets, the class of each place's dynamics (`classifyDynamics`), and
+has components, the class of each place's dynamics (`classifyDynamics`), and
 whether the shader takes it (`assessGpuEligibility`). They stay with the
 simulator that asks.
 

@@ -10,14 +10,13 @@ import {
 import { equationKey, fusionMemberIssues } from "../../composition/fusions";
 import {
   bindingKey,
-  componentOf,
   describeMissingComponent,
   describeUnboundInstance,
   indexDocument,
   resolveImplementation,
-  runningSubnet,
+  runningComponent,
   type DocumentIndex,
-  type RunningSubnet,
+  type RunningComponent,
 } from "../../composition/interfaces";
 import { remapPlaceDynamics } from "../../place-dynamics";
 import { createUserKeyedRecord, getOwn } from "../../validation/record-keys";
@@ -25,6 +24,7 @@ import { scopedId, scopeSeparator } from "./scoped-id";
 
 import type {
   ArcEndpoint,
+  Component,
   ComponentInstance,
   ID,
   InputArc,
@@ -32,7 +32,6 @@ import type {
   Parameter,
   Place,
   SDCPN,
-  Subnet,
   Transition,
 } from "../../types/sdcpn";
 import type { InitialMarking } from "../api";
@@ -89,7 +88,7 @@ const deriveInstanceParameterValues = (
 };
 
 type MutableFlatSDCPN = SDCPN & {
-  subnets: Subnet[];
+  components: Component[];
   componentInstances: ComponentInstance[];
 };
 
@@ -104,7 +103,7 @@ type FlatIdSets = {
 type FlattenContext = {
   source: SDCPN;
   /**
-   * The source's subnets and defaults, and each subnet's lists, read once for
+   * The source's components and defaults, and each component's lists, read once for
    * every instance to resolve.
    */
   index: DocumentIndex;
@@ -122,7 +121,7 @@ type FlattenContext = {
    * What runs for the instances with one `bindingKey`, checked once: every
    * such instance asks, and every arc and fusion at its ports.
    */
-  runningSubnets: Map<string, RunningSubnet>;
+  runningComponents: Map<string, RunningComponent>;
 };
 
 const assertUniqueFlatId = ({
@@ -143,7 +142,7 @@ const assertUniqueFlatId = ({
   ids.add(id);
 };
 
-const netHasComponentPortArcs = (net: SDCPN | Subnet): boolean =>
+const netHasComponentPortArcs = (net: SDCPN | Component): boolean =>
   net.transitions.some((transition) =>
     [...transition.inputArcs, ...transition.outputArcs].some(
       (arc) => getArcEndpoint(arc).kind === "componentPort",
@@ -155,12 +154,12 @@ const netHasComponentPortArcs = (net: SDCPN | Subnet): boolean =>
  * implementation falls short of its interface: the kernels around the
  * instance are compiled against the interface's ports.
  */
-const requireRunningSubnet = (
+const requireRunningComponent = (
   ctx: FlattenContext,
   instance: ComponentInstance,
-): RunningSubnet => {
+): RunningComponent => {
   const key = bindingKey(instance);
-  const checked = ctx.runningSubnets.get(key);
+  const checked = ctx.runningComponents.get(key);
   if (checked) {
     return checked;
   }
@@ -172,7 +171,7 @@ const requireRunningSubnet = (
   );
   if (binding === null) {
     throw new Error(
-      `Component instance \`${instance.name}\` references ${describeMissingComponent(componentOf(instance))}.`,
+      `Component instance \`${instance.name}\` references ${describeMissingComponent(instance.component)}.`,
     );
   }
   if (binding.kind === "unbound") {
@@ -186,9 +185,9 @@ const requireRunningSubnet = (
       binding.interface,
       indexImplementation(
         binding.implementation,
-        ctx.index.subnetIndex(binding.implementation),
+        ctx.index.componentIndex(binding.implementation),
       ),
-      ctx.index.subnetIndex(binding.interface),
+      ctx.index.componentIndex(binding.interface),
     ).find(({ severity }) => severity === "error");
     if (shortfall) {
       throw new Error(
@@ -196,14 +195,14 @@ const requireRunningSubnet = (
       );
     }
   }
-  const running = runningSubnet(binding, ctx.index);
-  ctx.runningSubnets.set(key, running);
+  const running = runningComponent(binding, ctx.index);
+  ctx.runningComponents.set(key, running);
   return running;
 };
 
 /**
  * The flat place behind a port of one of `net`'s instances, for the arc or
- * the fusion `referrer` names. Throws when the instance, its subnet or the
+ * the fusion `referrer` names. Throws when the instance, its component or the
  * port does not exist, and when the place is not marked as a port.
  */
 const flatPortPlace = ({
@@ -214,7 +213,7 @@ const flatPortPlace = ({
   referrer,
 }: {
   ctx: FlattenContext;
-  net: SDCPN | Subnet;
+  net: SDCPN | Component;
   path: readonly ID[];
   endpoint: Extract<ArcEndpoint, { kind: "componentPort" }>;
   referrer: string;
@@ -228,19 +227,19 @@ const flatPortPlace = ({
     );
   }
 
-  const { declared, portId } = requireRunningSubnet(ctx, instance);
+  const { declared, portId } = requireRunningComponent(ctx, instance);
 
   const port = declared.places.find(
     (place) => place.id === endpoint.portPlaceId,
   );
   if (!port) {
     throw new Error(
-      `${referrer} references subnet port place ID \`${endpoint.portPlaceId}\` which does not exist in subnet \`${declared.name}\`.`,
+      `${referrer} references component port place ID \`${endpoint.portPlaceId}\` which does not exist in component \`${declared.name}\`.`,
     );
   }
   if (!port.isPort) {
     throw new Error(
-      `${referrer} references subnet place \`${port.name}\`, but only places marked \`isPort\` can be used as component ports.`,
+      `${referrer} references component place \`${port.name}\`, but only places marked \`isPort\` can be used as component ports.`,
     );
   }
 
@@ -260,7 +259,7 @@ const mapArcToFlatPlace = ({
   arc,
 }: {
   ctx: FlattenContext;
-  net: SDCPN | Subnet;
+  net: SDCPN | Component;
   path: readonly ID[];
   placeIdMap: ReadonlyMap<ID, ID>;
   transitionId: ID;
@@ -293,7 +292,7 @@ const cloneInputArc = ({
   arc,
 }: {
   ctx: FlattenContext;
-  net: SDCPN | Subnet;
+  net: SDCPN | Component;
   path: readonly ID[];
   placeIdMap: ReadonlyMap<ID, ID>;
   transitionId: ID;
@@ -319,7 +318,7 @@ const cloneOutputArc = ({
   arc,
 }: {
   ctx: FlattenContext;
-  net: SDCPN | Subnet;
+  net: SDCPN | Component;
   path: readonly ID[];
   placeIdMap: ReadonlyMap<ID, ID>;
   transitionId: ID;
@@ -348,7 +347,7 @@ const collectFusionGroups = ({
   placeIdMap,
 }: {
   ctx: FlattenContext;
-  net: SDCPN | Subnet;
+  net: SDCPN | Component;
   path: readonly ID[];
   placeIdMap: ReadonlyMap<ID, ID>;
 }): void => {
@@ -396,17 +395,18 @@ const flattenNet = ({
   ctx,
   net,
   path,
-  activeSubnetIds,
+  activeComponentIds,
   parameterValues,
 }: {
   ctx: FlattenContext;
-  net: SDCPN | Subnet;
+  net: SDCPN | Component;
   path: readonly ID[];
-  activeSubnetIds: readonly ID[];
+  activeComponentIds: readonly ID[];
   parameterValues: ParameterValues;
 }): void => {
-  // The net being flattened: the subnet entered last, `null` for the root net.
-  const netId = activeSubnetIds.at(-1) ?? null;
+  // The net being flattened: the component entered last, `null` for the root
+  // net.
+  const netId = activeComponentIds.at(-1) ?? null;
   const typeIdMap = new Map<ID, ID>();
   const equationIdMap = new Map<ID, ID>();
   const placeIdMap = new Map<ID, ID>();
@@ -498,23 +498,24 @@ const flattenNet = ({
   }
 
   for (const instance of net.componentInstances ?? []) {
-    const { declared, running, parameterId } = requireRunningSubnet(
+    const { declared, running, parameterId } = requireRunningComponent(
       ctx,
       instance,
     );
-    if (activeSubnetIds.includes(running.id)) {
-      const nameOf = (subnetId: ID) =>
-        ctx.source.subnets?.find(({ id }) => id === subnetId)?.name ?? subnetId;
+    if (activeComponentIds.includes(running.id)) {
+      const nameOf = (componentId: ID) =>
+        ctx.source.components?.find(({ id }) => id === componentId)?.name ??
+        componentId;
       throw new Error(
-        `Component subnet cycle detected: ${[...activeSubnetIds, running.id]
-          .map((subnetId) => `\`${nameOf(subnetId)}\``)
+        `Component cycle detected: ${[...activeComponentIds, running.id]
+          .map((componentId) => `\`${nameOf(componentId)}\``)
           .join(" -> ")}.`,
       );
     }
-    // The instance's values are keyed by the declared subnet's parameter
+    // The instance's values are keyed by the declared component's parameter
     // ids, and a parameter it leaves alone has the declared default: what the
-    // instance's properties show. The running subnet's parameters of the same
-    // variable names take them, and its other parameters keep their own.
+    // instance's properties show. The running component's parameters of the
+    // same variable names take them, and its other parameters keep their own.
     const runningParameterValues = Object.fromEntries(
       declared.parameters.map((parameter) => [
         parameterId(parameter.id),
@@ -526,7 +527,7 @@ const flattenNet = ({
       ctx,
       net: running,
       path: [...path, instance.id],
-      activeSubnetIds: [...activeSubnetIds, running.id],
+      activeComponentIds: [...activeComponentIds, running.id],
       parameterValues: ctx.parametersEnabled
         ? deriveInstanceParameterValues(
             running.parameters,
@@ -560,8 +561,8 @@ export const flattenComponentInstancesForSimulation = ({
     !hasRootComponentPortArcs
   ) {
     let hasNestedInstances = false;
-    for (const subnet of sdcpn.subnets ?? []) {
-      if ((subnet.componentInstances ?? []).length > 0) {
+    for (const component of sdcpn.components ?? []) {
+      if ((component.componentInstances ?? []).length > 0) {
         hasNestedInstances = true;
         break;
       }
@@ -593,7 +594,7 @@ export const flattenComponentInstancesForSimulation = ({
     parameters: [],
     scenarios: sdcpn.scenarios?.map((scenario) => ({ ...scenario })),
     metrics: sdcpn.metrics?.map((metric) => ({ ...metric })),
-    subnets: [],
+    components: [],
     componentInstances: [],
   };
 
@@ -614,14 +615,14 @@ export const flattenComponentInstancesForSimulation = ({
     arcPlaceNameOverrides: new Map(),
     fusionGroups: [],
     equationKeys: new Map(),
-    runningSubnets: new Map(),
+    runningComponents: new Map(),
   };
 
   flattenNet({
     ctx,
     net: sdcpn,
     path: [],
-    activeSubnetIds: [],
+    activeComponentIds: [],
     parameterValues: rootParameterValues,
   });
 

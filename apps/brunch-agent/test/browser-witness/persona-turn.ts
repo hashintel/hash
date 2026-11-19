@@ -88,7 +88,7 @@ const currentApproval = async () => {
     toolCall("getLatestNetDefinition", {}, "current-read"),
     toolCall(
       "removePlace",
-      { placeId: "victim", targetSubnetId: null },
+      { placeId: "victim", targetComponentId: null },
       "current-remove",
     ),
     fauxAssistantMessage([fauxText("Current edit completed.")]),
@@ -143,7 +143,7 @@ const staleApprovalAfterDisconnect = async () => {
     toolCall("getLatestNetDefinition", {}, "stale-read"),
     toolCall(
       "removePlace",
-      { placeId: "victim", targetSubnetId: null },
+      { placeId: "victim", targetComponentId: null },
       "stale-remove",
     ),
   ]);

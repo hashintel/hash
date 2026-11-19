@@ -295,12 +295,16 @@ describe("local storage demo URL navigation", () => {
     render(
       <DemoApp
         onSearchChange={() => {}}
-        search={{ subnet: "subnet-1", itemType: "place", itemId: "place-1" }}
+        search={{
+          component: "component-1",
+          itemType: "place",
+          itemId: "place-1",
+        }}
       />,
     );
 
     const navigation = mountedNavigation();
-    expect(navigation.state.subnetId).toBe("subnet-1");
+    expect(navigation.state.componentId).toBe("component-1");
     expect(navigation.state.selection).toEqual([
       { type: "place", id: "place-1" },
     ]);
@@ -313,14 +317,17 @@ describe("local storage demo URL navigation", () => {
     render(<DemoApp onSearchChange={onSearchChange} search={{}} />);
 
     mountedNavigation().onNavigate(
-      (current) => ({ ...current, subnetId: "subnet-2" }),
+      (current) => ({ ...current, componentId: "component-2" }),
       {
         history: "push",
-        intent: { cause: "user", action: "subnet" },
+        intent: { cause: "user", action: "component" },
       },
     );
 
-    expect(onSearchChange).toHaveBeenCalledWith({ subnet: "subnet-2" }, "push");
+    expect(onSearchChange).toHaveBeenCalledWith(
+      { component: "component-2" },
+      "push",
+    );
   });
 
   test("leaves history to the library default, so a discrete click pushes", () => {
@@ -359,7 +366,11 @@ describe("local storage demo URL navigation", () => {
         netId={netOneId}
         onOpenNet={onOpenNet}
         onSearchChange={onSearchChange}
-        search={{ subnet: "subnet-1", itemType: "place", itemId: "place-1" }}
+        search={{
+          component: "component-1",
+          itemType: "place",
+          itemId: "place-1",
+        }}
       />,
     );
 

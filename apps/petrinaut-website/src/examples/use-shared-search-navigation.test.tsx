@@ -19,7 +19,7 @@ const Probe = ({
   search,
 }: {
   initialState?: Partial<
-    Omit<PetrinautNavigationState, "scenarioId" | "subnetId" | "selection">
+    Omit<PetrinautNavigationState, "scenarioId" | "componentId" | "selection">
   >;
   onController: (controller: PetrinautNavigationController) => void;
   onSearchChange: (
@@ -330,7 +330,7 @@ describe("useSharedSearchNavigation", () => {
           controller = value;
         }}
         onSearchChange={onSearchChange}
-        search={{ subnet: "subnet-from-url" }}
+        search={{ component: "component-from-url" }}
       />,
     );
 
@@ -339,7 +339,7 @@ describe("useSharedSearchNavigation", () => {
     // still come from the link the visitor opened; the option's type excludes
     // them rather than accepting a value it would discard.
     expect(controller.state.mode).toBe("actual");
-    expect(controller.state.subnetId).toBe("subnet-from-url");
+    expect(controller.state.componentId).toBe("component-from-url");
     expect(onSearchChange).not.toHaveBeenCalled();
   });
 

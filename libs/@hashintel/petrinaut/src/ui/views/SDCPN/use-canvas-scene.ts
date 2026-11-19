@@ -23,7 +23,7 @@ import { usePointerAtRest } from "./hooks/util/use-pointer-at-rest";
 export const useCanvasScene = (
   canvasRef: React.RefObject<HTMLElement | null>,
 ): CanvasScene => {
-  const { activeNet, activeSubnetId } = use(ActiveNetContext);
+  const { activeNet, activeComponentId } = use(ActiveNetContext);
   const { extensions, petriNetDefinition } = use(SDCPNContext);
   const { libraries } = use(CompositionContext);
   const {
@@ -67,7 +67,7 @@ export const useCanvasScene = (
   const statuses = fusionStatuses(
     petriNetDefinition,
     activeNet,
-    activeSubnetId,
+    activeComponentId,
     libraries,
   );
 

@@ -1,5 +1,7 @@
 import { expect, test } from "vitest";
 
+import { toPetrinautId } from "@hashintel/petrinaut-core";
+
 import { queryBasis } from "./query-basis.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
@@ -334,14 +336,14 @@ test("query_basis matches a reflection that names an arc by Petrinaut's generate
   });
 });
 
-test("query_basis finds an element inside a subnet and the call that added it there", () => {
+test("query_basis finds an element inside a component and the call that added it there", () => {
   const [queue] = definition.places;
-  const intoSubnet = {
+  const intoComponent = {
     ...add,
     toolCallId: "add-triage",
-    input: { id: "triage", name: "Triage", targetSubnetId: "intake" },
+    input: { id: "triage", name: "Triage", targetComponentId: "intake" },
   };
-  const readWithSubnet = {
+  const readWithComponent = {
     ...read,
     output: {
       brunchBrowserResult: true,
@@ -349,7 +351,7 @@ test("query_basis finds an element inside a subnet and the call that added it th
         title: "Queue",
         definition: {
           ...definition,
-          subnets: [
+          components: [
             {
               id: "intake",
               name: "Intake",
@@ -369,7 +371,7 @@ test("query_basis finds an element inside a subnet and the call that added it th
     ...snapshot,
     messages: [
       user,
-      { ...assistant, parts: [commit, intoSubnet, readWithSubnet] },
+      { ...assistant, parts: [commit, intoComponent, readWithComponent] },
     ],
   } as FlueConversationSnapshot;
 
@@ -383,6 +385,221 @@ test("query_basis finds an element inside a subnet and the call that added it th
     disposition: "basis-absent",
     target: { id: "triage" },
     changes: [{ toolCallId: "add-triage", petrinautRevisionId: "revision-2" }],
+  });
+});
+
+test("query_basis finds a component and what is inside it in a view recorded with `subnets` and `subnetId`", () => {
+  const [queue] = definition.places;
+  const instanceOf = (id: string, name: string, componentId: string) => ({
+    id,
+    name,
+    subnetId: componentId,
+    parameterValues: {},
+    x: 0,
+    y: 0,
+  });
+  const readWithOldKeys = {
+    ...read,
+    output: {
+      brunchBrowserResult: true,
+      output: {
+        title: "Queue",
+        definition: {
+          ...definition,
+          componentInstances: [instanceOf("intake-1", "Intake1", "intake")],
+          subnets: [
+            {
+              id: "intake",
+              name: "Intake",
+              places: [{ ...queue, id: "triage", name: "Triage" }],
+              transitions: [],
+              types: [],
+              parameters: [],
+              differentialEquations: [],
+              componentInstances: [instanceOf("desk-1", "Desk1", "desk")],
+            },
+          ],
+        },
+      },
+      metadata: { documentRevision: { before: "revision-2" } },
+    },
+  };
+  const history = {
+    ...snapshot,
+    messages: [user, { ...assistant, parts: [commit, add, readWithOldKeys] }],
+  } as FlueConversationSnapshot;
+  const find = (query: Parameters<typeof queryBasis>[0]["query"]) =>
+    queryBasis({ snapshot: history, browser, query });
+
+  expect(find({ kind: "component", name: "Intake" })).toMatchObject({
+    disposition: "basis-absent",
+    target: { id: "intake" },
+  });
+  expect(find({ kind: "place", name: "Triage" })).toMatchObject({
+    disposition: "basis-absent",
+    target: { id: "triage" },
+  });
+  expect(find({ kind: "componentInstance", name: "Desk1" })).toMatchObject({
+    disposition: "basis-absent",
+    target: { id: "desk-1" },
+  });
+});
+
+test("query_basis reads the calls and reflections recorded before a component was called a component", () => {
+  const editor = { editor_id: "process-editor" };
+  const deskId = toPetrinautId("desk");
+  const applied = (
+    toolCallId: string,
+    toolName: string,
+    input: Record<string, unknown>,
+    revision: number,
+  ) => ({
+    type: "dynamic-tool",
+    toolName,
+    toolCallId,
+    state: "output-available",
+    input: { ...editor, ...input },
+    output: {
+      brunchBrowserResult: true,
+      output: { applied: true },
+      metadata: {
+        documentRevision: {
+          before: `revision-${revision - 1}`,
+          after: `revision-${revision}`,
+        },
+      },
+    },
+  });
+  const net = {
+    places: [],
+    transitions: [],
+    types: [],
+    parameters: [],
+    differentialEquations: [],
+  };
+  const recorded = [
+    // The tools that define a component, named after the subnet.
+    applied(
+      "define-desk",
+      "petrinaut_create_subnet",
+      { id: "desk", name: "Desk", ...net },
+      3,
+    ),
+    applied(
+      "rename-desk",
+      "petrinaut_update_subnet",
+      { subnetId: "desk", update: { name: "Desk" } },
+      4,
+    ),
+    // The tools for an instance, under the names the component tools have today.
+    applied(
+      "place-desk",
+      "petrinaut_create_component",
+      {
+        id: "desk-1",
+        name: "Desk1",
+        subnetId: "desk",
+        parameterValues: {},
+        x: 0,
+        y: 0,
+      },
+      5,
+    ),
+    applied(
+      "move-desk",
+      "petrinaut_update_component",
+      { instanceId: "desk-1", update: { name: "Desk1" }, targetSubnetId: null },
+      6,
+    ),
+    // An input neither tool takes.
+    applied(
+      "unreadable",
+      "petrinaut_update_component",
+      { instanceId: "desk-1", moved: true },
+      7,
+    ),
+    // Today's tool for a component, under its own name.
+    applied(
+      "describe-desk",
+      "petrinaut_update_component",
+      { componentId: "desk", update: { name: "Desk" } },
+      8,
+    ),
+  ];
+  const deskReflection = committed(
+    "ledger-2",
+    2,
+    [
+      [
+        "reflection/create",
+        {
+          text: "One net stands for every desk.",
+          netElements: [{ kind: "subnet", id: "desk" }],
+          claims: ["c1"],
+        },
+      ],
+    ],
+    ["r1"],
+  );
+  const readWithDesk = {
+    ...read,
+    output: {
+      brunchBrowserResult: true,
+      output: {
+        title: "Queue",
+        definition: {
+          ...definition,
+          componentInstances: [
+            {
+              id: toPetrinautId("desk-1"),
+              name: "Desk1",
+              component: { id: deskId },
+              parameterValues: {},
+              x: 0,
+              y: 0,
+            },
+          ],
+          components: [{ id: deskId, name: "Desk", ...net }],
+        },
+      },
+      metadata: { documentRevision: { before: "revision-8" } },
+    },
+  };
+  const history = {
+    ...snapshot,
+    messages: [
+      user,
+      {
+        ...assistant,
+        parts: [commit, add, deskReflection, ...recorded, readWithDesk],
+      },
+    ],
+  } as FlueConversationSnapshot;
+  const find = (query: Parameters<typeof queryBasis>[0]["query"]) =>
+    queryBasis({ snapshot: history, browser, query });
+
+  expect(find({ kind: "component", name: "Desk" })).toMatchObject({
+    disposition: "basis-declared",
+    target: { id: deskId },
+    basis: { reflections: [{ id: "r1" }] },
+    changes: [
+      { toolCallId: "define-desk", operation: "petrinaut_create_component" },
+      { toolCallId: "rename-desk", operation: "petrinaut_update_component" },
+      { toolCallId: "describe-desk", operation: "petrinaut_update_component" },
+    ],
+  });
+  expect(find({ kind: "componentInstance", name: "Desk1" })).toMatchObject({
+    disposition: "basis-absent",
+    changes: [
+      {
+        toolCallId: "place-desk",
+        operation: "petrinaut_create_component_instance",
+      },
+      {
+        toolCallId: "move-desk",
+        operation: "petrinaut_update_component_instance",
+      },
+    ],
   });
 });
 

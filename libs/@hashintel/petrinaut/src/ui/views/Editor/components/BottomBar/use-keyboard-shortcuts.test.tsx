@@ -133,8 +133,8 @@ test("the place and transition shortcuts do nothing in an editor that only compo
   expect(actions.notify).not.toHaveBeenCalled();
 });
 
-/** An editor that only composes, on the root net or a subnet, with one item selected. */
-const composing = (selected: SelectionItem, activeSubnetId?: string) => {
+/** An editor that only composes, on the root net or a component, with one item selected. */
+const composing = (selected: SelectionItem, activeComponentId?: string) => {
   const instance = createInstance({ edit: "compose" });
   const clearSelection = vi.fn();
   const Wrapper = ({ children }: { children: ReactNode }) => (
@@ -142,7 +142,7 @@ const composing = (selected: SelectionItem, activeSubnetId?: string) => {
       <ActiveNetContext
         value={{
           ...use(ActiveNetContext),
-          activeSubnetId: activeSubnetId ?? null,
+          activeComponentId: activeComponentId ?? null,
         }}
       >
         <EditorContext
@@ -186,10 +186,10 @@ test("a delete the host's rules allow clears the selection", () => {
 
 test("a delete is asked about with the net it is aimed at", () => {
   actions.readOnly = false;
-  // An instance can be deleted from the root net, and from no subnet.
+  // An instance can be deleted from the root net, and from no component.
   const { Wrapper, clearSelection } = composing(
     { type: "componentInstance", id: "instance" },
-    "subnet",
+    "component",
   );
   render(<Shortcuts />, { wrapper: Wrapper });
 

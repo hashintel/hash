@@ -1,9 +1,11 @@
+import { migrateLegacyComponentKeys } from "../migrate-legacy-component-keys";
 import { migrateLegacyDynamics } from "../migrate-legacy-dynamics";
 import { canonicalizePetrinautIds } from "../petrinaut-id";
 
 import type {
   ArcEndpoint,
   Color,
+  Component,
   ComponentInstance,
   DefaultImplementation,
   DifferentialEquation,
@@ -19,7 +21,6 @@ import type {
   PortDirection,
   Scenario,
   SDCPN,
-  Subnet,
   Transition,
 } from "./sdcpn";
 
@@ -54,7 +55,7 @@ export type SDCPNInput = {
   scenarios?: Scenario[];
   metrics?: Metric[];
   imports?: Import[];
-  subnets?: Subnet[];
+  components?: Component[];
   componentInstances?: ComponentInstance[];
   fusions?: Fusion[];
   implementations?: DefaultImplementation[];
@@ -143,7 +144,7 @@ function arcEndpointFields(arc: SDCPNArcEndpointInput): SDCPNArcEndpointInput {
  * equivalent value.
  *
  * Optional output fields (`dynamics`, `capacity`, `isPort`, `portDirection`, `visualizerCode`,
- * `showAsInitialState`, arc `placeId`/`endpoint`, `scenarios`, `metrics`, `subnets`,
+ * `showAsInitialState`, arc `placeId`/`endpoint`, `scenarios`, `metrics`, `components`,
  * `componentInstances`, `fusions`, `implementations`, `imports`) are only set when present on the input, so the result
  * matches the shape the editor itself produces (relevant for structural
  * dirty-tracking via `isSDCPNEqual`). Entity ids and the references to them
@@ -151,10 +152,12 @@ function arcEndpointFields(arc: SDCPNArcEndpointInput): SDCPNArcEndpointInput {
  *
  * A net saved before equations composed with an arity is brought to the
  * current shape first ({@link migrateLegacyDynamics}): stored data may still
- * link an equation from the place and omit the equation's arity.
+ * link an equation from the place and omit the equation's arity. So is one
+ * saved before its components went by that name
+ * ({@link migrateLegacyComponentKeys}).
  */
 export function normalizeSDCPN(rawInput: SDCPNInput): SDCPN {
-  const input = migrateLegacyDynamics(rawInput);
+  const input = migrateLegacyDynamics(migrateLegacyComponentKeys(rawInput));
   const result: SDCPN = {
     places: input.places.map((place) => {
       const normalized: SDCPN["places"][number] = {
@@ -235,8 +238,8 @@ export function normalizeSDCPN(rawInput: SDCPNInput): SDCPN {
   if (input.imports !== undefined) {
     result.imports = input.imports;
   }
-  if (input.subnets !== undefined) {
-    result.subnets = input.subnets;
+  if (input.components !== undefined) {
+    result.components = input.components;
   }
   if (input.componentInstances !== undefined) {
     result.componentInstances = input.componentInstances;

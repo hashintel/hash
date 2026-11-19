@@ -86,7 +86,7 @@ const machine = {
 const instanceOfMachine = (id: string, name: string) => ({
   id,
   name,
-  subnetId: "machine",
+  component: { id: "machine" },
   parameterValues: {},
   x: 0,
   y: 0,
@@ -112,7 +112,7 @@ const wiredNet: SDCPNInput = {
       y: 0,
     },
   ],
-  subnets: [machine, { ...machine, id: "press", name: "Press", places: [] }],
+  components: [machine, { ...machine, id: "press", name: "Press", places: [] }],
   componentInstances: [
     instanceOfMachine("m1", "M1"),
     instanceOfMachine("m2", "M2"),
@@ -120,12 +120,12 @@ const wiredNet: SDCPNInput = {
 };
 const unmarkPort = (update: object = { isPort: false }) => ({
   placeId: "in",
-  targetSubnetId: "machine",
+  targetComponentId: "machine",
   update,
 });
 const repoint = (instanceId: string) => ({
   instanceId,
-  update: { subnetId: "press" },
+  update: { component: { id: "press" } },
 });
 const inPortOf = (componentInstanceId: string) =>
   ({ kind: "componentPort", componentInstanceId, portPlaceId: "in" }) as const;
@@ -162,7 +162,7 @@ describe("Brunch destructive edit approval", () => {
       expect.arrayContaining([
         ...pruningUpdateActions,
         "petrinaut_update_place",
-        "petrinaut_update_component",
+        "petrinaut_update_component_instance",
       ]),
     );
     expect(toolNames).not.toContain("addPlace");
@@ -945,7 +945,7 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
       ["updatePlace", unmarkPort()],
       ["updateComponentInstance", repoint("m1")],
       ["petrinaut_update_place", forHash(unmarkPort())],
-      ["petrinaut_update_component", forHash(repoint("m1"))],
+      ["petrinaut_update_component_instance", forHash(repoint("m1"))],
     ])(
       "%s waits for approval when it would take arcs or fusion memberships",
       async (toolName, input) => {
@@ -965,7 +965,7 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
       ["updatePlace", unmarkPort({ name: "Inlet" })],
       ["updateComponentInstance", repoint("m2")],
       ["petrinaut_update_place", forHash(unmarkPort({ name: "Inlet" }))],
-      ["petrinaut_update_component", forHash(repoint("m2"))],
+      ["petrinaut_update_component_instance", forHash(repoint("m2"))],
     ])(
       "%s runs without asking when it takes nothing",
       async (toolName, input) => {
@@ -980,7 +980,7 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
 
     const clearChoice = { instanceId: "m1", update: { implementation: null } };
     const unmarkInterface = {
-      subnetId: "machine",
+      componentId: "machine",
       update: { interface: false },
     };
 
@@ -988,9 +988,9 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
     // with `setImplementation` does not.
     test.each([
       ["updateComponentInstance", clearChoice],
-      ["petrinaut_update_component", forHash(clearChoice)],
-      ["updateSubnet", unmarkInterface],
-      ["petrinaut_update_subnet", forHash(unmarkInterface)],
+      ["petrinaut_update_component_instance", forHash(clearChoice)],
+      ["updateComponent", unmarkInterface],
+      ["petrinaut_update_component", forHash(unmarkInterface)],
     ])(
       "%s runs without asking when it clears a choice or an interface flag",
       async (toolName, input) => {

@@ -120,14 +120,15 @@ export type CanvasInteractions = {
 };
 
 /**
- * Converts a free-form subnet display name to a valid PascalCase instance name.
+ * Converts a component's free-form display name to a valid PascalCase instance
+ * name.
  * Splits on non-alphanumeric boundaries, capitalises each letter-starting word,
  * and appends a trailing numeric suffix if present.
- * "Hospital Ward" → "HospitalWard", "Subnet 1" → "Subnet1", "Coal Plant" → "CoalPlant"
+ * "Hospital Ward" → "HospitalWard", "Component 1" → "Component1", "Coal Plant" → "CoalPlant"
  * Falls back to "Instance" when the result would not satisfy PascalCase.
  */
-const toInstanceName = (subnetName: string): string => {
-  const words = subnetName
+const toInstanceName = (componentName: string): string => {
+  const words = componentName
     .trim()
     .split(/[^a-zA-Z0-9]+/)
     .filter(Boolean);
@@ -396,9 +397,7 @@ export const useCanvasInteractions = (
     const added = addComponentInstance({
       id,
       name: component ? toInstanceName(component.name) : "Instance",
-      ...(reference.from === undefined
-        ? { subnetId: reference.id }
-        : { component: { from: reference.from, id: reference.id } }),
+      component: reference,
       parameterValues: {},
       x: position.x,
       y: position.y,

@@ -4,7 +4,7 @@ import { checkFusions } from "./check-fusions";
 import { checkInterfaces, implementationsOf } from "./check-interfaces";
 import {
   describeUnboundInstance,
-  indexSubnet,
+  indexComponent,
   mapInterfacePorts,
   resolveImplementation,
 } from "./interfaces";
@@ -13,11 +13,11 @@ import { logistics } from "./libraries.test-helpers";
 
 import type {
   Color,
+  Component,
   DefaultImplementation,
   Parameter,
   Place,
   SDCPN,
-  Subnet,
   Transition,
 } from "../types/sdcpn";
 
@@ -71,7 +71,10 @@ const color = (id: string, elements: Color["elements"]): Color => ({
   elements,
 });
 
-const subnet = (id: string, overrides: Partial<Subnet> = {}): Subnet => ({
+const component = (
+  id: string,
+  overrides: Partial<Component> = {},
+): Component => ({
   id,
   name: id,
   places: [],
@@ -91,10 +94,14 @@ const net = (overrides: Partial<SDCPN> = {}): SDCPN => ({
   ...overrides,
 });
 
-const instance = (id: string, subnetId: string, implementation?: string) => ({
+const instance = (
+  id: string,
+  componentId: string,
+  implementation?: string,
+) => ({
   id,
   name: id,
-  subnetId,
+  component: { id: componentId },
   parameterValues: {},
   x: 0,
   y: 0,
@@ -113,7 +120,7 @@ const defaultOf = (
 });
 
 /** A stage signature: In consumed, Out produced, a rate parameter. */
-const stage = subnet("stage", {
+const stage = component("stage", {
   interface: true,
   places: [
     place("stage_in", { name: "In", isPort: true, portDirection: "in" }),
@@ -122,7 +129,7 @@ const stage = subnet("stage", {
   parameters: [parameter("stage_rate", "rate")],
 });
 
-const fast = subnet("fast", {
+const fast = component("fast", {
   implements: ["stage"],
   places: [
     place("fast_in", { name: "In", isPort: true }),
@@ -134,23 +141,23 @@ const fast = subnet("fast", {
 
 describe("checkInterfaces", () => {
   it("accepts an implementation with the interface's ports and parameters", () => {
-    expect(checkInterfaces(net({ subnets: [stage, fast] }))).toEqual([]);
+    expect(checkInterfaces(net({ components: [stage, fast] }))).toEqual([]);
   });
 
   it("reports an interface that holds a transition", () => {
-    const bodied = subnet("bodied", {
+    const bodied = component("bodied", {
       interface: true,
       places: [place("in", { isPort: true })],
       transitions: [transition("t", ["in"], [])],
     });
 
-    expect(checkInterfaces(net({ subnets: [bodied] }))).toMatchObject([
-      { subnetId: "bodied", code: "interface-has-body", severity: "error" },
+    expect(checkInterfaces(net({ components: [bodied] }))).toMatchObject([
+      { componentId: "bodied", code: "interface-has-body", severity: "error" },
     ]);
   });
 
   it("reports a missing port, a different token type, a direction against the declaration and a missing parameter", () => {
-    const partial = subnet("partial", {
+    const partial = component("partial", {
       implements: ["stage"],
       types: [
         color("part", [{ elementId: "w", name: "weight", type: "real" }]),
@@ -160,7 +167,7 @@ describe("checkInterfaces", () => {
     });
 
     expect(
-      checkInterfaces(net({ subnets: [stage, partial] })).map(
+      checkInterfaces(net({ components: [stage, partial] })).map(
         ({ code, severity }) => [code, severity],
       ),
     ).toEqual([
@@ -172,33 +179,37 @@ describe("checkInterfaces", () => {
   });
 
   it("reports an interface that implements an interface, once, as an error on it", () => {
-    const draft = subnet("draft", {
+    const draft = component("draft", {
       interface: true,
       // Neither is held against it: the one problem is that it implements at all.
       implements: ["stage", "ghost"],
     });
 
-    expect(checkInterfaces(net({ subnets: [stage, draft] }))).toMatchObject([
-      { subnetId: "draft", code: "interface-implements", severity: "error" },
+    expect(checkInterfaces(net({ components: [stage, draft] }))).toMatchObject([
+      { componentId: "draft", code: "interface-implements", severity: "error" },
     ]);
   });
 
   it("reports implementing something that is not an interface", () => {
-    const other = subnet("other");
-    const wrong = subnet("wrong", { implements: ["other", "ghost"] });
+    const other = component("other");
+    const wrong = component("wrong", { implements: ["other", "ghost"] });
 
     expect(
-      checkInterfaces(net({ subnets: [other, wrong] })).map(({ code }) => code),
+      checkInterfaces(net({ components: [other, wrong] })).map(
+        ({ code }) => code,
+      ),
     ).toEqual(["unknown-interface", "unknown-interface"]);
   });
 
-  it("checks an interface once, however often a subnet says it implements it", () => {
-    const bare = subnet("bare", {
+  it("checks an interface once, however often a component says it implements it", () => {
+    const bare = component("bare", {
       implements: ["stage", "ghost", "stage", "ghost"],
     });
 
     expect(
-      checkInterfaces(net({ subnets: [stage, bare] })).map(({ code }) => code),
+      checkInterfaces(net({ components: [stage, bare] })).map(
+        ({ code }) => code,
+      ),
     ).toEqual([
       "missing-port",
       "missing-port",
@@ -207,11 +218,11 @@ describe("checkInterfaces", () => {
     ]);
   });
 
-  it("holds each of two subnets with one id to its own ports and parameters", () => {
-    const lacking = subnet("fast", { implements: ["stage"] });
+  it("holds each of two components with one id to its own ports and parameters", () => {
+    const lacking = component("fast", { implements: ["stage"] });
 
     expect(
-      checkInterfaces(net({ subnets: [stage, fast, lacking] })).map(
+      checkInterfaces(net({ components: [stage, fast, lacking] })).map(
         ({ code }) => code,
       ),
     ).toEqual(["missing-port", "missing-port", "missing-parameter"]);
@@ -219,11 +230,11 @@ describe("checkInterfaces", () => {
 
   it("reports an instance of an interface with nothing bound, and accepts a document default or an instance choice", () => {
     const unbound = net({
-      subnets: [stage, fast],
+      components: [stage, fast],
       componentInstances: [instance("s1", "stage")],
     });
     expect(checkInterfaces(unbound)).toMatchObject([
-      { subnetId: null, instanceId: "s1", code: "unbound-instance" },
+      { componentId: null, instanceId: "s1", code: "unbound-instance" },
     ]);
 
     const byDefault = {
@@ -233,7 +244,7 @@ describe("checkInterfaces", () => {
     expect(checkInterfaces(byDefault)).toEqual([]);
 
     const byInstance = net({
-      subnets: [stage, fast],
+      components: [stage, fast],
       componentInstances: [instance("s1", "stage", "fast")],
     });
     expect(checkInterfaces(byInstance)).toEqual([]);
@@ -242,7 +253,7 @@ describe("checkInterfaces", () => {
   it("reports two defaults for one interface, once, and runs the first", () => {
     const slow = { ...fast, id: "slow", name: "slow" };
     const sdcpn = net({
-      subnets: [stage, fast, slow],
+      components: [stage, fast, slow],
       componentInstances: [instance("s1", "stage")],
       implementations: [
         defaultOf("stage", "fast"),
@@ -254,8 +265,8 @@ describe("checkInterfaces", () => {
     });
 
     expect(checkInterfaces(sdcpn)).toMatchObject([
-      { subnetId: "stage", code: "duplicate-default", severity: "error" },
-      { subnetId: null, code: "duplicate-default", severity: "error" },
+      { componentId: "stage", code: "duplicate-default", severity: "error" },
+      { componentId: null, code: "duplicate-default", severity: "error" },
     ]);
     expect(resolveImplementation(sdcpn, instance("s1", "stage"))).toMatchObject(
       { kind: "bound", implementation: { id: "fast" } },
@@ -265,7 +276,7 @@ describe("checkInterfaces", () => {
   it("counts the defaults of a long list in one pass", () => {
     const size = 40_000;
     const sdcpn = net({
-      subnets: [stage, fast],
+      components: [stage, fast],
       implementations: Array.from({ length: size }, () =>
         defaultOf("stage", "fast"),
       ),
@@ -276,7 +287,7 @@ describe("checkInterfaces", () => {
     const elapsed = Date.now() - started;
 
     expect(problems).toMatchObject([
-      { subnetId: "stage", code: "duplicate-default" },
+      { componentId: "stage", code: "duplicate-default" },
     ]);
     expect(problems[0]?.message).toContain(`${size} default implementations`);
     // One pass takes milliseconds; a search of the list for every entry
@@ -284,10 +295,10 @@ describe("checkInterfaces", () => {
     expect(elapsed).toBeLessThan(1_000);
   });
 
-  it("reports a binding to a subnet that does not implement the interface, naming it", () => {
-    const stranger = subnet("stranger");
+  it("reports a binding to a component that does not implement the interface, naming it", () => {
+    const stranger = component("stranger");
     const sdcpn = net({
-      subnets: [stage, fast, stranger],
+      components: [stage, fast, stranger],
       componentInstances: [instance("s1", "stage", "stranger")],
     });
 
@@ -298,14 +309,14 @@ describe("checkInterfaces", () => {
     expect(problems[0]?.message).toContain("does not implement stage");
   });
 
-  it("checks instances inside subnets against the document's defaults", () => {
-    const line = subnet("line", {
+  it("checks instances inside components against the document's defaults", () => {
+    const line = component("line", {
       componentInstances: [instance("inner", "stage")],
     });
-    const sdcpn = net({ subnets: [stage, fast, line] });
+    const sdcpn = net({ components: [stage, fast, line] });
 
     expect(checkInterfaces(sdcpn)).toMatchObject([
-      { subnetId: "line", instanceId: "inner", code: "unbound-instance" },
+      { componentId: "line", instanceId: "inner", code: "unbound-instance" },
     ]);
     expect(
       checkInterfaces({
@@ -318,7 +329,7 @@ describe("checkInterfaces", () => {
   it("checks many instances against a long list of defaults, with one read of the list", () => {
     const size = 50_000;
     const sdcpn = net({
-      subnets: [stage, fast],
+      components: [stage, fast],
       componentInstances: Array.from({ length: size }, (_, index) =>
         instance(`s${index}`, "stage"),
       ),
@@ -346,7 +357,7 @@ describe("an implementation bound across a library", () => {
   const libraries = new Map([
     [logistics.id, resolveLibrary(logistics.id, logistics)],
   ]);
-  /** An instance of the library's interface that runs a subnet of the document. */
+  /** An instance of the library's interface that runs a component of the document. */
   const scaleRunning = (id: string, implementation: string) => ({
     id,
     name: id,
@@ -359,7 +370,7 @@ describe("an implementation bound across a library", () => {
 
   it("is held to the interface once for the instances bound alike, however many", () => {
     // In and Out declare no direction, under 20,000 arcs that give them one.
-    const wide = subnet("wide", {
+    const wide = component("wide", {
       places: [
         place("wide_in", { name: "In", isPort: true }),
         place("wide_out", { name: "Out", isPort: true }),
@@ -370,7 +381,7 @@ describe("an implementation bound across a library", () => {
       parameters: [parameter("wide_rate", "rate")],
     });
     const sdcpn = net({
-      subnets: [wide],
+      components: [wide],
       componentInstances: Array.from({ length: 2000 }, (_, index) =>
         scaleRunning(`s${index}`, "wide"),
       ),
@@ -386,14 +397,14 @@ describe("an implementation bound across a library", () => {
   });
 
   it("reports what it falls short of on every instance bound to it", () => {
-    const backwards = subnet("backwards", {
+    const backwards = component("backwards", {
       places: [
         place("back_in", { name: "In", isPort: true, portDirection: "out" }),
         place("back_out", { name: "Out", isPort: true, portDirection: "out" }),
       ],
     });
     const sdcpn = net({
-      subnets: [backwards],
+      components: [backwards],
       componentInstances: [
         scaleRunning("s1", "backwards"),
         scaleRunning("s2", "backwards"),
@@ -418,7 +429,7 @@ describe("an implementation that lists many interfaces", () => {
   it("is read once for the instances bound to it, however many", () => {
     const size = 50_000;
     // The list names the interface last, after as many it does not have.
-    const versatile = subnet("versatile", {
+    const versatile = component("versatile", {
       ...fast,
       id: "versatile",
       implements: [
@@ -427,7 +438,7 @@ describe("an implementation that lists many interfaces", () => {
       ],
     });
     const sdcpn = net({
-      subnets: [stage, versatile],
+      components: [stage, versatile],
       componentInstances: Array.from({ length: size }, (_, index) =>
         instance(`s${index}`, "stage", "versatile"),
       ),
@@ -448,17 +459,19 @@ describe("an implementation that lists many interfaces", () => {
     // Five thousand interfaces that declare nothing, and one implementation
     // of them all with ten thousand ports and as many parameters.
     const interfaces = Array.from({ length: 5_000 }, (_, index) =>
-      subnet(`empty${index}`, { interface: true }),
+      component(`empty${index}`, { interface: true }),
     );
     const names = Array.from({ length: 10_000 }, (_, index) => `item-${index}`);
-    const wide = subnet("wide", {
+    const wide = component("wide", {
       implements: interfaces.map(({ id }) => id),
       places: names.map((name) => place(`port_${name}`, { isPort: true })),
       parameters: names.map((name) => parameter(`rate_${name}`, name)),
     });
 
     const started = Date.now();
-    const problems = checkInterfaces(net({ subnets: [...interfaces, wide] }));
+    const problems = checkInterfaces(
+      net({ components: [...interfaces, wide] }),
+    );
     const elapsed = Date.now() - started;
 
     expect(problems).toEqual([]);
@@ -471,8 +484,8 @@ describe("an implementation with many ports, token types and parameters", () => 
   const size = 20_000;
   const names = Array.from({ length: size }, (_, index) => `item-${index}`);
   /** A port for each name, of a token type of its own, and a parameter for each. */
-  const wide = (id: string, overrides: Partial<Subnet>) =>
-    subnet(id, {
+  const wide = (id: string, overrides: Partial<Component>) =>
+    component(id, {
       types: names.map((name) =>
         color(`${id}_type_${name}`, [
           { elementId: "w", name: "weight", type: "real" },
@@ -491,7 +504,7 @@ describe("an implementation with many ports, token types and parameters", () => 
 
   it("is held to its interface with one read of each of its lists", () => {
     const sdcpn = net({
-      subnets: [
+      components: [
         wide("stage", { interface: true }),
         wide("fast", { implements: ["stage"] }),
       ],
@@ -509,13 +522,13 @@ describe("an implementation with many ports, token types and parameters", () => 
 
   it("is held to the first of two places, types or parameters with one id", () => {
     const twice = <Item>(items: Item[]): Item[] => [...items, ...items];
-    const typed = subnet("typed", {
+    const typed = component("typed", {
       interface: true,
       types: [color("t", [{ elementId: "w", name: "weight", type: "real" }])],
       places: [place("typed_in", { name: "In", isPort: true, colorId: "t" })],
       parameters: [parameter("typed_rate", "rate")],
     });
-    const doubled = subnet("doubled", {
+    const doubled = component("doubled", {
       implements: ["typed"],
       types: [
         color("t", [{ elementId: "w", name: "weight", type: "real" }]),
@@ -530,14 +543,14 @@ describe("an implementation with many ports, token types and parameters", () => 
       ],
     });
 
-    expect(checkInterfaces(net({ subnets: [typed, doubled] }))).toEqual([]);
+    expect(checkInterfaces(net({ components: [typed, doubled] }))).toEqual([]);
   });
 });
 
 describe("an interface with many token types and places that are not ports", () => {
   it("is read once, however many implementations are held to it", () => {
     const size = 10_000;
-    const typed = subnet("typed", {
+    const typed = component("typed", {
       interface: true,
       types: Array.from({ length: size }, (_, index) =>
         color(`type-${index}`, [
@@ -554,7 +567,7 @@ describe("an interface with many token types and places that are not ports", () 
       ],
     });
     const implementations = Array.from({ length: 5_000 }, (_, index) =>
-      subnet(`impl${index}`, {
+      component(`impl${index}`, {
         implements: ["typed"],
         types: [color("t", [{ elementId: "w", name: "weight", type: "real" }])],
         places: [
@@ -565,7 +578,7 @@ describe("an interface with many token types and places that are not ports", () 
 
     const started = Date.now();
     const problems = checkInterfaces(
-      net({ subnets: [typed, ...implementations] }),
+      net({ components: [typed, ...implementations] }),
     );
     const elapsed = Date.now() - started;
 
@@ -581,7 +594,7 @@ describe("the directions of an implementation's ports", () => {
   // consume from them.
   const names = Array.from({ length: 1000 }, (_, index) => `port-${index}`);
   const wide = (implemented: string[]) =>
-    subnet("wide", {
+    component("wide", {
       implements: implemented,
       places: names.map((name) => place(name, { isPort: true })),
       transitions: Array.from({ length: 20 }, (_, index) =>
@@ -590,7 +603,7 @@ describe("the directions of an implementation's ports", () => {
     });
   /** An interface that declares the given ports as inputs. */
   const inputs = (id: string, ports: string[]) =>
-    subnet(id, {
+    component(id, {
       interface: true,
       places: ports.map((name) =>
         place(`${id}_${name}`, { name, isPort: true, portDirection: "in" }),
@@ -599,7 +612,7 @@ describe("the directions of an implementation's ports", () => {
 
   it("are read off its arcs once, however many ports its interface declares", () => {
     const sdcpn = net({
-      subnets: [inputs("stage", names), wide(["stage"])],
+      components: [inputs("stage", names), wide(["stage"])],
     });
 
     const started = Date.now();
@@ -613,7 +626,7 @@ describe("the directions of an implementation's ports", () => {
   it("are read off its arcs once, however many interfaces it implements", () => {
     const stages = names.map((name) => inputs(`stage_${name}`, [name]));
     const sdcpn = net({
-      subnets: [...stages, wide(stages.map(({ id }) => id))],
+      components: [...stages, wide(stages.map(({ id }) => id))],
     });
 
     const started = Date.now();
@@ -625,18 +638,18 @@ describe("the directions of an implementation's ports", () => {
   });
 
   it("are held against what each interface declares", () => {
-    const outputs = subnet("outputs", {
+    const outputs = component("outputs", {
       interface: true,
       places: [
         place("out_0", { name: "port-0", isPort: true, portDirection: "out" }),
       ],
     });
     const sdcpn = net({
-      subnets: [inputs("stage", names), outputs, wide(["stage", "outputs"])],
+      components: [inputs("stage", names), outputs, wide(["stage", "outputs"])],
     });
 
     expect(checkInterfaces(sdcpn)).toMatchObject([
-      { subnetId: "wide", code: "port-direction-mismatch" },
+      { componentId: "wide", code: "port-direction-mismatch" },
     ]);
   });
 });
@@ -645,20 +658,20 @@ describe("a component that runs inside itself", () => {
   it("is reported on the instance that closes the loop, through a binding or not", () => {
     // The decorator shape: an implementation that wraps an instance of its
     // own interface, which the default then binds back to it.
-    const wrapper = subnet("wrapper", {
+    const wrapper = component("wrapper", {
       ...fast,
       id: "wrapper",
       name: "wrapper",
       componentInstances: [instance("inner", "stage")],
     });
     const sdcpn = net({
-      subnets: [stage, fast, wrapper],
+      components: [stage, fast, wrapper],
       implementations: [defaultOf("stage", "wrapper")],
     });
 
     const problems = checkInterfaces(sdcpn);
     expect(problems).toMatchObject([
-      { subnetId: "wrapper", instanceId: "inner", code: "component-cycle" },
+      { componentId: "wrapper", instanceId: "inner", code: "component-cycle" },
     ]);
     expect(problems[0]?.message).toContain("inner runs wrapper inside itself");
     expect(
@@ -668,28 +681,30 @@ describe("a component that runs inside itself", () => {
       }),
     ).toEqual([]);
 
-    const outer = subnet("outer", {
+    const outer = component("outer", {
       componentInstances: [instance("o", "middle")],
     });
-    const middle = subnet("middle", {
+    const middle = component("middle", {
       componentInstances: [instance("m", "outer")],
     });
-    expect(checkInterfaces(net({ subnets: [outer, middle] }))).toMatchObject([
-      { subnetId: "outer", instanceId: "o", code: "component-cycle" },
-      { subnetId: "middle", instanceId: "m", code: "component-cycle" },
-    ]);
+    expect(checkInterfaces(net({ components: [outer, middle] }))).toMatchObject(
+      [
+        { componentId: "outer", instanceId: "o", code: "component-cycle" },
+        { componentId: "middle", instanceId: "m", code: "component-cycle" },
+      ],
+    );
   });
 
   it("is not reported on an instance outside the loop it leads into", () => {
     const holder = (id: string, ...held: string[]) =>
-      subnet(id, {
+      component(id, {
         componentInstances: held.map((heldId) =>
           instance(`${id}_${heldId}`, heldId),
         ),
       });
     // Two loops, `a` with `b` and `c` with `d`, and `b` holding `c` between them.
     const sdcpn = net({
-      subnets: [
+      components: [
         holder("entry", "a"),
         holder("a", "b"),
         holder("b", "a", "c"),
@@ -711,7 +726,7 @@ describe("a component that runs inside itself", () => {
   it("checks a long chain of components, each holding the next, in one pass", () => {
     const length = 2_000;
     const chain = Array.from({ length }, (_, index) =>
-      subnet(`link${index}`, {
+      component(`link${index}`, {
         componentInstances:
           index + 1 < length
             ? [instance(`holds${index + 1}`, `link${index + 1}`)]
@@ -720,7 +735,7 @@ describe("a component that runs inside itself", () => {
     );
 
     const started = Date.now();
-    expect(checkInterfaces(net({ subnets: chain }))).toEqual([]);
+    expect(checkInterfaces(net({ components: chain }))).toEqual([]);
     // One pass takes milliseconds; a walk restarted at every instance took
     // several seconds.
     expect(Date.now() - started).toBeLessThan(2_000);
@@ -729,7 +744,7 @@ describe("a component that runs inside itself", () => {
 
 describe("a fusion on a port of an interface", () => {
   it("is checked against the port of the implementation that runs", () => {
-    const narrow = subnet("narrow", {
+    const narrow = component("narrow", {
       implements: ["stage"],
       places: [
         place("narrow_in", { name: "In", isPort: true, capacity: 3 }),
@@ -739,7 +754,7 @@ describe("a fusion on a port of an interface", () => {
     });
     const sdcpn = net({
       places: [place("buffer", { capacity: 5 })],
-      subnets: [stage, narrow],
+      components: [stage, narrow],
       implementations: [defaultOf("stage", "narrow")],
       componentInstances: [instance("s1", "stage")],
       fusions: [
@@ -775,17 +790,17 @@ describe("a fusion on a port of an interface", () => {
     const names = Array.from({ length: 2000 }, (_, index) => `port-${index}`);
     const portsOf = (id: string) =>
       names.map((name) => place(`${id}_${name}`, { name, isPort: true }));
-    const wideStage = subnet("wide_stage", {
+    const wideStage = component("wide_stage", {
       interface: true,
       places: portsOf("stage"),
     });
-    const wide = subnet("wide", {
+    const wide = component("wide", {
       implements: ["wide_stage"],
       places: portsOf("wide"),
     });
     const instances = ["s1", "s2", "s3", "s4", "s5"];
     const sdcpn = net({
-      subnets: [wideStage, wide],
+      components: [wideStage, wide],
       implementations: [
         ...Array.from({ length: 20_000 }, (_, index) =>
           defaultOf(`other${index}`, "wide"),
@@ -821,21 +836,21 @@ describe("a fusion on a port of an interface", () => {
     // that port, and one implementation of ten thousand ports behind them all.
     const count = 2_000;
     const interfaces = Array.from({ length: count }, (_, index) =>
-      subnet(`narrow${index}`, {
+      component(`narrow${index}`, {
         interface: true,
         places: [
           place(`narrow${index}_port`, { name: `port-${index}`, isPort: true }),
         ],
       }),
     );
-    const wide = subnet("wide", {
+    const wide = component("wide", {
       implements: interfaces.map(({ id }) => id),
       places: Array.from({ length: 10_000 }, (_, index) =>
         place(`port-${index}`, { isPort: true }),
       ),
     });
     const sdcpn = net({
-      subnets: [...interfaces, wide],
+      components: [...interfaces, wide],
       componentInstances: interfaces.map(({ id }, index) =>
         instance(`s${index}`, id, "wide"),
       ),
@@ -867,7 +882,7 @@ describe("resolveImplementation", () => {
   it("prefers the instance's choice over the document's default", () => {
     const slow = { ...fast, id: "slow", name: "slow" };
     const sdcpn = net({
-      subnets: [stage, fast, slow],
+      components: [stage, fast, slow],
       implementations: [defaultOf("stage", "fast")],
     });
 
@@ -883,7 +898,7 @@ describe("resolveImplementation", () => {
     });
     expect(resolveImplementation(sdcpn, instance("f1", "fast"))).toMatchObject({
       kind: "component",
-      subnet: { id: "fast" },
+      component: { id: "fast" },
     });
   });
 });
@@ -891,7 +906,7 @@ describe("resolveImplementation", () => {
 describe("mapInterfacePorts", () => {
   it("maps the interface's ports onto the implementation's by name", () => {
     expect([
-      ...mapInterfacePorts(indexSubnet(stage), indexSubnet(fast)),
+      ...mapInterfacePorts(indexComponent(stage), indexComponent(fast)),
     ]).toEqual([
       ["stage_in", "fast_in"],
       ["stage_out", "fast_out"],
@@ -899,7 +914,7 @@ describe("mapInterfacePorts", () => {
   });
 
   it("maps a port onto the last of two of the implementation's with its name", () => {
-    const twice = subnet("twice", {
+    const twice = component("twice", {
       places: [
         place("first_in", { name: "In", isPort: true }),
         place("last_in", { name: "In", isPort: true }),
@@ -908,19 +923,22 @@ describe("mapInterfacePorts", () => {
     });
 
     expect([
-      ...mapInterfacePorts(indexSubnet(stage), indexSubnet(twice)),
+      ...mapInterfacePorts(indexComponent(stage), indexComponent(twice)),
     ]).toEqual([["stage_in", "last_in"]]);
   });
 });
 
 describe("implementationsOf", () => {
   it("leaves out an interface that says it implements another: it has no body to run", () => {
-    const draft = subnet("draft", { interface: true, implements: ["stage"] });
-    const sdcpn = net({ subnets: [stage, fast, draft] });
+    const draft = component("draft", {
+      interface: true,
+      implements: ["stage"],
+    });
+    const sdcpn = net({ components: [stage, fast, draft] });
 
     expect(
       implementationsOf(sdcpn, { id: "stage" }).map(
-        (candidate) => candidate.subnet.id,
+        (candidate) => candidate.component.id,
       ),
     ).toEqual(["fast"]);
   });
@@ -933,13 +951,13 @@ describe("describeUnboundInstance", () => {
       ? describeUnboundInstance(binding, held.name)
       : undefined;
   };
-  const stranger = subnet("stranger");
-  const draft = subnet("draft", { interface: true });
-  const subnets = [stage, stranger, draft];
+  const stranger = component("stranger");
+  const draft = component("draft", { interface: true });
+  const components = [stage, stranger, draft];
 
   it("names the instance for a choice of its own that cannot run", () => {
     const sdcpn = net({
-      subnets,
+      components,
       implementations: [defaultOf("stage", "stranger")],
     });
 
@@ -958,7 +976,7 @@ describe("describeUnboundInstance", () => {
     const withDefault = (implementationId: string) =>
       described(
         net({
-          subnets,
+          components,
           implementations: [defaultOf("stage", implementationId)],
         }),
         instance("s1", "stage"),

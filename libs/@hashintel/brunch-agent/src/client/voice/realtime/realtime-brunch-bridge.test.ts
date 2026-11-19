@@ -123,7 +123,7 @@ const startReady = (
 
 describe("RealtimeBrunchBridge", () => {
   const vocabularyLeak =
-    "SDCPN, stochastic Petri net, place, transition, arc, token, marking, guard, rate, distribution, parameter, subnet, scenario, and metric.";
+    "SDCPN, stochastic Petri net, place, transition, arc, token, marking, guard, rate, distribution, parameter, component, scenario, and metric.";
   const assistantText =
     "The supervisor reviews the request before the manager approves it.";
 
@@ -132,7 +132,7 @@ describe("RealtimeBrunchBridge", () => {
     ["prompt-regurgitation", vocabularyLeak.normalize("NFKC").toUpperCase()],
     [
       "prompt-regurgitation",
-      "place, transition, arc, token, marking, guard, rate, distribution, parameter, subnet",
+      "place, transition, arc, token, marking, guard, rate, distribution, parameter, component",
     ],
     ["self-echo", assistantText],
     [
@@ -228,7 +228,7 @@ describe("RealtimeBrunchBridge", () => {
     "transition",
     "The supervisor does not approve it; the auditor makes that decision.",
     "Use a place and transition with a token and a guard for approval.",
-    "metric scenario subnet parameter distribution rate guard marking token arc transition place net Petri stochastic SDCPN",
+    "metric scenario component parameter distribution rate guard marking token arc transition place net Petri stochastic SDCPN",
   ])(
     "admits novel interruption exactly once without changing its text: %s",
     (text) => {
@@ -297,7 +297,7 @@ describe("RealtimeBrunchBridge", () => {
 
   test("classes an interruption that matches both playback and the prompt as self-echo", () => {
     const vocabulary =
-      "place, transition, arc, token, marking, guard, rate, distribution, parameter, subnet";
+      "place, transition, arc, token, marking, guard, rate, distribution, parameter, component";
     const harness = createHarness();
     startReady(harness);
     harness.emit({

@@ -24,30 +24,30 @@ import { ToolbarMenuTrigger } from "./toolbar-menu-trigger";
 
 type EditorEditionMode = EditorState["editionMode"];
 
-/** Picks which subnet the next component instance comes from. */
+/** Picks which component the next component instance comes from. */
 const ComponentDropdown: React.FC<{
   editionMode: EditorEditionMode;
 }> = ({ editionMode }) => {
   const {
-    petriNetDefinition: { subnets },
+    petriNetDefinition: { components },
   } = use(SDCPNContext);
   const { componentToAdd, setAddComponentMode } = use(EditorContext);
 
-  const items: MenuItem[] = (subnets ?? []).map((subnet) => ({
-    id: subnet.id,
+  const items: MenuItem[] = (components ?? []).map((component) => ({
+    id: component.id,
     icon: "cube",
-    text: subnet.name,
+    text: component.name,
     selected:
       editionMode === "add-component" &&
       componentToAdd !== null &&
-      sameComponent(componentToAdd, { id: subnet.id }),
-    onClick: () => setAddComponentMode({ id: subnet.id }),
+      sameComponent(componentToAdd, { id: component.id }),
+    onClick: () => setAddComponentMode({ id: component.id }),
   }));
 
   if (items.length === 0) {
     items.push({
       id: "empty",
-      text: "No subnets defined",
+      text: "No components defined",
       disabled: true,
       onClick: () => {},
     });
@@ -78,8 +78,8 @@ export const EditionTools: React.FC<{
   onEditionModeChange: (mode: EditorEditionMode) => void;
 }> = ({ editionMode, onEditionModeChange }) => {
   const isReadOnly = useIsReadOnly();
-  const { activeSubnetId } = use(ActiveNetContext);
-  const isRootNet = activeSubnetId === null;
+  const { activeComponentId } = use(ActiveNetContext);
+  const isRootNet = activeComponentId === null;
   const composesOnly = useComposesOnly();
   const isCompositionInterfaceOn = useIsCompositionInterfaceOn();
   const { enableExperimentalIconPack } = use(UserSettingsContext);

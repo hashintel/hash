@@ -340,14 +340,14 @@ describe("useLocalStorageSDCPNs", () => {
 describe("legacy net ids", () => {
   afterEach(() => localStorage.clear());
 
-  const subnetNet: SDCPN = {
+  const componentNet: SDCPN = {
     ...emptySDCPN,
-    subnets: [{ ...emptySDCPN, id: "subnet__a", name: "Subnet" }],
+    components: [{ ...emptySDCPN, id: "component__a", name: "Component" }],
     componentInstances: [
       {
         id: "instance-1",
         name: "Instance",
-        subnetId: "subnet__a",
+        component: { id: "component__a" },
         parameterValues: {},
         x: 0,
         y: 0,
@@ -355,10 +355,10 @@ describe("legacy net ids", () => {
     ],
   };
 
-  test("moves a legacy record to its net id together with its subnet ids", () => {
+  test("moves a legacy record to its net id together with its component ids", () => {
     localStorage.setItem(
       rootLocalStorageKey,
-      JSON.stringify(Object.fromEntries([storedNet("net-1", subnetNet)])),
+      JSON.stringify(Object.fromEntries([storedNet("net-1", componentNet)])),
     );
 
     const { result } = renderHook(() => useLocalStorageSDCPNs());
@@ -367,10 +367,38 @@ describe("legacy net ids", () => {
     const written = readNets(localStorage);
     expect(Object.keys(written)).toStrictEqual([netId]);
     expect(written[netId]?.id).toBe(netId);
-    expect(written[netId]?.sdcpn.subnets?.[0]?.id).toBe(
-      toPetrinautId("subnet__a"),
+    expect(written[netId]?.sdcpn.components?.[0]?.id).toBe(
+      toPetrinautId("component__a"),
     );
     expect(result.current.storedSDCPNs).toStrictEqual(written);
+  });
+
+  test("rewrites a record stored with `subnets` and `subnetId` as components", () => {
+    const { components, componentInstances, ...net } = componentNet;
+    const storedBefore = {
+      ...net,
+      subnets: components,
+      componentInstances: componentInstances?.map(
+        ({ component, ...instance }) => ({
+          ...instance,
+          subnetId: component.id,
+        }),
+      ),
+    } as unknown as SDCPN;
+    localStorage.setItem(
+      rootLocalStorageKey,
+      JSON.stringify(Object.fromEntries([storedNet("net-1", storedBefore)])),
+    );
+
+    renderHook(() => useLocalStorageSDCPNs());
+
+    const written = readNets(localStorage)[toPetrinautId("net-1")]?.sdcpn;
+    expect(written).not.toHaveProperty("subnets");
+    expect(written?.components?.[0]?.id).toBe(toPetrinautId("component__a"));
+    expect(written?.componentInstances?.[0]).toMatchObject({
+      component: { id: toPetrinautId("component__a") },
+    });
+    expect(written?.componentInstances?.[0]).not.toHaveProperty("subnetId");
   });
 
   test("keeps the later record when a legacy and a canonical id name one net", () => {

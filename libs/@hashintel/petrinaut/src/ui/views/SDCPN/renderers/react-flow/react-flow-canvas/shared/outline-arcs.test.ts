@@ -101,7 +101,7 @@ describe("outline arc paths", () => {
     expect(path).toMatch(/ 75,200$/);
   });
 
-  it("leaves a subnet port along the side its handle sits on", () => {
+  it("leaves a component port along the side its handle sits on", () => {
     const [path] = getOutlineArcPath(
       fixedEndpoint(-200, 100, Position.Right),
       target,
@@ -112,7 +112,7 @@ describe("outline arc paths", () => {
     expect(Number(firstY)).toBe(100);
   });
 
-  it("arrives at a subnet port from the side its handle sits on", () => {
+  it("arrives at a component port from the side its handle sits on", () => {
     const [path] = getOutlineArcPath(
       source,
       fixedEndpoint(300, 100, Position.Left),

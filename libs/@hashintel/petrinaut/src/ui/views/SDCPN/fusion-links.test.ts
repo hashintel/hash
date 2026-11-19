@@ -66,7 +66,7 @@ describe("fusionStatuses", () => {
     types: [],
     differentialEquations: [],
     parameters: [],
-    subnets: [
+    components: [
       {
         id: "stage",
         name: "Stage",
@@ -99,7 +99,7 @@ describe("fusionStatuses", () => {
       {
         id: "m1",
         name: "M1",
-        subnetId: "stage",
+        component: { id: "stage" },
         parameterValues: {},
         x: 0,
         y: 0,
@@ -107,7 +107,7 @@ describe("fusionStatuses", () => {
       {
         id: "m2",
         name: "M2",
-        subnetId: "stage",
+        component: { id: "stage" },
         parameterValues: {},
         x: 0,
         y: 0,
@@ -115,7 +115,7 @@ describe("fusionStatuses", () => {
       {
         id: "m3",
         name: "M3",
-        subnetId: "stage",
+        component: { id: "stage" },
         parameterValues: {},
         x: 0,
         y: 0,
@@ -140,15 +140,15 @@ describe("fusionStatuses", () => {
     expect(statuses.get("ports")).toEqual({ severity: null });
   });
 
-  it("reads a subnet's arcs once for its fused ports that declare no direction, however many", () => {
+  it("reads a component's arcs once for its fused ports that declare no direction, however many", () => {
     // A thousand ports that declare no direction, under 20,000 arcs that
     // consume from them.
     const portIds = Array.from({ length: 1000 }, (_, index) => `port-${index}`);
-    const [stage] = sdcpn.subnets ?? [];
+    const [stage] = sdcpn.components ?? [];
     const [stagePort] = stage?.places ?? [];
     const wide: SDCPN = {
       ...sdcpn,
-      subnets: [
+      components: [
         {
           ...stage!,
           places: portIds.map((id) => ({ ...stagePort!, id, name: id })),

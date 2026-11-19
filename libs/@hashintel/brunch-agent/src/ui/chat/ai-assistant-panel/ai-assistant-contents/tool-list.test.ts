@@ -42,7 +42,7 @@ const place = {
   dynamicsEnabled: false,
   x: 0,
   y: 0,
-  targetSubnetId: null,
+  targetComponentId: null,
 };
 const onEditor = <Input extends object>(input: Input) => ({
   editor_id: hashProcessEditorId,
@@ -65,7 +65,7 @@ describe("HASH's Petrinaut tool rows", () => {
   });
 
   test("present a removal with the canonical removal's tone", () => {
-    const input = { placeId: "queue", targetSubnetId: null };
+    const input = { placeId: "queue", targetComponentId: null };
     const hash = row("petrinaut_remove_place", "input-available", {
       ...input,
       editor_id: hashProcessEditorId,
@@ -84,18 +84,18 @@ describe("HASH's Petrinaut tool rows", () => {
         placeId: "queue",
         update: { name: "Line" },
         position: { x: 10, y: 20 },
-        targetSubnetId: null,
+        targetComponentId: null,
       }),
     );
     const fields = row("updatePlace", "input-available", {
       placeId: "queue",
       update: { name: "Line" },
-      targetSubnetId: null,
+      targetComponentId: null,
     });
     const position = row("updatePlacePosition", "input-available", {
       placeId: "queue",
       position: { x: 10, y: 20 },
-      targetSubnetId: null,
+      targetComponentId: null,
     });
 
     expect(hash.summary.title).toBe(

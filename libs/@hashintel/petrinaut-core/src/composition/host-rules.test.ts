@@ -32,15 +32,13 @@ const portId = toPetrinautId;
 const instanceOf = (id: string, component: ComponentReference) => ({
   id,
   name: id === "a" ? "PackerA" : "PackerB",
-  ...(component.from === undefined
-    ? { subnetId: component.id }
-    : { component: { from: component.from, id: component.id } }),
+  component,
   parameterValues: {},
   x: 0,
   y: 0,
 });
 
-/** A document with a place, and a subnet of its own beside the libraries' components. */
+/** A document with a place, and a component of its own beside the libraries' components. */
 const initial = (): SDCPN => ({
   places: [
     {
@@ -56,7 +54,7 @@ const initial = (): SDCPN => ({
   types: [],
   differentialEquations: [],
   parameters: [],
-  subnets: [
+  components: [
     {
       id: "own",
       name: "Own",
@@ -160,7 +158,7 @@ describe("an instance that only composes", () => {
         y: 0,
       }),
     ).toThrow(`${onlyComposes} Refused: \`addPlace\`.`);
-    expect(() => mutations.removeSubnet({ subnetId: "own" })).toThrow(
+    expect(() => mutations.removeComponent({ componentId: "own" })).toThrow(
       onlyComposes,
     );
     expect(() =>
@@ -169,7 +167,7 @@ describe("an instance that only composes", () => {
     expect(definition.get()).toBe(before);
   });
 
-  it("refuses an instance of a subnet of the document", () => {
+  it("refuses an instance of a component of the document", () => {
     const { mutations } = compose();
     mutations.addComponentInstance(instanceOf("a", packer));
 
@@ -179,7 +177,7 @@ describe("an instance that only composes", () => {
     expect(() =>
       mutations.updateComponentInstance({
         instanceId: "a",
-        update: { subnetId: "own" },
+        update: { component: own },
       }),
     ).toThrow(onlyComposes);
   });
@@ -205,10 +203,10 @@ describe("an instance that only composes", () => {
     expect(() =>
       mutations.addComponentInstance({
         ...instanceOf("a", packer),
-        targetSubnetId: "own",
+        targetComponentId: "own",
       }),
     ).toThrow(onlyComposes);
-    expect(definition.get().subnets).toHaveLength(1);
+    expect(definition.get().components).toHaveLength(1);
   });
 
   it("leaves a malformed input to the mutation, which says what is wrong", () => {
@@ -227,12 +225,12 @@ describe("an instance that only composes", () => {
     ).toThrow("nothing can be pasted into it");
   });
 
-  it("lays out the root net, and no subnet the document holds", async () => {
+  it("lays out the root net, and no component the document holds", async () => {
     const { commands, commandRefusal } = compose();
 
-    expect(() => commands.applyAutoLayout({ targetSubnetId: "own" })).toThrow(
-      "only places and connects the components it is given",
-    );
+    expect(() =>
+      commands.applyAutoLayout({ targetComponentId: "own" }),
+    ).toThrow("only places and connects the components it is given");
     expect(commandRefusal("applyAutoLayout", {})).toBeNull();
     await expect(commands.applyAutoLayout()).resolves.toBeDefined();
   });
@@ -247,7 +245,7 @@ describe("an instance that only composes", () => {
       onlyComposes,
     );
     expect(mutationRefusal("removeFusion", { fusionId: "belt" })).toBeNull();
-    expect(mutationRefusal("removeSubnet", { subnetId: "own" })).toBe(
+    expect(mutationRefusal("removeComponent", { componentId: "own" })).toBe(
       onlyComposes,
     );
     expect(definition.get().componentInstances).toBeUndefined();
@@ -303,7 +301,7 @@ describe("the implementation an instance that only composes chooses", () => {
   });
 
   it.each<[string, ComponentReference]>([
-    ["a subnet of the document", own],
+    ["a component of the document", own],
     [
       "a component of a library that is not on offer, though the document imports it",
       { from: surplus.id, id: "belt" },
@@ -360,7 +358,9 @@ describe("an instance the rules leave to edit everything", () => {
 
     expect(composesOnly(rules)).toBe(false);
     expect(definition.get().componentInstances).toHaveLength(1);
-    expect(mutationRefusal("addPlace", { targetSubnetId: "own" })).toBeNull();
+    expect(
+      mutationRefusal("addPlace", { targetComponentId: "own" }),
+    ).toBeNull();
     expect(commandRefusal("applyClipboardPaste", {})).toBeNull();
   });
 });

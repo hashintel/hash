@@ -26,7 +26,7 @@ export const CompositionDiagnostics = ({
 }: {
   problems: CompositionProblem[];
 }) => {
-  const { setActiveSubnetId } = use(ActiveNetContext);
+  const { setActiveComponentId } = use(ActiveNetContext);
   const { selectItem } = use(EditorContext);
   const [isExpanded, setIsExpanded] = useState(true);
   const countWith = (severity: CompositionProblem["severity"]) =>
@@ -40,7 +40,7 @@ export const CompositionDiagnostics = ({
   ] as const;
 
   const reveal = (problem: CompositionProblem) => {
-    setActiveSubnetId(problem.subnetId);
+    setActiveComponentId(problem.componentId);
     switch (problem.kind) {
       case "fusion":
         selectItem({ type: "fusion", id: problem.fusionId });

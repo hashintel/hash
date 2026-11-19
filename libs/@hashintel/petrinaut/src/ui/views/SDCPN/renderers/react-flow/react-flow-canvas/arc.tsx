@@ -262,7 +262,7 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
   // Animate stroke width when firing delta changes (scaled by arc weight)
   useFiringAnimation(arcPathRef, firingDelta, data?.weight ?? 1);
 
-  // An end at a subnet port has no outline: it starts at the port's handle
+  // An end at a component port has no outline: it starts at the port's handle
   // and leaves along the side the handle sits on, as the arc's preview did.
   const [arcPath, labelX, labelY] = getOutlineArcPath(
     data?.sourceOutline ?? fixedEndpoint(sourceX, sourceY, sourcePosition),

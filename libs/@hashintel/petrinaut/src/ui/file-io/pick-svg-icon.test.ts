@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { describe, expect, it, vi } from "vitest";
 
-import { maxSubnetIconLength } from "@hashintel/petrinaut-core";
+import { maxComponentIconLength } from "@hashintel/petrinaut-core";
 
 import { readIconFile, readIconMarkup } from "./pick-svg-icon";
 
@@ -37,7 +37,7 @@ describe("readIconMarkup", () => {
 
   it("refuses a file over the size an icon may have", () => {
     const result = readIconMarkup(
-      `<svg>${"<g/>".repeat(maxSubnetIconLength / 4 + 1)}</svg>`,
+      `<svg>${"<g/>".repeat(maxComponentIconLength / 4 + 1)}</svg>`,
     );
 
     expect(result).toMatchObject({ ok: false });
@@ -58,7 +58,7 @@ describe("readIconFile", () => {
     const text = vi.fn(() => Promise.resolve(icon));
 
     const result = await readIconFile({
-      size: 3 * maxSubnetIconLength + 1,
+      size: 3 * maxComponentIconLength + 1,
       text,
     });
 

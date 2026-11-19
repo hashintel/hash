@@ -83,7 +83,7 @@ describe("Petrinaut AI core exports", () => {
       { name: "metrics", pattern: /Metric \(`metric\.code`\)/u },
       {
         name: "hierarchy",
-        pattern: /addSubnet.*subnet.*addComponentInstance/su,
+        pattern: /addComponent.*component.*addComponentInstance/su,
       },
       { name: "layout", pattern: /Auto-layout policy.*applyAutoLayout/su },
       {
@@ -164,7 +164,7 @@ describe("Petrinaut AI core exports", () => {
       {};
 
     expect(
-      propertiesOf(petrinautAiTools.removeSubnet.inputSchema).subnetId,
+      propertiesOf(petrinautAiTools.removeComponent.inputSchema).componentId,
     ).toMatchObject({ type: "string" });
     expect(
       propertiesOf(petrinautAiTools.addPlace.inputSchema).id,
@@ -205,7 +205,7 @@ describe("Petrinaut AI core exports", () => {
     expect(implementation?.description).toMatch(/Omit to leave/u);
 
     const { interface: flag } = updateOf(
-      petrinautAiTools.updateSubnet.inputSchema,
+      petrinautAiTools.updateComponent.inputSchema,
     );
     expect(flag).toMatchObject({ type: "boolean" });
     expect(flag?.description).toMatch(/false/u);

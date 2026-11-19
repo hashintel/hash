@@ -221,7 +221,7 @@ const placeInput = {
   dynamicsEnabled: false,
   x: 0,
   y: 0,
-  targetSubnetId: null,
+  targetComponentId: null,
 };
 
 beforeEach(() => {
@@ -919,7 +919,7 @@ test("an absent replay baseline stays immutable when admission refresh publishes
     dynamicsEnabled: false,
     x: 0,
     y: 0,
-    targetSubnetId: null,
+    targetComponentId: null,
   };
   const conversationId = currentAssistant().conversationId ?? "";
   snapshot = {
@@ -1056,7 +1056,7 @@ test("I does not execute a canonical write while history is loading", async () =
       dynamicsEnabled: false,
       x: 0,
       y: 0,
-      targetSubnetId: null,
+      targetComponentId: null,
     }),
   ).toThrow("Conversation history is not ready");
   const handle = currentAssistant().documentHandle as PetrinautDocHandle;
@@ -1071,7 +1071,7 @@ test("a pending bound mutation in history is not executed again after reload", a
     dynamicsEnabled: false,
     x: 0,
     y: 0,
-    targetSubnetId: null,
+    targetComponentId: null,
   };
   flueClientMock.current = {
     observe: () => ({

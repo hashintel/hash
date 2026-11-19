@@ -12,7 +12,7 @@ import { resolveImplementation } from "./interfaces";
 import { resolveLibrary } from "./libraries";
 import { gateLibrary, logistics, tankLibrary } from "./libraries.test-helpers";
 
-import type { ComponentInstance, SDCPN, Subnet } from "../types/sdcpn";
+import type { Component, ComponentInstance, SDCPN } from "../types/sdcpn";
 
 const libraries = new Map([
   [logistics.id, resolveLibrary(logistics.id, logistics)],
@@ -20,7 +20,7 @@ const libraries = new Map([
 
 const instance = (
   id: string,
-  overrides: Partial<ComponentInstance>,
+  overrides: Partial<ComponentInstance> & Pick<ComponentInstance, "component">,
 ): ComponentInstance => ({
   id,
   name: id,
@@ -93,8 +93,8 @@ const document: SDCPN = {
   ],
 };
 
-const subnetNamed = (sdcpn: SDCPN, name: string): Subnet | undefined =>
-  sdcpn.subnets?.find((subnet) => subnet.name === name);
+const componentNamed = (sdcpn: SDCPN, name: string): Component | undefined =>
+  sdcpn.components?.find((component) => component.name === name);
 
 describe("inlineImports", () => {
   it("returns the document itself when it takes nothing from a library", () => {
@@ -109,23 +109,22 @@ describe("inlineImports", () => {
     expect(inlineImports(plain, libraries)).toBe(plain);
   });
 
-  it("makes a component the document uses a subnet of its own, and stops listing the import", () => {
+  it("makes a component the document uses a component of its own, and stops listing the import", () => {
     const inlined = inlineImports(document, libraries);
-    const belt = subnetNamed(inlined, "Belt");
+    const belt = componentNamed(inlined, "Belt");
 
     expect(inlined).not.toHaveProperty("imports");
-    expect(inlined.subnets).toHaveLength(1);
+    expect(inlined.components).toHaveLength(1);
     expect(inlined.componentInstances?.[0]).toMatchObject({
       id: "belt-1",
-      subnetId: belt?.id,
+      component: { id: belt?.id },
       parameterValues: { [toPetrinautId("rate")]: "3" },
     });
-    expect(inlined.componentInstances?.[0]).not.toHaveProperty("component");
   });
 
-  it("points the fusions and arcs at the instance's ports to the subnet's places", () => {
+  it("points the fusions and arcs at the instance's ports to the component's places", () => {
     const inlined = inlineImports(document, libraries);
-    const [input, output] = subnetNamed(inlined, "Belt")?.places ?? [];
+    const [input, output] = componentNamed(inlined, "Belt")?.places ?? [];
 
     expect(inlined.fusions?.[0]?.members[1]).toMatchObject({
       portPlaceId: input?.id,
@@ -133,7 +132,7 @@ describe("inlineImports", () => {
     expect(inlined.transitions[0]?.inputArcs[0]?.endpoint).toMatchObject({
       portPlaceId: output?.id,
     });
-    expect(subnetNamed(inlined, "Belt")?.transitions[0]).toMatchObject({
+    expect(componentNamed(inlined, "Belt")?.transitions[0]).toMatchObject({
       inputArcs: [{ placeId: input?.id }],
       outputArcs: [{ placeId: output?.id }],
     });
@@ -161,8 +160,8 @@ describe("inlineImports", () => {
 
   it("gives a component the same ids each time, unless it is handed fresh ones", () => {
     const ids = (sdcpn: SDCPN) => [
-      subnetNamed(sdcpn, "Belt")?.id,
-      ...(subnetNamed(sdcpn, "Belt")?.places.map(({ id }) => id) ?? []),
+      componentNamed(sdcpn, "Belt")?.id,
+      ...(componentNamed(sdcpn, "Belt")?.places.map(({ id }) => id) ?? []),
     ];
     const stable = ids(inlineImports(document, libraries));
     const fresh = ids(inlineImports(document, libraries, generatePetrinautId));
@@ -174,7 +173,7 @@ describe("inlineImports", () => {
     expect(fresh).not.toContain(toPetrinautId("in"));
   });
 
-  it("carries a binding across a library into what the subnet says it implements", () => {
+  it("carries a binding across a library into what the component says it implements", () => {
     const bound: SDCPN = {
       ...document,
       transitions: [],
@@ -188,8 +187,8 @@ describe("inlineImports", () => {
     };
 
     const inlined = inlineImports(bound, libraries);
-    const scale = subnetNamed(inlined, "Scale");
-    const belt = subnetNamed(inlined, "Belt");
+    const scale = componentNamed(inlined, "Scale");
+    const belt = componentNamed(inlined, "Belt");
 
     expect(inlined.implementations).toEqual([
       { interface: { id: scale?.id }, component: { id: belt?.id } },
@@ -200,8 +199,8 @@ describe("inlineImports", () => {
     ).toMatchObject({ kind: "bound", implementation: { name: "Belt" } });
   });
 
-  it("rewrites the implementation an instance chooses, and marks a subnet of the document that stands behind an interface of a library", () => {
-    const own: Subnet = {
+  it("rewrites the implementation an instance chooses, and marks a component of the document that stands behind an interface of a library", () => {
+    const own: Component = {
       id: "own-scale",
       name: "OwnScale",
       places: [],
@@ -214,7 +213,7 @@ describe("inlineImports", () => {
       ...document,
       transitions: [],
       fusions: [],
-      subnets: [own],
+      components: [own],
       componentInstances: [
         instance("scale-1", {
           component: fromLogistics("scale"),
@@ -228,13 +227,13 @@ describe("inlineImports", () => {
     expect(inlined.componentInstances?.[0]?.implementation).toEqual({
       id: own.id,
     });
-    expect(subnetNamed(inlined, "OwnScale")?.implements).toEqual([
-      subnetNamed(inlined, "Scale")?.id,
+    expect(componentNamed(inlined, "OwnScale")?.implements).toEqual([
+      componentNamed(inlined, "Scale")?.id,
     ]);
   });
 
-  it("carries the bindings of many instances across a library with one list of what a subnet implements", () => {
-    const own: Subnet = {
+  it("carries the bindings of many instances across a library with one list of what a component implements", () => {
+    const own: Component = {
       id: "own-scale",
       name: "OwnScale",
       places: [],
@@ -247,7 +246,7 @@ describe("inlineImports", () => {
       ...document,
       transitions: [],
       fusions: [],
-      subnets: [own],
+      components: [own],
       componentInstances: Array.from({ length: 50_000 }, (_, index) =>
         instance(`scale-${index}`, {
           component: fromLogistics("scale"),
@@ -260,14 +259,14 @@ describe("inlineImports", () => {
     const inlined = inlineImports(bound, libraries);
     const elapsed = Date.now() - started;
 
-    expect(subnetNamed(inlined, "OwnScale")?.implements).toEqual([
-      subnetNamed(inlined, "Scale")?.id,
+    expect(componentNamed(inlined, "OwnScale")?.implements).toEqual([
+      componentNamed(inlined, "Scale")?.id,
     ]);
     // A copy of the list for every instance takes several seconds.
     expect(elapsed).toBeLessThan(1_000);
   });
 
-  it("keeps the token types of two libraries apart in the subnets it makes of their components", () => {
+  it("keeps the token types of two libraries apart in the components it makes of theirs", () => {
     const north = gateLibrary("@hashintel/north", {
       name: "weight",
       type: "real",
@@ -297,15 +296,15 @@ describe("inlineImports", () => {
       ),
     );
 
-    const types = inlined.subnets?.map((subnet) => subnet.types[0]);
+    const types = inlined.components?.map((component) => component.types[0]);
     expect(types).toMatchObject([
       { elements: [{ name: "weight" }] },
       { elements: [{ name: "count" }] },
     ]);
     expect(types?.[0]?.id).not.toBe(types?.[1]?.id);
-    expect(inlined.subnets?.map((subnet) => subnet.places[0]?.colorId)).toEqual(
-      types?.map((type) => type?.id),
-    );
+    expect(
+      inlined.components?.map((component) => component.places[0]?.colorId),
+    ).toEqual(types?.map((type) => type?.id));
   });
 
   it("gives no two items of one kind one id, whatever ids the bodies of two libraries and the document write alike", () => {
@@ -375,7 +374,7 @@ describe("inlineImports", () => {
       ),
     );
 
-    const nets = [inlined, ...(inlined.subnets ?? [])];
+    const nets = [inlined, ...(inlined.components ?? [])];
     expect(nets).toHaveLength(3);
     for (const kind of [
       "places",
@@ -387,7 +386,7 @@ describe("inlineImports", () => {
       expect(new Set(ids).size, kind).toBe(ids.length);
     }
     // Each body still reads its own type, equation and places.
-    for (const tank of inlined.subnets ?? []) {
+    for (const tank of inlined.components ?? []) {
       const [port, held] = tank.places;
       expect(port?.colorId).toBe(tank.types[0]?.id);
       expect(port?.dynamics?.[0]?.differentialEquationId).toBe(

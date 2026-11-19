@@ -15,11 +15,11 @@ import type {
 } from "./flow-net-metadata.js";
 import type {
   ArcEndpoint,
+  Component,
   ComponentInstance,
   InputArc,
   JsonValue,
   SDCPN,
-  Subnet,
   Transition,
 } from "@hashintel/petrinaut-core";
 import type {
@@ -262,7 +262,7 @@ type InstanceScope = {
 };
 
 type IndexedSubnet = {
-  subnet: Subnet;
+  subnet: Component;
   transitionsByRole: Map<TransitionRole, Transition>;
   /** The places `startAttempt` takes from: a port per input, or a `Start` port. */
   inputPortIds: string[];
@@ -302,7 +302,7 @@ const singleOutputPlaceId = (transition: Transition) => {
   return endpoint.placeId;
 };
 
-const indexSubnet = (subnet: Subnet): IndexedSubnet => {
+const indexSubnet = (subnet: Component): IndexedSubnet => {
   const transitionsByRole = new Map(
     subnet.transitions.map((transition) => [roleOf(transition), transition]),
   );
@@ -367,7 +367,7 @@ export const startFlowNetRun = (
   }
 
   const subnetsById = new Map(
-    (net.subnets ?? []).map((subnet) => [subnet.id, indexSubnet(subnet)]),
+    (net.components ?? []).map((subnet) => [subnet.id, indexSubnet(subnet)]),
   );
 
   const rootTransitions: RootTransition[] = net.transitions.map(
@@ -411,10 +411,9 @@ export const startFlowNetRun = (
             ({ id }) => id === endpoint.componentInstanceId,
           )
         : undefined;
-    const subnet =
-      instance?.subnetId === undefined
-        ? undefined
-        : subnetsById.get(instance.subnetId);
+    const subnet = instance
+      ? subnetsById.get(instance.component.id)
+      : undefined;
 
     if (!instance || !subnet) {
       throw new FlowNetInterpreterError(

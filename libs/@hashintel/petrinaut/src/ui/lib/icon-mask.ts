@@ -1,6 +1,6 @@
 import {
-  disallowedSubnetIconElement,
-  maxSubnetIconLength,
+  disallowedComponentIconElement,
+  maxComponentIconLength,
 } from "@hashintel/petrinaut-core";
 
 /**
@@ -25,8 +25,8 @@ const userUnits = (length: string | null): number =>
  */
 export const iconMaskImage = (markup: string): string | null => {
   if (
-    markup.length > maxSubnetIconLength ||
-    disallowedSubnetIconElement(markup) !== undefined
+    markup.length > maxComponentIconLength ||
+    disallowedComponentIconElement(markup) !== undefined
   ) {
     return null;
   }

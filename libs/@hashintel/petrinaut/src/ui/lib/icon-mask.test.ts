@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { describe, expect, it } from "vitest";
 
-import { maxSubnetIconLength } from "@hashintel/petrinaut-core";
+import { maxComponentIconLength } from "@hashintel/petrinaut-core";
 
 import { iconMaskImage } from "./icon-mask";
 
@@ -88,7 +88,7 @@ describe("iconMaskImage", () => {
 
   it("refuses markup longer than an icon may be", () => {
     expect(
-      iconMaskImage(`<svg>${" ".repeat(maxSubnetIconLength)}</svg>`),
+      iconMaskImage(`<svg>${" ".repeat(maxComponentIconLength)}</svg>`),
     ).toBeNull();
   });
 

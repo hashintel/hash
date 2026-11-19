@@ -11,7 +11,6 @@ import {
 import { css } from "@hashintel/ds-helpers/css";
 import {
   componentKey,
-  componentOf,
   defaultImplementation,
   describeUnboundInstance,
   isInterface,
@@ -88,14 +87,14 @@ const ImplementationField: React.FC = () => {
         : undefined;
   const documentDefault = defaultImplementation(
     petriNetDefinition,
-    componentOf(instance),
+    instance.component,
   );
   const defaultName =
     documentDefault &&
     resolveComponent(petriNetDefinition, documentDefault, libraries)?.name;
   const implementations = implementationItems(
     petriNetDefinition,
-    componentOf(instance),
+    instance.component,
     instance.implementation,
     libraries,
     // The host's rules refuse some components as an instance's choice.
@@ -156,15 +155,15 @@ const ImplementationField: React.FC = () => {
 
 /** What the instance is an instance of, or why that cannot be read. */
 const ComponentField: React.FC = () => {
-  const { instance, subnet } = useComponentInstancePropertiesContext();
+  const { instance, component } = useComponentInstancePropertiesContext();
   const { imports } = use(CompositionContext);
-  const from = instance.component?.from;
+  const { from, id } = instance.component;
 
   if (from === undefined) {
     return (
-      <Form.Field label="Subnet" size="sm">
+      <Form.Field label="Component" size="sm">
         <div className={hintTextStyle}>
-          {subnet?.name ?? "The referenced subnet no longer exists."}
+          {component?.name ?? "The referenced component no longer exists."}
         </div>
       </Form.Field>
     );
@@ -173,10 +172,10 @@ const ComponentField: React.FC = () => {
   const state = imports.get(from);
   const library = state?.status === "resolved" ? state.library.name : from;
   let text = `The import ${from} did not resolve.`;
-  if (subnet) {
-    text = `${subnet.name}, from ${library}`;
+  if (component) {
+    text = `${component.name}, from ${library}`;
   } else if (state?.status === "resolved") {
-    text = `${library} has no component ${instance.component?.id}.`;
+    text = `${library} has no component ${id}.`;
   } else if (state?.status === "failed") {
     text = `${text} ${state.message}`;
   }
@@ -188,7 +187,7 @@ const ComponentField: React.FC = () => {
 };
 
 const ComponentInstanceMainContent: React.FC = () => {
-  const { instance, subnet, subnetParameters, updateComponentInstance } =
+  const { instance, component, componentParameters, updateComponentInstance } =
     useComponentInstancePropertiesContext();
   const isDisabled = useIsReadOnly();
   const readOnlyTooltip = isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined;
@@ -257,13 +256,13 @@ const ComponentInstanceMainContent: React.FC = () => {
 
         <ComponentField />
 
-        {subnet && isInterface(subnet) && <ImplementationField />}
+        {component && isInterface(component) && <ImplementationField />}
       </Form.Section>
 
-      {subnetParameters.length > 0 && (
+      {componentParameters.length > 0 && (
         <Section title="Parameters">
           <Form.Section>
-            {subnetParameters.map((param) => (
+            {componentParameters.map((param) => (
               <Form.Field
                 key={param.id}
                 label={param.name}
@@ -310,9 +309,11 @@ const ComponentInstanceMainContent: React.FC = () => {
 };
 
 const ComponentInstanceTitle: React.FC = () => {
-  const { subnet } = useComponentInstancePropertiesContext();
+  const { component } = useComponentInstancePropertiesContext();
   return (
-    <span className={titleStyle}>{subnet?.name ?? "Component"} instance</span>
+    <span className={titleStyle}>
+      {component?.name ?? "Component"} instance
+    </span>
   );
 };
 

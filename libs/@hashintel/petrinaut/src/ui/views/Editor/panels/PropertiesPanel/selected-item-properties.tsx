@@ -1,7 +1,7 @@
 import { use } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
-import { componentOf, resolveComponent } from "@hashintel/petrinaut-core";
+import { resolveComponent } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../react";
 import { ActiveNetContext } from "../../../../../react/state/active-net-context";
@@ -158,12 +158,12 @@ const SelectedItemPropertiesContent: React.FC = () => {
         if (!instance) {
           return null;
         }
-        const subnet =
-          resolveComponent(fullSdcpn, componentOf(instance), libraries) ?? null;
+        const component =
+          resolveComponent(fullSdcpn, instance.component, libraries) ?? null;
         return (
           <ComponentInstanceProperties
             instance={instance}
-            subnet={subnet}
+            component={component}
             updateComponentInstance={updateComponentInstance}
           />
         );

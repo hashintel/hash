@@ -11,7 +11,6 @@ import {
 import { css } from "@hashintel/ds-helpers/css";
 import {
   arcMatchesEndpoint,
-  componentOf,
   parseArcId,
   parseArcEndpointKey,
   placeArcEndpoint,
@@ -237,10 +236,10 @@ export const ArcProperties: React.FC<ArcPropertiesProps> = ({
     const instance = (petriNetDefinition.componentInstances ?? []).find(
       ({ id }) => id === endpoint.componentInstanceId,
     );
-    const subnet = instance
-      ? resolveComponent(fullSdcpn, componentOf(instance), libraries)
+    const component = instance
+      ? resolveComponent(fullSdcpn, instance.component, libraries)
       : undefined;
-    const port = subnet?.places.find(
+    const port = component?.places.find(
       (place) => place.id === endpoint.portPlaceId,
     );
     return `${instance?.name ?? "Unknown component"}.${

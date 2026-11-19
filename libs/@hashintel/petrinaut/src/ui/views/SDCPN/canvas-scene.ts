@@ -8,7 +8,6 @@
 
 import {
   componentKey,
-  componentOf,
   effectivePortDirections,
   resolveImplementation,
   generateArcId,
@@ -43,7 +42,7 @@ import type {
   ResolvedLibraries,
   RenderNodeDimensions,
   SDCPN,
-  Subnet,
+  Component,
 } from "@hashintel/petrinaut-core";
 
 export type CanvasPoint = { x: number; y: number };
@@ -110,8 +109,8 @@ const foldThreshold = 4;
 
 export type CanvasComponentInstanceNode = CanvasNodeBase & {
   kind: "componentInstance";
-  /** The subnet the instance points at: its component or its interface. */
-  subnetName: string;
+  /** The name of what the instance points at: a component or an interface. */
+  componentName: string;
   binding: CanvasInstanceBinding;
   /** The component's icon as SVG markup, or `null` for the default glyph. */
   icon: string | null;
@@ -211,7 +210,7 @@ export type CanvasScene = {
 
 export type CanvasSceneInput = {
   net: ActiveNetDefinition;
-  /** The whole document, for subnet lookups. */
+  /** The whole document, for component lookups. */
   sdcpn: SDCPN;
   /** The libraries the document's imports resolved to. */
   libraries: ResolvedLibraries;
@@ -368,16 +367,16 @@ export const buildCanvasScene = ({
   const portsByComponent = new Map<string, readonly CanvasPort[]>();
   const portsOf = (
     reference: ComponentReference,
-    subnet: Subnet,
+    component: Component,
   ): readonly CanvasPort[] => {
     const key = componentKey(reference);
     const known = portsByComponent.get(key);
     if (known) {
       return known;
     }
-    const directions = effectivePortDirections(subnet);
-    const types = indexById(subnet.types);
-    const ports = subnet.places
+    const directions = effectivePortDirections(component);
+    const types = indexById(component.types);
+    const ports = component.places
       .filter((place) => place.isPort)
       .map((place) => ({
         id: place.id,
@@ -392,7 +391,7 @@ export const buildCanvasScene = ({
     return ports;
   };
 
-  // The document's subnets and defaults, read once for every instance.
+  // The document's components and defaults, read once for every instance.
   const index =
     net.componentInstances.length > 0 ? indexDocument(sdcpn) : undefined;
 
@@ -401,12 +400,12 @@ export const buildCanvasScene = ({
 
   for (const instance of net.componentInstances) {
     const resolved = resolveImplementation(sdcpn, instance, libraries, index);
-    // The subnet the instance points at: the ports it shows are that one's,
+    // The component the instance points at: the ports it shows are that one's,
     // whichever implementation runs behind them.
-    const subnet =
-      resolved?.kind === "component" ? resolved.subnet : resolved?.interface;
-    const ports: CanvasPort[] = subnet
-      ? portsOf(componentOf(instance), subnet).map((port) => ({ ...port }))
+    const component =
+      resolved?.kind === "component" ? resolved.component : resolved?.interface;
+    const ports: CanvasPort[] = component
+      ? portsOf(instance.component, component).map((port) => ({ ...port }))
       : [];
     portsByInstanceId.set(instance.id, indexById(ports));
     const running =
@@ -436,12 +435,16 @@ export const buildCanvasScene = ({
       anchorOffset,
       ...interaction(instance.id),
       // A component of an import that cannot be read goes by its id there.
-      subnetName: subnet?.name ?? instance.component?.id ?? "Unknown subnet",
+      componentName:
+        component?.name ??
+        (instance.component.from === undefined
+          ? "Unknown component"
+          : instance.component.id),
       binding,
       // The card wears what runs: an implementation's icon and colour come
       // before those of the interface it stands in for.
-      icon: running?.iconSvg ?? subnet?.iconSvg ?? null,
-      color: running?.displayColor ?? subnet?.displayColor ?? null,
+      icon: running?.iconSvg ?? component?.iconSvg ?? null,
+      color: running?.displayColor ?? component?.displayColor ?? null,
       ports,
       foldable,
       unfolded,

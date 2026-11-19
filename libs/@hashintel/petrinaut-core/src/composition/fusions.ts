@@ -10,10 +10,11 @@
  */
 
 import { arcEndpointsEqual, getArcEndpointKey } from "../arc-endpoints";
-import { componentOf, resolveComponent } from "./interfaces";
+import { resolveComponent } from "./interfaces";
 
 import type {
   ColorElementType,
+  Component,
   ComponentInstance,
   Fusion,
   FusionMember,
@@ -21,11 +22,10 @@ import type {
   Place,
   PlaceArcEndpoint,
   SDCPN,
-  Subnet,
 } from "../types/sdcpn";
 import type { ResolvedLibraries } from "./libraries";
 
-/** The net a fusion belongs to: the document's root or one of its subnets. */
+/** The net a fusion belongs to: the document's root or one of its components. */
 export type FusionNet = Pick<
   SDCPN,
   "places" | "componentInstances" | "fusions"
@@ -137,8 +137,8 @@ export type ResolvedFusionMember =
   | {
       kind: "port";
       instance: ComponentInstance;
-      subnet: Subnet;
-      /** The port place inside `subnet`. */
+      component: Component;
+      /** The port place inside `component`. */
       place: Place;
     };
 
@@ -149,7 +149,7 @@ export type ResolvedFusionMember =
  * place is not marked as a port.
  */
 export const resolveFusionMember = (
-  sdcpn: Pick<SDCPN, "subnets">,
+  sdcpn: Pick<SDCPN, "components">,
   net: FusionNet,
   member: FusionMember,
   libraries?: ResolvedLibraries,
@@ -161,12 +161,12 @@ export const resolveFusionMember = (
   const instance = (net.componentInstances ?? []).find(
     ({ id }) => id === member.componentInstanceId,
   );
-  const subnet = instance
-    ? resolveComponent(sdcpn, componentOf(instance), libraries)
+  const component = instance
+    ? resolveComponent(sdcpn, instance.component, libraries)
     : undefined;
-  const place = subnet?.places.find(({ id }) => id === member.portPlaceId);
-  return instance && subnet && place && place.isPort
-    ? { kind: "port", instance, subnet, place }
+  const place = component?.places.find(({ id }) => id === member.portPlaceId);
+  return instance && component && place && place.isPort
+    ? { kind: "port", instance, component, place }
     : null;
 };
 
@@ -190,7 +190,7 @@ export const describeResolvedMember = (
 
 /** `Place` for a place of the net, `Instance.Port` for an instance port. */
 export const describeFusionMember = (
-  sdcpn: Pick<SDCPN, "subnets">,
+  sdcpn: Pick<SDCPN, "components">,
   net: FusionNet,
   member: FusionMember,
   libraries?: ResolvedLibraries,

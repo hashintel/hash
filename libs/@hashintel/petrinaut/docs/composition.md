@@ -1,12 +1,12 @@
 # Composition
 
-Build a net from components: subnets drawn once and placed many times, joined to the net and to each other by **fusing** places. A fused set of places is one place when the net runs.
+Build a net from components: nets drawn once and placed many times, joined to the net and to each other by **fusing** places. A fused set of places is one place when the net runs.
 
 Composition is experimental. Enable **User settings → Labs → Net Components** to see the Nets panel, the component tool and the Components panel. A net that already holds components draws and runs with the setting off: only the tools that edit them are hidden.
 
 ## Components and instances
 
-A component is a subnet: a net of its own with places, transitions, types, parameters and equations. Draw one from the **Nets** panel (**+**). Mark the places that form its boundary as **ports** in the place properties (**Options → Component port**).
+A component is a net of its own, with places, transitions, types, parameters and equations. Draw one from the **Nets** panel (**+**). Mark the places that form its boundary as **ports** in the place properties (**Options → Component port**).
 
 To use a component, place an **instance** of it: pick the component from the cube tool in the bottom toolbar and click the canvas. An instance draws as a card: its name, the component it runs, and a labelled pin on its edge for each port, coloured by the port's token type. Inside the component, a port place wears the same pin on its own edge and says which kind of port it is beside its name, so the boundary reads alike from inside and outside. Select an instance to name it, describe it and set its parameters.
 
@@ -43,9 +43,9 @@ When the net runs, each fusion is one place, shown under the fusion's name: toke
 
 ## Interfaces and implementations
 
-An **interface** is a component with ports and parameters but no body: it says what a component looks like from outside without saying how it works. Add a subnet, mark its places as ports, then open its options in the **Nets** panel (the gear on its row) and tick **Interface**. Its row shows a puzzle piece. An interface holds no transitions or instances; remove them before ticking the box. An interface cannot implement an interface: ticking the box clears what the subnet implemented.
+An **interface** is a component with ports and parameters but no body: it says what a component looks like from outside without saying how it works. Add a component, mark its places as ports, then open its options in the **Nets** panel (the gear on its row) and tick **Interface**. Its row shows a puzzle piece. An interface holds no transitions or instances; remove them before ticking the box. An interface cannot implement an interface: ticking the box clears what the component implemented.
 
-A component **implements** an interface when its options tick that interface under **Implements**. It needs every port the interface declares, matched by name and holding the same token type, and every parameter, matched by variable name; it may have more of each. A port used against the direction the interface declares is a warning. Problems show in the **Diagnostics** tab under **Composition**; click one to open the subnet or select the instance it is about.
+A component **implements** an interface when its options tick that interface under **Implements**. It needs every port the interface declares, matched by name and holding the same token type, and every parameter, matched by variable name; it may have more of each. A port used against the direction the interface declares is a warning. Problems show in the **Diagnostics** tab under **Composition**; click one to open the component or select the instance it is about.
 
 An instance of an interface runs an **implementation**:
 
@@ -68,13 +68,13 @@ A library that cannot be fetched, or that the application does not know, is one 
 
 An instance that names a component its library does not have draws the same way and keeps the net from running. It is one error under **Composition**, naming the instance, the component and the library.
 
-To hand a document to someone without the libraries, export it with its imports inlined: **Export → YAML with imports inlined** or **JSON with imports inlined**, offered when the document imports a library. Each component the document uses becomes a subnet of the file, under ids of its own, and the file imports nothing.
+To hand a document to someone without the libraries, export it with its imports inlined: **Export → YAML with imports inlined** or **JSON with imports inlined**, offered when the document imports a library. Each component the document takes from a library becomes a component of the file itself, under ids of its own, and the file imports nothing.
 
 A library the net names without importing it, as a file edited by hand may, is one error under **Composition**. Choose the component or the implementation again to add the import.
 
 ### Composing only
 
-An application can set Petrinaut up to compose the components of its libraries and nothing else. The editor then shows the canvas, the **Components** panel and the **Diagnostics** tab, whether Net Components is on or off. It has no tools that draw places or transitions, no Nets panel, no Definitions view and no simulator. It shows the root net only: a diagnostic or a link that points into a subnet opens the root net.
+An application can set Petrinaut up to compose the components of its libraries and nothing else. The editor then shows the canvas, the **Components** panel and the **Diagnostics** tab, whether Net Components is on or off. It has no tools that draw places or transitions, no Nets panel, no Definitions view and no simulator. It shows the root net only: a diagnostic or a link that points into a component opens the root net.
 
 What is left is composing: place instances, name them and set their parameters, fuse their ports by dragging from one pin to another, move or detach the ends of a fusion's line, delete instances and fusions, and arrange the canvas. An instance of an interface chooses its **Implementation** among the components of the application's libraries, or keeps the document's default. Anything else, a paste included, is refused with a notice.
 

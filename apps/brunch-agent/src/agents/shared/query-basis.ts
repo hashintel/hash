@@ -10,6 +10,7 @@ import {
   netElementKinds,
   traceLedger,
 } from "@hashintel/brunch-agent";
+import { migrateLegacyComponentKeys } from "@hashintel/petrinaut-core";
 
 import {
   callsForElement,
@@ -68,10 +69,10 @@ type Selector = v.InferOutput<typeof elementSchema>["selector"];
 /** A net element the selector can match: by ID, by name, or by its arc's endpoints. */
 type ElementCandidate = Omit<NetElement, "kind"> & { readonly name: string };
 
-/** The root net and each subnet: places, transitions and their other items can sit in either. */
+/** The root net and each component: places, transitions and their other items can sit in either. */
 const netsOf = (definition: NetStructure) => [
   definition,
-  ...(definition.subnets ?? []),
+  ...(definition.components ?? []),
 ];
 
 const elements = (
@@ -80,13 +81,13 @@ const elements = (
 ): ElementCandidate[] => {
   if (kind === "scenario") return definition.scenarios ?? [];
   if (kind === "metric") return definition.metrics ?? [];
-  if (kind === "subnet") return definition.subnets ?? [];
+  if (kind === "component") return definition.components ?? [];
   return netsOf(definition).flatMap((net) => netElements(net, kind));
 };
 
 const netElements = (
   net: ReturnType<typeof netsOf>[number],
-  kind: Exclude<Selector["kind"], "scenario" | "metric" | "subnet">,
+  kind: Exclude<Selector["kind"], "scenario" | "metric" | "component">,
 ): ElementCandidate[] => {
   if (kind === "place") return net.places;
   if (kind === "transition") return net.transitions;
@@ -197,8 +198,13 @@ export const queryBasis = (input: {
       basis: undefined,
       changes: [],
     };
+  // A stored view can list its components under `subnets`, as a document
+  // written with that key does: it is read the way a file is.
   const candidates = latest
-    ? elements(latest.definition, input.query.kind).filter(
+    ? elements(
+        migrateLegacyComponentKeys(latest.definition),
+        input.query.kind,
+      ).filter(
         (element) =>
           namesId(input.query.id, element.id) ||
           (input.query.name !== undefined &&

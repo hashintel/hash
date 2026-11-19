@@ -1,5 +1,4 @@
 import {
-  componentOf,
   generateArcId,
   getArcEndpointKey,
   mutationActionInputSchemas,
@@ -190,11 +189,11 @@ const componentPortName = (
   );
   // A port of a component of an import is named by its id: its library is
   // not among what a summary reads.
-  const subnet =
+  const component =
     definition && instance
-      ? resolveComponent(definition, componentOf(instance))
+      ? resolveComponent(definition, instance.component)
       : undefined;
-  const port = subnet?.places.find(
+  const port = component?.places.find(
     (place) => place.id === endpoint.portPlaceId,
   );
   return `${instance?.name ?? endpoint.componentInstanceId}.${

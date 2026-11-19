@@ -163,10 +163,7 @@ const canonicalizeComponentInstance = (
 ): ComponentInstance =>
   assignChanged(instance, {
     id: toPetrinautId(instance.id),
-    subnetId:
-      instance.subnetId === undefined
-        ? undefined
-        : toPetrinautId(instance.subnetId),
+    component: canonicalizeReference(instance.component),
     parameterValues: rekeyUnlessUnchanged(instance.parameterValues),
     implementation:
       instance.implementation === undefined
@@ -216,7 +213,7 @@ const canonicalizeScenario = (scenario: Scenario): Scenario =>
     initialState: canonicalizeInitialState(scenario.initialState),
   });
 
-/** The entity collections a net, a subnet or a clipboard selection carries. */
+/** The entity collections a net, a component or a clipboard selection carries. */
 type PetrinautIdNet = Pick<
   SDCPN,
   "places" | "transitions" | "types" | "differentialEquations" | "parameters"
@@ -227,7 +224,7 @@ type PetrinautIdNet = Pick<
       | "componentInstances"
       | "scenarios"
       | "metrics"
-      | "subnets"
+      | "components"
       | "fusions"
       | "implementations"
     >
@@ -235,7 +232,7 @@ type PetrinautIdNet = Pick<
 
 /**
  * Converts every entity id in `net` to a Petrinaut id, together with every
- * reference to one, at the root and inside subnets. Names, user code,
+ * reference to one, at the root and inside components. Names, user code,
  * metadata and token values are left as they are. Returns `net` itself when
  * every id is already canonical.
  */
@@ -268,10 +265,10 @@ export const canonicalizePetrinautIds = <Net extends PetrinautIdNet>(
     metrics: mapOptional(net.metrics, (metric) =>
       assignChanged(metric, { id: toPetrinautId(metric.id) }),
     ),
-    subnets: mapOptional(net.subnets, (subnet) =>
-      assignChanged(canonicalizePetrinautIds(subnet), {
-        id: toPetrinautId(subnet.id),
-        implements: mapOptional(subnet.implements, toPetrinautId),
+    components: mapOptional(net.components, (component) =>
+      assignChanged(canonicalizePetrinautIds(component), {
+        id: toPetrinautId(component.id),
+        implements: mapOptional(component.implements, toPetrinautId),
       }),
     ),
   }) as Net;
