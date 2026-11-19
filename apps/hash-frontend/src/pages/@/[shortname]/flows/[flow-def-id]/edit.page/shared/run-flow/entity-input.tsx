@@ -11,13 +11,13 @@ import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entit
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
 import { queryEntitiesQuery } from "../../../../../../../../graphql/queries/knowledge/entity.queries";
-import { getKindIcon } from "../../shared/value-display";
+import { getKindIcon } from "../value-display";
 
 import type {
   QueryEntitiesQuery,
   QueryEntitiesQueryVariables,
 } from "../../../../../../../../graphql/api-types.gen";
-import type { RunFormValue } from "./run-form";
+import type { RunFormValue } from "../run-form";
 import type { EntityId, WebId } from "@blockprotocol/type-system";
 
 /** The most entities offered, the web's last edited first. */

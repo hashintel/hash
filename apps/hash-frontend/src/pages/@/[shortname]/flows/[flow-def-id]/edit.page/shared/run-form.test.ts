@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import { createFlowEditor } from "@local/hash-isomorphic-utils/flows/flow-editor";
 
-import { actionStep, flowWith } from "../../shared/step-fixtures";
 import {
   getFlowInputValues,
   getFormValuesFromRun,
@@ -10,6 +9,7 @@ import {
   getRunBlocker,
   withGivenValues,
 } from "./run-form";
+import { actionStep, flowWith } from "./step-fixtures";
 
 import type { EntityId } from "@blockprotocol/type-system";
 import type {
