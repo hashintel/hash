@@ -17,9 +17,19 @@
  * or `claimed`. Its invocation is cut off on every restart by design, and
  * Pi keeps counting those restarts, so once the call has an outcome the task
  * is charged only the restarts after it.
+ *
+ * A task already marked for abort can loop too, when its abort handler is
+ * cut off on every open. Pi Durable 1.5.2 gives the host no way to fault
+ * such a task: an abort re-marks only an unmarked task, and the restart
+ * limit that would fault it is off here. So the guard records that loop
+ * once: when the newest `CrashLoopEntry` already names every such task, it
+ * appends nothing and aborts nothing, and the abort handler runs again on
+ * every open. A finite `restartLimit`, and with it Pi's fault, returns once
+ * Pi's tools can park instead of holding an invocation while they wait.
  */
 import {
   type Conversation,
+  type Cursor,
   type Harness,
   LiveDoc,
   type SubmissionId,
@@ -84,6 +94,32 @@ const browserCallWaiters = async (
   return { waiting, restartsAtOutcome };
 };
 
+/** Marked by an abort request, which Pi does not mark again; a `restart` mark it replaces. */
+const markedForAbort = ({
+  abortRequested,
+  abortReason,
+}: TaskInspection["record"]) => abortRequested && abortReason === undefined;
+
+/** The IDs of the tasks `root`'s newest `CrashLoopEntry` names; none without one. */
+const lastRecordedLoop = async (root: Conversation, context: Context) => {
+  let cursor: Cursor | undefined;
+  do {
+    // Each page continues from the one before.
+    // eslint-disable-next-line no-await-in-loop
+    const page = await root.entries(
+      { order: "descending" },
+      100,
+      cursor,
+      context,
+    );
+    const entry = page.items.find((item) => CrashLoopEntry.is(item));
+    if (entry !== undefined)
+      return new Set<number>(entry.data.tasks.map(({ id }) => id));
+    cursor = page.next;
+  } while (cursor !== undefined);
+  return new Set<number>();
+};
+
 /**
  * Abort `root`'s work when a live task was charged `limit` restarts, before
  * the Harness schedules anything. A task is charged its restart count,
@@ -91,7 +127,8 @@ const browserCallWaiters = async (
  * `pending` or `claimed`, and once the call has an outcome, only the
  * restarts since it (all of them on a call that did not record its count).
  * The tasks it reports carry their full count. Returns what it aborted, or
- * `undefined` when it did nothing.
+ * `undefined` when it did nothing, as when every such task is marked for
+ * abort and the newest `CrashLoopEntry` names it.
  */
 export const guardCrashLoops = async (
   harness: Harness,
@@ -114,14 +151,24 @@ export const guardCrashLoops = async (
     if (waiting.has(id)) return 0;
     return Math.max(0, restarts - (restartsAtOutcome.get(id) ?? 0));
   };
-  const offending = looping
-    .filter(({ record }) => charged(record) >= limit)
-    .map(({ record }) => ({
-      id: record.id,
-      kind: record.kind,
-      restarts: record.restarts ?? 0,
-    }));
-  if (offending.length === 0) return undefined;
+  const offendingRecords = looping
+    .map(({ record }) => record)
+    .filter((record) => charged(record) >= limit);
+  if (offendingRecords.length === 0) return undefined;
+  const recorded = offendingRecords.some(markedForAbort)
+    ? await lastRecordedLoop(root, context)
+    : new Set<number>();
+  if (
+    offendingRecords.every(
+      (record) => markedForAbort(record) && recorded.has(record.id),
+    )
+  )
+    return undefined;
+  const offending = offendingRecords.map((record) => ({
+    id: record.id,
+    kind: record.kind,
+    restarts: record.restarts ?? 0,
+  }));
   const live = await harness.snapshot(LiveDoc, root.id, context);
   const running = live?.run?.inputs.at(0);
   const inputs = submissions

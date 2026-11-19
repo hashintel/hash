@@ -20,7 +20,11 @@ export type CrashLoopingTask = {
   readonly restarts: number;
 };
 
-/** The transcript's record of a crash-loop abort, appended just before it. */
+/**
+ * The transcript's record of a crash-loop abort, appended just before it.
+ * The guard appends it raw, where Pi asks a busy conversation for a write
+ * submission; that is safe only because the guard runs before `resume()`.
+ */
 export const CrashLoopEntry = defineEntry<{
   readonly inputs: SubmissionId[];
   readonly tasks: CrashLoopingTask[];
