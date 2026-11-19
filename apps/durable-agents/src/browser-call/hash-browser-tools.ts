@@ -1,6 +1,6 @@
 /**
  * The HASH agent's browser tools, as waiting browser tools built from the
- * library's catalogue: HASH's 39 Petrinaut tools (`hashPetrinautTools`), the
+ * library's catalogue: HASH's Petrinaut tools (`hashPetrinautTools`), the
  * three graph reads and Save (`hash-agent-port.md` §2, §3.2–3.5). Names,
  * descriptions, input schemas and what the model is shown of a result all
  * come from `@hashintel/brunch-agent`, as Brunch's HASH agent on Flue takes
@@ -206,7 +206,7 @@ const saveTool = (documentId: string | undefined) =>
   );
 
 /**
- * Every HASH browser tool as the model receives it, in order: the 39
+ * Every HASH browser tool as the model receives it, in order: the
  * Petrinaut tools, the three graph reads, then Save, its description naming
  * `documentId` (the placeholder's without one).
  */
