@@ -3,8 +3,9 @@
  * net results as tool results carry them, the `net_view` section, and the
  * hand-edit note. Freshness parses only these, never model or user text.
  */
+import { netResultView } from "@hashintel/brunch-agent";
+
 import { escapeXmlAttribute, escapeXmlText } from "../../shared/xml-text";
-import { netResultView } from "../net-view";
 
 // ─── Net results ─────────────────────────────────────────────────────────────
 
