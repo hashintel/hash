@@ -11,5 +11,7 @@ error[E0308]: mismatched types
 note: method defined here
   --> src/aes_gcm.rs
    |
+   | impl<P: AeadPurpose> Aes256GcmKey<P> {
+...
    |     pub fn open<const N: usize>(
    |            ^^^^
