@@ -62,6 +62,27 @@ export default defineConfig({
 
 The preset defines the keyframes the icon animations use.
 
+## Static hosts
+
+Use the separate `@hashintel/ds-icons/static` entrypoint when a host does not use
+Panda CSS or icon animation. It renders the same canonical geometry, without the
+motion classes or styling runtime. `size` defaults to `1em`; `variant` and `weight`
+work as on `HashIcon`. Use the main entrypoint for animated or stateful icons.
+
+```tsx
+import { StaticHashIcon } from "@hashintel/ds-icons/static";
+
+<StaticHashIcon name="copy" aria-label="Copy" />;
+```
+
+`HashIconArtwork` draws inside an existing 24 × 24 SVG, including MUI adapters.
+The React components declare a client boundary for server-rendered hosts.
+Import `getHashIconArtwork(name, variant, idPrefix)` from
+`@hashintel/ds-icons/artwork` for trusted, generated SVG markup
+for static assets and canvas renderers. Supply an instance-specific prefix when
+embedding more than one drawing in an SVG document. The build regenerates this
+artwork from `HashIcon`; edit the canonical geometry, not `src/static/artwork.json`.
+
 ## One-time and continuous animations
 
 Prefer one-time animations for hover feedback and completed actions. They acknowledge
@@ -173,6 +194,29 @@ Every name also has a named component, such as `SortDownShapesIcon` or
 alphabetical, and numeric exports remain available. Related-icon metadata links
 each opposite and alternative sort family. Sort icons use the same one-time
 hover feedback as the rest of the set; continuous effects remain opt-in.
+
+### Logic operators and verification
+
+The Logic category includes the following operators and verification concepts.
+All use the shared weight scale and keep their strokes open in both styles.
+Filled dots mark states or events where that distinction carries meaning.
+
+| Name                  | Meaning                                            |
+| --------------------- | -------------------------------------------------- |
+| `logicAnd`            | All conditions hold.                               |
+| `logicOr`             | At least one condition holds.                      |
+| `logicNot`            | Negates a condition.                               |
+| `logicImplies`        | One condition implies another.                     |
+| `logicEquivalent`     | Two conditions are logically equivalent.           |
+| `logicForAll`         | A condition holds for every member.                |
+| `logicExists`         | Some member satisfies a condition.                 |
+| `logicNext`           | Highlights the next state in a sequence.           |
+| `logicUntil`          | A condition persists until an event occurs.        |
+| `logicBranching`      | A state has alternative possible futures.          |
+| `logicInvariant`      | The same condition holds across states.            |
+| `logicCounterexample` | A trace reaches a state that violates a property.  |
+| `logicConstraint`     | An inequality restricts the permitted values.      |
+| `logicRobustness`     | Shows the margin between a signal and a threshold. |
 
 ### Temporal logic
 
