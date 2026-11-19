@@ -940,12 +940,8 @@
         <text x="521" y="85">prepare</text>
       </g>
       <g class="seg" data-s="send" data-order="3">
-        <rect x="666" y="62" width="104" height="38" rx="6" />
-        <text x="718" y="85">send_progress</text>
-      </g>
-      <g class="seg" data-s="send" data-order="3">
-        <rect x="774" y="62" width="62" height="38" rx="6" />
-        <text x="805" y="85">send</text>
+        <rect x="666" y="62" width="170" height="38" rx="6" />
+        <text x="751" y="85">send</text>
       </g>
       <g class="node store" data-s="send">
         <rect x="896" y="62" width="132" height="38" rx="6" />
@@ -1152,14 +1148,7 @@
         data-s="send"
         data-tone="send"
         marker-end="url(#arrow-send)"
-        d="M718 176V103"
-      />
-      <path
-        class="edge"
-        data-s="send"
-        data-tone="send"
-        marker-end="url(#arrow-send)"
-        d="M805 176V103"
+        d="M751 176V103"
       />
       <path
         class="edge"
@@ -1252,16 +1241,12 @@
         <h2>3 · Send</h2>
         <div class="item">
           <h3>Reads</h3>
-          <span
-            >The run's rows in the sync table, the batch settings and its own
-            progress</span
-          >
+          <span>The run's rows in the sync table and the batch settings</span>
         </div>
         <div class="item">
           <h3>Writes</h3>
           <span
-            >Requests to the Graph API, <code>send_progress</code> after each
-            batch, the <code>send</code> part, then
+            >Requests to the Graph API, the <code>send</code> part, then
             <code>current.json</code></span
           >
         </div>
@@ -1271,13 +1256,12 @@
       <h3>Three rules hold for every stage</h3>
       <ul>
         <li>
-          A stage writes its result to S3 first and its part of
-          <code>run.json</code> second.
+          A stage writes <code>run.json</code> once, as its last write to S3.
         </li>
         <li>
           A part that is present in <code>run.json</code> means that stage is
-          complete. A retry runs the stage again and reads
-          <code>run.json</code>.
+          complete. A stage that stopped before that write runs again from its
+          start.
         </li>
         <li>
           The next run starts only after this run has completed all three
@@ -1377,8 +1361,7 @@
           ><span class="where">S3 status · written last</span>
           <pre class="mini">
 "capture": {
-  "captured_at": "2026-07-22T10:00:00Z",
-  "sources": { "items": { "file": …, "rows": 4 } }
+  "sources": { "items": { "key": …, "size": 2140, "rows": 4 } }
 }</pre>
         </div>
       </div>
@@ -1544,7 +1527,7 @@
             <thead>
               <tr>
                 <th>run_id</th>
-                <th>order_id</th>
+                <th>seq</th>
                 <th>op</th>
                 <th>entity_id</th>
                 <th>entity_type</th>
@@ -1607,7 +1590,10 @@
             </tbody>
           </table>
         </div>
-        <p class="where">The physical format of the table is not decided.</p>
+        <p class="where">
+          Stored as an Apache Iceberg table under <code>sync/</code>. A run is
+          one Parquet file.
+        </p>
       </div>
       <div class="cards">
         <div class="card">
@@ -1659,8 +1645,8 @@
       <h2>3 · Send</h2>
       <p>
         Builds the Graph requests from the run's rows and sends them in batches.
-        The requests are not stored: the same rows always give the same batches,
-        so a retry needs only the number of confirmed batches.
+        The requests are not stored: the same rows always give the same batches.
+        A Send that stopped starts again from the first batch.
       </p>
     </header>
     <div class="card tone">
@@ -1707,29 +1693,27 @@
           ><span class="where">S3 data · the 5 rows of this run</span>
         </div>
         <div class="item">
-          <b><code>capture</code> part of <code>run.json</code></b
-          ><span class="where">the capture time every request carries</span>
+          <b><code>input</code> part of <code>run.json</code></b
+          ><span class="where">the submission time every request carries</span>
         </div>
         <div class="item">
           <b><code>batch</code> part of <code>run.json</code></b
           ><span class="where">at most 128 writes and 1.5 MB per batch</span>
         </div>
-        <div class="item">
-          <b><code>send_progress</code> part of <code>run.json</code></b
-          ><span class="where">where to resume after a stop</span>
-        </div>
       </div>
       <div class="card tone">
         <h3>Does</h3>
         <ul>
-          <li>Sorts the rows by operation, then by <code>order_id</code>.</li>
+          <li>Sorts the rows by operation, then by <code>seq</code>.</li>
           <li>Encodes each row as a request body.</li>
           <li>
             Starts a new batch when the operation changes, when create switches
             to update, at a limit, or when an entity is already in the batch.
           </li>
           <li>
-            Counts a create that the Graph answers with a conflict as done.
+            Sends each batch as one bulk request. A batch the Graph refuses is
+            sent again one entity at a time, each as an upsert. An entity the
+            Graph still refuses is recorded, and Send goes on.
           </li>
         </ul>
       </div>
@@ -1740,10 +1724,6 @@
           ><span class="where"
             >4 requests · 3 created, 1 updated, 1 archived</span
           >
-        </div>
-        <div class="item">
-          <b><code>send_progress</code> part of <code>run.json</code></b
-          ><span class="where">S3 status · after each confirmed batch</span>
         </div>
         <div class="item">
           <b><code>send</code> part of <code>run.json</code></b
@@ -1764,53 +1744,25 @@
       </div>
       <div class="cards">
         <div class="card">
-          <h3>send_progress after each batch</h3>
-          <div class="scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>after</th>
-                  <th>confirmed_batches</th>
-                  <th>created</th>
-                  <th>patched</th>
-                  <th>archived</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>batch 0</td>
-                  <td>1</td>
-                  <td>2</td>
-                  <td>0</td>
-                  <td>0</td>
-                </tr>
-                <tr>
-                  <td>batch 1</td>
-                  <td>2</td>
-                  <td>2</td>
-                  <td>1</td>
-                  <td>0</td>
-                </tr>
-                <tr>
-                  <td>batch 2</td>
-                  <td>3</td>
-                  <td>3</td>
-                  <td>1</td>
-                  <td>0</td>
-                </tr>
-                <tr>
-                  <td>batch 3</td>
-                  <td>4</td>
-                  <td>3</td>
-                  <td>1</td>
-                  <td>1</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <h3>What the send part counts</h3>
+          <ul>
+            <li>
+              <code>created</code>, <code>updated</code> and
+              <code>archived</code>: what the Graph did.
+            </li>
+            <li>
+              <code>create_existed</code>, <code>update_missing</code> and
+              <code>archive_missing</code>: how often that was not what the row
+              asked for.
+            </li>
+            <li>
+              <code>failed</code>: each entity the Graph refused, with its
+              batch, its place in the batch, the status and the message.
+            </li>
+          </ul>
           <p class="where">
-            A Send that stops after batch 1 resumes at batch 2 and reads the
-            counts from here.
+            A run with failed entities still completes. What failed is read from
+            here.
           </p>
         </div>
         <div class="card">
@@ -1833,12 +1785,9 @@
       <h3>Still open</h3>
       <ul>
         <li>
-          <strong>Sync table format.</strong> Iceberg or plain Parquet per run,
-          and how a Prepare retry avoids writing rows twice.
-        </li>
-        <li>
-          <strong>Capture row shape.</strong> Source rows as shown here, or rows
-          already in the shape of the target.
+          <strong>Deleted and inserted again.</strong> An entity that is deleted
+          and then inserted in the same run ends up archived, because all
+          creates are sent before all archives.
         </li>
         <li>
           <strong>Removing a property.</strong> An update sets the properties in
@@ -1850,12 +1799,12 @@
           longer names it.
         </li>
         <li>
-          <strong>Refused writes.</strong> What happens when the Graph refuses a
-          write for a reason a retry does not fix.
+          <strong>A run that fails for good.</strong> It stays the active run,
+          and its integration is blocked until someone clears it by hand.
         </li>
         <li>
-          <strong>Replayed writes.</strong> How the Graph answers a create,
-          update or archive that it has already applied.
+          <strong>Joins.</strong> A pipeline that reads a second table is
+          refused, because a capture holds only the rows that changed.
         </li>
       </ul>
     </div>
@@ -1972,18 +1921,16 @@
       },
     ];
 
-    const captureFile = "artifacts/sha256/5e/5e1f…c9.parquet";
-    const issuesFile = "artifacts/sha256/b7/b702…4d.parquet";
-    const fileRef = (key, size) => ({
-      version: "v1",
-      value: { key, sha256: key.slice(20, -8), size, format: "parquet" },
-    });
+    const captureFile = `runs/${run}/capture/items.parquet`;
+    const issuesFile = `runs/${run}/issues.jsonl`;
     const finalCounts = {
       created: 3,
-      patched: 1,
+      updated: 1,
       archived: 1,
-      absent: 0,
-      rejected: 0,
+      create_existed: 0,
+      update_missing: 0,
+      archive_missing: 0,
+      failed: [],
     };
     const stageOrder = { overview: 3, capture: 1, prepare: 2, send: 3 };
 
@@ -1995,22 +1942,18 @@
         actor: "00000000-0000-4000-8000-000000000002",
         definition: "(the definition YAML)",
         namespace: "connector",
+        submitted_at: "2026-07-22T10:00:00Z",
       },
       batch: { max_writes: 128, max_bytes: 1500000 },
       capture:
         order >= 1
           ? {
-              captured_at: "2026-07-22T10:00:00Z",
-              sources: { items: { file: fileRef(captureFile, 2140), rows: 4 } },
+              sources: { items: { key: captureFile, size: 2140, rows: 4 } },
             }
           : null,
       prepare:
-        order >= 2
-          ? { rows: 5, issues: fileRef(issuesFile, 1312), issue_count: 1 }
-          : null,
-      send_progress:
-        order >= 3 ? { confirmed_batches: 4, counts: finalCounts } : null,
-      send: order >= 3 ? { counts: finalCounts } : null,
+        order >= 2 ? { rows: 5, issues: issuesFile, issue_count: 1 } : null,
+      send: order >= 3 ? finalCounts : null,
       failure: null,
     });
 
@@ -2020,8 +1963,12 @@
         [`runs/${run}/run.json`, "the status of this run"],
         order >= 1 && [captureFile, "capture file items"],
         order >= 2 && [
-          "sync table",
-          "5 rows of this run · path and format not decided",
+          `sync/data/run_id=${run}/…parquet`,
+          "sync table · the 5 rows of this run",
+        ],
+        order >= 2 && [
+          "sync/pointer.json",
+          "sync table · where its current state is",
         ],
         order >= 2 && [issuesFile, "issues file"],
       ].filter(Boolean);
@@ -2213,7 +2160,7 @@
     ];
     const changeHead = [
       "run_id",
-      "order_id",
+      "seq",
       "op",
       "entity_id",
       "entity_type",
@@ -2248,12 +2195,6 @@
       ["2", "POST /entities/bulk", "create link A-1 → B-1"],
       ["3", "PATCH /entities/bulk", "archive D-1"],
     ];
-    const progressRows = [
-      ["batch 0", "1", "2", "0", "0"],
-      ["batch 1", "2", "2", "1", "0"],
-      ["batch 2", "3", "3", "1", "0"],
-      ["batch 3", "4", "3", "1", "1"],
-    ];
 
     const table = (head, rows) => {
       const wrap = element("div", "scroll");
@@ -2285,7 +2226,7 @@
     const captureShort = () => table(captureHead, captureRows);
     const changesShort = (order) =>
       table(
-        ["order_id", "op", "entity", "properties"],
+        ["seq", "op", "entity", "properties"],
         pick(
           order.map((index) => changeRows[index]),
           [1, 2, 8, 7],
@@ -2354,15 +2295,6 @@
         "Send → Graph API",
         "4 requests, one per batch.",
         () => table(["batch", "request", "writes"], batchRows),
-      ],
-      [
-        "Send → run.json",
-        "send_progress, written after each confirmed batch.",
-        () =>
-          table(
-            ["after", "confirmed_batches", "created", "patched", "archived"],
-            progressRows,
-          ),
       ],
       [
         "Send → run.json",
