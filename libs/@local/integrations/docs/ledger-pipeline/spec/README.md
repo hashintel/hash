@@ -17,24 +17,24 @@ What whoever builds a milestone needs: signatures, pseudo code, the existing cod
 
 Lines are source lines without tests, with doc comments and blank lines. Moved and adapted lines are measured from the source, new lines are estimates.
 
-| #   | File                              | State               | Total     | Moved     | Adapted   | New       | Reused  |
-| --- | --------------------------------- | ------------------- | --------- | --------- | --------- | --------- | ------- |
-| 1   | `01-crate-and-storage.md`         | agreed              | 316       | 51        | 237       | 28        | 91%     |
-| 2   | `02-run-state.md`                 | agreed              | 425       | 0         | 0         | 425       | 0%      |
-| 3   | `03-stage-frame-and-capture.md`   | agreed              | 305       | 0         | 35        | 270       | 11%     |
-| 4   | `04-sync-table.md`                | agreed              | 580       | 0         | 0         | 580       | 0%      |
-| 5   | `05-workspace.md`                 | written, for review | 690       | 298       | 389       | 3         | 100%    |
-| 6   | `06-sql-steps.md`                 | written, for review | 328       | 63        | 265       | 0         | 100%    |
-| 7   | `07-ids-and-properties.md`        | written, for review | 705       | 681       | 20        | 4         | 99%     |
-| 8   | `08-prepare-incremental.md`       | written, for review | 750       | 0         | 370       | 380       | 49%     |
-| 9   | `09-graph-requests-and-client.md` | written, for review | 371       | 72        | 240       | 59        | 84%     |
-| 10  | `10-send.md`                      | written, for review | 440       | 0         | 40        | 400       | 9%      |
-| 11  | `11-whole-pipeline.md`            | written, for review | 260       | 0         | 20        | 240       | 8%      |
-|     | **All**                           |                     | **5,170** | **1,165** | **1,616** | **2,389** | **54%** |
+| #   | File                              | State                       | Total     | Moved     | Adapted   | New       | Reused  |
+| --- | --------------------------------- | --------------------------- | --------- | --------- | --------- | --------- | ------- |
+| 1   | `01-crate-and-storage.md`         | agreed                      | 316       | 51        | 237       | 28        | 91%     |
+| 2   | `02-run-state.md`                 | agreed                      | 425       | 0         | 0         | 425       | 0%      |
+| 3   | `03-stage-frame-and-capture.md`   | agreed                      | 305       | 0         | 35        | 270       | 11%     |
+| 4   | `04-sync-table.md`                | waiting for Fedor's changes | 580       | 0         | 0         | 580       | 0%      |
+| 5   | `05-workspace.md`                 | agreed                      | 690       | 298       | 389       | 3         | 100%    |
+| 6   | `06-sql-steps.md`                 | agreed                      | 328       | 63        | 265       | 0         | 100%    |
+| 7   | `07-ids-and-properties.md`        | agreed                      | 705       | 681       | 20        | 4         | 99%     |
+| 8   | `08-prepare-incremental.md`       | agreed                      | 750       | 0         | 370       | 380       | 49%     |
+| 9   | `09-graph-requests-and-client.md` | agreed                      | 371       | 72        | 240       | 59        | 84%     |
+| 10  | `10-send.md`                      | waiting for Fedor's changes | 440       | 0         | 40        | 400       | 9%      |
+| 11  | `11-whole-pipeline.md`            | agreed                      | 260       | 0         | 20        | 240       | 8%      |
+|     | **All**                           |                             | **5,170** | **1,165** | **1,616** | **2,389** | **54%** |
 
 The numbers of every milestone come from its source table. This table replaces the estimate in `../plan.md`, step 6.
 
-Batches: milestones 1 to 4, then 5 to 8, then 9 to 11. After each batch a check compares it with `contracts.md` and the plan, and Paul reviews it. Batch 1 was checked on 2026-11-19, its findings are applied, and Paul agreed to it. Batch 2 and batch 3 were checked on 2026-11-19 and their findings are applied. A final check over the whole spec ran on 2026-11-19, and its findings are applied too.
+Batches: milestones 1 to 4, then 5 to 8, then 9 to 11. After each batch a check compares it with `contracts.md` and the plan, and Paul reviews it. Batch 1 was checked on 2026-11-19, its findings are applied, and Paul agreed to it. Batch 2 and batch 3 were checked on 2026-11-19 and their findings are applied. A final check over the whole spec ran on 2026-11-19, and its findings are applied too. Paul agreed to nine of the eleven milestones on 2026-11-19. Milestones 4 and 10, the sync table and Send, wait for changes by Fedor before Paul agrees to them.
 
 ## Rules for every milestone
 
