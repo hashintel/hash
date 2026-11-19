@@ -11,6 +11,7 @@ import { CodeEditor } from "../../src/ui/monaco/code-editor";
 import { MonacoProvider } from "../../src/ui/monaco/provider";
 import { Petrinaut } from "../../src/ui/petrinaut";
 import { PetrinautStoryProvider } from "../../src/ui/petrinaut-story-provider";
+import { definePetrinautPlugin } from "../../src/ui/plugins/define-petrinaut-plugin";
 
 const query = new URLSearchParams(location.search);
 const example =
@@ -97,6 +98,29 @@ const Micro = () => {
   );
 };
 
+const chatTurns = Array.from({ length: 40 }, (_, index) => index);
+
+/** A conversation's worth of elements, so the panel has something to lay out. */
+const BenchmarkChat = () => (
+  <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 12 }}>
+    {chatTurns.map((turn) => (
+      <p key={turn} style={{ margin: "0 0 12px" }}>
+        {turn % 2 === 0
+          ? "Add a place for parts waiting at the loading dock, and connect it to the assembly line."
+          : "Done. The new place takes the Part type, and the transition into assembly now reads from it at one part per firing."}
+      </p>
+    ))}
+    <input aria-label="Message" placeholder="Ask about this net" />
+  </div>
+);
+
+/** An AI assistant for the editor to dock, float and close (`assistant=1`). */
+const benchmarkAssistant = definePetrinautPlugin(
+  { id: "benchmark.assistant", name: "Benchmark assistant", assistant: true },
+  { assistant: { content: <BenchmarkChat /> } },
+);
+const plugins = query.has("assistant") ? [benchmarkAssistant] : [];
+
 /**
  * A host that does what the website does, at its worst (`host=website`). It
  * saves a new last-updated time for the open net on every edit, so the net
@@ -132,6 +156,7 @@ const WebsiteLikeHost = () => {
       ]}
       createNewNet={() => {}}
       loadPetriNet={() => {}}
+      plugins={plugins}
       slots={{ settingsLabs: <span>Host settings</span> }}
     />
   );
@@ -144,6 +169,7 @@ const FullEditor = () =>
     <PetrinautStoryProvider
       initialTitle={example.title}
       initialDefinition={example.petriNetDefinition}
+      plugins={plugins}
     />
   );
 
