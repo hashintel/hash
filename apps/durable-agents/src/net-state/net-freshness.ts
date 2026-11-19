@@ -11,7 +11,10 @@
  * browser-call records. A context read at a fixed cutoff is stable against
  * later writes, so a rerun after a restart decides the same.
  */
-import { noNetViewRefusalNaming } from "@hashintel/brunch-agent";
+import {
+  browserCallStaleRefusal,
+  noNetViewRefusalNaming,
+} from "@hashintel/brunch-agent";
 import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core/ai";
 
 import { visibleNetView } from "./visible-net-view";
@@ -29,10 +32,6 @@ export const noNetViewRefusal = noNetViewRefusalNaming(
   `readNetOutline, readNetStructure or ${getLatestNetDefinitionToolName}`,
 );
 
-/** Copied from `apps/brunch-agent/src/shared/conversation/browser-call-rendezvous.ts`: the panel's own wording. */
-export const staleNetViewRefusal =
-  "Not started: the document changed by other means after your last view of the net. Read the net again, then make the change.";
-
 export type NetFreshness =
   | { readonly revision: string }
   | { readonly refusal: string };
@@ -49,7 +48,7 @@ export const expectedNetRevision = (
 ): NetFreshness => {
   const latest = visibleNetView(view);
   if (latest.state === "none") return { refusal: noViewRefusal };
-  if (latest.state === "stale") return { refusal: staleNetViewRefusal };
+  if (latest.state === "stale") return { refusal: browserCallStaleRefusal };
   return { revision: latest.revision };
 };
 

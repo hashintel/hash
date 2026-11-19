@@ -32,16 +32,15 @@ import {
 import { obj, str } from "@earendil-works/pi-schema";
 import { describe, expect, test } from "vitest";
 
+import { browserCallStaleRefusal } from "@hashintel/brunch-agent";
+
 import {
   allEntries,
   call,
   context,
   shapeOf,
 } from "../../../test/platform/support";
-import {
-  expectedNetRevision,
-  staleNetViewRefusal,
-} from "../../net-state/net-freshness";
+import { expectedNetRevision } from "../../net-state/net-freshness";
 import {
   handEditEntryKind,
   netViewSectionKey,
@@ -639,7 +638,7 @@ describe("the net_view section", () => {
       expect(expectedNetRevision(view)).toEqual({ revision: "R1" });
       await handEdit(probe.root, "R2");
       expect(expectedNetRevision(await probe.root.context(context))).toEqual({
-        refusal: staleNetViewRefusal,
+        refusal: browserCallStaleRefusal,
       });
     } finally {
       await probe.close();

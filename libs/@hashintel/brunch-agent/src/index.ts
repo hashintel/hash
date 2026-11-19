@@ -86,6 +86,7 @@ export {
   browserToolFacts,
   canonicalCallsOf,
   type CanonicalPetrinautCall,
+  mayShowNet,
 } from "./petrinaut/browser-executed-tools";
 export { CANONICAL_PETRINAUT_TOOL_NAMES } from "./petrinaut/construction-tool-names";
 export {

@@ -23,6 +23,7 @@ import {
   brunchTools,
   hashPetrinautTools,
   hashSaveDescription,
+  mayShowNet,
 } from "@hashintel/brunch-agent";
 
 import { toolDeltas } from "../../test/platform/hash-port/support";
@@ -38,7 +39,6 @@ import {
   textToolOutputLimits,
 } from "../browser-call/browser-call";
 import { hashBrowserToolDefinitions } from "../browser-call/hash-browser-tools";
-import { mayShowNet } from "../net-state/net-view";
 import { netViewSectionKey } from "../net-state/visible-net-view";
 import { createHashAgent } from "./hash-agent";
 import { hashSystemSectionKey } from "./hash-agent/prompt";

@@ -1,24 +1,17 @@
 /**
- * The one rule for which net results show the model the net: a read of it, or
- * a settled change that carries the net read back. The context projection
- * applies it to the model's context; net freshness and `query_basis` apply it
- * to canonical history.
+ * What a net result shows the model of the net, by the library's one rule
+ * (`mayShowNet`): a read of it, or a settled change that carries the net read
+ * back. The context projection applies it to the model's context; net
+ * freshness and `query_basis` apply it to canonical history.
  */
 
 import {
-  browserExecutedToolNames,
   browserToolFacts,
+  mayShowNet,
   parseClientToolResultMetadata,
 } from "@hashintel/brunch-agent";
 
 import type { NetStructure } from "@hashintel/brunch-agent";
-
-/** Whether a settled result of this tool can show the model the net. */
-export const mayShowNet = (toolName: string): boolean => {
-  if (!browserExecutedToolNames.has(toolName)) return false;
-  const { observesNet, documentRevision } = browserToolFacts(toolName);
-  return observesNet || documentRevision === "change";
-};
 
 export type NetResultView =
   | {

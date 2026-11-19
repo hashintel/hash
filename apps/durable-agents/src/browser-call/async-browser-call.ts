@@ -106,7 +106,7 @@ const BrowserCallExpiry = defineTask<
           resultInput(
             record,
             "expired",
-            `Browser call ${record.toolCallId} (${record.toolName}): ${unfinishedError(record, "expired")}`,
+            `Browser call ${record.toolCallId} (${record.toolName}): ${unfinishedError(record)}`,
           ),
         );
         record.status = "expired";
