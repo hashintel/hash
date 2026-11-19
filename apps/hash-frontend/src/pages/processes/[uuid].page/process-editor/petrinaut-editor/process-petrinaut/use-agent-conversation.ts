@@ -53,9 +53,10 @@ export const readRetryDelaysMs = [1_000, 2_000, 4_000] as const;
  *   this page already knows one for it.
  * - Clearing creates the next conversation's entity, before any message, so
  *   another browser opens it. The earlier one stays as it is.
- * - A read that fails is tried again {@link readRetryDelaysMs}`.length`
- *   times. If none succeeds, the context has no open conversation, so its
- *   next message starts one rather than leaving the agent unusable.
+ * - A read that fails, or is retried and answers without data, is tried
+ *   again {@link readRetryDelaysMs}`.length` times. If none succeeds, the
+ *   context has no open conversation, so its next message starts one rather
+ *   than leaving the agent unusable.
  *
  * Each write records the agent, web and context as they were when it was
  * asked for, and writes run one at a time.
@@ -138,10 +139,20 @@ export const useAgentConversation = ({
       return;
     }
     const timer = setTimeout(() => {
-      refetch().catch((retryError: unknown) => {
-        captureException(retryError, { source: "agent-conversation.read" });
-        setReadFailures({ readKey, count: failedReads + 1 });
-      });
+      refetch().then(
+        ({ data: retried }) => {
+          // A later failure of this read starts its retries afresh.
+          setReadFailures({
+            readKey,
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- `refetch()` can resolve without `data`
+            count: retried ? 0 : failedReads + 1,
+          });
+        },
+        (retryError: unknown) => {
+          captureException(retryError, { source: "agent-conversation.read" });
+          setReadFailures({ readKey, count: failedReads + 1 });
+        },
+      );
     }, delayMs);
     return () => clearTimeout(timer);
   }, [failedReads, readKey, refetch, captureException]);

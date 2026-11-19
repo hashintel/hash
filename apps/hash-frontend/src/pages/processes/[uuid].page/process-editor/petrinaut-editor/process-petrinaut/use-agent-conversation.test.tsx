@@ -61,6 +61,8 @@ const graph = vi.hoisted(() => ({
   reading: false,
   /** How many of the next reads, first or retried, fail. */
   failingReads: 0,
+  /** How many of the next retries resolve without data, as Apollo's can. */
+  emptyRetries: 0,
   /** The reads whose last attempt failed. */
   failed: new Set<string>(),
   /** The answers this page has had, by read, as Apollo keeps them. */
@@ -88,7 +90,7 @@ vi.mock("../../../../../shared/auth-info-context", () => ({
 
 vi.mock("@apollo/client", async (importOriginal) => {
   const original = await importOriginal<typeof ApolloClient>();
-  const { useReducer } = await import("react");
+  const { useCallback, useReducer, useRef } = await import("react");
 
   type Clause = {
     all?: Clause[];
@@ -208,15 +210,40 @@ vi.mock("@apollo/client", async (importOriginal) => {
     const [, rerender] = useReducer((count: number) => count + 1, 0);
     graph.queries.push({ skip: skip ?? false, variables });
     const key = JSON.stringify(variables);
-    const refetch = () => {
+    const read = () => {
+      // Answered once per read, and the same object after, as Apollo's is: a
+      // write isn't seen until the page reads again.
+      if (!graph.answers.has(key)) {
+        const filter = variables.request.filter as Clause;
+        graph.answers.set(
+          key,
+          answer(
+            graph.stored.filter((conversation) =>
+              matches(conversation, filter),
+            ),
+          ),
+        );
+      }
+      return graph.answers.get(key);
+    };
+    const retry = () => {
       if (graph.failingReads > 0) {
         graph.failingReads--;
         return Promise.reject(new Error("The read failed again"));
       }
+      if (graph.emptyRetries > 0) {
+        graph.emptyRetries--;
+        return Promise.resolve({ data: undefined });
+      }
       graph.failed.delete(key);
+      const data = read();
       rerender();
-      return Promise.resolve();
+      return Promise.resolve({ data });
     };
+    // Stable across renders, as Apollo's is.
+    const latestRetry = useRef(retry);
+    latestRetry.current = retry;
+    const refetch = useCallback(() => latestRetry.current(), []);
     if (skip || graph.reading) {
       return { data: undefined, error: undefined, refetch };
     }
@@ -229,18 +256,7 @@ vi.mock("@apollo/client", async (importOriginal) => {
     if (graph.failed.has(key)) {
       return { data: undefined, error: readError, refetch };
     }
-    // Answered once per read, and the same object after, as Apollo's is: a
-    // write isn't seen until the page reads again.
-    if (!graph.answers.has(key)) {
-      const filter = variables.request.filter as Clause;
-      graph.answers.set(
-        key,
-        answer(
-          graph.stored.filter((conversation) => matches(conversation, filter)),
-        ),
-      );
-    }
-    return { data: graph.answers.get(key), error: undefined, refetch };
+    return { data: read(), error: undefined, refetch };
   };
 
   // One mutate function per mutation, stable across renders, as Apollo's is.
@@ -296,6 +312,7 @@ beforeEach(() => {
   graph.stored = [];
   graph.reading = false;
   graph.failingReads = 0;
+  graph.emptyRetries = 0;
   graph.failed.clear();
   graph.answers.clear();
   graph.queries.length = 0;
@@ -513,6 +530,46 @@ test("when every retry fails the context has no open conversation, and its first
     act(() => result.current.start("fresh"));
     await act(() => vi.runAllTimersAsync());
     expect(graph.writes).toEqual([createdConversation("fresh")]);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+test("a retry that answers without data counts as a failed read", async () => {
+  vi.useFakeTimers();
+  try {
+    graph.stored = [stored("unreachable")];
+    graph.failingReads = 1;
+    graph.emptyRetries = readRetryDelaysMs.length;
+    const { result } = renderConversation();
+
+    for (const delayMs of readRetryDelaysMs) {
+      expect(result.current.conversationId).toBeUndefined();
+      await act(() => vi.advanceTimersByTimeAsync(delayMs));
+    }
+    expect(result.current.conversationId).toBeNull();
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+test("a read that fails after a retry succeeded is tried again", async () => {
+  vi.useFakeTimers();
+  try {
+    graph.stored = [stored("open")];
+    graph.failingReads = 1;
+    const { result, rerender } = renderConversation();
+    await act(() => vi.advanceTimersByTimeAsync(readRetryDelaysMs[0]));
+    expect(result.current.conversationId).toBe("open-conversation");
+
+    // Apollo reads again, and that read fails.
+    graph.answers.clear();
+    graph.failingReads = 1;
+    rerender({ contextEntityId: processId });
+    expect(result.current.conversationId).toBeUndefined();
+
+    await act(() => vi.advanceTimersByTimeAsync(readRetryDelaysMs[0]));
+    expect(result.current.conversationId).toBe("open-conversation");
   } finally {
     vi.useRealTimers();
   }
