@@ -246,11 +246,11 @@ import { Program } from "@local/hashql";
 import * as Draft from "@local/hashql/Draft";
 import { Result, pipe } from "effect";
 
-const built = Draft.program({}, ($) =>
+const built = Draft.program({}, () =>
   // [!code focus:6]
-  // A nested record becomes a nested struct. A program's result and
-  // a $.let value take this constructed struct, not a raw record.
-  $.struct({
+  // A record becomes a struct, and a nested record a nested struct.
+  // $.struct builds the same value and also takes an annotation.
+  ({
     count: 2n,
     owner: { name: "Ada", active: true },
   }),
@@ -352,10 +352,10 @@ import { Program } from "@local/hashql";
 import * as Draft from "@local/hashql/Draft";
 import { Result, pipe } from "effect";
 
-const built = Draft.program({}, ($) =>
+const built = Draft.program({}, () =>
   // [!code focus:2]
   // A raw array is a tuple, never a list.
-  $.tuple([2n, "two"]),
+  [2n, "two"],
 );
 
 const text = pipe(
@@ -1738,7 +1738,7 @@ import { Result, pipe } from "effect";
 
 const built = Draft.program({}, ($) => {
   // [!code focus:3]
-  const foo = $.let("foo", $.struct({ value: 2n, label: "two" }));
+  const foo = $.let("foo", { value: 2n, label: "two" });
 
   return foo.value;
 });
@@ -1782,7 +1782,7 @@ foo.value
 </div>
 </SideBySide>
 
-A missing field is a compile-time type error in HashQL. Python's dictionary raises `KeyError` only when the lookup runs. Draft's `$.let` needs [`$.struct`][draft-context-struct] here, not a plain object.
+A missing field is a compile-time type error in HashQL. Python's dictionary raises `KeyError` only when the lookup runs.
 
 #### Read a tuple position [#access-tuple]
 
@@ -1838,7 +1838,7 @@ import { Result, pipe } from "effect";
 
 const built = Draft.program({}, ($) => {
   // [!code focus:3]
-  const foo = $.let("foo", $.tuple([2n, "two"]));
+  const foo = $.let("foo", [2n, "two"]);
 
   return foo[0];
 });
@@ -2057,9 +2057,8 @@ import * as Draft from "@local/hashql/Draft";
 import { Result, pipe } from "effect";
 
 const built = Draft.program({}, ($) => {
-  // [!code focus:4]
-  const { Number: NumberType } = $.prelude();
-  const foo = $.let("foo", $.as(2n, NumberType));
+  // [!code focus:3]
+  const foo = $.let("foo", $.as(2n, Number));
 
   return foo;
 });
@@ -2509,7 +2508,7 @@ const built = Draft.program({}, ($) => {
     }),
   );
 
-  return $.struct({ status, attention });
+  return { status, attention };
 });
 
 const text = pipe(
@@ -2652,7 +2651,7 @@ const built = Draft.program(inputs, ($, { task }) => {
     }),
   );
 
-  return $.struct({ title: task.title, attention });
+  return { title: task.title, attention };
 });
 
 const text = pipe(
@@ -2972,7 +2971,6 @@ The closure reads `flagged` from the input without receiving it as an argument. 
 [newtype]: #newtype
 [program-structural-definition]: /docs/hashql/sdk/typescript/reference/hashql/Program/Structural#Definition
 [draft-context-prelude]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Context#Context.prelude
-[draft-context-struct]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Context#Context.struct
 [access-struct]: #access-struct
 [access-tuple]: #access-tuple
 [read-a-task]: #read-a-task

@@ -589,7 +589,7 @@ const unfinished = $.let(
   ),
 );
 
-return $.struct({
+return {
   unfinished: $.query(unfinished).collect(),
   blocked: $.query(unfinished)
     .filter("task", ($, task) => $.eq(taskFields(task).status, "blocked"))
@@ -597,7 +597,7 @@ return $.struct({
   unassigned: $.query(unfinished)
     .filter("task", ($, task) => $.isFalse(taskFields(task).assigned))
     .collect(),
-});
+};
 ```
 
 And that's it! We now get three lists: `unfinished`, `blocked` and `unassigned`. Each contains the tasks that match the corresponding filter.

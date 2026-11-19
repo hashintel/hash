@@ -53,7 +53,7 @@ type TypeInputs<I extends Inputs> = {
  * // @ts-expect-error The unused `verbose` entry stays required.
  * const partial: Program.Expression.Expression<Type.PrimitiveInteger, Pick<Whole, "limit">> = built;
  *
- * const outside = Program.Structural.input("outside", BigInt);
+ * const outside = Program.Expression.input("outside", BigInt);
  * program({}, ($) => {
  *   // @ts-expect-error The schema does not declare `outside`.
  *   $.let("ignored", outside);
@@ -121,8 +121,11 @@ export type Check<S, I> = [I] extends [never]
       unknown
     : never;
 
-/** Checks the inputs the expression `E` requires against the schema record `I`, as {@link Check} does. */
-type Accept<I, E> = Check<I, Expression.Value.Inputs<E>>;
+/** Checks the inputs the value `E` requires against the schema record `I`, as {@link Check} does. */
+type Accept<I, E extends Structural.Value.Any> = Check<
+  I,
+  Structural.Value.Requirements<E>
+>;
 
 /**
  * A graph query in a program callback, whose predicates must fit the program's schema `I`. Otherwise it is {@link Construction.Query | `Context.Query`}.
@@ -181,20 +184,20 @@ export interface Context<S extends Scope.Scope.Any, I> extends Omit<
   /**
    * Binds a value to a HashQL name and returns a reference to the binding.
    *
-   * `value` is an expression or host primitive whose input requirements fit the schema, and the reference keeps its semantic type and requirements.
+   * `value` is an expression or structural shorthand, such as a host primitive or a record of values, whose input requirements fit the schema. The reference keeps its semantic type and requirements.
    *
    * A `type` annotates the binding, and the reference takes the annotation's type, as {@link @local/hashql/Draft#Context.Context.let | `Context.Context.let`} describes.
    */
   readonly let: {
-    <const E extends Expression.Value.Any>(
+    <const E extends Structural.Value.Any>(
       name: string,
       value: E & Accept<I, E>,
     ): Expression.Expression<
-      Expression.Value.Type<E>,
-      Expression.Value.Inputs<E>
+      Structural.Value.Type<E>,
+      Structural.Value.Requirements<E>
     >;
     <
-      const E extends Expression.Value.Any,
+      const E extends Structural.Value.Any,
       const D extends Structural.Definition,
     >(
       name: string,
@@ -202,7 +205,7 @@ export interface Context<S extends Scope.Scope.Any, I> extends Omit<
       type: D,
     ): Expression.Expression<
       Structural.Definition.Type<D>,
-      Expression.Value.Inputs<E>
+      Structural.Value.Requirements<E>
     >;
   };
 
@@ -255,8 +258,8 @@ export interface Context<S extends Scope.Scope.Any, I> extends Omit<
   readonly if: {
     <
       const C extends Expression.Value<Type.PrimitiveBoolean>,
-      const T extends Expression.Value.Any,
-      const E extends Expression.Value.Any,
+      const T extends Structural.Value.Any,
+      const E extends Structural.Value.Any,
     >(
       condition: C & Accept<I, C>,
       branches: {
@@ -265,18 +268,18 @@ export interface Context<S extends Scope.Scope.Any, I> extends Omit<
       },
     ): Expression.Expression<
       Expression.Conditional<
-        Expression.Value.Type<T>,
-        Expression.Value.Type<E>
+        Structural.Value.Type<T>,
+        Structural.Value.Type<E>
       >,
       I
     >;
     <
       const C extends Expression.Value<Type.PrimitiveBoolean>,
-      const T extends Expression.Value.Any,
+      const T extends Structural.Value.Any,
     >(
       condition: C & Accept<I, C>,
       branches: { readonly then: ($: Context<S, I>) => T & Accept<I, T> },
-    ): Expression.Expression<Construction.Option<Expression.Value.Type<T>>, I>;
+    ): Expression.Expression<Construction.Option<Structural.Value.Type<T>>, I>;
   };
 
   /** Starts a graph query from a graph expression, or from every entity with `$.query.entities(axis)`, whose input requirements fit the schema. */
@@ -286,7 +289,7 @@ export interface Context<S extends Scope.Scope.Any, I> extends Omit<
 /**
  * The callback a Draft program runs with the restricted context and the input handles to obtain the root expression.
  *
- * The returned expression's input requirements must fit the schema. Returning anything other than an expression handle fails construction with `InvalidBodyResult`. The type rejects an asynchronous callback, and at runtime its promise fails construction the same way.
+ * The callback returns an expression or structural shorthand, such as a host primitive or a record of values, and its input requirements must fit the schema. Returning anything else fails construction with `InvalidBodyResult`. The type rejects an asynchronous callback, and at runtime its promise fails construction the same way.
  *
  * @category Models
  * @since 0.1.0
@@ -294,11 +297,11 @@ export interface Context<S extends Scope.Scope.Any, I> extends Omit<
 export type Body<
   S extends Scope.Scope.Any,
   I extends Inputs,
-  O extends Expression.Value.Any & Expression.Expression.Any,
+  O extends Structural.Value.Any,
 > = (
   $: Context<S, Requirements<I>>,
   inputs: Handles<I>,
-) => O & Check<NoInfer<Requirements<I>>, Expression.Value.Inputs<O>>;
+) => O & Check<NoInfer<Requirements<I>>, Structural.Value.Requirements<O>>;
 
 /**
  * A {@link Body} with its input handles already supplied.
@@ -309,5 +312,5 @@ export type Body<
 export type WithoutInputs<
   S extends Scope.Scope.Any,
   I extends Inputs,
-  O extends Expression.Value.Any & Expression.Expression.Any,
+  O extends Structural.Value.Any,
 > = ($: Context<S, Requirements<I>>) => ReturnType<Body<S, I, O>>;

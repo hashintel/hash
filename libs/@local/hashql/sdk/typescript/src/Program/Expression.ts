@@ -16,6 +16,7 @@ import { Function, Pipeable, Result, Struct, pipe } from "effect";
 
 import * as internal from "../internal/expression.js";
 import { Relocate } from "../internal/relocation.js";
+import * as StructuralSyntax from "../internal/structural.js";
 import * as JExpr from "../JExpr/index.js";
 import * as AST from "./AST/index.js";
 import * as Structural from "./Structural.js";
@@ -374,7 +375,7 @@ export const assume =
 /**
  * Asserts that an expression has the type `type`, which emits the `as` special form.
  *
- * The result has the asserted type and keeps the expression's input requirements. The HashQL compiler checks the assertion rather than the SDK, and accepts one that keeps the expression's type or widens it to a supertype, never one that narrows it. Unlike {@link assume}, which changes only the SDK's type, `as` puts the assertion into the program. Call it as `as(expression, type)`, or as `as(type)` inside a `pipe`.
+ * The expression can be structural shorthand, such as a record of values. `type` can be a definition, as {@link Structural."type"} takes it. The result has the asserted type and keeps the expression's input requirements. The HashQL compiler checks the assertion rather than the SDK, and accepts one that keeps the expression's type or widens it to a supertype, never one that narrows it. Unlike {@link assume}, which changes only the SDK's type, `as` puts the assertion into the program. Call it as `as(expression, type)`, or as `as(type)` inside a `pipe`.
  *
  * A construction failure already stored in `expression` or `type` passes through.
  *
@@ -384,10 +385,9 @@ export const assume =
  * import { JExpr, Program } from "@local/hashql";
  * import { Result } from "effect";
  *
- * const { Expression, Structural } = Program;
- * const number = Result.getOrThrow(Structural.type(Number));
+ * const { Expression } = Program;
  * assert.equal(
- *   JExpr.compile(Result.getOrThrow(Expression.toJExpr(Expression.as(2n, number)))),
+ *   JExpr.compile(Result.getOrThrow(Expression.toJExpr(Expression.as(2n, Number)))),
  *   '["::kernel::special_form::as",{"#literal":2},"::kernel::type::Number"]',
  * );
  * ```
@@ -398,27 +398,39 @@ export const assume =
 export const as = Function.dual<
   <T extends Structural.Definition>(
     type: T,
-  ) => <E extends Value.Any>(
+  ) => <const E extends Structural.Value.Any>(
     expression: E,
-  ) => Expression<Structural.Definition.Type<T>, Value.Inputs<E>>,
-  <E extends Value.Any, T extends Structural.Definition>(
+  ) => Expression<
+    Structural.Definition.Type<T>,
+    Structural.Value.Requirements<E>
+  >,
+  <const E extends Structural.Value.Any, T extends Structural.Definition>(
     expression: E,
     type: T,
-  ) => Expression<Structural.Definition.Type<T>, Value.Inputs<E>>
+  ) => Expression<
+    Structural.Definition.Type<T>,
+    Structural.Value.Requirements<E>
+  >
 >(
   2,
-  <E extends Value.Any, T extends Structural.Definition>(
+  <E extends Structural.Value.Any, T extends Structural.Definition>(
     expression: E,
     type: T,
-  ): Expression<Structural.Definition.Type<T>, Value.Inputs<E>> =>
+  ): Expression<
+    Structural.Definition.Type<T>,
+    Structural.Value.Requirements<E>
+  > =>
     pipe(
       {
-        value: toNode(expression),
+        value: StructuralSyntax.valueNode(expression),
         type: Structural.type(type).pipe(Result.flatMap(Struct.get(TAST.Node))),
       },
       Result.all,
       Result.map(({ value, type }) => new AST.As(value, type)),
-      fromResult<Structural.Definition.Type<T>, Value.Inputs<E>>,
+      fromResult<
+        Structural.Definition.Type<T>,
+        Structural.Value.Requirements<E>
+      >,
     ),
 );
 
@@ -458,28 +470,54 @@ export const number = (
 ): Expression<Type.PrimitiveNumber, Input.Empty> =>
   fromJExpr(JExpr.literal(value));
 
+/** A default that may be `undefined`. */
+type InputArguments = readonly [defaultValue: Structural.Value.Any | undefined];
+
+/** Checks each defined alternative without rejecting an explicitly absent default. */
+type ExactDefault<T extends Type.Any, V> = V extends undefined
+  ? V
+  : V extends Structural.Value.Any
+    ? Structural.Value.Exact<T, V>
+    : never;
+
+type ExactDefaults<T extends Type.Any, D extends InputArguments> = {
+  readonly [K in keyof D]: ExactDefault<T, D[K]>;
+};
+
+/** The input's own entry, optional when the default is definitely present, merged with the default's requirements. */
+type DefaultedInputs<
+  Name extends string,
+  T extends Type.Any,
+  D extends InputArguments,
+> = [D[0]] extends [undefined]
+  ? Readonly<Record<Name, T>>
+  : Input.Merge<
+      undefined extends D[0]
+        ? Readonly<Record<Name, T>>
+        : Readonly<Partial<Record<Name, T>>>,
+      Structural.Value.Requirements<Exclude<D[0], undefined>>
+    >;
+
 /**
- * References a program input, optionally supplying its default expression.
+ * References a program input, optionally supplying its default.
  *
- * The inferred {@link Value.Inputs} record requires the input when you omit the default or pass `undefined`. A definitely present default makes this occurrence optional, but another required use of the same name takes precedence. If the default's type includes `undefined`, the input remains required. Requirements of the default expression also contribute to the result.
+ * The inferred {@link Value.Inputs} record requires the input when you omit the default or pass `undefined`. A definitely present default makes this occurrence optional, but another required use of the same name takes precedence. If the default's type includes `undefined`, the input remains required. Requirements of the default also contribute to the result.
+ *
+ * The default is an expression or structural shorthand, and it must match `type` exactly, including nested fields and tuple positions. Use constructed expressions for list, dictionary and nominal defaults.
  *
  * @param name - The input name emitted into the program.
- * @param type - The input's HashQL type, which also constrains the default.
- * @param defaultValue - The value or expression used when the input is absent at query execution.
+ * @param type - The input's HashQL type, as a type expression or structural shorthand that {@link Structural."type"} takes, which also constrains the default.
+ * @param defaultValue - The value used when the input is absent at query execution.
  * @returns A symbolic reference. Use {@link toJExpr} to extract the syntax or its construction failure.
  *
  * @example <caption>Supply a default page size.</caption>
  * ```ts
  * import assert from "node:assert/strict";
  * import { JExpr, Program } from "@local/hashql";
- * import type { Type } from "@local/hashql";
- * import { Option, Result } from "effect";
+ * import { Result } from "effect";
  *
- * const { Expression, TypeExpression } = Program;
- * const integer = TypeExpression.fromType<Type.PrimitiveInteger>(
- *   Option.getOrThrow(JExpr.Type.reference("::kernel::type::Integer")),
- * );
- * const pageSize = Expression.input("pageSize", integer, 10n);
+ * const { Expression } = Program;
+ * const pageSize = Expression.input("pageSize", BigInt, 10n);
  * assert.equal(
  *   JExpr.compile(Result.getOrThrow(Expression.toJExpr(pageSize))),
  *   '["::kernel::special_form::input","pageSize","::kernel::type::Integer",{"#literal":10}]',
@@ -492,7 +530,7 @@ export const number = (
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructs an input from its name and type
 export function input<
   const Name extends string,
-  T extends Structural.Definition,
+  const T extends Structural.Definition,
 >(
   name: Name,
   type: T,
@@ -503,38 +541,21 @@ export function input<
 >;
 export function input<
   const Name extends string,
-  T extends Structural.Definition,
-  const Default extends Value<Structural.Definition.Type<NoInfer<T>>>,
+  const T extends Structural.Definition,
+  const Defaults extends InputArguments,
 >(
   name: Name,
   type: T,
-  defaultValue: Default,
+  ...defaults: Defaults &
+    ExactDefaults<NoInfer<Structural.Definition.Type<T>>, Defaults>
 ): Expression<
   Structural.Definition.Type<T>,
-  Input.Merge<
-    Readonly<Partial<Record<Name, Structural.Definition.Type<T>>>>,
-    Value.Inputs<Default>
-  >
->;
-export function input<
-  const Name extends string,
-  T extends Structural.Definition,
-  const Default extends Value<Structural.Definition.Type<NoInfer<T>>>,
->(
-  name: Name,
-  type: T,
-  defaultValue: Default | undefined,
-): Expression<
-  Structural.Definition.Type<T>,
-  Input.Merge<
-    ReadonlyRecord<Name, Structural.Definition.Type<T>>,
-    Value.Inputs<Default>
-  >
+  DefaultedInputs<Name, Structural.Definition.Type<T>, Defaults>
 >;
 export function input<T extends Structural.Definition>(
   name: string,
   type: T,
-  defaultValue?: Value.Any,
+  defaultValue?: Structural.Value.Any,
 ): Expression<Structural.Definition.Type<T>, never> {
   return Result.gen(function* () {
     const ident = yield* AST.decodeInputName(name);
@@ -545,7 +566,7 @@ export function input<T extends Structural.Definition>(
       return new AST.Input(ident, node, undefined);
     }
 
-    const value = yield* toNode(defaultValue);
+    const value = yield* StructuralSyntax.valueNode(defaultValue);
     return new AST.Input(ident, node, value);
   }).pipe(fromResult<Structural.Definition.Type<T>, never>);
 }

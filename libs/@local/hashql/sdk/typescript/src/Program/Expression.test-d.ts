@@ -3,7 +3,7 @@
  *
  * @module
  */
-import { Result } from "effect";
+import { Result, pipe } from "effect";
 import { describe, expectTypeOf, test } from "vitest";
 
 import { Relocate, relocate } from "../internal/relocation.js";
@@ -692,5 +692,76 @@ describe("primitive", () => {
     expectTypeOf(as(2n, numberType)).toEqualTypeOf<
       Expression<Type.PrimitiveNumber, Inputs.Empty>
     >();
+    type Widened = Expression<
+      Type.Struct<{ readonly total: Type.PrimitiveNumber }>,
+      { readonly count: Type.PrimitiveInteger }
+    >;
+    expectTypeOf(
+      as({ total: count }, { total: Number }),
+    ).toEqualTypeOf<Widened>();
+    expectTypeOf(
+      pipe({ total: count }, as({ total: Number })),
+    ).toEqualTypeOf<Widened>();
+  });
+});
+
+type Row = Type.Struct<{ readonly count: Type.PrimitiveInteger }>;
+
+const possiblyAbsent = <V>(value: V): V | undefined => value;
+
+const shorthandInput = <
+  const Name extends string,
+  const D extends Structural.Definition,
+>(
+  name: Name,
+  definition: D,
+): Expression<
+  Structural.Definition.Type<D>,
+  Readonly<Record<Name, Structural.Definition.Type<D>>>
+> => {
+  const expression = input(name, definition);
+  return expression;
+};
+
+describe("structural_input", () => {
+  test("default_requirements", () => {
+    const count = input("count", BigInt);
+    const row = input("row", { count: BigInt }, { count });
+    expectTypeOf<Value.Type<typeof row>>().toEqualTypeOf<Row>();
+    expectTypeOf<Value.Inputs<typeof row>>().toEqualTypeOf<{
+      readonly row?: Row;
+      readonly count: Type.PrimitiveInteger;
+    }>();
+    const required = input("row", { count: BigInt });
+    expectTypeOf<Value.Inputs<typeof required>>().toEqualTypeOf<{
+      readonly row: Row;
+    }>();
+    // @ts-expect-error The default cannot widen the declared field descriptor.
+    input("row", { count: BigInt }, { count: "x" });
+    // @ts-expect-error The default must not hide additional fields.
+    input("row", { count: BigInt }, { count: 1n, extra: true });
+  });
+
+  test("generic_definition", () => {
+    const count = shorthandInput("count", BigInt);
+    expectTypeOf<Value.Inputs<typeof count>>().toEqualTypeOf<{
+      readonly count: Type.PrimitiveInteger;
+    }>();
+  });
+
+  test("uncertain_default", () => {
+    const fallback = input("fallback", BigInt);
+    const count = input("count", BigInt, possiblyAbsent(fallback));
+    expectTypeOf<Value.Inputs<typeof count>>().toEqualTypeOf<{
+      readonly count: Type.PrimitiveInteger;
+      readonly fallback: Type.PrimitiveInteger;
+    }>();
+    // oxlint-disable-next-line unicorn/no-useless-undefined -- explicitly absent defaults still require the input
+    const absent = input("count", BigInt, undefined);
+    expectTypeOf<Value.Inputs<typeof absent>>().toEqualTypeOf<{
+      readonly count: Type.PrimitiveInteger;
+    }>();
+    // @ts-expect-error Undefined does not make an incompatible defined alternative acceptable.
+    input("count", BigInt, possiblyAbsent("x"));
   });
 });

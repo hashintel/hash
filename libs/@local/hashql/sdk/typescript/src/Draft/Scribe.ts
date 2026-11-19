@@ -171,15 +171,15 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
     );
   }
 
-  let<const E extends Expression.Value.Any>(
+  let<const E extends Structural.Value.Any>(
     name: string,
     value: E,
   ): Expression.Expression<
-    Expression.Value.Type<E>,
-    Expression.Value.Inputs<E>
+    Structural.Value.Type<E>,
+    Structural.Value.Requirements<E>
   >;
   let<
-    const E extends Expression.Value.Any,
+    const E extends Structural.Value.Any,
     const D extends Structural.Definition,
   >(
     name: string,
@@ -187,17 +187,17 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
     type: D,
   ): Expression.Expression<
     Structural.Definition.Type<D>,
-    Expression.Value.Inputs<E>
+    Structural.Value.Requirements<E>
   >;
   let(
     name: string,
-    value: Expression.Value.Any,
+    value: Structural.Value.Any,
     type?: Structural.Definition,
   ): Expression.Expression.Any {
     const declaration = pipe(
       {
         name: AST.decodeName(name),
-        node: Expression.toNode(value),
+        node: StructuralSyntax.valueNode(value),
         type: Result.transposeMapOption(
           Option.fromUndefinedOr(type),
           StructuralSyntax.typeNode,
@@ -290,8 +290,8 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
 
   if<
     const C extends Expression.Value<Type.PrimitiveBoolean>,
-    const T extends Expression.Value.Any,
-    const E extends Expression.Value.Any,
+    const T extends Structural.Value.Any,
+    const E extends Structural.Value.Any,
   >(
     condition: C,
     branches: {
@@ -301,7 +301,7 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
   ): Context.Conditional<C, T, E>;
   if<
     const C extends Expression.Value<Type.PrimitiveBoolean>,
-    const T extends Expression.Value.Any,
+    const T extends Structural.Value.Any,
   >(
     condition: C,
     branches: { readonly then: ($: Context.Context<S>) => T },
@@ -309,8 +309,8 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
   if(
     condition: Expression.Value<Type.PrimitiveBoolean>,
     branches: {
-      readonly then: ($: Context.Context<S>) => Expression.Value.Any;
-      readonly else?: ($: Context.Context<S>) => Expression.Value.Any;
+      readonly then: ($: Context.Context<S>) => Structural.Value.Any;
+      readonly else?: ($: Context.Context<S>) => Structural.Value.Any;
     },
   ): Expression.Expression.Any {
     const consequent = this.build(branches.then);
@@ -374,20 +374,14 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
   }
 
   build(
-    body: ($: Context.Context<S>) => Expression.Value.Any,
+    body: ($: Context.Context<S>) => Structural.Value.Any,
   ): Result.Result<AST.Node.Any, ProgramError.Construction> {
     const stackSize = this.#wrappers.length;
 
     try {
-      const expression = body(this);
+      const value = body(this);
 
-      if (
-        !Expression.isExpression(expression) &&
-        !(
-          expression === null ||
-          ["string", "number", "bigint", "boolean"].includes(typeof expression)
-        )
-      ) {
+      if (!Structural.isValue(value)) {
         return Result.fail(ProgramError.Construction.invalidBodyResult());
       }
 
@@ -396,7 +390,7 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
       return pipe(
         {
           wrappers: Result.all(wrappers),
-          node: Expression.toNode(expression),
+          node: StructuralSyntax.valueNode(value),
         },
         Result.all,
         Result.map(({ wrappers, node }) => {
@@ -429,33 +423,25 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
 export const evaluate = <
   S extends Scope.Scope.Any,
   I extends Body.Inputs,
-  O extends Expression.Value.Any & Expression.Expression.Any,
+  O extends Structural.Value.Any,
 >(
   scope: S & Namespace.Rebindable<S>,
   body: Body.WithoutInputs<S, I, O>,
 ): Result.Result<
-  Expression.Expression<Expression.Value.Type<O>, Body.Requirements<I>>,
+  Expression.Expression<Structural.Value.Type<O>, Body.Requirements<I>>,
   ProgramError.Construction
 > =>
   pipe(
     new ContextImpl<S>(
       scope,
       Referential.referenceProducer(Symbol("~hashql/Draft")),
-    ).build(($) => {
+    ).build(($) =>
       // SAFETY: the restricted view runs these same operations. It narrows what `let`, `if` and `query` accept, and its `if` and `filter` report the whole schema as requirements, which TypeScript cannot relate to the requirements the shared operations compute.
       // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the restricted view is a type-level policy over the unrestricted context
-      const expression = body($ as Body.Context<S, Body.Requirements<I>>);
-      if (Expression.isExpression(expression)) {
-        return expression;
-      }
-
-      return Expression.fromResult<
-        Expression.Value.Type<O>,
-        Body.Requirements<I>
-      >(Result.fail(ProgramError.Construction.invalidBodyResult()));
-    }),
+      body($ as Body.Context<S, Body.Requirements<I>>),
+    ),
     Result.flatMap(AST.resolveReferences),
     Result.map(
-      Expression.fromNode<Expression.Value.Type<O>, Body.Requirements<I>>,
+      Expression.fromNode<Structural.Value.Type<O>, Body.Requirements<I>>,
     ),
   );
