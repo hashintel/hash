@@ -275,7 +275,13 @@ export const OutputList = ({
       {onShowAll && peek.showAll !== null && (
         <ShowAllButton
           count={peek.showAll}
-          noun={getLabel(picked)}
+          noun={
+            picked.indexes.every((index) =>
+              isFileEntity(entities.entities[index]),
+            )
+              ? "files"
+              : getLabel(picked)
+          }
           onClick={onShowAll}
         />
       )}
