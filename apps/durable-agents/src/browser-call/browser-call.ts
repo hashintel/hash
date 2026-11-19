@@ -66,6 +66,7 @@ import {
 
 import { netFreshnessAtIssue } from "../net-state/net-freshness";
 import { renderBrowserResult } from "../net-state/visible-net-view";
+import { checkpointEvery } from "../shared/checkpoint-when";
 
 import type { HostBinding } from "../agent/host-binding";
 import type { Context } from "@earendil-works/chord/context";
@@ -189,7 +190,8 @@ export const BrowserCallsDoc = defineDoc<{
   // A fork does not inherit calls its parent issued; its tool calls are not running.
   fork: "initial",
   initial: () => ({ calls: {} }),
-  checkpointWhen: () => false,
+  // Latest history: each base deletes the revisions before it.
+  checkpointWhen: checkpointEvery({ changes: 32 }),
 });
 
 /**
