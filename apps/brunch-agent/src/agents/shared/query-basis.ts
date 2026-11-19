@@ -53,7 +53,10 @@ const elements = (
 
 const netElements = (
   net: ReturnType<typeof netsOf>[number],
-  kind: Exclude<BasisQuerySelector["kind"], "scenario" | "metric" | "component">,
+  kind: Exclude<
+    BasisQuerySelector["kind"],
+    "scenario" | "metric" | "component"
+  >,
 ): ElementCandidate[] => {
   if (kind === "place") return net.places;
   if (kind === "transition") return net.transitions;
