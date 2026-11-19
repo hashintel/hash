@@ -35,15 +35,17 @@ const freshSchema = () => `pi_durable_test_${randomUUID().replaceAll("-", "")}`;
 /**
  * A one-connection pool that records the statements its clients run. Each
  * `afterStatement` runs once the statement succeeded, so throwing from it
- * fails a statement the database did run.
+ * fails a statement the database did run. The pool waits `poolWaitMs` for a
+ * connection, `waitMs` when absent.
  */
 const observedPool = (
   afterStatement: (text: string) => void = () => {},
+  { poolWaitMs = waitMs }: { poolWaitMs?: number } = {},
 ): { pool: Pool; statements: string[] } => {
   const pool = new Pool({
     ...poolConfig,
     max: 1,
-    connectionTimeoutMillis: waitMs,
+    connectionTimeoutMillis: poolWaitMs,
   });
   // A terminated idle client's error removes it from the pool.
   pool.on("error", () => {});
@@ -135,6 +137,39 @@ test("a commit that gets no pool connection in time is retried and stored once",
   });
 });
 
+/** A pool wait longer than the retry window, as in production. */
+const longPoolWait = { poolWaitMs: 1500, transientRetryMs: 1000 };
+
+test("a read whose first pool wait outlasts the retry window is still retried and succeeds", async () => {
+  const { poolWaitMs, transientRetryMs } = longPoolWait;
+  const { pool } = observedPool(undefined, { poolWaitMs });
+  await withStorage(
+    pool,
+    async (storage) => {
+      const id = await commitConversation(storage);
+      await holdConnection(pool, poolWaitMs + 300);
+      expect(await storage.conversation(id, context)).toEqual({ id });
+    },
+    { transientRetryMs },
+  );
+});
+
+test("a commit whose first pool wait outlasts the retry window is still retried and stored once", async () => {
+  const { poolWaitMs, transientRetryMs } = longPoolWait;
+  const { pool, statements } = observedPool(undefined, { poolWaitMs });
+  await withStorage(
+    pool,
+    async (storage, schema) => {
+      await holdConnection(pool, poolWaitMs + 300);
+      const id = await commitConversation(storage);
+      expect(await storage.conversation(id, context)).toEqual({ id });
+      expect(await storedConversations(schema)).toBe(1);
+      expect(statements.filter((text) => text === "COMMIT")).toHaveLength(2);
+    },
+    { transientRetryMs },
+  );
+});
+
 test("a commit whose connection is lost before COMMIT is retried and stored once", async () => {
   const { pool, statements } = observedPool();
   await withStorage(pool, async (storage, schema) => {
@@ -219,10 +254,11 @@ test("a read gives up once the retry window has passed, with the pool's error", 
       await expect(storage.conversation(id, context)).rejects.toThrow(
         "timeout exceeded when trying to connect",
       );
-      // At least one retry ran; none started after the window, so the last ends within one pool wait of it.
+      // At least one retry ran; the window opened at the first failure, one pool wait in, and no retry started after
+      // it, so the last ends within one more pool wait.
       const elapsed = performance.now() - started;
       expect(elapsed).toBeGreaterThanOrEqual(2 * waitMs);
-      expect(elapsed).toBeLessThan(500 + waitMs + 200);
+      expect(elapsed).toBeLessThan(waitMs + 500 + waitMs + 200);
     },
     { transientRetryMs: 500 },
   );

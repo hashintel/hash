@@ -330,7 +330,8 @@ const prepareDocumentActions = (writes: readonly StorageWrite[]) => {
  * `readOnly` opens without taking ownership, for a read-only Harness; its commits fail the same way.
  *
  * Pi Durable fails the Session on any error a Storage method throws, so the storage retries its own transient failures
- * for up to `transientRetryMs`: every read, and a commit that failed before `COMMIT` was sent. Opening is not retried.
+ * for up to `transientRetryMs` after the first one: every read, and a commit that failed before `COMMIT` was sent.
+ * Opening is not retried.
  */
 export const openPostgresStorage = async (options: {
   readonly pool: PoolConfig | Pool;
@@ -412,7 +413,10 @@ export const openPostgresStorage = async (options: {
   }
 };
 
-/** How long an operation keeps starting attempts after a transient failure. A retry holds the Session's line. */
+/**
+ * How long an operation keeps starting attempts after its first transient failure. A retry holds the Session's line:
+ * at worst one pool wait for the first failure, plus this window, plus one more pool wait for the last attempt.
+ */
 export const defaultTransientRetryMs = 5_000;
 const firstRetryDelayMs = 50;
 const maxRetryDelayMs = 500;
@@ -1073,8 +1077,9 @@ export class PostgresStorage implements Storage {
   }
 
   /**
-   * Run `attempt` until it succeeds, or until it fails with an error `retryable` refuses, after `transientRetryMs`, once
-   * the caller is cancelled or once the storage is closing; then reject with the last error.
+   * Run `attempt` until it succeeds, or until it fails with an error `retryable` refuses, `transientRetryMs` after its
+   * first failure, once the caller is cancelled or once the storage is closing; then reject with the last error. The
+   * window starts at the first failure rather than the first attempt, since a pool wait can outlast it.
    */
   private async retrying<T>(
     attempt: () => Promise<T>,
@@ -1082,11 +1087,12 @@ export class PostgresStorage implements Storage {
     context: Context | undefined,
   ): Promise<T> {
     const signal = context?.abortSignal;
-    const deadline = performance.now() + this.transientRetryMs;
+    let deadline: number | undefined;
     for (let delayMs = firstRetryDelayMs; ;) {
       try {
         return await attempt();
       } catch (error) {
+        deadline ??= performance.now() + this.transientRetryMs;
         if (
           !retryable(error) ||
           this.closed ||
