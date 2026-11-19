@@ -484,8 +484,9 @@ export const QueryField = (props: ComponentProps<typeof InputField>) => {
           }
         />
       </Form.Field>
+      {/* The conditions are a builder, so they take a line of their own, as a long input does (see `getInputSize`). */}
       {(rows.length > 0 || !readOnly) && (
-        <Form.Field layout="inline" label="Where">
+        <Form.Field layout="block" label="Where">
           <div className={conditionGroup}>
             <FilterGroup dismissAbandoned>
               {rows.map(({ condition, property }, index) => (

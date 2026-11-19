@@ -25,13 +25,16 @@ const kindSizes: Record<PayloadKind, InputSize> = {
   ProposedEntityWithResolvedLinks: "short",
   WebPage: "short",
   WebSearchResult: "short",
-  /* Each needs a builder, which won't fit beside its label, but they're picked from a menu until they have one. */
-  Aggregation: "short",
-  EntityQuery: "short",
-  FilterCondition: "short",
-  PropertyObjectWithMetadata: "short",
-  PropertyPatch: "short",
-  SortKey: "short",
+  /*
+   * Each is made in a builder, which takes a line of its own, as a long filter ribbon does in the designs. Only a
+   * query has one yet; the others are picked from a menu.
+   */
+  Aggregation: "long",
+  EntityQuery: "long",
+  FilterCondition: "long",
+  PropertyObjectWithMetadata: "long",
+  PropertyPatch: "long",
+  SortKey: "long",
 };
 
 /**

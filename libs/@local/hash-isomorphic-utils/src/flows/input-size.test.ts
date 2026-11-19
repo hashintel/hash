@@ -25,7 +25,7 @@ describe("getInputSize", () => {
     ).toBe("medium");
   });
 
-  it("sizes an input of one kind by that kind, with text long", () => {
+  it("sizes an input of one kind by that kind, with text and builders long", () => {
     expect(getInputSize(input({ oneOfPayloadKinds: ["Text"] }))).toBe("long");
     expect(getInputSize(input({ oneOfPayloadKinds: ["FormattedText"] }))).toBe(
       "long",
@@ -34,8 +34,11 @@ describe("getInputSize", () => {
       "short",
     );
     expect(getInputSize(input({ oneOfPayloadKinds: ["EntityQuery"] }))).toBe(
-      "short",
+      "long",
     );
+    expect(
+      getInputSize(input({ oneOfPayloadKinds: ["FilterCondition"] })),
+    ).toBe("long");
   });
 
   it("keeps a list, an input of several kinds, and one with a derived kind short", () => {
