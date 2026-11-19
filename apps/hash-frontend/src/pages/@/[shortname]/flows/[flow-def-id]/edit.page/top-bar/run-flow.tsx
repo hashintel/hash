@@ -147,6 +147,7 @@ const RunFlowForm = ({
   inputs,
   ranInputs,
   saveRefusedReason,
+  running,
   onRun,
   onClose,
 }: {
@@ -156,6 +157,8 @@ const RunFlowForm = ({
   inputs: FlowInputDefinition[];
   ranInputs: FlowInputValues | null;
   saveRefusedReason: string | null;
+  /** Whether a run is starting. */
+  running: boolean;
   onRun: (flowInputs: FlowInputValues) => Promise<void>;
   onClose: () => void;
 }) => {
@@ -165,7 +168,6 @@ const RunFlowForm = ({
       : { values: getInitialFormValues(inputs), changedInputLabels: [] },
   );
   const [values, setValues] = useState(initialValues);
-  const [running, setRunning] = useState(false);
   const [runError, setRunError] = useState<string | null>(null);
 
   const { flowInputs, missingInputNames } = getFlowInputValues(inputs, values);
@@ -179,7 +181,6 @@ const RunFlowForm = ({
       : null;
 
   const run = async () => {
-    setRunning(true);
     setRunError(null);
 
     try {
@@ -188,7 +189,6 @@ const RunFlowForm = ({
       onClose();
     } catch (error) {
       setRunError(error instanceof Error ? error.message : String(error));
-      setRunning(false);
     }
   };
 
@@ -309,7 +309,19 @@ export const RunFlow = ({
 }) => {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [formOpen, setFormOpen] = useState(false);
+  /* Here rather than in the form, so Run can't close the form, or start another run, while one is starting. */
+  const [running, setRunning] = useState(false);
   const blocker = getRunBlocker(editorState);
+
+  const run = async (flowInputs: FlowInputValues) => {
+    setRunning(true);
+
+    try {
+      await onRun(flowInputs);
+    } finally {
+      setRunning(false);
+    }
+  };
 
   return (
     <>
@@ -319,7 +331,7 @@ export const RunFlow = ({
         size="sm"
         iconName={ranInputs ? "rotate" : "play"}
         pressed={formOpen}
-        disabled={blocker !== null}
+        disabled={blocker !== null || running}
         tooltip={blocker ?? undefined}
         onClick={() => setFormOpen((open) => !open)}
       >
@@ -333,7 +345,8 @@ export const RunFlow = ({
           inputs={editorState.flowDefinition.inputs}
           ranInputs={ranInputs}
           saveRefusedReason={saveRefusedReason}
-          onRun={onRun}
+          running={running}
+          onRun={run}
           onClose={() => setFormOpen(false)}
         />
       )}
