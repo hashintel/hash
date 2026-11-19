@@ -185,9 +185,7 @@ export const queryBasis = async (input: QueryBasisInput) => {
     changes: [],
   });
   if (input.netView.state === "stale")
-    return staleRead(
-      "The USER changed the net in the editor after the latest net view; read it again, then query.",
-    );
+    return staleRead(basisQueryReasons["stale-hand-edit"]);
   if (
     view &&
     input.calls.some(
@@ -200,9 +198,7 @@ export const queryBasis = async (input: QueryBasisInput) => {
     (input.netView.state !== "current" ||
       input.netView.revision !== latest.revision)
   )
-    return staleRead(
-      "The latest recorded net definition has no matching current view; read it again, then query.",
-    );
+    return staleRead(basisQueryReasons["no-current-view"]);
   // A stored view can list its components under `subnets`, as a document
   // written with that key does: it is read the way a file is.
   const candidates = latest
