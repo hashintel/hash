@@ -39,6 +39,7 @@ import {
   claimBrowserCallAs,
   failBrowserCall,
   finishBrowserCall,
+  hasCommittedFailure,
   hasCommittedResult,
   isAdmittable,
   isAnsweredUncollected,
@@ -282,9 +283,11 @@ test.each(statuses)("%s falls in the categories its readers ask", (status) => {
     admittable: [isAdmittable(record, 0), isAdmittable(record, expiresAt)],
     held: [isHeld(record, 0), isHeld(record, expiresAt)],
     committedResult: hasCommittedResult(record),
+    committedFailure: hasCommittedFailure(record),
   }).toEqual({
     // `recordIn` sets no `failure`, so a discarded record here is a discarded result.
     committedResult: status === "settled" || status === "discarded",
+    committedFailure: status === "failure-settled",
     awaiting: status === "pending" || status === "claimed",
     answeredUncollected: status === "finished" || status === "failed",
     admittable: [status === "pending" || status === "claimed", false],
@@ -293,6 +296,14 @@ test.each(statuses)("%s falls in the categories its readers ask", (status) => {
       status === "finished" || status === "failed",
     ],
   });
+});
+
+test("a discarded record with a failure is a committed failure, not a committed result", () => {
+  const record = { ...recordIn("discarded"), failure: "failed" as const };
+  expect([hasCommittedResult(record), hasCommittedFailure(record)]).toEqual([
+    false,
+    true,
+  ]);
 });
 
 /** A turn whose one `setNetTitle` call waits for the browser. */

@@ -315,6 +315,11 @@ export const hasCommittedResult = (record: BrowserCallRecord) =>
   record.status === "settled" ||
   (record.status === "discarded" && record.failure === undefined);
 
+/** The browser committed a failure, whether or not its turn received it. */
+export const hasCommittedFailure = (record: BrowserCallRecord) =>
+  record.status === "failure-settled" ||
+  (record.status === "discarded" && record.failure !== undefined);
+
 const BrowserCall = defineTask<
   { conversationId: ConversationId; toolCallId: string },
   BrowserCallState,
@@ -402,7 +407,6 @@ const BrowserCall = defineTask<
         record.capability = null;
       } else if (record !== undefined && isAnsweredUncollected(record)) {
         // The capability stays, as on a delivered outcome, for retried receipts.
-        if (record.status === "failed") record.failure ??= "failed";
         record.status = "discarded";
       }
       return { status: "terminal", outcome: { status: "aborted" } };
@@ -1038,11 +1042,7 @@ export const failBrowserCall = async (
       const record = (await tx.doc(BrowserCallsDoc, failure.conversationId))
         .calls[failure.toolCallId];
       if (!carriesClaim(record, failure)) return undefined;
-      if (
-        record.status === "failure-settled" ||
-        (record.status === "discarded" && record.failure !== undefined)
-      )
-        return null;
+      if (hasCommittedFailure(record)) return null;
       if (record.status === "claimed" && isAdmittable(record, now())) {
         record.status = "failed";
         record.failure =
