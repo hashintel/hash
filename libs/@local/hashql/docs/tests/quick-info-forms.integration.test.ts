@@ -72,6 +72,10 @@ const nested = `
 export declare const leaf: number;
 `;
 
+const holder = `
+export default class Holder { static count: number; }
+`;
+
 /** Each name in `code`, read as a module beside the declarations, with what an editor shows on hover over it. The module is TypeScript, or TSX where `extension` says so. */
 const inspect = Effect.fnUntraced(function* (
   code: string,
@@ -114,7 +118,7 @@ const inspect = Effect.fnUntraced(function* (
 const fixture = Layer.merge(
   Compiler.layer({
     source: declarations,
-    files: { "nested.d.ts": nested },
+    files: { "nested.d.ts": nested, "holder.d.ts": holder },
   }),
   TypeScript.Api.layer,
 );
@@ -166,6 +170,20 @@ let kind: Space.Inner.Kind;`);
             ["value", "const Space.value: number"],
             ["Inner", "namespace Space.Inner"],
             ["Kind", "type Space.Inner.Kind = string"],
+          ]),
+        );
+      }),
+    );
+
+    it.effect(
+      "default_holder",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const names = yield* inspect(`import Holder from "./holder.js";
+Holder.count;`);
+        expect(names).toStrictEqual(
+          expect.arrayContaining([
+            ["count", "(property) Holder.count: number"],
           ]),
         );
       }),
