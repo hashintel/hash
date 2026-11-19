@@ -16,52 +16,37 @@ import type { OutputContent } from "../shared/use-output-viewer";
 const values = css({ display: "flex", flexDirection: "column", gap: "1" });
 const quiet = css({ textStyle: "sm", color: "fg.subtle" });
 
-/**
- * A file opens on its own, and any other entity opens the whole list on its type. "Show all N", if given, opens the
- * whole list wide.
- */
+/** A file opens on its own, and any other entity opens the whole list on its type. */
 const EntityPeek = ({
   list,
   shown,
-  showAll,
   onOpen,
 }: {
   list: Extract<ListDisplay, { kind: "entities" }>;
   shown: number;
-  showAll: number | null;
-  onOpen: (content: OutputContent, options?: { wide: boolean }) => void;
+  onOpen: (content: OutputContent) => void;
 }) => {
   const entities = useRunEntities(list.entityIds.slice(0, shown));
 
   return (
-    <>
-      <EntityRows
-        entities={entities}
-        onOpen={(index) => {
-          const entity = entities.entities[index];
+    <EntityRows
+      entities={entities}
+      onOpen={(index) => {
+        const entity = entities.entities[index];
 
-          /* Until it loads, whether it's a file, and so what it opens, isn't known. */
-          if (!entity && entities.loading) {
-            return;
-          }
+        /* Until it loads, whether it's a file, and so what it opens, isn't known. */
+        if (!entity && entities.loading) {
+          return;
+        }
 
-          onOpen(
-            isFileEntity(entity)
-              ? { kind: "file", entityIds: list.entityIds, index }
-              : /* On the entity's type tab, so it's among those shown. */
-                { kind: "list", list, typeKey: entity && getTypeKey(entity) },
-          );
-        }}
-      />
-      {showAll !== null && (
-        <ShowAllButton
-          count={showAll}
-          /* Only the entities shown are loaded, so a list counts as files when they all are. */
-          noun={entities.entities.every(isFileEntity) ? "files" : undefined}
-          onClick={() => onOpen({ kind: "list", list }, { wide: true })}
-        />
-      )}
-    </>
+        onOpen(
+          isFileEntity(entity)
+            ? { kind: "file", entityIds: list.entityIds, index }
+            : /* On the entity's type tab, so it's among those shown. */
+              { kind: "list", list, typeKey: entity && getTypeKey(entity) },
+        );
+      }}
+    />
   );
 };
 
@@ -88,27 +73,21 @@ export const RunValue = ({
   return (
     <div className={values}>
       {display.kind === "inline" ? (
-        <>
-          {display.values.slice(0, peek.shown).map((value, index) => (
-            // Values can repeat, and are only ever shown in this order.
-            // eslint-disable-next-line react/no-array-index-key
-            <TextValue key={index} text={value} />
-          ))}
-          {peek.showAll !== null && (
-            <ShowAllButton
-              count={peek.showAll}
-              onClick={() =>
-                onOpen({ kind: "list", list: display }, { wide: true })
-              }
-            />
-          )}
-        </>
+        display.values.slice(0, peek.shown).map((value, index) => (
+          // Values can repeat, and are only ever shown in this order.
+          // eslint-disable-next-line react/no-array-index-key
+          <TextValue key={index} text={value} />
+        ))
       ) : (
-        <EntityPeek
-          list={display}
-          shown={peek.shown}
-          showAll={peek.showAll}
-          onOpen={onOpen}
+        <EntityPeek list={display} shown={peek.shown} onOpen={onOpen} />
+      )}
+      {peek.showAll !== null && (
+        <ShowAllButton
+          count={peek.showAll}
+          /* Not "files": only the entities shown are loaded, so what the rest are isn't known. */
+          onClick={() =>
+            onOpen({ kind: "list", list: display }, { wide: true })
+          }
         />
       )}
     </div>
