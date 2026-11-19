@@ -128,11 +128,14 @@ type Opened = OpenConversation & {
 /**
  * Waiting browser calls keep their tool call open across restarts, so no
  * restart count ends one; the crash-loop guard bounds everything else.
+ * Inputs queued behind a failed run are withdrawn: a client sees a queued
+ * input only through its stream, which then ends with the error.
  */
-const unlimitedRestarts =
+const enforcedSettings =
   (settings: HarnessOptions["settings"]) => (): HarnessSettings => ({
     ...(typeof settings === "function" ? settings() : settings),
     restartLimit: Infinity,
+    afterFailedRun: "withdraw",
   });
 
 /** `Array.isArray` does not narrow a readonly array. */
@@ -198,7 +201,7 @@ export const createConversationRegistry = (
       {
         models: options.models,
         registry,
-        settings: unlimitedRestarts(options.settings),
+        settings: enforcedSettings(options.settings),
         ...(options.now === undefined ? {} : { now: options.now }),
         onReport: (report) => options.onReport?.(conversationId, report),
       },
