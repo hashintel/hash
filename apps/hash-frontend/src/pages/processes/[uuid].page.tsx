@@ -90,20 +90,26 @@ const ProcessRoutePage: NextPageWithLayout = () => {
    * A navigation is under way. Next cancels an earlier navigation for a
    * later one, so a start that becomes due while the user is leaving (once
    * the router or workspace is ready) would take them to a new draft
-   * instead. It waits: a navigation that lands leaves this URL, and one Next
-   * cancels lets it start.
+   * instead. It waits until a navigation ends. A cancelled one doesn't: Next
+   * cancels only for a newer navigation, which reports its own end, and
+   * reports the cancellation before that navigation's start.
    */
   const [navigating, setNavigating] = useState(false);
   useEffect(() => {
     const start = () => setNavigating(true);
-    const end = () => setNavigating(false);
+    const complete = () => setNavigating(false);
+    const fail = (error: { cancelled?: boolean }) => {
+      if (!error.cancelled) {
+        setNavigating(false);
+      }
+    };
     router.events.on("routeChangeStart", start);
-    router.events.on("routeChangeComplete", end);
-    router.events.on("routeChangeError", end);
+    router.events.on("routeChangeComplete", complete);
+    router.events.on("routeChangeError", fail);
     return () => {
       router.events.off("routeChangeStart", start);
-      router.events.off("routeChangeComplete", end);
-      router.events.off("routeChangeError", end);
+      router.events.off("routeChangeComplete", complete);
+      router.events.off("routeChangeError", fail);
     };
   }, [router.events]);
 

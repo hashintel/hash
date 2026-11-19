@@ -1358,31 +1358,27 @@ const openDraft = () => {
   return uuid && web ? { uuid, web, query } : null;
 };
 
-test("starting a draft waits for a navigation already under way, and starts only if Next cancels it", async () => {
+test("starting a draft waits for a navigation already under way, including one a newer navigation cancels", async () => {
   // The page mounts before the router is ready, so the start isn't due yet.
   await renderRoute(null);
   // The user leaves for another net; then the start becomes due.
-  router.events.emit("routeChangeStart", `/processes/${uuidA}`);
+  router.events.emit("routeChangeStart", `/processes/${uuidB}`);
   act(() => router.go("/processes/draft"));
   await settle();
   expect(router.replace).not.toHaveBeenCalled();
 
+  // They change their mind: Next reports the first navigation cancelled
+  // before the second one starts.
   act(() => {
     router.events.emit("routeChangeError", { cancelled: true });
   });
   await settle();
-  expect(router.replace).toHaveBeenCalledOnce();
-  expect(openDraft()).toMatchObject({ web: webId });
-  cleanup();
-  observed.editor = null;
-  router.replace.mockClear();
-  router.state.current = { isReady: false, asPath: "", query: {} };
-
-  // A navigation that lands takes the user where they were going.
-  await renderRoute(null);
-  router.events.emit("routeChangeStart", `/processes/${uuidA}`);
-  act(() => router.go("/processes/draft"));
+  expect(router.replace).not.toHaveBeenCalled();
+  act(() => {
+    router.events.emit("routeChangeStart", `/processes/${uuidA}`);
+  });
   await settle();
+
   act(() => {
     router.go(`/processes/${uuidA}`);
     router.events.emit("routeChangeComplete", `/processes/${uuidA}`);
