@@ -24,6 +24,7 @@ import {
   type UIMessage,
   type UIMessageChunk,
 } from "ai";
+import { Hono } from "hono";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import {
@@ -43,6 +44,7 @@ import {
   claimBrowserCall,
   finishBrowserCall,
 } from "../browser-call/browser-call";
+import { createBrowserCallRouter } from "../browser-call/browser-call-router";
 import {
   createDurableAgentsServer,
   type DurableAgentsServerLimits,
@@ -50,6 +52,7 @@ import {
 } from "./durable-agents-server";
 import { brunchUserInput } from "./durable-agents-server/user-input";
 import { VersionLoadDoc } from "./durable-agents-server/version-load";
+import { browserCallsPrefix } from "./start-durable-agents-server";
 import { serveNode } from "./start-durable-agents-server/serve-node";
 
 import type { OwnedStorage } from "./conversation-storage";
@@ -1249,6 +1252,48 @@ test("a claimed browser call keeps an unwatched turn alive", async () => {
     type: "finish",
     finishReason: "stop",
   });
+});
+
+test("a HEAD request is refused before any route runs, so it follows no turn", async () => {
+  const { server, transport } = openChat({ limits: { abandonedTurnMs } });
+  // Mounted as the production server mounts them: after the chat routes, under an outer app.
+  server.app.route(
+    browserCallsPrefix,
+    createBrowserCallRouter({
+      resolveHarness: async (conversationId) =>
+        (await server.conversations.acquire(conversationId))?.harness,
+      now: server.now,
+    }),
+  );
+  const app = new Hono();
+  app.route("/", server.app);
+  const listener = await serveNode(app.fetch, {
+    port: 0,
+    hostname: "127.0.0.1",
+  });
+  try {
+    const stream = recorder(await send(transport));
+    await stream.until(({ type }) => type === "tool-input-available");
+    await stream.cancel();
+
+    const base = `http://127.0.0.1:${listener.port}`;
+    const heads = await Promise.all(
+      [
+        `${base}/chat/${chatId}/stream`,
+        `${base}${browserCallsPrefix}/${chatId}/browser-calls`,
+      ].map((url) => fetch(url, { method: "HEAD" })),
+    );
+    expect(heads.map(({ status }) => status)).toEqual([405, 405]);
+
+    // Nothing watches the turn, so the sweep aborts it after the timeout.
+    const live = await eventually(async () => {
+      const current = await liveOf(server);
+      return current?.run === undefined ? current : undefined;
+    }, abandonedTurnMs * 10);
+    expect(live.runFailure?.reason).toBe("aborted");
+  } finally {
+    await listener.close();
+  }
 });
 
 test("a watched turn outlives the timeout", async () => {
