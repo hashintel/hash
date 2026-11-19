@@ -197,6 +197,7 @@ vi.mock("@apollo/client", async (importOriginal) => {
       }),
     ) as QueryEntitySubgraphQuery;
 
+  const readError = new Error("The read failed");
   const useQuery = (
     _query: unknown,
     {
@@ -207,13 +208,14 @@ vi.mock("@apollo/client", async (importOriginal) => {
     const [, rerender] = useReducer((count: number) => count + 1, 0);
     graph.queries.push({ skip: skip ?? false, variables });
     const key = JSON.stringify(variables);
-    const refetch = async () => {
+    const refetch = () => {
       if (graph.failingReads > 0) {
         graph.failingReads--;
-        throw new Error("The read failed again");
+        return Promise.reject(new Error("The read failed again"));
       }
       graph.failed.delete(key);
       rerender();
+      return Promise.resolve();
     };
     if (skip || graph.reading) {
       return { data: undefined, error: undefined, refetch };
@@ -240,7 +242,6 @@ vi.mock("@apollo/client", async (importOriginal) => {
     }
     return { data: graph.answers.get(key), error: undefined, refetch };
   };
-  const readError = new Error("The read failed");
 
   // One mutate function per mutation, stable across renders, as Apollo's is.
   const mutations = new Map<string, unknown[]>();
