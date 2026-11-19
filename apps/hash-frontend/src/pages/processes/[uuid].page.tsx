@@ -91,8 +91,10 @@ const ProcessRoutePage: NextPageWithLayout = () => {
    * later one, so a start that becomes due while the user is leaving (once
    * the router or workspace is ready) would take them to a new draft
    * instead. It waits until a navigation ends. A cancelled one doesn't: Next
-   * cancels only for a newer navigation, which reports its own end, and
-   * reports the cancellation before that navigation's start.
+   * cancels only for a newer navigation, and reports the cancellation before
+   * that navigation's start. The newer one ends by completing, failing, or
+   * leaving the document, or, when it changes only the hash, by the hash
+   * change completing.
    */
   const [navigating, setNavigating] = useState(false);
   useEffect(() => {
@@ -106,10 +108,12 @@ const ProcessRoutePage: NextPageWithLayout = () => {
     router.events.on("routeChangeStart", start);
     router.events.on("routeChangeComplete", complete);
     router.events.on("routeChangeError", fail);
+    router.events.on("hashChangeComplete", complete);
     return () => {
       router.events.off("routeChangeStart", start);
       router.events.off("routeChangeComplete", complete);
       router.events.off("routeChangeError", fail);
+      router.events.off("hashChangeComplete", complete);
     };
   }, [router.events]);
 
@@ -118,6 +122,9 @@ const ProcessRoutePage: NextPageWithLayout = () => {
       return;
     }
     void router.replace(
+      // The route is fixed; its query is a generated uuid, the active web,
+      // and a slug read back from our own example catalog.
+      // nosemgrep: typescript.nextjs.react-nextjs-router-push.react-nextjs-router-push
       draftRoute(
         entityIdFromComponents(
           activeWorkspaceWebId,

@@ -1388,6 +1388,25 @@ test("starting a draft waits for a navigation already under way, including one a
   expect(topBar()).toMatchObject({ title: "A" });
 });
 
+test("starting a draft goes ahead once a hash change ends the navigation it cancelled", async () => {
+  await renderRoute(null);
+  router.events.emit("routeChangeStart", "/processes/draft");
+  act(() => router.go("/processes/draft"));
+  await settle();
+  expect(router.replace).not.toHaveBeenCalled();
+
+  // A link to a hash on this page cancels the navigation under way, and Next
+  // reports only the hash change after it.
+  act(() => {
+    router.events.emit("routeChangeError", { cancelled: true });
+    router.events.emit("hashChangeStart", "/processes/draft#top");
+    router.events.emit("hashChangeComplete", "/processes/draft#top");
+  });
+  await settle();
+  expect(router.replace).toHaveBeenCalledOnce();
+  expect(openDraft()).toMatchObject({ web: webId });
+});
+
 test("starting a draft keeps an example we have and drops any other value", async () => {
   await renderRoute("/processes/draft?example=sir-model");
   expect(router.replace).toHaveBeenLastCalledWith({
