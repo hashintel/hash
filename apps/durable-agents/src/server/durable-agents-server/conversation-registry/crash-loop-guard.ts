@@ -26,7 +26,10 @@ import {
   type TaskInspection,
 } from "@earendil-works/pi-durable";
 
-import { BrowserCallsDoc } from "../../../browser-call/browser-call";
+import {
+  BrowserCallsDoc,
+  isAwaitingBrowser,
+} from "../../../browser-call/browser-call";
 import {
   CrashLoopEntry,
   type CrashLoopingTask,
@@ -60,9 +63,7 @@ const browserCallWaiters = async (
     (await harness.snapshot(BrowserCallsDoc, root.id, context))?.calls ?? {},
   );
   const openCalls = new Set<number>(
-    calls
-      .filter(({ status }) => status === "pending" || status === "claimed")
-      .map(({ task }) => task),
+    calls.filter(isAwaitingBrowser).map(({ task }) => task),
   );
   const waiting = new Set<number>(
     tasks.flatMap(({ record }) =>

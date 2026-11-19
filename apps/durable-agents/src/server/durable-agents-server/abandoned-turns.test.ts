@@ -15,6 +15,10 @@ import {
   fauxToolCall,
   scriptedModel,
 } from "../../../test/scripted-model";
+import {
+  BrowserCallsDoc,
+  type BrowserCallStatus,
+} from "../../browser-call/browser-call";
 import { createAbandonedTurns } from "./abandoned-turns";
 import { createConversationRegistry } from "./conversation-registry";
 import { createRequestSlots } from "./request-slots";
@@ -136,6 +140,25 @@ const openWaitingTurn = async () => {
     return {
       turns,
       live: () => harness.snapshot(LiveDoc, root.id, context),
+      /** Record a browser call of the turn in `status`, expiring `expiresInMs` from now. */
+      seedCall: (status: BrowserCallStatus, expiresInMs: number) =>
+        harness.commit(async (tx) => {
+          const { calls } = await tx.doc(BrowserCallsDoc, root.id);
+          calls.seeded = {
+            toolCallId: "seeded",
+            toolName: "petrinaut_get_net",
+            input: {},
+            status,
+            issuedAt: Date.now(),
+            expiresAt: Date.now() + expiresInMs,
+            task: 0,
+            doorbell: null,
+            capability: null,
+            claimed: status !== "pending",
+            output: null,
+            metadata: null,
+          };
+        }, context),
       /** Whether the turn still runs, and why its last run failed, if it did. */
       outcome: async () => {
         const live = await harness.snapshot(LiveDoc, root.id, context);
@@ -179,6 +202,30 @@ test("an unwatched live turn is aborted", async () => {
     await fixture.close();
   }
 });
+
+test.each([
+  { status: "pending", expiresInMs: 60_000, aborted: true },
+  { status: "claimed", expiresInMs: 60_000, aborted: false },
+  { status: "claimed", expiresInMs: 0, aborted: true },
+  { status: "finished", expiresInMs: 60_000, aborted: false },
+  { status: "finished", expiresInMs: 0, aborted: false },
+  { status: "failed", expiresInMs: 0, aborted: false },
+  { status: "settled", expiresInMs: 60_000, aborted: true },
+  { status: "failure-settled", expiresInMs: 60_000, aborted: true },
+] as const)(
+  "a $status call expiring in $expiresInMs ms leaves the unwatched turn aborted=$aborted",
+  async ({ status, expiresInMs, aborted }) => {
+    const fixture = await openWaitingTurn();
+    try {
+      await fixture.seedCall(status, expiresInMs);
+      fixture.turns.opened(chatId);
+      await vi.advanceTimersByTimeAsync(timeoutMs * 4);
+      expect((await fixture.outcome()).running).toBe(!aborted);
+    } finally {
+      await fixture.close();
+    }
+  },
+);
 
 test("a continuously watched turn is not checked or aborted", async () => {
   const fixture = await openWaitingTurn();
