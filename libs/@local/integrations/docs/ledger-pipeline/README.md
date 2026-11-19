@@ -27,4 +27,4 @@ The ledger pipeline is the next version of the integration pipeline: a new crate
 
 ## State
 
-On 2026-11-19: the design in `plan.md` is agreed. All eleven milestones of the spec are written and checked, and a final check ran over the whole spec. `spec/README.md` has the table.
+On 2026-11-19: the design in `plan.md` is agreed. All eleven milestones of the spec are written and checked, and a final check ran over the whole spec. Nine are agreed. Milestones 4 and 10 wait for changes by Fedor. `spec/README.md` has the table.
