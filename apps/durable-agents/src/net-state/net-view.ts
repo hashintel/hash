@@ -1,9 +1,9 @@
 /**
  * What a net result shows the model of the net, by the library's one rule
  * (`mayShowNet`). Net freshness applies it to the model's context;
- * `query_basis` applies it to every settled call.
- *
- * Copied from `apps/brunch-agent/src/shared/conversation/net-view.ts`.
+ * `query_basis` applies it to every settled call. Brunch's
+ * `apps/brunch-agent/src/shared/conversation/net-view.ts` reads results the
+ * same way; the two must agree.
  */
 import {
   browserToolFacts,

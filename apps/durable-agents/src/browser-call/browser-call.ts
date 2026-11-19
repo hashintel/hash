@@ -254,7 +254,7 @@ type BrowserCallState = { phase: "arm" } | { phase: "collect" };
 const mayHaveStarted = (record: BrowserCallRecord) =>
   record.started ?? record.claimed;
 
-/** The model-facing error for a call that expired or stopped without a result, as Brunch words it. */
+/** The model-facing error for a call that expired or stopped without a result. */
 export const unfinishedError = (
   record: BrowserCallRecord,
   cause: "expired" | "stopped",
@@ -279,8 +279,9 @@ const failureError = (
   );
 };
 
-// The lifecycle's categories. Every reader of a call's status asks these,
-// so a new status is placed in each category here, once.
+// The lifecycle's categories that more than one reader asks. A new status
+// is placed in each of them here; the commits below also match single
+// statuses, for transitions and retry receipts.
 
 /** No outcome yet: issued, or held by a browser. */
 export const isAwaitingBrowser = (record: BrowserCallRecord) =>
@@ -289,10 +290,6 @@ export const isAwaitingBrowser = (record: BrowserCallRecord) =>
 /** The browser's outcome is committed and the task has not delivered it yet. */
 export const isAnsweredUncollected = (record: BrowserCallRecord) =>
   record.status === "finished" || record.status === "failed";
-
-/** The task delivered the browser's outcome, a result or a failure, to the tool. */
-export const isDelivered = (record: BrowserCallRecord) =>
-  record.status === "settled" || record.status === "failure-settled";
 
 /** Whether a browser may still claim, start, renew or answer the call at `now`. */
 export const isAdmittable = (record: BrowserCallRecord, now: number) =>

@@ -4,6 +4,8 @@
  * status it leaves. Then the task's own events: collecting a failed call, and
  * a wait that ends before the deadline without an outcome.
  */
+import { setTimeout as sleep } from "node:timers/promises";
+
 import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
 import {
   type ConversationId,
@@ -14,7 +16,11 @@ import {
 } from "@earendil-works/pi-durable";
 import { describe, expect, test, vi } from "vitest";
 
-import { browserCallUnstartedRefusal } from "@hashintel/brunch-agent";
+import {
+  browserCallEndedWithoutResult,
+  browserCallUnstartedRefusal,
+  browserToolFacts,
+} from "@hashintel/brunch-agent";
 
 import {
   fauxAssistantMessage,
@@ -34,10 +40,10 @@ import {
   isAdmittable,
   isAnsweredUncollected,
   isAwaitingBrowser,
-  isDelivered,
   isHeld,
   renewBrowserCall,
   startBrowserCall,
+  withBrowserClaimDecision,
 } from "./browser-call";
 
 const context = BACKGROUND_CONTEXT;
@@ -47,17 +53,6 @@ const capability = "capability-1";
 const input = { title: "Net" };
 const expiresAt = 1_000;
 const clocks = { live: () => 0, late: () => expiresAt } as const;
-
-const statuses = [
-  "pending",
-  "claimed",
-  "finished",
-  "failed",
-  "settled",
-  "failure-settled",
-  "expired",
-  "stopped",
-] as const satisfies readonly BrowserCallStatus[];
 
 /** A call in `status` as the owner leaves it: a capability once claimed, dropped when it expires or stops. */
 const recordIn = (status: BrowserCallStatus): BrowserCallRecord => ({
@@ -153,7 +148,7 @@ type Expected = {
 };
 
 /** Before the deadline: `[returned, status after]` per event. */
-const live: Record<(typeof statuses)[number], Expected> = {
+const live: Record<BrowserCallStatus, Expected> = {
   pending: {
     claim: [true, "claimed"],
     claimAs: ["claimed", "claimed"],
@@ -222,6 +217,9 @@ const live: Record<(typeof statuses)[number], Expected> = {
   },
 };
 
+/** Every status, from the table keyed by the union, so none can be left out. */
+const statuses = Object.keys(live) as BrowserCallStatus[];
+
 /** At the deadline nothing is admitted; a retry still gets its committed outcome's receipt. */
 const late = Object.fromEntries(
   statuses.map((status): [string, Expected] => [
@@ -241,7 +239,7 @@ const late = Object.fromEntries(
           : ["not-issued", status],
     },
   ]),
-) as Record<(typeof statuses)[number], Expected>;
+) as Record<BrowserCallStatus, Expected>;
 
 describe.each([
   ["before the deadline", clocks.live, live],
@@ -269,13 +267,11 @@ test.each(statuses)("%s falls in the categories its readers ask", (status) => {
   expect({
     awaiting: isAwaitingBrowser(record),
     answeredUncollected: isAnsweredUncollected(record),
-    delivered: isDelivered(record),
     admittable: [isAdmittable(record, 0), isAdmittable(record, expiresAt)],
     held: [isHeld(record, 0), isHeld(record, expiresAt)],
   }).toEqual({
     awaiting: status === "pending" || status === "claimed",
     answeredUncollected: status === "finished" || status === "failed",
-    delivered: status === "settled" || status === "failure-settled",
     admittable: [status === "pending" || status === "claimed", false],
     held: [
       status === "claimed" || status === "finished" || status === "failed",
@@ -369,16 +365,83 @@ test("a collected failure is delivered once: a retried report is acknowledged wi
   }
 });
 
-test("a wait that ends before the deadline without an outcome stops the call, not expires it", async () => {
-  const { harness, submission, record, resultText } = await openWaitingCall();
+test.each([
+  ["unclaimed", false, browserCallUnstartedRefusal],
+  [
+    "claimed single-shot, so maybe run",
+    true,
+    browserCallEndedWithoutResult(
+      "stopped",
+      !browserToolFacts("setNetTitle").effectUnknownOnFailure,
+    ),
+  ],
+] as const)(
+  "a wait that ends before the deadline without an outcome stops the call, not expires it (%s)",
+  async (_, claim, text) => {
+    const { harness, root, submission, record, resultText } =
+      await openWaitingCall();
+    try {
+      if (claim) await claimBrowserCall(harness, root.id, toolCallId, context);
+      await harness.abortTask((await record())!.doorbell as TaskId, context);
+      expect((await submission.wait(context)).status).toBe("done");
+      expect((await record())?.status).toBe("stopped");
+      expect((await record())?.capability).toBeNull();
+      expect(await resultText()).toEqual([text]);
+    } finally {
+      await harness.close(context);
+    }
+  },
+);
+
+test("a conversation abort stops a call still awaiting the browser", async () => {
+  const { harness, root, record } = await openWaitingCall();
   try {
-    await harness.abortTask((await record())!.doorbell as TaskId, context);
-    expect((await submission.wait(context)).status).toBe("done");
-    expect((await record())?.status).toBe("stopped");
+    await root.abort(context);
+    await vi.waitFor(async () => {
+      expect((await record())?.status).toBe("stopped");
+    });
     expect((await record())?.capability).toBeNull();
-    // Nobody claimed it, so nothing ran.
-    expect(await resultText()).toEqual([browserCallUnstartedRefusal]);
   } finally {
     await harness.close(context);
   }
 });
+
+test.each(["finish", "fail"] as const)(
+  "a %s waits for a claim decision in flight, so the abandonment sweep never reads between them",
+  async (outcome) => {
+    const { harness, root, record } = await openWaitingCall();
+    try {
+      const claimed = await claimBrowserCall(
+        harness,
+        root.id,
+        toolCallId,
+        context,
+      );
+      const proofOf = {
+        conversationId: root.id,
+        toolCallId,
+        toolName: "setNetTitle",
+        capability: claimed!.capability,
+        canonicalInput: claimed!.input,
+      };
+      const decision = Promise.withResolvers<void>();
+      const sweep = withBrowserClaimDecision(harness, () => decision.promise);
+      const answering =
+        outcome === "finish"
+          ? finishBrowserCall(harness, { ...proofOf, output: null }, context)
+          : failBrowserCall(
+              harness,
+              { ...proofOf, disposition: "failed" },
+              context,
+            );
+      await sleep(50);
+      expect((await record())?.status).toBe("claimed");
+      decision.resolve();
+      await sweep;
+      await answering;
+      expect((await record())?.status).not.toBe("claimed");
+    } finally {
+      await harness.close(context);
+    }
+  },
+);

@@ -101,12 +101,17 @@ const runTurn = async (conversation: Conversation, content: string) =>
   );
 
 /** A turn as `POST /chat` admits it: a `brunch.user` input. */
-const runBrunchUserTurn = async (conversation: Conversation, text: string) =>
+/** A `brunch.user` turn: `text` is the user's words, `content` what the model reads. */
+const runBrunchUserTurn = async (
+  conversation: Conversation,
+  text: string,
+  content = text,
+) =>
   (
     await conversation.submit(
       {
         type: "input",
-        content: text,
+        content,
         entry: {
           kind: "brunch.user",
           data: { body: "ordinary", userText: text },
@@ -471,7 +476,15 @@ describe("the Ledger as a rewindable document (proof 2)", () => {
       expect((await runTurn(root, "We have a dryer.")).status).toBe("done");
       await hostWrite(root, "brunch.hand-edit");
       await hostWrite(root, "brunch.prune");
-      expect((await runBrunchUserTurn(root, "One dryer.")).status).toBe("done");
+      expect(
+        (
+          await runBrunchUserTurn(
+            root,
+            "One dryer.",
+            "<context>Net check: 2 warnings.</context> One dryer.",
+          )
+        ).status,
+      ).toBe("done");
 
       const entries = await transcript(root);
       const idsOf = (kind: string) =>
