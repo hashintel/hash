@@ -3,7 +3,7 @@
  *
  * Every environment variable it reads, with its default:
  *
- * - `PORT` (4324): where it listens.
+ * - `PORT` (4324): the port on IPv4 loopback (`127.0.0.1`).
  * - `DURABLE_AGENTS_MODEL` (required): a new conversation's model,
  *   `<provider>/<modelId>` from pi-ai's built-in catalog. Production runs
  *   `openai/gpt-6.1-sol` (H12).
@@ -51,6 +51,7 @@ import {
 } from "./storage/postgres/postgres-config";
 
 const defaultPort = 4324;
+const hostname = "127.0.0.1";
 
 const modelFromEnvironment = (
   models: ReturnType<typeof builtinModels>,
@@ -80,6 +81,7 @@ const pool = new Pool({
 
 const server = await startDurableAgentsServer({
   port,
+  hostname,
   pool,
   models,
   model,
@@ -97,7 +99,7 @@ const server = await startDurableAgentsServer({
   },
 });
 process.stdout.write(
-  `Durable agents server on http://localhost:${server.port} (model ${model.provider}/${model.modelId})\n`,
+  `Durable agents server on http://${hostname}:${server.port} (model ${model.provider}/${model.modelId})\n`,
 );
 
 let stopping = false;
