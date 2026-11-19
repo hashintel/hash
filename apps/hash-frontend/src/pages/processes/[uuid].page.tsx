@@ -1,10 +1,15 @@
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
+import { validate as isUuid } from "uuid";
 
-import { entityIdFromComponents } from "@blockprotocol/type-system";
+import {
+  entityIdFromComponents,
+  extractEntityUuidFromEntityId,
+} from "@blockprotocol/type-system";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 
 import { getLayoutWithSidebar } from "../../shared/layout";
+import { usePersistedNets } from "../processes.page/use-persisted-nets";
 import { useAuthInfo } from "../shared/auth-info-context";
 import { useActiveWorkspace } from "../shared/workspace-context";
 import { draftRoute, draftWebQueryParam } from "./[uuid].page/draft-path";
@@ -38,8 +43,9 @@ const firstQueryValue = (value: string | string[] | undefined) =>
  * A draft URL is checked when it opens: one whose uuid is malformed, or
  * whose web is not one the user can create entities in, could never be
  * saved, so it is replaced with a fresh draft in the active workspace, as
- * `/processes/draft` would start. An `example` naming none of ours is
- * dropped, which opens a blank draft.
+ * `/processes/draft` would start. A net the user can see that already has
+ * its uuid opens instead. An `example` naming none of ours is dropped,
+ * which opens a blank draft.
  *
  * We deliberately render `<ProcessEditor>` even before `router.isReady`
  * (passing `view={null}`) so the editor starts loading on the very first
@@ -80,11 +86,40 @@ const ProcessRoutePage: NextPageWithLayout = () => {
       ? undefined
       : draftEntityIdFromQuery({ uuid: uuidParam, draftWeb, creatableWebs });
 
+  const { persistedNets, loading: persistedNetsLoading } = usePersistedNets();
+
+  /** The uuid of a draft URL whose web the user can't create in. */
+  const uncreatableDraftUuid =
+    draftEntityId === null && uuidParam !== null && isUuid(uuidParam)
+      ? uuidParam
+      : null;
+
+  /**
+   * Whether a net the user can see has `uncreatableDraftUuid`, `undefined`
+   * while the nets load. Uuids are unique across webs, so the URL names it.
+   */
+  const savedUnderUncreatableDraft =
+    uncreatableDraftUuid === null
+      ? undefined
+      : persistedNets.some(
+            (net) =>
+              extractEntityUuidFromEntityId(net.entityId) ===
+              uncreatableDraftUuid,
+          )
+        ? true
+        : persistedNetsLoading
+          ? undefined
+          : false;
+
   /**
    * `/processes/draft` names no draft yet, and a draft URL failing its
-   * check names none that could be saved: give it one and go there.
+   * check names none that could be saved, unless its net is saved already:
+   * give it one and go there.
    */
-  const startsDraft = uuidParam === "draft" || draftEntityId === null;
+  const startsDraft =
+    uuidParam === "draft" ||
+    (draftEntityId === null &&
+      (uncreatableDraftUuid === null || savedUnderUncreatableDraft === false));
 
   /**
    * A navigation is under way. Next cancels an earlier navigation for a
@@ -141,6 +176,11 @@ const ProcessRoutePage: NextPageWithLayout = () => {
     }
 
     if (draftWeb !== null) {
+      if (draftEntityId === null) {
+        return savedUnderUncreatableDraft
+          ? { kind: "saved", entityUuid: uuidParam }
+          : null;
+      }
       if (draftEntityId === undefined) {
         return null;
       }
@@ -161,7 +201,14 @@ const ProcessRoutePage: NextPageWithLayout = () => {
     }
 
     return { kind: "saved", entityUuid: uuidParam };
-  }, [draftEntityId, draftWeb, example, startsDraft, uuidParam]);
+  }, [
+    draftEntityId,
+    draftWeb,
+    example,
+    savedUnderUncreatableDraft,
+    startsDraft,
+    uuidParam,
+  ]);
 
   return <ProcessEditor view={view} />;
 };

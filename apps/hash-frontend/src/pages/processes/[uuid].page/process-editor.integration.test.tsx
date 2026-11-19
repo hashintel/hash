@@ -1458,6 +1458,20 @@ test("a draft's URL naming a web the user can't create in, or a malformed uuid, 
   expect(topBar()).toMatchObject({ saveLabel: "Save" });
 });
 
+test("a draft's URL naming a web the user can't create in opens the net they can see under its uuid", async () => {
+  const otherWeb = "00000000-0000-4000-8000-0000000000ff";
+  const elsewhereId = `${otherWeb}~${uuidCreated}` as EntityId;
+  graph.nets.set(elsewhereId, graphNet(elsewhereId, "Shared with Alice"));
+
+  await renderRoute(`/processes/${uuidCreated}?draftWeb=${otherWeb}`);
+
+  expect(router.replace).not.toHaveBeenCalled();
+  expect(topBar()).toMatchObject({ title: "Shared with Alice" });
+  pressSave();
+  await settle();
+  expect(graph.writes.filter(({ kind }) => kind === "create")).toEqual([]);
+});
+
 test("a Create refused because another tab created the net moves this tab to that net, keeping its edits unsaved for an update", async () => {
   await renderRoute(draftUrl);
   const draft = editor().handle;
