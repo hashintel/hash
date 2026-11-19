@@ -12,7 +12,7 @@ import { toPetrinautId, type SDCPN } from "@hashintel/petrinaut-core";
 import {
   submitPersonaBrowserTurn,
   type PersonaAllowedEdit,
-} from "../../evals/petrinaut/persona/browser-turn.ts";
+} from "../../evals/persona/browser-turn.ts";
 import {
   isAppliedChange,
   netCalls,
@@ -110,7 +110,9 @@ const currentApproval = async () => {
       },
     },
   );
-  assert.deepEqual(allowed, [{ items: ["Remove place — Victim"] }]);
+  assert.deepEqual(allowed, [
+    { kind: "destructive-edit", items: ["Remove place — Victim"] },
+  ]);
   const removal = netCalls(result.snapshot).find(
     ({ toolCallId }) => toolCallId === openaiCallId("current-remove"),
   );

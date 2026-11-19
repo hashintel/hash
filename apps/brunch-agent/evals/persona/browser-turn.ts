@@ -38,10 +38,35 @@ export type PersonaBrowserSession = ConversationIdentity & {
   readonly url: string;
   readonly uid: string;
   readonly initialData: unknown;
+  /**
+   * The cookies the browser sent with its latest submission. A host that
+   * names the actor from its session cookie, as HASH does, answers the
+   * launcher's own requests only with them. Held in memory, never written.
+   */
+  readonly cookie?: string;
 };
 
-/** A destructive edit the harness allowed, described as the approval panel listed it. */
+/** Brunch's conversation as the browser holds it, read from the launcher. */
+export const personaConversationClient = (session: PersonaBrowserSession) =>
+  createFlueClient({
+    url: session.url,
+    headers: {
+      ...agentOwnershipHeaders(session),
+      ...(session.cookie === undefined ? {} : { cookie: session.cookie }),
+    },
+  });
+
+/** The approval panels a turn can wait on, by their accessible names. */
+const approvalPanels = {
+  "Approve destructive edits": "destructive-edit",
+  /** HASH's agent saves a new version of the process only once allowed. */
+  "Approve saving the net": "save",
+} as const;
+
+/** An approval the harness allowed, described as its panel showed it. */
 export interface PersonaAllowedEdit {
+  readonly kind: (typeof approvalPanels)[keyof typeof approvalPanels];
+  /** The panel's listed edits, or a save card's text. */
   readonly items: readonly string[];
 }
 
@@ -56,7 +81,9 @@ export const allowDestructiveEdits = async (
   onAllowed?: (edit: PersonaAllowedEdit) => Promise<void>,
 ) => {
   const panel = page
-    .getByRole("region", { name: "Approve destructive edits", exact: true })
+    .getByRole("region", {
+      name: new RegExp(`^(${Object.keys(approvalPanels).join("|")})$`, "u"),
+    })
     .first();
   const allowNext = async () => {
     try {
@@ -65,7 +92,13 @@ export const allowDestructiveEdits = async (
       if (error instanceof errors.TimeoutError) return;
       throw error;
     }
-    const items = await panel.getByRole("listitem").allTextContents();
+    const name = await panel.getAttribute("aria-label");
+    const kind =
+      Object.entries(approvalPanels).find(([label]) => label === name)?.[1] ??
+      "destructive-edit";
+    const listed = await panel.getByRole("listitem").allTextContents();
+    const items =
+      listed.length > 0 ? listed : [(await panel.innerText()).trim()];
     const allow = await panel
       .getByRole("button", { name: "Allow", exact: true })
       .elementHandle();
@@ -77,7 +110,7 @@ export const allowDestructiveEdits = async (
     } finally {
       await allow.dispose();
     }
-    await onAllowed?.({ items });
+    await onAllowed?.({ kind, items });
   };
   while (!isSettled())
     // eslint-disable-next-line no-await-in-loop -- Approvals queue; each panel must leave before the next is read.
@@ -122,7 +155,7 @@ export const submitPersonaBrowserTurn = async (
   const isAdmission = (response: BrowserResponse) =>
     response.request().method() === "POST" &&
     admissionPath.test(new URL(response.url()).pathname);
-  let client: ReturnType<typeof createFlueClient> | undefined;
+  let client: ReturnType<typeof personaConversationClient> | undefined;
   let admitted = false;
   let stopTask: Promise<void> | undefined;
   const aborted = Promise.withResolvers<never>();
@@ -176,6 +209,7 @@ export const submitPersonaBrowserTurn = async (
         "initialData" in request
           ? request.initialData
           : options.session?.initialData,
+      ...(headers.cookie === undefined ? {} : { cookie: headers.cookie }),
     };
     if (options.session) {
       for (const key of ["url", "actorKey", "conversationId", "uid"] as const)
@@ -185,10 +219,7 @@ export const submitPersonaBrowserTurn = async (
           `Persona browser changed ${key}`,
         );
     }
-    client = createFlueClient({
-      url: session.url,
-      headers: agentOwnershipHeaders(session),
-    });
+    client = personaConversationClient(session);
     await options.onAdmission?.(session, admission);
     signal?.throwIfAborted();
     // Submission revokes earlier approvals before its POST. Wait for the

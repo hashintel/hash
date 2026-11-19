@@ -10,7 +10,7 @@ An agent's directory holds its system prompt (`prompts/`), its skills (`skills/e
 
 A conversation whose initial data carries a Petrinaut document binding (`{ binding }`) mounts the guidance, the Ledger tools, every canonical Petrinaut tool, the filtered net readers, the reviewed experiment draft and `query_basis`. A conversation admitted without initial data mounts the guidance and Ledger tools but no Petrinaut tools. Besides its system prompt, the Petrinaut agent mounts an instruction only for host context the current delivery carries, an interview allowance or preferred spellings (see below): Petrinaut, runtime, experiment and `query_basis` guidance live in its skills and tool descriptions.
 
-Prompts are imported with `?raw`. Each skill is an Agent Skills directory imported natively, and the Flue build packages the directory. The persona launcher (`evals/petrinaut/persona/`) fingerprints the agent's guidance and Ledger sources for each run.
+Prompts are imported with `?raw`. Each skill is an Agent Skills directory imported natively, and the Flue build packages the directory. The persona launcher (`evals/persona/`) fingerprints the agent's guidance and Ledger sources for each run.
 
 ## Submission context
 

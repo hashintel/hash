@@ -4,14 +4,14 @@ import {
 } from "@earendil-works/pi-ai";
 import { anthropicProvider } from "@earendil-works/pi-ai/providers/anthropic";
 
-import { openaiProviderWithAddedModels } from "../../../../src/server/openai-provider.ts";
+import { openaiProviderWithAddedModels } from "../../../src/server/openai-provider.ts";
 import {
   isChatThinkingLevel,
   LEGACY_PERSONA_THINKING,
   DEFAULT_CHAT_MODEL,
   DEFAULT_CHAT_THINKING,
   STEP_A_MODEL_ID,
-} from "../../../../src/shared/chat-model.ts";
+} from "../../../src/shared/chat-model.ts";
 
 import type { ThinkingLevel } from "@flue/runtime";
 

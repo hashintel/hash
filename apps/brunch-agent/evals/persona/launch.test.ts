@@ -8,14 +8,13 @@ import { promisify } from "node:util";
 import { FlueExecutionError } from "@flue/sdk";
 import { afterEach, expect, test, vi } from "vitest";
 
-import { createStepARequestAccounting } from "../../../src/server/provider-accounting.ts";
+import { createStepARequestAccounting } from "../../src/server/provider-accounting.ts";
 import {
   DEFAULT_CHAT_MODEL,
   DEFAULT_CHAT_THINKING,
-} from "../../../src/shared/chat-model.ts";
-import { flueConversationId } from "../../../src/shared/conversation/identity.ts";
+} from "../../src/shared/chat-model.ts";
+import { flueConversationId } from "../../src/shared/conversation/identity.ts";
 import {
-  documentIdFromInitialData,
   personaEnvironment,
   personaSettingsRecord,
   readPersonaCase,
@@ -83,18 +82,6 @@ test("launcher Stop bounds an unobserved settlement", async () => {
     settlement: "not-observed",
     submissionId: receipt.submissionId,
   });
-});
-
-test("locates the bound Petrinaut document", () => {
-  expect(
-    documentIdFromInitialData({
-      binding: {
-        conversationId: "conversation",
-        documentId: "document-bound",
-      },
-    }),
-  ).toBe("document-bound");
-  expect(documentIdFromInitialData({})).toBeUndefined();
 });
 
 const loadingRuntimeUnavailable = {
@@ -215,7 +202,7 @@ test("reads a generic case and sends the trimmed opening file", async () => {
 });
 
 test("root launch command resolves a caller-relative case before checking interactive prerequisites", async () => {
-  const repo = fileURLToPath(new URL("../../../../../", import.meta.url));
+  const repo = fileURLToPath(new URL("../../../../", import.meta.url));
   const directory = await mkdtemp(join(tmpdir(), "TEST-persona case-"));
   try {
     await Promise.all([

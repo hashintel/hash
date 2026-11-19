@@ -1,9 +1,9 @@
 import { expect, test } from "vitest";
 
 import {
+  documentIdFromInitialData,
   openRetainedPersonaBrowser,
-  personaSessionFileText,
-} from "./resume.ts";
+} from "./website.ts";
 
 import type { PersonaBrowserSession } from "../browser-turn.ts";
 import type { Page } from "@playwright/test";
@@ -72,10 +72,14 @@ test("refuses to resume when the bound entry is not a net", async () => {
   ).rejects.toThrow("Original browser document is not a net the website opens");
 });
 
-test("writes the actor key under its pre-rename field, as earlier runs hold it", () => {
-  const { ownerKey, ...rest } = JSON.parse(
-    personaSessionFileText(session),
-  ) as Record<string, unknown>;
-  expect(ownerKey).toBe(session.actorKey);
-  expect(rest).not.toHaveProperty("actorKey");
+test("locates the bound Petrinaut document", () => {
+  expect(
+    documentIdFromInitialData({
+      binding: {
+        conversationId: "conversation",
+        documentId: "document-bound",
+      },
+    }),
+  ).toBe("document-bound");
+  expect(documentIdFromInitialData({})).toBeUndefined();
 });

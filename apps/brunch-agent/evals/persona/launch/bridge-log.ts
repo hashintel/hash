@@ -33,13 +33,13 @@ export const appendAdmittedUtterance = (
   },
 ) => appendBridgeRecord(run, { event: "admitted", ...entry });
 
-/** The persona cannot see the approval panel, so the launcher allows each destructive edit and records what it listed. */
+/** The persona cannot see approval panels, so the launcher allows each destructive edit or save and records what the panel showed. */
 export const appendAllowedDestructiveEdit = (
   run: string,
   edit: PersonaAllowedEdit,
 ) =>
   appendBridgeRecord(run, {
-    event: "destructive-edit-allowed",
+    event: edit.kind === "save" ? "save-allowed" : "destructive-edit-allowed",
     items: edit.items,
   });
 

@@ -16,30 +16,27 @@ import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs, promisify } from "node:util";
 
-import { createFlueClient, FlueExecutionError } from "@flue/sdk";
+import { FlueExecutionError } from "@flue/sdk";
 import { chromium, type Page } from "@playwright/test";
 import { loadEnv } from "vite";
 
-import { agentOwnershipHeaders } from "@hashintel/brunch-agent";
-import { parseSDCPNFile, toPetrinautId } from "@hashintel/petrinaut-core";
+import { parseSDCPNFile } from "@hashintel/petrinaut-core";
 
-import { brunchEnv } from "../../../src/env.ts";
-import {
-  defaultChatOrigin,
-  localPanelListen,
-} from "../../../src/server/http/local-origins.ts";
+import { brunchEnv } from "../../src/env.ts";
 import {
   DEFAULT_CHAT_MODEL,
   DEFAULT_CHAT_THINKING,
-} from "../../../src/shared/chat-model.ts";
-import { writeRunPacket } from "../run-packet.ts";
+} from "../../src/shared/chat-model.ts";
+import { writeRunPacket } from "../petrinaut/run-packet.ts";
 import { openPersonaBrowserBridge } from "./browser-bridge.ts";
 import {
   PersonaBrowserTurnError,
+  personaConversationClient,
   submitPersonaBrowserTurn,
-  type PersonaBrowserSession,
 } from "./browser-turn.ts";
 import { guidanceManifest, verifyGuidanceResume } from "./guidance-manifest.ts";
+import { hashHost, hashOrigins } from "./hosts/hash.ts";
+import { websiteHost } from "./hosts/website.ts";
 import {
   agentSettingsFromRun,
   personaAgentLabel,
@@ -57,10 +54,8 @@ import {
   appendAllowedDestructiveEdit,
 } from "./launch/bridge-log.ts";
 import { writePersonaBrief, writePersonaResumeBrief } from "./launch/brief.ts";
-import { showPersonaPanel } from "./launch/browser.ts";
-import { interviewLengthStorage } from "./launch/interview-length.ts";
+import { initialNetFileData } from "./launch/initial-net.ts";
 import {
-  openRetainedPersonaBrowser,
   personaSessionFileText,
   readPersonaResume,
   reconcilePersonaResume,
@@ -76,13 +71,19 @@ import {
   writeProofArtifacts,
 } from "./proof-artifacts.ts";
 
+import type { PersonaBrowserSession } from "./browser-turn.ts";
+import type { PersonaHost, PersonaHostName, PersonaHostRun } from "./host.ts";
 import type { AgentSendResult, FlueClient } from "@flue/sdk";
 
 const execute = promisify(execFile);
 const report = (text: string) => process.stdout.write(`${text}\n`);
-const appRoot = fileURLToPath(new URL("../../../", import.meta.url));
+const reportEvidenceFailure = (error: unknown) => {
+  process.stderr.write(
+    `Could not refresh the run's evidence: ${error instanceof Error ? error.message : String(error)}\n`,
+  );
+};
+const appRoot = fileURLToPath(new URL("../../", import.meta.url));
 const repoRoot = resolve(appRoot, "../..");
-const panelOrigin = `http://${localPanelListen.host}:${localPanelListen.port}`;
 const casesRoot = join(repoRoot, "apps/brunch-agent/evals/petrinaut/cases");
 
 const listPersonaCases = async () => {
@@ -166,47 +167,6 @@ export const personaSettingsRecord = (
 const record = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
-export const documentIdFromInitialData = (
-  initialData: unknown,
-): string | undefined => {
-  if (!record(initialData)) return undefined;
-  const binding = record(initialData.binding) ? initialData.binding : undefined;
-  return typeof binding?.documentId === "string"
-    ? binding.documentId
-    : undefined;
-};
-
-const retainPersonaDocument = async (
-  page: Page,
-  documentId: string,
-  evidenceDirectory: string,
-): Promise<void> => {
-  const document = await page.evaluate(
-    ({ id, storageKey }) => {
-      const raw = localStorage.getItem(storageKey);
-      if (raw === null) return undefined;
-      const parsed: unknown = JSON.parse(raw);
-      if (
-        typeof parsed !== "object" ||
-        parsed === null ||
-        Array.isArray(parsed)
-      )
-        return undefined;
-      return (parsed as Record<string, unknown>)[id];
-    },
-    { id: documentId, storageKey: "petrinaut-sdcpn" },
-  );
-  if (!record(document) || !record(document.sdcpn))
-    throw new Error(
-      `The persona browser has no retained Petrinaut document ${documentId}.`,
-    );
-  await writeFile(
-    join(evidenceDirectory, "net.json"),
-    `${JSON.stringify(document, null, 2)}\n`,
-  );
-  await refreshProofManifest(evidenceDirectory);
-};
-
 const isLoadingRuntimeUnavailable = (body: unknown) =>
   record(body) &&
   record(body.error) &&
@@ -277,12 +237,11 @@ export const responds = async (
 };
 
 type PersonaLaunchOptions = {
+  /** The app whose page the persona's messages are typed into. */
+  readonly host: PersonaHost;
   readonly caseDirectory: string;
   readonly objective?: string;
-  readonly route?: string;
   readonly initialNetPath?: string;
-  /** A level for the website's Interview length; omitted leaves it off. */
-  readonly interviewLength?: string;
   readonly resume?: Awaited<ReturnType<typeof readPersonaResume>>;
   readonly roles?: PersonaRoleSettings;
   /** Undefined on resume reuses the original run's agent. */
@@ -300,11 +259,10 @@ type PersonaLaunchOptions = {
  * the persona agent. The run directory holds data plus the bridge helper.
  */
 const launchPersona = async ({
+  host,
   caseDirectory,
   objective,
-  route = "/",
   initialNetPath,
-  interviewLength,
   resume,
   roles = resolvePersonaRoleSettings(),
   agent,
@@ -313,8 +271,8 @@ const launchPersona = async ({
   hold = false,
 }: PersonaLaunchOptions) => {
   const manifest = resume
-    ? await verifyGuidanceResume(resume.config.guidance)
-    : await guidanceManifest();
+    ? await verifyGuidanceResume(resume.config.guidance, host.guidance)
+    : await guidanceManifest(host.guidance);
   const { pack, opening } = resume
     ? { pack: "", opening: "" }
     : await readPersonaCase(caseDirectory);
@@ -330,41 +288,42 @@ const launchPersona = async ({
     throw new Error(
       "Without Herdr the persona agent needs an interactive terminal; run from a terminal or Herdr, or omit --agent and start the agent yourself",
     );
-  if (resume && panelOrigin !== resume.config.panelOrigin)
-    throw new Error(
-      `Resume requires the original panel origin ${resume.config.panelOrigin}; set ${brunchEnv.panelPort} accordingly`,
-    );
-  const env = personaEnvironment(settings);
-  const interviewLengthEntries =
-    interviewLength === undefined
-      ? undefined
-      : interviewLengthStorage(interviewLength);
   const initialNet =
     initialNetPath === undefined
       ? undefined
       : await readFile(initialNetPath).then((bytes) => {
-          const parsed = parseSDCPNFile(JSON.parse(bytes.toString("utf8")));
+          const parsed = parseSDCPNFile(
+            initialNetFileData(JSON.parse(bytes.toString("utf8"))),
+          );
           if (!parsed.ok) throw new Error(parsed.error);
           const { title, ...sdcpn } = parsed.sdcpn;
-          const sourceSha256 = createHash("sha256").update(bytes).digest("hex");
           return {
-            id: toPetrinautId(`persona-source-${sourceSha256.slice(0, 12)}`),
-            lastUpdated: new Date().toISOString(),
-            sdcpn,
-            sourceSha256,
             title,
+            sdcpn,
+            sourceSha256: createHash("sha256").update(bytes).digest("hex"),
           };
         });
   const runs = join(appRoot, ".data-wipe-me/persona-runs");
   await mkdir(runs, { recursive: true });
   const run = resume?.run ?? (await mkdtemp(join(runs, "run-")));
-  env[brunchEnv.devDbPath] = join(run, "conversation.db");
-  env[brunchEnv.dbKind] = "sqlite";
-  delete env[brunchEnv.chatDbPath];
+  const stop = new AbortController();
+  const baseEnvironment = personaEnvironment(settings);
+  baseEnvironment[brunchEnv.devDbPath] = join(run, "conversation.db");
+  baseEnvironment[brunchEnv.dbKind] = "sqlite";
+  delete baseEnvironment[brunchEnv.chatDbPath];
+  const hostRun: PersonaHostRun = await host.prepare({
+    environment: baseEnvironment,
+    run,
+    retained: resume?.config,
+    signal: stop.signal,
+    report,
+  });
+  const env = hostRun.environment;
   const browserProfile =
     resume?.config.browserProfile ??
     (await mkdtemp(join(tmpdir(), "brunch-persona-browser-")));
-  const record = {
+  let record: Record<string, unknown> = {
+    host: host.name,
     caseDirectory,
     guidance: manifest,
     ...(!resume
@@ -377,22 +336,19 @@ const launchPersona = async ({
     ...personaSettingsRecord(settings, agentSettings),
     databasePath: env[brunchEnv.devDbPath],
     browserProfile,
-    panelOrigin,
-    route,
+    ...hostRun.record,
     ...(initialNetPath === undefined
       ? {}
       : {
           initialNetPath,
           initialNetSha256: initialNet?.sourceSha256,
         }),
-    ...(interviewLength === undefined ? {} : { interviewLength }),
     createdAt: new Date().toISOString(),
     ...resume?.config,
     ...(resume ? { personaAgent: agentSettings } : {}),
   };
   if (!resume) await save(join(run, "run.json"), record);
   report(`Run: ${run}`);
-  const stop = new AbortController();
   const started: ChildProcess[] = [];
   /** Whether the signal reached the process group; false once it has gone. */
   const signalGroup = (pid: number, signal: NodeJS.Signals | 0) => {
@@ -440,7 +396,8 @@ const launchPersona = async ({
     | undefined;
   let page: Page | undefined;
   let bridge: Awaited<ReturnType<typeof openPersonaBrowserBridge>> | undefined;
-  let documentId: string | undefined;
+  // Retained on resume; on a fresh run, admitted by the persona's opening.
+  let session: PersonaBrowserSession | undefined;
   let agentProcess: PersonaAgentProcess | undefined;
   // Set from bridge and child-process callbacks. Once `held`, the operator owns
   // the browser: the persona can send nothing, and its exit ends nothing.
@@ -489,16 +446,15 @@ const launchPersona = async ({
     report(
       `Brunch ${settings.brunchModel} (${settings.brunchThinking}) configuration verified; credential validity untested.`,
     );
-    const services = [
-      { url: `${defaultChatOrigin}/health`, script: "dev:brunch:server" },
-      { url: panelOrigin, script: "dev:brunch:panel" },
-    ];
+    const { services } = hostRun;
     const available = await Promise.all(
-      services.map((service) => responds(service.url, stop.signal)),
+      services.map((service) => responds(service.readyUrl, stop.signal)),
     );
     if (available.includes(true))
       throw new Error(
-        `Persona needs its own services. Leave existing services running and choose unused ${brunchEnv.chatPort} and ${brunchEnv.panelPort} values.`,
+        host.name === "website"
+          ? `Persona needs its own services. Leave existing services running and choose unused ${brunchEnv.chatPort} and ${brunchEnv.panelPort} values.`
+          : `Persona needs its own Brunch at ${services.map((service) => service.readyUrl).join(", ")}; another one is answering there. One HASH persona run uses the machine at a time.`,
       );
     report("Building local app dependencies…");
     await execute(
@@ -506,10 +462,7 @@ const launchPersona = async ({
       [
         "run",
         "build",
-        "--filter",
-        "@apps/brunch-agent^...",
-        "--filter",
-        "@apps/petrinaut-website^...",
+        ...hostRun.buildFilters.flatMap((filter) => ["--filter", filter]),
       ],
       { cwd: repoRoot, env, signal: stop.signal },
     );
@@ -533,7 +486,7 @@ const launchPersona = async ({
       await log.close();
       // Readiness polling has no invented execution deadline; Ctrl-C cancels it.
       while (
-        !(await responds(service.url, stop.signal, { allowLoading: true }))
+        !(await responds(service.readyUrl, stop.signal, { allowLoading: true }))
       ) {
         if (startError) throw startError;
         if (child.exitCode !== null || child.signalCode !== null)
@@ -543,8 +496,7 @@ const launchPersona = async ({
     };
     for (const service of services) {
       // Flue startup may resume inference. On resume only the panel starts before recording.
-      if (!resume || service.script === "dev:brunch:panel")
-        await startService(service);
+      if (!resume || !service.recovers) await startService(service);
     }
     browser = await chromium.launchPersistentContext(browserProfile, {
       executablePath: chromeExecutable,
@@ -568,38 +520,16 @@ const launchPersona = async ({
     });
     browser.once("close", interrupt);
     page = browser.pages()[0] ?? (await browser.newPage());
-    if (initialNet !== undefined) {
-      const serializedInitialNet = JSON.stringify({
-        [initialNet.id]: {
-          id: initialNet.id,
-          lastUpdated: initialNet.lastUpdated,
-          sdcpn: initialNet.sdcpn,
-          title: initialNet.title,
-        },
-      });
-      await page.addInitScript(
-        ({ serialized, storageKey }) =>
-          localStorage.setItem(storageKey, serialized),
-        {
-          serialized: serializedInitialNet,
-          storageKey: "petrinaut-sdcpn",
-        },
-      );
-    }
-    if (interviewLengthEntries !== undefined) {
-      await page.addInitScript((entries) => {
-        for (const [key, value] of Object.entries(entries))
-          localStorage.setItem(key, value);
-      }, interviewLengthEntries);
-    }
     const personaPage = page;
     const recordingPause = async () => {
       const title = `Brunch persona · ${basename(run)} · ready to record`;
       await personaPage.evaluate((value) => {
         document.title = value;
       }, title);
-      await personaPage.bringToFront();
       if (!pauseForRecording || !process.stdin.isTTY) return;
+      // Only here: a window that takes focus later would catch keystrokes
+      // meant for another, and the bridge refuses to overwrite a draft.
+      await personaPage.bringToFront();
       report(
         recordingReadySummary({
           title,
@@ -625,19 +555,23 @@ const launchPersona = async ({
       }
     };
     const reopen = async (retained: NonNullable<typeof resume>) => {
-      await openRetainedPersonaBrowser(
-        personaPage,
-        panelOrigin,
-        retained.config.route,
-        retained.session,
-      );
+      await hostRun.reopen(personaPage, retained.session);
+      // A host that names the actor from its session cookie needs it here too.
+      const cookie = (await personaPage.context().cookies(retained.session.url))
+        .map(({ name, value }) => `${name}=${value}`)
+        .join("; ");
+      const reattached = {
+        ...retained.session,
+        ...(cookie === "" ? {} : { cookie }),
+      };
       await recordingPause();
       for (const service of services)
-        if (service.script === "dev:brunch:server") await startService(service);
+        if (service.recovers) await startService(service);
       return reconcilePersonaResume(
         personaPage,
-        retained.session,
+        reattached,
         retained.lastUtterance,
+        hostRun.reload,
         stop.signal,
       );
     };
@@ -648,18 +582,19 @@ const launchPersona = async ({
     );
     const resumed = resume ? await reopen(resume) : undefined;
     if (!resume) {
-      await showPersonaPanel(personaPage, panelOrigin, route);
+      record = {
+        ...record,
+        ...(await hostRun.open(personaPage, {
+          initialNet,
+          name: `${basename(caseDirectory)} · persona ${basename(run)}`,
+        })),
+      };
+      await save(join(run, "run.json"), record);
       await recordingPause();
     }
-    const sessionClient = (identity: PersonaBrowserSession) =>
-      createFlueClient({
-        url: identity.url,
-        headers: agentOwnershipHeaders(identity),
-      });
-    // Retained on resume; on a fresh run, admitted by the persona's opening.
-    let session = resumed?.session;
+    const sessionClient = personaConversationClient;
     if (resumed) {
-      documentId = documentIdFromInitialData(resumed.session.initialData);
+      ({ session } = resumed);
       await writeProofArtifacts(join(run, "evidence"), resumed.snapshot);
     }
     let repliedMessages = 0;
@@ -670,7 +605,7 @@ const launchPersona = async ({
           throw new Error(
             "The operator has taken over this conversation. Send nothing more; run `persona end` and report.",
           );
-        await verifyGuidanceResume(manifest);
+        await verifyGuidanceResume(manifest, host.guidance);
         let logged = false;
         try {
           const result = await submitPersonaBrowserTurn(personaPage, message, {
@@ -679,6 +614,8 @@ const launchPersona = async ({
             onAllowedEdit: (edit) => appendAllowedDestructiveEdit(run, edit),
             onAdmission: async (admitted, receipt) => {
               activeAdmission = { client: sessionClient(admitted), receipt };
+              // Each submission carries the browser's current cookies.
+              if (session !== undefined) session = admitted;
               // Later admissions in the same turn are browser-tool continuations.
               if (logged) return;
               logged = true;
@@ -686,7 +623,6 @@ const launchPersona = async ({
               turn.admitted();
               if (turn.opening) {
                 session = admitted;
-                documentId = documentIdFromInitialData(admitted.initialData);
                 // Retained even if the reply fails; resume needs the identity.
                 await writeFile(
                   join(run, "session.json"),
@@ -702,13 +638,17 @@ const launchPersona = async ({
               });
             },
           });
-          await writeProofArtifacts(join(run, "evidence"), result.snapshot);
-          if (documentId !== undefined)
-            await retainPersonaDocument(
-              personaPage,
-              documentId,
-              join(run, "evidence"),
-            );
+          // Brunch has replied: the persona gets the reply even when the
+          // evidence could not be refreshed, which is reported here instead.
+          await writeProofArtifacts(join(run, "evidence"), result.snapshot)
+            .then(() =>
+              hostRun.capture(
+                personaPage,
+                result.session,
+                join(run, "evidence"),
+              ),
+            )
+            .catch(reportEvidenceFailure);
           if (!turn.opening) repliedMessages += 1;
           if (maxMessages !== undefined && repliedMessages >= maxMessages)
             // After the bridge has delivered this reply.
@@ -833,16 +773,15 @@ const launchPersona = async ({
       }
       try {
         try {
-          if (page && !page.isClosed() && documentId !== undefined)
-            await retainPersonaDocument(
-              page,
-              documentId,
-              join(run, "evidence"),
-            );
+          if (page && !page.isClosed() && session !== undefined)
+            await hostRun
+              .capture(page, session, join(run, "evidence"))
+              .catch(reportEvidenceFailure);
         } finally {
           await browser?.close();
         }
       } finally {
+        await hostRun.release();
         await stopStartedServices();
         // After the services stop, the server log and conversation store are final.
         await writeRunPacket(run)
@@ -880,6 +819,7 @@ if (
       "initial-net": { type: "string" },
       "interview-length": { type: "string" },
       route: { type: "string" },
+      host: { type: "string" },
       "brunch-model": { type: "string" },
       "brunch-thinking": { type: "string" },
       agent: { type: "string" },
@@ -895,13 +835,13 @@ if (
   });
   if (values.help) {
     report(
-      `Usage: yarn brunch:persona --case <name-or-directory> [--objective <the person's aim>] [--route </path?search>] [--initial-net <sdcpn.json>] [--interview-length quick|standard|thorough|deep] [--brunch-model <provider/id>] [--brunch-thinking <level>] [agent options]\nDiscover cases: yarn brunch:persona --list-cases\nDefault: empty net on /; optional --initial-net stages a model and is not a from-scratch run. --interview-length turns on the website's Interview length at that level for the whole run; without it the run has none. --objective is a private aim for the person, phrased in their own terms; without it the person's goal comes from the case. --objective is fresh-run-only and is neither retained nor reapplied on resume. Starts owned services, a fresh headed Chrome window and a browser bridge; on an interactive terminal, pauses for Enter before sending anything (--skip-recording-pause skips it). --max-messages <n> stops the run once Brunch has replied to the persona's nth message (the case's opening is not counted). --hold keeps Chrome and services open for you when the persona stops, at that limit, on persona end or when its agent exits, until Ctrl-C or closing Chrome. Defaults: Brunch ${DEFAULT_CHAT_MODEL} ${DEFAULT_CHAT_THINKING}. Native usage is retained; ordinary external-agent runs have no automatic budget cutoff. Requires macOS Chrome, unused ${brunchEnv.chatPort}/${brunchEnv.panelPort}, and Brunch's provider API key. The persona stops by its own rule; Ctrl-C here or <run>/bin/persona end stops the run at any point, stopping owned resources and retaining run data.`,
+      `Usage: yarn brunch:persona --case <name-or-directory> [--host website|hash] [--objective <the person's aim>] [--initial-net <sdcpn.json>] [--brunch-model <provider/id>] [--brunch-thinking <level>] [website options] [agent options]\nDiscover cases: yarn brunch:persona --list-cases\nHosts: website (default) runs Brunch on the Petrinaut website on free ports; hash runs it in the HASH app's process editor, signed in as a seeded user, against the HASH stack you have started, with Brunch at ${hashOrigins.brunch}, which the frontend must have been started with (HASH_BRUNCH_AGENT_ORIGIN). One HASH run uses the machine at a time; each creates a process in the user's web.\nWebsite options: --route </path?search>, --interview-length quick|standard|thorough|deep.\nDefault: empty net on / (the website) or a new empty process (HASH); optional --initial-net stages a model and is not a from-scratch run. --interview-length turns on the website's Interview length at that level for the whole run; without it the run has none. --objective is a private aim for the person, phrased in their own terms; without it the person's goal comes from the case. --objective is fresh-run-only and is neither retained nor reapplied on resume. Starts owned services, a fresh headed Chrome window and a browser bridge; on an interactive terminal, pauses for Enter before sending anything (--skip-recording-pause skips it). --max-messages <n> stops the run once Brunch has replied to the persona's nth message (the case's opening is not counted). --hold keeps Chrome and services open for you when the persona stops, at that limit, on persona end or when its agent exits, until Ctrl-C or closing Chrome. Defaults: Brunch ${DEFAULT_CHAT_MODEL} ${DEFAULT_CHAT_THINKING}. Native usage is retained; ordinary external-agent runs have no automatic budget cutoff. Takes free ports unless ${brunchEnv.chatPort} or ${brunchEnv.panelPort} is set, and names the panel in portless when it is installed. --initial-net also takes a retained run's evidence/net.json. Requires macOS Chrome and Brunch's provider API key. The persona stops by its own rule; Ctrl-C here or <run>/bin/persona end stops the run at any point, stopping owned resources and retaining run data.`,
     );
     report(
       `Agent options:\n  --agent ${personaAgentPresets.join("|")}   Start that agent with the persona brief.\n  --agent-command '<shell command with {prompt}>'   Start any other agent; {prompt} becomes the quoted launch prompt.\n  --persona-model <model>   Passed to the --agent preset's own model flag.\n  --persona-thinking <level>   Passed to pi's --thinking (only with --agent pi).\nThe agent runs in a Herdr pane when HERDR_ENV=1, otherwise in this terminal. Without an agent option the launcher prints the launch prompt for you to give any agent. The agent talks to Brunch through <run>/bin/persona (say, transcript, state, end, rpc).`,
     );
     report(
-      `Resume the Brunch conversation: yarn brunch:persona --resume <run-directory> [agent options] [--skip-recording-pause]\nReuses the original profile and database, and starts a fresh persona agent session with a resume notice (the original agent and model unless agent options are given); the earlier agent session is not resumed. Fresh-run options are rejected; --objective is neither retained nor reapplied. Set the original ${brunchEnv.panelPort}; choose an unused ${brunchEnv.chatPort}. Pauses before backend recovery. Old accounting ledgers are preserved but not consulted.\nOperator guide: apps/brunch-agent/evals/petrinaut/persona/README.md`,
+      `Resume the Brunch conversation: yarn brunch:persona --resume <run-directory> [agent options] [--skip-recording-pause]\nReuses the original profile and database, and starts a fresh persona agent session with a resume notice (the original agent and model unless agent options are given); the earlier agent session is not resumed. Fresh-run options are rejected; --objective is neither retained nor reapplied. Returns to the panel port in run.json and takes a free chat port unless ${brunchEnv.panelPort} or ${brunchEnv.chatPort} is set. Pauses before backend recovery. Old accounting ledgers are preserved but not consulted.\nOperator guide: apps/brunch-agent/evals/persona/README.md`,
     );
   } else if (values["list-cases"]) {
     const cases = await listPersonaCases();
@@ -938,10 +878,14 @@ if (
     const invalidMaxMessages =
       maxMessages !== undefined &&
       !(Number.isInteger(maxMessages) && maxMessages > 0);
+    const hostName = values.host ?? "website";
+    const isHostName = (name: string): name is PersonaHostName =>
+      name === "website" || name === "hash";
     const resumeRun = async (resumeDirectory: string) => {
       if (
         values.case ||
         values.objective ||
+        values.host ||
         values.route ||
         values["initial-net"] ||
         values["interview-length"] ||
@@ -953,9 +897,11 @@ if (
       const retained = await readPersonaResume(
         resolve(process.env.INIT_CWD ?? process.cwd(), resumeDirectory),
       );
+      const { config } = retained;
       await launchPersona({
-        caseDirectory: retained.config.caseDirectory,
-        route: retained.config.route,
+        // The host takes its own settings back from the retained run.
+        host: config.host === "hash" ? hashHost() : websiteHost(),
+        caseDirectory: config.caseDirectory,
         resume: retained,
         agent: selectedAgent,
         recordingPause,
@@ -963,18 +909,32 @@ if (
         hold: values.hold,
       });
     };
-    const freshRun = async (caseDirectory: string) =>
-      launchPersona({
+    const freshRun = async (caseDirectory: string) => {
+      if (!isHostName(hostName))
+        throw new Error(`--host takes website or hash, not ${hostName}`);
+      if (
+        hostName === "hash" &&
+        (values.route !== undefined || values["interview-length"] !== undefined)
+      )
+        throw new Error(
+          "--route and --interview-length are website options; the HASH app has neither",
+        );
+      return launchPersona({
+        host:
+          hostName === "hash"
+            ? hashHost()
+            : websiteHost({
+                route: values.route,
+                interviewLength: values["interview-length"],
+              }),
         caseDirectory,
         objective: values.objective,
-        route: values.route,
         initialNetPath: values["initial-net"]
           ? resolve(
               process.env.INIT_CWD ?? process.cwd(),
               values["initial-net"],
             )
           : undefined,
-        interviewLength: values["interview-length"],
         roles: resolvePersonaRoleSettings({
           brunchModel: values["brunch-model"],
           brunchThinking: values["brunch-thinking"],
@@ -984,6 +944,7 @@ if (
         maxMessages,
         hold: values.hold,
       });
+    };
     const task = invalidMaxMessages
       ? Promise.reject(
           new Error("--max-messages takes a positive whole number"),
