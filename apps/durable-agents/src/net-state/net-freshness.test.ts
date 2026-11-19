@@ -26,6 +26,7 @@ import { openNodeSqliteStorage } from "@earendil-works/pi-durable/storage/sqlite
 import { describe, expect, test, vi } from "vitest";
 
 import {
+  browserCallStaleRefusal,
   hashNoNetViewRefusal,
   hashProcessEditorId,
 } from "@hashintel/brunch-agent";
@@ -45,11 +46,7 @@ import {
   finishBrowserCall,
 } from "../browser-call/browser-call";
 import { createHashBrowserToolsExtension } from "../browser-call/hash-browser-tools";
-import {
-  expectedNetRevision,
-  noNetViewRefusal,
-  staleNetViewRefusal,
-} from "./net-freshness";
+import { expectedNetRevision, noNetViewRefusal } from "./net-freshness";
 import { handEditEntryKind, renderHandEditNote } from "./visible-net-view";
 
 import type { Message } from "@earendil-works/pi-ai";
@@ -381,7 +378,7 @@ describe("net freshness at issue", () => {
     await go(root, "Add a dryer.");
     expect(await toolResult(root, "add-1")).toMatchObject({
       isError: true,
-      content: [{ type: "text", text: staleNetViewRefusal }],
+      content: [{ type: "text", text: browserCallStaleRefusal }],
     });
     expect(await recordOf(harness, root.id, "add-1")).toBeUndefined();
     await harness.close(context);

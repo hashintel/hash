@@ -239,6 +239,17 @@ export const browserToolFacts = (toolName: string): BrowserToolFacts =>
   browserExecutedTools.get(toolName) ?? unknownTool;
 
 /**
+ * Whether a settled result of this tool can show the model the net: a read of
+ * it, or a change that carries the net read back. Every runtime's net
+ * freshness, context projection and `query_basis` apply this one rule.
+ */
+export const mayShowNet = (toolName: string): boolean => {
+  if (!browserExecutedToolNames.has(toolName)) return false;
+  const { observesNet, documentRevision } = browserToolFacts(toolName);
+  return observesNet || documentRevision === "change";
+};
+
+/**
  * The canonical Petrinaut calls a call of `toolName` with `input` makes, in
  * order: itself for a canonical tool, its operations for one of HASH's
  * Petrinaut tools, and none otherwise. Throws on an input the tool doesn't

@@ -21,9 +21,8 @@
  *
  * `pruneEdits` decides the read-back pruning write over the same view.
  */
-import { browserToolFacts } from "@hashintel/brunch-agent";
+import { browserToolFacts, mayShowNet } from "@hashintel/brunch-agent";
 
-import { mayShowNet } from "./net-view";
 import {
   handEditEntryKind,
   netViewSectionKey,

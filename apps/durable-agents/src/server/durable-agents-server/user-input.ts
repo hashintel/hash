@@ -27,6 +27,7 @@ import {
   type BrunchUserData,
   brunchUserKind,
 } from "../../shared/brunch-user-entry";
+import { escapeXmlAttribute, escapeXmlText } from "../../shared/xml-text";
 
 import type { JsonObject } from "@earendil-works/pi-durable";
 
@@ -51,15 +52,6 @@ export type ChatInput = {
   /** The saved version the panel says the user has loaded, from a v2 envelope. */
   readonly versionLoad?: VersionLoad;
 };
-
-const escapeXmlText = (value: string) =>
-  value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;");
-
-const escapeXmlAttribute = (value: string) =>
-  escapeXmlText(value).replaceAll('"', "&quot;");
 
 /**
  * What Flue's model reads for the comment signal: `renderSignalMessage` of

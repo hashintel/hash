@@ -33,6 +33,7 @@ import * as v from "valibot";
 
 import {
   type ArcElement,
+  basisQueryReasons,
   type BasisQuerySelector,
   brunchTools,
   foldCommits,
@@ -194,9 +195,7 @@ export const queryBasis = async (input: QueryBasisInput) => {
       (call) => isAppliedChange(call) && issuedBefore(view, call),
     )
   )
-    return staleRead(
-      "The net changed after the latest net view without a subsequent read-back; read it again, then query.",
-    );
+    return staleRead(basisQueryReasons["stale-read"]);
   if (
     latest &&
     (input.netView.state !== "current" ||
@@ -223,8 +222,7 @@ export const queryBasis = async (input: QueryBasisInput) => {
     return {
       binding: input.binding,
       disposition: "not-found" as const,
-      reason:
-        "The named element is absent or ambiguous in the latest net view.",
+      reason: basisQueryReasons["not-found"],
       target,
       readToolCallId: latest?.call.toolCallId,
       basis: undefined,
@@ -252,8 +250,8 @@ export const queryBasis = async (input: QueryBasisInput) => {
       ? ("basis-declared" as const)
       : ("basis-absent" as const),
     reason: declared
-      ? "Reflections name this element; the basis is what they rest on."
-      : "No reflection names this element, so its basis was not recorded.",
+      ? basisQueryReasons["basis-declared"]
+      : basisQueryReasons["basis-absent"],
     target,
     readToolCallId: latest?.call.toolCallId,
     basis: declared ? basisContent(trace) : undefined,

@@ -46,6 +46,7 @@ import { DefaultChatTransport, type UIMessage } from "ai";
 import { afterEach, expect, test } from "vitest";
 
 import {
+  browserCallStaleRefusal,
   browserToolFacts,
   brunchTools,
   hashNoNetViewRefusal,
@@ -62,7 +63,6 @@ import {
   finishBrowserCall,
 } from "../../../src/browser-call/browser-call";
 import { createBrowserCallRouter } from "../../../src/browser-call/browser-call-router";
-import { staleNetViewRefusal } from "../../../src/net-state/net-freshness";
 import { createDurableAgentsServer } from "../../../src/server/durable-agents-server";
 import { browserCallsPrefix } from "../../../src/server/start-durable-agents-server";
 import { drain } from "../server";
@@ -505,7 +505,9 @@ const expectI2 = async (
           );
         expect(result).toMatchObject({ isError: true });
         expect(textOf(result)).toBe(
-          view.state === "stale" ? staleNetViewRefusal : hashNoNetViewRefusal,
+          view.state === "stale"
+            ? browserCallStaleRefusal
+            : hashNoNetViewRefusal,
         );
         decisions[part.id] = view.state;
       }

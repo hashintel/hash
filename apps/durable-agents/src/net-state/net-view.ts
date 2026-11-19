@@ -1,23 +1,16 @@
 /**
- * The one rule for which net results show the model the net: a read of it, or
- * a settled change that carries the net read back. Net freshness applies it
- * to the model's context; `query_basis` applies it to every settled call.
+ * What a net result shows the model of the net, by the library's one rule
+ * (`mayShowNet`). Net freshness applies it to the model's context;
+ * `query_basis` applies it to every settled call.
  *
  * Copied from `apps/brunch-agent/src/shared/conversation/net-view.ts`.
  */
 import {
-  browserExecutedToolNames,
   browserToolFacts,
+  mayShowNet,
   type NetStructure,
   parseClientToolResultMetadata,
 } from "@hashintel/brunch-agent";
-
-/** Whether a settled result of this tool can show the model the net. */
-export const mayShowNet = (toolName: string): boolean => {
-  if (!browserExecutedToolNames.has(toolName)) return false;
-  const { observesNet, documentRevision } = browserToolFacts(toolName);
-  return observesNet || documentRevision === "change";
-};
 
 export type NetResultView =
   | {

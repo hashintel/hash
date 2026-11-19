@@ -51,20 +51,20 @@ import { obj, str } from "@earendil-works/pi-schema";
 
 import {
   type BrowserCallClaim,
+  browserCallEndedWithoutResult,
   type BrowserCallFailureDisposition,
+  browserCallStaleRefusal,
+  browserCallUnstartedRefusal,
   type BrowserContext,
   type BrowserToolEnvelope,
   browserToolFacts,
   type CANONICAL_PETRINAUT_TOOL_NAMES,
   canonicalContent,
   type ClientToolResult,
+  mayShowNet,
 } from "@hashintel/brunch-agent";
 
-import {
-  netFreshnessAtIssue,
-  staleNetViewRefusal,
-} from "../net-state/net-freshness";
-import { mayShowNet } from "../net-state/net-view";
+import { netFreshnessAtIssue } from "../net-state/net-freshness";
 import { renderBrowserResult } from "../net-state/visible-net-view";
 
 import type { HostBinding } from "../agent/host-binding";
@@ -72,13 +72,6 @@ import type { Context } from "@earendil-works/chord/context";
 
 /** Long enough that walking away is not a failure; the doorbell ends an unanswered call then. */
 export const callTtlMs = 24 * 60 * 60_000;
-
-/** Brunch's model-facing errors for a call that ends without a result. */
-export const browserCallUnstartedError =
-  "Browser call was not started; no document operation was invoked.";
-
-/** Copied from `apps/brunch-agent/src/shared/conversation/browser-call-rendezvous.ts`. */
-export const browserCallStaleError = staleNetViewRefusal;
 
 /**
  * The output bound of a tool that may show the net (H10): the largest example
@@ -258,24 +251,26 @@ type BrowserCallState = { phase: "arm" } | { phase: "collect" };
 const mayHaveStarted = (record: BrowserCallRecord) =>
   record.started ?? record.claimed;
 
-/** The model-facing error for a call that ended without a result, as Brunch words it. */
-export const unfinishedError = (record: BrowserCallRecord, cause: string) => {
-  if (!mayHaveStarted(record)) return browserCallUnstartedError;
-  return browserToolFacts(record.toolName).effectUnknownOnFailure
-    ? `Browser call ${cause}; an attempted document effect is unknown.`
-    : `Browser call ${cause}; the document is unchanged.`;
-};
+/** The model-facing error for a call that expired without a result, as Brunch words it. */
+export const unfinishedError = (record: BrowserCallRecord) =>
+  mayHaveStarted(record)
+    ? browserCallEndedWithoutResult(
+        "expired",
+        !browserToolFacts(record.toolName).effectUnknownOnFailure,
+      )
+    : browserCallUnstartedRefusal;
 
 /** The model-facing error for a call the browser failed, as Brunch's `outcomeError` words it. */
 const failureError = (
   toolName: string,
   disposition: BrowserCallFailureDisposition,
 ) => {
-  if (disposition === "stale") return browserCallStaleError;
-  if (disposition === "unstarted") return browserCallUnstartedError;
-  return browserToolFacts(toolName).effectUnknownOnFailure
-    ? "The browser result failed; an attempted document effect is unknown."
-    : "The non-mutating browser call failed; the document is unchanged.";
+  if (disposition === "stale") return browserCallStaleRefusal;
+  if (disposition === "unstarted") return browserCallUnstartedRefusal;
+  return browserCallEndedWithoutResult(
+    "failed",
+    !browserToolFacts(toolName).effectUnknownOnFailure,
+  );
 };
 
 /** Whether an outcome is committed but not yet collected (a failed call retains its status). */
@@ -620,7 +615,7 @@ export const defineWaitingBrowserTool = <
           conversationId,
           context,
         ))!.calls[callId]!;
-        const text = unfinishedError(record, "expired");
+        const text = unfinishedError(record);
         return mayHaveStarted(record)
           ? mayHaveRunError(text)
           : errorResult(text);

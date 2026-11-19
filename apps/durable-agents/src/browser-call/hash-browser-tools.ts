@@ -23,6 +23,7 @@ import {
 import { toJsonSchema } from "@valibot/to-json-schema";
 
 import {
+  browserCallUnstartedRefusal,
   brunchTools,
   hashEntityReadDescription,
   hashEntityReadForModel,
@@ -50,7 +51,6 @@ import {
 } from "@hashintel/brunch-agent";
 
 import {
-  browserCallUnstartedError,
   type BrowserToolAdapters,
   type BrowserToolDefinition,
   defineWaitingBrowserTool,
@@ -197,7 +197,7 @@ const saveTool = (documentId: string | undefined) =>
     {
       parseInput: parseHashSaveInput,
       ...(documentId === undefined
-        ? { refuse: () => browserCallUnstartedError }
+        ? { refuse: () => browserCallUnstartedRefusal }
         : {}),
       // A declined save is a result, `{ saved: false, reason }`; an unknown shape throws, and may have followed a started save.
       present: (output) => copyJson(hashSaveForModel(output)),
