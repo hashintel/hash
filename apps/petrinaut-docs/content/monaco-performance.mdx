@@ -178,25 +178,26 @@ for an animation of 150 ms, and the browser drew four of its frames.
 counter says what rendered, and a trace says what each frame laid out. Three
 causes:
 
-| Cause                                                                                                                                                                                                       | What it cost per toggle                                                                                            | Now                                                                                                                     |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| The editor context changed two or three times. The panels' animating flag, set for a toggle and cleared half a second later, and the assistant's placement were fields of the editor's state.               | 4,900 to 7,600 component renders, about 60 ms of script, and two style recalculations of 4,300 and 7,800 elements. | `PanelAnimatingContext` and `AssistantPlacementContext` hold them. A dock or float renders about 480 components.        |
-| The room the docked panel takes beside the editor eased over 150 ms, and each frame of that laid the whole editor out.                                                                                      | About 35 ms per frame, so four frames where nine fit.                                                              | The room changes in one step: at once when the panel leaves, and after the panel has covered it when the panel arrives. |
-| The panels' animating variant set `transitionProperty`, `transitionDuration` and `transitionTimingFunction`. Panda writes each with a custom property beside it, which every element in the panel inherits. | 16 ms of style recalculation for the left sidebar, at the start and at the end of the animation of any panel.      | One `transition`, which sets no custom property.                                                                        |
+| Cause                                                                                                                                                                                                       | What it cost per toggle                                                                                            | Now                                                                                                                            |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| The editor context changed two or three times. The panels' animating flag, set for a toggle and cleared half a second later, and the assistant's placement were fields of the editor's state.               | 4,900 to 7,600 component renders, about 60 ms of script, and two style recalculations of 4,300 and 7,800 elements. | `AssistantPlacementContext` holds the placement, and there is no animating flag. A dock or float renders about 480 components. |
+| The room the docked panel takes beside the editor eased over 150 ms, and each frame of that laid the whole editor out.                                                                                      | About 35 ms per frame, so four frames where nine fit.                                                              | The room changes in one step: at once when the panel leaves, and after the panel has covered it when the panel arrives.        |
+| The panels' animating variant set `transitionProperty`, `transitionDuration` and `transitionTimingFunction`. Panda writes each with a custom property beside it, which every element in the panel inherits. | 16 ms of style recalculation for the left sidebar, at the start and at the end of the animation of any panel.      | The panels have no CSS transition. Motion animates how far each is in view, and the panels follow that value.                  |
+| Every row of the left sidebar's lists was laid out again when the editor's width changed, with the ten SVG elements of its icon.                                                                            | About 10 ms of layout per toggle.                                                                                  | `content-visibility: auto` on the rows: the browser skips those scrolled out of view.                                          |
 
 Main-thread work per toggle on Supply Chain, production build, script, style
 and layout together:
 
 | Editor state             | Toggle | Before |    Now |
 | ------------------------ | ------ | -----: | -----: |
-| Canvas only              | Float  | 254 ms |  64 ms |
-| Canvas only              | Dock   | 254 ms |  59 ms |
-| Canvas only              | Open   | 312 ms | 128 ms |
-| Canvas only              | Close  | 255 ms | 133 ms |
-| Code editor open         | Float  | 335 ms | 113 ms |
-| Code editor open         | Dock   | 297 ms | 105 ms |
-| Simulation Settings open | Float  | 275 ms |  70 ms |
-| Simulation Settings open | Dock   | 272 ms |  66 ms |
+| Canvas only              | Float  | 254 ms |  60 ms |
+| Canvas only              | Dock   | 254 ms |  48 ms |
+| Canvas only              | Open   | 312 ms | 118 ms |
+| Canvas only              | Close  | 255 ms | 128 ms |
+| Code editor open         | Float  | 335 ms | 119 ms |
+| Code editor open         | Dock   | 297 ms | 108 ms |
+| Simulation Settings open | Float  | 275 ms |  67 ms |
+| Simulation Settings open | Dock   | 272 ms |  60 ms |
 
 Frames over 20 ms per toggle went from between five and seven to one or two.
 The one that remains is the frame in which the editor's width changes.
@@ -206,17 +207,22 @@ rendered with every other reader of the editor context, and a dock with it
 open cost 272 ms against 254 ms without. It no longer renders for a dock or a
 float.
 
-A panel that docks covers the minimap, the viewport controls and the
-Properties panel while it animates. They show again beside it once the editor
-has given up the room, where they used to slide with the editor's edge.
+While a panel docks over the editor, the Properties panel, the minimap and
+the viewport controls move out of its way on each frame, and they are where
+the narrower editor puts them when it gives up the room. They follow the same
+Motion value as the docking panel.
+[Panel geometry outside React state](doc:react.state/panel-sizes) describes
+the values, what a slide costs, and two selectors that made a direct write
+expensive.
 
 :::danger[What a panel toggle still costs]
 
-- One layout of the whole editor when its width changes, about 31 ms. Half of
-  it is the left sidebar: 3,500 elements for 90 rows, laid out again though
-  its size does not change.
+- One layout of the whole editor when its width changes, about 23 ms.
 - Opening or closing any panel sets a field of the editor's state, so every
   reader of the editor context renders once.
+- With a code editor open, a float costs about 10 ms more than it did when the
+  Properties panel moved in one step: the panel and the minimap are now laid
+  out on each frame of the slide.
 - With a code editor open in the Properties panel, a dock or float still
   renders about 2,900 components.
 

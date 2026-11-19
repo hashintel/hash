@@ -20,13 +20,14 @@ What changes on every edit or pointer move is not published through context.
 The undo history gains an entry per edit, so `UndoRedoContext` carries its
 actions and hands out its flags and its list as stores: a reader that only
 undoes never renders for an edit, and the version history menu subscribes
-while it is open. The panel sizes follow the same rule, described in
-[Panel sizes outside React state](doc:react.state/panel-sizes).
+while it is open. The panel sizes follow the same rule, and so does how far
+each panel is in view while it slides open or shut: both are Motion values,
+described in [Panel geometry outside React state](doc:react.state/panel-sizes).
 
 The editor context is read by almost every component too, so what only the
-panels need is kept out of it: `PanelAnimatingContext` says that a panel is
-opening, closing, docking or floating, and `AssistantPlacementContext` where
-the AI assistant sits.
+panels need is kept out of it: `AssistantPlacementContext` says where the AI
+assistant sits, and `PanelPresenceContext` holds the values the panels slide
+by.
 
 What the host owns is not in the document context either. Its title, its
 nets and its callbacks are in `NetManagementContext`, the action of the
