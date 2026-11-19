@@ -23,6 +23,7 @@ import {
   crashLoopErrorText,
   stoppedByCrashLoop,
 } from "./shared/crash-loop-entry";
+import { isInputEntry } from "./shared/input-entry";
 import {
   createViewProjector,
   projectResponseEntries,
@@ -40,10 +41,10 @@ export {
   responseMessageId,
 } from "./submission-stream/view-projector";
 
-/** The conversation's committed entries after `after`, through `through`, page by page. */
+/** The conversation's committed entries `unseen` names, page by page. */
 const entriesBetween = async (
   conversation: Conversation,
-  { after, through }: UnseenEntries,
+  { after, through, endsAtInput }: UnseenEntries,
   context: Context,
 ): Promise<EntryRecord[]> => {
   const entries: EntryRecord[] = [];
@@ -56,8 +57,9 @@ const entriesBetween = async (
       cursor,
       context,
     );
-    for (const entry of page.items) {
-      if (entry.id !== after) entries.push(entry);
+    for (const entry of page.items.filter(({ id }) => id !== after)) {
+      entries.push(entry);
+      if (endsAtInput && isInputEntry(entry)) return entries;
     }
     cursor = page.next;
   } while (cursor !== undefined);
@@ -93,7 +95,7 @@ export const replayCrashLoop = async (
 
   const entries = await entriesBetween(
     root,
-    { after: input, through: last },
+    { after: input, through: last, endsAtInput: false },
     context,
   );
   // The marker classifies the failure, but Pi can commit partial output

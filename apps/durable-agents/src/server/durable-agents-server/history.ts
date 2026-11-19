@@ -26,14 +26,14 @@ import {
   type Conversation,
   type EntryId,
   type EntryRecord,
-  UserEntry,
 } from "@earendil-works/pi-durable";
 import { readUIMessageStream, type UIMessage, type UIMessageChunk } from "ai";
 
 import { brunchSignals } from "@hashintel/brunch-agent";
 
 import { handEditEntryKind } from "../../net-state/visible-net-view";
-import { brunchUserKind, userWords } from "../../shared/brunch-user-entry";
+import { userWords } from "../../shared/brunch-user-entry";
+import { isInputEntry } from "./shared/input-entry";
 import {
   handEditPartId,
   handEditPartType,
@@ -50,13 +50,6 @@ export const ledgerCommentsPartType = "data-brunch-ledger-comments";
 
 /** The ID of the user message an entry is shown as. */
 export const userMessageId = (entry: EntryId) => `durable:user:${entry}`;
-
-/** Entry kinds an input is placed as: each starts a response. */
-const inputKinds: ReadonlySet<string> = new Set([
-  UserEntry.kind,
-  brunchUserKind,
-  brunchSignals.ledgerComments,
-]);
 
 /** Entries read per page. */
 const pageSize = 500;
@@ -124,7 +117,7 @@ export const historyMessages = async (
   const turns: { input: EntryRecord; after: EntryRecord[] }[] = [];
   const leading: EntryRecord[] = [];
   for (const entry of entries) {
-    if (inputKinds.has(entry.kind)) turns.push({ input: entry, after: [] });
+    if (isInputEntry(entry)) turns.push({ input: entry, after: [] });
     else if (turns.length > 0) turns.at(-1)?.after.push(entry);
     else if (entry.kind === handEditEntryKind) leading.push(entry);
   }
