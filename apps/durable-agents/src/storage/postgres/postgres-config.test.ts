@@ -1,9 +1,19 @@
+import { SessionFailed } from "@earendil-works/pi-durable";
 import { expect, test } from "vitest";
 
 import {
   defaultPoolLimits,
+  isPoolConnectTimeout,
   poolLimitsFromEnvironment,
 } from "./postgres-config";
+
+test("a pool connect timeout is found through a failed Session's cause", () => {
+  const timeout = new Error("timeout exceeded when trying to connect");
+  expect(isPoolConnectTimeout(new SessionFailed(timeout))).toBe(true);
+  expect(
+    isPoolConnectTimeout(new SessionFailed(new Error("Session is closed"))),
+  ).toBe(false);
+});
 
 const poolVariables = [
   "DURABLE_AGENTS_PG_POOL_MAX",

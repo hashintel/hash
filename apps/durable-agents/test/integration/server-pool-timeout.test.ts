@@ -4,15 +4,20 @@
  *
  * - An HTTP request that cannot get a connection in time is answered 503
  *   with `Retry-After`, on every route.
- * - A durable commit inside a running turn that cannot get one (a model
- *   step, a tool result) fails its Harness: Pi Durable 1.5.0 does not retry
- *   the commit, and the run is not marked failed. The client's stream ends
- *   without a `finish`; the next request reopens the conversation, which
- *   resumes the run from its last commit. What was not committed is redone
- *   (the model request) or answered as cut off (the tool call), and the turn
- *   ends with one answer. The failure is reported with its conversation.
+ * - A durable commit inside a running turn (a model step, a tool result)
+ *   that gets a connection within the storage's retry window is stored on a
+ *   retry: the turn finishes and its Harness stays open.
+ * - One that gets none within the window fails its Harness: Pi Durable
+ *   retries nothing itself, and the run is not marked failed. The client's
+ *   stream ends without a `finish`, and a request while the pool is still
+ *   exhausted is answered 503. The next request after reopens the
+ *   conversation, which resumes the run from its last commit. What was not
+ *   committed is redone (the model request) or answered as cut off (the tool
+ *   call), and the turn ends with one answer. The failure is reported with
+ *   its conversation.
  */
 import { randomUUID } from "node:crypto";
+import { performance } from "node:perf_hooks";
 import { setTimeout as sleep } from "node:timers/promises";
 
 import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
@@ -48,7 +53,10 @@ import {
   browserCallsPrefix,
   startDurableAgentsServer,
 } from "../../src/server/start-durable-agents-server";
-import { postgresConfigFromEnvironment } from "../../src/storage/postgres/postgres-config";
+import {
+  isPoolConnectTimeout,
+  postgresConfigFromEnvironment,
+} from "../../src/storage/postgres/postgres-config";
 import { scriptedModel } from "../scripted-model";
 
 const context = BACKGROUND_CONTEXT;
@@ -58,7 +66,12 @@ afterAll(() => admin.end());
 
 /** Long enough for a new connection to the compose Postgres; a held one is never freed within it. */
 const waitMs = 1000;
-const holdMs = 3000;
+/** Within the storage's default retry window: a commit waiting on it is retried and stored. */
+const briefHoldMs = 3000;
+/** The retry window of the instances whose commits outlast it. */
+const shortRetryMs = 1500;
+/** Past `shortRetryMs` and the commit's last pool wait, and long enough for one more request to wait out the pool. */
+const longHoldMs = shortRetryMs + 2 * waitMs + 1000;
 
 const dropSchema = (chatId: string) =>
   admin.query(`DROP SCHEMA IF EXISTS "${conversationSchema(chatId)}" CASCADE`);
@@ -197,10 +210,14 @@ test("the production server reports a Harness failed by a commit without a conne
   }
 });
 
-/** A server on a one-connection pool with the faux model's `responses` and `tools`. */
+/**
+ * A server on a one-connection pool with the faux model's `responses` and `tools`, whose storage retries for
+ * `transientRetryMs`, by default the storage's own default.
+ */
 const startInstance = (
   responses: FauxResponseStep[],
   tools: readonly ReturnType<typeof defineTool>[],
+  { transientRetryMs }: { transientRetryMs?: number } = {},
 ) => {
   const pool = new Pool({
     ...poolConfig,
@@ -213,7 +230,10 @@ const startInstance = (
   models.setProvider(faux.provider);
   const extension = defineExtension({ name: "probe", tools: [...tools] });
   const server = createDurableAgentsServer({
-    openStorage: postgresConversationStorage(pool),
+    openStorage: postgresConversationStorage(
+      pool,
+      transientRetryMs === undefined ? {} : { transientRetryMs },
+    ),
     storageExists: postgresConversationExists(pool),
     createRegistry: () => {
       const registry = createRegistry();
@@ -226,6 +246,7 @@ const startInstance = (
     },
     settings: { retry: { baseDelayMs: 10 } },
     clientToolNames: new Set(),
+    isUnavailable: isPoolConnectTimeout,
     context,
   });
   const transport = new DefaultChatTransport<UIMessage>({
@@ -236,20 +257,22 @@ const startInstance = (
         init,
       ),
   });
-  /** Each Harness's end, once a commit took the connection away from it. */
+  /** The end of each Harness that was open when the test took the connection away from it. */
   const harnessEnds: Promise<SessionEnd>[] = [];
+  const releases: Promise<void>[] = [];
   /** Hold the pool's only connection for `holdFor`, from inside the running turn. */
-  const holdConnection = async (chatId: string, holdFor = holdMs) => {
+  const holdConnection = async (chatId: string, holdFor: number) => {
     const open = await server.conversations.ifOwned(chatId);
     if (open !== undefined) harnessEnds.push(open.harness.closed);
     const client = await pool.connect();
-    void sleep(holdFor).then(() => client.release());
+    releases.push(sleep(holdFor).then(() => client.release()));
   };
   return {
     server,
     transport,
     holdConnection,
     harnessEnds,
+    released: () => Promise.all(releases),
     modelRequests: () => faux.state.callCount,
     close: async () => {
       await server.close();
@@ -260,8 +283,9 @@ const startInstance = (
 
 type Instance = ReturnType<typeof startInstance>;
 
-/** Send one message, then, once the held connection is free, reconnect and let the turn finish. */
-const runTurn = async (instance: Instance, chatId: string) => {
+/** Send one message and read its stream until it ends or breaks off. */
+const sendTurn = async (instance: Instance, chatId: string) => {
+  const started = performance.now();
   const stream = await instance.transport.sendMessages({
     trigger: "submit-message",
     chatId,
@@ -278,11 +302,11 @@ const runTurn = async (instance: Instance, chatId: string) => {
   } catch (error) {
     interruption = error;
   }
-  const end = await instance.harnessEnds.at(0);
-  await sleep(holdMs);
-  // Any request reopens the failed conversation, which resumes its run.
-  const reconnected = await instance.transport.reconnectToStream({ chatId });
-  const second = reconnected === null ? null : await drain(reconnected);
+  return { first, interruption, elapsedMs: performance.now() - started };
+};
+
+/** The conversation once its run is idle: its run state and transcript. */
+const settledConversation = async (instance: Instance, chatId: string) => {
   const conversation = await instance.server.conversations.acquire(chatId);
   if (conversation === undefined) throw new Error(`No conversation ${chatId}.`);
   const { harness, root } = conversation;
@@ -294,10 +318,116 @@ const runTurn = async (instance: Instance, chatId: string) => {
     undefined,
     context,
   );
-  return { first, interruption, end, second, live, entries };
+  return { live, entries };
 };
 
-test("a model step's commit that gets no connection fails the Harness; a reopen asks the model again and answers once", async () => {
+/** Whether `end` is still pending: its Harness has not closed. */
+const stillOpen = (end: Promise<SessionEnd> | undefined) =>
+  Promise.race([end?.then(() => false), sleep(0).then(() => true)]);
+
+/**
+ * Send one message whose commit fails its Harness; ask for its stream while the connection is still held; once it is
+ * free, reconnect and let the turn finish.
+ */
+const runFailedTurn = async (instance: Instance, chatId: string) => {
+  const { first, interruption } = await sendTurn(instance, chatId);
+  const end = await instance.harnessEnds.at(0);
+  const duringHold = await instance.server.app.request(
+    `http://durable.test/chat/${chatId}/stream`,
+  );
+  await instance.released();
+  // Any request reopens the failed conversation, which resumes its run.
+  const reconnected = await instance.transport.reconnectToStream({ chatId });
+  const second = reconnected === null ? null : await drain(reconnected);
+  return {
+    first,
+    interruption,
+    end,
+    duringHold,
+    second,
+    ...(await settledConversation(instance, chatId)),
+  };
+};
+
+test("a model step's commit that waits out a brief pool exhaustion is stored on a retry; the turn finishes on its Harness", async () => {
+  const chatId = `pool-brief-model-${randomUUID()}`;
+  let held = false;
+  let instance: Instance | undefined;
+  instance = startInstance(
+    [
+      async () => {
+        if (!held) {
+          held = true;
+          await instance?.holdConnection(chatId, briefHoldMs);
+        }
+        return fauxAssistantMessage("Answered.");
+      },
+    ],
+    [],
+  );
+  try {
+    const { first, interruption, elapsedMs } = await sendTurn(instance, chatId);
+    expect(interruption).toBeUndefined();
+    expect(first.at(-1)).toEqual({ type: "finish", finishReason: "stop" });
+    // The answer's commit could land only once the connection was free.
+    expect(elapsedMs).toBeGreaterThanOrEqual(briefHoldMs - 100);
+    expect(await stillOpen(instance.harnessEnds.at(0))).toBe(true);
+    const { live, entries } = await settledConversation(instance, chatId);
+    expect(live?.runFailure).toBeUndefined();
+    expect(instance.modelRequests()).toBe(1);
+    expect(entries.filter((entry) => AssistantEntry.is(entry))).toHaveLength(1);
+  } finally {
+    await instance.released();
+    await instance.close();
+    await dropSchema(chatId);
+  }
+});
+
+test("a tool result's commit that waits out a brief pool exhaustion is stored on a retry; the turn finishes on its Harness", async () => {
+  const chatId = `pool-brief-tool-${randomUUID()}`;
+  let toolRuns = 0;
+  let instance: Instance | undefined;
+  const tool = defineTool({
+    name: "work",
+    description: "Works.",
+    parameters: obj({}),
+    execute: async () => {
+      toolRuns += 1;
+      if (toolRuns === 1) await instance?.holdConnection(chatId, briefHoldMs);
+      return { output: [{ type: "text" as const, text: "done" }] };
+    },
+  });
+  instance = startInstance(
+    [
+      fauxAssistantMessage(fauxToolCall("work", {}, { id: "work-1" }), {
+        stopReason: "toolUse",
+      }),
+      fauxAssistantMessage("Worked."),
+    ],
+    [tool],
+  );
+  try {
+    const { first, interruption, elapsedMs } = await sendTurn(instance, chatId);
+    expect(interruption).toBeUndefined();
+    expect(first.at(-1)).toEqual({ type: "finish", finishReason: "stop" });
+    expect(elapsedMs).toBeGreaterThanOrEqual(briefHoldMs - 100);
+    expect(await stillOpen(instance.harnessEnds.at(0))).toBe(true);
+    const { live, entries } = await settledConversation(instance, chatId);
+    expect(live?.runFailure).toBeUndefined();
+    expect(toolRuns).toBe(1);
+    const results = entries.filter((entry) => ToolResultEntry.is(entry));
+    expect(results.map((result) => result.model?.[0])).toMatchObject([
+      { role: "toolResult", isError: false },
+    ]);
+    expect(instance.modelRequests()).toBe(2);
+  } finally {
+    await instance.released();
+    await instance.close();
+    await dropSchema(chatId);
+  }
+});
+
+test("a model step's commit that gets no connection within the retry window fails the Harness; a request meanwhile is a 503, and a reopen asks the model again and answers once", async () => {
   const chatId = `pool-timeout-model-${randomUUID()}`;
   let held = false;
   // Holding the connection while the model answers fails the commit of its answer.
@@ -306,19 +436,20 @@ test("a model step's commit that gets no connection fails the Harness; a reopen 
     async () => {
       if (!held) {
         held = true;
-        await instance().holdConnection(chatId);
+        await instance().holdConnection(chatId, longHoldMs);
       }
       return fauxAssistantMessage("Answered.");
     };
   const instance: Instance = startInstance(
     [answer(() => instance), answer(() => instance)],
     [],
+    { transientRetryMs: shortRetryMs },
   );
   try {
-    const { first, interruption, end, second, live, entries } = await runTurn(
-      instance,
-      chatId,
-    );
+    const { first, interruption, end, duringHold, second, live, entries } =
+      await runFailedTurn(instance, chatId);
+    expect(duringHold.status).toBe(503);
+    expect(duringHold.headers.get("retry-after")).toBe("1");
     expect(end).toMatchObject({ kind: "failed" });
     expect(String((end as { error?: unknown }).error)).toContain(
       "timeout exceeded when trying to connect",
@@ -338,7 +469,7 @@ test("a model step's commit that gets no connection fails the Harness; a reopen 
   }
 });
 
-test("a tool result's commit that gets no connection fails the Harness; a reopen answers the call as cut off and the turn ends once", async () => {
+test("a tool result's commit that gets no connection within the retry window fails the Harness; a reopen answers the call as cut off and the turn ends once", async () => {
   const chatId = `pool-timeout-tool-${randomUUID()}`;
   let toolRuns = 0;
   let instance: Instance | undefined;
@@ -348,7 +479,7 @@ test("a tool result's commit that gets no connection fails the Harness; a reopen
     parameters: obj({}),
     execute: async () => {
       toolRuns += 1;
-      if (toolRuns === 1) await instance?.holdConnection(chatId);
+      if (toolRuns === 1) await instance?.holdConnection(chatId, longHoldMs);
       return { output: [{ type: "text" as const, text: "done" }] };
     },
   });
@@ -360,12 +491,12 @@ test("a tool result's commit that gets no connection fails the Harness; a reopen
       fauxAssistantMessage("Worked."),
     ],
     [tool],
+    { transientRetryMs: shortRetryMs },
   );
   try {
-    const { first, interruption, end, second, live, entries } = await runTurn(
-      instance,
-      chatId,
-    );
+    const { first, interruption, end, duringHold, second, live, entries } =
+      await runFailedTurn(instance, chatId);
+    expect(duringHold.status).toBe(503);
     expect(end).toMatchObject({ kind: "failed" });
     expect(String((end as { error?: unknown }).error)).toContain(
       "timeout exceeded when trying to connect",
@@ -400,8 +531,8 @@ test("a tool result's commit that gets no connection fails the Harness; a reopen
 
 test("a request right after a commit fails the Harness, while its close still waits on a tool, is served by a fresh Harness", async () => {
   const chatId = `pool-timeout-closing-${randomUUID()}`;
-  /** Outlasts the failed commit's wait, so the next request gets the connection soon after the failure. */
-  const holdFor = waitMs + 200;
+  /** Outlasts the failed commit's retries, so the next request gets the connection soon after the failure. */
+  const holdFor = shortRetryMs + waitMs + 200;
   /** Keeps the failed Harness's `closed` pending well past the next request. */
   const lingerMs = holdFor + 3000;
   let workRuns = 0;
@@ -437,6 +568,7 @@ test("a request right after a commit fails the Harness, while its close still wa
       fauxAssistantMessage("Worked."),
     ],
     [work, linger],
+    { transientRetryMs: shortRetryMs },
   );
   try {
     const stream = await instance.transport.sendMessages({
