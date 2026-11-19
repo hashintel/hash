@@ -238,6 +238,25 @@ test.each(attachCases)(
   },
 );
 
+test("a transient ownership read is retried, but confirmed loss stops checks", async () => {
+  const fixture = await openWaitingTurn();
+  try {
+    fixture.setOwnerRead(async () => {
+      throw new Error("temporary read failure");
+    });
+    fixture.turns.opened(chatId);
+    await vi.advanceTimersByTimeAsync(timeoutMs);
+    expect(fixture.ownershipChecks()).toBe(1);
+    expect((await fixture.live())?.run).toBeDefined();
+    fixture.setOwnerRead(async () => false);
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(fixture.ownershipChecks()).toBe(2);
+    expect((await fixture.live())?.run).toBeDefined();
+  } finally {
+    await fixture.close();
+  }
+});
+
 test("closing the monitor during the ownership read prevents the abort", async () => {
   const fixture = await openWaitingTurn();
   const ownership = Promise.withResolvers<boolean>();

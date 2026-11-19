@@ -47,6 +47,7 @@ import {
 } from "./durable-agents-server";
 import { brunchUserInput } from "./durable-agents-server/user-input";
 import { VersionLoadDoc } from "./durable-agents-server/version-load";
+import { serveNode } from "./start-durable-agents-server/serve-node";
 
 import type { OwnedStorage } from "./conversation-storage";
 import type { Message } from "@earendil-works/pi-ai";
@@ -1026,6 +1027,142 @@ test("model requests beyond the slot limit wait for a slot, then all complete", 
 });
 
 const abandonedTurnMs = 150;
+
+test.each([true, false])(
+  "a POST disconnected before response detaches its accepted turn (held claim: %s)",
+  // Each case checks a different terminal outcome after the same disconnect.
+  /* eslint-disable vitest/no-conditional-expect */
+  async (held) => {
+    const { server, faux } = openChat({ limits: { abandonedTurnMs } });
+    const accepted = Promise.withResolvers<void>();
+    const release = Promise.withResolvers<void>();
+    const detached = Promise.withResolvers<void>();
+    const listener = await serveNode(
+      async (request) => {
+        const response = await server.app.fetch(request);
+        if (request.method === "POST") {
+          request.signal.addEventListener("abort", () => detached.resolve(), {
+            once: true,
+          });
+          accepted.resolve();
+          await release.promise;
+        }
+        return response;
+      },
+      { port: 0, hostname: "127.0.0.1" },
+    );
+    const client = new AbortController();
+    const post = fetch(`http://127.0.0.1:${listener.port}/chat`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        id: chatId,
+        trigger: "submit-message",
+        messages: [userMessage],
+      }),
+      signal: client.signal,
+    }).catch(() => undefined);
+    try {
+      await accepted.promise;
+      client.abort();
+      await detached.promise;
+      release.resolve();
+      if (!held) {
+        const { harness, root } = await openConversation(server);
+        expect((await harness.inspect(context)).submissions).toEqual([
+          expect.objectContaining({ requestId: userMessage.id }),
+        ]);
+        expect((await liveOf(server))?.run).toBeDefined();
+        await eventually(async () => {
+          const live = await liveOf(server);
+          return live?.runFailure?.reason === "aborted" ? true : undefined;
+        });
+        expect(await root.waitForIdle(context)).toBeUndefined();
+        return;
+      }
+      const { harness, root, claim } = await claimAsBrowser(server);
+      // The response detach must not stop the accepted turn or revoke the browser's claim.
+      await sleep(abandonedTurnMs * 2);
+      expect((await liveOf(server))?.run).toBeDefined();
+      const transport = new DefaultChatTransport<UIMessage>({
+        api: `http://127.0.0.1:${listener.port}/chat`,
+      });
+      const stream = recorder((await transport.reconnectToStream({ chatId }))!);
+      await finishBrowserCall(
+        harness,
+        {
+          conversationId: root.id,
+          toolCallId,
+          toolName: claim.toolName,
+          capability: claim.capability,
+          canonicalInput: claim.input,
+          output: browserOutput,
+        },
+        context,
+      );
+      await stream.drain();
+      await expectFlueTurn(stream.chunks);
+      expect(faux.state.callCount).toBe(2);
+    } finally {
+      client.abort();
+      release.resolve();
+      await Promise.all([post, listener.close()]);
+    }
+  },
+  /* eslint-enable vitest/no-conditional-expect */
+);
+
+test("settling a held claim lets the sweep reconsider a later unclaimed call", async () => {
+  const nextCall = "call-2";
+  const { server, transport } = openChat({
+    responses: [
+      browserToolTurn()[0]!,
+      fauxAssistantMessage(
+        fauxToolCall(browserToolName, { title }, { id: nextCall }),
+        { stopReason: "toolUse" },
+      ),
+    ],
+    limits: { abandonedTurnMs },
+  });
+  const stream = recorder(await send(transport));
+  await stream.until(({ type }) => type === "tool-input-available");
+  const { harness, root, claim } = await claimAsBrowser(server);
+  await stream.cancel();
+  await sleep(abandonedTurnMs * 2);
+  await finishBrowserCall(
+    harness,
+    {
+      conversationId: root.id,
+      toolCallId,
+      toolName: claim.toolName,
+      capability: claim.capability,
+      canonicalInput: claim.input,
+      output: browserOutput,
+    },
+    context,
+  );
+  await eventually(async () => {
+    const call = (await harness.snapshot(BrowserCallsDoc, root.id, context))
+      ?.calls[nextCall];
+    return call?.status === "stopped" ? true : undefined;
+  }, 3_000);
+  expect((await liveOf(server))?.runFailure?.reason).toBe("aborted");
+});
+
+test("closing a live Harness interrupts its response rather than ending the submission", async () => {
+  const { server, transport } = openChat();
+  const stream = recorder(await send(transport));
+  await stream.until(({ type }) => type === "tool-input-available");
+  await server.close();
+  await expect(stream.drain()).rejects.toThrow(
+    "chat stream ended before the turn settled",
+  );
+  expect(
+    stream.chunks.some(
+      ({ type }) => type === "finish" || type === "abort" || type === "error",
+    ),
+  ).toBe(false);
+});
 
 test("an unwatched turn whose call nobody claimed is aborted after the timeout", async () => {
   const { server, transport } = openChat({ limits: { abandonedTurnMs } });

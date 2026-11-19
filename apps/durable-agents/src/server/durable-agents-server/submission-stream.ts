@@ -8,18 +8,27 @@
  * (`projectResponseEntries`), with the same message ID and hand-edit parts,
  * so a reopened conversation shows each response as its stream did.
  */
+import { withAbortSignal, type Context } from "@earendil-works/chord/context";
 import {
   type Conversation,
   type ConversationView,
+  type Cursor,
+  type EntryRecord,
+  LiveDoc,
+  type RunFailure,
   type Submission,
 } from "@earendil-works/pi-durable";
 
 import {
+  crashLoopErrorText,
+  stoppedByCrashLoop,
+} from "./shared/crash-loop-entry";
+import {
   createViewProjector,
+  projectResponseEntries,
   type ProjectionOptions,
 } from "./submission-stream/view-projector";
 
-import type { Context } from "@earendil-works/chord/context";
 import type { UIMessageChunk } from "ai";
 
 export {
@@ -30,11 +39,68 @@ export {
   responseMessageId,
 } from "./submission-stream/view-projector";
 
+/** Replay the failed input's committed response, including abort cleanup, without a live watch or browser work. */
+export const replayCrashLoop = async (
+  root: Conversation,
+  submission: Submission,
+  failedRun: RunFailure["taskId"],
+  options: ProjectionOptions,
+  context: Context,
+): Promise<ReadableStream<UIMessageChunk> | undefined> => {
+  const record = await submission.status(context);
+  if (
+    record.type !== "input" ||
+    record.status !== "unanswered" ||
+    record.reason !== "aborted" ||
+    record.entry === undefined
+  )
+    return undefined;
+  const input = record.entry;
+  // Read both on Pi's mutation line: a later run may start between scan
+  // pages, but its entries must never be part of this response.
+  const last = await root.commit(async (tx) => {
+    const live = await tx.doc(LiveDoc, root.id);
+    if (live.run !== undefined || live.runFailure?.taskId !== failedRun)
+      return undefined;
+    return tx.latestEntryId(root.id);
+  }, context);
+  if (last === undefined) return undefined;
+
+  const entries: EntryRecord[] = [];
+  let cursor: Cursor | undefined;
+  do {
+    // eslint-disable-next-line no-await-in-loop -- Each page starts at the previous cursor.
+    const page = await root.entries(
+      { minEntryId: input, maxEntryId: last, order: "ascending" },
+      100,
+      cursor,
+      context,
+    );
+    for (const entry of page.items) {
+      if (entry.id !== input) entries.push(entry);
+    }
+    cursor = page.next;
+  } while (cursor !== undefined);
+  // The marker classifies the failure, but Pi can commit partial output
+  // and tool results after it while aborting the run.
+  if (!stoppedByCrashLoop(entries, record.id)) return undefined;
+  const projected = projectResponseEntries(input, entries, {
+    ...options,
+    clientToolNames: new Set(),
+  });
+  return new ReadableStream<UIMessageChunk>({
+    start(controller) {
+      for (const chunk of projected.chunks) controller.enqueue(chunk);
+      controller.enqueue({ type: "error", errorText: crashLoopErrorText });
+      controller.close();
+    },
+  });
+};
+
 /**
  * Follow `submission` on `conversation` until it settles, the client cancels,
- * or the Harness closes. A Harness that closes mid-run (its ownership moved,
- * or it failed) ends the stream without a `finish`, so the client can
- * reconnect to whichever instance owns the conversation now.
+ * or the Harness closes. A live follower that loses its Harness reports an
+ * interrupted stream, distinct from the submission's own terminal outcome.
  */
 export const followSubmission = async (
   conversation: Conversation,
@@ -43,61 +109,78 @@ export const followSubmission = async (
   context: Context,
   /** Called once when the stream ends, however it ends: settled, cancelled, or its Harness closed. */
   onEnd?: () => void,
+  signal?: AbortSignal,
 ): Promise<ReadableStream<UIMessageChunk>> => {
+  const detached = () =>
+    new ReadableStream<UIMessageChunk>({
+      start: (controller) => controller.close(),
+    });
+  if (signal?.aborted === true) {
+    onEnd?.();
+    return detached();
+  }
   const record = await submission.status(context);
   // From the input on, so a long transcript does not push the anchor out of the first window.
   const watch = await conversation.watch(
-    context,
+    signal === undefined ? context : withAbortSignal(signal, context),
     record.type === "input" && record.entry !== undefined
       ? { from: record.entry }
       : undefined,
   );
   let ended = false;
-  let reported = false;
-  const reportEnd = () => {
-    if (reported) return;
-    reported = true;
+  const isEnded = () => ended;
+  let disconnect: (() => void) | undefined;
+  const stop = () => {
+    ended = true;
+    if (disconnect !== undefined)
+      signal?.removeEventListener("abort", disconnect);
     onEnd?.();
+    return watch.stop();
   };
-
   return new ReadableStream<UIMessageChunk>({
     start: async (controller) => {
-      const end = () => {
+      const end = (error?: unknown) => {
         if (ended) return;
-        ended = true;
-        controller.close();
-        void watch.stop();
-        reportEnd();
+        void stop().catch(() => {});
+        if (error === undefined) controller.close();
+        else controller.error(error);
       };
+      disconnect = () => end();
+      if (signal?.aborted === true) {
+        disconnect();
+        return;
+      }
+      signal?.addEventListener("abort", disconnect, { once: true });
       const projector = createViewProjector(options, (chunk) => {
         if (!ended) controller.enqueue(chunk);
       });
       const accept = async (view: ConversationView) => {
-        if (ended) return;
-        projector.accept({
-          submission: await submission.status(context),
-          view,
-        });
+        if (isEnded()) return;
+        const status = await submission.status(context);
+        if (isEnded()) return;
+        projector.accept({ submission: status, view });
         if (projector.isFinished()) end();
       };
-
       try {
         await accept(watch.value);
+        if (ended) return;
+        // Durable serializes the listener and folds commits made while it runs.
+        watch.start(async (call) => {
+          if (call.kind === "value") await accept(call.value);
+        });
+        const interrupted = () =>
+          end(
+            new TypeError(
+              "The chat stream ended before the turn settled; reconnect to resume.",
+            ),
+          );
+        void watch.closed.then(interrupted, interrupted);
       } catch (error) {
-        reportEnd();
-        throw error;
+        end(error);
       }
-      if (ended) return;
-      // Durable serializes the listener and folds commits made while it runs.
-      watch.start(async (call) => {
-        if (call.kind === "value") await accept(call.value);
-      });
-      void watch.closed.then(end);
     },
     cancel: async () => {
-      ended = true;
-      reportEnd();
-      await watch.stop();
+      if (!ended) await stop();
     },
   });
 };

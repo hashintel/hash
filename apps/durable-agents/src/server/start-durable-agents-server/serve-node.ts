@@ -49,38 +49,43 @@ const toRequest = async (
 const writeResponse = async (
   response: Response,
   outgoing: ServerResponse,
+  signal: AbortSignal,
 ): Promise<void> => {
-  outgoing.writeHead(
-    response.status,
-    response.statusText,
-    Object.fromEntries(response.headers),
-  );
-  if (response.body === null) {
-    outgoing.end();
-    return;
-  }
-  const reader: ReadableStreamDefaultReader<Uint8Array> =
-    response.body.getReader();
-  const closed = new Promise<void>((resolve) => {
-    outgoing.once("close", resolve);
-  });
-  outgoing.on("close", () => {
-    if (!outgoing.writableFinished) void reader.cancel().catch(() => {});
-  });
-  for (;;) {
-    // Each read depends on the one before.
-    // eslint-disable-next-line no-await-in-loop
-    const { done, value } = await reader.read();
-    if (done) break;
-    // A full buffer waits for the client to drain it, so a slow client
-    // holds the stream back instead of the server buffering for it.
-    if (!outgoing.write(value) && !outgoing.destroyed) {
-      // eslint-disable-next-line no-await-in-loop
-      await Promise.race([once(outgoing, "drain"), closed]);
+  const reader = response.body?.getReader();
+  const disconnected = () => signal.aborted || outgoing.destroyed;
+  const cancel = () => {
+    void reader?.cancel().catch(() => {});
+  };
+  const onClose = () => {
+    if (!outgoing.writableFinished) cancel();
+  };
+  outgoing.once("close", onClose);
+  try {
+    if (disconnected()) return;
+    outgoing.writeHead(
+      response.status,
+      response.statusText,
+      Object.fromEntries(response.headers),
+    );
+    if (reader !== undefined) {
+      while (!disconnected()) {
+        // Each read depends on the one before.
+        // eslint-disable-next-line no-await-in-loop
+        const { done, value } = await reader.read();
+        if (done || disconnected()) break;
+        if (!outgoing.write(value) && !disconnected()) {
+          // Avoid leaving a drain listener on a socket that closes while full.
+          // eslint-disable-next-line no-await-in-loop
+          await once(outgoing, "drain", { signal });
+        }
+      }
     }
-    if (outgoing.destroyed) return;
+    if (!disconnected()) outgoing.end();
+  } finally {
+    outgoing.off("close", onClose);
+    cancel();
+    reader?.releaseLock();
   }
-  outgoing.end();
 };
 
 /** Listen on `port` (0 for any free one) and serve `handler`; resolves once listening. */
@@ -98,8 +103,9 @@ export const serveNode = async (
       const response = await handler(
         await toRequest(incoming, origin, aborted.signal),
       );
-      await writeResponse(response, outgoing);
+      await writeResponse(response, outgoing, aborted.signal);
     })().catch((error: unknown) => {
+      if (outgoing.destroyed) return;
       if (!outgoing.headersSent) {
         outgoing.writeHead(500, { "content-type": "text/plain" });
         outgoing.end(String(error));
