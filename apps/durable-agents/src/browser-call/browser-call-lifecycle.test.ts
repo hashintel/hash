@@ -548,6 +548,53 @@ test("a conversation abort stops a call still awaiting the browser", async () =>
   }
 });
 
+test("a storage failure on the wake's abort mark fails the Session, and nothing retries the wake", async () => {
+  let doorbell: number | undefined;
+  const storage = new (class extends MemoryStorage {
+    override commit(
+      ...[batches, receive, callContext]: Parameters<MemoryStorage["commit"]>
+    ) {
+      const marksDoorbell = batches.some((batch) =>
+        batch.some(
+          (write) =>
+            write.type === "task" &&
+            write.value.id === doorbell &&
+            write.value.abortRequested,
+        ),
+      );
+      return marksDoorbell
+        ? Promise.reject(new Error("storage unavailable"))
+        : super.commit(batches, receive, callContext);
+    }
+  })();
+  const { harness, root, record } = await openWaitingCall(storage);
+  doorbell = (await record())!.doorbell!;
+  const abortTask = vi.spyOn(harness, "abortTask");
+  const claimed = await claimBrowserCall(harness, root.id, toolCallId, context);
+
+  expect(
+    await finishBrowserCall(
+      harness,
+      {
+        conversationId: root.id,
+        toolCallId,
+        toolName: "setNetTitle",
+        capability: claimed!.capability,
+        canonicalInput: claimed!.input,
+        output: { applied: true },
+      },
+      context,
+    ),
+  ).toBe("settled");
+  const closed = await harness.closed;
+  expect(closed.kind).toBe("failed");
+  expect(closed.kind === "failed" && closed.error).toMatchObject({
+    message: "storage unavailable",
+  });
+  await sleep(600);
+  expect(abortTask).toHaveBeenCalledTimes(1);
+});
+
 test.each(["finish", "fail"] as const)(
   "a %s waits for a claim decision in flight, so the abandonment sweep never reads between them",
   async (outcome) => {
