@@ -1,4 +1,4 @@
-import { type CSSProperties, type ReactNode, type Ref } from "react";
+import { useState, type CSSProperties, type ReactNode, type Ref } from "react";
 
 import { css, cx } from "@hashintel/ds-helpers/css";
 
@@ -10,19 +10,15 @@ const panelContainerStyle = css({
   borderColor: "neutral.s40",
   boxSizing: "content-box",
   borderStyle: "solid",
-  // The dragged edge highlights while its handle reports an active resize.
-  '&:has([data-resize-edge="top"][data-resizing="true"])': {
-    borderTopColor: "blue.a70",
-  },
-  '&:has([data-resize-edge="bottom"][data-resizing="true"])': {
-    borderBottomColor: "blue.a70",
-  },
-  '&:has([data-resize-edge="left"][data-resizing="true"])': {
-    borderLeftColor: "blue.a70",
-  },
-  '&:has([data-resize-edge="right"][data-resizing="true"])': {
-    borderRightColor: "blue.a70",
-  },
+  // The dragged edge highlights for as long as its handle is dragged. The
+  // panel carries the attribute itself. A `:has()` selector that looked for
+  // the handle would have the browser search every element in the panel each
+  // time the panel's own style is worked out, which a slide or a resize does
+  // on every frame.
+  '&[data-resizing-edge="top"]': { borderTopColor: "blue.a70" },
+  '&[data-resizing-edge="bottom"]': { borderBottomColor: "blue.a70" },
+  '&[data-resizing-edge="left"]': { borderLeftColor: "blue.a70" },
+  '&[data-resizing-edge="right"]': { borderRightColor: "blue.a70" },
 });
 
 const contentContainerStyle = css({
@@ -76,25 +72,38 @@ export const GlassPanel: React.FC<GlassPanelProps> = ({
   contentClassName,
   contentStyle,
   resizable,
-}) => (
-  <div className={cx(panelContainerStyle, className)} style={style} ref={ref}>
-    {resizable && (
-      <ResizeHandle
-        edge={resizable.edge}
-        getSize={resizable.getSize}
-        onResize={resizable.onResize}
-        onResizeEnd={resizable.onResizeEnd}
-        minSize={resizable.minSize ?? 100}
-        maxSize={resizable.maxSize ?? 800}
-        label={`Resize panel from ${resizable.edge}`}
-      />
-    )}
+}) => {
+  const [isResizing, setIsResizing] = useState(false);
 
+  return (
     <div
-      className={cx(contentContainerStyle, contentClassName)}
-      style={contentStyle}
+      className={cx(panelContainerStyle, className)}
+      data-resizing-edge={isResizing ? resizable?.edge : undefined}
+      style={style}
+      ref={ref}
     >
-      {children}
+      {resizable && (
+        <ResizeHandle
+          edge={resizable.edge}
+          getSize={resizable.getSize}
+          onResizeStart={() => setIsResizing(true)}
+          onResize={resizable.onResize}
+          onResizeEnd={() => {
+            setIsResizing(false);
+            resizable.onResizeEnd?.();
+          }}
+          minSize={resizable.minSize ?? 100}
+          maxSize={resizable.maxSize ?? 800}
+          label={`Resize panel from ${resizable.edge}`}
+        />
+      )}
+
+      <div
+        className={cx(contentContainerStyle, contentClassName)}
+        style={contentStyle}
+      >
+        {children}
+      </div>
     </div>
-  </div>
-);
+  );
+};
