@@ -268,11 +268,11 @@ gives the benchmark app a host that does all three.
 
 Under that host the whole editor rendered on every key, by three paths:
 
-| What the host changed | How it reached the whole editor                                                                                                                                                       | Now                                                                                                                                                         |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| The list of nets      | It was part of the document context, which almost every component reads.                                                                                                              | The document context holds nothing of the host's. The title and the list are read from `NetManagementContext`.                                              |
-| The list of nets      | The notice for a blocked edit took its action from `NetManagementContext`, and every component that edits asks for that notice.                                                       | The action has a context of its own, `ReadOnlyActionContext`.                                                                                               |
-| `slots`               | It was a prop of the editor view, so a new object made a new child for every provider above the view. They all rendered, and the simulation provider gives out a new value each time. | `Petrinaut` provides them through `PetrinautSlotsContext`, from above the providers. The settings dialog reads what the host added to it where it shows it. |
+| What the host changed | How it reached the whole editor                                                                                                                                                      | Now                                                                                                                                                         |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The list of nets      | It was part of the document context, which almost every component reads.                                                                                                             | The document context holds nothing of the host's. The title and the list are read from `NetManagementContext`.                                              |
+| The list of nets      | The notice for a blocked edit took its action from `NetManagementContext`, and every component that edits asks for that notice.                                                      | The action has a context of its own, `ReadOnlyActionContext`.                                                                                               |
+| `slots`               | It was a prop of the editor view, so a new object made a new child for every provider above the view. They all rendered, and the simulation provider gave out a new value each time. | `Petrinaut` provides them through `PetrinautSlotsContext`, from above the providers. The settings dialog reads what the host added to it where it shows it. |
 
 The icon provider moved out of the editor view as well, into a component
 above it. It gives every icon a new context value each time it renders, and
@@ -293,14 +293,50 @@ not, and the providers that gave out a new context value. The second list
 named the simulation provider and the icon provider, after two guesses from
 reading the code had changed nothing.
 
-:::danger[Providers that give out a new value on every render]
+## A value the compiler does not hold
 
-`SimulationProvider` and the icon provider of `@hashintel/ds-icons` build
-their context value anew each time they render. One render of either renders
-every reader of its context, which for the simulation context is almost the
-whole editor. Neither renders on a keystroke now, because nothing above them
-changes then. A parent that starts rendering one of them again brings the
-cost back, so each should hold its value while it says the same. Tracked in
+`SimulationProvider` gave out a new context value on every render, although
+the React Compiler memoizes the component. Four fields were new each time,
+and one of them caused the other three.
+
+The net's parameters with the typed values as their defaults are an array
+built before the hook that lowers the scenario, and handed to
+`compileScenario` after it. The compiler does not cache a value across a hook
+call when a later call could still change it, so the array was built again on
+every render. The scenario was then compiled again on every render, and the
+compiled result, the parameter values and the initial marking were new with
+it.
+
+The array and the scenario synthesized from it are now in `useMemo`, which
+tells the compiler they are final. The provider's value is the same object
+after a render that changed nothing, and the scenario is compiled once.
+`provider.context-value.react.test.tsx` holds the provider to that with a
+scenario selected, with an ad-hoc scenario and with none.
+
+To find which field makes a context value new, render the provider under a
+parent that renders again with every input held, and compare the two values
+field by field.
+
+This changes no measurement on its own. A selection renders the provider
+through the navigation context, and the simulation context now stays as it
+was. The editor context changes in the same commit and renders the same
+readers: 6,964 component renders for a selection on Supply Chain before,
+6,962 after. Typing renders the same 2,450 components either way.
+
+:::danger[What a selection or a panel toggle still renders]
+
+`panel-toggles.mjs details=1` lists what rendered for each toggle. On Supply
+Chain a panel toggle renders about 4,600 components and a selection about
+7,000 to 8,400.
+
+- At least two thirds of them are the menus, tooltips and icons of the left
+  sidebar's 91 rows. Each row mounts a menu and a tooltip. `EntityRowMenu`
+  reads the editor context and the code navigation context, both of which
+  change on a toggle, and every part of a menu renders with it.
+- The icon provider of `@hashintel/ds-icons` builds its context value anew
+  each time it renders, and every icon reads it.
+
+Tracked in
 [FE-2169](https://linear.app/hash/issue/FE-2169/prototype-faster-monaco-opening-and-typing-in-petrinaut).
 
 :::
