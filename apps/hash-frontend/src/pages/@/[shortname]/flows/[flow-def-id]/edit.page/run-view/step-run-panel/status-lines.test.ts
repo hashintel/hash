@@ -2,9 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import { FlowStepStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 
-import { getItemCountsLine, getStatusLines } from "./status-lines";
+import { getItemCount, getStatusLine } from "./status-lines";
 
-import type { ItemCounts } from "../../shared/step-states";
+import type {
+  ItemCounts,
+  StepRunMark,
+  StepState,
+} from "../../shared/step-states";
 import type { ItemRun } from "./step-runs";
 import type { FlowRunStepRunState } from "@local/hash-isomorphic-utils/flows/step-runs";
 
@@ -33,58 +37,6 @@ const run = (
   },
 });
 
-const lines = (
-  runs: ItemRun[],
-  { perItem = false, running = false, waitingOnPerson = false } = {},
-) => getStatusLines({ runs, perItem, running, waitingOnPerson, now });
-
-describe("getStatusLines", () => {
-  it("says how long a step took and when it started", () => {
-    expect(lines([run(null)])).toEqual(["1m 05s · Today, 14:02"]);
-  });
-
-  it("counts a step still running up to now", () => {
-    expect(lines([run(null, { closedAt: "" })])).toEqual([
-      "58m 00s · Today, 14:02",
-    ]);
-  });
-
-  it("counts a step run per item up to now while it runs, though every item's run so far has closed", () => {
-    expect(lines([run(0)], { perItem: true, running: true })).toEqual([
-      "58m 00s · Today, 14:02",
-    ]);
-  });
-
-  it("says when a step that hasn't started was scheduled, or skipped", () => {
-    expect(lines([run(null, { startedAt: undefined, closedAt: "" })])).toEqual([
-      "Today, 14:02",
-    ]);
-  });
-
-  it("counts a step's attempts once it was retried, and that it's waiting on a person", () => {
-    expect(
-      lines([run(null, { attempt: 3 })], { waitingOnPerson: true }),
-    ).toEqual([
-      "1m 05s · Today, 14:02",
-      "3 attempts",
-      "Waiting on a person to answer",
-    ]);
-  });
-
-  it("counts the items retried, not the runs, for a step run per item", () => {
-    expect(
-      lines(
-        [
-          run(0, { attempt: 2 }),
-          run(0, { stepId: "save~0", attempt: 2 }),
-          run(1, { attempt: 1 }),
-        ],
-        { perItem: true },
-      ),
-    ).toEqual(["1m 05s · Today, 14:02", "1 item retried"]);
-  });
-});
-
 const counts = (overrides: Partial<ItemCounts>): ItemCounts => ({
   done: 0,
   failed: 0,
@@ -95,15 +47,167 @@ const counts = (overrides: Partial<ItemCounts>): ItemCounts => ({
   ...overrides,
 });
 
-describe("getItemCountsLine", () => {
-  it("counts the items done out of all of them, and those failed if any have", () => {
-    expect(getItemCountsLine(counts({ done: 17, failed: 2, running: 1 }))).toBe(
-      "17 of 20 items done · 2 failed",
-    );
-    expect(getItemCountsLine(counts({ done: 1 }))).toBe("1 of 1 item done");
+const statusLine = (
+  runs: ItemRun[],
+  {
+    mark = { state: "done", items: null },
+    live = false,
+    perItem = false,
+    running = false,
+    askedAt = null,
+  }: {
+    mark?: StepRunMark;
+    live?: boolean;
+    perItem?: boolean;
+    running?: boolean;
+    askedAt?: string | null;
+  } = {},
+) => getStatusLine({ mark, live, runs, perItem, running, askedAt, now });
+
+describe("getStatusLine", () => {
+  it("says how long a step took and when it started, after its state", () => {
+    expect(statusLine([run(null)])).toEqual({
+      state: "done",
+      word: "Done",
+      facts: ["1m 05s", "Today, 14:02"],
+      notes: [],
+    });
   });
 
-  it("has no line while there are no items", () => {
-    expect(getItemCountsLine(counts({}))).toBeNull();
+  it("counts a step still running up to now", () => {
+    expect(
+      statusLine([run(null, { closedAt: "" })], {
+        mark: { state: "running", items: null },
+        live: true,
+        running: true,
+      }).facts,
+    ).toEqual(["58m 00s", "Today, 14:02"]);
+  });
+
+  it("counts a step run per item up to now while it runs, with how many items have finished", () => {
+    expect(
+      statusLine([run(0)], {
+        mark: { state: "running", items: counts({ done: 12, running: 8 }) },
+        live: true,
+        perItem: true,
+        running: true,
+      }),
+    ).toEqual({
+      state: "running",
+      word: "Running",
+      facts: ["12 of 20", "58m 00s", "Today, 14:02"],
+      notes: [],
+    });
+  });
+
+  it("reads as done with how many items failed, for a step done with failures", () => {
+    expect(
+      statusLine([run(0), run(1, { status: FlowStepStatus.Failed })], {
+        mark: {
+          state: "doneWithFailures",
+          items: counts({ done: 18, failed: 2 }),
+        },
+        perItem: true,
+      }),
+    ).toMatchObject({
+      word: "Done",
+      facts: ["2 of 20 failed", "1m 05s", "Today, 14:02"],
+    });
+  });
+
+  it("says when a step that hasn't started was scheduled, or skipped", () => {
+    expect(
+      statusLine([run(null, { startedAt: undefined, closedAt: "" })]).facts,
+    ).toEqual(["Today, 14:02"]);
+  });
+
+  it("reads as waiting for a step not reached while its run is live, and as skipped once it has ended", () => {
+    const mark: StepRunMark = { state: "notReached", items: null };
+
+    expect(statusLine([], { mark, live: true })).toEqual({
+      state: "notReached",
+      word: "Waiting",
+      facts: [],
+      notes: [],
+    });
+    expect(statusLine([], { mark, live: false })).toEqual({
+      state: "skipped",
+      word: "Skipped",
+      facts: [],
+      notes: [],
+    });
+  });
+
+  it("says when a step waiting on a person asked, in place of its timing, and that it's waiting", () => {
+    expect(
+      statusLine([run(null, { closedAt: "" })], {
+        mark: { state: "needsReview", items: null },
+        live: true,
+        running: true,
+        askedAt: at(14, 10),
+      }),
+    ).toEqual({
+      state: "needsReview",
+      word: "Needs review",
+      facts: ["Asked Today, 14:10"],
+      notes: ["Waiting on a person to answer"],
+    });
+  });
+
+  it("counts a step's attempts once it was retried", () => {
+    expect(statusLine([run(null, { attempt: 3 })]).notes).toEqual([
+      "3 attempts",
+    ]);
+  });
+
+  it("counts the items retried, not the runs, for a step run per item", () => {
+    expect(
+      statusLine(
+        [
+          run(0, { attempt: 2 }),
+          run(0, { stepId: "save~0", attempt: 2 }),
+          run(1, { attempt: 1 }),
+        ],
+        { perItem: true },
+      ).notes,
+    ).toEqual(["1 item retried"]);
+  });
+
+  it("says how long a step that timed out ran for", () => {
+    expect(
+      statusLine(
+        [run(null, { status: FlowStepStatus.TimedOut, closedAt: at(14, 32) })],
+        { mark: { state: "failed", items: null } },
+      ),
+    ).toEqual({
+      state: "failed",
+      word: "Failed",
+      facts: ["30m 00s", "Today, 14:02"],
+      notes: ["Timed out after 30m 00s"],
+    });
+  });
+});
+
+describe("getItemCount", () => {
+  const count = (state: StepState, items: Partial<ItemCounts>) =>
+    getItemCount(state, counts(items));
+
+  it("counts the items finished while a step runs", () => {
+    expect(
+      count("running", { done: 10, failed: 1, skipped: 1, running: 8 }),
+    ).toBe("12 of 20");
+  });
+
+  it("counts the items failed once a step has finished, or else those skipped, with no noun", () => {
+    expect(count("doneWithFailures", { done: 18, failed: 2 })).toBe(
+      "2 of 20 failed",
+    );
+    expect(count("done", { done: 18, skipped: 2 })).toBe("2 of 20 skipped");
+  });
+
+  it("has no count for a step whose items all went well, waits on a person, or has none", () => {
+    expect(count("done", { done: 20 })).toBeNull();
+    expect(count("needsReview", { done: 3, needsReview: 1 })).toBeNull();
+    expect(count("done", {})).toBeNull();
   });
 });

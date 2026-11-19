@@ -46,6 +46,14 @@ const stepsHeader = css({
 });
 const stepCount = css({ textStyle: "xs", color: "fg.subtle" });
 
+/** The run the steps show their states in. */
+type StepsRun = {
+  /** Each step's mark in the run, by step id. A step with none is not reached. */
+  marks: Map<string, StepRunMark>;
+  /** Whether the run is still going. */
+  live: boolean;
+};
+
 const StepsTree = ({
   tree,
   depth,
@@ -53,7 +61,7 @@ const StepsTree = ({
   collapsedGroupIds,
   onToggleGroup,
   onStepClick,
-  runMarks,
+  run,
 }: {
   tree: StepsTreeItem[];
   depth: number;
@@ -61,7 +69,7 @@ const StepsTree = ({
   collapsedGroupIds: Set<string>;
   onToggleGroup: (stepId: string) => void;
   onStepClick: (stepId: string) => void;
-  runMarks: Map<string, StepRunMark> | null;
+  run: StepsRun | null;
 }) =>
   tree.map(({ step, children }) => {
     const { title, description, icon, tone } = getStepDisplay(step);
@@ -85,10 +93,13 @@ const StepsTree = ({
               />
             )
           }
-          stepCount={runMarks ? undefined : children?.length}
+          stepCount={run ? undefined : children?.length}
           status={
-            runMarks && (
-              <RunStatus mark={runMarks.get(step.stepId) ?? notReachedMark} />
+            run && (
+              <RunStatus
+                mark={run.marks.get(step.stepId) ?? notReachedMark}
+                live={run.live}
+              />
             )
           }
         />
@@ -100,7 +111,7 @@ const StepsTree = ({
             collapsedGroupIds={collapsedGroupIds}
             onToggleGroup={onToggleGroup}
             onStepClick={onStepClick}
-            runMarks={runMarks}
+            run={run}
           />
         )}
       </div>
@@ -125,8 +136,8 @@ const StepsSection = ({
   collapsedGroupIds,
   onToggleGroup,
   onCollapseAll,
-  runMarks,
-}: StepsSectionProps & { runMarks: Map<string, StepRunMark> | null }) => {
+  run,
+}: StepsSectionProps & { run: StepsRun | null }) => {
   const tree = getStepsTree(steps);
   const groupIds = getGroupIds(tree);
 
@@ -151,7 +162,7 @@ const StepsSection = ({
         icon={startDisplay.icon}
         tone={startDisplay.tone}
         label={startDisplay.description}
-        status={runMarks && <RunStatus mark={startMark} />}
+        status={run && <RunStatus mark={startMark} live={run.live} />}
       />
       <StepsTree
         tree={tree}
@@ -160,7 +171,7 @@ const StepsSection = ({
         collapsedGroupIds={collapsedGroupIds}
         onToggleGroup={onToggleGroup}
         onStepClick={onStepClick}
-        runMarks={runMarks}
+        run={run}
       />
     </div>
   );
@@ -191,7 +202,7 @@ export const LeftPanel = ({
         />
       </div>
       {tab === "steps" ? (
-        <StepsSection {...stepsSectionProps} runMarks={null} />
+        <StepsSection {...stepsSectionProps} run={null} />
       ) : (
         <AddTab onAddStep={onAddStep} />
       )}
@@ -200,13 +211,17 @@ export const LeftPanel = ({
 };
 
 /** A run's left panel: the steps of the flow it ran, each with its state in the run. */
-export const RunLeftPanel = (
-  props: StepsSectionProps & {
-    /** Each step's mark in the run, by step id. A step with none is not reached. */
-    runMarks: Map<string, StepRunMark>;
-  },
-) => (
+export const RunLeftPanel = ({
+  runMarks,
+  live,
+  ...stepsSectionProps
+}: StepsSectionProps & {
+  /** Each step's mark in the run, by step id. A step with none is not reached. */
+  runMarks: Map<string, StepRunMark>;
+  /** Whether the run is still going. */
+  live: boolean;
+}) => (
   <div className={panel}>
-    <StepsSection {...props} />
+    <StepsSection {...stepsSectionProps} run={{ marks: runMarks, live }} />
   </div>
 );

@@ -392,6 +392,7 @@ const FlowEditor = ({
       <TopBar
         editorKey={session.key}
         webId={webId}
+        shortname={shortname}
         editorState={editorState}
         flowDefinitionEntityId={flowDefinitionEntityId}
         view={view}

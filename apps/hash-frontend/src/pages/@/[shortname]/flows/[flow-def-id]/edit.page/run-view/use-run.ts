@@ -41,8 +41,8 @@ export type Run =
       marks: Map<string, StepRunMark>;
       /** The runs of its steps by step run id: a step's id, or for a step inside a for-each step, one per item. */
       stepRuns: Map<string, FlowRunStepRunState>;
-      /** The ids of the step runs waiting on a person to answer their questions. */
-      waitingOnPerson: Set<string>;
+      /** When each step run waiting on a person to answer its questions asked them, by step run id. */
+      waitingOnPerson: Map<string, string>;
       /** Whether it's still going, so more of its steps will run. */
       live: boolean;
       /** Why the last check for the run's new events failed, while it keeps checking. */
@@ -147,9 +147,10 @@ export const useRun = ({
         }),
         stepRuns: new Map(stepRuns.map((stepRun) => [stepRun.stepId, stepRun])),
         /* Requests for web pages are answered by the browser plugin, not a person. */
-        waitingOnPerson: new Set(
-          getOpenInputRequests(events.events).flatMap(({ stepId, type }) =>
-            type === "human-input" ? [stepId] : [],
+        waitingOnPerson: new Map(
+          getOpenInputRequests(events.events).flatMap(
+            ({ stepId, type, raisedAt }) =>
+              type === "human-input" ? [[stepId, raisedAt] as const] : [],
           ),
         ),
       };
