@@ -8,7 +8,7 @@ export const fileBoxGeometry = (
           <path d="M13.5 3.5v5h5" />
           <path
             strokeWidth="calc(var(--hash-icon-stroke-width) * .6)"
-            d="m9 13 3-1.5 3 1.5v4L12 19l-3-2Zm0 0 3 1.5 3-1.5m-3 1.5V19"
+            d="m9 12 3-1.5 3 1.5v4L12 18l-3-2Zm0 0 3 1.5 3-1.5m-3 1.5V18"
           />
         </>
       }
