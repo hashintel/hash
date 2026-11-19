@@ -6,7 +6,7 @@ export const filePlusGeometry = (
       cutout={
         <>
           <path d="M13.5 3.5v5h5" />
-          <path d="M9 14.5h6m-3-3v6" />
+          <path data-icon-detail="file-add" d="M9 14.5h6m-3-3v6" />
         </>
       }
     >

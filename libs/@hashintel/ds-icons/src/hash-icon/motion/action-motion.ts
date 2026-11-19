@@ -25,6 +25,8 @@ const translations: Record<string, string> = {
 };
 
 const detailTransforms: Record<string, string> = {
+  "file-code-left": "translateX(-.45px)",
+  "file-code-right": "translateX(.45px)",
   "rewind-ring": "rotate(-18deg)",
   "rewind-hand": "rotate(-100deg)",
   "derivative-top": "translateY(-1px)",
@@ -157,7 +159,11 @@ export const playIconAction = (
         ],
         "ease-in-out",
       );
-    } else if (part === "dash-dot" || part === "dash-segment") {
+    } else if (
+      part === "dash-dot" ||
+      part === "dash-segment" ||
+      part === "signal-bar"
+    ) {
       const index = Array.from(details)
         .filter((item) => item.getAttribute("data-icon-detail") === part)
         .indexOf(detail);
@@ -168,7 +174,8 @@ export const playIconAction = (
         part === "dash-segment"
           ? { opacity: 0.25 }
           : {
-              transform: "translateY(-1.6px)",
+              transform:
+                part === "dash-dot" ? "translateY(-1.6px)" : "scaleY(.45)",
             };
       animate(
         detail,
@@ -180,6 +187,43 @@ export const playIconAction = (
           { ...rest, transformOrigin: "12px 12px" },
         ],
         "linear",
+      );
+    } else if (part === "file-add" || part === "file-notes") {
+      const transforms =
+        part === "file-add"
+          ? ["scale(.8)", "scale(1.12)"]
+          : ["rotate(-4deg)", "rotate(4deg)"];
+      animate(
+        detail,
+        [
+          {
+            transform: previous.get(detail)?.transform ?? resting,
+            transformOrigin: "12px 14.5px",
+          },
+          {
+            transform: transforms[0],
+            transformOrigin: "12px 14.5px",
+            offset: 0.25,
+          },
+          {
+            transform: transforms[1],
+            transformOrigin: "12px 14.5px",
+            offset: 0.6,
+          },
+          { transform: resting, transformOrigin: "12px 14.5px" },
+        ],
+        "ease-in-out",
+      );
+    } else if (part === "scan-sweep") {
+      animate(
+        detail,
+        [
+          { transform: previous.get(detail)?.transform ?? resting },
+          { transform: "translateY(-5px)", offset: 0.25 },
+          { transform: "translateY(5px)", offset: 0.75 },
+          { transform: resting },
+        ],
+        "ease-in-out",
       );
     } else if (part === "radar-sweep") {
       animate(

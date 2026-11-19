@@ -1023,7 +1023,53 @@ describe("HashIcon motion", () => {
     },
   );
 
-  it.each(["dashDashed", "dashDotted"] as const)(
+  it.each(["outline", "filled"] as const)(
+    "animates individual Dash and file details in %s icons and cancels them together",
+    (variant) => {
+      const names = [
+        "dashSolid",
+        "dashDashed",
+        "dashDotted",
+        "dashDraw",
+        "filePlus",
+        "fileAudio",
+        "fileCode",
+        "scanLine",
+        "signal",
+      ] as const;
+      const { container, rerender, unmount } = render(
+        <button type="button">
+          {names.map((name) => (
+            <HashIcon key={name} name={name} variant={variant} />
+          ))}
+        </button>,
+      );
+      fireEvent.click(screen.getByRole("button"));
+      const details = container.querySelectorAll("[data-icon-detail]");
+      expect(animate).toHaveBeenCalledTimes(details.length);
+      for (const detail of details)
+        expect(animate.mock.contexts.includes(detail)).toBe(true);
+      for (const [, options] of animate.mock.calls) {
+        expect(options).toMatchObject({ iterations: 1, fill: "none" });
+      }
+      fireEvent.click(screen.getByRole("button"));
+      expect(cancel).toHaveBeenCalledTimes(details.length);
+      expect(animate).toHaveBeenCalledTimes(details.length * 2);
+      rerender(
+        <button type="button">
+          {names.map((name) => (
+            <HashIcon key={name} name={name} variant={variant} motion="none" />
+          ))}
+        </button>,
+      );
+      expect(cancel).toHaveBeenCalledTimes(details.length * 2);
+      fireEvent.click(screen.getByRole("button"));
+      expect(animate).toHaveBeenCalledTimes(details.length * 2);
+      unmount();
+    },
+  );
+
+  it.each(["dashDashed", "dashDotted", "signal"] as const)(
     "staggers %s details within one seamless cycle and stops for reduced motion",
     (name) => {
       render(
