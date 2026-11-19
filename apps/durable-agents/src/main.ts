@@ -36,8 +36,12 @@
  *   - `BRUNCH_POSTGRES_PASSWORD`, then `POSTGRES_PASSWORD` (`postgres`).
  *   - `BRUNCH_POSTGRES_DATABASE` (`postgres`).
  *
- * A crash-loop abort is logged as one JSON line on stderr
- * (`"event": "durable-agents.crash-loop"`).
+ * Each of these is logged as one JSON line on stderr:
+ *
+ * - a crash-loop abort (`"event": "durable-agents.crash-loop"`);
+ * - each of Pi Durable's reports, with its conversation
+ *   (`"event": "durable-agents.report"`);
+ * - an idle pool client's error (`"event": "durable-agents.pool-error"`).
  *
  * SIGTERM and SIGINT stop serving, close every conversation and end the pool.
  */
@@ -71,12 +75,28 @@ const modelFromEnvironment = (
   return model;
 };
 
+const logLine = (line: Readonly<Record<string, unknown>>) => {
+  process.stderr.write(`${JSON.stringify(line)}\n`);
+};
+
+const errorText = (error: unknown) =>
+  error instanceof Error ? (error.stack ?? error.message) : String(error);
+
 const models = builtinModels();
 const model = modelFromEnvironment(models, process.env.DURABLE_AGENTS_MODEL);
 const port = Number(process.env.PORT ?? defaultPort);
 const pool = new Pool({
   ...postgresConfigFromEnvironment(),
   ...poolLimitsFromEnvironment(process.env),
+});
+// Without a listener, an idle client's error crashes the process; the pool has already dropped that client.
+pool.on("error", (error) => {
+  logLine({
+    level: "warn",
+    event: "durable-agents.pool-error",
+    message: "An idle Postgres client failed; the pool dropped it.",
+    error: errorText(error),
+  });
 });
 
 const server = await startDurableAgentsServer({
@@ -86,16 +106,24 @@ const server = await startDurableAgentsServer({
   models,
   model,
   onCrashLoop: (conversationId, tasks) => {
-    process.stderr.write(
-      `${JSON.stringify({
-        level: "warn",
-        event: "durable-agents.crash-loop",
-        message:
-          "Aborted a conversation's work: a task was cut off by a restart too often.",
-        conversationId,
-        tasks,
-      })}\n`,
-    );
+    logLine({
+      level: "warn",
+      event: "durable-agents.crash-loop",
+      message:
+        "Aborted a conversation's work: a task was cut off by a restart too often.",
+      conversationId,
+      tasks,
+    });
+  },
+  onReport: (conversationId, { error, ...report }) => {
+    logLine({
+      level: "error",
+      event: "durable-agents.report",
+      message: `Pi Durable reported ${report.kind}.`,
+      conversationId,
+      report,
+      error: errorText(error),
+    });
   },
 });
 process.stdout.write(

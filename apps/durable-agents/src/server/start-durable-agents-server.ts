@@ -84,6 +84,8 @@ export type StartDurableAgentsServerOptions = {
   readonly limits?: Partial<DurableAgentsServerLimits>;
   /** Told when opening a conversation aborted its work for a crash loop. */
   readonly onCrashLoop?: DurableAgentsServerOptions["onCrashLoop"];
+  /** Told each of Pi Durable's reports, with the conversation whose Harness made it. */
+  readonly onReport?: DurableAgentsServerOptions["onReport"];
 };
 
 /** A chat body's `binding`: absent leaves the conversation as it is. */
@@ -186,6 +188,7 @@ export const startDurableAgentsServer = async (
       admitBinding(conversation, body, installBoundSave),
     limits: { ...limitsFromEnvironment(process.env), ...options.limits },
     onCrashLoop: options.onCrashLoop,
+    onReport: options.onReport,
     isUnavailable: isPoolConnectTimeout,
   });
   server.app.route(

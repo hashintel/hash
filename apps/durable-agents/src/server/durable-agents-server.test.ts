@@ -13,6 +13,8 @@ import {
   type Extension,
   LiveDoc,
   MemoryStorage,
+  type Report,
+  section,
 } from "@earendil-works/pi-durable";
 import { obj } from "@earendil-works/pi-schema";
 import {
@@ -44,6 +46,7 @@ import {
 import {
   createDurableAgentsServer,
   type DurableAgentsServerLimits,
+  type DurableAgentsServerOptions,
 } from "./durable-agents-server";
 import { brunchUserInput } from "./durable-agents-server/user-input";
 import { VersionLoadDoc } from "./durable-agents-server/version-load";
@@ -97,6 +100,7 @@ type ChatOptions = {
   readonly limits?: Partial<DurableAgentsServerLimits>;
   /** Installed beside the browser-call extension. */
   readonly extensions?: readonly Extension[];
+  readonly onReport?: DurableAgentsServerOptions["onReport"];
 };
 
 /**
@@ -107,6 +111,7 @@ const openChat = ({
   responses = browserToolTurn(),
   limits,
   extensions = [],
+  onReport,
 }: ChatOptions = {}) => {
   const faux = fauxProvider({
     tokensPerSecond: 300,
@@ -132,6 +137,7 @@ const openChat = ({
     settings: { progress: { partialIntervalMs: 5, outputIntervalMs: 5 } },
     clientToolNames: new Set([browserToolName]),
     limits,
+    onReport,
     context,
   });
   servers.push(server);
@@ -943,6 +949,40 @@ test("routes other than POST /chat find an unknown conversation absent and creat
   expect(abort.status).toBe(404);
   expect(await server.conversations.acquire(unknown)).toBeUndefined();
   expect(storage.stores.has(unknown)).toBe(false);
+});
+
+test("a section that throws is reported once, with the conversation whose Harness ran it", async () => {
+  const reports: (readonly [string, Report])[] = [];
+  const { transport } = openChat({
+    responses: [fauxAssistantMessage("Answered.")],
+    extensions: [
+      defineExtension({
+        name: "probe.broken-section",
+        sections: [
+          section("broken", () => {
+            throw new Error("The section failed.");
+          }),
+        ],
+      }),
+    ],
+    onReport: (conversationId, report) => {
+      reports.push([conversationId, report]);
+    },
+  });
+  const stream = recorder(await send(transport));
+  await stream.drain();
+
+  expect(stream.chunks.at(-1)).toEqual({
+    type: "finish",
+    finishReason: "stop",
+  });
+  expect(
+    reports.map(([conversationId, { kind, error }]) => [
+      conversationId,
+      kind,
+      error instanceof Error ? error.message : error,
+    ]),
+  ).toEqual([[chatId, "extension_error", "The section failed."]]);
 });
 
 /** A server tool that answers at once: what a model calls round after round. */
