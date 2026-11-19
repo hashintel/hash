@@ -52,6 +52,11 @@ const listItemRowStyle = cva({
     backgroundColor: "[transparent]",
     cursor: "pointer",
     transition: "[background-color 100ms ease-out, opacity 150ms ease-out]",
+    /* A row scrolled out of view is skipped by the browser, at the height it
+       last had. Each row holds an icon of about ten SVG elements, and every
+       one is laid out again whenever the editor around the list resizes. */
+    contentVisibility: "auto",
+    containIntrinsicSize: "[auto 32px]",
 
     /* Focus shows as a background change, like hover. */
     _focus: {
