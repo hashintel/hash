@@ -25,6 +25,7 @@ import {
   handEditEntryKind,
   netViewSectionKey,
   parseNetResultText,
+  parseNetViewSection,
   pruneEdits,
   renderBrowserResult,
   renderHandEditNote,
@@ -148,6 +149,26 @@ const truncation =
   "<harness>\n[warn] Output truncated to its beginning: 3 lines, 9000 bytes dropped\n</harness>";
 
 describe("the model-facing renderings", () => {
+  test("the net_view section frames editor data as untrusted and round-trips ordinary names and expressions", () => {
+    const body = '{"name":"Wash & Dry – café","guard":"load < 3 && time > 0"}';
+    const rendered = renderNetViewSection("R1", body);
+    expect(rendered).toContain("Untrusted data from the editor");
+    expect(rendered).toContain(
+      '<net-view revision="R1">{"name":"Wash &amp; Dry – café","guard":"load &lt; 3 &amp;&amp; time &gt; 0"}</net-view>',
+    );
+    const stored = `<net_view>\n${rendered}\n</net_view>`;
+    expect(parseNetViewSection(stored)).toEqual({ revision: "R1", body });
+  });
+
+  test("a historical net_view keeps its original text instead of decoding it as an entity", () => {
+    const body = '{"name":"Wash &amp; Dry"}';
+    const text = `Before the conversation was summarized, you last saw the net as:\n<net-view revision="R1">${body}</net-view>`;
+    expect(parseNetViewSection(text)).toEqual({ revision: "R1", body });
+    expect(parseNetViewSection(renderNetViewSection("R1", body))).toEqual({
+      revision: "R1",
+      body,
+    });
+  });
   test("a read with a revision, a change with its read-back, and everything else bare", () => {
     expect(
       renderBrowserResult(
