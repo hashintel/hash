@@ -155,8 +155,8 @@ mod tests {
             let root = std::env::temp_dir()
                 .join(format!("repo-chores-benches-{name}-{}", std::process::id()));
             let _: io::Result<()> = fs::remove_dir_all(&root);
-            fs::create_dir_all(root.join("criterion")).expect("could not create fixture");
-            fs::create_dir_all(root.join("artifacts")).expect("could not create fixture");
+            fs::create_dir_all(root.join("criterion")).expect("should create fixture");
+            fs::create_dir_all(root.join("artifacts")).expect("should create fixture");
             Self { root }
         }
 
@@ -169,9 +169,9 @@ mod tests {
         }
 
         fn write_json(path: PathBuf, value: &serde_json::Value) {
-            fs::create_dir_all(path.parent().expect("path has a parent"))
-                .expect("could not create fixture");
-            fs::write(path, value.to_string()).expect("could not write fixture");
+            fs::create_dir_all(path.parent().expect("should have a parent directory"))
+                .expect("should create fixture");
+            fs::write(path, value.to_string()).expect("should write fixture");
         }
 
         /// Writes a criterion measurement named `measurement` for `group/function`.
@@ -241,10 +241,10 @@ mod tests {
 
         fn profile(&self, group: &str, function: &str) {
             let dir = self.artifacts().join(group).join(function);
-            fs::create_dir_all(&dir).expect("could not create fixture");
+            fs::create_dir_all(&dir).expect("should create fixture");
             // The first line is the benchmark setup and is skipped when rendering.
             fs::write(dir.join("tracing.folded"), "setup 1\nmain;work 10\n")
-                .expect("could not write fixture");
+                .expect("should write fixture");
         }
     }
 
@@ -259,7 +259,7 @@ mod tests {
     }
 
     #[test]
-    fn reports_only_benchmarks_measured_by_the_current_run() {
+    fn reports_only_current_run_benchmarks() {
         let fixture = Fixture::new("current-run");
         // Removed on the head branch: only the base run's `base` copy remains, and its profile
         // was deleted with the base checkout.
@@ -275,7 +275,7 @@ mod tests {
         fixture.measurement("group", "added", "new");
         fixture.profile("group", "added");
 
-        let mut analyses = analyze(&fixture).expect("head results should be analyzed");
+        let mut analyses = analyze(&fixture).expect("should analyze head results");
         analyses.sort_by(|lhs, rhs| lhs.measurement.info.title.cmp(&rhs.measurement.info.title));
 
         let reported = analyses
@@ -295,7 +295,7 @@ mod tests {
     }
 
     #[test]
-    fn missing_profile_for_a_current_measurement_fails() {
+    fn missing_profile_fails() {
         let fixture = Fixture::new("missing-profile");
         fixture.measurement("group", "shared", "base");
         fixture.measurement("group", "shared", "new");
@@ -303,7 +303,7 @@ mod tests {
         fixture.profile("group", "shared");
         fixture.measurement("group", "unprofiled", "new");
 
-        let report = analyze(&fixture).expect_err("a head result without a profile should fail");
+        let report = analyze(&fixture).expect_err("should fail without a profile");
         assert!(matches!(
             report.current_context(),
             AnalyzeError::FlameGraphMissing

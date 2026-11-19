@@ -28,7 +28,7 @@ import {
   type PersistedNet,
   usePersistedNets,
 } from "../../../processes.page/use-persisted-nets";
-import { NetExistsError } from "./net-exists-error";
+import { NetExistsError } from "./shared/net-exists-error";
 
 import type {
   CreateEntityMutation,
@@ -201,7 +201,7 @@ export const useProcessSaveAndLoad = ({
       let nets: PersistedNet[];
       try {
         const { data } = await refetch();
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- as in `refetchPersistedNets`
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- `refetch()` can resolve without `data`
         if (!data) {
           return unknownFailure;
         }

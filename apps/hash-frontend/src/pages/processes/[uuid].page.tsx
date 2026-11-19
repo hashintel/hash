@@ -12,7 +12,6 @@ import { getLayoutWithSidebar } from "../../shared/layout";
 import { usePersistedNets } from "../processes.page/use-persisted-nets";
 import { useAuthInfo } from "../shared/auth-info-context";
 import { useActiveWorkspace } from "../shared/workspace-context";
-import { draftRoute, draftWebQueryParam } from "./[uuid].page/draft-path";
 import {
   creatableWebIds,
   draftEntityIdFromQuery,
@@ -22,6 +21,10 @@ import {
   ProcessEditor,
   type ProcessEditorView,
 } from "./[uuid].page/process-editor";
+import {
+  draftRoute,
+  draftWebQueryParam,
+} from "./[uuid].page/shared/draft-path";
 
 import type { NextPageWithLayout } from "../../shared/layout";
 import type { EntityUuid } from "@blockprotocol/type-system";

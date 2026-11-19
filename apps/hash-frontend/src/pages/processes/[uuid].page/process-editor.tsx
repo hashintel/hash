@@ -12,11 +12,11 @@ import {
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { AlertModal } from "@hashintel/design-system";
 
-import { draftRoute } from "./draft-path";
-import { NetExistsError } from "./process-editor/net-exists-error";
+import { NetExistsError } from "./process-editor/shared/net-exists-error";
 import { useProcessSaveAndLoad } from "./process-editor/use-process-save-and-load";
 import { usePetriNetRevisions } from "./process-editor/use-process-save-and-load/use-petri-net-revisions";
 import { useStringEvaluationGate } from "./process-editor/use-string-evaluation-gate";
+import { draftRoute } from "./shared/draft-path";
 
 import type {
   NetMode,

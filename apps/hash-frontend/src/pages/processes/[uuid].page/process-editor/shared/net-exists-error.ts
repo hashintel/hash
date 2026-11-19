@@ -1,4 +1,4 @@
-import type { SavedSnapshot } from "./petrinaut-editor";
+import type { SavedSnapshot } from "../petrinaut-editor";
 import type { EntityId } from "@blockprotocol/type-system";
 
 /**

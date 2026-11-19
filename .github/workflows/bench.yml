@@ -170,7 +170,8 @@ jobs:
       - name: Warm up repository
         uses: $/.github/actions/warm-up-repo
 
-      - name: Clear base benchmark measurements
+      - &clear-base-measurements
+        name: Clear base benchmark measurements
         if: github.event_name == 'pull_request'
         # Criterion writes every measurement to `new/` and copies it to `base/`, which the head
         # run compares against. Remove the base run's `new/` copies so that only benchmarks the
@@ -396,16 +397,7 @@ jobs:
 
           turbo run start:healthcheck --filter hash-graph --env-mode=loose
 
-      - name: Clear base benchmark measurements
-        if: github.event_name == 'pull_request'
-        # Criterion writes every measurement to `new/` and copies it to `base/`, which the head
-        # run compares against. Remove the base run's `new/` copies so that only benchmarks the
-        # head run measures are analyzed and uploaded; IDs removed on the head branch keep only
-        # `base/`, and their flame graphs went away with the base checkout.
-        run: |
-          if [[ -d target/criterion ]]; then
-            find target/criterion -type f -path '*/new/benchmark.json' -exec sh -c 'rm -r "$(dirname "$1")"' sh {} ';'
-          fi
+      - *clear-base-measurements
 
       - name: Run head benches
         run: turbo run bench:integration --filter "${{ matrix.name }}"

@@ -491,7 +491,9 @@ fn global_update_entity_policies() -> impl Iterator<Item = PolicyCreationParams>
                 filter: EntityResourceFilter::All {
                     filters: vec![
                         EntityResourceFilter::CreatedByPrincipal,
-                        COMMENT.entity_is_of_base_type(),
+                        EntityResourceFilter::Any {
+                            filters: vec![COMMENT.entity_is_of_base_type()],
+                        },
                     ],
                 },
             })),

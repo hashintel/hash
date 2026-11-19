@@ -587,6 +587,16 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
         Ok(entity)
     }
 
+    /// Refuses a change that adds or removes the Agent Conversation type.
+    ///
+    /// Conversations are visible only to their creator, so reclassifying an entity would hide a
+    /// shared entity from its web, or expose a private conversation to it.
+    ///
+    /// # Errors
+    ///
+    /// - [`UpdateError`] with [`StatusCode::PermissionDenied`] if exactly one of the two editions
+    ///   is an Agent Conversation
+    /// - [`UpdateError`] if the edition cache can't be read
     async fn ensure_conversation_classification(
         &self,
         previous_edition_id: EntityEditionId,

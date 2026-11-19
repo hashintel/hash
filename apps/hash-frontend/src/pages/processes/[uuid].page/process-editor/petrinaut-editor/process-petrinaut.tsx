@@ -217,9 +217,8 @@ const BrunchSession = memo(
 
 /**
  * The Petrinaut editor for the open net, with Brunch as its assistant while
- * the user may edit it and the account's actor key is known. A draft is
- * offered Brunch too: it has its final id from the start, so its
- * conversation is the saved net's. Rendered inside the editor's `ErrorTrackerContext`, so Brunch's
+ * the user may edit it, saved or a draft, and the account's actor key is
+ * known. Rendered inside the editor's `ErrorTrackerContext`, so Brunch's
  * contained failures reach the same reporter as Petrinaut's.
  */
 export const ProcessPetrinaut = ({
@@ -269,8 +268,7 @@ export const ProcessPetrinaut = ({
 
   const editor = useMemo(() => ({ handle, readTitle }), [handle, readTitle]);
   // Brunch edits and saves the net, so it is offered only on nets the user
-  // may edit. The id is the same before and after a draft's first save, so
-  // that save changes nothing Brunch's session is built from.
+  // may edit.
   const openDocument = useMemo<BrunchOpenDocument | null>(
     () => (readonly ? null : { documentId: entityId, editor }),
     [entityId, readonly, editor],

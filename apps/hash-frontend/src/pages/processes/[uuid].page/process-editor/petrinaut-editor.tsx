@@ -30,7 +30,6 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut";
 
-import { NetExistsError } from "./net-exists-error";
 import { createAgentSave } from "./petrinaut-editor/agent-save";
 import { ProcessPetrinaut } from "./petrinaut-editor/process-petrinaut";
 import {
@@ -41,6 +40,7 @@ import {
   type TopBarState,
   TopBarContext,
 } from "./petrinaut-editor/top-bar-context";
+import { NetExistsError } from "./shared/net-exists-error";
 
 import type { EntityId } from "@blockprotocol/type-system";
 import type {
