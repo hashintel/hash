@@ -9,6 +9,8 @@ const drawings = artwork as Record<
   Record<HashIconVariant, string>
 >;
 
+const supportedVariants = new Set<HashIconVariant>(["outline", "filled"]);
+
 export const getHashIconArtwork = (
   name: HashIconName,
   variant: HashIconVariant = "outline",
@@ -17,7 +19,7 @@ export const getHashIconArtwork = (
   if (
     typeof name !== "string" ||
     !Object.hasOwn(drawings, name) ||
-    (variant !== "outline" && variant !== "filled")
+    !supportedVariants.has(variant)
   ) {
     return "";
   }

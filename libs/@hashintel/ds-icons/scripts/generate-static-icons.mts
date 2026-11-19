@@ -3,7 +3,10 @@ import { writeFile } from "node:fs/promises";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { HashIcon, hashIconNames } from "../dist/index.js";
+const builtModuleUrl = new URL("../dist/index.js", import.meta.url);
+const { HashIcon, hashIconNames } = (await import(
+  builtModuleUrl.href
+)) as typeof import("../src/main");
 
 const artwork = Object.fromEntries(
   hashIconNames.map((name) => [

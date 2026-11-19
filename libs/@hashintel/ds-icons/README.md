@@ -83,10 +83,6 @@ for static assets and canvas renderers. Supply an instance-specific prefix when
 embedding more than one drawing in an SVG document. The build regenerates this
 artwork from `HashIcon`; edit the canonical geometry, not `src/static/artwork.json`.
 
-The repository inventory in `docs/icon-migration-map.json` records the counterparts
-for interface icons in HASH and internal-sites. Brand marks, national flags,
-illustrations, and test fixtures are identified separately to preserve their meaning.
-
 ## One-time and continuous animations
 
 Prefer one-time animations for hover feedback and completed actions. They acknowledge
