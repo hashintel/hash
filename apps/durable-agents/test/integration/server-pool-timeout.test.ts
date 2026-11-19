@@ -10,7 +10,7 @@
  *   without a `finish`; the next request reopens the conversation, which
  *   resumes the run from its last commit. What was not committed is redone
  *   (the model request) or answered as cut off (the tool call), and the turn
- *   ends with one answer.
+ *   ends with one answer. The failure is reported with its conversation.
  */
 import { randomUUID } from "node:crypto";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -30,6 +30,7 @@ import {
   defineTool,
   type SessionEnd,
   LiveDoc,
+  type Report,
   ToolResultEntry,
 } from "@earendil-works/pi-durable";
 import { obj } from "@earendil-works/pi-schema";
@@ -130,6 +131,69 @@ test("a request that gets no pool connection in time is answered 503 with Retry-
     await server.close();
     await pool.end();
     await Promise.all([dropSchema(chatId), dropSchema(unknownId)]);
+  }
+});
+
+test("the production server reports a Harness failed by a commit without a connection, with its conversation", async () => {
+  const chatId = `pool-report-${randomUUID()}`;
+  const pool = new Pool({
+    ...poolConfig,
+    max: 1,
+    connectionTimeoutMillis: waitMs,
+  });
+  let held: PoolClient | undefined;
+  // Holding the connection while the model answers fails the commit of its answer.
+  const { models, model } = scriptedModel([
+    async () => {
+      held = await pool.connect();
+      return fauxAssistantMessage("Answered.");
+    },
+  ]);
+  const reports: (readonly [string, Report["kind"]])[] = [];
+  const server = await startDurableAgentsServer({
+    port: 0,
+    hostname: "127.0.0.1",
+    pool,
+    models,
+    model,
+    onReport: (conversationId, { kind }) => {
+      reports.push([conversationId, kind]);
+    },
+  });
+  try {
+    // The stream breaks off before its first chunk, which drops the connection.
+    const body = await fetch(`http://127.0.0.1:${server.port}/chat`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        id: chatId,
+        trigger: "submit-message",
+        messages: [
+          {
+            id: "user-1",
+            role: "user",
+            parts: [{ type: "text", text: "Hi." }],
+          },
+        ],
+        binding: { conversationId: chatId, documentId: `net-${randomUUID()}` },
+      }),
+    })
+      .then((response) => response.text())
+      .catch(() => "");
+    expect(body).not.toContain('"type":"finish"');
+    // The report comes once the Session is sealed, as the stream ends.
+    for (let attempt = 0; attempt < 50 && reports.length === 0; attempt++) {
+      // eslint-disable-next-line no-await-in-loop
+      await sleep(20);
+    }
+    expect(reports.filter(([, kind]) => kind === "storage_failed")).toEqual([
+      [chatId, "storage_failed"],
+    ]);
+  } finally {
+    held?.release();
+    await server.close();
+    await pool.end();
+    await dropSchema(chatId);
   }
 });
 

@@ -25,6 +25,7 @@ import {
   type HarnessSettings,
   LiveDoc,
   type Registry,
+  type Report,
   ROOT_CONVERSATION_ID,
   type SubmissionId,
 } from "@earendil-works/pi-durable";
@@ -79,6 +80,11 @@ export type ConversationRegistryOptions = {
     conversation: OpenConversation,
     context: Context,
   ) => Promise<void>;
+  /**
+   * Each report of a conversation's Harness (`HarnessOptions.onReport`):
+   * failures that fail no operation, and the Harness's own failure, once.
+   */
+  readonly onReport?: (conversationId: string, report: Report) => void;
 };
 
 /** What the registry enforces on every conversation it opens. */
@@ -194,6 +200,7 @@ export const createConversationRegistry = (
         registry,
         settings: unlimitedRestarts(options.settings),
         ...(options.now === undefined ? {} : { now: options.now }),
+        onReport: (report) => options.onReport?.(conversationId, report),
       },
       context,
     );
