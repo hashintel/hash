@@ -64,7 +64,7 @@ import {
   brunchUserInput,
   type ChatInput,
 } from "./durable-agents-server/user-input";
-import { versionLoadRecorder } from "./durable-agents-server/version-load";
+import { recordVersionLoad } from "./durable-agents-server/version-load";
 
 export type {
   ConversationSeed,
@@ -302,12 +302,6 @@ export const createDurableAgentsServer = (
       const refusal = await options.admitChat?.(conversation, body);
       if (refusal !== undefined) return ctx.text(refusal.error, refusal.status);
       const { harness, root } = conversation;
-      const recordVersionLoad = await versionLoadRecorder(
-        harness,
-        root.id,
-        input,
-        context,
-      );
       // A repeated message id finds its original submission and records no version load.
       // Admission deliberately does not use the response's cancellation signal.
       const submissionId = await root.commit(async (tx) => {
@@ -322,7 +316,7 @@ export const createDurableAgentsServer = (
           requestId: input.requestId,
           whenBusy: "followUp",
         });
-        await recordVersionLoad(tx, submitted);
+        await recordVersionLoad(tx, root.id, input, submitted);
         return submitted;
       }, context);
       if (submissionId === undefined)

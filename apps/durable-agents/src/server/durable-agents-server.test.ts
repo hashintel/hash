@@ -57,7 +57,6 @@ import {
   type DurableAgentsServerOptions,
 } from "./durable-agents-server";
 import { brunchUserInput } from "./durable-agents-server/user-input";
-import { AnnouncedVersionLoadDoc } from "./durable-agents-server/version-load";
 import { browserCallsPrefix } from "./start-durable-agents-server";
 import { serveNode } from "./start-durable-agents-server/serve-node";
 
@@ -844,9 +843,6 @@ describe("POST /chat records a version load for the version_load section (fold 2
     expect(await harness.snapshot(VersionLoadsDoc, root.id, context)).toEqual({
       loads: recorded,
     });
-    expect(
-      await harness.snapshot(AnnouncedVersionLoadDoc, root.id, context),
-    ).toBeUndefined();
 
     // A late retry of the first message, after the newer load: its first submission, and no write.
     const late = recorder(await send(transport, { message: first }));
@@ -934,47 +930,6 @@ describe("POST /chat records a version load for the version_load section (fold 2
         "version_load:2",
       ],
     ]);
-  });
-
-  test("a conversation that announced a load in its content before the section records that load no more, and the next one as new", async () => {
-    const { requests, responses } = recordedAnswers(3);
-    const { server, transport } = openChat({
-      responses,
-      extensions: [versionLoadSectionExtension],
-    });
-    await recorder(
-      await send(transport, {
-        message: { ...userMessage, id: "user-0" },
-      }),
-    ).drain();
-    const { harness, root } = await openConversation(server);
-    await root.commit(async (tx) => {
-      const announced = await tx.doc(AnnouncedVersionLoadDoc, root.id);
-      announced.announced = load1.id;
-    }, context);
-
-    await recorder(
-      await send(transport, {
-        message: loadMessage("user-1", "Add a dryer.", load1),
-      }),
-    ).drain();
-    await recorder(
-      await send(transport, {
-        message: loadMessage("user-2", "Now a press.", load2),
-      }),
-    ).drain();
-
-    expect(withLoads(requests).at(-1)).toEqual([
-      "user:Call the net Laundry line.",
-      "user:Add a dryer.",
-      "user:Now a press.",
-      "version_load:2",
-    ]);
-    expect(
-      (await harness.snapshot(VersionLoadsDoc, root.id, context))?.loads.map(
-        ({ id }) => id,
-      ),
-    ).toEqual([load2.id]);
   });
 });
 
