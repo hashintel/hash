@@ -330,7 +330,7 @@ describe("Brunch save approval card", () => {
     });
   });
 
-  test("says it creates a net that was never saved, and offers only Allow and Deny", () => {
+  test("says a save of a net that was never saved makes its first version, and offers only Allow and Deny", () => {
     const coordinator = createBrunchMutationApprovalCoordinator();
     void coordinator.request({
       toolCallId: "save-1",
@@ -351,7 +351,7 @@ describe("Brunch save approval card", () => {
       />,
     );
 
-    expect(screen.getByText("Create \u2018Returns\u2019?")).not.toBeNull();
+    expect(screen.getByText("Save \u2018Returns\u2019?")).not.toBeNull();
     expect(screen.getByText(/hasn.t been saved yet/iu)).not.toBeNull();
     expect(screen.queryByText(/as a new version/iu)).toBeNull();
     expect(

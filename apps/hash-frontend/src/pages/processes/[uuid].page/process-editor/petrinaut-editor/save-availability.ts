@@ -34,8 +34,8 @@ const agentRefusalWording: Record<SaveRefusal, string> = {
  * Why the agent's save of `documentId` can't start, in the words it is told,
  * or `null` when it may. The agent saves only the net open in the editor,
  * from the load that offered it. A draft is named by the id its first save
- * creates, so the agent's save of a draft creates it, as the user's Create
- * does.
+ * creates, so the agent's save of a draft creates it, as the user's first
+ * Save does.
  */
 export const agentSaveRefusal = (
   facts: SaveFacts & {
