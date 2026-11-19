@@ -29,10 +29,6 @@ import { afterAll, describe, expect, test } from "vitest";
 import { canonicalContent } from "@hashintel/brunch-agent";
 
 import {
-  type RecordedVersionLoad,
-  VersionLoadsDoc,
-} from "../../../src/agent/hash-agent/version-load-section";
-import {
   BrowserBindingDoc,
   BrowserCallsDoc,
   claimBrowserCallAs,
@@ -41,6 +37,10 @@ import {
 } from "../../../src/browser-call/browser-call";
 import { LedgerDoc } from "../../../src/ledger-doc/ledger-doc";
 import { createRequestSlots } from "../../../src/server/durable-agents-server/request-slots";
+import {
+  type RecordedVersionLoad,
+  VersionLoadsDoc,
+} from "../../../src/shared/version-loads-doc";
 import { postgresConfigFromEnvironment } from "../../../src/storage/postgres/postgres-config";
 import { openPostgresStorage } from "../../../src/storage/postgres/postgres-storage";
 import { loadModelStep } from "../../load/probe/workload";

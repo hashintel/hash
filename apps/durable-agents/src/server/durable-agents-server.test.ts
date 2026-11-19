@@ -41,7 +41,6 @@ import {
 import {
   versionLoadSectionExtension,
   versionLoadSectionKey,
-  VersionLoadsDoc,
 } from "../agent/hash-agent/version-load-section";
 import {
   browserCallExtension,
@@ -51,6 +50,7 @@ import {
   finishBrowserCall,
 } from "../browser-call/browser-call";
 import { createBrowserCallRouter } from "../browser-call/browser-call-router";
+import { VersionLoadsDoc } from "../shared/version-loads-doc";
 import {
   createDurableAgentsServer,
   type DurableAgentsServerLimits,
