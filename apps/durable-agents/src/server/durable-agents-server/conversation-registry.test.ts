@@ -1,7 +1,13 @@
 import { setTimeout as sleep } from "node:timers/promises";
 
 import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
-import { createRegistry, MemoryStorage } from "@earendil-works/pi-durable";
+import {
+  AgentDoc,
+  createRegistry,
+  defineExtension,
+  Harness,
+  MemoryStorage,
+} from "@earendil-works/pi-durable";
 import { expect, test } from "vitest";
 
 import { canonicalContent } from "@hashintel/brunch-agent";
@@ -12,7 +18,7 @@ import {
   BrowserBindingDoc,
 } from "../../browser-call/browser-call";
 import { createConversationRegistry } from "./conversation-registry";
-import { createRequestSlots } from "./request-slots";
+import { createRequestSlots, requestSlotsExtensionName } from "./request-slots";
 
 import type { BrowserContext } from "@hashintel/brunch-agent";
 
@@ -150,6 +156,58 @@ test("closing the registry waits for a Harness it evicted for lost ownership to 
   releaseClose.resolve();
   await closing;
   expect(await first.harness.closed).toEqual({ kind: "closed" });
+});
+
+test("a stored extension list without the gate keeps exactly its extensions, plus the gate", async () => {
+  const storage = Object.assign(new MemoryStorage(), {
+    isOwner: async () => true,
+    close: async () => {},
+  });
+  const extra = defineExtension({ name: "extra" });
+  const installAll = () => {
+    const registry = createRegistry();
+    registry.install(browserCallExtension);
+    registry.install(extra);
+    return registry;
+  };
+  const { models, model } = scriptedModel([]);
+  // A conversation stored before the server selected the gate.
+  const before = await Harness.open(
+    storage,
+    { models, registry: installAll() },
+    context,
+  );
+  await before.root(context, {
+    agent: { model, extensions: [browserCallExtension] },
+  });
+  await before.close(context);
+
+  const conversations = createConversationRegistry(
+    {
+      openStorage: async () => storage,
+      storageExists: async () => true,
+      createRegistry: installAll,
+      models,
+      agent: { model },
+    },
+    {
+      maxTurns: 8,
+      crashLoopRestarts: Infinity,
+      requestSlots: createRequestSlots(1),
+    },
+    context,
+  );
+  try {
+    const { harness, root } = (await conversations.acquire(chatId))!;
+    expect(
+      (await harness.snapshot(AgentDoc, root.id, context))?.extensions,
+    ).toEqual([browserCallExtension.name, requestSlotsExtensionName]);
+    expect(
+      (await root.agent(context)).extensions.map(({ name }) => name),
+    ).toEqual([browserCallExtension.name, requestSlotsExtensionName]);
+  } finally {
+    await conversations.close();
+  }
 });
 
 test("creating a conversation that already exists leaves its binding as it is", async () => {
