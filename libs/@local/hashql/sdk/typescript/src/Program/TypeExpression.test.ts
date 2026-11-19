@@ -68,7 +68,7 @@ describe("type_expression", () => {
     const failure = ProgramError.Construction.invalidTypeArity(-1);
     const syntax = Result.fail(failure);
     const failed = TypeExpression.fromResult<Type.PrimitiveString>(syntax);
-    expect(TypeExpression.toType(failed)).toBe(syntax);
+    expect(TypeExpression.toType(failed)).toStrictEqual(syntax);
     expect(TypeExpression.relocate(failed, firstPath)).toStrictEqual(syntax);
     expect(pipe(failed, TypeExpression.relocate(firstPath))).toStrictEqual(
       syntax,
@@ -87,6 +87,28 @@ describe("type_expression", () => {
     expect(pipe(application, Result.flip, Result.getOrThrow).reason._tag).toBe(
       "InvalidExpression",
     );
+  });
+
+  test("invalid_syntax", () => {
+    expect.hasAssertions();
+    const syntax: JExpr.Type.Type = {
+      _tag: "Struct",
+      members: [[{ _tag: "Lexical", value: "first name" }, { _tag: "Infer" }]],
+    };
+    const direct = TypeExpression.fromType<Type.PrimitiveInteger>(syntax);
+    const wrapped = pipe(
+      syntax,
+      Result.succeed,
+      TypeExpression.fromResult<Type.PrimitiveInteger>,
+    );
+    expect(
+      pipe(direct, TypeExpression.toType, Result.flip, Result.getOrThrow).reason
+        ._tag,
+    ).toBe("InvalidExpression");
+    expect(
+      pipe(wrapped, TypeExpression.toType, Result.flip, Result.getOrThrow)
+        .reason._tag,
+    ).toBe("InvalidExpression");
   });
 
   test.each([-1, 0.5, Number.NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])(

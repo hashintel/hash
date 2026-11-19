@@ -225,12 +225,6 @@ export const valueNode = (
   return structNode(value);
 };
 
-/** Validates an assembled node before attaching its statically established descriptor and requirements. */
-export const fromNode = <T extends Type.Any, I>(
-  node: Result.Result<AST.Node.Any, ProgramError.Construction>,
-): Expression.Expression<T, I> =>
-  pipe(node, Result.flatMap(AST.validate), Expression.fromResult<T, I>);
-
 /** Checks every element without hiding extra fields in a structural value. */
 export type ExactValues<
   T extends Type.Any,
@@ -255,8 +249,8 @@ export const collectionType = (
     definitions,
     Array.map(typeNode),
     Result.all,
-    Result.flatMap((arguments_) =>
-      TAST.apply(collectionPaths[name], arguments_),
+    Result.map(
+      (arguments_) => new TAST.Reference(collectionPaths[name], arguments_),
     ),
   );
 

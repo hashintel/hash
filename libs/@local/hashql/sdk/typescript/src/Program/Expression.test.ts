@@ -318,6 +318,17 @@ describe("expression", () => {
     ).toBe("InvalidExpression");
   });
 
+  test("deep_assertion", () => {
+    expect.hasAssertions();
+    let value: Expression.Value.Any = 0n;
+    for (let depth = 0; depth < 2000; depth += 1) {
+      value = Expression.ifElse(true, { then: value, else: 0n });
+    }
+    expect(compile(Expression.as(value, numberType))).toBe(
+      `["::kernel::special_form::as",${compile(value)},"::kernel::type::Number"]`,
+    );
+  });
+
   describe("adapted", () => {
     const lookup = Expression.fromJExpr<
       Type.Function<readonly [Type.PrimitiveString], Type.PrimitiveString>,

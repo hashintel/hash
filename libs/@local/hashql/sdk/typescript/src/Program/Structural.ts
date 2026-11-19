@@ -382,7 +382,7 @@ export const value =
     pipe(
       input,
       StructuralSyntax.valueNode,
-      StructuralSyntax.fromNode<T, Value.Requirements<V>>,
+      Expression.fromResult<T, Value.Requirements<V>>,
     );
 
 /**
@@ -396,12 +396,7 @@ export const value =
 export const toJExpr = (
   value: Value.Any,
 ): Result.Result<JExpr.Expression, ProgramError.Construction> =>
-  pipe(
-    value,
-    StructuralSyntax.valueNode,
-    Result.flatMap(AST.validate),
-    Result.map(AST.compile),
-  );
+  pipe(value, StructuralSyntax.valueNode, Result.map(AST.compile));
 
 /** The arguments after the value, as a tuple so that {@link Annotated} knows whether the call passes an annotation. */
 type Annotation = readonly [] | readonly [type: Definition];
@@ -444,7 +439,7 @@ export const struct = <const V extends FieldValues, const A extends Annotation>(
   pipe(
     StructuralSyntax.annotation(type),
     Result.flatMap((type) => StructuralSyntax.structNode(fields, type)),
-    StructuralSyntax.fromNode<Annotated<V, A>, Value.Requirements<V>>,
+    Expression.fromResult<Annotated<V, A>, Value.Requirements<V>>,
   );
 
 /**
@@ -465,7 +460,7 @@ export const tuple = <
   pipe(
     StructuralSyntax.annotation(type),
     Result.flatMap((type) => StructuralSyntax.tupleNode(members, type)),
-    StructuralSyntax.fromNode<Annotated<V, A>, Value.Requirements<V>>,
+    Expression.fromResult<Annotated<V, A>, Value.Requirements<V>>,
   );
 
 /**
@@ -513,10 +508,7 @@ export const list = <
     },
     Result.all,
     Result.map(({ type, members }) => new AST.List(members, type)),
-    StructuralSyntax.fromNode<
-      Type.List<Definition.Type<D>>,
-      Value.Requirements<V>
-    >,
+    Expression.fromResult<Type.List<Definition.Type<D>>, Value.Requirements<V>>,
   );
 
 /**
@@ -571,7 +563,7 @@ export const dict = <
     },
     Result.all,
     Result.map(({ type, entries }) => new AST.Dict(entries, type)),
-    StructuralSyntax.fromNode<
+    Expression.fromResult<
       Type.Dict<Definition.Type<K>, Definition.Type<D>>,
       Value.Requirements<E>
     >,
@@ -637,7 +629,7 @@ export const input = <
     const fallback = yield* StructuralSyntax.valueNode(defaultValue);
     return new AST.Input(ident, type, fallback);
   }).pipe(
-    StructuralSyntax.fromNode<
+    Expression.fromResult<
       Definition.Type<D>,
       InputRequirements<Name, Definition.Type<D>, Defaults>
     >,
