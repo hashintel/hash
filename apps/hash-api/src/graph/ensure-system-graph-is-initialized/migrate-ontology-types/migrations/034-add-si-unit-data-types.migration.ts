@@ -113,9 +113,7 @@ const migrate: MigrationFunction = async ({
       dataTypeBaseUrl: unit.dataTypeBaseUrl,
       conversions: unit.conversions ?? {},
       migrationState,
-      webShortname: unit.dataTypeBaseUrl?.startsWith("https://hash.ai/@bipm/")
-        ? "bipm"
-        : "h",
+      webShortname: "h",
     });
     seededUnitBaseUrls.add(dataType.metadata.recordId.baseUrl);
   }
