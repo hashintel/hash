@@ -501,6 +501,68 @@ let any: Local.Any;`);
       }),
     );
 
+    it.effect.each([
+      ["scope_marker", "type T = 1; export {};", "namespace f"],
+      ["type_export", "type T = 1; export type { T };", "namespace f"],
+      [
+        "type_only_value",
+        "const v: 1; export type { v };",
+        "function f(): void\nnamespace f",
+      ],
+      [
+        "namespace_export",
+        "namespace N { type T = 1; } export { N };",
+        "namespace f",
+      ],
+      ["renamed_export", "type T = 1; export { T as default };", "namespace f"],
+      ["const_enum_export", "const enum E { A } export { E };", "namespace f"],
+      [
+        "exported_alias",
+        "namespace Other { type T = 1; } export import T = Other.T;",
+        "function f(): void\nnamespace f",
+      ],
+      [
+        "reexported_alias",
+        "namespace Other { type T = 1; } import T = Other.T; export { T };",
+        "function f(): void\nnamespace f",
+      ],
+      [
+        "unknown_export",
+        "export { Missing };",
+        "function f(): void\nnamespace f",
+      ],
+      [
+        "outer_value",
+        "namespace Inner { export { Pair }; }",
+        "function f(): void\nnamespace f",
+      ],
+      [
+        "shadowed_value",
+        "namespace Inner { type Pair = 1; export { Pair }; }",
+        "namespace f",
+      ],
+      [
+        "cyclic_exports",
+        "namespace A { export { B }; } namespace B { export { A }; } export { A };",
+        "namespace f",
+      ],
+    ] as const)(
+      "%s",
+      Effect.fnUntraced(function* ([, body, shown]: readonly [
+        string,
+        string,
+        string,
+      ]) {
+        expect.hasAssertions();
+        const names = yield* inspect(`export declare function f(): void;
+export declare namespace f { ${body} }
+export interface Pair {}
+export declare const Pair: 1;`);
+        // The namespace's own name is the second, and shows the function only where the namespace leaves a value too.
+        expect(Array.get(names, 1)).toStrictEqual(Option.some(["f", shown]));
+      }),
+    );
+
     it.effect(
       "modules",
       Effect.fnUntraced(function* () {
