@@ -4,14 +4,15 @@
  * `apps/brunch-agent/src/agents/shared/query-basis.ts` onto the
  * conversation's browser-call records and its `LedgerDoc`:
  *
- * - the net's changes and views are the settled records, in issue order
+ * - the net's changes and views are the records whose browser committed a
+ *   result, settled or discarded with an aborted turn, in issue order
  *   (`net-changes.ts`), not settled tool parts in message order;
  * - a change's Ledger revision is the `LedgerDoc` as of the assistant entry
  *   that issued it (`snapshotAsOf`), not a fold of history cut at its part;
  * - the selected definition needs a matching current revision in the
  *   effective context (`visibleNetView`). An edit can outlive the view it
  *   invalidated, or both can be summarized away. Neither the absence of a
- *   visible note nor the settled record alone proves freshness.
+ *   visible note nor the call's committed result alone proves freshness.
  *
  * It runs sequentially (fold 3b): one sequential tool serializes its whole
  * round in call order, so it answers from the net reads issued before it in
