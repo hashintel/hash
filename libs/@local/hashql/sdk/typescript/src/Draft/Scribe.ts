@@ -1,7 +1,7 @@
 /**
  * Collects declarations while a synchronous callback constructs an expression.
  *
- * Handles retain semantic parameters until conversion to syntax. Only the declaration wrappers are heterogeneous: each is already an AST operation, so their collection needs no type recovery. A child collector prevents branch declarations from escaping their lexical body. Callback exceptions retain their original cause inside construction failures.
+ * Handles retain semantic parameters until conversion to syntax. Only the declaration wrappers are heterogeneous: each is already an AST operation, so their collection needs no type recovery. Each body takes back the declarations made while it was built, whether it succeeds or fails, so none of them escapes into the enclosing body. Callback exceptions retain their original cause inside construction failures.
  *
  * @since 0.1.0
  * @module
@@ -375,8 +375,9 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
   build(
     body: ($: Context.Context<S>) => Expression.Value.Any,
   ): Result.Result<AST.Node.Any, ProgramError.Construction> {
+    const stackSize = this.#wrappers.length;
+
     try {
-      const stackSize = this.#wrappers.length;
       const expression = body(this);
 
       if (
@@ -390,7 +391,6 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
       }
 
       const wrappers = Array.drop(this.#wrappers, stackSize);
-      this.#wrappers.splice(stackSize);
 
       return pipe(
         {
@@ -417,6 +417,8 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
           new Cause.UnknownError(error),
         ),
       );
+    } finally {
+      this.#wrappers.splice(stackSize);
     }
   }
 }

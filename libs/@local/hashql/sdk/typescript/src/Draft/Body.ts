@@ -136,7 +136,7 @@ export interface Query<
   V extends Type.Any,
   R,
 > extends Expression.Expression.Handle<Graph<V>, R> {
-  /** Keeps the vertices `predicate` accepts. The predicate receives a fresh restricted context and returns a Boolean whose input requirements fit the schema. The result requires the whole schema, because the filter closure emits the predicate's declarations and no type records their inputs. Otherwise this is the `filter` of {@link Construction.Query | `Context.Query`}. */
+  /** Keeps the vertices `predicate` accepts. The predicate receives the restricted context and returns a Boolean whose input requirements fit the schema. The result requires the whole schema, because the filter closure emits the predicate's declarations and no type records their inputs. Otherwise this is the `filter` of {@link Construction.Query | `Context.Query`}. */
   readonly filter: <const P extends Expression.Value<Type.PrimitiveBoolean>>(
     name: string,
     predicate: (
@@ -209,7 +209,7 @@ export interface Context<S extends Scope.Scope.Any, I> extends Omit<
   /**
    * Constructs a HashQL conditional from a Boolean condition and a record of branch callbacks.
    *
-   * The condition and every branch must fit the schema. The result requires the whole schema, because the conditional emits each branch's declarations and no branch's type records their inputs. HashQL decides the condition when the query runs, so construction always builds every branch. The callbacks run immediately, `then` first, whatever the condition's value. Each receives a fresh restricted context, and the `if` of {@link Construction.Context | `Context.Context`} describes where its declarations belong. An exception thrown by a callback becomes a `CallbackException` failure on the returned expression and does not interrupt the enclosing callback.
+   * The condition and every branch must fit the schema. The result requires the whole schema, because the conditional emits each branch's declarations and no branch's type records their inputs. HashQL decides the condition when the query runs, so construction always builds every branch. The callbacks run immediately, `then` first, whatever the condition's value. Each receives the restricted context, and the `if` of {@link Construction.Context | `Context.Context`} describes where its declarations belong. An exception thrown by a callback becomes a `CallbackException` failure on the returned expression and does not interrupt the enclosing callback.
    *
    * @example <caption>Construct both branches, one with a branch-local binding.</caption>
    * ```ts
