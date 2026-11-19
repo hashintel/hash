@@ -147,7 +147,7 @@ const SourceMenu = ({
     showAll || query !== "" ? matching : matching.slice(0, shownOptionCount);
 
   const earlierStepItems: MenuItem[] = [
-    /* By step first, as a large flow can have many values of one name, such as "email". */
+    /* Step first, as a large flow can have many values of one name, such as "email". */
     ...shown.map((option): MenuItem => ({
       id: getSourceKey(option.source),
       text: (

@@ -12,7 +12,12 @@ export const formatFileSize = (bytes: number) => {
     return `${bytes} ${bytes === 1 ? "byte" : "bytes"}`;
   }
 
-  const step = Math.min(Math.floor(Math.log10(bytes) / 3), sizeUnits.length);
+  const exact = Math.floor(Math.log10(bytes) / 3);
+  /* E.g. 999,950 bytes rounds to 1,000 KB, so is 1 MB. */
+  const step = Math.min(
+    bytes / 1000 ** exact >= 999.95 ? exact + 1 : exact,
+    sizeUnits.length,
+  );
 
   return `${sizeFormat.format(bytes / 1000 ** step)} ${sizeUnits[step - 1]}`;
 };
@@ -32,10 +37,7 @@ const getFileType = ({
   return type?.toUpperCase() ?? "File";
 };
 
-/**
- * What every file has, its type and size, e.g. "PDF · 1.2 MB". Details only some files have, such as a certificate's
- * validity, are properties of their entity, not shown here.
- */
+/** A file's type and size, e.g. "PDF · 1.2 MB", and nothing specific to its type, such as a certificate's validity. */
 export const getFileMeta = (properties: PropertyObject) => {
   const { fileName, mimeType, fileSize } = getFileProperties(properties);
   const type = getFileType({ fileName, mimeType });
@@ -45,5 +47,5 @@ export const getFileMeta = (properties: PropertyObject) => {
     : `${type} · ${formatFileSize(fileSize)}`;
 };
 
-/** The icon a file shows by: the same for every type, until an icon per type is chosen. */
+/** A file's icon: the same for every type until an icon per type is chosen. */
 export const getFileIcon = (_properties: PropertyObject): IconName => "file";

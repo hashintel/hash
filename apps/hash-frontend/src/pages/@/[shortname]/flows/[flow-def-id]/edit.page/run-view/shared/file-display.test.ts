@@ -35,6 +35,8 @@ describe("formatFileSize", () => {
     expect(formatFileSize(1000)).toBe("1 KB");
     expect(formatFileSize(820_000)).toBe("820 KB");
     expect(formatFileSize(1_234_567)).toBe("1.2 MB");
+    expect(formatFileSize(999_950)).toBe("1 MB");
+    expect(formatFileSize(999_949)).toBe("999.9 KB");
     expect(formatFileSize(3_000_000_000)).toBe("3 GB");
   });
 
