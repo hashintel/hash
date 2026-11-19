@@ -1,10 +1,11 @@
-import { Array, Equivalence, Option, String, pipe } from "effect";
+import { Array, Equivalence, Function, Option, String, pipe } from "effect";
 
 import * as Catalogue from "../Catalogue.js";
 import * as Parts from "./parts.js";
 
 import type * as AST from "../AST/index.js";
 import type { DocDeclarationReference } from "@microsoft/tsdoc";
+import type { Node } from "typescript/ast";
 
 type Local = AST.Interned.Interned<AST.Target.Local>;
 
@@ -13,6 +14,36 @@ export interface Scope {
   readonly catalogue: Catalogue.Catalogue;
   readonly owner: Option.Option<Catalogue.Name>;
 }
+
+/** One declaration of an export: the export's entry, and the syntax that declares it. */
+export interface Declared {
+  readonly entry: Catalogue.Entry;
+  readonly node: Node;
+}
+
+/**
+ * The public name below which the names in a comment on a declaration resolve, which is the name of the page that shows the comment.
+ *
+ * A value declared apart from its type is an export of its own, and its own page shows its comments, under the shortest name that permits value use.
+ */
+export const ownerOf: {
+  (declared: Declared): (catalogue: Catalogue.Catalogue) => Catalogue.Name;
+  (catalogue: Catalogue.Catalogue, declared: Declared): Catalogue.Name;
+} = Function.dual(
+  2,
+  (catalogue: Catalogue.Catalogue, { entry, node }: Declared): Catalogue.Name =>
+    Parts.matchDocumented(Parts.documented(catalogue.ast, entry), {
+      Whole: () => entry.name,
+      Apart: ({ value }) =>
+        pipe(
+          entry.valueName,
+          Option.filter(() =>
+            Array.some(value, ({ source }) => source.node === node),
+          ),
+          Option.getOrElse(() => entry.name),
+        ),
+    }),
+);
 
 const samePath = Array.makeEquivalence(Equivalence.strictEqual<string>());
 

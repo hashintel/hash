@@ -174,6 +174,56 @@ describe("documentation links", () => {
     }),
   );
 
+  it.effect.each([
+    [
+      "value_apart_bound",
+      "export declare namespace Tools { function make(): void; }",
+      "export interface Pair {}\n/** Made by {@link Tools.make}, as `Tools.make()` says. */ export declare const Pair: number;",
+      ["Inner", "Tools", "make"],
+    ],
+    [
+      "value_apart_unbound",
+      'export * as Tools from "./tools.js";',
+      "export interface Pair {}\n/** Made by {@link Tools.make}, as `Tools.make()` says. */ export declare const Pair: number;",
+      ["Inner", "Tools", "make"],
+    ],
+    [
+      "value_apart_function",
+      'export * as Tools from "./tools.js";',
+      "export interface Pair {}\n/** Made by {@link Tools.make}, as `Tools.make()` says. */ export declare function Pair(): void;",
+      ["Inner", "Tools", "make"],
+    ],
+    [
+      "type_apart",
+      'export * as Tools from "./tools.js";',
+      "/** Made by {@link Tools.make}, as `Tools.make()` says. */ export interface Pair {}\nexport declare const Pair: number;",
+      ["Tools", "make"],
+    ],
+  ] as const)(
+    "%s",
+    Effect.fnUntraced(function* ([, tools, declarations, path]: readonly [
+      string,
+      string,
+      string,
+      readonly string[],
+    ]) {
+      expect.hasAssertions();
+      // The root page shows the type, and the page of `Inner` the value, whose shortest name that permits value use is `Inner.Pair`. The names in each comment resolve below the name of its page.
+      const reference = yield* Reference.success({
+        source: `${prelude}
+export type { Pair } from "./inner.js";
+export * as Inner from "./inner.js";`,
+        files: {
+          "inner.d.ts": `${tools}\n${declarations}`,
+          "tools.d.ts": "export declare function make(): void;",
+        },
+      });
+      expect(linksOf(reference)).toStrictEqual([
+        ["Tools.make", Option.some(Reference.id(reference, path))],
+      ]);
+    }),
+  );
+
   it.effect(
     "binding_without_page",
     Effect.fnUntraced(function* () {
