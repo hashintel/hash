@@ -105,7 +105,17 @@ export const hashEntityReadInputFor = {
     includeDrafts,
   }: HashEntityDetailsInput): HashEntityReadInput => ({
     entityIds,
-    ...(fullValuesFor === undefined ? {} : { fullValuesFor }),
+    ...(fullValuesFor === undefined
+      ? {}
+      : {
+          fullValuesFor: [
+            ...new Set(
+              fullValuesFor.map((entry) =>
+                typeof entry === "string" ? entry : entry.entityId,
+              ),
+            ),
+          ],
+        }),
     ...(includeDrafts === undefined ? {} : { includeDrafts }),
     traversalDepth: 1,
   }),
@@ -186,6 +196,6 @@ export const renderHashEntityTabular = (
 export const hashGraphViewDescriptions = {
   survey: `Survey the user's HASH webs: which kinds of entity they hold and how many of each, and which kinds link to which, with counts. Lists no entities, so it is small whatever the web's size. Read it first, then choose where to slice in. Returns TOON: read (webs, total entities and links), types (name, title, count), links (name, title, from and to as type names, count, how many carry properties of their own), and a legend mapping each type name to its versioned entityTypeId. Names hold within one read.`,
   profile: `Profile a set of HASH entities: per kind of entity, how many match, what each property's values look like across them, and how they link to other kinds. Filters combine: an entity must match every filter given. Returns TOON: read (counts, notes), kinds (name, title, matched or reachedByLinks count, each property as one of all, bytes, values with counts, from/to, or distinct with examples, plus setOn when only some have it; linksTo and linkedFrom per link type, with each entity's id and label when ${hashEntityProfileListUpTo} or fewer), the entities themselves (id and label) when ${hashEntityProfileListUpTo} or fewer, and a legend of type and property names: each property's title, description (where units are stated) and versioned id, with every version listed when the read matched several. A note says when entities weren't listed and how to get their ids. Use it to decide what to read next, not as the record of values.`,
-  details: `Read up to ${hashEntityDetailsMaxEntities} HASH entities in full, by id: each entity's id, label, editionId, type, properties, and per link type the entities it links to and is linked from (id and label, and a link's own properties). Returns TOON with a legend of names. Values over 500 bytes are summarised in <…> unless the entity is in fullValuesFor. Ids that weren't returned are listed: the id may be wrong, or the entity hidden, archived or a draft; that is not evidence it doesn't exist. More than ${hashEntityDetailsMaxEntities} ids is refused: read them as rows with ${hashGraphViewTools.tabular}.`,
+  details: `Read up to ${hashEntityDetailsMaxEntities} HASH entities in full, by id: each entity's id, label, editionId, type, properties, and per link type the entities it links to and is linked from (id and label, and a link's own properties). Returns TOON with a legend of names. Values over 500 bytes are summarised in <…>, an object's keys listed by size, unless the entity is in fullValuesFor; to see part of a large value, give { entityId, path } there instead, and a part still too large comes back outlined one level down. Ids that weren't returned are listed: the id may be wrong, or the entity hidden, archived or a draft; that is not evidence it doesn't exist. More than ${hashEntityDetailsMaxEntities} ids is refused: read them as rows with ${hashGraphViewTools.tabular}.`,
   tabular: `Read HASH entities as CSV tables: one table per kind of matched entity, a row per entity with its id, editionId, label and each selected property value in full, and a column per outgoing link type holding the ids linked to, space-separated. Ids in the web most rows belong to are written ~entityUuid, and the header names that web: put its id in front to read or cite one. Linked entities are not rows: read them by those ids. Links that carry properties get a table of their own (id, editionId, from, to, properties). Filters combine: an entity must match every filter given. A commented header gives the read's counts, notes, and a legend of type and property names. A read over about ${hashGraphViewMaxTokens.toLocaleString("en-US")} tokens is refused with its row and column counts, and nothing is returned: choose fewer properties, drop link columns, or filter further. When the graph stops at its 1,000-match limit the header says so: more may match.`,
 };
