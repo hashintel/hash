@@ -14,6 +14,7 @@ import { ExperimentsContext } from "../experiments/context";
 import { useStableCallback } from "../hooks/use-stable-callback";
 import { PetrinautInstanceContext } from "../instance-context";
 import { LanguageClientContext } from "../lsp/context";
+import { NetManagementContext } from "../net-management-context";
 import { NotificationsContext } from "../notifications/context";
 import { OptimizationsContext } from "../optimizations/context";
 import { SDCPNContext } from "../state/sdcpn-context";
@@ -27,7 +28,8 @@ import type { PetrinautExperimentHost } from "@hashintel/petrinaut-core/experime
 import type { PropsWithChildren } from "react";
 
 export const ExperimentHostProvider = ({ children }: PropsWithChildren) => {
-  const { extensions, title } = use(SDCPNContext);
+  const { extensions } = use(SDCPNContext);
+  const { title } = use(NetManagementContext);
   const petriNetDefinition = useExecutableDefinition();
   const instance = use(PetrinautInstanceContext);
   const experimentsContext = use(ExperimentsContext);

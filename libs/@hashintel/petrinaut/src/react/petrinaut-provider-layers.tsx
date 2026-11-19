@@ -7,6 +7,7 @@ import {
   NetManagementContext,
   type NetManagement,
 } from "./net-management-context";
+import { ReadOnlyActionContext } from "./read-only-action-context";
 import { SDCPNProvider } from "./sdcpn-provider";
 import { ActiveNetProvider } from "./state/active-net-provider";
 import { CanvasViewportProvider } from "./state/canvas-viewport-provider";
@@ -75,13 +76,15 @@ export const PetrinautDocumentProvider: React.FC<
   return (
     <PetrinautInstanceContext value={instance}>
       <NetManagementContext value={netManagement}>
-        {handleHistoryUndoRedo ? (
-          <UndoRedoContext value={handleHistoryUndoRedo}>
-            {document}
-          </UndoRedoContext>
-        ) : (
-          document
-        )}
+        <ReadOnlyActionContext value={netManagement.readOnlyAction}>
+          {handleHistoryUndoRedo ? (
+            <UndoRedoContext value={handleHistoryUndoRedo}>
+              {document}
+            </UndoRedoContext>
+          ) : (
+            document
+          )}
+        </ReadOnlyActionContext>
       </NetManagementContext>
     </PetrinautInstanceContext>
   );

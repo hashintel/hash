@@ -21,6 +21,8 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { PetrinautDocumentProvider } from "./petrinaut-provider-layers";
+import { ReadOnlyActionContext } from "./read-only-action-context";
+import { SDCPNContext } from "./state/sdcpn-context";
 import { UndoRedoContext } from "./state/undo-redo-context";
 import { constantStore, useStore } from "./use-store";
 
@@ -250,5 +252,79 @@ describe("the history of an editor that only composes", () => {
     expect(shown()).toBe("at 1 of 2, can undo");
     click("Undo");
     expect(placeCount(handle)).toBe(1);
+  });
+});
+
+describe("what the host owns", () => {
+  // Counted from inside the reader. A `Profiler` around it misses a render
+  // that a context starts below it.
+  const onDocumentReaderRender = vi.fn();
+  /** Reads the document, as almost every part of the editor does. */
+  const DocumentReader = () => {
+    onDocumentReaderRender();
+    return (
+      <output aria-label="Open net">{use(SDCPNContext).petriNetId}</output>
+    );
+  };
+  const ReadOnlyActionLabel = () => (
+    <output aria-label="Read-only action">
+      {use(ReadOnlyActionContext)?.label ?? "none"}
+    </output>
+  );
+  // One element for every render, so only a context can render the readers.
+  const readers = (
+    <>
+      <DocumentReader />
+      <ReadOnlyActionLabel />
+    </>
+  );
+
+  test("a new list of nets renders no reader of the document", () => {
+    const instance = createPetrinaut({ document: handleWithAPlace() });
+    const { rerender } = render(
+      <PetrinautDocumentProvider
+        instance={instance}
+        netManagement={netManagement}
+      >
+        {readers}
+      </PetrinautDocumentProvider>,
+    );
+    expect(onDocumentReaderRender).toHaveBeenCalled();
+    onDocumentReaderRender.mockClear();
+
+    // What a host that saves on every edit hands over on every key.
+    rerender(
+      <PetrinautDocumentProvider
+        instance={instance}
+        netManagement={{
+          ...netManagement,
+          existingNets: [
+            { netId: "a", title: "A", lastUpdated: "2026-01-01T00:00:01Z" },
+          ],
+        }}
+      >
+        {readers}
+      </PetrinautDocumentProvider>,
+    );
+
+    expect(onDocumentReaderRender).not.toHaveBeenCalled();
+  });
+
+  test("the host's read-only action reaches its readers", () => {
+    render(
+      <PetrinautDocumentProvider
+        instance={createPetrinaut({ document: handleWithAPlace() })}
+        netManagement={{
+          ...netManagement,
+          readOnlyAction: { label: "Save a copy", onClick: () => {} },
+        }}
+      >
+        {readers}
+      </PetrinautDocumentProvider>,
+    );
+
+    expect(screen.getByLabelText("Read-only action").textContent).toBe(
+      "Save a copy",
+    );
   });
 });

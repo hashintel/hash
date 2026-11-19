@@ -22,6 +22,7 @@ import { PetrinautOptimizationContext } from "../../../../react/optimization-con
 import { UserSettingsProvider } from "../../../../react/state/user-settings-provider";
 import { definePetrinautPlugin } from "../../../plugins/define-petrinaut-plugin";
 import { renderPlugins } from "../../../plugins/plugins-test-harness";
+import { PetrinautSlotsContext } from "../../../slots-context";
 import { UserSettings } from "./user-settings";
 
 import type {
@@ -65,7 +66,9 @@ const renderSettings = (
       <UserSettingsProvider>
         <PetrinautNavigationProvider initialState={initialState}>
           <PetrinautOptimizationContext value={optimization}>
-            <UserSettings settingsLabs={settingsLabs} />
+            <PetrinautSlotsContext value={{ settingsLabs }}>
+              <UserSettings />
+            </PetrinautSlotsContext>
           </PetrinautOptimizationContext>
         </PetrinautNavigationProvider>
       </UserSettingsProvider>

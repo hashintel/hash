@@ -1,5 +1,6 @@
 import { createContext } from "react";
 
+import type { ReadOnlyAction } from "./read-only-action-context";
 import type { MinimalNetMetadata, SDCPN } from "@hashintel/petrinaut-core";
 
 /**
@@ -9,8 +10,9 @@ import type { MinimalNetMetadata, SDCPN } from "@hashintel/petrinaut-core";
  * Core because it's specific to how the host stores and discovers nets.
  *
  * `<PetrinautProvider>` accepts a value of this shape and republishes it via
- * this context so bridges (notably the SDCPN bridge) can compose it with
- * Core-derived values into the legacy `SDCPNContext`.
+ * this context. It is kept out of `SDCPNContext`: a host may hand over a new
+ * list or new callbacks on every edit, and only the few components that show
+ * them should render then.
  */
 export type NetManagement = {
   title: string;
@@ -21,9 +23,10 @@ export type NetManagement = {
   /**
    * Offered with the notice that explains a blocked edit on a document the
    * host made read-only, e.g. saving an editable copy. `<Petrinaut>` sets it
-   * from the first running plugin that declares `readOnlyAction`.
+   * from the first running plugin that declares `readOnlyAction`. Read it
+   * from `ReadOnlyActionContext`, where the provider republishes it.
    */
-  readOnlyAction?: { label: string; onClick: () => void };
+  readOnlyAction?: ReadOnlyAction;
 };
 
 const DEFAULT_NET_MANAGEMENT: NetManagement = {

@@ -45,15 +45,10 @@ const makeSdcpnContextValue = (
   getItemType: SDCPNContextValue["getItemType"],
   petriNetDefinition: SDCPN = emptySdcpn,
 ): SDCPNContextValue => ({
-  createNewNet: () => {},
-  existingNets: [],
-  loadPetriNet: () => {},
   petriNetId: "test-net",
   petriNetDefinition,
   readonly: false,
   extensions: DEFAULT_PETRINAUT_EXTENSIONS,
-  setTitle: () => {},
-  title: "Test",
   getItemType,
 });
 

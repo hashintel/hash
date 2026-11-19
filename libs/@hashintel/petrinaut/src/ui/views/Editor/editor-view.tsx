@@ -3,7 +3,7 @@
  * @role Arranges the panels, toolbars and dialogs around the canvas
  */
 
-import { Activity, use, useState } from "react";
+import { Activity, use, useState, type ReactNode } from "react";
 
 import { type MenuItem } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -35,6 +35,7 @@ import {
 import { usePetrinautCommands } from "../../../react";
 import { ActualModeContext } from "../../../react/actual-mode-context";
 import { usePetrinautNavigation } from "../../../react/navigation";
+import { NetManagementContext } from "../../../react/net-management-context";
 import { CompositionContext } from "../../../react/state/composition-context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
@@ -78,8 +79,6 @@ import {
 import { SimulationWorkspace } from "./shared/simulation-workspace";
 import { SimulationCreationDrawer } from "./simulation-creation-drawer";
 import { autoLayoutShortcut, EditorCommands } from "./use-editor-commands";
-
-import type { PetrinautSlots } from "../../types/petrinaut-slots";
 
 const relativeTimeFormat = new Intl.RelativeTimeFormat("en", {
   numeric: "auto",
@@ -153,6 +152,8 @@ const editViewSelectorSpaceStyle = css({
   flexShrink: "0",
 });
 
+const ignoreTitle = () => {};
+
 const isEmptySDCPN = (sdcpn: SDCPN) =>
   sdcpn.places.length === 0 &&
   sdcpn.transitions.length === 0 &&
@@ -166,14 +167,12 @@ const isEmptySDCPN = (sdcpn: SDCPN) =>
  */
 const EditorViewContent = ({
   hideNetManagementControls,
-  slots,
   titleEditable,
 }: {
   /**
    * See {@link TopBar} for the full semantics.
    */
   hideNetManagementControls?: "all" | "except-title";
-  slots?: PetrinautSlots;
   titleEditable: boolean;
 }) => {
   const showNetManagementMenuItems = hideNetManagementControls === undefined;
@@ -182,15 +181,9 @@ const EditorViewContent = ({
   // otherwise offer an item that silently does nothing.
   const isReadOnly = useIsReadOnly();
   // Get data from sdcpn-store
-  const {
-    createNewNet,
-    existingNets,
-    loadPetriNet,
-    petriNetDefinition,
-    petriNetId,
-    title,
-    setTitle,
-  } = use(SDCPNContext);
+  const { petriNetDefinition, petriNetId } = use(SDCPNContext);
+  const { createNewNet, existingNets, loadPetriNet, title, setTitle } =
+    use(NetManagementContext);
   const { libraries } = use(CompositionContext);
   const { applyAutoLayout } = usePetrinautCommands();
   const {
@@ -223,8 +216,6 @@ const EditorViewContent = ({
   const [isAiCtaDismissed, setIsAiCtaDismissed] = useState(false);
   const [aiAssistantFocusRequest, setAiAssistantFocusRequest] = useState(0);
 
-  const { enableExperimentalIconPack, showAnimations } =
-    use(UserSettingsContext);
   // A plugin covering the canvas, such as a tour, holds back the prompt.
   const pluginOverlay = usePluginOverlay();
 
@@ -580,10 +571,7 @@ const EditorViewContent = ({
     isEmptySDCPN(petriNetDefinition);
 
   return (
-    <ExperimentalIconProvider
-      enabled={enableExperimentalIconPack}
-      motion={showAnimations ? "auto" : "none"}
-    >
+    <>
       <EditorCommands
         applyAutoLayoutAndFrame={runAutoLayoutAndFrame}
         onNewNet={showNetManagementMenuItems ? handleCreateEmpty : undefined}
@@ -593,7 +581,7 @@ const EditorViewContent = ({
       />
       <AssistantCommands />
       <PluginRoots />
-      <UserSettings settingsLabs={slots?.settingsLabs} />
+      <UserSettings />
       <ImportErrorDialog
         open={importError !== null}
         onOpenChange={({ open }) => {
@@ -610,7 +598,7 @@ const EditorViewContent = ({
         actualModeAvailable={actualMode.available}
         menuItems={menuItems}
         title={title}
-        onTitleChange={setTitle}
+        onTitleChange={setTitle ?? ignoreTitle}
         titleEditable={titleEditable}
         hideNetManagementControls={hideNetManagementControls}
         mode={globalMode}
@@ -702,14 +690,39 @@ const EditorViewContent = ({
           />
         )}
       </Stack>
+    </>
+  );
+};
+
+/**
+ * The editor's icons, provided from above the view and not by it. The
+ * provider hands every icon a new context value each time it renders, and the
+ * view renders on every change to the document.
+ */
+const EditorIcons = ({ children }: { children: ReactNode }) => {
+  const { enableExperimentalIconPack, showAnimations } =
+    use(UserSettingsContext);
+
+  return (
+    <ExperimentalIconProvider
+      enabled={enableExperimentalIconPack}
+      motion={showAnimations ? "auto" : "none"}
+    >
+      {children}
     </ExperimentalIconProvider>
   );
 };
 
-export const EditorView = (
-  props: React.ComponentProps<typeof EditorViewContent>,
-) => (
+export const EditorView = ({
+  hideNetManagementControls,
+  titleEditable,
+}: React.ComponentProps<typeof EditorViewContent>) => (
   <CodeNavigationProvider>
-    <EditorViewContent {...props} />
+    <EditorIcons>
+      <EditorViewContent
+        hideNetManagementControls={hideNetManagementControls}
+        titleEditable={titleEditable}
+      />
+    </EditorIcons>
   </CodeNavigationProvider>
 );

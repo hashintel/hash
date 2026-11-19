@@ -15,6 +15,7 @@ import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { useAssistantChoice } from "../../../../plugins/plugin-assistant";
 import { PluginSettingsRows } from "../../../../plugins/plugin-settings-rows";
+import { PetrinautSlotsContext } from "../../../../slots-context";
 import { FocusControls } from "../../../../worksheet/focus-controls";
 import { focusLands } from "../../../../worksheet/focus-flow";
 import { FocusRoot, FocusStack } from "../../../../worksheet/focus-stack";
@@ -395,14 +396,25 @@ const SettingsTabs = () => {
   );
 };
 
+/**
+ * What the host adds to the Labs section. The slot is read here, where it
+ * shows: a host may pass a new node on every render, and nothing else should
+ * render for it.
+ */
+const HostLabsSettings = () => {
+  const { settingsLabs } = use(PetrinautSlotsContext);
+
+  return settingsLabs === undefined || settingsLabs === null ? null : (
+    <FocusControls>{settingsLabs}</FocusControls>
+  );
+};
+
 export const UserSettingsDialog = ({
   section,
-  settingsLabs,
   onSectionChange,
   onClose,
 }: {
   section: PetrinautSettingsSection;
-  settingsLabs?: ReactNode;
   onSectionChange: (section: PetrinautSettingsSection) => void;
   onClose: () => void;
 }) => {
@@ -597,9 +609,7 @@ export const UserSettingsDialog = ({
                         section="labs"
                         components={pluginRowComponents}
                       />
-                      {settingsLabs !== undefined && settingsLabs !== null && (
-                        <FocusControls>{settingsLabs}</FocusControls>
-                      )}
+                      <HostLabsSettings />
                     </>
                   )}
                 </FocusStack>

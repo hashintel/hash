@@ -23,7 +23,7 @@ import {
   type ReadableStore,
 } from "@hashintel/petrinaut-core";
 
-import { NetManagementContext } from "../../react/net-management-context";
+import { ReadOnlyActionContext } from "../../react/read-only-action-context";
 import { UserSettingsContext } from "../../react/state/user-settings-context";
 import { useStoreSelector } from "../../react/use-store";
 import { pluginRuntime } from "./define-petrinaut-plugin";
@@ -253,11 +253,11 @@ const ViewAfterHosts = ({ children }: { children: ReactNode }) => {
 };
 
 /**
- * Re-provides the host's net management to the view, with the read-only
- * notice's action of the first running plugin that declares one.
+ * Gives the view the read-only notice's action of the first running plugin
+ * that declares one, and the host's own where none does.
  */
 const ReadOnlyActionProvider = ({ children }: { children: ReactNode }) => {
-  const netManagement = use(NetManagementContext);
+  const hostAction = use(ReadOnlyActionContext);
   const plugin = useRunningPluginsSelector((running) =>
     running.find(
       ({ manifest, contributions }) =>
@@ -269,15 +269,15 @@ const ReadOnlyActionProvider = ({ children }: { children: ReactNode }) => {
   const run = plugin?.contributions.readOnlyAction?.run;
 
   return (
-    <NetManagementContext
+    <ReadOnlyActionContext
       value={
         label === undefined || run === undefined
-          ? netManagement
-          : { ...netManagement, readOnlyAction: { label, onClick: run } }
+          ? hostAction
+          : { label, onClick: run }
       }
     >
       {children}
-    </NetManagementContext>
+    </ReadOnlyActionContext>
   );
 };
 

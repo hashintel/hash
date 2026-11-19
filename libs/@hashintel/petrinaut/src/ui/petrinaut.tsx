@@ -38,6 +38,7 @@ import { useHeldNetManagement } from "./petrinaut/use-held-net-management";
 import { documentViewPlugin } from "./plugins/document-view-plugin";
 import { fpsCounterPlugin } from "./plugins/fps-counter-plugin";
 import { PetrinautPluginsProvider } from "./plugins/plugins-provider";
+import { noSlots, PetrinautSlotsContext } from "./slots-context";
 import { EditorView } from "./views/Editor/editor-view";
 import {
   PetrinautPresentationProvider,
@@ -241,7 +242,6 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
               >
                 <EditorView
                   hideNetManagementControls={hideNetManagementControls}
-                  slots={slots}
                   titleEditable={titleEditable}
                 />
               </PetrinautPluginsProvider>
@@ -253,9 +253,12 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
     </PortalContainerContext>
   );
 
+  // The slots go around the editor, not into it: see `PetrinautSlotsContext`.
   return (
-    <CommandRegistryProvider registry={hostRegistry ?? undefined}>
-      {editor}
-    </CommandRegistryProvider>
+    <PetrinautSlotsContext value={slots ?? noSlots}>
+      <CommandRegistryProvider registry={hostRegistry ?? undefined}>
+        {editor}
+      </CommandRegistryProvider>
+    </PetrinautSlotsContext>
   );
 };

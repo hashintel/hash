@@ -118,15 +118,10 @@ const createWrapper = (options: WrapperOptions = {}) => {
   });
 
   const sdcpnContextValue: SDCPNContextValue = {
-    createNewNet: () => {},
-    existingNets: [],
-    loadPetriNet: () => {},
     petriNetId: "test-net",
     petriNetDefinition: instance.definition.get(),
     readonly,
     extensions: DEFAULT_PETRINAUT_EXTENSIONS,
-    setTitle: () => {},
-    title: "Test",
     getItemType: () => null,
   };
 

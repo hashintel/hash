@@ -10,13 +10,13 @@ import { use } from "react";
 
 import { EXPERIMENT_RUN_LADDER } from "../../../../../../react/experiments/parameter-grid";
 import { buildSweepOptimizationInput } from "../../../../../../react/experiments/sweep-optimization";
+import { NetManagementContext } from "../../../../../../react/net-management-context";
 import { PetrinautOptimizationContext } from "../../../../../../react/optimization-context";
 import {
   currentTrialNumber,
   isOptimizationActive,
   OptimizationsContext,
 } from "../../../../../../react/optimizations/context";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useExecutableDefinition } from "../../../../../../react/state/use-executable-definition";
 import { directionWord } from "../shared/study-labels";
 
@@ -134,7 +134,7 @@ export const useStartSweepStudy = (): ((
   experiment: ExperimentRecord,
   objective: SweepObjective,
 ) => Promise<void>) => {
-  const { title } = use(SDCPNContext);
+  const { title } = use(NetManagementContext);
   const petriNetDefinition = useExecutableDefinition();
   const { createOptimization } = use(OptimizationsContext);
   return (experiment, objective) =>
