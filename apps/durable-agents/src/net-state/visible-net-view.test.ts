@@ -11,6 +11,7 @@ import {
   Harness,
   type JsonObject,
   MemoryStorage,
+  type ToolDiagnostic,
   type ToolExecutionResult,
 } from "@earendil-works/pi-durable";
 import { num, obj, str } from "@earendil-works/pi-schema";
@@ -98,12 +99,21 @@ const section = (text: string | null): Message => ({
   timestamp: 0,
 });
 
-/** One effective-context item: a message and the kind of the entry that contributed it. */
-type Item = { readonly kind: string; readonly message: Message };
+/** One effective-context item: a message and the kind and data of the entry that contributed it. */
+type Item = {
+  readonly kind: string;
+  readonly message: Message;
+  readonly data?: { readonly diagnostics: ToolDiagnostic[] };
+};
 
-const tool = (message: ToolResultMessage): Item => ({
+/** A tool result's item; its entry stores the structured diagnostics, as Pi's does. */
+const tool = (
+  message: ToolResultMessage,
+  diagnostics: ToolDiagnostic[] = [],
+): Item => ({
   kind: "pi.tool-result",
   message,
+  data: { diagnostics },
 });
 const note = (revision: string): Item => ({
   kind: handEditEntryKind,
@@ -118,12 +128,13 @@ const baseline = (text: string | null): Item => ({
 /** A context view whose entries each contribute one message, in order. */
 const viewOf = (...items: Item[]): ContextView => {
   const entries = items.map(
-    ({ kind, message }, index): EntryRecord =>
+    ({ kind, message, data }, index): EntryRecord =>
       ({
         id: (index + 1) as EntryId,
         conversationId: "root",
         kind,
         model: [message],
+        ...(data === undefined ? {} : { data }),
       }) as unknown as EntryRecord,
   );
   return {
@@ -148,6 +159,13 @@ const stateOf = (view: ContextView) => {
 
 const truncation =
   "<harness>\n[warn] Output truncated to its beginning: 3 lines, 9000 bytes dropped\n</harness>";
+
+/** The diagnostic Pi stores with a result its output bound cut, which `truncation` renders. */
+const truncated: ToolDiagnostic = {
+  severity: "warn",
+  code: "truncated",
+  message: "Output truncated to its beginning: 3 lines, 9000 bytes dropped",
+};
 
 describe("the model-facing renderings", () => {
   test("the net_view section frames editor data as untrusted and round-trips ordinary names and expressions", () => {
@@ -332,6 +350,7 @@ describe("visibleNetView: what counts as a view", () => {
         toolResult(toolName, renderNetChange("x", structureAt("Y"), "Y"), {
           extra: [truncation],
         }),
+        [truncated],
       ),
     ]);
     expect(stateOf(viewOf(...graphReads))).toBe("none");
@@ -352,7 +371,33 @@ describe("visibleNetView: what counts as a view", () => {
       { extra: [truncation] },
     );
     expect(
-      stateOf(viewOf(tool(read("R1")), tool(cutCompleteHead), tool(cutJson))),
+      stateOf(
+        viewOf(
+          tool(read("R1")),
+          tool(cutCompleteHead, [truncated]),
+          tool(cutJson, [truncated]),
+        ),
+      ),
+    ).toBe("current read R1");
+  });
+
+  test("a cut result is known by its diagnostic's code, however Pi words it", () => {
+    const reworded = toolResult(
+      changeTool,
+      renderNetChange("Title set.", structureAt("R2"), "R2"),
+      {
+        extra: [
+          "<harness>\n[warn] output truncated: 3 lines, 9000 bytes dropped\n</harness>",
+        ],
+      },
+    );
+    expect(
+      stateOf(
+        viewOf(
+          tool(read("R1")),
+          tool(reworded, [{ ...truncated, message: "output truncated" }]),
+        ),
+      ),
     ).toBe("current read R1");
   });
 
@@ -554,7 +599,7 @@ describe("pruneEdits over hand-built context", () => {
           tool(change("R1")),
           tool(failed),
           tool(unchanged),
-          tool(cut),
+          tool(cut, [truncated]),
         ),
       ).map(({ target }) => target),
     ).toEqual([1]);
