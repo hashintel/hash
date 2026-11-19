@@ -431,6 +431,7 @@ const FlowEditor = ({
             flowRunEntityId={flowRunEntityId}
             flowDefinitionEntityId={flowDefinitionEntityId}
             currentDefinition={flowDefinition}
+            schedules={schedules}
             onBackToLogs={() => showView("logs")}
           />
         ) : (

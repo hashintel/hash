@@ -306,18 +306,21 @@ const Card = ({
 );
 
 export const TriggerNode = ({
-  data: { kind, line, on },
+  data: { kind, line, on, run },
   selected,
 }: NodeProps<TriggerNodeType>) => (
   <Card
     {...triggerDisplays[kind]}
+    icon={
+      run && kind === "schedule" ? "calendarClock" : triggerDisplays[kind].icon
+    }
     description={line}
     tone="neutral"
     selected={selected}
     problems={[]}
-    run={undefined}
-    /* Selected, it's drawn in full, as a step is. */
-    ghostOn={selected ? undefined : on}
+    run={run}
+    /* Selected, or in a run, it's drawn in full, as a step is. */
+    ghostOn={selected || run ? undefined : on}
   >
     <Handle type="source" position={Position.Right} isConnectable={false} />
   </Card>
