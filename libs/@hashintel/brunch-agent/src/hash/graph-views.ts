@@ -21,6 +21,7 @@ import {
   hashEntityProfileListUpTo,
   projectEntityProfile,
 } from "./graph-views/profile";
+import { estimateTokens } from "./graph-views/size";
 import {
   projectEntitySurvey,
   type HashEntitySurveyResult,
@@ -55,10 +56,11 @@ export {
 } from "./graph-views/survey";
 
 /**
- * The most text one view may return. Provisional: about 16,000 tokens, under
- * the runtimes' output bounds, until evaluation sets it.
+ * The most one view may cost the model, in estimated tokens. Provisional until
+ * evaluation sets it: it lets through the 120 purchase orders as rows, and
+ * refuses the 520 sales orders.
  */
-export const hashGraphViewMaxBytes = 64_000;
+export const hashGraphViewMaxTokens = 20_000;
 
 export type HashGraphView = {
   text: string;
@@ -66,23 +68,21 @@ export type HashGraphView = {
   refused: boolean;
 };
 
-const byteLength = (text: string) => new TextEncoder().encode(text).length;
-
 const bounded = (
   text: string,
-  refusal: (bytes: number) => string,
+  refusal: (tokens: number) => string,
 ): HashGraphView => {
-  const bytes = byteLength(text);
-  return bytes <= hashGraphViewMaxBytes
+  const tokens = estimateTokens(text);
+  return tokens <= hashGraphViewMaxTokens
     ? { text, refused: false }
     : {
-        text: `refused: ${refusal(bytes)} Nothing of this read was returned.`,
+        text: `refused: ${refusal(tokens)} Nothing of this read was returned.`,
         refused: true,
       };
 };
 
-const tooLarge = (bytes: number) =>
-  `This read would be ${Math.round(bytes / 1000)} KB, over the ${hashGraphViewMaxBytes / 1000} KB one read may return.`;
+const tooLarge = (tokens: number) =>
+  `This read would be about ${tokens.toLocaleString("en-US")} tokens, over the ${hashGraphViewMaxTokens.toLocaleString("en-US")} one read may return.`;
 
 const commentLine = (key: string, value: unknown) =>
   `# ${key}: ${typeof value === "string" ? value : JSON.stringify(value)}`.replace(
@@ -123,8 +123,8 @@ export const renderHashEntitySurvey = (result: HashEntitySurveyResult) => {
   const survey = projectEntitySurvey(result);
   return bounded(
     encode(survey),
-    (bytes) =>
-      `${tooLarge(bytes)} The web holds ${survey.types.length} kinds of entity and ${survey.links.length} kinds of link; survey fewer webs at a time.`,
+    (tokens) =>
+      `${tooLarge(tokens)} The web holds ${survey.types.length} kinds of entity and ${survey.links.length} kinds of link; survey fewer webs at a time.`,
   );
 };
 
@@ -135,8 +135,8 @@ export const renderHashEntityProfile = (
   const profile = projectEntityProfile(result, input);
   return bounded(
     encode(profile),
-    (bytes) =>
-      `${tooLarge(bytes)} It matched ${profile.read.matched} entities and reached ${profile.read.reachedByLinks} by links, in ${profile.kinds.length} kinds. Narrow it: filter by entityTypes or webIds, or set traversalDepth lower.`,
+    (tokens) =>
+      `${tooLarge(tokens)} It matched ${profile.read.matched} entities and reached ${profile.read.reachedByLinks} by links, in ${profile.kinds.length} kinds. Narrow it: filter by entityTypes or webIds, or set traversalDepth lower.`,
   );
 };
 
@@ -147,8 +147,8 @@ export const renderHashEntityDetails = (
   const details = projectEntityDetails(result, input);
   return bounded(
     encode(details),
-    (bytes) =>
-      `${tooLarge(bytes)} It holds ${details.entities.length} entities. Name fewer entityIds, choose properties, or leave out fullValuesFor; ${hashGraphViewTools.tabular} shows many entities more compactly.`,
+    (tokens) =>
+      `${tooLarge(tokens)} It holds ${details.entities.length} entities. Name fewer entityIds, choose properties, or leave out fullValuesFor; ${hashGraphViewTools.tabular} shows many entities more compactly.`,
   );
 };
 
@@ -177,8 +177,8 @@ export const renderHashEntityTabular = (
     .join(", ");
   return bounded(
     text,
-    (bytes) =>
-      `${tooLarge(bytes)} It matched ${read.matched} entities: ${shape}. Narrow it: choose fewer properties, set links to false, or filter by entityTypes or entityIds.`,
+    (tokens) =>
+      `${tooLarge(tokens)} It matched ${read.matched} entities: ${shape}. Narrow it: choose fewer properties, set links to false, or filter by entityTypes or entityIds.`,
   );
 };
 
@@ -187,5 +187,5 @@ export const hashGraphViewDescriptions = {
   survey: `Survey the user's HASH webs: which kinds of entity they hold and how many of each, and which kinds link to which, with counts. Lists no entities, so it is small whatever the web's size. Read it first, then choose where to slice in. Returns TOON: read (webs, total entities and links), types (name, title, count), links (name, title, from and to as type names, count, how many carry properties of their own), and a legend mapping each type name to its versioned entityTypeId. Names hold within one read.`,
   profile: `Profile a set of HASH entities: per kind of entity, how many match, what each property's values look like across them, and how they link to other kinds. Filters combine: an entity must match every filter given. Returns TOON: read (counts, notes), kinds (name, title, matched or reachedByLinks count, each property as one of all, bytes, values with counts, from/to, or distinct with examples, plus setOn when only some have it; linksTo and linkedFrom per link type, with each entity's id and label when ${hashEntityProfileListUpTo} or fewer), the entities themselves (id and label) when ${hashEntityProfileListUpTo} or fewer, and a legend of type and property names with titles, base URLs and descriptions, where units are stated. A note says when entities weren't listed and how to get their ids. Use it to decide what to read next, not as the record of values.`,
   details: `Read up to ${hashEntityDetailsMaxEntities} HASH entities in full, by id: each entity's id, label, editionId, type, properties, and per link type the entities it links to and is linked from (id and label, and a link's own properties). Returns TOON with a legend of names. Values over 500 bytes are summarised in <…> unless the entity is in fullValuesFor. Ids that weren't returned are listed: the id may be wrong, or the entity hidden, archived or a draft; that is not evidence it doesn't exist. More than ${hashEntityDetailsMaxEntities} ids is refused: read them as rows with ${hashGraphViewTools.tabular}.`,
-  tabular: `Read HASH entities as CSV tables: one table per kind of matched entity, a row per entity with its id, editionId, label and each selected property value in full, and a column per outgoing link type holding the ids linked to, space-separated. Linked entities are not rows: read them by those ids. Links that carry properties get a table of their own (id, editionId, from, to, properties). Filters combine: an entity must match every filter given. A commented header gives the read's counts, notes, and a legend of type and property names. A read larger than ${hashGraphViewMaxBytes / 1000} KB is refused with its row and column counts, and nothing is returned: choose fewer properties, drop link columns, or filter further. When the graph stops at its 1,000-match limit the header says so: more may match.`,
+  tabular: `Read HASH entities as CSV tables: one table per kind of matched entity, a row per entity with its id, editionId, label and each selected property value in full, and a column per outgoing link type holding the ids linked to, space-separated. Ids in the web most rows belong to are written ~entityUuid, and the header names that web: put its id in front to read or cite one. Linked entities are not rows: read them by those ids. Links that carry properties get a table of their own (id, editionId, from, to, properties). Filters combine: an entity must match every filter given. A commented header gives the read's counts, notes, and a legend of type and property names. A read over about ${hashGraphViewMaxTokens.toLocaleString("en-US")} tokens is refused with its row and column counts, and nothing is returned: choose fewer properties, drop link columns, or filter further. When the graph stops at its 1,000-match limit the header says so: more may match.`,
 };

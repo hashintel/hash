@@ -55,7 +55,7 @@ export {
   hashEntitySurveyResultSchema,
   hashEntityTabularInputSchema,
   hashGraphViewDescriptions,
-  hashGraphViewMaxBytes,
+  hashGraphViewMaxTokens,
   hashGraphViewTools,
   hashWebIdSchema,
   parseHashEntityDetailsInput,
