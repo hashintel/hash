@@ -36,7 +36,11 @@ import { brunchTools } from "@hashintel/brunch-agent";
 
 import type { Schema } from "@earendil-works/pi-schema";
 
-/** Brunch's HASH agent mounts its skills in this order (`guidance.ts`), which is the catalogue's. */
+/**
+ * The catalogue's order, which is the order Brunch's HASH agent mounts its
+ * skills in. `apps/brunch-agent/src/agents/hash/guidance.ts` owns it: change
+ * it there first.
+ */
 export const hashSkillNames = [
   "eliciting",
   "modelling",

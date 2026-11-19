@@ -23,12 +23,20 @@ export interface VersionLoad {
 
 const versionLoadContextKey = "versionLoad";
 
+/**
+ * An ISO 8601 date and time to the second, with any fraction and an explicit
+ * offset: HASH's graph writes nine fractional digits and `Z`.
+ */
+const isoDateTimePattern =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
+
 export const parseVersionLoad = (value: unknown): VersionLoad | undefined => {
   if (typeof value !== "object" || value === null) return undefined;
   const { id, decisionTime } = value as Record<string, unknown>;
   return typeof id === "string" &&
     id.length > 0 &&
     typeof decisionTime === "string" &&
+    isoDateTimePattern.test(decisionTime) &&
     !Number.isNaN(Date.parse(decisionTime))
     ? { id, decisionTime }
     : undefined;
