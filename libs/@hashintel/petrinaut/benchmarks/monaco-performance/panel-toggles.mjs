@@ -4,7 +4,10 @@
 // the viewport controls and the neighbouring panels move with it.
 //
 // React commit counts and render time need the profiling build
-// (BENCH_REACT_PROFILING=true, port 6028).
+// (BENCH_REACT_PROFILING=true, port 6028), and component names an unminified
+// one (see render-counts.mjs). `details=1` prints, for each toggle, the
+// components that rendered most, those that started the renders and the
+// providers that gave out a new context value.
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve as resolvePath } from "node:path";
 
@@ -142,6 +145,18 @@ for (const label of rows[0]?.measurements.map((entry) => entry.label) ?? []) {
       ...columns.map(([key]) => round(median(entries.map((e) => e[key])))),
     ].join("\t"),
   );
+  if (args.details && entries[0]) {
+    const list = (title, pairs) =>
+      console.log(
+        `    ${title}: ${pairs
+          .slice(0, 14)
+          .map(([name, count]) => `${name} ${count}`)
+          .join(", ")}`,
+      );
+    list("rendered", entries[0].renders);
+    list("started by", entries[0].renderStarts);
+    list("new context values", entries[0].newContextValues);
+  }
 }
 const failures = rows.flatMap((row) => row.errors);
 if (failures.length) console.log("page errors:", failures.slice(0, 3));
