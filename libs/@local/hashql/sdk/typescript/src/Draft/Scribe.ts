@@ -1,7 +1,7 @@
 /**
  * Collects declarations while a synchronous callback constructs an expression.
  *
- * Handles retain semantic parameters until conversion to syntax. Only the declaration wrappers are heterogeneous: each is already an AST operation, so their collection needs no type recovery. Each body takes back the declarations made while it was built, whether it succeeds or fails, so none of them escapes into the enclosing body. Callback exceptions retain their original cause inside construction failures.
+ * Handles retain semantic parameters until conversion to syntax. Only the declaration wrappers are heterogeneous: each is already an AST operation, so their collection needs no type recovery. Each body takes back the declarations its program's `$` made while Draft built it, whether it succeeds or fails, so none of them escapes into the enclosing body. Callback exceptions retain their original cause inside construction failures.
  *
  * @since 0.1.0
  * @module

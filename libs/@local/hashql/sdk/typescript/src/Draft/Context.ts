@@ -1,7 +1,7 @@
 /**
  * Typed construction operations inside a synchronous Draft callback.
  *
- * Context preserves each operation's semantic type and input requirements. It does not select an input policy: the program callback contract checks declarations against its explicit input schema. A declaration belongs to the body being built when it is made, so a branch or a filter predicate keeps every declaration made while its callback runs, whichever `$` makes it.
+ * Context preserves each operation's semantic type and input requirements. It does not select an input policy: the program callback contract checks declarations against its explicit input schema. A declaration belongs to the body its program is building at the time, so a branch or a filter predicate keeps every declaration made while its callback runs, whichever of the program's `$` makes it.
  *
  * @since 0.1.0
  * @module
@@ -126,7 +126,7 @@ export interface Query<
   I,
 > extends Expression.Expression.Handle<Graph<V>, I> {
   /**
-   * Keeps the vertices `predicate` accepts, constructing it now. Every declaration made while `predicate` runs stays inside the filter, including one made through a captured outer `$`.
+   * Keeps the vertices `predicate` accepts, constructing it now. Every declaration made while `predicate` runs stays inside the filter, including one made through a captured outer `$` of the same program.
    *
    * `name` becomes the filter closure's parameter and `vertex` refers to it, as in {@link @local/hashql#Program.Query.filter | `Query.filter`}, whose documentation also says when `predicate` does not run. `vertex` is valid inside the predicate alone, so using it after the predicate returns fails the program with the `StaleReference` reason. An exception it throws becomes a `CallbackException` failure on the returned query.
    */
@@ -278,7 +278,7 @@ export interface Context<S extends Scope.Scope.Any>
   /**
    * Constructs a HashQL conditional from a Boolean condition and a record of branch callbacks.
    *
-   * The callbacks run immediately, `then` first, whatever the condition's value. Every declaration made while a callback runs stays inside its branch, including one made through a captured outer `$`. Without `else`, the conditional is an {@link Option}: `Some` of the `then` branch when the condition holds, and `None` otherwise. An exception thrown by a callback becomes a `CallbackException` failure on the returned expression and does not interrupt the enclosing callback.
+   * The callbacks run immediately, `then` first, whatever the condition's value. Every declaration made while a callback runs stays inside its branch, including one made through a captured outer `$` of the same program. Without `else`, the conditional is an {@link Option}: `Some` of the `then` branch when the condition holds, and `None` otherwise. An exception thrown by a callback becomes a `CallbackException` failure on the returned expression and does not interrupt the enclosing callback.
    */
   readonly if: {
     <
