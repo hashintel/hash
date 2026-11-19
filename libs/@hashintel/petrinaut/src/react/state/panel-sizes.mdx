@@ -6,55 +6,72 @@ sidebar_order: 30
 
 A panel size changes on every pointer move of a drag. Held in React state, each
 move re-rendered every reader of the editor context. The sizes are therefore
-held in stores, and the elements that depend on a size are written directly.
+Motion values, and the elements that depend on a size are written directly.
 
 ```text
 pointer move
   -> ResizeHandle.onResize(size)
-  -> panelSizes.propertiesPanelWidth.set(size)        a store, no React state
-       -> styleFromStores: panel.style.width = size   each dependent element, no render
-       -> useStore readers re-render                  only those that compute with it
+  -> panelSizes.propertiesPanelWidth.set(size)   a Motion value, no React state
+same frame, before it is painted
+  -> styleRef: panel.style.width = size          each dependent element, no render
+  -> watch listeners run                         the camera keeps the selection clear
+  -> useReading readers re-render                only those that compute with it
 pointer up
   -> ResizeHandle.onResizeEnd()
-  -> user settings saved                              once per drag
+  -> user settings saved                         once per drag
 ```
+
+## Motion values, and where they stop
+
+[Motion](https://motion.dev) is the library behind these values. Three of its
+functions are in use: `motionValue` holds a value and tells its listeners when
+it changes, `styleEffect` writes values onto an element's style once per
+frame, and `transformValue` computes a value from the values it reads. UI code
+reaches the last two through `ui/lib/readings.ts`.
+
+Use a Motion value for a number of the UI's own that changes on every pointer
+move or frame and that elements follow: a size, an offset, a position. The
+document, a run and what a plugin publishes come from Core as stores and are
+read with `useStore`. Section animations with fixed keyframes use the
+browser's `element.animate`.
 
 ## The parts
 
-| Part                                   | File                                                             | Job                                                                               |
-| -------------------------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `PanelSizes`, `createPanelSizes`       | `react/state/panel-sizes.ts`                                     | One store per size, in CSS pixels.                                                |
-| `PanelSizesProvider`, `usePanelSizes`  | `react/state/panel-sizes-provider.tsx`, `panel-sizes-context.ts` | Creates the stores from the saved settings, once per editor.                      |
-| `styleFromStores`, `bindStyleToStores` | `ui/lib/style-from-stores.ts`                                    | Writes an element's inline style from stores, as a ref or for an element in hand. |
-| `deriveStore`                          | `react/derive-store.ts`                                          | A store computed from other stores.                                               |
-| `useCanvasInsetsStore`                 | `ui/hooks/use-canvas-insets.ts`                                  | What the panels cover of the canvas, derived from the four sizes.                 |
-| `ResizeHandle`                         | `ui/resize/resize-handle.tsx`                                    | Asks for the size when a drag starts, reports each move and the end.              |
+| Part                                  | File                                                             | Job                                                                              |
+| ------------------------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `PanelSizes`, `createPanelSizes`      | `react/state/panel-sizes.ts`                                     | One Motion value per size, in CSS pixels.                                        |
+| `PanelSizesProvider`, `usePanelSizes` | `react/state/panel-sizes-provider.tsx`, `panel-sizes-context.ts` | Creates the values from the saved settings, once per editor.                     |
+| `Reading`                             | `ui/lib/readings.ts`                                             | A Motion value, or a function computed from the Motion values it reads.          |
+| `styleRef`, `bindStyle`               | `ui/lib/readings.ts`                                             | Keeps an element's inline style on readings, as a ref or for an element in hand. |
+| `watch`                               | `ui/lib/readings.ts`                                             | Calls a listener when a reading changes.                                         |
+| `useReading`                          | `ui/lib/readings.ts`                                             | A reading as a value, in a component.                                            |
+| `useCanvasInsetsReader`               | `ui/hooks/use-canvas-insets.ts`                                  | What the panels cover of the canvas, as a function of the four sizes.            |
+| `ResizeHandle`                        | `ui/resize/resize-handle.tsx`                                    | Asks for the size when a drag starts, reports each move and the end.             |
 
-The stores keep one identity for the editor's life. Reading `usePanelSizes()`
+The values keep one identity for the editor's life. Reading `usePanelSizes()`
 never re-renders the reader.
 
 ## Reading a size
 
 Pick the first row that fits.
 
-| The reader                                                | Reads with                               | Renders per pointer move   |
-| --------------------------------------------------------- | ---------------------------------------- | -------------------------- |
-| An element whose style is a function of sizes or insets   | `ref={styleFromStores(stores, toStyle)}` | No                         |
-| An event handler or an effect                             | `store.get()`, or `store.subscribe()`    | No                         |
-| A component that needs a yes or no computed from them     | `useStoreSelector(store, select)`        | Only when the answer flips |
-| A component that computes with the number while rendering | `useStore(store)`                        | Yes, that component        |
+| The reader                                                | Reads with                              | Renders per pointer move   |
+| --------------------------------------------------------- | --------------------------------------- | -------------------------- |
+| An element whose style follows sizes or insets            | `ref={styleRef({ property: reading })}` | No                         |
+| An event handler                                          | `value.get()`                           | No                         |
+| An effect                                                 | `watch(reading, listener)`              | No                         |
+| A component that needs a yes or no computed from them     | `useReading(() => answer)`              | Only when the answer flips |
+| A component that computes with the number while rendering | `useReading(value)`                     | Yes, that component        |
 
 ```tsx
 const { propertiesPanelWidth, bottomPanelHeight } = usePanelSizes();
 
 <GlassPanel
-  ref={styleFromStores(
-    { propertiesPanelWidth, bottomPanelHeight },
-    (sizes) => ({
-      width: `${sizes.propertiesPanelWidth}px`,
-      bottom: `${isBottomPanelOpen ? sizes.bottomPanelHeight + PANEL_MARGIN : 0}px`,
-    }),
-  )}
+  ref={styleRef({
+    width: propertiesPanelWidth,
+    bottom: () =>
+      isBottomPanelOpen ? bottomPanelHeight.get() + PANEL_MARGIN : 0,
+  })}
   resizable={{
     edge: "left",
     getSize: () => propertiesPanelWidth.get(),
@@ -64,31 +81,47 @@ const { propertiesPanelWidth, bottomPanelHeight } = usePanelSizes();
 />;
 ```
 
-The Properties panel follows two stores: its own width, and the height of the
-bottom panel it ends above. `toStyle` may close over React values such as
-`isBottomPanelOpen`. When one changes, the component renders, the ref is
-attached again and the style is written with the new value.
+The Properties panel follows two values: its own width, and the height of the
+bottom panel it ends above. `width` takes the value itself. `bottom` takes a
+function, which is a reading too.
 
-`styleFromStores` must not set a property that the element's React `style`
-prop also sets: React would write its own value back on the next render.
+The rules of a reading:
+
+- A function is followed through the Motion values it reads the first time it
+  runs. It reads every value it depends on before any condition on one of
+  them.
+- A function may close over React values such as `isBottomPanelOpen`. When one
+  changes, the component renders, the ref is attached again and the style is
+  written with the new value.
+- A style is written when the element attaches, and from then on once per
+  frame in which a reading changed. A function is worked out once per frame
+  too, however many of its values changed.
+- `watch` and `useReading` hear of a Motion value at once, and of a function
+  once per frame.
+- Properties go by the names Motion takes: `width`, `marginLeft`,
+  `--a-custom-property`. A number is in pixels where CSS takes a length.
+- `styleRef` must not set a property that the element's React `style` prop
+  also sets: React would write its own value back on the next render.
 
 ## Keeping clear of the panels
 
 The panels overlay the canvas, so whatever floats over the canvas keeps clear
-of them by the canvas insets. `useCanvasInsetsStore()` gives the insets as a
-store derived from the four sizes and from which panels are open.
+of them by the canvas insets. `useCanvasInsetsReader()` gives a function that
+works the insets out from the four sizes and from which panels are open. It is
+a reading: called inside a bound style, `watch` or `useReading` it makes them
+follow the sizes, and called on its own it gives the insets at that moment.
 
-| Reader                    | How it follows a drag                                                                                                                 |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Viewport controls         | `styleFromStores` writes `right` and `bottom`.                                                                                        |
-| Minimap                   | React Flow's minimap takes no ref. A `display: contents` box around it carries the offset as a custom property.                       |
-| Bottom bar                | `bindStyleToStores` writes its `transform`. `useStoreSelector` says whether the bar still fits, so it renders only when that changes. |
-| Camera controller         | Reads `insets.get()` when it frames the scene.                                                                                        |
-| Keeping selection in view | Subscribes to the store and moves the camera on each change.                                                                          |
-| Visualizer windows        | `useCanvasInsets()`: they compute their bounds while rendering, so an open window renders on each move.                               |
+| Reader                    | How it follows a drag                                                                                                   |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Viewport controls         | `styleRef` writes `right` and `bottom`.                                                                                 |
+| Minimap                   | React Flow's minimap takes no ref. A `display: contents` box around it carries the offset as a custom property.         |
+| Bottom bar                | `bindStyle` writes its `transform`. `useReading` says whether the bar still fits, so it renders only when that changes. |
+| Camera controller         | Calls the function when it frames the scene.                                                                            |
+| Keeping selection in view | `watch` moves the camera once per frame in which the insets changed.                                                    |
+| Visualizer windows        | `useCanvasInsets()`: they compute their bounds while rendering, so an open window renders on each move.                 |
 
 Opening or closing a panel changes a flag in React state. The readers render
-then, get a new insets store and bind to it again.
+then, get a new function and bind to it again.
 
 ## Why the write goes to each element
 
@@ -124,11 +157,11 @@ the drag nothing is saved.
 Sixty pointer moves on the Supply Chain example with the Visualizer editor
 open, medians of three runs, production build. Script time per pointer move:
 
-| Drag                   | In editor state | Sizes in stores | Insets in stores too |
-| ---------------------- | --------------: | --------------: | -------------------: |
-| Properties panel width |         23.8 ms |          4.6 ms |               2.1 ms |
-| Bottom panel height    |         25.2 ms |          4.7 ms |               2.5 ms |
-| Left sidebar width     |         25.9 ms |          6.2 ms |               3.5 ms |
+| Drag                   | In editor state | Sizes outside React | Insets outside React too |
+| ---------------------- | --------------: | ------------------: | -----------------------: |
+| Properties panel width |         23.8 ms |              4.6 ms |                   2.1 ms |
+| Bottom panel height    |         25.2 ms |              4.7 ms |                   2.5 ms |
+| Left sidebar width     |         25.9 ms |              6.2 ms |                   3.5 ms |
 
 For comparison, a drag of the splitter between two sections of a panel, which
 never went through editor state, costs 1.8 ms per move.
@@ -139,14 +172,28 @@ profiling build, React render time for the Properties panel drag went from
 1,026 ms to 50 ms. With a 4x CPU throttle its script per move went from
 120.8 ms to 6.8 ms.
 
-Reproduce with `benchmarks/monaco-performance/geometry.mjs`.
+Those figures were taken with the sizes in stores of Petrinaut's own, written
+to the elements at once. Motion values, written once per frame, cost the same.
+Three rounds of each, run in turn on the same day:
+
+| Drag                   | Own stores | Motion values |
+| ---------------------- | ---------: | ------------: |
+| Properties panel width |     2.3 ms |        2.5 ms |
+| Bottom panel height    |     2.7 ms |        2.8 ms |
+| Left sidebar width     |     4.5 ms |        3.9 ms |
+
+Motion adds 4.4 kB of gzipped code for the three functions in use.
+
+Reproduce with `benchmarks/monaco-performance/geometry.mjs`. Compare two
+builds only by runs that alternate between them: the same build measured on
+two days differed by more than the two columns above.
 
 :::danger[Readers that still render on each move]
 
 About two React commits per move remain during a drag with a visualizer
 window open. The window reads the insets as a value, and it renders with the
 canvas viewport, which the camera moves while it keeps the selection in view.
-The assistant shell reads its width with `useStore` and renders with it.
+The assistant shell reads its width with `useReading` and renders with it.
 Tracked in
 [FE-2169](https://linear.app/hash/issue/FE-2169/prototype-faster-monaco-opening-and-typing-in-petrinaut).
 

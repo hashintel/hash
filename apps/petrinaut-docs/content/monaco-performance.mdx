@@ -126,8 +126,8 @@ mise x -- node benchmarks/monaco-performance/verify.mjs variants=prototype
 
 A drag of a panel edge used to set React state on every pointer move and
 re-render every reader of the editor context: 24 to 26 ms of script per move
-on Supply Chain with the Visualizer editor open. Each panel size now lives in
-a store, and so do the canvas insets derived from them. Both are written
+on Supply Chain with the Visualizer editor open. Each panel size is now a
+Motion value, and the canvas insets are computed from them. Both are written
 straight onto the elements that depend on them: 2.1 to 3.5 ms per move, and 1
 to 2 frames over 12 ms per drag where there were 13 to 62. The mechanism, its
 rules and the measurement that ruled out a custom property on the editor root
