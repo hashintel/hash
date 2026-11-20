@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { PetrinautOptimizationContext } from "../../../../../react/optimization-context";
 import { FakeEditorProvider } from "./experiments/experiments-story-fixtures";
-import { SimulateViewTabs } from "./simulate-view";
+import { SimulateView, SimulateViewTabs } from "./simulate-view";
 
 import type {
   PetrinautConnectedOptimization,
@@ -36,9 +36,6 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
 
 vi.mock("./experiments/experiments-view", () => ({
   ExperimentsView: () => <div>Experiments view</div>,
-}));
-vi.mock("./metrics/metrics-view", () => ({
-  MetricsView: () => <div>Metrics view</div>,
 }));
 vi.mock("./scenarios/scenarios-view", () => ({
   ScenariosView: () => <div>Scenarios view</div>,
@@ -94,5 +91,14 @@ describe("SimulateView tabs", () => {
       )),
     ).toEqual(["Experiments", "Scenarios"]);
     expect(screen.queryByText("Optimizations")).toBeNull();
+  });
+
+  it("show the experiments in the Metrics mode, which has no tab", () => {
+    render(
+      <FakeEditorProvider initialSimulateViewMode="metrics">
+        <SimulateView />
+      </FakeEditorProvider>,
+    );
+    expect(screen.getByText("Experiments view")).toBeTruthy();
   });
 });

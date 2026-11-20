@@ -7,13 +7,9 @@ import {
   type SimulateViewMode,
 } from "../../../../../react/state/editor-context";
 import { ExperimentsView } from "./experiments/experiments-view";
-import { MetricsView } from "./metrics/metrics-view";
 import { ScenariosView } from "./scenarios/scenarios-view";
 
 import type { SegmentedControlItem } from "@hashintel/ds-components";
-import type { ComponentType } from "react";
-
-// -- Layout styles -------------------------------------------------------------
 
 const containerStyle = css({
   display: "flex",
@@ -35,8 +31,7 @@ const sidebarStyle = css({
   flexShrink: 0,
 });
 
-// -- Mode options --------------------------------------------------------------
-
+/** The Metrics mode has no tab and no view of its own: it shows the experiments. */
 const modeOptions: SegmentedControlItem<SimulateViewMode>[] = [
   {
     value: "experiments",
@@ -50,34 +45,16 @@ const modeOptions: SegmentedControlItem<SimulateViewMode>[] = [
     tooltip: "Scenarios",
     tooltipOptions: { position: "right" },
   },
-  {
-    value: "metrics",
-    iconName: "chartBarSimple",
-    tooltip: "Metrics",
-    tooltipOptions: { position: "right" },
-  },
 ];
-
-const views = {
-  experiments: ExperimentsView,
-  scenarios: ScenariosView,
-  metrics: MetricsView,
-} satisfies Record<SimulateViewMode, ComponentType>;
-
-// -- Component -----------------------------------------------------------------
 
 export const SimulateViewTabs = () => {
   const mode = useEditorState((editor) => editor.simulateViewMode);
   const { setSimulateViewMode } = useEditorActions();
-  const visibleModeOptions = modeOptions.filter(
-    (option) => option.value !== "metrics",
-  );
-  const visibleMode = mode === "metrics" ? "experiments" : mode;
   return (
     <nav aria-label="Simulation views" className={sidebarStyle}>
       <SegmentedControl
-        value={visibleMode}
-        items={visibleModeOptions}
+        value={mode === "metrics" ? "experiments" : mode}
+        items={modeOptions}
         onChange={setSimulateViewMode}
         layout="vertical"
         size="sm"
@@ -88,10 +65,9 @@ export const SimulateViewTabs = () => {
 
 export const SimulateView = () => {
   const mode = useEditorState((editor) => editor.simulateViewMode);
-  const ActiveView = views[mode === "metrics" ? "experiments" : mode];
   return (
     <div className={containerStyle}>
-      <ActiveView />
+      {mode === "scenarios" ? <ScenariosView /> : <ExperimentsView />}
     </div>
   );
 };
