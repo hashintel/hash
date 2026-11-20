@@ -75,11 +75,6 @@ interface ExperimentScenarioRunProps {
    * value, or the range of a swept parameter.
    */
   inputs: Readonly<Record<string, ExperimentParameterInput>>;
-  /**
-   * What the toggle on each numeric scenario parameter means here — a
-   * toggled one reports a range instead of a fixed value; "none" hides it.
-   */
-  selection: "none" | "optimize" | "sweep";
   onInputsChange: (updates: ScenarioRunInput[]) => void;
 }
 
@@ -87,7 +82,6 @@ export const ExperimentScenarioRun: React.FC<ExperimentScenarioRunProps> = ({
   scenario,
   context,
   inputs,
-  selection,
   onInputsChange,
 }) => {
   const hirState = useScenarioHir(scenario, { adHocContext: context });
@@ -144,7 +138,7 @@ export const ExperimentScenarioRun: React.FC<ExperimentScenarioRunProps> = ({
       state={renderState}
       onChange={onFormChange}
       context={context}
-      selection={selection}
+      selection="sweep"
       mode="run"
       expressionFor={scenarioExpressions(scenario, context)}
       renderLayout={({

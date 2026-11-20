@@ -91,7 +91,6 @@ export const ScenarioSection = ({
           scenario={scenario}
           context={context}
           inputs={paramInputs}
-          selection="sweep"
           onInputsChange={onParamInputsChange}
         />
       ) : (
