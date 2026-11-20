@@ -55,7 +55,6 @@ import type { FauxResponseStep } from "@earendil-works/pi-ai/providers/faux";
 type PanelTransport = ReturnType<typeof createBrunchSuccessorPanelTransport>;
 type PanelMessage =
   PanelTransport extends ChatTransport<infer Message> ? Message : never;
-type SuccessorBrowserCalls = ReturnType<typeof createSuccessorBrowserCalls>;
 type Admission = Awaited<
   ReturnType<Parameters<typeof createSuccessorBrowserCalls>[0]["admit"]>
 >;
@@ -208,7 +207,10 @@ const openServer = async (
       method: init?.method ?? "GET",
       headers: new Headers(init?.headers),
       credentials: init?.credentials,
-      body: typeof init?.body === "string" ? JSON.parse(init.body) : undefined,
+      body:
+        typeof init?.body === "string"
+          ? (JSON.parse(init.body) as unknown)
+          : undefined,
     };
     const forward = async () => server.app.request(url, init);
     try {
@@ -434,7 +436,7 @@ test("a result whose answer is lost after it committed is sent again and settles
   const server = await openServer(
     [titleCall, fauxAssistantMessage("Titled.")],
     {
-      intercept: (url, init, forward) => {
+      intercept: (url, _init, forward) => {
         if (lost || !url.endsWith("/result")) return undefined;
         lost = true;
         // The server commits the result; the network drops its answer.
