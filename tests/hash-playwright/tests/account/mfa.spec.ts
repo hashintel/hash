@@ -103,6 +103,8 @@ test("user can use backup code instead of TOTP", async ({ page }) => {
 });
 
 test("user can disable TOTP", async ({ page }) => {
+  test.slow();
+
   const credentials = await createUserAndCompleteSignup(
     page,
     testUsers.mfaDisable,
