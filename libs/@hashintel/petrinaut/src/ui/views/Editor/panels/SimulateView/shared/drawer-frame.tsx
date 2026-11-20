@@ -23,11 +23,7 @@ import { type ReactNode, useRef } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { FrameAnimateContext } from "./drawer-frame/frame-animate-context";
-import {
-  FRAME_HEADER_CONDENSED_HEIGHT,
-  FRAME_HEADER_HEIGHT,
-  FrameHeader,
-} from "./drawer-frame/frame-header";
+import { FrameHeader } from "./drawer-frame/frame-header";
 import { useBodyScrolled } from "./drawer-frame/use-body-scrolled";
 import { useHeaderEngaged } from "./drawer-frame/use-header-engaged";
 import { SimulationPanel } from "./simulation-panel";
@@ -55,6 +51,9 @@ export type FrameNote = {
   content: string;
   tone: "muted" | "error";
 };
+
+/** What the header hands the body when it condenses, in pixels: the stats strip and the gap above it. */
+const headerCondensedGain = 38;
 
 /** The height of the note row in pixels: the body's top padding, which the row sits in. */
 const FRAME_NOTE_HEIGHT = 20;
@@ -172,9 +171,7 @@ export const DrawerFrame = ({
   children,
 }: DrawerFrameProps) => {
   const animate = useAnimationsEnabled();
-  const { scrolled, onScroll } = useBodyScrolled(
-    FRAME_HEADER_HEIGHT - FRAME_HEADER_CONDENSED_HEIGHT,
-  );
+  const { scrolled, onScroll } = useBodyScrolled(headerCondensedGain);
   const { engaged, engagement, settleFocus } = useHeaderEngaged();
   const bodyRef = useRef<HTMLDivElement>(null);
   const condensed = scrolled && !engaged;

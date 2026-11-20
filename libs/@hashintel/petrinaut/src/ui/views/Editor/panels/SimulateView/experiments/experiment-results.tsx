@@ -23,9 +23,10 @@ import {
   type OptimizationRecord,
 } from "../../../../../../react/optimizations/context";
 import { experimentProgressPercent } from "../../../shared/experiment-progress";
+import { METRIC_PLOT_HEIGHT } from "../shared/chart-card-layout";
 import { describeStepProgress } from "../shared/describe-study-progress";
 import { formatCount, formatFixed } from "../shared/format-value";
-import { METRIC_PLOT_HEIGHT, type MetricTile } from "../shared/metric-tiles";
+import { type MetricTile } from "../shared/metric-tiles";
 import { ConstraintList } from "./experiment-results/constraints-fold";
 import { ElapsedStat } from "./experiment-results/elapsed-stat";
 import {

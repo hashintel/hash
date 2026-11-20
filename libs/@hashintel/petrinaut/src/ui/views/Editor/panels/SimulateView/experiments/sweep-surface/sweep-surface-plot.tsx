@@ -8,7 +8,7 @@ import {
   surfaceAxisPosition,
   surfaceGridCoordinate,
 } from "../../shared/surface-field";
-import { SURFACE_PLOT_HEIGHT } from "../../shared/surface-frame";
+import { SURFACE_PLOT_HEIGHT } from "../../shared/surface-frame-layout";
 import { surfaceColumnCount } from "../../shared/surface-sampling";
 import { computingSurfaceField, visitedSurfaceField } from "./visited-field";
 

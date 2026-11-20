@@ -22,13 +22,15 @@ import { ChartCard } from "../shared/chart-card";
 import { formatAxisValue } from "../shared/format-axis-value";
 import { surfaceAxisPosition } from "../shared/surface-field";
 import {
-  SURFACE_FOOTER_TWO_ROW_HEIGHT,
-  SURFACE_PLOT_HEIGHT,
   SurfaceAxisControls,
-  surfaceCaption,
   SurfaceControlLabel,
   SurfaceReadOnlyMark,
 } from "../shared/surface-frame";
+import {
+  SURFACE_FOOTER_TWO_ROW_HEIGHT,
+  SURFACE_PLOT_HEIGHT,
+  surfaceCaption,
+} from "../shared/surface-frame-layout";
 import { SweepSurfacePlot } from "./sweep-surface/sweep-surface-plot";
 import { describeVisitedSurface } from "./sweep-surface/visited-field";
 

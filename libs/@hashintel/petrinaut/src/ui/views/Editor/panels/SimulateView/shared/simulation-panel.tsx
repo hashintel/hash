@@ -15,7 +15,7 @@ import {
 } from "./simulation-panel/panel-context";
 import { useAnimationsEnabled } from "./use-animations-enabled";
 
-const SimulationPanelRoot = (props: SimulationPanelProps) => {
+export const SimulationPanel = (props: SimulationPanelProps) => {
   const container = useSimulationWorkspaceContainer();
   if (container === null) {
     return null;
@@ -24,11 +24,9 @@ const SimulationPanelRoot = (props: SimulationPanelProps) => {
   return container === undefined ? panel : createPortal(panel, container);
 };
 
-export const SimulationPanel = Object.assign(SimulationPanelRoot, {
-  Header: PanelHeader,
-  Body: PanelBody,
-  Footer: PanelFooter,
-});
+SimulationPanel.Header = PanelHeader;
+SimulationPanel.Body = PanelBody;
+SimulationPanel.Footer = PanelFooter;
 
 export const SimulationPanelPresence = ({
   children,

@@ -17,15 +17,13 @@ import { ExperimentMetricTimeline } from "../experiments/experiment-metric-timel
 import { describeMetricView } from "../experiments/experiment-metric-timeline/describe-metric-view";
 import { MetricViewMenu } from "../experiments/experiment-metric-timeline/metric-view-menu";
 import { DEFAULT_METRIC_VIEW_SETTINGS } from "../experiments/experiment-metric-timeline/view-state";
+import { ChartCard, ChartCardGrid, type ChartCardTone } from "./chart-card";
 import {
   CHART_CARD_GRID_GAP,
   CHART_CARD_MIN_WIDTH,
-  ChartCard,
   chartCardBodyHeight,
-  ChartCardGrid,
   chartCardHeight,
-  type ChartCardTone,
-} from "./chart-card";
+} from "./chart-card-layout";
 
 import type { MonteCarloUserDefinedMetricFrame } from "@hashintel/petrinaut-core";
 
@@ -42,9 +40,6 @@ export type MetricTile = {
   frames: readonly MonteCarloUserDefinedMetricFrame[];
   outputType: MonteCarloUserDefinedMetricFrame["outputType"];
 };
-
-/** The plot's height inside an experiment's metric cards; the smallest the axes and labels fit in. */
-export const METRIC_PLOT_HEIGHT = 220;
 
 const largeTileStyle = css({
   gridColumn: "[1 / -1]",

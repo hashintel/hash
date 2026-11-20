@@ -2,18 +2,12 @@
  * @vitest-environment jsdom
  *
  * jsdom computes no layout, so the card's size contract is checked through
- * what fixes it: the inline heights, the reserved subtitle line, and the
- * height helper the grid and the cards both read.
+ * what fixes it: the inline heights and the reserved subtitle line.
  */
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import {
-  CHART_CARD_FOOTER_CHROME,
-  ChartCard,
-  chartCardBodyHeight,
-  chartCardHeight,
-} from "./chart-card";
+import { ChartCard } from "./chart-card";
 
 afterEach(cleanup);
 
@@ -61,22 +55,5 @@ describe("ChartCard", () => {
     )!;
     expect(footer.style.height).toBe("20px");
     expect(footer.textContent).toBe("");
-  });
-});
-
-describe("chartCardHeight", () => {
-  it("adds the footer row only when it has a height", () => {
-    const without = chartCardHeight({ bodyHeight: 100 });
-    expect(chartCardHeight({ bodyHeight: 100, footerHeight: 0 })).toBe(without);
-    expect(chartCardHeight({ bodyHeight: 100, footerHeight: 20 })).toBe(
-      without + 20 + CHART_CARD_FOOTER_CHROME,
-    );
-  });
-});
-
-describe("chartCardBodyHeight", () => {
-  it("inverts chartCardHeight for a card without a footer", () => {
-    expect(chartCardBodyHeight(chartCardHeight({ bodyHeight: 220 }))).toBe(220);
-    expect(chartCardBodyHeight(2 * 307 + 16)).toBe(543);
   });
 });
