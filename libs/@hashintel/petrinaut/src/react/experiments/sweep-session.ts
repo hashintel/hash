@@ -480,6 +480,19 @@ export function createSweepSession(
       abortRung();
     };
     abortSet.add(abortEntry);
+    // An abort means a restart or a dispose already superseded this
+    // generation; anything else stops the selection with its reason.
+    const stopRung = (error: unknown, fallbackMessage: string): null => {
+      abortSet.delete(abortEntry);
+      if (!isStale(loopGeneration) && !isAbortError(error)) {
+        fail(
+          loopGeneration,
+          error instanceof Error ? error.message : fallbackMessage,
+        );
+        publish({ runTarget: target, computing: false });
+      }
+      return null;
+    };
 
     let draws: SweepRunDraws | undefined;
     try {
@@ -492,18 +505,7 @@ export function createSweepSession(
         abortController.signal,
       );
     } catch (error) {
-      abortSet.delete(abortEntry);
-      // An abort means a restart or a dispose already superseded this
-      // generation; anything else stops the selection with its reason.
-      if (isStale(loopGeneration) || isAbortError(error)) {
-        return null;
-      }
-      fail(
-        loopGeneration,
-        error instanceof Error ? error.message : "Failed to draw a batch",
-      );
-      publish({ runTarget: target, computing: false });
-      return null;
+      return stopRung(error, "Failed to draw a batch");
     }
 
     // The value at a point axis, the range midpoint otherwise — taken in
@@ -535,16 +537,7 @@ export function createSweepSession(
         signal: abortController.signal,
       });
     } catch (error) {
-      abortSet.delete(abortEntry);
-      if (isStale(loopGeneration) || isAbortError(error)) {
-        return null;
-      }
-      fail(
-        loopGeneration,
-        error instanceof Error ? error.message : "Failed to start a batch",
-      );
-      publish({ runTarget: target, computing: false });
-      return null;
+      return stopRung(error, "Failed to start a batch");
     }
     if (isStale(loopGeneration)) {
       abortSet.delete(abortEntry);
