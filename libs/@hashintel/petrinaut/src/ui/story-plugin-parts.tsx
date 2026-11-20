@@ -4,10 +4,8 @@ import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { useStoreSelector } from "../react/use-store";
-import {
-  AssistantPanelTitle,
-  useAssistantPanel,
-} from "./plugins/plugin-assistant";
+import { AssistantPanelTitle } from "./plugins/assistant-panel-title";
+import { useAssistantPanel } from "./plugins/plugin-assistant";
 
 import type { PluginDocumentReader } from "./plugins/plugin-access";
 

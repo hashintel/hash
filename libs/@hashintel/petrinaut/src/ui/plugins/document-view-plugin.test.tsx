@@ -10,8 +10,8 @@ import { afterEach, beforeEach, expect, it } from "vitest";
 
 import { documentViewPlugin } from "./document-view-plugin";
 import { usePluginBottomPanelViews } from "./plugin-outlets";
-import { useRunningPlugins } from "./plugins-provider";
 import { renderPlugins } from "./plugins-test-harness";
+import { useRunningPlugins } from "./running-plugins";
 
 beforeEach(() => {
   localStorage.clear();

@@ -23,9 +23,9 @@ import { createCommandRegistry } from "@hashintel/petrinaut-core";
 import { CommandRegistryProvider } from "../../../../react/commands/command-registry";
 import { ErrorTrackerContext } from "../../../../react/error-tracker-context";
 import { EditorContext } from "../../../../react/state/editor-context";
+import { AssistantPanelTitle } from "../../../plugins/assistant-panel-title";
 import { definePetrinautPlugin } from "../../../plugins/define-petrinaut-plugin";
 import {
-  AssistantPanelTitle,
   useAssistantPanel,
 } from "../../../plugins/plugin-assistant";
 import { renderPlugins } from "../../../plugins/plugins-test-harness";

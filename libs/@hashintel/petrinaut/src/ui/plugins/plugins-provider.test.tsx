@@ -29,12 +29,12 @@ import {
   type PluginHook,
 } from "./define-petrinaut-plugin";
 import { PluginRoots, PluginToolbarItems } from "./plugin-outlets";
+import { renderPlugins } from "./plugins-test-harness";
 import {
   usePluginService,
   usePluginStatuses,
   useRunningPlugins,
-} from "./plugins-provider";
-import { renderPlugins } from "./plugins-test-harness";
+} from "./running-plugins";
 
 let mounts = 0;
 const nextMount = () => {

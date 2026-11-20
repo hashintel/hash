@@ -9,7 +9,7 @@ import {
   usePluginStatuses,
   useRunningPlugin,
   useRunningPlugins,
-} from "./plugins-provider";
+} from "./running-plugins";
 
 import type { PluginBottomPanelTab } from "../../react/state/editor-context";
 import type { PluginButtonPlace } from "./define-petrinaut-plugin";

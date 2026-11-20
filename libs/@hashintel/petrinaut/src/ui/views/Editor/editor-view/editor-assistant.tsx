@@ -5,10 +5,10 @@ import {
   useEditorState,
 } from "../../../../react/state/editor-context";
 import {
-  PluginAssistantContent,
   useAssistantChoice,
   usePluginAssistant,
 } from "../../../plugins/plugin-assistant";
+import { PluginAssistantContent } from "../../../plugins/plugin-assistant-content";
 import { PluginAssistantPanel } from "../panels/assistant-panel-shell";
 
 /**

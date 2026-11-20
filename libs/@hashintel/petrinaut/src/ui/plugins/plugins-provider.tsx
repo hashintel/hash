@@ -9,141 +9,33 @@
  * the ambient command registry.
  */
 
-import {
-  createContext,
-  memo,
-  type ReactNode,
-  use,
-  useLayoutEffect,
-  useState,
-} from "react";
-
-import {
-  createReadableStore,
-  type ReadableStore,
-} from "@hashintel/petrinaut-core";
+import { memo, type ReactNode, use, useLayoutEffect, useState } from "react";
 
 import { ReadOnlyActionContext } from "../../react/read-only-action-context";
 import { useUserSettings } from "../../react/state/user-settings-context";
-import { useStoreSelector } from "../../react/use-store";
 import { pluginRuntime } from "./define-petrinaut-plugin";
 import { accessApi } from "./plugin-access";
 import { PluginBoundary } from "./plugin-boundary";
 import { PluginCommandRegistrations } from "./plugin-commands";
-import {
-  type PluginEditorRuntime,
-  PluginEditorProvider,
-  usePluginEditor,
-} from "./plugin-editor";
+import { type PluginEditorRuntime, usePluginEditor } from "./plugin-editor";
+import { PluginEditorProvider } from "./plugin-editor-provider";
 import { type PluginSettings, usePluginSettings } from "./plugin-settings";
 import {
   type PluginStatusEntry,
   resolvePluginStatuses,
 } from "./plugin-statuses";
+import {
+  type ContributionsStore,
+  createContributionsStore,
+  PluginStatusesContext,
+  PublishedContext,
+  useRunningPluginsSelector,
+} from "./running-plugins";
 
 import type {
-  AnyPluginContributions,
   PetrinautPlugin,
   PetrinautPluginManifest,
-  PluginDefinitionRef,
-  ServiceOf,
 } from "./define-petrinaut-plugin";
-
-/** A running plugin as the editor reads it. */
-export interface RunningPlugin {
-  readonly manifest: PetrinautPluginManifest;
-  /**
-   * New for each host, so the outlets key a plugin's contributions by it and a
-   * remounted host starts them afresh, failures included.
-   */
-  readonly instanceKey: string;
-  /** What the hook returned in its latest committed render. */
-  readonly contributions: AnyPluginContributions;
-  readonly settings: PluginSettings;
-}
-
-type Published = ReadonlyMap<string, RunningPlugin>;
-
-const createContributionsStore = () => {
-  const store = createReadableStore<Published>(new Map());
-
-  return {
-    published: store,
-    publish: (running: RunningPlugin) =>
-      store.set(new Map(store.get()).set(running.manifest.id, running)),
-    withdraw: (pluginId: string) => {
-      const next = new Map(store.get());
-      if (next.delete(pluginId)) {
-        store.set(next);
-      }
-    },
-  };
-};
-
-type ContributionsStore = ReturnType<typeof createContributionsStore>;
-
-/** Changes when a plugin switches on, off or fails. */
-const PluginStatusesContext = createContext<readonly PluginStatusEntry[]>([]);
-
-/** The contributions store, which never changes, so its readers re-render only on what they select. */
-const PublishedContext = createContext<ReadableStore<Published>>(
-  createReadableStore<Published>(new Map()),
-);
-
-/** Every plugin passed to the editor with its status, in the host's order. */
-export const usePluginStatuses = (): readonly PluginStatusEntry[] =>
-  use(PluginStatusesContext);
-
-/**
- * A value selected from the running plugins, in the host's order; the caller
- * re-renders only when the selected value changes.
- */
-export const useRunningPluginsSelector = <T,>(
-  selector: (running: readonly RunningPlugin[]) => T,
-): T => {
-  const statuses = use(PluginStatusesContext);
-
-  return useStoreSelector(use(PublishedContext), (map) =>
-    selector(
-      statuses.flatMap(({ plugin }) => map.get(plugin.manifest.id) ?? []),
-    ),
-  );
-};
-
-/** The running plugins with their latest contributions, in the host's order. */
-export const useRunningPlugins = (): readonly RunningPlugin[] =>
-  useRunningPluginsSelector((running) => running);
-
-/**
- * One running plugin with its latest contributions, or `undefined` while it
- * does not run. The caller re-renders when that plugin publishes, and for no
- * other.
- */
-export const useRunningPlugin = (pluginId: string): RunningPlugin | undefined =>
-  useStoreSelector(use(PublishedContext), (running) => running.get(pluginId));
-
-/** Whether a running plugin's root covers the editor, as a modal or a tour does. */
-export const usePluginOverlay = (): boolean =>
-  useStoreSelector(use(PublishedContext), (running) =>
-    [...running.values()].some(
-      ({ contributions }) => contributions.overlay === true,
-    ),
-  );
-
-/**
- * The service a plugin provides: its hook's latest `provides`, or `undefined`
- * while that plugin is not running or before its first publish. It adds no
- * dependency, so two plugins can read each other's services. Two services
- * built each from the other change each other's identity on every publish,
- * which never settles.
- */
-export const usePluginService = <D extends PluginDefinitionRef>(
-  definition: D,
-): ServiceOf<D["manifest"]> | undefined =>
-  useStoreSelector(
-    use(PublishedContext),
-    (running) => running.get(definition.manifest.id)?.contributions.provides,
-  ) as ServiceOf<D["manifest"]> | undefined;
 
 /**
  * One plugin's `api`: a new object only when its settings snapshot changes.

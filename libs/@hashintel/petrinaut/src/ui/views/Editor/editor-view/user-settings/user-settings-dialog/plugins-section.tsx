@@ -1,7 +1,7 @@
 import { css } from "@hashintel/ds-helpers/css";
 
 import { useUserSettings } from "../../../../../../react/state/user-settings-context";
-import { usePluginStatuses } from "../../../../../plugins/plugins-provider";
+import { usePluginStatuses } from "../../../../../plugins/running-plugins";
 import { PluginRow, type PluginRowProps } from "./plugins-section/plugin-row";
 
 const tableStyle = css({
