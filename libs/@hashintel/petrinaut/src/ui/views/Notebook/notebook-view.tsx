@@ -145,7 +145,7 @@ const NotebookViewContent = ({
   net: ActiveNetDefinition;
   model: NotebookViewModel;
 }) => {
-  // By selector: every cell of the notebook renders with this component.
+  // By selector: the view, its list and the explorer render with this component.
   const selection = useEditorState((editor) => editor.selection);
   const { selectItem } = useEditorActions();
 

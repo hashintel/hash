@@ -87,9 +87,9 @@ export const ConnectionLines: React.FC<ConnectionLinesProps> = ({
 }) => {
   const [geometry, setGeometry] = useState<Geometry | null>(null);
 
-  // Serialized so the effect's dependencies stay primitive while the arrays
-  // are rebuilt each render; ids are arbitrary imported strings, so JSON is
-  // the only safe delimiter.
+  // Serialized so the effect measures when the ids change, not when an edit
+  // of the net rebuilds their arrays; ids are arbitrary imported strings, so
+  // JSON is the only safe delimiter.
   const upstreamKey = JSON.stringify(upstreamIds);
   const downstreamKey = JSON.stringify(downstreamIds);
   const rowOrderKey = JSON.stringify(visibleCellIds);

@@ -189,7 +189,7 @@ export type CodeEditorProps = Omit<
    * Where the caret lands on mount: "end" puts it after the content (typing
    * continues), "all" selects the whole content (typing replaces). Omitted,
    * the caret is only positioned when the reused per-path model needed a
-   * value sync (the pre-existing behaviour).
+   * value sync.
    */
   mountSelection?: "all" | "end";
 };

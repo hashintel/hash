@@ -144,6 +144,8 @@ export const CellList = ({
     focusSearch: onFocusSearch,
   });
 
+  // The view is in an Activity: showing it again runs this effect with the
+  // same selection, which must not scroll.
   const revealedSelectionRef = useRef<string | null>(null);
   useEffect(() => {
     if (selectedId === revealedSelectionRef.current) {

@@ -297,6 +297,6 @@ const Cell: React.FC<NotebookCellProps> = ({
   );
 };
 
-// Under `memo` because the compiler memoizes the list as one block: a cell
-// skips an update of its list only through its own props.
+// Under `memo`: the compiler does not memoize an element made in a loop, so a
+// cell skips a render of its list only through its own props.
 export const NotebookCell = memo(Cell);
