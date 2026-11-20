@@ -189,6 +189,17 @@ export const ExperimentsProvider: React.FC<React.PropsWithChildren> = ({
     );
   };
 
+  /** Marks an experiment failed, and says so unless a host owns it. */
+  const failExperiment = (
+    { id, name }: Pick<ExperimentRecord, "id" | "name">,
+    message: string,
+  ) => {
+    patchExperiment(id, { error: message, status: "error" });
+    if (!ownershipRef.current.has(id)) {
+      addNotification({ message: `${name} failed: ${message}`, tone: "error" });
+    }
+  };
+
   /**
    * What the record says about the backend that ran, and the notice when it
    * is not the one asked for.
@@ -286,16 +297,7 @@ export const ExperimentsProvider: React.FC<React.PropsWithChildren> = ({
     const unsubscribeMetrics = handle.metrics.subscribe(sync);
     const unsubscribeEvents = handle.events.subscribe((event) => {
       if (event.type === "error") {
-        patchExperiment(experimentId, {
-          error: event.message,
-          status: "error",
-        });
-        if (!ownershipRef.current.has(experimentId)) {
-          addNotification({
-            message: `${experimentName} failed: ${event.message}`,
-            tone: "error",
-          });
-        }
+        failExperiment(experiment, event.message);
       } else {
         sync();
       }
@@ -400,16 +402,7 @@ export const ExperimentsProvider: React.FC<React.PropsWithChildren> = ({
         });
       },
       onError: (message) => {
-        patchExperiment(experimentId, {
-          error: message,
-          status: "error",
-        });
-        if (!ownershipRef.current.has(experimentId)) {
-          addNotification({
-            message: `${experiment.name} failed: ${message}`,
-            tone: "error",
-          });
-        }
+        failExperiment(experiment, message);
       },
     });
     sweepSessionsRef.current.set(experimentId, session);
@@ -599,14 +592,7 @@ export const ExperimentsProvider: React.FC<React.PropsWithChildren> = ({
           return;
         }
 
-        const message = errorMessage(error);
-        patchExperiment(experimentId, { error: message, status: "error" });
-        if (!ownershipRef.current.has(experimentId)) {
-          addNotification({
-            message: `${experiment.name} failed: ${message}`,
-            tone: "error",
-          });
-        }
+        failExperiment(experiment, errorMessage(error));
       }
     };
 
