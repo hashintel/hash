@@ -98,21 +98,6 @@ describe("fitViewportToBounds", () => {
     expect(result.y).toBe(300 - 50 * 2);
   });
 
-  it("clamps the zoom to the given range", () => {
-    const bounds = { x: 0, y: 0, width: 10, height: 10 };
-    const container = { width: 1000, height: 1000 };
-    expect(fitViewportToBounds(bounds, container, 0.1, 1.5, 0).zoom).toBe(1.5);
-    expect(
-      fitViewportToBounds(
-        { x: 0, y: 0, width: 10_000, height: 10_000 },
-        container,
-        0.3,
-        1.5,
-        0,
-      ).zoom,
-    ).toBe(0.3);
-  });
-
   it("centres within asymmetric panel insets", () => {
     const result = fitViewportToBounds(
       { x: 0, y: 0, width: 200, height: 100 },

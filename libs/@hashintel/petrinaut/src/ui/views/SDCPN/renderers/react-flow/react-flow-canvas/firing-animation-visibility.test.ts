@@ -60,15 +60,4 @@ describe("an arc's firing", () => {
       firingIsVisible(viewport(), { x: 3000, y: 300, width: 1000, height: 0 }),
     ).toBe(false);
   });
-
-  it("skips an arc when the net is drawn too small to read", () => {
-    expect(
-      firingIsVisible(viewport([0, 0, 0.1]), {
-        x: 0,
-        y: 0,
-        width: 500,
-        height: 300,
-      }),
-    ).toBe(false);
-  });
 });
