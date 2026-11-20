@@ -1,6 +1,6 @@
 # Hand-written; rendered by the arch-docs build. React providers use the
 # purple palette, Core handles and host data the blue one.
-direction: right
+direction: down
 
 classes: {
   react: {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
@@ -23,8 +23,8 @@ scenario -> start: "overrides marking and parameters"
 simulators -> start: "offers the selected simulator"
 start -> handle: "starts"
 handle -> source: "exposes its stores as"
-playback -> source: "demands viewed time plus lead"
-handle -> frames: "records events for"
-recording -> frames: "supplies firings to"
-playback -> frames: "sets the viewed time of"
+playback -> source: "demands viewed time\nplus lead"
+handle -> frames: "records\nevents for"
+recording -> frames: "supplies\nfirings to"
+playback -> frames: "sets the\nviewed time of"
 frames -> readers: "feeds"

@@ -1,39 +1,29 @@
 # Hand-written; rendered by the arch-docs build. Palette matches src/emit/d2.ts.
 direction: down
 
-ui: "drawer" {
-  direction: right
-  navigator: "navigator, surface pick\n(selection change)" {style.fill: "#e2f4e8"; style.stroke: "#3d8055"}
-  optimizer: "optimizer trial\n(sweep trial evaluator)" {style.fill: "#e2f4e8"; style.stroke: "#3d8055"}
-  charts: "metric charts" {style.fill: "#e2f4e8"; style.stroke: "#3d8055"}
-  activity: "activity list, top bar\n(batches, progress)" {style.fill: "#e2f4e8"; style.stroke: "#3d8055"}
+classes: {
+  ui: {style.fill: "#e2f4e8"; style.stroke: "#3d8055"}
+  react: {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+  core: {style.fill: "#dcecff"; style.stroke: "#3676b8"}
 }
 
-react: "experiments provider and sweep session" {
-  direction: right
-  actions: "actions context\nsetSweepSelection, navigateSweep" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
-  session: "sweep session\nselection cache, ladder of 2 live rungs,\nvisited cells, run cap" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
-  lanes: "instantiateBatch\n(the chosen backend)" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
-  record: "experiment record\nmetricFrames, sweep.visited, sweepBatches" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
-}
+selection: "Navigator, surface pick" {class: ui}
+optimizer: "Optimizer trial\nsweep trial evaluator" {class: ui}
+actions: "Actions context\nsetSweepSelection, navigateSweep" {class: react}
+session: "Sweep session\nselection cache, ladder of 2 live rungs,\nvisited cells, run cap" {class: react}
+batch: "instantiateBatch\nthe provider's" {class: react}
+backend: "Chosen backend\nCPU worker pool or WebGPU" {class: core}
+stores: "Experiment handle stores\nmetrics, progress, run results" {class: core}
+record: "Experiment record\nmetricFrames, sweep.visited, sweepBatches" {class: react}
+views: "Metric charts, activity list, top bar" {class: ui}
 
-core: "petrinaut-core" {
-  direction: right
-  pool: "worker pool backend\n(leased workers)" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
-  gpu: "WebGPU backend\n(cached device and calibration)" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
-  stores: "experiment handle stores\nmetrics, progress, run results" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
-  pool -> stores: "writes"
-  gpu -> stores: "writes"
-}
-
-ui.navigator -> react.actions: "selects"
-react.actions -> react.session: "restarts the ladder"
-react.session -> react.lanes: "asks for a rung's batch" {style.stroke-dash: 4}
-react.lanes -> core.pool: "starts on"
-react.lanes -> core.gpu: "starts on"
-core.stores -> react.session: "stream frames and progress"
-react.session -> react.record: "publishes frames and live batches,\nat most once per 100 ms"
-react.record -> ui.charts: "renders"
-ui.optimizer -> react.actions: "navigates to a point\nwith a run cap"
-react.session -> ui.optimizer: "resolves the point's means\nonce they are cached" {style.stroke-dash: 4}
-react.record -> ui.activity: "lists batches"
+selection -> actions: "selects"
+optimizer -> actions: "navigates to a point\nwith a run cap"
+actions -> session: "restarts the ladder"
+session -> batch: "asks for a rung's batch"
+batch -> backend: "starts the batch on"
+backend -> stores: "writes"
+stores -> session: "stream frames\nand progress"
+session -> record: "publishes frames and live batches,\nat most once per 100 ms"
+record -> views: "renders"
+session -> optimizer: "resolves the point's means\nonce they are cached" {style.stroke-dash: 4}
