@@ -39,6 +39,12 @@ does not read through them. The read-only reason is such a guard and has a
 context of its own, `ReadOnlyReasonContext`, which `useReadOnlyReason` and
 `useIsReadOnly` read.
 
+A hook that builds a function, an object or an array and calls no hook but
+`use` starts with the directive `"use memo"`. The compiler takes a hook that
+calls another hook or returns JSX, and `use` alone does not count: without the
+directive the hook gives a new value on every render, and so does every hook
+that builds on it.
+
 What the host owns is not in the document context either. Its title, its
 nets and its callbacks are in `NetManagementContext`, the action of the
 read-only notice in `ReadOnlyActionContext`, and what it passes as `slots`

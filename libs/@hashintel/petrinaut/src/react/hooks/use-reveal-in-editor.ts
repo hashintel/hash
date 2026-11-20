@@ -41,6 +41,8 @@ const simulateDrawerFor = (
 export const useRevealInEditor = (): ((
   target: PetrinautRevealTarget,
 ) => void) => {
+  // It calls no hook but `use`, which `infer` mode would skip.
+  "use memo";
   const { navigateTo, selectItem } = use(EditorContext);
 
   return (target) => {

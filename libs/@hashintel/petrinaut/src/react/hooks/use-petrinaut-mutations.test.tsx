@@ -141,6 +141,18 @@ const createWrapper = (options: WrapperOptions = {}) => {
 };
 
 describe("usePetrinautMutations", () => {
+  test("gives the same mutations while nothing they read changes", () => {
+    const { Wrapper } = createWrapper();
+    const { result, rerender } = renderHook(usePetrinautMutations, {
+      wrapper: Wrapper,
+    });
+    const mutations = result.current;
+
+    rerender();
+
+    expect(result.current).toBe(mutations);
+  });
+
   describe("when not readonly", () => {
     test("addPlace mutates SDCPN", () => {
       const { Wrapper, instance } = createWrapper();

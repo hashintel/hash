@@ -159,6 +159,18 @@ const samplePastePayload: ClipboardPayload = {
 };
 
 describe("usePetrinautCommands", () => {
+  test("gives the same commands while nothing they read changes", () => {
+    const { Wrapper } = createWrapper();
+    const { result, rerender } = renderHook(usePetrinautCommands, {
+      wrapper: Wrapper,
+    });
+    const commands = result.current;
+
+    rerender();
+
+    expect(result.current).toBe(commands);
+  });
+
   describe("when not readonly", () => {
     test("applyClipboardPaste pastes new items and reports IDs", () => {
       const { Wrapper, instance } = createWrapper();
