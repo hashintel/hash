@@ -3,13 +3,13 @@ import { use } from "react";
 import { Icon, type MenuItem, Menu } from "@hashintel/ds-components";
 import { sameComponent } from "@hashintel/petrinaut-core";
 
+import { usePetrinautDefinitionSelector } from "../../../../../react/hooks/use-document";
 import { ActiveNetContext } from "../../../../../react/state/active-net-context";
 import {
   useEditorActions,
   useEditorFields,
   useEditorState,
 } from "../../../../../react/state/editor-context";
-import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { useComposesOnly } from "../../../../../react/state/use-composes-only";
 import { useIsCompositionInterfaceOn } from "../../../../../react/state/use-is-composition-interface-on";
 import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
@@ -25,9 +25,7 @@ import { ToolbarMenuTrigger } from "./toolbar-menu-trigger";
 
 /** Picks which component the next component instance comes from. */
 const ComponentDropdown = () => {
-  const {
-    petriNetDefinition: { components },
-  } = use(SDCPNContext);
+  const components = usePetrinautDefinitionSelector((net) => net.components);
   const { editionMode, componentToAdd } = useEditorFields(
     "editionMode",
     "componentToAdd",

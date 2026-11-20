@@ -8,7 +8,7 @@ import {
   type DocumentFormat,
 } from "@hashintel/petrinaut-core";
 
-import { usePetrinautNavigation } from "../../../../../react/navigation";
+import { usePetrinautNavigate } from "../../../../../react/navigation";
 import { NetManagementContext } from "../../../../../react/net-management-context";
 import { CompositionContext } from "../../../../../react/state/composition-context";
 import { useEditorActions } from "../../../../../react/state/editor-context";
@@ -60,7 +60,7 @@ export const EditorMenu = ({
   const { createNewNet, existingNets, loadPetriNet, title } =
     use(NetManagementContext);
   const { libraries } = use(CompositionContext);
-  const { navigate } = usePetrinautNavigation();
+  const navigate = usePetrinautNavigate();
   const { requestFrameOnNextRegistration } = useCanvasRegistration();
   const { clearSelection } = useEditorActions();
   // Auto-layout moves nodes, which a read-only net rejects, so the menu would

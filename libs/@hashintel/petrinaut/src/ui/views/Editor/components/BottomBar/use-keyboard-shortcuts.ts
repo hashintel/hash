@@ -4,6 +4,7 @@ import {
   usePetrinautMutations,
   usePetrinautCommands,
 } from "../../../../../react";
+import { useDocumentId } from "../../../../../react/hooks/use-document";
 import { useMutationRefusal } from "../../../../../react/hooks/use-mutation-refusal";
 import { useReadOnlyFeedback } from "../../../../../react/hooks/use-read-only-feedback";
 import { ActiveNetContext } from "../../../../../react/state/active-net-context";
@@ -11,7 +12,6 @@ import {
   useEditorActions,
   useEditorFields,
 } from "../../../../../react/state/editor-context";
-import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
 import { useComposesOnly } from "../../../../../react/state/use-composes-only";
 import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
@@ -41,7 +41,7 @@ export function useKeyboardShortcuts() {
     setCursorMode,
   } = useEditorActions();
   const { activeNet } = use(ActiveNetContext);
-  const { petriNetId } = use(SDCPNContext);
+  const petriNetId = useDocumentId();
   const { deleteItemsByIds } = usePetrinautMutations();
   const { applyClipboardPaste } = usePetrinautCommands();
   const mutationRefusal = useMutationRefusal();

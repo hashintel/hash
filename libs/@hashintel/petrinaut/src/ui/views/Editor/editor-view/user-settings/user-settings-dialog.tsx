@@ -12,7 +12,7 @@ import {
 import { Chip, Dialog, Icon, Select, Toggle } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
+import { useSDCPNState } from "../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { useAssistantChoice } from "../../../../plugins/plugin-assistant";
 import { PluginSettingsRows } from "../../../../plugins/plugin-settings-rows";
@@ -440,7 +440,7 @@ export const UserSettingsDialog = ({
   onClose: () => void;
 }) => {
   const settings = use(UserSettingsContext);
-  const { extensions } = use(SDCPNContext);
+  const extensions = useSDCPNState((document) => document.extensions);
   const item =
     sections.find((candidate) => candidate.id === section) ?? sections[0];
   const headingRef = useRef<HTMLElement>(null);
