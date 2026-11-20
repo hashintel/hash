@@ -1,4 +1,4 @@
-use alloc::{borrow::Cow, sync::Arc};
+use alloc::borrow::Cow;
 
 use hashql_core::span::SpanId;
 use hashql_diagnostics::{
@@ -11,6 +11,7 @@ use text_size::TextRange;
 
 use super::{
     number::{ParseNumberError, ParseNumberErrorKind},
+    string::StringError,
     syntax_kind::SyntaxKind,
     syntax_kind_set::SyntaxKindSet,
 };
@@ -82,21 +83,18 @@ impl DiagnosticCategory for LexerDiagnosticCategory {
 const CONTROL_CHAR_HELP: &str =
     "ASCII control characters (0x00 to 0x1F) cannot be used in JSON strings unless escaped";
 
-pub(crate) fn from_hifijson_str_error(
-    error: &hifijson::str::Error,
-    span: SpanId,
-) -> LexerDiagnostic {
+pub(super) fn from_string_error(error: StringError, span: SpanId) -> LexerDiagnostic {
     let (message, help) = match error {
-        hifijson::str::Error::Control => (
+        StringError::Control => (
             "Control character not allowed",
             Some(Cow::Borrowed(CONTROL_CHAR_HELP)),
         ),
-        hifijson::str::Error::Escape(error) => (
+        StringError::Escape(error) => (
             "Invalid escape sequence",
             Some(Cow::Owned(error.to_string())),
         ),
-        hifijson::str::Error::Eof => ("Unterminated string", None),
-        hifijson::str::Error::Utf8(error) => (
+        StringError::Eof => ("Unterminated string", None),
+        StringError::Utf8(error) => (
             "Invalid UTF-8 in string",
             Some(Cow::Owned(error.to_string())),
         ),
@@ -233,7 +231,7 @@ pub(crate) fn from_invalid_utf8_error(span: SpanId) -> LexerDiagnostic {
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub(crate) enum LexerError {
     String {
-        error: Arc<hifijson::str::Error>,
+        error: StringError,
         range: TextRange,
     },
 

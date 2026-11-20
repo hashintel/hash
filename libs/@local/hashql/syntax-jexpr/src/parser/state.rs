@@ -356,8 +356,9 @@ mod tests {
     };
 
     fn number(value: &str) -> TokenKind<'_> {
-        let (_, number) = Number::parse(value.as_bytes());
-        TokenKind::Number(number.expect("should be able to parse valid number"))
+        TokenKind::Number(
+            Number::parse(value.as_bytes()).expect("should be able to parse valid number"),
+        )
     }
 
     // Basic peek functionality

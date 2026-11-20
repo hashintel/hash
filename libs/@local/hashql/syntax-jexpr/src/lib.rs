@@ -9,6 +9,7 @@
 
     // Library Features
     ascii_char,
+    portable_simd,
     variant_count,
 )]
 
@@ -23,6 +24,9 @@ use self::{
     span::Span,
 };
 
+#[cfg(feature = "bench")]
+#[doc(hidden)]
+pub mod bench;
 pub mod error;
 pub(crate) mod lexer;
 pub(crate) mod parser;
