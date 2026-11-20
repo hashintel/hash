@@ -533,7 +533,7 @@ test("a follow-up a stop withdrew shows as the user's message, marked withdrawn 
   const { messages } = await chat.history();
   expect(outline(messages)).toMatchObject([
     { id: "user-first", role: "user" },
-    { role: "assistant" },
+    { role: "assistant", metadata: { stopped: true } },
     {
       id: "user-queued",
       role: "user",
@@ -566,13 +566,58 @@ test("a follow-up withdrawn behind a failed run shows as the user's message, mar
   const { messages } = await chat.history();
   expect(outline(messages)).toMatchObject([
     { id: "user-failing", role: "user" },
-    { role: "assistant" },
+    { role: "assistant", metadata: { failed: true } },
     {
       id: "user-behind",
       role: "user",
       metadata: { withdrawn: "failed" },
     },
     { id: "user-later", role: "user", metadata: undefined },
-    { role: "assistant" },
+    { role: "assistant", metadata: undefined },
   ]);
+});
+
+test("an input that carried a new version load is marked with it, in metadata and not in its words", async () => {
+  const load1 = { id: "version-1", decisionTime: "2026-11-12T09:30:00.000Z" };
+  const load2 = { id: "version-2", decisionTime: "2026-11-12T10:45:00.000Z" };
+  const loadMessage = (
+    id: string,
+    words: string,
+    versionLoad: typeof load1,
+  ): UIMessage =>
+    textMessage(
+      id,
+      petrinautContextualUserMessageBody({
+        userText: words,
+        diagnosticsContext: "",
+        submissionContext: { versionLoad },
+      }),
+    );
+  const chat = openChat([
+    fauxAssistantMessage("One."),
+    fauxAssistantMessage("Two."),
+    fauxAssistantMessage("Three."),
+  ]);
+  await drain(
+    await send(chat.transport, loadMessage("user-1", "Load.", load1)),
+  );
+  await drain(
+    await send(chat.transport, loadMessage("user-2", "Same.", load1)),
+  );
+  await drain(
+    await send(chat.transport, loadMessage("user-3", "Next.", load2)),
+  );
+
+  const { messages } = await chat.history();
+  const users = messages?.filter(({ role }) => role === "user");
+  expect(outline(users)).toEqual([
+    { id: "user-1", role: "user", metadata: { versionLoad: load1 } },
+    { id: "user-2", role: "user", metadata: undefined },
+    { id: "user-3", role: "user", metadata: { versionLoad: load2 } },
+  ]);
+  expect(users?.map(({ parts }) => parts)).toEqual(
+    ["Load.", "Same.", "Next."].map((text) => [
+      { type: "text", text, state: "done" },
+    ]),
+  );
 });

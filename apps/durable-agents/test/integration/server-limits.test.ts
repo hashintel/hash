@@ -504,6 +504,22 @@ test("the crash-loop guard aborts a task a crash cut off too often, visibly", as
     expect(textOf(newer)).toBe("A newer answer.");
     expect(await reopened.transport.reconnectToStream({ chatId })).toBeNull();
     expect(reopened.modelRequests()).toBe(1);
+    // A crash-loop abort settles its input as a stop does; history reads it as failed.
+    const history = await reopened.server.app.request(
+      `${origin}/chat/${chatId}/messages`,
+    );
+    const reread = (await history.json()) as UIMessage[];
+    expect(reread.map(({ role, metadata }) => ({ role, metadata }))).toEqual([
+      { role: "user", metadata: undefined },
+      { role: "assistant", metadata: { failed: true } },
+      { role: "user", metadata: undefined },
+      { role: "assistant", metadata: undefined },
+    ]);
+    expect(reread.slice(0, 3).map(({ id }) => id)).toEqual([
+      "user-1",
+      messageId,
+      "user-2",
+    ]);
   } finally {
     await Promise.allSettled([first.close(), second.close(), reopened.close()]);
     await dropSchemas([chatId]);
