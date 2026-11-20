@@ -667,29 +667,22 @@ const equationSummary = (
   return `${typeName(net, equation.colorId)} · ${places.length} place${places.length === 1 ? "" : "s"}`;
 };
 
+/** A labelled line of a body, as one full-width part of the focus flow. */
 const FieldRow: React.FC<{
   label: string;
-  part?: { stopId: string; focus: CellRowFocus };
+  parts: BodyPartContext;
+  partId: string;
   children: React.ReactNode;
-}> = ({ label, part, children }) => {
-  const content = (
-    <>
-      <span className={fieldLabelStyle}>{label}</span>
-      <span className={fieldValueStyle}>{children}</span>
-    </>
-  );
-  return part === undefined ? (
-    <div className={fieldRowStyle}>{content}</div>
-  ) : (
-    <WidgetPart
-      stopId={part.stopId}
-      focus={part.focus}
-      className={fieldRowStyle}
-    >
-      {content}
-    </WidgetPart>
-  );
-};
+}> = ({ label, parts, partId, children }) => (
+  <WidgetPart
+    stopId={parts.stopIdFor(partId)}
+    focus={parts.focusFor(partId)}
+    className={fieldRowStyle}
+  >
+    <span className={fieldLabelStyle}>{label}</span>
+    <span className={fieldValueStyle}>{children}</span>
+  </WidgetPart>
+);
 
 const UNTYPED = "__untyped__";
 
@@ -716,10 +709,6 @@ const PlaceBody: React.FC<{
 }> = ({ net, place, parts }) => {
   const { updatePlace } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
-  const partFor = (partId: string) => ({
-    stopId: parts.stopIdFor(partId),
-    focus: parts.focusFor(partId),
-  });
   const composedEquationNames = getPlaceDynamicsEquationIds(place).map(
     (equationId) =>
       net.differentialEquations.find(({ id }) => id === equationId)?.name ??
@@ -728,7 +717,7 @@ const PlaceBody: React.FC<{
 
   return (
     <>
-      <FieldRow label="Name" part={partFor("name")}>
+      <FieldRow label="Name" parts={parts} partId="name">
         <PartTextField
           sourceId={place.id}
           value={place.name}
@@ -738,7 +727,7 @@ const PlaceBody: React.FC<{
           }
         />
       </FieldRow>
-      <FieldRow label="Type" part={partFor("type")}>
+      <FieldRow label="Type" parts={parts} partId="type">
         <PartSelect
           aria-label="Token type"
           value={place.colorId ?? UNTYPED}
@@ -751,36 +740,39 @@ const PlaceBody: React.FC<{
           }
         />
       </FieldRow>
-      <FieldRow label="Dynamics">
-        <span className={cellLineStyle}>
-          <WidgetCell parts={parts} partId="dynamics" column={0}>
-            <input
-              type="checkbox"
-              tabIndex={-1}
-              aria-label="Dynamics enabled"
-              disabled={isReadOnly}
-              checked={place.dynamicsEnabled}
-              onChange={(event) =>
-                updatePlace({
-                  placeId: place.id,
-                  update: { dynamicsEnabled: event.target.checked },
-                })
-              }
-            />
-          </WidgetCell>
-          {place.dynamicsEnabled ? (
-            composedEquationNames.length > 0 ? (
-              <span>{composedEquationNames.join(" + ")}</span>
+      <div className={fieldRowStyle}>
+        <span className={fieldLabelStyle}>Dynamics</span>
+        <span className={fieldValueStyle}>
+          <span className={cellLineStyle}>
+            <WidgetCell parts={parts} partId="dynamics" column={0}>
+              <input
+                type="checkbox"
+                tabIndex={-1}
+                aria-label="Dynamics enabled"
+                disabled={isReadOnly}
+                checked={place.dynamicsEnabled}
+                onChange={(event) =>
+                  updatePlace({
+                    placeId: place.id,
+                    update: { dynamicsEnabled: event.target.checked },
+                  })
+                }
+              />
+            </WidgetCell>
+            {place.dynamicsEnabled ? (
+              composedEquationNames.length > 0 ? (
+                <span>{composedEquationNames.join(" + ")}</span>
+              ) : (
+                <span className={mutedStyle}>no equations composed</span>
+              )
             ) : (
-              <span className={mutedStyle}>no equations composed</span>
-            )
-          ) : (
-            <span className={mutedStyle}>disabled</span>
-          )}
+              <span className={mutedStyle}>disabled</span>
+            )}
+          </span>
         </span>
-      </FieldRow>
+      </div>
       {place.isPort ? (
-        <FieldRow label="Port" part={partFor("port")}>
+        <FieldRow label="Port" parts={parts} partId="port">
           exposed as component port
         </FieldRow>
       ) : null}
@@ -941,13 +933,7 @@ const TransitionBody: React.FC<{
   const { updateTransition } = usePetrinautMutations();
   return (
     <>
-      <FieldRow
-        label="Name"
-        part={{
-          stopId: parts.stopIdFor("name"),
-          focus: parts.focusFor("name"),
-        }}
-      >
+      <FieldRow label="Name" parts={parts} partId="name">
         <PartTextField
           sourceId={transition.id}
           value={transition.name}
@@ -1025,14 +1011,10 @@ const TypeBody: React.FC<{ color: Color; parts: BodyPartContext }> = ({
   parts,
 }) => {
   const { updateType, updateTypeElement } = usePetrinautMutations();
-  const partFor = (partId: string) => ({
-    stopId: parts.stopIdFor(partId),
-    focus: parts.focusFor(partId),
-  });
 
   return (
     <>
-      <FieldRow label="Name" part={partFor("name")}>
+      <FieldRow label="Name" parts={parts} partId="name">
         <PartTextField
           sourceId={color.id}
           value={color.name}
@@ -1042,7 +1024,7 @@ const TypeBody: React.FC<{ color: Color; parts: BodyPartContext }> = ({
           }
         />
       </FieldRow>
-      <FieldRow label="Display color" part={partFor("display-color")}>
+      <FieldRow label="Display color" parts={parts} partId="display-color">
         <PartTextField
           sourceId={color.id}
           value={color.displayColor}
@@ -1112,13 +1094,9 @@ const ParameterBody: React.FC<{
   parts: BodyPartContext;
 }> = ({ parameter, parts }) => {
   const { updateParameter } = usePetrinautMutations();
-  const fieldPart = (partId: string) => ({
-    stopId: parts.stopIdFor(partId),
-    focus: parts.focusFor(partId),
-  });
   return (
     <>
-      <FieldRow label="Name" part={fieldPart("name")}>
+      <FieldRow label="Name" parts={parts} partId="name">
         <PartTextField
           sourceId={parameter.id}
           value={parameter.name}
@@ -1128,7 +1106,7 @@ const ParameterBody: React.FC<{
           }
         />
       </FieldRow>
-      <FieldRow label="Variable name" part={fieldPart("variable-name")}>
+      <FieldRow label="Variable name" parts={parts} partId="variable-name">
         <PartTextField
           sourceId={parameter.id}
           value={parameter.variableName}
@@ -1142,7 +1120,7 @@ const ParameterBody: React.FC<{
           }
         />
       </FieldRow>
-      <FieldRow label="Type" part={fieldPart("type")}>
+      <FieldRow label="Type" parts={parts} partId="type">
         <PartSelect
           aria-label="Parameter type"
           value={parameter.type}
@@ -1155,7 +1133,7 @@ const ParameterBody: React.FC<{
           }
         />
       </FieldRow>
-      <FieldRow label="Default value" part={fieldPart("default-value")}>
+      <FieldRow label="Default value" parts={parts} partId="default-value">
         <PartTextField
           sourceId={parameter.id}
           value={parameter.defaultValue}
@@ -1178,13 +1156,9 @@ const EquationBody: React.FC<{
   parts: BodyPartContext;
 }> = ({ net, equation, parts }) => {
   const { updateDifferentialEquation } = usePetrinautMutations();
-  const partFor = (partId: string) => ({
-    stopId: parts.stopIdFor(partId),
-    focus: parts.focusFor(partId),
-  });
   return (
     <>
-      <FieldRow label="Name" part={partFor("name")}>
+      <FieldRow label="Name" parts={parts} partId="name">
         <PartTextField
           sourceId={equation.id}
           value={equation.name}
@@ -1197,7 +1171,7 @@ const EquationBody: React.FC<{
           }
         />
       </FieldRow>
-      <FieldRow label="Applies to type" part={partFor("type")}>
+      <FieldRow label="Applies to type" parts={parts} partId="type">
         <PartSelect
           aria-label="Applies to type"
           value={equation.colorId ?? UNTYPED}
