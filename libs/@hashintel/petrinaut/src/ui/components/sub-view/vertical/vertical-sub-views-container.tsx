@@ -453,28 +453,12 @@ const SubViewContent: React.FC<{ subView: SubView; visible: boolean }> = ({
   );
 };
 
-// A descriptor names its header parts as components. The header below still
-// takes render functions, which the two helpers build until it takes the
-// components themselves.
-const titleRendererOf = ({ titleComponent: Title, renderTitle }: SubView) =>
-  Title ? () => <Title /> : renderTitle;
-
-const headerActionRendererOf = ({
-  headerAction: HeaderAction,
-  renderHeaderAction,
-}: SubView) => (HeaderAction ? () => <HeaderAction /> : renderHeaderAction);
-
 interface SubViewHeaderProps {
-  id: string;
-  title: string;
-  tooltip?: string;
-  icon?: React.ComponentType<{ size: number }>;
-  main?: boolean;
-  renderTitle?: () => React.ReactNode;
+  subView: SubView;
+  /** Whether the header is the panel's own: a larger title and no toggle. */
+  main: boolean;
   isExpanded: boolean;
   onToggle: () => void;
-  renderHeaderAction?: () => React.ReactNode;
-  alwaysShowHeaderAction?: boolean;
   onExpand?: () => void;
   onRestore?: () => void;
   parentTitle: string;
@@ -482,146 +466,158 @@ interface SubViewHeaderProps {
 }
 
 const SubViewHeader: React.FC<SubViewHeaderProps> = ({
-  id,
-  title,
-  tooltip,
-  icon: HeaderIcon,
-  main = false,
-  renderTitle,
+  subView,
+  main,
   isExpanded,
   onToggle,
-  renderHeaderAction,
-  alwaysShowHeaderAction,
   onExpand,
   onRestore,
   parentTitle,
   parentIcon: ParentIcon,
-}) => (
-  <div
-    data-subview-header
-    className={
-      main ? mainHeaderRowStyle : headerRowStyle({ isCollapsed: !isExpanded })
-    }
-  >
-    {onRestore ? (
-      <nav
-        aria-label="Properties path"
-        data-subview-title
-        className={breadcrumbStyle}
-      >
-        <button
-          type="button"
-          data-restore-subview
-          aria-label={`Back to ${parentTitle}`}
-          title={parentTitle}
-          className={parentTitleStyle}
-          onClick={onRestore}
+}) => {
+  const presentation = usePetrinautPresentation();
+  const {
+    id,
+    title,
+    tooltip,
+    icon: HeaderIcon,
+    titleComponent: Title,
+    headerAction: HeaderAction,
+    alwaysShowHeaderAction,
+  } = subView;
+  const showsHeaderAction =
+    (isExpanded || alwaysShowHeaderAction) &&
+    (HeaderAction ?? subView.renderHeaderAction) !== undefined &&
+    !(subView.headerActionMutates && !presentation.showMutationActions);
+
+  return (
+    <div
+      data-subview-header
+      className={
+        main ? mainHeaderRowStyle : headerRowStyle({ isCollapsed: !isExpanded })
+      }
+    >
+      {onRestore ? (
+        <nav
+          aria-label="Properties path"
+          data-subview-title
+          className={breadcrumbStyle}
         >
-          {ParentIcon && (
-            <span aria-hidden="true" className={headerIconStyle}>
-              <ParentIcon size={HEADER_ICON_SIZE} />
-            </span>
-          )}
-          <span className={parentTitleTextStyle}>{parentTitle}</span>
-        </button>
-        {parentTitle !== title && (
-          <>
-            <span aria-hidden="true" className={breadcrumbSeparatorStyle}>
-              <Icon name="chevronRight" size="xxs" />
-            </span>
-            <span
-              aria-current="page"
-              title={title}
-              className={breadcrumbCurrentStyle}
-            >
-              {title}
-              {tooltip && (
-                <span data-info-tooltip className={infoTooltipWrapperStyle}>
-                  <HelpTooltip align="center" content={tooltip} />
-                </span>
-              )}
-            </span>
-          </>
-        )}
-      </nav>
-    ) : main ? (
-      <div data-subview-title className={mainHeaderContentStyle}>
-        {HeaderIcon && (
-          <span aria-hidden="true" className={headerIconStyle}>
-            <HeaderIcon size={HEADER_ICON_SIZE} />
-          </span>
-        )}
-        {renderTitle ? (
-          renderTitle()
-        ) : (
-          <span className={mainTitleStyle()}>{title}</span>
-        )}
-      </div>
-    ) : (
-      <div
-        data-toggle-subview
-        onClick={onToggle}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            onToggle();
-          }
-        }}
-        className={sectionToggleStyle}
-        aria-expanded={isExpanded}
-        aria-controls={`subview-content-${id}`}
-      >
-        <div
-          data-toggle-icon
-          className={cx(
-            sectionToggleIconStyle,
-            isExpanded && sectionToggleIconExpandedStyle,
-          )}
-        >
-          <Icon name="chevronRight" size="xxs" />
-        </div>
-        <span className={sectionToggleLabelStyle}>
-          <span className={mainTitleStyle()}>{title}</span>
-          {tooltip && (
-            <span data-info-tooltip className={infoTooltipWrapperStyle}>
-              <HelpTooltip align="center" content={tooltip} />
-            </span>
-          )}
-        </span>
-      </div>
-    )}
-    {(onExpand ||
-      ((isExpanded || alwaysShowHeaderAction) && renderHeaderAction)) && (
-      <div className={headerActionsStyle}>
-        {onExpand && (
-          <Button
-            size="sm"
-            variant="ghost"
-            iconName="expand"
-            data-expand-subview
-            aria-label={`Expand ${title}`}
-            tooltip="Fill panel"
-            onClick={onExpand}
-          />
-        )}
-        {(isExpanded || alwaysShowHeaderAction) && renderHeaderAction && (
-          <div
-            {...(!alwaysShowHeaderAction && { "data-header-action": true })}
-            className={
-              alwaysShowHeaderAction
-                ? headerActionVisibleStyle
-                : headerActionStyle
-            }
+          <button
+            type="button"
+            data-restore-subview
+            aria-label={`Back to ${parentTitle}`}
+            title={parentTitle}
+            className={parentTitleStyle}
+            onClick={onRestore}
           >
-            {renderHeaderAction()}
+            {ParentIcon && (
+              <span aria-hidden="true" className={headerIconStyle}>
+                <ParentIcon size={HEADER_ICON_SIZE} />
+              </span>
+            )}
+            <span className={parentTitleTextStyle}>{parentTitle}</span>
+          </button>
+          {parentTitle !== title && (
+            <>
+              <span aria-hidden="true" className={breadcrumbSeparatorStyle}>
+                <Icon name="chevronRight" size="xxs" />
+              </span>
+              <span
+                aria-current="page"
+                title={title}
+                className={breadcrumbCurrentStyle}
+              >
+                {title}
+                {tooltip && (
+                  <span data-info-tooltip className={infoTooltipWrapperStyle}>
+                    <HelpTooltip align="center" content={tooltip} />
+                  </span>
+                )}
+              </span>
+            </>
+          )}
+        </nav>
+      ) : main ? (
+        <div data-subview-title className={mainHeaderContentStyle}>
+          {HeaderIcon && (
+            <span aria-hidden="true" className={headerIconStyle}>
+              <HeaderIcon size={HEADER_ICON_SIZE} />
+            </span>
+          )}
+          {Title ? (
+            <Title />
+          ) : subView.renderTitle ? (
+            subView.renderTitle()
+          ) : (
+            <span className={mainTitleStyle()}>{title}</span>
+          )}
+        </div>
+      ) : (
+        <div
+          data-toggle-subview
+          onClick={onToggle}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              onToggle();
+            }
+          }}
+          className={sectionToggleStyle}
+          aria-expanded={isExpanded}
+          aria-controls={`subview-content-${id}`}
+        >
+          <div
+            data-toggle-icon
+            className={cx(
+              sectionToggleIconStyle,
+              isExpanded && sectionToggleIconExpandedStyle,
+            )}
+          >
+            <Icon name="chevronRight" size="xxs" />
           </div>
-        )}
-      </div>
-    )}
-  </div>
-);
+          <span className={sectionToggleLabelStyle}>
+            <span className={mainTitleStyle()}>{title}</span>
+            {tooltip && (
+              <span data-info-tooltip className={infoTooltipWrapperStyle}>
+                <HelpTooltip align="center" content={tooltip} />
+              </span>
+            )}
+          </span>
+        </div>
+      )}
+      {(onExpand || showsHeaderAction) && (
+        <div className={headerActionsStyle}>
+          {onExpand && (
+            <Button
+              size="sm"
+              variant="ghost"
+              iconName="expand"
+              data-expand-subview
+              aria-label={`Expand ${title}`}
+              tooltip="Fill panel"
+              onClick={onExpand}
+            />
+          )}
+          {showsHeaderAction && (
+            <div
+              {...(!alwaysShowHeaderAction && { "data-header-action": true })}
+              className={
+                alwaysShowHeaderAction
+                  ? headerActionVisibleStyle
+                  : headerActionStyle
+              }
+            >
+              {HeaderAction ? <HeaderAction /> : subView.renderHeaderAction?.()}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 interface VerticalSubViewsContainerProps {
   /** Unique name used as a key in UserSettingsContext to persist section state */
@@ -640,7 +636,6 @@ interface VerticalSubViewsContainerProps {
 export const VerticalSubViewsContainer: React.FC<
   VerticalSubViewsContainerProps
 > = ({ name, subViews, defaultExpanded = true }) => {
-  const presentation = usePetrinautPresentation();
   // By selector: the settings are saved each time a panel opens or closes,
   // and every section of this panel renders with this component.
   const showAnimations = useUserSettings((settings) => settings.showAnimations);
@@ -751,21 +746,10 @@ export const VerticalSubViewsContainer: React.FC<
                 data-subview-animate={showAnimations || undefined}
               >
                 <SubViewHeader
-                  id={subView.id}
-                  title={subView.title}
-                  tooltip={subView.tooltip}
-                  icon={subView.icon}
+                  subView={subView}
                   main={isMain || fillsContainer}
-                  renderTitle={titleRendererOf(subView)}
                   isExpanded={fillsContainer || isExpanded}
                   onToggle={() => toggleSection(subView)}
-                  renderHeaderAction={
-                    subView.headerActionMutates &&
-                    !presentation.showMutationActions
-                      ? undefined
-                      : headerActionRendererOf(subView)
-                  }
-                  alwaysShowHeaderAction={subView.alwaysShowHeaderAction}
                   parentTitle={parentTitle}
                   parentIcon={parentSubView?.icon}
                   onRestore={fillsContainer ? restore : undefined}
