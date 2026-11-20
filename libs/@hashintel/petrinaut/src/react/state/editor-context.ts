@@ -299,6 +299,25 @@ export const useEditorActions = (): EditorActions =>
   // `use` is the one hook that may sit in a condition.
   use(EditorActionsContext) ?? use(EditorContext);
 
+/** The mode of the editor and the view of its Edit mode. */
+export type EditorMode = Pick<EditorState, "globalMode" | "editViewMode">;
+
+/**
+ * Where `EditorProvider` gives out the mode. Null where only `EditorContext`
+ * is provided, such as under a test.
+ */
+export const EditorModeContext = createContext<EditorMode | null>(null);
+
+/**
+ * The mode, in the commit that changes it. What decides which part of the
+ * editor is shown reads the mode here and not by part: a part read through
+ * `useEditorState` arrives one commit later, after the contexts that follow
+ * the mode have changed, the read-only reason among them. The value changes
+ * with the mode alone, so its readers render for no selection.
+ */
+export const useEditorMode = (): EditorMode =>
+  use(EditorModeContext) ?? use(EditorContext);
+
 /**
  * Whether one item is selected. The reader renders when that answer changes,
  * so a list renders two of its rows when the selection moves from one to

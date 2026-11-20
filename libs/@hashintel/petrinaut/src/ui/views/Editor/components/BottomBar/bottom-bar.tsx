@@ -6,9 +6,9 @@ import { refractive } from "@hashintel/refractive";
 
 import { LanguageClientContext } from "../../../../../react/lsp/context";
 import {
-  EditorContext,
   useEditorActions,
   useEditorFields,
+  useEditorMode,
 } from "../../../../../react/state/editor-context";
 import { useComposesOnly } from "../../../../../react/state/use-composes-only";
 import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
@@ -103,9 +103,9 @@ export const BottomBar = ({ hasAiAssistant }: { hasAiAssistant: boolean }) => {
     "isBottomPanelOpen",
     "isAiAssistantOpen",
   );
-  // From the context, as the view reads it: the effect below must see the
-  // mode of the commit that shows the bar again, not the one before it.
-  const { globalMode } = use(EditorContext);
+  // As the view reads it: the effect below must see the mode of the commit
+  // that shows the bar again, not the one before it.
+  const { globalMode } = useEditorMode();
   const {
     setEditionMode,
     setBottomPanelOpen,

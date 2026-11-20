@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import {
   EditorContext,
+  EditorModeContext,
   EditorPublishedContext,
   type EditorGlobalMode,
   type EditViewMode,
@@ -115,18 +116,21 @@ const EditorAtMode = ({
 }) => {
   const editor = use(EditorContext);
   return (
-    // Nothing published, so a reader by part follows the context below.
+    // Nothing published and no mode given out, so a reader by part and a
+    // reader of the mode follow the context below.
     <EditorPublishedContext value={null}>
-      <EditorContext.Provider
-        value={{
-          ...editor,
-          globalMode: mode,
-          editViewMode: view,
-          isAiAssistantOpen: true,
-        }}
-      >
-        <EditorView />
-      </EditorContext.Provider>
+      <EditorModeContext value={null}>
+        <EditorContext.Provider
+          value={{
+            ...editor,
+            globalMode: mode,
+            editViewMode: view,
+            isAiAssistantOpen: true,
+          }}
+        >
+          <EditorView />
+        </EditorContext.Provider>
+      </EditorModeContext>
     </EditorPublishedContext>
   );
 };
@@ -135,11 +139,13 @@ const EditableWorkspace = () => {
   const editor = use(EditorContext);
   const [editViewMode, setEditViewMode] = useState<EditViewMode>("canvas");
   return (
-    <EditorContext.Provider
-      value={{ ...editor, editViewMode, setEditViewMode }}
-    >
-      <EditorView />
-    </EditorContext.Provider>
+    <EditorModeContext value={null}>
+      <EditorContext.Provider
+        value={{ ...editor, editViewMode, setEditViewMode }}
+      >
+        <EditorView />
+      </EditorContext.Provider>
+    </EditorModeContext>
   );
 };
 

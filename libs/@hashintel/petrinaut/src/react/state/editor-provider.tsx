@@ -13,6 +13,7 @@ import {
 } from "./assistant-placement-context";
 import {
   EditorActionsContext,
+  EditorModeContext,
   EditorContext,
   type EditorContextValue,
   EditorPublishedContext,
@@ -143,9 +144,16 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       <EditorPublishedContext value={published}>
         <EditorContext value={contextValue}>
           <EditorActionsContext value={actions}>
-            <ReadOnlyReasonProvider globalMode={effectiveState.globalMode}>
-              <PanelPresenceProvider>{children}</PanelPresenceProvider>
-            </ReadOnlyReasonProvider>
+            <EditorModeContext
+              value={{
+                globalMode: effectiveState.globalMode,
+                editViewMode: effectiveState.editViewMode,
+              }}
+            >
+              <ReadOnlyReasonProvider globalMode={effectiveState.globalMode}>
+                <PanelPresenceProvider>{children}</PanelPresenceProvider>
+              </ReadOnlyReasonProvider>
+            </EditorModeContext>
           </EditorActionsContext>
         </EditorContext>
       </EditorPublishedContext>
