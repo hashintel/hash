@@ -1,6 +1,5 @@
 ---
 source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
-assertion_line: 438
 description: Incomplete qualified path in a group
 expression: "(Foo::)"
 info:

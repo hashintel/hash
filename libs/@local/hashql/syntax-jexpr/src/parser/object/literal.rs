@@ -14,7 +14,7 @@ use super::{
 use crate::{
     ParserState,
     error::ResultExt as _,
-    lexer::{syntax_kind_set::SyntaxKindSet, token_kind::TokenKind},
+    lexer::{Number, syntax_kind_set::SyntaxKindSet, token_kind::TokenKind},
     parser::{
         error::{ParserDiagnostic, ParserDiagnosticCategory},
         state::Expected,
@@ -87,16 +87,11 @@ fn parse_literal<'heap>(
 
     let kind = match token.kind {
         TokenKind::Null => Primitive::Null,
-        TokenKind::Number(number) => {
-            if number.has_dot() || number.has_exponent() {
-                Primitive::Float(value::Float::new_unchecked(
-                    state.intern_symbol(number.as_str()),
-                ))
-            } else {
-                Primitive::Integer(value::Integer::new_unchecked(
-                    state.intern_symbol(number.as_str()),
-                ))
-            }
+        TokenKind::Number(Number::Integer(spelling)) => {
+            Primitive::Integer(value::Integer::new_unchecked(state.intern_symbol(spelling)))
+        }
+        TokenKind::Number(Number::Float(spelling)) => {
+            Primitive::Float(value::Float::new_unchecked(state.intern_symbol(spelling)))
         }
         TokenKind::Bool(value) => Primitive::Boolean(value),
         TokenKind::String(value) => {
