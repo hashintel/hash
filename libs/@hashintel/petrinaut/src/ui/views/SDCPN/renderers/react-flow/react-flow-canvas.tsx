@@ -103,6 +103,10 @@ const paneStyle = css({
   "& .react-flow__pane": {
     cursor: `var(--pane-cursor) !important`,
   },
+  // React Flow positions each edge's `svg` with no insets, and such a box is
+  // never a layout root: an arc that moves lays out the pane. With the insets
+  // it already sits at, the layout stops at the arc.
+  "& .react-flow__edges svg": { top: "[0]", left: "[0]" },
   "& .react-flow__node, & .arc-strokes, & .minimap-shape": {
     transition: "[opacity var(--canvas-focus-duration, 200ms) ease]",
     "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
