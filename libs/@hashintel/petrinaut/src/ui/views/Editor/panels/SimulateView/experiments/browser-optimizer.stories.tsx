@@ -28,7 +28,7 @@ type BrowserOptimizerArgs = {
 };
 
 const meta = {
-  title: "Simulate / Browser optimizer (real)",
+  title: "States/Optimizer run",
   parameters: { layout: "fullscreen" },
   args: {
     steps: 6,

@@ -350,11 +350,6 @@ transitions, plus-badge visibility, and the Add Place ↔ Add Transition morph.
 The diagnostics button demo also includes a count control for checking its resize
 and reveal transitions.
 
-The **Simulate / SimulateView / Run Supply Chain optimization (synthetic
-optimizer)** story creates a parameter sweep with its study, as the Create
-Experiment drawer's Optimize does, and drives it with an internal fake
-optimizer, so it does not require the Python service or Docker.
-
 ## AI assistant
 
 The editor's AI assistant comes from a plugin. A plugin that declares

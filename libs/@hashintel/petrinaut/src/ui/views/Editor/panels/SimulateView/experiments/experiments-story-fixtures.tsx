@@ -480,39 +480,6 @@ export function sirInfectedFrame(options: {
   };
 }
 
-export const oneExperiment = makeExperiment(1);
-
-export const multipleExperiments: ExperimentRecord[] = [
-  makeExperiment(1, {
-    name: "Seasonal flu baseline",
-    status: "running",
-    progress: makeProgress({
-      activeRuns: 760,
-      completedRuns: 240,
-      frameNumber: 72,
-      time: 72,
-    }),
-  }),
-  makeExperiment(2, {
-    name: "High virulence sensitivity",
-    scenarioId: "scenario__high_virulence",
-    scenarioName: "High Virulence Outbreak",
-    status: "initializing",
-    progress: null,
-  }),
-  makeExperiment(3, {
-    name: "Long horizon convergence",
-    status: "complete",
-    progress: makeProgress({
-      activeRuns: 0,
-      completedRuns: 1_000,
-      allFinished: true,
-      frameNumber: 180,
-      time: 180,
-    }),
-  }),
-];
-
 const getScenario = (scenarioId: string | null): Scenario | null =>
   scenarioId
     ? (sirDefinition.scenarios?.find(
