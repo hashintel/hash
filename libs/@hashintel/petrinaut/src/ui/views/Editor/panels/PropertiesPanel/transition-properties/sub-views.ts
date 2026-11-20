@@ -13,11 +13,6 @@ export const transitionMainSubView: SubView = {
   headerAction: DeleteTransitionAction,
   headerActionMutates: true,
   alwaysShowHeaderAction: true,
-  resizable: {
-    minHeight: 100,
-    maxHeight: 1200,
-    defaultHeight: 300,
-  },
 };
 
 export const transitionFiringTimeSubView = createDeferredSubView({
@@ -32,7 +27,6 @@ export const transitionFiringTimeSubView = createDeferredSubView({
   hasHeaderAction: true,
   resizable: {
     minHeight: 250,
-    maxHeight: 1200,
     defaultHeight: 300,
   },
   load: async () => {
@@ -58,7 +52,6 @@ export const transitionResultsSubView = createDeferredSubView({
   hasHeaderAction: true,
   resizable: {
     minHeight: 300,
-    maxHeight: 1200,
     defaultHeight: 500,
   },
   load: async () => {

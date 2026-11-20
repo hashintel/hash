@@ -44,7 +44,6 @@ export const placeInitialStateSubView: SubView = {
   defaultCollapsed: true,
   resizable: {
     minHeight: 250,
-    maxHeight: 1200,
     defaultHeight: 300,
   },
 };
@@ -62,7 +61,6 @@ export const placeVisualizerSubView = createDeferredSubView({
   hasHeaderAction: true,
   resizable: {
     minHeight: 200,
-    maxHeight: 1200,
     defaultHeight: 300,
   },
   load: async () => {
