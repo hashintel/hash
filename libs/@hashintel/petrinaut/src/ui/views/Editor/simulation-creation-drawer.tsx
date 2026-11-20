@@ -1,6 +1,7 @@
-import { use } from "react";
-
-import { EditorContext } from "../../../react/state/editor-context";
+import {
+  useEditorActions,
+  useEditorState,
+} from "../../../react/state/editor-context";
 import { CreateExperimentDrawer } from "./panels/SimulateView/experiments/create-experiment-drawer";
 import { CreateMetricDrawer } from "./panels/SimulateView/metrics/create-metric-drawer";
 import { CreateScenarioDrawer } from "./panels/SimulateView/scenarios/create-scenario-drawer";
@@ -8,7 +9,8 @@ import { SimulationPanelPresence } from "./panels/SimulateView/shared/simulation
 
 /** Renders the one create drawer addressed by Petrinaut's app location. */
 export const SimulationCreationDrawer = () => {
-  const { setSimulateDrawer, simulateDrawer } = use(EditorContext);
+  const simulateDrawer = useEditorState((editor) => editor.simulateDrawer);
+  const { setSimulateDrawer } = useEditorActions();
   const closeDrawer = () => setSimulateDrawer({ type: "closed" });
 
   return (

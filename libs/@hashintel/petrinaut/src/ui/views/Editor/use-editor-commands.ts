@@ -2,7 +2,10 @@ import { use, useEffect, useEffectEvent } from "react";
 
 import { usePetrinautCommands } from "../../../react";
 import { useCommand } from "../../../react/commands/command-registry";
-import { EditorContext } from "../../../react/state/editor-context";
+import {
+  useEditorActions,
+  useEditorFields,
+} from "../../../react/state/editor-context";
 import { UndoRedoContext } from "../../../react/state/undo-redo-context";
 import { useComposesOnly } from "../../../react/state/use-composes-only";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
@@ -23,16 +26,18 @@ const useEditorCommands = ({
   onNewNet?: () => void;
   onToggleAiAssistant?: () => void;
 }): void => {
+  const { globalMode, editViewMode, isLeftSidebarOpen } = useEditorFields(
+    "globalMode",
+    "editViewMode",
+    "isLeftSidebarOpen",
+  );
   const {
-    globalMode,
-    editViewMode,
     setCursorMode,
     setEditionMode,
     setSearchOpen,
     toggleBottomPanel,
-    isLeftSidebarOpen,
     setLeftSidebarOpen,
-  } = use(EditorContext);
+  } = useEditorActions();
   const undoRedo = use(UndoRedoContext);
   const { applyAutoLayout } = usePetrinautCommands();
   const isReadOnly = useIsReadOnly();

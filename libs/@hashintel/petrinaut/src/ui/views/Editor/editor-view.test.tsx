@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import {
   EditorContext,
+  EditorPublishedContext,
   type EditorGlobalMode,
   type EditViewMode,
 } from "../../../react/state/editor-context";
@@ -118,16 +119,19 @@ const EditorAtMode = ({
 }) => {
   const editor = use(EditorContext);
   return (
-    <EditorContext.Provider
-      value={{
-        ...editor,
-        globalMode: mode,
-        editViewMode: view,
-        isAiAssistantOpen: true,
-      }}
-    >
-      <EditorView />
-    </EditorContext.Provider>
+    // Nothing published, so a reader by part follows the context below.
+    <EditorPublishedContext value={null}>
+      <EditorContext.Provider
+        value={{
+          ...editor,
+          globalMode: mode,
+          editViewMode: view,
+          isAiAssistantOpen: true,
+        }}
+      >
+        <EditorView />
+      </EditorContext.Provider>
+    </EditorPublishedContext>
   );
 };
 

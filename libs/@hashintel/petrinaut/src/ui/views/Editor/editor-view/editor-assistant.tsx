@@ -1,7 +1,8 @@
-import { use } from "react";
-
 import { useCommand } from "../../../../react/commands/command-registry";
-import { EditorContext } from "../../../../react/state/editor-context";
+import {
+  useEditorActions,
+  useEditorState,
+} from "../../../../react/state/editor-context";
 import {
   PluginAssistantContent,
   useAssistantChoice,
@@ -32,7 +33,10 @@ export const EditorAssistantPanel = ({
   plugin: NonNullable<ReturnType<typeof usePluginAssistant>>;
   petriNetId: string | null;
 }) => {
-  const { isAiAssistantOpen, setAiAssistantOpen } = use(EditorContext);
+  const isAiAssistantOpen = useEditorState(
+    (editor) => editor.isAiAssistantOpen,
+  );
+  const { setAiAssistantOpen } = useEditorActions();
 
   return (
     <PluginAssistantPanel

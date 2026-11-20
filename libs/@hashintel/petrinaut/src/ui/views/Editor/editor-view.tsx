@@ -36,7 +36,10 @@ import { usePetrinautCommands } from "../../../react";
 import { usePetrinautNavigation } from "../../../react/navigation";
 import { NetManagementContext } from "../../../react/net-management-context";
 import { CompositionContext } from "../../../react/state/composition-context";
-import { EditorContext } from "../../../react/state/editor-context";
+import {
+  useEditorActions,
+  useEditorFields,
+} from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useComposesOnly } from "../../../react/state/use-composes-only";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
@@ -187,16 +190,13 @@ const EditorViewContent = ({
     await frameSceneAfterRender();
   };
 
-  // Get editor context
-  const {
-    globalMode,
-    editViewMode,
-    isAiAssistantOpen,
-    navigateTo,
-    clearSelection,
-    setAiAssistantOpen,
-    toggleAiAssistant,
-  } = use(EditorContext);
+  const { globalMode, editViewMode, isAiAssistantOpen } = useEditorFields(
+    "globalMode",
+    "editViewMode",
+    "isAiAssistantOpen",
+  );
+  const { navigateTo, clearSelection, setAiAssistantOpen, toggleAiAssistant } =
+    useEditorActions();
   const composesOnly = useComposesOnly();
   const assistant = useEditorAssistant();
 
