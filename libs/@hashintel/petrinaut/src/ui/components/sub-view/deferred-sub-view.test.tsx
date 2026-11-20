@@ -30,7 +30,7 @@ it("shares the pending load and immediately renders preloaded content and action
   });
   view.preload();
   view.preload();
-  const Content = view.component;
+  const { component: Content, headerAction: HeaderAction } = view;
   const first = render(<Content />);
   expect(screen.queryByText("Editor")).toBeNull();
   await act(async () => resolve(loaded));
@@ -40,7 +40,7 @@ it("shares the pending load and immediately renders preloaded content and action
   render(
     <>
       <Content />
-      {view.renderHeaderAction?.()}
+      {HeaderAction && <HeaderAction />}
     </>,
   );
   expect(screen.getByText("Editor")).toBeTruthy();

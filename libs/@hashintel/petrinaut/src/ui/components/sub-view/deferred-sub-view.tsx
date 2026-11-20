@@ -1,4 +1,4 @@
-import { useEffect, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 
 import type { SubView } from "./types";
 
@@ -19,12 +19,6 @@ export const createDeferredSubView = ({
   let result: { subView?: SubView; error?: unknown } = {};
   let loading = false;
   const listeners = new Set<() => void>();
-  const subscribe = (listener: () => void) => {
-    listeners.add(listener);
-    return () => {
-      listeners.delete(listener);
-    };
-  };
   const getSnapshot = () => result;
   const publish = (next: typeof result) => {
     result = next;
@@ -38,9 +32,16 @@ export const createDeferredSubView = ({
       (error: unknown) => publish({ error }),
     );
   };
+  // The first reader to mount starts the load, if no preload did.
+  const subscribe = (listener: () => void) => {
+    preload();
+    listeners.add(listener);
+    return () => {
+      listeners.delete(listener);
+    };
+  };
   const useSubView = () => {
     const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
-    useEffect(preload, []);
     if ("error" in snapshot) throw snapshot.error;
     return snapshot.subView;
   };
@@ -58,7 +59,6 @@ export const createDeferredSubView = ({
     ...descriptor,
     component: Content,
     headerAction: hasHeaderAction ? HeaderAction : undefined,
-    renderHeaderAction: hasHeaderAction ? () => <HeaderAction /> : undefined,
     preload,
   };
 };
