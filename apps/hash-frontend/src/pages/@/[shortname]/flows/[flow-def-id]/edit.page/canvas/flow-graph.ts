@@ -55,6 +55,8 @@ export type ForEachStepNode = Node<
   StepNodeDataBase & {
     step: ForEachStepDefinition<string>;
     collapsed: boolean;
+    /** What one item of its list is called, e.g. "Supplier". */
+    itemName: string;
   },
   "forEach"
 >;
@@ -109,9 +111,11 @@ export const getFlowGraph = ({
   problemsByStepId,
   forEachLayouts,
   collapsedStepIds,
+  getItemName,
 }: Pick<FlowEditorState, "flowDefinition" | "problemsByStepId"> & {
   forEachLayouts: Map<string, ForEachLayout>;
   collapsedStepIds: Set<string>;
+  getItemName: (forEachStepId: string) => string;
 }): { nodes: FlowNode[]; edges: ConnectionEdge[] } => {
   const nodes: FlowNode[] = [
     {
@@ -176,7 +180,12 @@ export const getFlowGraph = ({
         nodes.push({
           ...placement,
           type: "forEach",
-          data: { ...data, step, collapsed },
+          data: {
+            ...data,
+            step,
+            collapsed,
+            itemName: getItemName(step.stepId),
+          },
           ...size,
         });
 

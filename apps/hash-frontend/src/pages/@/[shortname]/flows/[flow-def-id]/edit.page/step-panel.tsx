@@ -6,6 +6,7 @@ import { createStepShapeResolver } from "@local/hash-isomorphic-utils/flows/step
 import { getOutputsAvailableToFlow } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
 
 import { findStep } from "./shared/find-step";
+import { useItemNames } from "./shared/item-name";
 import { getOutputLabel } from "./shared/name-label";
 import { PanelSection, PanelTitle, SidePanel } from "./shared/side-panel";
 import {
@@ -63,6 +64,10 @@ const headerSubtitle = css({
 });
 const headerGroup = css({ flexShrink: "0", whiteSpace: "pre" });
 const headerDescription = css({ flex: "1", minWidth: "0" });
+/* A for-each's derived name is what the step is called, so it reads as a description would, not as a hint. */
+const derivedDescription = css({
+  "& input::placeholder": { color: "[inherit]" },
+});
 const empty = css({ textStyle: "sm", color: "fg.subtle" });
 const addInputButton = css({ alignSelf: "flex-start" });
 
@@ -198,6 +203,7 @@ const SelectedStepPanel = ({
   onSelectStep: (stepId: string) => void;
 }) => {
   const { title, icon, tone, group } = getStepDisplay(step);
+  const getItemName = useItemNames(flowDefinition);
   const paths = getStepPaths(step);
   const actionDefinition =
     step.kind === "action"
@@ -234,7 +240,13 @@ const SelectedStepPanel = ({
           variant="subtle"
           size="sm"
           value={step.description}
-          placeholder="Add a description…"
+          placeholder={
+            /* With no description, a for-each is named after its list, as on the canvas. */
+            step.kind === "for-each"
+              ? `For each ${getItemName(step.stepId)}`
+              : "Add a description…"
+          }
+          className={step.kind === "for-each" ? derivedDescription : undefined}
           aria-label="Description"
           readonly={inner}
           onChange={(description) =>

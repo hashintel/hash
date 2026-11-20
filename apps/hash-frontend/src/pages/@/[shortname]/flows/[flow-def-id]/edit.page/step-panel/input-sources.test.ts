@@ -6,6 +6,7 @@ import { actionStep, flowWith } from "../shared/step-fixtures";
 import {
   getInputTarget,
   getNewFlowInput,
+  getSourceLabel,
   getSourceOptions,
 } from "./input-sources";
 
@@ -210,5 +211,30 @@ describe("getNewFlowInput", () => {
       array: true,
       required: false,
     });
+  });
+});
+
+describe("getSourceLabel", () => {
+  it("names a for-each's item after the for-each, as a step's output is after its step", () => {
+    const forEach = (description: string) =>
+      flowWith([
+        {
+          kind: "for-each",
+          stepId: "each",
+          description,
+          over: { kind: "flow-input", inputName: "suppliers" },
+          steps: [answer("inner", { inputs: { question: { kind: "item" } } })],
+          collect: { stepId: "inner", outputName: "explanation", as: "all" },
+        },
+      ]);
+    const item = { kind: "item" as const };
+    const scope = { stepId: "each", itemName: "Supplier" };
+
+    expect(getSourceLabel(forEach("Check suppliers"), item, scope)).toBe(
+      "Check suppliers › Supplier",
+    );
+    expect(getSourceLabel(forEach(""), item, scope)).toBe(
+      "For each › Supplier",
+    );
   });
 });
