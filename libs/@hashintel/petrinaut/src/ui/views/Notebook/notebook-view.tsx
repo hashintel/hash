@@ -1,4 +1,5 @@
-import { use, useEffect, useRef, useState, type ReactNode } from "react";
+import { use, useRef, useState, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 
 import { Button, SegmentedControl, TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -102,13 +103,11 @@ const DEFAULT_EXPLORER_WIDTH = 520;
 const MIN_EXPLORER_WIDTH = 320;
 const MAX_EXPLORER_WIDTH = 1100;
 
-/** Focuses the row of a cell inside `container`; false when it has none. */
-const focusRowIn = (container: HTMLElement | null, cellId: string): boolean => {
-  const row = container?.querySelector<HTMLElement>(
-    `[data-cell-row="${CSS.escape(cellId)}"]`,
-  );
-  row?.focus({ preventScroll: true });
-  return row !== null && row !== undefined;
+/** Focuses the row of a cell inside `container`, when it has one. */
+const focusRowIn = (container: HTMLElement | null, cellId: string) => {
+  container
+    ?.querySelector<HTMLElement>(`[data-cell-row="${CSS.escape(cellId)}"]`)
+    ?.focus({ preventScroll: true });
 };
 
 /**
@@ -167,20 +166,6 @@ const NotebookViewContent = ({
 
   const cellsColumnRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-
-  // Navigation can reveal a filtered-out kind, in which case the row to focus
-  // doesn't exist until after the re-render — so a miss is parked here and
-  // retried by the effect below once the row is in the DOM.
-  const pendingFocusCellIdRef = useRef<string | null>(null);
-  // One retry is enough: the reveal of the hidden kind lands in the very next
-  // render, and clearing unconditionally means a deleted cell can't leave a
-  // stale id behind to steal focus later.
-  useEffect(() => {
-    if (pendingFocusCellIdRef.current !== null) {
-      focusRowIn(cellsColumnRef.current, pendingFocusCellIdRef.current);
-      pendingFocusCellIdRef.current = null;
-    }
-  });
 
   // The topological list follows the diagram's default layer order (not the
   // focused re-layout, which is a transient lens on the same net), with
@@ -286,27 +271,24 @@ const NotebookViewContent = ({
     });
   };
 
-  const focusCellRow = (cellId: string) => {
-    if (!focusRowIn(cellsColumnRef.current, cellId)) {
-      pendingFocusCellIdRef.current = cellId;
-    }
-  };
-
   const selectCell = (cell: CellRef, options?: { focus?: boolean }) => {
     selectItem(cellToSelectionItem(cell));
     if (options?.focus) {
-      focusCellRow(cell.id);
+      focusRowIn(cellsColumnRef.current, cell.id);
     }
   };
 
   const navigateToNode = (node: NodeRef) => {
     // Jumping to a kind the filter hides would select an invisible cell, so
-    // reveal that kind as part of the navigation.
+    // reveal that kind first, in a render of its own: the row has to exist
+    // before it can take focus.
     if (!visibleKinds.has(node.type)) {
-      setVisibleKinds((previous) => new Set(previous).add(node.type));
+      flushSync(() => {
+        setVisibleKinds((previous) => new Set(previous).add(node.type));
+      });
     }
     selectItem({ type: node.type, id: node.id });
-    focusCellRow(node.id);
+    focusRowIn(cellsColumnRef.current, node.id);
   };
 
   const navigateToCell = (cellId: string) => {
