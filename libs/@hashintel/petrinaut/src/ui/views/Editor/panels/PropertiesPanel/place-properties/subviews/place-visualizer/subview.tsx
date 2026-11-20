@@ -5,6 +5,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import {
   DEFAULT_VISUALIZER_CODE,
   generateDefaultVisualizerCode,
+  getDocumentUri,
 } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../../../react";
@@ -14,7 +15,6 @@ import { useSDCPNState } from "../../../../../../../../react/state/sdcpn-context
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { useCodeNavigation } from "../../../../../../../monaco/code-navigation-context";
-import { getDocumentUri } from "../../../../../../../monaco/editor-paths";
 import { CodeTemplateMenu } from "../../../code-template-menu";
 import { codeSectionStyle } from "../../../styles";
 import { usePlacePropertiesContext } from "../../context";

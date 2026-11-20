@@ -2,6 +2,7 @@ import { SegmentedControl, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   generateDefaultLambdaCode,
+  getDocumentUri,
   getEffectiveTransitionLambdaType,
 } from "@hashintel/petrinaut-core";
 
@@ -10,7 +11,6 @@ import { useEditorState } from "../../../../../../../../react/state/editor-conte
 import { useIsReadOnly } from "../../../../../../../../react/state/use-is-read-only";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
-import { getDocumentUri } from "../../../../../../../monaco/editor-paths";
 import { CodeTemplateMenu } from "../../../code-template-menu";
 import { codeSectionStyle } from "../../../styles";
 import { useTransitionPropertiesContext } from "../../context";

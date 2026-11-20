@@ -1,6 +1,7 @@
 import { use, useState } from "react";
 
 import {
+  getDocumentUri,
   getEffectiveTransitionLambdaType,
   getTransitionLogicAvailability,
 } from "@hashintel/petrinaut-core";
@@ -13,7 +14,6 @@ import { useSDCPNState } from "../../react/state/sdcpn-context";
 import { useUserSettingsFields } from "../../react/state/user-settings-context";
 import { usePetrinautPresentation } from "../views/shared/presentation-context";
 import { CodeNavigationContext } from "./code-navigation-context";
-import { getDocumentUri } from "./editor-paths";
 
 import type { CodeEntry, CodeNavigation } from "./code-navigation-context";
 import type { PropsWithChildren } from "react";

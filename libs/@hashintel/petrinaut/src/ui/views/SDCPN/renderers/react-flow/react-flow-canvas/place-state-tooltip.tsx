@@ -8,6 +8,7 @@ import { lazy, Suspense, use, useEffect, useState } from "react";
 
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import { getDocumentUri } from "@hashintel/petrinaut-core";
 
 import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
 import {
@@ -17,7 +18,6 @@ import {
 import { useUserSettings } from "../../../../../../react/state/user-settings-context";
 import { useStoreSelector } from "../../../../../../react/use-store";
 import { useCodeNavigation } from "../../../../../monaco/code-navigation-context";
-import { getDocumentUri } from "../../../../../monaco/editor-paths";
 import { usePetrinautPresentation } from "../../../../shared/presentation-context";
 import { VisualizerLoading } from "../../../../shared/visualizer-loading";
 import { CanvasPointerContext, useIsHovered } from "../../../canvas-pointer";

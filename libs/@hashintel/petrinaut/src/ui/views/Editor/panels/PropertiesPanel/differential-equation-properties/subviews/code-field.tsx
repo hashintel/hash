@@ -1,10 +1,10 @@
 import { Form } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import { getDocumentUri } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../../react";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { CodeEditor } from "../../../../../../monaco/code-editor";
-import { getDocumentUri } from "../../../../../../monaco/editor-paths";
 import { useDiffEqPropertiesContext } from "../context";
 
 const codeFieldStyle = css({

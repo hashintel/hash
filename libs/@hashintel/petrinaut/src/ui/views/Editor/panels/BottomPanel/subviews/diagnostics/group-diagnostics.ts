@@ -1,4 +1,4 @@
-import { parseDocumentUri } from "../../../../../../monaco/editor-paths";
+import { parseDocumentUri } from "@hashintel/petrinaut-core";
 
 import type { Diagnostic, SelectionItemType } from "@hashintel/petrinaut-core";
 

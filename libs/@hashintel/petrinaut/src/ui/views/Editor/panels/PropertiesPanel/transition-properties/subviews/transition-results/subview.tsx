@@ -3,6 +3,7 @@ import { use } from "react";
 import {
   generateDefaultTransitionKernelCode,
   getArcEndpoint,
+  getDocumentUri,
 } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../../../react";
@@ -13,7 +14,6 @@ import { SDCPNContext } from "../../../../../../../../react/state/sdcpn-context"
 import { useIsReadOnly } from "../../../../../../../../react/state/use-is-read-only";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
-import { getDocumentUri } from "../../../../../../../monaco/editor-paths";
 import { resolvePort } from "../../../arc-endpoint";
 import { CodeTemplateMenu } from "../../../code-template-menu";
 import { codeSectionStyle } from "../../../styles";
