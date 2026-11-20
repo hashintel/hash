@@ -26,7 +26,7 @@ import { experimentProgressPercent } from "../../../shared/experiment-progress";
 import { describeStepProgress } from "../shared/describe-study-progress";
 import { formatCount, formatFixed } from "../shared/format-value";
 import { METRIC_PLOT_HEIGHT, type MetricTile } from "../shared/metric-tiles";
-import { constraintsFold } from "./experiment-results/constraints-fold";
+import { ConstraintList } from "./experiment-results/constraints-fold";
 import { ElapsedStat } from "./experiment-results/elapsed-stat";
 import {
   ExperimentDetails,
@@ -47,7 +47,7 @@ import {
 import { SweepSurface } from "./sweep-surface";
 
 import type { ChartCardTone } from "../shared/chart-card";
-import type { ComputeBatch } from "../shared/drawer-frame";
+import type { ComputeBatch, FrameCardMore } from "../shared/drawer-frame";
 import type {
   ResultsModel,
   ResultsStat,
@@ -213,6 +213,27 @@ const studyDetailsStats = (
         ]),
   ];
 };
+
+/**
+ * The fold a constrained experiment's Parameters card keeps behind its
+ * footer; null for an experiment without constraints.
+ */
+const constraintsFold = ({
+  constraints,
+  constraintPolicy,
+}: ExperimentRecord): FrameCardMore | null =>
+  constraints.length === 0
+    ? null
+    : {
+        show: `Show ${constraints.length} constraint${constraints.length === 1 ? "" : "s"}`,
+        hide: "Hide constraints",
+        content: (
+          <ConstraintList
+            constraints={constraints}
+            constraintPolicy={constraintPolicy}
+          />
+        ),
+      };
 
 /**
  * One tile per configured metric, fed the record's frames. Called from the
@@ -454,10 +475,7 @@ export const experimentResultsModel = (
               ),
             // The constraints the experiment carries, from creation on; a
             // property of the experiment, not of any study.
-            more:
-              experiment.constraints.length > 0
-                ? constraintsFold(experiment)
-                : null,
+            more: constraintsFold(experiment),
             tone,
           },
         ]
