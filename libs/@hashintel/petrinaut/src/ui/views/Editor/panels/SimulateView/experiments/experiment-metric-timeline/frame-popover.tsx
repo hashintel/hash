@@ -4,7 +4,7 @@
  * its measured height and dismissed by an outside click.
  */
 import { Portal } from "@ark-ui/react/portal";
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent, useRef } from "react";
 
 import { Button, usePortalContainerRef } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -199,6 +199,7 @@ export const FramePopover = ({
     measuredSize?.height ?? POPOVER_MAX_HEIGHT,
   );
 
+  const closeOnOutsidePress = useEffectEvent(onClose);
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
       const target = event.target as Node | null;
@@ -210,7 +211,7 @@ export const FramePopover = ({
         return;
       }
 
-      onClose();
+      closeOnOutsidePress();
     };
 
     document.addEventListener("pointerdown", handlePointerDown);
@@ -218,7 +219,7 @@ export const FramePopover = ({
     return () => {
       document.removeEventListener("pointerdown", handlePointerDown);
     };
-  }, [chartRootRef, onClose]);
+  }, [chartRootRef]);
 
   return (
     <Portal container={portalContainerRef}>

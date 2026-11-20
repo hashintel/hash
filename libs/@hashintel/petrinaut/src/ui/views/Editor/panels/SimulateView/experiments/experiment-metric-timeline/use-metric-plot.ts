@@ -4,7 +4,7 @@
  * the previous picture crossfaded out on a content change, and pointer
  * scrubbing turned into frame picks.
  */
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent, useRef } from "react";
 import uPlot from "uplot";
 
 import { createCrossfadeOverlay } from "./use-metric-plot/crossfade-overlay";
@@ -171,6 +171,7 @@ export const useMetricPlot = ({
     }
   }, [size]);
 
+  const selectFrame = useEffectEvent(onFrameSelect);
   const hasSize = size !== null;
   useEffect(() => {
     const viewKey = `${displayMode}|${aggregateRuns}|${runAggregation}|${distributionView}|${timeTrace}`;
@@ -220,7 +221,7 @@ export const useMetricPlot = ({
         ? attachFrameScrubbing(
             plot,
             () => contentRef.current.frames,
-            onFrameSelect,
+            (pick) => selectFrame(pick),
           )
         : null;
 
@@ -236,7 +237,6 @@ export const useMetricPlot = ({
     displayMode,
     distributionView,
     hasSize,
-    onFrameSelect,
     outputType,
     runAggregation,
     timeDomainEnd,

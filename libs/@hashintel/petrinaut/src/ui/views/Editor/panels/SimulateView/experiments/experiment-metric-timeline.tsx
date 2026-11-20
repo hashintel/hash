@@ -11,8 +11,8 @@ import "uplot/dist/uPlot.min.css";
 import { useElementSize } from "../../../../../../react/hooks/use-element-size";
 import { formatFixed } from "../shared/format-value";
 import { FramePopover } from "./experiment-metric-timeline/frame-popover";
+import { MetricPlot } from "./experiment-metric-timeline/metric-plot";
 import { distributionBandLegend } from "./experiment-metric-timeline/shared/distribution-bands";
-import { useMetricPlot } from "./experiment-metric-timeline/use-metric-plot";
 import {
   deriveMetricViewState,
   selectedFrameFrom,
@@ -37,19 +37,6 @@ const frameStyle = css({
   position: "relative",
   width: "full",
   minWidth: "[0]",
-});
-
-const chartStyle = css({
-  width: "full",
-  height: "full",
-  minWidth: "[0]",
-  _empty: {
-    cursor: "default",
-  },
-  "& .u-over": {
-    cursor: "crosshair",
-    touchAction: "none",
-  },
 });
 
 const chartWaitingStyle = css({
@@ -179,29 +166,6 @@ export const ExperimentMetricTimeline = ({
   });
   const selectedFrame = selection ? selectedFrameFrom(frames, selection) : null;
 
-  useMetricPlot({
-    chartRootRef,
-    size,
-    canPlot: view.canPlot,
-    displayMode: view.displayMode,
-    outputType,
-    aggregateRuns: settings.aggregateRuns,
-    runAggregation: settings.runAggregation,
-    distributionView: settings.distributionView,
-    timeTrace: settings.timeTrace,
-    timeDomainStart,
-    timeDomainEnd,
-    frames,
-    plotData: view.plotData,
-    contentEpoch,
-    onFrameSelect: (pick) =>
-      setSelection({
-        index: pick.index,
-        frameNumber: pick.frame.frameNumber,
-        pointer: pick.pointer,
-      }),
-  });
-
   return (
     <div
       className={frameStyle}
@@ -215,7 +179,29 @@ export const ExperimentMetricTimeline = ({
         </div>
       ) : (
         <>
-          <div ref={chartRootRef} className={chartStyle} />
+          <MetricPlot
+            chartRootRef={chartRootRef}
+            size={size}
+            canPlot={view.canPlot}
+            displayMode={view.displayMode}
+            outputType={outputType}
+            aggregateRuns={settings.aggregateRuns}
+            runAggregation={settings.runAggregation}
+            distributionView={settings.distributionView}
+            timeTrace={settings.timeTrace}
+            timeDomainStart={timeDomainStart}
+            timeDomainEnd={timeDomainEnd}
+            frames={frames}
+            plotData={view.plotData}
+            contentEpoch={contentEpoch}
+            onFrameSelect={(pick) =>
+              setSelection({
+                index: pick.index,
+                frameNumber: pick.frame.frameNumber,
+                pointer: pick.pointer,
+              })
+            }
+          />
           {view.hasPlotData || lastOutputType !== null ? null : (
             <div className={chartWaitingStyle}>Waiting for metric data</div>
           )}
