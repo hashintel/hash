@@ -31,15 +31,17 @@ const barStyle = css({
 const dividerStyle = css({
   width: "[1px]",
   height: "[20px]",
+  // With the bar's 4 px gap this leaves 8 px each side of the line.
+  marginX: "1",
   backgroundColor: "neutral.bd.solid",
 });
 
-/** DS icon buttons at the toolbar's 32 px square, icons in #646464; the active tool is a neutral fill, not brand blue. */
+/** DS icon buttons at the toolbar's 28 px square, icons in #646464; the active tool is a neutral fill, not brand blue. */
 const toolStyle = css({
   "&[class]": {
-    width: "[32px]",
-    height: "[32px]",
-    minWidth: "[32px]",
+    width: "[28px]",
+    height: "[28px]",
+    minWidth: "[28px]",
     padding: "[0]",
     justifyContent: "center",
   },
@@ -54,7 +56,9 @@ const zoomStyle = css({
     fontWeight: "medium",
     // The DS button puts zero-width text around its icons; gaps would count them, so space the label instead.
     gap: "0",
-    paddingX: "2",
+    paddingLeft: "2",
+    // 5 px after the caret, so caret to Hand equals Hand to Select.
+    paddingRight: "[5px]",
     minWidth: "[0]",
     height: "[32px]",
   },
