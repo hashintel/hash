@@ -20,10 +20,29 @@ export const requestSuccessorStop = async (
   tracker: BrunchPanelConversationTracker,
 ): Promise<PetrinautAiStopResult> => {
   tracker.recordStopRequested();
-  const [{ abort }] = await Promise.all([
-    successorEndpoints(conversation),
-    tracker.settleInFlightSubmissions(),
-  ]);
+  await tracker.settleInFlightSubmissions();
+  return abortConversation(conversation);
+};
+
+/**
+ * `requestSuccessorStop`, unless `stillWanted` says otherwise once the
+ * in-flight sends settle: a message sent meanwhile withdraws the stop.
+ */
+export const requestSuccessorStopIfStillWanted = async (
+  conversation: SuccessorConversation,
+  tracker: BrunchPanelConversationTracker,
+  stillWanted: () => boolean,
+): Promise<PetrinautAiStopResult | "withdrawn"> => {
+  await tracker.settleInFlightSubmissions();
+  if (!stillWanted()) return "withdrawn";
+  tracker.recordStopRequested();
+  return abortConversation(conversation);
+};
+
+const abortConversation = async (
+  conversation: SuccessorConversation,
+): Promise<PetrinautAiStopResult> => {
+  const { abort } = await successorEndpoints(conversation);
   const response = await (conversation.fetch ?? globalThis.fetch)(abort, {
     method: "POST",
     headers: successorHeaders(conversation),

@@ -1,12 +1,14 @@
 import { useEffect, useRef } from "react";
 
-import { requestFlueStopIfStillWanted } from "../../client/request-flue-stop";
-
 import type { BrunchPanelConversationTracker } from "../../client/brunch-panel-transport";
-import type { FlueClient, FlueConversationState } from "@flue/sdk";
+import type { FlueConversationState } from "@flue/sdk";
 
 type SentSession = {
-  readonly client: Promise<FlueClient> | null;
+  /**
+   * Stops the conversation's turn once its in-flight sends settle, unless
+   * `stillWanted` then says otherwise; `null` while there is no session.
+   */
+  readonly stop: ((stillWanted: () => boolean) => Promise<unknown>) | null;
   readonly tracker: BrunchPanelConversationTracker;
   readonly snapshot: FlueConversationState | undefined;
 };
@@ -49,11 +51,11 @@ export const useStopTurnOnLeave = ({
 
   useEffect(
     () => () => {
-      const { client, tracker, snapshot } = committed.current;
-      if (client === null || !tracker.hasUnsettledTurn(snapshot)) return;
-      // Flue's abort is conversation-wide, so a send pending at leave that
-      // the agent then refuses must not stop another tab's turn, and a
-      // message the next editor sends through this same session (the binding
+      const { stop, tracker, snapshot } = committed.current;
+      if (stop === null || !tracker.hasUnsettledTurn(snapshot)) return;
+      // A stop is conversation-wide, so a send pending at leave that the
+      // agent then refuses must not stop another tab's turn, and a message
+      // the next editor sends through this same session (the binding
       // unchanged) before the abort lands must not be stopped with it.
       const sentAtLeave = tracker.trackedSubmissionCount;
       const nothingSentSince = () =>
@@ -61,9 +63,7 @@ export const useStopTurnOnLeave = ({
       tracker
         .hasUnsettledTurnAfterSettling(snapshot)
         .then((unsettled) =>
-          unsettled && nothingSentSince()
-            ? requestFlueStopIfStillWanted(client, tracker, nothingSentSince)
-            : undefined,
+          unsettled && nothingSentSince() ? stop(nothingSentSince) : undefined,
         )
         .catch((error: unknown) => reportError.current(error));
     },
