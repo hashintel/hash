@@ -70,14 +70,6 @@ const prefixableUnits = new Set<BaseUrl>(
   ].map(({ dataTypeBaseUrl }) => dataTypeBaseUrl),
 );
 
-// Historical units retain their HASH identifiers; new SI units belong to BIPM.
-const registeredBaseUrlsBySlug = new Map(
-  Object.values(systemDataTypes).map(({ dataTypeBaseUrl }) => [
-    dataTypeBaseUrl.split("/").at(-2),
-    dataTypeBaseUrl,
-  ]),
-);
-
 const prefixConversion = (
   conversion: Conversions,
   exponent: number,
@@ -145,11 +137,10 @@ export const expandSiPrefixes = (
         const word = prefixed(suffix);
         return `${titlePrefix}${word.charAt(0).toUpperCase()}${word.slice(1)}`;
       };
-      const prefixedSlug = `${titlePrefix.toLowerCase().replace(" ", "-")}${prefixed(slug)}`;
-      const dataTypeBaseUrl = registeredBaseUrlsBySlug.get(prefixedSlug);
-      if (!dataTypeBaseUrl) {
-        throw new Error(`Prefixed unit '${prefixedSlug}' is not registered`);
-      }
+      const dataTypeBaseUrl = baseUrl.replace(
+        /[^/]+\/$/,
+        `${titlePrefix.toLowerCase().replace(" ", "-")}${prefixed(slug)}/`,
+      ) as BaseUrl;
       if (baseUrls.has(dataTypeBaseUrl)) {
         continue;
       }

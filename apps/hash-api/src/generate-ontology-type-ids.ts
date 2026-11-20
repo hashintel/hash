@@ -201,16 +201,11 @@ const generateOntologyIds = async () => {
     graphApi,
   };
 
-  const [hashOrg, bipmOrg, googleOrg, linearOrg] = await Promise.all([
+  const [hashOrg, googleOrg, linearOrg] = await Promise.all([
     getOrgByShortname(
       graphContext,
       { actorId: publicUserAccountId },
       { shortname: "h" },
-    ),
-    getOrgByShortname(
-      graphContext,
-      { actorId: publicUserAccountId },
-      { shortname: "bipm" },
     ),
     getOrgByShortname(
       graphContext,
@@ -228,10 +223,6 @@ const generateOntologyIds = async () => {
     throw new Error("HASH org not found");
   }
 
-  if (!bipmOrg) {
-    throw new Error("BIPM org not found");
-  }
-
   if (!googleOrg) {
     throw new Error("Google org not found");
   }
@@ -246,7 +237,6 @@ const generateOntologyIds = async () => {
     { entityTypes: hashEntityTypes },
     { propertyTypes: hashPropertyTypes },
     { dataTypes: hashDataTypes },
-    { dataTypes: bipmDataTypes },
     { entityTypes: googleEntityTypes },
     { propertyTypes: googlePropertyTypes },
     { entityTypes: linearEntityTypes },
@@ -270,12 +260,6 @@ const generateOntologyIds = async () => {
       graphContext.graphApi,
       authentication,
       getLatestTypesInOrganizationQuery({ organization: hashOrg }),
-    ),
-    // BIPM units
-    queryDataTypes(
-      graphContext.graphApi,
-      authentication,
-      getLatestTypesInOrganizationQuery({ organization: bipmOrg }),
     ),
     // Google types
     queryEntityTypes(
@@ -331,7 +315,7 @@ import type { BaseUrl } from "@blockprotocol/type-system";\n\n`;
       serializeTypes(graphContext, authentication, {
         entityTypes: hashEntityTypes,
         propertyTypes: hashPropertyTypes,
-        dataTypes: [...hashDataTypes, ...bipmDataTypes],
+        dataTypes: hashDataTypes,
         prefix: "system",
       }),
       serializeTypes(graphContext, authentication, {

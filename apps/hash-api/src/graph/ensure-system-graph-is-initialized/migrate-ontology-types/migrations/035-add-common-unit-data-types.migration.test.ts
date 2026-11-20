@@ -34,7 +34,6 @@ const baseUrl = (title: string) =>
 const getSeeded = (title: string) => {
   const unit =
     seeded.get(baseUrl(title)) ??
-    seeded.get(baseUrl(title).replace("/@h/", "/@bipm/")) ??
     [...seeded.values()].find(({ schema }) => schema.title === title);
   if (!unit) {
     throw new Error(`Missing seeded type: ${title}`);
