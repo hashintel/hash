@@ -11,6 +11,7 @@ import { useGetOwnerForEntity } from "../../../../../../../../../components/hook
 import { useSnackbar } from "../../../../../../../../../components/hooks/use-snackbar";
 import { fetchPresignedFileUrl } from "../../../../../../../../shared/fetch-presigned-file-url";
 import { getFileProperties } from "../../../../../../../../shared/get-file-properties";
+import { getFileIcon } from "../../shared/file-display";
 import { getFilePreviewKind } from "./files";
 
 import type { FileSteps } from "./files";
@@ -234,7 +235,7 @@ export const FileStage = ({
           />
         ) : (
           <div className={unpreviewable}>
-            <Icon name="file" size="lg" />
+            <Icon name={getFileIcon(file.properties)} size="lg" />
             <span>{name}</span>
             <span>This file can't be previewed. Download it to open it.</span>
           </div>
