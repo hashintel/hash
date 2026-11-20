@@ -27,6 +27,8 @@ type UseFlowSchedulesResult = {
   loading: boolean;
   error: ApolloError | undefined;
   refetch: () => Promise<unknown>;
+  /** Whether the schedules have been fetched, so an empty map means there are none. */
+  loaded: boolean;
   schedulesByEntityUuid: Map<EntityUuid, Simplified<HashEntity<FlowSchedule>>>;
 };
 
@@ -157,6 +159,7 @@ export const useFlowSchedules = ({
     loading,
     error,
     refetch,
+    loaded: data !== undefined,
     schedulesByEntityUuid,
   };
 };
