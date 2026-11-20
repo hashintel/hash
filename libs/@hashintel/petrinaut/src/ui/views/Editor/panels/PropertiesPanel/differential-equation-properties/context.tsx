@@ -1,6 +1,5 @@
 import { createContext, use } from "react";
 
-import type { PetrinautMutations } from "../../../../../../react";
 import type {
   Color,
   DifferentialEquation,
@@ -11,7 +10,6 @@ export interface DiffEqPropertiesContextValue {
   differentialEquation: DifferentialEquation;
   types: Color[];
   places: Place[];
-  updateDifferentialEquation: PetrinautMutations["updateDifferentialEquation"];
 }
 
 export const DiffEqPropertiesContext =

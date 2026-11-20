@@ -5,7 +5,9 @@ import {
   getEffectiveTransitionLambdaType,
 } from "@hashintel/petrinaut-core";
 
+import { usePetrinautMutations } from "../../../../../../../../react";
 import { useEditorState } from "../../../../../../../../react/state/editor-context";
+import { useIsReadOnly } from "../../../../../../../../react/state/use-is-read-only";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { getDocumentUri } from "../../../../../../../monaco/editor-paths";
@@ -37,8 +39,8 @@ const infoBoxStyle = css({
 });
 
 const FiringTimeHeaderAction: React.FC = () => {
-  const { logicAvailability, transition, updateTransition } =
-    useTransitionPropertiesContext();
+  const { logicAvailability, transition } = useTransitionPropertiesContext();
+  const { updateTransition } = usePetrinautMutations();
   const globalMode = useEditorState((editor) => editor.globalMode);
 
   if (globalMode !== "edit" || !logicAvailability.lambda) {
@@ -66,8 +68,9 @@ const FiringTimeHeaderAction: React.FC = () => {
 };
 
 const TransitionFiringTimeContent: React.FC = () => {
-  const { logicAvailability, transition, isReadOnly, updateTransition } =
-    useTransitionPropertiesContext();
+  const { logicAvailability, transition } = useTransitionPropertiesContext();
+  const { updateTransition } = usePetrinautMutations();
+  const isReadOnly = useIsReadOnly();
   const lambdaType = getEffectiveTransitionLambdaType(
     transition,
     logicAvailability,

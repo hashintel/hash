@@ -6,8 +6,12 @@ import {
   resolveComponent,
 } from "@hashintel/petrinaut-core";
 
+import { usePetrinautMutations } from "../../../../../../../../react";
+import { ActiveNetContext } from "../../../../../../../../react/state/active-net-context";
 import { CompositionContext } from "../../../../../../../../react/state/composition-context";
 import { useEditorState } from "../../../../../../../../react/state/editor-context";
+import { SDCPNContext } from "../../../../../../../../react/state/sdcpn-context";
+import { useIsReadOnly } from "../../../../../../../../react/state/use-is-read-only";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { getDocumentUri } from "../../../../../../../monaco/editor-paths";
@@ -82,8 +86,11 @@ const createTransitionArcPlaceResolver = (
 };
 
 const ResultsHeaderAction: React.FC = () => {
-  const { logicAvailability, transition, sdcpn, net, types, updateTransition } =
+  const { logicAvailability, transition, types } =
     useTransitionPropertiesContext();
+  const { updateTransition } = usePetrinautMutations();
+  const { petriNetDefinition: sdcpn } = use(SDCPNContext);
+  const { activeNet } = use(ActiveNetContext);
   const globalMode = useEditorState((editor) => editor.globalMode);
   const { libraries } = use(CompositionContext);
 
@@ -96,7 +103,7 @@ const ResultsHeaderAction: React.FC = () => {
       onLoadDefault={() => {
         const resolveArcPlace = createTransitionArcPlaceResolver(
           sdcpn,
-          net,
+          activeNet,
           libraries,
         );
         const typeById = getTypeById({ sdcpn, types, libraries });
@@ -155,8 +162,9 @@ const ResultsHeaderAction: React.FC = () => {
 };
 
 const TransitionResultsContent: React.FC = () => {
-  const { transition, isReadOnly, updateTransition } =
-    useTransitionPropertiesContext();
+  const { transition } = useTransitionPropertiesContext();
+  const { updateTransition } = usePetrinautMutations();
+  const isReadOnly = useIsReadOnly();
 
   return (
     <div className={codeSectionStyle}>

@@ -55,8 +55,8 @@ const paramFieldLabelStyle = css({
  * own choice, or the document's default.
  */
 const ImplementationField: React.FC = () => {
-  const { instance, updateComponentInstance } =
-    useComponentInstancePropertiesContext();
+  const { instance } = useComponentInstancePropertiesContext();
+  const { updateComponentInstance } = usePetrinautMutations();
   const { petriNetDefinition } = use(SDCPNContext);
   const { libraries } = use(CompositionContext);
   const mutationRefusal = useMutationRefusal();
@@ -177,8 +177,9 @@ const ComponentField: React.FC = () => {
 };
 
 const ComponentInstanceMainContent: React.FC = () => {
-  const { instance, component, componentParameters, updateComponentInstance } =
-    useComponentInstancePropertiesContext();
+  const { instance, component } = useComponentInstancePropertiesContext();
+  const { updateComponentInstance } = usePetrinautMutations();
+  const componentParameters = component?.parameters ?? [];
   const isDisabled = useIsReadOnly();
   const readOnlyTooltip = isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined;
 

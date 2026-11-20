@@ -12,6 +12,7 @@ import { Select } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { generatePetrinautId, type Color } from "@hashintel/petrinaut-core";
 
+import { usePetrinautMutations } from "../../../../../../../react";
 import { FormSpreadsheet } from "../../../../../../components/spreadsheet-kit/form-spreadsheet";
 import {
   cellErrorUnderlineStyle,
@@ -75,13 +76,13 @@ export interface DimensionsTableProps {
 export const DimensionsTable: React.FC<DimensionsTableProps> = ({
   readOnly,
 }) => {
+  const { type } = useTypePropertiesContext();
   const {
-    type,
     addTypeElement,
     updateTypeElement,
     removeTypeElement,
     moveTypeElement,
-  } = useTypePropertiesContext();
+  } = usePetrinautMutations();
   const { elements } = type;
   const grid = useFocusGrid();
   const { register, attach } = grid;

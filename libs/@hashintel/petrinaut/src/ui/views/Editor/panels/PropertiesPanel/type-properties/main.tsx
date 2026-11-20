@@ -2,41 +2,13 @@ import { VerticalSubViewsContainer } from "../../../../../components/sub-view/ve
 import { TypePropertiesContext } from "./context";
 import { typeMainContentSubView } from "./subviews/main";
 
-import type { PetrinautMutations } from "../../../../../../react";
 import type { SubView } from "../../../../../components/sub-view/types";
 import type { Color } from "@hashintel/petrinaut-core";
 
 const subViews: SubView[] = [typeMainContentSubView];
 
-interface TypePropertiesProps {
-  type: Color;
-  updateType: PetrinautMutations["updateType"];
-  addTypeElement: PetrinautMutations["addTypeElement"];
-  updateTypeElement: PetrinautMutations["updateTypeElement"];
-  removeTypeElement: PetrinautMutations["removeTypeElement"];
-  moveTypeElement: PetrinautMutations["moveTypeElement"];
-}
-
-export const TypeProperties: React.FC<TypePropertiesProps> = ({
-  type,
-  updateType,
-  addTypeElement,
-  updateTypeElement,
-  removeTypeElement,
-  moveTypeElement,
-}) => {
-  const value = {
-    type,
-    updateType,
-    addTypeElement,
-    updateTypeElement,
-    removeTypeElement,
-    moveTypeElement,
-  };
-
-  return (
-    <TypePropertiesContext value={value}>
-      <VerticalSubViewsContainer name="type-properties" subViews={subViews} />
-    </TypePropertiesContext>
-  );
-};
+export const TypeProperties: React.FC<{ type: Color }> = ({ type }) => (
+  <TypePropertiesContext value={{ type }}>
+    <VerticalSubViewsContainer name="type-properties" subViews={subViews} />
+  </TypePropertiesContext>
+);

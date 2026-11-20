@@ -2,21 +2,17 @@ import { use } from "react";
 
 import { getTransitionLogicAvailability } from "@hashintel/petrinaut-core";
 
+import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
 import { CompositionContext } from "../../../../../../react/state/composition-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { createDeferredSubView } from "../../../../../components/sub-view/deferred-sub-view";
 import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { usePetrinautPresentation } from "../../../../shared/presentation-context";
-import {
-  TransitionPropertiesProvider,
-  type TransitionLogicNet,
-} from "./context";
+import { TransitionPropertiesContext } from "./context";
 import { transitionMainContentSubView } from "./subviews/main";
 
-import type { PetrinautMutations } from "../../../../../../react";
 import type { SubView } from "../../../../../components/sub-view/types";
-import type { Color, Place, Transition } from "@hashintel/petrinaut-core";
+import type { Color, Transition } from "@hashintel/petrinaut-core";
 
 const transitionFiringTimeSubView = createDeferredSubView({
   id: "transition-firing-time",
@@ -60,34 +56,22 @@ const transitionResultsSubView = createDeferredSubView({
 
 interface TransitionPropertiesProps {
   transition: Transition;
-  net: TransitionLogicNet;
-  places: Place[];
   types: Color[];
-  updateTransition: PetrinautMutations["updateTransition"];
-  onArcWeightUpdate: PetrinautMutations["updateArcWeight"];
-  updateArcPlace: PetrinautMutations["updateArcPlace"];
-  removeArc: PetrinautMutations["removeArc"];
 }
 
 export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
   transition,
-  net,
-  places,
   types,
-  updateTransition,
-  onArcWeightUpdate,
-  updateArcPlace,
-  removeArc,
 }) => {
-  const isReadOnly = useIsReadOnly();
   const presentation = usePetrinautPresentation();
   const { extensions, petriNetDefinition } = use(SDCPNContext);
+  const { activeNet } = use(ActiveNetContext);
   const { libraries } = use(CompositionContext);
   const logicAvailability = getTransitionLogicAvailability(
     transition,
     petriNetDefinition,
     extensions,
-    net,
+    activeNet,
     libraries,
   );
 
@@ -105,24 +89,14 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
   ];
 
   return (
-    <TransitionPropertiesProvider
-      transition={transition}
-      sdcpn={petriNetDefinition}
-      net={net}
-      places={places}
-      types={types}
-      logicAvailability={logicAvailability}
-      isReadOnly={isReadOnly}
-      updateTransition={updateTransition}
-      onArcWeightUpdate={onArcWeightUpdate}
-      updateArcPlace={updateArcPlace}
-      removeArc={removeArc}
+    <TransitionPropertiesContext
+      value={{ transition, types, logicAvailability }}
     >
       <VerticalSubViewsContainer
         key={transition.id}
         name="transition-properties"
         subViews={subViews}
       />
-    </TransitionPropertiesProvider>
+    </TransitionPropertiesContext>
   );
 };

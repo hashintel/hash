@@ -17,6 +17,7 @@ import { usePetrinautMutations } from "../../../../../../../react";
 import { ActiveNetContext } from "../../../../../../../react/state/active-net-context";
 import { useEditorActions } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
+import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { useUserSettings } from "../../../../../../../react/state/user-settings-context";
 import { DescriptionField } from "../../../../../../components/description-field";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
@@ -82,7 +83,9 @@ const arcStyle = css({
  * Rendered as a headerless SubView at the top of the proportional layout.
  */
 const PlaceMainContent: React.FC = () => {
-  const { place, types, isReadOnly, updatePlace } = usePlacePropertiesContext();
+  const { place, types } = usePlacePropertiesContext();
+  const { updatePlace } = usePetrinautMutations();
+  const isReadOnly = useIsReadOnly();
   const { selectItem } = useEditorActions();
   const showAnimations = useUserSettings((settings) => settings.showAnimations);
   const capacityEnabled =

@@ -5,11 +5,11 @@ import { css } from "@hashintel/ds-helpers/css";
 
 const MultipleIcon = () => <Icon name="layer" />;
 
+import { usePetrinautMutations } from "../../../../../react";
 import { useEditorActions } from "../../../../../react/state/editor-context";
 import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { DeleteItemButton } from "./delete-item-button";
 
-import type { PetrinautMutations } from "../../../../../react";
 import type { SubView } from "../../../../components/sub-view/types";
 import type { SelectionItem } from "@hashintel/petrinaut-core";
 
@@ -19,22 +19,7 @@ const summaryStyle = css({
   lineHeight: "[1.5]",
 });
 
-interface MultiSelectionData {
-  items: SelectionItem[];
-  deleteItemsByIds: PetrinautMutations["deleteItemsByIds"];
-}
-
-const MultiSelectionContext = createContext<MultiSelectionData | null>(null);
-
-function useMultiSelectionContext() {
-  const ctx = use(MultiSelectionContext);
-  if (!ctx) {
-    throw new Error(
-      "useMultiSelectionContext must be used within MultiSelectionPanel",
-    );
-  }
-  return ctx;
-}
+const SelectedItemsContext = createContext<SelectionItem[]>([]);
 
 const TYPE_LABELS: Record<string, string> = {
   place: "place",
@@ -48,7 +33,7 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 const MultiSelectionContent: React.FC = () => {
-  const { items } = useMultiSelectionContext();
+  const items = use(SelectedItemsContext);
 
   // Group items by type
   const counts = new Map<string, number>();
@@ -67,7 +52,8 @@ const MultiSelectionContent: React.FC = () => {
 };
 
 const DeleteSelectionAction: React.FC = () => {
-  const { items, deleteItemsByIds } = useMultiSelectionContext();
+  const items = use(SelectedItemsContext);
+  const { deleteItemsByIds } = usePetrinautMutations();
   const { clearSelection } = useEditorActions();
 
   return (
@@ -95,18 +81,10 @@ const multiSelectionMainSubView: SubView = {
 
 const subViews: SubView[] = [multiSelectionMainSubView];
 
-interface MultiSelectionPanelProps {
-  items: SelectionItem[];
-  deleteItemsByIds: PetrinautMutations["deleteItemsByIds"];
-}
-
-export const MultiSelectionPanel: React.FC<MultiSelectionPanelProps> = ({
+export const MultiSelectionPanel: React.FC<{ items: SelectionItem[] }> = ({
   items,
-  deleteItemsByIds,
-}) => {
-  return (
-    <MultiSelectionContext value={{ items, deleteItemsByIds }}>
-      <VerticalSubViewsContainer name="multi-selection" subViews={subViews} />
-    </MultiSelectionContext>
-  );
-};
+}) => (
+  <SelectedItemsContext value={items}>
+    <VerticalSubViewsContainer name="multi-selection" subViews={subViews} />
+  </SelectedItemsContext>
+);

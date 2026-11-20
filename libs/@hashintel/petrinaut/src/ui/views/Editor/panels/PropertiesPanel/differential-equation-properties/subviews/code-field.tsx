@@ -1,6 +1,7 @@
 import { Form } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { usePetrinautMutations } from "../../../../../../../react";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { CodeEditor } from "../../../../../../monaco/code-editor";
 import { getDocumentUri } from "../../../../../../monaco/editor-paths";
@@ -20,8 +21,8 @@ const codeEditorBoxStyle = css({
 });
 
 export const DifferentialEquationCodeField: React.FC = () => {
-  const { differentialEquation, updateDifferentialEquation } =
-    useDiffEqPropertiesContext();
+  const { differentialEquation } = useDiffEqPropertiesContext();
+  const { updateDifferentialEquation } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
 
   return (

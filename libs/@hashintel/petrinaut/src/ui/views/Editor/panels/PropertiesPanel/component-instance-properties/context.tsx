@@ -1,17 +1,10 @@
 import { createContext, use } from "react";
 
-import type {
-  Component,
-  ComponentInstance,
-  Parameter,
-  PetrinautMutations,
-} from "@hashintel/petrinaut-core";
+import type { Component, ComponentInstance } from "@hashintel/petrinaut-core";
 
 export type ComponentInstancePropertiesContextValue = {
   instance: ComponentInstance;
   component: Component | null;
-  componentParameters: Parameter[];
-  updateComponentInstance: PetrinautMutations["updateComponentInstance"];
 };
 
 export const ComponentInstancePropertiesContext =

@@ -12,15 +12,17 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
+  type Petrinaut,
   type Place,
   type SelectionItem,
 } from "@hashintel/petrinaut-core";
 
+import { PetrinautInstanceContext } from "../../../../../../../react/instance-context";
 import { ActiveNetContext } from "../../../../../../../react/state/active-net-context";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { CodeNavigationProvider } from "../../../../../../monaco/code-navigation";
-import { PlacePropertiesProvider } from "../context";
+import { PlacePropertiesContext } from "../context";
 import { placeMainContentSubView } from "./main";
 
 afterEach(cleanup);
@@ -84,19 +86,26 @@ const Harness = ({
             },
           }}
         >
-          <PlacePropertiesProvider
-            place={place}
-            placeType={null}
-            types={types}
-            isReadOnly={readOnly}
-            updatePlace={({ update }) =>
-              setPlace((currentPlace) => ({ ...currentPlace, ...update }))
+          <PetrinautInstanceContext
+            value={
+              {
+                mutations: {
+                  updatePlace: ({ update }: { update: Partial<Place> }) =>
+                    setPlace((currentPlace) => ({
+                      ...currentPlace,
+                      ...update,
+                    })),
+                },
+                mutationRefusal: () => null,
+              } as unknown as Petrinaut
             }
           >
-            <CodeNavigationProvider>
-              <PlaceMainContent />
-            </CodeNavigationProvider>
-          </PlacePropertiesProvider>
+            <PlacePropertiesContext value={{ place, placeType: null, types }}>
+              <CodeNavigationProvider>
+                <PlaceMainContent />
+              </CodeNavigationProvider>
+            </PlacePropertiesContext>
+          </PetrinautInstanceContext>
         </ActiveNetContext>
       </EditorContext>
     </SDCPNContext>

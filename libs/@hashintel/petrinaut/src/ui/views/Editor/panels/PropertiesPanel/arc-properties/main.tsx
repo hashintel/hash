@@ -19,6 +19,7 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
+import { usePetrinautMutations } from "../../../../../../react";
 import { CompositionContext } from "../../../../../../react/state/composition-context";
 import { useEditorActions } from "../../../../../../react/state/editor-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
@@ -28,7 +29,6 @@ import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import { DeleteItemButton } from "../delete-item-button";
 import { fieldsSectionStyle } from "../styles";
 
-import type { PetrinautMutations } from "../../../../../../react";
 import type { SubView } from "../../../../../components/sub-view/types";
 
 const ArcIcon = () => <Icon name="scribble" />;
@@ -52,9 +52,6 @@ interface ArcPropertiesData {
   targetName: string;
   weight: number;
   type: InputArc["type"];
-  updateArcWeight: PetrinautMutations["updateArcWeight"];
-  updateArcType: PetrinautMutations["updateArcType"];
-  removeArc: PetrinautMutations["removeArc"];
 }
 
 const ArcPropertiesContext = createContext<ArcPropertiesData | null>(null);
@@ -78,9 +75,8 @@ const ArcMainContent: React.FC = () => {
     targetName,
     weight,
     type,
-    updateArcWeight,
-    updateArcType,
   } = useArcPropertiesContext();
+  const { updateArcWeight, updateArcType } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
 
   return (
@@ -144,8 +140,8 @@ const ArcMainContent: React.FC = () => {
 };
 
 const DeleteArcAction: React.FC = () => {
-  const { transitionId, endpoint, arcDirection, removeArc } =
-    useArcPropertiesContext();
+  const { transitionId, endpoint, arcDirection } = useArcPropertiesContext();
+  const { removeArc } = usePetrinautMutations();
   const { clearSelection } = useEditorActions();
 
   return (
@@ -176,18 +172,12 @@ interface ArcPropertiesProps {
   arcId: string;
   petriNetDefinition: SDCPN;
   fullSdcpn: SDCPN;
-  updateArcWeight: PetrinautMutations["updateArcWeight"];
-  updateArcType: PetrinautMutations["updateArcType"];
-  removeArc: PetrinautMutations["removeArc"];
 }
 
 export const ArcProperties: React.FC<ArcPropertiesProps> = ({
   arcId,
   petriNetDefinition,
   fullSdcpn,
-  updateArcWeight,
-  updateArcType,
-  removeArc,
 }) => {
   const { libraries } = use(CompositionContext);
   const parsed = parseArcId(arcId);
@@ -252,9 +242,6 @@ export const ArcProperties: React.FC<ArcPropertiesProps> = ({
       targetName: targetTransition.name,
       weight: arc?.weight ?? 1,
       type: arc?.type ?? "standard",
-      updateArcWeight,
-      updateArcType,
-      removeArc,
     };
   } else if (sourceTransition && targetEndpoint) {
     const arc = sourceTransition.outputArcs.find((oa) =>
@@ -268,9 +255,6 @@ export const ArcProperties: React.FC<ArcPropertiesProps> = ({
       targetName: endpointName(targetEndpoint),
       weight: arc?.weight ?? 1,
       type: "standard",
-      updateArcWeight,
-      updateArcType,
-      removeArc,
     };
   } else {
     return null;

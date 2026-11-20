@@ -7,6 +7,7 @@ import {
   generateDefaultVisualizerCode,
 } from "@hashintel/petrinaut-core";
 
+import { usePetrinautMutations } from "../../../../../../../../react";
 import { useStableCallback } from "../../../../../../../../react/hooks/use-stable-callback";
 import { useEditorActions } from "../../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../../react/state/sdcpn-context";
@@ -35,7 +36,8 @@ const headerActionsStyle = css({
 });
 
 const PlaceVisualizerContent: React.FC = () => {
-  const { place, updatePlace } = usePlacePropertiesContext();
+  const { place } = usePlacePropertiesContext();
+  const { updatePlace } = usePetrinautMutations();
   const { readonly } = use(SDCPNContext);
   const { setVisualizerEditorFocus } = useEditorActions();
   const { focusRequest, acknowledgeFocus } = useCodeNavigation();
@@ -93,7 +95,8 @@ const PlaceVisualizerContent: React.FC = () => {
 };
 
 const VisualizerHeaderAction: React.FC = () => {
-  const { place, types, updatePlace } = usePlacePropertiesContext();
+  const { place, types } = usePlacePropertiesContext();
+  const { updatePlace } = usePetrinautMutations();
   const { readonly: isReadOnly } = use(SDCPNContext);
 
   const [savedVisualizerCodeState, setSavedVisualizerCodeState] = useState<{

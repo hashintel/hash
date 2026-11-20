@@ -15,6 +15,7 @@ import {
   validateDisplayName,
 } from "@hashintel/petrinaut-core";
 
+import { usePetrinautMutations } from "../../../../../../../react";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { PropertyValue } from "../../../../../../components/property-value";
@@ -106,8 +107,8 @@ const DeferredDifferentialEquationCodeField = lazy(async () => {
 });
 
 const DiffEqMainContent: React.FC = () => {
-  const { differentialEquation, types, places, updateDifferentialEquation } =
-    useDiffEqPropertiesContext();
+  const { differentialEquation, types, places } = useDiffEqPropertiesContext();
+  const { updateDifferentialEquation } = usePetrinautMutations();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingTypeId, setPendingTypeId] = useState<string | null>(null);
   const isReadOnly = useIsReadOnly();
@@ -301,8 +302,8 @@ const DiffEqMainContent: React.FC = () => {
 };
 
 const DiffEqCodeAction: React.FC = () => {
-  const { differentialEquation, types, updateDifferentialEquation } =
-    useDiffEqPropertiesContext();
+  const { differentialEquation, types } = useDiffEqPropertiesContext();
+  const { updateDifferentialEquation } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
 
   if (isReadOnly) {

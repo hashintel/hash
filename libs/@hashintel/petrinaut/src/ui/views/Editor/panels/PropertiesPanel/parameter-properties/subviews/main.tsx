@@ -4,6 +4,7 @@ import {
   validateVariableName,
 } from "@hashintel/petrinaut-core";
 
+import { usePetrinautMutations } from "../../../../../../../react";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { ParameterIcon } from "../../../../../../constants/entity-icons";
@@ -14,7 +15,8 @@ import { useParameterPropertiesContext } from "../context";
 import type { SubView } from "../../../../../../components/sub-view/types";
 
 const ParameterMainContent: React.FC = () => {
-  const { parameter, updateParameter } = useParameterPropertiesContext();
+  const { parameter } = useParameterPropertiesContext();
+  const { updateParameter } = usePetrinautMutations();
   const isDisabled = useIsReadOnly();
 
   const handleUpdateDefaultValue = (defaultValue: string) => {

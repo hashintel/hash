@@ -1,6 +1,7 @@
 import { Form, Tooltip } from "@hashintel/ds-components";
 import { validateDisplayName } from "@hashintel/petrinaut-core";
 
+import { usePetrinautMutations } from "../../../../../../../react";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { ColorSelect } from "../../../../../../components/color-select";
 import { DescriptionField } from "../../../../../../components/description-field";
@@ -16,7 +17,8 @@ import { DimensionsTable } from "./dimensions-table";
 import type { SubView } from "../../../../../../components/sub-view/types";
 
 const TypeMainContent: React.FC = () => {
-  const { type, updateType } = useTypePropertiesContext();
+  const { type } = useTypePropertiesContext();
+  const { updateType } = usePetrinautMutations();
   const isDisabled = useIsReadOnly();
   const presentation = usePetrinautPresentation();
 

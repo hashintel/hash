@@ -1,16 +1,14 @@
 import { use } from "react";
 
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { createDeferredSubView } from "../../../../../components/sub-view/deferred-sub-view";
 import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { usePetrinautPresentation } from "../../../../shared/presentation-context";
-import { PlacePropertiesProvider } from "./context";
+import { PlacePropertiesContext } from "./context";
 import { placeMainContentSubView } from "./subviews/main";
 import { placeDynamicsSubView } from "./subviews/place-dynamics/subview";
 import { placeInitialStateSubView } from "./subviews/place-initial-state/subview";
 
-import type { PetrinautMutations } from "../../../../../../react";
 import type { SubView } from "../../../../../components/sub-view/types";
 import type { Color, Place } from "@hashintel/petrinaut-core";
 
@@ -40,15 +38,12 @@ placeVisualizerSubView.preload();
 interface PlacePropertiesProps {
   place: Place;
   types: Color[];
-  updatePlace: PetrinautMutations["updatePlace"];
 }
 
 export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
   place,
   types,
-  updatePlace,
 }) => {
-  const isReadOnly = useIsReadOnly();
   const presentation = usePetrinautPresentation();
   const { extensions } = use(SDCPNContext);
 
@@ -70,18 +65,12 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
       : baseSubViews;
 
   return (
-    <PlacePropertiesProvider
-      place={place}
-      placeType={placeType}
-      types={types}
-      isReadOnly={isReadOnly}
-      updatePlace={updatePlace}
-    >
+    <PlacePropertiesContext value={{ place, placeType, types }}>
       <VerticalSubViewsContainer
         key={place.id}
         name="place-properties"
         subViews={subViews}
       />
-    </PlacePropertiesProvider>
+    </PlacePropertiesContext>
   );
 };

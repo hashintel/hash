@@ -3,8 +3,10 @@ import { use } from "react";
 import { Toggle, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { usePetrinautMutations } from "../../../../../../../../react";
 import { ActiveNetContext } from "../../../../../../../../react/state/active-net-context";
 import { useEditorActions } from "../../../../../../../../react/state/editor-context";
+import { useIsReadOnly } from "../../../../../../../../react/state/use-is-read-only";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { usePlacePropertiesContext } from "../../context";
 import { composableEquations } from "./compose-dynamics";
@@ -30,7 +32,9 @@ const contentStyle = css({
  * they are applied; their derivatives are summed every step.
  */
 const PlaceDynamicsContent: React.FC = () => {
-  const { place, isReadOnly, updatePlace } = usePlacePropertiesContext();
+  const { place } = usePlacePropertiesContext();
+  const { updatePlace } = usePetrinautMutations();
+  const isReadOnly = useIsReadOnly();
   const {
     activeNet: { differentialEquations },
   } = use(ActiveNetContext);
@@ -76,7 +80,9 @@ const PlaceDynamicsContent: React.FC = () => {
 
 /** The header's switch that runs or pauses the place's equations. */
 const PlaceDynamicsHeaderActions: React.FC = () => {
-  const { place, isReadOnly, updatePlace } = usePlacePropertiesContext();
+  const { place } = usePlacePropertiesContext();
+  const { updatePlace } = usePetrinautMutations();
+  const isReadOnly = useIsReadOnly();
   const untyped = place.colorId === null;
   const toggleTooltip = isReadOnly
     ? UI_MESSAGES.READ_ONLY_MODE

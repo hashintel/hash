@@ -15,6 +15,7 @@ import { usePetrinautMutations } from "../../../../../../../react";
 import { ActiveNetContext } from "../../../../../../../react/state/active-net-context";
 import { CompositionContext } from "../../../../../../../react/state/composition-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
+import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import {
   ArcItem,
   ArcList,
@@ -36,17 +37,12 @@ const emptyArcMessageStyle = css({
 });
 
 const TransitionMainContent: React.FC = () => {
-  const {
-    transition,
-    places,
-    types,
-    isReadOnly,
-    updateTransition,
-    onArcWeightUpdate,
-    updateArcPlace,
-    removeArc,
-  } = useTransitionPropertiesContext();
+  const { transition, types } = useTransitionPropertiesContext();
+  const { updateTransition, updateArcWeight, updateArcPlace, removeArc } =
+    usePetrinautMutations();
+  const isReadOnly = useIsReadOnly();
   const { activeNet } = use(ActiveNetContext);
+  const { places } = activeNet;
   const { petriNetDefinition: fullSdcpn } = use(SDCPNContext);
   const { libraries } = use(CompositionContext);
 
@@ -199,7 +195,7 @@ const TransitionMainContent: React.FC = () => {
                       : undefined
                   }
                   onWeightChange={(weight) => {
-                    onArcWeightUpdate({
+                    updateArcWeight({
                       transitionId: transition.id,
                       arcDirection: "input",
                       endpoint,
@@ -249,7 +245,7 @@ const TransitionMainContent: React.FC = () => {
                       : undefined
                   }
                   onWeightChange={(weight) => {
-                    onArcWeightUpdate({
+                    updateArcWeight({
                       transitionId: transition.id,
                       arcDirection: "output",
                       endpoint,
