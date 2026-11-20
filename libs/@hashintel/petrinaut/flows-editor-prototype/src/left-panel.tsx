@@ -774,6 +774,37 @@ export const LeftPanel = ({
             </button>
           </div>
         </div>
+      ) : panel === "add" ? (
+        // The plus turns the panel into the Add list: back and × both return to Steps.
+        <div
+          className={cx(
+            headerStyle,
+            css({ justifyContent: "space-between", paddingX: "[8px]" }),
+          )}
+        >
+          <div className={css({ display: "flex", alignItems: "center" })}>
+            <Button
+              size="sm"
+              className={addButtonStyle}
+              variant="ghost"
+              iconName="chevronLeft"
+              aria-label="Back to steps"
+              data-panel-back
+              onClick={() => setUi((state) => ({ ...state, leftPanel: "steps" }))}
+            />
+            <span className={headerTitleStyle}>Add step</span>
+          </div>
+          <Button
+            size="sm"
+            className={addButtonStyle}
+            variant="ghost"
+            key="panel-close"
+            iconName="close"
+            aria-label="Close"
+            data-panel-close
+            onClick={() => setUi((state) => ({ ...state, leftPanel: "steps" }))}
+          />
+        </div>
       ) : (
         <div
           className={cx(
@@ -787,17 +818,12 @@ export const LeftPanel = ({
             size="sm"
             className={addButtonStyle}
             variant="ghost"
+            key="panel-add"
             iconName="plus"
             aria-label="Add step"
             tooltip="Add step"
-            pressed={ui.picker?.anchor === "panel"}
             data-panel-add
-            onClick={() =>
-              setUi((state) => ({
-                ...state,
-                picker: state.picker ? null : { anchor: "panel" },
-              }))
-            }
+            onClick={() => setUi((state) => ({ ...state, leftPanel: "add", picker: null }))}
           />
         </div>
       )}
