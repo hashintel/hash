@@ -28,7 +28,7 @@ import {
   HorizontalTabsHeader,
 } from "../../../../components/sub-view/horizontal/horizontal-tabs-container";
 import { PANEL_MARGIN } from "../../../../constants/ui";
-import { usePluginBottomPanelViews } from "../../../../plugins/plugin-outlets";
+import { usePluginBottomPanelViews } from "../../../../plugins/use-plugin-bottom-panel-views";
 import { DockedPanel } from "../../shared/docked-panel";
 import { fallbackBottomPanelTab } from "./fallback-tab";
 import {

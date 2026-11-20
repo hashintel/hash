@@ -3,11 +3,9 @@ import { act, cleanup, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { definePetrinautPlugin } from "./define-petrinaut-plugin";
-import {
-  PluginToolbarItems,
-  usePluginBottomPanelViews,
-} from "./plugin-outlets";
+import { PluginToolbarItems } from "./plugin-outlets";
 import { renderPlugins } from "./plugins-test-harness";
+import { usePluginBottomPanelViews } from "./use-plugin-bottom-panel-views";
 
 afterEach(cleanup);
 
