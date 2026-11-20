@@ -1748,7 +1748,11 @@ test("Flue serves the conversation unless the host names another backend", async
 });
 
 describe("on the durable agents server", () => {
-  const durableServer = () => {
+  /** `history` answers the conversation's history read, or `null` for an unknown conversation. */
+  const durableServer = ({
+    history = () => [],
+  }: { history?: () => unknown[] | null } = {}) => {
+    const historyReads: { url: string; init: RequestInit }[] = [];
     const requests: { url: string; init: RequestInit }[] = [];
     const callRecordReads: string[] = [];
     const fetch = vi.fn<typeof globalThis.fetch>(async (input, init) => {
@@ -1756,6 +1760,13 @@ describe("on the durable agents server", () => {
       if (url.endsWith("/browser-calls")) {
         callRecordReads.push(url);
         return Response.json({ calls: {} });
+      }
+      if (url.endsWith("/messages")) {
+        historyReads.push({ url, init: init ?? {} });
+        const messages = history();
+        return messages === null
+          ? Response.json({ error: "Not found" }, { status: 404 })
+          : Response.json(messages);
       }
       requests.push({ url, init: init ?? {} });
       if (url.endsWith("/abort")) return new Response(null, { status: 204 });
@@ -1773,7 +1784,7 @@ describe("on the durable agents server", () => {
       const sent = requests[index]?.init.body;
       return typeof sent === "string" ? JSON.parse(sent) : undefined;
     };
-    return { body, callRecordReads, fetch, requests };
+    return { body, callRecordReads, fetch, historyReads, requests };
   };
   const renderOnDurableServer = (fetch: typeof globalThis.fetch) =>
     renderAssistant({
@@ -1834,5 +1845,88 @@ describe("on the durable agents server", () => {
       /^http:\/\/durable\.test\/chat\/[^/]+\/abort$/,
     );
     expect(flueClientMock.created).toBe(0);
+  });
+
+  test("the panel opens with the conversation's history, read with its headers, and resumes its running turn", async () => {
+    const server = durableServer({
+      history: () => [
+        { id: "m1", role: "user", parts: [{ type: "text", text: "A queue." }] },
+        {
+          id: "durable:2",
+          role: "assistant",
+          parts: [{ type: "text", text: "A queue it is." }],
+        },
+      ],
+    });
+    const rendered = renderOnDurableServer(server.fetch);
+
+    await waitFor(() =>
+      expect(rendered.assistant().messages?.map(({ id }) => id)).toEqual([
+        "m1",
+        "durable:2",
+      ]),
+    );
+    expect(rendered.assistant().followMessages?.resumeOnOpen).toBe(true);
+    expect(server.historyReads[0]?.url).toMatch(
+      /^http:\/\/durable\.test\/chat\/[^/]+\/messages$/,
+    );
+    const headers = new Headers(server.historyReads[0]?.init.headers);
+    expect(headers.get("x-brunch-conversation")).toBe(conversationId());
+    expect(headers.get("x-brunch-web")).toBe("web-1");
+  });
+
+  test("a conversation the durable server does not know opens empty, with no turn to resume", async () => {
+    const server = durableServer({ history: () => null });
+    const rendered = renderOnDurableServer(server.fetch);
+
+    await waitFor(() => expect(server.historyReads).toHaveLength(1));
+    await waitFor(() => expect(rendered.assistant().messages).toEqual([]));
+    expect(rendered.assistant().followMessages?.resumeOnOpen).toBe(false);
+  });
+
+  test("a sent turn's end reads the history again, which then settles it", async () => {
+    let answered = false;
+    const server = durableServer({
+      history: () =>
+        answered
+          ? [
+              {
+                id: "m1",
+                role: "user",
+                parts: [{ type: "text", text: "A queue." }],
+              },
+              {
+                id: "reply",
+                role: "assistant",
+                parts: [{ type: "text", text: "A queue it is." }],
+              },
+            ]
+          : [],
+    });
+    const rendered = renderOnDurableServer(server.fetch);
+    await waitFor(() => expect(rendered.assistant().messages).toEqual([]));
+
+    const response = await rendered.assistant().transport.sendMessages({
+      trigger: "submit-message",
+      chatId: "chat",
+      messageId: undefined,
+      messages: [
+        { id: "m1", role: "user", parts: [{ type: "text", text: "A queue." }] },
+      ],
+      abortSignal: undefined,
+    });
+    expect(rendered.assistant().followMessages?.canReplace()).toBe(false);
+    answered = true;
+    for await (const _chunk of response as AsyncIterable<unknown>) {
+      // Drain the reply.
+    }
+
+    await waitFor(() =>
+      expect(rendered.assistant().messages?.map(({ id }) => id)).toEqual([
+        "m1",
+        "reply",
+      ]),
+    );
+    expect(rendered.assistant().followMessages?.canReplace()).toBe(true);
   });
 });

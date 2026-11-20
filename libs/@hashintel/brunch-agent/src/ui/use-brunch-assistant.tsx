@@ -23,6 +23,7 @@ import {
   createBrunchSuccessorPanelTransport,
   type BrunchPanelAdmission,
 } from "../client/brunch-panel-transport";
+import { brunchSubmittedUserMessage } from "../client/brunch-panel-transport/submitted-user-message";
 import {
   brunchEvaluationConversationIdFrom,
   getOrCreateBrunchConversationId,
@@ -52,6 +53,7 @@ import {
   type FixtureProcessAgentConfiguration,
   type ProcessAgentBinding,
 } from "./conversation/use-process-agent-binding";
+import { useSuccessorChatHistory } from "./conversation/use-successor-chat-history";
 import { WithBrunchEditorApi } from "./editor-api-plugin";
 import {
   countInterviewReplies,
@@ -113,7 +115,10 @@ import type { VoiceWord } from "../shared/voice-words";
 import type { PetrinautAiComposerControlContext } from "./chat/ai-assistant-composer-control";
 import type { PetrinautAiMessage } from "./chat/ai-assistant-panel";
 import type { PetrinautAiAutomaticTool } from "./chat/ai-automatic-tool";
-import type { PetrinautAiAssistant } from "./chat/petrinaut";
+import type {
+  PetrinautAiAssistant,
+  PetrinautAiChatTransport,
+} from "./chat/petrinaut";
 import type {
   InterviewBudgetLevel,
   SdcpnInitialData,
@@ -148,21 +153,6 @@ export type BrunchBackend =
        */
       readonly web: string;
     };
-
-/**
- * The durable agents server's history until the panel reads it: a
- * conversation with nothing to show, which the panel opens as new.
- */
-const successorHistory: ReturnType<typeof useFlueChatHistory> = {
-  error: undefined,
-  latestSettlement: undefined,
-  messages: undefined,
-  phase: "absent",
-  ready: true,
-  refresh: () => {},
-  settlements: [],
-  snapshot: undefined,
-};
 
 const useProcessAgentSession = (
   input: BrunchConnection & {
@@ -318,8 +308,8 @@ export const useBrunchAssistant = ({
   readonly versionLoad?: VersionLoad;
   /**
    * The server the conversation runs on; Flue when omitted. On the durable
-   * agents server, `chatEndpoint` names its base, and the panel reads no
-   * history yet.
+   * agents server, `chatEndpoint` names its base, and the panel opens on
+   * the conversation's history from it, resuming a running turn.
    */
   readonly backend?: BrunchBackend;
 }): BrunchAssistant => {
@@ -512,16 +502,36 @@ export const useBrunchAssistant = ({
     conversationId ?? "",
     flueAdapter,
   );
+  const reportInvalidReopenedMetadata = useCallback(
+    ({ messageId, error }: { messageId: string; error: unknown }) =>
+      reportBrunchFailure("reopened-metadata", error, { messageId }),
+    [reportBrunchFailure],
+  );
+  const successorHistory = useSuccessorChatHistory(successorConversation, {
+    onInvalidMetadata: reportInvalidReopenedMetadata,
+  });
+  const { followStream, settleStop } = successorHistory;
   const flueHistory =
     successorConversation === null ? observedFlueHistory : successorHistory;
   const requestStop = useMemo(() => {
     if (successorConversation !== null)
-      return () =>
-        requestSuccessorStop(successorConversation, conversationTracker);
+      return async () => {
+        const stopped = await requestSuccessorStop(
+          successorConversation,
+          conversationTracker,
+        );
+        settleStop();
+        return stopped;
+      };
     if (flueClientPromise !== null)
       return () => requestFlueStop(flueClientPromise, conversationTracker);
     return null;
-  }, [successorConversation, flueClientPromise, conversationTracker]);
+  }, [
+    successorConversation,
+    flueClientPromise,
+    conversationTracker,
+    settleStop,
+  ]);
   const stopOnLeave = useMemo(() => {
     if (successorConversation !== null)
       return (stillWanted: () => boolean) =>
@@ -734,8 +744,8 @@ export const useBrunchAssistant = ({
           : current,
       );
     };
-    if (successorConversation !== null && processAgentBinding !== null)
-      return createBrunchSuccessorPanelTransport(
+    if (successorConversation !== null && processAgentBinding !== null) {
+      const transport = createBrunchSuccessorPanelTransport(
         successorConversation,
         conversationTracker,
         {
@@ -744,6 +754,18 @@ export const useBrunchAssistant = ({
           onAdmission,
         },
       );
+      return {
+        reconnectToStream: async (options) => {
+          const stream = await transport.reconnectToStream(options);
+          return stream === null ? null : followStream(stream);
+        },
+        sendMessages: async (options) =>
+          followStream(
+            await transport.sendMessages(options),
+            brunchSubmittedUserMessage(options.messages).messageId,
+          ),
+      } satisfies PetrinautAiChatTransport;
+    }
     return flueClientPromise === null
       ? null
       : createBrunchPanelTransport(flueClientPromise, conversationTracker, {
@@ -795,6 +817,7 @@ export const useBrunchAssistant = ({
     constructionBrowser,
     flueAdapter,
     flueClientPromise,
+    followStream,
     processAgentBinding,
     successorConversation,
     refreshHistory,
@@ -1050,6 +1073,10 @@ export const useBrunchAssistant = ({
         // snapshot, never a later mutable settlement cache.
         canReplace: () =>
           conversationTracker.canReplaceMessages(flueHistory.snapshot),
+        // Flue's observation follows a running turn itself; the durable server's history does not.
+        ...(successorConversation === null
+          ? {}
+          : { resumeOnOpen: flueHistory.phase === "live" }),
       },
       messages: flueHistory.messages,
       onClearMessages: () => {
@@ -1099,6 +1126,7 @@ export const useBrunchAssistant = ({
     resolveToolPresentation,
     setInterviewBudgetLevel,
     starterChips,
+    successorConversation,
     versionLoad,
     wordsActive,
   ]);
