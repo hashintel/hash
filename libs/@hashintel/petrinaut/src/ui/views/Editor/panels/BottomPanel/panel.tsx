@@ -152,6 +152,8 @@ export const BottomPanel: React.FC = () => {
     "setBottomPanelHeight",
   );
   const composesOnly = useComposesOnly();
+  const pluginViews = usePluginBottomPanelViews();
+  const { leftSidebarWidth, bottomPanelHeight } = usePanelSizes();
 
   // Simulation state for conditional subviews
   const { state: simulationState } = use(SimulationContext);
@@ -179,7 +181,6 @@ export const BottomPanel: React.FC = () => {
     isSimulationActive,
     showCompilationOutput,
   });
-  const pluginViews = usePluginBottomPanelViews();
   const tabs = [...subViews, ...pluginViews];
 
   // The tab drawn is already the fallback on the render that loses the
@@ -237,8 +238,6 @@ export const BottomPanel: React.FC = () => {
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId as BottomPanelTab);
   };
-
-  const { leftSidebarWidth, bottomPanelHeight } = usePanelSizes();
 
   if (!isOpen && !isInView && !keepPanelsMounted) {
     return null;
