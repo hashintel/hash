@@ -301,9 +301,16 @@ describe("canonical speech selection", () => {
       ]);
 
     const withOffer = speechOf([reply, offer, commit]);
-    expect(withOffer.segments.map((segment) => segment.text)).toEqual([
-      reply.text,
-      "Quarantined shipment? Stays counted as open; Drops out until released.",
+    expect(
+      withOffer.segments.map(({ source, text }) => ({ source, text })),
+    ).toEqual([
+      { source: "assistant-text", text: reply.text },
+      // Offered questions are kept apart, so Live can say them whole after
+      // its recap instead of recapping them.
+      {
+        source: "assistant-offer",
+        text: "Quarantined shipment? Stays counted as open; Drops out until released.",
+      },
     ]);
     expect(withOffer.questionSegment).toEqual(
       speechOf([reply, commit]).questionSegment,

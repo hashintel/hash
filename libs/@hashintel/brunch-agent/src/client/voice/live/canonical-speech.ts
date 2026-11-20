@@ -12,7 +12,12 @@ export interface CanonicalSpeechSegment {
   readonly id: string;
   readonly messageId: string;
   readonly partId: string;
-  readonly source: "assistant-question" | "assistant-text";
+  /**
+   * `assistant-offer` is one question an `offer_answers` call asks, said whole
+   * (choice alternatives included) rather than recapped; `assistant-question`
+   * is the whole finalized turn Realtime replays.
+   */
+  readonly source: "assistant-offer" | "assistant-question" | "assistant-text";
   /**
    * Every Flue submission that wrote to this segment's message: the one that
    * started it plus any client-tool continuation projected back onto it.
@@ -102,7 +107,7 @@ export const selectCanonicalSpeech = (
         createSegment(
           message.id,
           `question:${index}`,
-          "assistant-text",
+          "assistant-offer",
           spokenQuestion(question),
         ),
       );
