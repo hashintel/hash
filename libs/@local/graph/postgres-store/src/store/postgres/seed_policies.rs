@@ -881,6 +881,12 @@ fn web_crud_ontology_policies(role: &WebRole) -> impl Iterator<Item = PolicyCrea
     filters.into_iter()
 }
 
+/// Lets a web's members and administrators view, update and archive the agent conversations, and
+/// their focus links, that they created in that web.
+///
+/// It is granted through the web's roles, so a user who leaves the web loses access to the
+/// conversations they had there, as they would to an assistant's conversations in a workspace
+/// they left.
 fn web_conversation_creator_policy(role: &WebRole) -> PolicyCreationParams {
     PolicyCreationParams {
         name: Some("default-web-conversation-creator".to_owned()),
