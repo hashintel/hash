@@ -17,14 +17,10 @@
  * The memory drops when the remembered cell unregisters.
  */
 
-import { use, useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import {
-  FocusGroupContext,
-  focusLands,
-  type FocusDirection,
-  type FocusEntry,
-} from "./focus-flow";
+import { focusLands, type FocusDirection, type FocusEntry } from "./focus-flow";
+import { useFocusMember } from "./use-focus-member";
 
 export interface FocusGrid {
   register: (
@@ -43,8 +39,6 @@ export interface FocusGrid {
 const cellKey = (row: number, column: number) => `${row}-${column}`;
 
 export function useFocusGrid(): FocusGrid {
-  const group = use(FocusGroupContext);
-  const id = useId();
   const cells = useRef(new Map<string, HTMLElement>());
   const bounds = useRef({ rows: 0, columns: 0 });
   // The roving tab stop: last-focused cell, in state because it renders as
@@ -53,7 +47,6 @@ export function useFocusGrid(): FocusGrid {
     row: 0,
     column: 0,
   });
-  const [element, setElement] = useState<HTMLElement | null>(null);
 
   const register =
     (row: number, column: number) => (target: HTMLElement | null) => {
@@ -155,10 +148,8 @@ export function useFocusGrid(): FocusGrid {
       fromEnd ? bounds.current.columns - 1 : 0,
     );
   };
-  const enterRef = useRef(enter);
-  useEffect(() => {
-    enterRef.current = enter;
-  });
+
+  const { attach, element, moveFrom } = useFocusMember(enter);
 
   // Memory needs no consumer wiring: any focus landing inside the grid —
   // arrows, Tab, pointer clicks — updates the roving cell via focusin on
@@ -186,16 +177,6 @@ export function useFocusGrid(): FocusGrid {
     element.addEventListener("focusin", onFocusIn);
     return () => element.removeEventListener("focusin", onFocusIn);
   }, [element]);
-
-  useEffect(() => {
-    if (element) {
-      group.register(id, {
-        element,
-        enter: (entry) => enterRef.current(entry),
-      });
-    }
-  });
-  useEffect(() => () => group.unregister(id), [group, id]);
 
   const onKeyDown =
     (row: number, column: number): React.KeyboardEventHandler =>
@@ -227,7 +208,7 @@ export function useFocusGrid(): FocusGrid {
               ? move(row, column, 0, 1)
               : move(row, column, 0, -1);
       if (!moved) {
-        group.moveFrom(id, direction, { row, column });
+        moveFrom(direction, { row, column });
       }
     };
 
@@ -243,6 +224,6 @@ export function useFocusGrid(): FocusGrid {
     },
     tabIndexFor: (row, column) =>
       tabbable.row === row && tabbable.column === column ? 0 : -1,
-    attach: setElement,
+    attach,
   };
 }

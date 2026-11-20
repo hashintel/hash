@@ -23,14 +23,14 @@
  * nearest-column policies live with the table that owns them.
  */
 
-import { use, useEffect, useId, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 import {
-  FocusGroupContext,
   type FocusDirection,
   type FocusEntry,
   type FocusFold,
 } from "./focus-flow";
+import { useFocusMember } from "./use-focus-member";
 
 export type FocusStop =
   | ({ id: string; kind: "row"; gutter?: boolean } & FocusFold)
@@ -67,13 +67,10 @@ const samePosition = (a: FocusStopTarget, b: FocusStopTarget): boolean =>
 
 export function useFocusStops(options: FocusStopsOptions): FocusStops {
   const { stops, columnCount, focusTarget } = options;
-  const group = use(FocusGroupContext);
-  const id = useId();
   // The column vertical moves aim at, persisted across full-width stops.
   const lastColumnRef = useRef(0);
   // The roving tab stop, in state because it renders as tabIndex.
   const [tabbable, setTabbable] = useState<FocusStopTarget | null>(null);
-  const [element, setElement] = useState<HTMLElement | null>(null);
 
   const stopIndexOf = (stopId: string): number =>
     stops.findIndex((stop) => stop.id === stopId);
@@ -149,25 +146,8 @@ export function useFocusStops(options: FocusStopsOptions): FocusStops {
       fromEnd ? -1 : 1,
     );
   };
-  const enterRef = useRef(enter);
-  useEffect(() => {
-    enterRef.current = enter;
-  });
 
-  useEffect(() => {
-    if (element) {
-      group.register(id, {
-        element,
-        enter: (entry) => enterRef.current(entry),
-      });
-    }
-  });
-  useEffect(() => () => group.unregister(id), [group, id]);
-
-  const moveFrom = (
-    direction: FocusDirection,
-    from?: { row: number; column: number },
-  ): boolean => group.moveFrom(id, direction, from);
+  const { attach, moveFrom } = useFocusMember(enter);
 
   const onKeyDown =
     (position: FocusStopTarget): React.KeyboardEventHandler =>
@@ -298,6 +278,6 @@ export function useFocusStops(options: FocusStopsOptions): FocusStops {
       );
     },
     tabIndexFor: (position) => (samePosition(tabStop, position) ? 0 : -1),
-    attach: setElement,
+    attach,
   };
 }
