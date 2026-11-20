@@ -32,3 +32,11 @@ export type DurableHistoryMessageMetadata = v.InferOutput<
 export const parseDurableHistoryMessageMetadata = v.parser(
   durableHistoryMessageMetadataSchema,
 );
+
+/** The data parts the history shows Brunch's own inputs as. */
+export const durableHistoryPartTypes = {
+  /** A Ledger-comment turn, with its entry's `data` (`{ comments }`). */
+  ledgerComments: "data-brunch-ledger-comments",
+  /** A hand-edit note, alone in a user message of its own or inside a response. */
+  handEdit: "data-brunch-hand-edit",
+} as const;

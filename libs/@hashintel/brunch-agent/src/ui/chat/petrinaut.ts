@@ -34,6 +34,8 @@ export type PetrinautAiToolPresentationTone =
 /** What a tool presentation resolver reads. */
 export type PetrinautAiToolPresentationContext = {
   toolName: string;
+  /** The call's ID, when its part has one. */
+  toolCallId?: string;
   state: PetrinautAiToolPresentationState;
   input: unknown;
   output: unknown;
@@ -152,8 +154,13 @@ export type PetrinautAiAssistant = {
    * Observed tools are display-only, including after reload. Only tools from
    * this panel's own response stream may execute in this mode.
    * Omitted: messages retain their initial-hydration/recovery behavior.
+   *
+   * `resumeOnOpen`, read when the chat first follows `messages` for a
+   * conversation, resumes the conversation's running turn then, through the
+   * transport's `reconnectToStream`, so a reopened panel follows a turn that
+   * began before it opened.
    */
-  followMessages?: { canReplace: () => boolean };
+  followMessages?: { canReplace: () => boolean; resumeOnOpen?: boolean };
   onClearMessages?: () => void;
   onMessages?: (messages: PetrinautAiMessage[]) => void;
   /**

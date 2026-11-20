@@ -8,5 +8,6 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["src", "test", "*.config.ts"]
+  "include": ["src", "test", "*.config.ts"],
+  "exclude": ["test/panel"]
 }

@@ -59,6 +59,7 @@ const startServer = async (answers: string[]) => {
   const server = await startDurableAgentsServer({
     port: 0,
     hostname: "127.0.0.1",
+    hashEntry: null,
     pool,
     models,
     model,
@@ -195,6 +196,13 @@ test("a known conversation refuses a malformed binding with 400 and a different 
       binding: { conversationId: chatId },
     });
     expect(malformed).toEqual({
+      status: 400,
+      text: "Expected a Brunch document binding.",
+    });
+    const overlong = await server.chat(chatId, "user-2", {
+      binding: { ...binding, documentId: "d".repeat(257) },
+    });
+    expect(overlong).toEqual({
       status: 400,
       text: "Expected a Brunch document binding.",
     });

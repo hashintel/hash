@@ -14,7 +14,11 @@ import { guardVoiceRequest } from "./voice-request-guard.js";
 
 const maxSdpBytes = 65_536;
 
-const respond = (body: string, status: number, headers?: HeadersInit) => {
+const respond = (
+  body: string,
+  status: number,
+  headers?: ConstructorParameters<typeof Headers>[0],
+) => {
   const responseHeaders = new Headers(headers);
   responseHeaders.set("cache-control", "no-store");
   return new Response(body, { status, headers: responseHeaders });

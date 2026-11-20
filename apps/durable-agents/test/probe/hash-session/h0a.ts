@@ -4,9 +4,9 @@
  * Brunch's session middleware resolve it there?
  *
  * A stub on port 4323 mounts credentialed CORS for `http://localhost:3000`,
- * the copied `hashSessionActor` over hash-api at `http://localhost:5001`, and
- * `POST /probe` answering `{ actorKey }`. Headless Chromium then fetches it
- * from pages on the real frontend:
+ * the Brunch library's `hashSessionActor` over hash-api at
+ * `http://localhost:5001`, and `POST /probe` answering `{ actorKey }`.
+ * Headless Chromium then fetches it from pages on the real frontend:
  *
  * 1. with no session: expects 401;
  * 2. signed in as the seeded alice: expects 200 and `hash:<webId>`;
@@ -30,14 +30,15 @@ import { type BrowserContext, chromium, type Page } from "@playwright/test";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 
-import { serveNode } from "../../../src/server/start-durable-agents-server/serve-node";
 import {
   type HashSessionVariables,
   hashSessionActor,
   hashSessionCookie,
   sessionAccountQuery,
   sessionCookiePair,
-} from "./hash-session-actor";
+} from "@hashintel/brunch-agent/server";
+
+import { serveNode } from "../../../src/server/start-durable-agents-server/serve-node";
 
 const frontendOrigin = "http://localhost:3000";
 const apiOrigin = "http://localhost:5001";
@@ -115,7 +116,14 @@ app.use(
     allowHeaders: ["Content-Type", "x-brunch-conversation"],
   }),
 );
-app.use(hashSessionActor({ apiOrigin }));
+app.use(
+  hashSessionActor({
+    apiOrigin,
+    logWarning: (message, fields) => {
+      process.stderr.write(`${JSON.stringify({ message, ...fields })}\n`);
+    },
+  }),
+);
 app.post("/probe", (context) =>
   context.json({ actorKey: context.get("hashSessionActorKey") }),
 );

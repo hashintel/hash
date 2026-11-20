@@ -1,12 +1,11 @@
 /**
- * A copy of Brunch's `hashSessionActor`
- * (`apps/brunch-agent/src/server/http/hash-session-actor.ts`) for probe H0a.
- * This app may not import another workspace by a relative path, and
- * `@apps/brunch-agent` exports no such module, so the probe carries its own
- * copy. Constants, query, schemas and status codes are unchanged; Brunch's
- * logger is replaced by `stderr`, the context variable is typed on the
- * handler rather than by augmenting `hono`, and the handler returns `next()`
- * for this app's `noImplicitReturns`.
+ * Hono middleware that names a HASH agent route's actor from the caller's
+ * own HASH session. The browser sends its session cookie to the agent
+ * server, which forwards it to hash-api's `sessionAccount` query and takes
+ * the user, and whether their signup is complete, only from hash-api's
+ * answer. The server never talks to Kratos, and nothing between the browser
+ * and the server claims an identity, so a request can only ever act as the
+ * user who made it.
  */
 import { createHash } from "node:crypto";
 
@@ -14,23 +13,44 @@ import * as v from "valibot";
 
 import type { Context, MiddlewareHandler } from "hono";
 
+declare module "hono" {
+  interface ContextVariableMap {
+    /** The actor key the session resolved to. */
+    hashSessionActorKey: string;
+  }
+}
+
+/** What `hashSessionActor` puts on the context, for an app that types its variables. */
 export type HashSessionVariables = {
-  /** The actor key the session resolved to. */
-  hashSessionActorKey: string;
+  readonly hashSessionActorKey: string;
 };
 
 /**
- * HASH's Kratos session cookie, the only cookie Brunch reads or passes on.
+ * HASH's Kratos session cookie, the only cookie the server reads or passes
+ * on.
  */
 export const hashSessionCookie = "ory_kratos_session";
 
+/**
+ * How long a resolved session is reused. A logout or revoked session reaches
+ * the server this much later at most, in exchange for one hash-api call per
+ * session per window rather than one per request: a turn makes about twenty
+ * requests, and each check costs hash-api a Kratos session check and a user
+ * lookup.
+ */
 const cacheTtlMs = 30_000;
 
+/** An answer that never comes bounds the request rather than hanging it. */
 const sessionCheckTimeoutMs = 5_000;
 
+/**
+ * The session's account alone: hash-api answers it from the session, with
+ * no graph query, and applies its own rule for a completed signup.
+ */
 export const sessionAccountQuery =
   "query brunchSessionActor { sessionAccount { webId accountSignupComplete } }";
 
+/** hash-api refuses the query with this code when the request has no session. */
 const sessionRefusalSchema = v.object({
   errors: v.pipe(
     v.array(v.object({ extensions: v.object({ code: v.string() }) })),
@@ -52,15 +72,15 @@ export type SessionActorCache = Map<
   { readonly actorKey: string; readonly expiresAt: number }
 >;
 
-const warn = (message: string, details?: Record<string, unknown>) => {
-  process.stderr.write(
-    `${message}${details ? ` ${JSON.stringify(details)}` : ""}\n`,
-  );
-};
+/** Where a failed session check is told; given no session, cookie or answer body. */
+export type SessionCheckWarning = (
+  message: string,
+  fields?: Record<string, unknown>,
+) => void;
 
 /**
  * The session cookie's pair, alone. Every other cookie the browser sends to
- * Brunch's host stays out of the hash-api call.
+ * the server's host stays out of the hash-api call.
  */
 export const sessionCookiePair = (context: Context): string | undefined => {
   const prefix = `${hashSessionCookie}=`;
@@ -70,6 +90,7 @@ export const sessionCookiePair = (context: Context): string | undefined => {
     .find((part) => part.startsWith(prefix) && part.length > prefix.length);
 };
 
+/** Keys the cache by digest, so a full session is never held as a key. */
 const cacheKey = (cookiePair: string) =>
   createHash("sha256").update(cookiePair).digest("hex");
 
@@ -79,11 +100,16 @@ type Resolution =
   | { readonly kind: "unauthenticated" }
   | { readonly kind: "unavailable" };
 
+/**
+ * The actor of a HASH user: their web, which is prefixed to keep HASH users
+ * apart from other actors.
+ */
 const hashActorKey = (webId: string) => `hash:${webId}`;
 
 const askHashApi = async (
   graphqlUrl: URL,
   cookiePair: string,
+  logWarning: SessionCheckWarning,
 ): Promise<Resolution> => {
   let response: Response;
   try {
@@ -95,11 +121,12 @@ const askHashApi = async (
         cookie: cookiePair,
       },
       body: JSON.stringify({ query: sessionAccountQuery }),
+      // Following a redirect would hand the session to its target.
       redirect: "manual",
       signal: AbortSignal.timeout(sessionCheckTimeoutMs),
     });
   } catch (error) {
-    warn("[brunch] HASH session check failed", {
+    logWarning("HASH session check failed", {
       error: error instanceof Error ? error.name : "unknown",
     });
     return { kind: "unavailable" };
@@ -109,7 +136,7 @@ const askHashApi = async (
       ? await response.json().catch(() => undefined)
       : undefined;
   if (body === undefined) {
-    warn("[brunch] HASH session check answered unexpectedly", {
+    logWarning("HASH session check answered unexpectedly", {
       status: response.status,
     });
     return { kind: "unavailable" };
@@ -117,7 +144,7 @@ const askHashApi = async (
   if (v.is(sessionRefusalSchema, body)) return { kind: "unauthenticated" };
   const answer = v.safeParse(sessionAccountAnswerSchema, body);
   if (!answer.success) {
-    warn("[brunch] HASH session check named no account");
+    logWarning("HASH session check named no account");
     return { kind: "unavailable" };
   }
   const { webId, accountSignupComplete } = answer.output.data.sessionAccount;
@@ -126,13 +153,24 @@ const askHashApi = async (
     : { kind: "signup-incomplete" };
 };
 
+/**
+ * Resolves the request's session to its actor key and puts it on the context
+ * for the routes after it: 401 without a session cookie, for one hash-api
+ * doesn't sign in, for an account that hasn't completed signup, and for
+ * every request when hash-api's address is not configured; 503 when hash-api
+ * can't answer. Only a complete account's answer is cached, so finishing
+ * signup takes effect on the next request.
+ */
 export const hashSessionActor = ({
   apiOrigin,
   cache = new Map(),
+  logWarning,
 }: {
+  /** hash-api's origin. Unset or empty refuses every request. */
   readonly apiOrigin: string | undefined;
   readonly cache?: SessionActorCache;
-}): MiddlewareHandler<{ Variables: HashSessionVariables }> => {
+  readonly logWarning: SessionCheckWarning;
+}): MiddlewareHandler => {
   const graphqlUrl = apiOrigin
     ? new URL("graphql", `${apiOrigin.replace(/\/+$/u, "")}/`)
     : undefined;
@@ -147,9 +185,11 @@ export const hashSessionActor = ({
     if (cached !== undefined && cached.expiresAt > now) {
       actorKey = cached.actorKey;
     } else {
-      const resolution = await askHashApi(graphqlUrl, cookiePair);
+      const resolution = await askHashApi(graphqlUrl, cookiePair, logWarning);
       if (resolution.kind === "unavailable")
         return context.json({ error: "session check unavailable" }, 503);
+      // An account mid-signup is refused exactly as an anonymous caller is,
+      // as hash-api treats it outside GraphQL.
       if (resolution.kind !== "actor")
         return context.json({ error: "unauthorized" }, 401);
       for (const [entryKey, entry] of cache)

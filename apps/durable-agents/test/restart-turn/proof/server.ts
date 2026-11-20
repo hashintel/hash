@@ -103,6 +103,7 @@ export const serve = async (role: string) => {
   const server = await startDurableAgentsServer({
     port: 0,
     hostname: "127.0.0.1",
+    hashEntry: null,
     pool,
     models,
     model,

@@ -25,7 +25,7 @@ import type {
 } from "@hashintel/brunch-agent";
 
 /** A call the model made that the server issued to this browser. */
-type IssuedCall = {
+export type IssuedCall = {
   readonly toolCallId: string;
   readonly toolName: string;
   readonly input: unknown;
@@ -45,6 +45,28 @@ export type InBandBrowserCallAdmission = (
 
 export const BROWSER_CALL_STALE_MESSAGE =
   "The document changed by other means after the agent's last view of the net; the call was not started.";
+
+/** Throws unless `issued`, a claim's answer, is the call the stream delivered, for the bound document. */
+export const assertIssuedFor = (
+  call: Pick<IssuedCall, "toolName" | "input">,
+  issued: BrowserCallClaim,
+  binding: BrowserContext["binding"],
+) => {
+  const inputParser = browserExecutedTools.get(call.toolName)?.inputParser;
+  if (
+    issued.toolName !== call.toolName ||
+    issued.binding !== canonicalContent(binding) ||
+    !inputParser
+  )
+    throw new Error("Browser call was not issued for this document.");
+  // Both sides parse, so ids compare converted whether or not the server
+  // that issued the call converts them.
+  if (
+    canonicalContent(inputParser.parse(call.input)) !==
+    canonicalContent(inputParser.parse(issued.input))
+  )
+    throw new Error("Issued browser input does not match the admitted call.");
+};
 
 /**
  * The page's side of Brunch's in-band browser calls. A browser tool's call
@@ -114,21 +136,9 @@ export const createInBandBrowserCalls = (
         claimSignal.addEventListener("abort", onAbort, { once: true });
       });
     }
-    const inputParser = browserExecutedTools.get(call.toolName)?.inputParser;
-    if (
-      !issued ||
-      issued.toolName !== call.toolName ||
-      issued.binding !== canonicalContent(input.binding) ||
-      !inputParser
-    )
+    if (!issued)
       throw new Error("Browser call was not issued for this document.");
-    // Both sides parse, so ids compare converted whether or not the server
-    // that issued the call converts them.
-    if (
-      canonicalContent(inputParser.parse(call.input)) !==
-      canonicalContent(inputParser.parse(issued.input))
-    )
-      throw new Error("Issued browser input does not match the admitted call.");
+    assertIssuedFor(call, issued, input.binding);
     const claimed = issued;
     const lease = setInterval(() => {
       if (call.signal.aborted) return;

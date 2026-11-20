@@ -92,8 +92,13 @@ vi.mock("./process-petrinaut/top-bar-plugin", () => ({
 }));
 
 const deployment = vi.hoisted(
-  (): { brunchOrigin: string | null; accountSignupComplete: boolean } => ({
+  (): {
+    brunchOrigin: string | null;
+    durableAgentsOrigin: string | null;
+    accountSignupComplete: boolean;
+  } => ({
     brunchOrigin: "https://brunch.test",
+    durableAgentsOrigin: null,
     accountSignupComplete: true,
   }),
 );
@@ -101,6 +106,9 @@ const deployment = vi.hoisted(
 vi.mock("../../../../../lib/public-env", () => ({
   get brunchAgentOrigin() {
     return deployment.brunchOrigin;
+  },
+  get durableAgentsOrigin() {
+    return deployment.durableAgentsOrigin;
   },
 }));
 
@@ -137,6 +145,7 @@ beforeEach(() => {
   captureException.mockClear();
   fetchMock.mockClear();
   deployment.brunchOrigin = "https://brunch.test";
+  deployment.durableAgentsOrigin = null;
   deployment.accountSignupComplete = true;
   identityResponse = () =>
     Promise.resolve(Response.json({ actorKey: "hash:alice-account" }));
@@ -232,12 +241,42 @@ test("asks Brunch itself for the actor key, with the user's session, and talks t
     expect(observed.brunchInputs.at(-1)).toMatchObject({
       actorKey: "hash:alice-account",
       chatEndpoint: "https://brunch.test/agents/hash",
+      backend: { kind: "flue" },
     }),
   );
 });
 
 test.each([
-  ["this deployment has no Brunch", { brunchOrigin: null }],
+  ["beside Brunch", "https://brunch.test"],
+  ["without Brunch", null],
+])(
+  "runs on the durable agents server when this deployment names one %s, in the process's web",
+  async (_case, brunchOrigin) => {
+    deployment.brunchOrigin = brunchOrigin;
+    deployment.durableAgentsOrigin = "https://durable.test";
+    renderEditor({ savedEntityId, readonly: false });
+    await settleIdentity();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://durable.test/agents/hash/identity",
+      expect.objectContaining({ cache: "no-store", credentials: "include" }),
+    );
+    await waitFor(() =>
+      expect(observed.brunchInputs.at(-1)).toMatchObject({
+        actorKey: "hash:alice-account",
+        chatEndpoint: "https://durable.test",
+        backend: { kind: "successor", web: "web" },
+      }),
+    );
+    expect(lastPlugins()).toEqual([topBarPluginMarker, brunchPluginMarker]);
+  },
+);
+
+test.each([
+  [
+    "this deployment has no Brunch",
+    { brunchOrigin: null, durableAgentsOrigin: null },
+  ],
   ["the account hasn't completed signup", { accountSignupComplete: false }],
 ])("offers no Brunch, and asks nothing, when %s", async (_case, overrides) => {
   Object.assign(deployment, overrides);

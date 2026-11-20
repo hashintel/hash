@@ -31,10 +31,10 @@ import {
   queryBasisToolDescription,
   sdcpnInitialDataSchema,
 } from "@hashintel/brunch-agent";
+import { hashSessionCookie } from "@hashintel/brunch-agent/server";
 import { liveToolRouteSegment } from "@local/flue-aisdk-transport/server";
 
 import { brunchEnv } from "../../env.ts";
-import { hashSessionCookie } from "../../server/http/hash-session-actor.ts";
 import { flueConversationId } from "../../shared/conversation/identity.ts";
 
 import type { Server } from "node:http";
@@ -1094,12 +1094,17 @@ test("hash-api's answers are reused for 30 seconds per session, under a digest o
   }
   expect(hashApi.calls).toHaveLength(4);
 
-  const { hashSessionActor } =
-    await import("../../server/http/hash-session-actor.ts");
+  const { hashSessionActor } = await import("@hashintel/brunch-agent/server");
   const { Hono } = await import("hono");
   const cache = new Map<string, { actorKey: string; expiresAt: number }>();
   const probe = new Hono()
-    .use(hashSessionActor({ apiOrigin: hashApi.origin, cache }))
+    .use(
+      hashSessionActor({
+        apiOrigin: hashApi.origin,
+        cache,
+        logWarning: () => {},
+      }),
+    )
     .get("/", (context) => context.text(context.get("hashSessionActorKey")));
   const response = await probe.fetch(
     new Request("http://brunch.test/", { headers: sessionCookie() }),

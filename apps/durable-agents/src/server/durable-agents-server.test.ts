@@ -8,6 +8,7 @@ import {
 } from "@earendil-works/pi-ai/providers/faux";
 import {
   createRegistry,
+  defineDoc,
   defineExtension,
   defineTool,
   type Extension,
@@ -25,12 +26,13 @@ import {
   type UIMessageChunk,
 } from "ai";
 import { Hono } from "hono";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, onTestFinished, test, vi } from "vitest";
 
 import {
   petrinautContextualUserMessageBody,
   versionLoadSectionText,
 } from "@hashintel/brunch-agent";
+import { sseHeartbeatComment } from "@hashintel/brunch-agent/server";
 
 import { holdTool, textOf } from "../../test/platform/support";
 import {
@@ -111,6 +113,9 @@ type ChatOptions = {
   readonly onReport?: DurableAgentsServerOptions["onReport"];
   readonly admitNewConversation?: DurableAgentsServerOptions["admitNewConversation"];
   readonly admitChat?: DurableAgentsServerOptions["admitChat"];
+  readonly admitConversation?: DurableAgentsServerOptions["admitConversation"];
+  readonly sseHeartbeatMs?: number;
+  readonly onStopError?: DurableAgentsServerOptions["onStopError"];
 };
 
 /**
@@ -124,6 +129,9 @@ const openChat = ({
   onReport,
   admitNewConversation,
   admitChat,
+  admitConversation,
+  sseHeartbeatMs,
+  onStopError,
 }: ChatOptions = {}) => {
   const faux = fauxProvider({
     tokensPerSecond: 300,
@@ -153,6 +161,9 @@ const openChat = ({
     onReport,
     admitNewConversation,
     admitChat,
+    admitConversation,
+    sseHeartbeatMs,
+    onStopError,
     context,
   });
   servers.push(server);
@@ -485,6 +496,112 @@ test("stop while a browser call is pending ends the stream with an abort", async
   expect(
     message?.parts.find((part) => part.type === `tool-${browserToolName}`),
   ).toMatchObject({ toolCallId, state: "output-error" });
+});
+
+describe("a stop answers once it is durable, not once the work unwinds", () => {
+  /** A turn held in a tool that ignores its abort signal, and a message queued behind it. */
+  const heldTurn = async (options: ChatOptions = {}) => {
+    const hold = holdTool();
+    // A failed assertion must not leave the tool holding the server's close.
+    onTestFinished(() => hold.release());
+    const chat = openChat({
+      responses: [
+        fauxAssistantMessage(
+          fauxToolCall(hold.tool.name, {}, { id: "hold-1" }),
+          { stopReason: "toolUse" },
+        ),
+        fauxAssistantMessage("Answered after the stop."),
+      ],
+      extensions: [defineExtension({ name: "probe.hold", tools: [hold.tool] })],
+      ...options,
+    });
+    const running = recorder(await send(chat.transport));
+    await hold.started;
+    const queued = recorder(
+      await send(chat.transport, {
+        message: {
+          id: "user-2",
+          role: "user",
+          parts: [{ type: "text", text: "Queued behind it." }],
+        },
+      }),
+    );
+    /** The stop's status, or `"pending"` if it has not answered within a second. */
+    const stop = async () => {
+      const answered = (async () =>
+        (
+          await chat.server.app.request(`${origin}/chat/${chatId}/abort`, {
+            method: "POST",
+          })
+        ).status)();
+      return Promise.race([
+        answered,
+        sleep(1000).then(() => "pending" as const),
+      ]);
+    };
+    return { ...chat, hold, running, queued, stop };
+  };
+
+  const history = async (server: ReturnType<typeof openChat>["server"]) =>
+    (await (
+      await server.app.request(`${origin}/chat/${chatId}/messages`)
+    ).json()) as UIMessage[];
+
+  test("the stop answers while the tool still runs; the queued message is already withdrawn, and the turn shows stopped once it unwinds", async () => {
+    const { server, transport, faux, hold, running, queued, stop } =
+      await heldTurn();
+
+    expect(await stop()).toBe(204);
+    // Durable before the run unwinds: a reload already sees the queued message withdrawn by the stop.
+    expect(
+      (await history(server)).find(({ id }) => id === "user-2")?.metadata,
+    ).toEqual({ withdrawn: "stopped" });
+
+    hold.release();
+    await Promise.all([running.drain(), queued.drain()]);
+    expect(running.chunks.at(-1)?.type).toBe("abort");
+    expect(
+      (await server.app.request(`${origin}/chat/${chatId}/stream`)).status,
+    ).toBe(204);
+    expect(
+      (await history(server))
+        .filter(({ role }) => role === "assistant")
+        .map(({ metadata }) => metadata),
+    ).toEqual([{ stopped: true }]);
+
+    // The next message runs as usual.
+    const after = recorder(
+      await send(transport, {
+        message: {
+          id: "user-3",
+          role: "user",
+          parts: [{ type: "text", text: "Go on." }],
+        },
+      }),
+    );
+    await after.drain();
+    expect(after.chunks.at(-1)).toEqual({
+      type: "finish",
+      finishReason: "stop",
+    });
+    expect(faux.state.callCount).toBe(2);
+  });
+
+  test("the server closes cleanly while a stopped turn still unwinds", async () => {
+    const stopErrors: unknown[] = [];
+    const { server, hold, running, queued, stop } = await heldTurn({
+      onStopError: (_conversationId, error) => stopErrors.push(error),
+    });
+    expect(await stop()).toBe(204);
+    servers.splice(servers.indexOf(server), 1);
+    const closed = server.close();
+    // Close joins the run, which waits on the tool.
+    await sleep(20);
+    hold.release();
+    await closed;
+    await Promise.allSettled([running.drain(), queued.drain()]);
+    expect(stopErrors).toEqual([]);
+  });
 });
 
 test("re-sending a user message follows its first run instead of starting another", async () => {
@@ -950,6 +1067,70 @@ describe("POST /chat records a version load for the version_load section (fold 2
   });
 });
 
+describe("SSE heartbeats", () => {
+  /**
+   * A turn that waits on a held tool for `waitMs`: its chunks as AI SDK's
+   * transport reads them, the raw text of its `POST /chat` stream, and the
+   * raw text of a reconnect made while it waits.
+   */
+  const heldTurn = async (sseHeartbeatMs: number, waitMs: number) => {
+    const hold = holdTool();
+    const { server } = openChat({
+      responses: [
+        fauxAssistantMessage(
+          fauxToolCall(hold.tool.name, {}, { id: "hold-1" }),
+          { stopReason: "toolUse" },
+        ),
+        fauxAssistantMessage("Held."),
+      ],
+      extensions: [defineExtension({ name: "probe.hold", tools: [hold.tool] })],
+      sseHeartbeatMs,
+    });
+    let posted: Promise<string> = Promise.resolve("");
+    const transport = new DefaultChatTransport<UIMessage>({
+      api: `${origin}/chat`,
+      fetch: async (input, init) => {
+        const response = await server.app.request(
+          input instanceof Request ? input : String(input),
+          init,
+        );
+        const [forTransport, forTest] = response.body!.tee();
+        posted = new Response(forTest).text();
+        return new Response(forTransport, {
+          status: response.status,
+          headers: response.headers,
+        });
+      },
+    });
+    const turn = recorder(await send(transport));
+    await hold.started;
+    const reconnect = (async () =>
+      (await server.app.request(`${origin}/chat/${chatId}/stream`)).text())();
+    await sleep(waitMs);
+    hold.release();
+    await turn.drain();
+    return {
+      chunks: turn.chunks,
+      posted: await posted,
+      reconnected: await reconnect,
+    };
+  };
+
+  test("a waiting turn's streams carry comment heartbeats, which AI SDK's transport reads past", async () => {
+    const quiet = await heldTurn(60_000, 60);
+    const beating = await heldTurn(5, 60);
+    for (const text of [quiet.posted, quiet.reconnected])
+      expect(text).not.toContain(sseHeartbeatComment);
+    for (const text of [beating.posted, beating.reconnected])
+      expect(text).toContain(sseHeartbeatComment);
+    expect(beating.chunks).toEqual(quiet.chunks);
+    expect(beating.chunks.at(-1)).toEqual({
+      type: "finish",
+      finishReason: "stop",
+    });
+  });
+});
+
 describe("POST /chat reads only the last message's id, role and text parts", () => {
   const post = (
     server: ReturnType<typeof createDurableAgentsServer>,
@@ -998,6 +1179,67 @@ describe("POST /chat reads only the last message's id, role and text parts", () 
       expect(state.callCount).toBe(0);
     },
   );
+
+  test.each([
+    [
+      "an id longer than 256 characters",
+      {
+        id: "u".repeat(257),
+        role: "user",
+        parts: [{ type: "text", text: "Hi" }],
+      },
+      400,
+    ],
+    [
+      "text longer than 100,000 characters across its parts",
+      {
+        id: "user-1",
+        role: "user",
+        parts: [
+          { type: "text", text: "x".repeat(60_000) },
+          { type: "text", text: "x".repeat(40_001) },
+        ],
+      },
+      413,
+    ],
+  ])(
+    "a last user message with %s is refused, before any storage lookup or model call",
+    async (_, message, status) => {
+      const { models, model, state } = scriptedModel([]);
+      const storage = memoryConversations();
+      const storageExists = vi.fn<typeof storage.storageExists>(
+        storage.storageExists,
+      );
+      const server = createDurableAgentsServer({
+        now: Date.now,
+        storageExists,
+        openStorage: storage.openStorage,
+        createRegistry,
+        models,
+        agent: { model },
+        clientToolNames: new Set<string>(),
+        context,
+      });
+      servers.push(server);
+
+      const response = await post(server, [message]);
+      expect(response.status).toBe(status);
+      expect(storageExists).not.toHaveBeenCalled();
+      expect(state.callCount).toBe(0);
+    },
+  );
+
+  test("a last user message at the limits is admitted", async () => {
+    const { requests, responses } = recordedAnswers(1);
+    const { server } = openChat({ responses });
+    const text = "x".repeat(100_000);
+    const response = await post(server, [
+      { id: "u".repeat(256), role: "user", parts: [{ type: "text", text }] },
+    ]);
+    expect(response.status).toBe(200);
+    await response.text();
+    expect(userTexts(requests)).toEqual([[text]]);
+  });
 
   test("earlier messages and the last message's other parts are not read: its text parts are the input", async () => {
     const { requests, responses } = recordedAnswers(1);
@@ -1128,6 +1370,80 @@ test("only a conversation that was opened gets an abandonment check", async () =
     set.mockRestore();
     cleared.mockRestore();
   }
+});
+
+/** Who a test conversation belongs to, as its creating request named it. */
+const OwnerDoc = defineDoc<{ owner: string | null }>({
+  kind: "test.owner",
+  version: 1,
+  scope: "conversation",
+  history: "latest",
+  fork: "current",
+  initial: () => ({ owner: null }),
+  checkpointWhen: () => false,
+});
+
+test("a new conversation's seed records in its creating commit, and every route that names a conversation admits the request", async () => {
+  const seen: (string | null | undefined)[] = [];
+  const { server, faux } = openChat({
+    responses: [fauxAssistantMessage("Answered.")],
+    admitNewConversation: (_body, request) => ({
+      record: async (tx, conversationId) => {
+        const doc = await tx.doc(OwnerDoc, conversationId);
+        doc.owner = request.req.header("x-owner") ?? null;
+      },
+    }),
+    admitConversation: async ({ harness, root }, request) => {
+      const owner = (await harness.snapshot(OwnerDoc, root.id, context))?.owner;
+      seen.push(owner);
+      return owner === request.req.header("x-owner")
+        ? undefined
+        : request.json({ error: "forbidden" }, 403);
+    },
+  });
+  const as = (owner: string) => ({ headers: { "x-owner": owner } });
+  const chatAs = (owner: string) =>
+    server.app.request(`${origin}/chat`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-owner": owner },
+      body: JSON.stringify({
+        id: chatId,
+        messages: [userMessage],
+        trigger: "submit-message",
+      }),
+    });
+
+  const created = await chatAs("alice");
+  expect(created.status).toBe(200);
+  await created.text();
+  // The first admission already reads what the creating commit recorded.
+  expect(seen).toEqual(["alice"]);
+
+  const refused = await Promise.all([
+    chatAs("bob"),
+    server.app.request(`${origin}/chat/${chatId}/stream`, as("bob")),
+    server.app.request(`${origin}/chat/${chatId}/messages`, as("bob")),
+    server.app.request(`${origin}/chat/${chatId}/abort`, {
+      method: "POST",
+      ...as("bob"),
+    }),
+  ]);
+  expect(refused.map(({ status }) => status)).toEqual([403, 403, 403, 403]);
+  // The refused chat submitted nothing.
+  expect(faux.state.callCount).toBe(1);
+
+  const history = await server.app.request(
+    `${origin}/chat/${chatId}/messages`,
+    as("alice"),
+  );
+  expect(history.status).toBe(200);
+  expect(
+    ((await history.json()) as UIMessage[]).map(({ role }) => role),
+  ).toEqual(["user", "assistant"]);
+  expect(
+    (await server.app.request(`${origin}/chat/${chatId}/stream`, as("alice")))
+      .status,
+  ).toBe(204);
 });
 
 test("a section that throws is reported once, with the conversation whose Harness ran it", async () => {

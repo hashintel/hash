@@ -437,6 +437,8 @@ describe("browser-call router", () => {
       { method: "POST", body: JSON.stringify({ binding }) },
     );
     expect(invalid.status).toBe(400);
+    expect((await browserOf(app).claim("t".repeat(257))).status).toBe(400);
+    expect((await browserOf(app).claim("t".repeat(256))).status).toBe(200);
     const elsewhere = await app.request(
       `${brunchRoutes.agents}/${brunchRoutes.petrinautAgent}/other/${brunchRoutes.browserCalls}/${toolCallId}`,
       {
@@ -446,6 +448,47 @@ describe("browser-call router", () => {
     );
     expect(elsewhere.status).toBe(404);
     await abandon(harness, submission);
+  });
+
+  test("a refusal the resolver answers is the response on every route", async () => {
+    const resolved: string[] = [];
+    const app = new Hono().route(
+      "/conversations",
+      createBrowserCallRouter({
+        resolveHarness: (conversationId, request) => {
+          resolved.push(conversationId);
+          return request.json({ error: "forbidden" }, 403);
+        },
+        now: Date.now,
+      }),
+    );
+    const base = `/conversations/${routeConversationId}/${brunchRoutes.browserCalls}`;
+    const post = (path: string, body: unknown) =>
+      app.request(path, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    const responses = await Promise.all([
+      app.request(base),
+      post(`${base}/${brunchRoutes.handEdits}`, {
+        binding,
+        episode: "episode-1",
+        seq: 0,
+        revision: "revision-1",
+      }),
+      post(`${base}/${toolCallId}`, { claimant: "tab-a", binding }),
+      post(`${base}/${toolCallId}/start`, { capability: "c", binding }),
+    ]);
+    expect(
+      await Promise.all(
+        responses.map(async (response): Promise<[number, unknown]> => [
+          response.status,
+          await response.json(),
+        ]),
+      ),
+    ).toEqual(Array(4).fill([403, { error: "forbidden" }]));
+    expect(resolved).toEqual(Array(4).fill(routeConversationId));
   });
 });
 

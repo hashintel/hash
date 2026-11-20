@@ -1,0 +1,16 @@
+{
+  // The panel's transport is the library's browser entry, whose types resolve
+  // to its source, so this checks it under the library's own settings.
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "noImplicitReturns": false,
+    "rootDir": "../../../.."
+  },
+  "include": [
+    ".",
+    "../../../../libs/@hashintel/brunch-agent/src/ui/markdown-raw.d.ts"
+  ],
+  "exclude": []
+}

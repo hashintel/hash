@@ -1087,6 +1087,67 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(transport.sendMessages).toHaveBeenCalledOnce();
   });
 
+  test("resumes a conversation's running turn once, over its history's copy, when it first follows the host's messages", async () => {
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: vi.fn(async () =>
+        streamChunks([
+          { type: "start", messageId: "running-answer" },
+          ...textChunks("resumed", "Resumed whole reply"),
+          { type: "finish", finishReason: "stop" },
+        ]),
+      ),
+      sendMessages: vi.fn(),
+    };
+    const followMessages = { canReplace: () => true, resumeOnOpen: true };
+    const history: PetrinautAiMessage[] = [
+      {
+        id: "running-question",
+        role: "user",
+        parts: [{ type: "text", text: "Model a dryer." }],
+      },
+      {
+        id: "running-answer",
+        role: "assistant",
+        parts: [{ type: "text", text: "Resumed wh" }],
+      },
+    ];
+    const { rerenderPanel } = renderTestPanel({
+      aiAssistant: { conversationId: "resume-one", transport, followMessages },
+    });
+    await act(async () => {});
+    expect(transport.reconnectToStream).not.toHaveBeenCalled();
+
+    rerenderPanel({
+      conversationId: "resume-one",
+      transport,
+      followMessages,
+      messages: history,
+    });
+
+    await screen.findByText("Resumed whole reply");
+    expect(screen.queryByText("Resumed wh")).toBeNull();
+    expect(screen.getByText("Model a dryer.")).not.toBeNull();
+    expect(transport.reconnectToStream).toHaveBeenCalledOnce();
+    rerenderPanel({
+      conversationId: "resume-one",
+      transport,
+      followMessages,
+      messages: [...history],
+    });
+    await act(async () => {});
+    expect(transport.reconnectToStream).toHaveBeenCalledOnce();
+
+    rerenderPanel({
+      conversationId: "resume-two",
+      transport,
+      followMessages: { canReplace: () => true },
+      messages: [],
+    });
+    await act(async () => {});
+    expect(transport.reconnectToStream).toHaveBeenCalledOnce();
+    expect(transport.sendMessages).not.toHaveBeenCalled();
+  });
+
   test("following does not replace a locally streaming response even when the host offers a snapshot", async () => {
     let controller: ReadableStreamDefaultController<UIMessageChunk> | undefined;
     let eligible = true;

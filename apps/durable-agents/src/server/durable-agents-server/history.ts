@@ -50,6 +50,7 @@ import { readUIMessageStream, type UIMessage, type UIMessageChunk } from "ai";
 import {
   brunchSignals,
   type DurableHistoryMessageMetadata,
+  durableHistoryPartTypes,
   type VersionLoad,
 } from "@hashintel/brunch-agent";
 
@@ -62,17 +63,13 @@ import { inputRequestId, isInputEntry } from "./shared/input-entry";
 import { type QueuedInput, QueuedInputsDoc } from "./shared/queued-inputs-doc";
 import {
   handEditPartId,
-  handEditPartType,
   type ProjectionOptions,
   projectResponseEntries,
 } from "./submission-stream";
 
 import type { OpenConversation } from "./conversation-registry";
 import type { Context } from "@earendil-works/chord/context";
-import type { Handler } from "hono";
-
-/** The UI part a Ledger-comment turn is shown as, with the entry's `data` (`{ comments }`). */
-export const ledgerCommentsPartType = "data-brunch-ledger-comments";
+import type { Handler, Context as HonoContext } from "hono";
 
 /** The ID of the user message an entry is shown as when it keeps no request ID. */
 export const userMessageId = (entry: EntryId) => `durable:user:${entry}`;
@@ -103,7 +100,12 @@ const inputParts = (
   entry: Pick<EntryRecord, "kind" | "data" | "model">,
 ): UIMessage["parts"] =>
   entry.kind === brunchSignals.ledgerComments
-    ? [{ type: ledgerCommentsPartType, data: sentData(entry) }]
+    ? [
+        {
+          type: durableHistoryPartTypes.ledgerComments,
+          data: sentData(entry),
+        },
+      ]
     : [
         {
           type: "text",
@@ -197,7 +199,7 @@ const noteMessage = (note: EntryRecord): UIMessage => ({
   role: "user",
   parts: [
     {
-      type: handEditPartType,
+      type: durableHistoryPartTypes.handEdit,
       id: handEditPartId(note.id),
       data: note.data ?? null,
     },
@@ -384,16 +386,28 @@ export type HistoryRouteOptions = ProjectionOptions & {
       conversationId: string,
     ) => Promise<OpenConversation | undefined>;
   };
+  /** Checks the request against the open conversation before it is read; a response refuses it. */
+  readonly admit?: (
+    conversation: OpenConversation,
+    request: HonoContext,
+  ) => Promise<Response | undefined>;
   readonly context: Context;
 };
 
 /** The handler of `GET /chat/:id/messages`, for the server to mount. */
 export const historyHandler =
-  ({ conversations, context, ...projection }: HistoryRouteOptions): Handler =>
+  ({
+    conversations,
+    admit,
+    context,
+    ...projection
+  }: HistoryRouteOptions): Handler =>
   async (ctx) => {
     const conversation = await conversations.acquire(ctx.req.param("id") ?? "");
     if (conversation === undefined)
       return ctx.text("Unknown conversation.", 404);
+    const refused = await admit?.(conversation, ctx);
+    if (refused !== undefined) return refused;
     const entries = await allEntries(conversation.root, context);
     const messages = await historyMessages(
       entries,
