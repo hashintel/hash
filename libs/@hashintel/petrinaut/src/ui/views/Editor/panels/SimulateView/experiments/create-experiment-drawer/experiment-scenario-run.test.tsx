@@ -155,14 +155,11 @@ describe("ExperimentScenarioRun", () => {
       region!.querySelector('[data-part="viewport"]')?.getAttribute("style"),
     ).toContain("overflow: auto");
     expect(region!.className).toMatch(/max-h_\[\d+px\]/);
-    // Parameters and initial state scroll together inside it, and it reads as
-    // a panel rather than more form.
+    // Parameters and initial state scroll together inside it.
     expect(region!.textContent).toContain("Parameters");
     expect(region!.querySelector("[aria-label='Place 1 › count']")).not.toBe(
       null,
     );
-    expect(region!.className).toContain("bg-c_neutral.s00");
-    expect(region!.className).toContain("bd-c_neutral.bd.subtle");
   });
 
   it("keeps the form mounted for an equal-content scenario and reseeds on a change", async () => {

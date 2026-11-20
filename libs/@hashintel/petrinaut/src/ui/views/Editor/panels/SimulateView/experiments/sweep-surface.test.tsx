@@ -19,32 +19,7 @@ import type { ReactNode } from "react";
 vi.mock("@hashintel/ds-components", async (importOriginal) => {
   const actual =
     await importOriginal<typeof import("@hashintel/ds-components")>();
-  const Select = ({
-    items,
-    onChange,
-    value,
-    disabled,
-    "aria-label": ariaLabel,
-  }: {
-    items: readonly { value: string; text: string }[];
-    onChange: (value: string | null) => void;
-    value: string | null;
-    disabled?: boolean;
-    "aria-label"?: string;
-  }) => (
-    <select
-      aria-label={ariaLabel}
-      value={value ?? ""}
-      disabled={disabled}
-      onChange={(event) => onChange(event.target.value || null)}
-    >
-      {items.map((item) => (
-        <option key={item.value} value={item.value}>
-          {item.text}
-        </option>
-      ))}
-    </select>
-  );
+  const { Select } = await import("../shared/ds-control-stubs");
   return { ...actual, Select };
 });
 
