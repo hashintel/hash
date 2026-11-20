@@ -94,7 +94,7 @@ const supplierReviewTriggers: FlowTriggers = {
         { label: "Runs", value: "Every Monday at 08:00 (London)" },
         { label: "Next run", value: "Mon 9 Nov, 08:00" },
         { label: "Web", value: "@aakarsh" },
-        { label: "Flow version", value: "v4", link: "Upgrade to v5" },
+        { label: "Flow version", value: "v4", link: "→ v5" },
         { label: "Created by", value: "Aakarsh" },
       ],
     },

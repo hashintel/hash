@@ -142,7 +142,7 @@ type PageTrigger = Values & {
   kind: Kind;
   label: string;
   version: string;
-  /** Set when a newer version is published: "Upgrade to v5". */
+  /** Set when a newer version is published: "→ v5". */
   latest?: string;
   /** "Failed to activate" outranks on and off. */
   failed?: boolean;
@@ -231,7 +231,7 @@ const supplierReview = (): { flow: PageFlow; triggers: PageTrigger[] } => {
       label: item.label,
       web: detail(item, "Web")?.value ?? blank.web,
       version: detail(item, "Flow version")?.value ?? "v5",
-      latest: detail(item, "Flow version")?.link?.replace("Upgrade to ", ""),
+      latest: detail(item, "Flow version")?.link?.replace("→ ", ""),
       nextRun: detail(item, "Next run")?.value.replace(", ", " at "),
     })),
   };
@@ -1867,9 +1867,10 @@ const VersionCell = ({
       <button
         type="button"
         className={newerHintStyle}
+        aria-label={`Newer version available: change to ${flow.latest}`}
         onClick={() => page.setVersion(trigger.id, flow.latest)}
       >
-        Upgrade to {flow.latest}
+        → {flow.latest}
       </button>
     )}
   </span>
