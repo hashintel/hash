@@ -53,6 +53,58 @@ const identifiersSchemaWith = ({ description }: { description: string }) =>
     ),
   );
 
+const propertyBaseUrlPattern = /^https?:\/\/\S+\/$/u;
+const propertyTypeIdPattern = /^https?:\/\/\S+\/v\/[1-9]\d*$/u;
+
+/**
+ * The base URL of a property, named by its base URL or its versioned
+ * propertyTypeId, as `hashPropertySelectorSchema` admits: an entity's
+ * properties are keyed by base URL, whatever version they were saved against.
+ */
+export const hashPropertyBaseUrl = (property: string) =>
+  propertyTypeIdPattern.test(property)
+    ? property.replace(/v\/[1-9]\d*$/u, "")
+    : property;
+
+const propertySelectorMessage =
+  "A property is named by its base URL, ending in /, as in https://hash.ai/@h/types/property-type/name/, or by its versioned propertyTypeId, as in …/property-type/name/v/1: copy one from an entity read's properties legend. A short name such as name holds within one read only, so it isn't accepted.";
+
+/**
+ * One property, by its base URL or its versioned propertyTypeId. A short
+ * name is refused: it is only the name one read gave it.
+ */
+const hashPropertySelectorSchema = v.pipe(
+  v.string(propertySelectorMessage),
+  v.check(
+    (property) =>
+      propertyBaseUrlPattern.test(property) ||
+      propertyTypeIdPattern.test(property),
+    propertySelectorMessage,
+  ),
+);
+
+const propertyValueMessage =
+  "value is the property's value to match exactly: a string, number or boolean, in the type the read showed it (a quoted value is a string, a bare one a number).";
+
+const propertyEqualsSchemaWith = ({ subject }: { subject: string }) =>
+  v.optional(
+    v.pipe(
+      v.array(
+        v.strictObject({
+          property: hashPropertySelectorSchema,
+          value: v.union(
+            [v.string(), v.number(), v.boolean()],
+            propertyValueMessage,
+          ),
+        }),
+      ),
+      v.minLength(1),
+      v.description(
+        `Property values ${subject} must equal, each { property, value }: property is a base URL or versioned propertyTypeId, as an entity read's properties legend shows it (not a short name); value is a string, number or boolean, matched exactly, with no case folding or partial match. Give the value in the type the read showed it: a quoted value is a string, a bare one a number, and "42" doesn't match 42. Every condition must hold, along with the other filters. Use it to find a record by a value you know, such as an order number, rather than listing records to search them.`,
+      ),
+    ),
+  );
+
 export const hashEntityReadInputSchema = v.strictObject({
   entityTypes: identifiersSchemaWith({
     description:
@@ -65,6 +117,18 @@ export const hashEntityReadInputSchema = v.strictObject({
     description:
       "Entity ids to read, for example ids returned by an earlier read: `webId~entityUuid`, or `webId~entityUuid~draftId` for a draft. An id with a draft part reads that draft. An id names its web, so a named entity is read wherever it is, without webIds; one outside the user's and their organizations' webs comes back marked external. Given webIds too, an entity must also be in one of them.",
   }),
+  propertyEquals: propertyEqualsSchemaWith({
+    subject: "a matched entity's properties",
+  }),
+  properties: v.optional(
+    v.pipe(
+      v.array(hashPropertySelectorSchema),
+      v.minLength(1),
+      v.description(
+        "Which properties to show for each entity, each a base URL or versioned propertyTypeId, as an entity read's properties legend shows it (not a short name). Only these are shown, and only these listed in the legend; each entity's entityId, editionId, types and link endpoints are always shown. It changes only what you are shown, not which entities match, the page or its cursor: HASH still returns whole entities. A path in fullValuesFor is shown whether or not its property is chosen. Choose properties when reading many records, to keep the read small.",
+      ),
+    ),
+  ),
   traversalDepth: v.optional(
     v.pipe(
       v.number(),
@@ -123,7 +187,7 @@ export const hashEntityReadInputSchema = v.strictObject({
       v.string(),
       v.minLength(1),
       v.description(
-        "Where to continue a read that has more pages: the cursor its result gave, copied exactly. Repeat the same read with it, changing nothing but the cursor and, if the page was too large, the limit; a cursor from another read skips or repeats matches. Omit it to read the first page.",
+        "Where to continue a read that has more pages: the cursor its result gave, copied exactly. Repeat the same read with it, changing nothing but the cursor and, if the page was too large, the limit or properties; propertyEquals is part of what matches, so keep it as it was. A cursor from another read skips or repeats matches. Omit it to read the first page.",
       ),
     ),
   ),
@@ -178,6 +242,9 @@ export const hashEntityCountInputSchema = v.strictObject({
       ),
     ),
   ),
+  propertyEquals: propertyEqualsSchemaWith({
+    subject: "a counted entity's properties",
+  }),
   webIds: identifiersSchemaWith({
     description: `Web ids to count in. Omit to count in the user's own web and their organizations' webs, as ${brunchTools.hashQueryWebs} lists them; name webs to count in others.`,
   }),

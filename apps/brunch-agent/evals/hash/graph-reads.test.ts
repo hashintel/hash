@@ -3,6 +3,7 @@ import { expect, test, vi } from "vitest";
 import {
   browserToolEnvelopeOf,
   brunchTools,
+  hashPropertyBaseUrl,
   parseHashEntityReadInput,
   type ClientToolResult,
 } from "@hashintel/brunch-agent";
@@ -152,7 +153,8 @@ test("a whole inventory page too large to show is refused, keeping none of it an
   expect(limit).toBeGreaterThan(0);
   expect(limit).toBeLessThan(1_000);
   expect(rest).toEqual([
-    "- filters by entityTypes, webIds or entityIds",
+    "- filters by entityTypes, webIds, entityIds or propertyEquals",
+    "- properties, to show only those you need of each entity",
     "- for a large value, { entityId, path } in fullValuesFor, to read only the part you need",
   ]);
   expect(current).not.toContain(nextPage);
@@ -386,4 +388,76 @@ test("the entity read marks a record the page reports as external, and says once
     `  entityId: ${customerId}`,
     "  editionId: customer-edition",
   ]);
+});
+
+test("one sales order is found by its number in one read, not by listing every order and searching them", async () => {
+  const orderNumberUrl =
+    "https://hash.ai/@h/types/property-type/sales-order-number/";
+  const totalUrl = "https://hash.ai/@h/types/property-type/total/";
+  const notesUrl = "https://hash.ai/@h/types/property-type/notes/";
+  // 520 orders, each with a number, a total and long notes.
+  const orders = Array.from({ length: 520 }, (_, index) => ({
+    entityId: `${webId}~00000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+    editionId: `order-edition-${index}`,
+    webId,
+    entityTypeIds: [orderTypeId],
+    properties: {
+      [orderNumberUrl]: String(1_000_000_000 + index),
+      [totalUrl]: index * 10,
+      [notesUrl]: "Delivered to the loading dock. ".repeat(4),
+    },
+    draft: false,
+    matched: true,
+  }));
+  // The page, as HASH's graph matches propertyEquals: each property's value,
+  // keyed by base URL, equal to the value given, in its type.
+  const execute = vi.fn<BrowserToolExecutor>(async (call) => {
+    const { propertyEquals = [] } = parseHashEntityReadInput(call.input);
+    return {
+      output: {
+        entityTypes: [{ entityTypeId: orderTypeId, title: "Order" }],
+        propertyTypes: [],
+        entities: orders.filter((order) =>
+          propertyEquals.every(
+            ({ property, value }) =>
+              (order.properties as Record<string, unknown>)[
+                hashPropertyBaseUrl(property)
+              ] === value,
+          ),
+        ),
+      },
+    };
+  });
+
+  const found = await readCurrent(execute, {
+    entityTypes: ["Order"],
+    propertyEquals: [{ property: `${orderNumberUrl}v/1`, value: "1000000283" }],
+    properties: [orderNumberUrl, totalUrl],
+    traversalDepth: 0,
+  });
+
+  expect(execute).toHaveBeenCalledTimes(1);
+  expect(
+    parseHashEntityReadInput(execute.mock.calls[0]?.[0].input).propertyEquals,
+  ).toEqual([{ property: `${orderNumberUrl}v/1`, value: "1000000283" }]);
+  expect(found.split("\n")).toEqual([
+    "entities: 1",
+    "entity types:",
+    `  Order: ${orderTypeId}`,
+    "entities:",
+    "- Order",
+    `  entityId: ${orders[283]?.entityId}`,
+    "  editionId: order-edition-283",
+    '  sales_order_number: "1000000283"',
+    "  total: 2830",
+  ]);
+
+  // The number given as a number matches nothing: it is stored as text.
+  const mistyped = await readCurrent(execute, {
+    entityTypes: ["Order"],
+    propertyEquals: [{ property: orderNumberUrl, value: 1_000_000_283 }],
+  });
+  expect(mistyped).toContain(
+    'A value matches only exactly and in the type it is stored as: "42" doesn\'t match 42.',
+  );
 });

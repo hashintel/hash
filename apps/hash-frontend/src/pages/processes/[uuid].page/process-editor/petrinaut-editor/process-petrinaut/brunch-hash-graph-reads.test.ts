@@ -987,8 +987,70 @@ test("the agent's own keys, such as which values it shows in full, are accepted 
   expect(output).toEqual(await run(query, input));
 });
 
+const orderNumberUrl =
+  "https://hash.ai/@h/types/property-type/sales-order-number/";
+const isPaidUrl = "https://hash.ai/@h/types/property-type/is-paid/";
+const orderNumberIs = (
+  value: string | number | boolean,
+  url = orderNumberUrl,
+) => ({
+  equal: [{ path: ["properties", url] }, { parameter: value }],
+});
+
+test("a read by property values adds one equal condition per value on its base URL, all of which must match beside the other filters", () => {
+  const input = {
+    entityTypes: ["Sales Order"],
+    propertyEquals: [
+      // A versioned id is reduced to its base URL, the key entities use.
+      { property: `${orderNumberUrl}v/2`, value: "1000000283" },
+      { property: isPaidUrl, value: false },
+    ],
+  };
+  expect(hashEntityReadRequest(input, readerWebs).filter).toEqual({
+    all: [
+      {
+        any: [
+          {
+            equal: [{ path: ["type", "title"] }, { parameter: "Sales Order" }],
+          },
+        ],
+      },
+      orderNumberIs("1000000283"),
+      orderNumberIs(false, isPaidUrl),
+      inWebs(readerWebs),
+      ...notArchived,
+    ],
+  });
+  // A number stays a number: it isn't coerced to the string a property may hold.
+  expect(
+    hashEntityReadRequest(
+      { propertyEquals: [{ property: orderNumberUrl, value: 283 }] },
+      readerWebs,
+    ).filter,
+  ).toEqual({ all: [orderNumberIs(283), inWebs(readerWebs), ...notArchived] });
+});
+
+test("the properties to show are the agent's to apply: they don't change what is read", async () => {
+  const query = vi.fn<QueryEntitySubgraph>(() => Promise.resolve(response));
+  const input = { entityIds: ["alice-web~supplier"] };
+  const output = await run(query, {
+    ...input,
+    properties: [orderNumberUrl],
+  });
+  expect(query).toHaveBeenCalledWith(
+    hashEntityReadRequest(input, undefined),
+    expect.any(AbortSignal),
+  );
+  expect(output).toEqual(await run(query, input));
+});
+
 test("an input the agent's contract doesn't allow is refused before any query", async () => {
   const query = vi.fn<QueryEntitySubgraph>(() => Promise.resolve(response));
+  await expect(
+    run(query, {
+      propertyEquals: [{ property: "sales_order_number", value: "1" }],
+    }),
+  ).rejects.toThrow(/base URL/u);
   await expect(run(query, { entityTypes: "Supplier" })).rejects.toThrow();
   expect(query).not.toHaveBeenCalled();
 });
@@ -1452,11 +1514,42 @@ test("a count asks for the total, by type with titles and by web, of the entity 
     temporalAxes: hashEntityReadRequest({}, readerWebs).temporalAxes,
     ...countFlags,
   });
-  // The same type and web filters the entity read builds.
-  const typed = { entityTypes: ["Sales Order"], webIds: ["alice-web"] };
+  // The same type, property value and web filters the entity read builds.
+  const typed = {
+    entityTypes: ["Sales Order"],
+    propertyEquals: [{ property: orderNumberUrl, value: "1000000283" }],
+    webIds: ["alice-web"],
+  };
   expect(hashEntityCountRequest(typed, typed.webIds).filter).toEqual(
     hashEntityReadRequest(typed, typed.webIds).filter,
   );
+});
+
+test("a count by property values adds one equal condition per value on its base URL", () => {
+  expect(
+    hashEntityCountRequest(
+      {
+        entityTypes: ["Sales Order"],
+        propertyEquals: [
+          { property: `${orderNumberUrl}v/1`, value: "1000000283" },
+        ],
+      },
+      ["alice-web"],
+    ).filter,
+  ).toEqual({
+    all: [
+      {
+        any: [
+          {
+            equal: [{ path: ["type", "title"] }, { parameter: "Sales Order" }],
+          },
+        ],
+      },
+      orderNumberIs("1000000283"),
+      { any: [webIs("alice-web")] },
+      ...notArchived,
+    ],
+  });
 });
 
 const summary = (

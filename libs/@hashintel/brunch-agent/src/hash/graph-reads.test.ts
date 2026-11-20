@@ -3,6 +3,7 @@ import { expect, test } from "vitest";
 import {
   hashEntityReadMaxLimit,
   hashEntityReadMaxTraversalDepth,
+  hashPropertyBaseUrl,
   parseHashEntityCountInput,
   parseHashEntityReadInput,
   parseHashEntityTypeReadInput,
@@ -123,3 +124,75 @@ test.each([
     );
   },
 );
+
+const orderNumber =
+  "https://hash.ai/@h/types/property-type/sales-order-number/";
+const propertySelectorMessage =
+  "A property is named by its base URL, ending in /, as in https://hash.ai/@h/types/property-type/name/, or by its versioned propertyTypeId, as in …/property-type/name/v/1: copy one from an entity read's properties legend. A short name such as name holds within one read only, so it isn't accepted.";
+
+test.each([
+  ["entity read", parseHashEntityReadInput],
+  ["entity count", parseHashEntityCountInput],
+] as const)(
+  "an %s matches property values by base URL or versioned propertyTypeId, with a string, number or boolean",
+  (_read, parse) => {
+    const propertyEquals = [
+      { property: orderNumber, value: "1000000283" },
+      { property: `${orderNumber}v/2`, value: 283 },
+      {
+        property: "http://localhost:3000/@a/types/property-type/paid/",
+        value: false,
+      },
+    ];
+    expect(parse({ propertyEquals })).toEqual({ propertyEquals });
+    expect(() => parse({ propertyEquals: [] })).toThrow(/Invalid length/u);
+    for (const value of [null, ["1"], { amount: 1 }])
+      expect(() =>
+        parse({ propertyEquals: [{ property: orderNumber, value }] }),
+      ).toThrow(
+        "value is the property's value to match exactly: a string, number or boolean, in the type the read showed it (a quoted value is a string, a bare one a number).",
+      );
+    expect(() =>
+      parse({
+        propertyEquals: [{ property: orderNumber, value: "1", extra: true }],
+      }),
+    ).toThrow(/Invalid key/u);
+  },
+);
+
+test.each([
+  "sales_order_number",
+  "Sales Order Number",
+  "https://hash.ai/@h/types/property-type/sales-order-number",
+  "https://hash.ai/@h/types/property-type/sales-order-number/v/0",
+  "",
+])(
+  "a property named %j, neither a base URL nor a versioned id, is refused with what to give instead",
+  (property) => {
+    expect(() =>
+      parseHashEntityReadInput({ propertyEquals: [{ property, value: "1" }] }),
+    ).toThrow(propertySelectorMessage);
+    expect(() =>
+      parseHashEntityCountInput({ propertyEquals: [{ property, value: "1" }] }),
+    ).toThrow(propertySelectorMessage);
+    expect(() => parseHashEntityReadInput({ properties: [property] })).toThrow(
+      propertySelectorMessage,
+    );
+  },
+);
+
+test("an entity read chooses properties to show by base URL or versioned propertyTypeId; a count shows none", () => {
+  const properties = [orderNumber, `${orderNumber}v/1`];
+  expect(parseHashEntityReadInput({ properties })).toEqual({ properties });
+  expect(() => parseHashEntityReadInput({ properties: [] })).toThrow(
+    /Invalid length/u,
+  );
+  expect(() => parseHashEntityCountInput({ properties })).toThrow(
+    /Invalid key/u,
+  );
+});
+
+test("a versioned propertyTypeId reduces to its base URL; a base URL is its own", () => {
+  expect(hashPropertyBaseUrl(`${orderNumber}v/12`)).toBe(orderNumber);
+  expect(hashPropertyBaseUrl(orderNumber)).toBe(orderNumber);
+});
