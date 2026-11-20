@@ -1750,8 +1750,13 @@ test("Flue serves the conversation unless the host names another backend", async
 describe("on the durable agents server", () => {
   const durableServer = () => {
     const requests: { url: string; init: RequestInit }[] = [];
+    const callRecordReads: string[] = [];
     const fetch = vi.fn<typeof globalThis.fetch>(async (input, init) => {
       const url = input instanceof Request ? input.url : input.toString();
+      if (url.endsWith("/browser-calls")) {
+        callRecordReads.push(url);
+        return Response.json({ calls: {} });
+      }
       requests.push({ url, init: init ?? {} });
       if (url.endsWith("/abort")) return new Response(null, { status: 204 });
       return createUIMessageStreamResponse({
@@ -1768,7 +1773,7 @@ describe("on the durable agents server", () => {
       const sent = requests[index]?.init.body;
       return typeof sent === "string" ? JSON.parse(sent) : undefined;
     };
-    return { body, fetch, requests };
+    return { body, callRecordReads, fetch, requests };
   };
   const renderOnDurableServer = (fetch: typeof globalThis.fetch) =>
     renderAssistant({
@@ -1801,6 +1806,11 @@ describe("on the durable agents server", () => {
 
     expect(server.requests.map(({ url }) => url)).toEqual([
       "http://durable.test/chat",
+    ]);
+    expect(server.callRecordReads).toEqual([
+      expect.stringMatching(
+        /^http:\/\/durable\.test\/conversations\/[^/]+\/browser-calls$/,
+      ),
     ]);
     expect(server.body(0)).toMatchObject({
       messages: [{ id: "m1", role: "user" }],

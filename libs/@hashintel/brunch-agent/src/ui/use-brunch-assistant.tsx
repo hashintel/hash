@@ -38,6 +38,10 @@ import {
   requestSuccessorStopIfStillWanted,
 } from "../client/successor/request-successor-stop";
 import {
+  createSuccessorBrowserCalls,
+  readSuccessorBrowserCalls,
+} from "../client/successor/successor-browser-calls";
+import {
   brunchPetrinautClientToolNames,
   canonicalPetrinautClientToolNames,
 } from "../client/tools/brunch-client-tools";
@@ -81,12 +85,16 @@ import {
 } from "./tools/brunch-mutation-approval";
 import {
   createCanonicalPetrinautHostTools,
+  issuedCanonicalCallsFromBrowserCalls,
   issuedCanonicalCallsFromHistory,
   EMPTY_CANONICAL_PETRINAUT_REPLAY,
   type CanonicalPetrinautHostToolsInput,
   type CanonicalPetrinautReplay,
 } from "./tools/brunch-petrinaut-tools";
-import { resolveBrunchToolPresentation } from "./tools/brunch-tool-presentation";
+import {
+  resolveBrunchToolPresentation,
+  withCallsOpenInOtherTabs,
+} from "./tools/brunch-tool-presentation";
 import { createHashPetrinautSaveTool } from "./tools/hash-petrinaut-save";
 import { useHandEditReports } from "./use-brunch-assistant/use-hand-edit-reports";
 import { useImmutableReplayBaseline } from "./use-brunch-assistant/use-immutable-replay-baseline";
@@ -311,7 +319,7 @@ export const useBrunchAssistant = ({
   /**
    * The server the conversation runs on; Flue when omitted. On the durable
    * agents server, `chatEndpoint` names its base, and the panel reads no
-   * history and runs no browser calls yet.
+   * history yet.
    */
   readonly backend?: BrunchBackend;
 }): BrunchAssistant => {
@@ -605,16 +613,47 @@ export const useBrunchAssistant = ({
     },
     [constructionBrowser],
   );
-  const canonicalReplayReadiness = useImmutableReplayBaseline<
+  const flueReplayReadiness = useImmutableReplayBaseline<
     NonNullable<typeof flueHistory.snapshot>,
     CanonicalPetrinautReplay
   >({
-    bindingKey: replayBindingKey,
+    bindingKey: successorConversation === null ? replayBindingKey : undefined,
     emptyReplay: EMPTY_CANONICAL_PETRINAUT_REPLAY,
     historyPhase: flueHistory.phase,
     snapshot: flueHistory.snapshot,
     derive: deriveCanonicalReplay,
   });
+  // The durable agents server's call records keep what the browser posted,
+  // which its history doesn't. Without them a reload loses only the
+  // revisions Brunch's changes produced: the server refuses to hand out a
+  // call that started or ended.
+  const deriveSuccessorReplay = useCallback(
+    async (conversation: SuccessorConversation) => {
+      try {
+        return issuedCanonicalCallsFromBrowserCalls(
+          await readSuccessorBrowserCalls(conversation),
+        );
+      } catch (error) {
+        reportBrunchFailure("browser-call-replay", error);
+        return EMPTY_CANONICAL_PETRINAUT_REPLAY;
+      }
+    },
+    [reportBrunchFailure],
+  );
+  const successorReplayReadiness = useImmutableReplayBaseline<
+    SuccessorConversation,
+    CanonicalPetrinautReplay
+  >({
+    bindingKey: successorConversation === null ? undefined : replayBindingKey,
+    emptyReplay: EMPTY_CANONICAL_PETRINAUT_REPLAY,
+    historyPhase: undefined,
+    snapshot: successorConversation ?? undefined,
+    derive: deriveSuccessorReplay,
+  });
+  const canonicalReplayReadiness =
+    successorConversation === null
+      ? flueReplayReadiness
+      : successorReplayReadiness;
   const canonicalHostTools = useMemo(() => {
     if (!constructionBrowser || !editor) return undefined;
     return createCanonicalPetrinautHostTools({
@@ -771,7 +810,29 @@ export const useBrunchAssistant = ({
     versionLoad,
   ]);
 
-  const inBandBrowserTools = useMemo(
+  /** How the open document admits, prepares and records a browser call, on either server. */
+  const browserCallHost = useMemo(
+    () => ({
+      metadataFor: (toolCallId: string, output: unknown) =>
+        canonicalHostTools?.clientToolResultMetadataFor(toolCallId, output),
+      prepareInput: (call: {
+        toolCallId: string;
+        toolName: string;
+        input: unknown;
+      }) => {
+        canonicalHostTools?.mapClientToolInput(call);
+      },
+      admit: createBrunchMutationAdmission(
+        mutationApproval.coordinator,
+        () => editor?.handle.doc(),
+        hostSave,
+      ),
+      acceptsRevision: (expected: string) =>
+        canonicalHostTools?.acceptsRevision(expected) ?? false,
+    }),
+    [canonicalHostTools, mutationApproval, hostSave, editor],
+  );
+  const flueBrowserCalls = useMemo(
     () =>
       constructionBrowser && flueClientPromise
         ? createInBandBrowserCalls({
@@ -780,34 +841,44 @@ export const useBrunchAssistant = ({
             legacyActorHeader,
             fetch: hostFetch,
             binding: constructionBrowser.binding,
-            metadataFor: (toolCallId, output) =>
-              canonicalHostTools?.clientToolResultMetadataFor(
-                toolCallId,
-                output,
-              ),
-            prepareInput: (call) => {
-              canonicalHostTools?.mapClientToolInput(call);
-            },
-            admit: createBrunchMutationAdmission(
-              mutationApproval.coordinator,
-              () => editor?.handle.doc(),
-              hostSave,
-            ),
-            acceptsRevision: (expected) =>
-              canonicalHostTools?.acceptsRevision(expected) ?? false,
+            ...browserCallHost,
           })
         : undefined,
     [
       constructionBrowser,
       flueClientPromise,
-      canonicalHostTools,
-      mutationApproval,
+      browserCallHost,
       actorKey,
       legacyActorHeader,
       hostFetch,
-      hostSave,
-      editor,
     ],
+  );
+  const successorBrowserCalls = useMemo(
+    () =>
+      constructionBrowser && successorConversation
+        ? createSuccessorBrowserCalls({
+            conversation: successorConversation,
+            binding: constructionBrowser.binding,
+            ...browserCallHost,
+          })
+        : undefined,
+    [constructionBrowser, successorConversation, browserCallHost],
+  );
+  const inBandBrowserTools = successorBrowserCalls ?? flueBrowserCalls;
+  const callsOpenInOtherTabs = useSyncExternalStore(
+    successorBrowserCalls?.openInOtherTabs.subscribe ?? subscribeToNothing,
+    successorBrowserCalls?.openInOtherTabs.getSnapshot ?? readNothing,
+    successorBrowserCalls?.openInOtherTabs.getSnapshot ?? readNothing,
+  );
+  const resolveToolPresentation = useMemo(
+    () =>
+      callsOpenInOtherTabs === undefined
+        ? resolveBrunchToolPresentation
+        : withCallsOpenInOtherTabs(
+            resolveBrunchToolPresentation,
+            callsOpenInOtherTabs,
+          ),
+    [callsOpenInOtherTabs],
   );
 
   const reportHandEditRefusal = useCallback(
@@ -825,9 +896,9 @@ export const useBrunchAssistant = ({
 
   const draftInteractiveTool = useMemo(
     () =>
-      constructionBrowser && editor && flueClientPromise && inBandBrowserTools
+      constructionBrowser && editor && flueClientPromise && flueBrowserCalls
         ? createBrunchDraftExperimentInteractiveTool({
-            browserCalls: inBandBrowserTools,
+            browserCalls: flueBrowserCalls,
             readTitle: editor.readTitle,
             handle: editor.handle,
             readDraftAuthority: async (toolCallId) => {
@@ -839,7 +910,7 @@ export const useBrunchAssistant = ({
             },
           })
         : undefined,
-    [editor, flueClientPromise, inBandBrowserTools, constructionBrowser],
+    [editor, flueClientPromise, flueBrowserCalls, constructionBrowser],
   );
   const assistant = useMemo((): PetrinautAiAssistant | null => {
     if (requestStop === null || brunchChatTransport === null) {
@@ -898,7 +969,7 @@ export const useBrunchAssistant = ({
           <InterviewBudgetNote level={change.level} />
         ) : undefined;
       },
-      resolveToolPresentation: resolveBrunchToolPresentation,
+      resolveToolPresentation,
       workingLabel: "Working…",
       renderComposerControl: (context: PetrinautAiComposerControlContext) => {
         const admittedContext: PetrinautAiComposerControlContext = {
@@ -1025,6 +1096,7 @@ export const useBrunchAssistant = ({
     mutationApprovalTools,
     reportingBrowserTools,
     requestStop,
+    resolveToolPresentation,
     setInterviewBudgetLevel,
     starterChips,
     versionLoad,
