@@ -310,6 +310,36 @@ export const isHeld = (record: BrowserCallRecord, now: number) =>
   (record.status === "claimed" && now < record.expiresAt) ||
   isAnsweredUncollected(record);
 
+/** The task delivered the browser's outcome to the tool. */
+const isDelivered = (record: BrowserCallRecord) =>
+  record.status === "settled" || record.status === "failure-settled";
+
+/**
+ * Whether aborting the turn of `calls` would discard an outcome: one is
+ * held (`isHeld`), or was delivered to a tool task that is still live, so
+ * Pi has not committed its result, which it does in the commit that ends
+ * the task. A call answered before `ownerAtOutcome` was recorded counts as
+ * delivered.
+ */
+export const holdsTurn = async (
+  harness: Harness,
+  calls: readonly BrowserCallRecord[],
+  now: number,
+  context: Context,
+) => {
+  if (calls.some((record) => isHeld(record, now))) return true;
+  const owners = new Set<number>(
+    calls.flatMap((record) =>
+      isDelivered(record) && record.ownerAtOutcome !== undefined
+        ? [record.ownerAtOutcome.task]
+        : [],
+    ),
+  );
+  if (owners.size === 0) return false;
+  const { tasks } = await harness.inspect(context);
+  return tasks.some(({ record }) => owners.has(record.id));
+};
+
 /** The browser committed a result, whether or not its turn received it. */
 export const hasCommittedResult = (record: BrowserCallRecord) =>
   record.status === "settled" ||

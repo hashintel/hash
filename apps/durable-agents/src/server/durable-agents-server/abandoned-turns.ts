@@ -1,9 +1,10 @@
 /**
  * Abandoned turns: a conversation's running turn that no client stream (a
  * `POST /chat` answer or a reconnect) has followed for `timeoutMs` is
- * aborted, unless one of its calls is held (`isHeld`): a browser holds it
- * before it expires, or its outcome is committed and not yet delivered. A
- * held call is checked again until it is not. Every conversation this process opens
+ * aborted, unless one of its calls holds it (`holdsTurn`): a browser holds
+ * the call before it expires, or its outcome is committed and its tool has
+ * not yet committed the result. A turn held so is checked again until it
+ * is not. Every conversation this process opens
  * starts unwatched; the clock restarts whenever its last stream ends.
  *
  * Only a conversation this process still owns is checked: another owner
@@ -14,7 +15,7 @@ import { LiveDoc } from "@earendil-works/pi-durable";
 
 import {
   BrowserCallsDoc,
-  isHeld,
+  holdsTurn,
   withBrowserClaimDecision,
 } from "../../browser-call/browser-call";
 
@@ -53,9 +54,9 @@ const check = async (
   const calls =
     (await harness.snapshot(BrowserCallsDoc, root.id, context))?.calls ?? {};
   if (!stillDue()) return { kind: "idle" };
-  const at = now();
-  if (Object.values(calls).some((record) => isHeld(record, at)))
-    return { kind: "held" };
+  const held = await holdsTurn(harness, Object.values(calls), now(), context);
+  if (!stillDue()) return { kind: "idle" };
+  if (held) return { kind: "held" };
   await root.abort(withAbortSignal(signal, context));
   return { kind: "aborted" };
 };
