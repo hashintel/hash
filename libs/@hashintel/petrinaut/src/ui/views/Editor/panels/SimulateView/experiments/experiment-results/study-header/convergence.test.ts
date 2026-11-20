@@ -26,9 +26,11 @@ describe("convergenceWindow", () => {
 
 describe("assessConvergence", () => {
   it("is too early below one window of completed steps", () => {
-    expect(assessConvergence(completed([1, 2, null, 3]), "maximize", 30)).toBe(
-      "too-early",
-    );
+    // Four completed steps of five received: counting the pruned one would
+    // fill the window and read "improving".
+    expect(
+      assessConvergence(completed([1, 2, null, 3, 4]), "maximize", 30),
+    ).toBe("too-early");
   });
 
   it("is improving while the best moved inside the window", () => {
@@ -53,12 +55,14 @@ describe("assessConvergence", () => {
   });
 
   it("ignores pruned steps when counting stagnation", () => {
+    // Four completed steps since the best: counting the four pruned ones
+    // would make eight and read "converging".
     expect(
       assessConvergence(
-        completed([5, null, null, null, null, null, 4, 3, 2, 1, 0]),
+        completed([5, null, null, null, null, 4, 3, 2, 1]),
         "maximize",
         30,
       ),
-    ).toBe("converging");
+    ).toBe("improving");
   });
 });
