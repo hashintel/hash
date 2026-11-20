@@ -357,7 +357,6 @@ const TestWrapper = ({
   <NotificationsContext
     value={{
       addNotification: addNotification ?? (() => ""),
-      dismissNotification: () => {},
     }}
   >
     <SDCPNContext.Provider
@@ -922,9 +921,7 @@ describe("ExperimentsProvider", () => {
 
     const valueHolder = { current: null as ExperimentsContextValue | null };
     const renderResult = render(
-      <NotificationsContext
-        value={{ addNotification: () => "", dismissNotification: () => {} }}
-      >
+      <NotificationsContext value={{ addNotification: () => "" }}>
         <SDCPNContext.Provider value={sdcpnContextValue}>
           <LanguageClientOverride requestHirArtifacts={undefined}>
             {/* The pool is the simulators provider's: the experiments

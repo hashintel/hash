@@ -17,12 +17,6 @@ export const NotificationsProvider = ({
 }: {
   children: ReactNode;
 }) => {
-  const dismissNotification = (id: string) => {
-    queueMicrotask(() => {
-      notificationsToaster.dismiss(id);
-    });
-  };
-
   const addNotification = ({
     action,
     id: suppliedId,
@@ -66,7 +60,6 @@ export const NotificationsProvider = ({
 
   const value: NotificationsContextValue = {
     addNotification,
-    dismissNotification,
   };
 
   return (

@@ -170,9 +170,7 @@ describe("usePetrinautCommands", () => {
       });
       const { result } = renderHook(usePetrinautCommands, {
         wrapper: ({ children }: { children: ReactNode }) => (
-          <NotificationsContext
-            value={{ addNotification, dismissNotification: () => {} }}
-          >
+          <NotificationsContext value={{ addNotification }}>
             <Wrapper>{children}</Wrapper>
           </NotificationsContext>
         ),

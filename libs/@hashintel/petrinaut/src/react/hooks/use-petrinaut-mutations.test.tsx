@@ -258,9 +258,7 @@ describe("usePetrinautMutations", () => {
       });
       const { result } = renderHook(usePetrinautMutations, {
         wrapper: ({ children }: { children: ReactNode }) => (
-          <NotificationsContext
-            value={{ addNotification, dismissNotification: () => {} }}
-          >
+          <NotificationsContext value={{ addNotification }}>
             <Wrapper>{children}</Wrapper>
           </NotificationsContext>
         ),
@@ -355,9 +353,7 @@ test.each([
     const { result } = renderHook(usePetrinautMutations, {
       wrapper: ({ children }) => (
         <Wrapper>
-          <NotificationsContext
-            value={{ addNotification, dismissNotification: () => {} }}
-          >
+          <NotificationsContext value={{ addNotification }}>
             {children}
           </NotificationsContext>
         </Wrapper>
@@ -386,9 +382,7 @@ test("allowed scenario mutations in Simulate stay quiet", () => {
   const { result } = renderHook(usePetrinautMutations, {
     wrapper: ({ children }) => (
       <Wrapper>
-        <NotificationsContext
-          value={{ addNotification, dismissNotification: () => {} }}
-        >
+        <NotificationsContext value={{ addNotification }}>
           {children}
         </NotificationsContext>
       </Wrapper>
