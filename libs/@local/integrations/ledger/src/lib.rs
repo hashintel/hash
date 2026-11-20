@@ -4,7 +4,7 @@
 //! place of one integration in a bucket, which [`IntegrationNamespace`] derives.
 //!
 //! [`start`] starts a run of the integration. A run is named by a [`RunId`], which the caller makes
-//! once per run, and starting the same run again does nothing.
+//! once per run, so that a start that failed can be repeated with the same id.
 //!
 //! ## Workspace dependencies
 #![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]

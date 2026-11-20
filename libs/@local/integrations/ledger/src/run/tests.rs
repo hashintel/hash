@@ -61,6 +61,28 @@ fn start_input(run: RunId) -> StartInput {
     }
 }
 
+async fn started(storage: &Storage, run: RunId) {
+    start(storage, &aviation(), start_input(run))
+        .await
+        .expect("should start the run");
+}
+
+async fn current_of(storage: &Storage) -> Current {
+    current::read(storage)
+        .await
+        .expect("should read current.json")
+        .0
+}
+
+async fn text(storage: &Storage, key: &str) -> String {
+    let (bytes, _) = storage
+        .read_versioned(key)
+        .await
+        .expect("should read the file")
+        .expect("the file should exist");
+    String::from_utf8(bytes).expect("the file should be UTF-8")
+}
+
 /// The versions of `current.json` and of the run's `run.json`.
 async fn versions(storage: &Storage, run: RunId) -> (Option<CasVersion>, CasVersion) {
     let (_, current) = current::read(storage)
@@ -129,27 +151,66 @@ async fn run_json_round_trips() {
     let (loaded, _) = load(&storage, run).await.expect("should load run.json");
     assert_eq!(loaded, record, "the record should read back unchanged");
 
-    let (bytes, _) = storage
-        .read_versioned(&run_file(run))
-        .await
-        .expect("should read run.json")
-        .expect("run.json should exist");
-    insta::assert_snapshot!(String::from_utf8(bytes).expect("run.json should be UTF-8"));
+    insta::assert_snapshot!(text(&storage, &run_file(run)).await);
 }
 
 #[tokio::test]
-async fn activate_refuses_a_stale_version() {
+async fn save_stale_version() {
+    let storage = Storage::memory();
+    let run = RunId(id(3));
+    let record = finished(run);
+    save(&storage, &record, None)
+        .await
+        .expect("should create run.json");
+    let (mut cleared, version) = load(&storage, run).await.expect("should load run.json");
+    cleared.failure = None;
+    save(&storage, &cleared, Some(&version))
+        .await
+        .expect("a save with the loaded version should write");
+
+    let error = save(&storage, &record, Some(&version))
+        .await
+        .expect_err("a save with a stale version should not write");
+    assert_eq!(
+        *error.current_context(),
+        RunError::Changed,
+        "a stale save should be reported as a change"
+    );
+    assert_eq!(
+        load(&storage, run).await.expect("should load run.json").0,
+        cleared,
+        "a stale save should change nothing"
+    );
+}
+
+#[tokio::test]
+async fn load_unknown_field() {
+    let storage = Storage::memory();
+    let run = RunId(id(3));
+    let mut json = serde_json::to_value(finished(run)).expect("a run record should serialize");
+    json.as_object_mut()
+        .expect("a run record should be an object")
+        .insert("failures".to_owned(), serde_json::Value::Null);
+    storage
+        .replace_if(&run_file(run), None, json.to_string().into_bytes())
+        .await
+        .expect("should write run.json");
+
+    let error = load(&storage, run)
+        .await
+        .expect_err("a record with a field it does not know should not load");
+    assert_eq!(
+        *error.current_context(),
+        RunError::Unreadable,
+        "a misspelt part should make run.json unreadable"
+    );
+}
+
+#[tokio::test]
+async fn activate_stale_version() {
     let storage = Storage::memory();
     let (earlier, first, second) = (RunId(id(5)), RunId(id(6)), RunId(id(7)));
-    let (empty, none) = current::read(&storage)
-        .await
-        .expect("should read the missing current.json");
-    assert!(
-        current::activate(&storage, empty, none.as_ref(), earlier)
-            .await
-            .expect("should activate the earlier run"),
-        "the first claim of an integration should create current.json"
-    );
+    started(&storage, earlier).await;
     current::complete(&storage, earlier)
         .await
         .expect("should complete the earlier run");
@@ -171,10 +232,7 @@ async fn activate_refuses_a_stale_version() {
         "a claim with the version read before the first claim should not write"
     );
     assert_eq!(
-        current::read(&storage)
-            .await
-            .expect("should read current.json")
-            .0,
+        current_of(&storage).await,
         Current {
             active: Some(first),
             last_completed: Some(earlier),
@@ -184,43 +242,39 @@ async fn activate_refuses_a_stale_version() {
 }
 
 #[tokio::test]
-async fn complete_frees_the_integration_once() {
+async fn complete_repeated() {
     let storage = Storage::memory();
-    let (run, other) = (RunId(id(8)), RunId(id(9)));
-    let (empty, none) = current::read(&storage)
-        .await
-        .expect("should read the missing current.json");
-    current::activate(&storage, empty, none.as_ref(), run)
-        .await
-        .expect("should activate the run");
-
+    let run = RunId(id(8));
+    started(&storage, run).await;
     current::complete(&storage, run)
         .await
         .expect("should complete the run");
-    let (completed, version) = current::read(&storage)
+    let before = versions(&storage, run).await;
+
+    current::complete(&storage, run)
         .await
-        .expect("should read current.json");
+        .expect("a second complete should succeed");
     assert_eq!(
-        completed,
+        current_of(&storage).await,
         Current {
             active: None,
             last_completed: Some(run),
         },
         "the run should be the last completed run, and no run active"
     );
-
-    current::complete(&storage, run)
-        .await
-        .expect("a second complete should succeed");
     assert_eq!(
-        current::read(&storage)
-            .await
-            .expect("should read current.json")
-            .1,
-        version,
+        versions(&storage, run).await,
+        before,
         "a second complete should not write"
     );
-    let error = current::complete(&storage, other)
+}
+
+#[tokio::test]
+async fn complete_other_run() {
+    let storage = Storage::memory();
+    started(&storage, RunId(id(8))).await;
+
+    let error = current::complete(&storage, RunId(id(9)))
         .await
         .expect_err("a run current.json does not name should not complete");
     assert_eq!(
@@ -231,39 +285,20 @@ async fn complete_frees_the_integration_once() {
 }
 
 #[tokio::test]
-async fn start_writes_the_run_and_activates_it() {
+async fn start_new_run() {
     let storage = Storage::memory();
     let run = RunId(id(10));
-    start(&storage, &aviation(), start_input(run))
+    let input = StartInput {
+        id_namespace: Some("flights".into()),
+        ..start_input(run)
+    };
+    start(&storage, &aviation(), input)
         .await
         .expect("should start the run");
 
-    let (record, _) = load(&storage, run).await.expect("should load run.json");
+    insta::assert_snapshot!(text(&storage, &run_file(run)).await);
     assert_eq!(
-        record,
-        RunRecord {
-            input: Input {
-                run,
-                web: WebId::new(WEB),
-                connector: "aviation".into(),
-                actor: ActorEntityUuid::new(id(2)),
-                definition: AVIATION.into(),
-                id_namespace: "aviation".into(),
-                submitted_at: submitted_at(),
-            },
-            batch: BatchLimits::default(),
-            capture: None,
-            prepare: None,
-            send: None,
-            failure: None,
-        },
-        "run.json should hold only the input and batch parts, with the connector as id namespace"
-    );
-    assert_eq!(
-        current::read(&storage)
-            .await
-            .expect("should read current.json")
-            .0,
+        current_of(&storage).await,
         Current {
             active: Some(run),
             last_completed: None,
@@ -273,12 +308,10 @@ async fn start_writes_the_run_and_activates_it() {
 }
 
 #[tokio::test]
-async fn start_is_refused_while_a_run_is_active() {
+async fn start_other_run_active() {
     let storage = Storage::memory();
     let (first, second) = (RunId(id(11)), RunId(id(12)));
-    start(&storage, &aviation(), start_input(first))
-        .await
-        .expect("should start the first run");
+    started(&storage, first).await;
 
     let error = start(&storage, &aviation(), start_input(second))
         .await
@@ -294,66 +327,86 @@ async fn start_is_refused_while_a_run_is_active() {
     assert_eq!(
         *error.current_context(),
         RunError::NotFound,
-        "a refused start should write nothing"
+        "a refused start should write no run.json"
     );
 }
 
 #[tokio::test]
-async fn starting_a_run_again_finishes_or_does_nothing() {
-    let definition = aviation();
-    let run = RunId(id(13));
+async fn start_current_unknown_field() {
+    let storage = Storage::memory();
+    let edited = br#"{ "activ": null, "last_completed": null }"#;
+    storage
+        .replace_if("current.json", None, edited.to_vec())
+        .await
+        .expect("should write current.json");
 
-    let started = Storage::memory();
-    start(&started, &definition, start_input(run))
+    let error = start(&storage, &aviation(), start_input(RunId(id(13))))
         .await
-        .expect("should start the run");
-    let before = versions(&started, run).await;
-    start(&started, &definition, start_input(run))
-        .await
-        .expect("starting a started run again should succeed");
+        .expect_err("a start should not run on a current.json it cannot read");
     assert_eq!(
-        versions(&started, run).await,
-        before,
-        "starting a started run again should write nothing"
+        *error.current_context(),
+        StartError::Unreadable,
+        "a misspelt field should make current.json unreadable, not free the integration"
     );
+    assert_eq!(
+        text(&storage, "current.json").await.as_bytes(),
+        edited,
+        "a refused start should leave current.json as it was"
+    );
+}
 
-    let interrupted = Storage::memory();
+#[tokio::test]
+async fn start_repeated() {
+    let storage = Storage::memory();
+    let run = RunId(id(14));
+    started(&storage, run).await;
+    let before = versions(&storage, run).await;
+
+    started(&storage, run).await;
+    assert_eq!(
+        versions(&storage, run).await,
+        before,
+        "starting the active run again should write nothing"
+    );
+}
+
+#[tokio::test]
+async fn start_repeated_completed() {
+    let storage = Storage::memory();
+    let run = RunId(id(15));
+    started(&storage, run).await;
+    current::complete(&storage, run)
+        .await
+        .expect("should complete the run");
+    let before = versions(&storage, run).await;
+
+    started(&storage, run).await;
+    assert_eq!(
+        versions(&storage, run).await,
+        before,
+        "starting the last completed run again should write nothing"
+    );
+}
+
+#[tokio::test]
+async fn start_interrupted() {
+    let storage = Storage::memory();
+    let run = RunId(id(16));
     save(
-        &interrupted,
-        &RunRecord::new(&definition, start_input(run)),
+        &storage,
+        &RunRecord::new(&aviation(), start_input(run)),
         None,
     )
     .await
     .expect("should create run.json");
-    start(&interrupted, &definition, start_input(run))
-        .await
-        .expect("should finish a start that stopped after run.json");
+
+    started(&storage, run).await;
     assert_eq!(
-        current::read(&interrupted)
-            .await
-            .expect("should read current.json")
-            .0,
+        current_of(&storage).await,
         Current {
             active: Some(run),
             last_completed: None,
         },
-        "the interrupted start should make the run active"
-    );
-
-    let completed = Storage::memory();
-    start(&completed, &definition, start_input(run))
-        .await
-        .expect("should start the run");
-    current::complete(&completed, run)
-        .await
-        .expect("should complete the run");
-    let before = versions(&completed, run).await;
-    start(&completed, &definition, start_input(run))
-        .await
-        .expect("starting a completed run again should succeed");
-    assert_eq!(
-        versions(&completed, run).await,
-        before,
-        "starting a completed run again should write nothing"
+        "a start that stopped after run.json should be finished by the next start"
     );
 }

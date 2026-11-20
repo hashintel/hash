@@ -28,8 +28,10 @@ pub struct StartInput {
 pub enum StartError {
     #[display("another run of the integration is active: {active}")]
     RunActive { active: RunId },
-    #[display("`current.json` changed while the run was started")]
+    #[display("`current.json` changed since it was read")]
     Changed,
+    #[display("`current.json` is not valid, and has to be fixed by hand")]
+    Unreadable,
     #[display("the state of the integration could not be read or written")]
     Storage,
 }
@@ -39,24 +41,31 @@ pub enum StartError {
 /// Writes the run's `run.json` and names the run as active in `current.json`. A run starts only
 /// when no other run of the integration is active. `definition` is `input.definition`, parsed.
 ///
-/// Starting a run that has already started does nothing, so a caller whose start failed starts
-/// the same run again.
+/// Starting the active run or the last completed run again does nothing, so a caller whose start
+/// failed starts the same run again.
 ///
 /// # Errors
 ///
 /// - [`StartError::RunActive`] if another run of the integration is active. Nothing is written.
-/// - [`StartError::Changed`] if `current.json` changed while the run was started
-/// - [`StartError::Storage`] if the bucket cannot be read or written, or `current.json` cannot be
-///   read
+/// - [`StartError::Changed`] if `current.json` changed since it was read. Starting the same run
+///   again can succeed.
+/// - [`StartError::Unreadable`] if `current.json` is not valid. Starting again cannot help.
+/// - [`StartError::Storage`] if the bucket cannot be read or written. Starting the same run again
+///   can succeed.
 pub async fn start(
     storage: &Storage,
     definition: &Definition,
     input: StartInput,
 ) -> Result<(), Report<StartError>> {
     let run = input.run;
-    let (current, version) = current::read(storage)
-        .await
-        .change_context(StartError::Storage)?;
+    let (current, version) = current::read(storage).await.map_err(|report| {
+        let context = if *report.current_context() == RunError::Unreadable {
+            StartError::Unreadable
+        } else {
+            StartError::Storage
+        };
+        report.change_context(context)
+    })?;
     // An earlier start of this run got through, even if its caller saw an error: a write can
     // land although its answer was lost. Starting it again changes nothing.
     if current.active == Some(run) || current.last_completed == Some(run) {
@@ -78,7 +87,7 @@ pub async fn start(
     }
     // The run becomes active only if `current.json` is unchanged since it was read above. If
     // another start wrote it in between, at most one of them wins, and this one is refused.
-    // Its `run.json` stays behind and is never read.
+    // Its `run.json` stays behind, and a later start of the same run uses it.
     if current::activate(storage, current, version.as_ref(), run)
         .await
         .change_context(StartError::Storage)?

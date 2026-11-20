@@ -12,9 +12,10 @@ use super::{RunId, StartInput};
 
 /// What a run works with and what each of its stages finished, stored as `runs/{run}/run.json`.
 ///
-/// A part that is set means its stage has finished. Every stage reads the record first and saves
-/// it as its last write.
+/// `capture`, `prepare` and `send` are set when their stage has finished, and `failure` when a
+/// stage stopped for good. A field the record does not know makes the file unreadable.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct RunRecord {
     pub input: Input,
     pub batch: BatchLimits,
@@ -129,7 +130,7 @@ pub(crate) struct FailedEntity {
 pub(crate) struct Failure {
     pub stage: Stage,
     pub code: Box<str>,
-    /// The error's text, cut to 1,024 characters.
+    /// The error's text.
     pub message: Box<str>,
 }
 

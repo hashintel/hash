@@ -9,9 +9,10 @@ const CURRENT_FILE: &str = "current.json";
 /// Which run of the integration is active, and which was the last to complete, stored as
 /// `current.json`.
 ///
-/// A new run starts only when no run is active, and a stage works only on the run this file
-/// names.
+/// A new run starts only when no run is active. A field the file does not know makes it
+/// unreadable, so that a mistake in an edit by hand does not free the integration.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct Current {
     pub active: Option<RunId>,
     pub last_completed: Option<RunId>,
@@ -69,7 +70,7 @@ pub(crate) async fn activate(
 ///
 /// - [`RunError::NotActive`] if `current.json` names `run` neither as active nor as the last
 ///   completed run
-/// - [`RunError::Changed`] if the file changed while it was being written
+/// - [`RunError::Changed`] if the file changed since it was read
 /// - [`RunError::Unreadable`] if the file is not a `current.json`
 /// - [`RunError::Storage`] if the bucket cannot be read or written
 pub(crate) async fn complete(storage: &Storage, run: RunId) -> Result<(), Report<RunError>> {
