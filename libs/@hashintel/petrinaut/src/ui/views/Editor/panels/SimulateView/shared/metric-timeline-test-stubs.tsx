@@ -5,8 +5,6 @@
  */
 import { vi } from "vitest";
 
-import type { ChartCardTone } from "./chart-card";
-
 /**
  * Replaces `../experiments/experiment-metric-timeline`: the menu, the view
  * description and the default settings are the real ones, the timeline
@@ -44,29 +42,6 @@ export const mockExperimentMetricTimelineModule = async () => {
       >
         {frames.length} frames
       </div>
-    ),
-  };
-};
-
-/** Replaces the objective-history module: a real `ChartCard` around a stub plot. */
-export const mockObjectiveHistoryCardModule = async () => {
-  const chartCard =
-    await vi.importActual<typeof import("./chart-card")>("./chart-card");
-  return {
-    ObjectiveHistoryCard: ({
-      plotHeight,
-      tone,
-    }: {
-      plotHeight: number;
-      tone?: ChartCardTone;
-    }) => (
-      <chartCard.ChartCard
-        title="Objective by step"
-        bodyHeight={plotHeight}
-        tone={tone}
-      >
-        <div data-testid="objective-history" />
-      </chartCard.ChartCard>
     ),
   };
 };

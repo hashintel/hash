@@ -9,27 +9,6 @@ import type {
 } from "@hashintel/petrinaut-core";
 import type uPlot from "uplot";
 
-/**
- * Whether the step's parameters satisfied the study's constraints. `unknown`
- * for a trial event carrying no constraint results.
- */
-export type ObjectiveFeasibility = "feasible" | "infeasible" | "unknown";
-
-/**
- * A step's feasibility from its constraint results: infeasible when its draw
- * broke a parameter constraint. A step whose state constraints fell short is
- * limited, not infeasible: its objective counts like any other, so it keeps
- * its colour and can be the best so far.
- */
-export const trialFeasibility = (
-  trial: Pick<PetrinautOptimizationTrialEvent, "constraints">,
-): ObjectiveFeasibility => {
-  if (!trial.constraints) {
-    return "unknown";
-  }
-  return trial.constraints.infeasible === undefined ? "feasible" : "infeasible";
-};
-
 export type ObjectiveHistoryPoint = {
   /** The step number as the table shows it: the trial index plus one. */
   step: number;
@@ -37,7 +16,6 @@ export type ObjectiveHistoryPoint = {
   objective: number | null;
   /** The best objective over the completed steps up to and including this one. */
   bestSoFar: number | null;
-  feasibility: ObjectiveFeasibility;
 };
 
 const isBetter = (
@@ -47,9 +25,11 @@ const isBetter = (
 ): boolean => (direction === "maximize" ? candidate > best : candidate < best);
 
 /**
- * An infeasible step never becomes the best so far, the way Optuna's history
- * substitutes infinity for it before accumulating, so the word "best" never
- * sits on a configuration that broke a constraint.
+ * An infeasible step, one whose draw broke a parameter constraint, never
+ * becomes the best so far, the way Optuna's history substitutes infinity for
+ * it before accumulating, so the word "best" never sits on a configuration
+ * that broke a constraint. A step whose state constraints fell short is
+ * limited, not infeasible: its objective counts like any other.
  */
 export const buildObjectiveHistory = (
   trials: readonly PetrinautOptimizationTrialEvent[],
@@ -60,15 +40,14 @@ export const buildObjectiveHistory = (
   let best: number | null = null;
   return ordered.map((trial) => {
     const objective = trial.state === "complete" ? trial.objective : null;
-    const feasibility = trialFeasibility(trial);
     if (
       objective !== null &&
-      feasibility !== "infeasible" &&
+      trial.constraints?.infeasible === undefined &&
       (best === null || isBetter(direction, objective, best))
     ) {
       best = objective;
     }
-    return { step: trial.trial + 1, objective, bestSoFar: best, feasibility };
+    return { step: trial.trial + 1, objective, bestSoFar: best };
   });
 };
 
