@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { act, cleanup, render } from "@testing-library/react";
+import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { use } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -12,6 +12,7 @@ import {
   type HirArtifacts,
   type MonteCarloExperiment,
   type MonteCarloExperimentState,
+  type Scenario,
   type SDCPN,
   type SimulatorExperimentRequest,
   type SimulationRequest,
@@ -189,9 +190,9 @@ const renderProvider = (
     holder.current = use(SimulationContext);
     return null;
   };
-  const { unmount } = render(
+  const tree = (current: SDCPN) => (
     <SDCPNContext.Provider
-      value={{ ...sdcpnContextValue, petriNetDefinition: definition }}
+      value={{ ...sdcpnContextValue, petriNetDefinition: current }}
     >
       <PetrinautNavigationProvider>
         <SimulatorsContext
@@ -211,9 +212,15 @@ const renderProvider = (
           </SimulationProvider>
         </SimulatorsContext>
       </PetrinautNavigationProvider>
-    </SDCPNContext.Provider>,
+    </SDCPNContext.Provider>
   );
-  return { getValue: () => holder.current!, requestHirArtifacts, unmount };
+  const { rerender, unmount } = render(tree(definition));
+  return {
+    getValue: () => holder.current!,
+    requestHirArtifacts,
+    rerender: (next: SDCPN) => rerender(tree(next)),
+    unmount,
+  };
 };
 
 describe("SimulationProvider on a registered simulator", () => {
@@ -490,6 +497,52 @@ describe("SimulationProvider on a registered simulator", () => {
     expect((failure as Error).message).toBe(
       "test.batched computes many runs at once, not a single run",
     );
+  });
+});
+
+describe("SimulationProvider on a net with scenarios", () => {
+  const makeScenario = (id: string, defaultRate: number): Scenario => ({
+    id,
+    name: id,
+    scenarioParameters: [
+      { type: "real", identifier: "rate", default: defaultRate },
+    ],
+    parameterOverrides: {},
+    initialState: { type: "per_place", content: {} },
+  });
+
+  it("does not leak implicit first-scenario overrides after reorder and deletion", async () => {
+    const firstScenario = makeScenario("scenario-a", 1);
+    const secondScenario = makeScenario("scenario-b", 2);
+    const simulator = makeSimulator({
+      id: "test.plain",
+      needsHirTrees: false,
+      start: () => Promise.resolve({ ok: true, handle: makeHandle() }),
+    });
+    const { getValue, rerender } = renderProvider([simulator.registration], {
+      ...sdcpn,
+      scenarios: [firstScenario, secondScenario],
+    });
+
+    expect(getValue().selectedScenarioId).toBe(firstScenario.id);
+
+    act(() => {
+      getValue().setScenarioParameterValue("rate", "99");
+    });
+
+    expect(getValue().scenarioParameterValues).toEqual({ rate: "99" });
+
+    rerender({ ...sdcpn, scenarios: [secondScenario, firstScenario] });
+
+    expect(getValue().selectedScenarioId).toBe(firstScenario.id);
+    expect(getValue().scenarioParameterValues).toEqual({ rate: "99" });
+
+    rerender({ ...sdcpn, scenarios: [secondScenario] });
+
+    await waitFor(() => {
+      expect(getValue().selectedScenarioId).toBe(secondScenario.id);
+      expect(getValue().scenarioParameterValues).toEqual({ rate: "2" });
+    });
   });
 });
 
