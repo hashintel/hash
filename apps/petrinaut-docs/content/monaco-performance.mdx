@@ -371,17 +371,102 @@ Pointing at a row now mounts its menu and renders the list. A sweep of the
 pointer down the rows costs 5.0 ms of script and 4.8 ms of style per row
 crossed, where it cost 2.5 ms and 3.4 ms, with no frame over 20 ms.
 
-:::danger[What a selection or a panel toggle still renders]
+## Reading one part of the editor's state
 
-A toggle still renders 1,000 to 2,100 components on Supply Chain, because the
-panels' open flags and the selection are fields of the editor context, which
-almost every component reads.
+A panel toggle still rendered 1,000 to 1,500 components after that, and a
+selection about 2,000. `panel-toggles.mjs details=1` also lists how many
+renders each component brought with it by rendering first. For the bottom
+panel opening:
 
-- The arcs and nodes of the canvas: about 100 to 200 arcs and 80 to 160 nodes
-  per toggle.
-- The 91 cells of the notebook, which is mounted while it is hidden.
-- The icon provider of `@hashintel/ds-icons` builds its context value anew
-  each time it renders, and every icon reads it.
+| Started the renders         | Renders it brought | What it read                                             |
+| --------------------------- | -----------------: | -------------------------------------------------------- |
+| `ReactFlowCanvasInner`      |                583 | Four settings and the mode, and the hooks it calls more. |
+| `FilterableListContent`     |                209 | The selection and four actions.                          |
+| `NotebookViewContent`       |                111 | The selection and one action.                            |
+| `VerticalSubViewsContainer` |                110 | Its own sections' settings.                              |
+
+None of what they read changes when a panel opens. Each read the whole
+editor context or the whole of the user settings with `use`, and a panel that
+opens changes the editor context once and the settings twice, when the open
+panels are saved.
+
+Both contexts now have a second way to read them:
+
+```tsx
+const globalMode = useEditorState((editor) => editor.globalMode);
+const { cursorMode, selectItem } = useEditorFields("cursorMode", "selectItem");
+const compactNodes = useUserSettings((settings) => settings.compactNodes);
+```
+
+The reader renders when the part it selected changes. `EditorProvider` and
+the settings provider publish their context value to a store after each
+commit (`react/select-from-context.ts`), and the hooks follow that store.
+`use(EditorContext)` and `use(UserSettingsContext)` work as before.
+
+| Rule                                                                                 | Why                                                                                                                                        |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Use a selector in a component with many components below it, or one of many like it. | Those are the renders that add up. A leaf that reads the whole context costs one render.                                                   |
+| Select a value that keeps its identity, such as a field.                             | An object built in the selector is new on every change and renders the reader each time. `useEditorFields` compares field by field.        |
+| Do not guard with a selected value.                                                  | It arrives one render pass after the context, in the same frame. A layout effect of the commit that changed it still sees the old one.     |
+| Provide the context through its provider, or alone.                                  | A bare `<EditorContext value>` below `EditorProvider` is not seen by the selector hooks. Where nothing publishes, they follow the context. |
+
+The read-only reason is a guard, so it has a context of its own instead:
+`ReadOnlyReasonProvider` works it out once and `useReadOnlyReason` reads it.
+Almost every component that edits asks for it, through `useIsReadOnly` and
+`usePetrinautMutations`, and each of them rendered with every change of the
+editor context before.
+
+The active net's context gave a new value on every selection as well. Its
+`setActiveComponentId` was made from the navigation's `navigate`, which is a
+new function after every navigation. It is one function for the provider's
+life now.
+
+Moved to selectors: the canvas and the hooks it calls
+(`useCanvasInteractions`, `useCanvasScene`, `useCanvasInsetsReader`,
+`useKeepSelectionInView`), the sidebar list, the notebook, the sub-view
+container and `usePanelTarget`.
+
+Component renders per toggle on Supply Chain, profiling build, medians of
+three:
+
+| Toggle                 | Before |   Now |
+| ---------------------- | -----: | ----: |
+| Open the bottom panel  |  1,499 |   363 |
+| Close the bottom panel |  1,530 |   390 |
+| Collapse the sidebar   |  1,051 |   133 |
+| Expand the sidebar     |  1,050 |   132 |
+| Select a node          |  2,139 | 1,596 |
+| Deselect               |  1,910 |   894 |
+
+Main-thread script per toggle, production build, two rounds of three samples
+that alternate between the builds:
+
+| Toggle                 | Before |   Now |
+| ---------------------- | -----: | ----: |
+| Open the bottom panel  |  58 ms | 32 ms |
+| Close the bottom panel |  88 ms | 62 ms |
+| Collapse the sidebar   |  30 ms | 13 ms |
+| Expand the sidebar     |  32 ms | 12 ms |
+| Select a node          |  85 ms | 72 ms |
+| Deselect               |  38 ms | 27 ms |
+
+Style and layout did not change, and neither did the assistant's toggles.
+The canvas and the notebook render for no panel toggle now. The notebook
+renders for no selection either while it is hidden.
+
+:::danger[What a selection still renders]
+
+A selection renders the whole canvas about three times, every node and arc
+each time. Eleven of the editor's actions are new functions after every
+navigation, `selectItem`, `setSelection` and `clearSelection` among them,
+because they are made from the navigation's `navigate`. The canvas builds its
+handlers from them, and React Flow renders every node whose handlers changed.
+
+The sidebar list renders all its rows for a selection, where two of them
+changed.
+
+The icon provider of `@hashintel/ds-icons` builds its context value anew each
+time it renders, and every icon reads it.
 
 Tracked in
 [FE-2169](https://linear.app/hash/issue/FE-2169/prototype-faster-monaco-opening-and-typing-in-petrinaut).

@@ -29,6 +29,16 @@ panels need is kept out of it: `AssistantPlacementContext` says where the AI
 assistant sits, and `PanelPresenceContext` holds the values the panels slide
 by.
 
+A component can also read one part of the editor context or of the user
+settings: `useEditorState`, `useEditorFields`, `useUserSettings` and
+`useUserSettingsFields` render their reader when that part changes, where
+`use` on the context renders it for every change. Use them in a component
+with many components below it, or one of many like it. The value they give
+arrives one render pass after the context's, in the same frame, so a guard
+does not read through them. The read-only reason is such a guard and has a
+context of its own, `ReadOnlyReasonContext`, which `useReadOnlyReason` and
+`useIsReadOnly` read.
+
 What the host owns is not in the document context either. Its title, its
 nets and its callbacks are in `NetManagementContext`, the action of the
 read-only notice in `ReadOnlyActionContext`, and what it passes as `slots`
