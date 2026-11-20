@@ -1,12 +1,6 @@
 import { use, useRef, useState } from "react";
 
-import {
-  Button,
-  Icon,
-  LoadingSpinner,
-  NumberInput,
-  TextInput,
-} from "@hashintel/ds-components";
+import { Button, Icon, LoadingSpinner } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   runClockOf,
@@ -26,7 +20,7 @@ import {
   overlayScrollDrawerBodyStyle,
   overlayScrollDrawerViewportStyle,
 } from "../../../../../components/overlay-scroll-area";
-import { Section, SectionList } from "../../../../../components/section";
+import { SectionList } from "../../../../../components/section";
 import { FocusControls } from "../../../../../worksheet/focus-controls";
 import { FocusRoot, FocusStack } from "../../../../../worksheet/focus-stack";
 import { summarizeMetricLspErrors } from "../metrics/metric-lsp";
@@ -38,6 +32,7 @@ import {
 } from "./create-experiment-drawer/constraint-drafts";
 import { summarizeConstraintLspErrors } from "./create-experiment-drawer/constraint-lsp";
 import { ConstraintsSection } from "./create-experiment-drawer/constraints-section";
+import { ExperimentSection } from "./create-experiment-drawer/experiment-section";
 import {
   EMPTY_EXPERIMENT_SIMULATOR,
   resolveExperimentSimulator,
@@ -45,11 +40,6 @@ import {
   simulatorRefusalsFor,
 } from "./create-experiment-drawer/experiment-simulator-draft";
 import { ExperimentSimulatorFields } from "./create-experiment-drawer/experiment-simulator-fields";
-import {
-  fieldStyle,
-  gridStyle,
-  labelStyle,
-} from "./create-experiment-drawer/form-field-styles";
 import {
   constraintPolicyFor,
   lowerConstraintDrafts,
@@ -90,10 +80,10 @@ const errorStyle = css({
 // -- Constants ----------------------------------------------------------------
 
 const DEFAULT_EXPERIMENT_NAME = "Experiment";
-const DEFAULT_RUN_COUNT = "1000";
+const DEFAULT_RUN_COUNT = 1000;
 // The form has no seed field: every experiment it creates draws from this one.
 const experimentSeed = 1;
-const DEFAULT_MAX_TIME = "180";
+const DEFAULT_MAX_TIME = 180;
 const EMPTY_SCENARIOS: readonly Scenario[] = [];
 
 // -- Drawer -------------------------------------------------------------------
@@ -108,7 +98,6 @@ export const CreateExperimentDrawer = ({
   // An untimed net's runs count steps: the form asks for a step to end at,
   // and shows no parameter of how a simulator advances time.
   const clock = runClockOf(petriNetDefinition, extensions);
-  const inSteps = clock === "steps";
   const createOptimizedExperiment = useCreateOptimizedExperiment();
   const { diagnosticsByUri, requestConstraint } = use(LanguageClientContext);
   const optimizationSource = use(PetrinautOptimizationContext);
@@ -122,11 +111,11 @@ export const CreateExperimentDrawer = ({
     Record<string, ExperimentParameterInput>
   >({});
   const [adHocState, setAdHocState] = useState<AdHocScenarioState | null>(null);
-  const [runCount, setRunCount] = useState(DEFAULT_RUN_COUNT);
+  const [runCount, setRunCount] = useState<number | null>(DEFAULT_RUN_COUNT);
   const [simulatorDraft, setSimulatorDraft] = useState(
     EMPTY_EXPERIMENT_SIMULATOR,
   );
-  const [maxTime, setMaxTime] = useState(DEFAULT_MAX_TIME);
+  const [maxTime, setMaxTime] = useState<number | null>(DEFAULT_MAX_TIME);
   const [metricDrafts, setMetricDrafts] = useState<ExperimentMetricDraft[]>([]);
   const [constraintDrafts, setConstraintDrafts] =
     useState<ConstraintDraftsState>(EMPTY_CONSTRAINT_DRAFTS);
@@ -230,7 +219,7 @@ export const CreateExperimentDrawer = ({
 
   const objectiveExecution = {
     dt: experimentSimulator.samplePeriod,
-    maxTime: Number(maxTime),
+    maxTime: maxTime ?? 0,
     runsPerStep: SWEEP_OPTIMIZATION_RUNS_PER_STEP,
   };
   const objectiveError = objectiveEnabled
@@ -347,10 +336,10 @@ export const CreateExperimentDrawer = ({
           scenarioParameterValues: paramInputs,
           adHocScenario: adHocSweeping ? adHocState : null,
           adHocSweeps: adHocSweeping,
-          runCount: Number(runCount),
+          runCount: runCount ?? 0,
           seed: experimentSeed,
           dt: experimentSimulator.samplePeriod,
-          maxTime: Number(maxTime),
+          maxTime: maxTime ?? 0,
           metricSpecs,
           ...(experimentSimulator.selection
             ? { simulator: experimentSimulator.selection }
@@ -403,86 +392,24 @@ export const CreateExperimentDrawer = ({
               viewportClassName={overlayScrollDrawerViewportStyle}
             >
               <SectionList>
-                <Section title="Experiment" collapsible defaultOpen>
-                  <FocusControls>
-                    <div className={fieldStyle}>
-                      <label className={labelStyle} htmlFor="experiment-name">
-                        Name
-                      </label>
-                      <TextInput
-                        htmlForId="experiment-name"
-                        inputRef={nameInputRef}
-                        aria-label="Experiment name"
-                        size="sm"
-                        value={name}
-                        onChange={setName}
-                      />
-                    </div>
-                  </FocusControls>
-                  <FocusControls axis="horizontal">
-                    <div className={gridStyle}>
-                      <div className={fieldStyle}>
-                        {/* A sweep refines each selection progressively (8, 25, 100,
-                    ... 1000, 5000, ...) up to this budget, so for sweeps this
-                    is a ceiling, not a batch size — 100,000 is a reasonable
-                    value on the GPU. */}
-                        <label className={labelStyle} htmlFor="experiment-runs">
-                          {sweepSummary ? "Max runs per selection" : "Runs"}
-                        </label>
-                        <NumberInput
-                          htmlForId="experiment-runs"
-                          size="sm"
-                          min={1}
-                          value={runCount === "" ? null : Number(runCount)}
-                          onChange={(nextRunCount) =>
-                            setRunCount(
-                              nextRunCount === null ? "" : String(nextRunCount),
-                            )
-                          }
-                        />
-                      </div>
-                      <div className={fieldStyle}>
-                        <label
-                          className={labelStyle}
-                          htmlFor="experiment-max-time"
-                          title={
-                            inSteps
-                              ? "This net is untimed: its runs are fired step by step, and every step is sampled."
-                              : undefined
-                          }
-                        >
-                          {inSteps ? "End at step" : "Max time (s)"}
-                        </label>
-                        <NumberInput
-                          htmlForId="experiment-max-time"
-                          aria-label={
-                            inSteps
-                              ? "Step the runs end at"
-                              : "Max time (seconds)"
-                          }
-                          size="sm"
-                          min={inSteps ? 1 : 0}
-                          step={inSteps ? 1 : "any"}
-                          value={maxTime === "" ? null : Number(maxTime)}
-                          onChange={(nextMaxTime) =>
-                            setMaxTime(
-                              nextMaxTime === null ? "" : String(nextMaxTime),
-                            )
-                          }
-                        />
-                      </div>
-                      {/* Cells of the same grid as Runs and Max time: what
-                  computes the runs is a property of the experiment like
-                  the rest. */}
-                      <ExperimentSimulatorFields
-                        draft={simulatorDraft}
-                        resolved={experimentSimulator}
-                        refusals={simulatorRefusals}
-                        onChange={setSimulatorDraft}
-                      />
-                    </div>
-                  </FocusControls>
-                </Section>
+                <ExperimentSection
+                  name={name}
+                  onNameChange={setName}
+                  nameInputRef={nameInputRef}
+                  runCount={runCount}
+                  onRunCountChange={setRunCount}
+                  maxTime={maxTime}
+                  onMaxTimeChange={setMaxTime}
+                  sweeping={sweepSummary !== null}
+                  clock={clock}
+                >
+                  <ExperimentSimulatorFields
+                    draft={simulatorDraft}
+                    resolved={experimentSimulator}
+                    refusals={simulatorRefusals}
+                    onChange={setSimulatorDraft}
+                  />
+                </ExperimentSection>
 
                 <ScenarioSection
                   scenarios={scenarios}
