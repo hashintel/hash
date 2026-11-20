@@ -114,7 +114,6 @@ export const ResultsView = ({
               tiles={metrics.tiles}
               timeDomain={metrics.timeDomain}
               contentEpoch={metrics.contentEpoch}
-              plotHeight={metrics.plotHeight}
               tone={metrics.tone}
             >
               {metrics.cards}

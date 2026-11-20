@@ -23,7 +23,6 @@ import {
   type OptimizationRecord,
 } from "../../../../../../react/optimizations/context";
 import { experimentProgressPercent } from "../../../shared/experiment-progress";
-import { METRIC_PLOT_HEIGHT } from "../shared/chart-card-layout";
 import { describeStepProgress } from "../shared/describe-study-progress";
 import { formatCount, formatFixed } from "../shared/format-value";
 import { type MetricTile } from "../shared/metric-tiles";
@@ -497,7 +496,6 @@ export const experimentResultsModel = (
             // picture out inside each plot instead of cutting to the sparse
             // new stream. The session keys the selection once per publish.
             contentEpoch: sweep?.selectionKey ?? "",
-            plotHeight: METRIC_PLOT_HEIGHT,
             tone: "default",
             // Keyed on the study, so the cards start afresh when the drawer
             // swaps records in place. The Sensitivity card decides its own
@@ -509,14 +507,10 @@ export const experimentResultsModel = (
                     <StudyConstraintsCard
                       optimization={study}
                       rates={rates}
-                      plotHeight={METRIC_PLOT_HEIGHT}
                       tone={tone}
                     />
                   )}
-                  <ParameterImportancePanel
-                    optimization={study}
-                    plotHeight={METRIC_PLOT_HEIGHT}
-                  />
+                  <ParameterImportancePanel optimization={study} />
                 </Fragment>
               ),
           }

@@ -98,8 +98,6 @@ type ResultsMetrics = {
    * sparse new stream.
    */
   contentEpoch: string;
-  /** The plot's height inside every card; the grid's row height follows. */
-  plotHeight: number;
   tone: ChartCardTone;
   /** Cards after the timelines, in the same grid: a study's objective by step, constraints, importance. */
   cards: ReactNode | null;

@@ -21,6 +21,7 @@ import { ChartCard, ChartCardGrid, type ChartCardTone } from "./chart-card";
 import {
   CHART_CARD_GRID_GAP,
   CHART_CARD_MIN_WIDTH,
+  METRIC_PLOT_HEIGHT,
   chartCardBodyHeight,
   chartCardHeight,
 } from "./chart-card-layout";
@@ -55,21 +56,19 @@ const MetricTileCard = ({
   tile,
   timeDomain,
   contentEpoch,
-  plotHeight,
   largePlotHeight,
   tone,
 }: {
   tile: MetricTile;
   timeDomain: readonly [number, number];
   contentEpoch: string;
-  plotHeight: number;
   largePlotHeight: number;
   tone: ChartCardTone;
 }) => {
   const [settings, setSettings] = useState(DEFAULT_METRIC_VIEW_SETTINGS);
   const [large, setLarge] = useState(false);
   const view = describeMetricView(settings, tile.outputType);
-  const tilePlotHeight = large ? largePlotHeight : plotHeight;
+  const tilePlotHeight = large ? largePlotHeight : METRIC_PLOT_HEIGHT;
   const sizeLabel = large ? "Shrink" : "Enlarge";
 
   return (
@@ -116,7 +115,6 @@ export const MetricTiles = ({
   tiles,
   timeDomain,
   contentEpoch,
-  plotHeight,
   tone,
   children,
 }: {
@@ -128,13 +126,11 @@ export const MetricTiles = ({
    * sparse new stream.
    */
   contentEpoch: string;
-  /** The plot's height inside every card; the grid's row height follows. */
-  plotHeight: number;
   tone: ChartCardTone;
   /** Cards after the timelines, in the same grid. */
   children?: ReactNode;
 }) => {
-  const rowHeight = chartCardHeight({ bodyHeight: plotHeight });
+  const rowHeight = chartCardHeight({ bodyHeight: METRIC_PLOT_HEIGHT });
   // Two rows and the gap between them, less the card's own chrome.
   const largePlotHeight = chartCardBodyHeight(
     2 * rowHeight + CHART_CARD_GRID_GAP,
@@ -148,7 +144,6 @@ export const MetricTiles = ({
           tile={tile}
           timeDomain={timeDomain}
           contentEpoch={contentEpoch}
-          plotHeight={plotHeight}
           largePlotHeight={largePlotHeight}
           tone={tone}
         />

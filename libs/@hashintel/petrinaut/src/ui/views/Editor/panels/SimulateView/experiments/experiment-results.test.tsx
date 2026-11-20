@@ -202,7 +202,6 @@ describe("experimentResultsModel for a running sweep", () => {
     expect(result.metrics).toMatchObject({
       key: sweep.id,
       contentEpoch: sweep.sweep!.selectionKey,
-      plotHeight: 220,
       tone: "default",
       cards: null,
       timeDomain: [0, sweep.maxTime],
@@ -627,7 +626,7 @@ describe("experimentResultsModel with a study", () => {
       running.metrics!.cards,
     ).children;
     expect(cards[0]).toBeNull();
-    expect(propsOf<{ plotHeight: number }>(cards[1]).plotHeight).toBe(220);
+    expect(isValidElement(cards[1])).toBe(true);
     expect(
       propsOf<{ optimization: OptimizationRecord }>(running.after),
     ).toMatchObject({ optimization: { id: "study" } });
@@ -661,9 +660,9 @@ describe("experimentResultsModel with a study", () => {
     const cards = propsOf<{ children: ReactNode[] }>(
       constrained.metrics!.cards,
     ).children;
-    expect(
-      propsOf<{ tone: string; plotHeight: number }>(cards[0]),
-    ).toMatchObject({ tone: "optimizing", plotHeight: 220 });
+    expect(propsOf<{ tone: string }>(cards[0])).toMatchObject({
+      tone: "optimizing",
+    });
     // The experiment's own constraints do not add the column; the study's do.
     expect(
       model(makeConstrainedSweepExperiment(), {

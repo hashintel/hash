@@ -8,6 +8,7 @@
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { ChartCard } from "../../shared/chart-card";
+import { METRIC_PLOT_HEIGHT } from "../../shared/chart-card-layout";
 import {
   describeImportance,
   formatCorrelation,
@@ -119,11 +120,8 @@ const HELP =
 
 export const ParameterImportancePanel = ({
   optimization,
-  plotHeight,
 }: {
   optimization: OptimizationRecord;
-  /** The body's height in pixels; the card is exactly as tall as its neighbours. */
-  plotHeight: number;
 }) => {
   // Keyed on the five fields a trial event replaces, so the correlations
   // stand while the selection stream re-publishes the record.
@@ -142,7 +140,7 @@ export const ParameterImportancePanel = ({
       title="Sensitivity analysis"
       subtitle={describeImportance(view)}
       help={`${HELP} At least ${view.floor} completed steps are recommended for this study.`}
-      bodyHeight={plotHeight}
+      bodyHeight={METRIC_PLOT_HEIGHT}
       tone={view.belowFloor ? "muted" : "default"}
     >
       <div

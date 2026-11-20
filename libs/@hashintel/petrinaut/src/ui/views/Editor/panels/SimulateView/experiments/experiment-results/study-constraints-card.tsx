@@ -15,6 +15,7 @@ import {
   type StudyConstraintRates,
 } from "../../../../../../../react/optimizations/constraint-rates";
 import { ChartCard, type ChartCardTone } from "../../shared/chart-card";
+import { METRIC_PLOT_HEIGHT } from "../../shared/chart-card-layout";
 import {
   describeStep,
   latestStep,
@@ -137,14 +138,11 @@ const noteStyle = css({
 export const StudyConstraintsCard = ({
   optimization,
   rates,
-  plotHeight,
   tone,
 }: {
   optimization: OptimizationRecord;
   /** The study's rates, computed once by the model for the strip and this card. */
   rates: StudyConstraintRates;
-  /** The body's height in pixels; the card is exactly as tall as its neighbours. */
-  plotHeight: number;
   /** How the card reads: `optimizing` while the study drives the sweep. */
   tone?: ChartCardTone;
 }) => {
@@ -167,7 +165,7 @@ export const StudyConstraintsCard = ({
       title="Constraints"
       subtitle={`pass threshold ${threshold}% (alpha ${alpha})${infeasibleNote}`}
       help="A run passes a state constraint when the condition held on every sampled frame. A step is clear when every state constraint held on at least the threshold share of its runs, limited otherwise, and infeasible when its parameters broke a parameter constraint before anything ran. The objective counts every run whatever the verdicts; nothing is excluded."
-      bodyHeight={plotHeight}
+      bodyHeight={METRIC_PLOT_HEIGHT}
       tone={tone}
     >
       <div className={bodyStyle}>
