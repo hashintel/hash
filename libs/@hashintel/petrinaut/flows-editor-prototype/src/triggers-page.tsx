@@ -94,7 +94,6 @@ import {
   zoneName,
 } from "./schedule-form";
 import {
-  buttonsOnEdgeStyle,
   formActionsStyle,
   ScheduleFormLayout,
   scheduleLayout,
@@ -502,21 +501,6 @@ const LockLine = ({ count }: { count: number }) =>
  * The switch, with the confirm before a schedule that has a next run is turned off
  * ------------------------------------------------------------------------------------------------------------- */
 
-const confirmStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "3",
-  width: "[340px]",
-  padding: "4",
-  backgroundColor: "neutral.bgSolid.min",
-  borderWidth: "thin",
-  borderStyle: "solid",
-  borderColor: "neutral.bd.subtle",
-  borderRadius: "lg",
-  boxShadow: "md",
-  "&:focus": { outline: "none" },
-});
-
 const TriggerSwitch = ({
   trigger,
   on,
@@ -559,42 +543,41 @@ const TriggerSwitch = ({
           initialFocusRef={focus}
           onClose={() => onConfirm(false)}
         >
-          <div
-            ref={focus}
-            tabIndex={-1}
-            className={confirmStyle}
-            data-trigger-confirm
-          >
-            <span className={cx(headingText, css({ fontWeight: "medium" }))}>
-              Turn off this schedule?
-            </span>
-            <span className={mutedText}>
-              The next run, {trigger.nextRun}, won&apos;t happen. Runs already
-              in progress finish.
-            </span>
-            <span className={buttonsOnEdgeStyle}>
-              {/* Cancel, then the main action, as every figma-ds footer (11 Nov convergence A7). */}
-              <Button
-                size="sm"
-                variant="ghost"
-                tone="neutral"
-                onClick={() => onConfirm(false)}
-              >
-                Keep on
-              </Button>
-              <Button
-                size="sm"
-                variant="solid"
-                tone="neutral"
-                onClick={() => {
-                  onFlip(false);
-                  onConfirm(false);
-                }}
-              >
-                Turn off
-              </Button>
-            </span>
-          </div>
+          <Popover.Container data-trigger-confirm>
+            <Popover.Header title="Turn off this schedule?" />
+            <Popover.Body>
+              <span ref={focus} tabIndex={-1} className={css({ display: "block", outline: "none" })}>
+                The next run, {trigger.nextRun}, won&apos;t happen. Runs already
+                in progress finish.
+              </span>
+            </Popover.Body>
+            <Popover.Footer
+              actions={
+                <>
+                  {/* Cancel, then the main action, as every figma-ds footer (11 Nov convergence A7). */}
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    tone="neutral"
+                    onClick={() => onConfirm(false)}
+                  >
+                    Keep on
+                  </Button>
+                  <Button
+                    size="xs"
+                    variant="solid"
+                    tone="neutral"
+                    onClick={() => {
+                      onFlip(false);
+                      onConfirm(false);
+                    }}
+                  >
+                    Turn off
+                  </Button>
+                </>
+              }
+            />
+          </Popover.Container>
         </Popover>
       ) : null}
     </span>
@@ -946,64 +929,53 @@ const DefaultScheduleFields = ({
           gapY={4}
           onClose={() => setPopover(false)}
         >
-          <div
-            className={cx(
-              confirmStyle,
-              css({ width: "max-content", minWidth: "[560px]" }),
-            )}
-            data-custom-repeat
+          <Popover.Container
+            className={css({ width: "[max-content]", minWidth: "[560px]" })}
           >
-            <span
-              className={css({
-                textStyle: "sm",
-                fontWeight: "medium",
-                color: "neutral.fg.heading",
-              })}
-            >
-              Custom
-            </span>
-            <div
-              className={cx(
-                formGridStyle,
-                css({ gridTemplateColumns: "[160px minmax(max-content, 1fr)]" }),
-              )}
-            >
-              <CustomFields
-                rule={draft}
-                startIso={startIso}
-                onChange={setDraft}
-                withEnds
-              />
-            </div>
-            <span
-              className={css({
-                display: "flex",
-                justifyContent: "flex-end",
-                gap: "2",
-              })}
-            >
-              <Button
-                size="sm"
-                variant="subtle"
-                tone="neutral"
-                onClick={() => setPopover(false)}
+            <Popover.Header title="Custom" />
+            <Popover.Body>
+              <div
+                className={cx(
+                  formGridStyle,
+                  css({ gridTemplateColumns: "[160px minmax(max-content, 1fr)]" }),
+                )}
+                data-custom-repeat
               >
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                variant="solid"
-                tone="neutral"
-                onClick={() => {
-                  set({ rule: draft });
-                  setCustomRows(true);
-                  setPopover(false);
-                }}
-              >
-                Done
-              </Button>
-            </span>
-          </div>
+                <CustomFields
+                  rule={draft}
+                  startIso={startIso}
+                  onChange={setDraft}
+                  withEnds
+                />
+              </div>
+            </Popover.Body>
+            <Popover.Footer
+              actions={
+                <>
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    tone="neutral"
+                    onClick={() => setPopover(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="xs"
+                    variant="solid"
+                    tone="neutral"
+                    onClick={() => {
+                      set({ rule: draft });
+                      setCustomRows(true);
+                      setPopover(false);
+                    }}
+                  >
+                    Done
+                  </Button>
+                </>
+              }
+            />
+          </Popover.Container>
         </Popover>
       ) : null}
       <span className="label">Starts</span>
