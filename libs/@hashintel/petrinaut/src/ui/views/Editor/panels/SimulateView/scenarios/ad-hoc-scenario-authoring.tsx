@@ -15,11 +15,12 @@
 
 import { use, useState } from "react";
 
-import { Form, TextArea, TextInput } from "@hashintel/ds-components";
+import { Button, Form, TextArea, TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   adHocExposedParameterIdentifier,
   EMPTY_AD_HOC_STATE,
+  scenarioSchema,
   synthesizeAdHocScenario,
 } from "@hashintel/petrinaut-core";
 
@@ -36,6 +37,7 @@ import {
 } from "../../../../../components/overlay-scroll-area";
 import { Section, SectionList } from "../../../../../components/section";
 import { CodeEditor } from "../../../../../monaco/code-editor";
+import { DrawerErrorDisplay } from "../drawer-error-display";
 import { SimulationPanel } from "../shared/simulation-panel";
 import { summarizeAdHocLspErrors } from "./ad-hoc-scenario-authoring/ad-hoc-lsp-errors";
 import { validateScenarioName } from "./ad-hoc-scenario-authoring/validate-scenario-name";
@@ -127,8 +129,9 @@ const unexposedCodeVariableErrors = (state: AdHocScenarioState): string[] =>
 /**
  * The draft state plus everything the footer needs: the error summary
  * (name validation, synthesis errors, the code's parameter checks, this
- * form's LSP diagnostics) and `buildScenario`, which derives the persisted
- * shape from the draft.
+ * form's LSP diagnostics), `buildScenario`, which derives the persisted
+ * shape from the draft, and `scenarioToSave`, which also holds it against
+ * the persistence schema.
  */
 export function useAdHocScenarioAuthoring({
   initial,
@@ -146,6 +149,9 @@ export function useAdHocScenarioAuthoring({
   // Owned here (not generated inside the form) so the footer can address
   // exactly this form's diagnostics.
   const [sessionId] = useState(() => crypto.randomUUID());
+  // A schema rejection after a passing form would otherwise be a silent
+  // no-op click; the footer shows it instead.
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const context = {
     netParameters: extensions.parameters ? petriNetDefinition.parameters : [],
@@ -195,6 +201,22 @@ export function useAdHocScenarioAuthoring({
     };
   };
 
+  /** The scenario to persist, or null: the footer then says why. */
+  const scenarioToSave = (id: string) => {
+    const scenario = buildScenario(id);
+    if (!scenario) {
+      return null;
+    }
+    const result = scenarioSchema.safeParse(scenario);
+    if (!result.success) {
+      setSaveError(
+        result.error.issues[0]?.message ?? "The scenario failed validation.",
+      );
+      return null;
+    }
+    return result.data;
+  };
+
   return {
     name,
     setName,
@@ -208,8 +230,10 @@ export function useAdHocScenarioAuthoring({
     nameError,
     errorCount,
     firstError,
+    saveError,
     canSave: errorCount === 0,
     buildScenario,
+    scenarioToSave,
   };
 }
 
@@ -298,3 +322,44 @@ export const AdHocScenarioAuthoringBody: React.FC<{
     </SimulationPanel.Body>
   );
 };
+
+/** The footer of both scenario panels: the error summary, then close and save. */
+export const AdHocScenarioAuthoringFooter = ({
+  authoring,
+  closeLabel,
+  saveLabel,
+  onClose,
+  onSave,
+}: {
+  authoring: AdHocScenarioAuthoring;
+  closeLabel: string;
+  saveLabel: string;
+  onClose: () => void;
+  onSave: () => void;
+}) => (
+  <SimulationPanel.Footer
+    secondaryActions={
+      <DrawerErrorDisplay
+        count={authoring.errorCount + (authoring.saveError ? 1 : 0)}
+        firstMessage={authoring.firstError ?? authoring.saveError ?? undefined}
+      />
+    }
+    actions={
+      <>
+        <Button variant="subtle" tone="neutral" size="sm" onClick={onClose}>
+          {closeLabel}
+        </Button>
+        <Button
+          variant="solid"
+          tone="neutral"
+          size="sm"
+          disabled={!authoring.canSave}
+          tooltip={authoring.firstError}
+          onClick={onSave}
+        >
+          {saveLabel}
+        </Button>
+      </>
+    }
+  />
+);

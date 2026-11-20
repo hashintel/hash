@@ -1,22 +1,20 @@
-import { use, useState } from "react";
+import { use } from "react";
 
-import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   adHocStateFromScenario,
-  scenarioSchema,
   type Scenario,
 } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../react";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { DrawerErrorDisplay } from "../drawer-error-display";
 import {
   SimulationPanel,
   SimulationPanelPresence,
 } from "../shared/simulation-panel";
 import {
   AdHocScenarioAuthoringBody,
+  AdHocScenarioAuthoringFooter,
   useAdHocScenarioAuthoring,
 } from "./ad-hoc-scenario-authoring";
 
@@ -52,9 +50,6 @@ const ViewScenarioContent = ({
       .filter((candidate) => candidate.id !== scenario.id)
       .map((candidate) => candidate.name),
   );
-  // A schema rejection after a passing form would otherwise be a silent
-  // no-op click; surface it in the footer instead.
-  const [saveError, setSaveError] = useState<string | null>(null);
 
   // The same context the authoring hook synthesizes against, so an
   // override the form could not show (a parameter the net no longer has,
@@ -83,25 +78,18 @@ const ViewScenarioContent = ({
   });
 
   const save = () => {
-    const updated = authoring.buildScenario(scenario.id);
+    const updated = authoring.scenarioToSave(scenario.id);
     if (!updated) {
-      return;
-    }
-    const result = scenarioSchema.safeParse(updated);
-    if (!result.success) {
-      setSaveError(
-        result.error.issues[0]?.message ?? "The scenario failed validation.",
-      );
       return;
     }
     updateScenario({
       scenarioId: scenario.id,
       update: {
-        name: result.data.name,
-        description: result.data.description,
-        scenarioParameters: result.data.scenarioParameters,
-        parameterOverrides: result.data.parameterOverrides,
-        initialState: result.data.initialState,
+        name: updated.name,
+        description: updated.description,
+        scenarioParameters: updated.scenarioParameters,
+        parameterOverrides: updated.parameterOverrides,
+        initialState: updated.initialState,
       },
     });
     onClose();
@@ -114,30 +102,12 @@ const ViewScenarioContent = ({
           <p className={migrationNoteStyle}>{perPlaceMigrationNote}</p>
         ) : null}
       </AdHocScenarioAuthoringBody>
-      <SimulationPanel.Footer
-        secondaryActions={
-          <DrawerErrorDisplay
-            count={authoring.errorCount + (saveError ? 1 : 0)}
-            firstMessage={authoring.firstError ?? saveError ?? undefined}
-          />
-        }
-        actions={
-          <>
-            <Button variant="subtle" tone="neutral" size="sm" onClick={onClose}>
-              Close
-            </Button>
-            <Button
-              variant="solid"
-              tone="neutral"
-              size="sm"
-              disabled={!authoring.canSave}
-              tooltip={authoring.firstError}
-              onClick={save}
-            >
-              Save
-            </Button>
-          </>
-        }
+      <AdHocScenarioAuthoringFooter
+        authoring={authoring}
+        closeLabel="Close"
+        saveLabel="Save"
+        onClose={onClose}
+        onSave={save}
       />
     </>
   );

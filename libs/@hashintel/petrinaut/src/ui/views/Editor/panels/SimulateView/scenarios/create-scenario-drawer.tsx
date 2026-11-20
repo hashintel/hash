@@ -1,14 +1,13 @@
-import { use, useState } from "react";
+import { use } from "react";
 
-import { Button } from "@hashintel/ds-components";
-import { generatePetrinautId, scenarioSchema } from "@hashintel/petrinaut-core";
+import { generatePetrinautId } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../react";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { DrawerErrorDisplay } from "../drawer-error-display";
 import { SimulationPanel } from "../shared/simulation-panel";
 import {
   AdHocScenarioAuthoringBody,
+  AdHocScenarioAuthoringFooter,
   useAdHocScenarioAuthoring,
 } from "./ad-hoc-scenario-authoring";
 
@@ -23,26 +22,14 @@ const CreateScenarioContent = ({ onClose }: { onClose: () => void }) => {
   const existingScenarioNames = new Set(
     (petriNetDefinition.scenarios ?? []).map((scenario) => scenario.name),
   );
-  // A schema rejection after a passing form would otherwise be a silent
-  // no-op click; surface it in the footer instead.
-  const [saveError, setSaveError] = useState<string | null>(null);
   const authoring = useAdHocScenarioAuthoring({ existingScenarioNames });
 
   const save = () => {
-    const scenario = authoring.buildScenario(generatePetrinautId());
-    if (!scenario) {
-      return;
+    const scenario = authoring.scenarioToSave(generatePetrinautId());
+    if (scenario) {
+      addScenario(scenario);
+      onClose();
     }
-    // Final structural validation against the persistence schema.
-    const result = scenarioSchema.safeParse(scenario);
-    if (!result.success) {
-      setSaveError(
-        result.error.issues[0]?.message ?? "The scenario failed validation.",
-      );
-      return;
-    }
-    addScenario(result.data);
-    onClose();
   };
 
   return (
@@ -53,30 +40,12 @@ const CreateScenarioContent = ({ onClose }: { onClose: () => void }) => {
     >
       <SimulationPanel.Header description="Initial configurations of tokens that can be quickly loaded in to 'Model' or 'Simulate' mode" />
       <AdHocScenarioAuthoringBody authoring={authoring} />
-      <SimulationPanel.Footer
-        secondaryActions={
-          <DrawerErrorDisplay
-            count={authoring.errorCount + (saveError ? 1 : 0)}
-            firstMessage={authoring.firstError ?? saveError ?? undefined}
-          />
-        }
-        actions={
-          <>
-            <Button variant="subtle" tone="neutral" size="sm" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button
-              variant="solid"
-              tone="neutral"
-              size="sm"
-              disabled={!authoring.canSave}
-              tooltip={authoring.firstError}
-              onClick={save}
-            >
-              Create
-            </Button>
-          </>
-        }
+      <AdHocScenarioAuthoringFooter
+        authoring={authoring}
+        closeLabel="Cancel"
+        saveLabel="Create"
+        onClose={onClose}
+        onSave={save}
       />
     </SimulationPanel>
   );
