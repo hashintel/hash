@@ -1,13 +1,10 @@
-import { Group, Panel, Separator } from "react-resizable-panels";
+import { Group, Panel } from "react-resizable-panels";
 
 import { Button } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
-import {
-  COARSE_GRAB_SIZE,
-  edgeSeparatorStyle,
-  GRAB_SIZE,
-} from "../../resize/edge-separator-style";
+import { EdgeSeparator } from "../../resize/edge-separator";
+import { COARSE_GRAB_SIZE, GRAB_SIZE } from "../../resize/edge-separator-style";
 import { useFocusGrid } from "../../worksheet/use-focus-grid";
 import { CELL_KIND_ICONS, CELL_KIND_LABELS } from "./cell-kinds";
 import { NetGraphView } from "./net-graph";
@@ -50,7 +47,11 @@ const graphPaneStyle = css({
   paddingBottom: "3",
 });
 
+// The lists scroll inside their panel and are not the panel: the library
+// keeps a touch on a panel of a vertical group from panning down.
 const listsPaneStyle = css({
+  boxSizing: "border-box",
+  height: "[100%]",
   display: "flex",
   flexDirection: "column",
   gap: "3",
@@ -338,35 +339,36 @@ export const GraphExplorer: React.FC<GraphExplorerProps> = ({
           />
         </Panel>
 
-        <Separator
-          aria-label="Resize the connection lists"
-          disableDoubleClick
-          className={edgeSeparatorStyle({ edge: "top", paintsBorder: false })}
+        <EdgeSeparator
+          edge="top"
+          label="Resize the connection lists"
+          paintsBorder={false}
         />
 
         {/* The lists keep their height, and the graph takes what is left. */}
         <Panel
-          className={listsPaneStyle}
           defaultSize={DEFAULT_LISTS_HEIGHT}
           minSize={MIN_LISTS_HEIGHT}
           maxSize={MAX_LISTS_HEIGHT}
           groupResizeBehavior="preserve-pixel-size"
         >
-          {connections === null ? (
-            <span className={hintStyle}>
-              Select a cell to see what it is connected to.
-            </span>
-          ) : (
-            <>
-              <span className={selectedNameStyle}>{selectedName}</span>
+          <div className={listsPaneStyle}>
+            {connections === null ? (
+              <span className={hintStyle}>
+                Select a cell to see what it is connected to.
+              </span>
+            ) : (
+              <>
+                <span className={selectedNameStyle}>{selectedName}</span>
 
-              <ConnectionNodeLists
-                key={selectedCellId ?? "none"}
-                connections={connections}
-                onNavigate={onNavigate}
-              />
-            </>
-          )}
+                <ConnectionNodeLists
+                  key={selectedCellId ?? "none"}
+                  connections={connections}
+                  onNavigate={onNavigate}
+                />
+              </>
+            )}
+          </div>
         </Panel>
       </Group>
     </div>

@@ -1,19 +1,19 @@
+/**
+ * @layerRoot ui.resize
+ * @role Resizing a panel by its edge with the separators of react-resizable-panels
+ */
 import { useEffect, useRef, type ReactNode } from "react";
 import {
   Group,
   Panel,
-  Separator,
   usePanelRef,
   type PanelImperativeHandle,
 } from "react-resizable-panels";
 
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import {
-  COARSE_GRAB_SIZE,
-  edgeSeparatorStyle,
-  GRAB_SIZE,
-} from "./edge-separator-style";
+import { EdgeSeparator } from "./edge-separator";
+import { COARSE_GRAB_SIZE, GRAB_SIZE } from "./edge-separator-style";
 
 import type { MotionValue } from "motion";
 
@@ -142,15 +142,13 @@ export const PanelResizer = ({
     />
   );
   const separator = (
-    <Separator
+    <EdgeSeparator
       elementRef={separatorRef}
-      aria-label={label}
+      edge={edge}
+      label={label}
+      paintsBorder={paintsBorder}
       disabled={!isOpen}
-      disableDoubleClick
-      className={cx(
-        edgeSeparatorStyle({ edge, paintsBorder }),
-        separatorClassName,
-      )}
+      className={separatorClassName}
     />
   );
   const rest = (

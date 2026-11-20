@@ -1,9 +1,9 @@
 import { use, useRef, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
-import { Group, Panel, Separator } from "react-resizable-panels";
+import { Group, Panel } from "react-resizable-panels";
 
 import { Button, SegmentedControl, TextInput } from "@hashintel/ds-components";
-import { css, cx } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
 
 import { ActiveNetContext } from "../../../react/state/active-net-context";
 import {
@@ -11,11 +11,8 @@ import {
   useEditorState,
 } from "../../../react/state/editor-context";
 import { useUndoRedoShortcuts } from "../../../react/state/use-undo-redo-shortcuts";
-import {
-  COARSE_GRAB_SIZE,
-  edgeSeparatorStyle,
-  GRAB_SIZE,
-} from "../../resize/edge-separator-style";
+import { EdgeSeparator } from "../../resize/edge-separator";
+import { COARSE_GRAB_SIZE, GRAB_SIZE } from "../../resize/edge-separator-style";
 import { FocusRoot, FocusStack } from "../../worksheet/focus-stack";
 import { CELL_KIND_PLURAL_LABELS, CELL_KINDS } from "./cell-kinds";
 import { GraphExplorer } from "./graph-explorer";
@@ -439,13 +436,11 @@ const NotebookViewContent = ({
           />
         </Panel>
 
-        <Separator
-          aria-label="Resize the graph explorer"
-          disableDoubleClick
-          className={cx(
-            edgeSeparatorStyle({ edge: "left", paintsBorder: false }),
-            explorerSeparatorStyle,
-          )}
+        <EdgeSeparator
+          edge="left"
+          label="Resize the graph explorer"
+          paintsBorder={false}
+          className={explorerSeparatorStyle}
         />
 
         <Panel
