@@ -963,7 +963,11 @@ const ScaleTriggerRow = ({
 }) => (
   <div data-trigger-row={row.id}>
   <div
-    className={cx(rowStyle, css({ cursor: onToggle ? "pointer" : "default" }))}
+    className={cx(rowStyle, css({
+        cursor: onToggle ? "pointer" : "default",
+        // The open row's fill: the nearest neutral to the picked #EBEBEB (neutral.s35, #ECECEC).
+        "&[class][aria-expanded=true]": { backgroundColor: "neutral.s35" },
+      }))}
     {...(onToggle
       ? {
           role: "button",
