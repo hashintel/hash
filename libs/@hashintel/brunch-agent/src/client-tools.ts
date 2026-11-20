@@ -30,6 +30,11 @@ export {
   type ClientToolHistoryResult,
 } from "./client-tools/client-tool-history";
 export {
+  durableHistoryMessageMetadataSchema,
+  parseDurableHistoryMessageMetadata,
+  type DurableHistoryMessageMetadata,
+} from "./client-tools/durable-history-metadata";
+export {
   handEditReportBodySchema,
   type HandEditReportBody,
 } from "./client-tools/hand-edit-reports";
