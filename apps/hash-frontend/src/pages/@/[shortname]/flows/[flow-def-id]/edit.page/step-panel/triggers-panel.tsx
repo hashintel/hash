@@ -73,13 +73,16 @@ const TriggerRows = ({ rows }: { rows: TriggerRow[] }) =>
  */
 export const TriggersPanelBody = ({
   schedules,
+  sheetOpen,
+  onSheetOpenChange: setSheetOpen,
 }: {
   schedules: FlowSchedules;
+  sheetOpen: boolean;
+  onSheetOpenChange: (open: boolean) => void;
 }) => {
   const [state, setState] = useState<TriggerState>("all");
   const [searching, setSearching] = useState(false);
   const [search, setSearch] = useState("");
-  const [sheetOpen, setSheetOpen] = useState(false);
   /* Takes Esc from the start, rather than "Show all" under the sheet, whose tooltip would take the first Esc. */
   const sheetContentRef = useRef<HTMLDivElement>(null);
 
