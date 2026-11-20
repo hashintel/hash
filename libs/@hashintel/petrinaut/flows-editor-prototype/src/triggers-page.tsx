@@ -1913,6 +1913,9 @@ const Take1 = ({ page }: { page: Page }) => {
 
 /** The figma-ds table (ds-parts/table) with our row hover (A8) and the open row's fill. */
 const rowsStyle = css({
+  // Fixed columns, so the left edges and widths stay the same under every tab, filter and search (the widths the
+  // All tab gave them at 1440 px).
+  "&[class]": { tableLayout: "fixed", width: "[100%]" },
   "& tr[data-row]": {
     cursor: "pointer",
     _hover: { backgroundColor: "neutral.bg.subtle.hover" },
@@ -2369,6 +2372,14 @@ const Take2 = ({
           <Toast text="Filters saved" onDone={() => setSavedToast(false)} />
         ) : null}
         <Table className={rowsStyle}>
+          <colgroup>
+            <col style={{ width: "22.4%" }} />
+            <col style={{ width: "26.7%" }} />
+            <col style={{ width: "10.2%" }} />
+            <col style={{ width: "18.6%" }} />
+            <col style={{ width: "16.9%" }} />
+            <col style={{ width: "5.2%" }} />
+          </colgroup>
           <thead>
             <tr>
               <th>Flow</th>
