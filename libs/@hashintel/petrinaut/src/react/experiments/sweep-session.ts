@@ -51,10 +51,6 @@ import type {
   MonteCarloWorkerProgress,
 } from "@hashintel/petrinaut-core";
 
-export type { SweepSelection } from "./parameter-grid";
-export { sweepSelectionKey } from "./sweep-session/selection-draws";
-export type { SweepRunDraws } from "./sweep-session/selection-draws";
-
 /**
  * One rung of the selection's ladder currently computing, for the host's
  * activity display. A sweep runs no other kind of batch.

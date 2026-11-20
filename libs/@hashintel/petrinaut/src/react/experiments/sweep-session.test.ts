@@ -3,13 +3,12 @@ import { describe, expect, it, vi } from "vitest";
 import { createSweepSession } from "./sweep-session";
 import { sweepBatchSeed } from "./sweep-session/selection-draws";
 
-import type { ExperimentParameterAxis } from "./parameter-grid";
+import type { ExperimentParameterAxis, SweepSelection } from "./parameter-grid";
 import type {
   CreateSweepSessionOptions,
-  SweepRunDraws,
-  SweepSelection,
   SweepSessionUpdate,
 } from "./sweep-session";
+import type { SweepRunDraws } from "./sweep-session/selection-draws";
 import type {
   MonteCarloExperiment,
   MonteCarloExperimentEvent,

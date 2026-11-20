@@ -9,7 +9,7 @@ import {
   type ExperimentsContextValue,
 } from "../../../../../../react/experiments/context";
 import { computeBackendOf } from "../../../../../../react/experiments/provider/create-experiment";
-import { sweepSelectionKey } from "../../../../../../react/experiments/sweep-session";
+import { sweepSelectionKey } from "../../../../../../react/experiments/sweep-session/selection-draws";
 import { useLatest } from "../../../../../../react/hooks/use-latest";
 import {
   usePetrinautNavigate,

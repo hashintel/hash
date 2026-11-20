@@ -4,11 +4,11 @@ import type { SimulatorSelection } from "../simulators/context";
 import type {
   ExperimentParameterAxis,
   ExperimentParameterInput,
+  SweepSelection,
 } from "./parameter-grid";
 import type {
   SweepBatchStatus,
   SweepNavigateOptions,
-  SweepSelection,
   SweepVisitedCell,
 } from "./sweep-session";
 
