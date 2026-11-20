@@ -6,34 +6,43 @@ sidebar_order: 20
 
 A sweep experiment declares an interval per swept scenario parameter and
 computes only the region of those intervals that is selected. Each interval
-is quantized into `SWEEP_AXIS_STEPS` positions, and an integer parameter
-steps by whole numbers.
+is quantized into `SWEEP_AXIS_STEPS` steps, 50, so its positions run from 0
+to 50. An integer parameter whose interval is narrower than 50 has one step
+per whole number.
 
 A selection is an inclusive position range per parameter, a `SweepSelection`.
-A range whose two ends are equal is a point. The navigator shows one slider
-per parameter and selects a point with each move. When the selection changes,
-the batches that were computing are cancelled and the new selection starts.
+A range whose two ends are equal is a point. The navigator is the UI
+component with one slider per parameter, and it selects a point with each
+move. A sweep starts with the midpoint of every interval selected and
+computes nothing until something selects. When the selection changes, the
+batches that were computing are cancelled and the new selection starts.
 
 ![A selection change restarts the ladder at the new selection. Finished batches stay in the cache, so a selection that is revisited resumes where it stopped.](./sweep-refinement.d2)
 
 ## Points, ranges and the ladder
 
-A point selection runs the experiment at that value. A range selection runs
-one stochastic experiment over the ranges. Each run carries its own drawn
-value per ranged parameter (`sweepRangeDraws`). The draws are low-discrepancy
-across the selected interval and rotated by a shift derived from the seed, a
-Cranley–Patterson rotation, so each experiment seed explores its own
-sequence. They are prefix-stable in the seed, the axis and the global run
-index. The quantized positions bound the interval, and the draws are
-continuous inside it.
+A point selection runs every run at that value. In a range selection each
+run carries its own drawn value per ranged parameter (`sweepRangeDraws`). The
+draws are low-discrepancy across the selected interval and rotated by a shift
+derived from the seed, a Cranley–Patterson rotation, so each experiment seed
+explores its own sequence. A draw depends on the seed, the axis and the
+global run index alone, so a longer batch starts with the draws of a shorter
+one. The quantized positions bound the interval. A real parameter draws any
+value inside it, and an integer parameter draws whole values from buckets of
+equal width.
 
-One selection is one experiment. It uses the whole worker pool, and its
-metric stream is the distribution over the region from the first frames on.
+The metric stream of a selection is the distribution over the region from
+the first frames on.
 
-Either kind climbs `EXPERIMENT_RUN_LADDER`: 8, 25, 100, 500 and 1,000 runs,
-then five times and twice the last target in turn, capped by the run budget.
-Each rung is a batch that covers the runs the earlier rungs left. A finished
-batch goes into a cache keyed by the whole selection.
+Either kind climbs `EXPERIMENT_RUN_LADDER`: targets of 8, 25, 100, 500 and
+1,000 runs, then five times and twice the last target in turn, capped by the
+`runCount` of the experiment record. Each rung is a batch, a
+`MonteCarloExperiment` of its own, that covers the runs the earlier rungs
+left: 8, 17, 75, 400 and 500 runs. A finished batch goes into a cache keyed
+by the whole selection.
+
+A batch that fails stops the climb. The session computes nothing more for
+that selection until the selection moves.
 
 The climb is pipelined. Run ranges are disjoint, and draws and seeds are
 prefix-stable in the run index, so the next rung starts as soon as a rung
@@ -49,9 +58,10 @@ copies it into its per-run buffer, and the CPU backend expands it into the
 engine's per-run configurations where the request reaches the worker pool.
 
 Scenario compilation needs one value per parameter. An initial state derived
-from a ranged parameter is therefore compiled at the middle of the range
-(`selectionMidpoint`), while what the run reads of the parameter varies per
-run.
+from a ranged parameter is therefore compiled at the middle of the range,
+while what the run reads of the parameter varies per run. The middle is
+taken between the two values and not between the two positions, and is
+rounded for an integer parameter.
 
 ## What a batch costs on the main thread
 
@@ -60,7 +70,8 @@ thread: drawing the per-run values, translating them through the scenario,
 and building the request. At a rung of a million runs this work is what the
 user feels, and most of it is scenario compilation.
 
-Draws are continuous inside the interval, so almost every assignment is one
+A real parameter draws any value inside the interval, so almost every
+assignment is one
 the compiler has not seen, and a result per draw cannot be cached. Three
 things keep the cost down:
 
@@ -75,13 +86,15 @@ things keep the cost down:
   once, and not each of its runs.
 - `sweepRangeDraws` writes one typed array of draws, and
   `translateRangeDraws` fills one `Float64Array` column per parameter name,
-  each filled with the base value first. No record is allocated per run.
+  each filled with the base value first. `compileRunNumbers` returns one
+  record per run, which is the allocation that remains.
 
 What remains is linear in the run count, so the draw and translation loops
-yield. `createCooperativeYielder` checks a budget of 8 ms every few thousand
-iterations and hands the thread back, through `scheduler.yield()` where the
-browser has it and a macrotask elsewhere. The total cost is the same, and no
-single task holds the main thread through it.
+yield. `createCooperativeYielder` has a budget of 8 ms, which the draw loop
+checks every 4,096 runs and the translation loop every 256. It hands the
+thread back through `scheduler.yield()` where the browser has it and a
+macrotask elsewhere, and never while the document is hidden. The total cost
+is the same, and no single task holds the main thread through it.
 
 ## Determinism
 
@@ -94,12 +107,14 @@ because the same position always means the same runs.
 
 ## Who does what
 
-`createSweepSession` owns the loop: selection, ladder, cache and
-cancellation. It knows no backend. It asks an injected `instantiateBatch` for
-a `MonteCarloExperiment` per batch and reads that handle's stores, so the CPU
-worker pool and the WebGPU backend behave the same to it.
+`createSweepSession` in `sweep-session.ts` owns the loop: selection, ladder,
+cache and cancellation. It knows no backend. It asks an injected
+`instantiateBatch` for a `MonteCarloExperiment` per batch and reads that
+handle's stores, so the CPU worker pool and the WebGPU backend behave the
+same to it.
 
-The provider supplies `instantiateBatch`. A sweep's first batch goes through
+The provider supplies `instantiateBatch`, from
+`provider/sweep-batch-instantiation.ts`. A sweep's first batch goes through
 the same [backend selection](doc:core.experiments/backend-selection) as a
 plain experiment, and later batches assess the chosen backend again with
 their own request. The swept net parameters travel in the per-run plan for

@@ -1,5 +1,5 @@
 # Hand-written; rendered by the arch-docs build. Palette matches src/emit/d2.ts.
-direction: right
+direction: down
 
 navigator: "sweep navigator\n(one slider\nper parameter)" {style.fill: "#e2f4e8"; style.stroke: "#3d8055"}
 session: "sweep session\n(selected region:\nposition ranges)" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
@@ -7,9 +7,9 @@ cache: "selection cache\n(finished batches\nper selection)" {style.fill: "#e8e0f
 backend: "chosen backend\n(CPU worker pool\nor WebGPU)" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
 charts: "metric charts\n(stream while batches run)" {style.fill: "#e2f4e8"; style.stroke: "#3d8055"}
 
-navigator -> session: "changes the selection\n(cancel and restart)" {style.stroke-dash: 4}
-session -> backend: "starts the selection's batch: runs\n[completed, next rung)"
+navigator -> session: "changes the selection\n(cancel and restart)"
+session -> backend: "starts a batch through instantiateBatch:\nruns [completed, next rung)"
 backend -> session: "streams frames"
 session -> cache: "stores a finished batch"
-cache -> session: "resumes the ladder\non revisit" {style.stroke-dash: 4}
+cache -> session: "resumes the ladder\non revisit"
 session -> charts: "publishes cached and\nlive frames, merged"
