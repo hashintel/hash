@@ -86,6 +86,8 @@ const aiCtaModalInputStyle = css({
   },
 });
 
+const aiCtaModalSubmitStyle = css({ margin: "2" });
+
 export const AiCtaModal = ({
   onDismiss,
   onSubmit,
@@ -182,7 +184,7 @@ export const AiCtaModal = ({
             content: (
               <Button
                 aria-label="Send first AI assistant message"
-                className={css({ margin: "2" })}
+                className={aiCtaModalSubmitStyle}
                 disabled={!canSubmit}
                 iconName="arrowUp"
                 size="lg"

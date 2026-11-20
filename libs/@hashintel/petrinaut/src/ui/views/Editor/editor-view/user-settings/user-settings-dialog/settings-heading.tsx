@@ -11,6 +11,28 @@ type HeadingSection = {
   description: string;
 };
 
+const headingStyle = css({ paddingRight: "7" });
+
+const titleRowStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  marginBottom: "1",
+});
+
+const titleStyle = css({
+  fontSize: "lg",
+  fontWeight: "semibold",
+  color: "neutral.fg.heading",
+  lineHeight: "[1.4]",
+});
+
+const descriptionStyle = css({
+  fontSize: "xs",
+  color: "neutral.fg.body",
+  lineHeight: "[1.6]",
+});
+
 export const SettingsHeading = ({
   section,
   animated,
@@ -50,41 +72,16 @@ export const SettingsHeading = ({
   }, [sectionId, animated]);
 
   return (
-    <div className={css({ paddingRight: "7" })}>
-      <div
-        ref={elementRef}
-        className={css({
-          display: "flex",
-          alignItems: "center",
-          gap: "2",
-          marginBottom: "1",
-        })}
-      >
-        <h2
-          className={css({
-            fontSize: "lg",
-            fontWeight: "semibold",
-            color: "neutral.fg.heading",
-            lineHeight: "[1.4]",
-          })}
-        >
-          {section.label}
-        </h2>
+    <div className={headingStyle}>
+      <div ref={elementRef} className={titleRowStyle}>
+        <h2 className={titleStyle}>{section.label}</h2>
         {section.id === "labs" && (
           <Chip size="xs" color="orange" variant="outline" shape="round">
             Experimental
           </Chip>
         )}
       </div>
-      <p
-        className={css({
-          fontSize: "xs",
-          color: "neutral.fg.body",
-          lineHeight: "[1.6]",
-        })}
-      >
-        {section.description}
-      </p>
+      <p className={descriptionStyle}>{section.description}</p>
     </div>
   );
 };

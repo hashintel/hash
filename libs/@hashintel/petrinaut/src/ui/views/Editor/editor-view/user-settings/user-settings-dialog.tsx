@@ -201,6 +201,8 @@ const SettingsGroup = ({
   </section>
 );
 
+const experimentalChipStyle = css({ display: "flex", flexShrink: "0" });
+
 const SettingRow = ({
   label,
   description,
@@ -266,10 +268,7 @@ const SettingRow = ({
         <div className={labelStyle}>
           <span id={`${id}-label`}>{label}</span>
           {experimental && (
-            <div
-              id={`${id}-experimental`}
-              className={css({ display: "flex", flexShrink: "0" })}
-            >
+            <div id={`${id}-experimental`} className={experimentalChipStyle}>
               <Chip size="xs" color="orange" variant="outline" shape="round">
                 Experimental
               </Chip>
@@ -410,6 +409,27 @@ const HostLabsSettings = () => {
   );
 };
 
+const dialogHeaderStyle = css({
+  position: "absolute",
+  top: "3",
+  right: "3",
+  "&": {
+    padding: "0",
+    border: "[0]",
+    background: "[transparent]",
+  },
+  zIndex: "[1]",
+  "& button": { margin: "0" },
+});
+
+const dialogBodyStyle = css({
+  "&": {
+    overflow: "visible",
+    border: "[0]",
+    borderRadius: "[inherit]",
+  },
+});
+
 export const UserSettingsDialog = ({
   section,
   onSectionChange,
@@ -443,30 +463,8 @@ export const UserSettingsDialog = ({
       onClose={onClose}
       onKeyDown={(event) => event.stopPropagation()}
     >
-      <Dialog.Header
-        className={css({
-          position: "absolute",
-          top: "3",
-          right: "3",
-          "&": {
-            padding: "0",
-            border: "[0]",
-            background: "[transparent]",
-          },
-          zIndex: "[1]",
-          "& button": { margin: "0" },
-        })}
-      />
-      <Dialog.Body
-        withPadding={false}
-        className={css({
-          "&": {
-            overflow: "visible",
-            border: "[0]",
-            borderRadius: "[inherit]",
-          },
-        })}
-      >
+      <Dialog.Header className={dialogHeaderStyle} />
+      <Dialog.Body withPadding={false} className={dialogBodyStyle}>
         <FloatingResizeHandles
           label="User settings"
           getHandleProps={getResizeHandleProps}
