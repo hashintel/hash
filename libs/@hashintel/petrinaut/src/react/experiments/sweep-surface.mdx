@@ -7,13 +7,14 @@ sidebar_order: 30
 The surface view shows the final value of one metric over two swept
 parameters as a filled contour. It draws from the cache that the
 [navigator](doc:react.experiments/parameter-sweeps) refines: a point on the
-surface is a point the sweep computed.
+surface is a point the sweep computed. A sweep with fewer than two swept
+parameters has no surface.
 
 ![Every point the sweep finishes becomes a visited cell, and the surface draws the visited cells and nothing it sampled itself.](./sweep-surface-feed.d2)
 
 ## The sweep feeds the surface
 
-The surface samples nothing. When a batch of a point selection finishes, the
+When a batch of a point selection finishes, the
 sweep session adds it to its cache and publishes the point as a visited
 cell: its quantized position and the value of each metric over the finished
 runs. The type is `SweepVisitedCell`, and the list is `sweep.visited` on the
@@ -35,13 +36,16 @@ does not follow the metric's course over time while a batch streams.
 
 Points computed at other values of the hidden axes are drawn too, projected,
 as a study's trials are. The picture is everything computed so far and no
-slice of it. Switching the shown metric reads the same visited cells again.
-The caption (`describeVisitedSurface`) names what computes in the navigator's
-words, and names the step's point while an optimizer drives.
+slice of it. Where two visited points share the shown coordinates, the later
+one gives the value. Switching the shown metric reads the same visited cells
+again. The caption (`describeVisitedSurface`) counts the points sampled. It
+adds "sampling" while a batch computes, and "choosing next point" while an
+optimizer drives and no batch computes.
 
 The plot is also a control. A dark ring marks the navigator's position. A
 press and drag shows a crosshair, positioned in percentages so that a pointer
-move never repaints the field, and the caption reads the value under it.
+move never repaints the field, and the caption reads the two parameter
+values at the pointer.
 Releasing selects a point, as a click does: the two shown axes at the pick,
 and each hidden axis at the middle of its selected range. While an optimizer
 drives the sweep the card takes the `optimizing` tone and the plot takes no
@@ -59,18 +63,22 @@ The interpolation and the iso-lines are pure functions with tests of their
 own, beside the `ContourSurface` component. The component paints their result
 onto a canvas.
 
-A change of axis or metric clears the field. While fewer than three samples
-of the new field exist, the plot keeps the previous picture, dimmed to 45%,
-with the new dots on top. One or two samples interpolate to a nearly uniform
-fill that says less than the previous picture, and an empty plot after every
-slider move would look like a failure.
+A change of axis or metric starts another field, and the plot drops the
+previous picture, which shows another quantity. Where the values of one
+field are cleared and fewer than three samples exist, the plot keeps the
+previous picture, dimmed to 45%, with the dots on top. One or two samples
+interpolate to a nearly uniform fill that says less than the previous
+picture.
 
-## A point's value is its ladder depth
+## A point's precision is its ladder depth
 
-A visited point's value is the mean over the distribution of the last frame
-that has samples, among the runs that finished. A net that terminates
-finishes its runs before `maxTime`, so its final frames carry no samples, and
-the literal last frame would give no value for any point of such a net.
+A visited point's value comes from the last frame that has samples: the mean
+of the distribution for a distribution metric, and the frame's value for a
+scalar one (`sweepCellSample`). A net that terminates finishes its runs
+before `maxTime`, so its final frames carry no samples, and the literal last
+frame would give no value for any point of such a net. Runs that ended
+earlier are absent from the frame that is read, so where runs end at
+different times the value weights the runs that lasted longest.
 
 A point the navigator stays on climbs the ladder to the run budget. A point
 an optimizer visited stops at the trial's run cap, which is the study's runs
@@ -85,8 +93,10 @@ cap, and the step being computed is the ring. An infeasible draw never
 reaches the surface, because the evaluator prunes it before it navigates.
 
 While the study drives the sweep, the card only displays. Once the study
-settles, or **Stop** on the Parameters card ends it, the navigator rests on
-the best point, the plot takes picks again, and the point refines to the run
-budget through the same cache.
+settles, the navigator rests on the best point. **Stop** on the Parameters
+card parks the navigator at once on the last point tried, and the best point
+follows only when the study's last event carries one. In both cases the plot
+takes picks again, and the point refines to the run budget through the same
+cache.
 [Sweep orchestration](doc:react.experiments/sweep-orchestration) describes
 the study that drives that navigation and the constraints it enforces.

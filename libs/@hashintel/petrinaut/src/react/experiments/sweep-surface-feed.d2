@@ -1,16 +1,16 @@
 # Hand-written; rendered by the arch-docs build. Palette matches src/emit/d2.ts.
-direction: right
+direction: down
 
 selection: "a point is selected\n(navigator, plot pick,\noptimizer trial)" {style.fill: "#e2f4e8"; style.stroke: "#3d8055"}
 session: "sweep session\n(ladder, run cap)" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
 cache: "selection cache\n(finished batches per selection)" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
-visited: "visited cells\n(position, runs, means per metric)" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+visited: "experiment record\n(sweep.visited: position, runs, means;\nsweep.selection, sweep.computing)" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
 surface: "surface view\n(X, Y and metric picks)" {style.fill: "#e2f4e8"; style.stroke: "#3d8055"}
 contour: "contour raster\n(IDW, marching squares)" {style.fill: "#e2f4e8"; style.stroke: "#3d8055"}
 
 selection -> session: "restarts the ladder there"
 session -> cache: "stores a finished batch"
-cache -> visited: "gives a point's means"
-visited -> surface: "is read from the record"
-session -> surface: "names the point\nbeing computed" {style.stroke-dash: 4}
+cache -> visited: "gives the means of\na point selection"
+session -> visited: "publishes the selection\nand whether it computes"
+visited -> surface: "is read by"
 surface -> contour: "draws dots, a ring\nand the field between"
