@@ -323,16 +323,63 @@ was. The editor context changes in the same commit and renders the same
 readers: 6,964 component renders for a selection on Supply Chain before,
 6,962 after. Typing renders the same 2,450 components either way.
 
-:::danger[What a selection or a panel toggle still renders]
+## Row menus mounted on demand
 
 `panel-toggles.mjs details=1` lists what rendered for each toggle. On Supply
-Chain a panel toggle renders about 4,600 components and a selection about
-7,000 to 8,400.
+Chain a panel toggle rendered about 4,700 components and a selection 7,000 to
+8,400, and at least two thirds of them were in the left sidebar. Each of its
+91 rows mounted a menu and a tooltip, hidden until the row was hovered or
+focused. `EntityRowMenu` reads the editor context and the code navigation
+context, both of which change on a toggle, and every part of a menu rendered
+with it.
 
-- At least two thirds of them are the menus, tooltips and icons of the left
-  sidebar's 91 rows. Each row mounts a menu and a tooltip. `EntityRowMenu`
-  reads the editor context and the code navigation context, both of which
-  change on a toggle, and every part of a menu renders with it.
+A row's menu is now mounted only for the row last pointed at and the row last
+focused, the two that can show one. Neither is unmounted when the pointer or
+focus leaves: an open menu draws its items outside the row, and has to outlive
+the pointer moving onto them.
+
+Component renders per toggle, profiling build:
+
+| Toggle                 | Before |   Now |
+| ---------------------- | -----: | ----: |
+| Select a node          |  6,962 | 2,139 |
+| Deselect               |  8,371 | 1,910 |
+| Open the bottom panel  |  4,694 | 1,499 |
+| Close the bottom panel |  4,714 | 1,529 |
+| Collapse the sidebar   |  2,705 | 1,050 |
+| Expand the sidebar     |  2,688 | 1,050 |
+
+Main-thread script per toggle and the longest frame, production build, two
+rounds of three samples that alternate between the builds:
+
+| Toggle                     | Script before | Script now | Longest frame before |    Now |
+| -------------------------- | ------------: | ---------: | -------------------: | -----: |
+| Select a node              |        133 ms |      83 ms |               146 ms | 112 ms |
+| Deselect                   |         93 ms |      39 ms |                83 ms |  50 ms |
+| Open the bottom panel      |         94 ms |      58 ms |                38 ms |  21 ms |
+| Close the bottom panel     |        119 ms |      91 ms |                33 ms |  17 ms |
+| Collapse the sidebar       |         40 ms |      29 ms |                17 ms |   9 ms |
+| Expand the sidebar         |         50 ms |      30 ms |                29 ms |  13 ms |
+| Open the assistant         |         50 ms |      38 ms |                29 ms |  25 ms |
+| Open it, code editor open  |        155 ms |     118 ms |                54 ms |  42 ms |
+| Close it, code editor open |         74 ms |      47 ms |                66 ms |  54 ms |
+
+The left sidebar went from 3,543 elements to 2,087. Style and layout time per
+toggle did not change.
+
+Pointing at a row now mounts its menu and renders the list. A sweep of the
+pointer down the rows costs 5.0 ms of script and 4.8 ms of style per row
+crossed, where it cost 2.5 ms and 3.4 ms, with no frame over 20 ms.
+
+:::danger[What a selection or a panel toggle still renders]
+
+A toggle still renders 1,000 to 2,100 components on Supply Chain, because the
+panels' open flags and the selection are fields of the editor context, which
+almost every component reads.
+
+- The arcs and nodes of the canvas: about 100 to 200 arcs and 80 to 160 nodes
+  per toggle.
+- The 91 cells of the notebook, which is mounted while it is hidden.
 - The icon provider of `@hashintel/ds-icons` builds its context value anew
   each time it renders, and every icon reads it.
 
