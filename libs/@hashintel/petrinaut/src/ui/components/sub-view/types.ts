@@ -9,12 +9,8 @@ import type { ComponentType } from "react";
  * Configuration for resizable subviews.
  */
 export interface SubViewResizeConfig {
-  /** Default height when expanded (in pixels) */
-  defaultHeight: number;
   /** Minimum height constraint (in pixels) */
   minHeight?: number;
-  /** Maximum height constraint (in pixels) */
-  maxHeight?: number;
 }
 
 /**

@@ -27,7 +27,6 @@ export const transitionFiringTimeSubView = createDeferredSubView({
   hasHeaderAction: true,
   resizable: {
     minHeight: 250,
-    defaultHeight: 300,
   },
   load: async () => {
     const section = await import("./subviews/transition-firing-time/subview");
@@ -52,7 +51,6 @@ export const transitionResultsSubView = createDeferredSubView({
   hasHeaderAction: true,
   resizable: {
     minHeight: 300,
-    defaultHeight: 500,
   },
   load: async () => {
     const section = await import("./subviews/transition-results/subview");
