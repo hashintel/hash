@@ -1,10 +1,6 @@
 import { useEffect, useState } from "react";
 
 import {
-  createJsAdaptiveSimulator,
-  createJsFixedStepSimulator,
-  createWebGpuFixedStepSimulator,
-  FIXED_STEP_SIMULATOR_ID,
   getDefaultMonteCarloShardCount,
   type SimulatorRegistration,
   type WorkerFactory,
@@ -13,7 +9,12 @@ import { createReusableWorkerFactory } from "@hashintel/petrinaut-core/experimen
 import { createEventSimulationWorker } from "@hashintel/petrinaut-core/workers/event-simulation";
 import { createMonteCarloWorker } from "@hashintel/petrinaut-core/workers/monte-carlo";
 
-import { SimulatorsContext, type SimulatorsContextValue } from "./context";
+import { createBuiltInSimulators } from "./built-in-simulators";
+import {
+  defaultSimulatorSelections,
+  SimulatorsContext,
+  type SimulatorsContextValue,
+} from "./context";
 
 export type SimulatorsProviderProps = React.PropsWithChildren<{
   /**
@@ -37,42 +38,6 @@ export type SimulatorsProviderProps = React.PropsWithChildren<{
    */
   defaultSelections?: Partial<SimulatorsContextValue["defaultSelections"]>;
 }>;
-
-const DEFAULT_SELECTIONS: SimulatorsContextValue["defaultSelections"] = {
-  quick: { simulatorId: FIXED_STEP_SIMULATOR_ID },
-  // The step experiments have always started on.
-  stochastic: { simulatorId: FIXED_STEP_SIMULATOR_ID, parameters: { dt: 0.1 } },
-};
-
-const createBuiltInSimulators = ({
-  createRunWorker,
-  createExperimentWorker,
-  shardCount,
-}: {
-  createRunWorker: WorkerFactory;
-  createExperimentWorker: WorkerFactory;
-  shardCount: number;
-}): readonly SimulatorRegistration[] => [
-  createJsFixedStepSimulator({
-    createRunWorker,
-    createExperimentWorker,
-    shardCount,
-  }),
-  createJsAdaptiveSimulator({
-    createRunWorker,
-    createExperimentWorker,
-    shardCount,
-  }),
-  createWebGpuFixedStepSimulator({
-    // Imported here, not at module scope, so a session that never asks for
-    // the GPU never loads the shader generator.
-    loadBackend: async (options) => {
-      const { createWebGpuExperimentBackend } =
-        await import("@hashintel/petrinaut-core/webgpu");
-      return createWebGpuExperimentBackend(options);
-    },
-  }),
-];
 
 /**
  * Registers the built-in simulators, and whatever the host adds, for the
@@ -121,8 +86,8 @@ export const SimulatorsProvider: React.FC<SimulatorsProviderProps> = ({
       ? [...builtIns, ...hostRegistrations]
       : builtIns,
     defaultSelections: defaultSelections
-      ? { ...DEFAULT_SELECTIONS, ...defaultSelections }
-      : DEFAULT_SELECTIONS,
+      ? { ...defaultSimulatorSelections, ...defaultSelections }
+      : defaultSimulatorSelections,
   };
 
   return <SimulatorsContext value={value}>{children}</SimulatorsContext>;

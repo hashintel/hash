@@ -13,10 +13,6 @@ import { describe, expect, it, vi } from "vitest";
 import {
   type AdHocScenarioState,
   type CompileHirArtifactsOptions,
-  createJsAdaptiveSimulator,
-  createJsFixedStepSimulator,
-  createWebGpuFixedStepSimulator,
-  FIXED_STEP_SIMULATOR_ID,
   type MonteCarloExperiment,
   type MonteCarloUserDefinedMetricFrame,
   DEFAULT_PETRINAUT_EXTENSIONS,
@@ -39,7 +35,9 @@ import {
   NotificationsContext,
   type AddNotificationInput,
 } from "../notifications/context";
+import { createBuiltInSimulators } from "../simulators/built-in-simulators";
 import {
+  defaultSimulatorSelections,
   SimulatorsContext,
   type SimulatorsContextValue,
 } from "../simulators/context";
@@ -335,24 +333,8 @@ const simulatorsOver = (
     shardCount: 1,
   };
   const simulators: SimulatorsContextValue = {
-    registrations: [
-      createJsFixedStepSimulator(workers),
-      createJsAdaptiveSimulator(workers),
-      createWebGpuFixedStepSimulator({
-        loadBackend: async (options) => {
-          const { createWebGpuExperimentBackend } =
-            await import("@hashintel/petrinaut-core/webgpu");
-          return createWebGpuExperimentBackend(options);
-        },
-      }),
-    ],
-    defaultSelections: {
-      quick: { simulatorId: FIXED_STEP_SIMULATOR_ID },
-      stochastic: {
-        simulatorId: FIXED_STEP_SIMULATOR_ID,
-        parameters: { dt: 0.1 },
-      },
-    },
+    registrations: createBuiltInSimulators(workers),
+    defaultSelections: defaultSimulatorSelections,
   };
   simulatorsByWorker.set(worker, simulators);
   return simulators;
