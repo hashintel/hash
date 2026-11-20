@@ -43,8 +43,6 @@ const ParameterMainContent: React.FC = () => {
             update: { name },
           })
         }
-        disabled={isDisabled}
-        tooltip={readOnlyTooltip}
       />
 
       <DraftFieldInput
@@ -58,9 +56,7 @@ const ParameterMainContent: React.FC = () => {
             update: { variableName },
           })
         }
-        disabled={isDisabled}
         monospace
-        tooltip={readOnlyTooltip}
       />
 
       <Form.Field label="Default Value" size="sm" disabled={isDisabled}>

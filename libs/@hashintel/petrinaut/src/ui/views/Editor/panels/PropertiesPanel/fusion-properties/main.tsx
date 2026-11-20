@@ -184,7 +184,6 @@ const FusionMainContent: React.FC = () => {
   const { activeNet, activeComponentId } = use(ActiveNetContext);
   const { updateFusion } = usePetrinautMutations();
   const isDisabled = useIsReadOnly();
-  const readOnlyTooltip = isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined;
   const { libraries } = use(CompositionContext);
   const problems = checkFusion(
     petriNetDefinition,
@@ -205,8 +204,6 @@ const FusionMainContent: React.FC = () => {
           onCommit={(name) =>
             updateFusion({ fusionId: fusion.id, update: { name } })
           }
-          disabled={isDisabled}
-          tooltip={readOnlyTooltip}
         />
         <DescriptionField
           sourceId={fusion.id}
@@ -214,8 +211,6 @@ const FusionMainContent: React.FC = () => {
           onCommit={(description) =>
             updateFusion({ fusionId: fusion.id, update: { description } })
           }
-          disabled={isDisabled}
-          tooltip={readOnlyTooltip}
         />
       </Form.Section>
       <Section title="Fused places">

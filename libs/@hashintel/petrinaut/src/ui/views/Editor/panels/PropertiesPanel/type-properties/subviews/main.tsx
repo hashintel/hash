@@ -38,8 +38,6 @@ const TypeMainContent: React.FC = () => {
               update: { name },
             })
           }
-          disabled={isDisabled}
-          tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
 
         <DescriptionField
@@ -51,8 +49,6 @@ const TypeMainContent: React.FC = () => {
               update: { description },
             })
           }
-          disabled={isDisabled}
-          tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
 
         <Form.Field label="Color" size="sm" disabled={isDisabled}>

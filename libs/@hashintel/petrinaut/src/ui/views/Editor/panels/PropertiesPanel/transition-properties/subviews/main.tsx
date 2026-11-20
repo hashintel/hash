@@ -159,8 +159,6 @@ const TransitionMainContent: React.FC = () => {
               update: { name },
             })
           }
-          disabled={isReadOnly}
-          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
 
         <DescriptionField
@@ -172,8 +170,6 @@ const TransitionMainContent: React.FC = () => {
               update: { description },
             })
           }
-          disabled={isReadOnly}
-          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
       </Form.Section>
 

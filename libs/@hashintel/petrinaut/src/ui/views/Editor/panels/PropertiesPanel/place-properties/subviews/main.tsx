@@ -108,8 +108,6 @@ const PlaceMainContent: React.FC = () => {
           onCommit={(name) =>
             updatePlace({ placeId: place.id, update: { name } })
           }
-          disabled={isReadOnly}
-          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
         <DescriptionField
           sourceId={place.id}
@@ -117,8 +115,6 @@ const PlaceMainContent: React.FC = () => {
           onCommit={(description) =>
             updatePlace({ placeId: place.id, update: { description } })
           }
-          disabled={isReadOnly}
-          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
       </Form.Section>
 

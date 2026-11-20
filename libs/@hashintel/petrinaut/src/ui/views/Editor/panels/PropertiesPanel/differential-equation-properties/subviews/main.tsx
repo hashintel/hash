@@ -180,8 +180,6 @@ const DiffEqMainContent: React.FC = () => {
               update: { name },
             })
           }
-          disabled={isReadOnly}
-          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
 
         <Form.Field label="Associated Type" size="sm">

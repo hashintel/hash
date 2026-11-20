@@ -25,11 +25,10 @@ import { CompositionContext } from "../../../../../../../react/state/composition
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { DescriptionField } from "../../../../../../components/description-field";
-import { PropertyValue } from "../../../../../../components/property-value";
+import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { Section, SectionList } from "../../../../../../components/section";
 import { hintTextStyle } from "../../../../../../constants/hint-text";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
-import { useDraftField } from "../../../../../../hooks/use-draft-field";
 import { implementationItems } from "../../../implementation-items";
 import { useComponentInstancePropertiesContext } from "../context";
 
@@ -191,55 +190,22 @@ const ComponentInstanceMainContent: React.FC = () => {
     useComponentInstancePropertiesContext();
   const isDisabled = useIsReadOnly();
   const readOnlyTooltip = isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined;
-  const nameField = useDraftField({
-    sourceId: instance.id,
-    sourceValue: instance.name,
-  });
-
-  const handleNameBlur = () => {
-    const result = validateEntityName(nameField.value);
-    if (!result.valid) {
-      nameField.setError(result.error);
-      return;
-    }
-    nameField.setError(null);
-    if (result.name !== instance.name) {
-      updateComponentInstance({
-        instanceId: instance.id,
-        update: { name: result.name },
-      });
-    }
-  };
 
   return (
     <SectionList>
       <Form.Section className={fieldsSectionStyle}>
-        <Form.Field
+        <DraftFieldInput
           label="Name"
-          size="sm"
-          errors={
-            !isDisabled && nameField.error ? [nameField.error] : undefined
+          sourceId={instance.id}
+          sourceValue={instance.name}
+          validate={validateEntityName}
+          onCommit={(name) =>
+            updateComponentInstance({
+              instanceId: instance.id,
+              update: { name },
+            })
           }
-        >
-          <PropertyValue text={instance.name}>
-            <Tooltip
-              content={readOnlyTooltip ?? ""}
-              disableTooltip={!isDisabled}
-            >
-              <TextInput
-                value={nameField.value}
-                size="sm"
-                onChange={(name) => {
-                  nameField.setValue(name);
-                  if (nameField.error) nameField.setError(null);
-                }}
-                onBlur={handleNameBlur}
-                disabled={isDisabled}
-                invalid={!!nameField.error}
-              />
-            </Tooltip>
-          </PropertyValue>
-        </Form.Field>
+        />
 
         <DescriptionField
           sourceId={instance.id}
@@ -250,8 +216,6 @@ const ComponentInstanceMainContent: React.FC = () => {
               update: { description },
             })
           }
-          disabled={isDisabled}
-          tooltip={readOnlyTooltip}
         />
 
         <ComponentField />
