@@ -119,12 +119,15 @@ export const EntityList: React.FC<{ groups: EntityGroup[] }> = ({ groups }) => {
     },
   });
 
-  /** The visible row an element is part of. */
-  const rowAt = (target: EventTarget | null): Row | undefined => {
+  /** The row an element is part of, among the visible rows unless given others. */
+  const rowAt = (
+    target: EventTarget | null,
+    rows: Row[] = visibleRows,
+  ): Row | undefined => {
     const element =
       target instanceof Element ? target.closest("[role=option]") : null;
     return element
-      ? visibleRows.find((row) => listId + row.id === element.id)
+      ? rows.find((row) => listId + row.id === element.id)
       : undefined;
   };
 
@@ -170,7 +173,12 @@ export const EntityList: React.FC<{ groups: EntityGroup[] }> = ({ groups }) => {
   };
 
   const onClick = (event: React.MouseEvent) => {
-    const row = rowAt(event.target);
+    // A collapsed group's rows stay mounted while their height animates: a
+    // click that still reaches one selects it.
+    const row = rowAt(
+      event.target,
+      groups.flatMap((group): Row[] => [group, ...group.children]),
+    );
     if (!row) {
       clear();
       return;

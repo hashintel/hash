@@ -227,6 +227,14 @@ describe("filterable list keyboard flow", () => {
     key("ArrowDown");
     expect(document.activeElement?.textContent).toContain("Child");
   });
+
+  it("selects a row clicked while its collapsed group still shows it", () => {
+    const { selectedIds } = renderList(ONE_GROUP);
+
+    fireEvent.click(rowOf("Group"));
+    fireEvent.click(rowOf("Beta"));
+    expect(selectedIds()).toEqual(["b"]);
+  });
 });
 
 describe("entity list renders", () => {
