@@ -162,22 +162,16 @@ describe("the Nets list", () => {
     expect(screen.queryByRole("textbox")).toBeNull();
   });
 
-  it("keeps the name on Escape", () => {
+  it.each([
+    ["on Escape", "Conveyor", "Escape"],
+    ["when the new one is blank", "   ", "Enter"],
+  ])("keeps the name %s", (_when, typed, key) => {
     const { componentNames } = renderList();
 
-    fireEvent.keyDown(typeName("Belt", "Conveyor"), { key: "Escape" });
+    fireEvent.keyDown(typeName("Belt", typed), { key });
 
     expect(componentNames()).toEqual(["Belt", "Scale"]);
     expect(row("Belt")).toBeTruthy();
-    expect(screen.queryByRole("textbox")).toBeNull();
-  });
-
-  it("keeps the name when the new one is blank", () => {
-    const { componentNames } = renderList();
-
-    fireEvent.keyDown(typeName("Belt", "   "), { key: "Enter" });
-
-    expect(componentNames()).toEqual(["Belt", "Scale"]);
     expect(screen.queryByRole("textbox")).toBeNull();
   });
 
