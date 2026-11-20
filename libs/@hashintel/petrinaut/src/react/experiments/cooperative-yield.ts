@@ -31,21 +31,20 @@ const host = globalThis as SchedulerHost;
 const now = (): number => host.performance?.now() ?? Date.now();
 
 export type CooperativeYielder = {
-  /** Whether the current task has held the thread past the budget. */
+  /** Whether the current task has held the thread past the budget of 8 ms. */
   shouldYield(): boolean;
   /** Yields to the event loop and restarts the budget. */
   yieldNow(): Promise<void>;
 };
 
-export function createCooperativeYielder(budgetMs = 8): CooperativeYielder {
+export function createCooperativeYielder(): CooperativeYielder {
   let taskStart = now();
   return {
     // A hidden document has no one to feel jank, and its `setTimeout`
     // fallback is throttled to ~1 s per yield — yielding there would turn a
     // 3 s build into minutes. Run straight through instead.
     shouldYield: () =>
-      host.document?.visibilityState !== "hidden" &&
-      now() - taskStart >= budgetMs,
+      host.document?.visibilityState !== "hidden" && now() - taskStart >= 8,
     yieldNow: async () => {
       // `scheduler.yield` continues at front-of-queue with input handling
       // interleaved; the timeout fallback is a plain macrotask.
