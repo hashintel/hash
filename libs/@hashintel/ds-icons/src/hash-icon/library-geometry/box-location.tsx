@@ -2,27 +2,15 @@ import { FilledShape } from "../filled-shape";
 
 export const boxLocationGeometry = (
   <g fill="none">
-    <g transform="translate(-1 0) scale(.8)">
-      <FilledShape
-        cutout={
-          <>
-            <path d="m3 7 9 4 9-4m-9 4v10M7.5 5l9 4v5" />
-          </>
-        }
-      >
-        <path d="m3 7 9-4 9 4v10l-9 4-9-4Z" />
-      </FilledShape>
-    </g>
-    <g transform="translate(12 10) scale(.45)">
-      <FilledShape
-        cutout={
-          <>
-            <circle cx="12" cy="9" r="2.5" />
-          </>
-        }
-      >
-        <path d="M19 9c0 6-7 12-7 12S5 15 5 9a7 7 0 0 1 14 0Z" />
-      </FilledShape>
-    </g>
+    <FilledShape cutout={<path d="m2.5 7 5 2.5 5-2.5m-5 2.5v7M5 5.75l5 2.5" />}>
+      <path d="m2.5 7 5-2.5 5 2.5v7l-5 2.5-5-2.5Z" />
+    </FilledShape>
+    <FilledShape
+      cutout={
+        <circle cx="18.5" cy="15" r=".8" fill="currentColor" stroke="none" />
+      }
+    >
+      <path d="M21.5 15c0 3-3 6-3 6s-3-3-3-6a3 3 0 0 1 6 0Z" />
+    </FilledShape>
   </g>
 );

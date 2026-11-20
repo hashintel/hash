@@ -6,7 +6,14 @@ export const fileCodeGeometry = (
       cutout={
         <>
           <path d="M13.5 3.5v5h5" />
-          <path d="m10 12-2 2.5 2 2.5m4-5 2 2.5-2 2.5" />
+          <path
+            data-icon-detail="file-code-left"
+            d="m10.75 12-1.75 2.5 1.75 2.5"
+          />
+          <path
+            data-icon-detail="file-code-right"
+            d="m13.25 12 1.75 2.5-1.75 2.5"
+          />
         </>
       }
     >

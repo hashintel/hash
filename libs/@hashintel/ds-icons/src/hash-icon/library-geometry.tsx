@@ -34,6 +34,10 @@ import { atomGeometry } from "./library-geometry/atom";
 import { badgeCheckGeometry } from "./library-geometry/badge-check";
 import { ballotCheckGeometry } from "./library-geometry/ballot-check";
 import { bankGeometry } from "./library-geometry/bank";
+import { batteryGeometry } from "./library-geometry/battery";
+import { batteryBoltGeometry } from "./library-geometry/battery-bolt";
+import { batteryLevelGeometry } from "./library-geometry/battery-level";
+import { batteryLowGeometry } from "./library-geometry/battery-low";
 import { binaryGeometry } from "./library-geometry/binary";
 import { binocularsGeometry } from "./library-geometry/binoculars";
 import { biohazardGeometry } from "./library-geometry/biohazard";
@@ -41,6 +45,7 @@ import { blobGeometry } from "./library-geometry/blob";
 import { boldGeometry } from "./library-geometry/bold";
 import { bookGeometry } from "./library-geometry/book";
 import { bookOpenGeometry } from "./library-geometry/book-open";
+import { bookmarkGeometry } from "./library-geometry/bookmark";
 import { booksGeometry } from "./library-geometry/books";
 import { boxGeometry } from "./library-geometry/box";
 import { boxLocationGeometry } from "./library-geometry/box-location";
@@ -62,6 +67,8 @@ import { calendarDaysGeometry } from "./library-geometry/calendar-days";
 import { calendarWeekGeometry } from "./library-geometry/calendar-week";
 import { calendarsGeometry } from "./library-geometry/calendars";
 import { canvasGeometry } from "./library-geometry/canvas";
+import { carbonDioxideGeometry } from "./library-geometry/carbon-dioxide";
+import { carbonMonoxideGeometry } from "./library-geometry/carbon-monoxide";
 import { cctvCameraGeometry } from "./library-geometry/cctv-camera";
 import { chartHeatmapGeometry } from "./library-geometry/chart-heatmap";
 import { chartMixedGeometry } from "./library-geometry/chart-mixed";
@@ -87,6 +94,10 @@ import { clipboardCheckGeometry } from "./library-geometry/clipboard-check";
 import { clipboardListGeometry } from "./library-geometry/clipboard-list";
 import { cloudGeometry } from "./library-geometry/cloud";
 import { cloudDownloadGeometry } from "./library-geometry/cloud-download";
+import { cloudLightningGeometry } from "./library-geometry/cloud-lightning";
+import { cloudRainGeometry } from "./library-geometry/cloud-rain";
+import { cloudSunGeometry } from "./library-geometry/cloud-sun";
+import { cloudUploadGeometry } from "./library-geometry/cloud-upload";
 import { codeBranchGeometry } from "./library-geometry/code-branch";
 import { codeEditGeometry } from "./library-geometry/code-edit";
 import { coinsGeometry } from "./library-geometry/coins";
@@ -94,6 +105,7 @@ import { collapseVerticalGeometry } from "./library-geometry/collapse-vertical";
 import { columnsGeometry } from "./library-geometry/columns";
 import { commandGeometry } from "./library-geometry/command";
 import { compassGeometry } from "./library-geometry/compass";
+import { contactCardGeometry } from "./library-geometry/contact-card";
 import { conveyorBeltGeometry } from "./library-geometry/conveyor-belt";
 import { cookieGeometry } from "./library-geometry/cookie";
 import { creditCardGeometry } from "./library-geometry/credit-card";
@@ -104,6 +116,7 @@ import { dashDrawGeometry } from "./library-geometry/dash-draw";
 import { dashSolidGeometry } from "./library-geometry/dash-solid";
 import { databaseGeometry } from "./library-geometry/database";
 import { devicesGeometry } from "./library-geometry/devices";
+import { dewPointGeometry } from "./library-geometry/dew-point";
 import { diagramSankeyGeometry } from "./library-geometry/diagram-sankey";
 import { diamondGeometry } from "./library-geometry/diamond";
 import { diceD20Geometry } from "./library-geometry/dice-d20";
@@ -147,7 +160,9 @@ import { fillSolidGeometry } from "./library-geometry/fill-solid";
 import { flagGeometry } from "./library-geometry/flag";
 import { flameGeometry } from "./library-geometry/flame";
 import { flaskVialGeometry } from "./library-geometry/flask-vial";
+import { fluidFlowGeometry } from "./library-geometry/fluid-flow";
 import { folderGeometry } from "./library-geometry/folder";
+import { folderOpenGeometry } from "./library-geometry/folder-open";
 import { fontCaseGeometry } from "./library-geometry/font-case";
 import { fontDrawGeometry } from "./library-geometry/font-draw";
 import { fontMonoGeometry } from "./library-geometry/font-mono";
@@ -157,6 +172,7 @@ import { forkliftGeometry } from "./library-geometry/forklift";
 import { frameGeometry } from "./library-geometry/frame";
 import { gaugeGeometry } from "./library-geometry/gauge";
 import { gemGeometry } from "./library-geometry/gem";
+import { ghostGeometry } from "./library-geometry/ghost";
 import { giftGeometry } from "./library-geometry/gift";
 import { globeGeometry } from "./library-geometry/globe";
 import { globeNodesGeometry } from "./library-geometry/globe-nodes";
@@ -169,8 +185,10 @@ import { hammerGeometry } from "./library-geometry/hammer";
 import { handDollarGeometry } from "./library-geometry/hand-dollar";
 import { handshakeGeometry } from "./library-geometry/handshake";
 import { handwrittenDocsGeometry } from "./library-geometry/handwritten-docs";
+import { hardDriveGeometry } from "./library-geometry/hard-drive";
 import { hashtagGeometry } from "./library-geometry/hashtag";
 import { heartGeometry } from "./library-geometry/heart";
+import { heartPulseGeometry } from "./library-geometry/heart-pulse";
 import { helpGeometry } from "./library-geometry/help";
 import { hexagonGeometry } from "./library-geometry/hexagon";
 import { hexagonNodesGeometry } from "./library-geometry/hexagon-nodes";
@@ -180,12 +198,13 @@ import { historyUserGeometry } from "./library-geometry/history-user";
 import { homeGeometry } from "./library-geometry/home";
 import { hospitalUserGeometry } from "./library-geometry/hospital-user";
 import { humidityGeometry } from "./library-geometry/humidity";
+import { hydrogenSulfideGeometry } from "./library-geometry/hydrogen-sulfide";
+import { imagePlusGeometry } from "./library-geometry/image-plus";
 import { inboxGeometry } from "./library-geometry/inbox";
 import { italicGeometry } from "./library-geometry/italic";
 import { jetGeometry } from "./library-geometry/jet";
 import { keyGeometry } from "./library-geometry/key";
 import { keyboardGeometry } from "./library-geometry/keyboard";
-import { keycapKGeometry } from "./library-geometry/keycap-k";
 import { laptopGeometry } from "./library-geometry/laptop";
 import { layerPlusGeometry } from "./library-geometry/layer-plus";
 import { lifeRingGeometry } from "./library-geometry/life-ring";
@@ -195,6 +214,7 @@ import { listOrderedGeometry } from "./library-geometry/list-ordered";
 import { listTimelineGeometry } from "./library-geometry/list-timeline";
 import { locationGeometry } from "./library-geometry/location";
 import { locationCheckGeometry } from "./library-geometry/location-check";
+import { locationPlusGeometry } from "./library-geometry/location-plus";
 import { loginGeometry } from "./library-geometry/login";
 import { logoutGeometry } from "./library-geometry/logout";
 import { magneticMediaGeometry } from "./library-geometry/magnetic-media";
@@ -207,23 +227,32 @@ import { memoInfoGeometry } from "./library-geometry/memo-info";
 import { messageGeometry } from "./library-geometry/message";
 import { messageDollarGeometry } from "./library-geometry/message-dollar";
 import { messageQuestionGeometry } from "./library-geometry/message-question";
+import { methaneGeometry } from "./library-geometry/methane";
 import { microchipGeometry } from "./library-geometry/microchip";
 import { mixedGeometry } from "./library-geometry/mixed";
 import { moneyTransferGeometry } from "./library-geometry/money-transfer";
 import { monitorGeometry } from "./library-geometry/monitor";
+import { monitoringInstrumentGeometry } from "./library-geometry/monitoring-instrument";
 import { moonGeometry } from "./library-geometry/moon";
 import { mortarPestleGeometry } from "./library-geometry/mortar-pestle";
+import { moveGeometry } from "./library-geometry/move";
 import { newspaperGeometry } from "./library-geometry/newspaper";
 import { notePlusGeometry } from "./library-geometry/note-plus";
 import { noteStickyGeometry } from "./library-geometry/note-sticky";
 import { octagonGeometry } from "./library-geometry/octagon";
 import { openSourceInitiativeGeometry } from "./library-geometry/open-source-initiative";
 import { orbitGeometry } from "./library-geometry/orbit";
+import { organicCompoundGeometry } from "./library-geometry/organic-compound";
+import { oxygenGeometry } from "./library-geometry/oxygen";
 import { packGeometry } from "./library-geometry/pack";
 import { paletteGeometry } from "./library-geometry/palette";
 import { palmTreeGeometry } from "./library-geometry/palm-tree";
 import { paperclipGeometry } from "./library-geometry/paperclip";
 import { parallelogramGeometry } from "./library-geometry/parallelogram";
+import { particulateMatterTotalGeometry } from "./library-geometry/particulate-matter-total";
+import { particulateMatter1Geometry } from "./library-geometry/particulate-matter1";
+import { particulateMatter2Point5Geometry } from "./library-geometry/particulate-matter2-point5";
+import { particulateMatter10Geometry } from "./library-geometry/particulate-matter10";
 import { partyHornGeometry } from "./library-geometry/party-horn";
 import { pencilRulerGeometry } from "./library-geometry/pencil-ruler";
 import { pencilSlashGeometry } from "./library-geometry/pencil-slash";
@@ -249,9 +278,11 @@ import { planeUpGeometry } from "./library-geometry/plane-up";
 import { plugCheckGeometry } from "./library-geometry/plug-check";
 import { powerGeometry } from "./library-geometry/power";
 import { presentationChartGeometry } from "./library-geometry/presentation-chart";
+import { pressureDifferentialGeometry } from "./library-geometry/pressure-differential";
 import { pullRequestGeometry } from "./library-geometry/pull-request";
 import { quoteGeometry } from "./library-geometry/quote";
 import { radarGeometry } from "./library-geometry/radar";
+import { radiationGeometry } from "./library-geometry/radiation";
 import { radioCheckedGeometry } from "./library-geometry/radio-checked";
 import { receiptGeometry } from "./library-geometry/receipt";
 import { rectangleGeometry } from "./library-geometry/rectangle";
@@ -260,6 +291,7 @@ import { redoGeometry } from "./library-geometry/redo";
 import { rocketGeometry } from "./library-geometry/rocket";
 import { roundedCornerGeometry } from "./library-geometry/rounded-corner";
 import { routeGeometry } from "./library-geometry/route";
+import { routerGeometry } from "./library-geometry/router";
 import { rowsGeometry } from "./library-geometry/rows";
 import { sadGeometry } from "./library-geometry/sad";
 import { scanLineGeometry } from "./library-geometry/scan-line";
@@ -271,6 +303,7 @@ import { searchEmptyGeometry } from "./library-geometry/search-empty";
 import { sendGeometry } from "./library-geometry/send";
 import { sendBackwardGeometry } from "./library-geometry/send-backward";
 import { sendToBackGeometry } from "./library-geometry/send-to-back";
+import { sensorGeometry } from "./library-geometry/sensor";
 import { serverGeometry } from "./library-geometry/server";
 import { shapeArrowDownGeometry } from "./library-geometry/shape-arrow-down";
 import { shapeArrowLeftGeometry } from "./library-geometry/shape-arrow-left";
@@ -286,6 +319,7 @@ import { shoppingBasketGeometry } from "./library-geometry/shopping-basket";
 import { shoppingCartGeometry } from "./library-geometry/shopping-cart";
 import { shuffleGeometry } from "./library-geometry/shuffle";
 import { signalGeometry } from "./library-geometry/signal";
+import { signalStrengthGeometry } from "./library-geometry/signal-strength";
 import { sitemapGeometry } from "./library-geometry/sitemap";
 import { sizeExtraLargeGeometry } from "./library-geometry/size-extra-large";
 import { sizeLargeGeometry } from "./library-geometry/size-large";
@@ -303,6 +337,7 @@ import { squareMinusGeometry } from "./library-geometry/square-minus";
 import { stackHorizontalGeometry } from "./library-geometry/stack-horizontal";
 import { stackVerticalGeometry } from "./library-geometry/stack-vertical";
 import { strikethroughGeometry } from "./library-geometry/strikethrough";
+import { sulfurDioxideGeometry } from "./library-geometry/sulfur-dioxide";
 import { sunGeometry } from "./library-geometry/sun";
 import { sunMoonGeometry } from "./library-geometry/sun-moon";
 import { surveyGeometry } from "./library-geometry/survey";
@@ -350,12 +385,53 @@ import { usersGeometry } from "./library-geometry/users";
 import { vibrationGeometry } from "./library-geometry/vibration";
 import { virusGeometry } from "./library-geometry/virus";
 import { warehouseGeometry } from "./library-geometry/warehouse";
+import { waterLevelGeometry } from "./library-geometry/water-level";
+import { waterSplashGeometry } from "./library-geometry/water-splash";
 import { wavePulseGeometry } from "./library-geometry/wave-pulse";
 import { wavesGeometry } from "./library-geometry/waves";
 import { windGeometry } from "./library-geometry/wind";
 import { workflowGeometry } from "./library-geometry/workflow";
 
 export const libraryGeometry = {
+  monitoringInstrument: monitoringInstrumentGeometry,
+  sensor: sensorGeometry,
+  methane: methaneGeometry,
+  carbonDioxide: carbonDioxideGeometry,
+  oxygen: oxygenGeometry,
+  carbonMonoxide: carbonMonoxideGeometry,
+  hydrogenSulfide: hydrogenSulfideGeometry,
+  sulfurDioxide: sulfurDioxideGeometry,
+  organicCompound: organicCompoundGeometry,
+  radiation: radiationGeometry,
+  waterLevel: waterLevelGeometry,
+  waterSplash: waterSplashGeometry,
+  particulateMatter1: particulateMatter1Geometry,
+  particulateMatter2Point5: particulateMatter2Point5Geometry,
+  particulateMatter10: particulateMatter10Geometry,
+  particulateMatterTotal: particulateMatterTotalGeometry,
+  pressureDifferential: pressureDifferentialGeometry,
+  fluidFlow: fluidFlowGeometry,
+  dewPoint: dewPointGeometry,
+  cloudRain: cloudRainGeometry,
+  battery: batteryGeometry,
+  batteryLow: batteryLowGeometry,
+  batteryLevel: batteryLevelGeometry,
+  batteryBolt: batteryBoltGeometry,
+  signalStrength: signalStrengthGeometry,
+  bookmark: bookmarkGeometry,
+  cloudLightning: cloudLightningGeometry,
+  cloudSun: cloudSunGeometry,
+  contactCard: contactCardGeometry,
+  folderOpen: folderOpenGeometry,
+  ghost: ghostGeometry,
+  hardDrive: hardDriveGeometry,
+  heartPulse: heartPulseGeometry,
+  imagePlus: imagePlusGeometry,
+  locationPlus: locationPlusGeometry,
+  router: routerGeometry,
+  cloudUpload: cloudUploadGeometry,
+  move: moveGeometry,
+
   openSourceInitiative: openSourceInitiativeGeometry,
   toolbox: toolboxGeometry,
   tools: toolsGeometry,
@@ -643,7 +719,6 @@ export const libraryGeometry = {
   key: keyGeometry,
   paperclip: paperclipGeometry,
   keyboard: keyboardGeometry,
-  keycapK: keycapKGeometry,
   command: commandGeometry,
   toggleOff: toggleOffGeometry,
   toggleOn: toggleOnGeometry,

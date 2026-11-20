@@ -1023,6 +1023,114 @@ describe("HashIcon motion", () => {
     },
   );
 
+  it.each(["outline", "filled"] as const)(
+    "animates individual Dash and file details in %s icons and cancels them together",
+    (variant) => {
+      const names = [
+        "dashSolid",
+        "dashDashed",
+        "dashDotted",
+        "dashDraw",
+        "filePlus",
+        "fileAudio",
+        "fileCode",
+        "scanLine",
+        "signal",
+      ] as const;
+      const { container, rerender, unmount } = render(
+        <button type="button">
+          {names.map((name) => (
+            <HashIcon key={name} name={name} variant={variant} />
+          ))}
+        </button>,
+      );
+      fireEvent.click(screen.getByRole("button"));
+      const details = container.querySelectorAll("[data-icon-detail]");
+      expect(animate).toHaveBeenCalledTimes(details.length);
+      for (const detail of details)
+        expect(animate.mock.contexts.includes(detail)).toBe(true);
+      for (const [, options] of animate.mock.calls) {
+        expect(options).toMatchObject({ iterations: 1, fill: "none" });
+      }
+      fireEvent.click(screen.getByRole("button"));
+      expect(cancel).toHaveBeenCalledTimes(details.length);
+      expect(animate).toHaveBeenCalledTimes(details.length * 2);
+      rerender(
+        <button type="button">
+          {names.map((name) => (
+            <HashIcon key={name} name={name} variant={variant} motion="none" />
+          ))}
+        </button>,
+      );
+      expect(cancel).toHaveBeenCalledTimes(details.length * 2);
+      fireEvent.click(screen.getByRole("button"));
+      expect(animate).toHaveBeenCalledTimes(details.length * 2);
+      unmount();
+    },
+  );
+
+  it.each(["outline", "filled"] as const)(
+    "moves the upload arrow into its stationary cloud in the %s variant",
+    (variant) => {
+      const { container } = render(
+        <HashIcon name="cloudUpload" variant={variant} effect="action" />,
+      );
+      const arrow = container.querySelector('[data-icon-detail="up"]');
+      expect(arrow).not.toBeNull();
+      expect(animate).toHaveBeenCalledTimes(1);
+      expect(animate.mock.contexts[0]).toBe(arrow);
+      const frames = animate.mock.calls[0]![0];
+      expect(frames).toContainEqual(
+        expect.objectContaining({ transform: "translateY(-2px)" }),
+      );
+      expect(frames.at(-1)?.transform).toBe(frames[0]?.transform);
+    },
+  );
+
+  it.each(["dashDashed", "dashDotted", "signal"] as const)(
+    "staggers %s details within one seamless cycle and stops for reduced motion",
+    (name) => {
+      render(
+        <HashIcon name={name} effect="action" animationMode="continuous" />,
+      );
+      const peaks = animate.mock.calls.map(([frames, options]) => {
+        expect(options.iterations).toBe(Infinity);
+        expect(frames[0]).toEqual(frames.at(-1));
+        const peak = frames.find(
+          (frame) =>
+            frame.opacity === 0.25 ||
+            frame.transform === "translateY(-1.6px)" ||
+            frame.transform === "scaleY(.45)",
+        );
+        expect(peak?.offset).toBeGreaterThan(0);
+        expect(peak?.offset).toBeLessThan(1);
+        return peak!.offset!;
+      });
+      expect(peaks.length).toBeGreaterThan(1);
+      expect(new Set(peaks).size).toBe(peaks.length);
+      expect(peaks).toEqual([...peaks].sort((left, right) => left - right));
+      act(() => {
+        reducedMotion = true;
+        mediaListeners.forEach((listener) => listener());
+      });
+      expect(cancel).toHaveBeenCalledTimes(peaks.length);
+      expect(animate).toHaveBeenCalledTimes(peaks.length);
+    },
+  );
+
+  it.each(["dashSolid", "dashDraw"] as const)(
+    "wiggles %s along its path and returns to its original shape",
+    (name) => {
+      const { container } = render(<HashIcon name={name} effect="action" />);
+      const path = container.querySelector("[data-icon-detail]");
+      expect(animate).toHaveBeenCalledTimes(1);
+      const frames = animate.mock.calls[0]![0];
+      expect(frames[0]?.d).toBe(`path('${path?.getAttribute("d")}')`);
+      expect(frames.at(-1)?.d).toBe(frames[0]?.d);
+      expect(new Set(frames.map((frame) => frame.d)).size).toBe(3);
+    },
+  );
+
   it("jumps on click without replacing the runner's independent gait", () => {
     const { container, unmount } = render(
       <button type="button">
