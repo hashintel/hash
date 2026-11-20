@@ -161,8 +161,6 @@ export const createEditorActions = ({
         return selection;
       }),
     clearSelection: () => setSelection(new Map()),
-    setHoveredItem: (item: SelectionItem) => patch({ hoveredItem: item }),
-    clearHoveredItem: () => patch({ hoveredItem: null }),
     openPlaceVisualizer: (placeId: string | null) =>
       patch({ openVisualizerPlaceId: placeId }),
     setVisualizerEditorFocus: (placeId: string, focused: boolean) =>
@@ -208,8 +206,6 @@ export const createEditorActions = ({
             previous.focusedVisualizerPlaceId === placeId
               ? null
               : previous.focusedVisualizerPlaceId,
-          hoveredItem:
-            previous.hoveredItem?.id === placeId ? null : previous.hoveredItem,
         };
       }),
     toggleComponentInstanceFold: (instanceId: string) =>
@@ -222,11 +218,6 @@ export const createEditorActions = ({
         }
         return { ...prev, unfoldedComponentInstanceIds };
       }),
-    updateDraggingStateByNodeId: (updater) =>
-      setState((prev) => ({
-        ...prev,
-        draggingStateByNodeId: updater(prev.draggingStateByNodeId),
-      })),
     collapseAllPanels: () => {
       navigate({ selection: [] }, { cause: "user", action: "selection" });
       patch({

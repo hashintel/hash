@@ -12,11 +12,6 @@ import type {
   SelectionMap,
 } from "@hashintel/petrinaut-core";
 
-export type DraggingStateByNodeId = Record<
-  string,
-  { dragging: boolean; position: { x: number; y: number } }
->;
-
 export type EditorGlobalMode = "edit" | "simulate" | "actual";
 export type EditViewMode = "canvas" | "definitions";
 type EditorEditionMode =
@@ -97,8 +92,6 @@ export type EditorState = {
   selection: SelectionMap;
   /** Whether any items are currently selected. */
   hasSelection: boolean;
-  /** The item currently being hovered, if any. */
-  hoveredItem: SelectionItem | null;
   /** Windows explicitly kept open, independently of their positioning mode. */
   keptOpenVisualizerPlaceIds: Set<string>;
   /** Visualizer place IDs ordered from back to front. */
@@ -111,7 +104,6 @@ export type EditorState = {
   /** The temporary hover or keyboard preview. */
   openVisualizerPlaceId: string | null;
   focusedVisualizerPlaceId: string | null;
-  draggingStateByNodeId: DraggingStateByNodeId;
   timelineChartType: TimelineChartType;
   /**
    * Which view is rendered in the simulation timeline chart. See
@@ -161,8 +153,6 @@ export type EditorActions = {
   selectItem: (item: SelectionItem) => void;
   toggleItem: (item: SelectionItem) => void;
   clearSelection: () => void;
-  setHoveredItem: (item: SelectionItem) => void;
-  clearHoveredItem: () => void;
   keepPlaceVisualizerOpen: (placeId: string) => void;
   closePlaceVisualizer: (placeId: string) => void;
   bringVisualizerToFront: (placeId: string) => void;
@@ -171,9 +161,6 @@ export type EditorActions = {
   /** Show or dismiss a temporary preview. */
   openPlaceVisualizer: (placeId: string | null) => void;
   setVisualizerEditorFocus: (placeId: string, focused: boolean) => void;
-  updateDraggingStateByNodeId: (
-    updater: (state: DraggingStateByNodeId) => DraggingStateByNodeId,
-  ) => void;
   collapseAllPanels: () => void;
   setTimelineChartType: (chartType: TimelineChartType) => void;
   setTimelineView: (view: TimelineView) => void;
@@ -202,13 +189,11 @@ export const initialEditorState: EditorState = {
   componentToAdd: null,
   selection: new Map(),
   hasSelection: false,
-  hoveredItem: null,
   keptOpenVisualizerPlaceIds: new Set<string>(),
   visualizerStack: [],
   unfoldedComponentInstanceIds: new Set<string>(),
   openVisualizerPlaceId: null,
   focusedVisualizerPlaceId: null,
-  draggingStateByNodeId: {},
   timelineChartType: "run",
   timelineView: { kind: "per-place" },
   hiddenTimelineSeriesIds: new Set(),
@@ -237,15 +222,12 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   selectItem: () => {},
   toggleItem: () => {},
   clearSelection: () => {},
-  setHoveredItem: () => {},
-  clearHoveredItem: () => {},
   keepPlaceVisualizerOpen: () => {},
   closePlaceVisualizer: () => {},
   bringVisualizerToFront: () => {},
   toggleComponentInstanceFold: () => {},
   openPlaceVisualizer: () => {},
   setVisualizerEditorFocus: () => {},
-  updateDraggingStateByNodeId: () => {},
   collapseAllPanels: () => {},
   setTimelineChartType: () => {},
   setTimelineView: () => {},

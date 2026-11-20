@@ -366,8 +366,6 @@ describe("EditorProvider selection gestures", () => {
     act(() => editor.setVisualizerEditorFocus("place-c", true));
     act(() => editor.setVisualizerEditorFocus("place-b", false));
     expect(editor.focusedVisualizerPlaceId).toBe("place-c");
-    act(() => editor.clearHoveredItem());
-    expect(editor.focusedVisualizerPlaceId).toBe("place-c");
     act(() => editor.setVisualizerEditorFocus("place-c", false));
     expect(editor.focusedVisualizerPlaceId).toBeNull();
     expect([...editor.keptOpenVisualizerPlaceIds]).toEqual(["place-a"]);
@@ -395,12 +393,6 @@ describe("EditorProvider selection gestures", () => {
     expect([...editor.unfoldedComponentInstanceIds]).toEqual(["m1", "m2"]);
     act(() => editor.toggleComponentInstanceFold("m1"));
     expect([...editor.unfoldedComponentInstanceIds]).toEqual(["m2"]);
-  });
-
-  it("leaves hover preview dismissal to its grace period when crossing another place", () => {
-    act(() => editor.openPlaceVisualizer("place-a"));
-    act(() => editor.setHoveredItem({ type: "place", id: "place-b" }));
-    expect(editor.openVisualizerPlaceId).toBe("place-a");
   });
 
   it("keeps the most recently activated visualizer in front after blur and restores the previous order on close", () => {
