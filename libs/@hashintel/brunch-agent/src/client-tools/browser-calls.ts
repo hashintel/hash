@@ -29,6 +29,12 @@ export interface BrowserCallClaim {
   readonly expectedRevision?: string;
 }
 
+/** A claim: the claiming tab's ID and its canonical editor binding. */
+export const browserCallClaimBodySchema = v.object({
+  claimant: v.pipe(v.string(), v.minLength(1)),
+  binding: v.string(),
+});
+
 export const browserCallLeaseBodySchema = v.object({
   capability: v.string(),
   binding: v.string(),
@@ -50,6 +56,9 @@ export const browserCallFailureBodySchema = v.object({
   disposition: v.picklist(browserCallFailureDispositions),
 });
 
+export type BrowserCallClaimBody = v.InferOutput<
+  typeof browserCallClaimBodySchema
+>;
 export type BrowserCallLeaseBody = v.InferOutput<
   typeof browserCallLeaseBodySchema
 >;

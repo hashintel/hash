@@ -57,7 +57,6 @@ import {
   type BrowserCallView,
   createBrowserCallRouter,
 } from "./browser-call-router";
-import { handEditsRoute } from "./hand-edit";
 import { createHashBrowserToolsExtension } from "./hash-browser-tools";
 
 import type { FauxResponseStep } from "@earendil-works/pi-ai/providers/faux";
@@ -589,7 +588,7 @@ describe("browser-call router: early claims and committed records", () => {
 
 const routePrefix = `${brunchRoutes.agents}/${brunchRoutes.petrinautAgent}`;
 const handEditsUrl = (conversationId = routeConversationId) =>
-  `${routePrefix}/${conversationId}/${brunchRoutes.browserCalls}/${handEditsRoute}`;
+  `${routePrefix}/${conversationId}/${brunchRoutes.browserCalls}/${brunchRoutes.handEdits}`;
 
 /** POST a hand-edit report to `app`; `body` is sent as is. */
 const postHandEdit = (
@@ -955,7 +954,7 @@ describe("browser-call router: hand-edit reports through the server", () => {
       });
 
       const response = await server.app.request(
-        `/conversations/${chatId}/${brunchRoutes.browserCalls}/${handEditsRoute}`,
+        `/conversations/${chatId}/${brunchRoutes.browserCalls}/${brunchRoutes.handEdits}`,
         {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -972,7 +971,7 @@ describe("browser-call router: hand-edit reports through the server", () => {
       expect(
         (
           await server.app.request(
-            `/conversations/unknown/${brunchRoutes.browserCalls}/${handEditsRoute}`,
+            `/conversations/unknown/${brunchRoutes.browserCalls}/${brunchRoutes.handEdits}`,
             {
               method: "POST",
               body: JSON.stringify(report("episode-1", 0, "revision-2")),
