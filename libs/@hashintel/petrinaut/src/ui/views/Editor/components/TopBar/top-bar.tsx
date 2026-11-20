@@ -2,10 +2,8 @@ import { use } from "react";
 
 import {
   Button,
-  Menu,
   SegmentedControl,
   TextInput,
-  type MenuItem,
   type SegmentedControlItem,
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
@@ -19,8 +17,9 @@ import {
 } from "../../../../../react/state/editor-context";
 import { useComposesOnly } from "../../../../../react/state/use-composes-only";
 import { useUserSettings } from "../../../../../react/state/user-settings-context";
-import { MenuIcon, SidebarIcon } from "../../../../experimental-icons";
+import { SidebarIcon } from "../../../../experimental-icons";
 import { PluginToolbarItems } from "../../../../plugins/plugin-outlets";
+import { EditorMenu } from "./editor-menu";
 import { RunningExperimentsPopover } from "./running-experiments-popover";
 import { VersionHistoryButton } from "./version-history-button";
 
@@ -89,13 +88,11 @@ const modeItems = (
 const ignoreTitle = () => {};
 
 interface TopBarProps {
-  menuItems: MenuItem[];
   hideNetManagementControls?: "all" | "except-title";
   onRunningExperimentClick?: (experiment: ExperimentRecord) => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
-  menuItems,
   hideNetManagementControls,
   onRunningExperimentClick,
 }) => {
@@ -140,19 +137,8 @@ export const TopBar: React.FC<TopBarProps> = ({
             : { iconName: "sidebar" })}
         />
 
-        <Menu
-          trigger={
-            <Button
-              aria-label="Menu"
-              size="sm"
-              variant="ghost"
-              tooltip="Menu"
-              {...(enableExperimentalIconPack
-                ? { prefix: <MenuIcon size={16} duration={200} /> }
-                : { iconName: "bars" })}
-            />
-          }
-          items={menuItems}
+        <EditorMenu
+          showNetManagementItems={hideNetManagementControls === undefined}
         />
 
         <PluginToolbarItems place="top-bar-start" />

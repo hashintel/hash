@@ -7,54 +7,44 @@ const errorMessageStyle = css({
 });
 
 export const ImportErrorDialog = ({
-  open,
-  onOpenChange,
-  errorMessage,
+  message,
+  onClose,
   onCreateEmpty,
 }: {
-  open: boolean;
-  onOpenChange: (details: { open: boolean }) => void;
-  errorMessage: string;
+  message: string;
+  onClose: () => void;
   onCreateEmpty: () => void;
-}) => {
-  if (!open) {
-    return null;
-  }
-
-  const close = () => onOpenChange({ open: false });
-
-  return (
-    <Dialog onClose={close} size="sm">
-      <Dialog.Header
-        title="Import Error"
-        description="The selected file could not be imported."
-      />
-      <Dialog.Body>
-        <Banner tone="error" icon={false}>
-          <Banner.Description className={errorMessageStyle}>
-            {errorMessage}
-          </Banner.Description>
-        </Banner>
-      </Dialog.Body>
-      <Dialog.Footer
-        actions={
-          <>
-            <Button variant="subtle" tone="neutral" onClick={close}>
-              Close
-            </Button>
-            <Button
-              variant="solid"
-              tone="neutral"
-              onClick={() => {
-                onCreateEmpty();
-                close();
-              }}
-            >
-              Create empty net
-            </Button>
-          </>
-        }
-      />
-    </Dialog>
-  );
-};
+}) => (
+  <Dialog onClose={onClose} size="sm">
+    <Dialog.Header
+      title="Import Error"
+      description="The selected file could not be imported."
+    />
+    <Dialog.Body>
+      <Banner tone="error" icon={false}>
+        <Banner.Description className={errorMessageStyle}>
+          {message}
+        </Banner.Description>
+      </Banner>
+    </Dialog.Body>
+    <Dialog.Footer
+      actions={
+        <>
+          <Button variant="subtle" tone="neutral" onClick={onClose}>
+            Close
+          </Button>
+          <Button
+            variant="solid"
+            tone="neutral"
+            onClick={() => {
+              onCreateEmpty();
+              onClose();
+            }}
+          >
+            Create empty net
+          </Button>
+        </>
+      }
+    />
+  </Dialog>
+);

@@ -74,9 +74,6 @@ vi.mock("./components/ai-cta-modal", () => ({
     </button>
   ),
 }));
-vi.mock("./components/import-error-dialog", () => ({
-  ImportErrorDialog: () => null,
-}));
 vi.mock("./simulation-creation-drawer", () => ({
   SimulationCreationDrawer: () => null,
 }));

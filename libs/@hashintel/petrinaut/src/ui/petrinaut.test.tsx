@@ -39,7 +39,7 @@ vi.mock("./views/Editor/editor-view", async () => {
           data-testid="title-capability"
           data-available={setTitle !== undefined}
         >
-          <TopBar menuItems={[]} />
+          <TopBar />
           <button
             type="button"
             onClick={() =>
