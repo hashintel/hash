@@ -275,15 +275,20 @@ export const Default: Story = {
         <div className={cellRow}>
           <Example name="Custom children">
             <Toast withPadding={false} shouldCloseOn="none" duration={Infinity}>
-              <div>
-                <div className={customStripe} />
-                <div className={customBody}>
-                  <div className={customTitle}>Fresh coat of paint</div>
-                  <div className={customDescription}>
-                    Fully custom children — the toast only provides the card.
+              {({ close }) => (
+                <div>
+                  <div className={customStripe} />
+                  <div className={customBody}>
+                    <div className={customTitle}>Fresh coat of paint</div>
+                    <div className={customDescription}>
+                      Fully custom children — the toast only provides the card.
+                    </div>
+                    <Button size="xs" variant="subtle" onClick={close}>
+                      Dismiss
+                    </Button>
                   </div>
                 </div>
-              </div>
+              )}
             </Toast>
           </Example>
         </div>
@@ -458,6 +463,42 @@ const InteractiveDemo = () => {
         >
           closeToast
         </Button>
+        <Button
+          size="xs"
+          onClick={() =>
+            fire({
+              title: "Draft archived",
+              body: "Undo pends for 1.5s, then closes; Fail pends and stays. Pending holds off the 5s expiry.",
+              actions: (
+                <>
+                  <Toast.Action
+                    closeToast
+                    onClick={() =>
+                      new Promise((resolve) => {
+                        setTimeout(resolve, 1500);
+                      })
+                    }
+                  >
+                    Undo
+                  </Toast.Action>
+                  <Toast.Action
+                    closeToast
+                    onClick={() =>
+                      new Promise((_resolve, reject) => {
+                        setTimeout(reject, 1500);
+                      })
+                    }
+                  >
+                    Fail
+                  </Toast.Action>
+                </>
+              ),
+              options: { duration: 5000 },
+            })
+          }
+        >
+          async closeToast
+        </Button>
       </div>
       <div className={buttonRow}>
         <span className={rowLabel}>Duration</span>
@@ -515,58 +556,6 @@ export const Interactive: Story = {
   render: () => (
     <Toaster>
       <InteractiveDemo />
-    </Toaster>
-  ),
-};
-
-const StackingDemo = () => {
-  const [queued, setQueued] = useState<number[]>([]);
-  const nextKeyRef = useRef(0);
-
-  const fire = (count: number) => {
-    const batch: number[] = [];
-    for (let i = 0; i < count; i++) {
-      nextKeyRef.current += 1;
-      batch.push(nextKeyRef.current);
-    }
-    setQueued((previous) => [...previous, ...batch]);
-  };
-
-  return (
-    <div className={buttonColumn}>
-      <div className={buttonRow}>
-        <Button onClick={() => fire(5)}>Show 5 toasts</Button>
-        <Button onClick={() => fire(20)}>Show 20 toasts</Button>
-      </div>
-      {queued.map((key) => (
-        <Toast
-          key={key}
-          tone="brand"
-          duration={Infinity}
-          onStatusChange={({ status }) => {
-            if (status === "exit") {
-              setQueued((previous) =>
-                previous.filter((toastKey) => toastKey !== key),
-              );
-            }
-          }}
-        >
-          <Toast.Title title={`Toast #${key}`} />
-          <Toast.Body>Hover the stack to expand it.</Toast.Body>
-        </Toast>
-      ))}
-    </div>
-  );
-};
-
-/**
- * Deep stacks: collapsed, only the front three toasts show; hovering expands
- * the full column, which scrolls once it outgrows the viewport.
- */
-export const Stacking: Story = {
-  render: () => (
-    <Toaster>
-      <StackingDemo />
     </Toaster>
   ),
 };

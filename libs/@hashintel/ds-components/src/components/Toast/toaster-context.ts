@@ -37,6 +37,25 @@ export const ToasterContext = createContext<ToasterContextValue | null>(null);
  */
 export const ToastToneContext = createContext<Tone>("neutral");
 
+/**
+ * The store-level handle of the toast being rendered — its id and its
+ * region's store — provided by the toaster around each toast's content.
+ * `Toast.Action`'s `closeToast` uses it to hold a pending toast open.
+ */
+export type ToastInstance = {
+  id: string;
+  store: CreateToasterReturn;
+  /**
+   * Holds the toast un-expirable (duration `Infinity`) until the returned
+   * release is called. Concurrent holds are reference-counted on the toast,
+   * so they can't capture each other's `Infinity` as the original duration;
+   * the last release restores it, restarting the timer.
+   */
+  holdOpen: () => () => void;
+};
+
+export const ToastInstanceContext = createContext<ToastInstance | null>(null);
+
 export const useToasterContext = (): ToasterContextValue => {
   const context = useContext(ToasterContext);
   if (!context) {

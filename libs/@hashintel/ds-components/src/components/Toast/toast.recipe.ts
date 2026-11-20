@@ -36,9 +36,10 @@ export const styles = sva({
   ],
   base: {
     // The region's scroll shell (see `ToasterRegion`): full-viewport and
-    // pointer-transparent — toasts re-enable their own pointer events — with
-    // its `transform` making it the containing block zag's fixed group
-    // positions and scrolls within.
+    // pointer-transparent — zag re-enables pointer events per toast inline,
+    // `auto` while visible and `none` while exiting — with its `transform`
+    // making it the containing block zag's fixed group positions and scrolls
+    // within.
     shell: {
       position: "fixed",
       inset: "0",
@@ -96,6 +97,9 @@ export const styles = sva({
       willChange: "[translate, opacity, scale]",
       transition:
         "[translate 400ms cubic-bezier(0.21, 1.02, 0.73, 1), scale 400ms cubic-bezier(0.21, 1.02, 0.73, 1), opacity 400ms cubic-bezier(0.21, 1.02, 0.73, 1)]",
+      // The exit fades out within the store's 200ms `removeDelay` (see
+      // `createToaster`), so the toast is fully transparent when zag unmounts
+      // it and the longer translate/scale tail is never visibly clipped.
       "&[data-state=closed]": {
         transition:
           "[translate 400ms cubic-bezier(0.06, 0.71, 0.55, 1), scale 400ms cubic-bezier(0.06, 0.71, 0.55, 1), opacity 200ms cubic-bezier(0.06, 0.71, 0.55, 1)]",

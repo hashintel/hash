@@ -7,6 +7,7 @@ import {
   type ToastPlacement,
 } from "@ark-ui/react/toast";
 import {
+  cloneElement,
   useEffect,
   useMemo,
   useRef,
@@ -20,12 +21,36 @@ import { usePortalContainerRef } from "../../util/portal-container-context";
 import { Icon } from "../Icon/icon";
 import { styles } from "./toast.recipe";
 import {
+  buildToastElement,
+  isToastElement,
+  mergeToastPatch,
+  registerToasterHandle,
+} from "./toaster-api";
+import {
   ToasterContext,
+  ToastInstanceContext,
   ToastToneContext,
   useToasterContext,
 } from "./toaster-context";
 
-import type { ToastEntry, ToasterContextValue } from "./toaster-context";
+import type { ToastStatusChangeDetails } from "./toast";
+import type {
+  ToasterHandle,
+  ToasterToastInput,
+  ToasterToastProps,
+} from "./toaster-api";
+import type {
+  ToastEntry,
+  ToasterContextValue,
+  ToastInstance,
+} from "./toaster-context";
+
+/**
+ * Documentation marker for the flat props form the `toaster` functions accept:
+ * every `Toast` prop except `withPadding` and `children`, plus the content
+ * sections as `title`/`body`/`actions`.
+ */
+export const ToasterToastPropsDoc = (_props: ToasterToastProps): null => null;
 
 /**
  * Blocks zag's Escape-to-dismiss for `shouldCloseOn="none"` toasts: zag's own
@@ -51,6 +76,24 @@ const collapsedStackSize = 3;
 /** Hard cap on mounted toasts per region; further toasts queue until space frees. */
 const maxMountedToasts = 100;
 
+/** Id source for `toaster` calls that don't bring their own. */
+let nextFunctionalToastId = 0;
+
+/** A toast created through the `toaster` functions rather than rendered as JSX. */
+type FunctionalToast = {
+  id: string;
+  input: ToasterToastInput;
+  /** Whether the title's icon slot shows the promise-pending spinner. */
+  loading?: boolean;
+  /**
+   * Part of the entry's React key. A create reusing the id of a toast that is
+   * still visible keeps it, updating the toast in place; reusing the id of a
+   * dismissing or departed toast bumps it, remounting the `Toast` so the zag
+   * toast — which ignores creates while closing — is removed and re-created.
+   */
+  generation: number;
+};
+
 const ToastContent = ({
   id,
   store,
@@ -68,6 +111,35 @@ const ToastContent = ({
   const contentRef = useRef<HTMLDivElement | null>(null);
   const [singleLine, setSingleLine] = useState(false);
   const hasEntry = entry !== undefined;
+  const holdsRef = useRef(0);
+  const heldDurationRef = useRef<number | undefined>(undefined);
+  const instance = useMemo<ToastInstance>(
+    () => ({
+      id,
+      store,
+      holdOpen: () => {
+        if (holdsRef.current === 0) {
+          heldDurationRef.current = store
+            .getVisibleToasts()
+            .find((toast) => toast.id === id)?.duration;
+          store.update(id, { duration: Infinity });
+        }
+        holdsRef.current += 1;
+        let released = false;
+        return () => {
+          if (released) {
+            return;
+          }
+          released = true;
+          holdsRef.current -= 1;
+          if (holdsRef.current === 0) {
+            store.update(id, { duration: heldDurationRef.current });
+          }
+        };
+      },
+    }),
+    [id, store],
+  );
 
   // Measured (rather than derived from the composition) because any of the
   // parts can wrap onto further lines.
@@ -102,9 +174,11 @@ const ToastContent = ({
       onKeyDownCapture={entry.closeOnEscape ? undefined : blockEscapeDismiss}
     >
       <div ref={contentRef} className={classes.content}>
-        <ToastToneContext.Provider value={entry.tone}>
-          {entry.content}
-        </ToastToneContext.Provider>
+        <ToastInstanceContext.Provider value={instance}>
+          <ToastToneContext.Provider value={entry.tone}>
+            {entry.content}
+          </ToastToneContext.Provider>
+        </ToastInstanceContext.Provider>
       </div>
       {entry.renderCloseButton && (
         <ArkToast.CloseTrigger
@@ -145,10 +219,26 @@ const ToasterRegion = ({
   placement,
   store,
   label,
-}: ToastRegion & { label?: string }) => {
+  shells,
+}: ToastRegion & {
+  label?: string;
+  /** The owning Toaster's shell registry, for scoped region lookups. */
+  shells: Map<ToastPlacement, HTMLDivElement>;
+}) => {
   const shellRef = useRef<HTMLDivElement | null>(null);
   const [columnHeight, setColumnHeight] = useState(0);
   const classes = styles();
+
+  useEffect(() => {
+    const shell = shellRef.current;
+    if (!shell) {
+      return;
+    }
+    shells.set(placement, shell);
+    return () => {
+      shells.delete(placement);
+    };
+  }, [placement, shells]);
 
   // The expanded column's height is the largest toast offset plus that
   // toast's own height, both maintained by zag as inline vars on each root.
@@ -216,9 +306,107 @@ const ToasterRegion = ({
 export const Toaster = ({ children, label }: ToasterProps) => {
   const portalContainerRef = usePortalContainerRef();
   const [regions, setRegions] = useState<ToastRegion[]>([]);
+  const [functionalToasts, setFunctionalToasts] = useState<FunctionalToast[]>(
+    [],
+  );
   const storesRef = useRef<Map<ToastPlacement, CreateToasterReturn>>(new Map());
   const entriesRef = useRef<Map<string, ToastEntry>>(new Map());
   const listenersRef = useRef<Set<() => void>>(new Set());
+  // A stable registry (not state: mutation must not re-render) the regions
+  // fill in, read back by the focus-resume effect below.
+  const [shells] = useState(() => new Map<ToastPlacement, HTMLDivElement>());
+
+  // Mirrors `functionalToasts` ids for the handle's synchronous reads.
+  const functionalIdsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    functionalIdsRef.current = new Set(
+      functionalToasts.map((toast) => toast.id),
+    );
+  }, [functionalToasts]);
+
+  // The `toaster` functions dispatch to the latest mounted Toaster. Their
+  // toasts render below as regular `Toast` elements — one pipeline for both
+  // APIs — and remove themselves from this list after they exit.
+  useEffect(() => {
+    const handle: ToasterHandle = {
+      create: (input, options) => {
+        const providedId = isToastElement(input) ? input.props.id : input.id;
+        nextFunctionalToastId += 1;
+        const id =
+          providedId === undefined
+            ? `toast-fn-${nextFunctionalToastId}`
+            : String(providedId);
+        // An entry without a functional record means the id belongs to a
+        // declaratively rendered `Toast`; a second controller would fight the
+        // mounted element (and take its toast down on exit), so refuse.
+        if (entriesRef.current.has(id) && !functionalIdsRef.current.has(id)) {
+          return id;
+        }
+        // In-place update is only possible while the zag toast is fully
+        // visible: `isVisible` stays true during the exit, so closing toasts
+        // — which zag stamps with `message: "DISMISS"` (untyped) and ignores
+        // creates for — are detected through that stamp.
+        const updatableInPlace = [...storesRef.current.values()].some(
+          (store) =>
+            store.isVisible(id) &&
+            store
+              .getVisibleToasts()
+              .some(
+                (toast) =>
+                  toast.id === id &&
+                  (toast as { message?: string }).message !== "DISMISS",
+              ),
+        );
+        setFunctionalToasts((previous) => {
+          const existing = previous.find((toast) => toast.id === id);
+          const entry: FunctionalToast = {
+            id,
+            input,
+            loading: options?.loading,
+            generation: existing
+              ? existing.generation + (updatableInPlace ? 0 : 1)
+              : 0,
+          };
+          return existing
+            ? previous.map((toast) => (toast.id === id ? entry : toast))
+            : [...previous, entry];
+        });
+        return id;
+      },
+      update: (idInput, patch) => {
+        const id = String(idInput);
+        setFunctionalToasts((previous) =>
+          previous.map((toast) =>
+            toast.id === id
+              ? { ...toast, input: mergeToastPatch(toast.input, patch) }
+              : toast,
+          ),
+        );
+      },
+      close: (idInput) => {
+        const id = String(idInput);
+        let known = false;
+        for (const store of storesRef.current.values()) {
+          if (store.isVisible(id)) {
+            store.dismiss(id);
+            known = true;
+          } else if (store.isDismissed(id)) {
+            // Already exiting; its functional entry removes itself on exit.
+            known = true;
+          }
+        }
+        // Unknown to every store: a toast created this turn hasn't reached
+        // one yet, so drop its functional entry before it can appear.
+        // (Visible entries stay for their exit animation instead.)
+        if (!known) {
+          setFunctionalToasts((previous) =>
+            previous.filter((toast) => toast.id !== id),
+          );
+        }
+      },
+    };
+    return registerToasterHandle(handle);
+  }, []);
 
   const context = useMemo<ToasterContextValue>(() => {
     const emit = () => {
@@ -234,6 +422,10 @@ export const Toaster = ({ children, label }: ToasterProps) => {
             placement,
             overlap: true,
             max: maxMountedToasts,
+            // Explicitly zag's default: a dismissed toast unmounts after this
+            // delay, and the recipe's closed-state opacity transition is
+            // tuned to complete within it.
+            removeDelay: 200,
           });
           // A store born while the window is unfocused starts paused; the
           // window focus listener below resumes it.
@@ -284,9 +476,12 @@ export const Toaster = ({ children, label }: ToasterProps) => {
         return;
       }
       for (const [placement, store] of storesRef.current) {
-        const region = document.querySelector(
-          `[data-scope="toast"][data-part="group"][data-placement="${placement}"]`,
-        );
+        // Looked up through this Toaster's own shell — a document-wide query
+        // could land on another Toaster's region at the same placement.
+        const region =
+          shells
+            .get(placement)
+            ?.querySelector("[data-scope=toast][data-part=group]") ?? null;
         const engaged =
           region !== null &&
           (region.matches(":hover") || region.contains(document.activeElement));
@@ -301,11 +496,31 @@ export const Toaster = ({ children, label }: ToasterProps) => {
       window.removeEventListener("blur", pauseAll);
       window.removeEventListener("focus", resumeAll);
     };
-  }, []);
+  }, [shells]);
 
   return (
     <ToasterContext.Provider value={context}>
       {children}
+      {functionalToasts.map(({ id, input, loading, generation }) => {
+        const sourceStatusChange = isToastElement(input)
+          ? input.props.onStatusChange
+          : input.onStatusChange;
+        return cloneElement(buildToastElement(input, id, { loading }), {
+          key: `${id}:${generation}`,
+          onStatusChange: (details: ToastStatusChangeDetails) => {
+            if (details.status === "exit") {
+              // Guarded by generation: an exiting toast must not take a
+              // same-id replacement's entry down with it.
+              setFunctionalToasts((previous) =>
+                previous.filter(
+                  (toast) => toast.id !== id || toast.generation !== generation,
+                ),
+              );
+            }
+            sourceStatusChange?.(details);
+          },
+        });
+      })}
       <Portal container={portalContainerRef}>
         {regions.map(({ placement, store }) => (
           <ToasterRegion
@@ -313,6 +528,7 @@ export const Toaster = ({ children, label }: ToasterProps) => {
             placement={placement}
             store={store}
             label={label}
+            shells={shells}
           />
         ))}
       </Portal>

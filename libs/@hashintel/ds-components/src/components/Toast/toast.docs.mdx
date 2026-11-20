@@ -13,7 +13,8 @@ import {
   ToastBody,
   ToastTitle,
 } from "./toast";
-import { Toaster } from "./toaster";
+import { Toaster, ToasterToastPropsDoc } from "./toaster";
+import { toaster } from "./toaster-api";
 
 <Meta title="Docs/Toast" />
 
@@ -160,10 +161,11 @@ export const App = () => <Toaster>{/* …the application… */}</Toaster>;
 
 Children are free-form: compose `Toast.Title`, `Toast.Body`, and
 `Toast.Actions` in that order for the standard layout, or pass any custom
-node — paired with `withPadding={false}` for edge-to-edge content. A close
-button renders automatically unless `shouldCloseOn="none"`. The toast itself
-renders nothing where it is mounted — it appears in the `Toaster`'s stacking
-region for its `position`.
+node — paired with `withPadding={false}` for edge-to-edge content. The
+function form of `children` receives `close` for custom content that
+dismisses its own toast. A close button renders automatically unless
+`shouldCloseOn="none"`. The toast itself renders nothing where it is
+mounted — it appears in the `Toaster`'s stacking region for its `position`.
 
 ## Examples
 
@@ -257,8 +259,11 @@ can't vanish before the user decides.
 
 An action leaves the toast open unless `closeToast` is set, which dismisses
 the toast when the action is activated — an action that resolves it, like
-"Undo" or "Retry". Calling `event.preventDefault()` in the action's `onClick`
-cancels the dismissal.
+"Undo" or "Retry". A promise returned from the action's `onClick` defers the
+dismissal until it resolves: the button shows its loading state and the toast
+can't time out meanwhile, and a rejection keeps the toast open with a fresh
+timer (update the toast to report the failure). Calling
+`event.preventDefault()` in `onClick` cancels the dismissal.
 
 export const actionsCode = `<Toast tone="error" duration={Infinity}>
   <Toast.Title title="Import failed" />
@@ -266,7 +271,10 @@ export const actionsCode = `<Toast tone="error" duration={Infinity}>
   <Toast.Actions
     actions={
       <>
-        <Toast.Action closeToast>Retry</Toast.Action>
+        {/* A returned promise defers the close until the retry finishes. */}
+        <Toast.Action closeToast onClick={() => retryImport()}>
+          Retry
+        </Toast.Action>
         <Toast.Action>Details</Toast.Action>
       </>
     }
@@ -293,7 +301,14 @@ export const ActionsDemo = () => {
           <Toast.Actions
             actions={
               <>
-                <Toast.Action closeToast>Retry</Toast.Action>
+                <Toast.Action
+                  closeToast
+                  onClick={() =>
+                    new Promise((resolve) => setTimeout(resolve, 1500))
+                  }
+                >
+                  Retry
+                </Toast.Action>
                 <Toast.Action>Details</Toast.Action>
               </>
             }
@@ -306,6 +321,68 @@ export const ActionsDemo = () => {
 
 <Stage code={actionsCode}>
   <ActionsDemo />
+</Stage>
+
+### Custom content
+
+Any node passed as `children` replaces the standard sections — pair it with
+`withPadding={false}` for an edge-to-edge layout. The function form receives
+`close`, which dismisses the toast with its exit animation, so fully custom
+content can close itself.
+
+export const customContentCode = `<Toast withPadding={false} shouldCloseOn="none" duration={Infinity}>
+  {({ close }) => (
+    <div style={{ padding: 12 }}>
+      <strong>Fully custom children</strong>
+      <p>The toast only provides the card.</p>
+      <Button size="sm" onClick={close}>
+        Done
+      </Button>
+    </div>
+  )}
+</Toast>`;
+
+export const CustomContentDemo = () => {
+  const [visible, setVisible] = useState(false);
+  return (
+    <Toaster>
+      <Button onClick={() => setVisible(true)}>Show custom toast</Button>
+      {visible ? (
+        <Toast
+          withPadding={false}
+          shouldCloseOn="none"
+          duration={Infinity}
+          onStatusChange={({ status }) => {
+            if (status === "exit") {
+              setVisible(false);
+            }
+          }}
+        >
+          {({ close }) => (
+            <div
+              style={{
+                padding: 12,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-start",
+                gap: 8,
+              }}
+            >
+              <strong>Fully custom children</strong>
+              <span>The toast only provides the card.</span>
+              <Button size="sm" onClick={close}>
+                Done
+              </Button>
+            </div>
+          )}
+        </Toast>
+      ) : null}
+    </Toaster>
+  );
+};
+
+<Stage code={customContentCode}>
+  <CustomContentDemo />
 </Stage>
 
 ### Updating in place
@@ -506,6 +583,79 @@ export const StackingDemo = () => {
   <StackingDemo />
 </Stage>
 
+### The toaster functions
+
+For call sites without a natural place to render a `Toast` — API handlers,
+stores, effects — the `toaster` functions show one imperatively from anywhere
+below (or outside) the mounted `Toaster`. Each takes the flat props form
+(every `Toast` prop except `withPadding` and `children`, with the content as
+`title`/`body`/`actions`) or a `Toast` element for full control.
+`toaster.create` returns the toast's id; `toaster.promise` shows a persistent
+pending toast and replaces it with the `success` or `error` toast (toned
+accordingly by default) when the promise settles; `toaster.update` merges new
+props into a showing toast; `toaster.close` dismisses one — including
+declaratively rendered toasts — by id.
+
+export const functionalCode = `import { toaster, Toast } from "@hashintel/ds-components";
+
+const id = toaster.create({
+  tone: "success",
+  title: "Entity type published",
+  body: "Version 3 is now live.",
+});
+
+toaster.create(
+  <Toast tone="brand" duration={Infinity}>
+    <Toast.Title title="From an element" />
+    <Toast.Body>Full control over the composition.</Toast.Body>
+  </Toast>,
+);
+
+toaster.promise(saveDraft(), {
+  loading: { title: "Saving draft…" },
+  success: { title: "Draft saved" },
+  error: { title: "Could not save draft" },
+});
+
+toaster.update(id, { body: "Version 4 is now live." });
+toaster.close(id);`;
+
+export const FunctionalDemo = () => (
+  <Toaster>
+    <Button
+      onClick={() =>
+        toaster.create({
+          tone: "success",
+          title: "Entity type published",
+          body: "Version 3 is now live.",
+        })
+      }
+    >
+      Create
+    </Button>
+    <Button
+      onClick={() =>
+        toaster.promise(
+          new Promise((resolve) => {
+            setTimeout(resolve, 2000);
+          }),
+          {
+            loading: { title: "Saving draft…" },
+            success: { title: "Draft saved" },
+            error: { title: "Could not save draft" },
+          },
+        )
+      }
+    >
+      Save draft
+    </Button>
+  </Toaster>
+);
+
+<Stage code={functionalCode}>
+  <FunctionalDemo />
+</Stage>
+
 ## Content
 
 - Lead with the outcome in the title, in a few words: "Entity type
@@ -594,3 +744,30 @@ An action button for the `Toast.Actions` row, taking the same props as
 ### Toaster
 
 <PropsTable of={Toaster} defaults={{ label: '"Notifications"' }} />
+
+### toaster
+
+The imperative counterpart to rendering `Toast` elements; it requires a
+mounted `Toaster` and its toasts clean up after themselves.
+
+- `toaster.create(props | element)` — shows a toast and returns its id; an
+  input carrying the id of a showing toast replaces it in place.
+- `toaster.promise(promise, { loading, success, error })` — shows the
+  persistent `loading` toast (spinner in the title's icon slot), then replaces
+  it with `success` or `error` — toned accordingly by default — when the
+  promise settles. Returns the input promise.
+- `toaster.update(id, props)` — merges new props into a showing toast.
+- `toaster.close(id)` — dismisses a showing toast, including declaratively
+  rendered ones, by id.
+
+The props form accepts:
+
+<PropsTable
+  of={ToasterToastPropsDoc}
+  defaults={{
+    tone: '"neutral"',
+    variant: '"soft"',
+    position: '"bottom-end"',
+    shouldCloseOn: '"closeButton"',
+  }}
+/>
