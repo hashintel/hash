@@ -1,5 +1,3 @@
-import { useMemo } from "react";
-
 import {
   Button,
   NumberInput,
@@ -105,20 +103,15 @@ export const ArcItem = ({
   onWeightChange,
   onDelete,
 }: ArcItemProps) => {
-  const selectOptions: SelectItem<string>[] = useMemo(
-    () =>
-      availablePlaces
-        ?.map((pl) => ({
-          value: pl.id,
-          text: pl.name,
-        }))
-        .concat(
-          availablePlaces.some((pl) => pl.id === placeId)
-            ? []
-            : [{ value: placeId, text: label ?? placeId }],
-        ) ?? [{ value: placeId, text: label ?? placeId }],
-    [availablePlaces, label, placeId],
-  );
+  const selectOptions: SelectItem<string>[] = [
+    ...(availablePlaces ?? []).map((place) => ({
+      value: place.id,
+      text: place.name,
+    })),
+    ...(availablePlaces?.some((place) => place.id === placeId)
+      ? []
+      : [{ value: placeId, text: label ?? placeId }]),
+  ];
 
   const hasSelect = availablePlaces && onPlaceChange && !disabled;
 
