@@ -1,18 +1,4 @@
-/**
- * Utility for creating and manipulating HSL colors.
- *
- * @example
- * ```ts
- * // Create a base color
- * const blue = hsl(210, 80, 50);
- *
- * // Use it directly
- * outline: blue.css(0.6) // "hsla(210, 80%, 50%, 0.6)"
- *
- * // Adjust saturation and lightness
- * outline: blue.saturation(60).lighten(20).css(0.5)
- * ```
- */
+/** Utility for creating and manipulating HSL colors. */
 
 interface HslColor {
   /** Hue (0-360) */
