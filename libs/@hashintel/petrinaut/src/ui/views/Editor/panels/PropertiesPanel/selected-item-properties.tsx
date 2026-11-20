@@ -11,7 +11,7 @@ import { ArcProperties } from "./arc-properties/main";
 import { ComponentInstanceProperties } from "./component-instance-properties/main";
 import { DifferentialEquationProperties } from "./differential-equation-properties/main";
 import { FusionProperties } from "./fusion-properties/main";
-import { MultiSelectionPanel } from "./multi-selection-panel";
+import { MultiSelectionPanel } from "./multi-selection-properties/main";
 import { ParameterProperties } from "./parameter-properties/main";
 import { PlaceProperties } from "./place-properties/main";
 import { TransitionProperties } from "./transition-properties/main";

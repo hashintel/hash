@@ -1,172 +1,19 @@
-import { createContext, use } from "react";
+import { use } from "react";
 
-import {
-  Form,
-  Icon,
-  NumberInput,
-  Select,
-  Tooltip,
-} from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
 import {
   arcMatchesEndpoint,
   parseArcId,
   parseArcEndpointKey,
   placeArcEndpoint,
   type ArcEndpoint,
-  type InputArc,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
-import { usePetrinautMutations } from "../../../../../../react";
 import { CompositionContext } from "../../../../../../react/state/composition-context";
-import { useEditorActions } from "../../../../../../react/state/editor-context";
-import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
-import { PropertyValue } from "../../../../../components/property-value";
 import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
-import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import { portLabel, resolvePort } from "../arc-endpoint";
-import { DeleteItemButton } from "../delete-item-button";
-import { fieldsSectionStyle } from "../styles";
-
-import type { SubView } from "../../../../../components/sub-view/types";
-
-const ArcIcon = () => <Icon name="scribble" />;
-
-const arcTypeLabels: Record<InputArc["type"], string> = {
-  standard: "Standard",
-  read: "Read",
-  inhibitor: "Inhibitor",
-};
-
-const readOnlyFieldStyle = css({
-  fontSize: "sm",
-  color: "neutral.s110",
-});
-
-interface ArcPropertiesData {
-  transitionId: string;
-  endpoint: ArcEndpoint;
-  arcDirection: "input" | "output";
-  sourceName: string;
-  targetName: string;
-  weight: number;
-  type: InputArc["type"];
-}
-
-const ArcPropertiesContext = createContext<ArcPropertiesData | null>(null);
-
-function useArcPropertiesContext() {
-  const ctx = use(ArcPropertiesContext);
-  if (!ctx) {
-    throw new Error(
-      "useArcPropertiesContext must be used within ArcProperties",
-    );
-  }
-  return ctx;
-}
-
-const ArcMainContent: React.FC = () => {
-  const {
-    transitionId,
-    endpoint,
-    arcDirection,
-    sourceName,
-    targetName,
-    weight,
-    type,
-  } = useArcPropertiesContext();
-  const { updateArcWeight, updateArcType } = usePetrinautMutations();
-  const isReadOnly = useIsReadOnly();
-
-  return (
-    <Form.Section className={fieldsSectionStyle}>
-      <Form.Field label="Source" size="sm">
-        <div className={readOnlyFieldStyle}>{sourceName}</div>
-      </Form.Field>
-      <Form.Field label="Target" size="sm">
-        <div className={readOnlyFieldStyle}>{targetName}</div>
-      </Form.Field>
-      {arcDirection === "input" && (
-        <Form.Field label="Type" size="sm">
-          <PropertyValue text={arcTypeLabels[type]}>
-            <Tooltip
-              content={UI_MESSAGES.READ_ONLY_MODE}
-              disableTooltip={!isReadOnly}
-            >
-              <Select
-                required
-                value={type}
-                size="sm"
-                onChange={(nextType: InputArc["type"]) => {
-                  updateArcType({
-                    transitionId,
-                    endpoint,
-                    type: nextType,
-                  });
-                }}
-                items={Object.entries(arcTypeLabels).map(([value, text]) => ({
-                  value: value as InputArc["type"],
-                  text,
-                }))}
-                disabled={isReadOnly}
-              />
-            </Tooltip>
-          </PropertyValue>
-        </Form.Field>
-      )}
-      <Form.Field label="Weight" size="sm">
-        <PropertyValue text={String(weight)}>
-          <NumberInput
-            size="sm"
-            min={1}
-            value={weight}
-            onChange={(nextWeight) => {
-              if (nextWeight !== null && nextWeight > 0) {
-                updateArcWeight({
-                  transitionId,
-                  arcDirection,
-                  endpoint,
-                  weight: nextWeight,
-                });
-              }
-            }}
-            disabled={isReadOnly}
-          />
-        </PropertyValue>
-      </Form.Field>
-    </Form.Section>
-  );
-};
-
-const DeleteArcAction: React.FC = () => {
-  const { transitionId, endpoint, arcDirection } = useArcPropertiesContext();
-  const { removeArc } = usePetrinautMutations();
-  const { clearSelection } = useEditorActions();
-
-  return (
-    <DeleteItemButton
-      label="Delete arc"
-      onDelete={() => {
-        removeArc({ transitionId, arcDirection, endpoint });
-        clearSelection();
-      }}
-    />
-  );
-};
-
-const arcMainContentSubView: SubView = {
-  id: "arc-main-content",
-  title: "Arc",
-  icon: ArcIcon,
-  main: true,
-  component: ArcMainContent,
-  renderHeaderAction: () => <DeleteArcAction />,
-  headerActionMutates: true,
-  alwaysShowHeaderAction: true,
-};
-
-const subViews: SubView[] = [arcMainContentSubView];
+import { ArcPropertiesContext, type ArcPropertiesData } from "./context";
+import { arcSubViews } from "./sub-views";
 
 interface ArcPropertiesProps {
   arcId: string;
@@ -249,7 +96,7 @@ export const ArcProperties: React.FC<ArcPropertiesProps> = ({
 
   return (
     <ArcPropertiesContext value={data}>
-      <VerticalSubViewsContainer name="arc-properties" subViews={subViews} />
+      <VerticalSubViewsContainer name="arc-properties" subViews={arcSubViews} />
     </ArcPropertiesContext>
   );
 };
