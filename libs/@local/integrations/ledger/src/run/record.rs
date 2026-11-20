@@ -1,5 +1,6 @@
 use alloc::collections::BTreeMap;
 
+use hash_integrations_definition::Definition;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use type_system::{
@@ -7,7 +8,7 @@ use type_system::{
     principal::{actor::ActorEntityUuid, actor_group::WebId},
 };
 
-use super::RunId;
+use super::{RunId, StartInput};
 
 /// What a run works with and what each of its stages finished, stored as `runs/{run}/run.json`.
 ///
@@ -21,6 +22,31 @@ pub(crate) struct RunRecord {
     pub prepare: Option<PreparePart>,
     pub send: Option<SendPart>,
     pub failure: Option<Failure>,
+}
+
+impl RunRecord {
+    /// The record of a run that has just started: its `input` and `batch` parts.
+    ///
+    /// The connector is the one `definition` names, and the id namespace defaults to it.
+    pub(crate) fn new(definition: &Definition, input: StartInput) -> Self {
+        let connector: Box<str> = definition.connector().as_ref().into();
+        Self {
+            input: Input {
+                run: input.run,
+                web: input.web,
+                id_namespace: input.id_namespace.unwrap_or_else(|| connector.clone()),
+                connector,
+                actor: input.actor,
+                definition: input.definition,
+                submitted_at: input.submitted_at,
+            },
+            batch: BatchLimits::default(),
+            capture: None,
+            prepare: None,
+            send: None,
+            failure: None,
+        }
+    }
 }
 
 /// What the run works with, written by Start.

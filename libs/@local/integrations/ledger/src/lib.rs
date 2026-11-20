@@ -3,6 +3,9 @@
 //! Keeps the state of an integration's ledger pipeline in S3. [`Storage`] reads and writes the
 //! place of one integration in a bucket, which [`IntegrationNamespace`] derives.
 //!
+//! [`start`] starts a run of the integration. A run is named by a [`RunId`], which the caller makes
+//! once per run, and starting the same run again does nothing.
+//!
 //! ## Workspace dependencies
 #![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
 
@@ -22,6 +25,6 @@ mod storage;
 mod testing;
 
 pub use self::{
-    run::RunId,
+    run::{RunId, StartError, StartInput, start},
     storage::{IntegrationNamespace, S3Bucket, Storage, StorageError},
 };
