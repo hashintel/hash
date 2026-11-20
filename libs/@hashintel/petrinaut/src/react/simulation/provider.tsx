@@ -315,8 +315,10 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   // Track error info captured from the simulation's events stream so the UI
   // can surface it. The core handle has a status of "Error" but doesn't
   // re-expose the message via stores; events fire once on transition.
-  const [error, setError] = useState<string | null>(null);
-  const [errorItemId, setErrorItemId] = useState<string | null>(null);
+  const [failure, setFailure] = useState<{
+    message: string;
+    itemId: string | null;
+  } | null>(null);
 
   // Subscribe to the active simulation's stores. EMPTY_*_STORE provides a
   // stable fallback so hook order doesn't change when no sim is active.
@@ -334,8 +336,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     }
     const off = eventSimulation.events.subscribe((event) => {
       if (event.type === "error") {
-        setError(event.message);
-        setErrorItemId(event.itemId);
+        setFailure({ message: event.message, itemId: event.itemId });
       } else {
         addNotification({
           message: "Simulation complete",
@@ -353,8 +354,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     }
     return stochastic.run.experiment.events.subscribe((event) => {
       if (event.type === "error") {
-        setError(event.message);
-        setErrorItemId(event.itemId);
+        setFailure({ message: event.message, itemId: event.itemId });
       } else if (event.type === "complete" && !stochastic.run.kept) {
         // A kept experiment's completion is reported by its new owner.
         addNotification({ message: "Simulation complete", tone: "success" });
@@ -416,8 +416,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     disposeRuns();
     // Also without a run: a refused start leaves its reason behind, and the
     // change may be what answers it.
-    setError(null);
-    setErrorItemId(null);
+    setFailure(null);
   };
 
   const previousEffectiveScenarioIdRef = useRef(effectiveSelectedScenarioId);
@@ -436,8 +435,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     // Reacting to a scenario switch from navigation: the running simulation is disposed here, and the resets run once per switch behind the previous-id guard above.
     setEventSimulation(null);
     setStochastic(null);
-    setError(null);
-    setErrorItemId(null);
+    setFailure(null);
     setStateValues((prev) => ({
       ...prev,
       selectedScenarioId: effectiveSelectedScenarioId,
@@ -627,16 +625,14 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       const refusal = new Error(
         `The inline initial state does not compile:\n${target.errors.map((invalid) => invalid.message).join("\n")}`,
       );
-      setError(refusal.message);
-      setErrorItemId(null);
+      setFailure({ message: refusal.message, itemId: null });
       throw refusal;
     }
 
     // Dispose any active simulation before starting a new one. Update both
     // the ref and React state so same-tick callers see the cleared handle.
     disposeRuns();
-    setError(null);
-    setErrorItemId(null);
+    setFailure(null);
 
     let eventSim: EventSimulation | null = null;
     let stochasticRun: StochasticRun | null = null;
@@ -754,8 +750,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
         caught instanceof Error
           ? caught.message
           : "Failed to initialize simulation";
-      setError(message);
-      setErrorItemId(null);
+      setFailure({ message: message, itemId: null });
       throw caught;
     }
 
@@ -806,8 +801,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     }
 
     disposeRuns();
-    setError(null);
-    setErrorItemId(null);
+    setFailure(null);
 
     setStateValues((prev) => ({
       ...prev,
@@ -909,8 +903,8 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
 
   const contextValue: SimulationContextValue = {
     state: simulationState,
-    error,
-    errorItemId,
+    error: failure?.message ?? null,
+    errorItemId: failure?.itemId ?? null,
     parameterValues: effectiveParameterValues,
     initialMarking: effectiveInitialMarking,
     selectedScenarioId: effectiveSelectedScenarioId,
