@@ -5,12 +5,10 @@ import {
   Icon,
   LoadingSpinner,
   NumberInput,
-  Select,
   TextInput,
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
-  EMPTY_AD_HOC_STATE,
   runClockOf,
   WEBGPU_FIXED_STEP_SIMULATOR_ID,
 } from "@hashintel/petrinaut-core";
@@ -23,7 +21,6 @@ import {
 } from "../../../../../../react/simulators/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useExecutableDefinition } from "../../../../../../react/state/use-executable-definition";
-import { AdHocScenarioForm } from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
 import {
   OverlayScrollArea,
   overlayScrollDrawerBodyStyle,
@@ -63,10 +60,11 @@ import {
   type ExperimentMetricDraft,
 } from "./create-experiment-drawer/metric-drafts";
 import { MetricsSection } from "./create-experiment-drawer/metrics-section";
+import { ScenarioSection } from "./create-experiment-drawer/scenario-section";
+import { resolveScenarioSelection } from "./create-experiment-drawer/scenario-selection";
 import { describeSweep } from "./create-experiment-drawer/sweep-summary";
 import { useCreateOptimizedExperiment } from "./create-optimized-experiment";
 import { getExperimentMetricDiagnosticError } from "./experiment-metric-lsp-validation";
-import { ExperimentScenarioRun } from "./experiment-scenario-run";
 import {
   EMPTY_SWEEP_OBJECTIVE,
   resolveObjectiveMetricId,
@@ -77,16 +75,10 @@ import { SWEEP_OPTIMIZATION_RUNS_PER_STEP } from "./sweep-optimizer";
 
 import type { ExperimentMetricSpecInput } from "../../../../../../react/experiments/context";
 import type { ExperimentParameterInput } from "../../../../../../react/experiments/parameter-grid";
+import type { ScenarioRunInput } from "./experiment-scenario-inputs";
 import type { AdHocScenarioState, Scenario } from "@hashintel/petrinaut-core";
 
 // -- Styles -------------------------------------------------------------------
-
-const sweepSummaryStyle = css({
-  fontSize: "xs",
-  color: "neutral.s80",
-  fontVariantNumeric: "tabular-nums",
-  "&[data-tone='error']": { color: "red.s100" },
-});
 
 const errorStyle = css({
   fontSize: "sm",
@@ -98,41 +90,11 @@ const errorStyle = css({
 // -- Constants ----------------------------------------------------------------
 
 const DEFAULT_EXPERIMENT_NAME = "Experiment";
-const NO_SCENARIO_VALUE = "__none__";
 const DEFAULT_RUN_COUNT = "1000";
 // The form has no seed field: every experiment it creates draws from this one.
 const experimentSeed = 1;
 const DEFAULT_MAX_TIME = "180";
 const EMPTY_SCENARIOS: readonly Scenario[] = [];
-
-function getDefaultScenarioSelection(scenarios: readonly Scenario[]): string {
-  return scenarios[0]?.id ?? NO_SCENARIO_VALUE;
-}
-
-function getEffectiveScenarioSelection(
-  scenarios: readonly Scenario[],
-  selectedScenarioId: string | null,
-): string {
-  if (
-    selectedScenarioId &&
-    (selectedScenarioId === NO_SCENARIO_VALUE ||
-      scenarios.some((scenario) => scenario.id === selectedScenarioId))
-  ) {
-    return selectedScenarioId;
-  }
-
-  return getDefaultScenarioSelection(scenarios);
-}
-
-function createScenarioOptions(scenarios: readonly Scenario[]) {
-  return [
-    ...scenarios.map((scenario) => ({
-      value: scenario.id,
-      text: scenario.name,
-    })),
-    { value: NO_SCENARIO_VALUE, text: "No scenario" },
-  ];
-}
 
 // -- Drawer -------------------------------------------------------------------
 
@@ -175,15 +137,10 @@ export const CreateExperimentDrawer = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
-  const effectiveSelectedScenarioId = getEffectiveScenarioSelection(
+  const selectedScenario = resolveScenarioSelection(
     scenarios,
     selectedScenarioId,
   );
-
-  const selectedScenario: Scenario | undefined =
-    effectiveSelectedScenarioId === NO_SCENARIO_VALUE
-      ? undefined
-      : scenarios.find((s) => s.id === effectiveSelectedScenarioId);
 
   // The net the ad-hoc form resolves names and types against, shared by the
   // form and by the sweep summary that reads its selections.
@@ -199,7 +156,6 @@ export const CreateExperimentDrawer = ({
     context: adHocFormContext,
   });
 
-  const scenarioOptions = createScenarioOptions(scenarios);
   // Each custom-code metric's errors, as the language client reports them now.
   const metricDiagnosticError = getExperimentMetricDiagnosticError(
     metricDrafts.map((draft) => ({
@@ -218,17 +174,6 @@ export const CreateExperimentDrawer = ({
 
   const adHocSweeping = selectedScenario === undefined;
   const optimizerConnected = optimizationSource !== null;
-
-  // Shown under whichever scenario body is on screen: the form, or a saved
-  // scenario shown through it.
-  const sweepSummaryLine = sweepSummary ? (
-    <span
-      className={sweepSummaryStyle}
-      data-tone={sweepSummary.error ? "error" : "neutral"}
-    >
-      {sweepSummary.text}
-    </span>
-  ) : null;
 
   // Constraints use a saved scenario's parameter names. Hidden drafts stay in
   // state and are lowered only when their section is enabled.
@@ -337,12 +282,22 @@ export const CreateExperimentDrawer = ({
     onClose();
   };
 
-  const handleScenarioChange = (scenarioId: string) => {
-    setSelectedScenarioId(scenarioId);
+  const handleScenarioChange = (value: string) => {
+    setSelectedScenarioId(value);
     setParamInputs({});
     // The rows type-checked against the previous scenario's parameters.
     setConstraintDrafts(EMPTY_CONSTRAINT_DRAFTS);
     setError(null);
+  };
+
+  const handleParamInputsChange = (updates: ScenarioRunInput[]) => {
+    setParamInputs((prev) => {
+      const next = { ...prev };
+      for (const update of updates) {
+        next[update.identifier] = update.input;
+      }
+      return next;
+    });
   };
 
   // Every change of the drafts is an edit, which clears the last submit's error.
@@ -529,82 +484,17 @@ export const CreateExperimentDrawer = ({
                   </FocusControls>
                 </Section>
 
-                <Section title="Scenario" collapsible defaultOpen>
-                  <FocusControls>
-                    <div className={fieldStyle}>
-                      <Select
-                        required
-                        aria-label="Scenario"
-                        value={effectiveSelectedScenarioId}
-                        onChange={handleScenarioChange}
-                        items={scenarioOptions}
-                        size="sm"
-                        renderItem={(value) => {
-                          const option = scenarioOptions.find(
-                            (opt) => opt.value === value,
-                          );
-                          return (
-                            <span
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 6,
-                              }}
-                            >
-                              {value === NO_SCENARIO_VALUE && (
-                                <Icon
-                                  name="dash"
-                                  size="xs"
-                                  className={css({ opacity: "[0.4]" })}
-                                />
-                              )}
-                              {option?.text}
-                            </span>
-                          );
-                        }}
-                      />
-                    </div>
-                  </FocusControls>
-
-                  {selectedScenario ? (
-                    // The selected scenario shows through the form in run mode:
-                    // scenario parameters editable in worksheet style, and a
-                    // collapsed "Computed state" preview of the exact values and
-                    // tokens each run starts with.
-                    <>
-                      <ExperimentScenarioRun
-                        scenario={selectedScenario}
-                        context={adHocFormContext}
-                        inputs={paramInputs}
-                        selection="sweep"
-                        onInputsChange={(updates) =>
-                          setParamInputs((prev) => {
-                            const next = { ...prev };
-                            for (const update of updates) {
-                              next[update.identifier] = update.input;
-                            }
-                            return next;
-                          })
-                        }
-                      />
-                      {sweepSummaryLine}
-                    </>
-                  ) : (
-                    // With no scenario, the experiment's Initial State + Parameters
-                    // are defined inline and compile through a scenario generated
-                    // at experiment start, never persisted. Left untouched, the
-                    // experiment runs from the model's own initial marking.
-                    <>
-                      <AdHocScenarioForm
-                        state={adHocState ?? EMPTY_AD_HOC_STATE}
-                        onChange={setAdHocState}
-                        context={adHocFormContext}
-                        selection="sweep"
-                      />
-                      {sweepSummaryLine}
-                    </>
-                  )}
-                </Section>
+                <ScenarioSection
+                  scenarios={scenarios}
+                  scenario={selectedScenario}
+                  onScenarioChange={handleScenarioChange}
+                  paramInputs={paramInputs}
+                  onParamInputsChange={handleParamInputsChange}
+                  adHocState={adHocState}
+                  onAdHocStateChange={setAdHocState}
+                  context={adHocFormContext}
+                  sweepSummary={sweepSummary}
+                />
 
                 <MetricsSection
                   drafts={metricDrafts}
