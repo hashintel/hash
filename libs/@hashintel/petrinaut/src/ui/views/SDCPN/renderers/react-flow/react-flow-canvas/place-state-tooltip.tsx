@@ -15,6 +15,7 @@ import {
   useEditorState,
 } from "../../../../../../react/state/editor-context";
 import { useUserSettings } from "../../../../../../react/state/user-settings-context";
+import { useStoreSelector } from "../../../../../../react/use-store";
 import { useCodeNavigation } from "../../../../../monaco/code-navigation";
 import { getDocumentUri } from "../../../../../monaco/editor-paths";
 import { usePetrinautPresentation } from "../../../../shared/presentation-context";
@@ -87,6 +88,11 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
   } = useEditorActions();
   const { hoveredId } = use(CanvasPointerContext);
   const hovered = useIsHovered(nodeId);
+  // While the preview is open, what the pointer is on: each node or line it
+  // crosses on its way to the preview starts the grace period again.
+  const hoveredWhileOpen = useStoreSelector(hoveredId, (id) =>
+    opened ? id : null,
+  );
   const codeNavigation = useCodeNavigation();
   const node = useInternalNode(nodeId);
   const viewport = useViewport();
@@ -109,7 +115,7 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
       eyeFocused ||
       editing ||
       openingEditor ||
-      hovered
+      hoveredWhileOpen === nodeId
     )
       return;
     // Give the pointer time to cross the gap between the place and its preview.
@@ -121,7 +127,7 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
     eyeFocused,
     editing,
     openingEditor,
-    hovered,
+    hoveredWhileOpen,
     nodeId,
     openPlaceVisualizer,
   ]);

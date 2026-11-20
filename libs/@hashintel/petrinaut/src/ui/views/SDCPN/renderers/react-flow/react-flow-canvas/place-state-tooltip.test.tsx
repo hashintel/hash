@@ -62,14 +62,14 @@ const Harness = ({
   typed = false,
   hovered = false,
   code = "return <Visualizer.Svg />;",
+  pointer: given = createCanvasPointer(),
 }) => {
   const editor = use(EditorContext);
   const [openId, setOpenId] = useState<string | null>(null);
   const [keptOpenByClick, setKeptOpenByClick] = useState(false);
   const [pointer] = useState(() => {
-    const created = createCanvasPointer();
-    created.hoveredId.set(hovered ? "place" : null);
-    return created;
+    given.hoveredId.set(hovered ? "place" : null);
+    return given;
   });
   const activeNet = use(ActiveNetContext);
   return (
@@ -219,6 +219,22 @@ it("cancels a brief hover and closes a temporary preview after leaving", async (
     screen.getByRole("button", { name: "Show state visualizer" }),
   );
   await act(() => vi.advanceTimersByTimeAsync(200));
+  expect(screen.queryByRole("group")).toBeNull();
+});
+
+it("starts the grace of a temporary preview again when the pointer crosses another node", async () => {
+  vi.useFakeTimers();
+  const pointer = createCanvasPointer();
+  render(<Harness typed hovered pointer={pointer} />);
+  const eye = screen.getByRole("button", { name: "Show state visualizer" });
+  fireEvent.pointerEnter(eye);
+  await act(() => vi.advanceTimersByTimeAsync(15));
+  fireEvent.pointerLeave(eye);
+  await act(() => vi.advanceTimersByTimeAsync(150));
+  act(() => pointer.hoveredId.set("transition"));
+  await act(() => vi.advanceTimersByTimeAsync(100));
+  expect(screen.getByRole("group")).toBeDefined();
+  await act(() => vi.advanceTimersByTimeAsync(100));
   expect(screen.queryByRole("group")).toBeNull();
 });
 
