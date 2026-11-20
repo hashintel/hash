@@ -1,16 +1,17 @@
 ---
 layer: react.state
-role: Owns the state of an editing session, which belongs to neither the document nor a run
+role: Publishes the state of an editing session that the document does not hold, and the hooks that read it
 ---
 
 The state of an editing session is the mode and the selection, the open
 panels, the user settings, the panel geometry, the read-only reason, the undo
 history and the active net.
 
-Each piece has one owner and one hook that reads it. A reader renders when
-the part it reads changes, and a value that changes on every frame is a
-Motion value that no component reads in render.
+The layer owns the open panels, the user settings and the panel geometry.
+The location owns the mode and the selection, and the Core handle owns the
+undo history.
 
-The guide "Editor state" has the table of owners and the rules for reading.
-The guide "Panel geometry outside React state" has the rules for the values
-that change per frame.
+[Editor state](doc:react.state/editor-state) has the table of owners and the
+rules for reading.
+[Panel geometry outside React state](doc:react.state/panel-sizes) has the
+rules for the values that change per frame.
