@@ -1,4 +1,4 @@
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 
 import {
   classicNodeDimensions,
@@ -125,6 +125,14 @@ export const useCanvasScene = (
     undefined
       ? null
       : hoveredId;
+
+  // An item that leaves the net is not left by the pointer: no event clears
+  // its hover, and it would be lit again when an undo brings it back.
+  useEffect(() => {
+    if (hoveredId !== null && !adjacency.canvasIds.has(hoveredId)) {
+      pointer.hoveredId.set(null);
+    }
+  }, [adjacency, hoveredId, pointer]);
 
   const selectedIds = new Set(selection.keys());
 

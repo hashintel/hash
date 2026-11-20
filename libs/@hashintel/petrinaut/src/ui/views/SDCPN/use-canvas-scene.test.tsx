@@ -3,9 +3,12 @@ import { act, cleanup, renderHook } from "@testing-library/react";
 import { use, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { createReadableStore } from "@hashintel/petrinaut-core";
+
 import { ActiveNetContext } from "../../../react/state/active-net-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
+import { useStore } from "../../../react/use-store";
 import { createCanvasPointer } from "./canvas-pointer";
 import { useCanvasScene } from "./use-canvas-scene";
 
@@ -76,13 +79,15 @@ const renderScene = (
   const pointer = createCanvasPointer();
   pointer.hoveredId.set(initial.hoveredId ?? null);
   pointer.dragPreview.set(initial.dragPreview ?? new Map());
+  const shownNet = createReadableStore(net);
   const Wrapper = ({ children }: { children: ReactNode }) => {
     const sdcpn = use(SDCPNContext);
     const activeNet = use(ActiveNetContext);
     const settings = use(UserSettingsContext);
+    const current = useStore(shownNet);
     return (
-      <ActiveNetContext value={{ ...activeNet, activeNet: net }}>
-        <SDCPNContext value={{ ...sdcpn, petriNetDefinition: net }}>
+      <ActiveNetContext value={{ ...activeNet, activeNet: current }}>
+        <SDCPNContext value={{ ...sdcpn, petriNetDefinition: current }}>
           <UserSettingsContext value={{ ...settings, highlightOnHover }}>
             {children}
           </UserSettingsContext>
@@ -98,6 +103,7 @@ const renderScene = (
     hover: (id: string | null) => act(() => pointer.hoveredId.set(id)),
     drag: (preview: CanvasDragPreview) =>
       act(() => pointer.dragPreview.set(preview)),
+    showNet: (next: ActiveNetDefinition) => act(() => shownNet.set(next)),
   };
 };
 
@@ -183,5 +189,21 @@ describe("canvas hover during dragging", () => {
     expect(
       result.current.nodes.find((node) => node.id === "input"),
     ).toMatchObject({ focus: "none", dragging: true });
+  });
+});
+
+describe("canvas hover on an item that leaves the net", () => {
+  it("is forgotten, so an undo brings the item back unlit", () => {
+    const { result, showNet } = renderScene({ hoveredId: "transition" });
+    expect(result.current.focusActive).toBe(true);
+
+    // Deleted under the pointer, then restored, with no pointer event between.
+    showNet({ ...net, transitions: [] });
+    showNet(net);
+
+    expect(result.current.focusActive).toBe(false);
+    expect(
+      result.current.nodes.find((node) => node.id === "transition"),
+    ).toMatchObject({ focus: "none" });
   });
 });
