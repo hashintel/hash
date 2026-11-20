@@ -1,4 +1,4 @@
-import { use, useCallback, useMemo, useState } from "react";
+import { use, useState } from "react";
 
 import { Banner } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -8,7 +8,6 @@ import { SimulationContext } from "../../../../../../react/simulation/context";
 import { useEditorActions } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useCodeNavigation } from "../../../../../monaco/code-navigation";
-import { parseDocumentUri } from "../../../../../monaco/editor-paths";
 import { useCompositionProblems } from "../../../shared/use-composition-problems";
 import { CompositionDiagnostics } from "./diagnostics/composition-diagnostics";
 import { countOf } from "./diagnostics/count-of";
@@ -19,9 +18,11 @@ import {
   DiagnosticsGroup,
   diagnosticsListStyle,
 } from "./diagnostics/diagnostics-group";
+import {
+  groupDiagnosticsByEntity,
+  type EntityDiagnostics,
+} from "./diagnostics/group-diagnostics";
 import { NetClassSummary } from "./diagnostics/net-class-summary";
-
-import type { Diagnostic, SelectionItemType } from "@hashintel/petrinaut-core";
 
 const emptyMessageStyle = css({
   color: "neutral.s100",
@@ -55,41 +56,6 @@ const simulationErrorTextStyle = css({
   cursor: "text",
 });
 
-type EntityType = "transition" | "differential-equation" | "place";
-
-type SubType = "lambda" | "kernel" | "visualizer" | null;
-
-const SUB_TYPE_LABELS: Record<NonNullable<SubType>, string> = {
-  lambda: "Lambda",
-  kernel: "Kernel",
-  visualizer: "Visualizer",
-};
-
-const ENTITY_LABELS: Record<EntityType, string> = {
-  transition: "Transition",
-  "differential-equation": "Differential Equation",
-  place: "Place",
-};
-
-const SELECTION_TYPES: Record<EntityType, SelectionItemType> = {
-  transition: "transition",
-  "differential-equation": "differentialEquation",
-  place: "place",
-};
-
-interface GroupedDiagnostics {
-  entityType: EntityType;
-  entityId: string;
-  entityName: string;
-  errorCount: number;
-  items: Array<{
-    subType: SubType;
-    /** The document the diagnostics belong to. */
-    uri: string;
-    diagnostics: Diagnostic[];
-  }>;
-}
-
 /**
  * DiagnosticsContent shows the full list of diagnostics grouped by entity.
  */
@@ -105,85 +71,28 @@ const DiagnosticsContent: React.FC = () => {
     error: simulationError,
     errorItemId,
   } = use(SimulationContext);
+  const compositionProblems = useCompositionProblems();
   // Track collapsed entities (all expanded by default)
   const [collapsedEntities, setCollapsedEntities] = useState<Set<string>>(
     new Set(),
   );
 
+  const entities = groupDiagnosticsByEntity(
+    diagnosticsByUri,
+    petriNetDefinition,
+  );
+  const hasSimulationError = simulationState === "Error" && !!simulationError;
+
   // Clicking a diagnostic selects its entity. A visualizer's section is
   // collapsed by default, so its diagnostics also open that section.
-  const handleSelectEntity = useCallback(
-    (entityId: string, entityType: EntityType, uri: string) => {
-      selectItem({ type: SELECTION_TYPES[entityType], id: entityId });
-      if (entityType === "place") {
-        codeNavigation.open(uri);
-      }
-    },
-    [codeNavigation, selectItem],
-  );
-
-  // Group diagnostics by entity (transition or differential equation)
-  const groupedDiagnostics = useMemo(() => {
-    const groups = new Map<string, GroupedDiagnostics>();
-
-    for (const [uri, diagnostics] of diagnosticsByUri) {
-      const parsed = parseDocumentUri(uri);
-      if (!parsed) {
-        continue;
-      }
-
-      const entityId = parsed.itemId;
-      let entityType: EntityType;
-      let entityName: string;
-      let subType: SubType;
-
-      if (parsed.itemType === "differential-equation") {
-        entityType = "differential-equation";
-        const de = petriNetDefinition.differentialEquations.find(
-          (deItem) => deItem.id === entityId,
-        );
-        entityName = de?.name ?? entityId;
-        subType = null;
-      } else if (parsed.itemType === "place-visualizer") {
-        entityType = "place";
-        const place = petriNetDefinition.places.find(
-          (placeItem) => placeItem.id === entityId,
-        );
-        entityName = place?.name ?? entityId;
-        subType = "visualizer";
-      } else {
-        entityType = "transition";
-        const transition = petriNetDefinition.transitions.find(
-          (tr) => tr.id === entityId,
-        );
-        entityName = transition?.name ?? entityId;
-        subType = parsed.itemType === "transition-lambda" ? "lambda" : "kernel";
-      }
-
-      const key = `${entityType}:${entityId}`;
-      if (!groups.has(key)) {
-        groups.set(key, {
-          entityType,
-          entityId,
-          entityName,
-          errorCount: 0,
-          items: [],
-        });
-      }
-
-      const group = groups.get(key)!;
-      group.errorCount += diagnostics.length;
-      group.items.push({
-        subType,
-        uri,
-        diagnostics,
-      });
+  const revealDiagnostic = (entity: EntityDiagnostics, uri: string) => {
+    selectItem({ type: entity.entityType, id: entity.entityId });
+    if (entity.entityType === "place") {
+      codeNavigation.open(uri);
     }
+  };
 
-    return Array.from(groups.values());
-  }, [diagnosticsByUri, petriNetDefinition]);
-
-  const toggleEntity = useCallback((entityKey: string) => {
+  const toggleEntity = (entityKey: string) => {
     setCollapsedEntities((prev) => {
       const next = new Set(prev);
       if (next.has(entityKey)) {
@@ -193,10 +102,7 @@ const DiagnosticsContent: React.FC = () => {
       }
       return next;
     });
-  }, []);
-
-  const hasSimulationError = simulationState === "Error" && !!simulationError;
-  const compositionProblems = useCompositionProblems();
+  };
 
   if (
     totalDiagnosticsCount === 0 &&
@@ -247,47 +153,34 @@ const DiagnosticsContent: React.FC = () => {
         </Banner>
       )}
 
-      {groupedDiagnostics.map((group) => {
-        const entityKey = `${group.entityType}:${group.entityId}`;
-        const isExpanded = !collapsedEntities.has(entityKey);
-        const entityLabel = `${ENTITY_LABELS[group.entityType]}: ${group.entityName}`;
+      {entities.map((entity) => {
+        const entityKey = `${entity.entityType}:${entity.entityId}`;
 
         return (
           <DiagnosticsGroup
             key={entityKey}
-            label={entityLabel}
-            count={countOf(group.errorCount, "error")}
+            label={entity.label}
+            count={countOf(entity.errorCount, "error")}
             hasErrors
-            expanded={isExpanded}
+            expanded={!collapsedEntities.has(entityKey)}
             onToggle={() => toggleEntity(entityKey)}
           >
-            {group.items.map((itemGroup) => (
-              <div
-                key={`${group.entityId}-${itemGroup.subType ?? "de"}`}
-                className={itemGroupStyle}
-              >
-                {/* Show sub-type for transitions and places */}
-                {itemGroup.subType && (
-                  <div className={subTypeStyle}>
-                    {SUB_TYPE_LABELS[itemGroup.subType]}
-                  </div>
+            {entity.documents.map((codeDocument) => (
+              <div key={codeDocument.uri} className={itemGroupStyle}>
+                {codeDocument.part && (
+                  <div className={subTypeStyle}>{codeDocument.part}</div>
                 )}
 
-                {/* Diagnostics list */}
                 <ul className={diagnosticsListStyle}>
-                  {itemGroup.diagnostics.map((diagnostic) => (
+                  {codeDocument.diagnostics.map((diagnostic) => (
                     <li
-                      key={`${group.entityId}-${itemGroup.subType}-${diagnostic.range.start.line}:${diagnostic.range.start.character}-${diagnostic.code}`}
+                      key={`${diagnostic.range.start.line}:${diagnostic.range.start.character}-${diagnostic.code}`}
                       className={diagnosticItemStyle}
                     >
                       <button
                         type="button"
                         onClick={() =>
-                          handleSelectEntity(
-                            group.entityId,
-                            group.entityType,
-                            itemGroup.uri,
-                          )
+                          revealDiagnostic(entity, codeDocument.uri)
                         }
                         className={diagnosticButtonStyle}
                       >
