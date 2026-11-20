@@ -77,8 +77,7 @@ vi.mock("./editor-view/empty-net-prompt/ai-cta-modal", () => ({
 vi.mock("./simulation-creation-drawer", () => ({
   SimulationCreationDrawer: () => null,
 }));
-vi.mock("./use-editor-commands", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("./use-editor-commands")>()),
+vi.mock("./use-editor-commands", () => ({
   EditorCommands: () => null,
 }));
 
