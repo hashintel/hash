@@ -6,10 +6,10 @@ sidebar_order: 4
 
 A layer guide is a hand-written `.mdx` page beside a layer's code that explains
 why the layer has its shape. The generated layer page states the role, the
-files and the dependencies, and TSDoc states the signatures. A guide repeats
-neither.
+folder, the size and the dependencies, and TSDoc states the signatures. A guide
+repeats neither.
 
-![Annotations and imports produce the layer page, so a guide carries reasons, and the build checks its links, its MDX and its diagram](@diagrams/guide-sources.svg)
+![Annotations and references produce the layer page, so a guide carries reasons, and the build checks its links, its MDX and its diagram](@diagrams/guide-sources.svg)
 
 ## Template
 
@@ -52,7 +52,7 @@ pages. A guide above about 500 words says why it is longer.
 
 | Left out                                 | Reason                                                            |
 | ---------------------------------------- | ----------------------------------------------------------------- |
-| Lists of files, exports and dependencies | The generated layer page has them, read from the code.            |
+| Lists of files, exports and dependencies | The code lists the first two, the layer page the dependencies.    |
 | Signatures and parameter lists           | TSDoc on the export has them, and the editor shows them on hover. |
 | Counts, versions, dates, people, tickets | They change while the page stays the same.                        |
 | History                                  | A guide describes the code as it is.                              |
