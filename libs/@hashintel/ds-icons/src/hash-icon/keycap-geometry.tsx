@@ -343,87 +343,87 @@ export const keycapGeometry = {
   ),
   keycapF1: (
     <Keycap>
-      <KeycapLegend text="F1" />
+      <KeycapLegend text="F1" kind="function" />
     </Keycap>
   ),
   keycapF2: (
     <Keycap>
-      <KeycapLegend text="F2" />
+      <KeycapLegend text="F2" kind="function" />
     </Keycap>
   ),
   keycapF3: (
     <Keycap>
-      <KeycapLegend text="F3" />
+      <KeycapLegend text="F3" kind="function" />
     </Keycap>
   ),
   keycapF4: (
     <Keycap>
-      <KeycapLegend text="F4" />
+      <KeycapLegend text="F4" kind="function" />
     </Keycap>
   ),
   keycapF5: (
     <Keycap>
-      <KeycapLegend text="F5" />
+      <KeycapLegend text="F5" kind="function" />
     </Keycap>
   ),
   keycapF6: (
     <Keycap>
-      <KeycapLegend text="F6" />
+      <KeycapLegend text="F6" kind="function" />
     </Keycap>
   ),
   keycapF7: (
     <Keycap>
-      <KeycapLegend text="F7" />
+      <KeycapLegend text="F7" kind="function" />
     </Keycap>
   ),
   keycapF8: (
     <Keycap>
-      <KeycapLegend text="F8" />
+      <KeycapLegend text="F8" kind="function" />
     </Keycap>
   ),
   keycapF9: (
     <Keycap>
-      <KeycapLegend text="F9" />
+      <KeycapLegend text="F9" kind="function" />
     </Keycap>
   ),
   keycapF10: (
     <Keycap>
-      <KeycapLegend text="F10" />
+      <KeycapLegend text="F10" kind="function" />
     </Keycap>
   ),
   keycapF11: (
     <Keycap>
-      <KeycapLegend text="F11" />
+      <KeycapLegend text="F11" kind="function" />
     </Keycap>
   ),
   keycapF12: (
     <Keycap>
-      <KeycapLegend text="F12" />
+      <KeycapLegend text="F12" kind="function" />
     </Keycap>
   ),
   keycapEscape: (
     <Keycap>
-      <KeycapLegend text="ESC" />
+      <KeycapLegend text="ESC" kind="word" />
     </Keycap>
   ),
   keycapAlt: (
     <Keycap>
-      <KeycapLegend text="ALT" />
+      <KeycapLegend text="ALT" kind="word" />
     </Keycap>
   ),
   keycapFn: (
     <Keycap>
-      <KeycapLegend text="FN" />
+      <KeycapLegend text="FN" kind="word" />
     </Keycap>
   ),
   keycapInsert: (
     <Keycap>
-      <KeycapLegend text="INS" />
+      <KeycapLegend text="INS" kind="word" />
     </Keycap>
   ),
   keycapPrintScreen: (
     <Keycap>
-      <KeycapLegend text="PRT" />
+      <KeycapLegend text="PRT" kind="word" />
     </Keycap>
   ),
   keycapCommand: (
@@ -589,12 +589,12 @@ export const keycapGeometry = {
   ),
   keycapNumLock: (
     <Keycap>
-      <KeycapLegend text="NUM" />
+      <KeycapLegend text="NUM" kind="word" />
     </Keycap>
   ),
   keycapScrollLock: (
     <Keycap>
-      <KeycapLegend text="SCR" />
+      <KeycapLegend text="SCR" kind="word" />
     </Keycap>
   ),
   keycapMenu: (

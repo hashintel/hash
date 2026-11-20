@@ -11,15 +11,22 @@ export const Keycap = ({ children }: { children: ReactNode }) => (
   </g>
 );
 
-export const KeycapLegend = ({ text }: { text: string }) => {
+export const KeycapLegend = ({
+  text,
+  kind = "character",
+}: {
+  text: string;
+  kind?: "character" | "function" | "word";
+}) => {
   const glyphs = Array.from(
     text,
     (character) => keycapGlyphs[character as keyof typeof keycapGlyphs],
   );
+  const scale = { character: 1, function: 0.6, word: 0.45 }[kind];
+  const tracking = 2.3;
   const width =
     glyphs.reduce((total, glyph) => total + glyph.width, 0) +
-    (glyphs.length - 1) * 2.3;
-  const scale = Math.min(1, 12 / Math.max(width, 1));
+    (glyphs.length - 1) * tracking;
   let offset = 0;
   return (
     <g
@@ -30,7 +37,7 @@ export const KeycapLegend = ({ text }: { text: string }) => {
     >
       {glyphs.map((glyph) => {
         const x = offset;
-        offset += glyph.width + 2.3;
+        offset += glyph.width + tracking;
         return (
           <path
             key={x}
