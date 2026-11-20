@@ -2,7 +2,7 @@
   "name": "@hashintel/brunch-agent",
   "version": "0.0.0-private",
   "private": true,
-  "description": "Brunch's shared contracts (the root entry) and its browser client: the runtime (./client), the React plugin, chat and cards (./ui), and Voice's web-standard handlers (./server). Used by the Brunch agent app (root only) and the Petrinaut website.",
+  "description": "Brunch's shared contracts (the root entry) and its browser client: the runtime (./client), the React plugin, chat and cards (./ui), and the server's Voice handlers and HASH session middleware (./server). Used by the Brunch agent app (the root and ./server), the durable agents server and the Petrinaut website.",
   "license": "AGPL-3.0",
   "type": "module",
   "exports": {
@@ -58,6 +58,7 @@
     "@hashintel/petrinaut-core": "workspace:*",
     "@local/flue-aisdk-transport": "workspace:*",
     "ai": "6.0.286",
+    "hono": "4.13.18",
     "md-pen": "1.2.0",
     "react-icons": "5.5.0",
     "react-markdown": "10.1.0",
