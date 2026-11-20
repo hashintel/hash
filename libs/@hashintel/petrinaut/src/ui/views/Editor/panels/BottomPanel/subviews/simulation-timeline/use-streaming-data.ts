@@ -13,10 +13,10 @@ import type {
   TimelineSeriesMeta,
 } from "./types";
 
-function createEmptyStore(series: TimelineSeriesMeta[]): StreamingStore {
+function createEmptyStore(): StreamingStore {
   return {
-    series,
-    columns: [[], ...series.map(() => [])],
+    series: [],
+    columns: [[]],
     length: 0,
   };
 }
@@ -45,11 +45,9 @@ interface StreamingStoreController {
   ) => void;
 }
 
-function createStreamingStoreController(
-  series: TimelineSeriesMeta[],
-): StreamingStoreController {
+function createStreamingStoreController(): StreamingStoreController {
   const listeners = new Set<() => void>();
-  const store = createEmptyStore(series);
+  const store = createEmptyStore();
   let snapshot: StreamingStoreSnapshot = { store };
 
   const notify = () => {
@@ -132,7 +130,7 @@ export function useStreamingData(
     evaluateMetric: null,
   });
 
-  const [storeController] = useState(() => createStreamingStoreController([]));
+  const [storeController] = useState(createStreamingStoreController);
   const { store } = useSyncExternalStore(
     storeController.subscribe,
     storeController.getSnapshot,
