@@ -88,6 +88,24 @@ export default defineConfig({
       reason:
         "the experiments backend evaluates trials through the channel and never learns who asked",
     },
+    {
+      from: "ui.views.canvas",
+      to: "ui.views.editor",
+      reason:
+        "the canvas is also drawn by the preview, outside the editor, so it cannot need a panel or the shell",
+    },
+    {
+      from: "ui.views.notebook",
+      to: "ui.views.editor",
+      reason:
+        "a view does not know the shell that mounts it, so the shell can change without the view",
+    },
+    {
+      from: "ui.sub-view",
+      to: "ui.views.editor",
+      reason:
+        "a container renders the descriptors it is given and never names a panel",
+    },
   ],
 
   ignoredDirectories: [
