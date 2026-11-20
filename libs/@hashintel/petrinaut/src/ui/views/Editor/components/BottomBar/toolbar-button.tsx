@@ -45,25 +45,18 @@ const buttonStyle = cva({
 });
 
 interface ToolbarButtonProps {
-  /** Tooltip content shown on hover */
   tooltip: string;
   shortcut?: string;
-  /** Click handler */
   onClick?: () => void;
-  /** Button content (icons, text, etc.) */
   children: ReactNode;
   style?: CSSProperties;
   /** Whether the button is in a selected state */
   isSelected?: boolean;
   /** Whether the button appears disabled (lower opacity, but still clickable) */
   disabled?: boolean;
-  /** Accessibility label */
   ariaLabel: string;
-  /** Accessibility expanded state */
   ariaExpanded?: boolean;
-  /** Whether the button is draggable */
   draggable?: boolean;
-  /** Drag start handler */
   onDragStart?: (event: React.DragEvent) => void;
   /** Forwarded to the underlying `<button>` (e.g. to anchor a popover) */
   ref?: Ref<HTMLButtonElement>;
@@ -75,10 +68,6 @@ interface ToolbarButtonProps {
   [dataAttribute: `data-${string}`]: unknown;
 }
 
-/**
- * Unified button component for the BottomBar toolbar.
- * Provides consistent styling, tooltip, and accessibility across all toolbar buttons.
- */
 export const ToolbarButton: React.FC<ToolbarButtonProps> = ({
   tooltip,
   shortcut,

@@ -114,7 +114,6 @@ export const useKeyboardShortcuts = () => {
       return;
     }
 
-    // Handle copy/paste/select-all shortcuts (Cmd/Ctrl + C/V/A)
     if (!isInputFocused && (event.metaKey || event.ctrlKey)) {
       const key = event.key.toLowerCase();
 
@@ -169,7 +168,6 @@ export const useKeyboardShortcuts = () => {
       return;
     }
 
-    // Delete selected items with Backspace or Delete
     if ((event.key === "Delete" || event.key === "Backspace") && hasSelection) {
       event.preventDefault();
       if (isReadonly) {
@@ -186,12 +184,10 @@ export const useKeyboardShortcuts = () => {
       return;
     }
 
-    // Check that no modifier keys are pressed
     if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) {
       return;
     }
 
-    // Switch modes based on key
     switch (event.key.toLowerCase()) {
       // If escape is pressed, switch to cursor mode (keep current cursor)
       case "escape":
