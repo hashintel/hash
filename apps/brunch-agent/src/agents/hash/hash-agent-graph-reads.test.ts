@@ -463,7 +463,7 @@ test("the entity type read is offered, issued as a read in a fresh conversation 
       "- Supplier: https://hash.ai/@alice/types/entity-type/supplier/v/1",
       "  description: Someone who supplies parts.",
       "  properties:",
-      "    name: Name",
+      "    name (https://hash.ai/@alice/types/property-type/name/): Name",
       "  links:",
       "    Supplies: https://hash.ai/@alice/types/entity-type/supplies/v/1 -> https://hash.ai/@alice/types/entity-type/product/v/1",
     ].join("\n"),

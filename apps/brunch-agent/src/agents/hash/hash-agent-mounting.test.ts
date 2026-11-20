@@ -384,13 +384,13 @@ test("only the HASH agent is guided to its graph: the skill, the system prompt's
   expect(hashPrompt).toContain("Load `hash-graph`");
   expect(mounted.skills).toContain("hash-graph");
   expect(mounted.descriptions.get(brunchTools.hashQueryWebs)).toContain(
-    "Read it first, before hash_query_entities and hash_query_entity_types.",
+    "Read it first, before hash_count_entities, hash_query_entities and hash_query_entity_types.",
   );
   expect(mounted.descriptions.get(brunchTools.hashQueryEntityTypes)).toContain(
-    "Read it after hash_query_webs and hash_query_entities, for the entityTypeIds the entities found carry. Pass the entityTypeIds of entities you read; webIds rarely help, since most types live in HASH's shared webs. Without filters it lists the entity types the user can see, up to that limit: a very large read.",
+    "Filter by the entityTypeIds of entities you read with hash_query_entities; webIds rarely help, since most types live in HASH's shared webs. Without filters it lists every type the user can see, up to the graph's limit of 1,000: a very large read.",
   );
   expect(mounted.descriptions.get(brunchTools.hashQueryEntities)).toContain(
-    "Read webs with hash_query_webs first, for the web ids to filter by; then read the types of the entities found with hash_query_entity_types, by their entityTypeIds",
+    "Read webs with hash_query_webs first; read the types of the entities found with hash_query_entity_types, by their entityTypeIds",
   );
 
   mounted.skills.length = 0;

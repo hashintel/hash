@@ -698,7 +698,9 @@ test("an entity type URL or shortname with a line break is quoted on its line", 
   expect(typeText.split("\n")).not.toContain("entities: 0");
   expect(typeText.split("\n")).not.toContain("entities: 1:");
   expect(typeText).toContain(`- User: ${JSON.stringify(forgedTypeId)}`);
-  expect(typeText).toContain('    "x\\nentities: 1": "x\\nentities: 1"');
+  expect(typeText).toContain(
+    '    "x\\nentities: 1" ("https://hash.ai/@h/types/property-type/x\\nentities: 1/"): "x\\nentities: 1"',
+  );
   const webText = hashWebReadForModel({
     webs: [{ webId: personWebId, kind: "user", shortname: "a\nwebs: 0" }],
   });
@@ -728,8 +730,10 @@ test("a long label is cut short in the heading", () => {
   expect(text.length).toBeLessThan(1_000);
 });
 
-test("an empty read says nothing matched", () => {
-  expect(hashEntityReadForModel(read([]))).toBe(hashEntityReadEmptyNote);
+test("an empty read says nothing matched, and that without webIds only the user's own and organization webs were read", () => {
+  expect(hashEntityReadForModel(read([]))).toBe(
+    "No entities matched that the signed-in user can see. One may still exist but be hidden from them, archived, or filed under another type title or web; without webIds, only the user's own and their organizations' webs were read.",
+  );
 });
 
 const nextPageLine = (cursor: string) =>
@@ -820,7 +824,7 @@ test("a result in an unknown shape fails the read rather than reaching the model
   );
 });
 
-test("entity types render one block each, with each property by its short name and title", () => {
+test("entity types render one block each, with each property by its short name, base URL and title", () => {
   const text = hashEntityTypeReadForModel({
     entityTypes: [
       {
@@ -849,7 +853,7 @@ test("entity types render one block each, with each property by its short name a
       "- Supplier: http://localhost:3000/@example-web/types/entity-type/supplier/v/1",
       "  description: A vendor that supplies goods.",
       "  properties:",
-      "    planned_delivery_time: Planned Delivery Time",
+      `    planned_delivery_time (${property("planned-delivery-time")}): Planned Delivery Time`,
       "  links:",
       "    Has: https://hash.ai/@h/types/entity-type/has/v/1 -> any",
     ].join("\n"),

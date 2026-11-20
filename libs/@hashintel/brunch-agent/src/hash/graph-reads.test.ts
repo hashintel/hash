@@ -131,7 +131,7 @@ test.each([
 const orderNumber =
   "https://hash.ai/@h/types/property-type/sales-order-number/";
 const propertySelectorMessage =
-  "A property is named by its base URL, ending in /, as in https://hash.ai/@h/types/property-type/name/, or by its versioned propertyTypeId, as in …/property-type/name/v/1: copy one from an entity read's properties legend. A short name such as name holds within one read only, so it isn't accepted.";
+  "A property is named by its base URL, ending in /, as in https://hash.ai/@h/types/property-type/name/, or by its versioned propertyTypeId, as in …/property-type/name/v/1: copy one from an entity read's properties legend or an entity type read. A short name such as name holds within one read only, so it isn't accepted.";
 
 test.each([
   ["entity read", parseHashEntityReadInput],
