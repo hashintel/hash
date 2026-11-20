@@ -15,16 +15,10 @@ import { useEditorState } from "../../../../../../../../react/state/editor-conte
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { getDocumentUri } from "../../../../../../../monaco/editor-paths";
+import { codeSectionStyle } from "../../../styles";
 import { useTransitionPropertiesContext } from "../../context";
 
 import type { SubView } from "../../../../../../../components/sub-view/types";
-
-const contentStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  flex: "[1]",
-  minHeight: "[0]",
-});
 
 const segmentGroupContainerStyle = css({
   marginTop: "[8px]",
@@ -148,7 +142,7 @@ const TransitionFiringTimeContent: React.FC = () => {
   );
 
   return (
-    <div className={contentStyle}>
+    <div className={codeSectionStyle}>
       {showLambdaTypeSelector && (
         <div className={segmentGroupContainerStyle}>
           {isReadOnly ? (

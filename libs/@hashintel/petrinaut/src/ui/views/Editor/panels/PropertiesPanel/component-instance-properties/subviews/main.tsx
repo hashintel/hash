@@ -30,19 +30,10 @@ import { Section, SectionList } from "../../../../../../components/section";
 import { hintTextStyle } from "../../../../../../constants/hint-text";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { implementationItems } from "../../../implementation-items";
+import { fieldsSectionStyle, itemTitleStyle } from "../../styles";
 import { useComponentInstancePropertiesContext } from "../context";
 
 import type { SubView } from "../../../../../../components/sub-view/types";
-
-const fieldsSectionStyle = css({
-  paddingY: "3",
-});
-
-const titleStyle = css({
-  fontSize: "lg",
-  fontWeight: "semibold",
-  lineHeight: "[1.2]",
-});
 
 const paramVarNameStyle = css({
   fontSize: "xs",
@@ -275,7 +266,7 @@ const ComponentInstanceMainContent: React.FC = () => {
 const ComponentInstanceTitle: React.FC = () => {
   const { component } = useComponentInstancePropertiesContext();
   return (
-    <span className={titleStyle}>
+    <span className={itemTitleStyle}>
       {component?.name ?? "Component"} instance
     </span>
   );

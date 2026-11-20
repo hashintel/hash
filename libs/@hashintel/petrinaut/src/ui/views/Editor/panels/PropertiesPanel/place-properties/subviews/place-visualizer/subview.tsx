@@ -14,17 +14,11 @@ import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { useCodeNavigation } from "../../../../../../../monaco/code-navigation";
 import { getDocumentUri } from "../../../../../../../monaco/editor-paths";
+import { codeSectionStyle } from "../../../styles";
 import { usePlacePropertiesContext } from "../../context";
 
 import type { SubView } from "../../../../../../../components/sub-view/types";
 import type { editor } from "monaco-editor";
-
-const contentStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  flex: "[1]",
-  minHeight: "[0]",
-});
 
 const messageStyle = css({
   padding: "[12px]",
@@ -82,7 +76,7 @@ const PlaceVisualizerContent: React.FC = () => {
   }
 
   return (
-    <div className={contentStyle}>
+    <div className={codeSectionStyle}>
       <CodeEditor
         path={path}
         language="typescript"

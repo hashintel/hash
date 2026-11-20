@@ -14,13 +14,6 @@ import type { PetrinautMutations } from "../../../../../react";
 import type { SubView } from "../../../../components/sub-view/types";
 import type { SelectionItem } from "@hashintel/petrinaut-core";
 
-const containerStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  height: "[100%]",
-  minHeight: "[0]",
-});
-
 const summaryStyle = css({
   fontSize: "sm",
   color: "neutral.s110",
@@ -119,10 +112,8 @@ export const MultiSelectionPanel: React.FC<MultiSelectionPanelProps> = ({
   deleteItemsByIds,
 }) => {
   return (
-    <div className={containerStyle}>
-      <MultiSelectionContext value={{ items, deleteItemsByIds }}>
-        <VerticalSubViewsContainer name="multi-selection" subViews={subViews} />
-      </MultiSelectionContext>
-    </div>
+    <MultiSelectionContext value={{ items, deleteItemsByIds }}>
+      <VerticalSubViewsContainer name="multi-selection" subViews={subViews} />
+    </MultiSelectionContext>
   );
 };

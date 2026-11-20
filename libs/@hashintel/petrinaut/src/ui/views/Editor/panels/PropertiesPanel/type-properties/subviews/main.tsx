@@ -1,5 +1,4 @@
 import { Form, Tooltip } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
 import { validateDisplayName } from "@hashintel/petrinaut-core";
 
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
@@ -10,14 +9,11 @@ import { SectionList } from "../../../../../../components/section";
 import { TokenTypeIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { usePetrinautPresentation } from "../../../../../shared/presentation-context";
+import { fieldsSectionStyle } from "../../styles";
 import { useTypePropertiesContext } from "../context";
 import { DimensionsTable } from "./dimensions-table";
 
 import type { SubView } from "../../../../../../components/sub-view/types";
-
-const fieldsSectionStyle = css({
-  paddingY: "3",
-});
 
 const TypeMainContent: React.FC = () => {
   const { type, updateType } = useTypePropertiesContext();

@@ -1,7 +1,5 @@
 import { use } from "react";
 
-import { css } from "@hashintel/ds-helpers/css";
-
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { createDeferredSubView } from "../../../../../components/sub-view/deferred-sub-view";
@@ -15,13 +13,6 @@ import { placeInitialStateSubView } from "./subviews/place-initial-state/subview
 import type { PetrinautMutations } from "../../../../../../react";
 import type { SubView } from "../../../../../components/sub-view/types";
 import type { Color, Place } from "@hashintel/petrinaut-core";
-
-const containerStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  height: "[100%]",
-  minHeight: "[0]",
-});
 
 const placeVisualizerSubView = createDeferredSubView({
   id: "place-visualizer",
@@ -79,20 +70,18 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
       : baseSubViews;
 
   return (
-    <div className={containerStyle}>
-      <PlacePropertiesProvider
-        place={place}
-        placeType={placeType}
-        types={types}
-        isReadOnly={isReadOnly}
-        updatePlace={updatePlace}
-      >
-        <VerticalSubViewsContainer
-          key={place.id}
-          name="place-properties"
-          subViews={subViews}
-        />
-      </PlacePropertiesProvider>
-    </div>
+    <PlacePropertiesProvider
+      place={place}
+      placeType={placeType}
+      types={types}
+      isReadOnly={isReadOnly}
+      updatePlace={updatePlace}
+    >
+      <VerticalSubViewsContainer
+        key={place.id}
+        name="place-properties"
+        subViews={subViews}
+      />
+    </PlacePropertiesProvider>
   );
 };

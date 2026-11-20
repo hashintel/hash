@@ -1,6 +1,5 @@
 import { use } from "react";
 
-import { css } from "@hashintel/ds-helpers/css";
 import { getTransitionLogicAvailability } from "@hashintel/petrinaut-core";
 
 import { CompositionContext } from "../../../../../../react/state/composition-context";
@@ -18,13 +17,6 @@ import { transitionMainContentSubView } from "./subviews/main";
 import type { PetrinautMutations } from "../../../../../../react";
 import type { SubView } from "../../../../../components/sub-view/types";
 import type { Color, Place, Transition } from "@hashintel/petrinaut-core";
-
-const containerStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  height: "[100%]",
-  minHeight: "[0]",
-});
 
 const transitionFiringTimeSubView = createDeferredSubView({
   id: "transition-firing-time",
@@ -113,26 +105,24 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
   ];
 
   return (
-    <div className={containerStyle}>
-      <TransitionPropertiesProvider
-        transition={transition}
-        sdcpn={petriNetDefinition}
-        net={net}
-        places={places}
-        types={types}
-        logicAvailability={logicAvailability}
-        isReadOnly={isReadOnly}
-        updateTransition={updateTransition}
-        onArcWeightUpdate={onArcWeightUpdate}
-        updateArcPlace={updateArcPlace}
-        removeArc={removeArc}
-      >
-        <VerticalSubViewsContainer
-          key={transition.id}
-          name="transition-properties"
-          subViews={subViews}
-        />
-      </TransitionPropertiesProvider>
-    </div>
+    <TransitionPropertiesProvider
+      transition={transition}
+      sdcpn={petriNetDefinition}
+      net={net}
+      places={places}
+      types={types}
+      logicAvailability={logicAvailability}
+      isReadOnly={isReadOnly}
+      updateTransition={updateTransition}
+      onArcWeightUpdate={onArcWeightUpdate}
+      updateArcPlace={updateArcPlace}
+      removeArc={removeArc}
+    >
+      <VerticalSubViewsContainer
+        key={transition.id}
+        name="transition-properties"
+        subViews={subViews}
+      />
+    </TransitionPropertiesProvider>
   );
 };

@@ -19,7 +19,10 @@ import { TransitionProperties } from "./transition-properties/main";
 import { TypeProperties } from "./type-properties/main";
 
 const propertiesStyle = css({
-  display: "contents",
+  display: "flex",
+  flexDirection: "column",
+  height: "full",
+  minHeight: "0",
   "--petrinaut-panel-divider-color": "var(--colors-neutral-a40)",
   "--petrinaut-panel-toggle-opacity": "1",
 });

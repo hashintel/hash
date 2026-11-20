@@ -25,6 +25,7 @@ import { DraftFieldInput } from "../../../../../../components/draft-field-input"
 import { Section, SectionList } from "../../../../../../components/section";
 import { TransitionIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
+import { fieldsSectionStyle } from "../../styles";
 import { useTransitionPropertiesContext } from "../context";
 
 import type { SubView } from "../../../../../../components/sub-view/types";
@@ -32,10 +33,6 @@ import type { SubView } from "../../../../../../components/sub-view/types";
 const emptyArcMessageStyle = css({
   fontSize: "xs",
   color: "neutral.fg.muted",
-});
-
-const fieldsSectionStyle = css({
-  paddingY: "3",
 });
 
 const TransitionMainContent: React.FC = () => {

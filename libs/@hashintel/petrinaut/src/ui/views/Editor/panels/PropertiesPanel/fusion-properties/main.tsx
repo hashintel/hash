@@ -26,26 +26,10 @@ import { FusionIcon } from "../../../../../constants/entity-icons";
 import { hintTextStyle } from "../../../../../constants/hint-text";
 import { problemTextStyle } from "../../../../../constants/problem-severity";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
+import { fieldsSectionStyle, itemTitleStyle } from "../styles";
 
 import type { SubView } from "../../../../../components/sub-view/types";
 import type { Fusion, FusionMember } from "@hashintel/petrinaut-core";
-
-const containerStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  height: "full",
-  minHeight: "0",
-});
-
-const fieldsSectionStyle = css({
-  paddingY: "3",
-});
-
-const titleStyle = css({
-  fontSize: "lg",
-  fontWeight: "semibold",
-  lineHeight: "[1.2]",
-});
 
 const memberListStyle = css({
   display: "flex",
@@ -247,7 +231,7 @@ const FusionMainContent: React.FC = () => {
 
 const FusionTitle: React.FC = () => {
   const fusion = useFusion();
-  return <span className={titleStyle}>{fusion.name}</span>;
+  return <span className={itemTitleStyle}>{fusion.name}</span>;
 };
 
 const DeleteFusionAction: React.FC = () => {
@@ -288,9 +272,7 @@ const fusionMainContentSubView: SubView = {
 const subViews: SubView[] = [fusionMainContentSubView];
 
 export const FusionProperties: React.FC<{ fusion: Fusion }> = ({ fusion }) => (
-  <div className={containerStyle}>
-    <FusionContext value={fusion}>
-      <VerticalSubViewsContainer name="fusion-properties" subViews={subViews} />
-    </FusionContext>
-  </div>
+  <FusionContext value={fusion}>
+    <VerticalSubViewsContainer name="fusion-properties" subViews={subViews} />
+  </FusionContext>
 );

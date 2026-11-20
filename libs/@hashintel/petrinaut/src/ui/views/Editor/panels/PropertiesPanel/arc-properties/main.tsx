@@ -26,18 +26,12 @@ import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { PropertyValue } from "../../../../../components/property-value";
 import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
+import { fieldsSectionStyle } from "../styles";
 
 import type { PetrinautMutations } from "../../../../../../react";
 import type { SubView } from "../../../../../components/sub-view/types";
 
 const ArcIcon = () => <Icon name="scribble" />;
-
-const containerStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  height: "[100%]",
-  minHeight: "[0]",
-});
 
 const arcTypeLabels: Record<InputArc["type"], string> = {
   standard: "Standard",
@@ -48,10 +42,6 @@ const arcTypeLabels: Record<InputArc["type"], string> = {
 const readOnlyFieldStyle = css({
   fontSize: "sm",
   color: "neutral.s110",
-});
-
-const fieldsSectionStyle = css({
-  paddingY: "3",
 });
 
 interface ArcPropertiesData {
@@ -294,10 +284,8 @@ export const ArcProperties: React.FC<ArcPropertiesProps> = ({
   }
 
   return (
-    <div className={containerStyle}>
-      <ArcPropertiesContext value={data}>
-        <VerticalSubViewsContainer name="arc-properties" subViews={subViews} />
-      </ArcPropertiesContext>
-    </div>
+    <ArcPropertiesContext value={data}>
+      <VerticalSubViewsContainer name="arc-properties" subViews={subViews} />
+    </ArcPropertiesContext>
   );
 };
