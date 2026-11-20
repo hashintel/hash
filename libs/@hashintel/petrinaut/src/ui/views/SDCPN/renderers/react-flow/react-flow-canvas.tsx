@@ -22,8 +22,8 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { CanvasViewportContext } from "../../../../../react/state/canvas-viewport-context";
-import { EditorContext } from "../../../../../react/state/editor-context";
-import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
+import { useEditorState } from "../../../../../react/state/editor-context";
+import { useUserSettings } from "../../../../../react/state/user-settings-context";
 import { SNAP_GRID_SIZE } from "../../../../constants/ui";
 import { useCanvasInsetsReader } from "../../../../hooks/use-canvas-insets";
 import {
@@ -143,9 +143,15 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
   registerController,
 }) => {
   const presentation = usePetrinautPresentation();
-  const { compactNodes, showMinimap, showAnimations, partialSelection } =
-    use(UserSettingsContext);
-  const { globalMode } = use(EditorContext);
+  // Each by selector: a panel that opens or a selection changes both
+  // contexts, and every node and arc of the net renders with this component.
+  const compactNodes = useUserSettings((settings) => settings.compactNodes);
+  const showMinimap = useUserSettings((settings) => settings.showMinimap);
+  const showAnimations = useUserSettings((settings) => settings.showAnimations);
+  const partialSelection = useUserSettings(
+    (settings) => settings.partialSelection,
+  );
+  const globalMode = useEditorState((editor) => editor.globalMode);
   const { savedViewport, rememberViewport } = use(CanvasViewportContext);
   const isActualMode = globalMode === "actual";
   const nodeTypes = compactNodes ? COMPACT_NODE_TYPES : CLASSIC_NODE_TYPES;

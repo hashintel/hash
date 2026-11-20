@@ -1,6 +1,4 @@
-import { use } from "react";
-
-import { EditorContext } from "../../react/state/editor-context";
+import { useEditorFields } from "../../react/state/editor-context";
 import { assistantCover } from "../../react/state/panel-presence";
 import { usePanelPresence } from "../../react/state/panel-presence-context";
 import { usePanelSizes } from "../../react/state/panel-sizes-context";
@@ -101,7 +99,11 @@ export const useCanvasInsetsReader = (
 ): (() => CanvasInsets) => {
   const presentation = usePetrinautPresentation();
   const { isAiAssistantOpen, aiAssistantDockHeight, isAiAssistantCollapsed } =
-    use(EditorContext);
+    useEditorFields(
+      "isAiAssistantOpen",
+      "aiAssistantDockHeight",
+      "isAiAssistantCollapsed",
+    );
   const panelSizes = usePanelSizes();
   const presence = usePanelPresence();
   const aboveCollapsedDock = options?.aboveCollapsedDock ?? false;

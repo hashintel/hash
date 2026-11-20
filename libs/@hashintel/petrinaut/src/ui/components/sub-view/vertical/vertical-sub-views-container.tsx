@@ -1,4 +1,4 @@
-import React, { Fragment, use, useRef, useState } from "react";
+import React, { Fragment, useRef, useState } from "react";
 import { Group, Panel, Separator } from "react-resizable-panels";
 
 import {
@@ -9,7 +9,7 @@ import {
 } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
-import { UserSettingsContext } from "../../../../react/state/user-settings-context";
+import { useUserSettings } from "../../../../react/state/user-settings-context";
 import { useScrollOverflow } from "../../../hooks/use-scroll-overflow";
 import { usePetrinautPresentation } from "../../../views/shared/presentation-context";
 import { useSubViewMaximization } from "./vertical-sub-views-container/use-sub-view-maximization";
@@ -630,14 +630,19 @@ export const VerticalSubViewsContainer: React.FC<
   VerticalSubViewsContainerProps
 > = ({ name, subViews, defaultExpanded = true }) => {
   const presentation = usePetrinautPresentation();
-  const { showAnimations, subViewPanels, updateSubViewSection } =
-    use(UserSettingsContext);
+  // By selector: the settings are saved each time a panel opens or closes,
+  // and every section of this panel renders with this component.
+  const showAnimations = useUserSettings((settings) => settings.showAnimations);
+  const containerSettings = useUserSettings(
+    (settings) => settings.subViewPanels[name],
+  );
+  const updateSubViewSection = useUserSettings(
+    (settings) => settings.updateSubViewSection,
+  );
   const { containerRef, maximizedId, isRestoring, maximize, restore } =
     useSubViewMaximization(name, subViews, showAnimations);
   const parentSubView = subViews.find((subView) => subView.main);
   const parentTitle = parentSubView?.title ?? "Properties";
-
-  const containerSettings = subViewPanels[name];
 
   const isSectionCollapsed = (sv: SubView): boolean => {
     const saved = containerSettings?.[sv.id];

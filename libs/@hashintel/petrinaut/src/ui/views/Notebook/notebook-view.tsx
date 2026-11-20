@@ -4,7 +4,7 @@ import { Button, SegmentedControl, TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { ActiveNetContext } from "../../../react/state/active-net-context";
-import { EditorContext } from "../../../react/state/editor-context";
+import { useEditorState } from "../../../react/state/editor-context";
 import { useUndoRedoShortcuts } from "../../../react/state/use-undo-redo-shortcuts";
 import { ResizeHandle } from "../../resize/resize-handle";
 import { focusLands } from "../../worksheet/focus-flow";
@@ -148,7 +148,9 @@ type NotebookViewProps = { toolbarStart?: ReactNode };
 
 const NotebookViewContent = ({ toolbarStart }: NotebookViewProps) => {
   const { activeNet } = use(ActiveNetContext);
-  const { selection, selectItem } = use(EditorContext);
+  // By selector: every cell of the notebook renders with this component.
+  const selection = useEditorState((editor) => editor.selection);
+  const selectItem = useEditorState((editor) => editor.selectItem);
 
   // The canvas BottomBar (which owns the editor-wide shortcuts) isn't
   // active in Definitions view, so undo/redo is bound here.

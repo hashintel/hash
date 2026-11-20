@@ -22,11 +22,11 @@ import { useReadOnlyFeedback } from "../../../react/hooks/use-read-only-feedback
 import { NotificationsContext } from "../../../react/notifications/context";
 import { ActiveNetContext } from "../../../react/state/active-net-context";
 import { CompositionContext } from "../../../react/state/composition-context";
-import { EditorContext } from "../../../react/state/editor-context";
+import { useEditorFields } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useComposesOnly } from "../../../react/state/use-composes-only";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
-import { UserSettingsContext } from "../../../react/state/user-settings-context";
+import { useUserSettings } from "../../../react/state/user-settings-context";
 import { snapPositionToGrid } from "../../lib/snap-position-to-grid";
 import { linkEnd } from "./canvas-scene";
 import { planFusion, planRewire, type RewirePlan } from "./fusion-links";
@@ -187,6 +187,8 @@ export const useCanvasInteractions = (
     replaceFusionMember,
     commitNodePositions,
   } = usePetrinautMutations();
+  // By name: the canvas renders with this hook, and the editor context and
+  // the settings change with each panel that opens.
   const {
     editionMode,
     setEditionMode,
@@ -200,8 +202,21 @@ export const useCanvasInteractions = (
     setHoveredItem,
     clearHoveredItem,
     updateDraggingStateByNodeId,
-  } = use(EditorContext);
-  const { snapToGrid } = use(UserSettingsContext);
+  } = useEditorFields(
+    "editionMode",
+    "setEditionMode",
+    "componentToAdd",
+    "cursorMode",
+    "beginSelectionGesture",
+    "endSelectionGesture",
+    "selectItem",
+    "setSelection",
+    "clearSelection",
+    "setHoveredItem",
+    "clearHoveredItem",
+    "updateDraggingStateByNodeId",
+  );
+  const snapToGrid = useUserSettings((settings) => settings.snapToGrid);
   const readonly = useIsReadOnly();
   const notifyReadOnly = useReadOnlyFeedback();
 

@@ -1,11 +1,11 @@
-import { use, useMemo } from "react";
+import { useMemo } from "react";
 
-import { EditorContext } from "./editor-context";
+import { useEditorState } from "./editor-context";
 
 import type { PanelTarget } from "@hashintel/petrinaut-core";
 
 export function usePanelTarget(): PanelTarget {
-  const { selection } = use(EditorContext);
+  const selection = useEditorState((editor) => editor.selection);
 
   return useMemo(() => {
     const items = Array.from(selection.values());

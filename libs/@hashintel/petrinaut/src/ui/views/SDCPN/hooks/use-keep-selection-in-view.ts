@@ -1,4 +1,4 @@
-import { use, useEffect, useEffectEvent, useRef } from "react";
+import { useEffect, useEffectEvent, useRef } from "react";
 
 import {
   getBoundsOfCenteredBoxes,
@@ -6,7 +6,7 @@ import {
   type Size,
 } from "@hashintel/petrinaut-core";
 
-import { EditorContext } from "../../../../react/state/editor-context";
+import { useEditorState } from "../../../../react/state/editor-context";
 import { usePanelTarget } from "../../../../react/state/use-selection";
 import {
   BOTTOM_BAR_GAP,
@@ -101,7 +101,7 @@ export const useKeepSelectionInView = ({
   insets: () => CanvasInsets;
   minZoom: number;
 }) => {
-  const { selection } = use(EditorContext);
+  const selection = useEditorState((editor) => editor.selection);
   const target = usePanelTarget();
   const soleSelectedId = target.kind === "single" ? target.item.id : undefined;
 

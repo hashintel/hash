@@ -3,7 +3,10 @@ import { Fragment, use, useRef, useState } from "react";
 import { Button, Icon, Menu, type MenuItem } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
-import { EditorContext } from "../../../../../../react/state/editor-context";
+import {
+  EditorContext,
+  useEditorState,
+} from "../../../../../../react/state/editor-context";
 import { ShortcutTooltip } from "../../../../../keyboard-shortcut";
 import { focusLands } from "../../../../../worksheet/focus-flow";
 import { useFocusStops } from "../../../../../worksheet/use-focus-stops";
@@ -279,13 +282,13 @@ const FilterableListContent = <T extends FilterableListItem>({
   renderRowMenu?: ComponentType<{ item: T }>;
   emptyMessage: string;
 }) => {
-  const {
-    isSelected: checkIsSelected,
-    selectItem,
-    toggleItem,
-    clearSelection,
-    setSelection,
-  } = use(EditorContext);
+  // By selector: every row of the list renders with this component.
+  // `isSelected` is a new function when the selection changes.
+  const checkIsSelected = useEditorState((editor) => editor.isSelected);
+  const selectItem = useEditorState((editor) => editor.selectItem);
+  const toggleItem = useEditorState((editor) => editor.toggleItem);
+  const clearSelection = useEditorState((editor) => editor.clearSelection);
+  const setSelection = useEditorState((editor) => editor.setSelection);
 
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
     () => new Set(),
