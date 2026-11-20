@@ -7,7 +7,10 @@
 import { createContext, type ReactNode, use } from "react";
 import { createPortal } from "react-dom";
 
-import { UserSettingsContext } from "../../react/state/user-settings-context";
+import {
+  useUserSettings,
+  useUserSettingsFields,
+} from "../../react/state/user-settings-context";
 import { PluginBoundary } from "./plugin-boundary";
 import {
   type RunningPlugin,
@@ -85,7 +88,9 @@ const providesAssistant = ({ manifest, contributions }: RunningPlugin) =>
 
 /** The running plugin whose assistant the editor shows, or `undefined`. */
 export const usePluginAssistant = () => {
-  const { assistantPluginId } = use(UserSettingsContext);
+  const assistantPluginId = useUserSettings(
+    (settings) => settings.assistantPluginId,
+  );
 
   return useRunningPluginsSelector((running) =>
     pickAssistant(running.filter(providesAssistant), assistantPluginId),
@@ -97,7 +102,10 @@ export const usePluginAssistant = () => {
  * and the user's choice between them.
  */
 export const useAssistantChoice = () => {
-  const { assistantPluginId, setAssistantPluginId } = use(UserSettingsContext);
+  const { assistantPluginId, setAssistantPluginId } = useUserSettingsFields(
+    "assistantPluginId",
+    "setAssistantPluginId",
+  );
   // Selected as a string, so an assistant republishing its contributions, as
   // a streaming chat does, re-renders none of the choice's readers.
   const assistantIds = useRunningPluginsSelector((running) =>

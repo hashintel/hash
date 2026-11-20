@@ -24,7 +24,7 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { ReadOnlyActionContext } from "../../react/read-only-action-context";
-import { UserSettingsContext } from "../../react/state/user-settings-context";
+import { useUserSettings } from "../../react/state/user-settings-context";
 import { useStoreSelector } from "../../react/use-store";
 import { pluginRuntime } from "./define-petrinaut-plugin";
 import { accessApi } from "./plugin-access";
@@ -292,7 +292,9 @@ export const PetrinautPluginsProvider = ({
   plugins: readonly PetrinautPlugin[];
   children: ReactNode;
 }) => {
-  const { disabledPluginIds } = use(UserSettingsContext);
+  const disabledPluginIds = useUserSettings(
+    (settings) => settings.disabledPluginIds,
+  );
   const [failedHostKeys, setFailedHostKeys] = useState<ReadonlySet<string>>(
     () => new Set(),
   );

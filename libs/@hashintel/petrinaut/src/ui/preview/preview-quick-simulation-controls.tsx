@@ -6,7 +6,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { ExecutionFrameSourceContext } from "../../react/execution-frame/context";
 import { SimulationContext } from "../../react/simulation/context";
 import { ActiveNetContext } from "../../react/state/active-net-context";
-import { UserSettingsContext } from "../../react/state/user-settings-context";
+import { useUserSettings } from "../../react/state/user-settings-context";
 import { EventSimulationControls } from "../views/Editor/components/BottomBar/event-simulation-controls";
 import { EventTimeline } from "../views/Editor/panels/BottomPanel/subviews/event-timeline/content";
 import { SimulationScenarioControls } from "../views/shared/simulation-scenario-controls";
@@ -162,7 +162,7 @@ export const PreviewSimulationPlaybackControls = ({
   const { activeComponentId } = use(ActiveNetContext);
   const { scenarioCompilationErrors } = use(SimulationContext);
   const { totalFrames } = use(ExecutionFrameSourceContext);
-  const { showAnimations } = use(UserSettingsContext);
+  const showAnimations = useUserSettings((settings) => settings.showAnimations);
   const expanded = totalFrames > 0;
 
   return (

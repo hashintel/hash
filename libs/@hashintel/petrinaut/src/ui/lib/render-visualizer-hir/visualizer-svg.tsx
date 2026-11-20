@@ -1,10 +1,10 @@
 /* eslint-disable jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-static-element-interactions -- The SVG switches from an image to a keyboard-accessible application while exploring. */
-import { use, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { UserSettingsContext } from "../../../react/state/user-settings-context";
+import { useUserSettings } from "../../../react/state/user-settings-context";
 import {
   cameraViewBox,
   panCamera,
@@ -69,7 +69,7 @@ export const VisualizerSvg = ({
   children?: ReactNode;
   legacyProps?: SVGProps<SVGSVGElement>;
 }) => {
-  const { showAnimations } = use(UserSettingsContext);
+  const showAnimations = useUserSettings((settings) => settings.showAnimations);
   const { camera, homeZoom, changed, navigate, reset } = useSceneCamera(
     options,
     size,
