@@ -3,12 +3,18 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { makeOntologyTypeVersion } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import { getDataTypeById } from "@local/hash-graph-sdk/data-type";
+import { createConversionFunction } from "@local/hash-isomorphic-utils/data-types";
+import {
+  blockProtocolDataTypes,
+  systemDataTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import {
   createDataType,
   updateDataType,
 } from "../../../../ontology/primitive/data-type";
 import { createSystemDataTypeIfNotExists } from "../../util";
+import { commonUnitGroups } from "../035-add-common-unit-data-types/common-unit-groups";
 import { ensureUnitDataType } from "./ensure-unit-data-type";
 import { scaledConversion } from "./shared/conversions";
 
@@ -114,6 +120,102 @@ beforeEach(() => {
 });
 
 describe("unit definition upgrades", () => {
+  it("selects the upgraded Percentage and its conversions through registry IDs", async () => {
+    const percentage = commonUnitGroups
+      .flatMap(({ units }) => units)
+      .find(({ title }) => title === "Percentage");
+    if (!percentage?.conversions) {
+      throw new Error("Missing Percentage conversions");
+    }
+    const percentageBaseUrl = systemDataTypes.percentage.dataTypeBaseUrl;
+    const original: DataTypeWithMetadata = {
+      ...existing,
+      schema: {
+        ...existing.schema,
+        $id: `${percentageBaseUrl}v/1`,
+        allOf: [{ $ref: blockProtocolDataTypes.number.dataTypeId }],
+        title: percentage.title,
+        description: percentage.description,
+        label: { right: percentage.symbol },
+      },
+      metadata: {
+        ...existing.metadata,
+        recordId: {
+          baseUrl: percentageBaseUrl,
+          version: makeOntologyTypeVersion({ major: 1 }),
+        },
+        conversions: {},
+      },
+    };
+    const originalSnapshot = structuredClone(original);
+    vi.mocked(createSystemDataTypeIfNotExists).mockResolvedValue(original);
+    vi.mocked(updateDataType).mockImplementation(
+      async (_context, _authentication, { schema, conversions }) => ({
+        schema: {
+          ...original.schema,
+          ...schema,
+          $id: `${percentageBaseUrl}v/2`,
+        },
+        metadata: {
+          ...original.metadata,
+          recordId: {
+            baseUrl: percentageBaseUrl,
+            version: makeOntologyTypeVersion({ major: 2 }),
+          },
+          conversions,
+        },
+      }),
+    );
+    const upgraded = await ensureUnitDataType(context, authentication, {
+      ...parameters(),
+      dataTypeBaseUrl: percentageBaseUrl,
+      dataTypeDefinition: {
+        ...original.schema,
+        allOf: [{ $ref: systemDataTypes.dimensionlessRatioMetric.dataTypeId }],
+      },
+      conversions: percentage.conversions,
+    });
+    const versions = new Map(
+      [original, upgraded].map((dataType) => [dataType.schema.$id, dataType]),
+    );
+    const selected = versions.get(systemDataTypes.percentage.dataTypeId);
+    expect(selected?.schema.$id).toBe(`${percentageBaseUrl}v/2`);
+    const percentageConversion =
+      selected?.metadata.conversions?.[systemDataTypes.one.dataTypeBaseUrl];
+    if (!percentageConversion) {
+      throw new Error("Registry Percentage has no conversion to One");
+    }
+    for (const [target, expected] of [
+      [systemDataTypes.partsPerMillion, 10000],
+      [systemDataTypes.partsPerBillion, 10000000],
+    ] as const) {
+      const unit = commonUnitGroups
+        .flatMap(({ units }) => units)
+        .find(
+          ({ dataTypeBaseUrl }) =>
+            `${dataTypeBaseUrl}v/1` === target.dataTypeId,
+        );
+      const targetConversion =
+        unit?.conversions?.[systemDataTypes.one.dataTypeBaseUrl];
+      if (!targetConversion) {
+        throw new Error(`Missing conversion for ${target.dataTypeId}`);
+      }
+      expect(
+        createConversionFunction([
+          percentageConversion.to,
+          targetConversion.from,
+        ])(1),
+      ).toBe(expected);
+      expect(
+        createConversionFunction([
+          targetConversion.to,
+          percentageConversion.from,
+        ])(expected),
+      ).toBe(1);
+    }
+    expect(original).toEqual(originalSnapshot);
+  });
+
   it("keeps a newly created or already matching type at its current version", async () => {
     vi.mocked(createSystemDataTypeIfNotExists).mockResolvedValue(updated);
     expect(
