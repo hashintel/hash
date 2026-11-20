@@ -5906,6 +5906,39 @@ describe("questions docked on the composer", () => {
   test.each([
     ["while Brunch is busy", { status: "streaming" as const }],
     ["after the turn was stopped", { stopped: true }],
+    [
+      "when the reply asking was stopped",
+      {
+        messages: [
+          opening,
+          { ...asking([quarantine]), metadata: { stopped: true as const } },
+        ],
+      },
+    ],
+    [
+      "when the reply asking failed, though its offer succeeded",
+      {
+        messages: [
+          opening,
+          { ...asking([quarantine]), metadata: { failed: true as const } },
+        ],
+      },
+    ],
+    [
+      "when a later reply failed",
+      {
+        messages: [
+          opening,
+          asking([quarantine]),
+          {
+            id: "failed",
+            role: "assistant" as const,
+            metadata: { failed: true as const },
+            parts: [{ type: "text" as const, text: "Something went wrong." }],
+          },
+        ],
+      },
+    ],
     ["in Voice mode", { inputMode: "voice" as const }],
     [
       "once the person has answered",
