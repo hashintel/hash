@@ -21,7 +21,7 @@ import {
   type VisualizerSize,
 } from "../../lib/render-visualizer-hir";
 import { useVisualizerHir } from "../../lib/use-visualizer-hir";
-import { VisualizerErrorBoundary } from "../Editor/panels/PropertiesPanel/place-properties/subviews/place-visualizer/visualizer-error-boundary";
+import { VisualizerErrorBoundary } from "./visualizer-error-boundary";
 import { VisualizerLoading } from "./visualizer-loading";
 
 import type { Color, Place, TokenRecord } from "@hashintel/petrinaut-core";
