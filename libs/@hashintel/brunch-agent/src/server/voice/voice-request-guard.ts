@@ -23,4 +23,5 @@ export const guardVoiceRequest = (
   const declaredLength = Number(request.headers.get("content-length"));
   if (Number.isFinite(declaredLength) && declaredLength > maxBytes)
     return "content-length";
+  return undefined;
 };
