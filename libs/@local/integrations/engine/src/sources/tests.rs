@@ -1,15 +1,11 @@
 use core::future::ready;
 #[cfg(unix)]
 use std::os::unix::fs::symlink;
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{fs, path::Path};
 
 use axum::Router;
 use duckdb::types::Value;
 use error_stack::Report;
-use hash_crypto::Secret;
 use hash_integrations_definition::{Definition, SecretReference};
 use reqwest::{
     Client, Url,
@@ -25,7 +21,10 @@ use super::{
     CaptureLimits, CaptureRun, CaptureStore, SecretStore, SecretValue, SourceError, SourceReader,
     fingerprint,
 };
-use crate::{Workspace, WorkspaceConfig};
+use crate::{
+    ArtifactNamespace, ArtifactStorage, Format, Workspace, WorkspaceConfig,
+    storage::tests::{minio, s3_storage},
+};
 
 pub(crate) struct Server {
     url: String,
@@ -97,47 +96,6 @@ impl SecretStore for NoSecrets {
     }
 }
 
-/// Publishes something other than a capture at `target` while handing out malformed credentials,
-/// so the live capture fails and recovering a concurrently published capture fails too.
-struct ConflictingSecrets {
-    target: PathBuf,
-}
-
-impl SecretStore for ConflictingSecrets {
-    fn read(
-        &self,
-        _: Uuid,
-        _: Uuid,
-        _: SecretReference,
-    ) -> impl Future<Output = Result<SecretValue, Report<SourceError>>> + Send {
-        fs::create_dir_all(&self.target).expect("should occupy the capture target");
-        ready(Ok(Secret::from_vec(b"{}".to_vec())))
-    }
-}
-
-fn postgres_definition() -> Definition {
-    Definition::from_yaml(&format!(
-        "
-        connector: test
-        sources:
-          items:
-            postgres:
-              connection: postgresql://database.example/demo
-              schema: public
-              table: items
-              credentials:
-                secretEntityUuid: {}
-            primaryKey: [id]
-        pipelines:
-          entities:
-            - source: items
-              steps: []
-        ",
-        Uuid::new_v4(),
-    ))
-    .expect("should parse a PostgreSQL source")
-}
-
 fn sql_definition() -> Definition {
     Definition::from_yaml(
         "
@@ -190,11 +148,18 @@ fn run() -> CaptureRun {
 }
 
 fn reader(directory: &Path) -> SourceReader {
+    reader_with(
+        directory,
+        ArtifactStorage::local(&directory.join("captures"))
+            .expect("should create local capture storage"),
+    )
+}
+
+fn reader_with(directory: &Path, captures: ArtifactStorage) -> SourceReader {
     let local = directory.join("local");
     fs::create_dir_all(&local).expect("should create the local source root");
     SourceReader::new(
-        CaptureStore::new(&local, &directory.join("captures"))
-            .expect("should open capture storage"),
+        CaptureStore::new(&local, captures).expect("should open capture storage"),
         CaptureLimits::default(),
     )
 }
@@ -205,40 +170,70 @@ async fn open_workspace(directory: &Path, name: &str) -> Workspace {
         .expect("should open a workspace")
 }
 
+#[rstest]
+#[case::local(false)]
+#[case::s3(true)]
 #[tokio::test]
-async fn capture_retry_and_restore() {
+async fn capture_retry_and_restore(#[case] s3: bool) {
     let directory = TempDir::new().expect("should create source storage");
+    let minio = if s3 { Some(minio().await) } else { None };
+    let captures = || match &minio {
+        Some((_, port)) => s3_storage(*port, directory.path()),
+        None => ArtifactStorage::local(&directory.path().join("captures"))
+            .expect("should create local capture storage"),
+    };
     let run = run();
     let definition = remote_definition();
-    let reader = reader(directory.path());
     // An earlier attempt of the run captured the remote source, which is unreachable now.
     let (name, source) = definition
         .sources()
         .iter()
         .next()
         .expect("should define a source");
-    let target = reader
-        .store
-        .path(run, name, &fingerprint(source))
-        .expect("should prepare the capture path");
+    let key = ArtifactNamespace::new(run.web, definition.connector()).capture(
+        run.id,
+        name,
+        &fingerprint(source),
+    );
+    let earlier = captures();
+    let staging = earlier
+        .stage()
+        .expect("should create the earlier run's staging");
     let workspace = open_workspace(directory.path(), "run.duckdb").await;
-    workspace
-        .capture("SELECT 7 AS id, 'initial' AS value".into(), target)
+    let capture = workspace
+        .capture(
+            "SELECT 7 AS id, 'initial' AS value".into(),
+            ArtifactStorage::staging_file(staging.path(), Format::Parquet),
+        )
         .await
         .expect("should publish the earlier capture");
+    let artifact = earlier
+        .publish(
+            &ArtifactNamespace::new(run.web, definition.connector()).artifacts(),
+            capture.path(),
+            Format::Parquet,
+        )
+        .await
+        .expect("should store the earlier capture");
+    let _bound = earlier
+        .bind(&key, &artifact)
+        .await
+        .expect("should bind the earlier capture to the run");
     workspace
         .close()
         .await
         .expect("should close the first workspace");
 
     let restored = open_workspace(directory.path(), "restored.duckdb").await;
+    let reader = reader_with(directory.path(), captures());
     let captures = reader
         .capture_sources(&restored, &definition, run, &NoSecrets)
         .await
         .expect("should reuse a capture without contacting the source or secret store");
+    drop(reader);
     let tables = SourceReader::stage_sources(&restored, &definition, &captures)
         .await
-        .expect("should stage a restored capture");
+        .expect("should stage a restored capture after its reader is dropped");
     assert_eq!(tables.len(), 1, "should stage one source");
     let rows = restored
         .query(
@@ -265,6 +260,62 @@ async fn capture_retry_and_restore() {
         .close()
         .await
         .expect("should close the restored workspace");
+}
+
+#[tokio::test]
+async fn concurrent_attempts_share_the_bound_capture() {
+    let directory = TempDir::new().expect("should create source storage");
+    let run = run();
+    let workspaces = [
+        open_workspace(directory.path(), "first.duckdb").await,
+        open_workspace(directory.path(), "second.duckdb").await,
+    ];
+    let (first_reader, second_reader) = (reader(directory.path()), reader(directory.path()));
+    // Each attempt captures a different value, so the attempts can only agree on the bound one.
+    let definition = Definition::from_yaml(
+        "
+        connector: test
+        sources:
+          items:
+            sql: SELECT 7 AS id, uuid()::VARCHAR AS value
+            primaryKey: [id]
+        pipelines:
+          entities:
+            - source: items
+              steps: []
+        ",
+    )
+    .expect("should parse a SQL source");
+
+    // Each attempt yields while its workspace captures the source, so both find no stored capture
+    // before either stores its own.
+    let attempts = tokio::join!(
+        first_reader.capture_sources(&workspaces[0], &definition, run, &NoSecrets),
+        second_reader.capture_sources(&workspaces[1], &definition, run, &NoSecrets),
+    );
+    let mut values = Vec::new();
+    for (workspace, captures) in workspaces.iter().zip(<[_; 2]>::from(attempts)) {
+        let captures = captures.expect("should capture or reuse the bound capture");
+        SourceReader::stage_sources(workspace, &definition, &captures)
+            .await
+            .expect("should stage the capture");
+        values.push(
+            workspace
+                .query(r#"SELECT value FROM "_source/items""#.into())
+                .await
+                .expect("should query the staged rows")
+                .iter()
+                .map(<[Value]>::to_vec)
+                .collect::<Vec<_>>(),
+        );
+    }
+    assert_eq!(
+        values[0], values[1],
+        "the attempt that lost the bind should continue from the bound capture"
+    );
+    for workspace in workspaces {
+        workspace.close().await.expect("should close the workspace");
+    }
 }
 
 #[rstest]
@@ -297,43 +348,6 @@ async fn capture_isolation(#[case] change_identity: fn(CaptureRun) -> CaptureRun
     workspace.close().await.expect("should close the workspace");
 }
 
-#[tokio::test]
-async fn failed_recovery_keeps_the_capture_error() {
-    let directory = TempDir::new().expect("should create source storage");
-    let workspace = open_workspace(directory.path(), "run.duckdb").await;
-    let run = run();
-    let definition = postgres_definition();
-    let (name, source) = definition
-        .sources()
-        .iter()
-        .next()
-        .expect("should define a source");
-    let resolver = ConflictingSecrets {
-        target: directory
-            .path()
-            .join("captures")
-            .join(run.web.to_string())
-            .join(run.id.to_string())
-            .join(format!("{name}.{}.parquet", fingerprint(source))),
-    };
-    let error = reader(directory.path())
-        .capture_sources(&workspace, &definition, run, &resolver)
-        .await
-        .expect_err("should fail both the capture and its recovery");
-    assert!(
-        matches!(error.current_context(), SourceError::Secret),
-        "should report the capture failure"
-    );
-    assert!(
-        error
-            .frames()
-            .filter_map(|frame| frame.downcast_ref::<SourceError>())
-            .any(|context| matches!(context, SourceError::Read)),
-        "should keep the recovery failure in the report"
-    );
-    workspace.close().await.expect("should close the workspace");
-}
-
 #[rstest]
 #[case::same(".")]
 #[case::captures_in_local("captures")]
@@ -342,8 +356,11 @@ fn overlapping_roots(#[case] captures: &str) {
     let directory = TempDir::new().expect("should create the directory");
     let local = directory.path().join("local");
     fs::create_dir_all(&local).expect("should create the local source root");
-    let error = CaptureStore::new(&local, &local.join(captures))
-        .expect_err("should keep captures outside the local source root");
+    let error = CaptureStore::new(
+        &local,
+        ArtifactStorage::local(&local.join(captures)).expect("should create local capture storage"),
+    )
+    .expect_err("should keep captures outside the local source root");
     assert!(
         matches!(error.current_context(), SourceError::Configuration),
         "overlapping roots should be rejected as invalid configuration"
@@ -357,7 +374,11 @@ fn overlapping_roots(#[case] captures: &str) {
 fn local_root_invalid_key(#[case] key: &str) {
     let directory = TempDir::new().expect("should create the directory");
     let captures = TempDir::new().expect("should create the capture directory");
-    let store = CaptureStore::new(directory.path(), captures.path()).expect("should open storage");
+    let store = CaptureStore::new(
+        directory.path(),
+        ArtifactStorage::local(captures.path()).expect("should create local capture storage"),
+    )
+    .expect("should open storage");
     let error = store
         .local_file(key)
         .expect_err("should reject an invalid source key");
@@ -374,7 +395,11 @@ fn local_root_symlink() {
     let outside = TempDir::new().expect("should create the outside directory");
     fs::write(outside.path().join("source.parquet"), b"outside").expect("should write a source");
     let captures = TempDir::new().expect("should create the capture directory");
-    let store = CaptureStore::new(directory.path(), captures.path()).expect("should open storage");
+    let store = CaptureStore::new(
+        directory.path(),
+        ArtifactStorage::local(captures.path()).expect("should create local capture storage"),
+    )
+    .expect("should open storage");
     symlink(outside.path(), directory.path().join("escape"))
         .expect("should create the test symlink");
     let error = store

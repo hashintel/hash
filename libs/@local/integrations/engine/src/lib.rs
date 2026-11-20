@@ -24,6 +24,7 @@ mod pipeline;
 mod progress;
 mod sources;
 mod sql;
+mod storage;
 mod variant_name;
 mod workspace;
 
@@ -44,7 +45,11 @@ pub use self::{
     progress::{Progress, ProgressSnapshot},
     sources::{
         CaptureLimits, CaptureRun, CaptureStore, GraphVaultConfig, GraphVaultSecretStore,
-        SecretStore, SecretValue, SourceError, SourceReader,
+        SecretStore, SecretValue, SourceCaptures, SourceError, SourceReader,
+    },
+    storage::{
+        ArtifactError, ArtifactKey, ArtifactNamespace, ArtifactRef, ArtifactRefV1, ArtifactStorage,
+        Format, S3Bucket,
     },
     workspace::{
         CloseError, DataErrorType, DiskUsageError, OpenError, QueryErrorType, Rows, Setting,

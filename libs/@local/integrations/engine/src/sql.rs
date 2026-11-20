@@ -27,6 +27,11 @@ impl fmt::Display for Identifier<'_> {
     }
 }
 
+/// Quotes `value` as a DuckDB string literal.
+pub(crate) fn literal(value: &str) -> String {
+    format!("'{}'", value.replace('\'', "''"))
+}
+
 #[cfg(test)]
 mod tests {
     use duckdb::Connection;

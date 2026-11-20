@@ -13,7 +13,10 @@ use serde::Deserialize;
 use url::{Host, Url};
 
 use super::{CaptureLimits, SourceError, http};
-use crate::{ByteSize, SourceCapture, sql::Identifier};
+use crate::{
+    ByteSize, SourceCapture,
+    sql::{Identifier, literal},
+};
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -105,10 +108,6 @@ async fn pinned_addresses(
         pinned.push(first.ip().to_string());
     }
     Ok(pinned.join(","))
-}
-
-fn literal(value: &str) -> String {
-    format!("'{}'", value.replace('\'', "''"))
 }
 
 fn connection_uri(source: &PostgresSource, credentials: &Credentials) -> Url {
