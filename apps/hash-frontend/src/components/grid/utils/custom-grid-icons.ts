@@ -8,7 +8,7 @@ const iconSvg = (name: HashIconName, color: string, size: number) => {
     /[&<>"']/g,
     (character) => `&#${character.charCodeAt(0)};`,
   );
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="${size}" height="${size}" color="${escaped}" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="2" style="--hash-icon-stroke-width:1.75;--hash-icon-dot-size:2.1875;--hash-icon-detail-stroke:2.45">${getHashIconArtwork(name)}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="${size}" height="${size}" color="${escaped}" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="2">${getHashIconArtwork(name)}</svg>`;
 };
 import { customColors } from "@hashintel/design-system/theme";
 

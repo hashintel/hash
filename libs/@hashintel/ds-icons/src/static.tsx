@@ -2,7 +2,8 @@
 
 import { useId } from "react";
 
-import { getHashIconArtwork, getHashIconStrokeWidth } from "./artwork";
+import { getHashIconStrokeWidth } from "./artwork";
+import { getHashIconArtworkTemplate } from "./static/artwork-template";
 
 export { getHashIconArtwork, getHashIconStrokeWidth } from "./artwork";
 
@@ -51,7 +52,7 @@ export const HashIconArtwork = ({
       // Validated keys select bundled artwork; only the restricted instance ID is substituted.
       // eslint-disable-next-line react/no-danger
       dangerouslySetInnerHTML={{
-        __html: getHashIconArtwork(name, variant, id),
+        __html: getHashIconArtworkTemplate(name, variant, id),
       }}
     />
   );
