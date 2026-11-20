@@ -49,6 +49,7 @@ const openRegistry = () => {
   let created = false;
   const conversations = createConversationRegistry(
     {
+      now: Date.now,
       openStorage: async () => {
         created = true;
         return storage;
@@ -113,6 +114,7 @@ test("closing the registry waits for a Harness it evicted for lost ownership to 
   const { models, model } = scriptedModel([]);
   const conversations = createConversationRegistry(
     {
+      now: Date.now,
       openStorage: async () => {
         const storage = Object.assign(new MemoryStorage(), { owner: true });
         if (storages.length === 0) {
@@ -185,6 +187,7 @@ test("a stored extension list without the gate keeps exactly its extensions, plu
 
   const conversations = createConversationRegistry(
     {
+      now: Date.now,
       openStorage: async () => storage,
       storageExists: async () => true,
       createRegistry: installAll,
@@ -260,6 +263,7 @@ test("a crash-loop abort is reported even when the rest of the open fails", asyn
   const crashLoops: { conversationId: string; kinds: string[] }[] = [];
   const conversations = createConversationRegistry(
     {
+      now: Date.now,
       openStorage: async () => storage,
       storageExists: async () => true,
       createRegistry: installAll,

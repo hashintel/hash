@@ -96,7 +96,13 @@ test("a record keeps the browser's output and metadata, its issuing entry, and i
       expect(calls?.[toolCallId]?.status).toBe("pending");
     });
     // eslint-disable-next-line no-await-in-loop
-    const claim = await claimBrowserCall(harness, root.id, toolCallId, context);
+    const claim = await claimBrowserCall(
+      harness,
+      root.id,
+      toolCallId,
+      context,
+      Date.now,
+    );
     // eslint-disable-next-line no-await-in-loop
     await finishBrowserCall(
       harness,
@@ -110,6 +116,7 @@ test("a record keeps the browser's output and metadata, its issuing entry, and i
         metadata: { documentRevision: { before: `revision-${toolCallId}` } },
       },
       context,
+      Date.now,
     );
   }
   expect((await submission.wait(context)).status).toBe("done");
@@ -166,6 +173,7 @@ const answer = async (
     conversationId,
     toolCallId,
     context,
+    Date.now,
   );
   if (claim === undefined) throw new Error(`${toolCallId} was not claimable.`);
   await finishBrowserCall(
@@ -180,6 +188,7 @@ const answer = async (
       metadata,
     },
     context,
+    Date.now,
   );
 };
 

@@ -54,6 +54,7 @@ const startInstance = (responses: FauxResponseStep[]) => {
   };
   const { models, model, state } = scriptedModel(responses);
   const server = createDurableAgentsServer({
+    now: Date.now,
     openStorage,
     storageExists: postgresConversationExists(pool),
     createRegistry: () => {
@@ -206,6 +207,7 @@ test("conversations get their own schemas, and an instance that lost one reopens
           root.id,
           toolCallId,
           context,
+          Date.now,
         );
         if (claim !== undefined) return { harness, root, claim };
         // eslint-disable-next-line no-await-in-loop
@@ -224,6 +226,7 @@ test("conversations get their own schemas, and an instance that lost one reopens
         output: { ok: true, title: "Dryer" },
       },
       context,
+      Date.now,
     );
     expect(finished).toBe("settled");
     await onA.drain();

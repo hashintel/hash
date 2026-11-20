@@ -233,6 +233,7 @@ const startInstance = (
   models.setProvider(faux.provider);
   const extension = defineExtension({ name: "probe", tools: [...tools] });
   const server = createDurableAgentsServer({
+    now: Date.now,
     openStorage: (conversationId) =>
       openPostgresStorage({
         pool,

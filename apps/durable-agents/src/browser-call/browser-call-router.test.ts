@@ -662,6 +662,7 @@ const openNoteConversation = async ({
   const app = new Hono().route(
     routePrefix,
     createBrowserCallRouter({
+      now: Date.now,
       resolveHarness: (conversationId) =>
         conversationId === routeConversationId ? harness : undefined,
     }),
@@ -925,6 +926,7 @@ describe("browser-call router: hand-edit reports through the server", () => {
     server.app.route(
       "/conversations",
       createBrowserCallRouter({
+        now: Date.now,
         // As `startDurableAgentsServer`: ownership is the registry's acquire.
         resolveHarness: async (conversationId) =>
           (await server.conversations.acquire(conversationId))?.harness,

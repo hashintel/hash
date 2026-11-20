@@ -801,7 +801,7 @@ export const claimBrowserCall = (
   conversationId: ConversationId,
   toolCallId: string,
   context: Context,
-  now = Date.now,
+  now: () => number,
 ) =>
   withBrowserClaimDecision(harness, () =>
     harness.commit(async (tx) => {
@@ -853,7 +853,7 @@ export const claimBrowserCallAs = (
   toolCallId: string,
   { claimant, binding }: BrowserCallClaimant,
   context: Context,
-  now = Date.now,
+  now: () => number,
 ) =>
   withBrowserClaimDecision(harness, () =>
     harness.commit(async (tx): Promise<BrowserCallClaimOutcome> => {
@@ -908,7 +908,7 @@ export const startBrowserCall = (
   toolCallId: string,
   proof: BrowserCallProof,
   context: Context,
-  now = Date.now,
+  now: () => number,
 ) =>
   harness.commit(async (tx): Promise<"started" | "refused"> => {
     const record = (await tx.doc(BrowserCallsDoc, conversationId)).calls[
@@ -930,7 +930,7 @@ export const renewBrowserCall = async (
   toolCallId: string,
   proof: BrowserCallProof,
   context: Context,
-  now = Date.now,
+  now: () => number,
 ) => {
   const record = (
     await harness.snapshot(BrowserCallsDoc, conversationId, context)
@@ -1025,7 +1025,7 @@ export const finishBrowserCall = async (
   harness: Harness,
   result: BrowserCallResult,
   context: Context,
-  now = Date.now,
+  now: () => number,
 ): Promise<"settled" | "not-issued"> => {
   const doorbell = await withBrowserClaimDecision(harness, () =>
     harness.commit(async (tx) => {
@@ -1065,7 +1065,7 @@ export const failBrowserCall = async (
   harness: Harness,
   failure: BrowserCallFailure,
   context: Context,
-  now = Date.now,
+  now: () => number,
 ): Promise<"failed" | "not-issued"> => {
   const doorbell = await withBrowserClaimDecision(harness, () =>
     harness.commit(async (tx) => {

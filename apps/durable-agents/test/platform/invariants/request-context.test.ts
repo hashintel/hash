@@ -149,6 +149,7 @@ const openServer = () => {
   const hashAgent = createHashAgent();
   const { agent, extensions, clientToolNames } = hashAgent;
   const server = createDurableAgentsServer({
+    now: Date.now,
     openStorage: async (conversationId) => {
       const existing = stores.get(conversationId);
       if (existing !== undefined) return existing;
@@ -174,6 +175,7 @@ const openServer = () => {
   server.app.route(
     browserCallsPrefix,
     createBrowserCallRouter({
+      now: Date.now,
       resolveHarness: async (conversationId) =>
         (await server.conversations.acquire(conversationId))?.harness,
     }),
@@ -328,6 +330,7 @@ const scriptedBrowser = (
           conversationId,
           record.toolCallId,
           context,
+          Date.now,
         );
         if (claim === undefined)
           throw new Error(`${record.toolCallId} was not claimable.`);
@@ -344,6 +347,7 @@ const scriptedBrowser = (
             metadata: answer.metadata,
           },
           context,
+          Date.now,
         );
       }
       // eslint-disable-next-line no-await-in-loop -- Polling interval.

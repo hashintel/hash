@@ -150,6 +150,7 @@ const answer = async (
     conversationId,
     toolCallId,
     context,
+    Date.now,
   );
   if (claim === undefined) throw new Error(`${toolCallId} was not claimable.`);
   await finishBrowserCall(
@@ -164,6 +165,7 @@ const answer = async (
       metadata,
     },
     context,
+    Date.now,
   );
 };
 
@@ -181,6 +183,7 @@ const claimAs = async (
     toolCallId,
     tab,
     context,
+    Date.now,
   );
   if (outcome.status !== "claimed")
     throw new Error(`${toolCallId} was not claimable: ${outcome.status}.`);
@@ -193,6 +196,7 @@ const claimAs = async (
         toolCallId,
         { capability: claim.capability, binding: claim.binding },
         context,
+        Date.now,
       ),
     ).toBe("started");
   return {
@@ -215,7 +219,12 @@ const fail = async (
     started: disposition === "failed",
   });
   expect(
-    await failBrowserCall(harness, { ...claimed, disposition }, context),
+    await failBrowserCall(
+      harness,
+      { ...claimed, disposition },
+      context,
+      Date.now,
+    ),
   ).toBe("failed");
 };
 
@@ -540,6 +549,7 @@ describe("app_save_net (§3.2)", () => {
             metadata: { documentRevision: {} },
           },
           context,
+          Date.now,
         );
       },
     );
@@ -769,6 +779,7 @@ describe("a declined removal (§3.7)", () => {
           harness,
           { ...claimed, output: declined, metadata: { documentRevision: {} } },
           context,
+          Date.now,
         );
       });
       const result = await resultOf(root, "rm-1");

@@ -101,6 +101,7 @@ const scriptedBrowser = (
       conversationId,
       record.toolCallId,
       context,
+      Date.now,
     );
     if (claim === undefined) return;
     await new Promise((resolve) => {
@@ -119,6 +120,7 @@ const scriptedBrowser = (
         metadata,
       },
       context,
+      Date.now,
     );
     log.push({
       toolCallId: record.toolCallId,

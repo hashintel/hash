@@ -109,6 +109,7 @@ const startInstance = (
   const crashLoops: { conversationId: string; tasks: CrashLoopingTask[] }[] =
     [];
   const server = createDurableAgentsServer({
+    now: Date.now,
     openStorage: postgresConversationStorage(pool),
     storageExists: postgresConversationExists(pool),
     createRegistry: () => {
@@ -541,7 +542,13 @@ test("the crash-loop guard spares a tool call waiting on a browser", async () =>
       tasks.find(({ record }) => record.kind === "pi.tool")?.record.restarts,
     ).toBe(1);
 
-    const claim = await claimBrowserCall(harness, root.id, toolCallId, context);
+    const claim = await claimBrowserCall(
+      harness,
+      root.id,
+      toolCallId,
+      context,
+      Date.now,
+    );
     expect(claim).toBeDefined();
     await finishBrowserCall(
       harness,
@@ -554,6 +561,7 @@ test("the crash-loop guard spares a tool call waiting on a browser", async () =>
         output: { ok: true, title: "Dryer" },
       },
       context,
+      Date.now,
     );
     const chunks = await drain(reattached!);
     expect(textOf(chunks)).toBe("Renamed.");
@@ -585,13 +593,19 @@ const browserOutcomes = {
         harness,
         { ...proof, output: { ok: true, title: "Dryer" } },
         context,
+        Date.now,
       ),
   },
   fail: {
     status: "failed",
     retried: "failed",
     commit: (harness: Harness, proof: ClaimProof) =>
-      failBrowserCall(harness, { ...proof, disposition: "failed" }, context),
+      failBrowserCall(
+        harness,
+        { ...proof, disposition: "failed" },
+        context,
+        Date.now,
+      ),
   },
 } as const;
 
@@ -677,6 +691,7 @@ const answerAfterWaiting = async (
     opened.root.id,
     answeredCallId,
     context,
+    Date.now,
   );
   if (claim === undefined) throw new Error("The call was not claimable.");
   const proof: ClaimProof = {

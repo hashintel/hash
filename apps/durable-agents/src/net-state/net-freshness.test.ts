@@ -130,6 +130,7 @@ const answer = async (
     conversationId,
     toolCallId,
     context,
+    Date.now,
   );
   if (claim === undefined) throw new Error(`${toolCallId} was not claimable.`);
   await finishBrowserCall(
@@ -144,6 +145,7 @@ const answer = async (
       metadata,
     },
     context,
+    Date.now,
   );
 };
 
