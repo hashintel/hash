@@ -3,7 +3,6 @@ import { use } from "react";
 import {
   generateDefaultTransitionKernelCode,
   getArcEndpoint,
-  resolveComponent,
 } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../../../react";
@@ -15,6 +14,7 @@ import { useIsReadOnly } from "../../../../../../../../react/state/use-is-read-o
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { getDocumentUri } from "../../../../../../../monaco/editor-paths";
+import { resolvePort } from "../../../arc-endpoint";
 import { CodeTemplateMenu } from "../../../code-template-menu";
 import { codeSectionStyle } from "../../../styles";
 import { useTransitionPropertiesContext } from "../../context";
@@ -26,18 +26,49 @@ import type {
   Place,
   ResolvedLibraries,
   SDCPN,
+  Transition,
 } from "@hashintel/petrinaut-core";
 
-const getTypeById = ({
+type Net = Pick<SDCPN, "places" | "componentInstances">;
+
+/**
+ * The place an arc ends at and its name in kernel code, where the net still
+ * has it. A port is named `Instance::Port`.
+ */
+const arcPlace = (
+  arc: InputArc | OutputArc,
+  net: Net,
+  sdcpn: SDCPN,
+  libraries: ResolvedLibraries,
+): { place: Place; placeName: string } | undefined => {
+  const endpoint = getArcEndpoint(arc);
+
+  if (endpoint.kind === "place") {
+    const place = net.places.find(({ id }) => id === endpoint.placeId);
+    return place ? { place, placeName: place.name } : undefined;
+  }
+
+  const { instance, port } = resolvePort(endpoint, net, sdcpn, libraries);
+  return instance && port?.isPort
+    ? { place: port, placeName: `${instance.name}::${port.name}` }
+    : undefined;
+};
+
+/** The default kernel code of a transition, from its arcs to typed places. */
+const defaultKernelCode = ({
+  transition,
+  net,
   sdcpn,
   types,
   libraries,
 }: {
+  transition: Transition;
+  net: Net;
   sdcpn: SDCPN;
   types: Color[];
   libraries: ResolvedLibraries;
-}) =>
-  new Map(
+}) => {
+  const typeById = new Map(
     [
       ...[...libraries.values()].flatMap(({ components }) =>
         components.flatMap((component) => component.types),
@@ -48,40 +79,24 @@ const getTypeById = ({
     ].map((type) => [type.id, type]),
   );
 
-const createTransitionArcPlaceResolver = (
-  sdcpn: SDCPN,
-  net: { places: Place[]; componentInstances?: SDCPN["componentInstances"] },
-  libraries: ResolvedLibraries,
-): ((
-  arc: InputArc | OutputArc,
-) => { place: Place; placeName: string } | undefined) => {
-  const placeById = new Map(net.places.map((place) => [place.id, place]));
-  const componentById = new Map(
-    (sdcpn.components ?? []).map((component) => [component.id, component]),
+  const templateArcs = (arcs: (InputArc | OutputArc)[]) =>
+    arcs.flatMap((arc) => {
+      const resolved = arcPlace(arc, net, sdcpn, libraries);
+      const type = resolved?.place.colorId
+        ? typeById.get(resolved.place.colorId)
+        : undefined;
+
+      return resolved && type
+        ? [{ placeName: resolved.placeName, type, weight: arc.weight }]
+        : [];
+    });
+
+  return generateDefaultTransitionKernelCode(
+    templateArcs(
+      transition.inputArcs.filter((arc) => arc.type !== "inhibitor"),
+    ),
+    templateArcs(transition.outputArcs),
   );
-  const instanceById = new Map(
-    (net.componentInstances ?? []).map((instance) => [instance.id, instance]),
-  );
-
-  return (arc) => {
-    const endpoint = getArcEndpoint(arc);
-
-    if (endpoint.kind === "place") {
-      const place = placeById.get(endpoint.placeId);
-      return place ? { place, placeName: place.name } : undefined;
-    }
-
-    const instance = instanceById.get(endpoint.componentInstanceId);
-    const component = instance
-      ? resolveComponent(sdcpn, instance.component, libraries, componentById)
-      : undefined;
-    const place = component?.places.find(
-      (p) => p.id === endpoint.portPlaceId && p.isPort,
-    );
-
-    if (!instance || !place) return undefined;
-    return { place, placeName: `${instance.name}::${place.name}` };
-  };
 };
 
 export const ResultsHeaderAction: React.FC = () => {
@@ -99,63 +114,20 @@ export const ResultsHeaderAction: React.FC = () => {
 
   return (
     <CodeTemplateMenu
-      onLoadDefault={() => {
-        const resolveArcPlace = createTransitionArcPlaceResolver(
-          sdcpn,
-          activeNet,
-          libraries,
-        );
-        const typeById = getTypeById({ sdcpn, types, libraries });
-
-        const inputs = transition.inputArcs
-          .filter((arc) => arc.type !== "inhibitor")
-          .map((arc) => {
-            const resolved = resolveArcPlace(arc);
-            const type = resolved?.place.colorId
-              ? typeById.get(resolved.place.colorId)
-              : undefined;
-
-            if (!resolved || !type) {
-              return null;
-            }
-
-            return {
-              placeName: resolved.placeName,
-              type,
-              weight: arc.weight,
-            };
-          })
-          .filter((i) => i !== null);
-
-        const outputs = transition.outputArcs
-          .map((arc) => {
-            const resolved = resolveArcPlace(arc);
-            const type = resolved?.place.colorId
-              ? typeById.get(resolved.place.colorId)
-              : undefined;
-
-            if (!resolved || !type) {
-              return null;
-            }
-
-            return {
-              placeName: resolved.placeName,
-              type,
-              weight: arc.weight,
-            };
-          })
-          .filter((o) => o !== null);
-
+      onLoadDefault={() =>
         updateTransition({
           transitionId: transition.id,
           update: {
-            transitionKernelCode: generateDefaultTransitionKernelCode(
-              inputs,
-              outputs,
-            ),
+            transitionKernelCode: defaultKernelCode({
+              transition,
+              net: activeNet,
+              sdcpn,
+              types,
+              libraries,
+            }),
           },
-        });
-      }}
+        })
+      }
     />
   );
 };
