@@ -22,9 +22,10 @@ const bodyPart = (id: string, columns = 1): CellBodyPart => ({
 /**
  * The focusable parts an expanded cell contributes to the list's focus flow,
  * in the order the body renders them, with the cells each line exposes. Must
- * stay in step with the body components of `notebook-cell.tsx`: a declared part with no
- * matching `data-cell-part` element is a stop arrows can never land on, and
- * a declared column with no matching cell falls back to the line's first.
+ * stay in step with the body components of `cell-body.tsx`: a declared part
+ * with no matching `data-cell-part` element is a stop arrows can never land
+ * on, and a declared column with no matching cell falls back to the line's
+ * first.
  */
 export function cellBodyParts(
   cell: NotebookCell,
@@ -85,3 +86,20 @@ export function cellBodyParts(
 /** The stop id a body part contributes to the list's focus flow. */
 export const partStopId = (cellId: string, partId: string): string =>
   `${cellId} ${partId}`;
+
+export interface CellRowFocus {
+  /** 0 for the list's one tabbable row, -1 for the rest (roving tab stop). */
+  tabIndex: 0 | -1;
+  /** Reports row focus, keeping selection and the roving stop in step. */
+  onFocus: () => void;
+  /** Vertical arrow navigation — the keys the row doesn't own itself. */
+  onNavigate: React.KeyboardEventHandler;
+}
+
+/** What an expanded body needs to enrol its parts in the focus flow. */
+export type BodyPartContext = {
+  /** Accessors for the part's stop; `column` defaults to the line's first. */
+  focusFor: (partId: string, column?: number) => CellRowFocus;
+  stopIdFor: (partId: string) => string;
+  navigateToCell: (cellId: string) => void;
+};
