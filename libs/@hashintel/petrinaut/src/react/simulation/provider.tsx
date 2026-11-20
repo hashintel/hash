@@ -798,28 +798,17 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     }));
   };
 
-  // Frame access, by index over the run's events: a "frame" is the state an
-  // event recorded.
-  const readFrame = (index: number): SimulationFrameReader | null =>
-    eventSimulationRef.current?.getEventState(index) ?? null;
-  const readFrameCount = (): number =>
-    eventSimulationRef.current?.trace.get().eventCount ?? 0;
-
-  const getFrame: SimulationContextValue["getFrame"] = (
-    frameIndex: number,
-  ): Promise<SimulationFrameReader | null> =>
-    Promise.resolve(readFrame(frameIndex));
-
   const getFramesInRange: SimulationContextValue["getFramesInRange"] = (
     startIndex: number,
     endIndex?: number,
   ) => {
-    const total = readFrameCount();
+    const simulation = eventSimulationRef.current;
+    const total = simulation?.trace.get().eventCount ?? 0;
     const start = Math.max(0, startIndex);
     const end = endIndex === undefined ? total : Math.min(endIndex, total);
     const slice: SimulationFrameReader[] = [];
     for (let i = start; i < end; i++) {
-      const frame = readFrame(i);
+      const frame = simulation?.getEventState(i);
       if (frame) {
         slice.push(frame);
       }
@@ -910,7 +899,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     stochasticRun: stochastic?.run ?? null,
     playbackSource,
     eventSimulation,
-    getFrame: useStableCallback(getFrame),
     getFramesInRange: useStableCallback(getFramesInRange),
     setSelectedScenarioId: useStableCallback(setSelectedScenarioId),
     setAdHocScenario: useStableCallback(setAdHocScenario),

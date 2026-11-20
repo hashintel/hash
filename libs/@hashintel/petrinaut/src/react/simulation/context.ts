@@ -150,17 +150,10 @@ export type SimulationContextValue = {
    */
   eventSimulation: EventSimulation | null;
 
-  // Frame access. A frame is the state an event of the run recorded, read
-  // from the trace the host already holds.
-  /**
-   * The frame at an index, or null when the index is out of bounds or no
-   * run exists.
-   */
-  getFrame: (frameIndex: number) => Promise<SimulationFrameReader | null>;
-
   /**
    * The frames from `startIndex` (inclusive) to `endIndex` (exclusive), or
-   * to the last one when `endIndex` is left out.
+   * to the last one when `endIndex` is left out. A frame is the state an
+   * event of the run recorded, read from the trace the host already holds.
    */
   getFramesInRange: (
     startIndex: number,
@@ -264,7 +257,6 @@ export const DEFAULT_SIMULATION_CONTEXT: SimulationContextValue = {
   stochasticRun: null,
   playbackSource: null,
   eventSimulation: null,
-  getFrame: () => Promise.resolve(null),
   getFramesInRange: () => Promise.resolve([]),
   setSelectedScenarioId: () => {},
   setAdHocScenario: () => {},
