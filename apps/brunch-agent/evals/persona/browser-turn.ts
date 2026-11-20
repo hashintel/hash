@@ -17,10 +17,10 @@ import {
   agentOwnershipHeaders,
   brunchHeaders,
   brunchRoutes,
-  offerIn,
-  optionsFor,
   petrinautUserMessageText,
 } from "@hashintel/brunch-agent";
+
+import { personaQuestionsIn } from "./shared/offered-questions.ts";
 
 import type { PersonaQuestion } from "./rpc-protocol.ts";
 import type { ConversationIdentity } from "@hashintel/brunch-agent";
@@ -130,17 +130,14 @@ export const offeredQuestionsOf = (
   snapshot: FlueConversationSnapshot,
   submissionIds: readonly string[],
 ): PersonaQuestion[] =>
-  offerIn(
+  personaQuestionsIn(
     snapshot.messages
       .filter(
         ({ submissionId }) =>
           submissionId !== undefined && submissionIds.includes(submissionId),
       )
       .flatMap(({ parts }) => parts),
-  )?.questions.map((question) => {
-    const options = optionsFor(question);
-    return options.length ? { ...question, options: [...options] } : question;
-  }) ?? [];
+  );
 
 /**
  * Give each docked question its answer the way a person would: a click on
