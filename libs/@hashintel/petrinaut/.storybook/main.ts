@@ -36,6 +36,16 @@ const config: StorybookConfig = {
     // The library's `renderBuiltUrl` names a chunk by its file name alone,
     // which a page resolves against the wrong folder.
     experimental: undefined,
+    build: {
+      ...viteConfig.build,
+      // The language server's worker holds TypeScript: 4.3 MB however it is split.
+      chunkSizeWarningLimit: 4500,
+      rolldownOptions: {
+        ...viteConfig.build?.rolldownOptions,
+        // Most of the build is the React Compiler's transform, as in the library's.
+        checks: { bundlerTimings: false },
+      },
+    },
   }),
 };
 
