@@ -29,13 +29,11 @@ export const constantStore = <T>(value: T): ReadableStore<T> => ({
 export function useStoreSelector<T, U>(
   store: ReadableStore<T>,
   selector: (value: T) => U,
-  isEqual?: (previous: U, next: U) => boolean,
 ): U {
   return useSyncExternalStoreWithSelector(
     (onStoreChange) => store.subscribe(onStoreChange),
     () => store.get(),
     () => store.get(),
     selector,
-    isEqual,
   );
 }

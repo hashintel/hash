@@ -1,11 +1,12 @@
 import { use, useLayoutEffect, useState, type Context } from "react";
+import { useSyncExternalStoreWithSelector } from "use-sync-external-store/with-selector";
 
 import {
   createReadableStore,
   type ReadableStore,
 } from "@hashintel/petrinaut-core";
 
-import { constantStore, useStoreSelector } from "./use-store";
+import { constantStore } from "./use-store";
 
 /**
  * What a provider publishes for its readers by selector: its latest context
@@ -53,11 +54,14 @@ export const useSelected = <Value, Selected>(
   select: (value: Value) => Selected,
   isSame?: (previous: Selected, next: Selected) => boolean,
 ): Selected => {
-  const selected = useStoreSelector<
+  const published = use(publishedContext) ?? nothingPublished;
+  const selected = useSyncExternalStoreWithSelector<
     Value | typeof nothing,
     Selected | typeof nothing
   >(
-    use(publishedContext) ?? nothingPublished,
+    (onStoreChange) => published.subscribe(onStoreChange),
+    () => published.get(),
+    () => published.get(),
     (value) => (value === nothing ? nothing : select(value)),
     isSame &&
       ((previous, next) =>
