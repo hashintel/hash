@@ -2,8 +2,9 @@ import { cva } from "@hashintel/ds-helpers/css";
 
 import { RESIZE_HANDLE_OFFSET, RESIZE_HANDLE_SIZE } from "../../constants/ui";
 
-import type { ResizableEdge } from "../../resize/resize-handle";
 import type { ComponentProps } from "react";
+
+export type ResizableEdge = "top" | "bottom" | "left" | "right";
 
 export type FloatingResizeDirection =
   | ResizableEdge

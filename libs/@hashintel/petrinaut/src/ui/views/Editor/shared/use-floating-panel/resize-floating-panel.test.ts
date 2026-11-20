@@ -2,8 +2,10 @@ import { describe, expect, test } from "vitest";
 
 import { resizeFloatingPanel } from "./resize-floating-panel";
 
-import type { ResizableEdge } from "../../../../resize/resize-handle";
-import type { FloatingResizeDirection } from "../../../shared/floating-resize-handles";
+import type {
+  FloatingResizeDirection,
+  ResizableEdge,
+} from "../../../shared/floating-resize-handles";
 
 const bounds = {
   right: 100,
