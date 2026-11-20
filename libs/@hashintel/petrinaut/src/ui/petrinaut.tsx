@@ -42,6 +42,11 @@ import { noSlots, PetrinautSlotsContext } from "./slots-context";
 import { EditorView } from "./views/Editor/editor-view";
 import { PetrinautPresentationProvider } from "./views/shared/presentation-provider";
 
+import type { PetrinautNavigationController } from "../react/navigation";
+import type { PetrinautPlugin } from "./plugins/define-petrinaut-plugin";
+import type { PetrinautSlots } from "./types/petrinaut-slots";
+import type { PetrinautPresentationProfile } from "./views/shared/presentation-context";
+
 // `clip`, not `hidden`: a hidden-overflow box is still programmatically
 // scrollable, and focusing an element the canvas transform pushed past the
 // edge (a value editor opening) scrolled the whole app sideways with no
@@ -52,11 +57,6 @@ const editorRootStyle = css({
   overflow: "clip",
   backgroundColor: "neutral.s25",
 });
-
-import type { PetrinautNavigationController } from "../react/navigation";
-import type { PetrinautPlugin } from "./plugins/define-petrinaut-plugin";
-import type { PetrinautSlots } from "./types/petrinaut-slots";
-import type { PetrinautPresentationProfile } from "./views/shared/presentation-context";
 
 export type PetrinautProps = {
   handle: PetrinautDocHandle;
