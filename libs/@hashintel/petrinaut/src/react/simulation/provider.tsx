@@ -30,7 +30,6 @@ import {
 } from "../lsp/context";
 import { usePetrinautNavigation } from "../navigation/navigation";
 import { NotificationsContext } from "../notifications/context";
-import { usePublished } from "../select-from-context";
 import {
   findSimulator,
   SimulatorsContext,
@@ -46,7 +45,6 @@ import {
   SimulationContext,
   type SimulationContextValue,
   type SimulationFrameReader,
-  SimulationPublishedContext,
   type SimulationState,
 } from "./context";
 import {
@@ -881,11 +879,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     pause: useStableCallback(pause),
     reset: useStableCallback(reset),
   };
-  const published = usePublished(contextValue);
 
-  return (
-    <SimulationPublishedContext value={published}>
-      <SimulationContext value={contextValue}>{children}</SimulationContext>
-    </SimulationPublishedContext>
-  );
+  return <SimulationContext value={contextValue}>{children}</SimulationContext>;
 };
