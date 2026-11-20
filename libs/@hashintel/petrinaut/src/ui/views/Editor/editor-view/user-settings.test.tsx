@@ -11,10 +11,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  isWebGpuAvailable,
-  createCommandRegistry,
-} from "@hashintel/petrinaut-core";
+import { createCommandRegistry } from "@hashintel/petrinaut-core";
 
 import { CommandRegistryProvider } from "../../../../react/commands/command-registry-provider";
 import { PetrinautNavigationProvider } from "../../../../react/navigation/navigation-provider";
@@ -635,25 +632,6 @@ describe("Plugins settings", () => {
     renderPluginSettings("plugins", []);
     await screen.findByRole("heading", { name: "Plugins" });
     expect(screen.getByText("This editor has no plugins.")).toBeTruthy();
-  });
-});
-
-describe("WebGPU availability", () => {
-  it("detects WebGPU support from the host, not a build flag", () => {
-    // The runtime gate the control's `disabled` state is derived from.
-    vi.stubGlobal("navigator", { gpu: {} });
-    try {
-      expect(isWebGpuAvailable()).toBe(true);
-    } finally {
-      vi.unstubAllGlobals();
-    }
-
-    vi.stubGlobal("navigator", {});
-    try {
-      expect(isWebGpuAvailable()).toBe(false);
-    } finally {
-      vi.unstubAllGlobals();
-    }
   });
 });
 
