@@ -624,8 +624,6 @@ interface VerticalSubViewsContainerProps {
   name: string;
   /** Array of subviews to display */
   subViews: SubView[];
-  /** Whether sections should be expanded by default */
-  defaultExpanded?: boolean;
 }
 
 /**
@@ -635,7 +633,7 @@ interface VerticalSubViewsContainerProps {
  */
 export const VerticalSubViewsContainer: React.FC<
   VerticalSubViewsContainerProps
-> = ({ name, subViews, defaultExpanded = true }) => {
+> = ({ name, subViews }) => {
   // By selector: the settings are saved each time a panel opens or closes,
   // and every section of this panel renders with this component.
   const showAnimations = useUserSettings((settings) => settings.showAnimations);
@@ -650,13 +648,8 @@ export const VerticalSubViewsContainer: React.FC<
   const parentSubView = subViews.find((subView) => subView.main);
   const parentTitle = parentSubView?.title ?? "Properties";
 
-  const isSectionCollapsed = (sv: SubView): boolean => {
-    const saved = containerSettings?.[sv.id];
-    if (saved !== undefined) {
-      return saved.collapsed;
-    }
-    return sv.defaultCollapsed ?? !defaultExpanded;
-  };
+  const isSectionCollapsed = (sv: SubView): boolean =>
+    containerSettings?.[sv.id]?.collapsed ?? sv.defaultCollapsed ?? false;
 
   const getSavedHeight = (id: string): number | undefined =>
     containerSettings?.[id]?.height;
@@ -686,10 +679,9 @@ export const VerticalSubViewsContainer: React.FC<
     updateSubViewSection(name, sv.id, { collapsed: !isSectionCollapsed(sv) });
   };
 
-  const allCollapsed = subViews.every((sv) => {
-    const isCollapsible = !sv.main && (sv.collapsible ?? true);
-    return isCollapsible && isSectionCollapsed(sv);
-  });
+  const allCollapsed = subViews.every(
+    (sv) => !sv.main && isSectionCollapsed(sv),
+  );
 
   return (
     <Group
@@ -712,8 +704,7 @@ export const VerticalSubViewsContainer: React.FC<
         const fillsContainer = maximizedId === subView.id;
         const isHidden = maximizedId !== null && !fillsContainer;
         const isMain = subView.main ?? false;
-        const isCollapsible = !isMain && (subView.collapsible ?? true);
-        const isExpanded = !isCollapsible || !isSectionCollapsed(subView);
+        const isExpanded = isMain || !isSectionCollapsed(subView);
         const minSize =
           subView.resizable?.minHeight ?? DEFAULT_MIN_PANEL_HEIGHT;
 

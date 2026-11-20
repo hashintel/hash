@@ -49,11 +49,6 @@ export interface SubView {
    */
   headerActionMutates?: boolean;
   /**
-   * Whether this subview should grow to fill available space.
-   * Only affects vertical layout. Defaults to false.
-   */
-  flexGrow?: boolean;
-  /**
    * Whether this is the main (primary) subview.
    * When true, shows a non-collapsible header with a larger title style.
    * The title and `renderHeaderAction` are displayed in the fixed header,
@@ -67,11 +62,6 @@ export interface SubView {
   titleComponent?: ComponentType;
   /** @deprecated Being replaced by {@link SubView.titleComponent}. */
   renderTitle?: () => ReactNode;
-  /**
-   * Whether the section can be collapsed by clicking the header.
-   * Defaults to true. Forced to false when `main` is true.
-   */
-  collapsible?: boolean;
   /**
    * Whether the section should start collapsed before the user has interacted.
    * Defaults to false (expanded). Ignored when `main` is true.
