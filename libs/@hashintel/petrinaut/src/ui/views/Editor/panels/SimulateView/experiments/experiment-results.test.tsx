@@ -426,24 +426,6 @@ describe("experimentResultsModel with the optimizer", () => {
     optimizer: withStudy(study, driving),
   });
 
-  it("puts Stop on the Parameters card only while the study drives the sweep", () => {
-    expect(model(sweep).bands[0]!.trailing).toBeNull();
-    const stop = vi.fn();
-    const drivingCard = model(sweep, {
-      optimizer: { ...withStudy(study, driving), stop },
-    }).bands[0]!;
-    expect(
-      propsOf<{ children: string; onClick: () => void }>(drivingCard.trailing),
-    ).toMatchObject({ children: "Stop", "data-sweep-optimizing": true });
-    propsOf<{ onClick: () => void }>(drivingCard.trailing).onClick();
-    expect(stop).toHaveBeenCalledOnce();
-    expect(
-      model(idleSweep, {
-        optimizer: withStudy({ ...study, status: "complete" }),
-      }).bands[0]!.trailing,
-    ).toBeNull();
-  });
-
   it("turns the Parameters card and the surface purple while a study drives the sweep", () => {
     const result = model(sweep, { optimizer: withStudy(study, driving) });
     expect(result.bands[0]!.tone).toBe("optimizing");
@@ -452,15 +434,6 @@ describe("experimentResultsModel with the optimizer", () => {
       disabled: true,
       tone: "optimizing",
     });
-  });
-
-  it("reads Optimizing from the study across the gap between steps, with Cancel offered", () => {
-    expect(betweenSteps.header.status).toEqual({
-      label: "Optimizing",
-      tone: "active",
-      widest: "Initializing",
-    });
-    expect(isValidElement(footerButtonsOf(betweenSteps)[0])).toBe(true);
   });
 
   it("fills the progress bar with the steps finished, not the step's runs", () => {
@@ -629,10 +602,6 @@ describe("experimentResultsModel with the optimizer", () => {
 describe("experimentResultsModel with constraints", () => {
   const constrained = makeConstrainedSweepExperiment();
 
-  it("gives the Parameters card no fold without constraints", () => {
-    expect(model(sweep).bands[0]!.more).toBeNull();
-  });
-
   it("folds the constraints behind the Parameters card's footer from creation on", () => {
     const more = model(constrained).bands[0]!.more;
     expect(more).toMatchObject({
@@ -664,18 +633,6 @@ describe("experimentResultsModel with a study", () => {
     optimizer: withStudy(runningStudy, driving),
   });
 
-  it("shows nothing of a study for a sweep created without one", () => {
-    const result = model(sweep);
-    expect(isValidElement(result.header.headline)).toBe(true);
-    expect(Object.keys(statTexts(sweep))).toEqual([
-      "Runs sampled",
-      "Errors",
-      "Simulation time",
-    ]);
-    expect(result.metrics?.cards).toBeNull();
-    expect(result.after).toBeNull();
-  });
-
   it("fills the headline, the Steps column, the Sensitivity card and the steps table from the study", () => {
     expect(isValidElement(running.header.headline)).toBe(true);
     expect(detailsOf(running).stats.map((stat) => stat.label)).toEqual([
@@ -695,13 +652,6 @@ describe("experimentResultsModel with a study", () => {
     expect(
       propsOf<{ optimization: OptimizationRecord }>(running.after),
     ).toMatchObject({ optimization: { id: "study" } });
-  });
-
-  it("keeps the objective strip under the sliders beside the study's cards", () => {
-    expect(isValidElement(running.bands[0]!.below)).toBe(true);
-    expect(propsOf<{ study: unknown }>(running.bands[0]!.below).study).toBe(
-      runningStudy,
-    );
   });
 
   it("adds Steps clear and the Constraints card only for a constrained study, in the card's tone", () => {

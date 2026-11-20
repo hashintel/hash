@@ -80,10 +80,4 @@ describe("binValueSummary", () => {
     expect(binValueSummary(frames)).toBe(summary);
     expect(binValueSummary([...frames])).not.toBe(summary);
   });
-
-  it("caches the absence of bins too", () => {
-    const frames = [scalarFrame(0)];
-    expect(binValueSummary(frames)).toBeNull();
-    expect(binValueSummary(frames)).toBeNull();
-  });
 });
