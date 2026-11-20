@@ -3,12 +3,14 @@ import { PetrinautNavigationProvider } from "../../../../../react/navigation";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { MonacoProvider } from "../../../../monaco/provider";
 import {
-  FakeEditorProvider,
-  FakeExperimentsProvider,
   makeExperiment,
   makeProgress,
   sirSdcpnContextValue,
 } from "./experiments/experiments-story-fixtures";
+import {
+  FakeEditorProvider,
+  FakeExperimentsProvider,
+} from "./experiments/experiments-story-providers";
 import { SimulateViewStoryStage } from "./simulate-view-story-harness";
 
 import type { ExperimentRecord } from "../../../../../react/experiments/context";

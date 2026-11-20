@@ -4,7 +4,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { FakeEditorProvider } from "./experiments/experiments-story-fixtures";
+import { FakeEditorProvider } from "./experiments/experiments-story-providers";
 import { SimulateView, SimulateViewTabs } from "./simulate-view";
 
 vi.mock("@hashintel/ds-components", async (importOriginal) => {

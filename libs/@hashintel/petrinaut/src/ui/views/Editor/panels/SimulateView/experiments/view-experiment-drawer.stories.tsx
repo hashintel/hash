@@ -17,13 +17,13 @@ import {
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { SimulationWorkspace } from "../../../shared/simulation-workspace";
 import {
-  FakeExperimentsProvider,
   makeConstrainedSweepExperiment,
   makeParameterSweepExperiment,
   sirSdcpnContextValue,
   sweepFixtureScenario,
   syntheticSweepObjective,
 } from "./experiments-story-fixtures";
+import { FakeExperimentsProvider } from "./experiments-story-providers";
 import {
   fakeConstrainedStudyInput,
   fakeLongStudyInput,

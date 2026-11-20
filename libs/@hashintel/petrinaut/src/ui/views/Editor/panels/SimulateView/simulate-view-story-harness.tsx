@@ -41,7 +41,7 @@ import { MonacoProvider } from "../../../../monaco/provider";
 import { SimulationWorkspace } from "../../shared/simulation-workspace";
 import { SimulationCreationDrawer } from "../../simulation-creation-drawer";
 import { useCreateOptimizedExperiment } from "./experiments/create-optimized-experiment";
-import { FakeEditorProvider } from "./experiments/experiments-story-fixtures";
+import { FakeEditorProvider } from "./experiments/experiments-story-providers";
 import { SimulateView, SimulateViewTabs } from "./simulate-view";
 
 import type {
@@ -78,7 +78,7 @@ const portalContainerStyle = css({
   },
 });
 
-export const createSdcpnContextValue = ({
+const createSdcpnContextValue = ({
   petriNetDefinition,
   title,
 }: StoryExample): SDCPNContextValue => ({
@@ -115,7 +115,7 @@ export const createSdcpnContextValue = ({
 });
 
 /** Pins user settings over the persisted ones for everything below. */
-export const WithUserSettings = ({
+const WithUserSettings = ({
   overrides,
   children,
 }: PropsWithChildren<{ overrides: Partial<UserSettings> }>) => {
@@ -226,7 +226,7 @@ export const RunnableSimulateViewStory = ({
 };
 
 /** The interval one scenario parameter is swept over. */
-export type AutoSweepRange = { min: number; max: number };
+type AutoSweepRange = { min: number; max: number };
 
 /**
  * A sweep and the study that drives it, described by the names in the
@@ -270,7 +270,7 @@ const findByName = <T extends { name: string }>(
 const AUTO_SWEEP_OBJECTIVE_ID = "objective";
 
 /** Resolves a description against the example, as the create form would. */
-export const buildAutoSweepExperimentInput = (
+const buildAutoSweepExperimentInput = (
   { petriNetDefinition }: StoryExample,
   study: AutoSweepStudyDescription,
   computeBackend: ExperimentComputeBackend,
