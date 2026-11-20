@@ -92,6 +92,11 @@ export default withSentryConfig(
             destination: "/@/:shortname?tab=Types",
           },
           {
+            source:
+              "/@:shortname/types/:typeKind(data-type|entity-type|property-type|link-type)s",
+            destination: "/@/:shortname?tab=Types&typeKind=:typeKind",
+          },
+          {
             source: "/@:shortname/:path*",
             destination: "/@/:shortname/:path*",
           },

@@ -8,6 +8,7 @@ import {
   fireEvent,
   screen,
 } from "@testing-library/react";
+import { useImperativeHandle } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { theme } from "@hashintel/design-system/theme";
@@ -18,11 +19,15 @@ import { TypesTable } from "./types-table";
 import type { Grid } from "../../components/grid/grid";
 import type { ExportToCsvButton } from "../../shared/table-header/export-to-csv-button";
 import type { TypesTableRow } from "./types-table";
+import type { DataTypeTreeCell } from "./types-table/data-type-tree-cell";
 import type {
   DataTypeWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import type { SizedGridColumn } from "@glideapps/glide-data-grid";
+import type {
+  DataEditorRef,
+  SizedGridColumn,
+} from "@glideapps/glide-data-grid";
 import type { ComponentProps, ReactNode } from "react";
 
 type GridProps = ComponentProps<
@@ -34,10 +39,21 @@ const state = vi.hoisted(() => ({
     | ComponentProps<typeof ExportToCsvButton>["generateCsvFile"]
     | undefined,
   selected: [] as DataTypeWithMetadata[],
+  dataTypes: {} as Record<VersionedUrl, DataTypeWithMetadata>,
+  getBounds: vi.fn((column: number, row = 0) => ({
+    x: column === 0 ? 340 : 820,
+    y: 420 + row * 42,
+    width: 480,
+    height: 42,
+  })),
 }));
 vi.mock("next/router", () => ({ useRouter: () => ({ query: {} }) }));
 vi.mock("../../components/grid/grid", () => ({
   Grid: (props: GridProps) => {
+    useImperativeHandle(
+      props.gridRef,
+      () => ({ getBounds: state.getBounds }) as unknown as DataEditorRef,
+    );
     state.grid = props;
     const rowsRef = props.currentlyDisplayedRowsRef;
     if (rowsRef) {
@@ -73,7 +89,7 @@ vi.mock("../../shared/use-actors", () => ({
   isAiMachineActor: () => false,
 }));
 vi.mock("./data-types-context", () => ({
-  useDataTypesContext: () => ({ dataTypes: {} }),
+  useDataTypesContext: () => ({ dataTypes: state.dataTypes }),
 }));
 vi.mock("./slide-stack", () => ({
   useSlideStack: () => ({ pushToSlideStack: vi.fn() }),
@@ -173,10 +189,10 @@ const csvTitles = () => {
   const csv = state.exportCsv!();
   return csv?.content.slice(1).map((row) => row[0]);
 };
-const renderTable = () =>
+const renderTable = (tableTypes = types) =>
   render(
     <ThemeProvider theme={theme}>
-      <TypesTable kind="data-type" onlyOneWeb types={types} />
+      <TypesTable kind="data-type" onlyOneWeb types={tableTypes} />
     </ThemeProvider>,
   );
 
@@ -192,11 +208,47 @@ describe("hierarchical type table", () => {
     state.grid = undefined;
     state.exportCsv = undefined;
     state.selected = [];
+    state.dataTypes = {};
+    state.getBounds.mockClear();
   });
   afterEach(() => {
     cleanup();
     vi.unstubAllGlobals();
   });
+
+  it.each(["Nested List", "Flat List"])(
+    "keeps the %s label tooltip anchored to the data column while the pointer moves",
+    (mode) => {
+      const meters = dataType("meters");
+      meters.schema.label = { right: "m" };
+      state.dataTypes = { [meters.schema.$id]: meters };
+      renderTable([meters]);
+      fireEvent.click(screen.getByRole("button", { name: mode }));
+      expect(state.grid?.enableCheckboxSelection).toBe(true);
+      const cell = state.grid!.createGetCellContent(visibleRows())([
+        0, 0,
+      ]) as DataTypeTreeCell;
+      act(() =>
+        cell.data.showLabelExample({
+          horizontalAlign: "left",
+          interactablePosRelativeToCell: { right: 12, top: 0 },
+          interactableSize: { width: 80, height: 42 },
+        }),
+      );
+      expect(state.getBounds).toHaveBeenLastCalledWith(0, 0);
+      expect(screen.getByRole("tooltip").textContent).toBe("Example value42 m");
+      fireEvent.mouseMove(document, { clientX: 760, clientY: 440 });
+      fireEvent.mouseMove(document, { clientX: 765, clientY: 435 });
+      expect(screen.getByRole("tooltip")).toBeTruthy();
+      fireEvent.mouseMove(screen.getByText("Example value"), {
+        clientX: 740,
+        clientY: 410,
+      });
+      expect(screen.getByRole("tooltip")).toBeTruthy();
+      fireEvent.mouseMove(document, { clientX: 600, clientY: 440 });
+      expect(screen.queryByRole("tooltip")).toBeNull();
+    },
+  );
 
   it("reserves room for the empty state, then sizes the table to visible tree rows", () => {
     render(
@@ -368,5 +420,97 @@ describe("hierarchical type table", () => {
     expect(screen.queryByRole("button", { name: "Flat List" })).toBeNull();
     expect(screen.getByRole("button", { name: "Table view" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Graph view" })).toBeTruthy();
+  });
+
+  it("finds a type when its copied title and label preview are pasted into search", () => {
+    renderTable(
+      types.map((type) =>
+        type.schema.title === "meters"
+          ? { ...type, schema: { ...type.schema, label: { right: "m" } } }
+          : type,
+      ),
+    );
+    toggle("number");
+    toggle("distance");
+    const rows = visibleRows();
+    const index = rows.findIndex(({ title }) => title === "meters");
+    const cell = state.grid!.createGetCellContent(rows)([0, index]);
+    if (cell.kind !== GridCellKind.Custom) {
+      throw new Error("Expected a tree cell");
+    }
+    expect(cell.copyData).toBe("meters x m");
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
+    act(() => state.grid?.onSearchValueChange?.(cell.copyData));
+    expect(
+      visibleRows()
+        .filter(({ hierarchy }) => hierarchy?.matchesSearch)
+        .map(({ title }) => title),
+    ).toEqual(["meters", "meters"]);
+    expect(csvTitles()).toEqual(["meters"]);
+    fireEvent.click(screen.getByRole("button", { name: "Flat List" }));
+    expect(visibleRows().map(({ title }) => title)).toEqual(["meters"]);
+    const flatCell = state.grid!.createGetCellContent(visibleRows())([0, 0]);
+    expect(flatCell.copyData).toBe(cell.copyData);
+    if (flatCell.kind !== GridCellKind.Custom) {
+      throw new Error("Expected a label-preview cell");
+    }
+    expect(flatCell.data).toMatchObject({
+      kind: "data-type-tree-cell",
+      hierarchical: false,
+      leftPadding: 4,
+      labelPreview: visibleRows()[0]!.labelPreview,
+      hasChildren: false,
+    });
+    expect(csvTitles()).toEqual(["meters"]);
+    fireEvent.click(screen.getByRole("button", { name: "Nested List" }));
+    expect(
+      visibleRows()
+        .filter(({ hierarchy }) => hierarchy?.matchesSearch)
+        .map(({ title }) => title),
+    ).toEqual(["meters", "meters"]);
+  });
+
+  it("uses the bounded inherited tuple preview for both clipboard and search", () => {
+    const parent: DataTypeWithMetadata = {
+      ...dataType("parent"),
+      schema: {
+        ...dataType("parent").schema,
+        type: "array",
+        items: { type: "number", label: { right: "m".repeat(4096) } },
+      },
+    };
+    const tuple: DataTypeWithMetadata = {
+      ...dataType("tuple", ["parent"]),
+      schema: {
+        ...dataType("tuple", ["parent"]).schema,
+        type: "array",
+        items: false,
+        prefixItems: [
+          { type: "number" },
+          ...Array.from({ length: 2047 }, () => ({ type: "number" as const })),
+        ],
+      },
+    };
+    state.dataTypes = { [parent.schema.$id]: parent };
+    renderTable([tuple]);
+    const cell = state.grid!.createGetCellContent(visibleRows())([0, 0]);
+    if (cell.kind !== GridCellKind.Custom) {
+      throw new Error("Expected a tree cell");
+    }
+    expect(cell.copyData.length).toBeLessThanOrEqual("tuple ".length + 256);
+    expect(cell.copyData).toContain("…");
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
+    act(() => state.grid?.onSearchValueChange?.(cell.copyData));
+    expect(
+      visibleRows()
+        .filter(({ hierarchy }) => hierarchy?.matchesSearch)
+        .map(({ title }) => title),
+    ).toEqual(["tuple"]);
+    expect(csvTitles()).toEqual(["tuple"]);
+    fireEvent.click(screen.getByRole("button", { name: "Flat List" }));
+    expect(visibleRows().map(({ title }) => title)).toEqual(["tuple"]);
+    expect(
+      state.grid!.createGetCellContent(visibleRows())([0, 0]).copyData,
+    ).toBe(cell.copyData);
   });
 });

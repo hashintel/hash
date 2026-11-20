@@ -23,6 +23,7 @@ import {
   type GridSort,
 } from "../../components/grid/grid";
 import { getCellSearchableText } from "../../components/grid/utils";
+import { useGridTooltip } from "../../components/grid/utils/use-grid-tooltip";
 import { useOrgs } from "../../components/hooks/use-orgs";
 import { useUsers } from "../../components/hooks/use-users";
 import { extractWebId } from "../../lib/user-and-org";
@@ -57,6 +58,7 @@ import { TableHeaderToggle } from "./table-header-toggle";
 import { createRenderTextIconCell } from "./text-icon-cell";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 import { TypeGraphVisualizer } from "./type-graph-visualizer";
+import { DataTypeLabelTooltip } from "./types-table/data-type-label-tooltip";
 import {
   buildDataTypeTree,
   type DataTypeTreePosition,
@@ -66,6 +68,10 @@ import {
   type DataTypeTreeCell,
 } from "./types-table/data-type-tree-cell";
 import { TypesFilterRibbon } from "./types-table/filter-ribbon";
+import {
+  getDataTypeLabelPreview,
+  type DataTypeLabelPart,
+} from "./types-table/shared/data-type-label-preview";
 import {
   createTypeFilterPredicate,
   getTypeKind,
@@ -85,12 +91,15 @@ import type {
 } from "./types-table/shared/type-filters";
 import type { VisualizerView } from "./visualizer-views";
 import type {
+  DataEditorRef,
   Item,
   SizedGridColumn,
   TextCell,
 } from "@glideapps/glide-data-grid";
 import type { Sorter } from "@hashintel/ds-components";
 import type { FunctionComponent } from "react";
+
+export type { TypesTableTypeKind } from "./types-table/shared/type-filters";
 
 export type TypesTableColumnId =
   | "title"
@@ -114,6 +123,7 @@ export type TypesTableRow = {
   parentIds: VersionedUrl[];
   hierarchy?: DataTypeTreePosition;
   title: string;
+  labelPreview?: DataTypeLabelPart[];
   external: boolean;
   webShortname?: string;
   archived: boolean;
@@ -134,7 +144,14 @@ const typesTablesToTitle: Record<TypesTableKind, string> = {
   "data-type": "Data Types",
 };
 
-const firstColumnLeftPadding = 16;
+const typeKindLabels: Record<TypesTableTypeKind, string> = {
+  "entity-type": "Entity Type",
+  "link-type": "Link Type",
+  "property-type": "Property Type",
+  "data-type": "Data Type",
+};
+
+const firstColumnLeftPadding = 4;
 
 const createEntityTypeHref = "/new/types/entity-type";
 
@@ -204,6 +221,7 @@ export const TypesTable: FunctionComponent<
     loading?: boolean;
     types?: TypesTableType[];
     kind: TypesTableKind;
+    initialKindFilter?: TypesTableTypeKind;
   } & (
     | { onlyOneWeb: true; allTypes?: never }
     | {
@@ -216,8 +234,17 @@ export const TypesTable: FunctionComponent<
         allTypes: TypesTableType[] | null | undefined;
       }
   )
-> = ({ types, allTypes, kind, onlyOneWeb, loading = false }) => {
+> = ({
+  types,
+  allTypes,
+  kind,
+  onlyOneWeb,
+  loading = false,
+  initialKindFilter,
+}) => {
   const router = useRouter();
+  const gridRef = useRef<DataEditorRef>(null);
+  const { tooltipElement, showTooltip } = useGridTooltip(gridRef);
 
   const [view, _setView] = useState<VisualizerView>("Table");
 
@@ -255,7 +282,18 @@ export const TypesTable: FunctionComponent<
     getDefaultWebFilter(internalWebs.map(({ webId }) => webId)),
   );
 
-  const [typeFilters, setTypeFilters] = useState<TypeFilter[]>([]);
+  const [typeFilters, setTypeFilters] = useState<TypeFilter[]>(() =>
+    initialKindFilter
+      ? [
+          {
+            id: "initial-kind",
+            field: "kind",
+            operator: "anyOf",
+            values: [initialKindFilter],
+          },
+        ]
+      : [],
+  );
 
   const { entityTypes, isSpecialEntityTypeLookup } =
     useEntityTypesContextRequired();
@@ -306,7 +344,7 @@ export const TypesTable: FunctionComponent<
       {
         id: "title",
         title: "Title",
-        width: 252,
+        width: kind === "data-type" ? 480 : 252,
         grow: 2,
       },
       ...(kind === "all"
@@ -510,6 +548,10 @@ export const TypesTable: FunctionComponent<
           rowId: type.schema.$id,
           typeId: type.schema.$id,
           title: type.schema.title,
+          labelPreview:
+            kind === "data-type" && type.schema.kind === "dataType"
+              ? getDataTypeLabelPreview(type.schema, dataTypes ?? {})
+              : undefined,
           parentIds:
             type.schema.kind === "dataType"
               ? (type.schema.allOf ?? []).map(({ $ref }) => $ref)
@@ -523,7 +565,7 @@ export const TypesTable: FunctionComponent<
           archived: type.archived,
         } as const;
       }),
-    [actors, filteredTypes],
+    [actors, filteredTypes, kind, dataTypes],
   );
 
   const [sort, setSort] = useState<GridSort<TypesTableColumnId>>(
@@ -608,20 +650,51 @@ export const TypesTable: FunctionComponent<
 
         switch (column.id) {
           case "title": {
-            if (row.hierarchy) {
+            const copyData = [
+              row.title,
+              row.labelPreview?.map(({ text }) => text).join(""),
+            ]
+              .filter(Boolean)
+              .join(" ");
+            if (kind === "data-type") {
               return {
                 kind: GridCellKind.Custom,
                 themeOverride,
                 readonly: true,
                 allowOverlay: false,
-                copyData: row.title,
+                copyData,
                 cursor: "pointer",
                 data: {
                   kind: "data-type-tree-cell",
+                  hierarchical,
+                  leftPadding: firstColumnLeftPadding,
                   title: row.title,
+                  labelPreview: row.labelPreview,
+                  showLabelExample: (tooltip) => {
+                    const schema = dataTypes?.[row.typeId]?.schema;
+                    if (schema) {
+                      showTooltip({
+                        ...tooltip,
+                        colIndex,
+                        rowIndex,
+                        content: (
+                          <DataTypeLabelTooltip
+                            schema={schema}
+                            dataTypes={dataTypes}
+                          />
+                        ),
+                      });
+                    }
+                  },
                   icon: row.icon,
-                  ...row.hierarchy,
-                  muted: !row.hierarchy.matchesSearch,
+                  ...(row.hierarchy ?? {
+                    depth: 0,
+                    continuationDepths: [],
+                    hasNextSibling: false,
+                    expanded: false,
+                    hasChildren: false,
+                  }),
+                  muted: row.hierarchy?.matchesSearch === false,
                   onToggle: () => toggleRow(row.rowId),
                   onOpen: () =>
                     pushToSlideStack({ kind: "dataType", itemId: row.typeId }),
@@ -638,7 +711,7 @@ export const TypesTable: FunctionComponent<
               themeOverride,
               readonly: true,
               allowOverlay: false,
-              copyData: row.title,
+              copyData,
               cursor: isClickable ? "pointer" : "default",
               data: {
                 kind: "chip-cell",
@@ -676,8 +749,8 @@ export const TypesTable: FunctionComponent<
               themeOverride,
               readonly: true,
               allowOverlay: false,
-              displayData: String(row.kind),
-              data: row.kind,
+              displayData: typeKindLabels[row.kind],
+              data: typeKindLabels[row.kind],
             };
           case "webShortname": {
             const value = row.webShortname
@@ -764,7 +837,17 @@ export const TypesTable: FunctionComponent<
           }
         }
       },
-    [typesTableColumns, pushToSlideStack, router, theme, toggleRow],
+    [
+      typesTableColumns,
+      pushToSlideStack,
+      router,
+      theme,
+      toggleRow,
+      kind,
+      dataTypes,
+      showTooltip,
+      hierarchical,
+    ],
   );
 
   const matchingIds = useMemo(() => {
@@ -776,7 +859,7 @@ export const TypesTable: FunctionComponent<
     const query = treeSearchValue.toLowerCase();
     return new Set(
       rows
-        .filter((_, rowIndex) =>
+        .filter((_row, rowIndex) =>
           typesTableColumns.some((_column, colIndex) =>
             getCellSearchableText(getCellContent([colIndex, rowIndex]))
               ?.toLowerCase()
@@ -910,6 +993,8 @@ export const TypesTable: FunctionComponent<
       columns: currentlyDisplayedColumns,
       rows: rowsToExport,
       title: typesTablesToTitle[kind],
+      resolveCell: (key, row) =>
+        key === "kind" ? typeKindLabels[row.kind] : undefined,
     });
   }, [sortedRows, matchingIds, kind]);
 
@@ -1146,6 +1231,7 @@ export const TypesTable: FunctionComponent<
           ]}
         >
           <Grid
+            gridRef={gridRef}
             columns={typesTableColumns}
             createGetCellContent={createGetCellContent}
             currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
@@ -1162,6 +1248,7 @@ export const TypesTable: FunctionComponent<
                 filteredTypes.length === 0)
             }
             enableCheckboxSelection
+            rowMarkerWidth={28}
             drawFocusRing={hierarchical}
             preserveCurrentCell={hierarchical}
             firstColumnLeftPadding={firstColumnLeftPadding}
@@ -1216,6 +1303,7 @@ export const TypesTable: FunctionComponent<
               "lastEditedBy",
             ]}
           />
+          {tooltipElement}
         </Box>
       ) : (
         <Box height={maxTableHeight} sx={tableContentSx}>
