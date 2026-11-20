@@ -114,6 +114,14 @@ export const useRunningPluginsSelector = <T,>(
 export const useRunningPlugins = (): readonly RunningPlugin[] =>
   useRunningPluginsSelector((running) => running);
 
+/**
+ * One running plugin with its latest contributions, or `undefined` while it
+ * does not run. The caller re-renders when that plugin publishes, and for no
+ * other.
+ */
+export const useRunningPlugin = (pluginId: string): RunningPlugin | undefined =>
+  useStoreSelector(use(PublishedContext), (running) => running.get(pluginId));
+
 /** Whether a running plugin's root covers the editor, as a modal or a tour does. */
 export const usePluginOverlay = (): boolean =>
   useStoreSelector(use(PublishedContext), (running) =>
