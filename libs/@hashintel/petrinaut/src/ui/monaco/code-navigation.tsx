@@ -5,11 +5,11 @@ import {
   getTransitionLogicAvailability,
 } from "@hashintel/petrinaut-core";
 
-import { usePetrinautNavigation } from "../../react/navigation";
+import { usePetrinautNavigate } from "../../react/navigation";
 import { ActiveNetContext } from "../../react/state/active-net-context";
 import { CompositionContext } from "../../react/state/composition-context";
 import { useEditorActions } from "../../react/state/editor-context";
-import { SDCPNContext } from "../../react/state/sdcpn-context";
+import { useSDCPNState } from "../../react/state/sdcpn-context";
 import { useUserSettingsFields } from "../../react/state/user-settings-context";
 import { usePetrinautPresentation } from "../views/shared/presentation-context";
 import { getDocumentUri } from "./editor-paths";
@@ -44,12 +44,15 @@ const CodeNavigationContext = createContext<CodeNavigation>({
 export const useCodeNavigation = () => use(CodeNavigationContext);
 
 export const CodeNavigationProvider = ({ children }: PropsWithChildren) => {
-  const navigation = usePetrinautNavigation();
+  const navigate = usePetrinautNavigate();
   const [focusRequest, setFocusRequest] = useState<{ path: string } | null>(
     null,
   );
   const { activeNet } = use(ActiveNetContext);
-  const { petriNetDefinition, extensions } = use(SDCPNContext);
+  const petriNetDefinition = useSDCPNState(
+    (document) => document.petriNetDefinition,
+  );
+  const extensions = useSDCPNState((document) => document.extensions);
   const { libraries } = use(CompositionContext);
   const { selectItem } = useEditorActions();
   const { subViewPanels, updateSubViewSection } = useUserSettingsFields(
@@ -138,7 +141,7 @@ export const CodeNavigationProvider = ({ children }: PropsWithChildren) => {
         collapsed: false,
       });
       if (options?.maximize) {
-        navigation.navigate(
+        navigate(
           {
             selection: [entry.selection],
             expandedSubView: { container: entry.panel, id: entry.section },
