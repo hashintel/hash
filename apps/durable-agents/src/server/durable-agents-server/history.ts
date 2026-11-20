@@ -20,6 +20,10 @@
  *   response's last output) is a user message of its own with only that
  *   part, as the model read it as a user message, named by its report's
  *   request ID.
+ * - An input withdrawn before it ran, behind a failed run or by a stop, has
+ *   no entry: admission records each input it queues (`QueuedInputsDoc`),
+ *   so it shows as its user message, in admission order, with metadata
+ *   `withdrawn` saying why and no response.
  * - Everything else is hidden: prune writes (the tool results they edit
  *   show their stored output), compaction summaries, resets, prompt entries.
  *
@@ -30,15 +34,21 @@ import {
   type Conversation,
   type EntryId,
   type EntryRecord,
+  type SubmissionRecord,
 } from "@earendil-works/pi-durable";
 import { readUIMessageStream, type UIMessage, type UIMessageChunk } from "ai";
 
-import { brunchSignals } from "@hashintel/brunch-agent";
+import {
+  brunchSignals,
+  type DurableHistoryMessageMetadata,
+} from "@hashintel/brunch-agent";
 
 import { handEditRequestId } from "../../browser-call/hand-edit";
 import { handEditEntryKind } from "../../net-state/visible-net-view";
 import { userWords } from "../../shared/brunch-user-entry";
+import { stoppedByCrashLoop } from "./shared/crash-loop-entry";
 import { inputRequestId, isInputEntry } from "./shared/input-entry";
+import { type QueuedInput, QueuedInputsDoc } from "./shared/queued-inputs-doc";
 import {
   handEditPartId,
   handEditPartType,
@@ -71,32 +81,50 @@ const noteRequestId = (note: EntryRecord): string | undefined => {
 };
 
 /** An input entry's data as the panel sent it, without the request ID admission added. */
-const sentData = ({ data }: EntryRecord) => {
+const sentData = ({ data }: Pick<EntryRecord, "data">) => {
   if (typeof data !== "object" || data === null || Array.isArray(data))
     return data ?? null;
   const { requestId: _requestId, ...sent } = data;
   return sent;
 };
 
-const inputMessage = (entry: EntryRecord): UIMessage => {
-  const id = inputRequestId(entry) ?? userMessageId(entry.id);
-  if (entry.kind === brunchSignals.ledgerComments)
-    return {
-      id,
-      role: "user",
-      parts: [{ type: ledgerCommentsPartType, data: sentData(entry) }],
-    };
+const inputParts = (
+  entry: Pick<EntryRecord, "kind" | "data" | "model">,
+): UIMessage["parts"] =>
+  entry.kind === brunchSignals.ledgerComments
+    ? [{ type: ledgerCommentsPartType, data: sentData(entry) }]
+    : [
+        {
+          type: "text",
+          // A `brunch.user` envelope that did not parse was admitted, and is shown, as sent.
+          text: userWords(entry),
+          state: "done",
+        },
+      ];
+
+const inputMessage = (entry: EntryRecord): UIMessage => ({
+  id: inputRequestId(entry) ?? userMessageId(entry.id),
+  role: "user",
+  parts: inputParts(entry),
+});
+
+/** An input withdrawn before it ran, and why. */
+type WithdrawnInput = {
+  readonly input: QueuedInput;
+  readonly because: UnansweredAs;
+};
+
+const withdrawnMessage = ({ input, because }: WithdrawnInput): UIMessage => {
+  const metadata: DurableHistoryMessageMetadata = { withdrawn: because };
   return {
-    id,
+    id: input.requestId,
     role: "user",
-    parts: [
-      {
-        type: "text",
-        // A `brunch.user` envelope that did not parse was admitted, and is shown, as sent.
-        text: userWords(entry),
-        state: "done",
-      },
-    ],
+    parts: inputParts({
+      kind: input.kind,
+      data: input.data,
+      model: [{ role: "user", content: input.content, timestamp: 0 }],
+    }),
+    metadata,
   };
 };
 
@@ -132,10 +160,28 @@ const reduce = async (
   return message;
 };
 
-/** The UI messages of `entries`, a conversation's stored entries in ID order. */
+/** How an unanswered input ended: stopped by the user, or failed, a crash-loop abort included. */
+type UnansweredAs = "stopped" | "failed";
+
+const unansweredAs = (
+  submission: SubmissionRecord | undefined,
+  entries: readonly EntryRecord[],
+): UnansweredAs | undefined => {
+  if (submission?.status !== "unanswered") return undefined;
+  return submission.reason === "aborted" &&
+    !stoppedByCrashLoop(entries, submission.id)
+    ? "stopped"
+    : "failed";
+};
+
+/**
+ * The UI messages of `entries`, a conversation's stored entries in ID order,
+ * with `withdrawn` among them in submission order.
+ */
 export const historyMessages = async (
   entries: readonly EntryRecord[],
   options: ProjectionOptions,
+  withdrawn: readonly WithdrawnInput[] = [],
 ): Promise<UIMessage[]> => {
   /** Each input with the entries after it, and the notes before the first input. */
   const turns: { input: EntryRecord; after: EntryRecord[] }[] = [];
@@ -158,7 +204,22 @@ export const historyMessages = async (
   );
 
   const messages = leading.map(noteMessage);
+  const pending = [...withdrawn];
+  /** Each withdrawn input admitted before `entry`, so before the input placed as it; all of them without one. */
+  const withdrawnBefore = (entry: EntryId | undefined) => {
+    let next = pending[0];
+    // Pi mints submission and entry IDs from one ascending namespace.
+    while (
+      next !== undefined &&
+      (entry === undefined || next.input.submission < entry)
+    ) {
+      messages.push(withdrawnMessage(next));
+      pending.shift();
+      next = pending[0];
+    }
+  };
   turns.forEach(({ input }, index) => {
+    withdrawnBefore(input.id);
     messages.push(inputMessage(input));
     const projected = responses[index];
     if (projected === undefined) return;
@@ -167,6 +228,7 @@ export const historyMessages = async (
     if (response !== undefined) messages.push(response);
     messages.push(...notesAfter.map(noteMessage));
   });
+  withdrawnBefore(undefined);
   return messages;
 };
 
@@ -192,6 +254,28 @@ const allEntries = async (
   return entries;
 };
 
+/** The recorded inputs that were withdrawn before they ran, with why: those left unanswered with no entry. */
+const withdrawnInputs = async (
+  { harness }: OpenConversation,
+  recorded: readonly QueuedInput[],
+  entries: readonly EntryRecord[],
+  context: Context,
+): Promise<WithdrawnInput[]> => {
+  const submissions = await Promise.all(
+    recorded.map(async ({ submission }) =>
+      (await harness.submission(submission, context))?.status(context),
+    ),
+  );
+  return recorded.flatMap((input, index) => {
+    const submission = submissions[index];
+    const because =
+      submission?.entry === undefined
+        ? unansweredAs(submission, entries)
+        : undefined;
+    return because === undefined ? [] : [{ input, because }];
+  });
+};
+
 export type HistoryRouteOptions = ProjectionOptions & {
   /** The server's conversations: an unknown ID is a 404, and nothing is created. */
   readonly conversations: {
@@ -209,10 +293,18 @@ export const historyHandler =
     const conversation = await conversations.acquire(ctx.req.param("id") ?? "");
     if (conversation === undefined)
       return ctx.text("Unknown conversation.", 404);
-    const messages = await historyMessages(
-      await allEntries(conversation.root, context),
-      projection,
+    const { harness, root } = conversation;
+    const [entries, queued] = await Promise.all([
+      allEntries(root, context),
+      harness.snapshot(QueuedInputsDoc, root.id, context),
+    ]);
+    const withdrawn = await withdrawnInputs(
+      conversation,
+      queued?.inputs ?? [],
+      entries,
+      context,
     );
+    const messages = await historyMessages(entries, projection, withdrawn);
     ctx.header("Cache-Control", "no-store");
     return ctx.json(messages);
   };

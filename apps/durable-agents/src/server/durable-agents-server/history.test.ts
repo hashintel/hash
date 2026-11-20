@@ -14,9 +14,13 @@ import {
 } from "@earendil-works/pi-ai/providers/faux";
 import {
   createRegistry,
+  defineExtension,
+  defineTool,
   type EntryRecord,
+  type Extension,
   MemoryStorage,
 } from "@earendil-works/pi-durable";
+import { obj } from "@earendil-works/pi-schema";
 import {
   type ChatTransport,
   DefaultChatTransport,
@@ -27,7 +31,10 @@ import {
 import { Hono } from "hono";
 import { afterEach, expect, test } from "vitest";
 
-import { petrinautContextualUserMessageBody } from "@hashintel/brunch-agent";
+import {
+  parseDurableHistoryMessageMetadata,
+  petrinautContextualUserMessageBody,
+} from "@hashintel/brunch-agent";
 
 import {
   fauxAssistantMessage,
@@ -41,7 +48,10 @@ import {
   finishBrowserCall,
 } from "../../browser-call/browser-call";
 import { handEditWrite } from "../../browser-call/hand-edit";
-import { createDurableAgentsServer } from "../durable-agents-server";
+import {
+  createDurableAgentsServer,
+  type DurableAgentsServerLimits,
+} from "../durable-agents-server";
 import { historyHandler } from "./history";
 
 import type { OwnedStorage } from "../conversation-storage";
@@ -60,7 +70,16 @@ afterEach(async () => {
 });
 
 /** The server, with the history route mounted beside it, and AI SDK's own client calling it in-process. */
-const openChat = (responses: FauxResponseStep[]) => {
+const openChat = (
+  responses: FauxResponseStep[],
+  {
+    extensions = [],
+    limits,
+  }: {
+    readonly extensions?: readonly Extension[];
+    readonly limits?: Partial<DurableAgentsServerLimits>;
+  } = {},
+) => {
   const faux = fauxProvider({
     tokensPerSecond: 300,
     tokenSize: { min: 3, max: 5 },
@@ -82,6 +101,7 @@ const openChat = (responses: FauxResponseStep[]) => {
     createRegistry: () => {
       const registry = createRegistry();
       registry.install(browserCallExtension);
+      for (const extension of extensions) registry.install(extension);
       return registry;
     },
     models,
@@ -90,6 +110,7 @@ const openChat = (responses: FauxResponseStep[]) => {
     },
     settings: { progress: { partialIntervalMs: 5, outputIntervalMs: 5 } },
     clientToolNames,
+    limits,
     context,
   });
   servers.push(server);
@@ -124,7 +145,10 @@ const openChat = (responses: FauxResponseStep[]) => {
     if (opened === undefined) throw new Error(`No conversation ${chatId}.`);
     return opened;
   };
-  return { transport, history, conversation };
+  const stop = async () =>
+    (await app.request(`${origin}/chat/${chatId}/abort`, { method: "POST" }))
+      .status;
+  return { transport, history, conversation, stop };
 };
 
 const send = (transport: ChatTransport<UIMessage>, message: UIMessage) =>
@@ -442,4 +466,113 @@ test("an envelope that does not parse shows as sent, and an unknown conversation
   ]);
   expect(messages?.[1]).toEqual(await reduce(live));
   expect(messages).toHaveLength(2);
+});
+
+/** A server tool that answers once released, or fails once aborted; `reached` resolves when it starts. */
+const holdTool = () => {
+  const reached = Promise.withResolvers<void>();
+  const released = Promise.withResolvers<void>();
+  const tool = defineTool({
+    name: "hold",
+    description: "Answers when released.",
+    parameters: obj({}),
+    execute: async (_args, _api, callContext) => {
+      reached.resolve();
+      const aborted = Promise.withResolvers<never>();
+      callContext.abortSignal?.addEventListener(
+        "abort",
+        () => aborted.reject(new Error("Aborted.")),
+        { once: true },
+      );
+      await Promise.race([released.promise, aborted.promise]);
+      return { output: [{ type: "text", text: "released" }] };
+    },
+  });
+  return {
+    extension: defineExtension({ name: "test.hold", tools: [tool] }),
+    reached: reached.promise,
+    release: () => released.resolve(),
+  };
+};
+
+const holdRound = fauxAssistantMessage(
+  fauxToolCall("hold", {}, { id: "hold" }),
+  { stopReason: "toolUse" },
+);
+
+const textMessage = (id: string, text: string): UIMessage => ({
+  id,
+  role: "user",
+  parts: [{ type: "text", text }],
+});
+
+/** Each message's ID, role and metadata, as the panel would parse it. */
+const outline = (messages: readonly UIMessage[] | undefined) =>
+  messages?.map(({ id, role, metadata }) => ({
+    id,
+    role,
+    metadata:
+      metadata === undefined
+        ? undefined
+        : parseDurableHistoryMessageMetadata(metadata),
+  }));
+
+test("a follow-up a stop withdrew shows as the user's message, marked withdrawn by the stop, with no reply", async () => {
+  const hold = holdTool();
+  const chat = openChat([holdRound], { extensions: [hold.extension] });
+  const first = drain(
+    await send(chat.transport, textMessage("user-first", "Hold on.")),
+  );
+  await hold.reached;
+  const queued = drain(
+    await send(chat.transport, textMessage("user-queued", "And then?")),
+  );
+  expect(await chat.stop()).toBe(204);
+  await Promise.all([first, queued]);
+
+  const { messages } = await chat.history();
+  expect(outline(messages)).toMatchObject([
+    { id: "user-first", role: "user" },
+    { role: "assistant" },
+    {
+      id: "user-queued",
+      role: "user",
+      metadata: { withdrawn: "stopped" },
+    },
+  ]);
+  expect(messages?.at(-1)?.parts).toEqual([
+    { type: "text", text: "And then?", state: "done" },
+  ]);
+});
+
+test("a follow-up withdrawn behind a failed run shows as the user's message, marked withdrawn by the failure, before the next turn", async () => {
+  const hold = holdTool();
+  const chat = openChat([holdRound, fauxAssistantMessage("Later.")], {
+    extensions: [hold.extension],
+    // The first tool round fails the run.
+    limits: { maxTurns: 1 },
+  });
+  const first = drain(
+    await send(chat.transport, textMessage("user-failing", "Hold on.")),
+  );
+  await hold.reached;
+  const queued = drain(
+    await send(chat.transport, textMessage("user-behind", "And then?")),
+  );
+  hold.release();
+  await Promise.all([first, queued]);
+  await drain(await send(chat.transport, textMessage("user-later", "Again.")));
+
+  const { messages } = await chat.history();
+  expect(outline(messages)).toMatchObject([
+    { id: "user-failing", role: "user" },
+    { role: "assistant" },
+    {
+      id: "user-behind",
+      role: "user",
+      metadata: { withdrawn: "failed" },
+    },
+    { id: "user-later", role: "user", metadata: undefined },
+    { role: "assistant" },
+  ]);
 });
