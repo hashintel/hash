@@ -45,12 +45,10 @@ export const StochasticTimeline: React.FC<{ showLegend?: boolean }> = ({
     metrics ? () => metrics.get().frames : getNoFrames,
   );
 
-  const colorsEnabled = extensions.colors;
   const { series } = buildPerPlaceSeriesConfig({
-    places: colorsEnabled
-      ? places
-      : places.map((place) => ({ ...place, colorId: null })),
-    types: colorsEnabled ? types : [],
+    places,
+    // Without colours a place's type is not found, so it takes a default colour.
+    types: extensions.colors ? types : [],
   });
 
   return (

@@ -142,13 +142,11 @@ export function useEventTimelineData({
       : null;
   const timelineMetric = useTimelineMetric(selectedMetric);
 
-  const colorsEnabled = extensions.colors;
   const seriesConfig = buildTimelineSeriesConfig({
     timelineView,
-    places: colorsEnabled
-      ? places
-      : places.map((place) => ({ ...place, colorId: null })),
-    types: colorsEnabled ? types : [],
+    places,
+    // Without colours a place's type is not found, so it takes a default colour.
+    types: extensions.colors ? types : [],
     transitions,
     selectedMetric,
     evaluateMetric: timelineMetric.evaluate,
