@@ -95,7 +95,9 @@ async fn capture_repeated() {
         .expect("should capture the run");
     let before = loaded(&storage, run).await;
 
-    capture(&storage, run, &files)
+    // Files that do not exist: a second capture that read or uploaded them would fail.
+    let missing = BTreeMap::from([(name("aircraft"), directory.path().join("missing.parquet"))]);
+    capture(&storage, run, &missing)
         .await
         .expect("capturing a captured run again should succeed");
 
@@ -107,10 +109,10 @@ async fn capture_repeated() {
 }
 
 #[rstest]
-#[case::missing(None)]
-#[case::not_parquet(Some(b"aircraft,rows\n".as_slice()))]
+#[case::missing(None, "No such file or directory (os error 2)")]
+#[case::not_parquet(Some(b"aircraft,rows\n".as_slice()), "Invalid Parquet file. Corrupt footer")]
 #[tokio::test]
-async fn capture_invalid_file(#[case] content: Option<&[u8]>) {
+async fn capture_invalid_file(#[case] content: Option<&[u8]>, #[case] reason: &str) {
     let storage = Storage::memory();
     let run = RunId::new();
     started(&storage, run).await;
@@ -144,7 +146,8 @@ async fn capture_invalid_file(#[case] content: Option<&[u8]>) {
     assert!(
         failure
             .message
-            .starts_with("Capture failed for good: capture_file_invalid: "),
+            .starts_with("Capture failed for good: capture_file_invalid: ")
+            && failure.message.ends_with(reason),
         "the message should end with the reason the file was refused: {}",
         failure.message
     );

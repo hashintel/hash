@@ -8,7 +8,7 @@ use super::{
     failure::{permanent, retryable},
 };
 use crate::{
-    run::{self, Failure, RunId, RunRecord, Stage},
+    run::{self, Failure, RunId, RunRecord, Stage, current},
     storage::{CasVersion, Storage},
     testing::started,
 };
@@ -136,4 +136,46 @@ async fn begin_not_ready() {
             stage: Stage::Prepare
         }
     );
+}
+
+#[tokio::test]
+async fn end_changed() {
+    let storage = Storage::memory();
+    let run = RunId::new();
+    started(&storage, run).await;
+    let first = begin(&storage, run, Stage::Capture)
+        .await
+        .expect("should begin the first attempt");
+    let second = begin(&storage, run, Stage::Capture)
+        .await
+        .expect("should begin the second attempt");
+    end(&storage, first, Ok(()))
+        .await
+        .expect("the first attempt should save run.json");
+    let before = loaded(&storage, run).await;
+
+    let error = end(&storage, second, Ok(()))
+        .await
+        .expect_err("run.json changed since the second attempt read it");
+
+    assert_eq!(*error.current_context(), retryable(Stage::Capture));
+    assert_eq!(
+        loaded(&storage, run).await,
+        before,
+        "the second attempt should overwrite nothing"
+    );
+}
+
+#[tokio::test]
+async fn begin_completed_run() {
+    let storage = Storage::memory();
+    let run = RunId::new();
+    started(&storage, run).await;
+    current::complete(&storage, run)
+        .await
+        .expect("should complete the run");
+
+    begin(&storage, run, Stage::Capture)
+        .await
+        .expect("a stage should begin on the last completed run");
 }
