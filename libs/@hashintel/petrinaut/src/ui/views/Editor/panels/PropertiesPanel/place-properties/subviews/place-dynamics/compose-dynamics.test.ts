@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { moveTerm, placeTypeChange, termKeys } from "./compose-dynamics";
+import {
+  moveTerm,
+  placeTypeChange,
+  removeTerm,
+  termKeys,
+} from "./compose-dynamics";
 
 import type { PlaceDynamicsTerm } from "@hashintel/petrinaut-core";
 
@@ -11,6 +16,10 @@ const terms: PlaceDynamicsTerm[] = [
 ];
 
 describe("compose-dynamics", () => {
+  it("removes the term at an index", () => {
+    expect(removeTerm(terms, 1)).toEqual([terms[0], terms[2]]);
+  });
+
   it("moves a term to a position and refuses to leave the list", () => {
     expect(moveTerm(terms, 1, 0)).toEqual([terms[1], terms[0], terms[2]]);
     expect(moveTerm(terms, 0, 2)).toEqual([terms[1], terms[2], terms[0]]);
