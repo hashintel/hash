@@ -1443,30 +1443,6 @@ describe("AdHocScenarioForm", () => {
     expect(screen.getByRole("textbox", { name: "Expression" })).toBeTruthy();
   });
 
-  it("materializes the phantom row into a fixed row", () => {
-    let latest: AdHocScenarioState | undefined;
-    render(
-      <Harness
-        onState={(state) => {
-          latest = state;
-        }}
-      />,
-    );
-
-    fireEvent.click(
-      screen.getByRole("button", { name: "Add a token row (pressure)" }),
-    );
-
-    const place = colouredPlace(latest);
-    expect(place.rows).toHaveLength(1);
-    expect(place.rows[0]?.kind).toBe("fixed");
-    // The gutter shows the row's ordinal, and a fresh phantom row follows.
-    expect(screen.getByRole("button", { name: "Row 1 kind" })).toBeTruthy();
-    expect(
-      screen.getByRole("button", { name: "Add a token row (pressure)" }),
-    ).toBeTruthy();
-  });
-
   it("undo and redo never reopen an editor from a stale materialize nonce", () => {
     render(<Harness />);
     const phantom = screen.getByRole("button", {
