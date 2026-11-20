@@ -272,16 +272,21 @@ const chatMessages = (items: readonly HistoryItem[]): PetrinautAiMessage[] =>
         },
       ];
     }
-    const sent: PetrinautAiMessage = {
-      id,
-      role: "user",
-      parts:
-        "comments" in item
-          ? [{ type: "text", text: commentsBody(item.comments) }]
-          : (item.message.parts.filter(
+    const sent: PetrinautAiMessage =
+      "comments" in item
+        ? {
+            id,
+            role: "user",
+            parts: [{ type: "text", text: commentsBody(item.comments) }],
+            metadata: { ledgerComments: true },
+          }
+        : {
+            id,
+            role: "user",
+            parts: item.message.parts.filter(
               ({ type }) => type === "text",
-            ) as PetrinautAiMessage["parts"]),
-    };
+            ) as PetrinautAiMessage["parts"],
+          };
     const { withdrawn } = item.metadata;
     return withdrawn === undefined
       ? [sent]

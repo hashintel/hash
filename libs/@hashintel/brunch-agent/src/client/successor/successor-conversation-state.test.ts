@@ -348,7 +348,7 @@ describe("reopenSuccessorConversation", () => {
     ).toEqual([
       { id: "req-1", role: "user", metadata: undefined },
       { id: "durable:2", role: "assistant", metadata: undefined },
-      { id: "req-2", role: "user", metadata: undefined },
+      { id: "req-2", role: "user", metadata: { ledgerComments: true } },
       { id: "durable:6", role: "assistant", metadata: undefined },
       { id: "req-8", role: "user", metadata: undefined },
       { id: "durable:9", role: "assistant", metadata: { stopped: true } },
