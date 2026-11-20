@@ -140,26 +140,6 @@ checksum = "sha256:d3f1a4a33e95f8f0d7801b024e08624c479999ac96aa150908b2394015cd0
 url = "https://github.com/wasm-bindgen/wasm-pack/releases/download/v0.15.0/wasm-pack-v0.15.0-x86_64-apple-darwin.tar.gz"
 url_api = "https://api.github.com/repos/wasm-bindgen/wasm-pack/releases/assets/420850460"
 
-[[tools.java]]
-version = "temurin-25.0.5+8.0.LTS"
-backend = "core:java"
-
-[tools.java."platforms.linux-arm64"]
-checksum = "sha256:bb5b2ded252f21c6090cf780b0a408ad0d83bbb557e702955643557f13231880"
-url = "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.5%2B8/OpenJDK25U-jdk_aarch64_linux_hotspot_25.0.5_8.tar.gz"
-
-[tools.java."platforms.linux-x64"]
-checksum = "sha256:68982529869257d0ee6b824ec5aa270ff8b118bb438670da0b97ebdab178d7fb"
-url = "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.5%2B8/OpenJDK25U-jdk_x64_linux_hotspot_25.0.5_8.tar.gz"
-
-[tools.java."platforms.macos-arm64"]
-checksum = "sha256:36dc14d797aaff6d89aab302cd053fdba6207dfdcf772052fa7b023a94b0e857"
-url = "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.5%2B8/OpenJDK25U-jdk_aarch64_mac_hotspot_25.0.5_8.tar.gz"
-
-[tools.java."platforms.macos-x64"]
-checksum = "sha256:32cd4d2151c91aa00d0fc911edfd05245ed40fa6b1aa894d5f35c928cd67a59d"
-url = "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.5%2B8/OpenJDK25U-jdk_x64_mac_hotspot_25.0.5_8.tar.gz"
-
 [[tools.just]]
 version = "1.51.0"
 backend = "aqua:casey/just"
@@ -211,10 +191,6 @@ url = "https://nodejs.org/dist/v22.23.4/node-v22.23.4-darwin-x64.tar.gz"
 [[tools."npm:@napi-rs/cli"]]
 version = "3.7.0"
 backend = "npm:@napi-rs/cli"
-
-[[tools."npm:@redocly/cli"]]
-version = "2.31.5"
-backend = "npm:@redocly/cli"
 
 [[tools."npm:renovate"]]
 version = "43.212.4"

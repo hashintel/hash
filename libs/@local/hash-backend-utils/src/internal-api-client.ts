@@ -1,12 +1,4 @@
-import axios from "axios";
-
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
-import {
-  Configuration,
-  DefaultApi as InternalApiClient,
-} from "@local/internal-api-client";
-
-import type { AxiosError } from "axios";
 
 const basePath = process.env.INTERNAL_API_HOST ?? "http://localhost:5002";
 
@@ -16,31 +8,42 @@ if (!isSelfHostedInstance && !internalApiKey) {
   throw new Error("INTERNAL_API_KEY is required");
 }
 
-const config = new Configuration({ basePath });
+export type WebSearchResult = {
+  title: string;
+  url: string;
+  position: number;
+};
 
-/**
- * Manually create the axios instance so that the internal
- * API key doesn't have to be specified when making requests.
- */
-const axiosInstance = axios.create({
-  headers: { "internal-api-key": internalApiKey },
-});
+const get = async <T>(
+  path: string,
+  query: Record<string, string>,
+): Promise<T> => {
+  const url = new URL(`${basePath}${path}`);
+  url.search = new URLSearchParams(query).toString();
 
-/**
- * Add a prefix to the errors that occur when calling the internal API,
- * to make it more clear where the error originated.
- */
-axiosInstance.interceptors.response.use(
-  (response) => response,
-  (error: AxiosError) => {
-    // eslint-disable-next-line no-param-reassign
-    error.message = `Error calling the Internal API: ${error.message || error.code}`;
-    return Promise.reject(error);
-  },
-);
+  const response = await fetch(url, {
+    headers: internalApiKey ? { "internal-api-key": internalApiKey } : {},
+  }).catch((error: unknown) => {
+    throw new Error(
+      `Error calling the Internal API: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
+    );
+  });
 
-export const internalApiClient = new InternalApiClient(
-  config,
-  basePath,
-  axiosInstance,
-);
+  if (!response.ok) {
+    throw new Error(
+      `Error calling the Internal API: ${path} responded with ${response.status} ${response.statusText}`,
+    );
+  }
+
+  return (await response.json()) as T;
+};
+
+export const internalApiClient = {
+  getWaitlistPosition: (email: string) =>
+    get<{ waitlistPosition: number | null }>("/waitlist-position", { email }),
+  getWebSearchResults: (query: string) =>
+    get<{ webSearchResults: WebSearchResult[] }>("/web-search-results", {
+      query,
+    }),
+};

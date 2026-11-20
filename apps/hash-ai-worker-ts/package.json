@@ -59,7 +59,6 @@
     "@local/hash-graph-client": "workspace:*",
     "@local/hash-graph-sdk": "workspace:*",
     "@local/hash-isomorphic-utils": "workspace:*",
-    "@local/internal-api-client": "workspace:*",
     "@local/status": "workspace:*",
     "@opentelemetry/api": "1.9.1",
     "@opentelemetry/api-logs": "0.220.0",

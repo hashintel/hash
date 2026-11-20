@@ -4,6 +4,7 @@ import {
   getEntityTypes,
   getPropertyTypes,
 } from "@blockprotocol/graph/stdlib";
+import { actorHeaders } from "@local/hash-graph-client";
 import {
   queryDataTypes,
   type QueryDataTypesParams,
@@ -83,7 +84,7 @@ const fetchSystemMachineActorId = async (
 ): Promise<MachineId> =>
   await graphApiClient
     .getOrCreateSystemMachine("h")
-    .then(({ data: machineId }) => machineId as MachineId);
+    .then((machineId) => machineId as MachineId);
 
 export const createGraphActivities = ({
   graphApiClient,
@@ -241,14 +242,15 @@ export const createGraphActivities = ({
       };
     } & UpdateDataTypeEmbeddingParams,
   ): Promise<void> {
-    await graphApiClient
-      .updateDataTypeEmbeddings(params.authentication.actorId, {
+    await graphApiClient.updateDataTypeEmbeddings(
+      {
         dataTypeId: params.dataTypeId,
         embedding: params.embedding,
         reset: params.reset,
         updatedAtTransactionTime: params.updatedAtTransactionTime,
-      })
-      .then((response) => response.data);
+      },
+      actorHeaders(params.authentication.actorId),
+    );
   },
 
   async updatePropertyTypeEmbeddings(
@@ -258,14 +260,15 @@ export const createGraphActivities = ({
       };
     } & UpdatePropertyTypeEmbeddingParams,
   ): Promise<void> {
-    await graphApiClient
-      .updatePropertyTypeEmbeddings(params.authentication.actorId, {
+    await graphApiClient.updatePropertyTypeEmbeddings(
+      {
         propertyTypeId: params.propertyTypeId,
         embedding: params.embedding,
         reset: params.reset,
         updatedAtTransactionTime: params.updatedAtTransactionTime,
-      })
-      .then((response) => response.data);
+      },
+      actorHeaders(params.authentication.actorId),
+    );
   },
 
   async updateEntityTypeEmbeddings(
@@ -275,14 +278,15 @@ export const createGraphActivities = ({
       };
     } & UpdateEntityTypeEmbeddingParams,
   ): Promise<void> {
-    await graphApiClient
-      .updateEntityTypeEmbeddings(params.authentication.actorId, {
+    await graphApiClient.updateEntityTypeEmbeddings(
+      {
         entityTypeId: params.entityTypeId,
         embedding: params.embedding,
         reset: params.reset,
         updatedAtTransactionTime: params.updatedAtTransactionTime,
-      })
-      .then((response) => response.data);
+      },
+      actorHeaders(params.authentication.actorId),
+    );
   },
 
   // eslint-disable-next-line @typescript-eslint/require-await

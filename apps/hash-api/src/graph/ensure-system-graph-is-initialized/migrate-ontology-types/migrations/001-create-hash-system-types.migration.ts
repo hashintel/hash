@@ -1,3 +1,4 @@
+import { actorHeaders } from "@local/hash-graph-client";
 import { getDataTypeById } from "@local/hash-graph-sdk/data-type";
 import { getEntityTypeById } from "@local/hash-graph-sdk/entity-type";
 import { fullTransactionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
@@ -1759,9 +1760,12 @@ const migrate: MigrationFunction = async ({
         return;
       }
 
-      return context.graphApi.loadExternalDataType(authentication.actorId, {
-        dataTypeId,
-      });
+      return context.graphApi.loadExternalDataType(
+        {
+          dataTypeId,
+        },
+        actorHeaders(authentication.actorId),
+      );
     }),
     ...blockProtocolEntityTypeIds.map(async (entityTypeId) => {
       const existingEntityType = await getEntityTypeById(
@@ -1777,9 +1781,12 @@ const migrate: MigrationFunction = async ({
         return;
       }
 
-      return context.graphApi.loadExternalEntityType(authentication.actorId, {
-        entityTypeId,
-      });
+      return context.graphApi.loadExternalEntityType(
+        {
+          entityTypeId,
+        },
+        actorHeaders(authentication.actorId),
+      );
     }),
   ]);
 

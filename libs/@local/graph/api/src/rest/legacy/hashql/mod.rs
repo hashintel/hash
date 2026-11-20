@@ -256,8 +256,8 @@ pub(crate) struct HashQlRequest {
     request_body = HashQlRequest,
     tag = "HashQL",
     params(
-        ("Interactive" = Option<bool>, Header, description = "When true, error responses are rendered as HTML instead of JSON"),
-        ("Json-Compat" = Option<bool>, Header, description = "When true, serializes the result as plain JSON values, stripping HashQL-specific type wrappers"),
+        ("Interactive" = Option<String>, Header, nullable = false, description = "When true, error responses are rendered as HTML instead of JSON"),
+        ("Json-Compat" = Option<String>, Header, nullable = false, description = "When true, serializes the result as plain JSON values, stripping HashQL-specific type wrappers"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "Query executed successfully"),

@@ -155,7 +155,7 @@ const seedFlowTestTypes = async () => {
 
   const hashBotActorId = await graphApi
     .getOrCreateSystemMachine("h")
-    .then(({ data: machineId }) => machineId as MachineId);
+    .then((machineId) => machineId as MachineId);
 
   const authentication = { actorId: hashBotActorId };
 
