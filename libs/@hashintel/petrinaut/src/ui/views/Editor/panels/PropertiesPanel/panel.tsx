@@ -32,7 +32,8 @@ const glassPanelContentStyle = css({
 });
 
 /**
- * PropertiesPanel displays properties and controls for the selected node/edge.
+ * The docked panel on the right: the properties of what is selected, one item
+ * of the net or several at once.
  */
 export const PropertiesPanel: React.FC = () => {
   const { bottomPanelHeight, aiAssistantWidth } = usePanelSizes();
