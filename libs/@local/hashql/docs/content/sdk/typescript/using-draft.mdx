@@ -202,10 +202,10 @@ We then use this type to define the `task` input of `summarizeTask`. This has tw
 const summarizeTask = Draft.program({ task: taskType }, ($, { task }) => {
   const { add } = $.prelude();
 
-  return $.struct({
+  return {
     title: task.title,
     nextRevision: add(task.revision, 1n),
-  });
+  };
 });
 ```
 
@@ -219,7 +219,7 @@ console.log(compile(summarizeTask));
 
 </details>
 
-[`$.struct`] creates a struct value from the field expressions we provide. HashQL operates in three "universes": modules, types and values. Whereas [`Program.Structural.type`] constructs a struct type, [`$.struct`] constructs a struct value. We can then use standard JavaScript property access notation to access the fields of these struct values, with each access returning an expression handle.
+A record of field expressions creates a struct value, as [`$.struct`] does explicitly. HashQL operates in three "universes": modules, types and values. Whereas [`Program.Structural.type`] constructs a struct type, a record of values constructs a struct value. On the handle that `$.let` or [`$.struct`] returns, or on an input handle such as `task`, standard JavaScript property access reads a field and returns an expression handle.
 
 <Callout>
 
@@ -240,11 +240,11 @@ const summarizeTaskWithAttention = Draft.program(
       else: () => $.literal("clear"),
     });
 
-    return $.struct({
+    return {
       title: task.title,
       nextRevision: add(task.revision, 1n),
       attention,
-    });
+    };
   },
 );
 ```
@@ -287,10 +287,10 @@ Let's see how that works in a smaller example:
 const repeatedRevision = Draft.program(revisionInputs, ($, { revision }) => {
   const nextRevision = $.prelude().add(revision, 1n);
 
-  return $.struct({
+  return {
     nextRevision,
     auditRevision: nextRevision,
-  });
+  };
 });
 
 console.log(compile(repeatedRevision));
@@ -307,10 +307,10 @@ Let's try one:
 const namedRevision = Draft.program(revisionInputs, ($, { revision }) => {
   const nextRevision = $.let("nextRevision", $.prelude().add(revision, 1n));
 
-  return $.struct({
+  return {
     nextRevision,
     auditRevision: nextRevision,
-  });
+  };
 });
 
 console.log(compile(namedRevision));
@@ -332,10 +332,10 @@ const namedRevision = Draft.program(revisionInputs, ($, { revision }) => {
   const nextRevision = $.let("nextRevision", $.prelude().add(revision, 1n));
   const nextRevision2 = $.let("nextRevision", "foo");
 
-  return $.struct({
+  return {
     nextRevision,
     auditRevision: nextRevision,
-  });
+  };
 });
 ```
 
@@ -490,11 +490,11 @@ We can now assemble our summary using the extracted helpers:
 const reusableSummary = Draft.program(taskInputs, ($, { task }) => {
   const attention = attentionFor($, task);
 
-  return $.struct({
+  return {
     title: task.title,
     nextRevision: $.prelude().add(task.revision, 1n),
     attention,
-  });
+  };
 });
 ```
 
