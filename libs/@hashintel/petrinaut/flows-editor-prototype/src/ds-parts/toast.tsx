@@ -1,7 +1,8 @@
 /**
- * figma-ds Toast (`42311:29857`), its inverted type: a dark 360 px card at the bottom of the page, 16 px padding,
- * 12 px radius, a 16 px icon, the words, an optional 24 px action under them, and a 20 px × in the top corner. It
- * closes itself after six seconds.
+ * The design system's light toast, sized to its content (TOAST-DS-FIT, Paper 2BYM-0): a flat #F9F9F9 card, 1 px
+ * border, 12 px padding and radius, an 8 px gap, a 16 px info icon 6 px before 14/22 semibold #404040 text, the
+ * action as a 28 px white button with a border 16 px after the text, and a round 24 px × centred on the right. One
+ * line; the width follows the content. It closes itself after six seconds.
  */
 import { useEffect } from "react";
 
@@ -17,64 +18,78 @@ const toastStyle = css({
   display: "flex",
   alignItems: "flex-start",
   gap: "2",
-  width: "[360px]",
+  width: "[fit-content]",
   maxWidth: "[calc(100vw - 32px)]",
-  padding: "4",
-  paddingRight: "8",
+  padding: "3",
   borderRadius: "xl",
-  backgroundColor: "neutral.fg.heading",
-  color: "neutral.fg.onSolid",
-  textStyle: "sm",
+  borderWidth: "thin",
+  borderStyle: "solid",
+  // token-guard: allow Paper 2BYM-0 toast surface, border and shadow (toast.recipe.ts line 88); no DS step is exact.
+  backgroundColor: "[#F9F9F9]",
+  borderColor: "[#00000017]",
   boxShadow:
-    "[0 10px 16px -3px rgba(0, 0, 0, 0.1), 0 -4px 6px -2px rgba(0, 0, 0, 0.03)]",
+    "[#00000008 0px 0px 0px 1px, #0000001F 0px 4px 12px -4px, #00000024 0px 12px 28px -8px]",
+  color: "neutral.fg.heading",
+  textStyle: "sm",
+});
+
+const bodyStyle = css({
+  display: "flex",
+  alignItems: "center",
+  alignSelf: "center",
+  flexWrap: "wrap",
+  flex: "1",
+  minWidth: "[0]",
+  columnGap: "4",
+  rowGap: "1",
+});
+
+const messageStyle = css({
+  display: "flex",
+  alignItems: "flex-start",
+  flexGrow: 1,
+  gap: "[6px]",
 });
 
 const iconStyle = css({
   display: "flex",
   alignItems: "center",
-  justifyContent: "center",
-  width: "[20px]",
-  height: "[14px]",
   flexShrink: 0,
-});
-
-const contentStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "flex-start",
-  gap: "3",
-  flex: "1",
-  minWidth: "[0]",
+  minHeight: "[22px]",
+  color: "neutral.s110",
+  "& svg": { width: "[16px]", height: "[16px]", "--icon-size": "16px" },
 });
 
 const textStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "1",
-  lineHeight: "[14px]",
+  alignSelf: "center",
+  whiteSpace: "pre",
+  fontSize: "[14px]",
+  lineHeight: "[22px]",
+  fontWeight: "semibold",
+  color: "neutral.fg.heading",
 });
 
-const titleStyle = css({ fontWeight: "medium" });
+const descriptionStyle = css({ fontWeight: "normal", color: "neutral.fg.muted" });
 
-const descriptionStyle = css({ opacity: "[0.9]" });
-
-/** The inverted Toast's action (`42311:30117`): a white 24 px button, 1 px a30 border, 12 px medium s115 text. */
+/** The action: a 28 px white button, 1 px border, 8 px radius, 14/22 medium. */
 const actionStyle = css({
   all: "unset",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
   boxSizing: "border-box",
-  height: "[24px]",
-  paddingX: "2",
+  height: "[28px]",
+  paddingX: "[9px]",
+  paddingY: "[2px]",
   borderWidth: "thin",
   borderStyle: "solid",
-  borderColor: "neutral.bd.solid",
-  borderRadius: "md",
+  // token-guard: allow Paper 2BYM-0 action border #00000026.
+  borderColor: "[#00000026]",
+  borderRadius: "lg",
   backgroundColor: "neutral.bgSolid.min",
   color: "neutral.fg.heading",
-  fontSize: "[12px]",
-  lineHeight: "[12px]",
+  fontSize: "[14px]",
+  lineHeight: "[22px]",
   fontWeight: "medium",
   whiteSpace: "nowrap",
   cursor: "pointer",
@@ -84,19 +99,20 @@ const actionStyle = css({
 
 const closeStyle = css({
   all: "unset",
-  position: "absolute",
-  top: "[6px]",
-  right: "[6px]",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  width: "[20px]",
-  height: "[20px]",
-  borderRadius: "[2px]",
+  alignSelf: "center",
+  flexShrink: 0,
+  width: "[24px]",
+  height: "[24px]",
+  marginRight: "[-4px]",
+  borderRadius: "full",
   cursor: "pointer",
-  color: "neutral.fg.muted",
-  _hover: { color: "neutral.fg.onSolid" },
-  _focusVisible: { color: "neutral.fg.onSolid" },
+  color: "neutral.fg.heading",
+  "& svg": { width: "[16px]", height: "[16px]", "--icon-size": "16px" },
+  _hover: { backgroundColor: "neutral.bg.subtle.hover" },
+  _focusVisible: { outline: "[2px solid var(--colors-neutral-bd-solid)]", outlineOffset: "[-2px]" },
 });
 
 export const Toast = ({
@@ -119,15 +135,17 @@ export const Toast = ({
   }, [onDone]);
   return (
     <div className={toastStyle} role="status" data-toast>
-      <span className={iconStyle}>
-        <Icon name="circleCheck" size="sm" />
-      </span>
-      <div className={contentStyle}>
-        <div className={textStyle}>
-          <span className={titleStyle}>{text}</span>
-          {description ? (
-            <span className={descriptionStyle}>{description}</span>
-          ) : null}
+      <div className={bodyStyle}>
+        <div className={messageStyle}>
+          <span className={iconStyle}>
+            <Icon name="info" size="sm" />
+          </span>
+          <span className={textStyle}>
+            {text}
+            {description ? (
+              <span className={descriptionStyle}> {description}</span>
+            ) : null}
+          </span>
         </div>
         {action ? (
           <button
