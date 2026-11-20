@@ -303,8 +303,11 @@ export const useEditorFields = <Key extends keyof EditorContextValue>(
 export const EditorActionsContext = createContext<EditorActions | null>(null);
 
 /**
- * The editor's actions. A component that only acts on the editor reads them
- * here and renders for no change of the editor's state.
+ * The editor's actions: one object for the editor's life. A component that
+ * only acts on the editor reads them here and renders for no change of the
+ * editor's state. Each action reads what it needs when it is called, so
+ * `isSelected` here answers a handler; a component that shows the answer
+ * reads `useIsSelected`.
  *
  * ```tsx
  * const { selectItem } = useEditorActions();

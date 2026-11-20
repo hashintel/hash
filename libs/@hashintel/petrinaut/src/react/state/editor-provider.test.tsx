@@ -27,8 +27,10 @@ import {
 import { CompositionContext } from "./composition-context";
 import {
   EditorContext,
+  useEditorActions,
   useEditorFields,
   useEditorState,
+  type EditorActions,
   type EditorContextValue,
 } from "./editor-context";
 import { EditorProvider } from "./editor-provider";
@@ -288,6 +290,50 @@ describe("EditorProvider readers of one part", () => {
 
     expect(editor!.selection).toBe(selection);
     view.unmount();
+  });
+});
+
+describe("EditorProvider actions", () => {
+  it("gives out one object for the editor's life, which reads the selection when called", () => {
+    const seen: EditorActions[] = [];
+    const ActionsGrabber = ({
+      onActions,
+    }: {
+      onActions: (actions: EditorActions) => void;
+    }) => {
+      onActions(useEditorActions());
+      return null;
+    };
+    const PublishedAnswer = () => (
+      <output aria-label="published answer">
+        {String(useEditorState((editor) => editor.isSelected("place-a")))}
+      </output>
+    );
+    const view = render(
+      <SDCPNContext.Provider value={makeSdcpnContextValue(() => "place")}>
+        <TestHost recorded={[]}>
+          <EditorProvider>
+            <ActionsGrabber
+              onActions={(actions) => {
+                if (!seen.includes(actions)) {
+                  seen.push(actions);
+                }
+              }}
+            />
+            <PublishedAnswer />
+          </EditorProvider>
+        </TestHost>
+      </SDCPNContext.Provider>,
+    );
+    const actions = seen[0]!;
+
+    act(() => actions.selectItem({ type: "place", id: "place-a" }));
+    act(() => actions.toggleBottomPanel());
+    act(() => actions.setSimulateDrawer({ type: "create-scenario" }));
+
+    expect(seen).toHaveLength(1);
+    expect(actions.isSelected("place-a")).toBe(true);
+    expect(view.getByLabelText("published answer").textContent).toBe("true");
   });
 });
 

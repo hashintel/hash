@@ -39,6 +39,12 @@ does not read through them. The read-only reason is such a guard and has a
 context of its own, `ReadOnlyReasonContext`, which `useReadOnlyReason` and
 `useIsReadOnly` read.
 
+A component that only acts on the editor calls `useEditorActions`. The
+actions are one object for the editor's life, built once in
+`editor-provider/editor-actions.ts`, and each reads what it needs when it is
+called. So a handler made from them keeps its identity, and their reader
+renders for no change of the editor's state.
+
 A hook that builds a function, an object or an array and calls no hook but
 `use` starts with the directive `"use memo"`. The compiler takes a hook that
 calls another hook or returns JSX, and `use` alone does not count: without the
