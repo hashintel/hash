@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { Button, Checkbox, Icon, Popover } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import { StaticHashIcon } from "@hashintel/ds-icons/static";
 import { serializeSDCPN } from "@hashintel/petrinaut-core";
 
 import {
@@ -80,7 +81,7 @@ const alertStyle = css({
 
 /** The share glyph: a tray with an arrow leaving it. */
 const ShareIcon = () => (
-  <svg
+  <StaticHashIcon
     aria-hidden
     fill="none"
     height="16"
@@ -88,12 +89,9 @@ const ShareIcon = () => (
     strokeLinecap="round"
     strokeLinejoin="round"
     strokeWidth="1.5"
-    viewBox="0 0 16 16"
     width="16"
-  >
-    <path d="M8 10.25V2.5M5.25 5.25 8 2.5l2.75 2.75" />
-    <path d="M3.5 8.5v3.75c0 .69.56 1.25 1.25 1.25h6.5c.69 0 1.25-.56 1.25-1.25V8.5" />
-  </svg>
+    name="share"
+  />
 );
 
 const SharePanel = ({ captured }: { captured: CapturedSnapshot }) => {

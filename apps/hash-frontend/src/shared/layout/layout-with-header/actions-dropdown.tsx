@@ -1,4 +1,3 @@
-import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
   Divider,
@@ -21,7 +20,7 @@ import { useContext } from "react";
 import {
   AsteriskRegularIcon,
   BarcodeIcon,
-  FontAwesomeIcon,
+  HashInlineIcon,
   LinkIcon,
 } from "@hashintel/design-system";
 import {
@@ -40,6 +39,8 @@ import { CreatePageMenuItems } from "./actions-dropdown/create-page-menu-items";
 import { HeaderIconButton } from "./shared/header-icon-button";
 
 import type { FunctionComponent } from "react";
+
+const faPlus = { icon: "plus" } as const;
 
 const ActionsDropdownInner: FunctionComponent = () => {
   const theme = useTheme();
@@ -66,7 +67,7 @@ const ActionsDropdownInner: FunctionComponent = () => {
         })}
         {...bindTrigger(popupState)}
       >
-        <FontAwesomeIcon icon={faPlus} />
+        <HashInlineIcon icon={faPlus} />
       </HeaderIconButton>
 
       <Menu

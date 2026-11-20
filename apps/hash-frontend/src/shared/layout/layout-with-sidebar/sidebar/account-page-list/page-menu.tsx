@@ -1,10 +1,8 @@
-import { faFileAlt } from "@fortawesome/free-regular-svg-icons";
-import { faArchive, faLink } from "@fortawesome/free-solid-svg-icons";
 import { ListItemIcon, ListItemText, Menu } from "@mui/material";
 import { bindMenu } from "material-ui-popup-state/hooks";
 import { useMemo, useState } from "react";
 
-import { FontAwesomeIcon } from "@hashintel/design-system";
+import { HashInlineIcon } from "@hashintel/design-system";
 
 import { MenuItem } from "../../../../ui";
 
@@ -12,6 +10,10 @@ import type { EntityId } from "@blockprotocol/type-system";
 import type { PopoverPosition } from "@mui/material";
 import type { PopupState } from "material-ui-popup-state/hooks";
 import type { FunctionComponent } from "react";
+
+const faFileAlt = { icon: "fileLines" } as const;
+const faArchive = { icon: "archive" } as const;
+const faLink = { icon: "link" } as const;
 
 type PageMenuProps = {
   popupState: PopupState;
@@ -147,7 +149,7 @@ export const PageMenu: FunctionComponent<PageMenuProps> = ({
             onClick={onClick ?? popupState.close}
           >
             <ListItemIcon>
-              <FontAwesomeIcon icon={icon} />
+              <HashInlineIcon icon={icon} />
             </ListItemIcon>
             <ListItemText primary={title} />
           </MenuItem>

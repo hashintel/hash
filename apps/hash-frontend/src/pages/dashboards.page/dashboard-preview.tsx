@@ -1,5 +1,7 @@
 import { Box, Typography } from "@mui/material";
 
+import { StaticHashIcon } from "@hashintel/ds-icons/static";
+
 import type { EntityId } from "@blockprotocol/type-system";
 import type {
   ChartType,
@@ -15,87 +17,27 @@ export type DashboardPreviewItem = {
 const MAX_VISIBLE_ITEMS = 12;
 const DASHBOARD_COLUMN_COUNT = 12;
 
-const ChartGlyph = ({ chartType }: { chartType: ChartType | null }) => {
-  switch (chartType) {
-    case "bar":
-      return (
-        <svg aria-hidden viewBox="0 0 48 32">
-          <rect x="5" y="17" width="8" height="11" rx="1" />
-          <rect x="20" y="8" width="8" height="20" rx="1" />
-          <rect x="35" y="13" width="8" height="15" rx="1" />
-        </svg>
-      );
-    case "line":
-      return (
-        <svg aria-hidden viewBox="0 0 48 32">
-          <path
-            d="M4 25 14 17l9 4 9-13 12 7"
-            fill="none"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="3"
-          />
-        </svg>
-      );
-    case "pie":
-      return (
-        <svg aria-hidden viewBox="0 0 48 32">
-          <path d="M24 3a13 13 0 1 0 13 13H24Z" opacity="0.45" />
-          <path d="M27 3v10h10A13 13 0 0 0 27 3" />
-        </svg>
-      );
-    case "scatter":
-      return (
-        <svg aria-hidden viewBox="0 0 48 32">
-          <circle cx="9" cy="23" r="3" />
-          <circle cx="18" cy="15" r="2.5" opacity="0.7" />
-          <circle cx="27" cy="20" r="3.5" />
-          <circle cx="36" cy="9" r="3" opacity="0.65" />
-          <circle cx="42" cy="16" r="2" />
-        </svg>
-      );
-    case "heatmap":
-      return (
-        <svg aria-hidden viewBox="0 0 48 32">
-          {[0, 1, 2].flatMap((rowIndex) =>
-            [0, 1, 2, 3].map((columnIndex) => (
-              <rect
-                key={`${rowIndex}-${columnIndex}`}
-                x={5 + columnIndex * 10}
-                y={3 + rowIndex * 9}
-                width="8"
-                height="7"
-                rx="1"
-                opacity={0.3 + ((rowIndex + columnIndex * 2) % 4) * 0.2}
-              />
-            )),
-          )}
-        </svg>
-      );
-    case "map":
-      return (
-        <svg aria-hidden viewBox="0 0 48 32">
-          <ellipse cx="24" cy="16" rx="18" ry="12" opacity="0.28" />
-          <path
-            d="M8 14c5-2 8 1 12-2 4-4 7-5 12-3 3 2 5 5 8 6M12 22c5-3 9-2 13 1 4 2 8 1 11-2"
-            fill="none"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeWidth="2"
-          />
-        </svg>
-      );
-    default:
-      return (
-        <svg aria-hidden viewBox="0 0 48 32">
-          <rect x="5" y="7" width="38" height="3" rx="1.5" opacity="0.35" />
-          <rect x="5" y="15" width="27" height="3" rx="1.5" opacity="0.6" />
-          <rect x="5" y="23" width="33" height="3" rx="1.5" opacity="0.45" />
-        </svg>
-      );
-  }
-};
+const ChartGlyph = ({ chartType }: { chartType: ChartType | null }) => (
+  <StaticHashIcon
+    width={48}
+    height={32}
+    name={
+      chartType === "bar"
+        ? "chartBarSimple"
+        : chartType === "line"
+          ? "chartLine"
+          : chartType === "pie"
+            ? "pieChart"
+            : chartType === "scatter"
+              ? "chartScatter"
+              : chartType === "heatmap"
+                ? "chartHeatmap"
+                : chartType === "map"
+                  ? "globe"
+                  : "list"
+    }
+  />
+);
 
 export const DashboardPreview = ({
   items,

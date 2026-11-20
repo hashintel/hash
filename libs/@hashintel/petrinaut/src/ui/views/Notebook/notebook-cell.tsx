@@ -1,6 +1,7 @@
 import { Fragment, useRef, useState } from "react";
 
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
+import { StaticHashIcon } from "@hashintel/ds-icons/static";
 import {
   getDocumentUri,
   getPlaceDynamicsEquationIds,
@@ -37,6 +38,7 @@ import type {
   Place,
   Transition,
 } from "@hashintel/petrinaut-core";
+import type { FC, KeyboardEventHandler, ReactNode } from "react";
 
 const cellStyle = cva({
   base: {
@@ -202,7 +204,7 @@ const mutedStyle = css({
 
 const CODE_LINE_HEIGHT = 18;
 
-const CellCodeBlock: React.FC<{
+const CellCodeBlock: FC<{
   code: string;
   path: string;
   onChange: (code: string) => void;
@@ -393,12 +395,12 @@ const activateOrEngage = (container: HTMLElement | null) => {
  * full-width line: horizontal arrows walk the line's cells too, and the
  * focus flow targets the cell by its `data-part-column`.
  */
-const WidgetPart: React.FC<{
+const WidgetPart: FC<{
   stopId: string;
   focus: CellRowFocus;
   column?: number;
   className?: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }> = ({ stopId, focus, column, className, children }) => {
   const [element, setElement] = useState<HTMLDivElement | null>(null);
 
@@ -457,11 +459,11 @@ const WidgetPart: React.FC<{
 };
 
 /** One cell of a multi-cell body line, as a WidgetPart pinned to a column. */
-const WidgetCell: React.FC<{
+const WidgetCell: FC<{
   parts: BodyPartContext;
   partId: string;
   column: number;
-  children: React.ReactNode;
+  children: ReactNode;
 }> = ({ parts, partId, column, children }) => (
   <WidgetPart
     stopId={parts.stopIdFor(partId)}
@@ -496,7 +498,7 @@ const inlineInputStyle = css({
  * blur or Enter commits them, Escape reverts to the net's value, and drafts
  * failing `isValid` revert instead of committing.
  */
-const PartTextField: React.FC<{
+const PartTextField: FC<{
   sourceId: string;
   value: string;
   onCommit: (value: string) => void;
@@ -568,7 +570,7 @@ const inlineSelectStyle = css({
 });
 
 /** Inline enum/reference select for one field of a cell. */
-const PartSelect: React.FC<{
+const PartSelect: FC<{
   value: string;
   onChange: (value: string) => void;
   options: { value: string; label: string }[];
@@ -594,7 +596,7 @@ const PartSelect: React.FC<{
 };
 
 /** A code block as a focus-flow part; edits commit through `onChange`. */
-const BodyCodeBlock: React.FC<{
+const BodyCodeBlock: FC<{
   parts: BodyPartContext;
   partId: string;
   code: string;
@@ -666,10 +668,10 @@ const equationSummary = (
   return `${typeName(net, equation.colorId)} · ${places.length} place${places.length === 1 ? "" : "s"}`;
 };
 
-const FieldRow: React.FC<{
+const FieldRow: FC<{
   label: string;
   part?: { stopId: string; focus: CellRowFocus };
-  children: React.ReactNode;
+  children: ReactNode;
 }> = ({ label, part, children }) => {
   const content = (
     <>
@@ -692,7 +694,7 @@ const FieldRow: React.FC<{
 
 const UNTYPED = "__untyped__";
 
-const PlaceBody: React.FC<{
+const PlaceBody: FC<{
   net: ActiveNetDefinition;
   place: Place;
   parts: BodyPartContext;
@@ -812,7 +814,7 @@ const INPUT_ARC_TYPES: { value: string; label: string }[] = [
   { value: "inhibitor", label: "inhibitor" },
 ];
 
-const ArcLine: React.FC<{
+const ArcLine: FC<{
   net: ActiveNetDefinition;
   transitionId: string;
   direction: "input" | "output";
@@ -888,7 +890,7 @@ const ArcLine: React.FC<{
   );
 };
 
-const ArcLines: React.FC<{
+const ArcLines: FC<{
   net: ActiveNetDefinition;
   transitionId: string;
   direction: "input" | "output";
@@ -923,7 +925,7 @@ const ArcLines: React.FC<{
     <span className={mutedStyle}>None</span>
   );
 
-const TransitionBody: React.FC<{
+const TransitionBody: FC<{
   net: ActiveNetDefinition;
   transition: Transition;
   parts: BodyPartContext;
@@ -1016,7 +1018,7 @@ const TYPE_ELEMENT_TYPES: { value: string; label: string }[] = [
   { value: "boolean", label: "boolean" },
 ];
 
-const TypeBody: React.FC<{ color: Color; parts: BodyPartContext }> = ({
+const TypeBody: FC<{ color: Color; parts: BodyPartContext }> = ({
   color,
   parts,
 }) => {
@@ -1109,7 +1111,7 @@ const PARAMETER_TYPES: { value: string; label: string }[] = [
   { value: "boolean", label: "boolean" },
 ];
 
-const ParameterBody: React.FC<{
+const ParameterBody: FC<{
   parameter: Parameter;
   parts: BodyPartContext;
 }> = ({ parameter, parts }) => {
@@ -1174,7 +1176,7 @@ const ParameterBody: React.FC<{
   );
 };
 
-const EquationBody: React.FC<{
+const EquationBody: FC<{
   net: ActiveNetDefinition;
   equation: DifferentialEquation;
   parts: BodyPartContext;
@@ -1235,7 +1237,7 @@ const EquationBody: React.FC<{
   );
 };
 
-const HighlightedName: React.FC<{
+const HighlightedName: FC<{
   name: string;
   matchIndices: number[] | null;
 }> = ({ name, matchIndices }) => {
@@ -1278,7 +1280,7 @@ const cellPresentation = (
   iconColor: string | undefined;
   name: string;
   summary: string;
-  body: React.ReactNode;
+  body: ReactNode;
 } => {
   switch (cell.kind) {
     case "place": {
@@ -1353,10 +1355,10 @@ export interface CellRowFocus {
   /** Reports row focus, keeping selection and the roving stop in step. */
   onFocus: () => void;
   /** Vertical arrow navigation — the keys the row doesn't own itself. */
-  onNavigate: React.KeyboardEventHandler;
+  onNavigate: KeyboardEventHandler;
 }
 
-export const NotebookCell: React.FC<NotebookCellProps> = ({
+export const NotebookCell: FC<NotebookCellProps> = ({
   net,
   cell,
   isSelected,
@@ -1430,9 +1432,7 @@ export const NotebookCell: React.FC<NotebookCellProps> = ({
           {experimentalIcons ? (
             <ChevronRightIcon size={8} hover="none" />
           ) : (
-            <svg width="8" height="8" viewBox="0 0 8 8" aria-hidden>
-              <path d="M2 0 L7 4 L2 8 Z" fill="currentColor" />
-            </svg>
+            <StaticHashIcon width="8" height="8" aria-hidden name="play" />
           )}
         </button>
         <span

@@ -1,4 +1,3 @@
-import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
 import { Box, CircularProgress, Paper, Stack } from "@mui/material";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -10,7 +9,7 @@ import {
 import {
   Callout,
   Chip,
-  FontAwesomeIcon,
+  HashInlineIcon,
   IconButton,
 } from "@hashintel/design-system";
 
@@ -41,6 +40,8 @@ import type { LinkEntityAndRightEntity } from "@blockprotocol/graph";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { EntityQuerySortingRecord } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
+
+const faMagnifyingGlass = { icon: "search" } as const;
 
 type OutgoingLinksSectionProps = Pick<
   EntityEditorProps,
@@ -340,7 +341,7 @@ export const OutgoingLinksSection = ({
                 onClick={() => setShowSearch(true)}
                 sx={{ color: ({ palette }) => palette.gray[60] }}
               >
-                <FontAwesomeIcon icon={faMagnifyingGlass} />
+                <HashInlineIcon icon={faMagnifyingGlass} />
               </IconButton>
             </Stack>
           )}

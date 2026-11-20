@@ -1,11 +1,10 @@
-import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { Box, iconButtonClasses, Tooltip } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useCallback, useState } from "react";
 
 import {
-  FontAwesomeIcon,
-  fontAwesomeIconClasses,
+  HashInlineIcon,
+  hashSvgIconClasses,
   IconButton,
 } from "@hashintel/design-system";
 
@@ -21,6 +20,8 @@ import type { SizeVariant } from "./icon-variant-sizes";
 import type { SxProps, Theme } from "@mui/material";
 import type { SystemStyleObject } from "@mui/system";
 import type { FunctionComponent, MouseEventHandler, ReactNode } from "react";
+
+const faAsterisk = { icon: "asterisk" } as const;
 
 interface EditEmojiIconButtonProps {
   icon?: string | null;
@@ -91,7 +92,7 @@ export const EditEmojiIconButton: FunctionComponent<
           const hoverState: SystemStyleObject = {
             background,
             ...(hasDarkBg && {
-              [`.${fontAwesomeIconClasses.icon}`]: {
+              [`.${hashSvgIconClasses.icon}`]: {
                 color: palette.gray[50],
               },
             }),
@@ -124,7 +125,7 @@ export const EditEmojiIconButton: FunctionComponent<
         ]}
       >
         {icon ?? defaultIcon ?? (
-          <FontAwesomeIcon
+          <HashInlineIcon
             icon={faAsterisk}
             sx={(theme) => ({
               color: theme.palette.gray[40],

@@ -77,10 +77,13 @@ import { StaticHashIcon } from "@hashintel/ds-icons/static";
 
 `HashIconArtwork` draws inside an existing 24 × 24 SVG, including MUI adapters.
 The React components declare a client boundary for server-rendered hosts.
-Import `getHashIconArtwork(name, variant, idPrefix)` from
+Import `getHashIconArtwork(name, variant, idPrefix, strokeWidth)` from
 `@hashintel/ds-icons/artwork` for trusted, generated SVG markup
 for static assets and canvas renderers. Supply an instance-specific prefix when
-embedding more than one drawing in an SVG document. The build regenerates this
+embedding more than one drawing in an SVG document. The helper resolves stroke
+variables to numbers using `strokeWidth` (default `1.75`); pass the same width
+as the surrounding SVG, or use `getHashIconStrokeWidth(weight)` to convert a
+weight. The React renderers retain CSS stroke sizing. The build regenerates this
 artwork from `HashIcon`; edit the canonical geometry, not `src/static/artwork.json`.
 
 ## One-time and continuous animations

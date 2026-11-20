@@ -1,5 +1,3 @@
-import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
-import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
   Checkbox,
@@ -15,7 +13,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
 import { extractBaseUrl } from "@blockprotocol/type-system";
-import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
+import { Chip, HashInlineIcon } from "@hashintel/design-system";
 import { fluidFontClassName } from "@hashintel/design-system/theme";
 
 import { usePropertyTypesOptions } from "../../../../../shared/property-types-options-context";
@@ -26,6 +24,9 @@ import { ExpectedValueBadge } from "./expected-value-badge";
 import type { Property } from "../../../shared/expected-value-types";
 import type { ExpectedValueSelectorFormValues } from "./expected-value-selector-form-values";
 import type { FunctionComponent } from "react";
+
+const faCircleQuestion = { icon: "help" } as const;
+const faAsterisk = { icon: "asterisk" } as const;
 
 const StyledTableRow = styled(Box)(({ theme }) => ({
   display: "flex",
@@ -83,7 +84,7 @@ const ObjectExpectedValueRow: FunctionComponent<
     <Collapse in={show && !animatingOut} sx={{ width: 1 }}>
       <StyledTableRow sx={{ backgroundColor: "red" }}>
         <StyledTableBodyCell sx={{ justifyContent: "flex-start", flex: 1 }}>
-          <FontAwesomeIcon
+          <HashInlineIcon
             icon={faAsterisk}
             sx={(theme) => ({
               color: theme.palette.gray[50],
@@ -257,7 +258,7 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
                   placement="top"
                   classes={{ popper: fluidFontClassName }}
                 >
-                  <FontAwesomeIcon
+                  <HashInlineIcon
                     icon={faCircleQuestion}
                     sx={{
                       fontSize: 12,
@@ -342,7 +343,7 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
               const propertySchema = propertyTypes[opt]?.schema;
               return propertySchema ? (
                 <Box component="li" {...optProps} sx={{ py: 1.5, px: 2.25 }}>
-                  <FontAwesomeIcon
+                  <HashInlineIcon
                     icon={faAsterisk}
                     sx={(theme) => ({
                       color: theme.palette.gray[50],

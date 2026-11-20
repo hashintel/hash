@@ -1,14 +1,15 @@
-import { faEdit } from "@fortawesome/free-regular-svg-icons";
-import { faClose } from "@fortawesome/free-solid-svg-icons";
 import { Box, chipClasses, Collapse, Stack, Typography } from "@mui/material";
 import { useState } from "react";
 
-import { Chip, FontAwesomeIcon, IconButton } from "@hashintel/design-system";
+import { Chip, HashInlineIcon, IconButton } from "@hashintel/design-system";
 
 import { useDataTypesOptions } from "../../../../shared/data-types-options-context";
 
 import type { CustomExpectedValueTypeId } from "../../../../shared/data-types-options-context";
 import type { ChipProps } from "@hashintel/design-system";
+
+const faEdit = { icon: "penSquare" } as const;
+const faClose = { icon: "close" } as const;
 
 interface ExpectedValueChipProps {
   expectedValueType: CustomExpectedValueTypeId;
@@ -52,7 +53,7 @@ export const ExpectedValueChip = ({
                   transitions.create("padding-right"),
               }}
             >
-              <FontAwesomeIcon
+              <HashInlineIcon
                 icon={{
                   icon,
                 }}
@@ -76,7 +77,7 @@ export const ExpectedValueChip = ({
                       },
                     }}
                   >
-                    <FontAwesomeIcon
+                    <HashInlineIcon
                       icon={faEdit}
                       sx={{
                         fontSize: "13px !important",
@@ -107,7 +108,7 @@ export const ExpectedValueChip = ({
                       },
                     }}
                   >
-                    <FontAwesomeIcon
+                    <HashInlineIcon
                       icon={faClose}
                       sx={{
                         fontSize: "13px !important",

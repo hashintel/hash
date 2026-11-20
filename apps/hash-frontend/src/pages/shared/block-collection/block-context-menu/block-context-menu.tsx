@@ -1,22 +1,9 @@
-import {
-  faCopy,
-  faMessage,
-  faPenToSquare,
-  faTrashCan,
-} from "@fortawesome/free-regular-svg-icons";
-import {
-  faAdd,
-  faArrowRight,
-  faGear,
-  faLink,
-  faRefresh,
-} from "@fortawesome/free-solid-svg-icons";
 import { useHotkeys } from "@mantine/hooks";
 import { Box, Divider, Menu, Typography } from "@mui/material";
 import { bindMenu } from "material-ui-popup-state";
 import { forwardRef, useCallback, useMemo, useRef } from "react";
 
-import { FontAwesomeIcon } from "@hashintel/design-system";
+import { HashInlineIcon } from "@hashintel/design-system";
 import { isHashTextBlock } from "@local/hash-isomorphic-utils/blocks-constants";
 import { blockProtocolLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
@@ -37,6 +24,16 @@ import type { BlockEntity } from "@local/hash-isomorphic-utils/entity";
 import type { DraftEntity } from "@local/hash-isomorphic-utils/entity-store";
 import type { PopupState } from "material-ui-popup-state/hooks";
 import type { ForwardRefRenderFunction } from "react";
+
+const faCopy = { icon: "copy" } as const;
+const faMessage = { icon: "message" } as const;
+const faPenToSquare = { icon: "penSquare" } as const;
+const faTrashCan = { icon: "trash" } as const;
+const faAdd = { icon: "plus" } as const;
+const faArrowRight = { icon: "arrowRight" } as const;
+const faGear = { icon: "settings" } as const;
+const faLink = { icon: "link" } as const;
+const faRefresh = { icon: "arrowsRotateClockwise" } as const;
 
 type BlockContextMenuProps = {
   blockEntity: DraftEntity | BlockEntity | null;
@@ -120,7 +117,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
             {
               key: "set-entity",
               title: hasChildEntityWithData ? "Swap Entity" : "Add an entity",
-              icon: <FontAwesomeIcon icon={faAdd} />,
+              icon: <HashInlineIcon icon={faAdd} />,
               subMenu: (
                 <LoadEntityMenuContent
                   blockEntityId={entityId}
@@ -155,17 +152,20 @@ const BlockContextMenu: ForwardRefRenderFunction<
       {
         key: "copy-link",
         title: "Copy Link",
-        icon: <FontAwesomeIcon icon={faLink} />,
+        icon: <HashInlineIcon icon={faLink} />,
         onClick: () => {
+          if (!entityId) {
+            return;
+          }
           const url = new URL(document.location.href);
-          url.hash = getBlockDomId((entityId ?? undefined)!);
+          url.hash = getBlockDomId(entityId);
           void navigator.clipboard.writeText(url.toString());
         },
       },
       {
         key: "edit-block",
         title: "Edit Block",
-        icon: <FontAwesomeIcon icon={faPenToSquare} />,
+        icon: <HashInlineIcon icon={faPenToSquare} />,
         onClick: () => {
           if (blockEntity?.blockChildEntity) {
             pushToSlideStack({
@@ -179,19 +179,19 @@ const BlockContextMenu: ForwardRefRenderFunction<
       {
         key: "configure",
         title: "Configure",
-        icon: <FontAwesomeIcon icon={faGear} />,
+        icon: <HashInlineIcon icon={faGear} />,
         onClick: () => openConfigMenu(),
       },
       {
         key: "duplicate",
         title: "Duplicate",
-        icon: <FontAwesomeIcon icon={faCopy} />,
+        icon: <HashInlineIcon icon={faCopy} />,
         isNotYetImplemented: true,
       },
       {
         key: "delete",
         title: "Delete",
-        icon: <FontAwesomeIcon icon={faTrashCan} />,
+        icon: <HashInlineIcon icon={faTrashCan} />,
         onClick: deleteBlock,
       },
       ...(canSwap && compatibleBlocks.length > 1
@@ -199,7 +199,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
             {
               key: "swap-block",
               title: "Swap block type",
-              icon: <FontAwesomeIcon icon={faRefresh} />,
+              icon: <HashInlineIcon icon={faRefresh} />,
               subMenu: (
                 <BlockListMenuContent compatibleBlocks={compatibleBlocks} />
               ),
@@ -210,13 +210,13 @@ const BlockContextMenu: ForwardRefRenderFunction<
       {
         key: "move-to-page",
         title: "Move to page",
-        icon: <FontAwesomeIcon icon={faArrowRight} />,
+        icon: <HashInlineIcon icon={faArrowRight} />,
         isNotYetImplemented: true,
       },
       {
         key: "comment",
         title: "Comment",
-        icon: <FontAwesomeIcon icon={faMessage} />,
+        icon: <HashInlineIcon icon={faMessage} />,
         isNotYetImplemented: true,
       },
     ];

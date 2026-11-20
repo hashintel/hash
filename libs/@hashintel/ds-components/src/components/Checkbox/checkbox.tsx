@@ -3,9 +3,12 @@ import { Checkbox as BaseCheckbox } from "@ark-ui/react/checkbox";
 import { cx } from "@hashintel/ds-helpers/css";
 
 import { resolveAutoFocusProps } from "../../util/form-shared";
+import CheckSvg from "../Icon/svgs/regular/check.svg";
+import MinusSvg from "../Icon/svgs/regular/minus.svg";
 import { styles } from "./checkbox.recipe";
 
 import type { SharedInputProps, Tone } from "../../util/form-shared";
+import type { AriaAttributes, ReactNode, Ref } from "react";
 
 export const Checkbox = ({
   className,
@@ -32,7 +35,7 @@ export const Checkbox = ({
   ...ariaProps
 }: {
   /** An optional label rendered alongside the box */
-  label?: React.ReactNode;
+  label?: ReactNode;
   /** Which side of the box the label is rendered on */
   labelPlacement?: "left" | "right";
   /** Vertical alignment of the box against the label when it wraps over multiple lines */
@@ -44,7 +47,7 @@ export const Checkbox = ({
   /** An optional value used for native form submissions */
   htmlValue?: string;
 } & SharedInputProps<HTMLInputElement, boolean> &
-  React.AriaAttributes) => {
+  AriaAttributes) => {
   const classes = styles({
     size,
     tone,
@@ -63,7 +66,7 @@ export const Checkbox = ({
       required={required}
       ids={htmlForId ? { hiddenInput: htmlForId } : undefined}
       data-testid={testId}
-      ref={ref as React.Ref<HTMLLabelElement>}
+      ref={ref as Ref<HTMLLabelElement>}
       className={cx(classes.root, className)}
       value={htmlValue}
       {...ariaProps}
@@ -74,21 +77,11 @@ export const Checkbox = ({
           className={classes.indicator}
           asChild
         >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="3px"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <title>{indeterminate ? "Partially checked" : "Checked"}</title>
-            {indeterminate ? (
-              <path d="M5 12h14" />
-            ) : (
-              <path d="M20 6 9 17l-5-5" />
-            )}
-          </svg>
+          {indeterminate ? (
+            <MinusSvg aria-hidden="true" />
+          ) : (
+            <CheckSvg aria-hidden="true" />
+          )}
         </BaseCheckbox.Indicator>
       </BaseCheckbox.Control>
       {label && (

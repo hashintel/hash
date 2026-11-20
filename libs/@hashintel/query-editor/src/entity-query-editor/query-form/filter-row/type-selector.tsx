@@ -1,7 +1,7 @@
 import { FormControl } from "@mui/material";
 import { useFormContext } from "react-hook-form";
 
-import { FontAwesomeIcon, MenuItem } from "@hashintel/design-system";
+import { HashInlineIcon, MenuItem } from "@hashintel/design-system";
 
 import { useReadonlyContext } from "../../readonly-context";
 import { RHFSelect } from "./rhf-select";
@@ -35,7 +35,7 @@ export const TypeSelector = ({ index }: { index: number }) => {
       >
         {filterTypes.map(({ icon, type }) => (
           <MenuItem key={type} value={type}>
-            <FontAwesomeIcon sx={{ mr: 1 }} icon={{ icon }} />
+            <HashInlineIcon sx={{ mr: 1 }} icon={{ icon }} />
             {type}
           </MenuItem>
         ))}

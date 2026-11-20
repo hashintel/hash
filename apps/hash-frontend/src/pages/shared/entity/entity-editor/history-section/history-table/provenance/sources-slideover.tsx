@@ -1,4 +1,3 @@
-import { faFile } from "@fortawesome/free-regular-svg-icons";
 import {
   Backdrop,
   Box,
@@ -15,7 +14,7 @@ import {
 } from "@mui/material";
 
 import { splitEntityId } from "@blockprotocol/type-system";
-import { FontAwesomeIcon } from "@hashintel/design-system";
+import { HashInlineIcon } from "@hashintel/design-system";
 
 import { useUserOrOrgShortnameByWebId } from "../../../../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import { Link } from "../../../../../../../shared/ui/link";
@@ -26,6 +25,8 @@ import { EventDetail } from "../shared/event-detail";
 import type { HistoryEvent } from "../../shared/types";
 import type { Subgraph } from "@blockprotocol/graph";
 import type { EntityId, SourceProvenance } from "@blockprotocol/type-system";
+
+const faFile = { icon: "file" } as const;
 
 const boxPadding = {
   px: 4,
@@ -55,7 +56,7 @@ const SourceRow = ({ source }: { source: SourceProvenance }) => {
       <TableCell>
         <ValueChip
           icon={
-            <FontAwesomeIcon
+            <HashInlineIcon
               icon={faFile}
               sx={(theme) => ({
                 color: theme.palette.blue[70],

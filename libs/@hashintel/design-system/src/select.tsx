@@ -1,4 +1,3 @@
-import { faCircleExclamation } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
   Collapse,
@@ -10,10 +9,12 @@ import {
 } from "@mui/material";
 import { forwardRef } from "react";
 
-import { FontAwesomeIcon } from "./fontawesome-icon";
+import { HashInlineIcon } from "./hash-svg-icon";
 
 import type { BoxProps, SelectProps as MuiSelectProps } from "@mui/material";
 import type { ReactElement, ReactNode, Ref } from "react";
+
+const faCircleExclamation = { icon: "error" } as const;
 
 export type SelectProps<T = unknown> = {
   children: ReactNode;
@@ -69,7 +70,7 @@ const Select = <T,>(
           error
           sx={{ display: "flex", alignItems: "center", mt: 1 }}
         >
-          <FontAwesomeIcon icon={faCircleExclamation} />
+          <HashInlineIcon icon={faCircleExclamation} />
           <Typography variant="smallTextLabels">{helperText}</Typography>
         </FormHelperText>
       </Collapse>

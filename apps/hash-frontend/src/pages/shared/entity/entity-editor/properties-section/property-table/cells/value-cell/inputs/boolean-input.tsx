@@ -1,11 +1,13 @@
-import { faSquare, faSquareCheck } from "@fortawesome/free-regular-svg-icons";
-import { faRightLeft } from "@fortawesome/free-solid-svg-icons";
 import { Box, chipClasses, Tooltip, Typography } from "@mui/material";
 
-import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
+import { Chip, HashInlineIcon } from "@hashintel/design-system";
 import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
 
 import type { CellInputProps } from "./types";
+
+const faSquare = { icon: "transition" } as const;
+const faSquareCheck = { icon: "squareCheck" } as const;
+const faRightLeft = { icon: "arrowsLeftRight" } as const;
 
 export const BooleanInput = ({
   onChange,
@@ -35,7 +37,7 @@ export const BooleanInput = ({
             }}
             disableInteractive
           >
-            <FontAwesomeIcon
+            <HashInlineIcon
               icon={value ? faSquareCheck : faSquare}
               sx={{ zIndex: 1 }}
             />
@@ -73,7 +75,7 @@ export const BooleanInput = ({
           >
             Change
           </Typography>
-          <FontAwesomeIcon icon={faRightLeft} sx={{ fontSize: 10 }} />
+          <HashInlineIcon icon={faRightLeft} sx={{ fontSize: 10 }} />
         </Box>
       )}
     </Box>

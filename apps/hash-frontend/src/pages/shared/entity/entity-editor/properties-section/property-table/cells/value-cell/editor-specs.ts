@@ -7,13 +7,13 @@ import {
 import type { CustomIcon } from "../../../../../../../../components/grid/utils/custom-grid-icons";
 import type { EditorType } from "./types";
 import type { ClosedDataType } from "@blockprotocol/type-system";
-import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
+import type { HashIconDefinition } from "@hashintel/design-system";
 import type { MergedDataTypeSingleSchema } from "@local/hash-isomorphic-utils/data-types";
 
 interface EditorSpec {
   gridIcon: CustomIcon;
   defaultValue?: unknown;
-  icon: IconDefinition["icon"];
+  icon: HashIconDefinition["icon"];
   arrayEditException?: "no-edit-mode" | "no-save-and-discard-buttons";
   shouldBeDrawnAsAChip?: boolean;
 }

@@ -1,10 +1,10 @@
 import { ListItemIcon, listItemIconClasses, ListItemText } from "@mui/material";
 
-import { FontAwesomeIcon } from "@hashintel/design-system";
+import { HashInlineIcon } from "@hashintel/design-system";
 
 import { MenuItem } from "../../../../../../ui";
 
-import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
+import type { HashIconDefinition } from "@hashintel/design-system";
 import type { PopupState } from "material-ui-popup-state/hooks";
 import type { ReactElement } from "react";
 
@@ -17,7 +17,7 @@ export const SidebarMenuItem = ({
   popupState,
 }: {
   title: string;
-  icon: IconDefinition | ReactElement;
+  icon: HashIconDefinition | ReactElement;
   faded?: boolean;
   popupState: PopupState;
 } & (
@@ -38,7 +38,7 @@ export const SidebarMenuItem = ({
       }}
     >
       <ListItemIcon>
-        {"icon" in icon ? <FontAwesomeIcon icon={icon} /> : icon}
+        {"icon" in icon ? <HashInlineIcon icon={icon} /> : icon}
       </ListItemIcon>
       <ListItemText primary={title} />
     </MenuItem>

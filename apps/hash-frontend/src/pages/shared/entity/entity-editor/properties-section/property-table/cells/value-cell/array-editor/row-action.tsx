@@ -1,12 +1,12 @@
 import { Tooltip } from "@mui/material";
 
-import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
+import { HashInlineIcon, IconButton } from "@hashintel/design-system";
 import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
 
-import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
+import type { HashIconDefinition } from "@hashintel/design-system";
 
 interface RowActionProps {
-  icon: IconDefinition;
+  icon: HashIconDefinition;
   onClick: () => void;
   tooltip: string;
 }
@@ -27,7 +27,7 @@ export const RowAction = ({ icon, onClick, tooltip }: RowActionProps) => {
         sx={{ background: "white !important", width: 50 }}
         size="small"
       >
-        <FontAwesomeIcon icon={icon} />
+        <HashInlineIcon icon={icon} />
       </IconButton>
     </Tooltip>
   );

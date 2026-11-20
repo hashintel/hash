@@ -1,8 +1,3 @@
-import {
-  faChartColumn,
-  faHome,
-  faTruckFast,
-} from "@fortawesome/free-solid-svg-icons";
 import { Box, Collapse, Drawer } from "@mui/material";
 import { useRouter } from "next/router";
 import {
@@ -14,7 +9,7 @@ import {
 
 import {
   AsteriskRegularIcon,
-  FontAwesomeIcon,
+  HashInlineIcon,
   IconButton,
   ShapesRegularIcon,
 } from "@hashintel/design-system";
@@ -41,6 +36,10 @@ import { AccountPageList } from "./sidebar/account-page-list";
 import { FavoritesList } from "./sidebar/favorites-list";
 import { TopNavLink } from "./sidebar/top-nav-link";
 import { WorkspaceSwitcher } from "./sidebar/workspace-switcher";
+
+const faChartColumn = { icon: "chartBarSimple" } as const;
+const faHome = { icon: "home" } as const;
+const faTruckFast = { icon: "truckFast" } as const;
 
 export const SIDEBAR_WIDTH = 260;
 
@@ -147,7 +146,7 @@ export const PageSidebar: FunctionComponent = () => {
       {
         title: "Home",
         path: "/",
-        icon: <FontAwesomeIcon icon={faHome} />,
+        icon: <HashInlineIcon icon={faHome} />,
         tooltipTitle: "",
       },
       ...workersSection,
@@ -155,7 +154,7 @@ export const PageSidebar: FunctionComponent = () => {
       {
         title: "Supply Chain",
         path: "/supply-chain",
-        icon: <FontAwesomeIcon icon={faTruckFast} />,
+        icon: <HashInlineIcon icon={faTruckFast} />,
         activeIfPathMatches: /^\/supply-chain(\/|$)/,
         tooltipTitle: "",
       },
@@ -170,7 +169,7 @@ export const PageSidebar: FunctionComponent = () => {
             {
               title: "Dashboards",
               path: "/dashboards",
-              icon: <FontAwesomeIcon icon={faChartColumn} />,
+              icon: <HashInlineIcon icon={faChartColumn} />,
               activeIfPathMatches: /^\/dashboards?(\/|$)/,
               tooltipTitle: "",
             },
@@ -377,7 +376,7 @@ export const PageSidebar: FunctionComponent = () => {
           },
         }}
       >
-        <FontAwesomeIcon
+        <HashInlineIcon
           sx={{ mr: 1.5, color: ({ palette }) => palette.gray[50] }}
           color="inherit"
           icon={faLifeRing}

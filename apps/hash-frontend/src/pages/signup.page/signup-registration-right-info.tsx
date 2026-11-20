@@ -1,31 +1,29 @@
-import {
-  faCheck,
-  // faEnvelope,
-} from "@fortawesome/free-solid-svg-icons";
 import { Box, Typography } from "@mui/material";
 
-import { FontAwesomeIcon } from "@hashintel/design-system";
+import { HashInlineIcon } from "@hashintel/design-system";
 
 import { PizzaSolidIcon } from "../../shared/icons/pizza-solid-icon";
 
 import type { FunctionComponent, ReactNode } from "react";
 
+const faCheck = { icon: "check" } as const;
+
 const infoItems: {
   title: string;
-  description: React.ReactNode;
+  description: ReactNode;
   icon: ReactNode;
 }[] = [
   /** @todo: add this info item when email verification is supported */
   // {
   //   title: "Skip email verification",
   //   description: "Sign-up with Google or Apple",
-  //   icon: <FontAwesomeIcon icon={faEnvelope} />,
+  //   icon: <HashInlineIcon icon={faEnvelope} />,
   // },
   {
     // title: "Or sign up with email",
     title: "Sign up with email",
     description: "You’ll be done in seconds",
-    icon: <FontAwesomeIcon icon={faCheck} />,
+    icon: <HashInlineIcon icon={faCheck} />,
   },
   {
     title: "Reserve your username",

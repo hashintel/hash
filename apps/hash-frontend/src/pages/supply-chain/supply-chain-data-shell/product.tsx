@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, useMemo } from "react";
 
 import { Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
+import { StaticHashIcon } from "@hashintel/ds-icons/static";
 
 import { DWELL_TYPES, isDwellType } from "../shared/categories";
 import {
@@ -253,22 +254,14 @@ function periodTotalCost(
 
 const LegendClockIcon = () => {
   return (
-    <svg
+    <StaticHashIcon
       width="9"
       height="9"
-      viewBox="0 0 12 12"
       fill="none"
       className={legendClock}
       aria-hidden="true"
-    >
-      <circle cx="6" cy="6" r="5" stroke="currentColor" strokeWidth="1.2" />
-      <path
-        d="M6 3.5V6L7.5 7.5"
-        stroke="currentColor"
-        strokeWidth="1.2"
-        strokeLinecap="round"
-      />
-    </svg>
+      name="clock"
+    />
   );
 };
 

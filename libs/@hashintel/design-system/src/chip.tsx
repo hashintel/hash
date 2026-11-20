@@ -1,10 +1,11 @@
-import { faCircle } from "@fortawesome/free-solid-svg-icons";
 import { Chip as MuiChip, chipClasses } from "@mui/material";
 import { forwardRef } from "react";
 
-import { FontAwesomeIcon } from "./fontawesome-icon";
+import { HashInlineIcon } from "./hash-svg-icon";
 
 import type { ChipProps as MuiChipProps } from "@mui/material";
+
+const faCircle = { icon: "place" } as const;
 
 export type ChipProps = {
   hasCircleStartIcon?: boolean;
@@ -51,7 +52,7 @@ export const Chip = forwardRef<HTMLDivElement, ChipProps>(
           ...(Array.isArray(sx) ? sx : [sx]),
         ]}
         icon={
-          hasCircleStartIcon ? <FontAwesomeIcon icon={faCircle} /> : startIcon
+          hasCircleStartIcon ? <HashInlineIcon icon={faCircle} /> : startIcon
         }
         {...props}
       />

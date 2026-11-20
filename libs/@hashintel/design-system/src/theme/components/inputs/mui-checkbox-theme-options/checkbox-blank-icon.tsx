@@ -1,4 +1,4 @@
-import { SvgIcon } from "@mui/material";
+import { HashSvgIcon } from "../../../../hash-svg-icon";
 
 import type { SvgIconProps } from "@mui/material";
 import type { FunctionComponent } from "react";
@@ -8,7 +8,7 @@ export const CheckboxBlankIcon: FunctionComponent<SvgIconProps> = ({
   ...otherProps
 }) => {
   return (
-    <SvgIcon
+    <HashSvgIcon
       {...otherProps}
       sx={[
         {
@@ -19,11 +19,8 @@ export const CheckboxBlankIcon: FunctionComponent<SvgIconProps> = ({
         },
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
-      viewBox="0 0 18 18"
       fill="none"
-    >
-      <rect x="0.5" y="0.5" width="17" height="17" rx="3.5" fill="white" />
-      <rect x="0.5" y="0.5" width="17" height="17" rx="3.5" stroke="#DDE7F0" />
-    </SvgIcon>
+      icon="transition"
+    />
   );
 };

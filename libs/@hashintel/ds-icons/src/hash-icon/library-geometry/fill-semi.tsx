@@ -8,6 +8,7 @@ export const fillSemiGeometry = (
       height="16"
       rx="0"
       fill="currentColor"
+      stroke="none"
       opacity=".4"
     />
   </g>

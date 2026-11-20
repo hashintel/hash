@@ -1,9 +1,10 @@
 import { css, cx } from "@hashintel/ds-helpers/css";
+import { HashIconArtwork, StaticHashIcon } from "@hashintel/ds-icons/static";
 
 import { getBarSegments, stepStateLabels } from "./step-states";
 
 import type { ItemState, StepRunMark, StepState } from "./step-states";
-import type { ReactNode } from "react";
+import type { HashIconName } from "@hashintel/ds-icons/static";
 
 const glyphColors: Record<StepState, string> = {
   notReached: css({ color: "bd.strong" }),
@@ -21,47 +22,17 @@ const spinning = css({
   animation: "rotateRight 1.2s linear infinite",
   _motionReduce: { animation: "none" },
 });
-const failedArc = css({ stroke: "status.error.fg.muted" });
-
-/* The F3 set from the flows editor prototype, drawn on a 16px grid. */
-const glyphPaths: Record<StepState, ReactNode> = {
-  notReached: (
-    <circle
-      cx="8"
-      cy="8"
-      r="4"
-      strokeDasharray="0.01 3.13"
-      transform="rotate(-90 8 8)"
-    />
-  ),
-  running: (
-    <>
-      <circle cx="8" cy="8" r="4" opacity="0.25" />
-      <path d="M8 4 A4 4 0 0 1 11.939 8.695" />
-    </>
-  ),
-  needsReview: (
-    <>
-      <path d="M8 4.5V8.5" />
-      <path d="M8 11.25h.01" strokeWidth="1.6" />
-    </>
-  ),
-  done: <path d="M5.125 9 L7.5 11.375 L11.375 5.125" />,
-  /* Equal halves, as the bar draws it: done on the right, failed on the left. */
-  doneWithFailures: (
-    <>
-      <path d="M8.4 4.02 A4 4 0 0 1 8.4 11.98" />
-      <path d="M7.6 11.98 A4 4 0 0 1 7.6 4.02" className={failedArc} />
-    </>
-  ),
-  failed: <path d="M4.875 4.875 L11.125 11.125 M11.125 4.875 L4.875 11.125" />,
-  skipped: <path d="M10.75 5.25 L5.25 10.75" />,
+const failedArc = css({ color: "status.error.fg.muted" });
+const stateIcons: Record<StepState, HashIconName> = {
+  notReached: "place",
+  running: "loading",
+  needsReview: "error",
+  done: "check",
+  doneWithFailures: "place",
+  failed: "close",
+  skipped: "stepForward",
 };
 
-/**
- * A step state's glyph, named for screen readers. The design system has no run-state icons, so they're drawn here.
- * `exclaim` draws failed as "!", as needs review is, where it asks for a look rather than names the state.
- */
 export const RunGlyph = ({
   state,
   exclaim = false,
@@ -76,22 +47,36 @@ export const RunGlyph = ({
 }) => {
   const exclaims = exclaim && state === "failed";
 
+  const className = cx(
+    glyph,
+    glyphColors[state],
+    state === "running" && spinning,
+  );
+  if (state === "doneWithFailures") {
+    return (
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        role="img"
+        aria-label={label}
+        className={className}
+      >
+        <HashIconArtwork name="place" />
+        <g className={failedArc} style={{ clipPath: "inset(0 50% 0 0)" }}>
+          <HashIconArtwork name="place" />
+        </g>
+      </svg>
+    );
+  }
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 16 16"
-      role="img"
+    <StaticHashIcon
+      name={exclaims ? "error" : stateIcons[state]}
+      size={size}
       aria-label={label}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.25"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={cx(glyph, glyphColors[state], state === "running" && spinning)}
-    >
-      {exclaims ? glyphPaths.needsReview : glyphPaths[state]}
-    </svg>
+      strokeDasharray={state === "notReached" ? "1 4" : undefined}
+      className={className}
+    />
   );
 };
 

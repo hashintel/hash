@@ -40,6 +40,7 @@ import { parkedPopperPositioner } from "../../util/popper-positioner";
 import { usePortalContainerRef } from "../../util/portal-container-context";
 import { useFieldId } from "../Form/field-id-context";
 import { Icon } from "../Icon/icon";
+import CloseSvg from "../Icon/svgs/regular/xmark.svg";
 import { LoadingSpinner } from "../Loading/loading-spinner";
 import { InputConnector } from "../TextInput/input-connector";
 import { selectRecipe } from "./select.recipe";
@@ -50,6 +51,14 @@ import type {
   SharedInputProps,
 } from "../../util/form-shared";
 import type { IconName } from "../Icon/icon";
+import type {
+  AriaAttributes,
+  KeyboardEvent as ReactKeyboardEvent,
+  KeyboardEventHandler,
+  MouseEventHandler,
+  ReactNode,
+  Ref,
+} from "react";
 
 type SelectItemBase<TValue extends string> = {
   /** Identifies the option; reported to `onChange` when selected */
@@ -71,7 +80,7 @@ export const SelectGroupDoc = (_props: {
   /** Identifies the group */
   id: string;
   /** Rendered as an uppercase label above the group's options; an empty string draws a plain divider */
-  label: React.ReactNode;
+  label: ReactNode;
   /** The group's options; groups don't nest */
   items: SelectItem[];
 }): null => null;
@@ -79,7 +88,7 @@ export const SelectGroupDoc = (_props: {
 export type MultiSelectItem<TValue extends string = string> =
   SelectItemBase<TValue> & {
     /** Optional content aligned to the right of the item in the dropdown */
-    suffix?: React.ReactNode;
+    suffix?: ReactNode;
     /** Show an "Only" button while the item is hovered, which sets the selection to just this item. It renders in the suffix position, replacing `suffix` while visible. */
     showOnlyButton?: boolean;
     // selectedStyle: how selection is indicated in the dropdown, defaulting
@@ -111,15 +120,15 @@ type SelectBaseProps<TValue extends string> = {
   connectToLeftInput?: boolean;
   /** Whether this input renders as connected to the input on its right. Set the matching prop on both inputs; `subtle` and `readonly` inputs are never connected. */
   connectToRightInput?: boolean;
-  onClick?: React.MouseEventHandler<Element>;
-  onKeyDown?: React.KeyboardEventHandler<Element>;
+  onClick?: MouseEventHandler<Element>;
+  onKeyDown?: KeyboardEventHandler<Element>;
   tabIndex?: number;
   /** Custom renderer for items in the dropdown. Defaults to the item's `text`. Note that if connectToLeftInput or connectToRightInput the height of the rendered selected item is clamped to the default height of select so that it correctly aligns. */
-  renderItem?: (value: TValue) => React.ReactNode;
+  renderItem?: (value: TValue) => ReactNode;
   /** The input ref - this is different to the ref, which is the containing element. This refers instead to a hidden select element (the actual ui uses a button to handle custom styling). Use this to access the internal select state and/or to set focus. */
-  inputRef?: React.Ref<HTMLSelectElement>;
+  inputRef?: Ref<HTMLSelectElement>;
   /** Optional custom message for scenarios where there are no items available to show */
-  emptyState?: React.ReactNode;
+  emptyState?: ReactNode;
   /** Called when the dropdown opens or closes */
   onOpenChange?: (open: boolean) => void;
   /** Mount with the dropdown already open. Read once on mount; it does not open or close the dropdown afterwards, and `onOpenChange` does not fire for this initial state. */
@@ -128,7 +137,7 @@ type SelectBaseProps<TValue extends string> = {
   SharedInputProps<HTMLButtonElement, string | null | undefined>,
   "value" | "onChange" | "required" | "inputRef"
 > &
-  React.AriaAttributes;
+  AriaAttributes;
 
 /** Adds a search field to the dropdown that filters the items by their text.
  * onSearch is called as the search value changes, including with "" when the
@@ -154,7 +163,7 @@ type SelectSingleProps<TValue extends string> = {
   /** The options to pick from */
   items: ReadonlyArray<ItemOrGroup<SelectItem<TValue>>>;
   /** Custom renderer for the selected value in the trigger. Defaults to `renderItem`, or the item's `text` if neither is provided. */
-  renderSelectedItem?: (value: TValue) => React.ReactNode;
+  renderSelectedItem?: (value: TValue) => ReactNode;
   renderSelectedAll?: never;
 } & (
   | {
@@ -208,9 +217,9 @@ type SelectMultipleProps<TValue extends string> = {
   /** The options to pick from */
   items: ReadonlyArray<ItemOrGroup<MultiSelectItem<TValue>>>;
   /** Custom renderer for the selected value in the trigger. Defaults to `renderItem`, or the item's `text` if neither is provided. */
-  renderSelectedItem?: (value: TValue) => React.ReactNode;
+  renderSelectedItem?: (value: TValue) => ReactNode;
   /** Custom renderer for the trigger's entire selection, replacing the per-value row and with it the `overflow` behaviour (and `renderSelectedItem`). */
-  renderSelectedAll?: (values: TValue[]) => React.ReactNode;
+  renderSelectedAll?: (values: TValue[]) => ReactNode;
   required?: boolean;
   /** The current selection, `null`/`undefined` while empty */
   value: ReadonlyArray<NoInfer<TValue>>;
@@ -225,7 +234,7 @@ type SelectSlots = ReturnType<typeof selectRecipe>;
 type Prefix =
   | { iconName: IconName }
   | { text: string }
-  | { content: React.ReactNode };
+  | { content: ReactNode };
 
 const isIconPrefix = (val: Prefix): val is { iconName: IconName } =>
   "iconName" in val;
@@ -252,7 +261,7 @@ function renderPrefix(
   adornment: Prefix,
   size: FormInputSize,
   classes: SelectSlots,
-): React.ReactNode {
+): ReactNode {
   const content = isIconPrefix(adornment) ? (
     <Icon name={adornment.iconName} size={iconSizeMap[size]} />
   ) : isTextPrefix(adornment) ? (
@@ -305,7 +314,7 @@ function findSelectItem<TValue extends string>(
 
 function mapToMenuItems<TValue extends string>(
   items: ReadonlyArray<ItemOrGroup<MultiSelectItem<TValue>>>,
-  renderItem: (value: TValue) => React.ReactNode,
+  renderItem: (value: TValue) => ReactNode,
   options: {
     multiple: boolean;
     /** When defined, values outside the set are disabled (a multi select at `maxItems`) */
@@ -316,7 +325,7 @@ function mapToMenuItems<TValue extends string>(
     hasCollapsibleFolders: boolean;
   },
 ): Array<ItemOrGroup<Item>> {
-  const toSuffix = (it: MultiSelectItem<TValue>): React.ReactNode =>
+  const toSuffix = (it: MultiSelectItem<TValue>): ReactNode =>
     hasMultiItemSuffix(it) ? (
       <MultiItemSuffix
         suffix={it.suffix}
@@ -558,7 +567,7 @@ export const Select = <TValue extends string>({
   // the machine api instead. Single selects mirror Enter and close after
   // selecting.
   const lastKeyWasListNavRef = useRef(false);
-  const handleSearchSpaceKeyDown = (event: React.KeyboardEvent): boolean => {
+  const handleSearchSpaceKeyDown = (event: ReactKeyboardEvent): boolean => {
     const api = selectApiRef.current;
     if (
       !api?.open ||
@@ -594,7 +603,7 @@ export const Select = <TValue extends string>({
   // option — activation (Enter, Space, click) selects it, so the horizontal
   // arrows carry the keyboard toggle. Skipped for keys owned by the search
   // field's caret, and while searching (every folder is held open then).
-  const handleCollapsibleArrowKeyDown = (event: React.KeyboardEvent) => {
+  const handleCollapsibleArrowKeyDown = (event: ReactKeyboardEvent) => {
     const api = selectApiRef.current;
     const expansion = expansionRef.current;
     if (!api?.open || !expansion || hasCaretModifier(event)) {
@@ -633,7 +642,7 @@ export const Select = <TValue extends string>({
   // handing focus to the document's neighbouring tabbable — zag would
   // otherwise trap focus in the open dropdown. Handled in the capture phase
   // so zag never sees the key; all movement is programmatic.
-  const handleTabKeyDown = (event: React.KeyboardEvent) => {
+  const handleTabKeyDown = (event: ReactKeyboardEvent) => {
     const api = selectApiRef.current;
     if (!api?.open || hasCommandModifier(event)) {
       return;
@@ -709,7 +718,7 @@ export const Select = <TValue extends string>({
       });
     });
   };
-  const handleRootKeyDownCapture = (event: React.KeyboardEvent) => {
+  const handleRootKeyDownCapture = (event: ReactKeyboardEvent) => {
     if (
       selectApiRef.current?.open &&
       (event.key === "ArrowUp" ||
@@ -803,7 +812,7 @@ export const Select = <TValue extends string>({
     return filtered;
   }, [effectiveItems, searchTerms]);
 
-  const resolvedRenderItem = useMemo<(value: TValue) => React.ReactNode>(
+  const resolvedRenderItem = useMemo<(value: TValue) => ReactNode>(
     () =>
       renderItem ??
       ((val: TValue) => findSelectItem(effectiveItems, val)?.text ?? val),
@@ -834,7 +843,7 @@ export const Select = <TValue extends string>({
   const overflowMode =
     multiple && !renderSelectedAll ? (overflow ?? "scroll") : undefined;
 
-  const renderSelectedContent = (): React.ReactNode => {
+  const renderSelectedContent = (): ReactNode => {
     if (multiple) {
       if (renderSelectedAll) {
         return renderSelectedAll(selectedValues);
@@ -1168,7 +1177,7 @@ export const Select = <TValue extends string>({
       positioning={{
         getAnchorRect: () => selectRef.current?.getBoundingClientRect() ?? null,
       }}
-      ref={ref as React.Ref<HTMLDivElement>}
+      ref={ref as Ref<HTMLDivElement>}
       className={cx(classes.wrapper, className)}
       onKeyDownCapture={handleRootKeyDownCapture}
     >
@@ -1254,19 +1263,7 @@ export const Select = <TValue extends string>({
               )}
               aria-label="Clear input"
             >
-              {/* Stroked rather than the close icon so its weight follows the arrow's */}
-              <svg
-                viewBox="0 0 10 10"
-                aria-hidden="true"
-                className={classes.clearIcon}
-                fill="none"
-                stroke="currentColor"
-              >
-                <path
-                  d="M0 0L10 10M10 0L0 10"
-                  vectorEffect="non-scaling-stroke"
-                />
-              </svg>
+              <CloseSvg aria-hidden="true" className={classes.clearIcon} />
             </button>
           )}
         </div>

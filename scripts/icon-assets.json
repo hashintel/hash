@@ -1,0 +1,3149 @@
+[
+  {
+    "file": ".github/assets/gh_icon_about_20px-base.svg",
+    "name": "info",
+    "size": 24,
+    "width": "20",
+    "height": "20",
+    "color": "#2965FF"
+  },
+  {
+    "file": ".github/assets/gh_icon_acknowledgement_20px-base.svg",
+    "name": "stars",
+    "size": 24,
+    "width": "20",
+    "height": "20",
+    "color": "#2965FF"
+  },
+  {
+    "file": ".github/assets/gh_icon_contact_20px-base.svg",
+    "name": "mail",
+    "size": 24,
+    "width": "20",
+    "height": "20",
+    "color": "#2965FF"
+  },
+  {
+    "file": ".github/assets/gh_icon_contributing_20px-base.svg",
+    "name": "codeBranch",
+    "size": 24,
+    "width": "20",
+    "height": "20",
+    "color": "#2965FF"
+  },
+  {
+    "file": ".github/assets/gh_icon_examples_20px-base.svg",
+    "name": "shootingStar",
+    "size": 24,
+    "width": "20",
+    "height": "20",
+    "color": "#2965FF"
+  },
+  {
+    "file": ".github/assets/gh_icon_getting-started_20px-base.svg",
+    "name": "circlePlay",
+    "size": 24,
+    "width": "20",
+    "height": "20",
+    "color": "#2965FF"
+  },
+  {
+    "file": ".github/assets/gh_icon_license_20px-base.svg",
+    "name": "fileCertificate",
+    "size": 24,
+    "width": "20",
+    "height": "20",
+    "color": "#2965FF"
+  },
+  {
+    "file": ".github/assets/gh_icon_repo-structure_20px-base.svg",
+    "name": "treeList",
+    "size": 24,
+    "width": "20",
+    "height": "20",
+    "color": "#2965FF"
+  },
+  {
+    "file": ".github/assets/gh_icon_roadmap_20px-base.svg",
+    "name": "road",
+    "size": 24,
+    "width": "20",
+    "height": "20",
+    "color": "#2965FF"
+  },
+  {
+    "file": ".github/assets/gh_icon_security_20px-base.svg",
+    "name": "lockPlain",
+    "size": 24,
+    "width": "20",
+    "height": "20",
+    "color": "#2965FF"
+  },
+  {
+    "file": "apps/hash-frontend/public/format-font.svg",
+    "name": "fontMixedAa",
+    "size": 24,
+    "width": "24",
+    "height": "24",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/account-billing.svg",
+    "name": "creditCard",
+    "size": 24,
+    "width": "16",
+    "height": "13",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/account-notifications.svg",
+    "name": "megaphone",
+    "size": 24,
+    "width": "17",
+    "height": "13",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/account-overview.svg",
+    "name": "user",
+    "size": 24,
+    "width": "14",
+    "height": "15",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/account-personalization.svg",
+    "name": "personSparkles",
+    "size": 24,
+    "width": "15",
+    "height": "15",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/account-privacy.svg",
+    "name": "shield",
+    "size": 24,
+    "width": "14",
+    "height": "15",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/account-profile.svg",
+    "name": "eye",
+    "size": 24,
+    "width": "16",
+    "height": "13",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/account-security.svg",
+    "name": "lockPlain",
+    "size": 24,
+    "width": "14",
+    "height": "15",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/account-support.svg",
+    "name": "lifeRing",
+    "size": 24,
+    "width": "15",
+    "height": "15",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/ai-chat.svg",
+    "name": "comment",
+    "size": 24,
+    "width": "15",
+    "height": "13",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/ai-overview.svg",
+    "name": "lightning",
+    "size": 24,
+    "width": "12",
+    "height": "15",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/ai-workers.svg",
+    "name": "spinnerDots",
+    "size": 24,
+    "width": "14",
+    "height": "15",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/apps-overview.svg",
+    "name": "browser",
+    "size": 24,
+    "width": "14",
+    "height": "13",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/entities-attributes.svg",
+    "name": "database",
+    "size": 24,
+    "width": "14",
+    "height": "15",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/entities-creating.svg",
+    "name": "layerPlusAbove",
+    "size": 24,
+    "width": "14",
+    "height": "15",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/entities-overview.svg",
+    "name": "atom",
+    "size": 24,
+    "width": "14",
+    "height": "13",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/entities-updating.svg",
+    "name": "layerUpload",
+    "size": 24,
+    "width": "14",
+    "height": "14",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/flows-actions.svg",
+    "name": "checksStacked",
+    "size": 24,
+    "width": "14",
+    "height": "13",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/flows-creating.svg",
+    "name": "infinityPlus",
+    "size": 24,
+    "width": "18",
+    "height": "12",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/flows-filters.svg",
+    "name": "filter",
+    "size": 24,
+    "width": "14",
+    "height": "13",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/flows-overview.svg",
+    "name": "infinity",
+    "size": 24,
+    "width": "18",
+    "height": "10",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/flows-triggers.svg",
+    "name": "satelliteDish",
+    "size": 24,
+    "width": "14",
+    "height": "15",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/flows-waits.svg",
+    "name": "hourglass",
+    "size": 24,
+    "width": "12",
+    "height": "15",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/inbox-actions.svg",
+    "name": "squareCheck",
+    "size": 24,
+    "width": "14",
+    "height": "13",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/inbox-messages.svg",
+    "name": "mail",
+    "size": 24,
+    "width": "14",
+    "height": "11",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/inbox-notes.svg",
+    "name": "noteList",
+    "size": 24,
+    "width": "13",
+    "height": "13",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/inbox-notifications.svg",
+    "name": "bell",
+    "size": 24,
+    "width": "14",
+    "height": "15",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/inbox-overview.svg",
+    "name": "inbox",
+    "size": 24,
+    "width": "14",
+    "height": "13",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/integrations-overview.svg",
+    "name": "arrowsLeftRight",
+    "size": 24,
+    "width": "14",
+    "height": "15",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/introduction-coreconcepts.svg",
+    "name": "microscope",
+    "size": 24,
+    "width": "14",
+    "height": "15",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/introduction-futurevision.svg",
+    "name": "targetArrow",
+    "size": 24,
+    "width": "15",
+    "height": "15",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/introduction-getstarted.svg",
+    "name": "rocket",
+    "size": 24,
+    "width": "15",
+    "height": "15",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/introduction-usecases.svg",
+    "name": "shootingStar",
+    "size": 24,
+    "width": "14",
+    "height": "15",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/pages-blocks.svg",
+    "name": "cube",
+    "size": 24,
+    "width": "14",
+    "height": "15",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/pages-canvases.svg",
+    "name": "rectangle",
+    "size": 24,
+    "width": "15",
+    "height": "12",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/pages-chips.svg",
+    "name": "rectanglePointer",
+    "size": 24,
+    "width": "16",
+    "height": "13",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/pages-comments.svg",
+    "name": "comments",
+    "size": 24,
+    "width": "18",
+    "height": "15",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/pages-documents.svg",
+    "name": "file",
+    "size": 24,
+    "width": "12",
+    "height": "15",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/pages-modes.svg",
+    "name": "toggleOn",
+    "size": 24,
+    "width": "16",
+    "height": "11",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/pages-overview.svg",
+    "name": "globeStand",
+    "size": 24,
+    "width": "13",
+    "height": "15",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/plugins-overview.svg",
+    "name": "plug",
+    "size": 24,
+    "width": "12",
+    "height": "15",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/sharing-feed.svg",
+    "name": "antenna",
+    "size": 24,
+    "width": "17",
+    "height": "15",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/sharing-overview.svg",
+    "name": "shareNodes",
+    "size": 24,
+    "width": "14",
+    "height": "13",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/sharing-peers.svg",
+    "name": "shuffle",
+    "size": 24,
+    "width": "15",
+    "height": "14",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/types-datatypes.svg",
+    "name": "barcode",
+    "size": 24,
+    "width": "14",
+    "height": "13",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/types-entitytypes.svg",
+    "name": "asterisk",
+    "size": 24,
+    "width": "12",
+    "height": "13",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/types-linktypes.svg",
+    "name": "link",
+    "size": 24,
+    "width": "18",
+    "height": "15",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/types-overview.svg",
+    "name": "globe",
+    "size": 24,
+    "width": "14",
+    "height": "15",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/types-propertytypes.svg",
+    "name": "inputField",
+    "size": 24,
+    "width": "18",
+    "height": "11",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/types-views.svg",
+    "name": "rectanglesOffset",
+    "size": 24,
+    "width": "16",
+    "height": "13",
+    "color": "white"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/webs-history.svg",
+    "name": "clockRotateLeft",
+    "size": 24,
+    "width": "14",
+    "height": "15",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/webs-organizations.svg",
+    "name": "usersThree",
+    "size": 24,
+    "width": "18",
+    "height": "15",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/webs-overview.svg",
+    "name": "triangleNodes",
+    "size": 24,
+    "width": "14",
+    "height": "15",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/webs-permissions.svg",
+    "name": "lockPlain",
+    "size": 24,
+    "width": "14",
+    "height": "15",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/docs/webs-users.svg",
+    "name": "users",
+    "size": 24,
+    "width": "18",
+    "height": "15",
+    "color": "#91A5BA"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/align-bottom-center.svg",
+    "name": "arrowDownToBar",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/align-bottom-left.svg",
+    "name": "arrowDownLeftToCorner",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/align-bottom-right.svg",
+    "name": "arrowDownRightToCorner",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/align-bottom.svg",
+    "name": "alignBarBottom",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/align-center-center.svg",
+    "name": "alignCenterMark",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/align-center-horizontal.svg",
+    "name": "alignBarHorizontal",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/align-center-left.svg",
+    "name": "arrowLeftToBar",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/align-center-right.svg",
+    "name": "arrowRightToBar",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/align-center-vertical.svg",
+    "name": "alignBarVertical",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/align-left.svg",
+    "name": "alignBarLeft",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/align-right.svg",
+    "name": "alignBarRight",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/align-top-center.svg",
+    "name": "arrowUpToBar",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/align-top-left.svg",
+    "name": "arrowUpLeftToCorner",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/align-top-right.svg",
+    "name": "arrowUpRightToCorner",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/align-top.svg",
+    "name": "alignBarTop",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/arrow-left.svg",
+    "name": "arrowLeft",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/arrowhead-arrow.svg",
+    "name": "arrowheadArrow",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/arrowhead-bar.svg",
+    "name": "arrowheadBar",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/arrowhead-diamond.svg",
+    "name": "diamond",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/arrowhead-dot.svg",
+    "name": "place",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/arrowhead-none.svg",
+    "name": "arrowheadNone",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/arrowhead-square.svg",
+    "name": "transition",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/arrowhead-triangle-inverted.svg",
+    "name": "triangleLeft",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/arrowhead-triangle.svg",
+    "name": "triangleRight",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/aspect-ratio.svg",
+    "name": "aspectRatioCorners",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/avatar.svg",
+    "name": "user",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/blob.svg",
+    "name": "scribbleSwatch",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/bring-forward.svg",
+    "name": "bringForwardArrow",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/bring-to-front.svg",
+    "name": "bringToFrontArrow",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/check.svg",
+    "name": "check",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/checkbox-checked.svg",
+    "name": "squareCheck",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/checkbox-empty.svg",
+    "name": "transition",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/chevron-down.svg",
+    "name": "chevronDown",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/chevron-left.svg",
+    "name": "chevronLeft",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/chevron-right.svg",
+    "name": "chevronRight",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/chevron-up.svg",
+    "name": "chevronUp",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/chevrons-ne.svg",
+    "name": "chevronsRight",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/chevrons-sw.svg",
+    "name": "chevronsLeft",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/clipboard-copy.svg",
+    "name": "clipboardCopy",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/code.svg",
+    "name": "code",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/collab.svg",
+    "name": "usersThree",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/color.svg",
+    "name": "disc",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/comment.svg",
+    "name": "message",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/cross-2.svg",
+    "name": "close",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/cross.svg",
+    "name": "close",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/cube.svg",
+    "name": "cube",
+    "size": 24,
+    "width": "17",
+    "height": "18",
+    "color": "#0E1114"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/dash-dashed.svg",
+    "name": "circleDashed",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/dash-dotted.svg",
+    "name": "circleDotted",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/dash-draw.svg",
+    "name": "circleDrawn",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/dash-solid.svg",
+    "name": "place",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/distribute-horizontal.svg",
+    "name": "distributeHorizontal",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/distribute-vertical.svg",
+    "name": "distributeVertical",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/dot.svg",
+    "name": "dot",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/dots-horizontal.svg",
+    "name": "ellipsis",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/dots-vertical.svg",
+    "name": "ellipsisVertical",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/drag-handle-dots.svg",
+    "name": "gripDotsVertical",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/duplicate.svg",
+    "name": "copy",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/edit.svg",
+    "name": "pencil",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/external-link.svg",
+    "name": "externalLink",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/file.svg",
+    "name": "file",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/fill-none.svg",
+    "name": "layerFillNone",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/fill-pattern.svg",
+    "name": "layerFillPattern",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/fill-semi.svg",
+    "name": "layerFillSemi",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/fill-solid.svg",
+    "name": "layerFillSolid",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/font-draw.svg",
+    "name": "fontDrawAa",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/font-mono.svg",
+    "name": "fontMonoAa",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/font-sans.svg",
+    "name": "fontSansAa",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/font-serif.svg",
+    "name": "fontSerifAa",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/geo-arrow-down.svg",
+    "name": "shapeArrowDown",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/geo-arrow-left.svg",
+    "name": "shapeArrowLeft",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/geo-arrow-right.svg",
+    "name": "shapeArrowRight",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/geo-arrow-up.svg",
+    "name": "shapeArrowUp",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/geo-diamond.svg",
+    "name": "diamond",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/geo-ellipse.svg",
+    "name": "place",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/geo-hexagon.svg",
+    "name": "hexagon",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/geo-octagon.svg",
+    "name": "octagon",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/geo-oval.svg",
+    "name": "ovalVertical",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/geo-pentagon.svg",
+    "name": "pentagon",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/geo-rectangle.svg",
+    "name": "transition",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/geo-rhombus-2.svg",
+    "name": "parallelogramLeft",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/geo-rhombus.svg",
+    "name": "parallelogram",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/geo-star.svg",
+    "name": "star",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/geo-trapezoid.svg",
+    "name": "trapezoid",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/geo-triangle.svg",
+    "name": "triangle",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/geo-x-box.svg",
+    "name": "squareClose",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/group.svg",
+    "name": "groupDashed",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/hidden.svg",
+    "name": "eyeSlash",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/image.svg",
+    "name": "image",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/info-circle.svg",
+    "name": "info",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/link.svg",
+    "name": "link",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/lock-small.svg",
+    "name": "lockPlain",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/lock.svg",
+    "name": "lockPlain",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/menu.svg",
+    "name": "menu",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/minus.svg",
+    "name": "minus",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/mixed.svg",
+    "name": "gridDots",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/pack.svg",
+    "name": "gridPacked",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/page.svg",
+    "name": "fileLines",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/plus.svg",
+    "name": "plus",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/question-mark-circle.svg",
+    "name": "help",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/question-mark.svg",
+    "name": "questionMark",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/redo.svg",
+    "name": "redo",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/reset-zoom.svg",
+    "name": "zoomReset",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/rotate-ccw.svg",
+    "name": "rotateSquareCounterclockwise",
+    "size": 24,
+    "width": "30",
+    "height": "31",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/rotate-cw.svg",
+    "name": "rotateSquareClockwise",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/ruler.svg",
+    "name": "rulerCorner",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/search.svg",
+    "name": "search",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/send-backward.svg",
+    "name": "sendBackwardArrow",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/send-to-back.svg",
+    "name": "sendToBackArrow",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/settings-horizontal.svg",
+    "name": "parameter",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/settings-vertical-1.svg",
+    "name": "smile",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/settings-vertical.svg",
+    "name": "slidersVertical",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/share-1.svg",
+    "name": "shareNodes",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/share-2.svg",
+    "name": "share",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/size-extra-large.svg",
+    "name": "sizeLetterExtraLarge",
+    "size": 24,
+    "width": "31",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/size-large.svg",
+    "name": "sizeLetterLarge",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/size-medium.svg",
+    "name": "sizeLetterMedium",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/size-small.svg",
+    "name": "sizeLetterSmall",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/spline-cubic.svg",
+    "name": "cornerCurve",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/spline-line.svg",
+    "name": "cornerLine",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/stack-horizontal.svg",
+    "name": "stackLinesHorizontal",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/stack-vertical.svg",
+    "name": "stackLinesVertical",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/stretch-horizontal.svg",
+    "name": "stretchBarsHorizontal",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/stretch-vertical.svg",
+    "name": "stretchBarsVertical",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/text-align-center.svg",
+    "name": "textAlignCenter",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/text-align-justify.svg",
+    "name": "textAlignJustify",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/text-align-left.svg",
+    "name": "textAlignLeft",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/text-align-right.svg",
+    "name": "textAlignRight",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/tool-arrow.svg",
+    "name": "arrowUpRight",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/tool-embed.svg",
+    "name": "squarePlus",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/tool-eraser.svg",
+    "name": "eraser",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/tool-frame.svg",
+    "name": "fitView",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/tool-hand.svg",
+    "name": "hand",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/tool-highlighter.svg",
+    "name": "highlighter",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/tool-line.svg",
+    "name": "lineDiagonal",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/tool-media.svg",
+    "name": "image",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/tool-note.svg",
+    "name": "penSquare",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/tool-pencil.svg",
+    "name": "pencil",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/tool-pointer.svg",
+    "name": "cursor",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/tool-text.svg",
+    "name": "textCapital",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/trash.svg",
+    "name": "trash",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/triangle-down.svg",
+    "name": "caretDown",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/triangle-up.svg",
+    "name": "caretUp",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/undo.svg",
+    "name": "undoBent",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/ungroup.svg",
+    "name": "ungroupDashed",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/unlock-small.svg",
+    "name": "unlockPlain",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/unlock.svg",
+    "name": "unlockPlain",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/visible.svg",
+    "name": "dot",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/warning-triangle.svg",
+    "name": "warning",
+    "size": 24,
+    "width": "32",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/zoom-in.svg",
+    "name": "zoomIn",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/icon/zoom-out.svg",
+    "name": "zoomOut",
+    "size": 24,
+    "width": "30",
+    "height": "30",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/arrow-down-to-bracket.svg",
+    "name": "download",
+    "size": 24,
+    "width": "640",
+    "height": "640"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/arrow-right-from-bracket.svg",
+    "name": "logout",
+    "size": 24,
+    "width": "512",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/arrow-right-to-bracket.svg",
+    "name": "login",
+    "size": 24,
+    "width": "512",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/arrows-rotate.svg",
+    "name": "arrowsRotateClockwise",
+    "size": 24,
+    "width": "512",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/arrows-turn-to-dots.svg",
+    "name": "arrowsTurnToDots",
+    "size": 24,
+    "width": "448",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/book-open.svg",
+    "name": "bookOpen",
+    "size": 24,
+    "width": "576",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/book.svg",
+    "name": "book",
+    "size": 24,
+    "width": "448",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/box-location-dot.svg",
+    "name": "boxLocation",
+    "size": 24,
+    "width": "640",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/box.svg",
+    "name": "box",
+    "size": 24,
+    "width": "448",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/boxes-packing.svg",
+    "name": "boxesTransfer",
+    "size": 24,
+    "width": "640",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/boxes-stacked.svg",
+    "name": "boxes",
+    "size": 24,
+    "width": "576",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/building-columns.svg",
+    "name": "bank",
+    "size": 24,
+    "width": "512",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/building.svg",
+    "name": "building",
+    "size": 24,
+    "width": "384",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/bullseye-arrow.svg",
+    "name": "targetArrow",
+    "size": 24,
+    "width": "512",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/calendar-clock.svg",
+    "name": "calendarClock",
+    "size": 24,
+    "width": "576",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/calendar-days.svg",
+    "name": "calendarDays",
+    "size": 24,
+    "width": "448",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/cart-shopping.svg",
+    "name": "shoppingCart",
+    "size": 24,
+    "width": "640",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/chart-mixed.svg",
+    "name": "chartMixed",
+    "size": 24,
+    "width": "640",
+    "height": "640"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/check-double.svg",
+    "name": "checksStacked",
+    "size": 24,
+    "width": "384",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/circle-play.svg",
+    "name": "circlePlay",
+    "size": 24,
+    "width": "512",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/clipboard-check.svg",
+    "name": "clipboardCheck",
+    "size": 24,
+    "width": "384",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/clipboard-list.svg",
+    "name": "clipboardList",
+    "size": 24,
+    "width": "384",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/coins.svg",
+    "name": "coins",
+    "size": 24,
+    "width": "512",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/comment-quote.svg",
+    "name": "commentQuote",
+    "size": 24,
+    "width": "512",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/comment.svg",
+    "name": "comment",
+    "size": 24,
+    "width": "512",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/cube.svg",
+    "name": "cube",
+    "size": 24,
+    "width": "512",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/cubes.svg",
+    "name": "cubes",
+    "size": 24,
+    "width": "576",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/diagram-project.svg",
+    "name": "diagramBranch",
+    "size": 24,
+    "width": "576",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/file-excel.svg",
+    "name": "fileExcel",
+    "size": 24,
+    "width": "384",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/file-image.svg",
+    "name": "fileImage",
+    "size": 24,
+    "width": "384",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/file-invoice-dollar.svg",
+    "name": "fileInvoiceDollar",
+    "size": 24,
+    "width": "384",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/file-invoice.svg",
+    "name": "fileInvoice",
+    "size": 24,
+    "width": "384",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/file-lines.svg",
+    "name": "fileLines",
+    "size": 24,
+    "width": "384",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/file-pdf.svg",
+    "name": "filePdf",
+    "size": 24,
+    "width": "384",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/file-powerpoint.svg",
+    "name": "filePresentation",
+    "size": 24,
+    "width": "384",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/file-spreadsheet.svg",
+    "name": "fileSpreadsheet",
+    "size": 24,
+    "width": "384",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/file-word.svg",
+    "name": "fileDocument",
+    "size": 24,
+    "width": "384",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/file.svg",
+    "name": "file",
+    "size": 24,
+    "width": "384",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/gauge-max.svg",
+    "name": "gaugeMax",
+    "size": 24,
+    "width": "512",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/gear.svg",
+    "name": "settings",
+    "size": 24,
+    "width": "512",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/handshake.svg",
+    "name": "handshake",
+    "size": 24,
+    "width": "640",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/industry.svg",
+    "name": "factory",
+    "size": 24,
+    "width": "576",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/link.svg",
+    "name": "link",
+    "size": 24,
+    "width": "640",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/list-ol.svg",
+    "name": "listOrdered",
+    "size": 24,
+    "width": "512",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/list-tree.svg",
+    "name": "sitemap",
+    "size": 24,
+    "width": "576",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/list-ul.svg",
+    "name": "list",
+    "size": 24,
+    "width": "512",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/location-dot.svg",
+    "name": "location",
+    "size": 24,
+    "width": "384",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/megaphone.svg",
+    "name": "megaphone",
+    "size": 24,
+    "width": "576",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/memo-circle-info.svg",
+    "name": "memoCircleInfo",
+    "size": 24,
+    "width": "576",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/memo.svg",
+    "name": "memo",
+    "size": 24,
+    "width": "384",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/microscope.svg",
+    "name": "microscope",
+    "size": 24,
+    "width": "512",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/money-bill-transfer.svg",
+    "name": "banknoteTransfer",
+    "size": 24,
+    "width": "640",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/note-sticky.svg",
+    "name": "noteSticky",
+    "size": 24,
+    "width": "448",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/objects-column.svg",
+    "name": "columnsMasonry",
+    "size": 24,
+    "width": "640",
+    "height": "640"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/page.svg",
+    "name": "pagePlain",
+    "size": 24,
+    "width": "384",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/pen.svg",
+    "name": "pencil",
+    "size": 24,
+    "width": "512",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/people-group.svg",
+    "name": "peopleGroup",
+    "size": 24,
+    "width": "640",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/person-to-portal.svg",
+    "name": "personPortal",
+    "size": 24,
+    "width": "512",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/person.svg",
+    "name": "person",
+    "size": 24,
+    "width": "320",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/plane-arrival.svg",
+    "name": "planeArrival",
+    "size": 24,
+    "width": "640",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/plane-departure.svg",
+    "name": "planeDeparture",
+    "size": 24,
+    "width": "640",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/plane-tail.svg",
+    "name": "planeTail",
+    "size": 24,
+    "width": "512",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/plane-up.svg",
+    "name": "planeUp",
+    "size": 24,
+    "width": "512",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/plane.svg",
+    "name": "plane",
+    "size": 24,
+    "width": "576",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/plug-circle-check.svg",
+    "name": "plugCheck",
+    "size": 24,
+    "width": "576",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/presentation-screen.svg",
+    "name": "presentationScreen",
+    "size": 24,
+    "width": "576",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/receipt.svg",
+    "name": "receipt",
+    "size": 24,
+    "width": "384",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/rectangle.svg",
+    "name": "rectangle",
+    "size": 24,
+    "width": "512",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/text.svg",
+    "name": "textCapital",
+    "size": 24,
+    "width": "448",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/tower-control.svg",
+    "name": "towerControl",
+    "size": 24,
+    "width": "512",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/truck-container.svg",
+    "name": "truckContainerFast",
+    "size": 24,
+    "width": "640",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/truck-ramp-box.svg",
+    "name": "truckRampBox",
+    "size": 24,
+    "width": "640",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/truck.svg",
+    "name": "truck",
+    "size": 24,
+    "width": "640",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/user-lock.svg",
+    "name": "userLock",
+    "size": 24,
+    "width": "640",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/user-plus.svg",
+    "name": "userPlus",
+    "size": 24,
+    "width": "640",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/user-robot.svg",
+    "name": "robotBust",
+    "size": 24,
+    "width": "448",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/user-tag.svg",
+    "name": "userTag",
+    "size": 24,
+    "width": "640",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/user-tie.svg",
+    "name": "userTie",
+    "size": 24,
+    "width": "448",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/user.svg",
+    "name": "user",
+    "size": 24,
+    "width": "448",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/icons/types/warehouse.svg",
+    "name": "warehouse",
+    "size": 24,
+    "width": "640",
+    "height": "512"
+  },
+  {
+    "file": "apps/hash-frontend/public/pdf-annotations/annotation-insert.svg",
+    "name": "triangle",
+    "size": 24,
+    "width": "64",
+    "height": "64"
+  },
+  {
+    "file": "apps/hash-frontend/public/pdf-annotations/annotation-key.svg",
+    "name": "key",
+    "size": 24,
+    "width": "64",
+    "height": "64"
+  },
+  {
+    "file": "apps/hash-frontend/public/pdf-annotations/annotation-newparagraph.svg",
+    "name": "triangle",
+    "size": 24,
+    "width": "64",
+    "height": "64"
+  },
+  {
+    "file": "apps/hash-frontend/public/pdf-annotations/annotation-paperclip.svg",
+    "name": "paperclip",
+    "size": 24,
+    "width": "40",
+    "height": "40"
+  },
+  {
+    "file": "apps/hash-frontend/public/pdf-annotations/annotation-pushpin.svg",
+    "name": "pin",
+    "size": 24,
+    "width": "40",
+    "height": "40"
+  },
+  {
+    "file": "apps/hash-frontend/src/shared/icons/svg/human-greeting.svg",
+    "name": "greetingBust",
+    "size": 24,
+    "width": "78",
+    "height": "78",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/src/shared/icons/svg/keyboard-return.svg",
+    "name": "arrowTurnDownLeft",
+    "size": 24,
+    "width": "24",
+    "height": "24",
+    "color": "#2482FF"
+  },
+  {
+    "file": "apps/hash-frontend/src/shared/icons/svg/links.svg",
+    "name": "hierarchyBranches",
+    "size": 24,
+    "width": "35",
+    "height": "33"
+  },
+  {
+    "file": "apps/hash-frontend/src/shared/icons/svg/pencil-simple-line.svg",
+    "name": "pencilBaseline",
+    "size": 24,
+    "width": "18",
+    "height": "18"
+  },
+  {
+    "file": "apps/hash-frontend/src/shared/icons/svg/people.svg",
+    "name": "users",
+    "size": 24,
+    "width": "78",
+    "height": "78",
+    "color": "black"
+  },
+  {
+    "file": "apps/hash-frontend/src/shared/icons/svg/shapes.svg",
+    "name": "shapesThree",
+    "size": 24,
+    "width": "30",
+    "height": "32"
+  },
+  {
+    "file": "apps/hash-frontend/src/shared/icons/svg/spinner.svg",
+    "name": "loading",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/minus.svg",
+    "name": "minus",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/loading.svg",
+    "name": "loading",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-down.svg",
+    "name": "arrowDown",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-left.svg",
+    "name": "arrowLeft",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-right.svg",
+    "name": "arrowRight",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-trend-down.svg",
+    "name": "arrowTrendDown",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-trend-up.svg",
+    "name": "arrowTrendUp",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-up.svg",
+    "name": "arrowUp",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-up-right.svg",
+    "name": "arrowUpRight",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-right-arrow-left.svg",
+    "name": "arrowsLeftRight",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/asterisk.svg",
+    "name": "asterisk",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/at.svg",
+    "name": "at",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/barcode.svg",
+    "name": "barcode",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/bars.svg",
+    "name": "menu",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/bell.svg",
+    "name": "bell",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/brackets-curly.svg",
+    "name": "bracketsCurly",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/brackets-square.svg",
+    "name": "bracketsSquare",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/bug.svg",
+    "name": "bug",
+    "variant": "filled",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/light/bullseye.svg",
+    "name": "bullseye",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/calendar.svg",
+    "name": "calendarBlank",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/calendar-clock.svg",
+    "name": "calendarClock",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/caret-down.svg",
+    "name": "caretDown",
+    "variant": "filled",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/chart-column.svg",
+    "name": "chartBarSimple",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/chart-simple.svg",
+    "name": "chartBars",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/chart-line.svg",
+    "name": "chartLineAxes",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/check.svg",
+    "name": "check",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/chevron-down.svg",
+    "name": "chevronDown",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/chevron-down.svg",
+    "name": "chevronDown",
+    "variant": "filled",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/chevron-left.svg",
+    "name": "chevronLeft",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/chevron-left.svg",
+    "name": "chevronLeft",
+    "variant": "filled",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/chevron-right.svg",
+    "name": "chevronRight",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/chevron-right.svg",
+    "name": "chevronRight",
+    "variant": "filled",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/chevron-up.svg",
+    "name": "chevronUp",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/chevron-up.svg",
+    "name": "chevronUp",
+    "variant": "filled",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/circle.svg",
+    "name": "place",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/circle.svg",
+    "name": "place",
+    "variant": "filled",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/circle-check.svg",
+    "name": "circleCheck",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/circle-x.svg",
+    "name": "circleClose",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/circle-ellipsis.svg",
+    "name": "circleEllipsis",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/circle-1.svg",
+    "name": "circleOne",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/circle-plus.svg",
+    "name": "circlePlus",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/clock.svg",
+    "name": "clock",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/clock-rotate-left.svg",
+    "name": "clockRotateLeft",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/xmark.svg",
+    "name": "close",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/code.svg",
+    "name": "code",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-down-left-and-arrow-up-right-to-center.svg",
+    "name": "collapseDiagonal",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/copy.svg",
+    "name": "copy",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/cube.svg",
+    "name": "cube",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/cubes.svg",
+    "name": "cubes",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-pointer.svg",
+    "name": "cursor",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/minus.svg",
+    "name": "minus",
+    "variant": "filled",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/diagram-nested.svg",
+    "name": "diagramNestedBranches",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/diagram-project.svg",
+    "name": "diagramBranch",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/diagram-subtask.svg",
+    "name": "diagramNestedBranches",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/circle-nodes.svg",
+    "name": "triangleNodes",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/diamond-exclamation.svg",
+    "name": "diamondExclamation",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/download.svg",
+    "name": "download",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/pen-to-square.svg",
+    "name": "penSquare",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/ellipsis.svg",
+    "name": "ellipsis",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/ellipsis-vertical.svg",
+    "name": "ellipsisVertical",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/empty-set.svg",
+    "name": "emptySet",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/circle-exclamation.svg",
+    "name": "error",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-up-right-and-arrow-down-left-from-center.svg",
+    "name": "expandDiagonal",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-up-right-from-square.svg",
+    "name": "externalLink",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/eye.svg",
+    "name": "eye",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/eye-slash.svg",
+    "name": "eyeSlash",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/feather.svg",
+    "name": "featherQuill",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/file.svg",
+    "name": "file",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/file-lines.svg",
+    "name": "fileLines",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/file-spreadsheet.svg",
+    "name": "fileSpreadsheet",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/filter.svg",
+    "name": "filter",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/flask.svg",
+    "name": "flask",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/function.svg",
+    "name": "functionExpression",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/gear.svg",
+    "name": "settings",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/grid-2.svg",
+    "name": "grid",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/grip-vertical.svg",
+    "name": "gripDotsVertical",
+    "variant": "filled",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/hand.svg",
+    "name": "hand",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/image.svg",
+    "name": "image",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/infinity.svg",
+    "name": "infinity",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/circle-info.svg",
+    "name": "info",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/input-pipe.svg",
+    "name": "inputField",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/lambda.svg",
+    "name": "lambda",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/layer.svg",
+    "name": "twoLayers",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/lightbulb-on.svg",
+    "name": "lightbulbRays",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/bolt.svg",
+    "name": "lightning",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/list.svg",
+    "name": "list",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/list-tree.svg",
+    "name": "treeList",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/unlock-keyhole.svg",
+    "name": "lockOpen",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/lock-keyhole.svg",
+    "name": "lockClosed",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/wand-magic-sparkles.svg",
+    "name": "magic",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/memo-circle-check.svg",
+    "name": "memoCircleCheck",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/microscope.svg",
+    "name": "microscope",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/100.svg",
+    "name": "oneHundred",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/pause.svg",
+    "name": "pause",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/pause.svg",
+    "name": "pause",
+    "variant": "filled",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/pen.svg",
+    "name": "pencil",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/person-running.svg",
+    "name": "personRunning",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/play.svg",
+    "name": "play",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/play.svg",
+    "name": "play",
+    "variant": "filled",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/plug.svg",
+    "name": "plug",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/plus.svg",
+    "name": "plus",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/print.svg",
+    "name": "print",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/puzzle-piece.svg",
+    "name": "puzzlePiece",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrows-rotate.svg",
+    "name": "arrowsRotateClockwise",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-right-to-line.svg",
+    "name": "rightToLine",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/rotate.svg",
+    "name": "arrowsRotateClockwise",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-rotate-left.svg",
+    "name": "reset",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/ruler.svg",
+    "name": "ruler",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/scribble.svg",
+    "name": "scribble",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/magnifying-glass.svg",
+    "name": "search",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/shapes.svg",
+    "name": "shapesThree",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/sidebar.svg",
+    "name": "sidebarList",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/forward-step.svg",
+    "name": "stepForward",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/forward-step.svg",
+    "name": "stepForward",
+    "variant": "filled",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/sliders.svg",
+    "name": "slidersHorizontalThree",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-down-wide-short.svg",
+    "name": "sortDown",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/sort-alpha-asc.svg",
+    "name": "sortDownAlphabetical",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/sort-numeric-asc.svg",
+    "name": "sortDownNumeric",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-up-wide-short.svg",
+    "name": "sortUp",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/sort-alpha-up.svg",
+    "name": "sortUpAlphabetical",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/sort-numeric-up.svg",
+    "name": "sortUpNumeric",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/sparkles.svg",
+    "name": "sparklesCluster",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/square.svg",
+    "name": "transition",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/stop.svg",
+    "name": "transition",
+    "variant": "filled",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/square-check.svg",
+    "name": "squareCheck",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/square-plus.svg",
+    "name": "squarePlus",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/star.svg",
+    "name": "star",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/star.svg",
+    "name": "star",
+    "variant": "filled",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/light/table.svg",
+    "name": "table",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/terminal.svg",
+    "name": "terminalPrompt",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/text.svg",
+    "name": "textCapital",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/thought-bubble.svg",
+    "name": "thoughtCloud",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/circles-overlap-3.svg",
+    "name": "overlappingCircles",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/trash-can.svg",
+    "name": "trash",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/truck.svg",
+    "name": "truck",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/user.svg",
+    "name": "user",
+    "variant": "filled",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/user-plus.svg",
+    "name": "userPlus",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/triangle-exclamation.svg",
+    "name": "warning",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/magnifying-glass-plus.svg",
+    "name": "zoomIn",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/magnifying-glass-minus.svg",
+    "name": "zoomOut",
+    "variant": "outline",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/angle-right.svg",
+    "name": "chevronRight",
+    "size": 24
+  },
+  {
+    "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/trash.svg",
+    "name": "trash",
+    "size": 24
+  }
+]

@@ -470,6 +470,158 @@ export const MoveIcon = createIcon("move");
 
 export const FileArchiveIcon = createIcon("fileArchive");
 export const FileCodeIcon = createIcon("fileCode");
+export const StarsIcon = createIcon("stars");
+export const ShootingStarIcon = createIcon("shootingStar");
+export const FileCertificateIcon = createIcon("fileCertificate");
+export const RoadIcon = createIcon("road");
+export const PersonSparklesIcon = createIcon("personSparkles");
+export const ShieldIcon = createIcon("shield");
+export const CommentIcon = createIcon("comment");
+export const CommentsIcon = createIcon("comments");
+export const CommentQuoteIcon = createIcon("commentQuote");
+export const SpinnerDotsIcon = createIcon("spinnerDots");
+export const LayerUploadIcon = createIcon("layerUpload");
+export const InfinityPlusIcon = createIcon("infinityPlus");
+export const SatelliteDishIcon = createIcon("satelliteDish");
+export const HourglassIcon = createIcon("hourglass");
+export const NoteListIcon = createIcon("noteList");
+export const RectanglePointerIcon = createIcon("rectanglePointer");
+export const UsersThreeIcon = createIcon("usersThree");
+export const TriangleNodesIcon = createIcon("triangleNodes");
+export const ArrowDownToBarIcon = createIcon("arrowDownToBar");
+export const ArrowLeftToBarIcon = createIcon("arrowLeftToBar");
+export const ArrowUpToBarIcon = createIcon("arrowUpToBar");
+export const ArrowRightToBarIcon = createIcon("arrowRightToBar");
+export const ArrowDownLeftToCornerIcon = createIcon("arrowDownLeftToCorner");
+export const ArrowUpLeftToCornerIcon = createIcon("arrowUpLeftToCorner");
+export const ArrowUpRightToCornerIcon = createIcon("arrowUpRightToCorner");
+export const ArrowDownRightToCornerIcon = createIcon("arrowDownRightToCorner");
+export const AlignCenterMarkIcon = createIcon("alignCenterMark");
+export const BringForwardArrowIcon = createIcon("bringForwardArrow");
+export const BringToFrontArrowIcon = createIcon("bringToFrontArrow");
+export const SendBackwardArrowIcon = createIcon("sendBackwardArrow");
+export const SendToBackArrowIcon = createIcon("sendToBackArrow");
+export const ClipboardCopyIcon = createIcon("clipboardCopy");
+export const DiscIcon = createIcon("disc");
+export const CircleDashedIcon = createIcon("circleDashed");
+export const CircleDottedIcon = createIcon("circleDotted");
+export const CircleDrawnIcon = createIcon("circleDrawn");
+export const LayerFillNoneIcon = createIcon("layerFillNone");
+export const LayerFillPatternIcon = createIcon("layerFillPattern");
+export const LayerFillSemiIcon = createIcon("layerFillSemi");
+export const LayerFillSolidIcon = createIcon("layerFillSolid");
+export const FontSansAaIcon = createIcon("fontSansAa");
+export const FontMonoAaIcon = createIcon("fontMonoAa");
+export const FontSerifAaIcon = createIcon("fontSerifAa");
+export const FontDrawAaIcon = createIcon("fontDrawAa");
+export const FontMixedAaIcon = createIcon("fontMixedAa");
+export const OvalVerticalIcon = createIcon("ovalVertical");
+export const ParallelogramLeftIcon = createIcon("parallelogramLeft");
+export const GroupDashedIcon = createIcon("groupDashed");
+export const UngroupDashedIcon = createIcon("ungroupDashed");
+export const GridDotsIcon = createIcon("gridDots");
+export const QuestionMarkIcon = createIcon("questionMark");
+export const ZoomResetIcon = createIcon("zoomReset");
+export const RotateSquareClockwiseIcon = createIcon("rotateSquareClockwise");
+export const RotateSquareCounterclockwiseIcon = createIcon(
+  "rotateSquareCounterclockwise",
+);
+export const RulerCornerIcon = createIcon("rulerCorner");
+export const SlidersVerticalIcon = createIcon("slidersVertical");
+export const SizeLetterSmallIcon = createIcon("sizeLetterSmall");
+export const SizeLetterMediumIcon = createIcon("sizeLetterMedium");
+export const SizeLetterLargeIcon = createIcon("sizeLetterLarge");
+export const SizeLetterExtraLargeIcon = createIcon("sizeLetterExtraLarge");
+export const CornerCurveIcon = createIcon("cornerCurve");
+export const CornerLineIcon = createIcon("cornerLine");
+export const StretchBarsHorizontalIcon = createIcon("stretchBarsHorizontal");
+export const StretchBarsVerticalIcon = createIcon("stretchBarsVertical");
+export const LineDiagonalIcon = createIcon("lineDiagonal");
+export const TextCapitalIcon = createIcon("textCapital");
+export const CaretDownIcon = createIcon("caretDown");
+export const CaretUpIcon = createIcon("caretUp");
+export const ArrowsTurnToDotsIcon = createIcon("arrowsTurnToDots");
+export const DiagramBranchIcon = createIcon("diagramBranch");
+export const FileExcelIcon = createIcon("fileExcel");
+export const BoxesTransferIcon = createIcon("boxesTransfer");
+export const MemoIcon = createIcon("memo");
+export const MemoCircleInfoIcon = createIcon("memoCircleInfo");
+export const BanknoteTransferIcon = createIcon("banknoteTransfer");
+export const ColumnsMasonryIcon = createIcon("columnsMasonry");
+export const RobotBustIcon = createIcon("robotBust");
+export const GreetingBustIcon = createIcon("greetingBust");
+export const HierarchyBranchesIcon = createIcon("hierarchyBranches");
+export const CirclePlusIcon = createIcon("circlePlus");
+export const SquarePlusIcon = createIcon("squarePlus");
+export const PenSquareIcon = createIcon("penSquare");
+export const FunctionExpressionIcon = createIcon("functionExpression");
+export const InputFieldIcon = createIcon("inputField");
+export const TreeListIcon = createIcon("treeList");
+export const OverlappingCirclesIcon = createIcon("overlappingCircles");
+export const TerminalPromptIcon = createIcon("terminalPrompt");
+export const FeatherQuillIcon = createIcon("featherQuill");
+export const SlidersHorizontalThreeIcon = createIcon("slidersHorizontalThree");
+export const BarsDescendingIcon = createIcon("barsDescending");
+export const ArrowsUpDownIcon = createIcon("arrowsUpDown");
+export const ArrowsFromCenterLineIcon = createIcon("arrowsFromCenterLine");
+export const ArrowsToCenterLineIcon = createIcon("arrowsToCenterLine");
+export const CanvasPlusIcon = createIcon("canvasPlus");
+export const FileCirclePlusIcon = createIcon("fileCirclePlus");
+export const EarthAmericasIcon = createIcon("earthAmericas");
+export const LeftToLineIcon = createIcon("leftToLine");
+export const CalendarBlankIcon = createIcon("calendarBlank");
+export const FileVideoCameraIcon = createIcon("fileVideoCamera");
+export const FilterListIcon = createIcon("filterList");
+export const GridNineIcon = createIcon("gridNine");
+export const InboxArrowRightIcon = createIcon("inboxArrowRight");
+export const NoteTopFoldIcon = createIcon("noteTopFold");
+export const PagePlainIcon = createIcon("pagePlain");
+export const PeopleGroupIcon = createIcon("peopleGroup");
+export const PizzaPieIcon = createIcon("pizzaPie");
+export const AsteriskBoltIcon = createIcon("asteriskBolt");
+export const NoteBoltIcon = createIcon("noteBolt");
+export const CodePenIcon = createIcon("codePen");
+export const CollapseDiagonalIcon = createIcon("collapseDiagonal");
+export const LightbulbRaysIcon = createIcon("lightbulbRays");
+export const ShapesThreeIcon = createIcon("shapesThree");
+export const DiagramNestedBranchesIcon = createIcon("diagramNestedBranches");
+export const NetworkHubIcon = createIcon("networkHub");
+export const ArrowsRotateClockwiseIcon = createIcon("arrowsRotateClockwise");
+export const RotateClockwiseIcon = createIcon("rotateClockwise");
+export const ChartBarsIcon = createIcon("chartBars");
+export const ChartLineAxesIcon = createIcon("chartLineAxes");
+export const SidebarListIcon = createIcon("sidebarList");
+export const TwoLayersIcon = createIcon("twoLayers");
+export const LayerPlusAboveIcon = createIcon("layerPlusAbove");
+export const StackLinesHorizontalIcon = createIcon("stackLinesHorizontal");
+export const StackLinesVerticalIcon = createIcon("stackLinesVertical");
+export const AlignBarBottomIcon = createIcon("alignBarBottom");
+export const AlignBarTopIcon = createIcon("alignBarTop");
+export const AlignBarLeftIcon = createIcon("alignBarLeft");
+export const AlignBarRightIcon = createIcon("alignBarRight");
+export const AlignBarHorizontalIcon = createIcon("alignBarHorizontal");
+export const AlignBarVerticalIcon = createIcon("alignBarVertical");
+export const TriangleRightIcon = createIcon("triangleRight");
+export const TriangleLeftIcon = createIcon("triangleLeft");
+export const AspectRatioCornersIcon = createIcon("aspectRatioCorners");
+export const UndoBentIcon = createIcon("undoBent");
+export const SpeechWaveIcon = createIcon("speechWave");
+export const LockPlainIcon = createIcon("lockPlain");
+export const UnlockPlainIcon = createIcon("unlockPlain");
+export const GripDotsVerticalIcon = createIcon("gripDotsVertical");
+export const ThoughtCloudIcon = createIcon("thoughtCloud");
+export const RectanglesOffsetIcon = createIcon("rectanglesOffset");
+export const GridPackedIcon = createIcon("gridPacked");
+export const ChevronsRightIcon = createIcon("chevronsRight");
+export const ChevronsLeftIcon = createIcon("chevronsLeft");
+export const ChecksStackedIcon = createIcon("checksStacked");
+export const ScribbleSwatchIcon = createIcon("scribbleSwatch");
+export const PencilBaselineIcon = createIcon("pencilBaseline");
+export const PresentationScreenIcon = createIcon("presentationScreen");
+export const TruckRampBoxIcon = createIcon("truckRampBox");
+export const TruckContainerFastIcon = createIcon("truckContainerFast");
+export const GaugeMaxIcon = createIcon("gaugeMax");
+export const SparklesClusterIcon = createIcon("sparklesCluster");
 export const FileDocumentIcon = createIcon("fileDocument");
 export const FileTextIcon = createIcon("fileText");
 export const FileInvoiceIcon = createIcon("fileInvoice");
@@ -1631,21 +1783,21 @@ export const hashIconPack = {
   bell: BellIcon,
   bracketsSquare: BracketsSquareIcon,
   bug: BugIcon,
-  calendar: CalendarIcon,
+  calendar: CalendarBlankIcon,
   calendarClock: CalendarClockIcon,
   circleOne: CircleOneIcon,
   cubes: CubesIcon,
-  diagramNodes: DiagramNodesIcon,
-  diagramSubtask: DiagramSubtaskIcon,
+  diagramNodes: TriangleNodesIcon,
+  diagramSubtask: DiagramNestedBranchesIcon,
   diamondExclamation: DiamondExclamationIcon,
   emptySet: EmptySetIcon,
-  feather: FeatherIcon,
+  feather: FeatherQuillIcon,
   fileSpreadsheet: FileSpreadsheetIcon,
-  gripVertical: GripVerticalIcon,
+  gripVertical: GripDotsVerticalIcon,
   image: ImageIcon,
-  inputPipe: InputPipeIcon,
-  lightbulbOn: LightbulbOnIcon,
-  listTree: ListTreeIcon,
+  inputPipe: InputFieldIcon,
+  lightbulbOn: LightbulbRaysIcon,
+  listTree: TreeListIcon,
   magic: MagicIcon,
   memoCircleCheck: MemoCircleCheckIcon,
   microscope: MicroscopeIcon,
@@ -1697,7 +1849,7 @@ export const hashIconPack = {
   sortUpSize: SortUpSizeIcon,
   squareCheck: SquareCheckIcon,
   star: StarIcon,
-  thoughtBubble: ThoughtBubbleIcon,
+  thoughtBubble: ThoughtCloudIcon,
   truck: TruckIcon,
   userPlus: UserPlusIcon,
   starFilled: createIcon("star", "filled"),
@@ -1718,28 +1870,28 @@ export const hashIconPack = {
   ellipsis: EllipsisIcon,
   ellipsisVertical: EllipsisVerticalIcon,
   circleEllipsis: CircleEllipsisIcon,
-  collapse: CollapseIcon,
+  collapse: CollapseDiagonalIcon,
   lockOpen: LockOpenIcon,
   lockClosed: LockClosedIcon,
   eye: EyeIcon,
   eyeSlash: EyeSlashIcon,
   clock: ClockIcon,
   clockRotateLeft: ClockRotateLeftIcon,
-  rotate: RotateIcon,
+  rotate: ArrowsRotateClockwiseIcon,
   rightToLine: RightToLineIcon,
   flask: FlaskIcon,
-  layer: LayerIcon,
-  chartBarSimple: ChartBarSimpleIcon,
-  chartLine: ChartLineIcon,
+  layer: TwoLayersIcon,
+  chartBarSimple: ChartBarsIcon,
+  chartLine: ChartLineAxesIcon,
   filter: FilterIcon,
   bracketsCurly: BracketsCurlyIcon,
   lambda: LambdaIcon,
   lightning: LightningIcon,
   code: CodeIcon,
   cube: CubeIcon,
-  diagramNested: DiagramNestedIcon,
-  diagramProject: DiagramProjectIcon,
-  shapes: ShapesIcon,
+  diagramNested: DiagramNestedBranchesIcon,
+  diagramProject: DiagramBranchIcon,
+  shapes: ShapesThreeIcon,
   file: FileIcon,
   fileLines: FileLinesIcon,
   list: ListIcon,
@@ -1747,37 +1899,37 @@ export const hashIconPack = {
   grid: GridIcon,
   bullseye: BullseyeIcon,
   scribble: ScribbleIcon,
-  sparkles: SparklesIcon,
+  sparkles: SparklesClusterIcon,
   info: InfoIcon,
   error: ErrorIcon,
   warning: WarningIcon,
   circleCheck: CircleCheckIcon,
   circleClose: CircleCloseIcon,
-  terminal: TerminalIcon,
-  text: TextIcon,
+  terminal: TerminalPromptIcon,
+  text: TextCapitalIcon,
   user: UserIcon,
-  edit: PencilIcon,
+  edit: PenSquareIcon,
   chartBar: ChartBarSimpleIcon,
-  refresh: RotateIcon,
-  caretDown: ChevronDownIcon,
+  refresh: ArrowsRotateClockwiseIcon,
+  caretDown: CaretDownIcon,
   chevronDownHeavy: ChevronDownIcon,
   chevronUpHeavy: ChevronUpIcon,
   chevronLeftHeavy: ChevronLeftIcon,
   chevronRightHeavy: ChevronRightIcon,
-  sidebar: SidebarIcon,
+  sidebar: SidebarListIcon,
   bars: MenuIcon,
   hand: HandIcon,
   cursor: CursorIcon,
-  circlePlus: AddPlaceIcon,
-  squarePlus: AddTransitionIcon,
+  circlePlus: CirclePlusIcon,
+  squarePlus: SquarePlusIcon,
   gear: SettingsIcon,
   circle: PlaceIcon,
   circleFilled: createIcon("place", "filled"),
   square: TransitionIcon,
   squareFilled: createIcon("transition", "filled"),
-  threeCircles: TokenTypeIcon,
-  sliders: ParameterIcon,
-  function: FunctionIcon,
+  threeCircles: OverlappingCirclesIcon,
+  sliders: SlidersHorizontalThreeIcon,
+  function: FunctionExpressionIcon,
   play: PlayIcon,
   playFilled: createIcon("play", "filled"),
   pause: PauseIcon,
@@ -1795,7 +1947,7 @@ export const hashIconPack = {
   search: SearchIcon,
   zoomIn: ZoomInIcon,
   zoomOut: ZoomOutIcon,
-  expand: FitViewIcon,
+  expand: ExpandDiagonalIcon,
   chevronUp: ChevronUpIcon,
   chevronDown: ChevronDownIcon,
   chevronLeft: ChevronLeftIcon,

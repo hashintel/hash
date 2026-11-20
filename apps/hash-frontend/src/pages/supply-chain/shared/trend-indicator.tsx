@@ -1,5 +1,6 @@
 import { Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
+import { StaticHashIcon } from "@hashintel/ds-icons/static";
 
 import { formatNumber } from "./cost";
 import { trendToneFor } from "./trend-tone";
@@ -29,20 +30,13 @@ const toneFlat = css({ color: "fg.subtle" });
 /** Two-bar equals glyph (no equivalent in the icon set) for an unchanged period. */
 const EqualsIcon = () => {
   return (
-    <svg
+    <StaticHashIcon
       width="12"
       height="12"
-      viewBox="0 0 12 12"
       fill="none"
       aria-hidden="true"
-    >
-      <path
-        d="M2.5 4.5h7M2.5 7.5h7"
-        stroke="currentColor"
-        strokeWidth="1.3"
-        strokeLinecap="round"
-      />
-    </svg>
+      name="equals"
+    />
   );
 };
 

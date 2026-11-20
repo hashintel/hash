@@ -1,4 +1,5 @@
 import { css } from "@hashintel/ds-helpers/css";
+import { StaticHashIcon } from "@hashintel/ds-icons/static";
 
 import type { SortKey, SortDir } from "./row-types";
 
@@ -50,30 +51,13 @@ export const SortHeader = ({
   const active = current.key === sortKey;
   const shownDir = active ? current.dir : defaultDir;
   const caretSvg = (
-    <svg
+    <StaticHashIcon
       width="8"
       height="8"
-      viewBox="0 0 8 8"
-      fill="none"
       className={caret}
       aria-hidden="true"
-    >
-      {shownDir === "desc" ? (
-        <path
-          d="M1.5 3L4 5.5L6.5 3"
-          stroke="currentColor"
-          strokeWidth="1.2"
-          strokeLinecap="round"
-        />
-      ) : (
-        <path
-          d="M1.5 5.5L4 3L6.5 5.5"
-          stroke="currentColor"
-          strokeWidth="1.2"
-          strokeLinecap="round"
-        />
-      )}
-    </svg>
+      name={shownDir === "desc" ? "chevronDown" : "chevronUp"}
+    />
   );
   return (
     <button

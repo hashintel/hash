@@ -1,9 +1,8 @@
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Box, buttonClasses, Collapse } from "@mui/material";
 import { useMemo, useRef, useState } from "react";
 
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
+import { HashSvgIcon } from "@hashintel/design-system";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 
 import { useCreateComment } from "../../../../components/hooks/use-create-comment";
@@ -18,7 +17,15 @@ import type { PageThread } from "../../../../components/hooks/use-page-comments"
 import type { ActorEntityUuid, EntityId } from "@blockprotocol/type-system";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
+import type { ComponentProps } from "react";
 import type { FunctionComponent } from "react";
+
+const ExpandLessIcon = (
+  props: Omit<ComponentProps<typeof HashSvgIcon>, "icon">,
+) => <HashSvgIcon {...props} icon="chevronUp" />;
+const ExpandMoreIcon = (
+  props: Omit<ComponentProps<typeof HashSvgIcon>, "icon">,
+) => <HashSvgIcon {...props} icon="chevronDown" />;
 
 const UNCOLLAPSIBLE_REPLIES_NUMBER = 2;
 

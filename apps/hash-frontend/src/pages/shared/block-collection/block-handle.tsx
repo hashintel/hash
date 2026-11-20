@@ -1,10 +1,9 @@
-import { faEllipsisVertical } from "@fortawesome/free-solid-svg-icons";
 import { Box } from "@mui/material";
 import { bindTrigger } from "material-ui-popup-state";
 import { usePopupState } from "material-ui-popup-state/hooks";
 import { forwardRef } from "react";
 
-import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
+import { HashInlineIcon, IconButton } from "@hashintel/design-system";
 import { isBlockEntity } from "@local/hash-isomorphic-utils/entity-store";
 
 import { BlockConfigMenu } from "./block-config-menu/block-config-menu";
@@ -15,6 +14,8 @@ import { useBlockView } from "./block-view";
 import type { JsonObject } from "@blockprotocol/core";
 import type { EntityStore } from "@local/hash-isomorphic-utils/entity-store";
 import type { ForwardRefRenderFunction } from "react";
+
+const faEllipsisVertical = { icon: "ellipsisVertical" } as const;
 
 type BlockHandleProps = {
   deleteBlock: () => void;
@@ -99,7 +100,7 @@ const BlockHandle: ForwardRefRenderFunction<
         }}
         data-testid="block-changer"
       >
-        <FontAwesomeIcon icon={faEllipsisVertical} />
+        <HashInlineIcon icon={faEllipsisVertical} />
       </IconButton>
 
       <BlockContextMenu

@@ -1,7 +1,1 @@
-<svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-<rect x="20.2928" y="18.8787" width="2" height="12" rx="1" transform="rotate(135 20.2928 18.8787)" fill="black"/>
-<rect x="25" y="25" width="2" height="14" rx="1" transform="rotate(-180 25 25)" fill="black"/>
-<rect x="20" y="20" width="2" height="6" rx="1" transform="rotate(-180 20 20)" fill="black"/>
-<rect x="25" y="23" width="2" height="14" rx="1" transform="rotate(90 25 23)" fill="black"/>
-<rect x="20" y="18" width="2" height="6" rx="1" transform="rotate(90 20 18)" fill="black"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false" color="black"><g fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="2" style="--hash-icon-stroke-width:1.75;--hash-icon-dot-size:calc(var(--hash-icon-stroke-width) * 1.25);--hash-icon-detail-stroke:calc(var(--hash-icon-stroke-width) * 1.4)"><g><g><g style="transform-origin:12px 12px"><g><g style="transform-origin:12px 12px"><g><g style="transform-origin:12px 12px"><g><g fill="none"><g transform="rotate(270 12 12)"><path d="m19 5-9 9m0-6v6h6M5 7v12h12"></path></g></g></g></g></g></g></g></g></g></g></g></svg>

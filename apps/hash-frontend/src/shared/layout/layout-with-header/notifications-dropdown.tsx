@@ -1,7 +1,6 @@
-import { faBell } from "@fortawesome/free-solid-svg-icons";
 import { Tooltip, useTheme } from "@mui/material";
 
-import { FontAwesomeIcon } from "@hashintel/design-system";
+import { HashInlineIcon } from "@hashintel/design-system";
 
 import { getInboxHref } from "../../get-inbox-href";
 import { useInvites } from "../../invites-context";
@@ -10,6 +9,8 @@ import { Link } from "../../ui";
 import { HeaderIconButtonWithCount } from "./shared/header-icon-button-with-count";
 
 import type { FunctionComponent } from "react";
+
+const faBell = { icon: "bell" } as const;
 
 export const NotificationsDropdown: FunctionComponent = () => {
   const theme = useTheme();
@@ -29,7 +30,7 @@ export const NotificationsDropdown: FunctionComponent = () => {
       <Link noLinkStyle href={href} draggable={false}>
         <HeaderIconButtonWithCount
           icon={
-            <FontAwesomeIcon
+            <HashInlineIcon
               icon={faBell}
               sx={{ color: theme.palette.blue[70] }}
             />

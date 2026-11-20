@@ -20,7 +20,7 @@ describe("AiCtaModal", () => {
           name: "Describe the process you want to create",
         })
         .parentElement?.previousElementSibling?.querySelector(
-          'svg[viewBox="0 0 15 15"]',
+          'svg[viewBox="0 0 24 24"]',
         ),
     ).not.toBeNull();
     expect(

@@ -1,4 +1,3 @@
-import { faSearch } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
   InputAdornment,
@@ -9,7 +8,7 @@ import {
 } from "@mui/material";
 import { useEffect, useRef, useState } from "react";
 
-import { FontAwesomeIcon, TextField } from "@hashintel/design-system";
+import { HashInlineIcon, TextField } from "@hashintel/design-system";
 
 import { MenuItem } from "../../../../shared/ui";
 import { useBlockView } from "../block-view";
@@ -18,6 +17,8 @@ import { useFilteredBlocks } from "../shared/use-filtered-blocks";
 import type { HashBlock } from "@local/hash-isomorphic-utils/blocks";
 import type { PopupState } from "material-ui-popup-state/hooks";
 import type { FunctionComponent } from "react";
+
+const faSearch = { icon: "search" } as const;
 
 type BlockListMenuContentProps = {
   closeMenu?: () => void;
@@ -62,7 +63,7 @@ export const BlockListMenuContent: FunctionComponent<
             inputRef: searchInputRef,
             startAdornment: (
               <InputAdornment position="start">
-                <FontAwesomeIcon icon={faSearch} />
+                <HashInlineIcon icon={faSearch} />
               </InputAdornment>
             ),
           }}

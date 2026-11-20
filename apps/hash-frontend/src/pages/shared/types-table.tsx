@@ -12,7 +12,7 @@ import {
   type VersionedUrl,
   type WebId,
 } from "@blockprotocol/type-system";
-import { faListTree, FontAwesomeIcon } from "@hashintel/design-system";
+import { faListTree, HashInlineIcon } from "@hashintel/design-system";
 import { SortMenu } from "@hashintel/ds-components";
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 
@@ -1088,7 +1088,7 @@ export const TypesTable: FunctionComponent<
                 }}
                 options={[
                   {
-                    icon: <FontAwesomeIcon icon={{ icon: faListTree }} />,
+                    icon: <HashInlineIcon icon={faListTree} />,
                     label: "Nested List",
                     value: "Nested",
                   },

@@ -1,5 +1,3 @@
-import { faCheckCircle } from "@fortawesome/free-regular-svg-icons";
-import { faCircleExclamation } from "@fortawesome/free-solid-svg-icons";
 import {
   InputAdornment,
   inputClasses,
@@ -7,13 +5,16 @@ import {
   Tooltip,
 } from "@mui/material";
 
-import { FontAwesomeIcon } from "./fontawesome-icon";
+import { HashInlineIcon } from "./hash-svg-icon";
 import { LoadingSpinner } from "./loading-spinner";
 
 import type {
   InputProps,
   TextFieldProps as MuiTextFieldProps,
 } from "@mui/material";
+
+const faCheckCircle = { icon: "circleCheck" } as const;
+const faCircleExclamation = { icon: "error" } as const;
 
 export type TextFieldProps = {
   /**
@@ -69,7 +70,7 @@ export const getInputProps = ({
             <LoadingSpinner size={16} />
           ) : (
             <Tooltip title={error && errorText ? errorText : ""}>
-              <FontAwesomeIcon
+              <HashInlineIcon
                 icon={success ? faCheckCircle : faCircleExclamation}
                 sx={({ palette }) => ({
                   color: success ? palette.blue[70] : palette.red[60],

@@ -1,9 +1,8 @@
-import { faChevronRight, faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import { Box, Tooltip, Typography } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { forwardRef, useState } from "react";
 
-import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
+import { HashInlineIcon, IconButton } from "@hashintel/design-system";
 
 import { PAGE_TITLE_PLACEHOLDER } from "../../../../../pages/shared/block-collection/page-title/page-title";
 import { PageIconButton } from "../../../../page-icon-button";
@@ -14,6 +13,9 @@ import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 import type { DraggableAttributes } from "@dnd-kit/core";
 import type { PopoverPosition } from "@mui/material";
 import type { CSSProperties, MouseEvent } from "react";
+
+const faChevronRight = { icon: "chevronRight" } as const;
+const faEllipsis = { icon: "ellipsis" } as const;
 
 interface DragProps {
   isSorting?: boolean;
@@ -142,7 +144,7 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
               transition: transitions.create("transform", { duration: 300 }),
             })}
           >
-            <FontAwesomeIcon icon={faChevronRight} />
+            <HashInlineIcon icon={faChevronRight} />
           </IconButton>
 
           <PageIconButton
@@ -205,7 +207,7 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
                   },
                 })}
               >
-                <FontAwesomeIcon icon={faEllipsis} />
+                <HashInlineIcon icon={faEllipsis} />
               </IconButton>
             </Box>
           </Tooltip>

@@ -1,11 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  PiGauge,
-  PiLightning,
-  PiMagnifyingGlass,
-  PiPower,
-  PiStack,
-} from "react-icons/pi";
 
 import {
   getInterviewBudget,
@@ -16,8 +9,26 @@ import {
 } from "@hashintel/brunch-agent";
 import { BaseTooltip, Button, Popover } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import { StaticHashIcon } from "@hashintel/ds-icons/static";
 
 import type { PetrinautAiComposerControlContext } from "../chat/ai-assistant-composer-control";
+import type { ComponentProps } from "react";
+
+const PiGauge = (
+  props: Omit<ComponentProps<typeof StaticHashIcon>, "name">,
+) => <StaticHashIcon {...props} name="gauge" />;
+const PiLightning = (
+  props: Omit<ComponentProps<typeof StaticHashIcon>, "name">,
+) => <StaticHashIcon {...props} name="lightning" />;
+const PiMagnifyingGlass = (
+  props: Omit<ComponentProps<typeof StaticHashIcon>, "name">,
+) => <StaticHashIcon {...props} name="search" />;
+const PiPower = (
+  props: Omit<ComponentProps<typeof StaticHashIcon>, "name">,
+) => <StaticHashIcon {...props} name="power" />;
+const PiStack = (
+  props: Omit<ComponentProps<typeof StaticHashIcon>, "name">,
+) => <StaticHashIcon {...props} name="layer" />;
 
 const lastStop = interviewBudgetLevels.length - 1;
 const stopPercent = (index: number) => (index / lastStop) * 100;

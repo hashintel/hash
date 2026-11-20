@@ -28,7 +28,6 @@
         "@local/petrinaut-optimizer-core#build"
       ],
       "affectedBy": [
-        "@local/eslint",
         "petrinaut-optimizer-core"
       ]
     },
@@ -41,7 +40,6 @@
         "CHECK_TEMPORARILY_DISABLED_RULES"
       ],
       "affectedBy": [
-        "@local/eslint",
         "petrinaut-optimizer-core"
       ]
     },
