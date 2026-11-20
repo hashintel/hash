@@ -4,19 +4,25 @@ description: How a panel drag or slide changes the page without rendering the ed
 sidebar_order: 30
 ---
 
-Panel geometry is the size of each panel and how far each panel is in view.
-A size changes on every pointer move of a drag, and a presence on every frame
-of a slide, so both are Motion values and the elements that depend on one are
+Panel geometry is the size of the left sidebar, the Properties panel, the
+bottom panel and the AI assistant, and how far each is in view. A size
+changes on every pointer move of a drag, and a presence on every frame of a
+slide, so both are Motion values and the elements that depend on one are
 written directly.
 
-![A drag or a slide sets a Motion value, and each element that follows it is written once per frame. No component renders until the drag ends and the size is saved.](./panel-geometry.d2)
+![A drag or a slide sets a Motion value, and each element that follows it writes its own style once per frame. A drag renders its panel when it starts and when it ends, and no component between.](./panel-geometry.d2)
+
+The values live in this layer. The helpers that read them are UI code:
+`styleRef`, `bindStyle`, `watch` and `useReading` in `ui/lib/readings.ts`,
+`useCanvasInsetsReader` in `ui/hooks/use-canvas-insets.ts`, and
+`slideFromEdge` and `useFloatingPanel` in `ui/views/Editor/shared`.
 
 ## Motion values, and where they stop
 
-[Motion](https://motion.dev) is the library behind these values. Four of its
-functions are in use: `motionValue` holds a value and tells its listeners when
-it changes, `styleEffect` writes values onto an element's style once per
-frame, `transformValue` computes a value from the values it reads, and
+[Motion](https://motion.dev) is the library behind these values.
+`motionValue` holds a value and tells its listeners when it changes,
+`styleEffect` writes values onto an element's style once per frame,
+`transformValue` computes a value from the values it reads, and
 `animateValue` takes a number from one value to another over time. UI code
 reaches `styleEffect` and `transformValue` through `ui/lib/readings.ts`.
 
@@ -54,30 +60,35 @@ const { shown } = usePanelPresence();
 ```
 
 `width` takes the value itself. `transform` takes a function, which is a
-reading too.
+reading too. `styleRef` gives a ref that calls `bindStyle`, which binds the
+readings to one element and returns the function that unbinds them.
 
-The rules of a reading, which `ui/lib/readings.test.tsx` holds:
+The rules of a reading:
 
 - A function is followed through the Motion values it reads the first time it
   runs. It reads every value it depends on before any condition on one of
-  them.
+  them: `() => open.get() > 0 && width.get()` is not followed through `width`
+  when `open` is zero on the first run. No test holds this.
 - A function may close over React values such as the view the editor is in.
   When one changes, the component renders, the ref is attached again and the
   style is written with the new value.
 - A style is written when the element attaches, and from then on once per
-  frame in which a reading changed.
+  frame in which a reading changed. Held by `ui/lib/readings.test.tsx`.
 - `watch` and `useReading` hear of a Motion value at once, and of a function
-  once per frame.
+  once per frame. Held by `ui/lib/readings.test.tsx`.
 - Properties go by the names Motion takes: `width`, `marginLeft`,
   `--a-custom-property`. A number is in pixels where CSS takes a length.
 - `styleRef` must not set a property that the element's React `style` prop
-  also sets. React would write its own value back on the next render.
+  also sets. React would write its own value back on the next render. No
+  test holds this.
 
 ## Keeping clear of the panels
 
-The panels overlay the canvas, so whatever floats over the canvas keeps clear
-of them by the canvas insets. `useCanvasInsetsReader` gives a function that
-works the insets out from the sizes and from how far each panel is in view.
+Where the presentation's `panelsOverlayCanvas` is true, the panels overlay
+the canvas, and whatever floats over the canvas keeps clear of them by the
+canvas insets. `useCanvasInsetsReader` gives a function that works the
+insets out from the sizes and from how far each panel is in view. Elsewhere
+it gives insets of zero.
 It is a reading: inside a bound style, `watch` or `useReading` it follows the
 panels, and called on its own it gives the insets at that moment.
 
@@ -91,20 +102,17 @@ panels, and called on its own it gives the insets at that moment.
 
 ## Opening, closing, docking and floating
 
-`PanelPresence` holds one value per panel for how far it is in view, and two
-for the AI assistant.
-
 | Value                | Range                  | Who follows it                                                                                       |
 | -------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------- |
 | `shown.<panel>`      | 0 closed to 1 open     | The panel's `transform`, the insets, and the edges of the panels beside it.                          |
 | `aiAssistantDocked`  | 0 floating to 1 docked | The assistant's box, which lies between the floating window's and the docked column's.               |
 | `aiAssistantHasRoom` | 0 or 1, in one step    | The width of the room beside the editor. Each change lays the whole editor out, so it does not ease. |
 
-`PanelPresenceProvider` is the one place that animates. It reads which panels
-are open from the editor's state and where the assistant sits from
-`AssistantPlacementContext`, and takes each value to its target with
-`animateValue` over 150 ms. Where the Animations setting is off, or the
-system asks for reduced motion, the value jumps. A change of target while a
+`PanelPresenceProvider` animates the values of `PanelPresence`. It reads
+which panels are open from the editor's state and where the assistant sits
+from `AssistantPlacementContext`, and takes each value to its target with
+`animateValue` over 150 ms. Where the setting `showAnimations` is off, or
+the system asks for reduced motion, the value jumps. A change of target while a
 value animates starts the next animation from where the value is.
 Held by `panel-presence-provider.test.tsx`.
 
@@ -114,44 +122,55 @@ Held by `panel-presence-provider.test.tsx`.
   the slide done. The provider sets the animation's time to zero in that
   first frame.
 - **A panel at rest has no transform.** `slideFromEdge` gives `none` for a
-  panel that is fully in view. Any transform would make the panel the
-  containing block of the fixed elements inside it, such as a code editor's
-  suggestion list. Held by `slide-from-edge.test.ts`.
+  panel that is fully in view and that its third argument, `pushedBy`, moves
+  by zero pixels. Any transform would make the panel the containing block of
+  the fixed elements inside it, such as a code editor's suggestion list.
+  Held by `slide-from-edge.test.ts`.
 - **A closed panel leaves when it has slid out.** A panel reads
-  `useReading(() => shown.leftSidebar.get() > 0)`, which renders it twice per
-  slide, and unmounts or hides once that is false.
+  `useReading(() => shown.leftSidebar.get() > 0)`. The answer flips once
+  when the panel starts to open and once when it has closed, and the panel
+  unmounts or hides once it is false.
 - **The docked assistant covers its room before it takes it.** While it
   arrives, `assistantCover` says how much of its width lies over the editor.
   The insets add that to the right edge, and the Properties panel moves by
   it. When the assistant has arrived, `aiAssistantHasRoom` steps to 1, the
   editor gives up the room and the cover is zero. When it leaves or floats,
-  the room goes back at once. Held by `panel-presence.test.ts`.
+  the room goes back at once. `panel-presence.test.ts` holds the cover, and
+  `panel-presence-provider.test.tsx` the step.
 
 A floating window keeps its position and size the same way.
 `useFloatingPanel` holds them as Motion values and `bindPanel` is the ref
-that writes them on the window as custom properties. They are custom
-properties on the window itself, so only the window's own elements inherit
-them.
+that writes them on the window as custom properties.
 
 ## Two rules for a write per frame
 
 - **Write the property on the element that needs it, not a custom property
   on an ancestor.** A custom property is inherited, so the browser restyles
   every element below the one it changes on, whether or not any of them reads
-  it. The cost grows with the number of elements below. Use a custom property
-  for a value that changes rarely.
+  it. Use a custom property for a value that changes rarely, or on an
+  element with few elements below it: a floating window sets its position on
+  itself, and only its own elements inherit it.
 - **Keep `:has()` off an element whose style is written per frame or per
   pointer move.** A direct write makes the browser work the element's style
   out in full, and matching `:has()` searches every element inside it.
   `GlassPanel` sets `data-resizing-edge` on its own element while its handle
   is dragged, so no rule has to look for the handle.
 
+:::danger[The Simulate panel follows neither rule]
+`simulation-workspace.tsx` holds the panel's width in `useState` and sets it
+on every pointer move, so a drag renders the workspace each time. It writes
+the width as the custom property `--simulation-panel-width` on the
+workspace, and its styles match `:has([data-resizing=true])`. Moving the
+width to a Motion value belongs to FE-2319.
+:::
+
 The scripts `geometry.mjs`, `panel-toggles.mjs` and `assistant-dock.mjs` in
-`benchmarks/monaco-performance/` measure a drag, a slide and a dock. Compare
-two builds only by runs that alternate between them.
+`benchmarks/monaco-performance/` measure a drag, a slide and a dock.
 
 ## Saving
 
-A drag saves the size to the user settings when it ends, through
-`onResizeEnd`. Saving renders the readers of that setting and writes local
-storage. During the drag nothing is saved.
+A drag of the left sidebar, the Properties panel or the bottom panel saves
+the size to the user settings when it ends, through `onResizeEnd`. Saving
+renders the readers of that setting and writes local storage.
+`PanelSizesProvider` restores the three sizes. The assistant's width is not
+saved.
