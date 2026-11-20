@@ -1559,11 +1559,16 @@ const summary = (
 const count = (
   summarizeEntities: SummarizeEntities,
   input: unknown,
-  { signedIn = true }: { signedIn?: boolean } = {},
+  {
+    signedIn = true,
+    query = vi.fn<QueryEntitySubgraph>(),
+  }: { signedIn?: boolean; query?: QueryEntitySubgraph } = {},
 ) =>
   runTool(
-    createHashEntityCountTool(summarizeEntities, () =>
-      signedIn ? countUser : undefined,
+    createHashEntityCountTool(
+      summarizeEntities,
+      () => (signedIn ? countUser : undefined),
+      query,
     ),
     input,
   );
@@ -1677,4 +1682,244 @@ test("a count the agent's contract doesn't allow is refused before any query", a
   ).rejects.toThrow(/needs its version/u);
   await expect(count(summarize, { traversalDepth: 0 })).rejects.toThrow();
   expect(summarize).not.toHaveBeenCalled();
+});
+
+/** A graph entity as a count by links reads it: named where it has a name. */
+const joinVertex = (
+  entityId: string,
+  name?: string,
+  linkData?: { leftEntityId: string; rightEntityId: string },
+) => ({
+  [entityId]: {
+    "2026-10-26T00:00:00Z": entity({
+      entityId,
+      editionId: `${entityId}-edition`,
+      properties: name === undefined ? {} : { [nameUrl]: name },
+      ...(linkData === undefined ? {} : { linkData }),
+    }),
+  },
+});
+
+/** One page of the given entities, with the graph's cursor when more follow. */
+const joinPage = (
+  vertices: Record<string, unknown>[],
+  cursor?: EntityQueryCursor,
+) =>
+  ({
+    queryEntitySubgraph: {
+      ...response.queryEntitySubgraph,
+      definitions: { dataTypes: {}, entityTypes: {}, propertyTypes: {} },
+      subgraph: {
+        roots: vertices.flatMap(Object.keys).map((baseId) => ({
+          baseId,
+          revisionId: "2026-10-26T00:00:00Z",
+        })),
+        vertices: Object.assign({}, ...vertices),
+        edges: {},
+        temporalAxes: {},
+      },
+      ...(cursor === undefined ? {} : { cursor }),
+    },
+  }) as unknown as QueryEntitySubgraphQuery;
+
+/**
+ * Sales orders in acme-web: o1 with nothing delivered, o2 partly and o3
+ * fully; o1 and o2 for customer c1, o2 also for c2.
+ */
+const joinData: Record<string, Record<string, unknown>[]> = {
+  "Sales Order": [
+    joinVertex("acme-web~o1", "SO-1"),
+    joinVertex("acme-web~o2", "SO-2"),
+    joinVertex("acme-web~o3", "SO-3"),
+  ],
+  "Has Line Item": [
+    ["o1", "i1"],
+    ["o2", "i2"],
+    ["o2", "i3"],
+    ["o3", "i4"],
+  ].map(([order, item]) =>
+    joinVertex(`acme-web~l-${item}`, undefined, {
+      leftEntityId: `acme-web~${order}`,
+      rightEntityId: `acme-web~${item}`,
+    }),
+  ),
+  Fulfills: ["i2", "i4"].map((item) =>
+    joinVertex(`acme-web~f-${item}`, undefined, {
+      leftEntityId: `acme-web~d-${item}`,
+      rightEntityId: `acme-web~${item}`,
+    }),
+  ),
+  "Has Customer": [
+    ["o1", "c1"],
+    ["o2", "c1"],
+    ["o2", "c2"],
+  ].map(([order, customer]) =>
+    joinVertex(`acme-web~h-${order}-${customer}`, undefined, {
+      leftEntityId: `acme-web~${order}`,
+      rightEntityId: `acme-web~${customer}`,
+    }),
+  ),
+  ids: [joinVertex("acme-web~c1", "Acme"), joinVertex("acme-web~c2", "Globex")],
+};
+
+/**
+ * The graph over `joinData`: each request's type title picks the records,
+ * else it is a read by id; pages hold two, so reads span pages.
+ */
+const joinQuery = (fails?: { title: string; page: number }) => {
+  const pages = new Map<string, number>();
+  return vi.fn<QueryEntitySubgraph>((request) => {
+    const filter = JSON.stringify(request.filter);
+    const title =
+      Object.keys(joinData).find((key) =>
+        filter.includes(`{"parameter":"${key}"}`),
+      ) ?? "ids";
+    const page = (pages.get(title) ?? 0) + 1;
+    pages.set(title, page);
+    if (fails?.title === title && fails.page === page) {
+      return Promise.reject(new Error("HASH didn't respond in time."));
+    }
+    const start = Number(
+      (request.cursor as unknown as [string] | undefined)?.[0] ?? 0,
+    );
+    // A read by id names each entity's uuid.
+    const records = joinData[title]!.filter(
+      (vertex) =>
+        title !== "ids" ||
+        filter.includes(`"${Object.keys(vertex)[0]!.split("~")[1]}"`),
+    );
+    const end = start + 2;
+    return Promise.resolve(
+      joinPage(
+        records.slice(start, end),
+        end < records.length
+          ? ([String(end)] as unknown as EntityQueryCursor)
+          : undefined,
+      ),
+    );
+  });
+};
+
+const joinSizes = vi.fn<SummarizeEntities>((request) => {
+  const filter = JSON.stringify(request.filter);
+  const title = Object.keys(joinData).find((key) =>
+    filter.includes(`{"parameter":"${key}"}`),
+  );
+  return Promise.resolve(
+    summary({ count: title === undefined ? 0 : joinData[title]!.length }),
+  );
+});
+
+const openOrder = [{ property: orderNumberUrl, value: "1000000283" }];
+const undeliveredByCustomer = {
+  entityTypes: ["Sales Order"],
+  propertyEquals: openOrder,
+  where: {
+    path: [
+      { linkType: "Has Line Item", direction: "outgoing" },
+      { linkType: "Fulfills", direction: "incoming" },
+    ],
+    exists: false,
+  },
+  groupBy: { linkType: "Has Customer", direction: "outgoing" },
+};
+
+test("a count by links reads every page of the counted type and of each link type in the count's webs, with no traversal or drafts, and joins them", async () => {
+  const query = joinQuery();
+  const output = await count(joinSizes, undeliveredByCustomer, { query });
+  expect(output).toEqual({
+    outcome: "counted",
+    webScope: "default",
+    ofType: 3,
+    count: 1,
+    groups: [
+      {
+        entity: { entityId: "acme-web~c1", label: "Acme" },
+        count: 1,
+      },
+    ],
+    examples: [{ entityId: "acme-web~o1", label: "SO-1" }],
+    reads: [
+      { role: "counted", entityTypes: ["Sales Order"], entities: 3 },
+      { role: "link", entityTypes: ["Has Line Item"], entities: 4 },
+      { role: "link", entityTypes: ["Fulfills"], entities: 2 },
+      { role: "link", entityTypes: ["Has Customer"], entities: 3 },
+      { role: "grouped", entityTypes: [], entities: 1 },
+    ],
+    // 4 sizes, then 2 + 2 + 1 + 2 pages and 1 page of the grouped customer.
+    requests: 12,
+  });
+
+  const scoped = { any: [webIs("alice-web"), webIs("acme-web")] };
+  for (const [request] of query.mock.calls) {
+    expect(request).toMatchObject({
+      traversalPaths: [],
+      includeDrafts: false,
+      limit: 1000,
+    });
+    expect(request.filter).toMatchObject({
+      all: expect.arrayContaining([scoped, ...notArchived]),
+    });
+  }
+  // propertyEquals narrows the counted entities, not the links.
+  expect(query).toHaveBeenCalledWith(
+    hashEntityReadRequest(
+      {
+        entityTypes: ["Sales Order"],
+        propertyEquals: openOrder,
+        traversalDepth: 0,
+        limit: 1000,
+      },
+      ["alice-web", "acme-web"],
+    ),
+    expect.any(AbortSignal),
+  );
+  expect(query).toHaveBeenCalledWith(
+    hashEntityReadRequest(
+      { entityTypes: ["Has Line Item"], traversalDepth: 0, limit: 1000 },
+      ["alice-web", "acme-web"],
+      ["2"] as unknown as EntityQueryCursor,
+    ),
+    expect.any(AbortSignal),
+  );
+  // The sizes come first, by the same filters, with the plain count's request.
+  expect(joinSizes).toHaveBeenCalledWith(
+    hashEntityCountRequest(
+      { entityTypes: ["Sales Order"], propertyEquals: openOrder },
+      ["alice-web", "acme-web"],
+    ),
+    expect.any(AbortSignal),
+  );
+  expect(joinSizes).toHaveBeenCalledWith(
+    hashEntityCountRequest({ entityTypes: ["Fulfills"] }, [
+      "alice-web",
+      "acme-web",
+    ]),
+    expect.any(AbortSignal),
+  );
+});
+
+test("a count by links whose page fails settles incomplete, with no count", async () => {
+  const output = await count(joinSizes, undeliveredByCustomer, {
+    query: joinQuery({ title: "Has Line Item", page: 2 }),
+  });
+  expect(output).toMatchObject({
+    outcome: "incomplete",
+    reason:
+      "Reading the Has Line Item links failed on page 2: HASH didn't respond in time.",
+  });
+  expect(output).not.toHaveProperty("count");
+});
+
+test("a count by links settles { error } when sizing it fails, and a plain count never reads pages", async () => {
+  await expect(
+    count(
+      () => Promise.reject(new Error("Response not successful")),
+      undeliveredByCustomer,
+      { query: joinQuery() },
+    ),
+  ).resolves.toEqual({ error: "Response not successful" });
+  const query = joinQuery();
+  await count(joinSizes, { entityTypes: ["Sales Order"] }, { query });
+  expect(query).not.toHaveBeenCalled();
 });

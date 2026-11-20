@@ -15,6 +15,10 @@ import * as v from "valibot";
 import {
   brunchTools,
   hashEntityCountInputSchema,
+  hashEntityCountJoinResultSchema,
+  hashEntityCountMaxExamples,
+  hashEntityCountMaxGroups,
+  hashEntityCountMaxJoinEntities,
   hashEntityCountResultSchema,
   hashEntityReadInputSchema,
   hashEntityReadDefaultLimit,
@@ -27,6 +31,8 @@ import {
   hashWebReadInputSchema,
   hashWebReadResultSchema,
   type HashEntityCountInput,
+  type HashEntityCountJoinResult,
+  type HashEntityCountStep,
   type HashEntityReadInput,
 } from "@hashintel/brunch-agent";
 
@@ -806,7 +812,10 @@ export const createHashWebReadTool = (execute: BrowserToolExecutor) =>
       ),
   });
 
-export const hashEntityCountDescription = `Count the HASH entities that match the filters, as the signed-in user: an exact count with no ${formattedQueryLimit}-match limit, of only the entities they may see; archived entities and drafts are not counted. Filters combine: an entity must match every filter given. propertyEquals counts only entities whose property equals a value, each { property, value } with the property by its base URL or propertyTypeId, as an entity read's legend shows it; the value matches exactly and only in the type it is stored as, quoted for a string and bare for a number. A link is an entity too, so a link type can be counted. Lists no entities. Returns compact text: the total and which webs were counted; then the property values counted where any were given; then each direct entity type the counted entities carry, by its count, title and entityTypeId (an entity of several types is counted under each); then each web counted, by its count, kind, name and webId. Without webIds it counts only in the user's own web and their organizations' webs; name webIds to count in others. A count that failed returns { error }. Count before listing: when the question is how many, or what a web holds, count rather than read the entities with ${brunchTools.hashQueryEntities}.`;
+const formattedMaxJoinEntities =
+  hashEntityCountMaxJoinEntities.toLocaleString("en-US");
+
+export const hashEntityCountDescription = `Count the HASH entities that match the filters, as the signed-in user: an exact count with no ${formattedQueryLimit}-match limit, of only the entities they may see; archived entities and drafts are not counted. Filters combine: an entity must match every filter given. propertyEquals counts only entities whose property equals a value, each { property, value } with the property by its base URL or propertyTypeId, as an entity read's legend shows it; the value matches exactly and only in the type it is stored as, quoted for a string and bare for a number. A link is an entity too, so a link type can be counted. Lists no entities. Returns compact text: the total and which webs were counted; then the property values counted where any were given; then each direct entity type the counted entities carry, by its count, title and entityTypeId (an entity of several types is counted under each); then each web counted, by its count, kind, name and webId. Without webIds it counts only in the user's own web and their organizations' webs; name webIds to count in others. A count that failed returns { error }. Count before listing: when the question is how many, or what a web holds, count rather than read the entities with ${brunchTools.hashQueryEntities}. To count across links, which filters can't (such as "has no such link"), name the counted type in entityTypes and give where, groupBy or both: where counts only the entities for which a path of one or two links ({ linkType, direction } steps) does (exists true) or does not (exists false) reach some entity; groupBy groups them by the entity one link away, an entity linked to several counted under each and one linked to none under (none). For example, sales orders with nothing delivered, by customer: entityTypes ["Sales Order"], where { path: [{ linkType: "Has Line Item", direction: "outgoing" }, { linkType: "Fulfills", direction: "incoming" }], exists: false }, groupBy { linkType: "Has Customer", direction: "outgoing" }. Such a count reads every entity of the type in the webs counted (propertyEquals narrows them), every link of each type followed in the same webs, and the grouped entities for their names, at most ${formattedMaxJoinEntities} entities in all: over that it is refused before reading, so narrow it by webIds or propertyEquals. A link reaches its other end even when that entity can't be read. It returns how many qualified of how many of the type, the ${hashEntityCountMaxGroups} largest groups (the rest summed), up to ${hashEntityCountMaxExamples} qualifying entities by name and entityId to cite or read, and what it read. If a read fails or HASH grows past the limit part-way, it returns Incomplete with no count: that is not an answer, so report no count, group or example from it; repeat the count, narrow it, or tell the user it couldn't be completed.`;
 
 const hashEntityCountEmptyNote =
   "No entities matched that the signed-in user can see. One may still exist but be hidden from them, archived, a draft, or filed under another type title or web.";
@@ -867,6 +876,130 @@ export const hashEntityCountForModel = (
   ].join("\n");
 };
 
+/** One link step as a count by links shows it. */
+const renderStep = ({ linkType, direction }: HashEntityCountStep) =>
+  `${plainOrQuoted(linkType)} (${direction})`;
+
+/** What a count by links read, or would read, as one line's list. */
+const renderJoinReads = (reads: HashEntityCountJoinResult["reads"]) =>
+  reads
+    .map(({ role, entityTypes, entities }) => {
+      const amount = entities.toLocaleString("en-US");
+      const types = entityTypes.map(plainOrQuoted).join(", ");
+      return role === "counted"
+        ? `${amount} ${types}`
+        : role === "link"
+          ? `${amount} ${types} ${entities === 1 ? "link" : "links"}`
+          : `${amount} grouped ${entities === 1 ? "entity" : "entities"}`;
+    })
+    .join(", ");
+
+const requestCount = (requests: number) =>
+  `${requests.toLocaleString("en-US")} graph ${requests === 1 ? "request" : "requests"}`;
+
+/** A qualifying or grouped entity: its label, if any, its id, and whether it is external. */
+const renderJoinEntity = ({
+  entityId,
+  label,
+  external,
+}: {
+  entityId: string;
+  label?: string;
+  external?: true;
+}) =>
+  [
+    ...(label === undefined ? [] : [renderLabel(label)]),
+    `entityId: ${plainOrQuoted(entityId)}`,
+    ...(external === true ? ["(external web)"] : []),
+  ].join(" ");
+
+/**
+ * What the model is shown of a count by links (`where` or `groupBy`): the
+ * count of how many of the type, what it counted under, the largest groups,
+ * examples and what it read; or a refusal before reading; or, when a read
+ * failed or the budget ran out part-way, that it is incomplete, with no count.
+ */
+export const hashEntityCountJoinForModel = (
+  output: unknown,
+  {
+    entityTypes = [],
+    propertyEquals,
+    where,
+    groupBy,
+  }: Pick<
+    HashEntityCountInput,
+    "entityTypes" | "propertyEquals" | "where" | "groupBy"
+  >,
+) => {
+  const parsed = v.safeParse(hashEntityCountJoinResultSchema, output);
+  if (!parsed.success)
+    throw new Error(
+      "HASH's page returned an entity count in an unknown shape.",
+    );
+  const result = parsed.output;
+  const typeNames = entityTypes.map(plainOrQuoted).join(", ");
+  if (result.outcome === "refused") {
+    const total = result.reads.reduce((sum, { entities }) => sum + entities, 0);
+    return [
+      `Refused: this count would read ${total.toLocaleString("en-US")} entities, over the ${formattedMaxJoinEntities} a count by links may read, so nothing was read or counted.`,
+      `It would read: ${renderJoinReads(result.reads)}; sized in ${requestCount(result.requests)}.`,
+      "Narrow it by webIds, or by propertyEquals on the counted entities, and count again. A count without where or groupBy has no such limit.",
+    ].join("\n");
+  }
+  if (result.outcome === "incomplete")
+    return [
+      `Incomplete: no count. ${result.reason}`,
+      "What was read is not all there is, so it is not an answer: report no count, group or example from it.",
+      `Read before it stopped: ${renderJoinReads(result.reads)}, in ${requestCount(result.requests)}.`,
+      "Repeat the count; if it stops again, narrow it by webIds or propertyEquals, or tell the user the count couldn't be completed.",
+    ].join("\n");
+  const scope =
+    result.webScope === "default"
+      ? "webs counted: the user's own web and their organizations' webs (the default; name webIds to count in others)"
+      : "webs counted: the webIds named";
+  const anyExternal =
+    result.examples.some(({ external }) => external === true) ||
+    (result.groups ?? []).some(({ entity }) => entity?.external === true);
+  return [
+    `entities: ${result.count.toLocaleString("en-US")} (of ${result.ofType.toLocaleString("en-US")} ${typeNames} read)`,
+    scope,
+    ...(propertyEquals === undefined
+      ? []
+      : [
+          `counted where: ${propertyEquals.map(renderPropertyCondition).join(", ")}`,
+        ]),
+    ...(where === undefined
+      ? []
+      : [
+          `where: following ${where.path.map(renderStep).join(", then ")} reaches ${where.exists ? "some entity" : "no entity"}`,
+        ]),
+    ...(result.ofType === 0 ? [hashEntityCountEmptyNote] : []),
+    ...(anyExternal ? [hashEntityReadExternalNote] : []),
+    ...(groupBy === undefined || result.groups === undefined
+      ? []
+      : [
+          `groups, by the entity one ${renderStep(groupBy)} link away (an entity linked to several is counted under each, so these may sum to more than the total):`,
+          ...result.groups.map(({ entity, unread, count }) =>
+            entity === undefined
+              ? `- ${count} (none): linked to no such entity`
+              : `- ${count} ${renderJoinEntity(entity)}${unread === true ? " (not read: outside the webs counted, or hidden from the user)" : ""}`,
+          ),
+          ...(result.otherGroups === undefined
+            ? []
+            : [
+                `- ${result.otherGroups.count} in ${result.otherGroups.groups} more ${result.otherGroups.groups === 1 ? "group" : "groups"}`,
+              ]),
+        ]),
+    ...(result.examples.length === 0
+      ? []
+      : [
+          `examples (${result.examples.length} of ${result.count}):`,
+          ...result.examples.map((entity) => `- ${renderJoinEntity(entity)}`),
+        ]),
+    `read: ${renderJoinReads(result.reads)}, in ${requestCount(result.requests)}`,
+  ].join("\n");
+};
+
 /** The entity count, executed by whatever `execute` reaches HASH through. */
 export const createHashEntityCountTool = (execute: BrowserToolExecutor) =>
   defineTool({
@@ -882,7 +1015,10 @@ export const createHashEntityCountTool = (execute: BrowserToolExecutor) =>
           toolCallId,
           signal,
         },
-        (output) => hashEntityCountForModel(output, data.propertyEquals),
+        (output) =>
+          data.where === undefined && data.groupBy === undefined
+            ? hashEntityCountForModel(output, data.propertyEquals)
+            : hashEntityCountJoinForModel(output, data),
       ),
   });
 

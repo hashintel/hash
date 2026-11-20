@@ -232,23 +232,103 @@ const hashEntityTypeSelectorSchema = v.pipe(
   ),
 );
 
-export const hashEntityCountInputSchema = v.strictObject({
-  entityTypes: v.optional(
-    v.pipe(
-      v.array(hashEntityTypeSelectorSchema),
-      v.minLength(1),
-      v.description(
-        "Entity types to count, each a title such as `Sales Order`, matching every type with that title at any version, or a versioned entityTypeId, matching that version only. Entities of any listed type are counted. Omit to count every entity, links included.",
-      ),
+/** The most link steps a count's `where` path follows. */
+export const hashEntityCountMaxPathSteps = 2;
+
+/**
+ * The most entities a count by links (`where` or `groupBy`) may read, across
+ * all its pages: the counted entities, the links of each type it follows and
+ * the grouped entities it labels. A count that would read more is refused
+ * before reading them.
+ */
+export const hashEntityCountMaxJoinEntities = 20_000;
+
+/** How many groups a count by links lists, largest first, before summing the rest. */
+export const hashEntityCountMaxGroups = 25;
+
+/** How many qualifying entities a count by links gives as examples. */
+export const hashEntityCountMaxExamples = 3;
+
+const formattedMaxJoinEntities =
+  hashEntityCountMaxJoinEntities.toLocaleString("en-US");
+
+const pathStepsMessage = `A path follows ${hashEntityCountMaxPathSteps} links at most: count in two steps, or ask the user to narrow the question.`;
+
+const joinNeedsEntityTypesMessage =
+  'where and groupBy count the entities of a type by their links: name that type in entityTypes, such as ["Sales Order"].';
+
+/** One link followed from an entity, to the entity at the link's other end. */
+const hashEntityCountStepSchema = v.strictObject({
+  linkType: v.pipe(
+    hashEntityTypeSelectorSchema,
+    v.description(
+      "The link entity type to follow: a title such as `Has Customer`, or a versioned entityTypeId.",
     ),
   ),
-  propertyEquals: propertyEqualsSchemaWith({
-    subject: "a counted entity's properties",
-  }),
-  webIds: identifiersSchemaWith({
-    description: `Web ids to count in. Omit to count in the user's own web and their organizations' webs, as ${brunchTools.hashQueryWebs} lists them; name webs to count in others.`,
-  }),
+  direction: v.pipe(
+    v.picklist(["outgoing", "incoming"]),
+    v.description(
+      "outgoing follows links whose left (source) entity is this one to their right (target) entity; incoming follows links whose right (target) entity is this one back to their left (source) entity.",
+    ),
+  ),
 });
+
+export const hashEntityCountInputSchema = v.pipe(
+  v.strictObject({
+    entityTypes: v.optional(
+      v.pipe(
+        v.array(hashEntityTypeSelectorSchema),
+        v.minLength(1),
+        v.description(
+          "Entity types to count, each a title such as `Sales Order`, matching every type with that title at any version, or a versioned entityTypeId, matching that version only. Entities of any listed type are counted. Omit to count every entity, links included; required with where or groupBy.",
+        ),
+      ),
+    ),
+    propertyEquals: propertyEqualsSchemaWith({
+      subject: "a counted entity's properties",
+    }),
+    webIds: identifiersSchemaWith({
+      description: `Web ids to count in. Omit to count in the user's own web and their organizations' webs, as ${brunchTools.hashQueryWebs} lists them; name webs to count in others. With where or groupBy, the links followed and the grouped entities are read in the same webs.`,
+    }),
+    where: v.optional(
+      v.pipe(
+        v.strictObject({
+          path: v.pipe(
+            v.array(hashEntityCountStepSchema),
+            v.minLength(1, pathStepsMessage),
+            v.maxLength(hashEntityCountMaxPathSteps, pathStepsMessage),
+            v.description(
+              "One or two link steps from each counted entity, each { linkType, direction }; the second step follows links from the entities the first reached.",
+            ),
+          ),
+          exists: v.pipe(
+            v.boolean(),
+            v.description(
+              "true counts an entity when the path reaches at least one entity; false counts it when the path reaches none.",
+            ),
+          ),
+        }),
+        v.description(
+          `Count only the entities for which a path of one or two links does, or does not, reach some entity: what a filter can't say, such as "has no such link". For example, sales orders none of whose line items is fulfilled: entityTypes ["Sales Order"], path [{ linkType: "Has Line Item", direction: "outgoing" }, { linkType: "Fulfills", direction: "incoming" }], exists false. A link reaches its other end even when that entity can't be read. It reads every entity of the type and every link of each type followed, at most ${formattedMaxJoinEntities} in all.`,
+        ),
+      ),
+    ),
+    groupBy: v.optional(
+      v.pipe(
+        hashEntityCountStepSchema,
+        v.description(
+          `Group the counted entities by the entity one link away, such as each sales order's customer: { linkType: "Has Customer", direction: "outgoing" }. An entity linked to several is counted under each; one linked to none is counted under (none). Lists the ${hashEntityCountMaxGroups} largest groups and sums the rest.`,
+        ),
+      ),
+    ),
+  }),
+  v.check(
+    ({ entityTypes, where, groupBy }) =>
+      (where === undefined && groupBy === undefined) ||
+      entityTypes !== undefined,
+    joinNeedsEntityTypesMessage,
+  ),
+);
 
 export type HashEntityCountInput = v.InferOutput<
   typeof hashEntityCountInputSchema
@@ -406,4 +486,91 @@ export const hashEntityCountResultSchema = v.object({
 
 export type HashEntityCountResult = v.InferOutput<
   typeof hashEntityCountResultSchema
+>;
+
+export type HashEntityCountStep = v.InferOutput<
+  typeof hashEntityCountStepSchema
+>;
+
+/**
+ * How many entities a count by links reads, or would read, of one kind: the
+ * counted entities (`counted`, by the input's `entityTypes`), the links of one
+ * type it follows (`link`, by that step's `linkType`), or the grouped entities
+ * it labels (`grouped`).
+ */
+const hashEntityCountJoinReadSchema = v.object({
+  role: v.picklist(["counted", "link", "grouped"]),
+  /** The entity types read: the input's selectors, a title or versioned id each. */
+  entityTypes: v.array(v.string()),
+  entities: countSchema,
+});
+
+/**
+ * A qualifying entity, or a grouped one, as a count by links names it: by id,
+ * with its label where it has one, marked `external` when it is in neither the
+ * user's own web nor one of their organizations'.
+ */
+const hashEntityCountJoinEntitySchema = v.object({
+  entityId: v.string(),
+  label: v.optional(v.string()),
+  external: v.optional(v.literal(true)),
+});
+
+/**
+ * The result of a count by links (`where` or `groupBy`), which the page reads
+ * page by page and joins itself: `counted` with the count; `refused` before
+ * reading, because it would read more than `hashEntityCountMaxJoinEntities`;
+ * or `incomplete`, when a read failed or the budget ran out part-way, which
+ * carries no count, since what was read is not all there is.
+ */
+export const hashEntityCountJoinResultSchema = v.variant("outcome", [
+  v.object({
+    outcome: v.literal("counted"),
+    webScope: v.picklist(["default", "named"]),
+    /** How many entities of the counted types were read. */
+    ofType: countSchema,
+    /** How many of them qualified under `where`, or all of them without it. */
+    count: countSchema,
+    /**
+     * With `groupBy`: the largest groups, most first, each by the entity one
+     * step away, or with no `entity` for those linked to none.
+     */
+    groups: v.optional(
+      v.array(
+        v.object({
+          entity: v.optional(hashEntityCountJoinEntitySchema),
+          /** Set when the grouped entity could not be read (outside the webs counted, or hidden from the user), so has no label. */
+          unread: v.optional(v.literal(true)),
+          count: countSchema,
+        }),
+      ),
+    ),
+    /** The groups past those listed: how many, and their counts summed. */
+    otherGroups: v.optional(
+      v.object({ groups: countSchema, count: countSchema }),
+    ),
+    examples: v.array(hashEntityCountJoinEntitySchema),
+    reads: v.array(hashEntityCountJoinReadSchema),
+    requests: countSchema,
+  }),
+  v.object({
+    outcome: v.literal("refused"),
+    webScope: v.picklist(["default", "named"]),
+    /** How many entities of each kind the count would read. */
+    reads: v.array(hashEntityCountJoinReadSchema),
+    requests: countSchema,
+  }),
+  v.object({
+    outcome: v.literal("incomplete"),
+    webScope: v.picklist(["default", "named"]),
+    /** What stopped it, as a sentence. */
+    reason: v.string(),
+    /** What had been read when it stopped. */
+    reads: v.array(hashEntityCountJoinReadSchema),
+    requests: countSchema,
+  }),
+]);
+
+export type HashEntityCountJoinResult = v.InferOutput<
+  typeof hashEntityCountJoinResultSchema
 >;

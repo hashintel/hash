@@ -4,11 +4,15 @@ import {
   browserToolEnvelopeOf,
   brunchTools,
   hashPropertyBaseUrl,
+  parseHashEntityCountInput,
   parseHashEntityReadInput,
   type ClientToolResult,
 } from "@hashintel/brunch-agent";
 
-import { createHashEntityReadTool } from "../../src/agents/hash/tools/hash-graph-reads.ts";
+import {
+  createHashEntityCountTool,
+  createHashEntityReadTool,
+} from "../../src/agents/hash/tools/hash-graph-reads.ts";
 
 import type { BrowserToolExecutor } from "../../src/shared/conversation/browser-tool-executor.ts";
 import type { FlueLogger } from "@flue/runtime";
@@ -460,4 +464,73 @@ test("one sales order is found by its number in one read, not by listing every o
   expect(mistyped).toContain(
     'A value matches only exactly and in the type it is stored as: "42" doesn\'t match 42.',
   );
+});
+
+test("how many sales orders have had nothing delivered, and which customer has the most, is answered by one count across links", async () => {
+  // The seeded data: 520 sales orders, 392 with some delivery. A graph filter
+  // with `not` over the link path overcounted, returning all 520.
+  const customer = (index: number) =>
+    `${webId}~00000000-0000-4000-8000-0000000001${String(index).padStart(2, "0")}`;
+  const delivery: ClientToolResult["output"] = {
+    outcome: "counted",
+    webScope: "default",
+    ofType: 520,
+    count: 128,
+    groups: [
+      { entity: { entityId: customer(1), label: "Northwind" }, count: 31 },
+      { entity: { entityId: customer(2), label: "Contoso" }, count: 22 },
+      { count: 3 },
+    ],
+    otherGroups: { groups: 12, count: 72 },
+    examples: [{ entityId: orderId, label: "SO-1000000283" }],
+    reads: [
+      { role: "counted", entityTypes: ["Sales Order"], entities: 520 },
+      { role: "link", entityTypes: ["Has Line Item"], entities: 1_480 },
+      { role: "link", entityTypes: ["Fulfills"], entities: 1_105 },
+      { role: "link", entityTypes: ["Has Customer"], entities: 520 },
+      { role: "grouped", entityTypes: [], entities: 14 },
+    ],
+    requests: 12,
+  };
+  const execute = vi.fn<BrowserToolExecutor>(async () => ({
+    output: delivery,
+  }));
+  const input = parseHashEntityCountInput({
+    entityTypes: ["Sales Order"],
+    where: {
+      path: [
+        { linkType: "Has Line Item", direction: "outgoing" },
+        { linkType: "Fulfills", direction: "incoming" },
+      ],
+      exists: false,
+    },
+    groupBy: { linkType: "Has Customer", direction: "outgoing" },
+  });
+  const result = await createHashEntityCountTool(execute).run({
+    data: input,
+    toolCallId: "delivery-count",
+    log,
+  });
+  const text = browserToolEnvelopeOf(
+    typeof result === "object" ? result.output : undefined,
+  )?.output;
+  if (typeof text !== "string") {
+    throw new Error("Expected model-facing text in the browser result.");
+  }
+
+  expect(execute).toHaveBeenCalledTimes(1);
+  expect(execute).toHaveBeenCalledWith(
+    expect.objectContaining({
+      toolName: brunchTools.hashCountEntities,
+      input,
+    }),
+  );
+  const lines = text.split("\n");
+  // The answer is in the first lines: how many, and the customer with the most.
+  expect(lines[0]).toBe('entities: 128 (of 520 "Sales Order" read)');
+  expect(lines).toContain(
+    'where: following "Has Line Item" (outgoing), then Fulfills (incoming) reaches no entity',
+  );
+  expect(lines).toContain(`- 31 "Northwind" entityId: ${customer(1)}`);
+  expect(lines).toContain("- 72 in 12 more groups");
 });
