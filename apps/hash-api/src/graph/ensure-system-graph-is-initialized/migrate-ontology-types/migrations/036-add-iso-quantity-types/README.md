@@ -2,7 +2,7 @@
 
 Migration 036 adds quantity meanings as property types and numeric representations as data types. It builds on migrations 034 and 035 without replacing their unit definitions.
 
-- **363 data types:** 203 concrete representations and 160 abstract conversion groups. These include reusable bounded fractions and integer domains, missing compound units, decimal and binary storage/rate units, information units, and acoustic references.
+- **364 data types:** 204 concrete representations and 160 abstract conversion groups. These include reusable bounded fractions and integer domains, missing compound units, decimal and binary storage/rate units, information units, and acoustic references.
 - **909 property types:** 708 quantity meanings and 201 reusable components, coordinates, and context fields.
 - **115 bidirectional conversion pairs**, using the graph's existing expression schema.
 - **721 of 723 catalogue item locators represented.** Two reaction-dependent equilibrium constants are deferred. Multiple ISO items can share a property when they denote the same quantity.
@@ -24,6 +24,8 @@ Existing general-purpose property types, such as File Size, describe a different
 ## Constraints and conversions
 
 Bounded Fraction has unit-specific concrete descendants: Unit Interval (0–1), Fractional Percentage (0–100), and fractional ppm/ppb. Bounds are applied in each representation's own scale. The abstract parent does not impose a raw 0–1 bound on percentages.
+
+Negative Number accepts real values strictly below zero, while Non-negative Number accepts zero and positive real values. Both inherit from Number, with no unit conversion between these disjoint domains.
 
 Count properties reference non-negative integers or positive integers. Half-integer quantum numbers have a reusable step of 0.5. Mean Queue Length accepts fractional non-negative values. Relative Humidity remains an unbounded ratio because supersaturation can exceed one.
 
