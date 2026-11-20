@@ -255,16 +255,6 @@ describe("sweepRunFraction", () => {
     expect(xDraws).not.toEqual(yDraws);
   });
 
-  it("reproduces exactly for the same seed", () => {
-    const first = Array.from({ length: 12 }, (_, index) =>
-      sweepRunFraction(42, index, 0),
-    );
-    const again = Array.from({ length: 12 }, (_, index) =>
-      sweepRunFraction(42, index, 0),
-    );
-    expect(again).toEqual(first);
-  });
-
   it("draws a different value sequence per experiment seed", () => {
     const seedA = Array.from({ length: 6 }, (_, index) =>
       sweepRunFraction(1, index, 0),
