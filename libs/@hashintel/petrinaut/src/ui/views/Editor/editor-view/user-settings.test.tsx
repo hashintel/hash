@@ -254,6 +254,27 @@ describe("user settings", () => {
     },
   );
 
+  it("names a resize handle for each edge and corner", async () => {
+    renderSettings({ overlay: { type: "user-settings" } });
+    await screen.findByRole("dialog");
+    expect(
+      screen
+        .getAllByRole("button", { name: /^Resize User settings from / })
+        .map((handle) => handle.getAttribute("aria-label")),
+    ).toEqual(
+      [
+        "top",
+        "right",
+        "bottom",
+        "left",
+        "top-left",
+        "top-right",
+        "bottom-left",
+        "bottom-right",
+      ].map((direction) => `Resize User settings from ${direction}`),
+    );
+  });
+
   it.each(["edit", "simulate", "actual"] as const)(
     "opens from the shortcut and palette in %s mode",
     async (mode) => {
