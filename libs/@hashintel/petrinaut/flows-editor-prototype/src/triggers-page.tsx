@@ -21,6 +21,7 @@ import {
   BreadCrumbs,
   Button,
   ButtonGroup,
+  Checkbox,
   NumberInput,
   Icon,
   type IconName,
@@ -134,6 +135,8 @@ type Values = {
   event: string;
   /** `?triggeradd=g1|g2`: the row's own words, written by the schedule form. */
   label?: string;
+  /** The optional name from the add and edit schedule form (FE-2322); the table still shows the schedule text. */
+  name?: string;
   schedule?: ScheduleValues;
 };
 
@@ -1030,6 +1033,7 @@ const TriggerForm = ({
   const [values, setValues] = useState<Values>(trigger ?? { ...blank, flowId });
   const set = (key: keyof Values) => (value: string | null) =>
     setValues((current) => ({ ...current, [key]: value ?? current[key] }));
+  const [runNow, setRunNow] = useState(false);
   const flow = flows.find((candidate) => candidate.id === values.flowId);
   const day = repeatDay(trigger);
   const defaultPage = defaultSchedulePage() && kind === "schedule";
@@ -1099,6 +1103,45 @@ const TriggerForm = ({
         <span className={headingText}>Edit schedule</span>
       ) : null}
       <div className={formGridStyle}>
+        {defaultPage ? (
+          <>
+            <span className="label">Web</span>
+            <Select
+              required
+              size="sm"
+              aria-label="Web"
+              items={items(["@aakarsh", "@hash"])}
+              value={values.web}
+              onChange={set("web")}
+            />
+            {pickFlow && !trigger ? (
+              <>
+                <span className="label">Flow</span>
+                <Select
+                  required
+                  size="sm"
+                  aria-label="Flow"
+                  items={flows.map((candidate) => ({
+                    value: candidate.id,
+                    text: candidate.name,
+                  }))}
+                  value={values.flowId}
+                  onChange={set("flowId")}
+                />
+              </>
+            ) : null}
+            <span className="label">Name</span>
+            <TextInput
+              size="sm"
+              aria-label="Name"
+              placeholder="Monthly supplier check"
+              value={values.name ?? ""}
+              onChange={(value) =>
+                setValues((current) => ({ ...current, name: value }))
+              }
+            />
+          </>
+        ) : null}
         {pickFlow && !trigger && !defaultPage ? (
           <>
             <span className="label">Flow</span>
@@ -1187,28 +1230,26 @@ const TriggerForm = ({
             />
           </>
         )}
-        <span className="label">Web</span>
-        <Select
-          required
-          size="sm"
-          aria-label="Web"
-          items={items(["@aakarsh", "@hash"])}
-          value={values.web}
-          onChange={set("web")}
-        />
-        {defaultPage && pickFlow && !trigger ? (
+        {defaultPage ? null : (
           <>
-            <span className="label">Flow</span>
+            <span className="label">Web</span>
             <Select
               required
               size="sm"
-              aria-label="Flow"
-              items={flows.map((candidate) => ({
-                value: candidate.id,
-                text: candidate.name,
-              }))}
-              value={values.flowId}
-              onChange={set("flowId")}
+              aria-label="Web"
+              items={items(["@aakarsh", "@hash"])}
+              value={values.web}
+              onChange={set("web")}
+            />
+          </>
+        )}
+        {defaultPage && !trigger ? (
+          <>
+            <span />
+            <Checkbox
+              value={runNow}
+              onChange={setRunNow}
+              label="Run once now"
             />
           </>
         ) : null}
