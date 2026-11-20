@@ -2234,7 +2234,7 @@ describe("AiAssistantContents", () => {
     ).toBe(false);
     expect(
       screen.getByRole<HTMLButtonElement>("button", {
-        name: "Clear AI chat",
+        name: "New conversation",
       }).disabled,
     ).toBe(true);
   });
@@ -3563,7 +3563,7 @@ describe("AiAssistantContents", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Clear AI chat" }));
+    fireEvent.click(screen.getByRole("button", { name: "New conversation" }));
 
     expect(onClearMessages).toHaveBeenCalledOnce();
   });

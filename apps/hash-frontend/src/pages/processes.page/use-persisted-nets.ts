@@ -69,6 +69,11 @@ export const getPersistedNetsFromSubgraph = (
  *
  * Used both by the `/processes` list page (to render tiles) and by the editor
  * (to resolve a URL uuid back to the full entity record).
+ *
+ * Each mount asks the graph afresh, showing any cached list meanwhile, and
+ * `loading` holds until the graph answers. The editor treats a net missing
+ * from a list that has finished loading as not saved: a cached list can
+ * predate a save from another tab, and would open that net's draft blank.
  */
 export const usePersistedNets = () => {
   const { data, loading, refetch } = useQuery<
@@ -93,6 +98,7 @@ export const usePersistedNets = () => {
         includePermissions: true,
       },
     },
+    fetchPolicy: "cache-and-network",
   });
 
   const persistedNets = useMemo(() => {

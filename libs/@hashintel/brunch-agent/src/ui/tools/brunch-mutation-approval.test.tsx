@@ -523,6 +523,35 @@ describe("Brunch save approval card", () => {
     });
   });
 
+  test("says a save of a net that was never saved makes its first version, and offers only Allow and Deny", () => {
+    const coordinator = createBrunchMutationApprovalCoordinator();
+    void coordinator.request({
+      toolCallId: "save-1",
+      toolName: brunchTools.appSaveNet,
+      signal: new AbortController().signal,
+    });
+    const SaveCard = createBrunchSaveApprovalWidget(coordinator, () => ({
+      title: "Returns",
+      lastSavedTime: null,
+      refusal: null,
+    }));
+    render(
+      <SaveCard
+        input={{ documentId: "web~draft" }}
+        state="awaiting"
+        submit={vi.fn()}
+        toolCallId="save-1"
+      />,
+    );
+
+    expect(screen.getByText("Save \u2018Returns\u2019?")).not.toBeNull();
+    expect(screen.getByText(/hasn.t been saved yet/iu)).not.toBeNull();
+    expect(screen.queryByText(/as a new version/iu)).toBeNull();
+    expect(
+      screen.getAllByRole("button").map((button) => button.textContent),
+    ).toEqual(["Allow", "Deny"]);
+  });
+
   test("a save that names no document is refused before it can wait for approval", async () => {
     const coordinator = createBrunchMutationApprovalCoordinator();
     const request = vi.spyOn(coordinator, "request");

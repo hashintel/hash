@@ -11,7 +11,7 @@ use hash_graph_postgres_store::permissions::PrincipalError;
 use pretty_assertions::assert_eq;
 use type_system::principal::{
     PrincipalId,
-    actor::{ActorId, UserId},
+    actor::{ActorId, ActorType, UserId},
     actor_group::{ActorGroupId, WebId},
     role::{Role, RoleId, RoleName, TeamRoleId, WebRoleId},
 };
@@ -178,20 +178,28 @@ async fn delete_role() -> Result<(), Box<dyn Error>> {
         .expect("admin role should exist")
         .id();
 
-    let role_policies = client
-        .query_policies(
-            actor_id,
-            &PolicyFilter {
-                name: None,
-                principal: Some(PrincipalFilter::Constrained(PrincipalConstraint::Role {
-                    role: role_id,
-                    actor_type: None,
-                })),
-            },
-        )
-        .await?;
-    for policy in role_policies {
-        client.delete_policy_by_id(actor_id, policy.id).await?;
+    // Each principal filter matches one exact actor-type constraint.
+    for actor_type in [
+        None,
+        Some(ActorType::User),
+        Some(ActorType::Machine),
+        Some(ActorType::Ai),
+    ] {
+        let role_policies = client
+            .query_policies(
+                actor_id,
+                &PolicyFilter {
+                    name: None,
+                    principal: Some(PrincipalFilter::Constrained(PrincipalConstraint::Role {
+                        role: role_id,
+                        actor_type,
+                    })),
+                },
+            )
+            .await?;
+        for policy in role_policies {
+            client.delete_policy_by_id(actor_id, policy.id).await?;
+        }
     }
 
     // Delete the role

@@ -138,6 +138,20 @@ vi.mock("./petrinaut-editor/process-petrinaut/brunch-hash-graph-reads", () => ({
   useBrunchHashGraphReadTools: () => observed.hashGraphReadTools,
 }));
 
+vi.mock("./petrinaut-editor/use-agent-conversation", () => {
+  // Stable, as the hook's is while the open conversation is unchanged.
+  const conversation = {
+    conversationId: null,
+    start: () => {},
+    replace: () => {},
+  };
+  const conversationRead = {
+    conversationPointer: conversation,
+    subjectSaved: () => {},
+  };
+  return { useAgentConversation: () => conversationRead };
+});
+
 vi.mock("./petrinaut-editor/process-petrinaut/top-bar-plugin", () => ({
   topBarPlugin: { id: "top-bar" },
 }));
@@ -194,7 +208,7 @@ const savedLoad = (
 const draftLoad = (): PetrinautEditorLoad => ({
   definition,
   title: "Draft",
-  mode: { kind: "draft", seedKey: null },
+  mode: { kind: "draft", seedKey: null, entityId: "web~draft" as EntityId },
   savedSnapshot: null,
   reason: "open",
 });
@@ -397,6 +411,7 @@ test("Save submits the net as it was pressed once, and marks only that as saved"
     definition: handle?.doc(),
     title: "Net (edited)",
     entityId: savedEntityId,
+    exists: true,
   });
   expect(lastTopBar()?.persistPending).toBe(true);
 
@@ -496,7 +511,7 @@ test("a Save kept from before Create, called once Create resolves but before the
     decisionTime: "2026-10-24T02:00:00.000Z",
   });
   renderEditor({ load: draftLoad() });
-  await waitFor(() => expect(lastTopBar()?.saveLabel).toBe("Create"));
+  await waitFor(() => expect(lastTopBar()?.saveLabel).toBe("Save"));
   const draftBar = lastTopBar();
   act(() => draftBar?.onSave());
 
@@ -513,7 +528,7 @@ test("a Save kept from before Create, called once Create resolves but before the
     }
     // Create has resolved, and the editor has not rendered since.
     expect(lastTopBar()).toMatchObject({
-      saveLabel: "Create",
+      saveLabel: "Save",
       persistPending: true,
     });
     draftBar?.onTitleChange("Renamed");
@@ -521,8 +536,8 @@ test("a Save kept from before Create, called once Create resolves but before the
   });
 
   expect(onSave.mock.calls.map(([save]) => save)).toMatchObject([
-    { title: "Draft", entityId: null },
-    { title: "Renamed", entityId: createdEntityId },
+    { title: "Draft", entityId: "web~draft", exists: false },
+    { title: "Renamed", entityId: createdEntityId, exists: true },
   ]);
   await waitFor(() =>
     expect(lastTopBar()).toMatchObject({
@@ -541,7 +556,7 @@ test("Create turns the draft into the saved net in the same editor, which then o
     decisionTime: "2026-10-24T01:00:00.000Z",
   });
   renderEditor({ load: draftLoad() });
-  await waitFor(() => expect(lastTopBar()?.saveLabel).toBe("Create"));
+  await waitFor(() => expect(lastTopBar()?.saveLabel).toBe("Save"));
   const handle = lastHandle();
 
   await act(async () => {
@@ -550,7 +565,11 @@ test("Create turns the draft into the saved net in the same editor, which then o
   });
 
   expect(onSave).toHaveBeenCalledWith(
-    expect.objectContaining({ title: "Draft", entityId: null }),
+    expect.objectContaining({
+      title: "Draft",
+      entityId: "web~draft",
+      exists: false,
+    }),
   );
   await waitFor(() =>
     expect(lastBrunchInput()?.openDocument?.documentId).toBe(createdEntityId),
@@ -644,6 +663,7 @@ test("the agent's save runs the Save button's one save and settles once saved, s
     definition: captured,
     title: "Net",
     entityId: savedEntityId,
+    exists: true,
   });
   await waitFor(() => expect(lastTopBar()?.persistPending).toBe(true));
   editNet("after-save");
@@ -915,8 +935,9 @@ test("a failed save settles with its error after its one attempt, and nothing re
   });
 });
 
-// Brunch is offered only on an editable saved net, so a read-only net or a
-// draft can only reach the agent's save when the net changes under a session.
+// Brunch is offered only on a net the user may edit, under that net's id, so
+// a read-only net or another net can only reach the agent's save when the
+// net changes under a session.
 test.each([
   {
     refused: "another net",
@@ -931,11 +952,10 @@ test.each([
     reason: "The user can't edit this net, so they can't save it.",
   },
   {
-    refused: "a draft",
+    refused: "the saved net once a draft with another id is open",
     change: { load: draftLoad() },
     documentId: savedEntityId,
-    reason:
-      "The net is an unsaved draft, which the user creates with the editor's Create.",
+    reason: "That isn't the net open in the editor.",
   },
 ])(
   "the agent's save of $refused is refused as not started and saves nothing",

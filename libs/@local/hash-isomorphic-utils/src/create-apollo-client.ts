@@ -5,13 +5,69 @@ import {
   InMemoryCache,
 } from "@apollo/client";
 import { onError } from "@apollo/client/link/error";
+import { RetryLink } from "@apollo/client/link/retry";
 import * as Sentry from "@sentry/browser";
 
 import { apiGraphQLEndpoint } from "./environment.js";
 import possibleTypes from "./graphql/fragment-types.gen.json" with { type: "json" };
 import { hashClientHeaderKey } from "./http-requests.js";
 
-import type { DefaultOptions, NormalizedCacheObject } from "@apollo/client";
+import type {
+  DefaultOptions,
+  FetchResult,
+  NormalizedCacheObject,
+  Operation,
+} from "@apollo/client";
+
+/**
+ * Opts one operation into retries, through its `context`. Operations without
+ * it are sent once, as before.
+ */
+export type RetryContext = {
+  /**
+   * How long each retry of a failed attempt waits, in order: one retry per
+   * entry. An attempt fails when its request does or its answer has errors.
+   */
+  retryDelaysMs?: readonly number[];
+};
+
+const retryDelaysOf = (operation: Operation) =>
+  (operation.getContext() as RetryContext).retryDelaysMs;
+
+/** An answer with errors, failed so that the retry link retries it. */
+class ResultWithErrors extends Error {
+  constructor(readonly result: FetchResult) {
+    super(
+      result.errors?.map(({ message }) => message).join("; ") ??
+        "The answer has errors",
+    );
+    this.name = "ResultWithErrors";
+  }
+}
+
+/**
+ * Retries the operations that opt in through {@link RetryContext}, after
+ * each of their delays in turn, and fails with the last attempt's error.
+ * Every other operation passes through it untouched.
+ */
+const retryLink = ApolloLink.split(
+  (operation) => retryDelaysOf(operation) !== undefined,
+  ApolloLink.from([
+    new RetryLink({
+      delay: (count, operation) => retryDelaysOf(operation)?.[count - 1] ?? 0,
+      attempts: (count, operation) =>
+        count <= (retryDelaysOf(operation)?.length ?? 0),
+    }),
+    new ApolloLink((operation, forward) =>
+      forward(operation).map((result) => {
+        if (result.errors?.length) {
+          throw new ResultWithErrors(result);
+        }
+        return result;
+      }),
+    ),
+  ]),
+);
 
 const errorLink = onError(({ graphQLErrors, operation }) => {
   if (graphQLErrors) {
@@ -91,7 +147,8 @@ export const createApolloClient = (params?: {
     headers,
   });
 
-  const link = ApolloLink.from([errorLink, httpLink]);
+  // The error link reports each attempt's errors, after the retry link.
+  const link = ApolloLink.from([retryLink, errorLink, httpLink]);
 
   const entityKeyFields = { keyFields: ["entityId"] };
 

@@ -218,7 +218,12 @@ const savedView = (entityUuid: string): ProcessEditorView => ({
   kind: "saved",
   entityUuid,
 });
-const draftView: ProcessEditorView = { kind: "draft", seedKey: null };
+/** A draft is named before it exists: its first save creates `createdId`. */
+const draftView: ProcessEditorView = {
+  kind: "draft",
+  seedKey: null,
+  entityId: createdId,
+};
 
 const renderHost = async (view: ProcessEditorView) => {
   const rendered = render(<ProcessEditor view={view} />);
@@ -289,6 +294,7 @@ test("a save writes to the net the editor names, and resolves once its revision 
       definition: saved.definition,
       title: saved.title,
       entityId: netAId,
+      exists: true,
     }),
   );
 
@@ -312,17 +318,31 @@ test("Create moves the URL to the new net without reloading the editor, and read
   });
   const { navigate } = await renderHost(draftView);
   const draftLoad = editor().load;
-  expect(draftLoad?.mode).toEqual({ kind: "draft", seedKey: null });
+  expect(draftLoad?.mode).toEqual({
+    kind: "draft",
+    seedKey: null,
+    entityId: createdId,
+  });
 
   const result = await act(() =>
     editor().onSave({
       definition: definition("new"),
       title: "New",
-      entityId: null,
+      entityId: createdId,
+      exists: false,
     }),
   );
 
   expect(result.entityId).toBe(createdId);
+  // The net is created under the draft's own id, in the draft's web.
+  expect(graph.createEntity).toHaveBeenCalledWith(
+    expect.objectContaining({
+      variables: expect.objectContaining({
+        webId,
+        entityUuid: uuidCreated,
+      }) as unknown,
+    }),
+  );
   expect(router.replace).toHaveBeenCalledWith(`/processes/${uuidCreated}`);
   navigate(savedView(uuidCreated));
 
@@ -342,7 +362,8 @@ test("a Create finishing after another net loads leaves that net, its URL and it
     create = editor().onSave({
       definition: definition("new"),
       title: "New",
-      entityId: null,
+      entityId: createdId,
+      exists: false,
     });
   });
   await discardAndNavigate(navigate, savedView(uuidB));
@@ -374,7 +395,8 @@ test("a Create finishing after leaving the editor does not navigate back to it",
     create = editor().onSave({
       definition: definition("new"),
       title: "New",
-      entityId: null,
+      entityId: createdId,
+      exists: false,
     });
   });
   cleanup();
@@ -399,6 +421,7 @@ test("a save finishing after another net loads keeps that net selected for its o
       definition: definition("a2"),
       title: "A",
       entityId: netAId,
+      exists: true,
     });
   });
   await discardAndNavigate(navigate, savedView(uuidB));
@@ -418,6 +441,7 @@ test("a save finishing after another net loads keeps that net selected for its o
       definition: definition("b2"),
       title: "B",
       entityId: netBId,
+      exists: true,
     }),
   );
   expect(updatedEntityIds()).toEqual([netAId, netBId]);

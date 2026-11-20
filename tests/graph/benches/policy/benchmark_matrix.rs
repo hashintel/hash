@@ -105,6 +105,22 @@ pub struct BenchConfig {
     pub action_selectivity: ActionSelectivity,
 }
 
+impl BenchConfig {
+    /// Benchmark value identifier shared by the Criterion measurement and its flame graph.
+    ///
+    /// The seed level is carried by the benchmark group, so the value only names the actor
+    /// scenario and action selectivity. It must not include observed results such as the resolved
+    /// policy count: those can differ between runs of the same scenario, and the analysis matches
+    /// measurements to flame graphs (and base to head) by this identifier.
+    pub fn value_id(&self) -> String {
+        format!(
+            "user: {}, selectivity: {}",
+            self.user.as_str(),
+            self.action_selectivity.as_str()
+        )
+    }
+}
+
 /// Benchmark matrix definition.
 pub struct BenchmarkMatrix {
     pub users: Vec<UserType>,
@@ -251,12 +267,8 @@ fn run_benchmark_seed_group(
             policy_count
         );
 
-        let bench_id = format!(
-            "user: {}, selectivity: {}, policies: {}",
-            config.user.as_str(),
-            config.action_selectivity.as_str(),
-            policy_count
-        );
+        let bench_id = config.value_id();
+        eprintln!("{group_name}/resolve_policies_for_actor/{bench_id}: {policy_count} policies");
         group.bench_with_input(
             BenchmarkId::new("resolve_policies_for_actor", &bench_id),
             &(&test_actor, &actions),

@@ -95,6 +95,20 @@ static RECORDS_USAGE_OF: LazyLock<EntityTypeConfig> = LazyLock::new(|| {
 static USER_SECRET: LazyLock<EntityTypeConfig> =
     LazyLock::new(|| EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/user-secret/"));
 
+pub(super) const AGENT_CONVERSATION_BASE_URL: &str =
+    "https://hash.ai/@h/types/entity-type/agent-conversation/";
+
+static AGENT_CONVERSATION: LazyLock<EntityTypeConfig> =
+    LazyLock::new(|| EntityTypeConfig::new(AGENT_CONVERSATION_BASE_URL));
+
+/// Links an agent conversation to an entity it focuses on. It is private to its creator, as the
+/// conversation is, so it has its own type rather than a general one such as `Has Subject`.
+pub(super) const HAS_AGENT_CONVERSATION_FOCUS_BASE_URL: &str =
+    "https://hash.ai/@h/types/entity-type/has-agent-conversation-focus/";
+
+static HAS_AGENT_CONVERSATION_FOCUS: LazyLock<EntityTypeConfig> =
+    LazyLock::new(|| EntityTypeConfig::new(HAS_AGENT_CONVERSATION_FOCUS_BASE_URL));
+
 static SYNC_LINEAR_DATA_WITH: LazyLock<EntityTypeConfig> = LazyLock::new(|| {
     EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/sync-linear-data-with/")
 });
@@ -632,14 +646,31 @@ fn web_view_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCreati
         resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Web {
             web_id: role.web_id,
             filter: match role.name {
-                RoleName::Administrator => EntityResourceFilter::All { filters: vec![] },
-                RoleName::Member => EntityResourceFilter::Any {
+                RoleName::Administrator => EntityResourceFilter::Not {
+                    filter: Box::new(EntityResourceFilter::Any {
+                        filters: vec![
+                            AGENT_CONVERSATION.entity_is_of_base_type(),
+                            HAS_AGENT_CONVERSATION_FOCUS.entity_is_of_base_type(),
+                        ],
+                    }),
+                },
+                RoleName::Member => EntityResourceFilter::All {
                     filters: vec![
-                        EntityResourceFilter::CreatedByPrincipal,
                         EntityResourceFilter::Not {
                             filter: Box::new(EntityResourceFilter::Any {
-                                filters: vec![USER_SECRET.entity_is_of_base_type()],
+                                filters: vec![
+                                    AGENT_CONVERSATION.entity_is_of_base_type(),
+                                    HAS_AGENT_CONVERSATION_FOCUS.entity_is_of_base_type(),
+                                ],
                             }),
+                        },
+                        EntityResourceFilter::Any {
+                            filters: vec![
+                                EntityResourceFilter::CreatedByPrincipal,
+                                EntityResourceFilter::Not {
+                                    filter: Box::new(USER_SECRET.entity_is_of_base_type()),
+                                },
+                            ],
                         },
                     ],
                 },
@@ -677,6 +708,8 @@ fn web_update_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCrea
                             OCCURRED_IN_COMMENT.entity_is_of_base_type(),
                             OCCURRED_IN_TEXT.entity_is_of_base_type(),
                             GOOGLE_ACCOUNT.entity_is_of_base_type(),
+                            AGENT_CONVERSATION.entity_is_of_base_type(),
+                            HAS_AGENT_CONVERSATION_FOCUS.entity_is_of_base_type(),
                         ],
                     }),
                 },
@@ -702,6 +735,8 @@ fn web_update_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCrea
                             GOOGLE_ACCOUNT.entity_is_of_base_type(),
                             LINEAR_INTEGRATION.entity_is_of_base_type(),
                             SYNC_LINEAR_DATA_WITH.entity_is_of_base_type(),
+                            AGENT_CONVERSATION.entity_is_of_base_type(),
+                            HAS_AGENT_CONVERSATION_FOCUS.entity_is_of_base_type(),
                         ],
                     }),
                 },
@@ -756,6 +791,8 @@ fn web_archive_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCre
                             OCCURRED_IN_COMMENT.entity_is_of_base_type(),
                             OCCURRED_IN_TEXT.entity_is_of_base_type(),
                             GOOGLE_ACCOUNT.entity_is_of_base_type(),
+                            AGENT_CONVERSATION.entity_is_of_base_type(),
+                            HAS_AGENT_CONVERSATION_FOCUS.entity_is_of_base_type(),
                         ],
                     }),
                 },
@@ -777,6 +814,8 @@ fn web_archive_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCre
                             GOOGLE_ACCOUNT.entity_is_of_base_type(),
                             LINEAR_INTEGRATION.entity_is_of_base_type(),
                             SYNC_LINEAR_DATA_WITH.entity_is_of_base_type(),
+                            AGENT_CONVERSATION.entity_is_of_base_type(),
+                            HAS_AGENT_CONVERSATION_FOCUS.entity_is_of_base_type(),
                         ],
                     }),
                 },
@@ -842,6 +881,42 @@ fn web_crud_ontology_policies(role: &WebRole) -> impl Iterator<Item = PolicyCrea
     filters.into_iter()
 }
 
+/// Lets a web's members and administrators view, update and archive the agent conversations, and
+/// their focus links, that they created in that web.
+///
+/// It is granted through the web's roles, so a user who leaves the web loses access to the
+/// conversations they had there, as they would to an assistant's conversations in a workspace
+/// they left.
+fn web_conversation_creator_policy(role: &WebRole) -> PolicyCreationParams {
+    PolicyCreationParams {
+        name: Some("default-web-conversation-creator".to_owned()),
+        effect: Effect::Permit,
+        principal: Some(PrincipalConstraint::Role {
+            role: RoleId::Web(role.id),
+            actor_type: Some(ActorType::User),
+        }),
+        actions: vec![
+            ActionName::ViewEntity,
+            ActionName::UpdateEntity,
+            ActionName::ArchiveEntity,
+        ],
+        resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Web {
+            web_id: role.web_id,
+            filter: EntityResourceFilter::All {
+                filters: vec![
+                    EntityResourceFilter::CreatedByPrincipal,
+                    EntityResourceFilter::Any {
+                        filters: vec![
+                            AGENT_CONVERSATION.entity_is_of_base_type(),
+                            HAS_AGENT_CONVERSATION_FOCUS.entity_is_of_base_type(),
+                        ],
+                    },
+                ],
+            },
+        })),
+    }
+}
+
 // TODO: Returning an iterator causes a borrow checker error
 pub(crate) fn web_policies(role: &WebRole) -> Vec<PolicyCreationParams> {
     let mut policies = web_create_entity_policies(role)
@@ -849,6 +924,7 @@ pub(crate) fn web_policies(role: &WebRole) -> Vec<PolicyCreationParams> {
         .chain(web_update_entity_policies(role))
         .chain(web_archive_entity_policies(role))
         .chain(web_crud_ontology_policies(role))
+        .chain(iter::once(web_conversation_creator_policy(role)))
         .collect::<Vec<_>>();
     if role.name == RoleName::Administrator {
         policies.extend(web_meta_admin_policies(role));

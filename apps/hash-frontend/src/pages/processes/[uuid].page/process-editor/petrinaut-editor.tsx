@@ -30,6 +30,8 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut";
 
+import { brunchAgentOrigin } from "../../../../lib/public-env";
+import { useAuthInfo } from "../../../shared/auth-info-context";
 import { createAgentSave } from "./petrinaut-editor/agent-save";
 import { ProcessPetrinaut } from "./petrinaut-editor/process-petrinaut";
 import {
@@ -40,6 +42,8 @@ import {
   type TopBarState,
   TopBarContext,
 } from "./petrinaut-editor/top-bar-context";
+import { useAgentConversation } from "./petrinaut-editor/use-agent-conversation";
+import { NetExistsError } from "./shared/net-exists-error";
 
 import type { EntityId } from "@blockprotocol/type-system";
 import type {
@@ -48,11 +52,24 @@ import type {
 } from "@hashintel/brunch-agent/ui";
 
 /**
+ * Names Brunch's HASH agent on the `Agent Conversation` entities it keeps.
+ * It is stored on those entities, so it must not change: a new value would
+ * orphan every conversation recorded under the old one. It is fixed here
+ * rather than built from Brunch's routes for that reason.
+ */
+const brunchAgentId = "brunch/hash";
+
+/**
  * Which net the editor holds: an unsaved draft (with the example it was
  * seeded from, if any) or a saved net entity.
  */
 export type NetMode =
-  | { kind: "draft"; seedKey: string | null }
+  | {
+      kind: "draft";
+      seedKey: string | null;
+      /** The id the draft's first save creates the net under. */
+      entityId: EntityId;
+    }
   | { kind: "saved"; entityId: EntityId };
 
 export type RevisionSummary = {
@@ -92,12 +109,14 @@ export type PetrinautEditorLoad = {
 
 /**
  * What the editor submits on Save: the net and title as they were when Save
- * was pressed, and the net they are saved to, or `null` to create one.
+ * was pressed, and the net they are saved to.
  */
 export type PetrinautEditorSave = {
   definition: SDCPN;
   title: string;
-  entityId: EntityId | null;
+  entityId: EntityId;
+  /** Whether the net exists; a draft's doesn't until its first save. */
+  exists: boolean;
 };
 
 /** The persisted net and the decision-time of the revision a save wrote. */
@@ -235,7 +254,9 @@ export const PetrinautEditor = ({
   onSelectRevision: (decisionTime: string) => void;
   /**
    * Persist a submitted net. Resolves after persistence and the host's
-   * refetches; rejects if either failed. History arrives through `revisions`
+   * refetches; rejects if either failed. A Create rejecting with
+   * {@link NetExistsError} turns the draft into that saved net, its edits
+   * unsaved against it. History arrives through `revisions`
    * separately, including the first history query after Create.
    */
   onSave: (save: PetrinautEditorSave) => Promise<PetrinautEditorSaved>;
@@ -392,6 +413,34 @@ export const PetrinautEditor = ({
   );
 
   /**
+   * Whether `entityId` is the open net and saved, as of the latest change.
+   * The ref catches up with a new load only in its layout effect, but the
+   * conversation asks only from a send or a clear, which can't run before a
+   * commit's layout effects have.
+   */
+  const isNetSaved = useCallback((entityId: EntityId) => {
+    const mode = liveSessionRef.current?.mode;
+    return mode?.kind === "saved" && mode.entityId === entityId;
+  }, []);
+
+  const { authenticatedUser } = useAuthInfo();
+  /**
+   * The open net's conversation with Brunch. It is read only where Brunch
+   * may be offered: on a net the user may edit, signed in, with Brunch
+   * deployed. A save tells it when a draft's net exists.
+   */
+  const { conversationPointer, subjectSaved } = useAgentConversation({
+    agentId: brunchAgentId,
+    subjectEntityId: session?.mode.entityId ?? null,
+    enabled:
+      !readonly &&
+      brunchAgentOrigin !== null &&
+      authenticatedUser?.accountSignupComplete === true,
+    isSaved: isNetSaved,
+    captureException: errorTracker.captureException,
+  });
+
+  /**
    * Submits the open load's net, title and identity as they are when called,
    * returning `null` when no save starts: with no load open, or while a save
    * of it is pending. It submits the net the handle holds, or the session's
@@ -421,7 +470,8 @@ export const PetrinautEditor = ({
           const saved = await hostSaveRef.current.onSave({
             definition,
             title,
-            entityId: mode.kind === "saved" ? mode.entityId : null,
+            entityId: mode.entityId,
+            exists: mode.kind === "saved",
           });
           const snapshot = {
             definition,
@@ -437,16 +487,27 @@ export const PetrinautEditor = ({
             mode: { kind: "saved", entityId: saved.entityId },
             savedSnapshot: snapshot,
           }));
+          // The net exists, whatever is open now.
+          subjectSaved(saved.entityId);
         } catch (error) {
-          updateSession(savedHandle, (current) => ({
-            ...current,
-            savePending: false,
-          }));
+          updateSession(savedHandle, (current) =>
+            error instanceof NetExistsError
+              ? {
+                  ...current,
+                  savePending: false,
+                  mode: { kind: "saved", entityId: error.entityId },
+                  savedSnapshot: asLoaded(error.savedSnapshot),
+                }
+              : { ...current, savePending: false },
+          );
+          if (error instanceof NetExistsError) {
+            subjectSaved(error.entityId);
+          }
           throw error;
         }
       })();
     },
-    [updateSession],
+    [updateSession, subjectSaved],
   );
 
   /**
@@ -526,8 +587,7 @@ export const PetrinautEditor = ({
       saving: session.savePending,
       isDirty,
     }),
-    saveLabel:
-      session.mode.kind === "saved" ? (isDirty ? "Save" : "Saved") : "Create",
+    saveLabel: isDirty ? "Save" : "Saved",
     revisions,
     loadedRevisionTime: session.savedSnapshot?.decisionTime ?? null,
     onNavigateBack,
@@ -541,9 +601,8 @@ export const PetrinautEditor = ({
         <ErrorTrackerContext value={errorTracker}>
           <ProcessPetrinaut
             handle={session.handle}
-            savedEntityId={
-              session.mode.kind === "saved" ? session.mode.entityId : null
-            }
+            entityId={session.mode.entityId}
+            conversationPointer={conversationPointer}
             readTitle={readTitle}
             hostSave={hostSave}
             versionLoad={session.versionLoad}
