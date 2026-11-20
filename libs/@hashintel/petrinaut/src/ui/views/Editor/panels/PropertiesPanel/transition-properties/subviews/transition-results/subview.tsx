@@ -1,7 +1,5 @@
 import { use } from "react";
 
-import { Button, Icon, Menu, Tooltip } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
 import {
   generateDefaultTransitionKernelCode,
   getArcEndpoint,
@@ -13,6 +11,7 @@ import { useEditorState } from "../../../../../../../../react/state/editor-conte
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { getDocumentUri } from "../../../../../../../monaco/editor-paths";
+import { CodeTemplateMenu } from "../../../code-template-menu";
 import { codeSectionStyle } from "../../../styles";
 import { useTransitionPropertiesContext } from "../../context";
 
@@ -25,12 +24,6 @@ import type {
   ResolvedLibraries,
   SDCPN,
 } from "@hashintel/petrinaut-core";
-
-const aiMenuItemStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[6px]",
-});
 
 const getTypeById = ({
   sdcpn,
@@ -99,97 +92,64 @@ const ResultsHeaderAction: React.FC = () => {
   }
 
   return (
-    <Menu
-      trigger={
-        <Button
-          aria-label="More options"
-          tooltip="More options"
-          variant="ghost"
-          size="xs"
-          iconName="ellipsisVertical"
-        />
-      }
-      items={[
-        {
-          id: "load-default",
-          text: "Load default template",
-          onClick: () => {
-            const resolveArcPlace = createTransitionArcPlaceResolver(
-              sdcpn,
-              net,
-              libraries,
-            );
-            const typeById = getTypeById({ sdcpn, types, libraries });
+    <CodeTemplateMenu
+      onLoadDefault={() => {
+        const resolveArcPlace = createTransitionArcPlaceResolver(
+          sdcpn,
+          net,
+          libraries,
+        );
+        const typeById = getTypeById({ sdcpn, types, libraries });
 
-            const inputs = transition.inputArcs
-              .filter((arc) => arc.type !== "inhibitor")
-              .map((arc) => {
-                const resolved = resolveArcPlace(arc);
-                const type = resolved?.place.colorId
-                  ? typeById.get(resolved.place.colorId)
-                  : undefined;
+        const inputs = transition.inputArcs
+          .filter((arc) => arc.type !== "inhibitor")
+          .map((arc) => {
+            const resolved = resolveArcPlace(arc);
+            const type = resolved?.place.colorId
+              ? typeById.get(resolved.place.colorId)
+              : undefined;
 
-                if (!resolved || !type) {
-                  return null;
-                }
+            if (!resolved || !type) {
+              return null;
+            }
 
-                return {
-                  placeName: resolved.placeName,
-                  type,
-                  weight: arc.weight,
-                };
-              })
-              .filter((i) => i !== null);
+            return {
+              placeName: resolved.placeName,
+              type,
+              weight: arc.weight,
+            };
+          })
+          .filter((i) => i !== null);
 
-            const outputs = transition.outputArcs
-              .map((arc) => {
-                const resolved = resolveArcPlace(arc);
-                const type = resolved?.place.colorId
-                  ? typeById.get(resolved.place.colorId)
-                  : undefined;
+        const outputs = transition.outputArcs
+          .map((arc) => {
+            const resolved = resolveArcPlace(arc);
+            const type = resolved?.place.colorId
+              ? typeById.get(resolved.place.colorId)
+              : undefined;
 
-                if (!resolved || !type) {
-                  return null;
-                }
+            if (!resolved || !type) {
+              return null;
+            }
 
-                return {
-                  placeName: resolved.placeName,
-                  type,
-                  weight: arc.weight,
-                };
-              })
-              .filter((o) => o !== null);
+            return {
+              placeName: resolved.placeName,
+              type,
+              weight: arc.weight,
+            };
+          })
+          .filter((o) => o !== null);
 
-            updateTransition({
-              transitionId: transition.id,
-              update: {
-                transitionKernelCode: generateDefaultTransitionKernelCode(
-                  inputs,
-                  outputs,
-                ),
-              },
-            });
+        updateTransition({
+          transitionId: transition.id,
+          update: {
+            transitionKernelCode: generateDefaultTransitionKernelCode(
+              inputs,
+              outputs,
+            ),
           },
-        },
-        {
-          id: "generate-ai",
-          text: (
-            <Tooltip
-              content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
-              position="bottom"
-            >
-              <div className={aiMenuItemStyle}>
-                <Icon name="sparkles" size="sm" />
-                Generate with AI
-              </div>
-            </Tooltip>
-          ),
-          disabled: true,
-          onClick: () => {
-            // TODO: Implement AI generation
-          },
-        },
-      ]}
+        });
+      }}
     />
   );
 };

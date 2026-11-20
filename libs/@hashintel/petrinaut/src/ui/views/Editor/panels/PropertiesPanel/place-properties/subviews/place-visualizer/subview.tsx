@@ -1,6 +1,6 @@
 import { use, useEffect, useState } from "react";
 
-import { Button, Icon, Menu, Toggle, Tooltip } from "@hashintel/ds-components";
+import { Toggle, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   DEFAULT_VISUALIZER_CODE,
@@ -14,6 +14,7 @@ import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { useCodeNavigation } from "../../../../../../../monaco/code-navigation";
 import { getDocumentUri } from "../../../../../../../monaco/editor-paths";
+import { CodeTemplateMenu } from "../../../code-template-menu";
 import { codeSectionStyle } from "../../../styles";
 import { usePlacePropertiesContext } from "../../context";
 
@@ -25,12 +26,6 @@ const messageStyle = css({
   fontSize: "xs",
   color: "neutral.fg.muted",
   lineHeight: "[1.5]",
-});
-
-const aiMenuItemStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[6px]",
 });
 
 const headerActionsStyle = css({
@@ -149,55 +144,22 @@ const VisualizerHeaderAction: React.FC = () => {
         />
       </Tooltip>
       {hasVisualizer && (
-        <Menu
-          trigger={
-            <Button
-              disabled={isReadOnly}
-              aria-label="More options"
-              tooltip="More options"
-              variant="ghost"
-              size="xs"
-              iconName="ellipsisVertical"
-            />
-          }
-          items={[
-            {
-              id: "load-default",
-              text: "Load default template",
-              onClick: () => {
-                const currentPlaceType = place.colorId
-                  ? types.find((type) => type.id === place.colorId)
-                  : null;
+        <CodeTemplateMenu
+          disabled={isReadOnly}
+          onLoadDefault={() => {
+            const currentPlaceType = place.colorId
+              ? types.find((type) => type.id === place.colorId)
+              : null;
 
-                updatePlace({
-                  placeId: place.id,
-                  update: {
-                    visualizerCode: currentPlaceType
-                      ? generateDefaultVisualizerCode(currentPlaceType)
-                      : DEFAULT_VISUALIZER_CODE,
-                  },
-                });
+            updatePlace({
+              placeId: place.id,
+              update: {
+                visualizerCode: currentPlaceType
+                  ? generateDefaultVisualizerCode(currentPlaceType)
+                  : DEFAULT_VISUALIZER_CODE,
               },
-            },
-            {
-              id: "generate-ai",
-              text: (
-                <Tooltip
-                  content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
-                  position="bottom"
-                >
-                  <div className={aiMenuItemStyle}>
-                    <Icon name="sparkles" size="sm" />
-                    Generate with AI
-                  </div>
-                </Tooltip>
-              ),
-              disabled: true,
-              onClick: () => {
-                // TODO: Implement AI generation
-              },
-            },
-          ]}
+            });
+          }}
         />
       )}
     </div>

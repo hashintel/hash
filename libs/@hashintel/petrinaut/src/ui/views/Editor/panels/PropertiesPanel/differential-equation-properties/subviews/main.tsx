@@ -4,8 +4,6 @@ import {
   Button,
   Dialog,
   Form,
-  Icon,
-  Menu,
   Select,
   Tooltip,
 } from "@hashintel/ds-components";
@@ -23,6 +21,7 @@ import { PropertyValue } from "../../../../../../components/property-value";
 import { DifferentialEquationIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { usePetrinautPresentation } from "../../../../../shared/presentation-context";
+import { CodeTemplateMenu } from "../../code-template-menu";
 import { tokenCountLabel } from "../../token-count-label";
 import { useDiffEqPropertiesContext } from "../context";
 
@@ -60,12 +59,6 @@ const confirmListStyle = css({
 const confirmHintStyle = css({
   fontSize: "[13px]",
   color: "neutral.s80",
-});
-
-const aiMenuItemStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[6px]",
 });
 
 const arcStyle = css({
@@ -317,57 +310,24 @@ const DiffEqCodeAction: React.FC = () => {
   }
 
   return (
-    <Menu
-      trigger={
-        <Button
-          aria-label="More options"
-          tooltip="More options"
-          variant="ghost"
-          size="xs"
-          iconName="ellipsisVertical"
-        />
-      }
-      items={[
-        {
-          id: "load-default",
-          text: "Load default template",
-          onClick: () => {
-            const equationType = types.find(
-              (tp) => tp.id === differentialEquation.colorId,
-            );
+    <CodeTemplateMenu
+      onLoadDefault={() => {
+        const equationType = types.find(
+          (tp) => tp.id === differentialEquation.colorId,
+        );
 
-            updateDifferentialEquation({
-              equationId: differentialEquation.id,
-              update: {
-                code: equationType
-                  ? generateDefaultDifferentialEquationCode(
-                      equationType,
-                      differentialEquation.arity,
-                    )
-                  : DEFAULT_DIFFERENTIAL_EQUATION_CODE,
-              },
-            });
+        updateDifferentialEquation({
+          equationId: differentialEquation.id,
+          update: {
+            code: equationType
+              ? generateDefaultDifferentialEquationCode(
+                  equationType,
+                  differentialEquation.arity,
+                )
+              : DEFAULT_DIFFERENTIAL_EQUATION_CODE,
           },
-        },
-        {
-          id: "generate-ai",
-          text: (
-            <Tooltip
-              content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
-              position="bottom"
-            >
-              <div className={aiMenuItemStyle}>
-                <Icon name="sparkles" size="sm" />
-                Generate with AI
-              </div>
-            </Tooltip>
-          ),
-          disabled: true,
-          onClick: () => {
-            // TODO: Implement AI generation
-          },
-        },
-      ]}
+        });
+      }}
     />
   );
 };

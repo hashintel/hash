@@ -1,10 +1,4 @@
-import {
-  Button,
-  Icon,
-  Menu,
-  SegmentedControl,
-  Tooltip,
-} from "@hashintel/ds-components";
+import { SegmentedControl, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   generateDefaultLambdaCode,
@@ -15,6 +9,7 @@ import { useEditorState } from "../../../../../../../../react/state/editor-conte
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { getDocumentUri } from "../../../../../../../monaco/editor-paths";
+import { CodeTemplateMenu } from "../../../code-template-menu";
 import { codeSectionStyle } from "../../../styles";
 import { useTransitionPropertiesContext } from "../../context";
 
@@ -41,12 +36,6 @@ const infoBoxStyle = css({
   marginBottom: "[8px]",
 });
 
-const aiMenuItemStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[6px]",
-});
-
 const FiringTimeHeaderAction: React.FC = () => {
   const { logicAvailability, transition, updateTransition } =
     useTransitionPropertiesContext();
@@ -62,49 +51,16 @@ const FiringTimeHeaderAction: React.FC = () => {
   );
 
   return (
-    <Menu
-      trigger={
-        <Button
-          aria-label="More options"
-          tooltip="More options"
-          variant="ghost"
-          size="xs"
-          iconName="ellipsisVertical"
-        />
-      }
-      items={[
-        {
-          id: "load-default",
-          text: "Load default template",
-          onClick: () => {
-            updateTransition({
-              transitionId: transition.id,
-              update: {
-                lambdaType,
-                lambdaCode: generateDefaultLambdaCode(lambdaType),
-              },
-            });
+    <CodeTemplateMenu
+      onLoadDefault={() => {
+        updateTransition({
+          transitionId: transition.id,
+          update: {
+            lambdaType,
+            lambdaCode: generateDefaultLambdaCode(lambdaType),
           },
-        },
-        {
-          id: "generate-ai",
-          text: (
-            <Tooltip
-              content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
-              position="bottom"
-            >
-              <div className={aiMenuItemStyle}>
-                <Icon name="sparkles" size="sm" />
-                Generate with AI
-              </div>
-            </Tooltip>
-          ),
-          disabled: true,
-          onClick: () => {
-            // TODO: Implement AI generation
-          },
-        },
-      ]}
+        });
+      }}
     />
   );
 };
