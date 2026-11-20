@@ -29,19 +29,21 @@ const restStyle = css({
   zIndex: "[1]",
 });
 
-/** Whether a pointer is dragging the separator. The library marks it. */
-const isDragged = (separator: HTMLElement | null) =>
-  separator?.getAttribute("data-separator") === "active";
+/** Whether a pointer is dragging the group's separator. The library marks it. */
+const isDragged = (group: HTMLElement | null) =>
+  [...(group?.children ?? [])].some(
+    (child) => child.getAttribute("data-separator") === "active",
+  );
 
 /** Brings a stand-in back to its panel's size, unless a drag is leading. */
 const follow = (
   standIn: PanelImperativeHandle | null,
-  separator: HTMLElement | null,
+  group: HTMLElement | null,
   size: MotionValue<number>,
 ) => {
   if (
     standIn &&
-    !isDragged(separator) &&
+    !isDragged(group) &&
     Math.abs(standIn.getSize().inPixels - size.get()) > 0.5
   ) {
     standIn.resize(size.get());
@@ -61,7 +63,7 @@ interface PanelResizerProps {
   maxSize: number;
   /** The separator's accessible name. */
   label: string;
-  /** Called with the size when a drag or a key press ends. */
+  /** Called with the size when a drag ends. */
   onCommit?: (pixels: number) => void;
   /** Whether a drag paints the panel's border, which lies under the strip. */
   paintsBorder?: boolean;
@@ -104,14 +106,12 @@ export const PanelResizer = ({
   const isVertical = edge === "bottom";
   const standInRef = usePanelRef();
   const groupRef = useRef<HTMLDivElement>(null);
-  const separatorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isOpen) {
       return;
     }
-    const followSize = () =>
-      follow(standInRef.current, separatorRef.current, size);
+    const followSize = () => follow(standInRef.current, groupRef.current, size);
     followSize();
     return size.on("change", followSize);
   }, [isOpen, size, standInRef]);
@@ -133,17 +133,16 @@ export const PanelResizer = ({
         // before the view was hidden, is undone as far as there is room.
         // Whole pixels: the library lays out in shares of the group, which
         // come back as a size just off the pixel the pointer is on.
-        if (isDragged(separatorRef.current)) {
+        if (isDragged(groupRef.current)) {
           size.set(Math.round(inPixels));
         } else {
-          follow(standInRef.current, separatorRef.current, size);
+          follow(standInRef.current, groupRef.current, size);
         }
       }}
     />
   );
   const separator = (
     <EdgeSeparator
-      elementRef={separatorRef}
       edge={edge}
       label={label}
       paintsBorder={paintsBorder}
@@ -167,9 +166,9 @@ export const PanelResizer = ({
       onLayoutChanged={(layout, { isUserInteraction }) => {
         const group = groupRef.current?.getBoundingClientRect();
         const share = layout[id];
-        // A drag or a key press ends here: the panel takes the size and
-        // keeps it. The size is read off the layout, which a key press
-        // reports before the stand-in has it.
+        // A drag ends here: the panel takes the size and keeps it. The size
+        // is read off the layout, which the library may report before the
+        // stand-in has it.
         if (isOpen && isUserInteraction && group && share !== undefined) {
           const pixels = Math.round(
             (share / 100) * (isVertical ? group.height : group.width),

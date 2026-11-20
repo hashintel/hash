@@ -49,12 +49,8 @@ it("hands the focus back to where it was when a press focuses the separator", ()
   expect(separator.getAttribute("data-separator")).not.toBe("focus");
 });
 
-it("keeps the focus the Tab key brings", () => {
-  const { field, separator } = renderSplit();
-  field.focus();
+it("stays out of the Tab order", () => {
+  const { separator } = renderSplit();
 
-  fireEvent.keyDown(field, { key: "Tab" });
-  separator.focus();
-
-  expect(document.activeElement).toBe(separator);
+  expect(separator.tabIndex).toBe(-1);
 });

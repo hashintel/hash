@@ -4,7 +4,7 @@ import { cx } from "@hashintel/ds-helpers/css";
 
 import { edgeSeparatorStyle } from "./edge-separator-style";
 
-import type { FocusEvent, Ref } from "react";
+import type { FocusEvent } from "react";
 
 // Whether the user last pressed a pointer or a key. Heard on the window while
 // the event travels down, so before the library hears a press on the document.
@@ -30,8 +30,7 @@ if (typeof window !== "undefined") {
  * The library focuses a separator that is pressed. A press then takes the
  * focus from where the user was typing, keeps the strip painted as focused
  * after the drag, and sends the next arrow key to the separator. Focus that
- * arrives with a press goes back to where it was; the Tab key still reaches
- * the separator.
+ * arrives with a press goes back to where it was.
  */
 const returnFocusAfterPress = (event: FocusEvent<HTMLDivElement>) => {
   if (lastInput !== "pointer") {
@@ -47,10 +46,18 @@ const returnFocusAfterPress = (event: FocusEvent<HTMLDivElement>) => {
   }
 };
 
+const keepOutOfTabOrder = (element: HTMLDivElement | null) => {
+  element?.setAttribute("tabindex", "-1");
+};
+
 /**
  * A separator of `react-resizable-panels` on the edge of a panel: a line with
  * no thickness, a strip around it that a pointer grabs, and the strip that
  * tints on hover and turns blue while it is dragged.
+ *
+ * It is kept out of the Tab order: the panels either side are what a key
+ * should reach. The library puts every separator in it and takes no
+ * `tabIndex`, so the element is given one when it attaches.
  */
 export const EdgeSeparator = ({
   edge,
@@ -58,7 +65,6 @@ export const EdgeSeparator = ({
   paintsBorder = true,
   disabled,
   className,
-  elementRef,
 }: {
   /** Where the panel it resizes lies: see `edgeSeparatorStyle`. */
   edge: "left" | "right" | "bottom" | "top";
@@ -68,10 +74,9 @@ export const EdgeSeparator = ({
   paintsBorder?: boolean;
   disabled?: boolean;
   className?: string;
-  elementRef?: Ref<HTMLDivElement>;
 }) => (
   <Separator
-    elementRef={elementRef}
+    elementRef={keepOutOfTabOrder}
     aria-label={label}
     disabled={disabled}
     disableDoubleClick

@@ -13,7 +13,7 @@ The editor is organized around a central canvas where you build your net:
 - **Bottom panel** -- tabs for Diagnostics (code errors), Simulation Settings, and Timeline (during simulation).
 - **Bottom toolbar** -- editing mode buttons, simulation controls, the AI assistant toggle, and a show/hide button for the bottom panel.
 
-Drag the inner edge of the left sidebar, the properties panel, the bottom panel or the docked AI assistant to resize it. Where two of these edges meet, drag the corner to resize both panels at once. With an edge focused, the arrow keys resize its panel.
+Drag the inner edge of the left sidebar, the properties panel, the bottom panel or the docked AI assistant to resize it. Where two of these edges meet, drag the corner to resize both panels at once.
 
 The bottom toolbar sits centered on the canvas and steps aside rather than
 slide under anything: open a panel wide enough to reach it and it shifts to the

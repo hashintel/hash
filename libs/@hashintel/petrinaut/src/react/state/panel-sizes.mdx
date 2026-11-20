@@ -169,8 +169,8 @@ The scripts `geometry.mjs`, `panel-toggles.mjs` and `assistant-dock.mjs` in
 
 `PanelResizer` in `ui/resize/panel-resizer.tsx` resizes a panel whose box
 follows a Motion value. It is a group of `react-resizable-panels`, the
-library the sections inside a panel resize with, so a drag, an arrow key and
-a touch behave the same in both places. The panel is not in the group. An
+library the sections inside a panel resize with, so a drag and a touch
+behave the same in both places. The panel is not in the group. An
 empty stand-in the size of the panel is, with the separator on its inner
 edge.
 
@@ -193,11 +193,12 @@ the Properties panel beside the canvas.
   separator's pseudo-elements. `EdgeSeparator` in `ui/resize` is that
   separator, also where a split is a group of the library itself, as in the
   Definitions view.
-- **A press does not move the keyboard focus.** The library focuses a
-  separator that is pressed, which would take the focus from the field the
-  user was in and send the next arrow key to the separator. `EdgeSeparator`
-  hands focus that arrives with a press back, and the Tab key still reaches
-  it. `edge-separator.test.tsx` holds this.
+- **A separator takes no keyboard focus.** The library focuses a separator
+  that is pressed and puts each in the Tab order. A press would then take the
+  focus from the field the user was in, and each view would gain Tab stops
+  between its regions. `EdgeSeparator` hands focus that arrives with a press
+  back and keeps the separator out of the Tab order.
+  `edge-separator.test.tsx` holds this.
 - **A panel that is not in place has a disabled separator.** A panel that
   slides is not where its stand-in is, and neither is an assistant that
   floats. The tests in `dock-resizers.test.tsx` and
@@ -235,8 +236,8 @@ item beside the content, so the content gives up what the room takes.
   room opens and closes with the panel, and the holder grows to the whole
   workspace in fullscreen. The room is a grid whose one column goes from
   `0fr` to `1fr` of the sizer, and the holder takes the space left of it by a
-  `flex-grow` that goes from 0 to 1. Each transition is on the share, so a
-  drag and an arrow key move both edges in the frame they happen in.
+  `flex-grow` that goes from 0 to 1. Each transition is on the share, so a drag
+  moves both edges in the frame it happens in.
 - **The workspace learns of a panel from its holder.** A panel is rendered
   into the holder through a portal, from anywhere below the workspace.
   `useHasOpenPanel` observes the holder's children and says whether one is
@@ -246,8 +247,7 @@ item beside the content, so the content gives up what the room takes.
   on a panel. A holder that appeared only once the workspace had rendered
   again would refuse the focus a panel takes in the commit that adds it.
 - **The resizer is there only beside an open panel.** Without a panel, and
-  in fullscreen, the page has no separator to reach with the pointer or the
-  Tab key.
+  in fullscreen, the page has no separator to reach with the pointer.
 - **The workspace's width is read in the render that first has its
   element.** `useElementWidth` reads the layout as an external store, so no
   frame shows a panel at a width that was not measured.
@@ -258,8 +258,8 @@ panel alone.
 
 ## Saving
 
-A drag or an arrow key on the separator of the left sidebar, the Properties
-panel or the bottom panel saves the size to the user settings when it ends.
+A drag of the separator of the left sidebar, the Properties panel or the
+bottom panel saves the size to the user settings when it ends.
 Saving renders the readers of that setting and writes local storage.
 `PanelSizesProvider` restores the three sizes. The assistant's width is not
 saved.
