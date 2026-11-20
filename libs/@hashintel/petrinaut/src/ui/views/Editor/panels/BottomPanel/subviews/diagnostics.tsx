@@ -11,18 +11,18 @@ import { useCodeNavigation } from "../../../../../monaco/code-navigation";
 import { useCompositionProblems } from "../../../shared/use-composition-problems";
 import { CompositionDiagnostics } from "./diagnostics/composition-diagnostics";
 import { countOf } from "./diagnostics/count-of";
-import {
-  bulletStyle,
-  diagnosticButtonStyle,
-  diagnosticItemStyle,
-  DiagnosticsGroup,
-  diagnosticsListStyle,
-} from "./diagnostics/diagnostics-group";
+import { DiagnosticsGroup } from "./diagnostics/diagnostics-group";
 import {
   groupDiagnosticsByEntity,
   type EntityDiagnostics,
 } from "./diagnostics/group-diagnostics";
 import { NetClassSummary } from "./diagnostics/net-class-summary";
+import {
+  bulletStyle,
+  diagnosticButtonStyle,
+  diagnosticItemStyle,
+  diagnosticsListStyle,
+} from "./diagnostics/styles";
 
 const emptyMessageStyle = css({
   color: "neutral.s100",

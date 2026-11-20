@@ -6,13 +6,13 @@ import { ActiveNetContext } from "../../../../../../../react/state/active-net-co
 import { useEditorActions } from "../../../../../../../react/state/editor-context";
 import { problemTextStyle } from "../../../../../../constants/problem-severity";
 import { countOf } from "./count-of";
+import { DiagnosticsGroup } from "./diagnostics-group";
 import {
   bulletStyle,
   diagnosticButtonStyle,
   diagnosticItemStyle,
-  DiagnosticsGroup,
   diagnosticsListStyle,
-} from "./diagnostics-group";
+} from "./styles";
 
 import type { CompositionProblem } from "@hashintel/petrinaut-core";
 
