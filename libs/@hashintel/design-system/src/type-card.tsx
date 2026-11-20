@@ -18,7 +18,7 @@ import { WhiteCard } from "./white-card";
 import type { OntologyTypeVersion } from "@blockprotocol/type-system";
 import type { ElementType } from "react";
 
-const faArrowsRotate = { icon: "rotate" } as const;
+const faArrowsRotate = { icon: "arrowsRotateClockwise" } as const;
 
 const deleteButtonSx: SxProps<Theme> = ({ palette }) => ({
   width: 11,

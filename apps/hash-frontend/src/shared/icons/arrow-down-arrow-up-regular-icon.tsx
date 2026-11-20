@@ -6,5 +6,5 @@ import type { FunctionComponent } from "react";
 export const ArrowDownArrowUpRegularIcon: FunctionComponent<SvgIconProps> = (
   props,
 ) => {
-  return <HashSvgIcon {...props} icon="chevronsUpDown" />;
+  return <HashSvgIcon {...props} icon="arrowsUpDown" />;
 };

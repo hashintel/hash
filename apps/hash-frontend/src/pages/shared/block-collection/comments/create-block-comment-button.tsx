@@ -10,7 +10,7 @@ import { CreateBlockComment } from "./create-block-comment";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { FunctionComponent } from "react";
 
-const faComment = { icon: "message" } as const;
+const faComment = { icon: "comment" } as const;
 
 type CreateBlockCommentButtonProps = {
   blockEntityId: EntityId | null;

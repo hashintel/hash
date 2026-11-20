@@ -10,7 +10,7 @@ export const PlusBoxOutlineIcon: FunctionComponent<SvgIconProps> = (props) => {
       width="24"
       height="24"
       fill="none"
-      icon="addTransition"
+      icon="squarePlus"
     />
   );
 };

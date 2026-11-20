@@ -14,7 +14,7 @@ export const GraphIcon: FunctionComponent<SvgIconProps> = ({
       height="22"
       fill="none"
       sx={[{ fill: "none !important" }, ...(Array.isArray(sx) ? sx : [sx])]}
-      icon="chartNetwork"
+      icon="diagramBranch"
     />
   );
 };

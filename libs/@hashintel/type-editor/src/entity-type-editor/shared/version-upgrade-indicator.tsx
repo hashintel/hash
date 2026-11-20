@@ -10,7 +10,7 @@ import { ChipIconButton } from "./chip-icon-button";
 
 import type { OntologyTypeVersion } from "@blockprotocol/type-system";
 
-const faArrowsRotate = { icon: "rotate" } as const;
+const faArrowsRotate = { icon: "arrowsRotateClockwise" } as const;
 
 type VersionUpgradeIndicatorProps = {
   currentVersion: OntologyTypeVersion;

@@ -7,6 +7,12 @@ export const EarthAmericasRegularIcon: FunctionComponent<SvgIconProps> = (
   props,
 ) => {
   return (
-    <HashSvgIcon {...props} width="512" height="512" fill="none" icon="globe" />
+    <HashSvgIcon
+      {...props}
+      width="512"
+      height="512"
+      fill="none"
+      icon="earthAmericas"
+    />
   );
 };

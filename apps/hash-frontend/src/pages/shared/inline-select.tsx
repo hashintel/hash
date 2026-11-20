@@ -5,7 +5,7 @@ import { HashInlineIcon, Select } from "@hashintel/design-system";
 import type { SelectProps } from "@hashintel/design-system";
 import type { Ref } from "react";
 
-const faCaretDown = { icon: "chevronDown" } as const;
+const faCaretDown = { icon: "caretDown" } as const;
 
 const InlineSelectChevronDown = () => (
   <HashInlineIcon

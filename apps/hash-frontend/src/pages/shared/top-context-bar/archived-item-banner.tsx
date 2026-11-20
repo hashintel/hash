@@ -28,7 +28,7 @@ import type {
 } from "@blockprotocol/type-system";
 import type { FunctionComponent } from "react";
 
-const faRotateRight = { icon: "rotate" } as const;
+const faRotateRight = { icon: "rotateClockwise" } as const;
 
 type ArchivedItemBannerProps = {
   item:

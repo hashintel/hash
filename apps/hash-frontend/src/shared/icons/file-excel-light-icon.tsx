@@ -4,5 +4,5 @@ import type { SvgIconProps } from "@mui/material";
 import type { FunctionComponent } from "react";
 
 export const FileExcelLightIcon: FunctionComponent<SvgIconProps> = (props) => (
-  <HashSvgIcon {...props} icon="fileSpreadsheet" />
+  <HashSvgIcon {...props} icon="fileExcel" />
 );

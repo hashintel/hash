@@ -12,7 +12,7 @@ export const ArrowsRotateRegularIcon: FunctionComponent<SvgIconProps> = (
       height="512"
       fill="none"
       {...props}
-      icon="rotate"
+      icon="arrowsRotateClockwise"
     />
   );
 };

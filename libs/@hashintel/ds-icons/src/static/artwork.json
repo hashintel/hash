@@ -795,6 +795,606 @@
     "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M12 3v18M3 12h18M9 6l3-3 3 3m-6 12 3 3 3-3M6 9l-3 3 3 3m12-6 3 3-3 3\"></path></g></g></g></g></g></g></g></g></g>",
     "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M12 3v18M3 12h18M9 6l3-3 3 3m-6 12 3 3 3-3M6 9l-3 3 3 3m12-6 3 3-3 3\"></path></g></g></g></g></g></g></g></g></g>"
   },
+  "rectanglesOffset": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"2\" y=\"3\" width=\"10\" height=\"7\" rx=\"0.5\"></rect><rect x=\"6\" y=\"14\" width=\"6\" height=\"7\" rx=\"0.5\"></rect><rect x=\"16\" y=\"3\" width=\"6\" height=\"13\" rx=\"0.5\"></rect></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"2\" y=\"3\" width=\"10\" height=\"7\" rx=\"0.5\"></rect><rect x=\"6\" y=\"14\" width=\"6\" height=\"7\" rx=\"0.5\"></rect><rect x=\"16\" y=\"3\" width=\"6\" height=\"13\" rx=\"0.5\"></rect></g></g></g></g></g></g></g></g></g>"
+  },
+  "gridPacked": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"5\" rx=\"0.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"5\" rx=\"0.5\"></rect><rect x=\"3\" y=\"12\" width=\"7\" height=\"9\" rx=\"0.5\"></rect><rect x=\"14\" y=\"12\" width=\"7\" height=\"9\" rx=\"0.5\"></rect></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"5\" rx=\"0.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"5\" rx=\"0.5\"></rect><rect x=\"3\" y=\"12\" width=\"7\" height=\"9\" rx=\"0.5\"></rect><rect x=\"14\" y=\"12\" width=\"7\" height=\"9\" rx=\"0.5\"></rect></g></g></g></g></g></g></g></g></g>"
+  },
+  "chevronsRight": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m3 5 7 7-7 7m9-14 7 7-7 7\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m3 5 7 7-7 7m9-14 7 7-7 7\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "chevronsLeft": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m12 5-7 7 7 7m9-14-7 7 7 7\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m12 5-7 7 7 7m9-14-7 7 7 7\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "checksStacked": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m5 7 4 4 9-9M5 16l4 4 9-9\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m5 7 4 4 9-9M5 16l4 4 9-9\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "scribbleSwatch": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\" transform=\"translate(1.2 1.2) scale(0.9)\"><path d=\"M3 8c12-12 14-7 3 2s-4 10 9-1 10-4-1 5-10 12 3 2\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\" transform=\"translate(1.2 1.2) scale(0.9)\"><path d=\"M3 8c12-12 14-7 3 2s-4 10 9-1 10-4-1 5-10 12 3 2\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "pencilBaseline": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m4 15 12-12 5 5L9 20H4Zm9-9 5 5M3 22h18\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m4 15 12-12 5 5L9 20H4Zm9-9 5 5M3 22h18\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "presentationScreen": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"13\" rx=\"0.5\"></rect><path d=\"M1 3h22M12 17v3m-4 3 4-3 4 3\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"13\" rx=\"0.5\"></rect><path d=\"M1 3h22M12 17v3m-4 3 4-3 4 3\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "truckRampBox": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\" transform=\"translate(1.2 1.2) scale(0.9)\"><rect x=\"3\" y=\"3\" width=\"11\" height=\"14\" rx=\"0.5\"></rect><path d=\"M14 7h4l4 6v4h-8M3 17l-2 5M19 14h3\"></path><circle cx=\"8\" cy=\"19\" r=\"2\"></circle><circle cx=\"19\" cy=\"19\" r=\"2\"></circle><path d=\"m2 11 4 1-1 4-4-1Z\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\" transform=\"translate(1.2 1.2) scale(0.9)\"><rect x=\"3\" y=\"3\" width=\"11\" height=\"14\" rx=\"0.5\"></rect><path d=\"M14 7h4l4 6v4h-8M3 17l-2 5M19 14h3\"></path><circle cx=\"8\" cy=\"19\" r=\"2\"></circle><circle cx=\"19\" cy=\"19\" r=\"2\"></circle><path d=\"m2 11 4 1-1 4-4-1Z\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "truckContainerFast": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M5 3h9v14H5m9-10h4l4 6v4h-8M7 6v8m4-8v8M1 7h3M1 11h3M1 15h3\"></path><circle cx=\"8\" cy=\"19\" r=\"2\"></circle><circle cx=\"19\" cy=\"19\" r=\"2\"></circle></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M5 3h9v14H5m9-10h4l4 6v4h-8M7 6v8m4-8v8M1 7h3M1 11h3M1 15h3\"></path><circle cx=\"8\" cy=\"19\" r=\"2\"></circle><circle cx=\"19\" cy=\"19\" r=\"2\"></circle></g></g></g></g></g></g></g></g></g>"
+  },
+  "gaugeMax": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 19a10 10 0 1 1 18 0ZM6 8l1 1m5-5v2m6 2-1 1M14 15l6-3\"></path><circle cx=\"12\" cy=\"16\" r=\"2\"></circle></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 19a10 10 0 1 1 18 0ZM6 8l1 1m5-5v2m6 2-1 1M14 15l6-3\"></path><circle cx=\"12\" cy=\"16\" r=\"2\"></circle></g></g></g></g></g></g></g></g></g>"
+  },
+  "sparklesCluster": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m9 5 2 5 5 2-5 2-2 5-2-5-5-2 5-2ZM18 2l1 2.5 2.5 1L19 6.5 18 9l-1-2.5-2.5-1 2.5-1Zm2 12 .8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8Z\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m9 5 2 5 5 2-5 2-2 5-2-5-5-2 5-2ZM18 2l1 2.5 2.5 1L19 6.5 18 9l-1-2.5-2.5-1 2.5-1Zm2 12 .8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8Z\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "leftToLine": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M4 3v18M21 12H8m5-5-5 5 5 5\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M4 3v18M21 12H8m5-5-5 5 5 5\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "calendarBlank": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"3\" y=\"5\" width=\"18\" height=\"16\" rx=\"0.5\"></rect><path d=\"M7 2v6m10-6v6M3 10h18\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"3\" y=\"5\" width=\"18\" height=\"16\" rx=\"0.5\"></rect><path d=\"M7 2v6m10-6v6M3 10h18\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "fileVideoCamera": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M5 3h9l5 5v13H5Z\"></path><path d=\"M14 3v5h5M8 12h6v6H8Zm6 2 3-2v6l-3-2\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><defs><mask id=\"__HASH_ICON_ID_0__\" maskUnits=\"userSpaceOnUse\" x=\"-4\" y=\"-4\" width=\"32\" height=\"32\" style=\"mask-type:luminance\"><rect x=\"-4\" y=\"-4\" width=\"32\" height=\"32\" fill=\"white\" stroke=\"none\"></rect><g color=\"black\" fill=\"none\" stroke=\"black\"><path d=\"M14 3v5h5M8 12h6v6H8Zm6 2 3-2v6l-3-2\"></path></g></mask></defs><g fill=\"currentColor\" mask=\"url(#__HASH_ICON_ID_0__)\"><path d=\"M5 3h9l5 5v13H5Z\"></path></g></g></g></g></g></g></g></g></g></g>"
+  },
+  "filterList": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M2 3h12l-4 6v12l-4-2V9Zm14 2h6m-7 7h7m-7 7h7\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M2 3h12l-4 6v12l-4-2V9Zm14 2h6m-7 7h7m-7 7h7\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "gridNine": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"3\" y=\"3\" width=\"4\" height=\"4\" rx=\"0.5\"></rect><rect x=\"10\" y=\"3\" width=\"4\" height=\"4\" rx=\"0.5\"></rect><rect x=\"17\" y=\"3\" width=\"4\" height=\"4\" rx=\"0.5\"></rect><rect x=\"3\" y=\"10\" width=\"4\" height=\"4\" rx=\"0.5\"></rect><rect x=\"10\" y=\"10\" width=\"4\" height=\"4\" rx=\"0.5\"></rect><rect x=\"17\" y=\"10\" width=\"4\" height=\"4\" rx=\"0.5\"></rect><rect x=\"3\" y=\"17\" width=\"4\" height=\"4\" rx=\"0.5\"></rect><rect x=\"10\" y=\"17\" width=\"4\" height=\"4\" rx=\"0.5\"></rect><rect x=\"17\" y=\"17\" width=\"4\" height=\"4\" rx=\"0.5\"></rect></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><g fill=\"currentColor\"><rect x=\"3\" y=\"3\" width=\"4\" height=\"4\" rx=\"0.5\"></rect><rect x=\"10\" y=\"3\" width=\"4\" height=\"4\" rx=\"0.5\"></rect><rect x=\"17\" y=\"3\" width=\"4\" height=\"4\" rx=\"0.5\"></rect><rect x=\"3\" y=\"10\" width=\"4\" height=\"4\" rx=\"0.5\"></rect><rect x=\"10\" y=\"10\" width=\"4\" height=\"4\" rx=\"0.5\"></rect><rect x=\"17\" y=\"10\" width=\"4\" height=\"4\" rx=\"0.5\"></rect><rect x=\"3\" y=\"17\" width=\"4\" height=\"4\" rx=\"0.5\"></rect><rect x=\"10\" y=\"17\" width=\"4\" height=\"4\" rx=\"0.5\"></rect><rect x=\"17\" y=\"17\" width=\"4\" height=\"4\" rx=\"0.5\"></rect></g></g></g></g></g></g></g></g></g></g>"
+  },
+  "inboxArrowRight": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M12 5H6L2 17v4h20v-4l-1-3M2 17h6l2 3h4l2-3h6\"></path><circle cx=\"17\" cy=\"7\" r=\"5\"></circle><path d=\"M14 7h6m-3-3 3 3-3 3\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M12 5H6L2 17v4h20v-4l-1-3M2 17h6l2 3h4l2-3h6\"></path><circle cx=\"17\" cy=\"7\" r=\"5\"></circle><path d=\"M14 7h6m-3-3 3 3-3 3\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "noteTopFold": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M4 9 10 3h10v18H4ZM4 9h6V3\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M4 9 10 3h10v18H4ZM4 9h6V3\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "pagePlain": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M4 3h11l5 5v13H4Z\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><g fill=\"currentColor\"><path d=\"M4 3h11l5 5v13H4Z\"></path></g></g></g></g></g></g></g></g></g></g>"
+  },
+  "peopleGroup": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\" transform=\"translate(1.2 1.2) scale(0.9)\"><circle cx=\"12\" cy=\"4\" r=\"2\"></circle><circle cx=\"4\" cy=\"7\" r=\"1.5\"></circle><circle cx=\"20\" cy=\"7\" r=\"1.5\"></circle><path d=\"M9 8h6l2 6h-3v8h-4v-8H7ZM2 11H1v7h2v4m2-11h1v11m12-11h-1v11m4-11h2v7h-2v4\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\" transform=\"translate(1.2 1.2) scale(0.9)\"><circle cx=\"12\" cy=\"4\" r=\"2\"></circle><circle cx=\"4\" cy=\"7\" r=\"1.5\"></circle><circle cx=\"20\" cy=\"7\" r=\"1.5\"></circle><path d=\"M9 8h6l2 6h-3v8h-4v-8H7ZM2 11H1v7h2v4m2-11h1v11m12-11h-1v11m4-11h2v7h-2v4\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "pizzaPie": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M14 3a9 9 0 1 0 7 12l-9-3ZM17 2l5 9-9-2Z\"></path><circle cx=\"7\" cy=\"10\" r=\"1\"></circle><circle cx=\"10\" cy=\"17\" r=\"1\"></circle><circle cx=\"6\" cy=\"16\" r=\"0.8\"></circle></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M14 3a9 9 0 1 0 7 12l-9-3ZM17 2l5 9-9-2Z\"></path><circle cx=\"7\" cy=\"10\" r=\"1\"></circle><circle cx=\"10\" cy=\"17\" r=\"1\"></circle><circle cx=\"6\" cy=\"16\" r=\"0.8\"></circle></g></g></g></g></g></g></g></g></g>"
+  },
+  "asteriskBolt": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M10 2v18M2 6l16 10M2 16 18 6M19 12l-7 7h5l-2 4 8-7h-5Z\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M10 2v18M2 6l16 10M2 16 18 6M19 12l-7 7h5l-2 4 8-7h-5Z\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "noteBolt": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M10 21H3V3h10l5 5v3M13 3v5h5M18 12l-6 6h5l-2 5 8-8h-5Z\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M10 21H3V3h10l5 5v3M13 3v5h5M18 12l-6 6h5l-2 5 8-8h-5Z\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "codePen": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m12 3 10 6v6l-10 6-10-6V9Zm0 0v6m0 6v6M2 9l10 6 10-6M2 15l10-6 10 6\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m12 3 10 6v6l-10 6-10-6V9Zm0 0v6m0 6v6M2 9l10 6 10-6M2 15l10-6 10 6\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "collapseDiagonal": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m3 21 7-7m-6 0h6v6M21 3l-7 7m0-6v6h6\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m3 21 7-7m-6 0h6v6M21 3l-7 7m0-6v6h6\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "lightbulbRays": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M9 18v-2c0-2-3-3-3-6a6 6 0 0 1 12 0c0 3-3 4-3 6v2Zm0 3h6M12 1v1M2 4l2 2m16-2-2 2M1 11h2m18 0h2M3 18l2-2m14 0 2 2\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M9 18v-2c0-2-3-3-3-6a6 6 0 0 1 12 0c0 3-3 4-3 6v2Zm0 3h6M12 1v1M2 4l2 2m16-2-2 2M1 11h2m18 0h2M3 18l2-2m14 0 2 2\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "shapesThree": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m12 2-4 7h8Z\"></path><circle cx=\"6\" cy=\"17\" r=\"4\"></circle><rect x=\"14\" y=\"13\" width=\"8\" height=\"8\" rx=\"0.5\"></rect></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m12 2-4 7h8Z\"></path><circle cx=\"6\" cy=\"17\" r=\"4\"></circle><rect x=\"14\" y=\"13\" width=\"8\" height=\"8\" rx=\"0.5\"></rect></g></g></g></g></g></g></g></g></g>"
+  },
+  "diagramNestedBranches": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"0.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"0.5\"></rect><path d=\"M6.5 10v7.5H14\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"0.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"0.5\"></rect><path d=\"M6.5 10v7.5H14\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "networkHub": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><circle cx=\"10\" cy=\"12\" r=\"3\"></circle><circle cx=\"3\" cy=\"11\" r=\"1.5\"></circle><circle cx=\"19\" cy=\"4\" r=\"1.5\"></circle><circle cx=\"20\" cy=\"20\" r=\"1.5\"></circle><path d=\"M4.5 11h2.5m5-1 5.5-5m-5 9 6 5\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><circle cx=\"10\" cy=\"12\" r=\"3\"></circle><circle cx=\"3\" cy=\"11\" r=\"1.5\"></circle><circle cx=\"19\" cy=\"4\" r=\"1.5\"></circle><circle cx=\"20\" cy=\"20\" r=\"1.5\"></circle><path d=\"M4.5 11h2.5m5-1 5.5-5m-5 9 6 5\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "arrowsRotateClockwise": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 10a9 9 0 0 1 16-4l2 3m0-7v7h-7M21 14a9 9 0 0 1-16 4l-2-3m0 7v-7h7\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 10a9 9 0 0 1 16-4l2 3m0-7v7h-7M21 14a9 9 0 0 1-16 4l-2-3m0 7v-7h7\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "rotateClockwise": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M21 4v7h-7m7 0a9 9 0 1 0-2 7\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M21 4v7h-7m7 0a9 9 0 1 0-2 7\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "chartBars": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"3\" y=\"12\" width=\"4\" height=\"9\" rx=\"0.5\"></rect><rect x=\"10\" y=\"3\" width=\"4\" height=\"18\" rx=\"0.5\"></rect><rect x=\"17\" y=\"8\" width=\"4\" height=\"13\" rx=\"0.5\"></rect></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"3\" y=\"12\" width=\"4\" height=\"9\" rx=\"0.5\"></rect><rect x=\"10\" y=\"3\" width=\"4\" height=\"18\" rx=\"0.5\"></rect><rect x=\"17\" y=\"8\" width=\"4\" height=\"13\" rx=\"0.5\"></rect></g></g></g></g></g></g></g></g></g>"
+  },
+  "chartLineAxes": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 3v18h18M6 15l5-6 5 3 5-8\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 3v18h18M6 15l5-6 5 3 5-8\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "sidebarList": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"0.5\"></rect><path d=\"M10 3v18M5 7h3M5 12h3M5 17h3\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"0.5\"></rect><path d=\"M10 3v18M5 7h3M5 12h3M5 17h3\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "twoLayers": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m3 8 9-5 9 5-9 5Zm0 7 9 5 9-5\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m3 8 9-5 9 5-9 5Zm0 7 9 5 9-5\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "layerPlusAbove": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m3 11 9-4 9 4-9 4Zm0 6 9 4 9-4M18 1v6m-3-3h6\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m3 11 9-4 9 4-9 4Zm0 6 9 4 9-4M18 1v6m-3-3h6\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "stackLinesHorizontal": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 3v18M9 3v18M15 3v18M21 3v18\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 3v18M9 3v18M15 3v18M21 3v18\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "stackLinesVertical": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 3h18M3 9h18M3 15h18M3 21h18\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 3h18M3 9h18M3 15h18M3 21h18\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "alignBarBottom": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"10\" y=\"3\" width=\"4\" height=\"16\" rx=\"0.5\"></rect><path d=\"M3 21h18\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"10\" y=\"3\" width=\"4\" height=\"16\" rx=\"0.5\"></rect><path d=\"M3 21h18\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "alignBarTop": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"10\" y=\"5\" width=\"4\" height=\"16\" rx=\"0.5\"></rect><path d=\"M3 3h18\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"10\" y=\"5\" width=\"4\" height=\"16\" rx=\"0.5\"></rect><path d=\"M3 3h18\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "alignBarLeft": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"5\" y=\"10\" width=\"16\" height=\"4\" rx=\"0.5\"></rect><path d=\"M3 3v18\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"5\" y=\"10\" width=\"16\" height=\"4\" rx=\"0.5\"></rect><path d=\"M3 3v18\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "alignBarRight": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"3\" y=\"10\" width=\"16\" height=\"4\" rx=\"0.5\"></rect><path d=\"M21 3v18\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"3\" y=\"10\" width=\"16\" height=\"4\" rx=\"0.5\"></rect><path d=\"M21 3v18\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "alignBarHorizontal": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"3\" y=\"10\" width=\"18\" height=\"4\" rx=\"0.5\"></rect><path d=\"M12 2v20\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"3\" y=\"10\" width=\"18\" height=\"4\" rx=\"0.5\"></rect><path d=\"M12 2v20\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "alignBarVertical": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"10\" y=\"3\" width=\"4\" height=\"18\" rx=\"0.5\"></rect><path d=\"M2 12h20\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"10\" y=\"3\" width=\"4\" height=\"18\" rx=\"0.5\"></rect><path d=\"M2 12h20\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "triangleRight": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m3 3 18 9-18 9Z\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><g fill=\"currentColor\"><path d=\"m3 3 18 9-18 9Z\"></path></g></g></g></g></g></g></g></g></g></g>"
+  },
+  "triangleLeft": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m21 3-18 9 18 9Z\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><g fill=\"currentColor\"><path d=\"m21 3-18 9 18 9Z\"></path></g></g></g></g></g></g></g></g></g></g>"
+  },
+  "aspectRatioCorners": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"0.5\"></rect><path d=\"M7 7h10v10H7Z\" stroke-dasharray=\"1 2\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"0.5\"></rect><path d=\"M7 7h10v10H7Z\" stroke-dasharray=\"1 2\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "undoBent": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 7h11a7 7 0 0 1 0 14H8M8 2 3 7l5 5\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 7h11a7 7 0 0 1 0 14H8M8 2 3 7l5 5\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "speechWave": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M5 10v4M12 4v16M19 7v10\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M5 10v4M12 4v16M19 7v10\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "lockPlain": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"4\" y=\"10\" width=\"16\" height=\"12\" rx=\"0.5\"></rect><path d=\"M7 10V7a5 5 0 0 1 10 0v3\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><g fill=\"currentColor\"><rect x=\"4\" y=\"10\" width=\"16\" height=\"12\" rx=\"0.5\"></rect></g><path d=\"M7 10V7a5 5 0 0 1 10 0v3\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "unlockPlain": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"4\" y=\"10\" width=\"16\" height=\"12\" rx=\"0.5\"></rect><path d=\"M7 10V7a5 5 0 0 1 10 0\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><g fill=\"currentColor\"><rect x=\"4\" y=\"10\" width=\"16\" height=\"12\" rx=\"0.5\"></rect></g><path d=\"M7 10V7a5 5 0 0 1 10 0\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "gripDotsVertical": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><circle cx=\"8\" cy=\"5\" r=\"1.2\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"8\" cy=\"12\" r=\"1.2\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"8\" cy=\"19\" r=\"1.2\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"16\" cy=\"5\" r=\"1.2\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"16\" cy=\"12\" r=\"1.2\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"16\" cy=\"19\" r=\"1.2\" fill=\"currentColor\" stroke=\"none\"></circle></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><circle cx=\"8\" cy=\"5\" r=\"1.2\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"8\" cy=\"12\" r=\"1.2\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"8\" cy=\"19\" r=\"1.2\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"16\" cy=\"5\" r=\"1.2\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"16\" cy=\"12\" r=\"1.2\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"16\" cy=\"19\" r=\"1.2\" fill=\"currentColor\" stroke=\"none\"></circle></g></g></g></g></g></g></g></g></g>"
+  },
+  "thoughtCloud": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\" transform=\"translate(1.2 1.2) scale(0.9)\"><path d=\"M5 16a4 4 0 0 1-1-8 5 5 0 0 1 9-4 4 4 0 0 1 6 3 4 4 0 0 1-1 8 5 5 0 0 1-7 2Z\"></path><circle cx=\"7\" cy=\"20\" r=\"1.4\"></circle><circle cx=\"2.5\" cy=\"22\" r=\"0.6\"></circle></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\" transform=\"translate(1.2 1.2) scale(0.9)\"><path d=\"M5 16a4 4 0 0 1-1-8 5 5 0 0 1 9-4 4 4 0 0 1 6 3 4 4 0 0 1-1 8 5 5 0 0 1-7 2Z\"></path><circle cx=\"7\" cy=\"20\" r=\"1.4\"></circle><circle cx=\"2.5\" cy=\"22\" r=\"0.6\"></circle></g></g></g></g></g></g></g></g></g>"
+  },
+  "stars": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m8.5 7.5 2.3 4.5 5 .7-3.6 3.5.9 5-4.6-2.4L4 21.2l.8-5-3.6-3.5 5-.7Z\"></path><path d=\"m16 2 1 2 2 1-2 1-1 2-1-2-2-1 2-1Zm5 7 .7 1.3L23 11l-1.3.7L21 13l-.7-1.3L19 11l1.3-.7Z\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m8.5 7.5 2.3 4.5 5 .7-3.6 3.5.9 5-4.6-2.4L4 21.2l.8-5-3.6-3.5 5-.7Z\"></path><path d=\"m16 2 1 2 2 1-2 1-1 2-1-2-2-1 2-1Zm5 7 .7 1.3L23 11l-1.3.7L21 13l-.7-1.3L19 11l1.3-.7Z\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "shootingStar": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m16 2 1.6 3.5 3.9.5-2.8 2.7.6 3.8-3.3-1.8-3.4 1.8.7-3.8-2.8-2.7 3.8-.5ZM3 14l5-5m-6 12 7-7m3 7 5-5\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m16 2 1.6 3.5 3.9.5-2.8 2.7.6 3.8-3.3-1.8-3.4 1.8.7-3.8-2.8-2.7 3.8-.5ZM3 14l5-5m-6 12 7-7m3 7 5-5\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "fileCertificate": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M10 3h7l4 4v14H10M17 3v5h4M4 15v7l3-2 3 2v-7\"></path><circle cx=\"7\" cy=\"11\" r=\"4\"></circle></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M10 3h7l4 4v14H10M17 3v5h4M4 15v7l3-2 3 2v-7\"></path><circle cx=\"7\" cy=\"11\" r=\"4\"></circle></g></g></g></g></g></g></g></g></g>"
+  },
+  "road": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M8 3h8l5 18H3ZM12 5v3m0 3v3m0 3v2\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M8 3h8l5 18H3ZM12 5v3m0 3v3m0 3v2\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "personSparkles": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><circle cx=\"12\" cy=\"4\" r=\"1.5\"></circle><path d=\"M9 10h6m-3-3v12m-3 0v-6m6 6v-6M8 8l-3 5m11-5 3 5M4 3v4M2 5h4m14-3v4m-2-2h4M7 22h10\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><circle cx=\"12\" cy=\"4\" r=\"1.5\"></circle><path d=\"M9 10h6m-3-3v12m-3 0v-6m6 6v-6M8 8l-3 5m11-5 3 5M4 3v4M2 5h4m14-3v4m-2-2h4M7 22h10\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "shield": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m12 3 8 3v5c0 4-3 7.5-8 10-5-2.5-8-6-8-10V6Z\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><g fill=\"currentColor\"><path d=\"m12 3 8 3v5c0 4-3 7.5-8 10-5-2.5-8-6-8-10V6Z\"></path></g></g></g></g></g></g></g></g></g></g>"
+  },
+  "comment": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M21 11c0 4.4-4 8-9 8-1.7 0-3.2-.4-4.5-1L3 20l1.5-4C2.9 14.7 2 13 2 11c0-4.4 4.3-8 9.5-8S21 6.6 21 11Z\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><g fill=\"currentColor\"><path d=\"M21 11c0 4.4-4 8-9 8-1.7 0-3.2-.4-4.5-1L3 20l1.5-4C2.9 14.7 2 13 2 11c0-4.4 4.3-8 9.5-8S21 6.6 21 11Z\"></path></g></g></g></g></g></g></g></g></g></g>"
+  },
+  "comments": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M14 12c0 3-2.7 5-6 5l-5 2 1-4c-1.3-1-2-2.3-2-4 0-3 2.7-5 6-5s6 2 6 5ZM16 8c3.5 0 6 2.4 6 5.5 0 1.5-.7 3-2 4l1 3.5-4.5-1.5c-2 0-3.5-.7-4.5-1.7\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M14 12c0 3-2.7 5-6 5l-5 2 1-4c-1.3-1-2-2.3-2-4 0-3 2.7-5 6-5s6 2 6 5ZM16 8c3.5 0 6 2.4 6 5.5 0 1.5-.7 3-2 4l1 3.5-4.5-1.5c-2 0-3.5-.7-4.5-1.7\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "commentQuote": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M21 11c0 4.4-4 8-9 8-1.7 0-3.2-.4-4.5-1L3 20l1.5-4C2.9 14.7 2 13 2 11c0-4.4 4.3-8 9.5-8S21 6.6 21 11Z\"></path><path d=\"M7 8h3v3H7Zm3 3c0 2-1 3-3 3m7-6h3v3h-3Zm3 3c0 2-1 3-3 3\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><defs><mask id=\"__HASH_ICON_ID_0__\" maskUnits=\"userSpaceOnUse\" x=\"-4\" y=\"-4\" width=\"32\" height=\"32\" style=\"mask-type:luminance\"><rect x=\"-4\" y=\"-4\" width=\"32\" height=\"32\" fill=\"white\" stroke=\"none\"></rect><g color=\"black\" fill=\"none\" stroke=\"black\"><path d=\"M7 8h3v3H7Zm3 3c0 2-1 3-3 3m7-6h3v3h-3Zm3 3c0 2-1 3-3 3\"></path></g></mask></defs><g fill=\"currentColor\" mask=\"url(#__HASH_ICON_ID_0__)\"><path d=\"M21 11c0 4.4-4 8-9 8-1.7 0-3.2-.4-4.5-1L3 20l1.5-4C2.9 14.7 2 13 2 11c0-4.4 4.3-8 9.5-8S21 6.6 21 11Z\"></path></g></g></g></g></g></g></g></g></g></g>"
+  },
+  "spinnerDots": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><circle cx=\"12\" cy=\"3\" r=\"1.2\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"18.4\" cy=\"5.6\" r=\"1.2\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"21\" cy=\"12\" r=\"1.2\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"18.4\" cy=\"18.4\" r=\"1.2\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"12\" cy=\"21\" r=\"1.2\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"5.6\" cy=\"18.4\" r=\"1.2\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"3\" cy=\"12\" r=\"1.2\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"5.6\" cy=\"5.6\" r=\"1.2\" fill=\"currentColor\" stroke=\"none\"></circle></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><circle cx=\"12\" cy=\"3\" r=\"1.2\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"18.4\" cy=\"5.6\" r=\"1.2\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"21\" cy=\"12\" r=\"1.2\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"18.4\" cy=\"18.4\" r=\"1.2\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"12\" cy=\"21\" r=\"1.2\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"5.6\" cy=\"18.4\" r=\"1.2\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"3\" cy=\"12\" r=\"1.2\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"5.6\" cy=\"5.6\" r=\"1.2\" fill=\"currentColor\" stroke=\"none\"></circle></g></g></g></g></g></g></g></g></g>"
+  },
+  "layerUpload": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m3 11 9-4 9 4-9 4ZM3 16l9 4 9-4M17 8V3m-3 3 3-3 3 3\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m3 11 9-4 9 4-9 4ZM3 16l9 4 9-4M17 8V3m-3 3 3-3 3 3\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "infinityPlus": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M13 12 9 8C3 2-1 15 5 16c3 0 5-5 8-8 5-5 11 0 7 5M18 15v7m-3.5-3.5h7\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M13 12 9 8C3 2-1 15 5 16c3 0 5-5 8-8 5-5 11 0 7 5M18 15v7m-3.5-3.5h7\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "satelliteDish": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m4 11 9 9c-5 2-10-1-9-9ZM8 16l5-5m-5 10-2 2m7-19a8 8 0 0 1 8 8m-8-4a4 4 0 0 1 4 4\"></path><circle cx=\"13\" cy=\"11\" r=\"1\"></circle></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m4 11 9 9c-5 2-10-1-9-9ZM8 16l5-5m-5 10-2 2m7-19a8 8 0 0 1 8 8m-8-4a4 4 0 0 1 4 4\"></path><circle cx=\"13\" cy=\"11\" r=\"1\"></circle></g></g></g></g></g></g></g></g></g>"
+  },
+  "hourglass": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M5 3h14M5 21h14M6 3c0 6 2 6 6 9-4 3-6 3-6 9m12-18c0 6-2 6-6 9 4 3 6 3 6 9\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M5 3h14M5 21h14M6 3c0 6 2 6 6 9-4 3-6 3-6 9m12-18c0 6-2 6-6 9 4 3 6 3 6 9\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "noteList": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M4 3h16v13l-5 5H4ZM15 21v-5h5M8 8h1m-1 4h1m-1 4h1\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M4 3h16v13l-5 5H4ZM15 21v-5h5M8 8h1m-1 4h1m-1 4h1\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "rectanglePointer": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"2\" y=\"4\" width=\"17\" height=\"13\" rx=\"0.5\"></rect><path d=\"m14 11 7 5-3 1 1 3-2 1-2-3-2 2Z\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"2\" y=\"4\" width=\"17\" height=\"13\" rx=\"0.5\"></rect><path d=\"m14 11 7 5-3 1 1 3-2 1-2-3-2 2Z\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "usersThree": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\" transform=\"translate(1.2 1.2) scale(0.9)\"><circle cx=\"12\" cy=\"9\" r=\"2.5\"></circle><path d=\"M7 21v-2a5 5 0 0 1 10 0v2ZM4 15H1v-1a5 5 0 0 1 7-4m12 5h3v-1a5 5 0 0 0-7-4\"></path><circle cx=\"5\" cy=\"5\" r=\"2\"></circle><circle cx=\"19\" cy=\"5\" r=\"2\"></circle></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\" transform=\"translate(1.2 1.2) scale(0.9)\"><circle cx=\"12\" cy=\"9\" r=\"2.5\"></circle><path d=\"M7 21v-2a5 5 0 0 1 10 0v2ZM4 15H1v-1a5 5 0 0 1 7-4m12 5h3v-1a5 5 0 0 0-7-4\"></path><circle cx=\"5\" cy=\"5\" r=\"2\"></circle><circle cx=\"19\" cy=\"5\" r=\"2\"></circle></g></g></g></g></g></g></g></g></g>"
+  },
+  "triangleNodes": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><circle cx=\"4\" cy=\"11\" r=\"2\"></circle><circle cx=\"19\" cy=\"4\" r=\"2\"></circle><circle cx=\"17\" cy=\"20\" r=\"2\"></circle><path d=\"m6 10 11-5m2 1-2 12M6 12l9 7\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><circle cx=\"4\" cy=\"11\" r=\"2\"></circle><circle cx=\"19\" cy=\"4\" r=\"2\"></circle><circle cx=\"17\" cy=\"20\" r=\"2\"></circle><path d=\"m6 10 11-5m2 1-2 12M6 12l9 7\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "arrowDownToBar": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><g transform=\"rotate(0 12 12)\"><path d=\"M12 3v13m-4-4 4 4 4-4M5 21h14\"></path></g></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><g transform=\"rotate(0 12 12)\"><path d=\"M12 3v13m-4-4 4 4 4-4M5 21h14\"></path></g></g></g></g></g></g></g></g></g></g>"
+  },
+  "arrowLeftToBar": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><g transform=\"rotate(90 12 12)\"><path d=\"M12 3v13m-4-4 4 4 4-4M5 21h14\"></path></g></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><g transform=\"rotate(90 12 12)\"><path d=\"M12 3v13m-4-4 4 4 4-4M5 21h14\"></path></g></g></g></g></g></g></g></g></g></g>"
+  },
+  "arrowUpToBar": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><g transform=\"rotate(180 12 12)\"><path d=\"M12 3v13m-4-4 4 4 4-4M5 21h14\"></path></g></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><g transform=\"rotate(180 12 12)\"><path d=\"M12 3v13m-4-4 4 4 4-4M5 21h14\"></path></g></g></g></g></g></g></g></g></g></g>"
+  },
+  "arrowRightToBar": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><g transform=\"rotate(270 12 12)\"><path d=\"M12 3v13m-4-4 4 4 4-4M5 21h14\"></path></g></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><g transform=\"rotate(270 12 12)\"><path d=\"M12 3v13m-4-4 4 4 4-4M5 21h14\"></path></g></g></g></g></g></g></g></g></g></g>"
+  },
+  "arrowDownLeftToCorner": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><g transform=\"rotate(0 12 12)\"><path d=\"m19 5-9 9m0-6v6h6M5 7v12h12\"></path></g></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><g transform=\"rotate(0 12 12)\"><path d=\"m19 5-9 9m0-6v6h6M5 7v12h12\"></path></g></g></g></g></g></g></g></g></g></g>"
+  },
+  "arrowUpLeftToCorner": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><g transform=\"rotate(90 12 12)\"><path d=\"m19 5-9 9m0-6v6h6M5 7v12h12\"></path></g></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><g transform=\"rotate(90 12 12)\"><path d=\"m19 5-9 9m0-6v6h6M5 7v12h12\"></path></g></g></g></g></g></g></g></g></g></g>"
+  },
+  "arrowUpRightToCorner": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><g transform=\"rotate(180 12 12)\"><path d=\"m19 5-9 9m0-6v6h6M5 7v12h12\"></path></g></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><g transform=\"rotate(180 12 12)\"><path d=\"m19 5-9 9m0-6v6h6M5 7v12h12\"></path></g></g></g></g></g></g></g></g></g></g>"
+  },
+  "arrowDownRightToCorner": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><g transform=\"rotate(270 12 12)\"><path d=\"m19 5-9 9m0-6v6h6M5 7v12h12\"></path></g></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><g transform=\"rotate(270 12 12)\"><path d=\"m19 5-9 9m0-6v6h6M5 7v12h12\"></path></g></g></g></g></g></g></g></g></g></g>"
+  },
+  "alignCenterMark": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M12 3v3m0 12v3M3 12h3m12 0h3\"></path><circle cx=\"12\" cy=\"12\" r=\"1.25\" fill=\"currentColor\" stroke=\"none\"></circle></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M12 3v3m0 12v3M3 12h3m12 0h3\"></path><circle cx=\"12\" cy=\"12\" r=\"1.25\" fill=\"currentColor\" stroke=\"none\"></circle></g></g></g></g></g></g></g></g></g>"
+  },
+  "bringForwardArrow": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M12 20V8m-4 4 4-4 4 4M6 3h12\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M12 20V8m-4 4 4-4 4 4M6 3h12\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "bringToFrontArrow": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M12 21V10m-4 4 4-4 4 4M6 3h12M6 6h12\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M12 21V10m-4 4 4-4 4 4M6 3h12M6 6h12\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "sendBackwardArrow": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M12 4v12m-4-4 4 4 4-4M6 21h12\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M12 4v12m-4-4 4 4 4-4M6 21h12\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "sendToBackArrow": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M12 3v11m-4-4 4 4 4-4M6 18h12M6 21h12\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M12 3v11m-4-4 4 4 4-4M6 18h12M6 21h12\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "clipboardCopy": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M13 20H4V5h3m6 0h3v5\"></path><rect x=\"7\" y=\"3\" width=\"6\" height=\"4\" rx=\"0.5\"></rect><path d=\"M12 12h9v9h-9Z\" stroke-dasharray=\"1 2\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M13 20H4V5h3m6 0h3v5\"></path><rect x=\"7\" y=\"3\" width=\"6\" height=\"4\" rx=\"0.5\"></rect><path d=\"M12 12h9v9h-9Z\" stroke-dasharray=\"1 2\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "disc": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><circle cx=\"12\" cy=\"12\" r=\"8\" fill=\"currentColor\" stroke=\"none\"></circle></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><circle cx=\"12\" cy=\"12\" r=\"8\" fill=\"currentColor\" stroke=\"none\"></circle></g></g></g></g></g></g></g></g></g>"
+  },
+  "circleDashed": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><circle cx=\"12\" cy=\"12\" r=\"8\" stroke-dasharray=\"4 3\"></circle></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><circle cx=\"12\" cy=\"12\" r=\"8\" stroke-dasharray=\"4 3\"></circle></g></g></g></g></g></g></g></g></g>"
+  },
+  "circleDotted": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><circle cx=\"12\" cy=\"12\" r=\"8\" stroke-dasharray=\"0.1 4\" stroke-linecap=\"round\"></circle></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><circle cx=\"12\" cy=\"12\" r=\"8\" stroke-dasharray=\"0.1 4\" stroke-linecap=\"round\"></circle></g></g></g></g></g></g></g></g></g>"
+  },
+  "circleDrawn": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M20 12c0 5-3 8-8 8s-8-3-8-8 3-8 8-8c4-1 9 4 8 8ZM19 11c2 5-3 10-8 9-5 0-8-5-7-9\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M20 12c0 5-3 8-8 8s-8-3-8-8 3-8 8-8c4-1 9 4 8 8ZM19 11c2 5-3 10-8 9-5 0-8-5-7-9\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "layerFillNone": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M6 5V2h16v16h-3\"></path><rect x=\"2\" y=\"6\" width=\"16\" height=\"16\" rx=\"0.5\"></rect></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M6 5V2h16v16h-3\"></path><rect x=\"2\" y=\"6\" width=\"16\" height=\"16\" rx=\"0.5\"></rect></g></g></g></g></g></g></g></g></g>"
+  },
+  "layerFillPattern": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M6 5V2h16v16h-3\"></path><rect x=\"2\" y=\"6\" width=\"16\" height=\"16\" rx=\"0.5\"></rect><path d=\"m2 12 6-6M2 18 12 6m-8 16L18 8M10 22l8-8m-2 8 2-2\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M6 5V2h16v16h-3\"></path><rect x=\"2\" y=\"6\" width=\"16\" height=\"16\" rx=\"0.5\"></rect><path d=\"m2 12 6-6M2 18 12 6m-8 16L18 8M10 22l8-8m-2 8 2-2\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "layerFillSemi": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M6 5V2h16v16h-3\"></path><rect x=\"2\" y=\"6\" width=\"16\" height=\"16\" fill=\"currentColor\" fill-opacity=\"0.2\"></rect></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M6 5V2h16v16h-3\"></path><rect x=\"2\" y=\"6\" width=\"16\" height=\"16\" fill=\"currentColor\" fill-opacity=\"0.2\"></rect></g></g></g></g></g></g></g></g></g>"
+  },
+  "layerFillSolid": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M6 5V2h16v16h-3\"></path><rect x=\"2\" y=\"6\" width=\"16\" height=\"16\" fill=\"currentColor\"></rect></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M6 5V2h16v16h-3\"></path><rect x=\"2\" y=\"6\" width=\"16\" height=\"16\" fill=\"currentColor\"></rect></g></g></g></g></g></g></g></g></g>"
+  },
+  "fontSansAa": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M2 20 7 4l5 16M4 14h6M21 11v9m0-6c0-5-7-5-7 1v1c0 5 7 5 7-1\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M2 20 7 4l5 16M4 14h6M21 11v9m0-6c0-5-7-5-7 1v1c0 5 7 5 7-1\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "fontMonoAa": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M2 20 6 4l4 16M3 14h6M1 20h4m2 0h4M14 12c0-3 7-3 7 1v7m-1-6h-3c-5 0-4 6 0 6h5\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M2 20 6 4l4 16M3 14h6M1 20h4m2 0h4M14 12c0-3 7-3 7 1v7m-1-6h-3c-5 0-4 6 0 6h5\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "fontSerifAa": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M2 20 7 4l5 16M4 14h6M21 11v9m0-6c0-5-7-5-7 1v1c0 5 7 5 7-1\"></path><path d=\"M1 20h4m4 0h4M5 4h4M19 20h4\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M2 20 7 4l5 16M4 14h6M21 11v9m0-6c0-5-7-5-7 1v1c0 5 7 5 7-1\"></path><path d=\"M1 20h4m4 0h4M5 4h4M19 20h4\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "fontDrawAa": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 20C2 13 5 4 7 4s2 9 6 16M2 15l10-1m8-5c-5-2-9 9-5 11 3 1 5-4 5-9 0 4 1 7 3 9\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 20C2 13 5 4 7 4s2 9 6 16M2 15l10-1m8-5c-5-2-9 9-5 11 3 1 5-4 5-9 0 4 1 7 3 9\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "fontMixedAa": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M9 5v7m0-5c0-5-6-5-6 0v2c0 4 6 4 6 0M11 22l5-15 5 15m-8-5h6m-9 5h4m5 0h4\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M9 5v7m0-5c0-5-6-5-6 0v2c0 4 6 4 6 0M11 22l5-15 5 15m-8-5h6m-9 5h4m5 0h4\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "ovalVertical": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"6\" y=\"2\" width=\"12\" height=\"20\" rx=\"6\"></rect></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><g fill=\"currentColor\"><rect x=\"6\" y=\"2\" width=\"12\" height=\"20\" rx=\"6\"></rect></g></g></g></g></g></g></g></g></g></g>"
+  },
+  "parallelogramLeft": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 3h13l5 18H8Z\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><g fill=\"currentColor\"><path d=\"M3 3h13l5 18H8Z\"></path></g></g></g></g></g></g></g></g></g></g>"
+  },
+  "groupDashed": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 3h18v18H3Z\" stroke-dasharray=\"5 3\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 3h18v18H3Z\" stroke-dasharray=\"5 3\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "ungroupDashed": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 3h14M21 7v14H3V3\" stroke-dasharray=\"5 3\"></path><path d=\"m2 22 20-20\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 3h14M21 7v14H3V3\" stroke-dasharray=\"5 3\"></path><path d=\"m2 22 20-20\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "gridDots": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><circle cx=\"5\" cy=\"5\" r=\"1.25\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"5\" cy=\"12\" r=\"1.25\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"5\" cy=\"19\" r=\"1.25\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"12\" cy=\"5\" r=\"1.25\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"12\" cy=\"12\" r=\"1.25\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"12\" cy=\"19\" r=\"1.25\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"19\" cy=\"5\" r=\"1.25\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"19\" cy=\"12\" r=\"1.25\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"19\" cy=\"19\" r=\"1.25\" fill=\"currentColor\" stroke=\"none\"></circle></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><circle cx=\"5\" cy=\"5\" r=\"1.25\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"5\" cy=\"12\" r=\"1.25\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"5\" cy=\"19\" r=\"1.25\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"12\" cy=\"5\" r=\"1.25\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"12\" cy=\"12\" r=\"1.25\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"12\" cy=\"19\" r=\"1.25\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"19\" cy=\"5\" r=\"1.25\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"19\" cy=\"12\" r=\"1.25\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"19\" cy=\"19\" r=\"1.25\" fill=\"currentColor\" stroke=\"none\"></circle></g></g></g></g></g></g></g></g></g>"
+  },
+  "questionMark": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M7 7a5 5 0 0 1 10 0c0 4-5 3-5 7\"></path><circle cx=\"12\" cy=\"19\" r=\"1\" fill=\"currentColor\" stroke=\"none\"></circle></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M7 7a5 5 0 0 1 10 0c0 4-5 3-5 7\"></path><circle cx=\"12\" cy=\"19\" r=\"1\" fill=\"currentColor\" stroke=\"none\"></circle></g></g></g></g></g></g></g></g></g>"
+  },
+  "zoomReset": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><circle cx=\"10\" cy=\"10\" r=\"7\"></circle><path d=\"m15 15 6 6M7 7v3h3m-3 0a3 3 0 1 0 1-2\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><circle cx=\"10\" cy=\"10\" r=\"7\"></circle><path d=\"m15 15 6 6M7 7v3h3m-3 0a3 3 0 1 0 1-2\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "rotateSquareClockwise": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"5\" y=\"11\" width=\"14\" height=\"11\" rx=\"0.5\"></rect><path d=\"M8 8V7a5 5 0 0 1 10 0m-3-2 3 3 3-3\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"5\" y=\"11\" width=\"14\" height=\"11\" rx=\"0.5\"></rect><path d=\"M8 8V7a5 5 0 0 1 10 0m-3-2 3 3 3-3\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "rotateSquareCounterclockwise": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"5\" y=\"11\" width=\"14\" height=\"11\" rx=\"0.5\"></rect><path d=\"M16 8V7A5 5 0 0 0 6 7m-3-2 3 3 3-3\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"5\" y=\"11\" width=\"14\" height=\"11\" rx=\"0.5\"></rect><path d=\"M16 8V7A5 5 0 0 0 6 7m-3-2 3 3 3-3\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "rulerCorner": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 2h5v15h14v5H3ZM8 6H5m3 4H5m3 4H5m7 3v3m4-3v3m4-3v3\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 2h5v15h14v5H3ZM8 6H5m3 4H5m3 4H5m7 3v3m4-3v3m4-3v3\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "slidersVertical": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><circle cx=\"7\" cy=\"8\" r=\"2.5\"></circle><circle cx=\"17\" cy=\"16\" r=\"2.5\"></circle><path d=\"M7 2v3m0 6v11M17 2v11m0 6v3\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><circle cx=\"7\" cy=\"8\" r=\"2.5\"></circle><circle cx=\"17\" cy=\"16\" r=\"2.5\"></circle><path d=\"M7 2v3m0 6v11M17 2v11m0 6v3\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "sizeLetterSmall": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M17 6c-2-3-10-2-10 2 0 5 10 3 10 8 0 4-8 5-11 1\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M17 6c-2-3-10-2-10 2 0 5 10 3 10 8 0 4-8 5-11 1\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "sizeLetterMedium": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M4 21V3l8 10 8-10v18\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M4 21V3l8 10 8-10v18\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "sizeLetterLarge": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M7 3v18h12\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M7 3v18h12\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "sizeLetterExtraLarge": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m2 4 10 16M12 4 2 20M16 4v16h7\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m2 4 10 16M12 4 2 20M16 4v16h7\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "cornerCurve": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M4 3v6c0 8 4 12 12 12h5\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M4 3v6c0 8 4 12 12 12h5\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "cornerLine": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M4 3v18h17\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M4 3v18h17\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "stretchBarsHorizontal": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 3v18M21 3v18M3 12h18\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 3v18M21 3v18M3 12h18\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "stretchBarsVertical": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 3h18M3 21h18M12 3v18\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 3h18M3 21h18M12 3v18\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "lineDiagonal": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M4 20 20 4\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M4 20 20 4\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "textCapital": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 4h18M12 4v17M8 21h8\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 4h18M12 4v17M8 21h8\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "caretDown": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m5 8 7 8 7-8Z\" fill=\"currentColor\" stroke=\"none\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m5 8 7 8 7-8Z\" fill=\"currentColor\" stroke=\"none\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "caretUp": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m5 16 7-8 7 8Z\" fill=\"currentColor\" stroke=\"none\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m5 16 7-8 7 8Z\" fill=\"currentColor\" stroke=\"none\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "arrowsTurnToDots": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><circle cx=\"4\" cy=\"6\" r=\"1.5\"></circle><circle cx=\"20\" cy=\"18\" r=\"1.5\"></circle><path d=\"M20 10V8c0-4-3-4-7-4h-3m4-3-4 3 4 3M4 14v2c0 4 3 4 7 4h3m-4-3 4 3-4 3\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><circle cx=\"4\" cy=\"6\" r=\"1.5\"></circle><circle cx=\"20\" cy=\"18\" r=\"1.5\"></circle><path d=\"M20 10V8c0-4-3-4-7-4h-3m4-3-4 3 4 3M4 14v2c0 4 3 4 7 4h3m-4-3 4 3-4 3\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "diagramBranch": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"2\" y=\"3\" width=\"5\" height=\"5\" rx=\"0.5\"></rect><rect x=\"17\" y=\"3\" width=\"5\" height=\"5\" rx=\"0.5\"></rect><rect x=\"17\" y=\"16\" width=\"5\" height=\"5\" rx=\"0.5\"></rect><path d=\"M7 5.5h10M7 6l10 12.5\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"2\" y=\"3\" width=\"5\" height=\"5\" rx=\"0.5\"></rect><rect x=\"17\" y=\"3\" width=\"5\" height=\"5\" rx=\"0.5\"></rect><rect x=\"17\" y=\"16\" width=\"5\" height=\"5\" rx=\"0.5\"></rect><path d=\"M7 5.5h10M7 6l10 12.5\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "fileExcel": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M5 3h9l5 5v13H5Z\"></path><path d=\"M14 3v5h5m-10 4 6 6m0-6-6 6\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><defs><mask id=\"__HASH_ICON_ID_0__\" maskUnits=\"userSpaceOnUse\" x=\"-4\" y=\"-4\" width=\"32\" height=\"32\" style=\"mask-type:luminance\"><rect x=\"-4\" y=\"-4\" width=\"32\" height=\"32\" fill=\"white\" stroke=\"none\"></rect><g color=\"black\" fill=\"none\" stroke=\"black\"><path d=\"M14 3v5h5m-10 4 6 6m0-6-6 6\"></path></g></mask></defs><g fill=\"currentColor\" mask=\"url(#__HASH_ICON_ID_0__)\"><path d=\"M5 3h9l5 5v13H5Z\"></path></g></g></g></g></g></g></g></g></g></g>"
+  },
+  "boxesTransfer": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"2\" y=\"12\" width=\"9\" height=\"9\" rx=\"0.5\"></rect><rect x=\"7\" y=\"2\" width=\"14\" height=\"9\" rx=\"0.5\"></rect><path d=\"M15 21v-7m-3 3 3-3 3 3M5 16h3\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"2\" y=\"12\" width=\"9\" height=\"9\" rx=\"0.5\"></rect><rect x=\"7\" y=\"2\" width=\"14\" height=\"9\" rx=\"0.5\"></rect><path d=\"M15 21v-7m-3 3 3-3 3 3M5 16h3\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "memo": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"4\" y=\"3\" width=\"16\" height=\"18\" rx=\"0.5\"></rect><path d=\"M8 8h8M8 12h8M8 16h4\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"4\" y=\"3\" width=\"16\" height=\"18\" rx=\"0.5\"></rect><path d=\"M8 8h8M8 12h8M8 16h4\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "memoCircleInfo": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M11 21H4V3h15v7M8 7h7M8 11h3M8 15h2\"></path><circle cx=\"17\" cy=\"17\" r=\"5\"></circle><path d=\"M17 16v4\"></path><circle cx=\"17\" cy=\"13.5\" r=\"0.7\" fill=\"currentColor\" stroke=\"none\"></circle></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M11 21H4V3h15v7M8 7h7M8 11h3M8 15h2\"></path><circle cx=\"17\" cy=\"17\" r=\"5\"></circle><path d=\"M17 16v4\"></path><circle cx=\"17\" cy=\"13.5\" r=\"0.7\" fill=\"currentColor\" stroke=\"none\"></circle></g></g></g></g></g></g></g></g></g>"
+  },
+  "banknoteTransfer": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"5\" y=\"6\" width=\"14\" height=\"12\" rx=\"0.5\"></rect><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M2 10V4h17m-3-3 3 3-3 3M22 14v6H5m3-3-3 3 3 3\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"5\" y=\"6\" width=\"14\" height=\"12\" rx=\"0.5\"></rect><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M2 10V4h17m-3-3 3 3-3 3M22 14v6H5m3-3-3 3 3 3\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "columnsMasonry": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"5\" rx=\"0.5\"></rect><rect x=\"3\" y=\"11\" width=\"7\" height=\"10\" rx=\"0.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"10\" rx=\"0.5\"></rect><rect x=\"14\" y=\"16\" width=\"7\" height=\"5\" rx=\"0.5\"></rect></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"5\" rx=\"0.5\"></rect><rect x=\"3\" y=\"11\" width=\"7\" height=\"10\" rx=\"0.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"10\" rx=\"0.5\"></rect><rect x=\"14\" y=\"16\" width=\"7\" height=\"5\" rx=\"0.5\"></rect></g></g></g></g></g></g></g></g></g>"
+  },
+  "robotBust": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M7 13V5h10v8ZM12 5V2M3 6v6m18-6v6M4 22v-3a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v3ZM8 17v5m4-5v5m4-5v5M9 9h1m4 0h1\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M7 13V5h10v8ZM12 5V2M3 6v6m18-6v6M4 22v-3a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v3ZM8 17v5m4-5v5m4-5v5M9 9h1m4 0h1\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "greetingBust": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><circle cx=\"14\" cy=\"6\" r=\"3\"></circle><path d=\"M19 21H9v-4C4 16 2 12 2 6h4c0 5 2 7 6 7h2a5 5 0 0 1 5 5Z\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><circle cx=\"14\" cy=\"6\" r=\"3\"></circle><path d=\"M19 21H9v-4C4 16 2 12 2 6h4c0 5 2 7 6 7h2a5 5 0 0 1 5 5Z\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "hierarchyBranches": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"2\" y=\"9\" width=\"5\" height=\"5\" rx=\"0.5\"></rect><rect x=\"17\" y=\"2\" width=\"5\" height=\"5\" rx=\"0.5\"></rect><rect x=\"17\" y=\"17\" width=\"5\" height=\"5\" rx=\"0.5\"></rect><path d=\"M7 11.5h5V4.5h5M12 11.5v8H17\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"2\" y=\"9\" width=\"5\" height=\"5\" rx=\"0.5\"></rect><rect x=\"17\" y=\"2\" width=\"5\" height=\"5\" rx=\"0.5\"></rect><rect x=\"17\" y=\"17\" width=\"5\" height=\"5\" rx=\"0.5\"></rect><path d=\"M7 11.5h5V4.5h5M12 11.5v8H17\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "circlePlus": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><circle cx=\"12\" cy=\"12\" r=\"9\"></circle><path d=\"M7 12h10m-5-5v10\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><defs><mask id=\"__HASH_ICON_ID_0__\" maskUnits=\"userSpaceOnUse\" x=\"-4\" y=\"-4\" width=\"32\" height=\"32\" style=\"mask-type:luminance\"><rect x=\"-4\" y=\"-4\" width=\"32\" height=\"32\" fill=\"white\" stroke=\"none\"></rect><g color=\"black\" fill=\"none\" stroke=\"black\"><path d=\"M7 12h10m-5-5v10\"></path></g></mask></defs><g fill=\"currentColor\" mask=\"url(#__HASH_ICON_ID_0__)\"><circle cx=\"12\" cy=\"12\" r=\"9\"></circle></g></g></g></g></g></g></g></g></g></g>"
+  },
+  "squarePlus": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"0.5\"></rect><path d=\"M7 12h10m-5-5v10\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><defs><mask id=\"__HASH_ICON_ID_0__\" maskUnits=\"userSpaceOnUse\" x=\"-4\" y=\"-4\" width=\"32\" height=\"32\" style=\"mask-type:luminance\"><rect x=\"-4\" y=\"-4\" width=\"32\" height=\"32\" fill=\"white\" stroke=\"none\"></rect><g color=\"black\" fill=\"none\" stroke=\"black\"><path d=\"M7 12h10m-5-5v10\"></path></g></mask></defs><g fill=\"currentColor\" mask=\"url(#__HASH_ICON_ID_0__)\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"0.5\"></rect></g></g></g></g></g></g></g></g></g></g>"
+  },
+  "penSquare": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M12 4H3v17h17v-9M10 14l1-5 8-6 2 2-7 8Zm6-9 2 2\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M12 4H3v17h17v-9M10 14l1-5 8-6 2 2-7 8Zm6-9 2 2\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "functionExpression": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M2 20c3 0 3-2 4-8l1-5c.5-3 2-4 4-3M3 10h7m4-4c-3 3-3 9 0 12m6-12c3 3 3 9 0 12m-6-9 5 6m0-6-5 6\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M2 20c3 0 3-2 4-8l1-5c.5-3 2-4 4-3M3 10h7m4-4c-3 3-3 9 0 12m6-12c3 3 3 9 0 12m-6-9 5 6m0-6-5 6\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "inputField": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"2\" y=\"5\" width=\"20\" height=\"14\" rx=\"0.5\"></rect><path d=\"M6 9v6\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><rect x=\"2\" y=\"5\" width=\"20\" height=\"14\" rx=\"0.5\"></rect><path d=\"M6 9v6\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "treeList": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M4 5v13h3M4 12h3M9 5h12m-8 7h8m-8 6h8\"></path><rect x=\"2\" y=\"3\" width=\"4\" height=\"4\"></rect><rect x=\"7\" y=\"10\" width=\"4\" height=\"4\"></rect><rect x=\"7\" y=\"16\" width=\"4\" height=\"4\"></rect></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M4 5v13h3M4 12h3M9 5h12m-8 7h8m-8 6h8\"></path><rect x=\"2\" y=\"3\" width=\"4\" height=\"4\"></rect><rect x=\"7\" y=\"10\" width=\"4\" height=\"4\"></rect><rect x=\"7\" y=\"16\" width=\"4\" height=\"4\"></rect></g></g></g></g></g></g></g></g></g>"
+  },
+  "overlappingCircles": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><circle cx=\"9\" cy=\"8\" r=\"5\"></circle><circle cx=\"15\" cy=\"8\" r=\"5\"></circle><circle cx=\"12\" cy=\"14\" r=\"5\"></circle></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><circle cx=\"9\" cy=\"8\" r=\"5\"></circle><circle cx=\"15\" cy=\"8\" r=\"5\"></circle><circle cx=\"12\" cy=\"14\" r=\"5\"></circle></g></g></g></g></g></g></g></g></g>"
+  },
+  "terminalPrompt": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m4 5 7 7-7 7M13 20h8\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"m4 5 7 7-7 7M13 20h8\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "featherQuill": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 21 17 5M6 18c-3-4-1-10 3-13 4-4 9-4 12-2 1 4-1 9-5 12-4 3-7 4-10 3ZM8 15h7M11 12h7\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 21 17 5M6 18c-3-4-1-10 3-13 4-4 9-4 12-2 1 4-1 9-5 12-4 3-7 4-10 3ZM8 15h7M11 12h7\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "slidersHorizontalThree": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><circle cx=\"8\" cy=\"5\" r=\"2\"></circle><circle cx=\"16\" cy=\"12\" r=\"2\"></circle><circle cx=\"8\" cy=\"19\" r=\"2\"></circle><path d=\"M2 5h4m4 0h12M2 12h12m4 0h4M2 19h4m4 0h12\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><circle cx=\"8\" cy=\"5\" r=\"2\"></circle><circle cx=\"16\" cy=\"12\" r=\"2\"></circle><circle cx=\"8\" cy=\"19\" r=\"2\"></circle><path d=\"M2 5h4m4 0h12M2 12h12m4 0h4M2 19h4m4 0h12\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "barsDescending": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 5h18M3 12h13M3 19h7\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 5h18M3 12h13M3 19h7\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "arrowsUpDown": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M7 3v18m-4-4 4 4 4-4M17 21V3m-4 4 4-4 4 4\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M7 3v18m-4-4 4 4 4-4M17 21V3m-4 4 4-4 4 4\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "arrowsFromCenterLine": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 12h18M12 8V2m-4 4 4-4 4 4M12 16v6m-4-4 4 4 4-4\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 12h18M12 8V2m-4 4 4-4 4 4M12 16v6m-4-4 4 4 4-4\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "arrowsToCenterLine": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 12h18M12 2v6m-4-4 4 4 4-4M12 22v-6m-4 4 4-4 4 4\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M3 12h18M12 2v6m-4-4 4 4 4-4M12 22v-6m-4 4 4-4 4 4\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "canvasPlus": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M13 19H2V4h18v7M17 14v8m-4-4h8\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M13 19H2V4h18v7M17 14v8m-4-4h8\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "fileCirclePlus": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M11 21H4V3h9l5 5v3M13 3v5h5\"></path><circle cx=\"17\" cy=\"17\" r=\"5\"></circle><path d=\"M14 17h6m-3-3v6\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><path d=\"M11 21H4V3h9l5 5v3M13 3v5h5\"></path><circle cx=\"17\" cy=\"17\" r=\"5\"></circle><path d=\"M14 17h6m-3-3v6\"></path></g></g></g></g></g></g></g></g></g>"
+  },
+  "earthAmericas": {
+    "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><circle cx=\"12\" cy=\"12\" r=\"9\"></circle><path d=\"m5 5 4 1 2 4-3 2-2-2H3m7 2 5 1 2 4-3 4-2-4-2-2Z\"></path></g></g></g></g></g></g></g></g></g>",
+    "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g fill=\"none\"><circle cx=\"12\" cy=\"12\" r=\"9\"></circle><path d=\"m5 5 4 1 2 4-3 2-2-2H3m7 2 5 1 2 4-3 4-2-4-2-2Z\"></path></g></g></g></g></g></g></g></g></g>"
+  },
   "openSourceInitiative": {
     "outline": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><path d=\"M15.804 20.157A9 9 0 1 0 8.196 20.157L10.521 15.172A3.5 3.5 0 1 1 13.479 15.172Z\"></path></g></g></g></g></g></g></g></g>",
     "filled": "<g><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><g style=\"transform-origin:12px 12px\"><g><path d=\"M15.804 20.157A9 9 0 1 0 8.196 20.157L10.521 15.172A3.5 3.5 0 1 1 13.479 15.172Z\"></path></g></g></g></g></g></g></g></g>"

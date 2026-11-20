@@ -5,4 +5,6 @@ import type { FunctionComponent } from "react";
 
 export const ArrowUpRightAndArrowDownLeftFromCenterIcon: FunctionComponent<
   SvgIconProps
-> = ({ sx, ...props }) => <HashSvgIcon {...props} sx={sx} icon="fitView" />;
+> = ({ sx, ...props }) => (
+  <HashSvgIcon {...props} sx={sx} icon="expandDiagonal" />
+);

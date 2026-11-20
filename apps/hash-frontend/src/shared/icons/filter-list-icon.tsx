@@ -4,5 +4,5 @@ import type { SvgIconProps } from "@mui/material";
 import type { FunctionComponent } from "react";
 
 export const FilterListIcon: FunctionComponent<SvgIconProps> = (props) => {
-  return <HashSvgIcon {...props} fill="none" icon="filter" />;
+  return <HashSvgIcon {...props} fill="none" icon="filterList" />;
 };

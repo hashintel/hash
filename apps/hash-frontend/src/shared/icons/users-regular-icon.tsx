@@ -4,5 +4,5 @@ import type { SvgIconProps } from "@mui/material";
 import type { FunctionComponent } from "react";
 
 export const UsersRegularIcon: FunctionComponent<SvgIconProps> = (props) => {
-  return <HashSvgIcon {...props} icon="users" />;
+  return <HashSvgIcon {...props} icon="usersThree" />;
 };

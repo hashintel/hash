@@ -4,5 +4,5 @@ import type { SvgIconProps } from "@mui/material";
 import type { FunctionComponent } from "react";
 
 export const FileVideoLightIcon: FunctionComponent<SvgIconProps> = (props) => (
-  <HashSvgIcon {...props} icon="fileVideo" />
+  <HashSvgIcon {...props} icon="fileVideoCamera" />
 );

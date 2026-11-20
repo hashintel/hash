@@ -6,5 +6,5 @@ import type { FunctionComponent } from "react";
 export const ArrowsToLineRegularIcon: FunctionComponent<SvgIconProps> = (
   props,
 ) => {
-  return <HashSvgIcon {...props} icon="collapseVertical" />;
+  return <HashSvgIcon {...props} icon="arrowsToCenterLine" />;
 };

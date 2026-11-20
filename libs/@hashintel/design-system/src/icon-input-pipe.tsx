@@ -11,7 +11,7 @@ export const InputPipeIcon: FunctionComponent<SvgIconProps> = (props) => {
       height="512"
       fill="none"
       {...props}
-      icon="inputPipe"
+      icon="inputField"
     />
   );
 };

@@ -14,7 +14,7 @@ export const IconDiagramNestedLight: FunctionComponent<SvgIconProps> = ({
       height="512"
       fill="none"
       sx={Array.isArray(sx) ? sx : [sx]}
-      icon="diagramNested"
+      icon="diagramNestedBranches"
     />
   );
 };

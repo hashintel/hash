@@ -10,7 +10,7 @@ export const CreateEntityIcon: FunctionComponent<SvgIconProps> = (props) => {
       width="17.82"
       height="15.78"
       fill="none"
-      icon="entityPlus"
+      icon="asteriskBolt"
       ink="#91A5BA"
     />
   );

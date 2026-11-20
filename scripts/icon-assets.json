@@ -5,78 +5,83 @@
     "size": 24,
     "width": "20",
     "height": "20",
-    "color": "white"
+    "color": "#2965FF"
   },
   {
     "file": ".github/assets/gh_icon_acknowledgement_20px-base.svg",
-    "name": "heart",
+    "name": "stars",
     "size": 24,
     "width": "20",
     "height": "20",
-    "color": "white"
+    "color": "#2965FF"
   },
   {
     "file": ".github/assets/gh_icon_contact_20px-base.svg",
     "name": "mail",
     "size": 24,
     "width": "20",
-    "height": "20"
+    "height": "20",
+    "color": "#2965FF"
   },
   {
     "file": ".github/assets/gh_icon_contributing_20px-base.svg",
-    "name": "users",
+    "name": "codeBranch",
     "size": 24,
     "width": "20",
-    "height": "20"
+    "height": "20",
+    "color": "#2965FF"
   },
   {
     "file": ".github/assets/gh_icon_examples_20px-base.svg",
-    "name": "code",
+    "name": "shootingStar",
     "size": 24,
     "width": "20",
     "height": "20",
-    "color": "white"
+    "color": "#2965FF"
   },
   {
     "file": ".github/assets/gh_icon_getting-started_20px-base.svg",
-    "name": "rocket",
+    "name": "circlePlay",
     "size": 24,
     "width": "20",
     "height": "20",
-    "color": "white"
+    "color": "#2965FF"
   },
   {
     "file": ".github/assets/gh_icon_license_20px-base.svg",
-    "name": "fileContract",
+    "name": "fileCertificate",
     "size": 24,
     "width": "20",
     "height": "20",
-    "color": "white"
+    "color": "#2965FF"
   },
   {
     "file": ".github/assets/gh_icon_repo-structure_20px-base.svg",
-    "name": "listTree",
+    "name": "treeList",
     "size": 24,
     "width": "20",
-    "height": "20"
+    "height": "20",
+    "color": "#2965FF"
   },
   {
     "file": ".github/assets/gh_icon_roadmap_20px-base.svg",
-    "name": "route",
+    "name": "road",
     "size": 24,
     "width": "20",
-    "height": "20"
+    "height": "20",
+    "color": "#2965FF"
   },
   {
     "file": ".github/assets/gh_icon_security_20px-base.svg",
-    "name": "shieldCheck",
+    "name": "lockPlain",
     "size": 24,
     "width": "20",
-    "height": "20"
+    "height": "20",
+    "color": "#2965FF"
   },
   {
     "file": "apps/hash-frontend/public/format-font.svg",
-    "name": "fontSans",
+    "name": "fontMixedAa",
     "size": 24,
     "width": "24",
     "height": "24",
@@ -92,7 +97,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/account-notifications.svg",
-    "name": "bell",
+    "name": "megaphone",
     "size": 24,
     "width": "17",
     "height": "13",
@@ -100,7 +105,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/account-overview.svg",
-    "name": "users",
+    "name": "user",
     "size": 24,
     "width": "14",
     "height": "15",
@@ -108,7 +113,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/account-personalization.svg",
-    "name": "settings",
+    "name": "personSparkles",
     "size": 24,
     "width": "15",
     "height": "15",
@@ -116,7 +121,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/account-privacy.svg",
-    "name": "lockClosed",
+    "name": "shield",
     "size": 24,
     "width": "14",
     "height": "15",
@@ -124,7 +129,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/account-profile.svg",
-    "name": "user",
+    "name": "eye",
     "size": 24,
     "width": "16",
     "height": "13",
@@ -132,7 +137,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/account-security.svg",
-    "name": "shieldCheck",
+    "name": "lockPlain",
     "size": 24,
     "width": "14",
     "height": "15",
@@ -148,7 +153,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/ai-chat.svg",
-    "name": "message",
+    "name": "comment",
     "size": 24,
     "width": "15",
     "height": "13",
@@ -156,7 +161,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/ai-overview.svg",
-    "name": "brain",
+    "name": "lightning",
     "size": 24,
     "width": "12",
     "height": "15",
@@ -164,7 +169,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/ai-workers.svg",
-    "name": "agent",
+    "name": "spinnerDots",
     "size": 24,
     "width": "14",
     "height": "15",
@@ -172,7 +177,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/apps-overview.svg",
-    "name": "app",
+    "name": "browser",
     "size": 24,
     "width": "14",
     "height": "13",
@@ -180,7 +185,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/entities-attributes.svg",
-    "name": "inputPipe",
+    "name": "database",
     "size": 24,
     "width": "14",
     "height": "15",
@@ -188,7 +193,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/entities-creating.svg",
-    "name": "entityPlus",
+    "name": "layerPlusAbove",
     "size": 24,
     "width": "14",
     "height": "15",
@@ -196,7 +201,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/entities-overview.svg",
-    "name": "entity",
+    "name": "atom",
     "size": 24,
     "width": "14",
     "height": "13",
@@ -204,7 +209,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/entities-updating.svg",
-    "name": "entityEdit",
+    "name": "layerUpload",
     "size": 24,
     "width": "14",
     "height": "14",
@@ -212,7 +217,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/flows-actions.svg",
-    "name": "play",
+    "name": "checksStacked",
     "size": 24,
     "width": "14",
     "height": "13",
@@ -220,7 +225,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/flows-creating.svg",
-    "name": "pencil",
+    "name": "infinityPlus",
     "size": 24,
     "width": "18",
     "height": "12",
@@ -236,7 +241,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/flows-overview.svg",
-    "name": "diagramProject",
+    "name": "infinity",
     "size": 24,
     "width": "18",
     "height": "10",
@@ -244,7 +249,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/flows-triggers.svg",
-    "name": "lightning",
+    "name": "satelliteDish",
     "size": 24,
     "width": "14",
     "height": "15",
@@ -252,7 +257,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/flows-waits.svg",
-    "name": "clock",
+    "name": "hourglass",
     "size": 24,
     "width": "12",
     "height": "15",
@@ -260,7 +265,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/inbox-actions.svg",
-    "name": "inbox",
+    "name": "squareCheck",
     "size": 24,
     "width": "14",
     "height": "13",
@@ -276,7 +281,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/inbox-notes.svg",
-    "name": "noteSticky",
+    "name": "noteList",
     "size": 24,
     "width": "13",
     "height": "13",
@@ -300,7 +305,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/integrations-overview.svg",
-    "name": "plug",
+    "name": "arrowsLeftRight",
     "size": 24,
     "width": "14",
     "height": "15",
@@ -308,7 +313,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/introduction-coreconcepts.svg",
-    "name": "info",
+    "name": "microscope",
     "size": 24,
     "width": "14",
     "height": "15",
@@ -316,7 +321,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/introduction-futurevision.svg",
-    "name": "sparkles",
+    "name": "targetArrow",
     "size": 24,
     "width": "15",
     "height": "15",
@@ -324,7 +329,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/introduction-getstarted.svg",
-    "name": "bookOpen",
+    "name": "rocket",
     "size": 24,
     "width": "15",
     "height": "15",
@@ -332,7 +337,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/introduction-usecases.svg",
-    "name": "lightbulbOn",
+    "name": "shootingStar",
     "size": 24,
     "width": "14",
     "height": "15",
@@ -340,7 +345,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/pages-blocks.svg",
-    "name": "cubes",
+    "name": "cube",
     "size": 24,
     "width": "14",
     "height": "15",
@@ -348,7 +353,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/pages-canvases.svg",
-    "name": "canvas",
+    "name": "rectangle",
     "size": 24,
     "width": "15",
     "height": "12",
@@ -356,7 +361,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/pages-chips.svg",
-    "name": "tag",
+    "name": "rectanglePointer",
     "size": 24,
     "width": "16",
     "height": "13",
@@ -364,7 +369,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/pages-comments.svg",
-    "name": "message",
+    "name": "comments",
     "size": 24,
     "width": "18",
     "height": "15",
@@ -372,7 +377,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/pages-documents.svg",
-    "name": "fileLines",
+    "name": "file",
     "size": 24,
     "width": "12",
     "height": "15",
@@ -380,7 +385,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/pages-modes.svg",
-    "name": "splitView",
+    "name": "toggleOn",
     "size": 24,
     "width": "16",
     "height": "11",
@@ -388,7 +393,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/pages-overview.svg",
-    "name": "file",
+    "name": "globeStand",
     "size": 24,
     "width": "13",
     "height": "15",
@@ -396,7 +401,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/plugins-overview.svg",
-    "name": "puzzlePiece",
+    "name": "plug",
     "size": 24,
     "width": "12",
     "height": "15",
@@ -404,7 +409,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/sharing-feed.svg",
-    "name": "newspaper",
+    "name": "antenna",
     "size": 24,
     "width": "17",
     "height": "15",
@@ -412,7 +417,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/sharing-overview.svg",
-    "name": "share",
+    "name": "shareNodes",
     "size": 24,
     "width": "14",
     "height": "13",
@@ -420,7 +425,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/sharing-peers.svg",
-    "name": "users",
+    "name": "shuffle",
     "size": 24,
     "width": "15",
     "height": "14",
@@ -436,7 +441,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/types-entitytypes.svg",
-    "name": "diagramProject",
+    "name": "asterisk",
     "size": 24,
     "width": "12",
     "height": "13",
@@ -452,7 +457,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/types-overview.svg",
-    "name": "shapes",
+    "name": "globe",
     "size": 24,
     "width": "14",
     "height": "15",
@@ -460,7 +465,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/types-propertytypes.svg",
-    "name": "inputPipe",
+    "name": "inputField",
     "size": 24,
     "width": "18",
     "height": "11",
@@ -468,7 +473,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/types-views.svg",
-    "name": "table",
+    "name": "rectanglesOffset",
     "size": 24,
     "width": "16",
     "height": "13",
@@ -484,7 +489,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/webs-organizations.svg",
-    "name": "users",
+    "name": "usersThree",
     "size": 24,
     "width": "18",
     "height": "15",
@@ -492,7 +497,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/webs-overview.svg",
-    "name": "users",
+    "name": "triangleNodes",
     "size": 24,
     "width": "14",
     "height": "15",
@@ -500,7 +505,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/docs/webs-permissions.svg",
-    "name": "userLock",
+    "name": "lockPlain",
     "size": 24,
     "width": "14",
     "height": "15",
@@ -516,7 +521,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/align-bottom-center.svg",
-    "name": "alignBottomCenter",
+    "name": "arrowDownToBar",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -524,7 +529,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/align-bottom-left.svg",
-    "name": "alignBottomLeft",
+    "name": "arrowDownLeftToCorner",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -532,7 +537,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/align-bottom-right.svg",
-    "name": "alignBottomRight",
+    "name": "arrowDownRightToCorner",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -540,7 +545,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/align-bottom.svg",
-    "name": "alignBottom",
+    "name": "alignBarBottom",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -548,7 +553,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/align-center-center.svg",
-    "name": "alignCenterCenter",
+    "name": "alignCenterMark",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -556,7 +561,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/align-center-horizontal.svg",
-    "name": "alignCenterHorizontal",
+    "name": "alignBarHorizontal",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -564,7 +569,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/align-center-left.svg",
-    "name": "alignCenterLeft",
+    "name": "arrowLeftToBar",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -572,7 +577,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/align-center-right.svg",
-    "name": "alignCenterRight",
+    "name": "arrowRightToBar",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -580,7 +585,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/align-center-vertical.svg",
-    "name": "alignCenterVertical",
+    "name": "alignBarVertical",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -588,7 +593,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/align-left.svg",
-    "name": "alignLeft",
+    "name": "alignBarLeft",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -596,7 +601,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/align-right.svg",
-    "name": "alignRight",
+    "name": "alignBarRight",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -604,7 +609,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/align-top-center.svg",
-    "name": "alignTopCenter",
+    "name": "arrowUpToBar",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -612,7 +617,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/align-top-left.svg",
-    "name": "alignTopLeft",
+    "name": "arrowUpLeftToCorner",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -620,7 +625,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/align-top-right.svg",
-    "name": "alignTopRight",
+    "name": "arrowUpRightToCorner",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -628,7 +633,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/align-top.svg",
-    "name": "alignTop",
+    "name": "alignBarTop",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -657,14 +662,14 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/arrowhead-diamond.svg",
-    "name": "arrowheadDiamond",
+    "name": "diamond",
     "size": 24,
     "width": "30",
     "height": "30"
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/arrowhead-dot.svg",
-    "name": "arrowheadDot",
+    "name": "place",
     "size": 24,
     "width": "30",
     "height": "30"
@@ -678,14 +683,14 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/arrowhead-square.svg",
-    "name": "arrowheadSquare",
+    "name": "transition",
     "size": 24,
     "width": "30",
     "height": "30"
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/arrowhead-triangle-inverted.svg",
-    "name": "arrowheadTriangleInverted",
+    "name": "triangleLeft",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -693,14 +698,14 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/arrowhead-triangle.svg",
-    "name": "arrowheadTriangle",
+    "name": "triangleRight",
     "size": 24,
     "width": "30",
     "height": "30"
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/aspect-ratio.svg",
-    "name": "aspectRatio",
+    "name": "aspectRatioCorners",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -715,7 +720,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/blob.svg",
-    "name": "blob",
+    "name": "scribbleSwatch",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -723,14 +728,14 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/bring-forward.svg",
-    "name": "bringForward",
+    "name": "bringForwardArrow",
     "size": 24,
     "width": "30",
     "height": "30"
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/bring-to-front.svg",
-    "name": "bringToFront",
+    "name": "bringToFrontArrow",
     "size": 24,
     "width": "30",
     "height": "30"
@@ -792,21 +797,21 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/chevrons-ne.svg",
-    "name": "expandDiagonal",
+    "name": "chevronsRight",
     "size": 24,
     "width": "30",
     "height": "30"
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/chevrons-sw.svg",
-    "name": "expandDiagonal",
+    "name": "chevronsLeft",
     "size": 24,
     "width": "30",
     "height": "30"
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/clipboard-copy.svg",
-    "name": "copy",
+    "name": "clipboardCopy",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -822,7 +827,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/collab.svg",
-    "name": "users",
+    "name": "usersThree",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -830,7 +835,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/color.svg",
-    "name": "palette",
+    "name": "disc",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -869,7 +874,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/dash-dashed.svg",
-    "name": "dashDashed",
+    "name": "circleDashed",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -877,7 +882,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/dash-dotted.svg",
-    "name": "dashDotted",
+    "name": "circleDotted",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -885,7 +890,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/dash-draw.svg",
-    "name": "dashDraw",
+    "name": "circleDrawn",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -893,7 +898,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/dash-solid.svg",
-    "name": "dashSolid",
+    "name": "place",
     "size": 24,
     "width": "30",
     "height": "30"
@@ -932,7 +937,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/dots-vertical.svg",
-    "name": "gripVertical",
+    "name": "ellipsisVertical",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -940,7 +945,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/drag-handle-dots.svg",
-    "name": "gripVertical",
+    "name": "gripDotsVertical",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -978,7 +983,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/fill-none.svg",
-    "name": "fillNone",
+    "name": "layerFillNone",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -986,7 +991,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/fill-pattern.svg",
-    "name": "fillPattern",
+    "name": "layerFillPattern",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -994,7 +999,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/fill-semi.svg",
-    "name": "fillSemi",
+    "name": "layerFillSemi",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -1002,7 +1007,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/fill-solid.svg",
-    "name": "fillSolid",
+    "name": "layerFillSolid",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -1010,14 +1015,14 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/font-draw.svg",
-    "name": "fontDraw",
+    "name": "fontDrawAa",
     "size": 24,
     "width": "30",
     "height": "30"
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/font-mono.svg",
-    "name": "fontMono",
+    "name": "fontMonoAa",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -1025,7 +1030,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/font-sans.svg",
-    "name": "fontSans",
+    "name": "fontSansAa",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -1033,7 +1038,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/font-serif.svg",
-    "name": "fontSerif",
+    "name": "fontSerifAa",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -1076,7 +1081,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/geo-ellipse.svg",
-    "name": "ellipse",
+    "name": "place",
     "size": 24,
     "width": "30",
     "height": "30"
@@ -1097,7 +1102,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/geo-oval.svg",
-    "name": "ellipse",
+    "name": "ovalVertical",
     "size": 24,
     "width": "30",
     "height": "30"
@@ -1111,14 +1116,14 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/geo-rectangle.svg",
-    "name": "rectangle",
+    "name": "transition",
     "size": 24,
     "width": "30",
     "height": "30"
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/geo-rhombus-2.svg",
-    "name": "parallelogram",
+    "name": "parallelogramLeft",
     "size": 24,
     "width": "30",
     "height": "30"
@@ -1160,7 +1165,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/group.svg",
-    "name": "group",
+    "name": "groupDashed",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -1198,14 +1203,14 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/lock-small.svg",
-    "name": "lockClosed",
+    "name": "lockPlain",
     "size": 24,
     "width": "30",
     "height": "30"
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/lock.svg",
-    "name": "lockClosed",
+    "name": "lockPlain",
     "size": 24,
     "width": "30",
     "height": "30"
@@ -1228,7 +1233,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/mixed.svg",
-    "name": "mixed",
+    "name": "gridDots",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -1236,7 +1241,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/pack.svg",
-    "name": "pack",
+    "name": "gridPacked",
     "size": 24,
     "width": "30",
     "height": "30"
@@ -1267,7 +1272,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/question-mark.svg",
-    "name": "help",
+    "name": "questionMark",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -1283,7 +1288,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/reset-zoom.svg",
-    "name": "fitView",
+    "name": "zoomReset",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -1291,7 +1296,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/rotate-ccw.svg",
-    "name": "reset",
+    "name": "rotateSquareCounterclockwise",
     "size": 24,
     "width": "30",
     "height": "31",
@@ -1299,7 +1304,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/rotate-cw.svg",
-    "name": "rotate",
+    "name": "rotateSquareClockwise",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -1307,7 +1312,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/ruler.svg",
-    "name": "ruler",
+    "name": "rulerCorner",
     "size": 24,
     "width": "30",
     "height": "30"
@@ -1321,14 +1326,14 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/send-backward.svg",
-    "name": "sendBackward",
+    "name": "sendBackwardArrow",
     "size": 24,
     "width": "30",
     "height": "30"
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/send-to-back.svg",
-    "name": "sendToBack",
+    "name": "sendToBackArrow",
     "size": 24,
     "width": "30",
     "height": "30"
@@ -1342,7 +1347,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/settings-vertical-1.svg",
-    "name": "settings",
+    "name": "smile",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -1350,28 +1355,28 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/settings-vertical.svg",
-    "name": "settings",
+    "name": "slidersVertical",
     "size": 24,
     "width": "30",
     "height": "30"
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/share-1.svg",
-    "name": "share",
-    "size": 24,
-    "width": "30",
-    "height": "30"
-  },
-  {
-    "file": "apps/hash-frontend/public/icons/icon/share-2.svg",
     "name": "shareNodes",
     "size": 24,
     "width": "30",
     "height": "30"
   },
   {
+    "file": "apps/hash-frontend/public/icons/icon/share-2.svg",
+    "name": "share",
+    "size": 24,
+    "width": "30",
+    "height": "30"
+  },
+  {
     "file": "apps/hash-frontend/public/icons/icon/size-extra-large.svg",
-    "name": "sizeExtraLarge",
+    "name": "sizeLetterExtraLarge",
     "size": 24,
     "width": "31",
     "height": "30",
@@ -1379,7 +1384,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/size-large.svg",
-    "name": "sizeLarge",
+    "name": "sizeLetterLarge",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -1387,7 +1392,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/size-medium.svg",
-    "name": "sizeMedium",
+    "name": "sizeLetterMedium",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -1395,7 +1400,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/size-small.svg",
-    "name": "sizeSmall",
+    "name": "sizeLetterSmall",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -1403,35 +1408,35 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/spline-cubic.svg",
-    "name": "splineCubic",
+    "name": "cornerCurve",
     "size": 24,
     "width": "30",
     "height": "30"
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/spline-line.svg",
-    "name": "splineLine",
+    "name": "cornerLine",
     "size": 24,
     "width": "30",
     "height": "30"
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/stack-horizontal.svg",
-    "name": "stackHorizontal",
+    "name": "stackLinesHorizontal",
     "size": 24,
     "width": "30",
     "height": "30"
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/stack-vertical.svg",
-    "name": "stackVertical",
+    "name": "stackLinesVertical",
     "size": 24,
     "width": "30",
     "height": "30"
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/stretch-horizontal.svg",
-    "name": "expandHorizontal",
+    "name": "stretchBarsHorizontal",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -1439,7 +1444,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/stretch-vertical.svg",
-    "name": "expandVertical",
+    "name": "stretchBarsVertical",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -1482,7 +1487,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/tool-embed.svg",
-    "name": "code",
+    "name": "squarePlus",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -1497,7 +1502,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/tool-frame.svg",
-    "name": "frame",
+    "name": "fitView",
     "size": 24,
     "width": "30",
     "height": "30"
@@ -1518,7 +1523,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/tool-line.svg",
-    "name": "splineLine",
+    "name": "lineDiagonal",
     "size": 24,
     "width": "30",
     "height": "30"
@@ -1533,7 +1538,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/tool-note.svg",
-    "name": "noteSticky",
+    "name": "penSquare",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -1556,7 +1561,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/tool-text.svg",
-    "name": "text",
+    "name": "textCapital",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -1572,7 +1577,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/triangle-down.svg",
-    "name": "chevronDown",
+    "name": "caretDown",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -1580,7 +1585,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/triangle-up.svg",
-    "name": "chevronUp",
+    "name": "caretUp",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -1588,7 +1593,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/undo.svg",
-    "name": "reset",
+    "name": "undoBent",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -1596,7 +1601,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/ungroup.svg",
-    "name": "ungroup",
+    "name": "ungroupDashed",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -1604,21 +1609,21 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/unlock-small.svg",
-    "name": "lockOpen",
+    "name": "unlockPlain",
     "size": 24,
     "width": "30",
     "height": "30"
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/unlock.svg",
-    "name": "lockOpen",
+    "name": "unlockPlain",
     "size": 24,
     "width": "30",
     "height": "30"
   },
   {
     "file": "apps/hash-frontend/public/icons/icon/visible.svg",
-    "name": "eye",
+    "name": "dot",
     "size": 24,
     "width": "30",
     "height": "30",
@@ -1671,14 +1676,14 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/types/arrows-rotate.svg",
-    "name": "rotate",
+    "name": "arrowsRotateClockwise",
     "size": 24,
     "width": "512",
     "height": "512"
   },
   {
     "file": "apps/hash-frontend/public/icons/types/arrows-turn-to-dots.svg",
-    "name": "route",
+    "name": "arrowsTurnToDots",
     "size": 24,
     "width": "448",
     "height": "512"
@@ -1713,7 +1718,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/types/boxes-packing.svg",
-    "name": "boxesPacking",
+    "name": "boxesTransfer",
     "size": 24,
     "width": "640",
     "height": "512"
@@ -1776,7 +1781,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/types/check-double.svg",
-    "name": "checkDouble",
+    "name": "checksStacked",
     "size": 24,
     "width": "384",
     "height": "512"
@@ -1811,14 +1816,14 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/types/comment-quote.svg",
-    "name": "quote",
+    "name": "commentQuote",
     "size": 24,
     "width": "512",
     "height": "512"
   },
   {
     "file": "apps/hash-frontend/public/icons/types/comment.svg",
-    "name": "message",
+    "name": "comment",
     "size": 24,
     "width": "512",
     "height": "512"
@@ -1839,14 +1844,14 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/types/diagram-project.svg",
-    "name": "diagramProject",
+    "name": "diagramBranch",
     "size": 24,
     "width": "576",
     "height": "512"
   },
   {
     "file": "apps/hash-frontend/public/icons/types/file-excel.svg",
-    "name": "fileSpreadsheet",
+    "name": "fileExcel",
     "size": 24,
     "width": "384",
     "height": "512"
@@ -1916,7 +1921,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/types/gauge-max.svg",
-    "name": "gauge",
+    "name": "gaugeMax",
     "size": 24,
     "width": "512",
     "height": "512"
@@ -1958,7 +1963,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/types/list-tree.svg",
-    "name": "listTree",
+    "name": "sitemap",
     "size": 24,
     "width": "576",
     "height": "512"
@@ -1986,14 +1991,14 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/types/memo-circle-info.svg",
-    "name": "memoInfo",
+    "name": "memoCircleInfo",
     "size": 24,
     "width": "576",
     "height": "512"
   },
   {
     "file": "apps/hash-frontend/public/icons/types/memo.svg",
-    "name": "fileLines",
+    "name": "memo",
     "size": 24,
     "width": "384",
     "height": "512"
@@ -2007,7 +2012,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/types/money-bill-transfer.svg",
-    "name": "moneyTransfer",
+    "name": "banknoteTransfer",
     "size": 24,
     "width": "640",
     "height": "512"
@@ -2021,14 +2026,14 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/types/objects-column.svg",
-    "name": "columns",
+    "name": "columnsMasonry",
     "size": 24,
     "width": "640",
     "height": "640"
   },
   {
     "file": "apps/hash-frontend/public/icons/types/page.svg",
-    "name": "fileLines",
+    "name": "pagePlain",
     "size": 24,
     "width": "384",
     "height": "512"
@@ -2042,7 +2047,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/types/people-group.svg",
-    "name": "users",
+    "name": "peopleGroup",
     "size": 24,
     "width": "640",
     "height": "512"
@@ -2105,7 +2110,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/types/presentation-screen.svg",
-    "name": "presentationChart",
+    "name": "presentationScreen",
     "size": 24,
     "width": "576",
     "height": "512"
@@ -2126,7 +2131,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/types/text.svg",
-    "name": "text",
+    "name": "textCapital",
     "size": 24,
     "width": "448",
     "height": "512"
@@ -2140,14 +2145,14 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/types/truck-container.svg",
-    "name": "truckContainer",
+    "name": "truckContainerFast",
     "size": 24,
     "width": "640",
     "height": "512"
   },
   {
     "file": "apps/hash-frontend/public/icons/types/truck-ramp-box.svg",
-    "name": "truckRamp",
+    "name": "truckRampBox",
     "size": 24,
     "width": "640",
     "height": "512"
@@ -2175,7 +2180,7 @@
   },
   {
     "file": "apps/hash-frontend/public/icons/types/user-robot.svg",
-    "name": "agent",
+    "name": "robotBust",
     "size": 24,
     "width": "448",
     "height": "512"
@@ -2245,7 +2250,7 @@
   },
   {
     "file": "apps/hash-frontend/src/shared/icons/svg/human-greeting.svg",
-    "name": "personGreeting",
+    "name": "greetingBust",
     "size": 24,
     "width": "78",
     "height": "78",
@@ -2261,14 +2266,14 @@
   },
   {
     "file": "apps/hash-frontend/src/shared/icons/svg/links.svg",
-    "name": "link",
+    "name": "hierarchyBranches",
     "size": 24,
     "width": "35",
     "height": "33"
   },
   {
     "file": "apps/hash-frontend/src/shared/icons/svg/pencil-simple-line.svg",
-    "name": "pencil",
+    "name": "pencilBaseline",
     "size": 24,
     "width": "18",
     "height": "18"
@@ -2283,7 +2288,7 @@
   },
   {
     "file": "apps/hash-frontend/src/shared/icons/svg/shapes.svg",
-    "name": "shapes",
+    "name": "shapesThree",
     "size": 24,
     "width": "30",
     "height": "32"
@@ -2407,7 +2412,7 @@
   },
   {
     "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/calendar.svg",
-    "name": "calendar",
+    "name": "calendarBlank",
     "variant": "outline",
     "size": 24
   },
@@ -2419,7 +2424,7 @@
   },
   {
     "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/caret-down.svg",
-    "name": "chevronDown",
+    "name": "caretDown",
     "variant": "filled",
     "size": 24
   },
@@ -2431,13 +2436,13 @@
   },
   {
     "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/chart-simple.svg",
-    "name": "chartBarSimple",
+    "name": "chartBars",
     "variant": "outline",
     "size": 24
   },
   {
     "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/chart-line.svg",
-    "name": "chartLine",
+    "name": "chartLineAxes",
     "variant": "outline",
     "size": 24
   },
@@ -2533,7 +2538,7 @@
   },
   {
     "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/circle-plus.svg",
-    "name": "addPlace",
+    "name": "circlePlus",
     "variant": "outline",
     "size": 24
   },
@@ -2563,7 +2568,7 @@
   },
   {
     "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-down-left-and-arrow-up-right-to-center.svg",
-    "name": "collapse",
+    "name": "collapseDiagonal",
     "variant": "outline",
     "size": 24
   },
@@ -2599,25 +2604,25 @@
   },
   {
     "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/diagram-nested.svg",
-    "name": "diagramNested",
+    "name": "diagramNestedBranches",
     "variant": "outline",
     "size": 24
   },
   {
     "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/diagram-project.svg",
-    "name": "diagramProject",
+    "name": "diagramBranch",
     "variant": "outline",
     "size": 24
   },
   {
     "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/diagram-subtask.svg",
-    "name": "diagramSubtask",
+    "name": "diagramNestedBranches",
     "variant": "outline",
     "size": 24
   },
   {
     "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/circle-nodes.svg",
-    "name": "diagramNodes",
+    "name": "triangleNodes",
     "variant": "outline",
     "size": 24
   },
@@ -2635,7 +2640,7 @@
   },
   {
     "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/pen-to-square.svg",
-    "name": "pencil",
+    "name": "penSquare",
     "variant": "outline",
     "size": 24
   },
@@ -2665,7 +2670,7 @@
   },
   {
     "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrow-up-right-and-arrow-down-left-from-center.svg",
-    "name": "fitView",
+    "name": "expandDiagonal",
     "variant": "outline",
     "size": 24
   },
@@ -2689,7 +2694,7 @@
   },
   {
     "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/feather.svg",
-    "name": "feather",
+    "name": "featherQuill",
     "variant": "outline",
     "size": 24
   },
@@ -2725,7 +2730,7 @@
   },
   {
     "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/function.svg",
-    "name": "function",
+    "name": "functionExpression",
     "variant": "outline",
     "size": 24
   },
@@ -2743,7 +2748,7 @@
   },
   {
     "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/solid/grip-vertical.svg",
-    "name": "gripVertical",
+    "name": "gripDotsVertical",
     "variant": "filled",
     "size": 24
   },
@@ -2773,7 +2778,7 @@
   },
   {
     "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/input-pipe.svg",
-    "name": "inputPipe",
+    "name": "inputField",
     "variant": "outline",
     "size": 24
   },
@@ -2785,13 +2790,13 @@
   },
   {
     "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/layer.svg",
-    "name": "layer",
+    "name": "twoLayers",
     "variant": "outline",
     "size": 24
   },
   {
     "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/lightbulb-on.svg",
-    "name": "lightbulbOn",
+    "name": "lightbulbRays",
     "variant": "outline",
     "size": 24
   },
@@ -2809,7 +2814,7 @@
   },
   {
     "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/list-tree.svg",
-    "name": "listTree",
+    "name": "treeList",
     "variant": "outline",
     "size": 24
   },
@@ -2911,7 +2916,7 @@
   },
   {
     "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/arrows-rotate.svg",
-    "name": "rotate",
+    "name": "arrowsRotateClockwise",
     "variant": "outline",
     "size": 24
   },
@@ -2923,7 +2928,7 @@
   },
   {
     "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/rotate.svg",
-    "name": "rotate",
+    "name": "arrowsRotateClockwise",
     "variant": "outline",
     "size": 24
   },
@@ -2953,13 +2958,13 @@
   },
   {
     "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/shapes.svg",
-    "name": "shapes",
+    "name": "shapesThree",
     "variant": "outline",
     "size": 24
   },
   {
     "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/sidebar.svg",
-    "name": "sidebar",
+    "name": "sidebarList",
     "variant": "outline",
     "size": 24
   },
@@ -2977,7 +2982,7 @@
   },
   {
     "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/sliders.svg",
-    "name": "parameter",
+    "name": "slidersHorizontalThree",
     "variant": "outline",
     "size": 24
   },
@@ -3019,7 +3024,7 @@
   },
   {
     "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/sparkles.svg",
-    "name": "sparkles",
+    "name": "sparklesCluster",
     "variant": "outline",
     "size": 24
   },
@@ -3043,7 +3048,7 @@
   },
   {
     "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/square-plus.svg",
-    "name": "addTransition",
+    "name": "squarePlus",
     "variant": "outline",
     "size": 24
   },
@@ -3067,25 +3072,25 @@
   },
   {
     "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/terminal.svg",
-    "name": "terminal",
+    "name": "terminalPrompt",
     "variant": "outline",
     "size": 24
   },
   {
     "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/text.svg",
-    "name": "text",
+    "name": "textCapital",
     "variant": "outline",
     "size": 24
   },
   {
     "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/thought-bubble.svg",
-    "name": "thoughtBubble",
+    "name": "thoughtCloud",
     "variant": "outline",
     "size": 24
   },
   {
     "file": "libs/@hashintel/ds-components/src/components/Icon/svgs/regular/circles-overlap-3.svg",
-    "name": "tokenType",
+    "name": "overlappingCircles",
     "variant": "outline",
     "size": 24
   },

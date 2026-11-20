@@ -6,5 +6,5 @@ import type { FunctionComponent } from "react";
 export const ChartNetworkRegularIcon: FunctionComponent<SvgIconProps> = (
   props,
 ) => {
-  return <HashSvgIcon {...props} fill="none" icon="chartNetwork" />;
+  return <HashSvgIcon {...props} fill="none" icon="networkHub" />;
 };

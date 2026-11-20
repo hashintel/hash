@@ -14,7 +14,7 @@ export const RotateRegularIcon: FunctionComponent<SvgIconProps> = ({
       fill="none"
       {...props}
       sx={Array.isArray(sx) ? sx : [sx]}
-      icon="rotate"
+      icon="arrowsRotateClockwise"
     />
   );
 };

@@ -19,7 +19,7 @@ export const ArrowRightToLineIcon: FunctionComponent<SvgIconProps> = (
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
       {...otherProps}
-      icon="rightToLine"
+      icon="leftToLine"
     />
   );
 };

@@ -16,7 +16,7 @@ export const LightbulbOnRainbowIcon: FunctionComponent<SvgIconProps> = (
       height="15"
       fill="none"
       {...props}
-      icon="lightbulbOn"
+      icon="lightbulbRays"
       ink={`url(#${gradientId}-paint0_linear_11634_5856)`}
     >
       <defs>

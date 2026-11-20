@@ -10,7 +10,7 @@ export const ShapesRegularIcon: FunctionComponent<SvgIconProps> = (props) => {
       height="512"
       fill="none"
       {...props}
-      icon="shapes"
+      icon="shapesThree"
     />
   );
 };

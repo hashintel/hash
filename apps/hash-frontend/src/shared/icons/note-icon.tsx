@@ -10,7 +10,7 @@ export const NoteIcon: FunctionComponent<SvgIconProps> = (props) => {
       width="16"
       height="16"
       fill="none"
-      icon="fileLines"
+      icon="noteTopFold"
     />
   );
 };

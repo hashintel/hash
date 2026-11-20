@@ -10,7 +10,7 @@ export const QuickNoteIcon: FunctionComponent<SvgIconProps> = (props) => {
       width="18"
       height="17"
       fill="none"
-      icon="notePlus"
+      icon="noteBolt"
       ink="#91A5BA"
     />
   );

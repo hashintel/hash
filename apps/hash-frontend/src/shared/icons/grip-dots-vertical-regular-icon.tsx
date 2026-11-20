@@ -5,4 +5,4 @@ import type { FunctionComponent } from "react";
 
 export const GripDotsVerticalRegularIcon: FunctionComponent<SvgIconProps> = (
   props,
-) => <HashSvgIcon {...props} fill="none" icon="gripVertical" />;
+) => <HashSvgIcon {...props} fill="none" icon="gripDotsVertical" />;

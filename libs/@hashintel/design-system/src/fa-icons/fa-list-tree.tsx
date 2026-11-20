@@ -1,3 +1,3 @@
 import type { HashIconName } from "@hashintel/ds-icons/static";
 
-export const faListTree: HashIconName = "listTree";
+export const faListTree: HashIconName = "treeList";

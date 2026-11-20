@@ -5,6 +5,12 @@ import type { FunctionComponent } from "react";
 
 export const CanvasNewIcon: FunctionComponent<SvgIconProps> = (props) => {
   return (
-    <HashSvgIcon width="18" height="12" fill="none" {...props} icon="canvas" />
+    <HashSvgIcon
+      width="18"
+      height="12"
+      fill="none"
+      {...props}
+      icon="canvasPlus"
+    />
   );
 };

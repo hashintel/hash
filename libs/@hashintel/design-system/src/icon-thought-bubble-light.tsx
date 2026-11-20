@@ -12,7 +12,7 @@ export const ThoughtBubbleLightIcon: FunctionComponent<SvgIconProps> = (
       height="512"
       fill="none"
       {...props}
-      icon="thoughtBubble"
+      icon="thoughtCloud"
     />
   );
 };

@@ -10,7 +10,7 @@ export const TerminalLightIcon: FunctionComponent<SvgIconProps> = (props) => {
       height="512"
       fill="none"
       {...props}
-      icon="terminal"
+      icon="terminalPrompt"
     />
   );
 };

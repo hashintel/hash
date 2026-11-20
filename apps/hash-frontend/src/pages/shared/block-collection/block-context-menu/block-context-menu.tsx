@@ -27,13 +27,13 @@ import type { ForwardRefRenderFunction } from "react";
 
 const faCopy = { icon: "copy" } as const;
 const faMessage = { icon: "message" } as const;
-const faPenToSquare = { icon: "pencil" } as const;
+const faPenToSquare = { icon: "penSquare" } as const;
 const faTrashCan = { icon: "trash" } as const;
 const faAdd = { icon: "plus" } as const;
 const faArrowRight = { icon: "arrowRight" } as const;
 const faGear = { icon: "settings" } as const;
 const faLink = { icon: "link" } as const;
-const faRefresh = { icon: "rotate" } as const;
+const faRefresh = { icon: "arrowsRotateClockwise" } as const;
 
 type BlockContextMenuProps = {
   blockEntity: DraftEntity | BlockEntity | null;

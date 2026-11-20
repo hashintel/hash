@@ -4,5 +4,7 @@ import type { SvgIconProps } from "@mui/material";
 import type { FunctionComponent } from "react";
 
 export const BarsSortRegularIcon: FunctionComponent<SvgIconProps> = (props) => {
-  return <HashSvgIcon {...props} height="16" width="14" icon="sortDown" />;
+  return (
+    <HashSvgIcon {...props} height="16" width="14" icon="barsDescending" />
+  );
 };

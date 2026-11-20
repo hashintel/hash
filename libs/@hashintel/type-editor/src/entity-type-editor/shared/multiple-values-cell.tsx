@@ -35,7 +35,7 @@ import type { EntityTypeEditorFormData } from "../../shared/form-types";
 import type { BoxProps } from "@mui/material";
 import type { FunctionComponent, PropsWithChildren, ReactNode } from "react";
 
-const faEdit = { icon: "pencil" } as const;
+const faEdit = { icon: "penSquare" } as const;
 
 const useFrozenValue = <T extends ReactNode>(
   value: T,

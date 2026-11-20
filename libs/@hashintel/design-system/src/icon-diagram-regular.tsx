@@ -14,7 +14,7 @@ export const IconDiagramRegular: FunctionComponent<SvgIconProps> = ({
       height="512"
       fill="none"
       sx={Array.isArray(sx) ? sx : [sx]}
-      icon="diagramProject"
+      icon="diagramBranch"
     />
   );
 };

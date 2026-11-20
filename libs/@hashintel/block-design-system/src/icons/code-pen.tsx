@@ -10,7 +10,7 @@ export const CodePenIcon: FunctionComponent<SvgIconProps> = (props) => {
       height="512"
       fill="none"
       {...props}
-      icon="codeEdit"
+      icon="codePen"
     />
   );
 };

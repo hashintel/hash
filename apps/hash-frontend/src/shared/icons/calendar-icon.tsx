@@ -4,5 +4,5 @@ import type { SvgIconProps } from "@mui/material";
 import type { FunctionComponent } from "react";
 
 export const CalendarIcon: FunctionComponent<SvgIconProps> = (props) => {
-  return <HashSvgIcon {...props} fill="none" icon="calendar" />;
+  return <HashSvgIcon {...props} fill="none" icon="calendarBlank" />;
 };

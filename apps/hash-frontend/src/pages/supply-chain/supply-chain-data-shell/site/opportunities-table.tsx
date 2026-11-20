@@ -289,7 +289,7 @@ const CaretIcon = ({ className }: { className?: string }) => {
       fill="none"
       className={className}
       aria-hidden="true"
-      name="chevronDown"
+      name="caretDown"
     />
   );
 };

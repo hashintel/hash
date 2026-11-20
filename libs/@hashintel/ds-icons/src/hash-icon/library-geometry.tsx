@@ -1,4 +1,10 @@
 import { accessibilityGeometry } from "./library-geometry/accessibility";
+import { alignBarBottomGeometry } from "./library-geometry/align-bar-bottom";
+import { alignBarHorizontalGeometry } from "./library-geometry/align-bar-horizontal";
+import { alignBarLeftGeometry } from "./library-geometry/align-bar-left";
+import { alignBarRightGeometry } from "./library-geometry/align-bar-right";
+import { alignBarTopGeometry } from "./library-geometry/align-bar-top";
+import { alignBarVerticalGeometry } from "./library-geometry/align-bar-vertical";
 import { alignBottomGeometry } from "./library-geometry/align-bottom";
 import { alignBottomCenterGeometry } from "./library-geometry/align-bottom-center";
 import { alignBottomLeftGeometry } from "./library-geometry/align-bottom-left";
@@ -6,6 +12,7 @@ import { alignBottomRightGeometry } from "./library-geometry/align-bottom-right"
 import { alignCenterCenterGeometry } from "./library-geometry/align-center-center";
 import { alignCenterHorizontalGeometry } from "./library-geometry/align-center-horizontal";
 import { alignCenterLeftGeometry } from "./library-geometry/align-center-left";
+import { alignCenterMarkGeometry } from "./library-geometry/align-center-mark";
 import { alignCenterRightGeometry } from "./library-geometry/align-center-right";
 import { alignCenterVerticalGeometry } from "./library-geometry/align-center-vertical";
 import { alignLeftGeometry } from "./library-geometry/align-left";
@@ -17,10 +24,18 @@ import { alignTopRightGeometry } from "./library-geometry/align-top-right";
 import { antennaGeometry } from "./library-geometry/antenna";
 import { appGeometry } from "./library-geometry/app";
 import { archiveGeometry } from "./library-geometry/archive";
+import { arrowDownLeftToCornerGeometry } from "./library-geometry/arrow-down-left-to-corner";
+import { arrowDownRightToCornerGeometry } from "./library-geometry/arrow-down-right-to-corner";
+import { arrowDownToBarGeometry } from "./library-geometry/arrow-down-to-bar";
+import { arrowLeftToBarGeometry } from "./library-geometry/arrow-left-to-bar";
 import { arrowPointerGeometry } from "./library-geometry/arrow-pointer";
 import { arrowProgressGeometry } from "./library-geometry/arrow-progress";
+import { arrowRightToBarGeometry } from "./library-geometry/arrow-right-to-bar";
 import { arrowTurnDownLeftGeometry } from "./library-geometry/arrow-turn-down-left";
 import { arrowTurnDownRightGeometry } from "./library-geometry/arrow-turn-down-right";
+import { arrowUpLeftToCornerGeometry } from "./library-geometry/arrow-up-left-to-corner";
+import { arrowUpRightToCornerGeometry } from "./library-geometry/arrow-up-right-to-corner";
+import { arrowUpToBarGeometry } from "./library-geometry/arrow-up-to-bar";
 import { arrowheadArrowGeometry } from "./library-geometry/arrowhead-arrow";
 import { arrowheadBarGeometry } from "./library-geometry/arrowhead-bar";
 import { arrowheadDiamondGeometry } from "./library-geometry/arrowhead-diamond";
@@ -29,11 +44,20 @@ import { arrowheadNoneGeometry } from "./library-geometry/arrowhead-none";
 import { arrowheadSquareGeometry } from "./library-geometry/arrowhead-square";
 import { arrowheadTriangleGeometry } from "./library-geometry/arrowhead-triangle";
 import { arrowheadTriangleInvertedGeometry } from "./library-geometry/arrowhead-triangle-inverted";
+import { arrowsFromCenterLineGeometry } from "./library-geometry/arrows-from-center-line";
+import { arrowsRotateClockwiseGeometry } from "./library-geometry/arrows-rotate-clockwise";
+import { arrowsToCenterLineGeometry } from "./library-geometry/arrows-to-center-line";
+import { arrowsTurnToDotsGeometry } from "./library-geometry/arrows-turn-to-dots";
+import { arrowsUpDownGeometry } from "./library-geometry/arrows-up-down";
 import { aspectRatioGeometry } from "./library-geometry/aspect-ratio";
+import { aspectRatioCornersGeometry } from "./library-geometry/aspect-ratio-corners";
+import { asteriskBoltGeometry } from "./library-geometry/asterisk-bolt";
 import { atomGeometry } from "./library-geometry/atom";
 import { badgeCheckGeometry } from "./library-geometry/badge-check";
 import { ballotCheckGeometry } from "./library-geometry/ballot-check";
 import { bankGeometry } from "./library-geometry/bank";
+import { banknoteTransferGeometry } from "./library-geometry/banknote-transfer";
+import { barsDescendingGeometry } from "./library-geometry/bars-descending";
 import { batteryGeometry } from "./library-geometry/battery";
 import { batteryBoltGeometry } from "./library-geometry/battery-bolt";
 import { batteryLevelGeometry } from "./library-geometry/battery-level";
@@ -52,37 +76,53 @@ import { boxLocationGeometry } from "./library-geometry/box-location";
 import { boxOpenGeometry } from "./library-geometry/box-open";
 import { boxesGeometry } from "./library-geometry/boxes";
 import { boxesPackingGeometry } from "./library-geometry/boxes-packing";
+import { boxesTransferGeometry } from "./library-geometry/boxes-transfer";
 import { brainGeometry } from "./library-geometry/brain";
 import { briefcaseGeometry } from "./library-geometry/briefcase";
 import { bringForwardGeometry } from "./library-geometry/bring-forward";
+import { bringForwardArrowGeometry } from "./library-geometry/bring-forward-arrow";
 import { bringToFrontGeometry } from "./library-geometry/bring-to-front";
+import { bringToFrontArrowGeometry } from "./library-geometry/bring-to-front-arrow";
 import { browserGeometry } from "./library-geometry/browser";
 import { buildingGeometry } from "./library-geometry/building";
 import { buildingSearchGeometry } from "./library-geometry/building-search";
 import { buildingShieldGeometry } from "./library-geometry/building-shield";
 import { calculatorGeometry } from "./library-geometry/calculator";
+import { calendarBlankGeometry } from "./library-geometry/calendar-blank";
 import { calendarCheckGeometry } from "./library-geometry/calendar-check";
 import { calendarDayGeometry } from "./library-geometry/calendar-day";
 import { calendarDaysGeometry } from "./library-geometry/calendar-days";
 import { calendarWeekGeometry } from "./library-geometry/calendar-week";
 import { calendarsGeometry } from "./library-geometry/calendars";
 import { canvasGeometry } from "./library-geometry/canvas";
+import { canvasPlusGeometry } from "./library-geometry/canvas-plus";
 import { carbonDioxideGeometry } from "./library-geometry/carbon-dioxide";
 import { carbonMonoxideGeometry } from "./library-geometry/carbon-monoxide";
+import { caretDownGeometry } from "./library-geometry/caret-down";
+import { caretUpGeometry } from "./library-geometry/caret-up";
 import { cctvCameraGeometry } from "./library-geometry/cctv-camera";
+import { chartBarsGeometry } from "./library-geometry/chart-bars";
 import { chartHeatmapGeometry } from "./library-geometry/chart-heatmap";
+import { chartLineAxesGeometry } from "./library-geometry/chart-line-axes";
 import { chartMixedGeometry } from "./library-geometry/chart-mixed";
 import { chartNetworkGeometry } from "./library-geometry/chart-network";
 import { chartRevenueGeometry } from "./library-geometry/chart-revenue";
 import { chartScatterGeometry } from "./library-geometry/chart-scatter";
 import { checkDoubleGeometry } from "./library-geometry/check-double";
+import { checksStackedGeometry } from "./library-geometry/checks-stacked";
+import { chevronsLeftGeometry } from "./library-geometry/chevrons-left";
+import { chevronsRightGeometry } from "./library-geometry/chevrons-right";
 import { chevronsUpDownGeometry } from "./library-geometry/chevrons-up-down";
 import { circleArrowRightGeometry } from "./library-geometry/circle-arrow-right";
 import { circleArrowUpRightGeometry } from "./library-geometry/circle-arrow-up-right";
 import { circleAsteriskGeometry } from "./library-geometry/circle-asterisk";
+import { circleDashedGeometry } from "./library-geometry/circle-dashed";
+import { circleDottedGeometry } from "./library-geometry/circle-dotted";
+import { circleDrawnGeometry } from "./library-geometry/circle-drawn";
 import { circleFourGeometry } from "./library-geometry/circle-four";
 import { circleHalfGeometry } from "./library-geometry/circle-half";
 import { circlePlayGeometry } from "./library-geometry/circle-play";
+import { circlePlusGeometry } from "./library-geometry/circle-plus";
 import { circleTagGeometry } from "./library-geometry/circle-tag";
 import { circleThreeGeometry } from "./library-geometry/circle-three";
 import { circleThreeQuartersGeometry } from "./library-geometry/circle-three-quarters";
@@ -91,6 +131,7 @@ import { circleUpGeometry } from "./library-geometry/circle-up";
 import { cityGeometry } from "./library-geometry/city";
 import { clipboardGeometry } from "./library-geometry/clipboard";
 import { clipboardCheckGeometry } from "./library-geometry/clipboard-check";
+import { clipboardCopyGeometry } from "./library-geometry/clipboard-copy";
 import { clipboardListGeometry } from "./library-geometry/clipboard-list";
 import { cloudGeometry } from "./library-geometry/cloud";
 import { cloudDownloadGeometry } from "./library-geometry/cloud-download";
@@ -100,14 +141,22 @@ import { cloudSunGeometry } from "./library-geometry/cloud-sun";
 import { cloudUploadGeometry } from "./library-geometry/cloud-upload";
 import { codeBranchGeometry } from "./library-geometry/code-branch";
 import { codeEditGeometry } from "./library-geometry/code-edit";
+import { codePenGeometry } from "./library-geometry/code-pen";
 import { coinsGeometry } from "./library-geometry/coins";
+import { collapseDiagonalGeometry } from "./library-geometry/collapse-diagonal";
 import { collapseVerticalGeometry } from "./library-geometry/collapse-vertical";
 import { columnsGeometry } from "./library-geometry/columns";
+import { columnsMasonryGeometry } from "./library-geometry/columns-masonry";
 import { commandGeometry } from "./library-geometry/command";
+import { commentGeometry } from "./library-geometry/comment";
+import { commentQuoteGeometry } from "./library-geometry/comment-quote";
+import { commentsGeometry } from "./library-geometry/comments";
 import { compassGeometry } from "./library-geometry/compass";
 import { contactCardGeometry } from "./library-geometry/contact-card";
 import { conveyorBeltGeometry } from "./library-geometry/conveyor-belt";
 import { cookieGeometry } from "./library-geometry/cookie";
+import { cornerCurveGeometry } from "./library-geometry/corner-curve";
+import { cornerLineGeometry } from "./library-geometry/corner-line";
 import { creditCardGeometry } from "./library-geometry/credit-card";
 import { crosshairsGeometry } from "./library-geometry/crosshairs";
 import { dashDashedGeometry } from "./library-geometry/dash-dashed";
@@ -117,13 +166,17 @@ import { dashSolidGeometry } from "./library-geometry/dash-solid";
 import { databaseGeometry } from "./library-geometry/database";
 import { devicesGeometry } from "./library-geometry/devices";
 import { dewPointGeometry } from "./library-geometry/dew-point";
+import { diagramBranchGeometry } from "./library-geometry/diagram-branch";
+import { diagramNestedBranchesGeometry } from "./library-geometry/diagram-nested-branches";
 import { diagramSankeyGeometry } from "./library-geometry/diagram-sankey";
 import { diamondGeometry } from "./library-geometry/diamond";
 import { diceD20Geometry } from "./library-geometry/dice-d20";
+import { discGeometry } from "./library-geometry/disc";
 import { distributeHorizontalGeometry } from "./library-geometry/distribute-horizontal";
 import { distributeVerticalGeometry } from "./library-geometry/distribute-vertical";
 import { dollarGeometry } from "./library-geometry/dollar";
 import { dotGeometry } from "./library-geometry/dot";
+import { earthAmericasGeometry } from "./library-geometry/earth-americas";
 import { ellipseGeometry } from "./library-geometry/ellipse";
 import { entityGeometry } from "./library-geometry/entity";
 import { entityEditGeometry } from "./library-geometry/entity-edit";
@@ -136,13 +189,17 @@ import { expandVerticalGeometry } from "./library-geometry/expand-vertical";
 import { expertInterviewsGeometry } from "./library-geometry/expert-interviews";
 import { factoryGeometry } from "./library-geometry/factory";
 import { familyGeometry } from "./library-geometry/family";
+import { featherQuillGeometry } from "./library-geometry/feather-quill";
 import { fileArchiveGeometry } from "./library-geometry/file-archive";
 import { fileAudioGeometry } from "./library-geometry/file-audio";
 import { fileBoxGeometry } from "./library-geometry/file-box";
+import { fileCertificateGeometry } from "./library-geometry/file-certificate";
+import { fileCirclePlusGeometry } from "./library-geometry/file-circle-plus";
 import { fileCodeGeometry } from "./library-geometry/file-code";
 import { fileContractGeometry } from "./library-geometry/file-contract";
 import { fileDocumentGeometry } from "./library-geometry/file-document";
 import { fileEditGeometry } from "./library-geometry/file-edit";
+import { fileExcelGeometry } from "./library-geometry/file-excel";
 import { fileExportGeometry } from "./library-geometry/file-export";
 import { fileImageGeometry } from "./library-geometry/file-image";
 import { fileInvoiceGeometry } from "./library-geometry/file-invoice";
@@ -152,11 +209,13 @@ import { filePlusGeometry } from "./library-geometry/file-plus";
 import { filePresentationGeometry } from "./library-geometry/file-presentation";
 import { fileTextGeometry } from "./library-geometry/file-text";
 import { fileVideoGeometry } from "./library-geometry/file-video";
+import { fileVideoCameraGeometry } from "./library-geometry/file-video-camera";
 import { filesGeometry } from "./library-geometry/files";
 import { fillNoneGeometry } from "./library-geometry/fill-none";
 import { fillPatternGeometry } from "./library-geometry/fill-pattern";
 import { fillSemiGeometry } from "./library-geometry/fill-semi";
 import { fillSolidGeometry } from "./library-geometry/fill-solid";
+import { filterListGeometry } from "./library-geometry/filter-list";
 import { flagGeometry } from "./library-geometry/flag";
 import { flameGeometry } from "./library-geometry/flame";
 import { flaskVialGeometry } from "./library-geometry/flask-vial";
@@ -165,12 +224,19 @@ import { folderGeometry } from "./library-geometry/folder";
 import { folderOpenGeometry } from "./library-geometry/folder-open";
 import { fontCaseGeometry } from "./library-geometry/font-case";
 import { fontDrawGeometry } from "./library-geometry/font-draw";
+import { fontDrawAaGeometry } from "./library-geometry/font-draw-aa";
+import { fontMixedAaGeometry } from "./library-geometry/font-mixed-aa";
 import { fontMonoGeometry } from "./library-geometry/font-mono";
+import { fontMonoAaGeometry } from "./library-geometry/font-mono-aa";
 import { fontSansGeometry } from "./library-geometry/font-sans";
+import { fontSansAaGeometry } from "./library-geometry/font-sans-aa";
 import { fontSerifGeometry } from "./library-geometry/font-serif";
+import { fontSerifAaGeometry } from "./library-geometry/font-serif-aa";
 import { forkliftGeometry } from "./library-geometry/forklift";
 import { frameGeometry } from "./library-geometry/frame";
+import { functionExpressionGeometry } from "./library-geometry/function-expression";
 import { gaugeGeometry } from "./library-geometry/gauge";
+import { gaugeMaxGeometry } from "./library-geometry/gauge-max";
 import { gemGeometry } from "./library-geometry/gem";
 import { ghostGeometry } from "./library-geometry/ghost";
 import { giftGeometry } from "./library-geometry/gift";
@@ -179,8 +245,14 @@ import { globeNodesGeometry } from "./library-geometry/globe-nodes";
 import { globePointerGeometry } from "./library-geometry/globe-pointer";
 import { globeStandGeometry } from "./library-geometry/globe-stand";
 import { graduationCapGeometry } from "./library-geometry/graduation-cap";
+import { greetingBustGeometry } from "./library-geometry/greeting-bust";
+import { gridDotsGeometry } from "./library-geometry/grid-dots";
+import { gridNineGeometry } from "./library-geometry/grid-nine";
+import { gridPackedGeometry } from "./library-geometry/grid-packed";
 import { gridPlusGeometry } from "./library-geometry/grid-plus";
+import { gripDotsVerticalGeometry } from "./library-geometry/grip-dots-vertical";
 import { groupGeometry } from "./library-geometry/group";
+import { groupDashedGeometry } from "./library-geometry/group-dashed";
 import { hammerGeometry } from "./library-geometry/hammer";
 import { handDollarGeometry } from "./library-geometry/hand-dollar";
 import { handshakeGeometry } from "./library-geometry/handshake";
@@ -192,29 +264,44 @@ import { heartPulseGeometry } from "./library-geometry/heart-pulse";
 import { helpGeometry } from "./library-geometry/help";
 import { hexagonGeometry } from "./library-geometry/hexagon";
 import { hexagonNodesGeometry } from "./library-geometry/hexagon-nodes";
+import { hierarchyBranchesGeometry } from "./library-geometry/hierarchy-branches";
 import { highlighterGeometry } from "./library-geometry/highlighter";
 import { historyPagesGeometry } from "./library-geometry/history-pages";
 import { historyUserGeometry } from "./library-geometry/history-user";
 import { homeGeometry } from "./library-geometry/home";
 import { hospitalUserGeometry } from "./library-geometry/hospital-user";
+import { hourglassGeometry } from "./library-geometry/hourglass";
 import { humidityGeometry } from "./library-geometry/humidity";
 import { hydrogenSulfideGeometry } from "./library-geometry/hydrogen-sulfide";
 import { imagePlusGeometry } from "./library-geometry/image-plus";
 import { inboxGeometry } from "./library-geometry/inbox";
+import { inboxArrowRightGeometry } from "./library-geometry/inbox-arrow-right";
+import { infinityPlusGeometry } from "./library-geometry/infinity-plus";
+import { inputFieldGeometry } from "./library-geometry/input-field";
 import { italicGeometry } from "./library-geometry/italic";
 import { jetGeometry } from "./library-geometry/jet";
 import { keyGeometry } from "./library-geometry/key";
 import { keyboardGeometry } from "./library-geometry/keyboard";
 import { laptopGeometry } from "./library-geometry/laptop";
+import { layerFillNoneGeometry } from "./library-geometry/layer-fill-none";
+import { layerFillPatternGeometry } from "./library-geometry/layer-fill-pattern";
+import { layerFillSemiGeometry } from "./library-geometry/layer-fill-semi";
+import { layerFillSolidGeometry } from "./library-geometry/layer-fill-solid";
 import { layerPlusGeometry } from "./library-geometry/layer-plus";
+import { layerPlusAboveGeometry } from "./library-geometry/layer-plus-above";
+import { layerUploadGeometry } from "./library-geometry/layer-upload";
+import { leftToLineGeometry } from "./library-geometry/left-to-line";
 import { lifeRingGeometry } from "./library-geometry/life-ring";
+import { lightbulbRaysGeometry } from "./library-geometry/lightbulb-rays";
 import { lighthouseGeometry } from "./library-geometry/lighthouse";
+import { lineDiagonalGeometry } from "./library-geometry/line-diagonal";
 import { listCheckGeometry } from "./library-geometry/list-check";
 import { listOrderedGeometry } from "./library-geometry/list-ordered";
 import { listTimelineGeometry } from "./library-geometry/list-timeline";
 import { locationGeometry } from "./library-geometry/location";
 import { locationCheckGeometry } from "./library-geometry/location-check";
 import { locationPlusGeometry } from "./library-geometry/location-plus";
+import { lockPlainGeometry } from "./library-geometry/lock-plain";
 import { loginGeometry } from "./library-geometry/login";
 import { logoutGeometry } from "./library-geometry/logout";
 import { magneticMediaGeometry } from "./library-geometry/magnetic-media";
@@ -223,6 +310,8 @@ import { mailUnreadGeometry } from "./library-geometry/mail-unread";
 import { mapGeometry } from "./library-geometry/map";
 import { mapPinGeometry } from "./library-geometry/map-pin";
 import { megaphoneGeometry } from "./library-geometry/megaphone";
+import { memoGeometry } from "./library-geometry/memo";
+import { memoCircleInfoGeometry } from "./library-geometry/memo-circle-info";
 import { memoInfoGeometry } from "./library-geometry/memo-info";
 import { messageGeometry } from "./library-geometry/message";
 import { messageDollarGeometry } from "./library-geometry/message-dollar";
@@ -236,28 +325,39 @@ import { monitoringInstrumentGeometry } from "./library-geometry/monitoring-inst
 import { moonGeometry } from "./library-geometry/moon";
 import { mortarPestleGeometry } from "./library-geometry/mortar-pestle";
 import { moveGeometry } from "./library-geometry/move";
+import { networkHubGeometry } from "./library-geometry/network-hub";
 import { newspaperGeometry } from "./library-geometry/newspaper";
+import { noteBoltGeometry } from "./library-geometry/note-bolt";
+import { noteListGeometry } from "./library-geometry/note-list";
 import { notePlusGeometry } from "./library-geometry/note-plus";
 import { noteStickyGeometry } from "./library-geometry/note-sticky";
+import { noteTopFoldGeometry } from "./library-geometry/note-top-fold";
 import { octagonGeometry } from "./library-geometry/octagon";
 import { openSourceInitiativeGeometry } from "./library-geometry/open-source-initiative";
 import { orbitGeometry } from "./library-geometry/orbit";
 import { organicCompoundGeometry } from "./library-geometry/organic-compound";
+import { ovalVerticalGeometry } from "./library-geometry/oval-vertical";
+import { overlappingCirclesGeometry } from "./library-geometry/overlapping-circles";
 import { oxygenGeometry } from "./library-geometry/oxygen";
 import { packGeometry } from "./library-geometry/pack";
+import { pagePlainGeometry } from "./library-geometry/page-plain";
 import { paletteGeometry } from "./library-geometry/palette";
 import { palmTreeGeometry } from "./library-geometry/palm-tree";
 import { paperclipGeometry } from "./library-geometry/paperclip";
 import { parallelogramGeometry } from "./library-geometry/parallelogram";
+import { parallelogramLeftGeometry } from "./library-geometry/parallelogram-left";
 import { particulateMatterTotalGeometry } from "./library-geometry/particulate-matter-total";
 import { particulateMatter1Geometry } from "./library-geometry/particulate-matter1";
 import { particulateMatter2Point5Geometry } from "./library-geometry/particulate-matter2-point5";
 import { particulateMatter10Geometry } from "./library-geometry/particulate-matter10";
 import { partyHornGeometry } from "./library-geometry/party-horn";
+import { penSquareGeometry } from "./library-geometry/pen-square";
+import { pencilBaselineGeometry } from "./library-geometry/pencil-baseline";
 import { pencilRulerGeometry } from "./library-geometry/pencil-ruler";
 import { pencilSlashGeometry } from "./library-geometry/pencil-slash";
 import { pentagonGeometry } from "./library-geometry/pentagon";
 import { peopleArrowsGeometry } from "./library-geometry/people-arrows";
+import { peopleGroupGeometry } from "./library-geometry/people-group";
 import { percentGeometry } from "./library-geometry/percent";
 import { personGeometry } from "./library-geometry/person";
 import { personBoothGeometry } from "./library-geometry/person-booth";
@@ -265,11 +365,13 @@ import { personDollyGeometry } from "./library-geometry/person-dolly";
 import { personGreetingGeometry } from "./library-geometry/person-greeting";
 import { personPortalGeometry } from "./library-geometry/person-portal";
 import { personSignGeometry } from "./library-geometry/person-sign";
+import { personSparklesGeometry } from "./library-geometry/person-sparkles";
 import { phoneGeometry } from "./library-geometry/phone";
 import { phoneOffGeometry } from "./library-geometry/phone-off";
 import { pieChartGeometry } from "./library-geometry/pie-chart";
 import { pinGeometry } from "./library-geometry/pin";
 import { pizzaGeometry } from "./library-geometry/pizza";
+import { pizzaPieGeometry } from "./library-geometry/pizza-pie";
 import { planeGeometry } from "./library-geometry/plane";
 import { planeArrivalGeometry } from "./library-geometry/plane-arrival";
 import { planeDepartureGeometry } from "./library-geometry/plane-departure";
@@ -278,64 +380,97 @@ import { planeUpGeometry } from "./library-geometry/plane-up";
 import { plugCheckGeometry } from "./library-geometry/plug-check";
 import { powerGeometry } from "./library-geometry/power";
 import { presentationChartGeometry } from "./library-geometry/presentation-chart";
+import { presentationScreenGeometry } from "./library-geometry/presentation-screen";
 import { pressureDifferentialGeometry } from "./library-geometry/pressure-differential";
 import { pullRequestGeometry } from "./library-geometry/pull-request";
+import { questionMarkGeometry } from "./library-geometry/question-mark";
 import { quoteGeometry } from "./library-geometry/quote";
 import { radarGeometry } from "./library-geometry/radar";
 import { radiationGeometry } from "./library-geometry/radiation";
 import { radioCheckedGeometry } from "./library-geometry/radio-checked";
 import { receiptGeometry } from "./library-geometry/receipt";
 import { rectangleGeometry } from "./library-geometry/rectangle";
+import { rectanglePointerGeometry } from "./library-geometry/rectangle-pointer";
 import { rectanglesMixedGeometry } from "./library-geometry/rectangles-mixed";
+import { rectanglesOffsetGeometry } from "./library-geometry/rectangles-offset";
 import { redoGeometry } from "./library-geometry/redo";
+import { roadGeometry } from "./library-geometry/road";
+import { robotBustGeometry } from "./library-geometry/robot-bust";
 import { rocketGeometry } from "./library-geometry/rocket";
+import { rotateClockwiseGeometry } from "./library-geometry/rotate-clockwise";
+import { rotateSquareClockwiseGeometry } from "./library-geometry/rotate-square-clockwise";
+import { rotateSquareCounterclockwiseGeometry } from "./library-geometry/rotate-square-counterclockwise";
 import { roundedCornerGeometry } from "./library-geometry/rounded-corner";
 import { routeGeometry } from "./library-geometry/route";
 import { routerGeometry } from "./library-geometry/router";
 import { rowsGeometry } from "./library-geometry/rows";
+import { rulerCornerGeometry } from "./library-geometry/ruler-corner";
 import { sadGeometry } from "./library-geometry/sad";
+import { satelliteDishGeometry } from "./library-geometry/satellite-dish";
 import { scanLineGeometry } from "./library-geometry/scan-line";
 import { scannerGeometry } from "./library-geometry/scanner";
+import { scribbleSwatchGeometry } from "./library-geometry/scribble-swatch";
 import { searchChartGeometry } from "./library-geometry/search-chart";
 import { searchCheckGeometry } from "./library-geometry/search-check";
 import { searchDollarGeometry } from "./library-geometry/search-dollar";
 import { searchEmptyGeometry } from "./library-geometry/search-empty";
 import { sendGeometry } from "./library-geometry/send";
 import { sendBackwardGeometry } from "./library-geometry/send-backward";
+import { sendBackwardArrowGeometry } from "./library-geometry/send-backward-arrow";
 import { sendToBackGeometry } from "./library-geometry/send-to-back";
+import { sendToBackArrowGeometry } from "./library-geometry/send-to-back-arrow";
 import { sensorGeometry } from "./library-geometry/sensor";
 import { serverGeometry } from "./library-geometry/server";
 import { shapeArrowDownGeometry } from "./library-geometry/shape-arrow-down";
 import { shapeArrowLeftGeometry } from "./library-geometry/shape-arrow-left";
 import { shapeArrowRightGeometry } from "./library-geometry/shape-arrow-right";
 import { shapeArrowUpGeometry } from "./library-geometry/shape-arrow-up";
+import { shapesThreeGeometry } from "./library-geometry/shapes-three";
 import { shareGeometry } from "./library-geometry/share";
 import { shareNodesGeometry } from "./library-geometry/share-nodes";
 import { shelvesGeometry } from "./library-geometry/shelves";
+import { shieldGeometry } from "./library-geometry/shield";
 import { shieldAlertGeometry } from "./library-geometry/shield-alert";
 import { shieldCheckGeometry } from "./library-geometry/shield-check";
+import { shootingStarGeometry } from "./library-geometry/shooting-star";
 import { shopGeometry } from "./library-geometry/shop";
 import { shoppingBasketGeometry } from "./library-geometry/shopping-basket";
 import { shoppingCartGeometry } from "./library-geometry/shopping-cart";
 import { shuffleGeometry } from "./library-geometry/shuffle";
+import { sidebarListGeometry } from "./library-geometry/sidebar-list";
 import { signalGeometry } from "./library-geometry/signal";
 import { signalStrengthGeometry } from "./library-geometry/signal-strength";
 import { sitemapGeometry } from "./library-geometry/sitemap";
 import { sizeExtraLargeGeometry } from "./library-geometry/size-extra-large";
 import { sizeLargeGeometry } from "./library-geometry/size-large";
+import { sizeLetterExtraLargeGeometry } from "./library-geometry/size-letter-extra-large";
+import { sizeLetterLargeGeometry } from "./library-geometry/size-letter-large";
+import { sizeLetterMediumGeometry } from "./library-geometry/size-letter-medium";
+import { sizeLetterSmallGeometry } from "./library-geometry/size-letter-small";
 import { sizeMediumGeometry } from "./library-geometry/size-medium";
 import { sizeSmallGeometry } from "./library-geometry/size-small";
+import { slidersHorizontalThreeGeometry } from "./library-geometry/sliders-horizontal-three";
+import { slidersVerticalGeometry } from "./library-geometry/sliders-vertical";
 import { smileGeometry } from "./library-geometry/smile";
 import { solarSystemGeometry } from "./library-geometry/solar-system";
+import { sparklesClusterGeometry } from "./library-geometry/sparkles-cluster";
 import { speakerGeometry } from "./library-geometry/speaker";
 import { specificationGeometry } from "./library-geometry/specification";
+import { speechWaveGeometry } from "./library-geometry/speech-wave";
+import { spinnerDotsGeometry } from "./library-geometry/spinner-dots";
 import { splineCubicGeometry } from "./library-geometry/spline-cubic";
 import { splineLineGeometry } from "./library-geometry/spline-line";
 import { splitViewGeometry } from "./library-geometry/split-view";
 import { squareCloseGeometry } from "./library-geometry/square-close";
 import { squareMinusGeometry } from "./library-geometry/square-minus";
+import { squarePlusGeometry } from "./library-geometry/square-plus";
 import { stackHorizontalGeometry } from "./library-geometry/stack-horizontal";
+import { stackLinesHorizontalGeometry } from "./library-geometry/stack-lines-horizontal";
+import { stackLinesVerticalGeometry } from "./library-geometry/stack-lines-vertical";
 import { stackVerticalGeometry } from "./library-geometry/stack-vertical";
+import { starsGeometry } from "./library-geometry/stars";
+import { stretchBarsHorizontalGeometry } from "./library-geometry/stretch-bars-horizontal";
+import { stretchBarsVerticalGeometry } from "./library-geometry/stretch-bars-vertical";
 import { strikethroughGeometry } from "./library-geometry/strikethrough";
 import { sulfurDioxideGeometry } from "./library-geometry/sulfur-dioxide";
 import { sunGeometry } from "./library-geometry/sun";
@@ -347,14 +482,17 @@ import { tagGeometry } from "./library-geometry/tag";
 import { targetArrowGeometry } from "./library-geometry/target-arrow";
 import { teddyBearGeometry } from "./library-geometry/teddy-bear";
 import { telescopeGeometry } from "./library-geometry/telescope";
+import { terminalPromptGeometry } from "./library-geometry/terminal-prompt";
 import { testTubesGeometry } from "./library-geometry/test-tubes";
 import { textAlignCenterGeometry } from "./library-geometry/text-align-center";
 import { textAlignJustifyGeometry } from "./library-geometry/text-align-justify";
 import { textAlignLeftGeometry } from "./library-geometry/text-align-left";
 import { textAlignRightGeometry } from "./library-geometry/text-align-right";
+import { textCapitalGeometry } from "./library-geometry/text-capital";
 import { thermometerGeometry } from "./library-geometry/thermometer";
 import { thermometerColdGeometry } from "./library-geometry/thermometer-cold";
 import { thermometerHotGeometry } from "./library-geometry/thermometer-hot";
+import { thoughtCloudGeometry } from "./library-geometry/thought-cloud";
 import { thumbsDownGeometry } from "./library-geometry/thumbs-down";
 import { thumbsUpGeometry } from "./library-geometry/thumbs-up";
 import { timelineGeometry } from "./library-geometry/timeline";
@@ -366,15 +504,25 @@ import { toolboxGeometry } from "./library-geometry/toolbox";
 import { toolsGeometry } from "./library-geometry/tools";
 import { towerControlGeometry } from "./library-geometry/tower-control";
 import { trapezoidGeometry } from "./library-geometry/trapezoid";
+import { treeListGeometry } from "./library-geometry/tree-list";
 import { triangleGeometry } from "./library-geometry/triangle";
+import { triangleLeftGeometry } from "./library-geometry/triangle-left";
+import { triangleNodesGeometry } from "./library-geometry/triangle-nodes";
+import { triangleRightGeometry } from "./library-geometry/triangle-right";
 import { trophyGeometry } from "./library-geometry/trophy";
 import { truckContainerGeometry } from "./library-geometry/truck-container";
+import { truckContainerFastGeometry } from "./library-geometry/truck-container-fast";
 import { truckFastGeometry } from "./library-geometry/truck-fast";
 import { truckPlaneGeometry } from "./library-geometry/truck-plane";
 import { truckRampGeometry } from "./library-geometry/truck-ramp";
+import { truckRampBoxGeometry } from "./library-geometry/truck-ramp-box";
+import { twoLayersGeometry } from "./library-geometry/two-layers";
 import { typeInheritanceGeometry } from "./library-geometry/type-inheritance";
 import { underlineGeometry } from "./library-geometry/underline";
+import { undoBentGeometry } from "./library-geometry/undo-bent";
 import { ungroupGeometry } from "./library-geometry/ungroup";
+import { ungroupDashedGeometry } from "./library-geometry/ungroup-dashed";
+import { unlockPlainGeometry } from "./library-geometry/unlock-plain";
 import { uploadGeometry } from "./library-geometry/upload";
 import { userBountyHunterGeometry } from "./library-geometry/user-bounty-hunter";
 import { userLockGeometry } from "./library-geometry/user-lock";
@@ -382,6 +530,7 @@ import { userSearchGeometry } from "./library-geometry/user-search";
 import { userTagGeometry } from "./library-geometry/user-tag";
 import { userTieGeometry } from "./library-geometry/user-tie";
 import { usersGeometry } from "./library-geometry/users";
+import { usersThreeGeometry } from "./library-geometry/users-three";
 import { vibrationGeometry } from "./library-geometry/vibration";
 import { virusGeometry } from "./library-geometry/virus";
 import { warehouseGeometry } from "./library-geometry/warehouse";
@@ -391,6 +540,7 @@ import { wavePulseGeometry } from "./library-geometry/wave-pulse";
 import { wavesGeometry } from "./library-geometry/waves";
 import { windGeometry } from "./library-geometry/wind";
 import { workflowGeometry } from "./library-geometry/workflow";
+import { zoomResetGeometry } from "./library-geometry/zoom-reset";
 
 export const libraryGeometry = {
   monitoringInstrument: monitoringInstrumentGeometry,
@@ -431,6 +581,158 @@ export const libraryGeometry = {
   router: routerGeometry,
   cloudUpload: cloudUploadGeometry,
   move: moveGeometry,
+  rectanglesOffset: rectanglesOffsetGeometry,
+  gridPacked: gridPackedGeometry,
+  chevronsRight: chevronsRightGeometry,
+  chevronsLeft: chevronsLeftGeometry,
+  checksStacked: checksStackedGeometry,
+  scribbleSwatch: scribbleSwatchGeometry,
+  pencilBaseline: pencilBaselineGeometry,
+  presentationScreen: presentationScreenGeometry,
+  truckRampBox: truckRampBoxGeometry,
+  truckContainerFast: truckContainerFastGeometry,
+  gaugeMax: gaugeMaxGeometry,
+  sparklesCluster: sparklesClusterGeometry,
+
+  leftToLine: leftToLineGeometry,
+  calendarBlank: calendarBlankGeometry,
+  fileVideoCamera: fileVideoCameraGeometry,
+  filterList: filterListGeometry,
+  gridNine: gridNineGeometry,
+  inboxArrowRight: inboxArrowRightGeometry,
+  noteTopFold: noteTopFoldGeometry,
+  pagePlain: pagePlainGeometry,
+  peopleGroup: peopleGroupGeometry,
+  pizzaPie: pizzaPieGeometry,
+  asteriskBolt: asteriskBoltGeometry,
+  noteBolt: noteBoltGeometry,
+  codePen: codePenGeometry,
+  collapseDiagonal: collapseDiagonalGeometry,
+  lightbulbRays: lightbulbRaysGeometry,
+  shapesThree: shapesThreeGeometry,
+  diagramNestedBranches: diagramNestedBranchesGeometry,
+  networkHub: networkHubGeometry,
+  arrowsRotateClockwise: arrowsRotateClockwiseGeometry,
+  rotateClockwise: rotateClockwiseGeometry,
+  chartBars: chartBarsGeometry,
+  chartLineAxes: chartLineAxesGeometry,
+  sidebarList: sidebarListGeometry,
+  twoLayers: twoLayersGeometry,
+  layerPlusAbove: layerPlusAboveGeometry,
+  stackLinesHorizontal: stackLinesHorizontalGeometry,
+  stackLinesVertical: stackLinesVerticalGeometry,
+  alignBarBottom: alignBarBottomGeometry,
+  alignBarTop: alignBarTopGeometry,
+  alignBarLeft: alignBarLeftGeometry,
+  alignBarRight: alignBarRightGeometry,
+  alignBarHorizontal: alignBarHorizontalGeometry,
+  alignBarVertical: alignBarVerticalGeometry,
+  triangleRight: triangleRightGeometry,
+  triangleLeft: triangleLeftGeometry,
+  aspectRatioCorners: aspectRatioCornersGeometry,
+  undoBent: undoBentGeometry,
+  speechWave: speechWaveGeometry,
+  lockPlain: lockPlainGeometry,
+  unlockPlain: unlockPlainGeometry,
+  gripDotsVertical: gripDotsVerticalGeometry,
+  thoughtCloud: thoughtCloudGeometry,
+
+  stars: starsGeometry,
+  shootingStar: shootingStarGeometry,
+  fileCertificate: fileCertificateGeometry,
+  road: roadGeometry,
+  personSparkles: personSparklesGeometry,
+  shield: shieldGeometry,
+  comment: commentGeometry,
+  comments: commentsGeometry,
+  commentQuote: commentQuoteGeometry,
+  spinnerDots: spinnerDotsGeometry,
+  layerUpload: layerUploadGeometry,
+  infinityPlus: infinityPlusGeometry,
+  satelliteDish: satelliteDishGeometry,
+  hourglass: hourglassGeometry,
+  noteList: noteListGeometry,
+  rectanglePointer: rectanglePointerGeometry,
+  usersThree: usersThreeGeometry,
+  triangleNodes: triangleNodesGeometry,
+  arrowDownToBar: arrowDownToBarGeometry,
+  arrowLeftToBar: arrowLeftToBarGeometry,
+  arrowUpToBar: arrowUpToBarGeometry,
+  arrowRightToBar: arrowRightToBarGeometry,
+  arrowDownLeftToCorner: arrowDownLeftToCornerGeometry,
+  arrowUpLeftToCorner: arrowUpLeftToCornerGeometry,
+  arrowUpRightToCorner: arrowUpRightToCornerGeometry,
+  arrowDownRightToCorner: arrowDownRightToCornerGeometry,
+  alignCenterMark: alignCenterMarkGeometry,
+  bringForwardArrow: bringForwardArrowGeometry,
+  bringToFrontArrow: bringToFrontArrowGeometry,
+  sendBackwardArrow: sendBackwardArrowGeometry,
+  sendToBackArrow: sendToBackArrowGeometry,
+  clipboardCopy: clipboardCopyGeometry,
+  disc: discGeometry,
+  circleDashed: circleDashedGeometry,
+  circleDotted: circleDottedGeometry,
+  circleDrawn: circleDrawnGeometry,
+  layerFillNone: layerFillNoneGeometry,
+  layerFillPattern: layerFillPatternGeometry,
+  layerFillSemi: layerFillSemiGeometry,
+  layerFillSolid: layerFillSolidGeometry,
+  fontSansAa: fontSansAaGeometry,
+  fontMonoAa: fontMonoAaGeometry,
+  fontSerifAa: fontSerifAaGeometry,
+  fontDrawAa: fontDrawAaGeometry,
+  fontMixedAa: fontMixedAaGeometry,
+  ovalVertical: ovalVerticalGeometry,
+  parallelogramLeft: parallelogramLeftGeometry,
+  groupDashed: groupDashedGeometry,
+  ungroupDashed: ungroupDashedGeometry,
+  gridDots: gridDotsGeometry,
+  questionMark: questionMarkGeometry,
+  zoomReset: zoomResetGeometry,
+  rotateSquareClockwise: rotateSquareClockwiseGeometry,
+  rotateSquareCounterclockwise: rotateSquareCounterclockwiseGeometry,
+  rulerCorner: rulerCornerGeometry,
+  slidersVertical: slidersVerticalGeometry,
+  sizeLetterSmall: sizeLetterSmallGeometry,
+  sizeLetterMedium: sizeLetterMediumGeometry,
+  sizeLetterLarge: sizeLetterLargeGeometry,
+  sizeLetterExtraLarge: sizeLetterExtraLargeGeometry,
+  cornerCurve: cornerCurveGeometry,
+  cornerLine: cornerLineGeometry,
+  stretchBarsHorizontal: stretchBarsHorizontalGeometry,
+  stretchBarsVertical: stretchBarsVerticalGeometry,
+  lineDiagonal: lineDiagonalGeometry,
+  textCapital: textCapitalGeometry,
+  caretDown: caretDownGeometry,
+  caretUp: caretUpGeometry,
+  arrowsTurnToDots: arrowsTurnToDotsGeometry,
+  diagramBranch: diagramBranchGeometry,
+  fileExcel: fileExcelGeometry,
+  boxesTransfer: boxesTransferGeometry,
+  memo: memoGeometry,
+  memoCircleInfo: memoCircleInfoGeometry,
+  banknoteTransfer: banknoteTransferGeometry,
+  columnsMasonry: columnsMasonryGeometry,
+  robotBust: robotBustGeometry,
+  greetingBust: greetingBustGeometry,
+  hierarchyBranches: hierarchyBranchesGeometry,
+  circlePlus: circlePlusGeometry,
+  squarePlus: squarePlusGeometry,
+  penSquare: penSquareGeometry,
+  functionExpression: functionExpressionGeometry,
+  inputField: inputFieldGeometry,
+  treeList: treeListGeometry,
+  overlappingCircles: overlappingCirclesGeometry,
+  terminalPrompt: terminalPromptGeometry,
+  featherQuill: featherQuillGeometry,
+  slidersHorizontalThree: slidersHorizontalThreeGeometry,
+  barsDescending: barsDescendingGeometry,
+  arrowsUpDown: arrowsUpDownGeometry,
+  arrowsFromCenterLine: arrowsFromCenterLineGeometry,
+  arrowsToCenterLine: arrowsToCenterLineGeometry,
+  canvasPlus: canvasPlusGeometry,
+  fileCirclePlus: fileCirclePlusGeometry,
+  earthAmericas: earthAmericasGeometry,
 
   openSourceInitiative: openSourceInitiativeGeometry,
   toolbox: toolboxGeometry,

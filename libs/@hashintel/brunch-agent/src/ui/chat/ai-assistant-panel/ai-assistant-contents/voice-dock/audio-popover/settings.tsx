@@ -203,7 +203,7 @@ export const AudioSettings = ({
                       aria-hidden="true"
                       width="14"
                       height="14"
-                      name="signal"
+                      name="speechWave"
                     />
                   )
                 )}

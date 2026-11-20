@@ -10,7 +10,7 @@ export const SidebarRegularIcon: FunctionComponent<SvgIconProps> = (props) => {
       height="512"
       fill="none"
       {...props}
-      icon="sidebar"
+      icon="sidebarList"
     />
   );
 };

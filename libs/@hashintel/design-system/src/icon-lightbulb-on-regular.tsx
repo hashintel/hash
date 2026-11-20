@@ -12,7 +12,7 @@ export const LightbulbOnRegularIcon: FunctionComponent<SvgIconProps> = (
       height="512"
       fill="none"
       {...props}
-      icon="lightbulbOn"
+      icon="lightbulbRays"
     />
   );
 };

@@ -5,4 +5,4 @@ import type { FunctionComponent } from "react";
 
 export const FileCirclePlusRegularIcon: FunctionComponent<SvgIconProps> = (
   props,
-) => <HashSvgIcon {...props} icon="filePlus" />;
+) => <HashSvgIcon {...props} icon="fileCirclePlus" />;

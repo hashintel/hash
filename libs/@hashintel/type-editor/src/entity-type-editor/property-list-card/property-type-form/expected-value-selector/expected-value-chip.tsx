@@ -8,7 +8,7 @@ import { useDataTypesOptions } from "../../../../shared/data-types-options-conte
 import type { CustomExpectedValueTypeId } from "../../../../shared/data-types-options-context";
 import type { ChipProps } from "@hashintel/design-system";
 
-const faEdit = { icon: "pencil" } as const;
+const faEdit = { icon: "penSquare" } as const;
 const faClose = { icon: "close" } as const;
 
 interface ExpectedValueChipProps {

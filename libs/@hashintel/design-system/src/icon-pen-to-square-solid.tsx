@@ -12,7 +12,7 @@ export const PenToSquareSolidIcon: FunctionComponent<SvgIconProps> = (
       height="512"
       fill="none"
       {...props}
-      icon="pencil"
+      icon="penSquare"
     />
   );
 };

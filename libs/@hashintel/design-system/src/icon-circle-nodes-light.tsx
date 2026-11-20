@@ -12,7 +12,7 @@ export const CircleNodesLightIcon: FunctionComponent<SvgIconProps> = (
       height="512"
       fill="none"
       {...props}
-      icon="diagramNodes"
+      icon="triangleNodes"
     />
   );
 };
