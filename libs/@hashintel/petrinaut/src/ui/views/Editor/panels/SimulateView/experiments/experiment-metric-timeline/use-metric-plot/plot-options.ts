@@ -6,6 +6,7 @@
 import uPlot from "uplot";
 
 import { distributionBandSeries } from "../shared/distribution-bands";
+import { createDistributionHeatmapPlugin } from "./distribution-heatmap";
 import { binValueSummary } from "./shared/bin-value-summary";
 
 import type {
@@ -72,17 +73,15 @@ export const chartOptions = ({
   width,
   height,
   shape,
-  getFrames,
+  getContent,
   yCeiling,
-  plugins,
 }: {
   width: number;
   height: number;
   shape: ChartShape;
-  /** The plotted frames, read when the y scale ranges. */
-  getFrames: () => readonly MetricFrame[];
+  /** What the plot shows, read when the y scale ranges and when the heatmap paints. */
+  getContent: Parameters<typeof createDistributionHeatmapPlugin>[0];
   yCeiling: YCeiling;
-  plugins: uPlot.Plugin[];
 }): uPlot.Options => {
   const { outputType, aggregateRuns, runAggregation, distributionView } = shape;
   const { timeTrace, timeDomain } = shape;
@@ -120,7 +119,7 @@ export const chartOptions = ({
      callbacks raise */
   const yRange: uPlot.Scale.Range = (_u, min, max) => {
     if (isHeatmap) {
-      const values = binValueSummary(getFrames());
+      const values = binValueSummary(getContent().frames);
       if (!values) {
         return [0, Math.max(1, yCeiling.value)];
       }
@@ -141,7 +140,7 @@ export const chartOptions = ({
   return {
     ...baseOptions(width, height),
     padding: [0, 8, 4, null],
-    plugins,
+    plugins: isHeatmap ? [createDistributionHeatmapPlugin(getContent)] : [],
     scales: {
       x: { time: false, range: () => [timeDomain[0], timeDomain[1]] },
       y: { range: yRange },

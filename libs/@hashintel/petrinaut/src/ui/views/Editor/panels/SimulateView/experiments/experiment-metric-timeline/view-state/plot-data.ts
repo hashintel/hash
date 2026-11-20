@@ -11,7 +11,7 @@ import {
   applyTimeTrace,
 } from "../shared/distribution-math";
 import {
-  isDistributionMetricFrame,
+  distributionFramesFrom,
   isScalarMetricFrame,
 } from "../shared/metric-frames";
 
@@ -95,7 +95,7 @@ export function buildMetricTimelineData(
     );
   }
 
-  const distributionFrames = frames.filter(isDistributionMetricFrame);
+  const distributionFrames = distributionFramesFrom(frames);
 
   if (aggregateRuns) {
     return buildLineData(distributionFrames, runAggregation, timeTrace);

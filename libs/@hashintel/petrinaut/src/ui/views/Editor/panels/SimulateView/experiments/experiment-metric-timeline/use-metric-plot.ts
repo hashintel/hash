@@ -8,7 +8,6 @@ import { useEffect, useEffectEvent, useRef } from "react";
 import uPlot from "uplot";
 
 import { createCrossfadeOverlay } from "./use-metric-plot/crossfade-overlay";
-import { createDistributionHeatmapPlugin } from "./use-metric-plot/distribution-heatmap";
 import { attachFrameScrubbing } from "./use-metric-plot/frame-scrubbing";
 import {
   chartOptions,
@@ -180,11 +179,6 @@ export const useMetricPlot = ({
       return;
     }
     const { width, height } = plotSize(initialSize);
-    const isHeatmap =
-      displayMode === "chart" &&
-      outputType === "distribution" &&
-      !aggregateRuns &&
-      distributionView === "heatmap";
     const options =
       displayMode === "distribution"
         ? distributionBarChartOptions(width, height)
@@ -199,11 +193,8 @@ export const useMetricPlot = ({
               timeTrace,
               timeDomain: [timeDomainStart, timeDomainEnd],
             },
-            getFrames: () => contentRef.current.frames,
+            getContent: () => contentRef.current,
             yCeiling: yCeilingRef.current.ceiling,
-            plugins: isHeatmap
-              ? [createDistributionHeatmapPlugin(() => contentRef.current)]
-              : [],
           });
     const plot = new UPlot(options, [[], []] as uPlot.AlignedData, root);
     plot.setData(contentRef.current.plotData);
