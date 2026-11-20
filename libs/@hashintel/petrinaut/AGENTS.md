@@ -6,7 +6,7 @@ Visual editor for Stochastic Dynamic Colored Petri Nets (SDCPN). Published npm p
 
 - React 19 with React Compiler (oxc-transform-react)
 - TypeScript (type-checked with `tsc`)
-- Vite 8 + Rolldown (library build + demo site)
+- Vite 8 + Rolldown (library build)
 - Panda CSS for styling
 - oxlint for linting
 - vitest for testing
@@ -31,7 +31,7 @@ Compiler errors fail the build unless the function opts out. The options are in 
 ## Commands
 
 ```sh
-yarn dev              # Dev server (demo site)
+yarn dev              # Storybook on port 6006
 yarn build            # Library build
 yarn lint:eslint      # Lint with oxlint
 yarn lint:tsc         # Type check with tsc
