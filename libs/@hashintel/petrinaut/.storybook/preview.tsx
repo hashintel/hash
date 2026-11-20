@@ -26,7 +26,16 @@ const fullscreenStyle = css({ height: "[100vh]" });
 
 const preview: Preview = {
   parameters: {
-    options: { storySort: { order: ["Editor", "Components", "States"] } },
+    options: {
+      storySort: {
+        order: [
+          "Editor",
+          ["Example nets", "Composed nets", "Plugins"],
+          "Components",
+          "States",
+        ],
+      },
+    },
   },
   decorators: [
     (Story, { parameters }) => {
