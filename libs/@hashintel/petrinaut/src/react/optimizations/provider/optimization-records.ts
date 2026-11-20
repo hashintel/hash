@@ -92,8 +92,5 @@ export const foldOptimizationEvent = (
           ? { status: "cancelled", error: null }
           : { status: "error", error: event.message }),
       };
-    default:
-      // An event type this build does not know changes nothing.
-      return record;
   }
 };
