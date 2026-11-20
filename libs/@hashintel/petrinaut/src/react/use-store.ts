@@ -7,6 +7,8 @@ export function useStore<T>(store: ReadableStore<T>): T {
   return useSyncExternalStore(
     (onStoreChange) => store.subscribe(onStoreChange),
     () => store.get(),
+    // The same value where a component is rendered to a string.
+    () => store.get(),
   );
 }
 
@@ -32,7 +34,7 @@ export function useStoreSelector<T, U>(
   return useSyncExternalStoreWithSelector(
     (onStoreChange) => store.subscribe(onStoreChange),
     () => store.get(),
-    undefined,
+    () => store.get(),
     selector,
     isEqual,
   );
