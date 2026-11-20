@@ -14,10 +14,10 @@ import {
   nodeSubtitleStyle,
   nodeTextAreaStyle,
   nodeTitleStyle,
-} from "./node-card";
+} from "./node-card-styles";
 import { pinLayout, pinSides, portOnSide } from "./pin-layout";
 import { portInHandleId, portOutHandleId } from "./port-handles";
-import { pinColorStyle, pinStyle } from "./port-pin";
+import { pinColorStyle, pinStyle } from "./port-pin-style";
 import { useRemeasureHandles } from "./use-remeasure-handles";
 
 import type { CanvasInstanceBinding, CanvasPort } from "../../../canvas-scene";

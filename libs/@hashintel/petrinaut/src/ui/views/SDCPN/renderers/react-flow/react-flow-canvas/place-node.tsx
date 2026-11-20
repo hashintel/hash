@@ -1,17 +1,18 @@
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { usePlaceTokenLabel } from "../../../canvas-frame-store";
+import { usePlaceTokenLabel } from "../../../canvas-frame-store-context";
 import { nodeFocusStyle } from "../../../styles/focus";
 import { placeBorderColor, placeFillColor } from "../../../styles/type-colors";
+import { NodeCard } from "./node-card";
 import {
   iconBadgeStyle,
   iconContainerBaseStyle,
-  NodeCard,
   nodeCardStyle,
-} from "./node-card";
+} from "./node-card-styles";
 import { PlaceStateTooltip } from "./place-state-tooltip";
-import { portPlaceLabels, PortPins } from "./port-pin";
+import { PortPins } from "./port-pin";
+import { portPlaceLabels } from "./port-place-labels";
 import { NodeHandles } from "./shared/node-handles";
 
 import type { PlaceNodeType } from "./react-flow-types";

@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { useTransitionFrame } from "../../../canvas-frame-store";
+import { useTransitionFrame } from "../../../canvas-frame-store-context";
 import { useFiringDelta } from "../../../hooks/use-firing-delta";
 import { arcHaloColor } from "../../../styles/focus";
 import { firingIsVisible } from "./firing-animation-visibility";

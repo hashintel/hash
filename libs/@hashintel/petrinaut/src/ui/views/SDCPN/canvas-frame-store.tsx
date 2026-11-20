@@ -8,19 +8,17 @@
  * subscribes to its own value and re-renders only when that value moves.
  */
 
-import {
-  createContext,
-  use,
-  useEffect,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { use, useEffect, useRef, useState } from "react";
 
 import { EventPlaybackContext } from "../../../react/event-playback/context";
 import { ExecutionFrameSourceContext } from "../../../react/execution-frame/context";
 import { SimulationContext } from "../../../react/simulation/context";
 import { useEditorState } from "../../../react/state/editor-context";
+import {
+  CanvasFrameStoreContext,
+  type CanvasFrameStore,
+  type TransitionFrameState,
+} from "./canvas-frame-store-context";
 
 import type {
   InitialMarking,
@@ -32,10 +30,6 @@ import type {
   ExperimentReader,
   ReadableStore,
 } from "@hashintel/petrinaut-core";
-
-type TransitionFrameState = NonNullable<
-  ReturnType<SimulationFrameReader["getTransitionState"]>
->;
 
 type FrameSnapshot = {
   reader: SimulationFrameReader | null;
@@ -50,17 +44,6 @@ type FrameSnapshot = {
     reader: ExperimentReader;
     viewedTime: () => number;
   } | null;
-};
-
-type CanvasFrameStore = {
-  subscribe: (listener: () => void) => () => void;
-  /**
-   * What a place's badge reads, or null for no badge: its token count, or
-   * in a Stochastic simulation the mean across runs and its spread.
-   */
-  getTokenLabel: (placeId: string) => string | null;
-  /** A transition's state in the viewed frame, or null when no run exists. */
-  getTransitionFrame: (transitionId: string) => TransitionFrameState | null;
 };
 
 /** A mean as a badge prints it: whole when it is, one decimal otherwise. */
@@ -105,14 +88,6 @@ const notifyAll = (listeners: ReadonlySet<() => void>): void => {
     listener();
   }
 };
-
-const EMPTY_STORE: CanvasFrameStore = {
-  subscribe: () => () => {},
-  getTokenLabel: () => null,
-  getTransitionFrame: () => null,
-};
-
-const CanvasFrameStoreContext = createContext<CanvasFrameStore>(EMPTY_STORE);
 
 const sameTransitionState = (
   left: TransitionFrameState | null,
@@ -263,27 +238,5 @@ export const CanvasFrameStoreProvider: React.FC<React.PropsWithChildren> = ({
 
   return (
     <CanvasFrameStoreContext value={store}>{children}</CanvasFrameStoreContext>
-  );
-};
-
-/** What one place's badge reads, without re-rendering the canvas. */
-export const usePlaceTokenLabel = (placeId: string): string | null => {
-  const store = use(CanvasFrameStoreContext);
-  return useSyncExternalStore(
-    store.subscribe,
-    () => store.getTokenLabel(placeId),
-    () => null,
-  );
-};
-
-/** One transition's frame state, without re-rendering the canvas. */
-export const useTransitionFrame = (
-  transitionId: string,
-): TransitionFrameState | null => {
-  const store = use(CanvasFrameStoreContext);
-  return useSyncExternalStore(
-    store.subscribe,
-    () => store.getTransitionFrame(transitionId),
-    () => null,
   );
 };
