@@ -23,6 +23,20 @@ import {
   HashIconProvider,
   hashIconNames,
   hashIconPack,
+  LogicAndIcon,
+  LogicOrIcon,
+  LogicNotIcon,
+  LogicImpliesIcon,
+  LogicEquivalentIcon,
+  LogicForAllIcon,
+  LogicExistsIcon,
+  LogicNextIcon,
+  LogicUntilIcon,
+  LogicBranchingIcon,
+  LogicInvariantIcon,
+  LogicCounterexampleIcon,
+  LogicConstraintIcon,
+  LogicRobustnessIcon,
   PlaceIcon,
   LoadingIcon,
   AddPlaceIcon,
@@ -62,6 +76,84 @@ describe("HashIcon SVG API", () => {
       Array.from(container.querySelectorAll("clipPath"), (clip) => clip.id),
     ).toEqual(clipIds);
   });
+
+  it.each([
+    { name: "logicAnd", IconComponent: LogicAndIcon, filledDots: 0 },
+    { name: "logicOr", IconComponent: LogicOrIcon, filledDots: 0 },
+    { name: "logicNot", IconComponent: LogicNotIcon, filledDots: 0 },
+    { name: "logicImplies", IconComponent: LogicImpliesIcon, filledDots: 0 },
+    {
+      name: "logicEquivalent",
+      IconComponent: LogicEquivalentIcon,
+      filledDots: 0,
+    },
+    { name: "logicForAll", IconComponent: LogicForAllIcon, filledDots: 0 },
+    { name: "logicExists", IconComponent: LogicExistsIcon, filledDots: 0 },
+    { name: "logicNext", IconComponent: LogicNextIcon, filledDots: 1 },
+    { name: "logicUntil", IconComponent: LogicUntilIcon, filledDots: 1 },
+    {
+      name: "logicBranching",
+      IconComponent: LogicBranchingIcon,
+      filledDots: 1,
+    },
+    {
+      name: "logicInvariant",
+      IconComponent: LogicInvariantIcon,
+      filledDots: 0,
+    },
+    {
+      name: "logicCounterexample",
+      IconComponent: LogicCounterexampleIcon,
+      filledDots: 0,
+    },
+    {
+      name: "logicConstraint",
+      IconComponent: LogicConstraintIcon,
+      filledDots: 0,
+    },
+    {
+      name: "logicRobustness",
+      IconComponent: LogicRobustnessIcon,
+      filledDots: 0,
+    },
+  ] as const)(
+    "preserves the meaning of $name in both styles across the weight range",
+    ({ name, IconComponent, filledDots }) => {
+      expect(hashIconPack[name]).toBe(IconComponent);
+      for (const variant of ["outline", "filled"] as const) {
+        for (const weight of [100, 400, 700]) {
+          const { container, unmount } = render(
+            <IconComponent
+              variant={variant}
+              weight={weight}
+              aria-label={name}
+              motion="none"
+            />,
+          );
+          expect(
+            screen.getByRole("img", { name }).getAttribute("data-icon"),
+          ).toBe(name);
+          expect(
+            container.querySelector("svg")?.getAttribute("stroke-width"),
+          ).toBe(String(0.75 + weight / 400));
+          const shapes = container.querySelectorAll("path, circle");
+          expect(shapes.length).toBeGreaterThan(0);
+          let filled = 0;
+          for (const shape of shapes) {
+            const fill = shape.closest("[fill]")?.getAttribute("fill");
+            if (fill === "currentColor") {
+              expect(shape.tagName).toBe("circle");
+              filled++;
+            } else {
+              expect(fill).toBe("none");
+            }
+          }
+          expect(filled).toBe(filledDots);
+          unmount();
+        }
+      }
+    },
+  );
 
   it("renders every icon as a single 24 by 24 SVG", () => {
     for (const name of hashIconNames) {
@@ -904,6 +996,32 @@ describe("HashIcon motion", () => {
     unmount();
     expect(cancel).toHaveBeenCalledTimes(4);
   });
+
+  it.each(["outline", "filled"] as const)(
+    "sweeps %s Radar once and stops when reduced motion is requested",
+    (variant) => {
+      const { container } = render(
+        <HashIcon name="radar" variant={variant} effect="action" />,
+      );
+      const sweep = container.querySelector('[data-icon-detail="radar-sweep"]');
+      expect(sweep?.querySelector("path")).not.toBeNull();
+      expect(animate).toHaveBeenCalledTimes(1);
+      expect(animate.mock.contexts[0]).toBe(sweep);
+      expect(animate.mock.calls[0]).toEqual([
+        [
+          { transform: "rotate(0deg)", transformOrigin: "12px 12px" },
+          { transform: "rotate(360deg)", transformOrigin: "12px 12px" },
+        ],
+        expect.objectContaining({ iterations: 1, easing: "linear" }),
+      ]);
+      act(() => {
+        reducedMotion = true;
+        mediaListeners.forEach((listener) => listener());
+      });
+      expect(cancel).toHaveBeenCalledTimes(1);
+      expect(animate).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it("jumps on click without replacing the runner's independent gait", () => {
     const { container, unmount } = render(

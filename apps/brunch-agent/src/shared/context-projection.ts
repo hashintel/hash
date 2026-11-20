@@ -2,8 +2,10 @@ import {
   browserExecutedToolNames,
   browserToolEnvelopeOf,
   browserToolFacts,
+  brunchSignals,
   parsePetrinautUserMessageBody,
   petrinautContextualUserMessageBody,
+  withoutLedgerCommentsVersionLoad,
 } from "@hashintel/brunch-agent";
 
 import { netResultView } from "./conversation/net-view.ts";
@@ -132,6 +134,25 @@ const projectUserBody = (
   };
 };
 
+/** A comment turn's version load is host data as well; the model sees the comments. */
+const projectCommentSignal = (
+  entry: ContextProjectionEntry,
+): ContextProjectionEntry => {
+  const { message } = entry;
+  if (
+    message.role !== "signal" ||
+    message.type !== brunchSignals.ledgerComments ||
+    message.attributes === undefined
+  )
+    return entry;
+  const { attributes: _attributes, ...rest } = message;
+  const attributes = withoutLedgerCommentsVersionLoad(message.attributes);
+  return {
+    ...entry,
+    message: attributes === undefined ? rest : { ...rest, attributes },
+  };
+};
+
 export type BrunchContextProjectionOptions = {
   /** Receives exactly the canonical entries of the model's next request. */
   observe?: (entries: readonly ContextProjectionEntry[]) => void;
@@ -146,11 +167,19 @@ export const createBrunchContextProjection =
   (entries) => {
     options.observe?.(entries);
     const readBackIndex = readBackEntryIndex(entries);
-    return entries.map((entry, entryIndex) =>
-      entry.message.role === "user"
-        ? projectUserBody(entry)
-        : projectInBandBrowserResult(entry, entryIndex === readBackIndex),
-    );
+    return entries.map((entry, entryIndex) => {
+      switch (entry.message.role) {
+        case "user":
+          return projectUserBody(entry);
+        case "signal":
+          return projectCommentSignal(entry);
+        default:
+          return projectInBandBrowserResult(
+            entry,
+            entryIndex === readBackIndex,
+          );
+      }
+    });
   };
 
 export const projectBrunchContext = createBrunchContextProjection();

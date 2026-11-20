@@ -504,6 +504,12 @@ export type AcceptedKinds<ActionInputs, Input> = Input extends {
     : never;
 
 /**
+ * How much room a value typed for an input takes in the flow editor: `short` fits beside its label, `medium` is a few
+ * lines beside it, and `long` takes a line of its own.
+ */
+export type InputSize = "short" | "medium" | "long";
+
+/**
  * An action's input: the kinds it accepts, or the kind connected to another input (see `KindFrom`).
  */
 export type InputDefinition = {
@@ -512,6 +518,11 @@ export type InputDefinition = {
   array: boolean;
   required: boolean;
   default?: Payload;
+  /**
+   * How much room a value typed for it takes in the editor, where its kind doesn't settle that (see `getInputSize`).
+   * Only the editor reads it.
+   */
+  size?: InputSize;
 } & ({ oneOfPayloadKinds: readonly PayloadKind[] } | KindFrom);
 
 /**

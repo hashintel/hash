@@ -47,10 +47,14 @@ import {
   useAssistantPanel,
   useStoreSelector,
 } from "@hashintel/petrinaut/ui/plugin";
-import { FlueChatAdmissionError } from "@local/flue-aisdk-transport";
+import {
+  admissionOutcome,
+  FlueChatAdmissionError,
+} from "@local/flue-aisdk-transport";
 
 import { hashPetrinautPrimaryOperation } from "../../hash/petrinaut-tools";
 import { browserToolFacts } from "../../petrinaut/browser-executed-tools";
+import { withRequestInputMode } from "../../shared/request-input-mode";
 import { useTemporaryEditRefusal } from "../temporary-editor-compat";
 import {
   AiAssistantContents,
@@ -139,23 +143,29 @@ type RunnableStaticToolPart = Extract<
 > & { type: `tool-${string}` };
 
 /**
- * Names the completed client tool step that a follow-up would answer, by its
- * tool call IDs, or null when the messages do not end in one. A follow-up that
+ * The tool call IDs of the completed client tool step that a follow-up would
+ * answer, or null when the messages do not end in one. A follow-up that
  * writes nothing leaves the same step last, under the same IDs, whatever
  * message copy the SDK or a host now holds.
  */
-const completedToolStepOf = (messages: PetrinautAiMessage[]): string | null => {
+const completedToolCallIdsOf = (
+  messages: PetrinautAiMessage[],
+): string[] | null => {
   if (!lastAssistantMessageIsCompleteWithToolCalls({ messages })) return null;
   const parts = messages.at(-1)?.parts ?? [];
   const lastStepStart = parts.findLastIndex(
     (part) => part.type === "step-start",
   );
-  return JSON.stringify(
-    parts
-      .slice(lastStepStart + 1)
-      .filter(isToolUIPart)
-      .map((part) => part.toolCallId),
-  );
+  return parts
+    .slice(lastStepStart + 1)
+    .filter(isToolUIPart)
+    .map((part) => part.toolCallId);
+};
+
+/** Names the completed client tool step by its tool call IDs. */
+const completedToolStepOf = (messages: PetrinautAiMessage[]): string | null => {
+  const toolCallIds = completedToolCallIdsOf(messages);
+  return toolCallIds === null ? null : JSON.stringify(toolCallIds);
 };
 
 /**
@@ -173,6 +183,33 @@ const isReplyContent = (part: PetrinautAiMessagePart): boolean =>
 /** A message's parts as compared for new reply content. */
 const replyContentOf = (parts: PetrinautAiMessagePart[] = []): string =>
   JSON.stringify(parts.filter(isReplyContent));
+
+/**
+ * Whether the turn ended on the tool at `toolIndex`, with no later step, and
+ * the response it closes wrote reply text before it. That response starts
+ * after the tool step this panel last continued, or with the message. The
+ * server ends a turn on a Ledger commit by the same test: its history keeps
+ * one assistant message per turn, so a commit repaired after a refusal counts
+ * the reply written beside the refused one. Text written before a continued
+ * tool result or answer, or before a later step left empty, was a preamble.
+ */
+const repliedInClosingResponse = (
+  parts: PetrinautAiMessagePart[],
+  toolIndex: number,
+  continuedToolCallIds: readonly string[],
+): boolean => {
+  const responseStart =
+    parts.findLastIndex(
+      (part) =>
+        isToolUIPart(part) && continuedToolCallIds.includes(part.toolCallId),
+    ) + 1;
+  return (
+    !parts.slice(toolIndex + 1).some((part) => part.type === "step-start") &&
+    parts
+      .slice(responseStart, toolIndex)
+      .some((part) => part.type === "text" && isReplyContent(part))
+  );
+};
 
 /**
  * What a local ending note belongs to, by an identity followed history keeps.
@@ -554,18 +591,15 @@ interface AiAssistantPanelProps {
   aiAssistant: PetrinautAiAssistant;
   /** The Brunch plugin's `api`: the chat's only way into the editor. */
   api: AiAssistantEditorApi;
-  initialInteractionMode?: PetrinautAiInputMode | null;
+  /** Text from the empty-net prompt, sent as a typed message. */
   initialMessage?: string | null;
-  onInitialInteractionModeConsumed?: () => void;
   onInitialMessageConsumed?: () => void;
 }
 
 const ConversationAiAssistantPanel = ({
   aiAssistant,
   api,
-  initialInteractionMode,
   initialMessage,
-  onInitialInteractionModeConsumed,
   onInitialMessageConsumed,
 }: AiAssistantPanelProps) => {
   // The wrapped AI transport and language client read their latest host values
@@ -669,9 +703,6 @@ const ConversationAiAssistantPanel = ({
     wasOpenRef.current = isAiAssistantOpen;
   }, [isAiAssistantOpen]);
   const queuedVoiceInputRef = useRef<QueuedVoiceInput | null>(null);
-  const consumedInitialInteractionModeRef = useRef<PetrinautAiInputMode | null>(
-    null,
-  );
   const submittedInitialMessageRef = useRef<string | null>(null);
 
   const readDiagnosticsContext = useCallback(
@@ -695,13 +726,18 @@ const ConversationAiAssistantPanel = ({
       sendMessages: async (options) => {
         // The selection the text is about, so "this" in it names what was
         // selected: one captured when a spoken turn ended, else the selection
-        // as the user sends.
+        // as the user sends. Every send, automatic continuations included,
+        // carries the mode the panel holds as it sends.
         const stream = await hostTransportRef.current.sendMessages({
           ...options,
-          body: {
-            [selectionContextKey]: editorRef.current.navigation.get().selection,
-            ...options.body,
-          },
+          body: withRequestInputMode(
+            {
+              [selectionContextKey]:
+                editorRef.current.navigation.get().selection,
+              ...options.body,
+            },
+            interactionModeRef.current,
+          ),
         });
         // The host accepted the message, so a failure of its stream must not
         // offer the message for sending again.
@@ -749,6 +785,7 @@ const ConversationAiAssistantPanel = ({
   // rather than asking again.
   const continuedToolStepRef = useRef<{
     key: string;
+    toolCallIds: readonly string[];
     parts: string;
   } | null>(null);
   // Anchored to the tool result that went unanswered.
@@ -1365,6 +1402,7 @@ const ConversationAiAssistantPanel = ({
         // never observe the `ready` between this check and that request.
         continuedToolStepRef.current = {
           key: completedToolStep,
+          toolCallIds: completedToolCallIdsOf(currentMessages) ?? [],
           parts: replyContentOf(currentMessages.at(-1)?.parts),
         };
         return true;
@@ -1385,12 +1423,12 @@ const ConversationAiAssistantPanel = ({
       setStreamError(submissionError);
       const unadmittedUserMessageId = unadmittedUserMessageIdRef.current;
       unadmittedUserMessageIdRef.current = null;
-      // Only a definite refusal proves the message was never admitted. Any
+      // Only a failure that proves the message never arrived removes it. Any
       // other failure keeps it, since a retry reuses its delivery identity.
       if (
         unadmittedUserMessageId !== null &&
         chatError instanceof FlueChatAdmissionError &&
-        chatError.failure.kind === "rejected"
+        admissionOutcome(chatError.failure) === "not-admitted"
       ) {
         setMessages((currentMessages) =>
           currentMessages.filter(
@@ -1433,17 +1471,23 @@ const ConversationAiAssistantPanel = ({
         continuedToolStepRef.current !== null &&
         replyContentOf(finishedParts) === continuedToolStepRef.current.parts;
       // In-band tools continue on the server, not through sendAutomaticallyWhen.
-      // A clean finish with no reply content after their result has no reply.
-      const lastReplyPart = finishedMessages
-        .at(-1)
-        ?.parts.findLast(isReplyContent);
+      // A clean finish with no reply content after their result has no reply,
+      // unless the turn ended on the tool and the response it closes replied
+      // before it.
+      const lastReplyIndex = finishedParts.findLastIndex(isReplyContent);
+      const lastReplyPart = finishedParts[lastReplyIndex];
       const noReplyToServerToolStep =
         completedNormally &&
         lastReplyPart !== undefined &&
         isToolUIPart(lastReplyPart) &&
         lastReplyPart.providerExecuted === true &&
         (lastReplyPart.state === "output-available" ||
-          lastReplyPart.state === "output-error");
+          lastReplyPart.state === "output-error") &&
+        !repliedInClosingResponse(
+          finishedParts,
+          lastReplyIndex,
+          continuedToolStepRef.current?.toolCallIds ?? [],
+        );
       // A step that ended in client tool calls is followed automatically by
       // the SDK unless it was aborted or errored; that follow-up is still part
       // of this turn.
@@ -1606,6 +1650,7 @@ const ConversationAiAssistantPanel = ({
           ? null
           : {
               key: completedToolStep,
+              toolCallIds: completedToolCallIdsOf(messages) ?? [],
               parts: replyContentOf(messages.at(-1)?.parts),
             };
       void sendContinuation().catch((caught: unknown) => {
@@ -1984,15 +2029,16 @@ const ConversationAiAssistantPanel = ({
   // Hosts retain this callback across transport-driven rerenders, so its
   // identity is part of the public composer-control contract. The ref keeps
   // its implementation current without forcing host controls to resubscribe.
-  const submitText = useCallback(
+  const submitText = useCallback<PetrinautAiComposerSubmitText>(
     async ({
       id,
       source,
+      ledgerComments,
       target = "auto",
       preserveDraft = false,
       selection,
       text,
-    }: Parameters<PetrinautAiComposerSubmitText>[0]): Promise<PetrinautAiComposerSubmitTextResult> => {
+    }) => {
       const submissionText = source === "voice" ? text : text.trim();
       if (!submissionText.trim()) {
         const submissionError = new Error(
@@ -2025,7 +2071,9 @@ const ConversationAiAssistantPanel = ({
         toolCallId: string;
         toolName: string;
       }[] = [];
-      for (const message of target === "auto" ? currentMessages : []) {
+      for (const message of target === "auto" && !ledgerComments
+        ? currentMessages
+        : []) {
         // A failed response's unanswered calls will not get a result.
         if (message.metadata?.failed) continue;
         for (const part of message.parts) {
@@ -2160,7 +2208,14 @@ const ConversationAiAssistantPanel = ({
       await submitMessage(
         {
           id: messageId,
-          ...(source === "voice" ? { metadata: { source } } : {}),
+          ...(source === "voice" || ledgerComments
+            ? {
+                metadata: {
+                  ...(source === "voice" ? { source } : {}),
+                  ...(ledgerComments ? { ledgerComments } : {}),
+                },
+              }
+            : {}),
           parts: [{ text: submissionText, type: "text" }],
           role: "user",
         },
@@ -2403,38 +2458,6 @@ const ConversationAiAssistantPanel = ({
 
   useEffect(() => {
     if (
-      initialInteractionMode === undefined ||
-      initialInteractionMode === null
-    ) {
-      consumedInitialInteractionModeRef.current = null;
-      return;
-    }
-
-    if (
-      !isAiAssistantOpen ||
-      consumedInitialInteractionModeRef.current === initialInteractionMode
-    ) {
-      return;
-    }
-
-    const nextMode =
-      initialInteractionMode === "voice" &&
-      aiAssistant.renderVoiceMode === undefined
-        ? "text"
-        : initialInteractionMode;
-    selectInteractionMode(nextMode);
-    consumedInitialInteractionModeRef.current = initialInteractionMode;
-    onInitialInteractionModeConsumed?.();
-  }, [
-    aiAssistant.renderVoiceMode,
-    initialInteractionMode,
-    isAiAssistantOpen,
-    onInitialInteractionModeConsumed,
-    selectInteractionMode,
-  ]);
-
-  useEffect(() => {
-    if (
       interactionMode === "voice" &&
       aiAssistant.renderVoiceMode === undefined
     ) {
@@ -2465,11 +2488,15 @@ const ConversationAiAssistantPanel = ({
     setStoppedAnchor(null);
     stopRequestedRef.current = false;
 
+    // The prompt is typed, so the panel returns to text. An active Voice
+    // session still ends before the message goes.
+    selectInteractionMode("text");
     submitUserText(trimmedInitialMessage);
   }, [
     initialMessage,
     isAiAssistantOpen,
     onInitialMessageConsumed,
+    selectInteractionMode,
     submitUserText,
   ]);
 

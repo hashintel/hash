@@ -236,9 +236,7 @@ const renderTestPanel = ({
   aiAssistant,
   editorContext = editorContextValue,
   errorTracker = { captureException: () => {} },
-  initialInteractionMode,
   initialMessage,
-  onInitialInteractionModeConsumed,
   petriNetDefinition = emptySDCPN,
   strictMode = false,
   titleEditable,
@@ -254,9 +252,7 @@ const renderTestPanel = ({
   aiAssistant: PetrinautAiAssistant;
   editorContext?: EditorContextValue;
   errorTracker?: ErrorTracker;
-  initialInteractionMode?: PetrinautAiInputMode;
   initialMessage?: string;
-  onInitialInteractionModeConsumed?: () => void;
   petriNetDefinition?: SDCPN;
   strictMode?: boolean;
   titleEditable?: boolean;
@@ -299,7 +295,6 @@ const renderTestPanel = ({
   const renderPanel = (
     nextAiAssistant: PetrinautAiAssistant,
     nextEditorContext: EditorContextValue,
-    nextInitialInteractionMode = initialInteractionMode,
     nextInitialMessage = initialMessage,
   ) => (
     <NotificationsProvider>
@@ -311,9 +306,7 @@ const renderTestPanel = ({
         <AiAssistantPanel
           aiAssistant={{ documentHandle: handle, ...nextAiAssistant }}
           api={api}
-          initialInteractionMode={nextInitialInteractionMode}
           initialMessage={nextInitialMessage}
-          onInitialInteractionModeConsumed={onInitialInteractionModeConsumed}
         />
       </TestAssistantPanel>
     </NotificationsProvider>
@@ -330,17 +323,9 @@ const renderTestPanel = ({
       nextAiAssistant: PetrinautAiAssistant,
       nextEditorContext = editorContext,
     ) => rendered.rerender(renderPanel(nextAiAssistant, nextEditorContext)),
-    rerenderPanelWithInitialRequest: (
-      nextInitialInteractionMode: PetrinautAiInputMode,
-      nextInitialMessage: string,
-    ) =>
+    rerenderPanelWithInitialMessage: (nextInitialMessage: string) =>
       rendered.rerender(
-        renderPanel(
-          aiAssistant,
-          editorContext,
-          nextInitialInteractionMode,
-          nextInitialMessage,
-        ),
+        renderPanel(aiAssistant, editorContext, nextInitialMessage),
       ),
   };
 };
@@ -2112,17 +2097,11 @@ describe("AiAssistantPanel composer submissions", () => {
         sendMessages,
       },
     };
-    const rendered = renderTestPanel({
-      aiAssistant,
-      initialInteractionMode: "voice",
-      strictMode: true,
-    });
+    const rendered = renderTestPanel({ aiAssistant, strictMode: true });
+    fireEvent.click(screen.getByRole("button", { name: "Start voice mode" }));
     await screen.findByText("Voice mode voice");
 
-    rendered.rerenderPanelWithInitialRequest(
-      "text",
-      "Create the support workflow",
-    );
+    rendered.rerenderPanelWithInitialMessage("Create the support workflow");
 
     expect(events).toEqual(["end"]);
     expect(sendMessages).not.toHaveBeenCalled();
@@ -2133,6 +2112,124 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(events).toEqual(["end", "submit"]);
     expect(endVoice).toHaveBeenCalledOnce();
     expect(sendMessages).toHaveBeenCalledOnce();
+  });
+
+  test("sends each request with the panel's input mode at that moment", async () => {
+    const sentModes: unknown[] = [];
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(
+      ({ body }) => {
+        sentModes.push(
+          body !== undefined && "inputMode" in body ? body.inputMode : null,
+        );
+        return Promise.resolve(
+          streamChunks(
+            textChunks(`reply-${sentModes.length}`, "Typed text accepted"),
+          ),
+        );
+      },
+    );
+    const VoiceMode = ({
+      context,
+    }: {
+      context: PetrinautAiVoiceModeContext;
+    }) => {
+      const { submitText } = context;
+      return (
+        <>
+          <div>{`Voice mode ${context.inputMode}`}</div>
+          <button
+            type="button"
+            onClick={() => {
+              void submitText({ text: "Typed during Voice" });
+            }}
+          >
+            Type during Voice
+          </button>
+        </>
+      );
+    };
+    const rendered = renderTestPanel({
+      aiAssistant: {
+        renderVoiceMode: (context) => <VoiceMode context={context} />,
+        transport: {
+          reconnectToStream: () => Promise.resolve(null),
+          sendMessages,
+        },
+      },
+    });
+    // Voice is chosen but no session is active, as while it asks consent.
+    fireEvent.click(screen.getByRole("button", { name: "Start voice mode" }));
+    await screen.findByText("Voice mode voice");
+
+    // Text sent while Voice is chosen gets Voice's allowance.
+    fireEvent.click(screen.getByRole("button", { name: "Type during Voice" }));
+    await screen.findByText("Typed text accepted");
+    expect(sentModes).toEqual(["voice"]);
+
+    // The empty-net prompt returns the panel to text in the same pass that
+    // sends its message, and the request says so.
+    rendered.rerenderPanelWithInitialMessage("Model a queue");
+    await vi.waitFor(() => expect(sendMessages).toHaveBeenCalledTimes(2));
+    expect(sentModes).toEqual(["voice", "text"]);
+    expect(screen.getByText("Voice mode text")).not.toBeNull();
+  });
+
+  test("sends Voice input and its automatic follow-up with Voice's input mode", async () => {
+    const sentModes: unknown[] = [];
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(
+      ({ body }) => {
+        sentModes.push(
+          body !== undefined && "inputMode" in body ? body.inputMode : null,
+        );
+        if (sentModes.length === 1) {
+          // The reply calls a browser tool, so the panel sends its result in
+          // a follow-up of its own.
+          return Promise.resolve(
+            streamChunks([
+              { type: "start-step" },
+              {
+                type: "tool-input-available",
+                toolCallId: "voice-net-read",
+                toolName: getLatestNetDefinitionToolName,
+                input: {},
+              },
+              { type: "finish-step" },
+              { type: "finish", finishReason: "tool-calls" },
+            ]),
+          );
+        }
+        return Promise.resolve(
+          streamChunks(textChunks("voice-follow-up", "Voice turn complete")),
+        );
+      },
+    );
+    let latestVoiceContext: PetrinautAiVoiceModeContext | undefined;
+    renderTestPanel({
+      aiAssistant: {
+        renderVoiceMode: (context) => {
+          latestVoiceContext = context;
+          return <div>{`Voice mode ${context.inputMode}`}</div>;
+        },
+        transport: {
+          reconnectToStream: () => Promise.resolve(null),
+          sendMessages,
+        },
+      },
+      petriNetDefinition: nonEmptySDCPN,
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Start voice mode" }));
+    await screen.findByText("Voice mode voice");
+
+    await act(async () => {
+      await latestVoiceContext?.submitVoiceInput({
+        selection: [],
+        text: "Read the net",
+      });
+    });
+    await screen.findByText("Voice turn complete");
+
+    expect(sendMessages).toHaveBeenCalledTimes(2);
+    expect(sentModes).toEqual(["voice", "voice"]);
   });
 
   test("invalidates active Voice mode before submitting typed text exactly once", async () => {
@@ -3062,9 +3159,8 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(sendMessages).not.toHaveBeenCalled();
   });
 
-  test("opens initial Voice mode once the panel opens, then falls back to text", () => {
+  test("falls back to text when Voice becomes unavailable", () => {
     let latestInputMode = "text";
-    const onInitialInteractionModeConsumed = vi.fn();
     const aiAssistant: PetrinautAiAssistant = {
       renderVoiceMode: (context) => {
         latestInputMode = context.inputMode;
@@ -3075,32 +3171,9 @@ describe("AiAssistantPanel composer submissions", () => {
         sendMessages: vi.fn(),
       },
     };
-    const closedEditorContext = {
-      ...editorContextValue,
-      isAiAssistantOpen: false,
-    };
-    const rendered = renderTestPanel({
-      aiAssistant,
-      editorContext: closedEditorContext,
-      initialInteractionMode: "voice",
-      onInitialInteractionModeConsumed,
-    });
-
-    expect(latestInputMode).toBe("text");
-    expect(onInitialInteractionModeConsumed).not.toHaveBeenCalled();
-
-    rendered.rerenderPanel(aiAssistant, editorContextValue);
-
+    const rendered = renderTestPanel({ aiAssistant });
+    fireEvent.click(screen.getByRole("button", { name: "Start voice mode" }));
     expect(latestInputMode).toBe("voice");
-    expect(onInitialInteractionModeConsumed).toHaveBeenCalledOnce();
-    expect(screen.getByText("Voice mode")).not.toBeNull();
-    // Voice runs in the open panel: the composer and title bar stay.
-    expect(
-      screen.getByRole("textbox", { name: "Message AI assistant" }),
-    ).not.toBeNull();
-    expect(
-      screen.getByRole("button", { name: "Close AI assistant" }),
-    ).not.toBeNull();
 
     const unavailableAssistant: PetrinautAiAssistant = {
       transport: aiAssistant.transport,
@@ -3109,7 +3182,6 @@ describe("AiAssistantPanel composer submissions", () => {
 
     expect(screen.queryByText("Voice mode")).toBeNull();
     expect(screen.getByPlaceholderText("Continue iterating...")).not.toBeNull();
-    expect(onInitialInteractionModeConsumed).toHaveBeenCalledOnce();
   });
 
   test("ends Voice from its dock and leaves the panel open", async () => {
@@ -3170,8 +3242,8 @@ describe("AiAssistantPanel composer submissions", () => {
         ...editorContextValue,
         setAiAssistantOpen,
       },
-      initialInteractionMode: "voice",
     });
+    fireEvent.click(screen.getByRole("button", { name: "Start voice mode" }));
 
     const dock = await screen.findByRole("region", { name: "Voice session" });
     fireEvent.click(
@@ -4684,31 +4756,47 @@ describe("AiAssistantPanel composer submissions", () => {
     ).toEqual({ ...endedWithoutReply, noReplyNotices: 0 });
   });
 
-  /** One response in which the server runs a tool and then follows it up itself. */
+  /** A tool the server runs in band, and its result. */
+  const serverToolChunks = (
+    result:
+      | { type: "tool-output-available"; output: unknown }
+      | { type: "tool-output-error"; errorText: string } = {
+      type: "tool-output-available",
+      output: { places: 1 },
+    },
+  ): UIMessageChunk[] => [
+    {
+      type: "tool-input-available",
+      dynamic: true,
+      providerExecuted: true,
+      toolCallId: "outline-1",
+      toolName: "readNetOutline",
+      input: {},
+    },
+    {
+      ...result,
+      dynamic: true,
+      providerExecuted: true,
+      toolCallId: "outline-1",
+    },
+  ];
+
+  /**
+   * One response in which the server runs a tool and then follows it up
+   * itself. `toolStep` replaces the step that runs the tool.
+   */
   const runServerToolThenFollowUp = async (
     followUpChunks: UIMessageChunk[],
+    {
+      toolStep = [{ type: "start-step" }, ...serverToolChunks()],
+    }: { toolStep?: UIMessageChunk[] } = {},
   ) => {
     const observedStatuses: PetrinautAiComposerControlContext["status"][] = [];
     const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(() =>
       Promise.resolve(
         streamChunks([
           { type: "start", messageId: "server-tool-response" },
-          { type: "start-step" },
-          {
-            type: "tool-input-available",
-            dynamic: true,
-            providerExecuted: true,
-            toolCallId: "outline-1",
-            toolName: "readNetOutline",
-            input: {},
-          },
-          {
-            type: "tool-output-available",
-            dynamic: true,
-            providerExecuted: true,
-            toolCallId: "outline-1",
-            output: { places: 1 },
-          },
+          ...toolStep,
           { type: "finish-step" },
           ...followUpChunks,
           { type: "finish", finishReason: "stop" },
@@ -4832,6 +4920,225 @@ describe("AiAssistantPanel composer submissions", () => {
       ).toEqual({ ...serverEndedWithoutReply, noReplyNotices: 0 });
     },
   );
+
+  test.each([
+    ["a recorded result", undefined],
+    [
+      "an error",
+      { type: "tool-output-error", errorText: "The batch was refused." },
+    ],
+  ] as const)(
+    "does not show a missing-reply notice when reply text precedes a server tool that ends in %s",
+    async (_label, result) => {
+      expect(
+        await runServerToolThenFollowUp([], {
+          toolStep: [
+            ...textChunks("reply", "Recorded the reservoir."),
+            ...serverToolChunks(result),
+          ],
+        }),
+      ).toEqual({ ...serverEndedWithoutReply, noReplyNotices: 0 });
+      expect(screen.getByText("Recorded the reservoir.")).not.toBeNull();
+    },
+  );
+
+  // The server ends a turn on a repaired commit by the reply written beside
+  // the refused one, since its history keeps one assistant message per turn.
+  test("does not show a missing-reply notice when a repaired server tool ends a response that replied before the refused one", async () => {
+    expect(
+      await runServerToolThenFollowUp(
+        [
+          { type: "start-step" },
+          {
+            type: "tool-input-available",
+            dynamic: true,
+            providerExecuted: true,
+            toolCallId: "outline-2",
+            toolName: "readNetOutline",
+            input: {},
+          },
+          {
+            type: "tool-output-available",
+            dynamic: true,
+            providerExecuted: true,
+            toolCallId: "outline-2",
+            output: { places: 1 },
+          },
+        ],
+        {
+          toolStep: [
+            ...textChunks("reply", "Recorded the reservoir."),
+            ...serverToolChunks({
+              type: "tool-output-error",
+              errorText: "The batch was refused.",
+            }),
+          ],
+        },
+      ),
+    ).toEqual({ ...serverEndedWithoutReply, noReplyNotices: 0 });
+    expect(screen.getByText("Recorded the reservoir.")).not.toBeNull();
+  });
+
+  test("shows a missing-reply notice when the only reply text precedes a browser tool whose follow-up is empty", async () => {
+    expect(
+      await runBrowserToolThenFollowUp(
+        [{ type: "finish", finishReason: "stop" }],
+        {
+          toolStep: [
+            ...textChunks("preamble", "Checking the net"),
+            {
+              type: "tool-input-available",
+              toolCallId: "net-read-1",
+              toolName: getLatestNetDefinitionToolName,
+              input: {},
+            },
+            { type: "finish-step" },
+            { type: "finish", finishReason: "tool-calls" },
+          ],
+        },
+      ),
+    ).toEqual(endedWithoutReply);
+    expect(screen.getByText("Checking the net")).not.toBeNull();
+  });
+
+  test("shows a missing-reply notice when the only reply text precedes a server tool the server followed up with nothing", async () => {
+    expect(
+      await runServerToolThenFollowUp(
+        [
+          { type: "start-step" },
+          { type: "message-metadata", messageMetadata: {} },
+          { type: "finish-step" },
+        ],
+        {
+          toolStep: [
+            ...textChunks("preamble", "Outlining the net"),
+            ...serverToolChunks(),
+          ],
+        },
+      ),
+    ).toEqual(serverEndedWithoutReply);
+    expect(screen.getByText("Outlining the net")).not.toBeNull();
+  });
+
+  test("shows a missing-reply notice when the only reply text precedes an answered question and the follow-up ends on a server tool", async () => {
+    expect(
+      await runBrowserToolThenFollowUp(
+        [
+          { type: "start-step" },
+          ...serverToolChunks(),
+          { type: "finish-step" },
+          { type: "finish", finishReason: "stop" },
+        ],
+        {
+          toolStep: [
+            ...textChunks("preamble", "I can tidy the layout"),
+            {
+              type: "tool-input-available",
+              toolCallId: "layout-1",
+              toolName: "applyAutoLayout",
+              input: { askUserFirst: true },
+            },
+            { type: "finish-step" },
+            { type: "finish", finishReason: "tool-calls" },
+          ],
+          answerTool: async () => {
+            fireEvent.click(
+              await screen.findByRole("button", { name: "Deny" }),
+            );
+          },
+        },
+      ),
+    ).toEqual(endedWithoutReply);
+    expect(screen.getByText("I can tidy the layout")).not.toBeNull();
+  });
+
+  /**
+   * A turn whose later assistant message is a pending browser tool. The panel
+   * runs that tool and the scripted follow-up ends the turn on a server tool.
+   */
+  const runLaterServerTool = async (replyText: string | undefined) => {
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(() =>
+      Promise.resolve(
+        streamChunks([
+          { type: "start-step" },
+          ...serverToolChunks(),
+          { type: "finish-step" },
+          { type: "finish", finishReason: "stop" },
+        ]),
+      ),
+    );
+    const transport = {
+      reconnectToStream: async () => null,
+      sendMessages,
+    };
+    const host = {
+      automaticTools: [],
+      conversationId: "conversation-with-earlier-reply",
+      messages: [],
+      transport,
+    } satisfies PetrinautAiAssistant;
+    const { rerenderPanel } = renderTestPanel({
+      aiAssistant: host,
+      petriNetDefinition: nonEmptySDCPN,
+    });
+    const pendingTool: PetrinautAiMessage = {
+      id: "later-tool",
+      role: "assistant",
+      parts: [
+        {
+          type: "tool-getLatestNetDefinition",
+          state: "input-available",
+          toolCallId: "pending-net-read",
+          input: {},
+        },
+      ],
+    };
+    rerenderPanel({
+      ...host,
+      messages: [
+        {
+          id: "user-1",
+          role: "user",
+          parts: [{ type: "text", text: "The reservoir is slow." }],
+        },
+        ...(replyText === undefined
+          ? []
+          : [
+              {
+                id: "earlier-reply",
+                role: "assistant" as const,
+                parts: [{ type: "text" as const, text: replyText }],
+              },
+            ]),
+        pendingTool,
+      ],
+    });
+    await waitFor(() => expect(sendMessages).toHaveBeenCalledOnce());
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: "Stop AI response" }),
+      ).toBeNull(),
+    );
+    return {
+      noReplyNotices: screen.queryAllByText("No reply received").length,
+      requests: sendMessages.mock.calls.length,
+    };
+  };
+
+  test("shows a missing-reply notice when reply text came only before an earlier tool result", async () => {
+    expect(await runLaterServerTool("Recorded the reservoir.")).toEqual({
+      noReplyNotices: 1,
+      requests: 1,
+    });
+    expect(screen.getByText("Recorded the reservoir.")).not.toBeNull();
+  });
+
+  test("shows a missing-reply notice when a later message ends on a server tool and the turn has no reply text", async () => {
+    expect(await runLaterServerTool(undefined)).toEqual({
+      noReplyNotices: 1,
+      requests: 1,
+    });
+  });
 
   // A Flue reply whose live tool events arrive before its message starts
   // streams under a provisional ID, and history then names it canonically.

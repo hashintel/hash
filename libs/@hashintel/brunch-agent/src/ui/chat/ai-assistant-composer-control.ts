@@ -39,6 +39,11 @@ export type PetrinautAiComposerSubmitText = (params: {
   id?: string;
   /** Persist this finalized text as voice-origin input. */
   source?: "voice";
+  /**
+   * Send this text, a Ledger comments body, as a turn of comments. It never
+   * answers a pending tool.
+   */
+  ledgerComments?: true;
   /** Defaults to `auto`; use `message` for text that must not answer a pending tool. */
   target?: "auto" | "message";
   /** Keep the user's unsent composer text when reporting a background result. */

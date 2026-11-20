@@ -141,7 +141,16 @@ export const playIconAction = (
   for (const detail of details) {
     const part = detail.getAttribute("data-icon-detail") ?? "";
     const resting = getComputedStyle(detail).transform;
-    if (part === "runner") {
+    if (part === "radar-sweep") {
+      animate(
+        detail,
+        [
+          { transform: "rotate(0deg)", transformOrigin: "12px 12px" },
+          { transform: "rotate(360deg)", transformOrigin: "12px 12px" },
+        ],
+        "linear",
+      );
+    } else if (part === "runner") {
       animate(
         detail,
         [
