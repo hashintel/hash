@@ -15,7 +15,7 @@
  * MOCK: everything here. The Monthly supplier review's triggers are the editor panel's (`flowTriggersOf`); Onboard
  * new supplier and Weekly digest exist only on this page.
  */
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 
 import {
   BreadCrumbs,
@@ -38,6 +38,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { DatePopover } from "./date-picker";
 import { emptyDocument } from "./document";
 import { Table } from "./ds-parts/table";
+import { getFlow } from "./app-store";
 import { Select } from "./fill-select";
 import {
   clearPendingTriggerAdd,
@@ -45,6 +46,7 @@ import {
   pendingTriggerAdd,
 } from "./flow-triggers";
 import { HashShell } from "./hash-shell";
+import { InputControl, isFilled } from "./run-dialogs";
 import { firstLineIconStyle, tileMenu, tiledRowsStyle } from "./menu-rows";
 import { navigate } from "./router";
 import {
@@ -138,6 +140,8 @@ type Values = {
   label?: string;
   /** The optional name from the add and edit schedule form (FE-2322); the table still shows the schedule text. */
   name?: string;
+  /** The flow's input values, set when a schedule is created: nobody fills the run form for a scheduled run. */
+  flowInputs?: Record<string, unknown>;
   schedule?: ScheduleValues;
 };
 
@@ -1032,6 +1036,15 @@ const TriggerForm = ({
   const flow = flows.find((candidate) => candidate.id === values.flowId);
   const day = repeatDay(trigger);
   const defaultPage = defaultSchedulePage() && kind === "schedule";
+  const flowDocument = getFlow(values.flowId)?.document;
+  const flowInputDefinitions = defaultPage ? (flowDocument?.inputs ?? []) : [];
+  const missingInputs = flowInputDefinitions.filter(
+    (input) => input.required && !isFilled(values.flowInputs?.[input.name]),
+  );
+  const saveBlocked = missingInputs.length > 0;
+  const saveTooltip = saveBlocked
+    ? `Fill in ${missingInputs.map((input) => input.label ?? input.name).join(", ")}`
+    : undefined;
   const formTake = defaultPage ? "g1" : trigger ? null : scheduleFormTake();
   const [schedule, setSchedule] = useState<ScheduleValues | null>(() => {
     if (!formTake) {
@@ -1238,6 +1251,22 @@ const TriggerForm = ({
             />
           </>
         )}
+        {flowInputDefinitions.map((input) => (
+          <Fragment key={`${values.flowId}:${input.name}`}>
+            <span className="label">{input.label ?? input.name}</span>
+            <InputControl
+              input={input}
+              inputEntityTypes={flowDocument?.inputEntityTypes ?? {}}
+              value={values.flowInputs?.[input.name] ?? null}
+              onChange={(next) =>
+                setValues((current) => ({
+                  ...current,
+                  flowInputs: { ...current.flowInputs, [input.name]: next },
+                }))
+              }
+            />
+          </Fragment>
+        ))}
         {defaultPage && !trigger ? (
           <>
             <span />
@@ -1273,6 +1302,8 @@ const TriggerForm = ({
             size="sm"
             variant="solid"
             tone="neutral"
+            disabled={saveBlocked}
+            tooltip={saveTooltip}
             onClick={() => onSave(valuesToSave())}
           >
             {trigger ? "Save" : "Add trigger"}

@@ -40,19 +40,21 @@ const pickedStyle = css({
  * One form control per flow input, chosen by its kind, as the legacy run modal does with `flow-input-field.tsx`:
  * pickers for entities, number fields for numbers.
  */
-const InputControl = ({
+export const InputControl = ({
   input,
   value,
   onChange,
+  inputEntityTypes,
 }: {
   input: FlowInputDefinition;
   value: Value;
   onChange: (value: Value) => void;
+  /** The flow's `document.inputEntityTypes`. */
+  inputEntityTypes: Record<string, string>;
 }) => {
-  const { document } = useEditor();
   switch (input.payloadKind) {
     case "EntityId": {
-      const typeBaseUrl = document.inputEntityTypes[input.name];
+      const typeBaseUrl = inputEntityTypes[input.name];
       const items = mockEntities
         .filter(
           (entity) => !typeBaseUrl || entity.entityTypeBaseUrl === typeBaseUrl,
@@ -145,7 +147,7 @@ const InputControl = ({
   }
 };
 
-const isFilled = (value: Value | undefined) =>
+export const isFilled = (value: Value | undefined) =>
   Array.isArray(value)
     ? value.length > 0
     : value !== null && value !== undefined && value !== "";
@@ -247,6 +249,7 @@ export const RunForm = ({
             </span>
             <InputControl
               input={input}
+              inputEntityTypes={document.inputEntityTypes}
               value={values[input.name] ?? null}
               onChange={(value) =>
                 setValues((current) => ({
