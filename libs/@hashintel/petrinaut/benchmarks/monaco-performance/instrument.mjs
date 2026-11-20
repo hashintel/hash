@@ -47,8 +47,9 @@ export const instrument = () => {
   }
   // Which components rendered in each commit, which of them started it (those
   // that rendered while the component above them did not, so by their own
-  // state or by a context they read), and which providers handed out a new
-  // context value. React reports commits to this hook
+  // state or by a context they read), how many renders each starter brought
+  // with it below, and which providers handed out a new context value. React
+  // reports commits to this hook
   // when it is present at startup. Fibers carry timings only in React's
   // profiling bundle, so the list stays empty on the production build.
   const commits = [];
@@ -83,8 +84,14 @@ export const instrument = () => {
     onCommitFiberRoot(_id, root) {
       const rendered = new Map();
       const started = new Map();
+      const startedBelow = new Map();
       const newContextValues = new Map();
-      const visit = (fiber, componentAboveRendered, componentAbove) => {
+      const visit = (
+        fiber,
+        componentAboveRendered,
+        componentAbove,
+        starter,
+      ) => {
         for (let node = fiber; node; node = node.sibling) {
           // A fiber this commit left alone keeps its older start time.
           if (node.actualStartTime >= lastCommit) {
@@ -105,24 +112,40 @@ export const instrument = () => {
             // React keeps a fiber's flags as a bit field; 1 says it rendered.
             // oxlint-disable-next-line no-bitwise
             const didRender = (node.flags & 1) !== 0;
+            let starterHere = starter;
             if (name && didRender) {
               rendered.set(name, (rendered.get(name) ?? 0) + 1);
               if (!componentAboveRendered) {
                 started.set(name, (started.get(name) ?? 0) + 1);
+                starterHere = name;
               }
+              startedBelow.set(
+                starterHere,
+                (startedBelow.get(starterHere) ?? 0) + 1,
+              );
+            } else if (name) {
+              // A component that did not render ends the starter's reach.
+              starterHere = undefined;
             }
             visit(
               node.child,
               name ? didRender : componentAboveRendered,
               name ?? componentAbove,
+              starterHere,
             );
           }
         }
       };
-      visit(root.current, false, "the root");
+      visit(root.current, false, "the root", undefined);
       const time = performance.now();
       if (rendered.size > 0)
-        commits.push({ time, rendered, started, newContextValues });
+        commits.push({
+          time,
+          rendered,
+          started,
+          startedBelow,
+          newContextValues,
+        });
       lastCommit = time;
     },
   };
@@ -311,6 +334,9 @@ export const instrument = () => {
         renders: totalsOf("rendered", since),
         // The same for the components that started a commit's renders.
         renderStarts: totalsOf("started", since),
+        // The renders each starter brought with it: itself and all that
+        // rendered below it because it did.
+        rendersBelowStarters: totalsOf("startedBelow", since),
         // And for the providers that handed out a new context value.
         newContextValues: totalsOf("newContextValues", since),
         workers,

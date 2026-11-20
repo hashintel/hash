@@ -149,12 +149,13 @@ for (const label of rows[0]?.measurements.map((entry) => entry.label) ?? []) {
     const list = (title, pairs) =>
       console.log(
         `    ${title}: ${pairs
-          .slice(0, 14)
+          .slice(0, Number(args.top ?? 14))
           .map(([name, count]) => `${name} ${count}`)
           .join(", ")}`,
       );
     list("rendered", entries[0].renders);
     list("started by", entries[0].renderStarts);
+    list("renders below each starter", entries[0].rendersBelowStarters);
     list("new context values", entries[0].newContextValues);
   }
 }

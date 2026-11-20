@@ -88,6 +88,7 @@ export const observe = async (page, session, label, action, settle = 350) => {
     ),
     renders: snapshot.renders.slice(0, 40),
     renderStarts: snapshot.renderStarts.slice(0, 40),
+    rendersBelowStarters: snapshot.rendersBelowStarters.slice(0, 40),
     newContextValues: snapshot.newContextValues,
   };
 };
