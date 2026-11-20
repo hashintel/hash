@@ -1,6 +1,6 @@
-import { use, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 
-import { UserSettingsContext } from "./user-settings-context";
+import { useUserSettingsFields } from "./user-settings-context";
 
 import type {
   BottomPanelTab,
@@ -27,7 +27,13 @@ export const useSyncEditorToSettings = (values: {
     setIsBottomPanelOpen,
     setActiveBottomPanelTab,
     setTimelineChartType,
-  } = use(UserSettingsContext);
+  } = useUserSettingsFields(
+    "setCursorMode",
+    "setIsLeftSidebarOpen",
+    "setIsBottomPanelOpen",
+    "setActiveBottomPanelTab",
+    "setTimelineChartType",
+  );
 
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const mountedRef = useRef(false);

@@ -29,12 +29,18 @@ import { PanelPresenceProvider } from "./panel-presence-provider";
 import { ReadOnlyReasonProvider } from "./read-only-reason-provider";
 import { useComposesOnly } from "./use-composes-only";
 import { useSyncEditorToSettings } from "./use-sync-editor-to-settings";
-import { UserSettingsContext } from "./user-settings-context";
+import { useUserSettingsFields } from "./user-settings-context";
 
 export type EditorProviderProps = React.PropsWithChildren;
 
 export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
-  const userSettings = use(UserSettingsContext);
+  const userSettings = useUserSettingsFields(
+    "cursorMode",
+    "isLeftSidebarOpen",
+    "isBottomPanelOpen",
+    "activeBottomPanelTab",
+    "timelineChartType",
+  );
   const composesOnly = useComposesOnly();
   const actualMode = use(ActualModeContext);
   const { navigate, state: location } = usePetrinautNavigation();
@@ -137,7 +143,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       <EditorPublishedContext value={published}>
         <EditorContext.Provider value={contextValue}>
           <EditorActionsContext value={actions}>
-            <ReadOnlyReasonProvider>
+            <ReadOnlyReasonProvider globalMode={effectiveState.globalMode}>
               <PanelPresenceProvider>{children}</PanelPresenceProvider>
             </ReadOnlyReasonProvider>
           </EditorActionsContext>

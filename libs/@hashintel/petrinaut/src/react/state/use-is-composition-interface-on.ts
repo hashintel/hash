@@ -2,7 +2,7 @@ import { use } from "react";
 
 import { SDCPNContext } from "./sdcpn-context";
 import { useComposesOnly } from "./use-composes-only";
-import { UserSettingsContext } from "./user-settings-context";
+import { useUserSettings } from "./user-settings-context";
 
 /**
  * Whether the composition interface is on: the Nets panel, the component
@@ -16,7 +16,9 @@ import { UserSettingsContext } from "./user-settings-context";
  */
 export const useIsCompositionInterfaceOn = (): boolean => {
   const { extensions } = use(SDCPNContext);
-  const { enableNetComponents } = use(UserSettingsContext);
+  const enableNetComponents = useUserSettings(
+    (settings) => settings.enableNetComponents,
+  );
   const composesOnly = useComposesOnly();
 
   return extensions.components && (enableNetComponents || composesOnly);

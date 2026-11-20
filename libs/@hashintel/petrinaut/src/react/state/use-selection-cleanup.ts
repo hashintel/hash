@@ -8,7 +8,7 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { ActiveNetContext } from "./active-net-context";
-import { EditorContext } from "./editor-context";
+import { useEditorFields } from "./editor-context";
 import { SDCPNContext } from "./sdcpn-context";
 
 /**
@@ -18,7 +18,12 @@ export function useSelectionCleanup() {
   const { activeNet } = use(ActiveNetContext);
   const { extensions } = use(SDCPNContext);
   const { selection, setSelection, hoveredItem, clearHoveredItem } =
-    use(EditorContext);
+    useEditorFields(
+      "selection",
+      "setSelection",
+      "hoveredItem",
+      "clearHoveredItem",
+    );
 
   useEffect(() => {
     if (selection.size === 0 && !hoveredItem) {

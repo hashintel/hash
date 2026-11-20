@@ -1,7 +1,5 @@
-import { use } from "react";
-
 import {
-  EditorContext,
+  useEditorActions,
   type SimulateDrawerState,
   type SimulateViewMode,
 } from "../state/editor-context";
@@ -41,9 +39,7 @@ const simulateDrawerFor = (
 export const useRevealInEditor = (): ((
   target: PetrinautRevealTarget,
 ) => void) => {
-  // It calls no hook but `use`, which `infer` mode would skip.
-  "use memo";
-  const { navigateTo, selectItem } = use(EditorContext);
+  const { navigateTo, selectItem } = useEditorActions();
 
   return (target) => {
     if (target.kind === "selection") {

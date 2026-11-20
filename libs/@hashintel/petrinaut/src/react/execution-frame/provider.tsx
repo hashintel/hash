@@ -15,7 +15,7 @@ import { ActualModeContext } from "../actual-mode-context";
 import { EventPlaybackContext } from "../event-playback/context";
 import { useEventPlaybackFrame } from "../event-playback/use-event-playback-frame";
 import { SimulationContext } from "../simulation/context";
-import { EditorContext } from "../state/editor-context";
+import { useEditorState } from "../state/editor-context";
 import { SDCPNContext } from "../state/sdcpn-context";
 import { useStore } from "../use-store";
 import {
@@ -171,7 +171,7 @@ export const useActualExecutionFrameSource = (params: {
  * swaps the value without remounting the subtree.
  */
 export const ExecutionFrameProvider: FC<PropsWithChildren> = ({ children }) => {
-  const { globalMode } = use(EditorContext);
+  const globalMode = useEditorState((editor) => editor.globalMode);
   const isActualMode = globalMode === "actual";
   const eventSource = useEventExecutionFrameSource();
   const actualSource = useActualExecutionFrameSource({
