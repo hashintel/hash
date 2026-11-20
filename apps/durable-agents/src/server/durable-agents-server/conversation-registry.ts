@@ -97,10 +97,16 @@ export type ConversationLimits = {
   readonly crashLoopRestarts: number;
   /** The process's model request slots. */
   readonly requestSlots: RequestSlots;
-  /** Each conversation as it opens, with what its guard aborted, if anything. */
-  readonly onOpen?: (
+  /** Each conversation once it has opened. */
+  readonly onOpen?: (conversationId: string) => void;
+  /**
+   * What an open's crash-loop guard aborted, as soon as the guard returns,
+   * so an open that fails after it still reports it: once per abort this
+   * process performs.
+   */
+  readonly onCrashLoop?: (
     conversationId: string,
-    crashLoop: CrashLoopAbort | undefined,
+    crashLoop: CrashLoopAbort,
   ) => void;
 };
 
@@ -283,6 +289,8 @@ export const createConversationRegistry = (
         limits.crashLoopRestarts,
         context,
       );
+      if (crashLoop !== undefined)
+        limits.onCrashLoop?.(conversationId, crashLoop);
       // Only the request opening this owner gets the input it is about to resume.
       if (onRecoveringInput !== undefined) {
         const live = await harness.snapshot(LiveDoc, root.id, context);
@@ -304,7 +312,7 @@ export const createConversationRegistry = (
       });
       // Continue whatever run the conversation's previous owner left unfinished.
       harness.resume();
-      limits.onOpen?.(conversationId, crashLoop);
+      limits.onOpen?.(conversationId);
       return entry;
     } catch (error) {
       await harness.close(context).catch(() => {});

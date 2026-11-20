@@ -125,7 +125,10 @@ export type DurableAgentsServerOptions = ConversationRegistryOptions & {
   ) => Promise<ChatRefusal | undefined>;
   /** Any of the limits, over `defaultServerLimits`. */
   readonly limits?: Partial<DurableAgentsServerLimits>;
-  /** Told when opening a conversation aborted its work for a crash loop. */
+  /**
+   * Told once per crash-loop abort this process performs, as soon as the
+   * guard has aborted, even when the rest of that open fails.
+   */
   readonly onCrashLoop?: (
     conversationId: string,
     tasks: readonly CrashLoopingTask[],
@@ -229,11 +232,9 @@ export const createDurableAgentsServer = (
       maxTurns: limits.maxTurns,
       crashLoopRestarts: limits.crashLoopRestarts,
       requestSlots,
-      onOpen: (conversationId, crashLoop) => {
-        turns.opened(conversationId);
-        if (crashLoop !== undefined)
-          options.onCrashLoop?.(conversationId, crashLoop.tasks);
-      },
+      onOpen: (conversationId) => turns.opened(conversationId),
+      onCrashLoop: (conversationId, { tasks }) =>
+        options.onCrashLoop?.(conversationId, tasks),
     },
     context,
   );

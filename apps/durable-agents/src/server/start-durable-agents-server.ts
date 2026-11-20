@@ -83,7 +83,12 @@ export type StartDurableAgentsServerOptions = {
   readonly settings?: HarnessOptions["settings"];
   /** Any of the limits, over the environment's (`limitsFromEnvironment`). */
   readonly limits?: Partial<DurableAgentsServerLimits>;
-  /** Told when opening a conversation aborted its work for a crash loop. */
+  /**
+   * Told once per crash-loop abort this process performs, as soon as the
+   * guard has aborted, even when the rest of that open fails. A process that
+   * dies between the guard's commit and this report never tells it; the
+   * conversation's `CrashLoopEntry` is the durable record.
+   */
   readonly onCrashLoop?: DurableAgentsServerOptions["onCrashLoop"];
   /** Told each of Pi Durable's reports, with the conversation whose Harness made it. */
   readonly onReport?: DurableAgentsServerOptions["onReport"];
