@@ -47,8 +47,9 @@ export function useKeyboardShortcuts() {
   const mutationRefusal = useMutationRefusal();
   const isReadonly = useIsReadOnly();
   const composesOnly = useComposesOnly();
-  // Undo stays available in Simulate mode, as the palette's Undo is: only a
-  // read-only document has nothing to undo.
+  // Only a document the host made read-only has nothing to undo: Actual mode
+  // and an active simulation keep it. Simulate mode hides the bar, and this
+  // binding with it.
   const undoBlocked = useReadOnlyReason()?.kind === "host-readonly";
   const notifyReadOnly = useReadOnlyFeedback();
 

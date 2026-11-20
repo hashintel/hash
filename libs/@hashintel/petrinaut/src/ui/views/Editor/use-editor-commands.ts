@@ -12,8 +12,7 @@ import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 import { autoLayoutShortcut } from "./shared/use-auto-layout-and-frame";
 
 /**
- * The editor's palette commands. A no-op unless the host mounted a
- * `CommandRegistryProvider`. The `shortcut` strings are display metadata;
+ * The editor's palette commands. The `shortcut` strings are display metadata;
  * the keyboard handler still binds the keys.
  */
 const useEditorCommands = ({
