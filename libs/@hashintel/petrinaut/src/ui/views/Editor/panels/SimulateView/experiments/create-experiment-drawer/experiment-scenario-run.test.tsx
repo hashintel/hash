@@ -15,7 +15,7 @@ import { lowerScenarioToHir } from "@hashintel/petrinaut-core/hir";
 import {
   DEFAULT_LANGUAGE_CLIENT_CONTEXT,
   LanguageClientContext,
-} from "../../../../../../react/lsp/context";
+} from "../../../../../../../react/lsp/context";
 import { ExperimentScenarioRun } from "./experiment-scenario-run";
 
 import type {
@@ -24,7 +24,7 @@ import type {
 } from "@hashintel/petrinaut-core";
 
 // Monaco cannot run in jsdom; the expression editor becomes a plain textarea.
-vi.mock("../../../../../monaco/code-editor", () => ({
+vi.mock("../../../../../../monaco/code-editor", () => ({
   CodeEditor: ({ value }: { value?: string }) => (
     <textarea aria-label="Expression" defaultValue={value ?? ""} />
   ),

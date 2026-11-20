@@ -5,12 +5,12 @@ import { EMPTY_AD_HOC_STATE } from "@hashintel/petrinaut-core";
 import { AdHocScenarioForm } from "../../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
 import { Section } from "../../../../../../components/section";
 import { FocusControls } from "../../../../../../worksheet/focus-controls";
-import { ExperimentScenarioRun } from "../experiment-scenario-run";
+import { ExperimentScenarioRun } from "./experiment-scenario-run";
 import { fieldStyle } from "./form-field-styles";
 import { NO_SCENARIO_VALUE } from "./scenario-selection";
 
 import type { ExperimentParameterInput } from "../../../../../../../react/experiments/parameter-grid";
-import type { ScenarioRunInput } from "../experiment-scenario-inputs";
+import type { ScenarioRunInput } from "./experiment-scenario-inputs";
 import type { SweepSummary } from "./sweep-summary";
 import type {
   AdHocScenarioState,

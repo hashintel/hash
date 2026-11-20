@@ -13,7 +13,7 @@ import {
   synthesizeAdHocOptimization,
 } from "@hashintel/petrinaut-core";
 
-import type { ExperimentParameterInput } from "../../../../../../react/experiments/parameter-grid";
+import type { ExperimentParameterInput } from "../../../../../../../react/experiments/parameter-grid";
 import type {
   AdHocScenarioState,
   AdHocSynthesisContext,

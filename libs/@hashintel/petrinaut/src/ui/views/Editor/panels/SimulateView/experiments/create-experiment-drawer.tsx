@@ -23,6 +23,7 @@ import {
 } from "./create-experiment-drawer/constraint-drafts";
 import { summarizeConstraintLspErrors } from "./create-experiment-drawer/constraint-lsp";
 import { ConstraintsSection } from "./create-experiment-drawer/constraints-section";
+import { getExperimentMetricDiagnosticError } from "./create-experiment-drawer/experiment-metric-lsp-validation";
 import { ExperimentSection } from "./create-experiment-drawer/experiment-section";
 import {
   EMPTY_EXPERIMENT_SIMULATOR,
@@ -44,7 +45,6 @@ import { resolveScenarioSelection } from "./create-experiment-drawer/scenario-se
 import { describeSweep } from "./create-experiment-drawer/sweep-summary";
 import { useExperimentSimulator } from "./create-experiment-drawer/use-experiment-simulator";
 import { useCreateOptimizedExperiment } from "./create-optimized-experiment";
-import { getExperimentMetricDiagnosticError } from "./experiment-metric-lsp-validation";
 import {
   EMPTY_SWEEP_OBJECTIVE,
   resolveObjectiveMetricId,
@@ -55,7 +55,7 @@ import { SWEEP_OPTIMIZATION_RUNS_PER_STEP } from "./sweep-optimizer";
 
 import type { ExperimentMetricSpecInput } from "../../../../../../react/experiments/context";
 import type { ExperimentParameterInput } from "../../../../../../react/experiments/parameter-grid";
-import type { ScenarioRunInput } from "./experiment-scenario-inputs";
+import type { ScenarioRunInput } from "./create-experiment-drawer/experiment-scenario-inputs";
 import type { AdHocScenarioState, Scenario } from "@hashintel/petrinaut-core";
 
 // -- Styles -------------------------------------------------------------------

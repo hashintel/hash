@@ -18,19 +18,19 @@ import {
   createUserKeyedRecord,
 } from "@hashintel/petrinaut-core";
 
-import { useScenarioHir } from "../../../../../../react/simulation/use-scenario-hir";
+import { useScenarioHir } from "../../../../../../../react/simulation/use-scenario-hir";
 import {
   AdHocScenarioForm,
   FormLayoutColumn,
   FormSectionHeader,
-} from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
-import { OverlayScrollArea } from "../../../../../components/overlay-scroll-area";
-import { Section } from "../../../../../components/section";
-import { StackedSections } from "../../../../../components/stacked-sections";
-import { scenarioExpressions } from "../../../../shared/scenario-expressions";
+} from "../../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
+import { OverlayScrollArea } from "../../../../../../components/overlay-scroll-area";
+import { Section } from "../../../../../../components/section";
+import { StackedSections } from "../../../../../../components/stacked-sections";
+import { scenarioExpressions } from "../../../../../shared/scenario-expressions";
 import { scenarioRunInputs } from "./experiment-scenario-inputs";
 
-import type { ExperimentParameterInput } from "../../../../../../react/experiments/parameter-grid";
+import type { ExperimentParameterInput } from "../../../../../../../react/experiments/parameter-grid";
 import type { ScenarioRunInput } from "./experiment-scenario-inputs";
 import type {
   AdHocScenarioState,
