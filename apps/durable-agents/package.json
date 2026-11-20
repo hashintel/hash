@@ -8,7 +8,7 @@
   "scripts": {
     "fix:eslint": "oxlint --fix --type-aware --type-check --report-unused-disable-directives-severity=error .",
     "lint:eslint": "oxlint --type-aware --type-check --report-unused-disable-directives-severity=error .",
-    "lint:tsc": "tsgo --noEmit",
+    "lint:tsc": "tsgo --noEmit && tsgo --noEmit --project test/panel",
     "probe:async-browser-call": "tsx test/browser-call/async-probe.ts",
     "probe:hash-session": "tsx test/probe/hash-session/h0a.ts",
     "probe:load": "tsx test/load/probe.ts",

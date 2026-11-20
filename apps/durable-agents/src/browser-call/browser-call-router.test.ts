@@ -482,7 +482,7 @@ describe("browser-call router", () => {
     ]);
     expect(
       await Promise.all(
-        responses.map(async (response) => [
+        responses.map(async (response): Promise<[number, unknown]> => [
           response.status,
           await response.json(),
         ]),

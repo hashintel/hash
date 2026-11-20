@@ -113,9 +113,11 @@ const bindingOf = (
   });
   if (!parsed.success || parsed.output === undefined) return "invalid";
   const { binding } = parsed.output;
-  return Object.values(binding).every(
-    (id) => id === undefined || id.length <= maxBindingIdLength,
-  )
+  return [
+    binding.conversationId,
+    binding.documentId,
+    binding.incarnationId,
+  ].every((id) => id === undefined || id.length <= maxBindingIdLength)
     ? binding
     : "invalid";
 };
