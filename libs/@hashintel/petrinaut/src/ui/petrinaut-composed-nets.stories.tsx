@@ -16,6 +16,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const PlaceFusion: Story = {
+  name: "Place fusion",
   args: { initialTitle: "Fused line", initialDefinition: fusedLineNet },
 };
 
@@ -27,5 +28,6 @@ export const Interfaces: Story = {
 };
 
 export const ManyPorts: Story = {
+  name: "Many ports",
   args: { initialTitle: "Assembly cell", initialDefinition: manyPortsNet },
 };

@@ -41,6 +41,7 @@ export const ReadOnly: Story = {
 };
 
 export const NetManagementHidden: Story = {
+  name: "Net management hidden",
   args: { ...sir, hideNetManagementControls: "all" },
 };
 
@@ -49,6 +50,7 @@ export const NetManagementHidden: Story = {
  * `capabilities` in the controls to switch extensions back on.
  */
 export const ExtensionsDisabled: Story = {
+  name: "Extensions disabled",
   args: {
     initialTitle: "Bare Petri net",
     initialDefinition: barePetriNet,
@@ -100,6 +102,7 @@ export const StochasticTimingOnly: Story = {
 
 /** A net with colours and dynamics on a handle that supports neither: their data is kept, and hidden. */
 export const ExtensionsDisabledOverTheirData: Story = {
+  name: "Extensions disabled over their data",
   args: {
     ...sir,
     hideNetManagementControls: "all",
@@ -145,6 +148,7 @@ const logisticsOnly = [logisticsLibrary.id];
  * Components setting says.
  */
 export const CompositionOnly: Story = {
+  name: "Composition only",
   args: {
     initialTitle: "Composed line",
     hideNetManagementControls: "all",
@@ -159,6 +163,7 @@ export const CompositionOnly: Story = {
  * User settings, open here on Plugins, lists it as failed.
  */
 export const PluginFails: Story = {
+  name: "Plugin fails",
   args: {
     ...sir,
     plugins: pluginsWithOneBroken,
