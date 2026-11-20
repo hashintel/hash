@@ -374,29 +374,17 @@ describe("buildDependentCounts", () => {
 });
 
 describe("fuzzyMatchName", () => {
-  it("matches a subsequence case-insensitively and returns its indices", () => {
-    expect(fuzzyMatchName("rwm", "RawMaterial")).toEqual([0, 2, 3]);
-  });
-
-  it("ignores whitespace in the query", () => {
-    expect(fuzzyMatchName("raw mat", "RawMaterial")).toEqual([
-      0, 1, 2, 3, 4, 5,
-    ]);
-  });
-
-  it("returns null when a character has no match after the previous one", () => {
-    expect(fuzzyMatchName("lam", "Material")).toBeNull();
-  });
-
-  it("returns indices into the original string when lowercasing changes its length", () => {
-    // "İ".toLowerCase() is two code units; the indices must still point into
-    // the original string.
-    expect(fuzzyMatchName("stan", "İstanbul")).toEqual([1, 2, 3, 4]);
-  });
-
-  it("matches a query character whose lowercase form expands", () => {
+  it.each([
+    ["a subsequence, whatever its case", "rwm", "RawMaterial", [0, 2, 3]],
+    ["past query whitespace", "raw mat", "RawMaterial", [0, 1, 2, 3, 4, 5]],
+    ["nothing out of order", "lam", "Material", null],
+    // "İ".toLowerCase() is two code units; the indices must still point
+    // into the original string.
+    ["by indices into the original string", "stan", "İstanbul", [1, 2, 3, 4]],
     // Lowercasing the whole query up front would split "İ" into "i" + a
     // combining dot and fail on the second step.
-    expect(fuzzyMatchName("İst", "İstanbul")).toEqual([0, 1, 2]);
+    ["a query character whose lowercase expands", "İst", "İstanbul", [0, 1, 2]],
+  ])("matches %s", (_title, query, name, indices) => {
+    expect(fuzzyMatchName(query, name)).toEqual(indices);
   });
 });
