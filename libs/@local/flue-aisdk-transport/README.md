@@ -5,7 +5,7 @@ Connects an AI SDK chat UI (`useChat` and its `ChatTransport`) to a Flue agent c
 ## Entries
 
 - `@local/flue-aisdk-transport` (browser-safe): `createFlueAiSdkAdapter` binds one host's projection of Flue conversations into the AI SDK. Its `chatTransport` admits one user turn per submission and streams it as AI SDK UI chunks; its `reopen` rebuilds the same messages from stored Flue history. `createFlueUiStream` is the live projector underneath.
-- `@local/flue-aisdk-transport/server`: the live tool-input side channel. Flue's conversation stream carries only settled tool inputs, so `createLiveToolObserver` watches runtime observations, `createLiveToolBroadcaster` fans them out per submission, and `liveToolResponse` serves them as SSE. The client reads `<conversation URL>/<liveToolRouteSegment>?submissionId=<id>`; the host serves `liveToolResponse` at that route, behind the conversation's own authorization.
+- `@local/flue-aisdk-transport/server`: the live tool-input side channel. Flue's conversation stream carries only settled tool inputs, so `createLiveToolObserver` watches runtime observations, `createLiveToolBroadcaster` fans them out per submission, and `liveToolResponse` serves them as SSE. The client reads `<conversation URL>/<liveToolRouteSegment>?submissionId=<id>`; the host serves `liveToolResponse` at that route, behind the conversation's own authorization. The response writes an SSE comment after 30 s without an event, so a proxy that closes silent responses (Cloudflare does after 125 s) keeps it open while the model works without calling a tool; the reader skips comments.
 
 ## Host contract
 
