@@ -9,8 +9,11 @@ use hash_integrations_definition::SourceName;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-pub(crate) use self::record::RunRecord;
-pub use self::start::{StartError, StartInput, start};
+pub(crate) use self::record::{Failure, RunRecord};
+pub use self::{
+    record::Stage,
+    start::{StartError, StartInput, start},
+};
 use crate::storage::{CasVersion, Storage};
 
 /// Identifies one run of an integration.
