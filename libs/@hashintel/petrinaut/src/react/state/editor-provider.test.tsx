@@ -253,6 +253,42 @@ describe("EditorProvider readers of one part", () => {
     expect(renders()).toMatchObject({ mode: 1, fields: 1, readOnly: 1 });
     view.unmount();
   });
+
+  it("keeps the selection through a document edit that leaves it alone", () => {
+    let editor: EditorContextValue;
+    const editorProvider = (
+      <EditorProvider>
+        <EditorContextGrabber
+          onContextValue={(value) => {
+            editor = value;
+          }}
+        />
+      </EditorProvider>
+    );
+    // As `SDCPNProvider` gives it: a new `getItemType` with each definition.
+    const document = () => (
+      <SDCPNContext value={makeSdcpnContextValue(() => "place")}>
+        {editorProvider}
+      </SDCPNContext>
+    );
+    const view = render(document(), {
+      wrapper: ({ children }) => (
+        <TestHost
+          recorded={[]}
+          initialState={{ selection: [{ type: "place", id: "place-1" }] }}
+        >
+          {children}
+        </TestHost>
+      ),
+    });
+    const { selection } = editor!;
+    expect(selection.has("place-1")).toBe(true);
+
+    view.rerender(document());
+
+    expect(editor!.selection).toBe(selection);
+    view.unmount();
+  });
 });
 
 describe("EditorProvider selection gestures", () => {

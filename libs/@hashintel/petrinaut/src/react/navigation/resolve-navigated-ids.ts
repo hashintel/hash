@@ -45,8 +45,8 @@ type NavigatedItems = Pick<
 
 /**
  * The location's Simulate resource and selection with the ids the document
- * holds, without what it lacks. Items that resolve as written keep their
- * identity, so an unchanged location compares equal item by item.
+ * holds, without what it lacks. What resolves as written keeps its identity:
+ * the resource, each item, and the selection whose items all do.
  */
 export const resolveNavigatedItems = (
   location: NavigatedItems,
@@ -54,6 +54,9 @@ export const resolveNavigatedItems = (
   getItemType: (id: string) => string | null,
 ): NavigatedItems => {
   const resource = location.simulateResource;
+  const selection = location.selection.flatMap(
+    (item) => resolveSelectionItem(item, getItemType) ?? [],
+  );
   const resourceId =
     resource?.type === "scenario"
       ? resolveNavigatedId(definition.scenarios, resource.id)
@@ -68,8 +71,10 @@ export const resolveNavigatedItems = (
         : resourceId === resource.id
           ? resource
           : { ...resource, id: resourceId },
-    selection: location.selection.flatMap(
-      (item) => resolveSelectionItem(item, getItemType) ?? [],
-    ),
+    selection:
+      selection.length === location.selection.length &&
+      selection.every((item, index) => item === location.selection[index])
+        ? location.selection
+        : selection,
   };
 };

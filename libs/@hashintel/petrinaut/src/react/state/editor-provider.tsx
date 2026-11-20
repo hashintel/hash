@@ -7,7 +7,6 @@ import {
   simulateDrawerToNavigationResource,
   usePetrinautNavigation,
 } from "../navigation";
-import { resolveNavigatedItems } from "../navigation/resolve-navigated-ids";
 import { usePublished } from "../select-from-context";
 import {
   type AssistantPlacement,
@@ -23,9 +22,9 @@ import {
   type EditorState,
   initialEditorState,
 } from "./editor-context";
+import { useResolvedLocation } from "./editor-provider/use-resolved-location";
 import { PanelPresenceProvider } from "./panel-presence-provider";
 import { ReadOnlyReasonProvider } from "./read-only-reason-provider";
-import { SDCPNContext } from "./sdcpn-context";
 import { useComposesOnly } from "./use-composes-only";
 import { useSyncEditorToSettings } from "./use-sync-editor-to-settings";
 import { UserSettingsContext } from "./user-settings-context";
@@ -59,7 +58,6 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const composesOnly = useComposesOnly();
   const actualMode = use(ActualModeContext);
   const navigation = usePetrinautNavigation();
-  const { getItemType, petriNetDefinition } = use(SDCPNContext);
   const startsInActualMode = actualMode.available;
   const startsWithActualTimeline =
     startsInActualMode &&
@@ -81,52 +79,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     timelineChartType: userSettings.timelineChartType,
   }));
 
-  const navigatedResource = navigation.state.simulateResource;
-  const navigatedSelection = navigation.state.selection;
-  const { scenarios, metrics } = petriNetDefinition;
-  // Resolved during render, so children never see an older link's ids.
-  const resolved = resolveNavigatedItems(
-    { simulateResource: navigatedResource, selection: navigatedSelection },
-    { scenarios, metrics },
-    getItemType,
-  );
-  useEffect(() => {
-    const resourceChanged = resolved.simulateResource !== navigatedResource;
-    const selectionChanged =
-      resolved.selection.length !== navigatedSelection.length ||
-      resolved.selection.some(
-        (item, index) => item !== navigatedSelection[index],
-      );
-
-    if (resourceChanged || selectionChanged) {
-      // The checks above read the committed state, but the update is applied
-      // to the host's freshest state, which an asynchronous host may already
-      // have moved on from. Resolve again inside the updater so normalization
-      // never writes back a selection the user has since replaced.
-      navigation.navigate(
-        (current) => ({
-          ...current,
-          ...resolveNavigatedItems(
-            current,
-            { scenarios, metrics },
-            getItemType,
-          ),
-        }),
-        {
-          cause: "normalization",
-          action: resourceChanged ? "simulation-resource" : "selection",
-        },
-      );
-    }
-  }, [
-    getItemType,
-    metrics,
-    navigatedResource,
-    navigatedSelection,
-    navigation,
-    resolved,
-    scenarios,
-  ]);
+  const resolved = useResolvedLocation();
 
   const selectionGestureRef = useRef({ active: false, hasNavigated: false });
   const selectionNavigationMountedRef = useRef(true);
