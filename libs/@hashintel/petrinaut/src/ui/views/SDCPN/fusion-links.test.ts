@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { countReads } from "./count-reads.test-helpers";
 import {
   fusionLinks,
-  fusionStatuses,
+  fusionSeverities,
   planFusion,
   planRewire,
 } from "./fusion-links";
@@ -51,7 +51,7 @@ describe("fusionLinks", () => {
   });
 });
 
-describe("fusionStatuses", () => {
+describe("fusionSeverities", () => {
   const sdcpn: SDCPN = {
     places: [
       {
@@ -134,11 +134,11 @@ describe("fusionStatuses", () => {
   };
 
   it("gives each fusion the worst of its problems", () => {
-    const statuses = fusionStatuses(sdcpn, net, null);
+    const severities = fusionSeverities(sdcpn, net, null);
 
-    expect(statuses.get("mismatch")).toEqual({ severity: "error" });
+    expect(severities.get("mismatch")).toBe("error");
     // Two ports no transition touches: nothing to report.
-    expect(statuses.get("ports")).toEqual({ severity: null });
+    expect(severities.get("ports")).toBeNull();
   });
 
   it("reads a component's arcs once for its fused ports that declare no direction, however many", () => {
@@ -176,16 +176,14 @@ describe("fusionStatuses", () => {
       fusions: portIds.map((id) => fusion(id, port("m1", id), port("m2", id))),
     };
 
-    const statuses = fusionStatuses(
+    const severities = fusionSeverities(
       wide,
       { ...net, ...wide, fusions: wide.fusions ?? [] },
       null,
     );
 
     // Each fused place is consumed from on both sides, and never filled.
-    expect([...statuses.values()]).toEqual(
-      portIds.map(() => ({ severity: "warning" })),
-    );
+    expect([...severities.values()]).toEqual(portIds.map(() => "warning"));
     // A read per fused port makes forty passes.
     expect(arcs.reads()).toBeLessThanOrEqual(3 * 160);
   });

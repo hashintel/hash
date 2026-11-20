@@ -73,7 +73,7 @@ const input: CanvasSceneInput = {
   net: { ...sdcpn, componentInstances: [], fusions: [] },
   sdcpn,
   libraries: new Map(),
-  fusionStatuses: new Map(),
+  fusionSeverities: new Map(),
   lambdaTypes: new Map(),
   extensions: DEFAULT_PETRINAUT_EXTENSIONS,
   dimensions: compactNodeDimensions,
@@ -239,7 +239,7 @@ describe("buildCanvasScene", () => {
         ...input,
         sdcpn: composed,
         net: composedNet,
-        fusionStatuses: new Map([["fusion-left", { severity: "warning" }]]),
+        fusionSeverities: new Map([["fusion-left", "warning"]]),
         ...overrides,
       });
     const { fusions } = build();

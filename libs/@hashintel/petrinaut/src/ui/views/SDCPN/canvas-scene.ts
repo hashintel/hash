@@ -21,7 +21,7 @@ import {
   indexDocument,
 } from "@hashintel/petrinaut-core";
 
-import { fusionLinks, type FusionStatus } from "./fusion-links";
+import { fusionLinks } from "./fusion-links";
 import { arcStrokeColor } from "./styles/type-colors";
 
 import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
@@ -214,7 +214,7 @@ export type CanvasSceneInput = {
   /** The libraries the document's imports resolved to. */
   libraries: ResolvedLibraries;
   /** The worst problem of each of the net's fusions. */
-  fusionStatuses: ReadonlyMap<string, FusionStatus>;
+  fusionSeverities: ReadonlyMap<string, ProblemSeverity | null>;
   /** How each transition of the net gives its rate. */
   lambdaTypes: ReadonlyMap<string, CanvasTransitionNode["lambdaType"]>;
   extensions: PetrinautExtensionSettings;
@@ -244,13 +244,13 @@ const portIdOf = (endpoint: ArcEndpoint): string | null =>
 
 const buildFusionLinks = ({
   fusion,
-  status,
+  severity,
   nodes,
   selected,
   focus,
 }: {
   fusion: ActiveNetDefinition["fusions"][number];
-  status: FusionStatus | undefined;
+  severity: ProblemSeverity | null;
   nodes: readonly CanvasNode[];
   selected: boolean;
   focus: CanvasFocus;
@@ -275,7 +275,7 @@ const buildFusionLinks = ({
       sourcePortId: portIdOf(source),
       targetPortId: portIdOf(target),
       selected,
-      severity: status?.severity ?? null,
+      severity,
       focus: focus.arcFocus(id),
       movableEnds: fusion.members.length > 2 ? memberEnd : "both",
     };
@@ -316,7 +316,7 @@ export const buildCanvasScene = ({
   net,
   sdcpn,
   libraries,
-  fusionStatuses,
+  fusionSeverities,
   lambdaTypes,
   extensions,
   dimensions,
@@ -531,7 +531,7 @@ export const buildCanvasScene = ({
   const fusions: CanvasFusionLink[] = net.fusions.flatMap((fusion) =>
     buildFusionLinks({
       fusion,
-      status: fusionStatuses.get(fusion.id),
+      severity: fusionSeverities.get(fusion.id) ?? null,
       nodes,
       selected: selectedIds.has(fusion.id),
       focus,

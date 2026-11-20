@@ -46,21 +46,15 @@ export const fusionLinks = (fusion: Fusion): FusionLink[] => {
         }));
 };
 
-/** What the canvas shows of a fusion as a whole, beside its name. */
-export type FusionStatus = {
-  /** The worst of the fusion's problems, or `null` when it has none. */
-  severity: ProblemSeverity | null;
-};
-
 const severitiesWorstFirst: ProblemSeverity[] = ["error", "warning", "info"];
 
-/** The worst problem of every fusion of `net`, by fusion id. */
-export const fusionStatuses = (
+/** The worst problem of every fusion of `net`, by fusion id; `null` for none. */
+export const fusionSeverities = (
   sdcpn: SDCPN,
   net: ActiveNetDefinition,
   activeComponentId: string | null,
   libraries?: ResolvedLibraries,
-): Map<string, FusionStatus> => {
+): Map<string, ProblemSeverity | null> => {
   const pass = fusionCheckPass(sdcpn, libraries);
   return new Map(
     net.fusions.map((fusion) => {
@@ -74,12 +68,9 @@ export const fusionStatuses = (
       );
       return [
         fusion.id,
-        {
-          severity:
-            severitiesWorstFirst.find((severity) =>
-              problems.some((problem) => problem.severity === severity),
-            ) ?? null,
-        },
+        severitiesWorstFirst.find((severity) =>
+          problems.some((problem) => problem.severity === severity),
+        ) ?? null,
       ];
     }),
   );

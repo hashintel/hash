@@ -17,7 +17,7 @@ import {
   transitionLambdaTypes,
   type CanvasScene,
 } from "./canvas-scene";
-import { fusionStatuses } from "./fusion-links";
+import { fusionSeverities } from "./fusion-links";
 import { usePointerAtRest } from "./hooks/util/use-pointer-at-rest";
 
 import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
@@ -46,7 +46,7 @@ const useNetIndex = (
   "use memo";
   return {
     adjacency: buildNetAdjacency(net),
-    statuses: fusionStatuses(sdcpn, net, activeComponentId, libraries),
+    severities: fusionSeverities(sdcpn, net, activeComponentId, libraries),
     lambdaTypes: transitionLambdaTypes(net, sdcpn, extensions, libraries),
   };
 };
@@ -82,7 +82,7 @@ export const useCanvasScene = (
     "compactNodes",
     "highlightOnHover",
   );
-  const { adjacency, statuses, lambdaTypes } = useNetIndex(
+  const { adjacency, severities, lambdaTypes } = useNetIndex(
     petriNetDefinition,
     activeNet,
     activeComponentId,
@@ -140,7 +140,7 @@ export const useCanvasScene = (
     net: activeNet,
     sdcpn: petriNetDefinition,
     libraries,
-    fusionStatuses: statuses,
+    fusionSeverities: severities,
     lambdaTypes,
     extensions,
     dimensions: compactNodes ? compactNodeDimensions : classicNodeDimensions,
