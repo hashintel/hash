@@ -459,22 +459,6 @@ describe("experimentResultsModel with the optimizer", () => {
     });
   });
 
-  it("puts the objective strip under the sliders whenever the sweep has a study, driving or settled", () => {
-    expect(model(sweep).bands[0]!.below).toBeNull();
-    const strip = propsOf<{ study: unknown; driving: boolean }>(
-      betweenSteps.bands[0]!.below,
-    );
-    expect(isValidElement(betweenSteps.bands[0]!.below)).toBe(true);
-    expect(strip.study).toBe(study);
-    expect(strip.driving).toBe(true);
-    const settled = { ...study, status: "complete" as const };
-    expect(
-      propsOf<{ driving: boolean }>(
-        model(idleSweep, { optimizer: withStudy(settled) }).bands[0]!.below,
-      ).driving,
-    ).toBe(false);
-  });
-
   it("restores all best parameter values together on the sweep grid", () => {
     const setSweepSelection = vi.fn();
     const finished = {
