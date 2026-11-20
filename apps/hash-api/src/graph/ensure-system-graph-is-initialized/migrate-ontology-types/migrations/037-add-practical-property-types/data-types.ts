@@ -12,7 +12,9 @@ type Definition = Parameters<typeof createSystemDataTypeIfNotExists>[2];
 
 export type MeasurementDataType = {
   dataTypeBaseUrl: BaseUrl;
-  definition: Definition["dataTypeDefinition"] & { titlePlural: string };
+  definition: Extract<Definition["dataTypeDefinition"], { type: "number" }> & {
+    titlePlural: string;
+  };
   conversions: Definition["conversions"];
 };
 
