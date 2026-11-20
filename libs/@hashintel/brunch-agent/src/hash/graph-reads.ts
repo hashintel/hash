@@ -33,18 +33,17 @@ const identifiersSchemaWith = ({ description }: { description: string }) =>
     ),
   );
 
-const webIdsDescription =
-  "Web ids to read from. An entity belongs to the web of the user or organization that owns it.";
-
 export const hashEntityReadInputSchema = v.strictObject({
   entityTypes: identifiersSchemaWith({
     description:
       "Entity type titles to match, for example `Organization`. A title matches every type with that title, in any web and at any version; a versioned entityTypeId matches that type version only. Entities of any listed type match.",
   }),
-  webIds: identifiersSchemaWith({ description: webIdsDescription }),
+  webIds: identifiersSchemaWith({
+    description: `Web ids to read from. An entity belongs to the web of the user or organization that owns it. Omit to read only the user's own web and their organizations' webs, as ${brunchTools.hashQueryWebs} lists them; name webs to read in others, whose entities come back marked external.`,
+  }),
   entityIds: identifiersSchemaWith({
     description:
-      "Entity ids to read, for example ids returned by an earlier read: `webId~entityUuid`, or `webId~entityUuid~draftId` for a draft. An id with a draft part reads that draft.",
+      "Entity ids to read, for example ids returned by an earlier read: `webId~entityUuid`, or `webId~entityUuid~draftId` for a draft. An id with a draft part reads that draft. An id names its web, so a named entity is read wherever it is, without webIds; one outside the user's and their organizations' webs comes back marked external. Given webIds too, an entity must also be in one of them.",
   }),
   traversalDepth: v.optional(
     v.pipe(
@@ -178,6 +177,12 @@ const hashEntitySchema = v.object({
   label: v.optional(v.string()),
   editionId: v.string(),
   webId: v.string(),
+  /**
+   * Set when the entity's web is neither the user's own nor one of their
+   * organizations', however it was reached; the page decides, since it knows
+   * the user's webs. Absent from pages that predate it.
+   */
+  external: v.optional(v.literal(true)),
   entityTypeIds: v.array(v.string()),
   properties: v.record(v.string(), v.unknown()),
   draft: v.boolean(),

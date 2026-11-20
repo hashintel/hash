@@ -177,3 +177,68 @@ test("the count asks the page's Apollo client for a summary now, in the webs of 
     }),
   );
 });
+
+test("the entity read asks the page's Apollo client for entities in the webs of the user signed in when it runs, and marks others external", async () => {
+  const { result, signIn } = renderTools(userWith("member", ["acme"]));
+  signIn(userWith("member", []));
+  apollo.query.mockResolvedValueOnce({
+    data: {
+      queryEntitySubgraph: {
+        subgraph: {
+          roots: [],
+          vertices: Object.fromEntries(
+            ["member-web~own", "acme-web~former"].map((entityId) => [
+              entityId,
+              {
+                "2026-10-26T00:00:00Z": {
+                  kind: "entity",
+                  inner: {
+                    metadata: {
+                      recordId: { entityId, editionId: `${entityId}-1` },
+                      entityTypeIds: [
+                        "https://hash.ai/@h/types/entity-type/thing/v/1",
+                      ],
+                    },
+                    properties: {},
+                  },
+                },
+              },
+            ]),
+          ),
+          edges: {},
+          temporalAxes: {},
+        },
+        closedMultiEntityTypes: {},
+        definitions: { dataTypes: {}, propertyTypes: {}, entityTypes: {} },
+      },
+    },
+  });
+  const output = await execute(result.current, brunchTools.hashQueryEntities, {
+    traversalDepth: 0,
+  });
+  expect(output).toMatchObject({
+    entities: [
+      { entityId: "member-web~own" },
+      { entityId: "acme-web~former", external: true },
+    ],
+  });
+  expect(output).not.toHaveProperty(["entities", 0, "external"]);
+  expect(apollo.query).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      fetchPolicy: "network-only",
+      variables: {
+        request: expect.objectContaining({
+          filter: expect.objectContaining({
+            all: expect.arrayContaining([
+              {
+                any: [
+                  { equal: [{ path: ["webId"] }, { parameter: "member-web" }] },
+                ],
+              },
+            ]),
+          }),
+        }),
+      },
+    }),
+  );
+});
