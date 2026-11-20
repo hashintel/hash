@@ -4,12 +4,12 @@ import { createRoot } from "react-dom/client";
 import { createJsonDocHandle } from "@hashintel/petrinaut-core";
 import * as examples from "@hashintel/petrinaut-core/examples";
 
+import { tileNet } from "../../src/ui/dev/tiled-net";
 import { CodeEditor } from "../../src/ui/monaco/code-editor";
 import { MonacoProvider } from "../../src/ui/monaco/provider";
 import { Petrinaut } from "../../src/ui/petrinaut";
 import { PetrinautStoryProvider } from "../../src/ui/petrinaut-story-provider";
 import { definePetrinautPlugin } from "../../src/ui/plugins/define-petrinaut-plugin";
-import { tileNet } from "./tiled-net";
 
 const query = new URLSearchParams(location.search);
 // `model` is `satellites`, `supply-chain` (the default), or the name any
