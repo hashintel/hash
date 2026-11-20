@@ -71,8 +71,10 @@ const menuRowsAfter = (
  * headers. Arrows walk the rows and select as they move, Shift extends a
  * range, and a row's menu or a header's action is one ArrowRight away.
  *
- * The rows take no handler: the list handles their clicks and keys itself and
- * finds the row by its element, so a row renders only for what it shows.
+ * The rows take no click or key handler: the list handles those itself and
+ * finds the row by its element, so a row renders only for what it shows. A
+ * row only reports that the pointer or the focus reached it, which tells the
+ * list whose menu to mount.
  */
 export const EntityList: React.FC<{ groups: EntityGroup[] }> = ({ groups }) => {
   const { selectItem, toggleItem, clearSelection, setSelection } =

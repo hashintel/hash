@@ -130,7 +130,7 @@ const parameterVarNameStyle = css({
 const entityIndent = { paddingLeft: 20 };
 
 /** Asks the list to mount a row's menu, for the row under the pointer and for the row that holds focus. */
-export type ShowRowMenu = (request: ["pointed" | "focused", string]) => void;
+type ShowRowMenu = (request: ["pointed" | "focused", string]) => void;
 
 /**
  * A row's trailing button: its menu, or a header's add button. The row is the
