@@ -1,6 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { usePetrinautNavigation } from "../../../../../react/navigation";
+import {
+  usePetrinautNavigate,
+  usePetrinautNavigationState,
+} from "../../../../../react/navigation";
 
 import type { SubView } from "../../types";
 
@@ -77,11 +80,10 @@ export const useSubViewMaximization = (
   subViews: SubView[],
   showAnimations: boolean,
 ) => {
-  const navigation = usePetrinautNavigation();
-  const requestedId =
-    navigation.state.expandedSubView?.container === name
-      ? navigation.state.expandedSubView.id
-      : null;
+  const navigate = usePetrinautNavigate();
+  const requestedId = usePetrinautNavigationState(({ expandedSubView }) =>
+    expandedSubView?.container === name ? expandedSubView.id : null,
+  );
   const targetId = subViews.some(
     (subView) => subView.id === requestedId && subView.canMaximize,
   )
@@ -105,7 +107,7 @@ export const useSubViewMaximization = (
 
   useEffect(() => {
     if (requestedId !== null && targetId === null) {
-      navigation.navigate(
+      navigate(
         (current) =>
           current.expandedSubView?.container === name &&
           current.expandedSubView.id === requestedId
@@ -114,7 +116,7 @@ export const useSubViewMaximization = (
         { cause: "normalization", action: "subview" },
       );
     }
-  }, [name, navigation, requestedId, targetId]);
+  }, [name, navigate, requestedId, targetId]);
 
   useLayoutEffect(() => {
     const displayedId = maximization?.restoring
@@ -214,14 +216,11 @@ export const useSubViewMaximization = (
     maximizedId: maximization?.id ?? null,
     isRestoring: maximization?.restoring ?? false,
     maximize: (id: string) =>
-      navigation.navigate(
+      navigate(
         { expandedSubView: { container: name, id } },
         { cause: "user", action: "subview" },
       ),
     restore: () =>
-      navigation.navigate(
-        { expandedSubView: null },
-        { cause: "user", action: "subview" },
-      ),
+      navigate({ expandedSubView: null }, { cause: "user", action: "subview" }),
   };
 };
