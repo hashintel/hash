@@ -3,7 +3,6 @@
  * so the component only holds state and renders.
  */
 import {
-  aggregateDistributionBins,
   aggregateDistributionOverTime,
   reduceOverTime,
 } from "./shared/distribution-math";
@@ -11,6 +10,7 @@ import { distributionFramesFrom } from "./shared/metric-frames";
 import {
   buildDistributionBarData,
   buildMetricTimelineData,
+  frameScalar,
 } from "./view-state/plot-data";
 
 import type {
@@ -96,11 +96,7 @@ export const deriveMetricViewState = ({
   const aggregateNumber =
     displayMode === "number"
       ? reduceOverTime(
-          frames.map((frame) =>
-            frame.outputType === "scalar"
-              ? frame.value
-              : aggregateDistributionBins(frame.bins, runAggregation),
-          ),
+          frames.map((frame) => frameScalar(frame, runAggregation)),
           timeAggregation,
         )
       : null;
