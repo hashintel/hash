@@ -10,6 +10,7 @@ import {
 } from "../../../../../react/simulation/context";
 import {
   type BottomPanelTab,
+  EditorPublishedContext,
   useEditorActions,
   useEditorFields,
 } from "../../../../../react/state/editor-context";
@@ -135,6 +136,7 @@ export const BottomPanel: React.FC = () => {
   );
   const { setActiveBottomPanelTab: setActiveTab, toggleBottomPanel } =
     useEditorActions();
+  const publishedEditor = use(EditorPublishedContext);
   const { shown } = usePanelPresence();
   // Still sliding out, where a closed panel is not kept mounted.
   const isInView = useReading(() => shown.bottomPanel.get() > 0);
@@ -193,10 +195,13 @@ export const BottomPanel: React.FC = () => {
   const Content = activeSubView?.component;
 
   useEffect(() => {
-    if (renderedActiveTab !== activeTab) {
+    // A render caused by another context reads the editor's state of the
+    // commit before. A tab picked in that update is stored by now, and stays.
+    const storedTab = publishedEditor?.get().activeBottomPanelTab ?? activeTab;
+    if (renderedActiveTab !== activeTab && storedTab === activeTab) {
       setActiveTab(renderedActiveTab);
     }
-  }, [activeTab, renderedActiveTab, setActiveTab]);
+  }, [activeTab, publishedEditor, renderedActiveTab, setActiveTab]);
 
   if (!isOpen && !isInView && !keepPanelsMounted) {
     return null;

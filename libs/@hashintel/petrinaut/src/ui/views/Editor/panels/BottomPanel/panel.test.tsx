@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 import { cleanup, fireEvent, screen } from "@testing-library/react";
-import { Activity, use, useEffect } from "react";
+import { Activity, use, useEffect, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { unavailableActualMode } from "@hashintel/petrinaut-core";
@@ -131,6 +131,33 @@ const panelWith = (
   </WithRun>
 );
 
+/**
+ * The panel of a run that one click ends while it picks the Diagnostics tab:
+ * the run's state lives in a context, the tab in the editor's state.
+ */
+const PanelOfStoppableRun = () => {
+  const [simulationState, setSimulationState] =
+    useState<SimulationState>("Running");
+  const { setActiveBottomPanelTab } = useEditorActions();
+  return (
+    <WithRun
+      simulationState={simulationState}
+      actualMode={unavailableActualMode}
+    >
+      <button
+        type="button"
+        onClick={() => {
+          setActiveBottomPanelTab("diagnostics");
+          setSimulationState("NotRun");
+        }}
+      >
+        Stop and show Diagnostics
+      </button>
+      <BottomPanel />
+    </WithRun>
+  );
+};
+
 const panelState = () => screen.getByRole("status", { name: "Bottom panel" });
 
 const tabNames = () =>
@@ -176,6 +203,18 @@ describe("BottomPanel", () => {
     expect(tabNames()).toEqual(["Diagnostics", "Simulation Settings"]);
     expect(selectedTab()).toBe("Diagnostics");
     expect(screen.queryByText("Nothing noted")).toBeNull();
+  });
+
+  it("keeps the tab picked in the update that ends the run", () => {
+    renderPlugins([], <PanelOfStoppableRun />);
+    expect(selectedTab()).toBe("Timeline");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Stop and show Diagnostics" }),
+    );
+
+    expect(tabNames()).toEqual(["Diagnostics", "Simulation Settings"]);
+    expect(selectedTab()).toBe("Diagnostics");
   });
 
   it("opens on the Timeline when a run starts", () => {
