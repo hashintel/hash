@@ -1818,11 +1818,12 @@ describe("on the durable agents server", () => {
     expect(server.requests.map(({ url }) => url)).toEqual([
       "http://durable.test/chat",
     ]);
-    expect(server.callRecordReads).toEqual([
-      expect.stringMatching(
+    // The replay's read, and the hand-edit reporter's of what was shown.
+    expect(server.callRecordReads).toHaveLength(2);
+    for (const url of server.callRecordReads)
+      expect(url).toMatch(
         /^http:\/\/durable\.test\/conversations\/[^/]+\/browser-calls$/,
-      ),
-    ]);
+      );
     expect(server.body(0)).toMatchObject({
       messages: [{ id: "m1", role: "user" }],
       binding: { conversationId: conversationId(), documentId: netOneId },
@@ -1879,7 +1880,7 @@ describe("on the durable agents server", () => {
     const server = durableServer({ history: () => null });
     const rendered = renderOnDurableServer(server.fetch);
 
-    await waitFor(() => expect(server.historyReads).toHaveLength(1));
+    await waitFor(() => expect(server.historyReads).not.toHaveLength(0));
     await waitFor(() => expect(rendered.assistant().messages).toEqual([]));
     expect(rendered.assistant().followMessages?.resumeOnOpen).toBe(false);
   });

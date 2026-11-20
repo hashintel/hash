@@ -189,7 +189,13 @@ export const answerAsBrowser = async (
   { server, endpoints }: PanelServer,
   toolCallId: string,
   output: Parameters<typeof finishBrowserCall>[1]["output"],
-  onClaimed: () => void = () => {},
+  {
+    metadata,
+    onClaimed = () => {},
+  }: {
+    readonly metadata?: Parameters<typeof finishBrowserCall>[1]["metadata"];
+    readonly onClaimed?: () => void;
+  } = {},
 ) => {
   for (;;) {
     // eslint-disable-next-line no-await-in-loop -- Each try follows the last.
@@ -215,6 +221,7 @@ export const answerAsBrowser = async (
             capability: claim.capability,
             canonicalInput: claim.input,
             output,
+            metadata,
           },
           context,
           Date.now,

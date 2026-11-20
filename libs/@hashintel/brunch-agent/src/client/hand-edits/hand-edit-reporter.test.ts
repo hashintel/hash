@@ -338,6 +338,109 @@ describe("createHandEditReporter", () => {
     },
   );
 
+  test("started on a conversation that last showed the model an earlier revision, the reporter reports the document's at once", async () => {
+    const net = openDocument();
+    const server = serverAnswering(admitted);
+    const reporter = createHandEditReporter({
+      conversation: { ...conversation, fetch: server.fetch },
+      documentId,
+      document: net.document,
+      idleMs,
+      readShown: async () => "revision-before-the-reload",
+    });
+
+    const stop = reporter.start();
+
+    await vi.waitFor(() =>
+      expect(server.sent.map(({ body }) => body?.revision)).toEqual([
+        net.revision(),
+      ]),
+    );
+    await vi.advanceTimersByTimeAsync(idleMs * 2);
+    expect(server.sent).toHaveLength(1);
+    stop();
+  });
+
+  test("started on a conversation that last showed the model the document's revision, the reporter reports only a later edit", async () => {
+    const net = openDocument();
+    const server = serverAnswering(admitted);
+    const reporter = createHandEditReporter({
+      conversation: { ...conversation, fetch: server.fetch },
+      documentId,
+      document: net.document,
+      idleMs,
+      readShown: async () => net.revision(),
+    });
+    const stop = reporter.start();
+    const reported = reporter.reportAround(browserCalls());
+
+    await reported.claim(issued("draft-1", "draftPetrinautExperiment"));
+    expect(server.sent).toHaveLength(0);
+
+    net.addPlace();
+    await vi.advanceTimersByTimeAsync(idleMs);
+    await vi.waitFor(() =>
+      expect(server.sent.map(({ body }) => body?.revision)).toEqual([
+        net.revision(),
+      ]),
+    );
+    stop();
+  });
+
+  test("an edit made while the reporter reads what the model was shown is reported against that", async () => {
+    const net = openDocument();
+    const server = serverAnswering(admitted);
+    const shown = net.revision();
+    let answerShown: (revision: string | undefined) => void = () => {};
+    const reporter = createHandEditReporter({
+      conversation: { ...conversation, fetch: server.fetch },
+      documentId,
+      document: net.document,
+      idleMs,
+      readShown: () =>
+        new Promise((resolve) => {
+          answerShown = resolve;
+        }),
+    });
+    const stop = reporter.start();
+
+    net.addPlace();
+    await vi.advanceTimersByTimeAsync(idleMs);
+    expect(server.sent).toHaveLength(0);
+    answerShown(shown);
+
+    await vi.waitFor(() =>
+      expect(server.sent.map(({ body }) => body?.revision)).toEqual([
+        net.revision(),
+      ]),
+    );
+    stop();
+  });
+
+  test("a reporter that cannot read what the model was shown starts from the document", async () => {
+    const net = openDocument();
+    const server = serverAnswering(admitted);
+    const reporter = createHandEditReporter({
+      conversation: { ...conversation, fetch: server.fetch },
+      documentId,
+      document: net.document,
+      idleMs,
+      readShown: async () => {
+        throw new TypeError("Failed to fetch");
+      },
+    });
+    const stop = reporter.start();
+    const reported = reporter.reportAround(browserCalls());
+
+    await reported.claim(issued("draft-1", "draftPetrinautExperiment"));
+    expect(server.sent).toHaveLength(0);
+
+    net.addPlace();
+    await vi.advanceTimersByTimeAsync(idleMs);
+    await vi.waitFor(() => expect(server.sent).toHaveLength(1));
+    stop();
+  });
+
   test("a report whose answer was lost is sent again under the same identity", async () => {
     const net = openDocument();
     let failing = true;

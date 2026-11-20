@@ -5,6 +5,7 @@ import {
   type HandEditRefusal,
   type ReportedBrowserCalls,
 } from "../../client/hand-edits/hand-edit-reporter";
+import { readShownRevision } from "../../client/hand-edits/shown-revision";
 import { documentRevisionOf } from "../tools/shared/document-revision";
 
 import type { SuccessorConversation } from "../../client/successor/successor-endpoints";
@@ -47,6 +48,7 @@ export const useHandEditReports = <Calls extends ReportedBrowserCalls>({
                   : documentRevisionOf(definition);
               },
             },
+            readShown: (signal) => readShownRevision(conversation, signal),
             onRefused,
           }),
     [conversation, documentId, handle, onRefused],
