@@ -150,9 +150,9 @@ guide lives in the architecture docs:
 
 ## Petricon
 
-Petricon supplies the editor's SVG icons and their motion. Enable **Petricon
-(Experimental)** in the viewport settings to use it in the editor; the
-preference is saved in the browser. The website route `/petricon` and the
+Petricon supplies the editor's SVG icons and their motion. The editor uses it
+by default; the **Petricon** switch in the user settings dialog turns it off,
+and the preference is saved in the browser. The website route `/petricon` and the
 **Components / Icons** stories show every icon with its states and effects.
 
 `@hashintel/petrinaut/ui` exports the icons, by name through `Petricon` and as
