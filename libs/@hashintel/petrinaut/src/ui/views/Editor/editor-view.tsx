@@ -60,7 +60,6 @@ import { AiCtaModal } from "./components/ai-cta-modal";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
 import { ImportErrorDialog } from "./components/import-error-dialog";
 import { TopBar } from "./components/TopBar/top-bar";
-import { applyAutoLayoutAndFrame } from "./editor-view/apply-auto-layout-and-frame";
 import { EditViewSelector } from "./editor-view/edit-view-selector";
 import {
   AssistantCommands,
@@ -191,8 +190,10 @@ const EditorViewContent = ({
     registerController,
     requestFrameOnNextRegistration,
   } = useCanvasRegistration();
-  const runAutoLayoutAndFrame = () =>
-    applyAutoLayoutAndFrame({ applyAutoLayout, frameSceneAfterRender });
+  const runAutoLayoutAndFrame = async () => {
+    await applyAutoLayout();
+    await frameSceneAfterRender();
+  };
 
   // Get editor context
   const {
