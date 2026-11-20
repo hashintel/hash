@@ -525,8 +525,23 @@ test("an entity read asking for an entity's full values is issued as asked, and 
     output,
   );
   expect(compact.seen).toMatch(
-    /definition_object: <object, [\d.]+ KB: 100 places>/,
+    /definition_object: <object, [\d.]+ KB: places [\d.]+ KB>/,
   );
+
+  // Asking for part of it by path shows that part alone.
+  const pathInput = {
+    entityIds: [net.entityId],
+    fullValuesFor: [
+      { entityId: net.entityId, path: ["definition_object", "places", "7"] },
+    ],
+  };
+  const part = await readOnce(brunchTools.hashQueryEntities, pathInput, output);
+  expect(part.claim.input).toEqual(pathInput);
+  expect(part.seen).toContain(
+    'path ["definition_object","places","7"]: "place-7"',
+  );
+  expect(part.seen).toContain(`entityId: ${net.entityId}`);
+  expect(part.seen).toMatch(/definition_object: <object, /);
 });
 
 test.each([

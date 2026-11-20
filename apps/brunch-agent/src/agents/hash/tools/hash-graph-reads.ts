@@ -21,6 +21,7 @@ import {
   hashReadFailureSchema,
   hashWebReadInputSchema,
   hashWebReadResultSchema,
+  type HashEntityReadInput,
 } from "@hashintel/brunch-agent";
 
 import {
@@ -56,6 +57,8 @@ const truncationNote = (truncated: true | undefined) =>
 const valueSummaryThresholdBytes = 500;
 
 const byteLength = (text: string) => new TextEncoder().encode(text).length;
+
+const jsonBytes = (value: unknown) => byteLength(JSON.stringify(value));
 
 const formatBytes = (bytes: number) =>
   bytes < 1000
@@ -167,18 +170,19 @@ const summarise = (
   }
   if (Array.isArray(value)) return `<array of ${value.length}, ${size}>`;
   if (typeof value === "object" && value !== null) {
-    const entries = Object.entries(value as Record<string, unknown>);
-    const shown = entries.slice(0, 8).map(([key, item]) => {
-      const name = nameOf(key);
-      return Array.isArray(item)
-        ? `${item.length} ${name}`
-        : typeof item === "object" && item !== null
-          ? `${name} {${Object.keys(item).length}}`
-          : name;
-    });
+    const parts = Object.entries(value as Record<string, unknown>)
+      .map(([key, item]) => ({ name: nameOf(key), bytes: jsonBytes(item) }))
+      .sort((left, right) => right.bytes - left.bytes);
+    const shown = parts
+      .slice(0, 8)
+      .map(({ name, bytes: partBytes }) =>
+        partBytes > valueSummaryThresholdBytes
+          ? `${name} ${formatBytes(partBytes)}`
+          : name,
+      );
     const more =
-      entries.length > shown.length
-        ? [`${entries.length - shown.length} more keys`]
+      parts.length > shown.length
+        ? [`${parts.length - shown.length} more keys`]
         : [];
     return `<object, ${size}: ${[...shown, ...more].join(", ")}>`;
   }
@@ -200,6 +204,111 @@ const renderValue = (
   return bytes > valueSummaryThresholdBytes
     ? { text: summarise(value, bytes, nameOf), summarised: true }
     : { text: renderInline(value, nameOf), summarised: false };
+};
+
+/** The most a part read by path shows in full; a larger part is outlined. */
+const pathValueMaxTokens = 8_000;
+
+/**
+ * How many tokens `text` costs the model, estimated without a tokenizer: it
+ * counts the runs a BPE tokenizer splits text into (a word of up to eight
+ * letters with its leading space, up to three digits, up to two other
+ * symbols, or a newline). Against OpenAI's o200k it overestimates slightly
+ * and never underestimates, the safe side for a bound; a proxy, not a count.
+ */
+const estimateTokens = (text: string) =>
+  text.match(/ ?[A-Za-z]{1,8}|\d{1,3}|[^\sA-Za-z\d]{1,2}|\n/gu)?.length ?? 0;
+
+/** At most this many keys are listed where a path stopped. */
+const pathStopKeysShown = 20;
+
+/** What a path names inside an entity's properties, or where it stopped. */
+const valueAtPath = (
+  properties: Record<string, unknown>,
+  path: readonly string[],
+  nameOf: PropertyNamer,
+): { found: true; value: unknown } | { found: false; note: string } => {
+  let here: unknown = properties;
+  for (const [index, step] of path.entries()) {
+    const within =
+      index === 0
+        ? "the entity's properties"
+        : JSON.stringify(path.slice(0, index));
+    const missing = `nothing at ${JSON.stringify(step)} in ${within}`;
+    if (Array.isArray(here)) {
+      const position = /^\d+$/u.test(step) ? Number(step) : undefined;
+      if (position === undefined || position >= here.length)
+        return {
+          found: false,
+          note: `${missing}: it is an array ${here.length === 0 ? "with no items" : `with positions 0 to ${here.length - 1}`}`,
+        };
+      here = here[position];
+    } else if (typeof here === "object" && here !== null) {
+      const keys = Object.keys(here);
+      // The name the read shows (bare or quoted), else the key as in full JSON.
+      const key =
+        keys.find(
+          (candidate) =>
+            nameOf(candidate) === step ||
+            nameOf(candidate) === plainOrQuoted(step),
+        ) ?? keys.find((candidate) => candidate === step);
+      if (key === undefined) {
+        const shown = keys.slice(0, pathStopKeysShown).map(nameOf);
+        const more =
+          keys.length > shown.length
+            ? `, ${keys.length - shown.length} more`
+            : "";
+        return {
+          found: false,
+          note: `${missing}: ${keys.length === 0 ? "it has no keys" : `its keys are ${shown.join(", ")}${more}`}`,
+        };
+      }
+      here = (here as Record<string, unknown>)[key];
+    } else
+      return {
+        found: false,
+        note: `${missing}: there is a ${here === null ? "null" : typeof here}, with nothing inside`,
+      };
+  }
+  return { found: true, value: here };
+};
+
+/**
+ * One part of a value read by path: in full as JSON when it fits the budget,
+ * else outlined one level down, each child shown as a property value is.
+ */
+const renderPathRead = (
+  path: readonly string[],
+  value: unknown,
+  nameOf: PropertyNamer,
+) => {
+  const label = `  path ${JSON.stringify(path)}`;
+  const json = JSON.stringify(value);
+  const tokens = estimateTokens(json);
+  if (tokens <= pathValueMaxTokens) return `${label}: ${json}`;
+  const about = `about ${tokens.toLocaleString("en-US")} tokens`;
+  if (typeof value !== "object" || value === null)
+    return `${label} (${about}, too large to show): ${summarise(value, byteLength(json), nameOf)}`;
+  const entries = Array.isArray(value)
+    ? value.map((child, position) => [String(position), child] as const)
+    : Object.entries(value as Record<string, unknown>).map(
+        ([key, child]) => [nameOf(key), child] as const,
+      );
+  const parts: string[] = [];
+  let used = 0;
+  for (const [name, child] of entries) {
+    const part = `${name}: ${renderValue(child, false, nameOf).text}`;
+    used += estimateTokens(part);
+    if (used > pathValueMaxTokens) break;
+    parts.push(part);
+  }
+  const more =
+    entries.length > parts.length
+      ? [`${entries.length - parts.length} more not shown`]
+      : [];
+  return `${label} (${about}, outlined one level down; read a path inside it): ${
+    Array.isArray(value) ? "[" : "{"
+  }${[...parts, ...more].join(", ")}${Array.isArray(value) ? "]" : "}"}`;
 };
 
 /** A one-line description of a property or type, from its title and description. */
@@ -229,27 +338,39 @@ const runHashRead = async (
   };
 };
 
-export const hashEntityReadDescription = `Read entities from the HASH graph, as the signed-in user: only what they may see is returned, and archived entities are never returned, so an entity that is absent may exist but be hidden from them, archived, or filed under another type title or web. Filters combine: an entity must match every filter given. Returns compact text: first candidate property definitions matched by returned keys, each qualified by propertyTypeId (a versioned URL), with its title and description (units are in the description; cut short when long). Multiple versions are alternatives; this global legend does not determine which definition applies to any entity or value. Key matches alone do not establish property ownership, including within opaque JSON. No unit conversion is inferred. Then each entity type title with its entityTypeId (a versioned URL); then each entity, headed by its types' titles (each with its entityTypeId when two types in the read share that title), its name (cut short when long), and (linked) if it was reached by following links rather than matching the filters, or (draft); then its entityId (\`<webId>~<uuid>\`, with \`~<draftId>\` for a draft), editionId (the exact version read), for a link entity the entityIds it links from and to, and one line per property. A property's short name, here and in nested values, comes from its base URL, unless two properties in the read would share one: then both show by their full base URL, so a name holds within one read only. A large value is summarised as <kind, size: shape>; to see it, read the entity again by entityIds with its id in fullValuesFor. The graph returns at most ${formattedQueryLimit} matches at once; when it stopped there, the text says more may match than shown, so narrow the filter. A read that failed returns { error }. Read webs with ${brunchTools.hashQueryWebs} first, for the web ids to filter by; then read the types of the entities found with ${brunchTools.hashQueryEntityTypes}, by their entityTypeIds, for the links and other properties a type allows, and follow up on a found entity by its entityId.`;
+export const hashEntityReadDescription = `Read entities from the HASH graph, as the signed-in user: only what they may see is returned, and archived entities are never returned, so an entity that is absent may exist but be hidden from them, archived, or filed under another type title or web. Filters combine: an entity must match every filter given. Returns compact text: first candidate property definitions matched by returned keys, each qualified by propertyTypeId (a versioned URL), with its title and description (units are in the description; cut short when long). Multiple versions are alternatives; this global legend does not determine which definition applies to any entity or value. Key matches alone do not establish property ownership, including within opaque JSON. No unit conversion is inferred. Then each entity type title with its entityTypeId (a versioned URL); then each entity, headed by its types' titles (each with its entityTypeId when two types in the read share that title), its name (cut short when long), and (linked) if it was reached by following links rather than matching the filters, or (draft); then its entityId (\`<webId>~<uuid>\`, with \`~<draftId>\` for a draft), editionId (the exact version read), for a link entity the entityIds it links from and to, and one line per property. A property's short name, here and in nested values, comes from its base URL, unless two properties in the read would share one: then both show by their full base URL, so a name holds within one read only. A large value is summarised as <kind, size: shape>, an object's parts listed largest first with the sizes of the large ones. To see it, read the entity again by entityIds and name it in fullValuesFor: the entity's id shows all its values in full; { entityId, path } shows one part, where path is the property's name as the read shows it, then keys or array positions inside the value, for example ["definition_object", "parameters"]. A part that fits about ${pathValueMaxTokens.toLocaleString("en-US")} tokens is shown in full as JSON; a larger one is outlined one level down, so read a path inside it; a path that leads nowhere says where it stopped and what is there. The graph returns at most ${formattedQueryLimit} matches at once; when it stopped there, the text says more may match than shown, so narrow the filter. A read that failed returns { error }. Read webs with ${brunchTools.hashQueryWebs} first, for the web ids to filter by; then read the types of the entities found with ${brunchTools.hashQueryEntityTypes}, by their entityTypeIds, for the links and other properties a type allows, and follow up on a found entity by its entityId.`;
 
 export const hashEntityReadEmptyNote =
   "No entities matched that the signed-in user can see. One may still exist but be hidden from them, archived, or filed under another type title or web.";
 
 /**
- * What the model is shown of a settled entity read: compact text, with the
- * values of the entities in `fullValuesFor` in full.
+ * What the model is shown of a settled entity read: compact text, with all
+ * values of the entities named by id in `fullValuesFor` in full, and each
+ * part named by `{ entityId, path }` shown or outlined.
  */
 export const hashEntityReadForModel = (
   output: unknown,
-  fullValuesFor: readonly string[] = [],
+  fullValuesFor: HashEntityReadInput["fullValuesFor"] = [],
 ) => {
   const parsed = v.safeParse(hashEntityReadResultSchema, output);
   if (!parsed.success)
     throw new Error("HASH's page returned an entity read in an unknown shape.");
   const { entities, propertyTypes, entityTypes, truncated } = parsed.output;
 
-  const full = new Set(fullValuesFor);
+  const full = new Set<string>();
+  const pathsFor = new Map<string, (readonly string[])[]>();
+  for (const entry of fullValuesFor) {
+    if (typeof entry === "string") full.add(entry);
+    else
+      pathsFor.set(entry.entityId, [
+        ...(pathsFor.get(entry.entityId) ?? []),
+        entry.path,
+      ]);
+  }
   const readIds = new Set(entities.map(({ entityId }) => entityId));
-  const unmatchedFull = [...full].filter((id) => !readIds.has(id));
+  const unmatchedFull = [...new Set([...full, ...pathsFor.keys()])].filter(
+    (id) => !readIds.has(id),
+  );
   const unmatchedFullNote =
     unmatchedFull.length === 0
       ? []
@@ -311,6 +432,12 @@ export const hashEntityReadForModel = (
             `  linksTo: ${entity.linkData.rightEntityId}`,
           ]),
       ...properties.map(({ name, text }) => `  ${name}: ${text}`),
+      ...(pathsFor.get(entity.entityId) ?? []).map((path) => {
+        const at = valueAtPath(entity.properties, path, nameOf);
+        return at.found
+          ? renderPathRead(path, at.value, nameOf)
+          : `  path ${JSON.stringify(path)}: ${at.note}`;
+      }),
     ].join("\n");
     return {
       block,
@@ -334,7 +461,7 @@ export const hashEntityReadForModel = (
     ...truncationNote(truncated),
     ...(summarised
       ? [
-          `Values over ${formatBytes(valueSummaryThresholdBytes)} are summarised; read an entity by entityIds with its id in fullValuesFor to see them.`,
+          `Values over ${formatBytes(valueSummaryThresholdBytes)} are summarised; read the entity again by entityIds, with its id in fullValuesFor to see all its values, or { entityId, path } to see part of one.`,
         ]
       : []),
     ...unmatchedFullNote,

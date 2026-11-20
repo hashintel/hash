@@ -136,16 +136,21 @@ test("a user entity renders compactly, with readable names and its identifiers",
   );
 });
 
-test("a net's definition is summarised with its size and shape, and the read says how to see it", () => {
+const kilobytesOf = (value: unknown) =>
+  `${(new TextEncoder().encode(JSON.stringify(value)).length / 1000).toFixed(1)} KB`;
+
+test("a net's definition is summarised with its size and its parts by size, and the read says how to see it", () => {
   const text = hashEntityReadForModel(read([net]));
   expect(definitionBytes).toBeGreaterThan(8_000);
   expect(text).toContain(
-    `  definition_object: <object, ${(definitionBytes / 1000).toFixed(1)} KB: 3 places, 2 transitions, 2 parameters, 0 types>`,
+    `  definition_object: <object, ${(definitionBytes / 1000).toFixed(1)} KB: places ${kilobytesOf(definition.places)}, transitions ${kilobytesOf(definition.transitions)}, parameters, types>`,
   );
   expect(text).toContain('- Petri Net "Supply Chain"');
   expect(text).toContain(`  entityId: ${net.entityId}`);
   expect(text).toContain("  editionId: edition-net");
-  expect(text).toContain("in fullValuesFor to see them");
+  expect(text).toContain(
+    "with its id in fullValuesFor to see all its values, or { entityId, path } to see part of one",
+  );
   expect(text).not.toContain("place-0");
   expect(text.length).toBeLessThan(1_000);
 });
@@ -164,6 +169,142 @@ test("ids in fullValuesFor that match no entity read are named", () => {
   const text = hashEntityReadForModel(read([net]), [net.entityId, missing]);
   expect(text).toContain(`fullValuesFor matched no entity read: ${missing}`);
   expect(text).not.toContain(`matched no entity read: ${net.entityId}`);
+});
+
+const pathRead = (entities: object[], entityId: string, path: string[]) =>
+  hashEntityReadForModel(read(entities), [{ entityId, path }]);
+
+const pathLine = (text: string, path: string[]) =>
+  text
+    .split("\n")
+    .find((line) => line.startsWith(`  path ${JSON.stringify(path)}`));
+
+test("a part read by path that fits is shown in full as JSON; the entity's other values stay summarised", () => {
+  const path = ["definition_object", "parameters"];
+  const text = pathRead([net], net.entityId, path);
+  expect(pathLine(text, path)).toBe(
+    `  path ${JSON.stringify(path)}: ${JSON.stringify(definition.parameters)}`,
+  );
+  expect(text).toContain("  definition_object: <object, ");
+  expect(text).not.toContain("place-0");
+  expect(text).toContain(`  entityId: ${net.entityId}`);
+  expect(text).toContain("  editionId: edition-net");
+  expect(text).not.toContain("fullValuesFor matched no entity read");
+});
+
+test("a path steps through array positions", () => {
+  const path = ["definition_object", "places", "1", "id"];
+  expect(pathLine(pathRead([net], net.entityId, path), path)).toBe(
+    `  path ${JSON.stringify(path)}: "place-1"`,
+  );
+});
+
+/** A definition whose places alone are well over 8,000 estimated tokens. */
+const largeNet = {
+  ...net,
+  properties: {
+    [property("definition-object")]: {
+      ...definition,
+      places: Array.from({ length: 40 }, (_, index) => ({
+        id: `place-${index}`,
+        notes: "lorem ipsum ".repeat(200),
+      })),
+    },
+  },
+};
+
+test("a part read by path that is too large is outlined one level down, each part summarised", () => {
+  const path = ["definition_object", "places"];
+  const text = pathRead([largeNet], largeNet.entityId, path);
+  const line = pathLine(text, path) ?? "";
+  expect(line).toMatch(
+    /^ {2}path \["definition_object","places"\] \(about [\d,]+ tokens, outlined one level down; read a path inside it\): \[0: <object, [\d.]+ KB: notes [\d.]+ KB, id>, 1: <object, /u,
+  );
+  expect(line).not.toContain("lorem");
+  expect(line).toContain("39: <object, ");
+  expect(text).toContain(`  entityId: ${largeNet.entityId}`);
+  expect(text).toContain("  editionId: edition-net");
+
+  // The whole value read by path is outlined by its parts, with their shapes.
+  const whole = ["definition_object"];
+  const wholeLine = pathLine(
+    pathRead([largeNet], largeNet.entityId, whole),
+    whole,
+  );
+  expect(wholeLine).toContain("outlined one level down");
+  expect(wholeLine).toContain("{places: <array of 40, ");
+  expect(wholeLine).toContain(
+    `parameters: [{id: "p1", variableName: "lead_time", defaultValue: "5"}`,
+  );
+});
+
+test("a path that doesn't resolve says where it stopped and what is there", () => {
+  const cases: [string[], string][] = [
+    [
+      ["definition"],
+      `nothing at "definition" in the entity's properties: its keys are title, definition_object`,
+    ],
+    [
+      ["definition_object", "arcs"],
+      `nothing at "arcs" in ["definition_object"]: its keys are places, transitions, parameters, types`,
+    ],
+    [
+      ["definition_object", "places", "3"],
+      `nothing at "3" in ["definition_object","places"]: it is an array with positions 0 to 2`,
+    ],
+    [
+      ["title", "first"],
+      `nothing at "first" in ["title"]: there is a string, with nothing inside`,
+    ],
+  ];
+  for (const [path, note] of cases) {
+    const text = pathRead([net], net.entityId, path);
+    expect(pathLine(text, path)).toBe(
+      `  path ${JSON.stringify(path)}: ${note}`,
+    );
+    expect(text).toContain(`  entityId: ${net.entityId}`);
+    expect(text).toContain("  editionId: edition-net");
+  }
+});
+
+test("a path names nested base-URL keys by their short names, or as in full JSON", () => {
+  const leadTime = property("lead-time");
+  const holder = {
+    ...net,
+    properties: { [property("definition-object")]: { [leadTime]: 5 } },
+  };
+  for (const path of [
+    ["definition_object", "lead_time"],
+    ["definition_object", leadTime],
+  ])
+    expect(pathLine(pathRead([holder], holder.entityId, path), path)).toBe(
+      `  path ${JSON.stringify(path)}: 5`,
+    );
+});
+
+test("a property whose short name is shared is named in a path by its base URL, as the read shows it", () => {
+  const hashTitle = property("title");
+  const otherTitle = "https://example.com/types/property-type/title/";
+  const holder = {
+    ...net,
+    properties: { [hashTitle]: "Supply Chain", [otherTitle]: "Other" },
+  };
+  const text = pathRead([holder], holder.entityId, [otherTitle]);
+  expect(pathLine(text, [otherTitle])).toBe(
+    `  path ${JSON.stringify([otherTitle])}: "Other"`,
+  );
+  // The short name both would share names neither.
+  const shared = pathRead([holder], holder.entityId, ["title"]);
+  expect(pathLine(shared, ["title"])).toBe(
+    `  path ["title"]: nothing at "title" in the entity's properties: its keys are ${hashTitle}, ${otherTitle}`,
+  );
+});
+
+test("an entity named only by path that matches no entity read is named", () => {
+  const missing = `${personWebId}~missing`;
+  const text = pathRead([net], missing, ["definition_object"]);
+  expect(text).toContain(`fullValuesFor matched no entity read: ${missing}`);
+  expect(text).not.toContain("  path ");
 });
 
 test("mixed property versions are qualified alternatives, not associations to entity values", () => {
@@ -344,7 +485,7 @@ test("literal nested keys reserve aliases alongside URL keys, including arrays a
   ]);
   const text = hashEntityReadForModel(output);
   expect(text).toContain(`  order: [{quantity: 1, ${acmeQuantity}: 2}]`);
-  expect(text).toContain(`: quantity, ${acmeQuantity}, note>`);
+  expect(text).toContain(`: note 602 B, quantity, ${acmeQuantity}>`);
   expect(hashEntityReadForModel(output, [person.entityId])).toContain(
     `  order: ${JSON.stringify([value])}`,
   );
@@ -384,7 +525,8 @@ test("a summarised object's shape names its keys as the read does", () => {
       },
     ]),
   );
-  expect(text).toContain(`: ${aliceQuantity}, ${acmeQuantity}>`);
+  // Each part is the 600 letters and their quotes, over 500 B, so sized.
+  expect(text).toContain(`: ${aliceQuantity} 602 B, ${acmeQuantity} 602 B>`);
 });
 
 test("entities of types sharing a title are headed by their entityTypeIds too; others by title alone", () => {
@@ -464,7 +606,7 @@ test("a summarised object's key with line breaks is quoted on its line, so it ca
   );
   for (const line of forgedLines) expect(text.split("\n")).not.toContain(line);
   expect(text).toContain("  order: <object, ");
-  expect(text).toContain(`: ${JSON.stringify(forgedKey)}, note>`);
+  expect(text).toContain(`: ${JSON.stringify(forgedKey)} 602 B, note>`);
 });
 
 test("ordinary nested keys and type URLs are shown bare", () => {
