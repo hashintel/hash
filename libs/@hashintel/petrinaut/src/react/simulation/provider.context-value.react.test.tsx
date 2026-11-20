@@ -64,13 +64,23 @@ const Parent = ({
   onValue: (value: SimulationContextValue) => void;
 }) => {
   const [renders, setRenders] = useState(0);
-  const [sdcpn] = useState<SDCPNContextValue>(() => ({
+  const [sdcpn, setSdcpn] = useState<SDCPNContextValue>(() => ({
     petriNetId: "test-net",
     petriNetDefinition,
     readonly: false,
     extensions: DEFAULT_PETRINAUT_EXTENSIONS,
     getItemType: () => null,
   }));
+  // What moving a transition does to the document: its parameters, places,
+  // types and scenarios stay as they were.
+  const moveTransition = () =>
+    setSdcpn({
+      ...sdcpn,
+      petriNetDefinition: {
+        ...sdcpn.petriNetDefinition,
+        transitions: [...sdcpn.petriNetDefinition.transitions],
+      },
+    });
   return (
     <LanguageClientContext value={languageClient}>
       <SDCPNContext value={sdcpn}>
@@ -79,6 +89,9 @@ const Parent = ({
             <Reader onValue={onValue} />
             <button type="button" onClick={() => setRenders(renders + 1)}>
               Render the parent, {renders}
+            </button>
+            <button type="button" onClick={moveTransition}>
+              Move a transition
             </button>
           </SimulationProvider>
         </PetrinautNavigationProvider>
@@ -107,6 +120,10 @@ const renderProvider = (petriNetDefinition: SDCPN) => {
     renderParent: () =>
       act(() =>
         view.getByRole("button", { name: /Render the parent/ }).click(),
+      ),
+    moveTransition: () =>
+      act(() =>
+        view.getByRole("button", { name: "Move a transition" }).click(),
       ),
   };
 };
@@ -176,6 +193,32 @@ describe("SimulationProvider context value", () => {
     const before = value();
 
     renderParent();
+
+    expect(fieldsThatChanged(before, value())).toEqual([]);
+    expect(value()).toBe(before);
+  });
+
+  it("is the same value after a document change that touches no parameter, place or type, with a scenario selected", async () => {
+    const { value, moveTransition } = renderProvider(
+      cafeQueue.petriNetDefinition,
+    );
+    await waitFor(() => expect(value().compiledScenarioResult).not.toBeNull());
+    const before = value();
+
+    moveTransition();
+
+    expect(fieldsThatChanged(before, value())).toEqual([]);
+    expect(value()).toBe(before);
+  });
+
+  it("is the same value after a document change that touches no parameter, place or type, with no scenario at all", () => {
+    const { value, moveTransition } = renderProvider({
+      ...supplyChainProfit.petriNetDefinition,
+      scenarios: [],
+    });
+    const before = value();
+
+    moveTransition();
 
     expect(fieldsThatChanged(before, value())).toEqual([]);
     expect(value()).toBe(before);

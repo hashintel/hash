@@ -40,7 +40,8 @@ const NOT_COMPILED: CompiledTarget = { compiled: null, errors: null };
  */
 const useCompiledTarget = (
   target: RunScenarioTarget | null,
-  { places, types }: SDCPN,
+  places: SDCPN["places"],
+  types: SDCPN["types"],
   netParameters: Parameter[],
   requestScenarioHir: ScenarioHirRequest,
 ): CompiledTarget => {
@@ -89,49 +90,36 @@ const useCompiledTarget = (
 };
 
 /**
- * The scenario in effect: the selected one with the typed values as its
- * parameter defaults, else the inline definition as a scenario that is never
- * saved. `target` is what a run compiles; `compiled` and `errors` are the
- * preview of it.
+ * The target a run compiles, with the preview of it. A hook of its own so
+ * that the net parameters arrive as arguments (see `useCompiledTarget`): the
+ * context hands `adHocNetParameters` out, and it must change only with the
+ * parameters and their typed values.
  */
-export const useRunScenario = ({
-  definition,
-  parametersEnabled,
+const useRunTarget = ({
   selectedScenario,
-  parameterValues,
   scenarioParameterValues,
   adHocScenario,
+  netParameters,
+  adHocNetParameters,
+  places,
+  types,
   requestScenarioHir,
 }: {
-  definition: SDCPN;
-  parametersEnabled: boolean;
   selectedScenario: Scenario | undefined;
-  parameterValues: Record<string, string>;
   scenarioParameterValues: Record<string, string>;
   adHocScenario: AdHocScenarioState | null;
-  requestScenarioHir: ScenarioHirRequest;
-}): CompiledTarget & {
-  target: RunScenarioTarget | null;
+  netParameters: Parameter[];
   adHocNetParameters: Parameter[];
-} => {
-  const netParameters = parametersEnabled
-    ? definition.parameters
-    : NO_PARAMETERS;
-  // The panel's inputs own the parameter values, so an inline definition
-  // reads the net parameters with those values as their defaults.
-  const adHocNetParameters = parametersEnabled
-    ? definition.parameters.map((parameter) => ({
-        ...parameter,
-        defaultValue:
-          parameterValues[parameter.variableName] ?? parameter.defaultValue,
-      }))
-    : NO_PARAMETERS;
+  places: SDCPN["places"];
+  types: SDCPN["types"];
+  requestScenarioHir: ScenarioHirRequest;
+}): CompiledTarget & { target: RunScenarioTarget | null } => {
   const adHocSynthesized =
     !selectedScenario && adHocScenario
       ? synthesizeAdHocScenario(adHocScenario, {
           netParameters: adHocNetParameters,
-          places: definition.places,
-          types: definition.types,
+          places,
+          types,
         })
       : null;
 
@@ -177,9 +165,60 @@ export const useRunScenario = ({
 
   const { compiled, errors } = useCompiledTarget(
     target,
-    definition,
+    places,
+    types,
     netParameters,
     requestScenarioHir,
   );
+  return { target, compiled, errors };
+};
+
+/**
+ * The scenario in effect: the selected one with the typed values as its
+ * parameter defaults, else the inline definition as a scenario that is never
+ * saved. `target` is what a run compiles; `compiled` and `errors` are the
+ * preview of it.
+ */
+export const useRunScenario = ({
+  definition,
+  parametersEnabled,
+  selectedScenario,
+  parameterValues,
+  scenarioParameterValues,
+  adHocScenario,
+  requestScenarioHir,
+}: {
+  definition: SDCPN;
+  parametersEnabled: boolean;
+  selectedScenario: Scenario | undefined;
+  parameterValues: Record<string, string>;
+  scenarioParameterValues: Record<string, string>;
+  adHocScenario: AdHocScenarioState | null;
+  requestScenarioHir: ScenarioHirRequest;
+}): CompiledTarget & {
+  target: RunScenarioTarget | null;
+  adHocNetParameters: Parameter[];
+} => {
+  const { parameters, places, types } = definition;
+  const netParameters = parametersEnabled ? parameters : NO_PARAMETERS;
+  // The panel's inputs own the parameter values, so an inline definition
+  // reads the net parameters with those values as their defaults.
+  const adHocNetParameters = parametersEnabled
+    ? parameters.map((parameter) => ({
+        ...parameter,
+        defaultValue:
+          parameterValues[parameter.variableName] ?? parameter.defaultValue,
+      }))
+    : NO_PARAMETERS;
+  const { target, compiled, errors } = useRunTarget({
+    selectedScenario,
+    scenarioParameterValues,
+    adHocScenario,
+    netParameters,
+    adHocNetParameters,
+    places,
+    types,
+    requestScenarioHir,
+  });
   return { target, compiled, errors, adHocNetParameters };
 };
