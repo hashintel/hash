@@ -67,7 +67,7 @@ export interface GutterMenuItem {
   disabled?: boolean;
 }
 
-export interface GutterMenuProps {
+interface GutterMenuProps {
   anchor: HTMLButtonElement;
   items: GutterMenuItem[];
   onSelect: (id: string) => void;

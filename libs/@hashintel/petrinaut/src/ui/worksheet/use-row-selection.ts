@@ -6,7 +6,7 @@
 
 import { useState } from "react";
 
-export interface RowSelection {
+interface RowSelection {
   /** The row rendered as selected: the focused row, or the menu's row. */
   selectedRow: number | null;
   /** The open gutter menu, if any. */

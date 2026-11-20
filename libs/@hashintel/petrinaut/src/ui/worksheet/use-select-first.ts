@@ -15,7 +15,7 @@
 
 import { useRef } from "react";
 
-export interface SelectFirstActivation {
+interface SelectFirstActivation {
   /** Record whether the target was already selected when the press began. */
   onPointerDown: React.PointerEventHandler<HTMLElement>;
   /** Whether this click activates: a keyboard "click", a repeated click on

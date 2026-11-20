@@ -24,7 +24,7 @@ export interface SpreadsheetColumn {
 
 export type SpreadsheetCellValue = number | boolean | bigint | string;
 
-export interface SpreadsheetProps {
+interface SpreadsheetProps {
   columns: SpreadsheetColumn[];
   data: SpreadsheetCellValue[][];
   /** Omit for a read-only grid. */

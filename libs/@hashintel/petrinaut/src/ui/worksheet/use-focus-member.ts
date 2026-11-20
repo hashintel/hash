@@ -15,7 +15,7 @@ import {
   type FocusFold,
 } from "./focus-flow";
 
-export interface FocusMember {
+interface FocusMember {
   /** Attach to the member's root element; registered while mounted. */
   attach: (element: HTMLElement | null) => void;
   /** The attached element, for a member that listens on its own root. */
@@ -52,7 +52,7 @@ export function useFocusMember(
   };
 }
 
-export interface FocusHeader {
+interface FocusHeader {
   /** Attach to the header's focusable trigger. */
   attach: (element: HTMLButtonElement | null) => void;
   /**

@@ -4,7 +4,7 @@ import { focusLands } from "./focus-flow";
 
 import type { FocusStopTarget } from "./use-focus-stops";
 
-export interface StopTargets {
+interface StopTargets {
   /** The ref callback for the element rendered at a position. */
   register: (target: FocusStopTarget) => (element: HTMLElement | null) => void;
   /** Focuses the element at a position; false when none took focus. */

@@ -106,7 +106,7 @@ const placesVisibilityStyle = css({
   },
 });
 
-export interface AdHocScenarioFormProps {
+interface AdHocScenarioFormProps {
   state: AdHocScenarioState;
   onChange: (state: AdHocScenarioState) => void;
   context: AdHocSynthesisContext;

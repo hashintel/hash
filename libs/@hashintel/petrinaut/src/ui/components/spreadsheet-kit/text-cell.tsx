@@ -22,7 +22,7 @@ const placeholderStyle = css({
   color: "neutral.s60",
 });
 
-export interface TextCellProps {
+interface TextCellProps {
   value: string;
   ariaLabel: string;
   /** Shown as the cell's tooltip; the owner styles the cell as invalid. */

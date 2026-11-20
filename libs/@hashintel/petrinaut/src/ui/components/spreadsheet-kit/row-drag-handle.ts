@@ -2,7 +2,7 @@ import { createContext, use } from "react";
 
 import type { useSortable } from "@dnd-kit/sortable";
 
-export interface RowDragHandle {
+interface RowDragHandle {
   /** Attach to the element a pointer drag starts from. */
   ref: (element: HTMLElement | null) => void;
   /** Spread onto that element; `undefined` while reordering is disabled. */

@@ -14,7 +14,7 @@ const rowMoveStep = (event: React.KeyboardEvent): -1 | 1 | null => {
   return event.key === "ArrowUp" ? -1 : event.key === "ArrowDown" ? 1 : null;
 };
 
-export interface RowMoveKeys {
+interface RowMoveKeys {
   /** The table's focus grid: other keys go to it, and it follows the row. */
   grid: {
     onKeyDown: (row: number, column: number) => React.KeyboardEventHandler;

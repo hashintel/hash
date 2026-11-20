@@ -50,7 +50,7 @@ const knobOnStyle = css({
   backgroundColor: "neutral.s00",
 });
 
-export interface OptimizeToggleProps {
+interface OptimizeToggleProps {
   value: boolean;
   onChange: (value: boolean) => void;
   /** Accessible name. */

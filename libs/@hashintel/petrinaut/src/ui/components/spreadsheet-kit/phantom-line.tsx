@@ -16,7 +16,7 @@ import {
 
 import type { ReactNode } from "react";
 
-export interface PhantomLineProps {
+interface PhantomLineProps {
   /** Accessible name of the `+` gutter button. */
   gutterLabel: string;
   onMaterialize: () => void;

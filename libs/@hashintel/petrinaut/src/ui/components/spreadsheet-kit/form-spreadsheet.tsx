@@ -30,7 +30,7 @@ const lightFrameContainerStyle = css({
   borderColor: "[{colors.neutral.a35}!]",
 });
 
-export interface FormSpreadsheetProps {
+interface FormSpreadsheetProps {
   /** Registers the container with the owning table's worksheet hook
    * (`useFocusGrid`/`useFocusStops` attach). */
   attach?: (element: HTMLDivElement | null) => void;

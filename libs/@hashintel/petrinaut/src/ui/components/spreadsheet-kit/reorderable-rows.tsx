@@ -47,7 +47,7 @@ const restrictToRows: Modifier = ({
   return { ...transform, x: 0, y };
 };
 
-export interface ReorderableRowsProps {
+interface ReorderableRowsProps {
   /** Row ids in display order; each `ReorderableRow` names one of them. */
   ids: readonly string[];
   /** A dropped drag: the row at `from` lands at `to`, both inside `ids`. */
@@ -117,7 +117,7 @@ const rowStyle = css({
   },
 });
 
-export interface ReorderableRowProps {
+interface ReorderableRowProps {
   id: string;
   children: ReactNode;
 }
