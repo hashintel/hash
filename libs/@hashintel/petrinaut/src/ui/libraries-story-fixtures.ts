@@ -106,7 +106,7 @@ export const missingLibraryId = "@hashintel/missing";
  * resolves at once, tooling arrives after `delayMs`, and any other id is
  * refused after the same wait.
  */
-export const createStoryImportResolver =
+const createStoryImportResolver =
   (delayMs: number): ResolveImport =>
   (id) => {
     if (id === logisticsLibrary.id) {
