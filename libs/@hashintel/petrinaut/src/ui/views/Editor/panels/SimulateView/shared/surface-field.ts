@@ -12,7 +12,7 @@ import type {
 } from "../../../../../components/contour-surface";
 
 /** The axis shape the grid mapping needs: positions run 0..stepCount inclusive. */
-export type SurfaceAxisLike = { stepCount: number };
+type SurfaceAxisLike = { stepCount: number };
 
 /** Grid-index coordinate of an axis position, fractional between samples. */
 export const surfaceGridCoordinate = (

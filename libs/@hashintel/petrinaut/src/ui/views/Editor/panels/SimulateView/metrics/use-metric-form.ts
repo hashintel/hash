@@ -2,7 +2,7 @@ import { useForm } from "@tanstack/react-form";
 
 import type { Metric } from "@hashintel/petrinaut-core";
 
-export interface MetricFormState {
+interface MetricFormState {
   name: string;
   description: string;
   code: string;

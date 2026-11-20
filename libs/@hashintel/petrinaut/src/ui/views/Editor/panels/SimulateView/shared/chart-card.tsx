@@ -5,10 +5,10 @@
  * share one row height, so a card's content can change what it draws without
  * moving its neighbours.
  */
-import { Button, HelpTooltip, Menu } from "@hashintel/ds-components";
+import { HelpTooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import type { ComponentProps, ReactNode } from "react";
+import type { ReactNode } from "react";
 
 /**
  * How a card reads its state. `paused` is a frozen look, `muted` a
@@ -156,7 +156,7 @@ const footerStyle = css({
   boxSizing: "content-box",
 });
 
-export type ChartCardProps = {
+type ChartCardProps = {
   title: string;
   /**
    * One line under the title: what is drawn and from what. Its height is
@@ -165,7 +165,7 @@ export type ChartCardProps = {
   subtitle?: string;
   /** A help tooltip after the title. */
   help?: string;
-  /** The header's right side: a `ChartCardMenu`, icon buttons, a chip. */
+  /** The header's right side: a menu, icon buttons, a chip. */
   actions?: ReactNode | null;
   /**
    * The body's fixed content height in pixels. The body clips; it never grows
@@ -232,29 +232,6 @@ export const ChartCard = ({
   </div>
 );
 
-export type ChartCardMenuProps = {
-  /** The trigger's accessible name, e.g. "Chart options". */
-  label: string;
-  items: ComponentProps<typeof Menu>["items"];
-};
-
-/** The header's overflow menu: an ellipsis button opening a ds `Menu`. */
-export const ChartCardMenu = ({ label, items }: ChartCardMenuProps) => (
-  <Menu
-    items={items}
-    position="bottom-end"
-    trigger={
-      <Button
-        iconName="ellipsis"
-        variant="ghost"
-        size="xs"
-        aria-label={label}
-        tooltip={label}
-      />
-    }
-  />
-);
-
 // Dense packing fills the cells a spanning card leaves in its row with the
 // cards after it instead of holes; with equal cards it places them in order.
 // The cards stay in source order; where the browser supports `reading-flow`,
@@ -269,7 +246,7 @@ const gridStyle = css({
   gap: "4",
 });
 
-export type ChartCardGridProps = {
+type ChartCardGridProps = {
   /** Columns are as many of at least this width, in pixels, as fit. */
   minColumnWidth: number;
   /** Every row is exactly this tall, in pixels. */

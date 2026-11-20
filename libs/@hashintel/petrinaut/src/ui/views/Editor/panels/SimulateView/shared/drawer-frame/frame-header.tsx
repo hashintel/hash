@@ -391,7 +391,7 @@ export const FrameStatusPill = ({
   </span>
 );
 
-export type FrameHeaderProps = {
+type FrameHeaderProps = {
   /** One line, ellipsized when narrow: `SIR transmission sweep`. */
   title: ReactNode;
   /** The title line's right side while at rest: a live readout such as the study's progress line. */

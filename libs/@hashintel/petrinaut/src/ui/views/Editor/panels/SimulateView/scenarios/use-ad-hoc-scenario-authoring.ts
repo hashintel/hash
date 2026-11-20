@@ -18,7 +18,7 @@ import type {
   ScenarioParameter,
 } from "@hashintel/petrinaut-core";
 
-export interface AdHocScenarioDraft {
+interface AdHocScenarioDraft {
   name: string;
   description: string;
   state: AdHocScenarioState;
