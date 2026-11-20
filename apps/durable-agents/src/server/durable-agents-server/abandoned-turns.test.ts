@@ -22,6 +22,8 @@ import {
   BrowserCallsDoc,
   type BrowserCallStatus,
   claimBrowserCall,
+  finishBrowserCall,
+  setNetTitleTool,
 } from "../../browser-call/browser-call";
 import { createAbandonedTurns } from "./abandoned-turns";
 import { createConversationRegistry } from "./conversation-registry";
@@ -300,6 +302,111 @@ test("an unwatched turn after one aborted with an answered call is still aborted
     });
   } finally {
     await fixture.close();
+  }
+});
+
+test("a sweep between a call's collection and its tool result does not abort the turn", async () => {
+  const toolReturned = Promise.withResolvers<void>();
+  const release = Promise.withResolvers<void>();
+  // The waiting tool, paused after its call was collected and before Pi commits its result.
+  const gated = defineExtension({
+    name: "test.gated-browser-tool",
+    tools: [
+      defineTool({
+        ...setNetTitleTool,
+        execute: async (args, api, toolContext) => {
+          const result = await setNetTitleTool.execute(args, api, toolContext);
+          toolReturned.resolve();
+          await release.promise;
+          return result;
+        },
+      }),
+    ],
+    tasks: browserCallExtension.tasks,
+  });
+  const callId = "gated-call";
+  const { models, model } = scriptedModel([
+    fauxAssistantMessage(
+      fauxToolCall("setNetTitle", { title: "Net" }, { id: callId }),
+      { stopReason: "toolUse" },
+    ),
+    fauxAssistantMessage("Done."),
+  ]);
+  const storage = Object.assign(new MemoryStorage(), {
+    isOwner: async () => true,
+  });
+  const conversations = createConversationRegistry(
+    {
+      openStorage: async () => storage,
+      storageExists: async () => false,
+      createRegistry: () => {
+        const registry = createRegistry();
+        registry.install(gated);
+        return registry;
+      },
+      models,
+      agent: { model, extensions: [gated] },
+    },
+    {
+      maxTurns: 100,
+      crashLoopRestarts: 5,
+      requestSlots: createRequestSlots(1),
+    },
+    context,
+  );
+  const turns = createAbandonedTurns({
+    timeoutMs,
+    ifOwned: (conversationId) => conversations.ifOwned(conversationId),
+    context,
+    // The faked clock, once the timers are faked below.
+    now: () => Date.now(),
+  });
+  try {
+    const { harness, root } = await conversations.create(chatId, {
+      binding: { conversationId: chatId, documentId: "net-1" },
+    });
+    const submission = await root.submit(
+      { type: "input", content: "Title it." },
+      context,
+    );
+    const record = async () =>
+      (await harness.snapshot(BrowserCallsDoc, root.id, context))?.calls[
+        callId
+      ];
+    await vi.waitFor(async () => {
+      expect(typeof (await record())?.doorbell).toBe("number");
+    });
+    const claimed = await claimBrowserCall(harness, root.id, callId, context);
+    await finishBrowserCall(
+      harness,
+      {
+        conversationId: root.id,
+        toolCallId: callId,
+        toolName: "setNetTitle",
+        capability: claimed!.capability,
+        canonicalInput: claimed!.input,
+        output: { applied: true },
+      },
+      context,
+    );
+    await toolReturned.promise;
+    expect((await record())?.status).toBe("settled");
+
+    vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
+    turns.opened(chatId);
+    await vi.advanceTimersByTimeAsync(timeoutMs * 4);
+    vi.useRealTimers();
+
+    release.resolve();
+    expect((await submission.wait(context)).status).toBe("done");
+    expect(
+      (await harness.snapshot(LiveDoc, root.id, context))?.runFailure,
+    ).toBeUndefined();
+  } finally {
+    release.resolve();
+    turns.close();
+    vi.useRealTimers();
+    await conversations.close();
   }
 });
 
