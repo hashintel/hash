@@ -1,7 +1,10 @@
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { usePetrinautNavigation } from "../../../../../../../react/navigation";
+import {
+  usePetrinautNavigate,
+  usePetrinautNavigationState,
+} from "../../../../../../../react/navigation";
 import { isSimulateFullscreen, panelSimulateView } from "./panel-navigation";
 
 import type { SimulateViewMode } from "../../../../../../../react/state/editor-context";
@@ -13,8 +16,9 @@ const sectionLabels: Record<SimulateViewMode, string> = {
 };
 
 export const SimulationPanelTitle = ({ title }: { title: string }) => {
-  const { state, navigate } = usePetrinautNavigation();
-  const expanded = isSimulateFullscreen(state);
+  const expanded = usePetrinautNavigationState(isSimulateFullscreen);
+  const simulateView = usePetrinautNavigationState(panelSimulateView);
+  const navigate = usePetrinautNavigate();
   return (
     <span
       className={css({
@@ -96,7 +100,7 @@ export const SimulationPanelTitle = ({ title }: { title: string }) => {
                 },
               })}
             >
-              {sectionLabels[panelSimulateView(state)]}
+              {sectionLabels[simulateView]}
             </button>
             <Icon name="chevronRight" size="xs" />
           </span>

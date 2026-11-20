@@ -1,12 +1,10 @@
-import { use } from "react";
-
 import { Button, Icon } from "@hashintel/ds-components";
 
+import { usePetrinautDefinitionSelector } from "../../../../../../react/hooks/use-document";
 import {
   useEditorActions,
   useEditorState,
 } from "../../../../../../react/state/editor-context";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { Table, type TableColumn } from "../../../../../components/table";
 import { SimulateSubviewFrame } from "../simulate-subview-frame";
 import { ViewScenarioDrawer } from "./view-scenario-drawer";
@@ -33,8 +31,8 @@ const scenarioColumns = [
 export const ScenariosView = () => {
   const drawer = useEditorState((editor) => editor.simulateDrawer);
   const { setSimulateDrawer: setDrawer } = useEditorActions();
-  const { petriNetDefinition } = use(SDCPNContext);
-  const scenarios = petriNetDefinition.scenarios ?? [];
+  const scenarios =
+    usePetrinautDefinitionSelector((definition) => definition.scenarios) ?? [];
 
   const selectedScenario =
     drawer.type === "view-scenario"

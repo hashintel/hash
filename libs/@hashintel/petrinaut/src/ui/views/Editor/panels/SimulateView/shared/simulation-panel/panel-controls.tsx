@@ -3,14 +3,17 @@ import { use } from "react";
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { usePetrinautNavigation } from "../../../../../../../react/navigation";
+import {
+  usePetrinautNavigate,
+  usePetrinautNavigationState,
+} from "../../../../../../../react/navigation";
 import { PanelContext } from "./panel-context";
 import { isSimulateFullscreen, panelSimulateView } from "./panel-navigation";
 
 export const SimulationPanelControls = () => {
-  const navigation = usePetrinautNavigation();
+  const expanded = usePetrinautNavigationState(isSimulateFullscreen);
+  const navigate = usePetrinautNavigate();
   const { onClose, closeDisabled } = use(PanelContext);
-  const expanded = isSimulateFullscreen(navigation.state);
   const label = expanded ? "Show as panel" : "Expand to fullscreen";
 
   return (
@@ -29,7 +32,7 @@ export const SimulationPanelControls = () => {
         aria-label={label}
         tooltip={label}
         onClick={() =>
-          navigation.navigate(
+          navigate(
             (current) => {
               const simulateView = panelSimulateView(current);
               return {

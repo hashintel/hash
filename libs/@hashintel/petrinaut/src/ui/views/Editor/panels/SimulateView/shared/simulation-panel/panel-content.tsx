@@ -2,7 +2,7 @@ import { use, useEffect, useRef } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { usePetrinautNavigation } from "../../../../../../../react/navigation";
+import { usePetrinautNavigationState } from "../../../../../../../react/navigation";
 import { useUserSettings } from "../../../../../../../react/state/user-settings-context";
 import {
   PanelContext,
@@ -56,15 +56,16 @@ export const PanelContent = ({
   initialFocusRef,
   children,
 }: SimulationPanelProps) => {
-  const { state } = usePetrinautNavigation();
+  const creationOpen = usePetrinautNavigationState(
+    (location) =>
+      location.overlay?.type === "create-scenario" ||
+      location.overlay?.type === "create-experiment",
+  );
+  const fullscreen = usePetrinautNavigationState(isSimulateFullscreen);
   const closing = use(PanelExitingContext);
   const showAnimations = useUserSettings((settings) => settings.showAnimations);
   const panelRef = useRef<HTMLElement>(null);
-  const hidden =
-    layer === "resource" &&
-    (state.overlay?.type === "create-scenario" ||
-      state.overlay?.type === "create-experiment");
-  const fullscreen = isSimulateFullscreen(state);
+  const hidden = layer === "resource" && creationOpen;
 
   useEffect(() => {
     if (hidden || closing) {

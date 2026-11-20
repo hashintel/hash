@@ -1,9 +1,7 @@
-import { use } from "react";
-
 import { generatePetrinautId } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../react";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { usePetrinautDefinitionSelector } from "../../../../../../react/hooks/use-document";
 import { SimulationPanel } from "../shared/simulation-panel";
 import {
   AdHocScenarioAuthoringBody,
@@ -17,10 +15,12 @@ import { useAdHocScenarioAuthoring } from "./use-ad-hoc-scenario-authoring";
  * only while the drawer is open.
  */
 const CreateScenarioContent = ({ onClose }: { onClose: () => void }) => {
-  const { petriNetDefinition } = use(SDCPNContext);
+  const scenarios = usePetrinautDefinitionSelector(
+    (definition) => definition.scenarios,
+  );
   const { addScenario } = usePetrinautMutations();
   const existingScenarioNames = new Set(
-    (petriNetDefinition.scenarios ?? []).map((scenario) => scenario.name),
+    (scenarios ?? []).map((scenario) => scenario.name),
   );
   const authoring = useAdHocScenarioAuthoring({ existingScenarioNames });
 
