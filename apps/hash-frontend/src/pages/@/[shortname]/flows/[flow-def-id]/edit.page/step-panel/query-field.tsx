@@ -15,6 +15,7 @@ import {
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { isIsoDate } from "@local/hash-isomorphic-utils/flows/datetime";
+import { getInputSize } from "@local/hash-isomorphic-utils/flows/input-size";
 import { maxEntitiesPerStep } from "@local/hash-isomorphic-utils/flows/limits";
 
 import { useLatestEntityTypesOptional } from "../../../../../../../shared/entity-types-context/hooks";
@@ -484,8 +485,12 @@ export const QueryField = (props: ComponentProps<typeof InputField>) => {
           }
         />
       </Form.Field>
+      {/* The conditions are a builder, so a long query, as its kind is, gives them a line of their own. */}
       {(rows.length > 0 || !readOnly) && (
-        <Form.Field layout="inline" label="Where">
+        <Form.Field
+          layout={getInputSize(input) === "long" ? "block" : "inline"}
+          label="Where"
+        >
           <div className={conditionGroup}>
             <FilterGroup dismissAbandoned>
               {rows.map(({ condition, property }, index) => (
@@ -566,6 +571,7 @@ export const QueryField = (props: ComponentProps<typeof InputField>) => {
         errors={limitErrors.length > 0 ? limitErrors : undefined}
       >
         <NumberInput
+          width="xs"
           value={form.limit ?? null}
           min={1}
           max={maxEntitiesPerStep}
