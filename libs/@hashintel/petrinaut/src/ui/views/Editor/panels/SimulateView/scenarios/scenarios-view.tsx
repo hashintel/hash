@@ -2,7 +2,10 @@ import { use } from "react";
 
 import { Button, Icon } from "@hashintel/ds-components";
 
-import { EditorContext } from "../../../../../../react/state/editor-context";
+import {
+  useEditorActions,
+  useEditorState,
+} from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { Table, type TableColumn } from "../../../../../components/table";
 import { SimulateSubviewFrame } from "../simulate-subview-frame";
@@ -49,8 +52,8 @@ const ScenarioList = ({
 };
 
 export const ScenariosView = () => {
-  const { simulateDrawer: drawer, setSimulateDrawer: setDrawer } =
-    use(EditorContext);
+  const drawer = useEditorState((editor) => editor.simulateDrawer);
+  const { setSimulateDrawer: setDrawer } = useEditorActions();
   const { petriNetDefinition } = use(SDCPNContext);
   const scenarios = petriNetDefinition.scenarios ?? [];
 

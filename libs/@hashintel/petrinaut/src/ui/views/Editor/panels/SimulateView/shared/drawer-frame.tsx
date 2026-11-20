@@ -18,11 +18,10 @@
  * transition in the frame: the header and the body read it from context,
  * and the body stamps it as `data-animate` for the cards' styles.
  */
-import { type ReactNode, use, useRef } from "react";
+import { type ReactNode, useRef } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { FrameAnimateContext } from "./drawer-frame/frame-animate-context";
 import {
   FRAME_HEADER_CONDENSED_HEIGHT,
@@ -36,7 +35,7 @@ import {
   SimulationPanelControls,
   SimulationPanelTitle,
 } from "./simulation-panel";
-import { usePrefersReducedMotion } from "./use-prefers-reduced-motion";
+import { useAnimationsEnabled } from "./use-animations-enabled";
 
 export {
   type ComputeBatch,
@@ -174,15 +173,13 @@ export const DrawerFrame = ({
   panel,
   children,
 }: DrawerFrameProps) => {
-  const { showAnimations } = use(UserSettingsContext);
-  const reducedMotion = usePrefersReducedMotion();
+  const animate = useAnimationsEnabled();
   const { scrolled, onScroll } = useBodyScrolled(
     FRAME_HEADER_HEIGHT - FRAME_HEADER_CONDENSED_HEIGHT,
   );
   const { engaged, engagement, settleFocus } = useHeaderEngaged();
   const bodyRef = useRef<HTMLDivElement>(null);
   const condensed = scrolled && !engaged;
-  const animate = showAnimations && !reducedMotion;
 
   const header = (
     <FrameHeader

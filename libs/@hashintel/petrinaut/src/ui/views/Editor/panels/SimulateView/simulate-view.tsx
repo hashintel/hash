@@ -1,10 +1,9 @@
-import { use } from "react";
-
 import { SegmentedControl } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import {
-  EditorContext,
+  useEditorActions,
+  useEditorState,
   type SimulateViewMode,
 } from "../../../../../react/state/editor-context";
 import { ExperimentsView } from "./experiments/experiments-view";
@@ -68,8 +67,8 @@ const views = {
 // -- Component -----------------------------------------------------------------
 
 export const SimulateViewTabs = () => {
-  const { simulateViewMode: mode, setSimulateViewMode: setMode } =
-    use(EditorContext);
+  const mode = useEditorState((editor) => editor.simulateViewMode);
+  const { setSimulateViewMode } = useEditorActions();
   const visibleModeOptions = modeOptions.filter(
     (option) => option.value !== "metrics",
   );
@@ -79,7 +78,7 @@ export const SimulateViewTabs = () => {
       <SegmentedControl
         value={visibleMode}
         items={visibleModeOptions}
-        onChange={setMode}
+        onChange={setSimulateViewMode}
         layout="vertical"
         size="sm"
       />
@@ -88,7 +87,7 @@ export const SimulateViewTabs = () => {
 };
 
 export const SimulateView = () => {
-  const { simulateViewMode: mode } = use(EditorContext);
+  const mode = useEditorState((editor) => editor.simulateViewMode);
   const ActiveView = views[mode === "metrics" ? "experiments" : mode];
   return (
     <div className={containerStyle}>

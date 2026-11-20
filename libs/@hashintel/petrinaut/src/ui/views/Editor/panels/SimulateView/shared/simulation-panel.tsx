@@ -13,10 +13,10 @@ import { Button, Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { usePetrinautNavigation } from "../../../../../../react/navigation";
-import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
+import { useUserSettings } from "../../../../../../react/state/user-settings-context";
 import { useSimulationWorkspaceContainer } from "../../../shared/simulation-workspace-context";
 import { simulationHeaderStyle } from "./simulation-header";
-import { usePrefersReducedMotion } from "./use-prefers-reduced-motion";
+import { useAnimationsEnabled } from "./use-animations-enabled";
 
 const PanelExitingContext = createContext(false);
 const panelExitDuration = 120;
@@ -26,9 +26,7 @@ export const SimulationPanelPresence = ({
 }: {
   children: ReactNode;
 }) => {
-  const { showAnimations } = use(UserSettingsContext);
-  const reducedMotion = usePrefersReducedMotion();
-  const animate = showAnimations && !reducedMotion;
+  const animate = useAnimationsEnabled();
   const [retained, setRetained] = useState(children);
   const present =
     children !== null && children !== undefined && children !== false;
@@ -78,7 +76,7 @@ const PanelContent = ({
 }: SimulationPanelProps) => {
   const { state } = usePetrinautNavigation();
   const closing = use(PanelExitingContext);
-  const { showAnimations } = use(UserSettingsContext);
+  const showAnimations = useUserSettings((settings) => settings.showAnimations);
   const panelRef = useRef<HTMLElement>(null);
   const hidden =
     layer === "resource" &&
