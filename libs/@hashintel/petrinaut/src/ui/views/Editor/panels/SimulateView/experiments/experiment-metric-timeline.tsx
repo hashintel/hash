@@ -105,6 +105,14 @@ const BandLegend = () => (
   </div>
 );
 
+// A component, so that no call takes a field of the view: the compiler would
+// rebuild the view with every element that follows such a call.
+const AggregateNumber = ({ value }: { value: number | null }) => (
+  <div className={aggregateNumberStyle}>
+    {value === null ? "n/a" : formatFixed(value)}
+  </div>
+);
+
 export const ExperimentMetricTimeline = ({
   frames,
   settings,
@@ -137,12 +145,12 @@ export const ExperimentMetricTimeline = ({
   const chartRootRef = useRef<HTMLDivElement>(null);
   const size = useElementSize(chartRootRef, { debounce: 50 });
   const [selection, setSelection] = useState<FrameSelection | null>(null);
-  const latestFrame = frames.at(-1);
   // A re-stream briefly empties the frames; the remembered output type keeps
   // the chart shape from flickering through the scalar defaults.
   const [lastOutputType, setLastOutputType] = useState<
     MetricFrame["outputType"] | null
   >(null);
+  const latestFrame = frames.at(-1);
   if (latestFrame && latestFrame.outputType !== lastOutputType) {
     setLastOutputType(latestFrame.outputType);
   }
@@ -157,11 +165,7 @@ export const ExperimentMetricTimeline = ({
       style={{ height: plotHeight, minHeight: plotHeight }}
     >
       {view.displayMode === "number" ? (
-        <div className={aggregateNumberStyle}>
-          {view.aggregateNumber === null
-            ? "n/a"
-            : formatFixed(view.aggregateNumber)}
-        </div>
+        <AggregateNumber value={view.aggregateNumber} />
       ) : (
         <>
           <MetricPlot
