@@ -3,15 +3,15 @@
  * @role Arranges the panels, toolbars and dialogs around the canvas
  */
 
-import { Activity, use, useState, type ReactNode } from "react";
+import { Activity, useState, type ReactNode } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
+import { useDocumentId } from "../../../react/hooks/use-document";
 import {
   useEditorActions,
   useEditorFields,
 } from "../../../react/state/editor-context";
-import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useComposesOnly } from "../../../react/state/use-composes-only";
 import { useSelectionCleanup } from "../../../react/state/use-selection-cleanup";
 import { useUserSettingsFields } from "../../../react/state/user-settings-context";
@@ -21,10 +21,8 @@ import { ExperimentalIconProvider } from "../../experimental-icons";
 import { CodeNavigationProvider } from "../../monaco/code-navigation";
 import { useCanvasRegistration } from "../../plugins/plugin-editor";
 import { PluginRoots } from "../../plugins/plugin-outlets";
-import { usePluginOverlay } from "../../plugins/plugins-provider";
 import { NotebookView } from "../Notebook/notebook-view";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
-import { AiCtaModal } from "./components/ai-cta-modal";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
 import { TopBar } from "./components/TopBar/top-bar";
 import { EditViewSelector } from "./editor-view/edit-view-selector";
@@ -33,6 +31,7 @@ import {
   EditorAssistantPanel,
   useEditorAssistant,
 } from "./editor-view/editor-assistant";
+import { EmptyNetPrompt } from "./editor-view/empty-net-prompt";
 import { UserSettings } from "./editor-view/user-settings";
 import { BottomPanel } from "./panels/BottomPanel/panel";
 import { LeftSideBar } from "./panels/LeftSideBar/panel";
@@ -46,8 +45,6 @@ import { useAutoLayoutAndFrame } from "./shared/use-auto-layout-and-frame";
 import { useCreateEmptyNet } from "./shared/use-create-empty-net";
 import { SimulationCreationDrawer } from "./simulation-creation-drawer";
 import { EditorCommands } from "./use-editor-commands";
-
-import type { SDCPN } from "@hashintel/petrinaut-core";
 
 // The remaining space under the TopBar, never 100% of the root: a full-height
 // row overflows the root by the TopBar's height, and although the root hides
@@ -84,44 +81,36 @@ const editViewSelectorSpaceStyle = css({
   flexShrink: "0",
 });
 
-const isEmptySDCPN = (sdcpn: SDCPN) =>
-  sdcpn.places.length === 0 &&
-  sdcpn.transitions.length === 0 &&
-  sdcpn.types.length === 0 &&
-  sdcpn.parameters.length === 0 &&
-  sdcpn.differentialEquations.length === 0;
-
 /**
- * EditorView is responsible for the overall editor UI layout and controls.
- * It relies on sdcpn-store and editor-store for state, and uses SDCPNView for visualization.
+ * Drops what was deleted from the selection. A leaf, because it reads the
+ * selection and the hover, which the view does not.
  */
+const SelectionCleanup = () => {
+  useSelectionCleanup();
+  return null;
+};
+
+/** The layout of the editor: the bars, the workspace of the mode, and the assistant. */
 const EditorViewContent = ({
   hideNetManagementControls,
 }: {
   hideNetManagementControls?: "all" | "except-title";
 }) => {
-  const { petriNetDefinition, petriNetId } = use(SDCPNContext);
+  const petriNetId = useDocumentId();
   const { registerController } = useCanvasRegistration();
   const createEmptyNet = useCreateEmptyNet();
   const autoLayoutAndFrame = useAutoLayoutAndFrame();
 
-  const { globalMode, editViewMode, isAiAssistantOpen } = useEditorFields(
+  const { globalMode, editViewMode } = useEditorFields(
     "globalMode",
     "editViewMode",
-    "isAiAssistantOpen",
   );
-  const { navigateTo, setAiAssistantOpen, toggleAiAssistant } =
-    useEditorActions();
+  const { navigateTo, toggleAiAssistant } = useEditorActions();
   const composesOnly = useComposesOnly();
   const assistant = useEditorAssistant();
 
-  const [isAiCtaDismissed, setIsAiCtaDismissed] = useState(false);
-
-  // A plugin covering the canvas, such as a tour, holds back the prompt.
-  const pluginOverlay = usePluginOverlay();
-
-  // Clean up stale selections when items are deleted
-  useSelectionCleanup();
+  const [isEmptyNetPromptDismissed, setEmptyNetPromptDismissed] =
+    useState(false);
 
   function handleRunningExperimentClick(experimentId: string) {
     navigateTo({
@@ -130,15 +119,6 @@ const EditorViewContent = ({
       simulateDrawer: { type: "view-experiment", experimentId },
     });
   }
-
-  // The empty-net prompt hands its message to the plugin assistant's
-  // `onPrompt`.
-  const showEmptyAiHero =
-    assistant.onPrompt !== undefined &&
-    !isAiAssistantOpen &&
-    !isAiCtaDismissed &&
-    !pluginOverlay &&
-    isEmptySDCPN(petriNetDefinition);
 
   return (
     <>
@@ -154,6 +134,7 @@ const EditorViewContent = ({
       <AssistantCommands />
       <PluginRoots />
       <UserSettings />
+      <SelectionCleanup />
 
       <TopBar
         hideNetManagementControls={hideNetManagementControls}
@@ -178,26 +159,14 @@ const EditorViewContent = ({
                 }
               >
                 <Box className={canvasContainerStyle}>
-                  {/* Left Sidebar - Tools and content panels */}
                   <LeftSideBar />
-
-                  {/* Properties Panel - Right Side */}
                   <PropertiesPanel />
-
-                  {/* SDCPN Visualization */}
                   <SDCPNView onControllerChange={registerController} />
-
-                  {showEmptyAiHero && (
-                    <AiCtaModal
-                      onDismiss={() => setIsAiCtaDismissed(true)}
-                      onSubmit={(message) => {
-                        setAiAssistantOpen(true);
-                        assistant.onPrompt?.(message);
-                      }}
+                  {!isEmptyNetPromptDismissed && (
+                    <EmptyNetPrompt
+                      onDismiss={() => setEmptyNetPromptDismissed(true)}
                     />
                   )}
-
-                  {/* Bottom Panel */}
                   <BottomPanel />
                 </Box>
               </Activity>
