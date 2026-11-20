@@ -20,6 +20,7 @@ import { selectedLabelStyle } from "./menu-rows";
 import { RunIdsIn, runLabel } from "./run-id";
 import { publishFlow } from "./app-store";
 import { setQuery, useLocation } from "./router";
+import { statusColor } from "./status-colors";
 import { triggerNoneTake } from "./trigger-flags";
 import { NoTriggerWarning } from "./trigger-none";
 import { Badge } from "./ds-parts/tabs";
@@ -542,6 +543,25 @@ const PublishDialog = ({
   );
 };
 
+/** The Publish button's box, so the dot can sit on its corner without changing its size or place. */
+const dotAnchorStyle = css({ position: "relative", display: "inline-flex" });
+
+/** Something to fix (PUB-DOT, provisional): 6 px red with a 1.5 px ring in the top bar's colour, centred on the top-right corner. */
+const fixDotStyle = css({
+  position: "absolute",
+  top: "[-4.5px]",
+  right: "[-4.5px]",
+  width: "[9px]",
+  height: "[9px]",
+  boxSizing: "border-box",
+  borderWidth: "[1.5px]",
+  borderStyle: "solid",
+  borderColor: "neutral.bgSolid.min.hover",
+  borderRadius: "full",
+  pointerEvents: "none",
+  zIndex: "[1]",
+});
+
 /**
  * Publish, per state: V0 and V2 enabled; V1 and V7 off (nothing new to publish); V5 off with the reason; V6 (a past
  * version open) off.
@@ -586,6 +606,7 @@ export const PublishButton = ({
             : `Publish v${version.current} and move this web's triggers to it`;
   return (
     <>
+      <span className={dotAnchorStyle}>
       <Button
         size="sm"
         variant="solid"
@@ -593,6 +614,7 @@ export const PublishButton = ({
         disabled={disabled}
         tooltip={tooltip}
         data-publish
+        aria-description={toFixCount > 0 ? `${toFixCount} to fix` : undefined}
         ref={publishRef}
         // ?triggernone=2: nothing can start the flow, so Publish asks first.
         onClick={() =>
@@ -605,6 +627,15 @@ export const PublishButton = ({
       >
         Publish
       </Button>
+      {toFixCount > 0 ? (
+        <span
+          className={fixDotStyle}
+          style={{ backgroundColor: statusColor.failed }}
+          aria-hidden="true"
+          data-publish-dot
+        />
+      ) : null}
+      </span>
       {warning ? (
         <NoTriggerWarning
           triggerRef={publishRef}
