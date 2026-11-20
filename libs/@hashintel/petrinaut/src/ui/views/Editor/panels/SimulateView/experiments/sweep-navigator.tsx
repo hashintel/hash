@@ -16,7 +16,7 @@ import type {
 } from "../../../../../../react/experiments/parameter-grid";
 
 /** Progress shown under the sliders. */
-export type SweepNavigatorStatus = {
+type SweepNavigatorStatus = {
   /** Whether a batch is currently running for the selection. */
   computing: boolean;
   /**

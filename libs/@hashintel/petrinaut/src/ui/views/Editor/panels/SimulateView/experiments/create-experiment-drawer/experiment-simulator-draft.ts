@@ -44,7 +44,7 @@ export const EMPTY_EXPERIMENT_SIMULATOR: ExperimentSimulatorDraft = {
 };
 
 /** Why a simulator cannot be picked. */
-export type SimulatorRefusal = {
+type SimulatorRefusal = {
   readonly reason: string;
   /**
    * True while the verdict is still being worked out, so that a picker can
