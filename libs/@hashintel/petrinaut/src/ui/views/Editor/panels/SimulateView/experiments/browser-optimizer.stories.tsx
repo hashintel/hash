@@ -13,7 +13,6 @@ import {
 } from "../simulate-view-story-harness";
 
 import type { ExperimentComputeBackend } from "../../../../../../react/experiments/context";
-import type { UserSettings } from "../../../../../../react/state/user-settings-context";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 /** One optimizer for the whole Storybook session, as the website keeps one per page. */
@@ -92,7 +91,6 @@ const winterWaveSweep: SweepPreset = {
 const BrowserOptimizerStory = ({
   example,
   sweep,
-  settings,
   steps,
   runCount,
   maxTime,
@@ -101,14 +99,12 @@ const BrowserOptimizerStory = ({
 }: BrowserOptimizerArgs & {
   example: StoryExample;
   sweep: SweepPreset;
-  settings?: Partial<UserSettings>;
 }) => (
   <RunnableSimulateViewStory
     // A sweep starts once per mount, so a changed control starts over.
     key={`${steps}-${runCount}-${maxTime}-${computeBackend}-${autoStart}`}
     example={example}
     optimization={browserOptimization}
-    settings={settings}
   >
     {autoStart ? (
       <AutoSweepStudy
