@@ -5,7 +5,6 @@ import { describeStudyProgress } from "../../shared/describe-study-progress";
 import {
   assessConvergence,
   type ConvergenceVerdict,
-  describeConvergence,
 } from "./study-header/convergence";
 
 import type { OptimizationRecord } from "../../../../../../../react/optimizations/context";
@@ -31,10 +30,13 @@ const chipSlotStyle = css({
   flexShrink: "0",
 });
 
-const VERDICT_COLOR: Record<ConvergenceVerdict["kind"], ChipColor> = {
-  "too-early": "grey",
-  improving: "blue",
-  converging: "green",
+const VERDICT_CHIP: Record<
+  ConvergenceVerdict,
+  { label: string; color: ChipColor }
+> = {
+  "too-early": { label: "Too early to say", color: "grey" },
+  improving: { label: "Still improving", color: "blue" },
+  converging: { label: "Converging", color: "green" },
 };
 
 export const StudyHeader = ({
@@ -55,9 +57,9 @@ export const StudyHeader = ({
     <div className={headerStyle} data-study-header>
       <span className={textStyle}>{describeStudyProgress(optimization)}</span>
       {verdict === null ? null : (
-        <span className={chipSlotStyle} data-verdict={verdict.kind}>
-          <Chip size="xs" variant="soft" color={VERDICT_COLOR[verdict.kind]}>
-            {describeConvergence(verdict)}
+        <span className={chipSlotStyle} data-verdict={verdict}>
+          <Chip size="xs" variant="soft" color={VERDICT_CHIP[verdict].color}>
+            {VERDICT_CHIP[verdict].label}
           </Chip>
         </span>
       )}

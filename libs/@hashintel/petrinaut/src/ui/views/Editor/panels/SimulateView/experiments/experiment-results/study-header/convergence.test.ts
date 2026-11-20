@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  assessConvergence,
-  convergenceWindow,
-  describeConvergence,
-} from "./convergence";
+import { assessConvergence, convergenceWindow } from "./convergence";
 
 import type { PetrinautOptimizationTrialEvent } from "@hashintel/petrinaut-core";
 
@@ -30,38 +26,30 @@ describe("convergenceWindow", () => {
 
 describe("assessConvergence", () => {
   it("is too early below one window of completed steps", () => {
-    expect(
-      assessConvergence(completed([1, 2, null, 3]), "maximize", 30),
-    ).toEqual({ kind: "too-early", completedSteps: 3, window: 5 });
+    expect(assessConvergence(completed([1, 2, null, 3]), "maximize", 30)).toBe(
+      "too-early",
+    );
   });
 
   it("is improving while the best moved inside the window", () => {
-    const verdict = assessConvergence(
-      completed([1, 2, 3, 4, 5, 6, 7]),
-      "maximize",
-      30,
-    );
-    expect(verdict).toEqual({ kind: "improving", lastImprovementStep: 7 });
-    expect(describeConvergence(verdict)).toBe("Still improving");
+    expect(
+      assessConvergence(completed([1, 2, 3, 4, 5, 6, 7]), "maximize", 30),
+    ).toBe("improving");
   });
 
   it("is converging once a whole window passed without a better step", () => {
-    const verdict = assessConvergence(
-      completed([5, 9, 8, 7, 6, 5, 4]),
-      "maximize",
-      30,
-    );
-    expect(verdict).toEqual({ kind: "converging", stagnantSteps: 5 });
-    expect(describeConvergence(verdict)).toBe("Converging");
+    expect(
+      assessConvergence(completed([5, 9, 8, 7, 6, 5, 4]), "maximize", 30),
+    ).toBe("converging");
   });
 
   it("reads the direction: a lower value improves a minimizing study", () => {
     expect(
       assessConvergence(completed([5, 4, 6, 7, 8, 9, 3]), "minimize", 30),
-    ).toEqual({ kind: "improving", lastImprovementStep: 7 });
+    ).toBe("improving");
     expect(
       assessConvergence(completed([3, 4, 6, 7, 8, 9, 5]), "minimize", 30),
-    ).toEqual({ kind: "converging", stagnantSteps: 6 });
+    ).toBe("converging");
   });
 
   it("ignores pruned steps when counting stagnation", () => {
@@ -71,9 +59,6 @@ describe("assessConvergence", () => {
         "maximize",
         30,
       ),
-    ).toEqual({ kind: "converging", stagnantSteps: 5 });
-    expect(
-      describeConvergence({ kind: "too-early", completedSteps: 1, window: 5 }),
-    ).toBe("Too early to say");
+    ).toBe("converging");
   });
 });

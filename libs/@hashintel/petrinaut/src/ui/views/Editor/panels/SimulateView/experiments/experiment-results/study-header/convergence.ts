@@ -9,10 +9,7 @@ import type {
   PetrinautOptimizationTrialEvent,
 } from "@hashintel/petrinaut-core";
 
-export type ConvergenceVerdict =
-  | { kind: "too-early"; completedSteps: number; window: number }
-  | { kind: "improving"; lastImprovementStep: number }
-  | { kind: "converging"; stagnantSteps: number };
+export type ConvergenceVerdict = "too-early" | "improving" | "converging";
 
 /** The completed steps a verdict looks back over: a tenth of the study, five at least. */
 export const convergenceWindow = (requestedTrials: number): number =>
@@ -28,7 +25,7 @@ export const assessConvergence = (
     .filter((trial) => trial.state === "complete" && trial.objective !== null)
     .toSorted((left, right) => left.trial - right.trial);
   if (completed.length < window) {
-    return { kind: "too-early", completedSteps: completed.length, window };
+    return "too-early";
   }
 
   let best: number | null = null;
@@ -44,22 +41,5 @@ export const assessConvergence = (
     }
   }
   const stagnantSteps = completed.length - 1 - lastImprovement;
-  return stagnantSteps < window
-    ? {
-        kind: "improving",
-        lastImprovementStep: completed[lastImprovement]!.trial + 1,
-      }
-    : { kind: "converging", stagnantSteps };
-};
-
-/** The chip's words for a verdict. */
-export const describeConvergence = (verdict: ConvergenceVerdict): string => {
-  switch (verdict.kind) {
-    case "too-early":
-      return "Too early to say";
-    case "improving":
-      return "Still improving";
-    case "converging":
-      return "Converging";
-  }
+  return stagnantSteps < window ? "improving" : "converging";
 };
