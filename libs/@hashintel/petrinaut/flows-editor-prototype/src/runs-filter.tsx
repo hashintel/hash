@@ -53,9 +53,12 @@ export type FilterProperty =
   | "version"
   | "value";
 
+/** The Triggers page's filter properties; its chips, ribbon and "+" are these same parts. */
+export type TriggerFilterProperty = "flow" | "web" | "kind";
+
 export type RunFilterChip = {
   id: number;
-  property: FilterProperty;
+  property: FilterProperty | TriggerFilterProperty;
   value: FilterValue<RunFilterValues> | null;
   /** Added just now: the chip takes focus and opens its value list. */
   fresh?: boolean;
@@ -188,13 +191,18 @@ const facetText = (property: FilterProperty, value: string) =>
         : "Schedule"
       : value;
 
+type PropertyGroup = "Run" | "Steps and data" | "Trigger";
+
 type PropertyDef = {
   label: string;
   icon: IconName;
-  group: "Run" | "Steps and data";
+  group: PropertyGroup;
 };
 
-const properties: Record<FilterProperty, PropertyDef> = {
+const properties: Record<FilterProperty | TriggerFilterProperty, PropertyDef> = {
+  flow: { label: "Flow", icon: "lightning", group: "Trigger" },
+  web: { label: "Web", icon: "globe", group: "Trigger" },
+  kind: { label: "Kind", icon: "calendarClock", group: "Trigger" },
   status: { label: "Status", icon: "circleCheck", group: "Run" },
   trigger: { label: "Trigger", icon: "calendarClock", group: "Run" },
   by: { label: "Started by", icon: "user", group: "Run" },
@@ -264,7 +272,9 @@ const operatorsOf = (
 };
 
 /** The operator a new chip opens on, so its value list opens straight away. */
-const firstOperator = (property: FilterProperty): keyof RunFilterValues =>
+const firstOperator = (
+  property: FilterProperty | TriggerFilterProperty,
+): keyof RunFilterValues =>
   property === "started"
     ? "within"
     : property === "duration"
@@ -278,11 +288,12 @@ const chipMatches = (chip: RunFilterChip, run: RunRecord, now: number) => {
   if (!value || value.value === null) {
     return true;
   }
+  const property = chip.property as FilterProperty;
   switch (value.key) {
     case "is":
-      return facetOf(chip.property, run, now).includes(value.value);
+      return facetOf(property, run, now).includes(value.value);
     case "isNot":
-      return !facetOf(chip.property, run, now).includes(value.value);
+      return !facetOf(property, run, now).includes(value.value);
     case "within": {
       const days = periods.find((period) => period.value === value.value)?.days;
       return (
@@ -314,7 +325,7 @@ export const appliedChips = (chips: RunFilterChip[]) =>
 
 export const newChip = (
   chips: RunFilterChip[],
-  property: FilterProperty,
+  property: FilterProperty | TriggerFilterProperty,
 ): RunFilterChip[] => [
   ...chips,
   {
@@ -329,17 +340,20 @@ export const newChip = (
 export const FilterByMenu = ({
   trigger,
   onPick,
+  groups: wanted = ["Run", "Steps and data"],
 }: {
   trigger: React.ReactElement;
-  onPick: (property: FilterProperty) => void;
+  onPick: (property: FilterProperty | TriggerFilterProperty) => void;
+  /** The property groups this list offers; the Logs page's two by default. */
+  groups?: readonly PropertyGroup[];
 }) => {
   const [search, setSearch] = useState("");
   const text = search.trim().toLowerCase();
-  const groups = (["Run", "Steps and data"] as const)
+  const groups = wanted
     .map((group) => ({
       id: group,
       label: group,
-      items: (Object.keys(properties) as FilterProperty[])
+      items: (Object.keys(properties) as (FilterProperty | TriggerFilterProperty)[])
         .filter(
           (property) =>
             properties[property].group === group &&
@@ -440,12 +454,15 @@ const RunFilterChipView = ({
   chip,
   runs,
   now,
+  operatorsFor,
   onChange,
   onRemove,
 }: {
   chip: RunFilterChip;
   runs: RunRecord[];
   now: number;
+  /** Another page's operators for its own properties (the Triggers page). */
+  operatorsFor?: (property: RunFilterChip["property"]) => Operator[];
   onChange: (value: FilterValue<RunFilterValues> | null) => void;
   onRemove: () => void;
 }) => {
@@ -472,7 +489,10 @@ const RunFilterChipView = ({
       <Filter<RunFilterValues>
         property={`${chip.property}-${chip.id}`}
         propertyLabel={label}
-        operators={operatorsOf(chip.property, runs, now)}
+        operators={
+          operatorsFor?.(chip.property) ??
+          operatorsOf(chip.property as FilterProperty, runs, now)
+        }
         value={chip.value}
         onChange={(...change: FilterChange<RunFilterValues>) => {
           const [key, value] = change;
@@ -508,12 +528,16 @@ export const RunsFilterRibbon = ({
   runs,
   now,
   onSave,
+  operatorsFor,
+  groups,
 }: {
   chips: RunFilterChip[];
   onChips: (chips: RunFilterChip[]) => void;
   runs: RunRecord[];
   now: number;
   onSave: () => void;
+  operatorsFor?: (property: RunFilterChip["property"]) => Operator[];
+  groups?: readonly PropertyGroup[];
 }) => (
   <FilterGroup className={ribbonStyle}>
     {chips.map((chip) => (
@@ -522,6 +546,7 @@ export const RunsFilterRibbon = ({
         chip={chip}
         runs={runs}
         now={now}
+        operatorsFor={operatorsFor}
         onChange={(value) =>
           onChips(
             chips.map((each) =>
@@ -533,6 +558,7 @@ export const RunsFilterRibbon = ({
       />
     ))}
     <FilterByMenu
+      groups={groups}
       onPick={(property) => onChips(newChip(chips, property))}
       trigger={<FilterGroup.AddFilter />}
     />

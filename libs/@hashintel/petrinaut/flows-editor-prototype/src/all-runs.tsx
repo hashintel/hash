@@ -167,12 +167,12 @@ const pageStyle = css({
  * Sort and Filter match the status tabs (Aakarsh, 4 Nov: "sizes are all over the place"): 28 px high, 14 px Medium,
  * 16 px icons, no border.
  */
-const rowButtonStyle = css({
+export const rowButtonStyle = css({
   "&[class]": { color: "neutral.fg.muted" },
 });
 
 /** Sort or Filter while it changes the table: the label reads dark, as a selected status tab does. */
-const rowButtonActiveStyle = css({
+export const rowButtonActiveStyle = css({
   "&[class]": { color: "neutral.fg.heading" },
 });
 

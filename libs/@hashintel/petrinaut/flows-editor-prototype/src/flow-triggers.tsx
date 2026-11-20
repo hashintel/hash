@@ -468,6 +468,23 @@ export const clearPendingTriggerAdd = () => {
   pendingAdd = null;
 };
 
+let pendingFilter: { flowId: string; kind: FlowTrigger["kind"] } | null = null;
+
+/** The Triggers page opens with Flow and Kind conditions set, read when the page mounts. */
+export const pendingTriggerFilter = () => pendingFilter;
+export const clearPendingTriggerFilter = () => {
+  pendingFilter = null;
+};
+
+/** "Show all N" in the editor's panel: the Triggers page for this flow and kind. */
+const showAllOnPage = (kind: FlowTrigger["kind"]) => {
+  const route = parseRoute(globalThis.location.pathname, globalThis.location.search);
+  if (route.page === "editor") {
+    pendingFilter = { flowId: route.flowId, kind };
+  }
+  openTriggersPage();
+};
+
 /** The editor's Add trigger button: the Triggers page with a new schedule open on the edited flow. */
 export const addTriggerFromEditor = () => {
   const route = parseRoute(globalThis.location.pathname, globalThis.location.search);
@@ -1087,7 +1104,7 @@ const TriggersPanelAtScale = () => {
                 <ShowAllRow
                   total={formatCount(group.total)}
                   noun={showAllNoun[group.kind]}
-                  onClick={() => setSheetKind(group.kind)}
+                  onClick={() => showAllOnPage(group.kind)}
                 />
               ) : null}
             </div>

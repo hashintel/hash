@@ -38,15 +38,28 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { DatePopover } from "./date-picker";
 import { emptyDocument } from "./document";
 import { Table } from "./ds-parts/table";
+import { Tabs } from "./ds-parts/tabs";
+import { Toast } from "./ds-parts/toast";
+import { rowButtonActiveStyle, rowButtonStyle } from "./all-runs";
 import { getFlow } from "./app-store";
 import { Select } from "./fill-select";
 import {
   clearPendingTriggerAdd,
+  clearPendingTriggerFilter,
   flowTriggersOf,
   pendingTriggerAdd,
+  pendingTriggerFilter,
 } from "./flow-triggers";
 import { HashShell } from "./hash-shell";
 import { InputControl, isFilled } from "./run-dialogs";
+import {
+  appliedChips,
+  FilterByMenu,
+  newChip,
+  type RunFilterChip,
+  RunsFilterRibbon,
+} from "./runs-filter";
+import { selectedLabel } from "./menu-rows";
 import { firstLineIconStyle, tileMenu, tiledRowsStyle } from "./menu-rows";
 import { navigate } from "./router";
 import {
@@ -105,6 +118,27 @@ const defaultSchedulePage = () =>
     "versionselect",
     "versionwidth",
   ].some((flag) => query().has(flag));
+
+type TriggerSortKey = "flow" | "trigger" | "web" | "status";
+
+const triggerSortKeys: TriggerSortKey[] = ["flow", "trigger", "web", "status"];
+
+/** Sort by the table's own columns, each with its two orders. */
+const triggerSortLabels: Record<
+  TriggerSortKey,
+  { label: string; orders: [string, string] }
+> = {
+  flow: { label: "Flow", orders: ["A to Z", "Z to A"] },
+  trigger: { label: "Trigger", orders: ["A to Z", "Z to A"] },
+  web: { label: "Web", orders: ["A to Z", "Z to A"] },
+  status: { label: "Status", orders: ["On first", "Paused first"] },
+};
+
+const statusTabs: { value: StatusFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "on", label: "On" },
+  { value: "paused", label: "Paused" },
+];
 
 /** `?triggerspage=1..4`, from the URL only. */
 export const triggersPageTake = (): Take | null => {
@@ -2101,13 +2135,31 @@ const Take2 = ({
   routeFlowId: string | null;
 }) => {
   const [search, setSearch] = useState("");
-  const [flowFilter, setFlowFilter] = useState(
-    page.flows.some((flow) => flow.id === routeFlowId) && routeFlowId
-      ? routeFlowId
-      : "all",
-  );
-  const [webFilter, setWebFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  // The filter row is the runs page's: tabs with counts, Sort, Filter, search, and a ribbon of conditions. Opening
+  // the page from the sidebar sets none; the editor's "Show all" links and a flow's own page set Flow (and Kind).
+  const [chips, setChips] = useState<RunFilterChip[]>(() => {
+    const pending = pendingTriggerFilter();
+    const flowId = pending?.flowId ?? routeFlowId;
+    const known = page.flows.some((flow) => flow.id === flowId);
+    const made: RunFilterChip[] = [
+      ...(known && flowId
+        ? [{ id: 1, property: "flow" as const, value: { key: "is" as const, value: flowId } }]
+        : []),
+      ...(pending
+        ? [{ id: 2, property: "kind" as const, value: { key: "is" as const, value: pending.kind } }]
+        : []),
+    ];
+    return made;
+  });
+  useEffect(() => {
+    clearPendingTriggerFilter();
+  }, []);
+  const [savedToast, setSavedToast] = useState(false);
+  const [tab, setTab] = useState<StatusFilter>("all");
+  const [sort, setSort] = useState<{ key: TriggerSortKey | null; flipped: boolean }>({
+    key: null,
+    flipped: false,
+  });
   const rows: Row[] = page.flows.flatMap((flow) => [
     { kind: "manual" as const, id: `manual:${flow.id}`, flow },
     ...page.triggers
@@ -2119,17 +2171,121 @@ const Take2 = ({
         trigger,
       })),
   ]);
-  const shown = rows.filter((row) => {
-    const label = row.kind === "manual" ? "Manual runs" : row.trigger.label;
-    return (
-      label.toLowerCase().includes(search.trim().toLowerCase()) &&
-      (flowFilter === "all" || row.flow.id === flowFilter) &&
-      (webFilter === "all" ||
-        (row.kind === "trigger" && row.trigger.web === webFilter)) &&
-      (statusFilter === "all" ||
-        (statusFilter === "on") === (page.on[row.id] ?? false))
-    );
-  });
+  const labelOf = (row: Row) =>
+    row.kind === "manual" ? "Manual runs" : row.trigger.label;
+  const facetOf = (row: Row, property: RunFilterChip["property"]) =>
+    property === "flow"
+      ? row.flow.id
+      : property === "web"
+        ? row.kind === "trigger"
+          ? row.trigger.web
+          : undefined
+        : row.kind === "manual"
+          ? "manual"
+          : row.trigger.kind;
+  const passesChips = (row: Row) =>
+    chips.every((chip) => {
+      const value = chip.value;
+      if (!value || value.value === null) {
+        return true;
+      }
+      const hit = facetOf(row, chip.property) === value.value;
+      return value.key === "isNot" ? !hit : hit;
+    });
+  const operatorsFor = (property: RunFilterChip["property"]) => {
+    const choices =
+      property === "flow"
+        ? page.flows.map((flow) => ({ value: flow.id, text: flow.name }))
+        : property === "web"
+          ? items(["@aakarsh", "@hash"])
+          : [
+              { value: "manual", text: "Manual" },
+              { value: "schedule", text: "Schedule" },
+              { value: "responsive", text: "Responsive" },
+            ];
+    return [
+      { key: "is" as const, label: "is", input: { type: "select" as const, items: choices } },
+      { key: "isNot" as const, label: "is not", input: { type: "select" as const, items: choices } },
+    ];
+  };
+  const matching = rows.filter(
+    (row) =>
+      labelOf(row).toLowerCase().includes(search.trim().toLowerCase()) &&
+      passesChips(row),
+  );
+  const isOn = (row: Row) => page.on[row.id] ?? false;
+  const counts = (value: StatusFilter) =>
+    value === "all"
+      ? matching.length
+      : matching.filter((row) => (value === "on") === isOn(row)).length;
+  const sortText = (row: Row, key: TriggerSortKey) =>
+    key === "flow"
+      ? row.flow.name
+      : key === "trigger"
+        ? labelOf(row)
+        : key === "web"
+          ? row.kind === "trigger"
+            ? row.trigger.web
+            : ""
+          : isOn(row)
+            ? "0"
+            : "1";
+  const shown = (
+    tab === "all"
+      ? matching
+      : matching.filter((row) => (tab === "on") === isOn(row))
+  )
+    .map((row, index) => ({ row, index }))
+    .sort((left, right) => {
+      if (!sort.key) {
+        return left.index - right.index;
+      }
+      const order = sortText(left.row, sort.key).localeCompare(
+        sortText(right.row, sort.key),
+      );
+      return (sort.flipped ? -order : order) || left.index - right.index;
+    })
+    .map(({ row }) => row);
+  const flowChip = chips.find(
+    (chip) =>
+      chip.property === "flow" &&
+      chip.value?.key === "is" &&
+      chip.value.value !== null,
+  );
+  const flowFilter = (flowChip?.value?.value as string | undefined) ?? "all";
+  const applied = appliedChips(chips);
+  const sorted = sort.key !== null;
+  const sortItems = [
+    {
+      id: "sort-by",
+      label: "Sort by",
+      items: triggerSortKeys.map((key) => ({
+        id: `sort:${key}`,
+        text: selectedLabel(triggerSortLabels[key].label, sort.key === key),
+        selected: sort.key === key,
+        selectedStyle: "highlight" as const,
+        keepOpenOnSelect: true,
+        onClick: () => setSort({ key, flipped: false }),
+      })),
+    },
+    ...(sort.key
+      ? [
+          {
+            id: "order",
+            label: "Order",
+            items: triggerSortLabels[sort.key].orders.map((text, index) => ({
+              id: `order:${index}`,
+              text: selectedLabel(text, sort.flipped === (index === 1)),
+              selected: sort.flipped === (index === 1),
+              selectedStyle: "highlight" as const,
+              keepOpenOnSelect: true,
+              onClick: () =>
+                setSort((current) => ({ ...current, flipped: index === 1 })),
+            })),
+          },
+        ]
+      : []),
+  ];
   const hidden = page.flows
     .filter((flow) => flowFilter === "all" || flow.id === flowFilter)
     .reduce((sum, flow) => sum + flow.hidden, 0);
@@ -2140,9 +2296,58 @@ const Take2 = ({
         className={css({ display: "flex", flexDirection: "column", gap: "4" })}
       >
         <div
-          className={css({ display: "flex", alignItems: "center", gap: "2" })}
+          className={css({
+            display: "flex",
+            alignItems: "center",
+            gap: "1",
+            paddingY: "1",
+          })}
         >
-          <div className={css({ width: "[240px]" })}>
+          <Tabs
+            label="Trigger status"
+            items={statusTabs.map((item) => ({
+              ...item,
+              count: (
+                <span className={css({ color: "neutral.fg.muted" })}>
+                  {counts(item.value)}
+                </span>
+              ),
+            }))}
+            value={tab}
+            onChange={setTab}
+          />
+          <span className={css({ flex: "1" })} />
+          <Menu
+            position="bottom-end"
+            items={sortItems}
+            trigger={
+              <Button
+                size="sm"
+                variant="ghost"
+                tone="neutral"
+                iconName={sort.flipped ? "sortUp" : "sortDown"}
+                className={cx(rowButtonStyle, sorted && rowButtonActiveStyle)}
+              >
+                {sort.key ? triggerSortLabels[sort.key].label : "Sort"}
+              </Button>
+            }
+          />
+          <FilterByMenu
+            groups={["Trigger"]}
+            onPick={(property) => setChips(newChip(chips, property))}
+            trigger={
+              <Button
+                size="sm"
+                variant="ghost"
+                tone="neutral"
+                iconName="filter"
+                className={cx(rowButtonStyle, applied > 0 && rowButtonActiveStyle)}
+              >
+                {applied > 0 ? `Filter · ${applied}` : "Filter"}
+              </Button>
+            }
+          />
+          <span className={css({ width: "[200px]", marginLeft: "2" })}>
             <TextInput
               size="sm"
               value={search}
@@ -2151,68 +2356,43 @@ const Take2 = ({
               prefix={{ iconName: "search", variant: "subtle" }}
               onChange={setSearch}
             />
-          </div>
-          <div className={css({ width: "[200px]" })}>
-            <Select
-              required
-              size="sm"
-              aria-label="Flow"
-              items={[
-                { value: "all", text: "All flows" },
-                ...page.flows.map((flow) => ({
-                  value: flow.id,
-                  text: flow.name,
-                })),
-              ]}
-              value={flowFilter}
-              onChange={(value) => setFlowFilter(value ?? "all")}
+          </span>
+          <span className={css({ marginLeft: "2" })}>
+            <AddMenu
+              onPick={(kind) =>
+                page.startDraft({
+                  kind,
+                  flowId: flowFilter === "all" ? page.flowId : flowFilter,
+                })
+              }
+              trigger={
+                <Button
+                  size="sm"
+                  variant="subtle"
+                  tone="neutral"
+                  iconName="plus"
+                  data-trigger-add
+                >
+                  Add trigger
+                </Button>
+              }
             />
-          </div>
-          <div className={css({ width: "[148px]" })}>
-            <Select
-              required
-              size="sm"
-              aria-label="Web"
-              items={[
-                { value: "all", text: "All webs" },
-                ...items(["@aakarsh", "@hash"]),
-              ]}
-              value={webFilter}
-              onChange={(value) => setWebFilter(value ?? "all")}
-            />
-          </div>
-          <SegmentedControl<StatusFilter>
-            size="sm"
-            aria-label="Status"
-            items={[
-              { value: "all", label: "All" },
-              { value: "on", label: "On" },
-              { value: "paused", label: "Paused" },
-            ]}
-            value={statusFilter}
-            onChange={setStatusFilter}
-          />
-          <span className={css({ flex: "1" })} />
-          <AddMenu
-            onPick={(kind) =>
-              page.startDraft({
-                kind,
-                flowId: flowFilter === "all" ? page.flowId : flowFilter,
-              })
-            }
-            trigger={
-              <Button
-                size="sm"
-                variant="subtle"
-                tone="neutral"
-                iconName="plus"
-                data-trigger-add
-              >
-                Add trigger
-              </Button>
-            }
-          />
+          </span>
         </div>
+        {chips.length > 0 ? (
+          <RunsFilterRibbon
+            chips={chips}
+            onChips={setChips}
+            runs={[]}
+            now={0}
+            groups={["Trigger"]}
+            operatorsFor={operatorsFor}
+            onSave={() => setSavedToast(true)}
+          />
+        ) : null}
+        {savedToast ? (
+          <Toast text="Filters saved" onDone={() => setSavedToast(false)} />
+        ) : null}
         <Table className={rowsStyle}>
           <thead>
             <tr>
@@ -2854,7 +3034,7 @@ export const TriggersPage = ({ flowId }: { flowId: string | null }) => {
           {take === 1 ? (
             <Take1 page={page} />
           ) : take === 2 ? (
-            <Take2 page={page} routeFlowId={flowId} />
+            <Take2 key={flowId ?? "all"} page={page} routeFlowId={flowId} />
           ) : take === 4 ? (
             <Take4 page={page} />
           ) : (
