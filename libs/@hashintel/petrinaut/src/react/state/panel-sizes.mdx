@@ -190,7 +190,14 @@ the Properties panel beside the canvas.
   inner group is stacked over the outer separator. `restStyle` stacks it.
 - **A separator has no thickness.** The stand-in is then exactly as large as
   the panel. The strip a pointer grabs and the strip that shows are the
-  separator's pseudo-elements.
+  separator's pseudo-elements. `EdgeSeparator` in `ui/resize` is that
+  separator, also where a split is a group of the library itself, as in the
+  Definitions view.
+- **A press does not move the keyboard focus.** The library focuses a
+  separator that is pressed, which would take the focus from the field the
+  user was in and send the next arrow key to the separator. `EdgeSeparator`
+  hands focus that arrives with a press back, and the Tab key still reaches
+  it. `edge-separator.test.tsx` holds this.
 - **A panel that is not in place has a disabled separator.** A panel that
   slides is not where its stand-in is, and neither is an assistant that
   floats. The tests in `dock-resizers.test.tsx` and
@@ -212,7 +219,8 @@ width is a Motion value the workspace owns, and a `PanelResizer` laid over
 the workspace resizes it, as for a docked panel.
 
 Two elements follow the width, and each has its `width` written directly: the
-slot the panels render into, and a sizer inside the room. The room is a flex
+holder the panels render into, marked `data-simulation-panel-slot`, and a
+sizer inside the room. The room is a flex
 item beside the content, so the content gives up what the room takes.
 
 - **A drag leads, and at any other time the width worked out while rendering
@@ -223,19 +231,19 @@ item beside the content, so the content gives up what the room takes.
   pointer move and the choice once, when it ends, so a drag renders the
   workspace once. `panel-width.test.ts` and `simulation-workspace.test.tsx`
   hold the widths.
-- **The room and the slot ease a share, and a drag writes the width.** The
-  room opens and closes with the panel, and the slot grows to the whole
+- **The room and the holder ease a share, and a drag writes the width.** The
+  room opens and closes with the panel, and the holder grows to the whole
   workspace in fullscreen. The room is a grid whose one column goes from
-  `0fr` to `1fr` of the sizer, and the slot takes the space left of it by a
+  `0fr` to `1fr` of the sizer, and the holder takes the space left of it by a
   `flex-grow` that goes from 0 to 1. Each transition is on the share, so a
   drag and an arrow key move both edges in the frame they happen in.
-- **The workspace learns of a panel from its slot.** A panel is rendered
-  into the slot through a portal, from anywhere below the workspace.
-  `useHasOpenPanel` observes the slot's children and says whether one is
+- **The workspace learns of a panel from its holder.** A panel is rendered
+  into the holder through a portal, from anywhere below the workspace.
+  `useHasOpenPanel` observes the holder's children and says whether one is
   shown and not closing. The room is open and the resizer mounted while it
   says yes. `use-has-open-panel.test.tsx` holds this.
-- **The slot is always laid out.** It lets the pointer through everywhere but
-  on a panel. A slot that appeared only once the workspace had rendered
+- **The holder is always laid out.** It lets the pointer through everywhere but
+  on a panel. A holder that appeared only once the workspace had rendered
   again would refuse the focus a panel takes in the commit that adds it.
 - **The resizer is there only beside an open panel.** Without a panel, and
   in fullscreen, the page has no separator to reach with the pointer or the
