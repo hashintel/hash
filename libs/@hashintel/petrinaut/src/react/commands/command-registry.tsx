@@ -6,12 +6,13 @@ import {
   createContext,
   use,
   useEffect,
-  useRef,
   useState,
   useSyncExternalStore,
 } from "react";
 
 import { createCommandRegistry } from "@hashintel/petrinaut-core";
+
+import { useLatest } from "../hooks/use-latest";
 
 import type { Command, CommandRegistry } from "@hashintel/petrinaut-core";
 import type { ReactNode } from "react";
@@ -70,10 +71,7 @@ export function useCommand(
   const registry = use(CommandRegistryContext);
   const active = options?.when ?? true;
 
-  const latest = useRef(command);
-  useEffect(() => {
-    latest.current = command;
-  });
+  const latest = useLatest(command);
 
   const { id, label, category, shortcut } = command;
   const keywords = command.keywords?.join("\n");
@@ -85,5 +83,5 @@ export function useCommand(
       ...latest.current,
       run: () => latest.current.run(),
     });
-  }, [registry, active, id, label, category, shortcut, keywords]);
+  }, [registry, active, latest, id, label, category, shortcut, keywords]);
 }
