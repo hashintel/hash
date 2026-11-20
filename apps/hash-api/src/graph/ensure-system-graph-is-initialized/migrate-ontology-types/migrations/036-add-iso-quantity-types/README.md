@@ -9,6 +9,8 @@ Migration 036 adds quantity meanings as property types and numeric representatio
 
 The [coverage table](coverage-map.md) records each item, its property type, and its representation. It is a mapping of the public catalogue, **not a claim of complete ISO conformance**. The full normative standards and all 2025 ISO amendments have not been audited.
 
+New data types have singular `title` values and explicit `titlePlural` values, including numeric domains, abstract groups, and prefixed information units. Their base URLs are specified separately from display names, preserving conversion targets and property references. Historical seeded types such as Bits, Bytes, Kilobytes, and Megabytes retain their existing names and metadata.
+
 ## Quantities and units are separate
 
 A unit data type constrains a value and defines its conversions. A property type identifies what the value means. For example:

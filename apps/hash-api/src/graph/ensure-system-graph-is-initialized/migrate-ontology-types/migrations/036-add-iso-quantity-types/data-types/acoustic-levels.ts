@@ -4,8 +4,10 @@ import type { IsoDataType } from "../data-types";
 
 export const acousticLevelsDataTypes: IsoDataType[] = [
   {
+    dataTypeBaseUrl: systemDataTypes.decibelsSoundPower.dataTypeBaseUrl,
     definition: {
-      title: "Decibels (Sound Power)",
+      title: "Decibel (Sound Power)",
+      titlePlural: "Decibels (Sound Power)",
       description:
         "Ten times the base-ten logarithm of sound power relative to one picowatt.",
       type: "number",
@@ -44,8 +46,10 @@ export const acousticLevelsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.soundExposureLevel.dataTypeBaseUrl,
     definition: {
       title: "Sound Exposure Level",
+      titlePlural: "Sound Exposure Levels",
       description:
         "Logarithmic sound exposure values with an explicit reference.",
       type: "number",
@@ -59,8 +63,10 @@ export const acousticLevelsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl: systemDataTypes.decibelsSoundExposure.dataTypeBaseUrl,
     definition: {
-      title: "Decibels (Sound Exposure)",
+      title: "Decibel (Sound Exposure)",
+      titlePlural: "Decibels (Sound Exposure)",
       description:
         "Ten times the base-ten logarithm of sound exposure relative to 4 × 10^-10 pascal squared seconds.",
       type: "number",

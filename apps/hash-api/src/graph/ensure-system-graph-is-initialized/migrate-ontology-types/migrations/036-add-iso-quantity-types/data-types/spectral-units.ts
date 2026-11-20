@@ -4,8 +4,11 @@ import type { IsoDataType } from "../data-types";
 
 export const spectralUnitsDataTypes: IsoDataType[] = [
   {
+    dataTypeBaseUrl:
+      systemDataTypes.spectralEnergyPerWavelength.dataTypeBaseUrl,
     definition: {
       title: "Spectral Energy per Wavelength",
+      titlePlural: "Spectral Energies per Wavelength",
       description:
         "Numeric values in convertible units of spectral energy per wavelength.",
       type: "number",
@@ -19,8 +22,11 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl:
+      systemDataTypes.spectralEnergyPerWavelengthMetric.dataTypeBaseUrl,
     definition: {
       title: "Spectral Energy per Wavelength (Metric)",
+      titlePlural: "Spectral Energies per Wavelength (Metric)",
       description:
         "Spectral Energy per Wavelength expressed in SI units and metric multiples.",
       type: "number",
@@ -34,8 +40,10 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl: systemDataTypes.joulesPerMeter.dataTypeBaseUrl,
     definition: {
-      title: "Joules per Meter",
+      title: "Joule per Meter",
+      titlePlural: "Joules per Meter",
       description:
         "A wavelength spectral density expressed in J/m; its spectral variable is wavelength in meters.",
       type: "number",
@@ -51,8 +59,10 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl: systemDataTypes.joulesPerNanometer.dataTypeBaseUrl,
     definition: {
-      title: "Joules per Nanometer",
+      title: "Joule per Nanometer",
+      titlePlural: "Joules per Nanometer",
       description:
         "A wavelength spectral density expressed in J/nm; equal to 10^9 J/m.",
       type: "number",
@@ -91,8 +101,11 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl:
+      systemDataTypes.spectralEnergyDensityPerWavelength.dataTypeBaseUrl,
     definition: {
       title: "Spectral Energy Density per Wavelength",
+      titlePlural: "Spectral Energy Densities per Wavelength",
       description:
         "Numeric values in convertible units of spectral energy density per wavelength.",
       type: "number",
@@ -106,8 +119,11 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl:
+      systemDataTypes.spectralEnergyDensityPerWavelengthMetric.dataTypeBaseUrl,
     definition: {
       title: "Spectral Energy Density per Wavelength (Metric)",
+      titlePlural: "Spectral Energy Densities per Wavelength (Metric)",
       description:
         "Spectral Energy Density per Wavelength expressed in SI units and metric multiples.",
       type: "number",
@@ -121,8 +137,10 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl: systemDataTypes.joulesPerFourthPowerMeter.dataTypeBaseUrl,
     definition: {
-      title: "Joules per Fourth Power Meter",
+      title: "Joule per Fourth Power Meter",
+      titlePlural: "Joules per Fourth Power Meter",
       description:
         "A wavelength spectral density expressed in J/m⁴; its spectral variable is wavelength in meters.",
       type: "number",
@@ -139,8 +157,11 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl:
+      systemDataTypes.joulesPerCubicMeterNanometer.dataTypeBaseUrl,
     definition: {
-      title: "Joules per Cubic Meter Nanometer",
+      title: "Joule per Cubic Meter Nanometer",
+      titlePlural: "Joules per Cubic Meter Nanometer",
       description:
         "A wavelength spectral density expressed in J/(m³·nm); equal to 10^9 J/m⁴.",
       type: "number",
@@ -180,8 +201,10 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.spectralPowerPerWavelength.dataTypeBaseUrl,
     definition: {
       title: "Spectral Power per Wavelength",
+      titlePlural: "Spectral Powers per Wavelength",
       description:
         "Numeric values in convertible units of spectral power per wavelength.",
       type: "number",
@@ -195,8 +218,11 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl:
+      systemDataTypes.spectralPowerPerWavelengthMetric.dataTypeBaseUrl,
     definition: {
       title: "Spectral Power per Wavelength (Metric)",
+      titlePlural: "Spectral Powers per Wavelength (Metric)",
       description:
         "Spectral Power per Wavelength expressed in SI units and metric multiples.",
       type: "number",
@@ -210,8 +236,10 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl: systemDataTypes.wattsPerMeter.dataTypeBaseUrl,
     definition: {
-      title: "Watts per Meter",
+      title: "Watt per Meter",
+      titlePlural: "Watts per Meter",
       description:
         "A wavelength spectral density expressed in W/m; its spectral variable is wavelength in meters.",
       type: "number",
@@ -227,8 +255,10 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl: systemDataTypes.wattsPerNanometer.dataTypeBaseUrl,
     definition: {
-      title: "Watts per Nanometer",
+      title: "Watt per Nanometer",
+      titlePlural: "Watts per Nanometer",
       description:
         "A wavelength spectral density expressed in W/nm; equal to 10^9 W/m.",
       type: "number",
@@ -267,8 +297,11 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl:
+      systemDataTypes.spectralIntensityPerWavelength.dataTypeBaseUrl,
     definition: {
       title: "Spectral Intensity per Wavelength",
+      titlePlural: "Spectral Intensities per Wavelength",
       description:
         "Numeric values in convertible units of spectral intensity per wavelength.",
       type: "number",
@@ -282,8 +315,11 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl:
+      systemDataTypes.spectralIntensityPerWavelengthMetric.dataTypeBaseUrl,
     definition: {
       title: "Spectral Intensity per Wavelength (Metric)",
+      titlePlural: "Spectral Intensities per Wavelength (Metric)",
       description:
         "Spectral Intensity per Wavelength expressed in SI units and metric multiples.",
       type: "number",
@@ -297,8 +333,10 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl: systemDataTypes.wattsPerSteradianMeter.dataTypeBaseUrl,
     definition: {
-      title: "Watts per Steradian Meter",
+      title: "Watt per Steradian Meter",
+      titlePlural: "Watts per Steradian Meter",
       description:
         "A wavelength spectral density expressed in W/(sr·m); its spectral variable is wavelength in meters.",
       type: "number",
@@ -314,8 +352,10 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl: systemDataTypes.wattsPerSteradianNanometer.dataTypeBaseUrl,
     definition: {
-      title: "Watts per Steradian Nanometer",
+      title: "Watt per Steradian Nanometer",
+      titlePlural: "Watts per Steradian Nanometer",
       description:
         "A wavelength spectral density expressed in W/(sr·nm); equal to 10^9 W/(sr·m).",
       type: "number",
@@ -354,8 +394,11 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl:
+      systemDataTypes.spectralRadiancePerWavelength.dataTypeBaseUrl,
     definition: {
       title: "Spectral Radiance per Wavelength",
+      titlePlural: "Spectral Radiances per Wavelength",
       description:
         "Numeric values in convertible units of spectral radiance per wavelength.",
       type: "number",
@@ -369,8 +412,11 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl:
+      systemDataTypes.spectralRadiancePerWavelengthMetric.dataTypeBaseUrl,
     definition: {
       title: "Spectral Radiance per Wavelength (Metric)",
+      titlePlural: "Spectral Radiances per Wavelength (Metric)",
       description:
         "Spectral Radiance per Wavelength expressed in SI units and metric multiples.",
       type: "number",
@@ -384,8 +430,11 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl:
+      systemDataTypes.wattsPerSteradianCubicMeter.dataTypeBaseUrl,
     definition: {
-      title: "Watts per Steradian Cubic Meter",
+      title: "Watt per Steradian Cubic Meter",
+      titlePlural: "Watts per Steradian Cubic Meter",
       description:
         "A wavelength spectral density expressed in W/(sr·m³); its spectral variable is wavelength in meters.",
       type: "number",
@@ -401,8 +450,11 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl:
+      systemDataTypes.wattsPerSteradianSquareMeterNanometer.dataTypeBaseUrl,
     definition: {
-      title: "Watts per Steradian Square Meter Nanometer",
+      title: "Watt per Steradian Square Meter Nanometer",
+      titlePlural: "Watts per Steradian Square Meter Nanometer",
       description:
         "A wavelength spectral density expressed in W/(sr·m²·nm); equal to 10^9 W/(sr·m³).",
       type: "number",
@@ -441,8 +493,11 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl:
+      systemDataTypes.spectralIrradiancePerWavelength.dataTypeBaseUrl,
     definition: {
       title: "Spectral Irradiance per Wavelength",
+      titlePlural: "Spectral Irradiances per Wavelength",
       description:
         "Numeric values in convertible units of spectral irradiance per wavelength.",
       type: "number",
@@ -456,8 +511,11 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl:
+      systemDataTypes.spectralIrradiancePerWavelengthMetric.dataTypeBaseUrl,
     definition: {
       title: "Spectral Irradiance per Wavelength (Metric)",
+      titlePlural: "Spectral Irradiances per Wavelength (Metric)",
       description:
         "Spectral Irradiance per Wavelength expressed in SI units and metric multiples.",
       type: "number",
@@ -471,8 +529,10 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl: systemDataTypes.wattsPerCubicMeter.dataTypeBaseUrl,
     definition: {
-      title: "Watts per Cubic Meter",
+      title: "Watt per Cubic Meter",
+      titlePlural: "Watts per Cubic Meter",
       description:
         "A wavelength spectral density expressed in W/m³; its spectral variable is wavelength in meters.",
       type: "number",
@@ -489,8 +549,11 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl:
+      systemDataTypes.wattsPerSquareMeterNanometer.dataTypeBaseUrl,
     definition: {
-      title: "Watts per Square Meter Nanometer",
+      title: "Watt per Square Meter Nanometer",
+      titlePlural: "Watts per Square Meter Nanometer",
       description:
         "A wavelength spectral density expressed in W/(m²·nm); equal to 10^9 W/m³.",
       type: "number",
@@ -530,8 +593,11 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl:
+      systemDataTypes.spectralExposurePerWavelength.dataTypeBaseUrl,
     definition: {
       title: "Spectral Exposure per Wavelength",
+      titlePlural: "Spectral Exposures per Wavelength",
       description:
         "Numeric values in convertible units of spectral exposure per wavelength.",
       type: "number",
@@ -545,8 +611,11 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl:
+      systemDataTypes.spectralExposurePerWavelengthMetric.dataTypeBaseUrl,
     definition: {
       title: "Spectral Exposure per Wavelength (Metric)",
+      titlePlural: "Spectral Exposures per Wavelength (Metric)",
       description:
         "Spectral Exposure per Wavelength expressed in SI units and metric multiples.",
       type: "number",
@@ -560,8 +629,11 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl:
+      systemDataTypes.joulesPerCubicMeterOfWavelength.dataTypeBaseUrl,
     definition: {
-      title: "Joules per Cubic Meter of Wavelength",
+      title: "Joule per Cubic Meter of Wavelength",
+      titlePlural: "Joules per Cubic Meter of Wavelength",
       description:
         "A wavelength spectral density expressed in J/(m²·m); its spectral variable is wavelength in meters.",
       type: "number",
@@ -577,8 +649,11 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl:
+      systemDataTypes.joulesPerSquareMeterNanometer.dataTypeBaseUrl,
     definition: {
-      title: "Joules per Square Meter Nanometer",
+      title: "Joule per Square Meter Nanometer",
+      titlePlural: "Joules per Square Meter Nanometer",
       description:
         "A wavelength spectral density expressed in J/(m²·nm); equal to 10^9 J/(m²·m).",
       type: "number",
@@ -617,8 +692,10 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.electronvoltsPerMeter.dataTypeBaseUrl,
     definition: {
-      title: "Electronvolts per Meter",
+      title: "Electronvolt per Meter",
+      titlePlural: "Electronvolts per Meter",
       description:
         "A value expressed in eV/m, using the exact SI electronvolt of 1.602176634 × 10^-19 joules.",
       type: "number",
@@ -657,8 +734,11 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl:
+      systemDataTypes.electronvoltsPerSquareMeter.dataTypeBaseUrl,
     definition: {
-      title: "Electronvolts per Square Meter",
+      title: "Electronvolt per Square Meter",
+      titlePlural: "Electronvolts per Square Meter",
       description:
         "A value expressed in eV/m², using the exact SI electronvolt of 1.602176634 × 10^-19 joules.",
       type: "number",

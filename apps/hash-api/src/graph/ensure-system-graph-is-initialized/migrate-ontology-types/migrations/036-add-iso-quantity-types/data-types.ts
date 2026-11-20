@@ -6,10 +6,12 @@ import { scaledUnitsDataTypes } from "./data-types/scaled-units";
 import { spectralUnitsDataTypes } from "./data-types/spectral-units";
 
 import type { createSystemDataTypeIfNotExists } from "../../util";
+import type { BaseUrl } from "@blockprotocol/type-system";
 
 type Definition = Parameters<typeof createSystemDataTypeIfNotExists>[2];
 export type IsoDataType = {
-  definition: Definition["dataTypeDefinition"];
+  dataTypeBaseUrl: BaseUrl;
+  definition: Definition["dataTypeDefinition"] & { titlePlural: string };
   conversions: Definition["conversions"];
 };
 export const isoDataTypes: IsoDataType[] = [

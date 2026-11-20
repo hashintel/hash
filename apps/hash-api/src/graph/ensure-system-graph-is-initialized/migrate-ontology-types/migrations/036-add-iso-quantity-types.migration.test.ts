@@ -29,7 +29,9 @@ vi.mock("../util", () => ({
 
 const dataType = (title: string) => {
   const item = isoDataTypes.find(
-    ({ definition }) => definition.title === title,
+    ({ dataTypeBaseUrl }) =>
+      dataTypeBaseUrl ===
+      `https://hash.ai/@h/types/data-type/${slugifyTypeTitle(title)}/`,
   );
   if (!item) {
     throw new Error(`Missing data type: ${title}`);
@@ -51,10 +53,7 @@ const version = makeOntologyTypeVersion({ major: 3 });
 describe("ISO quantity catalogue", () => {
   it("seeds dependencies first and resolves the versions in this installation", async () => {
     const newBaseUrls = new Set(
-      isoDataTypes.map(
-        ({ definition }) =>
-          `https://hash.ai/@h/types/data-type/${slugifyTypeTitle(definition.title)}/`,
-      ),
+      isoDataTypes.map(({ dataTypeBaseUrl }) => dataTypeBaseUrl),
     );
     const migrationState: MigrationState = {
       dataTypeVersions: Object.fromEntries(
@@ -70,7 +69,7 @@ describe("ISO quantity catalogue", () => {
       async (
         _context,
         _authentication,
-        { dataTypeDefinition, conversions },
+        { dataTypeDefinition, dataTypeBaseUrl, conversions },
       ) => {
         for (const reference of dataTypeDefinition.allOf ?? []) {
           if (reference.$ref.startsWith("https://hash.ai/@h/")) {
@@ -80,8 +79,12 @@ describe("ISO quantity catalogue", () => {
         for (const target of Object.keys(conversions) as BaseUrl[]) {
           expect(migrationState.dataTypeVersions[target], target).toBeDefined();
         }
-        const baseUrl =
-          `https://hash.ai/@h/types/data-type/${slugifyTypeTitle(dataTypeDefinition.title)}/` as BaseUrl;
+        if (!dataTypeBaseUrl) {
+          throw new Error(
+            `Missing explicit identifier: ${dataTypeDefinition.title}`,
+          );
+        }
+        const baseUrl = dataTypeBaseUrl;
         migrationState.dataTypeVersions[baseUrl] = version;
         return {
           schema: {
@@ -131,25 +134,94 @@ describe("ISO quantity catalogue", () => {
     const locators = isoPropertyTypes.flatMap(({ isoItems }) => isoItems);
     expect(new Set(locators).size).toBe(locators.length);
     expect(locators).toHaveLength(721);
-    for (const [items, registry, kind] of [
-      [isoDataTypes, systemDataTypes, "data"],
-      [isoPropertyTypes, systemPropertyTypes, "property"],
-    ] as const) {
-      const titles = items.map(({ definition }) => definition.title);
-      expect(new Set(titles).size).toBe(titles.length);
-      const registered = new Set(
-        Object.values(registry).map((entry) =>
-          "dataTypeId" in entry ? entry.dataTypeId : entry.propertyTypeId,
+    expect(
+      new Set(isoDataTypes.map(({ dataTypeBaseUrl }) => dataTypeBaseUrl)).size,
+    ).toBe(isoDataTypes.length);
+    expect(
+      new Set(isoDataTypes.map(({ definition }) => definition.title)).size,
+    ).toBe(isoDataTypes.length);
+    for (const { dataTypeBaseUrl, definition } of isoDataTypes) {
+      expect(definition.titlePlural, definition.title).toBeTruthy();
+      expect(
+        Object.values(systemDataTypes).find(
+          (entry) => entry.dataTypeBaseUrl === dataTypeBaseUrl,
         ),
-      );
-      for (const title of titles) {
-        expect(
-          registered.has(
-            `https://hash.ai/@h/types/${kind}-type/${slugifyTypeTitle(title)}/v/1`,
-          ),
-          title,
-        ).toBe(true);
-      }
+      ).toMatchObject({
+        dataTypeId: `${dataTypeBaseUrl}v/1`,
+        title: definition.title,
+        titlePlural: definition.titlePlural,
+      });
+    }
+    const propertyTitles = isoPropertyTypes.map(
+      ({ definition }) => definition.title,
+    );
+    expect(new Set(propertyTitles).size).toBe(propertyTitles.length);
+    const registeredPropertyIds = new Set<string>(
+      Object.values(systemPropertyTypes).map(
+        ({ propertyTypeId }) => propertyTypeId,
+      ),
+    );
+    for (const title of propertyTitles) {
+      expect(
+        registeredPropertyIds.has(
+          `https://hash.ai/@h/types/property-type/${slugifyTypeTitle(title)}/v/1`,
+        ),
+        title,
+      ).toBe(true);
+    }
+  });
+
+  it.each([
+    ["Negative Number", "Negative Number", "Negative Numbers"],
+    ["Non-negative Number", "Non-negative Number", "Non-negative Numbers"],
+    [
+      "Fractional Parts per Million",
+      "Fractional Part per Million",
+      "Fractional Parts per Million",
+    ],
+    ["Moment of Inertia", "Moment of Inertia", "Moments of Inertia"],
+    [
+      "Angular Momentum (Metric)",
+      "Angular Momentum (Metric)",
+      "Angular Momenta (Metric)",
+    ],
+    ["Kibibytes", "Kibibyte", "Kibibytes"],
+    ["Megabytes per Second", "Megabyte per Second", "Megabytes per Second"],
+    ["Reciprocal Henries", "Reciprocal Henry", "Reciprocal Henries"],
+    ["Siemens per Meter", "Siemens per Meter", "Siemens per Meter"],
+    [
+      "Decibels (Sound Power)",
+      "Decibel (Sound Power)",
+      "Decibels (Sound Power)",
+    ],
+  ])(
+    "keeps the %s identifier with singular and plural titles",
+    (identifierTitle, title, titlePlural) => {
+      expect(dataType(identifierTitle)).toMatchObject({
+        dataTypeBaseUrl: `https://hash.ai/@h/types/data-type/${slugifyTypeTitle(identifierTitle)}/`,
+        definition: { title, titlePlural },
+      });
+    },
+  );
+
+  it("leaves historical storage unit names and metadata unchanged", () => {
+    for (const [key, title] of [
+      ["bits", "Bits"],
+      ["bytes", "Bytes"],
+      ["kilobytes", "Kilobytes"],
+      ["megabytes", "Megabytes"],
+      ["gigabytes", "Gigabytes"],
+      ["terabytes", "Terabytes"],
+    ] as const) {
+      const historical = systemDataTypes[key];
+      expect(historical.title).toBe(title);
+      expect(historical).not.toHaveProperty("titlePlural");
+      expect(
+        isoDataTypes.some(
+          ({ dataTypeBaseUrl }) =>
+            dataTypeBaseUrl === historical.dataTypeBaseUrl,
+        ),
+      ).toBe(false);
     }
   });
 

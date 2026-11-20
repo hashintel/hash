@@ -4,8 +4,10 @@ import type { IsoDataType } from "../data-types";
 
 export const scaledUnitsDataTypes: IsoDataType[] = [
   {
+    dataTypeBaseUrl: systemDataTypes.energyAreaPerMass.dataTypeBaseUrl,
     definition: {
       title: "Energy Area per Mass",
+      titlePlural: "Energy Areas per Mass",
       description:
         "Numeric values in convertible units of energy area per mass.",
       type: "number",
@@ -19,8 +21,10 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl: systemDataTypes.energyAreaPerMassMetric.dataTypeBaseUrl,
     definition: {
       title: "Energy Area per Mass (Metric)",
+      titlePlural: "Energy Areas per Mass (Metric)",
       description:
         "Energy Area per Mass expressed in SI units and metric multiples.",
       type: "number",
@@ -34,8 +38,11 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl:
+      systemDataTypes.jouleSquareMetersPerKilogram.dataTypeBaseUrl,
     definition: {
-      title: "Joule Square Meters per Kilogram",
+      title: "Joule Square Meter per Kilogram",
+      titlePlural: "Joule Square Meters per Kilogram",
       description: "A value expressed in joule square meters per kilogram.",
       type: "number",
       allOf: [
@@ -50,8 +57,11 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl:
+      systemDataTypes.electronvoltSquareMetersPerKilogram.dataTypeBaseUrl,
     definition: {
-      title: "Electronvolt Square Meters per Kilogram",
+      title: "Electronvolt Square Meter per Kilogram",
+      titlePlural: "Electronvolt Square Meters per Kilogram",
       description:
         "A value expressed in electronvolt square meters per kilogram.",
       type: "number",
@@ -90,8 +100,10 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.gramsPerMole.dataTypeBaseUrl,
     definition: {
-      title: "Grams per Mole",
+      title: "Gram per Mole",
+      titlePlural: "Grams per Mole",
       description: "A value expressed in grams per mole.",
       type: "number",
       allOf: [
@@ -129,8 +141,10 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.cubicCentimetersPerMole.dataTypeBaseUrl,
     definition: {
-      title: "Cubic Centimeters per Mole",
+      title: "Cubic Centimeter per Mole",
+      titlePlural: "Cubic Centimeters per Mole",
       description: "A value expressed in cubic centimeters per mole.",
       type: "number",
       allOf: [
@@ -168,8 +182,10 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.millimolesPerKilogram.dataTypeBaseUrl,
     definition: {
-      title: "Millimoles per Kilogram",
+      title: "Millimole per Kilogram",
+      titlePlural: "Millimoles per Kilogram",
       description: "A value expressed in millimoles per kilogram.",
       type: "number",
       allOf: [
@@ -207,8 +223,10 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.millisiemensPerCentimeter.dataTypeBaseUrl,
     definition: {
       title: "Millisiemens per Centimeter",
+      titlePlural: "Millisiemens per Centimeter",
       description: "A value expressed in millisiemens per centimeter.",
       type: "number",
       allOf: [
@@ -246,8 +264,10 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.microsiemensPerCentimeter.dataTypeBaseUrl,
     definition: {
       title: "Microsiemens per Centimeter",
+      titlePlural: "Microsiemens per Centimeter",
       description: "A value expressed in microsiemens per centimeter.",
       type: "number",
       allOf: [
@@ -285,8 +305,10 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.ohmCentimeters.dataTypeBaseUrl,
     definition: {
-      title: "Ohm Centimeters",
+      title: "Ohm Centimeter",
+      titlePlural: "Ohm Centimeters",
       description: "A value expressed in ohm centimeters.",
       type: "number",
       allOf: [
@@ -324,8 +346,10 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.kilovoltAmperes.dataTypeBaseUrl,
     definition: {
-      title: "Kilovolt Amperes",
+      title: "Kilovolt Ampere",
+      titlePlural: "Kilovolt Amperes",
       description: "A value expressed in kilovolt amperes.",
       type: "number",
       allOf: [
@@ -363,8 +387,10 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.kilovars.dataTypeBaseUrl,
     definition: {
-      title: "Kilovars",
+      title: "Kilovar",
+      titlePlural: "Kilovars",
       description: "A value expressed in kilovars.",
       type: "number",
       allOf: [
@@ -402,8 +428,10 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.sievertsPerHour.dataTypeBaseUrl,
     definition: {
-      title: "Sieverts per Hour",
+      title: "Sievert per Hour",
+      titlePlural: "Sieverts per Hour",
       description: "A value expressed in sieverts per hour.",
       type: "number",
       allOf: [
@@ -441,8 +469,10 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.barns.dataTypeBaseUrl,
     definition: {
-      title: "Barns",
+      title: "Barn",
+      titlePlural: "Barns",
       description:
         "A unit of effective cross section equal to exactly 10^-28 square meters.",
       type: "number",
@@ -481,8 +511,10 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.angstroms.dataTypeBaseUrl,
     definition: {
-      title: "Angstroms",
+      title: "Angstrom",
+      titlePlural: "Angstroms",
       description:
         "A unit of length equal to exactly 10^-10 meters, used for atomic distances and wavelengths.",
       type: "number",
@@ -521,8 +553,10 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.astronomicalUnits.dataTypeBaseUrl,
     definition: {
-      title: "Astronomical Units",
+      title: "Astronomical Unit",
+      titlePlural: "Astronomical Units",
       description:
         "A unit of astronomical length equal to exactly 149597870700 meters.",
       type: "number",
@@ -561,8 +595,10 @@ export const scaledUnitsDataTypes: IsoDataType[] = [
     },
   },
   {
+    dataTypeBaseUrl: systemDataTypes.daltons.dataTypeBaseUrl,
     definition: {
-      title: "Daltons",
+      title: "Dalton",
+      titlePlural: "Daltons",
       description:
         "The unified atomic mass unit, one twelfth of the mass of a free carbon-12 atom at rest in its ground state. The kilogram conversion uses the approximate 2022 CODATA value 1.66053906892 × 10^-27 kg.",
       type: "number",
