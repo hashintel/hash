@@ -4,7 +4,7 @@
  * conversation is the instance of its creator's actor, records that actor
  * and the creating request's web, and refuses every other session, web or
  * binding on each route, the browser-call routes included; a refused request
- * creates nothing.
+ * creates nothing. `/health` alone answers without a session.
  */
 import { randomUUID } from "node:crypto";
 import { createServer } from "node:http";
@@ -82,6 +82,44 @@ const schemaExists = async (instanceId: string) =>
       conversationSchema(instanceId),
     ])
   ).rowCount === 1;
+
+test("the health route answers without a session, ahead of HASH's entry", async () => {
+  const pool = new Pool(poolConfig);
+  const { models, model } = scriptedModel([]);
+  const server = await startDurableAgentsServer({
+    port: 0,
+    hostname: "127.0.0.1",
+    hashEntry: {
+      apiOrigin: `http://127.0.0.1:${(hashApi.address() as AddressInfo).port}`,
+      allowedOrigins: [pageOrigin],
+      logWarning: () => {},
+    },
+    pool,
+    models,
+    model,
+  });
+  try {
+    const origin = `http://127.0.0.1:${server.port}`;
+    const health = await fetch(`${origin}${brunchRoutes.health}`);
+    expect(health.status).toBe(200);
+    expect(health.headers.get("cache-control")).toBe("no-store");
+    expect(await health.json()).toEqual({ status: "pass" });
+    expect(
+      (await fetch(`${origin}${brunchRoutes.health}`, { method: "HEAD" }))
+        .status,
+    ).toBe(200);
+    expect(
+      (await fetch(`${origin}${brunchRoutes.health}`, { method: "POST" }))
+        .status,
+    ).not.toBe(200);
+    expect((await fetch(`${origin}${brunchRoutes.hashIdentity}`)).status).toBe(
+      401,
+    );
+  } finally {
+    await server.close();
+    await pool.end();
+  }
+});
 
 type Caller = {
   readonly session: string;
