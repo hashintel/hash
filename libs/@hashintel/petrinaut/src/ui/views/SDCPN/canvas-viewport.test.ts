@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  fitSceneViewport,
   fitViewportToBounds,
-  getInitialViewport,
   isScenePointInView,
   MAX_FIT_ZOOM,
   revealBounds,
@@ -129,20 +129,16 @@ describe("fitViewportToBounds", () => {
   });
 });
 
-describe("getInitialViewport", () => {
-  it("returns the origin at zoom 1 when there is nothing to fit", () => {
-    expect(getInitialViewport(null, { width: 500, height: 400 })).toEqual({
-      x: 0,
-      y: 0,
-      zoom: 1,
-    });
+describe("fitSceneViewport", () => {
+  it("returns nothing when there is nothing to fit", () => {
+    expect(fitSceneViewport(null, { width: 500, height: 400 })).toBeNull();
   });
 
   it("never zooms in past the fit ceiling", () => {
-    const result = getInitialViewport(
+    const result = fitSceneViewport(
       { x: 0, y: 0, width: 10, height: 10 },
       { width: 1000, height: 1000 },
     );
-    expect(result.zoom).toBe(MAX_FIT_ZOOM);
+    expect(result?.zoom).toBe(MAX_FIT_ZOOM);
   });
 });

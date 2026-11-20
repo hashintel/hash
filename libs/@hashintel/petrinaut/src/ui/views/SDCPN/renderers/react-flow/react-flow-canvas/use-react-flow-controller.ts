@@ -1,15 +1,8 @@
 import { useReactFlow } from "@xyflow/react";
 import { useEffect, useRef, useState } from "react";
 
-import {
-  ZOOM_PADDING,
-  getMinZoomForBounds,
-  type Rect,
-  type Size,
-} from "@hashintel/petrinaut-core";
-
 import { useLatest } from "../../../../../../react/hooks/use-latest";
-import { fitViewportToBounds, MAX_FIT_ZOOM } from "../../../canvas-viewport";
+import { fitSceneViewport } from "../../../canvas-viewport";
 import {
   createViewportAnimator,
   type ViewportAnimator,
@@ -22,6 +15,7 @@ import type {
 } from "../../../canvas-renderer";
 import type { CanvasViewportInsets } from "../../../canvas-viewport";
 import type { ArcEdgeType, NodeType } from "./react-flow-types";
+import type { Rect, Size } from "@hashintel/petrinaut-core";
 
 const frameRequestTimeoutMs = 1_500;
 
@@ -36,19 +30,11 @@ const fitScene = async (
   { bounds, containerSize, insets }: FrameState,
   camera: ViewportAnimator,
 ): Promise<FrameSceneResult> => {
-  if (!bounds || bounds.width === 0 || bounds.height === 0) {
+  const viewport = fitSceneViewport(bounds, containerSize, insets());
+  if (!viewport) {
     return "empty";
   }
-  await camera.animateTo(
-    fitViewportToBounds(
-      bounds,
-      containerSize,
-      getMinZoomForBounds(bounds, containerSize),
-      MAX_FIT_ZOOM,
-      ZOOM_PADDING,
-      insets(),
-    ),
-  );
+  await camera.animateTo(viewport);
   return "framed";
 };
 

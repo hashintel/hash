@@ -35,7 +35,7 @@ import {
   CanvasControllerContext,
   type CanvasRenderer,
 } from "../../canvas-renderer";
-import { getInitialViewport } from "../../canvas-viewport";
+import { fitSceneViewport } from "../../canvas-viewport";
 import { ViewportControls } from "../../components/viewport-controls";
 import { useKeepSelectionInView } from "../../hooks/use-keep-selection-in-view";
 import { useDebouncedValue } from "../../hooks/util/use-debounced-value";
@@ -213,10 +213,17 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
   useMultiSelectionModifier(isMac);
 
   // The viewport at mount: where this net was last left, or centered on the
-  // net. Bounds and container changes must not recompute it. The saved
-  // viewport also restores the camera when the canvas resumes from Activity.
+  // net, or the origin for an empty one. Bounds and container changes must
+  // not recompute it. The saved viewport also restores the camera when the
+  // canvas resumes from Activity.
   const [initialViewport] = useState(
-    () => savedViewport ?? getInitialViewport(bounds, containerSize, insets()),
+    () =>
+      savedViewport ??
+      fitSceneViewport(bounds, containerSize, insets()) ?? {
+        x: 0,
+        y: 0,
+        zoom: 1,
+      },
   );
 
   // The min zoom (ie the max you can zoom out to) keeps the net at a readable
