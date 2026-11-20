@@ -1,4 +1,8 @@
-import { brunchHeaders, flueConversationIdWeb } from "@hashintel/brunch-agent";
+import {
+  brunchHeaders,
+  brunchRoutes,
+  flueConversationIdWeb,
+} from "@hashintel/brunch-agent";
 
 /** One conversation on the durable agents server, as the panel addresses it. */
 export interface SuccessorConversation {
@@ -20,13 +24,16 @@ export interface SuccessorConversation {
   readonly fetch?: typeof globalThis.fetch;
 }
 
-/** Where a conversation's chat routes are, under its instance ID. */
+/** Where a conversation's routes are, under its instance ID. */
 export interface SuccessorEndpoints {
   readonly instanceId: string;
   readonly chat: string;
   readonly stream: string;
   readonly abort: string;
   readonly messages: string;
+  /** The browser-call routes' base: `/:callId/claim` and the rest extend it. */
+  readonly browserCalls: string;
+  readonly handEdits: string;
 }
 
 export const successorEndpoints = async (
@@ -38,12 +45,15 @@ export const successorEndpoints = async (
     typeof location === "undefined" ? undefined : location.href,
   ).href.replace(/\/+$/u, "");
   const instance = `${base}/chat/${instanceId}`;
+  const browserCalls = `${base}/conversations/${instanceId}/${brunchRoutes.browserCalls}`;
   return {
     instanceId,
     chat: `${base}/chat`,
     stream: `${instance}/stream`,
     abort: `${instance}/abort`,
     messages: `${instance}/messages`,
+    browserCalls,
+    handEdits: `${browserCalls}/${brunchRoutes.handEdits}`,
   };
 };
 
