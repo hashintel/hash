@@ -1,4 +1,4 @@
-import { use, useEffect, useRef } from "react";
+import { use, useEffect, useRef, type ReactNode } from "react";
 
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -42,11 +42,20 @@ const glassPanelStyle = css({
   },
 });
 
+const glassRefraction = {
+  radius: 8,
+  blur: 3,
+  bezelWidth: 20,
+  glassThickness: 100,
+};
+
 const toolbarContainerStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "1",
 });
+
+const aiAssistantIconStyle = css({ transform: "[translateY(-1px)]" });
 
 // Spans the main view so the bar centres on the viewport rather than on the space
 // between the panels, and lets clicks through everywhere the bar itself is not.
@@ -71,6 +80,13 @@ const bottomBarStyle = css({
   // revealing the hidden controls in a cramped window does exactly that.
   flexShrink: 0,
 });
+
+/** One glass panel of the bar, with its controls in a row. */
+const GlassSegment = ({ children }: { children: ReactNode }) => (
+  <refractive.div className={glassPanelStyle} refraction={glassRefraction}>
+    <div className={toolbarContainerStyle}>{children}</div>
+  </refractive.div>
+);
 
 export const BottomBar = ({ hasAiAssistant }: { hasAiAssistant: boolean }) => {
   const { globalMode, editionMode, isBottomPanelOpen, isAiAssistantOpen } =
@@ -121,6 +137,9 @@ export const BottomBar = ({ hasAiAssistant }: { hasAiAssistant: boolean }) => {
   // Edit tools are absent on a read-only net and outside edit mode, so the
   // group would otherwise fold an empty box and leave its gap behind.
   const hasEditionGroup = !isActualMode && (!isReadOnly || hasAiAssistant);
+  const aiAssistantLabel = isAiAssistantOpen
+    ? "Hide AI assistant"
+    : "Show AI assistant";
 
   return (
     <div
@@ -135,95 +154,64 @@ export const BottomBar = ({ hasAiAssistant }: { hasAiAssistant: boolean }) => {
             reportGroupWidth: layout.reportGroupWidth,
           }}
         >
-          {/* Edition tools segment */}
-          <refractive.div
-            className={glassPanelStyle}
-            refraction={{
-              radius: 8,
-              blur: 3,
-              bezelWidth: 20,
-              glassThickness: 100,
-            }}
-          >
-            <div className={toolbarContainerStyle}>
-              <CursorModeDropdown />
-              {hasEditionGroup && (
-                <CollapsibleGroup>
-                  <EditionTools />
-                  {hasAiAssistant && (
-                    <>
-                      <ToolbarDivider />
-                      <ToolbarButton
-                        tooltip={
-                          isAiAssistantOpen
-                            ? "Hide AI assistant"
-                            : "Show AI assistant"
-                        }
-                        shortcut="mod+shift+k"
-                        onClick={toggleAiAssistant}
-                        isSelected={isAiAssistantOpen}
-                        ariaLabel={
-                          isAiAssistantOpen
-                            ? "Hide AI assistant"
-                            : "Show AI assistant"
-                        }
-                        ariaExpanded={isAiAssistantOpen}
-                      >
-                        <AiAssistantIcon
-                          size={22}
-                          className={css({ transform: "[translateY(-1px)]" })}
-                        />
-                      </ToolbarButton>
-                    </>
-                  )}
-                </CollapsibleGroup>
-              )}
-            </div>
-          </refractive.div>
-
-          {/* Playback segment */}
-          <refractive.div
-            className={glassPanelStyle}
-            refraction={{
-              radius: 8,
-              blur: 3,
-              bezelWidth: 20,
-              glassThickness: 100,
-            }}
-          >
-            <div className={toolbarContainerStyle}>
-              <ToolbarButton
-                tooltip={isBottomPanelOpen ? "Hide Panel" : "Show Panel"}
-                onClick={() => setBottomPanelOpen(!isBottomPanelOpen)}
-                ariaLabel={isBottomPanelOpen ? "Hide panel" : "Show panel"}
-                ariaExpanded={isBottomPanelOpen}
-              >
-                {isBottomPanelOpen ? (
-                  <Icon name="chevronDown" size="sm" />
-                ) : (
-                  <Icon name="chevronUp" size="sm" />
-                )}
-              </ToolbarButton>
-              {!isActualMode && (
-                <>
-                  <DiagnosticsIndicator
-                    onClick={showDiagnostics}
-                    isExpanded={isBottomPanelOpen}
-                  />
-                  {/* An editor that only composes runs nothing. */}
-                  {composesOnly ? null : (
-                    <>
-                      <ToolbarDivider />
-                      <EventSimulationControls
-                        disabled={hasDiagnostics}
-                        inComponent={isInComponent}
+          <GlassSegment>
+            <CursorModeDropdown />
+            {hasEditionGroup && (
+              <CollapsibleGroup>
+                <EditionTools />
+                {hasAiAssistant && (
+                  <>
+                    <ToolbarDivider />
+                    <ToolbarButton
+                      tooltip={aiAssistantLabel}
+                      shortcut="mod+shift+k"
+                      onClick={toggleAiAssistant}
+                      isSelected={isAiAssistantOpen}
+                      ariaLabel={aiAssistantLabel}
+                      ariaExpanded={isAiAssistantOpen}
+                    >
+                      <AiAssistantIcon
+                        size={22}
+                        className={aiAssistantIconStyle}
                       />
-                    </>
-                  )}
-                </>
-              )}
-            </div>
-          </refractive.div>
+                    </ToolbarButton>
+                  </>
+                )}
+              </CollapsibleGroup>
+            )}
+          </GlassSegment>
+
+          <GlassSegment>
+            <ToolbarButton
+              tooltip={isBottomPanelOpen ? "Hide Panel" : "Show Panel"}
+              onClick={() => setBottomPanelOpen(!isBottomPanelOpen)}
+              ariaLabel={isBottomPanelOpen ? "Hide panel" : "Show panel"}
+              ariaExpanded={isBottomPanelOpen}
+            >
+              <Icon
+                name={isBottomPanelOpen ? "chevronDown" : "chevronUp"}
+                size="sm"
+              />
+            </ToolbarButton>
+            {!isActualMode && (
+              <>
+                <DiagnosticsIndicator
+                  onClick={showDiagnostics}
+                  isExpanded={isBottomPanelOpen}
+                />
+                {/* An editor that only composes runs nothing. */}
+                {composesOnly ? null : (
+                  <>
+                    <ToolbarDivider />
+                    <EventSimulationControls
+                      disabled={hasDiagnostics}
+                      inComponent={isInComponent}
+                    />
+                  </>
+                )}
+              </>
+            )}
+          </GlassSegment>
         </BottomBarCollapseContext>
       </div>
     </div>
