@@ -19,13 +19,14 @@
  * growing a digit, a status changing word or a count going to zero moves
  * nothing.
  */
-import { createContext, type ReactNode, use, useState } from "react";
+import { type ReactNode, use, useState } from "react";
 
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { simulationHeaderHeight } from "../simulation-header";
 import { Fold } from "./fold";
 import { FrameAnimateContext } from "./frame-animate-context";
+import { FrameStatsDensityContext } from "./frame-stats-density-context";
 import { useOverflows } from "./use-overflows";
 
 import type { FrameHeaderEngagement } from "./use-header-engaged";
@@ -34,11 +35,6 @@ import type { FrameHeaderEngagement } from "./use-header-engaged";
 export const FRAME_HEADER_HEIGHT = simulationHeaderHeight + 38;
 /** The header's height in pixels once the body has scrolled: the title line and the padding. */
 export const FRAME_HEADER_CONDENSED_HEIGHT = simulationHeaderHeight;
-
-/** How the stats render: as labelled columns on their own line, or as compact chips beside the title. */
-export type FrameStatsDensity = "full" | "compact";
-
-const FrameStatsDensityContext = createContext<FrameStatsDensity>("full");
 
 // The header is the size container the strip's tiers read.
 const rootStyle = css({

@@ -15,8 +15,8 @@ import {
 import {
   AdHocScenarioAuthoringBody,
   AdHocScenarioAuthoringFooter,
-  useAdHocScenarioAuthoring,
 } from "./ad-hoc-scenario-authoring";
+import { useAdHocScenarioAuthoring } from "./use-ad-hoc-scenario-authoring";
 
 const migrationNoteStyle = css({
   fontSize: "xs",

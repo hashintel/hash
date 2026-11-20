@@ -11,10 +11,10 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { useAdHocScenarioAuthoring } from "./ad-hoc-scenario-authoring";
+import { useAdHocScenarioAuthoring } from "./use-ad-hoc-scenario-authoring";
 
 import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-context";
-import type { UseAdHocScenarioAuthoringOptions } from "./ad-hoc-scenario-authoring";
+import type { UseAdHocScenarioAuthoringOptions } from "./use-ad-hoc-scenario-authoring";
 import type { AdHocScenarioState, SDCPN } from "@hashintel/petrinaut-core";
 
 const sdcpn: SDCPN = {

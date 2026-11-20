@@ -8,8 +8,8 @@ import { SimulationPanel } from "../shared/simulation-panel";
 import {
   AdHocScenarioAuthoringBody,
   AdHocScenarioAuthoringFooter,
-  useAdHocScenarioAuthoring,
 } from "./ad-hoc-scenario-authoring";
+import { useAdHocScenarioAuthoring } from "./use-ad-hoc-scenario-authoring";
 
 /**
  * The creation drawer's content: the expose-mode scenario form under Name
