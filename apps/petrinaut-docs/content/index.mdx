@@ -91,6 +91,8 @@ what the UI layer mounts.
   editor, what mounts in each mode and what places each region.
 - [Monaco](doc:ui.monaco/monaco): one load of Monaco, one model per document
   URI, and how typing reaches the document.
+- [Editor performance on a large net](doc:editor-performance): what each
+  gesture costs on about 500 nodes, how to measure it, and where the cost is.
 
 Layer rules in `archinaut.config.ts` hold the directions between these parts.
 `yarn workspace @apps/petrinaut-docs lint:arch-docs` fails on a dependency that

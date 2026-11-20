@@ -1,0 +1,116 @@
+---
+title: Editor performance on a large net
+description: What a selection, a hover, a drag and a pan cost on a net of about 500 nodes, how to measure it, and where the cost is.
+sidebar_order: 5
+---
+
+The editor is measured on the Supply Chain example tiled twelve times: 468
+nodes and 576 arcs. A benchmark script performs each gesture in a headless
+browser and reads the cost from a trace. This page gives the numbers, the way
+to reproduce them and the rules that hold them.
+
+"Before" is the editor while every panel and the canvas read the whole editor
+state from one context. "After" is the editor with the rules below. The times
+describe one host. The browser rasters on the CPU, so paint and raster times
+are higher than on a machine with a GPU.
+
+## What renders
+
+The count is the number of component renders React reports for one gesture, on
+React's profiling build, with every node on screen.
+
+| Gesture | Before | After |
+| --- | ---: | ---: |
+| Select a node | 8,055 | 369 |
+| Select another node | 8,279 | 512 |
+| Hover a node | 13,130 | 164 |
+| Drag a node | 67,945 | 1,316 |
+| Pan | 13,686 | 381 |
+| Zoom | 2,260 | 118 |
+| Open a panel | 160 | 36 |
+| Deselect | 2,173 | 31 |
+
+## What a gesture costs
+
+Script time is the main-thread time spent in JavaScript during the gesture. A
+late frame is one that took more than 20 ms. Each value is the median of six
+samples on the production build, with every node on screen.
+
+| Gesture | Script before | Script after | Late frames before | Late frames after | Longest frame before | Longest frame after |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Select a node | 220 ms | 112 ms | 6 | 6 | 275 ms | 192 ms |
+| Select another node | 173 ms | 57 ms | 3 | 1 | 166 ms | 91 ms |
+| Hover a node | 224 ms | 50 ms | 6 | 1 | 50 ms | 42 ms |
+| Drag a node | 1,078 ms | 355 ms | 27 | 7 | 117 ms | 50 ms |
+| Pan | 375 ms | 205 ms | 8 | 7 | 125 ms | 102 ms |
+| Zoom | 103 ms | 69 ms | 0 | 0 | 17 ms | 17 ms |
+| Deselect | 47 ms | 16 ms | 0 | 0 | 17 ms | 15 ms |
+
+Zoomed in to where the labels read, the script times fall by about the same
+share. Loading the net is no faster: the page is ready after 1.1 s and holds
+about 42,800 elements, and the script time of the load rose from 545 ms to
+577 ms.
+
+## Where the cost is now
+
+- **Selecting a node** still has one frame near 190 ms. Most of what renders
+  is the properties panel of the node, and the browser recalculates style for
+  about 90 ms.
+- **Style and paint** are most of a hover and a drag. A hover that rests fades
+  every node outside the neighbourhood, and each frame of that fade paints the
+  nodes on screen. Hover paints more than before, 306 ms against 270 ms: the
+  browser draws 97 frames of it against 91.
+- **Paint per drawn frame during a drag**, zoomed in, rose from 3.6 ms to
+  5.3 ms. The cause is not known.
+- **Loading** did not get faster. The cost follows the number of elements, and
+  no rule on this page lowers it.
+
+## The rules that hold the numbers
+
+Each rule is written, with the test that holds it, in the guide of its layer.
+
+- A component reads the part of the editor state it shows, so it renders when
+  that part changes: [Editor state](doc:react.state/editor-state).
+- A handler given to React Flow keeps its identity, and an unchanged node or
+  arc is the same object: [The canvas](doc:ui.views.canvas/canvas).
+- Hover and the drag preview stay in the canvas and reach no panel:
+  [The canvas](doc:ui.views.canvas/canvas).
+- A region that is mounted and not visible sits in a hidden `Activity` and
+  runs no effect: [The editor shell](doc:ui.views.editor/editor-shell).
+- A panel's size is a Motion value, so a resize renders no component:
+  [Panel geometry outside React state](doc:react.state/panel-sizes).
+
+## Measure it
+
+From `libs/@hashintel/petrinaut`, build the benchmark app and serve it:
+
+```sh
+yarn exec vite build --config benchmarks/monaco-performance/vite.config.ts
+yarn exec vite preview --config benchmarks/monaco-performance/vite.config.ts --port 6027
+```
+
+Then run the gestures against it:
+
+```sh
+node benchmarks/monaco-performance/canvas-scale.mjs origin=http://127.0.0.1:6027 copies=12 samples=3
+```
+
+Render counts need React's profiling build, unminified so that components keep
+their names. Build with `BENCH_REACT_PROFILING=true` and `--minify false`, then
+add `samples=1 details=1` to list who rendered for each gesture.
+
+Compare two builds in alternating rounds on a quiet machine: a second process
+that uses every core moves the times by more than a change does.
+
+## Changes not made
+
+Each of these changes what the canvas draws or which library version it runs
+on, so none is part of the rules above.
+
+| Change | What it would cost |
+| --- | --- |
+| Draw simpler nodes when zoomed out | Labels and token counts disappear below a zoom level |
+| Render only the nodes on screen (`onlyRenderVisibleElements`) | Nodes mount and unmount while panning |
+| Promote the viewport to its own layer (`will-change`) | Text is rastered at one scale and blurs during a zoom |
+| Mount the Definitions view on first use | Its first opening takes longer |
+| Upgrade React Flow | A behaviour check of every gesture against the new version |
