@@ -28,11 +28,9 @@ export const useEditorAssistant = () => {
 export const EditorAssistantPanel = ({
   plugin,
   petriNetId,
-  focusRequest,
 }: {
   plugin: NonNullable<ReturnType<typeof usePluginAssistant>>;
   petriNetId: string | null;
-  focusRequest: number;
 }) => {
   const { isAiAssistantOpen, setAiAssistantOpen } = use(EditorContext);
 
@@ -42,7 +40,6 @@ export const EditorAssistantPanel = ({
         isOpen: isAiAssistantOpen,
         close: () => setAiAssistantOpen(false),
       }}
-      focusRequest={focusRequest}
     >
       <PluginAssistantContent
         /** A new net or a remounted plugin starts the content afresh. */

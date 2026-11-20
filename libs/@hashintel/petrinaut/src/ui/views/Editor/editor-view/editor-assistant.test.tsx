@@ -98,13 +98,7 @@ const Editor = () => {
       <button type="button" onClick={() => setAiAssistantOpen(true)}>
         Show AI assistant
       </button>
-      {plugin && (
-        <EditorAssistantPanel
-          plugin={plugin}
-          petriNetId="net"
-          focusRequest={0}
-        />
-      )}
+      {plugin && <EditorAssistantPanel plugin={plugin} petriNetId="net" />}
     </>
   );
 };

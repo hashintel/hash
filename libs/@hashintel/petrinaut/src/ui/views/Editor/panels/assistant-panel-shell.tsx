@@ -239,12 +239,9 @@ const between = (floating: string, docked: string, howDocked: number) => {
  */
 export const PluginAssistantPanel = ({
   panel,
-  focusRequest,
   children,
 }: {
   panel: AssistantPanel;
-  /** Changes each time the user opens the panel; the panel then takes focus. */
-  focusRequest: number;
   children: ReactNode;
 }) => {
   const { placement, setPlacement } = useAssistantPlacement();
@@ -290,7 +287,7 @@ export const PluginAssistantPanel = ({
       panelElement.querySelector<HTMLElement>("[data-autofocus]") ??
       panelElement;
     target.focus({ preventScroll: true });
-  }, [focusRequest, isOpen, panelRef]);
+  }, [isOpen, panelRef]);
 
   return (
     <AssistantPanelContext value={panel}>

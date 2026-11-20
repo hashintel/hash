@@ -207,25 +207,16 @@ const EditorViewContent = ({
     setCursorMode,
     clearSelection,
     setAiAssistantOpen,
+    toggleAiAssistant,
   } = use(EditorContext);
   const actualMode = use(ActualModeContext);
   const composesOnly = useComposesOnly();
   const assistant = useEditorAssistant();
 
   const [isAiCtaDismissed, setIsAiCtaDismissed] = useState(false);
-  const [aiAssistantFocusRequest, setAiAssistantFocusRequest] = useState(0);
 
   // A plugin covering the canvas, such as a tour, holds back the prompt.
   const pluginOverlay = usePluginOverlay();
-
-  const toggleAiAssistant = () => {
-    if (isAiAssistantOpen) {
-      setAiAssistantOpen(false);
-      return;
-    }
-    setAiAssistantOpen(true);
-    setAiAssistantFocusRequest((request) => request + 1);
-  };
 
   const [importError, setImportError] = useState<string | null>(null);
 
@@ -684,7 +675,6 @@ const EditorViewContent = ({
           <EditorAssistantPanel
             plugin={assistant.plugin}
             petriNetId={petriNetId}
-            focusRequest={aiAssistantFocusRequest}
           />
         )}
       </Stack>
