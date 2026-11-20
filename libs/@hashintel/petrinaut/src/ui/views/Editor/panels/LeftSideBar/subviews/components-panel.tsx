@@ -11,7 +11,10 @@ import {
 
 import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
 import { CompositionContext } from "../../../../../../react/state/composition-context";
-import { EditorContext } from "../../../../../../react/state/editor-context";
+import {
+  useEditorActions,
+  useEditorState,
+} from "../../../../../../react/state/editor-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { ComponentGlyph } from "../../../../../components/component-glyph";
 import { problemTextStyle } from "../../../../../constants/problem-severity";
@@ -112,12 +115,13 @@ const ComponentRow: React.FC<{
   component: Component;
   canPlace: boolean;
 }> = ({ reference, component, canPlace }) => {
-  const { editionMode, componentToAdd, setAddComponentMode, setEditionMode } =
-    use(EditorContext);
-  const armed =
-    editionMode === "add-component" &&
-    componentToAdd !== null &&
-    sameComponent(componentToAdd, reference);
+  const { setAddComponentMode, setEditionMode } = useEditorActions();
+  const armed = useEditorState(
+    (editor) =>
+      editor.editionMode === "add-component" &&
+      editor.componentToAdd !== null &&
+      sameComponent(editor.componentToAdd, reference),
+  );
 
   return (
     <button

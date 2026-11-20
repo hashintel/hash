@@ -3,12 +3,12 @@ import { use } from "react";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import { CompositionContext } from "../../../../../react/state/composition-context";
-import { EditorContext } from "../../../../../react/state/editor-context";
+import { useEditorFields } from "../../../../../react/state/editor-context";
 import { usePanelPresence } from "../../../../../react/state/panel-presence-context";
 import { usePanelSizes } from "../../../../../react/state/panel-sizes-context";
 import { useComposesOnly } from "../../../../../react/state/use-composes-only";
 import { useIsCompositionInterfaceOn } from "../../../../../react/state/use-is-composition-interface-on";
-import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
+import { useUserSettingsFields } from "../../../../../react/state/user-settings-context";
 import { GlassPanel } from "../../../../components/glass-panel";
 import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
 import {
@@ -103,7 +103,10 @@ const contentLayerStyle = cva({
  * Resizable from the right edge.
  */
 export const LeftSideBar: React.FC = () => {
-  const { isLeftSidebarOpen: isOpen, isSearchOpen } = use(EditorContext);
+  const { isLeftSidebarOpen: isOpen, isSearchOpen } = useEditorFields(
+    "isLeftSidebarOpen",
+    "isSearchOpen",
+  );
   const { shown } = usePanelPresence();
   // Still sliding out, where a closed panel is not kept mounted.
   const isInView = useReading(() => shown.leftSidebar.get() > 0);
@@ -113,7 +116,7 @@ export const LeftSideBar: React.FC = () => {
 
   const { leftSidebarWidth } = usePanelSizes();
   const { keepPanelsMounted, setLeftSidebarWidth: saveWidth } =
-    use(UserSettingsContext);
+    useUserSettingsFields("keepPanelsMounted", "setLeftSidebarWidth");
 
   // The sidebar is visible when explicitly opened OR when search is active
   const isVisible = isOpen || isSearchOpen;

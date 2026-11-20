@@ -4,7 +4,11 @@ import { use, useEffect, useRef, useState } from "react";
 import { Button, Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
-import { EditorContext } from "../../../../../../react/state/editor-context";
+import {
+  useEditorActions,
+  useEditorFields,
+  useEditorState,
+} from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import {
   DifferentialEquationIcon,
@@ -220,7 +224,8 @@ export const SearchIcon: React.FC = () => <Icon name="search" />;
 const SearchResultsList: React.FC<{ results: SearchResult[] }> = ({
   results,
 }) => {
-  const { isSelected: checkIsSelected, selectItem } = use(EditorContext);
+  const checkIsSelected = useEditorState((editor) => editor.isSelected);
+  const { selectItem } = useEditorActions();
   const targets = useRef<Map<string, HTMLElement>>(new Map());
 
   const stops: FocusStop[] = results.map(({ item }) => ({
@@ -291,7 +296,7 @@ const SearchResultsList: React.FC<{ results: SearchResult[] }> = ({
 };
 
 export const SearchContent: React.FC = () => {
-  const { searchInputRef } = use(EditorContext);
+  const searchInputRef = useEditorState((editor) => editor.searchInputRef);
   const allItems = useSearchableItems();
   const [query, setQuery] = useState("");
 
@@ -350,7 +355,10 @@ export const SearchContent: React.FC = () => {
  * flow: ArrowDown hands focus to the result list below.
  */
 export const SearchTitle: React.FC = () => {
-  const { isSearchOpen, searchInputRef } = use(EditorContext);
+  const { isSearchOpen, searchInputRef } = useEditorFields(
+    "isSearchOpen",
+    "searchInputRef",
+  );
   const { attach, moveFrom } = useFocusMember(() =>
     focusLands(searchInputRef.current),
   );
@@ -384,7 +392,7 @@ export const SearchTitle: React.FC = () => {
 };
 
 export const SearchHeaderAction: React.FC = () => {
-  const { setSearchOpen } = use(EditorContext);
+  const { setSearchOpen } = useEditorActions();
 
   return (
     <Button

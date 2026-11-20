@@ -8,7 +8,7 @@ import {
 
 import { usePetrinautMutations } from "../../../../../../../react/hooks/use-petrinaut-mutations";
 import { ActiveNetContext } from "../../../../../../../react/state/active-net-context";
-import { EditorContext } from "../../../../../../../react/state/editor-context";
+import { useEditorActions } from "../../../../../../../react/state/editor-context";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 
@@ -21,7 +21,7 @@ export const AddDifferentialEquationAction: React.FC = () => {
     activeNet: { types, differentialEquations },
   } = use(ActiveNetContext);
   const { addDifferentialEquation } = usePetrinautMutations();
-  const { selectItem } = use(EditorContext);
+  const { selectItem } = useEditorActions();
 
   const isReadOnly = useIsReadOnly();
 

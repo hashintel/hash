@@ -1,14 +1,12 @@
-import { use } from "react";
-
 import { Button } from "@hashintel/ds-components";
 
-import { EditorContext } from "../../../../../../react/state/editor-context";
+import { useEditorActions } from "../../../../../../react/state/editor-context";
 import { ShortcutTooltip } from "../../../../../keyboard-shortcut";
 import { EntityList } from "./entities-tree/entity-list";
 import { useEntityTreeItems } from "./entities-tree/use-entity-tree-items";
 
 export const EntitiesHeaderAction: React.FC = () => {
-  const { setSearchOpen } = use(EditorContext);
+  const { setSearchOpen } = useEditorActions();
 
   return (
     <ShortcutTooltip label="Search list" shortcut="mod+f">

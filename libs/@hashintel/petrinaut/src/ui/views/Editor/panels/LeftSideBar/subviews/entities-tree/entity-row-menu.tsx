@@ -1,9 +1,7 @@
-import { use } from "react";
-
 import { Button, Menu } from "@hashintel/ds-components";
 
 import { usePetrinautMutations } from "../../../../../../../react/hooks/use-petrinaut-mutations";
-import { EditorContext } from "../../../../../../../react/state/editor-context";
+import { useEditorState } from "../../../../../../../react/state/editor-context";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { useCodeNavigation } from "../../../../../../monaco/code-navigation";
 
@@ -15,7 +13,7 @@ export const EntityRowMenu: React.FC<{ item: EntityItem }> = ({
 }) => {
   const { removeType, removeDifferentialEquation, removeParameter } =
     usePetrinautMutations();
-  const { globalMode } = use(EditorContext);
+  const globalMode = useEditorState((editor) => editor.globalMode);
   const isReadOnly = useIsReadOnly();
   const { enabled, entries, open } = useCodeNavigation();
 

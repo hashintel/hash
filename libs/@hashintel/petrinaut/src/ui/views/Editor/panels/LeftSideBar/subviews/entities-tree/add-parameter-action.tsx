@@ -5,7 +5,7 @@ import { generatePetrinautId } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../../react/hooks/use-petrinaut-mutations";
 import { ActiveNetContext } from "../../../../../../../react/state/active-net-context";
-import { EditorContext } from "../../../../../../../react/state/editor-context";
+import { useEditorActions } from "../../../../../../../react/state/editor-context";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 
@@ -15,7 +15,7 @@ export const AddParameterAction: React.FC = () => {
     activeNet: { parameters },
   } = use(ActiveNetContext);
   const { addParameter } = usePetrinautMutations();
-  const { selectItem } = use(EditorContext);
+  const { selectItem } = useEditorActions();
 
   const isReadOnly = useIsReadOnly();
 
