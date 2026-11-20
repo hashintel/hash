@@ -7,7 +7,10 @@ import {
 import { useMutationRefusal } from "../../../../../react/hooks/use-mutation-refusal";
 import { useReadOnlyFeedback } from "../../../../../react/hooks/use-read-only-feedback";
 import { ActiveNetContext } from "../../../../../react/state/active-net-context";
-import { EditorContext } from "../../../../../react/state/editor-context";
+import {
+  useEditorActions,
+  useEditorFields,
+} from "../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
 import { useComposesOnly } from "../../../../../react/state/use-composes-only";
@@ -18,30 +21,25 @@ import {
   pasteFromClipboard,
 } from "../../../../clipboard/clipboard";
 
-import type {
-  CursorMode,
-  EditorState,
-} from "../../../../../react/state/editor-context";
 import type { SelectionItem } from "@hashintel/petrinaut-core";
 
-type EditorMode = EditorState["globalMode"];
-type EditorEditionMode = EditorState["editionMode"];
-
-export function useKeyboardShortcuts(
-  mode: EditorMode,
-  onEditionModeChange: (mode: EditorEditionMode) => void,
-  onCursorModeChange: (mode: CursorMode) => void,
-) {
+export function useKeyboardShortcuts() {
   const undoRedo = use(UndoRedoContext);
+  const { globalMode, selection, hasSelection, isSearchOpen, searchInputRef } =
+    useEditorFields(
+      "globalMode",
+      "selection",
+      "hasSelection",
+      "isSearchOpen",
+      "searchInputRef",
+    );
   const {
-    selection,
-    hasSelection,
     clearSelection,
     setSelection,
-    isSearchOpen,
     setSearchOpen,
-    searchInputRef,
-  } = use(EditorContext);
+    setEditionMode,
+    setCursorMode,
+  } = useEditorActions();
   const { activeNet } = use(ActiveNetContext);
   const { petriNetId } = use(SDCPNContext);
   const { deleteItemsByIds } = usePetrinautMutations();
@@ -198,17 +196,17 @@ export function useKeyboardShortcuts(
       case "escape":
         event.preventDefault();
         clearSelection();
-        onEditionModeChange("cursor");
+        setEditionMode("cursor");
         break;
       case "v":
         event.preventDefault();
-        onCursorModeChange("select");
-        onEditionModeChange("cursor");
+        setCursorMode("select");
+        setEditionMode("cursor");
         break;
       case "h":
         event.preventDefault();
-        onCursorModeChange("pan");
-        onEditionModeChange("cursor");
+        setCursorMode("pan");
+        setEditionMode("cursor");
         break;
       case "n":
       case "t":
@@ -219,9 +217,9 @@ export function useKeyboardShortcuts(
         if (isReadonly) {
           event.preventDefault();
           notifyReadOnly();
-        } else if (mode === "edit") {
+        } else if (globalMode === "edit") {
           event.preventDefault();
-          onEditionModeChange(
+          setEditionMode(
             event.key.toLowerCase() === "n" ? "add-place" : "add-transition",
           );
         }

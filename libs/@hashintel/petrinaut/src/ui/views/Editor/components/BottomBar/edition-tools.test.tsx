@@ -30,9 +30,7 @@ const renderTools = ({
       </UserSettingsContext>
     </SDCPNContext>
   );
-  render(<EditionTools editionMode="cursor" onEditionModeChange={() => {}} />, {
-    wrapper: Wrapper,
-  });
+  render(<EditionTools />, { wrapper: Wrapper });
   return screen.queryAllByRole("button").map((button) => button.ariaLabel);
 };
 

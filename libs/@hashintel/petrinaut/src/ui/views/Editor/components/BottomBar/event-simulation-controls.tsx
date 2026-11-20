@@ -4,7 +4,7 @@ import { Icon } from "@hashintel/ds-components";
 
 import { EventPlaybackContext } from "../../../../../react/event-playback/context";
 import { SimulationContext } from "../../../../../react/simulation/context";
-import { EditorContext } from "../../../../../react/state/editor-context";
+import { useEditorActions } from "../../../../../react/state/editor-context";
 import { useStoreSelector } from "../../../../../react/use-store";
 import {
   PlaybackIcon,
@@ -42,7 +42,7 @@ export const EventSimulationControls: React.FC<
   } = use(SimulationContext);
   const { coveredTime, playbackState, playbackStore, play, pause } =
     use(EventPlaybackContext);
-  const { setBottomPanelOpen, setActiveBottomPanelTab } = use(EditorContext);
+  const { setBottomPanelOpen, setActiveBottomPanelTab } = useEditorActions();
 
   const hasSimulation = simulationState !== "NotRun";
   const isSimulationOver =

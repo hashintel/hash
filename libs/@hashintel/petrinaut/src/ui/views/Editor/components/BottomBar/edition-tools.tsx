@@ -5,8 +5,9 @@ import { sameComponent } from "@hashintel/petrinaut-core";
 
 import { ActiveNetContext } from "../../../../../react/state/active-net-context";
 import {
-  EditorContext,
-  type EditorState,
+  useEditorActions,
+  useEditorFields,
+  useEditorState,
 } from "../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { useComposesOnly } from "../../../../../react/state/use-composes-only";
@@ -22,16 +23,16 @@ import { ToolbarButton } from "./toolbar-button";
 import { ToolbarDivider } from "./toolbar-divider";
 import { ToolbarMenuTrigger } from "./toolbar-menu-trigger";
 
-type EditorEditionMode = EditorState["editionMode"];
-
 /** Picks which component the next component instance comes from. */
-const ComponentDropdown: React.FC<{
-  editionMode: EditorEditionMode;
-}> = ({ editionMode }) => {
+const ComponentDropdown = () => {
   const {
     petriNetDefinition: { components },
   } = use(SDCPNContext);
-  const { componentToAdd, setAddComponentMode } = use(EditorContext);
+  const { editionMode, componentToAdd } = useEditorFields(
+    "editionMode",
+    "componentToAdd",
+  );
+  const { setAddComponentMode } = useEditorActions();
 
   const items: MenuItem[] = (components ?? []).map((component) => ({
     id: component.id,
@@ -73,10 +74,9 @@ const ComponentDropdown: React.FC<{
  * where every one of them is refused, nor in an editor that only composes:
  * what it places comes from the Components panel.
  */
-export const EditionTools: React.FC<{
-  editionMode: EditorEditionMode;
-  onEditionModeChange: (mode: EditorEditionMode) => void;
-}> = ({ editionMode, onEditionModeChange }) => {
+export const EditionTools = () => {
+  const editionMode = useEditorState((editor) => editor.editionMode);
+  const { setEditionMode } = useEditorActions();
   const isReadOnly = useIsReadOnly();
   const { activeComponentId } = use(ActiveNetContext);
   const isRootNet = activeComponentId === null;
@@ -94,7 +94,7 @@ export const EditionTools: React.FC<{
       <ToolbarButton
         tooltip="Add Place"
         shortcut="n"
-        onClick={() => onEditionModeChange("add-place")}
+        onClick={() => setEditionMode("add-place")}
         isSelected={editionMode === "add-place"}
         ariaLabel="Add place mode"
         draggable
@@ -120,7 +120,7 @@ export const EditionTools: React.FC<{
       <ToolbarButton
         tooltip="Add Transition"
         shortcut="t"
-        onClick={() => onEditionModeChange("add-transition")}
+        onClick={() => setEditionMode("add-transition")}
         isSelected={editionMode === "add-transition"}
         ariaLabel="Add transition mode"
         draggable
@@ -143,9 +143,7 @@ export const EditionTools: React.FC<{
           <Icon name="squarePlus" />
         )}
       </ToolbarButton>
-      {isRootNet && isCompositionInterfaceOn && (
-        <ComponentDropdown editionMode={editionMode} />
-      )}
+      {isRootNet && isCompositionInterfaceOn && <ComponentDropdown />}
     </>
   );
 };

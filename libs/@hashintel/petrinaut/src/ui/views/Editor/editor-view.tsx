@@ -202,10 +202,6 @@ const EditorViewContent = ({
     isAiAssistantOpen,
     navigateTo,
     setGlobalMode,
-    editionMode,
-    setEditionMode,
-    cursorMode,
-    setCursorMode,
     clearSelection,
     setAiAssistantOpen,
     toggleAiAssistant,
@@ -661,14 +657,7 @@ const EditorViewContent = ({
                 : "hidden"
             }
           >
-            <BottomBar
-              mode={globalMode}
-              editionMode={editionMode}
-              onEditionModeChange={setEditionMode}
-              cursorMode={cursorMode}
-              onCursorModeChange={setCursorMode}
-              hasAiAssistant={assistant.hasAssistant}
-            />
+            <BottomBar hasAiAssistant={assistant.hasAssistant} />
           </Activity>
           <SimulationCreationDrawer />
         </SimulationWorkspace>

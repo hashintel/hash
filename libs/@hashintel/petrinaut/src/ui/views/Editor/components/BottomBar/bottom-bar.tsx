@@ -7,9 +7,8 @@ import { refractive } from "@hashintel/refractive";
 import { LanguageClientContext } from "../../../../../react/lsp/context";
 import { ActiveNetContext } from "../../../../../react/state/active-net-context";
 import {
-  type CursorMode,
-  EditorContext,
-  type EditorState,
+  useEditorActions,
+  useEditorFields,
 } from "../../../../../react/state/editor-context";
 import { useComposesOnly } from "../../../../../react/state/use-composes-only";
 import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
@@ -73,34 +72,21 @@ const bottomBarStyle = css({
   flexShrink: 0,
 });
 
-type EditorMode = EditorState["globalMode"];
-type EditorEditionMode = EditorState["editionMode"];
-
-interface BottomBarProps {
-  mode: EditorMode;
-  editionMode: EditorEditionMode;
-  onEditionModeChange: (mode: EditorEditionMode) => void;
-  cursorMode: CursorMode;
-  onCursorModeChange: (mode: CursorMode) => void;
-  hasAiAssistant: boolean;
-}
-
-export const BottomBar: React.FC<BottomBarProps> = ({
-  mode,
-  editionMode,
-  hasAiAssistant,
-  onEditionModeChange,
-  cursorMode,
-  onCursorModeChange,
-}) => {
-  const isActualMode = mode === "actual";
+export const BottomBar = ({ hasAiAssistant }: { hasAiAssistant: boolean }) => {
+  const { globalMode, editionMode, isBottomPanelOpen, isAiAssistantOpen } =
+    useEditorFields(
+      "globalMode",
+      "editionMode",
+      "isBottomPanelOpen",
+      "isAiAssistantOpen",
+    );
   const {
-    isBottomPanelOpen,
+    setEditionMode,
     setBottomPanelOpen,
     setActiveBottomPanelTab,
-    isAiAssistantOpen,
     toggleAiAssistant,
-  } = use(EditorContext);
+  } = useEditorActions();
+  const isActualMode = globalMode === "actual";
 
   // Only error-severity diagnostics block simulation — warnings and hints
   // (e.g. HIR semantic lints) are informational.
@@ -116,15 +102,15 @@ export const BottomBar: React.FC<BottomBarProps> = ({
     setActiveBottomPanelTab("diagnostics");
   };
 
-  // Fallback to cursor mode when switching away from edit while in a mutative mode.
+  // Actual mode adds nothing, so a tool armed in Edit falls back to the
+  // cursor. Simulate mode hides the bar, and the tool stays armed.
   useEffect(() => {
-    if (mode !== "edit" && editionMode !== "cursor") {
-      onEditionModeChange("cursor");
+    if (globalMode !== "edit" && editionMode !== "cursor") {
+      setEditionMode("cursor");
     }
-  }, [mode, editionMode, onEditionModeChange]);
+  }, [globalMode, editionMode, setEditionMode]);
 
-  // Setup keyboard shortcuts
-  useKeyboardShortcuts(mode, onEditionModeChange, onCursorModeChange);
+  useKeyboardShortcuts();
 
   const laneRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
@@ -160,18 +146,10 @@ export const BottomBar: React.FC<BottomBarProps> = ({
             }}
           >
             <div className={toolbarContainerStyle}>
-              <CursorModeDropdown
-                editionMode={editionMode}
-                onEditionModeChange={onEditionModeChange}
-                cursorMode={cursorMode}
-                onCursorModeChange={onCursorModeChange}
-              />
+              <CursorModeDropdown />
               {hasEditionGroup && (
                 <CollapsibleGroup>
-                  <EditionTools
-                    editionMode={editionMode}
-                    onEditionModeChange={onEditionModeChange}
-                  />
+                  <EditionTools />
                   {hasAiAssistant && (
                     <>
                       <ToolbarDivider />
