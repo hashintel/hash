@@ -39,6 +39,7 @@ const emptyValues = {
   DateTime: null,
   Duration: null,
   EntityId: { kind: "EntityId", array: false, value: null },
+  EntityProperty: null,
   EntityQuery: null,
   FailedEntityProposal: null,
   FilterCondition: null,

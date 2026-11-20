@@ -290,6 +290,44 @@ describe("validateActionOutputs", () => {
     );
   });
 
+  it("rejects a declared output of a kind other than the one its declaring input declares", () => {
+    const readInputs = [
+      {
+        inputName: "property",
+        payload: {
+          kind: "EntityProperty",
+          value: {
+            kind: "entityProperty",
+            propertyTypeBaseUrl: "https://example.com/types/property-type/age/",
+            payloadKind: "Number",
+          },
+        },
+      },
+    ] as StepInput[];
+
+    expect(
+      validateActionOutputs({
+        actionDefinitionId: "readEntity",
+        inputs: readInputs,
+        outputs: [
+          { outputName: "value", payload: { kind: "Number", value: 3 } },
+        ],
+      }),
+    ).toBeUndefined();
+
+    expect(
+      validateActionOutputs({
+        actionDefinitionId: "readEntity",
+        inputs: readInputs,
+        outputs: [
+          { outputName: "value", payload: { kind: "Text", value: "3" } },
+        ],
+      }),
+    ).toBe(
+      `Action readEntity returned output "value" of kind Text, but it must have the kind input "property" declares (Number)`,
+    );
+  });
+
   it("rejects an invalid value, with the path to it", () => {
     const outputs = [
       {

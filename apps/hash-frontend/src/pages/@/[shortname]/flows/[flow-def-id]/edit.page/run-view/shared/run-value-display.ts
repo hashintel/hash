@@ -55,6 +55,7 @@ const kindDisplays: {
       `${amount} ${amount === 1 ? unit.slice(0, -1) : unit}`,
   },
   EntityId: { entityId: (value) => value },
+  EntityProperty: null,
   EntityQuery: null,
   FailedEntityProposal: null,
   FilterCondition: null,

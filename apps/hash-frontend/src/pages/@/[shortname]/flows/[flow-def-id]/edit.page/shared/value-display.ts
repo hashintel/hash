@@ -34,6 +34,7 @@ const kindDisplays: Record<
   },
   Duration: { label: "duration", icon: "clock" },
   EntityId: { label: "entity", icon: "cube" },
+  EntityProperty: { label: "entity property", icon: "bracketsCurly" },
   EntityQuery: { label: "entity query", icon: "search" },
   FailedEntityProposal: { label: "failed entity proposal", icon: "warning" },
   FilterCondition: { label: "filter condition", icon: "filter" },
