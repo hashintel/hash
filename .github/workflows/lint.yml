@@ -349,6 +349,10 @@ jobs:
             exit 1
           fi
 
+      - name: Check icon asset mappings
+        if: ${{ success() || failure() }}
+        run: node --test scripts/icon-assets.test.mjs
+
       - name: Validate Agent Skills
         if: ${{ success() || failure() }}
         run: |
