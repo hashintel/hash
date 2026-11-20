@@ -37,7 +37,11 @@ import { DatePopover } from "./date-picker";
 import { emptyDocument } from "./document";
 import { Table } from "./ds-parts/table";
 import { Select } from "./fill-select";
-import { flowTriggersOf } from "./flow-triggers";
+import {
+  clearPendingTriggerAdd,
+  flowTriggersOf,
+  pendingTriggerAdd,
+} from "./flow-triggers";
 import { HashShell } from "./hash-shell";
 import { firstLineIconStyle } from "./menu-rows";
 import { navigate } from "./router";
@@ -1356,10 +1360,14 @@ const usePage = (routeFlowId: string | null) => {
     known && routeFlowId ? routeFlowId : monthlyReviewId,
   );
   const [draft, setDraft] = useState<Draft | null>(
-    add === 2 && scheduleShow() !== "saved"
-      ? { kind: "schedule", flowId: monthlyReviewId }
-      : null,
+    pendingTriggerAdd() ??
+      (add === 2 && scheduleShow() !== "saved"
+        ? { kind: "schedule", flowId: monthlyReviewId }
+        : null),
   );
+  useEffect(() => {
+    clearPendingTriggerAdd();
+  }, []);
   const flip = (id: string, on: boolean) =>
     setData((current) => ({ ...current, on: { ...current.on, [id]: on } }));
   const open = (id: string | null) => {

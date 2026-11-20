@@ -460,6 +460,23 @@ export const openTriggersPage = () => {
   navigate(route.page === "editor" ? `/flows/${route.flowId}/triggers` : "/flows/triggers");
 };
 
+let pendingAdd: { kind: FlowTrigger["kind"]; flowId: string } | null = null;
+
+/** The Triggers page opens with this add form open and the Flow preset, read when the page mounts. */
+export const pendingTriggerAdd = () => pendingAdd;
+export const clearPendingTriggerAdd = () => {
+  pendingAdd = null;
+};
+
+/** The editor's Add trigger button: the Triggers page with a new schedule open on the edited flow. */
+export const addTriggerFromEditor = () => {
+  const route = parseRoute(globalThis.location.pathname, globalThis.location.search);
+  if (route.page === "editor") {
+    pendingAdd = { kind: "schedule", flowId: route.flowId };
+  }
+  openTriggersPage();
+};
+
 const iconFor: Record<FlowTrigger["kind"], IconName> = {
   schedule: "calendarClock",
   responsive: "cube",
@@ -713,7 +730,23 @@ const TriggersPanelToday = ({ kind }: { kind: GhostKind }) => {
             a web you can&apos;t view
           </span>
         ) : null}
-        <span className={css({ paddingTop: "2" })}>
+        <span
+          className={css({
+            paddingTop: "2",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          })}
+        >
+          <Button
+            size="sm"
+            variant="ghost"
+            tone="neutral"
+            iconName="plus"
+            onClick={addTriggerFromEditor}
+          >
+            Add trigger
+          </Button>
           {/* Stays inside Flows, so no ↗ (11 Nov convergence A19). */}
           <TextLink onClick={openTriggersPage}>Edit flow triggers</TextLink>
         </span>
@@ -1099,7 +1132,23 @@ const TriggersPanelAtScale = () => {
             can&apos;t view
           </span>
         ) : null}
-        <span className={css({ paddingTop: "2" })}>
+        <span
+          className={css({
+            paddingTop: "2",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          })}
+        >
+          <Button
+            size="sm"
+            variant="ghost"
+            tone="neutral"
+            iconName="plus"
+            onClick={addTriggerFromEditor}
+          >
+            Add trigger
+          </Button>
           {/* Stays inside Flows, so no ↗ (11 Nov convergence A19). */}
           <TextLink onClick={openTriggersPage}>Edit flow triggers</TextLink>
         </span>
