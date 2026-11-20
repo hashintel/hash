@@ -159,10 +159,13 @@ const ConstraintRow = ({
   /** Whether the editor takes focus as it mounts: the row the user just added. */
   focusOnMount: boolean;
   placeholder: string;
-  onEditorMount: (instance: editor.IStandaloneCodeEditor) => void;
+  onEditorMount: (
+    rowId: string,
+    instance: editor.IStandaloneCodeEditor,
+  ) => void;
   disabled: boolean;
-  onCodeChange: (code: string) => void;
-  onRemove: () => void;
+  onCodeChange: (rowId: string, code: string) => void;
+  onRemove: (row: ConstraintDraft) => void;
 }) => {
   useConstraintLspSession({
     sessionId: row.id,
@@ -216,9 +219,9 @@ const ConstraintRow = ({
             : {}),
         }}
         onEscape={() => rowRef.current?.focus()}
-        onChange={(code) => onCodeChange(code ?? "")}
+        onChange={(code) => onCodeChange(row.id, code ?? "")}
         onMount={(instance) => {
-          onEditorMount(instance);
+          onEditorMount(row.id, instance);
           if (multiline) {
             const resize = () =>
               setEditorHeight(
@@ -240,7 +243,7 @@ const ConstraintRow = ({
         className={removeButtonStyle}
         aria-label={`Remove ${label.toLowerCase()}`}
         disabled={disabled}
-        onClick={onRemove}
+        onClick={() => onRemove(row)}
       />
       {errorMessage ? (
         <span className={diagnosticStyle} role="alert">
@@ -259,7 +262,9 @@ export const ConstraintsSection = ({
   disabled = false,
 }: {
   drafts: ConstraintDraftsState;
-  onChange: (drafts: ConstraintDraftsState) => void;
+  onChange: (
+    update: (drafts: ConstraintDraftsState) => ConstraintDraftsState,
+  ) => void;
   /** Ambient as `scenario.*` in every row's language session. */
   scenarioParameters: readonly ScenarioParameter[];
   placeNames: readonly string[];
@@ -268,7 +273,11 @@ export const ConstraintsSection = ({
   // The row added last takes focus as its editor mounts; a UI detail the
   // drafts themselves do not carry.
   const [focusRowId, setFocusRowId] = useState<string | null>(null);
-  const editorRefs = useRef(new Map<string, editor.IStandaloneCodeEditor>());
+  // Held in state, not in a ref: a handler that reads a ref's map is left
+  // uncached by the compiler, and every row with it.
+  const [editors] = useState(
+    () => new Map<string, editor.IStandaloneCodeEditor>(),
+  );
   const addButtonRefs = useRef<
     Record<ConstraintSpace, HTMLButtonElement | null>
   >({
@@ -290,9 +299,9 @@ export const ConstraintsSection = ({
     );
     const index = rows.findIndex((candidate) => candidate.id === row.id);
     const nextRow = rows[index + 1] ?? rows[index - 1];
-    onChange(removeConstraintDraft(drafts, row.id));
+    onChange((current) => removeConstraintDraft(current, row.id));
     if (nextRow) {
-      editorRefs.current.get(nextRow.id)?.focus();
+      editors.get(nextRow.id)?.focus();
     } else {
       addButtonRefs.current[row.space]?.focus();
     }
@@ -301,7 +310,19 @@ export const ConstraintsSection = ({
   const addRow = (space: ConstraintSpace) => {
     const id = crypto.randomUUID();
     setFocusRowId(id);
-    onChange(addConstraintDraft(drafts, { id, space, code: "" }));
+    onChange((current) => addConstraintDraft(current, { id, space, code: "" }));
+  };
+
+  const changeCode = (rowId: string, code: string) => {
+    onChange((current) => updateConstraintDraftCode(current, rowId, code));
+  };
+
+  const registerEditor = (
+    rowId: string,
+    instance: editor.IStandaloneCodeEditor,
+  ) => {
+    editors.set(rowId, instance);
+    instance.onDidDispose(() => editors.delete(rowId));
   };
 
   return (
@@ -350,7 +371,10 @@ export const ConstraintsSection = ({
                           value={drafts.passThresholdPercent}
                           disabled={disabled}
                           onChange={(passThresholdPercent) =>
-                            onChange({ ...drafts, passThresholdPercent })
+                            onChange((current) => ({
+                              ...current,
+                              passThresholdPercent,
+                            }))
                           }
                         />
                       </div>
@@ -380,17 +404,10 @@ export const ConstraintsSection = ({
                   scenarioParameters={scenarioParameters}
                   focusOnMount={row.id === focusRowId}
                   placeholder={placeholders[row.space]}
-                  onEditorMount={(instance) => {
-                    editorRefs.current.set(row.id, instance);
-                    instance.onDidDispose(() =>
-                      editorRefs.current.delete(row.id),
-                    );
-                  }}
+                  onEditorMount={registerEditor}
                   disabled={disabled}
-                  onCodeChange={(code) =>
-                    onChange(updateConstraintDraftCode(drafts, row.id, code))
-                  }
-                  onRemove={() => removeRow(row)}
+                  onCodeChange={changeCode}
+                  onRemove={removeRow}
                 />
               ))}
             </div>
