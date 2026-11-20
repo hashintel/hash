@@ -1,6 +1,7 @@
-import { use, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
-import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
+import { usePetrinautDefinitionSelector } from "../../../../../../../react/hooks/use-document";
+import { useSDCPNState } from "../../../../../../../react/state/sdcpn-context";
 import { buildTimelineSeriesConfig } from "./series-config";
 
 import type { ExecutionFrameSource } from "../../../../../../../react/execution-frame/context";
@@ -125,11 +126,10 @@ export function useStreamingData(
   },
 ): StreamingStore {
   const paused = options?.paused ?? false;
-  const {
-    extensions,
-    petriNetDefinition: { places, types, transitions },
-  } = use(SDCPNContext);
-  const colorsEnabled = extensions.colors;
+  const colorsEnabled = useSDCPNState((document) => document.extensions.colors);
+  const places = usePetrinautDefinitionSelector((net) => net.places);
+  const types = usePetrinautDefinitionSelector((net) => net.types);
+  const transitions = usePetrinautDefinitionSelector((net) => net.transitions);
   const availableTypes = colorsEnabled ? types : [];
   const availablePlaces = colorsEnabled
     ? places

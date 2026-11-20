@@ -6,7 +6,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { SimulationContext } from "../../../../../../react/simulation/context";
 import { useEditorActions } from "../../../../../../react/state/editor-context";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { useSDCPNState } from "../../../../../../react/state/sdcpn-context";
 import { useCodeNavigation } from "../../../../../monaco/code-navigation";
 import { useCompositionProblems } from "../../../shared/use-composition-problems";
 import { CompositionDiagnostics } from "./diagnostics/composition-diagnostics";
@@ -63,7 +63,10 @@ const DiagnosticsContent: React.FC = () => {
   const { diagnosticsByUri, totalDiagnosticsCount } = use(
     LanguageClientContext,
   );
-  const { petriNetDefinition, getItemType } = use(SDCPNContext);
+  const petriNetDefinition = useSDCPNState(
+    (document) => document.petriNetDefinition,
+  );
+  const getItemType = useSDCPNState((document) => document.getItemType);
   const { navigateTo, selectItem } = useEditorActions();
   const codeNavigation = useCodeNavigation();
   const {

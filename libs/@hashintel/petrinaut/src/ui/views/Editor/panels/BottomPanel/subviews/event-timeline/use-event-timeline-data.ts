@@ -2,8 +2,9 @@ import { use, useEffect, useState, useSyncExternalStore } from "react";
 
 import { SOLVER_ERROR_DIAGNOSTIC } from "@hashintel/petrinaut-core";
 
+import { usePetrinautDefinitionSelector } from "../../../../../../../react/hooks/use-document";
 import { SimulationContext } from "../../../../../../../react/simulation/context";
-import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
+import { useSDCPNState } from "../../../../../../../react/state/sdcpn-context";
 import { buildTimelineSeriesConfig } from "../simulation-timeline/series-config";
 import { useRunTimelineView } from "../simulation-timeline/use-run-timeline-view";
 import {
@@ -131,10 +132,11 @@ export function useEventTimelineData({
 } {
   const { eventSimulation } = use(SimulationContext);
   const timelineView = useRunTimelineView();
-  const {
-    extensions,
-    petriNetDefinition: { places, types, transitions, metrics },
-  } = use(SDCPNContext);
+  const colorsEnabled = useSDCPNState((document) => document.extensions.colors);
+  const places = usePetrinautDefinitionSelector((net) => net.places);
+  const types = usePetrinautDefinitionSelector((net) => net.types);
+  const transitions = usePetrinautDefinitionSelector((net) => net.transitions);
+  const metrics = usePetrinautDefinitionSelector((net) => net.metrics);
 
   const selectedMetric =
     timelineView.kind === "metric"
@@ -146,7 +148,7 @@ export function useEventTimelineData({
     timelineView,
     places,
     // Without colours a place's type is not found, so it takes a default colour.
-    types: extensions.colors ? types : [],
+    types: colorsEnabled ? types : [],
     transitions,
     selectedMetric,
     evaluateMetric: timelineMetric.evaluate,

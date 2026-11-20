@@ -9,10 +9,11 @@ import {
   initialMarkingToAdHocPlaces,
 } from "@hashintel/petrinaut-core";
 
+import { usePetrinautDefinitionSelector } from "../../../../../../react/hooks/use-document";
 import { SimulationContext } from "../../../../../../react/simulation/context";
 import { useScenarioHir } from "../../../../../../react/simulation/use-scenario-hir";
 import { useEditorActions } from "../../../../../../react/state/editor-context";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { useSDCPNState } from "../../../../../../react/state/sdcpn-context";
 import {
   AdHocScenarioForm,
   FormLayoutColumn,
@@ -217,11 +218,15 @@ const NO_SCENARIO = "__none__";
  */
 export const SimulationSettingsContent: React.FC = () => {
   const { navigateTo, setSimulateDrawer } = useEditorActions();
-  const {
-    extensions,
-    petriNetDefinition: { parameters, scenarios, places, types },
-  } = use(SDCPNContext);
-  const globalParameters = extensions.parameters ? parameters : [];
+  const parametersEnabled = useSDCPNState(
+    (document) => document.extensions.parameters,
+  );
+  const colorsEnabled = useSDCPNState((document) => document.extensions.colors);
+  const parameters = usePetrinautDefinitionSelector((net) => net.parameters);
+  const scenarios = usePetrinautDefinitionSelector((net) => net.scenarios);
+  const places = usePetrinautDefinitionSelector((net) => net.places);
+  const types = usePetrinautDefinitionSelector((net) => net.types);
+  const globalParameters = parametersEnabled ? parameters : [];
   const {
     state: simulationState,
     selectedScenarioId: contextScenarioId,
@@ -265,7 +270,7 @@ export const SimulationSettingsContent: React.FC = () => {
     adHocContext: {
       netParameters: globalParameters,
       places,
-      types: extensions.colors ? types : [],
+      types: colorsEnabled ? types : [],
     },
   });
   // `seededFrom` is the persisted scenario definition the run state came
@@ -341,7 +346,7 @@ export const SimulationSettingsContent: React.FC = () => {
     ...EMPTY_AD_HOC_STATE,
     places: initialMarkingToAdHocPlaces(
       initialMarking,
-      { places, types: extensions.colors ? types : [] },
+      { places, types: colorsEnabled ? types : [] },
       Number.POSITIVE_INFINITY,
     ).places,
   };
@@ -352,7 +357,7 @@ export const SimulationSettingsContent: React.FC = () => {
     // its overrides rule.
     netParameters: adHocActive ? adHocNetParameters : globalParameters,
     places,
-    types: extensions.colors ? types : [],
+    types: colorsEnabled ? types : [],
   };
   const onScenarioRunChange = (next: AdHocScenarioState) => {
     if (!selectedAdHocScenario || !scenarioRun) {

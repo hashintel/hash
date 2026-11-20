@@ -1,10 +1,10 @@
 import { use, useRef } from "react";
 
 import { EventPlaybackContext } from "../../../../../../../react/event-playback/context";
+import { usePetrinautDefinitionSelector } from "../../../../../../../react/hooks/use-document";
 import { useElementOnScreen } from "../../../../../../../react/hooks/use-element-on-screen";
 import { SimulationContext } from "../../../../../../../react/simulation/context";
 import { useEditorState } from "../../../../../../../react/state/editor-context";
-import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { useRunTimelineView } from "../simulation-timeline/use-run-timeline-view";
 import { StochasticTimeline } from "./stochastic-content";
 import { TimelineFrame } from "./timeline-frame";
@@ -25,9 +25,7 @@ const RunTimeline: React.FC<{ showLegend?: boolean }> = ({
   showLegend = true,
 }) => {
   const chartType = useEditorState((editor) => editor.timelineChartType);
-  const {
-    petriNetDefinition: { transitions },
-  } = use(SDCPNContext);
+  const transitions = usePetrinautDefinitionSelector((net) => net.transitions);
   const { continuity } = use(SimulationContext);
   const { eventCount, stepToEvent } = use(EventPlaybackContext);
   const timelineView = useRunTimelineView();

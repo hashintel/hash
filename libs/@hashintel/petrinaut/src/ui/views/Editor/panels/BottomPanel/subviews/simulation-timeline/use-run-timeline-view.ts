@@ -2,12 +2,13 @@ import { use } from "react";
 
 import { ADAPTIVE_SIMULATOR_ID } from "@hashintel/petrinaut-core";
 
+import { usePetrinautDefinitionSelector } from "../../../../../../../react/hooks/use-document";
 import { SimulationContext } from "../../../../../../../react/simulation/context";
 import {
   useEditorState,
   type TimelineView,
 } from "../../../../../../../react/state/editor-context";
-import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
+import { useSDCPNState } from "../../../../../../../react/state/sdcpn-context";
 import { placesWithDynamics } from "./series-config/solver-error";
 
 const PER_PLACE_VIEW: TimelineView = { kind: "per-place" };
@@ -17,13 +18,12 @@ const PER_PLACE_VIEW: TimelineView = { kind: "per-place" };
  * does, and only for the places it integrates.
  */
 export const useSolverErrorAvailable = (): boolean => {
-  const {
-    petriNetDefinition: { places },
-  } = use(SDCPNContext);
+  const hasDynamics = usePetrinautDefinitionSelector(
+    (net) => placesWithDynamics(net.places).length > 0,
+  );
   const { simulatorSelection } = use(SimulationContext);
   return (
-    simulatorSelection.simulatorId === ADAPTIVE_SIMULATOR_ID &&
-    placesWithDynamics(places).length > 0
+    simulatorSelection.simulatorId === ADAPTIVE_SIMULATOR_ID && hasDynamics
   );
 };
 
@@ -35,12 +35,12 @@ export const useSolverErrorAvailable = (): boolean => {
  */
 export const useRunTimelineView = (): TimelineView => {
   const timelineView = useEditorState((editor) => editor.timelineView);
-  const { extensions } = use(SDCPNContext);
+  const colorsEnabled = useSDCPNState((document) => document.extensions.colors);
   const solverErrorAvailable = useSolverErrorAvailable();
 
   switch (timelineView.kind) {
     case "per-type":
-      return extensions.colors ? timelineView : PER_PLACE_VIEW;
+      return colorsEnabled ? timelineView : PER_PLACE_VIEW;
     case "solver-error":
       return solverErrorAvailable ? timelineView : PER_PLACE_VIEW;
     default:

@@ -9,7 +9,7 @@ import {
   useEditorActions,
   useEditorState,
 } from "../../../../../../react/state/editor-context";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { useSDCPNState } from "../../../../../../react/state/sdcpn-context";
 import { useExecutableDefinition } from "../../../../../../react/state/use-executable-definition";
 
 import type {
@@ -189,7 +189,8 @@ const Group = ({
 );
 
 export const CompilationContent: React.FC = () => {
-  const { extensions, getItemType } = use(SDCPNContext);
+  const extensions = useSDCPNState((document) => document.extensions);
+  const getItemType = useSDCPNState((document) => document.getItemType);
   const petriNetDefinition = useExecutableDefinition();
   const { requestHirArtifacts } = use(LanguageClientContext);
   const selection = useEditorState((editor) => editor.selection);
