@@ -1,9 +1,12 @@
 import {
   chronologyMarker,
   idleTimeoutMarker,
+  outputLimitMarker,
   toChronology,
   toIdleTimeout,
+  toOutputLimit,
   type LoggedIdleTimeout,
+  type LoggedOutputLimit,
   type LoggedSubmissionChronology,
 } from "./shared/records.ts";
 
@@ -30,23 +33,28 @@ const fieldsAfter = (
 export type ParsedBrunchLog = {
   readonly chronologies: ReadonlyMap<string, LoggedSubmissionChronology>;
   readonly idleTimeouts: readonly LoggedIdleTimeout[];
+  readonly outputLimits: readonly LoggedOutputLimit[];
   /** Marked lines that could not be read, by kind. */
   readonly skipped: {
     readonly chronologyLines: number;
     readonly idleTimeoutLines: number;
+    readonly outputLimitLines: number;
   };
 };
 
 /**
- * The chronology and idle-timeout lines in Brunch log text: development
- * console output (winston's colour codes before the marker) or production
- * stdout, where the logged fields follow the message as one JSON object.
+ * The chronology, idle-timeout and output-limit lines in Brunch log text:
+ * development console output (winston's colour codes before the marker) or
+ * production stdout, where the logged fields follow the message as one JSON
+ * object.
  */
 export const parseBrunchLog = (log: string): ParsedBrunchLog => {
   const chronologies = new Map<string, LoggedSubmissionChronology>();
   const idleTimeouts: LoggedIdleTimeout[] = [];
+  const outputLimits: LoggedOutputLimit[] = [];
   let chronologyLines = 0;
   let idleTimeoutLines = 0;
+  let outputLimitLines = 0;
   for (const line of log.split("\n")) {
     if (line.includes(chronologyMarker)) {
       const fields = fieldsAfter(line, chronologyMarker);
@@ -57,11 +65,16 @@ export const parseBrunchLog = (log: string): ParsedBrunchLog => {
       const fields = fieldsAfter(line, idleTimeoutMarker);
       if (fields) idleTimeouts.push(toIdleTimeout(fields, null));
       else idleTimeoutLines += 1;
+    } else if (line.includes(outputLimitMarker)) {
+      const fields = fieldsAfter(line, outputLimitMarker);
+      if (fields) outputLimits.push(toOutputLimit(fields, null));
+      else outputLimitLines += 1;
     }
   }
   return {
     chronologies,
     idleTimeouts,
-    skipped: { chronologyLines, idleTimeoutLines },
+    outputLimits,
+    skipped: { chronologyLines, idleTimeoutLines, outputLimitLines },
   };
 };

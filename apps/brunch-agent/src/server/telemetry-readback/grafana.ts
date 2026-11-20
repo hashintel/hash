@@ -1,9 +1,12 @@
 import {
   chronologyMarker,
   idleTimeoutMarker,
+  outputLimitMarker,
   toChronology,
   toIdleTimeout,
+  toOutputLimit,
   type LoggedIdleTimeout,
+  type LoggedOutputLimit,
   type LoggedSubmissionChronology,
   type ModelCallSpan,
   type ReadResult,
@@ -231,6 +234,20 @@ export const createGrafanaReader = (
     return { lines, truncated: lines.length >= lokiLineLimit };
   };
 
+  /** Every line under `marker` in the window, each read by `toRecord`. */
+  const notes = async <Note>(
+    marker: string,
+    window: TimeWindow,
+    toRecord: (fields: Readonly<Record<string, unknown>>, at: string) => Note,
+  ): Promise<ReadResult<Note>> => {
+    const { lines, truncated } = await lokiLines(marker, window, undefined);
+    return {
+      records: lines.map(({ fields, at }) => toRecord(fields, at)),
+      skipped: 0,
+      truncated,
+    };
+  };
+
   return {
     /** Settled submissions in the window, newest first. */
     chronologies: async (
@@ -256,20 +273,16 @@ export const createGrafanaReader = (
     },
 
     /** Every idle timeout in the window: one may name only its turn, so filtering by submission is left to the caller. */
-    idleTimeouts: async (
+    idleTimeouts: (
       window: TimeWindow,
-    ): Promise<ReadResult<LoggedIdleTimeout>> => {
-      const { lines, truncated } = await lokiLines(
-        idleTimeoutMarker,
-        window,
-        undefined,
-      );
-      return {
-        records: lines.map(({ fields, at }) => toIdleTimeout(fields, at)),
-        skipped: 0,
-        truncated,
-      };
-    },
+    ): Promise<ReadResult<LoggedIdleTimeout>> =>
+      notes(idleTimeoutMarker, window, toIdleTimeout),
+
+    /** Every output-limit stop in the window; like idle timeouts, filtered by the caller. */
+    outputLimits: (
+      window: TimeWindow,
+    ): Promise<ReadResult<LoggedOutputLimit>> =>
+      notes(outputLimitMarker, window, toOutputLimit),
 
     modelCallSpans: async (
       window: TimeWindow,

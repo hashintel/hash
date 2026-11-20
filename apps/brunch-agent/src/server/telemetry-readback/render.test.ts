@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 
 import {
-  idleTimeoutsOf,
+  notesOf,
   renderSubmissionDetail,
   renderSubmissionList,
   summarizeSubmission,
@@ -9,6 +9,7 @@ import {
 
 import type {
   LoggedIdleTimeout,
+  LoggedOutputLimit,
   LoggedSubmissionChronology,
   LoggedTurnChronology,
 } from "./shared/records.ts";
@@ -63,6 +64,15 @@ const idleTimeout: LoggedIdleTimeout = {
   retryClaimed: true,
 };
 
+const outputLimit: LoggedOutputLimit = {
+  timestamp: "2026-11-03T10:00:25.000Z",
+  submissionId: "sub-1",
+  turnId: "turn-2",
+  provider: "anthropic",
+  model: "claude-sonnet-4-6",
+  outputTokens: 8_192,
+};
+
 test("a submission's idle timeouts are those logged under it or during one of its turns", () => {
   const underSubmission = {
     ...idleTimeout,
@@ -72,21 +82,25 @@ test("a submission's idle timeouts are those logged under it or during one of it
   const elsewhere = { ...idleTimeout, submissionId: "sub-2", turnId: "turn-9" };
   const logged = [idleTimeout, underSubmission, elsewhere];
 
-  expect(idleTimeoutsOf("sub-1", chronology, logged)).toEqual([
+  expect(notesOf("sub-1", chronology, logged)).toEqual([
     idleTimeout,
     underSubmission,
   ]);
   // Without a chronology there are no turns to match by.
-  expect(idleTimeoutsOf("sub-1", null, logged)).toEqual([underSubmission]);
+  expect(notesOf("sub-1", null, logged)).toEqual([underSubmission]);
 });
 
-test("a submission summary counts its calls, retries, failures and the idle timeouts logged under it or during its turns", () => {
+test("a submission summary counts its calls, retries, failures and the idle timeouts and output-limit stops logged under it or during its turns", () => {
   expect(
-    summarizeSubmission(chronology, [
-      idleTimeout,
-      { ...idleTimeout, submissionId: "sub-1", turnId: null },
-      { ...idleTimeout, submissionId: "sub-2", turnId: "turn-9" },
-    ]),
+    summarizeSubmission(
+      chronology,
+      [
+        idleTimeout,
+        { ...idleTimeout, submissionId: "sub-1", turnId: null },
+        { ...idleTimeout, submissionId: "sub-2", turnId: "turn-9" },
+      ],
+      [outputLimit, { ...outputLimit, submissionId: "sub-2", turnId: null }],
+    ),
   ).toEqual({
     submissionId: "sub-1",
     outcome: "completed",
@@ -97,6 +111,7 @@ test("a submission summary counts its calls, retries, failures and the idle time
     retries: 1,
     failed: 1,
     idleTimeouts: 2,
+    outputLimits: 1,
   });
   expect(renderSubmissionList([])).toBe(
     "No settled submissions in this window.",
@@ -109,6 +124,7 @@ test("a submission's detail lists each call with who served it, its retry, its e
     searched: "in the last 24h",
     chronology,
     idleTimeouts: [idleTimeout],
+    outputLimits: [],
     spans: null,
   });
 
@@ -128,6 +144,7 @@ test("an idle timeout whose turn is not among the calls is listed on its own", (
     searched: "in the last 24h",
     chronology,
     idleTimeouts: [{ ...idleTimeout, turnId: "turn-9" }],
+    outputLimits: [],
     spans: null,
   });
 
@@ -145,6 +162,7 @@ test("an idle timeout whose line dropped its retry field says so rather than rep
       { ...idleTimeout, retryClaimed: null },
       { ...idleTimeout, turnId: "turn-2", retryClaimed: false },
     ],
+    outputLimits: [],
     spans: null,
   });
 
@@ -158,9 +176,35 @@ test("an unsettled submission says where its chronology was looked for", () => {
     searched: "in the last 24h",
     chronology: null,
     idleTimeouts: [],
+    outputLimits: [],
     spans: [],
   });
 
   expect(markdown).toContain("No chronology line in the last 24h");
   expect(markdown).toContain("## Idle timeouts\n\nNone.");
+  expect(markdown).not.toContain("## Output limits");
+});
+
+test("an output-limit stop names its call's error, which the turn reports only as an internal failure type", () => {
+  const limited: LoggedSubmissionChronology = {
+    ...chronology,
+    outcome: "failed",
+    turns: [
+      turn("turn-2", { isError: true, error: { type: "_OTHER", code: null } }),
+    ],
+  };
+  const markdown = renderSubmissionDetail({
+    submissionId: "sub-1",
+    searched: "in the last 24h",
+    chronology: limited,
+    idleTimeouts: [],
+    outputLimits: [outputLimit, { ...outputLimit, turnId: "turn-9" }],
+    spans: null,
+  });
+
+  expect(markdown).toContain("| – | output limit at 8192 tokens | – |");
+  expect(markdown).not.toContain("_OTHER");
+  expect(markdown).toContain(
+    "## Output limits outside these calls\n\n- 2026-11-03T10:00:25.000Z turn-9 anthropic/claude-sonnet-4-6: output limit at 8192 tokens",
+  );
 });

@@ -1,7 +1,8 @@
 /**
  * Read Brunch's provider telemetry back: which model served each call, how
  * long until it started responding, which calls were retries, which failed,
- * and the idle timeouts, joined with each call's span. Metadata only.
+ * and the idle timeouts and output-limit stops, joined with each call's span.
+ * Metadata only.
  *
  * From Grafana (the local stack at http://localhost:3001 by default; run the
  * server with `HASH_OTLP_ENDPOINT=http://localhost:4317` so it exports):
@@ -24,12 +25,13 @@ import { parseArgs } from "node:util";
 
 import {
   createGrafanaReader,
-  idleTimeoutsOf,
+  notesOf,
   parseBrunchLog,
   renderSubmissionDetail,
   renderSubmissionList,
   summarizeSubmission,
   type LoggedIdleTimeout,
+  type LoggedOutputLimit,
   type LoggedSubmissionChronology,
   type ReadResult,
   type SubmissionDetail,
@@ -94,13 +96,14 @@ const print = (json: object, markdown: string, warnings: readonly string[]) => {
 const printList = (
   chronologies: readonly LoggedSubmissionChronology[],
   idleTimeouts: readonly LoggedIdleTimeout[],
+  outputLimits: readonly LoggedOutputLimit[],
   warnings: readonly string[],
 ) => {
   const summaries = chronologies.map((chronology) =>
-    summarizeSubmission(chronology, idleTimeouts),
+    summarizeSubmission(chronology, idleTimeouts, outputLimits),
   );
   print(
-    { submissions: summaries, chronologies, idleTimeouts },
+    { submissions: summaries, chronologies, idleTimeouts, outputLimits },
     renderSubmissionList(summaries),
     warnings,
   );
@@ -125,9 +128,18 @@ if (values.log !== undefined) {
       skipped: parsed.skipped.idleTimeoutLines,
       truncated: false,
     }),
+    ...coverageWarnings("output-limit lines", {
+      skipped: parsed.skipped.outputLimitLines,
+      truncated: false,
+    }),
   ];
   if (values.submission === undefined) {
-    printList([...parsed.chronologies.values()], parsed.idleTimeouts, warnings);
+    printList(
+      [...parsed.chronologies.values()],
+      parsed.idleTimeouts,
+      parsed.outputLimits,
+      warnings,
+    );
   } else {
     const submissionId = values.submission;
     const chronology = parsed.chronologies.get(submissionId) ?? null;
@@ -136,11 +148,8 @@ if (values.log !== undefined) {
         submissionId,
         searched: `in ${values.log === "-" ? "stdin" : values.log}`,
         chronology,
-        idleTimeouts: idleTimeoutsOf(
-          submissionId,
-          chronology,
-          parsed.idleTimeouts,
-        ),
+        idleTimeouts: notesOf(submissionId, chronology, parsed.idleTimeouts),
+        outputLimits: notesOf(submissionId, chronology, parsed.outputLimits),
         spans: null,
       },
       warnings,
@@ -157,37 +166,44 @@ if (values.log !== undefined) {
       service: values.service,
     });
     if (values.submission === undefined) {
-      const [chronologies, idleTimeouts] = await Promise.all([
+      const [chronologies, idleTimeouts, outputLimits] = await Promise.all([
         reader.chronologies(window),
         reader.idleTimeouts(window),
+        reader.outputLimits(window),
       ]);
-      printList(chronologies.records, idleTimeouts.records, [
-        ...coverageWarnings("chronology lines", chronologies),
-        ...coverageWarnings("idle-timeout lines", idleTimeouts),
-      ]);
+      printList(
+        chronologies.records,
+        idleTimeouts.records,
+        outputLimits.records,
+        [
+          ...coverageWarnings("chronology lines", chronologies),
+          ...coverageWarnings("idle-timeout lines", idleTimeouts),
+          ...coverageWarnings("output-limit lines", outputLimits),
+        ],
+      );
     } else {
       const submissionId = values.submission;
-      const [chronologies, idleTimeouts, spans] = await Promise.all([
-        reader.chronologies(window, submissionId),
-        reader.idleTimeouts(window),
-        reader.modelCallSpans(window, submissionId),
-      ]);
+      const [chronologies, idleTimeouts, outputLimits, spans] =
+        await Promise.all([
+          reader.chronologies(window, submissionId),
+          reader.idleTimeouts(window),
+          reader.outputLimits(window),
+          reader.modelCallSpans(window, submissionId),
+        ]);
       const chronology = chronologies.records[0] ?? null;
       printDetail(
         {
           submissionId,
           searched: `in the last ${since}`,
           chronology,
-          idleTimeouts: idleTimeoutsOf(
-            submissionId,
-            chronology,
-            idleTimeouts.records,
-          ),
+          idleTimeouts: notesOf(submissionId, chronology, idleTimeouts.records),
+          outputLimits: notesOf(submissionId, chronology, outputLimits.records),
           spans: spans.records,
         },
         [
           ...coverageWarnings("chronology lines", chronologies),
           ...coverageWarnings("idle-timeout lines", idleTimeouts),
+          ...coverageWarnings("output-limit lines", outputLimits),
           ...coverageWarnings("traces", spans),
         ],
       );

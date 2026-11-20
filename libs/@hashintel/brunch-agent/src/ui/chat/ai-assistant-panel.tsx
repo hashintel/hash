@@ -139,23 +139,29 @@ type RunnableStaticToolPart = Extract<
 > & { type: `tool-${string}` };
 
 /**
- * Names the completed client tool step that a follow-up would answer, by its
- * tool call IDs, or null when the messages do not end in one. A follow-up that
+ * The tool call IDs of the completed client tool step that a follow-up would
+ * answer, or null when the messages do not end in one. A follow-up that
  * writes nothing leaves the same step last, under the same IDs, whatever
  * message copy the SDK or a host now holds.
  */
-const completedToolStepOf = (messages: PetrinautAiMessage[]): string | null => {
+const completedToolCallIdsOf = (
+  messages: PetrinautAiMessage[],
+): string[] | null => {
   if (!lastAssistantMessageIsCompleteWithToolCalls({ messages })) return null;
   const parts = messages.at(-1)?.parts ?? [];
   const lastStepStart = parts.findLastIndex(
     (part) => part.type === "step-start",
   );
-  return JSON.stringify(
-    parts
-      .slice(lastStepStart + 1)
-      .filter(isToolUIPart)
-      .map((part) => part.toolCallId),
-  );
+  return parts
+    .slice(lastStepStart + 1)
+    .filter(isToolUIPart)
+    .map((part) => part.toolCallId);
+};
+
+/** Names the completed client tool step by its tool call IDs. */
+const completedToolStepOf = (messages: PetrinautAiMessage[]): string | null => {
+  const toolCallIds = completedToolCallIdsOf(messages);
+  return toolCallIds === null ? null : JSON.stringify(toolCallIds);
 };
 
 /**
@@ -173,6 +179,33 @@ const isReplyContent = (part: PetrinautAiMessagePart): boolean =>
 /** A message's parts as compared for new reply content. */
 const replyContentOf = (parts: PetrinautAiMessagePart[] = []): string =>
   JSON.stringify(parts.filter(isReplyContent));
+
+/**
+ * Whether the turn ended on the tool at `toolIndex`, with no later step, and
+ * the response it closes wrote reply text before it. That response starts
+ * after the tool step this panel last continued, or with the message. The
+ * server ends a turn on a Ledger commit by the same test: its history keeps
+ * one assistant message per turn, so a commit repaired after a refusal counts
+ * the reply written beside the refused one. Text written before a continued
+ * tool result or answer, or before a later step left empty, was a preamble.
+ */
+const repliedInClosingResponse = (
+  parts: PetrinautAiMessagePart[],
+  toolIndex: number,
+  continuedToolCallIds: readonly string[],
+): boolean => {
+  const responseStart =
+    parts.findLastIndex(
+      (part) =>
+        isToolUIPart(part) && continuedToolCallIds.includes(part.toolCallId),
+    ) + 1;
+  return (
+    !parts.slice(toolIndex + 1).some((part) => part.type === "step-start") &&
+    parts
+      .slice(responseStart, toolIndex)
+      .some((part) => part.type === "text" && isReplyContent(part))
+  );
+};
 
 /**
  * What a local ending note belongs to, by an identity followed history keeps.
@@ -749,6 +782,7 @@ const ConversationAiAssistantPanel = ({
   // rather than asking again.
   const continuedToolStepRef = useRef<{
     key: string;
+    toolCallIds: readonly string[];
     parts: string;
   } | null>(null);
   // Anchored to the tool result that went unanswered.
@@ -1365,6 +1399,7 @@ const ConversationAiAssistantPanel = ({
         // never observe the `ready` between this check and that request.
         continuedToolStepRef.current = {
           key: completedToolStep,
+          toolCallIds: completedToolCallIdsOf(currentMessages) ?? [],
           parts: replyContentOf(currentMessages.at(-1)?.parts),
         };
         return true;
@@ -1433,17 +1468,23 @@ const ConversationAiAssistantPanel = ({
         continuedToolStepRef.current !== null &&
         replyContentOf(finishedParts) === continuedToolStepRef.current.parts;
       // In-band tools continue on the server, not through sendAutomaticallyWhen.
-      // A clean finish with no reply content after their result has no reply.
-      const lastReplyPart = finishedMessages
-        .at(-1)
-        ?.parts.findLast(isReplyContent);
+      // A clean finish with no reply content after their result has no reply,
+      // unless the turn ended on the tool and the response it closes replied
+      // before it.
+      const lastReplyIndex = finishedParts.findLastIndex(isReplyContent);
+      const lastReplyPart = finishedParts[lastReplyIndex];
       const noReplyToServerToolStep =
         completedNormally &&
         lastReplyPart !== undefined &&
         isToolUIPart(lastReplyPart) &&
         lastReplyPart.providerExecuted === true &&
         (lastReplyPart.state === "output-available" ||
-          lastReplyPart.state === "output-error");
+          lastReplyPart.state === "output-error") &&
+        !repliedInClosingResponse(
+          finishedParts,
+          lastReplyIndex,
+          continuedToolStepRef.current?.toolCallIds ?? [],
+        );
       // A step that ended in client tool calls is followed automatically by
       // the SDK unless it was aborted or errored; that follow-up is still part
       // of this turn.
@@ -1606,6 +1647,7 @@ const ConversationAiAssistantPanel = ({
           ? null
           : {
               key: completedToolStep,
+              toolCallIds: completedToolCallIdsOf(messages) ?? [],
               parts: replyContentOf(messages.at(-1)?.parts),
             };
       void sendContinuation().catch((caught: unknown) => {

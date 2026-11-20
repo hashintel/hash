@@ -32,7 +32,7 @@ import {
 import { BrunchExperimentFollowUp } from "./tools/brunch-experiment-follow-up";
 import { editorDraftsFor } from "./tools/shared/brunch-draft-experiment-drafts";
 
-import type { FlueClient } from "@flue/sdk";
+import type { ConversationStreamChunk, FlueClient } from "@flue/sdk";
 
 await vi.hoisted(async () => {
   const { installPetrinautDomShims } =
@@ -227,6 +227,134 @@ test.each([
     await act(() => new Promise((resolve) => setTimeout(resolve, 200)));
     expect(send).toHaveBeenCalledOnce();
     expect(userMessages).toBe(kept);
+  },
+);
+
+/** Flue's wire for one turn that ends on a recorded `ledger_commit`, with reply text before it when given. */
+const commitTurnEvents = (
+  replyText: string | undefined,
+): ConversationStreamChunk[] => {
+  const at = (batch: number) => ({
+    conversationId: "conv-commit",
+    position: { batch, index: 0 },
+  });
+  const messageId = "entry-commit";
+  return [
+    {
+      ...at(1),
+      type: "message-started",
+      messageId,
+      submissionId: "admitted-commit",
+      turnId: "turn-commit",
+      timestamp: "2026-11-13T00:00:00.000Z",
+    },
+    ...(replyText === undefined
+      ? []
+      : [
+          {
+            ...at(2),
+            type: "message-delta" as const,
+            messageId,
+            kind: "text" as const,
+            delta: replyText,
+          },
+        ]),
+    {
+      ...at(3),
+      type: "tool-input",
+      messageId,
+      toolCallId: "commit-1",
+      toolName: "ledger_commit",
+      input: { entries: [], endTurn: true },
+    },
+    {
+      ...at(4),
+      type: "message-completed",
+      messageId,
+      timestamp: "2026-11-13T00:00:01.000Z",
+    },
+    {
+      ...at(5),
+      type: "tool-output",
+      toolCallId: "commit-1",
+      output: { status: "recorded", commitId: "commit-1", revision: 1 },
+      durationMs: 1,
+      timestamp: "2026-11-13T00:00:02.000Z",
+    },
+    {
+      ...at(6),
+      type: "submission-settled",
+      submissionId: "admitted-commit",
+      outcome: "completed",
+      answeredBySubmissionId: "admitted-commit",
+      timestamp: "2026-11-13T00:00:03.000Z",
+    },
+  ];
+};
+
+test.each([
+  {
+    turn: "reply text before the commit",
+    replyText: "Recorded the reservoir.",
+    notes: 0,
+  },
+  { turn: "no reply text", replyText: undefined, notes: 1 },
+])(
+  "real panel: a turn ending on a Ledger commit with $turn shows $notes no-reply notes",
+  async ({ replyText, notes }) => {
+    const send = vi.fn<FlueClient["send"]>().mockResolvedValue({
+      submissionId: "admitted-commit",
+      uid: "uid",
+      offset: "offset",
+      streamUrl: "http://brunch.test/stream",
+    });
+    const wait = vi.fn<FlueClient["wait"]>(async (_admission, options) => {
+      for (const event of commitTurnEvents(replyText))
+        await options?.onEvent?.(event);
+    });
+    const transport = createBrunchPanelTransport(
+      Promise.resolve({ send, wait } as unknown as FlueClient),
+      new BrunchPanelConversationTracker(),
+    );
+    const useHostPlugin: PluginHook<typeof HostAdmissionTestPlugin> = (
+      api,
+    ) => ({
+      assistant: {
+        content: (
+          <AiAssistantPanel
+            api={api}
+            aiAssistant={{ conversationId: "commit", transport }}
+          />
+        ),
+      },
+    });
+    render(
+      <Petrinaut
+        handle={createJsonDocHandle({
+          initial: { places: [], transitions: [] },
+        })}
+        plugins={[HostAdmissionTestPlugin(useHostPlugin)]}
+      />,
+    );
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Show AI assistant" }),
+    );
+    fireEvent.change(
+      screen.getByRole("textbox", { name: "Message AI assistant" }),
+      { target: { value: "The reservoir is slow." } },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+    await waitFor(() => expect(wait).toHaveBeenCalledOnce());
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: "Stop AI response" }),
+      ).toBeNull(),
+    );
+    // Let the panel's 80ms message throttle publish the settled transcript.
+    await act(() => new Promise((resolve) => setTimeout(resolve, 200)));
+    if (replyText !== undefined) screen.getByText(replyText);
+    expect(screen.queryAllByText("No reply received")).toHaveLength(notes);
+    expect(send).toHaveBeenCalledOnce();
   },
 );
 

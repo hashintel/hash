@@ -239,6 +239,11 @@ const registerAdmittedProvider = (provider: Provider) => {
             ...modelCallScope.current(),
             ...timeout,
           }),
+        onOutputLimit: (limit) =>
+          diagnostics.note("provider.output-limit", {
+            ...modelCallScope.current(),
+            ...limit,
+          }),
       },
     ),
   );
