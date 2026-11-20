@@ -27,6 +27,14 @@
  * - Everything else is hidden: prune writes (the tool results they edit
  *   show their stored output), compaction summaries, resets, prompt entries.
  *
+ * A message's metadata is the Brunch library's
+ * `DurableHistoryMessageMetadata`, from the input's submission: a response
+ * whose input settled unanswered is `stopped` by a user's stop, or `failed`
+ * by a failed run or a crash-loop abort (`CrashLoopEntry`), and a user
+ * message whose input carried a new version load (`VersionLoadsDoc`) names
+ * it in `versionLoad`. A turn that ended before any output has no response
+ * to mark.
+ *
  * Every entry is read, also those a compaction or reset left behind, so the
  * history is the whole conversation, not the model's context.
  */
@@ -34,6 +42,7 @@ import {
   type Conversation,
   type EntryId,
   type EntryRecord,
+  type SubmissionId,
   type SubmissionRecord,
 } from "@earendil-works/pi-durable";
 import { readUIMessageStream, type UIMessage, type UIMessageChunk } from "ai";
@@ -41,11 +50,13 @@ import { readUIMessageStream, type UIMessage, type UIMessageChunk } from "ai";
 import {
   brunchSignals,
   type DurableHistoryMessageMetadata,
+  type VersionLoad,
 } from "@hashintel/brunch-agent";
 
 import { handEditRequestId } from "../../browser-call/hand-edit";
 import { handEditEntryKind } from "../../net-state/visible-net-view";
 import { userWords } from "../../shared/brunch-user-entry";
+import { VersionLoadsDoc } from "../../shared/version-loads-doc";
 import { stoppedByCrashLoop } from "./shared/crash-loop-entry";
 import { inputRequestId, isInputEntry } from "./shared/input-entry";
 import { type QueuedInput, QueuedInputsDoc } from "./shared/queued-inputs-doc";
@@ -102,10 +113,60 @@ const inputParts = (
         },
       ];
 
-const inputMessage = (entry: EntryRecord): UIMessage => ({
+/** How an unanswered input ended: stopped by the user, or failed, a crash-loop abort included. */
+type UnansweredAs = "stopped" | "failed";
+
+const unansweredAs = (
+  submission: SubmissionRecord | undefined,
+  entries: readonly EntryRecord[],
+): UnansweredAs | undefined => {
+  if (submission?.status !== "unanswered") return undefined;
+  return submission.reason === "aborted" &&
+    !stoppedByCrashLoop(entries, submission.id)
+    ? "stopped"
+    : "failed";
+};
+
+/** A response's metadata, by how its input ended. */
+const endedMetadata = {
+  stopped: { stopped: true },
+  failed: { failed: true },
+} as const satisfies Record<UnansweredAs, DurableHistoryMessageMetadata>;
+
+/**
+ * What the history reads beside the entries, from the submission table and
+ * the documents admission records in.
+ */
+export type HistoryRecords = {
+  /** Each input entry's submission, by the entry's ID; none for an input admitted under no request ID. */
+  readonly inputs: ReadonlyMap<EntryId, SubmissionRecord>;
+  /** Each input admission recorded as queued, with its submission. */
+  readonly queued: readonly {
+    readonly input: QueuedInput;
+    readonly submission: SubmissionRecord | undefined;
+  }[];
+  /** Each new version load, by the submission whose input carried it. */
+  readonly versionLoads: ReadonlyMap<SubmissionId, VersionLoad>;
+};
+
+const noRecords: HistoryRecords = {
+  inputs: new Map(),
+  queued: [],
+  versionLoads: new Map(),
+};
+
+/** `metadata`, or nothing when it says nothing. */
+const someMetadata = (metadata: DurableHistoryMessageMetadata) =>
+  Object.keys(metadata).length > 0 ? { metadata } : {};
+
+const inputMessage = (
+  entry: EntryRecord,
+  versionLoad: VersionLoad | undefined,
+): UIMessage => ({
   id: inputRequestId(entry) ?? userMessageId(entry.id),
   role: "user",
   parts: inputParts(entry),
+  ...someMetadata(versionLoad === undefined ? {} : { versionLoad }),
 });
 
 /** An input withdrawn before it ran, and why. */
@@ -114,19 +175,22 @@ type WithdrawnInput = {
   readonly because: UnansweredAs;
 };
 
-const withdrawnMessage = ({ input, because }: WithdrawnInput): UIMessage => {
-  const metadata: DurableHistoryMessageMetadata = { withdrawn: because };
-  return {
-    id: input.requestId,
-    role: "user",
-    parts: inputParts({
-      kind: input.kind,
-      data: input.data,
-      model: [{ role: "user", content: input.content, timestamp: 0 }],
-    }),
-    metadata,
-  };
-};
+const withdrawnMessage = (
+  { input, because }: WithdrawnInput,
+  versionLoad: VersionLoad | undefined,
+): UIMessage => ({
+  id: input.requestId,
+  role: "user",
+  parts: inputParts({
+    kind: input.kind,
+    data: input.data,
+    model: [{ role: "user", content: input.content, timestamp: 0 }],
+  }),
+  ...someMetadata({
+    withdrawn: because,
+    ...(versionLoad === undefined ? {} : { versionLoad }),
+  }),
+});
 
 const noteMessage = (note: EntryRecord): UIMessage => ({
   id: noteRequestId(note) ?? userMessageId(note.id),
@@ -160,28 +224,14 @@ const reduce = async (
   return message;
 };
 
-/** How an unanswered input ended: stopped by the user, or failed, a crash-loop abort included. */
-type UnansweredAs = "stopped" | "failed";
-
-const unansweredAs = (
-  submission: SubmissionRecord | undefined,
-  entries: readonly EntryRecord[],
-): UnansweredAs | undefined => {
-  if (submission?.status !== "unanswered") return undefined;
-  return submission.reason === "aborted" &&
-    !stoppedByCrashLoop(entries, submission.id)
-    ? "stopped"
-    : "failed";
-};
-
 /**
  * The UI messages of `entries`, a conversation's stored entries in ID order,
- * with `withdrawn` among them in submission order.
+ * with the withdrawn inputs `records` names among them in submission order.
  */
 export const historyMessages = async (
   entries: readonly EntryRecord[],
   options: ProjectionOptions,
-  withdrawn: readonly WithdrawnInput[] = [],
+  records: HistoryRecords = noRecords,
 ): Promise<UIMessage[]> => {
   /** Each input with the entries after it, and the notes before the first input. */
   const turns: { input: EntryRecord; after: EntryRecord[] }[] = [];
@@ -204,7 +254,13 @@ export const historyMessages = async (
   );
 
   const messages = leading.map(noteMessage);
-  const pending = [...withdrawn];
+  const pending = records.queued.flatMap(({ input, submission }) => {
+    const because =
+      submission?.entry === undefined
+        ? unansweredAs(submission, entries)
+        : undefined;
+    return because === undefined ? [] : [{ input, because }];
+  });
   /** Each withdrawn input admitted before `entry`, so before the input placed as it; all of them without one. */
   const withdrawnBefore = (entry: EntryId | undefined) => {
     let next = pending[0];
@@ -213,19 +269,32 @@ export const historyMessages = async (
       next !== undefined &&
       (entry === undefined || next.input.submission < entry)
     ) {
-      messages.push(withdrawnMessage(next));
+      messages.push(
+        withdrawnMessage(next, records.versionLoads.get(next.input.submission)),
+      );
       pending.shift();
       next = pending[0];
     }
   };
   turns.forEach(({ input }, index) => {
     withdrawnBefore(input.id);
-    messages.push(inputMessage(input));
+    const submission = records.inputs.get(input.id);
+    messages.push(
+      inputMessage(
+        input,
+        submission && records.versionLoads.get(submission.id),
+      ),
+    );
     const projected = responses[index];
     if (projected === undefined) return;
     const { response, notesBefore, notesAfter } = projected;
     messages.push(...notesBefore.map(noteMessage));
-    if (response !== undefined) messages.push(response);
+    const endedAs = unansweredAs(submission, entries);
+    if (response !== undefined)
+      messages.push({
+        ...response,
+        ...someMetadata(endedAs === undefined ? {} : endedMetadata[endedAs]),
+      });
     messages.push(...notesAfter.map(noteMessage));
   });
   withdrawnBefore(undefined);
@@ -254,26 +323,58 @@ const allEntries = async (
   return entries;
 };
 
-/** The recorded inputs that were withdrawn before they ran, with why: those left unanswered with no entry. */
-const withdrawnInputs = async (
-  { harness }: OpenConversation,
-  recorded: readonly QueuedInput[],
+/**
+ * Read the records `entries` need: the documents admission records in, and
+ * the submissions, in one commit that writes nothing, so Pi stores nothing:
+ * each input's, by the request ID its entry keeps, and each recorded queued
+ * input's.
+ */
+const historyRecords = async (
+  { harness, root }: OpenConversation,
   entries: readonly EntryRecord[],
   context: Context,
-): Promise<WithdrawnInput[]> => {
-  const submissions = await Promise.all(
-    recorded.map(async ({ submission }) =>
-      (await harness.submission(submission, context))?.status(context),
-    ),
-  );
-  return recorded.flatMap((input, index) => {
-    const submission = submissions[index];
-    const because =
-      submission?.entry === undefined
-        ? unansweredAs(submission, entries)
-        : undefined;
-    return because === undefined ? [] : [{ input, because }];
+): Promise<HistoryRecords> => {
+  const [queuedDoc, loadsDoc] = await Promise.all([
+    harness.snapshot(QueuedInputsDoc, root.id, context),
+    harness.snapshot(VersionLoadsDoc, root.id, context),
+  ]);
+  const recorded = queuedDoc?.inputs ?? [];
+  const inputs = entries.flatMap((entry) => {
+    const requestId = isInputEntry(entry) ? inputRequestId(entry) : undefined;
+    return requestId === undefined ? [] : [{ entry: entry.id, requestId }];
   });
+  const [inputSubmissions, queuedSubmissions] = await root.commit(
+    (tx) =>
+      Promise.all([
+        Promise.all(
+          inputs.map(({ requestId }) =>
+            tx.submissionByRequest(root.id, requestId),
+          ),
+        ),
+        Promise.all(
+          recorded.map(({ submission }) => tx.submission(submission)),
+        ),
+      ]),
+    context,
+  );
+  return {
+    inputs: new Map(
+      inputs.flatMap(({ entry }, index) => {
+        const submission = inputSubmissions[index];
+        return submission === undefined ? [] : [[entry, submission] as const];
+      }),
+    ),
+    queued: recorded.map((input, index) => ({
+      input,
+      submission: queuedSubmissions[index],
+    })),
+    versionLoads: new Map(
+      (loadsDoc?.loads ?? []).map(({ submission, id, decisionTime }) => [
+        submission,
+        { id, decisionTime },
+      ]),
+    ),
+  };
 };
 
 export type HistoryRouteOptions = ProjectionOptions & {
@@ -293,18 +394,12 @@ export const historyHandler =
     const conversation = await conversations.acquire(ctx.req.param("id") ?? "");
     if (conversation === undefined)
       return ctx.text("Unknown conversation.", 404);
-    const { harness, root } = conversation;
-    const [entries, queued] = await Promise.all([
-      allEntries(root, context),
-      harness.snapshot(QueuedInputsDoc, root.id, context),
-    ]);
-    const withdrawn = await withdrawnInputs(
-      conversation,
-      queued?.inputs ?? [],
+    const entries = await allEntries(conversation.root, context);
+    const messages = await historyMessages(
       entries,
-      context,
+      projection,
+      await historyRecords(conversation, entries, context),
     );
-    const messages = await historyMessages(entries, projection, withdrawn);
     ctx.header("Cache-Control", "no-store");
     return ctx.json(messages);
   };
