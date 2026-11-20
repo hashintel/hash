@@ -1,0 +1,26 @@
+# Hand-written; rendered by the arch-docs build. React components use the
+# purple palette, the host the grey one.
+direction: down
+
+host: "Host application\nhandle, plugins, slots" {style.fill: "#f2f2f2"; style.stroke: "#6b6b6b"}
+petrinaut: "Petrinaut\none Core instance per handle" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+provider: "PetrinautProvider\nthe React layer: stores and hooks" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+monaco: "MonacoProvider\none load of Monaco" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+plugins: "PetrinautPluginsProvider\none host per running plugin" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+editor: "EditorView\nbars, panels, modes" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+canvas: "SDCPNView\nthe canvas" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
+notebook: "NotebookView\nDefinitions" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
+simulate: "SimulateView\nruns and experiments" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
+preview: "PetrinautPreview\nread-only embed" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+blocks: "Building blocks\ncomponents, sub-views,\nworksheet, spreadsheet kit" {style.fill: "#ffffff"; style.stroke: "#7051b5"}
+
+host -> petrinaut: "passes props"
+petrinaut -> provider: "mounts with the instance"
+provider -> monaco: "wraps"
+monaco -> plugins: "wraps"
+plugins -> editor: "renders beside the plugin hosts"
+editor -> canvas: "mounts in Edit and Actual"
+editor -> notebook: "mounts in Edit"
+editor -> simulate: "mounts in Simulate"
+preview -> canvas: "mounts"
+editor -> blocks: "builds its panels from"

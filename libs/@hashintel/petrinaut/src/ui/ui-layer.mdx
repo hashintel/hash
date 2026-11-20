@@ -1,0 +1,56 @@
+---
+title: The UI layer
+description: The UI layer is the visual editor, made of the canvas, panels, dialogs and the Monaco integration.
+sidebar_order: 5
+---
+
+The UI layer is the visual editor: the canvas, the panels, the dialogs and the Monaco integration.
+It renders what the [React layer](layer:react) holds and calls its hooks to change it. It owns no document state.
+
+![Petrinaut mounts the React layer, Monaco and the plugins, then one editor view that mounts a workspace per mode](./ui-layer.d2)
+
+## Entry point
+
+`Petrinaut` in `ui/petrinaut.tsx` creates one Core instance for the document handle and disposes it when the inputs change. It then mounts, from the outside in:
+
+1. `PetrinautProvider`, which connects the instance to React. See the [React layer](layer:react).
+2. `PetrinautPresentationProvider`, which says what a profile shows: the editor, a review, or a preview.
+3. `MonacoProvider`. See [Monaco](doc:ui.monaco/monaco).
+4. `PetrinautPluginsProvider`, which runs the built-in plugins and the host's. See [How the editor runs plugins](doc:ui.plugins/runtime).
+5. `EditorView`. See [The editor shell](doc:ui.views.editor/editor-shell).
+
+`PetrinautPreview` in [`ui.preview`](layer:ui.preview) mounts the same canvas and inspectors without the shell.
+
+## Where a thing goes
+
+| To add | Put it in | Read |
+| --- | --- | --- |
+| A section or tab of a panel | The `sub-views.ts` of the panel, and a component module beside it | `sub-views.mdx` beside `ui/components/sub-view/types.ts` |
+| A node, an arc or a canvas gesture | `ui/views/SDCPN` | [The canvas](doc:ui.views.canvas/canvas) |
+| A region, a mode or a command | `ui/views/Editor` | [The editor shell](doc:ui.views.editor/editor-shell) |
+| A code input | `CodeEditor` | [Monaco](doc:ui.monaco/monaco) |
+| A table | `ui/components/spreadsheet-kit` | [Building a spreadsheet](doc:ui.spreadsheet-kit/building-a-spreadsheet) |
+| Arrow-key movement between controls | `ui/worksheet` | [The worksheet keyboard flow](doc:ui.worksheet/worksheet) |
+| A component two views share | `ui/components` | |
+| A value that follows a panel on every frame | `styleRef` or `useReading` from `ui/lib/readings.ts` | [Panel geometry outside React state](doc:react.state/panel-sizes) |
+| Something only one host needs | A plugin | [Plugins](doc:ui.plugins/overview) |
+| An icon | The Petricon set | [Petricon](doc:ui/petricon) |
+
+A component and its private parts share a name: `x.tsx` is the entry, and the folder `x/` holds what only it uses. The entry file calls hooks, then composes parts.
+
+## Rules
+
+**No file under `react/` imports from `ui/`.** The providers stay testable without mounting the editor. `archinaut check` fails on such an import.
+
+**No component is declared inside a function.** React treats a component created during render as a new type and remounts it with its state. The lint rule `react/static-components` reports it.
+
+**A sub-view descriptor lives in a `.ts` file.** Fast Refresh keeps the state of a component only when its module exports components and nothing else. `tsc` rejects JSX in a `.ts` file, so a descriptor file cannot grow a component.
+
+**A component reads the part of the state it draws.** `useEditorState`, `useEditorFields` and `useUserSettings` take a selector or field names, and `useEditorActions` returns functions that keep their identity. A component that reads a whole context renders for every change to it.
+
+**The React Compiler memoizes.** A `useMemo`, `useCallback` or `memo` needs a comment that says what the compiler cannot cover, as on `PluginHost` and `EntityRow`. The lint rules `react/refs` and `react/set-state-in-effect` keep render free of what the compiler refuses.
+
+## Pitfalls
+
+- A plugin or a `rules` object created during render is a new value on every render. `Petrinaut` holds `rules` by content, but a plugin must be defined at module scope.
+- Inside a hook, a value built before another hook call and used after it is not memoized. Call the hooks first, then build each value in one expression.
