@@ -14,6 +14,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { START_ID } from "./document";
 import { ShowAllRow } from "./show-all-row";
 import { RunGlyph } from "./run-glyph";
+import { PropertyRow } from "./ui";
 import { clockText } from "./run-time";
 import { STATUS_MARK_SIZE, statusSlotStyle, useStatusSide } from "./status-side";
 import {
@@ -139,6 +140,17 @@ const firstLineTextStyle = css({
 
 const wordStyle = css({ color: "neutral.fg.heading" });
 
+const rowValueStyle = css({
+  textStyle: "sm",
+  color: "neutral.fg.heading",
+  overflowWrap: "anywhere",
+});
+
+/** The Failed row's items stack in the value column: name, its reason under it, a gap between items. */
+const failedItemsStyle = css({ display: "flex", flexDirection: "column", gap: "2" });
+const failedItemStyle = css({ display: "flex", flexDirection: "column" });
+const failedNameStyle = css({ color: "neutral.fg.heading" });
+
 const builtNoteStyle = css({
   textStyle: "sm",
   color: "neutral.fg.muted",
@@ -191,14 +203,16 @@ export const StatusLine = ({
   );
 };
 
-const failureNote = (failure: RunFacts["failures"][number]) =>
-  `${suppliers[failure.item] ?? "An item"} · ${
+/** A failed item for the Status rows: its name, and why it failed. */
+const failureItem = (failure: RunFacts["failures"][number]) => ({
+  name: suppliers[failure.item] ?? "An item",
+  reason:
     failure.reason === "404"
-      ? "certificate link returned 404"
+      ? "Certificate link returned 404"
       : failure.reason === "timed out"
-        ? "certificate link timed out · 3 tries"
-        : failure.reason
-  }`;
+        ? "Certificate link timed out after 3 tries"
+        : failure.reason,
+});
 
 const loopSteps = [
   "readName",
@@ -214,7 +228,12 @@ const statusParts = (
   stepId: string,
   facts: RunFacts,
   state: StepRun,
-): { word: string; count?: string; notes: string[] } => {
+): {
+  word: string;
+  count?: string;
+  notes: string[];
+  failures?: { name: string; reason: string }[];
+} => {
   const { n } = facts;
   // "2 of 20 failed": with the noun ("suppliers") the line runs past the 384 px panel.
   const items = (count: number) => `${count} of ${n}`;
@@ -273,11 +292,16 @@ const statusParts = (
             : undefined;
     const notes =
       stepId === "fetchCertificate"
-        ? shown.map(failureNote)
+        ? []
         : skipped > 0
           ? [`${shown.map((failure) => suppliers[failure.item] ?? "An item").join(", ")} · no certificate`]
           : [];
-    return { word, count, notes };
+    return {
+      word,
+      count,
+      notes,
+      ...(stepId === "fetchCertificate" ? { failures: shown.map(failureItem) } : {}),
+    };
   }
   return { word: state.state === "failed" ? "Failed" : "Done", notes: [] };
 };
@@ -301,20 +325,58 @@ export const StepStatusLine = ({
     return <StatusLine state="skipped" word="Skipped" facts={[]} />;
   }
   const when = stepWhen(stepId, run, facts, state, now);
-  const { word, count, notes } = statusParts(stepId, facts, state);
-  const timeFacts =
-    !when
-      ? []
-      : state.state === "needsReview"
-        ? [`Asked ${when.clock}`]
-        : [when.duration, when.started];
+  const { word, count, notes, failures = [] } = statusParts(stepId, facts, state);
+  // The first line is the outcome alone ("2 of 20 failed"); the facts sit in label / value rows under it.
+  const outcome = count?.endsWith("failed") ? count : word;
+  const rest = count && !count.endsWith("failed") ? [count] : [];
+  const rows: [string, React.ReactNode][] = [
+    ...(when
+      ? state.state === "needsReview"
+        ? [["Asked", when.clock] as [string, string]]
+        : ([
+            ["Duration", when.duration],
+            ["Started", when.started],
+          ] as [string, string | undefined][]).filter(
+            (row): row is [string, string] => Boolean(row[1]),
+          )
+      : []),
+    ...(failures.length > 0
+      ? [
+          [
+            "Failed",
+            <span key="failed" className={failedItemsStyle}>
+              {failures.map((failure) => (
+                <span key={failure.name} className={failedItemStyle}>
+                  <span className={failedNameStyle}>{failure.name}</span>
+                  <span className={quietLineStyle}>{failure.reason}</span>
+                </span>
+              ))}
+            </span>,
+          ] as [string, React.ReactNode],
+        ]
+      : []),
+    ...notes.map((note): [string, React.ReactNode] =>
+      note.startsWith("Waiting on ")
+        ? ["Waiting on", note.slice("Waiting on ".length)]
+        : note.endsWith("· no certificate")
+          ? ["No certificate", note.replace(" · no certificate", "")]
+          : ["Reason", note],
+    ),
+  ];
   return (
-    <StatusLine
-      state={state.state}
-      word={word}
-      facts={[count, ...timeFacts]}
-      notes={notes}
-    />
+    <>
+      <StatusLine
+        state={state.state}
+        word={outcome}
+        facts={rest}
+        notes={[]}
+      />
+      {rows.map(([label, value]) => (
+        <PropertyRow key={label} label={label}>
+          <span className={rowValueStyle}>{value}</span>
+        </PropertyRow>
+      ))}
+    </>
   );
 };
 
