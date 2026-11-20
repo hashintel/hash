@@ -4,6 +4,7 @@ import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   type PetrinautExtensionSettings,
   type SDCPN,
+  type SelectionItemType,
 } from "@hashintel/petrinaut-core";
 
 /**
@@ -18,18 +19,7 @@ export type SDCPNContextValue = {
   petriNetDefinition: SDCPN;
   readonly: boolean;
   extensions: PetrinautExtensionSettings;
-  getItemType: (
-    id: string,
-  ) =>
-    | "place"
-    | "transition"
-    | "arc"
-    | "componentInstance"
-    | "fusion"
-    | "type"
-    | "differentialEquation"
-    | "parameter"
-    | null;
+  getItemType: (id: string) => SelectionItemType | null;
 };
 
 const DEFAULT_CONTEXT_VALUE: SDCPNContextValue = {

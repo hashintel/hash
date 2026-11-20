@@ -136,7 +136,5 @@ export const SDCPNProvider: React.FC<{ children: ReactNode }> = ({
     },
   };
 
-  return (
-    <SDCPNContext.Provider value={value}>{children}</SDCPNContext.Provider>
-  );
+  return <SDCPNContext value={value}>{children}</SDCPNContext>;
 };

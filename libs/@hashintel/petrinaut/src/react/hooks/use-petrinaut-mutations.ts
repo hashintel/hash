@@ -1,11 +1,11 @@
 import { use } from "react";
 
-import { PetrinautInstanceContext } from "../instance-context";
 import { ActiveNetContext } from "../state/active-net-context";
 import {
   mutationBlockedBy,
   useReadOnlyReason,
 } from "../state/use-read-only-reason";
+import { useCoreInstance } from "../use-petrinaut-instance";
 import { useHostRulesFeedback } from "./use-host-rules-feedback";
 import { useReadOnlyFeedback } from "./use-read-only-feedback";
 
@@ -57,12 +57,7 @@ const documentWideMutations: ReadonlySet<keyof PetrinautMutations> = new Set([
  * surface to keep the readonly guard centralised in this hook.
  */
 export function usePetrinautMutations(): GuardedPetrinautMutations {
-  const instance = use(PetrinautInstanceContext);
-  if (!instance) {
-    throw new Error(
-      "usePetrinautMutations must be used inside <PetrinautProvider> (or <Petrinaut>).",
-    );
-  }
+  const instance = useCoreInstance("usePetrinautMutations");
   const { activeComponentId } = use(ActiveNetContext);
   const readOnlyReason = useReadOnlyReason();
   const notifyReadOnly = useReadOnlyFeedback();

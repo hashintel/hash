@@ -5,11 +5,7 @@ import {
   useSelectedFields,
   type Published,
 } from "../select-from-context";
-import {
-  DEFAULT_BOTTOM_PANEL_HEIGHT,
-  DEFAULT_LEFT_SIDEBAR_WIDTH,
-  DEFAULT_PROPERTIES_PANEL_WIDTH,
-} from "./panel-defaults";
+import { defaultPanelSizes } from "./panel-sizes";
 
 import type {
   CanvasViewport,
@@ -114,10 +110,10 @@ export const defaultUserSettings: UserSettings = {
   enableExperimentalIconPack: true,
   cursorMode: "pan",
   isLeftSidebarOpen: true,
-  leftSidebarWidth: DEFAULT_LEFT_SIDEBAR_WIDTH,
-  propertiesPanelWidth: DEFAULT_PROPERTIES_PANEL_WIDTH,
+  leftSidebarWidth: defaultPanelSizes.leftSidebarWidth,
+  propertiesPanelWidth: defaultPanelSizes.propertiesPanelWidth,
   isBottomPanelOpen: false,
-  bottomPanelHeight: DEFAULT_BOTTOM_PANEL_HEIGHT,
+  bottomPanelHeight: defaultPanelSizes.bottomPanelHeight,
   activeBottomPanelTab: "diagnostics",
   timelineChartType: "run",
   showMinimap: true,

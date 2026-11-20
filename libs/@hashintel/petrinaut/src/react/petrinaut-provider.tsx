@@ -83,15 +83,12 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
       instance={instance}
       netManagement={netManagement}
     >
+      {/* Keyed by handle id so a net switch resets the location and the net-scoped workers below. */}
       <PetrinautNavigationProvider
         controller={navigation}
         key={instance.handle.id}
       >
-        {/* Keyed by handle id so a net switch resets net-scoped workers. */}
-        <LanguageClientProvider
-          key={instance.handle.id}
-          workerFactory={lspWorkerFactory}
-        >
+        <LanguageClientProvider workerFactory={lspWorkerFactory}>
           <NotificationsProvider>
             <SimulatorsProvider
               runWorkerFactory={eventSimulationWorkerFactory}
@@ -99,7 +96,7 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
               registrations={simulators}
             >
               {/* The editor's Quick Simulation runs on a registered simulator. */}
-              <SimulationProvider key={instance.handle.id}>
+              <SimulationProvider>
                 <ExperimentsProvider>
                   <OptimizationsProvider>
                     <ExperimentHostProvider>

@@ -141,13 +141,13 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       }}
     >
       <EditorPublishedContext value={published}>
-        <EditorContext.Provider value={contextValue}>
+        <EditorContext value={contextValue}>
           <EditorActionsContext value={actions}>
             <ReadOnlyReasonProvider globalMode={effectiveState.globalMode}>
               <PanelPresenceProvider>{children}</PanelPresenceProvider>
             </ReadOnlyReasonProvider>
           </EditorActionsContext>
-        </EditorContext.Provider>
+        </EditorContext>
       </EditorPublishedContext>
     </AssistantPlacementContext>
   );

@@ -3,7 +3,7 @@ import { cleanup, renderHook } from "@testing-library/react";
 import { use, type ReactNode } from "react";
 import { afterEach, expect, it } from "vitest";
 
-import { DEFAULT_AI_ASSISTANT_WIDTH } from "./panel-defaults";
+import { defaultPanelSizes } from "./panel-sizes";
 import { usePanelSizes } from "./panel-sizes-context";
 import { PanelSizesProvider } from "./panel-sizes-provider";
 import { UserSettingsContext } from "./user-settings-context";
@@ -28,7 +28,7 @@ it("starts the sizes from the saved settings", () => {
   expect(sizes.leftSidebarWidth.get()).toBe(300);
   expect(sizes.propertiesPanelWidth.get()).toBe(520);
   expect(sizes.bottomPanelHeight.get()).toBe(240);
-  expect(sizes.aiAssistantWidth.get()).toBe(DEFAULT_AI_ASSISTANT_WIDTH);
+  expect(sizes.aiAssistantWidth.get()).toBe(defaultPanelSizes.aiAssistantWidth);
 });
 
 it("keeps the same values across renders", () => {
