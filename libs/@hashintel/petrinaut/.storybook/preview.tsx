@@ -2,7 +2,7 @@ import "../src/ui/index.css";
 import { useRef } from "react";
 
 import { PortalContainerContext } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import type { Preview } from "@storybook/react-vite";
 
@@ -21,18 +21,24 @@ const portalLayerStyle = css({
   },
 });
 
+/** A story laid out `fullscreen` fills the viewport, as the editor fills its host. */
+const fullscreenStyle = css({ height: "[100vh]" });
+
 const preview: Preview = {
   parameters: {
     options: { storySort: { order: ["Editor", "Components", "States"] } },
   },
   decorators: [
-    (Story) => {
+    (Story, { parameters }) => {
       const portalContainerRef = useRef<HTMLDivElement>(null);
 
       return (
         <div
           // Required (for now) given design tokens are scoped to .petrinaut-root
-          className="petrinaut-root"
+          className={cx(
+            "petrinaut-root",
+            parameters.layout === "fullscreen" && fullscreenStyle,
+          )}
         >
           <div ref={portalContainerRef} className={portalLayerStyle} />
 

@@ -363,6 +363,6 @@ chat, and its title bar with `AssistantPanelTitle`; the editor keeps the
 panel's frame, placement, resizing and entry points. Without such a plugin the
 editor shows no assistant. The architecture docs'
 [Writing a plugin](src/ui/plugins/writing-a-plugin.mdx)
-page shows how, and **Petrinaut / With Assistant Plugin** in Storybook renders
+page shows how, and **Editor / Plugins / Assistant** in Storybook renders
 one. `petrinautDocsContent` (from `/ui`) exposes the user guide's pages, so an
 assistant's tools can answer with the same text.
