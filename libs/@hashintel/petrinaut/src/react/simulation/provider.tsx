@@ -420,7 +420,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     disposeHandles(eventSimulationRef.current, stochasticRef.current);
     eventSimulationRef.current = null;
     stochasticRef.current = null;
-    // Reacting to a scenario switch from navigation: the running simulation is disposed here, and the resets run once per switch behind the previous-id guard above.
     setEventSimulation(null);
     setStochastic(null);
     setFailure(null);
@@ -794,7 +793,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     setStateValues((prev) => ({
       ...prev,
       parameterValues,
-      // Keep initialMarking when resetting - it's configuration, not simulation state
     }));
   };
 

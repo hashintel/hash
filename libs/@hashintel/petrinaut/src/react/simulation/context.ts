@@ -85,30 +85,20 @@ export type StochasticRun = {
 
 export type SimulationContextValue = {
   // State values
-  /**
-   * Current lifecycle state of the simulation.
-   */
+  /** Current lifecycle state of the simulation. */
   state: SimulationState;
-  /**
-   * Error message if state is "Error".
-   */
+  /** Error message if state is "Error". */
   error: string | null;
-  /**
-   * ID of the SDCPN item that caused the error, if applicable.
-   */
+  /** ID of the SDCPN item that caused the error, if applicable. */
   errorItemId: string | null;
-  /**
-   * Current parameter values (string representation for UI binding).
-   */
+  /** Current parameter values (string representation for UI binding). */
   parameterValues: Record<string, string>;
-  /**
-   * Initial token distribution for each place.
-   */
+  /** Initial token distribution for each place. */
   initialMarking: InitialMarking;
   /**
-   * Maximum simulation time in seconds.
-   * When the simulation reaches this time, it will be paused.
-   * If null, the simulation runs until no transitions are enabled.
+   * Where a run ends, in simulated seconds or steps: a run that reaches it
+   * completes. Null means no end: the run goes on until no transition is
+   * enabled. A Stochastic simulation always has one.
    */
   maxTime: number | null;
   /**
@@ -229,8 +219,8 @@ export type SimulationContextValue = {
     value: number | boolean | string,
   ) => void;
   /**
-   * Set the maximum simulation time in seconds.
-   * Pass null to disable the time limit.
+   * Sets where a run ends, in simulated seconds or steps. Null removes the
+   * end, and a Stochastic simulation then takes its default.
    */
   setMaxTime: (maxTime: number | null) => void;
   /**
