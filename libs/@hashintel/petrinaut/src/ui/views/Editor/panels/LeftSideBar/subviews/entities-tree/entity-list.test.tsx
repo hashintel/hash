@@ -101,11 +101,16 @@ const groupOf = (children: EntityItem[]): EntityGroup => ({
   children,
 });
 
-const focusRow = (name: string): HTMLElement => {
-  const target = screen.getByText(name).closest("[role='option']");
-  if (!(target instanceof HTMLElement)) {
+const rowOf = (name: string): HTMLElement => {
+  const row = screen.getByText(name).closest("[role='option']");
+  if (!(row instanceof HTMLElement)) {
     throw new Error(`no option row for ${name}`);
   }
+  return row;
+};
+
+const focusRow = (name: string): HTMLElement => {
+  const target = rowOf(name);
   act(() => {
     target.focus();
   });
@@ -124,14 +129,6 @@ const ONE_GROUP = [
     { id: "c", type: "place", name: "Gamma" },
   ]),
 ];
-
-const rowOf = (name: string): HTMLElement => {
-  const row = screen.getByText(name).closest("[role='option']");
-  if (!(row instanceof HTMLElement)) {
-    throw new Error(`no option row for ${name}`);
-  }
-  return row;
-};
 
 const menuButtonOf = (name: string) =>
   rowOf(name).querySelector("[aria-label='Row menu']");
