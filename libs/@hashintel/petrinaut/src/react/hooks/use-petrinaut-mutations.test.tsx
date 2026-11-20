@@ -149,6 +149,17 @@ describe("usePetrinautMutations", () => {
     expect(result.current).toBe(mutations);
   });
 
+  test("guards every mutation of the instance", () => {
+    const { Wrapper, instance } = createWrapper();
+    const { result } = renderHook(usePetrinautMutations, {
+      wrapper: Wrapper,
+    });
+
+    expect(Object.keys(result.current)).toEqual(
+      Object.keys(instance.mutations),
+    );
+  });
+
   describe("when not readonly", () => {
     test("addPlace mutates SDCPN", () => {
       const { Wrapper, instance } = createWrapper();
