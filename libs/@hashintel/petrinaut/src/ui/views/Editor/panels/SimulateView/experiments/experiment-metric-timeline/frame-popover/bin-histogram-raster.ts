@@ -4,13 +4,11 @@
  * without a canvas.
  *
  * A frame carries `[value, frequency]` pairs — thousands of them for an
- * exact-binned metric — and the popover has a few hundred pixels. Rather
- * than one DOM row per bin (a scrolling list that showed a dozen bins at a
- * time), the bins are laid out as adjacent rectangles spanning the plot: a
- * bin wider than a pixel becomes a rectangle that wide, and bins narrower
- * than a pixel merge into one column holding all of their samples. Every
- * column touches its neighbours, so the raster has no gaps and every sample
- * is somewhere in it.
+ * exact-binned metric — and the popover has a few hundred pixels. The bins
+ * are laid out as adjacent rectangles spanning the plot: a bin wider than a
+ * pixel becomes a rectangle that wide, and bins narrower than a pixel merge
+ * into one column holding all of their samples. Every column touches its
+ * neighbours, so the raster has no gaps and every sample is somewhere in it.
  *
  * Bars are drawn at each column's samples-per-bin rather than its raw sum,
  * because merging is not uniform: at 854 bins over 300 pixels most columns
