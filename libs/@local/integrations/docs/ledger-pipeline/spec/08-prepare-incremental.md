@@ -54,7 +54,7 @@ async fn prepare(storage, record: &RunRecord) -> Result<PreparePart, Report<Stag
     let definition = Definition::from_yaml(&record.input.definition)?;
     one_table_per_pipeline(&definition)?;                       // D14: no pipeline reads a second table
     let tables = captured_tables(&definition, record.capture.as_ref()?)?;   // name, primary key, key in the bucket
-    let context = Context::new(&record.input, &definition);     // web, namespace, unit maps: owned
+    let context = Context::new(&record.input, &definition);     // web, id namespace, unit maps: owned
     let config = WorkspaceConfig { variables: definition.variables().clone(), ..Default::default() };
 
     let scratch = tempdir()?;
@@ -174,7 +174,7 @@ pub(super) fn entity_changes(context, sink, columns: &[Box<str>], rows: impl Ite
         let Some(source_id) = row.text(&sink.entity_id) else {
             issues.push(Issue::missing_source_id(..)); continue;
         };
-        let entity_id = derive_entity_id(context.web, &context.namespace, &sink.entity_type, &source_id);
+        let entity_id = derive_entity_id(context.web, &context.id_namespace, &sink.entity_type, &source_id);
         let (op, properties) = match op {
             "insert" => (Op::CreateEntity,  resolve(&row, sink, context, &mut issues)),
             "update" => (Op::UpdateEntity,  resolve(&row, sink, context, &mut issues)),

@@ -33,13 +33,12 @@ In `contracts.md`: `RunId`, `RunRecord` with its parts, `Current`, the three key
 pub struct StartInput {
     pub web: WebId,
     pub actor: ActorEntityUuid,
-    pub definition: Box<str>,              // the YAML as written (D4). Start reads the connector from it.
-    pub namespace: Option<Box<str>>,       // None: the connector's id
+    pub definition: Box<str>,              // the YAML as written (D4), of the definition `start` is given
+    pub id_namespace: Option<Box<str>>,    // None: the connector's id
     pub submitted_at: OffsetDateTime,
 }
 
 pub enum StartError {
-    InvalidDefinition,                     // the YAML is not a valid definition
     RunActive { active: RunId },           // another run of the integration is active
     Changed,                               // another start claimed the integration at the same time
     Storage,
@@ -98,9 +97,9 @@ pub(crate) async fn complete(storage, run) -> Result<(), Report<RunError>> {
 **`run/start.rs`: Start** (new, 90 lines)
 
 ```rust
-pub async fn start(storage, input: StartInput) -> Result<RunId, Report<StartError>> {
-    let definition = Definition::from_yaml(&input.definition)?;   // refuse before a run exists (D9)
-    // the record's `connector` is the definition's, its `namespace` the given one or the connector's id
+pub async fn start(storage, definition: &Definition, input: StartInput) -> Result<RunId, Report<StartError>> {
+    // parsed by the caller (D9). The record's `connector` is the definition's,
+    // its `id_namespace` the given one or the connector's id.
     let (current, version) = current::read(storage).await?;
     if let Some(active) = current.active {
         return Err(StartError::RunActive { active });
@@ -131,7 +130,7 @@ All new, on the in-memory store. Five tests:
 
 1. `run.json` is written and read back unchanged, and its JSON matches a snapshot. This pins the file's shape.
 2. Start creates `run.json` with the `input` and `batch` parts and names the run as active.
-3. Start is refused while a run is active, and for a definition that does not parse. Two cases of one test.
+3. Start is refused while a run is active.
 4. Of two starts that read the same `current.json`, the second is refused and changes nothing.
 5. `complete` names the run as the last completed run, and a second call does nothing.
 
@@ -144,9 +143,9 @@ Compared with labs: the journal events for a run, the fold that builds a view fr
 ### Open points
 
 - **Chosen:** Start creates the run id, a new UUID, and returns it.
-- **Chosen:** `StartError` tells a caller apart why a start was refused: the definition does not parse, a run is active, another start was faster, or storage failed. The plan only says "refuse".
+- **Chosen:** `StartError` tells a caller apart why a start was refused: a run is active, another start was faster, or storage failed. The plan only says "refuse".
 - **Fact:** `ConnectorId` and `SourceName` have no way to be written as JSON (`definition/src/name.rs:93-112`). The record holds the connector's id and the tables' names as text, and the `definition` crate stays as it is.
-- **Decided:** D9, Start checks the definition.
+- **Decided:** D9. The caller parses the definition once and passes it to Start. It needs the connector to open the storage.
 - **Chosen:** the submission time is passed in as data. Labs does the same, and nothing in the crate reads a clock.
 - **Chosen:** the batch limits are constants in `record.rs` and are written into every `run.json`. Start takes no limits.
 - **Chosen:** `run.json` is written as indented JSON, so that it can be read in the bucket without a tool.

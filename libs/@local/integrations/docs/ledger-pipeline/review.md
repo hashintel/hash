@@ -28,7 +28,7 @@ status in S3   runs/{run}/run.json   one per run: what the run works with, and w
                current.json          one per integration: the active run and the last completed run
 ```
 
-Each integration has its own bucket:
+All integrations share one bucket. Each has its own place in it, `tenants/{web}/integrations/{hash}/`, which holds:
 
 ```text
 current.json
@@ -44,7 +44,7 @@ sync/                                  the sync table
 
 | Part      | Written by                | Holds                                                                                                                                            |
 | --------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `input`   | Start                     | The run id, the web, the connector, the actor, the definition as written, the namespace, the submission time                                     |
+| `input`   | Start                     | The run id, the web, the connector, the actor, the definition as written, the id namespace, the submission time                                  |
 | `batch`   | Start                     | The limits of one batch of Graph requests: 128 requests and 1.5 MB                                                                               |
 | `capture` | Capture                   | For each table, where its file is stored, its size and its row count                                                                             |
 | `prepare` | Prepare                   | The number of changes, the issues file and the number of issues                                                                                  |
@@ -95,7 +95,7 @@ Prepare turns each captured row into the entity changes it stands for and append
 2. Download the capture files and load each into DuckDB.
 3. **Stage each table.** Add three columns the SQL steps carry through: `_op`, copied from `_change`; `_key`, the row's primary key; `_seq`, the row's position in its file.
 4. **Run the SQL steps** of the definition. The result is one table per entity type and per link type.
-5. **Turn each row into one change.** Its entity id is computed from the namespace, the entity type and the row's own key. Its values are converted into properties. `insert` becomes a create, `update` an update, `delete` an archive. A link takes the kind of the row it comes from.
+5. **Turn each row into one change.** Its entity id is computed from the id namespace, the entity type and the row's own key. Its values are converted into properties. `insert` becomes a create, `update` an update, `delete` an archive. A link takes the kind of the row it comes from.
 6. A row without a key, and a value that cannot be converted, are noted in the issues file. The row is still written without that value.
 7. **Append the changes to the sync table.**
 8. Write the `prepare` part.

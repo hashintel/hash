@@ -1164,7 +1164,10 @@
         >Click a box in a green lane, the changed rows or the Graph API to see
         everything it holds at the selected stage.</span
       >
-      <span>Both green lanes are the same S3 bucket, one per integration.</span>
+      <span
+        >Both green lanes are the integration's place in the one S3
+        bucket.</span
+      >
     </div>
   </div>
 
@@ -1940,7 +1943,7 @@
         connector: "connector",
         actor: "00000000-0000-4000-8000-000000000002",
         definition: "(the definition YAML)",
-        namespace: "connector",
+        id_namespace: "connector",
         submitted_at: "2026-07-22T10:00:00Z",
       },
       batch: { max_writes: 128, max_bytes: 1500000 },
