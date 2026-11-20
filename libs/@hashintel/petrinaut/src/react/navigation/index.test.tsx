@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { fireEvent, render, screen } from "@testing-library/react";
+import { useState } from "react";
 import { describe, expect, test, vi } from "vitest";
 
 import {
@@ -666,3 +667,103 @@ test.each([null, { type: "metric", id: "metric-a" }] as const)(
     view.unmount();
   },
 );
+
+describe.each([true, false])("with a host in control: %s", (controlled) => {
+  const Host = ({ children }: { children: React.ReactNode }) => {
+    const [state, setState] = useState<PetrinautNavigationState>({
+      ...defaultPetrinautNavigationState,
+      mode: "simulate",
+      simulateView: "scenarios",
+    });
+    return (
+      <PetrinautNavigationProvider
+        controller={
+          controlled
+            ? { state, onNavigate: (update) => setState(update) }
+            : undefined
+        }
+        initialState={state}
+      >
+        {children}
+      </PetrinautNavigationProvider>
+    );
+  };
+
+  test("navigate is one function across navigations", () => {
+    const seen = new Set<unknown>();
+    const Probe = () => {
+      const { navigate, state } = usePetrinautNavigation();
+      seen.add(navigate);
+      return (
+        <button
+          type="button"
+          onClick={() =>
+            navigate(
+              {
+                selection: [
+                  { type: "place", id: `place-${state.selection.length}` },
+                  ...state.selection,
+                ],
+              },
+              { cause: "user", action: "selection" },
+            )
+          }
+        >
+          Select another place
+        </button>
+      );
+    };
+    const view = render(<Probe />, { wrapper: Host });
+    const select = screen.getByRole("button", { name: "Select another place" });
+
+    fireEvent.click(select);
+    fireEvent.click(select);
+
+    expect(seen.size).toBe(1);
+    view.unmount();
+  });
+
+  test("a Simulate section reopens the record it was left with", () => {
+    const Probe = () => {
+      const { navigate, state } = usePetrinautNavigation();
+      const show = (simulateView: PetrinautNavigationState["simulateView"]) =>
+        navigate(
+          { simulateView },
+          { cause: "user", action: "simulation-view" },
+        );
+      return (
+        <>
+          <output aria-label="Record">
+            {state.simulateResource?.id ?? "none"}
+          </output>
+          <button
+            type="button"
+            onClick={() =>
+              navigate(
+                { simulateResource: { type: "scenario", id: "scenario-a" } },
+                { cause: "user", action: "simulation-resource" },
+              )
+            }
+          >
+            Open scenario
+          </button>
+          <button type="button" onClick={() => show("metrics")}>
+            Metrics
+          </button>
+          <button type="button" onClick={() => show("scenarios")}>
+            Scenarios
+          </button>
+        </>
+      );
+    };
+    const view = render(<Probe />, { wrapper: Host });
+    const record = () => screen.getByLabelText("Record").textContent;
+
+    fireEvent.click(screen.getByRole("button", { name: "Open scenario" }));
+    fireEvent.click(screen.getByRole("button", { name: "Metrics" }));
+    expect(record()).toBe("none");
+    fireEvent.click(screen.getByRole("button", { name: "Scenarios" }));
+    expect(record()).toBe("scenario-a");
+    view.unmount();
+  });
+});

@@ -13,9 +13,9 @@ import { SDCPNContext } from "../sdcpn-context";
  * builds from it then changes only when its part of the result does.
  */
 export const useResolvedLocation = () => {
-  const navigation = usePetrinautNavigation();
+  const { navigate, state: location } = usePetrinautNavigation();
   const { getItemType, petriNetDefinition } = use(SDCPNContext);
-  const { simulateResource, selection } = navigation.state;
+  const { simulateResource, selection } = location;
   const { scenarios, metrics } = petriNetDefinition;
   const resolved = resolveNavigatedItems(
     { simulateResource, selection },
@@ -31,7 +31,7 @@ export const useResolvedLocation = () => {
       // to the host's freshest state, which an asynchronous host may already
       // have moved on from. Resolve again inside the updater so normalization
       // never writes back a selection the user has since replaced.
-      navigation.navigate(
+      navigate(
         (current) => ({
           ...current,
           ...resolveNavigatedItems(
@@ -49,7 +49,7 @@ export const useResolvedLocation = () => {
   }, [
     getItemType,
     metrics,
-    navigation,
+    navigate,
     resolved,
     scenarios,
     selection,

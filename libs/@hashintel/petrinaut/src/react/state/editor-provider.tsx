@@ -56,7 +56,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const userSettings = use(UserSettingsContext);
   const composesOnly = useComposesOnly();
   const actualMode = use(ActualModeContext);
-  const navigation = usePetrinautNavigation();
+  const { navigate, state: location } = usePetrinautNavigation();
   const startsInActualMode = actualMode.available;
   const startsWithActualTimeline =
     startsInActualMode &&
@@ -111,7 +111,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
             phase: "discrete" | "start" | "continue";
           },
     ) => {
-      const didNavigate = navigation.navigate((current) => {
+      const didNavigate = navigate((current) => {
         const selection = updates.reduce(
           (value, update) => update(value),
           selectionFromNavigation(current.selection),
@@ -215,11 +215,9 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const navigateTo: EditorActions["navigateTo"] = (target) => {
     const drawerChangesOverlay =
       target.simulateDrawer !== undefined &&
-      simulateDrawerToNavigationOverlay(
-        target.simulateDrawer,
-        navigation.state.overlay,
-      )?.type !== navigation.state.overlay?.type;
-    navigation.navigate(
+      simulateDrawerToNavigationOverlay(target.simulateDrawer, location.overlay)
+        ?.type !== location.overlay?.type;
+    navigate(
       (current) => ({
         ...current,
         ...(target.globalMode !== undefined ? { mode: target.globalMode } : {}),
@@ -413,10 +411,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         draggingStateByNodeId: updater(prev.draggingStateByNodeId),
       })),
     collapseAllPanels: () => {
-      navigation.navigate(
-        { selection: [] },
-        { cause: "user", action: "selection" },
-      );
+      navigate({ selection: [] }, { cause: "user", action: "selection" });
       setState((prev) => ({
         ...prev,
         isLeftSidebarOpen: false,
@@ -431,7 +426,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     setHiddenTimelineSeriesIds: (seriesIds) =>
       setState((prev) => ({ ...prev, hiddenTimelineSeriesIds: seriesIds })),
     setSimulateViewMode: (mode) =>
-      navigation.navigate(
+      navigate(
         (current) =>
           current.simulateView === mode
             ? current
@@ -474,16 +469,16 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     // An editor that only composes has one mode and one view of it, and no
     // tool that draws a place or a transition: one left armed reads as the
     // cursor. Placing a component is composing, so that tool stays.
-    globalMode: composesOnly ? "edit" : navigation.state.mode,
-    editViewMode: composesOnly ? "canvas" : navigation.state.editView,
+    globalMode: composesOnly ? "edit" : location.mode,
+    editViewMode: composesOnly ? "canvas" : location.editView,
     editionMode:
       composesOnly && state.editionMode !== "add-component"
         ? "cursor"
         : state.editionMode,
-    simulateViewMode: navigation.state.simulateView,
+    simulateViewMode: location.simulateView,
     simulateDrawer: navigationResourceToSimulateDrawer(
       resolved.simulateResource,
-      navigation.state.overlay,
+      location.overlay,
     ),
     selection,
     hasSelection: selection.size > 0,

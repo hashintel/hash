@@ -6,7 +6,6 @@
 import {
   createContext,
   use,
-  useEffect,
   useLayoutEffect,
   useRef,
   useState,
@@ -160,6 +159,13 @@ const PetrinautNavigationContext =
     navigate: () => false,
   });
 
+type SimulationVisits = Partial<
+  Record<
+    SimulateViewMode,
+    Pick<PetrinautNavigationState, "simulateResource" | "simulatePresentation">
+  >
+>;
+
 export type PetrinautNavigationProviderProps = {
   children: ReactNode;
   controller?: PetrinautNavigationController;
@@ -240,32 +246,14 @@ export const PetrinautNavigationProvider = ({
       selection: canonicalizeSelection(initialState?.selection ?? []),
     }));
   const state = controller?.state ?? uncontrolledState;
-  const [simulationVisits, setSimulationVisits] = useState<
-    Partial<
-      Record<
-        SimulateViewMode,
-        Pick<
-          PetrinautNavigationState,
-          "simulateResource" | "simulatePresentation"
-        >
-      >
-    >
-  >({});
-  const visit = simulationVisits[state.simulateView];
-  if (
-    visit === undefined ||
-    visit.simulateResource?.type !== state.simulateResource?.type ||
-    visit.simulateResource?.id !== state.simulateResource?.id ||
-    visit.simulatePresentation !== state.simulatePresentation
-  ) {
-    setSimulationVisits({
-      ...simulationVisits,
-      [state.simulateView]: {
-        simulateResource: state.simulateResource,
-        simulatePresentation: state.simulatePresentation,
-      },
-    });
-  }
+  // What `navigate` reads, written at every commit. It closes over nothing a
+  // render changes, so it is one function for the provider's life.
+  const latestRef = useRef<{
+    state: PetrinautNavigationState;
+    controller: PetrinautNavigationController | undefined;
+    /** The record each Simulate section was last seen with. */
+    visits: SimulationVisits;
+  }>({ state, controller, visits: {} });
   /**
    * React normally rerenders after navigation, but several UI libraries emit
    * related callbacks in the same event. Track the state those accepted
@@ -293,17 +281,38 @@ export const PetrinautNavigationProvider = ({
     undefined,
   );
   useLayoutEffect(() => {
+    const { visits } = latestRef.current;
+    const visit = visits[state.simulateView];
+    latestRef.current = {
+      state,
+      controller,
+      // Replaced, not written to: an updater a host applies later keeps the
+      // visits of the call that made it.
+      visits:
+        visit !== undefined &&
+        visit.simulateResource?.type === state.simulateResource?.type &&
+        visit.simulateResource?.id === state.simulateResource?.id &&
+        visit.simulatePresentation === state.simulatePresentation
+          ? visits
+          : {
+              ...visits,
+              [state.simulateView]: {
+                simulateResource: state.simulateResource,
+                simulatePresentation: state.simulatePresentation,
+              },
+            },
+    };
     const optimistic = optimisticRef.current;
     if (optimistic && !petrinautNavigationStatesMatch(optimistic.base, state)) {
       optimisticRef.current = null;
     }
   });
-  useEffect(() => () => clearTimeout(freshnessTimerRef.current), []);
 
   const navigate: PetrinautNavigationContextValue["navigate"] = (
     update,
     intent,
   ) => {
+    const { state: committed, controller: host, visits } = latestRef.current;
     const updater: PetrinautNavigationUpdater<PetrinautNavigationState> = (
       current,
     ) => {
@@ -315,17 +324,15 @@ export const PetrinautNavigationProvider = ({
       ) {
         return {
           ...next,
-          simulateResource:
-            simulationVisits[next.simulateView]?.simulateResource ?? null,
-          simulatePresentation:
-            simulationVisits[next.simulateView]?.simulatePresentation,
+          simulateResource: visits[next.simulateView]?.simulateResource ?? null,
+          simulatePresentation: visits[next.simulateView]?.simulatePresentation,
           overlay: null,
         };
       }
       return next;
     };
     const optimistic = optimisticRef.current;
-    const current = optimistic?.preview ?? state;
+    const current = optimistic?.preview ?? committed;
     const preview = updater(current);
     if (
       (optimistic === null || optimistic.fresh) &&
@@ -335,7 +342,7 @@ export const PetrinautNavigationProvider = ({
     }
 
     optimisticRef.current = {
-      base: optimistic?.base ?? state,
+      base: optimistic?.base ?? committed,
       preview,
       fresh: true,
     };
@@ -347,10 +354,10 @@ export const PetrinautNavigationProvider = ({
       }
     }, 0);
 
-    if (controller) {
-      controller.onNavigate(updater, {
+    if (host) {
+      host.onNavigate(updater, {
         history:
-          controller.historyPolicy?.(intent) ??
+          host.historyPolicy?.(intent) ??
           defaultPetrinautNavigationHistoryPolicy(intent),
         intent,
       });
