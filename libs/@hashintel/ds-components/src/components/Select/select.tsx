@@ -53,7 +53,7 @@ import type {
 import type { IconName } from "../Icon/icon";
 import type {
   AriaAttributes,
-  KeyboardEvent,
+  KeyboardEvent as ReactKeyboardEvent,
   KeyboardEventHandler,
   MouseEventHandler,
   ReactNode,
@@ -567,7 +567,7 @@ export const Select = <TValue extends string>({
   // the machine api instead. Single selects mirror Enter and close after
   // selecting.
   const lastKeyWasListNavRef = useRef(false);
-  const handleSearchSpaceKeyDown = (event: KeyboardEvent): boolean => {
+  const handleSearchSpaceKeyDown = (event: ReactKeyboardEvent): boolean => {
     const api = selectApiRef.current;
     if (
       !api?.open ||
@@ -603,7 +603,7 @@ export const Select = <TValue extends string>({
   // option — activation (Enter, Space, click) selects it, so the horizontal
   // arrows carry the keyboard toggle. Skipped for keys owned by the search
   // field's caret, and while searching (every folder is held open then).
-  const handleCollapsibleArrowKeyDown = (event: KeyboardEvent) => {
+  const handleCollapsibleArrowKeyDown = (event: ReactKeyboardEvent) => {
     const api = selectApiRef.current;
     const expansion = expansionRef.current;
     if (!api?.open || !expansion || hasCaretModifier(event)) {
@@ -642,7 +642,7 @@ export const Select = <TValue extends string>({
   // handing focus to the document's neighbouring tabbable — zag would
   // otherwise trap focus in the open dropdown. Handled in the capture phase
   // so zag never sees the key; all movement is programmatic.
-  const handleTabKeyDown = (event: KeyboardEvent) => {
+  const handleTabKeyDown = (event: ReactKeyboardEvent) => {
     const api = selectApiRef.current;
     if (!api?.open || hasCommandModifier(event)) {
       return;
@@ -718,7 +718,7 @@ export const Select = <TValue extends string>({
       });
     });
   };
-  const handleRootKeyDownCapture = (event: KeyboardEvent) => {
+  const handleRootKeyDownCapture = (event: ReactKeyboardEvent) => {
     if (
       selectApiRef.current?.open &&
       (event.key === "ArrowUp" ||
