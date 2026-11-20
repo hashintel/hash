@@ -557,7 +557,7 @@ describe("the Ledger as a rewindable document (proof 2)", () => {
       const receipts = results(entries).map(({ receipt }) => receipt);
       expect(receipts).toMatchObject([
         { status: "recorded", exchanges: 1 },
-        { status: "recorded", exchanges: 2 },
+        { status: "recorded", exchanges: 1 },
       ]);
       expectAgreement(entries, ledger);
     } finally {
