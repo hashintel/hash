@@ -10,7 +10,7 @@ import {
 
 import type { SubView } from "../../../../components/sub-view/types";
 
-export const entitiesTreeSubView: SubView = {
+const entitiesTreeSubView: SubView = {
   id: "entities-tree",
   title: "Entities",
   component: EntitiesTree,
@@ -19,7 +19,7 @@ export const entitiesTreeSubView: SubView = {
   alwaysShowHeaderAction: true,
 };
 
-export const netsListSubView: SubView = {
+const netsListSubView: SubView = {
   id: "nets-list",
   title: "Nets",
   tooltip:
@@ -30,7 +30,7 @@ export const netsListSubView: SubView = {
   defaultCollapsed: false,
 };
 
-export const componentsSubView: SubView = {
+const componentsSubView: SubView = {
   id: "components",
   title: "Components",
   tooltip:
