@@ -22,7 +22,10 @@ import { useReadOnlyFeedback } from "../../../react/hooks/use-read-only-feedback
 import { NotificationsContext } from "../../../react/notifications/context";
 import { ActiveNetContext } from "../../../react/state/active-net-context";
 import { CompositionContext } from "../../../react/state/composition-context";
-import { useEditorFields } from "../../../react/state/editor-context";
+import {
+  useEditorActions,
+  useEditorFields,
+} from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useComposesOnly } from "../../../react/state/use-composes-only";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
@@ -214,27 +217,19 @@ export const useCanvasInteractions = (): CanvasInteractions => {
   } = usePetrinautMutations();
   // By name: the canvas renders with this hook, and the editor context and
   // the settings change with each panel that opens.
+  const { editionMode, componentToAdd, cursorMode } = useEditorFields(
+    "editionMode",
+    "componentToAdd",
+    "cursorMode",
+  );
   const {
-    editionMode,
     setEditionMode,
-    componentToAdd,
-    cursorMode,
     beginSelectionGesture,
     endSelectionGesture,
     selectItem,
     setSelection,
     clearSelection,
-  } = useEditorFields(
-    "editionMode",
-    "setEditionMode",
-    "componentToAdd",
-    "cursorMode",
-    "beginSelectionGesture",
-    "endSelectionGesture",
-    "selectItem",
-    "setSelection",
-    "clearSelection",
-  );
+  } = useEditorActions();
   const pointer = use(CanvasPointerContext);
   const snapToGrid = useUserSettings((settings) => settings.snapToGrid);
   const readonly = useIsReadOnly();

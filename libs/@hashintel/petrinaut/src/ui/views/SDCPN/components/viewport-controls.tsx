@@ -1,7 +1,10 @@
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { usePetrinautNavigation } from "../../../../react/navigation";
+import {
+  usePetrinautNavigate,
+  usePetrinautNavigationState,
+} from "../../../../react/navigation";
 import { useEditorActions } from "../../../../react/state/editor-context";
 import { useUserSettings } from "../../../../react/state/user-settings-context";
 import { VIEWPORT_CONTROLS_OFFSET } from "../../../constants/ui";
@@ -24,13 +27,15 @@ const blurredBackground = css({ backdropFilter: "[blur(10px)]" });
 
 export const ViewportControls: React.FC = () => {
   const presentation = usePetrinautPresentation();
-  const navigation = usePetrinautNavigation();
+  const navigate = usePetrinautNavigate();
   const enableExperimentalIconPack = useUserSettings(
     (settings) => settings.enableExperimentalIconPack,
   );
-  const isSettingsOpen =
-    navigation.state.overlay?.type === "user-settings" ||
-    navigation.state.overlay?.type === "viewport-settings";
+  const isSettingsOpen = usePetrinautNavigationState(
+    ({ overlay }) =>
+      overlay?.type === "user-settings" ||
+      overlay?.type === "viewport-settings",
+  );
   const chromeBackground = presentation.blurredChrome
     ? blurredBackground
     : undefined;
@@ -125,7 +130,7 @@ export const ViewportControls: React.FC = () => {
               : { iconName: "gear" })}
             className={chromeBackground}
             onClick={() =>
-              navigation.navigate(
+              navigate(
                 { overlay: { type: "user-settings", section: "viewport" } },
                 { cause: "user", action: "overlay" },
               )

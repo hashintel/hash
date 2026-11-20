@@ -72,7 +72,7 @@ const input: CanvasSceneInput = {
   extensions: DEFAULT_PETRINAUT_EXTENSIONS,
   dimensions: compactNodeDimensions,
   dragPreview: new Map(),
-  isSelected: () => false,
+  selectedIds: new Set(),
   focus: resolveCanvasFocus({
     adjacency: buildNetAdjacency({
       ...sdcpn,
@@ -119,7 +119,7 @@ describe("buildCanvasScene", () => {
   it("carries selection and focus roles per item", () => {
     const { nodes, arcs } = buildCanvasScene({
       ...input,
-      isSelected: (id) => id === "p1",
+      selectedIds: new Set(["p1"]),
       focus: resolveCanvasFocus({
         adjacency: buildNetAdjacency(input.net),
         hoveredId: "t1",

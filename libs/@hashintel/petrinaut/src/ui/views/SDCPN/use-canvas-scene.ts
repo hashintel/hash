@@ -34,14 +34,12 @@ export const useCanvasScene = (
   // renders, and the editor context and the settings also change with each
   // panel that opens.
   const {
-    isSelected,
     selection,
     keptOpenVisualizerPlaceIds,
     openVisualizerPlaceId,
     focusedVisualizerPlaceId,
     unfoldedComponentInstanceIds,
   } = useEditorFields(
-    "isSelected",
     "selection",
     "keptOpenVisualizerPlaceIds",
     "openVisualizerPlaceId",
@@ -94,6 +92,7 @@ export const useCanvasScene = (
     activeComponentId,
     libraries,
   );
+  const selectedIds = new Set(selection.keys());
 
   return buildCanvasScene({
     net: activeNet,
@@ -103,13 +102,13 @@ export const useCanvasScene = (
     extensions,
     dimensions: compactNodes ? compactNodeDimensions : classicNodeDimensions,
     dragPreview,
-    isSelected,
+    selectedIds,
     // With the highlight off, the neighbourhood answers to the selection
     // alone.
     focus: resolveCanvasFocus({
       adjacency,
       hoveredId: highlightOnHover ? settledHoverId : null,
-      selectedIds: new Set(selection.keys()),
+      selectedIds,
     }),
     keptOpenVisualizerIds: keptOpenVisualizerPlaceIds,
     activeVisualizerIds: new Set(

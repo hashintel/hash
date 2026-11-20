@@ -218,7 +218,7 @@ export type CanvasSceneInput = {
   extensions: PetrinautExtensionSettings;
   dimensions: RenderNodeDimensions;
   dragPreview: CanvasDragPreview;
-  isSelected: (id: string) => boolean;
+  selectedIds: ReadonlySet<string>;
   focus: CanvasFocus;
   /** Places whose state visualizer stays open without a hover. */
   keptOpenVisualizerIds: ReadonlySet<string>;
@@ -288,14 +288,14 @@ export const buildCanvasScene = ({
   extensions,
   dimensions,
   dragPreview,
-  isSelected,
+  selectedIds,
   focus,
   keptOpenVisualizerIds,
   activeVisualizerIds,
   unfoldedInstanceIds,
 }: CanvasSceneInput): CanvasScene => {
   const interaction = (id: string) => ({
-    selected: isSelected(id),
+    selected: selectedIds.has(id),
     focus: focus.nodeFocus(id),
   });
 
@@ -477,7 +477,7 @@ export const buildCanvasScene = ({
         targetPortId: null,
         transitionId: transition.id,
         color: arcStrokeColor(endpointColor(endpoint)),
-        selected: isSelected(id),
+        selected: selectedIds.has(id),
         focus: focus.arcFocus(id),
       });
     }
@@ -498,7 +498,7 @@ export const buildCanvasScene = ({
         targetPortId: portIdOf(endpoint),
         transitionId: transition.id,
         color: arcStrokeColor(endpointColor(endpoint)),
-        selected: isSelected(id),
+        selected: selectedIds.has(id),
         focus: focus.arcFocus(id),
       });
     }
@@ -509,7 +509,7 @@ export const buildCanvasScene = ({
       fusion,
       status: fusionStatuses.get(fusion.id),
       nodes,
-      selected: isSelected(fusion.id),
+      selected: selectedIds.has(fusion.id),
       focus,
     }),
   );
