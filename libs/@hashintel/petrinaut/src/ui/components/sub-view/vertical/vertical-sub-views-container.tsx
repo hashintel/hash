@@ -119,9 +119,6 @@ export const VerticalSubViewsContainer: React.FC<
   const isSectionCollapsed = (sv: SubView): boolean =>
     containerSettings?.[sv.id]?.collapsed ?? sv.defaultCollapsed ?? false;
 
-  const getSavedHeight = (id: string): number | undefined =>
-    containerSettings?.[id]?.height;
-
   const saveHeight = useDebouncedHeightSave(name, updateSubViewSection);
 
   const { active: isAnimating, trigger: triggerTransition } =
@@ -167,7 +164,7 @@ export const VerticalSubViewsContainer: React.FC<
           <Fragment key={subView.id}>
             <Panel
               id={subView.id}
-              defaultSize={getSavedHeight(subView.id)}
+              defaultSize={containerSettings?.[subView.id]?.height}
               onResize={({ inPixels }) => {
                 // A collapsed section is as tall as its header: not a height
                 // to restore.

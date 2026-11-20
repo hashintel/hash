@@ -6,7 +6,7 @@ import { useRef, useState } from "react";
  * state changes (e.g. collapse/expand) while keeping them disabled during
  * mount, resize, or drag interactions.
  */
-export const useTransientTransition = (durationMs = 200) => {
+export const useTransientTransition = (durationMs: number) => {
   const [active, setActive] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
