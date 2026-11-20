@@ -12,11 +12,9 @@ import {
   formatRunPosition,
 } from "../../../../shared/run-position";
 import {
-  tooltipDotStyle,
-  tooltipLabelStyle,
-  tooltipStyle,
-  tooltipValueStyle,
-} from "../simulation-timeline/styles";
+  createChartTooltip,
+  type ChartTooltip,
+} from "../simulation-timeline/chart-tooltip";
 import { formatTick, formatValue } from "./format";
 import {
   classifyWheel,
@@ -73,34 +71,6 @@ const formatAxisPosition = (clock: RunClock, position: number): string =>
 const STEP_INCREMENTS = Array.from({ length: 10 }, (_, power) =>
   [1, 2, 5].map((multiple) => multiple * 10 ** power),
 ).flat();
-
-interface TooltipNodes {
-  root: HTMLDivElement;
-  dot: HTMLDivElement;
-  name: HTMLSpanElement;
-  value: HTMLSpanElement;
-  time: HTMLDivElement;
-  firing: HTMLDivElement;
-}
-
-const createTooltip = (): TooltipNodes => {
-  const root = document.createElement("div");
-  root.className = tooltipStyle;
-  const label = document.createElement("div");
-  label.className = tooltipLabelStyle;
-  const dot = document.createElement("div");
-  dot.className = tooltipDotStyle;
-  const name = document.createElement("span");
-  const value = document.createElement("span");
-  value.className = tooltipValueStyle;
-  label.append(dot, name, value);
-  const time = document.createElement("div");
-  time.style.cssText = "font-size:10px;opacity:0.8;margin-top:2px";
-  const firing = document.createElement("div");
-  firing.style.cssText = "font-size:10px;margin-top:2px";
-  root.append(label, time, firing);
-  return { root, dot, name, value, time, firing };
-};
 
 /** What the chart reads on every draw and pointer event, kept out of React. */
 type ChartState = {
@@ -319,7 +289,7 @@ const createOverlay = (
 
 const updateTooltip = (
   u: uPlot,
-  tooltip: TooltipNodes,
+  tooltip: ChartTooltip,
   state: ChartState,
   focusedSeries: number,
 ): void => {
@@ -363,7 +333,7 @@ const updateTooltip = (
   nodes.value.textContent =
     showSeries && value != null ? formatValue(value) : "";
   nodes.time.textContent = formatPosition(state.clock, time);
-  nodes.firing.textContent = firing
+  nodes.detail.textContent = firing
     ? `${firing.transitionIds
         .map((id) => state.transitionNames.get(id) ?? id)
         .join(", ")} fired at ${formatPosition(state.clock, firing.time)}`
@@ -585,7 +555,7 @@ const buildOptions = (
   hiddenSeries: Set<string>,
   size: { width: number; height: number },
   stateRef: RefObject<ChartState>,
-  tooltip: TooltipNodes,
+  tooltip: ChartTooltip,
   getOverlay: () => Overlay | null,
 ): uPlot.Options => {
   const laneLabels = data.kind === "lanes" ? data.laneLabels : null;
@@ -810,7 +780,7 @@ export const EventTimelineChart: FC<{
       return;
     }
     const current = stateRef.current.data;
-    const tooltip = createTooltip();
+    const tooltip = createChartTooltip("font-size:10px;margin-top:2px");
     // How the playhead is being handled; the gestures write it, the overlay
     // reads it.
     let feel: PlayheadFeel = { hover: false, active: false };
