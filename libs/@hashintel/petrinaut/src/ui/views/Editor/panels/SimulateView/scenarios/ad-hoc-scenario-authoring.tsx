@@ -45,6 +45,9 @@ const codeNoteStyle = css({
 /** Fixed, so Monaco's lazy load moves nothing around the code slot. */
 const codeSlotHeight = "300px";
 
+/** One object, so a render of the form gives Monaco no new options to apply. */
+const codeSlotOptions = { readOnly: true };
+
 export const codeScenarioNotice =
   "This scenario defines its initial state as code, shown here read-only. Only Variables marked Scenario Parameter are kept with it, each as its computed default. Edit the code from the AI assistant or the net file, or recreate the scenario from the form (a Dynamic row builds many tokens from one count).";
 
@@ -116,7 +119,7 @@ export const AdHocScenarioAuthoringBody: React.FC<{
                         <CodeEditor
                           language="typescript"
                           value={code}
-                          options={{ readOnly: true }}
+                          options={codeSlotOptions}
                           height={codeSlotHeight}
                         />
                       </Section>
