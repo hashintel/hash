@@ -7,7 +7,6 @@ import { use, useEffect, useRef, useState } from "react";
 import {
   PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE,
   petrinautOptimizationInputSchema,
-  type PetrinautOptimizationDirection,
   type PetrinautOptimizationEvent,
   type PetrinautOptimizationInput,
 } from "@hashintel/petrinaut-core";
@@ -27,6 +26,10 @@ import {
   type OptimizationsContextValue,
 } from "./context";
 import {
+  consumeOptimizationRun,
+  isAbortError,
+} from "./provider/consume-optimization-run";
+import {
   createSweepTrialEvaluator,
   type SweepTrialEvaluator,
 } from "./provider/create-sweep-trial-evaluator";
@@ -36,28 +39,6 @@ import type {
   PetrinautConnectedOptimizationCapability,
 } from "@hashintel/petrinaut-core/optimization";
 import type { PropsWithChildren } from "react";
-
-const isAbortError = (error: unknown): boolean =>
-  (error instanceof DOMException && error.name === "AbortError") ||
-  (error instanceof Error && error.name === "AbortError");
-
-/**
- * Calls `visit` with each value of `values` until `shouldStop` returns true,
- * then closes the iterator as a `break` would. React Compiler cannot compile
- * a `for await` loop, so the provider iterates through this helper.
- */
-const forEachAwaited = async <T,>(
-  values: AsyncIterable<T>,
-  visit: (value: T) => void,
-  shouldStop: () => boolean,
-): Promise<void> => {
-  for await (const value of values) {
-    if (shouldStop()) {
-      break;
-    }
-    visit(value);
-  }
-};
 
 const createOptimizationRecord = (
   id: string,
@@ -277,72 +258,6 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
     }
   };
 
-  /**
-   * Consume a run's event stream until its terminal event. Replayed events
-   * at or below the last applied `seq` are skipped so trials are never
-   * double-counted. Aborting the attachment before the terminal event
-   * settles the record as cancelled; a thrown error fails it, and the sweep
-   * parks on the best step tried so far.
-   */
-  const runAttachLoop = async ({
-    optimizationId,
-    runId,
-    direction,
-    capability,
-    abortController,
-  }: {
-    optimizationId: string;
-    runId: string;
-    /** The objective's direction, which decides the best step among the trials. */
-    direction: PetrinautOptimizationDirection;
-    capability: PetrinautConnectedOptimizationCapability;
-    abortController: AbortController;
-  }): Promise<void> => {
-    const { signal } = abortController;
-    // Read through a call so the abort flag is re-checked after each await
-    // (a plain property read would be control-flow-narrowed to `false`).
-    const isCancelled = () => signal.aborted;
-    let lastSeq = 0;
-    let best: OptimizationBest | null = null;
-    // Set by the event visitor. Typed `boolean` so TypeScript does not
-    // narrow it to its initial `false` after the loop.
-    let sawTerminalEvent = false as boolean;
-    try {
-      await forEachAwaited(
-        capability.attachOptimizationRun(runId, { cursor: lastSeq, signal }),
-        (event) => {
-          if (typeof event.seq === "number") {
-            if (event.seq <= lastSeq) {
-              return;
-            }
-            lastSeq = event.seq;
-          }
-          if (event.type === "trial") {
-            best = foldBestTrial(direction, best, event);
-          }
-          if (event.type === "complete" || event.type === "error") {
-            sawTerminalEvent = true;
-          }
-          applyOptimizationEvent(optimizationId, event, lastSeq, best);
-        },
-        isCancelled,
-      );
-      if (isCancelled() && !sawTerminalEvent) {
-        markOptimizationCancelled(optimizationId);
-      }
-    } catch (error) {
-      if (isCancelled() || isAbortError(error)) {
-        markOptimizationCancelled(optimizationId);
-        return;
-      }
-      if (sawTerminalEvent) {
-        // The run already settled; a trailing hiccup changes nothing.
-        return;
-      }
-      markOptimizationFailed(optimizationId, error, best);
-    }
-  };
-
   /** The sweep evaluator behind an optimizer run id, or null when no study owns the run. */
   const resolveSweepEvaluator = (runId: string): SweepTrialEvaluator | null => {
     const entry = [...runIdsRef.current].find(
@@ -441,12 +356,16 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
           status: "running",
         }));
 
-        await runAttachLoop({
-          optimizationId,
+        await consumeOptimizationRun({
+          capability,
           runId,
           direction: input.objective.direction,
-          capability,
-          abortController,
+          signal: abortController.signal,
+          onEvent: (event, lastSeq, best) =>
+            applyOptimizationEvent(optimizationId, event, lastSeq, best),
+          onCancelled: () => markOptimizationCancelled(optimizationId),
+          onFailed: (error, best) =>
+            markOptimizationFailed(optimizationId, error, best),
         });
       };
 
