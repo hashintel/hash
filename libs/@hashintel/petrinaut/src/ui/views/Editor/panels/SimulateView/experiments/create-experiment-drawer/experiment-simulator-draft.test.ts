@@ -12,6 +12,7 @@ import {
   EMPTY_EXPERIMENT_SIMULATOR,
   resolveExperimentSimulator,
   experimentSimulatorError,
+  simulatorRefusalsFor,
   withSimulatorParameter,
   type SimulatorRefusals,
 } from "./experiment-simulator-draft";
@@ -42,6 +43,46 @@ const simulators: SimulatorsContextValue = {
   },
 };
 const none: SimulatorRefusals = new Map();
+
+describe("simulatorRefusalsFor", () => {
+  const supportedGpu = { ...webGpu, isAvailable: () => true };
+
+  it("refuses the GPU simulator on the verdict of the net's analysis", () => {
+    const refusals = simulatorRefusalsFor([fixedStep, supportedGpu], {
+      available: false,
+      reason: "Coloured places",
+      pending: false,
+    });
+    expect(refusals.get(fixedStep.id)).toBeNull();
+    expect(refusals.get(webGpu.id)).toEqual({
+      reason: "Coloured places",
+      pending: false,
+    });
+  });
+
+  it("says so while the analysis has no verdict yet", () => {
+    const refusals = simulatorRefusalsFor([supportedGpu], {
+      available: false,
+      reason: null,
+      pending: true,
+    });
+    expect(refusals.get(webGpu.id)).toEqual({
+      reason: "Checking whether the net can run on the GPU",
+      pending: true,
+    });
+  });
+
+  it("refuses a simulator the browser does not support, whatever the net", () => {
+    const refusals = simulatorRefusalsFor(
+      [{ ...webGpu, isAvailable: () => false }],
+      { available: true, reason: null, pending: false },
+    );
+    expect(refusals.get(webGpu.id)).toEqual({
+      reason: "Not supported by this browser",
+      pending: false,
+    });
+  });
+});
 
 describe("resolveExperimentSimulator", () => {
   it("stands on the default simulator with the default selection's values", () => {

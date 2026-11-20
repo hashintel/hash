@@ -8,15 +8,20 @@ import {
   type RunClock,
   type SimulatorRegistration,
   type StoredSimulatorParameters,
+  WEBGPU_FIXED_STEP_SIMULATOR_ID,
 } from "@hashintel/petrinaut-core";
 
-import { findSimulator } from "../../../../../../../react/simulators/context";
+import {
+  findSimulator,
+  simulatorRefusal,
+} from "../../../../../../../react/simulators/context";
 import { acceptsSimulatorParameter } from "../../../../../../components/simulator-parameter-input";
 
 import type {
   SimulatorSelection,
   SimulatorsContextValue,
 } from "../../../../../../../react/simulators/context";
+import type { GpuAvailability } from "../../shared/use-gpu-availability";
 
 export type ExperimentSimulatorDraft = {
   /** The simulator picked, or null while the form stands on the default one. */
@@ -50,6 +55,34 @@ export type SimulatorRefusal = {
 
 /** Each simulator's refusal by id; null or absent when it can be picked. */
 export type SimulatorRefusals = ReadonlyMap<string, SimulatorRefusal | null>;
+
+/**
+ * Why each simulator cannot run an experiment on this net. The GPU
+ * simulator's verdict comes from the analysis of the net; the others are
+ * known from their registrations.
+ */
+export const simulatorRefusalsFor = (
+  registrations: readonly SimulatorRegistration[],
+  gpu: GpuAvailability,
+): SimulatorRefusals =>
+  new Map(
+    registrations.map((registration) => {
+      const known = simulatorRefusal(registration, "stochastic");
+      if (known !== null) {
+        return [registration.id, { reason: known, pending: false }];
+      }
+      return [
+        registration.id,
+        registration.id === WEBGPU_FIXED_STEP_SIMULATOR_ID && !gpu.available
+          ? {
+              reason:
+                gpu.reason ?? "Checking whether the net can run on the GPU",
+              pending: gpu.pending,
+            }
+          : null,
+      ];
+    }),
+  );
 
 export type ResolvedExperimentSimulator = {
   /** The simulator the experiment would run on; undefined when none can. */

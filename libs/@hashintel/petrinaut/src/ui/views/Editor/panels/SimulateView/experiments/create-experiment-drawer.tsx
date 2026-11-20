@@ -13,22 +13,13 @@ import { css } from "@hashintel/ds-helpers/css";
 import {
   EMPTY_AD_HOC_STATE,
   runClockOf,
-  synthesizeAdHocOptimization,
   WEBGPU_FIXED_STEP_SIMULATOR_ID,
 } from "@hashintel/petrinaut-core";
 
-import {
-  axisDisplayName,
-  buildAdHocSweepAxes,
-  buildParameterAxis,
-  type ExperimentParameterAxis,
-  type ExperimentParameterInput,
-} from "../../../../../../react/experiments/parameter-grid";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { PetrinautOptimizationContext } from "../../../../../../react/optimization-context";
 import {
   findSimulator,
-  simulatorRefusal,
   SimulatorsContext,
 } from "../../../../../../react/simulators/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
@@ -46,7 +37,6 @@ import { summarizeMetricLspErrors } from "../metrics/metric-lsp";
 import { createMetricKindGroups } from "../metrics/metric-picker-options";
 import { SimulationPanel } from "../shared/simulation-panel";
 import { useGpuAvailability } from "../shared/use-gpu-availability";
-import { hasAdHocIntervalToggle } from "./create-experiment-drawer/ad-hoc-interval-toggles";
 import {
   type ConstraintDraftsState,
   EMPTY_CONSTRAINT_DRAFTS,
@@ -57,6 +47,7 @@ import {
   EMPTY_EXPERIMENT_SIMULATOR,
   resolveExperimentSimulator,
   experimentSimulatorError,
+  simulatorRefusalsFor,
 } from "./create-experiment-drawer/experiment-simulator-draft";
 import { ExperimentSimulatorFields } from "./create-experiment-drawer/experiment-simulator-fields";
 import {
@@ -80,6 +71,7 @@ import {
   OptimizationBudget,
 } from "./create-experiment-drawer/metric-optimization";
 import { ExperimentMetricRow } from "./create-experiment-drawer/metric-row";
+import { describeSweep } from "./create-experiment-drawer/sweep-summary";
 import { useCreateOptimizedExperiment } from "./create-optimized-experiment";
 import { getExperimentMetricDiagnosticError } from "./experiment-metric-lsp-validation";
 import { ExperimentScenarioRun } from "./experiment-scenario-run";
@@ -92,6 +84,7 @@ import {
 import { SWEEP_OPTIMIZATION_RUNS_PER_STEP } from "./sweep-optimizer";
 
 import type { ExperimentMetricSpecInput } from "../../../../../../react/experiments/context";
+import type { ExperimentParameterInput } from "../../../../../../react/experiments/parameter-grid";
 import type { AdHocScenarioState, Scenario } from "@hashintel/petrinaut-core";
 
 // -- Styles -------------------------------------------------------------------
@@ -100,7 +93,6 @@ const sweepSummaryStyle = css({
   fontSize: "xs",
   color: "neutral.s80",
   fontVariantNumeric: "tabular-nums",
-  "&[data-tone='warning']": { color: "orange.s100" },
   "&[data-tone='error']": { color: "red.s100" },
 });
 
@@ -227,6 +219,20 @@ export const CreateExperimentDrawer = ({
       ? undefined
       : scenarios.find((s) => s.id === effectiveSelectedScenarioId);
 
+  // The net the ad-hoc form resolves names and types against, shared by the
+  // form and by the sweep summary that reads its selections.
+  const adHocFormContext = {
+    netParameters: extensions.parameters ? petriNetDefinition.parameters : [],
+    places: petriNetDefinition.places,
+    types: extensions.colors ? petriNetDefinition.types : [],
+  };
+  const sweepSummary = describeSweep({
+    scenario: selectedScenario,
+    paramInputs,
+    adHocState,
+    context: adHocFormContext,
+  });
+
   const scenarioOptions = createScenarioOptions(scenarios);
   const metricKindGroups = createMetricKindGroups(petriNetDefinition);
   // Each custom-code metric's errors, as the language client reports them now.
@@ -245,77 +251,16 @@ export const CreateExperimentDrawer = ({
       ? "Define at least one metric"
       : metricDiagnosticError;
 
-  // The net the ad-hoc form resolves names and types against, shared by the
-  // form and by the sweep summary that reads its selections.
-  const adHocFormContext = {
-    netParameters: extensions.parameters ? petriNetDefinition.parameters : [],
-    places: petriNetDefinition.places,
-    types: extensions.colors ? petriNetDefinition.types : [],
-  };
-  const adHocSweeping = effectiveSelectedScenarioId === NO_SCENARIO_VALUE;
+  const adHocSweeping = selectedScenario === undefined;
   const optimizerConnected = optimizationSource !== null;
-
-  /**
-   * The sweep the current interval inputs define. `error` carries the first
-   * invalid interval; `null` summary means no parameter sweeps, i.e. a plain
-   * single-combination experiment.
-   */
-  const sweepSummary = ((): {
-    text: string;
-    tone: "neutral" | "warning" | "error";
-    error: boolean;
-  } | null => {
-    const axes: ExperimentParameterAxis[] = [];
-    for (const param of selectedScenario?.scenarioParameters ?? []) {
-      const input = paramInputs[param.identifier];
-      if (!input || input.mode !== "range") {
-        continue;
-      }
-      const outcome = buildParameterAxis(param, input);
-      if (!outcome.ok) {
-        return { text: outcome.error, tone: "error", error: true };
-      }
-      axes.push(outcome.axis);
-    }
-    if (adHocSweeping && adHocState) {
-      // A definition that does not synthesize reports at its slots. While a
-      // toggle is on, the summary carries its first error the way a saved
-      // scenario's invalid interval does, so the Objective section and the
-      // footer word hold their place while a bound is being edited.
-      const synthesized = synthesizeAdHocOptimization(
-        adHocState,
-        adHocFormContext,
-      );
-      if (synthesized.ok) {
-        const outcome = buildAdHocSweepAxes(synthesized.output.optimizedFields);
-        if (!outcome.ok) {
-          return { text: outcome.error, tone: "error", error: true };
-        }
-        axes.push(...outcome.axes);
-      } else if (hasAdHocIntervalToggle(adHocState)) {
-        const firstError = synthesized.errors[0];
-        if (firstError) {
-          return { text: firstError.message, tone: "error", error: true };
-        }
-      }
-    }
-    if (axes.length === 0) {
-      return null;
-    }
-    const names = axes.map(axisDisplayName).join(", ");
-    const intervals =
-      axes.length === 1 ? "over its interval" : "over their intervals";
-    return {
-      text: `${names} swept ${intervals}`,
-      tone: "neutral",
-      error: false,
-    };
-  })();
 
   // Shown under whichever scenario body is on screen: the form, or a saved
   // scenario shown through it.
   const sweepSummaryLine = sweepSummary ? (
-    <span className={sweepSummaryStyle} data-tone={sweepSummary.tone}>
+    <span
+      className={sweepSummaryStyle}
+      data-tone={sweepSummary.error ? "error" : "neutral"}
+    >
       {sweepSummary.text}
     </span>
   ) : null;
@@ -361,26 +306,7 @@ export const CreateExperimentDrawer = ({
     extensions,
     metricSpecs: draftMetricSpecs,
   });
-  // The GPU simulator's verdict on this net comes from the analysis above;
-  // the others are known from their registrations.
-  const simulatorRefusals = new Map(
-    simulators.registrations.map((registration) => {
-      const known = simulatorRefusal(registration, "stochastic");
-      if (known !== null) {
-        return [registration.id, { reason: known, pending: false }];
-      }
-      return [
-        registration.id,
-        registration.id === WEBGPU_FIXED_STEP_SIMULATOR_ID && !gpu.available
-          ? {
-              reason:
-                gpu.reason ?? "Checking whether the net can run on the GPU",
-              pending: gpu.pending,
-            }
-          : null,
-      ];
-    }),
-  );
+  const simulatorRefusals = simulatorRefusalsFor(simulators.registrations, gpu);
   // Derived rather than stored, so a net edited into ineligibility after a
   // simulator was picked neither shows it as chosen nor submits it. The
   // picker's own value and the submitted simulator read the same result, so
@@ -523,9 +449,7 @@ export const CreateExperimentDrawer = ({
             drafts: constraintDrafts,
             requestConstraint,
             context: {
-              netParameters: extensions.parameters
-                ? petriNetDefinition.parameters
-                : [],
+              netParameters: adHocFormContext.netParameters,
               scenarioParameters: selectedScenario.scenarioParameters,
               sdcpn: petriNetDefinition,
               extensions,
@@ -538,15 +462,9 @@ export const CreateExperimentDrawer = ({
       await createOptimizedExperiment(
         {
           name,
-          scenarioId:
-            effectiveSelectedScenarioId === NO_SCENARIO_VALUE
-              ? null
-              : effectiveSelectedScenarioId,
+          scenarioId: selectedScenario?.id ?? null,
           scenarioParameterValues: paramInputs,
-          adHocScenario:
-            effectiveSelectedScenarioId === NO_SCENARIO_VALUE
-              ? adHocState
-              : null,
+          adHocScenario: adHocSweeping ? adHocState : null,
           adHocSweeps: adHocSweeping,
           runCount: Number(runCount),
           seed: experimentSeed,
