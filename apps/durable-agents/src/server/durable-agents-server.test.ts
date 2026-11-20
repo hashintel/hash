@@ -999,6 +999,67 @@ describe("POST /chat reads only the last message's id, role and text parts", () 
     },
   );
 
+  test.each([
+    [
+      "an id longer than 256 characters",
+      {
+        id: "u".repeat(257),
+        role: "user",
+        parts: [{ type: "text", text: "Hi" }],
+      },
+      400,
+    ],
+    [
+      "text longer than 100,000 characters across its parts",
+      {
+        id: "user-1",
+        role: "user",
+        parts: [
+          { type: "text", text: "x".repeat(60_000) },
+          { type: "text", text: "x".repeat(40_001) },
+        ],
+      },
+      413,
+    ],
+  ])(
+    "a last user message with %s is refused, before any storage lookup or model call",
+    async (_, message, status) => {
+      const { models, model, state } = scriptedModel([]);
+      const storage = memoryConversations();
+      const storageExists = vi.fn<typeof storage.storageExists>(
+        storage.storageExists,
+      );
+      const server = createDurableAgentsServer({
+        now: Date.now,
+        storageExists,
+        openStorage: storage.openStorage,
+        createRegistry,
+        models,
+        agent: { model },
+        clientToolNames: new Set<string>(),
+        context,
+      });
+      servers.push(server);
+
+      const response = await post(server, [message]);
+      expect(response.status).toBe(status);
+      expect(storageExists).not.toHaveBeenCalled();
+      expect(state.callCount).toBe(0);
+    },
+  );
+
+  test("a last user message at the limits is admitted", async () => {
+    const { requests, responses } = recordedAnswers(1);
+    const { server } = openChat({ responses });
+    const text = "x".repeat(100_000);
+    const response = await post(server, [
+      { id: "u".repeat(256), role: "user", parts: [{ type: "text", text }] },
+    ]);
+    expect(response.status).toBe(200);
+    await response.text();
+    expect(userTexts(requests)).toEqual([[text]]);
+  });
+
   test("earlier messages and the last message's other parts are not read: its text parts are the input", async () => {
     const { requests, responses } = recordedAnswers(1);
     const { server } = openChat({ responses });

@@ -78,9 +78,15 @@ export type { RequestSlotsState } from "./durable-agents-server/request-slots";
 
 /** Why a chat request is refused before its submission. */
 export type ChatRefusal = {
-  readonly status: 400 | 404 | 409;
+  readonly status: 400 | 404 | 409 | 413;
   readonly error: string;
 };
+
+/** The longest message id a chat request may send: the request ID its input is admitted under. */
+const maxRequestIdLength = 256;
+
+/** The most text a chat request's message may carry, across its text parts, in UTF-16 code units. */
+const maxUserTextLength = 100_000;
 
 export type DurableAgentsServerLimits = {
   /** Tool rounds one run takes at most; a run that reaches it fails with `turn_limit`. */
@@ -182,7 +188,9 @@ const partText = (part: unknown): TextUIPart["text"] | undefined =>
  * The user message a submit-message request sends: the last message, its
  * text parts joined, as an input. Only what this reads of the last message is
  * checked: it is refused when it is not a user message, or is one without a
- * string `id` and a list of `parts`.
+ * string `id` and a list of `parts`, with 400; when its id is longer than
+ * `maxRequestIdLength`, with 400; and when its text is longer than
+ * `maxUserTextLength`, with 413.
  */
 const userInput = (
   messages: readonly unknown[],
@@ -205,8 +213,18 @@ const userInput = (
       status: 400,
       error: "The last message must have a string id and a list of parts.",
     };
+  if (message.id.length > maxRequestIdLength)
+    return {
+      status: 400,
+      error: `The last message's id must be at most ${maxRequestIdLength} characters.`,
+    };
   const parts: readonly unknown[] = message.parts;
   const text = parts.flatMap((part) => partText(part) ?? []).join("");
+  if (text.length > maxUserTextLength)
+    return {
+      status: 413,
+      error: `The message must be at most ${maxUserTextLength} characters.`,
+    };
   return { requestId: message.id, ...brunchUserInput(text) };
 };
 
