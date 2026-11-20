@@ -11,11 +11,13 @@ import * as Output from "./output.js";
 import * as Titles from "./titles.js";
 
 import type * as Tree from "../Tree/index.js";
+import type { Properties } from "hast";
 import type { Heading, Html, PhrasingContent, Root, RootContent } from "mdast";
 import type { Handle } from "mdast-util-to-markdown";
 
 declare module "mdast" {
   interface HeadingData {
+    hProperties?: Properties | undefined;
     /** The kind of the entry a heading names, for the outline. */
     kind?: Tree.Row.Kind | undefined;
   }

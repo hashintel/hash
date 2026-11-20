@@ -17,7 +17,7 @@
       "dependsOn": ["build"]
     },
     "lint:oxlint": {
-      "dependsOn": ["@local/oxlint#build", "build"]
+      "dependsOn": ["$TURBO_EXTENDS$", "build"]
     }
   }
 }

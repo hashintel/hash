@@ -135,6 +135,7 @@ const build = Effect.fnUntraced(
     const program = TypeScript.Program.layer(
       Array.map(roots, ([, file]) => file),
       {
+        directory,
         paths: Object.fromEntries(
           Array.map(roots, ([name, file]) => [name, [file]] as const),
         ),
