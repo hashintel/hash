@@ -6,7 +6,6 @@
 import { use, useEffect, useMemo, useRef, useState } from "react";
 
 import {
-  assessSimulator,
   createExperimentReader,
   DEFAULT_EXPERIMENT_SAMPLE_PERIOD,
   placeCountMetricSpecs,
@@ -16,37 +15,27 @@ import {
   compileScenario,
   synthesizeAdHocScenario,
   type AdHocScenarioState,
-  type AdHocSynthesisContext,
   type EventSimulation,
-  type CompileHirArtifactsOptions,
-  type HirCompileResult,
-  type MonteCarloExperiment,
-  type MonteCarloExperimentState,
-  type PetrinautExtensionSettings,
   type ReadableStore,
   type ScenarioCompilationError,
-  type ScenarioHir,
-  type ScenarioLoweringInput,
-  type SDCPN,
   type SimulationRequestBase,
   type SimulationState as CoreSimulationState,
-  type SimulatorExperimentRequest,
-  type SimulatorRegistration,
-  type SimulatorStart,
   type CompiledScenarioResult,
 } from "@hashintel/petrinaut-core";
 
 import { deriveDefaultParameterValues } from "../hooks/use-default-parameter-values";
 import { useLatest } from "../hooks/use-latest";
 import { useStableCallback } from "../hooks/use-stable-callback";
-import { LanguageClientContext } from "../lsp/context";
+import {
+  LanguageClientContext,
+  type LanguageClientContextValue,
+} from "../lsp/context";
 import { usePetrinautNavigation } from "../navigation";
 import { NotificationsContext } from "../notifications/context";
 import {
   findSimulator,
   SimulatorsContext,
   type SimulationMode,
-  type SimulatorSelection,
 } from "../simulators/context";
 import { SDCPNContext } from "../state/sdcpn-context";
 import { useExecutableDefinition } from "../state/use-executable-definition";
@@ -75,8 +64,14 @@ import {
   simulatorSelectionIn,
   type SimulatorChoices,
 } from "./provider/simulator-selection";
+import {
+  releasingOnDispose,
+  startSimulatorExperiment,
+  startSimulatorRun,
+} from "./provider/start-on-simulator";
+import { createStochasticPlaybackSource } from "./provider/stochastic-playback-source";
 import { runEndOf } from "./run-end";
-import { useScenarioHir } from "./use-scenario-hir";
+import { useScenarioHir, type ScenarioHirRequest } from "./use-scenario-hir";
 
 /**
  * Internal state for the simulation provider.
@@ -122,94 +117,6 @@ function createInitialStateValues(options?: {
     simulatorParameters: {},
   };
 }
-
-/** A refusal's reasons as one message, the way a failed start reports. */
-const refusalMessage = (
-  blockers: readonly { readonly message: string }[],
-): string => blockers.map((blocker) => blocker.message).join("\n");
-
-/**
- * The handle, releasing what was loaded for it once it is disposed: whoever
- * ends the run or the experiment ends the simulator's hold with it.
- */
-const releasingOnDispose = <Handle extends { dispose(this: void): void }>(
-  handle: Handle,
-  release: () => void,
-): Handle => ({
-  ...handle,
-  dispose: () => {
-    handle.dispose();
-    release();
-  },
-});
-
-/**
- * The selected simulator's offer for the request, or throws why there is
- * none. This and the two starts below live outside `initialize`: a `throw`
- * inside that function's `try`/`catch` is syntax React Compiler does not
- * lower.
- */
-const assessOrThrow = async (
-  registration: SimulatorRegistration | undefined,
-  selection: SimulatorSelection,
-  request: Parameters<typeof assessSimulator>[2],
-) => {
-  if (!registration) {
-    throw new Error(`No simulator is registered as "${selection.simulatorId}"`);
-  }
-  const outcome = await assessSimulator(
-    registration,
-    selection.parameters,
-    request,
-  );
-  if (!outcome.ok) {
-    throw new Error(refusalMessage(outcome.blockers));
-  }
-  return { offer: outcome.offer, dispose: outcome.dispose, registration };
-};
-
-/**
- * What a start of the offer produced, or throws why it produced nothing.
- * The simulator loaded for the offer is released with the handle, or at
- * once when nothing started.
- */
-const startedOrThrow = async <Handle extends { dispose(this: void): void }>(
-  release: () => void,
-  start: (() => Promise<SimulatorStart<Handle>>) | undefined,
-  notOffered: string,
-): Promise<Handle> => {
-  if (!start) {
-    release();
-    throw new Error(notOffered);
-  }
-  let started: SimulatorStart<Handle>;
-  try {
-    // A start may throw before it returns its promise, as well as reject.
-    started = await start();
-  } catch (error) {
-    release();
-    throw error;
-  }
-  if (!started.ok) {
-    release();
-    throw new Error(refusalMessage(started.blockers));
-  }
-  return releasingOnDispose(started.handle, release);
-};
-
-/** Starts one run on the selected simulator, or throws why it could not. */
-const startSimulatorRun = async (
-  registration: SimulatorRegistration | undefined,
-  selection: SimulatorSelection,
-  request: Parameters<typeof assessSimulator>[2],
-): Promise<EventSimulation> => {
-  const assessed = await assessOrThrow(registration, selection, request);
-  return startedOrThrow(
-    assessed.dispose,
-    assessed.offer.startRun,
-    `${assessed.registration.label} computes many runs at once, not a single run`,
-  );
-};
 
 /**
  * Stops a start that a change of configuration overtook while the net was
@@ -272,83 +179,10 @@ function mapCoreState(status: CoreSimulationState | null): SimulationState {
   }
 }
 
-const experimentStatusAsRunStatus = (
-  status: MonteCarloExperimentState,
-): CoreSimulationState =>
-  // A cancelled experiment is over, with what it computed still to view.
-  status === "Cancelled" ? "Complete" : status;
-
-/**
- * What playback moves over in Stochastic mode: the experiment's samples. It
- * computes freely, so nothing is demanded of it.
- */
-const createStochasticPlaybackSource = ({
-  experiment,
-  reader,
-}: Pick<StochasticRun, "experiment" | "reader">): PlaybackSource => {
-  const read = () => ({
-    eventCount: experiment.metrics.get().frames.length,
-    coveredTime: reader.coveredTime(),
-  });
-  // The same object while nothing moved, as a store's value has to be.
-  let coverage = read();
-  const getCoverage = () => {
-    const next = read();
-    if (
-      next.eventCount !== coverage.eventCount ||
-      next.coveredTime !== coverage.coveredTime
-    ) {
-      coverage = next;
-    }
-    return coverage;
-  };
-  return {
-    coverage: {
-      get: getCoverage,
-      subscribe: (listener) =>
-        experiment.metrics.subscribe(() => listener(getCoverage())),
-    },
-    status: {
-      get: () => experimentStatusAsRunStatus(experiment.status.get()),
-      subscribe: (listener) =>
-        experiment.status.subscribe((status) =>
-          listener(experimentStatusAsRunStatus(status)),
-        ),
-    },
-    demand: () => {},
-  };
-};
-
-/** Starts an experiment on the selected simulator, or throws why it could not. */
-const startSimulatorExperiment = async (
-  registration: SimulatorRegistration | undefined,
-  selection: SimulatorSelection,
-  request: Parameters<typeof assessSimulator>[2],
-  experiment: SimulatorExperimentRequest,
-): Promise<MonteCarloExperiment> => {
-  const assessed = await assessOrThrow(registration, selection, request);
-  const { startExperiment } = assessed.offer;
-  return startedOrThrow(
-    assessed.dispose,
-    startExperiment ? () => startExperiment(experiment) : undefined,
-    `${assessed.registration.label} computes one run at a time, not many`,
-  );
-};
-
 /** Compilation surface consumed by simulation without coupling it to an LSP. */
 export type SimulationCompiler = {
-  requestHirArtifacts: (
-    sdcpn: SDCPN,
-    extensions?: PetrinautExtensionSettings,
-    options?: CompileHirArtifactsOptions,
-  ) => Promise<HirCompileResult>;
-  requestScenarioHir: (
-    scenario: ScenarioLoweringInput,
-    /** The net context an `adhoc` initial state synthesizes against. */
-    adHocContext?: AdHocSynthesisContext,
-    /** Lets a host with precompiled artifacts look the scenario up. */
-    scenarioId?: string,
-  ) => Promise<ScenarioHir>;
+  requestHirArtifacts: LanguageClientContextValue["requestHirArtifacts"];
+  requestScenarioHir: ScenarioHirRequest;
 };
 
 export type SimulationProviderProps = React.PropsWithChildren<{
