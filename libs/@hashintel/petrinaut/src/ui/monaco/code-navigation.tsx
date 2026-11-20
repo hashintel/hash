@@ -1,4 +1,4 @@
-import { use, useState } from "react";
+import { startTransition, use, useState } from "react";
 
 import {
   getDocumentUri,
@@ -111,10 +111,11 @@ export const CodeNavigationProvider = ({ children }: PropsWithChildren) => {
     open: (path, options) => {
       const entry = entries.find((candidate) => candidate.path === path);
       if (!enabled || !entry) return;
-      updateSubViewSection(entry.panel, entry.section, {
-        ...subViewPanels[entry.panel]?.[entry.section],
-        collapsed: false,
-      });
+      const expandSection = () =>
+        updateSubViewSection(entry.panel, entry.section, {
+          ...subViewPanels[entry.panel]?.[entry.section],
+          collapsed: false,
+        });
       if (options?.maximize) {
         navigate(
           {
@@ -124,7 +125,13 @@ export const CodeNavigationProvider = ({ children }: PropsWithChildren) => {
           { cause: "user", action: "subview" },
         );
         setFocusRequest({ path });
+        // The section fills its container whether or not it is collapsed.
+        // Expanding it only matters once the user goes back, so it waits:
+        // the container then knows of the request first, and keeps the
+        // layout of its sections still until the section covers them.
+        startTransition(expandSection);
       } else {
+        expandSection();
         selectItem(entry.selection);
       }
     },

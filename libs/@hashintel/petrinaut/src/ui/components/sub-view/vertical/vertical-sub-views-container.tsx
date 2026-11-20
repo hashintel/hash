@@ -7,6 +7,7 @@ import { useUserSettings } from "../../../../react/state/user-settings-context";
 import { SubViewContent } from "./vertical-sub-views-container/sub-view-content";
 import { SubViewHeader } from "./vertical-sub-views-container/sub-view-header";
 import { useDebouncedHeightSave } from "./vertical-sub-views-container/use-debounced-height-save";
+import { useHeldWhile } from "./vertical-sub-views-container/use-held-while";
 import { useSubViewMaximization } from "./vertical-sub-views-container/use-sub-view-maximization";
 import { useTransientTransition } from "./vertical-sub-views-container/use-transient-transition";
 
@@ -111,13 +112,24 @@ export const VerticalSubViewsContainer: React.FC<
   const updateSubViewSection = useUserSettings(
     (settings) => settings.updateSubViewSection,
   );
-  const { containerRef, maximizedId, isRestoring, maximize, restore } =
-    useSubViewMaximization(name, subViews, showAnimations);
+  const {
+    containerRef,
+    maximizedId,
+    isRestoring,
+    isArriving,
+    maximize,
+    restore,
+  } = useSubViewMaximization(name, subViews, showAnimations);
   const parentSubView = subViews.find((subView) => subView.main);
   const parentTitle = parentSubView?.title ?? "Properties";
 
-  const isSectionCollapsed = (sv: SubView): boolean =>
-    containerSettings?.[sv.id]?.collapsed ?? sv.defaultCollapsed ?? false;
+  // What opens code in a section expands the section and fills the container
+  // with it at once. The other sections show until the section covers them,
+  // so the layout they are in holds still until then: expanding the section
+  // would give its panel a new height and move every section below the fold.
+  const shownSettings = useHeldWhile(isArriving, containerSettings);
+  const isSectionCollapsed = (sv: SubView, settings = shownSettings): boolean =>
+    settings?.[sv.id]?.collapsed ?? sv.defaultCollapsed ?? false;
 
   const saveHeight = useDebouncedHeightSave(name, updateSubViewSection);
 
@@ -128,7 +140,9 @@ export const VerticalSubViewsContainer: React.FC<
     if (showAnimations) {
       triggerTransition();
     }
-    updateSubViewSection(name, sv.id, { collapsed: !isSectionCollapsed(sv) });
+    updateSubViewSection(name, sv.id, {
+      collapsed: !isSectionCollapsed(sv, containerSettings),
+    });
   };
 
   const allCollapsed = subViews.every(

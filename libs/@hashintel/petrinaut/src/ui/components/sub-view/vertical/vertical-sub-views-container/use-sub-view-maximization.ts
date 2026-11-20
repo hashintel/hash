@@ -104,6 +104,13 @@ export const useSubViewMaximization = (
   ) {
     setMaximization(null);
   }
+  // The section whose animation to fill the container has ended.
+  const [arrivedId, setArrivedId] = useState<string | null>(null);
+  const filledId =
+    maximization && !maximization.restoring ? maximization.id : null;
+  if (arrivedId !== null && arrivedId !== filledId) {
+    setArrivedId(null);
+  }
 
   useEffect(() => {
     if (requestedId !== null && targetId === null) {
@@ -202,6 +209,8 @@ export const useSubViewMaximization = (
         if (maximization.restoring) {
           restoreFocusRef.current = section;
           setMaximization(null);
+        } else {
+          setArrivedId(maximization.id);
         }
       })
       .catch(() => {});
@@ -215,6 +224,17 @@ export const useSubViewMaximization = (
     containerRef,
     maximizedId: maximization?.id ?? null,
     isRestoring: maximization?.restoring ?? false,
+    /**
+     * A section is on its way to filling the container and does not cover
+     * the others yet: from the request until its animation ends.
+     */
+    isArriving:
+      targetId !== null &&
+      (filledId !== targetId ||
+        (maximization !== null &&
+          maximization.animated &&
+          maximization.from !== null &&
+          arrivedId !== targetId)),
     maximize: (id: string) =>
       navigate(
         { expandedSubView: { container: name, id } },
