@@ -19,12 +19,9 @@ import type {
   WebId,
 } from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
-import type { Subtype } from "@local/advanced-types/subtype";
 import type {
   ClosedMultiEntityTypeMap,
   DataTypeConversionTargets as GraphApiDataTypeConversionTargets,
-  EntityTypeResolveDefinitions as GraphApiEntityTypeResolveDefinitions,
-  GetClosedMultiEntityTypesResponseDefinitions,
 } from "@local/hash-graph-client";
 
 export type OwnedOntologyElementMetadata = {
@@ -103,20 +100,10 @@ export interface ClosedDataTypeDefinition {
   parents: VersionedUrl[];
 }
 
-export type ClosedMultiEntityTypesDefinitions = Subtype<
-  GetClosedMultiEntityTypesResponseDefinitions,
-  {
-    dataTypes: { [key: VersionedUrl]: ClosedDataTypeDefinition };
-    entityTypes: { [key: VersionedUrl]: PartialEntityType };
-    propertyTypes: { [key: VersionedUrl]: PropertyType };
-  }
->;
+export type EntityTypeResolveDefinitions = {
+  dataTypes: Record<VersionedUrl, ClosedDataTypeDefinition>;
+  propertyTypes: Record<VersionedUrl, PropertyType>;
+  entityTypes: Record<VersionedUrl, PartialEntityType>;
+};
 
-export type EntityTypeResolveDefinitions = Subtype<
-  GraphApiEntityTypeResolveDefinitions,
-  {
-    dataTypes: Record<VersionedUrl, ClosedDataTypeDefinition>;
-    propertyTypes: Record<VersionedUrl, PropertyType>;
-    entityTypes: Record<VersionedUrl, PartialEntityType>;
-  }
->;
+export type ClosedMultiEntityTypesDefinitions = EntityTypeResolveDefinitions;

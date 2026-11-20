@@ -8,17 +8,14 @@ import { logger } from "../shared/activity-logger.js";
 
 import type { Url } from "@blockprotocol/type-system";
 import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
-import type { GetWebSearchResults200ResponseWebSearchResultsInner } from "@local/internal-api-client";
+import type { WebSearchResult } from "@local/hash-backend-utils/internal-api-client";
 
-export type GetWebSearchResultsResponse = Omit<
-  GetWebSearchResults200ResponseWebSearchResultsInner,
-  "url"
-> & {
+export type GetWebSearchResultsResponse = Omit<WebSearchResult, "url"> & {
   url: Url;
 };
 
 const mapWebSearchResults = (
-  webSearchResults: GetWebSearchResults200ResponseWebSearchResultsInner[],
+  webSearchResults: WebSearchResult[],
 ): GetWebSearchResultsResponse[] =>
   webSearchResults.map(
     (webSearchResult) => webSearchResult as GetWebSearchResultsResponse,
@@ -32,9 +29,7 @@ export const webSearchAction: FlowActionActivity<"webSearch"> = async ({
     actionType: "webSearch",
   });
 
-  const {
-    data: { webSearchResults },
-  } = await backOff(
+  const { webSearchResults } = await backOff(
     async () => {
       try {
         return await internalApiClient.getWebSearchResults(query);

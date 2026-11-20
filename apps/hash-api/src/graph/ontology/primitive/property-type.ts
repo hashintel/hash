@@ -2,6 +2,7 @@ import {
   ontologyTypeRecordIdToVersionedUrl,
   PROPERTY_TYPE_META_SCHEMA,
 } from "@blockprotocol/type-system";
+import { actorHeaders } from "@local/hash-graph-client";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 
 import { getWebShortname } from "./util";
@@ -67,8 +68,7 @@ export const createPropertyType: ImpureGraphFunction<
 
   const { graphApi } = ctx;
 
-  const { data: metadata } = await graphApi.createPropertyType(
-    authentication.actorId,
+  const metadata = await graphApi.createPropertyType(
     {
       schema,
       provenance: {
@@ -76,6 +76,7 @@ export const createPropertyType: ImpureGraphFunction<
         ...params.provenance,
       },
     },
+    actorHeaders(authentication.actorId),
   );
 
   // TODO: Avoid casting through `unknown` when new codegen is in place
@@ -112,9 +113,9 @@ export const updatePropertyType: ImpureGraphFunction<
     },
   };
 
-  const { data: metadata } = await ctx.graphApi.updatePropertyType(
-    actorId,
+  const metadata = await ctx.graphApi.updatePropertyType(
     updateArguments,
+    actorHeaders(actorId),
   );
 
   const { recordId } = metadata;
@@ -146,9 +147,9 @@ export const archivePropertyType: ImpureGraphFunction<
   ArchivePropertyTypeParams,
   Promise<OntologyTemporalMetadata>
 > = async ({ graphApi }, { actorId }, params) => {
-  const { data: temporalMetadata } = await graphApi.archivePropertyType(
-    actorId,
+  const temporalMetadata = await graphApi.archivePropertyType(
     params,
+    actorHeaders(actorId),
   );
 
   return temporalMetadata as OntologyTemporalMetadata;
@@ -164,9 +165,9 @@ export const unarchivePropertyType: ImpureGraphFunction<
   Omit<UnarchivePropertyTypeParams, "provenance">,
   Promise<OntologyTemporalMetadata>
 > = async ({ graphApi, provenance }, { actorId }, params) => {
-  const { data: temporalMetadata } = await graphApi.unarchivePropertyType(
-    actorId,
+  const temporalMetadata = await graphApi.unarchivePropertyType(
     { ...params, provenance },
+    actorHeaders(actorId),
   );
 
   return temporalMetadata as OntologyTemporalMetadata;

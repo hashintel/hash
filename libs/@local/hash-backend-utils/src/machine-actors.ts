@@ -1,5 +1,6 @@
 import { backOff } from "exponential-backoff";
 
+import { actorHeaders } from "@local/hash-graph-client";
 import { HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
 import {
   getAiByIdentifier,
@@ -245,11 +246,8 @@ export const createWebMachineActor = async (
   const { graphApi } = context;
 
   const { webId, machineId } = await graphApi
-    .getWebByShortname(authentication.actorId, shortname)
-    .then(({ data }) => ({
-      webId: data.webId as WebId,
-      machineId: data.machineId as MachineId,
-    }));
+    .getWebByShortname(shortname, actorHeaders(authentication.actorId))
+    .then((data) => data as { webId: WebId; machineId: MachineId });
 
   await createWebMachineActorEntity(context, {
     webId,

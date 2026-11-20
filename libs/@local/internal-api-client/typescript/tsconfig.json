@@ -1,9 +1,0 @@
-{
-  "extends": ["@tsconfig/bases/recommended", "@local/tsconfig/policy.json"],
-  "include": ["./"],
-  "compilerOptions": {
-    "lib": ["es2024"],
-    "module": "NodeNext",
-    "types": ["node"]
-  }
-}

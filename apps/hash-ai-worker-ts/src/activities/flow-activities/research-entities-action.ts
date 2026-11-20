@@ -1,3 +1,4 @@
+import { actorHeaders } from "@local/hash-graph-client";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
@@ -147,11 +148,14 @@ export const researchEntitiesAction: FlowActionActivity<
             ),
         )
         .map(async (claim) =>
-          graphApiClient.patchEntity(userAuthentication.actorId, {
-            entityId: claim.metadata.recordId.entityId,
-            archived: true,
-            provenance,
-          }),
+          graphApiClient.patchEntity(
+            {
+              entityId: claim.metadata.recordId.entityId,
+              archived: true,
+              provenance,
+            },
+            actorHeaders(userAuthentication.actorId),
+          ),
         ),
     );
   }
