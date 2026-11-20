@@ -1,34 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  areMetricLspDiagnosticSummariesEqual,
-  getExperimentMetricDiagnosticError,
-} from "./experiment-metric-lsp-validation";
+import { getExperimentMetricDiagnosticError } from "./experiment-metric-lsp-validation";
 
 describe("experiment metric LSP validation", () => {
-  it("compares diagnostic summaries by count and first message", () => {
-    expect(
-      areMetricLspDiagnosticSummariesEqual(
-        { count: 1, firstMessage: "Unknown place" },
-        { count: 1, firstMessage: "Unknown place" },
-      ),
-    ).toBe(true);
-
-    expect(
-      areMetricLspDiagnosticSummariesEqual(
-        { count: 1, firstMessage: "Unknown place" },
-        { count: 2, firstMessage: "Unknown place" },
-      ),
-    ).toBe(false);
-
-    expect(
-      areMetricLspDiagnosticSummariesEqual(
-        { count: 1, firstMessage: "Unknown place" },
-        { count: 1, firstMessage: "Unknown transition" },
-      ),
-    ).toBe(false);
-  });
-
   it("returns the first expression metric diagnostic as a footer error", () => {
     expect(
       getExperimentMetricDiagnosticError([

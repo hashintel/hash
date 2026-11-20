@@ -1,5 +1,5 @@
 import { Collapsible } from "@ark-ui/react/collapsible";
-import { use, useEffect, useLayoutEffect, useRef } from "react";
+import { use, useLayoutEffect, useRef } from "react";
 
 import {
   Button,
@@ -10,7 +10,6 @@ import {
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { useStableCallback } from "../../../../../../../react/hooks/use-stable-callback";
 import { LanguageClientContext } from "../../../../../../../react/lsp/context";
 import { useUserSettings } from "../../../../../../../react/state/user-settings-context";
 import { CodeEditor } from "../../../../../../monaco/code-editor";
@@ -31,7 +30,6 @@ import {
   type ExperimentMetricDraft,
 } from "./metric-drafts";
 
-import type { MetricLspDiagnosticSummary } from "../experiment-metric-lsp-validation";
 import type { SDCPN } from "@hashintel/petrinaut-core";
 import type { ReactNode } from "react";
 
@@ -152,45 +150,33 @@ const codeDiagnosticStyle = css({
   whiteSpace: "pre-wrap",
 });
 
+/** Keeps the metric's language session alive while its row is collapsed. */
 const ExperimentMetricLspSession = ({
   code,
   metricSessionId,
-  onChange,
 }: {
   code: string;
   metricSessionId: string;
-  onChange: (diagnostics: MetricLspDiagnosticSummary) => void;
 }) => {
   useMetricLspSession(code, metricSessionId);
-  const { diagnosticsByUri } = use(LanguageClientContext);
-  const { count, firstMessage } = summarizeMetricLspErrors(
-    diagnosticsByUri,
-    metricSessionId,
-  );
-  const stableOnChange = useStableCallback(onChange);
-
-  useEffect(() => {
-    stableOnChange({ count, firstMessage });
-  }, [count, firstMessage, stableOnChange]);
-
   return null;
 };
 
 const ExperimentExpressionMetricEditor = ({
   code,
   metricSessionId,
-  lspDiagnostics,
   readOnly = false,
   onChange,
   onEscape,
 }: {
   code: string;
   metricSessionId: string;
-  lspDiagnostics: MetricLspDiagnosticSummary;
   readOnly?: boolean;
   onChange: (code: string) => void;
   onEscape: () => void;
 }) => {
+  const { diagnosticsByUri } = use(LanguageClientContext);
+  const errors = summarizeMetricLspErrors(diagnosticsByUri, metricSessionId);
   const codeUri = getMetricDocumentUri(metricSessionId);
 
   return (
@@ -209,9 +195,9 @@ const ExperimentExpressionMetricEditor = ({
         }}
         onEscape={onEscape}
       />
-      {lspDiagnostics.count > 0 ? (
+      {errors.count > 0 ? (
         <span className={codeDiagnosticStyle}>
-          {lspDiagnostics.firstMessage ?? `${lspDiagnostics.count} diagnostics`}
+          {errors.firstMessage ?? `${errors.count} diagnostics`}
         </span>
       ) : null}
     </div>
@@ -225,7 +211,6 @@ export const ExperimentMetricRow = ({
   autoFocusLabel,
   isObjective,
   onChange,
-  onLspDiagnosticsChange,
   onRemove,
   registerTrigger,
   footer,
@@ -236,10 +221,6 @@ export const ExperimentMetricRow = ({
   autoFocusLabel: boolean;
   isObjective: boolean;
   onChange: (metricId: string, patch: Partial<ExperimentMetricDraft>) => void;
-  onLspDiagnosticsChange: (
-    metricId: string,
-    diagnostics: MetricLspDiagnosticSummary,
-  ) => void;
   onRemove: (metricId: string) => void;
   /** Tells the list which button to focus when a neighbouring row is removed. */
   registerTrigger: (
@@ -298,9 +279,6 @@ export const ExperimentMetricRow = ({
         <ExperimentMetricLspSession
           code={metric.code}
           metricSessionId={metric.metricSessionId}
-          onChange={(diagnostics) =>
-            onLspDiagnosticsChange(metric.id, diagnostics)
-          }
         />
       ) : null}
       <div className={metricRowHeaderStyle}>
@@ -445,7 +423,6 @@ export const ExperimentMetricRow = ({
             <ExperimentExpressionMetricEditor
               code={metric.code}
               metricSessionId={metric.metricSessionId}
-              lspDiagnostics={metric.lspDiagnostics}
               readOnly={metric.sourceMetricId !== null}
               onChange={(code) => updateMetric({ code })}
               onEscape={() => collapseButtonRef.current?.focus()}

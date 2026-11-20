@@ -3,10 +3,6 @@
  * edits, its labels, and the specs the experiment is created with.
  */
 import { MODEL_METRIC_VALUE_PREFIX } from "../../metrics/metric-picker-options";
-import {
-  EMPTY_METRIC_LSP_DIAGNOSTICS,
-  type MetricLspDiagnosticSummary,
-} from "../experiment-metric-lsp-validation";
 
 import type { ExperimentMetricSpecInput } from "../../../../../../../react/experiments/context";
 import type { MonteCarloMetricSpec, SDCPN } from "@hashintel/petrinaut-core";
@@ -48,7 +44,6 @@ export type ExperimentMetricDraft = {
   // Set when this metric was picked from a custom metric defined on the model.
   sourceMetricId: string | null;
   metricSessionId: string;
-  lspDiagnostics: MetricLspDiagnosticSummary;
 };
 
 export const transitionModeOptions: {
@@ -147,7 +142,6 @@ export function createDefaultMetricDraft(sdcpn: SDCPN): ExperimentMetricDraft {
     code: DEFAULT_METRIC_CODE,
     sourceMetricId: null,
     metricSessionId: crypto.randomUUID(),
-    lspDiagnostics: EMPTY_METRIC_LSP_DIAGNOSTICS,
   };
 }
 
@@ -176,7 +170,6 @@ export const metricKindPatch = (
       kind: "expression",
       code: modelMetric.code,
       sourceMetricId: modelMetric.id,
-      lspDiagnostics: EMPTY_METRIC_LSP_DIAGNOSTICS,
       label: canReplaceMetricLabel(metric.label, sdcpn)
         ? modelMetric.name
         : metric.label,
@@ -190,7 +183,6 @@ export const metricKindPatch = (
       ? "Custom metric"
       : metric.label,
     sourceMetricId: null,
-    lspDiagnostics: EMPTY_METRIC_LSP_DIAGNOSTICS,
   };
 
   if (

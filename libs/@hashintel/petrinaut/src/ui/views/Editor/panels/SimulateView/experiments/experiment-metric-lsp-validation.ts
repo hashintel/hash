@@ -9,18 +9,6 @@ export type ExperimentMetricDiagnosticDraft = {
   lspDiagnostics: MetricLspDiagnosticSummary;
 };
 
-export const EMPTY_METRIC_LSP_DIAGNOSTICS: MetricLspDiagnosticSummary = {
-  count: 0,
-  firstMessage: undefined,
-};
-
-export function areMetricLspDiagnosticSummariesEqual(
-  left: MetricLspDiagnosticSummary,
-  right: MetricLspDiagnosticSummary,
-): boolean {
-  return left.count === right.count && left.firstMessage === right.firstMessage;
-}
-
 export function getExperimentMetricDiagnosticError(
   drafts: readonly ExperimentMetricDiagnosticDraft[],
 ): string | null {

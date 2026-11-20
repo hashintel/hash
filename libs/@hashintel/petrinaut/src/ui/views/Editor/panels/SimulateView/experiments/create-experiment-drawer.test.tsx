@@ -21,6 +21,7 @@ import {
   DiagnosticSeverity,
   FIXED_STEP_SIMULATOR_ID,
   getConstraintDocumentUri,
+  getMetricDocumentUri,
 } from "@hashintel/petrinaut-core";
 import { compileHirArtifacts } from "@hashintel/petrinaut-core/hir";
 
@@ -1404,6 +1405,54 @@ describe("CreateExperimentDrawer metric selection", () => {
       expect(screen.queryByLabelText("Metric label")).toBeNull();
     },
   );
+  it("blocks Run and names the metric while its code has an error", async () => {
+    const languageClient = makeLanguageClient();
+    const { rerender } = render(
+      <TestProviders languageClient={languageClient} />,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: /Add metric/ }));
+    fireEvent.change(screen.getByLabelText("Metric type"), {
+      target: { value: "expression" },
+    });
+    expect(submitButton().disabled).toBe(false);
+
+    const session = vi.mocked(languageClient.initializeMetricSession).mock
+      .calls[0]?.[0];
+    if (!session) {
+      throw new Error("expected a metric session to have been initialized");
+    }
+    const diagnosticsByUri: LanguageClientContextValue["diagnosticsByUri"] =
+      new Map([
+        [
+          getMetricDocumentUri(session.sessionId),
+          [
+            {
+              range: {
+                start: { line: 0, character: 0 },
+                end: { line: 0, character: 1 },
+              },
+              message: "Property 'Missing' does not exist.",
+              severity: DiagnosticSeverity.Error,
+            },
+          ],
+        ],
+      ]);
+    rerender(
+      <TestProviders languageClient={{ ...languageClient, diagnosticsByUri }} />,
+    );
+
+    expect(
+      within(screen.getByRole("group", { name: "Custom metric" })).getByText(
+        "Property 'Missing' does not exist.",
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Metric \"Custom metric\" has 1 code diagnostic: Property 'Missing' does not exist.",
+      ),
+    ).toBeTruthy();
+    expect(submitButton().disabled).toBe(true);
+  });
 });
 
 const objectiveRadio = (metricLabel: string) =>

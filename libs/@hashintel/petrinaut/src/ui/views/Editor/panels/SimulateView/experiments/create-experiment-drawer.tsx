@@ -42,6 +42,7 @@ import {
 import { Section, SectionList } from "../../../../../components/section";
 import { FocusControls } from "../../../../../worksheet/focus-controls";
 import { FocusRoot, FocusStack } from "../../../../../worksheet/focus-stack";
+import { summarizeMetricLspErrors } from "../metrics/metric-lsp";
 import { createMetricKindGroups } from "../metrics/metric-picker-options";
 import { SimulationPanel } from "../shared/simulation-panel";
 import { useGpuAvailability } from "../shared/use-gpu-availability";
@@ -80,11 +81,7 @@ import {
 } from "./create-experiment-drawer/metric-optimization";
 import { ExperimentMetricRow } from "./create-experiment-drawer/metric-row";
 import { useCreateOptimizedExperiment } from "./create-optimized-experiment";
-import {
-  areMetricLspDiagnosticSummariesEqual,
-  getExperimentMetricDiagnosticError,
-  type MetricLspDiagnosticSummary,
-} from "./experiment-metric-lsp-validation";
+import { getExperimentMetricDiagnosticError } from "./experiment-metric-lsp-validation";
 import { ExperimentScenarioRun } from "./experiment-scenario-run";
 import {
   EMPTY_SWEEP_OBJECTIVE,
@@ -232,8 +229,17 @@ export const CreateExperimentDrawer = ({
 
   const scenarioOptions = createScenarioOptions(scenarios);
   const metricKindGroups = createMetricKindGroups(petriNetDefinition);
-  const metricDiagnosticError =
-    getExperimentMetricDiagnosticError(metricDrafts);
+  // Each custom-code metric's errors, as the language client reports them now.
+  const metricDiagnosticError = getExperimentMetricDiagnosticError(
+    metricDrafts.map((draft) => ({
+      kind: draft.kind,
+      label: draft.label,
+      lspDiagnostics: summarizeMetricLspErrors(
+        diagnosticsByUri,
+        draft.metricSessionId,
+      ),
+    })),
+  );
   const metricFormError =
     metricDrafts.length === 0
       ? "Define at least one metric"
@@ -470,34 +476,6 @@ export const CreateExperimentDrawer = ({
         metric.id === metricId ? { ...metric, ...patch } : metric,
       ),
     );
-  };
-
-  const handleMetricLspDiagnosticsChange = (
-    metricId: string,
-    diagnostics: MetricLspDiagnosticSummary,
-  ) => {
-    setMetricDrafts((prev) => {
-      const currentMetric = prev.find((metric) => metric.id === metricId);
-
-      if (
-        !currentMetric ||
-        areMetricLspDiagnosticSummariesEqual(
-          currentMetric.lspDiagnostics,
-          diagnostics,
-        )
-      ) {
-        return prev;
-      }
-
-      return prev.map((metric) =>
-        metric.id === metricId
-          ? {
-              ...metric,
-              lspDiagnostics: diagnostics,
-            }
-          : metric,
-      );
-    });
   };
 
   const handleMetricRemove = (metricId: string) => {
@@ -833,9 +811,6 @@ export const CreateExperimentDrawer = ({
                             objectiveEnabled && metric.id === objectiveMetricId
                           }
                           onChange={handleMetricChange}
-                          onLspDiagnosticsChange={
-                            handleMetricLspDiagnosticsChange
-                          }
                           onRemove={handleMetricRemove}
                           registerTrigger={registerMetricTrigger}
                           footer={
