@@ -1,3 +1,4 @@
+pub(crate) mod current;
 mod record;
 #[cfg(test)]
 mod tests;
@@ -32,10 +33,12 @@ impl RunId {
 pub(crate) enum RunError {
     #[display("the run has no `run.json`")]
     NotFound,
-    #[display("the file is not a run record")]
+    #[display("the file is not a `run.json` or `current.json`")]
     Unreadable,
     #[display("the file changed since it was read")]
     Changed,
+    #[display("`current.json` names another run")]
+    NotActive,
     #[display("the bucket could not be read or written")]
     Storage,
 }
